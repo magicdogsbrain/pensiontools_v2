@@ -45,7 +45,9 @@ const JOURNEYS_APART = ['a-already-stopped'];
 // step 6: the lock, the planner reading the plan as locked, the unlock): at 390 and 1440.
 // … and the three levers of "Will it last?" on a saved plan's "Does it last?" (road-to-7.md step 7), and "How the money is
 // taken" (way-and-mix.md 7: the nine cards, a dial, "Use this way of drawing", the locked plan's comparison line).
-const JOURNEYS_PLAN = ['plan', 'plan-about', 'plan-income', 'plan-spend', 'plan-pots', 'plan-lasts', 'plan-lock', 'plan-levers', 'plan-way'];
+// … and "The mix" and Try a change (way-and-mix.md 3, 4, 7: a level, your own split, a pasted list, the tent's bad-case line,
+// "Which mix lasts best?" and "Use this mix"; every Try box, "What's different", "Use this", "Keep as a separate plan").
+const JOURNEYS_PLAN = ['plan', 'plan-about', 'plan-income', 'plan-spend', 'plan-pots', 'plan-lasts', 'plan-lock', 'plan-levers', 'plan-way', 'plan-mix', 'plan-try'];
 const JOURNEYS_PHONE = ['c-forum-guest', 'c-couple', 'c-retired', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP, ...JOURNEYS_PLAN];
 const JOURNEYS_DESKTOP = ['c-forum-guest', 'c-couple', 'production', 'old-app-unchanged', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP, ...JOURNEYS_APART, ...JOURNEYS_PLAN];
 const only = (names) => names.map((n) => `**/${n}.spec.js`);

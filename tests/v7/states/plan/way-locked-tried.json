@@ -4659,6 +4659,31 @@
                 "sub": "way",
                 "href": "#/plan/SamLocked02/way",
                 "lockedButton": "tryWay"
+              },
+              {
+                "id": "mix",
+                "lines": [
+                  {
+                    "id": "mix.bought",
+                    "slots": {
+                      "strategy": "full-il-gilt"
+                    },
+                    "sentence": {
+                      "id": "mix.bought",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "locked",
+                      "at": "1 July 2026",
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "settings",
+                "sub": "mix",
+                "href": "#/plan/SamLocked02/mix",
+                "lockedButton": "tryMix"
               }
             ],
             "options": [
@@ -5368,6 +5393,10 @@
           },
           {
             "id": "way",
+            "under": "plan"
+          },
+          {
+            "id": "mix",
             "under": "plan"
           }
         ],
@@ -6577,7 +6606,9 @@
     "workDraft": {
       "yearly": "",
       "years": ""
-    }
+    },
+    "tried": null,
+    "kept": null
   },
   "ways": {
     "key": "SamLocked02|2026-09-02T18:30:00.000Z|1xf3033|L",
@@ -7227,6 +7258,18 @@
       }
     },
     "rankBy": "lasts"
+  },
+  "mix": {
+    "key": null,
+    "tries": {},
+    "compare": {
+      "status": "idle",
+      "result": null,
+      "ms": null,
+      "progress": null,
+      "reason": null
+    },
+    "pick": null
   },
   "ui": {
     "railOpen": false,

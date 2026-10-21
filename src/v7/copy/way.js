@@ -63,8 +63,9 @@ export const WAY = {
     cannotGilt: 'Your pot cannot buy this on this plan: no index-linked gilt reaches far enough for its last years. So there is no figure.',
     /** On a locked plan, once another way is open (2.4): the document's figure beside the tried one; never a word of unlocking. */
     compare: 'Your plan as locked lasts {docWords} on {docWay}; {way} would have lasted {words}.',
-    /** The two ways of the Pots & Valves family (2.2): the mix lives in the planner until "The mix" is built. */
-    mix: 'Its mix, the split between shares, bonds, diversifiers and cash, is set in the planner’s Settings for now.',
+    /** The two ways of the Pots & Valves family (2.2, 3.1): the mix is on its own step, "The mix" (6.41.0). */
+    mix: 'Its mix, the split between shares, bonds, gold and trend funds, and cash, is on ‘The mix’.',
+    mixLink: 'Open ‘The mix’',
     noTent: 'The bond tent is not used by this way of drawing.',
     bundled: 'Gilts priced on the bundled yield curve here; the planner prices them on the day’s live figures when it has them.',
     wrongTitle: 'What can go wrong',

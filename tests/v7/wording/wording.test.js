@@ -28,6 +28,7 @@ import { POTS } from '../../../src/v7/copy/pots.js';
 import { LASTS } from '../../../src/v7/copy/lasts.js';
 import { LOCK } from '../../../src/v7/copy/lock.js';
 import { WAY } from '../../../src/v7/copy/way.js';
+import { MIX } from '../../../src/v7/copy/mix.js';
 import { STRATEGY_NAMES } from '../../../src/strategies/stressTest.js';
 import { listStrategies } from '../../../src/strategies/registry.js';
 import { WAY_IDS, WAY_DIALS } from '../../../src/answers/plan/schema.js';
@@ -124,7 +125,7 @@ describe('the words in src/v7/copy/', () => {
     const slot = (s) => s.replace(/\{(month|nextMonth|stop)\}/g, 'April 2027').replace(/\{(date|asOf)\}/g, '1 July 2026').replace(/\{(year|savedYear)\}/g, '2027/28')
       .replace(/\{monthName\}/g, 'October').replace(/\{time\}/g, '14:03').replace(/\{changed\}/g, '17 October 2026').replace(/\{n\}/g, '2').replace(/\{of\}/g, '3').replace(/\{name\}/g, 'Ladder plan').replace(/\{step\}/g, 'This month')
       .replace(/\{strategy\}/g, 'Full gilt ladder').replace(/\{dial\}/g, 'Years held in cash').replace(/\{mode\}/g, 'by risk level').replace(/\{from\}/g, '9 November 2036')
-      .replace(/\{label\}/g, 'Rental flat').replace(/\{(to|age)\}/g, '74').replace(/\{what\}/g, 'a cash lump sum');
+      .replace(/\{label\}/g, 'Rental flat').replace(/\{(to|age)\}/g, '74').replace(/\{what\}/g, 'a cash lump sum').replace(/\{level\}/g, 'balanced').replace(/\{years\}/g, '15');
     const hits = [];
     const all = strings(PLAN).map(([, s]) => slot(s)).join('\n');
     // the strategies' names are shown one at a time beside a label; the one with an ampersand is spelt as the planner spells it
@@ -179,7 +180,9 @@ describe('the words in src/v7/copy/', () => {
       .replace(/\{(perMonth|potBefore|potAfter|yearly)\}/g, '£25,000').replace(/\{(chance|baseChance|docChance)\}/g, '92.7').replace(/\{runs\}/g, '7').replace(/\{s\}/g, 's')
       .replace(/\{(typical|bad|good|perYear|total|worst|lowest|left|amount|buffer|leanest)\}/g, '£25,000')
       .replace(/\{(pct|half|full)\}/g, '20').replace(/\{(futures|of|n|histories|ranOut)\}/g, '1,000').replace(/\{(years|months|first|age|toAge|secured|year|lastStart|fired)\}/g, '12')
-      .replace(/\{s\}/g, 's').replace(/\{name\}/g, 'Sam').replace(/\{value\}/g, '3').replace(/\{reserve\}/g, 'no reserve').replace(/\{strategy\}/g, 'Pots and valves');
+      .replace(/\{s\}/g, 's').replace(/\{name\}/g, 'Sam').replace(/\{value\}/g, '3').replace(/\{reserve\}/g, 'no reserve').replace(/\{strategy\}/g, 'Pots and valves')
+      // Try a change (way-and-mix.md 4): the way, the pots, the policy, the income, the old figure, on or off, "instead of your steps"
+      .replace(/\{way\}/g, 'Floor to an age, then decide').replace(/\{(pot|isa|income)\}/g, '£500,000').replace(/\{old\}/g, '35').replace(/\{policy\}/g, 'held back, never drawn for income').replace(/\{on\}/g, 'on').replace(/\{steps\}/g, ' instead of your steps');
     const hits = [];
     const all = strings(LASTS).map(([, s]) => slot(s)).join('\n');
     for (const [where, s] of strings(LASTS)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`lasts.js ${where} — ${h}`);
@@ -237,6 +240,24 @@ describe('the words in src/v7/copy/', () => {
     // the bad case is said the one way, and the score never decides the cards' order
     expect(WAY.card.left).toContain('a bad case (the worst 1 in 10)');
     expect(WAY.table.score).toContain('never decides the order of the cards');
+  });
+  it('"The mix" (mix.js): every string passes in every scope a plan page is shown in; no slot left unfilled; never the planner\'s words for the mix', () => {
+    // the mix step is a plan page (way-and-mix.md 3): a retired person's and a saver's plan alike; its cells state the answer
+    const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(words|triedWords|ownWords)\}/g, 'in 9 futures out of 10').replace(/\{name\}/g, 'Full index-linked gilt ladder')
+      .replace(/\{(pot|isa|shares|bonds|cash|diversifiers|amount|typical|bad|withBad|withoutBad)\}/g, '£250,000').replace(/\{pct\}/g, '92').replace(/\{(years|runs|n|line)\}/g, '15').replace(/\{ms\}/g, '4.6').replace(/\{s\}/g, 's')
+      .replace(/\{(div|list|text|why|category|ticker|held|row|level)\}/g, 'balanced').replace(/\{(on|tent)\}/g, 'on').replace(/\{value\}/g, '3')
+      .replace(/\{(read|recognised|unrecognised|unknown)\}/g, '2').replace(/\{(total|recognisedTotal|unrecognisedTotal|unknownTotal)\}/g, '£53,600');
+    const hits = [];
+    const all = strings(MIX).map(([, s]) => slot(s)).join('\n');
+    for (const [where, s] of strings(MIX)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`mix.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+    for (const [where, s] of strings(MIX)) expect(s, where).not.toMatch(/\b(error|invalid|submit|calculate|simulate|simulation|Monte Carlo|percentile|strategy|allocation|portfolio|sub-?asset|sleeves?|equit(y|ies)|MC|p10|p50|p90|FAILED)\b/i);
+    for (const [where, s] of strings(MIX)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+    // the bad case is said the one way; the cost of the runs is said where the figures are (way-and-mix.md 10)
+    expect(MIX.tries.lines['sleeve.withTried']).toContain('a bad case (the worst 1 in 10)');
+    expect(MIX.tries.ran.one).toBe('Tried in 1 run.');
+    expect(MIX.compare.ranUntimed).toBe('Tried in 8 runs.');
   });
   it('"Your pots and tax" (pots.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the fourth editing step is a plan page too (editing-in-v7.md 9): a retired person's and a saver's plan are both edited from it

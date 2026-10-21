@@ -78,8 +78,12 @@ describe('the State Pension the plan assumes when none was entered', () => {
 
 describe('"Try a strategy" runs the plan\'s full length', () => {
   it('no 35-year cap: the plan\'s own duration, up to the engines\' 45 years', () => {
-    expect(html).toContain("c.duration = Math.max(5, Math.min(45, +document.getElementById('tryYears').value || s.duration || 35));");
+    // 6.41.0: the copy is made by the lifted trySettingsOf (src/answers/plan/lastsRun.js), the planner handing it the boxes
+    expect(html).toContain('return trySettingsOf(s, readTryBoxes());');
     expect(html).not.toContain("Math.min(35, +document.getElementById('tryYears').value");
+    const lifted = readFileSync(process.cwd() + '/src/answers/plan/lastsRun.js', 'utf8');
+    expect(lifted).toContain('c.duration = Math.max(TRY_YEARS.min, Math.min(TRY_YEARS.max, +b.years || s.duration || 35));');
+    expect(lifted).toContain('TRY_YEARS = Object.freeze({ min: 5, max: 45 })');
     expect(html).toContain('<input type="number" id="tryYears" min="5" max="45">');
   });
 });

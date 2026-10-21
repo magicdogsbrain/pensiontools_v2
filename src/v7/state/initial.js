@@ -132,12 +132,43 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     keep,
     lasts:   emptyLasts(),                           // "Does it last?": the one test's result for ONE plan, page memory only (editing-in-v7.md 10)
     ways:    emptyWays(),                            // "How the money is taken": the nine ways on ONE plan, page memory only (way-and-mix.md 2)
+    mix:     emptyMix(),                             // "The mix": the tries and the comparison on ONE plan, page memory only (way-and-mix.md 3)
     ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
   };
 }
 
-/** No run of "Does it last?" held: `key` is lasts.js runKeyOf of the plan a result (or a run under way) is for. */
-export const emptyLasts = () => ({ key: null, status: 'idle', reason: null, result: null, progress: null, slow: false, levers: {}, workDraft: { yearly: '', years: '' } });
+/**
+ * No run of "Does it last?" held: `key` is lasts.js runKeyOf of the plan a result (or a run under way) is for. `tried`
+ * (way-and-mix.md 4): the one try of a change held — { status: 'working' | 'done' | 'failed', boxes, result, ms, reason } —
+ * or null; `kept`: the copy "Keep as a separate plan" made from it — { id, name, where } — or null.
+ */
+export const emptyLasts = () => ({ key: null, status: 'idle', reason: null, result: null, progress: null, slow: false, levers: {}, workDraft: { yearly: '', years: '' }, tried: null, kept: null });
+/**
+ * Nothing of "The mix" held (way-and-mix.md 3.2): `key` as lasts'; `tries` by kind ('sleeve', 'tent'): { status: 'working' |
+ * 'done' | 'failed', result, ms, reason }; `compare`: { status: 'idle' | 'working' | 'done' | 'failed', result, ms, progress,
+ * reason }; `pick`: the cell "Use this mix" is asked about ({ key, tent }) or null.
+ */
+export const emptyMix = () => ({ key: null, tries: {}, compare: { status: 'idle', result: null, ms: null, progress: null, reason: null }, pick: null });
+export const MIX_TRY_KINDS = Object.freeze(['sleeve', 'tent']);
+export const MIX_CELL_KEYS = Object.freeze(['own', 'cautious', 'balanced', 'adventurous']);
+const MIX_STATUS = ['working', 'done', 'failed'];
+/** A mix try's entry, cleaned (state/replace may draw one). */
+export function cleanMixTry(x) {
+  if (!x || typeof x !== 'object' || !MIX_STATUS.includes(x.status)) return null;
+  return { status: x.status, result: x.status === 'done' && x.result && typeof x.result === 'object' ? x.result : null, ms: Number.isFinite(x.ms) ? x.ms : null, reason: x.status === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null };
+}
+/** A cell of the comparison, cleaned: a known row and the tent as yes or no. */
+export const cleanCell = (c) => (c && typeof c === 'object' && MIX_CELL_KEYS.includes(c.key) ? { key: c.key, tent: c.tent === true } : null);
+/** A tried change's entry, cleaned (way-and-mix.md 4). */
+export function cleanTriedChange(x) {
+  if (!x || typeof x !== 'object' || !MIX_STATUS.includes(x.status) || !x.boxes || typeof x.boxes !== 'object') return null;
+  return { status: x.status, boxes: x.boxes, result: x.status === 'done' && x.result && typeof x.result === 'object' ? x.result : null, ms: Number.isFinite(x.ms) ? x.ms : null, reason: x.status === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null };
+}
+/** The copy a try was kept as, cleaned: an id, a name and where (as cleanMade). */
+export function cleanKept(x) {
+  if (!x || typeof x !== 'object' || typeof x.id !== 'string' || !PLAN_ID.test(x.id) || typeof x.name !== 'string' || !x.name || x.name.length > NAME_MAX || !KEEP_WHERES.includes(x.where)) return null;
+  return { id: x.id, name: x.name, where: x.where };
+}
 /**
  * No run of the nine ways held (way-and-mix.md 2.2): `key` as lasts'; `result` waysRun.js runWays's; `ran` { runs, ms } the cost
  * said on screen; `open` the way whose card is open (null: the plan's own); `dials` text typed by way and key; `tried` by way:

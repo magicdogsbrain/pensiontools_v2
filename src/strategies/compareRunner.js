@@ -21,6 +21,8 @@ import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo, floorCost } from './FloorAndFlex.js';
 import { profileTargetForYear } from '../services/IncomeProfile.js';
 import { stressTestAll, stressTestStrategy, STRATEGY_NAMES } from './stressTest.js';
+import { mixCells } from '../services/GlidepathService.js';
+export { mixCells };
 
 
 /**
@@ -198,6 +200,25 @@ export function compareAll(p, ids = Object.keys(STRATEGY_NAMES), { onProgress = 
     strategies[ids[i]] = stressTestStrategy(ids[i], p, cfgs);
   }
   return { configs: cfgs, strategies };
+}
+
+/**
+ * "Compare allocations" / "Which mix lasts best?" (index.html runCompareStrategiesUI's grid, lifted pure in 6.41.0 —
+ * research/v7/way-and-mix.md 3.2e, 6): every cell of GlidepathService.mixCells (the plan's own mix with the tent off and
+ * on when `own`, then the three levels with the tent off and on) through the one test — stressTestStrategy on the plan
+ * `planFor` builds from the cell's settings (the caller's plan builder, so this file reads no engine config of its own).
+ * The planner's button runs the six it always ran through its worker; the preview runs the eight here. Pure and
+ * synchronous: `onProgress(i, n, cell)` before each run; the caller paces the screen.
+ * @returns {Array<{ key, tent, settings, p: object, r: object }>}
+ */
+export function compareMixes(settings, { own = true, onProgress = null, planFor } = {}) {
+  if (typeof planFor !== 'function') throw new Error('compareMixes needs planFor');
+  const cells = mixCells(settings, { own });
+  return cells.map((cell, i) => {
+    if (typeof onProgress === 'function') onProgress(i, cells.length, cell);
+    const p = planFor(cell.settings);
+    return { ...cell, p, r: stressTestStrategy(cell.settings.strategyId, p) };
+  });
 }
 
 /** Run the full N-way compare — ONE code path with the locked-plan stress test (stressTest.js). */

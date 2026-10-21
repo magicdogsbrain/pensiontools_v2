@@ -16,6 +16,10 @@
  *                                                   loaded lazily beside lastsRun.js; way-and-mix.md 2)
  *   { id, type: 'way', plan, env: { today, way: { id, dials } } }
  *                                                   the same shape: one way tried on its dials (waysRun.js runWay)
+ *   { id, type: 'try', plan, env: { today, boxes } } the same shape: a change tried on a saved plan (lastsRun.js runTry; way-and-mix.md 4)
+ *   { id, type: 'mixTry', plan, env: { today, kind, base } }
+ *   { id, type: 'mixCompare', plan, env: { today } } the same shape: the mix's sleeve or tent the other way, and the eight cells
+ *                                                   (mixRun.js runMixTry, runMixCompare, loaded lazily; way-and-mix.md 3.2)
  *
  * env = { today, futures, seed, trace: false }. If a message carries no date, the one given at `init` is used.
  * createHandler() is the whole of the logic, so the tests drive the real handler without a Worker.
@@ -50,11 +54,13 @@ function historyEndOf(answers) {
 const loadLasts = () => import('../../answers/plan/lastsRun.js');
 /** "How the money is taken" (way-and-mix.md 2.2): the nine ways, loaded lazily beside the one test (the same engine, one more door). */
 const loadWays = () => import('../../answers/plan/waysRun.js');
+/** "The mix" (way-and-mix.md 3.2): the sleeve's and the tent's try and the eight cells, loaded lazily the same way. */
+const loadMix = () => import('../../answers/plan/mixRun.js');
 
-export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null } = {}) {
+export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null, mixTry = null, mixCompare = null, tryOne = null } = {}) {
   let today = null;
   const last = new Map();      // question → its last result (offered to its next answer as env.reuse)
-  /** `lasts`, `document`, `lever`, `ways` and `way` share the lazy engine: the one test, or the run the plan document is built from, or the nine ways. */
+  /** `lasts`, `document`, `lever`, `try`, `ways`, `way`, `mixTry` and `mixCompare` share the lazy engine: the one test, or the run the plan document is built from, or the nine ways, or the mix's runs. */
   const runLazy = async (msg, post, id, which) => {
     const env = { ...(msg.env || {}) };
     if (!env.today && today) env.today = today;
@@ -66,11 +72,16 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
       post({ id, progress: { done, total } });
     };
     const fn = which === 'document' ? (document || (await loadLasts()).runForDocument) : which === 'lever' ? (lever || (await loadLasts()).runLever)
-      : which === 'ways' ? (ways || (await loadWays()).runWays) : which === 'way' ? (way || (await loadWays()).runWay) : (lasts || (await loadLasts()).runLasts);
+      : which === 'try' ? (tryOne || (await loadLasts()).runTry)
+        : which === 'ways' ? (ways || (await loadWays()).runWays) : which === 'way' ? (way || (await loadWays()).runWay)
+          : which === 'mixTry' ? (mixTry || (await loadMix()).runMixTry) : which === 'mixCompare' ? (mixCompare || (await loadMix()).runMixCompare)
+            : (lasts || (await loadLasts()).runLasts);
     const result = which === 'document' ? fn(msg.plan, { today: env.today, essentials: env.essentials, onProgress })
       : which === 'lever' ? fn(msg.plan, { today: env.today, lever: env.lever, onProgress })
-        : which === 'way' ? fn(msg.plan, { today: env.today, id: env.way.id, dials: env.way.dials, onProgress })
-          : fn(msg.plan, { today: env.today, onProgress });
+        : which === 'try' ? fn(msg.plan, { today: env.today, boxes: env.boxes, onProgress })
+          : which === 'way' ? fn(msg.plan, { today: env.today, id: env.way.id, dials: env.way.dials, onProgress })
+            : which === 'mixTry' ? fn(msg.plan, { today: env.today, kind: env.kind, base: env.base || null, onProgress })
+              : fn(msg.plan, { today: env.today, onProgress });
     post({ id, result: cloneSafe(result) });
   };
   const runLasts = (msg, post, id) => runLazy(msg, post, id, 'lasts');
@@ -108,6 +119,23 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
         if (!msg.plan || typeof msg.plan !== 'object') throw new Error('way: no plan');
         if (!msg.env || !msg.env.way || typeof msg.env.way !== 'object' || typeof msg.env.way.id !== 'string') throw new Error('way: no way');
         runLazy(msg, post, id, 'way').catch((e) => post({ id, error: String((e && e.message) || e) }));
+        return;
+      }
+      if (msg.type === 'try') {
+        if (!msg.plan || typeof msg.plan !== 'object') throw new Error('try: no plan');
+        if (!msg.env || !msg.env.boxes || typeof msg.env.boxes !== 'object') throw new Error('try: no boxes');
+        runLazy(msg, post, id, 'try').catch((e) => post({ id, error: String((e && e.message) || e) }));
+        return;
+      }
+      if (msg.type === 'mixTry') {
+        if (!msg.plan || typeof msg.plan !== 'object') throw new Error('mixTry: no plan');
+        if (!msg.env || (msg.env.kind !== 'sleeve' && msg.env.kind !== 'tent')) throw new Error('mixTry: no kind');
+        runLazy(msg, post, id, 'mixTry').catch((e) => post({ id, error: String((e && e.message) || e) }));
+        return;
+      }
+      if (msg.type === 'mixCompare') {
+        if (!msg.plan || typeof msg.plan !== 'object') throw new Error('mixCompare: no plan');
+        runLazy(msg, post, id, 'mixCompare').catch((e) => post({ id, error: String((e && e.message) || e) }));
         return;
       }
       if (msg.type === 'answer') {

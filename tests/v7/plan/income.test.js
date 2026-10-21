@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { incomeOf, incomePatch, applyPatch, boxesOf, savedIncome, checkIncome, derivedLines, note2028, derivedSpDate, yearOfAge, ageOfYear, FS_LABEL, pounds, poundsPence } from '../../../src/answers/plan/income.js';
 import { answerAge, safeSettings, safeTiming } from '../../../src/answers/plan/about.js';
-import { INCOME_FIELDS, INCOME_LISTS, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, ALL_WRITES, ABOUT_WRITES, isIncomePath, isPlanEditPath, RISES, WRAPPERS } from '../../../src/answers/plan/schema.js';
+import { INCOME_FIELDS, INCOME_LISTS, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, ALL_WRITES, ABOUT_WRITES, isIncomePath, isPlanEditPath, RISES, WRAPPERS } from '../../../src/answers/plan/schema.js';
 import { SUB_STEPS, ALL_SUB_STEPS } from '../../../src/answers/plan/steps.js';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { parse, format, screenName, PLAN_SUB_STEPS } from '../../../src/v7/router/routes.js';
@@ -390,9 +390,9 @@ describe('I1 — the stale-answer rule gains the State Pension and the final-sal
 
 describe('I1 — the sub-step, the address and the plan page\'s section', () => {
   it('"income" sits under "plan" beside "about"; the address parses and formats; the screen is plan.income', () => {
-    expect(SUB_STEPS.plan).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way']);
-    expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way']);
-    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way']);
+    expect(SUB_STEPS.plan).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
+    expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
+    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
     const r = parse('#/plan/AboutPlan01/income');
     expect(r).toEqual({ screen: 'plan', q: null, step: 'income', planId: 'AboutPlan01', focus: null });
     expect(format(r)).toBe('#/plan/AboutPlan01/income');
@@ -403,7 +403,7 @@ describe('I1 — the sub-step, the address and the plan page\'s section', () => 
     for (const e of entries) {
       const pg = planPage(entries, e.plan.id, 'plan', { today: TODAY });
       const plan = pg.steps.find((s) => s.id === 'plan');
-      expect(plan.sections.map((s) => s.id)).toEqual(['about', 'pays', 'pots', 'income', 'way']);
+      expect(plan.sections.map((s) => s.id)).toEqual(['about', 'pays', 'pots', 'income', 'way', 'mix']);
       const income = plan.sections.find((s) => s.id === 'income');
       expect(income.href).toBe('#/plan/' + e.plan.id + '/income');
       expect(income.sub).toBe('income');
@@ -427,7 +427,7 @@ describe('I1 — the sub-step, the address and the plan page\'s section', () => 
     expect(isPlanEditPath('lumps.0.atAge')).toBe(true);
     for (const p of INCOME_WRITES) expect(p).toMatch(/^stressTool\.settings\.[a-zA-Z]+$/);
     expect(INCOME_WRITES.some((p) => p.startsWith('decisionTool'))).toBe(false);
-    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, 'lastModified'])]);
+    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, 'lastModified'])]);
   });
   it('a plan not in the list, and the partner link both ways', () => {
     expect(incomeOf(entriesAt(TODAY), 'NoSuchPlan', { today: TODAY }).found).toBe(false);

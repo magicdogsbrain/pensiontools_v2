@@ -1,0 +1,3040 @@
+{
+  "route": {
+    "screen": "plan",
+    "q": null,
+    "step": "mix",
+    "planId": "AlexRotation05",
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.40.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "in",
+    "email": "someone@example.com",
+    "signingOut": false
+  },
+  "plan": null,
+  "plans": {
+    "status": "read",
+    "source": "account",
+    "readAt": "14:03",
+    "list": [
+      {
+        "plan": {
+          "id": "AlexRotation05",
+          "budgetTool": {
+            "settings": {
+              "currentAge": 58,
+              "currentAgeAsOf": "2026-09-05",
+              "derived": {
+                "allInComfortableAnnual": 0,
+                "allInComfortableMonthly": 0,
+                "comfortableAnnualNet": 0,
+                "comfortableMonthlyNet": 0,
+                "essentialAnnualNet": 0,
+                "essentialMonthlyNet": 0,
+                "householdComfortableAnnual": 0,
+                "householdComfortableMonthly": 0,
+                "partnerAllInAnnual": 0,
+                "partnerAllInMonthly": 0,
+                "periodicAnnualAverage": 0,
+                "periodicMonthlyAverage": 0,
+                "sharedWithPartner": false,
+                "suggestedGrossAnnual": 0
+              },
+              "endAge": 100,
+              "lines": [],
+              "mySharePct": 50,
+              "oneOffs": [],
+              "plsaTier": "moderate",
+              "retired": true,
+              "retirementAge": 59,
+              "sharedWithPartner": false,
+              "version": 1
+            }
+          },
+          "createdAt": "2026-09-05T17:45:00.000Z",
+          "decisionTool": {
+            "history": [],
+            "settings": {
+              "accessMethod": "drawdown",
+              "allocMode": "funds",
+              "bandFillRecycle": false,
+              "baseSalary": 46000,
+              "bedAndIsa": true,
+              "bondMin": 590000,
+              "cashTarget": 95000,
+              "configured": true,
+              "consecutiveLimit": 3,
+              "disableProtection": false,
+              "diversifierStart": 0,
+              "duration": 34,
+              "equityGlideEnabled": false,
+              "equityMin": 310000,
+              "firstTaxYear": 2027,
+              "giaTaxBand": "basic",
+              "glideEndgame": null,
+              "incomeShape": "phases",
+              "incomeSteps": [
+                {
+                  "amount": 46000,
+                  "fromAge": 59
+                },
+                {
+                  "amount": 40000,
+                  "fromAge": 70
+                },
+                {
+                  "amount": 34000,
+                  "fromAge": 80
+                }
+              ],
+              "isaBalance": 55000,
+              "isaDrawdownStrategy": "hold",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "protectionEscalateMonths": 12,
+              "protectionFactor": 20,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "seededFrom": "stress",
+              "shapeAgeNow": 59,
+              "spStartDate": "30 June 2035",
+              "spWeeklyAmount": 226.4,
+              "spendingProfile": "flat",
+              "statePension": 0,
+              "statePensionYear": 0,
+              "strategyId": "gilt-rotation",
+              "strategyParams": {
+                "bandThreshold": 1.2,
+                "bridgeAge": 67,
+                "bridgeCash": 25000,
+                "bucketBand": 10,
+                "cashYears": 3,
+                "drawAnnual": 0,
+                "essentialsAnnual": 26000,
+                "floorToAge": 80,
+                "horizonAge": 92,
+                "isaTotal": 55000,
+                "ladderYears": 15,
+                "ratchet": "none",
+                "rotateCutAge": 75,
+                "rotateDisarmYears": 5,
+                "rotateTrigger": 30,
+                "sippTotal": 995000,
+                "sleeveRate": 0.04,
+                "triggerMode": "band"
+              },
+              "subAsset": null,
+              "taggedFunds": [
+                {
+                  "subClass": "worldGrowth",
+                  "ticker": "VWRP",
+                  "value": 310000,
+                  "wrapper": "SIPP"
+                },
+                {
+                  "subClass": "indexLinked",
+                  "ticker": "INXG",
+                  "value": 420000,
+                  "wrapper": "SIPP"
+                },
+                {
+                  "subClass": "shortGilts",
+                  "ticker": "IGLS",
+                  "value": 170000,
+                  "wrapper": "SIPP"
+                },
+                {
+                  "subClass": "moneyMarket",
+                  "ticker": "CSH2",
+                  "value": 95000,
+                  "wrapper": "SIPP"
+                },
+                {
+                  "subClass": "worldGrowth",
+                  "ticker": "VWRP",
+                  "value": 55000,
+                  "wrapper": "ISA"
+                }
+              ],
+              "targetSchedule": [
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000
+              ],
+              "taxableMix": "equity",
+              "taxableStart": 0,
+              "ufplsThenPcls": false,
+              "ufplsYears": null,
+              "windfalls": []
+            },
+            "taxYears": {}
+          },
+          "enabledTools": [
+            "budget",
+            "stress",
+            "decision",
+            "accumulation"
+          ],
+          "isActive": false,
+          "journey": [
+            {
+              "at": "2026-09-05T17:45:00.000Z",
+              "label": "Retired, designing the plan",
+              "stage": "draft-retired"
+            }
+          ],
+          "lastModified": "2026-09-05T17:45:00.000Z",
+          "planDetails": {
+            "description": "Tried most strategies on the way here",
+            "name": "Alex’s rotation plan"
+          },
+          "strategy": {
+            "engineVersion": "6.13.4",
+            "id": "gilt-rotation",
+            "lockedAt": "2026-09-05T17:45:00.000Z",
+            "params": {
+              "bandThreshold": 1.2,
+              "bridgeAge": 67,
+              "bridgeCash": 25000,
+              "bucketBand": 10,
+              "cashYears": 3,
+              "drawAnnual": 0,
+              "essentialsAnnual": 26000,
+              "floorToAge": 80,
+              "horizonAge": 92,
+              "isaTotal": 55000,
+              "ladderYears": 15,
+              "ratchet": "none",
+              "rotateCutAge": 75,
+              "rotateDisarmYears": 5,
+              "rotateTrigger": 30,
+              "sippTotal": 995000,
+              "sleeveRate": 0.04,
+              "triggerMode": "band"
+            }
+          },
+          "stressTool": {
+            "settings": {
+              "accessMethod": "drawdown",
+              "allocMode": "funds",
+              "bandFillRecycle": false,
+              "baseSalary": 46000,
+              "bedAndIsa": true,
+              "bondMin": 590000,
+              "brl": 50270,
+              "cashTarget": 95000,
+              "configured": true,
+              "consecutiveLimit": 3,
+              "currentAge": 58,
+              "currentAgeAsOf": "2026-09-05",
+              "dbAmount": 0,
+              "dbIndexation": "lpi5",
+              "dbStartYear": 0,
+              "disableProtection": false,
+              "diversifierStart": 0,
+              "duration": 34,
+              "equityGlideEnabled": false,
+              "equityMin": 310000,
+              "extraIncomes": [],
+              "extraWithdrawals": [],
+              "firstTaxYear": 2027,
+              "giaTaxBand": "basic",
+              "glideEndgame": null,
+              "hodlEnabled": false,
+              "hodlValue": 25000,
+              "hrl": 125140,
+              "incomeShape": "phases",
+              "incomeSteps": [
+                {
+                  "amount": 46000,
+                  "fromAge": 59
+                },
+                {
+                  "amount": 40000,
+                  "fromAge": 70
+                },
+                {
+                  "amount": 34000,
+                  "fromAge": 80
+                }
+              ],
+              "isaBalance": 55000,
+              "isaDrawdownStrategy": "hold",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "legacyFirstTaxYear": 2027,
+              "other": 0,
+              "pa": 12570,
+              "potAtRetirement": null,
+              "protectionEscalateMonths": 12,
+              "protectionMult": 0.8,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "retireAge": null,
+              "retired": true,
+              "shapeAgeNow": 59,
+              "spStartDate": "30 June 2035",
+              "spWeeklyAmount": 226.4,
+              "spendingProfile": "flat",
+              "statePension": 12000,
+              "statePensionYear": 12,
+              "strategyId": "gilt-rotation",
+              "strategyParams": {
+                "bandThreshold": 1.2,
+                "bridgeAge": 67,
+                "bridgeCash": 25000,
+                "bucketBand": 10,
+                "cashYears": 3,
+                "drawAnnual": 0,
+                "essentialsAnnual": 26000,
+                "floorToAge": 80,
+                "horizonAge": 92,
+                "isaTotal": 55000,
+                "ladderYears": 15,
+                "ratchet": "none",
+                "rotateCutAge": 75,
+                "rotateDisarmYears": 5,
+                "rotateTrigger": 30,
+                "sippTotal": 995000,
+                "sleeveRate": 0.04,
+                "triggerMode": "band"
+              },
+              "subAsset": null,
+              "taggedFunds": [
+                {
+                  "subClass": "worldGrowth",
+                  "ticker": "VWRP",
+                  "value": 310000,
+                  "wrapper": "SIPP"
+                },
+                {
+                  "subClass": "indexLinked",
+                  "ticker": "INXG",
+                  "value": 420000,
+                  "wrapper": "SIPP"
+                },
+                {
+                  "subClass": "shortGilts",
+                  "ticker": "IGLS",
+                  "value": 170000,
+                  "wrapper": "SIPP"
+                },
+                {
+                  "subClass": "moneyMarket",
+                  "ticker": "CSH2",
+                  "value": 95000,
+                  "wrapper": "SIPP"
+                },
+                {
+                  "subClass": "worldGrowth",
+                  "ticker": "VWRP",
+                  "value": 55000,
+                  "wrapper": "ISA"
+                }
+              ],
+              "targetSchedule": [
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                46000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                40000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000,
+                34000
+              ],
+              "taxMode": "inflates",
+              "taxableMix": "equity",
+              "taxableStart": 0,
+              "ufplsThenPcls": false,
+              "ufplsYears": null,
+              "windfalls": [],
+              "strategyState": {
+                "buckets-in-order": {
+                  "strategyParams": {
+                    "bucketBand": 10,
+                    "sippTotal": 995000,
+                    "isaTotal": 55000
+                  },
+                  "allocMode": "funds",
+                  "taggedFunds": [
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 310000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "indexLinked",
+                      "ticker": "INXG",
+                      "value": 420000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "shortGilts",
+                      "ticker": "IGLS",
+                      "value": 170000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "moneyMarket",
+                      "ticker": "CSH2",
+                      "value": 95000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 55000,
+                      "wrapper": "ISA"
+                    }
+                  ],
+                  "savedAt": null
+                },
+                "bridge-and-engine": {
+                  "strategyParams": {
+                    "bridgeAge": 67,
+                    "cashYears": 3,
+                    "sippTotal": 995000,
+                    "isaTotal": 55000
+                  },
+                  "allocMode": "funds",
+                  "taggedFunds": [
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 310000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "indexLinked",
+                      "ticker": "INXG",
+                      "value": 420000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "shortGilts",
+                      "ticker": "IGLS",
+                      "value": 170000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "moneyMarket",
+                      "ticker": "CSH2",
+                      "value": 95000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 55000,
+                      "wrapper": "ISA"
+                    }
+                  ],
+                  "savedAt": null
+                },
+                "ladder-and-ratchet": {
+                  "strategyParams": {
+                    "ladderYears": 15,
+                    "drawAnnual": 0,
+                    "triggerMode": "band",
+                    "bandThreshold": 1.2,
+                    "sippTotal": 995000,
+                    "isaTotal": 55000
+                  },
+                  "allocMode": "funds",
+                  "taggedFunds": [
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 310000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "indexLinked",
+                      "ticker": "INXG",
+                      "value": 420000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "shortGilts",
+                      "ticker": "IGLS",
+                      "value": 170000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "moneyMarket",
+                      "ticker": "CSH2",
+                      "value": 95000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 55000,
+                      "wrapper": "ISA"
+                    }
+                  ],
+                  "savedAt": null
+                },
+                "floor-and-flex": {
+                  "strategyParams": {
+                    "essentialsAnnual": 26000,
+                    "horizonAge": 92,
+                    "sleeveRate": 0.04,
+                    "ratchet": "none",
+                    "sippTotal": 995000,
+                    "isaTotal": 55000
+                  },
+                  "allocMode": "funds",
+                  "taggedFunds": [
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 310000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "indexLinked",
+                      "ticker": "INXG",
+                      "value": 420000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "shortGilts",
+                      "ticker": "IGLS",
+                      "value": 170000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "moneyMarket",
+                      "ticker": "CSH2",
+                      "value": 95000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 55000,
+                      "wrapper": "ISA"
+                    }
+                  ],
+                  "savedAt": null
+                },
+                "floor-to-age": {
+                  "strategyParams": {
+                    "floorToAge": 80,
+                    "sippTotal": 995000,
+                    "isaTotal": 55000
+                  },
+                  "allocMode": "funds",
+                  "taggedFunds": [
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 310000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "indexLinked",
+                      "ticker": "INXG",
+                      "value": 420000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "shortGilts",
+                      "ticker": "IGLS",
+                      "value": 170000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "moneyMarket",
+                      "ticker": "CSH2",
+                      "value": 95000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 55000,
+                      "wrapper": "ISA"
+                    }
+                  ],
+                  "savedAt": null
+                },
+                "full-il-gilt": {
+                  "strategyParams": {
+                    "cashYears": 3,
+                    "bridgeCash": 25000,
+                    "sippTotal": 995000,
+                    "isaTotal": 55000
+                  },
+                  "allocMode": "funds",
+                  "taggedFunds": [
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 310000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "indexLinked",
+                      "ticker": "INXG",
+                      "value": 420000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "shortGilts",
+                      "ticker": "IGLS",
+                      "value": 170000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "moneyMarket",
+                      "ticker": "CSH2",
+                      "value": 95000,
+                      "wrapper": "SIPP"
+                    },
+                    {
+                      "subClass": "worldGrowth",
+                      "ticker": "VWRP",
+                      "value": 55000,
+                      "wrapper": "ISA"
+                    }
+                  ],
+                  "savedAt": null
+                }
+              },
+              "chargesPct": 0.5,
+              "isaGrowth": "cash"
+            }
+          },
+          "schemaVersion": 3
+        },
+        "newer": false,
+        "failed": false
+      }
+    ],
+    "usedUp": false,
+    "view": {
+      "today": "2026-09-30",
+      "rows": [
+        {
+          "id": "other",
+          "rows": [
+            {
+              "id": "AlexRotation05",
+              "name": "Alex’s rotation plan",
+              "stageKey": "draft-retired",
+              "line": {
+                "id": "draft-retired",
+                "slots": {}
+              },
+              "locked": false,
+              "lockedOn": null,
+              "madeOn": null,
+              "shownAsSaved": false,
+              "linked": false,
+              "lastModified": "2026-09-05T17:45:00.000Z"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "found": true,
+        "id": "AlexRotation05",
+        "name": "Alex’s rotation plan",
+        "stageKey": "draft-retired",
+        "retired": true,
+        "saver": false,
+        "line": {
+          "id": "draft-retired",
+          "slots": {}
+        },
+        "locked": false,
+        "lockedOn": null,
+        "readonly": false,
+        "source": "account",
+        "steps": [
+          {
+            "id": "plan",
+            "optional": false,
+            "listed": true,
+            "state": "current",
+            "done": true,
+            "result": {
+              "id": "plan.retired",
+              "parts": [
+                "Retired. ",
+                {
+                  "key": "yearly",
+                  "kind": "money"
+                },
+                " a year before tax"
+              ],
+              "text": "Retired. £46,000 a year before tax"
+            },
+            "figures": {
+              "yearly": 46000,
+              "ageToday": 58,
+              "years": 34,
+              "ageEnd": 92,
+              "step0": 46000,
+              "stepAge0": 59,
+              "step1": 40000,
+              "stepAge1": 70,
+              "step2": 34000,
+              "stepAge2": 80,
+              "sipp": 995000,
+              "isa": 55000,
+              "gia": 0,
+              "shares": 310000,
+              "bonds": 590000,
+              "cash": 95000,
+              "spWeekly": 226,
+              "dial.bandThreshold": 1.2,
+              "dial.bridgeAge": 67,
+              "dial.bridgeCash": 25000,
+              "dial.bucketBand": 10,
+              "dial.cashYears": 3,
+              "dial.drawAnnual": 0,
+              "dial.essentialsAnnual": 26000,
+              "dial.floorToAge": 80,
+              "dial.horizonAge": 92,
+              "dial.isaTotal": 55000,
+              "dial.ladderYears": 15,
+              "dial.rotateCutAge": 75,
+              "dial.rotateDisarmYears": 5,
+              "dial.rotateTrigger": 30,
+              "dial.sippTotal": 995000,
+              "dial.sleeveRate": 0.04
+            },
+            "lines": [],
+            "buttons": [
+              {
+                "id": "lasts",
+                "href": "#/plan/AlexRotation05/lasts",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              {
+                "id": "pricesToday",
+                "slots": {}
+              }
+            ],
+            "sections": [
+              {
+                "id": "about",
+                "lines": [
+                  {
+                    "id": "about.age",
+                    "slots": {
+                      "asOf": "5 September 2026"
+                    },
+                    "sentence": {
+                      "id": "about.age",
+                      "parts": [
+                        {
+                          "key": "ageToday",
+                          "kind": "age"
+                        }
+                      ],
+                      "text": "58"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": "5 September 2026",
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.retired",
+                    "slots": {},
+                    "sentence": {
+                      "id": "about.retired",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.firstYear",
+                    "slots": {
+                      "year": "2027/28"
+                    },
+                    "sentence": {
+                      "id": "about.firstYear",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.runs",
+                    "slots": {},
+                    "sentence": {
+                      "id": "about.runs",
+                      "parts": [
+                        {
+                          "key": "years",
+                          "kind": "count"
+                        },
+                        " years, to age ",
+                        {
+                          "key": "ageEnd",
+                          "kind": "age"
+                        }
+                      ],
+                      "text": "34 years, to age 92"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "about",
+                "sub": "about",
+                "href": "#/plan/AlexRotation05/about"
+              },
+              {
+                "id": "pays",
+                "lines": [
+                  {
+                    "id": "pays.step",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pays.step",
+                      "parts": [
+                        "From age ",
+                        {
+                          "key": "stepAge0",
+                          "kind": "age"
+                        },
+                        ": ",
+                        {
+                          "key": "step0",
+                          "kind": "money"
+                        },
+                        " a year before tax"
+                      ],
+                      "text": "From age 59: £46,000 a year before tax"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pays.step",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pays.step",
+                      "parts": [
+                        "From age ",
+                        {
+                          "key": "stepAge1",
+                          "kind": "age"
+                        },
+                        ": ",
+                        {
+                          "key": "step1",
+                          "kind": "money"
+                        },
+                        " a year before tax"
+                      ],
+                      "text": "From age 70: £40,000 a year before tax"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pays.step",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pays.step",
+                      "parts": [
+                        "From age ",
+                        {
+                          "key": "stepAge2",
+                          "kind": "age"
+                        },
+                        ": ",
+                        {
+                          "key": "step2",
+                          "kind": "money"
+                        },
+                        " a year before tax"
+                      ],
+                      "text": "From age 80: £34,000 a year before tax"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "spend",
+                "sub": "spend",
+                "href": "#/plan/AlexRotation05/spend"
+              },
+              {
+                "id": "pots",
+                "lines": [
+                  {
+                    "id": "pots.pension",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.pension",
+                      "parts": [
+                        {
+                          "key": "sipp",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£995,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pots.split",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.split",
+                      "parts": [
+                        {
+                          "key": "shares",
+                          "kind": "money"
+                        },
+                        " shares, ",
+                        {
+                          "key": "bonds",
+                          "kind": "money"
+                        },
+                        " bonds, ",
+                        {
+                          "key": "cash",
+                          "kind": "money"
+                        },
+                        " cash"
+                      ],
+                      "text": "£310,000 shares, £590,000 bonds, £95,000 cash"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pots.isa",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.isa",
+                      "parts": [
+                        {
+                          "key": "isa",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£55,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "pots",
+                "sub": "pots",
+                "href": "#/plan/AlexRotation05/pots"
+              },
+              {
+                "id": "income",
+                "lines": [
+                  {
+                    "id": "pots.statePension",
+                    "slots": {
+                      "from": "30 June 2035"
+                    },
+                    "sentence": {
+                      "id": "pots.statePension",
+                      "parts": [
+                        {
+                          "key": "spWeekly",
+                          "kind": "money"
+                        },
+                        " a week"
+                      ],
+                      "text": "£226 a week"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "pots",
+                "sub": "income",
+                "href": "#/plan/AlexRotation05/income"
+              },
+              {
+                "id": "way",
+                "lines": [
+                  {
+                    "id": "way.strategy",
+                    "slots": {
+                      "strategy": "gilt-rotation"
+                    },
+                    "sentence": {
+                      "id": "way.strategy",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "bandThreshold"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.bandThreshold",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£1"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "bridgeAge"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.bridgeAge",
+                          "kind": "count"
+                        }
+                      ],
+                      "text": "67"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "bridgeCash"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.bridgeCash",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£25,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "bucketBand"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.bucketBand",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£10"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "cashYears"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.cashYears",
+                          "kind": "count"
+                        }
+                      ],
+                      "text": "3"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "drawAnnual"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.drawAnnual",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£0"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "essentialsAnnual"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.essentialsAnnual",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£26,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "floorToAge"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.floorToAge",
+                          "kind": "count"
+                        }
+                      ],
+                      "text": "80"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "horizonAge"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.horizonAge",
+                          "kind": "count"
+                        }
+                      ],
+                      "text": "92"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "isaTotal"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.isaTotal",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£55,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "ladderYears"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.ladderYears",
+                          "kind": "count"
+                        }
+                      ],
+                      "text": "15"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "rotateCutAge"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.rotateCutAge",
+                          "kind": "count"
+                        }
+                      ],
+                      "text": "75"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "rotateDisarmYears"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.rotateDisarmYears",
+                          "kind": "count"
+                        }
+                      ],
+                      "text": "5"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "rotateTrigger"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.rotateTrigger",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£30"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "sippTotal"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.sippTotal",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£995,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "way.dial",
+                    "slots": {
+                      "dial": "sleeveRate"
+                    },
+                    "sentence": {
+                      "id": "way.dial",
+                      "parts": [
+                        {
+                          "key": "dial.sleeveRate",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£0"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "way",
+                "sub": "way",
+                "href": "#/plan/AlexRotation05/way",
+                "lockedButton": "tryWay"
+              },
+              {
+                "id": "mix",
+                "lines": [
+                  {
+                    "id": "mix.bought",
+                    "slots": {
+                      "strategy": "gilt-rotation"
+                    },
+                    "sentence": {
+                      "id": "mix.bought",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "settings",
+                "sub": "mix",
+                "href": "#/plan/AlexRotation05/mix",
+                "lockedButton": "tryMix"
+              }
+            ],
+            "options": [
+              {
+                "id": "tax.bed-and-isa",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": true,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "prot.cuts",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "off",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "after",
+                    "v": 3,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "cutTo",
+                    "v": 80,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "deeperAfter",
+                    "v": 12,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "buffer",
+                    "v": 15000,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.isa-use",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "use",
+                    "v": "hold",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "pots.funds-to-test",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "name0",
+                    "v": "VWRP",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "value0",
+                    "v": 310000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "name1",
+                    "v": "INXG",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "value1",
+                    "v": 420000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "name2",
+                    "v": "IGLS",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "value2",
+                    "v": 170000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "name3",
+                    "v": "CSH2",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "value3",
+                    "v": 95000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "name4",
+                    "v": "VWRP",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "value4",
+                    "v": 55000,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "month.seeded",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "from",
+                    "v": "stress",
+                    "kind": "text"
+                  }
+                ]
+              }
+            ],
+            "allOptions": [
+              {
+                "id": "inc.streams",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.lump-sums",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.extra-spends",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.final-salary-rises",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "rises",
+                    "v": "lpi5",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "inc.state-pension-old",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 12000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "fromYear",
+                    "v": 12,
+                    "kind": "count"
+                  }
+                ]
+              },
+              {
+                "id": "tax.bands",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "pa",
+                    "v": 12570,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "brl",
+                    "v": 50270,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "hrl",
+                    "v": 125140,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "tax.mode",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "mode",
+                    "v": "inflates",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "tax.tax-free-cash",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "how",
+                    "v": "drawdown",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "tax.ufpls-years",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "years",
+                    "v": 0,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "thenRest",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.band-fill",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.bed-and-isa",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": true,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.earnings",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "prot.cuts",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "off",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "after",
+                    "v": 3,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "cutTo",
+                    "v": 80,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "deeperAfter",
+                    "v": 12,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "buffer",
+                    "v": 15000,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "prot.reserve",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "amount",
+                    "v": 25000,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.diversifiers",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "amount",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.bond-tent",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "endgame",
+                    "v": "hold",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "pots.isa-use",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "use",
+                    "v": "hold",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "pots.isa-growth",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "grows",
+                    "v": "cash",
+                    "kind": "choice"
+                  },
+                  {
+                    "k": "fixedRate",
+                    "v": 3,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "floor",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.charges",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 0.5,
+                    "kind": "pct"
+                  }
+                ]
+              },
+              {
+                "id": "pots.funds-to-test",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "name0",
+                    "v": "VWRP",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "value0",
+                    "v": 310000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "name1",
+                    "v": "INXG",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "value1",
+                    "v": 420000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "name2",
+                    "v": "IGLS",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "value2",
+                    "v": 170000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "name3",
+                    "v": "CSH2",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "value3",
+                    "v": 95000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "name4",
+                    "v": "VWRP",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "value4",
+                    "v": 55000,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "draw.cadence",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "how",
+                    "v": "monthly",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "timing.stale-draft",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "year",
+                    "v": 0,
+                    "kind": "count"
+                  }
+                ]
+              },
+              {
+                "id": "lock.lock",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "locked",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "at",
+                    "v": "",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "by",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "lock.unlock",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "times",
+                    "v": 0,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "last",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "month.seeded",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "from",
+                    "v": "stress",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "mach.configured",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "stress",
+                    "v": true,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "decision",
+                    "v": true,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.declining",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "folded",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.old-names",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "present",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.risk-mode",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "mode",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "mach.start-date",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "date",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              }
+            ],
+            "journey": [
+              {
+                "stage": "draft-retired",
+                "on": "5 September 2026",
+                "arrival": false
+              }
+            ],
+            "pastVersions": 0,
+            "lockedOn": null,
+            "hasDocument": false,
+            "documentOn": null,
+            "unlockDefaults": []
+          },
+          {
+            "id": "budget",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "budget.none",
+              "parts": [
+                "Not worked out. A guide only"
+              ],
+              "text": "Not worked out. A guide only"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "changeBudget",
+                "place": "budget",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              "budget.guide"
+            ]
+          },
+          {
+            "id": "lock",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "lock.notLocked",
+              "parts": [
+                "Not locked"
+              ],
+              "text": "Not locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [],
+            "notes": [
+              "lock.what"
+            ],
+            "locked": false,
+            "lockedOn": null,
+            "saver": false,
+            "strategyId": "gilt-rotation",
+            "bought": true,
+            "hasDocument": false
+          },
+          {
+            "id": "hold",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "hold.none",
+              "parts": [
+                "Not recorded yet"
+              ],
+              "text": "Not recorded yet"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "changeHold",
+                "place": "hold",
+                "slots": {}
+              }
+            ],
+            "notes": []
+          },
+          {
+            "id": "move",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "move.notSet",
+              "parts": [
+                "Set when the plan is locked"
+              ],
+              "text": "Set when the plan is locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "openMove",
+                "place": "move",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              "move.optional"
+            ]
+          }
+        ],
+        "subSteps": [
+          {
+            "id": "about",
+            "under": "plan"
+          },
+          {
+            "id": "income",
+            "under": "plan"
+          },
+          {
+            "id": "spend",
+            "under": "plan"
+          },
+          {
+            "id": "pots",
+            "under": "plan"
+          },
+          {
+            "id": "lasts",
+            "under": "plan"
+          },
+          {
+            "id": "way",
+            "under": "plan"
+          },
+          {
+            "id": "mix",
+            "under": "plan"
+          }
+        ],
+        "current": "plan",
+        "answerStale": null,
+        "next": {
+          "id": "P.draft",
+          "slots": {
+            "month": "September 2026",
+            "monthName": "September",
+            "nextMonth": "October",
+            "year": "2026/27",
+            "stop": "April 2027",
+            "savedYear": ""
+          },
+          "button": {
+            "id": "lasts",
+            "href": "#/plan/AlexRotation05/lasts",
+            "slots": {}
+          }
+        },
+        "askLinks": [
+          "c"
+        ],
+        "forId": "AlexRotation05",
+        "forStep": "mix",
+        "mix": {
+          "found": true,
+          "id": "AlexRotation05",
+          "name": "Alex’s rotation plan",
+          "locked": false,
+          "lockedOn": null,
+          "readonly": false,
+          "editable": true,
+          "source": {
+            "kind": "saved",
+            "at": "5 September 2026"
+          },
+          "strategyId": "gilt-rotation",
+          "bought": true,
+          "family": false,
+          "buckets": false,
+          "runKey": "AlexRotation05|2026-09-05T17:45:00.000Z|1i5t4fq|U",
+          "pot": "£995,000",
+          "isa": "£55,000",
+          "held": "funds",
+          "levels": [
+            {
+              "key": "cautious",
+              "amounts": {
+                "shares": "£298,500",
+                "bonds": "£447,750",
+                "diversifiers": "£0",
+                "cash": "£248,750"
+              },
+              "current": false
+            },
+            {
+              "key": "balanced",
+              "amounts": {
+                "shares": "£497,500",
+                "bonds": "£398,000",
+                "diversifiers": "£0",
+                "cash": "£99,500"
+              },
+              "current": false
+            },
+            {
+              "key": "adventurous",
+              "amounts": {
+                "shares": "£696,500",
+                "bonds": "£248,750",
+                "diversifiers": "£0",
+                "cash": "£49,750"
+              },
+              "current": false
+            }
+          ],
+          "split": null,
+          "fields": [
+            {
+              "path": "held",
+              "type": "choice",
+              "options": [
+                "level",
+                "split",
+                "funds"
+              ],
+              "applies": true,
+              "shown": "funds",
+              "saved": "funds",
+              "error": null
+            },
+            {
+              "path": "level",
+              "type": "choice",
+              "options": [
+                "cautious",
+                "balanced",
+                "adventurous"
+              ],
+              "applies": false,
+              "shown": "cautious",
+              "saved": "cautious",
+              "error": null
+            },
+            {
+              "path": "shares",
+              "type": "percent",
+              "options": null,
+              "applies": false,
+              "shown": "31",
+              "saved": "31",
+              "error": null
+            },
+            {
+              "path": "bonds",
+              "type": "percent",
+              "options": null,
+              "applies": false,
+              "shown": "59",
+              "saved": "59",
+              "error": null
+            },
+            {
+              "path": "diversifiers",
+              "type": "percent",
+              "options": null,
+              "applies": false,
+              "shown": "0",
+              "saved": "0",
+              "error": null
+            },
+            {
+              "path": "cash",
+              "type": "percent",
+              "options": null,
+              "applies": false,
+              "shown": "10",
+              "saved": "10",
+              "error": null
+            },
+            {
+              "path": "sleeve",
+              "type": "choice",
+              "options": [
+                "yes",
+                "no"
+              ],
+              "applies": false,
+              "shown": "no",
+              "saved": "no",
+              "error": null
+            },
+            {
+              "path": "tent",
+              "type": "choice",
+              "options": [
+                "yes",
+                "no"
+              ],
+              "applies": true,
+              "shown": "no",
+              "saved": "no",
+              "error": null
+            },
+            {
+              "path": "endgame",
+              "type": "choice",
+              "options": [
+                "cautious",
+                "balanced",
+                "adventurous"
+              ],
+              "applies": false,
+              "shown": "balanced",
+              "saved": "balanced",
+              "error": null
+            }
+          ],
+          "lists": {
+            "funds": {
+              "ids": [
+                "0",
+                "1",
+                "2",
+                "3",
+                "4"
+              ],
+              "cards": [
+                {
+                  "id": "0",
+                  "saved": true,
+                  "fields": [
+                    {
+                      "path": "funds.0.ticker",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "VWRP",
+                      "saved": "VWRP",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.0.name",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "",
+                      "saved": "",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.0.value",
+                      "type": "money",
+                      "options": null,
+                      "applies": true,
+                      "shown": "310000",
+                      "saved": "310000",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.0.wrapper",
+                      "type": "choice",
+                      "options": [
+                        "SIPP",
+                        "ISA",
+                        "GIA"
+                      ],
+                      "applies": true,
+                      "shown": "SIPP",
+                      "saved": "SIPP",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.0.category",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "worldGrowth",
+                      "saved": "worldGrowth",
+                      "error": null
+                    }
+                  ],
+                  "bucket": "shares",
+                  "recognised": true,
+                  "category": "worldGrowth"
+                },
+                {
+                  "id": "1",
+                  "saved": true,
+                  "fields": [
+                    {
+                      "path": "funds.1.ticker",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "INXG",
+                      "saved": "INXG",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.1.name",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "",
+                      "saved": "",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.1.value",
+                      "type": "money",
+                      "options": null,
+                      "applies": true,
+                      "shown": "420000",
+                      "saved": "420000",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.1.wrapper",
+                      "type": "choice",
+                      "options": [
+                        "SIPP",
+                        "ISA",
+                        "GIA"
+                      ],
+                      "applies": true,
+                      "shown": "SIPP",
+                      "saved": "SIPP",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.1.category",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "indexLinked",
+                      "saved": "indexLinked",
+                      "error": null
+                    }
+                  ],
+                  "bucket": "bonds",
+                  "recognised": true,
+                  "category": "indexLinked"
+                },
+                {
+                  "id": "2",
+                  "saved": true,
+                  "fields": [
+                    {
+                      "path": "funds.2.ticker",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "IGLS",
+                      "saved": "IGLS",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.2.name",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "",
+                      "saved": "",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.2.value",
+                      "type": "money",
+                      "options": null,
+                      "applies": true,
+                      "shown": "170000",
+                      "saved": "170000",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.2.wrapper",
+                      "type": "choice",
+                      "options": [
+                        "SIPP",
+                        "ISA",
+                        "GIA"
+                      ],
+                      "applies": true,
+                      "shown": "SIPP",
+                      "saved": "SIPP",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.2.category",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "shortGilts",
+                      "saved": "shortGilts",
+                      "error": null
+                    }
+                  ],
+                  "bucket": "bonds",
+                  "recognised": true,
+                  "category": "shortGilts"
+                },
+                {
+                  "id": "3",
+                  "saved": true,
+                  "fields": [
+                    {
+                      "path": "funds.3.ticker",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "CSH2",
+                      "saved": "CSH2",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.3.name",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "",
+                      "saved": "",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.3.value",
+                      "type": "money",
+                      "options": null,
+                      "applies": true,
+                      "shown": "95000",
+                      "saved": "95000",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.3.wrapper",
+                      "type": "choice",
+                      "options": [
+                        "SIPP",
+                        "ISA",
+                        "GIA"
+                      ],
+                      "applies": true,
+                      "shown": "SIPP",
+                      "saved": "SIPP",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.3.category",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "moneyMarket",
+                      "saved": "moneyMarket",
+                      "error": null
+                    }
+                  ],
+                  "bucket": "cash",
+                  "recognised": true,
+                  "category": "moneyMarket"
+                },
+                {
+                  "id": "4",
+                  "saved": true,
+                  "fields": [
+                    {
+                      "path": "funds.4.ticker",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "VWRP",
+                      "saved": "VWRP",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.4.name",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "",
+                      "saved": "",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.4.value",
+                      "type": "money",
+                      "options": null,
+                      "applies": true,
+                      "shown": "55000",
+                      "saved": "55000",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.4.wrapper",
+                      "type": "choice",
+                      "options": [
+                        "SIPP",
+                        "ISA",
+                        "GIA"
+                      ],
+                      "applies": true,
+                      "shown": "ISA",
+                      "saved": "ISA",
+                      "error": null
+                    },
+                    {
+                      "path": "funds.4.category",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "worldGrowth",
+                      "saved": "worldGrowth",
+                      "error": null
+                    }
+                  ],
+                  "bucket": "shares",
+                  "recognised": true,
+                  "category": "worldGrowth"
+                }
+              ]
+            }
+          },
+          "categories": {
+            "shares": [
+              {
+                "key": "ukEquityIncome",
+                "label": "UK equity income"
+              },
+              {
+                "key": "globalEquityIncome",
+                "label": "Global equity income"
+              },
+              {
+                "key": "worldGrowth",
+                "label": "World growth / tracker"
+              },
+              {
+                "key": "reit",
+                "label": "Property / REITs"
+              },
+              {
+                "key": "emEquity",
+                "label": "Emerging-markets equity"
+              },
+              {
+                "key": "globalSmallCap",
+                "label": "Global smaller companies"
+              }
+            ],
+            "bonds": [
+              {
+                "key": "shortGilts",
+                "label": "Short gilts 0-5y (buffer)"
+              },
+              {
+                "key": "longGilts",
+                "label": "Long gilts 15y+"
+              },
+              {
+                "key": "indexLinked",
+                "label": "Index-linked gilts (long)"
+              },
+              {
+                "key": "corporateIG",
+                "label": "£ IG corporate"
+              },
+              {
+                "key": "globalAggHedged",
+                "label": "Global-agg £-hedged"
+              },
+              {
+                "key": "usTreasHedged",
+                "label": "US treasuries £-hedged"
+              },
+              {
+                "key": "infraDebt",
+                "label": "Infrastructure debt"
+              },
+              {
+                "key": "highYield",
+                "label": "Global high-yield (£-hedged)"
+              }
+            ],
+            "cash": [
+              {
+                "key": "moneyMarket",
+                "label": "Money-market fund"
+              },
+              {
+                "key": "savings",
+                "label": "Savings / NS&I"
+              }
+            ],
+            "diversifiers": [
+              {
+                "key": "gold",
+                "label": "Gold"
+              },
+              {
+                "key": "trendMacro",
+                "label": "Trend / macro"
+              },
+              {
+                "key": "commodities",
+                "label": "Broad commodities"
+              }
+            ]
+          },
+          "errors": {},
+          "ok": true,
+          "derived": [
+            {
+              "id": "held.funds",
+              "slots": {
+                "pot": "£995,000",
+                "isa": "£55,000"
+              }
+            },
+            {
+              "id": "amounts",
+              "slots": {
+                "shares": "£310,000",
+                "bonds": "£590,000",
+                "cash": "£95,000",
+                "div": ""
+              }
+            },
+            {
+              "id": "sleeve.off",
+              "slots": {}
+            },
+            {
+              "id": "tent.off",
+              "slots": {}
+            }
+          ],
+          "sleeve": {
+            "on": false,
+            "amount": "£0",
+            "applies": false,
+            "try": {
+              "status": "off",
+              "lines": [],
+              "runs": 0,
+              "ms": null,
+              "reason": null
+            }
+          },
+          "tent": {
+            "on": false,
+            "years": "14",
+            "endgameApplies": false,
+            "ignored": false,
+            "try": {
+              "status": "off",
+              "lines": [],
+              "runs": 0,
+              "ms": null,
+              "reason": null
+            }
+          },
+          "search": {
+            "text": "",
+            "matches": []
+          },
+          "example": {
+            "rows": [
+              {
+                "ticker": "VWRP",
+                "name": "Vanguard FTSE All-World (acc)",
+                "job": "World shares — the whole growth engine in one fund",
+                "pct": 29
+              },
+              {
+                "ticker": "IGLS",
+                "name": "iShares UK Gilts 0–5yr",
+                "job": "Short gilts — stability, low rate risk",
+                "pct": 14
+              },
+              {
+                "ticker": "IGLT",
+                "name": "iShares Core UK Gilts",
+                "job": "Longer gilts — crash ballast, more rate risk",
+                "pct": 9
+              },
+              {
+                "ticker": "INXG",
+                "name": "iShares sterling Index-Linked Gilts",
+                "job": "Inflation-linked gilts — inflation protection",
+                "pct": 9
+              },
+              {
+                "ticker": "SLXX",
+                "name": "iShares sterling Corporate Bond",
+                "job": "Investment-grade credit — extra yield over gilts",
+                "pct": 14
+              },
+              {
+                "ticker": "CSH2",
+                "name": "Amundi Smart Overnight Return",
+                "job": "Cash-like — money-market rate, near-zero swings",
+                "pct": 25
+              }
+            ],
+            "level": "cautious"
+          },
+          "summary": {
+            "pot": "£995,000",
+            "isa": "£55,000",
+            "buckets": {
+              "shares": "£310,000",
+              "bonds": "£590,000",
+              "diversifiers": "£0",
+              "cash": "£95,000"
+            },
+            "untagged": []
+          },
+          "paste": {
+            "text": "",
+            "wrapper": "SIPP",
+            "rows": [],
+            "summary": null,
+            "leftOut": [],
+            "warnings": [],
+            "canAdd": false,
+            "edits": []
+          },
+          "compare": {
+            "status": "idle",
+            "cells": [],
+            "best": null,
+            "ms": null,
+            "runs": 8,
+            "progress": null,
+            "reason": null
+          },
+          "pick": null,
+          "document": null,
+          "documentBase": null,
+          "base": null,
+          "partners": [],
+          "changed": false,
+          "patch": {},
+          "previous": {},
+          "savedLine": {
+            "id": "mix",
+            "slots": {
+              "held": "funds",
+              "shares": "£310,000",
+              "bonds": "£590,000",
+              "cash": "£95,000"
+            }
+          },
+          "whats": [
+            "shares",
+            "bonds",
+            "cash",
+            "diversifiers",
+            "unknown"
+          ],
+          "draftKey": "{}"
+        }
+      }
+    }
+  },
+  "draft": {
+    "a": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "b": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "c": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "d": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "plan": {
+      "id": null,
+      "values": {},
+      "touched": [],
+      "asked": false
+    }
+  },
+  "answers": {
+    "a": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "b": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    },
+    "d": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "budget": null,
+  "keep": {
+    "a": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "b": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "c": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "d": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    }
+  },
+  "lasts": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "levers": {},
+    "workDraft": {
+      "yearly": "",
+      "years": ""
+    },
+    "tried": null,
+    "kept": null
+  },
+  "ways": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "ran": null,
+    "open": null,
+    "dials": {},
+    "tried": {},
+    "rankBy": "lasts"
+  },
+  "mix": {
+    "key": null,
+    "tries": {},
+    "compare": {
+      "status": "idle",
+      "result": null,
+      "ms": null,
+      "progress": null,
+      "reason": null
+    },
+    "pick": null
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true,
+    "leaving": null,
+    "leaveProblem": null,
+    "saving": null,
+    "saveProblem": null,
+    "toast": null
+  }
+}

@@ -22,10 +22,13 @@ import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS } from '../../constants.js';
 import { ON_COURSE_SHARE } from '../../services/OnCourse.js';
 import { PROTECTION_ESCALATE_MONTHS } from '../../services/ProtectionStrategy.js';
 import { oneAnswer, futuresOutOfTen, pctText, CHANCE_BARS } from '../../services/OneAnswer.js';
-import { get, applyPatch, safeSettings, safeTiming } from './about.js';
+import { switchPatch } from '../../services/PlanCommit.js';
+import { cleanParams } from '../../services/StrategyState.js';
+import { get, applyPatch, safeSettings, safeTiming, bandsOf } from './about.js';
 import { pounds } from './income.js';
 import { isBought } from './pots.js';
-import { LASTS_FIELDS, LASTS_WRITES } from './schema.js';
+import { monthlyNet, yearlyGross } from './spend.js';
+import { LASTS_FIELDS, LASTS_WRITES, TRY_FIELDS, TRY_WRITES, WAY_IDS } from './schema.js';
 import { dateOf, dayWords, MONTHS } from './dates.js';
 
 export { applyPatch };
@@ -328,6 +331,212 @@ export function verdictOf(result, saved) {
     rows, strategyId: result.strategyId || null,
     history: { worst, named, histRanOut: n0(a.histRanOutN), failKind: a.failKind, histories: n0(a.histories), contract: CONTRACT.includes(result.strategyId) }
   };
+}
+
+// ---- "What's different" (research/v7/way-and-mix.md 4, 9.4; index.html runTryStrategyUI's list, lifted) -------------------
+
+/**
+ * Every box of a try that differs from the plan as saved, one line each, as ids with slots (the planner's own six, then the
+ * three it left out — the ISA policy, the cut depth and the escalation months — a correction in 6.41.0; the planner's alert
+ * now says them too). `s` the settings as read, `c` the copy trySettingsOf made from them.
+ *   way        { way, old }                   pot  { pot, old }       isa  { isa, old }      isaPolicy { policy, old }
+ *   income     { income (a year before tax) } years { years, old }   cuts { on }            cutPct { pct, old }
+ *   cutEsc     { months, old }
+ * The planner's `cuts` line was said for Pots & Valves only; Buckets in order runs the same cuts, so it is said for both
+ * (a correction). The planner's `income` line was said only when the plan has steps; a flat try of a flat plan at another
+ * figure is a difference too, so it is said then as well (a correction).
+ */
+export function tryDifferencesOf(s, c) {
+  const diff = [];
+  const sid = s.strategyId || 'pots-and-valves';
+  if (c.strategyId !== sid) diff.push({ id: 'way', slots: { way: c.strategyId, old: sid } });
+  const oldPot = (s.strategyParams && s.strategyParams.sippTotal) || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0));
+  const newPot = (c.strategyParams && c.strategyParams.sippTotal) || 0;
+  if (Math.abs(newPot - oldPot) > 1) diff.push({ id: 'pot', slots: { pot: r0(newPot), old: r0(oldPot) } });
+  const oldIsa = (s.strategyParams && s.strategyParams.isaTotal != null) ? s.strategyParams.isaTotal : (s.isaBalance != null ? s.isaBalance : 0);
+  if (Math.abs((c.isaBalance || 0) - oldIsa) > 1) diff.push({ id: 'isa', slots: { isa: r0(c.isaBalance || 0), old: r0(oldIsa) } });
+  const policy = (x) => (x.isaDrawdownStrategy == null ? null : String(x.isaDrawdownStrategy));
+  if (policy(c) !== policy(s)) diff.push({ id: 'isaPolicy', slots: { policy: policy(c), old: policy(s) } });
+  if (c.incomeShape === 'level' && (s.incomeShape === 'phases' || r0(c.baseSalary) !== r0(s.baseSalary))) diff.push({ id: 'income', slots: { income: r0(c.baseSalary), steps: s.incomeShape === 'phases' } });
+  if (c.duration !== (s.duration || 35)) diff.push({ id: 'years', slots: { years: c.duration, old: s.duration || 35 } });
+  if (c.disableProtection !== s.disableProtection && FAMILY.includes(c.strategyId)) diff.push({ id: 'cuts', slots: { on: !c.disableProtection } });
+  if (cutPctOf(c.protectionMult) !== cutPctOf(s.protectionMult)) diff.push({ id: 'cutPct', slots: { pct: cutPctOf(c.protectionMult), old: cutPctOf(s.protectionMult) } });
+  const esc = (x) => (num(x.protectionEscalateMonths) ?? PROTECTION_ESCALATE_MONTHS);
+  if (esc(c) !== esc(s)) diff.push({ id: 'cutEsc', slots: { months: esc(c), old: esc(s) } });
+  return diff;
+}
+
+// ---- Try a change on a plan (way-and-mix.md 4): the boxes, the checks, the words, the write ---------------------------------
+
+/** index.html tryStrategySettings(s), as answers/plan/lastsRun.js carries it: the copy "Use this" and the keep are composed from. */
+function trySettingsOf(s, boxes) {
+  const b = boxes || {};
+  const c = JSON.parse(JSON.stringify(s));
+  const id = b.way || 'pots-and-valves';
+  const pot = +b.pot || 0;
+  const isa = +b.isa || 0;
+  const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
+  const scale = oldPot > 0 ? pot / oldPot : 0;
+  if (oldPot > 0) { c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale); }
+  else { c.equityMin = Math.round(pot * 0.6); c.bondMin = Math.round(pot * 0.3); c.cashTarget = pot - c.equityMin - c.bondMin; }
+  c.isaBalance = isa;
+  c.strategyId = id;
+  c.strategyParams = { ...restoredParamsOf(s, id), sippTotal: pot, isaTotal: isa };
+  if (b.isaPolicy === 'hold') c.isaDrawdownStrategy = 'hold'; else if (b.isaPolicy === 'draw') c.isaDrawdownStrategy = 'bridge';
+  if (b.incomeMode === 'flat') { c.baseSalary = +b.income || 0; c.incomeShape = 'level'; c.incomeSteps = []; c.targetSchedule = null; }
+  c.duration = Math.max(5, Math.min(45, +b.years || s.duration || 35));
+  if (b.cuts === 'on' || b.cuts === 'off') c.disableProtection = b.cuts === 'off';
+  if (b.cutPct !== undefined && b.cutPct !== null && b.cutPct !== '') c.protectionMult = 1 - (+b.cutPct) / 100;
+  if (b.cutEsc !== undefined && b.cutEsc !== null && b.cutEsc !== '') c.protectionEscalateMonths = Math.max(0, +b.cutEsc);
+  return c;
+}
+/** PlanCommit.restoredParamsFor, written here so this file (loaded with the plan source) reads one function less; the same body. */
+function restoredParamsOf(s, id) {
+  if (s.strategyId === id) return cleanParams(id, s.strategyParams || {});
+  return (s.strategyState && s.strategyState[id] && s.strategyState[id].strategyParams) ? { ...s.strategyState[id].strategyParams } : {};
+}
+
+/** The pot a try starts from, the figure the what-if rescales by and "What's different" reads: the pinned pension total, else the pension's shares, bonds and cash. */
+export const tryPotOf = (ss) => r0((ss.strategyParams && ss.strategyParams.sippTotal) || ((ss.equityMin || 0) + (ss.bondMin || 0) + (ss.cashTarget || 0)));
+export const tryIsaOf = (ss) => r0(ss.strategyParams && ss.strategyParams.isaTotal != null ? ss.strategyParams.isaTotal : (ss.isaBalance || 0));
+
+/** The boxes' starting text (4): the plan as saved — the income box a month after tax, as the spend step shows the first step. */
+export function tryBoxesOf(plan, { today }) {
+  const saved = savedLasts(plan, { today });
+  const ss = saved.ss;
+  const bands = bandsOf(ss);
+  const first = Array.isArray(ss.targetSchedule) && ss.targetSchedule.length ? r0(ss.targetSchedule[0]) : r0(ss.baseSalary);
+  return {
+    'try.way': WAY_IDS.includes(ss.strategyId) ? ss.strategyId : 'pots-and-valves',
+    'try.pot': String(tryPotOf(ss)), 'try.isa': String(tryIsaOf(ss)), 'try.isaPolicy': 'saved',
+    'try.incomeMode': 'shape', 'try.income': String(monthlyNet(first, bands)),
+    'try.years': String(num(ss.duration) || 35), 'try.cuts': 'saved', 'try.cutPct': '', 'try.cutEsc': ''
+  };
+}
+
+function parseTryField(raw, f) {
+  if (f.type === 'money') return parseMoney(raw, f);
+  if (f.type === 'count') return parseCount(raw, f);
+  if (blank(raw) && f.required && f.default == null) return { error: 'required', value: null };
+  const v = blank(raw) ? f.default : String(raw);
+  return f.options.includes(v) ? { error: null, value: v } : { error: 'notAnOption', value: null };
+}
+
+/**
+ * Text as typed → the checked values, the errors by path, which boxes apply, and the boxes for the run (the planner's
+ * units: the flat income a year before tax through the plan's own tax sum; a blank depth or months "as saved").
+ */
+export function checkTry(plan, typed, { today }) {
+  const saved = savedLasts(plan, { today });
+  const boxes = { ...tryBoxesOf(plan, { today }), ...(typed || {}) };
+  const values = {}, errors = {}, applies = {};
+  const take = (path) => { const f = TRY_FIELDS.find((x) => x.path === path); const r = parseTryField(boxes[path], f); if (r.error) errors[path] = r.error; else values[path] = r.value; return r; };
+  for (const f of TRY_FIELDS) applies[f.path] = true;
+  take('try.way'); take('try.pot'); take('try.isa'); take('try.isaPolicy'); take('try.incomeMode');
+  applies['try.income'] = (values['try.incomeMode'] || 'shape') === 'flat';
+  if (applies['try.income']) take('try.income');
+  take('try.years'); take('try.cuts'); take('try.cutPct'); take('try.cutEsc');
+  const ok = Object.keys(errors).length === 0;
+  const bands = bandsOf(saved.ss);
+  const run = ok ? {
+    way: values['try.way'], pot: values['try.pot'], isa: values['try.isa'] || 0, isaPolicy: values['try.isaPolicy'],
+    incomeMode: values['try.incomeMode'], income: applies['try.income'] ? yearlyGross(values['try.income'], bands) : 0,
+    years: values['try.years'], cuts: values['try.cuts'], cutPct: values['try.cutPct'] == null ? '' : values['try.cutPct'], cutEsc: values['try.cutEsc'] == null ? '' : values['try.cutEsc']
+  } : null;
+  return { ok, values, errors, applies, run, saved };
+}
+
+/** "What's different" (4) on a plan: the lines, from the plan's settings and the copy the boxes make. */
+export function tryDifferences(plan, boxes, today) {
+  const ss = safeSettings(plan, dateOf(today));
+  return tryDifferencesOf(ss, trySettingsOf(ss, boxes));
+}
+
+/**
+ * "Use this" (4): ONE write of exactly the fields that differ, composed from the steps' own lists — the way through the
+ * planner's switch (PlanCommit.switchPatch with the tried way's own dials, as the planner's "Use this strategy" sends them),
+ * the pots and the ISA and its policy, the income (a flat try: the planner's own 'level' shape), the years, the cuts.
+ * Nothing for a locked plan or a try that changes nothing.
+ */
+export function tryPatch(plan, boxes, { today, at = null } = {}) {
+  if (isLocked(plan)) return { ok: false, errors: { plan: 'locked' }, patch: {}, previous: {}, diffs: [] };
+  const ss = safeSettings(plan, dateOf(today));
+  const c = trySettingsOf(ss, boxes);
+  const diffs = tryDifferencesOf(ss, c);
+  const ids = new Set(diffs.map((d) => d.id));
+  const S = 'stressTool.settings.';
+  const want = {};
+  if (ids.has('way')) {
+    const { sippTotal, isaTotal, ...rest } = c.strategyParams; void sippTotal; void isaTotal;
+    const sp = switchPatch(ss, c.strategyId, {}, { savedAt: today, at, extraParams: cleanParams(c.strategyId, rest) });
+    for (const [k, v] of Object.entries(sp.settings)) want[S + k] = v;
+    want.strategy = sp.strategy;
+  }
+  const potsMoved = ids.has('pot') || ids.has('isa');
+  if (potsMoved) {
+    want[S + 'equityMin'] = c.equityMin; want[S + 'bondMin'] = c.bondMin; want[S + 'cashTarget'] = c.cashTarget; want[S + 'isaBalance'] = c.isaBalance;
+    // a bought way is priced on its pinned totals (StrategyState.SHARED_KEYS): they travel with the way's params
+    if (isBought(c.strategyId)) {
+      const params = cleanParams(c.strategyId, { ...(want[S + 'strategyParams'] || (c.strategyId === ss.strategyId ? ss.strategyParams : {}) || {}), sippTotal: c.strategyParams.sippTotal, isaTotal: c.strategyParams.isaTotal });
+      want[S + 'strategyParams'] = params;
+      want.strategy = { ...(want.strategy || (plan.strategy && typeof plan.strategy === 'object' ? plan.strategy : { id: c.strategyId, lockedAt: null, engineVersion: null })), id: c.strategyId, params: { ...params } };
+    }
+  }
+  if (ids.has('isaPolicy')) want[S + 'isaDrawdownStrategy'] = c.isaDrawdownStrategy;
+  if (ids.has('income')) {
+    want[S + 'baseSalary'] = c.baseSalary; want[S + 'incomeShape'] = 'level'; want[S + 'incomeSteps'] = []; want[S + 'targetSchedule'] = null;
+    want['decisionTool.settings.baseSalary'] = c.baseSalary; want['decisionTool.settings.targetSchedule'] = null;
+  }
+  if (ids.has('years')) want[S + 'duration'] = c.duration;
+  if (ids.has('cuts')) want[S + 'disableProtection'] = c.disableProtection;
+  if (ids.has('cutPct')) want[S + 'protectionMult'] = c.protectionMult;
+  if (ids.has('cutEsc')) want[S + 'protectionEscalateMonths'] = c.protectionEscalateMonths;
+  const patch = {}, previous = {};
+  for (const path of TRY_WRITES) {
+    if (!(path in want)) continue;
+    const cur = get(plan, path);
+    const val = want[path] === undefined ? null : want[path];
+    if (text(cur) === text(val)) continue;
+    patch[path] = copy(val);
+    previous[path] = copy(cur);
+  }
+  return { ok: true, errors: {}, patch, previous, diffs, line: { id: 'try', slots: { n: String(diffs.length) } } };
+}
+
+/** The tried copy as a plan document for "Keep as a separate plan" (4): the settings the boxes make, laid onto a copy of the plan. */
+export function tryCopyOf(plan, boxes, today) {
+  const ss = safeSettings(plan, dateOf(today));
+  const c = trySettingsOf(ss, boxes);
+  const out = JSON.parse(JSON.stringify(plan));
+  out.stressTool = { ...(out.stressTool || {}), settings: c };
+  const { sippTotal, isaTotal, ...rest } = c.strategyParams || {}; void sippTotal; void isaTotal;
+  out.strategy = { ...(out.strategy && typeof out.strategy === 'object' ? out.strategy : {}), id: c.strategyId, params: cleanParams(c.strategyId, isBought(c.strategyId) ? c.strategyParams : rest), lockedAt: null };
+  return out;
+}
+
+/**
+ * What the screen draws of a try (4): the boxes with their saved values and problems, the difference lines, the tried
+ * verdict's words (verdictOf, with the plan's own reading), the cost, and whether "Use this" and the keep are offered.
+ */
+export function tryViews(plan, typed, tried, kept, { today, editable, saved }) {
+  const c = checkTry(plan, typed || {}, { today });
+  const boxes = tryBoxesOf(plan, { today });
+  const shown = { ...boxes, ...(typed || {}) };
+  const fields = TRY_FIELDS.map((f) => ({
+    path: f.path, type: f.type, options: f.type === 'choice' ? f.options : null, applies: c.applies[f.path] !== false,
+    shown: blank(shown[f.path]) ? (f.type === 'choice' && f.default != null ? f.default : '') : String(shown[f.path]),
+    saved: f.path in boxes && !blank(boxes[f.path]) ? boxes[f.path] : null, error: c.errors[f.path] || null
+  }));
+  const t = tried && typeof tried === 'object' ? tried : null;
+  const same = !!(t && c.run && JSON.stringify(t.boxes) === JSON.stringify(c.run));
+  let result = null;
+  if (t && t.status === 'done' && t.result) {
+    const diffs = tryDifferences(plan, t.boxes, today);
+    const v = verdictOf(t.result, saved);
+    result = { verdict: v, diffs, none: diffs.length === 0, way: t.result.strategyId, runs: t.result.basis && t.result.basis.runs ? t.result.basis.runs : 1, ms: t.ms == null ? null : t.ms, stale: !same, canUse: editable && diffs.length > 0 };
+  }
+  const p = editable && t && t.status === 'done' ? tryPatch(plan, t.boxes, { today }) : null;
+  return { fields, errors: c.errors, ok: c.ok, run: c.run, status: t ? t.status : 'off', reason: t && t.status === 'failed' ? t.reason || null : null, result, patch: p ? p.patch : {}, kept: kept || null, same };
 }
 
 // ---- the three levers (research/v7/answer-D.md 3.5–3.7, 3.9; road-to-7.md step 7) -----------------------------------------

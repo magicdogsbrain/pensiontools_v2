@@ -49,8 +49,9 @@ import { aboutOf } from '../../answers/plan/about.js';
 import { incomeOf } from '../../answers/plan/income.js';
 import { spendOf } from '../../answers/plan/spend.js';
 import { potsOf } from '../../answers/plan/pots.js';
-import { lastsOf, verdictOf, leverViews } from '../../answers/plan/lasts.js';
+import { lastsOf, verdictOf, leverViews, tryViews, runKeyOf } from '../../answers/plan/lasts.js';
 import { wayOf, cardsOf } from '../../answers/plan/way.js';
+import { mixOf } from '../../answers/plan/mix.js';
 import { startPlanWrite } from './planWrite.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
@@ -96,15 +97,23 @@ export function viewFor(state) {
       const reading = wayOf(plans.list, r.planId, { today });
       page.way = { ...reading, ...cardsOf(reading, state.ways) };
     }
-    if (r.step === 'about' || r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts') {
+    if (r.step === 'about' || r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts' || r.step === 'mix') {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
       const typed = pd ? pd.values : {};
-      // "Money that comes in anyway" (editing-in-v7.md 7), "What you spend" (8), "Your pots and tax" (9) and "Does it last?" (10) read the same way
-      const read = r.step === 'about' ? aboutOf : r.step === 'income' ? incomeOf : r.step === 'spend' ? spendOf : r.step === 'pots' ? potsOf : lastsOf;
-      page[r.step] = { ...read(plans.list, r.planId, { today, typed }), draftKey: JSON.stringify(typed) };
+      // "Money that comes in anyway" (editing-in-v7.md 7), "What you spend" (8), "Your pots and tax" (9), "Does it last?" (10) and "The mix" (way-and-mix.md 3) read the same way
+      const L = state.lasts;
+      if (r.step === 'mix') {
+        // "The mix": the tries and the comparison held in page memory (state.mix) and the plan's own test (state.lasts), read here with the plan (3.2)
+        const entry = plans.list.find((e) => e && e.plan && String(e.plan.id) === String(r.planId));
+        const key = entry ? runKeyOf(entry.plan) : null;
+        const base = L && key && L.key === key && L.status === 'done' ? L.result : null;
+        page.mix = { ...mixOf(plans.list, r.planId, { today, typed, M: state.mix, base }), draftKey: JSON.stringify(typed) };
+      } else {
+        const read = r.step === 'about' ? aboutOf : r.step === 'income' ? incomeOf : r.step === 'spend' ? spendOf : r.step === 'pots' ? potsOf : lastsOf;
+        page[r.step] = { ...read(plans.list, r.planId, { today, typed }), draftKey: JSON.stringify(typed) };
+      }
       // "Does it last?": the words of the one test's result held in page memory (state.lasts), read here with the plan (10.2)
       if (r.step === 'lasts' && page.lasts.found) {
-        const L = state.lasts;
         const pl = page.lasts;
         pl.verdict = L && L.result ? verdictOf(L.result, pl) : null;
         // a locked plan: the document's own figure (10.5), and the one line of 6.24.0 when today's run differs
@@ -112,6 +121,9 @@ export function viewFor(state) {
         pl.note = L && L.result && L.key === pl.runKey && L.result.stored && typeof L.result.stored.note === 'string' && L.result.stored.note ? L.result.stored.note : null;
         // the three levers tried on this plan (road-to-7.md step 7), in words — only for the run held for THIS plan's key
         pl.levers = leverViews(L && L.key === pl.runKey ? L.levers : null, { verdict: pl.verdict, documentVerdict: pl.documentVerdict, lockedOn: pl.lockedOn, workDraft: L ? L.workDraft : null });
+        // Try a change (way-and-mix.md 4): the boxes as typed, the try held for THIS plan's key in words, the copy it was kept as
+        const entry = plans.list.find((e) => e && e.plan && String(e.plan.id) === String(r.planId));
+        pl.try = entry ? tryViews(entry.plan, typed, L && L.key === pl.runKey ? L.tried : null, L ? L.kept : null, { today, editable: pl.editable, saved: pl }) : null;
       }
     }
   }
@@ -204,7 +216,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways] : null;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;

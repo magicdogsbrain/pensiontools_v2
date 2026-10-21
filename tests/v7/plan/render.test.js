@@ -113,8 +113,8 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(root.querySelector('h1').textContent).toBe('Your plan as locked');
     expect(text).toContain('£52,000 a year before tax; your ladder pays from April 2027 (tax year 2027/28)');
     const sections = [...root.querySelectorAll('[data-section]')].map((s) => s.getAttribute('data-section'));
-    expect(sections).toEqual(['about', 'pays', 'pots', 'income', 'way', 'else']);
-    expect((text.match(/Fixed when you locked the plan on 1 July 2026\./g) || []).length).toBe(6);   // five sections and "Everything else"
+    expect(sections).toEqual(['about', 'pays', 'pots', 'income', 'way', 'mix', 'else']);
+    expect((text.match(/Fixed when you locked the plan on 1 July 2026\./g) || []).length).toBe(7);   // six sections and "Everything else"
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);
     expect(text).toContain('At the prices of July 2026.');
     expect(text).toContain('From age 58: £52,000 a year before tax (tax year 2027/28)');

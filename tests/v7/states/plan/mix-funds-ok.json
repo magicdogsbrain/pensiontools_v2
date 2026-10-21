@@ -1,0 +1,2103 @@
+{
+  "route": {
+    "screen": "plan",
+    "q": null,
+    "step": "mix",
+    "planId": "AlexWay01",
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "6.40.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "in",
+    "email": "someone@example.com",
+    "signingOut": false
+  },
+  "plan": null,
+  "plans": {
+    "status": "read",
+    "source": "account",
+    "readAt": "14:03",
+    "list": [
+      {
+        "plan": {
+          "id": "AlexWay01",
+          "budgetTool": {
+            "settings": {
+              "currentAge": 61,
+              "currentAgeAsOf": "2026-08-14",
+              "derived": {
+                "allInComfortableAnnual": 0,
+                "allInComfortableMonthly": 0,
+                "comfortableAnnualNet": 0,
+                "comfortableMonthlyNet": 0,
+                "essentialAnnualNet": 0,
+                "essentialMonthlyNet": 0,
+                "householdComfortableAnnual": 0,
+                "householdComfortableMonthly": 0,
+                "partnerAllInAnnual": 0,
+                "partnerAllInMonthly": 0,
+                "periodicAnnualAverage": 0,
+                "periodicMonthlyAverage": 0,
+                "sharedWithPartner": false,
+                "suggestedGrossAnnual": 0
+              },
+              "endAge": 100,
+              "lines": [],
+              "mySharePct": 50,
+              "oneOffs": [],
+              "plsaTier": "moderate",
+              "retired": true,
+              "retirementAge": 63,
+              "sharedWithPartner": false,
+              "version": 1
+            }
+          },
+          "createdAt": "2026-08-14T10:05:00.000Z",
+          "decisionTool": {
+            "history": [],
+            "settings": {
+              "baseSalary": 38000,
+              "bedAndIsa": true,
+              "bondMin": 200000,
+              "cashTarget": 50000,
+              "consecutiveLimit": 3,
+              "duration": 35,
+              "equityMin": 250000,
+              "firstTaxYear": 2027,
+              "giaTaxBand": "basic",
+              "isaBalance": 0,
+              "isaDrawdownStrategy": "minimiseEarlyTax",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "protectionFactor": 20,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "spStartDate": null,
+              "spWeeklyAmount": 0,
+              "statePension": 0,
+              "statePensionYear": 0,
+              "targetSchedule": [
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                32000,
+                31680,
+                31363.2,
+                31049.568,
+                30739.07232,
+                30431.681596799997,
+                30127.364780832,
+                29826.091133023678,
+                29527.830221693443,
+                29232.551919476507,
+                28940.226400281743,
+                28650.824136278923,
+                28364.315894916137,
+                28080.67273596697,
+                27799.866008607303,
+                27521.86734852123,
+                27246.648675036016,
+                26974.182188285657,
+                26704.4403664028,
+                26437.395962738774,
+                26173.022003111386,
+                25911.29178308027
+              ],
+              "taxableMix": "equity",
+              "taxableStart": 0
+            },
+            "taxYears": {}
+          },
+          "enabledTools": [
+            "budget",
+            "stress",
+            "decision",
+            "accumulation"
+          ],
+          "isActive": true,
+          "journey": [
+            {
+              "at": "2026-08-14T10:05:00.000Z",
+              "label": "Retired, designing the plan",
+              "stage": "draft-retired"
+            }
+          ],
+          "lastModified": "2026-08-14T10:05:00.000Z",
+          "planDetails": {
+            "description": "First go at a drawdown plan",
+            "name": "Alex’s plan"
+          },
+          "strategy": {
+            "engineVersion": "6.13.4",
+            "id": "pots-and-valves",
+            "lockedAt": "2026-08-14T10:05:00.000Z",
+            "params": {}
+          },
+          "stressTool": {
+            "settings": {
+              "accessMethod": "drawdown",
+              "allocMode": "risk",
+              "bandFillRecycle": false,
+              "baseSalary": 38000,
+              "bedAndIsa": true,
+              "bondMin": 210000,
+              "brl": 50270,
+              "cashTarget": 70000,
+              "configured": true,
+              "consecutiveLimit": 3,
+              "currentAge": 61,
+              "currentAgeAsOf": "2026-08-14",
+              "dbAmount": 0,
+              "dbIndexation": "lpi5",
+              "dbStartYear": 0,
+              "disableProtection": false,
+              "diversifierStart": 0,
+              "duration": 33,
+              "equityGlideEnabled": false,
+              "equityMin": 420000,
+              "extraIncomes": [],
+              "extraWithdrawals": [],
+              "firstTaxYear": 2027,
+              "giaTaxBand": "basic",
+              "glideEndgame": null,
+              "hodlEnabled": false,
+              "hodlValue": 25000,
+              "hrl": 125140,
+              "incomeShape": "phases",
+              "incomeSteps": [
+                {
+                  "amount": 38000,
+                  "fromAge": 63
+                },
+                {
+                  "amount": 32000,
+                  "decline": 1,
+                  "fromAge": 75
+                }
+              ],
+              "isaBalance": 45000,
+              "isaDrawdownStrategy": "minimiseEarlyTax",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "legacyFirstTaxYear": 2027,
+              "other": 0,
+              "pa": 12570,
+              "potAtRetirement": null,
+              "protectionEscalateMonths": 12,
+              "protectionMult": 0.8,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "retireAge": null,
+              "retired": true,
+              "shapeAgeNow": 63,
+              "spStartDate": "14 March 2032",
+              "spWeeklyAmount": 221.2,
+              "spendingProfile": "flat",
+              "statePension": 12000,
+              "statePensionYear": 12,
+              "strategyId": "pots-and-valves",
+              "strategyParams": {},
+              "strategyState": {},
+              "subAsset": null,
+              "taggedFunds": [],
+              "targetSchedule": [
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                38000,
+                32000,
+                31680,
+                31363.2,
+                31049.568,
+                30739.07232,
+                30431.681596799997,
+                30127.364780832,
+                29826.091133023678,
+                29527.830221693443,
+                29232.551919476507,
+                28940.226400281743,
+                28650.824136278923,
+                28364.315894916137,
+                28080.67273596697,
+                27799.866008607303,
+                27521.86734852123,
+                27246.648675036016,
+                26974.182188285657,
+                26704.4403664028,
+                26437.395962738774,
+                26173.022003111386,
+                25911.29178308027
+              ],
+              "taxMode": "inflates",
+              "taxableMix": "equity",
+              "taxableStart": 0,
+              "ufplsThenPcls": false,
+              "ufplsYears": null,
+              "windfalls": [],
+              "chargesPct": 0.5,
+              "isaGrowth": "cash"
+            }
+          },
+          "schemaVersion": 3
+        },
+        "newer": false,
+        "failed": false
+      }
+    ],
+    "usedUp": false,
+    "view": {
+      "today": "2026-09-30",
+      "rows": [
+        {
+          "id": "other",
+          "rows": [
+            {
+              "id": "AlexWay01",
+              "name": "Alex’s plan",
+              "stageKey": "draft-retired",
+              "line": {
+                "id": "draft-retired",
+                "slots": {}
+              },
+              "locked": false,
+              "lockedOn": null,
+              "madeOn": null,
+              "shownAsSaved": false,
+              "linked": false,
+              "lastModified": "2026-08-14T10:05:00.000Z"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "found": true,
+        "id": "AlexWay01",
+        "name": "Alex’s plan",
+        "stageKey": "draft-retired",
+        "retired": true,
+        "saver": false,
+        "line": {
+          "id": "draft-retired",
+          "slots": {}
+        },
+        "locked": false,
+        "lockedOn": null,
+        "readonly": false,
+        "source": "account",
+        "steps": [
+          {
+            "id": "plan",
+            "optional": false,
+            "listed": true,
+            "state": "current",
+            "done": true,
+            "result": {
+              "id": "plan.retired",
+              "parts": [
+                "Retired. ",
+                {
+                  "key": "yearly",
+                  "kind": "money"
+                },
+                " a year before tax"
+              ],
+              "text": "Retired. £38,000 a year before tax"
+            },
+            "figures": {
+              "yearly": 38000,
+              "ageToday": 61,
+              "years": 33,
+              "ageEnd": 95,
+              "step0": 38000,
+              "stepAge0": 63,
+              "step1": 32000,
+              "stepAge1": 75,
+              "sipp": 700000,
+              "isa": 45000,
+              "gia": 0,
+              "shares": 420000,
+              "bonds": 210000,
+              "cash": 70000,
+              "spWeekly": 221,
+              "mixShares": 420000,
+              "mixBonds": 210000,
+              "mixCash": 70000
+            },
+            "lines": [],
+            "buttons": [
+              {
+                "id": "lasts",
+                "href": "#/plan/AlexWay01/lasts",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              {
+                "id": "pricesToday",
+                "slots": {}
+              }
+            ],
+            "sections": [
+              {
+                "id": "about",
+                "lines": [
+                  {
+                    "id": "about.age",
+                    "slots": {
+                      "asOf": "14 August 2026"
+                    },
+                    "sentence": {
+                      "id": "about.age",
+                      "parts": [
+                        {
+                          "key": "ageToday",
+                          "kind": "age"
+                        }
+                      ],
+                      "text": "61"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": "14 August 2026",
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.retired",
+                    "slots": {},
+                    "sentence": {
+                      "id": "about.retired",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.firstYear",
+                    "slots": {
+                      "year": "2027/28"
+                    },
+                    "sentence": {
+                      "id": "about.firstYear",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "about.runs",
+                    "slots": {},
+                    "sentence": {
+                      "id": "about.runs",
+                      "parts": [
+                        {
+                          "key": "years",
+                          "kind": "count"
+                        },
+                        " years, to age ",
+                        {
+                          "key": "ageEnd",
+                          "kind": "age"
+                        }
+                      ],
+                      "text": "33 years, to age 95"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "about",
+                "sub": "about",
+                "href": "#/plan/AlexWay01/about"
+              },
+              {
+                "id": "pays",
+                "lines": [
+                  {
+                    "id": "pays.step",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pays.step",
+                      "parts": [
+                        "From age ",
+                        {
+                          "key": "stepAge0",
+                          "kind": "age"
+                        },
+                        ": ",
+                        {
+                          "key": "step0",
+                          "kind": "money"
+                        },
+                        " a year before tax"
+                      ],
+                      "text": "From age 63: £38,000 a year before tax"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pays.step",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pays.step",
+                      "parts": [
+                        "From age ",
+                        {
+                          "key": "stepAge1",
+                          "kind": "age"
+                        },
+                        ": ",
+                        {
+                          "key": "step1",
+                          "kind": "money"
+                        },
+                        " a year before tax",
+                        ", falling 1% a year"
+                      ],
+                      "text": "From age 75: £32,000 a year before tax, falling 1% a year"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "spend",
+                "sub": "spend",
+                "href": "#/plan/AlexWay01/spend"
+              },
+              {
+                "id": "pots",
+                "lines": [
+                  {
+                    "id": "pots.pension",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.pension",
+                      "parts": [
+                        {
+                          "key": "sipp",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£700,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pots.split",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.split",
+                      "parts": [
+                        {
+                          "key": "shares",
+                          "kind": "money"
+                        },
+                        " shares, ",
+                        {
+                          "key": "bonds",
+                          "kind": "money"
+                        },
+                        " bonds, ",
+                        {
+                          "key": "cash",
+                          "kind": "money"
+                        },
+                        " cash"
+                      ],
+                      "text": "£420,000 shares, £210,000 bonds, £70,000 cash"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "pots.isa",
+                    "slots": {},
+                    "sentence": {
+                      "id": "pots.isa",
+                      "parts": [
+                        {
+                          "key": "isa",
+                          "kind": "money"
+                        }
+                      ],
+                      "text": "£45,000"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "pots",
+                "sub": "pots",
+                "href": "#/plan/AlexWay01/pots"
+              },
+              {
+                "id": "income",
+                "lines": [
+                  {
+                    "id": "pots.statePension",
+                    "slots": {
+                      "from": "14 March 2032"
+                    },
+                    "sentence": {
+                      "id": "pots.statePension",
+                      "parts": [
+                        {
+                          "key": "spWeekly",
+                          "kind": "money"
+                        },
+                        " a week"
+                      ],
+                      "text": "£221 a week"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "pots",
+                "sub": "income",
+                "href": "#/plan/AlexWay01/income"
+              },
+              {
+                "id": "way",
+                "lines": [
+                  {
+                    "id": "way.strategy",
+                    "slots": {
+                      "strategy": "pots-and-valves"
+                    },
+                    "sentence": {
+                      "id": "way.strategy",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "way",
+                "sub": "way",
+                "href": "#/plan/AlexWay01/way",
+                "lockedButton": "tryWay"
+              },
+              {
+                "id": "mix",
+                "lines": [
+                  {
+                    "id": "mix.heldSplit",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.heldSplit",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.amounts",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.amounts",
+                      "parts": [
+                        {
+                          "key": "mixShares",
+                          "kind": "money"
+                        },
+                        " shares, ",
+                        {
+                          "key": "mixBonds",
+                          "kind": "money"
+                        },
+                        " bonds, ",
+                        {
+                          "key": "mixCash",
+                          "kind": "money"
+                        },
+                        " cash"
+                      ],
+                      "text": "£420,000 shares, £210,000 bonds, £70,000 cash"
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.sleeveOff",
+                    "slots": {},
+                    "sentence": {
+                      "id": "mix.sleeveOff",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  },
+                  {
+                    "id": "mix.tentOff",
+                    "slots": {
+                      "years": "13"
+                    },
+                    "sentence": {
+                      "id": "mix.tentOff",
+                      "parts": [],
+                      "text": ""
+                    },
+                    "source": {
+                      "kind": "saved",
+                      "at": null,
+                      "stale": false
+                    }
+                  }
+                ],
+                "place": "settings",
+                "sub": "mix",
+                "href": "#/plan/AlexWay01/mix",
+                "lockedButton": "tryMix"
+              }
+            ],
+            "options": [
+              {
+                "id": "tax.bed-and-isa",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": true,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "prot.cuts",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "off",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "after",
+                    "v": 3,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "cutTo",
+                    "v": 80,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "deeperAfter",
+                    "v": 12,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "buffer",
+                    "v": 15000,
+                    "kind": "money"
+                  }
+                ]
+              }
+            ],
+            "allOptions": [
+              {
+                "id": "inc.streams",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.lump-sums",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.extra-spends",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "inc.final-salary-rises",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "rises",
+                    "v": "lpi5",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "inc.state-pension-old",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 12000,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "fromYear",
+                    "v": 12,
+                    "kind": "count"
+                  }
+                ]
+              },
+              {
+                "id": "tax.bands",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "pa",
+                    "v": 12570,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "brl",
+                    "v": 50270,
+                    "kind": "money"
+                  },
+                  {
+                    "k": "hrl",
+                    "v": 125140,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "tax.mode",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "mode",
+                    "v": "inflates",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "tax.tax-free-cash",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "how",
+                    "v": "drawdown",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "tax.ufpls-years",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "years",
+                    "v": 0,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "thenRest",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.band-fill",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.bed-and-isa",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": true,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "tax.earnings",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "prot.cuts",
+                "set": true,
+                "facts": [
+                  {
+                    "k": "off",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "after",
+                    "v": 3,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "cutTo",
+                    "v": 80,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "deeperAfter",
+                    "v": 12,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "buffer",
+                    "v": 15000,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "prot.reserve",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "amount",
+                    "v": 25000,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.diversifiers",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "amount",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.bond-tent",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "on",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "endgame",
+                    "v": "hold",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "pots.isa-use",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "use",
+                    "v": "minimiseEarlyTax",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "pots.isa-growth",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "grows",
+                    "v": "cash",
+                    "kind": "choice"
+                  },
+                  {
+                    "k": "fixedRate",
+                    "v": 3,
+                    "kind": "pct"
+                  },
+                  {
+                    "k": "floor",
+                    "v": 0,
+                    "kind": "money"
+                  }
+                ]
+              },
+              {
+                "id": "pots.charges",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "yearly",
+                    "v": 0.5,
+                    "kind": "pct"
+                  }
+                ]
+              },
+              {
+                "id": "pots.funds-to-test",
+                "set": false,
+                "facts": []
+              },
+              {
+                "id": "draw.cadence",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "how",
+                    "v": "monthly",
+                    "kind": "choice"
+                  }
+                ]
+              },
+              {
+                "id": "timing.stale-draft",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "year",
+                    "v": 0,
+                    "kind": "count"
+                  }
+                ]
+              },
+              {
+                "id": "lock.lock",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "locked",
+                    "v": false,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "at",
+                    "v": "",
+                    "kind": "text"
+                  },
+                  {
+                    "k": "by",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "lock.unlock",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "times",
+                    "v": 0,
+                    "kind": "count"
+                  },
+                  {
+                    "k": "last",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "month.seeded",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "from",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "mach.configured",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "stress",
+                    "v": true,
+                    "kind": "yesNo"
+                  },
+                  {
+                    "k": "decision",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.declining",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "folded",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.old-names",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "present",
+                    "v": false,
+                    "kind": "yesNo"
+                  }
+                ]
+              },
+              {
+                "id": "mach.risk-mode",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "mode",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              },
+              {
+                "id": "mach.start-date",
+                "set": false,
+                "facts": [
+                  {
+                    "k": "date",
+                    "v": "",
+                    "kind": "text"
+                  }
+                ]
+              }
+            ],
+            "journey": [
+              {
+                "stage": "draft-retired",
+                "on": "14 August 2026",
+                "arrival": false
+              }
+            ],
+            "pastVersions": 0,
+            "lockedOn": null,
+            "hasDocument": false,
+            "documentOn": null,
+            "unlockDefaults": []
+          },
+          {
+            "id": "budget",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "budget.none",
+              "parts": [
+                "Not worked out. A guide only"
+              ],
+              "text": "Not worked out. A guide only"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "changeBudget",
+                "place": "budget",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              "budget.guide"
+            ]
+          },
+          {
+            "id": "lock",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "lock.notLocked",
+              "parts": [
+                "Not locked"
+              ],
+              "text": "Not locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [],
+            "notes": [
+              "lock.what"
+            ],
+            "locked": false,
+            "lockedOn": null,
+            "saver": false,
+            "strategyId": "pots-and-valves",
+            "bought": false,
+            "hasDocument": false
+          },
+          {
+            "id": "hold",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "hold.none",
+              "parts": [
+                "Not recorded yet"
+              ],
+              "text": "Not recorded yet"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "changeHold",
+                "place": "hold",
+                "slots": {}
+              }
+            ],
+            "notes": []
+          },
+          {
+            "id": "move",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "move.notSet",
+              "parts": [
+                "Set when the plan is locked"
+              ],
+              "text": "Set when the plan is locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "openMove",
+                "place": "move",
+                "slots": {}
+              }
+            ],
+            "notes": [
+              "move.optional"
+            ]
+          }
+        ],
+        "subSteps": [
+          {
+            "id": "about",
+            "under": "plan"
+          },
+          {
+            "id": "income",
+            "under": "plan"
+          },
+          {
+            "id": "spend",
+            "under": "plan"
+          },
+          {
+            "id": "pots",
+            "under": "plan"
+          },
+          {
+            "id": "lasts",
+            "under": "plan"
+          },
+          {
+            "id": "way",
+            "under": "plan"
+          },
+          {
+            "id": "mix",
+            "under": "plan"
+          }
+        ],
+        "current": "plan",
+        "answerStale": null,
+        "next": {
+          "id": "P.draft",
+          "slots": {
+            "month": "September 2026",
+            "monthName": "September",
+            "nextMonth": "October",
+            "year": "2026/27",
+            "stop": "April 2027",
+            "savedYear": ""
+          },
+          "button": {
+            "id": "lasts",
+            "href": "#/plan/AlexWay01/lasts",
+            "slots": {}
+          }
+        },
+        "askLinks": [
+          "c"
+        ],
+        "forId": "AlexWay01",
+        "forStep": "mix",
+        "mix": {
+          "found": true,
+          "id": "AlexWay01",
+          "name": "Alex’s plan",
+          "locked": false,
+          "lockedOn": null,
+          "readonly": false,
+          "editable": true,
+          "source": {
+            "kind": "saved",
+            "at": "14 August 2026"
+          },
+          "strategyId": "pots-and-valves",
+          "bought": false,
+          "family": true,
+          "buckets": false,
+          "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|17yztx6|U",
+          "pot": "£700,000",
+          "isa": "£45,000",
+          "held": "funds",
+          "levels": [
+            {
+              "key": "cautious",
+              "amounts": {
+                "shares": "£210,000",
+                "bonds": "£315,000",
+                "diversifiers": "£0",
+                "cash": "£175,000"
+              },
+              "current": false
+            },
+            {
+              "key": "balanced",
+              "amounts": {
+                "shares": "£350,000",
+                "bonds": "£280,000",
+                "diversifiers": "£0",
+                "cash": "£70,000"
+              },
+              "current": false
+            },
+            {
+              "key": "adventurous",
+              "amounts": {
+                "shares": "£490,000",
+                "bonds": "£175,000",
+                "diversifiers": "£0",
+                "cash": "£35,000"
+              },
+              "current": false
+            }
+          ],
+          "split": null,
+          "fields": [
+            {
+              "path": "held",
+              "type": "choice",
+              "options": [
+                "level",
+                "split",
+                "funds"
+              ],
+              "applies": true,
+              "shown": "funds",
+              "saved": "split",
+              "error": null
+            },
+            {
+              "path": "level",
+              "type": "choice",
+              "options": [
+                "cautious",
+                "balanced",
+                "adventurous"
+              ],
+              "applies": false,
+              "shown": "adventurous",
+              "saved": "adventurous",
+              "error": null
+            },
+            {
+              "path": "shares",
+              "type": "percent",
+              "options": null,
+              "applies": false,
+              "shown": "60",
+              "saved": "60",
+              "error": null
+            },
+            {
+              "path": "bonds",
+              "type": "percent",
+              "options": null,
+              "applies": false,
+              "shown": "30",
+              "saved": "30",
+              "error": null
+            },
+            {
+              "path": "diversifiers",
+              "type": "percent",
+              "options": null,
+              "applies": false,
+              "shown": "0",
+              "saved": "0",
+              "error": null
+            },
+            {
+              "path": "cash",
+              "type": "percent",
+              "options": null,
+              "applies": false,
+              "shown": "10",
+              "saved": "10",
+              "error": null
+            },
+            {
+              "path": "sleeve",
+              "type": "choice",
+              "options": [
+                "yes",
+                "no"
+              ],
+              "applies": false,
+              "shown": "no",
+              "saved": "no",
+              "error": null
+            },
+            {
+              "path": "tent",
+              "type": "choice",
+              "options": [
+                "yes",
+                "no"
+              ],
+              "applies": true,
+              "shown": "no",
+              "saved": "no",
+              "error": null
+            },
+            {
+              "path": "endgame",
+              "type": "choice",
+              "options": [
+                "cautious",
+                "balanced",
+                "adventurous"
+              ],
+              "applies": false,
+              "shown": "balanced",
+              "saved": "balanced",
+              "error": null
+            }
+          ],
+          "lists": {
+            "funds": {
+              "ids": [
+                "n1",
+                "n2"
+              ],
+              "cards": [
+                {
+                  "id": "n1",
+                  "saved": false,
+                  "fields": [
+                    {
+                      "path": "funds.n1.ticker",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "VWRP",
+                      "saved": null,
+                      "error": null
+                    },
+                    {
+                      "path": "funds.n1.name",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "",
+                      "saved": null,
+                      "error": null
+                    },
+                    {
+                      "path": "funds.n1.value",
+                      "type": "money",
+                      "options": null,
+                      "applies": true,
+                      "shown": "300,000",
+                      "saved": null,
+                      "error": null
+                    },
+                    {
+                      "path": "funds.n1.wrapper",
+                      "type": "choice",
+                      "options": [
+                        "SIPP",
+                        "ISA",
+                        "GIA"
+                      ],
+                      "applies": true,
+                      "shown": "SIPP",
+                      "saved": null,
+                      "error": null
+                    },
+                    {
+                      "path": "funds.n1.category",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "",
+                      "saved": null,
+                      "error": null
+                    }
+                  ],
+                  "bucket": "shares",
+                  "recognised": true,
+                  "category": "worldGrowth"
+                },
+                {
+                  "id": "n2",
+                  "saved": false,
+                  "fields": [
+                    {
+                      "path": "funds.n2.ticker",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "ZZZZ",
+                      "saved": null,
+                      "error": null
+                    },
+                    {
+                      "path": "funds.n2.name",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "",
+                      "saved": null,
+                      "error": null
+                    },
+                    {
+                      "path": "funds.n2.value",
+                      "type": "money",
+                      "options": null,
+                      "applies": true,
+                      "shown": "50,000",
+                      "saved": null,
+                      "error": null
+                    },
+                    {
+                      "path": "funds.n2.wrapper",
+                      "type": "choice",
+                      "options": [
+                        "SIPP",
+                        "ISA",
+                        "GIA"
+                      ],
+                      "applies": true,
+                      "shown": "ISA",
+                      "saved": null,
+                      "error": null
+                    },
+                    {
+                      "path": "funds.n2.category",
+                      "type": "text",
+                      "options": null,
+                      "applies": true,
+                      "shown": "gold",
+                      "saved": null,
+                      "error": null
+                    }
+                  ],
+                  "bucket": "diversifiers",
+                  "recognised": false,
+                  "category": "gold"
+                }
+              ]
+            }
+          },
+          "categories": {
+            "shares": [
+              {
+                "key": "ukEquityIncome",
+                "label": "UK equity income"
+              },
+              {
+                "key": "globalEquityIncome",
+                "label": "Global equity income"
+              },
+              {
+                "key": "worldGrowth",
+                "label": "World growth / tracker"
+              },
+              {
+                "key": "reit",
+                "label": "Property / REITs"
+              },
+              {
+                "key": "emEquity",
+                "label": "Emerging-markets equity"
+              },
+              {
+                "key": "globalSmallCap",
+                "label": "Global smaller companies"
+              }
+            ],
+            "bonds": [
+              {
+                "key": "shortGilts",
+                "label": "Short gilts 0-5y (buffer)"
+              },
+              {
+                "key": "longGilts",
+                "label": "Long gilts 15y+"
+              },
+              {
+                "key": "indexLinked",
+                "label": "Index-linked gilts (long)"
+              },
+              {
+                "key": "corporateIG",
+                "label": "£ IG corporate"
+              },
+              {
+                "key": "globalAggHedged",
+                "label": "Global-agg £-hedged"
+              },
+              {
+                "key": "usTreasHedged",
+                "label": "US treasuries £-hedged"
+              },
+              {
+                "key": "infraDebt",
+                "label": "Infrastructure debt"
+              },
+              {
+                "key": "highYield",
+                "label": "Global high-yield (£-hedged)"
+              }
+            ],
+            "cash": [
+              {
+                "key": "moneyMarket",
+                "label": "Money-market fund"
+              },
+              {
+                "key": "savings",
+                "label": "Savings / NS&I"
+              }
+            ],
+            "diversifiers": [
+              {
+                "key": "gold",
+                "label": "Gold"
+              },
+              {
+                "key": "trendMacro",
+                "label": "Trend / macro"
+              },
+              {
+                "key": "commodities",
+                "label": "Broad commodities"
+              }
+            ]
+          },
+          "errors": {},
+          "ok": true,
+          "derived": [
+            {
+              "id": "held.funds",
+              "slots": {
+                "pot": "£300,000",
+                "isa": "£50,000"
+              }
+            },
+            {
+              "id": "amounts",
+              "slots": {
+                "shares": "£300,000",
+                "bonds": "£0",
+                "cash": "£0",
+                "div": ""
+              }
+            },
+            {
+              "id": "sleeve.off",
+              "slots": {}
+            },
+            {
+              "id": "tent.off",
+              "slots": {}
+            }
+          ],
+          "sleeve": {
+            "on": false,
+            "amount": "£0",
+            "applies": false,
+            "try": {
+              "status": "off",
+              "lines": [],
+              "runs": 0,
+              "ms": null,
+              "reason": null
+            }
+          },
+          "tent": {
+            "on": false,
+            "years": "13",
+            "endgameApplies": false,
+            "ignored": false,
+            "try": {
+              "status": "off",
+              "lines": [],
+              "runs": 0,
+              "ms": null,
+              "reason": null
+            }
+          },
+          "search": {
+            "text": "vang",
+            "matches": [
+              {
+                "ticker": "VAGP",
+                "name": "Vanguard Global Aggregate (GBP-Hedged, Dist)",
+                "category": "globalAggHedged"
+              },
+              {
+                "ticker": "VAGS",
+                "name": "Vanguard Global Aggregate (GBP-Hedged, Acc)",
+                "category": "globalAggHedged"
+              },
+              {
+                "ticker": "VAPX",
+                "name": "Vanguard FTSE Dev Asia Pacific ex-Japan",
+                "category": "worldGrowth"
+              },
+              {
+                "ticker": "VERX",
+                "name": "Vanguard FTSE Developed Europe ex-UK",
+                "category": "worldGrowth"
+              },
+              {
+                "ticker": "VEUR",
+                "name": "Vanguard FTSE Developed Europe",
+                "category": "worldGrowth"
+              },
+              {
+                "ticker": "VEVE",
+                "name": "Vanguard FTSE Developed World (Dist)",
+                "category": "worldGrowth"
+              },
+              {
+                "ticker": "VFEG",
+                "name": "Vanguard FTSE Emerging Markets (Acc)",
+                "category": "emEquity"
+              },
+              {
+                "ticker": "VFEM",
+                "name": "Vanguard FTSE Emerging Markets (Dist)",
+                "category": "emEquity"
+              }
+            ]
+          },
+          "example": {
+            "rows": [
+              {
+                "ticker": "VWRP",
+                "name": "Vanguard FTSE All-World (acc)",
+                "job": "World shares — the whole growth engine in one fund",
+                "pct": 69
+              },
+              {
+                "ticker": "IGLS",
+                "name": "iShares UK Gilts 0–5yr",
+                "job": "Short gilts — stability, low rate risk",
+                "pct": 8
+              },
+              {
+                "ticker": "IGLT",
+                "name": "iShares Core UK Gilts",
+                "job": "Longer gilts — crash ballast, more rate risk",
+                "pct": 5
+              },
+              {
+                "ticker": "INXG",
+                "name": "iShares sterling Index-Linked Gilts",
+                "job": "Inflation-linked gilts — inflation protection",
+                "pct": 5
+              },
+              {
+                "ticker": "SLXX",
+                "name": "iShares sterling Corporate Bond",
+                "job": "Investment-grade credit — extra yield over gilts",
+                "pct": 8
+              },
+              {
+                "ticker": "CSH2",
+                "name": "Amundi Smart Overnight Return",
+                "job": "Cash-like — money-market rate, near-zero swings",
+                "pct": 5
+              }
+            ],
+            "level": "adventurous"
+          },
+          "summary": {
+            "pot": "£300,000",
+            "isa": "£50,000",
+            "buckets": {
+              "shares": "£300,000",
+              "bonds": "£0",
+              "diversifiers": "£0",
+              "cash": "£0"
+            },
+            "untagged": []
+          },
+          "paste": {
+            "text": "",
+            "wrapper": "SIPP",
+            "rows": [],
+            "summary": null,
+            "leftOut": [],
+            "warnings": [],
+            "canAdd": false,
+            "edits": []
+          },
+          "compare": {
+            "status": "idle",
+            "cells": [],
+            "best": null,
+            "ms": null,
+            "runs": 8,
+            "progress": null,
+            "reason": null
+          },
+          "pick": null,
+          "document": null,
+          "documentBase": null,
+          "base": null,
+          "partners": [],
+          "changed": true,
+          "patch": {
+            "stressTool.settings.equityMin": 300000,
+            "stressTool.settings.bondMin": 0,
+            "stressTool.settings.cashTarget": 0,
+            "stressTool.settings.allocMode": "funds",
+            "stressTool.settings.taggedFunds": [
+              {
+                "ticker": "VWRP",
+                "value": 300000,
+                "wrapper": "SIPP",
+                "subClass": "worldGrowth"
+              },
+              {
+                "ticker": "ZZZZ",
+                "value": 50000,
+                "wrapper": "ISA",
+                "subClass": "gold"
+              }
+            ],
+            "stressTool.settings.isaBalance": 50000,
+            "stressTool.settings.strategyState": {
+              "pots-and-valves": {
+                "strategyParams": {},
+                "allocMode": "funds",
+                "taggedFunds": [
+                  {
+                    "ticker": "VWRP",
+                    "value": 300000,
+                    "wrapper": "SIPP",
+                    "subClass": "worldGrowth"
+                  },
+                  {
+                    "ticker": "ZZZZ",
+                    "value": 50000,
+                    "wrapper": "ISA",
+                    "subClass": "gold"
+                  }
+                ],
+                "savedAt": "2026-09-30"
+              }
+            }
+          },
+          "previous": {
+            "stressTool.settings.equityMin": 420000,
+            "stressTool.settings.bondMin": 210000,
+            "stressTool.settings.cashTarget": 70000,
+            "stressTool.settings.allocMode": "risk",
+            "stressTool.settings.taggedFunds": [],
+            "stressTool.settings.isaBalance": 45000,
+            "stressTool.settings.strategyState": {}
+          },
+          "savedLine": {
+            "id": "mix",
+            "slots": {
+              "held": "funds",
+              "shares": "£300,000",
+              "bonds": "£0",
+              "cash": "£0"
+            }
+          },
+          "whats": [
+            "shares",
+            "bonds",
+            "cash",
+            "diversifiers",
+            "unknown"
+          ],
+          "draftKey": "{\"held\":\"funds\",\"funds.ids\":\"n1,n2\",\"funds.n1.ticker\":\"VWRP\",\"funds.n1.value\":\"300,000\",\"funds.n2.ticker\":\"ZZZZ\",\"funds.n2.value\":\"50,000\",\"funds.n2.wrapper\":\"ISA\",\"funds.n2.category\":\"gold\",\"search\":\"vang\"}"
+        }
+      }
+    }
+  },
+  "draft": {
+    "a": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "b": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "c": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "d": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "plan": {
+      "id": "AlexWay01",
+      "values": {
+        "held": "funds",
+        "funds.ids": "n1,n2",
+        "funds.n1.ticker": "VWRP",
+        "funds.n1.value": "300,000",
+        "funds.n2.ticker": "ZZZZ",
+        "funds.n2.value": "50,000",
+        "funds.n2.wrapper": "ISA",
+        "funds.n2.category": "gold",
+        "search": "vang"
+      },
+      "touched": [],
+      "asked": false
+    }
+  },
+  "answers": {
+    "a": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "b": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    },
+    "d": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "budget": null,
+  "keep": {
+    "a": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "b": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "c": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    },
+    "d": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null
+    }
+  },
+  "lasts": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "levers": {},
+    "workDraft": {
+      "yearly": "",
+      "years": ""
+    },
+    "tried": null,
+    "kept": null
+  },
+  "ways": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "ran": null,
+    "open": null,
+    "dials": {},
+    "tried": {},
+    "rankBy": "lasts"
+  },
+  "mix": {
+    "key": null,
+    "tries": {},
+    "compare": {
+      "status": "idle",
+      "result": null,
+      "ms": null,
+      "progress": null,
+      "reason": null
+    },
+    "pick": null
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true,
+    "leaving": null,
+    "leaveProblem": null,
+    "saving": null,
+    "saveProblem": null,
+    "toast": null
+  }
+}

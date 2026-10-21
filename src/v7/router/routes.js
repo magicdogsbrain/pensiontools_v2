@@ -25,8 +25,8 @@ const FOCUS = /^[A-Za-z]+(\.[A-Za-z]+)*$/;
 export const PLAN_ID = /^[A-Za-z0-9_-]{1,64}$/;
 /** The steps of "Your plan" (src/answers/plan/steps.js ALL_STEPS; named here so the router imports no reader). */
 export const PLAN_STEPS = Object.freeze(['month', 'where', 'plan', 'pot', 'saving', 'budget', 'lock', 'hold', 'move', 'household']);
-/** The editing sub-steps under a plan (src/answers/plan/steps.js ALL_SUB_STEPS): #/plan/<id>/about, /income, /spend, /pots, /lasts (editing-in-v7.md 2, 7, 8, 9, 10), /way (way-and-mix.md 2). */
-export const PLAN_SUB_STEPS = Object.freeze(['about', 'income', 'spend', 'pots', 'lasts', 'way']);
+/** The editing sub-steps under a plan (src/answers/plan/steps.js ALL_SUB_STEPS): #/plan/<id>/about, /income, /spend, /pots, /lasts (editing-in-v7.md 2, 7, 8, 9, 10), /way (way-and-mix.md 2), /mix (way-and-mix.md 3). */
+export const PLAN_SUB_STEPS = Object.freeze(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
 const planStepOk = (s) => PLAN_STEPS.includes(s) || PLAN_SUB_STEPS.includes(s);
 
 const route = (screen, q = null, step = null, focus = null, planId = null) => ({ screen, q, step, planId, focus });
@@ -84,7 +84,7 @@ export const href = {
 
 /**
  * The name of the screen a route draws — the value of data-screen (brief 4.9):
- * 'front' | 'c.numbers' | 'c.answer' | 'soon' | 'notBuilt' | 'plans' | 'plan' | 'plan.about' | 'plan.income' | … | 'plan.lasts' | 'plan.way' | 'plan.lock'. An unknown address draws the front door.
+ * 'front' | 'c.numbers' | 'c.answer' | 'soon' | 'notBuilt' | 'plans' | 'plan' | 'plan.about' | 'plan.income' | … | 'plan.lasts' | 'plan.way' | 'plan.mix' | 'plan.lock'. An unknown address draws the front door.
  */
 export function screenName(r) {
   if (!r || r.screen === 'front' || r.screen === 'notFound') return 'front';

@@ -88,9 +88,11 @@ import { aboutPatch, applyPatch } from '../../answers/plan/about.js';
 import { incomePatch } from '../../answers/plan/income.js';
 import { spendPatch } from '../../answers/plan/spend.js';
 import { potsPatch } from '../../answers/plan/pots.js';
-import { lastsPatch } from '../../answers/plan/lasts.js';
+import { lastsPatch, tryPatch, tryCopyOf } from '../../answers/plan/lasts.js';
 import { lockPatch, unlockPatch, documentPatch, isLockReversal, shapeRefsOf } from '../../answers/plan/lock.js';
 import { wayPatch } from '../../answers/plan/way.js';
+import { mixPatch, useMixPatch } from '../../answers/plan/mix.js';
+import { uniqueName } from '../../services/PlanFromSeed.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
 import { isLockedSettings, lockedPlanWriteRefusal } from '../../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from '../../storage/stressDefaults.js';
@@ -184,8 +186,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
   /** Which editing step the page is on when Save is pressed (editing-in-v7.md 7): its pure writer and its reading. */
   function stepOf(state) {
     const r = state.route;
-    const step = r && r.screen === 'plan' && (r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts') ? r.step : 'about';
-    return { step, patchOf: step === 'income' ? incomePatch : step === 'spend' ? spendPatch : step === 'pots' ? potsPatch : step === 'lasts' ? lastsPatch : aboutPatch };
+    const step = r && r.screen === 'plan' && (r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts' || r.step === 'mix') ? r.step : 'about';
+    return { step, patchOf: step === 'income' ? incomePatch : step === 'spend' ? spendPatch : step === 'pots' ? potsPatch : step === 'lasts' ? lastsPatch : step === 'mix' ? mixPatch : aboutPatch };
   }
 
   /** The plan as read, after the fresh read of the account: { place, plan, state } or null after a failure already told. */
@@ -329,6 +331,100 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
 
+  /** "Use this mix" (way-and-mix.md 3.2e): the amounts a cell of the comparison ran with, the mode and the tent, as one write to an unlocked plan. */
+  async function useMix(planId, cell) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    if (isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) { fail(planId, 'locked'); return; }
+    const M = state.mix || {};
+    const page = state.plans.view && state.plans.view.page && state.plans.view.page.forId === String(planId) ? state.plans.view.page.mix : null;
+    if (!page || !page.found || M.key !== page.runKey || M.compare.status !== 'done') { fail(planId, 'noRun'); return; }
+    const at = now();
+    const p = useMixPatch(plan, cell, { today: state.env.today });
+    if (!p.ok) { fail(planId, p.errors.plan === 'locked' ? 'locked' : 'problems'); return; }
+    const line = { id: 'use', slots: { key: cell.key, tent: cell.tent ? 'on' : 'off' } };
+    if (!Object.keys(p.patch).length) { dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line, op: 'mix' }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return; }
+    const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
+    if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
+    if (!(await send(place, planId, data))) return;
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line, op: 'mix' });
+    dispatch({ type: A.PLANS_READING });
+    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+  }
+
+  /** The tried change held for this plan's run (way-and-mix.md 4), or null (told as 'noRun'). */
+  function triedOf(state, planId) {
+    const L = state.lasts || {};
+    const page = state.plans.view && state.plans.view.page && state.plans.view.page.forId === String(planId) ? state.plans.view.page.lasts : null;
+    if (!page || !page.found || L.key !== page.runKey || !L.tried || L.tried.status !== 'done' || !L.tried.boxes) return null;
+    return L.tried.boxes;
+  }
+
+  /** "Use this" on a tried change (way-and-mix.md 4): ONE write of exactly the fields that differ, composed from the steps' lists, to an unlocked plan. */
+  async function useTry(planId) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    if (isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) { fail(planId, 'locked'); return; }
+    const boxes = triedOf(state, planId);
+    if (!boxes) { fail(planId, 'noRun'); return; }
+    const at = now();
+    const p = tryPatch(plan, boxes, { today: state.env.today, at: at.toISOString() });
+    if (!p.ok) { fail(planId, p.errors.plan === 'locked' ? 'locked' : 'problems'); return; }
+    if (!Object.keys(p.patch).length) { dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line: p.line, op: 'try' }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return; }
+    const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
+    if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
+    if (!(await send(place, planId, data))) return;
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: 'try' });
+    dispatch({ type: A.PLANS_READING });
+    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+  }
+
+  /**
+   * "Keep as a separate plan" (way-and-mix.md 4): the tried settings as a NEW plan — a copy of the plan with the copy's
+   * settings (lasts.js tryCopyOf), named "{name} · tried" made unique, never active, never locked (a locked plan's copy is
+   * made unlocked, its document, record and archive not carried — the planner's rule for a copy), through the one create.
+   */
+  async function keepCopy(planId) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const boxes = triedOf(state, planId);
+    if (!boxes) { fail(planId, 'noRun'); return; }
+    if (place.kind === 'account' && state.session.kind !== 'in') { fail(planId, 'unverified'); return; }
+    const at = now();
+    const plans = state.plans.list.map((e) => e.plan);
+    if (place.kind === 'window' && guestOwnPlans(plans).length + 1 > GUEST_MAX_PLANS) { fail(planId, 'full'); return; }
+    let doc;
+    try {
+      const copy = tryCopyOf(plan, boxes, state.env.today);
+      const { id, createdAt, lastModified, ...rest } = copy; void id; void createdAt; void lastModified;
+      const name = uniqueName((nameOf(plan) || 'Plan') + ' · tried', plans.map(nameOf).filter(Boolean));
+      rest.planDetails = { ...(rest.planDetails || {}), name };
+      rest.isActive = false;
+      // never locked, nothing recorded against it: the lock's record, the document and the archives stay with the original
+      if (rest.decisionTool) {
+        rest.decisionTool = { ...rest.decisionTool, settings: { ...(rest.decisionTool.settings || {}), locked: false }, history: [], taxYears: {} };
+        delete rest.decisionTool.settings.lockedAt; delete rest.decisionTool.settings.lockedBy; delete rest.decisionTool.settings.unlockedAt; delete rest.decisionTool.settings.unlockCount;
+        delete rest.decisionTool.planOfRecord; delete rest.decisionTool.planOfRecordArchive;
+      }
+      delete rest.planDocument; delete rest.planDocumentArchive; delete rest.journey;
+      const stamp = at.toISOString();
+      doc = { plan: readyPlan({ ...rest, createdAt: stamp, lastModified: stamp }, at), name };
+    } catch { fail(planId, 'failed'); return; }
+    let made;
+    if (place.kind === 'account') {
+      try { made = { id: await add(scenariosOf(place), doc.plan) }; } catch { fail(planId, 'failed'); return; }
+    } else {
+      made = createOneInWindow(doc.plan);
+      if (made.problem) { fail(planId, made.problem); return; }
+    }
+    if (stopped) return;
+    dispatch({ type: A.TRY_KEPT, planId, id: made.id, name: doc.name, where: place.kind });
+    dispatch({ type: A.PLANS_READING });
+  }
+
   async function undo(planId, previous, op = null, lockedAt = null) {
     const state = store.getState();
     const place = placeOf(state, planId);
@@ -406,10 +502,27 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (!ref || typeof ref.id !== 'string' || !ref.id) throw new Error('planWrite: no id');
     return ref.id;
   }
+  /** The account's plans, the one place the collection is named. */
+  const scenariosOf = (place) => F.collection(place.db, 'users', place.uid, 'scenarios');
+
+  /** This window: ONE plan appended to pt_guest_scenarios with a guest id, written back as one setItem; every other plan byte-identical. */
+  function createOneInWindow(plan) {
+    if (!session) return { problem: 'storage' };
+    let text = null;
+    try { text = session.getItem(GUEST_PLANS_KEY); } catch { return { problem: 'storage' }; }
+    let stored = [];
+    if (text) { try { stored = JSON.parse(text); } catch { return { problem: 'storage' }; } }
+    if (!Array.isArray(stored)) return { problem: 'storage' };
+    const taken = new Set(stored.map((p) => (p && p.id != null ? String(p.id) : '')));
+    const id = guestPlanId(rand, taken);
+    const out = JSON.stringify([...stored, { ...plan, id }]);
+    try { session.setItem(GUEST_PLANS_KEY, out); if (session.getItem(GUEST_PLANS_KEY) !== out) return { problem: 'storage' }; } catch { return { problem: 'storage' }; }
+    return { id };
+  }
 
   /** The account: the partner's plan first (a couple), then yours with the link; the partner's stays if yours fails. */
   async function createInAccount(place, made, at) {
-    const coll = F.collection(place.db, 'users', place.uid, 'scenarios');
+    const coll = scenariosOf(place);
     let partnerId = null;
     if (made.partner) {
       try { partnerId = await add(coll, readyPlan(made.partner, at)); } catch { return { problem: 'failed' }; }
@@ -504,6 +617,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_UNLOCK && s.kind === 'unlock') run(() => unlock(s.planId));
     else if (action.type === A.PLAN_DOCUMENT && s.kind === 'document') run(() => newVersion(s.planId));
     else if (action.type === A.PLAN_WAY && s.kind === 'way') run(() => useWay(s.planId, s.way));
+    else if (action.type === A.PLAN_MIX && s.kind === 'mix') run(() => useMix(s.planId, s.cell));
+    else if (action.type === A.PLAN_TRY && s.kind === 'try') run(() => useTry(s.planId));
+    else if (action.type === A.TRY_KEEP && s.kind === 'tryKeep') run(() => keepCopy(s.planId));
   });
   return () => { stopped = true; off(); if (timer && win) win.clearTimeout(timer); };
 }

@@ -114,7 +114,7 @@ function Card({ card, V, planId, dispatch }) {
       {open && card.has && (
         <>
           {card.compare && <p class="note" data-testid="plan.way.compare">{fill(WAY.card.compare, { ...card.compare.slots, docWay: name(card.compare.slots.docWay), way: name(card.compare.slots.way) })}</p>}
-          {card.family && <p class="note" data-line="way.mix">{WAY.card.mix}</p>}
+          {card.family && <p class="note"><span data-line="way.mix">{WAY.card.mix}</span> <a href={href.plan(planId, 'mix')} data-testid={`plan.way.${id}.mixLink`}>{WAY.card.mixLink}</a></p>}
           {id === 'buckets-in-order' && <p class="note" data-line="way.noTent">{WAY.card.noTent}</p>}
           {card.bought && card.affordable && <p class="note" data-line="way.bundled">{WAY.card.bundled}</p>}
           <Dials card={card} locked={V.locked} dispatch={dispatch} />

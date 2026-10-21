@@ -22,6 +22,7 @@ import { optionsFor } from './options.js';
 import { answerAge, bandsOf, netOf } from './about.js';
 import { isBought } from './pots.js';
 import { savedLasts } from './lasts.js';
+import { savedMix } from './mix.js';
 import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
 import { unlockPatchesOf } from '../../services/PlanCommit.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween } from './dates.js';
@@ -364,7 +365,22 @@ function planStep(C) {
   way.push(line('way.strategy', [], figures, src, { strategy: sid }));
   const params = (locked && doc && doc.strategy && doc.strategy.params) || ss.strategyParams || {};
   for (const [k, v] of Object.entries(params)) { if (num(v) == null) continue; figures['dial.' + k] = num(v); way.push(line('way.dial', [k === 'cashYears' || k === 'years' || /Years$|Age$/.test(k) ? count('dial.' + k) : money('dial.' + k)], figures, src, { dial: k })); }
-  if (!locked && ss.allocMode) way.push(line('way.allocMode', [], figures, src, { mode: String(ss.allocMode) }));
+
+  // The mix (way-and-mix.md 3): how the pension is held, the amounts, the sleeve and the tent — its own section, edited inside V7
+  // (the "set by risk level / from the funds to test" line moved here from "How the money is taken" in 6.41.0)
+  const mix = [];
+  const sm = savedMix(plan, { today: now.toISOString().slice(0, 10) });
+  if (sm.bought) mix.push(line('mix.bought', [], figures, src, { strategy: sid }));
+  else {
+    mix.push(line(sm.values.held === 'funds' ? 'mix.heldFunds' : sm.values.held === 'split' ? 'mix.heldSplit' : 'mix.heldLevel', [], figures, src, sm.values.held === 'level' ? { level: sm.values.level } : {}));
+    figures.mixShares = sm.amounts.equity; figures.mixBonds = sm.amounts.bond; figures.mixCash = sm.amounts.cash;
+    const parts = [money('mixShares'), ' shares, ', money('mixBonds'), ' bonds, ', money('mixCash'), ' cash'];
+    if (sm.amounts.div > 0) { figures.mixDiv = sm.amounts.div; parts.push(', ', money('mixDiv'), ' gold and trend funds'); }
+    mix.push(line('mix.amounts', parts, figures, src));
+    if (sm.values.held === 'funds') { figures.mixFunds = sm.values.funds.length; mix.push(line('mix.funds', [count('mixFunds'), ' fund' + (sm.values.funds.length === 1 ? '' : 's') + ' on the list'], figures, src)); }
+    mix.push(line(sm.amounts.div > 0 ? 'mix.sleeveOn' : 'mix.sleeveOff', [], figures, src));
+    mix.push(line(sm.buckets ? 'mix.tentBuckets' : sm.values.tent === 'yes' ? 'mix.tentOn' : 'mix.tentOff', [], figures, src, { years: String(sm.tentYears) }));
+  }
 
   // Everything else this plan uses (2.5)
   const options = optionsFor(ss, ds, plan);
@@ -380,7 +396,9 @@ function planStep(C) {
     // "Money that comes in anyway" is edited inside V7 too (editing-in-v7.md 7)
     { id: 'income', lines: income, place: 'pots', sub: 'income', href: '#/plan/' + plan.id + '/income' },
     // "How the money is taken" is in V7 too (way-and-mix.md 2.1): the nine ways on this plan; on a locked plan the link says a try changes nothing
-    { id: 'way', lines: way, place: 'way', sub: 'way', href: '#/plan/' + plan.id + '/way', lockedButton: 'tryWay' }
+    { id: 'way', lines: way, place: 'way', sub: 'way', href: '#/plan/' + plan.id + '/way', lockedButton: 'tryWay' },
+    // "The mix" (way-and-mix.md 3): how the pension is held; on a locked plan the tries still run there, nothing is written
+    { id: 'mix', lines: mix, place: 'settings', sub: 'mix', href: '#/plan/' + plan.id + '/mix', lockedButton: 'tryMix' }
   ];
   const buttons = [];
   // "Does it last?" is inside V7 (editing-in-v7.md 10): the one test runs there; a locked plan still has the planner's what-ifs

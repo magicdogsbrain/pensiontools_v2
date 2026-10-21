@@ -11,7 +11,7 @@
  * The reducer never runs an answer.
  */
 import { A, OPENABLE } from './actions.js';
-import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried } from './initial.js';
+import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept } from './initial.js';
 import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber } from './select.js';
 import { hasShape, SHAPE_UNIT, THENS, thenPath, fallsPath, stepsPath, stepBox, stepFields, shapePaths, isShapePath, stepsOf, newStep,
   touchedWithout, touchedReordered, sortedSteps, shapeValuesOf, withShapeValues } from './shapeDraft.js';
@@ -29,9 +29,11 @@ const withPlanDraft = (state, plan) => ({ ...state, draft: { ...state.draft, pla
 const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'failed', 'problems', 'readonly',
   // the lock (road-to-7.md step 6): not locked (an unlock or a new version on an unlocked plan), no worker to run the plan's
   // test in, the test gave nothing to write
-  'notLocked', 'noWorker', 'noRun'];
-/** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document, the way switched (way-and-mix.md 2.4). */
-const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way'];
+  'notLocked', 'noWorker', 'noRun',
+  // "Keep as a separate plan" (way-and-mix.md 4): the window holds its three plans; an unconfirmed email
+  'full', 'unverified'];
+/** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document, the way switched (way-and-mix.md 2.4), a mix used (3.2e), a tried change used (4). */
+const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try'];
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -330,7 +332,13 @@ export function reduce(state, action) {
       // the toast and a save's problem belong to their plan too
       const t = state.ui.toast, sp = state.ui.saveProblem;
       const uiOther = (t && !onPlan(t.planId)) || (sp && sp.planId && !onPlan(sp.planId));
-      const next = { ...state, route, ui: closeRail(state.ui) };
+      // the blocks opened on one plan's step belong to it: Try a change's boxes and confirm to its "Does it last?", the mix's
+      // paste and example to its "The mix" — leaving that page closes them (a locked plan's page starts with no box)
+      const stays = (step) => route.screen === 'plan' && route.step === step && state.route && state.route.screen === 'plan' && state.route.step === step && String(state.route.planId) === String(route.planId);
+      const gone = [...(stays('lasts') ? [] : ['tryOpen', 'tryConfirm']), ...(stays('mix') ? [] : ['mixPaste', 'mixExample'])];
+      const ui0 = closeRail(state.ui);
+      const open = ui0.open.filter((x) => !gone.includes(x));
+      const next = { ...state, route, ui: open.length === ui0.open.length ? ui0 : { ...ui0, open } };
       if (!other && !uiOther) return noteShown(state, next);
       const cleared = { ...next, ui: { ...next.ui, saving: null, saveProblem: null, toast: null } };
       return noteShown(state, other ? withPlanDraft(cleared, emptyPlanDraft()) : cleared);
@@ -536,9 +544,9 @@ export function reduce(state, action) {
       return { ...state, plans: { ...state.plans, view: { today: String(v.today), rows: v.rows, page: v.page && typeof v.page === 'object' ? v.page : null } } };
     }
     case A.PLANS_CLEAR:
-      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null && (state.lasts || emptyLasts()).key === null && (state.ways || emptyWays()).key === null) return state;
-      // the plans leave the page's memory, and the one test's result and the nine ways' with them (editing-in-v7.md 10.1; way-and-mix.md 2.2)
-      return withPlanDraft({ ...state, plans: null, lasts: emptyLasts(), ways: emptyWays(), session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
+      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null && (state.lasts || emptyLasts()).key === null && (state.ways || emptyWays()).key === null && (state.mix || emptyMix()).key === null) return state;
+      // the plans leave the page's memory, and the one test's result, the nine ways' and the mix's with them (editing-in-v7.md 10.1; way-and-mix.md 2.2, 3.2)
+      return withPlanDraft({ ...state, plans: null, lasts: emptyLasts(), ways: emptyWays(), mix: emptyMix(), session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
     case A.PLAN_CHANGE: {
       const { planId = null, place, back } = action;
       if (typeof place !== 'string' || typeof back !== 'string') return refuse('plan/change: needs a place and a way back');
@@ -585,9 +593,12 @@ export function reduce(state, action) {
       const marks = op ? { op, ...(op === 'lock' && typeof lockedAt === 'string' ? { lockedAt } : {}) } : {};
       const toast = hasPrevious ? { planId, kind: 'saved', previous, line: line && typeof line === 'object' ? line : null, ...marks }
         : { planId, kind: 'unchanged', previous: null, line: null, ...marks };
-      // the way of drawing changed (way-and-mix.md 2.4): the one test's result was for the old way — it goes, and runs again on the saved plan
-      const lasts = op === 'way' ? emptyLasts() : state.lasts;
-      return withPlanDraft({ ...state, lasts, ui: { ...state.ui, saving: null, saveProblem: null, toast } }, emptyPlanDraft());
+      // the way of drawing changed (way-and-mix.md 2.4), a mix used (3.2e) or a tried change used (4): the one test's result was for
+      // the old settings — it goes, and runs again on the saved plan (the copy a try was kept as stays said)
+      const lasts = op === 'way' || op === 'mix' || op === 'try' ? { ...emptyLasts(), kept: (state.lasts && state.lasts.kept) || null } : state.lasts;
+      // a tried change used: the boxes and the confirm close with it (the plan is now what was tried)
+      const open = op === 'try' ? state.ui.open.filter((x) => x !== 'tryOpen' && x !== 'tryConfirm') : state.ui.open;
+      return withPlanDraft({ ...state, lasts, ui: { ...state.ui, open, saving: null, saveProblem: null, toast } }, emptyPlanDraft());
     }
     case A.PLAN_SAVE_FAILED: {
       const { planId, problem } = action;
@@ -630,9 +641,51 @@ export function reduce(state, action) {
       if (typeof action.key !== 'string' || !action.key) return refuse('lasts/working: needs a key');
       const L = state.lasts || emptyLasts();
       // the old result stays (greyed on the screen) while the new run is under way for another key; the levers tried on the
-      // old plan go (they were its), the work lever's boxes stay as typed
-      const levers = L.key === action.key ? L.levers || {} : {};
-      return { ...state, lasts: { ...L, key: action.key, status: 'working', reason: null, progress: null, slow: false, levers } };
+      // old plan go (they were its), the work lever's boxes stay as typed; so does a tried change (its figures were the old plan's)
+      const same = L.key === action.key;
+      return { ...state, lasts: { ...L, key: action.key, status: 'working', reason: null, progress: null, slow: false, levers: same ? L.levers || {} : {}, tried: same ? L.tried || null : null } };
+    }
+    // ---- Try a change on a plan (research/v7/way-and-mix.md 4): one try at a time, on the run held; "Use this"; the copy kept ----
+    case A.TRY_RUN: {
+      const L = state.lasts || emptyLasts();
+      if (!action.boxes || typeof action.boxes !== 'object') return refuse('lasts/tryRun: needs the boxes');
+      if (!L.key || L.status !== 'done') return state;                                                                   // never before the plan's own test is held
+      if (L.tried && L.tried.status === 'working' && JSON.stringify(L.tried.boxes) === JSON.stringify(action.boxes)) return state;
+      return { ...state, lasts: { ...L, tried: { status: 'working', boxes: action.boxes, result: null, ms: null, reason: null } }, ui: { ...state.ui, open: state.ui.open.filter((x) => x !== 'tryConfirm') } };
+    }
+    case A.TRY_DONE: {
+      const L = state.lasts || emptyLasts();
+      const t = L.tried;
+      if (action.key !== L.key || !t || t.status !== 'working' || JSON.stringify(action.boxes) !== JSON.stringify(t.boxes)) return state;   // stale
+      if (!action.result || typeof action.result !== 'object') return refuse('lasts/tryDone: needs a result');
+      return { ...state, lasts: { ...L, tried: { ...t, status: 'done', result: action.result, ms: Number.isFinite(action.ms) ? Math.max(0, Math.round(action.ms)) : null } } };
+    }
+    case A.TRY_FAILED: {
+      const L = state.lasts || emptyLasts();
+      const t = L.tried;
+      if (action.key !== L.key || !t || t.status !== 'working' || JSON.stringify(action.boxes) !== JSON.stringify(t.boxes)) return state;   // stale
+      return { ...state, lasts: { ...L, tried: { ...t, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null } } };
+    }
+    case A.TRY_CLOSE: {
+      const L = state.lasts || emptyLasts();
+      if (!L.tried && !state.ui.open.includes('tryConfirm')) return state;
+      return { ...state, lasts: { ...L, tried: null }, ui: { ...state.ui, open: state.ui.open.filter((x) => x !== 'tryConfirm') } };
+    }
+    case A.PLAN_TRY:
+    case A.TRY_KEEP: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse(action.type + ': needs a plan id');
+      if (state.ui.saving) return state;
+      const L = state.lasts || emptyLasts();
+      if (!L.tried || L.tried.status !== 'done') return state;                                                             // only a try that ran
+      const kind = action.type === A.PLAN_TRY ? 'try' : 'tryKeep';
+      return { ...state, ui: { ...state.ui, open: state.ui.open.filter((x) => x !== 'tryConfirm'), saving: { planId, kind }, saveProblem: null, toast: null } };
+    }
+    case A.TRY_KEPT: {
+      const kept = cleanKept(action);
+      if (!kept) return refuse('lasts/tryKept: needs an id, a name and where');
+      const L = state.lasts || emptyLasts();
+      return { ...state, lasts: { ...L, kept }, ui: { ...state.ui, saving: null, saveProblem: null } };
     }
     // ---- the three levers of "Does it last?" (research/v7/answer-D.md 3.9; road-to-7.md step 7): try only, nothing kept ----
     case A.LEVER_TYPE: {
@@ -806,6 +859,78 @@ export function reduce(state, action) {
       return { ...state, ui: { ...state.ui, open, saving: { planId, kind: 'way', way: id }, saveProblem: null, toast: null } };
     }
 
+    // ---- "The mix": the sleeve's and the tent's try, the eight cells, the cell picked — page memory only (way-and-mix.md 3.2) ----
+    case A.MIX_TRY: {
+      if (typeof action.key !== 'string' || !action.key) return refuse('mix/try: needs a key');
+      if (!MIX_TRY_KINDS.includes(action.kind)) return refuse(`mix/try: no try called "${action.kind}"`);
+      const M = state.mix || emptyMix();
+      // another plan, or the plan saved under the runs: the old tries, the comparison and the pick go (they were the old plan's)
+      const base = M.key === action.key ? M : emptyMix();
+      const cur = base.tries[action.kind];
+      if (cur && cur.status === 'working') return state;
+      return { ...state, mix: { ...base, key: action.key, tries: { ...base.tries, [action.kind]: { status: 'working', result: null, ms: null, reason: null } } } };
+    }
+    case A.MIX_TRIED: {
+      const M = state.mix || emptyMix();
+      const t = M.tries[action.kind];
+      if (action.key !== M.key || !t || t.status !== 'working') return state;                                            // stale
+      if (!action.result || typeof action.result !== 'object') return refuse('mix/tried: needs a result');
+      return { ...state, mix: { ...M, tries: { ...M.tries, [action.kind]: { ...t, status: 'done', result: action.result, ms: Number.isFinite(action.ms) ? Math.max(0, Math.round(action.ms)) : null } } } };
+    }
+    case A.MIX_TRY_FAILED: {
+      const M = state.mix || emptyMix();
+      const t = M.tries[action.kind];
+      if (action.key !== M.key || !t || t.status !== 'working') return state;                                            // stale
+      return { ...state, mix: { ...M, tries: { ...M.tries, [action.kind]: { ...t, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null } } } };
+    }
+    case A.MIX_TRY_CLOSE: {
+      const M = state.mix || emptyMix();
+      if (!M.tries[action.kind]) return state;
+      const tries = { ...M.tries };
+      delete tries[action.kind];
+      return { ...state, mix: { ...M, tries } };
+    }
+    case A.MIX_COMPARE: {
+      if (typeof action.key !== 'string' || !action.key) return refuse('mix/compare: needs a key');
+      const M = state.mix || emptyMix();
+      const base = M.key === action.key ? M : emptyMix();
+      if (base.compare.status === 'working') return state;
+      return { ...state, mix: { ...base, key: action.key, compare: { status: 'working', result: null, ms: null, progress: null, reason: null }, pick: null } };
+    }
+    case A.MIX_COMPARE_PROGRESS: {
+      const M = state.mix || emptyMix();
+      if (action.key !== M.key || M.compare.status !== 'working') return state;
+      return { ...state, mix: { ...M, compare: { ...M.compare, progress: { done: Number(action.done) || 0, total: Number(action.total) || 0 } } } };
+    }
+    case A.MIX_COMPARED: {
+      const M = state.mix || emptyMix();
+      if (action.key !== M.key || M.compare.status !== 'working') return state;                                          // stale
+      if (!action.result || typeof action.result !== 'object' || !Array.isArray(action.result.cells)) return refuse('mix/compared: needs a result');
+      return { ...state, mix: { ...M, compare: { status: 'done', result: action.result, ms: Number.isFinite(action.ms) ? Math.max(0, Math.round(action.ms)) : null, progress: null, reason: null } } };
+    }
+    case A.MIX_COMPARE_FAILED: {
+      const M = state.mix || emptyMix();
+      if (action.key !== M.key || M.compare.status !== 'working') return state;                                          // stale
+      return { ...state, mix: { ...M, compare: { status: 'failed', result: null, ms: null, progress: null, reason: action.reason === 'noWorker' ? 'noWorker' : null } } };
+    }
+    case A.MIX_PICK: {
+      const M = state.mix || emptyMix();
+      const cell = action.cell == null ? null : cleanCell(action.cell);
+      if (action.cell != null && !cell) return refuse('mix/pick: not a cell');
+      if (JSON.stringify(M.pick) === JSON.stringify(cell)) return state;
+      if (cell && M.compare.status !== 'done') return state;                                                               // only a cell that ran
+      return { ...state, mix: { ...M, pick: cell } };
+    }
+    case A.PLAN_MIX: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/useMix: needs a plan id');
+      const cell = cleanCell(action.cell);
+      if (!cell) return refuse('plan/useMix: not a cell');
+      if (state.ui.saving) return state;
+      const M = state.mix || emptyMix();
+      return { ...state, mix: { ...M, pick: null }, ui: { ...state.ui, saving: { planId, kind: 'mix', cell }, saveProblem: null, toast: null } };
+    }
+
     case A.ENV_SET: {
       // Start-up and the test hook only. The date, the last month of market history and the version; never the build.
       const patch = action.patch || {};
@@ -923,8 +1048,19 @@ export function reduce(state, action) {
           ? { key: copy.lasts.key, status: copy.lasts.status, reason: copy.lasts.reason === 'noWorker' ? 'noWorker' : null, result: copy.lasts.result && typeof copy.lasts.result === 'object' ? copy.lasts.result : null, progress: copy.lasts.progress && typeof copy.lasts.progress === 'object' ? { done: Number(copy.lasts.progress.done) || 0, total: Number(copy.lasts.progress.total) || 0 } : null, slow: copy.lasts.slow === true,
             // the levers tried (road-to-7.md step 7), each cleaned; the work lever's boxes as typed
             levers: Object.fromEntries(LEVER_KINDS.map((k) => [k, cleanLever(copy.lasts.levers && copy.lasts.levers[k])]).filter(([, v]) => v)),
-            workDraft: { yearly: copy.lasts.workDraft && typeof copy.lasts.workDraft.yearly === 'string' ? copy.lasts.workDraft.yearly : '', years: copy.lasts.workDraft && typeof copy.lasts.workDraft.years === 'string' ? copy.lasts.workDraft.years : '' } }
+            workDraft: { yearly: copy.lasts.workDraft && typeof copy.lasts.workDraft.yearly === 'string' ? copy.lasts.workDraft.yearly : '', years: copy.lasts.workDraft && typeof copy.lasts.workDraft.years === 'string' ? copy.lasts.workDraft.years : '' },
+            // a tried change and the copy it was kept as (way-and-mix.md 4), each cleaned
+            tried: cleanTriedChange(copy.lasts.tried), kept: cleanKept(copy.lasts.kept) }
           : emptyLasts(),
+        // a named plan state may carry the mix's tries and comparison for its plan (way-and-mix.md 3.2): a key, each cleaned
+        mix: copy.mix && typeof copy.mix === 'object' && typeof copy.mix.key === 'string'
+          ? { key: copy.mix.key,
+            tries: Object.fromEntries(MIX_TRY_KINDS.map((k) => [k, cleanMixTry(copy.mix.tries && copy.mix.tries[k])]).filter(([, v]) => v)),
+            compare: copy.mix.compare && typeof copy.mix.compare === 'object' && ['working', 'done', 'failed'].includes(copy.mix.compare.status)
+              ? { status: copy.mix.compare.status, result: copy.mix.compare.status === 'done' && copy.mix.compare.result && typeof copy.mix.compare.result === 'object' && Array.isArray(copy.mix.compare.result.cells) ? copy.mix.compare.result : null, ms: Number.isFinite(copy.mix.compare.ms) ? copy.mix.compare.ms : null, progress: copy.mix.compare.progress && typeof copy.mix.compare.progress === 'object' ? { done: Number(copy.mix.compare.progress.done) || 0, total: Number(copy.mix.compare.progress.total) || 0 } : null, reason: copy.mix.compare.status === 'failed' && copy.mix.compare.reason === 'noWorker' ? 'noWorker' : null }
+              : emptyMix().compare,
+            pick: cleanCell(copy.mix.pick) }
+          : emptyMix(),
         // a named plan state may carry the nine ways' result for its plan (way-and-mix.md 2.2): a key with a plain result, the cards' state
         ways: copy.ways && typeof copy.ways === 'object' && typeof copy.ways.key === 'string' && ['working', 'done', 'failed'].includes(copy.ways.status)
           ? { key: copy.ways.key, status: copy.ways.status, reason: copy.ways.reason === 'noWorker' ? 'noWorker' : null, result: copy.ways.result && typeof copy.ways.result === 'object' && Array.isArray(copy.ways.result.ways) ? copy.ways.result : null,

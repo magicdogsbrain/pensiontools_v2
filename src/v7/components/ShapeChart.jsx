@@ -56,7 +56,10 @@ export function ShapeChart({ q, chart, open = false, dispatch, title = null }) {
   const n = years.length;
   const id = `${q}.shape.chart`;
   const essentials = chart.unit === 'perMonth' && typeof chart.essentials === 'number' && chart.essentials > 0 ? chart.essentials : null;
-  const top = scaleTop(Math.max(...years.map((y) => y.value), essentials || 0));
+  // the budget's total as a short mark at the left, a guide (way-and-mix.md 5); lump sums (▲) and one-off costs (▼) at their ages
+  const budgetMark = chart.unit === 'perMonth' && typeof chart.budgetMark === 'number' && chart.budgetMark > 0 ? chart.budgetMark : null;
+  const marks = Array.isArray(chart.marks) ? chart.marks.filter((m) => m && typeof m.age === 'number') : [];
+  const top = scaleTop(Math.max(...years.map((y) => y.value), essentials || 0, budgetMark || 0));
   const ticks = [top / 2, top].map((v) => ({ v, at: 100 - (v / top) * 100 }));
   const h = (v) => Math.max(0, Math.min(100, (v / top) * 100));
   const firstAge = years[0].age;
@@ -111,6 +114,13 @@ export function ShapeChart({ q, chart, open = false, dispatch, title = null }) {
               );
             })}
             {essentials !== null && <line class="guide" x1="0" x2={n} y1={100 - h(essentials)} y2={100 - h(essentials)} vector-effect="non-scaling-stroke" data-testid={`${id}.essentials`} />}
+            {budgetMark !== null && <line class="budget-mark" x1="0" x2={Math.min(n, 3)} y1={100 - h(budgetMark)} y2={100 - h(budgetMark)} vector-effect="non-scaling-stroke" data-testid={`${id}.budgetMark`} data-figure={budgetMark} />}
+            {marks.map((m, i) => (
+              <g key={i} class={`mark mark-${m.kind}`} data-testid={`${id}.mark.${i}`} data-mark={m.kind} data-age={m.age} data-figure={m.amount}>
+                <line x1={m.age - firstAge + 0.5} x2={m.age - firstAge + 0.5} y1="0" y2="100" vector-effect="non-scaling-stroke" />
+                <polygon points={m.kind === 'in' ? `${m.age - firstAge + 0.2},12 ${m.age - firstAge + 0.8},12 ${m.age - firstAge + 0.5},4` : `${m.age - firstAge + 0.2},4 ${m.age - firstAge + 0.8},4 ${m.age - firstAge + 0.5},12`} />
+              </g>
+            ))}
           </svg>
           {bands.length > 0 && (
             <div class="shape-bands" aria-hidden="true">
@@ -127,7 +137,14 @@ export function ShapeChart({ q, chart, open = false, dispatch, title = null }) {
       <p class="note shape-key">
         {chart.unit === 'share' ? W.keyShapeOnly : chart.layers ? W.key : W.keyShapeOnly}
         {essentials !== null && <> {W.keyEssentials}</>}
+        {budgetMark !== null && <> {fill(W.keyBudget, { amount: money(budgetMark) })}</>}
+        {marks.length > 0 && <> {W.keyMarks}</>}
       </p>
+      {marks.length > 0 && (
+        <ul class="plan-lines shape-marks" data-testid={`${id}.marks`}>
+          {marks.map((m, i) => <li key={i} class="plan-line" data-mark={m.kind} data-age={m.age}>{fill(m.kind === 'in' ? W.markIn : m.years > 1 ? W.markOutYears : W.markOut, { label: m.label, amount: money(m.amount), age: m.age, years: m.years })}</li>)}
+        </ul>
+      )}
       <p>
         <Button testid={`${q}.shape.years`} kind="quiet" aria-expanded={tableOpen ? 'true' : 'false'} aria-controls={tableOpen ? `${id}.table` : undefined}
           onClick={() => dispatch({ type: 'ui/toggle', id: 'shapeYears' })}>{tableOpen ? W.tableHide : W.table}</Button>

@@ -514,3 +514,28 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .undo-toast-message { flex: 1 1 auto; min-width: 0; }
 .undo-toast-btn { flex: 0 0 auto; }
 .undo-toast-close { flex: 0 0 auto; padding: 2px 8px; }
+
+/* "The mix" (research/v7/way-and-mix.md 3): the level cards' amounts, the split's four boxes, the funds list, the paste, the grid */
+.mix-level-amounts { margin: 0 0 8px 26px; }
+.mix-split { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0 12px; }
+.mix-split .field-percent input[type="text"] { max-width: 6rem; }
+.mix-funds-section { margin: 8px 0 0 26px; }
+.mix-matches { list-style: none; padding: 0; margin: 6px 0; }
+.mix-matches li { margin: 0 0 4px; }
+.mix-paste { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised); }
+.mix-paste textarea { width: 100%; max-width: 100%; min-height: 8rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--size-small); }
+.mix-paste-rows td, .mix-grid td { white-space: normal; vertical-align: top; }
+.mix-try { margin: 8px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised); }
+.mix-try h4 { margin: 0 0 4px; font-size: 1rem; }
+.mix-grid th[scope="row"] { white-space: nowrap; }
+.mix-cell { min-width: 12rem; }
+.mix-cell.is-best { background: var(--surface-card); outline: 2px solid var(--focus); outline-offset: -2px; }
+.mix-cell-words { margin: 0; font-weight: 650; }
+.mix-cell .btn { margin-top: 4px; }
+@media (max-width: 743px) { .mix-funds-section { margin-left: 0; } .mix-level-amounts { margin-left: 0; } }
+/* the income picture's rows that ride along (way-and-mix.md 5): the budget's total as a mark, lump sums and one-off costs at their ages */
+.shape-plot .budget-mark { stroke: var(--chart-guide); stroke-width: 3; stroke-dasharray: 2 2; }
+.shape-plot .mark line { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.shape-plot .mark polygon { fill: var(--text); }
+.shape-plot .mark-out polygon { fill: var(--chart-below); }
+.shape-marks { margin: 0 0 6px; font-size: var(--size-small); }

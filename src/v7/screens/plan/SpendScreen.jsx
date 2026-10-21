@@ -256,6 +256,7 @@ export function SpendScreen(state, dispatch) {
             <section class="income-section" data-section="chart">
               {chart}
               {sp.below && <p class="notice shape-below" data-testid="plan.spend.below">{fill(SHAPE.belowEssentials, { age: sp.below.age, amount: sp.below.amount })}</p>}
+              {sp.floorFrom && <p class="notice shape-below" data-testid="plan.spend.floorFrom">{fill(SPEND.derived['floor.from'], { age: sp.floorFrom.age, monthly: sp.floorFrom.amount })}</p>}
             </section>
           )}
           <section class="income-section" data-section="costs">

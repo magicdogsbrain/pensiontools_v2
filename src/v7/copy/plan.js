@@ -169,7 +169,18 @@ export const PLAN = {
     'income.lump': '{label}',
     'way.strategy': 'How the money is taken: {strategy}.',
     'way.dial': '{dial}',
-    'way.allocMode': 'The mix is set {mode}.',
+    /** "The mix" (way-and-mix.md 3): how the pension is held (the old "The mix is set {mode}" line of the way section, said in full here). */
+    'mix.heldLevel': 'Held at the {level} level.',
+    'mix.heldSplit': 'Held as your own split.',
+    'mix.heldFunds': 'Held as the funds to test.',
+    'mix.amounts': 'The split',
+    'mix.funds': 'The funds to test',
+    'mix.sleeveOn': 'A slice of gold and trend funds, held flat and sold first in a downturn.',
+    'mix.sleeveOff': 'No slice of gold and trend funds.',
+    'mix.tentOn': 'The bond tent is on: shares start lower and rise to this mix over the first {years} years.',
+    'mix.tentOff': 'The bond tent is off: the mix is held flat.',
+    'mix.tentBuckets': 'The bond tent is not used by Buckets in order.',
+    'mix.bought': 'This way of drawing buys your income; the mix does not apply.',
     'pot.latest': 'Recorded for {month}',
     'saving.you': 'From you',
     'saving.employer': 'From your employer',
@@ -222,6 +233,8 @@ export const PLAN = {
     flexShare: 'Share that flexes'
   },
   allocModes: { risk: 'by risk level', custom: 'as a custom split', funds: 'from the funds to test' },
+  /** The three levels (way-and-mix.md 3.2a), as the "Held at the {level} level" line names them. */
+  levels: { cautious: 'cautious', balanced: 'balanced', adventurous: 'adventurous' },
 
   /** The sections of "Your plan" (2.3). */
   sections: {
@@ -230,6 +243,7 @@ export const PLAN = {
     pots: 'Pots',
     income: 'Money that comes in anyway',
     way: 'How the money is taken',
+    mix: 'The mix',
     else: 'Everything else this plan uses'
   },
 
@@ -271,6 +285,8 @@ export const PLAN = {
     seeAbout: 'See these',
     /** Into "How the money is taken" on a locked plan (way-and-mix.md 2.1): the nine ways run, nothing is written. */
     tryWay: 'Try another way (nothing changes)',
+    /** Into "The mix" on a locked plan (way-and-mix.md 3.3): the tries and the comparison run, nothing is written. */
+    tryMix: 'Try another mix (nothing changes)',
     /** Into "Does it last?" inside V7 (editing-in-v7.md 10): the one test runs there, no hand-over. */
     recheck: 'Check it still lasts',
     lasts: 'Does it last?',

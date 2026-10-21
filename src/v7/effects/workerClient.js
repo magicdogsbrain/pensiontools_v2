@@ -9,6 +9,9 @@
  *     lever(plan, env, onProgress)             → Promise<Result>       one of the three levers on a saved plan (lane 'lever'; road-to-7.md step 7)
  *     ways(plan, env, onProgress)              → Promise<Result>       the nine ways of drawing on a saved plan (lane 'ways'; way-and-mix.md 2)
  *     way(plan, env, onProgress)               → Promise<Result>       one way tried on its dials (lane 'way'): env = { today, way: { id, dials } }
+ *     try(plan, env, onProgress)               → Promise<Result>       a change tried on a saved plan (lane 'try'; way-and-mix.md 4): env = { today, boxes }
+ *     mixTry(plan, env, onProgress)            → Promise<Result>       the mix's sleeve or tent the other way (lane 'mixTry'; way-and-mix.md 3.2): env = { today, kind, base }
+ *     mixCompare(plan, env, onProgress)        → Promise<Result>       the eight cells of "Which mix lasts best?" (lane 'mixCompare'): env = { today }
  *     stop(q?)                                 ends the worker if an answer (of question q, or of any question when q
  *                                              is not given) is under way; those answers reject with code 'stopped'.
  *                                              Answers of other questions still under way are sent again, unchanged,
@@ -110,6 +113,20 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
     } catch {
       return false;
     }
+  }
+
+  /** One message in its own lane `q` (stop(q) ends it and nothing else); the plan and the env go as data. */
+  function lane(q, plan, env, onProgress) {
+    if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+    return new Promise((resolve, reject) => {
+      const id = nextId++;
+      const msg = { id, type: q, plan: cloneSafe(plan), env: cloneSafe(env) };
+      pending.set(id, { kind: 'answer', q, msg, resolve, reject, onProgress });
+      if (!post(msg)) {
+        pending.delete(id);
+        reject(coded('the worker could not be reached', 'worker-error'));
+      }
+    });
   }
 
   return {
@@ -221,6 +238,15 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
         }
       });
     },
+
+    /**
+     * Try a change on a saved plan (research/v7/way-and-mix.md 4), in its own lane 'try': env = { today, boxes } (lastsRun.js
+     * runTry). "The mix" (3.2): the sleeve or the tent the other way in the lane 'mixTry' (env = { today, kind, base }), the
+     * eight cells in the lane 'mixCompare' (env = { today }) — each stopped on its own.
+     */
+    try(plan, env, onProgress) { return lane('try', plan, env, onProgress); },
+    mixTry(plan, env, onProgress) { return lane('mixTry', plan, env, onProgress); },
+    mixCompare(plan, env, onProgress) { return lane('mixCompare', plan, env, onProgress); },
 
     stop(q) {
       const ending = (e) => e.kind === 'answer' && (q === undefined || q === null || e.q === q);

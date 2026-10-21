@@ -23,6 +23,18 @@
  *     no per-future lists, no functions), and a saver's path drawn on the saving-years engine (src/ui/savingPathForLock.js:
  *     absent unless the plan stops later). The document itself is built on the page (answers/plan/lock.js) with these.
  *
+ *   trySettingsOf(s, boxes) → the what-if copy of the Stress settings "Try a strategy" runs (index.html tryStrategySettings,
+ *     lifted pure in 6.41.0 — research/v7/way-and-mix.md 4, 6; the planner calls it with the boxes it reads off its form):
+ *     a deep copy; the three pots rescaled by the pot box over their sum (the diversifiers sleeve left as it is — the
+ *     planner's rule); the ISA; the way named with its own restored dials and the pot totals; the ISA policy ('hold', or
+ *     'draw' — the planner's "Draw as configured", which the engine reads as uncapped); a flat income as incomeShape 'level';
+ *     the years clamped to 5–45; the cuts on or off, how deep and the escalation months when the boxes say so.
+ *       boxes = { way, pot, isa, isaPolicy: 'saved'|'hold'|'draw', incomeMode: 'shape'|'flat', income (a year before tax),
+ *                 years, cuts: 'saved'|'on'|'off', cutPct: ''|number, cutEsc: ''|number }
+ *   trySettings(plan, boxes, today) → the same on a saved plan's effective settings
+ *   runTry(plan, { today, boxes, onProgress }) → the one test on that copy, in runLasts's shape (`a`, `reason`, `ran`,
+ *     `priced`; no history), with `basis.runs` 1 — "Tried in 1 run"
+ *
  *   runLever(plan, { today, lever, onProgress }) → the three levers of "Will it last?" on a saved plan (research/v7/answer-D.md
  *     3.5–3.7, 3.9; road-to-7.md step 7), each the same one test on a COPY of the plan's effective settings, nothing written:
  *       { kind: 'spendMore' }                  the most the plan's income can be scaled by and still last in 9 futures out of
@@ -53,6 +65,7 @@ import { trimPlan, trimResult } from '../../services/PlanDocument.js';
 import { deriveTiming } from '../../services/PlanTiming.js';
 import { buildSavingPath } from '../../services/SavingPath.js';
 import { ON_COURSE_SHARE } from '../../services/OnCourse.js';
+import { restoredParamsFor } from '../../services/PlanCommit.js';
 import { dateOf } from './dates.js';
 import { FAMILY } from './lasts.js';
 
@@ -143,6 +156,77 @@ export function runLasts(plan, { today, onProgress = null } = {}) {
     history,
     stored,
     basis: { today, engine: 'one-test' }
+  });
+}
+
+// ---- "Try a strategy" / Try a change on a plan (research/v7/way-and-mix.md 4, 6; index.html tryStrategySettings, lifted) ----
+
+/** The years a try may run (the planner's box: min 5, max 45 — the engines run to 45). */
+export const TRY_YEARS = Object.freeze({ min: 5, max: 45 });
+export const TRY_ISA_POLICIES = Object.freeze(['saved', 'hold', 'draw']);
+export const TRY_INCOME_MODES = Object.freeze(['shape', 'flat']);
+export const TRY_CUTS = Object.freeze(['saved', 'on', 'off']);
+
+/**
+ * index.html tryStrategySettings(s), line for line, with the boxes handed in instead of read off the form (see the header).
+ * @param {object} s       the Stress settings as read
+ * @param {object} boxes
+ */
+export function trySettingsOf(s, boxes) {
+  const b = boxes || {};
+  const c = JSON.parse(JSON.stringify(s));
+  const id = b.way || 'pots-and-valves';
+  const pot = +b.pot || 0;
+  const isa = +b.isa || 0;
+  const oldPot = (s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0);
+  const scale = oldPot > 0 ? pot / oldPot : 0;
+  if (oldPot > 0) { c.equityMin = Math.round((s.equityMin || 0) * scale); c.bondMin = Math.round((s.bondMin || 0) * scale); c.cashTarget = Math.round((s.cashTarget || 0) * scale); }
+  else { c.equityMin = Math.round(pot * 0.6); c.bondMin = Math.round(pot * 0.3); c.cashTarget = pot - c.equityMin - c.bondMin; }
+  c.isaBalance = isa;
+  c.strategyId = id;
+  c.strategyParams = { ...restoredParamsFor(s, id), sippTotal: pot, isaTotal: isa };   // the tried strategy's own dials, never the active strategy's bag (6.13.0)
+  if (b.isaPolicy === 'hold') c.isaDrawdownStrategy = 'hold'; else if (b.isaPolicy === 'draw') c.isaDrawdownStrategy = 'bridge';
+  if (b.incomeMode === 'flat') { c.baseSalary = +b.income || 0; c.incomeShape = 'level'; c.incomeSteps = []; c.targetSchedule = null; }
+  c.duration = Math.max(TRY_YEARS.min, Math.min(TRY_YEARS.max, +b.years || s.duration || 35));   // the plan's full length (the engines run to 45 years), no 35-year cap (audit problem 1)
+  if (b.cuts === 'on' || b.cuts === 'off') c.disableProtection = b.cuts === 'off';
+  if (b.cutPct !== undefined && b.cutPct !== null && b.cutPct !== '') c.protectionMult = 1 - (+b.cutPct) / 100;
+  if (b.cutEsc !== undefined && b.cutEsc !== null && b.cutEsc !== '') c.protectionEscalateMonths = Math.max(0, +b.cutEsc);
+  return c;
+}
+
+/** The what-if copy on a saved plan: its effective settings through trySettingsOf. */
+export function trySettings(plan, boxes, today) {
+  return trySettingsOf(effectiveStressSettings(plan, { now: dateOf(today) }), boxes);
+}
+
+/**
+ * Try a change on a plan (way-and-mix.md 4): the one test on the copy trySettingsOf makes — the plan built as the one test
+ * builds it, stressTestStrategy on the tried way, the figures through OneAnswer — in runLasts's shape, so the screen words
+ * it as it words the plan's own result. One run; nothing written.
+ * @param {object} plan   a saved plan, brought up to date in memory
+ * @param {{ today: string, boxes: object, onProgress?: Function }} o
+ */
+export function runTry(plan, { today, boxes, onProgress = null } = {}) {
+  const now = dateOf(today);
+  const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
+  const settings = effectiveStressSettings(plan, { now });
+  const c = trySettingsOf(settings, boxes || {});
+  const strategyId = c.strategyId || 'pots-and-valves';
+  const family = FAMILY.includes(strategyId);
+  tell(0, 1);
+  const p = planFor(c, now);
+  const r = stressTestStrategy(strategyId, p);
+  tell(1, 1);
+  const a = oneAnswer(r, p);
+  const cfg = (p && p.pnvCfg) || {};
+  return plain({
+    strategyId,
+    ran: { family, cutsOn: family && !cfg.disableProtection, cutPct: Math.round((1 - (cfg.protectionMult ?? 0.8)) * 100), months: cfg.consecutiveLimit ?? 3 },
+    priced: !family ? 'bundled' : null,
+    a, reason: a ? null : (r && r.reason) || null,
+    history: null, stored: null,
+    boxes: boxes || {},
+    basis: { today, engine: 'one-test', runs: 1 }
   });
 }
 

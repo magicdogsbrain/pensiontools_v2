@@ -4,10 +4,17 @@
   "futures": 1000,
   "version": "6.40.0",
   "run": "src/answers/plan/waysRun.js",
+  "runs": [
+    "src/answers/plan/waysRun.js",
+    "src/answers/plan/lastsRun.js",
+    "src/answers/plan/mixRun.js"
+  ],
   "plans": [
     "tests/fixtures/plans/02-pnv-draft.json (Alex’s plan)",
     "tests/fixtures/plans/03-gilt-ladder-runup.json (Sam’s plan, locked)",
-    "tests/fixtures/plans/01-fresh-default.json (Alex’s first plan)"
+    "tests/fixtures/plans/01-fresh-default.json (Alex’s first plan)",
+    "tests/fixtures/plans/04-buckets-running.json (Sam’s plan, locked, Buckets in order)",
+    "tests/fixtures/plans/07-pre-6.13-flat-params.json (Alex’s rotation plan)"
   ],
   "patched": []
 }

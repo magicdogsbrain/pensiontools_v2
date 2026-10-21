@@ -103,6 +103,36 @@ export function allocationFromTags(tagged) {
 }
 
 /**
+ * The mix a "funds to test" list makes (index.html rebuildCustomAllocFromFunds, lifted pure in 6.41.0 — research/v7/
+ * way-and-mix.md 3.2c, 6; the planner calls it): the rows with a ticker and a value tagged and rolled up, the custom
+ * allocation the planner keeps for the surface (the four shares of the pot and the four £ amounts, the sub-class mix), the
+ * pot the list sets (the taxable side only) and the ISA the ISA-wrapped lines fill. null for an empty list.
+ * @param {Array<{ ticker?: string, value?: number, wrapper?: string, subClass?: string }>} rows
+ * @returns {{ tagged: object, custom: object, pot: number, isaBalance: number, diversifiers: boolean }|null}
+ */
+export function mixFromFunds(rows) {
+  const holdings = (Array.isArray(rows) ? rows : []).filter(f => f && f.ticker && f.value > 0);
+  if (!holdings.length) return null;
+  const t = tagPortfolio(holdings);
+  const alloc = allocationFromTags(t);
+  return {
+    tagged: t,
+    custom: {
+      label: 'Funds to test',
+      equity: t.total ? t.buckets.shares / t.total : 0,
+      bond: t.total ? t.buckets.bonds / t.total : 0,
+      diversifiers: t.total ? t.buckets.diversifiers / t.total : 0,
+      cash: t.total ? t.buckets.cash / t.total : 0,
+      equityMin: alloc.equityStart, bondMin: alloc.bondStart, cashTarget: alloc.cashStart,
+      diversifierStart: alloc.diversifierStart || 0, subAsset: alloc.subAsset || null
+    },
+    pot: Math.round(t.total - t.isaTotal),
+    isaBalance: Math.round(t.isaTotal || 0),
+    diversifiers: (alloc.diversifierStart || 0) > 0
+  };
+}
+
+/**
  * The real £1.3M "Retirement Income Portfolio Report.pdf" holdings, verbatim from the PDF
  * (July 2026 snapshot). Used as a worked example / regression fixture.
  */

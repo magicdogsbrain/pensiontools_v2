@@ -353,6 +353,10 @@ export function readyMark(state) {
     if (key && !(W && W.key === key && (W.status === 'done' || W.status === 'failed'))) busy = true;
     if (key && page.way.cards && page.way.cards.some((c) => c.needsRun)) busy = true;
   }
+  // "The mix" (way-and-mix.md 3.2): a try or the comparison under way is not ready; Try a change (4): a try under way too
+  const M = state.mix;
+  if (M && (M.compare.status === 'working' || Object.values(M.tries || {}).some((t) => t && t.status === 'working'))) busy = true;
+  if (L && L.tried && L.tried.status === 'working') busy = true;
   return { ready: busy ? '0' : '1', answer: partial ? 'partial' : shown };
 }
 
@@ -763,7 +767,26 @@ export function planLastsView(state) {
   if (!v.found) return v;
   const L = state.lasts || { key: null, status: 'idle', reason: null, result: null, progress: null, slow: false };
   const mine = L.key === v.runKey;
-  return { ...v, run: { status: mine ? L.status : 'idle', reason: mine ? L.reason || null : null, progress: mine ? L.progress : null, slow: mine ? L.slow : false, fresh: mine && L.status === 'done' && !!v.verdict } };
+  const open = Array.isArray(state.ui && state.ui.open) ? state.ui.open : [];
+  // Try a change (way-and-mix.md 4): the boxes' problems show once left or once "Try it" has been pressed, as the dials' do
+  const tryFields = v.try ? v.try.fields.map((f) => ({ ...f, error: v.draft.touched.includes(f.path) || v.draft.asked || (L.tried && mine) ? f.error : null })) : [];
+  return { ...v, run: { status: mine ? L.status : 'idle', reason: mine ? L.reason || null : null, progress: mine ? L.progress : null, slow: mine ? L.slow : false, fresh: mine && L.status === 'done' && !!v.verdict },
+    try: v.try ? { ...v.try, fields: tryFields, open: open.includes('tryOpen') || !!(L.tried && mine), confirm: open.includes('tryConfirm') } : null };
+}
+/**
+ * "The mix" (way-and-mix.md 3.2): the plan source's reading of the step (page.mix: the boxes, the funds, the paste, the tries
+ * and the comparison in words, worked out there from state.mix and state.lasts) with the open blocks (ui.open: the paste box,
+ * the example list), the write's state (ui.saving kind 'save' or 'mix'), the problem and the toast.
+ */
+export function planMixView(state) {
+  const v = editView(state, 'mix');
+  if (!v.found) return v;
+  const ui = state.ui || {};
+  const open = Array.isArray(ui.open) ? ui.open : [];
+  // the funds cards' boxes are marked as the fields are: once left, or once Save is pressed
+  const show = (path) => v.draft.asked || v.draft.touched.includes(path);
+  const funds = v.lists && v.lists.funds ? { ...v.lists.funds, cards: v.lists.funds.cards.map((c) => ({ ...c, fields: c.fields.map((f) => ({ ...f, error: show(f.path) ? f.error : null })) })) } : null;
+  return { ...v, lists: { funds }, pasteOpen: open.includes('mixPaste') || !!(v.paste && v.paste.text), exampleOpen: open.includes('mixExample') };
 }
 /**
  * "How the money is taken" (way-and-mix.md 2.2): the plan source's reading of the step (page.way: the reading and the cards from

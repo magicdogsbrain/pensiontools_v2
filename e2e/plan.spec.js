@@ -81,7 +81,8 @@ test.describe('the saved plans, without an account', () => {
     for (const step of ALL_STEPS) {
       await page.evaluate((h) => { window.location.hash = h; }, `#/plan/HouseLadder01/${step}`);
       await expect(page.getByTestId(`plan.step.${step}`)).toBeVisible();
-      expect(await page.locator('#app input, #app select, #app textarea').count(), step).toBe(0);
+      // since 6.42.0 the household step asks the survivor and care questions in boxes (holdings-and-move.md's sibling, road step 9); every other step is still box-free
+      if (step !== 'household') expect(await page.locator('#app input, #app select, #app textarea').count(), step).toBe(0);
       expect(await page.locator('#app').innerText()).not.toMatch(/undefined|NaN|\{\w+\}/);
     }
     // the household step opens the partner's plan inside the preview; the saver opens on What you pay in
@@ -95,7 +96,8 @@ test.describe('the saved plans, without an account', () => {
     const links = await page.locator('#app a[href]').evaluateAll((els) => els.map((el) => el.getAttribute('href')));
     for (const href of links) expect(href).toMatch(/^(#\/|\.\.\/)/);
     // (the rail's "Lock the plan" step draws its own screen since 6.38.0: road-to-7.md step 6)
-    for (const href of links.filter((h) => h.startsWith('#/'))) expect(['front', 'plans', 'plan', 'plan.lock', 'c.numbers', 'a.numbers', 'b.numbers']).toContain(screenName(parse(href)));
+    // the plan's own sub-steps (plan.lock, plan.way, plan.mix, plan.household …) are inside the preview too
+    for (const href of links.filter((h) => h.startsWith('#/'))) { const n = screenName(parse(href)); if (!n.startsWith('plan.')) expect(['front', 'plans', 'plan', 'c.numbers', 'a.numbers', 'b.numbers']).toContain(n); }
 
     // a reload: the plans are read again from the window, nothing kept in the page's own storage
     await page.reload();

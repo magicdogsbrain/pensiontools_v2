@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-23T11:56:08.442Z",
+ "generated_at": "2026-10-24T11:25:43.099Z",
  "source": "FRED SP500 (S&P Dow Jones Indices; fallback Yahoo ^GSPC). Price index, ~10y window; all-time high carried forward across refreshes.",
  "symbol": "S&P 500 (price index)",
  "date": "2026-10-21",

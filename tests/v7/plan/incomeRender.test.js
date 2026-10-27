@@ -71,7 +71,8 @@ describe('every corpus plan at three dates: the boxes, the cards, the sources, t
           // the single boxes: a real label or legend; the saved value and its source beside the State Pension choice
           for (const f of INCOME_FIELDS) {
             const el = root.querySelector(`[data-field="${f.path}"]`);
-            const applies = f.path !== 'spWeekly' || saved.sp.kind === 'forecast';
+            // the weekly box with a forecast; the date box (road-to-7.md step 11b) while a State Pension is chosen
+            const applies = f.path === 'spWeekly' ? saved.sp.kind === 'forecast' : f.path === 'spDate' ? (saved.sp.kind === 'full' || saved.sp.kind === 'forecast') : true;
             if (applies && !el) problems.push(`${e.plan.id}: no field ${f.path}`);
             if (el && f.type !== 'choice' && !root.querySelector(`label[for="plan.income.${f.path}"]`)) problems.push(`${e.plan.id}: no label for ${f.path}`);
             if (el && f.type === 'choice' && !el.querySelector('legend')) problems.push(`${e.plan.id}: no legend for ${f.path}`);

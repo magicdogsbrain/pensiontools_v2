@@ -191,6 +191,7 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('Type,Item', null)).map(([planId, text]) => ({ type: A.PLAN_BUDGET_FILE_READ, planId, text })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_BUDGET_DOWNLOAD, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_RECORD, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_STALE_LEAVE, planId })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('gilt:T29', 'bucket:shares'), fc.boolean()).map(([planId, key, done]) => ({ type: A.PLAN_TICK, planId, key, done })),
   fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_RUN, key })),
   fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_DONE, key, result: { affordable: true, a: { share: 0.9 }, basis: { runs: 1 } }, ms: 500 })),

@@ -171,6 +171,7 @@ export const A = Object.freeze({
   PLAN_BUDGET_DOWNLOAD: 'plan/budgetDownload', // { planId }                  "Download it as a spreadsheet": ui.download { planId, n, what: 'budget' }; the download effect saves the file
   // "What you pay in" (step 11b): the settings save is plan/save on the saving step; the pot record its own press
   PLAN_RECORD:     'plan/record',         // { planId }                       "Record it": saving { kind: 'potRecord' }; the one write file adds this month's record to the list (nothing deleted)
+  PLAN_STALE_LEAVE: 'plan/staleLeave',    // { planId }                       "Leave it" on an out-of-date draft: saving { kind: 'staleLeave' }; the one write file remembers the year (about.js stalePatch)
 
   // "Your plans": the plan menu (research/v7/road-to-7.md step 11) — each write through effects/planWrite.js; the download through effects/download.js
   PLAN_ACTION:     'plan/action',         // { planId, kind: 'rename' | 'copy' | 'delete' | null, step?, text? }   the box or confirm open on a row (null closes it); a locked plan's delete has a second step

@@ -18,8 +18,9 @@
  * as it is writes nothing.
  */
 import { taxYearStartOf, taxYearLabel, ageOnDate } from '../../services/PlanTiming.js';
-import { spSimConfigFromSettings, parseStatePensionDate } from '../../utils/StatePensionUtils.js';
+import { spSimConfigFromSettings, parseStatePensionDate, validateStatePensionDate } from '../../utils/StatePensionUtils.js';
 import { defaultSpYear } from '../../services/IncomeSchedule.js';
+import { routeWindfall, GIA_DEFAULTS } from '../../services/TaxableSleeve.js';
 import { sippTodayOf } from '../../services/PotsAtRetirement.js';
 import { bornFromAge, wholeStatePensionAge } from '../shared/household.js';
 import { RULES, addYears } from '../shared/rules.js';
@@ -162,6 +163,7 @@ export function boxesOf(plan, { today }) {
   const s = savedIncome(plan, { today });
   const out = { spKind: s.sp.kind };
   if (s.sp.weekly != null) out.spWeekly = String(s.sp.weekly);
+  if (s.sp.date) out.spDate = String(s.sp.date);
   if (s.other > 0) out.other = String(s.other);
   for (const L of INCOME_LIST_IDS) {
     out[L + '.ids'] = s[L].map((c) => c.id).join(',');
@@ -224,6 +226,14 @@ export function checkIncome(plan, typed, { today }) {
   applies.spWeekly = kind === 'forecast';
   if (applies.spWeekly) { const m = parseMoney(boxes.spWeekly, field('spWeekly')); if (m.error) errors.spWeekly = m.error; else values.spWeekly = m.value; }
   else if (kind === 'full') values.spWeekly = RULES.fullStatePensionWeekly;
+  // the start date from the forecast letter (inc.state-pension-date): the planner's own parser and checks; blank keeps the saved date,
+  // or the one V7 works out from the State Pension age (derivedSpDate)
+  applies.spDate = kind === 'full' || kind === 'forecast';
+  if (applies.spDate && !blank(boxes.spDate)) {
+    const v = validateStatePensionDate(String(boxes.spDate), { now });
+    if (!v.valid) errors.spDate = /date of birth/i.test(v.error || '') ? 'looksLikeBirth' : 'notADate';
+    else values.spDate = localDay(v.date);
+  }
   { const m = parseMoney(boxes.other, field('other')); if (m.error) errors.other = m.error; else values.other = m.value == null ? 0 : m.value; }
 
   const lists = {};
@@ -257,9 +267,35 @@ export function checkIncome(plan, typed, { today }) {
   // the State Pension as it would be saved (7.3): the saved date when there is one, else the one V7 works out
   let sp = saved.sp;
   if (kind === 'none') sp = spView(saved.ss, saved.timing, saved.ageNow, { dateText: saved.sp.date, weekly: 0, now }), sp = { ...sp, kind: 'none', yearly: 0 };
-  else if ((kind === 'full' || kind === 'forecast') && values.spWeekly != null) sp = spView(saved.ss, saved.timing, saved.ageNow, { dateText: saved.sp.date || derivedSpDate(saved.ss, today), weekly: values.spWeekly, now });
+  else if ((kind === 'full' || kind === 'forecast') && values.spWeekly != null) sp = spView(saved.ss, saved.timing, saved.ageNow, { dateText: values.spDate || saved.sp.date || derivedSpDate(saved.ss, today), weekly: values.spWeekly, now });
   const ok = Object.keys(errors).length === 0;
   return { ok, values, lists, errors, applies, offered, saved, sp };
+}
+
+/** The saved State Pension date as a day ('YYYY-MM-DD'), whatever form the planner stored it in; null when none or unreadable. */
+function savedSpDay(text) {
+  if (!text) return null;
+  const d = parseStatePensionDate(String(text));
+  return d && !isNaN(d.getTime()) ? localDay(d) : null;
+}
+
+/**
+ * Where a lump sum lands (inc.lump-sums; the planner's note under each, index.html incomeShapeLumps): an inherited pension
+ * joins the pension, an inherited ISA the ISA; a cash lump sum goes as TaxableSleeve.routeWindfall sends it — the ISA
+ * allowance (none while the ISA is on hold), the pension within its limit (this year's earnings), the rest a taxable account
+ * held as the plan's taxable mix (or the row's own). The line's id names the parts it has; null without an amount.
+ */
+export function landingOf(ss, lump) {
+  if (!lump || !(num(lump.amount) > 0)) return null;
+  if (lump.wrapper === 'pension') return { id: 'lump.pension', slots: {} };
+  if (lump.wrapper === 'isa') return { id: 'lump.isa', slots: {} };
+  let r;
+  try {
+    r = routeWindfall({ amount: num(lump.amount), wrapper: 'cash', toIsa: lump.toIsa }, { isaAllowanceLeft: ss.isaDrawdownStrategy === 'hold' ? 0 : GIA_DEFAULTS.ISA_ALLOWANCE, relevantEarnings: num(ss.relevantEarnings) || 0 });
+  } catch { return null; }
+  const mix = typeof lump.mix === 'string' && lump.mix ? lump.mix : (typeof ss.taxableMix === 'string' && ss.taxableMix ? ss.taxableMix : 'equity');
+  const parts = (r.toIsa > 0 ? 'i' : '') + (r.toSipp > 0 ? 'p' : '') + (r.toGia > 0 ? 't' : '');
+  return { id: 'lump.cash.' + (parts || 't'), slots: { isa: pounds(r.toIsa), pension: pounds(r.toSipp), taxable: pounds(r.toGia), mix } };
 }
 
 const FIELDS_OF = { fs: ['amount', 'fromAge', 'rises'], streams: ['label', 'amount', 'fromAge', 'toAge', 'rises'], lumps: ['label', 'amount', 'atAge', 'wrapper'] };
@@ -317,6 +353,8 @@ export function incomePatch(plan, typed, { today }) {
       if (!s.sp.date) { const d = derivedSpDate(s.ss, today); if (d) want.spStartDate = d; }
     }
   }
+  // the date typed from the forecast letter: written when it is not the saved date (the saved text read by the same parser), as the day
+  if (kind !== 'none' && kind !== 'assumed' && c.values.spDate && c.values.spDate !== savedSpDay(s.sp.date)) want.spStartDate = c.values.spDate;
   if (c.values.other !== (num(s.ss.other) || 0)) want.other = c.values.other;
   // the final-salary pensions: the first is the planner's own keys, the rest rows of its list
   const fsCards = c.lists.fs.cards;
@@ -341,6 +379,8 @@ export function incomePatch(plan, typed, { today }) {
     const key = path.split('.').pop();
     if (!(key in want)) continue;
     const cur = get(plan, path);
+    // the Decision tool's own copy of the date (its own box in the planner): kept in step only where it already exists — an absent setting means the old behaviour
+    if (path === 'decisionTool.settings.spStartDate' && cur === undefined) continue;
     const val = want[key];
     if (text(cur) === text(val)) continue;
     if (cur === undefined && (val === null || val === 0)) continue;   // absent, null and 0 read alike here (every engine reads `x || 0`): no key is added for nothing
@@ -412,7 +452,14 @@ export function incomeOf(entries, id, { today, typed = null } = {}) {
     error: c.errors[f.path] || null
   }));
   const lists = {};
-  for (const L of INCOME_LIST_IDS) lists[L] = { ids: c.lists[L].ids, cards: c.lists[L].cards.map((card) => ({ id: card.id, saved: !!card.saved, fields: card.fields })) };
+  for (const L of INCOME_LIST_IDS) {
+    lists[L] = { ids: c.lists[L].ids, cards: c.lists[L].cards.map((card) => {
+      const out = { id: card.id, saved: !!card.saved, fields: card.fields };
+      // under a lump sum: where it lands (inc.lump-sums), from the card as typed (its stored row's own mix and ISA choice kept)
+      if (L === 'lumps') { const row = card.saved && card.saved.from === 'row' ? saved.wrows[card.saved.row] : null; out.landing = landingOf(saved.ss, { ...(row || {}), ...(card.ok ? card.values : (card.saved || {})) }); }
+      return out;
+    }) };
+  }
   const facts = factsOf(c);
   const derived = derivedLines(facts);
   const sid = (plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.id) || saved.ss.strategyId || 'pots-and-valves';

@@ -18,9 +18,16 @@ export const SPEND = {
     sourceUndated: 'From your budget (a guide).',
     guide: 'A guide only: the plan uses the figures in the boxes below, never the budget. Working it out line by line is the better way to choose them.',
     use: 'Use {total} a month at the start',
-    change: 'Change the budget lines (in the planner)',
+    change: 'Change the budget lines',
     none: 'Your budget is not worked out, so you are choosing by one figure. That is fine for a first look, but most people spend more than they think, and the plan is only as good as the figures below. Working it out line by line is the better way.',
-    workOut: 'Work it out (in the planner)'
+    workOut: 'Work it out, line by line'
+  },
+  /** The lump sums coming in, offered as income (the planner's own offer under its picture). */
+  lumps: {
+    lead: 'Money that comes in during the plan pays for the shape above; it is not added to it. Spread evenly over the years left, each lump sum could support:',
+    line: '{label}, {amount} at age {age}: {perYear} a year more before tax over the {years} years left, no growth, at today’s prices.',
+    add: 'Add {perYear} a year from age {age}',
+    help: 'Raises the step in force at that age and every later one by that amount; the lump sum stays as the money that pays for it. Then Save, or Cancel to put the steps back.'
   },
 
   /** The first row: its age is the plan's start and is never asked. */

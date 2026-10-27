@@ -161,7 +161,9 @@ describe('the words in src/v7/copy/', () => {
     const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
     const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{year\}/g, '2027/28').replace(/\{(yearly|amount)\}/g, '£11,973').replace(/\{full\}/g, '£12,548')
       .replace(/\{(age|ageNow|endAge|from|to|n|value)\}/g, '67').replace(/\{years\}/g, '15 years').replace(/\{(fs|streams|lumps)\}/g, '2').replace(/\{day\}/g, '5 April 2028')
-      .replace(/\{label\}/g, 'Rental flat').replace(/\{name\}/g, 'Sam').replace(/\{rises\}/g, 'going up with prices').replace(/\{what\}/g, 'a cash lump sum').replace(/\{sp\}/g, 'none');
+      .replace(/\{label\}/g, 'Rental flat').replace(/\{name\}/g, 'Sam').replace(/\{rises\}/g, 'going up with prices').replace(/\{what\}/g, 'a cash lump sum').replace(/\{sp\}/g, 'none')
+      // where a lump sum lands (road-to-7.md step 11b): the parts in pounds, the taxable mix in words
+      .replace(/\{(isa|pension|taxable)\}/g, '£20,000').replace(/\{mix\}/g, 'shares');
     const hits = [];
     const all = strings(INCOME).map(([, s]) => slot(s)).join('\n');
     for (const [where, s] of strings(INCOME)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`income.js ${where} — ${h}`);
@@ -172,7 +174,7 @@ describe('the words in src/v7/copy/', () => {
   it('"What you spend" (spend.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the third editing step is a plan page too (editing-in-v7.md 8): a retired person's and a saver's plan are both edited from it
     const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
-    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{year\}/g, '2027/28').replace(/\{(monthly|yearly|gross|net|total|essentials|amount|endMonthly|toMonthly)\}/g, '£2,300')
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{year\}/g, '2027/28').replace(/\{(monthly|yearly|gross|net|total|essentials|amount|endMonthly|toMonthly|perYear)\}/g, '£2,300')
       .replace(/\{(age|ageNow|endAge|startAge|age75|age85|endAge|toAge|n|value)\}/g, '67').replace(/\{(years|steps|costs)\}/g, '2').replace(/\{(pct|budgetPct)\}/g, '85')
       .replace(/\{label\}/g, 'New roof').replace(/\{name\}/g, 'Sam').replace(/\{prices\}/g, 'going up with prices').replace(/\{floor\}/g, '');
     const hits = [];

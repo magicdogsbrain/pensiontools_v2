@@ -18,7 +18,7 @@
  * changed, the costs only when a cost changed, so a plan saved as it is writes nothing.
  */
 import { taxYearLabel } from '../../services/PlanTiming.js';
-import { amountAtAge, cleanSteps } from '../../services/IncomeSchedule.js';
+import { amountAtAge, cleanSteps, lumpIntoSteps } from '../../services/IncomeSchedule.js';
 import { spSimConfigFromSettings } from '../../utils/StatePensionUtils.js';
 import { get, applyPatch, safeSettings, safeTiming, bandsOf, netOf, grossOf } from './about.js';
 import { pounds } from './income.js';
@@ -141,11 +141,55 @@ export function savedSpend(plan, { today }) {
     const net = Math.round(netOf(grossYear + num(r.amount), bands) - netOf(grossYear, bands));
     costs.push({ id: String(costs.length), label: typeof r.label === 'string' ? r.label : '', amount: net, gross: num(r.amount), atAge: ageNow + y, years: Math.max(1, Math.round(num(r.years) || 1)), prices: r.indexation === 'level' ? 'fixed' : 'rise', row: i });
   });
+  // the lump sums coming in (income.js lumps: the planner's windfalls), money that pays for the shape — offered as income
+  // (income.lump-to-steps: "Turn a lump sum into income"); only those falling inside the plan's years
+  const wrows = Array.isArray(stored.windfalls) ? stored.windfalls : (Array.isArray(ss.windfalls) ? ss.windfalls : []);
+  const lumps = [];
+  wrows.forEach((r, i) => {
+    if (!isObj(r) || !(num(r.amount) > 0) || num(r.year) == null) return;
+    const atAge = ageNow + Math.round(num(r.year));
+    if (atAge < ageNow || atAge > endAge) return;
+    lumps.push({ id: String(lumps.length), label: typeof r.label === 'string' ? r.label : '', amount: num(r.amount), atAge, row: i });
+  });
   const sid = (plan && plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.id) || ss.strategyId || 'pots-and-valves';
   return {
     locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, ss, stored, timing, duration, ageNow, endAge, bands, source, flat,
-    first, steps: later, plainSteps, base, schedule, costs, xrows, budget: budgetOf(plan, now), strategyId: sid, now
+    first, steps: later, plainSteps, base, schedule, costs, xrows, lumps, budget: budgetOf(plan, now), strategyId: sid, now
   };
+}
+
+const nextNewId = (ids) => { const used = ids.filter((x) => /^n\d+$/.test(x)).map((x) => +x.slice(1)); return 'n' + ((used.length ? Math.max(...used) : 0) + 1); };
+const thenOfRow = (row) => (row.glideToNext ? 'glides' : +row.decline > 0 ? 'falls' : 'level');
+
+/**
+ * "Turn a lump sum into income" (income.lump-to-steps): the draft edits that make the cards equal the steps the planner's own
+ * spendLumpSum makes (IncomeSchedule.lumpIntoSteps, lifted) — the first row's figure, each later step's by its age, a new card
+ * for a step that did not exist; a card stays a card. The person then saves, or cancels to put the steps back.
+ */
+export function lumpEdits(c, rows, bands) {
+  const sorted = rows.slice().sort((x, y) => +x.fromAge - +y.fromAge);
+  const before = c.shape;
+  const cards = c.lists.steps.cards;
+  const ids = [...c.lists.steps.ids];
+  const edits = [];
+  const first = sorted[0], firstBefore = before[0];
+  if (+first.amount !== +firstBefore.amount) edits.push({ path: 'first.amount', value: String(monthlyNet(first.amount, bands)) });
+  if (thenOfRow(first) !== thenOfRow(firstBefore)) edits.push({ path: 'first.then', value: thenOfRow(first) });
+  for (const row of sorted.slice(1)) {
+    const card = cards.find((x) => x.values.fromAge === +row.fromAge);
+    const old = before.find((x) => +x.fromAge === +row.fromAge);
+    if (card) {
+      if (!old || +old.amount !== +row.amount) edits.push({ path: `steps.${card.id}.amount`, value: String(monthlyNet(row.amount, bands)) });
+      if (old && thenOfRow(old) !== thenOfRow(row)) edits.push({ path: `steps.${card.id}.then`, value: thenOfRow(row) });
+    } else {
+      const id = nextNewId(ids);
+      ids.push(id);
+      edits.push({ path: `steps.${id}.fromAge`, value: String(row.fromAge) }, { path: `steps.${id}.amount`, value: String(monthlyNet(row.amount, bands)) }, { path: `steps.${id}.then`, value: thenOfRow(row) });
+      if (+row.decline > 0) edits.push({ path: `steps.${id}.fallsPct`, value: String(+row.decline) });
+    }
+  }
+  if (ids.length !== c.lists.steps.ids.length) edits.unshift({ path: 'steps.ids', value: ids.join(',') });
+  return edits;
 }
 
 /** The boxes' starting text: the saved facts as a person would type them, by path (7.2). */
@@ -510,6 +554,12 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
   const partners = list.filter((e) => e.plan.id !== plan.id && (e.plan.id === partnerIdOf(plan) || partnerIdOf(e.plan) === plan.id)).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
   const p = editable && c.ok ? spendPatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
   const sug = editable ? suggestion(firstGross, saved) : null;
+  // each lump sum coming in: what it could support a year over the years left, and the edits that add that to the steps (income.lump-to-steps)
+  const lumps = saved.lumps.map((l) => {
+    const r = lumpIntoSteps(c.ok ? c.shape : saved.plainSteps, { ageNow: saved.ageNow, duration: saved.duration, amount: l.amount, year: l.atAge - saved.ageNow });
+    if (!r) return null;
+    return { id: l.id, label: l.label || 'Lump sum', amount: pounds(l.amount), age: r.age, years: r.years, perYear: pounds(r.perYear), perYearValue: r.perYear, edits: editable && c.ok ? lumpEdits(c, r.steps, b) : null };
+  }).filter(Boolean);
   return {
     found: true, id: String(plan.id), name: nameOf(plan), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable,
     source: saved.source, ageNow: saved.ageNow, endAge: saved.endAge, startAge: saved.first.fromAge, flat: saved.flat,
@@ -517,7 +567,7 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
     budget: { workedOut: saved.budget.workedOut, total: saved.budget.total != null ? pounds(saved.budget.total) : null, totalValue: saved.budget.total, essentials: saved.budget.essentials != null ? pounds(saved.budget.essentials) : null, at: saved.budget.at },
     fields, lists, errors: c.errors, ok: c.ok, derived, chart, below: below ? { age: below.age, amount: pounds(below.amount) } : null,
     floorFrom: floorFrom ? { age: floorFrom.age, amount: pounds(floorFrom.amount) } : null,
-    notUsed: notUsedBy(saved.strategyId), floorAndFlex: saved.strategyId === 'floor-and-flex', partners, suggestion: sug,
+    notUsed: notUsedBy(saved.strategyId), floorAndFlex: saved.strategyId === 'floor-and-flex', partners, suggestion: sug, lumps,
     changed: Object.keys(p.patch).length > 0, patch: p.patch, previous: p.previous,
     // the one sentence the toast says after a save
     savedLine: c.ok ? { id: 'spend', slots: { age: saved.first.fromAge, monthly: pounds(firstMonthly), steps: c.lists.steps.cards.length, costs: c.lists.costs.cards.length } } : null

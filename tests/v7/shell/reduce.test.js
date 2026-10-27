@@ -324,6 +324,7 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('Type,Item\nItem,Essential,Gas,50,mo', null)).map(([planId, text]) => ({ type: A.PLAN_BUDGET_FILE_READ, planId, text })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_BUDGET_DOWNLOAD, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_RECORD, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_STALE_LEAVE, planId })),
   fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_RUN, key })),
   fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_DONE, key, result: { affordable: true, a: { share: 0.9 }, basis: { runs: 1 } }, ms: 500 })),
   fc.tuple(fc.constantFrom('m1', 'm2'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.MOVE_FAILED, key, reason })),

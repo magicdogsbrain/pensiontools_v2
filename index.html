@@ -4113,7 +4113,7 @@
     // Import constants for optimization
     import { installInlineHandlers } from './src/ui/inlineHandlers.js';
     import { EQUITY_RETURNS, INFLATION, SIMULATION_DEFAULTS, DRAWDOWN_DEFAULTS, TAX_DEFAULTS } from './src/constants.js';
-    import { amountAtAge } from './src/services/IncomeSchedule.js';   // steps + per-step decline / glide → £ at an age
+    import { amountAtAge, lumpIntoSteps } from './src/services/IncomeSchedule.js';   // steps + per-step decline / glide → £ at an age; a lump sum into the steps (lifted 6.45.0)
     import { animateIncomeShape } from './src/ui/incomeShapeGraphic.js';
     import { MC_BLOCK_YEARS } from './src/services/SimulationEngine.js';
     // One answer per plan (6.24.0; usability audit decision 2): every "will it last" figure is the one test's, read through these.
@@ -7168,16 +7168,11 @@
     window.spendLumpSum = function (i) {
       const w = (window._ssWindfalls || [])[i]; if (!w || !(w.amount > 0) || w.year == null) return;
       const ageNow = +document.getElementById('shapeAgeNow').value || 57; const dur = +document.getElementById('ssDuration')?.value || 35;
-      const age = ageNow + (+w.year); const yrs = Math.max(1, ageNow + dur - 1 - age + 1); const perYear = Math.round(w.amount / yrs / 100) * 100;
       const steps = window._ssIncomeSteps || [];
       if (!steps.length) { showToast('Set a first step first.', 'warning'); return; }
-      const atAge = Math.round(amountAtAge(steps, age, +steps[0].amount));
-      const existing = steps.find((st) => +st.fromAge === age);
-      if (existing) existing.amount = +existing.amount + perYear;
-      else { const prev = [...steps].filter((st) => +st.fromAge < age).sort((a, b) => +a.fromAge - +b.fromAge).pop(); steps.push({ fromAge: age, amount: atAge + perYear, decline: prev ? (+prev.decline || 0) : 0 }); if (prev && prev.glideToNext) prev.glideToNext = false; }
-      for (const st of steps) if (+st.fromAge > age) st.amount = +st.amount + perYear;
-      window._ssIncomeSteps = steps; renderIncomeSteps();
-      showToast('Added ' + gbp(perYear) + '/yr from age ' + age + ' — ' + gbp(w.amount) + ' spread evenly over ' + yrs + ' years. The lump sum stays in the plan as the money that pays for it. Edit the steps freely, then Save.', 'success', 7000);
+      const r = lumpIntoSteps(steps, { ageNow, duration: dur, amount: +w.amount, year: +w.year });   // IncomeSchedule, lifted (6.45.0)
+      window._ssIncomeSteps = r.steps; renderIncomeSteps();
+      showToast('Added ' + gbp(r.perYear) + '/yr from age ' + r.age + ' — ' + gbp(w.amount) + ' spread evenly over ' + r.years + ' years. The lump sum stays in the plan as the money that pays for it. Edit the steps freely, then Save.', 'success', 7000);
     };
     window.startShapeFromBudget = async function () {
       await refreshShapeRefs();

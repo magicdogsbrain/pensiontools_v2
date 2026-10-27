@@ -40,6 +40,8 @@ const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'fail
   'lastPlan', 'example', 'badFile', 'fileTooBig', 'fileProblems', 'empty', 'tooLong'];
 /** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document, the way switched (way-and-mix.md 2.4), a mix used (3.2e), a tried change used (4). */
 const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
+  // "Leave it" on an out-of-date draft (road-to-7.md step 11b): the planner's own key, remembered
+  'stale',
   // "Your household" (road-to-7.md step 9): the partner link, the split written into both plans, "Keep things as they are", the budget shared
   'link', 'split', 'dismiss', 'budgetShare',
   // "What you hold" and "Moving to your plan's mix" (step 10): one change of the record, one tick-off
@@ -599,6 +601,13 @@ export function reduce(state, action) {
       const pd = planDraftOf(state);
       const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
       return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save' }, saveProblem: null, toast: null } }, { ...base, asked: true });
+    }
+    case A.PLAN_STALE_LEAVE: {
+      // "Leave it" on an out-of-date draft (road-to-7.md step 11b): one write of the planner's own key; the boxes are left alone
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/staleLeave: needs a plan id');
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, saving: { planId, kind: 'staleLeave' }, saveProblem: null, toast: null } };
     }
     case A.PLAN_SAVED: {
       const { planId, previous = null, line = null, op = null, lockedAt = null } = action;

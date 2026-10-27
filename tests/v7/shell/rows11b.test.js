@@ -21,8 +21,9 @@ import { parse } from '../../../src/v7/router/routes.js';
 import { budgetPatch, normalisedBudget, readBudget } from '../../../src/answers/plan/budget.js';
 import { recordPatch, savingPatch } from '../../../src/answers/plan/saving.js';
 import { budgetToSave, cleanBudgetForSave, fillTypicalAmounts, idMaker, resetBudgetLines, budgetToCsv } from '../../../src/services/BudgetModel.js';
-import { applyPatch } from '../../../src/answers/plan/about.js';
+import { applyPatch, stalePatch } from '../../../src/answers/plan/about.js';
 import { ownSideOf, sharedBudgetView } from '../../../src/services/PlanCommit.js';
+import { taxYearStartOf } from '../../../src/services/PlanTiming.js';
 import { BUDGET_WRITES, SAVING_WRITES } from '../../../src/answers/plan/schema.js';
 import { corpus, household, TODAY, noon } from '../plan/_plans.js';
 
@@ -249,5 +250,52 @@ describe('"What you pay in": the settings whole, the record list whole', () => {
       expect(strip(after[1])).toBe(strip(before[1]));
       p.stop();
     }), { numRuns: 12 });
+  });
+});
+
+describe('"Leave it" on an out-of-date draft (timing.stale-draft): the planner\'s own key, one write', () => {
+  const thisTY = taxYearStartOf(noon(TODAY));
+  const STALE = (() => { const p = copy(C['02-pnv-draft']); p.stressTool.settings.firstTaxYear = thisTY - 1; p.stressTool.settings.retired = true; delete p.stressTool.settings.staleDraftDismissedFor; return p; })();
+
+  it('an account: ONE updateDoc of staleDraftDismissedFor plus the stamp, equal to stalePatch; the toast; Undo writes the key back as null', async () => {
+    const p = page({ raws: [STALE], planId: STALE.id, step: 'about' });
+    const plan = p.store.getState().plans.list[0].plan;
+    const want = stalePatch(plan, { today: TODAY });
+    expect(want.ok).toBe(true);
+    p.store.dispatch({ type: A.PLAN_STALE_LEAVE, planId: STALE.id });
+    await tick();
+    expect(p.store.getState().ui.saveProblem).toBe(null);
+    expect(p.fb.writes.length).toBe(1);
+    expect(p.fb.writes[0].data).toEqual({ ...want.patch, lastModified: STAMP });
+    expect(Object.keys(p.fb.writes[0].data)).toEqual(['stressTool.settings.staleDraftDismissedFor', 'lastModified']);
+    expect(p.store.getState().ui.toast).toMatchObject({ kind: 'saved', op: 'stale', line: { id: 'staleLeft' } });
+    p.store.dispatch({ type: A.PLANS_SET, list: [{ plan: applyPatch(plan, p.fb.writes[0].data), newer: false, failed: false }], source: 'account', readAt: '14:04' });
+    p.store.dispatch({ type: A.PLAN_UNDO, planId: STALE.id });
+    await tick();
+    expect(p.fb.writes.length).toBe(2);
+    expect(p.fb.writes[1].data).toEqual({ 'stressTool.settings.staleDraftDismissedFor': null, lastModified: STALE.lastModified });
+    p.stop();
+  });
+
+  it('the window: the key folded into the plan\'s text, the other plan byte-identical, Undo byte for byte; a plan with nothing to leave writes nothing', async () => {
+    const p = page({ raws: [LOCKED, STALE], planId: STALE.id, step: 'about', session: 'nobody' });
+    const before = p.session.raw(GUEST_PLANS_KEY);
+    p.store.dispatch({ type: A.PLAN_STALE_LEAVE, planId: STALE.id });
+    await tick();
+    expect(p.fb.writes).toEqual([]);
+    const after = JSON.parse(p.session.raw(GUEST_PLANS_KEY));
+    expect(JSON.stringify(after[0])).toBe(JSON.stringify(JSON.parse(before)[0]));
+    expect(after[1].stressTool.settings.staleDraftDismissedFor).toBe(thisTY - 1);
+    p.store.dispatch({ type: A.PLANS_SET, list: upgradedList(after, noon(TODAY)), source: 'window', readAt: '14:04' });
+    p.store.dispatch({ type: A.PLAN_UNDO, planId: STALE.id });
+    await tick();
+    expect(p.session.raw(GUEST_PLANS_KEY)).toBe(before);
+    const q = page({ raws: [RAW], planId: RAW.id, step: 'about', session: 'nobody' });
+    const was = q.session.raw(GUEST_PLANS_KEY);
+    q.store.dispatch({ type: A.PLAN_STALE_LEAVE, planId: RAW.id });
+    await tick();
+    expect(q.session.raw(GUEST_PLANS_KEY)).toBe(was);
+    expect(q.store.getState().ui.saveProblem).toEqual({ planId: RAW.id, problem: 'failed' });
+    p.stop(); q.stop();
   });
 });

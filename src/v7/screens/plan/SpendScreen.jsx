@@ -57,9 +57,10 @@ function Partners({ sp }) {
   );
 }
 
-/** The budget as a guide (the owner's rule): read only; "Use" fills the first row; the lines are changed in the planner. */
-function BudgetGuide({ sp, planId, dispatch, onChange, editable }) {
+/** The budget as a guide (the owner's rule): read only; "Use" fills the first row; the lines are changed on the budget step (road-to-7.md step 11b). */
+function BudgetGuide({ sp, planId, dispatch, editable }) {
   const b = sp.budget;
+  const budgetHref = href.plan(planId, 'budget');
   return (
     <section class="plan-section spend-budget" data-section="budget" data-worked-out={b.workedOut ? '1' : '0'}>
       <h2>{SPEND.sections.budget}</h2>
@@ -69,14 +70,14 @@ function BudgetGuide({ sp, planId, dispatch, onChange, editable }) {
           <p class="note" data-testid="plan.spend.budget.guide">{SPEND.budget.guide}</p>
           <div class="actions-row">
             {editable && <Button testid="plan.spend.budget.use" kind="plain" onClick={() => dispatch({ type: 'plan/edit', planId, path: 'first.amount', value: String(b.totalValue) })} {...keepFocus}>{fill(SPEND.budget.use, { total: b.total })}</Button>}
-            <Button testid="plan.spend.budget.change" kind="quiet" onClick={() => onChange('budget')}>{SPEND.budget.change}</Button>
+            <LinkButton testid="plan.spend.budget.change" kind="quiet" href={budgetHref}>{SPEND.budget.change}</LinkButton>
           </div>
         </>
       ) : (
         <>
           <p class="note" data-testid="plan.spend.budget.none">{SPEND.budget.none}</p>
           <div class="actions-row">
-            <Button testid="plan.spend.budget.change" kind="quiet" onClick={() => onChange('budget')}>{SPEND.budget.workOut}</Button>
+            <LinkButton testid="plan.spend.budget.change" kind="quiet" href={budgetHref}>{SPEND.budget.workOut}</LinkButton>
           </div>
         </>
       )}
@@ -186,7 +187,7 @@ export function SpendScreen(state, dispatch) {
             {chart}
             {sp.locked ? <p class="note plan-fixed" data-testid="plan.spend.fixed">{fill(w.fixed, { date: sp.lockedOn })}</p> : <p class="notice" role="status">{SPEND.readonly}</p>}
             {sp.locked && <p class="note" data-testid="plan.unlock">{w.unlock}</p>}
-            {!sp.readonly && <BudgetGuide sp={sp} planId={planId} dispatch={dispatch} onChange={onChange} editable={false} />}
+            {!sp.readonly && <BudgetGuide sp={sp} planId={planId} dispatch={dispatch} editable={false} />}
             <Partners sp={sp} />
           </section>
           <div class="actions-row">
@@ -229,7 +230,7 @@ export function SpendScreen(state, dispatch) {
         <h1 tabIndex={-1} data-testid="plan.step.spend">{SPEND.title}</h1>
         <p class="lead">{SPEND.lead}</p>
         <form class="ask about-form income-form spend-form" noValidate onSubmit={onSubmit} data-region="plan-spend" data-editable="1">
-          <BudgetGuide sp={sp} planId={planId} dispatch={dispatch} onChange={onChange} editable />
+          <BudgetGuide sp={sp} planId={planId} dispatch={dispatch} editable />
           <section class="income-section" data-section="first">
             <h2>{SPEND.sections.first}</h2>
             <fieldset class="income-card spend-card spend-first" data-card="first">
@@ -251,6 +252,20 @@ export function SpendScreen(state, dispatch) {
               {sug && <Button testid="plan.spend.steps.suggest" kind="plain" onClick={onSuggest} aria-describedby="plan.spend.steps.suggest.help" {...keepFocus}>{SPEND.steps.suggest}</Button>}
             </div>
             {sug && <p class="note" id="plan.spend.steps.suggest.help" data-testid="plan.spend.steps.suggestWords">{sugWords}</p>}
+            {sp.lumps.length > 0 && (
+              <div class="spend-lumps" data-testid="plan.spend.lumps">
+                <p class="note">{SPEND.lumps.lead}</p>
+                <ul class="plan-lines">
+                  {sp.lumps.map((l) => (
+                    <li key={l.id} class="plan-line" data-testid={`plan.spend.lumps.${l.id}`} data-age={l.age} data-per-year={l.perYearValue}>
+                      {fill(SPEND.lumps.line, l)}
+                      {l.edits && <div class="actions-row"><Button testid={`plan.spend.lumps.${l.id}.add`} kind="quiet" aria-describedby="plan.spend.lumps.help" onClick={() => { for (const ed of l.edits) dispatch({ type: 'plan/edit', planId, path: ed.path, value: ed.value }); }} {...keepFocus}>{fill(SPEND.lumps.add, l)}</Button></div>}
+                    </li>
+                  ))}
+                </ul>
+                <p class="help" id="plan.spend.lumps.help">{SPEND.lumps.help}</p>
+              </div>
+            )}
           </section>
           {chart && (
             <section class="income-section" data-section="chart">

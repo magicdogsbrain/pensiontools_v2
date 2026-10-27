@@ -52,7 +52,14 @@ export const ABOUT = {
   partnerLink: 'Open ‘{name}’: about you and when',
   buttons: { save: 'Save', cancel: 'Cancel', undo: 'Undo', close: 'Close', back: 'Back to your plan' },
   /** After a save. */
-  toast: { saved: 'Saved. Your plan now runs {years} years, to age {endAge}.', savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.' },
+  toast: { saved: 'Saved. Your plan now runs {years} years, to age {endAge}.', staleLeft: 'Left as it is, starting in {yearSaved}. You will not be asked again for that year.', savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.' },
+  /** An out-of-date draft (the planner's own offer): the start year has passed. */
+  stale: {
+    line: 'This plan was set to start in {yearSaved}, which has passed. Update it to start now ({year})?',
+    update: 'Update it to start in {year}',
+    leave: 'Leave it',
+    help: 'Update sets “I have stopped work” and “This tax year” in the boxes and saves; the steps and the figures by year move with it. Leave it keeps everything as saved and does not ask again for that year.'
+  },
   /** Why a save did not happen (4). Nothing is ever written when one of these is shown. */
   problems: {
     locked: 'This plan is locked, so nothing was changed. The planner unlocks it.',

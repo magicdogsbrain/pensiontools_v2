@@ -392,6 +392,9 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .shape-plot .guide { stroke: var(--chart-guide); stroke-width: 2; stroke-dasharray: 6 4; }
 .shape-plot .band-goSlow { fill: var(--chart-band); }
 .shape-plot .band-goGo, .shape-plot .band-noGo { fill: transparent; }
+/* the picture moves from the old shape to the new one as a step changes (income.staircase-motion): each bar eases to its new
+   height over about half a second; base.css turns every transition off for anyone who has asked their device for less motion */
+.shape-plot rect.part-pots, .shape-plot rect.part-income, .shape-plot rect.part-below { transition: y 450ms ease-out, height 450ms ease-out; }
 .shape-plot .part-pots { fill: var(--chart-pots); }
 .shape-plot .part-income { fill: var(--chart-income); }
 .shape-plot .part-below { fill: var(--chart-below); }

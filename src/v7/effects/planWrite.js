@@ -110,7 +110,7 @@ import { guestOwnPlans, GUEST_MAX_PLANS, isExamplePlan, DEMO_PLANS, EXAMPLE_PLAN
 import { copyOf, hasRecords } from '../../services/PlanCopy.js';
 import { stripIdentity } from '../../services/PlanExport.js';
 import { handoffPayload } from '../../services/GuestMeter.js';
-import { aboutPatch, applyPatch } from '../../answers/plan/about.js';
+import { aboutPatch, applyPatch, stalePatch } from '../../answers/plan/about.js';
 import { incomePatch } from '../../answers/plan/income.js';
 import { spendPatch } from '../../answers/plan/spend.js';
 import { potsPatch } from '../../answers/plan/pots.js';
@@ -493,8 +493,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     } else if (op === 'unlock' || op === 'document') {
       // the reverse of an unlock goes to an unlocked plan; of a new version, to a locked plan whose settings it leaves alone
       if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
-    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick' || op === 'budget' || op === 'potRecord' || (state.route && state.route.screen === 'plan' && state.route.step === 'saving')) {
-      // the household's writes (road-to-7.md step 9), the record and the tick-offs (step 10), the budget (step 11b) go where the planner's go: the guard alone decides
+    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick' || op === 'budget' || op === 'potRecord' || op === 'stale' || (state.route && state.route.screen === 'plan' && state.route.step === 'saving')) {
+      // the household's writes (road-to-7.md step 9), the record and the tick-offs (step 10), the budget and "Leave it" (step 11b) go where the planner's go: the guard alone decides
       if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
     } else {
       // an editing step's undo: a locked plan is refused outright, as its save is
@@ -679,6 +679,16 @@ export function startPlanWrite(store, { win = null, session = null, local = null
    * this plan's own side here, each past the guard (the budget is outside the lock, as the planner's guard has it). Undo puts
    * each previous object back whole.
    */
+  /** "Leave it" on an out-of-date draft (road-to-7.md step 11b; about.js stalePatch): the planner's own key, ONE write past the guard. */
+  async function leaveStale(planId) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const p = stalePatch(plan, { today: state.env.today });
+    if (!p.ok) { fail(planId, 'failed'); return; }
+    await sendAll(place, planId, [{ planId: String(planId), patch: p.patch, previous: p.previous }], { line: p.line, op: 'stale' });
+  }
+
   async function saveBudgetChange(planId, change) {
     const got = await placed(planId);
     if (!got) return;
@@ -1236,6 +1246,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_BUDGET && s.kind === 'budget') run(() => saveBudgetChange(s.planId, s.change));
     else if (action.type === A.PLAN_BUDGET_FILE && s.kind === 'budgetFile') run(() => readBudgetFile(s.planId, action.file));
     else if (action.type === A.PLAN_RECORD && s.kind === 'potRecord') run(() => recordPot(s.planId));
+    else if (action.type === A.PLAN_STALE_LEAVE && s.kind === 'staleLeave') run(() => leaveStale(s.planId));
     // the plan menu (road-to-7.md step 11)
     else if (action.type === A.PLAN_RENAME && s.kind === 'rename') run(() => rename(s.planId, s.name));
     else if (action.type === A.PLAN_COPY && s.kind === 'copy') run(() => makeCopy(s.planId, s.carry === true));

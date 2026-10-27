@@ -50,7 +50,7 @@ const JOURNEYS_APART = ['a-already-stopped'];
 // … and "What you hold" and "Moving to your plan's mix" (holdings-and-move.md §7: the record's writes and Undo byte for byte, a tick-off,
 // the one run on the held mix equal to Node).
 // … and the plan menu, the account page and What's new (road-to-7.md step 11): plans-actions and whats-new, at 390 and 1440.
-const JOURNEYS_PLAN = ['plan', 'plan-about', 'plan-income', 'plan-spend', 'plan-pots', 'plan-lasts', 'plan-lock', 'plan-levers', 'plan-way', 'plan-mix', 'plan-try', 'plan-household', 'plan-hold', 'plan-move', 'plan-budget', 'plan-saving', 'plans-actions', 'whats-new'];
+const JOURNEYS_PLAN = ['plan', 'plan-about', 'plan-income', 'plan-spend', 'plan-pots', 'plan-lasts', 'plan-lock', 'plan-levers', 'plan-way', 'plan-mix', 'plan-try', 'plan-household', 'plan-hold', 'plan-move', 'plan-budget', 'plan-saving', 'plan-stale-lumps', 'plans-actions', 'whats-new'];
 const JOURNEYS_PHONE = ['c-forum-guest', 'c-couple', 'c-retired', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP, ...JOURNEYS_PLAN];
 const JOURNEYS_DESKTOP = ['c-forum-guest', 'c-couple', 'production', 'old-app-unchanged', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP, ...JOURNEYS_APART, ...JOURNEYS_PLAN];
 const only = (names) => names.map((n) => `**/${n}.spec.js`);

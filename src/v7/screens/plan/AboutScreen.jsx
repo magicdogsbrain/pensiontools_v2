@@ -47,7 +47,7 @@ function Partners({ about }) {
   );
 }
 
-const toastText = (toast) => (toast.kind === 'undone' ? ABOUT.toast.undone : toast.kind === 'unchanged' ? ABOUT.toast.unchanged : toast.line ? fill(ABOUT.toast.saved, toast.line.slots) : ABOUT.toast.savedShort);
+const toastText = (toast) => (toast.kind === 'undone' ? ABOUT.toast.undone : toast.kind === 'unchanged' ? ABOUT.toast.unchanged : toast.line ? fill(ABOUT.toast[toast.line.id] || ABOUT.toast.saved, toast.line.slots) : ABOUT.toast.savedShort);
 
 export function AboutScreen(state, dispatch) {
   const view = planView(state);
@@ -125,6 +125,8 @@ export function AboutScreen(state, dispatch) {
   const suggest = about.suggestion;
   const notUsed = new Set(about.notUsed || []);
   const problem = about.problem ? (ABOUT.problems[about.problem] || ABOUT.problems.failed) : null;
+  // an out-of-date draft (road-to-7.md step 11b): "Update it" sets the boxes as the planner's update does and saves; "Leave it" is remembered
+  const onStaleUpdate = () => { for (const ed of about.stale.edits) dispatch({ type: 'plan/edit', planId, path: ed.path, value: ed.value }); dispatch({ type: 'plan/save', planId }); };
 
   return {
     question: null,
@@ -135,6 +137,16 @@ export function AboutScreen(state, dispatch) {
         <Head view={view} />
         <h1 tabIndex={-1} data-testid="plan.step.about">{ABOUT.title}</h1>
         <p class="lead">{ABOUT.lead}</p>
+        {about.stale && (
+          <div class="notice stale-draft" role="status" data-testid="plan.about.stale" data-saved-year={about.stale.savedYear}>
+            <p>{fill(ABOUT.stale.line, about.stale)}</p>
+            <div class="actions-row">
+              <Button testid="plan.about.stale.update" kind="primary" onClick={onStaleUpdate} disabled={!!about.saving}>{fill(ABOUT.stale.update, about.stale)}</Button>
+              <Button testid="plan.about.stale.leave" kind="quiet" onClick={() => dispatch({ type: 'plan/staleLeave', planId })} disabled={!!about.saving}>{ABOUT.stale.leave}</Button>
+            </div>
+            <p class="help">{ABOUT.stale.help}</p>
+          </div>
+        )}
         <form class="ask about-form" noValidate onSubmit={onSubmit} data-region="plan-about" data-editable="1">
           {F('age')}
           {notUsed.has('age') && <p class="note">{ABOUT.notUsed}</p>}

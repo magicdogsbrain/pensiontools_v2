@@ -116,8 +116,8 @@ describe('browser tests: rules kept by reading the files', () => {
     const v = pkg.devDependencies['@playwright/test'];
     const tags = [];
     for (const f of WORKFLOWS) for (const m of read(f).matchAll(/mcr\.microsoft\.com\/playwright:v([0-9.]+)-/g)) tags.push({ f, tag: m[1] });
-    // The picture workflow and the night run use the container; if either stops, this count says so.
-    expect(tags.map((t) => t.f).sort()).toEqual(['.github/workflows/nightly.yml', '.github/workflows/screenshots.yml']);
+    // The picture workflow, the night run and (since 6.45.0) the browser shards use the container; if any stops, this count says so.
+    expect(tags.map((t) => t.f).sort()).toEqual(['.github/workflows/nightly.yml', '.github/workflows/screenshots.yml', '.github/workflows/test.yml']);
     expect(tags.filter((t) => t.tag !== v)).toEqual([]);
   });
 
@@ -138,9 +138,12 @@ describe('browser tests: rules kept by reading the files', () => {
     // Split across runners; each runs its share.
     expect(browserJob).toMatch(/shard: \[1, 2, 3\]/);
     expect(browserJob).toMatch(/--shard=\$\{\{ matrix\.shard \}\}\/3/);
-    // The browsers are cached by the installed Playwright version.
-    expect(browserJob).toMatch(/actions\/cache@v4/);
-    expect(browserJob).toMatch(/ms-playwright/);
+    // In Playwright's container since 6.45.0 (the browsers and their libraries come with it; nothing from Ubuntu's mirror),
+    // with HOME set for Firefox; no install step, no cache, no apt.
+    expect(browserJob).toMatch(/container:\s*\n\s+image: mcr\.microsoft\.com\/playwright:v/);
+    expect(browserJob).toMatch(/HOME: \/root/);
+    const browserSteps = browserJob.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');   // the comments may say why
+    expect(browserSteps).not.toMatch(/playwright install|install-deps|apt-get|actions\/cache/);
     expect(browserJob).toMatch(/npm run e2e:build/);
     expect(browserJob).toMatch(/npx playwright test/);
   });

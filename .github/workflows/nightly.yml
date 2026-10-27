@@ -5,7 +5,9 @@ name: nightly
 # browser tests in all three engines — the full sameness list (A and B too), and the journeys in WebKit (the
 # nearest thing to the owner's iPad and phone: C's, and A's J4 and J7) and Firefox. 02:30 UTC, before the data
 # update at 06:30. A red night sends GitHub's usual email; the failing input goes into found.cases.json.
-# The limit is 60 minutes (step 4 brief, decision 21): C's night and A's and B's together are planned under 50.
+# Two jobs since 6.44.0 (27 Oct 2026): the suite alone took 126 minutes at FC_RUNS 2000 once the four identity gates
+# were in, so it runs on the plain runner with its own 150-minute limit, and the browser checks run in the official
+# container on their own clock — a red suite no longer hides the browsers' result, and neither waits for the other.
 on:
   schedule:
     - cron: '30 2 * * *'
@@ -16,15 +18,12 @@ permissions:
   contents: read
 
 jobs:
+  # The suite: the long random runs, the luck check and the date sweep (NIGHTLY=1, FC_RUNS=2000). No browser is
+  # needed; tests/v7/liveBundle.test.js reads the published build, so it is built first.
   nightly:
     runs-on: ubuntu-latest
-    timeout-minutes: 150   # the V7 suite at FC_RUNS 2000 with the four identity gates passed an hour in the container at 6.43.0 (cancelled 24–26 Oct)
-    # The official container: the three browsers, their system libraries and the same typefaces every time.
-    # Its tag MUST equal the Playwright version in package.json (tests/v7/e2eRules.test.js checks).
-    container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    timeout-minutes: 150   # the V7 suite at FC_RUNS 2000 with the four identity gates took 126 minutes on 27 Oct 2026 (cancelled at 60 from 16 to 26 Oct)
     env:
-      HOME: /root            # Firefox refuses to start in a container without this
       TZ: Europe/London
       NIGHTLY: '1'
       FC_RUNS: '2000'
@@ -37,6 +36,27 @@ jobs:
       - run: npm ci
       - run: npm run e2e:build
       - run: npx vitest run tests/v7
+
+  # The browsers: the wall-clock timing checks alone, then the full sameness list and the night journeys in all three
+  # engines. The official container: the three browsers, their system libraries and the same typefaces every time.
+  # Its tag MUST equal the Playwright version in package.json (tests/v7/e2eRules.test.js checks).
+  nightly-browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    env:
+      HOME: /root            # Firefox refuses to start in a container without this
+      TZ: Europe/London
+      NIGHTLY: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run e2e:build
       # The wall-clock timing checks, alone (skipped inside the suite everywhere, CI and a development machine alike: side by side they are noise).
       - run: npx vitest run tests/v7/shared/speed.apart.slow.test.js
         env:

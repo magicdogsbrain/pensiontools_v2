@@ -22,7 +22,7 @@ import { LASTS_WRITES } from '../src/answers/plan/schema.js';
 test.use({ outside: 'block' });
 
 const GUEST_KEY = 'pt_guest_scenarios';
-const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', 'pt_open_place', 'pt_open_plan', 'pt_guest_minutes', 'pt_activeScenarioId']);
+const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', 'pt_open_place', 'pt_open_plan', 'pt_guest_minutes', 'pt_guest_nag_level', 'pt_lastSeenVersion', 'pt_activeScenarioId']);
 const v7 = (hash) => PROD + '/v7/' + hash;
 const TODAY = FIXED_NOW.slice(0, 10);
 /** The slowed budget for the one figure: the final answer's (e2e/helpers/app.js FIRST_ANSWER_BUDGET.finalMs). */

@@ -46,7 +46,15 @@ function swapped(inputs) {
     // (both from now). The household is the same either way; only the path would have moved (exceptions.md, "Narrowed").
     const atAgeNow = inputs.start.kind === 'age' && inputs.start.age === inputs.you.age;
     const theirsNow = theirs.kind === 'age' && theirs.age === inputs.partner.age;
-    if (atAgeNow && theirs.kind === 'already') { out.start = { kind: 'age', age: inputs.partner.age }; out.partner.stop = { kind: 'age', age: inputs.start.age }; return out; }
+    if (atAgeNow && theirs.kind === 'already') {
+      // the tax-free part is asked of you from "now" only (schemaParts.js taxFreeFields) and of a partner with "already":
+      // a partner who has had theirs can move to "you" only as "now", which is the other path — no swap keeps both, so
+      // there is none to test (a NIGHTLY=1 run at 300, 27 Oct 2026: you 54 with nothing from 54, your partner 45 with
+      // £150,000 closed until 57 and the tax-free part had, £150,000 of savings — swapped to an age the flag is dropped and
+      // the phases' tax moves £31 a month with the band unchanged; swapped to "now" the start moves twelve years)
+      if (inputs.partner.taxFreeTaken === true) return null;
+      out.start = { kind: 'age', age: inputs.partner.age }; out.partner.stop = { kind: 'age', age: inputs.start.age }; return out;
+    }
     if (inputs.start.kind === 'now' && theirsNow) { out.start = { kind: 'now' }; out.partner.stop = { kind: 'already' }; return out; }
     out.start = theirs.kind === 'already' ? { kind: 'now' } : { kind: 'age', age: theirs.age };
     out.partner.stop = inputs.start.kind === 'now' ? { kind: 'already' } : { kind: 'age', age: inputs.start.age };

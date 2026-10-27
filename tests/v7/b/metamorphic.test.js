@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { fcOptions } from '../oracles/fcOptions.mjs';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { SCHEMA_B, TEST_ENV, answerB, checkAnswerB, withinCeiling, asksB } from './invariants.js';
@@ -16,7 +17,7 @@ import { STEP, oneLife, largeHousehold } from '../oracles/oneStep.mjs';
 const RUNS = Number(process.env.FC_RUNS || 8);
 const SEED = process.env.NIGHTLY ? undefined : 20261001;
 const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
-const opts = (n = RUNS) => ({ seed: SEED, numRuns: n, verbose: 1 });
+const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 const ok = (a, inputs) => { const f = checkAnswerB(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
 const THREE = ['careful', 'middling', 'good'];
 const belowTaper = (i) => [i.you, i.partner].every((p) => !p || !(p.finalSalary && p.finalSalary.has && p.finalSalary.yearly >= 85000));

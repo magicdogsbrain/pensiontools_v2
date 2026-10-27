@@ -27,6 +27,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { fcOptions } from '../oracles/fcOptions.mjs';
 import { answerA } from '../a/_a.js';
 import { answerB } from '../b/_b.js';
 import { answerC } from '../c/_c.js';
@@ -167,7 +168,7 @@ describe('OT1–OT3 — C, A and B are three slices of one test', () => {
 
   it('on random households: one person or two, pots, pay-ins (nothing too), savings, a final-salary pension, a stop before or after 57', () => {
     const tally = {};
-    fc.assert(fc.property(households, (h) => { const r = oneTest(h); tally[r] = (tally[r] || 0) + 1; }), { seed: SEED, numRuns: RUNS, verbose: 1 });
+    fc.assert(fc.property(households, (h) => { const r = oneTest(h); tally[r] = (tally[r] || 0) + 1; }), fcOptions({ seed: SEED, runs: RUNS }));
     expect(tally.compared || 0, JSON.stringify(tally)).toBeGreaterThan(0);
   }, 300_000);
 });

@@ -28,6 +28,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { fcOptions } from '../oracles/fcOptions.mjs';
 import { answerA, SCHEMA_A, TEST_ENV as ENV_A } from '../a/_a.js';
 import { answerB, SCHEMA_B } from '../b/_b.js';
 import { answerC, SCHEMA_C } from '../c/_c.js';
@@ -42,7 +43,7 @@ import { runFuture, STEP } from '../../../src/answers/shared/band.js';
 const NIGHTLY = !!process.env.NIGHTLY;
 const SEED = NIGHTLY ? undefined : 20261001;
 const runs = (push, night) => (NIGHTLY ? Math.min(night, Number(process.env.FC_RUNS || night)) : push);
-const opts = (n) => ({ seed: SEED, numRuns: n, verbose: 1 });
+const opts = (n) => fcOptions({ seed: SEED, runs: n });
 
 const TODAY = ENV_A.today;
 const ENV = { today: TODAY, futures: 40, seed: 0, trace: false };

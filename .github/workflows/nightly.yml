@@ -37,7 +37,7 @@ jobs:
       - run: npm ci
       - run: npm run e2e:build
       - run: npx vitest run tests/v7
-      # The wall-clock timing checks, alone (skipped inside the suite in CI: side by side they are noise).
+      # The wall-clock timing checks, alone (skipped inside the suite everywhere, CI and a development machine alike: side by side they are noise).
       - run: npx vitest run tests/v7/shared/speed.apart.slow.test.js
         env:
           TIMING_CHECKS: '1'

@@ -158,7 +158,7 @@ export function PlanScreen(state, dispatch) {
     content: (
       <>
         <div class="plan-head">
-          <p class="plan-kicker">{w.title} <span class="plan-name">‘{view.name}’</span></p>
+          <p class="plan-kicker">{w.title} <span class="plan-name">{view.example ? PLAN.list.actions.exampleRow : <>‘{view.name}’</>}</span></p>
           <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? ' ' + fill(w.lockedOn, { date: view.lockedOn }) : ''}</p>
           {view.readonly && <p class="notice" role="status" data-testid="plan.readonly">{w.shownAsSaved}</p>}
           {view.source === 'window' && <p class="note" data-testid="plan.windowWarning">{w.windowWarning}</p>}

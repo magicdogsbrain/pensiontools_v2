@@ -87,6 +87,10 @@ export function planRows(entries, { today, source = 'account' } = {}) {
       lockedOn: isLocked(plan) ? dayWords(lockedAtOf(plan)) : null,
       madeOn: plan.fromAnswer && plan.fromAnswer.savedOn ? dayWords(plan.fromAnswer.savedOn) : null,
       shownAsSaved: !!(e.newer || e.failed),
+      // the plan menu (road-to-7.md step 11): the read-only example (GuestPlans.js), and the main plan (the planner's isActive)
+      example: plan.example === true,
+      main: plan.isActive === true,
+      records: !!(plan.decisionTool && ((Array.isArray(plan.decisionTool.history) && plan.decisionTool.history.length > 0) || Object.values(plan.decisionTool.taxYears && typeof plan.decisionTool.taxYears === 'object' ? plan.decisionTool.taxYears : {}).some((t) => t && t.yearSetupComplete))),
       linked: partners.length > 0,
       lastModified: typeof plan.lastModified === 'string' ? plan.lastModified : ''
     };
@@ -675,6 +679,8 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
     found: true,
     id: String(plan.id),
     name: nameOf(plan),
+    // the read-only example (GuestPlans.js; road-to-7.md step 11): the page heads it by its tag, not the stored name
+    example: plan.example === true,
     stageKey: stage.key,
     retired: RETIRED_STAGES.includes(stage.key),
     saver: SAVER_STAGES.includes(stage.key),

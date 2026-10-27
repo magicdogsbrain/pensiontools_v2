@@ -16,17 +16,22 @@ export const ADVICE_FULL =
   'not tell you what to do. Pension Wise, from MoneyHelper, gives free guidance to anyone aged 50 or over.';
 
 export const COMMON = {
-  product: 'PensionTools',
+  /** The name (research/v7/road-to-7.md step 11; the language guide's own word for the old name): the page title and the heading. */
+  product: 'Drawdown Planner',
   skip: 'Skip to the main part of the page',
   allQuestions: 'All questions',
+  /** The header's link to the account page (road-to-7.md step 11). */
+  account: 'Your account',
   preview: { text: 'Preview of the next version.', link: 'The current version is here.',
              /** The same line where there is room for one line only (a phone). */
              shortText: 'Preview of the next version.', shortLink: 'Current version' },
   offline: 'You are offline. You can still work things out. Keeping a plan needs a connection.',
   footer: {
-    worksOut: 'PensionTools works things out from the figures you give it.',
-    runBy: 'PensionTools is run by Usefulish Ltd.',
-    privacy: 'Privacy'
+    worksOut: 'Drawdown Planner works things out from the figures you give it.',
+    runBy: 'Drawdown Planner is run by Usefulish Ltd.',
+    privacy: 'Privacy',
+    /** The link to every release's notes (road-to-7.md step 11). {version} is the version you are on. */
+    whatsNew: 'What’s new (version {version})'
   },
   /** Where the links that leave V7 go. Relative to /v7/. */
   links: { current: '../', privacy: '../privacy.html' }
@@ -37,6 +42,9 @@ export const FRONT = {
   intro: 'Pick the question closest to yours. You do not need an account. A first answer takes about two minutes and a handful of numbers.',
   notFound: 'We could not find that page. Here are the questions.',
   notYet: 'Not in the preview yet',
+  /** Under the questions (road-to-7.md step 11): the read-only example plan, for a visitor who wants to look around first. */
+  example: 'Or look around an example plan first:',
+  exampleButton: 'Look around an example',
   /** The six questions, in the visitor's words, in order. `ask` is what the visitor is quoted as saying. */
   questions: [
     { id: 'a', ask: 'When can I afford to stop work?', more: 'See different ages side by side.' },

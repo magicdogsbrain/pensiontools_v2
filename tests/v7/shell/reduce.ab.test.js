@@ -222,7 +222,35 @@ const anyAction = fc.oneof(
   question.map((q) => ({ type: A.SHAPE_SUGGEST, q })),
   fc.tuple(question, fc.constantFrom('level', 'slowly')).map(([q, id]) => ({ type: A.SHAPE_PRESET, q, id })),
   question.map((q) => ({ type: A.SHAPE_UNDO, q })),
-  question.map((q) => ({ type: A.SHAPE_RESCALE, q }))
+  question.map((q) => ({ type: A.SHAPE_RESCALE, q })),
+  // the plan menu, the visitor, the account page and What's new (road-to-7.md step 11; tests/v7/shell/plans.test.js and account.test.js hold their rules)
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(null, 'rename', 'copy', 'delete'), fc.constantFrom(1, 2), fc.constantFrom('', 'One', 'x'.repeat(70))).map(([planId, kind, step, text]) => ({ type: A.PLAN_ACTION, planId, kind, step, text })),
+  fc.constantFrom('', 'Two', 'x'.repeat(70)).map((value) => ({ type: A.PLAN_ACTION_TEXT, value })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('', 'Two', 'x'.repeat(70))).map(([planId, name]) => ({ type: A.PLAN_RENAME, planId, name })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, carry]) => ({ type: A.PLAN_COPY, planId, carry })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_MAIN, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_DELETE, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_DOWNLOAD, planId })),
+  fc.constant({ type: A.PLAN_OPEN_FILE, file: { name: 'plan.json' } }),
+  fc.constant({ type: A.PLAN_EXAMPLE }),
+  fc.tuple(fc.constantFrom('p1', null), fc.constantFrom('renamed', 'copied', 'copiedLocked', 'main', 'deleted', 'opened', 'example', 'brought')).map(([planId, op]) => ({ type: A.PLAN_ACTION_DONE, planId, op, slots: { name: 'One', n: 2 } })),
+  fc.tuple(fc.constantFrom('p1', 'p2', null), fc.constantFrom('lastPlan', 'example', 'badFile', 'fileProblems', 'empty', 'tooLong')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem, detail: 'a problem' })),
+  fc.tuple(fc.integer({ min: 0, max: 200 }), fc.boolean(), fc.constantFrom(undefined, null, { level: 1, left: 165 }, { level: 4, left: 30 }, { level: 9, left: 1 })).map(([minutes, usedUp, nag]) => ({ type: A.GUEST_TICK, minutes, usedUp, ...(nag === undefined ? {} : { nag }) })),
+  fc.constant({ type: A.GUEST_NAG_CLOSE }),
+  fc.integer({ min: 1, max: 3 }).map((count) => ({ type: A.GUEST_OFFER, count })),
+  fc.constant({ type: A.GUEST_OFFER_CLOSE }),
+  fc.constant({ type: A.GUEST_BRING_IN }),
+  fc.constantFrom('signIn', 'signUp', 'reset').map((mode) => ({ type: A.ACCOUNT_MODE, mode })),
+  fc.constantFrom('signIn', 'signUp', 'google', 'reset', 'verifyCheck', 'verifySend', 'download', 'delete').map((what) => ({ type: A.ACCOUNT_ASK, what, email: 'a@b.c', password: 'pw' })),
+  fc.constantFrom('signIn', 'signUp', 'reset', 'verifySend', 'download').map((what) => ({ type: A.ACCOUNT_DONE, what, slots: { email: 'a@b.c' } })),
+  fc.tuple(fc.constantFrom('signIn', 'signUp', 'delete'), fc.constantFrom('auth/wrong-password', 'failed', '')).map(([what, problem]) => ({ type: A.ACCOUNT_FAILED, what, problem })),
+  fc.constantFrom(null, 1, 2, 3).map((step) => ({ type: A.ACCOUNT_CONFIRM, step })),
+  fc.boolean().map((signInGone) => ({ type: A.ACCOUNT_DELETED, signInGone })),
+  fc.constantFrom(null, { lastSeenVersion: '6.40.0' }, { lastSeenVersion: 7 }).map((profile) => ({ type: A.PROFILE_SET, profile })),
+  fc.constant({ type: A.NEWS_SHOW, entries: [{ version: '6.44.0', title: 'x', date: '2026-10-27' }] }),
+  fc.constant({ type: A.NEWS_DISMISS }),
+  fc.constantFrom(null, [{ version: '6.44.0', title: 'x' }]).map((releases) => (releases ? { type: A.NEWS_PAGE, releases, history: [{ version: '6.0.1', title: 'y' }] } : { type: A.NEWS_PAGE, page: null })),
+  fc.constantFrom('6.44.0', '6.43.0').map((version) => ({ type: A.NEWS_SEEN, version }))
 );
 
 /** 'NOW' is the key of what is typed at that moment, as the runner would send it; 'fillA'/'fillB' type a whole draft. */

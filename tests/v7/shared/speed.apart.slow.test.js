@@ -1,5 +1,6 @@
 /**
- * Couples who stop work in different years: the timing check (research/v7/couples-different-years.md 10; nightly, test:all).
+ * Couples who stop work in different years: the timing check (research/v7/couples-different-years.md 10; the night run, alone:
+ * TIMING_CHECKS=1).
  *
  * At 1,000 lives in Node, each answer step for a couple apart takes at most 1.10 × the same couple stopping together —
  * the answer the same inputs gave before (the partner's stop moving with yours) — the median of runs taken in turn, on the same
@@ -85,11 +86,16 @@ const B = (h, a, spend, lives) => {
   live.bandAt(sp, runner);
 };
 
-// Wall-clock ratios mean something only on a machine running this file on its own. In CI the suite runs files side by
-// side on two shared cores and these ratios wandered from 1.11 to 1.53 on unchanged code (2 Oct 2026), so the
-// per-push run skips them; the night run runs this file alone (TIMING_CHECKS=1, .github/workflows/nightly.yml).
-// That the engine does the same work apart and together is held exactly, by count, in apart.identity.test.js.
-const TIMED = !process.env.CI || process.env.TIMING_CHECKS === '1';
+// Wall-clock ratios mean something only on a machine running this file on its own. Side by side with the rest of the
+// suite they wandered from 1.11 to 1.53 on unchanged code in CI (two shared cores, 2 Oct 2026), and past the guard in a
+// full `vitest run` on a development machine once the suite had grown (1.55 and 1.63 on unchanged code, 27 Oct 2026,
+// road step 11a's four shell files running beside it). So the ratios are measured only when asked for by name, with the
+// file run alone:
+//   TIMING_CHECKS=1 npx vitest run tests/v7/shared/speed.apart.slow.test.js
+// which is what the night run does (.github/workflows/nightly.yml); every suite run (test:all, the per-push CI run, the
+// data bot) skips them. That the engine does the same work apart and together is held exactly, by count, in
+// apart.identity.test.js, in every run.
+const TIMED = process.env.TIMING_CHECKS === '1';
 
 describe.skipIf(!TIMED)('the timing check at 1,000 lives', () => {
   const couples = [

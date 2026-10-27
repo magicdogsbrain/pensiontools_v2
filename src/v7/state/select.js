@@ -52,6 +52,8 @@ import { spendLevelAMonth } from '../../answers/shared/schemaParts.js';
 import { HEADINGS, checkSheet, hasBudget, guideLevels, whereAgainstLevels, figureAgainstBudget, carefulAgainstBudget, nextLineId, nextOneOffId } from '../../answers/keep/budgetSheet.js';
 import { keepable } from '../../answers/keep/planSeed.js';
 import { suggestedPlanName, checkPlanName } from '../../answers/shared/planName.js';
+/** The plan name's check (empty, too long), for the reducer's Rename (road-to-7.md step 11). */
+export { checkPlanName };
 import { hasShape, SHAPE_BASE, SHAPE_UNIT, thenPath, fallsPath, stepsPath, stepBox, stepsOf, typedShape, isShapePath } from './shapeDraft.js';
 /** The spending shape's draft readers, for the components (which read the state only through this file). */
 export { typedShape, isShapePath, stepsOf as shapeStepsOf } from './shapeDraft.js';
@@ -780,6 +782,45 @@ export function plansView(state) {
   const view = plans && plans.status === 'read' && plans.view && plans.view.today === state.env.today ? plans.view : null;
   const status = plans ? (plans.status === 'read' && !view ? 'reading' : plans.status) : session.kind === 'none' ? 'none' : 'checking';
   return { session, status, source: plans ? plans.source : null, readAt: plans ? plans.readAt : null, groups: view ? view.rows : [], usedUp: !!(plans && plans.usedUp), count: plans ? plans.list.length : 0 };
+}
+
+/**
+ * The plan menu on "Your plans" (research/v7/road-to-7.md step 11): the box or confirm open on a row, the action under way,
+ * the last problem (with its detail in words), the toast (no Undo), "Open a downloaded copy" open or closed, the visitor's
+ * meter. The rows' example and main flags come with the rows (read.js planRows). Nothing worked out here.
+ */
+export function plansMenuView(state) {
+  const ui = state.ui || {};
+  const saving = ui.saving && ['rename', 'copy', 'main', 'delete', 'open', 'example', 'bringIn'].includes(ui.saving.kind) ? ui.saving : null;
+  return {
+    action: ui.action || null,
+    saving,
+    problem: ui.saveProblem ? { planId: ui.saveProblem.planId, problem: ui.saveProblem.problem, detail: ui.saveProblem.detail || null } : null,
+    toast: ui.toast && ui.toast.kind === 'done' ? ui.toast : null,
+    openCopy: Array.isArray(ui.open) && ui.open.includes('openCopy'),
+    guest: ui.guest || { minutes: 0, usedUp: false, nag: null }
+  };
+}
+
+/** The account page (road-to-7.md step 11): who is signed in, the form shown, what is under way, the problem, the note, the confirm, the deletion. */
+export function accountView(state) {
+  const session = state.session || { kind: 'none' };
+  const acc = (state.ui && state.ui.account) || { mode: 'signIn', busy: null, problem: null, note: null, confirm: null, deleted: null };
+  return { session, email: session.email || null, mode: acc.mode, busy: acc.busy, problem: acc.problem, note: acc.note, confirm: acc.confirm, deleted: acc.deleted };
+}
+
+/** The visitor's state for the shell (road-to-7.md step 11): the reminder due, the stop (used up, nobody signed in, not on the account page), the hand-over offer. */
+export function guestView(state) {
+  const g = (state.ui && state.ui.guest) || { minutes: 0, usedUp: false, nag: null };
+  const session = state.session || { kind: 'none' };
+  const onAccount = !!state.route && state.route.screen === 'account';
+  return { minutes: g.minutes, usedUp: g.usedUp, nag: g.nag, stop: g.usedUp && session.kind === 'nobody' && !onAccount, bringIn: (state.ui && state.ui.bringIn) || null };
+}
+
+/** What's new (road-to-7.md step 11): the pop-up's entries, the page's data, the version this page is. */
+export function newsView(state) {
+  const n = (state.ui && state.ui.news) || { popup: null, page: null, seen: null };
+  return { popup: n.popup, page: n.page, current: state.env.appVersion };
 }
 
 /** The "Your plan" screen for the route's plan and step: the source's reading of it, or { found: false } until it is there. */

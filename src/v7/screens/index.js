@@ -20,6 +20,8 @@ import { NumbersScreen as NumbersD } from './d/NumbersScreen.jsx';
 import { AnswerScreen as AnswerD } from './d/AnswerScreen.jsx';
 import { keepScreen } from './KeepScreen.jsx';
 import { PlansScreen } from './plan/PlansScreen.jsx';
+import { AccountScreen } from './AccountScreen.jsx';
+import { NewsScreen } from './NewsScreen.jsx';
 import { PlanScreen } from './plan/PlanScreen.jsx';
 import { AboutScreen } from './plan/AboutScreen.jsx';
 import { IncomeScreen } from './plan/IncomeScreen.jsx';
@@ -56,6 +58,9 @@ export const SCREENS = {
   notBuilt: NotBuilt,
   // the saved plans, read-only (research/v7/your-plan.md)
   plans: PlansScreen,
+  // the account page and What's new (research/v7/road-to-7.md step 11)
+  account: AccountScreen,
+  news: NewsScreen,
   plan: PlanScreen,
   // the editing steps of a saved plan (research/v7/editing-in-v7.md 2, 7, 8, 9, 10)
   'plan.about': AboutScreen,

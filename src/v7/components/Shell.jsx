@@ -6,8 +6,11 @@
  */
 import { useEffect, useRef } from 'preact/hooks';
 import { Rail } from './Rail.jsx';
-import { format } from '../router/routes.js';
+import { GuestNag, GuestStop, BringIn, NewsPopup } from './Visitor.jsx';
+import { fill } from './PlanFigures.jsx';
+import { format, href } from '../router/routes.js';
 import { focusField } from './Field.jsx';
+import { guestView, newsView, plansMenuView } from '../state/select.js';
 import { COMMON, ADVICE_SHORT, ADVICE_FULL } from '../copy/common.js';
 import { PLAN } from '../copy/plan.js';
 
@@ -30,6 +33,11 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
   // the plan pages (research/v7/your-plan.md 1.1): "Your plans" in every header; "Sign out" on plan pages while signed in
   const onPlans = name === 'plans' || name === 'plan';
   const signedIn = onPlans && state.session && state.session.kind === 'in';
+  // the shell's own boxes (road-to-7.md step 11): the visitor's reminder and stop, the hand-over after a sign-in, What's new
+  const G = guestView(state);
+  const N = newsView(state);
+  const M = plansMenuView(state);
+  const bringInProblem = G.bringIn && M.problem && M.problem.planId === null && !M.saving ? M.problem : null;
 
   return (
     <div class={`pt pt-${name.replace('.', '-')}`} ref={ref}>
@@ -39,6 +47,7 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
         <nav class="top-nav" aria-label={COMMON.product}>
           <a href="#/plans" data-testid="nav.plans">{PLAN.header.plans}</a>
           <a href="#/">{onPlans ? PLAN.header.ask : COMMON.allQuestions}</a>
+          <a href={href.account()} data-testid="nav.account">{COMMON.account}</a>
           {signedIn && <button type="button" class="btn btn-quiet top-signout" data-testid="nav.signOut" onClick={() => dispatch({ type: 'session/out' })}>{PLAN.header.signOut}</button>}
         </nav>
       </header>
@@ -53,8 +62,12 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
       <footer class="foot" data-region="footer">
         {full && <p class="advice-full">{ADVICE_FULL}</p>}
         <p class="advice">{front ? `${COMMON.footer.worksOut} ${ADVICE_SHORT}` : ADVICE_SHORT}</p>
-        <p class="run-by">{COMMON.footer.runBy} <a href={COMMON.links.privacy}>{COMMON.footer.privacy}</a></p>
+        <p class="run-by">{COMMON.footer.runBy} <a href={COMMON.links.privacy}>{COMMON.footer.privacy}</a> · <a href={href.news()} data-testid="nav.whatsNew">{fill(COMMON.footer.whatsNew, { version: state.env.appVersion })}</a></p>
       </footer>
+      {G.stop && <GuestStop />}
+      {!G.stop && G.nag && <GuestNag nag={G.nag} dispatch={dispatch} />}
+      {G.bringIn && <BringIn offer={G.bringIn} problem={bringInProblem} dispatch={dispatch} />}
+      {N.popup && <NewsPopup entries={N.popup} dispatch={dispatch} />}
     </div>
   );
 }

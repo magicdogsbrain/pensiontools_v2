@@ -39,6 +39,7 @@ import { onPlanCopyStale, dropStalePlanCopies } from './planCopies.js';
 import { cadenceOf, normaliseCadence } from '../services/DrawCadence.js';
 import { isExamplePlan } from '../services/GuestPlans.js';
 import { OPEN_PLAN_KEY } from '../services/OpenPlace.js';
+import { copyOf as planCopyOf } from '../services/PlanCopy.js';
 
 // In-memory cache
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
@@ -330,38 +331,10 @@ export async function duplicateScenario(scenarioId, newName, { carryHistory = tr
     throw new Error('Source scenario not found');
   }
 
-  const { id, createdAt, lastModified, ...data } = source;
-  data.planDetails = { ...data.planDetails, name: newName };
-  data.isActive = false;
-  // The copy is the same person: the holdings record (what they actually hold) travels with it, so the
-  // copy's Transition tool and Accumulation planner have a ledger from the start. Normalised so an old
-  // record is written back in today's shape (6.13.0).
-  if (data.holdings) data.holdings = normaliseHoldings(data.holdings);
-  // A copy starts as a DRAFT: nothing has been recorded against the copy's settings yet, even if
-  // the history came along (it is kept for reference and shows as "under previous settings" once
-  // the settings diverge). The plan of record is rebuilt when the copy locks.
-  if (data.decisionTool) {
-    data.decisionTool = { ...data.decisionTool };
-    data.decisionTool.settings = { ...(data.decisionTool.settings || {}), locked: false };
-    delete data.decisionTool.settings.lockedAt; delete data.decisionTool.settings.lockedBy;
-    delete data.decisionTool.planOfRecord; delete data.decisionTool.planOfRecordArchive;
-    delete data.planDocument; delete data.planDocumentArchive;   // the copy writes its own when it locks
-    if (!carryHistory) data.decisionTool.history = [];
-    // A copy that carries records is depended on from the moment it exists — lock it (no plan of
-    // record yet; it is rebuilt on the copy's first save).
-    const hasRecords = (data.decisionTool.history || []).length > 0 || Object.values(data.decisionTool.taxYears || {}).some((t) => t && t.yearSetupComplete);
-    if (hasRecords) { data.decisionTool.settings.locked = true; data.decisionTool.settings.lockedAt = new Date().toISOString(); data.decisionTool.settings.lockedBy = 'copied with records'; }
-  }
-  // Fund and platform charges (6.19.0, D7): an UNLOCKED copy of a plan with no setting (one locked before charges) gets
-  // the original's effective value written, 0 — the copy reproduces the original's figures, and the 0 is visible and
-  // changeable in Settings. How the ISA grows (6.22.0, owner D3): such a copy is a new plan, so it starts "Mostly cash" —
-  // the original's fixed 3% is not one of the two choices. A copy that is locked (it carries records) is left as the
-  // original was.
-  const copySt = data.stressTool && typeof data.stressTool === 'object' && data.stressTool.settings && typeof data.stressTool.settings === 'object' ? data.stressTool.settings : null;
-  if (copySt && !isLockedScenario(data)) {
-    const patch = { ...(isChargesPct(copySt.chargesPct) ? {} : { chargesPct: chargesForCopy(copySt) }), ...(isIsaGrowth(copySt.isaGrowth) ? {} : { isaGrowth: DEFAULT_ISA_GROWTH }) };
-    if (Object.keys(patch).length) data.stressTool = { ...data.stressTool, settings: { ...copySt, ...patch } };
-  }
+  // The rules of a copy — the holdings record carried and normalised (6.13.0), the copy a DRAFT unless it carries records
+  // (then locked, 'copied with records'), the charges and ISA-growth defaults of an unlocked copy (6.19.0 D7, 6.22.0 D3),
+  // the example's read-only flag never carried — live in services/PlanCopy.js (6.44.0: the preview makes copies too).
+  const data = planCopyOf(source, newName, { carryHistory, now: new Date() });
 
   const newId = await createScenario(data);
   invalidateScenarioCache();

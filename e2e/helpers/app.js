@@ -109,6 +109,8 @@ export const ADDRESSES = [
   { hash: '#/no-such-page', screen: 'front' },
   { hash: '#/plan/abc/c/answer', screen: 'front' },      // a saved plan's address never carries a question step
   { hash: '#/plans', screen: 'plans' },                   // the saved plans (research/v7/your-plan.md): nobody signed in here
+  { hash: '#/account', screen: 'account' },               // the account page (road-to-7.md step 11): nobody signed in here, so the forms
+  { hash: '#/whats-new', screen: 'news' },                // every release's notes (road-to-7.md step 11)
   { hash: '#/soon/c', screen: 'front' },
   // Step 4: A's and B's addresses, once they are open (brief 4.12). A built question is never "soon".
   ...['a', 'b', 'd'].filter((q) => BUILT_QUESTIONS[q]).flatMap((q) => [
@@ -197,8 +199,8 @@ export async function lookOver(page) {
     const seen = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
     const name = (el) => el.getAttribute('data-testid') || el.getAttribute('data-key') || el.id || el.tagName.toLowerCase();
 
-    // R1 — no rubbish
-    const text = app.innerText || '';
+    // R1 — no rubbish (the release notes are quoted as written: [data-quoted] left out — road-to-7.md step 11)
+    const text = (() => { const c = app.cloneNode(true); for (const el of c.querySelectorAll('[data-quoted]')) el.remove(); return c.textContent || ''; })();
     for (const bad of ['undefined', 'NaN', 'Infinity', '[object', '-£0', '£-', '£NaN', '{', '}']) if (text.includes(bad)) out.push(`the screen shows "${bad}"`);
     if (/\bnull\b/.test(text)) out.push('the screen shows "null"');
     // R10 — one, not "1 years"

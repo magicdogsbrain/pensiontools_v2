@@ -162,7 +162,41 @@ export const A = Object.freeze({
   MOVE_RUN:        'move/run',            // { key }                          "What if I keep what I hold?": the one run on the plan of this key (the effect runs it)
   MOVE_DONE:       'move/done',           // { key, result, ms }              the run's figures (moveRun.js runHeld); dropped if the key is stale
   MOVE_FAILED:     'move/failed',         // { key, reason? }                 the run failed ('noWorker': no worker)
-  MOVE_INDEX:      'move/index'           // { index: { level, ath, asOf, symbol, athDate } | null }   the equity index the effect fetched for the rotation watch
+  MOVE_INDEX:      'move/index',          // { index: { level, ath, asOf, symbol, athDate } | null }   the equity index the effect fetched for the rotation watch
+
+  // "Your plans": the plan menu (research/v7/road-to-7.md step 11) — each write through effects/planWrite.js; the download through effects/download.js
+  PLAN_ACTION:     'plan/action',         // { planId, kind: 'rename' | 'copy' | 'delete' | null, step?, text? }   the box or confirm open on a row (null closes it); a locked plan's delete has a second step
+  PLAN_ACTION_TEXT: 'plan/actionText',    // { value }                       the rename box, as typed
+  PLAN_RENAME:     'plan/rename',         // { planId, name }                 "Rename it": the name checked; saving { kind: 'rename', name }
+  PLAN_COPY:       'plan/copy',           // { planId, carry }                "Make the copy": saving { kind: 'copy', carry } (carry: with the monthly records, locked)
+  PLAN_MAIN:       'plan/makeMain',       // { planId }                       "Make this my main plan": saving { kind: 'main' }
+  PLAN_DELETE:     'plan/delete',         // { planId }                       "Delete it" confirmed: saving { kind: 'delete' }
+  PLAN_DOWNLOAD:   'plan/download',       // { planId }                       "Download this plan": ui.download, the download effect saves the file
+  PLAN_OPEN_FILE:  'plan/openFile',       // { file }                         "Open a downloaded copy": saving { planId: null, kind: 'open' }; the effect reads the file from the action
+  PLAN_EXAMPLE:    'plan/example',        // {}                               "Look around an example": saving { planId: null, kind: 'example' }
+  PLAN_ACTION_DONE: 'plan/actionDone',    // { planId, op, slots }            the action is done: a toast with no Undo (renamed | copied | copiedLocked | main | deleted | opened | example | brought)
+
+  // the visitor without an account (road-to-7.md step 11): the three free hours, the reminders, the stop, the hand-over on sign-in
+  GUEST_TICK:      'guest/tick',          // { minutes, usedUp, nag? }        the meter's minute (effects/guestMeter.js); nag: { level, left } when a reminder is due, null to close
+  GUEST_NAG_CLOSE: 'guest/nagClose',      // {}                               "Got it" / "Not yet"
+  GUEST_OFFER:     'guest/offer',         // { count }                        after a sign-in with plans in this window: "Bring in what you built without an account?"
+  GUEST_OFFER_CLOSE: 'guest/offerClose',  // {}                               "No, leave them here"
+  GUEST_BRING_IN:  'guest/bringIn',       // {}                               "Yes, bring them in": saving { planId: null, kind: 'bringIn' }
+
+  // the account page (road-to-7.md step 11): the forms and the actions — the effect (effects/account.js) does each; the password lives in the action only, never in the state
+  ACCOUNT_MODE:    'account/mode',        // { mode: 'signIn' | 'signUp' | 'reset' }
+  ACCOUNT_ASK:     'account/ask',         // { what: 'signIn' | 'signUp' | 'google' | 'reset' | 'verifyCheck' | 'verifySend' | 'download' | 'delete' | 'signOut', email?, password? }   busy (signOut: from the "Confirm your email" gate, where the session is not 'in')
+  ACCOUNT_DONE:    'account/done',        // { what, slots? }                 done: a note in words
+  ACCOUNT_FAILED:  'account/failed',      // { what, problem }                not done: the sign-in service's reason, or ours
+  ACCOUNT_CONFIRM: 'account/confirm',     // { step: 1 | 2 | null }           "Delete my account": the two confirms on screen
+  ACCOUNT_DELETED: 'account/deleted',     // { signInGone }                   the data is gone; the sign-in too, or not yet (sign in again and press once more)
+  PROFILE_SET:     'profile/set',         // { profile: { lastSeenVersion } | null }   the account's settings document read (null: not readable)
+
+  // What's new (road-to-7.md step 11): the once-only pop-up and the page, from src/releases.js through effects/whatsNew.js
+  NEWS_SHOW:       'news/show',           // { entries }                      the pop-up: the announced releases not seen, newest first (plain data)
+  NEWS_DISMISS:    'news/dismiss',        // {}                               "Got it"
+  NEWS_PAGE:       'news/page',           // { releases, history } | { page: null }   the page's data, plain (every release, the reconstructed history)
+  NEWS_SEEN:       'news/seen'            // { version }                      marked seen (the account effect writes the profile)
 });
 
 /**
@@ -194,4 +228,6 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   // "Your household" (road-to-7.md step 9): the year-by-year tables, and the budget's who-pays block
   'hhDetail', 'hhWhoPays',
   // "What you hold" (step 10): the paste box; "Moving to your plan's mix": how to read it, the sheet shown anyway, gilt ladders explained
-  'holdPaste', 'moveHow', 'moveSheet', 'moveExplained']);
+  'holdPaste', 'moveHow', 'moveSheet', 'moveExplained',
+  // "Your plans" (step 11): the file box of "Open a downloaded copy"
+  'openCopy']);

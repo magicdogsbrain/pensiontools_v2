@@ -262,11 +262,12 @@ describe('the list (1.2) in each of its states', () => {
     expect(nobody.root.querySelector('[data-testid="plans.nobody"]')).not.toBe(null);
     expect(nobody.text).toContain('Sign in to see your plans.');
     expect(nobody.text).toContain('No account? Ask a question: an answer needs no account.');
-    nobody.root.querySelector('button[data-testid="plans.signIn"]').click();
-    expect(nobody.actions).toEqual([{ type: 'plan/change', planId: null, place: 'signin', back: '#/plans' }]);
+    // "Sign in" is V7's own account page since road-to-7.md step 11 (the planner's ?signin=1 door stays for the hand-over)
+    expect(nobody.root.querySelector('a[data-testid="plans.signIn"]').getAttribute('href')).toBe('#/account');
+    expect(nobody.actions).toEqual([]);
     const unverified = draw(stateWith(null, '#/plans', { session: 'unverified' }));
     expect(unverified.root.querySelector('[data-testid="plans.unverified"]')).not.toBe(null);
-    expect(unverified.root.querySelector('[data-testid="plans.openPlanner"]').getAttribute('href')).toBe('../');
+    expect(unverified.root.querySelector('[data-testid="plans.account"]').getAttribute('href')).toBe('#/account');
     let s = stateWith(null, '#/plans', { session: 'in' });
     s = { ...s, plans: { status: 'failed', source: 'account', readAt: null, list: [] } };
     const failed = draw(s);
@@ -280,7 +281,7 @@ describe('the list (1.2) in each of its states', () => {
     const win = draw(stateWith(entries.slice(0, 2), '#/plans', { session: 'nobody', source: 'window' }));
     expect(win.root.querySelector('[data-testid="plans.group.window"] h2').textContent).toBe('Kept in this window only, without an account');
     expect(win.root.querySelectorAll('[data-testid^="plans.open."]').length).toBe(2);
-    expect(win.root.querySelector('button[data-testid="plans.signIn"]')).not.toBe(null);
+    expect(win.root.querySelector('a[data-testid="plans.signIn"]').getAttribute('href')).toBe('#/account');
   });
   it('a plan page before the plans are read, and an unknown id', () => {
     expect(draw(stateWith(null, '#/plan/abc', { session: 'checking' })).root.querySelector('[data-testid="plan.opening"]')).not.toBe(null);

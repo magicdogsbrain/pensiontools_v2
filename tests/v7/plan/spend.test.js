@@ -16,7 +16,7 @@ import fc from 'fast-check';
 import { spendOf, spendPatch, applyPatch, boxesOf, savedSpend, checkSpend, compiledSchedule, guaranteedAtYear, plannerSuggest, suggestion, monthlyNet, yearlyGross, stepLines } from '../../../src/answers/plan/spend.js';
 import { answerAge, bandsOf, netOf, grossOf, firstStepGross } from '../../../src/answers/plan/about.js';
 import { yearOfAge } from '../../../src/answers/plan/income.js';
-import { SPEND_FIELDS, SPEND_LISTS, SPEND_WRITES, ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, isSpendPath, isPlanEditPath, THENS, PRICES, HOUSEHOLD_WRITES } from '../../../src/answers/plan/schema.js';
+import { SPEND_FIELDS, SPEND_LISTS, SPEND_WRITES, ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, isSpendPath, isPlanEditPath, THENS, PRICES, HOUSEHOLD_WRITES, PLANS_WRITES } from '../../../src/answers/plan/schema.js';
 import { SUB_STEPS, ALL_SUB_STEPS } from '../../../src/answers/plan/steps.js';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { parse, format, screenName, PLAN_SUB_STEPS } from '../../../src/v7/router/routes.js';
@@ -450,7 +450,7 @@ describe('S1 — the sub-step, the address and the plan page\'s section', () => 
     for (const p of SPEND_WRITES) expect(p).toMatch(/^(stressTool|decisionTool)\.settings\.[a-zA-Z]+$/);
     expect(SPEND_WRITES).toContain('stressTool.settings.targetSchedule');
     expect(SPEND_WRITES).toContain('decisionTool.settings.targetSchedule');
-    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10)
+    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', ...PLANS_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11)
   });
   it('a plan not in the list, and the partner link both ways', () => {
     expect(spendOf(entriesAt(TODAY), 'NoSuchPlan', { today: TODAY }).found).toBe(false);

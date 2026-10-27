@@ -135,9 +135,28 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     mix:     emptyMix(),                             // "The mix": the tries and the comparison on ONE plan, page memory only (way-and-mix.md 3)
     household: emptyHousehold(),                     // "Your household": the pooled run, the survivor and care questions on ONE pair, page memory only (road-to-7.md step 9)
     move:    emptyMove(),                            // "Moving to your plan's mix": the one run on the held mix for ONE plan, and the index the watch reads, page memory only (step 10)
-    ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
+    ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null, ...emptyShellUi() }
   };
 }
+
+/**
+ * The shell's own slices of `ui` (road-to-7.md step 11), page memory only:
+ *   action    the plan menu's box or confirm open on a row: { planId, kind: 'rename' | 'copy' | 'delete', step, text } or null
+ *   download  the last "Download this plan" asked for: { planId, n } (n counts, so the effect sees each press) or null
+ *   guest     the visitor's meter: { minutes, usedUp, nag: { level, left } | null }
+ *   bringIn   "Bring in what you built without an account?": { count, busy } or null
+ *   account   the account page: the form shown, what is under way, the last problem and note, the delete's confirm step, the deletion
+ *   profile   the account's settings document as read: { lastSeenVersion } or null
+ *   news      What's new: the pop-up's entries, the page's data, the version marked seen
+ */
+export const emptyAccount = () => ({ mode: 'signIn', busy: null, problem: null, note: null, confirm: null, deleted: null });
+export const emptyGuest = () => ({ minutes: 0, usedUp: false, nag: null });
+export const emptyNews = () => ({ popup: null, page: null, seen: null });
+export const emptyShellUi = () => ({ action: null, download: null, guest: emptyGuest(), bringIn: null, account: emptyAccount(), profile: null, news: emptyNews() });
+export const ACCOUNT_MODES = Object.freeze(['signIn', 'signUp', 'reset']);
+export const ACCOUNT_ASKS = Object.freeze(['signIn', 'signUp', 'google', 'reset', 'verifyCheck', 'verifySend', 'download', 'delete', 'signOut']);
+export const PLAN_ACTION_KINDS = Object.freeze(['rename', 'copy', 'delete']);
+export const PLAN_ACTION_OPS = Object.freeze(['renamed', 'copied', 'copiedLocked', 'main', 'deleted', 'opened', 'example', 'brought']);
 
 /**
  * Nothing of "Moving to your plan's mix" held (holdings-and-move.md §3.3, §3.7): `key` is lasts.js runKeyOf of the plan the one run on

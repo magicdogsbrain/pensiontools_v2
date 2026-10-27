@@ -83,7 +83,9 @@ describe('browser tests: rules kept by reading the files', () => {
       '.github/workflows/nightly.yml', '.github/workflows/screenshots.yml',
       // Step 4 (brief 3, P6)
       'e2e/a-stop-soon.spec.js', 'e2e/a-couple.spec.js', 'e2e/a-from-savings.spec.js', 'e2e/b-my-number.spec.js', 'e2e/b-coast.spec.js',
-      'tests/v7/cross/questions.test.js'
+      'tests/v7/cross/questions.test.js',
+      // road-to-7.md step 11: the plan menu, the account page and What's new
+      'e2e/plans-actions.spec.js', 'e2e/whats-new.spec.js', 'tests/v7/shell/plans.test.js', 'tests/v7/shell/account.test.js', 'tests/v7/shell/guest.test.js', 'tests/v7/shell/whatsNew.test.js'
     ];
     expect(wanted.filter((f) => !existsSync(join(ROOT, f)))).toEqual([]);
   });

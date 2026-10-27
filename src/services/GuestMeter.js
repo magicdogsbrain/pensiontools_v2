@@ -70,13 +70,19 @@ export function bannerText(minutes) {
 /**
  * The guest's plans, packaged for the hand-off into an account: ids and the active flag are dropped
  * (Firestore assigns new ids; the app decides what is active), names are marked so the person can
- * tell them apart from plans they make afterwards.
+ * tell them apart from plans they make afterwards. The read-only example plan (GuestPlans.js: `example: true`)
+ * is never handed over — it is there to look around, not a plan of the person's own (6.44.0: until then the
+ * planner's "keep this work" copied it into the account as a read-only plan). `suffix` is the mark on each
+ * name: the planner's "(from guest)", or the preview's own words.
  */
-export function handoffPayload(scenarios, stashedAt = new Date().toISOString()) {
-  const list = (Array.isArray(scenarios) ? scenarios : []).filter((s) => s && typeof s === 'object').map((s) => {
+export const HANDOFF_SUFFIX = ' (from guest)';
+export function handoffPayload(scenarios, stashedAt = new Date().toISOString(), suffix = HANDOFF_SUFFIX) {
+  const mark = String(suffix || '');
+  const marked = (name) => (mark && name.endsWith(mark) ? name : name + mark);
+  const list = (Array.isArray(scenarios) ? scenarios : []).filter((s) => s && typeof s === 'object' && s.example !== true).map((s) => {
     const { id, isActive, createdAt, lastModified, ...rest } = s;
     const name = (rest.planDetails && rest.planDetails.name) || rest.name || 'Guest plan';
-    return { ...rest, planDetails: { ...(rest.planDetails || {}), name: /\(from guest\)$/.test(name) ? name : name + ' (from guest)' } };
+    return { ...rest, planDetails: { ...(rest.planDetails || {}), name: marked(name) } };
   });
   return { stashedAt, scenarios: list };
 }

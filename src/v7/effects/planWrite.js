@@ -99,14 +99,17 @@
  *   guestPlanId(rand, taken)   a window plan's id, as the planner's guest store makes them, not among `taken`
  *   startPlanWrite(store, { win, session, local, now, fb, client, handles, rand }) → stop()
  */
-import { doc, updateDoc, addDoc, collection } from 'firebase/firestore/lite';
+import { doc, updateDoc, addDoc, deleteDoc, collection } from 'firebase/firestore/lite';
 import { A } from '../state/actions.js';
 import { keepView } from '../state/select.js';
 import { parse, href } from '../router/routes.js';
 import { buildPlanSeed } from '../../answers/keep/planSeed.js';
 import { plansFromSeed, withPartnerId, planProblems } from '../../answers/keep/planCreate.js';
 import { upgradeScenario } from '../../firebase/scenarioMigration.js';
-import { guestOwnPlans, GUEST_MAX_PLANS } from '../../services/GuestPlans.js';
+import { guestOwnPlans, GUEST_MAX_PLANS, isExamplePlan, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from '../../services/GuestPlans.js';
+import { copyOf, hasRecords } from '../../services/PlanCopy.js';
+import { stripIdentity } from '../../services/PlanExport.js';
+import { handoffPayload } from '../../services/GuestMeter.js';
 import { aboutPatch, applyPatch } from '../../answers/plan/about.js';
 import { incomePatch } from '../../answers/plan/income.js';
 import { spendPatch } from '../../answers/plan/spend.js';
@@ -118,7 +121,7 @@ import { mixPatch, useMixPatch } from '../../answers/plan/mix.js';
 import { partnerOf, linkPatch, dismissPatch, splitPatches, shareBudgetPatches, whoPaysPatches } from '../../answers/plan/household.js';
 import { holdPatch } from '../../answers/plan/hold.js';
 import { tickPatch } from '../../answers/plan/move.js';
-import { uniqueName } from '../../services/PlanFromSeed.js';
+import { uniqueName, getDefaultScenario } from '../../services/PlanFromSeed.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
 import { isLockedSettings, lockedPlanWriteRefusal } from '../../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from '../../storage/stressDefaults.js';
@@ -126,6 +129,12 @@ import { readMinutes, isBlocked } from '../../services/GuestMeter.js';
 import { NO_WORKER } from './workerClient.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
+/** The mark on each name brought in from this window after a sign-in (copy/guest.js bringIn.suffix says the same). */
+export const WINDOW_SUFFIX = ' (from this window)';
+/** What an opened file's plan is named: "{name} (opened)". */
+export const OPENED_SUFFIX = ' (opened)';
+/** A downloaded copy bigger than this is refused before it is read: a plan is at most one Firestore document (1 MiB), and the file is written with spaces. */
+export const OPEN_FILE_MAX_BYTES = 4 * 1024 * 1024;
 export const TOAST_MS = 15000;
 export const KEEP_WAIT_MS = 20000;
 const ALLOWED = new Set(ALL_WRITES);
@@ -163,20 +172,21 @@ function declaredOnly(data) {
  * @param {() => number} [o.rand]           the window plans' ids (the tests hand in their own)
  */
 export function startPlanWrite(store, { win = null, session = null, local = null, now = () => new Date(), fb = null, client = null, handles, rand = Math.random }) {
-  const F = fb || { doc, updateDoc, addDoc, collection };
+  const F = fb || { doc, updateDoc, addDoc, deleteDoc, collection };
   let stopped = false;
   let busy = false;
   let timer = null;
   const dispatch = (a) => { if (!stopped) store.dispatch(a); };
-  const fail = (planId, problem) => dispatch({ type: A.PLAN_SAVE_FAILED, planId, problem });
+  const fail = (planId, problem, detail = null) => dispatch({ type: A.PLAN_SAVE_FAILED, planId, problem, ...(detail ? { detail } : {}) });
   const later = (fn) => { if (!win || typeof win.setTimeout !== 'function') return; if (timer) win.clearTimeout(timer); timer = win.setTimeout(() => { timer = null; fn(); }, TOAST_MS); };
 
-  /** Where the plan is, and whether a write may go there at all. */
-  function placeOf(state, planId) {
+  /** Where the plan is, and whether a write may go there at all. The example plan (GuestPlans.js) is read-only: only a copy, a download and a delete may name it. */
+  function placeOf(state, planId, { allowExample = false } = {}) {
     const plans = state.plans;
     const entry = plans && Array.isArray(plans.list) ? plans.list.find((e) => e && e.plan && String(e.plan.id) === String(planId)) : null;
     if (!entry) return { problem: 'notHere' };
     if (entry.newer || entry.failed) return { problem: 'readonly' };
+    if (!allowExample && isExamplePlan(entry.plan)) return { problem: 'example' };
     const h = handles() || {};
     if (state.session.kind === 'in' && h.user && h.db && plans.source === 'account') return { kind: 'account', entry, db: h.db, uid: h.user.uid, reread: h.reread };
     if (state.session.kind === 'nobody' && plans.source === 'window') {
@@ -217,16 +227,16 @@ export function startPlanWrite(store, { win = null, session = null, local = null
   }
 
   /** The plan as read, after the fresh read of the account: { place, plan, state } or null after a failure already told. */
-  async function placed(planId) {
+  async function placed(planId, opts = {}) {
     let state = store.getState();
-    let place = placeOf(state, planId);
+    let place = placeOf(state, planId, opts);
     if (place.problem) { fail(planId, place.problem); return null; }
     if (place.kind === 'account') {
       // the plans as stored, read just before the write: the guard then sees a lock made elsewhere since this page opened
       try { await place.reread(); } catch { /* the read failed: the copy in memory is the best there is */ }
       if (stopped) return null;
       state = store.getState();
-      place = placeOf(state, planId);
+      place = placeOf(state, planId, opts);
       if (place.problem) { fail(planId, place.problem); return null; }
     }
     return { place, plan: place.entry.plan, state };
@@ -725,12 +735,16 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     });
   }
 
-  /** A plan document ready to be written: brought up to date by today's own upgrade, nothing Firestore refuses, never locked. */
-  function readyPlan(plan, at) {
+  /**
+   * A plan document ready to be written: brought up to date by today's own upgrade, nothing Firestore refuses, never locked —
+   * but for a copy made with its records (services/PlanCopy.js: locked 'copied with records', the planner's own rule), and a
+   * plan brought in from this window as it was (`mayBeLocked`).
+   */
+  function readyPlan(plan, at, { mayBeLocked = false } = {}) {
     const u = upgradeScenario(plan, { now: at });
     if (u.error || u.newer || !u.scenario || typeof u.scenario !== 'object') throw new Error('planWrite: the plan would not upgrade');
     const p = u.scenario;
-    if (isLockedSettings(p.decisionTool && p.decisionTool.settings)) throw new Error('planWrite: a new plan is never locked');
+    if (!mayBeLocked && isLockedSettings(p.decisionTool && p.decisionTool.settings)) throw new Error('planWrite: a new plan is never locked');
     const problems = planProblems(p);
     if (problems.length) throw new Error('planWrite: ' + problems[0]);
     return p;
@@ -839,11 +853,314 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     dispatch({ type: A.PLANS_READING });
   }
 
+  // ---- "Your plans": the plan menu (research/v7/road-to-7.md step 11) ------------------------------------------------------
+
+  const planNames = (state, but = null) => state.plans.list.map((e) => e.plan).filter((p) => but === null || String(p.id) !== String(but)).map(nameOf).filter(Boolean);
+  const finished = (planId, op, slots) => { dispatch({ type: A.PLAN_ACTION_DONE, planId, op, slots }); dispatch({ type: A.PLANS_READING }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); };
+
+  /** Rename (the planner's renameScenario): ONE write of planDetails.name, made unique against the account's other names, plus the stamp. The name is outside the lock. */
+  async function rename(planId, name) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const unique = uniqueName(name, planNames(state, planId));
+    if (unique === nameOf(plan)) { finished(planId, 'renamed', { name: unique }); return; }
+    const data = declaredOnly({ 'planDetails.name': unique, lastModified: now().toISOString() });
+    if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
+    if (!(await send(place, planId, data))) return;
+    finished(planId, 'renamed', { name: unique });
+  }
+
+  /** Make a copy (the planner's duplicateScenario, lifted: services/PlanCopy.js), as it is or with its records (then locked), through the ONE create. */
+  async function makeCopy(planId, carry) {
+    const got = await placed(planId, { allowExample: true });
+    if (!got) return;
+    const { place, plan, state } = got;
+    if (place.kind === 'account' && state.session.kind !== 'in') { fail(planId, 'unverified'); return; }
+    const plans = state.plans.list.map((e) => e.plan);
+    if (place.kind === 'window' && guestOwnPlans(plans).length + 1 > GUEST_MAX_PLANS) { fail(planId, 'full'); return; }
+    const at = now();
+    let made;
+    let name;
+    let locked = false;
+    try {
+      name = uniqueName((nameOf(plan) || 'Plan') + ' (copy)', planNames(state));
+      const stamp = at.toISOString();
+      const copy = readyPlan({ ...copyOf(plan, name, { carryHistory: carry === true, now: at }), createdAt: stamp, lastModified: stamp }, at, { mayBeLocked: true });
+      locked = isLockedSettings(copy.decisionTool && copy.decisionTool.settings);
+      made = copy;
+    } catch { fail(planId, 'failed'); return; }
+    let id;
+    if (place.kind === 'account') {
+      try { id = await add(scenariosOf(place), made); } catch { fail(planId, 'failed'); return; }
+    } else {
+      const r = createOneInWindow(made);
+      if (r.problem) { fail(planId, r.problem); return; }
+      id = r.id;
+    }
+    if (stopped) return;
+    finished(planId, locked ? 'copiedLocked' : 'copied', { name, id });
+  }
+
+  /** Make this my main plan (the planner's setActiveScenarioDoc): the old main plan's flag off, this one's on — two writes of `isActive` alone on an account, one setItem in this window. */
+  async function makeMain(planId) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const olds = state.plans.list.map((e) => e.plan).filter((p) => p.isActive === true && String(p.id) !== String(planId));
+    if (plan.isActive === true && !olds.length) { finished(planId, 'main', { name: nameOf(plan) }); return; }
+    // the two patches, declared once for both places; the guard on every plan touched (the flag is outside the lock, so it passes)
+    const on = declaredOnly({ isActive: true });
+    const off = declaredOnly({ isActive: false });
+    for (const o of olds) if (lockedRefusal(o, off)) { fail(planId, 'locked'); return; }
+    if (lockedRefusal(plan, on)) { fail(planId, 'locked'); return; }
+    if (place.kind === 'account') {
+      for (const o of olds) {
+        const op = placeOf(state, o.id, { allowExample: true });
+        if (op.problem) { fail(planId, op.problem); return; }
+        if (!(await send(op, o.id, off))) return;
+      }
+      if (!(await send(place, planId, on))) return;
+    } else {
+      // this window: the two flags folded, one setItem, every other plan byte-identical
+      let text = null;
+      try { text = session ? session.getItem(GUEST_PLANS_KEY) : null; } catch { fail(planId, 'storage'); return; }
+      let list = null;
+      try { list = JSON.parse(text); } catch { list = null; }
+      if (!Array.isArray(list)) { fail(planId, 'storage'); return; }
+      const next = list.map((p) => (p && String(p.id) === String(planId) ? applyPatch(p, on) : p && p.isActive === true ? applyPatch(p, off) : p));
+      const out = JSON.stringify(next);
+      try { session.setItem(GUEST_PLANS_KEY, out); if (session.getItem(GUEST_PLANS_KEY) !== out) { fail(planId, 'storage'); return; } } catch { fail(planId, 'storage'); return; }
+    }
+    if (stopped) return;
+    finished(planId, 'main', { name: nameOf(plan) });
+  }
+
+  /**
+   * Delete (the planner's deleteScenario): never the last plan; if the plan was the main one another becomes main first (one
+   * write of `isActive`); then the ONE deleteDoc of users/{uid}/scenarios/{id} — or, in this window, the list without it, one
+   * setItem. Only after the confirm(s) on screen (the reducer: plan/delete). Never undone.
+   */
+  async function remove(planId) {
+    const got = await placed(planId, { allowExample: true });
+    if (!got) return;
+    const { place, plan, state } = got;
+    const others = state.plans.list.map((e) => e.plan).filter((p) => String(p.id) !== String(planId));
+    if (!others.length) { fail(planId, 'lastPlan'); return; }
+    // the planner takes the first other plan; here the first that is not the example, when there is one
+    const heir = plan.isActive === true ? (others.find((p) => !isExamplePlan(p)) || others[0]) : null;
+    const name = nameOf(plan);
+    // the heir's patch, declared once for both places; the guard on the heir (the flag is outside the lock, so it passes)
+    const on = declaredOnly({ isActive: true });
+    if (heir && lockedRefusal(heir, on)) { fail(planId, 'locked'); return; }
+    if (place.kind === 'account') {
+      if (heir) {
+        const hp = placeOf(state, heir.id, { allowExample: true });
+        if (hp.problem) { fail(planId, hp.problem); return; }
+        if (!(await send(hp, heir.id, on))) return;
+      }
+      try { await F.deleteDoc(F.doc(place.db, 'users', place.uid, 'scenarios', String(planId))); } catch { fail(planId, 'failed'); return; }
+    } else {
+      let text = null;
+      try { text = session ? session.getItem(GUEST_PLANS_KEY) : null; } catch { fail(planId, 'storage'); return; }
+      let list = null;
+      try { list = JSON.parse(text); } catch { list = null; }
+      if (!Array.isArray(list)) { fail(planId, 'storage'); return; }
+      const next = list.filter((p) => !(p && String(p.id) === String(planId))).map((p) => (heir && p && String(p.id) === String(heir.id) ? applyPatch(p, on) : p));
+      const out = JSON.stringify(next);
+      try { session.setItem(GUEST_PLANS_KEY, out); if (session.getItem(GUEST_PLANS_KEY) !== out) { fail(planId, 'storage'); return; } } catch { fail(planId, 'storage'); return; }
+    }
+    if (stopped) return;
+    finished(planId, 'deleted', { name });
+  }
+
+  /**
+   * Open a downloaded copy: a file too big to be a plan refused before it is read (OPEN_FILE_MAX_BYTES); the file's text parsed,
+   * identity stripped (never its id, uid, example or isActive; nor the ids of other plans it names — the partner link and a
+   * shared budget's source — which are the file's, not this account's), brought up to date by today's own upgrade and checked
+   * (planProblems); made a plan of its own by the copy's rules (services/PlanCopy.js, the records carried), named "{name}
+   * (opened)" made unique, never the main plan; through the ONE create. Any problem is said in words and nothing is written.
+   */
+  async function openFile(file) {
+    const bad = (problem, detail = null) => fail(null, problem, detail);
+    if (!file || typeof file.text !== 'function') { bad('badFile'); return; }
+    if (typeof file.size === 'number' && file.size > OPEN_FILE_MAX_BYTES) { bad('fileTooBig'); return; }
+    let text = null;
+    try { text = await file.text(); } catch { text = null; }
+    if (stopped) return;
+    if (typeof text !== 'string') { bad('badFile'); return; }
+    let raw = null;
+    try { raw = JSON.parse(text); } catch { raw = null; }
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) { bad('badFile'); return; }
+    let place = await whenPlaced();
+    if (stopped) return;
+    if (place.problem) { bad(place.problem); return; }
+    if (place.kind === 'account') {
+      try { await place.reread(); } catch { /* the copy in memory is the best there is */ }
+      if (stopped) return;
+      place = placeForNew(store.getState()) || place;
+      if (place.problem) { bad(place.problem); return; }
+    }
+    const state = store.getState();
+    const plans = place.plans.list.map((e) => e.plan);
+    if (place.kind === 'window' && guestOwnPlans(plans).length + 1 > GUEST_MAX_PLANS) { bad('full'); return; }
+    const at = now();
+    let made;
+    let name;
+    try {
+      const { id, uid, example, isActive, ...rest } = stripIdentity(raw);
+      void id; void uid; void example; void isActive;
+      // the file's links to other plans are not this account's: the opened copy stands alone until it is linked here
+      if (rest.household && typeof rest.household === 'object') { const { partnerScenarioId, ...household } = rest.household; void partnerScenarioId; rest.household = household; }
+      if (rest.budgetTool && typeof rest.budgetTool === 'object') { const { sharedFrom, ...budgetTool } = rest.budgetTool; void sharedFrom; rest.budgetTool = budgetTool; }
+      const u = upgradeScenario(rest, { now: at });
+      if (u.error || !u.scenario || typeof u.scenario !== 'object') { bad('badFile'); return; }
+      if (u.newer) { bad('fileProblems', 'the file was made by a newer version of this page'); return; }
+      const problems = planProblems(u.scenario);
+      if (problems.length) { bad('fileProblems', problems[0]); return; }
+      name = uniqueName((nameOf(u.scenario) || 'Plan') + OPENED_SUFFIX, plans.map(nameOf).filter(Boolean));
+      const stamp = at.toISOString();
+      made = readyPlan({ ...copyOf(u.scenario, name, { carryHistory: true, now: at }), createdAt: stamp, lastModified: stamp }, at, { mayBeLocked: true });
+    } catch (e) { bad('fileProblems', e && e.message ? String(e.message).replace(/^planWrite: /, '') : null); return; }
+    void state;
+    let id;
+    if (place.kind === 'account') {
+      try { id = await add(scenariosOf(place), made); } catch { bad('failed'); return; }
+    } else {
+      const r = createOneInWindow(made);
+      if (r.problem) { bad(r.problem); return; }
+      id = r.id;
+    }
+    if (stopped) return;
+    finished(id, 'opened', { name, id });
+  }
+
+  /**
+   * "Look around an example" (the planner's startGuest with a demo key): the planner's DEMO_PLANS['1m'] made through the planner's
+   * own default plan (services/PlanFromSeed.js getDefaultScenario) with the demo's settings laid over — in this window flagged
+   * `example: true` (read-only from then on: placeOf; not counted in the three: GuestPlans.guestOwnPlans), or, signed in, an
+   * ordinary plan of the person's own, as the planner does. A window that holds the example already just opens it.
+   */
+  async function makeExample() {
+    const demo = DEMO_PLANS[EXAMPLE_PLAN_KEY];
+    let place = await whenPlaced();
+    if (stopped) return;
+    if (place.problem) { fail(null, place.problem); return; }
+    if (place.kind === 'account') {
+      try { await place.reread(); } catch { /* the copy in memory is the best there is */ }
+      if (stopped) return;
+      place = placeForNew(store.getState()) || place;
+      if (place.problem) { fail(null, place.problem); return; }
+    }
+    const plans = place.plans.list.map((e) => e.plan);
+    const have = place.kind === 'window' ? plans.find((p) => isExamplePlan(p) && nameOf(p) === demo.name) : null;
+    if (have) { dispatch({ type: A.PLAN_ACTION_DONE, planId: String(have.id), op: 'example', slots: { name: demo.name } }); dispatch({ type: A.ROUTE_SET, route: parse(href.plan(String(have.id))) }); return; }
+    const at = now();
+    let made;
+    let name;
+    try {
+      name = place.kind === 'window' ? demo.name : uniqueName(demo.name, plans.map(nameOf).filter(Boolean));
+      const base = getDefaultScenario(name, place.kind === 'window' ? EXAMPLE_PLAN_DESCRIPTION : '', ['stress', 'decision'], at.toISOString());
+      base.stressTool.settings = { ...base.stressTool.settings, ...demo.stress };
+      const stamp = at.toISOString();
+      made = readyPlan({ ...base, isActive: plans.length === 0, createdAt: stamp, lastModified: stamp }, at);
+      if (place.kind === 'window') made = { ...made, example: true };
+    } catch { fail(null, 'failed'); return; }
+    let id;
+    if (place.kind === 'account') {
+      try { id = await add(scenariosOf(place), made); } catch { fail(null, 'failed'); return; }
+    } else {
+      const r = createOneInWindow(made);
+      if (r.problem) { fail(null, r.problem); return; }
+      id = r.id;
+    }
+    if (stopped) return;
+    dispatch({ type: A.PLAN_ACTION_DONE, planId: id, op: 'example', slots: { name } });
+    dispatch({ type: A.PLANS_READING });
+    dispatch({ type: A.ROUTE_SET, route: parse(href.plan(id)) });
+  }
+
+  /**
+   * "Bring in what you built without an account?" after a sign-in (the planner's importGuestHandoff): this window's plans of the
+   * person's own (never the example: GuestMeter.handoffPayload), each through the ONE create as the planner's hand-off packages
+   * them (ids, the flag and the stamps dropped, the names marked), `isActive` for the first only when the account has no plans;
+   * then this window's list without them, one setItem. A plan that cannot be made stops the hand-over there; the rest stay here.
+   * A couple made in this window is brought in as a couple: the plan that names its partner goes after the partner and is made
+   * with the id the account gave it (as createInAccount makes a couple), so no plan in the account names a window id — the
+   * planner's own hand-off leaves the window's ids in place. Two plans naming each other: the first made is re-pointed after,
+   * one write of the link.
+   */
+  async function bringIn() {
+    let place = await whenPlaced();
+    if (stopped) return;
+    if (place.problem) { fail(null, place.problem); return; }
+    if (place.kind !== 'account') { fail(null, 'nobody'); return; }
+    try { await place.reread(); } catch { /* the copy in memory is the best there is */ }
+    if (stopped) return;
+    place = placeForNew(store.getState()) || place;
+    if (place.problem) { fail(null, place.problem); return; }
+    let text = null;
+    try { text = session ? session.getItem(GUEST_PLANS_KEY) : null; } catch { fail(null, 'storage'); return; }
+    let list = null;
+    try { list = JSON.parse(text); } catch { list = null; }
+    if (!Array.isArray(list)) { fail(null, 'storage'); return; }
+    const own = guestOwnPlans(list.filter((p) => p && typeof p === 'object' && p.id != null));
+    if (!own.length) { fail(null, 'notHere'); return; }
+    const at = now();
+    const stamp = at.toISOString();
+    const accountPlans = place.plans.list.map((e) => e.plan);
+    const taken = accountPlans.map(nameOf).filter(Boolean);
+    const payload = handoffPayload(own, stamp, WINDOW_SUFFIX).scenarios;   // payload[i] is own[i], packaged
+    const oldIds = own.map((p) => String(p.id));
+    const partnerOldId = (p) => (p && p.household && p.household.partnerScenarioId != null ? String(p.household.partnerScenarioId) : null);
+    // the order: a plan whose partner is being brought in too comes after its partner (a pair naming each other: the first as it comes)
+    const order = [];
+    const left = oldIds.map((_, i) => i);
+    while (left.length) {
+      const k = left.findIndex((i) => { const pid = partnerOldId(own[i]); return !pid || !oldIds.includes(pid) || order.includes(oldIds.indexOf(pid)); });
+      order.push(left.splice(k >= 0 ? k : 0, 1)[0]);
+    }
+    const newIdOf = new Map();          // the window's id → the id the account gave
+    const unresolved = [];              // made while its partner was not yet in the account (a pair naming each other)
+    const brought = [];
+    for (const i of order) {
+      let made;
+      const pid = partnerOldId(payload[i]);
+      try {
+        const name = uniqueName(nameOf(payload[i]) || 'Plan', taken);
+        taken.push(name);
+        const linked = pid && newIdOf.has(pid) ? { ...payload[i], household: { ...payload[i].household, partnerScenarioId: newIdOf.get(pid) } } : payload[i];
+        made = readyPlan({ ...linked, planDetails: { ...(linked.planDetails || {}), name }, isActive: accountPlans.length === 0 && i === 0, createdAt: stamp, lastModified: stamp }, at, { mayBeLocked: true });
+      } catch { fail(null, 'failed'); return; }
+      let id;
+      try { id = await add(scenariosOf(place), made); } catch { fail(null, 'failed'); return; }
+      if (stopped) return;
+      newIdOf.set(oldIds[i], id);
+      if (pid && oldIds.includes(pid) && !newIdOf.has(pid)) unresolved.push(i);
+      brought.push(oldIds[i]);
+    }
+    // a pair naming each other: the one made first still names the window's id of the other — one write of the link, now both are here
+    for (const i of unresolved) {
+      const pid = partnerOldId(payload[i]);
+      if (!newIdOf.has(pid)) continue;
+      try { await write(place, newIdOf.get(oldIds[i]), declaredOnly({ 'household.partnerScenarioId': newIdOf.get(pid) })); } catch { /* both plans are in the account; the link can be made again on "Your household" */ }
+      if (stopped) return;
+    }
+    // the window's list without the plans now in the account (the example stays), one setItem
+    const next = list.filter((p) => !(p && brought.includes(String(p.id))));
+    const out = JSON.stringify(next);
+    try { session.setItem(GUEST_PLANS_KEY, out); } catch { /* the plans are in the account either way */ }
+    if (stopped) return;
+    finished(null, 'brought', { n: brought.length, s: brought.length === 1 ? '' : 's' });
+  }
+
   // one keep at a time, each after the last; a keep that throws is told as 'failed' (the figures are still there)
   let keeps = Promise.resolve();
   const queueKeep = (q) => { keeps = keeps.then(() => keep(q)).catch(() => keepFail(q, 'failed')); };
   // a keep pressed before this file was loaded (it comes with the plan source): picked up now
   for (const [q, k] of Object.entries(store.getState().keep || {})) if (k && k.saving) queueKeep(q);
+  // "Look around an example" pressed on the front door, before this file was loaded: picked up now
+  { const s0 = store.getState().ui.saving; if (s0 && s0.kind === 'example') { busy = true; makeExample().catch(() => fail(null, 'failed')).finally(() => { busy = false; }); } }
 
   const off = store.subscribe((state, action) => {
     if (action.type === A.KEEP_SAVE) { const k = state.keep && state.keep[action.q]; if (k && k.saving) queueKeep(action.q); return; }
@@ -866,6 +1183,14 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_BUDGET_SHARE && s.kind === 'budgetShare') run(() => shareBudget(s.planId, s.share !== false));
     else if (action.type === A.PLAN_HOLD && s.kind === 'hold') run(() => saveHold(s.planId, s.change));
     else if (action.type === A.PLAN_TICK && s.kind === 'tick') run(() => tick(s.planId, s.key, s.done !== false));
+    // the plan menu (road-to-7.md step 11)
+    else if (action.type === A.PLAN_RENAME && s.kind === 'rename') run(() => rename(s.planId, s.name));
+    else if (action.type === A.PLAN_COPY && s.kind === 'copy') run(() => makeCopy(s.planId, s.carry === true));
+    else if (action.type === A.PLAN_MAIN && s.kind === 'main') run(() => makeMain(s.planId));
+    else if (action.type === A.PLAN_DELETE && s.kind === 'delete') run(() => remove(s.planId));
+    else if (action.type === A.PLAN_OPEN_FILE && s.kind === 'open') run(() => openFile(action.file));
+    else if (action.type === A.PLAN_EXAMPLE && s.kind === 'example') run(() => makeExample());
+    else if (action.type === A.GUEST_BRING_IN && s.kind === 'bringIn') run(() => bringIn());
   });
   return () => { stopped = true; off(); if (timer && win) win.clearTimeout(timer); };
 }

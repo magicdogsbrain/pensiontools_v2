@@ -34,3 +34,6 @@ export { PlanLine, PlanSentence, PlanButtons, fill } from './PlanFigures.jsx';
 // Editing a saved plan: "About you and when" (research/v7/editing-in-v7.md 2)
 export { EditField } from './EditField.jsx';
 export { UndoToast } from './UndoToast.jsx';
+// The shell for 7.0 (research/v7/road-to-7.md step 11): the visitor's boxes, the hand-over, What's new
+export { GuestNag, GuestStop, BringIn, NewsPopup, leftWords, usedWords } from './Visitor.jsx';
+export { Release, ReleaseBody, Effects, dayWords } from './ReleaseNotes.jsx';

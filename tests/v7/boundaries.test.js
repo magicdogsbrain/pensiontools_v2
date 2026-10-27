@@ -14,15 +14,25 @@
  *         with five named pure exceptions (the project's public settings, the upgrade, the migrations, the schema, the
  *         stress defaults), each of which may import only the others, src/constants.js, src/services, src/utils,
  *         src/strategies and src/data.
- *     3b. Firebase: exactly two V7 files import a `firebase` package, each by its own names — src/v7/effects/planSource.js
- *         (reads: firebase/app, firebase/auth, firebase/firestore/lite, read-only names) and src/v7/effects/planWrite.js
- *         (writes: firebase/firestore/lite, `doc`, `updateDoc`, `addDoc` and `collection` only). Every other name fails.
- *     3c. Write words: `updateDoc` appears in planWrite.js only (once, in its one write), and so does `addDoc` (once, in its
- *         one create — road-to-7.md step 7: "Keep this as a plan" makes a NEW plan itself; the rule widened by this one
- *         name on 21 Oct 2026); setDoc, deleteDoc, writeBatch and runTransaction appear nowhere V7 can reach. V7 can
- *         update fields of a plan that exists and add a new one; it cannot delete or replace one.
+ *     3b. Firebase: exactly three V7 files import a `firebase` package, each by its own names — src/v7/effects/planSource.js
+ *         (reads: firebase/app, firebase/auth, firebase/firestore/lite, read-only names), src/v7/effects/planWrite.js
+ *         (writes: firebase/firestore/lite, `doc`, `updateDoc`, `addDoc`, `deleteDoc` and `collection` only) and, since
+ *         road-to-7.md step 11 (6.44.0), src/v7/effects/account.js (the account page: firebase/auth by the names the
+ *         planner's AuthService uses for sign-in, sign-up, the Google pop-up, the confirmation and reset emails, deleteUser,
+ *         signOut and reloading the user — no reauthenticate: the planner has none; firebase/firestore/lite by doc,
+ *         deleteDoc, getDocs, collection, query, where, updateDoc). Every other name fails.
+ *     3c. Write words: `updateDoc` appears in planWrite.js (once, in its one write) and in account.js (once: the account's
+ *         settings document, lastSeenVersion), and `addDoc` in planWrite.js only (once, in its one create — road-to-7.md
+ *         step 7: "Keep this as a plan" makes a NEW plan itself; the copy, the opened file, the example and the hand-over
+ *         go through it too); `deleteDoc` appears in planWrite.js (its one delete of one plan, after a confirm that names it:
+ *         road step 11) and in account.js (the account's deletion, document by document: three call sites); setDoc,
+ *         writeBatch and runTransaction appear nowhere V7 can reach. V7 can update fields of a plan that exists, add a new
+ *         one and delete one; it cannot replace one, nor write two at once.
  *     3d. Browser storage: only named effects files touch it, each only the keys its row allows; the window's plans
- *         (pt_guest_scenarios) are read by planSource.js with getItem only and written by planWrite.js only. The hand-over
+ *         (pt_guest_scenarios) are read by planSource.js with getItem only and written by planWrite.js only (setItem, never
+ *         removed: a delete is the list without the plan). The visitor's count and reminders (pt_guest_minutes,
+ *         pt_guest_nag_level, pt_guest_handoff) are reached only through services/GuestMeter.js (guestMeter.js names no
+ *         key); the What's new mark (pt_lastSeenVersion) is named by whatsNew.js only. The hand-over
  *         seed (pt_v7_plan_seed) and its receipt are retired: no V7 file names them or imports their keys.
  *     3e. Field paths: planWrite.js checks every patch against the declared list (src/answers/plan/schema.js ALL_WRITES)
  *         before its one write; the effect's own test drives it with random boxes and plans (tests/v7/plan/planWrite.test.js).
@@ -223,9 +233,10 @@ const REACHED = reach(ENTRIES);
 const PURE_EXCEPTIONS = ['src/firebase/projectConfig.js', 'src/firebase/scenarioMigration.js', 'src/storage/migrations.js', 'src/storage/schema.js', 'src/storage/stressDefaults.js'];
 const FORBIDDEN_DIRS = ['src/storage', 'src/firebase', 'src/workers'];
 const FORBIDDEN_FILES = ['src/ui/inlineHandlers.js'];
-/** The two Firebase files (3b): the reader and the writer, each with its packages and the names it may import from each. */
+/** The three Firebase files (3b): the reader, the writer and the account effect, each with its packages and the names it may import from each. */
 const FIREBASE_FILE = 'src/v7/effects/planSource.js';
 const WRITE_FILE = 'src/v7/effects/planWrite.js';
+const ACCOUNT_FILE = 'src/v7/effects/account.js';
 const FIREBASE_FILES = {
   [FIREBASE_FILE]: {
     'firebase/app': ['initializeApp'],
@@ -233,22 +244,35 @@ const FIREBASE_FILES = {
     'firebase/firestore/lite': ['getFirestore', 'collection', 'getDocs']
   },
   [WRITE_FILE]: {
-    'firebase/firestore/lite': ['doc', 'updateDoc', 'addDoc', 'collection']
+    'firebase/firestore/lite': ['doc', 'updateDoc', 'addDoc', 'deleteDoc', 'collection']
+  },
+  // road-to-7.md step 11: the names the planner's AuthService uses (src/firebase/AuthService.js) — no reauthenticate — and the
+  // account's own Firestore names: its settings document's one write, the deletion document by document, the query for the
+  // fund-suggestion rows this person filed
+  [ACCOUNT_FILE]: {
+    'firebase/auth': ['signInWithEmailAndPassword', 'createUserWithEmailAndPassword', 'signInWithPopup', 'GoogleAuthProvider', 'sendEmailVerification', 'sendPasswordResetEmail', 'deleteUser', 'signOut', 'reload'],
+    'firebase/firestore/lite': ['doc', 'deleteDoc', 'getDocs', 'collection', 'query', 'where', 'updateDoc']
   }
 };
-/** Never, anywhere V7 can reach: V7 cannot delete or replace a plan, nor write two at once. */
-const NEVER_WORDS = /\b(setDoc|deleteDoc|writeBatch|runTransaction)\b/;
-/** The one write word, in the one write file only. */
+/** Never, anywhere V7 can reach: V7 cannot replace a plan, nor write two at once. (`deleteDoc` left this list with road step 11: one plan deleted after a confirm that names it, and the account's own deletion.) */
+const NEVER_WORDS = /\b(setDoc|writeBatch|runTransaction)\b/;
+/** The one write word, in the one write file (its one write) and the account effect (its settings document's one write) only. */
 const WRITE_WORD = /\bupdateDoc\b/g;
 /** The one create word (road-to-7.md step 7), in the one write file only. */
 const CREATE_WORD = /\baddDoc\b/g;
+/** The delete word (road-to-7.md step 11): in the one write file (the import, the default, the ONE call) and the account effect's own counted occurrences. */
+const DELETE_WORD = /\bdeleteDoc\b/g;
 /** The effects that may touch browser storage (3d), and the keys each may name. */
 const STORAGE_FILES = {
   'src/v7/effects/draftStore.js': { keys: ['pt_v7_draft'], names: ['sessionStorage', 'localStorage'] },
   'src/v7/effects/activity.js':   { keys: ['pt_lastActivity'], names: [] },
   'src/v7/effects/planSource.js': { keys: ['pt_guest_scenarios'], names: [] },
   'src/v7/effects/planWrite.js':  { keys: ['pt_guest_scenarios'], names: [] },
-  'src/v7/effects/openPlace.js':  { keys: [], names: [] }
+  'src/v7/effects/openPlace.js':  { keys: [], names: [] },
+  // road-to-7.md step 11: the visitor's meter may name the storage object (the keys stay GuestMeter.js's); What's new names its one key
+  'src/v7/effects/guestMeter.js': { keys: [], names: ['localStorage'] },
+  'src/v7/effects/whatsNew.js':   { keys: ['pt_lastSeenVersion'], names: [] },
+  'src/v7/effects/account.js':    { keys: [], names: [] }
 };
 
 describe('rule 3a — reach: every import from V7\'s entry points, walked', () => {
@@ -376,8 +400,8 @@ describe('"Lock the plan" — the commit\'s pure parts, lifted out of the reposi
   });
 });
 
-describe('rule 3b — exactly two V7 files talk to Firebase: the reader and the writer, each by its own names', () => {
-  it('only planSource.js and planWrite.js import a firebase package, and nothing in src/answers does', () => {
+describe('rule 3b — exactly three V7 files talk to Firebase: the reader, the writer and the account effect, each by its own names', () => {
+  it('only planSource.js, planWrite.js and account.js import a firebase package, and nothing in src/answers does', () => {
     const naming = [...V7, ...ANSWERS].filter((f) => targetsOf(f).some((t) => t === 'firebase' || t.startsWith('firebase/')));
     expect(naming.sort()).toEqual(Object.keys(FIREBASE_FILES).sort());
   });
@@ -391,9 +415,13 @@ describe('rule 3b — exactly two V7 files talk to Firebase: the reader and the 
       for (const n of names) expect(allowed, `${file} imports ${n} from ${pkg}`).toContain(n);
     }
   });
-  it('the writer imports exactly doc, updateDoc, addDoc and collection; the reader imports none of the write names', () => {
-    expect(namesImportedFrom(read(WRITE_FILE), 'firebase/firestore/lite').sort()).toEqual(['addDoc', 'collection', 'doc', 'updateDoc']);
-    for (const n of ['updateDoc', 'doc', 'addDoc']) expect(namesImportedFrom(read(FIREBASE_FILE), 'firebase/firestore/lite')).not.toContain(n);
+  it('the writer imports exactly doc, updateDoc, addDoc, deleteDoc and collection; the reader imports none of the write names; the account effect no app, auth or firestore handle of its own', () => {
+    expect(namesImportedFrom(read(WRITE_FILE), 'firebase/firestore/lite').sort()).toEqual(['addDoc', 'collection', 'deleteDoc', 'doc', 'updateDoc']);
+    for (const n of ['updateDoc', 'doc', 'addDoc', 'deleteDoc']) expect(namesImportedFrom(read(FIREBASE_FILE), 'firebase/firestore/lite')).not.toContain(n);
+    expect(namesImportedFrom(read(ACCOUNT_FILE), 'firebase/auth').sort()).toEqual(['GoogleAuthProvider', 'createUserWithEmailAndPassword', 'deleteUser', 'reload', 'sendEmailVerification', 'sendPasswordResetEmail', 'signInWithEmailAndPassword', 'signInWithPopup', 'signOut']);
+    expect(namesImportedFrom(read(ACCOUNT_FILE), 'firebase/firestore/lite').sort()).toEqual(['collection', 'deleteDoc', 'doc', 'getDocs', 'query', 'updateDoc', 'where']);
+    expect(codeOf(ACCOUNT_FILE)).not.toMatch(/\b(initializeApp|getFirestore|getAuth|reauthenticateWithCredential|reauthenticateWithPopup|setDoc|addDoc)\b/);
+    expect(strip(read(ACCOUNT_FILE), { keepStrings: true })).toMatch(/handles\(\)/);
   });
   it('the full firestore package (with its cache and its writes) is never reached', () => {
     for (const f of REACHED) for (const t of targetsOf(f)) expect(t, `${f} imports ${t}`).not.toBe('firebase/firestore');
@@ -405,25 +433,58 @@ describe('rule 3b — exactly two V7 files talk to Firebase: the reader and the 
   });
 });
 
-describe('rule 3c — the one write word and the one create word in the one write file; never a delete or replace', () => {
+describe('rule 3c — the one write word and the one create word in the one write file; the delete word there and in the account effect, counted; never a replace', () => {
   it.each(REACHED)('%s', (file) => {
     const code = codeOf(file);
     const never = NEVER_WORDS.exec(code);
     expect(never && never[0], `${file} contains ${never && never[0]}`).toBeFalsy();
     const writes = code.match(WRITE_WORD) || [];
     const creates = code.match(CREATE_WORD) || [];
+    const deletes = code.match(DELETE_WORD) || [];
     if (file === WRITE_FILE) {
       expect(writes.length, 'the import, the default and the one call').toBe(3);
       expect(creates.length, 'the import, the default and the one call').toBe(3);
+      expect(deletes.length, 'the import, the default and the one call (road step 11)').toBe(3);
+    } else if (file === ACCOUNT_FILE) {
+      // road step 11: the import, the default and the one call of updateDoc (the settings document); the import, the default and
+      // the three call sites of deleteDoc (every plan, the settings document, every fund-suggestion row of the person's)
+      expect(writes.length, 'the import, the default and the one call').toBe(3);
+      expect(creates.length, `${file} contains addDoc`).toBe(0);
+      expect(deletes.length, 'the import, the default and the three call sites').toBe(5);
     } else {
       expect(writes.length, `${file} contains updateDoc`).toBe(0);
       expect(creates.length, `${file} contains addDoc`).toBe(0);
+      expect(deletes.length, `${file} contains deleteDoc`).toBe(0);
     }
+  });
+  it('the delete (road-to-7.md step 11): ONE F.deleteDoc call site in the writer, of doc(place.db, users, uid, scenarios, id), after the confirm the reducer insists on; the account effect\'s three, each named; the window\'s plans never removed', () => {
+    const code = strip(read(WRITE_FILE), { keepStrings: true });
+    expect((code.match(/F\.deleteDoc\(/g) || []).length).toBe(1);
+    expect(code).toMatch(/F\.deleteDoc\(F\.doc\(place\.db, 'users', place\.uid, 'scenarios', String\(planId\)\)\)/);
+    expect(code).toMatch(/if \(!others\.length\) \{ fail\(planId, 'lastPlan'\); return; \}/);
+    const acc = strip(read(ACCOUNT_FILE), { keepStrings: true });
+    expect((acc.match(/F\.deleteDoc\(/g) || []).length).toBe(3);
+    expect(acc).toMatch(/F\.deleteDoc\(F\.doc\(h\.db, 'users', uid, 'scenarios', id\)\)/);
+    expect(acc).toMatch(/F\.deleteDoc\(F\.doc\(h\.db, 'users', uid, 'profile', 'settings'\)\)/);
+    expect(acc).toMatch(/F\.where\('uid', '==', uid\)/);
+    expect((acc.match(/F\.updateDoc\(/g) || []).length).toBe(1);
+    expect(acc).toMatch(/F\.updateDoc\(F\.doc\(h\.db, 'users', h\.user\.uid, 'profile', 'settings'\), \{ lastSeenVersion: version \}\)/);
+    expect((acc.match(/F\.addDoc\(/g) || []).length).toBe(0);
+    expect(acc).not.toMatch(/removeItem\(|\.clear\(\)\s*;?\s*\/\/ plans/);
+    // the reducer: a delete only after plan/delete (the row's confirm, open on that plan; a locked plan's second step), never from anywhere else
+    const reducer = strip(read('src/v7/state/reduce.js'), { keepStrings: true });
+    expect(reducer).toMatch(/case A\.PLAN_DELETE:/);
+    expect(reducer).toMatch(/if \(!a \|\| a\.kind !== 'delete' \|\| a\.planId !== planId\) return state;/);
+    expect(reducer).toMatch(/if \(locked && a\.step !== 2\) return state;/);
+    expect(reducer).toMatch(/if \(action\.what === 'delete' && acc\.confirm !== 2\) return state;/);
   });
   it('the create (road-to-7.md step 7): one addDoc call site, on users/{uid}/scenarios, of a plan the planner\'s own mapping made, upgraded and checked first; never a delete of a partner plan made', () => {
     const code = strip(read(WRITE_FILE), { keepStrings: true });
     expect((code.match(/F\.addDoc\(/g) || []).length).toBe(1);
     expect((code.match(/F\.collection\(/g) || []).length).toBe(1);
+    // road step 11: the copy, the opened file, the example and the hand-over all go through the one `add`
+    for (const fn of ['makeCopy', 'openFile', 'makeExample', 'bringIn']) expect(code, fn).toMatch(new RegExp('async function ' + fn + '\\('));
+    expect((code.match(/await add\(scenariosOf\(place\), /g) || []).length).toBeGreaterThanOrEqual(6);
     expect(code).toMatch(/F\.collection\(place\.db, 'users', place\.uid, 'scenarios'\)/);
     expect(targetsOf(WRITE_FILE)).toContain('src/answers/keep/planCreate.js');
     expect(targetsOf(WRITE_FILE)).toContain('src/answers/keep/planSeed.js');
@@ -435,9 +496,9 @@ describe('rule 3c — the one write word and the one create word in the one writ
     expect(REACHED).toContain('src/services/PlanFromSeed.js');
     expect(REACHED).not.toContain('src/services/PlanSeed.js');
     expect(REACHED).not.toContain('src/storage/ScenarioRepository.js');
-    // V7 never deletes: no remove of a plan anywhere the writer can reach
+    // the window's plans are never removed as a key (a delete is the list without the plan, one setItem: road step 11); the planner's repositories are never reached
     expect(code).not.toMatch(/removeItem\(\s*GUEST_PLANS_KEY/);
-    expect(codeOf(WRITE_FILE)).not.toMatch(/\bdeleteScenario|\bremove\s*\(/);
+    expect(codeOf(WRITE_FILE)).not.toMatch(/\bdeleteScenario|\bduplicateScenario|\brenameScenario|\bsetActiveScenarioDoc/);
   });
   it('the planner\'s mapping lifted into services/PlanFromSeed.js is pure, and the repositories and PlanSeed.js keep their names as re-exports', () => {
     const f = 'src/services/PlanFromSeed.js';
@@ -452,6 +513,21 @@ describe('rule 3c — the one write word and the one create word in the one writ
     for (const n of ['getDefaultTaxYears', 'getDefaultBudget']) expect(repo).toMatch(new RegExp('export \\{[^}]*\\b' + n + '\\b'));
     expect(repo).toMatch(/export function getDefaultScenario\(/);
     expect(repo).toMatch(/export function defaultStrategyBlock\(/);
+  });
+  it('the copy\'s rules lifted into services/PlanCopy.js are pure, and the repository keeps its duplicateScenario over them (road step 11)', () => {
+    const f = 'src/services/PlanCopy.js';
+    expect(REACHED).toContain(f);
+    for (const t of targetsOf(f)) expect(under(t, 'src/storage') || under(t, 'src/firebase') || under(t, 'src/ui') || t.startsWith('firebase'), `${f} imports ${t}`).toBe(false);
+    const code = codeOf(f);
+    for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(code), `${f} uses ${re}`).toBe(false);
+    expect(targetsOf('src/storage/ScenarioRepository.js')).toContain(f);
+    expect(targetsOf(WRITE_FILE)).toContain(f);
+    expect(namesImportedFrom(read(WRITE_FILE), '../../services/PlanCopy.js')).toContain('copyOf');
+    // the plan menu's two field paths are declared (schema.js PLANS_WRITES), and the writer's rename and main-plan writes go through declaredOnly
+    expect(strip(read('src/answers/plan/schema.js'), { keepStrings: true })).toMatch(/export const PLANS_WRITES = Object\.freeze\(\['planDetails\.name', 'isActive'\]\);/);
+    const w = strip(read(WRITE_FILE), { keepStrings: true });
+    expect(w).toMatch(/declaredOnly\(\{ 'planDetails\.name': unique, lastModified: now\(\)\.toISOString\(\) \}\)/);
+    expect(w).toMatch(/declaredOnly\(\{ isActive: true \}\)/);
   });
   it('3e, 3f: the writer checks every patch against the declared paths and the lock guard before its one write', () => {
     const code = strip(read(WRITE_FILE), { keepStrings: true });
@@ -475,6 +551,19 @@ describe('rule 3d — browser storage: only the named effects, only their keys',
     for (const f of naming) expect(Object.keys(STORAGE_FILES), `${f} names a storage key or object`).toContain(f);
     expect(naming).toContain('src/v7/effects/planSource.js');
     expect(naming).toContain('src/v7/effects/activity.js');
+    expect(naming).toContain('src/v7/effects/whatsNew.js');
+  });
+  it('the visitor\'s count, reminders and hand-off keys are reached only through services/GuestMeter.js; the What\'s new mark by whatsNew.js only (road step 11)', () => {
+    for (const f of V7) {
+      const text = strip(read(f), { keepStrings: true });
+      expect(text, f).not.toMatch(/pt_guest_minutes|pt_guest_nag_level|pt_guest_handoff/);
+      if (f !== 'src/v7/effects/whatsNew.js') expect(text, f).not.toMatch(/pt_lastSeenVersion/);
+    }
+    expect(targetsOf('src/v7/effects/guestMeter.js')).toContain('src/services/GuestMeter.js');
+    for (const n of ['tick', 'readMinutes', 'isBlocked', 'pendingNag', 'markNagShown']) expect(namesImportedFrom(read('src/v7/effects/guestMeter.js'), '../../services/GuestMeter.js')).toContain(n);
+    expect(namesImportedFrom(read(WRITE_FILE), '../../services/GuestMeter.js')).toContain('handoffPayload');
+    // the reader may still read the count (isBlocked on readMinutes) and the writer refuse on it; neither names a key
+    expect(keysNamed('src/v7/effects/guestMeter.js')).toEqual([]);
   });
   it.each(Object.entries(STORAGE_FILES))('%s names only its own keys', (file, rule) => {
     for (const k of keysNamed(file)) expect(rule.keys, `${file} names ${k}`).toContain(k);
@@ -556,8 +645,9 @@ describe('the budget is a guide, never an input (research/v7/budget-step.md "The
     const run = codeOf('src/v7/effects/run.js');
     expect(run, 'the runner never reads state.budget').not.toMatch(/\.budget\b/);
   });
-  it('localStorage is handed over by draftStore.js alone (the activity stamp and the free-time count read it); no V7 file writes a seed to it', () => {
+  it('localStorage is handed over by draftStore.js (the activity stamp and the free-time count read it), and may be named by the visitor\'s meter alone besides (road step 11); no V7 file writes a seed to it', () => {
     const naming = V7.filter((f) => /\blocalStorage\b/.test(codeOf(f)));
-    expect(naming).toEqual(['src/v7/effects/draftStore.js']);
+    expect(naming).toContain('src/v7/effects/draftStore.js');
+    for (const f of naming) expect(['src/v7/effects/draftStore.js', 'src/v7/effects/guestMeter.js'], f).toContain(f);
   });
 });

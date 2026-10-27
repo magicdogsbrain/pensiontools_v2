@@ -171,7 +171,10 @@ delete call sites).
   own flows (`src/firebase/AuthService.js`: email and password, the Google pop-up, `createUserWithEmailAndPassword` then
   `sendEmailVerification`, `sendPasswordResetEmail`) on the same Firebase project with the same persistence (the plan source's
   handles; no second app). The password is read from its box on submit and carried in one action to the effect; it is never
-  held in the state, never written to storage (`tests/v7/shell/account.test.js` checks the whole state's JSON for it).
+  held in the state, never written to storage (`tests/v7/shell/account.test.js` checks the whole state's JSON for it). The
+  forgotten-password form never says which emails have an account: the service's `auth/user-not-found` on the reset email is
+  told as done (`account.js` `reset`), and the note reads "If there is an account for …" either way (`copy/account.js`
+  `forms.resetSent`; pinned in `account.test.js`).
 - **The verification gate** (`AccountScreen.jsx` "Confirm your email"): an unconfirmed account reads nothing — the server's
   rule (`firestore.rules`: `email_verified`) and the plan source's own (`planSource.js`: no read for 'unverified'); "I've
   confirmed" reloads the user and refreshes the ID token (`AuthService.reloadCurrentUser`'s rule) before the plans are read.
@@ -198,7 +201,9 @@ delete call sites).
   mark `localStorage['pt_lastSeenVersion']` (`whatsNew.js`, the one file that may name it) and the visitor's count and
   reminders `pt_guest_minutes` / `pt_guest_nag_level` (through `src/services/GuestMeter.js` only; `src/v7/effects/guestMeter.js`
   names no key). The hand-over after a sign-in (`planWrite.js` `bringIn`) copies the window's plans into the account through
-  the one create and never carries the read-only example plan (a correction to the planner's `handoffPayload` too). No
+  the one create and never carries the read-only example plan (a correction to the planner's `handoffPayload` too); it is
+  offered whenever the session becomes 'in' while the page is open — a sign-in, or a sign-up followed by "I've confirmed"
+  (`planSource.js` watches `session/set`), never on a page opened already signed in — and only after the person says yes. No
   hand-off stash is written by the preview (`pt_guest_handoff` is the planner's own, read by nothing in V7).
 - [ ] Owner to read and approve the wording of the deletion confirms (`src/v7/copy/account.js` `remove.ask1`, `ask2`,
       `needsSignIn`, `done`) against `compliance/PRIVACY_POLICY.md` "How long we keep it" — the preview names "every plan,

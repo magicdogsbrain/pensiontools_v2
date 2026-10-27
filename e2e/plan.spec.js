@@ -100,7 +100,8 @@ test.describe('the saved plans, without an account', () => {
     for (const href of links) expect(href).toMatch(/^(#\/|\.\.\/)/);
     // (the rail's "Lock the plan" step draws its own screen since 6.38.0: road-to-7.md step 6)
     // the plan's own sub-steps (plan.lock, plan.way, plan.mix, plan.household …) are inside the preview too
-    for (const href of links.filter((h) => h.startsWith('#/'))) { const n = screenName(parse(href)); if (!n.startsWith('plan.')) expect(['front', 'plans', 'plan', 'c.numbers', 'a.numbers', 'b.numbers']).toContain(n); }
+    // … and, since road-to-7.md step 11, every header's account page and every footer's What's new
+    for (const href of links.filter((h) => h.startsWith('#/'))) { const n = screenName(parse(href)); if (!n.startsWith('plan.')) expect(['front', 'plans', 'plan', 'c.numbers', 'a.numbers', 'b.numbers', 'account', 'news']).toContain(n); }
 
     // a reload: the plans are read again from the window, nothing kept in the page's own storage
     await page.reload();

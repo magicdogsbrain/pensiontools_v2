@@ -31,6 +31,9 @@ async function plant(page, { seen = null } = {}) {
   await page.goto(v7('#/'));
   await expect(page.locator('#app [data-screen]')).toBeVisible();
   await page.evaluate(([k, text, sk, seenV]) => { sessionStorage.setItem(k, text); if (seenV) localStorage.setItem(sk, seenV); else localStorage.removeItem(sk); }, [GUEST_KEY, JSON.stringify([plan()]), SEEN_KEY, seen]);
+  // a fresh page life: the pop-up is offered once per life, and a move to another address is not a new one
+  await page.reload();
+  await expect(page.locator('#app [data-screen]')).toBeVisible();
 }
 const seen = (page) => page.evaluate((k) => localStorage.getItem(k), SEEN_KEY);
 

@@ -142,9 +142,17 @@ the order sheet waits for the person's own State Pension figure.
   for ladder + rotation, the rotation watch and the guided switch.
 - Ledger rows closed: the `s8-e` holdings, move, ladder-cost, order-sheet and rotation rows.
 
-### Step 11 — The shell for 7.0 (6.44.0)
+### Step 11 — The shell for 7.0 (6.44.0, 6.45.0)
 
-Everything a person needs so that the planner's page is no longer on their path.
+Everything a person needs so that the planner's page is no longer on their path. Built in two halves, each under its own
+release and brief, and cited as such ("step 11a", "step 11b") in the code, the tests and the ledger:
+
+- **Step 11a — the shell (6.44.0):** the plan actions on "Your plans", the account page, the visitors' hours and the
+  hand-over, the read-only example, What's new, the name "Drawdown Planner" (ledger step `s11-shell`).
+- **Step 11b — the remaining rows (6.45.0):** every planned or designed row the ledger still had — the budget on a saved
+  plan, "What you pay in", the out-of-date draft, the State Pension date, where a lump sum lands and a lump sum into the
+  steps, the years one by one, the pots' floors and the named stresses on "Does it last?", "Assumptions and data"; the lock
+  and month-by-month rows built on the classic page by the owner's decision; two retirements (ledger step `s11-rows`).
 
 - **Plan actions on "Your plans":** new, open, rename, make a copy, download, open a downloaded copy, delete (rule 3c
   widens once more: `deleteDoc` of one plan, after a confirm that names it).

@@ -134,6 +134,9 @@ describe('"What you pay in" — the writes', () => {
     expect(list.slice(0, -1)).toEqual(SAVER.accumulationTool.history);
     const want = potRecordOf({ date: '2026-10', sipp: 325000, isa: '', gia: 0 }, noon(TODAY));
     expect(list[list.length - 1]).toEqual(want);
+    // the stamp is the moment of the record when the one write file hands it in (the planner's new Date()); noon of today only when none is
+    expect(recordPatch(plan, typed, { today: TODAY, now: new Date('2026-10-02T14:03:00.000Z') }).patch['accumulationTool.history'].slice(-1)[0].recordedAt).toBe('2026-10-02T14:03:00.000Z');
+    expect(recordPatch(plan, typed, { today: TODAY, now: 'not a date' }).patch['accumulationTool.history'].slice(-1)[0].recordedAt).toBe(want.recordedAt);
     expect(list[list.length - 1].isa).toBe(null);
     expect('isaEntered' in list[list.length - 1]).toBe(false);
     expect(p.line).toEqual({ id: 'recorded', slots: { month: 'October 2026', total: '£325,000' } });

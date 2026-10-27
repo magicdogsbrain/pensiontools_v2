@@ -58,7 +58,7 @@ import { simulationConfigFromSettings } from '../../services/SimulationConfig.js
 import { planFromSettings, stressTestStrategy } from '../../strategies/stressTest.js';
 import { realYieldForYear } from '../../services/LinkerUniverse.js';
 import { oneAnswer, worstStarts, earlierTestNote } from '../../services/OneAnswer.js';
-import { namedStartRows, SCENARIO_STARTS, decadeFigures } from '../../services/NamedStarts.js';
+import { namedStartRows, SCENARIO_STARTS, decadeFigures, CONTRACT } from '../../services/NamedStarts.js';
 import { generateDrawdownSchedule } from '../../services/DrawdownService.js';
 import { generateGlidepathSchedule } from '../../services/GlidepathService.js';
 import { SCENARIOS } from '../../constants.js';
@@ -180,7 +180,9 @@ const r0 = (v) => Math.round(+v || 0);
  *               in the middle future and the 1-in-10 bad one, what is left in the middle
  *   scenarios   the named stresses as starts (the Scenarios tab, post-6.24.0): namedStartRows from each decade's January, with
  *               what the decade did to shares and prices (decadeFigures); the made-up worst decade said apart, with the hardest
- *               real start the test counted
+ *               real start the test counted. A contract plan (every year bought: the full index-linked gilt ladder, the floored
+ *               schedule) carries the planner's inflation table on each row too (contractCash): prices after ten years, the cash
+ *               the rungs would pay in year 1 and year 10 under that decade's prices, the real income unchanged
  * Null for a way of drawing that cannot be bought (nothing to show), or where a table cannot be made.
  */
 export function extrasOf(settings, strategyId, p, r, a, now) {
@@ -207,11 +209,29 @@ export function extrasOf(settings, strategyId, p, r, a, now) {
     own = [];
     for (let y = 0; y < years; y++) own.push({ year: y + 1, age: sa + y, incomeMid: r0(inc.p50 && inc.p50[y]), incomeBad: r0(inc.p10 && inc.p10[y]), leftMid: r0(w.p50 && w.p50[y]) });
   }
+  // a contract plan: the planner's Scenarios tab is an inflation table (src/ui/oneAnswerView.js scenariosTabHtml) — each row, the made-up decade too
+  const cash = CONTRACT.includes(strategyId) && r && r.plan && Array.isArray(r.plan.years) && r.plan.years.length ? (sc) => contractCash(r.plan.years, sc) : null;
   let scenarios = [];
-  try { scenarios = namedStartRows(strategyId, p, SCENARIO_STARTS).map((row, i) => ({ ...row, key: SCENARIO_STARTS[i].key, decade: decadeFigures(SCENARIOS[SCENARIO_STARTS[i].key]) })); } catch { scenarios = []; }
+  try { scenarios = namedStartRows(strategyId, p, SCENARIO_STARTS).map((row, i) => { const sc = SCENARIOS[SCENARIO_STARTS[i].key]; return { ...row, key: SCENARIO_STARTS[i].key, decade: decadeFigures(sc), ...(cash ? { cash: cash(sc) } : {}) }; }); } catch { scenarios = []; }
   const hardest = r && Array.isArray(r.histWindows) ? (worstStarts(r.histWindows, 1)[0] || null) : null;
-  const synthetic = { name: SCENARIOS.SYNTHETIC_WORST.name, decade: decadeFigures(SCENARIOS.SYNTHETIC_WORST), hardest: hardest ? { year: hardest.year, month: hardest.month || null } : null };
+  const synthetic = { name: SCENARIOS.SYNTHETIC_WORST.name, decade: decadeFigures(SCENARIOS.SYNTHETIC_WORST), hardest: hardest ? { year: hardest.year, month: hardest.month || null } : null, ...(cash ? { cash: cash(SCENARIOS.SYNTHETIC_WORST) } : {}) };
   return { prices: ASSUMED_PRICES, startAge, duration, schedule, glidepath, own, scenarios, synthetic };
+}
+
+/**
+ * The gilt ladder's inflation table (src/ui/oneAnswerView.js scenariosTabHtml, the figures lifted): under a named decade's
+ * prices, then 2.5% a year, the price level after ten years (a fraction: 0.31 is "up 31%"), the cash the rungs would pay in
+ * the plan's first year and its tenth (each at its age, the preview's way of naming a year), and the tenth year's real income —
+ * unchanged, paid in full by contract. `years` is the ladder's plan (r.plan.years: gross a year at today's prices, each with
+ * its age), `sc` a scenario of constants.js SCENARIOS.
+ */
+export function contractCash(years, sc) {
+  const n = years.length;
+  const cp = [1];
+  for (let i = 1; i < n; i++) cp.push(cp[i - 1] * (1 + (sc.inflation[i - 1] ?? 0.025)));
+  const k = Math.min(9, n - 1);
+  const y1 = +years[0].gross || 0, y10 = +years[k].gross || 0;
+  return { prices10: cp[Math.min(10, n - 1)] - 1, cashFirst: r0(y1 * cp[0]), cashTenth: r0(y10 * cp[k]), realTenth: r0(y10), ageFirst: r0(years[0].age), ageTenth: r0(years[k].age) };
 }
 
 // ---- "Try a strategy" / Try a change on a plan (research/v7/way-and-mix.md 4, 6; index.html tryStrategySettings, lifted) ----

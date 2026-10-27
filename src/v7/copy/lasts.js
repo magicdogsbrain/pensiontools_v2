@@ -65,7 +65,10 @@ export const LASTS = {
     /** The named stresses (road-to-7.md step 11b): the famous decades, each replayed from its January, with what the decade did. */
     scenariosTitle: 'The named stresses — whole decades',
     scenariosLead: 'What each famous decade did to shares and prices, and what the one test’s real history from that January did to your plan. No second figure: these starts are among the {histories} the test counted.',
+    /** A contract plan (every year bought): the planner's lead to its inflation table, and the figures on each row. */
+    scenariosLeadContract: 'Every year of this plan is bought today, index-linked: a fall in shares changes nothing but the pounds that arrive, and they always buy the same. So the test here is prices — what each famous decade would do to the cash the rungs pay, against the plan at today’s prices.',
     decade: { 'decade.line': 'shares {firstDir} {firstPct}% in the first three years and {decadeDir} {decadePct}% over the decade; prices {pricesDir} {pricesPct}% over the decade' },
+    cash: { 'cash.line': 'prices {pricesDir} {pricesPct}% after ten years: the rungs would pay {first} at {firstAge} and {tenth} at {tenthAge}, which still buys {worth} at today’s prices — paid in full by contract' },
     dir: { down: 'down', up: 'up' },
     synthetic: '{name}: {decade}. A made-up decade: no real start is this bad, so it is not in the test.',
     syntheticHardest: ' The hardest real start in the record is {when}, above.'

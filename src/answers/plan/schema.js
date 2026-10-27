@@ -193,15 +193,20 @@ export const SPEND_LISTS = Object.freeze({
 });
 export const SPEND_LIST_IDS = Object.freeze(Object.keys(SPEND_LISTS));
 
-/** The paths of "What you spend" a draft may hold: the first row's boxes, a list's order, a card's boxes. */
+/**
+ * The paths of "What you spend" a draft may hold: the first row's boxes, a list's order, a card's boxes — and, beside an
+ * amount box, the before-tax figure a lift handed it ("first.gross", "steps.<id>.gross": spend.js lumpEdits, liftedGross), a
+ * path with no box of its own that nobody types.
+ */
 export function isSpendPath(path) {
   const p = String(path);
   if (SPEND_FIELDS.some((f) => f.path === p)) return true;
+  if (p === 'first.gross') return true;
   const parts = p.split('.');
   if (parts.length === 2) return SPEND_LIST_IDS.includes(parts[0]) && parts[1] === 'ids';
   if (parts.length !== 3) return false;
   const list = SPEND_LISTS[parts[0]];
-  return !!list && isCardId(parts[1]) && list.fields.some((f) => f.path === parts[2]);
+  return !!list && isCardId(parts[1]) && (list.fields.some((f) => f.path === parts[2]) || (parts[0] === 'steps' && parts[2] === 'gross'));
 }
 
 /** Every dotted field path "What you spend" may change: the planner's own keys (8.3). */

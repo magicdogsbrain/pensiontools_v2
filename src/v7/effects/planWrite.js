@@ -271,8 +271,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const data = declaredOnly({ ...p.patch, lastModified: now().toISOString() });
     if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;
-    // Undo puts the plan back as it was, its last-changed stamp included (editing-in-v7.md 3): byte-identical afterwards
-    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line });
+    // Undo puts the plan back as it was, its last-changed stamp included (editing-in-v7.md 3): byte-identical afterwards.
+    // "What you pay in" marks its toast (op 'saving'): its Undo is judged by what was written, wherever the person is by then
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line, ...(step === 'saving' ? { op: 'saving' } : {}) });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
@@ -493,8 +494,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     } else if (op === 'unlock' || op === 'document') {
       // the reverse of an unlock goes to an unlocked plan; of a new version, to a locked plan whose settings it leaves alone
       if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
-    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick' || op === 'budget' || op === 'potRecord' || op === 'stale' || (state.route && state.route.screen === 'plan' && state.route.step === 'saving')) {
-      // the household's writes (road-to-7.md step 9), the record and the tick-offs (step 10), the budget and "Leave it" (step 11b) go where the planner's go: the guard alone decides
+    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick' || op === 'budget' || op === 'saving' || op === 'potRecord' || op === 'stale') {
+      // the household's writes (road-to-7.md step 9), the record and the tick-offs (step 10), the budget, "What you pay in", the pot record and
+      // "Leave it" (step 11b) go where the planner's go: the guard alone decides — by the write's own mark, never by the step the person has since moved to
       if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
     } else {
       // an editing step's undo: a locked plan is refused outright, as its save is
@@ -709,7 +711,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const { place, plan, state } = got;
     const pd = state.draft.plan && state.draft.plan.id === String(planId) ? state.draft.plan : null;
     const at = now();
-    const p = recordPatch(plan, pd ? pd.values : {}, { today: state.env.today });
+    const p = recordPatch(plan, pd ? pd.values : {}, { today: state.env.today, now: at });   // stamped at the moment of the write, as the planner's record is
     if (!p.ok) { fail(planId, 'problems'); return; }
     const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
     if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }

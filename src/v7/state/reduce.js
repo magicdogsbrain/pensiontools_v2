@@ -46,8 +46,9 @@ const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
   'link', 'split', 'dismiss', 'budgetShare',
   // "What you hold" and "Moving to your plan's mix" (step 10): one change of the record, one tick-off
   'hold', 'tick',
-  // the budget on a saved plan (step 11b): one change of the whole budget; "What you pay in": this month's pot recorded
-  'budget', 'potRecord'];
+  // the budget on a saved plan (step 11b): one change of the whole budget; "What you pay in": its settings saved (outside the lock,
+  // as the planner's Accumulation page is), this month's pot recorded
+  'budget', 'saving', 'potRecord'];
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;

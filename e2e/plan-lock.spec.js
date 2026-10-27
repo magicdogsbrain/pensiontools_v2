@@ -26,7 +26,7 @@ import { TIMING_PIN_KEYS } from '../src/services/PlanTiming.js';
 test.use({ outside: 'block' });
 
 const GUEST_KEY = 'pt_guest_scenarios';
-const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', 'pt_open_place', 'pt_open_plan', 'pt_guest_minutes', 'pt_guest_nag_level', 'pt_activeScenarioId', 'pt_guest_handoff', 'pt_lastSeenVersion']);   // pt_lastSeenVersion: What's new marks a first visit seen (6.44.0)
+const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', 'pt_open_place', 'pt_open_plan', 'pt_guest_minutes', 'pt_guest_nag_level', 'pt_lastSeenVersion', 'pt_guest_nag_level', 'pt_activeScenarioId', 'pt_guest_handoff']);
 const v7 = (hash) => PROD + '/v7/' + hash;
 const TODAY = FIXED_NOW.slice(0, 10);
 /** The slowed budget for the lock: the final answer's (e2e/helpers/app.js FIRST_ANSWER_BUDGET.finalMs). */

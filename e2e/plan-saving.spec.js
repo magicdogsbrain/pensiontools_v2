@@ -52,7 +52,7 @@ test.describe('"What you pay in", without an account', () => {
     watch.allow(/^asked for a file that is not there: \/assets\/data\/(gilts|equity)\.json$/);
     const { sam, alex } = plans();
     const planted = await plant(page, [sam, alex]);
-    const node = savingInNode(sam, TODAY, { typed: { escalationPct: '2.5' }, record: RECORD });
+    const node = savingInNode(sam, TODAY, { typed: { escalationPct: '2.5' }, record: RECORD, now: FIXED_NOW });   // the record's stamp is the page's clock
     expect(node.save.ok).toBe(true);
     expect(node.record.ok).toBe(true);
     for (const k of [...Object.keys(node.save.patch), ...Object.keys(node.record.patch)]) expect(SAVING_WRITES).toContain(k);

@@ -67,6 +67,8 @@ function StartRow({ r }) {
 
 /** What a named decade did (test.scenarios): the reading's slots, with "down" and "up" in this screen's words. */
 const decadeText = (d) => { const H = LASTS.history; const s = d.slots; return fill(H.decade[d.id] || '', { ...s, firstDir: H.dir[s.firstDir], decadeDir: H.dir[s.decadeDir], pricesDir: H.dir[s.pricesDir] }); };
+/** A contract plan's inflation figures for the decade (the planner's gilt-ladder table): the reading's slots in this screen's words. */
+const cashText = (c) => { const H = LASTS.history; const s = c.slots; return fill(H.cash[c.id] || '', { ...s, pricesDir: H.dir[s.pricesDir] }); };
 
 /** History: "What if you had retired into a bad year?" — the one test's own real starts, from the same run; the named stresses as whole decades (road-to-7.md step 11b). */
 function History({ v }) {
@@ -83,16 +85,16 @@ function History({ v }) {
       {x && x.scenarios.length > 0 && (
         <>
           <h4>{H.scenariosTitle}</h4>
-          <p class="note">{fill(H.scenariosLead, { histories: h.histories })}</p>
+          <p class="note">{h.contract ? H.scenariosLeadContract : fill(H.scenariosLead, { histories: h.histories })}</p>
           <ul class="plan-lines" data-testid="plan.lasts.scenarios">
             {x.scenarios.map((r, i) => (
               <li key={i} class="plan-line lasts-start" data-start={r.when} data-row={r.id} data-scenario={r.key || undefined}>
                 <strong>{r.when}</strong>{r.label ? ' — ' + r.label : ''}: {decadeText(r.decade)}. {fill(H.rows[r.id] || '', r.slots)}
-                {r.lowest ? '; ' + fill(H.lowest, { lowest: r.lowest }) : ''}{r.left ? '; ' + fill(H.left, { left: r.left }) : ''}
+                {r.lowest ? '; ' + fill(H.lowest, { lowest: r.lowest }) : ''}{r.left ? '; ' + fill(H.left, { left: r.left }) : ''}{r.cash ? '. ' + cashText(r.cash) : ''}
               </li>
             ))}
           </ul>
-          {x.synthetic && <p class="note" data-testid="plan.lasts.synthetic">{fill(H.synthetic, { name: x.synthetic.name, decade: decadeText(x.synthetic.decade) })}{x.synthetic.hardest ? fill(H.syntheticHardest, { when: x.synthetic.hardest }) : ''}</p>}
+          {x.synthetic && <p class="note" data-testid="plan.lasts.synthetic">{fill(H.synthetic, { name: x.synthetic.name, decade: decadeText(x.synthetic.decade) })}{x.synthetic.hardest ? fill(H.syntheticHardest, { when: x.synthetic.hardest }) : ''}{x.synthetic.cash ? ' ' + cashText(x.synthetic.cash) + '.' : ''}</p>}
         </>
       )}
     </section>

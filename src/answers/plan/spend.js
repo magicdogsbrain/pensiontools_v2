@@ -16,6 +16,11 @@
  *
  * Every path written is in schema.js SPEND_WRITES (tested); the shape block is written only when the first row or a step
  * changed, the costs only when a cost changed, so a plan saved as it is writes nothing.
+ *
+ * A lift that fills the boxes (lumpEdits: the planner's own rows before tax) hands the draft each row's before-tax figure
+ * beside the box ("first.gross", "steps.<id>.gross" — paths with no box of their own, schema.js isSpendPath); the write takes
+ * that figure while the box still says its month after tax (liftedGross), so the steps written are the planner's to the pound
+ * and not the month's rounding grossed up again. A figure typed over the box is grossed up as ever.
  */
 import { taxYearLabel } from '../../services/PlanTiming.js';
 import { amountAtAge, cleanSteps, lumpIntoSteps } from '../../services/IncomeSchedule.js';
@@ -45,6 +50,20 @@ export const monthlyNet = (gross, bands) => Math.round(netOf(gross, bands) / 12)
 export const yearlyGross = (monthly, bands) => Math.round(grossOf(monthly * 12, bands));
 /** What a step does, in the planner's keys: decline (a % a year) and glideToNext. */
 const thenOf = (row, hasNext) => (row.glideToNext && hasNext ? 'glides' : +row.decline > 0 ? 'falls' : 'level');
+/**
+ * The before-tax figure a lift handed the draft beside an amount box ("first.gross", "steps.<id>.gross": lumpEdits — the
+ * planner's own rows, whole pounds): read only while the box still says that figure's month after tax, so the lift's row is
+ * written as the planner writes it and a figure the person typed over it is grossed up as ever. Null otherwise.
+ */
+function liftedGross(raw, monthly, bands) {
+  if (blank(raw) || monthly == null) return null;
+  const s = String(raw).trim();
+  if (!/^\d{1,9}$/.test(s)) return null;
+  const g = +s;
+  return g >= 1 && monthlyNet(g, bands) === monthly ? g : null;
+}
+/** A row's figure before tax: the lift's own while it rides with the box, else the saved row's when the box is as saved, else the box grossed up. */
+const grossOfRow = (v, sv, bands) => (v.gross != null ? v.gross : sv && v.amount === sv.monthly ? sv.amount : yearlyGross(v.amount, bands));
 
 /**
  * The planner's "never below the income you get anyway" (index.html guaranteedAtYear, 8.1): the State Pension from its
@@ -164,7 +183,8 @@ const thenOfRow = (row) => (row.glideToNext ? 'glides' : +row.decline > 0 ? 'fal
 /**
  * "Turn a lump sum into income" (income.lump-to-steps): the draft edits that make the cards equal the steps the planner's own
  * spendLumpSum makes (IncomeSchedule.lumpIntoSteps, lifted) — the first row's figure, each later step's by its age, a new card
- * for a step that did not exist; a card stays a card. The person then saves, or cancels to put the steps back.
+ * for a step that did not exist; a card stays a card. Each amount box gets the month after tax and, beside it, the planner's
+ * before-tax figure itself ("…gross"), so Save writes that row to the pound. The person then saves, or cancels to put the steps back.
  */
 export function lumpEdits(c, rows, bands) {
   const sorted = rows.slice().sort((x, y) => +x.fromAge - +y.fromAge);
@@ -173,18 +193,18 @@ export function lumpEdits(c, rows, bands) {
   const ids = [...c.lists.steps.ids];
   const edits = [];
   const first = sorted[0], firstBefore = before[0];
-  if (+first.amount !== +firstBefore.amount) edits.push({ path: 'first.amount', value: String(monthlyNet(first.amount, bands)) });
+  if (+first.amount !== +firstBefore.amount) edits.push({ path: 'first.amount', value: String(monthlyNet(first.amount, bands)) }, { path: 'first.gross', value: String(r0(first.amount)) });
   if (thenOfRow(first) !== thenOfRow(firstBefore)) edits.push({ path: 'first.then', value: thenOfRow(first) });
   for (const row of sorted.slice(1)) {
     const card = cards.find((x) => x.values.fromAge === +row.fromAge);
     const old = before.find((x) => +x.fromAge === +row.fromAge);
     if (card) {
-      if (!old || +old.amount !== +row.amount) edits.push({ path: `steps.${card.id}.amount`, value: String(monthlyNet(row.amount, bands)) });
+      if (!old || +old.amount !== +row.amount) edits.push({ path: `steps.${card.id}.amount`, value: String(monthlyNet(row.amount, bands)) }, { path: `steps.${card.id}.gross`, value: String(r0(row.amount)) });
       if (old && thenOfRow(old) !== thenOfRow(row)) edits.push({ path: `steps.${card.id}.then`, value: thenOfRow(row) });
     } else {
       const id = nextNewId(ids);
       ids.push(id);
-      edits.push({ path: `steps.${id}.fromAge`, value: String(row.fromAge) }, { path: `steps.${id}.amount`, value: String(monthlyNet(row.amount, bands)) }, { path: `steps.${id}.then`, value: thenOfRow(row) });
+      edits.push({ path: `steps.${id}.fromAge`, value: String(row.fromAge) }, { path: `steps.${id}.amount`, value: String(monthlyNet(row.amount, bands)) }, { path: `steps.${id}.gross`, value: String(r0(row.amount)) }, { path: `steps.${id}.then`, value: thenOfRow(row) });
       if (+row.decline > 0) edits.push({ path: `steps.${id}.fallsPct`, value: String(+row.decline) });
     }
   }
@@ -257,6 +277,8 @@ export function checkSpend(plan, typed, { today }) {
   // the first row
   const fa = parseMoney(boxes['first.amount'], field('first.amount'));
   if (fa.error) errors['first.amount'] = fa.error; else values.first.amount = fa.value;
+  const fg = liftedGross(boxes['first.gross'], values.first.amount, b);
+  if (fg != null) values.first.gross = fg;
   const ft = parseField(boxes['first.then'], field('first.then'));
   if (ft.error) errors['first.then'] = ft.error; else values.first.then = ft.value;
   const applies = { 'first.amount': true, 'first.then': true, 'first.fallsPct': values.first.then === 'falls' };
@@ -278,6 +300,7 @@ export function checkSpend(plan, typed, { today }) {
         card.fields.push({ path, type: f.type, options: f.options || null, applies: on, shown: blank(raw) ? (f.type === 'choice' || f.default != null ? String(f.default) : '') : String(raw), saved: savedCard && savedCard[f.path] != null && savedCard[f.path] !== '' ? String(savedCard[f.path]) : null, error: r.error });
         if (r.error) errors[path] = r.error; else if (on) card.values[f.path] = r.value;
       }
+      if (L === 'steps') { const g = liftedGross(boxes[`steps.${id}.gross`], card.values.amount, b); if (g != null) card.values.gross = g; }
       const v = card.values;
       const mark = (f, e) => { errors[`${L}.${id}.${f}`] = e; const bx = card.fields.find((x) => x.path === `${L}.${id}.${f}`); if (bx) bx.error = e; delete v[f]; };
       if (L === 'steps' && v.fromAge != null && v.fromAge <= saved.first.fromAge) mark('fromAge', 'beforeStart');
@@ -304,8 +327,8 @@ export function checkSpend(plan, typed, { today }) {
   // the steps as they would be saved (8.3): before tax, in age order; and the schedule they compile to
   let shape = null, schedule = null;
   if (ok) {
-    // an amount left as saved keeps its saved before-tax figure (the planner's own row); a changed one is grossed up
-    const toRow = (v, fromAge, sv) => ({ fromAge, amount: sv && v.amount === sv.monthly ? sv.amount : yearlyGross(v.amount, b), decline: v.then === 'falls' ? v.fallsPct : 0, glideToNext: v.then === 'glides' });
+    // a lift's row keeps its before-tax figure; an amount left as saved keeps its saved one (the planner's own row); a changed one is grossed up
+    const toRow = (v, fromAge, sv) => ({ fromAge, amount: grossOfRow(v, sv, b), decline: v.then === 'falls' ? v.fallsPct : 0, glideToNext: v.then === 'glides' });
     const rows = [toRow(values.first, saved.first.fromAge, saved.first), ...lists.steps.cards.map((c) => toRow(c.values, c.values.fromAge, c.saved))].sort((x, y) => x.fromAge - y.fromAge);
     shape = rows;
     schedule = compiledSchedule(rows, rows[0].amount, saved.ss, saved.timing, saved.ageNow, saved.duration, saved.now);
@@ -319,7 +342,7 @@ const sameOn = (keys, a, b) => keys.every((k) => text(a[k] == null ? null : a[k]
 
 /** A step's row as the planner keeps it: merged onto the stored row (other keys kept), or new. */
 function stepRow(v, fromAge, storedRow, bands, sc = null) {
-  const amount = sc && v.amount === sc.monthly ? sc.amount : yearlyGross(v.amount, bands);
+  const amount = grossOfRow(v, sc, bands);
   const decline = v.then === 'falls' ? v.fallsPct : 0;
   const glide = v.then === 'glides';
   const out = { ...(storedRow || {}), fromAge, amount };
@@ -527,13 +550,13 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
   }));
   // beside each amount box: the before-tax figure the plan saves, and a later step's share of the start (and of the budget)
   const firstMonthly = c.values.first.amount != null ? c.values.first.amount : saved.first.monthly;
-  const firstGross = c.values.first.amount != null && c.values.first.amount !== saved.first.monthly ? yearlyGross(c.values.first.amount, b) : saved.first.amount;
+  const firstGross = c.values.first.gross != null ? c.values.first.gross : c.values.first.amount != null && c.values.first.amount !== saved.first.monthly ? yearlyGross(c.values.first.amount, b) : saved.first.amount;
   const share = (m, of) => (of > 0 && m != null ? Math.round((m / of) * 100) : null);
   const lists = {};
   for (const L of SPEND_LIST_IDS) {
     lists[L] = { ids: c.lists[L].ids, cards: c.lists[L].cards.map((card) => {
       const extra = {};
-      if (L === 'steps' && card.values.amount != null) extra.gross = pounds(card.saved && card.values.amount === card.saved.monthly ? card.saved.amount : yearlyGross(card.values.amount, b));
+      if (L === 'steps' && card.values.amount != null) extra.gross = pounds(grossOfRow(card.values, card.saved, b));
       if (L === 'steps' && card.values.amount != null) { extra.ofStart = share(card.values.amount, firstMonthly); extra.ofBudget = saved.budget.total ? share(card.values.amount, saved.budget.total) : null; }
       if (L === 'steps') { const lastByAge = c.lists.steps.cards.filter((x) => x.values.fromAge != null).sort((x, y) => x.values.fromAge - y.values.fromAge).pop(); extra.last = !!lastByAge && lastByAge.id === card.id; }
       if (L === 'costs' && card.values.amount != null && card.values.atAge != null) {

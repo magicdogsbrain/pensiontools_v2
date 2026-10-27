@@ -203,6 +203,25 @@ describe('"What you pay in": the settings whole, the record list whole', () => {
     p.stop();
   });
 
+  it('Undo of the saving step\'s Save is judged by the write (its toast marked op \'saving\'), not by the step the person is on: moved to About on the locked saver within the toast, Undo still puts the settings back', async () => {
+    const p = page({ raws: [SAVER], planId: SAVER.id, step: 'saving', typed: { escalationPct: '3' } });
+    const plan = p.store.getState().plans.list[0].plan;
+    p.store.dispatch({ type: A.PLAN_SAVE, planId: SAVER.id });
+    await tick();
+    expect(p.fb.writes.length).toBe(1);
+    expect(p.store.getState().ui.toast).toMatchObject({ kind: 'saved', op: 'saving', line: { id: 'saving' } });
+    p.store.dispatch({ type: A.PLANS_SET, list: [{ plan: applyPatch(plan, p.fb.writes[0].data), newer: false, failed: false }], source: 'account', readAt: '14:04' });
+    p.store.dispatch({ type: A.ROUTE_SET, route: parse('#/plan/' + SAVER.id + '/about') });
+    expect(p.store.getState().ui.toast, 'the toast stays: it belongs to the plan, not the step').toMatchObject({ kind: 'saved', op: 'saving' });
+    p.store.dispatch({ type: A.PLAN_UNDO, planId: SAVER.id });
+    await tick();
+    expect(p.store.getState().ui.saveProblem).toBe(null);
+    expect(p.fb.writes.length).toBe(2);
+    expect(p.fb.writes[1].data).toEqual({ 'accumulationTool.settings': SAVER.accumulationTool.settings, lastModified: SAVER.lastModified });
+    expect(p.store.getState().ui.toast).toMatchObject({ kind: 'undone' });
+    p.stop();
+  });
+
   it('"Record it" writes accumulationTool.history whole with the month added (recordPatch), nothing deleted; a wrong box writes nothing and says so', async () => {
     const typed = { 'record.month': '2026-10', 'record.pension': '325,000', 'record.isa': '41,900', 'record.gia': '' };
     const p = page({ raws: [SAVER], planId: SAVER.id, step: 'saving', typed });
@@ -210,8 +229,10 @@ describe('"What you pay in": the settings whole, the record list whole', () => {
     p.store.dispatch({ type: A.PLAN_RECORD, planId: SAVER.id });
     await tick();
     expect(p.fb.writes.length).toBe(1);
-    const want = recordPatch(plan, typed, { today: TODAY });
+    // the record is stamped at the moment of the write (the planner's recordAccumulationMonth: new Date()), not noon of today
+    const want = recordPatch(plan, typed, { today: TODAY, now: new Date(STAMP) });
     expect(p.fb.writes[0].data).toEqual({ ...want.patch, lastModified: STAMP });
+    expect(p.fb.writes[0].data['accumulationTool.history'].slice(-1)[0].recordedAt).toBe(STAMP);
     expect(p.fb.writes[0].data['accumulationTool.history'].length).toBe(SAVER.accumulationTool.history.length + 1);
     expect(p.store.getState().ui.toast).toMatchObject({ kind: 'saved', op: 'potRecord', line: { id: 'recorded' } });
     expect(p.store.getState().ui.toast.previous['accumulationTool.history']).toEqual(SAVER.accumulationTool.history);

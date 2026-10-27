@@ -165,7 +165,7 @@
     "s11-rows": {
       "short": "the remaining rows",
       "title": "Road step 11b (6.45.0): every remaining planned or designed row of the ledger — the budget on a saved plan, \"What you pay in\", the out-of-date draft, the State Pension date, where a lump sum lands and a lump sum into the steps, the picture's motion, the years one by one, the pots' floors and the named stresses on \"Does it last?\", \"Assumptions and data\"; the lock and month-by-month rows built on the classic page by the owner's decision; two retirements (research/v7/road-to-7.md step 11b)",
-      "source": "research/v7/road-to-7.md step 11b; owner, 17 Oct 2026 (the lock and month rows on the classic page)"
+      "source": "research/v7/road-to-7.md step 11b (the second half of Step 11; the brief for 11b); owner, 17 Oct 2026 (the lock and month rows on the classic page)"
     }
   },
   "keyNotes": {
@@ -1279,7 +1279,7 @@
       "status": "built",
       "doc": "research/v7/spending-shape.md §17.3",
       "step": "s11-rows",
-      "note": "Built on \"What you spend\" (6.45.0): each lump sum inside the plan's years with what it could support a year over the years left (the planner's spendLumpSum lifted pure as IncomeSchedule.lumpIntoSteps; index.html calls it), and \"Add £X a year from age N\" — the step in force at that age raised and every later one too, a new step where none starts there — as the cards' edits (the draft, nothing written) so Save writes the steps the planner makes; the lump sum stays as the money that pays for it. Test T16 of tests/v7/screens/shapeParity.test.js is the identity in tests/v7/plan/rows11bSteps.test.js.",
+      "note": "Built on \"What you spend\" (6.45.0): each lump sum inside the plan's years with what it could support a year over the years left (the planner's spendLumpSum lifted pure as IncomeSchedule.lumpIntoSteps; index.html calls it), and \"Add £X a year from age N\" — the step in force at that age raised and every later one too, a new step where none starts there — as the cards' edits (the draft, nothing written: each amount box the month after tax, the planner's before-tax figure riding beside it) so Save writes the steps the planner makes to the pound; the lump sum stays as the money that pays for it. Test T16 of tests/v7/screens/shapeParity.test.js is the identity in tests/v7/plan/rows11bSteps.test.js.",
       "files": [
         "src/answers/plan/spend.js",
         "src/v7/screens/plan/SpendScreen.jsx",
@@ -2724,7 +2724,7 @@
       "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.5",
       "step": "s11-rows",
-      "note": "Built on \"Does it last?\" (6.45.0), \"The named stresses — whole decades\": the famous decades (1929, 1973, 2000, 2008 — SCENARIO_START lifted into NamedStarts.js, the planner reads the same) each replayed from its January with the person's own plan (namedStartRows), what the decade did to shares and prices beside it (decadeFigures, lifted from the planner's decadeWords), and the made-up worst decade said apart with the hardest real start the test counted. The planner's post-6.24.0 explanation, no rival figure; the hand-over to the planner is gone.",
+      "note": "Built on \"Does it last?\" (6.45.0), \"The named stresses — whole decades\": the famous decades (1929, 1973, 2000, 2008 — SCENARIO_START lifted into NamedStarts.js, the planner reads the same) each replayed from its January with the person's own plan (namedStartRows), what the decade did to shares and prices beside it (decadeFigures, lifted from the planner's decadeWords), and the made-up worst decade said apart with the hardest real start the test counted. The planner's post-6.24.0 explanation, no rival figure; the hand-over to the planner is gone. For a contract plan (the full index-linked gilt ladder, the floored schedule: every year bought) each row carries the planner's inflation table too — prices after ten years, the cash the rungs would pay in the first and the tenth year under that decade's prices, the tenth year's real income unchanged (lastsRun.js contractCash, lifted from scenariosTabHtml), under the planner's own lead.",
       "files": [
         "src/answers/plan/lastsRun.js",
         "src/answers/plan/lasts.js",
@@ -3468,7 +3468,7 @@
       ],
       "status": "built",
       "step": "s11-rows",
-      "note": "Built on \"What you pay in\" (6.45.0): \"Record this month's pot\" — the month, the pension, the ISA (blank is no figure) and the other account; \"Record it\" writes accumulationTool.history whole with the month added (SaverReading.potRecordOf, the same month replaced, sorted, the last 600 kept), nothing deleted, with Undo; the records newest first. The plan page's \"Record this month's pot\" links here.",
+      "note": "Built on \"What you pay in\" (6.45.0): \"Record this month's pot\" — the month, the pension, the ISA (blank is no figure) and the other account; \"Record it\" writes accumulationTool.history whole with the month added (SaverReading.potRecordOf, the same month replaced, sorted, the last 600 kept), nothing deleted, with Undo; the records newest first. The plan page's \"Record this month's pot\" links here. The record is stamped at the moment of the write (the planner's new Date()), the one write file's clock handed to the pure writer.",
       "files": [
         "src/answers/plan/saving.js",
         "src/v7/screens/plan/SavingScreen.jsx",

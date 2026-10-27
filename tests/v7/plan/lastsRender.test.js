@@ -316,7 +316,13 @@ describe('the locked plans, a plan shown as saved, the household pair, a plan no
   const entries = entriesAt(TODAY);
   it('03 locked (a gilt ladder): the document\'s figure, today\'s beside it, no earlier-test line when they agree; "Fixed when…" once; no box; the plan page links "as locked"', () => {
     const result = fakeResult('full-il-gilt', { stored: { a: oneAnswer({ ...R, strategyId: 'full-il-gilt', cuts: null, ruin: { hist: 0, mc: 0 }, n: { hist: 1, mc: 1 } }, P), note: '' } });
+    // a contract plan's named stresses carry the planner's inflation figures (lastsRun.js contractCash): drawn as one more line, under the planner's lead
+    result.extras.scenarios[0] = { ...result.extras.scenarios[0], kind: 'contract', available: true, cash: { prices10: -0.21, cashFirst: 52000, cashTenth: 34760, realTenth: 44000, ageFirst: 58, ageTenth: 67 } };
+    result.extras.synthetic.cash = { prices10: 0.75, cashFirst: 52000, cashTenth: 73000, realTenth: 44000, ageFirst: 58, ageTenth: 67 };
     const { root, text } = draw(lastsState(entries, LADDER.id, { result }));
+    expect(root.querySelector('[data-testid="plan.lasts.scenarios"] li').textContent).toBe('1929 — Great Depression: shares down 64% in the first three years and down 39% over the decade; prices down 21% over the decade. every year is bought by contract — the start year changes nothing but the pounds that arrive. prices down 21% after ten years: the rungs would pay £52,000 at 58 and £34,760 at 67, which still buys £44,000 at today’s prices — paid in full by contract');
+    expect(root.querySelector('[data-testid="plan.lasts.synthetic"]').textContent).toContain('the rungs would pay £52,000 at 58 and £73,000 at 67');
+    expect(text).toContain('So the test here is prices');
     expect(root.querySelector('input, select, textarea')).toBe(null);
     expect((text.match(/Fixed when you locked the plan on 1 July 2026\./g) || []).length).toBe(1);
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);

@@ -16,7 +16,7 @@ import { createSimulationConfigFromSettings } from '../../../src/storage/StressR
 import { planFromSettings, stressTestStrategy } from '../../../src/strategies/stressTest.js';
 import { realYieldForYear } from '../../../src/services/LinkerUniverse.js';
 import { oneAnswer, worstStarts, earlierTestNote } from '../../../src/services/OneAnswer.js';
-import { namedStartRows, SCENARIO_STARTS, decadeFigures } from '../../../src/services/NamedStarts.js';
+import { namedStartRows, SCENARIO_STARTS, decadeFigures, CONTRACT } from '../../../src/services/NamedStarts.js';
 import { generateDrawdownSchedule } from '../../../src/services/DrawdownService.js';
 import { generateGlidepathSchedule } from '../../../src/services/GlidepathService.js';
 import { SCENARIOS } from '../../../src/constants.js';
@@ -58,6 +58,14 @@ describe('L2 — the one test in the preview equals the planner\'s, to the pound
         expect(out.a.chancePct).toBe(doc.chancePct);
         expect(out.a.typicalLeft).toBe(doc.typicalLeft);
         expect(out.stored.note).toBe('');
+        // a contract plan: each named stress carries the planner's inflation table (oneAnswerView.js scenariosTabHtml, lifted as contractCash):
+        // prices after ten years, the cash the rungs would pay in the first and the tenth year under that decade's prices, the tenth year's real income unchanged
+        const years = plan.planDocument.strategy.r.plan.years;
+        const cashFor = (sc) => { const cp = [1]; for (let i = 1; i < years.length; i++) cp.push(cp[i - 1] * (1 + (sc.inflation[i - 1] ?? 0.025))); return { prices10: cp[10] - 1, cashFirst: Math.round(years[0].gross), cashTenth: Math.round(years[9].gross * cp[9]), realTenth: Math.round(years[9].gross), ageFirst: years[0].age, ageTenth: years[9].age }; };
+        expect(out.extras.scenarios.length).toBe(SCENARIO_STARTS.length);
+        for (const row of out.extras.scenarios) { expect(row.kind).toBe('contract'); expect(row.cash).toEqual(cashFor(SCENARIOS[row.key])); }
+        expect(out.extras.synthetic.cash).toEqual(cashFor(SCENARIOS.SYNTHETIC_WORST));
+        expect(out.extras.scenarios.find((row) => row.key === 'STAGFLATION_70S').cash.cashTenth).toBeGreaterThan(years[9].gross * 1.9);   // the 1970s: prices more than doubled over the decade
         return;
       }
       if (!ref.a) { expect(out.a).toBe(null); expect(out.reason).toBe(ref.r.reason || null); return; }
@@ -98,6 +106,8 @@ describe('L2 — the one test in the preview equals the planner\'s, to the pound
       }
       expect(x.scenarios.map((r) => [r.key, r.year, r.kind, !!r.available, !!r.failed])).toEqual(namedStartRows(ref.sid, ref.p, SCENARIO_STARTS).map((r, i) => [SCENARIO_STARTS[i].key, r.year, r.kind, !!r.available, !!r.failed]));
       expect(x.scenarios.map((r) => r.decade)).toEqual(SCENARIO_STARTS.map((st) => decadeFigures(SCENARIOS[st.key])));
+      // the inflation figures are a contract plan's alone
+      for (const row of x.scenarios) expect('cash' in row, ref.sid).toBe(CONTRACT.includes(ref.sid) && !!(ref.r && ref.r.plan && Array.isArray(ref.r.plan.years)));
       expect(x.synthetic.name).toBe(SCENARIOS.SYNTHETIC_WORST.name);
       expect(x.synthetic.hardest).toEqual(worstStarts(ref.r.histWindows, 1).map((w) => ({ year: w.year, month: w.month || null }))[0] || null);
       // the cuts setting the run used, in the words' slots

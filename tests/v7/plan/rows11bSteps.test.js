@@ -16,7 +16,7 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { aboutOf, aboutPatch, staleOf, stalePatch, applyPatch, checkAbout } from '../../../src/answers/plan/about.js';
 import { incomeOf, incomePatch, checkIncome, boxesOf, landingOf, savedIncome } from '../../../src/answers/plan/income.js';
-import { spendOf, checkSpend, spendPatch, lumpEdits, savedSpend } from '../../../src/answers/plan/spend.js';
+import { spendOf, checkSpend, spendPatch, lumpEdits, savedSpend, monthlyNet, yearlyGross, boxesOf as spendBoxesOf } from '../../../src/answers/plan/spend.js';
 import { lumpIntoSteps, amountAtAge } from '../../../src/services/IncomeSchedule.js';
 import { staleDraft, taxYearStartOf } from '../../../src/services/PlanTiming.js';
 import { routeWindfall, GIA_DEFAULTS } from '../../../src/services/TaxableSleeve.js';
@@ -234,7 +234,7 @@ describe('income.lump-to-steps — "Turn a lump sum into income"', () => {
     expect(late.years).toBe(1); expect(late.perYear).toBe(30000);
   });
 
-  it('12: the spend step offers each lump sum inside the plan\'s years with what it could support; the edits make the cards equal the steps the planner makes, and Save writes them', () => {
+  it('12: the spend step offers each lump sum inside the plan\'s years with what it could support; the edits make the cards equal the steps the planner makes, and Save writes them to the pound', () => {
     const plan = planOf(C['12-lumpy-db-gia']);
     const s = savedSpend(plan, { today: TODAY });
     expect(s.lumps.map((l) => [l.label, l.amount, l.atAge])).toEqual([['Inherited pension', 120000, s.ageNow + 4], ['Downsizing', 90000, s.ageNow + 9]]);
@@ -246,18 +246,32 @@ describe('income.lump-to-steps — "Turn a lump sum into income"', () => {
       expect(l.years).toBe(r.years);
       expect(l.perYear).toBe('£' + r.perYear.toLocaleString('en-GB'));
       expect(Array.isArray(l.edits)).toBe(true);
-      // the cards after the edits: the same ages as the planner's steps, each amount within the month's rounding of its before-tax figure
+      // the cards after the edits: the planner's steps exactly — each box says the month after tax and the before-tax figure
+      // rides beside it (first.gross, steps.<id>.gross), so the write is the planner's row to the pound, not the box grossed up
       const typed = Object.fromEntries(l.edits.map((e) => [e.path, e.value]));
       const c = checkSpend(plan, typed, { today: TODAY });
       expect(c.ok, JSON.stringify(c.errors)).toBe(true);
       const want = r.steps.slice().sort((a, b2) => a.fromAge - b2.fromAge);
-      expect(c.shape.map((x) => x.fromAge)).toEqual(want.map((x) => x.fromAge));
-      c.shape.forEach((x, i) => { expect(Math.abs(x.amount - want[i].amount) / want[i].amount, `step at ${x.fromAge}`).toBeLessThan(0.005); expect(!!x.glideToNext).toBe(!!want[i].glideToNext); });
+      expect(c.shape.map((x) => [x.fromAge, x.amount, !!x.glideToNext])).toEqual(want.map((x) => [x.fromAge, x.amount, !!x.glideToNext]));
       const p = spendPatch(plan, typed, { today: TODAY });
       expect(p.ok).toBe(true);
       expect(Object.keys(p.patch).length).toBeGreaterThan(0);
       for (const k of Object.keys(p.patch)) expect(SPEND_WRITES).toContain(k);
-      expect(p.patch['stressTool.settings.incomeSteps'].map((x) => x.fromAge)).toEqual(want.map((x) => x.fromAge));
+      expect(p.patch['stressTool.settings.incomeSteps'].map((x) => [x.fromAge, x.amount])).toEqual(want.map((x) => [x.fromAge, x.amount]));
+      // the figure beside the box on screen is the planner's row too
+      const shown = spendOf([{ plan }], plan.id, { today: TODAY, typed });
+      for (const card of shown.lists.steps.cards) { const fa = +card.fields.find((f) => /\.fromAge$/.test(f.path)).shown; const w = want.find((x) => x.fromAge === fa); if (w) expect(card.gross, `beside the box at ${fa}`).toBe('£' + w.amount.toLocaleString('en-GB')); }
+      // a figure typed over a lifted box is grossed up as ever: the lift's figure no longer rides with it
+      const lifted = l.edits.find((e) => /^steps\..+\.gross$/.test(e.path));
+      if (lifted) {
+        const id = lifted.path.split('.')[1];
+        const box = `steps.${id}.amount`;
+        const age = +(typed[`steps.${id}.fromAge`] != null ? typed[`steps.${id}.fromAge`] : spendBoxesOf(plan, { today: TODAY })[`steps.${id}.fromAge`]);
+        const over = { ...typed, [box]: String(+typed[box] + 50) };
+        const c2 = checkSpend(plan, over, { today: TODAY });
+        expect(c2.ok, JSON.stringify(c2.errors)).toBe(true);
+        expect(c2.shape.find((x) => x.fromAge === age).amount).toBe(yearlyGross(+typed[box] + 50, s.bands));
+      }
     }
     // a lump sum at an age no step starts at makes a new card; at a step's own age it raises that step and makes none
     for (const l of v.lumps) expect(!!l.edits.find((e) => e.path === 'steps.ids'), `at ${l.age}`).toBe(!s.plainSteps.some((x) => x.fromAge === l.age));
@@ -284,7 +298,13 @@ describe('income.lump-to-steps — "Turn a lump sum into income"', () => {
       }
       const c = checkSpend(plan, {}, { today: TODAY });
       const edits = lumpEdits(c, r.steps, s.bands);
-      for (const e of edits) expect(e.path).toMatch(/^(first\.(amount|then)|steps\.(ids|[a-z0-9]+\.(fromAge|amount|then|fallsPct)))$/);
+      for (const e of edits) expect(e.path).toMatch(/^(first\.(amount|gross|then)|steps\.(ids|[a-z0-9]+\.(fromAge|amount|gross|then|fallsPct)))$/);
+      // every before-tax figure handed beside a box is that box's month after tax, and the steps the edits make are the planner's to the pound
+      const typed = Object.fromEntries(edits.map((e) => [e.path, e.value]));
+      for (const e of edits.filter((x) => /\.gross$/.test(x.path))) expect(String(monthlyNet(+e.value, s.bands))).toBe(typed[e.path.replace(/\.gross$/, '.amount')]);
+      const after = checkSpend(plan, typed, { today: TODAY });
+      expect(after.ok, JSON.stringify(after.errors)).toBe(true);
+      expect(after.shape.map((x) => [x.fromAge, x.amount])).toEqual(r.steps.slice().sort((a, b) => a.fromAge - b.fromAge).map((x) => [x.fromAge, x.amount]));
     }), { numRuns: 40 });
   });
 });

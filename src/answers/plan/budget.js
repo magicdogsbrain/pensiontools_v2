@@ -156,7 +156,7 @@ export function checkBudget(plan, entries, typed, { today }) {
         i,
         label: note(box(pb + '.label', t, r && r.label != null ? String(r.label) : '', parseText, (v) => ({ kind: 'part', id, i, field: 'label', value: v }))),
         amount: note(box(pb + '.amount', t, r && r.amount != null && r.amount !== '' ? String(r.amount) : '', parseAmount, (v) => ({ kind: 'part', id, i, field: 'amount', value: v }))),
-        period: note(box(pb + '.period', t, r && r.period === 'yr' ? 'yr' : 'mo', parsePeriod, (v) => ({ kind: 'part', id, i, field: 'period', value: v })))
+        period: note(box(pb + '.period', t, r && r.period === 'mo' ? 'mo' : 'yr', parsePeriod, (v) => ({ kind: 'part', id, i, field: 'period', value: v })))   // no period saved reads as a year: BudgetModel.breakdownAnnual sums it so, the planner's panel shows it so
       };
     });
     const partsOpen = t[base + '.open'] != null ? t[base + '.open'] === '1' : !!l.breakdownOpen;

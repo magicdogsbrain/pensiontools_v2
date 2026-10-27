@@ -442,8 +442,8 @@ describe('S1 — the sub-step, the address and the plan page\'s section', () => 
   it('the fields, the cards and their words line up; the draft paths; the declared writes are the planner\'s shape and cost keys', () => {
     for (const f of SPEND_FIELDS) expect(SPEND.errors[f.path], f.path).toBeTruthy();
     for (const [L, spec] of Object.entries(SPEND_LISTS)) for (const f of spec.fields) { expect(SPEND[L].fields[f.path].label, `${L}.${f.path}`).toBeTypeOf('string'); if (f.type === 'choice' && f.path !== 'then') for (const o of f.options) expect(SPEND[L].fields[f.path].options[o]).toBeTypeOf('string'); }
-    for (const p of ['first.amount', 'first.then', 'first.fallsPct', 'steps.ids', 'steps.0.fromAge', 'steps.n12.then', 'steps.3.fallsPct', 'costs.ids', 'costs.n1.prices', 'costs.0.years']) expect(isSpendPath(p), p).toBe(true);
-    for (const p of ['first', 'first.age', 'steps', 'steps.ids.x', 'steps.0.label', 'costs.a.amount', 'lumps.0.amount', 'steps.0.amount.x', 'costs.n1234.amount']) expect(isSpendPath(p), p).toBe(false);
+    for (const p of ['first.amount', 'first.then', 'first.fallsPct', 'steps.ids', 'steps.0.fromAge', 'steps.n12.then', 'steps.3.fallsPct', 'costs.ids', 'costs.n1.prices', 'costs.0.years', 'first.gross', 'steps.n3.gross']) expect(isSpendPath(p), p).toBe(true);
+    for (const p of ['first', 'first.age', 'steps', 'steps.ids.x', 'steps.0.label', 'costs.a.amount', 'lumps.0.amount', 'steps.0.amount.x', 'costs.n1234.amount', 'costs.0.gross', 'first.gross.x', 'steps.gross']) expect(isSpendPath(p), p).toBe(false);
     expect(isPlanEditPath('first.amount')).toBe(true);
     expect(isPlanEditPath('costs.0.atAge')).toBe(true);
     expect(isPlanEditPath('age')).toBe(true);

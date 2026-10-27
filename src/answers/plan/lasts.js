@@ -349,13 +349,15 @@ export function extrasView(x) {
   const glidepath = x.glidepath && Array.isArray(x.glidepath.rows) ? { tent: !!x.glidepath.tent, diversifiers: !!x.glidepath.diversifiers, reserve: !!x.glidepath.reserve,
     rows: x.glidepath.rows.map((r) => ({ year: r.year, age: r.age, shares: pounds(r.shares), bonds: pounds(r.bonds), cash: pounds(r.cash), diversifiers: pounds(r.diversifiers), reserve: pounds(r.reserve), sharesPct: String(r.sharesPct), isa: r.isa == null ? '' : pounds(r.isa), total: pounds(r.total), raw: { total: r.total, sharesPct: r.sharesPct } })) } : null;
   const own = Array.isArray(x.own) ? x.own.map((r) => ({ year: r.year, age: r.age, incomeMid: pounds(r.incomeMid), incomeBad: pounds(r.incomeBad), leftMid: pounds(r.leftMid), raw: { incomeMid: r.incomeMid, leftMid: r.leftMid } })) : null;
+  // a contract plan's row carries the planner's inflation figures too (lastsRun.js contractCash): one more line, as slots
+  const cashOf = (c) => { const p = move(c.prices10); return { id: 'cash.line', slots: { pricesDir: p.dir, pricesPct: p.pct, first: pounds(c.cashFirst), firstAge: String(c.ageFirst), tenth: pounds(c.cashTenth), tenthAge: String(c.ageTenth), worth: pounds(c.realTenth) } }; };
   const scenarios = Array.isArray(x.scenarios) ? x.scenarios.map((row) => {
     const d = row.decade || { first: 0, decade: 0, prices: 0 };
     const f = move(d.first), e = move(d.decade), c = move(d.prices);
-    return { ...startRow(row), key: row.key || null, decade: { id: 'decade.line', slots: { firstDir: f.dir, firstPct: f.pct, decadeDir: e.dir, decadePct: e.pct, pricesDir: c.dir, pricesPct: c.pct } } };
+    return { ...startRow(row), key: row.key || null, decade: { id: 'decade.line', slots: { firstDir: f.dir, firstPct: f.pct, decadeDir: e.dir, decadePct: e.pct, pricesDir: c.dir, pricesPct: c.pct } }, ...(row.cash ? { cash: cashOf(row.cash) } : {}) };
   }) : [];
   const sy = x.synthetic || null;
-  const synthetic = sy ? (() => { const f = move(sy.decade.first), e = move(sy.decade.decade), c = move(sy.decade.prices); const when = sy.hardest ? (sy.hardest.month ? MONTHS[sy.hardest.month - 1] + ' ' : '') + sy.hardest.year : null; return { name: sy.name, decade: { id: 'decade.line', slots: { firstDir: f.dir, firstPct: f.pct, decadeDir: e.dir, decadePct: e.pct, pricesDir: c.dir, pricesPct: c.pct } }, hardest: when }; })() : null;
+  const synthetic = sy ? (() => { const f = move(sy.decade.first), e = move(sy.decade.decade), c = move(sy.decade.prices); const when = sy.hardest ? (sy.hardest.month ? MONTHS[sy.hardest.month - 1] + ' ' : '') + sy.hardest.year : null; return { name: sy.name, decade: { id: 'decade.line', slots: { firstDir: f.dir, firstPct: f.pct, decadeDir: e.dir, decadePct: e.pct, pricesDir: c.dir, pricesPct: c.pct } }, hardest: when, ...(sy.cash ? { cash: cashOf(sy.cash) } : {}) }; })() : null;
   return { prices: String(Math.round((+x.prices || 0) * 1000) / 10), schedule, glidepath, own, scenarios, synthetic, years: Array.isArray(x.schedule) ? x.schedule.length : Array.isArray(x.own) ? x.own.length : 0 };
 }
 

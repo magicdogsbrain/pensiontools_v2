@@ -197,7 +197,9 @@ describe('the words in src/v7/copy/', () => {
       // Try a change (way-and-mix.md 4): the way, the pots, the policy, the income, the old figure, on or off, "instead of your steps"
       .replace(/\{way\}/g, 'Floor to an age, then decide').replace(/\{(pot|isa|income)\}/g, '£500,000').replace(/\{old\}/g, '35').replace(/\{policy\}/g, 'held back, never drawn for income').replace(/\{on\}/g, 'on').replace(/\{steps\}/g, ' instead of your steps')
       // the named stresses and the years one by one (road-to-7.md step 11b): the prices assumed, what a decade did, the hardest start
-      .replace(/\{prices\}/g, '2.5').replace(/\{(firstDir|decadeDir|pricesDir)\}/g, 'down').replace(/\{(firstPct|decadePct|pricesPct)\}/g, '45').replace(/\{decade\}/g, 'shares down 45% in the first three years').replace(/\{when\}/g, 'September 1929');
+      .replace(/\{prices\}/g, '2.5').replace(/\{(firstDir|decadeDir|pricesDir)\}/g, 'down').replace(/\{(firstPct|decadePct|pricesPct)\}/g, '45').replace(/\{decade\}/g, 'shares down 45% in the first three years').replace(/\{when\}/g, 'September 1929')
+      // a contract plan's inflation figures (the gilt ladder's table): the cash at two ages, what it still buys
+      .replace(/\{(firstAge|tenthAge)\}/g, '67').replace(/\{(tenth|worth)\}/g, '£44,000');
     const hits = [];
     const all = strings(LASTS).map(([, s]) => slot(s)).join('\n');
     for (const [where, s] of strings(LASTS)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`lasts.js ${where} — ${h}`);

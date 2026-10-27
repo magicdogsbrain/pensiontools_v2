@@ -803,7 +803,12 @@ export function withSuggestion(budget, label, idOf) {
 
 /** A spreadsheet's rows laid over the budget (importBudgetCsvFile's apply): the settings merged, the lines and one-offs replaced, each with a fresh id. */
 export function importedBudget(budget, parsed, idOf) {
-  const b = { ...budget, ...(parsed.settings || {}) };
+  // the sheet's settings over the budget's — except an age its Setting row left blank (parseBudgetCsv reads a blank amount as
+  // null): the Budget page's age boxes keep their figure for a null and are read back on save (syncHorizonFromInputs), so the
+  // budget's own age stays, in the planner and the preview alike
+  const settings = { ...(parsed.settings || {}) };
+  for (const k of ['currentAge', 'retirementAge', 'endAge']) if (settings[k] == null) delete settings[k];
+  const b = { ...budget, ...settings };
   b.lines = (parsed.lines || []).map((l) => ({ ...l, id: idOf() }));
   b.oneOffs = (parsed.oneOffs || []).map((o) => ({ ...o, id: idOf() }));
   return b;

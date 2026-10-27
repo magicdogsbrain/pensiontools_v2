@@ -322,5 +322,35 @@ describe('gate 11b — the budget saved from the preview is what the planner\'s 
     const parsed = parseBudgetCsv(budgetToCsv({ ...r, currentAge: 52, plsaTier: 'comfortable' }), noon(TODAY));
     const i = importedBudget(b, parsed, idMaker(b));
     expect(i.currentAge).toBe(52); expect(i.plsaTier).toBe('comfortable'); expect(i.lines.length).toBe(r.lines.length);
+    // a Setting row with a blank amount (parseBudgetCsv: null) keeps the budget's own age, as the planner's page does (its age boxes skip a null and are read back on save)
+    const blankAge = parseBudgetCsv(budgetToCsv({ ...r, currentAge: 52 }).replace(/^(Setting,,Current age,)\d+/m, '$1'), noon(TODAY));
+    expect(blankAge.settings.currentAge).toBe(null);
+    const j = importedBudget(b, blankAge, idMaker(b));
+    expect(j.currentAge).toBe(50); expect(j.retirementAge).toBe(61); expect(j.lines.length).toBe(r.lines.length);
+  });
+
+  it('"Replace the budget with it": a sheet whose age rows are blank keeps the budget\'s own ages in the write (the planner re-reads its age boxes, which a null never changed)', () => {
+    const plan = entryOf(withBudget(C['12-lumpy-db-gia'])).plan;
+    const entries = [{ plan }];
+    const B = normalisedBudget(readBudget(plan, entries).budget);
+    const text = budgetToCsv(B).replace(/^(Setting,,Current age,)\d+/m, '$1').replace(/^(Setting,,Plan to age,)\d+/m, '$1');
+    expect(parseBudgetCsv(text, noon(TODAY)).settings).toMatchObject({ currentAge: null, endAge: null });
+    const w = budgetPatch(plan, entries, { kind: 'spreadsheet', text }, { today: TODAY });
+    expect(w.ok).toBe(true);
+    const next = w.writes[0].patch['budgetTool.settings'];
+    expect([next.currentAge, next.retirementAge, next.endAge]).toEqual([B.currentAge, B.retirementAge, B.endAge]);
+    expect(next.lines.length).toBe(B.lines.length);
+  });
+
+  it('a breakdown part with no saved period reads as a year: the period its amount is summed at (BudgetModel.breakdownAnnual) and the one the planner\'s panel shows', () => {
+    const raw = withBudget(C['12-lumpy-db-gia']);
+    const line = raw.budgetTool.settings.lines.find((l) => Array.isArray(l.breakdown) && l.breakdown.length);
+    line.breakdown.push({ label: 'Older part', amount: 240 });   // a row a hand or an older page made: no period
+    line.annual = breakdownAnnual(line.breakdown);
+    const plan = entryOf(raw).plan;
+    const c = checkBudget(plan, [{ plan }], {}, { today: TODAY });
+    const l = c.lines.find((x) => x.id === String(line.id));
+    expect(l.parts.map((p) => p.period.shown)).toEqual(['yr', 'mo', 'yr']);
+    expect(l.partsTotal).toBe(450 + 80 * 12 + 240);
   });
 });

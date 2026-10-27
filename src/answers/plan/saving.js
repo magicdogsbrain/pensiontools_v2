@@ -14,9 +14,10 @@
  *   checkSaving(plan, typed, { today })      text as typed → { ok, values, errors, applies, saved }
  *   savingPatch(plan, typed, { today })      → { ok, errors, patch, previous }: the whole accumulationTool.settings, written as
  *                                            saveActiveAccumulation writes it (the planner's nine keys), or nothing when unchanged
- *   recordPatch(plan, typed, { today })      → { ok, errors, patch, previous, line }: "Record this month's pot" — the record
+ *   recordPatch(plan, typed, { today, now }) → { ok, errors, patch, previous, line }: "Record this month's pot" — the record
  *                                            list with this month's record added (recordAccumulationMonth, line for line:
- *                                            potRecordOf, the same month replaced, sorted, the last 600 kept); nothing deleted
+ *                                            potRecordOf stamped at `now`, the moment of the record; the same month replaced,
+ *                                            sorted, the last 600 kept); nothing deleted
  *   savingOf(entries, id, { today, typed })  everything the screen draws
  *
  * Every path written is in schema.js SAVING_WRITES (tested). Both writes are outside the lock (LockedPlanGuard.js), as the
@@ -151,16 +152,18 @@ export function savingPatch(plan, typed, { today }) {
 
 /**
  * "Record this month's pot" (index.html recordAccumulationMonth, line for line): the month and the three pots → one record
- * (SaverReading.potRecordOf: a blank ISA box is no figure, not £0), the list without that month's old record, this one added,
- * sorted by month, the last 600 kept — the whole list as ONE write. Nothing is ever deleted here.
+ * (SaverReading.potRecordOf: a blank ISA box is no figure, not £0), stamped at `now` — the moment of the record, the planner's
+ * `new Date()`, handed in by the one write file (noon of `today` only when none is given) — the list without that month's old
+ * record, this one added, sorted by month, the last 600 kept — the whole list as ONE write. Nothing is ever deleted here.
  */
-export function recordPatch(plan, typed, { today }) {
+export function recordPatch(plan, typed, { today, now = null }) {
   const c = checkSaving(plan, typed, { today });
   const errors = Object.fromEntries(Object.entries(c.errors).filter(([k]) => k.startsWith('record.')));
   if (Object.keys(errors).length) return { ok: false, errors, patch: {}, previous: {}, line: null };
   const date = c.values['record.month'];
   if (!date) return { ok: false, errors: { 'record.month': 'required' }, patch: {}, previous: {}, line: null };
-  const rec = potRecordOf({ date, sipp: c.values['record.pension'], isa: c.values['record.isa'] == null ? '' : c.values['record.isa'], gia: c.values['record.gia'] }, c.saved.now);
+  const at = now instanceof Date && Number.isFinite(now.getTime()) ? now : c.saved.now;
+  const rec = potRecordOf({ date, sipp: c.values['record.pension'], isa: c.values['record.isa'] == null ? '' : c.values['record.isa'], gia: c.values['record.gia'] }, at);
   if (!rec) return { ok: false, errors: { 'record.pension': 'nothingToRecord' }, patch: {}, previous: {}, line: null };
   const list = c.saved.hist.filter((r) => r.date !== date).concat([rec]).sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(-RECORDS_KEPT);
   const cur = get(plan, 'accumulationTool.history');

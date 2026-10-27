@@ -36,7 +36,7 @@ export const NEWS = {
   },
   /** The reconstructed history under the curated notes. */
   historyTitle: 'Before release notes',
-  historyLead: 'Reconstructed from the history of changes — grouped by theme and dated by the last change in each group, so the dates are approximate and the lists are not complete.',
+  historyLead: 'Reconstructed from the history of changes — grouped by theme and dated by the last change in each group, so the dates are near enough and the lists are not complete.',
   show: 'Show',
   hide: 'Hide'
 };

@@ -660,8 +660,11 @@ describe('7 — today, byte for byte', () => {
   // gains it; taken out, today's (tests/v7/shared/answers.flat.test.js holds who it is said to)
   // …and "How your savings grow" under the savings box (6.22.0), once there is money in savings: taken out, today's
   // …and "Your plans" in every header (research/v7/your-plan.md 1.1): taken out, today's
+  // …and 6.44.0 (road-to-7.md step 11): "Your account" in every header and "What's new" in every footer — taken out — and the
+  // product's name on every screen ("Drawdown Planner" for "PensionTools": the brand, the footer's two lines), so the pinned
+  // drawings were re-pinned once more (V7_PIN_TODAY=1, V7_PIN_SCREENS=1) at 6.44.0
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
-    '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]'];
+    '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]'];
   const hash = (html) => createHash('sha256').update(html).digest('hex').slice(0, 32);
   // …but the states that hold savings: their answers moved with how savings grow (6.22.0, "Mostly cash" unless chosen,
   // where every answer grew them at a fixed 3% a year), so they draw what 6.22.0 draws — pinned, with the reason, in

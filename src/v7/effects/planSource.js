@@ -42,6 +42,7 @@ import { getFirestore, collection, getDocs } from 'firebase/firestore/lite';
 import { firebaseConfig, isFirebaseConfigured } from '../../firebase/projectConfig.js';
 import { upgradeScenario } from '../../firebase/scenarioMigration.js';
 import { readMinutes, isBlocked } from '../../services/GuestMeter.js';
+import { guestOwnPlans } from '../../services/GuestPlans.js';
 import { A } from '../state/actions.js';
 import { lastActivity, IDLE_MS } from './activity.js';
 import { planRows, planPage } from '../../answers/plan/read.js';
@@ -56,6 +57,7 @@ import { householdOf } from '../../answers/plan/household.js';
 import { holdOf } from '../../answers/plan/hold.js';
 import { moveOf } from '../../answers/plan/move.js';
 import { startPlanWrite } from './planWrite.js';
+import { startAccount } from './account.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
 export const APP_NAME = 'pt-preview';
@@ -160,7 +162,7 @@ export function viewFor(state) {
  * @param {object} [o.fb]             the Firebase functions (the tests hand in fakes); the real ones otherwise
  * @param {object} [o.client]         the worker client (effects/workerClient.js): the lock runs the plan's own test in it before its one write
  */
-export function startPlanSource(store, { win, local = null, session = null, now = () => new Date(), fb = null, fbWrite = null, client = null }) {
+export function startPlanSource(store, { win, local = null, session = null, now = () => new Date(), fb = null, fbWrite = null, fbAccount = null, client = null }) {
   const F = fb || { initializeApp, getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged, signOut, getFirestore, collection, getDocs, isFirebaseConfigured };
   const stops = [];
   let user = undefined;          // undefined: not known yet; null: nobody
@@ -221,13 +223,15 @@ export function startPlanSource(store, { win, local = null, session = null, now 
       user = u || null;
       if (!u) {
         dispatch({ type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
-        void was;                                               // a signed-in person becoming nobody is a sign-out: the plans left already
-        readWindow();
+        readWindow();                                           // a signed-in person becoming nobody is a sign-out: the plans left already
       } else if (!u.emailVerified) {
         dispatch({ type: A.SESSION_SET, session: { kind: 'unverified', email: u.email || null } });
       } else {
         dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: u.email || null } });
         readAccount();
+        // a sign-in made while this page was open, with plans of the person's own in this window (road-to-7.md step 11): the
+        // hand-over is offered ("Bring in what you built without an account?"); the example plan never counts
+        if (was === null) { const own = guestOwnPlans(windowPlans(session)); if (own.length) dispatch({ type: A.GUEST_OFFER, count: own.length }); }
       }
     });
     stops.push(() => { try { off(); } catch { /* already gone */ } });
@@ -247,10 +251,10 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   refresh(store.getState());
 
   // Editing (editing-in-v7.md 1): the one write file, with this file's handle, user and a fresh read before an account write.
-  stops.push(startPlanWrite(store, {
-    win, session, local, now, fb: fbWrite, client,
-    handles: () => ({ db, user: user || null, reread: () => (user && db ? readAccount() : Promise.resolve()) })
-  }));
+  const handles = () => ({ auth, db, user: user || null, reread: () => (user && db ? readAccount() : Promise.resolve()) });
+  stops.push(startPlanWrite(store, { win, session, local, now, fb: fbWrite, client, handles }));
+  // The account page and What's new (road-to-7.md step 11): the account effect, with the same handles.
+  stops.push(startAccount(store, { win, local, session, now, fb: fbAccount, handles }));
 
   // "Read again" / "Try again" (plans/reading) and "Sign out" (session/out).
   stops.push(store.subscribe((state, action) => {

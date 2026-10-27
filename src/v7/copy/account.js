@@ -19,7 +19,7 @@ export const ACCOUNT = {
   },
   download: {
     title: 'A copy of everything',
-    note: 'One file holding every plan in your account and your settings, saved on your own computer. Nothing is sent anywhere.',
+    note: 'One file with every plan in your account and your settings, saved on your own computer. Nothing is sent anywhere.',
     button: 'Download everything',
     done: 'Downloaded: {file}.'
   },

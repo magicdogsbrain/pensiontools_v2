@@ -539,3 +539,41 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .shape-plot .mark polygon { fill: var(--text); }
 .shape-plot .mark-out polygon { fill: var(--chart-below); }
 .shape-marks { margin: 0 0 6px; font-size: var(--size-small); }
+
+/* ---- the shell for 7.0 (research/v7/road-to-7.md step 11): the plan menu, the account page, the shell's boxes, What's new ---- */
+.plan-row { flex-wrap: wrap; }
+.plan-row-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
+.plan-tag { font-weight: 500; color: var(--text-muted); font-size: var(--size-small); }
+.plan-menu { display: flex; flex-wrap: wrap; gap: 0 4px; width: 100%; }
+.plan-menu .btn-quiet { padding-left: 6px; padding-right: 6px; }
+.plan-menu-box { width: 100%; margin: 6px 0 4px; }
+.plan-menu-box .field { margin: 0 0 10px; }
+.plan-working { width: 100%; margin: 4px 0; }
+.plan-banner { margin: 0 0 12px; }
+.plan-under { border-top: 1px solid var(--line); padding-top: 14px; }
+.field-file input[type="file"] { font: inherit; color: var(--text); min-height: var(--target); max-width: 100%; }
+.field-email input, .field-password input {
+  font: inherit; color: var(--text); background: var(--surface-page); border: 2px solid var(--line-strong); border-radius: var(--radius-sm);
+  min-height: var(--target); padding: 8px 12px; width: 100%; max-width: 22rem;
+}
+.account-form { margin: 0 0 12px; }
+.account-section { margin: 18px 0 0; }
+.shell-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 10px;
+  max-width: min(92vw, 560px); padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface-card); color: var(--text); border: 1px solid var(--line); }
+.shell-toast-message { flex: 1 1 auto; min-width: 0; }
+.shell-overlay { position: fixed; inset: 0; z-index: 60; background: var(--surface-page); display: flex; align-items: center; justify-content: center; padding: 16px; overflow: auto; }
+.shell-box { background: var(--surface-card); color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 18px 20px; width: 100%; max-width: 34rem; max-height: calc(100vh - 32px); overflow: auto; }
+.shell-box h2 { margin-top: 0; }
+.shell-box-wide { max-width: 46rem; }
+.rn-popup { max-height: 50vh; overflow: auto; margin: 0 0 12px; padding-right: 4px; }
+.rn-details { margin: 0 0 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised); }
+.rn-details summary { cursor: pointer; min-height: var(--target); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.rn-details summary strong { white-space: nowrap; }
+.rn-body { padding: 8px 0 4px; }
+.rn-summary { font-weight: 500; }
+.rn-section { margin: 8px 0 0; }
+.rn-h { margin: 0 0 4px; font-size: 1rem; }
+.rn-list { margin: 0 0 6px; padding-left: 1.2em; }
+.rn-list li { margin: 0 0 4px; max-width: var(--measure); }
+.rn-tool { margin: 0 0 6px; }
+.rn-history { margin: 20px 0 0; }

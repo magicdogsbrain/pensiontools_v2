@@ -38,7 +38,8 @@ export function hasRecords(plan) {
  * @param {{ carryHistory?: boolean, now?: Date }} [o]
  * @returns {object} the plan document to create (no id, no createdAt, no lastModified)
  */
-export function copyOf(source, name, { carryHistory = true, now = new Date() } = {}) {
+export function copyOf(source, name, { carryHistory = true, now } = {}) {
+  if (!(now instanceof Date)) throw new Error('copyOf: the moment comes in as `now`');
   const { id, createdAt, lastModified, ...data } = JSON.parse(JSON.stringify(source));
   void id; void createdAt; void lastModified;
   const wasExample = data.example === true;

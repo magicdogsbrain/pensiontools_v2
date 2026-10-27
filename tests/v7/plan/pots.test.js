@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { potsOf, potsPatch, applyPatch, boxesOf, savedPots, checkPots, splitTotal, sharesOf, notUsedBy, BOUGHT } from '../../../src/answers/plan/pots.js';
 import { answerAge, bandsOf } from '../../../src/answers/plan/about.js';
-import { POTS_FIELDS, POTS_WRITES, ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, isPotsPath, isPlanEditPath, ISA_GROWTHS, ISA_USES, TAXABLE_MIXES, GIA_BANDS, TAX_MODES, TAX_FREES, HOUSEHOLD_WRITES } from '../../../src/answers/plan/schema.js';
+import { POTS_FIELDS, POTS_WRITES, ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, isPotsPath, isPlanEditPath, ISA_GROWTHS, ISA_USES, TAXABLE_MIXES, GIA_BANDS, TAX_MODES, TAX_FREES, HOUSEHOLD_WRITES, PLANS_WRITES } from '../../../src/answers/plan/schema.js';
 import { SUB_STEPS, ALL_SUB_STEPS } from '../../../src/answers/plan/steps.js';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { parse, format, screenName, PLAN_SUB_STEPS } from '../../../src/v7/router/routes.js';
@@ -414,7 +414,7 @@ describe('T1 — the sub-step, the address and the plan page\'s section', () => 
     expect(isPlanEditPath('charges')).toBe(true);
     expect(isPlanEditPath('first.amount')).toBe(true);
     for (const p of POTS_WRITES) expect(p).toMatch(/^stressTool\.settings\.[a-zA-Z]+$/);
-    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10)
+    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', ...PLANS_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11)
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
   });
   it('a plan not in the list, and the partner link both ways', () => {

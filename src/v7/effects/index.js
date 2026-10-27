@@ -18,6 +18,9 @@ import { startMoveRunner } from './move.js';
 import { createWorkerClient } from './workerClient.js';
 import { startActivity } from './activity.js';
 import { startOpenPlace } from './openPlace.js';
+import { startGuestMeter } from './guestMeter.js';
+import { startWhatsNew } from './whatsNew.js';
+import { startDownloads } from './download.js';
 
 /**
  * The answer worked out on the page itself — used only when no worker can start. The answers (and the engines
@@ -65,11 +68,17 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   // so a keep under way loads it too) and "Will it last?" (answer-D.md: a plan in the account is D's way in).
   stops.push(startActivity(win, { storage: localStore(win) }));
   stops.push(startOpenPlace(store, { session: sessionStore(win), go: (address) => win.location.assign(address) }));
+  // The visitor's meter, What's new and the downloads (road-to-7.md step 11): on every page, each small; the plans they read come with the plan source.
+  stops.push(startGuestMeter(store, { win, local: localStore(win) }));
+  stops.push(startWhatsNew(store, { local: localStore(win) }));
+  stops.push(startDownloads(store, { win }));
   let planSource = null;
-  const onPlanPage = (state) => state.route && (state.route.screen === 'plans' || state.route.screen === 'plan');
+  // … the account page and What's new need the session (and the account's settings document); "Look around an example" pressed on the front door needs the write file
+  const onPlanPage = (state) => state.route && (state.route.screen === 'plans' || state.route.screen === 'plan' || state.route.screen === 'account' || state.route.screen === 'news');
   const onKeepPage = (state) => state.route && state.route.screen === 'step' && (state.route.step === 'keep' || state.route.q === 'd');
   const keeping = (state) => !!state.keep && Object.values(state.keep).some((k) => k && k.saving);
-  const needsPlans = (state) => onPlanPage(state) || onKeepPage(state) || keeping(state);
+  const exampleAsked = (state) => !!state.ui.saving && state.ui.saving.kind === 'example';
+  const needsPlans = (state) => onPlanPage(state) || onKeepPage(state) || keeping(state) || exampleAsked(state);
   const loadPlanSource = (state) => {
     if (planSource || !needsPlans(state)) return;
     planSource = import('./planSource.js')

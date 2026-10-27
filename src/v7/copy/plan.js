@@ -27,7 +27,7 @@ export const PLAN = {
     signInButton: 'Sign in',
     noAccount: 'No account? Ask a question: an answer needs no account.',
     /** Email not confirmed. */
-    unverified: 'Your email address is not confirmed yet, so your plans cannot be read. Confirm it from the email we sent, or open the planner to send it again.',
+    unverified: 'Your email address is not confirmed yet, so your plans cannot be read. Confirm it from the email we sent, or go to your account page to send it again.',
     openPlanner: 'Open the planner',
     /** The read failed. */
     failed: 'Sorry, we could not read your plans. Nothing was changed.',
@@ -54,13 +54,13 @@ export const PLAN = {
       exampleLine: 'An example to look around. It cannot be changed: make a copy to start from its figures, or start your own plan from a question.',
       /** Under the list. */
       start: 'Start a new plan',
-      startHelp: 'Every plan begins from a question: pick one, then keep the answer as a plan.',
+      startHelp: 'A new plan comes from a question: pick one, then keep the answer as a plan.',
       openCopy: 'Open a downloaded copy',
       openCopyClose: 'Close',
       openHelp: 'A file you downloaded from here or from the planner. It is checked, given its own name with “(opened)”, and kept as a plan of its own; nothing else is changed. The file never leaves this page.',
       openPick: 'The file',
       example: 'Look around an example',
-      exampleHelp: 'A ready-made plan to look around before you type anything: about £1,000,000, already retired, £40,000 a year rising with prices.',
+      exampleHelp: 'A ready-made plan to look around before you type anything: a pension pot of £1,000,000, already retired, £40,000 a year rising with prices.',
       /** Rename: the box on the row. */
       renameLabel: 'New name',
       renameSave: 'Rename it',

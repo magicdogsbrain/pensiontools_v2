@@ -32,6 +32,10 @@ import { MIX } from '../../../src/v7/copy/mix.js';
 import { HOUSEHOLD } from '../../../src/v7/copy/household.js';
 import { HOLD } from '../../../src/v7/copy/hold.js';
 import { MOVE } from '../../../src/v7/copy/move.js';
+import { ACCOUNT } from '../../../src/v7/copy/account.js';
+import { GUEST } from '../../../src/v7/copy/guest.js';
+import { NEWS } from '../../../src/v7/copy/news.js';
+import { GUEST_RULE } from '../../../src/services/GuestMeter.js';
 import { STRATEGY_NAMES } from '../../../src/strategies/stressTest.js';
 import { listStrategies } from '../../../src/strategies/registry.js';
 import { WAY_IDS, WAY_DIALS } from '../../../src/answers/plan/schema.js';
@@ -55,7 +59,8 @@ function strings(obj, path = '', out = []) {
 }
 /** A string as a person would see it: each {slot} filled with a figure of the right kind. */
 const filled = (s) => s.replace(/\{(amount|min|max)\}/g, '£25,000').replace(/\{(age|n|of|earliest)\}/g, '57')
-  .replace(/\{level\}/g, 'Moderate').replace(/\{who\}/g, 'one person').replace(/\{name\}/g, 'Stop later').replace(/\{words\}/g, 'in 9 futures out of 10');
+  .replace(/\{level\}/g, 'Moderate').replace(/\{who\}/g, 'one person').replace(/\{name\}/g, 'Stop later').replace(/\{words\}/g, 'in 9 futures out of 10')
+  .replace(/\{version\}/g, '6.44.0');
 
 describe('the banned list itself', () => {
   it('is the language guide\'s list: every entry has an id, a pattern, a known scope, and words to use instead', () => {
@@ -128,7 +133,9 @@ describe('the words in src/v7/copy/', () => {
     const slot = (s) => s.replace(/\{(month|nextMonth|stop)\}/g, 'April 2027').replace(/\{(date|asOf)\}/g, '1 July 2026').replace(/\{(year|savedYear)\}/g, '2027/28')
       .replace(/\{monthName\}/g, 'October').replace(/\{time\}/g, '14:03').replace(/\{changed\}/g, '17 October 2026').replace(/\{n\}/g, '2').replace(/\{of\}/g, '3').replace(/\{name\}/g, 'Ladder plan').replace(/\{step\}/g, 'This month')
       .replace(/\{strategy\}/g, 'Full gilt ladder').replace(/\{dial\}/g, 'Years held in cash').replace(/\{mode\}/g, 'by risk level').replace(/\{from\}/g, '9 November 2036')
-      .replace(/\{label\}/g, 'Rental flat').replace(/\{(to|age)\}/g, '74').replace(/\{what\}/g, 'a cash lump sum').replace(/\{level\}/g, 'balanced').replace(/\{years\}/g, '15');
+      .replace(/\{label\}/g, 'Rental flat').replace(/\{(to|age)\}/g, '74').replace(/\{what\}/g, 'a cash lump sum').replace(/\{level\}/g, 'balanced').replace(/\{years\}/g, '15')
+      // the plan menu (road-to-7.md step 11): the lock's date, a plural, a file's problem in words
+      .replace(/\{lockedOn\}/g, '1 July 2026').replace(/\{s\}/g, 's').replace(/\{problem\}/g, 'a number that is not a number');
     const hits = [];
     const all = strings(PLAN).map(([, s]) => slot(s)).join('\n');
     // the strategies' names are shown one at a time beside a label; the one with an ampersand is spelt as the planner spells it
@@ -366,7 +373,38 @@ describe('the words in src/v7/copy/', () => {
   it('no string is left with a slot the screen does not know how to fill', () => {
     const slots = new Set();
     for (const [, s] of [...strings(C), ...strings(common)]) for (const m of s.matchAll(/\{([a-zA-Z]+)\}/g)) slots.add(m[1]);
-    expect([...slots].sort()).toEqual(['age', 'amount', 'max', 'min', 'n', 'of']);
+    expect([...slots].sort()).toEqual(['age', 'amount', 'max', 'min', 'n', 'of', 'version']);
+  });
+
+  it('the account page (account.js), the visitor (guest.js) and What\'s new (news.js): every string passes in every scope (road-to-7.md step 11); never "guest", never a service\'s name; the one rule for visitors letter for letter', () => {
+    // the account page and the shell's boxes are shown on every page: every scope but the front door's own; the record scope too (the plans page)
+    const scopes = ['all', 'first', 'planner', 'retired', 'saver', 'record', 'result'];
+    const slot = (s) => s.replace(/\{email\}/g, 'someone@example.com').replace(/\{file\}/g, 'drawdown-planner-everything-2026-10-27.json').replace(/\{(version|from|to)\}/g, '6.44.0')
+      .replace(/\{used\}/g, '12 min').replace(/\{left\}/g, '2.2 hours').replace(/\{n\}/g, '2').replace(/\{tools\}/g, 'What you spend, Your household');
+    const hits = [];
+    for (const [file, words] of [['account.js', ACCOUNT], ['guest.js', GUEST], ['news.js', NEWS]]) {
+      const all = strings(words).map(([, s]) => slot(s)).join('\n');
+      for (const [where, s] of strings(words)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`${file} ${where} — ${h}`);
+      for (const [where, s] of strings(words)) expect(slot(s), `${file} ${where}`).not.toMatch(/\{\w+\}/);
+      for (const [where, s] of strings(words)) expect(s, `${file} ${where}`).not.toMatch(/\bguest\b|\bFirebase\b|\bFirestore\b|\bGoogle Cloud\b|\bscenario/i);
+      for (const [where, s] of strings(words)) expect(s, `${file} ${where}`).not.toMatch(/\b(error|invalid|submit|calculate|simulate)\b/i);
+    }
+    expect(hits).toEqual([]);
+    // the one rule for visitors (v6-usability-audit.md 2.1), the planner's sentence letter for letter, and in the banner
+    expect(GUEST.rule).toBe(GUEST_RULE);
+    expect(GUEST.banner).toContain(GUEST_RULE.charAt(0).toLowerCase() + GUEST_RULE.slice(1));
+    expect(GUEST.reminders[1]).toContain(GUEST_RULE);
+    // the stop names the three hours, as the brief says it
+    expect(GUEST.stop.title).toBe('Your 3 free hours are used up — sign in to keep going');
+    // the deletion names what goes, as the privacy policy says it: every plan, every record, the budget, the sign-in; and that it cannot be undone
+    expect(ACCOUNT.remove.ask1).toMatch(/every plan/); expect(ACCOUNT.remove.ask1).toMatch(/record/); expect(ACCOUNT.remove.ask1).toMatch(/budget/); expect(ACCOUNT.remove.ask1).toMatch(/sign-in/);
+    expect(ACCOUNT.remove.ask1).toContain('This cannot be undone.');
+    // the password: the reset email, never a password box on the page
+    expect(ACCOUNT.password.note).toContain('There is no password box here.');
+    // every reason of the planner's AuthScreen.getAuthErrorMessage has its words here, in plain English
+    for (const code of ['auth/invalid-email', 'auth/user-disabled', 'auth/user-not-found', 'auth/wrong-password', 'auth/email-already-in-use', 'auth/weak-password', 'auth/operation-not-allowed', 'auth/popup-closed-by-user', 'auth/popup-blocked', 'auth/too-many-requests', 'auth/invalid-credential', 'auth/requires-recent-login', 'auth/network-request-failed']) expect(ACCOUNT.problems[code], code).toBeTypeOf('string');
+    // What's new names the planner's parts in V7's names, every one of src/releases.js TOOL_IDS
+    expect(Object.keys(NEWS.tools).sort()).toEqual(['accumulation', 'budget', 'decision', 'household', 'strategies', 'stress']);
   });
 
   it('nothing in copy/ says "error", "failed", "invalid", "submit", "calculate" or "run" on a button (language guide 3.6)', () => {

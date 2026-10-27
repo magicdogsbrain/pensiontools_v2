@@ -90,6 +90,7 @@ export function planRows(entries, { today, source = 'account' } = {}) {
       // the plan menu (road-to-7.md step 11): the read-only example (GuestPlans.js), and the main plan (the planner's isActive)
       example: plan.example === true,
       main: plan.isActive === true,
+      records: !!(plan.decisionTool && ((Array.isArray(plan.decisionTool.history) && plan.decisionTool.history.length > 0) || Object.values(plan.decisionTool.taxYears && typeof plan.decisionTool.taxYears === 'object' ? plan.decisionTool.taxYears : {}).some((t) => t && t.yearSetupComplete))),
       linked: partners.length > 0,
       lastModified: typeof plan.lastModified === 'string' ? plan.lastModified : ''
     };

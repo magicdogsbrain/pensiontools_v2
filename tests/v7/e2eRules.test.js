@@ -265,8 +265,8 @@ describe('browser tests: rules kept by reading the files', () => {
       }
     });
 
-    it('the night run may take 60 minutes', () => {
-      expect(jobText(read('.github/workflows/nightly.yml'), 'nightly')).toMatch(/timeout-minutes: 60\b/);
+    it('the night run may take 150 minutes (60 until 6.43.0; the V7 suite at 2,000 property runs with four identity gates passed an hour in the container)', () => {
+      expect(jobText(read('.github/workflows/nightly.yml'), 'nightly')).toMatch(/timeout-minutes: 150\b/);
     });
 
     it('v7:cases writes all three case lists', () => {

@@ -185,7 +185,7 @@ export const A = Object.freeze({
 
   // the account page (road-to-7.md step 11): the forms and the actions — the effect (effects/account.js) does each; the password lives in the action only, never in the state
   ACCOUNT_MODE:    'account/mode',        // { mode: 'signIn' | 'signUp' | 'reset' }
-  ACCOUNT_ASK:     'account/ask',         // { what: 'signIn' | 'signUp' | 'google' | 'reset' | 'verifyCheck' | 'verifySend' | 'download' | 'delete', email?, password? }   busy
+  ACCOUNT_ASK:     'account/ask',         // { what: 'signIn' | 'signUp' | 'google' | 'reset' | 'verifyCheck' | 'verifySend' | 'download' | 'delete' | 'signOut', email?, password? }   busy (signOut: from the "Confirm your email" gate, where the session is not 'in')
   ACCOUNT_DONE:    'account/done',        // { what, slots? }                 done: a note in words
   ACCOUNT_FAILED:  'account/failed',      // { what, problem }                not done: the sign-in service's reason, or ours
   ACCOUNT_CONFIRM: 'account/confirm',     // { step: 1 | 2 | null }           "Delete my account": the two confirms on screen

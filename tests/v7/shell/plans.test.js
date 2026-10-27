@@ -449,6 +449,14 @@ describe('Delete: the planner\'s rules, the ONE deleteDoc, never undone', () => 
 });
 
 describe('"Look around an example": the planner\'s demo plan', () => {
+  it('the front door offers it too: the button dispatches plan/example, which the reducer takes as a create under way (the plan source loads for it)', () => {
+    let s = initialState({ today: TODAY, build: 'test' });
+    s = reduce(s, { type: A.ROUTE_SET, route: parse('#/') });
+    const { root, actions } = draw(s);
+    root.querySelector('[data-testid="front.example"]').click();
+    expect(actions).toEqual([{ type: 'plan/example' }]);
+    expect(reduce(s, actions[0]).ui.saving).toEqual({ planId: null, kind: 'example' });
+  });
   it('this window: made read-only (example: true), the main plan when the window was empty, the page moved to it; a second press opens the one there', async () => {
     const p = page({ raws: [], session: 'nobody' });
     p.store.dispatch({ type: A.PLAN_EXAMPLE });

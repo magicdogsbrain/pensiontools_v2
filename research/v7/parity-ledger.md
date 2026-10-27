@@ -4,7 +4,7 @@ Generated from `tests/v7/parity/ledger.json` by `node tests/v7/parity/write-md.m
 the ledger and run the script. `tests/v7/parity/ledger.test.js` fails when a key today's app saves has no row,
 when a row says built but names no file, when a row is retired without a reason, and when this page is out of date.
 
-Checked against 6.20.2 on 2026-10-21.
+Checked against 6.20.2 on 2026-10-27.
 
 **The owner's rule (2 Oct 2026):** "We NEED to have the same or better optionally than V6. We MUST offer as many steps and tapers as V6! ... In general - optional it must be at least v6. We must have Gogo, goslow and nogo years."
 
@@ -18,14 +18,14 @@ Where only part of a thing is in V7, the row is split (the part V7 has is built,
 
 | | Rows | Things a person sees or sets | Saved settings | Records | Machinery |
 |---|---|---|---|---|---|
-| Built | 123 | 101 | 17 | 2 | 3 |
+| Built | 135 | 108 | 17 | 2 | 8 |
 | Building now | 0 | 0 | 0 | 0 | 0 |
 | Designed | 10 | 9 | 0 | 1 | 0 |
-| Planned | 35 | 28 | 0 | 1 | 6 |
-| Retired | 11 | 3 | 0 | 0 | 8 |
+| Planned | 22 | 20 | 0 | 1 | 1 |
+| Retired | 12 | 4 | 0 | 0 | 8 |
 | **All** | 179 | 141 | 17 | 4 | 17 |
 
-Planned with no V7 design yet: **20** rows. Retired, waiting for the owner: **1**.
+Planned with no V7 design yet: **17** rows. Retired, waiting for the owner: **2**.
 
 ## The steps that deliver them
 
@@ -41,13 +41,14 @@ Planned with no V7 design yet: **20** rows. Retired, waiting for the owner: **1*
 | `s6-design` | Design before building: E's answer contract, "Holdings and the move", the switch-over plan (square-one audit §5 item 6) | 0 |
 | `s7-d` | Question D, reading the plan directly (square-one audit §5 item 7) | 6 |
 | `s8-e` | Question E built one section at a time: about you, pots and income, spending, strategy and mix, the test against history, compare, lock and the document (square-one audit §5 item 8; plan of plans step 7) | 21 |
-| `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 22 |
+| `s9-switch` | The switch to 7.0: plan menu, What's new and account controls in V7's shell; release notes for anything retired (square-one audit §5 item 9; plan of plans step 8) | 9 |
 | `s10-after` | After 7.0: question F, property and equity release, the annuity comparison, trust pages (square-one audit §5 item 10; plan of plans step 9) | 1 |
 | `v6-retired` | Already retired inside today's app: nothing for V7 to carry (today's code) | 5 |
 | `s8-way` | Road step 8a (6.40.0): "How the money is taken" in V7 — the nine ways on this plan in the one verdict, each way's dials as one set, "Use this way of drawing" as the planner's switch (research/v7/way-and-mix.md 2) (research/v7/road-to-7.md step 8; way-and-mix.md 1, 2, 6, 8) | 13 |
 | `s8-mix` | Road step 8b (6.41.0): "The mix" in V7 — a risk level, your own split or the funds to test, the slice of gold and trend funds and the bond tent each with "What it does in a bad case", "Which mix lasts best?" with "Use this mix"; Try a change of your own on "Does it last?" with "What's different", "Use this" and "Keep as a separate plan"; the income picture's rows, budget mark and lump-sum marks (research/v7/way-and-mix.md 3, 4, 5) (research/v7/road-to-7.md step 8; way-and-mix.md 3, 4, 5, 6, 7) | 12 |
 | `s9-household` | Road step 9 (6.42.0): "Your household" in V7 — the partner's plan linked either way, the pooled verdict first and each plan alone, "Who draws what" with "Use this split" (copies when a plan is locked), the survivor and care questions in ages, one budget for the household with "Keeping money separate?", and the budget's who-pays (research/v7/road-to-7.md step 9; your-plan.md 6; v6-usability-audit.md 2.10) (research/v7/road-to-7.md step 9; your-plan.md 6; v6-usability-audit.md 2.10) | 5 |
 | `s10-hold` | Road step 10 (6.43.0): "What you hold" and "Moving to your plan's mix" in V7 — the one record line by line by account, typed or pasted with "What is this?" on every line, the move against the plan as locked with its tick-offs, the cash to hold, the schedule, the order sheet that waits for the person's own State Pension figure, and the rotation watch and ticket (research/v7/holdings-and-move.md; road-to-7.md step 10) (research/v7/holdings-and-move.md; road-to-7.md step 10) | 6 |
+| `s11-shell` | Road step 11a (6.44.0): the shell for 7.0, first half — the plan menu on "Your plans" (new, rename, make a copy, make this my main plan, download, open a downloaded copy, delete), the account page (sign in, sign up, Google, the reset and confirmation emails, Download everything, Delete my account), the visitor (the three free hours, the reminders, the stop, the hand-over on sign-in, the read-only example), What's new (the once-only pop-up and the page), the name Drawdown Planner (research/v7/road-to-7.md step 11) (research/v7/road-to-7.md step 11; the brief for 11a, 27 Oct 2026) | 13 |
 
 ## Ways in, and finding your way
 
@@ -55,8 +56,8 @@ Planned with no V7 design yet: **20** rows. Retired, waiting for the owner: **1*
 |---|---|---|---|---|---|---|
 | **Landing page, welcome tour and set-up wizard** | Shows a new person what the app does, then asks name, single or couple, ages and retirement age, and where to start: work out my budget, can I afford to retire, this month's withdrawal, or I'm already drawing. | LandingPage.js, SetupWizard.js:226-270 (the welcome tour, OnboardingPage.js, was retired in 6.23.0) | New people | **Built**: `src/v7/screens/FrontDoor.jsx`, `src/v7/rail/questions.js`. Replaced by the six questions in the person's own words. The wizard's "I'm already drawing" door is question D (step s7-d). | `done` | — |
 | **Try it without an account** | Lets a visitor see answers before signing up. | "Just try it — no account" (index.html:5036-5071) | Visitors | **Built**: `src/v7/effects/draftStore.js`, `src/v7/screens/FrontDoor.jsx`. Better: V7 answers on the visitor's own figures with no account; what was typed stays in the tab. | `done` | — |
-| **A ready-made example plan** | Opens a worked example plan (about £1m, already retired) to look around every tool before typing anything. | Guest example plan and the ?demo=1m link (index.html:5036-5084) | Visitors | **Planned** (no V7 design yet): V7's answers on your own figures are the new way in; an example to look around has no V7 home yet. | `s9-switch` | — |
-| **Guest mode: three active hours, reminders, then hand-over into an account** | A visitor can build a whole plan without an account for three active hours, is reminded as time runs out, and keeps the plan when they sign up. | GuestMeter.js; the guest store in FirestoreService.js; the guest banner (index.html) | Visitors | **Planned** (no V7 design yet): V7's answers do not count against the three hours; the audit recommends keeping that and recording it (square-one-audit.md §6 question 5). The meter itself needs a place in V7's shell. | `s9-switch` | `browser.pt_guest_minutes` `browser.pt_guest_nag_level` `browser.pt_guest_handoff` `browser.pt_guest_scenarios` |
+| **A ready-made example plan** | Opens a worked example plan (about £1m, already retired) to look around every tool before typing anything. | Guest example plan and the ?demo=1m link (index.html:5036-5084) | Visitors | **Built**: `src/v7/effects/planWrite.js`, `src/v7/screens/plan/PlansScreen.jsx`, `src/v7/screens/FrontDoor.jsx`. Built as "Look around an example" on "Your plans" and on the front door for a visitor: the planner's DEMO_PLANS['1m'] made in this window through the planner's own default plan (services/PlanFromSeed.js getDefaultScenario) with the demo's settings, flagged example: true — listed "Example — look around", read-only (the writer refuses every write to it: placeOf), not counted in the three (GuestPlans.guestOwnPlans), deletable; a copy of it is the person's own plan. A signed-in person gets it added as an ordinary plan, as the planner does. | `s11-shell` | — |
+| **Guest mode: three active hours, reminders, then hand-over into an account** | A visitor can build a whole plan without an account for three active hours, is reminded as time runs out, and keeps the plan when they sign up. | GuestMeter.js; the guest store in FirestoreService.js; the guest banner (index.html) | Visitors | **Built**: `src/v7/effects/guestMeter.js`, `src/v7/components/Visitor.jsx`, `src/v7/copy/guest.js`, `src/v7/effects/planWrite.js`. Built in V7's shell through services/GuestMeter.js only: a minute counted while a visitor with plans of their own in this window has the page shown and was active in the last two minutes (V7's answers do not count against the three hours, as the audit recommended — the example alone does not count either), the four reminders at the planner's milestones (a line, then a box with the two ways in), the stop on every page but the account page when the hours are used up (the writer already refuses as usedUp), the banner line on "Your plans"; the hand-over offered after a sign-in made in V7 with plans of the person's own in the window ("Bring in what you built without an account?"), each through the one create, the example never (the planner's own bug, fixed in GuestMeter.handoffPayload for both apps). | `s11-shell` | `browser.pt_guest_minutes` `browser.pt_guest_nag_level` `browser.pt_guest_handoff` `browser.pt_guest_scenarios` |
 | **Next-step banner** | One sentence at the top saying what to do next for this plan, with a button, dismissable per plan. | index.html:8143-8196; NextStep.js | Everyone | **Built**: `src/answers/plan/read.js`, `src/v7/components/PlanRail.jsx`. Built, reading (6.26, your-plan.md 2.4): the one next sentence on “Your plan”, by stage, first match wins. Not dismissable: it is the rail’s own line, never a banner. | `s4-open-plan` | `browser.nextStepDismissed:` |
 | **Life stages lead the way** | Works out from dates whether the plan is saving, approaching, committed while saving, retired in its run-up or running, and opens the right tool for it. | LifeStage.js deriveStage; tabs led by stage (index.html:8866-8870) | Everyone | **Built**: `src/answers/plan/read.js`, `src/v7/copy/plan.js`. Built, reading (6.26, your-plan.md 2.1): the stage from deriveStage on the effective settings (src/services/PlanReading.js), in V7’s words — the key and the dates only. Which questions each stage is offered: the rail’s “Ask a question” links. | `s4-open-plan` | — |
 | **Journey: when the plan moved between stages** | Keeps the dates on which the plan's stage changed (saving, approaching, committed, running). | scenario.journey (ScenarioRepository.saveActiveJourney) | Everyone | **Built**: `src/answers/plan/lock.js`, `src/answers/plan/read.js`. Built: the lock in V7 writes the journey since 6.38.0 (road-to-7.md step 6), and "Your plan" shows the stage changes with their dates ("How this plan got here"); the way step's plan page carries the same line. | `s5-lock` | `plan.journey` |
@@ -286,29 +287,29 @@ The owner, 2 Oct 2026: "We MUST offer as many steps and tapers as V6! … We mus
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **Your plans: switch, new, duplicate, rename** | A menu of plans: open one, start a new one, duplicate one, rename it and describe it. | Header plan menu (index.html:2205-2221) | Everyone | **Planned**: Plan menu in V7's shell (square-one-audit.md §5 item 9). | `s9-switch` | `plan.isActive` `plan.planDetails` `planDetails.name` `planDetails.description` |
-| **Download a plan** | Saves a copy of the plan (JSON) on your own computer. | Plan menu → Download this plan (PlanExport.js) | Everyone | **Planned**: Plan menu in V7's shell. | `s9-switch` | — |
+| **Your plans: switch, new, duplicate, rename** | A menu of plans: open one, start a new one, duplicate one, rename it and describe it. | Header plan menu (index.html:2205-2221) | Everyone | **Built**: `src/v7/screens/plan/PlansScreen.jsx`, `src/v7/effects/planWrite.js`, `src/services/PlanCopy.js`, `src/v7/copy/plan.js`. Built as the plan menu on each row of "Your plans" (#/plans): Open; Rename (one write of the name, made unique against the account's other names); Make a copy (the planner's duplicateScenario rules lifted into services/PlanCopy.js and the planner re-pointed at them — as it is, or with the monthly records and then locked from the start; through the one create); Make this my main plan (two writes of isActive alone, as the planner's setActiveScenarioDoc); Delete (a confirm that names the plan, a second one for a locked plan; the last plan refused, as the planner refuses it; the one deleteDoc). "Start a new plan" is the front door: every plan begins from a question. The description (planDetails.description) is carried as stored and edited nowhere in V7. | `s11-shell` | `plan.isActive` `plan.planDetails` `planDetails.name` `planDetails.description` |
+| **Download a plan** | Saves a copy of the plan (JSON) on your own computer. | Plan menu → Download this plan (PlanExport.js) | Everyone | **Built**: `src/v7/effects/download.js`, `src/v7/screens/plan/PlansScreen.jsx`, `src/v7/effects/account.js`. Built as "Download this plan" on each row (the file is PlanExport.planExportJson, identity stripped, named by planExportFileName; a Blob and an anchor — nothing leaves the page), "Open a downloaded copy" under the list (the file checked, identity stripped again, kept as a plan of its own named "… (opened)" through the one create; any problem said in words), and "Download everything" on the account page (one file with every plan, identity stripped, and the account's settings document). | `s11-shell` | — |
 | **Keep a V7 answer as a new plan** | A V7 answer becomes a named plan made by the preview itself, in the account (one addDoc) or in this browser window without one; a couple's becomes two linked plans; the answer it came from is kept with it; "Lock this plan?" follows. (6.39.0: the seed hand-over to the planner is retired.) | NewPlanFromSeed.js; PlanSeed.js (6.18.0); the preview's own create from 6.39.0 | Everyone | **Built**: `src/answers/keep/planSeed.js`, `src/answers/keep/planCreate.js`, `src/services/PlanFromSeed.js`, `src/v7/effects/planWrite.js`, `src/v7/components/KeepPanel.jsx` | `s7-d` | `plan.fromAnswer` |
 | **The seed left for the planner, and its receipt** | Until 6.38.0 the preview wrote a seed to the browser (pt_v7_plan_seed) and opened the planner at #new-plan, which made the plan and left a receipt (pt_v7_plan_receipt) for the preview to read on coming back. | src/services/PlanSeed.js, src/ui/components/NewPlanFromSeed.js (the planner's reader, kept for one release) | Everyone | **Retired**: Retired in 6.39.0 (road-to-7.md step 7): the preview makes the plan itself, through its one write file, so it no longer writes a seed or reads a receipt; nothing is left in the browser for a day. The planner's own reader of a seed stays for one release and is removed with the switch to 7.0. | `s7-d` | `browser.pt_v7_plan_seed` `browser.pt_v7_plan_receipt` |
-| **What's new** | A once-only pop-up for each minor release, and every release listed on a page. | Version chip; Strategies → What's new (src/releases.js) | Everyone | **Planned**: What's new in V7's shell (square-one-audit.md §5 item 9). | `s9-switch` | `profile.lastSeenVersion` `browser.pt_lastSeenVersion` |
-| **Sign in and out** | Email and password or Google, a verified email, and signing out after an hour idle across tabs. | AuthPanel.js; index.html:5640-5700 | Everyone | **Planned**: Must exist in V7 at the switch (data protection; square-one-audit.md §4). | `s9-switch` | `browser.pt_lastActivity` |
-| **Delete the account, or reset** | Deletes the account and every plan, or deletes all data and starts again. | Header: Delete Account, Reset (index.html:2228-2231) | Everyone | **Planned**: Must exist in V7 at the switch (data protection). | `s9-switch` | — |
+| **What's new** | A once-only pop-up for each minor release, and every release listed on a page. | Version chip; Strategies → What's new (src/releases.js) | Everyone | **Built**: `src/v7/effects/whatsNew.js`, `src/v7/screens/NewsScreen.jsx`, `src/v7/components/ReleaseNotes.jsx`, `src/v7/components/Visitor.jsx`. Built as the once-only pop-up after a sign-in or a visitor's start, following the planner's rules (the announced releases newer than the higher of the local mark pt_lastSeenVersion and the account's profile lastSeenVersion; a higher local mark carried over; silent for a new account and a first-visit visitor), "Got it" marking this version seen (localStorage, and the account's settings document through the account effect's one updateDoc — a missing document left alone); and the page #/whats-new with every release of src/releases.js and the reconstructed history rendered in Preact from the data, linked from every footer; reading it marks seen. The per-plan bullets (affects) of the planner's page are not drawn. | `s11-shell` | `profile.lastSeenVersion` `browser.pt_lastSeenVersion` |
+| **Sign in and out** | Email and password or Google, a verified email, and signing out after an hour idle across tabs. | AuthPanel.js; index.html:5640-5700 | Everyone | **Built**: `src/v7/effects/account.js`, `src/v7/screens/AccountScreen.jsx`, `src/v7/copy/account.js`. Built on #/account: sign in with email and password or Google, sign up with the confirmation email, the same "Confirm your email" gate as the planner (Firestore's rules need a confirmed email; "I've confirmed" reloads the user and refreshes the token), the forgotten-password email (the planner has no in-app password change: the reset email is the way), Sign out; the idle sign-out as planSource has it (an hour with no activity in any window). The planner's ?signin=1 door keeps working for the hand-over. | `s11-shell` | `browser.pt_lastActivity` |
+| **Delete the account, or reset** | Deletes the account and every plan, or deletes all data and starts again. | Header: Delete Account, Reset (index.html:2228-2231) | Everyone | **Built**: `src/v7/effects/account.js`, `src/v7/screens/AccountScreen.jsx`. Built as "Delete my account" on #/account: two confirms on the screen naming what goes (every plan, every monthly record, every budget, the sign-in itself; "This cannot be undone."), then exactly what the planner's wipeAllUserData wipes, one document at a time — every users/{uid}/scenarios/{id}, users/{uid}/profile/settings, every fundSuggestions row whose uid is the person's — this site's localStorage and sessionStorage cleared, then deleteUser; on auth/requires-recent-login the person is signed out and asked to sign in again on the page and press once more, the data already gone. The planner's "Reset" (every plan deleted, the account kept) has no button in V7: a person deletes plans one by one, or the account; the planner's stays on the classic page. | `s11-shell` | — |
 | **Reset a tool's settings to the defaults** | Puts the Stress tester's or the Decision tool's settings back to the defaults (refused on a locked plan). | Stress and Decision → Settings → Reset to Defaults | Everyone | **Planned** (no V7 design yet) | `s8-e` | — |
 | **Which tools a plan shows** | Turns tools on or off for a plan, with a short wizard when a tool is added. | Plan settings; add-a-tool wizard (index.html:5585-5620) | Everyone | **Retired**: V7 has no tool tabs: the rail shows the steps the plan's stage needs, so there is nothing to switch on or off. (Owner: to confirm) | `s9-switch` | `plan.enabledTools` |
-| **Administration** | The owner's panel: the fund catalogue, the typical amounts, the queue of unknown tickers. | Header gear (index.html:12840-12900) | The owner | **Planned** (no V7 design yet): Owner only; could stay on the previous version's page. | `s9-switch` | — |
+| **Administration** | The owner's panel: the fund catalogue, the typical amounts, the queue of unknown tickers. | Header gear (index.html:12840-12900) | The owner | **Retired**: Retired from the preview in 6.44.0 (road step 11a): the administration panel is the owner's only and stays on the classic page — the release note says so. (Owner: to confirm) | `s11-shell` | — |
 
 ## Machinery: keys no person sees
 
 | What | What it does | Where in today's app | Who needs it | V7 | Step | Saved as |
 |---|---|---|---|---|---|---|
-| **The budget's version and stored totals** | A version mark, and the totals (essentials, comfortable, suggested gross) worked out again on every save. | BudgetRepository.saveBudget (derived); BudgetModel.defaultBudget (version) | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `budget.version` `budget.derived` |
+| **The budget's version and stored totals** | A version mark, and the totals (essentials, comfortable, suggested gross) worked out again on every save. | BudgetRepository.saveBudget (derived); BudgetModel.defaultBudget (version) | Nobody sees it | **Built**: `src/v7/effects/planSource.js`, `src/v7/effects/planWrite.js`. Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Carried as stored — the byte-for-byte test proves it: e2e/crawl.spec.js "a locked plan in guest storage is byte-identical after every address is visited" (the stored text unchanged after every V7 address, the plan's keys and bookkeeping among them), and tests/v7/plan/planSource.test.js (every plan read and brought up to date in memory, never written back). | `s11-shell` | `budget.version` `budget.derived` |
 | **Whether a line's panels were left open** | Whether a line's age band or breakdown was open on screen when it was saved. | Budget lines (index.html:11660-11670, 12491) | Nobody sees it | **Retired**: Screen state saved with the line by accident, not a setting: V7 keeps open panels in the screen itself. Nothing a person set is lost. | `s9-switch` | `budget.lines[]._bandOpen` `budget.lines[].breakdownOpen` |
 | **The old State Pension fields** | The State Pension as an annual figure from a plan year, from before the start date was asked; read only when a plan has no date. | design/settings-model.md (read-time fallback) | Nobody sees it | **Built**: `src/answers/plan/read.js`, `src/answers/plan/options.js`. Built, reading (6.26): a plan with no State Pension date shows its yearly figure and the tax year it starts (firstTaxYear + statePensionYear), as the planner reads it; never asked. Written by "Money that comes in anyway" as PlanSeed writes it: 0 for none (else every run assumes £12,000), the yearly figure beside a weekly amount. **Edited in V7**: `src/v7/screens/plan/IncomeScreen.jsx` | `s4-open-plan` | `stress.statePension` `stress.statePensionYear` `decision.statePension` `decision.statePensionYear` |
 | **Where a copy came from** | Which tool a settings copy came from, when, and a fingerprint of the source (for a "changed since you copied" note). | seedDecisionFromStress (ScenarioRepository.js); the Stress side went with "Copy from Decision" in 6.23.0 | Nobody sees it directly | **Retired**: Belongs to "Copy settings between the two tools" (retired with it, once the owner agrees); old plans keep these keys untouched. | `s9-switch` | `decision.seededFrom` |
-| **The plan's own fields** | The plan's id, when it was made and last changed. | FirestoreService.js | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `plan.id` `plan.createdAt` `plan.lastModified` |
-| **The parts a plan is kept in** | The Stress tester's, the Decision tool's and the Budget's parts of a plan. | ScenarioRepository.js | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `plan.stressTool` `plan.stressTool.settings` `plan.decisionTool` `plan.decisionTool.settings` `plan.budgetTool.settings` |
-| **The plan's strategy block** | Which strategy the plan runs, with its dials, when it was chosen and the engine version. | ScenarioRepository.defaultStrategyBlock / setActiveStrategy | Nobody sees it directly | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `plan.strategy` `strategy.id` `strategy.params` `strategy.lockedAt` `strategy.engineVersion` |
-| **Settings have been saved once** | Marks a plan whose settings have been through Settings at least once, so the tool opens straight away. | saveStressSettingsUI / saveDecisionSettingsUI | Nobody sees it | **Planned**: Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). | `s9-switch` | `stress.configured` `decision.configured` |
+| **The plan's own fields** | The plan's id, when it was made and last changed. | FirestoreService.js | Nobody sees it | **Built**: `src/v7/effects/planSource.js`, `src/v7/effects/planWrite.js`. Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Carried as stored — the byte-for-byte test proves it: e2e/crawl.spec.js "a locked plan in guest storage is byte-identical after every address is visited" (the stored text unchanged after every V7 address, the plan's keys and bookkeeping among them), and tests/v7/plan/planSource.test.js (every plan read and brought up to date in memory, never written back). | `s11-shell` | `plan.id` `plan.createdAt` `plan.lastModified` |
+| **The parts a plan is kept in** | The Stress tester's, the Decision tool's and the Budget's parts of a plan. | ScenarioRepository.js | Nobody sees it | **Built**: `src/v7/effects/planSource.js`, `src/v7/effects/planWrite.js`. Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Carried as stored — the byte-for-byte test proves it: e2e/crawl.spec.js "a locked plan in guest storage is byte-identical after every address is visited" (the stored text unchanged after every V7 address, the plan's keys and bookkeeping among them), and tests/v7/plan/planSource.test.js (every plan read and brought up to date in memory, never written back). | `s11-shell` | `plan.stressTool` `plan.stressTool.settings` `plan.decisionTool` `plan.decisionTool.settings` `plan.budgetTool.settings` |
+| **The plan's strategy block** | Which strategy the plan runs, with its dials, when it was chosen and the engine version. | ScenarioRepository.defaultStrategyBlock / setActiveStrategy | Nobody sees it directly | **Built**: `src/v7/effects/planSource.js`, `src/v7/effects/planWrite.js`. Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Carried as stored — the byte-for-byte test proves it: e2e/crawl.spec.js "a locked plan in guest storage is byte-identical after every address is visited" (the stored text unchanged after every V7 address, the plan's keys and bookkeeping among them), and tests/v7/plan/planSource.test.js (every plan read and brought up to date in memory, never written back). | `s11-shell` | `plan.strategy` `strategy.id` `strategy.params` `strategy.lockedAt` `strategy.engineVersion` |
+| **Settings have been saved once** | Marks a plan whose settings have been through Settings at least once, so the tool opens straight away. | saveStressSettingsUI / saveDecisionSettingsUI | Nobody sees it | **Built**: `src/v7/effects/planSource.js`, `src/v7/effects/planWrite.js`. Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Carried as stored — the byte-for-byte test proves it: e2e/crawl.spec.js "a locked plan in guest storage is byte-identical after every address is visited" (the stored text unchanged after every V7 address, the plan's keys and bookkeeping among them), and tests/v7/plan/planSource.test.js (every plan read and brought up to date in memory, never written back). | `s11-shell` | `stress.configured` `decision.configured` |
 | **The old "Declining with age" spending profile** | A spending profile that drifted down with age, applied on top of the income steps. | Settings → Spending (until 6.2.1); IncomeSchedule.smileToSteps | Nobody sees it now | **Retired**: Retired in 6.2.1: "Declining with age" became a slope on the income steps, with the same figures; old plans are folded in when opened. The taper itself is kept: in V7 it is the preset "Slowly less" (src/answers/shared/shape.js slowlyLess, today's smileToSteps). | `v6-retired` | `stress.spendingProfile` `decision.spendingProfile` `stress.spendingMigratedFrom` `decision.spendingMigratedFrom` |
 | **Old names of the three pot floors** | The names the shares, bonds and cash floors had before they were renamed. | storage/migrations.js toV1; StressRepository.js:223-230 | Nobody sees it | **Retired**: Renamed before 6.15.0 to equityMin, bondMin and cashTarget; kept beside the new names on old plans and read only to fill a missing new one. | `v6-retired` | `stress.pacwMin` `stress.cgtMin` `stress.csh2Target` |
 | **Copies under dotted names** | Copies of a plan's parts that an old storage fault wrote under names with dots in them. | tests/fixtures/plans/08-dotted-keys.json; normalizeScenario | Nobody sees it | **Retired**: Never a setting: copies a storage fault wrote, folded back into the plan when it is opened. | `v6-retired` | `plan.dotted:decisionTool.settings` `plan.dotted:decisionTool.history` `plan.dotted:decisionTool.taxYears` `plan.dotted:stressTool.settings` `plan.dotted:planDetails.name` |
@@ -328,15 +329,15 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `plan.accumulationTool.history` | Record this month's pot | Planned |
 | `plan.accumulationTool.settings` | The Accumulation planner's part of the plan | Built |
 | `plan.budgetTool` | Spending lines | Built |
-| `plan.budgetTool.settings` | The parts a plan is kept in | Planned |
+| `plan.budgetTool.settings` | The parts a plan is kept in | Built |
 | `plan.budgetTool.sharedFrom` | One budget for the household | Built |
-| `plan.createdAt` | The plan's own fields | Planned |
-| `plan.decisionTool` | The parts a plan is kept in | Planned |
+| `plan.createdAt` | The plan's own fields | Built |
+| `plan.decisionTool` | The parts a plan is kept in | Built |
 | `plan.decisionTool.cadence` | How often you draw | Designed |
 | `plan.decisionTool.history` | Record a month | Designed |
 | `plan.decisionTool.planOfRecord` | The plan of record | Planned |
 | `plan.decisionTool.planOfRecordArchive` | Unlock to change the plan | Built |
-| `plan.decisionTool.settings` | The parts a plan is kept in | Planned |
+| `plan.decisionTool.settings` | The parts a plan is kept in | Built |
 | `plan.decisionTool.taxYears` | Set up a tax year | Designed |
 | `plan.dotted:decisionTool.history` | Copies under dotted names | Retired |
 | `plan.dotted:decisionTool.settings` | Copies under dotted names | Retired |
@@ -347,25 +348,25 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `plan.fromAnswer` | Keep a V7 answer as a new plan | Built |
 | `plan.holdings` | What you hold | Built |
 | `plan.household` | The partner's linked plan | Built |
-| `plan.id` | The plan's own fields | Planned |
-| `plan.isActive` | Your plans: switch, new, duplicate, rename | Planned |
+| `plan.id` | The plan's own fields | Built |
+| `plan.isActive` | Your plans: switch, new, duplicate, rename | Built |
 | `plan.journey` | Journey: when the plan moved between stages | Built |
-| `plan.lastModified` | The plan's own fields | Planned |
-| `plan.planDetails` | Your plans: switch, new, duplicate, rename | Planned |
+| `plan.lastModified` | The plan's own fields | Built |
+| `plan.planDetails` | Your plans: switch, new, duplicate, rename | Built |
 | `plan.planDocument` | The plan document | Built |
 | `plan.planDocumentArchive` | Unlock to change the plan | Built |
 | `plan.schemaVersion` | "Saved by a newer version" | Built |
-| `plan.strategy` | The plan's strategy block | Planned |
-| `plan.stressTool` | The parts a plan is kept in | Planned |
-| `plan.stressTool.settings` | The parts a plan is kept in | Planned |
+| `plan.strategy` | The plan's strategy block | Built |
+| `plan.stressTool` | The parts a plan is kept in | Built |
+| `plan.stressTool.settings` | The parts a plan is kept in | Built |
 | `plan.transition` | Moving to the plan's mix | Built |
 
 ### `planDetails`: planDetails: the plan's name and description
 
 | Key | Row | V7 |
 |---|---|---|
-| `planDetails.description` | Your plans: switch, new, duplicate, rename | Planned |
-| `planDetails.name` | Your plans: switch, new, duplicate, rename | Planned |
+| `planDetails.description` | Your plans: switch, new, duplicate, rename | Built |
+| `planDetails.name` | Your plans: switch, new, duplicate, rename | Built |
 
 ### `stress`: stressTool.settings: the Stress tester (Drawdown Planner) settings
 
@@ -381,7 +382,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `stress.cashTarget` | Pension pot, split into shares, bonds and cash | Built |
 | `stress.cgtMin` | Old names of the three pot floors | Retired |
 | `stress.chargesPct` | Charges (funds and platform), % a year | Built |
-| `stress.configured` | Settings have been saved once | Planned |
+| `stress.configured` | Settings have been saved once | Built |
 | `stress.consecutiveLimit` | Cuts in a slump | Built |
 | `stress.csh2Target` | Old names of the three pot floors | Retired |
 | `stress.currentAge` | Age today | Built |
@@ -454,7 +455,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `decision.bedAndIsa` | Bed-and-ISA £20,000 a year | Built |
 | `decision.bondMin` | Pension pot, split into shares, bonds and cash | Built |
 | `decision.cashTarget` | Pension pot, split into shares, bonds and cash | Built |
-| `decision.configured` | Settings have been saved once | Planned |
+| `decision.configured` | Settings have been saved once | Built |
 | `decision.consecutiveLimit` | Cuts in a slump | Built |
 | `decision.disableProtection` | Cuts in a slump | Built |
 | `decision.diversifierStart` | Diversifiers sleeve: gold and trend/macro | Built |
@@ -529,7 +530,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `budget.agesSetByUser` | Horizon: age today, retirement age, plan to age | Built |
 | `budget.currentAge` | Horizon: age today, retirement age, plan to age | Built |
 | `budget.currentAgeAsOf` | Horizon: age today, retirement age, plan to age | Built |
-| `budget.derived` | The budget's version and stored totals | Planned |
+| `budget.derived` | The budget's version and stored totals | Built |
 | `budget.endAge` | Horizon: age today, retirement age, plan to age | Built |
 | `budget.lines` | Spending lines | Built |
 | `budget.lines[]._bandOpen` | Whether a line's panels were left open | Retired |
@@ -571,7 +572,7 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 | `budget.splitPhases` | Who pays, changing over time | Planned (no V7 design yet) |
 | `budget.splitPhases[].fromAge` | Who pays, changing over time | Planned (no V7 design yet) |
 | `budget.splitPhases[].mySharePct` | Who pays, changing over time | Planned (no V7 design yet) |
-| `budget.version` | The budget's version and stored totals | Planned |
+| `budget.version` | The budget's version and stored totals | Built |
 
 ### `accumulation`: accumulationTool.settings (and .history): the Accumulation planner
 
@@ -619,10 +620,10 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 
 | Key | Row | V7 |
 |---|---|---|
-| `strategy.engineVersion` | The plan's strategy block | Planned |
-| `strategy.id` | The plan's strategy block | Planned |
-| `strategy.lockedAt` | The plan's strategy block | Planned |
-| `strategy.params` | The plan's strategy block | Planned |
+| `strategy.engineVersion` | The plan's strategy block | Built |
+| `strategy.id` | The plan's strategy block | Built |
+| `strategy.lockedAt` | The plan's strategy block | Built |
+| `strategy.params` | The plan's strategy block | Built |
 
 ### `strategyState`: stressTool.settings.strategyState[id]: one strategy's put-away inputs
 
@@ -754,19 +755,19 @@ reads from today's code and test plans, so nothing saved today can be missed at 
 
 | Key | Row | V7 |
 |---|---|---|
-| `profile.lastSeenVersion` | What's new | Planned |
+| `profile.lastSeenVersion` | What's new | Built |
 
 ### `browser`: the browser's own storage (this device only)
 
 | Key | Row | V7 |
 |---|---|---|
 | `browser.nextStepDismissed:` | Next-step banner | Built |
-| `browser.pt_guest_handoff` | Guest mode: three active hours, reminders, then hand-over into an account | Planned (no V7 design yet) |
-| `browser.pt_guest_minutes` | Guest mode: three active hours, reminders, then hand-over into an account | Planned (no V7 design yet) |
-| `browser.pt_guest_nag_level` | Guest mode: three active hours, reminders, then hand-over into an account | Planned (no V7 design yet) |
-| `browser.pt_guest_scenarios` | Guest mode: three active hours, reminders, then hand-over into an account | Planned (no V7 design yet) |
-| `browser.pt_lastActivity` | Sign in and out | Planned |
-| `browser.pt_lastSeenVersion` | What's new | Planned |
+| `browser.pt_guest_handoff` | Guest mode: three active hours, reminders, then hand-over into an account | Built |
+| `browser.pt_guest_minutes` | Guest mode: three active hours, reminders, then hand-over into an account | Built |
+| `browser.pt_guest_nag_level` | Guest mode: three active hours, reminders, then hand-over into an account | Built |
+| `browser.pt_guest_scenarios` | Guest mode: three active hours, reminders, then hand-over into an account | Built |
+| `browser.pt_lastActivity` | Sign in and out | Built |
+| `browser.pt_lastSeenVersion` | What's new | Built |
 | `browser.pt_open_place`: this window only; no figures, no name; deleted when read or after ten minutes | Open the planner on a plan, page and section | Built |
 | `browser.pt_open_plan`: this window only: the plan this window’s planner is on; nothing written to any plan | Open the planner on a plan, page and section | Built |
 | `browser.pt_open_tab` | Open the planner on a plan, page and section | Built |
@@ -786,8 +787,6 @@ Each is designed; none is retired. By the owner's rule each comes before V7 repl
 Each of these is something today's app does that no V7 document gives a place yet. By the owner's rule each one
 stays (or comes back better) unless the owner agrees to retire it.
 
-- **A ready-made example plan** (Guest example plan and the ?demo=1m link (index.html:5036-5084)). Step `s9-switch`. V7's answers on your own figures are the new way in; an example to look around has no V7 home yet.
-- **Guest mode: three active hours, reminders, then hand-over into an account** (GuestMeter.js; the guest store in FirestoreService.js; the guest banner (index.html)). Step `s9-switch`. V7's answers do not count against the three hours; the audit recommends keeping that and recording it (square-one-audit.md §6 question 5). The meter itself needs a place in V7's shell.
 - **Fill the blanks with typical amounts** (Budget tab: "Fill blanks with typical UK amounts" (index.html:3911)). Step `s8-e`. budget-step.md shows typical amounts as hints only, never filled in. By the rule of 2 Oct the one-press fill stays unless the owner retires it.
 - **Guided walk-through** (Budget → Guided walk-through (index.html:12190-12600)). Step `s8-e`. V7's sheet covers the lines by heading on one page; the step-by-step walk-through with its tips has no V7 design.
 - **Break a line into sub-items** (Budget lines "break it down" (index.html:12488-12540)). Step `s8-e`.
@@ -805,7 +804,6 @@ stays (or comes back better) unless the owner agrees to retire it.
 - **Raise payments by a % a year** (Accumulation → Raise contributions by (index.html:3700)). Step `s8-e`.
 - **A projection at your own holdings' mix** (Accumulation → Projection: Your mix (6.7.0)). Step `s8-e`. V7 projects at a risk level while saving (savingRisk). Not road step 10 (holdings-and-move.md §8): a projection at the held mix is step 11's sweep.
 - **Reset a tool's settings to the defaults** (Stress and Decision → Settings → Reset to Defaults). Step `s8-e`.
-- **Administration** (Header gear (index.html:12840-12900)). Step `s9-switch`. Owner only; could stay on the previous version's page.
 
 ## Edited in V7
 
@@ -874,6 +872,7 @@ Each writes the same keys today's planner writes, through one file (src/v7/effec
 - **Where a copy came from**: Belongs to "Copy settings between the two tools" (retired with it, once the owner agrees); old plans keep these keys untouched.
 - **The seed left for the planner, and its receipt**: Retired in 6.39.0 (road-to-7.md step 7): the preview makes the plan itself, through its one write file, so it no longer writes a seed or reads a receipt; nothing is left in the browser for a day. The planner's own reader of a seed stays for one release and is removed with the switch to 7.0.
 - **Which tools a plan shows**: V7 has no tool tabs: the rail shows the steps the plan's stage needs, so there is nothing to switch on or off. Owner: to confirm.
+- **Administration**: Retired from the preview in 6.44.0 (road step 11a): the administration panel is the owner's only and stays on the classic page — the release note says so. Owner: to confirm.
 - **The old "Declining with age" spending profile**: Retired in 6.2.1: "Declining with age" became a slope on the income steps, with the same figures; old plans are folded in when opened. The taper itself is kept: in V7 it is the preset "Slowly less" (src/answers/shared/shape.js slowlyLess, today's smileToSteps).
 - **Old names of the three pot floors**: Renamed before 6.15.0 to equityMin, bondMin and cashTarget; kept beside the new names on old plans and read only to fill a missing new one.
 - **Copies under dotted names**: Never a setting: copies a storage fault wrote, folded back into the plan when it is opened.

@@ -4,7 +4,7 @@
  * open "not in the preview yet".
  * Also drawn, with one extra line, for an address that leads nowhere.
  */
-import { Field, formView, LinkButton } from '../components/index.js';
+import { Field, formView, LinkButton, Button } from '../components/index.js';
 import { href, parse } from '../router/routes.js';
 import { frontDoor } from '../rail/index.js';
 import { FRONT } from '../copy/common.js';
@@ -50,6 +50,8 @@ export function FrontDoor(state, dispatch) {
               </li>
             )))}
         </ul>
+        {/* the example plan (road-to-7.md step 11): made in this window for a visitor, as an ordinary plan for an account */}
+        <p class="note front-example" data-testid="front.exampleLine">{FRONT.example} <Button testid="front.example" kind="quiet" onClick={() => dispatch({ type: 'plan/example' })}>{FRONT.exampleButton}</Button></p>
       </>
     )
   };

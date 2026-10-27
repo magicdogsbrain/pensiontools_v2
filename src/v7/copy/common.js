@@ -42,6 +42,9 @@ export const FRONT = {
   intro: 'Pick the question closest to yours. You do not need an account. A first answer takes about two minutes and a handful of numbers.',
   notFound: 'We could not find that page. Here are the questions.',
   notYet: 'Not in the preview yet',
+  /** Under the questions (road-to-7.md step 11): the read-only example plan, for a visitor who wants to look around first. */
+  example: 'Or look around an example plan first:',
+  exampleButton: 'Look around an example',
   /** The six questions, in the visitor's words, in order. `ask` is what the visitor is quoted as saying. */
   questions: [
     { id: 'a', ask: 'When can I afford to stop work?', more: 'See different ages side by side.' },

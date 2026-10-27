@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "asOf": "2026-10-21",
+  "asOf": "2026-10-27",
   "against": "6.20.2",
   "rule": {
     "date": "2 Oct 2026",
@@ -156,6 +156,11 @@
       "short": "what you hold and the move",
       "title": "Road step 10 (6.43.0): \"What you hold\" and \"Moving to your plan's mix\" in V7 — the one record line by line by account, typed or pasted with \"What is this?\" on every line, the move against the plan as locked with its tick-offs, the cash to hold, the schedule, the order sheet that waits for the person's own State Pension figure, and the rotation watch and ticket (research/v7/holdings-and-move.md; road-to-7.md step 10)",
       "source": "research/v7/holdings-and-move.md; road-to-7.md step 10"
+    },
+    "s11-shell": {
+      "short": "the shell for 7.0, first half",
+      "title": "Road step 11a (6.44.0): the shell for 7.0, first half — the plan menu on \"Your plans\" (new, rename, make a copy, make this my main plan, download, open a downloaded copy, delete), the account page (sign in, sign up, Google, the reset and confirmation emails, Download everything, Delete my account), the visitor (the three free hours, the reminders, the stop, the hand-over on sign-in, the read-only example), What's new (the once-only pop-up and the page), the name Drawdown Planner (research/v7/road-to-7.md step 11)",
+      "source": "research/v7/road-to-7.md step 11; the brief for 11a, 27 Oct 2026"
     }
   },
   "keyNotes": {
@@ -243,10 +248,14 @@
       "whereV6": "Guest example plan and the ?demo=1m link (index.html:5036-5084)",
       "who": "Visitors",
       "keys": [],
-      "status": "planned",
-      "step": "s9-switch",
-      "gap": true,
-      "note": "V7's answers on your own figures are the new way in; an example to look around has no V7 home yet."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Built as \"Look around an example\" on \"Your plans\" and on the front door for a visitor: the planner's DEMO_PLANS['1m'] made in this window through the planner's own default plan (services/PlanFromSeed.js getDefaultScenario) with the demo's settings, flagged example: true — listed \"Example — look around\", read-only (the writer refuses every write to it: placeOf), not counted in the three (GuestPlans.guestOwnPlans), deletable; a copy of it is the person's own plan. A signed-in person gets it added as an ordinary plan, as the planner does.",
+      "files": [
+        "src/v7/effects/planWrite.js",
+        "src/v7/screens/plan/PlansScreen.jsx",
+        "src/v7/screens/FrontDoor.jsx"
+      ]
     },
     {
       "id": "ways.guest-trial",
@@ -262,10 +271,15 @@
         "browser.pt_guest_handoff",
         "browser.pt_guest_scenarios"
       ],
-      "status": "planned",
-      "step": "s9-switch",
-      "gap": true,
-      "note": "V7's answers do not count against the three hours; the audit recommends keeping that and recording it (square-one-audit.md §6 question 5). The meter itself needs a place in V7's shell."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Built in V7's shell through services/GuestMeter.js only: a minute counted while a visitor with plans of their own in this window has the page shown and was active in the last two minutes (V7's answers do not count against the three hours, as the audit recommended — the example alone does not count either), the four reminders at the planner's milestones (a line, then a box with the two ways in), the stop on every page but the account page when the hours are used up (the writer already refuses as usedUp), the banner line on \"Your plans\"; the hand-over offered after a sign-in made in V7 with plans of the person's own in the window (\"Bring in what you built without an account?\"), each through the one create, the example never (the planner's own bug, fixed in GuestMeter.handoffPayload for both apps).",
+      "files": [
+        "src/v7/effects/guestMeter.js",
+        "src/v7/components/Visitor.jsx",
+        "src/v7/copy/guest.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "ways.next-step",
@@ -770,9 +784,13 @@
         "budget.version",
         "budget.derived"
       ],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Carried as stored — the byte-for-byte test proves it: e2e/crawl.spec.js \"a locked plan in guest storage is byte-identical after every address is visited\" (the stored text unchanged after every V7 address, the plan's keys and bookkeeping among them), and tests/v7/plan/planSource.test.js (every plan read and brought up to date in memory, never written back).",
+      "files": [
+        "src/v7/effects/planSource.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "budget.screen-state",
@@ -3471,9 +3489,15 @@
         "planDetails.name",
         "planDetails.description"
       ],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Plan menu in V7's shell (square-one-audit.md §5 item 9)."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Built as the plan menu on each row of \"Your plans\" (#/plans): Open; Rename (one write of the name, made unique against the account's other names); Make a copy (the planner's duplicateScenario rules lifted into services/PlanCopy.js and the planner re-pointed at them — as it is, or with the monthly records and then locked from the start; through the one create); Make this my main plan (two writes of isActive alone, as the planner's setActiveScenarioDoc); Delete (a confirm that names the plan, a second one for a locked plan; the last plan refused, as the planner refuses it; the one deleteDoc). \"Start a new plan\" is the front door: every plan begins from a question. The description (planDetails.description) is carried as stored and edited nowhere in V7.",
+      "files": [
+        "src/v7/screens/plan/PlansScreen.jsx",
+        "src/v7/effects/planWrite.js",
+        "src/services/PlanCopy.js",
+        "src/v7/copy/plan.js"
+      ]
     },
     {
       "id": "acct.download",
@@ -3484,9 +3508,14 @@
       "whereV6": "Plan menu → Download this plan (PlanExport.js)",
       "who": "Everyone",
       "keys": [],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Plan menu in V7's shell."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Built as \"Download this plan\" on each row (the file is PlanExport.planExportJson, identity stripped, named by planExportFileName; a Blob and an anchor — nothing leaves the page), \"Open a downloaded copy\" under the list (the file checked, identity stripped again, kept as a plan of its own named \"… (opened)\" through the one create; any problem said in words), and \"Download everything\" on the account page (one file with every plan, identity stripped, and the account's settings document).",
+      "files": [
+        "src/v7/effects/download.js",
+        "src/v7/screens/plan/PlansScreen.jsx",
+        "src/v7/effects/account.js"
+      ]
     },
     {
       "id": "acct.from-answer",
@@ -3537,9 +3566,15 @@
         "profile.lastSeenVersion",
         "browser.pt_lastSeenVersion"
       ],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "What's new in V7's shell (square-one-audit.md §5 item 9)."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Built as the once-only pop-up after a sign-in or a visitor's start, following the planner's rules (the announced releases newer than the higher of the local mark pt_lastSeenVersion and the account's profile lastSeenVersion; a higher local mark carried over; silent for a new account and a first-visit visitor), \"Got it\" marking this version seen (localStorage, and the account's settings document through the account effect's one updateDoc — a missing document left alone); and the page #/whats-new with every release of src/releases.js and the reconstructed history rendered in Preact from the data, linked from every footer; reading it marks seen. The per-plan bullets (affects) of the planner's page are not drawn.",
+      "files": [
+        "src/v7/effects/whatsNew.js",
+        "src/v7/screens/NewsScreen.jsx",
+        "src/v7/components/ReleaseNotes.jsx",
+        "src/v7/components/Visitor.jsx"
+      ]
     },
     {
       "id": "acct.sign-in",
@@ -3552,9 +3587,14 @@
       "keys": [
         "browser.pt_lastActivity"
       ],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Must exist in V7 at the switch (data protection; square-one-audit.md §4)."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Built on #/account: sign in with email and password or Google, sign up with the confirmation email, the same \"Confirm your email\" gate as the planner (Firestore's rules need a confirmed email; \"I've confirmed\" reloads the user and refreshes the token), the forgotten-password email (the planner has no in-app password change: the reset email is the way), Sign out; the idle sign-out as planSource has it (an hour with no activity in any window). The planner's ?signin=1 door keeps working for the hand-over.",
+      "files": [
+        "src/v7/effects/account.js",
+        "src/v7/screens/AccountScreen.jsx",
+        "src/v7/copy/account.js"
+      ]
     },
     {
       "id": "acct.delete",
@@ -3565,9 +3605,13 @@
       "whereV6": "Header: Delete Account, Reset (index.html:2228-2231)",
       "who": "Everyone",
       "keys": [],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Must exist in V7 at the switch (data protection)."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Built as \"Delete my account\" on #/account: two confirms on the screen naming what goes (every plan, every monthly record, every budget, the sign-in itself; \"This cannot be undone.\"), then exactly what the planner's wipeAllUserData wipes, one document at a time — every users/{uid}/scenarios/{id}, users/{uid}/profile/settings, every fundSuggestions row whose uid is the person's — this site's localStorage and sessionStorage cleared, then deleteUser; on auth/requires-recent-login the person is signed out and asked to sign in again on the page and press once more, the data already gone. The planner's \"Reset\" (every plan deleted, the account kept) has no button in V7: a person deletes plans one by one, or the account; the planner's stays on the classic page.",
+      "files": [
+        "src/v7/effects/account.js",
+        "src/v7/screens/AccountScreen.jsx"
+      ]
     },
     {
       "id": "acct.reset-settings",
@@ -3607,10 +3651,11 @@
       "whereV6": "Header gear (index.html:12840-12900)",
       "who": "The owner",
       "keys": [],
-      "status": "planned",
-      "step": "s9-switch",
-      "gap": true,
-      "note": "Owner only; could stay on the previous version's page."
+      "status": "retired",
+      "step": "s11-shell",
+      "note": "Owner only; stays on the classic page.",
+      "reason": "Retired from the preview in 6.44.0 (road step 11a): the administration panel is the owner's only and stays on the classic page — the release note says so.",
+      "owner": "to confirm"
     },
     {
       "id": "mach.plan-fields",
@@ -3625,9 +3670,13 @@
         "plan.createdAt",
         "plan.lastModified"
       ],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Carried as stored — the byte-for-byte test proves it: e2e/crawl.spec.js \"a locked plan in guest storage is byte-identical after every address is visited\" (the stored text unchanged after every V7 address, the plan's keys and bookkeeping among them), and tests/v7/plan/planSource.test.js (every plan read and brought up to date in memory, never written back).",
+      "files": [
+        "src/v7/effects/planSource.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "mach.parts",
@@ -3644,9 +3693,13 @@
         "plan.decisionTool.settings",
         "plan.budgetTool.settings"
       ],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Carried as stored — the byte-for-byte test proves it: e2e/crawl.spec.js \"a locked plan in guest storage is byte-identical after every address is visited\" (the stored text unchanged after every V7 address, the plan's keys and bookkeeping among them), and tests/v7/plan/planSource.test.js (every plan read and brought up to date in memory, never written back).",
+      "files": [
+        "src/v7/effects/planSource.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "mach.strategy-block",
@@ -3663,9 +3716,13 @@
         "strategy.lockedAt",
         "strategy.engineVersion"
       ],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Carried as stored — the byte-for-byte test proves it: e2e/crawl.spec.js \"a locked plan in guest storage is byte-identical after every address is visited\" (the stored text unchanged after every V7 address, the plan's keys and bookkeeping among them), and tests/v7/plan/planSource.test.js (every plan read and brought up to date in memory, never written back).",
+      "files": [
+        "src/v7/effects/planSource.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "mach.configured",
@@ -3679,9 +3736,13 @@
         "stress.configured",
         "decision.configured"
       ],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+      "status": "built",
+      "step": "s11-shell",
+      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0). Carried as stored — the byte-for-byte test proves it: e2e/crawl.spec.js \"a locked plan in guest storage is byte-identical after every address is visited\" (the stored text unchanged after every V7 address, the plan's keys and bookkeeping among them), and tests/v7/plan/planSource.test.js (every plan read and brought up to date in memory, never written back).",
+      "files": [
+        "src/v7/effects/planSource.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "mach.declining",

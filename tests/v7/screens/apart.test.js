@@ -664,7 +664,7 @@ describe('7 — today, byte for byte', () => {
   // product's name on every screen ("Drawdown Planner" for "PensionTools": the brand, the footer's two lines), so the pinned
   // drawings were re-pinned once more (V7_PIN_TODAY=1, V7_PIN_SCREENS=1) at 6.44.0
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
-    '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]'];
+    '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="front.exampleLine"]'];
   const hash = (html) => createHash('sha256').update(html).digest('hex').slice(0, 32);
   // …but the states that hold savings: their answers moved with how savings grow (6.22.0, "Mostly cash" unless chosen,
   // where every answer grew them at a fixed 3% a year), so they draw what 6.22.0 draws — pinned, with the reason, in

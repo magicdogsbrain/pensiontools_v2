@@ -160,3 +160,52 @@ AshworthEnterprises workspace (`compliance/DATA_PROCESSING_RECORD.md`).
 - [ ] Owner to read and approve the wording, then publish with the release that ships today's side (6.17.1 or 6.18.0).
 - [ ] Signed-in path not yet walked in a browser (no test account was used): guest hand-off then the seed, a new
       account getting the confirm step instead of onboarding, email verification then the seed.
+
+## The shell for 7.0 in the V7 preview: sign-in, verification, deletion and export paths — 27 Oct 2026 (written, NOT yet published or deployed)
+Road step 11a (research/v7/road-to-7.md step 11; release 6.44.0). The preview (`/v7/`) now has its own account page and plan
+menu, so the planner's page is no longer on a person's path for these. **No new processor, no new Firestore path, no new
+data category**: the preview reads and writes the same documents under the same rules, through three named files and no other
+(`tests/v7/boundaries.test.js` 3b and 3c pin the files, the Firebase names each may import, and the number of write and
+delete call sites).
+- **Sign-in and sign-up** (`src/v7/effects/account.js` `startAccount`; `src/v7/screens/AccountScreen.jsx`): the planner's
+  own flows (`src/firebase/AuthService.js`: email and password, the Google pop-up, `createUserWithEmailAndPassword` then
+  `sendEmailVerification`, `sendPasswordResetEmail`) on the same Firebase project with the same persistence (the plan source's
+  handles; no second app). The password is read from its box on submit and carried in one action to the effect; it is never
+  held in the state, never written to storage (`tests/v7/shell/account.test.js` checks the whole state's JSON for it).
+- **The verification gate** (`AccountScreen.jsx` "Confirm your email"): an unconfirmed account reads nothing — the server's
+  rule (`firestore.rules`: `email_verified`) and the plan source's own (`planSource.js`: no read for 'unverified'); "I've
+  confirmed" reloads the user and refreshes the ID token (`AuthService.reloadCurrentUser`'s rule) before the plans are read.
+- **The account's settings document** (`users/{uid}/profile/settings`, the App-preferences category): read once per sign-in
+  with `getDocs` of the profile collection, into page memory only (`ui.profile`); written by the account effect's one
+  `updateDoc` with `lastSeenVersion` when a release's notes are dismissed or read (`src/v7/effects/whatsNew.js`); a document
+  that does not exist is left alone (no `setDoc` anywhere the preview can reach).
+- **Deletion** (`account.js` `remove`, after two confirms the reducer insists on: `src/v7/state/reduce.js` `account/ask`):
+  exactly what `FirestoreService.wipeAllUserData` wipes, one document at a time — every `users/{uid}/scenarios/{id}` (read
+  again first), `users/{uid}/profile/settings`, every `fundSuggestions` row whose `uid` is the person's (a query; an older rule
+  refusing the read does not stop the rest, as the planner's does) — then this site's `localStorage` and `sessionStorage`
+  cleared, then `deleteUser`. On `auth/requires-recent-login` the data is already gone: the person is signed out and asked to
+  sign in again and press once more (the planner's own handling, in words on the page). A document that will not delete
+  stops the deletion there, nothing more is changed, and the page says so.
+- **A plan deleted** (`src/v7/effects/planWrite.js` `remove`): one `deleteDoc` of `users/{uid}/scenarios/{id}` after a confirm
+  that names the plan (a second for a locked plan); never the last plan; never automatic. Without an account: the window's
+  list without the plan, one `setItem` of `pt_guest_scenarios`.
+- **Export** (`src/v7/effects/download.js`; `account.js` `everythingJson`): "Download this plan" and "Download everything"
+  (every plan and the settings document) each save ONE file on the person's own computer through a Blob and an anchor —
+  identity stripped (`src/services/PlanExport.js` `stripIdentity`); nothing is sent anywhere. "Open a downloaded copy" reads
+  the file on the page (`planWrite.js` `openFile`), strips identity again, never trusts the file's `id`, `uid`, `example` or
+  `isActive`, and keeps the plan under the person's own account or window as a plan of their own.
+- **Browser storage, the preview now writes two more of the planner's own keys**, both already in the policy: the What's new
+  mark `localStorage['pt_lastSeenVersion']` (`whatsNew.js`, the one file that may name it) and the visitor's count and
+  reminders `pt_guest_minutes` / `pt_guest_nag_level` (through `src/services/GuestMeter.js` only; `src/v7/effects/guestMeter.js`
+  names no key). The hand-over after a sign-in (`planWrite.js` `bringIn`) copies the window's plans into the account through
+  the one create and never carries the read-only example plan (a correction to the planner's `handoffPayload` too). No
+  hand-off stash is written by the preview (`pt_guest_handoff` is the planner's own, read by nothing in V7).
+- [ ] Owner to read and approve the wording of the deletion confirms (`src/v7/copy/account.js` `remove.ask1`, `ask2`,
+      `needsSignIn`, `done`) against `compliance/PRIVACY_POLICY.md` "How long we keep it" — the preview names "every plan,
+      every monthly record, every budget, the sign-in itself" where the policy says "your account and all data".
+- [ ] Owner to decide whether `public/privacy.html` and `compliance/PRIVACY_POLICY.md` should name the preview's account
+      page and its "Download everything" as the in-app way to a portable copy ("Your rights"), and whether "guest mode"
+      should read "without an account" there too. No sentence was changed in this step.
+- [ ] The signed-in paths are tested with fakes only (`tests/v7/shell/account.test.js`, `guest.test.js`, `whatsNew.test.js`);
+      no real account was used and the live project was not touched. The sign-in, deletion and hand-over flows are not yet
+      walked in a browser against the emulator.

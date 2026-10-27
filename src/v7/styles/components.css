@@ -568,7 +568,7 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .rn-popup { max-height: 50vh; overflow: auto; margin: 0 0 12px; padding-right: 4px; }
 .rn-details { margin: 0 0 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised); }
 .rn-details summary { cursor: pointer; min-height: var(--target); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
-.rn-details summary strong { white-space: nowrap; }
+.rn-release-h { display: inline; margin: 0; font-size: 1.05rem; font-weight: 650; line-height: 1.35; }
 .rn-body { padding: 8px 0 4px; }
 .rn-summary { font-weight: 500; }
 .rn-section { margin: 8px 0 0; }

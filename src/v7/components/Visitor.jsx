@@ -97,7 +97,7 @@ export function NewsPopup({ entries, dispatch }) {
       <div class="shell-box shell-box-wide" role="region" aria-label={NEWS.title}>
         <h2>{head}</h2>
         <div class="rn-popup">
-          {entries.map((r, i) => <Release key={r.version} r={r} words={NEWS} open={i === 0} />)}
+          {entries.map((r, i) => <Release key={r.version} r={r} words={NEWS} open={i === 0} level={3} />)}
         </div>
         <div class="actions-row">
           <Button testid="news.gotIt" kind="primary" onClick={dismiss} {...keepFocus}>{NEWS.gotIt}</Button>

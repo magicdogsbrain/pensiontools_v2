@@ -18,7 +18,8 @@ export const dayWords = (iso) => {
 };
 
 const List = ({ items }) => (Array.isArray(items) && items.length ? <ul class="rn-list">{items.map((t, i) => <li key={i}>{t}</li>)}</ul> : null);
-const Section = ({ title, children, when }) => (when ? <div class="rn-section"><h4 class="rn-h">{title}</h4>{children}</div> : null);
+/** A section's heading one level under the release's own (no level skipped: the screen rule R9). */
+const Section = ({ title, children, when, level = 3 }) => { const H = 'h' + level; return when ? <div class="rn-section"><H class="rn-h">{title}</H>{children}</div> : null; };
 
 /** How a release affects the plans, part by part (the planner's effectsHtml): the affected parts listed, the rest named as unaffected. */
 export function Effects({ effects, words }) {
@@ -34,27 +35,29 @@ export function Effects({ effects, words }) {
   );
 }
 
-export function ReleaseBody({ r, words }) {
+export function ReleaseBody({ r, words, level = 2 }) {
   const W = words.sections;
+  const l = level + 1;
   return (
     <div class="rn-body" data-quoted="release" data-version={r.version}>
       {r.summary && <p class="rn-summary">{r.summary}</p>}
-      <Section title={W.changes} when={r.changes && r.changes.length}><List items={r.changes} /></Section>
-      <Section title={W.corrections} when={r.corrections && r.corrections.length}><List items={r.corrections} /></Section>
-      <Section title={W.effects} when={!!r.effects}><Effects effects={r.effects} words={words} /></Section>
-      <Section title={W.actions} when={r.actions && r.actions.length}><List items={r.actions} /></Section>
-      <Section title={W.notes} when={r.notes && r.notes.length}><List items={r.notes} /></Section>
+      <Section title={W.changes} when={r.changes && r.changes.length} level={l}><List items={r.changes} /></Section>
+      <Section title={W.corrections} when={r.corrections && r.corrections.length} level={l}><List items={r.corrections} /></Section>
+      <Section title={W.effects} when={!!r.effects} level={l}><Effects effects={r.effects} words={words} /></Section>
+      <Section title={W.actions} when={r.actions && r.actions.length} level={l}><List items={r.actions} /></Section>
+      <Section title={W.notes} when={r.notes && r.notes.length} level={l}><List items={r.notes} /></Section>
     </div>
   );
 }
 
-/** One release as a closed block that opens (the newest open on the page). */
-export function Release({ r, words, open = false }) {
+/** One release as a closed block that opens (the newest open on the page); its heading at `level` (2 on the page, 3 under a heading), its sections one under. */
+export function Release({ r, words, open = false, level = 2 }) {
+  const H = 'h' + level;
   const tag = [dayWords(r.date), r.announced || r.reconstructed ? null : words.fix, r.engineVersion ? fill(words.engine, { version: r.engineVersion }) : null].filter(Boolean).join(' · ');
   return (
     <details class={`rn-details${r.reconstructed ? ' rn-reconstructed' : ''}`} open={open} data-testid={`news.release.${r.version}`}>
-      <summary><strong>{'Version ' + r.version}</strong> · <span data-quoted="title">{r.title}</span> <span class="note">{tag}</span></summary>
-      <ReleaseBody r={r} words={words} />
+      <summary><H class="rn-release-h">{'Version ' + r.version} · <span data-quoted="title">{r.title}</span></H> <span class="note">{tag}</span></summary>
+      <ReleaseBody r={r} words={words} level={level} />
     </details>
   );
 }

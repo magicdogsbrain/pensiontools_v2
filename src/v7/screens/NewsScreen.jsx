@@ -30,7 +30,7 @@ export function NewsScreen(state) {
               <section class="rn-history" data-testid="news.history">
                 <h2>{NEWS.historyTitle}</h2>
                 <p class="note">{NEWS.historyLead}</p>
-                {page.history.map((r) => <Release key={r.version} r={r} words={NEWS} />)}
+                {page.history.map((r) => <Release key={r.version} r={r} words={NEWS} level={3} />)}
               </section>
             )}
           </div>

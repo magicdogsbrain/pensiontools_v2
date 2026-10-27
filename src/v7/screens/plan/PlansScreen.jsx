@@ -179,7 +179,7 @@ export function PlansScreen(state, dispatch) {
               <LinkButton testid="plans.start" kind="primary" href={href.front()}>{W.start}</LinkButton>
               <Button testid="plans.openCopy" kind="plain" onClick={() => dispatch({ type: 'ui/toggle', id: 'openCopy' })} aria-expanded={M.openCopy ? 'true' : 'false'} {...keepFocus}>{M.openCopy ? W.openCopyClose : W.openCopy}</Button>
               {visitor && <Button testid="plans.example" kind="plain" onClick={() => dispatch({ type: 'plan/example' })} {...keepFocus}>{W.example}</Button>}
-              {visitor && <LinkButton testid="plans.signIn" kind="quiet" href={href.account()}>{w.signInButton}</LinkButton>}
+              {visitor && v.count > 0 && <LinkButton testid="plans.signIn" kind="quiet" href={href.account()}>{w.signInButton}</LinkButton>}
             </div>
             <p class="note">{W.startHelp}{visitor ? ' ' + W.exampleHelp : ''}</p>
             {M.openCopy && (

@@ -42,7 +42,7 @@ export function ownAt(inputs, a) {
   return { ...own, first: Math.min(...list), last: Math.max(...list) };
 }
 /** Whether a row at `a` can be answered: the end after the later stop, under 45 years after the first. */
-const fitsAt = (inputs, a, younger) => { const o = ownAt(inputs, a); return inputs.endAge > younger + o.last && o.last - o.first < RULES.maxYears; };
+export const fitsAt = (inputs, a, younger) => { const o = ownAt(inputs, a); return inputs.endAge > younger + o.last && o.last - o.first < RULES.maxYears; };
 
 const ROOT = process.cwd();
 const P1_FILES = ['lives', 'saving', 'stopAt'].map((f) => resolve(ROOT, `src/answers/shared/${f}.js`));
@@ -327,8 +327,17 @@ export function checkAnswerA(answer, given, env) {
       if (q.pensionOpen === true && q.byPerson.some((x) => x.locked)) fail('A-I8', `phase ${i}: pensionOpen true but a pension is closed`);
       for (const x of q.byPerson) if (x.locked && x.fromPension > 0.005) fail('A-I8', `phase ${i}: ${x.who}'s pension is closed but pays ${x.fromPension}`);
       // (couples apart: before the second stop, a need the pay does not make up and nobody's money can pay is a run-out —
-      // "None of it" with nothing to draw on: the take-home there is what there is)
-      const unpaid = q.fromPay !== undefined && !answer.apart.coversGap;
+      // "None of it" with nothing to draw on: the take-home there is what there is. After the second stop the same: the
+      // first stopper's money gone by the join and the joiner with nothing — nothing from the pots, where something would
+      // have been drawn had anyone held anything — and the take-home is the guaranteed incomes alone. A NIGHTLY=1 run, 27
+      // Oct 2026, seed 1543956594: your partner's £150,000, stopped at 23, asked to pay £5,000 a month for 44 years.
+      // Granted only where the household's own verdict agrees that nobody had money there: the shown row says "no" and its
+      // bad-case run-out age (the younger's, as the phases' ages) is at or before the phase — the joined years are drawn on
+      // the first stopper's middling pots at the join (stopAt.js middlingAtJoin), and the bad case is out by then whenever
+      // the middling one is. A phase that draws nothing from money the answer says is still there fails as before.)
+      const nobodyPays = Boolean(answer.apart) && q.fromPay === undefined && q.fromPots <= 0.005
+        && answer.shown.verdict === 'no' && answer.shown.runOutAge <= q.fromAge;
+      const unpaid = (q.fromPay !== undefined && !answer.apart.coversGap) || nobodyPays;
       // (what is spent changing with age, spending-shape.md 6.3: the spending that phase's first year is the shape's — byYear)
       const yr = Array.isArray(answer.byYear) ? answer.byYear.find((r) => r.age === q.ages.you.from) : null;
       const spendThen = yr ? yr.spend : s.perMonth;

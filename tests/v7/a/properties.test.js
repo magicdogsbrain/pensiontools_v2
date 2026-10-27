@@ -10,19 +10,21 @@
  * pots drained in a fixed ratio, as C's M1).
  *
  * Every push: a fixed seed and a small count. Nightly: NIGHTLY=1 (a fresh seed, printed on failure) and FC_RUNS large.
+ * A night failure is run again by name with FC_SEED and FC_PATH (tests/v7/oracles/fcOptions.mjs).
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { answerA, SCHEMA_A, TEST_ENV, checkAnswerA, ENGINE_READY, payInsFit } from './invariants.js';
+import { fcOptions } from '../oracles/fcOptions.mjs';
+import { answerA, SCHEMA_A, TEST_ENV, checkAnswerA, ENGINE_READY, payInsFit, fitsAt } from './invariants.js';
 import { arbitraryInputs, arbitraryTyped } from '../gen/arbitrary.mjs';
 import { frozen, at, diffPaths, plain } from '../../helpers/clock.js';
 import { RULES } from '../../../src/answers/shared/rules.js';
-import { STEP, oneLife, largeHousehold, amountsToAStep } from '../oracles/oneStep.mjs';
+import { STEP, oneLife, largeHousehold, amountsToAStep, drawTaxedAtStart } from '../oracles/oneStep.mjs';
 
 const RUNS = Number(process.env.FC_RUNS || 8);
 const SEED = process.env.NIGHTLY ? undefined : 20261001;
 const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
-const opts = (n = RUNS) => ({ seed: SEED, numRuns: n, verbose: 1 });
+const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 const THREE = ['careful', 'middling', 'good'];
 const RANK = { no: 0, close: 1, yes: 2 };
 
@@ -61,19 +63,24 @@ function noWorse(a, b, couple, onFinding = () => {}) {
 function noWorseOrFinding(a, b, inputs, findings) {
   let found = false;
   const note = () => { found = true; };
-  // a couple with a charge over 1% a year (6.19.0): the fixed-ratio drain can bind on the run whose draws are taxed first,
-  // and more for that person can lower the band by more than a step — a finding, printed (tests/v7/c/exceptions.md,
-  // "A couple's fixed-ratio drain with a charge"; the same model in A)
-  const chargedCouple = inputs.household === 'couple' && inputs.charge > 1;
-  if (largeHousehold(a.shown.monthly.careful) || chargedCouple) {
+  // a couple whose fixed-ratio drain can bind on the run taxed from the first pound (tests/v7/c/exceptions.md, "A couple's
+  // fixed-ratio drain on the run taxed from the first pound"; the same model in A): with a charge over 1% a year (6.19.0),
+  // or when the person whose money is raised (you: PA1, PA2, PA5) has their pension pounds taxed at the margin from the
+  // stop — guaranteed income in payment that fills their allowance, or a draw that reaches past what it leaves (C's hunt of
+  // 27 Oct 2026: a State Pension forecast of £10,500 and over fell the same way) — and the household holds savings beside
+  // the pensions (oneStep.mjs drawTaxedAtStart says why both are needed, and how the first phase shows it) — more for that
+  // person can lower the band by more than a step. A finding, printed, not asserted.
+  const bindingCouple = inputs.household === 'couple'
+    && (inputs.charge > 1 || ((inputs.savings > 0 || inputs.savingsIn > 0) && drawTaxedAtStart(a.shown.phases, 'you')));
+  if (largeHousehold(a.shown.monthly.careful) || bindingCouple) {
     amountsToAStep(a.shown.monthly, b.shown.monthly, (k, floor) => { if (b.shown.monthly[k] < floor) note(); }, note);
     if (b.shown.lasted < a.shown.lasted - oneLife(a.basis.futures)) note();
   } else noWorse(a, b, inputs.household === 'couple', note);
   if (found) findings.push({ inputs, from: a.shown.monthly, to: b.shown.monthly });
-  return !largeHousehold(a.shown.monthly.careful) && !chargedCouple;
+  return !largeHousehold(a.shown.monthly.careful) && !bindingCouple;
 }
 const report = (name, findings) => {
-  if (findings.length) console.log(`${name}: an amount of £10,000 a month or more, or a couple's with a charge over 1%, moved the wrong way by more than a step in ${findings.length} case(s) — a finding (tests/v7/a/exceptions.md; tests/v7/c/exceptions.md)`, JSON.stringify(findings[0]));
+  if (findings.length) console.log(`${name}: an amount of £10,000 a month or more, or a couple's with a charge over 1% or a run taxed from the first pound beside savings, moved the wrong way by more than a step in ${findings.length} case(s) — a finding (tests/v7/a/exceptions.md; tests/v7/c/exceptions.md)`, JSON.stringify(findings[0]));
 };
 const potsNoLower = (a, b) => { for (const k of THREE) expect(b.shown.potAtStop[k], `potAtStop.${k}`).toBeGreaterThanOrEqual(a.shown.potAtStop[k]); };
 const sameFutures = (a, b) => { expect(b.basis.seed).toBe(a.basis.seed); expect(b.basis.futures).toBe(a.basis.futures); };
@@ -122,7 +129,12 @@ describe.skipIf(!ENGINE_READY)('A — properties between two answers', () => {
     fc.assert(fc.property(named, (inputs) => {
       const later = inputs.stop.age + 1;
       const younger = inputs.household === 'couple' ? Math.min(inputs.you.age, inputs.partner.age) : inputs.you.age;
-      fc.pre(later <= RULES.stopAgeMax && inputs.endAge > younger + (later - inputs.you.age));
+      // the row a year on must be one the screen answers: the end after the LATER of the two stops, and that stop under 45
+      // years after the first — both halves of validate.js's end-after-stop (a/schema.js), which the old precondition
+      // restated by half. A couple apart whose partner stopped at 18 and you at 67 is 44 years apart; at 68 it is 45 and is
+      // refused on the endAge box, so 'invalid' is the right answer there (a NIGHTLY=1 run, 27 Oct 2026, seed 967666578).
+      // fitsAt is the invariants' own reading of the rule, the one the rows are held to.
+      fc.pre(later <= RULES.stopAgeMax && fitsAt(inputs, later, younger));
       const b = run({ ...inputs, stop: { kind: 'age', age: later } }, { ...ENV, ages: [inputs.stop.age, later] });
       const a = run(inputs, { ...ENV, ages: [inputs.stop.age, later] });
       const strip = ({ phases, oneMoreYear, ...row }) => row;
@@ -262,8 +274,13 @@ describe.skipIf(!ENGINE_READY)('A — properties between two answers', () => {
       const b = run({ ...inputs, savingRisk: up });
       expect(b.guaranteed).toEqual(a.guaranteed);
       expect(b.basis.endAge).toBe(a.basis.endAge);
-      if (a.shown.yearsSaving > 0 && b.shown.potAtStop.good < a.shown.potAtStop.good) findings.push({ inputs, from: a.shown.potAtStop, to: b.shown.potAtStop });
-      if (a.shown.yearsSaving === 0) expect(b.shown.potAtStop).toEqual(a.shown.potAtStop);
+      // "nobody saves" is every person's own years (answer.saving[].yearsSaving): shown.yearsSaving is the asked person's
+      // alone, and for a couple apart the partner may keep paying in after you stop now — the one savingRisk is every
+      // saver's mix, so their pot at their own stop moves with it while yours does not, and the pots at the stop rightly
+      // move (a NIGHTLY=1 run, 27 Oct 2026, seed -3453295: you 55 stopping now, your partner 18 paying in £1 a month to 62)
+      const nobodySaves = a.saving.every((p) => p.yearsSaving === 0);
+      if (!nobodySaves && b.shown.potAtStop.good < a.shown.potAtStop.good) findings.push({ inputs, from: a.shown.potAtStop, to: b.shown.potAtStop });
+      if (nobodySaves) expect(b.shown.potAtStop).toEqual(a.shown.potAtStop);
     }), opts());
     if (findings.length) console.log(`PA13: more shares while saving lowered the good-case pot in ${findings.length} case(s) — reported, not asserted`, JSON.stringify(findings[0]));
   });

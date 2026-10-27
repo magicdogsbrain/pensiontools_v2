@@ -54,6 +54,30 @@ failure in tests/v7/b/properties.test.js ("PB4 found", `it.fails`), which goes r
 the floor with the pension at the number being searched (or split the floor by each person's own closed years), not at
 £5,000,000.
 
+## Fixed on 27 Oct 2026 (not an exception)
+
+- **The closed years' floor carried a life the pension could not.** `outside.careful` (stopAt.js `savingsNeeded`) and
+  `payIn.outside` are found with a pension of £5,000,000 behind the savings, standing for one that cannot run out
+  (contract.js) — and counted a run-out at any month. Where a life needs more than £5,000,000 (a disaster life on a large
+  spend), it ran out long after every pension was open, and the floor was raised for it. Found by M-B2 at NIGHTLY=1
+  FC_RUNS=300 (27 Oct 2026, seed 1631952905, the branch check after the night run): one person of 18 with nothing, stopping
+  at 53 (closed until 57), the full State Pension, cautious, no charge, to 95, spending £7,635 a month — the worst life ran
+  out at 94 with £5,000,000 behind £386,000 of savings, where the closed years need £383,000 (one life's month 47); at £7,625
+  the floor was £383,000, and behind the £3,000 of savings the floor did not need — each pension pound past the £100,000
+  point worth about 55p — the good number came out £1,683,000 against £1,681,000 at £7,635 (two steps the wrong way; at the
+  same floor it fell, £1,681,000 → £1,678,000). Only a run-out before the month every holder's pension is open counts for
+  the floor now (until then a closed holder's run has only the savings to pay it; after it, with that pension behind, a
+  run-out is the pension's): the floor is £383,000 at both spends, the good number £1,687,000 and £1,683,000. The case is
+  pinned in found.cases.json and M-B2 replays it by name ("M-B2 found"). One pinned case of the corpora moved
+  (tests/v7/shared, case 84 of both — a couple, the partner's pension closed for 23 years, a 3% charge, to 100): the
+  floor's search and the savings pay-in had found nothing at all (null; the floor fell back to the draw, £117,982) because
+  a life ran out after every pension was open whatever the savings, and the pension pay-in with them; now £18,130 a month
+  into savings and £5,840 into the pension reach 9 in 10 (£0 at 3 in 4) — the one test, exact (M-B9). Its status stays
+  out-of-reach (no pension at the stop up to £5,000,000 pays the spend in 9 lives of 10 behind the floor: the number is
+  null). No fixture moved. The cutoff is the LAST pension to open, not the first: between the two, with £5,000,000 behind, a
+  run-out can only be the still-closed partner's savings (case 75 of the corpora, both closed at the stop, moved under the
+  first and is unchanged under the last).
+
 ## Fixed on 1 Oct 2026 (not exceptions)
 
 - **"The pay-in that gets there" missed nothing at all.** `leastPayIn` (stopAt.js) is the least £10 in [from, ceiling] at

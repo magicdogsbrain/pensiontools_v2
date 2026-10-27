@@ -18,6 +18,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { fcOptions } from '../oracles/fcOptions.mjs';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { answerA, SCHEMA_A, TEST_ENV, FIXTURE_FILES, payInsFit } from './invariants.js';
@@ -71,7 +72,7 @@ describe('R1 — the every-age step from the answer step\'s rows is the every-ag
       // A NIGHTLY=1 run, 1 Oct 2026 (seed -109027457): one person of 42 with £10,000,000, "show me ages". Printed, not asserted.
       if (cold.ages.some((r) => largeHousehold(r.monthly.good))) { if (J(warm) !== J(cold)) findings.push(inputs); return; }
       expect(J(warm), J(inputs)).toBe(J(cold));
-    }), { seed: SEED, numRuns: RUNS, verbose: 1 });
+    }), fcOptions({ seed: SEED, runs: RUNS }));
     if (findings.length) console.log(`R1: the every-age step from the answer step's rows differed from it worked out cold in ${findings.length} household(s) with an amount over £10,000 a month — a finding (tests/v7/a/exceptions.md)`, J(findings[0]));
   }, 300_000);
 

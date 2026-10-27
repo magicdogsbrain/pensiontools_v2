@@ -3,7 +3,8 @@
  * random valid inputs of SCHEMA_B, on the same lives for both runs.
  *
  * Every push: a fixed seed and a small count, so a red run is the code's fault and can be repeated exactly.
- * Nightly: NIGHTLY=1 (a fresh seed, printed on failure) and FC_RUNS large.
+ * Nightly: NIGHTLY=1 (a fresh seed, printed on failure) and FC_RUNS large. A night failure is run again by name with
+ * FC_SEED and FC_PATH (tests/v7/oracles/fcOptions.mjs).
  *
  * A couple's number is split between the two by their middling pots at the stop (brief conflict 18); anything that
  * moves those pots (the pay-in, the pot today) can move a couple's number by a step, so the relations that hold the
@@ -11,6 +12,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { fcOptions } from '../oracles/fcOptions.mjs';
 import { SCHEMA_B, TEST_ENV, answerB, checkAnswerB, withinCeiling, asksB } from './invariants.js';
 import { arbitraryInputs } from '../gen/arbitrary.mjs';
 import { frozen, at, diffPaths, plain } from '../../helpers/clock.js';
@@ -19,7 +21,7 @@ import { STEP, oneLife, largeHousehold } from '../oracles/oneStep.mjs';
 const RUNS = Number(process.env.FC_RUNS || 8);
 const SEED = process.env.NIGHTLY ? undefined : 20261001;
 const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
-const opts = (n = RUNS) => ({ seed: SEED, numRuns: n, verbose: 1 });
+const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 const ok = (a, inputs) => { const f = checkAnswerB(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
 const inputsB = arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(asksB);
 const singles = inputsB.filter((i) => i.household === 'single');

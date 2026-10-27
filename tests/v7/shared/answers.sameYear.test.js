@@ -23,6 +23,12 @@
  * 6.19.0 grew them at a fixed 3% a year, and its words say so; it is listed in answers.savingsGrowth.json with the hash it
  * gives now (savingsGrowthMoves.mjs). Every other case hashes as 6.19.0 did.
  *
+ * A THIRD move (27 Oct 2026, with the night run's fixes): case 84 — a couple whose partner's pension is closed 23 years, a
+ * 3% charge — moved again when B's closed-years floor stopped carrying a life £5,000,000 of pension cannot (stopAt.js
+ * savingsNeeded: only a run-out before every pension is open counts; tests/v7/b/exceptions.md, "Fixed on 27 Oct 2026"):
+ * its savings pay-in had been null, nothing reaching the closed years, and is now a figure. It holds savings, so its new
+ * hash is in answers.savingsGrowth.json as the moved cases' are, the reason noted there.
+ *
  * Delete one release after 6.20.0, with sameYear.v1/.
  */
 import { describe, it, expect } from 'vitest';

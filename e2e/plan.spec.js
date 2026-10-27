@@ -101,7 +101,7 @@ test.describe('the saved plans, without an account', () => {
     // (the rail's "Lock the plan" step draws its own screen since 6.38.0: road-to-7.md step 6)
     // the plan's own sub-steps (plan.lock, plan.way, plan.mix, plan.household …) are inside the preview too
     // … and, since road-to-7.md step 11, every header's account page and every footer's What's new
-    for (const href of links.filter((h) => h.startsWith('#/'))) { const n = screenName(parse(href)); if (!n.startsWith('plan.')) expect(['front', 'plans', 'plan', 'c.numbers', 'a.numbers', 'b.numbers', 'account', 'news']).toContain(n); }
+    for (const href of links.filter((h) => h.startsWith('#/'))) { const n = screenName(parse(href)); if (!n.startsWith('plan.')) expect(['front', 'plans', 'plan', 'c.numbers', 'a.numbers', 'b.numbers', 'account', 'news', 'assumptions']).toContain(n); }   // "Assumptions and data" at the foot of every page (road-to-7.md step 11b)
 
     // a reload: the plans are read again from the window, nothing kept in the page's own storage
     await page.reload();
@@ -123,8 +123,10 @@ test.describe('the saved plans, without an account', () => {
     await expect(page.getByTestId('plan.step.saving')).toBeVisible();
     await expect(page.getByTestId('plan.windowWarning')).toHaveText('In the planner, press ‘Just try it — no account’ to carry on with this plan.');
 
-    // Change what you pay in: the request in this window, then the planner in the same window
-    await page.getByTestId('plan.saving.changeSaving').click();
+    // "Change this here" opens the preview's own "What you pay in" (road-to-7.md step 11b); "Am I on course?" is still the planner's:
+    // the request in this window, then the planner in the same window
+    await expect(page.getByTestId('plan.saving.changeSaving')).toHaveAttribute('href', '#/plan/HouseSaver02/saving');
+    await page.getByTestId('plan.saving.onCourse').click();
     await page.waitForURL((u) => new URL(u).pathname === '/' || new URL(u).pathname === '/index.html');
     // the planner, reloaded: nobody is signed in, so its landing page; "Carry on with the plans in this window"
     await expect(page.locator('#landingTryGuest')).toBeVisible();
@@ -147,11 +149,12 @@ test.describe('the saved plans, without an account', () => {
     expect(plansNow.find((p) => p.id === 'HouseSaver02').isActive).toBe(false);
     expect(plansNow.find((p) => p.id === 'HouseLadder01').planDocument).toEqual(ladder.planDocument);
 
-    // Back to the preview: the same plan page
+    // Back to the preview: the saving step's own address, which since 6.45.0 draws "What you pay in" (road-to-7.md step 11b), the boxes as saved
     await note.locator('a').click();
-    await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan');
+    await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.saving');
     await expect(page.getByTestId('plan.step.saving')).toBeVisible();
-    await expect(page.locator('[data-region="plan-step"]')).toContainText('£600 a month from you, £450 from your employer');
+    await expect(page.getByTestId('plan.saving.netMonthly')).toHaveValue('600');
+    await expect(page.getByTestId('plan.saving.employerMonthly')).toHaveValue('450');
 
     // the locked plan's own place: Monthly Entry on the ladder (the account's open plan: no "this window only" line)
     await page.goto(v7('#/plan/HouseLadder01/month'));

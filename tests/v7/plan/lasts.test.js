@@ -56,6 +56,15 @@ const fakeResult = (strategyId = 'pots-and-valves', more = {}) => ({
     worst: [{ year: 1929, month: 9, s: 704, failed: true, failAge: 84, terminal: 0, worst12: 31000, unfair: true }, { year: 1966, month: 1, s: 1140, failed: false, terminal: 20000, worst12: 33000, cutYears: 4, cutReal: 16000, unfair: true }],
     named: [{ year: 1929, label: 'the Great Depression', kind: 'pnv', available: true, failed: false, terminal: 240000, worst12: 31000, cutYears: 4, cutReal: 16000 }, { year: 2008, label: 'the 2008 crisis', kind: 'pnv', tooShort: true, lastStart: 1986, available: false }]
   },
+  // the year-by-year tables and the named stresses (road-to-7.md step 11b), in lastsRun.js extrasOf's shape
+  extras: {
+    prices: 0.025, startAge: 56, duration: 39,
+    schedule: strategyId === 'pots-and-valves' ? [{ year: 0, age: 56, pension: 30000, state: 0, tax: 3486, net: 26514, isa: 8000, spendable: 34514, isaLeft: 120000 }] : null,
+    glidepath: strategyId === 'pots-and-valves' ? { tent: false, diversifiers: false, reserve: false, rows: [{ year: 0, age: 56, shares: 300000, bonds: 200000, cash: 80000, diversifiers: 0, reserve: 0, sharesPct: 52, isa: 120000, total: 580000 }] } : null,
+    own: strategyId === 'pots-and-valves' ? null : [{ year: 1, age: 56, incomeMid: 40000, incomeBad: 36000, leftMid: 900000 }],
+    scenarios: [{ year: 1929, label: 'Great Depression', key: 'GREAT_DEPRESSION', kind: FAMILY.includes(strategyId) ? 'pnv' : 'none', available: FAMILY.includes(strategyId), failed: false, terminal: 240000, worst12: 31000, cutYears: 4, cutReal: 16000, decade: { first: -0.64, decade: -0.39, prices: -0.21 } }],
+    synthetic: { name: 'Synthetic Worst', decade: { first: -0.27, decade: -0.49, prices: 0.75 }, hardest: { year: 1929, month: 9 } }
+  },
   stored: null, basis: { today: TODAY, engine: 'one-test' }, ...more
 });
 
@@ -301,7 +310,7 @@ describe('L1 — the sub-step, the address and the plan page\'s links', () => {
   it('"lasts" sits under "plan" beside the other four; the address parses and formats; the screen is plan.lasts', () => {
     expect(SUB_STEPS.plan).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
     expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
-    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move']);   // the household, hold and move rail steps draw their own screens (road-to-7.md steps 9, 10)
+    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move', 'budget', 'saving']);   // the household, hold and move rail steps draw their own screens (road-to-7.md steps 9, 10)
     const r = parse('#/plan/abc/lasts');
     expect(r).toEqual({ screen: 'plan', q: null, step: 'lasts', planId: 'abc', focus: null });
     expect(format(r)).toBe('#/plan/abc/lasts');
@@ -313,7 +322,7 @@ describe('L1 — the sub-step, the address and the plan page\'s links', () => {
     expect(isLastsPath('cuts.0.pct')).toBe(false);
     for (const k of LASTS_WRITES) { expect(k.startsWith('stressTool.settings.')).toBe(true); expect(ALL_WRITES).toContain(k); }
     expect(LASTS_WRITES.map((k) => k.split('.')[2]).sort()).toEqual([...KEYS].sort());
-    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', ...PLANS_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11)
+    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', ...PLANS_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11)
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
   });
   for (const today of DATES) {

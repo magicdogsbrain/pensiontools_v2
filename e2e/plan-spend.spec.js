@@ -22,7 +22,7 @@ import { bandsOf } from '../src/answers/plan/about.js';
 test.use({ outside: 'block' });
 
 const GUEST_KEY = 'pt_guest_scenarios';
-const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', 'pt_open_place', 'pt_open_plan', 'pt_guest_minutes', 'pt_activeScenarioId']);
+const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', 'pt_open_place', 'pt_open_plan', 'pt_guest_minutes', 'pt_activeScenarioId', 'pt_lastSeenVersion']);   // pt_lastSeenVersion: What's new marks a first visit seen (6.44.0)
 const v7 = (hash) => PROD + '/v7/' + hash;
 
 function lumpyPlan() {

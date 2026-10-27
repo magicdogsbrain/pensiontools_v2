@@ -18,7 +18,7 @@ import { ALL_WRITES } from '../src/answers/plan/schema.js';
 test.use({ outside: 'block' });
 
 const GUEST_KEY = 'pt_guest_scenarios';
-const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity']);
+const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', 'pt_lastSeenVersion']);   // pt_lastSeenVersion: What's new marks a first visit seen (6.44.0)
 const v7 = (hash) => PROD + '/v7/' + hash;
 
 /** Corpus plan 10 (stopping at 62, plans to 93), made from an answer: the answer's record of its inputs matches its settings. */

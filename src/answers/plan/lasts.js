@@ -329,8 +329,34 @@ export function verdictOf(result, saved) {
       ? { id: 'lasts.subContract', slots: { years: String(years), toAge } }
       : { id: 'lasts.sub', slots: { pct: pctText(a.chancePct, 1, CHANCE_BARS).replace(/%$/, ''), futures: n0(a.futures), histories: n0(a.histories), years: String(years), toAge } },
     rows, strategyId: result.strategyId || null,
-    history: { worst, named, histRanOut: n0(a.histRanOutN), failKind: a.failKind, histories: n0(a.histories), contract: CONTRACT.includes(result.strategyId) }
+    history: { worst, named, histRanOut: n0(a.histRanOutN), failKind: a.failKind, histories: n0(a.histories), contract: CONTRACT.includes(result.strategyId) },
+    // the year-by-year tables and the named stresses (road-to-7.md step 11b), when the run carried them
+    extras: extrasView(result.extras)
   };
+}
+
+/** A fraction as a direction and whole-percent words' slots: −0.45 → { dir: 'down', pct: '45' }. */
+const move = (v) => ({ dir: v < 0 ? 'down' : 'up', pct: String(Math.round(Math.abs(+v || 0) * 100)) });
+
+/**
+ * The run's extras (lastsRun.js extrasOf) in words: each table's rows as pounds, the named stresses as start rows with what the
+ * decade did (ids with slots: the screen says "down" and "up" in its own words), the made-up decade apart. Null when the run
+ * carried none.
+ */
+export function extrasView(x) {
+  if (!x || typeof x !== 'object') return null;
+  const schedule = Array.isArray(x.schedule) ? x.schedule.map((r) => ({ year: r.year, age: r.age, pension: pounds(r.pension), state: pounds(r.state), tax: pounds(r.tax), isa: pounds(r.isa), spendable: pounds(r.spendable), isaLeft: pounds(r.isaLeft), raw: { pension: r.pension, spendable: r.spendable, isaLeft: r.isaLeft } })) : null;
+  const glidepath = x.glidepath && Array.isArray(x.glidepath.rows) ? { tent: !!x.glidepath.tent, diversifiers: !!x.glidepath.diversifiers, reserve: !!x.glidepath.reserve,
+    rows: x.glidepath.rows.map((r) => ({ year: r.year, age: r.age, shares: pounds(r.shares), bonds: pounds(r.bonds), cash: pounds(r.cash), diversifiers: pounds(r.diversifiers), reserve: pounds(r.reserve), sharesPct: String(r.sharesPct), isa: r.isa == null ? '' : pounds(r.isa), total: pounds(r.total), raw: { total: r.total, sharesPct: r.sharesPct } })) } : null;
+  const own = Array.isArray(x.own) ? x.own.map((r) => ({ year: r.year, age: r.age, incomeMid: pounds(r.incomeMid), incomeBad: pounds(r.incomeBad), leftMid: pounds(r.leftMid), raw: { incomeMid: r.incomeMid, leftMid: r.leftMid } })) : null;
+  const scenarios = Array.isArray(x.scenarios) ? x.scenarios.map((row) => {
+    const d = row.decade || { first: 0, decade: 0, prices: 0 };
+    const f = move(d.first), e = move(d.decade), c = move(d.prices);
+    return { ...startRow(row), key: row.key || null, decade: { id: 'decade.line', slots: { firstDir: f.dir, firstPct: f.pct, decadeDir: e.dir, decadePct: e.pct, pricesDir: c.dir, pricesPct: c.pct } } };
+  }) : [];
+  const sy = x.synthetic || null;
+  const synthetic = sy ? (() => { const f = move(sy.decade.first), e = move(sy.decade.decade), c = move(sy.decade.prices); const when = sy.hardest ? (sy.hardest.month ? MONTHS[sy.hardest.month - 1] + ' ' : '') + sy.hardest.year : null; return { name: sy.name, decade: { id: 'decade.line', slots: { firstDir: f.dir, firstPct: f.pct, decadeDir: e.dir, decadePct: e.pct, pricesDir: c.dir, pricesPct: c.pct } }, hardest: when }; })() : null;
+  return { prices: String(Math.round((+x.prices || 0) * 1000) / 10), schedule, glidepath, own, scenarios, synthetic, years: Array.isArray(x.schedule) ? x.schedule.length : Array.isArray(x.own) ? x.own.length : 0 };
 }
 
 // ---- "What's different" (research/v7/way-and-mix.md 4, 9.4; index.html runTryStrategyUI's list, lifted) -------------------

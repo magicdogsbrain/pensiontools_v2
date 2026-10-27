@@ -57,6 +57,15 @@ function fakeResult(strategyId, { stored = null, affordable = true } = {}) {
       worst: [{ year: 1929, month: 9, s: 704, failed: true, failAge: 84, terminal: 0, worst12: 31000, unfair: true }, { year: 1966, month: 1, s: 1140, failed: false, terminal: 20000, worst12: 33000, cutYears: 4, cutReal: 16000, unfair: true }],
       named: [{ year: 1929, label: 'the Great Depression', kind: family ? 'pnv' : 'none', available: family, failed: false, terminal: 240000, worst12: 31000, cutYears: 4, cutReal: 16000 }, { year: 2008, label: 'the 2008 crisis', kind: family ? 'pnv' : 'none', tooShort: family, lastStart: 1986, available: false }]
     } : { worst: [], named: [] },
+    // the year-by-year tables and the named stresses (road-to-7.md step 11b), in lastsRun.js extrasOf's shape
+    extras: affordable ? {
+      prices: 0.025, startAge: 56, duration: 39,
+      schedule: strategyId === 'pots-and-valves' ? [{ year: 0, age: 56, pension: 30000, state: 0, tax: 3486, net: 26514, isa: 8000, spendable: 34514, isaLeft: 120000 }, { year: 1, age: 57, pension: 30750, state: 0, tax: 3600, net: 27150, isa: 8200, spendable: 35350, isaLeft: 114000 }] : null,
+      glidepath: strategyId === 'pots-and-valves' ? { tent: false, diversifiers: false, reserve: false, rows: [{ year: 0, age: 56, shares: 300000, bonds: 200000, cash: 80000, diversifiers: 0, reserve: 0, sharesPct: 52, isa: 120000, total: 580000 }] } : null,
+      own: strategyId === 'pots-and-valves' ? null : [{ year: 1, age: 56, incomeMid: 40000, incomeBad: 36000, leftMid: 900000 }],
+      scenarios: [{ year: 1929, label: 'Great Depression', key: 'GREAT_DEPRESSION', kind: family ? 'pnv' : 'none', available: family, failed: false, terminal: 240000, worst12: 31000, cutYears: 4, cutReal: 16000, decade: { first: -0.64, decade: -0.39, prices: -0.21 } }],
+      synthetic: { name: 'Synthetic Worst', decade: { first: -0.27, decade: -0.49, prices: 0.75 }, hardest: { year: 1929, month: 9 } }
+    } : null,
     stored, basis: { today: TODAY, engine: 'one-test' }
   };
 }
@@ -169,6 +178,30 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(text).toContain('1929 — the Great Depression: lasted; income cut in 4 years (£16,000 in all)');
     expect(text).toContain('2008 — the 2008 crisis: real history since 2008 is not long enough yet');
     expect(root.querySelector('[data-testid="plan.lasts.scenarios"]')).not.toBe(null);
+    // the named stresses as whole decades (road-to-7.md step 11b): what the decade did, then the plan's own replay; the made-up decade apart; no hand-over
+    expect(root.querySelector('[data-testid="plan.lasts.scenarios"] li').textContent).toBe('1929 — Great Depression: shares down 64% in the first three years and down 39% over the decade; prices down 21% over the decade. lasted; income cut in 4 years (£16,000 in all); Lowest 12 months £31,000; left £240,000');
+    expect(root.querySelector('[data-testid="plan.lasts.synthetic"]').textContent).toBe('Synthetic Worst: shares down 27% in the first three years and down 49% over the decade; prices up 75% over the decade. A made-up decade: no real start is this bad, so it is not in the test. The hardest real start in the record is September 1929, above.');
+    expect(text).not.toContain('in the planner');
+    // the years one by one and the pots' floors: closed until opened, each press a toggle on the screen
+    const years = root.querySelector('[data-testid="plan.lasts.years"]');
+    expect(years.getAttribute('data-kind')).toBe('schedule');
+    expect(years.getAttribute('data-years')).toBe('2');
+    expect(root.querySelector('[data-testid="plan.lasts.schedule.table"]')).toBe(null);
+    expect(root.querySelector('[data-testid="plan.lasts.glidepath.table"]')).toBe(null);
+    const drawn = draw(lastsState(entries, id));
+    drawn.root.querySelector('[data-testid="plan.lasts.schedule"]').click();
+    expect(drawn.actions.pop()).toEqual({ type: 'ui/toggle', id: 'lastsSchedule' });
+    drawn.root.querySelector('[data-testid="plan.lasts.glidepath"]').click();
+    expect(drawn.actions.pop()).toEqual({ type: 'ui/toggle', id: 'lastsGlidepath' });
+    const opened = draw(lastsState(entries, id, { ui: { open: ['lastsSchedule', 'lastsGlidepath'] } }));
+    const sched = opened.root.querySelectorAll('[data-testid="plan.lasts.schedule.table"] tbody tr');
+    expect(sched.length).toBe(2);
+    expect(sched[0].getAttribute('data-age')).toBe('56');
+    expect(sched[0].textContent).toBe('056£30,000£0£3,486£8,000£34,514£120,000');
+    const floors = opened.root.querySelectorAll('[data-testid="plan.lasts.glidepath.table"] tbody tr');
+    expect(floors.length).toBe(1);
+    expect(floors[0].textContent).toBe('056£300,000£200,000£80,00052%£120,000£580,000');
+    expect(opened.root.querySelector('[data-testid="plan.lasts.schedule"]').textContent).toBe('Hide the years');
     expect(root.querySelector('[data-testid="plan.lasts.cutsOn.yes"]').checked).toBe(true);
     expect(root.querySelector('[data-testid="plan.lasts.cutAfterMonths"]').value).toBe('3');
     expect(root.querySelector('[data-saved-for="cutAfterMonths"]').textContent).toBe('From your plan, saved 11 September 2026 (3)');

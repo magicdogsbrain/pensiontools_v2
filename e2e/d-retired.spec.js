@@ -26,7 +26,7 @@ import { GUEST_ALLOWANCE_MINUTES, KEY_MINUTES } from '../src/services/GuestMeter
 test.use({ outside: 'block' });
 
 const GUEST_KEY = 'pt_guest_scenarios';
-const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', 'pt_open_place', 'pt_open_plan', 'pt_guest_minutes', 'pt_guest_nag_level', 'pt_activeScenarioId', 'pt_guest_handoff']);
+const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', 'pt_open_place', 'pt_open_plan', 'pt_guest_minutes', 'pt_guest_nag_level', 'pt_activeScenarioId', 'pt_guest_handoff', 'pt_lastSeenVersion']);   // pt_lastSeenVersion: What's new marks a first visit seen (6.44.0)
 /** The design's worked example (answer-D.md 1): 68, £300,000 left, the tax-free part not had, £40,000 of savings, £2,100 a month. */
 const TYPED = { 'you.age': '68', 'you.pot': '300000', 'you.taxFreeTaken': 'no', savings: '40000', 'spend.amount': '2100' };
 const plain = (t) => String(t).replace(/[’‘]/g, "'").replace(/\s+/g, ' ').trim();

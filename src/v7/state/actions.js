@@ -236,6 +236,8 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   'mixPaste', 'mixExample', 'tryOpen', 'tryConfirm',
   // "Your household" (road-to-7.md step 9): the year-by-year tables, and the budget's who-pays block
   'hhDetail', 'hhWhoPays',
+  // "Does it last?" (road-to-7.md step 11b): the years one by one, and the pots' floors over the plan
+  'lastsSchedule', 'lastsGlidepath',
   // "What you hold" (step 10): the paste box; "Moving to your plan's mix": how to read it, the sheet shown anyway, gilt ladders explained
   'holdPaste', 'moveHow', 'moveSheet', 'moveExplained',
   // "Your plans" (step 11): the file box of "Open a downloaded copy"

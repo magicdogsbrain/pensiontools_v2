@@ -65,19 +65,78 @@ function StartRow({ r }) {
   );
 }
 
-/** History: "What if you had retired into a bad year?" — the one test's own real starts, from the same run. */
-function History({ v, onChange, readonly }) {
+/** What a named decade did (test.scenarios): the reading's slots, with "down" and "up" in this screen's words. */
+const decadeText = (d) => { const H = LASTS.history; const s = d.slots; return fill(H.decade[d.id] || '', { ...s, firstDir: H.dir[s.firstDir], decadeDir: H.dir[s.decadeDir], pricesDir: H.dir[s.pricesDir] }); };
+
+/** History: "What if you had retired into a bad year?" — the one test's own real starts, from the same run; the named stresses as whole decades (road-to-7.md step 11b). */
+function History({ v }) {
   const H = LASTS.history;
   if (!v || !v.ok || !v.history) return null;
   const h = v.history;
+  const x = v.extras;
   return (
     <section class="plan-section lasts-history" data-section="history">
       <h3>{H.title}</h3>
       <p class="note">{h.contract ? H.leadContract : fill(h.failKind === 'cut' ? H.leadCut : h.failKind === 'lean' ? H.leadLean : H.lead, { histories: h.histories, ranOut: h.histRanOut })}</p>
       {h.worst.length > 0 && <><h4>{H.worstTitle}</h4><p class="note">{H.worstLead}</p><ul class="plan-lines" data-testid="plan.lasts.worst">{h.worst.map((r, i) => <StartRow key={i} r={r} />)}</ul></>}
       {h.named.length > 0 && <><h4>{H.namedTitle}</h4><p class="note">{H.namedLead}</p><ul class="plan-lines" data-testid="plan.lasts.named">{h.named.map((r, i) => <StartRow key={i} r={r} />)}</ul></>}
-      <p class="note">{H.scenarios}</p>
-      {!readonly && <div class="actions-row"><Button testid="plan.lasts.scenarios" kind="quiet" onClick={() => onChange('test')}>{H.scenariosButton}</Button></div>}
+      {x && x.scenarios.length > 0 && (
+        <>
+          <h4>{H.scenariosTitle}</h4>
+          <p class="note">{fill(H.scenariosLead, { histories: h.histories })}</p>
+          <ul class="plan-lines" data-testid="plan.lasts.scenarios">
+            {x.scenarios.map((r, i) => (
+              <li key={i} class="plan-line lasts-start" data-start={r.when} data-row={r.id} data-scenario={r.key || undefined}>
+                <strong>{r.when}</strong>{r.label ? ' — ' + r.label : ''}: {decadeText(r.decade)}. {fill(H.rows[r.id] || '', r.slots)}
+                {r.lowest ? '; ' + fill(H.lowest, { lowest: r.lowest }) : ''}{r.left ? '; ' + fill(H.left, { left: r.left }) : ''}
+              </li>
+            ))}
+          </ul>
+          {x.synthetic && <p class="note" data-testid="plan.lasts.synthetic">{fill(H.synthetic, { name: x.synthetic.name, decade: decadeText(x.synthetic.decade) })}{x.synthetic.hardest ? fill(H.syntheticHardest, { when: x.synthetic.hardest }) : ''}</p>}
+        </>
+      )}
+    </section>
+  );
+}
+
+/** The years one by one and the pots' floors (test.schedule, test.glidepath): the planner's Drawdown and Glidepath pages, closed until opened. */
+function Years({ v, L, dispatch }) {
+  const Y = LASTS.years;
+  const x = v && v.ok ? v.extras : null;
+  if (!x || (!x.schedule && !x.own)) return null;
+  const toggle = (id) => dispatch({ type: 'ui/toggle', id });
+  const rows = x.schedule || x.own;
+  const cols = x.schedule ? ['year', 'age', 'pension', 'state', 'tax', 'isa', 'spendable', 'isaLeft'] : ['year', 'age', 'incomeMid', 'incomeBad', 'leftMid'];
+  const g = x.glidepath;
+  const gcols = g ? ['year', 'age', 'shares', 'bonds', 'cash', ...(g.diversifiers ? ['diversifiers'] : []), ...(g.reserve ? ['reserve'] : []), 'sharesPct', 'isa', 'total'] : [];
+  return (
+    <section class="plan-section lasts-years" data-section="years" data-testid="plan.lasts.years" data-kind={x.schedule ? 'schedule' : 'own'} data-years={rows.length}>
+      <h3>{Y.title}</h3>
+      <p class="note">{x.schedule ? fill(Y.lead, { prices: x.prices }) : Y.leadOwn}</p>
+      <div class="actions-row"><Button testid="plan.lasts.schedule" kind="quiet" aria-expanded={L.scheduleOpen ? 'true' : 'false'} aria-controls={L.scheduleOpen ? 'plan.lasts.schedule.table' : undefined} onClick={() => toggle('lastsSchedule')} {...keepFocus}>{L.scheduleOpen ? Y.hide : Y.show}</Button></div>
+      {L.scheduleOpen && (
+        <div class="table-wrap">
+          <table class="way-table lasts-table" id="plan.lasts.schedule.table" data-testid="plan.lasts.schedule.table">
+            <thead><tr>{cols.map((c) => <th key={c} scope="col">{Y.columns[c]}</th>)}</tr></thead>
+            <tbody>{rows.map((r) => <tr key={r.year} data-year={r.year} data-age={r.age}>{cols.map((c, i) => (i === 0 ? <th key={c} scope="row">{r[c]}</th> : <td key={c}>{r[c]}</td>))}</tr>)}</tbody>
+          </table>
+        </div>
+      )}
+      {g && (
+        <>
+          <h4>{Y.floorsTitle}</h4>
+          <p class="note">{fill(g.tent ? Y.floorsLeadTent : Y.floorsLead, { prices: x.prices })}{g.diversifiers ? Y.floorsDiversifiers : ''}{g.reserve ? Y.floorsReserve : ''}</p>
+          <div class="actions-row"><Button testid="plan.lasts.glidepath" kind="quiet" aria-expanded={L.glidepathOpen ? 'true' : 'false'} aria-controls={L.glidepathOpen ? 'plan.lasts.glidepath.table' : undefined} onClick={() => toggle('lastsGlidepath')} {...keepFocus}>{L.glidepathOpen ? Y.floorsHide : Y.floorsShow}</Button></div>
+          {L.glidepathOpen && (
+            <div class="table-wrap">
+              <table class="way-table lasts-table" id="plan.lasts.glidepath.table" data-testid="plan.lasts.glidepath.table" data-tent={g.tent ? '1' : '0'}>
+                <thead><tr>{gcols.map((c) => <th key={c} scope="col">{Y.floorsColumns[c]}</th>)}</tr></thead>
+                <tbody>{g.rows.map((r) => <tr key={r.year} data-year={r.year} data-total={r.raw.total} data-shares-pct={r.raw.sharesPct}>{gcols.map((c, i) => (i === 0 ? <th key={c} scope="row">{r[c]}</th> : <td key={c}>{c === 'sharesPct' ? r[c] + '%' : r[c]}</td>))}</tr>)}</tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
     </section>
   );
 }
@@ -125,7 +184,8 @@ function Answer({ L, onChange, dispatch, view }) {
       {v && <Band v={v} stale={!run.fresh} testid="plan.lasts.result" />}
       {v && run.fresh && v.ok && <p class="plan-source" data-testid="plan.lasts.ran">{sourceLine}</p>}
       {v && run.fresh && L.note && <p class="notice" role="status" data-testid="plan.lasts.earlierTest">{L.note}</p>}
-      {v && run.fresh && <History v={v} onChange={onChange} readonly={view.readonly} />}
+      {v && run.fresh && <History v={v} />}
+      {v && run.fresh && <Years v={v} L={L} dispatch={dispatch} />}
     </section>
   );
 }

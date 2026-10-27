@@ -859,7 +859,9 @@ export function planLastsView(state) {
   // Try a change (way-and-mix.md 4): the boxes' problems show once left or once "Try it" has been pressed, as the dials' do
   const tryFields = v.try ? v.try.fields.map((f) => ({ ...f, error: v.draft.touched.includes(f.path) || v.draft.asked || (L.tried && mine) ? f.error : null })) : [];
   return { ...v, run: { status: mine ? L.status : 'idle', reason: mine ? L.reason || null : null, progress: mine ? L.progress : null, slow: mine ? L.slow : false, fresh: mine && L.status === 'done' && !!v.verdict },
-    try: v.try ? { ...v.try, fields: tryFields, open: open.includes('tryOpen') || !!(L.tried && mine), confirm: open.includes('tryConfirm') } : null };
+    try: v.try ? { ...v.try, fields: tryFields, open: open.includes('tryOpen') || !!(L.tried && mine), confirm: open.includes('tryConfirm') } : null,
+    // the year-by-year tables (road-to-7.md step 11b): closed until opened
+    scheduleOpen: open.includes('lastsSchedule'), glidepathOpen: open.includes('lastsGlidepath') };
 }
 /**
  * "The mix" (way-and-mix.md 3.2): the plan source's reading of the step (page.mix: the boxes, the funds, the paste, the tries

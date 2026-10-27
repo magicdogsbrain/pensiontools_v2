@@ -4118,7 +4118,7 @@
     import { MC_BLOCK_YEARS } from './src/services/SimulationEngine.js';
     // One answer per plan (6.24.0; usability audit decision 2): every "will it last" figure is the one test's, read through these.
     import { oneAnswer, worstStarts, earlierTestNote, cutsSettingWords, futuresOutOfTen, pctText, CHANCE_BARS, RUIN_BARS } from './src/services/OneAnswer.js';
-    import { namedStartRows } from './src/services/NamedStarts.js';
+    import { namedStartRows, SCENARIO_START } from './src/services/NamedStarts.js';   // the named stresses' start years, lifted (6.45.0): the preview reads the same
     import { leftRowHtml, cutsRowHtml, withoutCutsLineHtml, historyTabHtml, scenariosTabHtml, rankingCardHtml, allocationGridHtml, earlierTestNoteHtml } from './src/ui/oneAnswerView.js';
     import { DECISION_ASSUMED_CPI } from './src/services/InflationModel.js';
     import { LADDER_DEFAULTS, orderSheetRows } from './src/strategies/GiltLadderPlan.js';
@@ -6176,7 +6176,6 @@
       } catch (e) { console.error('History error:', e); box.innerHTML = '<div class="alert alert-danger">Could not show the history: ' + budEsc(e.message) + '</div>'; }
     };
     // Scenarios: the named stresses, explained from the same histories.
-    const SCENARIO_START = { GREAT_DEPRESSION: 1929, STAGFLATION_70S: 1973, LOST_DECADE_2000S: 2000, CRISIS_2008: 2008 };
     window.runScenariosUI = async function () {
       const box = document.getElementById('scenResults');
       const s = await getStressSettingsAsync();

@@ -125,3 +125,9 @@ The brief for 11a ruled on most points; these are the ones taken beyond it while
     reset email is told as done, so the neutral note "If there is an account for …" is what is shown either way.
 24. **The done-toast's close button is "Close"** (`PLAN.page.close`), not "Not now": a report of something done is not a
     thing to decline.
+25. **The timing check runs only when asked for by name, alone** (`tests/v7/shared/speed.apart.slow.test.js` measures its
+    apart/together ratios only under `TIMING_CHECKS=1`, as the night run sets it, on every machine — before, only in CI). In
+    a full `vitest run` on a development machine the ratios passed the 1.5 guard on unchanged code once this step's four
+    shell files ran beside it (1.55 and 1.63, 27 Oct 2026), as they had in CI on 2 Oct (1.11–1.53), where the per-push
+    suite already skipped them. The work bound that does not depend on timing (`apart.identity.test.js`, by count) still
+    runs in every suite; no engine or answer code changed.

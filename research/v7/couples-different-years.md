@@ -789,7 +789,9 @@ What an apart couple costs, per life and amount, compared with the same couple s
   stopper's run, from the month the joiner's money ran out, which is counted in both) — still under the same couple's
   `24D` — and exactly `12·(2D − G)` when neither runs out.
 - **A timing check (`speed.apart.slow.test.js`, nightly):** at 1,000 lives in Node, each answer step for an apart couple
-  takes at most 1.10 × the same couple stopping together (the median of three runs).
+  takes at most 1.10 × the same couple stopping together (the median of three runs). It runs only alone and asked for by
+  name (`TIMING_CHECKS=1`, as the night run sets it): side by side with the rest of the suite its ratios are noise, in CI
+  and on a development machine alike (27 Oct 2026).
 - **A's every-age step** for an apart couple is no slower than for the same couple stopping together. A4 (one person,
   already at its 30 s budget) is untouched.
 

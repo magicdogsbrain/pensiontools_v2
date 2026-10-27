@@ -228,4 +228,6 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   // "Your household" (road-to-7.md step 9): the year-by-year tables, and the budget's who-pays block
   'hhDetail', 'hhWhoPays',
   // "What you hold" (step 10): the paste box; "Moving to your plan's mix": how to read it, the sheet shown anyway, gilt ladders explained
-  'holdPaste', 'moveHow', 'moveSheet', 'moveExplained']);
+  'holdPaste', 'moveHow', 'moveSheet', 'moveExplained',
+  // "Your plans" (step 11): the file box of "Open a downloaded copy"
+  'openCopy']);

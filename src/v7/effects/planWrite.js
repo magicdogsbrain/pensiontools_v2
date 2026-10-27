@@ -1050,7 +1050,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     let name;
     try {
       name = place.kind === 'window' ? demo.name : uniqueName(demo.name, plans.map(nameOf).filter(Boolean));
-      const base = getDefaultScenario(name, place.kind === 'window' ? EXAMPLE_PLAN_DESCRIPTION : '', ['stress', 'decision'], at);
+      const base = getDefaultScenario(name, place.kind === 'window' ? EXAMPLE_PLAN_DESCRIPTION : '', ['stress', 'decision'], at.toISOString());
       base.stressTool.settings = { ...base.stressTool.settings, ...demo.stress };
       const stamp = at.toISOString();
       made = readyPlan({ ...base, isActive: plans.length === 0, createdAt: stamp, lastModified: stamp }, at);

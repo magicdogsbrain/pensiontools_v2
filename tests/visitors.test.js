@@ -10,6 +10,14 @@ import { initLandingPage } from '../src/ui/components/LandingPage.js';
 import { GUEST_RULE, bannerText, pendingNag, savedChipText, GUEST_SAVED_CHIP, GUEST_NAG_MINUTES } from '../src/services/GuestMeter.js';
 import { enterGuestMode, leaveGuestMode, getCurrentUser } from '../src/firebase/AuthService.js';
 import { clearGuestData } from '../src/firebase/FirestoreService.js';
+import { h, render } from 'preact';
+import { App } from '../src/v7/App.jsx';
+import { initialState } from '../src/v7/state/initial.js';
+import { reduce } from '../src/v7/state/reduce.js';
+import { parse } from '../src/v7/router/routes.js';
+import { GUEST } from '../src/v7/copy/guest.js';
+import { ACCOUNT } from '../src/v7/copy/account.js';
+import { handoffPayload } from '../src/services/GuestMeter.js';
 
 const html = readFileSync('index.html', 'utf8');
 const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
@@ -42,6 +50,39 @@ describe('one rule for guests', () => {
     expect(reset).toContain("if (isGuest()) { try { clearGuestData(); leaveGuestMode(); } catch (e) {} location.href = location.pathname; return; }");
     expect(reset).toContain('showSetupWizardFor();');
     expect(reset).not.toContain('showOnboarding');
+  });
+});
+
+describe('the same promises in the preview (research/v7/road-to-7.md step 11)', () => {
+  const drawV7 = (hash, session) => {
+    let s = initialState({ today: '2026-10-02', build: 'test' });
+    s = reduce(s, { type: 'route/set', route: parse(hash) });
+    s = reduce(s, { type: 'session/set', session: { kind: session, email: session === 'in' ? 'someone@example.com' : null } });
+    const root = document.createElement('div'); root.id = 'app';
+    render(h(App, { state: s, dispatch: () => {} }), root);
+    return root;
+  };
+  it('a visitor is never offered "Delete my account" on the preview\'s account page: there is no account; an account is, after two confirms', () => {
+    const visitor = drawV7('#/account', 'nobody');
+    expect(visitor.textContent).not.toContain(ACCOUNT.remove.button);
+    expect(visitor.querySelector('[data-testid="account.delete"]')).toBe(null);
+    expect(visitor.querySelector('[data-testid="account.signIn"]')).not.toBe(null);
+    const account = drawV7('#/account', 'in');
+    expect(account.querySelector('[data-testid="account.delete"]').textContent).toBe(ACCOUNT.remove.button);
+    expect(account.querySelector('[data-testid="account.delete.confirm1"]')).toBe(null);
+    expect(ACCOUNT.remove.ask1).toContain('This cannot be undone.');
+  });
+  it('the one rule for visitors is the same sentence in the preview\'s words, and the preview never says "guest"', () => {
+    expect(GUEST.rule).toBe(GUEST_RULE);
+    expect(GUEST.banner).toContain(GUEST_RULE.charAt(0).toLowerCase() + GUEST_RULE.slice(1));
+    expect(JSON.stringify(GUEST)).not.toMatch(/guest/i);
+    expect(JSON.stringify(ACCOUNT)).not.toMatch(/guest/i);
+  });
+  it('the hand-off into an account never carries the example plan (the planner\'s "keep this work" used to): GuestMeter.handoffPayload leaves it out for both apps', () => {
+    const own = { id: 'guest-a', planDetails: { name: 'Mine' } };
+    const example = { id: 'guest-b', example: true, planDetails: { name: 'The example' } };
+    expect(handoffPayload([example, own]).scenarios.map((s) => s.planDetails.name)).toEqual(['Mine (from guest)']);
+    expect(handoffPayload([example]).scenarios).toEqual([]);
   });
 });
 

@@ -507,7 +507,10 @@ export function checkScreen(root, state) {
   }
 
   // ---- R1 no rubbish --------------------------------------------------------------------------------------------
-  for (const re of RUBBISH) { const m = re.exec(text); if (m) say('R1', `"${m[0]}" on screen, near "${text.slice(Math.max(0, m.index - 30), m.index + 30)}"`); }
+  // the release notes are quoted as written (road-to-7.md step 11: [data-quoted] on What's new and its pop-up): the screen's
+  // own words are checked without them
+  const own = (() => { const c = root.cloneNode(true); for (const el of c.querySelectorAll('[data-quoted]')) el.remove(); return visibleText(c); })();
+  for (const re of RUBBISH) { const m = re.exec(own); if (m) say('R1', `"${m[0]}" on screen, near "${own.slice(Math.max(0, m.index - 30), m.index + 30)}"`); }
   for (const el of all('input')) if (/undefined|NaN|null|\[object/.test(el.value)) say('R1', `the box ${el.id} holds "${el.value}"`);
   for (const el of all('*')) for (const at of el.attributes) {
     if (/^(undefined|null|NaN|\[object Object\])$/.test(at.value) || /undefined|\[object/.test(at.name === 'href' || at.name === 'id' || at.name === 'for' || at.name === 'data-testid' || at.name === 'aria-label' ? at.value : '')) say('R1', `<${el.tagName.toLowerCase()} ${at.name}="${at.value}">`);
@@ -605,7 +608,15 @@ export function checkScreen(root, state) {
   }
 
   // ---- R7 the form is the input list; R8 round trip -------------------------------------------------------------
-  const boxes = all('input, select, textarea');
+  // the shell's own boxes (road-to-7.md step 11: the account forms, the rename box, the file box — [data-shell-box]) are no
+  // field of any input list: each is labelled, and the rest of the rule leaves them be
+  for (const el of all('[data-shell-box]')) {
+    const id = el.getAttribute('data-testid') || '';
+    if (el.id !== id) say('R7', `shell box ${id}: id is "${el.id}"`);
+    const label = root.querySelector(`label[for="${id}"]`);
+    if (!label || !label.textContent.trim()) say('R7', `shell box ${id} has no <label for>`);
+  }
+  const boxes = all('input, select, textarea').filter((el) => !el.hasAttribute('data-shell-box'));
   const gotIds = boxes.map((el) => el.getAttribute('data-testid'));
   const wantIds = expectedInputs(state);
   if ([...gotIds].sort().join('|') !== [...wantIds].sort().join('|')) say('R7', `boxes drawn [${gotIds}], the state calls for [${wantIds}]`);
@@ -693,7 +704,7 @@ export function checkScreen(root, state) {
   // ---- R10, R11 wording -----------------------------------------------------------------------------------------
   const one = /\b1 (years|months|futures|pensions)\b/.exec(text);
   if (one) say('R10', `"${one[0]}"`);
-  for (const hit of bannedHits(text, scopesFor(state))) say('R11', hit);
+  for (const hit of bannedHits(own, scopesFor(state))) say('R11', hit);
   for (const region of all('[data-region="answer"]')) for (const hit of bannedHits(visibleText(region), ['result'], { context: text })) say('R11', hit);
   for (const region of all('[data-region="rail"], [data-region="form"]')) {
     const m = /\b(sign up|create an account|log in)\b/i.exec(visibleText(region));

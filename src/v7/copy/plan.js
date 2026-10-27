@@ -66,7 +66,7 @@ export const PLAN = {
       renameSave: 'Rename it',
       notNow: 'Not now',
       /** Make a copy: the question on the row (the planner's "Copy with history / Settings only"). */
-      copyAsk: 'Copy ‘{name}’ as it is, or with its monthly records? A copy with the records is locked from the start, as the plan you copy it from is; a copy as it is starts unlocked, with no records.',
+      copyAsk: 'Copy ‘{name}’ as it is, or with its monthly records? A copy with the records is locked from the start, as the plan you copy it from is; a copy as it is starts with no monthly records.',
       copyAskPlain: 'Make a copy of ‘{name}’? The copy is a plan of its own, not locked.',
       copyPlain: 'Copy it as it is',
       copyWithRecords: 'Copy it with the records (locked)',

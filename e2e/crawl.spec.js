@@ -136,6 +136,9 @@ test.describe('V7 cannot change a plan', () => {
   const HANDOFF_KEY = 'pt_guest_handoff';
   const OWN_KEY = 'pt_v7_draft';
   const ACTIVITY_KEY = 'pt_lastActivity';   // the planner's idle-sign-out note, which V7 keeps up (your-plan.md 4.3)
+  // road-to-7.md step 11: the What's new mark (a first-visit visitor is marked seen silently) and the visitor's meter (the planner's own
+  // keys, GuestMeter.js): written by design while a plan of the person's own is in the window
+  const STEP11_KEYS = ['pt_lastSeenVersion', 'pt_guest_minutes', 'pt_guest_nag_level'];
 
   test('a locked plan in guest storage is byte-identical after every address is visited', async ({ page }) => {
     const plan = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '03-gilt-ladder-runup.json'), 'utf8'));
@@ -206,6 +209,7 @@ test.describe('V7 cannot change a plan', () => {
     expect(sessionRest).toEqual(before.session);
     const { [ACTIVITY_KEY]: activityAfter, ...localRest } = after.local;
     const { [ACTIVITY_KEY]: activityBefore, ...localBefore } = before.local;
+    for (const k of STEP11_KEYS) { delete localRest[k]; delete localBefore[k]; }
     expect(localRest).toEqual(localBefore);
     expect(activityAfter, 'the activity note is a time').toMatch(/^\d{10,}$/);
     if (BUILT.screens && BUILT.shell) expect(typeof own, 'the draft is kept in this tab').toBe('string');
@@ -215,7 +219,7 @@ test.describe('V7 cannot change a plan', () => {
     // The test build counts every storage write since load: only V7's own key.
     if (BUILT.hooks) {
       const writes = await page.evaluate(() => window.__pt.writes());
-      expect(Object.keys(writes).filter((k) => k !== OWN_KEY && k !== ACTIVITY_KEY), 'storage keys written by V7').toEqual([]);
+      expect(Object.keys(writes).filter((k) => k !== OWN_KEY && k !== ACTIVITY_KEY && !STEP11_KEYS.includes(k)), 'storage keys written by V7').toEqual([]);
     }
   });
 });

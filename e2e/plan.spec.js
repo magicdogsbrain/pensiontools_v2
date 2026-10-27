@@ -22,7 +22,9 @@ import { OPEN_PLACE_KEY, OPEN_PLAN_KEY } from '../src/services/OpenPlace.js';
 test.use({ outside: 'block' });
 
 const GUEST_KEY = 'pt_guest_scenarios';
-const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', OPEN_PLACE_KEY, OPEN_PLAN_KEY]);
+// … and, since road-to-7.md step 11: the What's new mark (a first-visit visitor is marked seen silently) and the visitor's
+// meter's count and reminders (GuestMeter.js's own keys, ticked once a minute while plans of the person's own are in the window)
+const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', OPEN_PLACE_KEY, OPEN_PLAN_KEY, 'pt_lastSeenVersion', 'pt_guest_minutes', 'pt_guest_nag_level']);
 
 /** The owner-shaped pair, from the corpus (tests/v7/plan/_plans.js household()). */
 function household() {

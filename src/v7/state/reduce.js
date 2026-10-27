@@ -36,8 +36,8 @@ const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'fail
   // "Your household" (road-to-7.md step 9): no partner's plan linked; the second copy or its link could not be made (the first stays)
   'noPartner', 'partial',
   // the plan menu (road-to-7.md step 11): the last plan is never deleted; the example plan is never changed; a downloaded copy that is
-  // not a plan, or holds one with a problem; a name empty or too long
-  'lastPlan', 'example', 'badFile', 'fileProblems', 'empty', 'tooLong'];
+  // not a plan, too big to be one, or holds one with a problem; a name empty or too long
+  'lastPlan', 'example', 'badFile', 'fileTooBig', 'fileProblems', 'empty', 'tooLong'];
 /** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document, the way switched (way-and-mix.md 2.4), a mix used (3.2e), a tried change used (4). */
 const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
   // "Your household" (road-to-7.md step 9): the partner link, the split written into both plans, "Keep things as they are", the budget shared
@@ -1292,6 +1292,12 @@ export function reduce(state, action) {
       const { planId } = action;
       if (typeof planId !== 'string' || !planId) return refuse('plan/delete: needs a plan id');
       if (state.ui.saving) return state;
+      // only from the row's own confirm, open on this plan (plan/action 'delete'); a locked plan only from its second confirm
+      const a = state.ui.action;
+      if (!a || a.kind !== 'delete' || a.planId !== planId) return state;
+      const entry = state.plans && Array.isArray(state.plans.list) ? state.plans.list.find((e) => e && e.plan && String(e.plan.id) === planId) : null;
+      const locked = !!(entry && entry.plan.decisionTool && entry.plan.decisionTool.settings && entry.plan.decisionTool.settings.locked);
+      if (locked && a.step !== 2) return state;
       return { ...state, ui: { ...state.ui, action: null, saving: { planId, kind: 'delete' }, saveProblem: null, toast: null } };
     }
     case A.PLAN_DOWNLOAD: {

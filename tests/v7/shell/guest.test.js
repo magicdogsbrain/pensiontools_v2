@@ -3,7 +3,8 @@
  * only — a minute counted when the page is shown and the person was active, for a visitor with plans of their own in this
  * window (never signed in, never the example alone, never on the question pages); the four reminders at the planner's
  * milestones, each once; the stop when the three hours are used up — and the hand-over after a sign-in: the offer (the plan
- * source, on nobody → in, with plans of the person's own in this window; the example never counted), "Yes" through the one
+ * source, whenever the session becomes 'in' from nobody or unverified while the page is open — the listener's sign-in, or
+ * "I've confirmed" after a sign-up — with plans of the person's own in this window; the example never counted), "Yes" through the one
  * create (handoffPayload: ids, the flag and the stamps dropped, the names marked, `isActive` for the first only when the
  * account is empty; the example never handed over — the planner's own bug, fixed in GuestMeter.js), the window's list
  * without them; "No" leaves them. Then the shell's boxes drawn: the reminder, the stop, the offer, the banner.
@@ -134,12 +135,12 @@ describe('the meter: GuestMeter.js\'s own count, ticked once a minute for a visi
 
 // ---- the hand-over after a sign-in --------------------------------------------------------------------------------------
 
-/** The plan source with a fake Firebase whose user can change, so a sign-in can be made with plans in the window. */
-function sourcePage({ windowPlans, docs = [] }) {
+/** The plan source with a fake Firebase whose user can change, so a sign-in can be made with plans in the window (`first`: the user already signed in when the page opens). */
+function sourcePage({ windowPlans, docs = [], first = null }) {
   const store = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
   store.dispatch({ type: A.ROUTE_SET, route: parse('#/account') });
   let listener = null;
-  let user = null;
+  let user = first;
   const calls = [];
   const fb = {
     isFirebaseConfigured: () => true, initializeApp: () => ({}), getAuth: () => ({}), setPersistence: () => Promise.resolve(), browserLocalPersistence: 'LOCAL',
@@ -153,10 +154,17 @@ function sourcePage({ windowPlans, docs = [] }) {
   const actions = [];
   store.subscribe((s, a) => actions.push(a));
   const adds = [];
-  const fbWrite = { doc: (db, ...path) => ({ path: path.join('/') }), updateDoc: () => Promise.resolve(), deleteDoc: () => Promise.resolve(), collection: (db, ...path) => ({ path: path.join('/') }), addDoc: (coll, data) => { adds.push({ path: coll.path, data: copy(data) }); return Promise.resolve({ id: 'New' + adds.length + 'PlanId' }); } };
+  const writes = [];
+  const fbWrite = { doc: (db, ...path) => ({ path: path.join('/') }), updateDoc: (ref, data) => { writes.push({ path: ref.path, data: copy(data) }); return Promise.resolve(); }, deleteDoc: () => Promise.resolve(), collection: (db, ...path) => ({ path: path.join('/') }), addDoc: (coll, data) => { adds.push({ path: coll.path, data: copy(data) }); return Promise.resolve({ id: 'New' + adds.length + 'PlanId' }); } };
   const fbAccount = { getDocs: fb.getDocs, collection: fb.collection, doc: fbWrite.doc, updateDoc: () => Promise.resolve(), deleteDoc: () => Promise.resolve(), query: (c) => c, where: () => ({}), signOut: () => Promise.resolve(), reload: () => Promise.resolve(), signInWithEmailAndPassword: () => Promise.resolve(), createUserWithEmailAndPassword: () => Promise.resolve(), signInWithPopup: () => Promise.resolve(), GoogleAuthProvider: class {}, sendEmailVerification: () => Promise.resolve(), sendPasswordResetEmail: () => Promise.resolve(), deleteUser: () => Promise.resolve() };
   const stop = startPlanSource(store, { win, local: storage(), session, now: () => NOW, fb, fbWrite, fbAccount });
-  return { store, session, adds, actions, stop, signIn: () => { user = { uid: 'u1', email: 'a@b.c', emailVerified: true }; listener(user); }, types: () => actions.map((a) => a.type) };
+  return {
+    store, session, adds, writes, actions, stop, types: () => actions.map((a) => a.type),
+    signIn: () => { user = { uid: 'u1', email: 'a@b.c', emailVerified: true }; listener(user); },
+    // a sign-up made on this page: the listener sees the new, unconfirmed user once; "I've confirmed" reloads it (the fake's reload is a no-op; the flag is set here) and the account effect sets the session itself
+    signUp: () => { user = { uid: 'u2', email: 'new@b.c', emailVerified: false }; listener(user); },
+    confirm: () => { user.emailVerified = true; store.dispatch({ type: A.ACCOUNT_ASK, what: 'verifyCheck' }); }
+  };
 }
 
 describe('the hand-over: offered on a sign-in with plans of the person\'s own in this window; made through the one create', () => {
@@ -174,6 +182,35 @@ describe('the hand-over: offered on a sign-in with plans of the person\'s own in
     await tick();
     expect(q.store.getState().ui.bringIn).toBe(null);
     p.stop(); q.stop();
+  });
+  it('a sign-up on this page: nobody → unverified (no offer) → "I\'ve confirmed" → in: the offer counts the two plans of the person\'s own (the listener is not called again for the same user, so the offer follows the session); a page opened already signed in: no offer', async () => {
+    const p = sourcePage({ windowPlans: [DRAFT, notActive(FRESH), EXAMPLE] });
+    await tick();
+    expect(p.store.getState().session.kind).toBe('nobody');
+    p.signUp();
+    await tick();
+    expect(p.store.getState().session.kind).toBe('unverified');
+    expect(p.store.getState().ui.bringIn).toBe(null);
+    p.confirm();
+    await tick(12);
+    expect(p.store.getState().session).toEqual({ kind: 'in', email: 'new@b.c', signingOut: false });
+    expect(p.types()).toContain(A.PLANS_READING);
+    expect(p.store.getState().ui.bringIn).toEqual({ count: 2, busy: false });
+    // "Not confirmed yet": the session stays, no offer
+    const r = sourcePage({ windowPlans: [DRAFT] });
+    await tick();
+    r.signUp();
+    await tick();
+    r.store.dispatch({ type: A.ACCOUNT_ASK, what: 'verifyCheck' });
+    await tick(12);
+    expect(r.store.getState().session.kind).toBe('unverified');
+    expect(r.store.getState().ui.bringIn).toBe(null);
+    // the page's first known session is a sign-in made before it opened: nothing is offered (as before)
+    const q = sourcePage({ windowPlans: [DRAFT], first: { uid: 'u1', email: 'a@b.c', emailVerified: true } });
+    await tick();
+    expect(q.store.getState().session.kind).toBe('in');
+    expect(q.store.getState().ui.bringIn).toBe(null);
+    p.stop(); q.stop(); r.stop();
   });
   it('"Yes, bring them in": ONE addDoc per plan of their own as handoffPayload packages them — the example never (the planner\'s bug, fixed in GuestMeter.js) — isActive for the first only when the account is empty; then the window\'s list without them (the example stays); the toast counts them', async () => {
     const p = sourcePage({ windowPlans: [DRAFT, EXAMPLE, notActive(LADDER)] });
@@ -217,6 +254,36 @@ describe('the hand-over: offered on a sign-in with plans of the person\'s own in
     expect(q.store.getState().ui.bringIn).toBe(null);
     expect(JSON.parse(q.session.raw(GUEST_PLANS_KEY)).length).toBe(1);
     expect(q.adds).toEqual([]);
+    p.stop(); q.stop();
+  });
+  it('a couple made in this window is brought in as a couple: the partner first, then the plan that names it, with the id the account gave (never a window id); a pair naming each other: one write of the link after', async () => {
+    const yours = { ...copy(DRAFT), id: 'guest-yours001', household: { partnerScenarioId: 'guest-partner01' } };
+    const partner = { ...notActive(FRESH), id: 'guest-partner01' };
+    const p = sourcePage({ windowPlans: [yours, partner] });
+    await tick();
+    p.signIn();
+    await tick();
+    p.store.dispatch({ type: A.GUEST_BRING_IN });
+    await tick(16);
+    expect(p.adds.map((a) => a.data.planDetails.name)).toEqual([FRESH.planDetails.name + WINDOW_SUFFIX, DRAFT.planDetails.name + WINDOW_SUFFIX]);
+    expect(p.adds[1].data.household.partnerScenarioId).toBe('New1PlanId');
+    expect(p.adds.map((a) => a.data.isActive)).toEqual([false, true]);   // the window's first plan is the main one, whenever it is made
+    expect(JSON.stringify(p.adds)).not.toContain('guest-');
+    expect(p.writes).toEqual([]);
+    expect(JSON.parse(p.session.raw(GUEST_PLANS_KEY))).toEqual([]);
+    const a = { ...copy(DRAFT), id: 'guest-aaaaaaa1', household: { partnerScenarioId: 'guest-bbbbbbb2' } };
+    const b = { ...notActive(FRESH), id: 'guest-bbbbbbb2', household: { partnerScenarioId: 'guest-aaaaaaa1' } };
+    const q = sourcePage({ windowPlans: [a, b] });
+    await tick();
+    q.signIn();
+    await tick();
+    q.store.dispatch({ type: A.GUEST_BRING_IN });
+    await tick(16);
+    expect(q.adds.length).toBe(2);
+    expect(q.adds[0].data.household.partnerScenarioId).toBe('guest-bbbbbbb2');   // made first, as it came
+    expect(q.adds[1].data.household.partnerScenarioId).toBe('New1PlanId');
+    expect(q.writes).toEqual([{ path: 'users/u1/scenarios/New1PlanId', data: { 'household.partnerScenarioId': 'New2PlanId' } }]);
+    expect(q.store.getState().ui.toast).toMatchObject({ kind: 'done', op: 'brought', slots: { n: 2 } });
     p.stop(); q.stop();
   });
   it('the planner\'s hand-off (GuestMeter.handoffPayload) leaves the example out too, and keeps its own "(from guest)" mark', () => {
@@ -263,14 +330,16 @@ function shellState(hash, { session = 'nobody', raws = null, ui = {} } = {}) {
 const SCOPES = ['all', 'first', 'planner', 'retired', 'saver', 'record'];
 
 describe('the shell draws the visitor\'s boxes', () => {
-  it('the stop on the front door and the plans page for a visitor whose hours are used up, never on the account page, never for an account; its buttons lead to the account page and the questions', () => {
+  it('the stop on the front door and the plans page for a visitor whose hours are used up, never on the account page, never for an account; its one way on is the account page (it covers the questions too, so it offers no link to them)', () => {
     const s = reduce(shellState('#/', { session: 'nobody' }), { type: A.GUEST_TICK, minutes: 185, usedUp: true });
     const { root, text } = draw(s);
     const box = q(root, '[data-testid="guest.stop"]');
     expect(box).not.toBe(null);
     expect(box.textContent).toContain(GUEST.stop.title);
     expect(q(box, '[data-testid="guest.stop.signIn"]').getAttribute('href')).toBe('#/account');
-    expect(q(box, '[data-testid="guest.stop.ask"]').getAttribute('href')).toBe('#/');
+    expect(box.querySelectorAll('a').length).toBe(1);
+    expect(box.textContent).not.toMatch(/ask a question/i);
+    expect('ask' in GUEST.stop).toBe(false);
     for (const hit of bannedHits(text, SCOPES)) expect(hit).toBe('');
     expect(q(draw(reduce(s, { type: A.ROUTE_SET, route: parse('#/account') })).root, '[data-testid="guest.stop"]')).toBe(null);
     expect(q(draw(reduce(s, { type: A.SESSION_SET, session: { kind: 'in', email: 'a@b.c' } })).root, '[data-testid="guest.stop"]')).toBe(null);

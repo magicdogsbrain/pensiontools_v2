@@ -60,7 +60,6 @@ export function GuestStop() {
         <div class="actions-row">
           <LinkButton testid="guest.stop.signIn" kind="primary" href={href.account()}>{GUEST.stop.signIn}</LinkButton>
         </div>
-        <p class="note"><a href={href.front()} data-testid="guest.stop.ask">{GUEST.stop.ask}</a></p>
       </div>
     </div>
   );

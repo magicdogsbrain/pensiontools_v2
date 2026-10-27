@@ -133,6 +133,8 @@ export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
 export const WINDOW_SUFFIX = ' (from this window)';
 /** What an opened file's plan is named: "{name} (opened)". */
 export const OPENED_SUFFIX = ' (opened)';
+/** A downloaded copy bigger than this is refused before it is read: a plan is at most one Firestore document (1 MiB), and the file is written with spaces. */
+export const OPEN_FILE_MAX_BYTES = 4 * 1024 * 1024;
 export const TOAST_MS = 15000;
 export const KEEP_WAIT_MS = 20000;
 const ALLOWED = new Set(ALL_WRITES);
@@ -907,17 +909,18 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const { place, plan, state } = got;
     const olds = state.plans.list.map((e) => e.plan).filter((p) => p.isActive === true && String(p.id) !== String(planId));
     if (plan.isActive === true && !olds.length) { finished(planId, 'main', { name: nameOf(plan) }); return; }
+    // the two patches, declared once for both places; the guard on every plan touched (the flag is outside the lock, so it passes)
+    const on = declaredOnly({ isActive: true });
+    const off = declaredOnly({ isActive: false });
+    for (const o of olds) if (lockedRefusal(o, off)) { fail(planId, 'locked'); return; }
+    if (lockedRefusal(plan, on)) { fail(planId, 'locked'); return; }
     if (place.kind === 'account') {
       for (const o of olds) {
-        const data = declaredOnly({ isActive: false });
         const op = placeOf(state, o.id, { allowExample: true });
         if (op.problem) { fail(planId, op.problem); return; }
-        if (lockedRefusal(o, data)) { fail(planId, 'locked'); return; }
-        if (!(await send(op, o.id, data))) return;
+        if (!(await send(op, o.id, off))) return;
       }
-      const data = declaredOnly({ isActive: true });
-      if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
-      if (!(await send(place, planId, data))) return;
+      if (!(await send(place, planId, on))) return;
     } else {
       // this window: the two flags folded, one setItem, every other plan byte-identical
       let text = null;
@@ -925,7 +928,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
       let list = null;
       try { list = JSON.parse(text); } catch { list = null; }
       if (!Array.isArray(list)) { fail(planId, 'storage'); return; }
-      const next = list.map((p) => (p && String(p.id) === String(planId) ? applyPatch(p, { isActive: true }) : p && p.isActive === true ? applyPatch(p, { isActive: false }) : p));
+      const next = list.map((p) => (p && String(p.id) === String(planId) ? applyPatch(p, on) : p && p.isActive === true ? applyPatch(p, off) : p));
       const out = JSON.stringify(next);
       try { session.setItem(GUEST_PLANS_KEY, out); if (session.getItem(GUEST_PLANS_KEY) !== out) { fail(planId, 'storage'); return; } } catch { fail(planId, 'storage'); return; }
     }
@@ -947,13 +950,14 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     // the planner takes the first other plan; here the first that is not the example, when there is one
     const heir = plan.isActive === true ? (others.find((p) => !isExamplePlan(p)) || others[0]) : null;
     const name = nameOf(plan);
+    // the heir's patch, declared once for both places; the guard on the heir (the flag is outside the lock, so it passes)
+    const on = declaredOnly({ isActive: true });
+    if (heir && lockedRefusal(heir, on)) { fail(planId, 'locked'); return; }
     if (place.kind === 'account') {
       if (heir) {
-        const data = declaredOnly({ isActive: true });
         const hp = placeOf(state, heir.id, { allowExample: true });
         if (hp.problem) { fail(planId, hp.problem); return; }
-        if (lockedRefusal(heir, data)) { fail(planId, 'locked'); return; }
-        if (!(await send(hp, heir.id, data))) return;
+        if (!(await send(hp, heir.id, on))) return;
       }
       try { await F.deleteDoc(F.doc(place.db, 'users', place.uid, 'scenarios', String(planId))); } catch { fail(planId, 'failed'); return; }
     } else {
@@ -962,7 +966,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
       let list = null;
       try { list = JSON.parse(text); } catch { list = null; }
       if (!Array.isArray(list)) { fail(planId, 'storage'); return; }
-      const next = list.filter((p) => !(p && String(p.id) === String(planId))).map((p) => (heir && p && String(p.id) === String(heir.id) ? applyPatch(p, { isActive: true }) : p));
+      const next = list.filter((p) => !(p && String(p.id) === String(planId))).map((p) => (heir && p && String(p.id) === String(heir.id) ? applyPatch(p, on) : p));
       const out = JSON.stringify(next);
       try { session.setItem(GUEST_PLANS_KEY, out); if (session.getItem(GUEST_PLANS_KEY) !== out) { fail(planId, 'storage'); return; } } catch { fail(planId, 'storage'); return; }
     }
@@ -971,15 +975,18 @@ export function startPlanWrite(store, { win = null, session = null, local = null
   }
 
   /**
-   * Open a downloaded copy: the file's text parsed, identity stripped (never its id, uid, example or isActive), brought up to
-   * date by today's own upgrade and checked (planProblems); made a plan of its own by the copy's rules (services/PlanCopy.js,
-   * the records carried), named "{name} (opened)" made unique, never the main plan; through the ONE create. Any problem is said
-   * in words and nothing is written.
+   * Open a downloaded copy: a file too big to be a plan refused before it is read (OPEN_FILE_MAX_BYTES); the file's text parsed,
+   * identity stripped (never its id, uid, example or isActive; nor the ids of other plans it names — the partner link and a
+   * shared budget's source — which are the file's, not this account's), brought up to date by today's own upgrade and checked
+   * (planProblems); made a plan of its own by the copy's rules (services/PlanCopy.js, the records carried), named "{name}
+   * (opened)" made unique, never the main plan; through the ONE create. Any problem is said in words and nothing is written.
    */
   async function openFile(file) {
     const bad = (problem, detail = null) => fail(null, problem, detail);
+    if (!file || typeof file.text !== 'function') { bad('badFile'); return; }
+    if (typeof file.size === 'number' && file.size > OPEN_FILE_MAX_BYTES) { bad('fileTooBig'); return; }
     let text = null;
-    try { text = file && typeof file.text === 'function' ? await file.text() : null; } catch { text = null; }
+    try { text = await file.text(); } catch { text = null; }
     if (stopped) return;
     if (typeof text !== 'string') { bad('badFile'); return; }
     let raw = null;
@@ -1003,6 +1010,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     try {
       const { id, uid, example, isActive, ...rest } = stripIdentity(raw);
       void id; void uid; void example; void isActive;
+      // the file's links to other plans are not this account's: the opened copy stands alone until it is linked here
+      if (rest.household && typeof rest.household === 'object') { const { partnerScenarioId, ...household } = rest.household; void partnerScenarioId; rest.household = household; }
+      if (rest.budgetTool && typeof rest.budgetTool === 'object') { const { sharedFrom, ...budgetTool } = rest.budgetTool; void sharedFrom; rest.budgetTool = budgetTool; }
       const u = upgradeScenario(rest, { now: at });
       if (u.error || !u.scenario || typeof u.scenario !== 'object') { bad('badFile'); return; }
       if (u.newer) { bad('fileProblems', 'the file was made by a newer version of this page'); return; }
@@ -1075,6 +1085,10 @@ export function startPlanWrite(store, { win = null, session = null, local = null
    * person's own (never the example: GuestMeter.handoffPayload), each through the ONE create as the planner's hand-off packages
    * them (ids, the flag and the stamps dropped, the names marked), `isActive` for the first only when the account has no plans;
    * then this window's list without them, one setItem. A plan that cannot be made stops the hand-over there; the rest stay here.
+   * A couple made in this window is brought in as a couple: the plan that names its partner goes after the partner and is made
+   * with the id the account gave it (as createInAccount makes a couple), so no plan in the account names a window id — the
+   * planner's own hand-off leaves the window's ids in place. Two plans naming each other: the first made is re-pointed after,
+   * one write of the link.
    */
   async function bringIn() {
     let place = await whenPlaced();
@@ -1096,18 +1110,41 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const stamp = at.toISOString();
     const accountPlans = place.plans.list.map((e) => e.plan);
     const taken = accountPlans.map(nameOf).filter(Boolean);
-    const payload = handoffPayload(own, stamp, WINDOW_SUFFIX).scenarios;
+    const payload = handoffPayload(own, stamp, WINDOW_SUFFIX).scenarios;   // payload[i] is own[i], packaged
+    const oldIds = own.map((p) => String(p.id));
+    const partnerOldId = (p) => (p && p.household && p.household.partnerScenarioId != null ? String(p.household.partnerScenarioId) : null);
+    // the order: a plan whose partner is being brought in too comes after its partner (a pair naming each other: the first as it comes)
+    const order = [];
+    const left = oldIds.map((_, i) => i);
+    while (left.length) {
+      const k = left.findIndex((i) => { const pid = partnerOldId(own[i]); return !pid || !oldIds.includes(pid) || order.includes(oldIds.indexOf(pid)); });
+      order.push(left.splice(k >= 0 ? k : 0, 1)[0]);
+    }
+    const newIdOf = new Map();          // the window's id → the id the account gave
+    const unresolved = [];              // made while its partner was not yet in the account (a pair naming each other)
     const brought = [];
-    for (let i = 0; i < payload.length; i++) {
+    for (const i of order) {
       let made;
+      const pid = partnerOldId(payload[i]);
       try {
         const name = uniqueName(nameOf(payload[i]) || 'Plan', taken);
         taken.push(name);
-        made = readyPlan({ ...payload[i], planDetails: { ...(payload[i].planDetails || {}), name }, isActive: accountPlans.length === 0 && i === 0, createdAt: stamp, lastModified: stamp }, at, { mayBeLocked: true });
+        const linked = pid && newIdOf.has(pid) ? { ...payload[i], household: { ...payload[i].household, partnerScenarioId: newIdOf.get(pid) } } : payload[i];
+        made = readyPlan({ ...linked, planDetails: { ...(linked.planDetails || {}), name }, isActive: accountPlans.length === 0 && i === 0, createdAt: stamp, lastModified: stamp }, at, { mayBeLocked: true });
       } catch { fail(null, 'failed'); return; }
-      try { await add(scenariosOf(place), made); } catch { fail(null, 'failed'); return; }
+      let id;
+      try { id = await add(scenariosOf(place), made); } catch { fail(null, 'failed'); return; }
       if (stopped) return;
-      brought.push(String(own[i].id));
+      newIdOf.set(oldIds[i], id);
+      if (pid && oldIds.includes(pid) && !newIdOf.has(pid)) unresolved.push(i);
+      brought.push(oldIds[i]);
+    }
+    // a pair naming each other: the one made first still names the window's id of the other — one write of the link, now both are here
+    for (const i of unresolved) {
+      const pid = partnerOldId(payload[i]);
+      if (!newIdOf.has(pid)) continue;
+      try { await write(place, newIdOf.get(oldIds[i]), declaredOnly({ 'household.partnerScenarioId': newIdOf.get(pid) })); } catch { /* both plans are in the account; the link can be made again on "Your household" */ }
+      if (stopped) return;
     }
     // the window's list without the plans now in the account (the example stays), one setItem
     const next = list.filter((p) => !(p && brought.includes(String(p.id))));

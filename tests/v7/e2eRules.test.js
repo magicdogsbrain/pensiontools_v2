@@ -14,7 +14,7 @@
  *  7. Every browser test file the brief lists exists.
  *  8. Step 4 (questions A and B): the five journeys exist and run where the plan says (published build for the
  *     counted first answer to A and the hand-over to B; sizes and night engines as test plan A–B 11.1, 14.2),
- *     the counted budgets are the brief's, the night run may take 60 minutes, `v7:cases` writes all three
+ *     the counted budgets are the brief's, the night run may take 150 minutes (60 until 6.43.0; the V7 suite at FC_RUNS 2000 passed an hour), `v7:cases` writes all three
  *     lists, and RELEASING.md has a stopwatch line for each question.
  */
 import { describe, it, expect } from 'vitest';
@@ -267,7 +267,7 @@ describe('browser tests: rules kept by reading the files', () => {
       }
     });
 
-    it('the night run may take 150 minutes (60 until 6.43.0; the V7 suite at 2,000 property runs with four identity gates passed an hour in the container)', () => {
+    it('the night run may take 150 minutes (60 until 6.43.0: the V7 suite at FC_RUNS 2000 with four identity gates passed an hour, 24–26 Oct 2026)', () => {
       expect(jobText(read('.github/workflows/nightly.yml'), 'nightly')).toMatch(/timeout-minutes: 150\b/);
     });
 

@@ -12,6 +12,7 @@ import { usedWords } from '../../components/Visitor.jsx';
 import { plansView, plansMenuView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
+import { COMMON } from '../../copy/common.js';
 import { GUEST } from '../../copy/guest.js';
 
 /** The planner's sign-in screen, in this window (its own `?signin=1` door); the hand-over leaves the way back. */
@@ -108,7 +109,7 @@ export function PlansScreen(state, dispatch) {
   if (v.session.kind === 'unverified') body = (
     <div data-testid="plans.unverified">
       <p class="lead">{w.unverified}</p>
-      <div class="actions-row"><LinkButton testid="plans.account" href={href.account()}>{PLAN.header.account}</LinkButton></div>
+      <div class="actions-row"><LinkButton testid="plans.account" href={href.account()}>{COMMON.account}</LinkButton></div>
     </div>
   );
   else if (v.status === 'none' || v.status === 'checking' || v.status === 'reading' && !v.groups.length) body = <p class="lead" role="status" data-testid="plans.opening">{w.opening}</p>;
@@ -143,7 +144,8 @@ export function PlansScreen(state, dispatch) {
               <li class="plan-row" key={r.id} data-plan-id={r.id} data-example={r.example ? '1' : undefined} data-main={r.main ? '1' : undefined}>
                 <div class="plan-row-top">
                   <div class="plan-row-text">
-                    <span class="plan-name">‘{r.name}’{r.main && <span class="plan-tag" data-testid={`plans.mainTag.${r.id}`}> {W.mainNow}</span>}{r.example && <span class="plan-tag" data-testid={`plans.exampleTag.${r.id}`}> {W.exampleRow}</span>}</span>
+                    {/* the example's row is headed by its tag alone: the stored name is the planner's (GuestPlans.js DEMO_PLANS), not in V7's words */}
+                    <span class="plan-name">{r.example ? <span class="plan-tag" data-testid={`plans.exampleTag.${r.id}`}>{W.exampleRow}</span> : <>‘{r.name}’</>}{r.main && <span class="plan-tag" data-testid={`plans.mainTag.${r.id}`}> {W.mainNow}</span>}</span>
                     <span class="plan-stage">{r.example ? W.exampleLine + ' ' : ''}{r.line ? fill(PLAN.stageLines[r.line.id], r.line.slots) : ''}{r.lockedOn ? ' ' + fill(w.lockedOn, { date: r.lockedOn }) : ''}{r.madeOn ? ' ' + fill(w.madeOn, { date: r.madeOn }) : ''}{r.shownAsSaved ? ' ' + w.shownAsSaved : ''}</span>
                   </div>
                   <LinkButton testid={`plans.open.${r.id}`} href={href.plan(r.id)}>{w.open}</LinkButton>
@@ -195,7 +197,7 @@ export function PlansScreen(state, dispatch) {
             {problemFor(null) && <p class="notice" role="alert" data-testid="plans.problem" data-problem={problemFor(null).problem}>{problemText(problemFor(null))}</p>}
           </section>
         )}
-        <UndoToast prefix="plans" toast={M.toast} text={doneText(M.toast)} words={{ undo: '', close: W.notNow }} onUndo={() => {}} onClose={() => dispatch({ type: 'plan/toastClose' })} />
+        <UndoToast prefix="plans" toast={M.toast} text={doneText(M.toast)} words={{ undo: '', close: PLAN.page.close }} onUndo={() => {}} onClose={() => dispatch({ type: 'plan/toastClose' })} />
       </>
     )
   };

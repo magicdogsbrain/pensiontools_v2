@@ -184,6 +184,20 @@ describe('sign in, sign up, Google, the reset email: the planner\'s AuthService 
     expect(q.fb.calls).toEqual([['getDocs', 'users/u1/profile', undefined], ['sendPasswordResetEmail', 'a@b.c']]);
     p.stop(); q.stop();
   });
+  it('the reset email for an email with no account: said as done all the same (the note says "if there is an account for …"); the form never says which emails have one', async () => {
+    const p = page({ fb: fakeFb({ fails: { sendPasswordResetEmail: 'auth/user-not-found' } }) });
+    p.ask('reset', { email: 'nobody@b.c' });
+    await tick();
+    expect(p.fb.calls).toEqual([['sendPasswordResetEmail', 'nobody@b.c']]);
+    expect(p.acc()).toMatchObject({ busy: null, problem: null, note: { what: 'reset', slots: { email: 'nobody@b.c' } } });
+    expect(ACCOUNT.forms.resetSent).toMatch(/^If there is an account for \{email\}/);
+    // any other reason still comes back as its code
+    const q = page({ fb: fakeFb({ fails: { sendPasswordResetEmail: 'auth/too-many-requests' } }) });
+    q.ask('reset', { email: 'a@b.c' });
+    await tick();
+    expect(q.acc().problem).toEqual({ what: 'reset', code: 'auth/too-many-requests' });
+    p.stop(); q.stop();
+  });
 });
 
 describe('"Confirm your email": the same gate as the planner', () => {

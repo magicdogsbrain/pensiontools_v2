@@ -17,6 +17,11 @@
  *   - "Sign out" (session/out) signs out here, as the planner's menu does; the idle sign-out does the same after an hour
  *     with no activity in any window (localStorage['pt_lastActivity'], recorded by effects/activity.js). (The hand-over
  *     seed a sign-out used to delete is retired: road-to-7.md step 7 — V7 makes the plan itself, through planWrite.js.)
+ *   - the hand-over offer (road-to-7.md step 11): whenever the session becomes 'in' from 'nobody' or 'unverified' while
+ *     this page is open — a sign-in seen by onAuthStateChanged, or "I've confirmed" after a sign-up (effects/account.js
+ *     verifyCheck, which sets the session itself: Firebase does not call the listener again for the same user) — with
+ *     plans of the person's own in this window, "Bring in what you built without an account?" (guest/offer); never on
+ *     the page's first known session (a page opened already signed in), the example plan never counted.
  *
  * Nothing here can write a plan: the names imported from the Firebase packages are read-only ones, and the boundary test
  * (tests/v7/boundaries.test.js) fails on any other.
@@ -219,7 +224,6 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   if (auth) {
     const off = F.onAuthStateChanged(auth, (u) => {
       if (stopped) return;
-      const was = user;
       user = u || null;
       if (!u) {
         dispatch({ type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
@@ -229,9 +233,6 @@ export function startPlanSource(store, { win, local = null, session = null, now 
       } else {
         dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: u.email || null } });
         readAccount();
-        // a sign-in made while this page was open, with plans of the person's own in this window (road-to-7.md step 11): the
-        // hand-over is offered ("Bring in what you built without an account?"); the example plan never counts
-        if (was === null) { const own = guestOwnPlans(windowPlans(session)); if (own.length) dispatch({ type: A.GUEST_OFFER, count: own.length }); }
       }
     });
     stops.push(() => { try { off(); } catch { /* already gone */ } });
@@ -256,8 +257,19 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The account page and What's new (road-to-7.md step 11): the account effect, with the same handles.
   stops.push(startAccount(store, { win, local, session, now, fb: fbAccount, handles }));
 
-  // "Read again" / "Try again" (plans/reading) and "Sign out" (session/out).
+  // "Read again" / "Try again" (plans/reading), "Sign out" (session/out) — and the hand-over offer (road-to-7.md step 11) on
+  // every way the session becomes 'in' while this page is open: the listener's sign-in, or "I've confirmed" after a sign-up
+  // (account.js sets the session itself). Never on the page's first known session; the example plan never counts.
+  let sessionKind = store.getState().session.kind;
   stops.push(store.subscribe((state, action) => {
+    if (action.type === A.SESSION_SET) {
+      const was = sessionKind;
+      sessionKind = state.session.kind;
+      if (sessionKind === 'in' && (was === 'nobody' || was === 'unverified')) {
+        const own = guestOwnPlans(windowPlans(session));
+        if (own.length) dispatch({ type: A.GUEST_OFFER, count: own.length });
+      }
+    }
     if (action.type === A.PLANS_READING) read();
     if (action.type === A.SESSION_OUT && state.session.signingOut) signOutNow();
     refresh(state);

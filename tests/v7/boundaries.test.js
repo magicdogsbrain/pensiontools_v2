@@ -471,9 +471,11 @@ describe('rule 3c — the one write word and the one create word in the one writ
     expect(acc).toMatch(/F\.updateDoc\(F\.doc\(h\.db, 'users', h\.user\.uid, 'profile', 'settings'\), \{ lastSeenVersion: version \}\)/);
     expect((acc.match(/F\.addDoc\(/g) || []).length).toBe(0);
     expect(acc).not.toMatch(/removeItem\(|\.clear\(\)\s*;?\s*\/\/ plans/);
-    // the reducer: a delete only after plan/delete (the row's confirm), never from anywhere else
+    // the reducer: a delete only after plan/delete (the row's confirm, open on that plan; a locked plan's second step), never from anywhere else
     const reducer = strip(read('src/v7/state/reduce.js'), { keepStrings: true });
     expect(reducer).toMatch(/case A\.PLAN_DELETE:/);
+    expect(reducer).toMatch(/if \(!a \|\| a\.kind !== 'delete' \|\| a\.planId !== planId\) return state;/);
+    expect(reducer).toMatch(/if \(locked && a\.step !== 2\) return state;/);
     expect(reducer).toMatch(/if \(action\.what === 'delete' && acc\.confirm !== 2\) return state;/);
   });
   it('the create (road-to-7.md step 7): one addDoc call site, on users/{uid}/scenarios, of a plan the planner\'s own mapping made, upgraded and checked first; never a delete of a partner plan made', () => {

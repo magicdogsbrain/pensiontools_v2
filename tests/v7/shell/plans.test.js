@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
-import { startPlanWrite, GUEST_PLANS_KEY, OPENED_SUFFIX } from '../../../src/v7/effects/planWrite.js';
+import { startPlanWrite, GUEST_PLANS_KEY, OPENED_SUFFIX, OPEN_FILE_MAX_BYTES } from '../../../src/v7/effects/planWrite.js';
 import { startDownloads } from '../../../src/v7/effects/download.js';
 import { upgradedList, viewFor } from '../../../src/v7/effects/planSource.js';
 import { createStore } from '../../../src/v7/effects/store.js';
@@ -32,6 +32,7 @@ import { KEY_MINUTES, GUEST_ALLOWANCE_MINUTES } from '../../../src/services/Gues
 import { ALL_WRITES, PLANS_WRITES } from '../../../src/answers/plan/schema.js';
 import { visibleText, bannedHits } from '../render/checkScreen.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
+import { COMMON } from '../../../src/v7/copy/common.js';
 import { corpus } from '../plan/_plans.js';
 
 const C = corpus();
@@ -100,11 +101,18 @@ function page({ raws, session = 'in', local = storage(), sess = null, fb = fakeL
     types: () => actions.map((a) => a.type), problem: () => store.getState().ui.saveProblem, toast: () => store.getState().ui.toast };
 }
 const stored = (p) => JSON.parse(p.session.raw(GUEST_PLANS_KEY));
+/** The row's confirm, as the screen opens it (the reducer insists on it before plan/delete): the second step for a locked plan. */
+const askDelete = (p, plan) => {
+  p.store.dispatch({ type: A.PLAN_ACTION, planId: String(plan.id), kind: 'delete' });
+  if (plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked) p.store.dispatch({ type: A.PLAN_ACTION, planId: String(plan.id), kind: 'delete', step: 2 });
+};
 
 const DRAFT = C['02-pnv-draft'];           // unlocked, active
 const LADDER = C['03-gilt-ladder-runup'];  // locked, records
 const FRESH = C['01-fresh-default'];
 const LUMPY = C['12-lumpy-db-gia'];
+const COUPLE_A = C['09-couple-a'];          // linked to COUPLE_B
+const COUPLE_B = C['10-couple-b'];
 const EXAMPLE = { ...copy(C['11-guest-demo']), id: 'guest-example1', example: true, isActive: false };
 const notActive = (p) => ({ ...copy(p), isActive: false });
 
@@ -244,6 +252,16 @@ describe('Make a copy: the planner\'s rules (services/PlanCopy.js) through the o
     expect(p.fb.writes).toEqual([]);
     p.stop();
   });
+  it('a copy keeps the partner link, as the planner\'s Duplicate does (one-sided: the partner\'s plan still names the original, until it is linked to the copy)', async () => {
+    const p = page({ raws: [COUPLE_A, COUPLE_B] });
+    p.store.dispatch({ type: A.PLAN_COPY, planId: COUPLE_A.id, carry: false });
+    await tick();
+    expect(p.fb.adds.length).toBe(1);
+    expect(p.fb.adds[0].data.household.partnerScenarioId).toBe(COUPLE_B.id);
+    expect(p.fb.writes).toEqual([]);   // the partner's plan is not touched
+    expect(copyOf(COUPLE_A, 'x', { carryHistory: false, now: NOW }).household.partnerScenarioId).toBe(COUPLE_B.id);
+    p.stop();
+  });
 });
 
 describe('Make this my main plan: two writes of isActive alone on an account, one setItem in this window', () => {
@@ -362,6 +380,41 @@ describe('Open a downloaded copy: the file checked, identity stripped, a plan of
     expect(p.fb.writes).toEqual([]);
     p.stop();
   });
+  it('a file too big to be a plan is refused in words before it is read (OPEN_FILE_MAX_BYTES): nothing read, nothing written; one at the cap is read as any file', async () => {
+    const p = page({ raws: [DRAFT] });
+    let reads = 0;
+    p.store.dispatch({ type: A.PLAN_OPEN_FILE, file: { name: 'plan.json', size: OPEN_FILE_MAX_BYTES + 1, text: async () => { reads++; return planExportJson(LUMPY); } } });
+    await tick(12);
+    expect(p.problem()).toEqual({ planId: null, problem: 'fileTooBig' });
+    expect(reads).toBe(0);
+    expect(p.fb.adds).toEqual([]); expect(p.fb.writes).toEqual([]);
+    expect(PLAN.list.actions.problems.fileTooBig).toBeTypeOf('string');
+    const q = page({ raws: [DRAFT], session: 'nobody' });
+    q.store.dispatch({ type: A.PLAN_OPEN_FILE, file: { name: 'plan.json', size: OPEN_FILE_MAX_BYTES * 10, text: async () => planExportJson(LUMPY) } });
+    await tick(12);
+    expect(q.problem()).toEqual({ planId: null, problem: 'fileTooBig' });
+    expect(stored(q).length).toBe(1);
+    expect(q.session.calls.filter(([c]) => c === 'setItem')).toEqual([]);
+    p.store.dispatch({ type: A.PLAN_OPEN_FILE, file: { name: 'plan.json', size: OPEN_FILE_MAX_BYTES, text: async () => planExportJson(LUMPY) } });
+    await tick(12);
+    expect(p.fb.adds.length).toBe(1);
+    p.stop(); q.stop();
+  });
+  it('the file\'s links to other plans are not this account\'s: the opened copy names no partner and no shared budget source', async () => {
+    const p = page({ raws: [DRAFT] });
+    const exported = JSON.parse(planExportJson(upgradeScenario(COUPLE_A, { now: NOW }).scenario));
+    const linked = { ...exported, budgetTool: { ...(exported.budgetTool || {}), sharedFrom: COUPLE_B.id } };
+    expect(linked.household.partnerScenarioId).toBe(COUPLE_B.id);
+    p.store.dispatch({ type: A.PLAN_OPEN_FILE, file: file(JSON.stringify(linked)) });
+    await tick(12);
+    expect(p.fb.adds.length).toBe(1);
+    const w = p.fb.adds[0].data;
+    expect(w.planDetails.name).toBe('Ours — Asha' + OPENED_SUFFIX);
+    expect((w.household || {}).partnerScenarioId == null).toBe(true);
+    expect((w.budgetTool || {}).sharedFrom == null).toBe(true);
+    expect(planProblems(w)).toEqual([]);
+    p.stop();
+  });
   it('this window: refused when the window holds its three, or the free time is used up', async () => {
     const p = page({ raws: [DRAFT, notActive(FRESH), notActive(LUMPY)], session: 'nobody' });
     p.store.dispatch({ type: A.PLAN_OPEN_FILE, file: file(planExportJson(LUMPY)) });
@@ -404,16 +457,19 @@ describe('Delete: the planner\'s rules, the ONE deleteDoc, never undone', () => 
   it('the last plan is never deleted; the example is deletable; this window: the list without the plan, one setItem, the heir made main', async () => {
     const p = page({ raws: [DRAFT], session: 'nobody' });
     const before = p.session.raw(GUEST_PLANS_KEY);
+    askDelete(p, DRAFT);
     p.store.dispatch({ type: A.PLAN_DELETE, planId: DRAFT.id });
     await tick();
     expect(p.problem()).toEqual({ planId: DRAFT.id, problem: 'lastPlan' });
     expect(p.session.raw(GUEST_PLANS_KEY)).toBe(before);
     const q = page({ raws: [DRAFT, EXAMPLE, notActive(FRESH)], session: 'nobody' });
+    askDelete(q, EXAMPLE);
     q.store.dispatch({ type: A.PLAN_DELETE, planId: EXAMPLE.id });
     await tick();
     expect(stored(q).map((x) => x.id)).toEqual([DRAFT.id, FRESH.id]);
     q.store.dispatch({ type: A.PLAN_TOAST_CLOSE });
     q.store.dispatch({ type: A.PLANS_SET, list: upgradedList(stored(q), NOW), source: 'window', readAt: '14:03' });
+    askDelete(q, DRAFT);
     q.store.dispatch({ type: A.PLAN_DELETE, planId: DRAFT.id });
     await tick();
     const after = stored(q);
@@ -425,26 +481,46 @@ describe('Delete: the planner\'s rules, the ONE deleteDoc, never undone', () => 
   });
   it('the heir is never the example when another plan is there; the delete failing writes nothing more and says so', async () => {
     const p = page({ raws: [DRAFT, EXAMPLE, notActive(FRESH)], session: 'nobody' });
+    askDelete(p, DRAFT);
     p.store.dispatch({ type: A.PLAN_DELETE, planId: DRAFT.id });
     await tick();
     expect(stored(p).find((x) => x.id === FRESH.id).isActive).toBe(true);
     expect(stored(p).find((x) => x.id === EXAMPLE.id).isActive).toBe(false);
     const q = page({ raws: [DRAFT, notActive(FRESH)], fb: fakeLite({ fail: 'deleteDoc' }) });
+    askDelete(q, FRESH);
     q.store.dispatch({ type: A.PLAN_DELETE, planId: FRESH.id });
     await tick();
     expect(q.problem()).toEqual({ planId: FRESH.id, problem: 'failed' });
     expect(q.fb.writes).toEqual([]);
     p.stop(); q.stop();
   });
-  it('the reducer: a delete only through plan/delete; no action can delete without it, and nothing deletes while another write is under way', () => {
+  it('the reducer: a delete only through plan/delete while the row\'s own confirm is open on that plan (a locked plan: its second step); no action can delete without it, and nothing deletes while another write is under way', () => {
     let s = initialState({ today: TODAY, build: 'test' });
-    s = reduce(s, { type: A.PLAN_COPY, planId: 'p1', carry: false });
-    expect(s.ui.saving).toEqual({ planId: 'p1', kind: 'copy', carry: false });
-    expect(reduce(s, { type: A.PLAN_DELETE, planId: 'p1' })).toBe(s);
-    expect(reduce(s, { type: A.PLAN_RENAME, planId: 'p1', name: 'x' })).toBe(s);
-    expect(reduce(s, { type: A.PLAN_MAIN, planId: 'p1' })).toBe(s);
-    expect(reduce(s, { type: A.PLAN_EXAMPLE })).toBe(s);
-    expect(reduce(s, { type: A.PLAN_OPEN_FILE, file: {} })).toBe(s);
+    s = reduce(s, { type: A.ROUTE_SET, route: parse('#/plans') });
+    s = reduce(s, { type: A.SESSION_SET, session: { kind: 'in', email: 'a@b.c' } });
+    s = reduce(s, { type: A.PLANS_SET, list: upgradedList([DRAFT, notActive(LADDER)], NOW), source: 'account', readAt: '14:03' });
+    // no confirm open, a confirm on another plan, a rename box on this one: nothing; the confirm on this plan: the delete under way
+    expect(reduce(s, { type: A.PLAN_DELETE, planId: DRAFT.id })).toBe(s);
+    const other = reduce(s, { type: A.PLAN_ACTION, planId: LADDER.id, kind: 'delete' });
+    expect(reduce(other, { type: A.PLAN_DELETE, planId: DRAFT.id })).toBe(other);
+    const rename = reduce(s, { type: A.PLAN_ACTION, planId: DRAFT.id, kind: 'rename', text: 'x' });
+    expect(reduce(rename, { type: A.PLAN_DELETE, planId: DRAFT.id })).toBe(rename);
+    const open = reduce(s, { type: A.PLAN_ACTION, planId: DRAFT.id, kind: 'delete' });
+    expect(reduce(open, { type: A.PLAN_DELETE, planId: DRAFT.id }).ui).toMatchObject({ action: null, saving: { planId: DRAFT.id, kind: 'delete' } });
+    // a locked plan: the first confirm is not enough; the second is
+    const one = reduce(s, { type: A.PLAN_ACTION, planId: LADDER.id, kind: 'delete' });
+    expect(reduce(one, { type: A.PLAN_DELETE, planId: LADDER.id })).toBe(one);
+    const two = reduce(one, { type: A.PLAN_ACTION, planId: LADDER.id, kind: 'delete', step: 2 });
+    expect(reduce(two, { type: A.PLAN_DELETE, planId: LADDER.id }).ui.saving).toEqual({ planId: LADDER.id, kind: 'delete' });
+    // another write under way: nothing, confirm or not
+    let b = reduce(s, { type: A.PLAN_COPY, planId: DRAFT.id, carry: false });
+    expect(b.ui.saving).toEqual({ planId: DRAFT.id, kind: 'copy', carry: false });
+    b = reduce(b, { type: A.PLAN_ACTION, planId: DRAFT.id, kind: 'delete' });
+    expect(reduce(b, { type: A.PLAN_DELETE, planId: DRAFT.id })).toBe(b);
+    expect(reduce(b, { type: A.PLAN_RENAME, planId: DRAFT.id, name: 'x' })).toBe(b);
+    expect(reduce(b, { type: A.PLAN_MAIN, planId: DRAFT.id })).toBe(b);
+    expect(reduce(b, { type: A.PLAN_EXAMPLE })).toBe(b);
+    expect(reduce(b, { type: A.PLAN_OPEN_FILE, file: {} })).toBe(b);
   });
 });
 
@@ -517,7 +593,7 @@ describe('property: any run of the menu\'s actions over any window leaves every 
         if (kind === 'rename') p.store.dispatch({ type: A.PLAN_RENAME, planId: String(target.id), name: flag ? 'Renamed' : 'My Plan' });
         else if (kind === 'copy') p.store.dispatch({ type: A.PLAN_COPY, planId: String(target.id), carry: flag });
         else if (kind === 'main') p.store.dispatch({ type: A.PLAN_MAIN, planId: String(target.id) });
-        else p.store.dispatch({ type: A.PLAN_DELETE, planId: String(target.id) });
+        else { askDelete(p, target); p.store.dispatch({ type: A.PLAN_DELETE, planId: String(target.id) }); }
         await tick(12);
         if (account) {
           for (const w of p.fb.writes) for (const k of Object.keys(w.data)) expect(PLANS_WRITES.includes(k) || k === 'lastModified', k).toBe(true);
@@ -586,6 +662,21 @@ describe('the screen: the plan menu on every row, the boxes and confirms, no box
     expect(q(root, `[data-testid="plans.main.${EXAMPLE.id}"]`)).toBe(null);
     expect(q(root, `[data-testid="plans.exampleTag.${EXAMPLE.id}"]`).textContent).toContain(PLAN.list.actions.exampleRow);
     expect(text).toContain(PLAN.list.actions.exampleLine);
+    // the example's row is headed by its tag alone: the stored name is the planner's, not in V7's words (the banned list's money-short)
+    const exRow = q(root, `[data-plan-id="${EXAMPLE.id}"]`);
+    expect(exRow.querySelector('.plan-name').textContent).toBe(PLAN.list.actions.exampleRow);
+    expect(exRow.textContent).not.toContain(nameOf(EXAMPLE));
+    for (const hit of bannedHits(visibleText(exRow), ['all', 'record', 'retired', 'saver', 'planner'])) expect(hit).toBe('');
+    expect(q(root, `[data-plan-id="${DRAFT.id}"] .plan-name`).textContent).toContain('‘' + nameOf(DRAFT) + '’');
+    // and so is its page
+    let ps = initialState({ today: TODAY, build: 'test' });
+    ps = reduce(ps, { type: A.ROUTE_SET, route: parse('#/plan/' + EXAMPLE.id) });
+    ps = reduce(ps, { type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
+    ps = reduce(ps, { type: A.PLANS_SET, list: upgradedList([DRAFT, EXAMPLE], NOW), source: 'window', readAt: '14:03' });
+    ps = reduce(ps, { type: A.PLANS_VIEW, view: viewFor(ps) });
+    const pageDrawn = draw(ps);
+    expect(q(pageDrawn.root, '.plan-kicker').textContent).toContain(PLAN.list.actions.exampleRow);
+    expect(pageDrawn.text).not.toContain(nameOf(EXAMPLE));
     // under the list: a new plan from the front door, a downloaded copy, the example (a visitor), sign in
     expect(q(root, '[data-testid="plans.start"]').getAttribute('href')).toBe('#/');
     expect(q(root, '[data-testid="plans.openCopy"]')).not.toBe(null);
@@ -651,6 +742,7 @@ describe('the screen: the plan menu on every row, the boxes and confirms, no box
     const done = draw(reduce(s, { type: A.PLAN_ACTION_DONE, planId: DRAFT.id, op: 'copied', slots: { name: 'Draft — Pots & Valves (copy)' } }));
     expect(q(done.root, '[data-testid="plans.toast"]').textContent).toContain('Copied as ‘Draft — Pots & Valves (copy)’.');
     expect(q(done.root, '[data-testid="plans.undo"]')).toBe(null);
+    expect(q(done.root, '[data-testid="plans.toastClose"]').getAttribute('aria-label')).toBe(PLAN.page.close);   // "Close", not a refusal
     const open = draw(reduce(s, { type: A.UI_TOGGLE, id: 'openCopy' }));
     const fileBox = q(open.root, '[data-testid="plans.openFile"]');
     expect(fileBox.type).toBe('file');
@@ -659,5 +751,17 @@ describe('the screen: the plan menu on every row, the boxes and confirms, no box
     // the box is the plans page's: leaving the page closes the rename box
     const away = reduce(reduce(s, { type: A.PLAN_ACTION, planId: DRAFT.id, kind: 'rename', text: 'x' }), { type: A.ROUTE_SET, route: parse('#/') });
     expect(away.ui.action).toBe(null);
+  });
+  it('the email not confirmed: the gate\'s line and a link to the account page with its words, nothing under the list', () => {
+    let s = initialState({ today: TODAY, build: 'test' });
+    s = reduce(s, { type: A.ROUTE_SET, route: parse('#/plans') });
+    s = reduce(s, { type: A.SESSION_SET, session: { kind: 'unverified', email: 'someone@example.com' } });
+    const { root, text } = draw(s);
+    expect(q(root, '[data-testid="plans.unverified"]').textContent).toContain(PLAN.list.unverified);
+    const link = q(root, '[data-testid="plans.account"]');
+    expect(link.getAttribute('href')).toBe('#/account');
+    expect(link.textContent.trim()).toBe(COMMON.account);
+    expect(q(root, '[data-testid="plans.under"]')).toBe(null);
+    for (const hit of bannedHits(text, ['all', 'record', 'retired', 'saver', 'planner'])) expect(hit).toBe('');
   });
 });

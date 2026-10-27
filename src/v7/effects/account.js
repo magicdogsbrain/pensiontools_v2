@@ -10,10 +10,14 @@
  *   - signIn: signInWithEmailAndPassword; signUp: createUserWithEmailAndPassword then sendEmailVerification (the planner's
  *     signUpWithEmail — Firestore's rules require a confirmed email, so the account is closed until then); google:
  *     signInWithPopup with a GoogleAuthProvider; reset: sendPasswordResetEmail (the planner has no in-app password change:
- *     the reset email is the way). The password lives in the action only — never in the state, never in storage.
+ *     the reset email is the way) — told as done whether or not there is an account for the email (the service's
+ *     auth/user-not-found is swallowed here: the note on screen is written "if there is an account for …", and the form
+ *     must not say which emails have one). The password lives in the action only — never in the state, never in storage.
  *     Who is signed in then comes from the plan source's onAuthStateChanged, as every sign-in does.
  *   - verifyCheck: the user reloaded (AuthService.reloadCurrentUser: reload, then a fresh ID token so the server sees
- *     email_verified) — confirmed: the session becomes 'in' and the plans are read; not: 'notYet'. verifySend: the email again.
+ *     email_verified) — confirmed: the session becomes 'in' and the plans are read (the plan source then offers the
+ *     hand-over of this window's plans, as after any sign-in: it watches the session, not the listener); not: 'notYet'.
+ *     verifySend: the email again.
  *   - download: ONE file — every plan in the account as read (identity stripped, services/PlanExport.js stripIdentity)
  *     and the settings document — saved on the person's own computer (effects/download.js saveFile). Nothing is sent anywhere.
  *   - delete (after its two confirms on screen, which the reducer insists on): what the planner's wipeAllUserData deletes,
@@ -131,7 +135,11 @@ export function startAccount(store, { win = null, local = null, session = null, 
     const to = email || (store.getState().session && store.getState().session.email) || '';
     if (!h.auth) { fail('reset', 'failed'); return; }
     if (!to) { fail('reset', 'emptyEmail'); return; }
-    try { await F.sendPasswordResetEmail(h.auth, to); done('reset', { email: to }); } catch (e) { fail('reset', codeOf(e) || 'failed'); }
+    try { await F.sendPasswordResetEmail(h.auth, to); done('reset', { email: to }); } catch (e) {
+      // no account for that email: said as done all the same (the note says "if there is an account"), never which emails have one
+      if (codeOf(e) === 'auth/user-not-found') done('reset', { email: to });
+      else fail('reset', codeOf(e) || 'failed');
+    }
   }
   async function verifyCheck() {
     const h = H();

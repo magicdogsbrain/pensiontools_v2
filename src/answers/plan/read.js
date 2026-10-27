@@ -679,6 +679,8 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
     found: true,
     id: String(plan.id),
     name: nameOf(plan),
+    // the read-only example (GuestPlans.js; road-to-7.md step 11): the page heads it by its tag, not the stored name
+    example: plan.example === true,
     stageKey: stage.key,
     retired: RETIRED_STAGES.includes(stage.key),
     saver: SAVER_STAGES.includes(stage.key),

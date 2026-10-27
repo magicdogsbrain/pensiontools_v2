@@ -30,12 +30,11 @@ export const GUEST = {
     notYet: 'Not yet',
     gotIt: 'Got it'
   },
-  /** The stop: the three hours are used up (GuestMeter.js GUEST_ALLOWANCE_MINUTES). On every page but the account page. */
+  /** The stop: the three hours are used up (GuestMeter.js GUEST_ALLOWANCE_MINUTES). On every page but the account page, which is the one way on. */
   stop: {
     title: 'Your 3 free hours are used up — sign in to keep going',
     line: 'Without an account the preview is for trying things. To carry on, and to keep what you have built here, sign in or create a free account: your plans are copied into your account the moment you do. Nothing is lost.',
-    signIn: 'Sign in or create a free account',
-    ask: 'Or ask a question: an answer needs no account.'
+    signIn: 'Sign in or create a free account'
   },
   /** After a sign-in with plans in this window (the planner's importGuestHandoff). */
   bringIn: {

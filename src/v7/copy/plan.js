@@ -102,6 +102,7 @@ export const PLAN = {
         storage: 'This browser would not keep the change. Nothing was changed.',
         failed: 'Sorry, that did not work. Nothing was changed: try again.',
         badFile: 'That file is not a plan this page can open. Nothing was kept.',
+        fileTooBig: 'That file is too big to be a plan, so it was not read. Nothing was kept.',
         fileProblems: 'That file holds a plan with a problem, so it was not kept: {problem}.',
         empty: 'Give the plan a name.',
         tooLong: 'Keep the name to 60 characters or fewer.',

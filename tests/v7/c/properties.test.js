@@ -13,7 +13,7 @@ import { SCHEMA_C, TEST_ENV } from './_c.js';
 import { answerC, checkAnswer } from './invariants.js';
 import { arbitraryInputs, arbitraryTyped } from '../gen/arbitrary.mjs';
 import { accessAgeOn } from '../../../src/answers/shared/rules.js';
-import { STEP, largeHousehold, amountsToAStep, allowanceFilledAtStart } from '../oracles/oneStep.mjs';
+import { STEP, largeHousehold, amountsToAStep, drawTaxedAtStart } from '../oracles/oneStep.mjs';
 
 const RUNS = Number(process.env.FC_RUNS || 12);
 const SEED = process.env.NIGHTLY ? undefined : 20260930;
@@ -40,8 +40,8 @@ function noLowerOrFinding(a, b, inputs, findings, who = 'you') {
   const binding = chargedCouple(inputs) || taxFreeHadCouple(inputs) || firstPoundCouple(a, inputs, who);
   if (binding) {
     // a couple with a charge over 1% a year (6.19.0), with the tax-free part already had by one of them (6.20.0), or whose
-    // raised person's run is taxed from the first pound beside savings (27 Oct 2026): a fall of more than one step is a
-    // finding, printed, not asserted
+    // raised person's pension pounds are taxed at the margin beside savings (27 Oct 2026): a fall of more than one step is
+    // a finding, printed, not asserted
     for (const k of THREE) if (b.monthly[k] < a.monthly[k] - STEP.amount) found = true;
   } else {
     amountsToAStep(a.monthly, b.monthly, (k, floor) => expect(b.monthly[k], k).toBeGreaterThanOrEqual(floor), () => { found = true; });
@@ -66,13 +66,16 @@ const chargedCouple = (inputs) => inputs.household === 'couple' && typeof inputs
 /**
  * A couple whose fixed-ratio drain binds on the run taxed from the first pound with no charge to pick it (the charged
  * couple's mechanism — exceptions.md, "A couple's fixed-ratio drain on the run taxed from the first pound"): the person
- * whose money is raised (`who`) has guaranteed income in payment at the start that fills their allowance, and the household
- * holds savings beside the pensions — oneStep.mjs allowanceFilledAtStart says why the fall needs both. A finding, printed,
- * as the charged couple's (a NIGHTLY=1 run, 27 Oct 2026, seed -1409477014: you 67 with £1 and the full State Pension, your
- * partner 18 with £1,073,100, £150,000 of savings as cash, the money from their 57, 0% — £1,816 more in your pot moved the
- * careful amount from £6,830 to £6,810).
+ * whose money is raised (`who`) has their pension pounds taxed at the margin at the start — guaranteed income in payment
+ * that fills their allowance, or a draw that reaches past what it leaves — and the household holds savings beside the
+ * pensions; oneStep.mjs drawTaxedAtStart says why the fall needs both, and how the first phase shows it. A finding,
+ * printed, as the charged couple's (a NIGHTLY=1 run, 27 Oct 2026, seed -1409477014: you 67 with £1 and the full State
+ * Pension, your partner 18 with £1,073,100, £150,000 of savings as cash, the money from their 57, 0% — £1,816 more in your
+ * pot moved the careful amount from £6,830 to £6,810; the same household with your State Pension a forecast of £10,500 to
+ * £12,400 a year fell the same way, £10,000 more in your pot moving the careful amount down by as much as £60 — the allowance was
+ * never the condition, only where that household's draw met the tax).
  */
-const firstPoundCouple = (a, inputs, who) => inputs.household === 'couple' && inputs.savings > 0 && allowanceFilledAtStart(a.phases, who);
+const firstPoundCouple = (a, inputs, who) => inputs.household === 'couple' && inputs.savings > 0 && drawTaxedAtStart(a.phases, who);
 /**
  * A couple where one of them has already had the tax-free part of their pension (6.20.0, couples-different-years.md 7):
  * every pound from that pension is taxed, the other's comes a quarter tax-free, and the two runs still drain in the

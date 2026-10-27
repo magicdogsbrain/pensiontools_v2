@@ -49,7 +49,7 @@ couple, you 57 with £1,846,801 and a £9,000 final-salary pension from 60, your
 going in, £1,366,739 of savings, the money from your 88, balanced, to 105 — £5,995 a year more final-salary pension moved
 the careful amount from £26,490 to £26,450.
 
-### A couple's fixed-ratio drain on the run taxed from the first pound (a charge over 1% a year, or savings beside a filled allowance): M1, M1b and M2 report its move for a couple, they do not assert it
+### A couple's fixed-ratio drain on the run taxed from the first pound (a charge over 1% a year, or savings beside pension pounds taxed at the margin): M1, M1b and M2 report its move for a couple, they do not assert it
 
 Found when the fund and platform charge joined C (6.19.0, the owner's decision of 1 Oct 2026; 0.5% a year unless
 changed). A couple's two runs drain in a fixed ratio (engine behaviour 4) and the household is short the moment either
@@ -82,6 +82,22 @@ than a step printed as a finding; the charged couple and the couple with the tax
 every other couple is held to one step. For the owner, unchanged: the need is shared by money before tax, not by what
 each person's draws cost in tax (toEngine.js sharesOf); sharing it by each run's after-tax means would remove the fall and
 change every couple's figures.*
+
+*The same day, the allowance need not be filled: the night's household with your State Pension typed as a forecast under
+it, £10,000 more in your pot — £12,400 a year: the careful amount £6,810 → £6,750; £12,000: £6,780 → £6,730; £11,500:
+£6,740 → £6,700; £11,000: £6,700 → £6,670; £10,500: £6,660 → £6,640; £10,000: no fall; £9,000 and under: a rise. With
+£300,000 of savings and the plan to 90, £50,000 more moved the good amount £6,330 → £6,310 at £9,500 and £6,370 → £6,340
+at £10,000; with £1,000,000 no fall at any. So the boundary is the household's, not the allowance's: it is where the
+draw's taxable three quarters reach past what the allowance leaves and the marginal pension pound is taxed. The guard
+reads that from the first phase (oneStep.mjs `drawTaxedAtStart`: the person's tax there above what their guaranteed
+income alone would cost, tests/v7/oracles/ukTax.mjs — or that income within a step a month of the allowance on its own,
+where the display's tax-efficient order may draw the savings first and show no pension draw at all); on the grid of that
+household (three savings, two end ages, nine State Pensions, three raises) it is true at every fall. Over 600 random M1
+couples with savings, no charge over 1%, no tax-free part had and under £10,000 a month, the draw's half names 11 the
+allowance's does not and leaves 28 asserted; none of those 39 fell under the three raises, and the one fall found was the
+allowance's (you 75 with £1 and the full State Pension, your partner 57 with £150,000, £1 of savings: £1,816 more in your
+pot moved the good amount £4,170 → £4,030). The lever, as above, is the answer's: sharing the need by each run's after-tax
+means.*
 
 ### Savings held as cash beside a closed pension: more savings can lower the middle and good amounts (6.22.0)
 

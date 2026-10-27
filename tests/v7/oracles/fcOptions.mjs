@@ -7,10 +7,16 @@
  * property fails.
  *
  * REPLAYING A NIGHT FAILURE BY NAME. The failure block prints `{ seed: S, path: "P", endOnFailure: true }` under the
- * test's name. Hand both to the file through the environment and run that one test:
+ * test's name. Hand both to the file through the environment and run that one test — and only that one:
  *
- *   NIGHTLY=1 FC_SEED=S FC_PATH="P" npx vitest run tests/v7/a/properties.test.js -t "PA3"
+ *   NIGHTLY=1 FC_SEED=S FC_PATH="P" npx vitest run tests/v7/a/properties.test.js -t "PA3 a later stop"
  *
+ * The -t text must match the failed test alone. FC_PATH goes to every fc.assert the run reaches, and vitest's -t is a
+ * substring match, so a short name that other tests share ("PB8" is four tests in b/properties, "M1" six in c/properties,
+ * "M-B11" four in b/metamorphic) walks the recorded path into their arbitraries, and each of those goes red with
+ * fast-check's own "Unable to replay, got wrong path" — the mismatch, not a fault; the replayed test still reports its own
+ * result beside them. A test's name up to its colon is its own in its file ("PB8 a level", "M1 more in the pot", "M-B11
+ * swapping").
  * FC_SEED sets the seed (a number; the night's, or any other). FC_PATH sets the path and turns endOnFailure on, so
  * fast-check goes straight to the recorded counterexample (its shrunk form, by the path) and stops at the first failure;
  * with the fault fixed it runs on through the rest of that shrink level's candidates (a finite list) and ends green.

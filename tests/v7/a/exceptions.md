@@ -63,7 +63,7 @@ Counterexamples (NIGHTLY=1 runs, 1 Oct 2026, 20 futures):
   stopping at 75, to 76 (one year of drawing), part-time £6,000 for a year: the careful amount "without" the pay, searched
   from the row with it, came out £140 from the answer without it worked out on its own.
 
-### A couple's fixed-ratio drain on the run taxed from the first pound (a charge over 1% a year, or savings beside a filled allowance) — reported, not asserted (PA1, PA2, PA5)
+### A couple's fixed-ratio drain on the run taxed from the first pound (a charge over 1% a year, or savings beside pension pounds taxed at the margin) — reported, not asserted (PA1, PA2, PA5)
 
 The fund and platform charge (6.19.0) is taken while drawing too. A couple's two runs drain in a fixed ratio, and when
 one person's State Pension fills their personal allowance and the other's does not, the first one's run is taxed from the
@@ -78,6 +78,12 @@ picks the binding run, it is not the condition. A's guard names the mechanism no
 money is raised (you, in PA1, PA2 and PA5) with guaranteed income in payment from the stop that fills their allowance and
 savings in the household (tests/v7/oracles/oneStep.mjs `allowanceFilledAtStart`, which says why both are needed) — a
 finding, printed; every other couple to one step, as before.*
+
+*The same day, in C (tests/v7/c/exceptions.md, the same section): the allowance need not be filled — the night's household
+with your State Pension typed as a forecast of £10,500 to £12,400 a year fell the same way, the boundary being where that
+household's draw reaches past what the allowance leaves and the marginal pension pound is taxed. A's guard reads it as C's
+now (oneStep.mjs `drawTaxedAtStart`): your tax in the first phase above what your guaranteed income and part-time pay
+alone would cost, or that income within a step a month of the allowance on its own.*
 
 ## Fixed on 1 Oct 2026 (not exceptions)
 

@@ -19,7 +19,7 @@ import { answerA, SCHEMA_A, TEST_ENV, checkAnswerA, ENGINE_READY, payInsFit, fit
 import { arbitraryInputs, arbitraryTyped } from '../gen/arbitrary.mjs';
 import { frozen, at, diffPaths, plain } from '../../helpers/clock.js';
 import { RULES } from '../../../src/answers/shared/rules.js';
-import { STEP, oneLife, largeHousehold, amountsToAStep, allowanceFilledAtStart } from '../oracles/oneStep.mjs';
+import { STEP, oneLife, largeHousehold, amountsToAStep, drawTaxedAtStart } from '../oracles/oneStep.mjs';
 
 const RUNS = Number(process.env.FC_RUNS || 8);
 const SEED = process.env.NIGHTLY ? undefined : 20261001;
@@ -65,11 +65,13 @@ function noWorseOrFinding(a, b, inputs, findings) {
   const note = () => { found = true; };
   // a couple whose fixed-ratio drain can bind on the run taxed from the first pound (tests/v7/c/exceptions.md, "A couple's
   // fixed-ratio drain on the run taxed from the first pound"; the same model in A): with a charge over 1% a year (6.19.0),
-  // or when the person whose money is raised (you: PA1, PA2, PA5) has guaranteed income in payment from the stop that fills
-  // their allowance and the household holds savings beside the pensions (oneStep.mjs allowanceFilledAtStart says why both
-  // are needed) — more for that person can lower the band by more than a step. A finding, printed, not asserted.
+  // or when the person whose money is raised (you: PA1, PA2, PA5) has their pension pounds taxed at the margin from the
+  // stop — guaranteed income in payment that fills their allowance, or a draw that reaches past what it leaves (C's hunt of
+  // 27 Oct 2026: a State Pension forecast of £10,500 and over fell the same way) — and the household holds savings beside
+  // the pensions (oneStep.mjs drawTaxedAtStart says why both are needed, and how the first phase shows it) — more for that
+  // person can lower the band by more than a step. A finding, printed, not asserted.
   const bindingCouple = inputs.household === 'couple'
-    && (inputs.charge > 1 || ((inputs.savings > 0 || inputs.savingsIn > 0) && allowanceFilledAtStart(a.shown.phases, 'you')));
+    && (inputs.charge > 1 || ((inputs.savings > 0 || inputs.savingsIn > 0) && drawTaxedAtStart(a.shown.phases, 'you')));
   if (largeHousehold(a.shown.monthly.careful) || bindingCouple) {
     amountsToAStep(a.shown.monthly, b.shown.monthly, (k, floor) => { if (b.shown.monthly[k] < floor) note(); }, note);
     if (b.shown.lasted < a.shown.lasted - oneLife(a.basis.futures)) note();

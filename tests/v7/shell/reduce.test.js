@@ -332,7 +332,9 @@ describe('any sequence of actions', () => {
     const step4 = [A.DRAFT_CARRY, A.ANSWER_EXTEND];
     // the spending shape's actions (shape/*) are A's, B's and C's alike: generated over the three in reduce.ab.test.js
     const step5 = ACTION_TYPES.filter((t) => /^(budget|keep|spend|shape)\/|^lasts\/lever/.test(t) || t === A.DRAFT_ONWARD);
-    expect([...seen].sort()).toEqual(ACTION_TYPES.filter((t) => !step4.includes(t) && !step5.includes(t)).sort());
+    // the plan menu, the visitor, the account page and What's new (road-to-7.md step 11): generated in reduce.ab.test.js too
+    const step11 = ACTION_TYPES.filter((t) => /^(guest|account|profile|news)\//.test(t) || /^plan\/(action|actionText|rename|copy|makeMain|delete|download|openFile|example|actionDone)$/.test(t));
+    expect([...seen].sort()).toEqual(ACTION_TYPES.filter((t) => !step4.includes(t) && !step5.includes(t) && !step11.includes(t)).sort());
   });
   it('the state survives JSON; plan never changes and the session is always a known kind', () => {
     fc.assert(fc.property(fc.array(anyAction, { maxLength: 30 }), (actions) => {

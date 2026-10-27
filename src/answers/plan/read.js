@@ -87,6 +87,9 @@ export function planRows(entries, { today, source = 'account' } = {}) {
       lockedOn: isLocked(plan) ? dayWords(lockedAtOf(plan)) : null,
       madeOn: plan.fromAnswer && plan.fromAnswer.savedOn ? dayWords(plan.fromAnswer.savedOn) : null,
       shownAsSaved: !!(e.newer || e.failed),
+      // the plan menu (road-to-7.md step 11): the read-only example (GuestPlans.js), and the main plan (the planner's isActive)
+      example: plan.example === true,
+      main: plan.isActive === true,
       linked: partners.length > 0,
       lastModified: typeof plan.lastModified === 'string' ? plan.lastModified : ''
     };

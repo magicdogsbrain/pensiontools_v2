@@ -37,7 +37,10 @@ const ROWS = [
   // the saved plans, read-only (research/v7/your-plan.md 4.2): the list, and one plan on its first step or a named one
   ['#/plans', { ...r('plans') }, 'plans'],
   ['#/plan/Kq8LwT2mJv5PzYc9BnRd', { ...r('plan'), planId: 'Kq8LwT2mJv5PzYc9BnRd' }, 'plan'],
-  ['#/plan/guest-k3v9x1qa/month', { ...r('plan', null, 'month'), planId: 'guest-k3v9x1qa' }, 'plan']
+  ['#/plan/guest-k3v9x1qa/month', { ...r('plan', null, 'month'), planId: 'guest-k3v9x1qa' }, 'plan'],
+  // the account page and What's new (road-to-7.md step 11)
+  ['#/account', r('account'), 'account'],
+  ['#/whats-new', r('news'), 'news']
 ];
 const FOCUSED = [
   ['#/c/numbers?focus=you.age', r('step', 'c', 'numbers', 'you.age')],
@@ -45,7 +48,7 @@ const FOCUSED = [
   ['#/c/answer?focus=take', r('step', 'c', 'answer', 'take')],
   ['#/?focus=you.pot', r('front', null, null, 'you.pot')]
 ];
-const UNKNOWN = ['#/plan/abc123/c/answer', '#/plan/abc/nowhere', '#/plan/', '#/plan/a%20b', '#/plans/x', '#/plans?focus=you.age', '#/plan/abc?focus=you.age', '#/c', '#/c/', '#/c/nowhere', '#/soon/c', '#/soon/a', '#/soon/b', '#/soon/d', '#/soon/z', '#/soon', '#/x/y/z', '#nonsense', '#/d/spend', '#/d/ages',
+const UNKNOWN = ['#/account/x', '#/account?focus=you.age', '#/whats-new/1', '#/whatsnew', '#/plan/abc123/c/answer', '#/plan/abc/nowhere', '#/plan/', '#/plan/a%20b', '#/plans/x', '#/plans?focus=you.age', '#/plan/abc?focus=you.age', '#/c', '#/c/', '#/c/nowhere', '#/soon/c', '#/soon/a', '#/soon/b', '#/soon/d', '#/soon/z', '#/soon', '#/x/y/z', '#nonsense', '#/d/spend', '#/d/ages',
   '#/c/answer/extra', '#/c/numbers?focus=', '#/c/numbers?focus=you.pot=250000', '#/c/numbers?pot=250000', '#/C/numbers', '#/c/numbers?focus=1'];
 
 describe('parse and format', () => {
@@ -84,6 +87,8 @@ describe('parse and format', () => {
     expect(href.front()).toBe('#/');
     expect(href.step('c', 'numbers', 'you.age')).toBe('#/c/numbers?focus=you.age');
     expect(href.soon('e')).toBe('#/soon/e');
+    expect(href.account()).toBe('#/account');
+    expect(href.news()).toBe('#/whats-new');
   });
 });
 

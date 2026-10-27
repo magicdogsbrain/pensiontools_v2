@@ -11,8 +11,9 @@
  * The reducer never runs an answer.
  */
 import { A, OPENABLE } from './actions.js';
-import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept, emptyHousehold, HH_PICKS, cleanHouseholdTry, emptyMove, cleanMove, cleanIndex } from './initial.js';
-import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber } from './select.js';
+import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept, emptyHousehold, HH_PICKS, cleanHouseholdTry, emptyMove, cleanMove, cleanIndex,
+  emptyShellUi, emptyAccount, emptyGuest, emptyNews, ACCOUNT_MODES, ACCOUNT_ASKS, PLAN_ACTION_KINDS, PLAN_ACTION_OPS } from './initial.js';
+import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber, checkPlanName } from './select.js';
 import { hasShape, SHAPE_UNIT, THENS, thenPath, fallsPath, stepsPath, stepBox, stepFields, shapePaths, isShapePath, stepsOf, newStep,
   touchedWithout, touchedReordered, sortedSteps, shapeValuesOf, withShapeValues } from './shapeDraft.js';
 import { suggest as suggestShape, preset as presetShape, rescale as rescaleAmount } from './shapeModel.js';
@@ -33,7 +34,10 @@ const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'fail
   // "Keep as a separate plan" (way-and-mix.md 4): the window holds its three plans; an unconfirmed email
   'full', 'unverified',
   // "Your household" (road-to-7.md step 9): no partner's plan linked; the second copy or its link could not be made (the first stays)
-  'noPartner', 'partial'];
+  'noPartner', 'partial',
+  // the plan menu (road-to-7.md step 11): the last plan is never deleted; the example plan is never changed; a downloaded copy that is
+  // not a plan, or holds one with a problem; a name empty or too long
+  'lastPlan', 'example', 'badFile', 'fileProblems', 'empty', 'tooLong'];
 /** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document, the way switched (way-and-mix.md 2.4), a mix used (3.2e), a tried change used (4). */
 const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
   // "Your household" (road-to-7.md step 9): the partner link, the split written into both plans, "Keep things as they are", the budget shared
@@ -346,7 +350,9 @@ export function reduce(state, action) {
       const hh = state.household && state.household.pick && !stays('household') ? { ...state.household, pick: null } : state.household;
       const ui0 = closeRail(state.ui);
       const open = ui0.open.filter((x) => !gone.includes(x));
-      const next = { ...state, route, household: hh, ui: open.length === ui0.open.length ? ui0 : { ...ui0, open } };
+      // the plan menu's box or confirm (road-to-7.md step 11) belongs to "Your plans": leaving the page closes it
+      const ui1 = ui0.action && route.screen !== 'plans' ? { ...ui0, action: null } : ui0;
+      const next = { ...state, route, household: hh, ui: open.length === ui1.open.length ? ui1 : { ...ui1, open } };
       if (!other && !uiOther) return noteShown(state, next);
       const cleared = { ...next, ui: { ...next.ui, saving: null, saveProblem: null, toast: null } };
       return noteShown(state, other ? withPlanDraft(cleared, emptyPlanDraft()) : cleared);
@@ -613,7 +619,11 @@ export function reduce(state, action) {
     case A.PLAN_SAVE_FAILED: {
       const { planId, problem } = action;
       if (!PLAN_PROBLEMS.includes(problem)) return refuse(`plan/saveFailed: "${problem}" is not a problem it knows`);
-      return { ...state, ui: { ...state.ui, saving: null, saveProblem: { planId: typeof planId === 'string' ? planId : null, problem } } };
+      // a detail in words (the problem a downloaded copy holds: road-to-7.md step 11), never more than a line
+      const detail = typeof action.detail === 'string' && action.detail ? action.detail.slice(0, 200) : null;
+      // a hand-over that failed: the offer stays, no longer under way
+      const bringIn = state.ui.bringIn && state.ui.saving && state.ui.saving.kind === 'bringIn' ? { ...state.ui.bringIn, busy: false } : state.ui.bringIn;
+      return { ...state, ui: { ...state.ui, saving: null, bringIn, saveProblem: { planId: typeof planId === 'string' ? planId : null, problem, ...(detail ? { detail } : {}) } } };
     }
     case A.PLAN_CANCEL: {
       const pd = planDraftOf(state);
@@ -1236,8 +1246,163 @@ export function reduce(state, action) {
             tried: Object.fromEntries(Object.entries(copy.ways.tried && typeof copy.ways.tried === 'object' ? copy.ways.tried : {}).filter(([id]) => WAY_IDS.includes(id)).map(([id, t]) => [id, cleanTried(t)]).filter(([, t]) => t)),
             rankBy: RANK_BYS.includes(copy.ways.rankBy) ? copy.ways.rankBy : 'lasts' }
           : emptyWays(),
-        ui: { railOpen: !!copy.ui.railOpen, open: Array.isArray(copy.ui.open) ? copy.ui.open.filter((id) => OPENABLE.includes(id)) : [], online: copy.ui.online !== false, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null }
+        ui: { railOpen: !!copy.ui.railOpen, open: Array.isArray(copy.ui.open) ? copy.ui.open.filter((id) => OPENABLE.includes(id)) : [], online: copy.ui.online !== false, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null,
+          // the shell's own slices (road-to-7.md step 11) start empty: nothing under way, no box open, no pop-up
+          ...emptyShellUi() }
       };
+    }
+
+    // ---- "Your plans": the plan menu (research/v7/road-to-7.md step 11) — each write is the one write file's; here only what is open and under way ----
+    case A.PLAN_ACTION: {
+      const { planId, kind } = action;
+      if (kind === null || kind === undefined) return state.ui.action === null ? state : { ...state, ui: { ...state.ui, action: null } };
+      if (typeof planId !== 'string' || !planId) return refuse('plan/action: needs a plan id');
+      if (!PLAN_ACTION_KINDS.includes(kind)) return refuse(`plan/action: "${kind}" is not an action it knows`);
+      const step = action.step === 2 ? 2 : 1;
+      const text = kind === 'rename' ? (typeof action.text === 'string' ? action.text.slice(0, 200) : '') : '';
+      return { ...state, ui: { ...state.ui, action: { planId, kind, step, text }, saveProblem: null } };
+    }
+    case A.PLAN_ACTION_TEXT: {
+      const a = state.ui.action;
+      if (!a || a.kind !== 'rename') return state;
+      const value = typeof action.value === 'string' ? action.value.slice(0, 200) : '';
+      return value === a.text ? state : { ...state, ui: { ...state.ui, action: { ...a, text: value }, saveProblem: null } };
+    }
+    case A.PLAN_RENAME: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/rename: needs a plan id');
+      if (state.ui.saving) return state;
+      const c = checkPlanName(typeof action.name === 'string' ? action.name : '');
+      if (!c.ok) return { ...state, ui: { ...state.ui, saveProblem: { planId, problem: c.problem } } };
+      return { ...state, ui: { ...state.ui, action: null, saving: { planId, kind: 'rename', name: c.name }, saveProblem: null, toast: null } };
+    }
+    case A.PLAN_COPY: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/copy: needs a plan id');
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, action: null, saving: { planId, kind: 'copy', carry: action.carry === true }, saveProblem: null, toast: null } };
+    }
+    case A.PLAN_MAIN: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/makeMain: needs a plan id');
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, action: null, saving: { planId, kind: 'main' }, saveProblem: null, toast: null } };
+    }
+    case A.PLAN_DELETE: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/delete: needs a plan id');
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, action: null, saving: { planId, kind: 'delete' }, saveProblem: null, toast: null } };
+    }
+    case A.PLAN_DOWNLOAD: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/download: needs a plan id');
+      const n = state.ui.download ? state.ui.download.n + 1 : 1;
+      return { ...state, ui: { ...state.ui, download: { planId, n } } };
+    }
+    case A.PLAN_OPEN_FILE:
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, saving: { planId: null, kind: 'open' }, saveProblem: null, toast: null } };
+    case A.PLAN_EXAMPLE:
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, saving: { planId: null, kind: 'example' }, saveProblem: null, toast: null } };
+    case A.PLAN_ACTION_DONE: {
+      const { op } = action;
+      if (!PLAN_ACTION_OPS.includes(op)) return refuse(`plan/actionDone: "${op}" is not an action it knows`);
+      const planId = typeof action.planId === 'string' && action.planId ? action.planId : null;
+      const slots = action.slots && typeof action.slots === 'object' ? Object.fromEntries(Object.entries(action.slots).filter(([, v]) => typeof v === 'string' || typeof v === 'number')) : {};
+      const bringIn = op === 'brought' ? null : state.ui.bringIn;
+      return { ...state, ui: { ...state.ui, action: null, saving: null, saveProblem: null, bringIn, toast: { planId, kind: 'done', previous: null, line: null, op, slots } } };
+    }
+
+    // ---- the visitor without an account (road-to-7.md step 11): the meter, the reminders, the stop, the hand-over ----
+    case A.GUEST_TICK: {
+      const g = state.ui.guest || emptyGuest();
+      const minutes = typeof action.minutes === 'number' && Number.isFinite(action.minutes) && action.minutes >= 0 ? action.minutes : g.minutes;
+      const usedUp = action.usedUp === true;
+      const nag = action.nag === undefined ? g.nag : action.nag && typeof action.nag === 'object' && [1, 2, 3, 4].includes(action.nag.level) ? { level: action.nag.level, left: typeof action.nag.left === 'number' && Number.isFinite(action.nag.left) ? action.nag.left : 0 } : null;
+      if (minutes === g.minutes && usedUp === g.usedUp && JSON.stringify(nag) === JSON.stringify(g.nag)) return state;
+      return { ...state, ui: { ...state.ui, guest: { minutes, usedUp, nag } } };
+    }
+    case A.GUEST_NAG_CLOSE: {
+      const g = state.ui.guest || emptyGuest();
+      return g.nag === null ? state : { ...state, ui: { ...state.ui, guest: { ...g, nag: null } } };
+    }
+    case A.GUEST_OFFER: {
+      const count = Math.floor(Number(action.count));
+      if (!(count >= 1)) return refuse('guest/offer: needs a count of plans');
+      return { ...state, ui: { ...state.ui, bringIn: { count, busy: false } } };
+    }
+    case A.GUEST_OFFER_CLOSE:
+      return state.ui.bringIn === null ? state : { ...state, ui: { ...state.ui, bringIn: null } };
+    case A.GUEST_BRING_IN:
+      if (!state.ui.bringIn || state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, bringIn: { ...state.ui.bringIn, busy: true }, saving: { planId: null, kind: 'bringIn' }, saveProblem: null, toast: null } };
+
+    // ---- the account page (road-to-7.md step 11): the effect does each thing; the state says what is shown and under way ----
+    case A.ACCOUNT_MODE: {
+      if (!ACCOUNT_MODES.includes(action.mode)) return refuse(`account/mode: "${action.mode}" is not a form it knows`);
+      const acc = state.ui.account || emptyAccount();
+      return { ...state, ui: { ...state.ui, account: { ...acc, mode: action.mode, problem: null, note: null } } };
+    }
+    case A.ACCOUNT_ASK: {
+      if (!ACCOUNT_ASKS.includes(action.what)) return refuse(`account/ask: "${action.what}" is not something it does`);
+      const acc = state.ui.account || emptyAccount();
+      if (acc.busy) return state;
+      // the deletion only after its two confirms, on screen
+      if (action.what === 'delete' && acc.confirm !== 2) return state;
+      return { ...state, ui: { ...state.ui, account: { ...acc, busy: action.what, problem: null, note: null } } };
+    }
+    case A.ACCOUNT_DONE: {
+      if (!ACCOUNT_ASKS.includes(action.what)) return refuse(`account/done: "${action.what}" is not something it does`);
+      const acc = state.ui.account || emptyAccount();
+      const slots = action.slots && typeof action.slots === 'object' ? Object.fromEntries(Object.entries(action.slots).filter(([, v]) => typeof v === 'string' || typeof v === 'number')) : {};
+      return { ...state, ui: { ...state.ui, account: { ...acc, busy: null, problem: null, note: { what: action.what, slots } } } };
+    }
+    case A.ACCOUNT_FAILED: {
+      if (!ACCOUNT_ASKS.includes(action.what)) return refuse(`account/failed: "${action.what}" is not something it does`);
+      const acc = state.ui.account || emptyAccount();
+      const problem = typeof action.problem === 'string' && action.problem ? action.problem.slice(0, 80) : 'failed';
+      return { ...state, ui: { ...state.ui, account: { ...acc, busy: null, note: null, problem: { what: action.what, code: problem } } } };
+    }
+    case A.ACCOUNT_CONFIRM: {
+      const step = action.step === 1 || action.step === 2 ? action.step : null;
+      const acc = state.ui.account || emptyAccount();
+      if (acc.busy && step !== null) return state;
+      return acc.confirm === step ? state : { ...state, ui: { ...state.ui, account: { ...acc, confirm: step, problem: null } } };
+    }
+    case A.ACCOUNT_DELETED: {
+      const acc = state.ui.account || emptyAccount();
+      return { ...state, ui: { ...state.ui, account: { ...acc, busy: null, confirm: null, problem: null, note: null, deleted: { signInGone: action.signInGone === true } } } };
+    }
+    case A.PROFILE_SET: {
+      const p = action.profile && typeof action.profile === 'object' ? { lastSeenVersion: typeof action.profile.lastSeenVersion === 'string' ? action.profile.lastSeenVersion : null } : null;
+      return JSON.stringify(p) === JSON.stringify(state.ui.profile) ? state : { ...state, ui: { ...state.ui, profile: p } };
+    }
+
+    // ---- What's new (road-to-7.md step 11) ----
+    case A.NEWS_SHOW: {
+      const entries = Array.isArray(action.entries) ? action.entries.filter((e) => e && typeof e === 'object' && typeof e.version === 'string') : [];
+      if (!entries.length) return refuse('news/show: needs the releases to show');
+      const news = state.ui.news || emptyNews();
+      return { ...state, ui: { ...state.ui, news: { ...news, popup: entries } } };
+    }
+    case A.NEWS_DISMISS: {
+      const news = state.ui.news || emptyNews();
+      return news.popup === null ? state : { ...state, ui: { ...state.ui, news: { ...news, popup: null } } };
+    }
+    case A.NEWS_PAGE: {
+      const news = state.ui.news || emptyNews();
+      if (action.page === null) return news.page === null ? state : { ...state, ui: { ...state.ui, news: { ...news, page: null } } };
+      const releases = Array.isArray(action.releases) ? action.releases.filter((e) => e && typeof e === 'object' && typeof e.version === 'string') : null;
+      if (!releases) return refuse('news/page: needs the releases');
+      const history = Array.isArray(action.history) ? action.history.filter((e) => e && typeof e === 'object' && typeof e.version === 'string') : [];
+      return { ...state, ui: { ...state.ui, news: { ...news, page: { releases, history } } } };
+    }
+    case A.NEWS_SEEN: {
+      if (typeof action.version !== 'string' || !action.version) return refuse('news/seen: needs a version');
+      const news = state.ui.news || emptyNews();
+      return news.seen === action.version ? state : { ...state, ui: { ...state.ui, news: { ...news, seen: action.version } } };
     }
 
     default:

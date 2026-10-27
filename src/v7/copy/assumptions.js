@@ -75,10 +75,9 @@ export const ASSUMPTIONS = {
       ]
     }
   },
-  /** The code and the data, for anyone who wants to read them. */
-  source: 'The code and the data files are public: {repo} — the market-data build script, the nightly gilt fetch and the market-data audit are there.',
+  /** The code and the data, for anyone who wants to read them: the address as words (the preview links nowhere outside itself). */
+  source: 'The code and the data files are public at {repo} — the market-data build script, the nightly gilt fetch and the market-data audit are there.',
   repo: 'github.com/magicdogsbrain/pensiontools_v2',
-  repoHref: 'https://github.com/magicdogsbrain/pensiontools_v2',
   columns: { name: 'What', value: 'The figure', note: 'Note' },
   back: 'Back'
 };

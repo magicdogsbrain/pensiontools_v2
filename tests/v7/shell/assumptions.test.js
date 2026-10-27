@@ -128,7 +128,9 @@ describe('the effect, the reducer, the view and the page', () => {
     expect(root.querySelector('[data-row="gilts.index"] .assump-value').textContent).toBe('S&P 500 (price index) at 7,691 on 2026-10-01');
     expect(root.querySelector('[data-row="tax.bands"] .assump-value').textContent).toBe('Personal allowance £12,570, basic-rate limit £50,270, higher-rate limit £125,140; the allowance tapers above £100,000');
     expect(root.querySelectorAll('[data-testid="assumptions.limits"] li').length).toBe(ASSUMPTIONS.sections.limits.items.length);
-    expect(root.querySelector('[data-testid="assumptions.source"] a').getAttribute('href')).toBe(ASSUMPTIONS.repoHref);
+    // the code's address as words: the preview links nowhere outside itself (e2e/crawl.spec.js)
+    expect(root.querySelector('[data-testid="assumptions.source"]').textContent).toContain(ASSUMPTIONS.repo);
+    expect(root.querySelector('[data-testid="assumptions.source"] a')).toBe(null);
     expect(text).not.toMatch(/undefined|NaN|\[object|\{\w+\}/);
     expect(bannedHits(text, ['all', 'planner'])).toEqual([]);
     // no curve, no gilt list, no index: the fallbacks in words

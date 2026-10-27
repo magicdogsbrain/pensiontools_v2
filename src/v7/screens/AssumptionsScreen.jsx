@@ -78,7 +78,7 @@ export function AssumptionsScreen(state) {
         <Section id="limits" title={S.limits.title}>
           <ul class="plan-lines">{S.limits.items.map((s, i) => <li key={i} class="plan-line">{s}</li>)}</ul>
         </Section>
-        <p class="note" data-testid="assumptions.source">{fill(W.source, { repo: '' })}<a href={W.repoHref} target="_blank" rel="noopener">{W.repo}</a></p>
+        <p class="note" data-testid="assumptions.source">{fill(W.source, { repo: W.repo })}</p>
       </div>
     );
   }

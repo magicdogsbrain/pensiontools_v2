@@ -75,6 +75,7 @@ function Card({ L, card, n, inc, planId, dispatch, sourceText, slots, onRemove }
         <EditField key={f.path} step="income" f={f} words={words.fields[last(f.path)]} errors={words.errors[last(f.path)] || {}}
           source={card.saved ? sourceText : null} savedWords={INCOME.savedValue} planId={planId} dispatch={dispatch} slots={slots} />
       ))}
+      {L === 'lumps' && card.landing && <p class="note" data-testid={`plan.income.lumps.landing.${card.id}`} data-landing={card.landing.id}>{fill(words.landing[card.landing.id] || '', { ...card.landing.slots, mix: words.mix[card.landing.slots.mix] || card.landing.slots.mix || '' })}</p>}
       <div class="actions-row income-card-actions">
         <Button testid={`plan.income.${L}.remove.${card.id}`} kind="quiet" onClick={() => onRemove(L, card.id)} {...keepFocus}>{words.remove}</Button>
       </div>
@@ -181,6 +182,7 @@ export function IncomeScreen(state, dispatch) {
             <h2>{INCOME.sections.sp}</h2>
             {inc.assumed && <p class="note" data-testid="plan.income.assumed">{fill(inc.assumed.age != null ? INCOME.assumedNote : INCOME.assumedNoteNoAge, inc.assumed)}</p>}
             {F('spKind', { nested: { forecast: F('spWeekly') }, savedWords: spSavedWords })}
+            {F('spDate')}
             {notUsed.has('spKind') && <p class="note">{INCOME.notUsed}</p>}
           </section>
           <Cards L="fs" inc={inc} planId={planId} dispatch={dispatch} sourceText={sourceText} slots={slots} />

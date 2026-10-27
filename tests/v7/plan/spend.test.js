@@ -420,7 +420,7 @@ describe('S1 — the sub-step, the address and the plan page\'s section', () => 
   it('"spend" sits under "plan" beside "about" and "income"; the address parses and formats; the screen is plan.spend', () => {
     expect(SUB_STEPS.plan).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
     expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
-    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move']);   // the household, hold and move rail steps draw their own screens (road-to-7.md steps 9, 10)
+    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move', 'budget', 'saving']);   // the household, hold, move, budget and saving rail steps draw their own screens (road-to-7.md steps 9, 10, 11b)
     const r = parse('#/plan/AboutPlan01/spend');
     expect(r).toEqual({ screen: 'plan', q: null, step: 'spend', planId: 'AboutPlan01', focus: null });
     expect(format(r)).toBe('#/plan/AboutPlan01/spend');
@@ -442,15 +442,15 @@ describe('S1 — the sub-step, the address and the plan page\'s section', () => 
   it('the fields, the cards and their words line up; the draft paths; the declared writes are the planner\'s shape and cost keys', () => {
     for (const f of SPEND_FIELDS) expect(SPEND.errors[f.path], f.path).toBeTruthy();
     for (const [L, spec] of Object.entries(SPEND_LISTS)) for (const f of spec.fields) { expect(SPEND[L].fields[f.path].label, `${L}.${f.path}`).toBeTypeOf('string'); if (f.type === 'choice' && f.path !== 'then') for (const o of f.options) expect(SPEND[L].fields[f.path].options[o]).toBeTypeOf('string'); }
-    for (const p of ['first.amount', 'first.then', 'first.fallsPct', 'steps.ids', 'steps.0.fromAge', 'steps.n12.then', 'steps.3.fallsPct', 'costs.ids', 'costs.n1.prices', 'costs.0.years']) expect(isSpendPath(p), p).toBe(true);
-    for (const p of ['first', 'first.age', 'steps', 'steps.ids.x', 'steps.0.label', 'costs.a.amount', 'lumps.0.amount', 'steps.0.amount.x', 'costs.n1234.amount']) expect(isSpendPath(p), p).toBe(false);
+    for (const p of ['first.amount', 'first.then', 'first.fallsPct', 'steps.ids', 'steps.0.fromAge', 'steps.n12.then', 'steps.3.fallsPct', 'costs.ids', 'costs.n1.prices', 'costs.0.years', 'first.gross', 'steps.n3.gross']) expect(isSpendPath(p), p).toBe(true);
+    for (const p of ['first', 'first.age', 'steps', 'steps.ids.x', 'steps.0.label', 'costs.a.amount', 'lumps.0.amount', 'steps.0.amount.x', 'costs.n1234.amount', 'costs.0.gross', 'first.gross.x', 'steps.gross']) expect(isSpendPath(p), p).toBe(false);
     expect(isPlanEditPath('first.amount')).toBe(true);
     expect(isPlanEditPath('costs.0.atAge')).toBe(true);
     expect(isPlanEditPath('age')).toBe(true);
     for (const p of SPEND_WRITES) expect(p).toMatch(/^(stressTool|decisionTool)\.settings\.[a-zA-Z]+$/);
     expect(SPEND_WRITES).toContain('stressTool.settings.targetSchedule');
     expect(SPEND_WRITES).toContain('decisionTool.settings.targetSchedule');
-    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', ...PLANS_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11)
+    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', ...PLANS_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the budget and the saver's settings and record list, each one field (step 11b); the plan menu's name and main flag (step 11)
   });
   it('a plan not in the list, and the partner link both ways', () => {
     expect(spendOf(entriesAt(TODAY), 'NoSuchPlan', { today: TODAY }).found).toBe(false);

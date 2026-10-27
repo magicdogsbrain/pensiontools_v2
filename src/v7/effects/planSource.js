@@ -61,6 +61,8 @@ import { mixOf } from '../../answers/plan/mix.js';
 import { householdOf } from '../../answers/plan/household.js';
 import { holdOf } from '../../answers/plan/hold.js';
 import { moveOf } from '../../answers/plan/move.js';
+import { budgetOf } from '../../answers/plan/budget.js';
+import { savingOf } from '../../answers/plan/saving.js';
 import { startPlanWrite } from './planWrite.js';
 import { startAccount } from './account.js';
 
@@ -119,10 +121,22 @@ export function viewFor(state) {
       const typed = pd ? pd.values : {};
       page.hold = { ...holdOf(plans.list, r.planId, { today, typed, source: plans.source }), draftKey: JSON.stringify(typed) };
     }
+    // the budget on a saved plan (road-to-7.md step 11b): the lines, the one-offs, the totals, the spreadsheet opened, with what was typed
+    if (r.step === 'budget') {
+      const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
+      const typed = pd ? pd.values : {};
+      page.budget = { ...budgetOf(plans.list, r.planId, { today, typed, source: plans.source }), draftKey: JSON.stringify(typed) };
+    }
     // "Moving to your plan's mix" (§3): the lists, the schedule, the sheet, the watch with the index the effect fetched (state.move.index), the one run held
     if (r.step === 'move') {
       const Mv = state.move || null;
       page.move = { ...moveOf(plans.list, r.planId, { today, index: Mv ? Mv.index : null, M: Mv, source: plans.source }), draftKey: '{}' };
+    }
+    // "What you pay in" (road-to-7.md step 11b): the Accumulation form's boxes, the relief sum, what the pot could be, the records, with what was typed
+    if (r.step === 'saving') {
+      const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
+      const typed = pd ? pd.values : {};
+      page.saving = { ...savingOf(plans.list, r.planId, { today, typed, source: plans.source }), draftKey: JSON.stringify(typed) };
     }
     if (r.step === 'about' || r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts' || r.step === 'mix') {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;

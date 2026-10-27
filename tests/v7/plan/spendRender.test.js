@@ -151,12 +151,13 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(text).toContain(`New roof: ${money(s.costs[0].amount)} after tax at age 62 (tax year 2029/30), once — £25,000 before tax on top of that year’s figure, going up with prices.`);
     expect(text).toContain(`Camper van: ${money(s.costs[1].amount)} a year after tax from age 66 (tax year 2033/34) for 3 years — £36,000 a year before tax on top of each year’s figure, going up with prices.`);
     expect(root.querySelector('[data-testid="plan.spend.budget.none"]').textContent).toContain('Your budget is not worked out, so you are choosing by one figure.');
-    expect(root.querySelector('[data-testid="plan.spend.budget.change"]').textContent).toBe('Work it out (in the planner)');
+    expect(root.querySelector('[data-testid="plan.spend.budget.change"]').textContent).toBe('Work it out, line by line');
+    expect(root.querySelector('[data-testid="plan.spend.budget.change"]').getAttribute('href')).toBe('#/plan/' + id + '/budget');
     expect(root.querySelector('[data-testid="plan.spend.budget.use"]')).toBe(null);
     expect(root.querySelector('[data-testid="plan.spend.shape.chart"] .shape-chart-title').textContent).toBe('What the plan pays each year, after tax, at today’s prices');
     expect(root.querySelector('[data-testid="plan.spend.steps.suggestWords"]').textContent).toContain('Fills in 15% less from 75 and 30% less from 85');
   });
-  it('typing dispatches plan/edit with the text as typed; the "then" box too; Add appends a new card id; Remove drops one; Suggest dispatches the planner\'s own steps; Save dispatches plan/save; the budget button leaves for the planner', () => {
+  it('typing dispatches plan/edit with the text as typed; the "then" box too; Add appends a new card id; Remove drops one; Suggest dispatches the planner\'s own steps; Save dispatches plan/save; the budget button links to the budget step', () => {
     const { root, actions } = draw(spendState(entries, id));
     const box = root.querySelector('[data-testid="plan.spend.first.amount"]');
     box.value = '3000';
@@ -179,8 +180,9 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(actions.pop()).toEqual({ type: 'plan/save', planId: id });
     root.querySelector('[data-testid="plan.spend.cancel"]').click();
     expect(actions.pop()).toEqual({ type: 'plan/cancel', planId: id });
-    root.querySelector('[data-testid="plan.spend.budget.change"]').click();
-    expect(actions.pop()).toEqual({ type: 'plan/change', planId: id, place: 'budget', back: '#/plan/' + id + '/spend' });
+    // the budget's lines are changed on the budget step inside the preview (road-to-7.md step 11b), no longer a hand-over
+    expect(root.querySelector('[data-testid="plan.spend.budget.change"]').getAttribute('href')).toBe('#/plan/' + id + '/budget');
+    expect(actions.some((a) => a.type === 'plan/change' && a.place === 'budget')).toBe(false);
   });
   it('a new step card is drawn empty with no saved value; a fall shows its box; the derived lines and the picture follow what is typed; problems show once a box is left or Save is pressed', () => {
     const added = draw(spendState(entries, id, { typed: { 'steps.ids': '0,1,n1', 'steps.n1.fromAge': '85', 'steps.n1.amount': '1,500', 'steps.n1.then': 'falls', 'steps.n1.fallsPct': '2' } }));

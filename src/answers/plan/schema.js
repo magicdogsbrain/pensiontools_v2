@@ -44,6 +44,12 @@
  *                      split's five keys, the budget shared, who pays)
  *   PLANS_WRITES       "Your plans" (road-to-7.md step 11): the ONLY field paths the plan menu may write to a plan that exists —
  *                      its name (Rename) and which plan is the main one
+ *   BUDGET_*, isBudgetPath, BUDGET_WRITES
+ *                      the budget on a saved plan (road-to-7.md step 11b): the lines, the breakdown rows, the one-offs, the
+ *                      who-pays phases and the spreadsheet opened, as boxes; the whole budget as ONE write
+ *   SAVING_FIELDS, isSavingPath, SAVING_WRITES, SCHEME_TYPES
+ *                      "What you pay in" (step 11b): the Accumulation form's boxes and the pot record's; the whole settings
+ *                      object and the whole record list, each ONE write
  *   isPlanEditPath     the one rule for a draft path of any step
  *
  * `when` is the one rule the questions' lists use (src/answers/shared/validate.js applies): the field is drawn and checked
@@ -69,6 +75,9 @@ export const ABOUT_PATHS = Object.freeze(ABOUT_FIELDS.map((f) => f.path));
 export const MIN_YEARS = 5;
 
 export const ABOUT_WRITES = Object.freeze([
+  // "Leave it" on an out-of-date draft (road-to-7.md step 11b, the ledger's timing.stale-draft): the planner's own key, the one
+  // Stress key its guard lets a locked plan write (LockedPlanGuard.LOCKED_BOOKKEEPING) — a locked plan is never offered it
+  'stressTool.settings.staleDraftDismissedFor',
   'stressTool.settings.currentAge',
   'stressTool.settings.currentAgeAsOf',
   'stressTool.settings.retired',
@@ -95,6 +104,9 @@ export const INCOME_FIELDS = Object.freeze([
   // figure at all, "as the planner assumes" (the old yearly figure from age 67)
   { path: 'spKind',   type: 'choice', options: ['full', 'forecast', 'none', 'assumed'], required: true },
   { path: 'spWeekly', type: 'money',  min: 1, max: 1000, required: true, when: { spKind: 'forecast' } },
+  // the start date from the forecast letter (road-to-7.md step 11b, the ledger's inc.state-pension-date): the planner's own box,
+  // read by its own parser (StatePensionUtils.parseStatePensionDate) — drawn while a State Pension is chosen (income.js applies)
+  { path: 'spDate',   type: 'text',   max: 40, required: false },
   { path: 'other',    type: 'money',  min: 0, max: 1000000, required: false }
 ].map(Object.freeze));
 
@@ -181,15 +193,20 @@ export const SPEND_LISTS = Object.freeze({
 });
 export const SPEND_LIST_IDS = Object.freeze(Object.keys(SPEND_LISTS));
 
-/** The paths of "What you spend" a draft may hold: the first row's boxes, a list's order, a card's boxes. */
+/**
+ * The paths of "What you spend" a draft may hold: the first row's boxes, a list's order, a card's boxes — and, beside an
+ * amount box, the before-tax figure a lift handed it ("first.gross", "steps.<id>.gross": spend.js lumpEdits, liftedGross), a
+ * path with no box of its own that nobody types.
+ */
 export function isSpendPath(path) {
   const p = String(path);
   if (SPEND_FIELDS.some((f) => f.path === p)) return true;
+  if (p === 'first.gross') return true;
   const parts = p.split('.');
   if (parts.length === 2) return SPEND_LIST_IDS.includes(parts[0]) && parts[1] === 'ids';
   if (parts.length !== 3) return false;
   const list = SPEND_LISTS[parts[0]];
-  return !!list && isCardId(parts[1]) && list.fields.some((f) => f.path === parts[2]);
+  return !!list && isCardId(parts[1]) && (list.fields.some((f) => f.path === parts[2]) || (parts[0] === 'steps' && parts[2] === 'gross'));
 }
 
 /** Every dotted field path "What you spend" may change: the planner's own keys (8.3). */
@@ -668,15 +685,79 @@ export const HOLD_WRITES = Object.freeze(['holdings', 'lastModified']);
 /** The ONLY field paths "Moving to your plan's mix" may change (§3.8): the whole `transition` object (its tick-offs) in one write, and the stamp. */
 export const MOVE_WRITES = Object.freeze(['transition', 'lastModified']);
 
+// ---- "What you spend" on a saved plan, the budget (research/v7/road-to-7.md step 11b; budget-step.md "The rule") -----------
+
+export const BUDGET_SUB_STEP = 'budget';
+/** A line's or one-off's period as the planner keeps it. */
+export const BUDGET_PERIODS = Object.freeze(['mo', 'yr']);
+/** The national guide levels the typical amounts aim at (BudgetModel.plsaTierOf). */
+export const BUDGET_TIERS = Object.freeze(['minimum', 'moderate', 'comfortable']);
+/** The two groups of the planner's budget page: essentials and the rest (a line's `tier`). */
+export const BUDGET_GROUPS = Object.freeze(['essential', 'discretionary']);
+/**
+ * The boxes of the budget step, each in the plan draft until the box is left (then ONE write of the whole budget: budget.js
+ * budgetPatch). A line: "line.<id>.<field>" — the label, the amount (a sum is allowed), the period, the essential tick, from
+ * and to an age, who pays and the share (a shared budget), the age range and the breakdown open; a breakdown row
+ * "line.<id>.part.<i>.<field>"; a one-off "oneOff.<id>.<field>"; a who-pays phase "phase.<i>.<field>"; the spreadsheet
+ * opened, as text, "import.text".
+ */
+const BUDGET_ID = '[A-Za-z0-9_-]{1,40}';
+const BUDGET_LINE = new RegExp('^line\\.' + BUDGET_ID + '\\.(label|amount|period|essential|fromAge|toAge|paidBy|mySharePct|ages|open)$');
+const BUDGET_PART = new RegExp('^line\\.' + BUDGET_ID + '\\.part\\.\\d{1,3}\\.(label|amount|period)$');
+const BUDGET_ONE_OFF = new RegExp('^oneOff\\.' + BUDGET_ID + '\\.(label|amount|atAge|everyYears|paidBy|mySharePct)$');
+const BUDGET_PHASE = /^phase\.\d{1,3}\.(fromAge|mySharePct)$/;
+const BUDGET_ADD = /^add\.(essential|discretionary|oneOff)$/;   // the name of a new line or one-off cost, typed before the press that adds it
+export const isBudgetPath = (path) => { const p = String(path); return p === 'import.text' || BUDGET_LINE.test(p) || BUDGET_PART.test(p) || BUDGET_ONE_OFF.test(p) || BUDGET_PHASE.test(p) || BUDGET_ADD.test(p); };
+/**
+ * The ONLY field paths the budget step may change: the whole `budgetTool.settings` object as ONE field (the planner's
+ * saveBudget writes it whole, with `derived` worked out again), and the planner's stamp. A shared budget's lines live on the
+ * household's plan: the write goes there, this plan keeping its own side (ScenarioRepository.saveActiveBudget), both declared.
+ */
+export const BUDGET_WRITES = Object.freeze(['budgetTool.settings', 'lastModified']);
+
+// ---- "What you pay in" on a saved plan (research/v7/road-to-7.md step 11b: save.relief, save.escalation, save.own-mix, save.pot-record) ----
+
+export const SAVING_SUB_STEP = 'saving';
+/** How tax relief is given (AccumulationEngine.contributionBreakdown): relief at source, net pay, salary sacrifice. */
+export const SCHEME_TYPES = Object.freeze(['ras', 'netpay', 'salsac']);
+/**
+ * The boxes, in the order they are drawn (the planner's Accumulation form, index.html readAccumulationInputs): what you pay
+ * in a month from take-home pay, your employer's part, into ISAs and savings, the yearly rise, how relief is given and your
+ * salary, the pot today. The ages are "About you and when"'s. Then the pot record's boxes (a month and three pots), written
+ * by their own press, never by Save.
+ */
+export const SAVING_FIELDS = Object.freeze([
+  { path: 'netMonthly',      type: 'money',   min: 0, max: 100000, required: false, default: 0 },
+  { path: 'employerMonthly', type: 'money',   min: 0, max: 100000, required: false, default: 0 },
+  { path: 'isaMonthly',      type: 'money',   min: 0, max: 100000, required: false, default: 0 },
+  { path: 'escalationPct',   type: 'percent', min: 0, max: 20, step: 0.5, required: false, default: 0 },
+  { path: 'schemeType',      type: 'choice',  options: SCHEME_TYPES, default: 'ras' },
+  { path: 'salary',          type: 'money',   min: 0, max: 10000000, required: false, default: 0 },
+  { path: 'potNow',          type: 'money',   min: 0, max: 50000000, required: false, default: 0 },
+  { path: 'record.month',    type: 'month',   required: false },
+  { path: 'record.pension',  type: 'money',   min: 0, max: 50000000, required: false },
+  { path: 'record.isa',      type: 'money',   min: 0, max: 50000000, required: false },
+  { path: 'record.gia',      type: 'money',   min: 0, max: 50000000, required: false }
+].map(Object.freeze));
+export const SAVING_PATHS = Object.freeze(SAVING_FIELDS.map((f) => f.path));
+export const isSavingPath = (path) => SAVING_PATHS.includes(String(path));
+/**
+ * The ONLY field paths "What you pay in" may change: the whole `accumulationTool.settings` object as ONE field (the planner's
+ * saveActiveAccumulation writes it whole), the whole monthly pot record list (saveActiveAccumulationHistory: a record added,
+ * never one deleted), and the stamp. Both outside the lock (LockedPlanGuard.js: the Accumulation planner and its record).
+ */
+export const SAVING_WRITES = Object.freeze(['accumulationTool.settings', 'accumulationTool.history', 'lastModified']);
+
 /** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
 export function isPlanEditPath(path) {
-  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path) || isHoldPath(path);
+  return ABOUT_PATHS.includes(path) || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path) || isHoldPath(path) || isBudgetPath(path) || isSavingPath(path);
 }
 
 /** Every dotted field path "Money that comes in anyway" may change: the planner's own keys (7.3). */
 export const INCOME_WRITES = Object.freeze([
   'stressTool.settings.spWeeklyAmount',
   'stressTool.settings.spStartDate',
+  'decisionTool.settings.spStartDate',
   'stressTool.settings.statePension',
   'stressTool.settings.dbAmount',
   'stressTool.settings.dbStartYear',
@@ -695,7 +776,7 @@ export const INCOME_WRITES = Object.freeze([
  */
 export const TRY_WRITES = Object.freeze([...new Set([...WAY_WRITES, ...POTS_WRITES, ...SPEND_WRITES, ...ABOUT_WRITES, ...LASTS_WRITES])]);
 
-export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES, mix: MIX_WRITES, try: TRY_WRITES, household: HOUSEHOLD_WRITES, hold: HOLD_WRITES, move: MOVE_WRITES });
+export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES, mix: MIX_WRITES, try: TRY_WRITES, household: HOUSEHOLD_WRITES, hold: HOLD_WRITES, move: MOVE_WRITES, budget: BUDGET_WRITES, saving: SAVING_WRITES });
 // the stamp stays last: the hold and move lists name it themselves (holdings-and-move.md §2.2, §3.8), so it is taken out of them here and put back with the bookkeeping
 // ---- "Your plans" (research/v7/road-to-7.md step 11): the plan menu's writes to a plan that exists ----------------------
 
@@ -707,4 +788,4 @@ export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES
  */
 export const PLANS_WRITES = Object.freeze(['planDetails.name', 'isActive']);
 
-export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...PLANS_WRITES, ...BOOKKEEPING_WRITES])]);
+export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BUDGET_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...SAVING_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...PLANS_WRITES, ...BOOKKEEPING_WRITES])]);

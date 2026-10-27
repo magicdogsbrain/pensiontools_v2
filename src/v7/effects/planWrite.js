@@ -110,7 +110,7 @@ import { guestOwnPlans, GUEST_MAX_PLANS, isExamplePlan, DEMO_PLANS, EXAMPLE_PLAN
 import { copyOf, hasRecords } from '../../services/PlanCopy.js';
 import { stripIdentity } from '../../services/PlanExport.js';
 import { handoffPayload } from '../../services/GuestMeter.js';
-import { aboutPatch, applyPatch } from '../../answers/plan/about.js';
+import { aboutPatch, applyPatch, stalePatch } from '../../answers/plan/about.js';
 import { incomePatch } from '../../answers/plan/income.js';
 import { spendPatch } from '../../answers/plan/spend.js';
 import { potsPatch } from '../../answers/plan/pots.js';
@@ -121,6 +121,8 @@ import { mixPatch, useMixPatch } from '../../answers/plan/mix.js';
 import { partnerOf, linkPatch, dismissPatch, splitPatches, shareBudgetPatches, whoPaysPatches } from '../../answers/plan/household.js';
 import { holdPatch } from '../../answers/plan/hold.js';
 import { tickPatch } from '../../answers/plan/move.js';
+import { budgetPatch } from '../../answers/plan/budget.js';
+import { savingPatch, recordPatch } from '../../answers/plan/saving.js';
 import { uniqueName, getDefaultScenario } from '../../services/PlanFromSeed.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
 import { isLockedSettings, lockedPlanWriteRefusal } from '../../services/LockedPlanGuard.js';
@@ -222,8 +224,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
   /** Which editing step the page is on when Save is pressed (editing-in-v7.md 7): its pure writer and its reading. */
   function stepOf(state) {
     const r = state.route;
-    const step = r && r.screen === 'plan' && (r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts' || r.step === 'mix') ? r.step : 'about';
-    return { step, patchOf: step === 'income' ? incomePatch : step === 'spend' ? spendPatch : step === 'pots' ? potsPatch : step === 'lasts' ? lastsPatch : step === 'mix' ? mixPatch : aboutPatch };
+    const step = r && r.screen === 'plan' && (r.step === 'income' || r.step === 'spend' || r.step === 'pots' || r.step === 'lasts' || r.step === 'mix' || r.step === 'saving') ? r.step : 'about';
+    return { step, patchOf: step === 'income' ? incomePatch : step === 'spend' ? spendPatch : step === 'pots' ? potsPatch : step === 'lasts' ? lastsPatch : step === 'mix' ? mixPatch : step === 'saving' ? savingPatch : aboutPatch };
   }
 
   /** The plan as read, after the fresh read of the account: { place, plan, state } or null after a failure already told. */
@@ -259,7 +261,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const { step, patchOf } = stepOf(state);
     const pd = state.draft.plan && state.draft.plan.id === String(planId) ? state.draft.plan : null;
     const typed = pd ? pd.values : {};
-    if (isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) { fail(planId, 'locked'); return; }
+    // "What you pay in" (road-to-7.md step 11b) is outside the lock, as the planner's Accumulation page is: the guard alone decides
+    if (step !== 'saving' && isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) { fail(planId, 'locked'); return; }
     const p = patchOf(plan, typed, { today: state.env.today });
     if (!p.ok) { fail(planId, p.errors.plan === 'locked' ? 'locked' : 'problems'); return; }
     const about = state.plans.view && state.plans.view.page && state.plans.view.page[step] && state.plans.view.page.forId === String(planId) ? state.plans.view.page[step] : null;
@@ -268,8 +271,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const data = declaredOnly({ ...p.patch, lastModified: now().toISOString() });
     if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;
-    // Undo puts the plan back as it was, its last-changed stamp included (editing-in-v7.md 3): byte-identical afterwards
-    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line });
+    // Undo puts the plan back as it was, its last-changed stamp included (editing-in-v7.md 3): byte-identical afterwards.
+    // "What you pay in" marks its toast (op 'saving'): its Undo is judged by what was written, wherever the person is by then
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line, ...(step === 'saving' ? { op: 'saving' } : {}) });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
@@ -490,8 +494,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     } else if (op === 'unlock' || op === 'document') {
       // the reverse of an unlock goes to an unlocked plan; of a new version, to a locked plan whose settings it leaves alone
       if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
-    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick') {
-      // the household's writes (road-to-7.md step 9), the record and the tick-offs (step 10) go where the planner's go: the guard alone decides
+    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick' || op === 'budget' || op === 'saving' || op === 'potRecord' || op === 'stale') {
+      // the household's writes (road-to-7.md step 9), the record and the tick-offs (step 10), the budget, "What you pay in", the pot record and
+      // "Leave it" (step 11b) go where the planner's go: the guard alone decides — by the write's own mark, never by the step the person has since moved to
       if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
     } else {
       // an editing step's undo: a locked plan is refused outright, as its save is
@@ -666,6 +671,62 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: 'tick' });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+  }
+
+  // ---- the budget on a saved plan (research/v7/road-to-7.md step 11b) ----------------------------------------------------------
+
+  /**
+   * ONE change of the budget (budget.js budgetPatch: the planner's own handler lifted, the whole `budgetTool.settings` written as
+   * the planner's saveBudget writes it), to the plan whose lines they are — a shared budget's lines to the household's plan and
+   * this plan's own side here, each past the guard (the budget is outside the lock, as the planner's guard has it). Undo puts
+   * each previous object back whole.
+   */
+  /** "Leave it" on an out-of-date draft (road-to-7.md step 11b; about.js stalePatch): the planner's own key, ONE write past the guard. */
+  async function leaveStale(planId) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const p = stalePatch(plan, { today: state.env.today });
+    if (!p.ok) { fail(planId, 'failed'); return; }
+    await sendAll(place, planId, [{ planId: String(planId), patch: p.patch, previous: p.previous }], { line: p.line, op: 'stale' });
+  }
+
+  async function saveBudgetChange(planId, change) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const p = budgetPatch(plan, state.plans.list, change, { today: state.env.today });
+    if (!p.ok) { fail(planId, 'problems'); return; }
+    await sendAll(place, planId, p.writes, { line: p.line, op: 'budget' });
+  }
+
+  /**
+   * "Record this month's pot" (road-to-7.md step 11b; saving.js recordPatch: the planner's recordAccumulationMonth line for line):
+   * the whole record list with this month's record added, ONE write past the guard (the record is outside the lock, as the
+   * planner's is); nothing is ever deleted. Undo puts the previous list back whole.
+   */
+  async function recordPot(planId) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const pd = state.draft.plan && state.draft.plan.id === String(planId) ? state.draft.plan : null;
+    const at = now();
+    const p = recordPatch(plan, pd ? pd.values : {}, { today: state.env.today, now: at });   // stamped at the moment of the write, as the planner's record is
+    if (!p.ok) { fail(planId, 'problems'); return; }
+    const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
+    if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
+    if (!(await send(place, planId, data))) return;
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: 'potRecord' });
+    dispatch({ type: A.PLANS_READING });
+    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+  }
+
+  /** A spreadsheet chosen: its text read on the page (never sent anywhere) into the draft's import box, where the reading reads it. */
+  async function readBudgetFile(planId, file) {
+    let text = null;
+    try { text = file && typeof file.text === 'function' && !(typeof file.size === 'number' && file.size > OPEN_FILE_MAX_BYTES) ? await file.text() : null; } catch { text = null; }
+    if (stopped) return;
+    dispatch({ type: A.PLAN_BUDGET_FILE_READ, planId, text: typeof text === 'string' ? text : null });
   }
 
   /** A copy of a plan with the split's settings (step 7's rule for a copy: never locked, nothing recorded, no document, record or archive). */
@@ -1183,6 +1244,11 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_BUDGET_SHARE && s.kind === 'budgetShare') run(() => shareBudget(s.planId, s.share !== false));
     else if (action.type === A.PLAN_HOLD && s.kind === 'hold') run(() => saveHold(s.planId, s.change));
     else if (action.type === A.PLAN_TICK && s.kind === 'tick') run(() => tick(s.planId, s.key, s.done !== false));
+    // the budget on a saved plan (road-to-7.md step 11b)
+    else if (action.type === A.PLAN_BUDGET && s.kind === 'budget') run(() => saveBudgetChange(s.planId, s.change));
+    else if (action.type === A.PLAN_BUDGET_FILE && s.kind === 'budgetFile') run(() => readBudgetFile(s.planId, action.file));
+    else if (action.type === A.PLAN_RECORD && s.kind === 'potRecord') run(() => recordPot(s.planId));
+    else if (action.type === A.PLAN_STALE_LEAVE && s.kind === 'staleLeave') run(() => leaveStale(s.planId));
     // the plan menu (road-to-7.md step 11)
     else if (action.type === A.PLAN_RENAME && s.kind === 'rename') run(() => rename(s.planId, s.name));
     else if (action.type === A.PLAN_COPY && s.kind === 'copy') run(() => makeCopy(s.planId, s.carry === true));

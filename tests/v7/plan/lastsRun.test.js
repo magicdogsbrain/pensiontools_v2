@@ -16,7 +16,10 @@ import { createSimulationConfigFromSettings } from '../../../src/storage/StressR
 import { planFromSettings, stressTestStrategy } from '../../../src/strategies/stressTest.js';
 import { realYieldForYear } from '../../../src/services/LinkerUniverse.js';
 import { oneAnswer, worstStarts, earlierTestNote } from '../../../src/services/OneAnswer.js';
-import { namedStartRows } from '../../../src/services/NamedStarts.js';
+import { namedStartRows, SCENARIO_STARTS, decadeFigures, CONTRACT } from '../../../src/services/NamedStarts.js';
+import { generateDrawdownSchedule } from '../../../src/services/DrawdownService.js';
+import { generateGlidepathSchedule } from '../../../src/services/GlidepathService.js';
+import { SCENARIOS } from '../../../src/constants.js';
 import { corpus, entryOf, TODAY, noon } from './_plans.js';
 
 const C = corpus();
@@ -55,6 +58,14 @@ describe('L2 — the one test in the preview equals the planner\'s, to the pound
         expect(out.a.chancePct).toBe(doc.chancePct);
         expect(out.a.typicalLeft).toBe(doc.typicalLeft);
         expect(out.stored.note).toBe('');
+        // a contract plan: each named stress carries the planner's inflation table (oneAnswerView.js scenariosTabHtml, lifted as contractCash):
+        // prices after ten years, the cash the rungs would pay in the first and the tenth year under that decade's prices, the tenth year's real income unchanged
+        const years = plan.planDocument.strategy.r.plan.years;
+        const cashFor = (sc) => { const cp = [1]; for (let i = 1; i < years.length; i++) cp.push(cp[i - 1] * (1 + (sc.inflation[i - 1] ?? 0.025))); return { prices10: cp[10] - 1, cashFirst: Math.round(years[0].gross), cashTenth: Math.round(years[9].gross * cp[9]), realTenth: Math.round(years[9].gross), ageFirst: years[0].age, ageTenth: years[9].age }; };
+        expect(out.extras.scenarios.length).toBe(SCENARIO_STARTS.length);
+        for (const row of out.extras.scenarios) { expect(row.kind).toBe('contract'); expect(row.cash).toEqual(cashFor(SCENARIOS[row.key])); }
+        expect(out.extras.synthetic.cash).toEqual(cashFor(SCENARIOS.SYNTHETIC_WORST));
+        expect(out.extras.scenarios.find((row) => row.key === 'STAGFLATION_70S').cash.cashTenth).toBeGreaterThan(years[9].gross * 1.9);   // the 1970s: prices more than doubled over the decade
         return;
       }
       if (!ref.a) { expect(out.a).toBe(null); expect(out.reason).toBe(ref.r.reason || null); return; }
@@ -74,6 +85,31 @@ describe('L2 — the one test in the preview equals the planner\'s, to the pound
       // the history: the same worst starts and named starts the planner's History tab reads from the same run
       expect(out.history.worst.map((w) => [w.year, w.month, !!w.failed, Math.round(w.terminal || 0)])).toEqual(worstStarts(ref.r.histWindows, 5).map((w) => [w.year, w.month, !!w.failed, Math.round(w.terminal || 0)]));
       expect(out.history.named.map((x) => [x.year, x.kind, !!x.available, !!x.failed, Math.round(x.terminal || 0)])).toEqual(namedStartRows(ref.sid, ref.p).map((x) => [x.year, x.kind, !!x.available, !!x.failed, Math.round(x.terminal || 0)]));
+      // the year-by-year tables and the named stresses (road-to-7.md step 11b): read off this run and the plan's own settings, no second run —
+      // the planner's Drawdown and Glidepath pages (Pots & Valves) or the strategy's own table from the cones, and its Scenarios page
+      const x = out.extras;
+      expect(x).not.toBe(null);
+      const s = effectiveStressSettings(plan, { now });
+      const dur = Math.max(1, Math.round(+s.duration || 35));
+      expect(x.prices).toBe(0.025);
+      if (ref.sid === 'pots-and-valves') {
+        const dd = generateDrawdownSchedule({ ...s, duration: dur }, dur, 0.025, now);
+        expect(x.schedule.map((r) => [r.year, r.pension, r.state, r.tax, r.isa, r.spendable, r.isaLeft])).toEqual(dd.map((r) => [r.year, Math.round(r.sippDraw), Math.round(r.statePension), Math.round(r.tax), Math.round(r.isaDraw), Math.round(r.spendable), Math.round(r.isaBalance)]));
+        const gp = generateGlidepathSchedule({ ...s, duration: dur }, 0.025);
+        expect(x.glidepath.rows.map((r) => [r.year, r.shares, r.bonds, r.cash, r.total, r.sharesPct])).toEqual(gp.map((r) => [r.year, Math.round(r.equityMin), Math.round(r.bondMin), Math.round(r.cashTarget), Math.round(r.totalMin), Math.round((r.equityShareOfPot || 0) * 100)]));
+        expect(x.glidepath.tent).toBe(!!s.equityGlideEnabled);
+        expect(x.own).toBe(null);
+      } else {
+        expect(x.schedule).toBe(null);
+        expect(x.glidepath).toBe(null);
+        expect(x.own.map((r) => [r.year, r.age, r.incomeMid, r.incomeBad, r.leftMid])).toEqual(Array.from({ length: ref.p.durationYears }, (_, y) => [y + 1, ref.p.startAge + y, Math.round(ref.r.cones.income.p50[y]), Math.round(ref.r.cones.income.p10[y]), Math.round(ref.r.cones.wealth.p50[y])]));
+      }
+      expect(x.scenarios.map((r) => [r.key, r.year, r.kind, !!r.available, !!r.failed])).toEqual(namedStartRows(ref.sid, ref.p, SCENARIO_STARTS).map((r, i) => [SCENARIO_STARTS[i].key, r.year, r.kind, !!r.available, !!r.failed]));
+      expect(x.scenarios.map((r) => r.decade)).toEqual(SCENARIO_STARTS.map((st) => decadeFigures(SCENARIOS[st.key])));
+      // the inflation figures are a contract plan's alone
+      for (const row of x.scenarios) expect('cash' in row, ref.sid).toBe(CONTRACT.includes(ref.sid) && !!(ref.r && ref.r.plan && Array.isArray(ref.r.plan.years)));
+      expect(x.synthetic.name).toBe(SCENARIOS.SYNTHETIC_WORST.name);
+      expect(x.synthetic.hardest).toEqual(worstStarts(ref.r.histWindows, 1).map((w) => ({ year: w.year, month: w.month || null }))[0] || null);
       // the cuts setting the run used, in the words' slots
       const cfg = ref.p.pnvCfg || {};
       expect(out.ran).toEqual({ family: ['pots-and-valves', 'buckets-in-order'].includes(ref.sid), cutsOn: ['pots-and-valves', 'buckets-in-order'].includes(ref.sid) && !cfg.disableProtection, cutPct: Math.round((1 - (cfg.protectionMult ?? 0.8)) * 100), months: cfg.consecutiveLimit ?? 3 });

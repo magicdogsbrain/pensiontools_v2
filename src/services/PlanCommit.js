@@ -201,6 +201,26 @@ export function stopSharingWrite(partner, source) {
   return { 'budgetTool.sharedFrom': null, 'budgetTool.settings': copy };
 }
 
+/**
+ * A budget saved on a plan that reads the household's (ScenarioRepository.saveActiveBudget, lifted 6.45.0 for the preview's
+ * budget step): the lines and everything else go to the household's plan, laid over what it holds; this plan keeps only its
+ * own side of who pays and its own ages. Pure.
+ * @param {object} scenario   the plan that reads the household's budget
+ * @param {object|null} source   the plan it reads from (budgetSharedFromOf(scenario)), when it is at hand
+ * @param {object} budget   the budget as saved (BudgetModel.budgetToSave), the view this plan reads
+ * @returns {{ holder: object|null, own: object }}   the household plan's settings (null without a source), and this plan's
+ */
+export function sharedBudgetWrites(scenario, source, budget) {
+  const { sharedFrom, ...rest } = budget || {};
+  void sharedFrom;
+  const mine = ownSideOf({ ...((scenario && scenario.budgetTool && scenario.budgetTool.settings) || {}), ...rest });
+  const shared = { ...rest };
+  for (const k of BUDGET_OWN_SIDE) delete shared[k];
+  delete shared.sharedWithPartner;
+  const holder = source ? { ...((source.budgetTool && source.budgetTool.settings) || {}), ...shared } : null;
+  return { holder, own: mine };
+}
+
 // ---- the Decision settings' checksum (storage/DecisionRepository.js) ---------------------------------------------------
 
 function stableSort(v) {

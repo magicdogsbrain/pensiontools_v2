@@ -161,6 +161,11 @@
       "short": "the shell for 7.0, first half",
       "title": "Road step 11a (6.44.0): the shell for 7.0, first half — the plan menu on \"Your plans\" (new, rename, make a copy, make this my main plan, download, open a downloaded copy, delete), the account page (sign in, sign up, Google, the reset and confirmation emails, Download everything, Delete my account), the visitor (the three free hours, the reminders, the stop, the hand-over on sign-in, the read-only example), What's new (the once-only pop-up and the page), the name Drawdown Planner (research/v7/road-to-7.md step 11)",
       "source": "research/v7/road-to-7.md step 11; the brief for 11a, 27 Oct 2026"
+    },
+    "s11-rows": {
+      "short": "the remaining rows",
+      "title": "Road step 11b (6.45.0): every remaining planned or designed row of the ledger — the budget on a saved plan, \"What you pay in\", the out-of-date draft, the State Pension date, where a lump sum lands and a lump sum into the steps, the picture's motion, the years one by one, the pots' floors and the named stresses on \"Does it last?\", \"Assumptions and data\"; the lock and month-by-month rows built on the classic page by the owner's decision; two retirements (research/v7/road-to-7.md step 11b)",
+      "source": "research/v7/road-to-7.md step 11b (the second half of Step 11; the brief for 11b); owner, 17 Oct 2026 (the lock and month rows on the classic page)"
     }
   },
   "keyNotes": {
@@ -487,10 +492,17 @@
       "whereV6": "Budget tab: \"Fill blanks with typical UK amounts\" (index.html:3911)",
       "who": "Savers, retired",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "budget-step.md shows typical amounts as hints only, never filled in. By the rule of 2 Oct the one-press fill stays unless the owner retires it."
+      "status": "built",
+      "step": "s11-rows",
+      "note": "Built on the budget step of a saved plan (#/plan/<id>/budget, 6.45.0): the level the typical amounts aim at (Basic, Moderate, Comfortable) as a choice, a typical hint under each line, and \"Fill the blanks with typical amounts\" (fillTypicalAmounts, lifted) that fills every blank line and nothing typed. Every change is one write of the whole budgetTool.settings as the planner's saveBudget writes it (BudgetModel.budgetToSave over cleanBudgetForSave, the planner's own handlers lifted), with Undo; a shared budget split as ScenarioRepository.saveActiveBudget splits it. Gate: tests/v7/plan/budgetIdentity.test.js.",
+      "files": [
+        "src/answers/plan/budget.js",
+        "src/v7/screens/plan/BudgetScreen.jsx",
+        "src/v7/copy/planBudget.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/BudgetModel.js",
+        "src/services/PlanCommit.js"
+      ]
     },
     {
       "id": "budget.levels",
@@ -520,10 +532,11 @@
       "whereV6": "Budget → Guided walk-through (index.html:12190-12600)",
       "who": "Savers, retired",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "V7's sheet covers the lines by heading on one page; the step-by-step walk-through with its tips has no V7 design."
+      "status": "retired",
+      "step": "s11-rows",
+      "note": "V7's sheet covers the lines by heading on one page; the step-by-step walk-through with its tips has no V7 design.",
+      "reason": "Retired from the preview (6.45.0): V7's sheet is the walk — one line at a time with the typical hint under each and \"Did you miss anything?\" at the foot; the planner's step-by-step wizard is not carried. It stays on the classic page.",
+      "owner": "to confirm"
     },
     {
       "id": "budget.breakdown",
@@ -539,9 +552,17 @@
         "budget.lines[].breakdown[].amount",
         "budget.lines[].breakdown[].period"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s11-rows",
+      "files": [
+        "src/answers/plan/budget.js",
+        "src/v7/screens/plan/BudgetScreen.jsx",
+        "src/v7/copy/planBudget.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/BudgetModel.js",
+        "src/services/PlanCommit.js"
+      ],
+      "note": "Built on the budget step of a saved plan (#/plan/<id>/budget, 6.45.0): \"Break it down\" on a line opens its parts, each with a name, an amount and a period; their total becomes the line, as the planner's breakdownAnnual makes it. Every change is one write of the whole budgetTool.settings as the planner's saveBudget writes it (BudgetModel.budgetToSave over cleanBudgetForSave, the planner's own handlers lifted), with Undo; a shared budget split as ScenarioRepository.saveActiveBudget splits it. Gate: tests/v7/plan/budgetIdentity.test.js."
     },
     {
       "id": "budget.sums",
@@ -552,9 +573,17 @@
       "whereV6": "BudgetModel.evalAmountExpr",
       "who": "Budget keepers",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s11-rows",
+      "files": [
+        "src/answers/plan/budget.js",
+        "src/v7/screens/plan/BudgetScreen.jsx",
+        "src/v7/copy/planBudget.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/BudgetModel.js",
+        "src/services/PlanCommit.js"
+      ],
+      "note": "Built on the budget step of a saved plan (#/plan/<id>/budget, 6.45.0): a sum typed in an amount box (11.99+8.99, 4×52/12) is read by the planner's own evalAmountExpr and saved as the figure. Every change is one write of the whole budgetTool.settings as the planner's saveBudget writes it (BudgetModel.budgetToSave over cleanBudgetForSave, the planner's own handlers lifted), with Undo; a shared budget split as ScenarioRepository.saveActiveBudget splits it. Gate: tests/v7/plan/budgetIdentity.test.js."
     },
     {
       "id": "budget.line-ages",
@@ -568,9 +597,17 @@
         "budget.lines[].fromAge",
         "budget.lines[].toAge"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "note": "D adds one later amount (answer-D.md §5.3); lines by age need E's spending section, alongside the spending shape."
+      "status": "built",
+      "step": "s11-rows",
+      "note": "Built on the budget step of a saved plan (#/plan/<id>/budget, 6.45.0): \"Only for some years\" opens a from-age and a to-age on the line (a year typed becomes an age, the planner's budAgeFromInput); \"For the whole of the plan\" closes them and writes both back to none. Every change is one write of the whole budgetTool.settings as the planner's saveBudget writes it (BudgetModel.budgetToSave over cleanBudgetForSave, the planner's own handlers lifted), with Undo; a shared budget split as ScenarioRepository.saveActiveBudget splits it. Gate: tests/v7/plan/budgetIdentity.test.js.",
+      "files": [
+        "src/answers/plan/budget.js",
+        "src/v7/screens/plan/BudgetScreen.jsx",
+        "src/v7/copy/planBudget.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/BudgetModel.js",
+        "src/services/PlanCommit.js"
+      ]
     },
     {
       "id": "budget.one-offs",
@@ -684,9 +721,17 @@
         "budget.splitPhases[].fromAge",
         "budget.splitPhases[].mySharePct"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s11-rows",
+      "files": [
+        "src/answers/plan/budget.js",
+        "src/v7/screens/plan/BudgetScreen.jsx",
+        "src/v7/copy/planBudget.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/BudgetModel.js",
+        "src/services/PlanCommit.js"
+      ],
+      "note": "Built on the budget step of a saved plan (#/plan/<id>/budget, 6.45.0): on a shared budget, \"Who pays, changing over time\": a from-age and a share per row, added and removed; written to this plan's own side (splitPhases), never the household plan's lines. Every change is one write of the whole budgetTool.settings as the planner's saveBudget writes it (BudgetModel.budgetToSave over cleanBudgetForSave, the planner's own handlers lifted), with Undo; a shared budget split as ScenarioRepository.saveActiveBudget splits it. Gate: tests/v7/plan/budgetIdentity.test.js."
     },
     {
       "id": "budget.headroom",
@@ -729,9 +774,17 @@
       "whereV6": "Budget: Export CSV / Import CSV (index.html:3912-3913; BudgetModel.budgetToCsv, parseBudgetCsv)",
       "who": "Budget keepers",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s11-rows",
+      "files": [
+        "src/answers/plan/budget.js",
+        "src/v7/screens/plan/BudgetScreen.jsx",
+        "src/v7/copy/planBudget.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/BudgetModel.js",
+        "src/services/PlanCommit.js"
+      ],
+      "note": "Built on the budget step of a saved plan (#/plan/<id>/budget, 6.45.0): \"Download it as a spreadsheet\" saves the planner's own file (BudgetModel.budgetToCsv, the formula-injection guard with it); \"Open a spreadsheet\" reads a file on the page (parseBudgetCsv), says what it read, and \"Replace the budget with it\" writes it (importedBudget, lifted) with Undo. Every change is one write of the whole budgetTool.settings as the planner's saveBudget writes it (BudgetModel.budgetToSave over cleanBudgetForSave, the planner's own handlers lifted), with Undo; a shared budget split as ScenarioRepository.saveActiveBudget splits it. Gate: tests/v7/plan/budgetIdentity.test.js."
     },
     {
       "id": "budget.missed",
@@ -742,9 +795,17 @@
       "whereV6": "Budget: \"Did you miss anything?\" (BudgetModel.missingSuggestions)",
       "who": "Savers, retired",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s11-rows",
+      "files": [
+        "src/answers/plan/budget.js",
+        "src/v7/screens/plan/BudgetScreen.jsx",
+        "src/v7/copy/planBudget.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/BudgetModel.js",
+        "src/services/PlanCommit.js"
+      ],
+      "note": "Built on the budget step of a saved plan (#/plan/<id>/budget, 6.45.0): \"Did you miss anything?\" lists the lines the planner suggests (missingSuggestions) as one-press additions (withSuggestion, lifted). Every change is one write of the whole budgetTool.settings as the planner's saveBudget writes it (BudgetModel.budgetToSave over cleanBudgetForSave, the planner's own handlers lifted), with Undo; a shared budget split as ScenarioRepository.saveActiveBudget splits it. Gate: tests/v7/plan/budgetIdentity.test.js."
     },
     {
       "id": "budget.sanity",
@@ -755,9 +816,17 @@
       "whereV6": "Budget lines and walk-through (BudgetModel.typicalSanityFlag)",
       "who": "Savers, retired",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s11-rows",
+      "files": [
+        "src/answers/plan/budget.js",
+        "src/v7/screens/plan/BudgetScreen.jsx",
+        "src/v7/copy/planBudget.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/BudgetModel.js",
+        "src/services/PlanCommit.js"
+      ],
+      "note": "Built on the budget step of a saved plan (#/plan/<id>/budget, 6.45.0): the planner's typicalSanityFlag under an amount far from the typical one, as a nudge in words (never a block). Every change is one write of the whole budgetTool.settings as the planner's saveBudget writes it (BudgetModel.budgetToSave over cleanBudgetForSave, the planner's own handlers lifted), with Undo; a shared budget split as ScenarioRepository.saveActiveBudget splits it. Gate: tests/v7/plan/budgetIdentity.test.js."
     },
     {
       "id": "budget.edit-tools",
@@ -768,9 +837,17 @@
       "whereV6": "Budget (index.html:12024-12080)",
       "who": "Budget keepers",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s11-rows",
+      "files": [
+        "src/answers/plan/budget.js",
+        "src/v7/screens/plan/BudgetScreen.jsx",
+        "src/v7/copy/planBudget.js",
+        "src/v7/effects/planWrite.js",
+        "src/services/BudgetModel.js",
+        "src/services/PlanCommit.js"
+      ],
+      "note": "Built on the budget step of a saved plan (#/plan/<id>/budget, 6.45.0): Add a line (named first), Remove, a copy for the partner (partnerCopyOf, lifted), \"Start again\" with its confirm on the screen (resetBudgetLines, lifted; the ages and who pays kept), the essential tick, the period, the one-off costs with \"every\" years; a locked plan's budget is still the person's to change, as in the planner. Every change is one write of the whole budgetTool.settings as the planner's saveBudget writes it (BudgetModel.budgetToSave over cleanBudgetForSave, the planner's own handlers lifted), with Undo; a shared budget split as ScenarioRepository.saveActiveBudget splits it. Gate: tests/v7/plan/budgetIdentity.test.js."
     },
     {
       "id": "budget.cache",
@@ -1012,10 +1089,14 @@
       "whereV6": "animateIncomeShape (src/ui/incomeShapeGraphic.js; called from renderIncomeShapePreview, index.html:8322-8350)",
       "who": "Everyone",
       "keys": [],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/spending-shape.md §15.4",
-      "step": "shape-next",
-      "note": "Not built: V7's picture jumps to the new shape. Designed: each bar scales from its old height to its new one, and not at all for anyone who has asked their device for less motion."
+      "step": "s11-rows",
+      "note": "Built (6.45.0): each bar of the picture eases from its old height to its new one over about half a second (a transition on the bars in the stylesheet; the bars keep their place by age across a redraw), and not at all for anyone who has asked their device for less motion (base.css). Built rather than retired: the owner's rule says no income-shape option may be retired.",
+      "files": [
+        "src/v7/styles/components.css",
+        "src/v7/components/ShapeChart.jsx"
+      ]
     },
     {
       "id": "income.layers",
@@ -1195,11 +1276,16 @@
       "whereV6": "incomeShapeLumps; window.spendLumpSum (index.html:8352-8392)",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/spending-shape.md §17.3",
-      "step": "shape-next",
-      "waitsFor": "inc.lump-sums",
-      "note": "Waits for lump sums (inc.lump-sums, designed in spending-shape.md §17). Then \"Turn it into income\" gives what the lump sum could add a month over the years left, after tax, and one tap raises the step in force at its age and every later one by that (raiseFrom(age, a month): today's \"Add £X/yr to my income from 67\", spending-shape.md §2 T16). The test of it is marked to-do (tests/v7/screens/shapeParity.test.js T16)."
+      "step": "s11-rows",
+      "note": "Built on \"What you spend\" (6.45.0): each lump sum inside the plan's years with what it could support a year over the years left (the planner's spendLumpSum lifted pure as IncomeSchedule.lumpIntoSteps; index.html calls it), and \"Add £X a year from age N\" — the step in force at that age raised and every later one too, a new step where none starts there — as the cards' edits (the draft, nothing written: each amount box the month after tax, the planner's before-tax figure riding beside it) so Save writes the steps the planner makes to the pound; the lump sum stays as the money that pays for it. Test T16 of tests/v7/screens/shapeParity.test.js is the identity in tests/v7/plan/rows11bSteps.test.js.",
+      "files": [
+        "src/answers/plan/spend.js",
+        "src/v7/screens/plan/SpendScreen.jsx",
+        "src/v7/copy/spend.js",
+        "src/services/IncomeSchedule.js"
+      ]
     },
     {
       "id": "inc.extra-spends",
@@ -1452,9 +1538,15 @@
       "keys": [
         "stress.staleDraftDismissedFor"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s11-rows",
+      "files": [
+        "src/answers/plan/about.js",
+        "src/v7/screens/plan/AboutScreen.jsx",
+        "src/v7/copy/about.js",
+        "src/v7/effects/planWrite.js"
+      ],
+      "note": "Built on \"About you and when\" (6.45.0): a draft whose start year has passed (PlanTiming.staleDraft, the planner's own rule on the plan as read — never locked, never with a month recorded) is offered \"Update it to start in <this tax year>\" (the boxes the planner's update sets — stopped, this tax year — then the ordinary save, so the steps, the figures by year and the Decision tool's first year move with it) and \"Leave it\" (one write of stress.staleDraftDismissedFor, remembered for that year; op 'stale', with Undo). The plan page's next sentence (P.stale) links to the step."
     },
     {
       "id": "pots.pension",
@@ -1765,11 +1857,15 @@
         "stress.spStartDate",
         "decision.spStartDate"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "V7 works the date out from age (schemaParts.statePensionAgeOf) and does not ask it. On a saved plan (editing-in-v7.md 7) the saved date is kept — it is the birthday every age is reckoned from — and a plan with none that gains a State Pension gets the day its State Pension age is reached, counted from the day its age was recorded.",
-      "editV7": "src/v7/screens/plan/IncomeScreen.jsx"
+      "status": "built",
+      "step": "s11-rows",
+      "note": "Built on \"Money that comes in anyway\" (6.45.0): the date box under the State Pension choice, shown while a State Pension is chosen, holding the saved text; read by the planner's own parser (StatePensionUtils.validateStatePensionDate, a date of birth refused in its own words) and written as the day to stress.spStartDate, and to decision.spStartDate only where the Decision settings already carry it (an absent setting means the old behaviour); the saved text typed back writes nothing; a plan with no date that gains a State Pension still gets the day its State Pension age is reached unless a date is typed.",
+      "editV7": "src/v7/screens/plan/IncomeScreen.jsx",
+      "files": [
+        "src/answers/plan/income.js",
+        "src/v7/screens/plan/IncomeScreen.jsx",
+        "src/v7/copy/income.js"
+      ]
     },
     {
       "id": "inc.state-pension-old",
@@ -1918,11 +2014,16 @@
         "windfalls[].mix",
         "windfalls[].toIsa"
       ],
-      "status": "designed",
-      "step": "shape-next",
+      "status": "built",
+      "step": "s11-rows",
       "doc": "research/v7/spending-shape.md §17",
-      "note": "Edited on a saved plan in V7 as cards (\"Money that comes in anyway\", editing-in-v7.md 7): what it is, the amount, at age, and what kind (cash, an inherited pension, an inherited ISA) — the saved plan's rows, kept byte for byte where unchanged. Where a cash lump sum can go (routeWindfall: the ISA allowance, the pension within its limit, the rest a taxable account) and what its taxable part is held in stay the planner's, kept as saved. The question forms' \"Money you expect to come in\" (spending-shape.md §17) is still designed, not built, so the row stays designed.",
-      "editV7": "src/v7/screens/plan/IncomeScreen.jsx"
+      "note": "Built on \"Money that comes in anyway\" (6.41.0 the cards, 6.45.0 where each lands): what it is, the amount, at age, what kind — the saved plan's windfalls rows kept byte for byte where unchanged — and under each card where it lands in its year, the planner's own note (TaxableSleeve.routeWindfall: an inherited pension to the pension, an inherited ISA to the ISA, a cash lump sum to the ISA allowance unless the ISA is on hold, the pension within its room, the rest a taxable account held as the plan's mix or the row's own). The Decision tool's advice in its year stays on the classic page (month.advice). The question forms' \"Money you expect to come in\" (spending-shape.md §17) is a design for the questions, not a planner option.",
+      "editV7": "src/v7/screens/plan/IncomeScreen.jsx",
+      "files": [
+        "src/answers/plan/income.js",
+        "src/v7/screens/plan/IncomeScreen.jsx",
+        "src/v7/copy/income.js"
+      ]
     },
     {
       "id": "tax.bands",
@@ -2564,9 +2665,15 @@
       "whereV6": "Strategies → Assumptions & data",
       "who": "Everyone",
       "keys": [],
-      "status": "planned",
-      "step": "s10-after",
-      "note": "The trust pages (product-plan.md); V7 already says what each answer assumed (src/v7/components/Assumed.jsx)."
+      "status": "built",
+      "step": "s11-rows",
+      "note": "Built as \"Assumptions and data\" (#/assumptions, 6.45.0), linked from the foot of every page: the planner's own page in the preview's words — the shares' series and what it averages, the world adjustment, the price series, how the futures are made, the calibration, the named stresses, the bonds pot, cash, the ISA, the cuts, the gilt data's provenance and today's curve (LinkerUniverse.dataProvenance, EquityIndex.equityProvenance, through the effect, loaded lazily), the ladder's costs, the tax bands, the known limits, the code. Every figure read from the same tables the engines use (AssumptionsFacts.js).",
+      "files": [
+        "src/services/AssumptionsFacts.js",
+        "src/v7/effects/assumptions.js",
+        "src/v7/screens/AssumptionsScreen.jsx",
+        "src/v7/copy/assumptions.js"
+      ]
     },
     {
       "id": "test.monte-carlo",
@@ -2614,10 +2721,17 @@
       "whereV6": "Stress → Scenarios (index.html:2862-2881)",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.5",
-      "step": "s8-e",
-      "note": "E's \"answer\" step. The named decades (what each did to shares and prices) stay in the planner; \"Does it last?\" (editing-in-v7.md 10.2) says so and hands over to it."
+      "step": "s11-rows",
+      "note": "Built on \"Does it last?\" (6.45.0), \"The named stresses — whole decades\": the famous decades (1929, 1973, 2000, 2008 — SCENARIO_START lifted into NamedStarts.js, the planner reads the same) each replayed from its January with the person's own plan (namedStartRows), what the decade did to shares and prices beside it (decadeFigures, lifted from the planner's decadeWords), and the made-up worst decade said apart with the hardest real start the test counted. The planner's post-6.24.0 explanation, no rival figure; the hand-over to the planner is gone. For a contract plan (the full index-linked gilt ladder, the floored schedule: every year bought) each row carries the planner's inflation table too — prices after ten years, the cash the rungs would pay in the first and the tenth year under that decade's prices, the tenth year's real income unchanged (lastsRun.js contractCash, lifted from scenariosTabHtml), under the planner's own lead.",
+      "files": [
+        "src/answers/plan/lastsRun.js",
+        "src/answers/plan/lasts.js",
+        "src/v7/screens/plan/LastsScreen.jsx",
+        "src/v7/copy/lasts.js",
+        "src/services/NamedStarts.js"
+      ]
     },
     {
       "id": "test.try",
@@ -2696,10 +2810,16 @@
       "whereV6": "Stress → Drawdown (index.html:2882, 7168, 13216-13240)",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "A's \"What pays the bills before my State Pension starts?\" (rail-screens-language.md §1.5) is a summary, not built."
+      "status": "built",
+      "step": "s11-rows",
+      "note": "Built on \"Does it last?\" (6.45.0), \"The years, one by one\" — closed until \"Show the years\": for Pots & Valves what is drawn from the pension to fill the basic-rate band, the State Pension once it starts, the tax, what the ISA tops up, what is left to spend and the ISA left, year by year (DrawdownService.generateDrawdownSchedule on the plan's own length at 2.5% a year prices, the planner's default — the preview has no box for either); for any other way of drawing its own table from the one test's cones (the income in the middle future and the 1-in-10 bad one, what is left in the middle — the planner's strategyScheduleNotice). Read off the same run (lastsRun.js extrasOf), no second run. The ISA bridge is the ISA column.",
+      "files": [
+        "src/answers/plan/lastsRun.js",
+        "src/answers/plan/lasts.js",
+        "src/v7/screens/plan/LastsScreen.jsx",
+        "src/v7/copy/lasts.js",
+        "src/services/NamedStarts.js"
+      ]
     },
     {
       "id": "test.glidepath",
@@ -2710,10 +2830,16 @@
       "whereV6": "Stress → Glidepath (index.html:2925-2945)",
       "who": "Approaching, retired",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "Not road step 10 (holdings-and-move.md §8): the glidepath picture is step 11's sweep."
+      "status": "built",
+      "step": "s11-rows",
+      "note": "Built on \"Does it last?\" (6.45.0), \"The pots' floors over the plan\" — closed until opened, Pots & Valves only: the least each pot is meant to hold year by year at 2.5% a year prices (GlidepathService.generateGlidepathSchedule, with the bond tent, the gold and trend pot and the reserve when the plan has them, the ISA from the same schedule) as a table; the planner's picture is drawn as rows here.",
+      "files": [
+        "src/answers/plan/lastsRun.js",
+        "src/answers/plan/lasts.js",
+        "src/v7/screens/plan/LastsScreen.jsx",
+        "src/v7/copy/lasts.js",
+        "src/services/NamedStarts.js"
+      ]
     },
     {
       "id": "d.spend-more",
@@ -2868,9 +2994,14 @@
       "keys": [
         "plan.decisionTool.planOfRecord"
       ],
-      "status": "planned",
-      "step": "s4-open-plan",
-      "note": "Carried as stored: V7 reads and writes the same saved plan (architecture.md §3.9: no change to the shape of saved plans at 7.0)."
+      "status": "built",
+      "step": "s11-rows",
+      "note": "Built on the classic page (owner, 17 Oct 2026): reached from the rail's \"This month\" / \"Set up the tax year\" hand-over (OpenPlace.PLACES month, taxyear, document, exports) and the plan page's buttons; the preview reads what the classic page writes (read.js: the records, the tax year, the document) and never writes these itself.",
+      "files": [
+        "index.html",
+        "src/services/OpenPlace.js",
+        "src/answers/plan/read.js"
+      ]
     },
     {
       "id": "lock.where",
@@ -2899,10 +3030,15 @@
       "whereV6": "LifeStage.js:136-147; index.html:6023-6033",
       "who": "Locked savers at their stop",
       "keys": [],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
-      "step": "s4-open-plan",
-      "note": "P.arrived. From 6.22.0 today's planner reads the arrival with the saver's reading (SaverReading.js): the pot at the first month after the stop against the locked path's middle line, in the path's own pounds, pension and ISA on a path drawn from 6.22.0. Shown in V7 from s4 (src/answers/plan/read.js: P.arrive asks for the first month after the stop; the comparison itself is the planner’s)."
+      "step": "s11-rows",
+      "note": "Built on the classic page (owner, 17 Oct 2026): reached from the rail's \"This month\" / \"Set up the tax year\" hand-over (OpenPlace.PLACES month, taxyear, document, exports) and the plan page's buttons; the preview reads what the classic page writes (read.js: the records, the tax year, the document) and never writes these itself.",
+      "files": [
+        "index.html",
+        "src/services/OpenPlace.js",
+        "src/answers/plan/read.js"
+      ]
     },
     {
       "id": "lock.newer",
@@ -2954,10 +3090,15 @@
       "keys": [
         "plan.decisionTool.history"
       ],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
-      "step": "s9-switch",
-      "note": "The \"This month\" station. Owner's decision pending: 7.0 may ship with Month by month on today's screen (square-one-audit.md §6 question 3)."
+      "step": "s11-rows",
+      "note": "Built on the classic page (owner, 17 Oct 2026): reached from the rail's \"This month\" / \"Set up the tax year\" hand-over (OpenPlace.PLACES month, taxyear, document, exports) and the plan page's buttons; the preview reads what the classic page writes (read.js: the records, the tax year, the document) and never writes these itself.",
+      "files": [
+        "index.html",
+        "src/services/OpenPlace.js",
+        "src/answers/plan/read.js"
+      ]
     },
     {
       "id": "month.advice",
@@ -2968,9 +3109,15 @@
       "whereV6": "Decision → Monthly Entry → Calculate (legacyDecision.js)",
       "who": "Run-up, running",
       "keys": [],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
-      "step": "s9-switch"
+      "step": "s11-rows",
+      "files": [
+        "index.html",
+        "src/services/OpenPlace.js",
+        "src/answers/plan/read.js"
+      ],
+      "note": "Built on the classic page (owner, 17 Oct 2026): reached from the rail's \"This month\" / \"Set up the tax year\" hand-over (OpenPlace.PLACES month, taxyear, document, exports) and the plan page's buttons; the preview reads what the classic page writes (read.js: the records, the tax year, the document) and never writes these itself."
     },
     {
       "id": "month.cadence",
@@ -2983,9 +3130,15 @@
       "keys": [
         "plan.decisionTool.cadence"
       ],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
-      "step": "s9-switch"
+      "step": "s11-rows",
+      "files": [
+        "index.html",
+        "src/services/OpenPlace.js",
+        "src/answers/plan/read.js"
+      ],
+      "note": "Built on the classic page (owner, 17 Oct 2026): reached from the rail's \"This month\" / \"Set up the tax year\" hand-over (OpenPlace.PLACES month, taxyear, document, exports) and the plan page's buttons; the preview reads what the classic page writes (read.js: the records, the tax year, the document) and never writes these itself."
     },
     {
       "id": "month.history",
@@ -2996,10 +3149,15 @@
       "whereV6": "Decision → History (index.html:2707-2740)",
       "who": "Running",
       "keys": [],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
-      "step": "s9-switch",
-      "note": "The \"Where you are\" station."
+      "step": "s11-rows",
+      "note": "Built on the classic page (owner, 17 Oct 2026): reached from the rail's \"This month\" / \"Set up the tax year\" hand-over (OpenPlace.PLACES month, taxyear, document, exports) and the plan page's buttons; the preview reads what the classic page writes (read.js: the records, the tax year, the document) and never writes these itself.",
+      "files": [
+        "index.html",
+        "src/services/OpenPlace.js",
+        "src/answers/plan/read.js"
+      ]
     },
     {
       "id": "month.exports",
@@ -3010,9 +3168,14 @@
       "whereV6": "Decision → History / Tax Years (index.html:2707-2750)",
       "who": "Running",
       "keys": [],
-      "status": "planned",
-      "step": "s9-switch",
-      "note": "Carried over with Month by month (square-one-audit.md §4)."
+      "status": "built",
+      "step": "s11-rows",
+      "note": "Built on the classic page (owner, 17 Oct 2026): reached from the rail's \"This month\" / \"Set up the tax year\" hand-over (OpenPlace.PLACES month, taxyear, document, exports) and the plan page's buttons; the preview reads what the classic page writes (read.js: the records, the tax year, the document) and never writes these itself. The exports have their own place (OpenPlace.PLACES.exports: the planner's History page) and a button on the plan page's \"Where you are\" step (6.45.0).",
+      "files": [
+        "index.html",
+        "src/services/OpenPlace.js",
+        "src/answers/plan/read.js"
+      ]
     },
     {
       "id": "month.tax-year",
@@ -3043,10 +3206,15 @@
         "taxYear.expectedMonthly",
         "taxYear.yearSetupComplete"
       ],
-      "status": "designed",
+      "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.6",
-      "step": "s9-switch",
-      "note": "P.taxyear: \"Next: set up the {2027/28} tax year.\""
+      "step": "s11-rows",
+      "note": "Built on the classic page (owner, 17 Oct 2026): reached from the rail's \"This month\" / \"Set up the tax year\" hand-over (OpenPlace.PLACES month, taxyear, document, exports) and the plan page's buttons; the preview reads what the classic page writes (read.js: the records, the tax year, the document) and never writes these itself.",
+      "files": [
+        "index.html",
+        "src/services/OpenPlace.js",
+        "src/answers/plan/read.js"
+      ]
     },
     {
       "id": "month.copy",
@@ -3127,10 +3295,15 @@
         "accumulation.schemeType",
         "accumulation.salary"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "V7 takes what lands in the pension, the tax added back included; it does not ask how relief is given."
+      "status": "built",
+      "step": "s11-rows",
+      "note": "Built on \"What you pay in\" (#/plan/<id>/saving, 6.45.0): \"How tax relief works, and your salary\" closed until opened, then the person's own figures (AccumulationEngine.contributionBreakdown: what goes in, the tax the government adds back, the higher-rate claim) with the scheme type (relief at source, net pay, salary sacrifice) and the salary box; Save writes accumulationTool.settings whole as the planner's readAccumulationInputs saves it, outside the lock. Gate: tests/v7/plan/saving.test.js (pinned).",
+      "files": [
+        "src/answers/plan/saving.js",
+        "src/v7/screens/plan/SavingScreen.jsx",
+        "src/v7/copy/saving.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "save.escalation",
@@ -3143,9 +3316,15 @@
       "keys": [
         "accumulation.escalationPct"
       ],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "built",
+      "step": "s11-rows",
+      "files": [
+        "src/answers/plan/saving.js",
+        "src/v7/screens/plan/SavingScreen.jsx",
+        "src/v7/copy/saving.js",
+        "src/v7/effects/planWrite.js"
+      ],
+      "note": "Built on \"What you pay in\" (6.45.0): the rise a year box (escalationPct, 0–20% by halves); the pot by the stop moves with it (projectAccumulation)."
     },
     {
       "id": "save.ages-pot",
@@ -3213,10 +3392,15 @@
       "whereV6": "Accumulation → Projection: Your mix (6.7.0)",
       "who": "Savers",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true,
-      "note": "V7 projects at a risk level while saving (savingRisk). Not road step 10 (holdings-and-move.md §8): a projection at the held mix is step 11's sweep."
+      "status": "built",
+      "step": "s11-rows",
+      "note": "Built on \"What you pay in\" (6.45.0): \"Your mix\" as a column of what the pot could be when something is held — Holdings.proportions over the record with the plan's charge in place of the funds' own, as the planner's page has it (a gilt held directly counted as bonds, a correction).",
+      "files": [
+        "src/answers/plan/saving.js",
+        "src/v7/screens/plan/SavingScreen.jsx",
+        "src/v7/copy/saving.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "save.when-retire",
@@ -3282,9 +3466,15 @@
       "keys": [
         "plan.accumulationTool.history"
       ],
-      "status": "planned",
-      "step": "s4-open-plan",
-      "note": "A saver's station, \"This month's pot\" (square-one-audit.md §5 item 4). The reading was fixed first (item 2, 6.22.0): read at the record's month, from the path's own start, in the path's pounds; plans locked from 6.22.0 draw the path on V7's saving-years engine (pension and ISA, 1-in-10 lines; src/services/SavingPath.js, SaverReading.js). Shown in V7 from s4 (src/answers/plan/read.js: the “This month’s pot” step shows the latest record and whether this month’s is in)."
+      "status": "built",
+      "step": "s11-rows",
+      "note": "Built on \"What you pay in\" (6.45.0): \"Record this month's pot\" — the month, the pension, the ISA (blank is no figure) and the other account; \"Record it\" writes accumulationTool.history whole with the month added (SaverReading.potRecordOf, the same month replaced, sorted, the last 600 kept), nothing deleted, with Undo; the records newest first. The plan page's \"Record this month's pot\" links here. The record is stamped at the moment of the write (the planner's new Date()), the one write file's clock handed to the pure writer.",
+      "files": [
+        "src/answers/plan/saving.js",
+        "src/v7/screens/plan/SavingScreen.jsx",
+        "src/v7/copy/saving.js",
+        "src/v7/effects/planWrite.js"
+      ]
     },
     {
       "id": "hold.record",
@@ -3622,9 +3812,10 @@
       "whereV6": "Stress and Decision → Settings → Reset to Defaults",
       "who": "Everyone",
       "keys": [],
-      "status": "planned",
-      "step": "s8-e",
-      "gap": true
+      "status": "retired",
+      "step": "s11-rows",
+      "reason": "Retired from the preview (6.45.0): a plan is edited step by step in V7, each change one write with Undo; a fresh start is a new plan from a question. The planner's \"Reset to Defaults\" stays on the classic page.",
+      "owner": "to confirm"
     },
     {
       "id": "acct.tools",

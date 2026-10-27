@@ -18,6 +18,7 @@ export const ROUTES = [
   { pattern: '#/plan/:planId/:step', screen: 'plan' },   // … on a named step (research/v7/your-plan.md 4.2)
   { pattern: '#/account',     screen: 'account' },   // the account page: sign in, sign up, the email, download everything, delete (road-to-7.md step 11)
   { pattern: '#/whats-new',   screen: 'news' },      // every release's notes (road-to-7.md step 11)
+  { pattern: '#/assumptions', screen: 'assumptions' },   // where every figure comes from (road-to-7.md step 11b)
   { pattern: '#/not-found',   screen: 'notFound' }   // what any unknown address becomes
 ];
 
@@ -28,7 +29,8 @@ export const PLAN_ID = /^[A-Za-z0-9_-]{1,64}$/;
 /** The steps of "Your plan" (src/answers/plan/steps.js ALL_STEPS; named here so the router imports no reader). */
 export const PLAN_STEPS = Object.freeze(['month', 'where', 'plan', 'pot', 'saving', 'budget', 'lock', 'hold', 'move', 'household']);
 /** The sub-steps under a plan that draw their own screen (src/answers/plan/steps.js ALL_SUB_STEPS): #/plan/<id>/about, /income, /spend, /pots, /lasts (editing-in-v7.md 2, 7, 8, 9, 10), /way (way-and-mix.md 2), /mix (way-and-mix.md 3); and the rail steps that draw their own screen: /household (road-to-7.md step 9: 'plan.household'), /hold and /move (step 10, holdings-and-move.md: 'plan.hold', 'plan.move'). */
-export const PLAN_SUB_STEPS = Object.freeze(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move']);
+/** … and, since road-to-7.md step 11b (6.45.0), /budget and /saving (the two rail steps made real: 'plan.budget', 'plan.saving'). */
+export const PLAN_SUB_STEPS = Object.freeze(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move', 'budget', 'saving']);
 const planStepOk = (s) => PLAN_STEPS.includes(s) || PLAN_SUB_STEPS.includes(s);
 
 const route = (screen, q = null, step = null, focus = null, planId = null) => ({ screen, q, step, planId, focus });
@@ -53,6 +55,7 @@ export function parse(hash) {
   // the account page and What's new (road-to-7.md step 11): no focus, no figure
   if (parts.length === 2 && parts[1] === 'account' && focus === null) return route('account');
   if (parts.length === 2 && parts[1] === 'whats-new' && focus === null) return route('news');
+  if (parts.length === 2 && parts[1] === 'assumptions' && focus === null) return route('assumptions');
   if (parts[1] === 'plan' && (parts.length === 3 || parts.length === 4) && focus === null && PLAN_ID.test(parts[2]) && (parts.length === 3 || planStepOk(parts[3]))) {
     return route('plan', null, parts.length === 4 ? parts[3] : null, null, parts[2]);
   }
@@ -76,6 +79,7 @@ export function format(r) {
   if (r.screen === 'plans') return '#/plans';
   if (r.screen === 'account') return '#/account';
   if (r.screen === 'news') return '#/whats-new';
+  if (r.screen === 'assumptions') return '#/assumptions';
   if (r.screen === 'plan' && typeof r.planId === 'string' && PLAN_ID.test(r.planId)) return `#/plan/${r.planId}` + (r.step && planStepOk(r.step) ? `/${r.step}` : '');
   return '#/not-found';
 }
@@ -88,6 +92,7 @@ export const href = {
   plans: () => format(route('plans')),
   account: () => format(route('account')),
   news: () => format(route('news')),
+  assumptions: () => format(route('assumptions')),
   plan: (planId, step = null) => format(route('plan', null, step, null, planId))
 };
 
@@ -101,6 +106,7 @@ export function screenName(r) {
   if (r.screen === 'plans') return 'plans';
   if (r.screen === 'account') return 'account';
   if (r.screen === 'news') return 'news';
+  if (r.screen === 'assumptions') return 'assumptions';
   // the editing sub-steps each draw their own screen; so does the "Lock the plan" rail step (road-to-7.md step 6: 'plan.lock')
   if (r.screen === 'plan') return r.step && (PLAN_SUB_STEPS.includes(r.step) || r.step === 'lock') ? 'plan.' + r.step : 'plan';
   const step = BUILT[r.q] && BUILT[r.q].steps.find((s) => s.id === r.step);

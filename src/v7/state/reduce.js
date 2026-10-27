@@ -40,10 +40,15 @@ const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'fail
   'lastPlan', 'example', 'badFile', 'fileTooBig', 'fileProblems', 'empty', 'tooLong'];
 /** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document, the way switched (way-and-mix.md 2.4), a mix used (3.2e), a tried change used (4). */
 const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
+  // "Leave it" on an out-of-date draft (road-to-7.md step 11b): the planner's own key, remembered
+  'stale',
   // "Your household" (road-to-7.md step 9): the partner link, the split written into both plans, "Keep things as they are", the budget shared
   'link', 'split', 'dismiss', 'budgetShare',
   // "What you hold" and "Moving to your plan's mix" (step 10): one change of the record, one tick-off
-  'hold', 'tick'];
+  'hold', 'tick',
+  // the budget on a saved plan (step 11b): one change of the whole budget; "What you pay in": its settings saved (outside the lock,
+  // as the planner's Accumulation page is), this month's pot recorded
+  'budget', 'saving', 'potRecord'];
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -345,7 +350,7 @@ export function reduce(state, action) {
       // the blocks opened on one plan's step belong to it: Try a change's boxes and confirm to its "Does it last?", the mix's
       // paste and example to its "The mix" — leaving that page closes them (a locked plan's page starts with no box)
       const stays = (step) => route.screen === 'plan' && route.step === step && state.route && state.route.screen === 'plan' && state.route.step === step && String(state.route.planId) === String(route.planId);
-      const gone = [...(stays('lasts') ? [] : ['tryOpen', 'tryConfirm']), ...(stays('mix') ? [] : ['mixPaste', 'mixExample']), ...(stays('household') ? [] : ['hhWhoPays', 'hhDetail']), ...(stays('hold') ? [] : ['holdPaste']), ...(stays('move') ? [] : ['moveHow', 'moveSheet', 'moveExplained'])];
+      const gone = [...(stays('lasts') ? [] : ['tryOpen', 'tryConfirm']), ...(stays('mix') ? [] : ['mixPaste', 'mixExample']), ...(stays('household') ? [] : ['hhWhoPays', 'hhDetail']), ...(stays('hold') ? [] : ['holdPaste']), ...(stays('move') ? [] : ['moveHow', 'moveSheet', 'moveExplained']), ...(stays('budget') ? [] : ['budgetReset']), ...(stays('saving') ? [] : ['savingRelief'])];
       // the household's confirm belongs to its page too
       const hh = state.household && state.household.pick && !stays('household') ? { ...state.household, pick: null } : state.household;
       const ui0 = closeRail(state.ui);
@@ -597,6 +602,13 @@ export function reduce(state, action) {
       const pd = planDraftOf(state);
       const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
       return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'save' }, saveProblem: null, toast: null } }, { ...base, asked: true });
+    }
+    case A.PLAN_STALE_LEAVE: {
+      // "Leave it" on an out-of-date draft (road-to-7.md step 11b): one write of the planner's own key; the boxes are left alone
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/staleLeave: needs a plan id');
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, saving: { planId, kind: 'staleLeave' }, saveProblem: null, toast: null } };
     }
     case A.PLAN_SAVED: {
       const { planId, previous = null, line = null, op = null, lockedAt = null } = action;
@@ -1306,6 +1318,45 @@ export function reduce(state, action) {
       const n = state.ui.download ? state.ui.download.n + 1 : 1;
       return { ...state, ui: { ...state.ui, download: { planId, n } } };
     }
+    // ---- the budget on a saved plan (research/v7/road-to-7.md step 11b): one change, the spreadsheet read, the download ----
+    case A.PLAN_BUDGET: {
+      const { planId, change } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/budget: needs a plan id');
+      if (!change || typeof change !== 'object' || typeof change.kind !== 'string') return refuse('plan/budget: needs a change');
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, saving: { planId, kind: 'budget', change }, saveProblem: null, toast: null } };
+    }
+    case A.PLAN_RECORD: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/record: needs a plan id');
+      if (state.ui.saving) return state;
+      const pd = planDraftOf(state);
+      const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
+      // the record's boxes are marked as left, so their problems show
+      const touched = [...new Set([...base.touched, 'record.month', 'record.pension', 'record.isa', 'record.gia'])];
+      return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'potRecord' }, saveProblem: null, toast: null } }, { ...base, touched });
+    }
+    case A.PLAN_BUDGET_FILE: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/budgetFile: needs a plan id');
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, saving: { planId, kind: 'budgetFile' }, saveProblem: null, toast: null } };
+    }
+    case A.PLAN_BUDGET_FILE_READ: {
+      const { planId, text } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/budgetFileRead: needs a plan id');
+      const ui = { ...state.ui, saving: null };
+      if (typeof text !== 'string') return { ...state, ui: { ...ui, saveProblem: { planId, problem: 'badFile' } } };
+      const pd = planDraftOf(state);
+      const base = pd.id === planId ? pd : emptyPlanDraft();
+      return withPlanDraft({ ...state, ui: { ...ui, saveProblem: null } }, { ...base, id: planId, values: { ...base.values, 'import.text': text } });
+    }
+    case A.PLAN_BUDGET_DOWNLOAD: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/budgetDownload: needs a plan id');
+      const n = state.ui.download ? state.ui.download.n + 1 : 1;
+      return { ...state, ui: { ...state.ui, download: { planId, n, what: 'budget' } } };
+    }
     case A.PLAN_OPEN_FILE:
       if (state.ui.saving) return state;
       return { ...state, ui: { ...state.ui, saving: { planId: null, kind: 'open' }, saveProblem: null, toast: null } };
@@ -1409,6 +1460,11 @@ export function reduce(state, action) {
       if (typeof action.version !== 'string' || !action.version) return refuse('news/seen: needs a version');
       const news = state.ui.news || emptyNews();
       return news.seen === action.version ? state : { ...state, ui: { ...state.ui, news: { ...news, seen: action.version } } };
+    }
+    case A.ASSUMPTIONS_SET: {
+      // "Assumptions and data" (road-to-7.md step 11b): the figures as plain data, or that they could not be read
+      const facts = action.facts && typeof action.facts === 'object' && !Array.isArray(action.facts) ? action.facts : null;
+      return { ...state, ui: { ...state.ui, assumptions: { facts, failed: !facts } } };
     }
 
     default:

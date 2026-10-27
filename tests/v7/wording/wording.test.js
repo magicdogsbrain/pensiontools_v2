@@ -35,6 +35,7 @@ import { MOVE } from '../../../src/v7/copy/move.js';
 import { ACCOUNT } from '../../../src/v7/copy/account.js';
 import { GUEST } from '../../../src/v7/copy/guest.js';
 import { NEWS } from '../../../src/v7/copy/news.js';
+import { ASSUMPTIONS } from '../../../src/v7/copy/assumptions.js';
 import { GUEST_RULE } from '../../../src/services/GuestMeter.js';
 import { STRATEGY_NAMES } from '../../../src/strategies/stressTest.js';
 import { listStrategies } from '../../../src/strategies/registry.js';
@@ -161,7 +162,9 @@ describe('the words in src/v7/copy/', () => {
     const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
     const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{year\}/g, '2027/28').replace(/\{(yearly|amount)\}/g, '£11,973').replace(/\{full\}/g, '£12,548')
       .replace(/\{(age|ageNow|endAge|from|to|n|value)\}/g, '67').replace(/\{years\}/g, '15 years').replace(/\{(fs|streams|lumps)\}/g, '2').replace(/\{day\}/g, '5 April 2028')
-      .replace(/\{label\}/g, 'Rental flat').replace(/\{name\}/g, 'Sam').replace(/\{rises\}/g, 'going up with prices').replace(/\{what\}/g, 'a cash lump sum').replace(/\{sp\}/g, 'none');
+      .replace(/\{label\}/g, 'Rental flat').replace(/\{name\}/g, 'Sam').replace(/\{rises\}/g, 'going up with prices').replace(/\{what\}/g, 'a cash lump sum').replace(/\{sp\}/g, 'none')
+      // where a lump sum lands (road-to-7.md step 11b): the parts in pounds, the taxable mix in words
+      .replace(/\{(isa|pension|taxable)\}/g, '£20,000').replace(/\{mix\}/g, 'shares');
     const hits = [];
     const all = strings(INCOME).map(([, s]) => slot(s)).join('\n');
     for (const [where, s] of strings(INCOME)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`income.js ${where} — ${h}`);
@@ -172,7 +175,7 @@ describe('the words in src/v7/copy/', () => {
   it('"What you spend" (spend.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the third editing step is a plan page too (editing-in-v7.md 8): a retired person's and a saver's plan are both edited from it
     const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
-    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{year\}/g, '2027/28').replace(/\{(monthly|yearly|gross|net|total|essentials|amount|endMonthly|toMonthly)\}/g, '£2,300')
+    const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{year\}/g, '2027/28').replace(/\{(monthly|yearly|gross|net|total|essentials|amount|endMonthly|toMonthly|perYear)\}/g, '£2,300')
       .replace(/\{(age|ageNow|endAge|startAge|age75|age85|endAge|toAge|n|value)\}/g, '67').replace(/\{(years|steps|costs)\}/g, '2').replace(/\{(pct|budgetPct)\}/g, '85')
       .replace(/\{label\}/g, 'New roof').replace(/\{name\}/g, 'Sam').replace(/\{prices\}/g, 'going up with prices').replace(/\{floor\}/g, '');
     const hits = [];
@@ -192,7 +195,11 @@ describe('the words in src/v7/copy/', () => {
       .replace(/\{(pct|half|full)\}/g, '20').replace(/\{(futures|of|n|histories|ranOut)\}/g, '1,000').replace(/\{(years|months|first|age|toAge|secured|year|lastStart|fired)\}/g, '12')
       .replace(/\{s\}/g, 's').replace(/\{name\}/g, 'Sam').replace(/\{value\}/g, '3').replace(/\{reserve\}/g, 'no reserve').replace(/\{strategy\}/g, 'Pots and valves')
       // Try a change (way-and-mix.md 4): the way, the pots, the policy, the income, the old figure, on or off, "instead of your steps"
-      .replace(/\{way\}/g, 'Floor to an age, then decide').replace(/\{(pot|isa|income)\}/g, '£500,000').replace(/\{old\}/g, '35').replace(/\{policy\}/g, 'held back, never drawn for income').replace(/\{on\}/g, 'on').replace(/\{steps\}/g, ' instead of your steps');
+      .replace(/\{way\}/g, 'Floor to an age, then decide').replace(/\{(pot|isa|income)\}/g, '£500,000').replace(/\{old\}/g, '35').replace(/\{policy\}/g, 'held back, never drawn for income').replace(/\{on\}/g, 'on').replace(/\{steps\}/g, ' instead of your steps')
+      // the named stresses and the years one by one (road-to-7.md step 11b): the prices assumed, what a decade did, the hardest start
+      .replace(/\{prices\}/g, '2.5').replace(/\{(firstDir|decadeDir|pricesDir)\}/g, 'down').replace(/\{(firstPct|decadePct|pricesPct)\}/g, '45').replace(/\{decade\}/g, 'shares down 45% in the first three years').replace(/\{when\}/g, 'September 1929')
+      // a contract plan's inflation figures (the gilt ladder's table): the cash at two ages, what it still buys
+      .replace(/\{(firstAge|tenthAge)\}/g, '67').replace(/\{(tenth|worth)\}/g, '£44,000');
     const hits = [];
     const all = strings(LASTS).map(([, s]) => slot(s)).join('\n');
     for (const [where, s] of strings(LASTS)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`lasts.js ${where} — ${h}`);
@@ -390,6 +397,16 @@ describe('the words in src/v7/copy/', () => {
       for (const [where, s] of strings(words)) expect(s, `${file} ${where}`).not.toMatch(/\b(error|invalid|submit|calculate|simulate)\b/i);
     }
     expect(hits).toEqual([]);
+    // "Assumptions and data" (road-to-7.md step 11b): a page everyone may open, so every scope but the front door's own; the figures are slots
+    const slotA = (s) => s.replace(/\{(app|engine)\}/g, '6.45.0').replace(/\{(from|to|worstYear|bestYear)\}/g, '1928').replace(/\{(years|runs|blockYears|months|curvePoints|dealFee|pa|brl|hrl|taper|level)\}/g, '97')
+      .replace(/\{(adjustment|nominal|real|worst|best|mean|monthByMonth|charges|mult|spreadShort|spreadMid|spreadLong)\}/g, '2.5').replace(/\{buffer\}/g, '£15,000')
+      .replace(/\{(generated|asOf|curveAsOf|date)\}/g, '2026-10-27').replace(/\{(source|repo)\}/g, 'the exchange').replace(/\{(curve|nominalCurve)\}/g, '1y 0.20% · 2y 0.40%').replace(/\{symbol\}/g, 'S&P 500');
+    const hitsA = [];
+    const allA = strings(ASSUMPTIONS).map(([, s]) => slotA(s)).join('\n');
+    for (const [where, s] of strings(ASSUMPTIONS)) for (const h of bannedHits(slotA(s), scopes, { context: allA })) hitsA.push(`assumptions.js ${where} — ${h}`);
+    expect(hitsA).toEqual([]);
+    for (const [where, s] of strings(ASSUMPTIONS)) expect(slotA(s), `assumptions.js ${where}`).not.toMatch(/\{\w+\}/);
+    for (const [where, s] of strings(ASSUMPTIONS)) expect(s, `assumptions.js ${where}`).not.toMatch(/\b(error|invalid|submit|calculate|simulate)\b/i);
     // the one rule for visitors (v6-usability-audit.md 2.1), the planner's sentence letter for letter, and in the banner
     expect(GUEST.rule).toBe(GUEST_RULE);
     expect(GUEST.banner).toContain(GUEST_RULE.charAt(0).toLowerCase() + GUEST_RULE.slice(1));

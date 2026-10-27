@@ -13,6 +13,23 @@ import { runLadderWindows } from '../strategies/LadderAndRatchet.js';
 import { runFlexWindows } from '../strategies/FloorAndFlex.js';
 import { getRtr } from '../strategies/ladderEngine.js';
 import { NAMED_STARTS } from './OneAnswer.js';
+import { SCENARIOS } from '../constants.js';
+
+/** The named stresses as starts (index.html's Scenarios tab, lifted 6.45.0): the January each decade began, by scenario key. */
+export const SCENARIO_START = Object.freeze({ GREAT_DEPRESSION: 1929, STAGFLATION_70S: 1973, LOST_DECADE_2000S: 2000, CRISIS_2008: 2008 });
+/** The same as namedStartRows's `starts`: { year, label, key } in the planner's order. */
+export const SCENARIO_STARTS = Object.freeze(Object.entries(SCENARIO_START).map(([key, year]) => Object.freeze({ key, year, label: SCENARIOS[key].name })));
+
+/**
+ * What a named decade did (src/ui/oneAnswerView.js decadeWords, the figures lifted 6.45.0): shares over its first three years
+ * and over the decade, prices over the decade — each as a fraction (−0.45 is "down 45%").
+ */
+export function decadeFigures(sc) {
+  const eq = (sc && sc.equity ? sc.equity : []).reduce((a, r) => a * (1 + r), 1) - 1;
+  const first = (sc && sc.equity ? sc.equity : []).slice(0, 3).reduce((a, r) => a * (1 + r), 1) - 1;
+  const cpi = (sc && sc.inflation ? sc.inflation : []).reduce((a, r) => a * (1 + r), 1) - 1;
+  return { first, decade: eq, prices: cpi };
+}
 
 export const PNV_FAMILY = ['pots-and-valves', 'buckets-in-order'];
 export const CONTRACT = ['full-il-gilt', 'floor-the-schedule'];

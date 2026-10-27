@@ -12,7 +12,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { lastsOf, lastsPatch, applyPatch, boxesOf, savedLasts, checkLasts, runKeyOf, verdictOf, verdictWord, startRow, notUsedBy, cutPctOf, multOf, FAMILY, CONTRACT } from '../../../src/answers/plan/lasts.js';
+import { lastsOf, lastsPatch, applyPatch, boxesOf, savedLasts, checkLasts, runKeyOf, verdictOf, verdictWord, startRow, notUsedBy, cutPctOf, multOf, FAMILY, CONTRACT, extrasView } from '../../../src/answers/plan/lasts.js';
 import { LASTS_FIELDS, LASTS_WRITES, ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, isLastsPath, isPlanEditPath, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, HOUSEHOLD_WRITES, PLANS_WRITES } from '../../../src/answers/plan/schema.js';
 import { SUB_STEPS, ALL_SUB_STEPS } from '../../../src/answers/plan/steps.js';
 import { planPage } from '../../../src/answers/plan/read.js';
@@ -55,6 +55,15 @@ const fakeResult = (strategyId = 'pots-and-valves', more = {}) => ({
   history: {
     worst: [{ year: 1929, month: 9, s: 704, failed: true, failAge: 84, terminal: 0, worst12: 31000, unfair: true }, { year: 1966, month: 1, s: 1140, failed: false, terminal: 20000, worst12: 33000, cutYears: 4, cutReal: 16000, unfair: true }],
     named: [{ year: 1929, label: 'the Great Depression', kind: 'pnv', available: true, failed: false, terminal: 240000, worst12: 31000, cutYears: 4, cutReal: 16000 }, { year: 2008, label: 'the 2008 crisis', kind: 'pnv', tooShort: true, lastStart: 1986, available: false }]
+  },
+  // the year-by-year tables and the named stresses (road-to-7.md step 11b), in lastsRun.js extrasOf's shape
+  extras: {
+    prices: 0.025, startAge: 56, duration: 39,
+    schedule: strategyId === 'pots-and-valves' ? [{ year: 0, age: 56, pension: 30000, state: 0, tax: 3486, net: 26514, isa: 8000, spendable: 34514, isaLeft: 120000 }] : null,
+    glidepath: strategyId === 'pots-and-valves' ? { tent: false, diversifiers: false, reserve: false, rows: [{ year: 0, age: 56, shares: 300000, bonds: 200000, cash: 80000, diversifiers: 0, reserve: 0, sharesPct: 52, isa: 120000, total: 580000 }] } : null,
+    own: strategyId === 'pots-and-valves' ? null : [{ year: 1, age: 56, incomeMid: 40000, incomeBad: 36000, leftMid: 900000 }],
+    scenarios: [{ year: 1929, label: 'Great Depression', key: 'GREAT_DEPRESSION', kind: FAMILY.includes(strategyId) ? 'pnv' : 'none', available: FAMILY.includes(strategyId), failed: false, terminal: 240000, worst12: 31000, cutYears: 4, cutReal: 16000, decade: { first: -0.64, decade: -0.39, prices: -0.21 } }],
+    synthetic: { name: 'Synthetic Worst', decade: { first: -0.27, decade: -0.49, prices: 0.75 }, hardest: { year: 1929, month: 9 } }
   },
   stored: null, basis: { today: TODAY, engine: 'one-test' }, ...more
 });
@@ -282,6 +291,16 @@ describe('L1 — the words of a result, and the run key', () => {
     // every verdict word has words, every history kind has words
     for (const w of ['yes', 'close', 'no']) expect(LASTS.verdict.word[w]).toBeTypeOf('string');
     for (const kind of [{ kind: 'contract' }, { kind: 'none' }, { kind: 'ladder', failed: true, failAge: 80, terminal: 0 }, { kind: 'ladder', secured: 1, terminal: 5 }, { kind: 'flex', worstYearFlex: 100, terminal: 5 }]) expect(LASTS.history.rows[startRow({ year: 1929, ...kind }).id]).toBeTypeOf('string');
+    // a contract plan's named stresses carry the planner's inflation figures (lastsRun.js contractCash) as one more line, with words for it and its own lead
+    const cashRow = { prices10: 1.4, cashFirst: 52000, cashTenth: 101000, realTenth: 44000, ageFirst: 58, ageTenth: 67 };
+    const xc = { prices: 0.025, schedule: null, glidepath: null, own: [], scenarios: [{ year: 1973, label: 'Stagflation', key: 'STAGFLATION_70S', kind: 'contract', available: true, decade: { first: 0.1, decade: 0.2, prices: 1.4 }, cash: cashRow }], synthetic: { name: 'Synthetic Worst', decade: { first: -0.27, decade: -0.49, prices: 0.75 }, hardest: null, cash: { ...cashRow, cashTenth: 75000 } } };
+    const ev = extrasView(xc);
+    expect(ev.scenarios[0].cash).toEqual({ id: 'cash.line', slots: { pricesDir: 'up', pricesPct: '140', first: '£52,000', firstAge: '58', tenth: '£101,000', tenthAge: '67', worth: '£44,000' } });
+    expect(ev.synthetic.cash.slots.tenth).toBe('£75,000');
+    expect(LASTS.history.cash['cash.line']).toBeTypeOf('string');
+    expect(LASTS.history.scenariosLeadContract).toBeTypeOf('string');
+    const evPlain = extrasView({ ...xc, scenarios: [{ ...xc.scenarios[0], cash: undefined }], synthetic: { ...xc.synthetic, cash: undefined } });
+    expect('cash' in evPlain.scenarios[0]).toBe(false); expect('cash' in evPlain.synthetic).toBe(false);
   });
   it('the run key moves with the stamp, the Stress settings and the lock, and with nothing else', () => {
     const plan = entryOf(LUMPY).plan;
@@ -301,7 +320,7 @@ describe('L1 — the sub-step, the address and the plan page\'s links', () => {
   it('"lasts" sits under "plan" beside the other four; the address parses and formats; the screen is plan.lasts', () => {
     expect(SUB_STEPS.plan).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
     expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
-    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move']);   // the household, hold and move rail steps draw their own screens (road-to-7.md steps 9, 10)
+    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move', 'budget', 'saving']);   // the household, hold and move rail steps draw their own screens (road-to-7.md steps 9, 10)
     const r = parse('#/plan/abc/lasts');
     expect(r).toEqual({ screen: 'plan', q: null, step: 'lasts', planId: 'abc', focus: null });
     expect(format(r)).toBe('#/plan/abc/lasts');
@@ -313,7 +332,7 @@ describe('L1 — the sub-step, the address and the plan page\'s links', () => {
     expect(isLastsPath('cuts.0.pct')).toBe(false);
     for (const k of LASTS_WRITES) { expect(k.startsWith('stressTool.settings.')).toBe(true); expect(ALL_WRITES).toContain(k); }
     expect(LASTS_WRITES.map((k) => k.split('.')[2]).sort()).toEqual([...KEYS].sort());
-    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', ...PLANS_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11)
+    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', ...PLANS_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11)
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
   });
   for (const today of DATES) {

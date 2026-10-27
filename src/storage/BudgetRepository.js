@@ -7,7 +7,7 @@
  */
 
 import { getActiveBudget, saveActiveBudget } from './ScenarioRepository.js';
-import { summariseBudget, defaultBudget } from '../services/BudgetModel.js';
+import { budgetToSave, defaultBudget } from '../services/BudgetModel.js';
 
 /**
  * Loads the active plan's budget, merged over the defaults so older/partial records are safe to use.
@@ -30,7 +30,7 @@ export async function getBudgetAsync() {
  * @returns {Promise<object>} The saved budget (with fresh `derived`)
  */
 export async function saveBudget(budget) {
-  const toSave = { ...budget, derived: summariseBudget(budget) };
+  const toSave = budgetToSave(budget);   // the one shape, lifted (6.45.0): the preview's budget step writes the same object
   await saveActiveBudget(toSave);
   return toSave;
 }

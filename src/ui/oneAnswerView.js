@@ -5,6 +5,7 @@
  */
 import { inflationDecadesSvg } from './giltLadderGraphic.js';
 import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS, rankWays } from '../services/OneAnswer.js';
+import { decadeFigures } from '../services/NamedStarts.js';
 
 const futuresWords = (share) => futuresOutOfTen(share).words;
 
@@ -82,9 +83,7 @@ export function historyTabHtml({ strategyId, name, a, rows = [], worst = [] }) {
 }
 
 function decadeWords(sc) {
-  const eq = (sc.equity || []).reduce((a, r) => a * (1 + r), 1) - 1;
-  const first = (sc.equity || []).slice(0, 3).reduce((a, r) => a * (1 + r), 1) - 1;
-  const cpi = (sc.inflation || []).reduce((a, r) => a * (1 + r), 1) - 1;
+  const { first, decade: eq, prices: cpi } = decadeFigures(sc);   // NamedStarts, the figures lifted (6.45.0): the preview says the same
   const dir = (v) => (v < 0 ? 'down ' + pc(-v * 100) : 'up ' + pc(v * 100));
   return 'shares ' + dir(first) + ' in the first three years and ' + dir(eq) + ' over the decade; prices ' + dir(cpi) + ' over the decade';
 }

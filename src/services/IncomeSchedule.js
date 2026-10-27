@@ -86,3 +86,31 @@ export function defaultSpYear(settings) {
   return settings.statePensionYear ?? 999;
 }
 
+/**
+ * "Turn a lump sum into income" (index.html spendLumpSum, lifted pure 6.45.0; the preview's spend step calls it too): the
+ * lump sum spread evenly over the years left from its age (to the nearest £100 a year, before tax, no growth), the step in
+ * force at that age raised by that, every later step raised the same; a new step at that age when none starts there (its
+ * decline the previous step's, and the previous step no longer moving evenly into it). The lump sum itself stays as the money
+ * that pays for the new steps. Null without a first step.
+ * @param {object[]} steps   the steps as saved ({ fromAge, amount, decline?, glideToNext? }), untouched
+ * @param {{ ageNow: number, duration: number, amount: number, year: number }} lump   the lump sum's amount and its plan year
+ * @returns {{ steps: object[], perYear: number, years: number, age: number } | null}
+ */
+export function lumpIntoSteps(steps, { ageNow, duration, amount, year }) {
+  const list = (Array.isArray(steps) ? steps : []).map((s) => ({ ...s }));
+  if (!list.length) return null;
+  const age = Math.round(+ageNow) + Math.round(+year);
+  const yrs = Math.max(1, Math.round(+ageNow) + Math.round(+duration) - 1 - age + 1);
+  const perYear = Math.round((+amount || 0) / yrs / 100) * 100;
+  const atAge = Math.round(amountAtAge(list, age, +list[0].amount));
+  const existing = list.find((st) => +st.fromAge === age);
+  if (existing) existing.amount = +existing.amount + perYear;
+  else {
+    const prev = list.filter((st) => +st.fromAge < age).sort((a, b) => +a.fromAge - +b.fromAge).pop();
+    list.push({ fromAge: age, amount: atAge + perYear, decline: prev ? (+prev.decline || 0) : 0 });
+    if (prev && prev.glideToNext) prev.glideToNext = false;
+  }
+  for (const st of list) if (+st.fromAge > age) st.amount = +st.amount + perYear;
+  return { steps: list, perYear, years: yrs, age };
+}
+

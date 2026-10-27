@@ -122,6 +122,7 @@ describe('the parity ledger: the checks bite (broken copies)', () => {
     expect(incomeShapeProblems(base, ids)).toEqual([]);
     const gap = copy(base);
     Object.assign(gap.rows.find((r) => r.id === 'inc.lump-sums'), { status: 'planned', gap: true });
+    Object.assign(gap.rows.find((r) => r.id === 'income.lump-to-steps'), { status: 'designed', doc: 'research/v7/spending-shape.md §17.3', waitsFor: 'inc.lump-sums' });   // as the rows stood before 6.45.0
     expect(incomeShapeProblems(gap, ids).join('\n')).toMatch(/row "income.lump-to-steps": waits for "inc.lump-sums", which has no V7 design yet \(gap\)/);
     const planned = copy(base);
     Object.assign(planned.rows.find((r) => r.id === 'income.steps'), { status: 'planned' });
@@ -201,8 +202,10 @@ describe('the parity ledger: the owner\'s rules', () => {
       expect(byId.get(id).step, id).toBe('s8-mix');
       expect(byId.get(id).files, id).toContain('src/v7/components/ShapeChart.jsx');
     }
-    expect(byId.get('income.staircase-motion').status).toBe('designed');
+    // the motion was built in 6.45.0 (road-to-7.md step 11b): a transition on the picture's bars, off for anyone who asked their device for less motion
+    expect(byId.get('income.staircase-motion').status).toBe('built');
     expect(byId.get('income.staircase-motion').doc).toMatch(/^research\/v7\/spending-shape\.md §15/);
+    expect(byId.get('income.staircase-motion').files).toContain('src/v7/styles/components.css');
     // a built row's "what" no longer claims the parts split off it
     expect(byId.get('income.layers').what).not.toMatch(/marked at their ages|one-off spends/);
     expect(byId.get('income.staircase').what).not.toMatch(/easing/);
@@ -216,17 +219,19 @@ describe('the parity ledger: the owner\'s rules', () => {
     expect(extra.editV7).toBe('src/v7/screens/plan/SpendScreen.jsx');
     expect(extra.doc).toMatch(/^research\/v7\/spending-shape\.md §16/);
     expect(extra.gap).toBeFalsy();
+    // the lump sums were built on the saved plan's income step (6.41.0 the cards, 6.45.0 where each lands) and "Turn a lump sum into income" on its spend step (6.45.0): nothing waits any more
     const lumps = byId.get('inc.lump-sums');
-    expect(lumps.status).toBe('designed');
+    expect(lumps.status).toBe('built');
     expect(lumps.doc).toMatch(/^research\/v7\/spending-shape\.md §17/);
     expect(lumps.gap).toBeFalsy();
-    expect(waitsOf(byId.get('income.lump-to-steps'))).toEqual(['inc.lump-sums']);
+    expect(byId.get('income.lump-to-steps').status).toBe('built');
+    expect(waitsOf(byId.get('income.lump-to-steps'))).toEqual([]);
   });
 
-  it('the readable page counts every spending-shape row not built as "not yet", with what it waits for', () => {
+  it('the readable page counts every spending-shape row not built as "not yet", with what it waits for — none since 6.45.0', () => {
     const md = renderLedgerMarkdown(ledger);
     const notYet = incomeShapeNotYet(ledger);
-    expect(notYet.map((r) => r.id).sort()).toEqual(['income.lump-to-steps', 'income.staircase-motion']);
+    expect(notYet.map((r) => r.id).sort()).toEqual([]);
     const section = md.slice(md.indexOf('## The spending shape: not yet in V7'));
     expect(section).toMatch(new RegExp(`^## The spending shape: not yet in V7 \\(${notYet.length} of ${ledger.rows.filter((r) => r.area === 'income-shape').length}\\)`));
     for (const r of notYet) expect(section, r.id).toContain('**' + r.name + '**');

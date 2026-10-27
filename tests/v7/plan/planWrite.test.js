@@ -653,8 +653,8 @@ describe('property: whatever is typed, every path written is declared, and the p
       p.stop();
     }), { numRuns: 60 });
   });
-  it('the declared list is the steps\' and the stamp, nothing more (the record and the tick-offs each one field since step 10; the plan menu\'s name and main flag since step 11)', () => {
-    expect(ALL_WRITES.length).toBe(new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', ...PLANS_WRITES, 'lastModified']).size);
+  it('the declared list is the steps\' and the stamp, nothing more (the record and the tick-offs each one field since step 10; the plan menu\'s name and main flag since step 11; the whole budget, the Accumulation settings and the pot record list since step 11b)', () => {
+    expect(ALL_WRITES.length).toBe(new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', ...PLANS_WRITES, 'lastModified']).size);
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
   });
 });

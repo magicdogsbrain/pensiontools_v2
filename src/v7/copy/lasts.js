@@ -62,8 +62,34 @@ export const LASTS = {
       'hist.none': 'no start-year replay for this way of drawing yet: its history figure above is the one test’s',
       'hist.tooShort': 'real history since {year} is not long enough yet for a plan of this length; the futures the test stitches from it carry it on'
     },
-    scenarios: 'The named stresses as whole decades — what each did to shares and prices — are explained in the planner.',
-    scenariosButton: 'See the named stresses in the planner'
+    /** The named stresses (road-to-7.md step 11b): the famous decades, each replayed from its January, with what the decade did. */
+    scenariosTitle: 'The named stresses — whole decades',
+    scenariosLead: 'What each famous decade did to shares and prices, and what the one test’s real history from that January did to your plan. No second figure: these starts are among the {histories} the test counted.',
+    /** A contract plan (every year bought): the planner's lead to its inflation table, and the figures on each row. */
+    scenariosLeadContract: 'Every year of this plan is bought today, index-linked: a fall in shares changes nothing but the pounds that arrive, and they always buy the same. So the test here is prices — what each famous decade would do to the cash the rungs pay, against the plan at today’s prices.',
+    decade: { 'decade.line': 'shares {firstDir} {firstPct}% in the first three years and {decadeDir} {decadePct}% over the decade; prices {pricesDir} {pricesPct}% over the decade' },
+    cash: { 'cash.line': 'prices {pricesDir} {pricesPct}% after ten years: the rungs would pay {first} at {firstAge} and {tenth} at {tenthAge}, which still buys {worth} at today’s prices — paid in full by contract' },
+    dir: { down: 'down', up: 'up' },
+    synthetic: '{name}: {decade}. A made-up decade: no real start is this bad, so it is not in the test.',
+    syntheticHardest: ' The hardest real start in the record is {when}, above.'
+  },
+  /** The years one by one and the pots’ floors (road-to-7.md step 11b): the planner’s Drawdown and Glidepath pages, read off the one test. */
+  years: {
+    title: 'The years, one by one',
+    show: 'Show the years',
+    hide: 'Hide the years',
+    lead: 'Year by year at {prices}% a year prices, with no ups and downs: what is drawn from the pension to fill the basic-rate band, the State Pension once it starts, the tax, what the ISA tops up to reach the plan’s figure, what is left to spend, and the ISA left. A steady path for reading, not a second test: the figure above counts every real start and 1,000 futures.',
+    leadOwn: 'Year by year as this way of drawing pays: the income in the middle future, the income in a 1-in-10 bad one, and what is left in the middle — read off the same test as the figure above.',
+    columns: { year: 'Year', age: 'Age', pension: 'From the pension', state: 'State Pension', tax: 'Tax', isa: 'From the ISA', spendable: 'To spend', isaLeft: 'ISA left', incomeMid: 'Income (middle)', incomeBad: 'Income (1 in 10 bad)', leftMid: 'Left (middle)' },
+    floorsTitle: 'The pots’ floors over the plan',
+    floorsShow: 'Show the pots’ floors',
+    floorsHide: 'Hide the pots’ floors',
+    floorsLead: 'The least each pot is meant to hold, year by year at {prices}% a year prices: the shares and bonds floors rise with prices and run down to nothing by the end; cash holds its value; the ISA runs down as it tops up income.',
+    floorsLeadTent: 'The least each pot is meant to hold, year by year at {prices}% a year prices. The bond tent is on: the shares part of the pots rises over the early years, then holds; the floors rise with prices and run down to nothing by the end; cash holds its value; the ISA runs down as it tops up income.',
+    floorsDiversifiers: ' Your gold and trend pot runs down the same way.',
+    floorsReserve: ' The emergency reserve is shown apart and never touched.',
+    floorsColumns: { year: 'Year', age: 'Age', shares: 'Shares floor', bonds: 'Bonds floor', cash: 'Cash', diversifiers: 'Gold and trend', reserve: 'Reserve', sharesPct: 'Shares % of the pot', isa: 'ISA', total: 'All floors' },
+    notThisWay: 'This way of drawing keeps no floors: every year is bought or paid by its own rule, so there is no table of floors to show.'
   },
   sections: { cuts: 'Cuts in a slump', reserve: 'Emergency reserve' },
   notes: {

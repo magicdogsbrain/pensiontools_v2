@@ -102,6 +102,7 @@ import {
   evalAmountExpr,
   typicalSanityFlag,
   breakdownAnnual,
+  cleanBudgetForSave, fillTypicalAmounts, partnerCopyOf, resetBudgetLines, withSuggestion, importedBudget,   // the Budget page's handlers, lifted pure (6.45.0)
   DEFAULT_TAX_BANDS
 } from './services/BudgetModel.js';
 
@@ -427,6 +428,7 @@ export {
   evalAmountExpr,
   typicalSanityFlag,
   breakdownAnnual,
+  cleanBudgetForSave, fillTypicalAmounts as fillTypicalAmountsOf, partnerCopyOf, resetBudgetLines, withSuggestion, importedBudget,   // the Budget page's handlers, lifted pure (6.45.0)
   DEFAULT_TAX_BANDS,
   grossToNet,
 

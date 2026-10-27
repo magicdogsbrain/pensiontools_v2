@@ -318,6 +318,14 @@ const anyAction = fc.oneof(
   // "What you hold" and "Moving to your plan's mix" (road-to-7.md step 10)
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom({ kind: 'add', line: { wrapper: 'ISA', ticker: 'VWRP' } }, { kind: 'edit', index: 0, field: 'value', value: '1' }, { kind: 'remove', index: 0 }, { kind: 'paste', text: 'a,1', wrapper: 'SIPP', answers: {} })).map(([planId, change]) => ({ type: A.PLAN_HOLD, planId, change })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('gilt:T29', 'bucket:shares'), fc.boolean()).map(([planId, key, done]) => ({ type: A.PLAN_TICK, planId, key, done })),
+  // the budget on a saved plan (road-to-7.md step 11b): one change, the spreadsheet chosen and read, the download
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom({ kind: 'line', id: 'b1', field: 'amount', value: 100 }, { kind: 'add', tier: 'essential' }, { kind: 'remove', id: 'b1' }, { kind: 'fill' }, { kind: 'reset' }, { kind: 'spreadsheet', text: 'Type,Item' })).map(([planId, change]) => ({ type: A.PLAN_BUDGET, planId, change })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_BUDGET_FILE, planId, file: null })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('Type,Item\nItem,Essential,Gas,50,mo', null)).map(([planId, text]) => ({ type: A.PLAN_BUDGET_FILE_READ, planId, text })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_BUDGET_DOWNLOAD, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_RECORD, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_STALE_LEAVE, planId })),
+  fc.constantFrom(null, { app: '6.45.0', engine: '6.37.0', shares: { from: 1928, to: 2024 } }).map((facts) => ({ type: A.ASSUMPTIONS_SET, facts })),
   fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_RUN, key })),
   fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_DONE, key, result: { affordable: true, a: { share: 0.9 }, basis: { runs: 1 } }, ms: 500 })),
   fc.tuple(fc.constantFrom('m1', 'm2'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.MOVE_FAILED, key, reason })),

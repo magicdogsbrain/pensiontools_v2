@@ -14,11 +14,13 @@ export const INCOME = {
   fields: {
     spKind:   { label: 'Your State Pension', options: { full: 'The full amount, {full} a year', forecast: 'My forecast', none: 'None', assumed: 'Leave it as assumed for now' }, help: 'Before tax. The plan takes it from your State Pension age; a saved date from your forecast is kept.' },
     spWeekly: { label: 'A week, before tax, from your forecast', help: 'Pounds a week, as the forecast letter gives it.' },
+    spDate:   { label: 'The date it starts, from your forecast', help: 'As the letter gives it, like 6 May 2040. Blank: the plan takes your State Pension age, counted from the day your age was recorded. Every age in the plan is reckoned from this date.' },
     other:    { label: 'Other income for the whole plan, a year before tax', help: 'Pounds a year, from the plan’s first year on, going up with prices capped at 4% a year. Leave it blank for none.' }
   },
   errors: {
     spKind:   { required: 'Choose the full amount, your forecast, or none.', notAnOption: 'Choose one of the options offered.' },
     spWeekly: { required: 'Type the weekly amount from your forecast.', notANumber: 'Figures only, like 230.25.', tooLow: 'An amount of at least 1 a week.', tooHigh: 'An amount up to 1,000 a week, please.' },
+    spDate:   { notADate: 'A date like 6 May 2040, please.', looksLikeBirth: 'That looks like a date of birth. The date your State Pension starts is on your forecast letter.' },
     other:    { notANumber: 'Figures only, like 1,200.', tooLow: 'An amount of 0 or more.', tooHigh: 'An amount up to 1,000,000 a year, please.' }
   },
   /** The lists of cards (7.2): one card's name, its boxes, its problems, add and remove. */
@@ -59,14 +61,27 @@ export const INCOME = {
         label:   { label: 'What it is', help: 'Like “Inheritance” or “Downsizing”.' },
         amount:  { label: 'Amount, once, at today’s prices' },
         atAge:   { label: 'At age' },
-        wrapper: { label: 'What kind', options: { cash: 'A cash lump sum', pension: 'An inherited pension', isa: 'An inherited ISA' }, help: 'Where a cash lump sum can go — the ISA allowance, the pension within its limit, the rest in an ordinary account — is worked out in the planner.' }
+        wrapper: { label: 'What kind', options: { cash: 'A cash lump sum', pension: 'An inherited pension', isa: 'An inherited ISA' }, help: 'Where a cash lump sum can go — the ISA allowance, the pension within its limit, the rest in a taxable account — is said under the card.' }
       },
       errors: {
         label:   { tooLong: 'Up to 60 letters, please.' },
         amount:  { required: 'Type the amount.', notANumber: 'Figures only, like 90,000.', tooLow: 'An amount of at least 1.', tooHigh: 'An amount up to 10,000,000, please.' },
         atAge:   { required: 'Type the age it arrives.', notANumber: 'Whole years, please.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 110, please.', beforeStart: 'The plan’s first year is at age {ageNow}: money arriving before then counts as part of your pots today. An age of {ageNow} or more, please.', afterEnd: 'That is after the plan ends at age {endAge}. An age up to {endAge}, please.' },
         wrapper: { notAnOption: 'Choose one.' }
-      }
+      },
+      /** Where it lands, in the year it arrives (the planner's own rule, TaxableSleeve.routeWindfall): by the parts it has. */
+      landing: {
+        'lump.pension': 'It joins your pension, taxed as pension income when drawn.',
+        'lump.isa': 'It joins your ISA, tax-free.',
+        'lump.cash.ipt': 'That year: {isa} into the ISA, {pension} into the pension and {taxable} into a taxable account held as {mix}, taxed as such while it waits.',
+        'lump.cash.it': 'That year: {isa} into the ISA and {taxable} into a taxable account held as {mix}, taxed as such while it waits.',
+        'lump.cash.pt': 'That year: {pension} into the pension and {taxable} into a taxable account held as {mix}, taxed as such while it waits.',
+        'lump.cash.t': 'That year: {taxable} into a taxable account held as {mix}, taxed as such while it waits.',
+        'lump.cash.ip': 'That year: {isa} into the ISA and {pension} into the pension; nothing left over for a taxable account.',
+        'lump.cash.i': 'That year: {isa} into the ISA; nothing left over for a taxable account.',
+        'lump.cash.p': 'That year: {pension} into the pension; nothing left over for a taxable account.'
+      },
+      mix: { gilt: 'gilts', equity: 'shares', bond: 'bond funds', balanced: 'a 60/20/20 mix', cash: 'cash' }
     }
   },
   /** The rises and the kinds, in words, for the derived lines. */

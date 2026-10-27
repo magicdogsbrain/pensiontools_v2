@@ -392,6 +392,9 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .shape-plot .guide { stroke: var(--chart-guide); stroke-width: 2; stroke-dasharray: 6 4; }
 .shape-plot .band-goSlow { fill: var(--chart-band); }
 .shape-plot .band-goGo, .shape-plot .band-noGo { fill: transparent; }
+/* the picture moves from the old shape to the new one as a step changes (income.staircase-motion): each bar eases to its new
+   height over about half a second; base.css turns every transition off for anyone who has asked their device for less motion */
+.shape-plot rect.part-pots, .shape-plot rect.part-income, .shape-plot rect.part-below { transition: y 450ms ease-out, height 450ms ease-out; }
 .shape-plot .part-pots { fill: var(--chart-pots); }
 .shape-plot .part-income { fill: var(--chart-income); }
 .shape-plot .part-below { fill: var(--chart-below); }
@@ -577,3 +580,40 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .rn-list li { margin: 0 0 4px; max-width: var(--measure); }
 .rn-tool { margin: 0 0 6px; }
 .rn-history { margin: 20px 0 0; }
+/* The budget on a saved plan (research/v7/road-to-7.md step 11b): the planner's page, line by line, in the sheet's own shapes. */
+.budget-form .budget-line .field { margin: 0; }
+.budget-form .line-boxes .field-money input[type="text"] { width: 8.5rem; max-width: 100%; }
+.budget-form .line-boxes .field-text input[type="text"] { width: 5rem; max-width: 100%; }
+.budget-form .line-name .field.is-wide input[type="text"] { max-width: 100%; width: min(100%, 24rem); }
+.field-choice-select select { font: inherit; color: var(--text); background: var(--surface-page); border: 2px solid var(--line-strong); border-radius: var(--radius-sm); min-height: var(--target); padding: 6px 10px; }
+.line-hint { font-size: var(--size-small); }
+.budget-line-actions { margin: 6px 0 0; gap: 4px 10px; }
+.budget-ages, .budget-parts { margin: 8px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised); }
+.budget-ages { display: flex; flex-wrap: wrap; gap: 0 14px; }
+.budget-ages .field input[type="text"] { width: 6rem; }
+.budget-part { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 6px; }
+.budget-part .field { margin: 0; }
+.budget-part .field-text input[type="text"] { width: 12rem; max-width: 100%; }
+.budget-part .field-money input[type="text"] { width: 7rem; }
+.budget-nudge { margin: 6px 0 0; font-size: var(--size-small); }
+.budget-chips { list-style: none; padding: 0; margin: 6px 0; display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.budget-chips li { margin: 0; }
+.budget-totals .figure { font-size: 1.25rem; }
+.plan-oneoff { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.plan-oneoff .actions-row { grid-column: 1 / -1; }
+.budget-tier { margin: 10px 0; }
+.budget-reset { margin: 14px 0 0; }
+/* "Assumptions and data" (road-to-7.md step 11b): sections closed but the first, each a list of name, figure and note */
+.assump-section { margin: 12px 0; border-top: 1px solid var(--line); padding-top: 8px; }
+.assump-section summary { cursor: pointer; list-style: revert; }
+.assump-section summary h2 { display: inline; font-size: 1.1rem; margin: 0; }
+.assump-rows { margin: 8px 0 0; }
+.assump-row { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.assump-name { font-weight: 600; font-size: var(--size-small); }
+.assump-value { margin: 2px 0; }
+.assump-note { margin: 0; }
+.budget-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 12px; margin: 8px 0 0; }
+.budget-add .field { flex: 1 1 220px; margin: 0; }
+.budget-add .actions-row { margin: 0 0 2px; }
+.budget-phase .field input[type="text"] { width: 6rem; }
+@media (max-width: 480px) { .plan-oneoff { grid-template-columns: 1fr; } }

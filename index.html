@@ -4067,6 +4067,7 @@
       runCareCheck,
       typicalSanityFlag,
       breakdownAnnual,
+      cleanBudgetForSave, fillTypicalAmountsOf, partnerCopyOf, resetBudgetLines, withSuggestion, importedBudget,   // the Budget page's handlers, lifted pure (6.45.0): the preview's budget step calls the same
       DEFAULT_TAX_BANDS,
       grossToNet
     } from './src/app.js';
@@ -4112,12 +4113,12 @@
     // Import constants for optimization
     import { installInlineHandlers } from './src/ui/inlineHandlers.js';
     import { EQUITY_RETURNS, INFLATION, SIMULATION_DEFAULTS, DRAWDOWN_DEFAULTS, TAX_DEFAULTS } from './src/constants.js';
-    import { amountAtAge } from './src/services/IncomeSchedule.js';   // steps + per-step decline / glide → £ at an age
+    import { amountAtAge, lumpIntoSteps } from './src/services/IncomeSchedule.js';   // steps + per-step decline / glide → £ at an age; a lump sum into the steps (lifted 6.45.0)
     import { animateIncomeShape } from './src/ui/incomeShapeGraphic.js';
     import { MC_BLOCK_YEARS } from './src/services/SimulationEngine.js';
     // One answer per plan (6.24.0; usability audit decision 2): every "will it last" figure is the one test's, read through these.
     import { oneAnswer, worstStarts, earlierTestNote, cutsSettingWords, futuresOutOfTen, pctText, CHANCE_BARS, RUIN_BARS } from './src/services/OneAnswer.js';
-    import { namedStartRows } from './src/services/NamedStarts.js';
+    import { namedStartRows, SCENARIO_START } from './src/services/NamedStarts.js';   // the named stresses' start years, lifted (6.45.0): the preview reads the same
     import { leftRowHtml, cutsRowHtml, withoutCutsLineHtml, historyTabHtml, scenariosTabHtml, rankingCardHtml, allocationGridHtml, earlierTestNoteHtml } from './src/ui/oneAnswerView.js';
     import { DECISION_ASSUMED_CPI } from './src/services/InflationModel.js';
     import { LADDER_DEFAULTS, orderSheetRows } from './src/strategies/GiltLadderPlan.js';
@@ -6175,7 +6176,6 @@
       } catch (e) { console.error('History error:', e); box.innerHTML = '<div class="alert alert-danger">Could not show the history: ' + budEsc(e.message) + '</div>'; }
     };
     // Scenarios: the named stresses, explained from the same histories.
-    const SCENARIO_START = { GREAT_DEPRESSION: 1929, STAGFLATION_70S: 1973, LOST_DECADE_2000S: 2000, CRISIS_2008: 2008 };
     window.runScenariosUI = async function () {
       const box = document.getElementById('scenResults');
       const s = await getStressSettingsAsync();
@@ -7167,16 +7167,11 @@
     window.spendLumpSum = function (i) {
       const w = (window._ssWindfalls || [])[i]; if (!w || !(w.amount > 0) || w.year == null) return;
       const ageNow = +document.getElementById('shapeAgeNow').value || 57; const dur = +document.getElementById('ssDuration')?.value || 35;
-      const age = ageNow + (+w.year); const yrs = Math.max(1, ageNow + dur - 1 - age + 1); const perYear = Math.round(w.amount / yrs / 100) * 100;
       const steps = window._ssIncomeSteps || [];
       if (!steps.length) { showToast('Set a first step first.', 'warning'); return; }
-      const atAge = Math.round(amountAtAge(steps, age, +steps[0].amount));
-      const existing = steps.find((st) => +st.fromAge === age);
-      if (existing) existing.amount = +existing.amount + perYear;
-      else { const prev = [...steps].filter((st) => +st.fromAge < age).sort((a, b) => +a.fromAge - +b.fromAge).pop(); steps.push({ fromAge: age, amount: atAge + perYear, decline: prev ? (+prev.decline || 0) : 0 }); if (prev && prev.glideToNext) prev.glideToNext = false; }
-      for (const st of steps) if (+st.fromAge > age) st.amount = +st.amount + perYear;
-      window._ssIncomeSteps = steps; renderIncomeSteps();
-      showToast('Added ' + gbp(perYear) + '/yr from age ' + age + ' — ' + gbp(w.amount) + ' spread evenly over ' + yrs + ' years. The lump sum stays in the plan as the money that pays for it. Edit the steps freely, then Save.', 'success', 7000);
+      const r = lumpIntoSteps(steps, { ageNow, duration: dur, amount: +w.amount, year: +w.year });   // IncomeSchedule, lifted (6.45.0)
+      window._ssIncomeSteps = r.steps; renderIncomeSteps();
+      showToast('Added ' + gbp(r.perYear) + '/yr from age ' + r.age + ' — ' + gbp(w.amount) + ' spread evenly over ' + r.years + ' years. The lump sum stays in the plan as the money that pays for it. Edit the steps freely, then Save.', 'success', 7000);
     };
     window.startShapeFromBudget = async function () {
       await refreshShapeRefs();
@@ -10393,12 +10388,9 @@
     }
 
     window.addBudgetSuggestion = function (label) {
-      const m = missingSuggestions(window._budget).find((x) => x.label === label);
-      if (!m) return;
-      window._budget.lines.push({
-        id: budId(), label: m.label, tier: m.tier, annual: null, fromAge: null, toAge: null,
-        hint: m.hint || '', period: m.period || 'yr', paidBy: m.paidBy || 'me'
-      });
+      const next = withSuggestion(window._budget, label, budId);
+      if (next === window._budget) return;
+      window._budget.lines = next.lines;
       renderBudgetLines();
       renderBudgetSuggestions();
       updateBudgetSummary();
@@ -10503,8 +10495,7 @@
       const arr = window._budget.lines;
       const line = arr.find((l) => l.id === id);
       if (!line) return;
-      const copy = { ...line, id: budId(), label: (line.label || 'Item') + ' (partner)', paidBy: 'partner' };
-      arr.splice(arr.indexOf(line) + 1, 0, copy);
+      arr.splice(arr.indexOf(line) + 1, 0, partnerCopyOf(line, budId()));
       renderBudgetLines();
       updateBudgetSummary();
     };
@@ -10513,21 +10504,15 @@
       const arr = window._budget.oneOffs;
       const o = arr.find((x) => x.id === id);
       if (!o) return;
-      const copy = { ...o, id: budId(), label: (o.label || 'Item') + ' (partner)', paidBy: 'partner' };
-      arr.splice(arr.indexOf(o) + 1, 0, copy);
+      arr.splice(arr.indexOf(o) + 1, 0, partnerCopyOf(o, budId()));
       renderBudgetOneOffs();
       updateBudgetSummary();
     };
 
-    // Fill BLANK amounts with the ONS typical figures (never overwrites what you've entered).
+    // Fill BLANK amounts with the ONS typical figures (never overwrites what you've entered) — BudgetModel.fillTypicalAmounts, lifted (6.45.0).
     window.fillTypicalAmounts = function () {
-      let n = 0;
-      for (const line of window._budget.lines) {
-        if (line.annual == null || line.annual === '') {
-          const t = typicalMonthlyFor(line.label, window._budget);
-          if (t != null) { line.annual = t * 12; n++; }
-        }
-      }
+      const { budget, n } = fillTypicalAmountsOf(window._budget);
+      window._budget.lines = budget.lines;
       renderBudgetLines();
       updateBudgetSummary();
       showToast(n ? ('Filled ' + n + ' blank categories with ' + PLSA_TIER_LABELS[plsaTierOf(window._budget)] + ' figures — adjust freely') : 'No blank categories with a typical figure', n ? 'success' : 'info');
@@ -10669,14 +10654,7 @@
       _budSaveTimer = setTimeout(budAutosave, 1200);
     };
 
-    function budCleanForSave() {
-      return {
-        ...window._budget,
-        lines: window._budget.lines.filter((l) => (l.label && l.label.trim()) || l.annual ||
-          (l.breakdown && l.breakdown.some((r) => (r.label && r.label.trim()) || r.amount))),
-        oneOffs: window._budget.oneOffs.filter((o) => (o.label && o.label.trim()) || o.amount)
-      };
-    }
+    const budCleanForSave = () => cleanBudgetForSave(window._budget);   // BudgetModel, lifted (6.45.0)
 
     async function budAutosave() {
       if (!isLoggedIn()) { budSetStatus('Sign in to save'); return; }
@@ -10695,8 +10673,7 @@
     // Start over: fresh seeded categories, amounts blank. Horizon and partner-sharing are kept.
     window.resetBudgetUI = async function () {
       if (!await appConfirm('Reset the budget?\n\nAll amounts, sub-sheets and custom lines go back to a fresh start. Your ages and partner-sharing setting are kept.\n\nThis saves immediately and cannot be undone.')) return;
-      window._budget.lines = starterLines().map((l) => ({ id: budId(), ...l }));
-      window._budget.oneOffs = starterOneOffs().map((o) => ({ id: budId(), ...o }));
+      Object.assign(window._budget, resetBudgetLines(window._budget, budId));
       renderBudgetLines();
       renderBudgetOneOffs();
       updateBudgetSummary();
@@ -10737,10 +10714,7 @@
           // Safe apply: pre-import copy for undo, replace under the autosave gate, flush once.
           const before = JSON.parse(JSON.stringify(window._budget));
           _budLoaded = false;
-          const b = window._budget;
-          Object.assign(b, r.settings);
-          b.lines = r.lines.map((l) => ({ ...l, id: budId() }));
-          b.oneOffs = r.oneOffs.map((o) => ({ ...o, id: budId() }));
+          const b = Object.assign(window._budget, importedBudget(window._budget, r, budId));   // BudgetModel, lifted (6.45.0)
           // re-sync the horizon/sharing inputs from the imported settings
           const setV = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
           setV('budCurrentAge', b.currentAge); setV('budRetireAge', b.retirementAge); setV('budEndAge', b.endAge);

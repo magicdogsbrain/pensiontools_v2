@@ -34,6 +34,9 @@ import { LockScreen } from './plan/LockScreen.jsx';
 import { HouseholdScreen } from './plan/HouseholdScreen.jsx';
 import { HoldScreen } from './plan/HoldScreen.jsx';
 import { MoveScreen } from './plan/MoveScreen.jsx';
+import { BudgetScreen } from './plan/BudgetScreen.jsx';
+import { SavingScreen } from './plan/SavingScreen.jsx';
+import { AssumptionsScreen } from './AssumptionsScreen.jsx';
 
 export const SCREENS = {
   front: FrontDoor,
@@ -61,6 +64,8 @@ export const SCREENS = {
   // the account page and What's new (research/v7/road-to-7.md step 11)
   account: AccountScreen,
   news: NewsScreen,
+  // where every figure comes from (road-to-7.md step 11b)
+  assumptions: AssumptionsScreen,
   plan: PlanScreen,
   // the editing steps of a saved plan (research/v7/editing-in-v7.md 2, 7, 8, 9, 10)
   'plan.about': AboutScreen,
@@ -78,5 +83,8 @@ export const SCREENS = {
   'plan.household': HouseholdScreen,
   // "What you hold" and "Moving to your plan's mix": the two rail steps made real (research/v7/holdings-and-move.md; road-to-7.md step 10)
   'plan.hold': HoldScreen,
-  'plan.move': MoveScreen
+  'plan.move': MoveScreen,
+  // the budget and "What you pay in": the two rail steps made real (research/v7/road-to-7.md step 11b)
+  'plan.budget': BudgetScreen,
+  'plan.saving': SavingScreen
 };

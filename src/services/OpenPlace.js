@@ -38,6 +38,8 @@ export const PLACES = Object.freeze({
   month:     { tab: 'decision',     sub: 'entry',          section: null,              needs: 'decision' },
   taxyear:   { tab: 'decision',     sub: 'taxyears',       section: null,              needs: 'decision' },
   document:  { tab: 'decision',     sub: 'plandoc',        section: null,              needs: 'decision' },
+  /** The records by tax year, the spreadsheet per year and the printed documents (road-to-7.md step 11b, the ledger's month.exports): the planner's History page. */
+  exports:   { tab: 'decision',     sub: 'history',        section: null,              needs: 'decision' },
   potRecord: { tab: 'accumulation', sub: null,             section: 'acRecordSection', needs: null },
   saving:    { tab: 'accumulation', sub: null,             section: null,              needs: null },
   onCourse:  { tab: 'accumulation', sub: null,             section: 'acOnTrack',      needs: null },

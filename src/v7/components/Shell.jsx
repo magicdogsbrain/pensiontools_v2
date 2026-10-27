@@ -62,7 +62,7 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
       <footer class="foot" data-region="footer">
         {full && <p class="advice-full">{ADVICE_FULL}</p>}
         <p class="advice">{front ? `${COMMON.footer.worksOut} ${ADVICE_SHORT}` : ADVICE_SHORT}</p>
-        <p class="run-by">{COMMON.footer.runBy} <a href={COMMON.links.privacy}>{COMMON.footer.privacy}</a> · <a href={href.news()} data-testid="nav.whatsNew">{fill(COMMON.footer.whatsNew, { version: state.env.appVersion })}</a></p>
+        <p class="run-by">{COMMON.footer.runBy} <a href={COMMON.links.privacy}>{COMMON.footer.privacy}</a> · <a href={href.news()} data-testid="nav.whatsNew">{fill(COMMON.footer.whatsNew, { version: state.env.appVersion })}</a> · <a href={href.assumptions()} data-testid="nav.assumptions">{COMMON.footer.assumptions}</a></p>
       </footer>
       {G.stop && <GuestStop />}
       {!G.stop && G.nag && <GuestNag nag={G.nag} dispatch={dispatch} />}

@@ -822,6 +822,11 @@ export function newsView(state) {
   const n = (state.ui && state.ui.news) || { popup: null, page: null, seen: null };
   return { popup: n.popup, page: n.page, current: state.env.appVersion };
 }
+/** "Assumptions and data" (road-to-7.md step 11b): the figures the effect loaded (ui.assumptions), or that they are opening or could not be read. */
+export function assumptionsView(state) {
+  const a = state.ui && state.ui.assumptions;
+  return { facts: a && a.facts ? a.facts : null, failed: !!(a && a.failed), opening: !a };
+}
 
 /** The "Your plan" screen for the route's plan and step: the source's reading of it, or { found: false } until it is there. */
 /**
@@ -859,7 +864,9 @@ export function planLastsView(state) {
   // Try a change (way-and-mix.md 4): the boxes' problems show once left or once "Try it" has been pressed, as the dials' do
   const tryFields = v.try ? v.try.fields.map((f) => ({ ...f, error: v.draft.touched.includes(f.path) || v.draft.asked || (L.tried && mine) ? f.error : null })) : [];
   return { ...v, run: { status: mine ? L.status : 'idle', reason: mine ? L.reason || null : null, progress: mine ? L.progress : null, slow: mine ? L.slow : false, fresh: mine && L.status === 'done' && !!v.verdict },
-    try: v.try ? { ...v.try, fields: tryFields, open: open.includes('tryOpen') || !!(L.tried && mine), confirm: open.includes('tryConfirm') } : null };
+    try: v.try ? { ...v.try, fields: tryFields, open: open.includes('tryOpen') || !!(L.tried && mine), confirm: open.includes('tryConfirm') } : null,
+    // the year-by-year tables (road-to-7.md step 11b): closed until opened
+    scheduleOpen: open.includes('lastsSchedule'), glidepathOpen: open.includes('lastsGlidepath') };
 }
 /**
  * "The mix" (way-and-mix.md 3.2): the plan source's reading of the step (page.mix: the boxes, the funds, the paste, the tries
@@ -899,6 +906,34 @@ export function planWayView(state) {
     problem: ui.saveProblem && ui.saveProblem.planId === way.id ? ui.saveProblem.problem : null,
     toast: ui.toast && ui.toast.planId === way.id ? ui.toast : null
   };
+}
+/**
+ * The budget on a saved plan (research/v7/road-to-7.md step 11b): the plan source's reading of the step (page.budget: the lines
+ * with their boxes, hints and nudges, the one-offs, the phases, the totals, the spreadsheet opened, from answers/plan/budget.js
+ * with what was typed) with the open confirm (ui.open: budgetReset), the write's state, the problem and the toast. Nothing
+ * worked out here.
+ */
+export function planBudgetView(state) {
+  const plans = state.plans;
+  const r = state.route;
+  const page = plans && plans.status === 'read' && plans.view && plans.view.page && plans.view.today === state.env.today ? plans.view.page : null;
+  const b = page && page.budget && r && r.screen === 'plan' && r.step === 'budget' && page.forId === r.planId ? page.budget : null;
+  if (!b || !b.found) return { found: false, id: r && r.planId ? r.planId : '', status: plans ? plans.status : 'checking' };
+  const ui = state.ui || {};
+  const open = Array.isArray(ui.open) ? ui.open : [];
+  const pd = state.draft && state.draft.plan && state.draft.plan.id === b.id ? state.draft.plan : null;
+  return {
+    ...b,
+    touched: pd && Array.isArray(pd.touched) ? pd.touched : [],
+    resetOpen: open.includes('budgetReset'),
+    saving: ui.saving && ui.saving.planId === b.id ? ui.saving : null,
+    problem: ui.saveProblem && ui.saveProblem.planId === b.id ? ui.saveProblem.problem : null,
+    toast: ui.toast && ui.toast.planId === b.id ? ui.toast : null
+  };
+}
+/** "What you pay in" (road-to-7.md step 11b): the same reading as an editing step's (page.saving), plus the record's write under way. */
+export function planSavingView(state) {
+  return editView(state, 'saving');
 }
 function editView(state, step) {
   const plans = state.plans;

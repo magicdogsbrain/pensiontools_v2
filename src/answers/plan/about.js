@@ -18,8 +18,8 @@
  *
  * Every path written is in schema.js ABOUT_WRITES (tested); a key is sent only when its value changes.
  */
-import { deriveTiming, taxYearStartOf, taxYearLabel, ageOnDate } from '../../services/PlanTiming.js';
-import { effectiveStressSettings } from '../../services/PlanReading.js';
+import { deriveTiming, taxYearStartOf, taxYearLabel, ageOnDate, staleDraft } from '../../services/PlanTiming.js';
+import { effectiveStressSettings, historyAscending } from '../../services/PlanReading.js';
 import { longevityAge } from '../../services/LongevityModel.js';
 import { grossToNet } from '../../services/TaxCalculator.js';
 import { grossUpAnnual, DEFAULT_TAX_BANDS } from '../../services/BudgetModel.js';
@@ -294,6 +294,32 @@ export function aboutPatch(plan, typed, { today }) {
   return { ok: true, errors: {}, patch, previous };
 }
 
+/**
+ * An out-of-date draft (road-to-7.md step 11b, the ledger's timing.stale-draft; PlanTiming.staleDraft, the planner's own rule):
+ * the start year has passed, the plan is not locked and nothing is recorded. "Update it" sets the boxes as the planner's update
+ * sets its form — stopped, starting this tax year — and the ordinary save writes the timing, so the steps, the per-year figures
+ * and the Decision tool's first year all move with it. Null when there is nothing to offer, or "Leave it" was chosen for that year.
+ */
+export function staleOf(plan, { today }) {
+  const now = dateOf(today);
+  const s = savedAbout(plan, { today });
+  let hasRecords = false;
+  try { hasRecords = historyAscending(plan).length > 0; } catch { hasRecords = false; }
+  let sd = null;
+  try { sd = staleDraft(s.ss, { locked: s.locked, hasRecords, now }); } catch { sd = null; }
+  if (!sd) return null;
+  return { savedYear: sd.savedYear, yearSaved: sd.savedLabel, suggestedYear: sd.suggestedYear, year: sd.suggestedLabel, mode: sd.mode,
+    edits: [{ path: 'stopped', value: 'yes' }, { path: 'startWhen', value: 'now' }] };
+}
+
+/** "Leave it": the planner's own key, the saved year remembered so the offer is not made again for it; nothing else written. */
+export function stalePatch(plan, { today }) {
+  const sd = staleOf(plan, { today });
+  if (!sd) return { ok: false, errors: { stale: 'none' }, patch: {}, previous: {}, line: null };
+  const path = 'stressTool.settings.staleDraftDismissedFor';
+  return { ok: true, errors: {}, patch: { [path]: sd.savedYear }, previous: { [path]: copy(get(plan, path)) }, line: { id: 'staleLeft', slots: { yearSaved: sd.yearSaved } } };
+}
+
 /** A copy of the plan with a patch folded on: a dotted path set to its value, or removed when the value is undefined. */
 export function applyPatch(plan, patch) {
   const out = JSON.parse(JSON.stringify(plan));
@@ -406,8 +432,10 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
   }
   const p = editable && c.ok ? aboutPatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
   const slots = { years: saved.duration, endAge: saved.values.endAge };
+  // an out-of-date draft (timing.stale-draft): offered only where the step can be edited
+  const stale = editable ? staleOf(plan, { today }) : null;
   return {
-    found: true, id: String(plan.id), name: nameOf(plan), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable,
+    found: true, id: String(plan.id), name: nameOf(plan), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable, stale,
     source: saved.source, ageSource: saved.ageSource, thisTY: saved.thisTY, yearNow: taxYearLabel(saved.thisTY), yearApril: taxYearLabel(saved.thisTY + 1),
     yearSaved: saved.values.savedYear ? taxYearLabel(saved.values.savedYear) : null,
     fields, errors: c.errors, ok: c.ok, derived, notUsed: notUsedBy(sid), partners, suggestion, endAgeMin: c.minEnd, minYears: MIN_YEARS,

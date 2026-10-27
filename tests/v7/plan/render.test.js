@@ -72,10 +72,11 @@ describe('every committed plan, every step, three dates (T5)', () => {
           const { root, text } = draw(state);
           const pg = planPage(entries, e.plan.id, step, { today });
           // "Lock the plan" draws its own screen (road-to-7.md step 6; tests/v7/plan/lockRender.test.js), and so do "Your household" (step 9; householdRender.test.js, which holds its boxes to its own rules),
-          // "What you hold" and "Moving to your plan's mix" (step 10; holdRender.test.js, moveRender.test.js); every other step the plan page
-          const own = { lock: 'plan.lock', household: 'plan.household', hold: 'plan.hold', move: 'plan.move' };
+          // "What you hold" and "Moving to your plan's mix" (step 10; holdRender.test.js, moveRender.test.js), the budget and "What you pay in" (step 11b;
+          // budgetRender.test.js, savingRender.test.js); every other step the plan page
+          const own = { lock: 'plan.lock', household: 'plan.household', hold: 'plan.hold', move: 'plan.move', budget: 'plan.budget', saving: 'plan.saving' };
           expect(root.querySelector('main').getAttribute('data-screen')).toBe(own[step] || 'plan');
-          if (step !== 'household' && step !== 'hold' && step !== 'move') for (const p of checkPlanPage(root, text, scopesOf(pg.stageKey))) problems.push(`${e.plan.id} ${step || '(first)'} [${pg.stageKey}]: ${p}`);
+          if (!['household', 'hold', 'move', 'budget', 'saving'].includes(step)) for (const p of checkPlanPage(root, text, scopesOf(pg.stageKey))) problems.push(`${e.plan.id} ${step || '(first)'} [${pg.stageKey}]: ${p}`);
           // the rail: one current step, a link per listed step, the next sentence
           const rail = root.querySelector('[data-region="rail"]');
           if (!rail) problems.push(`${e.plan.id}: no rail`);
@@ -161,9 +162,12 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(where.text).toContain('From your record, September 2026');
   });
   it('a step not on the stage\'s list still opens and says so (R7)', () => {
+    // the retired ladder lists no "What you pay in": its own screen (step 11b) opens all the same and says so; the plan page's own steps say so too (pot on the ladder)
     const { root, text } = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/saving'));
     expect(root.querySelector('[data-testid="plan.notListed"]')).not.toBe(null);
     expect(text).toContain('Nothing paid in');
+    const pot = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/pot'));
+    expect(pot.root.querySelector('[data-testid="plan.notListed"]')).not.toBe(null);
   });
   it('a plan shown as saved: the sentence, and not one Change button', () => {
     const newer = entries.map((e) => (e === ladder ? { ...e, newer: true } : e));

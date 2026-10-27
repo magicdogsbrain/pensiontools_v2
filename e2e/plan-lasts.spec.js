@@ -108,6 +108,19 @@ test.describe('"Does it last?", without an account', () => {
     await expect(page.locator('[data-section="history"]')).toContainText('What if you had retired into a bad year?');
     expect(await page.locator('[data-testid="plan.lasts.worst"] li').count()).toBe(node.history.worst.length);
     expect(await page.locator('[data-testid="plan.lasts.named"] li').count()).toBe(node.history.named.length);
+    // the named stresses as whole decades, and the years one by one (road-to-7.md step 11b): the same run's extras, as Node has them
+    expect(await page.locator('[data-testid="plan.lasts.scenarios"] li').count()).toBe(node.extras.scenarios.length);
+    const yearRows = node.extras.schedule || node.extras.own;
+    await expect(page.getByTestId('plan.lasts.years')).toHaveAttribute('data-years', String(yearRows.length));
+    await expect(page.getByTestId('plan.lasts.schedule.table')).toHaveCount(0);
+    await page.getByTestId('plan.lasts.schedule').click();
+    expect(await page.locator('[data-testid="plan.lasts.schedule.table"] tbody tr').count()).toBe(yearRows.length);
+    await expect(page.locator('[data-testid="plan.lasts.schedule.table"] tbody tr').first()).toHaveAttribute('data-age', String(yearRows[0].age));
+    if (node.extras.glidepath) {
+      await page.getByTestId('plan.lasts.glidepath').click();
+      expect(await page.locator('[data-testid="plan.lasts.glidepath.table"] tbody tr').count()).toBe(node.extras.glidepath.rows.length);
+      await expect(page.locator('[data-testid="plan.lasts.glidepath.table"] tbody tr').first()).toHaveAttribute('data-total', String(node.extras.glidepath.rows[0].total));
+    }
     const text = await page.locator('#app').innerText();
     expect(text).not.toMatch(/months? to go|years? to go|countdown/i);
     expect(text).not.toMatch(/undefined|NaN|Monte Carlo|percentile|FAILED/);

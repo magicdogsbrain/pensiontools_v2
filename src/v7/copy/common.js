@@ -31,7 +31,9 @@ export const COMMON = {
     runBy: 'Drawdown Planner is run by Usefulish Ltd.',
     privacy: 'Privacy',
     /** The link to every release's notes (road-to-7.md step 11). {version} is the version you are on. */
-    whatsNew: 'What’s new (version {version})'
+    whatsNew: 'What’s new (version {version})',
+    /** The link to where every figure comes from (road-to-7.md step 11b). */
+    assumptions: 'Assumptions and data'
   },
   /** Where the links that leave V7 go. Relative to /v7/. */
   links: { current: '../', privacy: '../privacy.html' }

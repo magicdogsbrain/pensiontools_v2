@@ -189,7 +189,13 @@ export function checkAnswerB(answer, given) {
     for (const k of THREE) if (!Number.isInteger(num[k] / 1000) || num[k] < 0 || num[k] > SAVING.potMax) fail('B3', `number.${k} = ${num[k]}`);
     if (!(num.careful >= num.middling && num.middling >= num.good)) fail('B3', `number out of order ${JSON.stringify(num)}`);
     if (answer.status === 'guaranteed-only' && (num.careful !== 0 || num.good !== 0)) fail('B3', 'guaranteed-only but a number above nought');
-    if (answer.status === 'ok' && num.careful === 0 && !(inputs.savings > 0 || inputs.savingsIn > 0) && !answer.outside) fail('B3', 'status ok with a number of nought, and no savings to pay instead');
+    // (a nought with status ok has a payer outside the number: savings, the closed years' floor — or, a couple apart, the
+    // pension pot of the one who has stopped, kept as given outside the number (couples-different-years.md 5.3 and 4.3 m)
+    // and paying the spend in every life; the State Pensions, starting after the end, do not make it guaranteed-only. The
+    // rule predates couples apart. A NIGHTLY=1 run, 27 Oct 2026, seeds 1756355417, -674284166, -747469614 and 1794282138:
+    // you with nothing, still working, your partner stopped with £23 to £1,073,100 in a pension)
+    const stoppedPot = Boolean(answer.apart) && people.some((p) => !st.saves(p.who) && p.pot > 0);
+    if (answer.status === 'ok' && num.careful === 0 && !(inputs.savings > 0 || inputs.savingsIn > 0) && !answer.outside && !stoppedPot) fail('B3', 'status ok with a number of nought, and no savings to pay instead');
     if (!Array.isArray(num.byPerson) || num.byPerson.length !== people.length) fail('B3', 'number.byPerson is not one per person');
     else if (num.byPerson.reduce((s, x) => s + x.pot, 0) !== num.careful) fail('B3', 'number.byPerson does not add up to number.careful');
     // (couples apart: the pensions of those still saving — the number's)
@@ -343,14 +349,25 @@ export function checkAnswerB(answer, given) {
     const checkFrom = !answer.apart ? -Infinity : youngerAtStop + (answer.apart.payCovers >= 1 || answer.apart.coversGap ? answer.apart.years : 0);
     // (couples apart: each closed phase counted for the years it shares with the closed years — the phases are cut where the
     // pensions they hold open, and a pension the number leaves at nought cuts none)
-    const closedDraw = answer.apart
-      ? ph.filter((p) => !p.pensionOpen && p.fromAge < answer.outside.untilAge && p.toAge > checkFrom)
-        .reduce((s, p) => s + p.fromSavings * 12 * (Math.min(p.toAge, answer.outside.untilAge) - Math.max(p.fromAge, checkFrom)), 0)
-      : ph.filter((p) => !p.pensionOpen && p.toAge <= answer.outside.untilAge).reduce((s, p) => s + p.fromSavings * 12 * (p.toAge - p.fromAge), 0);
+    // (couples apart under "None of it": checkFrom is the first stop, and the years before the second stop — the first
+    // stopper's own savings paying while the other still works (fromPay) — are closed years to the answer too (outsideOf
+    // measures from checkYearOf, couples-different-years.md 5.3), although the breakdown marks them pensionOpen when the one
+    // still working has nothing closed. Under Half and All checkFrom is the second stop and they fall out as before. A
+    // NIGHTLY=1 run, 27 Oct 2026, seed 2014517166: you 18, already stopped, with £1 of savings; your partner stopping at 19)
+    const closedPhases = answer.apart
+      ? ph.filter((p) => (!p.pensionOpen || p.fromPay !== undefined) && p.fromAge < answer.outside.untilAge && p.toAge > checkFrom)
+        .map((p) => ({ draw: p.fromSavings, years: Math.min(p.toAge, answer.outside.untilAge) - Math.max(p.fromAge, checkFrom) }))
+      : ph.filter((p) => !p.pensionOpen && p.toAge <= answer.outside.untilAge).map((p) => ({ draw: p.fromSavings, years: p.toAge - p.fromAge }));
+    const closedDraw = closedPhases.reduce((s, p) => s + p.draw * 12 * p.years, 0);
+    const closedYears = closedPhases.reduce((s, p) => s + p.years, 0);
     // (couples apart under "None of it" with nothing to draw: the stretch before the second stop that nobody's money pays
     // shows as what it is — short, a run-out — while outside.amount says what savings it would take; nothing to compare)
     const unpaid = answer.apart && ph.some((p) => p.fromPay !== undefined && p.takeHome < spend - 0.01);
-    if (ph.some((p) => !p.pensionOpen) && !unpaid && Math.abs(answer.outside.amount - Math.round(closedDraw)) > 1) fail('B10', `outside.amount ${answer.outside.amount} ≠ the closed years' savings draw ${closedDraw}`);
+    // to the rounding: the answer sums the plan's periods at full precision and rounds once (outsideOf, Math.round — half a
+    // pound), while a phase's monthly fromSavings is rounded to pence (stopAt.js round2) — up to £0.005 × 12 = £0.06 a year
+    // over the closed years (a NIGHTLY=1 run, 27 Oct 2026, seed 656056525: £46.3667 a month shown as £46.37 for 33 of 37
+    // closed years, £70,777 against £70,778.52)
+    if (ph.some((p) => !p.pensionOpen) && !unpaid && Math.abs(answer.outside.amount - closedDraw) > 0.5 + 0.06 * closedYears) fail('B10', `outside.amount ${answer.outside.amount} ≠ the closed years' savings draw ${closedDraw}`);
   }
 
   // B11 the saving years, one per person

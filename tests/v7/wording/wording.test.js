@@ -35,6 +35,7 @@ import { MOVE } from '../../../src/v7/copy/move.js';
 import { ACCOUNT } from '../../../src/v7/copy/account.js';
 import { GUEST } from '../../../src/v7/copy/guest.js';
 import { NEWS } from '../../../src/v7/copy/news.js';
+import { ASSUMPTIONS } from '../../../src/v7/copy/assumptions.js';
 import { GUEST_RULE } from '../../../src/services/GuestMeter.js';
 import { STRATEGY_NAMES } from '../../../src/strategies/stressTest.js';
 import { listStrategies } from '../../../src/strategies/registry.js';
@@ -394,6 +395,16 @@ describe('the words in src/v7/copy/', () => {
       for (const [where, s] of strings(words)) expect(s, `${file} ${where}`).not.toMatch(/\b(error|invalid|submit|calculate|simulate)\b/i);
     }
     expect(hits).toEqual([]);
+    // "Assumptions and data" (road-to-7.md step 11b): a page everyone may open, so every scope but the front door's own; the figures are slots
+    const slotA = (s) => s.replace(/\{(app|engine)\}/g, '6.45.0').replace(/\{(from|to|worstYear|bestYear)\}/g, '1928').replace(/\{(years|runs|blockYears|months|curvePoints|dealFee|pa|brl|hrl|taper|level)\}/g, '97')
+      .replace(/\{(adjustment|nominal|real|worst|best|mean|monthByMonth|charges|mult|spreadShort|spreadMid|spreadLong)\}/g, '2.5').replace(/\{buffer\}/g, '£15,000')
+      .replace(/\{(generated|asOf|curveAsOf|date)\}/g, '2026-10-27').replace(/\{(source|repo)\}/g, 'the exchange').replace(/\{(curve|nominalCurve)\}/g, '1y 0.20% · 2y 0.40%').replace(/\{symbol\}/g, 'S&P 500');
+    const hitsA = [];
+    const allA = strings(ASSUMPTIONS).map(([, s]) => slotA(s)).join('\n');
+    for (const [where, s] of strings(ASSUMPTIONS)) for (const h of bannedHits(slotA(s), scopes, { context: allA })) hitsA.push(`assumptions.js ${where} — ${h}`);
+    expect(hitsA).toEqual([]);
+    for (const [where, s] of strings(ASSUMPTIONS)) expect(slotA(s), `assumptions.js ${where}`).not.toMatch(/\{\w+\}/);
+    for (const [where, s] of strings(ASSUMPTIONS)) expect(s, `assumptions.js ${where}`).not.toMatch(/\b(error|invalid|submit|calculate|simulate)\b/i);
     // the one rule for visitors (v6-usability-audit.md 2.1), the planner's sentence letter for letter, and in the banner
     expect(GUEST.rule).toBe(GUEST_RULE);
     expect(GUEST.banner).toContain(GUEST_RULE.charAt(0).toLowerCase() + GUEST_RULE.slice(1));

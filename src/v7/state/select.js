@@ -822,6 +822,11 @@ export function newsView(state) {
   const n = (state.ui && state.ui.news) || { popup: null, page: null, seen: null };
   return { popup: n.popup, page: n.page, current: state.env.appVersion };
 }
+/** "Assumptions and data" (road-to-7.md step 11b): the figures the effect loaded (ui.assumptions), or that they are opening or could not be read. */
+export function assumptionsView(state) {
+  const a = state.ui && state.ui.assumptions;
+  return { facts: a && a.facts ? a.facts : null, failed: !!(a && a.failed), opening: !a };
+}
 
 /** The "Your plan" screen for the route's plan and step: the source's reading of it, or { found: false } until it is there. */
 /**

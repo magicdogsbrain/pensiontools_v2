@@ -334,6 +334,7 @@ export const PLAN = {
     setUpYear: 'Set up {year} in the planner',
     seeDocument: 'See it on the plan document in the planner',
     openDocument: 'Open the plan document in the planner',
+    exports: 'Your records by tax year, a spreadsheet for each year and the printed documents (in the planner)',
     testLocked: 'Test the plan in the planner. Nothing you try there changes your locked plan.',
     testPlan: 'Test it in the planner',
     changeThis: 'Change this in the planner',

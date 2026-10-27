@@ -206,7 +206,8 @@ function whereStep(C) {
   }
   if (w.contract && !inputs.ladderInDocument) notes.push('where.ladderNotInDocument');
   if (w.ladder && typeof w.ladder.monthly === 'number' && w.ladder.monthly > 0) { figures.ladderMonthly = r0(w.ladder.monthly); lines.push(line('where.ladderMonthly', [money('ladderMonthly'), ' a month before tax'], figures, sourceOf('locked', lockedAt, now))); }
-  return { done: true, result, figures, lines, buttons: [button('seeDocument', 'document')], notes };
+  // the records by tax year, a spreadsheet per year and the printed documents stay on the classic page (road-to-7.md step 11b, month.exports)
+  return { done: true, result, figures, lines, buttons: [button('seeDocument', 'document'), button('exports', 'exports')], notes };
 }
 
 /** The income steps as the plan has them: the document's (locked), else the effective settings'. */

@@ -205,7 +205,8 @@ export const A = Object.freeze({
   NEWS_SHOW:       'news/show',           // { entries }                      the pop-up: the announced releases not seen, newest first (plain data)
   NEWS_DISMISS:    'news/dismiss',        // {}                               "Got it"
   NEWS_PAGE:       'news/page',           // { releases, history } | { page: null }   the page's data, plain (every release, the reconstructed history)
-  NEWS_SEEN:       'news/seen'            // { version }                      marked seen (the account effect writes the profile)
+  NEWS_SEEN:       'news/seen',           // { version }                      marked seen (the account effect writes the profile)
+  ASSUMPTIONS_SET: 'assumptions/set'      // { facts | null }                 "Assumptions and data" (road-to-7.md step 11b): the page's figures, loaded lazily; null when they could not be read
 });
 
 /**

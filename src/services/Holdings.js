@@ -19,9 +19,17 @@ export const ASSUMED_CPI = 0.025;   // long-run CPI used to state expected retur
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 
+/**
+ * A gilt held directly — a line whose kind is 'gilt' (a ladder's rung from the order sheet, or a gilt typed by its code) with
+ * no sub-class of its own — counts as bonds (a correction, 6.45.0): the tagger knows a line only by its sub-class or its fund
+ * code, so such a line was left untagged and out of the proportions. It is given the index-linked profile, which every
+ * ladder's rungs are; a line with its own sub-class is left as it is.
+ */
+export const giltsAsBonds = (lines) => lines.map((h) => (h && h.kind === 'gilt' && !h.subClass ? { ...h, subClass: 'indexLinked' } : h));
+
 /** Split multi-asset holdings the way the tagger does, returning one row per sub-class slice. */
 export function slices(holdings) {
-  const t = tagPortfolio(holdingsLines(holdings));
+  const t = tagPortfolio(giltsAsBonds(holdingsLines(holdings)));
   return t.tagged;   // already split by mix where the catalogue says so
 }
 
@@ -32,7 +40,7 @@ export function slices(holdings) {
  *   contributions: { monthly, byBucket: {…fractions}, byWrapper }, untagged: [] }}
  */
 export function proportions(holdings) {
-  const list = holdingsLines(holdings).filter((h) => h && (num(h.value) > 0 || num(h.contribution) > 0));
+  const list = giltsAsBonds(holdingsLines(holdings).filter((h) => h && (num(h.value) > 0 || num(h.contribution) > 0)));
   const t = tagPortfolio(list.map((h) => ({ ...h, value: num(h.value) })));
   const byWrapper = { SIPP: 0, ISA: 0, GIA: 0, CASH: 0 };
   const bucketValues = { shares: 0, bonds: 0, diversifiers: 0, cash: 0 };

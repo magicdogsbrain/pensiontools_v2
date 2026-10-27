@@ -40,7 +40,9 @@ const ROWS = [
   ['#/plan/guest-k3v9x1qa/month', { ...r('plan', null, 'month'), planId: 'guest-k3v9x1qa' }, 'plan'],
   // the account page and What's new (road-to-7.md step 11)
   ['#/account', r('account'), 'account'],
-  ['#/whats-new', r('news'), 'news']
+  ['#/whats-new', r('news'), 'news'],
+  // where every figure comes from (road-to-7.md step 11b)
+  ['#/assumptions', r('assumptions'), 'assumptions']
 ];
 const FOCUSED = [
   ['#/c/numbers?focus=you.age', r('step', 'c', 'numbers', 'you.age')],
@@ -89,6 +91,7 @@ describe('parse and format', () => {
     expect(href.soon('e')).toBe('#/soon/e');
     expect(href.account()).toBe('#/account');
     expect(href.news()).toBe('#/whats-new');
+    expect(href.assumptions()).toBe('#/assumptions');
   });
 });
 

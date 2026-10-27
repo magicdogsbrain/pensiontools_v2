@@ -249,9 +249,10 @@ export function harvestV6Keys() {
         add('budget', assignedProps(f.src, m[1], Math.max(0, m.index - 3000), m.index), f.rel + ': ' + m[1] + '.x = … before saveBudget(' + m[1] + ')');
       }
     }
-    const ts = /const toSave\s*=\s*(?=\{)/;
-    const br = sourceWith(ts, 'saveBudget\'s stored summary');
-    add('budget', literalKeysAfter(br.src, ts), br.rel + ': saveBudget (the summary it stores)');
+    // the one save shape, BudgetModel.budgetToSave since 6.45.0 (BudgetRepository.saveBudget and the preview's budget step both call it)
+    const ts = /export function budgetToSave\s*\([^)]*\)\s*\{\s*return\s*(?=\{)/;
+    const br = sourceWith(ts, 'saveBudget\'s stored summary (BudgetModel.budgetToSave)');
+    add('budget', literalKeysAfter(br.src, ts), br.rel + ': budgetToSave (the summary saveBudget stores)');
   }
 
   // -- the editors' generic setters: the field names they are called with (index.html) --

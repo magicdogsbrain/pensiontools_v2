@@ -21,6 +21,7 @@ import { startOpenPlace } from './openPlace.js';
 import { startGuestMeter } from './guestMeter.js';
 import { startWhatsNew } from './whatsNew.js';
 import { startDownloads } from './download.js';
+import { startAssumptions } from './assumptions.js';
 
 /**
  * The answer worked out on the page itself — used only when no worker can start. The answers (and the engines
@@ -71,6 +72,8 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   // The visitor's meter, What's new and the downloads (road-to-7.md step 11): on every page, each small; the plans they read come with the plan source.
   stops.push(startGuestMeter(store, { win, local: localStore(win) }));
   stops.push(startWhatsNew(store, { local: localStore(win) }));
+  // "Assumptions and data" (road-to-7.md step 11b): the figures loaded lazily when the page is opened
+  stops.push(startAssumptions(store, { now: () => Date.now() }));
   stops.push(startDownloads(store, { win }));
   let planSource = null;
   // … the account page and What's new need the session (and the account's settings document); "Look around an example" pressed on the front door needs the write file

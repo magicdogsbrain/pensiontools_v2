@@ -325,6 +325,7 @@ const anyAction = fc.oneof(
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_BUDGET_DOWNLOAD, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_RECORD, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_STALE_LEAVE, planId })),
+  fc.constantFrom(null, { app: '6.45.0', engine: '6.37.0', shares: { from: 1928, to: 2024 } }).map((facts) => ({ type: A.ASSUMPTIONS_SET, facts })),
   fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_RUN, key })),
   fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_DONE, key, result: { affordable: true, a: { share: 0.9 }, basis: { runs: 1 } }, ms: 500 })),
   fc.tuple(fc.constantFrom('m1', 'm2'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.MOVE_FAILED, key, reason })),

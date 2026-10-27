@@ -603,6 +603,15 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .plan-oneoff .actions-row { grid-column: 1 / -1; }
 .budget-tier { margin: 10px 0; }
 .budget-reset { margin: 14px 0 0; }
+/* "Assumptions and data" (road-to-7.md step 11b): sections closed but the first, each a list of name, figure and note */
+.assump-section { margin: 12px 0; border-top: 1px solid var(--line); padding-top: 8px; }
+.assump-section summary { cursor: pointer; list-style: revert; }
+.assump-section summary h2 { display: inline; font-size: 1.1rem; margin: 0; }
+.assump-rows { margin: 8px 0 0; }
+.assump-row { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.assump-name { font-weight: 600; font-size: var(--size-small); }
+.assump-value { margin: 2px 0; }
+.assump-note { margin: 0; }
 .budget-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 12px; margin: 8px 0 0; }
 .budget-add .field { flex: 1 1 220px; margin: 0; }
 .budget-add .actions-row { margin: 0 0 2px; }

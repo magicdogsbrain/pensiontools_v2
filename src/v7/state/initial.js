@@ -152,7 +152,7 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
 export const emptyAccount = () => ({ mode: 'signIn', busy: null, problem: null, note: null, confirm: null, deleted: null });
 export const emptyGuest = () => ({ minutes: 0, usedUp: false, nag: null });
 export const emptyNews = () => ({ popup: null, page: null, seen: null });
-export const emptyShellUi = () => ({ action: null, download: null, guest: emptyGuest(), bringIn: null, account: emptyAccount(), profile: null, news: emptyNews() });
+export const emptyShellUi = () => ({ action: null, download: null, guest: emptyGuest(), bringIn: null, account: emptyAccount(), profile: null, news: emptyNews(), assumptions: null });
 export const ACCOUNT_MODES = Object.freeze(['signIn', 'signUp', 'reset']);
 export const ACCOUNT_ASKS = Object.freeze(['signIn', 'signUp', 'google', 'reset', 'verifyCheck', 'verifySend', 'download', 'delete', 'signOut']);
 export const PLAN_ACTION_KINDS = Object.freeze(['rename', 'copy', 'delete']);

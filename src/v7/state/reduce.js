@@ -1460,6 +1460,11 @@ export function reduce(state, action) {
       const news = state.ui.news || emptyNews();
       return news.seen === action.version ? state : { ...state, ui: { ...state.ui, news: { ...news, seen: action.version } } };
     }
+    case A.ASSUMPTIONS_SET: {
+      // "Assumptions and data" (road-to-7.md step 11b): the figures as plain data, or that they could not be read
+      const facts = action.facts && typeof action.facts === 'object' && !Array.isArray(action.facts) ? action.facts : null;
+      return { ...state, ui: { ...state.ui, assumptions: { facts, failed: !facts } } };
+    }
 
     default:
       return refuse(`unknown action "${action.type}"`);

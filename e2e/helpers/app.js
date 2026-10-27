@@ -111,6 +111,7 @@ export const ADDRESSES = [
   { hash: '#/plans', screen: 'plans' },                   // the saved plans (research/v7/your-plan.md): nobody signed in here
   { hash: '#/account', screen: 'account' },               // the account page (road-to-7.md step 11): nobody signed in here, so the forms
   { hash: '#/whats-new', screen: 'news' },                // every release's notes (road-to-7.md step 11)
+  { hash: '#/assumptions', screen: 'assumptions' },       // where every figure comes from (road-to-7.md step 11b)
   { hash: '#/soon/c', screen: 'front' },
   // Step 4: A's and B's addresses, once they are open (brief 4.12). A built question is never "soon".
   ...['a', 'b', 'd'].filter((q) => BUILT_QUESTIONS[q]).flatMap((q) => [

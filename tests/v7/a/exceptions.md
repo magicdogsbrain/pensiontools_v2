@@ -63,14 +63,21 @@ Counterexamples (NIGHTLY=1 runs, 1 Oct 2026, 20 futures):
   stopping at 75, to 76 (one year of drawing), part-time £6,000 for a year: the careful amount "without" the pay, searched
   from the row with it, came out £140 from the answer without it worked out on its own.
 
-### A couple with a charge over 1% a year — reported, not asserted (PA1, PA2, PA5)
+### A couple's fixed-ratio drain on the run taxed from the first pound (a charge over 1% a year, or savings beside a filled allowance) — reported, not asserted (PA1, PA2, PA5)
 
 The fund and platform charge (6.19.0) is taken while drawing too. A couple's two runs drain in a fixed ratio, and when
 one person's State Pension fills their personal allowance and the other's does not, the first one's run is taxed from the
 first pound and, at a high charge, is the one that binds in the bad cases: more in THAT person's pot (or going in, or
 part-time pay) can lower the band by more than one step. Found in C (tests/v7/c/exceptions.md, "A couple's fixed-ratio
-drain with a charge", with the counterexamples: 2% and 3%); A runs the same model, so its couple relations print such a
+drain on the run taxed from the first pound", with the counterexamples: 2% and 3%); A runs the same model, so its couple relations print such a
 fall as a finding above 1% a year and hold to one step at 1% and under, as before.
+
+*27 Oct 2026: the same fall turned up in C at 0% (tests/v7/c/exceptions.md, the same section): the binding run an all-cash
+savings half beside a £1 pension, its holder's State Pension in payment from the start filling the allowance — the charge
+picks the binding run, it is not the condition. A's guard names the mechanism now: a charge over 1%, or the person whose
+money is raised (you, in PA1, PA2 and PA5) with guaranteed income in payment from the stop that fills their allowance and
+savings in the household (tests/v7/oracles/oneStep.mjs `allowanceFilledAtStart`, which says why both are needed) — a
+finding, printed; every other couple to one step, as before.*
 
 ## Fixed on 1 Oct 2026 (not exceptions)
 

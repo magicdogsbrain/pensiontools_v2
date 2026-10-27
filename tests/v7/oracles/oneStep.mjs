@@ -16,6 +16,8 @@
  * Each relation that uses this says so in its name, and the question's exceptions.md lists it with its counterexample.
  */
 
+import { RULES } from '../../../src/answers/shared/rules.js';
+
 export const STEP = Object.freeze({ amount: 10, payIn: 10, pot: 1000 });
 
 /** One life of n, as a share (with room for the float). */
@@ -47,3 +49,26 @@ export function amountsToAStep(from, to, assert, onFinding) {
   }
 }
 
+/**
+ * A couple's fixed-ratio drain binding on the run taxed from the first pound (tests/v7/c/exceptions.md, "A couple's
+ * fixed-ratio drain on the run taxed from the first pound"; the same in tests/v7/a/exceptions.md). The household's need
+ * is shared between the runs by their money BEFORE tax (toEngine.js sharesOf), and the runs drain in that ratio. When
+ * `who`'s guaranteed income in payment at the plan's start fills their personal allowance, every pension pound they draw is
+ * taxed from the first pound (worth about 85p after tax, a quarter tax-free and the rest at 20%), while a pound of the
+ * savings beside it is worth a pound: more pension in THAT person's run raises its share of the need by more than it raises
+ * what the run can pay, and when that run is the one that binds the band can fall by more than a step (a NIGHTLY=1 run,
+ * 27 Oct 2026, seed -1409477014: you 67 with £1 and the full State Pension, your partner 18 with £1,073,100, £150,000 of
+ * savings held as cash, the money from their 57, no charge — £1,816 more in your pot moved the careful amount from £6,830
+ * to £6,810; future 4's most £6,832 → £6,819 at £1 grain). With pension money alone in a run its means and its share move
+ * together — a run of pension only binds when 85p of the household's whole money is short, whatever its own size — so the
+ * fall needs savings beside the pension; the charged couple's fall (the same section) is the same mechanism with the
+ * charge picking the binding run. The relations that raise one person's money print a fall for such a couple as a
+ * finding, not an assertion. `phases` is the answer's (£ a month; byPerson with who, statePension and finalSalary), the
+ * first being the start; "fills" is to within a step a month of the allowance (the full State Pension is £22.40 under it).
+ */
+export function allowanceFilledAtStart(phases, who) {
+  const first = Array.isArray(phases) && phases.length ? phases[0] : null;
+  const me = first && Array.isArray(first.byPerson) ? first.byPerson.find((x) => x.who === who) : null;
+  if (!me) return false;
+  return ((me.statePension || 0) + (me.finalSalary || 0)) * 12 >= RULES.personalAllowance - 12 * STEP.amount;
+}

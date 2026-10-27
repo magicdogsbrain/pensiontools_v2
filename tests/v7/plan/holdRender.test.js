@@ -175,7 +175,8 @@ describe('the record, line by line (§2.1)', () => {
     expect(one(root, `${T}.line.0.counted`).textContent).toContain('Counted as: a gilt (T27)');
     expect(one(root, `${T}.line.4.counted`).textContent).toContain('Counted as: cash');
     expect(one(root, `${T}.line.7.counted`).textContent).toContain('Counted as: cash in the bank');
-    expect(one(root, `${T}.mix.notCounted`).textContent).toBe('Not counted in the mix: T27, T28, T29, T30I, Easy-access savings.');
+    // the gilts by their codes count as bonds since 6.45.0 (Holdings.giltsAsBonds, a correction of road step 11b); the bank cash alone is outside the mix
+    expect(one(root, `${T}.mix.notCounted`).textContent).toBe('Not counted in the mix: Easy-access savings.');
     expect(one(root, `${T}.line.7.removeConfirm`).textContent).toContain('Remove ‘Easy-access savings’ from your cash? Nothing is sold; this only changes the record.');
     expect(one(root, `${T}.locked`)).not.toBe(null);
     expect(one(root, `${T}.atLock`).textContent).toBe('Your plan was locked on 1 July 2026 with Pension £1,050,008, ISA £79,962, cash £12,500 recorded on 20 June 2026.');

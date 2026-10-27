@@ -60,9 +60,11 @@ export const BANNED = [
     say: 'the name of the step' },
   { id: 'wizard',          re: /\b(wizard|onboarding|dashboard)\b/i,        scope: 'all',
     say: 'leave it out' },
+  // The product's own name (road-to-7.md step 11: "Drawdown Planner", the word this list itself gives for the old name)
+  // is let through on the front door, as "PensionTools" was.
   { id: 'tool-names',      re: /\b(tools?|planner|calculator|tester)\b/i,   scope: 'front',
     say: 'the question itself',
-    allow: [/PensionTools/] },
+    allow: [/PensionTools/, /Drawdown Planner/] },
   // Written as a string so that the import-rule test, which reads code for the names of browser storage, does
   // not take the banned words themselves for a use of them. The pattern is the guide's, letter for letter.
   { id: 'tech',            re: new RegExp('\\b(schema\\w*|checksum|migrat\\w+|firestore|firebase|localStorage|sessionStorage|cache[ds]?|payload|sync(ed|ing)?)\\b', 'i'),

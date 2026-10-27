@@ -38,7 +38,76 @@ export const PLAN = {
     unknown: 'That plan is not in this account.',
     toPlans: 'Your plans',
     /** The browser refused the hand-over's note (1.4). */
-    leaveProblem: 'This browser would not pass the request to the planner. Open the planner from the link at the top of this page.'
+    leaveProblem: 'This browser would not pass the request to the planner. Open the planner from the link at the top of this page.',
+
+    /** The plan menu (research/v7/road-to-7.md step 11): the actions on each row, their confirms, their results. */
+    actions: {
+      /** The row's buttons. */
+      rename: 'Rename',
+      copy: 'Make a copy',
+      main: 'Make this my main plan',
+      mainNow: 'Your main plan',
+      download: 'Download this plan',
+      remove: 'Delete',
+      /** The example plan's row (GuestPlans.js DEMO_PLANS): to look around, never changed. */
+      exampleRow: 'Example — look around',
+      exampleLine: 'An example to look around. It cannot be changed: make a copy to start from its figures, or start your own plan from a question.',
+      /** Under the list. */
+      start: 'Start a new plan',
+      startHelp: 'Every plan begins from a question: pick one, then keep the answer as a plan.',
+      openCopy: 'Open a downloaded copy',
+      openCopyClose: 'Close',
+      openHelp: 'A file you downloaded from here or from the planner. It is checked, given its own name with “(opened)”, and kept as a plan of its own; nothing else is changed. The file never leaves this page.',
+      openPick: 'The file',
+      example: 'Look around an example',
+      exampleHelp: 'A ready-made plan to look around before you type anything: about £1,000,000, already retired, £40,000 a year rising with prices.',
+      /** Rename: the box on the row. */
+      renameLabel: 'New name',
+      renameSave: 'Rename it',
+      notNow: 'Not now',
+      /** Make a copy: the question on the row (the planner's "Copy with history / Settings only"). */
+      copyAsk: 'Copy ‘{name}’ as it is, or with its monthly records? A copy with the records is locked from the start, as the plan you copy it from is; a copy as it is starts unlocked, with no records.',
+      copyAskPlain: 'Make a copy of ‘{name}’? The copy is a plan of its own, not locked.',
+      copyPlain: 'Copy it as it is',
+      copyWithRecords: 'Copy it with the records (locked)',
+      copyYes: 'Make the copy',
+      /** Delete: the confirm on the row, and the second one for a locked plan. There is no Undo. */
+      deleteAsk: 'Delete ‘{name}’? Its settings, its records and its budget go with it. This cannot be undone.',
+      deleteLockedAsk: '‘{name}’ is locked ({lockedOn}). Delete it all the same? Its plan document and every month recorded against it go too. This cannot be undone.',
+      deleteYes: 'Delete it',
+      deleteLockedYes: 'Yes, delete the locked plan',
+      /** While the action runs. */
+      working: 'One moment…',
+      /** After each. */
+      done: {
+        renamed: 'Renamed to ‘{name}’.',
+        copied: 'Copied as ‘{name}’.',
+        copiedLocked: 'Copied as ‘{name}’, with the records, locked.',
+        main: '‘{name}’ is now your main plan.',
+        deleted: '‘{name}’ has been deleted.',
+        opened: 'Opened as ‘{name}’.',
+        example: 'The example plan is here to look around.',
+        brought: 'Brought in {n} plan{s} from this window.'
+      },
+      /** Why an action did nothing, in words. Nothing partial is ever written. */
+      problems: {
+        lastPlan: 'This is the only plan here, so it cannot be deleted. Keep an answer as another plan first.',
+        example: 'This is the example plan, to look around. It cannot be changed: make a copy, or start your own plan from a question.',
+        notHere: 'That plan is not here any more. Read again.',
+        readonly: 'This plan is shown as it was saved and cannot be changed here.',
+        full: 'Without an account you can keep up to three plans in this browser window. Make a free account to keep more — your plans come with you.',
+        usedUp: 'Your free time without an account is used up. Sign in to change your plans.',
+        nobody: 'Sign in to change your plans.',
+        unverified: 'Your email address is not confirmed yet. Confirm it from the email we sent, then try again.',
+        storage: 'This browser would not keep the change. Nothing was changed.',
+        failed: 'Sorry, that did not work. Nothing was changed: try again.',
+        badFile: 'That file is not a plan this page can open. Nothing was kept.',
+        fileProblems: 'That file holds a plan with a problem, so it was not kept: {problem}.',
+        empty: 'Give the plan a name.',
+        tooLong: 'Keep the name to 60 characters or fewer.',
+        locked: 'This plan is locked. Unlock it from ‘Your plan as locked’ first.'
+      }
+    }
   },
 
   /** The stage lines (rail-screens-language.md 1.3). {month} is a month in words: "April 2027". */

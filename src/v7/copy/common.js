@@ -16,17 +16,22 @@ export const ADVICE_FULL =
   'not tell you what to do. Pension Wise, from MoneyHelper, gives free guidance to anyone aged 50 or over.';
 
 export const COMMON = {
-  product: 'PensionTools',
+  /** The name (research/v7/road-to-7.md step 11; the language guide's own word for the old name): the page title and the heading. */
+  product: 'Drawdown Planner',
   skip: 'Skip to the main part of the page',
   allQuestions: 'All questions',
+  /** The header's link to the account page (road-to-7.md step 11). */
+  account: 'Your account',
   preview: { text: 'Preview of the next version.', link: 'The current version is here.',
              /** The same line where there is room for one line only (a phone). */
              shortText: 'Preview of the next version.', shortLink: 'Current version' },
   offline: 'You are offline. You can still work things out. Keeping a plan needs a connection.',
   footer: {
-    worksOut: 'PensionTools works things out from the figures you give it.',
-    runBy: 'PensionTools is run by Usefulish Ltd.',
-    privacy: 'Privacy'
+    worksOut: 'Drawdown Planner works things out from the figures you give it.',
+    runBy: 'Drawdown Planner is run by Usefulish Ltd.',
+    privacy: 'Privacy',
+    /** The link to every release's notes (road-to-7.md step 11). {version} is the version you are on. */
+    whatsNew: 'What’s new (version {version})'
   },
   /** Where the links that leave V7 go. Relative to /v7/. */
   links: { current: '../', privacy: '../privacy.html' }

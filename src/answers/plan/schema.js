@@ -42,6 +42,8 @@
  *                      "Your household" (road-to-7.md step 9): the limit on the smaller pot, the survivor and care questions in
  *                      ages, the budget's who-pays, and the ONLY field paths the step may write (the link, the dismissal, the
  *                      split's five keys, the budget shared, who pays)
+ *   PLANS_WRITES       "Your plans" (road-to-7.md step 11): the ONLY field paths the plan menu may write to a plan that exists —
+ *                      its name (Rename) and which plan is the main one
  *   isPlanEditPath     the one rule for a draft path of any step
  *
  * `when` is the one rule the questions' lists use (src/answers/shared/validate.js applies): the field is drawn and checked
@@ -695,4 +697,14 @@ export const TRY_WRITES = Object.freeze([...new Set([...WAY_WRITES, ...POTS_WRIT
 
 export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES, mix: MIX_WRITES, try: TRY_WRITES, household: HOUSEHOLD_WRITES, hold: HOLD_WRITES, move: MOVE_WRITES });
 // the stamp stays last: the hold and move lists name it themselves (holdings-and-move.md §2.2, §3.8), so it is taken out of them here and put back with the bookkeeping
-export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BOOKKEEPING_WRITES])]);
+// ---- "Your plans" (research/v7/road-to-7.md step 11): the plan menu's writes to a plan that exists ----------------------
+
+/**
+ * The ONLY field paths the plan menu may write to a plan that exists: its name (Rename: the planner's renameScenario) and
+ * which plan is the main one (Make this my main plan, and the hand-off when the main plan is deleted: the planner's
+ * setActiveScenarioDoc). Both are outside the lock (LockedPlanGuard.js: "the plan's name … and which plan is open"). A copy,
+ * an opened file and the example are NEW plans (the one create); a delete is the one delete — neither is a field path.
+ */
+export const PLANS_WRITES = Object.freeze(['planDetails.name', 'isActive']);
+
+export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...PLANS_WRITES, ...BOOKKEEPING_WRITES])]);

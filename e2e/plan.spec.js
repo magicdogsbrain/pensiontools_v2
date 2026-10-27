@@ -81,8 +81,9 @@ test.describe('the saved plans, without an account', () => {
     for (const step of ALL_STEPS) {
       await page.evaluate((h) => { window.location.hash = h; }, `#/plan/HouseLadder01/${step}`);
       await expect(page.getByTestId(`plan.step.${step}`)).toBeVisible();
-      // since 6.42.0 the household step asks the survivor and care questions in boxes (holdings-and-move.md's sibling, road step 9); every other step is still box-free
-      if (step !== 'household') expect(await page.locator('#app input, #app select, #app textarea').count(), step).toBe(0);
+      // a step drawn on the plan page itself is box-free; a step with its own screen (household since 6.42.0, hold and move since 6.43.0) has its boxes by design
+      const screen = await page.locator('#app [data-screen]').getAttribute('data-screen');
+      if (screen === 'plan') expect(await page.locator('#app input, #app select, #app textarea').count(), step).toBe(0);
       expect(await page.locator('#app').innerText()).not.toMatch(/undefined|NaN|\{\w+\}/);
     }
     // the household step opens the partner's plan inside the preview; the saver opens on What you pay in

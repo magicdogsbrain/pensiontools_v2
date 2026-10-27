@@ -18,7 +18,7 @@ permissions:
 jobs:
   nightly:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 150   # the V7 suite at FC_RUNS 2000 with the four identity gates passed an hour in the container at 6.43.0 (cancelled 24–26 Oct)
     # The official container: the three browsers, their system libraries and the same typefaces every time.
     # Its tag MUST equal the Playwright version in package.json (tests/v7/e2eRules.test.js checks).
     container:

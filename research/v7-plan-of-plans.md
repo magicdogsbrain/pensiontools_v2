@@ -268,3 +268,20 @@ rotation watch and ticket (the switch hands over to the planner). Writes: the wh
 guard on a locked plan as the planner allows. Lifted pure: `holdingsWith`, `applyPaste`, `tickMove`, `orderSheetRows`,
 `rotationWatch`. Gate 10 (`tests/v7/plan/holdIdentity.test.js`): the record round-trips byte for byte on the four fixtures
 with one. Six ledger rows flipped under `s10-hold`. Next: 11 — the shell for 7.0 (6.44.0).
+
+**Step 11a shipped as 6.44.0 (27 Oct).** The shell's first half, built as a workflow (one builder, four reviewers, a fixer,
+a verifier; 16 findings, two fix rounds). "Your plans" has the planner's menu on every row: Rename, Make a copy (as it is or
+with the records; the planner's `duplicateScenario` rules lifted into `services/PlanCopy.js`, which the planner now calls
+too), Make this my main plan, Download this plan, Delete after a confirm that names the plan (two for a locked plan; never
+the last plan), and under the list Start a new plan, Open a downloaded copy (checked, identity never trusted, kept by the
+copy's rules) and Look around an example. "Your account" (`#/account`) is the sign-in, sign-up, Google and forgotten-password
+forms, the confirm-your-email gate, Download everything and Delete my account (two confirms; the planner's wipe, document by
+document; requires-recent-login said plainly). Without an account the planner's three free hours, four reminders and stop
+run through `GuestMeter.js`; the hand-over "Bring in what you built without an account?" copies the window's plans into the
+account and never the example (the planner's own bug, corrected). What's new is the once-only pop-up and the page
+`#/whats-new` from `releases.js`. The preview is named Drawdown Planner. The write rules widened to three Firebase files
+(`account.js` the third), `deleteDoc` allowed and counted (one call in `planWrite.js`, three in `account.js`); every widening
+pinned in `tests/v7/boundaries.test.js`. Ledger: seven rows built under `s11-shell`, the machinery rows carried as stored,
+`acct.admin` retired (owner only, classic page); 135 built / 22 planned / 12 retired / 10 designed. A dated section in
+`compliance/GDPR_TODO.md` lists the wording the owner must approve. Next: 11b — every remaining planned or designed row
+(6.45.0), then 12 — the switch (7.0.0).

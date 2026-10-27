@@ -16,6 +16,9 @@
  * Each relation that uses this says so in its name, and the question's exceptions.md lists it with its counterexample.
  */
 
+import { RULES } from '../../../src/answers/shared/rules.js';
+import { ukTax } from './ukTax.mjs';
+
 export const STEP = Object.freeze({ amount: 10, payIn: 10, pot: 1000 });
 
 /** One life of n, as a share (with room for the float). */
@@ -47,3 +50,47 @@ export function amountsToAStep(from, to, assert, onFinding) {
   }
 }
 
+/**
+ * A couple's fixed-ratio drain binding on the run taxed from the first pound (tests/v7/c/exceptions.md, "A couple's
+ * fixed-ratio drain on the run taxed from the first pound"; the same in tests/v7/a/exceptions.md). The household's need
+ * is shared between the runs by their money BEFORE tax (toEngine.js sharesOf), and the runs drain in that ratio. When the
+ * pension pounds `who` draws are taxed at the margin — their guaranteed income in payment at the plan's start fills their
+ * personal allowance, so every pension pound is taxed from the first (worth about 85p after tax, a quarter tax-free and
+ * the rest at 20%), or their draw at the start reaches past what the allowance leaves — while a pound of the savings
+ * beside it is worth a pound: more pension in THAT person's run raises its share of the need by more than it raises what
+ * the run can pay, and when that run is the one that binds the band can fall by more than a step (a NIGHTLY=1 run, 27 Oct
+ * 2026, seed -1409477014: you 67 with £1 and the full State Pension, your partner 18 with £1,073,100, £150,000 of savings
+ * held as cash, the money from their 57, no charge — £1,816 more in your pot moved the careful amount from £6,830 to
+ * £6,810; future 4's most £6,832 → £6,819 at £1 grain). With pension money alone in a run its means and its share move
+ * together — a run of pension only binds when 85p of the household's whole money is short, whatever its own size — so the
+ * fall needs savings beside the pension; the charged couple's fall (the same section) is the same mechanism with the
+ * charge picking the binding run. The relations that raise one person's money print a fall for such a couple as a
+ * finding, not an assertion.
+ *
+ * The allowance need not be filled: with room left, the draw's taxable part (three quarters of it) fills the rest, and the
+ * marginal pound is taxed just the same. A hunt on the night's household with your State Pension typed as a forecast
+ * (27 Oct 2026; £10,000 more in your pot): £12,400 a year moved the careful amount £6,810 → £6,750, £12,000 £6,780 →
+ * £6,730, £11,500 £6,740 → £6,700, £11,000 £6,700 → £6,670, £10,500 £6,660 → £6,640; £10,000 no fall; £9,000 and under
+ * a rise. With £300,000 of savings and the plan to 90, £50,000 more moved the good amount £6,330 → £6,310 at £9,500 and
+ * £6,370 → £6,340 at £10,000. So the boundary is the household's, where its draw meets the tax, and the guard reads it
+ * from `who`'s row of the first phase (`phases`: the answer's, £ a month, at the careful amount on the starting pots;
+ * byPerson with who, statePension, finalSalary, work, tax): their tax there is above what their guaranteed income (and
+ * part-time pay, A) alone would cost (tests/v7/oracles/ukTax.mjs, a pound of room for the pence) — or that income is
+ * within a step a month of the allowance on its own (the full State Pension is £22.40 under it), where the display's
+ * tax-efficient order may draw the savings first and show no pension draw at all (an income at the basic-rate limit),
+ * every pension pound taxed whenever it is drawn. On the grid of that household (savings £150,000 / £300,000 /
+ * £1,000,000, to 75 / 90, nine State Pensions, three raises) the predicate is true at every fall; over 600 random M1
+ * couples with savings, no charge over 1%, no tax-free part had and under £10,000 a month, the draw's half names 11 the
+ * allowance's does not and 28 are left asserted — none of those 39 fell under the three raises, and the one fall found
+ * was the allowance's (you 75 with £1 and the full State Pension, your partner 57 with £150,000, £1 of savings: £1,816
+ * more in your pot moved the good amount £4,170 → £4,030). The real lever is the answer's — sharing the need by each
+ * run's after-tax means (sharesOf) — the owner's decision, noted in both ledgers.
+ */
+export function drawTaxedAtStart(phases, who) {
+  const first = Array.isArray(phases) && phases.length ? phases[0] : null;
+  const me = first && Array.isArray(first.byPerson) ? first.byPerson.find((x) => x.who === who) : null;
+  if (!me) return false;
+  const guaranteed = ((me.statePension || 0) + (me.finalSalary || 0)) * 12;
+  if (guaranteed >= RULES.personalAllowance - 12 * STEP.amount) return true;
+  return (me.tax || 0) * 12 > ukTax(guaranteed + (me.work || 0) * 12) + 1;
+}

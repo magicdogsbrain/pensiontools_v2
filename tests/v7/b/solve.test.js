@@ -145,15 +145,20 @@ describe('B — before the pension opens, the savings do not spend the 1-in-10 a
     expect(a.outside).not.toBeNull();
     expect(a.basis.closedYearsFails).toBe(0);
     expect(a.outside.careful).toBeGreaterThanOrEqual(a.outside.amount);
-    // with every life's savings at the stop at least that much and a pension that cannot run out, nothing fails at all
+    // with every life's savings at the stop at least that much and a pension that cannot run out, nothing fails before the
+    // pension opens (a run-out after it is the pension's: £5,000,000 stands for one that cannot run out, and where a life
+    // needs more than that the floor is not raised for it — stopAt.js savingsNeeded; here nothing fails at all either)
     const { household } = toHousehold(a.inputs, ENV);
     const sp = stopAtPlan(household, a.stop.age, ENV);
+    const opens = a.gapYears * 12;
+    const closedFails = (opts) => verdictAtPot(sp, a.spend.perYear, SAVING.potMax, opts).runOutMonths.filter((m) => m !== null && m < opens).length;
     const floor = { savingsOf: (i, j) => Math.max(sp.pots[j].savings[i], a.outside.careful * sp.split[j]) };
+    expect(closedFails(floor)).toBe(0);
     expect(verdictAtPot(sp, a.spend.perYear, SAVING.potMax, floor).fails).toBe(0);
     // and £1,000 less is not enough in every future (it is the least that is)
     if (a.outside.careful > a.outside.amount) {
       const less = { savingsOf: (i, j) => Math.max(sp.pots[j].savings[i], (a.outside.careful - 1000) * sp.split[j]) };
-      expect(verdictAtPot(sp, a.spend.perYear, SAVING.potMax, less).fails).toBeGreaterThan(0);
+      expect(closedFails(less)).toBeGreaterThan(0);
     }
     // paying into savings what the answer says, the closed years never fail either (the pension out of the way)
     const paying = answerB({ ...case47, savingsIn: a.payIn.outside }, { ...ENV, trace: false });

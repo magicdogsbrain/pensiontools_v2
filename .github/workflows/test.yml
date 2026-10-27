@@ -71,8 +71,17 @@ jobs:
         run: npx playwright install --with-deps chromium webkit firefox
       # The system libraries come from Ubuntu's mirror, which has stalled at ~100 kB/s on some runners (1 Oct 2026: two
       # 20-minute hangs on one shard). Each try is capped at 8 minutes; three tries.
+      # The runner's own apt-get often holds the dpkg lock for the first minute of a job (27 Oct 2026: every try failed within
+      # two seconds on "Could not get lock /var/lib/dpkg/lock-frontend"); each try waits for the lock first, up to two minutes,
+      # and the tries are twenty seconds apart.
       - if: steps.pwcache.outputs.cache-hit == 'true'
-        run: for i in 1 2 3; do timeout 480 npx playwright install-deps chromium webkit firefox && exit 0; echo "install-deps try $i stalled; retrying"; done; exit 1
+        run: |
+          for i in 1 2 3; do
+            for s in $(seq 1 24); do sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1 || break; sleep 5; done
+            timeout 480 npx playwright install-deps chromium webkit firefox && exit 0
+            echo "install-deps try $i stalled; retrying"; sleep 20
+          done
+          exit 1
       # The published build (dist/prod, the current app and V7 exactly as deployed) and V7's test build (dist/test).
       - run: npm run e2e:build
       - run: npx playwright test --shard=${{ matrix.shard }}/3

@@ -1,5 +1,5 @@
 {
- "why": "How savings grow (6.22.0): the cases whose answers moved because money is in savings (\"Mostly cash\" unless chosen, where every answer grew savings at a fixed 3% a year), by index, with the hash each gives now — Node 24 as `hash`, Node 20 in byNode where it differs. Written by V7_PIN_SAVINGS=1 (tests/v7/shared/savingsGrowthMoves.mjs).",
+ "why": "How savings grow (6.22.0): the cases whose answers moved because money is in savings (\"Mostly cash\" unless chosen, where every answer grew savings at a fixed 3% a year), by index, with the hash each gives now — Node 24 as `hash`, Node 20 in byNode where it differs. Written by V7_PIN_SAVINGS=1 (tests/v7/shared/savingsGrowthMoves.mjs). Case 84 of both corpora moved again on 27 Oct 2026, when B's closed-years floor stopped carrying a life £5,000,000 of pension cannot (stopAt.js savingsNeeded; tests/v7/b/exceptions.md, \"Fixed on 27 Oct 2026\").",
  "sameYear": {
   "0": {
    "hash": "961ff6a567e8a27c314bef22"
@@ -242,7 +242,7 @@
    "hash": "afb9defdf373543a5617b900"
   },
   "84": {
-   "hash": "97081dc73f922a4b16e79e6e"
+   "hash": "928b1b8840982e6f36aeefa9"
   },
   "85": {
    "hash": "b368532bd691e7452a0c6a1d"
@@ -721,7 +721,7 @@
    "hash": "7be3f5bc8efe392deb07f03f"
   },
   "84": {
-   "hash": "cc779adf02f34c5a8c9b91aa"
+   "hash": "7283143593048cf004881fac"
   },
   "85": {
    "hash": "1c1c8554f8717cc3503d1577"

@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { fcOptions } from '../oracles/fcOptions.mjs';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { SCHEMA_B, TEST_ENV, answerB, checkAnswerB, withinCeiling, asksB } from './invariants.js';
@@ -16,7 +17,7 @@ import { STEP, oneLife, largeHousehold } from '../oracles/oneStep.mjs';
 const RUNS = Number(process.env.FC_RUNS || 8);
 const SEED = process.env.NIGHTLY ? undefined : 20261001;
 const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
-const opts = (n = RUNS) => ({ seed: SEED, numRuns: n, verbose: 1 });
+const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 const ok = (a, inputs) => { const f = checkAnswerB(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
 const THREE = ['careful', 'middling', 'good'];
 const belowTaper = (i) => [i.you, i.partner].every((p) => !p || !(p.finalSalary && p.finalSalary.has && p.finalSalary.yearly >= 85000));
@@ -110,6 +111,24 @@ describe('B — metamorphic relations', () => {
       for (const k of ['nineInTen', 'threeInFour']) if (a.payIn.at[k] !== null) expect(b.payIn.at[k]).toBeLessThanOrEqual(a.payIn.at[k] + STEP.payIn);
     }), opts());
     report('M-B2', findings);
+  });
+
+  it('M-B2 found (NIGHTLY=1 at 300 runs, 27 Oct 2026): the closed years\' floor is the closed years\' own, so £10 a month less needs no more behind it', () => {
+    // one person of 18 with nothing, stopping at 53 (the pension closed until 57), the full State Pension, cautious, to 95,
+    // spending £7,635 a month (seed 1631952905): the worst life needs more than £5,000,000 of pension and ran out at 94 with
+    // that behind the savings, so the floor was raised to £386,000 for it where the closed years need £383,000 — and behind
+    // the £3,000 of savings the floor did not need at £7,625, each pension pound past the £100,000 point worth about 55p,
+    // the good number came out £2,000 HIGHER for £10 a month less (tests/v7/b/exceptions.md, "Fixed on 27 Oct 2026"). Only a
+    // run-out before every pension is open counts for the floor now (stopAt.js savingsNeeded); found.cases.json pins it.
+    const inputs = { household: 'single', you: { pot: 0, age: 18, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'total', total: 0 }, alreadyDrawing: false },
+      stop: { kind: 'age', age: 53 }, spend: { kind: 'amount', amount: 7635 }, savings: 0, savingsIn: 0, savingRisk: 'cautious', risk: 'cautious', charge: 0, endAge: 95, confidence: 'nineInTen' };
+    const lower = { ...inputs, spend: { kind: 'amount', amount: 7625 } };
+    const a = ok(answerB(inputs, ENV), inputs);
+    const b = ok(answerB(lower, ENV), lower);
+    expect(a.outside).not.toBeNull();
+    expect(b.outside.careful).toBeLessThanOrEqual(a.outside.careful);
+    for (const k of THREE) expect(b.number[k], k).toBeLessThanOrEqual(a.number[k] + STEP.pot);
+    for (const k of ['nineInTen', 'threeInFour']) if (a.payIn.at[k] !== null) expect(b.payIn.at[k]).toBeLessThanOrEqual(a.payIn.at[k] + STEP.payIn);
   });
 
   it('M-B4 and M-B6: 3 in 4 never needs more than 9 in 10; more pay-in never reaches the number in fewer lives (the grid, row by row)', () => {

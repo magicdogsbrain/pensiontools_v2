@@ -8,6 +8,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { fcOptions } from '../oracles/fcOptions.mjs';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { answerA, SCHEMA_A, TEST_ENV, checkAnswerA, ENGINE_READY, payInsFit, FIXTURE_FILES } from './invariants.js';
@@ -17,7 +18,7 @@ import { oneLife, largeHousehold, amountsToAStep } from '../oracles/oneStep.mjs'
 const RUNS = Number(process.env.FC_RUNS || 8);
 const SEED = process.env.NIGHTLY ? undefined : 20261001;
 const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
-const opts = (n = RUNS) => ({ seed: SEED, numRuns: n, verbose: 1 });
+const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 const THREE = ['careful', 'middling', 'good'];
 const RANK = { no: 0, close: 1, yes: 2 };
 const envFor = (inputs) => ({ ...ENV, ages: [inputs.stop.age] });

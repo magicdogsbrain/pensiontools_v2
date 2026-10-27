@@ -22,6 +22,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { fcOptions } from '../oracles/fcOptions.mjs';
 import { answerA } from '../a/_a.js';
 import { answerB } from '../b/_b.js';
 import { answerC } from '../c/_c.js';
@@ -205,7 +206,7 @@ describe('XA1–XA4 — couples who stop in different years: C, A and B are stil
 
   it('on random staggered couples', () => {
     const tally = {};
-    fc.assert(fc.property(households, (h) => { const r = oneTest(h); tally[r] = (tally[r] || 0) + 1; }), { seed: SEED, numRuns: RUNS, verbose: 1 });
+    fc.assert(fc.property(households, (h) => { const r = oneTest(h); tally[r] = (tally[r] || 0) + 1; }), fcOptions({ seed: SEED, runs: RUNS }));
     expect(Object.keys(tally).some((k) => k.startsWith('compared')), JSON.stringify(tally)).toBe(true);
   }, 600_000);
 });
@@ -276,7 +277,7 @@ describe('P2 — either of you can be "you"', () => {
       expect(o.monthly, where).toEqual(c.monthly);
       expect(o.lasted, where).toEqual(c.lasted);
       compared++;
-    }), { seed: SEED, numRuns: RUNS + 2, verbose: 1 });
+    }), fcOptions({ seed: SEED, runs: RUNS + 2 }));
     expect(compared).toBeGreaterThan(0);
   }, 600_000);
 

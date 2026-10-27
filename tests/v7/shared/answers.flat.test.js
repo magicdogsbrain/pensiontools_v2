@@ -18,6 +18,12 @@
  * the pinned code grew them at a fixed 3% a year, and its words say so; it is listed in answers.savingsGrowth.json with
  * the hash it gives now (savingsGrowthMoves.mjs; V7_PIN_SAVINGS=1). Every other case hashes as pinned.
  *
+ * A THIRD move (27 Oct 2026, with the night run's fixes): case 84 — a couple whose partner's pension is closed 23 years, a
+ * 3% charge — moved again when B's closed-years floor stopped carrying a life £5,000,000 of pension cannot (stopAt.js
+ * savingsNeeded: only a run-out before every pension is open counts; tests/v7/b/exceptions.md, "Fixed on 27 Oct 2026"):
+ * its savings pay-in had been null, nothing reaching the closed years, and is now a figure. It holds savings, so its new
+ * hash is in answers.savingsGrowth.json as the moved cases' are, the reason noted there.
+ *
  * V7_PIN=1 re-pins (only ever from the code the file names); V7_PIN_NODE=1 adds this Node's hashes where they differ.
  */
 import { describe, it, expect } from 'vitest';

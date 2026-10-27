@@ -267,8 +267,24 @@ describe('browser tests: rules kept by reading the files', () => {
       }
     });
 
-    it('the night run may take 150 minutes (60 until 6.43.0: the V7 suite at FC_RUNS 2000 with four identity gates passed an hour, 24–26 Oct 2026)', () => {
-      expect(jobText(read('.github/workflows/nightly.yml'), 'nightly')).toMatch(/timeout-minutes: 150\b/);
+    it('the night run is two jobs since 6.44.0: the suite on the plain runner may take 150 minutes (60 until 6.43.0; 126 on 27 Oct 2026), the browsers in the container 90, neither waiting for the other', () => {
+      const yml = read('.github/workflows/nightly.yml');
+      const suite = jobText(yml, 'nightly');
+      const browsers = jobText(yml, 'nightly-browsers');
+      expect(suite).not.toBeNull();
+      expect(browsers).not.toBeNull();
+      expect(suite).toMatch(/timeout-minutes: 150\b/);
+      expect(browsers).toMatch(/timeout-minutes: 90\b/);
+      // The suite needs no browser: no container, no Playwright (in the steps; the comments may say why); the browsers' job runs no suite file but the timing checks.
+      const steps = (txt) => txt.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+      expect(steps(suite)).not.toMatch(/container:|playwright/i);
+      expect(suite).toMatch(/FC_RUNS: '2000'/);
+      expect(suite).toMatch(/- run: npx vitest run tests\/v7$/m);
+      expect(browsers).toMatch(/container:/);
+      expect(browsers).toMatch(/npx playwright test --project='sameness-\*' --project='nightly-\*'/);
+      expect(browsers).not.toMatch(/npx vitest run tests\/v7$/m);
+      expect(suite).not.toMatch(/^\s+needs:/m);
+      expect(browsers).not.toMatch(/^\s+needs:/m);
     });
 
     it('v7:cases writes all three case lists', () => {

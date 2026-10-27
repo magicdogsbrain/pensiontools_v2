@@ -1,4 +1,55 @@
 {
   "what": "Cases found by B's random runs (properties, metamorphic, the nightly), each with the seed and the reason, kept for ever. pairs.test.js runs every one through checkAnswerB. Shape: { name, inputs, env?: { futures, seed }, expect?: { 'dotted.key': value }, found: { date, by, seed } }.",
-  "cases": []
+  "cases": [
+    {
+      "name": "M-B2 at 300 (27 Oct 2026): one person of 18 with nothing, stopping at 53 (closed until 57), full State Pension, cautious, to 95, £7,635 a month — the closed years' floor is the closed years' own (£383,000), not raised for the life £5,000,000 of pension cannot carry",
+      "inputs": {
+        "household": "single",
+        "you": {
+          "pot": 0,
+          "age": 18,
+          "statePension": {
+            "kind": "full"
+          },
+          "finalSalary": {
+            "has": false
+          },
+          "payIn": {
+            "kind": "total",
+            "total": 0
+          },
+          "alreadyDrawing": false
+        },
+        "stop": {
+          "kind": "age",
+          "age": 53
+        },
+        "spend": {
+          "kind": "amount",
+          "amount": 7635
+        },
+        "savings": 0,
+        "savingsIn": 0,
+        "savingRisk": "cautious",
+        "risk": "cautious",
+        "charge": 0,
+        "endAge": 95,
+        "confidence": "nineInTen"
+      },
+      "env": {
+        "futures": 20,
+        "seed": 0
+      },
+      "expect": {
+        "outside.careful": 383000,
+        "number.careful": 3885000,
+        "number.good": 1687000
+      },
+      "found": {
+        "date": "2026-10-27",
+        "by": "M-B2 / M-B5 at NIGHTLY=1 FC_RUNS=300, the branch check after the night run of 27 Oct 2026 (tests/v7/b/exceptions.md, \"Fixed on 27 Oct 2026\")",
+        "seed": 1631952905
+      }
+    }
+  ]
 }

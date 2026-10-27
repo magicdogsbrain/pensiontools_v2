@@ -851,7 +851,11 @@ function apartBreakdownAt(plan, H0, pots, atJoin) {
       return out;
     });
     if (!apartYears) {
-      return { from: per.from, to: per.to, takeHome: Math.max(H, per.netTotal), byPerson, beforeStatePension: plan.spCount > 0 && per.spPaidCount < plan.spCount };
+      // a need nobody's money can pay is a run-out here too — the first stopper's money gone by the join and the joiner
+      // with nothing — and the take-home is what there is, the guaranteed incomes (the years apart's rule below; the
+      // household's verdict already says it ran out). Otherwise the periods are today's shape.
+      const nobodyPays = R > 0 && !(shares.reduce((t, v) => t + v, 0) > 0);
+      return { from: per.from, to: per.to, takeHome: nobodyPays ? per.netTotal : Math.max(H, per.netTotal), byPerson, beforeStatePension: plan.spCount > 0 && per.spPaidCount < plan.spCount };
     }
     // the years apart: the pay covers its part, and — when it makes up gaps — whatever of the pots' part nobody's money can pay
     const unpaid = shares.reduce((t, v) => t + v, 0) > 0 ? 0 : R;

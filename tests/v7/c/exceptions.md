@@ -49,7 +49,7 @@ couple, you 57 with £1,846,801 and a £9,000 final-salary pension from 60, your
 going in, £1,366,739 of savings, the money from your 88, balanced, to 105 — £5,995 a year more final-salary pension moved
 the careful amount from £26,490 to £26,450.
 
-### A couple's fixed-ratio drain with a charge over 1% a year: M1, M1b and M2 report its move for a couple, they do not assert it
+### A couple's fixed-ratio drain on the run taxed from the first pound (a charge over 1% a year, or savings beside a filled allowance): M1, M1b and M2 report its move for a couple, they do not assert it
 
 Found when the fund and platform charge joined C (6.19.0, the owner's decision of 1 Oct 2026; 0.5% a year unless
 changed). A couple's two runs drain in a fixed ratio (engine behaviour 4) and the household is short the moment either
@@ -65,6 +65,23 @@ You 54 with £1,073,100 and no State Pension, a partner of 57 with £15 and the 
 (room left in the allowance), or a State Pension for both, no fall. At 1% and under no such fall turned up (60 random
 couples at 0, 0.5 and 1%, and every seeded run), and the relations hold to one step there as before. A model limit (the
 need is shared by pots, not by what each person's draws cost in tax), not a fault of the charge; for the owner.
+
+*27 Oct 2026: the charge is not the condition, as the line above says — it decides which run binds. The night run (M1, seed
+-1409477014, 20 futures) found the same fall at 0%: you 67 with £1 in your pot and the full State Pension, your partner 18
+with £1,073,100 and the full one, £150,000 of savings held as cash, cautious, to 75 — the money from the partner's 57 (you
+106 at the start; an 18-year plan). Your run is £75,000 of ISA cash beside the £1 pension; your State Pension in payment
+from the start leaves £22.40 of your allowance, so every pension pound you draw is taxed from the first pound (worth about
+85p after tax) while an ISA pound is worth a pound. £1,816 more in your pot raised your share of the need from 6.13% to
+6.27% but what the run can pay by less, and your run — the all-cash savings half, falling about 1% a year behind prices —
+is the one that binds in the careful future: future 4's most fell £6,832 → £6,819 at £1 grain, the careful amount £6,830 →
+£6,810 in the band (two steps). With pension money alone in a run its means and its share move together, so the fall
+needs savings beside the pension. The guard is now the mechanism, not the charge: a couple where the person whose money
+is raised has guaranteed income in payment at the start that fills their allowance and the household holds savings
+(tests/v7/oracles/oneStep.mjs `allowanceFilledAtStart`; C's `firstPoundCouple`, A's `bindingCouple`) has a fall of more
+than a step printed as a finding; the charged couple and the couple with the tax-free part had are guarded as before, and
+every other couple is held to one step. For the owner, unchanged: the need is shared by money before tax, not by what
+each person's draws cost in tax (toEngine.js sharesOf); sharing it by each run's after-tax means would remove the fall and
+change every couple's figures.*
 
 ### Savings held as cash beside a closed pension: more savings can lower the middle and good amounts (6.22.0)
 
@@ -101,6 +118,22 @@ not by what each run can keep paying), not a fault of the choice; for the owner,
   -1430971866); and savings to live on when every pension the household has is closed at the stop — C refuses that too
   (`start-not-before-access`, per person, J18): you 31 with no pension, a partner of 30 paying in, stopping at your 57,
   their 56 after the 2028 rise (seed -1188032892). The generator checked only your own pension.
+- **M5 (27 Oct 2026): a swap must not move the household between C's two models.** A start typed as the age you are now
+  is answered on the lives (A's model: a pension closed at the start held locked inside its holder's one run while their
+  savings pay — step4-build-brief.md section 2, conflict 1; c/onLives.js `usesLives`), "now" by C's own rule (the closed
+  pension's holder's savings a run of their own for the whole plan: engine behaviour 5 below). The two agree to the pound
+  without a closed pension beside savings and differ with one: you 57 with £3,000,000 from 57, your partner 18 with
+  £1,073,100 already stopped, £10,000,000 of savings, cautious, to 75 (seed -1023306806) — careful / middling / good
+  £29,240 / £33,100 / £40,640 on the lives against £26,710 / £31,470 / £36,540 from now, and `swapped()` had turned "from
+  57" into "now". It now keeps the start's kind: "from the age you are now" with a partner already stopped becomes "from
+  the age they are now" with you stopping at your age now (both on the lives), and "now" with a partner stopping at the age
+  they are now becomes "now" with the partner already stopped (both from now). For the owner: the two models answer the one
+  question about 9% apart for such a household; one figure would mean `usesLives` asking a later start of the pots too, which
+  re-routes every pin whose start is the age you are now.
+- **M13 (27 Oct 2026): 56 is on a rule too.** 56 turns 57 either side of 6 April 2028 — born 4 April 1971 is 57 on the day,
+  born 8 April 1971 is 56 — so the 2028 note (apart.js `before2028`, for everyone since 2 Oct 2026) is right on one side only
+  (seed -993484821: one person of 56 with £1 from now; the warnings were the one difference between the two days). The list
+  of ages on a rule names it now, as A's PA12 already did.
 
 ## Fixed on 1 Oct 2026 (not exceptions): the same inputs, two answers
 

@@ -3,22 +3,24 @@
  * property over random valid inputs, on the same futures for both runs.
  *
  * Every push: a fixed seed and a small count, so a red run is the code's fault and can be repeated exactly.
- * Nightly: NIGHTLY=1 (a fresh seed, printed on failure) and FC_RUNS large.
+ * Nightly: NIGHTLY=1 (a fresh seed, printed on failure) and FC_RUNS large. A night failure is run again by name with
+ * FC_SEED and FC_PATH (tests/v7/oracles/fcOptions.mjs).
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { fcOptions } from '../oracles/fcOptions.mjs';
 import { SCHEMA_C, TEST_ENV } from './_c.js';
 import { answerC, checkAnswer } from './invariants.js';
 import { arbitraryInputs, arbitraryTyped } from '../gen/arbitrary.mjs';
 import { accessAgeOn } from '../../../src/answers/shared/rules.js';
-import { STEP, largeHousehold, amountsToAStep } from '../oracles/oneStep.mjs';
+import { STEP, largeHousehold, amountsToAStep, allowanceFilledAtStart } from '../oracles/oneStep.mjs';
 
 const RUNS = Number(process.env.FC_RUNS || 12);
 const SEED = process.env.NIGHTLY ? undefined : 20260930;
 const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
 const LIMIT = SCHEMA_C.fields.find((f) => f.path === 'you.pot').max;
 const THREE = ['careful', 'middling', 'good'];
-const opts = (n = RUNS) => ({ seed: SEED, numRuns: n, verbose: 1 });
+const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 
 const ok = (a, inputs) => { const f = checkAnswer(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
 /**
@@ -33,29 +35,44 @@ const belowTaper = (i) => [i.you, i.partner].every((p) => !p || !(p.finalSalary 
  * month, where one step is not enough (a couple's fixed-ratio drain, the £100,000 point in pounds of the day:
  * largeHousehold), prints its fall as a finding. → whether the household's other figures (the take) are asserted.
  */
-function noLowerOrFinding(a, b, inputs, findings) {
+function noLowerOrFinding(a, b, inputs, findings, who = 'you') {
   let found = false;
-  if (chargedCouple(inputs) || taxFreeHadCouple(inputs)) {
-    // a couple with a charge over 1% a year (6.19.0), or with the tax-free part already had by one of them (6.20.0): a fall
-    // of more than one step is a finding, printed, not asserted
+  const binding = chargedCouple(inputs) || taxFreeHadCouple(inputs) || firstPoundCouple(a, inputs, who);
+  if (binding) {
+    // a couple with a charge over 1% a year (6.19.0), with the tax-free part already had by one of them (6.20.0), or whose
+    // raised person's run is taxed from the first pound beside savings (27 Oct 2026): a fall of more than one step is a
+    // finding, printed, not asserted
     for (const k of THREE) if (b.monthly[k] < a.monthly[k] - STEP.amount) found = true;
   } else {
     amountsToAStep(a.monthly, b.monthly, (k, floor) => expect(b.monthly[k], k).toBeGreaterThanOrEqual(floor), () => { found = true; });
   }
   if (found) findings.push({ inputs, from: a.monthly, to: b.monthly });
-  return !largeHousehold(a.monthly.careful) && !chargedCouple(inputs) && !taxFreeHadCouple(inputs);
+  return !largeHousehold(a.monthly.careful) && !binding;
 }
 /**
- * A couple with a fund and platform charge over 1% a year (6.19.0; exceptions.md, "A couple's fixed-ratio drain with a
- * charge"): the two runs drain in a fixed ratio (engine behaviour 4), and the household is short the moment either is.
+ * A couple with a fund and platform charge over 1% a year (6.19.0; exceptions.md, "A couple's fixed-ratio drain on the
+ * run taxed from the first pound"): the two runs drain in a fixed ratio (engine behaviour 4), and the household is short
+ * the moment either is.
  * When one person's State Pension fills their personal allowance and the other's does not, the first's draws are taxed
  * from the first pound, so their run spends its pot faster; with a high charge that run is the one that binds in the bad
  * cases, and more in THAT person's pot can lower the band by more than a step (you 18 with £1,073,100 and no State
  * Pension, a partner of 18 with the full one, the money from 57, cautious, to 105, 2%: £1 → £6,814 in the partner's pot
  * moved the careful amount from £2,530 to £2,500; at 3% £4,000 → £20,000 from £2,180 to £2,130). Below 1% no such fall
- * turned up (60 random couples at 0, 0.5 and 1%, and the seeded runs), and the relation is asserted to one step as before.
+ * turned up (60 random couples at 0, 0.5 and 1%, and the seeded runs), and the relation is asserted to one step as before
+ * — until 27 Oct 2026, when the night found one at 0% with the binding run an all-cash savings half beside a £1 pension:
+ * the charge was never the condition, only what picked the binding run (firstPoundCouple below is the condition itself).
  */
 const chargedCouple = (inputs) => inputs.household === 'couple' && typeof inputs.charge === 'number' && inputs.charge > 1;
+/**
+ * A couple whose fixed-ratio drain binds on the run taxed from the first pound with no charge to pick it (the charged
+ * couple's mechanism — exceptions.md, "A couple's fixed-ratio drain on the run taxed from the first pound"): the person
+ * whose money is raised (`who`) has guaranteed income in payment at the start that fills their allowance, and the household
+ * holds savings beside the pensions — oneStep.mjs allowanceFilledAtStart says why the fall needs both. A finding, printed,
+ * as the charged couple's (a NIGHTLY=1 run, 27 Oct 2026, seed -1409477014: you 67 with £1 and the full State Pension, your
+ * partner 18 with £1,073,100, £150,000 of savings as cash, the money from their 57, 0% — £1,816 more in your pot moved the
+ * careful amount from £6,830 to £6,810).
+ */
+const firstPoundCouple = (a, inputs, who) => inputs.household === 'couple' && inputs.savings > 0 && allowanceFilledAtStart(a.phases, who);
 /**
  * A couple where one of them has already had the tax-free part of their pension (6.20.0, couples-different-years.md 7):
  * every pound from that pension is taxed, the other's comes a quarter tax-free, and the two runs still drain in the
@@ -67,7 +84,7 @@ const chargedCouple = (inputs) => inputs.household === 'couple' && typeof inputs
  */
 const taxFreeHadCouple = (inputs) => inputs.household === 'couple' && [inputs.you, inputs.partner].some((p) => p && p.taxFreeTaken === true);
 const report = (name, findings) => {
-  if (findings.length) console.log(`${name}: an amount of £10,000 a month or more, or a couple's with a charge over 1% or the tax-free part had, moved the wrong way by more than a step in ${findings.length} case(s) — a finding (tests/v7/c/exceptions.md, "One step" and "A couple's fixed-ratio drain with a charge")`, JSON.stringify(findings[0]));
+  if (findings.length) console.log(`${name}: an amount of £10,000 a month or more, or a couple's with a charge over 1%, the tax-free part had, or a run taxed from the first pound beside savings, moved the wrong way by more than a step in ${findings.length} case(s) — a finding (tests/v7/c/exceptions.md, "One step" and "A couple's fixed-ratio drain on the run taxed from the first pound")`, JSON.stringify(findings[0]));
 };
 /**
  * The mirror, "more to cover never pays more" (M3; M4 from the other side), to one step as well: the plan's length is one
@@ -140,7 +157,7 @@ describe('C — properties between two answers', () => {
       sameFutures(a, b);
       fc.pre(b.basis.start === a.basis.start);
       // to one step: the partner's pot is one of two or three pots drained in a fixed ratio, and a shift in the ratio can move a future's most by a step
-      noLowerOrFinding(a, b, inputs, findings);
+      noLowerOrFinding(a, b, inputs, findings, 'partner');
       expect(b.guaranteed.monthlyAfterTax).toBe(a.guaranteed.monthlyAfterTax);
     }), opts());
     report('M1b', findings);

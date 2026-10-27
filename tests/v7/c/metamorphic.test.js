@@ -4,6 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
+import { fcOptions } from '../oracles/fcOptions.mjs';
 import { SCHEMA_C, TEST_ENV } from './_c.js';
 import { answerC, checkAnswer } from './invariants.js';
 import { arbitraryInputs } from '../gen/arbitrary.mjs';
@@ -13,7 +14,7 @@ import gilts from '../../../src/data/giltsSnapshot.js';
 const RUNS = Number(process.env.FC_RUNS || 12);
 const SEED = process.env.NIGHTLY ? undefined : 20260930;
 const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
-const opts = (n = RUNS) => ({ seed: SEED, numRuns: n, verbose: 1 });
+const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 const ok = (a, inputs) => { const f = checkAnswer(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
 const household = (a) => ({ monthly: a.monthly, yearly: a.yearly, lasted: a.lasted, runOutAge: a.runOutAge, guaranteed: a.guaranteed, take: a.take, status: a.status,
   phases: a.phases.map((p) => ({ takeHome: p.takeHome, fromPots: p.fromPots, statePension: p.statePension, finalSalary: p.finalSalary, tax: p.tax, shown: p.shown, beforeStatePension: p.beforeStatePension })),
@@ -33,6 +34,20 @@ function swapped(inputs) {
   if (theirs && (theirs.kind === 'already' || theirs.kind === 'age')) {
     // ("now" while still paying in, with no pension open, is moved to the day one opens: not a stop a partner can be given)
     if (inputs.start.kind === 'now' && inputs.you.payIn && inputs.you.payIn.has === 'yes') return null;
+    // The start's KIND is kept across the swap, so the household stays on one of C's two paths: a start typed as the age
+    // you are now is answered on the lives (A's model, where a pension closed at the start is held locked inside its
+    // holder's one run while their savings pay — step4-build-brief.md section 2, conflict 1; c/onLives.js usesLives), and
+    // "now" by C's own rule (the closed pension's holder's savings a run of their own for the whole plan — exceptions.md,
+    // engine behaviour 5). The two agree to the pound without a closed pension beside savings and differ with one (a
+    // NIGHTLY=1 run, 27 Oct 2026, seed -1023306806: you 57 with £3,000,000 from 57, your partner 18 with £1,073,100 already
+    // stopped, £10,000,000 of savings — careful £29,240 on the lives, £26,710 from now). So "from the age you are now" with
+    // a partner already stopped swaps to "from the age THEY are now" with you stopping at your age now (both on the
+    // lives), and "now" with a partner stopping at the age they are now swaps to "now" with the partner already stopped
+    // (both from now). The household is the same either way; only the path would have moved (exceptions.md, "Narrowed").
+    const atAgeNow = inputs.start.kind === 'age' && inputs.start.age === inputs.you.age;
+    const theirsNow = theirs.kind === 'age' && theirs.age === inputs.partner.age;
+    if (atAgeNow && theirs.kind === 'already') { out.start = { kind: 'age', age: inputs.partner.age }; out.partner.stop = { kind: 'age', age: inputs.start.age }; return out; }
+    if (inputs.start.kind === 'now' && theirsNow) { out.start = { kind: 'now' }; out.partner.stop = { kind: 'already' }; return out; }
     out.start = theirs.kind === 'already' ? { kind: 'now' } : { kind: 'age', age: theirs.age };
     out.partner.stop = inputs.start.kind === 'now' ? { kind: 'already' } : { kind: 'age', age: inputs.start.age };
     return out;
@@ -117,8 +132,11 @@ describe('C — metamorphic relations', () => {
     fc.assert(fc.property(arbitraryInputs(SCHEMA_C, { ...ENV, today: '2027-04-04' }), (inputs) => {
       // Ages whose birthday, moved four days, crosses a rule's date: 54 turns 55 either side of 6 April 2028, when the
       // earliest pension age becomes 57; 49, 50, 66 and 67 are born either side of 6 April 1978, 6 April 1977, 6 March
-      // 1961 and 6 April 1960, where the State Pension age steps. Another answer, by the rule.
-      const onARule = (age) => [49, 50, 54, 66, 67].includes(age);
+      // 1961 and 6 April 1960, where the State Pension age steps. Another answer, by the rule. And 56 turns 57 either side
+      // of 6 April 2028: born 4 April 1971 is 57 on the day, born 8 April 1971 is 56, so the 2028 note (apart.js before2028,
+      // for everyone since 2 Oct 2026: nothing new from a pension until 57 after 5 April 2028) is right on one side only —
+      // the one thing that moved between the two days (a NIGHTLY=1 run, 27 Oct 2026, seed -993484821: 56 with £1 from now).
+      const onARule = (age) => [49, 50, 54, 56, 66, 67].includes(age);
       fc.pre(!onARule(inputs.you.age) && !(inputs.partner && onARule(inputs.partner.age)));
       const a = answerC(inputs, { ...ENV, today: '2027-04-04' });
       const b = answerC(inputs, { ...ENV, today: '2027-04-08' });

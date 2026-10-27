@@ -121,6 +121,10 @@ function lifeYearsAt(inputs, stopAge) {
  * Couples apart: from where the pay of the one still working stops covering (checkYearOf: the second stop under Half or
  * All, the first under "None of it"); a holder is anyone with a pension (the stopped person's as given too), and one still
  * working has nothing open before their own stop; the need is the pots' share of what is spent there.
+ * `allOpen`: the month from which every holder's pension is open, on the household's clock — the closed years' tests (the
+ * savings that carry them, the saving a month that reaches those) count a run-out before it only: until then a holder is
+ * closed and their run has only the savings to pay it; after it, with a pension that cannot run out behind the savings, a
+ * run-out is the pension's (stopAt.js savingsNeeded). One person: the month their pension opens.
  */
 function outsideOf(plan, H, split, today, sp = null) {
   if (plan.apart) {
@@ -134,7 +138,7 @@ function outsideOf(plan, H, split, today, sp = null) {
     const gap = Math.min(...shut) - cy;
     const amount = plan.shape && plan.shape.r ? closedNeed(plan, H, cy, cy + gap) : plan.periods.filter((per) => per.to > cy && per.from < cy + gap)
       .reduce((s, per) => s + Math.max(0, H * potsShareOf(per) - per.netTotal) * (Math.min(per.to, cy + gap) - Math.max(per.from, cy)), 0);
-    return { amount: Math.round(amount), untilAge: plan.startAge + cy + gap, gap };
+    return { amount: Math.round(amount), untilAge: plan.startAge + cy + gap, gap, allOpen: Math.max(...shut) * 12 };
   }
   const holders = plan.people.filter((p, j) => split[j] > 0);
   if (!holders.length) return null;
@@ -142,7 +146,7 @@ function outsideOf(plan, H, split, today, sp = null) {
   if (!waits.every((w) => w > 0)) return null;
   const gap = Math.min(...waits);
   const amount = plan.shape && plan.shape.r ? closedNeed(plan, H, 0, gap) : plan.periods.filter((per) => per.from < gap).reduce((s, per) => s + Math.max(0, H - per.netTotal) * (Math.min(per.to, gap) - per.from), 0);
-  return { amount: Math.round(amount), untilAge: plan.startAge + gap, gap };
+  return { amount: Math.round(amount), untilAge: plan.startAge + gap, gap, allOpen: Math.max(...waits) * 12 };
 }
 
 /** What the pots pay in the years [from, to) at a year-0 amount of H, year by year (a shape: spending-shape.md 5.2). */
@@ -185,11 +189,12 @@ function createAges(inputs, env, lives, ctx) {
         pension: c === ctx.now ? p.payIn.total : c * ctx.shares[j],
         savings: d === ctx.savingsInNow ? p.payIn.savings : ctx.savers[j] ? d / ctx.saverCount : 0
       }));
-      // the closed years at a spend: what they draw, and the savings at the stop that carry them in every future tried
+      // the closed years at a spend: what they draw, and the savings at the stop that carry them in every future tried —
+      // to the month every pension is open; a run-out after it is the pension's, not theirs (savingsNeeded)
       row.outsideAt = (H) => {
         if (!row.floors.has(H)) {
           const o = outsideOf(sp.plan, row.H(H), sp.split, env.today, sp);
-          if (o) o.careful = savingsNeeded(sp, row.H(H), CLOSED_YEARS_FAILS, o.amount);
+          if (o) o.careful = savingsNeeded(sp, row.H(H), CLOSED_YEARS_FAILS, o.amount, o.allOpen);
           row.floors.set(H, o);
         }
         return row.floors.get(H);
@@ -258,8 +263,9 @@ function payInsThatGetThere(row, H, ctx, least = null, which = ['nineInTen', 'th
   let outsideIn = null;
   if (o) {
     // the savings a month (household, split evenly) that carry the closed years in every future tried with the pension
-    // out of the way (a pension of SAVING.potMax behind them): no less than what goes in now
-    const okSavings = (d) => lastsWithin(row.sp, row.H(H), row.payInsAt(ctx.now, d), CLOSED_YEARS_FAILS, { pensionAt: SAVING.potMax });
+    // out of the way (a pension of SAVING.potMax behind them, and only a run-out before every pension is open counted: a
+    // life that even that pension cannot carry is not the savings' to carry — savingsNeeded): no less than what goes in now
+    const okSavings = (d) => lastsWithin(row.sp, row.H(H), row.payInsAt(ctx.now, d), CLOSED_YEARS_FAILS, { pensionAt: SAVING.potMax, before: o.allOpen });
     // a bracket: what reaches the closed years' draw in every life, and what reaches the savings set aside for them
     const sp = row.sp;
     const reachAll = (target) => {

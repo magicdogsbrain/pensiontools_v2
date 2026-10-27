@@ -300,8 +300,9 @@
  *   in 9 lives out of 10 (at most floor(n/4) failing for threeInFour) — with, before a pension opens, `outside` a month
  *   going into savings when that is more than now. null above the ceiling (no one's part above £10,000).
  *   outside (J9): the least whole £10 a month into savings (the household's, split evenly) at which the years before a
- *   pension opens never fail (CLOSED_YEARS_FAILS = 0), with a pension that cannot run out behind them; never below what
- *   goes in now. null when no pension is closed at the stop.
+ *   pension opens never fail (CLOSED_YEARS_FAILS = 0), with a pension that cannot run out behind them (a run-out once every
+ *   pension is open is the pension's and is not counted; the same for outside.careful); never below what goes in now. null
+ *   when no pension is closed at the stop.
  * @property {{ now: Three, needed: Three | null }} [potAtStop]   Household pension + savings, today's prices.
  * @property {number} [short]                 max(0, number.careful − potAtStop.now.careful) (a guide, as the number is)
  * @property {number} [monthlyIfShort]        J9: the careful amount from the stop paying in as now — A's careful amount at this

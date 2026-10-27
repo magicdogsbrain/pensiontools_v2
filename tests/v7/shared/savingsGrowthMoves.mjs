@@ -8,6 +8,10 @@
  *   - B sets savings aside for the years before a pension can be touched (`outside`): those savings grow as cash too.
  * Every other case must still hash as its pin says (the code the corpus names), byte for byte.
  *
+ * One of these moved again on 27 Oct 2026 (case 84 of both corpora, a couple whose partner's pension is closed 23 years):
+ * B's closed-years floor no longer carries a life £5,000,000 of pension cannot (stopAt.js savingsNeeded; the reason in
+ * tests/v7/b/exceptions.md, "Fixed on 27 Oct 2026"), and its hash here is the one it gives since.
+ *
  * answers.savingsGrowth.json holds, for each corpus, the cases that moved (by index) and the hash each gives now, under
  * Node 24 (`hash`) and, where Node 20 (what CI runs) works a last bit differently, under Node 20 (`byNode`), as the corpora
  * themselves do. A moved case must differ from its old pin and equal its new one.
@@ -48,7 +52,7 @@ export function movesOf(corpus) {
       // read again: the other corpus may have written its own moves since (only this corpus's are written here)
       const fresh = existsSync(FILE) ? JSON.parse(readFileSync(FILE, 'utf8')) : { sameYear: {}, flat: {} };
       Object.assign(all, { ...fresh, [corpus]: moves });
-      all.why = 'How savings grow (6.22.0): the cases whose answers moved because money is in savings ("Mostly cash" unless chosen, where every answer grew savings at a fixed 3% a year), by index, with the hash each gives now — Node 24 as `hash`, Node 20 in byNode where it differs. Written by V7_PIN_SAVINGS=1 (tests/v7/shared/savingsGrowthMoves.mjs).';
+      all.why = 'How savings grow (6.22.0): the cases whose answers moved because money is in savings ("Mostly cash" unless chosen, where every answer grew savings at a fixed 3% a year), by index, with the hash each gives now — Node 24 as `hash`, Node 20 in byNode where it differs. Written by V7_PIN_SAVINGS=1 (tests/v7/shared/savingsGrowthMoves.mjs). Case 84 of both corpora moved again on 27 Oct 2026, when B\'s closed-years floor stopped carrying a life £5,000,000 of pension cannot (stopAt.js savingsNeeded; tests/v7/b/exceptions.md, "Fixed on 27 Oct 2026").';
       all[corpus] = Object.fromEntries(Object.entries(moves).sort((a, b) => Number(a[0]) - Number(b[0])));
       writeFileSync(FILE, JSON.stringify(all, null, 1) + '\n');
     }

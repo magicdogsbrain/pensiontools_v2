@@ -354,18 +354,22 @@ export function bandAt(sp, runner = createStopRunner(sp), estimate = null, opts 
  * Whether at most `allowed` lives fail at a spend: the same question as verdictAt(...).fails ≤ allowed, but it stops
  * as soon as the answer is known (more than `allowed` have failed, or too few lives are left to fail). Exact — it
  * assumes nothing about one life from another. → { ok, fails } where fails is the count so far (> allowed when not ok).
+ * `before` (a month on the household's clock): only a run-out before it counts — the closed years' test (savingsNeeded,
+ * B's payIn.outside), where a run-out once every pension is open is the pension's and not the savings'. Every month otherwise.
  */
-function withinFails(sp, runner, spendAYear, allowed) {
+function withinFails(sp, runner, spendAYear, allowed, before = Infinity) {
   const plan = runner.plan;
   const n = sp.n;
+  const counted = (m) => m !== null && m < before;
   if (!plan.runs.length) {
-    const fails = withoutRuns(plan, spendAYear, n).filter((m) => m !== null).length;
+    const fails = withoutRuns(plan, spendAYear, n).filter(counted).length;
     return { ok: fails <= allowed, fails };
   }
+  const needMonth = Number.isFinite(before);                       // the earliest run-out over the runs, read against `before`
   let fails = 0;
   for (let i = 0; i < n; i++) {
-    const res = runFuture(runner.configsAtH(spendAYear, i), null, false, (r, config) => runner.run(r, i, config));
-    if (res.failed && ++fails > allowed) return { ok: false, fails };
+    const res = runFuture(runner.configsAtH(spendAYear, i), null, needMonth, (r, config) => runner.run(r, i, config));
+    if (res.failed && (!needMonth || !Number.isFinite(res.failMonth) || counted(res.failMonth)) && ++fails > allowed) return { ok: false, fails };
     if ((n - 1 - i) + fails <= allowed) return { ok: true, fails };
   }
   return { ok: fails <= allowed, fails };
@@ -430,10 +434,19 @@ export function potNeeded(sp, runner, spendAYear, fails, opts = {}) {
  * rise in prices less 1% — unless chosen; a household made by hand without a choice, at the engine's fixed rate), so in a
  * life with prices rising faster than they grow the same pounds pay fewer months. null when four times `from` is still
  * not enough.
+ * `before`: the month from which every holder's pension is open, on the household's clock — only a run-out before it
+ * counts (until then a holder is closed, and with the pension behind the savings unable to run out, a run-out can only be
+ * the savings'). SAVING.potMax stands for a pension that cannot run out (contract.js, payIn.outside), and where a life
+ * needs more than it the run-out after it opens is the pension's, not the closed years' (a NIGHTLY=1 run at FC_RUNS 300,
+ * 27 Oct 2026: one person of 18 with nothing, stopping at 53 on £7,635 a month, cautious, to 95 — the worst life ran out at
+ * 94 with £5,000,000 behind the savings, and the floor was raised to £386,000 for it where the closed years, 53 to 57, need
+ * £383,000; behind that floor, each pension pound past the £100,000 point worth about 55p, the good number came out £2,000
+ * HIGHER at £10 a month less, the floor's £3,000 fall costing £5,000 of pension). Every month counts without it (the tests'
+ * frozen same-year copy).
  */
-export function savingsNeeded(sp, spendAYear, fails, from) {
+export function savingsNeeded(sp, spendAYear, fails, from, before = Infinity) {
   const step = SAVING.potStep;
-  const at = (k) => withinFails(sp, runnerAtPot(sp, SAVING.potMax, { savingsOf: (i, j) => Math.max(sp.pots[j].savings[i], k * step * sp.split[j]) }), spendAYear, fails).ok;
+  const at = (k) => withinFails(sp, runnerAtPot(sp, SAVING.potMax, { savingsOf: (i, j) => Math.max(sp.pots[j].savings[i], k * step * sp.split[j]) }), spendAYear, fails, before).ok;
   let lo = Math.max(0, Math.ceil(from / step));
   if (at(lo)) return lo * step;
   // the top of the search: a little above the draw first (it is usually within a tenth of it), then further out
@@ -526,9 +539,12 @@ export function runnerAtPayIns(sp, payIns, opts = {}) {
   return createStopRunner(sp, sp.lives, sp.kernels, { pensionOf, savingsOf: (i, j) => ks[j].A[i] + payIns[j].savings * ks[j].B[i] });
 }
 
-/** Whether at most `allowed` lives fail at a spend with these pay-ins (stops as soon as it is settled). */
+/**
+ * Whether at most `allowed` lives fail at a spend with these pay-ins (stops as soon as it is settled). `opts.before`: only
+ * a run-out before this month counts (the closed years' test, as savingsNeeded); `opts.pensionAt` as runnerAtPayIns.
+ */
 export function lastsWithin(sp, spendAYear, payIns, allowed, opts = {}) {
-  return withinFails(sp, runnerAtPayIns(sp, payIns, opts), spendAYear, allowed).ok;
+  return withinFails(sp, runnerAtPayIns(sp, payIns, opts), spendAYear, allowed, opts.before).ok;
 }
 
 /** The one test in full at a spend with these pay-ins: verdictAt on that runner (one run per life). */

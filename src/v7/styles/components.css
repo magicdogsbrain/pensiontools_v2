@@ -577,3 +577,31 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .rn-list li { margin: 0 0 4px; max-width: var(--measure); }
 .rn-tool { margin: 0 0 6px; }
 .rn-history { margin: 20px 0 0; }
+/* The budget on a saved plan (research/v7/road-to-7.md step 11b): the planner's page, line by line, in the sheet's own shapes. */
+.budget-form .budget-line .field { margin: 0; }
+.budget-form .line-boxes .field-money input[type="text"] { width: 8.5rem; max-width: 100%; }
+.budget-form .line-boxes .field-text input[type="text"] { width: 5rem; max-width: 100%; }
+.budget-form .line-name .field.is-wide input[type="text"] { max-width: 100%; width: min(100%, 24rem); }
+.field-choice-select select { font: inherit; color: var(--text); background: var(--surface-page); border: 2px solid var(--line-strong); border-radius: var(--radius-sm); min-height: var(--target); padding: 6px 10px; }
+.line-hint { font-size: var(--size-small); }
+.budget-line-actions { margin: 6px 0 0; gap: 4px 10px; }
+.budget-ages, .budget-parts { margin: 8px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised); }
+.budget-ages { display: flex; flex-wrap: wrap; gap: 0 14px; }
+.budget-ages .field input[type="text"] { width: 6rem; }
+.budget-part { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 6px; }
+.budget-part .field { margin: 0; }
+.budget-part .field-text input[type="text"] { width: 12rem; max-width: 100%; }
+.budget-part .field-money input[type="text"] { width: 7rem; }
+.budget-nudge { margin: 6px 0 0; font-size: var(--size-small); }
+.budget-chips { list-style: none; padding: 0; margin: 6px 0; display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.budget-chips li { margin: 0; }
+.budget-totals .figure { font-size: 1.25rem; }
+.plan-oneoff { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.plan-oneoff .actions-row { grid-column: 1 / -1; }
+.budget-tier { margin: 10px 0; }
+.budget-reset { margin: 14px 0 0; }
+.budget-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 4px 12px; margin: 8px 0 0; }
+.budget-add .field { flex: 1 1 220px; margin: 0; }
+.budget-add .actions-row { margin: 0 0 2px; }
+.budget-phase .field input[type="text"] { width: 6rem; }
+@media (max-width: 480px) { .plan-oneoff { grid-template-columns: 1fr; } }

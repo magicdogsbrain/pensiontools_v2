@@ -185,6 +185,12 @@ const anyAction = fc.oneof(
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.SPLIT_KEPT, planId, ids: { a: 'Kq8LwT2mJv5PzYc9BnRd', b: 'guest-k3v9x1qa' }, names: { a: 'One — drawing together', b: 'Two — drawing together' }, where: 'window' })),
   // "What you hold" and "Moving to your plan's mix" (road-to-7.md step 10)
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom({ kind: 'add', line: { wrapper: 'ISA', ticker: 'VWRP' } }, { kind: 'remove', index: 0 })).map(([planId, change]) => ({ type: A.PLAN_HOLD, planId, change })),
+  // the budget on a saved plan (road-to-7.md step 11b)
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom({ kind: 'line', id: 'b1', field: 'amount', value: 100 }, { kind: 'reset' })).map(([planId, change]) => ({ type: A.PLAN_BUDGET, planId, change })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_BUDGET_FILE, planId, file: null })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('Type,Item', null)).map(([planId, text]) => ({ type: A.PLAN_BUDGET_FILE_READ, planId, text })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_BUDGET_DOWNLOAD, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_RECORD, planId })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('gilt:T29', 'bucket:shares'), fc.boolean()).map(([planId, key, done]) => ({ type: A.PLAN_TICK, planId, key, done })),
   fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_RUN, key })),
   fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_DONE, key, result: { affordable: true, a: { share: 0.9 }, basis: { runs: 1 } }, ms: 500 })),

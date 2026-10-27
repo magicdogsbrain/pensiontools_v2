@@ -164,6 +164,14 @@ export const A = Object.freeze({
   MOVE_FAILED:     'move/failed',         // { key, reason? }                 the run failed ('noWorker': no worker)
   MOVE_INDEX:      'move/index',          // { index: { level, ath, asOf, symbol, athDate } | null }   the equity index the effect fetched for the rotation watch
 
+  // the budget on a saved plan (research/v7/road-to-7.md step 11b): ONE change of the whole budget, the spreadsheet read, the download
+  PLAN_BUDGET:     'plan/budget',         // { planId, change }               one change (budget.js budgetPatch's kinds): saving { kind: 'budget', change }
+  PLAN_BUDGET_FILE: 'plan/budgetFile',    // { planId, file }                 a spreadsheet chosen: saving { kind: 'budgetFile' }; the effect reads the file from the action
+  PLAN_BUDGET_FILE_READ: 'plan/budgetFileRead', // { planId, text | null }    the file's text into the draft's import box (null: the file could not be read — 'badFile'); saving cleared
+  PLAN_BUDGET_DOWNLOAD: 'plan/budgetDownload', // { planId }                  "Download it as a spreadsheet": ui.download { planId, n, what: 'budget' }; the download effect saves the file
+  // "What you pay in" (step 11b): the settings save is plan/save on the saving step; the pot record its own press
+  PLAN_RECORD:     'plan/record',         // { planId }                       "Record it": saving { kind: 'potRecord' }; the one write file adds this month's record to the list (nothing deleted)
+
   // "Your plans": the plan menu (research/v7/road-to-7.md step 11) — each write through effects/planWrite.js; the download through effects/download.js
   PLAN_ACTION:     'plan/action',         // { planId, kind: 'rename' | 'copy' | 'delete' | null, step?, text? }   the box or confirm open on a row (null closes it); a locked plan's delete has a second step
   PLAN_ACTION_TEXT: 'plan/actionText',    // { value }                       the rename box, as typed
@@ -230,4 +238,6 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   // "What you hold" (step 10): the paste box; "Moving to your plan's mix": how to read it, the sheet shown anyway, gilt ladders explained
   'holdPaste', 'moveHow', 'moveSheet', 'moveExplained',
   // "Your plans" (step 11): the file box of "Open a downloaded copy"
-  'openCopy']);
+  'openCopy',
+  // the budget on a saved plan (step 11b): the confirm of "Start again"; "What you pay in": the relief block
+  'budgetReset', 'savingRelief']);

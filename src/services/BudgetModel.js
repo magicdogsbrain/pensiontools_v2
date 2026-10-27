@@ -121,7 +121,7 @@ export function missingSuggestions(budget) {
 // A few starter LUMPY items (blank amounts) so the "save up for big periodic costs" idea is visible.
 export const STARTER_ONEOFFS = [
   { label: 'New car', tier: 'essential', hint: 'Replacement vehicle', everyYears: 8 },
-  { label: 'Redecorating', tier: 'essential', hint: 'Whole-house repaint — a 4-bed runs ~£2,000–3,500 professionally, ~£300–600 DIY', everyYears: 7 },
+  { label: 'Redecorating', tier: 'essential', hint: 'Whole-house repaint — a 4-bed runs £2,000 to £3,500 professionally, £300 to £600 done yourself', everyYears: 7 },
   { label: 'Major home work', tier: 'essential', hint: 'Kitchen, bathroom, roof, windows', everyYears: null },
   { label: 'White goods', tier: 'essential', hint: 'Fridge, washer, cooker', everyYears: 10 }
 ];
@@ -731,4 +731,80 @@ export function parseBudgetCsv(text, now = new Date()) {   // `now`: a calendar 
   }
   if (splitPhases.length) settings.splitPhases = splitPhases;
   return { settings, lines, oneOffs, warnings };
+}
+
+// ---------------------------------------------------------------------------------------------
+// The Budget page's handlers, lifted pure (6.45.0, research/v7/road-to-7.md step 11b): the planner
+// (index.html) and the preview's budget step (src/answers/plan/budget.js) call the same functions, so
+// a budget saved from either is the same object. `idOf()` hands out the ids new lines get: the
+// planner's budId(), the preview's idMaker(budget).
+// ---------------------------------------------------------------------------------------------
+
+/** A line kept on save (index.html budCleanForSave): one with a label, an amount, or a breakdown row that holds something. */
+const lineKept = (l) => !!l && ((l.label && String(l.label).trim()) || l.annual || (Array.isArray(l.breakdown) && l.breakdown.some((r) => r && ((r.label && String(r.label).trim()) || r.amount))));
+const oneOffKept = (o) => !!o && ((o.label && String(o.label).trim()) || o.amount);
+
+/** The budget as the page saves it: the empty lines and one-offs left out (budCleanForSave). */
+export function cleanBudgetForSave(budget) {
+  const b = budget || {};
+  return { ...b, lines: (Array.isArray(b.lines) ? b.lines : []).filter(lineKept), oneOffs: (Array.isArray(b.oneOffs) ? b.oneOffs : []).filter(oneOffKept) };
+}
+
+/** What BudgetRepository.saveBudget writes: the budget with its totals worked out again (`derived`). */
+export function budgetToSave(budget) {
+  return { ...budget, derived: summariseBudget(budget) };
+}
+
+/**
+ * Ids for the lines and one-offs a change adds: 'b<n>', one more than the highest 'b<n>' in use (the planner's budId() numbers
+ * them the same way, from 1, per page load). Deterministic: no clock, no random.
+ */
+export function idMaker(budget) {
+  let max = 0;
+  const seen = (x) => { const m = /^b(\d+)$/.exec(x && x.id != null ? String(x.id) : ''); if (m) max = Math.max(max, +m[1]); };
+  for (const l of (budget && Array.isArray(budget.lines)) ? budget.lines : []) seen(l);
+  for (const o of (budget && Array.isArray(budget.oneOffs)) ? budget.oneOffs : []) seen(o);
+  return () => 'b' + (++max);
+}
+
+/** A blank line (index.html addBudgetLine). */
+export const blankLine = (tier, id) => ({ id, label: '', tier, annual: null, fromAge: null, toAge: null });
+/** A blank one-off (addBudgetOneOff). */
+export const blankOneOff = (id) => ({ id, label: '', tier: 'essential', amount: null, atAge: null, everyYears: null });
+
+/** Fill BLANK amounts with the typical figures (fillTypicalAmounts): never overwrites what was entered. → { budget, n } */
+export function fillTypicalAmounts(budget) {
+  let n = 0;
+  const lines = (budget.lines || []).map((line) => {
+    if (!(line.annual == null || line.annual === '')) return line;
+    const t = typicalMonthlyFor(line.label, budget);
+    if (t == null) return line;
+    n += 1;
+    return { ...line, annual: t * 12 };
+  });
+  return { budget: { ...budget, lines }, n };
+}
+
+/** A copy of a line or one-off for the partner (duplicateBudgetLine / duplicateBudgetOneOff): "{label} (partner)", paid by the partner. */
+export const partnerCopyOf = (item, id) => ({ ...item, id, label: (item.label || 'Item') + ' (partner)', paidBy: 'partner' });
+
+/** The budget started again (resetBudgetUI): fresh lines and one-offs, amounts blank; the ages and the sharing kept. */
+export function resetBudgetLines(budget, idOf) {
+  return { ...budget, lines: starterLines().map((l) => ({ id: idOf(), ...l })), oneOffs: starterOneOffs().map((o) => ({ id: idOf(), ...o })) };
+}
+
+/** A suggested line added (addBudgetSuggestion): the catalogue's entry, blank, under its own group. */
+export function withSuggestion(budget, label, idOf) {
+  const m = missingSuggestions(budget).find((x) => x.label === label);
+  if (!m) return budget;
+  const line = { id: idOf(), label: m.label, tier: m.tier, annual: null, fromAge: null, toAge: null, hint: m.hint || '', period: m.period || 'yr', paidBy: m.paidBy || 'me' };
+  return { ...budget, lines: [...(budget.lines || []), line] };
+}
+
+/** A spreadsheet's rows laid over the budget (importBudgetCsvFile's apply): the settings merged, the lines and one-offs replaced, each with a fresh id. */
+export function importedBudget(budget, parsed, idOf) {
+  const b = { ...budget, ...(parsed.settings || {}) };
+  b.lines = (parsed.lines || []).map((l) => ({ ...l, id: idOf() }));
+  b.oneOffs = (parsed.oneOffs || []).map((o) => ({ ...o, id: idOf() }));
+  return b;
 }

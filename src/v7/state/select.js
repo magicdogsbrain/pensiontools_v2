@@ -900,6 +900,34 @@ export function planWayView(state) {
     toast: ui.toast && ui.toast.planId === way.id ? ui.toast : null
   };
 }
+/**
+ * The budget on a saved plan (research/v7/road-to-7.md step 11b): the plan source's reading of the step (page.budget: the lines
+ * with their boxes, hints and nudges, the one-offs, the phases, the totals, the spreadsheet opened, from answers/plan/budget.js
+ * with what was typed) with the open confirm (ui.open: budgetReset), the write's state, the problem and the toast. Nothing
+ * worked out here.
+ */
+export function planBudgetView(state) {
+  const plans = state.plans;
+  const r = state.route;
+  const page = plans && plans.status === 'read' && plans.view && plans.view.page && plans.view.today === state.env.today ? plans.view.page : null;
+  const b = page && page.budget && r && r.screen === 'plan' && r.step === 'budget' && page.forId === r.planId ? page.budget : null;
+  if (!b || !b.found) return { found: false, id: r && r.planId ? r.planId : '', status: plans ? plans.status : 'checking' };
+  const ui = state.ui || {};
+  const open = Array.isArray(ui.open) ? ui.open : [];
+  const pd = state.draft && state.draft.plan && state.draft.plan.id === b.id ? state.draft.plan : null;
+  return {
+    ...b,
+    touched: pd && Array.isArray(pd.touched) ? pd.touched : [],
+    resetOpen: open.includes('budgetReset'),
+    saving: ui.saving && ui.saving.planId === b.id ? ui.saving : null,
+    problem: ui.saveProblem && ui.saveProblem.planId === b.id ? ui.saveProblem.problem : null,
+    toast: ui.toast && ui.toast.planId === b.id ? ui.toast : null
+  };
+}
+/** "What you pay in" (road-to-7.md step 11b): the same reading as an editing step's (page.saving), plus the record's write under way. */
+export function planSavingView(state) {
+  return editView(state, 'saving');
+}
 function editView(state, step) {
   const plans = state.plans;
   const r = state.route;

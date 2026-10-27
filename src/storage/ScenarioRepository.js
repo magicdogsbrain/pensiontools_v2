@@ -31,7 +31,7 @@ import { deriveTiming } from '../services/PlanTiming.js';
 import { emptyHoldings, normaliseHoldings } from '../services/HoldingsRecord.js';
 import { DEFAULT_CHARGES_PCT, isChargesPct, chargesPctOf } from '../services/Charges.js';
 import { DEFAULT_ISA_GROWTH, isIsaGrowth } from '../services/IsaGrowth.js';
-import { getDefaultDecisionSettings, seedDecisionFromStress, chargesPatchOnUnlock, unlockPatchesOf, budgetSharedFromOf, BUDGET_OWN_SIDE, ownSideOf, sharedBudgetView, shareBudgetWrite, stopSharingWrite } from '../services/PlanCommit.js';
+import { getDefaultDecisionSettings, seedDecisionFromStress, chargesPatchOnUnlock, unlockPatchesOf, budgetSharedFromOf, BUDGET_OWN_SIDE, ownSideOf, sharedBudgetView, shareBudgetWrite, stopSharingWrite, sharedBudgetWrites } from '../services/PlanCommit.js';
 import { getDefaultTaxYears, getDefaultBudget, defaultStrategyBlock as pureDefaultStrategyBlock, getDefaultScenario as pureGetDefaultScenario } from '../services/PlanFromSeed.js';
 import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError } from '../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from './stressDefaults.js';
@@ -533,14 +533,10 @@ export async function saveActiveBudget(budget) {
   }
   const from = budgetSharedFromOf(scenario);
   if (from && budget) {
-    // A shared budget: the lines go to the household's plan, our side of who pays stays here.
-    const { sharedFrom, ...rest } = budget;
-    const mine = ownSideOf({ ...(scenario.budgetTool?.settings || {}), ...rest });
-    const shared = { ...rest };
-    for (const k of BUDGET_OWN_SIDE) delete shared[k];
-    delete shared.sharedWithPartner;
+    // A shared budget: the lines go to the household's plan, our side of who pays stays here (PlanCommit.sharedBudgetWrites, lifted 6.45.0).
     let source = null; try { source = await loadScenario(from); } catch (e) { source = null; }
-    if (source) await saveScenario(from, { 'budgetTool.settings': { ...(source.budgetTool?.settings || {}), ...shared } });
+    const { holder, own: mine } = sharedBudgetWrites(scenario, source, budget);
+    if (holder) await saveScenario(from, { 'budgetTool.settings': holder });
     await saveScenario(scenario.id, { 'budgetTool.settings': mine });
     if (cachedActiveScenario) { if (!cachedActiveScenario.budgetTool) cachedActiveScenario.budgetTool = {}; cachedActiveScenario.budgetTool.settings = mine; }
     return;

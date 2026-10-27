@@ -337,10 +337,11 @@ export const PLAN = {
     testLocked: 'Test the plan in the planner. Nothing you try there changes your locked plan.',
     testPlan: 'Test it in the planner',
     changeThis: 'Change this in the planner',
-    recordPot: 'Record this month’s pot in the planner',
-    changeSaving: 'Change this in the planner',
+    /** Into "What you pay in" and the budget inside V7 (road-to-7.md step 11b). */
+    recordPot: 'Record this month’s pot',
+    changeSaving: 'Change this here',
     onCourse: 'Am I on course? (in the planner)',
-    changeBudget: 'Change this in the planner',
+    changeBudget: 'Change this here',
     /** The lock step reached on a locked plan (R7): the way to "Your plan as locked". */
     seeLocked: 'Your plan as locked',
     /** Into "What you hold" and "Moving to your plan's mix" inside V7 (road-to-7.md step 10). */

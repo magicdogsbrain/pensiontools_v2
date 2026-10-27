@@ -12,11 +12,11 @@ import { planExportJson, planExportFileName } from '../../services/PlanExport.js
 
 const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
 
-/** A Blob and an anchor; the object URL is let go once the browser has it. */
-export function saveFile(win, name, text) {
+/** A Blob and an anchor; the object URL is let go once the browser has it. `type`: the file's media type (a plan's JSON by default). */
+export function saveFile(win, name, text, type = 'application/json') {
   try {
     if (!win || typeof win.Blob !== 'function' || !win.URL || typeof win.URL.createObjectURL !== 'function' || !win.document) return false;
-    const blob = new win.Blob([text], { type: 'application/json' });
+    const blob = new win.Blob([text], { type });
     const url = win.URL.createObjectURL(blob);
     const a = win.document.createElement('a');
     a.href = url;
@@ -33,14 +33,25 @@ export function saveFile(win, name, text) {
   }
 }
 
+/** The budget's file name (index.html exportBudgetCsv): budget-<plan name>-<date>.csv. */
+export const budgetCsvFileName = (name, at) => 'budget-' + String(name || 'plan').replace(/[^\w-]+/g, '-').toLowerCase() + '-' + at.toISOString().slice(0, 10) + '.csv';
+
 export function startDownloads(store, { win, now = () => new Date() }) {
   return store.subscribe((state, action) => {
-    if (action.type !== A.PLAN_DOWNLOAD) return;
+    if (action.type !== A.PLAN_DOWNLOAD && action.type !== A.PLAN_BUDGET_DOWNLOAD) return;
     const d = state.ui.download;
     if (!d) return;
     const plans = state.plans;
     const entry = plans && Array.isArray(plans.list) ? plans.list.find((e) => e && e.plan && String(e.plan.id) === String(d.planId)) : null;
     if (!entry) { store.dispatch({ type: A.PLAN_SAVE_FAILED, planId: d.planId, problem: 'notHere' }); return; }
+    if (action.type === A.PLAN_BUDGET_DOWNLOAD) {
+      // the budget as the plan reads it, as the page's reading holds it (budget.js csvText: BudgetModel.budgetToCsv, the planner's own file)
+      const page = plans.view && plans.view.page && plans.view.page.forId === String(d.planId) ? plans.view.page.budget : null;
+      if (!page || !page.found || typeof page.csvText !== 'string') { store.dispatch({ type: A.PLAN_SAVE_FAILED, planId: d.planId, problem: 'failed' }); return; }
+      const okCsv = saveFile(win, budgetCsvFileName(nameOf(entry.plan), now()), page.csvText, 'text/csv;charset=utf-8;');
+      if (!okCsv) store.dispatch({ type: A.PLAN_SAVE_FAILED, planId: d.planId, problem: 'storage' });
+      return;
+    }
     const ok = saveFile(win, planExportFileName(nameOf(entry.plan), now()), planExportJson(entry.plan));
     if (!ok) store.dispatch({ type: A.PLAN_SAVE_FAILED, planId: d.planId, problem: 'storage' });
   });

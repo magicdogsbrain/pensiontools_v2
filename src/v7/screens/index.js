@@ -34,6 +34,8 @@ import { LockScreen } from './plan/LockScreen.jsx';
 import { HouseholdScreen } from './plan/HouseholdScreen.jsx';
 import { HoldScreen } from './plan/HoldScreen.jsx';
 import { MoveScreen } from './plan/MoveScreen.jsx';
+import { BudgetScreen } from './plan/BudgetScreen.jsx';
+import { SavingScreen } from './plan/SavingScreen.jsx';
 
 export const SCREENS = {
   front: FrontDoor,
@@ -78,5 +80,8 @@ export const SCREENS = {
   'plan.household': HouseholdScreen,
   // "What you hold" and "Moving to your plan's mix": the two rail steps made real (research/v7/holdings-and-move.md; road-to-7.md step 10)
   'plan.hold': HoldScreen,
-  'plan.move': MoveScreen
+  'plan.move': MoveScreen,
+  // the budget and "What you pay in": the two rail steps made real (research/v7/road-to-7.md step 11b)
+  'plan.budget': BudgetScreen,
+  'plan.saving': SavingScreen
 };

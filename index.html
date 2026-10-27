@@ -4067,6 +4067,7 @@
       runCareCheck,
       typicalSanityFlag,
       breakdownAnnual,
+      cleanBudgetForSave, fillTypicalAmountsOf, partnerCopyOf, resetBudgetLines, withSuggestion, importedBudget,   // the Budget page's handlers, lifted pure (6.45.0): the preview's budget step calls the same
       DEFAULT_TAX_BANDS,
       grossToNet
     } from './src/app.js';
@@ -10393,12 +10394,9 @@
     }
 
     window.addBudgetSuggestion = function (label) {
-      const m = missingSuggestions(window._budget).find((x) => x.label === label);
-      if (!m) return;
-      window._budget.lines.push({
-        id: budId(), label: m.label, tier: m.tier, annual: null, fromAge: null, toAge: null,
-        hint: m.hint || '', period: m.period || 'yr', paidBy: m.paidBy || 'me'
-      });
+      const next = withSuggestion(window._budget, label, budId);
+      if (next === window._budget) return;
+      window._budget.lines = next.lines;
       renderBudgetLines();
       renderBudgetSuggestions();
       updateBudgetSummary();
@@ -10503,8 +10501,7 @@
       const arr = window._budget.lines;
       const line = arr.find((l) => l.id === id);
       if (!line) return;
-      const copy = { ...line, id: budId(), label: (line.label || 'Item') + ' (partner)', paidBy: 'partner' };
-      arr.splice(arr.indexOf(line) + 1, 0, copy);
+      arr.splice(arr.indexOf(line) + 1, 0, partnerCopyOf(line, budId()));
       renderBudgetLines();
       updateBudgetSummary();
     };
@@ -10513,21 +10510,15 @@
       const arr = window._budget.oneOffs;
       const o = arr.find((x) => x.id === id);
       if (!o) return;
-      const copy = { ...o, id: budId(), label: (o.label || 'Item') + ' (partner)', paidBy: 'partner' };
-      arr.splice(arr.indexOf(o) + 1, 0, copy);
+      arr.splice(arr.indexOf(o) + 1, 0, partnerCopyOf(o, budId()));
       renderBudgetOneOffs();
       updateBudgetSummary();
     };
 
-    // Fill BLANK amounts with the ONS typical figures (never overwrites what you've entered).
+    // Fill BLANK amounts with the ONS typical figures (never overwrites what you've entered) — BudgetModel.fillTypicalAmounts, lifted (6.45.0).
     window.fillTypicalAmounts = function () {
-      let n = 0;
-      for (const line of window._budget.lines) {
-        if (line.annual == null || line.annual === '') {
-          const t = typicalMonthlyFor(line.label, window._budget);
-          if (t != null) { line.annual = t * 12; n++; }
-        }
-      }
+      const { budget, n } = fillTypicalAmountsOf(window._budget);
+      window._budget.lines = budget.lines;
       renderBudgetLines();
       updateBudgetSummary();
       showToast(n ? ('Filled ' + n + ' blank categories with ' + PLSA_TIER_LABELS[plsaTierOf(window._budget)] + ' figures — adjust freely') : 'No blank categories with a typical figure', n ? 'success' : 'info');
@@ -10669,14 +10660,7 @@
       _budSaveTimer = setTimeout(budAutosave, 1200);
     };
 
-    function budCleanForSave() {
-      return {
-        ...window._budget,
-        lines: window._budget.lines.filter((l) => (l.label && l.label.trim()) || l.annual ||
-          (l.breakdown && l.breakdown.some((r) => (r.label && r.label.trim()) || r.amount))),
-        oneOffs: window._budget.oneOffs.filter((o) => (o.label && o.label.trim()) || o.amount)
-      };
-    }
+    const budCleanForSave = () => cleanBudgetForSave(window._budget);   // BudgetModel, lifted (6.45.0)
 
     async function budAutosave() {
       if (!isLoggedIn()) { budSetStatus('Sign in to save'); return; }
@@ -10695,8 +10679,7 @@
     // Start over: fresh seeded categories, amounts blank. Horizon and partner-sharing are kept.
     window.resetBudgetUI = async function () {
       if (!await appConfirm('Reset the budget?\n\nAll amounts, sub-sheets and custom lines go back to a fresh start. Your ages and partner-sharing setting are kept.\n\nThis saves immediately and cannot be undone.')) return;
-      window._budget.lines = starterLines().map((l) => ({ id: budId(), ...l }));
-      window._budget.oneOffs = starterOneOffs().map((o) => ({ id: budId(), ...o }));
+      Object.assign(window._budget, resetBudgetLines(window._budget, budId));
       renderBudgetLines();
       renderBudgetOneOffs();
       updateBudgetSummary();
@@ -10737,10 +10720,7 @@
           // Safe apply: pre-import copy for undo, replace under the autosave gate, flush once.
           const before = JSON.parse(JSON.stringify(window._budget));
           _budLoaded = false;
-          const b = window._budget;
-          Object.assign(b, r.settings);
-          b.lines = r.lines.map((l) => ({ ...l, id: budId() }));
-          b.oneOffs = r.oneOffs.map((o) => ({ ...o, id: budId() }));
+          const b = Object.assign(window._budget, importedBudget(window._budget, r, budId));   // BudgetModel, lifted (6.45.0)
           // re-sync the horizon/sharing inputs from the imported settings
           const setV = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
           setV('budCurrentAge', b.currentAge); setV('budRetireAge', b.retirementAge); setV('budEndAge', b.endAge);

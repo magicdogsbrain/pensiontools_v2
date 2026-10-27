@@ -1,0 +1,30 @@
+{
+ "12-lumpy-db-gia": {
+  "amountSum": "6f5098b46f8e5fe8",
+  "period": "776b4ff38cd8f4cb",
+  "essential": "6f1be62359d4e975",
+  "fromAge": "e17f5a09ca8f550c",
+  "agesClosed": "b995f97e53335cfd",
+  "part": "e6a700fbd6e4297a",
+  "partAdd": "9114057a7d5077b3",
+  "partRemove": "0c750ca11da4425b",
+  "partToggle": "ca7a3d81db059e7e",
+  "add": "323e7f80efda9381",
+  "remove": "89e8166b355134c6",
+  "duplicate": "d97965a1a7b725ea",
+  "oneOff": "3a24ce209b69ae46",
+  "addOneOff": "eb8c20f0f291c0ed",
+  "removeOneOff": "8d0595d7cd8bd955",
+  "suggest": "cca0fef5a4f0e30a",
+  "fill": "317c185d42d34af3",
+  "tier": "bf36bff6a17918e2",
+  "reset": "734573357aaa7419",
+  "spreadsheet": "f017be5b5d9e7ab2",
+  "phaseAdd": "b10d48f7746b17a6"
+ },
+ "05-reading-03": {
+  "amount": "0db09a9e5ec97457",
+  "phaseAdd": "cadfaf0ac3c5dd47",
+  "remove": "8a5039a1fd73f643"
+ }
+}

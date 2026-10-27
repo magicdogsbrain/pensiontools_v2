@@ -434,7 +434,8 @@ function potStep(C) {
     lines.push(line('pot.latest', parts, figures, sourceOf('record', pot.recordedAt || pot.at, now), { month: monthWords(pot.at) }));
     result = recorded ? sentence('pot.recorded', [money('pension'), ' recorded for ' + monthWords(mon)], figures) : sentence('pot.notYet', [monthName(mon) + '’s pot is not recorded yet'], figures);
   } else result = sentence('pot.notYet', [monthName(mon) + '’s pot is not recorded yet'], figures);
-  return { done: recorded, result, figures, lines, buttons: [button('recordPot', 'potRecord')], notes: [], recorded };
+  // "Record this month's pot" lives on "What you pay in" inside V7 (road-to-7.md step 11b): a link, no hand-over
+  return { done: recorded, result, figures, lines, buttons: [link('recordPot', '#/plan/' + plan.id + '/saving')], notes: [], recorded };
 }
 
 /** What you pay in (2.3 `saving`). */
@@ -456,7 +457,8 @@ function savingStep(C) {
     if (isa > 0) lines.push(line('saving.isa', [money('isaMonthly'), ' a month'], figures, sourceOf('saved', null, now)));
     if (esc > 0) { figures.rise = esc; lines.push(line('saving.rise', [count('rise'), '% a year'], figures, sourceOf('saved', null, now))); }
   } else result = sentence('saving.none', ['Nothing paid in'], figures);
-  return { done: any, result, figures, lines, buttons: [button('changeSaving', 'saving'), button('onCourse', 'onCourse')], notes: ['saving.notFrozen'] };
+  // the step draws its own screen inside V7 (road-to-7.md step 11b); "Am I on course?" stays the planner's
+  return { done: any, result, figures, lines, buttons: [link('changeSaving', '#/plan/' + plan.id + '/saving'), button('onCourse', 'onCourse')], notes: ['saving.notFrozen'] };
 }
 
 /** What you spend (2.3 `budget`): a guide beside the plan's own figure. */
@@ -477,7 +479,8 @@ function budgetStep(C) {
     lines.push(line('budget.totalLine', [money('total'), ' a month after tax'], figures, sourceOf('budget', null, now)));
     lines.push(line('budget.essentialsLine', [money('essentials'), ' a month after tax'], figures, sourceOf('budget', null, now)));
   } else result = sentence('budget.none', ['Not worked out. A guide only'], figures);
-  return { done: workedOut, result, figures, lines, buttons: [button('changeBudget', 'budget')], notes: ['budget.guide'] };
+  // the budget draws its own screen inside V7 (road-to-7.md step 11b): a link, no hand-over
+  return { done: workedOut, result, figures, lines, buttons: [link('changeBudget', '#/plan/' + plan.id + '/budget')], notes: ['budget.guide'] };
 }
 
 /**
@@ -626,7 +629,7 @@ function nextFor(C, built) {
     'P.taxyear': button('setUpYear', 'taxyear', { year: taxYearLabel(ty) }),
     'P.month': button('record', 'month', { month: monthName(mon) }),
     'P.idle': null,
-    'P.pot': button('recordPot', 'potRecord'),
+    'P.pot': link('recordPot', '#/plan/' + plan.id + '/saving'),
     'P.working': button('onCourse', 'onCourse'),
     'P.recheck': link('recheck', lastsHref),
     'P.stale': link('updateIt', aboutHref),

@@ -491,6 +491,7 @@ export const PLAN = {
     /** A locked plan stored the old way (its start later than the tax year work stopped): the move, or the month asked first. */
     moveStart: 'Move the start',
     sayWhen: 'Say when',
+    seeWhy: 'See why',
     seeMove: 'See the move',
     updateHold: 'Update what you hold'
   },
@@ -514,6 +515,7 @@ export const PLAN = {
     'P.draft': 'Next: check it lasts, then lock it when it is right.',
     'P.startMove': 'Your plan is set to start in {start}, but you stopped work in {stopped}. Next: start it from the tax year you stopped.',
     'P.startAsk': 'Your plan is set to start in {start}. Next: say when you stopped work.',
+    'P.startBlocked': 'Your plan is set to start in {start}, but you stopped work in {stopped}. Its start can be moved only once the plan is unlocked.',
     'P.approaching': 'Next: see how the plan draws from {stop}.',
     /** A saver's check-in (research/saving-enough-and-check-in.md 4.2; release step R3): due, behind, on course. */
     'P.checkinDue': 'Next: your {often} check-in (the last was {last}).',

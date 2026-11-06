@@ -172,7 +172,7 @@ describe('one engine: the rail\'s Next is the first thing due, and the home\'s f
     const due = NEXT_ORDER.filter((x) => DUE_IDS[x]);
     // (P.moveLater: the move on a drawing plan that records nothing it holds, the design's "move.next: drawing (lower)")
     // (P.startMove / P.startAsk, 7.3.3: a locked plan stored with its start later than it should be, ranked just after the lock)
-    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.draft', 'P.startMove', 'P.startAsk', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending']);
+    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.draft', 'P.startMove', 'P.startAsk', 'P.startBlocked', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending']);
     expect(NEXT_ORDER.slice(-6)).toEqual(['P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
   });
   for (const today of DATES) {

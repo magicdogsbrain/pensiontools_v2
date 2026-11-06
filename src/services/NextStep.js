@@ -37,7 +37,11 @@ export const NEXT_STEP_WORDS = Object.freeze({
   startMove: 'Your plan is set to start in {start}, but you stopped work in {stopped}. Start it from the tax year you stopped.',
   startMoveBtn: 'Move the start',
   startAsk: 'Your plan is set to start in {start}. When did you stop work?',
-  startAskBtn: 'Say when'
+  startAskBtn: 'Say when',
+  // the move cannot keep the State Pension's tax year under the lock (PlanMove.moveBlockedOf): said as it is, and the button
+  // opens the line that explains why, never a move it would refuse
+  startBlocked: 'Your plan is set to start in {start}, but you stopped work in {stopped}. Its start can be moved only once the plan is unlocked.',
+  startBlockedBtn: 'See why'
 });
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -65,6 +69,7 @@ function stageStep(stage, fromAnswer, successorName = null) {
  */
 function startLaterStep(sl) {
   const start = 'April ' + sl.start;
+  if (sl.kind === 'move' && sl.blocked) return { html: esc(NEXT_STEP_WORDS.startBlocked.replace('{start}', start).replace('{stopped}', monthWordsOf(sl.stopMonth))), btn: NEXT_STEP_WORDS.startBlockedBtn, action: { kind: 'start-later' } };
   if (sl.kind === 'move') return { html: esc(NEXT_STEP_WORDS.startMove.replace('{start}', start).replace('{stopped}', monthWordsOf(sl.stopMonth))), btn: NEXT_STEP_WORDS.startMoveBtn, action: { kind: 'start-later' } };
   return { html: esc(NEXT_STEP_WORDS.startAsk.replace('{start}', start)), btn: NEXT_STEP_WORDS.startAskBtn, action: { kind: 'start-later' } };
 }

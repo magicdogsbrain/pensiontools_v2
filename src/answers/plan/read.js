@@ -323,9 +323,11 @@ function whereStep(C) {
       lines.push(line('where.saverLine', [money('expected')], figures, sourceOf('locked', lockedAt, now)));
     }
   } else {
-    // A plan stored the old way (C.startLater): this year's figure is its year 0's, a later tax year's, so the months recorded
-    // are said with what was taken and nothing is read against a plan figure until its start is moved (the home's to-do).
-    const older = !!C.startLater;
+    // A plan stored the old way (C.startLater) whose year 0 is still later than this tax year: this year's figure is year 0's,
+    // a later tax year's, so the months recorded are said with what was taken and nothing is read against a plan figure until
+    // its start is moved (the home's to-do). Once year 0 has come its months are year 0's, read against the right year's
+    // figure, as the planner's strip reads them (PlanDocument.whereAmI: only a year 0 ahead is held back).
+    const older = !!C.startLater && C.startLater.start > C.ty;
     const inc0 = w.incomeThisYear || { recorded: 0, drawn: 0, planned: null };
     const inc = older ? { ...inc0, planned: null, perMonth: null } : inc0;
     figures.months = inc.recorded; figures.drawn = r0(inc.drawn);
@@ -350,7 +352,7 @@ function whereStep(C) {
         : diff > 0 ? [money('diff'), ' more than the plan said'] : ['the same as the plan said'];
       lines.push(line(id, [...head, ...tail], figures, sourceOf('record', null, now), { months: String(inc.recorded), cutMonths: String(cutMonths) }));
     }
-    if (older) lines.push(line('where.startLater', ['Your plan is set to start in April ' + C.startLater.start + ', so these months are not read against it yet: see To do'], figures, sourceOf('locked', lockedAt, now), { start: 'April ' + C.startLater.start }));
+    if (older) lines.push(line('where.startLater', ['Your plan is set to start in April ' + C.startLater.start + ', so these months are not read against it yet' + (C.readonly ? '' : ': see To do')], figures, sourceOf('locked', lockedAt, now), { start: 'April ' + C.startLater.start }));
     lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
     if (inc.planned != null) lines.push(line('where.planned', [money('planned')], figures, sourceOf('locked', lockedAt, now), { year: w.taxYear }));
     if (w.step && w.step.amount != null) { figures.stepNow = r0(w.step.amount); lines.push(line('where.step', [money('stepNow'), ' a year before tax'], figures, sourceOf('locked', lockedAt, now), { n: String(w.step.index), of: String(w.step.of) })); }
@@ -864,8 +866,11 @@ function rulesFor(C, built) {
     'P.householdPending': () => partnerMissing,
     'P.draft':       () => key === 'draft-retired',
     // a locked plan stored the old way (PlanMove.startLaterOf): move its start to the tax year work stopped, or say when that was
-    'P.startMove':   () => !!C.startLater && C.startLater.kind === 'move',
-    'P.startAsk':    () => !!C.startLater && C.startLater.kind === 'ask',
+    'P.startMove':   () => !C.readonly && !!C.startLater && C.startLater.kind === 'move' && !C.startLater.blocked,
+    // the move cannot keep the State Pension's tax year under the lock (PlanMove.moveBlockedOf): said as it is, never a
+    // "Move the start" that the page it opens would refuse
+    'P.startBlocked': () => !C.readonly && !!C.startLater && C.startLater.kind === 'move' && !!C.startLater.blocked,
+    'P.startAsk':    () => !C.readonly && !!C.startLater && C.startLater.kind === 'ask',
     'P.approaching': () => key === 'approaching',
     'P.onCourse':    () => !!ci && lastBand === 'yes',
     'P.nextCheckIn': () => chosen && !!ci.lastCheckIn,
@@ -919,6 +924,7 @@ function rulesFor(C, built) {
     // both open "About you and when", where the month is asked and the move is made after its confirm
     'P.startMove': link('moveStart', aboutHref),
     'P.startAsk': link('sayWhen', aboutHref),
+    'P.startBlocked': link('seeWhy', aboutHref),
     'P.approaching': link('lasts', lastsHref),
     'P.saving': link('seeSaving', savingHref)
   };
@@ -1006,8 +1012,9 @@ export function planPage(entries, id, stepId, { today, source = 'account', notNo
   const held = holdingsSummary(normaliseHoldings(plan.holdings)).count > 0;
   let life = null; try { life = stageOf(plan, now, { placing: stage, move: { recorded: held, complete: mv && mv.diff ? mv.diff.complete === true : null } }); } catch { life = null; }
   // a locked retired plan stored the old way, its start later than it should be (PlanMove.startLaterOf): one to-do, and no
-  // reading of its months against a later year's figure
-  let startLater = null; try { startLater = readonly ? null : startLaterOf(plan, now); } catch { startLater = null; }
+  // reading of its months against a later year's figure. Read on a read-only entry too, so its months are never set against
+  // a later year's figure; only the to-do is left out there (it cannot be acted on), as the home's year view reads it.
+  let startLater = null; try { startLater = startLaterOf(plan, now); } catch { startLater = null; }
   const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, held, startLater, notNow: Array.isArray(notNow) ? notNow : [] };
   // how far the stop is, for what a saver keeps "For later" (steps.js laterFor): months to the stop month, in years
   const yearsToStop = Number.isFinite(stage.monthsToStart) && stage.timingMode === 'future' ? stage.monthsToStart / 12 : (Number.isFinite(stage.yearsToStart) ? stage.yearsToStart : null);

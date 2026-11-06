@@ -100,8 +100,9 @@ function quietOf(page, life, now) {
  */
 function yearOf(plan, page, now) {
   if (!page.locked || !['bridge', 'running', 'closed'].includes(page.stageKey)) return null;
-  // a plan stored the old way (PlanMove.startLaterOf): this year's figure is a later year's, so no month is set against it
-  let older = false; try { older = !!startLaterOf(plan, now); } catch { older = false; }
+  // a plan stored the old way (PlanMove.startLaterOf) whose year 0 is still later than this tax year: this year's figure is
+  // a later year's, so no month is set against it (read.js whereStep reads it the same way)
+  let older = false; try { const sl = startLaterOf(plan, now); older = !!sl && sl.start > taxYearStartOf(now); } catch { older = false; }
   const day = readDayOf(plan, now);
   const ty = taxYearStartOf(day);
   const key = taxYearKey(ty);

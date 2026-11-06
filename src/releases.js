@@ -37,6 +37,26 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.3.2', date: '2026-11-06', engineVersion: '6.37.0',
+    title: '“Use the previous version” opens the plan you are looking at, and Remove works under “sold?”',
+    summary: 'On a plan’s page, the link to the previous version at the top now opens the same plan there, on the matching page. Before, it opened the plan your account usually opens on, which could be a different plan.',
+    changes: [],
+    corrections: [
+      'From a plan’s page, “Use the previous version” opened the previous version on your account’s usual plan and its last page, not on the plan you were looking at. A change made there could have gone to the other plan. It now opens the plan on screen: its home opens where that plan usually opens (Month by month for a plan you draw from), and each step opens its matching page.',
+      'In What you hold, after pasting your holdings, pressing Remove beside a line listed as “Not in what you pasted — sold?” seemed to do nothing: it asked “Remove it?” on that line in the list higher up the page, out of sight. It now asks right beside the line you pressed.'
+    ],
+    effects: {
+      stress: [],
+      strategies: [],
+      decision: [],
+      accumulation: [],
+      budget: [],
+      household: []
+    },
+    actions: ['None. Nothing in your plans has changed. If you used the link before this release, check which plan the previous version shows at the top before changing anything there.'],
+    notes: []
+  },
+  {
     version: '7.3.1', date: '2026-11-06', engineVersion: '6.37.0',
     title: 'A plan you draw from reads Drawing',
     summary: 'Once you record months from a plan, its home calls it Drawing, even if what you hold is not exactly the plan’s mix. Real holdings almost never match a plan exactly, so a plan that had been drawing for a long time could stay on Moving for good. Any difference is now shown as information, not as a to-do.',

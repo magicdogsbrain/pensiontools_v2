@@ -171,7 +171,26 @@ function Paste({ V, dispatch, planId }) {
             <div data-testid={`${T}.paste.unseen`}>
               <h5>{P.unseenTitle}</h5>
               <p class="note">{fill(P.unseenLead, { wrapper: W.wrapperOf[Ps.wrapper] })}</p>
-              <ul class="plan-lines">{Ps.unseen.map((u) => <li key={u.index} class="plan-line" data-index={u.index}>{u.name || u.ticker}{u.ticker ? ' (' + u.ticker + ')' : ''} <Button testid={`${T}.paste.unseen.${u.index}.remove`} kind="quiet" onClick={() => edit('remove.index', String(u.index))} {...keepFocus}>{W.line.remove}</Button></li>)}</ul>
+              {/* the confirm opens HERE, beside the Remove pressed (7.3.2): it used to open only on the line in the list above,
+                  out of sight, so the button seemed to do nothing */}
+              <ul class="plan-lines">{Ps.unseen.map((u) => {
+                const asking = V.remove && V.remove.index === u.index;
+                const b = `${T}.paste.unseen.${u.index}`;
+                return (
+                  <li key={u.index} class="plan-line" data-index={u.index}>{u.name || u.ticker}{u.ticker ? ' (' + u.ticker + ')' : ''}{' '}
+                    {!asking && <Button testid={`${b}.remove`} kind="quiet" onClick={() => edit('remove.index', String(u.index))} {...keepFocus}>{W.line.remove}</Button>}
+                    {asking && (
+                      <div class="notice lock-confirm" role="region" aria-label={W.line.remove} data-testid={`${b}.removeConfirm`}>
+                        <p>{fill(W.line.removeConfirm, { name: V.remove.name, wrapper: W.wrapperOf[V.remove.wrapper] || W.wrapperOf[Ps.wrapper] })}</p>
+                        <div class="actions-row">
+                          <Button testid={`${b}.removeConfirm.yes`} kind="primary" onClick={() => dispatch({ type: 'plan/hold', planId, change: { kind: 'remove', index: u.index } })} {...keepFocus}>{W.line.removeYes}</Button>
+                          <Button testid={`${b}.removeConfirm.no`} kind="quiet" onClick={() => edit('remove.index', '')} {...keepFocus}>{W.line.removeNo}</Button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}</ul>
             </div>
           )}
           {Ps.text && !Ps.rows.length && Ps.warnings.length > 0 && <p class="notice" role="status" data-testid={`${T}.paste.warnings`}>{Ps.warnings.join(' ')}</p>}

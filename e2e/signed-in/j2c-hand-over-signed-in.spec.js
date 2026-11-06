@@ -6,7 +6,7 @@
  *     "Set up {year}" stay in the new app (Month by month is its own; e2e/signed-in/j3-month-by-month.spec.js), and the
  *     second test here says so;
  *   - "Change this" on an unlocked plan: its settings, on that plan;
- *   - the header's "Use the previous version": the classic planner, signed in, with no hand-over at all.
+ *   - the header's "Use the previous version": the classic planner, signed in; on a plan page, THAT plan (7.3.2).
  * Before 7.1.0 the new app kept its sign-in under a Firebase app of its own name, which the classic planner never reads:
  * every one of these opened the classic planner as if nobody were signed in (the first test here failed so on 7.0.0).
  * Run against the local emulators (e2e/signed-in/emulator.js), at desktop-1440 and phone-390.
@@ -108,4 +108,18 @@ test('the header\'s "Use the previous version" opens the classic planner signed 
   const link = page.getByTestId('nav.previous').or(page.getByTestId('nav.previousShort')).filter({ visible: true });
   await link.click();
   await classicSignedIn(page);
+});
+
+test('7.3.2: on a plan page, "Use the previous version" opens THAT plan, not the account\'s usual one', async ({ page }) => {
+  // the account's usual plan is the other one (isActive): before 7.3.2 the plain link opened it, on its own last tab
+  const viewed = drawingPlan(); viewed.isActive = false;
+  const usual = freshPlan(); usual.isActive = true;
+  await signedInWith(page, [viewed, usual]);
+  await page.goto(PROD + V7_PATH + `#/plan/${DRAW_ID}`);
+  await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', /^plan/);
+  const link = page.getByTestId('nav.previous').or(page.getByTestId('nav.previousShort')).filter({ visible: true });
+  await link.click();
+  await classicSignedIn(page);
+  await expect(page.locator('#openPlaceNote')).toContainText('‘Alex’s plan’');
+  await expect(page.locator('.sub-tab[data-decisiontab="entry"]')).toHaveClass(/active/, { timeout: 45_000 });
 });

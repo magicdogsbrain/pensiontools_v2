@@ -139,6 +139,23 @@ test.describe('"What you hold", without an account', () => {
       expect(await stored(page)).toBe(planted);
     });
 
+    await test.step('7.3.2: Remove beside a "sold?" line asks right there, and "Remove it" removes that line (it used to ask out of sight, so it seemed to do nothing)', async () => {
+      await page.getByTestId(`${T}.toastClose`).click();
+      if (!(await page.getByTestId(`${T}.paste.box`).isVisible())) await page.getByTestId(`${T}.paste.open`).click();
+      await page.getByTestId(`${T}.paste.text`).fill(PASTE);
+      const first = node.paste.unseen[0];
+      await page.getByTestId(`${T}.paste.unseen.${first}.remove`).click();
+      const ask = page.locator(`[data-testid="${T}.paste.unseen"] li[data-index="${first}"] [data-testid="${T}.paste.unseen.${first}.removeConfirm"]`);
+      await expect(ask).toBeVisible();
+      await expect(ask).toBeInViewport();
+      await page.getByTestId(`${T}.paste.unseen.${first}.removeConfirm.yes`).click();
+      await expect(page.getByTestId(`${T}.toast`)).toContainText('removed from your pension', { timeout: 60_000 });
+      expect(JSON.parse(await stored(page))[0].holdings.lines).toHaveLength(node.hold.count - 1);
+      await page.getByTestId(`${T}.undo`).click();
+      await expect(page.getByTestId(`${T}.toast`)).toContainText('Put back as it was.', { timeout: 60_000 });
+      expect(await stored(page)).toBe(planted);
+    });
+
     await test.step('the locked plan: the record is still the person\'s to change — a line added as typed writes exactly the record and the stamp; the settings, the document and its snapshot untouched', async () => {
       const locked = holdInNode(sam, TODAY, { add: { text: 'Easy-access savings 2', wrapper: 'CASH', value: '500', pick: 'typed' } });
       expect(locked.hold.locked).toBe(true);

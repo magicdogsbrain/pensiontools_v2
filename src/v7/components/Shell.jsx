@@ -7,10 +7,10 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { Rail } from './Rail.jsx';
 import { GuestNag, GuestStop, BringIn, NewsPopup } from './Visitor.jsx';
-import { fill } from './PlanFigures.jsx';
+import { fill, changeAction } from './PlanFigures.jsx';
 import { format, href } from '../router/routes.js';
 import { focusField } from './Field.jsx';
-import { guestView, newsView, plansMenuView } from '../state/select.js';
+import { guestView, newsView, plansMenuView, previousLinkView } from '../state/select.js';
 import { COMMON, ADVICE_SHORT, ADVICE_FULL } from '../copy/common.js';
 import { PLAN } from '../copy/plan.js';
 
@@ -37,6 +37,14 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
   const G = guestView(state);
   const N = newsView(state);
   const M = plansMenuView(state);
+  // "Use the previous version" on a plan page opens THAT plan in the planner, at the matching page (7.3.2): the same
+  // hand-over as "Change this" (select.js previousLinkView). A plain link opened the account's usual plan instead.
+  const P = previousLinkView(state);
+  const onPrevious = P ? (e) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;   // a new tab: the plain address, as before
+    e.preventDefault();
+    dispatch(changeAction(P.planId, P.place, P.back));
+  } : undefined;
   const bringInProblem = G.bringIn && M.problem && M.problem.planId === null && !M.saving ? M.problem : null;
 
   return (
@@ -54,8 +62,8 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
       </header>
       {/* One line on a phone (the short words), the full sentence where there is room: components.css picks one. */}
       <p class="previous-line">
-        <span class="previous-long">{COMMON.previous.text} <a href={COMMON.links.classic} data-testid="nav.previous">{COMMON.previous.link}</a></span>
-        <span class="previous-short">{COMMON.previous.shortText} <a href={COMMON.links.classic} data-testid="nav.previousShort">{COMMON.previous.shortLink}</a></span>
+        <span class="previous-long">{COMMON.previous.text} <a href={COMMON.links.classic} data-testid="nav.previous" onClick={onPrevious}>{COMMON.previous.link}</a></span>
+        <span class="previous-short">{COMMON.previous.shortText} <a href={COMMON.links.classic} data-testid="nav.previousShort" onClick={onPrevious}>{COMMON.previous.shortLink}</a></span>
       </p>
       {state.ui.online === false && <p class="offline" role="status">{COMMON.offline}</p>}
       {rail === true ? <Rail state={state} dispatch={dispatch} /> : rail || null}

@@ -1257,3 +1257,30 @@ export function planLockView(state) {
   const step = v.steps.find((s) => s.id === 'lock') || null;
   return { ...v, lock: step, ...planActionsView(state) };
 }
+
+/**
+ * The header's "Use the previous version" on a plan page (7.3.2): the classic planner opens on THE PLAN ON SCREEN, at the
+ * page matching the step, through the same hand-over as "Change this" (plan/change). Before 7.3.2 it was a plain address,
+ * so the planner opened the account's usual plan on its own last tab — another plan than the one viewed, where a change
+ * would have gone to the wrong plan. A step with a page of its own opens that page (each value a services/OpenPlace.js
+ * PLACES key; tests/v7/shell/previousLink.test.js holds them to it); the plan's home opens where the planner opens that
+ * plan anyway (LifeStage.openingTab, read from the plan row's stage key so the shell carries no plan reading): a saver on
+ * their saving page, someone approaching their stop on the settings, everyone else on Month by month.
+ */
+export const PREVIOUS_STEP_PLACE = Object.freeze({
+  month: 'month', where: 'document', pot: 'potRecord', checkin: 'potRecord', saving: 'saving', budget: 'budget',
+  lock: 'lock', hold: 'hold', move: 'move', household: 'household',
+  about: 'about', income: 'income', spend: 'spend', pots: 'pots', lasts: 'test', way: 'way', mix: 'settings'
+});
+const PREVIOUS_HOME_PLACE = Object.freeze({ saving: 'saving', 'committed-saving': 'saving', approaching: 'settings' });
+
+/** { planId, place, back } for the plan on screen, or null (not a plan page, or the plan is not among those read). */
+export function previousLinkView(state) {
+  const r = state.route;
+  if (!r || r.screen !== 'plan' || typeof r.planId !== 'string' || !r.planId) return null;
+  const rows = rowsRead(state);
+  const row = rows ? rows.find((x) => x && String(x.id) === r.planId) : null;
+  if (!row) return null;
+  const place = (r.step && PREVIOUS_STEP_PLACE[r.step]) || PREVIOUS_HOME_PLACE[row.stageKey] || 'month';
+  return { planId: r.planId, place, back: `#/plan/${r.planId}` + (r.step ? `/${r.step}` : '') };
+}

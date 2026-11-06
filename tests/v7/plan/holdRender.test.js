@@ -223,6 +223,21 @@ describe('the paste, where every line counts (§2.1)', () => {
     one(root, `${T}.paste.clear`).click();
     expect(actions.pop()).toEqual({ type: 'plan/edit', planId: plan.id, path: 'paste.text', value: '' });
   });
+
+  it('7.3.2: Remove under "sold?" asks right there, beside the line pressed (it used to ask only in the list above, out of sight), and "Remove it" removes that line', () => {
+    const s = load('hold-paste');
+    const plan = planOf(s);
+    const { root, actions } = draw(s, { type: 'plan/edit', planId: plan.id, path: 'remove.index', value: '1' });
+    const li = root.querySelector(`[data-testid="${T}.paste.unseen"] li[data-index="1"]`);
+    const ask = li.querySelector(`[data-testid="${T}.paste.unseen.1.removeConfirm"]`);
+    expect(ask, 'the confirm sits inside the sold? line').not.toBe(null);
+    expect(ask.textContent).toContain('Nothing is sold; this only changes the record.');
+    expect(one(root, `${T}.paste.unseen.1.remove`)).toBe(null);
+    one(root, `${T}.paste.unseen.1.removeConfirm.yes`).click();
+    expect(actions.pop()).toEqual({ type: 'plan/hold', planId: plan.id, change: { kind: 'remove', index: 1 } });
+    one(root, `${T}.paste.unseen.1.removeConfirm.no`).click();
+    expect(actions.pop()).toEqual({ type: 'plan/edit', planId: plan.id, path: 'remove.index', value: '' });
+  });
   it('a paste nothing can be read from says so; an unanswered line stays "not recognised" and the paste can still be added (it counts, unplaced)', () => {
     const s = load('hold-empty');
     const plan = planOf(s);

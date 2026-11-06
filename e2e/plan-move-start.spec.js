@@ -75,7 +75,10 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     await expect(page.locator('#tmStopMonth')).toBeDisabled();          // the form is frozen; the line is not
     await expect(page.locator('#tmStopWrap')).toBeHidden();             // and while the line asks, the form's own empty box is not shown: one box asks
     // the line's buttons are drawn at their own height, not stretched by the banner's text rule (a phone's bottom bar hid one)
-    for (const id of ['#tmLockedStopSave', '#tmLockedStopLeave']) expect((await page.locator(id).boundingBox()).height, id).toBeLessThan(60);
+    // (7.4.0: no "Leave it" while the start is later than this tax year — "I'm already drawing: start it this tax year" instead)
+    expect((await page.locator('#tmLockedStopSave').boundingBox()).height).toBeLessThan(60);
+    expect((await page.locator('#tmMoveNowBtn').boundingBox()).height, 'two lines at most on a phone').toBeLessThan(80);
+    await expect(page.locator('#tmLockedStopLeave')).toHaveCount(0);
     // a month typed wrongly first (a stop before 16), refused with the reason; nothing written
     await page.locator('#tmLockedStopMonth').fill('1970-01');
     await page.locator('#tmLockedStopSave').click();
@@ -258,5 +261,52 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     await expect(page.getByTestId('plan.about.moveStart')).toHaveCount(0, { timeout: 45_000 });
     await expect(page.getByTestId('plan.about.stopChange')).toBeVisible();
     await expect(page.locator('[data-line="about.stoppedIn"]')).toHaveText('You stopped work in October 2023.');
+  });
+
+  test('(d) no month said (7.4.0): "I\'m already drawing: start it this tax year", confirmed, ONE write under the lock; no month written', async ({ page, watch }) => {
+    test.setTimeout(300_000);
+    watch.allow(WORKER_DATA_MISSING);
+    await page.clock.setFixedTime(new Date(NOW));
+    await page.goto(PROD + V7_PATH + '#/');
+    await expect(page.locator('#app [data-screen]')).toBeVisible();
+    const planted = lockedPlan();
+    planted.stressTool.settings.stopMonthLeft = true;   // "Leave it" said before: the plan is asked all the same while its start is later
+    const text = JSON.stringify([planted]);
+    await page.evaluate(([k, t]) => sessionStorage.setItem(k, t), [GUEST_KEY, text]);
+    // the home: one thing to do, which says the plan can start this tax year
+    await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID);
+    await expect(page.locator('[data-todo="start.ask"]')).toContainText('If you are already drawing, it can start this tax year instead.', { timeout: 45_000 });
+    await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID + '/about');
+    await expect(page.getByTestId('plan.about.stopAsk')).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId('plan.about.stopAsk.leave')).toHaveCount(0);
+    const offer = page.getByTestId('plan.about.moveNow');
+    await expect(offer).toContainText('Your plan is set to start in 2027/28. It can start this tax year, 2026/27, from where it stands today. The plan stays locked.');
+    expect(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY)).toBe(text);   // read, nothing written
+    await page.getByTestId('plan.about.moveNow.open').click();
+    const confirm = page.getByTestId('plan.about.moveConfirm');
+    await expect(confirm.locator('h3')).toHaveText('Move the plan’s start to 2026/27?');
+    await expect(confirm).toContainText('The plan’s first tax year becomes 2026/27, this tax year; it was 2027/28. The plan stays locked: nothing is unlocked, and no month you stopped work is saved.');
+    const widths = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: window.innerWidth }));
+    expect(widths.doc, 'no sideways scroll').toBeLessThanOrEqual(widths.win + 1);
+    expect(await page.locator('#app').innerText()).not.toMatch(/undefined|NaN|\[object|\{\w+\}/);
+    expect(await page.locator('#app').innerText()).not.toMatch(/\brun[\s-]?up\b/i);
+    await page.getByTestId('plan.about.moveConfirm.yes').click();
+    await expect(page.getByTestId('plan.about.toast')).toContainText('The plan’s start is now 2026/27, this tax year.', { timeout: 120_000 });
+    const stored = await storedPlan(page);
+    expect(stored.stressTool.settings.firstTaxYear).toBe(2026);
+    expect(stored.stressTool.settings.stoppedWork).toBeUndefined();
+    expect(stored.decisionTool.settings).toMatchObject({ locked: true, firstTaxYear: 2026 });
+    expect(stored.decisionTool.settings.unlockCount).toBeUndefined();
+    expect(stored.journey.at(-1).label).toBe('The plan’s start moved to 2026/27, this tax year');
+    // the same move worked out in Node, to the byte
+    const node = moveInNode(planted, NOW.slice(0, 10), NOW, { thisYear: true });
+    expect(node.ok, JSON.stringify(node.errors)).toBe(true);
+    const at = (o, path) => path.split('.').reduce((x, k) => (x == null ? undefined : x[k]), o);
+    for (const [path, v] of Object.entries(node.patch)) expect(JSON.stringify(at(stored, path)), path).toBe(JSON.stringify(v));
+    // nothing more to move, and no to-do for the start
+    await expect(page.getByTestId('plan.about.moveNow')).toHaveCount(0, { timeout: 45_000 });
+    await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID);
+    await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 45_000 });
+    await expect(page.locator('[data-todo^="start."]')).toHaveCount(0);
   });
 });

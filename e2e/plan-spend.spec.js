@@ -72,7 +72,7 @@ test.describe('"What you spend", without an account', () => {
     const widths = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: window.innerWidth }));
     expect(widths.doc, 'no sideways scroll').toBeLessThanOrEqual(widths.win);
     // the saved facts, each with its source and its before-tax figure
-    await expect(page.getByTestId('plan.spend.first.legend')).toHaveText('From age 60, the plan’s first year');
+    await expect(page.getByTestId('plan.spend.first.legend')).toHaveText('From age 59, the plan’s first year');
     await expect(page.getByTestId('plan.spend.first.amount')).toHaveValue(String(first));
     await expect(page.locator('[data-saved-for="first.amount"]')).toHaveText(`From your plan, saved 11 September 2026 (${first})`);
     await expect(page.locator('#plan\\.spend\\.first\\.amount\\.help')).toHaveText('£48,000 a year before tax, as the plan saves it.');
@@ -83,11 +83,11 @@ test.describe('"What you spend", without an account', () => {
     await expect(page.getByTestId('plan.spend.costs.0.label')).toHaveValue('New roof');
     await expect(page.getByTestId('plan.spend.costs.1.years')).toHaveValue('3');
     const region = page.locator('[data-region="plan-spend"]');
-    await expect(region).toContainText(`From age 60: ${gbp(first)} a month after tax (£48,000 a year before tax).`);
+    await expect(region).toContainText(`From age 59: ${gbp(first)} a month after tax (£48,000 a year before tax).`);
     await expect(region).toContainText(`From age 66: ${gbp(second)} a month after tax (£42,000 a year before tax), moving evenly to ${gbp(third)} at 76.`);
     await expect(region).toContainText('Your budget is not worked out, so you are choosing by one figure.');
     await expect(page.getByTestId('plan.spend.shape.chart')).toBeVisible();
-    expect(await page.locator('[data-testid="plan.spend.shape.chart"] g.year').count()).toBe(32);
+    expect(await page.locator('[data-testid="plan.spend.shape.chart"] g.year').count()).toBe(33);   // 7.4.0: fixture 12 runs one more year, from 59
     const text = await page.locator('#app').innerText();
     expect(text).not.toMatch(/months? to go|years? to go|countdown/i);
     expect(text).not.toMatch(/undefined|NaN/);
@@ -106,7 +106,7 @@ test.describe('"What you spend", without an account', () => {
     await page.getByTestId('plan.spend.steps.n1.fallsPct').press('Enter');
     const toast = page.getByTestId('plan.spend.toast');
     await expect(toast).toBeVisible();
-    await expect(toast).toContainText('Saved. From age 60: £3,000 a month after tax. Later steps: 3. One-off costs: 2.');
+    await expect(toast).toContainText('Saved. From age 59: £3,000 a month after tax. Later steps: 3. One-off costs: 2.');
     // one plan written, by the declared keys only; the locked plan byte-identical; the boxes now show the saved facts
     const after = await storedPlans(page);
     const before = JSON.parse(stored);
@@ -114,7 +114,7 @@ test.describe('"What you spend", without an account', () => {
     expect(stripped(after[0])).toBe(stripped(before[0]));
     const S = after[0].stressTool.settings;
     expect(S.incomeShape).toBe('phases');
-    expect(S.incomeSteps).toEqual([{ amount: yearlyGross(3000, b), fromAge: 60 }, before[0].stressTool.settings.incomeSteps[1], before[0].stressTool.settings.incomeSteps[2], { fromAge: 85, amount: yearlyGross(2000, b), decline: 1 }]);
+    expect(S.incomeSteps).toEqual([{ amount: yearlyGross(3000, b), fromAge: 59 }, before[0].stressTool.settings.incomeSteps[1], before[0].stressTool.settings.incomeSteps[2], { fromAge: 85, amount: yearlyGross(2000, b), decline: 1 }]);
     expect(S.baseSalary).toBe(yearlyGross(3000, b));
     expect(S.targetSchedule.length).toBe(S.duration + 1);
     expect(S.targetSchedule[0]).toBe(yearlyGross(3000, b));
@@ -164,11 +164,11 @@ test.describe('"What you spend", without an account', () => {
     await page.getByTestId('plan.spend.first.amount').fill(String(first));
     await page.getByTestId('plan.spend.steps.remove.2').click();
     await page.getByTestId('plan.spend.save').click();
-    await expect(page.getByTestId('plan.spend.toast')).toContainText(`Saved. From age 60: ${gbp(first)} a month after tax. Later steps: 2.`);
+    await expect(page.getByTestId('plan.spend.toast')).toContainText(`Saved. From age 59: ${gbp(first)} a month after tax. Later steps: 2.`);
     const restored = await storedPlans(page);
     expect(stripped(restored[0])).toBe(stripped(plansNow[0]));   // as the planner left it, but for this step's keys
     // a figure typed by hand is grossed up by the planner's own sum: £3,410 a month is the rounded take-home of £48,000, so it lands on £48,008
-    expect(restored[0].stressTool.settings.incomeSteps).toEqual([{ amount: yearlyGross(first, b), fromAge: 60 }, ...before[0].stressTool.settings.incomeSteps.slice(1)]);
+    expect(restored[0].stressTool.settings.incomeSteps).toEqual([{ amount: yearlyGross(first, b), fromAge: 59 }, ...before[0].stressTool.settings.incomeSteps.slice(1)]);
     expect(restored[0].stressTool.settings.baseSalary).toBe(yearlyGross(first, b));
     expect(Math.abs(yearlyGross(first, b) - 48000)).toBeLessThan(20);
     await page.getByTestId('plan.spend.undo').click();
@@ -184,9 +184,9 @@ test.describe('"What you spend", without an account', () => {
     const stored = await plant(page, [plan, locked]);
     await page.goto(v7('#/plan/SpendPlan01/spend'));
     await expect(page.getByTestId('plan.step.spend')).toBeVisible();
-    await page.getByTestId('plan.spend.steps.0.fromAge').fill('60');
+    await page.getByTestId('plan.spend.steps.0.fromAge').fill('59');
     await page.getByTestId('plan.spend.save').click();
-    await expect(page.locator('[data-error-for="plan.spend.steps.0.fromAge"]')).toHaveText('This is not later than the plan’s first year, at 60. Make it later, or change the figure above instead.');
+    await expect(page.locator('[data-error-for="plan.spend.steps.0.fromAge"]')).toHaveText('This is not later than the plan’s first year, at 59. Make it later, or change the figure above instead.');
     await expect(page.getByTestId('plan.spend.problem')).toHaveText('Have a look at the boxes marked above.');
     await expect(page.getByTestId('plan.spend.steps.0.fromAge')).toBeFocused();
     expect(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY)).toBe(stored);

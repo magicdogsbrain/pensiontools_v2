@@ -9,10 +9,9 @@
  *      starts" is not offered. Locked from the Stress settings: the document's ladder is bought from 2026/27 on and the pots
  *      are plan year 3's; the strip reads "Plan year 3 of …". September 2026 recorded in Month by month is "Year 3" in the
  *      History view and in plan vs actual, compared with the plan.
- *  (c) The same draft, stopped in August 2026 with the plan's income chosen for next April: the summary says the months
- *      until then are lived on money set aside or other income; the pension cash set aside is offered; locked, the strip
- *      says the month comes before the plan's income starts, and the Transition page says the same. The words "run-up"
- *      and "bridge" appear nowhere.
+ *  (c) The same draft, saved with next April (7.4.0): read from this tax year, said once in the summary; nothing written by
+ *      opening it; locked from the Stress settings, it is locked as it reads — from 2026/27 — with nothing to move. The words
+ *      "run-up" and "bridge" appear nowhere.
  *  (e) The preview's "About you and when" on a draft whose start year has passed (offered "update it to today"): the month
  *      work stopped is typed — a past one — the tax year it is in is chosen by default; saved, the offer is gone and the plan
  *      page's stage line is the draft's own.
@@ -72,15 +71,15 @@ test.describe('Say when you stopped work, without an account', () => {
     test.setTimeout(300_000);
     watch.allow(WORKER_DATA_MISSING);
     await openTiming(page, draft());
-    // before: no month said — next April, as every plan saved before
+    // before: no month said — saved with next April, read from this tax year (7.4.0)
     await expect(page.locator('#tmStopMonth')).toHaveValue('');
-    await expect(page.locator('#tmStartYear')).toHaveValue('2027');
+    await expect(page.locator('#tmStartYear')).toHaveValue('2026');
     // the month work stopped: its tax year is offered, named, and chosen
     await page.locator('#tmStopMonth').fill('2023-10');
     await expect(page.locator('#tmStartYear')).toHaveValue('2023');
     await expect(page.locator('#tmStartYear option[value="2023"]')).toHaveText('2023/24 — the year you stopped work');
-    // 7.3.3: never a later year than this one; the draft's own saved year (02: 2027/28) stays on offer as saved
-    await expect(page.locator('#tmStartYear option')).toHaveText(['2023/24 — the year you stopped work', '2024/25', '2025/26', 'this tax year — pick up from here — 2026/27', '2027/28 (saved)']);
+    // 7.3.3: never a later year than this one (7.4.0: the year saved the old way is read as this one, so it is not offered)
+    await expect(page.locator('#tmStartYear option')).toHaveText(['2023/24 — the year you stopped work', '2024/25', '2025/26', 'this tax year — pick up from here — 2026/27']);
     await expect(page.locator('#tmSummary')).toContainText('You stopped work in October 2023. Plan started 6 April 2023 (tax year 2023/24); today is plan year 3 of');
     await expect(page.locator('#giltBridgeWrap')).toBeHidden();
     noOldWords(await page.locator('#ssTimingBlock').innerText());
@@ -128,24 +127,30 @@ test.describe('Say when you stopped work, without an account', () => {
     expect(widths.doc, 'no sideways scroll').toBeLessThanOrEqual(widths.win + 1);
   });
 
-  test('(c) stopped in August 2026, the draft\'s next-April year kept as saved: no words for months before the plan; locked, one thing to do (7.3.3)', async ({ page, watch }) => {
+  test('(c) a draft saved with next April reads from this tax year, said once; opening writes nothing; locked as it reads (7.4.0)', async ({ page, watch }) => {
     test.setTimeout(240_000);
     watch.allow(WORKER_DATA_MISSING);
-    await openTiming(page, draft());
-    await page.locator('#tmStopMonth').fill('2026-08');
+    const planted = draft();
+    await openTiming(page, planted);
     await expect(page.locator('#tmStartYear')).toHaveValue('2026');
-    await page.locator('#tmStartYear').selectOption('2027');
-    await expect(page.locator('#tmSummary')).toContainText('You stopped work in August 2026. Plan starts 6 April 2027 (tax year 2027/28), in 6 months.');
+    await expect(page.locator('#tmStartYear option')).toHaveText(['this tax year — pick up from here — 2026/27']);
+    await expect(page.locator('#tmSummary')).toContainText('Your plan runs from 2026/27, this tax year.');
+    expect((await page.locator('#tmSummary').innerText()).match(/Your plan runs from/g).length).toBe(1);
     expect(await page.locator('#tmSummary').innerText()).not.toMatch(/set aside|not compared|before the plan/);
     await expect(page.locator('#giltBridgeWrap')).toBeHidden();   // the ladder's extra cash is shown only on a plan that holds some
     noOldWords(await page.locator('#ssTimingBlock').innerText());
+    // opened and read: nothing written (the stored plan is the one planted, its saved year next April)
+    expect((await storedPlan(page)).stressTool.settings.firstTaxYear).toBe(2027);
+    expect((await storedPlan(page)).stressTool.settings).toEqual(planted.stressTool.settings);
     await lock(page);
     const locked = await storedPlan(page);
-    expect(locked.stressTool.settings).toMatchObject({ stoppedWork: '2026-08', firstTaxYear: 2027 });
-    expect(locked.planDocument.pots.asOfPlanYear).toBeUndefined();
-    // the strip says the one thing to do — move the start — and reads nothing against a later year's figure
-    await expect(page.locator('.pd-where')).toContainText('Your plan is set to start in 2027/28. Start it from the tax year you stopped work: the banner at the top of the page does it.');
-    await expect(page.locator('#nextStepBanner')).toContainText('Your plan is set to start in April 2027, but you stopped work in August 2026. Start it from the tax year you stopped.');
+    expect(locked.stressTool.settings).toMatchObject({ firstTaxYear: 2026 });
+    expect(locked.stressTool.settings.stoppedWork).toBeUndefined();
+    expect(locked.decisionTool.settings).toMatchObject({ locked: true, firstTaxYear: 2026 });
+    // nothing to move: no start-later to-do on the strip or the banner
+    await expect(page.locator('.pd-where')).toBeVisible();
+    expect(await page.locator('.pd-where').innerText()).not.toMatch(/set to start in 2027/);
+    expect(await page.locator('#nextStepBanner').innerText()).not.toMatch(/set to start in April 2027/);
     noOldWords(await page.locator('.pd').innerText());
     // the Transition page names no months before the plan either (7.3.3: its "You have stopped work … until then" note is gone)
     await page.evaluate(() => switchToTab('transition'));

@@ -112,8 +112,8 @@ test.describe('"Money that comes in anyway", without an account', () => {
     expect(after[0].stressTool.settings.statePension).toBe(0);
     expect(after[0].stressTool.settings.spStartDate).toBe('25 July 2034');
     expect(after[0].stressTool.settings.dbAmount).toBe(9400);
-    expect(after[0].stressTool.settings.extraIncomes).toEqual([...before[0].stressTool.settings.extraIncomes, { label: 'Final-salary pension', annual: 3000, startYear: 6, endYear: null, indexation: 'cpi' }]);
-    expect(after[0].stressTool.settings.windfalls).toEqual([...before[0].stressTool.settings.windfalls, { label: 'Gift', amount: 10000, year: 2, wrapper: 'cash' }]);
+    expect(after[0].stressTool.settings.extraIncomes).toEqual([...before[0].stressTool.settings.extraIncomes, { label: 'Final-salary pension', annual: 3000, startYear: 7, endYear: null, indexation: 'cpi' }]);
+    expect(after[0].stressTool.settings.windfalls).toEqual([...before[0].stressTool.settings.windfalls, { label: 'Gift', amount: 10000, year: 3, wrapper: 'cash' }]);
     expect(after[0].lastModified).not.toBe(before[0].lastModified);
     await expect(page.getByTestId('plan.income.spKind.none')).toBeChecked();
     await expect(page.getByTestId('plan.income.fs.1.fromAge')).toHaveValue('66');
@@ -179,9 +179,9 @@ test.describe('"Money that comes in anyway", without an account', () => {
     const stored = await plant(page, [plan, locked]);
     await page.goto(v7('#/plan/IncomePlan01/income'));
     await expect(page.getByTestId('plan.step.income')).toBeVisible();
-    await page.getByTestId('plan.income.lumps.1.atAge').fill('59');
+    await page.getByTestId('plan.income.lumps.1.atAge').fill('58');
     await page.getByTestId('plan.income.save').click();
-    await expect(page.locator('[data-error-for="plan.income.lumps.1.atAge"]')).toHaveText('The plan’s first year is at age 60: money arriving before then counts as part of your pots today. An age of 60 or more, please.');
+    await expect(page.locator('[data-error-for="plan.income.lumps.1.atAge"]')).toHaveText('The plan’s first year is at age 59: money arriving before then counts as part of your pots today. An age of 59 or more, please.');
     await expect(page.getByTestId('plan.income.problem')).toHaveText('Have a look at the boxes marked above.');
     await expect(page.getByTestId('plan.income.lumps.1.atAge')).toBeFocused();
     expect(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY)).toBe(stored);

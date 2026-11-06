@@ -71,19 +71,23 @@ test.describe('the saved plans, without an account', () => {
     // no box anywhere on the plan pages
     expect(await page.locator('#app input, #app select, #app textarea').count()).toBe(0);
 
-    // the retired partner's plan opens on its home (7.3.0; Month by month until then): Moving, its ladder short of its rungs,
-    // so the next order to place is due; Month by month itself has September 2026 recorded at the fixed clock
+    // the retired partner's plan opens on its home (7.3.0; Month by month until then): Drawing, as it records its months
+    // (7.3.1, retaken on purpose: it read Moving in 7.3.0) — its ladder still short of its rungs is said under "Where you
+    // are", not as a to-do; Month by month itself has September 2026 recorded at the fixed clock
     await page.getByTestId('plans.open.HouseLadder01').click();
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan');
     await expect(page.getByTestId('plan.home')).toBeVisible();
-    await expect(page.getByTestId('plan.home.headline')).toContainText('Moving.');
+    await expect(page.getByTestId('plan.home.headline')).toHaveText('Drawing.');
     await expect(page.getByTestId('plan.stageLine')).toHaveText('Retired. Your ladder pays from April 2027. Locked 1 July 2026.');
-    await expect(page.locator('[data-todo="move.next"]')).toHaveCount(1);
+    await expect(page.locator('[data-todo="move.next"]')).toHaveCount(0);
+    await expect(page.getByTestId('plan.home.heldMix')).toContainText('of your plan’s mix');
     await page.evaluate(() => { window.location.hash = '#/plan/HouseLadder01/month'; });
     await expect(page.getByTestId('plan.step.month')).toBeVisible();
     await expect(page.locator('[data-region="plan-step"]')).toContainText('September 2026 recorded: £2,476 after tax');
     await expect(page.getByTestId('plan.month.idle')).toContainText('September is recorded. October opens on 1 October');
-    await expect(page.getByTestId('rail.next')).toContainText('Next: move 1 of ');
+    // a Drawing plan's rail never names a move as Next (7.3.1, retaken on purpose: it was "Next: move 1 of …")
+    await expect(page.getByTestId('rail.next')).toBeAttached();
+    await expect(page.getByTestId('rail.next')).not.toContainText('to your plan’s mix');
     const text = await page.locator('#app').innerText();
     expect(text).not.toMatch(/months? to go|years? to go|countdown/i);
     expect(text).not.toMatch(/undefined|NaN/);

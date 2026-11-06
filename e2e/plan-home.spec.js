@@ -120,6 +120,39 @@ test.describe('a plan\'s home', () => {
     expect(await stored(page)).toBe(before);
   });
 
+  test('a ladder recording its months while short of its rungs (7.3.1): Drawing; the share held said under "Where you are", the move one link away, no move to-do; nothing written', async ({ page }, testInfo) => {
+    const LADDER = 'HomeLadder03';
+    const before = await plant(page, [planted('03-gilt-ladder-runup.json', LADDER, 'Sam’s ladder'), ...plans()]);
+    await page.goto(v7('#/plan/' + LADDER));
+    await expect(page.getByTestId(T)).toBeVisible();
+    await expect(page.getByTestId(`${T}.headline`)).toHaveText('Drawing.');
+    await expect(page.getByTestId(`${T}.strip`).locator('[aria-current="step"]')).toHaveAttribute('data-stage', 'drawing');
+    await expect(page.locator('[data-todo="move.next"], [data-todo="move.finish"]')).toHaveCount(0);
+    const note = page.getByTestId(`${T}.heldMix`);
+    await expect(note).toBeVisible();
+    const pct = await note.getAttribute('data-pct');
+    await expect(note).toHaveText(new RegExp(`^You hold about ${pct}% of your plan’s mix\\. Different from the plan: .+ and \\d+ more\\. See the move$`));
+    // inside "Where you are", under its lines; the move tool says the same share, by the mix's name
+    await expect(page.getByTestId(`${T}.where`).getByTestId(`${T}.heldMix`)).toHaveCount(1);
+    await expect(page.getByTestId(`${T}.tool.move`)).toHaveText(`Your plan’s mix · about ${pct}% held`);
+    // no page wider than the screen, at either width; on a wide screen the year and where you are still sit side by side
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    if (testInfo.project.name === 'desktop-1440') {
+      const y = await page.getByTestId(`${T}.year`).boundingBox();
+      const w = await page.getByTestId(`${T}.where`).boundingBox();
+      expect(w.x).toBeGreaterThan(y.x + y.width - 1);
+    }
+    // the rail on a step page never names a move as Next on a Drawing plan
+    await page.goto(v7('#/plan/' + LADDER + '/plan'));
+    await expect(page.getByTestId('rail.next')).toBeAttached();
+    await expect(page.getByTestId('rail.next')).not.toContainText('to your plan’s mix');
+    // the link opens the move, whose own status says the very same share
+    await page.goto(v7('#/plan/' + LADDER));
+    await page.getByTestId(`${T}.heldMix.move`).click();
+    await expect(page.getByTestId('plan.move.status.line')).toContainText(`${pct}% of the plan’s mix held`);
+    expect(await stored(page), 'the home writes nothing').toBe(before);
+  });
+
   test('less motion asked for: the very same final frame — the figures, the bars and the dot', async ({ browser }, testInfo) => {
     const open = async (reducedMotion) => {
       const context = await browser.newContext({ viewport: testInfo.project.use.viewport, reducedMotion });

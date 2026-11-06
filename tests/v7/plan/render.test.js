@@ -430,10 +430,11 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     const today = '2026-11-03';
     const marked = draw(stateWith(entriesAt(today, raws), '#/plan/' + id + '/month', { today }));
     expect(marked.text).toContain('November 2026 recorded');
-    // 7.3.0: 03 holds less than its ladder (Moving), so the rail's next is the next order to place; the tool says nothing
-    // is due until December's 1st
+    // 7.3.1 (retaken on purpose: in 7.3.0 03 read Moving and the rail's next was the next order to place): 03 records its
+    // months, so it is Drawing and the rail's next is its record of what it holds, out of date; the tool says nothing is due
+    // until December's 1st
     expect(marked.text).toContain('November is recorded. December opens on 1 December (record it early if the payment has gone).');
-    expect(marked.root.querySelector('[data-testid="rail.next"] [data-next]').textContent).toMatch(/^Next: move 1 of \d+ to your plan’s mix: /);
+    expect(marked.root.querySelector('[data-testid="rail.next"] [data-next]').textContent).toMatch(/^What you hold was last updated on .+\. Next: update it\.$/);
     expect(marked.text).not.toContain('October 2026 is not recorded');
     expect(marked.root.querySelector('[data-line="month.gapLater"]')).toBe(null);
     expect(checkPlanPage(marked.root, marked.text, scopesOf('bridge')).filter((p) => p !== 'a box is drawn')).toEqual([]);

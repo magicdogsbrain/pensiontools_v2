@@ -849,9 +849,9 @@ function rulesFor(C, built) {
     'P.checkinDue':  () => chosen && ci.due,
     'P.behind':      () => !!ci && (lastBand === 'close' || lastBand === 'no'),
     'P.holdStale':   () => locked && drawingOrMoving && holdStale,
-    // a locked plan read as Drawing only because nothing it holds is recorded: its move is still all to make, so it is said,
-    // below the month and the check-ins (the design's "drawing (lower)"); a holdings record that shows the plan's mix has
-    // nothing left to move
+    // a locked plan read as Drawing with nothing it holds recorded: its move is still all to make, so it is said, below the
+    // month and the check-ins (the design's "drawing (lower)"); a holdings record that shows the plan's mix has nothing left
+    // to move, and one short of it on a plan recording months (Drawing, 7.3.1) is said on the home as information, not a to-do
     'P.moveLater':   () => locked && !!life && life.key === 'drawing' && !C.held && !!prog && !!prog.next,
     'P.recheck':     () => !!answerStale,
     'P.stale':       () => !!stale,

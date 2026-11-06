@@ -110,12 +110,27 @@ export const HOME = {
 
   whereTitle: 'Where you are',
   whereNone: 'Nothing recorded to read against the plan yet.',
+  /**
+   * A plan recording months is Drawing whatever its record of what you hold says (7.3.1): what is still held differently from
+   * the plan is said under "Where you are", as information — never a to-do. {pct} is the move page's own share of the plan's
+   * mix held; {label} the next order still open there, by its own name; {n} how many more after it.
+   */
+  heldMix: {
+    held: 'You hold about {pct}% of your plan’s mix.',
+    differentOne: 'Different from the plan: {label}.',
+    differentMany: 'Different from the plan: {label} and {n} more.',
+    ticked: 'Every move is ticked, but what you hold does not show it yet.',
+    link: 'See the move'
+  },
   /** The full reading, with where each figure is from, is on the "Where you are" step. */
   whereMore: 'See where you are in full',
 
   toolsTitle: 'Tools',
   /** The move tool's state on the home: the same count as the headline. */
   toolMoves: '{done} of {of} moves done',
+  /** On a Drawing plan the move tool goes by the mix it keeps to, and says the share held, as "Where you are" does (7.3.1). */
+  toolMix: 'Your plan’s mix',
+  toolHeld: 'about {pct}% held',
 
   /** Everything else, folded away. */
   stepsTitle: 'Your plan’s steps',

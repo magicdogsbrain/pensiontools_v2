@@ -4,7 +4,7 @@
  * NOTHING is written because a plan was opened, and nothing here is stored (no stage, no to-do list).
  *
  *   homeOf(entries, id, { today, source, notNow, page })
- *     → { found, id, name, …, stage, todo, quiet, where, whereFull, year, tools, steps, change, ask }
+ *     → { found, id, name, …, stage, todo, quiet, where, heldMix, whereFull, year, tools, steps, change, ask }
  *
  * One engine: the to-dos are read.js dueFor's, the very list whose first item is the rail's "Next" (planPage `due`), so
  * the two can never disagree. A partner's plan adds its own due lines (the month, the tax year, the move; never its
@@ -19,6 +19,7 @@ import { whereAmIFor, historyAscending, moveInputs } from '../../services/PlanRe
 import { taxYearStartOf, taxYearKey, taxYearLabel } from '../../services/PlanTiming.js';
 import { readDayOf } from '../../services/PlanClosed.js';
 import { isFilledIn } from '../../services/MonthFill.js';
+import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { ym } from './dates.js';
 
 /** At most this many to-dos are listed at once; the rest are "and N more" (the design's rule). */
@@ -157,8 +158,26 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
   const stepOf = (sid) => pg.steps.find((s) => s.id === sid) || null;
   // the move, counted once on the home: its orders (TransitionPlanner.progress, the very list the to-do names the next of),
   // in the headline and the move tool alike — never the orders in one place and the gilts bought in another
-  let prog = null; try { const mv = moveInputs(plan, { now }); prog = mv && mv.prog && mv.prog.total > 0 ? mv.prog : null; } catch { prog = null; }
+  let mv = null; try { mv = moveInputs(plan, { now }); } catch { mv = null; }
+  const prog = mv && mv.prog && mv.prog.total > 0 ? mv.prog : null;
   const moves = prog ? { done: prog.doneCount, of: prog.total } : null;
+  // 7.3.1 (one-product-design.md, "Drawing while the holdings are not exact"): a plan recording months is Drawing whatever
+  // its record of what is held says, so what is still held differently from the plan is said here, as information — never
+  // a to-do, never the stage. The same reading as the move page and its "% of the plan's mix held" line (moveInputs: the
+  // record diffed against the plan's mix, then the orders still open), so the two figures cannot differ. Drift inside the
+  // plan's own tolerance is no difference (`complete`): then nothing is said.
+  const recorded = holdingsSummary(normaliseHoldings(plan.holdings)).count > 0;
+  const shortOfMix = stageKey === 'drawing' && !!life && (life.placing === 'bridge' || life.placing === 'running') && recorded
+    && !!mv && !!mv.diff && !!mv.target && mv.target.kind !== 'none' && mv.diff.complete === false && typeof mv.diff.progressPct === 'number';
+  const open = prog ? prog.total - prog.doneCount : 0;
+  const heldMix = shortOfMix ? {
+    pct: mv.diff.progressPct,
+    // the next order still open, by its own name, and how many more after it; every order ticked, the record has not caught up
+    label: prog && prog.next ? String(prog.next.label || prog.next.ticker || '') : null,
+    more: prog && prog.next ? Math.max(0, open - 1) : 0,
+    ticked: !!prog && !prog.next,
+    href: '#/plan/' + pg.id + '/move'
+  } : null;
   // where you are, as a headline: the saver's reading against the path (or the last check-in); a moving plan's share of the
   // mix held, then its months; a drawing plan's months against the plan — each the result and a few chosen lines, the full
   // reading on the "Where you are" step
@@ -179,8 +198,10 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
   else if (stageKey === 'drawing' || stageKey === 'closed') add('where');
   const whereFull = cut && stepOf('where') ? '#/plan/' + pg.id + '/where' : null;
   const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {},
-    // the move tool says the same count as the headline and the to-do: the orders done
-    ...(s.id === 'move' && moves && !s.done ? { moves } : {}) }));
+    // a Drawing plan short of its mix: the move tool says the share held, as "Where you are" does (never a count of moves to make)
+    ...(s.id === 'move' && heldMix ? { held: heldMix.pct }
+      // the move tool says the same count as the headline and the to-do: the orders done
+      : s.id === 'move' && moves && !s.done ? { moves } : {}) }));
   // the steps, read-only with each result line; a saver's "For later" group stays on a plan not locked, but a locked plan
   // is being carried out: its steps are listed plainly, never marked for later or not done
   const steps = pg.steps.map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: (!pg.locked && s.railResult) || s.result, figures: s.figures || {}, later: !pg.locked && !!s.later, done: s.state === 'done' }));
@@ -202,6 +223,7 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
     todo: { items: due.slice(0, TODO_SHOWN), more: due.slice(TODO_SHOWN), count: due.length, soon: (pg.soon || []).map((d) => item(d)), partner },
     quiet: quietOf({ ...pg, lastRecord }, life, now),
     where,
+    heldMix,
     whereFull,
     year: yearOf(plan, pg, now),
     tools,

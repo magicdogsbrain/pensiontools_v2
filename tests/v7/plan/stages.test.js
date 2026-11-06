@@ -35,18 +35,27 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
     }
   }
   // the three words a person sees (7.3.0, LifeStage.stageOf; research/v7/one-product-design.md "The stage model"): each
-  // placing beside its word — derived from the facts only, a locked ladder short of its rungs Moving, a plan with nothing
-  // to move Drawing
+  // placing beside its word — derived from the facts only. 7.3.1: a locked plan recording months is Drawing whatever it
+  // holds; one short of its mix is Moving only before its first month; a plan with nothing to move is Drawing
   const WORD = { unknown: null, 'draft-retired': 'drawing', 'committed-saving': 'saving', approaching: 'saving', saving: 'saving', closed: 'closed' };
-  const MOVING = ['03-gilt-ladder-runup', '13-stopped-drawing-since'];   // what they hold is short of the ladder the plan bought
+  const SHORT = ['03-gilt-ladder-runup', '13-stopped-drawing-since'];   // what they hold is short of the ladder the plan bought
   for (const today of DATES) {
     it(`the three-word column at ${today}: Saving, Moving, Drawing (Closed) beside every placing`, () => {
       const entries = entriesAt(today);
       for (const [name, key] of Object.entries(EXPECTED[today])) {
         const e = entryOf(C[name], today);
         const word = planPage(entries, e.plan.id, null, { today }).life.key;
-        const want = key === 'bridge' || key === 'running' ? (MOVING.includes(name) ? 'moving' : 'drawing') : WORD[key];
+        const months = (e.plan.decisionTool && e.plan.decisionTool.history || []).length > 0;
+        const want = key === 'bridge' || key === 'running' ? (SHORT.includes(name) && !months ? 'moving' : 'drawing') : WORD[key];
         expect(word, `${name} (${key})`).toBe(want);
+      }
+      // retaken by name (7.3.1): 03 and 13 read Moving in 7.3.0; both record months, so both read Drawing now —
+      // and the same two plans before their first month read Moving, as before
+      for (const name of SHORT) {
+        expect(planPage(entries, entryOf(C[name], today).plan.id, null, { today }).life.key, name).toBe('drawing');
+        const raw = JSON.parse(JSON.stringify(C[name])); raw.decisionTool.history = [];
+        const early = entryOf(raw, today);
+        expect(planPage([early], early.plan.id, null, { today }).life.key, name + ' with no month').toBe('moving');
       }
     });
   }
@@ -163,8 +172,12 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
     const recorded = { ...plan, decisionTool: { ...plan.decisionTool, history: [...plan.decisionTool.history, { date: '2026-10', monthlyNet: 3395.33, monthlyTax: 938, taxYear: '26/27' }] } };
     const pg = planPage([{ plan: recorded, newer: false, failed: false }], plan.id, 'month', { today: TODAY });
     expect(pg.steps.find((s) => s.id === 'month').result.text).toBe('October 2026 recorded: £3,395 after tax');
-    // 7.3.0: 03 holds less than its ladder (Moving), so the next order to place is due before "nothing to do"
-    expect(pg.next.id).toBe('P.moveNext');
+    // 7.3.1 (retaken on purpose: it was P.moveNext while 03 read Moving): 03 records its months, so it is Drawing; what it
+    // holds short of its ladder is said on the home, never the rail's Next — what is due is the record of what it holds,
+    // last updated over three months ago
+    expect(pg.life.key).toBe('drawing');
+    expect(pg.next.id).toBe('P.holdStale');
+    expect(pg.due.map((d) => d.pid)).not.toContain('P.moveNext');
     // with no record of what it holds it reads as Drawing, but its whole move is still to make (retaken on purpose: this was
     // P.idle): the next order is said, below the month (the design's "move.next: drawing (lower)")
     const noHold = { ...recorded, holdings: null };

@@ -167,7 +167,8 @@ export function deriveStage(scenario, now = new Date()) {
  *   placing                                  stage
  *   unknown                                  null (the home's only to-do: add your age)
  *   saving, approaching, committed-saving    saving
- *   bridge, running                          moving while a recorded holding is still short of the plan's mix, else drawing
+ *   bridge, running, a month recorded        drawing, whatever the holdings say (7.3.1)
+ *   bridge, running, no month recorded yet   moving while a recorded holding is still short of the plan's mix, else drawing
  *   draft-retired                            drawing (not locked: its first to-do is the lock)
  *   closed                                   closed
  *
@@ -175,6 +176,12 @@ export function deriveStage(scenario, now = new Date()) {
  * saver whose stop has passed (never a silent change of placing: the person is asked). `passed` says the stop month has
  * come: only then is it a thing to do (the design: "the first to-do from the stop month"); before it, it is said as what is
  * coming. The agreement itself comes later; until then the invitation points at the stop month on "About you and when".
+ *
+ * A person recording months is drawing (7.3.1; one-product-design.md, "Drawing while the holdings are not exact"): real
+ * holdings almost never match the plan's mix exactly (a rung matures, index ratios move the targets, cash is topped up and
+ * spent), so reading the stage from the holdings alone left a plan drawing for a year or more called Moving for good. The
+ * months recorded are read as deriveStage reads them (`decisionTool.history`); what is still held differently from the plan
+ * is said on the home as information, never as the stage.
  *
  * Pure. `placing` (deriveStage's result, or V7's planStage on the effective settings) and `move` ({ recorded, complete }:
  * whether a holdings record exists, and whether it matches the plan's mix — PlanReading.moveInputs works that out) may be
@@ -188,11 +195,13 @@ export function stageOf(plan, now = new Date(), { placing = null, move = null } 
   // the month work stops (a saver) or stopped (someone retired), when the plan says it
   const stop = st.timingMode === 'future' ? (st.startMonth || null) : (st.stoppedWork ? String(st.stoppedWork).slice(0, 7) : null);
   const movePending = !!(move && move.recorded && move.complete === false);
+  // a month recorded: the same reading deriveStage makes of the history (its own months only, never a tax year's set-up)
+  const recordedMonths = Array.isArray(plan && plan.decisionTool && plan.decisionTool.history) ? plan.decisionTool.history : [];
   let key;
   if (p === 'unknown') key = null;
   else if (SAVER_STAGE_KEYS.includes(p)) key = 'saving';
   else if (p === 'closed') key = 'closed';
-  else if (p === 'bridge' || p === 'running') key = movePending ? 'moving' : 'drawing';
+  else if (p === 'bridge' || p === 'running') key = recordedMonths.length > 0 ? 'drawing' : movePending ? 'moving' : 'drawing';
   else key = 'drawing';
   let invite = null;
   if (key === 'saving' && st.timingMode === 'future' && stop) {

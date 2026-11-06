@@ -46,8 +46,8 @@ const one = (root, id) => root.querySelector(`[data-testid="${id}"]`);
 const scopes = (stage) => ['all', 'record', ...(stage === 'saving' ? ['saver'] : ['retired'])];
 
 describe('the named home states', () => {
-  it('are the six the design names', () => {
-    expect(NAMES).toEqual(['home-closed', 'home-draft-retired', 'home-drawing', 'home-locked-saver', 'home-moving', 'home-saving']);
+  it('are the six the design names, and the drawing plan short of its mix (7.3.1)', () => {
+    expect(NAMES).toEqual(['home-closed', 'home-draft-retired', 'home-drawing', 'home-drawing-held', 'home-locked-saver', 'home-moving', 'home-saving']);
   });
   it.each(NAMES)('%s: the contract — sections in order, no rail, no box, the words\' rules, figures through Money', (name) => {
     const { root, words } = draw(load(name));
@@ -133,10 +133,13 @@ describe('each stage\'s home', () => {
     expect(one(draw(load('home-drawing')).root, `${T}.notNowDone`)).toBe(null);
   });
   it('home-moving: "Moving. 0 of n moves done.", the next order to place, the strip on Moving', () => {
+    // 7.3.1: a plan recording months is Drawing, so the Moving home is the ladder before its first month (its months taken
+    // off in the builder): the month to record comes first (retaken on purpose: the move was first), the next order second
     const { root } = draw(load('home-moving'));
     expect(one(root, `${T}.headline`).textContent).toMatch(/^Moving\./);
     const items = [...root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)].map((li) => li.getAttribute('data-todo'));
-    expect(items[0]).toBe('move.next');
+    expect(items.slice(0, 2)).toEqual(['month.record', 'move.next']);
+    expect(one(root, `${T}.heldMix`)).toBe(null);
     expect(one(root, `${T}.todo.move.next`).getAttribute('href')).toBe('#/plan/SamLadder03/move');
     expect(one(root, `${T}.strip`).querySelector('[aria-current="step"]').getAttribute('data-stage')).toBe('moving');
     expect(one(root, `${T}.tool.move`)).not.toBe(null);
@@ -145,6 +148,35 @@ describe('each stage\'s home', () => {
     expect(one(root, `${T}.tool.move`).textContent).toContain(`${done} of ${of} moves done`);
     expect(one(root, `${T}.todo`).textContent).toContain(`Move ${Number(done) + 1} of ${of}:`);
     expect(one(root, `${T}.where`).textContent).not.toMatch(/gilts bought/);
+  });
+  it('home-drawing-held: a ladder recording months while short of its rungs reads Drawing; the share held is said, not a to-do', () => {
+    const { root, words } = draw(load('home-drawing-held'));
+    expect(one(root, `${T}.headline`).textContent).toBe('Drawing.');
+    expect(one(root, `${T}.strip`).querySelector('[aria-current="step"]').getAttribute('data-stage')).toBe('drawing');
+    const items = [...root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)].map((li) => li.getAttribute('data-todo'));
+    expect(items).not.toContain('move.next');
+    expect(items).not.toContain('move.finish');
+    // under "Where you are", as a note beside the headline lines (never one of them): the share, what is different, the move
+    const note = one(root, `${T}.heldMix`);
+    expect(note.closest(`[data-testid="${T}.where"]`)).not.toBe(null);
+    expect(note.classList.contains('plan-line')).toBe(false);
+    const pct = note.getAttribute('data-pct');
+    expect(note.textContent).toMatch(new RegExp(`^You hold about ${pct}% of your plan’s mix\\. Different from the plan: .+ and \\d+ more\\. See the move$`));
+    expect(one(root, `${T}.heldMix.move`).getAttribute('href')).toBe('#/plan/SamLadder07/move');
+    // the move tool goes by the mix and says the same share; "Moving" is not said anywhere on a Drawing home's stage or tools
+    expect(one(root, `${T}.tool.move`).textContent).toBe(`Your plan’s mix · about ${pct}% held`);
+    expect(one(root, `${T}.tools`).textContent).not.toMatch(/Moving/);
+    expect(one(root, `${T}.strip`).querySelector('[data-stage="moving"]').getAttribute('data-state')).toBe('done');
+    expect(words).not.toMatch(/moves done/);
+    // the rail on a step page: its Next is the home's first to-do, never a move
+    const { root: step } = draw({ ...load('home-drawing-held'), route: parse('#/plan/SamLadder07/plan') });
+    const next = one(step.querySelector('[data-region="rail"]'), 'rail.next').textContent;
+    expect(next).not.toMatch(/to your plan’s mix/);
+  });
+  it('home-drawing: a record that shows the plan\'s mix says no share and no difference', () => {
+    const { root } = draw(load('home-drawing'));
+    expect(one(root, `${T}.heldMix`)).toBe(null);
+    expect(one(root, `${T}.tool.move`).textContent).toBe('Your plan’s mix · Done');
   });
   it('home-locked-saver: nothing due once this month\'s pot is recorded, said with its date; the check-in, not the form', () => {
     const { root, text } = draw(load('home-locked-saver'));
@@ -185,7 +217,10 @@ describe('each stage\'s home', () => {
     const { root } = draw(step);
     const rail = root.querySelector('[data-region="rail"]');
     expect(one(rail, 'rail.home').getAttribute('href')).toBe('#/plan/SamLadder03');
-    expect(one(rail, 'rail.next').textContent).toMatch(/^Next: move 1 of \d+ to your plan’s mix: /);
+    // retaken on purpose (7.3.1): before its first month the month to record is first, on the rail and the home alike
+    expect(one(rail, 'rail.next').textContent).toMatch(/^Next: record [A-Z][a-z]+ \d{4}\./);
+    const { root: home } = draw(stored);
+    expect(home.querySelector(`[data-testid="${T}.todo"] .home-item`).getAttribute('data-todo')).toBe('month.record');
     expect(rail.querySelector('[data-testid^="rail.ask."]')).toBe(null);
     // a locked plan's steps not done carry no "Not done yet" mark
     expect(rail.textContent).not.toContain(PLAN.page.marks.open);

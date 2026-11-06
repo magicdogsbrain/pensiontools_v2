@@ -97,6 +97,21 @@ function YearView({ Y }) {
   );
 }
 
+/**
+ * A Drawing plan whose record of what you hold is short of the plan's mix (7.3.1): how much of the mix is held and what is
+ * different, as a short note under the headline lines (never one of them, never a to-do), the move one link away.
+ */
+function HeldMix({ M }) {
+  const W = HOME.heldMix;
+  const different = M.label ? (M.more > 0 ? fill(W.differentMany, { label: M.label, n: String(M.more) }) : fill(W.differentOne, { label: M.label })) : M.ticked ? W.ticked : '';
+  return (
+    <p class="note home-held" data-testid={`${T}.heldMix`} data-pct={String(M.pct)}>
+      {fill(W.held, { pct: String(M.pct) })}{different ? ' ' + different : ''}{' '}
+      <a href={M.href} data-testid={`${T}.heldMix.move`}>{W.link}</a>
+    </p>
+  );
+}
+
 function headlineOf(H) {
   const s = H.stage;
   const W = HOME.headline;
@@ -205,6 +220,7 @@ export function HomeScreen(state, dispatch) {
                 {b.lines.length > 0 && <ul class="plan-lines">{b.lines.map((l, i) => <PlanLine key={i} line={l} figures={b.figures} hideSource />)}</ul>}
               </div>
             ))}
+            {H.heldMix && <HeldMix M={H.heldMix} />}
             {H.whereFull && <p class="home-where-more"><a href={H.whereFull} data-testid={`${T}.whereFull`}>{HOME.whereMore}</a></p>}
           </Counted>
         </div>
@@ -215,8 +231,9 @@ export function HomeScreen(state, dispatch) {
             <ul class="home-tools">
               {H.tools.map((t) => (
                 <li key={t.id}><a class="home-tool" href={t.href} data-testid={`${T}.tool.${t.id}`}>
-                  <span class="home-tool-name">{stepName(t.id)}</span>
-                  {t.moves ? <span class="home-tool-state"> · {fill(HOME.toolMoves, { done: String(t.moves.done), of: String(t.moves.of) })}</span>
+                  <span class="home-tool-name">{t.id === 'move' && s.key === 'drawing' ? HOME.toolMix : stepName(t.id)}</span>
+                  {t.held != null ? <span class="home-tool-state"> · {fill(HOME.toolHeld, { pct: String(t.held) })}</span>
+                    : t.moves ? <span class="home-tool-state"> · {fill(HOME.toolMoves, { done: String(t.moves.done), of: String(t.moves.of) })}</span>
                     : t.result && <span class="home-tool-state"> · <PlanSentence s={t.result} figures={t.figures} /></span>}
                 </a></li>
               ))}

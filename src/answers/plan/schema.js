@@ -368,6 +368,19 @@ export const DECISION_SEED_KEYS = Object.freeze([
   'subAsset', 'taggedFunds', 'taxableMix', 'taxableStart', 'ufplsThenPcls', 'ufplsYears', 'windfalls'
 ]);
 
+/**
+ * A retired draft read from an earlier start than it saved (7.4.0, moveStart.js laterDraftPatch): its year 0 and every key
+ * the move's transform works out, in the Stress copy (and, with no age, the pinned start), and the Decision copy's year 0.
+ * Every save of the draft's settings carries them, and so does its lock (lock.js lockPatch: beside LOCK_WRITES, never in an
+ * Undo of the lock, so the reversal stays exactly LOCK_WRITES).
+ */
+/** The keys a move of year 0 works out besides it (PlanMove.REANCHOR_KEYS, by hand; MOVE_START_WRITES below). */
+const MOVED_KEYS = ['shapeAgeNow', 'duration', 'incomeShape', 'incomeSteps', 'targetSchedule', 'spendingProfile', 'spendingMigratedFrom', 'dbStartYear', 'statePensionYear', 'ufplsYears', 'strategyParams', 'strategyState', 'extraIncomes', 'extraWithdrawals', 'windfalls', 'spStartDate', 'spWeeklyAmount'];
+function LATER_DRAFT_STRESS_WRITES() {
+  return [...['firstTaxYear', 'legacyFirstTaxYear', ...MOVED_KEYS].map((k) => 'stressTool.settings.' + k)];
+}
+export const LATER_DRAFT_WRITES = Object.freeze([...LATER_DRAFT_STRESS_WRITES(), 'decisionTool.settings.firstTaxYear']);
+
 /** The lock's own keys: the flag, its date and who made it (PlanLock.lockPlanIfNeeded), each a dotted path. */
 export const LOCK_FLAG_WRITES = Object.freeze([
   'decisionTool.settings.locked',
@@ -420,7 +433,6 @@ export const DOCUMENT_WRITES = Object.freeze([
  * moveLockedPlanStart), and from 6.55.0 the preview does too, from a locked plan's "About you and when" (effects/planWrite.js
  * moveStart): one write, past the same guard.
  */
-const MOVED_KEYS = ['shapeAgeNow', 'duration', 'incomeShape', 'incomeSteps', 'targetSchedule', 'spendingProfile', 'spendingMigratedFrom', 'dbStartYear', 'statePensionYear', 'ufplsYears', 'strategyParams', 'strategyState', 'extraIncomes', 'extraWithdrawals', 'windfalls'];
 export const MOVE_START_WRITES = Object.freeze([
   // PlanMove.REANCHOR_STRESS_KEYS and REANCHOR_DECISION_KEYS, by hand (this file imports nothing; a test holds them equal)
   ...['firstTaxYear', 'stoppedWork', ...MOVED_KEYS].map((k) => 'stressTool.settings.' + k),
@@ -881,8 +893,9 @@ export const MONTH_WRITES = Object.freeze(['decisionTool.history', 'decisionTool
 
 /** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
 export function isPlanEditPath(path) {
-  // stopAskLeft: "Leave it" to "When did you stop work?" on a locked plan's "About you and when" (6.53.0, about.js stopAskPatch)
-  return ABOUT_PATHS.includes(path) || path === 'stopAskLeft' || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path) || isHoldPath(path) || isBudgetPath(path) || isSavingPath(path) || isCheckInPath(path) || isMonthPath(path);
+  // stopAskLeft: "Leave it" to "When did you stop work?" on a locked plan's "About you and when" (6.53.0, about.js stopAskPatch);
+  // moveSpDate: the State Pension's start date the move of a locked plan's start asks (7.4.0, about.js lockedStartOf)
+  return ABOUT_PATHS.includes(path) || path === 'stopAskLeft' || path === 'moveSpDate' || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path) || isHoldPath(path) || isBudgetPath(path) || isSavingPath(path) || isCheckInPath(path) || isMonthPath(path);
 }
 
 /** Every dotted field path "Money that comes in anyway" may change: the planner's own keys (7.3). */
@@ -928,4 +941,4 @@ export const PLANS_WRITES = Object.freeze(['planDetails.name', 'isActive']);
  */
 export const CLOSE_WRITES = Object.freeze(['closedAt', 'nextPlanId', 'decisionTool.settings.locked', 'decisionTool.settings.lockedAt', 'decisionTool.settings.lockedBy', 'decisionTool.settings.lockedPosition', 'household.partnerScenarioId', 'budgetTool.sharedFrom']);
 
-export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BUDGET_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...SAVING_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...CHECKIN_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MONTH_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...PLANS_WRITES, ...MOVE_START_WRITES, ...CLOSE_WRITES, ...BOOKKEEPING_WRITES])]);
+export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BUDGET_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...SAVING_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...CHECKIN_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MONTH_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...PLANS_WRITES, ...MOVE_START_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, ...BOOKKEEPING_WRITES])]);

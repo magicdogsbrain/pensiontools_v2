@@ -29,8 +29,9 @@ import { journeyAppend } from '../../services/LifeStage.js';
 import { isLockedSettings } from '../../services/LockedPlanGuard.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { seedDecisionFromStress, planOfRecordFor, unlockPatchesOf } from '../../services/PlanCommit.js';
-import { DECISION_SEED_KEYS, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, BOOKKEEPING_WRITES } from './schema.js';
+import { DECISION_SEED_KEYS, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, BOOKKEEPING_WRITES, LATER_DRAFT_WRITES } from './schema.js';
 import { applyPatch } from './about.js';
+import { laterDraftPatch } from './moveStart.js';
 import { dayWords } from './dates.js';
 // the plan document as the planner builds it, the archives and the budget's figures (6.53.0: shared with moveStart.js)
 import { documentFor, archived, shapeRefsOf, ARCHIVE_KEEP } from './documentFor.js';
@@ -85,6 +86,13 @@ export function lockPatch(plan, { now, run, entries = [] }) {
     patch['decisionTool.settings.' + k] = copy(v);
     previous['decisionTool.settings.' + k] = copy(ds[k]);
   }
+  // 1b. a draft read from an earlier start than it saved (7.4.0, moveStart.js laterDraftPatch) is locked as it reads: its
+  // Stress settings from that start, so the plan locked is the plan the document and the Decision tool's seed were made from.
+  // They are left out of `previous`: Undo of the lock gives back the draft with its start saved as it read, which reads
+  // exactly as it did, and the reversal stays exactly the lock's own paths (isLockReversal)
+  const ld = laterDraftPatch(plan, { now });
+  const later = {};
+  for (const [k, v] of Object.entries(ld.patch)) if (!(k in patch)) later[k] = v;
   // 2. the lock's flags
   const lockedAt = now.toISOString();
   for (const [k, v] of [['locked', true], ['lockedAt', lockedAt], ['lockedBy', LOCKED_BY]]) {
@@ -100,11 +108,13 @@ export function lockPatch(plan, { now, run, entries = [] }) {
   patch.planDocument = documentFor(plan, { now, run, entries, lockedAt, lockedBy: LOCKED_BY });
   previous.planDocument = copy(plan.planDocument);
   // 5. the journey: the stage the lock causes, dated (index.html refreshLifeStage after the lock)
-  const after = applyPatch(plan, patch);
+  const after = applyPatch(plan, { ...patch, ...later });
   const journey = Array.isArray(plan.journey) ? plan.journey : [];
   const next = journeyAppend(journey, planStage(after, { now }), now);
   if (next !== journey) { patch.journey = next; previous.journey = copy(plan.journey); }
   for (const k of Object.keys(patch)) if (!LOCK_WRITES.includes(k)) throw new Error('lockPatch: "' + k + '" is not a declared field path');
+  for (const k of Object.keys(later)) if (!LATER_DRAFT_WRITES.includes(k)) throw new Error('lockPatch: "' + k + '" is not a declared field path');
+  Object.assign(patch, later);
   return { ok: true, errors: {}, patch, previous, line: { id: 'locked', slots: { date: dayWords(lockedAt) } }, lockedAt };
 }
 

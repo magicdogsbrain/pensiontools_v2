@@ -101,8 +101,9 @@ describe('(b) 4 April 2027 vs 8 April 2027: only tax-year facts move', () => {
   it('deriveTiming, start saved: the offered start years, "years to start" and today\'s plan year (counted in tax years) — nothing else', () => {
     // planYearNow (6.50.0): today's place in the plan, signed — a tax-year fact by definition. Neither plan has lived a year
     // on either day, so nothing it drives (elapsedYears, monthsIntoYear) moves.
-    expect(changed((now) => deriveTiming(RETIRED, now))).toEqual(['planYearNow', 'startOptions.0', 'startOptions.1', 'yearsToStart']);
-    expect(changed((now) => deriveTiming(SAVER, now))).toEqual(['planYearNow', 'startOptions.0', 'startOptions.1', 'yearsToStart']);
+    // 7.4.0: the offered start years end at this tax year (one year, with no stop month), so only that one moves
+    expect(changed((now) => deriveTiming(RETIRED, now))).toEqual(['planYearNow', 'startOptions.0', 'yearsToStart']);
+    expect(changed((now) => deriveTiming(SAVER, now))).toEqual(['planYearNow', 'startOptions.0', 'yearsToStart']);
     expect(deriveTiming(RETIRED, BEFORE).firstTaxYear).toBe(2027);
     expect(deriveTiming(RETIRED, AFTER).firstTaxYear).toBe(2027);
     expect([deriveTiming(RETIRED, BEFORE).yearsToStart, deriveTiming(RETIRED, AFTER).yearsToStart]).toEqual([1, 0]);
@@ -126,7 +127,7 @@ describe('(b) 4 April 2027 vs 8 April 2027: only tax-year facts move', () => {
   });
   it('the plan document: its stamps, the timing facts above and the sentence that states them', () => {
     expect(changed((now) => docFor(RETIRED, now))).toEqual(['assumptions.giltPricesAsOf', 'createdAt', 'lockedAt', 'strategy.p.yearsToStart',
-      'timing.planYearNow', 'timing.startOptions.0', 'timing.startOptions.1', 'timing.text', 'timing.yearsToStart']);
+      'timing.planYearNow', 'timing.startOptions.0', 'timing.text', 'timing.yearsToStart']);
   });
   it('targetHoldings of a LOCKED ladder: on 6 April the plan is running, so the cash target drops the run-up drag and is reported, not diffed', () => {
     const doc = docFor(RETIRED, BEFORE);   // one document, read on two days
@@ -142,10 +143,11 @@ describe('(b) 4 April 2027 vs 8 April 2027: only tax-year facts move', () => {
 
 describe('known date dependence, pinned so a change is noticed (findings of the step-1 audit — behaviour NOT fixed here)', () => {
   it('a retired plan with NO saved firstTaxYear slides a whole year on 6 April: start, ages and every rung of the ladder', () => {
-    expect(changed((now) => deriveTiming(RETIRED_NO_ANCHOR, now))).toEqual(['bridgeMonths', 'firstTaxYear', 'shapeAgeNow', 'startMonth', 'startOptions.0', 'startOptions.1']);
+    // 7.4.0: this tax year with nothing saved (it was next April), so no months to it on either day; today's months into it move
+    expect(changed((now) => deriveTiming(RETIRED_NO_ANCHOR, now))).toEqual(['firstTaxYear', 'monthsIntoYear', 'shapeAgeNow', 'startMonth', 'startOptions.0']);
     expect(changed((now) => planOf(RETIRED_NO_ANCHOR, 'full-il-gilt', now))).toEqual(['firstTaxYear', 'pnvCfg.startAge', 'startAge']);
     const before = result(RETIRED_NO_ANCHOR, 'full-il-gilt', BEFORE), after = result(RETIRED_NO_ANCHOR, 'full-il-gilt', AFTER);
-    expect([before.plan.firstTaxYear, after.plan.firstTaxYear]).toEqual([2027, 2028]);
+    expect([before.plan.firstTaxYear, after.plan.firstTaxYear]).toEqual([2026, 2027]);
     expect(after.signature.total).not.toBe(before.signature.total);
   });
   it('the gilt ladder is priced on the day it is run: the date moves ONLY each order\'s dealing spread (its years-to-maturity band) and so its cost', () => {

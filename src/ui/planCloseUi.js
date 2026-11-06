@@ -48,6 +48,7 @@ import { closedReading, beforeReading, closedWords, beforeWords, readDayOf, plan
 import { normaliseHoldings } from '../services/HoldingsRecord.js';
 import { uniqueName } from '../services/PlanFromSeed.js';
 import { taxYearLabel, deriveTiming, taxYearOfMonth } from '../services/PlanTiming.js';
+import { laterDraftOf, laterDraftSentence } from '../services/PlanMove.js';
 import { isGuest, isLoggedIn } from '../firebase/AuthService.js';
 import { guestPlanRefusal } from '../services/GuestPlans.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../services/OpenPlace.js';
@@ -222,7 +223,11 @@ export function householdPickerFor(doc, plan) {
 export async function closedTimingSummary(summary) {
   let sc = null;
   try { sc = await getActiveScenarioAsync(); } catch (e) { return summary; }
-  return closedTimingWords(summary, sc);
+  // a draft read from an earlier start than it saved (7.4.0, PlanMove.laterDraftOf, on the plan as stored): said once, first
+  let later = null;
+  try { const st = await getActiveScenarioAsStored(); later = st ? laterDraftOf(st, (st.stressTool && st.stressTool.settings) || {}, new Date()) : null; } catch (e) { later = null; }
+  const words = closedTimingWords(summary, sc);
+  return later ? laterDraftSentence(later) + ' ' + words : words;
 }
 /** closedTimingSummary's words for a plan (pure but for the clock): the summary as given for a plan that is not closed. */
 export function closedTimingWords(summary, plan, now = new Date()) {

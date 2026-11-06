@@ -90,9 +90,9 @@ describe('startYearChoices: the start-year drop-down is never blank', () => {
   it('a retiree who has saved no year and given no stop month: the derived year is shown by its year alone, never "(saved)"', () => {
     const now = new Date(2026, 10, 6);
     const t = deriveTiming({ currentAge: 62, retired: true }, now);
-    expect(t.firstTaxYear).toBe(2027);
+    expect(t.firstTaxYear).toBe(2026);   // 7.4.0: this tax year (it was next April)
     const c = startYearChoices(t, null);
-    expect(c.map((x) => x.label)).toEqual(['this tax year — pick up from here — 2026/27', '2027/28']);
+    expect(c.map((x) => x.label)).toEqual(['this tax year — pick up from here — 2026/27']);
     expect(c.some((x) => x.saved)).toBe(false);
     expect(c.some((x) => x.year === t.firstTaxYear)).toBe(true);   // the selected value still exists
   });

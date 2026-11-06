@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { effectiveStressSettings, planStage, whereAmIInputs, moveInputs, thisMonth } from '../../../src/services/PlanReading.js';
 import { getStressSettingsAsync } from '../../../src/storage/StressRepository.js';
+import { laterDraftOf } from '../../../src/services/PlanMove.js';
 import { planRows, planPage, stageLine, dateOf, monthWords, dayWords } from '../../../src/answers/plan/read.js';
 import { STEPS, stepsFor, NEXT_ORDER, ALL_STEPS } from '../../../src/answers/plan/steps.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
@@ -90,7 +91,10 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
     for (const [name, raw] of Object.entries(C)) {
       const plan = entryOf(raw).plan;
       const ss = effectiveStressSettings(plan, { now: noon(TODAY) });
-      const again = migrateStressSettings({ settings: plan.stressTool.settings, budget: plan.budgetTool && plan.budgetTool.settings }, noon(TODAY)).settings;
+      // …then, as the load path does (7.4.0), a draft saved with a later start read from the earlier one (PlanMove.laterDraftOf)
+      const raw0 = migrateStressSettings({ settings: plan.stressTool.settings, budget: plan.budgetTool && plan.budgetTool.settings }, noon(TODAY)).settings;
+      const later = laterDraftOf(plan, raw0, noon(TODAY));
+      const again = later ? later.settings : raw0;
       for (const k of ['equityMin', 'bondMin', 'cashTarget', 'duration', 'firstTaxYear', 'retired', 'retireAge', 'incomeShape', 'strategyId']) expect(ss[k], `${name}.${k}`).toEqual(again[k]);
       expect(Object.keys(getDefaultStressDB().settings)).toContain('hodlValue');
     }

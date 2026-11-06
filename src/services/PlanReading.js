@@ -35,6 +35,7 @@ import { targetHoldings, diffHoldings, progress } from './TransitionPlanner.js';
 import { normaliseHoldings } from './HoldingsRecord.js';
 import { potsAsOfFor, withoutPotsAsOf, lockedPotsAsOf, potsDayOf } from './PlanFromToday.js';
 import { readDayOf } from './PlanClosed.js';
+import { laterDraftOf } from './PlanMove.js';
 
 /**
  * Default stress database structure.
@@ -167,6 +168,29 @@ export function storedStressSettings(scenario) {
  * @param {{ now?: Date }} [o]
  */
 export function effectiveStressSettings(scenario, { now = new Date() } = {}) {
+  let out = migratedStressSettings(scenario, now);
+  // A retired draft saved with a later start than it should have (7.4.0, PlanMove.laterDraftOf) is read from the tax year
+  // work stopped, or this one, every figure counted from year 0 keeping its age and tax year: written only by its next Save.
+  const later = laterDraftOf(scenario, out, now);
+  if (later) out = later.settings;
+  const potsAsOf = potsAsOfFor(scenario, out, now);
+  return potsAsOf ? { ...out, potsAsOf } : out;
+}
+
+/**
+ * A draft read from an earlier start than it saved (PlanMove.laterDraftOf on the effective settings before it): the move
+ * of its year 0 and the settings before and after it, or null. The Save that writes it (answers/plan/moveStart.js
+ * laterDraftPatch) and the words that say it once read this.
+ * @returns {null | { from, to, years, stopMonth, legacy, settings, before }}
+ */
+export function laterDraftReading(scenario, { now = new Date() } = {}) {
+  const before = migratedStressSettings(scenario, now);
+  const later = laterDraftOf(scenario, before, now);
+  return later ? { ...later, before } : null;
+}
+
+/** The stored Stress settings with the load-time migrations (and the Budget's newer age) in memory, as the planner loads them. */
+function migratedStressSettings(scenario, now) {
   const stressSettings = storedStressSettings(scenario);
   // "Age today" is maintained on the Budget page; a copy frozen in the Stress settings at the last save goes stale every
   // birthday. Prefer the newer figure — but only an age a person gave (budgetAgesKnown, 6.13.5).
@@ -176,9 +200,7 @@ export function effectiveStressSettings(scenario, { now = new Date() } = {}) {
     stressSettings.currentAgeAsOf = b.currentAgeAsOf || stressSettings.currentAgeAsOf || null;
   }
   // Re-derived on every read, from the lock alone: a copy that once carried it and was saved by mistake decides nothing.
-  const out = withoutPotsAsOf(migrateStressSettings({ settings: stressSettings, budget: b || null, lastModified: null, checksum: null }, now).settings);
-  const potsAsOf = potsAsOfFor(scenario, out, now);
-  return potsAsOf ? { ...out, potsAsOf } : out;
+  return withoutPotsAsOf(migrateStressSettings({ settings: stressSettings, budget: b || null, lastModified: null, checksum: null }, now).settings);
 }
 
 /** deriveStage on the effective settings, as the planner's refreshLifeStage does. */

@@ -25,7 +25,7 @@ import { saveStressSettings, getStressSettingsAsync } from '../storage/StressRep
 import { getDecisionSettingsAsync, getAllTaxYearsAsync } from '../storage/DecisionRepository.js';
 import { loadAllScenarios } from '../firebase/FirestoreService.js';
 import { effectiveStressSettings } from '../services/PlanReading.js';
-import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveAnchorOf, moveFactsOf, startLaterOf } from '../services/PlanMove.js';
+import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveAnchorOf, moveFactsOf, startLaterOf, spDateOf, laterDraftOf } from '../services/PlanMove.js';
 import { cleanSteps } from '../services/IncomeSchedule.js';
 import { lockedStopAnswer } from '../answers/plan/about.js';
 import { stoppedWorkOf, monthName, decisionAnchorYear, deriveTiming } from '../services/PlanTiming.js';
@@ -48,6 +48,18 @@ const incomeInSteps = (s) => !!s && s.incomeShape === 'phases' && cleanSteps(s.i
  */
 export async function decisionPotsYear() {
   try { const ss = await getStressSettingsAsync(); return runPositionOf(ss, deriveTiming(ss)).elapsedYears; } catch (e) { return 0; }
+}
+
+/**
+ * Before a lock (index.html commitPlanLock): a draft read from an earlier start than it saved (7.4.0, PlanMove.laterDraftOf)
+ * is saved as it reads first, so the plan locked is the plan the Decision tool is seeded from and the document is written
+ * of. The Stress settings' own save writes the copy in memory, which holds that reading. Nothing for any other plan.
+ */
+export async function saveLaterDraftFirst() {
+  let sc = null; try { sc = await getActiveScenarioAsStored(); } catch (e) { sc = null; }
+  const ss = sc && sc.stressTool && sc.stressTool.settings;
+  if (!sc || !laterDraftOf(sc, ss || {}, new Date())) return;
+  await saveStressSettings({});
 }
 
 /** The open plan, read as PlanMove.startLaterOf reads it (as stored): null for every plan with nothing to move or ask. */
@@ -93,12 +105,19 @@ export function installLockedStart(win, doc, deps) {
       const sc = await getActiveScenarioAsStored(), now = new Date();
       // a closed plan's start is never moved, nor its stop month asked (its lock banner says it is closed): nothing here
       if (sc && !isClosedPlan(sc) && await activePlanLocked()) {
-        const offer = sc ? moveOfferOf(sc, now) : null;
-        const move = offer ? planMoveOf(sc, now) : null;
-        const ask = !offer && !!sc && stopAskOf(sc, now), left = !offer && !ask && !!sc && stopLeftOf(sc, now);
+        const later = startLaterOf(sc, now);
+        let offer = sc ? moveOfferOf(sc, now) : null;
+        let blocked = sc && !offer ? moveBlockedOf(sc, now) : null;
+        // a State Pension given only as a plan year: its date is asked, and written with the move (7.4.0)
+        const spAsk = !!(blocked && blocked.spFix) || !!(later && later.spAsk);
+        if (!offer && blocked && blocked.spFix) { offer = blocked; blocked = null; }
+        const move = offer && !spAsk ? planMoveOf(sc, now) : null;
+        // a plan set to start later than this tax year is asked whatever "Leave it" said before (7.4.0)
+        const ask = !offer && !!sc && (stopAskOf(sc, now) || (!!later && later.kind === 'ask' && !!later.thisYear)), left = !offer && !ask && !!sc && stopLeftOf(sc, now);
         const ss = (sc && sc.stressTool && sc.stressTool.settings) || {};
         html = lockedStartHtml({ ask, offer, start: sc ? moveAnchorOf(ss, sc.decisionTool?.settings) : null, stepAge: move ? move.stress.shapeAgeNow : null,
-          stepped: incomeInSteps(ss), income: +ss.baseSalary || null, blocked: sc && !offer ? moveBlockedOf(sc, now) : null, stopped: sc ? stopChangeOf(sc, now) : null, left });
+          stepped: incomeInSteps(ss), income: +ss.baseSalary || null, blocked, stopped: sc ? stopChangeOf(sc, now) : null, left,
+          leave: !(later && later.kind === 'ask' && later.thisYear), thisYear: later && later.kind === 'ask' ? later.thisYear || null : null, spAsk });
         asking = ask || left;
       }
     } catch (e) { html = ''; asking = false; }
@@ -131,11 +150,16 @@ export function installLockedStart(win, doc, deps) {
     if (typeof win.updateNextStepBanner === 'function') win.updateNextStepBanner();
   };
 
-  win.moveLockedPlanStart = async function () {
+  // `how` (7.4.0): 'stop' — to the tax year work stopped; 'now' — to this tax year with no month said ("I'm already drawing");
+  // 'sp' — to the tax year work stopped, with the State Pension's start date typed on the line, written with the move
+  win.moveLockedPlanStart = async function (how = 'stop') {
     const now = new Date();
     let sc = null; try { sc = await getActiveScenarioAsStored(); } catch (e) { sc = null; }
-    const mp = sc ? movedPlanOf(sc, { now }) : null;
-    if (!mp) { await renderLockedStart(); toast('This plan\'s start cannot be moved: it is not locked, or it does not say a month you stopped work earlier than its first tax year.', 'info', 6000); return; }
+    const spBox = doc.getElementById('tmLockedSpDate');
+    if (spBox && !spDateOf(spBox.value || '')) { toast('Type the date your State Pension starts, like 14 March 2032.', 'warning', 5000); return; }
+    const opts = { now, thisYear: how === 'now', spStartDate: spBox ? spDateOf(spBox.value || '') : null };
+    const mp = sc ? movedPlanOf(sc, opts) : null;
+    if (!mp) { await renderLockedStart(); toast('This plan\'s start cannot be moved: it is not locked, or its first tax year is not later than the one it would move to.', 'info', 6000); return; }
     const m = mp.move, st = m.stress;
     // what the confirm states: the same facts the preview's confirm reads (PlanMove.moveFactsOf)
     const q = moveStartQuestion(m, moveFactsOf(sc, m));
@@ -148,7 +172,7 @@ export function installLockedStart(win, doc, deps) {
       const r = await deps.strategyResultForDocument(settings);
       const p = deps.strategyPlanFor(settings, (win._shapeRefs && win._shapeRefs.essentials) || undefined);
       let entries = []; try { entries = (await loadAllScenarios()).map((plan) => ({ plan })); } catch (e) { entries = []; }
-      const out = movePatch(sc, { now, run: { p, r }, entries });
+      const out = movePatch(sc, { ...opts, run: { p, r }, entries });
       if (!out.ok) throw new Error('the move could not be worked out (' + (out.errors.plan || 'unknown') + ').');
       await saveActivePlanMove(out.patch);
       moved = true;

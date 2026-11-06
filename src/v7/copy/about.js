@@ -51,6 +51,9 @@ export const ABOUT = {
     runs: 'Your plan runs {years} years, from {from} to age {endAge}.',
     stepsFrom: 'Income steps start at age {age}.',
     stoppedIn: 'You stopped work in {month}.',
+    /** A draft saved with a later start than it should have (7.4.0): read from the earlier year until it is saved. */
+    laterStop: 'Your plan runs from {year}, the tax year you stopped work.',
+    laterNow: 'Your plan runs from {year}, this tax year.',
     started: 'Your plan’s income started in {year}. It is worked out from where it stands today: tax year {yearNow}, at {ageNow}, for the years that are left.'
   },
   notUsed: 'Not used by this way of drawing.',
@@ -61,7 +64,8 @@ export const ABOUT = {
   toast: { saved: 'Saved. Your plan now runs {years} years, to age {endAge}.', staleLeft: 'Left as it is, starting in {yearSaved}. You will not be asked again for that year.', savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.',
     stopSaved: 'Saved: you stopped work in {month}.', stopLeft: 'Left as it is. You will not be asked again; you can still say it under “Say when you stopped work”.',
     /** The move of a locked plan's start, written (no Undo: the planner offers none). */
-    moved: 'The plan’s start is now {year}, the tax year you stopped work. The plan document and plan vs actual were written again; the earlier plan document is kept as a past version.' },
+    moved: 'The plan’s start is now {year}, the tax year you stopped work. The plan document and plan vs actual were written again; the earlier plan document is kept as a past version.',
+    movedNow: 'The plan’s start is now {year}, this tax year. The plan document and plan vs actual were written again; the earlier plan document is kept as a past version.' },
   /**
    * A locked plan's start (6.53.0): the month work stopped, asked once (the plan stays locked; the month changes no figure by
    * itself), and the move to the tax year work stopped — made here from 6.55.0, after a confirm that says what the planner's
@@ -69,7 +73,16 @@ export const ABOUT = {
    */
   lockedStart: {
     ask: 'When did you stop work? Your plan stays locked, and saying the month changes no figure by itself.',
-    askHelp: 'Once it is said, your plan can start from the tax year you stopped. Leave it and you will not be asked again.',
+    askHelp: 'Once it is said, your plan can start from the tax year you stopped.',
+    /** Only where the plan has nothing to move: the plain question can be put away. */
+    leaveHelp: 'Leave it and you will not be asked again.',
+    /** No month said, on a plan set to start later than this tax year (7.4.0): start it now instead. */
+    now: 'Already drawing from your pension? Your plan is set to start in {yearStart}. It can start this tax year, {yearStop}, from where it stands today. The plan stays locked.',
+    nowOpen: 'I’m already drawing: start it this tax year…',
+    /** The State Pension given only as a plan year (7.4.0): its date is asked, and written with the move. */
+    spLabel: 'When does your State Pension start?',
+    spHelp: 'The date on your State Pension forecast, like 14 March 2032. It is saved with the move, so your State Pension keeps its own tax year.',
+    spError: 'That is not a date we can read: try 14 March 2032.',
     /** The box's own help: the unlocked step's speaks of a choice this page does not have. */
     help: 'Like 2023-10, or October 2023.',
     save: 'Save the month',
@@ -89,6 +102,8 @@ export const ABOUT = {
       intro: 'Here is exactly what changes:',
       lines: {
         first: 'The plan’s first tax year becomes {yearStop}, the tax year you stopped work ({month}); it was {yearStart}. The plan stays locked: nothing is unlocked and no setting is added.',
+        firstNow: 'The plan’s first tax year becomes {yearStop}, this tax year; it was {yearStart}. The plan stays locked: nothing is unlocked, and no month you stopped work is saved.',
+        spDate: 'Your State Pension is saved as starting on {date}, so it keeps its own tax year.',
         steps: 'Your income: the first step keeps its amount ({amount} a year) and now runs from {yearStop}, at {age}; your later steps keep their ages.',
         stepsBare: 'Your income: the first step keeps its amount and now runs from {yearStop}; your later steps keep their ages.',
         level: 'Your income: it stays {amount} a year, now from {yearStop}, at {age}.',

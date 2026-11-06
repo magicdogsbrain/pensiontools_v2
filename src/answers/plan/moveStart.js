@@ -22,7 +22,7 @@
  *     6. one journey entry — which the new document carries too, so it says why it was written again.
  * Nothing here runs the engine, writes, or reads a clock.
  */
-import { planStage } from '../../services/PlanReading.js';
+import { planStage, laterDraftReading } from '../../services/PlanReading.js';
 import { planOfRecordFor } from '../../services/PlanCommit.js';
 import { planMoveOf, moveJourneyEntry, REANCHOR_STRESS_KEYS, REANCHOR_DECISION_KEYS } from '../../services/PlanMove.js';
 import { taxYearLabel } from '../../services/PlanTiming.js';
@@ -56,23 +56,61 @@ function settingsPatch(plan, move) {
 
 /**
  * The plan as the move leaves it, in memory (the module note), and the move itself; null when the plan is not offered one
- * (PlanMove.moveOfferOf: locked, says when work stopped, and that tax year is earlier than its year 0).
+ * (PlanMove.moveOfferOf: locked, says when work stopped, and that tax year is earlier than its year 0). `how` (7.4.0):
+ * `thisYear` — the move to this tax year on a plan that says no month; `spStartDate` — the State Pension's start date, asked
+ * for a plan that gives it only as a plan year (PlanMove.moveBlockedOf), written in the same move.
  * @returns {null | { move: object, plan: object }}
  */
-export function movedPlanOf(plan, { now }) {
+export function movedPlanOf(plan, { now, thisYear = false, spStartDate = null }) {
   if (!plan || !isObj(plan)) return null;
-  const move = planMoveOf(plan, now);
+  const move = planMoveOf(plan, now, { thisYear, spStartDate });
   if (!move) return null;
   return { move, plan: applyPatch(plan, { ...settingsPatch(plan, move).patch, planDocument: null }) };
+}
+
+/**
+ * A retired draft read from an earlier start than it saved (7.4.0, PlanMove.laterDraftOf; PlanReading.laterDraftReading):
+ * the paths that write that reading — year 0, and every key the transform moved — with the values they had. Every save of
+ * the draft's settings in V7 carries them under its own (effects/planWrite.js), as the planner's Save writes its whole
+ * form: a step's figures, read from the earlier start, are never written against the later one. The Decision copy's year 0
+ * follows when it holds one. Empty for every other plan.
+ * @returns {{ patch: object, previous: object }}
+ */
+export function laterDraftPatch(plan, { now }) {
+  const patch = {}, previous = {};
+  let r = null; try { r = laterDraftReading(plan, { now }); } catch { r = null; }
+  if (!r) return { patch, previous };
+  const stored = (plan.stressTool && isObj(plan.stressTool.settings)) ? plan.stressTool.settings : {};
+  const keys = r.legacy ? ['firstTaxYear', 'legacyFirstTaxYear'] : REANCHOR_STRESS_KEYS;
+  for (const k of keys) {
+    if (text(r.settings[k]) === text(r.before[k]) || text(r.settings[k]) === text(stored[k])) continue;
+    patch['stressTool.settings.' + k] = copy(r.settings[k]); previous['stressTool.settings.' + k] = copy(stored[k]);
+  }
+  const ds = (plan.decisionTool && isObj(plan.decisionTool.settings)) ? plan.decisionTool.settings : {};
+  if (!r.legacy && +ds.firstTaxYear > 0 && +ds.firstTaxYear !== r.to) { patch['decisionTool.settings.firstTaxYear'] = r.to; previous['decisionTool.settings.firstTaxYear'] = copy(ds.firstTaxYear); }
+  return { patch, previous };
+}
+
+/**
+ * A step's write `p` ({ ok, patch, previous, … }) on a draft read from an earlier start (laterDraftPatch): the reading's
+ * paths under the step's own (the step's value wins where both write a path), and their previous values with its own, so
+ * Undo puts the plan back byte for byte. Any write that touches no setting, and every other plan: `p` as it is.
+ */
+export function withLaterDraft(plan, p, { now }) {
+  if (!p || !p.ok || !isObj(p.patch)) return p;
+  if (!Object.keys(p.patch).some((k) => k.startsWith('stressTool.settings.') || k.startsWith('decisionTool.settings.'))) return p;
+  const ld = laterDraftPatch(plan, { now });
+  if (!Object.keys(ld.patch).length) return p;
+  return { ...p, patch: { ...ld.patch, ...p.patch }, previous: { ...ld.previous, ...(p.previous || {}) } };
 }
 
 /**
  * The move, as one patch (the module note). `run` is the strategy's run of movedPlanOf's plan ({ p, r }, plain data).
  * @returns {{ ok: boolean, errors: object, patch: object, previous: object, line: object|null, move?: object }}
  */
-export function movePatch(plan, { now, run, entries = [] }) {
+export function movePatch(plan, { now, run, entries = [], thisYear = false, spStartDate = null }) {
   if (!plan || !isObj(plan)) return refused('notHere');
-  const mp = movedPlanOf(plan, { now });
+  const mp = movedPlanOf(plan, { now, thisYear, spStartDate });
   if (!mp) return refused('noMove');
   if (!runOk(run)) return refused('noRun');
   const { move } = mp;
@@ -104,5 +142,5 @@ export function movePatch(plan, { now, run, entries = [] }) {
   set('planDocumentArchive', archived(plan.planDocumentArchive, plan.planDocument || null, at), plan.planDocumentArchive);
   set('planDocument', doc, plan.planDocument);
   for (const k of Object.keys(patch)) if (!MOVE_START_WRITES.includes(k)) throw new Error('movePatch: "' + k + '" is not a declared field path');
-  return { ok: true, errors: {}, patch, previous, line: { id: 'moved', slots: { year: taxYearLabel(move.to) } }, move };
+  return { ok: true, errors: {}, patch, previous, line: { id: move.stopMonth ? 'moved' : 'movedNow', slots: { year: taxYearLabel(move.to) } }, move };
 }

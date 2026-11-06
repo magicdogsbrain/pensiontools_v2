@@ -375,8 +375,11 @@ describe('landing on the home', () => {
 
 describe('reads only: nothing new is written to any plan', () => {
   it('ALL_WRITES is the list main has at 7.2.1, byte for byte (no new allow-list, no new write kind)', () => {
-    expect(ALL_WRITES.length).toBe(157);
-    expect(createHash('sha256').update(JSON.stringify(ALL_WRITES)).digest('hex')).toBe('2028b6c1866b4a7c1c02113e71b4e1d5b308155b9ba385f1c63874b7bbffad26');
+    // 7.4.0 adds one path, on purpose: a draft with no age, pinned the old way to next year, is written from this tax year by
+    // its next Save (moveStart.js laterDraftPatch). Opening a plan still writes nothing (below).
+    expect(ALL_WRITES.length).toBe(158);
+    expect(ALL_WRITES).toContain('stressTool.settings.legacyFirstTaxYear');
+    expect(createHash('sha256').update(JSON.stringify(ALL_WRITES)).digest('hex')).toBe('f8b72a0be99638476a8975ad0ef579e9ed4745be3dc4f28cd10996c117e21f31');
   });
   /** The one write file with a fake firestore that records every call, on an account's plans. */
   function browse(raws, planId) {
@@ -418,7 +421,7 @@ describe('the words of the home (copy/home.js)', () => {
   };
   const slot = (s) => s.replace(/\{(month|stop|nextCheck|last)\}/g, 'April 2027').replace(/\{(monthName|next)\}/g, 'October').replace(/\{date\}/g, '20 March 2026')
     .replace(/\{(year|savedYear)\}/g, '2027/28').replace(/\{(n|of|done)\}/g, '3').replace(/\{total\}/g, '1,000').replace(/\{(name|closed)\}/g, 'Ladder plan').replace(/\{label\}/g, 'Index-linked gilt 2031')
-    .replace(/\{pct\}/g, '94').replace(/\{start\}/g, 'April 2027').replace(/\{stopped\}/g, 'May 2026').replace(/\{title\}/g, 'Record October').replace(/\{question\}/g, 'Am I saving enough?').replace(/\{drawn\}/g, '£1,200').replace(/\{plan\}/g, '£1,100');
+    .replace(/\{pct\}/g, '94').replace(/\{start\}/g, 'April 2027').replace(/\{stopped\}/g, 'May 2026').replace(/\{title\}/g, 'Record October').replace(/\{question\}/g, 'Am I saving enough?').replace(/\{drawn\}/g, '£1,200').replace(/\{age\}/g, '57').replace(/\{plan\}/g, '£1,100');
   it('pass the banned list in every scope a plan page is shown in — records, retired and saver alike; no slot left unfilled', () => {
     const all = [...strings(HOME), ...strings({ WORKING })];
     const context = all.map(([, s]) => slot(s)).join('\n');

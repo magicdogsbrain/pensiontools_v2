@@ -16,7 +16,7 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { lockPatch, unlockPatch, documentPatch, applyPatch, isLockReversal, shapeRefsOf, LOCKED_BY, LOCKED_BY_7_0, LOCKED_BY_BEFORE_7, ARCHIVE_KEEP, NOTE_REFRESHED, NOTE_CREATED } from '../../../src/answers/plan/lock.js';
 import { runForDocument } from '../../../src/answers/plan/lastsRun.js';
-import { LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, DECISION_SEED_KEYS, LOCK_FLAG_WRITES, ALL_WRITES, BOOKKEEPING_WRITES } from '../../../src/answers/plan/schema.js';
+import { LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, DECISION_SEED_KEYS, LOCK_FLAG_WRITES, ALL_WRITES, BOOKKEEPING_WRITES, LATER_DRAFT_WRITES } from '../../../src/answers/plan/schema.js';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { parse, format, screenName } from '../../../src/v7/router/routes.js';
 import { planStage, effectiveStressSettings } from '../../../src/services/PlanReading.js';
@@ -124,9 +124,12 @@ describe('lockPatch on every unlocked corpus plan: the planner\'s commitPlanLock
       const P = lockPatch(plan, { now, run, entries: [{ plan }] });
       expect(P.ok).toBe(true);
       expect(P.errors).toEqual({});
-      // exactly the declared paths; a previous value for every path
-      for (const k of Object.keys(P.patch)) expect(LOCK_WRITES, k).toContain(k);
-      expect(Object.keys(P.previous).sort()).toEqual(Object.keys(P.patch).sort());
+      // exactly the declared paths; a previous value for every path — bar a draft saved with a later start (7.4.0, 07): its
+      // settings from the earlier start go with the lock (LATER_DRAFT_WRITES) and are not undone (lock.js lockPatch)
+      const later = Object.fromEntries(Object.entries(P.patch).filter(([k]) => !(k in P.previous)));
+      for (const k of Object.keys(later)) expect(LATER_DRAFT_WRITES, k).toContain(k);
+      for (const k of Object.keys(P.patch)) if (!(k in later)) expect(LOCK_WRITES, k).toContain(k);
+      expect(Object.keys(P.previous).sort()).toEqual(Object.keys(P.patch).filter((k) => !(k in later)).sort());
       for (const k of LOCK_FLAG_WRITES) expect(P.patch, k).toHaveProperty(k);
       expect(P.patch['decisionTool.settings.locked']).toBe(true);
       expect(P.patch['decisionTool.settings.lockedAt']).toBe(now.toISOString());
@@ -175,7 +178,7 @@ describe('lockPatch on every unlocked corpus plan: the planner\'s commitPlanLock
       else expect('journey' in P.patch).toBe(false);
       // the guard lets the lock through (an unlocked plan), Undo is byte for byte, a second lock is refused
       expect(lockedPlanWriteRefusal(plan, P.patch, getDefaultStressSettings())).toBe(null);
-      expect(JSON.stringify(applyPatch(after, P.previous))).toBe(JSON.stringify(plan));
+      expect(JSON.stringify(applyPatch(after, P.previous))).toBe(JSON.stringify(applyPatch(plan, later)));
       expect(lockPatch(after, { now, run, entries: [] })).toMatchObject({ ok: false, errors: { plan: 'locked' }, patch: {} });
       // a reversal and nothing else
       const back = Object.fromEntries(Object.entries(P.previous).map(([k, v]) => [k, v === undefined ? null : v]));
@@ -359,11 +362,12 @@ describe('property: over random unlocked plans, a lock writes only declared path
       if (por) plan.decisionTool.planOfRecord = { savedAt: '2026-01-01T00:00:00.000Z', drawdown: [], glidepath: [] }; else delete plan.decisionTool.planOfRecord;
       const P = lockPatch(plan, { now, run: runOf(base[i]), entries: [{ plan }] });
       expect(P.ok).toBe(true);
-      for (const k of Object.keys(P.patch)) expect(LOCK_WRITES).toContain(k);
+      for (const k of Object.keys(P.patch)) expect(k in P.previous ? LOCK_WRITES : LATER_DRAFT_WRITES).toContain(k);
       expect('decisionTool.planOfRecord' in P.patch).toBe(!por);
       expect(P.patch.planDocument.planName).toBe(name || 'My plan');
       const after = applyPatch(plan, P.patch);
-      expect(JSON.stringify(applyPatch(after, P.previous))).toBe(JSON.stringify(plan));
+      const later = Object.fromEntries(Object.entries(P.patch).filter(([k]) => !(k in P.previous)));   // a later draft's reading (7.4.0) is not undone
+      expect(JSON.stringify(applyPatch(after, P.previous))).toBe(JSON.stringify(applyPatch(plan, later)));
       const U = unlockPatch(after, { now });
       for (const k of Object.keys(U.patch)) expect(UNLOCK_WRITES).toContain(k);
       const D = documentPatch(after, { now, run: runOf(base[i]), entries: [] });

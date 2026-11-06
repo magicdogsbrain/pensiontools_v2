@@ -26,6 +26,8 @@ import { HOUSEHOLD_FIELDS } from '../../../src/answers/plan/schema.js';
 import { viewFor } from '../../../src/v7/effects/planSource.js';
 import { pounds } from '../../../src/answers/plan/income.js';
 import { fill } from '../../../src/v7/components/index.js';
+import { splitFingerprint } from '../../../src/services/HouseholdDraw.js';
+import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
 
 const DIR = join(process.cwd(), 'tests/v7/states/plan');
 const NAMES = readdirSync(DIR).filter((f) => f.startsWith('household-') && f.endsWith('.json')).map((f) => f.slice(0, -5)).sort();
@@ -339,7 +341,10 @@ describe('who draws what (household-draw-split.md 4), in exact pounds', () => {
     expect(one(kept.root, `${T}.use`)).toBe(null);
     // "Keep things as they are" written: the dismissed line and "Show the comparison again"
     const split = load('household-split');
-    const fp = split.household.result.split.fingerprint;
+    // the fingerprint of the two plans as they read today (7.4.0: Alex's draft, saved with next April, reads from this tax year)
+    const byId = Object.fromEntries(split.plans.list.map((e) => [e.plan.id, e.plan]));
+    const dayOf = new Date(split.env.today + 'T12:00:00');
+    const fp = splitFingerprint(effectiveStressSettings(byId.AlexCouple06, { now: dayOf }), effectiveStressSettings(byId.SamCouple07, { now: dayOf }));
     const dismissed = further(split, (st) => ({ type: A.PLANS_SET, list: st.plans.list.map((e) => (e.plan.id === 'AlexCouple06' ? { ...e, plan: { ...e.plan, household: { ...e.plan.household, splitDismissed: { partnerScenarioId: 'SamCouple07', fingerprint: fp, at: '2026-09-30T08:00:00.000Z' } } } } : e)), source: 'account', readAt: '14:04' }));
     expect(one(dismissed.root, `${T}.split.dismissed`).textContent).toBe(HOUSEHOLD.split.dismissed);
     expect(one(dismissed.root, `${T}.showAgain`)).not.toBe(null);

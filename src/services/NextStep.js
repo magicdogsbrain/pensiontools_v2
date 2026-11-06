@@ -36,8 +36,10 @@ export const NEXT_STEP_WORDS = Object.freeze({
   // A locked plan stored with its start later than it should be (7.3.3): the V7 home's to-do, word for word
   startMove: 'Your plan is set to start in {start}, but you stopped work in {stopped}. Start it from the tax year you stopped.',
   startMoveBtn: 'Move the start',
-  startAsk: 'Your plan is set to start in {start}. When did you stop work?',
+  startAsk: 'Your plan is set to start in {start}. When did you stop work? If you are already drawing, it can start this tax year instead.',
   startAskBtn: 'Say when',
+  /** The same, on a plan whose start this tax year cannot replace (it is already this tax year or earlier). */
+  startAskOnly: 'Your plan is set to start in {start}. When did you stop work?',
   // the move cannot keep the State Pension's tax year under the lock (PlanMove.moveBlockedOf): said as it is, and the button
   // opens the line that explains why, never a move it would refuse
   startBlocked: 'Your plan is set to start in {start}, but you stopped work in {stopped}. Its start can be moved only once the plan is unlocked.',
@@ -71,7 +73,7 @@ function startLaterStep(sl) {
   const start = 'April ' + sl.start;
   if (sl.kind === 'move' && sl.blocked) return { html: esc(NEXT_STEP_WORDS.startBlocked.replace('{start}', start).replace('{stopped}', monthWordsOf(sl.stopMonth))), btn: NEXT_STEP_WORDS.startBlockedBtn, action: { kind: 'start-later' } };
   if (sl.kind === 'move') return { html: esc(NEXT_STEP_WORDS.startMove.replace('{start}', start).replace('{stopped}', monthWordsOf(sl.stopMonth))), btn: NEXT_STEP_WORDS.startMoveBtn, action: { kind: 'start-later' } };
-  return { html: esc(NEXT_STEP_WORDS.startAsk.replace('{start}', start)), btn: NEXT_STEP_WORDS.startAskBtn, action: { kind: 'start-later' } };
+  return { html: esc((sl.thisYear ? NEXT_STEP_WORDS.startAsk : NEXT_STEP_WORDS.startAskOnly).replace('{start}', start)), btn: NEXT_STEP_WORDS.startAskBtn, action: { kind: 'start-later' } };
 }
 
 /**

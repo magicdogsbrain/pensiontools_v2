@@ -63,11 +63,12 @@ describe('the reading (wayOf) on every corpus plan at three dates', () => {
     const w = wayOf([{ plan }], plan.id, { today: TODAY });
     expect(w.strategyId).toBe('gilt-rotation');
     // the spare's growth is absent in the bag (kept, the engine's reading): not a value of its own, so the card shows the default
-    expect(w.stash['gilt-rotation']).toEqual({ cashYears: 2, bridgeCash: 17500, rotateCutAge: 80, rotateTrigger: 30, rotateDisarmYears: 5 });
+    // 7.4.0: 07 is a draft saved with next April, read from this tax year — its counts of years from year 0 one more, the same tax years
+    expect(w.stash['gilt-rotation']).toEqual({ cashYears: 3, bridgeCash: 17500, rotateCutAge: 80, rotateTrigger: 30, rotateDisarmYears: 5 });
     expect(w.stash['floor-to-age']).toEqual({ floorToAge: 80 });
     expect(w.stash['floor-and-flex']).toEqual({ essentialsAnnual: 18000, horizonAge: 92, sleeveRatePct: 4, ratchet: 'off' });   // the old "none" reads as off; no treats rule stored
-    expect(w.stash['ladder-and-ratchet']).toEqual({ ladderYears: 15, triggerMode: 'band', bandThreshold: 1.2 });   // drawAnnual 0 reads as "the plan's target": not a value
-    expect(w.stash['bridge-and-engine']).toEqual({ bridgeAge: 67, cashYears: 2 });
+    expect(w.stash['ladder-and-ratchet']).toEqual({ ladderYears: 16, triggerMode: 'band', bandThreshold: 1.2 });   // drawAnnual 0 reads as "the plan's target": not a value
+    expect(w.stash['bridge-and-engine']).toEqual({ bridgeAge: 67, cashYears: 3 });
     expect(w.stash['buckets-in-order']).toEqual({ bucketBand: 10 });
     expect(w.stash['pots-and-valves']).toEqual({});
     expect(w.stash['floor-the-schedule']).toEqual({});

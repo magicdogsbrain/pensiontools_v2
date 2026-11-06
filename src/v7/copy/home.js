@@ -48,7 +48,7 @@ export const HOME = {
     'lock.first':         { title: 'Lock the plan when it is right', detail: 'Check it lasts, then lock it. Months are recorded once it is locked.' },
     /** A locked plan stored the old way (its start later than the tax year work stopped): move it, or say the month first. */
     'start.move':         { title: 'Start it from the tax year you stopped', detail: 'Your plan is set to start in {start}, but you stopped work in {stopped}.' },
-    'start.ask':          { title: 'When did you stop work?', detail: 'Your plan is set to start in {start}.' },
+    'start.ask':          { title: 'When did you stop work?', detail: 'Your plan is set to start in {start}. If you are already drawing, it can start this tax year instead.' },
     'start.blocked':      { title: 'Its start can be moved only once the plan is unlocked', detail: 'Your plan is set to start in {start}, but you stopped work in {stopped}.' },
     'month.taxYear':      { title: 'Set up {year}', detail: 'A new tax year: say what the plan pays this year before the first month is recorded.' },
     'month.arrive':       { title: 'Record your first month', detail: 'You stopped work in {stop}. Month by month then compares your pot with the plan’s.' },
@@ -130,6 +130,8 @@ export const HOME = {
   },
   /** The full reading, with where each figure is from, is on the "Where you are" step. */
   whereMore: 'See where you are in full',
+  /** A plan that draws from a pension before it can usually be taken (7.4.0): the engines do not yet hold it back. */
+  pensionAccess: 'You can’t usually take money from a pension before {age}. Until then this plan’s pension draws would have to come from your ISA, savings or other money.',
 
   toolsTitle: 'Tools',
   /** The move tool's state on the home: the same count as the headline. */

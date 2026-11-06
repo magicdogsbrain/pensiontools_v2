@@ -19,7 +19,7 @@ import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
 import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge, runRotationPath, spareGrowthRuns } from './GiltRotation.js';
 import { deriveCompareConfigs, compareAll } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
-import { deriveTiming, isaAtRetirementOf } from '../services/PlanTiming.js';
+import { deriveTiming, isaAtRetirementOf, taxYearStartOf } from '../services/PlanTiming.js';
 import { planAsSeenFromToday, spPaidBefore, ladderAsSeenFromToday, runUpCashSpent } from '../services/PlanFromToday.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { scheduleFromSteps } from '../services/IncomeSchedule.js';
@@ -656,7 +656,7 @@ function fullGiltTest(p, configs, { spareRuns = true } = {}) {
   const running = p.yearOffset > 0;
   const cashYears = p.params?.cashYears ?? 2;
   const fromToday = running ? ladderAsSeenFromToday({ planFirstTaxYear: p.firstTaxYear, runFirstTaxYear: p.runFirstTaxYear, cashYears, linkers: activeLinkers().gilts, todayIso }) : null;
-  const firstTaxYear = fromToday ? fromToday.firstTaxYear : (p.firstTaxYear || now.getFullYear() + 1);
+  const firstTaxYear = fromToday ? fromToday.firstTaxYear : (p.firstTaxYear || taxYearStartOf(now));   // no year: this tax year (7.4.0; it was the calendar year after today)
   // Cash set aside "until the plan's income starts" pays the months from the day of the pots to the plan's first April. On
   // pots that belong to a plan year already begun that April has passed: nothing is set aside, and the cash years count
   // from the pots' day to the first rung (research/plan-start.md §6 decision 8). That is a running plan (above) and, from

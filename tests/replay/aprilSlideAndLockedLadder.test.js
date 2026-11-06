@@ -65,9 +65,11 @@ async function openOn(day) {
 afterAll(() => { setLinkersOverride(null); dropCaches(); vi.useRealTimers(); });
 
 describe('A — the April slide: a plan\'s start year is written into the plan once and never derived again', () => {
-  it('A (the bug, still true of the bare derivation) — with nothing saved, 4 April says 2027/28 and 8 April says 2028/29', () => {
-    expect(deriveTiming(PRE_6_4, APR_4).firstTaxYear).toBe(2027);
-    expect(deriveTiming(PRE_6_4, APR_8).firstTaxYear).toBe(2028);   // which is why it has to be SAVED the first time
+  // 7.4.0: with nothing saved a retiree starts THIS tax year (it was next April), so every year below is one earlier; the
+  // slide on 6 April, and the pin that stops it, are as they were
+  it('A (the bug, still true of the bare derivation) — with nothing saved, 4 April says 2026/27 and 8 April says 2027/28', () => {
+    expect(deriveTiming(PRE_6_4, APR_4).firstTaxYear).toBe(2026);
+    expect(deriveTiming(PRE_6_4, APR_8).firstTaxYear).toBe(2027);   // which is why it has to be SAVED the first time
   });
 
   for (const locked of [false, true]) {
@@ -79,10 +81,10 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
       const checksumBefore = decisionSettingsChecksum(storedScenario().decisionTool.settings);
 
       const first = await openOn(APR_4);
-      expect(first.firstTaxYear).toBe(2027);
+      expect(first.firstTaxYear).toBe(2026);
       // Written into the saved plan by that first load — no Save button involved (a locked plan has none).
       const saved = storedScenario().stressTool.settings;
-      expect(saved).toMatchObject({ firstTaxYear: 2027, retired: true });
+      expect(saved).toMatchObject({ firstTaxYear: 2026, retired: true });
       expect(saved.baseSalary).toBe(40000);                                  // the rest of the plan is as it was
       // Only the timing fields were added — and, on the draft only, the default fund and platform charge (6.19.0, the
       // schema-2 migration on load). A locked plan is given no charge: it keeps its figures until it is unlocked.
@@ -91,22 +93,22 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
       const ladderBefore = frozenAt(APR_4, () => ladderOn(first, APR_4));
 
       const second = await openOn(APR_8);                                    // a new visit, two days after the tax year turned
-      expect(second.firstTaxYear).toBe(2027);                                // was 2028
-      expect(deriveTiming(second, APR_8)).toMatchObject({ mode: 'retired', firstTaxYear: 2027, shapeAgeNow: deriveTiming(first, APR_4).shapeAgeNow });
+      expect(second.firstTaxYear).toBe(2026);                                // was 2027 (and before 6.13.5, 2028)
+      expect(deriveTiming(second, APR_8)).toMatchObject({ mode: 'retired', firstTaxYear: 2026, shapeAgeNow: deriveTiming(first, APR_4).shapeAgeNow });
       const ladderAfter = frozenAt(APR_8, () => ladderOn(second, APR_8));
       expect(rungs(await ladderAfter)).toEqual(rungs(await ladderBefore));   // same years, ages, gilts, income and units
-      expect((await ladderAfter).firstTaxYear).toBe(2027);
+      expect((await ladderAfter).firstTaxYear).toBe(2026);
 
       // The Decision settings were not written, so a locked plan's checksum — and every record stamped with it — stands.
       expect(decisionSettingsChecksum(storedScenario().decisionTool.settings)).toBe(checksumBefore);
       dropCaches();
       expect(decisionSettingsChecksum((await loadDecisionDBAsync()).settings)).toBe(checksumBefore);
       // …and the Decision tool reads its year 0 from the Stress plan, where the anchor now lives.
-      expect(decisionAnchorYear(storedScenario().decisionTool.settings, {}, null, second, APR_8)).toBe(2027);
+      expect(decisionAnchorYear(storedScenario().decisionTool.settings, {}, null, second, APR_8)).toBe(2026);
 
       // Nothing more to write on later loads.
       expect(timingPinPatch(storedScenario().stressTool.settings, second)).toBeNull();
-      expect((await getActiveScenarioAsync()).stressTool.settings.firstTaxYear).toBe(2027);
+      expect((await getActiveScenarioAsync()).stressTool.settings.firstTaxYear).toBe(2026);
     });
   }
 
@@ -124,17 +126,18 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
   it('A — a plan with no age at all ("the calendar year after today") stops moving on 1 January, and the Decision tool\'s recorded years are not re-anchored', async () => {
     await authSettled();
     const { currentAge, currentAgeAsOf, spStartDate, spWeeklyAmount, ...noAge } = PRE_6_4;
-    expect(deriveTiming(noAge, at(2026, 12, 30)).firstTaxYear).toBe(2027);
-    expect(deriveTiming(noAge, at(2027, 1, 2)).firstTaxYear).toBe(2028);     // the bare derivation still slides
+    // 7.4.0: this tax year (it was the calendar year after today, which slid on 1 January)
+    expect(deriveTiming(noAge, at(2026, 12, 30)).firstTaxYear).toBe(2026);
+    expect(deriveTiming(noAge, at(2027, 4, 8)).firstTaxYear).toBe(2027);     // the bare derivation still slides, on 6 April
     seedGuestStore(scenarioWith(noAge));
     const first = await openOn(at(2026, 12, 30));
-    expect(deriveTiming(first, at(2026, 12, 30))).toMatchObject({ mode: 'legacy', firstTaxYear: 2027 });
-    expect(storedScenario().stressTool.settings.legacyFirstTaxYear).toBe(2027);
+    expect(deriveTiming(first, at(2026, 12, 30))).toMatchObject({ mode: 'legacy', firstTaxYear: 2026 });
+    expect(storedScenario().stressTool.settings.legacyFirstTaxYear).toBe(2026);
     expect(storedScenario().stressTool.settings.firstTaxYear ?? null).toBeNull();   // pinned under its own name…
-    const second = await openOn(at(2027, 1, 2));
-    expect(deriveTiming(second, at(2027, 1, 2)).firstTaxYear).toBe(2027);           // was 2028
+    const second = await openOn(at(2027, 4, 8));
+    expect(deriveTiming(second, at(2027, 4, 8)).firstTaxYear).toBe(2026);           // pinned: it does not slide
     // …so the Decision tool still counts from the first tax year it was set up for, as its history was recorded.
-    expect(decisionAnchorYear({}, { '26/27': {}, '27/28': {} }, null, second, at(2027, 1, 2))).toBe(2026);
+    expect(decisionAnchorYear({}, { '26/27': {}, '27/28': {} }, null, second, at(2027, 4, 8))).toBe(2026);
   });
 
   it('A — an age saved without its date is dated on first load, so the person gets older and the start age stops creeping', () => {

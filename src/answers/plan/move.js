@@ -22,7 +22,7 @@ import { normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { proportions } from '../../services/Holdings.js';
 import { orderSheetRows } from '../../strategies/GiltLadderPlan.js';
 import { rotationWatch } from '../../services/RotationStatus.js';
-import { taxYearLabel, deriveTiming } from '../../services/PlanTiming.js';
+import { taxYearLabel, deriveTiming, taxYearStartOf } from '../../services/PlanTiming.js';
 import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
 import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
 import { APPROACHING_YEARS } from '../../services/LifeStage.js';
@@ -77,7 +77,7 @@ export function savedMove(plan, { today, index = null }) {
   if (!m || !m.target || m.target.kind === 'none') return { ...base, hasDocument: true, m: null, seq: null, sheet: [], watch: null, spGate: null, own: null };
   const contributionsMonthly = contributionsMonthlyOf(plan, rec);
   let seq = null;
-  try { seq = sequence(m.diff, { today: now, startYear: stage.firstTaxYear || (doc.timing && doc.timing.firstTaxYear) || (now.getFullYear() + 1), startMonth: stage.startMonth || (doc.timing && doc.timing.startMonth) || null, contributionsMonthly }); } catch { seq = null; }
+  try { seq = sequence(m.diff, { today: now, startYear: stage.firstTaxYear || (doc.timing && doc.timing.firstTaxYear) || taxYearStartOf(now), startMonth: stage.startMonth || (doc.timing && doc.timing.startMonth) || null, contributionsMonthly }); } catch { seq = null; }
   let sheet = [];
   if (m.target.kind === 'ladder') { try { sheet = orderSheetRows(doc, rec.lines, { today: now, params: m.strategyParams, runUpMonthly: m.runUpMonthly }); } catch { sheet = []; } }
   let watch = null;

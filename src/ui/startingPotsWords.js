@@ -16,6 +16,7 @@
  *                                                projection was.
  */
 import { potScaleOf, sippTodayOf, isaAtRetirementOf } from '../services/PotsAtRetirement.js';
+import { earlyPensionDrawOf, earlyPensionDrawWords } from '../services/PlanTiming.js';
 import { answerLastedWords } from '../services/PlanSeed.js';
 import { chargesRunLine, hasStoredCharges, formatChargesPct } from './chargesSetting.js';
 import { chargesPctOf } from '../services/Charges.js';
@@ -86,7 +87,7 @@ export function startSummaryHtml(settings, { fromAnswer = null, locked = null } 
     : '';
   if (GILT_LADDER_IDS.has(s.strategyId)) {
     const lasted = fromAnswer ? answerLastedWords(fromAnswer) : '';
-    return ladderLine(s, locked) + (lasted ? ` <span class="hint">This plan was made from a quick answer, where ${lasted}. These runs are the planner's own test, so they can differ.</span>` : '') + spNote;
+    return ladderLine(s, locked) + (lasted ? ` <span class="hint">This plan was made from a quick answer, where ${lasted}. These runs are the planner's own test, so they can differ.</span>` : '') + spNote + accessNote(s);
   }
   const k = potScaleOf(s);
   const div = (+s.diversifierStart || 0) > 0 ? ` · Diversifiers ${fmt(s.diversifierStart * k.sipp)}` : '';
@@ -115,7 +116,16 @@ export function startSummaryHtml(settings, { fromAnswer = null, locked = null } 
       ? 'These runs start from the middling pot at retirement and do not vary the years before it, so they can differ.'
       : 'These runs are the planner\'s own test, so they can differ.'}</span>`;
   }
-  return text + spNote;
+  return text + spNote + accessNote(s);
+}
+
+/**
+ * A plan that draws from a pension before the age it can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): the runs
+ * do not yet hold the pension back until then, so the summary every run starts from says so, as a plain fact. '' otherwise.
+ */
+function accessNote(s) {
+  let e = null; try { e = earlyPensionDrawOf(s, new Date()); } catch { e = null; }
+  return e ? ' <span class="hint" data-note="pension-access">' + earlyPensionDrawWords(e) + '</span>' : '';
 }
 
 export function potsAtRetirementLine(p, override = {}) {

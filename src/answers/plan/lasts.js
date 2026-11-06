@@ -31,6 +31,7 @@ import { monthlyNet, yearlyGross } from './spend.js';
 import { LASTS_FIELDS, LASTS_WRITES, TRY_FIELDS, TRY_WRITES, WAY_IDS } from './schema.js';
 import { dateOf, dayWords, MONTHS } from './dates.js';
 import { withoutPotsAsOf } from '../../services/PlanFromToday.js';
+import { earlyPensionDrawOf } from '../../services/PlanTiming.js';
 
 export { applyPatch };
 
@@ -258,6 +259,8 @@ export function lastsOf(entries, id, { today, typed = null } = {}) {
     // no run on a plan shown as saved (newer than this code, or one whose upgrade failed): its figure would not be its own
     runKey: readonly ? null : runKeyOf(plan), document: saved.document,
     fields, errors: c.errors, ok: c.ok, derived, notUsed: notUsedBy(saved.strategyId), partners,
+    // the plan draws from a pension before it can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): said beside the answer
+    pensionAccess: (() => { try { const now = dateOf(today); const e = earlyPensionDrawOf(safeSettings(plan, now), now); return e ? { age: String(e.age) } : null; } catch { return null; } })(),
     changed: Object.keys(p.patch).length > 0, patch: p.patch, previous: p.previous,
     // the one sentence the toast says after a save
     savedLine: c.ok ? (v.cutsOn === 'yes'

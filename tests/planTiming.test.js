@@ -52,12 +52,11 @@ describe("ages the way the plan counts them (age reached during the tax year)", 
 });
 
 describe('migrateTiming — plans saved before 6.4.0', () => {
-  // Re-written in 6.51.0 (research/plan-start.md §3, "How deriveTiming reads them"): next April is no longer THE retiree's
-  // default — it is the default for a plan that does not say when work stopped (every plan saved before 6.51.0, so this
-  // still holds byte for byte). A retiree who says when they stopped starts in that tax year: the case after this one.
-  it("Alex's saved plan becomes: already retired, starts 2027/28 (no stop month: next April, as before)", () => {
+  // Re-written in 6.51.0 (research/plan-start.md §3) and again in 7.4.0: next April is no retiree's default any more. With
+  // no stop month a retiree with nothing saved starts this tax year; one who says when they stopped starts in that tax year.
+  it("Alex's saved plan becomes: already retired, starts 2026/27 (no stop month: this tax year, 7.4.0)", () => {
     const m = migrateTiming(alex, null, NOW);
-    expect(m.firstTaxYear).toBe(2027);
+    expect(m.firstTaxYear).toBe(2026);
     expect(m.retired).toBe(true);
     expect(m.retireAge).toBeNull();
   });
@@ -78,19 +77,19 @@ describe('migrateTiming — plans saved before 6.4.0', () => {
     const f = migrateTiming({ currentAge: 50, currentAgeAsOf: '2026-09-09', shapeAgeNow: 60 }, { retired: true }, NOW);
     expect(f).toMatchObject({ retired: false, retireAge: 60, firstTaxYear: 2036 });
   });
-  it('an explicit "retired" flag with no saved start means next April, whatever the old step age said', () => {
+  it('an explicit "retired" flag with no saved start means this tax year (7.4.0), whatever the old step age said', () => {
     const m = migrateTiming({ currentAge: 45, currentAgeAsOf: '2026-09-09', retired: true }, null, NOW);
-    expect(m.firstTaxYear).toBe(2027);
+    expect(m.firstTaxYear).toBe(2026);
   });
-  it('steps starting at the age today keep the old implicit start (next April), relabelled to the age reached then', () => {
+  it('steps starting at the age today start this tax year (7.4.0; next April before), at the age reached in it', () => {
     const demo = { currentAge: 63, currentAgeAsOf: '2026-09-09', shapeAgeNow: 63 };
     const m = migrateTiming(demo, null, NOW);
-    expect(m).toMatchObject({ firstTaxYear: 2027, retired: true });
-    expect(deriveTiming(m, NOW).shapeAgeNow).toBe(64);
+    expect(m).toMatchObject({ firstTaxYear: 2026, retired: true });
+    expect(deriveTiming(m, NOW).shapeAgeNow).toBe(63);
   });
-  it('a start age already passed is pulled forward to next April', () => {
+  it('a start age already passed is pulled forward to this tax year (7.4.0; next April before)', () => {
     const m = migrateTiming({ currentAge: 66, currentAgeAsOf: '2026-09-09', shapeAgeNow: 63 }, null, NOW);
-    expect(m.firstTaxYear).toBe(2027);
+    expect(m.firstTaxYear).toBe(2026);
     expect(m.retired).toBe(true);
   });
   it('no age today → untouched (legacy)', () => {
@@ -104,22 +103,23 @@ describe('migrateTiming — plans saved before 6.4.0', () => {
 });
 
 describe('deriveTiming', () => {
-  // Re-written in 6.51.0: "7 months of bridge" is what a retiree with no stop month still derives (next April); one who
-  // says they stopped work starts in that tax year with no months before it — the two cases after this one.
-  it('Alex without a stop month: retired, 2027/28, steps from 64, 7 months before the plan\'s income starts', () => {
+  // Re-written in 7.4.0: a retiree with no stop month and nothing saved starts this tax year — nobody retired has months
+  // before their plan; one who says they stopped work starts in that tax year — the two cases after this one.
+  it('Alex without a stop month: retired, 2026/27 (this tax year), steps from 63, no months before the plan', () => {
     const t = deriveTiming(alex, NOW);
     expect(t.mode).toBe('retired');
-    expect(t.firstTaxYear).toBe(2027);
-    expect(t.shapeAgeNow).toBe(64);
-    expect(t.yearsToStart).toBe(1);
-    expect(t.bridgeMonths).toBe(7);
+    expect(t.firstTaxYear).toBe(2026);
+    expect(t.shapeAgeNow).toBe(63);
+    expect(t.yearsToStart).toBe(0);
+    expect(t.bridgeMonths).toBe(0);
+    expect(t.startOptions).toEqual([2026]);
     expect(t.potScale).toEqual({ sipp: 1, isa: 1 });
   });
   it('a retiree with a stop month starts that tax year: plan year 3 now, nothing before the start, steps from the age then', () => {
     const t = deriveTiming({ ...alex, retired: true, stoppedWork: '2023-10' }, NOW);
     expect(t).toMatchObject({ mode: 'retired', firstTaxYear: 2023, shapeAgeNow: 60, yearsToStart: 0, bridgeMonths: 0, planYearNow: 3, elapsedYears: 3, monthsIntoYear: 5, stoppedWork: '2023-10' });
-    // the years a retiree may choose from: the stop's to next April
-    expect(t.startOptions).toEqual([2023, 2024, 2025, 2026, 2027]);
+    // the years a retiree may choose from: the stop's to this tax year (7.4.0: never next April)
+    expect(t.startOptions).toEqual([2023, 2024, 2025, 2026]);
     // a later start is a choice that is kept (research/plan-start.md §2 D): the saved year wins over the stop's
     expect(deriveTiming({ ...alex, retired: true, stoppedWork: '2026-07', firstTaxYear: 2027 }, NOW)).toMatchObject({ firstTaxYear: 2027, bridgeMonths: 7, planYearNow: -1, elapsedYears: 0 });
   });
@@ -141,11 +141,12 @@ describe('deriveTiming', () => {
     expect([taxYearOfMonth('2024-03'), taxYearOfMonth('2024-04')]).toEqual([2023, 2024]);
     expect([hasStopped('2026-09', NOW), hasStopped('2026-10', NOW), hasStopped(null, NOW)]).toEqual([true, false, false]);
   });
-  it('is date-stable: the same saved plan read on 15 Jan 2027 still starts 2027/28', () => {
+  it('is date-stable: the same saved plan read on 15 Jan 2027 and after 6 April 2027 still starts 2026/27', () => {
     const saved = migrateTiming(alex, null, NOW);
     const t = deriveTiming(saved, new Date(2027, 0, 15));
-    expect(t.firstTaxYear).toBe(2027);
-    expect(t.shapeAgeNow).toBe(64);
+    expect(t.firstTaxYear).toBe(2026);
+    expect(t.shapeAgeNow).toBe(63);
+    expect(deriveTiming(saved, new Date(2027, 5, 1)).firstTaxYear).toBe(2026);
   });
   it('a retiree may choose this tax year instead', () => {
     const t = deriveTiming({ ...alex, retired: true, firstTaxYear: 2026 }, NOW);
@@ -179,10 +180,11 @@ describe('deriveTiming', () => {
     const t = deriveTiming({ ...alex, retired: false, retireAge: 60 }, NOW);
     expect(t.firstTaxYear).toBe(2026);
   });
-  it('legacy (no age today) is the pre-6.4.0 behaviour: the calendar year after today', () => {
+  it('legacy (no age today) starts this tax year (7.4.0; it was the calendar year after today); a pinned year is kept', () => {
     const t = deriveTiming({ shapeAgeNow: 64 }, NOW);
-    expect(t).toMatchObject({ mode: 'legacy', firstTaxYear: 2027, shapeAgeNow: 64 });
-    expect(deriveTiming({ shapeAgeNow: 60 }, new Date(2027, 0, 15)).firstTaxYear).toBe(2028);
+    expect(t).toMatchObject({ mode: 'legacy', firstTaxYear: 2026, shapeAgeNow: 64 });
+    expect(deriveTiming({ shapeAgeNow: 60 }, new Date(2027, 0, 15)).firstTaxYear).toBe(2026);
+    expect(deriveTiming({ shapeAgeNow: 60, legacyFirstTaxYear: 2025 }, NOW).firstTaxYear).toBe(2025);
     expect(deriveTiming({}, NOW).shapeAgeNow).toBe(57);   // the fallback a saved plan with no age relies on
   });
 });
@@ -234,11 +236,14 @@ describe('describeTiming', () => {
     expect(startYearChoices(outside, 2022)[0]).toEqual({ year: 2022, label: '2022/23 (saved)', saved: true });
   });
   it('reads like a sentence and names the State Pension plan year', () => {
-    const s = migrateTiming(alex, null, NOW);
+    const s = { ...migrateTiming(alex, null, NOW), firstTaxYear: 2027 };   // a year saved the old way, next April
     const text = describeTiming(deriveTiming(s, NOW), s, NOW);
     expect(text).toContain('Plan starts 6 April 2027 (tax year 2027/28), in 7 months.');
     expect(text).toContain('Income steps start at age 64.');
     expect(text).toContain('State Pension from 2030/31 (plan year 3).');
     expect(text).toContain('Plan runs to age 93.');
+    // with nothing saved (7.4.0): this tax year
+    const n = migrateTiming(alex, null, NOW);
+    expect(describeTiming(deriveTiming(n, NOW), n, NOW)).toContain('State Pension from 2030/31 (plan year 4).');
   });
 });

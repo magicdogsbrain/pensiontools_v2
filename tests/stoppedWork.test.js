@@ -289,7 +289,7 @@ describe('the ladder\'s month for someone who stopped this tax year or earlier: 
     const raw = read('02-pnv-draft');
     const ss = { ...raw.stressTool.settings, strategyId: 'full-il-gilt', strategyParams: { cashYears: 2, bridgeCash: 0 }, retired: true };
     delete ss.firstTaxYear;
-    if (stop) ss.stoppedWork = stop;
+    if (stop) ss.stoppedWork = stop; else delete ss.stoppedWork;   // 7.4.0: fixture 02 now says its own month
     const s = settingsOf({ ...raw, stressTool: { ...raw.stressTool, settings: ss } }, DAY);
     const r = stressTestStrategy('full-il-gilt', { ...planOf(s, DAY), mcRuns: 60, stride: 12 });
     const lp = ladderPosition(r.plan, { today: DAY, potsDay: potsDayOf(s, { now: DAY }) });
@@ -308,9 +308,12 @@ describe('the ladder\'s month for someone who stopped this tax year or earlier: 
     expect([s.potsAsOf, firstY, lp.phase]).toEqual(['today', 2026, 'running']);
     expect(lp.monthly).toBeCloseTo(need / 12, 6);
   });
-  it('no stop month (year 0 next April) and any later tax year: over the months left to 5 April, as always', () => {
-    const { s, lp } = position(null);
-    expect([s.potsAsOf, lp.phase, lp.monthly, lp.spread]).toEqual([undefined, 'before', 0, false]);
+  it('no stop month (year 0 this tax year, 7.4.0) and any later tax year: over the months left to 5 April, as always', () => {
+    // 7.4.0: a retiree with no saved year and no stop month starts this tax year (it was next April, with nothing to draw
+    // until then); the year is read as a plan that picked up from here always was: its need over the months left
+    const { s, lp, need, firstY } = position(null);
+    expect([s.potsAsOf, firstY, lp.phase, lp.spread]).toEqual([undefined, 2026, 'running', false]);
+    expect(lp.monthly).toBeCloseTo(need / 5, 6);
     const plan = { years: [{ Y: 2026, need: 12000, gross: 12000, age: 64, from: 'cash' }, { Y: 2027, need: 12000, gross: 12000, age: 65, from: 'cash' }], orders: [] };
     const nextYear = ladderPosition(plan, { today: new Date(2027, 4, 15, 12), potsDay: DAY });
     expect([nextYear.spread, nextYear.monthsLeft, nextYear.monthly]).toEqual([false, 11, 12000 / 11]);

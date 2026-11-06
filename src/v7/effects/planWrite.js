@@ -167,7 +167,8 @@ import { spendPatch } from '../../answers/plan/spend.js';
 import { potsPatch } from '../../answers/plan/pots.js';
 import { lastsPatch, tryPatch, tryCopyOf } from '../../answers/plan/lasts.js';
 import { lockPatch, unlockPatch, documentPatch, isLockReversal, shapeRefsOf } from '../../answers/plan/lock.js';
-import { movedPlanOf, movePatch } from '../../answers/plan/moveStart.js';
+import { movedPlanOf, movePatch, withLaterDraft } from '../../answers/plan/moveStart.js';
+import { dateOf } from '../../answers/plan/dates.js';
 import { wayPatch } from '../../answers/plan/way.js';
 import { mixPatch, useMixPatch } from '../../answers/plan/mix.js';
 import { partnerOf, linkPatch, dismissPatch, splitPatches, shareBudgetPatches, whoPaysPatches } from '../../answers/plan/household.js';
@@ -236,6 +237,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
   const dispatch = (a) => { if (!stopped) store.dispatch(a); };
   const fail = (planId, problem, detail = null) => dispatch({ type: A.PLAN_SAVE_FAILED, planId, problem, ...(detail ? { detail } : {}) });
   const later = (fn) => { if (!win || typeof win.setTimeout !== 'function') return; if (timer) win.clearTimeout(timer); timer = win.setTimeout(() => { timer = null; fn(); }, TOAST_MS); };
+  /** The day the screens read the plan on (state.env.today), as a date; the clock when it cannot be read. */
+  const todayOf = (state) => { try { return dateOf(state.env.today); } catch { return now(); } };
 
   /** Where the plan is, and whether a write may go there at all. The example plan (GuestPlans.js) is read-only: only a copy, a download and a delete may name it. */
   function placeOf(state, planId, { allowExample = false } = {}) {
@@ -322,7 +325,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const lockedPlan = isLockedSettings(plan.decisionTool && plan.decisionTool.settings);
     const lockedAbout = step === 'about' && lockedPlan;
     if (step !== 'saving' && lockedPlan && !lockedAbout) { fail(planId, 'locked'); return; }
-    const p = lockedAbout ? stopAskPatch(plan, typed, { today: state.env.today }) : patchOf(plan, typed, { today: state.env.today });
+    // a draft read from an earlier start than it saved (7.4.0): its settings are written as read, with the step's (withLaterDraft)
+    const p = lockedAbout ? stopAskPatch(plan, typed, { today: state.env.today }) : withLaterDraft(plan, patchOf(plan, typed, { today: state.env.today }), { now: todayOf(state) });
     if (!p.ok) { fail(planId, p.errors.plan === 'locked' || p.errors.plan === 'notLocked' ? 'locked' : 'problems'); return; }
     const about = state.plans.view && state.plans.view.page && state.plans.view.page[step] && state.plans.view.page.forId === String(planId) ? state.plans.view.page[step] : null;
     const line = lockedAbout ? p.line : about && about.savedLine ? about.savedLine : null;
@@ -414,17 +418,19 @@ export function startPlanWrite(store, { win = null, session = null, local = null
    * then movePatch as ONE write past the guard — its `reAnchor` allowance lets exactly that move through, under the lock.
    * The plan stays locked. No Undo, as in the planner: the toast says it is done.
    */
-  async function moveStart(planId) {
+  async function moveStart(planId, how = {}) {
     const got = await placed(planId);
     if (!got) return;
     const { place, plan, state } = got;
     if (!isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) { fail(planId, 'notLocked'); return; }
     const at = now();
-    const mp = movedPlanOf(plan, { now: at });
+    // how (7.4.0): to this tax year with no month said, and the State Pension's date where the plan gives only its plan year
+    const h = { thisYear: !!(how && how.thisYear), spStartDate: (how && how.spStartDate) || null };
+    const mp = movedPlanOf(plan, { now: at, ...h });
     if (!mp) { fail(planId, 'noMove'); return; }
     const run = await runFor(planId, mp.plan, state);
     if (!run) return;
-    const p = movePatch(plan, { now: at, run, entries: state.plans.list });
+    const p = movePatch(plan, { now: at, run, entries: state.plans.list, ...h });
     if (!p.ok) { fail(planId, p.errors.plan === 'noMove' || p.errors.plan === 'noRun' || p.errors.plan === 'notHere' ? p.errors.plan : 'failed'); return; }
     const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
     if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
@@ -446,7 +452,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const run = W.result && Array.isArray(W.result.ways) ? W.result.ways.find((x) => x && x.id === id) : null;
     if (!page || !page.found || !run || W.key !== page.runKey) { fail(planId, 'noRun'); return; }
     const at = now();
-    const p = wayPatch(plan, id, typed, { today: state.env.today, at: at.toISOString(), defaults: run.dials ? run.dials.defaults : {} });
+    const p = withLaterDraft(plan, wayPatch(plan, id, typed, { today: state.env.today, at: at.toISOString(), defaults: run.dials ? run.dials.defaults : {} }), { now: todayOf(state) });
     if (!p.ok) { fail(planId, p.errors.plan === 'locked' ? 'locked' : 'problems'); return; }
     if (!Object.keys(p.patch).length) { dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line: p.line, op: 'way' }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return; }
     const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
@@ -467,7 +473,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const page = state.plans.view && state.plans.view.page && state.plans.view.page.forId === String(planId) ? state.plans.view.page.mix : null;
     if (!page || !page.found || M.key !== page.runKey || M.compare.status !== 'done') { fail(planId, 'noRun'); return; }
     const at = now();
-    const p = useMixPatch(plan, cell, { today: state.env.today });
+    const p = withLaterDraft(plan, useMixPatch(plan, cell, { today: state.env.today }), { now: todayOf(state) });
     if (!p.ok) { fail(planId, p.errors.plan === 'locked' ? 'locked' : 'problems'); return; }
     const line = { id: 'use', slots: { key: cell.key, tent: cell.tent ? 'on' : 'off' } };
     if (!Object.keys(p.patch).length) { dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line, op: 'mix' }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return; }
@@ -496,7 +502,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const boxes = triedOf(state, planId);
     if (!boxes) { fail(planId, 'noRun'); return; }
     const at = now();
-    const p = tryPatch(plan, boxes, { today: state.env.today, at: at.toISOString() });
+    const p = withLaterDraft(plan, tryPatch(plan, boxes, { today: state.env.today, at: at.toISOString() }), { now: todayOf(state) });
     if (!p.ok) { fail(planId, p.errors.plan === 'locked' ? 'locked' : 'problems'); return; }
     if (!Object.keys(p.patch).length) { dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line: p.line, op: 'try' }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return; }
     const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
@@ -1695,7 +1701,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_LOCK && s.kind === 'lock') run(() => lock(s.planId));
     else if (action.type === A.PLAN_UNLOCK && s.kind === 'unlock') run(() => unlock(s.planId));
     else if (action.type === A.PLAN_DOCUMENT && s.kind === 'document') run(() => newVersion(s.planId));
-    else if (action.type === A.PLAN_MOVE_START && s.kind === 'moveStart') run(() => moveStart(s.planId));
+    else if (action.type === A.PLAN_MOVE_START && s.kind === 'moveStart') run(() => moveStart(s.planId, s.how || {}));
     else if (action.type === A.PLAN_WAY && s.kind === 'way') run(() => useWay(s.planId, s.way));
     else if (action.type === A.PLAN_MIX && s.kind === 'mix') run(() => useMix(s.planId, s.cell));
     else if (action.type === A.PLAN_TRY && s.kind === 'try') run(() => useTry(s.planId));

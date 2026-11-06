@@ -50,7 +50,7 @@ describe('nothing invents an age (G2 residual — "45 when the Budget was never 
     const t = await frozenAt(SEPT_2026, () => deriveTiming(s));
     expect(t.mode).toBe('legacy');                                 // was 'future'
     expect(t.currentAge).toBeNull();                               // the consumers' "unknown — ask"
-    expect(t.firstTaxYear).toBe(2027);                             // next April, as for any plan with no age
+    expect(t.firstTaxYear).toBe(2026);                             // this tax year, as for any plan with no age (7.4.0; was next April)
     expect(t.potScale).toEqual({ sipp: 1, isa: 1 });               // the pots are not grown for 12 invented years
   });
 

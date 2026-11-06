@@ -429,7 +429,7 @@ describe('the State Pension given as a plan year keeps its tax year (fictional, 
     const plan8 = alexWith(spByYear(8));
     expect(moveOfferOf(plan8, NOW)).toBeNull();
     expect(planMoveOf(plan8, NOW)).toBeNull();
-    expect(moveBlockedOf(plan8, NOW)).toEqual({ stopMonth: '2023-10', from: 2027, to: 2023, why: 'statePension' });
+    expect(moveBlockedOf(plan8, NOW)).toEqual({ stopMonth: '2023-10', from: 2027, to: 2023, why: 'statePension', spFix: 'spDate' });   // 7.4.0: its date is asked in the move
     expect(moveBlockedOf(plan9, NOW)).toBeNull();
     const ss = plan8.stressTool.settings, ds = plan8.decisionTool.settings;
     const stress = { ...reAnchorCopy(ss, 4, 2023), stoppedWork: '2023-10', statePensionYear: 12 };
@@ -620,11 +620,17 @@ describe('back-fill: the lived months back to the new start, never over a record
 describe('V7: the question on a locked plan\'s "About you and when", and the move made there (6.55.0)', () => {
   it('asks a locked plan that does not say when work stopped; writes the month, or "Leave it", and nothing else', () => {
     const p = alex(null);
-    expect(lockedStartOf(p, { today: TODAY })).toEqual({ ask: true, move: null, blocked: null, change: null, left: false });
+    // 7.4.0: its start is later than this tax year, so the move to this tax year is offered beside the question, and "Leave
+    // it" is not (the plan has something to move)
+    expect(lockedStartOf(p, { today: TODAY })).toMatchObject({ ask: true, leave: false, move: null, blocked: null, change: null, left: false, nowMove: { yearStop: '2026/27', yearStart: '2027/28', how: { thisYear: true } } });
     const month = stopAskPatch(p, { stopMonth: 'October 2023' }, { today: TODAY });
     expect(month.patch).toEqual({ 'stressTool.settings.stoppedWork': '2023-10' });
     expect(lockedPlanWriteRefusal(p, month.patch, getDefaultStressSettings())).toBeNull();
-    expect(stopAskPatch(p, { stopAskLeft: 'yes' }, { today: TODAY }).patch).toEqual({ 'stressTool.settings.stopMonthLeft': true });
+    expect(stopAskPatch(p, { stopAskLeft: 'yes' }, { today: TODAY }).ok).toBe(false);   // 7.4.0: nothing to leave while the start is later
+    // a plan whose start is this tax year, with a month still marked as before it: the plain question, "Leave it" written
+    const now0 = alex(null); now0.stressTool.settings.firstTaxYear = 2026; now0.decisionTool.settings.firstTaxYear = 2026;
+    expect(lockedStartOf(now0, { today: TODAY })).toMatchObject({ ask: true, leave: true, nowMove: null });
+    expect(stopAskPatch(now0, { stopAskLeft: 'yes' }, { today: TODAY }).patch).toEqual({ 'stressTool.settings.stopMonthLeft': true });
     expect(stopAskPatch(p, { stopMonth: '2027-01' }, { today: TODAY }).errors).toEqual({ stopMonth: 'month-ahead' });
     expect(stopAskPatch(p, { stopMonth: 'soon' }, { today: TODAY }).errors).toEqual({ stopMonth: 'notAMonth' });
     expect(stopAskPatch(p, { endAge: '99' }, { today: TODAY }).errors).toEqual({ plan: 'locked' });   // any other box: locked, as before
@@ -633,14 +639,15 @@ describe('V7: the question on a locked plan\'s "About you and when", and the mov
   });
   it('once the month is said, the move is offered there, its confirm line by line; the month stays changeable, before and after a move', () => {
     const ls = lockedStartOf(alex(), { today: TODAY });
-    expect({ ...ls, move: { ...ls.move, confirm: undefined } }).toEqual({ ask: false, move: { yearStop: '2023/24', yearStart: '2027/28', month: 'October 2023', stepped: true, confirm: undefined }, blocked: null, change: 'October 2023', left: false });
+    expect({ ...ls, move: { ...ls.move, confirm: undefined } }).toEqual({ ask: false, leave: false, nowMove: null, spShown: '', spError: null, move: { yearStop: '2023/24', yearStart: '2027/28', month: 'October 2023', stepped: true, spAsk: false, how: {}, confirm: undefined }, blocked: null, change: 'October 2023', left: false });
     // 7.3.3: no line says the months were "before the plan's income starts" (the old 'bridgedAll'): they are months of the plan
     expect(ls.move.confirm.map((l) => l.id)).toEqual(['first', 'steps', 'ends', 'months', 'documentLadder', 'sp', 'moreLadder', 'fill', 'notAffected']);
-    expect(lockedStartOf(applyPatch(alex(), moved(alex()).patch), { today: TODAY })).toEqual({ ask: false, move: null, blocked: null, change: 'October 2023', left: false });
+    expect(lockedStartOf(applyPatch(alex(), moved(alex()).patch), { today: TODAY })).toEqual({ ask: false, leave: false, move: null, nowMove: null, blocked: null, change: 'October 2023', left: false, spShown: '', spError: null });
   });
   it('after "Leave it" the month can still be said, folded, by the same one write: no unlock needed', () => {
     const p = alex(null); p.stressTool.settings.stopMonthLeft = true;
-    expect(lockedStartOf(p, { today: TODAY })).toEqual({ ask: false, move: null, blocked: null, change: null, left: true });
+    // 7.4.0: "Leave it" no longer puts the question away while the plan's start is later than this tax year
+    expect(lockedStartOf(p, { today: TODAY })).toMatchObject({ ask: true, leave: false, move: null, blocked: null, change: null, left: false });
     const later = stopAskPatch(p, { stopMonth: 'October 2023' }, { today: TODAY });
     expect(later.patch).toEqual({ 'stressTool.settings.stoppedWork': '2023-10' });
     expect(lockedPlanWriteRefusal(p, later.patch, getDefaultStressSettings())).toBeNull();

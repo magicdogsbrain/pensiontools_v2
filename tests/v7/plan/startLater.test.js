@@ -37,8 +37,8 @@ const blocked = () => { const r = stopped(); for (const k of ['stressTool', 'dec
 
 describe('which plans are stored the old way (PlanMove.startLaterOf)', () => {
   const at = noon(TODAY);
-  it('fixture 03, saying no month work stopped: asks when (its year 0 is later than this tax year)', () => {
-    expect(startLaterOf(C['03-gilt-ladder-runup'], at)).toEqual({ kind: 'ask', start: 2027 });
+  it('fixture 03, saying no month work stopped: asks when (its year 0 is later than this tax year), and offers this tax year (7.4.0)', () => {
+    expect(startLaterOf(C['03-gilt-ladder-runup'], at)).toEqual({ kind: 'ask', start: 2027, thisYear: 2026 });
   });
   it('fixture 03, saying it stopped in May 2026: the move to 2026/27', () => {
     expect(startLaterOf(stopped(), at)).toMatchObject({ kind: 'move', start: 2027, stopMonth: '2026-05', to: 2026 });
@@ -55,8 +55,8 @@ describe('which plans are stored the old way (PlanMove.startLaterOf)', () => {
     expect(startLaterOf(next, at)).toBe(null);
     expect(startLaterOf(C['04-buckets-running'], at)).toBe(null);
   });
-  it('a move that cannot keep the State Pension\'s tax year under the lock is marked blocked', () => {
-    expect(startLaterOf(blocked(), at)).toMatchObject({ kind: 'move', start: 2027, stopMonth: '2026-05', to: 2026, blocked: true });
+  it('a move that cannot keep the State Pension\'s tax year as it is asks the State Pension\'s date (7.4.0): no longer blocked', () => {
+    expect(startLaterOf(blocked(), at)).toEqual({ kind: 'move', start: 2027, stopMonth: '2026-05', to: 2026, blocked: false, spAsk: true });
     expect(startLaterOf(stopped(), at).blocked).toBe(false);
   });
   it('a plan whose year 0 is the tax year work stopped has nothing to move', () => {
@@ -78,7 +78,7 @@ describe('the V7 home: one thing to do, ranked first', () => {
     expect(first.slots.start).toBe('April 2027');
     expect(first.button).toMatchObject({ id: 'sayWhen', href: '#/plan/' + e.plan.id + '/about' });
     expect(fill(HOME.items['start.ask'].title, first.slots)).toBe('When did you stop work?');
-    expect(fill(HOME.items['start.ask'].detail, first.slots)).toBe('Your plan is set to start in April 2027.');
+    expect(fill(HOME.items['start.ask'].detail, first.slots)).toBe('Your plan is set to start in April 2027. If you are already drawing, it can start this tax year instead.');
     expect(PLAN.buttons.sayWhen).toBe('Say when');
     // the rail's "Next" is the same thing
     expect(fill(PLAN.next['P.startAsk'], first.slots)).toBe('Your plan is set to start in April 2027. Next: say when you stopped work.');
@@ -94,17 +94,17 @@ describe('the V7 home: one thing to do, ranked first', () => {
     expect(HOME.items['start.move'].title).toBe('Start it from the tax year you stopped');
     expect(PLAN.buttons.moveStart).toBe('Move the start');
   });
-  it('a blocked move: said as it is, never "Move the start"; the button opens "About you and when", which says why', () => {
+  it('a move whose State Pension is given only as a plan year: the move, its date asked on "About you and when" (7.4.0)', () => {
     const e = entryOf(blocked(), TODAY);
     const h = homeOf([e], e.plan.id, { today: TODAY });
     const ids = h.todo.items.map((i) => i.id);
-    expect(ids[0]).toBe('start.blocked');
-    expect(ids).not.toContain('start.move');
+    expect(ids[0]).toBe('start.move');
+    expect(ids).not.toContain('start.blocked');
     const first = h.todo.items[0];
-    expect(first.button).toMatchObject({ id: 'seeWhy', href: '#/plan/' + e.plan.id + '/about' });
-    expect(fill(HOME.items['start.blocked'].detail, first.slots)).toBe('Your plan is set to start in April 2027, but you stopped work in May 2026.');
-    expect(HOME.items['start.blocked'].title).toBe('Its start can be moved only once the plan is unlocked');
-    expect(lockedStartOf(e.plan, { today: TODAY }).blocked).toBeTruthy();
+    expect(first.button).toMatchObject({ id: 'moveStart', href: '#/plan/' + e.plan.id + '/about' });
+    const ls = lockedStartOf(e.plan, { today: TODAY });
+    expect(ls.blocked).toBeNull();
+    expect(ls.move).toMatchObject({ spAsk: true, how: null });
   });
   it('a read-only entry: no to-do (it cannot be acted on), and still no month read against a later year\'s figure', () => {
     const e = { ...entryOf(C['03-gilt-ladder-runup'], TODAY), newer: true };
@@ -201,7 +201,7 @@ describe('the planner\'s next-step banner says the same to-do', () => {
   it('without a month: asks when, with the V7 words', () => {
     const raw = C['03-gilt-ladder-runup'];
     const step = nextStepFor({ stage: stageOf(raw), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(raw, noon(TODAY)) });
-    expect(step).toEqual({ html: 'Your plan is set to start in April 2027. When did you stop work?', btn: 'Say when', action: { kind: 'start-later' } });
+    expect(step).toEqual({ html: 'Your plan is set to start in April 2027. When did you stop work? If you are already drawing, it can start this tax year instead.', btn: 'Say when', action: { kind: 'start-later' } });
   });
   it('with a month: the move, with the V7 words', () => {
     const raw = stopped();
@@ -209,10 +209,10 @@ describe('the planner\'s next-step banner says the same to-do', () => {
     expect(step.html).toBe('Your plan is set to start in April 2027, but you stopped work in May 2026. Start it from the tax year you stopped.');
     expect(step.btn).toBe(NEXT_STEP_WORDS.startMoveBtn);
   });
-  it('a blocked move: its own words and a button that opens why, never "Move the start"', () => {
+  it('a State Pension given only as a plan year: the move (its date asked on the line it opens), never "only once unlocked"', () => {
     const raw = blocked();
     const step = nextStepFor({ stage: stageOf(raw), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(raw, noon(TODAY)) });
-    expect(step).toEqual({ html: 'Your plan is set to start in April 2027, but you stopped work in May 2026. Its start can be moved only once the plan is unlocked.', btn: 'See why', action: { kind: 'start-later' } });
+    expect(step).toEqual({ html: 'Your plan is set to start in April 2027, but you stopped work in May 2026. Start it from the tax year you stopped.', btn: NEXT_STEP_WORDS.startMoveBtn, action: { kind: 'start-later' } });
   });
   it('the old placing\'s own banner, label and chip carry no words for months before the plan', () => {
     const st = stageOf(C['03-gilt-ladder-runup']);

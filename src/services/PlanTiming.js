@@ -8,12 +8,13 @@
  * anchor — `firstTaxYear`, meaning the tax year starting 6 April of that year — from the user's age
  * today and retirement status, and every engine and the Decision tool read it.
  *
- * Year 0 is the tax year the plan's income starts — for someone who has stopped work, by default the tax year they
- * stopped in (6.51.0, research/plan-start.md §1–3): `stoppedWork`, the month work stopped or stops, past or future, is the
- * person's own fact and is kept apart from year 0. A later start is a choice ("I stopped in 2026 but the plan's income
- * starts in 2028; until then I live on savings or other income"): the tax years before it are then the months before the plan's
- * income starts (recorded, not compared with the plan). Before 6.51.0 a retiree's year 0 was always next April, and the
- * months until it were called a run-up paid from SIPP cash — which is still what a plan with no stop month derives.
+ * Year 0 is the tax year the plan's income starts — for someone who has stopped work, the tax year they stopped in
+ * (6.51.0, research/plan-start.md §1–3), or the tax year they pick the plan up from: never later (7.4.0). `stoppedWork`, the
+ * month work stopped or stops, past or future, is the person's own fact and is kept apart from year 0. Until 7.4.0 a retiree
+ * with no saved year and no stop month derived NEXT April, and the months until it belonged to no plan year; nobody retired
+ * has months before their plan, so with nothing saved the plan starts in the stop's tax year, or this one. A plan saved
+ * the old way, with a later year, keeps it as saved: a draft is read from the earlier year until its next Save
+ * (PlanMove.laterDraftOf), and a locked plan is offered the move of its start (PlanMove.startLaterOf).
  *
  * Age convention (matches the ladder and the State Pension maths already in the app): a plan year's
  * "age" is the age REACHED during that tax year, i.e. the age on 5 April at its end. Someone born
@@ -166,8 +167,7 @@ export function retirementMonth(settings, age, now = new Date()) {
 /**
  * Back-fill the timing fields on a plan saved before v6.4.0. Pure and idempotent; the repository
  * runs it on load and the result is persisted on the next save (like the spending migration).
- * Without an age today the plan stays in legacy mode (starts the April after the current year,
- * exactly as before) — nothing to derive from.
+ * Without an age today the plan stays in legacy mode (deriveTiming: this tax year, 7.4.0) — nothing to derive from.
  */
 export function migrateTiming(settings, budget = null, now = new Date()) {
   const s = settings || {};
@@ -175,9 +175,9 @@ export function migrateTiming(settings, budget = null, now = new Date()) {
   if (!(+s.currentAge > 0)) return s;
   const thisTY = taxYearStartOf(now);
   const shape = +s.shapeAgeNow || 57;
-  // Before 6.4.0 every plan implicitly started NEXT April. Keep that start for anyone whose steps
-  // begin at or before the age they reach then (their ladder and cones are unchanged); only a start
-  // age clearly in the future (a pre-retiree) becomes "retire at that age".
+  // Before 6.4.0 every plan implicitly started NEXT April. A start age clearly beyond that (a pre-retiree) becomes "retire
+  // at that age"; anyone else is retired, and from 7.4.0 starts in this tax year, or the stop's (never later: nobody
+  // retired has months before their plan).
   const atShape = taxYearOfAge(s, shape, now);
   const inferredFuture = atShape > thisTY + 1;   // a start age clearly ahead beats any "retired" flag
   const stop = stoppedWorkOf(s);
@@ -188,10 +188,11 @@ export function migrateTiming(settings, budget = null, now = new Date()) {
     : true;
   // A start year that is already SAVED is kept as it is, even once it has passed (6.13.5): only a year derived
   // here, from today's date, may be pulled forward. Someone who says when they stopped work starts in that tax year
-  // (6.51.0) — a year that may well have passed, and is not pulled forward: it is when their plan's income started.
+  // (6.51.0) — a year that may well have passed, and is not pulled forward: it is when their plan's income started. With
+  // no month, a retiree starts in this tax year (7.4.0; it was next April); a derived year already gone becomes this one.
   const fromStop = retired && stop && hasStopped(stop, now) ? taxYearOfMonth(stop) : null;
-  let fty = +s.firstTaxYear > 0 ? +s.firstTaxYear : fromStop != null ? fromStop : retired ? thisTY + 1 : (!retired && stop && !hasStopped(stop, now) ? taxYearOfMonth(stop) : taxYearOfAge(s, +s.retireAge || shape, now));
-  if (!(+s.firstTaxYear > 0) && fromStop == null && !(fty >= thisTY)) fty = thisTY + 1;
+  let fty = +s.firstTaxYear > 0 ? +s.firstTaxYear : fromStop != null ? fromStop : retired ? thisTY : (!retired && stop && !hasStopped(stop, now) ? taxYearOfMonth(stop) : taxYearOfAge(s, +s.retireAge || shape, now));
+  if (!(+s.firstTaxYear > 0) && fromStop == null && !(fty >= thisTY)) fty = thisTY;
   return { ...s, firstTaxYear: fty, retired, retireAge: retired ? null : (+s.retireAge || shape) };
 }
 
@@ -207,7 +208,7 @@ function localDay(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).p
  *    its year from that age and the age today — that is its saved anchor — so its year is not pinned.)
  *  - currentAgeAsOf: an age with no date was read as "this age today" for ever, so the person never got older
  *    and the start age crept up a year every year.
- *  - legacyFirstTaxYear: a plan with no age at all started "the calendar year after today". That year is pinned
+ *  - legacyFirstTaxYear: a plan with no age at all started "the calendar year after today" (this tax year from 7.4.0). That year is pinned
  *    under its own name: `firstTaxYear` on such a plan would also re-anchor the Decision tool's recorded years
  *    and switch the State Pension to tax-year counting, and a pin must not change any figure on the day it lands.
  */
@@ -218,7 +219,7 @@ export function pinTiming(settings, budget = null, now = new Date()) {
   const m = migrateTiming(settings, budget, now);
   if (+m.currentAge > 0) return m.currentAgeAsOf ? m : { ...m, currentAgeAsOf: localDay(now) };
   if (+m.firstTaxYear > 0 || +m.legacyFirstTaxYear > 0) return m;
-  return { ...m, legacyFirstTaxYear: now.getFullYear() + 1 };
+  return { ...m, legacyFirstTaxYear: taxYearStartOf(now) };   // this tax year (7.4.0; it was the calendar year after today)
 }
 
 /**
@@ -260,11 +261,13 @@ export function timingPinPatch(stored, loaded) {
 export function deriveTiming(settings, now = new Date()) {
   const s = migrateTiming(settings || {}, null, now);
   const thisTY = taxYearStartOf(now);
-  const base = { currentAge: null, retireAge: null, potScale: { sipp: 1, isa: 1 }, startOptions: [thisTY, thisTY + 1] };
+  const base = { currentAge: null, retireAge: null, potScale: { sipp: 1, isa: 1 }, startOptions: [thisTY] };
   if (!(+s.currentAge > 0)) {
-    // The pre-6.4.0 start ("the calendar year after today") — pinned the first time the plan is loaded (6.13.5,
-    // `legacyFirstTaxYear`), so it no longer moves on 1 January.
-    const firstTaxYear = +s.firstTaxYear > 0 ? +s.firstTaxYear : +s.legacyFirstTaxYear > 0 ? +s.legacyFirstTaxYear : now.getFullYear() + 1;
+    // No age: the start pinned the first time the plan was loaded (6.13.5, `legacyFirstTaxYear`), so it does not move on
+    // 1 January or 6 April; with none pinned, this tax year (7.4.0 — it was "the calendar year after today", a later start
+    // than anyone retired has). A pin saved the old way, later than this tax year, is read as this tax year on a draft
+    // (PlanMove.laterDraftOf); a locked plan keeps the year it was locked with.
+    const firstTaxYear = +s.firstTaxYear > 0 ? +s.firstTaxYear : +s.legacyFirstTaxYear > 0 ? +s.legacyFirstTaxYear : thisTY;
     return { ...base, mode: 'legacy', firstTaxYear, shapeAgeNow: +s.shapeAgeNow || 57, yearsToStart: Math.max(0, firstTaxYear - thisTY), startMonth: firstTaxYear + '-04', bridgeMonths: monthsUntilStart(firstTaxYear, now), ...positionOf(firstTaxYear, now) };
   }
   const currentAge = ageOnDate(s, now, now);
@@ -289,12 +292,13 @@ export function deriveTiming(settings, now = new Date()) {
   // The saved start year is the plan's anchor for good (6.13.5). It used to be honoured only while it was this
   // tax year or later: a plan that started in 2027/28 jumped to 2029/30 on 6 April 2028, the day its second year
   // began — and one saved as "this tax year" jumped two years on its first 6 April. With nothing saved, someone who
-  // says when they stopped work starts in that tax year (6.51.0), a past one included; else next April, as before.
+  // says when they stopped work starts in that tax year (6.51.0), a past one included; else this tax year (7.4.0: never
+  // next April — nobody retired has months before their plan).
   const fromStop = stop && hasStopped(stop, now) ? taxYearOfMonth(stop) : null;
-  const firstTaxYear = +s.firstTaxYear > 0 ? +s.firstTaxYear : fromStop != null ? fromStop : thisTY + 1;
+  const firstTaxYear = +s.firstTaxYear > 0 ? +s.firstTaxYear : fromStop != null ? fromStop : thisTY;
   const startMonth = firstTaxYear + '-04';
-  // The years a retiree may choose from (startYearChoices): the stop's tax year to next April; else this year and next.
-  const startOptions = fromStop != null && fromStop <= thisTY ? Array.from({ length: thisTY + 2 - fromStop }, (_, i) => fromStop + i) : base.startOptions;
+  // The years a retiree may choose from (startYearChoices): the stop's tax year up to this one; else this one alone.
+  const startOptions = fromStop != null && fromStop <= thisTY ? Array.from({ length: thisTY + 1 - fromStop }, (_, i) => fromStop + i) : base.startOptions;
   return { ...base, mode: 'retired', firstTaxYear, shapeAgeNow: ageInTaxYear(s, firstTaxYear, now), currentAge, startOptions,
     yearsToStart: Math.max(0, firstTaxYear - thisTY), startMonth, bridgeMonths: monthsUntilStart(firstTaxYear, now), ...positionOf(firstTaxYear, now), ...said };
 }
@@ -458,6 +462,32 @@ function pensionAccessWords(t, s, now) {
 }
 
 /**
+ * Does this plan draw from a pension before the age a pension can usually first be taken (7.4.0)? 55 for someone who is 55
+ * before 6 April 2028, 57 for everyone else (answers/shared/rules.js pensionAccess; pensionAccessWords above). The year the
+ * plan draws from first, seen from today — its year 0, or this tax year once that has passed — is reached at an age below
+ * it, and the plan has a pension pot to draw. The engines do not yet hold the pension back until then (research design
+ * "Release D"), so both apps say so beside the plan's draws: a plain fact, words only. Null otherwise, and without an age.
+ * @returns {null | { age: number, taxYear: number }}  the access age, and the tax year the plan's income is first drawn in
+ */
+export function earlyPensionDrawOf(settings, now = new Date()) {
+  const s = settings || {};
+  let t = null; try { t = deriveTiming(s, now); } catch { t = null; }
+  if (!t || t.mode === 'legacy' || !(+s.currentAge > 0)) return null;
+  let pot = 0; try { pot = sippTodayOf(s); } catch { pot = 0; }
+  if (!(pot > 0) && !(+(s.potAtRetirement && s.potAtRetirement.sipp) > 0)) return null;
+  const before = ageOnDate(s, new Date(2028, 3, 5), now);
+  const age = before != null && before >= 55 ? 55 : 57;
+  const firstDrawn = Math.max(+t.firstTaxYear, taxYearStartOf(now));
+  const ageThen = ageInTaxYear(s, firstDrawn, now);
+  return ageThen != null && ageThen < age ? { age, taxYear: firstDrawn } : null;
+}
+
+/** The words for earlyPensionDrawOf, in both apps. */
+export function earlyPensionDrawWords(e) {
+  return 'You can’t usually take money from a pension before ' + e.age + '. Until then this plan’s pension draws would have to come from your ISA, savings or other money.';
+}
+
+/**
  * A DRAFT whose start year has passed (decided in 6.15.0: "offer to update it to today; no automatic
  * deletion"). Since 6.13.5 a saved start year is never moved, so a plan drafted for 2027/28 and opened in 2029
  * reads as "already running" although nothing was ever committed. Pure; the screen decides what to do with it.
@@ -504,13 +534,13 @@ export function staleDraftMessage(sd) {
  * year that is not offered, labelled "2027/28 (saved)". For someone who has said when they stopped work (6.51.0): the tax
  * year they stopped and every year from it to this one, the stop's year named ("2023/24 — the year you stopped work").
  * A later year is never offered (7.3.3): a retired person's plan starts in the tax year they stopped or the one they pick
- * it up from — nobody retired has months before their plan. The timing's own range still reaches next April (its last
- * year), so that year is left out here; one saved before is shown "(saved)".
+ * it up from — nobody retired has months before their plan. The timing's own range ends at this tax year (7.4.0); a year
+ * saved before outside it is shown "(saved)".
  * @returns {{ year: number, label: string, saved: boolean }[]} in year order
  */
 export function startYearChoices(timing, savedYear = null) {
   const all = (timing && timing.startOptions) || [];
-  const opts = all.slice(0, -1);   // the range's last year is next April: never offered
+  const opts = all.slice();
   const extra = [...new Set([+savedYear, +(timing && timing.firstTaxYear)].filter((Y) => Y > 0 && !opts.includes(Y)))];
   const n = opts.length;
   const stopYear = timing && timing.mode === 'retired' && timing.stoppedWork ? taxYearOfMonth(timing.stoppedWork) : null;
@@ -520,8 +550,7 @@ export function startYearChoices(timing, savedYear = null) {
     return when ? when + ' — pick up from here — ' + taxYearLabel(Y) : taxYearLabel(Y);
   };
   const out = opts.map((Y, i) => ({ year: Y, label: labelOf(Y, i), saved: false }));
-  // "(saved)" only for a year really saved: a retiree who has saved no year and given no stop month gets the derived year
-  // (next April) as the plan's start for now, and calling that saved would be untrue (7.3.3).
+  // "(saved)" only for a year really saved (7.3.3): a year in the range that is the plan's start for now is not.
   if (timing && timing.mode !== 'future') for (const Y of extra) { const isSaved = Y === +savedYear; out.push({ year: Y, label: taxYearLabel(Y) + (isSaved ? ' (saved)' : ''), saved: isSaved }); }
   return out.sort((a, b) => a.year - b.year);
 }

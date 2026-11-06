@@ -23,6 +23,7 @@ import {
   saveActiveStressSettings,
   invalidateScenarioCache, getActiveBudget, activePlanLocked, storedActiveSettings, getDefaultStressSettings, getActiveScenarioAsync } from './ScenarioRepository.js';
 import { potsAsOfFor, withoutPotsAsOf, draftPotsAsOf } from '../services/PlanFromToday.js';
+import { laterDraftOf } from '../services/PlanMove.js';
 import { onPlanCopyStale } from './planCopies.js';
 import { isPlanLockedError } from '../services/LockedPlanGuard.js';
 
@@ -134,9 +135,13 @@ export async function loadStressDBAsync() {
       cachedStressDB = migrateStressDB(db);
       // Where the plan's pots belong (6.50.0, PlanFromToday.potsAsOfFor; PlanReading.effectiveStressSettings the same): on
       // the copy in memory, never on what is saved, and derived again on every load (a copy saved with one decides nothing).
-      const plain = withoutPotsAsOf(cachedStressDB.settings);
-      let potsAsOf = null;
-      try { potsAsOf = potsAsOfFor(await getActiveScenarioAsync(), plain, new Date()); } catch (e) { /* no plan open */ }
+      let plain = withoutPotsAsOf(cachedStressDB.settings);
+      let potsAsOf = null, open = null;
+      try { open = await getActiveScenarioAsync(); } catch (e) { open = null; }
+      // A retired draft saved with a later start than it should have (7.4.0, PlanMove.laterDraftOf; PlanReading the same):
+      // read, in memory, from the tax year work stopped or this one. The form shows it so, and its next Save writes it.
+      try { const later = open ? laterDraftOf(open, plain, new Date()) : null; if (later) plain = later.settings; } catch (e) { /* read as saved */ }
+      try { potsAsOf = open ? potsAsOfFor(open, plain, new Date()) : null; } catch (e) { /* no plan open */ }
       if (potsAsOf || plain !== cachedStressDB.settings) cachedStressDB = { ...cachedStressDB, settings: potsAsOf ? { ...plain, potsAsOf } : plain };
       // 6.13.5: the plan's start is written into the saved plan the first time it is derived, and only then —
       // for drafts AND locked plans (a locked plan cannot be re-saved from its form, so "persisted on the next

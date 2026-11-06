@@ -15,13 +15,23 @@
  * Pure: no clock (the day arrives as `today`), no storage.
  */
 import { planPage, dateOf, monthWords, monthName } from './read.js';
-import { whereAmIFor, historyAscending, moveInputs } from '../../services/PlanReading.js';
-import { taxYearStartOf, taxYearKey, taxYearLabel } from '../../services/PlanTiming.js';
+import { whereAmIFor, historyAscending, moveInputs, effectiveStressSettings } from '../../services/PlanReading.js';
+import { taxYearStartOf, taxYearKey, taxYearLabel, earlyPensionDrawOf } from '../../services/PlanTiming.js';
 import { readDayOf } from '../../services/PlanClosed.js';
 import { isFilledIn } from '../../services/MonthFill.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { ym } from './dates.js';
 import { startLaterOf } from '../../services/PlanMove.js';
+
+/**
+ * A plan that draws from a pension before the age it can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): the age, for
+ * the plain fact the home says beside the plan's draws. Null for a closed plan, and for every other plan.
+ */
+export function pensionAccessOf(plan, pg, now) {
+  if (!plan || (pg && pg.closed)) return null;
+  let e = null; try { e = earlyPensionDrawOf(effectiveStressSettings(plan, { now }), now); } catch { e = null; }
+  return e ? { age: String(e.age) } : null;
+}
 
 /** At most this many to-dos are listed at once; the rest are "and N more" (the design's rule). */
 export const TODO_SHOWN = 3;
@@ -226,6 +236,7 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
       { id: 'lasts', href: base + 'lasts' }, { id: 'way', href: base + 'way' }, { id: 'mix', href: base + 'mix' }, ...(pg.example ? [] : [{ id: 'lock', href: base + 'lock' }])];
   return {
     found: true, id: pg.id, name: pg.name, example: pg.example, readonly: pg.readonly, source: pg.source,
+    pensionAccess: pensionAccessOf(plan, pg, now),
     locked: pg.locked, lockedOn: pg.lockedOn, line: pg.line, closing: pg.closing, before: pg.before,
     closed: pg.closed, stageKey: pg.stageKey,
     stage: { key: life ? life.key : null, invite: life ? life.invite : null, stop: life && life.stop ? monthWords(life.stop) : null, strip: stripOf(life, heldMix),

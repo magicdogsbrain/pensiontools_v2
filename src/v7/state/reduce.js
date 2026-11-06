@@ -759,7 +759,11 @@ export function reduce(state, action) {
       const kind = action.type === A.PLAN_LOCK ? 'lock' : action.type === A.PLAN_UNLOCK ? 'unlock' : action.type === A.PLAN_MOVE_START ? 'moveStart' : 'document';
       // the confirm step closes with the press
       const open = state.ui.open.filter((id) => !['lockConfirm', 'unlockConfirm', 'documentConfirm', 'moveStartConfirm'].includes(id));
-      return { ...state, ui: { ...state.ui, open, saving: { planId, kind }, saveProblem: null, toast: null } };
+      // the move of the start may carry how it is made (7.4.0): to this tax year with no month said, and the State Pension's date
+      const how = kind === 'moveStart' && action.how && typeof action.how === 'object'
+        ? { ...(action.how.thisYear === true ? { thisYear: true } : {}), ...(typeof action.how.spStartDate === 'string' && action.how.spStartDate.trim() ? { spStartDate: action.how.spStartDate.trim() } : {}) }
+        : null;
+      return { ...state, ui: { ...state.ui, open, saving: { planId, kind, ...(how && Object.keys(how).length ? { how } : {}) }, saveProblem: null, toast: null } };
     }
     case A.PLAN_TOAST_CLOSE:
       return state.ui.toast === null ? state : { ...state, ui: { ...state.ui, toast: null } };

@@ -35,6 +35,8 @@ export const LASTS = {
   failed: { title: 'Sorry, we could not work that out.', body: 'Nothing has been lost. Your plan is still here.', tryAgain: 'Try again',
     noWorker: 'This browser cannot run the test in the background, so it cannot be run here. The classic planner runs the same test.', inPlanner: 'Run it in the classic planner' },
   notRun: 'This plan is shown as it was saved, so it is not run here. Nothing has been lost.',
+  /** A plan that draws from a pension before it can usually be taken (7.4.0): the run does not yet hold it back. */
+  pensionAccess: 'You can’t usually take money from a pension before {age}. Until then this plan’s pension draws would have to come from your ISA, savings or other money.',
   /** History: "what if you had retired into a bad year?" — the one test's own real starts. */
   history: {
     title: 'What if you had retired into a bad year?',

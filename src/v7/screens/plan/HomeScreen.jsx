@@ -227,6 +227,8 @@ export function HomeScreen(state, dispatch) {
               </div>
             ))}
             {H.heldMix && <HeldMix M={H.heldMix} />}
+            {/* the plan draws from a pension before it can usually be taken (7.4.0): a plain fact beside the plan's draws */}
+            {H.pensionAccess && <p class="note" data-testid={`${T}.pensionAccess`}>{fill(HOME.pensionAccess, H.pensionAccess)}</p>}
             {H.whereFull && <p class="home-where-more"><a href={H.whereFull} data-testid={`${T}.whereFull`}>{HOME.whereMore}</a></p>}
           </Counted>
         </div>

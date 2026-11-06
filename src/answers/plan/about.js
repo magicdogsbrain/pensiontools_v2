@@ -19,13 +19,13 @@
  * Every path written is in schema.js ABOUT_WRITES (tested); a key is sent only when its value changes.
  */
 import { deriveTiming, taxYearStartOf, taxYearLabel, ageOnDate, staleDraft, stoppedWorkOf, taxYearOfMonth, hasStopped } from '../../services/PlanTiming.js';
-import { effectiveStressSettings, historyAscending } from '../../services/PlanReading.js';
+import { effectiveStressSettings, historyAscending, laterDraftReading } from '../../services/PlanReading.js';
 import { accumulationAgesOf } from '../../services/LifeStage.js';
 import { longevityAge } from '../../services/LongevityModel.js';
 import { grossToNet } from '../../services/TaxCalculator.js';
 import { grossUpAnnual, DEFAULT_TAX_BANDS } from '../../services/BudgetModel.js';
 import { cleanSteps } from '../../services/IncomeSchedule.js';
-import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveFactsOf } from '../../services/PlanMove.js';
+import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveFactsOf, startLaterOf, spDateOf } from '../../services/PlanMove.js';
 import { money } from '../shared/format.js';
 import { ABOUT_FIELDS, ABOUT_WRITES, MIN_YEARS } from './schema.js';
 import { dateOf, dayWords, monthWords, localDay, localMonth, MONTHS } from './dates.js';
@@ -96,7 +96,8 @@ export function safeSettings(plan, now) {
   try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && plan.stressTool.settings) || {}; }
 }
 export function safeTiming(ss, now) {
-  try { return deriveTiming(ss, now); } catch { return { mode: 'legacy', firstTaxYear: now.getFullYear() + 1, shapeAgeNow: num(ss.shapeAgeNow) || 57, currentAge: null, retireAge: null, startMonth: (now.getFullYear() + 1) + '-04', yearsToStart: 0, bridgeMonths: 0 }; }
+  // a plan the timing cannot be read from starts this tax year, as a plan with no age does (7.4.0)
+  try { return deriveTiming(ss, now); } catch { const ty = taxYearStartOf(now); return { mode: 'legacy', firstTaxYear: ty, shapeAgeNow: num(ss.shapeAgeNow) || 57, currentAge: null, retireAge: null, startMonth: ty + '-04', yearsToStart: 0, bridgeMonths: 0 }; }
 }
 
 /**
@@ -418,25 +419,49 @@ export function stalePatch(plan, { today }) {
  *    wrongly is not kept for good;
  *  - `left`: "Leave it" was said and no month (PlanMove.stopLeftOf) — not asked again, but the month can still be said,
  *    folded, without unlocking.
- * @returns {{ ask: boolean, move: null | { yearStop: string, yearStart: string, month: string, stepped: boolean, confirm: Array<{ id: string, slots: object }> },
- *   blocked: null | { yearStart: string, month: string }, change: string|null, left: boolean }}
+ * From 7.4.0, on a plan stored with its start later than this tax year (PlanMove.startLaterOf), "Leave it" no longer puts the
+ * question away: the plan has something to move, so the month is asked whatever was said before (`leave` false), and
+ *  - `nowMove`: with no month said, "I'm already drawing: start it this tax year" — the move to this tax year, its confirm
+ *    line by line as the move's (`how` { thisYear: true });
+ *  - `spAsk` on `move` or `nowMove`: the plan gives its State Pension only as a plan year, which the move cannot carry; its
+ *    start date is asked (typed as `moveSpDate`) and written in the same move. The confirm, and the move, wait for a date.
+ * `blocked` stays only for a plan a date cannot carry either (none today: PlanMove.moveBlockedOf's `spFix`).
+ * @returns {{ ask: boolean, leave: boolean, move: null | { yearStop, yearStart, month, stepped, spAsk, confirm, how },
+ *   nowMove: null | { yearStop, yearStart, stepped, spAsk, confirm, how }, blocked: null | { yearStart: string, month: string },
+ *   change: string|null, left: boolean, spShown: string, spError: string|null }}
  */
-export function lockedStartOf(plan, { today }) {
+export function lockedStartOf(plan, { today, typed = null }) {
   const now = dateOf(today);
-  let offer = null, ask = false, blocked = null, change = null, left = false;
+  const spShown = typed && typeof typed.moveSpDate === 'string' ? typed.moveSpDate : '';
+  const spDate = spDateOf(spShown);
+  const spError = !blank(spShown) && !spDate ? 'notADate' : null;
+  let offer = null, ask = false, blocked = null, change = null, left = false, later = null;
   try {
-    offer = moveOfferOf(plan, now); ask = !offer && stopAskOf(plan, now);
-    blocked = offer ? null : moveBlockedOf(plan, now); change = ask ? null : stopChangeOf(plan, now);
+    later = startLaterOf(plan, now);
+    offer = moveOfferOf(plan, now);
+    blocked = offer ? null : moveBlockedOf(plan, now);
+    // a move whose State Pension date is asked (7.4.0): offered with the date typed, or waiting for one
+    const spMove = !offer && blocked && blocked.spFix ? (spDate ? moveOfferOf(plan, now, { spStartDate: spDate }) : { stopMonth: blocked.stopMonth, from: blocked.from, to: blocked.to }) : null;
+    if (spMove) { offer = { ...spMove, spAsk: true }; blocked = null; }
+    ask = !offer && (stopAskOf(plan, now) || (!!later && later.kind === 'ask' && !!later.thisYear));
+    change = ask ? null : stopChangeOf(plan, now);
     left = !offer && !ask && stopLeftOf(plan, now);
-  } catch { offer = null; ask = false; blocked = null; change = null; left = false; }
+  } catch { offer = null; ask = false; blocked = null; change = null; left = false; later = null; }
   const ss = (plan && plan.stressTool && plan.stressTool.settings) || {};
   const stepped = ss.incomeShape === 'phases' && cleanSteps(ss.incomeSteps).length > 0;
+  const nowHow = later && later.kind === 'ask' && later.thisYear ? { thisYear: true, ...(later.spAsk && spDate ? { spStartDate: spDate } : {}) } : null;
+  const moveHow = offer && offer.spAsk ? (spDate ? { spStartDate: spDate } : null) : {};
   return {
     ask,
-    move: offer ? { yearStop: taxYearLabel(offer.to), yearStart: taxYearLabel(offer.from), month: monthWords(offer.stopMonth), stepped, confirm: moveConfirmOf(plan, now) } : null,
+    // "Leave it" only where nothing is to move: the plain question of a plan whose start is where it should be
+    leave: ask && !(later && later.kind === 'ask' && later.thisYear),
+    move: offer ? { yearStop: taxYearLabel(offer.to), yearStart: taxYearLabel(offer.from), month: monthWords(offer.stopMonth), stepped, spAsk: !!offer.spAsk,
+      confirm: moveHow ? moveConfirmOf(plan, now, moveHow) : [], how: moveHow } : null,
+    nowMove: nowHow ? { yearStop: taxYearLabel(later.thisYear), yearStart: taxYearLabel(later.start), stepped, spAsk: !!later.spAsk,
+      confirm: !later.spAsk || spDate ? moveConfirmOf(plan, now, nowHow) : [], how: !later.spAsk || spDate ? nowHow : null } : null,
     blocked: blocked ? { yearStart: taxYearLabel(blocked.from), month: monthWords(blocked.stopMonth) } : null,
     change: change ? monthWords(change) : null,
-    left
+    left, spShown, spError
   };
 }
 
@@ -450,15 +475,17 @@ export function lockedStartOf(plan, { today }) {
  * the plan counts; the months not recorded; and what is not affected. A choice of words per count, so no line says
  * "1 years". Empty when the plan is offered no move.
  */
-function moveConfirmOf(plan, now) {
-  const m = planMoveOf(plan, now);
+function moveConfirmOf(plan, now, how = {}) {
+  const m = planMoveOf(plan, now, how);
   if (!m) return [];
   const f = moveFactsOf(plan, m);
   const yearStop = taxYearLabel(m.to);
   const age = +m.stress.shapeAgeNow > 0 ? String(+m.stress.shapeAgeNow) : null;
   const amount = f.stepAmount > 0 ? money(f.stepAmount) : null;
   const one = (n) => (n === 1 ? 'One' : '');
-  const lines = [{ id: 'first', slots: { yearStop, month: monthWords(m.stopMonth), yearStart: taxYearLabel(m.from) } }];
+  // the move to this tax year names no month (7.4.0); a State Pension date given is said as written
+  const lines = [m.stopMonth ? { id: 'first', slots: { yearStop, month: monthWords(m.stopMonth), yearStart: taxYearLabel(m.from) } } : { id: 'firstNow', slots: { yearStop, yearStart: taxYearLabel(m.from) } }];
+  if (m.spStartDate) lines.push({ id: 'spDate', slots: { date: m.spStartDate } });
   lines.push({ id: (f.stepped ? 'steps' : 'level') + (amount && age ? '' : 'Bare'), slots: { yearStop, ...(amount ? { amount } : {}), ...(age ? { age } : {}) } });
   if (f.endAge > 0) lines.push({ id: 'ends' + one(m.years), slots: { endAge: String(f.endAge), n: String(m.years) } });
   if (f.dated) lines.push({ id: 'dated', slots: {} });
@@ -469,7 +496,8 @@ function moveConfirmOf(plan, now) {
   lines.push(f.ladder && f.runYear ? { id: 'documentLadder', slots: { runYear: taxYearLabel(f.runYear) } } : { id: 'document', slots: {} });
   if (f.sp) lines.push(f.sp.before != null && f.sp.before >= 0 ? { id: 'sp', slots: { spYear: taxYearLabel(f.sp.taxYear), after: String(f.sp.after), before: String(f.sp.before) } } : { id: 'spNoBefore', slots: { spYear: taxYearLabel(f.sp.taxYear), after: String(f.sp.after) } });
   lines.push({ id: (f.ladder ? 'moreLadder' : 'more') + one(m.years), slots: { n: String(m.years) } });
-  lines.push({ id: 'fill', slots: {} }, { id: 'notAffected', slots: {} });
+  if (m.stopMonth) lines.push({ id: 'fill', slots: {} });
+  lines.push({ id: 'notAffected', slots: {} });
   return lines;
 }
 
@@ -504,8 +532,8 @@ export function stopAskPatch(plan, typed, { today }) {
   if (!ls.ask && !ls.change && !ls.left) return no({ plan: 'locked' });
   const t = typed || {};
   // anything else typed is a box of the unlocked step, and a locked plan's: refused as locked, as before; nothing typed writes nothing
-  if (Object.keys(t).some((k) => k !== 'stopMonth' && k !== 'stopAskLeft' && !blank(t[k]))) return no({ plan: 'locked' });
-  if (ls.ask && String(t.stopAskLeft || '') === 'yes') {
+  if (Object.keys(t).some((k) => k !== 'stopMonth' && k !== 'stopAskLeft' && k !== 'moveSpDate' && !blank(t[k]))) return no({ plan: 'locked' });
+  if (ls.ask && ls.leave && String(t.stopAskLeft || '') === 'yes') {
     const path = 'stressTool.settings.stopMonthLeft';
     return { ok: true, errors: {}, patch: { [path]: true }, previous: { [path]: copy(get(plan, path)) }, line: { id: 'stopLeft', slots: {} } };
   }
@@ -623,7 +651,10 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
     saved: f.path in boxes ? boxes[f.path] : null,
     error: c.errors[f.path] || null
   }));
-  const derived = c.ok ? derivedLines(c.timing, c.duration, { stopAgeFromMonth: c.stopAgeFromMonth }) : derivedLines(saved.timing, saved.duration);
+  const derived0 = c.ok ? derivedLines(c.timing, c.duration, { stopAgeFromMonth: c.stopAgeFromMonth }) : derivedLines(saved.timing, saved.duration);
+  // a draft saved with a later start than it should have (7.4.0): read from the earlier year, said once, until it is saved
+  let later = null; try { later = laterDraftReading(plan, { now: dateOf(today) }); } catch { later = null; }
+  const derived = later && !later.legacy ? [{ id: later.stopMonth ? 'laterStop' : 'laterNow', slots: { year: taxYearLabel(later.to) } }, ...derived0] : derived0;
   const sid = (plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.id) || saved.ss.strategyId || 'pots-and-valves';
   const partners = list.filter((e) => e.plan.id !== plan.id && (e.plan.id === partnerIdOf(plan) || partnerIdOf(e.plan) === plan.id)).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
   let suggestion = null;
@@ -638,8 +669,8 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
   // a locked plan's start (6.53.0): "When did you stop work?" once, or the move, confirmed and made here (6.55.0)
   let lockedStart = null;
   if (saved.locked && !readonly) {
-    const ls = lockedStartOf(plan, { today });
-    if (ls.ask || ls.move || ls.blocked || ls.change || ls.left) {
+    const ls = lockedStartOf(plan, { today, typed });
+    if (ls.ask || ls.move || ls.nowMove || ls.blocked || ls.change || ls.left) {
       const shown = typed && typeof typed.stopMonth === 'string' ? typed.stopMonth : '';
       const answer = (ls.ask || ls.change || ls.left) && !blank(shown) ? stopAnswer(shown, dateOf(today), saved.values.age) : null;
       lockedStart = { ...ls, shown, error: answer && answer.error ? answer.error : null };

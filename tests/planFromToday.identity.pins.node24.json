@@ -413,68 +413,8 @@
      "exact": "7c0e78480168a2c9"
     },
     "planFromSettings": {
-     "sf6": "9c837ff90f2911d7",
-     "exact": "f5a539f230146e2b"
-    },
-    "deriveCompareConfigs": {
-     "sf6": "fec3f1308adcd926",
-     "exact": "48356257d649e26e"
-    },
-    "fullGiltTest": {
-     "sf6": "887c3c7b1ac2251b",
-     "exact": "dfcc6360cd2b50bc"
-    },
-    "buildPlanDocument": {
-     "sf6": "55b78ed5cf7891ac",
-     "exact": "ccb9ff92a506c0a4"
-    },
-    "planOfRecordFor": {
-     "sf6": "cc7a1a93df7ae764",
-     "exact": "cc7a1a93df7ae764"
-    },
-    "householdDrawSplit": {
-     "sf6": "753b4393cb9d9e0c",
-     "exact": "1553855b3e6cc23f"
-    }
-   },
-   "lastBeforeApril": {
-    "simulationConfigFromSettings": {
-     "sf6": "28201c1c1ae05fa6",
-     "exact": "7c0e78480168a2c9"
-    },
-    "planFromSettings": {
-     "sf6": "0726b8dc69a032c3",
-     "exact": "5ea3ff0dc9705cb8"
-    },
-    "deriveCompareConfigs": {
-     "sf6": "fec3f1308adcd926",
-     "exact": "48356257d649e26e"
-    },
-    "fullGiltTest": {
-     "sf6": "887c3c7b1ac2251b",
-     "exact": "dfcc6360cd2b50bc"
-    },
-    "buildPlanDocument": {
-     "sf6": "198e60716689104b",
-     "exact": "07a085282bc6addd"
-    },
-    "planOfRecordFor": {
-     "sf6": "bfd88402af0c2a9c",
-     "exact": "bfd88402af0c2a9c"
-    },
-    "householdDrawSplit": {
-     "sf6": "afc43e1ea496a6f2",
-     "exact": "081473ec6b27f24d"
-    }
-   },
-   "afterApril": {
-    "simulationConfigFromSettings": {
-     "sf6": "28201c1c1ae05fa6",
-     "exact": "7c0e78480168a2c9"
-    },
-    "planFromSettings": {
-     "sf6": "dd7c31add18ee04f",
-     "exact": "12c78249b53954fe"
+     "sf6": "5d86450e9cd53333",
+     "exact": "e6199ec06610b77e"
     },
     "deriveCompareConfigs": {
      "sf6": "fec3f1308adcd926",
@@ -485,16 +425,76 @@
      "exact": "b1275a74185757a2"
     },
     "buildPlanDocument": {
-     "sf6": "a798ea7580d1086a",
-     "exact": "e146e47058593286"
+     "sf6": "215017eeee18a148",
+     "exact": "95b168bbe238c3a5"
+    },
+    "planOfRecordFor": {
+     "sf6": "cc7a1a93df7ae764",
+     "exact": "cc7a1a93df7ae764"
+    },
+    "householdDrawSplit": {
+     "sf6": "bfa4e98afd6bad9c",
+     "exact": "cab738ee3b69b5a2"
+    }
+   },
+   "lastBeforeApril": {
+    "simulationConfigFromSettings": {
+     "sf6": "28201c1c1ae05fa6",
+     "exact": "7c0e78480168a2c9"
+    },
+    "planFromSettings": {
+     "sf6": "1f001ecf9865bd2e",
+     "exact": "8f1482972c9e1f5c"
+    },
+    "deriveCompareConfigs": {
+     "sf6": "fec3f1308adcd926",
+     "exact": "48356257d649e26e"
+    },
+    "fullGiltTest": {
+     "sf6": "f96a242d491c83c7",
+     "exact": "ad21f48bbc4c4f21"
+    },
+    "buildPlanDocument": {
+     "sf6": "62286a88eb9e7dd8",
+     "exact": "ddce9ffafa0e825f"
+    },
+    "planOfRecordFor": {
+     "sf6": "bfd88402af0c2a9c",
+     "exact": "bfd88402af0c2a9c"
+    },
+    "householdDrawSplit": {
+     "sf6": "1c4f1efdc0f1ec32",
+     "exact": "8385253b449e9a72"
+    }
+   },
+   "afterApril": {
+    "simulationConfigFromSettings": {
+     "sf6": "28201c1c1ae05fa6",
+     "exact": "7c0e78480168a2c9"
+    },
+    "planFromSettings": {
+     "sf6": "6b8e831376ae8fc1",
+     "exact": "04a4bb54458e1e8c"
+    },
+    "deriveCompareConfigs": {
+     "sf6": "fec3f1308adcd926",
+     "exact": "48356257d649e26e"
+    },
+    "fullGiltTest": {
+     "sf6": "f96a242d491c83c7",
+     "exact": "ad21f48bbc4c4f21"
+    },
+    "buildPlanDocument": {
+     "sf6": "c211fe075dcc8cb2",
+     "exact": "39e01e5da6ecceb0"
     },
     "planOfRecordFor": {
      "sf6": "79eb89fb1cb85df5",
      "exact": "79eb89fb1cb85df5"
     },
     "householdDrawSplit": {
-     "sf6": "c465e2a0a9e4431c",
-     "exact": "fa4ac88f036b6100"
+     "sf6": "1c4f1efdc0f1ec32",
+     "exact": "8385253b449e9a72"
     }
    }
   },
@@ -990,6 +990,5 @@
     }
    }
   }
- },
- "retakenFor740": true
+ }
 }

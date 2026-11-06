@@ -422,10 +422,10 @@
    "stage": "running",
    "strategyId": "pots-and-valves",
    "timingMode": "legacy",
-   "firstTaxYear": 2026,
+   "firstTaxYear": 2027,
    "startAge": 58,
    "decisionChecksum": "7a99648c",
-   "stressChecksum": "6cc6d449",
+   "stressChecksum": "7502ef28",
    "historyMonths": 3,
    "taxYearsSetUp": [
     "26/27"

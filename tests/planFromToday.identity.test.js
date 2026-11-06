@@ -66,18 +66,14 @@ const ADDED_AFTER_THE_PINS = Object.freeze({
   '19-back-to-work-saving': 'the saving plan made on going back to work (research/plan-start.md §2 J): its year 0 is the tax year it stops in again, ahead at every clock'
 });
 /**
- * Fixtures whose figures 7.4.0 moved on purpose, retaken on Node 24 then (tests/planFromToday.identity.pins.node24.json): a
- * retiree's plan starts in the tax year work stopped or this one, never next April. 02, 09 and 12 were saved with next
- * April and were rebuilt with year 0 the tax year work stopped; 01, 06, 08 and 11 save no year (or no age) and now derive
- * this tax year; 07, a draft saved with next April, is read from this tax year (PlanMove.laterDraftOf); 10 is split with
- * 09. Their Node 20 pins are still the ones taken before 7.4.0 and are not compared until retaken on Node 20
- * (PIN_IDENTITY=1); every other fixture is held to both Nodes' pins as before.
+ * Fixtures whose figures 7.4.0 moved on purpose, their pins retaken then on both Nodes (24 here, 20 in CI): a retiree's plan
+ * starts in the tax year work stopped or this one, never next April. 02, 09 and 12 were saved with next April and were
+ * rebuilt with year 0 the tax year work stopped; 01, 08 and 11 save no year (or no age) and now derive this tax year; 07, a
+ * draft saved with next April, is read from this tax year (PlanMove.laterDraftOf); 10 is split with 09. 06, locked with no
+ * year saved, keeps the year it was locked with (PlanMove.withLockedStart), so its pins are the ones taken before 7.4.0.
+ * Every other fixture is held to its old pins byte for byte.
  */
-const RETAKEN_740_ON_24 = Object.freeze(['01-fresh-default', '02-pnv-draft', '06-pre-6.4-no-timing', '07-pre-6.13-flat-params', '08-dotted-keys', '09-couple-a', '10-couple-b', '11-guest-demo', '12-lumpy-db-gia']);
 const NODE = String(process.versions.node).split('.')[0];
-/** Pins of this Node that predate 7.4.0's move of the start for this fixture (RETAKEN_740_ON_24): not compared here. */
-const awaitsRetake = (name) => NODE !== '24' && RETAKEN_740_ON_24.includes(name) && !(pinnedAt740());
-const pinnedAt740 = () => !!(pinned && pinned.retakenFor740);
 // One pins file per Node major, each taken on the code before the change with that Node: simulated money can differ in
 // its last bits between Node 20 (CI) and 24, and a hash has no tolerance, so each Node is held to its own exact figures.
 const PINS = join(process.cwd(), 'tests', `planFromToday.identity.pins.node${NODE}.json`);
@@ -185,7 +181,7 @@ afterAll(() => {
     fixtures[name] = {};
     for (const clock of clocks) fixtures[name][clock] = Object.fromEntries(Object.entries(run(name, clock).outputs).map(([fn, v]) => [fn, digest(v)]));
   }
-  writeFileSync(PINS, JSON.stringify({ node: NODE, clocks: Object.fromEntries(Object.entries(CLOCKS).map(([k, d]) => [k, d.toISOString()])), fixtures, retakenFor740: true }, null, 1) + '\n');
+  writeFileSync(PINS, JSON.stringify({ node: NODE, clocks: Object.fromEntries(Object.entries(CLOCKS).map(([k, d]) => [k, d.toISOString()])), fixtures }, null, 1) + '\n');
 });
 
 describe('a plan in year 0 or before: every figure as it was (the plan as seen from today is the identity)', () => {
@@ -194,14 +190,13 @@ describe('a plan in year 0 or before: every figure as it was (the plan as seen f
     expect(pinned, `tests/planFromToday.identity.pins.node${NODE}.json is missing: write it on the code before the change (PIN_IDENTITY=1, with this Node), never on this one`).not.toBeNull();
     expect(names.length).toBe(12);
     expect(Object.keys(pinned.clocks)).toEqual(Object.keys(CLOCKS));
-    for (const name of names) if (!awaitsRetake(name)) expect(Object.keys(pinned.fixtures[name])).toEqual(clocksInYear0OrBefore(name));
-    // all but fixture 04, in its year 1 by then — and from 7.4.0 02, 09 and 12, whose year 0 is 2026/27 (Node 20's pins keep
-    // the count they were taken with until they are retaken)
-    expect(names.filter((name) => pinned.fixtures[name].afterApril).length).toBe(NODE !== '24' && !pinnedAt740() ? 11 : 8);
+    for (const name of names) expect(Object.keys(pinned.fixtures[name])).toEqual(clocksInYear0OrBefore(name));
+    // all but fixture 04, in its year 1 by then — and from 7.4.0 02, 09 and 12, whose year 0 is 2026/27
+    expect(names.filter((name) => pinned.fixtures[name].afterApril).length).toBe(8);
   });
   for (const name of names) {
     for (const clock of (pinned ? Object.keys(pinned.fixtures[name]) : Object.keys(CLOCKS))) {
-      (awaitsRetake(name) ? it.skip : it)(name + ' at ' + clock + ': no year lived yet, and every output the same', () => {
+      it(name + ' at ' + clock + ': no year lived yet, and every output the same', () => {
         const { timing, outputs } = run(name, clock);
         if (WRITE) return;
         expect(pinned).not.toBeNull();
@@ -223,7 +218,7 @@ describe('a plan in year 0 or before: every figure as it was (the plan as seen f
       for (const clock of Object.keys(CLOCKS)) {
         const now = CLOCKS[clock];
         const stress = effectiveStressSettings(upgradeScenario(raws[name], { now }).scenario, { now });
-        if (deriveTiming(stress, now).elapsedYears === 0 && !awaitsRetake(name)) expect(names).toContain(name);
+        if (deriveTiming(stress, now).elapsedYears === 0) expect(names).toContain(name);
       }
     }
   });

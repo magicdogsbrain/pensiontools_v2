@@ -37,6 +37,34 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.3.0', date: '2026-11-06', engineVersion: '6.37.0',
+    title: 'Every plan opens on its home: what is due first',
+    summary: 'A plan you are carrying out no longer opens on a form or a question. It opens on its home: what is due now, where you are, then everything else folded away. Your plan’s stage is shown in one word, Saving, Moving or Drawing. Opening a plan changes nothing in it.',
+    changes: [
+      'Every plan opens on its home. “To do” gathers what the plan already knew was due: a month to record, the tax year to set up, the next move to your plan’s mix, your check-in, an out-of-date record of what you hold. It shows up to three at a time, and the first is the one to press.',
+      'When nothing is due, the home says until when, for example “October is recorded. Nothing is due until 1 November.”',
+      'The home shows your plan’s stage in one word: Saving, Moving or Drawing. It is worked out from what the plan already holds.',
+      'On a drawing plan, a year view shows each month of the tax year: what you took against what the plan said, which months were filled in later, and which month is due. Beside it, “Where you are” gives the headline figures, with the full reading one link away.',
+      'While you are moving to your plan’s mix, the home counts your moves the same way everywhere.',
+      'As your stop date nears, a locked saving plan shows the move to come under “Soon”. From the month you stop, it becomes the first thing to do, with “Not yet” if you are not ready.',
+      'Month by month and Check in show their forms only when something is due, or when you ask with “Record a different month” or “Check in now anyway”.',
+      'On a locked plan, trying a change, another way or another mix is folded under “Try something”, and the questions are on the home. Nothing is pushed at you while you carry out your plan.',
+      'Coming back to the site takes you to a locked plan’s home. Signing in on a new device takes you to the home of the plan you were last on.',
+      'Long tests show a ring that fills as the work goes, and the answer waits a moment so it never pops in. Figures count up and the year fills in, unless your device asks for less motion.'
+    ],
+    corrections: [],
+    effects: {
+      stress: [],
+      strategies: [],
+      decision: [],
+      accumulation: [],
+      budget: [],
+      household: []
+    },
+    actions: ['None. Nothing in your plans has changed. Every saved link still works: a plan’s address now opens its home, and each step keeps its own address.'],
+    notes: ['“Not now” and “Not yet” put a to-do off until you next open the site. They change nothing in your plan.']
+  },
+  {
     version: '7.2.1', date: '2026-11-06', engineVersion: '6.37.0',
     title: 'The Administration gear follows the account signed in',
     summary: 'In the classic planner, the Administration gear could stay on the screen after someone else signed in on the same page. It now follows whoever is signed in. It was only ever the button: the administration itself was always refused to anyone who is not an administrator.',

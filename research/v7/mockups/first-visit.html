@@ -1,0 +1,343 @@
+<title>PensionTools First Visit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,600..900,50&family=Nunito:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one dark stage, four mock screens as cards on a vertical rail, each phone-sized at narrow widths and widened on desktop.
+   Colour: the site's dark base (#0f0f1a) with a new four-hue life palette, validated for colour vision on that surface. */
+:root {
+  --bg: #0f0f1a; --card: #1a1a2e; --raised: #252540; --line: #2a2a4a; --line-strong: #8e8ea8;
+  --fg: #ececf4; --muted: #a6a6b8;
+  --saving: #cf7f14; --moving: #17a587; --drawing: #8a63ee; --pop: #f2408a;
+  --saving-soft: rgba(207,127,20,.18); --moving-soft: rgba(23,165,135,.18); --drawing-soft: rgba(138,99,238,.18); --pop-soft: rgba(242,64,138,.16);
+  --good: #0ca30c; --warn: #fab219; --bad: #d03b3b;
+  --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --body: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius: 18px; --gutter: max(16px, env(safe-area-inset-left, 0px));
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) {
+  --bg: #f6f3ff; --card: #ffffff; --raised: #efeaff; --line: #e3dcff; --line-strong: #6f6a8c; --fg: #1b1733; --muted: #585472;
+  --saving: #b86a06; --moving: #0f8c72; --drawing: #6f49d6; --pop: #d62a72;
+  --saving-soft: rgba(184,106,6,.14); --moving-soft: rgba(15,140,114,.14); --drawing-soft: rgba(111,73,214,.14); --pop-soft: rgba(214,42,114,.12);
+  color-scheme: light;
+} }
+:root[data-theme="light"] {
+  --bg: #f6f3ff; --card: #ffffff; --raised: #efeaff; --line: #e3dcff; --line-strong: #6f6a8c; --fg: #1b1733; --muted: #585472;
+  --saving: #b86a06; --moving: #0f8c72; --drawing: #6f49d6; --pop: #d62a72;
+  --saving-soft: rgba(184,106,6,.14); --moving-soft: rgba(15,140,114,.14); --drawing-soft: rgba(111,73,214,.14); --pop-soft: rgba(214,42,114,.12);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.5 var(--body); padding-block: 24px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -.01em; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+.eyebrow { font: 800 12px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 40px; }
+.intro { display: grid; gap: 10px; max-width: 68ch; }
+.intro h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.05; }
+.intro p { color: var(--muted); }
+.mock { display: grid; gap: 14px; }
+.mock > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+.mock > header h2 { font-size: 22px; }
+.mock > header .who { color: var(--muted); font-size: 15px; }
+.screen { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: grid; }
+.screen .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.brand { font-family: var(--display); font-weight: 900; font-size: 18px; }
+.brand b { color: var(--pop); }
+.nav { display: flex; gap: 14px; color: var(--muted); }
+.nav .on { color: var(--fg); font-weight: 800; }
+.body { padding: 22px 18px 26px; display: grid; gap: 20px; }
+.note { font-size: 14px; color: var(--muted); border-left: 3px solid var(--line-strong); padding-left: 10px; }
+
+/* Front door */
+.hero { display: grid; gap: 14px; }
+.hero h1 { font-size: clamp(28px, 4.4vw, 40px); line-height: 1.05; }
+.hero h1 em { font-style: normal; color: var(--pop); }
+.hero p { max-width: 52ch; color: var(--muted); }
+.lifeline { position: relative; display: grid; gap: 8px; }
+.lifeline svg { width: 100%; height: auto; display: block; max-width: 100%; }
+.doors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.door { --c: var(--saving); --soft: var(--saving-soft); display: grid; gap: 8px; padding: 16px; border-radius: 14px; background: var(--soft); border: 1px solid var(--line);
+  transition: transform .15s ease, box-shadow .15s ease; cursor: pointer; min-width: 0; }
+.door:hover, .door:focus-visible { transform: translateY(-2px); box-shadow: 0 10px 30px -16px var(--c); outline: 2px solid var(--c); }
+.door.moving { --c: var(--moving); --soft: var(--moving-soft); } .door.drawing { --c: var(--drawing); --soft: var(--drawing-soft); }
+.door .tag { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; color: var(--c); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+.door .tag i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); display: inline-block; }
+.door h3 { font-size: 19px; }
+.door p { font-size: 14px; color: var(--muted); }
+.door .go { margin-top: 4px; font-weight: 800; color: var(--c); font-size: 14px; }
+.plain { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.plain a { color: var(--fg); text-decoration: underline; }
+.all { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-size: 13px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--fg); background: transparent; }
+
+/* Answer screens */
+.form { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.field .in { display: flex; align-items: center; gap: 6px; padding: 12px 12px; border-radius: 12px; background: var(--raised); border: 1px solid var(--line); font: 600 18px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.field .in.live { border-color: var(--pop); box-shadow: 0 0 0 3px var(--pop-soft); }
+.field .in small { font: 600 12px/1 var(--body); color: var(--muted); }
+.slider { display: grid; gap: 6px; }
+.slider .track { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--saving) 0 var(--v, 40%), var(--raised) var(--v, 40%)); }
+.slider .knob { position: absolute; top: 50%; left: var(--v, 40%); width: 26px; height: 26px; border-radius: 50%; background: var(--fg); border: 4px solid var(--saving); transform: translate(-50%, -50%); box-shadow: 0 4px 14px -4px #000; }
+.slider .scale { display: flex; justify-content: space-between; font: 500 12px var(--mono); color: var(--muted); }
+.verdict { display: grid; gap: 6px; padding: 16px 18px; border-radius: 14px; background: var(--raised); border-left: 6px solid var(--good); }
+.verdict.close { border-left-color: var(--warn); } .verdict.no { border-left-color: var(--bad); }
+.verdict .big { font-family: var(--display); font-size: clamp(26px, 4vw, 34px); line-height: 1.05; }
+.verdict .big em { font-style: normal; color: var(--pop); }
+.verdict p { color: var(--muted); font-size: 15px; }
+.figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.fig { padding: 12px 14px; border-radius: 12px; background: var(--raised); display: grid; gap: 2px; min-width: 0; }
+.fig .n { font: 800 24px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.fig .l { font-size: 13px; color: var(--muted); }
+.fig.pop .n { color: var(--pop); }
+.chart { display: grid; gap: 8px; }
+.chart svg { width: 100%; height: auto; display: block; max-width: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { font: 800 16px var(--body); padding: 12px 18px; border-radius: 999px; border: 0; background: var(--pop); color: #fff; cursor: pointer; }
+.btn.quiet { background: transparent; color: var(--fg); border: 1px solid var(--line-strong); }
+.cta small { color: var(--muted); font-size: 13px; }
+
+/* Home */
+.stageline { display: grid; gap: 6px; }
+.stageline .strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+.stageline .seg { height: 12px; border-radius: 999px; background: var(--raised); position: relative; }
+.stageline .seg.done { background: var(--saving); } .stageline .seg.now { background: var(--moving); }
+.stageline .seg.now::after { content: ""; position: absolute; top: 50%; left: 62%; width: 22px; height: 22px; border-radius: 50%; background: var(--fg); border: 5px solid var(--moving); transform: translate(-50%, -50%); box-shadow: 0 0 0 6px var(--moving-soft); }
+.stageline .words { display: grid; grid-template-columns: 1fr 1fr 1fr; font-size: 13px; color: var(--muted); }
+.stageline .words b { color: var(--fg); }
+.todo { display: grid; gap: 8px; }
+.item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--raised); border: 1px solid var(--line); }
+.item .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--pop); box-shadow: 0 0 0 5px var(--pop-soft); }
+.item .dot.soon { background: var(--warn); box-shadow: 0 0 0 5px rgba(250,178,25,.16); }
+.item .t { min-width: 0; } .item .t b { display: block; } .item .t span { font-size: 13px; color: var(--muted); }
+.item .act { font: 800 14px var(--body); color: var(--pop); white-space: nowrap; }
+.year { display: grid; gap: 8px; }
+.year .cells { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; }
+.cell { aspect-ratio: 1 / 1.4; border-radius: 8px; background: var(--raised); display: grid; place-items: end start; padding: 4px; min-width: 0; position: relative; }
+.cell.rec { background: var(--drawing-soft); border: 1px solid var(--drawing); } .cell.fill { background: var(--drawing-soft); border: 1px dashed var(--drawing); }
+.cell.due { border: 2px solid var(--pop); } .cell.set { background: var(--moving-soft); border: 1px solid var(--moving); }
+.cell small { font: 600 10px var(--mono); color: var(--muted); }
+.cell .bar { position: absolute; left: 4px; right: 4px; bottom: 18px; background: var(--drawing); border-radius: 3px 3px 0 0; }
+.cell .plan { position: absolute; left: 4px; right: 4px; border-top: 2px dashed var(--fg); opacity: .7; }
+.where { display: grid; gap: 8px; }
+.where .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 15px; }
+.where .row b { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.tool { font-size: 14px; padding: 8px 12px; border-radius: 10px; background: var(--raised); border: 1px solid var(--line); }
+.tool span { color: var(--muted); }
+details { border-top: 1px solid var(--line); padding-top: 10px; color: var(--muted); font-size: 15px; }
+summary { cursor: pointer; color: var(--fg); font-weight: 800; }
+.row2 { display: grid; gap: 20px; grid-template-columns: 1fr; }
+@media (min-width: 820px) { .row2 { grid-template-columns: 1.15fr 1fr; align-items: start; } }
+@media (max-width: 560px) { .doors { grid-template-columns: 1fr; } .screen .bar .nav { display: none; } }
+@media (prefers-reduced-motion: reduce) { .door { transition: none; } }
+.spec { font-size: 14px; color: var(--muted); display: grid; gap: 4px; max-width: 70ch; }
+.spec b { color: var(--fg); }
+</style>
+
+<div class="wrap">
+  <section class="intro">
+    <p class="eyebrow">Mock-ups · 6 November 2026 · nothing built yet</p>
+    <h1>What a stranger sees, and what a regular sees</h1>
+    <p>Four screens with invented figures (Alex and Sam). The first is for someone who has never been here: one picture, three doors, no account, no limit. The last is the record keeper's home. Every colour has one meaning: <b style="color:var(--saving)">amber</b> saving, <b style="color:var(--moving)">teal</b> moving, <b style="color:var(--drawing)">purple</b> drawing, <b style="color:var(--pop)">pink</b> the thing to press.</p>
+  </section>
+
+  <!-- 1. Front door -->
+  <section class="mock" id="front">
+    <header><h2>1 · The front door</h2><span class="who">A stranger from a forum link. Account never mentioned until they keep something.</span></header>
+    <div class="screen">
+      <div class="bar"><span class="brand">Pension<b>Tools</b></span><nav class="nav"><span>All questions</span><span>Sign in</span></nav></div>
+      <div class="body">
+        <div class="hero">
+          <h1>Your pension, from <em>saving</em> to living on it.</h1>
+          <p>Type three numbers and see your own picture in under a minute. No account. Nothing is kept unless you ask.</p>
+        </div>
+        <div class="lifeline" aria-label="The three stages of a pension: saving, moving, drawing">
+          <svg viewBox="0 0 720 150" role="img">
+            <defs>
+              <linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#cf7f14"/><stop offset=".5" stop-color="#17a587"/><stop offset="1" stop-color="#8a63ee"/></linearGradient>
+            </defs>
+            <!-- the pot over a life: rises while saving, plateaus through the move, falls while drawing -->
+            <path d="M20 125 C 160 118, 250 70, 330 48 S 420 40, 470 44 C 560 52, 640 92, 700 120" fill="none" stroke="url(#lg)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M20 125 C 160 118, 250 70, 330 48 S 420 40, 470 44 C 560 52, 640 92, 700 120 L 700 135 L 20 135 Z" fill="url(#lg)" opacity=".12"/>
+            <g font-family="Nunito, sans-serif" font-weight="800" font-size="14" fill="#a6a6b8">
+              <text x="60" y="28" fill="#cf7f14">Saving</text><text x="60" y="46" font-weight="600" font-size="12">paying in, year by year</text>
+              <text x="340" y="20" fill="#17a587">Moving</text><text x="340" y="38" font-weight="600" font-size="12">the pot becomes an income</text>
+              <text x="560" y="28" fill="#8a63ee">Drawing</text><text x="560" y="46" font-weight="600" font-size="12">living on it, month by month</text>
+            </g>
+            <g><circle cx="330" cy="48" r="9" fill="#17a587"/><circle cx="330" cy="48" r="4" fill="#ececf4"/></g>
+          </svg>
+          <p class="note">On the front door this is the explainer. Once a person has a plan it becomes <em>their</em> line, with their dates and a "you are here" dot.</p>
+        </div>
+        <div class="doors">
+          <div class="door" tabindex="0"><span class="tag"><i></i>Still saving</span><h3>Am I saving enough?</h3><p>Your age, your pot, what goes in. See the pot you'd reach and the share of pay that would be enough.</p><span class="go">Start here →</span></div>
+          <div class="door moving" tabindex="0"><span class="tag"><i></i>Stopping soon</span><h3>What's my pot worth a month?</h3><p>A pot and an age. See the income it could pay, tested against the bad years.</p><span class="go">Start here →</span></div>
+          <div class="door drawing" tabindex="0"><span class="tag"><i></i>Already retired</span><h3>Will it last?</h3><p>What's left and what you take. See how long it lasts, and what spending less or some work would do.</p><span class="go">Start here →</span></div>
+        </div>
+        <div class="plain"><span>When can I afford to stop work?</span><span>I have one decision to make</span><a href="#home">I have a plan — open it</a></div>
+      </div>
+    </div>
+    <div class="spec"><b>Behind it:</b> the three doors are the quickest question for each stage (B, C, D). The two remaining questions and "I have a plan" sit as plain links. No guest meter, no nag, no sign-in line: the account is asked only when they press Keep. The picture is the same component the home uses as its stage strip.</div>
+  </section>
+
+  <!-- 2. Am I saving enough -->
+  <section class="mock" id="saving">
+    <header><h2>2 · "Am I saving enough?"</h2><span class="who">Alex, 34. Three numbers, then the picture redraws as the slider moves.</span></header>
+    <div class="screen">
+      <div class="bar"><span class="brand">Pension<b>Tools</b></span><nav class="nav"><span class="on">Still saving</span><span>All questions</span></nav></div>
+      <div class="body">
+        <div class="form">
+          <div class="field"><label for="f-age">Your age</label><div class="in" id="f-age">34</div></div>
+          <div class="field"><label for="f-pot">Pension pot today</label><div class="in" id="f-pot"><small>£</small>41,000</div></div>
+          <div class="field"><label for="f-pay">Pay a year</label><div class="in" id="f-pay"><small>£</small>38,000</div></div>
+          <div class="field"><label for="f-want">Want a year from 65</label><div class="in live" id="f-want"><small>£</small>24,000</div></div>
+        </div>
+        <div class="slider" aria-label="Share of pay going into the pension, you and your employer together">
+          <div class="field"><label>What goes in, you and your employer · <span style="color:var(--saving)">8% of pay</span></label></div>
+          <div class="track" style="--v:40%"><div class="knob"></div></div>
+          <div class="scale"><span>0%</span><span>5%</span><span>10%</span><span>15%</span><span>20%</span></div>
+        </div>
+        <div class="verdict close">
+          <p class="eyebrow">On these figures</p>
+          <p class="big">Close. <em>11% of pay</em> would get you there.</p>
+          <p>That's £95 a month more from you. Nine years in ten, the pot would pay £24,000 a year from 65 until 90, with prices rising.</p>
+        </div>
+        <div class="figs">
+          <div class="fig"><span class="n">£412k</span><span class="l">pot to aim for at 65 (today's money)</span></div>
+          <div class="fig"><span class="n">£318k</span><span class="l">where 8% gets you in the bad case</span></div>
+          <div class="fig pop"><span class="n">£253</span><span class="l">a month from you at 11%, after tax relief</span></div>
+        </div>
+        <div class="chart">
+          <svg viewBox="0 0 720 220" role="img" aria-label="Your pot over your life: rising while saving, then falling while drawing; the bad case shaded">
+            <g stroke="#2a2a4a" stroke-width="1"><line x1="40" y1="180" x2="700" y2="180"/><line x1="40" y1="120" x2="700" y2="120" stroke-dasharray="3 5"/><line x1="40" y1="60" x2="700" y2="60" stroke-dasharray="3 5"/></g>
+            <g font-family="JetBrains Mono, monospace" font-size="11" fill="#a6a6b8"><text x="4" y="184">£0</text><text x="4" y="124">£250k</text><text x="4" y="64">£500k</text>
+              <text x="40" y="205">34</text><text x="300" y="205">50</text><text x="440" y="205">65</text><text x="690" y="205">90</text></g>
+            <!-- bad case band -->
+            <path d="M40 178 C 200 170, 360 110, 440 92 C 520 96, 620 150, 700 178 L 700 180 L 40 180 Z" fill="#cf7f14" opacity=".14"/>
+            <!-- 8% today -->
+            <path d="M40 178 C 200 168, 360 100, 440 82 C 520 86, 620 140, 700 178" fill="none" stroke="#cf7f14" stroke-width="3" stroke-dasharray="6 5"/>
+            <!-- 11% enough -->
+            <path d="M40 178 C 200 165, 360 80, 440 56 C 540 58, 640 120, 700 176" fill="none" stroke="#f2408a" stroke-width="4" stroke-linecap="round"/>
+            <line x1="440" y1="40" x2="440" y2="180" stroke="#17a587" stroke-width="2" stroke-dasharray="4 4"/>
+            <g font-family="Nunito, sans-serif" font-weight="800" font-size="13"><text x="446" y="52" fill="#17a587">stop at 65</text><text x="250" y="78" fill="#f2408a">at 11%</text><text x="250" y="118" fill="#cf7f14">at 8% today</text></g>
+            <circle cx="440" cy="56" r="7" fill="#f2408a"/><circle cx="440" cy="56" r="3" fill="#ececf4"/>
+          </svg>
+          <div class="legend"><span><i style="background:#f2408a"></i>the share that gets you there</span><span><i style="background:#cf7f14"></i>what you pay in today</span><span><i style="background:#cf7f14;opacity:.3"></i>the bad case (1 in 10)</span></div>
+        </div>
+        <div class="cta"><button class="btn" type="button">Keep this as a plan</button><button class="btn quiet" type="button">Answer everything in full</button><small>Keeping needs a free account. Trying never does.</small></div>
+        <p class="note">We assumed: the full new State Pension from 68 · charges 0.5% a year · a balanced mix · prices rising 2.5% a year. Each has a "Change" once the plan is kept.</p>
+      </div>
+    </div>
+    <div class="spec"><b>Behind it:</b> the slider is the one control that makes this feel alive: every move redraws the pink line and the verdict. The figures the answer already computes (pot to aim for, bad case, share of pay) become three tiles. The chart is the pot-over-a-life picture; the saver sees their rising half with the drawing half faint.</div>
+  </section>
+
+  <!-- 3. Will it last -->
+  <section class="mock" id="retired">
+    <header><h2>3 · "Will it last?"</h2><span class="who">Sam, 68, retired. The same picture, the other way round.</span></header>
+    <div class="screen">
+      <div class="bar"><span class="brand">Pension<b>Tools</b></span><nav class="nav"><span class="on">Already retired</span><span>All questions</span></nav></div>
+      <div class="body">
+        <div class="form">
+          <div class="field"><label for="r-age">Your age</label><div class="in" id="r-age">68</div></div>
+          <div class="field"><label for="r-pot">What's left</label><div class="in" id="r-pot"><small>£</small>318,000</div></div>
+          <div class="field"><label for="r-take">You take a month</label><div class="in live" id="r-take"><small>£</small>1,650</div></div>
+          <div class="field"><label for="r-sp">State Pension</label><div class="in" id="r-sp"><small>£</small>230<small>/wk</small></div></div>
+        </div>
+        <div class="verdict">
+          <p class="eyebrow">On these figures</p>
+          <p class="big">Yes. It lasts to <em>94</em> in the bad case.</p>
+          <p>Nine years in ten it is still there at 90. Spending £200 a month more would bring the bad case to 88.</p>
+        </div>
+        <div class="row2">
+          <div class="chart">
+            <svg viewBox="0 0 720 220" role="img" aria-label="What's left over the years ahead, with the bad case shaded">
+              <g stroke="#2a2a4a" stroke-width="1"><line x1="40" y1="180" x2="700" y2="180"/><line x1="40" y1="110" x2="700" y2="110" stroke-dasharray="3 5"/></g>
+              <g font-family="JetBrains Mono, monospace" font-size="11" fill="#a6a6b8"><text x="4" y="184">£0</text><text x="4" y="114">£300k</text><text x="40" y="205">68</text><text x="300" y="205">78</text><text x="560" y="205">88</text><text x="690" y="205">94</text></g>
+              <path d="M40 108 C 200 112, 420 128, 560 152 C 630 166, 680 176, 700 180 L 40 180 Z" fill="#8a63ee" opacity=".16"/>
+              <path d="M40 108 C 220 104, 460 110, 700 120" fill="none" stroke="#8a63ee" stroke-width="4" stroke-linecap="round"/>
+              <path d="M40 108 C 200 112, 420 128, 560 152 C 630 166, 680 176, 700 180" fill="none" stroke="#8a63ee" stroke-width="2" stroke-dasharray="5 5"/>
+              <g font-family="Nunito, sans-serif" font-weight="800" font-size="13" fill="#8a63ee"><text x="470" y="100">middling years</text><text x="430" y="170">the bad case</text></g>
+              <circle cx="40" cy="108" r="7" fill="#f2408a"/><circle cx="40" cy="108" r="3" fill="#ececf4"/>
+            </svg>
+            <div class="legend"><span><i style="background:#8a63ee"></i>middling years</span><span><i style="background:#8a63ee;opacity:.35"></i>the bad case (1 in 10)</span><span><i style="background:#f2408a"></i>you, today</span></div>
+          </div>
+          <div class="figs" style="grid-template-columns:1fr">
+            <div class="fig pop"><span class="n">£1,650</span><span class="l">a month you take, after tax</span></div>
+            <div class="fig"><span class="n">£1,850</span><span class="l">could take, and still last to 88</span></div>
+            <div class="fig"><span class="n">−£42k</span><span class="l">if shares fell by a fifth tomorrow</span></div>
+          </div>
+        </div>
+        <div class="cta"><button class="btn" type="button">Keep this as a plan</button><button class="btn quiet" type="button">Spend more · Some work · Shares fall</button><small>Try the three levers; nothing is kept.</small></div>
+      </div>
+    </div>
+    <div class="spec"><b>Behind it:</b> the three levers that D already has (spend more, some work, shares fall by a fifth) are one quiet button row. The verdict's colour bar (green / amber / red) is the only place the status colours appear.</div>
+  </section>
+
+  <!-- 4. The home -->
+  <section class="mock" id="home">
+    <header><h2>4 · The record keeper's home</h2><span class="who">Sam's locked plan, Moving stage, 14 November. The regular visit: what's due, where you are, then everything else.</span></header>
+    <div class="screen">
+      <div class="bar"><span class="brand">Pension<b>Tools</b></span><nav class="nav"><span class="on">Your plan</span><span>Your plans</span><span>Open in Expert</span><span>Account</span></nav></div>
+      <div class="body">
+        <div>
+          <p class="eyebrow">Sam's plan · locked 3 June 2026</p>
+          <h2 style="font-size:26px">Moving. 4 of 7 moves done.</h2>
+        </div>
+        <div class="stageline">
+          <div class="strip"><div class="seg done"></div><div class="seg now"></div><div class="seg"></div></div>
+          <div class="words"><span><b>Saving</b> · to Jun 2026</span><span><b>Moving</b> · you are here</span><span><b>Drawing</b> · from the move's end</span></div>
+        </div>
+        <div class="todo">
+          <p class="eyebrow">To do</p>
+          <div class="item"><span class="dot"></span><span class="t"><b>Record November</b><span>What your platform shows today. Takes a minute.</span></span><span class="act">Record →</span></div>
+          <div class="item"><span class="dot"></span><span class="t"><b>Sell £18,000 of the world fund</b><span>By 30 November. Move 5 of 7.</span></span><span class="act">Tick when done →</span></div>
+          <div class="item"><span class="dot soon"></span><span class="t"><b>Set up 2027/28</b><span>From 1 March. Nothing to do yet.</span></span><span class="act">Soon</span></div>
+        </div>
+        <div class="row2">
+          <div class="year">
+            <p class="eyebrow">2026/27 · drawn against the plan</p>
+            <div class="cells">
+              <div class="cell set"><small>Apr</small></div>
+              <div class="cell rec"><div class="bar" style="height:38%"></div><div class="plan" style="bottom:56%"></div><small>May</small></div>
+              <div class="cell rec"><div class="bar" style="height:40%"></div><div class="plan" style="bottom:56%"></div><small>Jun</small></div>
+              <div class="cell fill"><div class="bar" style="height:36%"></div><div class="plan" style="bottom:56%"></div><small>Jul</small></div>
+              <div class="cell fill"><div class="bar" style="height:36%"></div><div class="plan" style="bottom:56%"></div><small>Aug</small></div>
+              <div class="cell rec"><div class="bar" style="height:44%"></div><div class="plan" style="bottom:56%"></div><small>Sep</small></div>
+              <div class="cell rec"><div class="bar" style="height:39%"></div><div class="plan" style="bottom:56%"></div><small>Oct</small></div>
+              <div class="cell due"><small>Nov</small></div>
+              <div class="cell"><small>Dec</small></div><div class="cell"><small>Jan</small></div><div class="cell"><small>Feb</small></div><div class="cell"><small>Mar</small></div>
+            </div>
+            <div class="legend"><span><i style="background:var(--drawing)"></i>drawn</span><span><i style="border-top:2px dashed var(--fg);height:0;vertical-align:3px"></i>the plan said</span><span><i style="background:var(--drawing-soft);border:1px dashed var(--drawing)"></i>filled in later</span><span><i style="background:var(--moving-soft);border:1px solid var(--moving)"></i>year set up</span><span><i style="border:2px solid var(--pop)"></i>due</span></div>
+          </div>
+          <div class="where">
+            <p class="eyebrow">Where you are</p>
+            <div class="row"><span>Taken so far this tax year</span><b>£11,550</b></div>
+            <div class="row"><span>The plan said</span><b>£11,200</b></div>
+            <div class="row"><span>Pot against the plan's middle line</span><b style="color:var(--good)">+2.1%</b></div>
+            <div class="row"><span>Of the plan's mix held</span><b>58%</b></div>
+            <p class="note">The pot is read in pounds of the day, so rising prices never make it look behind.</p>
+          </div>
+        </div>
+        <div>
+          <p class="eyebrow">Tools</p>
+          <div class="tools"><span class="tool">Month by month <span>· Oct recorded</span></span><span class="tool">Your move <span>· 4 of 7</span></span><span class="tool">What you hold <span>· updated 2 Nov</span></span><span class="tool">Budget</span><span class="tool">Household <span>· with Alex</span></span></div>
+        </div>
+        <details><summary>Your plan's steps</summary>About you and when · Money that comes in anyway · What you spend · Pots and tax · Does it last? · How the money is taken · The mix — all as locked, each with its result line.</details>
+        <details><summary>Change the plan · Try something</summary>Try a change (nothing changes) · Move to a new plan · I'm going back to work · Unlock · The move is not finished after all.</details>
+        <details><summary>Ask a question with this plan's figures</summary>What's my pot worth a month? · Will it last?</details>
+      </div>
+    </div>
+    <div class="spec"><b>Behind it:</b> the stage strip is the front door's life line reduced to three segments with the dot on the current one. The to-do list is at most three items, the first pink; "Soon" items are amber and not counted. The year view is the record keeper's picture: twelve cells, a purple bar for what was drawn, a dashed line for what the plan said, dashed cells for months filled in later, the pink ring on the month due. Everything below "Tools" is collapsed by default.</div>
+  </section>
+
+  <section class="intro">
+    <h2 style="font-size:22px">What makes it pop, and what keeps it honest</h2>
+    <p>Pink is reserved for the one thing to press on each screen. The three stage colours never mean anything else. The status colours (green, amber, red) appear only on a verdict's edge. Every picture is drawn from the person's own numbers, to scale, with the bad case shaded, so the drama is real. Motion is limited to the slider redrawing the line and a door lifting on hover.</p>
+  </section>
+</div>

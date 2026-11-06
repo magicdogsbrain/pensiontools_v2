@@ -23,6 +23,7 @@ import { DEFAULT_CHARGES_PCT, isChargesPct } from './Charges.js';
 import { DEFAULT_ISA_GROWTH, isIsaGrowth } from './IsaGrowth.js';
 import { simpleHash } from '../utils/MathUtils.js';
 import { generateDrawdownSchedule } from './DrawdownService.js';
+import { pensionLockOf } from './PensionLock.js';
 import { generateGlidepathSchedule } from './GlidepathService.js';
 import { ENGINE_VERSION } from '../strategies/version.js';
 import { switchStrategy, cleanParams, allowedKeys } from './StrategyState.js';
@@ -253,14 +254,20 @@ export const PLAN_OF_RECORD_CPI = 0.04;   // decision-side assumed CPI: slightly
  * index (`drawdown[y]` is plan year y): the years already lived are rows of the plan's own schedule, `{ year, lived: true,
  * sippDraw }` (the pot at their start was never entered, so they carry no tax or ISA yardstick). A plan locked in its year
  * 0 or before: exactly as before.
+ *
+ * The years the pension cannot yet be touched (7.4.1, services/PensionLock.js) draw nothing from it here either, as every
+ * engine draws nothing: the Decision settings carry no age, so the closed years are read from the plan's Stress settings
+ * (`stress`, which hold the person), counted from the plan's year 0. Without them, or with nothing closed: as before.
  * @param {object} s    the Decision settings (after the seed from the Stress settings, on a lock)
  * @param {Date} now
+ * @param {{ stress?: object }} [opts]   the plan's Stress settings, for the years its pension is closed
  */
-export function planOfRecordFor(s, now) {
+export function planOfRecordFor(s, now, { stress = null } = {}) {
   const assumedCpi = PLAN_OF_RECORD_CPI;
   const lived = +s.firstTaxYear > 0 ? Math.max(0, planYearOf(now, +s.firstTaxYear)) : 0;
   const run = settingsAsSeenFromToday(s, lived);
-  const schedOf = (y) => (Array.isArray(s.targetSchedule) && s.targetSchedule.length ? (+s.targetSchedule[Math.min(y, s.targetSchedule.length - 1)] || 0) : (+s.baseSalary || 0));
+  const closed = closedYearsOfRecord(s, stress, now);
+  const schedOf = (y) => (y < closed ? 0 : Array.isArray(s.targetSchedule) && s.targetSchedule.length ? (+s.targetSchedule[Math.min(y, s.targetSchedule.length - 1)] || 0) : (+s.baseSalary || 0));
   const livedRows = Array.from({ length: lived }, (_, y) => ({ year: y, lived: true, sippDraw: Math.round(schedOf(y)) }));
   return {
     savedAt: now.toISOString(),
@@ -272,7 +279,7 @@ export function planOfRecordFor(s, now) {
     // record with inflating bands drifted above the actual draw every year (persona test B34).
     // No fund and platform charges on the yardstick (6.19.0, D6): it is built from the Decision settings, frozen at lock,
     // and "plan vs actual" reads it as it was — so 0 explicitly, whatever the settings carry.
-    drawdown: [...livedRows, ...generateDrawdownSchedule({ ...run, taxMode: s.taxMode || 'frozen', pa: s.pa || 12570, brl: s.brl || 50270, hrl: s.hrl || 125140 }, run.duration || 35, assumedCpi, undefined, { chargesPct: 0 })
+    drawdown: [...livedRows, ...generateDrawdownSchedule({ ...run, taxMode: s.taxMode || 'frozen', pa: s.pa || 12570, brl: s.brl || 50270, hrl: s.hrl || 125140 }, run.duration || 35, assumedCpi, undefined, { chargesPct: 0, ...(closed > 0 ? { closedYears: Math.max(0, closed - lived) } : {}) })
       .map((r) => ({ year: r.year + lived, sippDraw: Math.round(r.sippDraw), tax: Math.round(r.tax), isaDraw: Math.round(r.isaDraw), isaBalance: Math.round(r.isaBalance), spendable: Math.round(r.spendable) }))],
     // The pots' floors start from the pots the settings hold, which are those of the plan year the plan was locked in: the
     // years lived before it carry no floor (their pots were never entered), as the Decision tool reads them (legacyDecision
@@ -280,6 +287,19 @@ export function planOfRecordFor(s, now) {
     glidepath: [...Array.from({ length: lived }, (_, y) => ({ year: y, lived: true })),
       ...generateGlidepathSchedule(run, assumedCpi).map((r) => ({ year: r.year + lived, totalMin: Math.round(r.totalMin) }))]
   };
+}
+
+/**
+ * The plan years from year 0 (the Decision settings' first tax year, else the Stress plan's own) in which the plan's
+ * holder cannot yet take money from the pension (PensionLock.pensionLockOf on the Stress settings). 0 without them.
+ */
+function closedYearsOfRecord(s, stress, now) {
+  if (!stress || typeof stress !== 'object') return 0;
+  try {
+    const from = +s.firstTaxYear > 0 ? +s.firstTaxYear : deriveTiming(stress, now).firstTaxYear;
+    const lock = pensionLockOf(stress, { now, fromTaxYear: from });
+    return lock ? lock.years : 0;
+  } catch { return 0; }
 }
 
 // ---- the strategy switch (index.html restoredParamsFor, useSpecStrategy, switchStressStrategy; 6.40.0) ------------------

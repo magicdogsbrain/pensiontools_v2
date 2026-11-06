@@ -273,7 +273,9 @@ export function simulate(config, returns, seed = 0) {
     const buffer = config.recoveryBuffer ?? PROTECTION_DEFAULTS.RECOVERY_BUFFER;
     const trackLine = eqMin + bdMin + csTarget - buffer;
     if (ordered) consecBelowTrack = isBelow(equity + bond + cash, trackLine) ? consecBelowTrack + 1 : 0;
-    prot = config.disableProtection ? false : assessProtection({
+    // A closed month (7.4.1) is never in protection: its need is paid from the money outside the pension, which a slump in the
+    // pension's pots does not touch, so no protection month is counted and no streak carries into the month the pension opens.
+    prot = config.disableProtection || closed ? false : assessProtection({
       totalGrowth: ordered ? equity + bond + cash : vsGlide.growth,
       minGrowth: ordered ? trackLine : vsGlide.glide,
       consecBelowGlide: ordered ? Math.max(0, consecBelowTrack - 1) : consecBelowGlide,

@@ -396,7 +396,7 @@ describe('"Lock the plan" — the commit\'s pure parts, lifted out of the reposi
     const repo = strip(read('src/storage/ScenarioRepository.js'), { keepStrings: true });
     for (const n of ['seedDecisionFromStress', 'unlockPatchesOf', 'getDefaultDecisionSettings', 'sharedBudgetView']) expect(repo).toMatch(new RegExp('export \\{[^}]*\\b' + n + '\\b'));
     expect(strip(read('src/storage/DecisionRepository.js'), { keepStrings: true })).toMatch(/export \{ decisionSettingsChecksum \}/);
-    expect(strip(read('src/services/PlanLock.js'), { keepStrings: true })).toMatch(/planOfRecordFor\(s, new Date\(\)\)/);
+    expect(strip(read('src/services/PlanLock.js'), { keepStrings: true })).toMatch(/planOfRecordFor\(s, new Date\(\)[,)]/);   // 7.4.1: with the plan's Stress settings beside it, for the closed years
   });
   it('the lock\'s writer is reached from the one write file only, and the guard imports the pure service (not the other way round)', () => {
     const importers = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes('src/answers/plan/lock.js'));

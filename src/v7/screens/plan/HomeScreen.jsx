@@ -228,7 +228,9 @@ export function HomeScreen(state, dispatch) {
             ))}
             {H.heldMix && <HeldMix M={H.heldMix} />}
             {/* the plan draws from a pension before it can usually be taken (7.4.0): a plain fact beside the plan's draws */}
-            {H.pensionAccess && <p class="note" data-testid={`${T}.pensionAccess`}>{fill(HOME.pensionAccess, H.pensionAccess)}</p>}
+            {/* the plan starts before its pension can be taken: what it does until then, or (7.4.1) the warning when the other savings run short */}
+            {H.pensionAccess && H.pensionAccess.short && <p class="notice" role="status" data-testid={`${T}.pensionShort`}>{fill(HOME.pensionShort, { age: H.pensionAccess.age, ...H.pensionAccess.short })}</p>}
+            {H.pensionAccess && !H.pensionAccess.short && <p class="note" data-testid={`${T}.pensionAccess`}>{fill(HOME.pensionAccess, H.pensionAccess)}</p>}
             {H.whereFull && <p class="home-where-more"><a href={H.whereFull} data-testid={`${T}.whereFull`}>{HOME.whereMore}</a></p>}
           </Counted>
         </div>

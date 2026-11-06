@@ -98,10 +98,13 @@ export const MONTH = {
       notNeeded: 'No tax-free top-up is needed: {income} before tax fits within the 20% band ({brl}).',
       need: 'To keep the pension income within the 20% band ({brl}) for the {n} payments to come and still reach {income} before tax, you need {need} from your ISAs or savings this tax year. Money from an ISA or savings is not taxed.',
       exhausted: 'Your income so far this tax year is already above the 20% band ({brl}), so pension income this year is taxed at 40% or more.',
-      short: 'That is {shortfall} short of the {need} needed.'
+      short: 'That is {shortfall} short of the {need} needed.',
+      /** a tax year the pension cannot be touched (7.4.1): the whole of it comes from the ISAs and other savings */
+      closed: 'Before {age} your plan can’t take money from your pension, so this tax year’s {income} before tax comes from your ISAs and other savings: {need} for the {n} payments to come. Money from them is not taxed.'
     },
     bank: { title: 'What reaches your bank each month', from: 'From', before: 'Before tax', tax: 'Tax', after: 'After tax', pension: 'Pension', other: 'Other income', statePension: 'State Pension', isa: 'ISAs or savings (no tax)', total: 'Total', line: '{after} a month reaches your bank.' },
     efficient: 'Pension income kept within the 20% band; ISAs or savings top it up.',
+    closedYear: 'Nothing comes from the pension this tax year: ISAs or savings pay it.',
     inefficient: 'The full amount from the pension, with 40% tax on the part above the band.',
     button: 'Set up {year}',
     working: 'Setting up…',

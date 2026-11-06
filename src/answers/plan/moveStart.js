@@ -130,7 +130,7 @@ export function movePatch(plan, { now, run, entries = [], thisYear = false, spSt
   const lockDay = ds.lockedAt && Number.isFinite(new Date(ds.lockedAt).getTime()) ? new Date(ds.lockedAt) : now;
   set('decisionTool.planOfRecordArchive', archived(dt.planOfRecordArchive, dt.planOfRecord || null, at), dt.planOfRecordArchive);
   // `rewrittenFor` says why it was written after the lock (plan vs actual's heading: planStartUi.planVsActualWords)
-  set('decisionTool.planOfRecord', { ...planOfRecordFor(move.decision, lockDay), savedAt: at, rewrittenFor: noteMoved(move.to) }, dt.planOfRecord);
+  set('decisionTool.planOfRecord', { ...planOfRecordFor(move.decision, lockDay, { stress: move.stress }), savedAt: at, rewrittenFor: noteMoved(move.to) }, dt.planOfRecord);
   // 6. one journey entry, at the stage the move leaves the plan in (the stage does not hang on the document)
   const stage = planStage(mp.plan, { now });
   const journey = [...(Array.isArray(plan.journey) ? plan.journey : []), moveJourneyEntry(move, stage.key, now)].slice(-40);

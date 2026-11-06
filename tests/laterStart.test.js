@@ -500,10 +500,11 @@ describe('a plan that draws from a pension before it can usually be taken says s
     Object.assign(raw.budgetTool.settings, { currentAge: 52, currentAgeAsOf: '2026-06-01' });
     const plan = up(raw);
     const h = homeOf([{ plan }], plan.id, { today: TODAY });
-    expect(h.pensionAccess).toEqual({ age: '57' });
+    // 7.4.1: the age, and (the corpus plan's ISA cannot pay every year before 57) by how much a year the other savings run short
+    expect(h.pensionAccess).toMatchObject({ age: '57', short: { amount: expect.stringMatching(/^£[\d,]+$/), years: expect.stringMatching(/^\d{4}\/\d{2} to \d{4}\/\d{2}$/) } });
     const older = homeOf([{ plan: up(read('02-pnv-draft')) }], read('02-pnv-draft').id, { today: TODAY });
     expect(older.pensionAccess).toBeNull();
-    for (const t of [HOME.pensionAccess, LASTS.pensionAccess, ABOUT.lockedStart.now, ABOUT.lockedStart.nowOpen, ABOUT.lockedStart.spLabel, ABOUT.lockedStart.spHelp, ABOUT.lockedStart.spError,
+    for (const t of [HOME.pensionAccess, HOME.pensionShort, LASTS.pensionAccess, ABOUT.lockedStart.now, ABOUT.lockedStart.nowOpen, ABOUT.lockedStart.spLabel, ABOUT.lockedStart.spHelp, ABOUT.lockedStart.spError,
       ABOUT.lockedStart.confirm.lines.firstNow, ABOUT.lockedStart.confirm.lines.spDate, ABOUT.derived.laterStop, ABOUT.derived.laterNow, ABOUT.toast.movedNow, HOME.items['start.ask'].detail]) {
       expect(bannedHits(t.replace(/\{year\}/g, '2026/27').replace(/\{\w+\}/g, '57'), SCOPES), t).toEqual([]);
     }

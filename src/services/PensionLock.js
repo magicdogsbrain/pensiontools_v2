@@ -1,9 +1,10 @@
 /**
  * The years a plan cannot take money from a pension (7.4.1, research design section 7 "Risks": early retirement before
  * 55/57). A defined-contribution pension cannot be drawn in a plan year in which its holder is younger than their minimum
- * pension age (services/PensionAge.js, the one rule; PlanTiming.accessAgeOf, their own). Until 7.4.1 no engine held it
- * back: a plan that started at 50 drew its pension from year 0 and only said so in words (7.4.0). Every engine that
- * draws a pension year by year now reads the one helper here and keeps its pension untouched (and growing) in those years:
+ * pension age (services/PensionAge.js, the one rule; PlanTiming.accessAgeOf, their own, and pensionOpensOf, the first
+ * year it pays). Until 7.4.1 no engine held it back: a plan that started at 50 drew its pension from year 0 and only said
+ * so in words (7.4.0). Every engine that draws a pension year by year now reads the one helper here and keeps its pension
+ * untouched (and growing) in those years:
  *
  *   pensionLockOf(settings, { now, fromTaxYear, pensionPot })   the closed years of one person's plan, or null
  *   payClosedYears(needByYear, years, money)                    those years paid in order from the money outside the pension
@@ -20,14 +21,16 @@
  *
  * Pure: no storage, no DOM; the clock only as `now`.
  */
-import { deriveTiming, ageInTaxYear, accessAgeOf, taxYearLabel, sippTodayOf } from './PlanTiming.js';
+import { deriveTiming, pensionOpensOf, taxYearLabel, sippTodayOf } from './PlanTiming.js';
 
 /**
  * The closed years of one person's plan, counted from the tax year its run starts in (`fromTaxYear`: the plan's year 0, or
- * the plan year a run seen from today starts in — PlanFromToday). Plan years are tax years, and a plan year's age is the
- * age reached in it (PlanTiming's convention): a year is closed while that age is below the person's access age, so the
- * year they reach it is the first the pension pays. Null without an age, for a plan with no pension to draw (`pensionPot`,
- * the pension the run starts from; when not given, the plan's own pots today or at retirement), and when nothing is closed.
+ * the plan year a run seen from today starts in — PlanFromToday). Plan years are whole tax years: a year is closed while its
+ * holder is under their access age on its first day (PlanTiming.pensionOpensOf; the tax year we are in, on today), so the
+ * year their birthday falls in stays closed and the first year the pension pays is the first that starts with them at the
+ * age. Slightly cautious by design: a plan never draws in a year that begins before the pension can be touched. Null without
+ * an age, for a plan with no pension to draw (`pensionPot`, the pension the run starts from; when not given, the plan's own
+ * pots today or at retirement), and when nothing is closed.
  * @returns {null | { accessAge: number, years: number, fromTaxYear: number, opensTaxYear: number }}
  */
 export function pensionLockOf(settings, { now = new Date(), fromTaxYear = null, pensionPot = null } = {}) {
@@ -39,12 +42,10 @@ export function pensionLockOf(settings, { now = new Date(), fromTaxYear = null, 
   if (pensionPot != null) pot = +pensionPot || 0;
   else { try { pot = sippTodayOf(s); } catch { pot = 0; } if (!(pot > 0)) pot = +(s.potAtRetirement && s.potAtRetirement.sipp) || 0; }
   if (!(pot > 0)) return null;
-  const accessAge = accessAgeOf(s, now);
   const from = fromTaxYear != null && Number.isFinite(+fromTaxYear) ? +fromTaxYear : +t.firstTaxYear;
-  const ageThen = ageInTaxYear(s, from, now);
-  if (accessAge == null || ageThen == null || !(ageThen < accessAge)) return null;
-  const years = accessAge - ageThen;
-  return { accessAge, years, fromTaxYear: from, opensTaxYear: from + years };
+  const o = pensionOpensOf(s, from, now);
+  if (!o || !(o.opensTaxYear > from)) return null;
+  return { accessAge: o.accessAge, years: o.opensTaxYear - from, fromTaxYear: from, opensTaxYear: o.opensTaxYear };
 }
 
 /** The pension an engine config's run starts from: its pots (shares, bonds, cash and the diversifiers sleeve). */

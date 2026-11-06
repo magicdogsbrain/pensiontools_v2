@@ -14,6 +14,7 @@ import { calculateTax } from './TaxCalculator.js';
 import { TAX_DEFAULTS } from '../constants.js';
 import { spendingDeclineRateForYear, spendingSmileFactor } from './SpendingModel.js';
 import { decisionAnchorYear, yearOfTaxKey, taxYearKey } from './PlanTiming.js';
+import { pensionLockOf, closedYearsWords } from './PensionLock.js';
 
 
 // Re-exported so callers/tests can reach the shared constant from here. The per-year decline is now
@@ -60,12 +61,26 @@ export function calculateIsaNeeded(params) {
     other = 0,            // Annual other taxable income
     statePension = 0,     // Annual state pension
     remainingMonths,      // Months remaining in tax year
-    grossIncomeToDate = 0 // Income already received before starting pension
+    grossIncomeToDate = 0, // Income already received before starting pension
+    pensionClosed = false // the pension cannot be touched this tax year (7.4.1): the savings pay the whole of it
   } = params;
 
   // Tax on a gross income: the ONE sum in TaxCalculator (6.16.0). The copy that lived here stopped at
   // 40% — no 45% band and no loss of the allowance above £100,000.
   const calcTax = (gross) => calculateTax(gross, pa, brl, hrl);
+
+  // A year the pension is closed (7.4.1): nothing is drawn from it, so the ISA and other savings pay all that the income asked
+  // for leaves in the hand on top of the other income — tax-free, so only its net. No band to keep within, no choice to make.
+  if (pensionClosed) {
+    const fixed = (other || 0) + (statePension || 0);
+    const isaNeededAnnual = Math.max(0, (targetAnnualGross - calcTax(targetAnnualGross)) - (fixed - calcTax(fixed)));
+    return {
+      isaNeeded: (isaNeededAnnual / 12) * remainingMonths, isaNeededAnnual,
+      brlExhausted: false, remainingBrlHeadroom: Math.max(0, brl - grossIncomeToDate), maxTaxEfficientSalary: brl, reducedSalaryOption: brl,
+      canBeTaxEfficient: true, targetAchievableAtBrl: false, pensionClosed: true,
+      reason: 'The pension cannot be touched this tax year: the ISA and other savings pay it'
+    };
+  }
 
   // Remaining BRL headroom after income-to-date
   const remainingBrlHeadroom = Math.max(0, brl - grossIncomeToDate);
@@ -219,7 +234,7 @@ export function otherIncomeFromStress(ss, taxYear, baseline) {
  *   settings: the Decision settings as loaded; stressSettings: the stored Stress settings (ScenarioRepository.getActiveStressSettings);
  *   existingConfig: the year's stored settings or the defaults (getTaxYearConfigAsync); statePensionInfo: getStatePensionForTaxYear's
  */
-export function wizardDataFrom(selectedMonth, { settings, stressSettings = null, existingConfig, allTaxYears, statePensionInfo }) {
+export function wizardDataFrom(selectedMonth, { settings, stressSettings = null, existingConfig, allTaxYears, statePensionInfo, now = new Date() }) {
   const dateObj = parseMonth(selectedMonth);
   const taxYear = getTaxYear(dateObj);
   const month = dateObj.getMonth() + 1;
@@ -294,6 +309,14 @@ export function wizardDataFrom(selectedMonth, { settings, stressSettings = null,
     if (bridgeCash > 0 && bridgeSuggestedSalary > 0) bridgeCoverMonths = Math.floor(bridgeCash / Math.max(1, (bridgeSuggestedSalary - otherNow) / 12));
   }
 
+  // The pension cannot be touched in this tax year (7.4.1, services/PensionLock.js; read from the plan's Stress settings, which
+  // hold the age): the year is set up with nothing from the pension, and its income comes from the other savings.
+  let pensionClosed = null;
+  try {
+    const lock = stressSettings ? pensionLockOf(stressSettings, { now, fromTaxYear: yearOfTaxKey(taxYear) }) : null;
+    if (lock) pensionClosed = { accessAge: lock.accessAge, opensTaxYear: lock.opensTaxYear, words: closedYearsWords({ accessAge: lock.accessAge }) };
+  } catch { pensionClosed = null; }
+
   const suggestedSalary = bridgeSuggestedSalary ?? scheduleSuggestedSalary ?? chainSuggestedSalary;
   const suggestionSource = bridgeSuggestedSalary != null ? 'bridge' : scheduleSuggestedSalary != null ? 'budget-schedule' : 'chain';
 
@@ -342,7 +365,9 @@ export function wizardDataFrom(selectedMonth, { settings, stressSettings = null,
     statePension: statePensionInfo,
 
     // Existing config (if partially filled)
-    existingConfig: existingConfig.yearSetupComplete ? existingConfig : null
+    existingConfig: existingConfig.yearSetupComplete ? existingConfig : null,
+    // A year the pension cannot be touched (7.4.1): only then, so every other year's set-up is what it always was
+    ...(pensionClosed ? { pensionClosed } : {})
   };
 }
 
@@ -414,7 +439,8 @@ export function calculateMonthlyBreakdown(params) {
     statePensionMonthlyFull = null,   // the monthly PAYMENT once it has started (6.11.0); null = derive from the annual
     spStartYm = null,                 // 'YYYY-MM' the State Pension starts
     startYm = null,                   // 'YYYY-MM' this setup starts from
-    isTaxEfficient = true
+    isTaxEfficient = true,
+    pensionClosed = false             // the pension cannot be touched this tax year (7.4.1): nothing from it
   } = params;
 
   // Tax on a gross income: the ONE sum in TaxCalculator (6.16.0). The copy that lived here stopped at
@@ -432,7 +458,11 @@ export function calculateMonthlyBreakdown(params) {
 
   let monthlySippGross, monthlyIsaNet;
 
-  if (!isTaxEfficient) {
+  if (pensionClosed) {
+    // A closed year (7.4.1): nothing from the pension; the ISA and other savings pay what was set aside for the year.
+    monthlySippGross = 0;
+    monthlyIsaNet = isaSavingsAllocation / remainingMonths;
+  } else if (!isTaxEfficient) {
     // Tax-inefficient mode: full SIPP draw to target, no ISA
     monthlySippGross = (targetSalary / 12) - monthlyFixedIncomeGross;
     monthlyIsaNet = 0;
@@ -512,6 +542,7 @@ export function calculateMonthlyBreakdown(params) {
 
     // Mode
     mode: isTaxEfficient ? 'tax-efficient' : 'tax-inefficient',
+    ...(pensionClosed ? { pensionClosed: true } : {}),
 
     // Legacy fields for compatibility
     monthlySipp: monthlySippGross,
@@ -629,7 +660,8 @@ export function isaCalcFor(ctx, inputs) {
     spStartYm: ctx.statePension.startYm ?? null,
     startYm: ctx.selectedMonth,
     remainingMonths: ctx.remainingMonths,
-    grossIncomeToDate: inputs.grossIncomeToDate
+    grossIncomeToDate: inputs.grossIncomeToDate,
+    pensionClosed: !!ctx.pensionClosed
   });
 }
 
@@ -646,6 +678,8 @@ export function topUpStart(isaCalc) {
  * @returns {{ isaSavingsAllocation, isTaxEfficient, taxEfficiencyChoice, confirmedSalary }|null}
  */
 export function settleTopUp(inputs, isaCalc, choice = null) {
+  // a closed year (7.4.1): what is set aside from the savings is the year's income; there is no pension to choose between
+  if (isaCalc.pensionClosed) return { isaSavingsAllocation: inputs.isaSavingsAllocation, isTaxEfficient: true, taxEfficiencyChoice: 'efficient', confirmedSalary: inputs.confirmedSalary };
   const typed = isaCalc.brlExhausted ? 0 : (inputs.isaSavingsAllocation || 0);
   const validation = validateIsaInput(typed, isaCalc.isaNeeded || 0, !!isaCalc.brlExhausted);
   const out = { isaSavingsAllocation: isaCalc.brlExhausted ? 0 : inputs.isaSavingsAllocation, isTaxEfficient: inputs.isTaxEfficient, taxEfficiencyChoice: inputs.taxEfficiencyChoice, confirmedSalary: inputs.confirmedSalary };
@@ -673,7 +707,8 @@ export function breakdownFor(ctx, inputs) {
     remainingMonths: ctx.remainingMonths,
     grossIncomeToDate: inputs.grossIncomeToDate,
     taxPaidToDate: inputs.taxPaidToDate,
-    isTaxEfficient: inputs.isTaxEfficient
+    isTaxEfficient: inputs.isTaxEfficient,
+    pensionClosed: !!ctx.pensionClosed
   });
 }
 

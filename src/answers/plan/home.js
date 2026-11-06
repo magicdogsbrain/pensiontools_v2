@@ -22,14 +22,23 @@ import { isFilledIn } from '../../services/MonthFill.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { ym } from './dates.js';
 import { startLaterOf } from '../../services/PlanMove.js';
+import { pensionLockForSettings } from '../../services/PlanNeed.js';
+import { closedYearsShort, shortYearsWords } from '../../services/PensionLock.js';
 
 /**
- * A plan that draws from a pension before the age it can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): the age, for
- * the plain fact the home says beside the plan's draws. Null for a closed plan, and for every other plan.
+ * A plan that starts before its pension can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): the age, for the line
+ * the home says beside the plan's draws — and (7.4.1) when the other savings cannot pay those years in full, by how much a
+ * year and in which years (`short`), read from the closed years as the plan's run sees them (PlanNeed.pensionLockForSettings,
+ * the very figures the "Does it last?" step and the planner say), so the home never says the savings pay what they cannot.
+ * Null for a closed plan, and for every other plan.
  */
 export function pensionAccessOf(plan, pg, now) {
   if (!plan || (pg && pg.closed)) return null;
-  let e = null; try { e = earlyPensionDrawOf(effectiveStressSettings(plan, { now }), now); } catch { e = null; }
+  let s = null; try { s = effectiveStressSettings(plan, { now }); } catch { s = null; }
+  let e = null; try { e = earlyPensionDrawOf(s, now); } catch { e = null; }
+  let lock = null; try { lock = pensionLockForSettings(s, now); } catch { lock = null; }
+  const short = lock ? closedYearsShort(lock) : null;
+  if (short) return { age: String(lock.accessAge), short: { amount: '£' + short.perYear.toLocaleString('en-GB'), years: shortYearsWords(short) } };
   return e ? { age: String(e.age) } : null;
 }
 

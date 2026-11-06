@@ -258,9 +258,12 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
       // PCLS-at-switch: the decision tool ADVISES the real-world action rather than silently
       // moving money the user actually holds. In the switch year (only — assume done after),
       // suggest taking 25% of the remaining pot tax-free into the ISA, capped by remaining LSA.
+      // A switch year that falls while the pension cannot be touched (7.4.1, deps.pensionOpensTaxYear) moves to the first year
+      // it opens, as the Stress engine takes the lump then (SimulationEngine: not in a closed month). No lock: the switch year.
+      const pclsYear = Math.max(Math.floor(settings.ufplsYears || 0), deps.pensionOpensTaxYear > 0 ? deps.pensionOpensTaxYear - anchorYear : 0);
       let pclsSuggestion = 0;
       if (settings.accessMethod === 'ufpls' && settings.ufplsThenPcls && settings.ufplsYears > 0
-          && yearNum === Math.floor(settings.ufplsYears) && lifetimeTaxFreeUsed < LSA) {
+          && yearNum === pclsYear && lifetimeTaxFreeUsed < LSA) {
         pclsSuggestion = Math.max(0, Math.min(0.25 * (equity + bond + cash), LSA - lifetimeTaxFreeUsed));
       }
 
@@ -541,7 +544,7 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
         isa = (isa || 0) + fromIsa;
         isaSavingsUsedThisMonth = isa;
         closedShort = netNeed - fromIsa < 0.005 ? 0 : netNeed - fromIsa;
-        sipp = 0; boostAmount = 0; recycleGross = 0; recycleNet = 0;
+        sipp = 0; boostAmount = 0; recycleGross = 0; recycleNet = 0; pclsSuggestion = 0;   // nor the tax-free lump (above)
         note = 'Pension closed';
       }
 

@@ -20,15 +20,18 @@ import { isaTodayOrAtRetirement } from './PotsAtRetirement.js';
 import { pensionLockOf } from './PensionLock.js';
 
 /**
- * A year the pension cannot be touched (7.4.1): no pension draw; the ISA (held or not: it is all there is) pays what the
- * target would leave in the hand on top of the other income, up to its balance. planDrawdown's shape, so the schedule
- * reads it as any other year.
+ * A year the pension cannot be touched (7.4.1): no pension draw; the money outside it pays what the target would leave in
+ * the hand on top of the other income, as far as it can, in the plan's own order — the taxable account first (`giaBalance`),
+ * then the ISA (held or not: it is all there is), as the engines pay a closed month. planDrawdown's shape (with the taxable
+ * account's draw beside it), so the schedule reads it as any other year. The table is a projection in round figures, so the
+ * capital gains tax a sale might owe is left out here, as the table leaves it out of every year.
  */
-function closedYear({ target, fixed, pa, brl, hrl, isaBalance }) {
+function closedYear({ target, fixed, pa, brl, hrl, isaBalance, giaBalance = 0 }) {
   const netFixed = grossToNet(fixed, pa, brl, hrl);
   const want = Math.max(0, grossToNet(Math.max(target, fixed), pa, brl, hrl) - netFixed);
-  const isaDraw = Math.min(Math.max(0, isaBalance), want);
-  return { sippGross: 0, isaDraw, taxable: fixed, tax: calculateTax(fixed, pa, brl, hrl), net: netFixed + isaDraw, remainingIsa: Math.max(0, isaBalance) - isaDraw, taxFree: 0 };
+  const giaDraw = Math.min(Math.max(0, giaBalance), want);
+  const isaDraw = Math.min(Math.max(0, isaBalance), want - giaDraw);
+  return { sippGross: 0, isaDraw, giaDraw, taxable: fixed, tax: calculateTax(fixed, pa, brl, hrl), net: netFixed + giaDraw + isaDraw, remainingIsa: Math.max(0, isaBalance) - isaDraw, remainingGia: Math.max(0, giaBalance) - giaDraw, taxFree: 0 };
 }
 
 /**
@@ -37,7 +40,9 @@ function closedYear({ target, fixed, pa, brl, hrl, isaBalance }) {
  * @param {number} duration - Years to project
  * @param {number} assumedInflation - Assumed annual inflation
  * @param {Date} [now]
- * @param {{ chargesPct?: number }} [opts] - chargesPct: the charge to take off the ISA, in place of settings.chargesPct
+ * @param {{ chargesPct?: number, closedYears?: number }} [opts] - chargesPct: the charge to take off the ISA, in place of
+ *   settings.chargesPct; closedYears: the years from year 0 the pension cannot be touched, in place of the settings' own
+ *   reading (the plan of record's Decision settings carry no age: PlanCommit reads them from the Stress settings)
  * @returns {object[]} Schedule of annual withdrawals
  */
 export function generateDrawdownSchedule(settings, duration, assumedInflation = 0.025, now = new Date(), opts = {}) {
@@ -69,7 +74,11 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
   // The years the pension cannot yet be touched (7.4.1, services/PensionLock.js), from the plan's year 0: nothing is drawn
   // from it in them; the ISA pays what the year's target leaves in the hand after the other income, as far as it can.
   let closedYears = 0;
-  try { const lock = pensionLockOf(settings, { now }); closedYears = lock ? lock.years : 0; } catch { closedYears = 0; }
+  if (opts && opts.closedYears != null) closedYears = Math.max(0, +opts.closedYears || 0);
+  else { try { const lock = pensionLockOf(settings, { now }); closedYears = lock ? lock.years : 0; } catch { closedYears = 0; } }
+  // The taxable account pays those years first (the engines' order: SimulationEngine and the month draw it before the ISA);
+  // it grows like the ISA here. Read only in the closed years: every other year, and every plan with none, is as before.
+  let giaBalance = closedYears > 0 ? Math.max(0, +settings.taxableStart || 0) : 0;
 
   for (let year = 0; year <= duration; year++) {
     const cumInf = Math.pow(1 + assumedInflation, year);
@@ -119,7 +128,7 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
     const taxFreeFraction = (settings.accessMethod === 'ufpls' && inUfplsPhase && lsaRemaining > 0) ? 0.25 : 0;
 
     const plan = year < closedYears
-      ? closedYear({ target, fixed, pa, brl, hrl, isaBalance })
+      ? closedYear({ target, fixed, pa, brl, hrl, isaBalance, giaBalance })
       : planDrawdown({
         targetGross: target, fixedIncome: fixed, pa, brl, hrl,
         isaBalance, strategy: settings.isaDrawdownStrategy, yearsUntilSp,
@@ -131,6 +140,7 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
     const isaStart = isaBalance;
     isaBalance = plan.remainingIsa * (1 + isaReturn);
     if (isaKeep !== 1) isaBalance *= isaKeep;
+    if (plan.remainingGia != null) giaBalance = plan.remainingGia * (1 + isaReturn);
 
     schedule.push({
       year,
@@ -143,6 +153,7 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
       netIncome: netFromTaxable,
       target,
       isaDraw: plan.isaDraw,
+      ...(plan.giaDraw > 0 ? { giaDraw: plan.giaDraw } : {}),   // a closed year paid from the taxable account (above)
       isaBalance: isaStart,
       spendable: plan.net
     });

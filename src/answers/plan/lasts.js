@@ -352,7 +352,9 @@ const move = (v) => ({ dir: v < 0 ? 'down' : 'up', pct: String(Math.round(Math.a
  */
 export function extrasView(x) {
   if (!x || typeof x !== 'object') return null;
-  const schedule = Array.isArray(x.schedule) ? x.schedule.map((r) => ({ year: r.year, age: r.age, pension: pounds(r.pension), state: pounds(r.state), tax: pounds(r.tax), isa: pounds(r.isa), spendable: pounds(r.spendable), isaLeft: pounds(r.isaLeft), raw: { pension: r.pension, spendable: r.spendable, isaLeft: r.isaLeft } })) : null;
+  // a closed pension's years paid from the taxable account (7.4.1): its column on every row, only when one has it
+  const anyGia = Array.isArray(x.schedule) && x.schedule.some((r) => r.gia > 0);
+  const schedule = Array.isArray(x.schedule) ? x.schedule.map((r) => ({ year: r.year, age: r.age, pension: pounds(r.pension), state: pounds(r.state), tax: pounds(r.tax), isa: pounds(r.isa), ...(anyGia ? { gia: pounds(r.gia || 0) } : {}), spendable: pounds(r.spendable), isaLeft: pounds(r.isaLeft), raw: { pension: r.pension, spendable: r.spendable, isaLeft: r.isaLeft } })) : null;
   const glidepath = x.glidepath && Array.isArray(x.glidepath.rows) ? { tent: !!x.glidepath.tent, diversifiers: !!x.glidepath.diversifiers, reserve: !!x.glidepath.reserve,
     rows: x.glidepath.rows.map((r) => ({ year: r.year, age: r.age, shares: pounds(r.shares), bonds: pounds(r.bonds), cash: pounds(r.cash), diversifiers: pounds(r.diversifiers), reserve: pounds(r.reserve), sharesPct: String(r.sharesPct), isa: r.isa == null ? '' : pounds(r.isa), total: pounds(r.total), raw: { total: r.total, sharesPct: r.sharesPct } })) } : null;
   const own = Array.isArray(x.own) ? x.own.map((r) => ({ year: r.year, age: r.age, incomeMid: pounds(r.incomeMid), incomeBad: pounds(r.incomeBad), leftMid: pounds(r.leftMid), raw: { incomeMid: r.incomeMid, leftMid: r.leftMid } })) : null;

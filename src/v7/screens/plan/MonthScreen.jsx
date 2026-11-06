@@ -89,7 +89,8 @@ function SetUp({ V, dispatch, open }) {
       <p class="note">{S.bands} <Button testid={`${T}.setUp.bands`} kind="quiet" aria-expanded={open ? 'true' : 'false'} onClick={() => dispatch({ type: 'ui/toggle', id: 'monthBands' })} {...keepFocus}>{open ? W.setUp.bandsHide : W.setUp.bandsChange}</Button></p>
       {open && <div class="month-bands">{box('ty.pa', S.defaults.pa)}{box('ty.brl', S.defaults.brl)}{box('ty.hrl', S.defaults.hrl)}</div>}
       <h3>{W.setUp.topUp.title}</h3>
-      {tu.exhausted ? <p class="notice" data-testid={`${T}.setUp.exhausted`}>{fill(W.setUp.topUp.exhausted, { brl: sw.brl })}</p>
+      {tu.closed ? <p class="note" data-testid={`${T}.setUp.closed`}>{fill(W.setUp.topUp.closed, { age: tu.closed.age, income: sw.incomeTyped, need: sw.need, n: String(S.remaining) })}</p>
+        : tu.exhausted ? <p class="notice" data-testid={`${T}.setUp.exhausted`}>{fill(W.setUp.topUp.exhausted, { brl: sw.brl })}</p>
         : tu.notNeeded ? <p class="note" data-testid={`${T}.setUp.notNeeded`}>{fill(W.setUp.topUp.notNeeded, { income: sw.income, brl: sw.brl })}</p>
           : <p class="note" data-testid={`${T}.setUp.need`}>{fill(W.setUp.topUp.need, { brl: sw.brl, n: String(S.remaining), income: sw.incomeTyped, need: sw.need })}</p>}
       {!tu.exhausted && box('ty.isa', tu.notNeeded ? 0 : tu.needed, {}, { ...W.fields['ty.isa'], label: tu.notNeeded ? W.fields['ty.isa'].labelOptional : W.fields['ty.isa'].label })}
@@ -105,7 +106,7 @@ function SetUp({ V, dispatch, open }) {
             <tfoot><tr><th scope="row">{W.setUp.bank.total}</th><td>{S.bankTotal.before}</td><td>{S.bankTotal.tax}</td><td data-testid={`${T}.setUp.bankAfter`}>{S.bankTotal.after}</td></tr></tfoot>
           </table>
         </div>
-        <p class="note">{S.efficient ? W.setUp.efficient : W.setUp.inefficient}</p>
+        <p class="note">{tu.closed ? W.setUp.closedYear : S.efficient ? W.setUp.efficient : W.setUp.inefficient}</p>
       </div>
       {V.editable && (
         <div class="actions-row">

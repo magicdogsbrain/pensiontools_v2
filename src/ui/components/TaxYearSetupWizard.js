@@ -248,6 +248,7 @@ function isaCalcNow() {
 
 /** The choice when the top-up typed is short of what is needed (or the band is already used up). */
 function choiceHtml(isaCalc, isaTyped) {
+  if (isaCalc.pensionClosed) return '';   // a year the pension cannot be touched (7.4.1): the savings pay it, nothing to choose
   const validation = validateIsaInput(isaTyped || 0, isaCalc.isaNeeded || 0, !!isaCalc.brlExhausted);
   if (validation.sufficient && !validation.isBrlExhausted) return '';
   const brl = fmt(wizardInputs.brl), target = fmt(wizardInputs.confirmedSalary);
@@ -277,7 +278,16 @@ function renderTopUp() {
   const months = wizardContext.remainingMonths;
   const brl = fmt(wizardInputs.brl);
   let lead, isaBox;
-  if (isaCalc.brlExhausted) {
+  if (isaCalc.pensionClosed) {
+    // a tax year the pension cannot be touched (7.4.1, TaxYearSetUp wizardDataFrom): the whole income comes from the savings
+    lead = `<div class="wizard-info-box" style="background: rgba(52, 152, 219, 0.2); border: 1px solid var(--primary);">
+        <p>${esc(wizardContext.pensionClosed.words)} This tax year <strong>${fmt(wizardInputs.confirmedSalary)} before tax needs about ${fmt(isaCalc.isaNeeded)} from your ISA or savings</strong> for the remaining ${months} payment${months === 1 ? '' : 's'}.</p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Nothing is taken from the pension this tax year. Money from an ISA or savings is not taxed.</p>
+      </div>`;
+    if (wizardInputs.isaSavingsAllocation == null) wizardInputs.isaSavingsAllocation = Math.round(isaCalc.isaNeeded);
+    isaBox = `<div class="wizard-step-desc" style="margin-top: 14px;">How much can the ISA or savings provide this tax year?</div>
+      <div class="wizard-input"><span class="wizard-unit">£</span><input type="number" id="wizISA" value="${Math.round(wizardInputs.isaSavingsAllocation)}" min="0"><span class="wizard-unit">this year</span></div>`;
+  } else if (isaCalc.brlExhausted) {
     lead = `<div class="wizard-info-box" style="background: rgba(231, 76, 60, 0.2); border: 1px solid var(--danger);">
         <p style="color: var(--danger); font-weight: 500;">Your income so far this tax year (${fmt(wizardInputs.grossIncomeToDate)}) is already above the 20% band (${brl}).</p>
         <p style="margin-top: 8px;">Any pension income this year is taxed at 40% or more, so no top-up can keep it in the 20% band.</p>

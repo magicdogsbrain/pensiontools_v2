@@ -108,7 +108,9 @@ function Years({ v, L, dispatch }) {
   if (!x || (!x.schedule && !x.own)) return null;
   const toggle = (id) => dispatch({ type: 'ui/toggle', id });
   const rows = x.schedule || x.own;
-  const cols = x.schedule ? ['year', 'age', 'pension', 'state', 'tax', 'isa', 'spendable', 'isaLeft'] : ['year', 'age', 'incomeMid', 'incomeBad', 'leftMid'];
+  // the taxable account's column only when it pays a year the pension is closed (7.4.1, DrawdownService closedYear)
+  const gia = x.schedule && x.schedule.some((r) => r.gia) ? ['gia'] : [];
+  const cols = x.schedule ? ['year', 'age', 'pension', 'state', 'tax', 'isa', ...gia, 'spendable', 'isaLeft'] : ['year', 'age', 'incomeMid', 'incomeBad', 'leftMid'];
   const g = x.glidepath;
   const gcols = g ? ['year', 'age', 'shares', 'bonds', 'cash', ...(g.diversifiers ? ['diversifiers'] : []), ...(g.reserve ? ['reserve'] : []), 'sharesPct', 'isa', 'total'] : [];
   return (

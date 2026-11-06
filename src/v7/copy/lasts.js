@@ -87,7 +87,7 @@ export const LASTS = {
     hide: 'Hide the years',
     lead: 'Year by year at {prices}% a year prices, with no ups and downs: what is drawn from the pension to fill the basic-rate band, the State Pension once it starts, the tax, what the ISA tops up to reach the plan’s figure, what is left to spend, and the ISA left. A steady path for reading, not a second test: the figure above counts every real start and 1,000 futures.',
     leadOwn: 'Year by year as this way of drawing pays: the income in the middle future, the income in a 1-in-10 bad one, and what is left in the middle — read off the same test as the figure above.',
-    columns: { year: 'Year', age: 'Age', pension: 'From the pension', state: 'State Pension', tax: 'Tax', isa: 'From the ISA', spendable: 'To spend', isaLeft: 'ISA left', incomeMid: 'Income (middle)', incomeBad: 'Income (1 in 10 bad)', leftMid: 'Left (middle)' },
+    columns: { year: 'Year', age: 'Age', pension: 'From the pension', state: 'State Pension', tax: 'Tax', isa: 'From the ISA', gia: 'From other savings', spendable: 'To spend', isaLeft: 'ISA left', incomeMid: 'Income (middle)', incomeBad: 'Income (1 in 10 bad)', leftMid: 'Left (middle)' },
     floorsTitle: 'The pots’ floors over the plan',
     floorsShow: 'Show the pots’ floors',
     floorsHide: 'Hide the pots’ floors',

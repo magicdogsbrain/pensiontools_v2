@@ -87,7 +87,7 @@ function setUpOf(I, plan, key, ym, typed, now) {
   const existing = I.taxYears[key] || defaultTaxYearConfig();
   const ctx = wizardDataFrom(ym, {
     settings: I.settings, stressSettings: storedStressSettings(plan), existingConfig: existing, allTaxYears: I.taxYears,
-    statePensionInfo: statePensionInfoFor(I.settings, I.taxYears, key, now)
+    statePensionInfo: statePensionInfoFor(I.settings, I.taxYears, key, now), now
   });
   const errors = {};
   const read = (path, dflt) => { const e = boxError(path, typed[path]); if (e) { errors[path] = e; return dflt; } const v = money(typed[path]); return v === null ? dflt : v; };
@@ -108,7 +108,8 @@ function setUpOf(I, plan, key, ym, typed, now) {
   inputs.isaSavingsAllocation = isaCalc.brlExhausted ? 0 : read('ty.isa', start);
   const choice = typed['ty.choice'] && ['increase', 'reduced', 'inefficient'].includes(typed['ty.choice']) ? typed['ty.choice'] : null;
   const validation = validateIsaInput(isaCalc.brlExhausted ? 0 : (inputs.isaSavingsAllocation || 0), isaCalc.isaNeeded || 0, !!isaCalc.brlExhausted);
-  const needsChoice = !(validation.sufficient && !validation.isBrlExhausted);
+  // a year the pension cannot be touched (7.4.1): the savings pay it, so there is no band to keep within and nothing to choose
+  const needsChoice = !isaCalc.pensionClosed && !(validation.sufficient && !validation.isBrlExhausted);
   const choices = needsChoice ? validation.options.map((o) => o.key) : [];
   const settled = settleTopUp(inputs, isaCalc, choice && choices.includes(choice) ? choice : null);
   if (needsChoice && !settled) errors['ty.choice'] = 'choose';
@@ -124,7 +125,8 @@ function setUpOf(I, plan, key, ym, typed, now) {
     bands: bandsAssumptionText(final),
     topUp: {
       exhausted: !!isaCalc.brlExhausted, notNeeded: !!isaCalc.targetAchievableAtBrl, needed: Math.round(isaCalc.isaNeeded || 0),
-      shortfall: Math.round(validation.shortfall || 0), needsChoice, choices, choice: settled ? settled.taxEfficiencyChoice : choice
+      shortfall: Math.round(validation.shortfall || 0), needsChoice, choices, choice: settled ? settled.taxEfficiencyChoice : choice,
+      ...(ctx.pensionClosed ? { closed: { age: String(ctx.pensionClosed.accessAge) } } : {})
     },
     inputs: final, breakdown, config, errors, ok: Object.keys(errors).length === 0 && (!needsChoice || !!settled),
     // the figures as the page says them, to the pound

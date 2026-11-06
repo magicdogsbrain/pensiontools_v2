@@ -101,7 +101,7 @@ export function lockPatch(plan, { now, run, entries = [] }) {
   }
   // 3. the plan of record, when the plan has none (PlanLock.lockPlanIfNeeded), from the settings as seeded — before the flags, as the planner reads them
   if (!(plan.decisionTool && plan.decisionTool.planOfRecord)) {
-    patch['decisionTool.planOfRecord'] = planOfRecordFor({ ...ds, ...seeded }, now);
+    patch['decisionTool.planOfRecord'] = planOfRecordFor({ ...ds, ...seeded }, now, { stress: ss });
     previous['decisionTool.planOfRecord'] = copy(plan.decisionTool && plan.decisionTool.planOfRecord);
   }
   // 4. the plan document (its journey is the plan's as it stands: the planner reads it before the stage moves)

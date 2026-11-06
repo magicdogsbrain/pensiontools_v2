@@ -465,18 +465,38 @@ export function accessAgeOf(settings, now = new Date()) {
 }
 
 /**
+ * The first tax year, from `fromTaxYear` on, in which a person's pension can pay (7.4.1 review): the first whose first day
+ * (6 April) finds them at their own minimum pension age (accessAgeOf). Plan years are whole tax years, so the year in which
+ * the birthday falls stays closed: a plan never draws in a year that starts with its holder under the age (until the review
+ * a year was open when the age was reached by its end, drawing up to a year early). The tax year we are in is read on today
+ * instead of its 6 April, since what has passed of it is history: someone who has reached the age draws from now, and someone
+ * who has not waits for the next year. Null without an age.
+ * @returns {null | { accessAge: number, opensTaxYear: number }}
+ */
+export function pensionOpensOf(settings, fromTaxYear, now = new Date()) {
+  const accessAge = accessAgeOf(settings, now);
+  if (accessAge == null || !Number.isFinite(+fromTaxYear)) return null;
+  const thisTY = taxYearStartOf(now);
+  for (let Y = +fromTaxYear; Y < +fromTaxYear + 100; Y++) {
+    const a = ageOnDate(settings, Y === thisTY ? now : new Date(Y, 3, 6), now);
+    if (a == null) return null;
+    if (a >= accessAge) return { accessAge, opensTaxYear: Y };
+  }
+  return null;
+}
+
+/**
  * For a plan that says when work stopped (6.51.0, research/plan-start.md §8: "stopping before 55 (57 from April 2028)
  * and bridging on savings"): when the plan's income starts before the age the pension can first be drawn — 55 for someone
- * who reaches it before 6 April 2028, 57 for everyone else — one line naming that age and the tax year it is reached in,
- * the earliest the plan's income can come from the pension. From 7.4.1 the engines hold the pension back until then
+ * who reaches it before 6 April 2028, 57 for everyone else — one line naming that age and the tax year the plan first draws
+ * the pension in (pensionOpensOf, the engines' own reading). From 7.4.1 the engines hold the pension back until then
  * (services/PensionLock.js), so the line says what the plan does. '' otherwise, and without an age to reckon from.
  */
 function pensionAccessWords(t, s, now) {
   if (!(+s.currentAge > 0) || !(t.shapeAgeNow > 0)) return '';
-  const minAge = accessAgeOf(s, now);
-  if (minAge == null || t.shapeAgeNow >= minAge) return '';
-  const Y = t.firstTaxYear + (minAge - t.shapeAgeNow);
-  return 'Your pension can be drawn from age ' + minAge + ' (tax year ' + taxYearLabel(Y) + '). Until then the plan pays you from your ISA, cash and other savings.';
+  const o = pensionOpensOf(s, t.firstTaxYear, now);
+  if (!o || !(o.opensTaxYear > t.firstTaxYear)) return '';
+  return 'Your pension can be drawn from age ' + o.accessAge + '. This plan first draws it in tax year ' + taxYearLabel(o.opensTaxYear) + '; until then it pays you from your ISA, cash and other savings.';
 }
 
 /**
@@ -493,10 +513,9 @@ export function earlyPensionDrawOf(settings, now = new Date()) {
   if (!t || t.mode === 'legacy' || !(+s.currentAge > 0)) return null;
   let pot = 0; try { pot = sippTodayOf(s); } catch { pot = 0; }
   if (!(pot > 0) && !(+(s.potAtRetirement && s.potAtRetirement.sipp) > 0)) return null;
-  const age = accessAgeOf(s, now);
   const firstDrawn = Math.max(+t.firstTaxYear, taxYearStartOf(now));
-  const ageThen = ageInTaxYear(s, firstDrawn, now);
-  return age != null && ageThen != null && ageThen < age ? { age, taxYear: firstDrawn } : null;
+  const o = pensionOpensOf(s, firstDrawn, now);   // the engines' own reading of the year the pension opens
+  return o && o.opensTaxYear > firstDrawn ? { age: o.accessAge, taxYear: firstDrawn } : null;
 }
 
 /** The words for earlyPensionDrawOf, in both apps: what the plan does until the pension can be taken. */

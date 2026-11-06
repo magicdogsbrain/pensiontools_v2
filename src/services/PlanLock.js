@@ -28,7 +28,9 @@ export { PLAN_OF_RECORD_CPI };
  */
 export async function buildPlanOfRecord(settings) {
   const s = settings || await getDecisionSettingsAsync();
-  return planOfRecordFor(s, new Date());
+  // the plan's Stress settings hold the person's age: the years the pension is closed draw nothing on the record (7.4.1)
+  let stress = null; try { stress = await getStressSettingsAsync(); } catch { stress = null; }
+  return planOfRecordFor(s, new Date(), { stress });
 }
 
 /** What depends on the settings right now. Pure facts; the unlock modal is built from this. */

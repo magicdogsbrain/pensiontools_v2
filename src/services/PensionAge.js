@@ -5,6 +5,16 @@
  *
  * The figures lived in the answers' rules (answers/shared/rules.js, which now reads them from here) and as loose copies in
  * the planner; one copy now, so a change to the rule is made once. Pure data and arithmetic: no imports, no clock.
+ *
+ * Two readings of the rule, on purpose, and the one assumption between them:
+ *  - A plan's own access age (PlanTiming.accessAgeOf, which every engine reads through PensionLock): 55 for someone who is 55
+ *    by 5 April 2028, 57 otherwise; the plan then draws from the first tax year that starts with them at that age. For
+ *    someone who is 55 or 56 on 6 April 2028 the engines assume they have moved into drawdown before then what they will
+ *    draw before 57: the law lets a pension already being drawn carry on, but nothing new can be taken until 57 by anyone
+ *    who had not started. Both apps say so in their 2028 notes (answers/plan/income.js drawdown2028, the D answer's
+ *    d-2028 warning, HouseholdDraw.pensionAgeNote), which tell that person to do it.
+ *  - The answers' first age a pension can be touched (answers/shared/rules.js firstAccessAge, apart.js): for someone who
+ *    has not started, read on a day — so after 5 April 2028 a 55- or 56-year-old reads 57, the rule as it stands for them.
  */
 
 export const PENSION_ACCESS = Object.freeze({ before: 55, from: 57, changesOn: '2028-04-06' });

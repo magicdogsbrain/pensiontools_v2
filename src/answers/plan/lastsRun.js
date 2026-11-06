@@ -208,7 +208,7 @@ export function extrasOf(settings, strategyId, p, r, a, now) {
   if (pnv) {
     const s = { ...settings, duration };
     try {
-      schedule = generateDrawdownSchedule(s, duration, ASSUMED_PRICES, now).map((x) => ({ year: x.year, age: startAge + x.year, pension: r0(x.sippDraw), state: r0(x.statePension), tax: r0(x.tax), net: r0(x.netIncome), isa: r0(x.isaDraw), spendable: r0(x.spendable), isaLeft: r0(x.isaBalance) }));
+      schedule = generateDrawdownSchedule(s, duration, ASSUMED_PRICES, now).map((x) => ({ year: x.year, age: startAge + x.year, pension: r0(x.sippDraw), state: r0(x.statePension), tax: r0(x.tax), net: r0(x.netIncome), isa: r0(x.isaDraw), ...(x.giaDraw > 0 ? { gia: r0(x.giaDraw) } : {}), spendable: r0(x.spendable), isaLeft: r0(x.isaBalance) }));
     } catch { schedule = null; }
     try {
       const isaByYear = {};

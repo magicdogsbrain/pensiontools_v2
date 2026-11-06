@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PENSION_ACCESS, accessAgeOn } from '../src/services/PensionAge.js';
 import { pensionLockOf, payClosedYears, closedYearsWords, closedYearsShort, pensionPotOf } from '../src/services/PensionLock.js';
-import { accessAgeOf, earlyPensionDrawOf, earlyPensionDrawWords, ageInTaxYear } from '../src/services/PlanTiming.js';
+import { accessAgeOf, earlyPensionDrawOf, earlyPensionDrawWords, ageOnDate, pensionOpensOf } from '../src/services/PlanTiming.js';
 import { RULES } from '../src/answers/shared/rules.js';
 import { ACCUMULATION_RULES } from '../src/services/AccumulationEngine.js';
 import { PENSION_AGE_CHANGE, householdDrawSplit } from '../src/services/HouseholdDraw.js';
@@ -33,6 +33,10 @@ import { LASTS } from '../src/v7/copy/lasts.js';
 import { HOME } from '../src/v7/copy/home.js';
 import { bannedHits } from './v7/render/checkScreen.js';
 import { fastEligible } from '../src/answers/shared/fastEngine.js';
+import { oneAnswer } from '../src/services/OneAnswer.js';
+import { seedDecisionFromStress, planOfRecordFor } from '../src/services/PlanCommit.js';
+import { pensionAccessOf } from '../src/answers/plan/home.js';
+import { wizardDataFrom, isaCalcFor, settleTopUp, setUpConfigOf, breakdownFor } from '../src/services/TaxYearSetUp.js';
 
 const PLANS = join(process.cwd(), 'tests', 'fixtures', 'plans');
 const read = (name) => JSON.parse(readFileSync(join(PLANS, name + '.json'), 'utf8'));
@@ -51,6 +55,10 @@ const ALEX = Object.freeze({
   baseSalary: 30000, equityMin: 300000, bondMin: 150000, cashTarget: 40000, isaBalance: 150000, duration: 40, strategyParams: {}
 });
 const alex = (over = {}) => ({ ...ALEX, ...over });
+/** A tax year's age as the lock reads it (7.4.1 review): on its first day, 6 April, and the tax year we are in on today. */
+const ageOnStart = (s, Y, now = NOW) => ageOnDate(s, Y === 2026 ? now : new Date(Y, 3, 6), now);
+/** The closed years from 2026 by that reading: every year that starts with them under their access age. */
+const closedFrom2026 = (s) => { const a = accessAgeOf(s, NOW); let n = 0; while (ageOnStart(s, 2026 + n) < a) n++; return n; };
 const planOf = (s, now = NOW) => planFromSettings(s, simulationConfigFromSettings({}, s, now), { now, startAge: +s.shapeAgeNow || 57 });
 
 describe('the one rule', () => {
@@ -75,12 +83,12 @@ describe('the one rule', () => {
 });
 
 describe('pensionLockOf: the closed years of one person’s plan', () => {
-  it('Alex, 50 and stopped: closed until the tax year 57 is reached', () => {
+  it('Alex, 50 and stopped: closed until the first tax year that starts with Alex at 57', () => {
+    // 57 on 1 June 2033: the tax year 2033/34 starts with Alex 56, so it is closed too; 2034/35 is the first that pays
     const lock = pensionLockOf(ALEX, { now: NOW });
-    const ageY0 = ageInTaxYear(ALEX, 2026, NOW);
-    expect(lock).toEqual({ accessAge: 57, years: 57 - ageY0, fromTaxYear: 2026, opensTaxYear: 2026 + 57 - ageY0 });
-    expect(ageInTaxYear(ALEX, lock.opensTaxYear, NOW)).toBe(57);
-    expect(ageInTaxYear(ALEX, lock.opensTaxYear - 1, NOW)).toBe(56);
+    expect(lock).toEqual({ accessAge: 57, years: 8, fromTaxYear: 2026, opensTaxYear: 2034 });
+    expect(ageOnStart(ALEX, lock.opensTaxYear)).toBe(57);
+    expect(ageOnStart(ALEX, lock.opensTaxYear - 1)).toBe(56);
   });
   it('counted from the tax year a run starts in', () => {
     const lock = pensionLockOf(ALEX, { now: NOW, fromTaxYear: 2029 });
@@ -92,8 +100,34 @@ describe('pensionLockOf: the closed years of one person’s plan', () => {
     const after = pensionLockOf(alex({ currentAge: 53, currentAgeAsOf: '2026-04-06', spStartDate: null }), { now: NOW });
     expect(before.accessAge).toBe(55);
     expect(after.accessAge).toBe(57);
-    expect(before.years).toBe(55 - ageInTaxYear(alex({ currentAge: 53, currentAgeAsOf: '2026-04-05', spStartDate: null }), 2026, NOW));
-    expect(after.years).toBe(57 - ageInTaxYear(alex({ currentAge: 53, currentAgeAsOf: '2026-04-06', spStartDate: null }), 2026, NOW));
+    // 55 on 5 April 2028: 2027/28 starts with them 54, so 2028/29 is the first that pays (until the review it was 2027/28)
+    expect(before).toMatchObject({ years: 2, opensTaxYear: 2028 });
+    // 55 on 6 April 2028, so 57 is theirs: 57 on 6 April 2030, the first day of 2030/31
+    expect(after).toMatchObject({ years: 4, opensTaxYear: 2030 });
+  });
+  it('birthday edges: the tax year a birthday falls in stays closed; the year we are in is read on today', () => {
+    const at = (age, asOf, over = {}) => alex({ currentAge: age, currentAgeAsOf: asOf, spStartDate: null, ...over });
+    // 54 now, 55 on 1 January 2027: closed for this tax year, open from 2027/28 (until the review: never closed at all)
+    const jan = at(54, '2026-01-01');
+    expect(pensionLockOf(jan, { now: NOW })).toEqual({ accessAge: 55, years: 1, fromTaxYear: 2026, opensTaxYear: 2027 });
+    expect(simulationConfigFromSettings({}, jan, NOW).pensionLockedMonths).toBe(12);
+    // 50 now, 57 on 1 March 2033: 2032/33 starts with them 56, so the pension opens in 2033/34 (until the review: 2032/33)
+    const mar = at(50, '2026-03-01');
+    expect(pensionLockOf(mar, { now: NOW })).toMatchObject({ accessAge: 57, years: 7, opensTaxYear: 2033 });
+    expect(simulationConfigFromSettings({}, mar, NOW).pensionLockedMonths).toBe(84);
+    // born 5 April 1973: 55 on 5 April 2028, so 55 is theirs; 2027/28 starts with them 54, so it opens in 2028/29
+    expect(pensionLockOf(at(53, '2026-04-05'), { now: NOW })).toMatchObject({ accessAge: 55, opensTaxYear: 2028 });
+    // 55 since 1 October: this tax year started with them 54, but it is read on today, when they can draw: nothing closed
+    const oct = at(55, '2026-10-01');
+    expect(pensionLockOf(oct, { now: NOW })).toBeNull();
+    // the same person's plan from 2025/26 (it started with them 53): that year is closed, this one is not
+    expect(pensionLockOf(oct, { now: NOW, fromTaxYear: 2025 })).toMatchObject({ years: 1, opensTaxYear: 2026 });
+    // no birthday known (no date given, no State Pension date): the age today is the age now
+    expect(pensionLockOf(alex({ currentAge: 57, currentAgeAsOf: null, spStartDate: null }), { now: NOW })).toBeNull();
+    expect(pensionOpensOf(alex({ currentAge: 56, currentAgeAsOf: null, spStartDate: null }), 2026, NOW)).toEqual({ accessAge: 55, opensTaxYear: 2026 });
+    // the words and the 7.4.0 fact read the same year
+    expect(earlyPensionDrawOf(jan, NOW)).toEqual({ age: 55, taxYear: 2026 });
+    expect(earlyPensionDrawOf(oct, NOW)).toBeNull();
   });
   it('null at or past the access age, with no pension, without an age, and for a plan with no age (legacy)', () => {
     expect(pensionLockOf(alex({ currentAge: 57 }), { now: NOW })).toBeNull();
@@ -107,7 +141,8 @@ describe('pensionLockOf: the closed years of one person’s plan', () => {
     const saver = alex({ currentAge: 48, retired: false, retireAge: 52, stoppedWork: null, firstTaxYear: null });
     const lock = pensionLockOf(saver, { now: NOW });
     expect(lock.accessAge).toBe(57);
-    expect(lock.years).toBe(57 - ageInTaxYear(saver, lock.fromTaxYear, NOW));
+    expect(ageOnStart(saver, lock.opensTaxYear)).toBe(57);
+    expect(ageOnStart(saver, lock.opensTaxYear - 1)).toBe(56);
     expect(pensionLockOf({ ...saver, retireAge: 60 }, { now: NOW })).toBeNull();
   });
   it('a couple: each plan by its own holder (Alex closed, Sam at 61 not)', () => {
@@ -294,7 +329,8 @@ describe('property: no engine ever draws a pension in a year its holder is under
     fc.assert(fc.property(person, (x) => {
       const s = settingsOf(x);
       const access = accessAgeOf(s, NOW);
-      const closed = Math.max(0, access - ageInTaxYear(s, 2026, NOW));
+      const closed = closedFrom2026(s);
+      expect(access === 55 || access === 57).toBe(true);
       const cfg = simulationConfigFromSettings({}, s, NOW);
       expect(cfg.pensionLockedMonths || 0).toBe(closed * 12);
       const r = simulate({ ...cfg, years: 35, trace: true }, returns, 7);
@@ -316,5 +352,128 @@ describe('the pension the run starts from', () => {
   it('earlyPensionDrawOf still says when the plan starts before the age (the fact the home shows)', () => {
     expect(earlyPensionDrawOf(ALEX, NOW)).toEqual({ age: 57, taxYear: 2026 });
     expect(Object.keys(STRATEGY_NAMES)).toHaveLength(9);
+  });
+});
+
+describe('the review of 7.4.1: every engine and screen reads the closed years the same way', () => {
+  it('the bought strategies count what the other savings cannot pay as income cut, as Pots & Valves does', () => {
+    // no ISA and a pot that buys every later year: the years before 57 are paid by nothing
+    const s = alex({ isaBalance: 0, equityMin: 600000, bondMin: 250000, cashTarget: 50000 });
+    const p = { ...planOf(s), mcRuns: 30 };
+    const L = p.pensionLock.years;
+    expect(p.pensionLock.unpaid.slice(0, L).every((v) => v > 0)).toBe(true);
+    const configs = deriveCompareConfigs(p);
+    const ids = Object.keys(STRATEGY_NAMES);
+    let checked = 0;
+    for (const id of ids) {
+      const r = stressTestStrategy(id, p, configs);
+      if (!r.affordable) continue;
+      checked++;
+      const a = oneAnswer(r, p);
+      expect(a.cuts, id).toBeTruthy();
+      expect(a.cuts.cutN, id).toBe(a.cuts.futures);
+      expect(a.cuts.typicalCutYears, id).toBeGreaterThanOrEqual(L);
+      // the verdict shows them as it shows Pots & Valves' cuts
+      expect(verdictOf({ strategyId: id, a, closed: closedOf(p) }, { endAge: 91 }).rows.some((row) => row.id === 'cuts.some'), id).toBe(true);
+      if (id !== 'pots-and-valves' && id !== 'buckets-in-order' && r.futuresMc) {
+        expect(r.futuresMc.failYear.every((fy) => fy === 0), id).toBe(true);
+        expect(r.futuresMc.unpaid.every((u) => u == null || u >= p.pensionLock.unpaid[0]), id).toBe(true);
+      }
+    }
+    expect(checked).toBeGreaterThanOrEqual(7);
+  });
+  it('enough other savings, or a holder who can already draw: a bought strategy’s result is what it always was (no cut record)', () => {
+    const rich = { ...planOf(alex({ isaBalance: 500000, equityMin: 600000 })), mcRuns: 20 };
+    expect(rich.pensionLock.unpaid.every((v) => v === 0)).toBe(true);
+    expect(stressTestStrategy('full-il-gilt', rich).cuts).toBeUndefined();
+    const older = { ...planOf(alex({ currentAge: 60, isaBalance: 0 })), mcRuns: 20 };
+    expect(stressTestStrategy('floor-and-flex', older).cuts).toBeUndefined();
+  });
+  it('the plan of record locked for a 50-year-old draws nothing from the pension in the closed years', () => {
+    const seeded = seedDecisionFromStress(ALEX);
+    expect(seeded.currentAge).toBeUndefined();   // the Decision settings carry no age: the record reads it from the Stress settings
+    const L = pensionLockOf(ALEX, { now: NOW }).years;
+    const rec = planOfRecordFor(seeded, NOW, { stress: ALEX });
+    for (let y = 0; y < L; y++) expect(rec.drawdown[y].sippDraw, 'year ' + y).toBe(0);
+    expect(rec.drawdown[0].isaDraw).toBeGreaterThan(0);
+    expect(rec.drawdown[L].sippDraw).toBeGreaterThan(0);
+    // without the Stress settings (or for a holder who can draw) the record is the one it always was
+    const before = planOfRecordFor(seeded, NOW);
+    expect(before.drawdown[0].sippDraw).toBeGreaterThan(0);
+    expect(JSON.stringify(planOfRecordFor(seeded, NOW, { stress: alex({ currentAge: 60 }) }))).toBe(JSON.stringify(before));
+  });
+  it('the drawdown table pays a closed year from the taxable account first, then the ISA', () => {
+    const rows = generateDrawdownSchedule(alex({ isaBalance: 0, taxableStart: 300000 }), 40, 0.025, NOW);
+    expect(rows[0].sippDraw).toBe(0);
+    expect(rows[0].isaDraw).toBe(0);
+    expect(rows[0].giaDraw).toBeGreaterThan(0);
+    expect(rows[0].spendable).toBeCloseTo(rows[0].netIncome + rows[0].giaDraw, 6);
+    const both = generateDrawdownSchedule(alex({ isaBalance: 50000, taxableStart: 20000 }), 40, 0.025, NOW);
+    expect(both[0].giaDraw).toBeCloseTo(20000, 6);   // the taxable account is spent before the ISA is touched
+    expect(both[0].isaDraw).toBeGreaterThan(0);
+    // no taxable account: rows carry no giaDraw, as before
+    expect('giaDraw' in generateDrawdownSchedule(ALEX, 40, 0.025, NOW)[0]).toBe(false);
+  });
+  it('the home says the shortfall when the other savings cannot pay the closed years, and what the plan does when they can', () => {
+    const planWith = (over) => {
+      const raw = read('02-pnv-draft');
+      Object.assign(raw.stressTool.settings, { currentAge: 50, currentAgeAsOf: '2026-06-01', stoppedWork: '2026-06', firstTaxYear: 2026, shapeAgeNow: 51, spStartDate: '1 June 2044', ...over });
+      Object.assign(raw.budgetTool.settings, { currentAge: 50, currentAgeAsOf: '2026-06-01' });
+      return upgradeScenario(raw, { now: NOW }).scenario;
+    };
+    const short = pensionAccessOf(planWith({ isaBalance: 0, taxableStart: 0 }), null, NOW);
+    expect(short.age).toBe('57');
+    expect(short.short.amount).toMatch(/^£[\d,]+$/);
+    expect(short.short.years).toMatch(/^\d{4}\/\d{2}( to \d{4}\/\d{2})?$/);
+    expect(bannedHits(fill(HOME.pensionShort, { age: short.age, ...short.short }), SCOPES)).toEqual([]);
+    const fine = pensionAccessOf(planWith({ isaBalance: 900000 }), null, NOW);
+    expect(fine).toEqual({ age: '57' });
+  });
+  it('the month: the tax-free lump is never suggested while the pension is closed, and is suggested in the year it opens', () => {
+    const raw = read('02-pnv-draft');
+    Object.assign(raw.stressTool.settings, { currentAge: 50, currentAgeAsOf: '2026-06-01', stoppedWork: '2026-06', firstTaxYear: 2026, shapeAgeNow: 51, spStartDate: '1 June 2044' });
+    Object.assign(raw.budgetTool.settings, { currentAge: 50, currentAgeAsOf: '2026-06-01' });
+    const plan = upgradeScenario(raw, { now: NOW }).scenario;
+    const I0 = monthInputsOf(plan, { now: NOW });
+    const I = { ...I0, settings: { ...I0.settings, firstTaxYear: 2026, accessMethod: 'ufpls', ufplsThenPcls: true, ufplsYears: 2 } };
+    const pots = { equity: 400000, bond: 200000, cash: 60000, isa: 45000 };
+    const inYear = (ym) => decideMonth(I, ym, pots, { taxYears: { [getTaxYearFromDate(ym)]: defaultTaxYearConfig() }, history: [] });
+    const switchYear = inYear('2028-05');   // plan year 2: the switch year, the pension still closed
+    expect(switchYear.pensionClosed).toBeTruthy();
+    expect(switchYear.pclsSuggestion).toBe(0);
+    const opens = pensionLockOf(plan.stressTool.settings, { now: NOW }).opensTaxYear;
+    const open = inYear(opens + '-05');
+    expect('pensionClosed' in open).toBe(false);
+    expect(open.pclsSuggestion).toBeGreaterThan(0);
+  });
+  it('the tax-year set-up plans nothing from the pension in a closed year; the savings pay it', () => {
+    const settings = seedDecisionFromStress(ALEX);
+    const ctxOf = (ym) => wizardDataFrom(ym, { settings, stressSettings: ALEX, existingConfig: defaultTaxYearConfig(), allTaxYears: {}, statePensionInfo: { amount: 0 }, now: NOW });
+    const ctx = ctxOf('2026-11');
+    expect(ctx.pensionClosed).toMatchObject({ accessAge: 57, opensTaxYear: 2034 });
+    expect(ctx.pensionClosed.words).toBe('Before 57, this plan pays you from your other savings, not your pension.');
+    const inputs = { pa: 12570, brl: 50270, hrl: 125140, cpi: 0.03, other: 0, grossIncomeToDate: 0, confirmedSalary: 30000, isaSavingsAllocation: null, isTaxEfficient: true };
+    const calc = isaCalcFor(ctx, inputs);
+    expect(calc.pensionClosed).toBe(true);
+    expect(calc.isaNeeded).toBeGreaterThan(0);
+    const settled = settleTopUp({ ...inputs, isaSavingsAllocation: Math.round(calc.isaNeeded) }, calc, null);
+    expect(settled.taxEfficiencyChoice).toBe('efficient');
+    const config = setUpConfigOf(ctx, { ...inputs, ...settled });
+    expect(config.expectedMonthly.sipp.gross).toBe(0);
+    expect(config.expectedMonthly.isa.net).toBeGreaterThan(0);
+    // the year the pension opens is set up as every year always was
+    const open = ctxOf('2034-04');
+    expect('pensionClosed' in open).toBe(false);
+    expect(breakdownFor(open, { ...inputs, isaSavingsAllocation: 0 }).sipp.gross).toBeGreaterThan(0);
+  });
+  it('a slump while the pension is closed is no protection month, and no streak carries into the year it opens', () => {
+    const cfg = simulationConfigFromSettings({}, ALEX, NOW);
+    const L = pensionLockOf(ALEX, { now: NOW }).years;
+    const crash = annualNominal(getRtr(), getCpi(), (1929 - 1871) * 12, 40);
+    const r = simulate({ ...cfg, years: 40, trace: true }, crash, 1);
+    for (let m = 0; m < L * 12; m++) expect(r.trace[m].inProtection, 'month ' + m).toBe(false);
+    // the same slump with the pension open from the start is a protection episode: the gate is what keeps it out
+    const open = simulate({ ...cfg, pensionLockedMonths: 0, years: 40, trace: true }, crash, 1);
+    expect(open.trace.slice(0, L * 12).some((t) => t.inProtection)).toBe(true);
   });
 });

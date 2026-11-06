@@ -67,7 +67,7 @@ export function settingsAsLoaded(settings) {
  * off for a bought ladder (6.13.5), and the buckets' fixed order for Buckets in order.
  * @returns {{ settings: object, engineSettings: object, stratDeps: object }}
  */
-export function engineSetup({ decisionSettings, stressSettings, strategy }) {
+export function engineSetup({ decisionSettings, stressSettings, strategy, now = new Date() }) {
   const settings = { ...(decisionSettings || {}) };
   if (!(+settings.firstTaxYear > 0)) {
     try { const ss = stressSettings || {}; const t = deriveTiming(ss); if (t.mode !== 'legacy' || +ss.firstTaxYear > 0) settings.firstTaxYear = t.firstTaxYear; } catch { /* fallback: first tax year set up */ }
@@ -84,7 +84,7 @@ export function engineSetup({ decisionSettings, stressSettings, strategy }) {
   // The tax year the pension opens (7.4.1, services/PensionLock.js): before it the month takes nothing from the pension
   // (legacyDecision). Read from the plan's Stress settings, which hold the age; only when the plan starts before it.
   let lock = null;
-  try { const ss = stressSettings || {}; const t = deriveTiming(ss); lock = pensionLockOf(ss, { fromTaxYear: t.firstTaxYear }); } catch { lock = null; }
+  try { const ss = stressSettings || {}; const t = deriveTiming(ss, now); lock = pensionLockOf(ss, { now, fromTaxYear: t.firstTaxYear }); } catch { lock = null; }
   if (lock) stratDeps = { ...stratDeps, pensionOpensTaxYear: lock.opensTaxYear, pensionAccessAge: lock.accessAge };
   return { settings, engineSettings, stratDeps };
 }
@@ -177,7 +177,7 @@ export function monthInputsOf(plan, { now = new Date() } = {}) {
  * @param {{ equity, bond, cash, isa?, diversifier?, gia?, giaBasis? }} pots
  */
 export function decideMonth(I, ym, pots, { history = I.history, taxYears = I.taxYears, entered = null, paidAhead = false } = {}) {
-  const setup = engineSetup({ decisionSettings: I.settings, stressSettings: I.stressSettings, strategy: I.strategy });
+  const setup = engineSetup({ decisionSettings: I.settings, stressSettings: I.stressSettings, strategy: I.strategy, ...(I.now ? { now: I.now } : {}) });
   const spInfo = statePensionInfoFor(I.settings, taxYears, getTaxYearFromDate(ym), I.now);
   const deps = engineDeps(setup, { history, taxYears, spInfo, potsYear: I.potsYear, pots });
   const d = calcDecision(ym, +pots.equity || 0, +pots.bond || 0, +pots.cash || 0, deps);

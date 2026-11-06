@@ -80,7 +80,9 @@ export { accessAgeOn };
 
 /**
  * The first age at which a person who is `age` on `today` (the birthday taken to be today) can touch a pension:
- * 55 if they are 55 before 6 April 2028, otherwise 57. Someone already past that age gets the age that applies today.
+ * 55 if they are 55 before 6 April 2028, otherwise 57. Someone already past that age gets the age that applies today: this
+ * reads someone who has not started drawing, so after 5 April 2028 a 55- or 56-year-old reads 57. A plan's engines read the
+ * same rule for someone already drawing (services/PensionAge.js says both, and the assumption between them).
  */
 export function firstAccessAge(age, today) {
   const { before, from } = RULES.pensionAccess;

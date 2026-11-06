@@ -37,6 +37,30 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.3.3', date: '2026-11-06', engineVersion: '6.37.0',
+    title: 'No more months “before your plan”',
+    summary: 'Once you have stopped work, your plan is your plan from the tax year you stopped. No screen talks about months before it any more, in either app. Plans saved with a later start now show one thing to do instead. No figures change.',
+    changes: [
+      'If your plan was saved to start in a later tax year than the one you stopped work in, its home and the next-step banner show one thing to do: start it from the tax year you stopped. If we don’t know when you stopped, it asks that first. Moving the start always asks you to confirm.',
+      'If your plan is locked and its start can’t be moved yet, it says so and shows why, instead of offering a move it would refuse.',
+      'The plan that holds gilts until your State Pension and then shares is now called “Gilts to State Pension, then shares” everywhere, including older plan documents. Only the name has changed.',
+      'Next April is no longer offered as a later start. A start year is only called saved if you saved it.'
+    ],
+    corrections: [
+      'Months you recorded before a later start were read against a later year’s figure, or said to be “before the plan”. Until the start is moved, they are now listed with what you took, without a comparison.'
+    ],
+    effects: {
+      stress: [],
+      strategies: [],
+      decision: [],
+      accumulation: [],
+      budget: [],
+      household: []
+    },
+    actions: ['If your home shows “Start it from the tax year you stopped”, press Move the start and check the confirm before you agree.'],
+    notes: []
+  },
+  {
     version: '7.3.2', date: '2026-11-06', engineVersion: '6.37.0',
     title: '“Use the previous version” opens the plan you are looking at, and Remove works under “sold?”',
     summary: 'On a plan’s page, the link to the previous version at the top now opens the same plan there, on the matching page. Before, it opened the plan your account usually opens on, which could be a different plan.',

@@ -2130,7 +2130,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-BYSAJg85.js"></script>
+  <script type="module" crossorigin src="./assets/main-DdCW6Yee.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -3088,7 +3088,7 @@
                 <button type="button" class="risk-btn" data-strat="pots-and-valves" data-on-click="pickStrategy('pots-and-valves')">Pots &amp; Valves</button>
                 <button type="button" class="risk-btn" data-strat="buckets-in-order" data-on-click="pickStrategy('buckets-in-order')">Buckets in order</button>
                 <button type="button" class="risk-btn" data-strat="ladder-and-ratchet" data-on-click="pickStrategy('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
-                <button type="button" class="risk-btn" data-strat="bridge-and-engine" data-on-click="pickStrategy('bridge-and-engine')">Bridge &amp; engine</button>
+                <button type="button" class="risk-btn" data-strat="bridge-and-engine" data-on-click="pickStrategy('bridge-and-engine')">Gilts to State Pension, then shares</button>
                 <button type="button" class="risk-btn" data-strat="floor-and-flex" data-on-click="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
                 <button type="button" class="risk-btn" data-strat="floor-the-schedule" data-on-click="pickStrategy('floor-the-schedule')">Floor the schedule</button>
                 <button type="button" class="risk-btn" data-strat="floor-to-age" data-on-click="pickStrategy('floor-to-age')">Floor to an age, then decide</button>
@@ -3102,8 +3102,8 @@
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Age today <span class="hlp" tabindex="0" data-tip="Your age now. With your State Pension date (a birthday) this pins every plan year to a tax year and an age. Shared with the Budget page.">?</span><input type="number" id="tmAge" min="18" max="100" style="width:80px;" data-on-input="renderTiming()"></label>
                   <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="radio" name="tmMode" id="tmRetired" value="retired" style="width:auto;" data-on-change="renderTiming()"> I have stopped work</label>
                   <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="radio" name="tmMode" id="tmFuture" value="future" style="width:auto;" data-on-change="renderTiming()"> I will stop work at age <input type="number" id="tmRetireAge" min="40" max="80" style="width:70px;" data-on-input="tmRetireAgeTyped()"></label>
-                  <label class="hint" id="tmStopWrap" style="display:flex;flex-direction:column;gap:2px;"><span id="tmStopLabel">The month you stopped work</span> <span class="hlp" tabindex="0" data-tip="The month you stopped work, or will stop. It may be long ago. Stopped: the plan's income starts in the tax year you stopped, unless you choose a later one below. Stopping later: the plan starts in the tax year you stop in, and the Decision tool opens that month. Leave it blank and the plan works from your age, as before.">?</span><input type="month" id="tmStopMonth" placeholder="2023-10" style="width:160px;" data-on-input="tmStopMonthChanged()"></label>
-                  <label class="hint" id="tmStartWrap" style="display:flex;flex-direction:column;gap:2px;">When the plan's income starts <span class="hlp" tabindex="0" data-tip="The tax year that is your plan's year 0, for every tool. Stopped work: by default the tax year you stopped in, even if that has passed — the plan then runs from where it stands today. Choose a later year if you live on other money until then: those months are recorded in the Decision tool, not compared with the plan. Without the month you stopped: this tax year or next 6 April. Stopping later: the tax year you stop in.">?</span><select id="tmStartYear" style="width:280px;" data-on-change="tmStartYearChanged()"></select></label>
+                  <label class="hint" id="tmStopWrap" style="display:flex;flex-direction:column;gap:2px;"><span id="tmStopLabel">The month you stopped work</span> <span class="hlp" tabindex="0" data-tip="The month you stopped work, or will stop. It may be long ago. Stopped: the tax year you stopped in is your plan's first year, and the plan runs from where it stands today. Stopping later: the plan starts in the tax year you stop in, and the Decision tool opens that month. Leave it blank and the plan works from your age, as before.">?</span><input type="month" id="tmStopMonth" placeholder="2023-10" style="width:160px;" data-on-input="tmStopMonthChanged()"></label>
+                  <label class="hint" id="tmStartWrap" style="display:flex;flex-direction:column;gap:2px;">The tax year your plan starts <span class="hlp" tabindex="0" data-tip="The tax year that is your plan's year 0, for every tool. Stopped work: by default the tax year you stopped in, even if that has passed — the plan then runs from where it stands today. Without the month you stopped: this tax year, picking the plan up from here. Stopping later: the tax year you stop in.">?</span><select id="tmStartYear" style="width:280px;" data-on-change="tmStartYearChanged()"></select></label>
                 </div>
                 <div id="tmPotWrap" style="display:none;margin-top:6px;">
                   <p class="hint" id="tmProjectionLine" style="margin:0 0 4px;"></p>
@@ -3122,7 +3122,7 @@
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Total in your ISA (£)<input type="number" id="miniIsa" step="1000" style="width:120px;" data-on-input="miniPotChanged()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">How the ISA is used<select id="miniIsaPolicy" style="width:230px;" data-on-change="miniPotChanged()"><option value="minimiseEarlyTax">Tax-efficient — tops up income</option><option value="maximiseLongevity">Make it last to State Pension</option><option value="hold">Hold it — never drawn, not used to buy gilts</option></select></label>
                   <label class="hint" id="miniFtaWrap" style="display:none;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" id="miniFloorToAge" min="60" max="95" style="width:80px;"></label>
-                  <label class="hint" id="miniBridgeWrap" style="display:none;flex-direction:column;gap:2px;">Bridge to age<input type="number" id="miniBridgeAge" min="56" max="90" style="width:80px;" data-on-input="miniPotChanged()"></label>
+                  <label class="hint" id="miniBridgeWrap" style="display:none;flex-direction:column;gap:2px;">Gilts bought to age<input type="number" id="miniBridgeAge" min="56" max="90" style="width:80px;" data-on-input="miniPotChanged()"></label>
                   <label class="hint" id="miniBridgeCashWrap" style="display:none;flex-direction:column;gap:2px;">Years in cash first<input type="number" id="miniBridgeCash" min="0" max="10" style="width:80px;" data-on-input="miniPotChanged()"></label>
                 </div>
                 <p class="hint" id="miniPotNote" style="margin:6px 0 0;"></p>
@@ -3136,7 +3136,7 @@
               <div id="ssGiltParams" style="display:none;margin-top:8px;">
                 <div class="row-flex">
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first <span class="hlp" tabindex="0" data-tip="Covers the first year or two, where no index-linked gilt matures in the right window and a gilt you would sell within months costs a spread for nothing. Cash is priced at inflation minus 1% a year (the same assumption every other strategy uses), so each extra cash year costs a little more than a gilt would and gives up its index-linking. 1–3 is normal.">?</span><input type="number" id="giltCashYears" min="0" max="5" value="2" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
-                  <label class="hint" id="giltBridgeWrap" style="display:flex;flex-direction:column;gap:2px;">Pension cash set aside until the plan's income starts (£) <span class="hlp" tabindex="0" data-tip="Cash kept in your pension (a money-market fund) for the months before the plan's income starts; it is taken from the pot before the ladder is bought. Money outside your pension does not go here. Once the plan's income has started there is nothing to set aside: the cash years count from today to the first rung.">?</span><input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" data-on-input="refreshStrategyCosts()"></label>
+                  <label class="hint" id="giltBridgeWrap" style="display:none;flex-direction:column;gap:2px;">Extra cash in the money-market fund (£) <span class="hlp" tabindex="0" data-tip="Cash kept in your pension's money-market fund on top of the cash years; it is taken from the pot before the ladder is bought. Money outside your pension does not go here. Shown only on a plan that holds some.">?</span><input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" id="giltRotateWrap" style="display:none;flex-direction:column;gap:2px;">Rotation: keep rungs to age<input type="number" id="giltRotateCut" min="65" max="88" value="75" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Money left over <span class="hlp" tabindex="0" data-tip="What is left after the cash years and the gilts are bought. Kept: it holds its value. Invested: it goes into a world-equity fund, charged like your other funds, so what you would have left rides the market. On the full ladder the gilts pay the plan and it is never drawn. On the ladder + rotation, kept or invested, it also pays any rotated year the sleeve cannot, before that year counts as cut.">?</span><select id="giltSpare" style="max-width:260px;" data-on-change="refreshStrategyCosts()"><option value="held">Kept, holding its value</option><option value="growth">Invested in shares (a growth part)</option></select></label>
                 </div>
@@ -3626,7 +3626,7 @@
             <button type="button" class="strat-nav-item" data-page="pots-and-valves" data-on-click="showStrategyPage('pots-and-valves')">Pots &amp; Valves</button>
             <button type="button" class="strat-nav-item" data-page="buckets-in-order" data-on-click="showStrategyPage('buckets-in-order')">Buckets in order</button>
             <button type="button" class="strat-nav-item" data-page="ladder-and-ratchet" data-on-click="showStrategyPage('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
-            <button type="button" class="strat-nav-item" data-page="bridge-and-engine" data-on-click="showStrategyPage('bridge-and-engine')">Bridge &amp; engine</button>
+            <button type="button" class="strat-nav-item" data-page="bridge-and-engine" data-on-click="showStrategyPage('bridge-and-engine')">Gilts to State Pension, then shares</button>
             <button type="button" class="strat-nav-item" data-page="floor-and-flex" data-on-click="showStrategyPage('floor-and-flex')">Floor &amp; Flex</button>
             <button type="button" class="strat-nav-item" data-page="floor-the-schedule" data-on-click="showStrategyPage('floor-the-schedule')">Floor the schedule</button>
             <button type="button" class="strat-nav-item" data-page="floor-to-age" data-on-click="showStrategyPage('floor-to-age')">Floor to an age, then decide</button>
@@ -3796,7 +3796,7 @@
                     you both in the same year.</li>
                 <li><strong>One timeline:</strong> year by year, what the household needs, when each State Pension
                     starts, and how much has to come out of the pots — including the tight
-                    "bridge" years before your State Pensions arrive.</li>
+                    the tight years before your State Pensions arrive.</li>
                 <li><strong>One number for what's left:</strong> your combined pots over time, in today's money,
                     if markets are poor, typical, or strong.</li>
               </ul>

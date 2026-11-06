@@ -244,15 +244,19 @@ const out = {};   // file name → document
 }
 
 // 02 — a configured Pots & Valves DRAFT: retired at 61, stepped income, State Pension by date, never locked.
+//      7.4.0: year 0 is the tax year work stopped (June 2026) — never a later one. It was saved with next April, 2027/28,
+//      before 7.4.0; it is now as its next Save writes it (PlanMove.laterDraftOf): one more year, the first step from 62,
+//      the same end age.
 {
   startGuestStore(); at('2026-08-14T10:05:00.000Z');
   const id = await newPlan('Draft — Pots & Valves', 'First go at a drawdown plan');
   await saveStressForm({
-    currentAge: 61, firstTaxYear: 2027, spStartDate: '14 March 2032', spWeeklyAmount: 221.2, duration: 33,
+    currentAge: 61, firstTaxYear: 2026, spStartDate: '14 March 2032', spWeeklyAmount: 221.2, duration: 34,
     equityMin: 420000, bondMin: 210000, cashTarget: 70000, isaBalance: 45000, isaDrawdownStrategy: 'minimiseEarlyTax',
-    baseSalary: 38000, incomeShape: 'phases', incomeSteps: [{ fromAge: 63, amount: 38000 }, { fromAge: 75, amount: 32000, decline: 1 }],
+    baseSalary: 38000, incomeShape: 'phases', incomeSteps: [{ fromAge: 62, amount: 38000 }, { fromAge: 75, amount: 32000, decline: 1 }],
     strategyId: 'pots-and-valves'
   });
+  await Str.saveStressSettings({ stoppedWork: '2026-06' });   // the Timing block's month box (6.51.0)
   await stageTick();
   [out['02-pnv-draft']] = exportDocs({ [id]: 'h3NpX9sYq1ZtGu6RaEo5' });
 }
@@ -456,8 +460,11 @@ const out = {};   // file name → document
   startGuestStore(); at('2026-08-22T15:00:00.000Z');
   const tools = ['budget', 'stress', 'decision', 'accumulation', 'household'];
   const idA = await newPlan('Ours — Asha', 'Retired; drawing first', tools);
-  await saveStressForm({ currentAge: 64, firstTaxYear: 2027, spStartDate: '2 October 2028', spWeeklyAmount: 198.4, duration: 30,
+  // 7.4.0: year 0 is the tax year Asha stopped work (May 2026), never a later one (next April, 2027/28, before 7.4.0): one
+  // more year to the same end age
+  await saveStressForm({ currentAge: 64, firstTaxYear: 2026, spStartDate: '2 October 2028', spWeeklyAmount: 198.4, duration: 31,
     equityMin: 210000, bondMin: 110000, cashTarget: 30000, isaBalance: 22000, baseSalary: 24000, incomeShape: 'flat', strategyId: 'pots-and-valves' });
+  await Str.saveStressSettings({ stoppedWork: '2026-05' });   // the Timing block's month box (6.51.0)
   { const b = await getBudgetAsync(); b.sharedWithPartner = true; b.mySharePct = 50; await saveBudget(b); }
   await stageTick();
   const idB = await newPlan('Ours — Ben', 'Working to 62', tools, {}, true);
@@ -490,21 +497,24 @@ const out = {};   // file name → document
 }
 
 // 12 — LUMPY: a DB pension, two income streams, two lump sums (one inherited pension), one-off spends and an
-//      existing taxable account (GIA) holding a balanced mix, for a higher-rate holder.
+//      existing taxable account (GIA) holding a balanced mix, for a higher-rate holder. 7.4.0: year 0 is the tax year work
+//      stopped (July 2026), never a later one (next April, 2027/28, before 7.4.0), as its next Save writes it: one more year
+//      to the same end age, the first step from 59, and every figure counted from year 0 one year on (the same tax years).
 {
   startGuestStore(); at('2026-09-11T13:30:00.000Z');
   const id = await newPlan('Everything at once', 'DB pension, rent, lumps in and out, and a GIA');
   await saveStressForm({
-    currentAge: 59, firstTaxYear: 2027, spStartDate: '25 July 2034', spWeeklyAmount: 224.9, duration: 32,
+    currentAge: 59, firstTaxYear: 2026, spStartDate: '25 July 2034', spWeeklyAmount: 224.9, duration: 33,
     equityMin: 280000, bondMin: 120000, cashTarget: 40000, isaBalance: 60000, isaDrawdownStrategy: 'minimiseEarlyTax',
-    baseSalary: 48000, incomeShape: 'phases', incomeSteps: [{ fromAge: 60, amount: 48000 }, { fromAge: 66, amount: 42000, glideToNext: true }, { fromAge: 76, amount: 34000 }],
-    other: 1200, dbAmount: 9400, dbStartYear: 5, dbIndexation: 'lpi5',
-    extraIncomes: [{ label: 'Rental flat', annual: 7200, startYear: 0, endYear: 14, indexation: 'cpi' }, { label: 'Part-time consulting', annual: 12000, startYear: 0, endYear: 3, indexation: 'level' }],
-    windfalls: [{ label: 'Inherited pension', amount: 120000, year: 4, wrapper: 'pension' }, { label: 'Downsizing', amount: 90000, year: 9, wrapper: 'cash' }],
-    extraWithdrawals: [{ label: 'New roof', amount: 25000, year: 2 }, { label: 'Camper van', amount: 36000, year: 6, years: 3 }],
+    baseSalary: 48000, incomeShape: 'phases', incomeSteps: [{ fromAge: 59, amount: 48000 }, { fromAge: 66, amount: 42000, glideToNext: true }, { fromAge: 76, amount: 34000 }],
+    other: 1200, dbAmount: 9400, dbStartYear: 6, dbIndexation: 'lpi5',
+    extraIncomes: [{ label: 'Rental flat', annual: 7200, startYear: 1, endYear: 15, indexation: 'cpi' }, { label: 'Part-time consulting', annual: 12000, startYear: 1, endYear: 4, indexation: 'level' }],
+    windfalls: [{ label: 'Inherited pension', amount: 120000, year: 5, wrapper: 'pension' }, { label: 'Downsizing', amount: 90000, year: 10, wrapper: 'cash' }],
+    extraWithdrawals: [{ label: 'New roof', amount: 25000, year: 3 }, { label: 'Camper van', amount: 36000, year: 7, years: 3 }],
     taxableStart: 85000, taxableMix: 'balanced', giaTaxBand: 'higher', bedAndIsa: true, relevantEarnings: 12000,
     strategyId: 'pots-and-valves'
   });
+  await Str.saveStressSettings({ stoppedWork: '2026-07' });   // the Timing block's month box (6.51.0)
   await Scn.saveActiveHoldings({ source: 'paste', updatedAt: '2026-09-11', lines: [
     { wrapper: 'SIPP', ticker: 'SWDA', name: 'iShares Core MSCI World', units: 3150, value: 281900, ocf: 0.2, kind: 'fund', subClass: 'worldGrowth', asOf: '2026-09-10' },
     { wrapper: 'SIPP', ticker: 'VGOV', name: 'Vanguard UK Gilt', units: 7400, value: 119800, ocf: 0.05, kind: 'fund', subClass: 'longGilts', asOf: '2026-09-10' },

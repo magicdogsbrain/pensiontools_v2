@@ -127,7 +127,7 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
   const s = savedSpend(entryOf(LUMPY).plan, { today: TODAY });
   it('the first row, two later steps (the first moving evenly), two one-off costs, each with its saved value and before-tax figure; the derived lines; the budget not worked out', () => {
     const { root, text } = draw(spendState(entries, id));
-    expect(root.querySelector('[data-testid="plan.spend.first.legend"]').textContent).toBe('From age 60, the plan’s first year');
+    expect(root.querySelector('[data-testid="plan.spend.first.legend"]').textContent).toBe('From age 59, the plan’s first year');
     expect(root.querySelector('[data-testid="plan.spend.first.amount"]').value).toBe(String(s.first.monthly));
     expect(root.querySelector('[data-saved-for="first.amount"]').textContent).toBe(`From your plan, saved 11 September 2026 (${s.first.monthly})`);
     expect(root.querySelector('#plan\\.spend\\.first\\.amount\\.help').textContent).toBe('£48,000 a year before tax, as the plan saves it.');
@@ -146,7 +146,7 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(root.querySelector('[data-testid="plan.spend.costs.1.years"]').value).toBe('3');
     expect(root.querySelector('[data-testid="plan.spend.costs.1.prices.rise"]').checked).toBe(true);
     expect(root.querySelector('[data-card="costs.0"] legend').textContent).toBe('One-off cost 1');
-    expect(text).toContain(`From age 60: ${money(s.first.monthly)} a month after tax (£48,000 a year before tax).`);
+    expect(text).toContain(`From age 59: ${money(s.first.monthly)} a month after tax (£48,000 a year before tax).`);
     expect(text).toContain(`From age 66: ${money(s.steps[0].monthly)} a month after tax (£42,000 a year before tax), moving evenly to ${money(s.steps[1].monthly)} at 76.`);
     expect(text).toContain(`New roof: ${money(s.costs[0].amount)} after tax at age 62 (tax year 2029/30), once — £25,000 before tax on top of that year’s figure, going up with prices.`);
     expect(text).toContain(`Camper van: ${money(s.costs[1].amount)} a year after tax from age 66 (tax year 2033/34) for 3 years — £36,000 a year before tax on top of each year’s figure, going up with prices.`);
@@ -196,16 +196,16 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(+added.root.querySelector('[data-testid="plan.spend.shape.chart"] g.year[data-age="85"]').getAttribute('data-figure')).toBeGreaterThan(1500);
     expect(added.root.querySelector('[data-line="spend.floor.from"]').textContent).toMatch(/^From age \d+ your State Pension and other pensions pay more than this \(£[\d,]+ a month after tax\): the plan pays that, and nothing is taken from your pension or savings\.$/);
     expect(+added.root.querySelector('[data-testid="plan.spend.shape.chart"] g.year[data-age="84"]').getAttribute('data-figure')).toBeGreaterThan(1696);
-    const left = draw(spendState(entries, id, { typed: { 'steps.0.fromAge': '60', 'costs.0.atAge': '59' }, touched: ['costs.0.atAge'] }));
-    expect(left.root.querySelector('[data-error-for="plan.spend.costs.0.atAge"]').textContent).toBe('The plan’s first year is at age 60. An age of 60 or more, please.');
+    const left = draw(spendState(entries, id, { typed: { 'steps.0.fromAge': '59', 'costs.0.atAge': '58' }, touched: ['costs.0.atAge'] }));
+    expect(left.root.querySelector('[data-error-for="plan.spend.costs.0.atAge"]').textContent).toBe('The plan’s first year is at age 59. An age of 59 or more, please.');
     expect(left.root.querySelector('[data-error-for="plan.spend.steps.0.fromAge"]')).toBe(null);
-    const asked = draw(spendState(entries, id, { typed: { 'steps.0.fromAge': '60', 'steps.1.then': 'glides' }, asked: true }));
-    expect(asked.root.querySelector('[data-error-for="plan.spend.steps.0.fromAge"]').textContent).toBe('This is not later than the plan’s first year, at 60. Make it later, or change the figure above instead.');
+    const asked = draw(spendState(entries, id, { typed: { 'steps.0.fromAge': '59', 'steps.1.then': 'glides' }, asked: true }));
+    expect(asked.root.querySelector('[data-error-for="plan.spend.steps.0.fromAge"]').textContent).toBe('This is not later than the plan’s first year, at 59. Make it later, or change the figure above instead.');
     expect(asked.root.querySelector('[data-error-for="plan.spend.steps.1.then"]').textContent).toBe('There is no later step to move towards. Add one, or choose another.');
     // the first row's own fall
     const falls = draw(spendState(entries, id, { typed: { 'first.then': 'falls', 'first.fallsPct': '1' } }));
     expect(falls.root.querySelector('[data-testid="plan.spend.first.fallsPct"]').value).toBe('1');
-    expect(falls.text).toMatch(/From age 60: £[\d,]+ a month after tax \(£48,000 a year before tax\), falling 1% a year to £[\d,]+ at 65\./);
+    expect(falls.text).toMatch(/From age 59: £[\d,]+ a month after tax \(£48,000 a year before tax\), falling 1% a year to £[\d,]+ at 65\./);
   });
   it('the budget worked out: the totals with their source, the guide line, "Use" fills the first row, the essentials dashed on the picture and the below line', () => {
     const plan = JSON.parse(JSON.stringify(entryOf(LUMPY).plan));
@@ -219,7 +219,7 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(actions.pop()).toEqual({ type: 'plan/edit', planId: id, path: 'first.amount', value: '2264' });
     expect(root.querySelector('[data-testid="plan.spend.shape.chart.essentials"]')).not.toBe(null);
     const low = draw(spendState(es, id, { typed: { 'first.amount': '1500' } }));
-    expect(low.root.querySelector('[data-testid="plan.spend.below"]').textContent).toBe('From 60 this is less than your budget’s essentials (£1,610 a month). That is allowed: it is your figure.');
+    expect(low.root.querySelector('[data-testid="plan.spend.below"]').textContent).toBe('From 59 this is less than your budget’s essentials (£1,610 a month). That is allowed: it is your figure.');
   });
   it('the toast after a save, with Undo; "Saving…" while a write is under way; a problem from the write in plain words', () => {
     const line = { id: 'spend', slots: { age: 60, monthly: '£3,000', steps: 2, costs: 1 } };

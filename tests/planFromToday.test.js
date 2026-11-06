@@ -125,7 +125,9 @@ describe('which plan year the pots belong to: what the readers say (potsAsOf)', 
   it('a draft whose year 0 is behind it is seen from today; one in its year 0 or before says nothing', () => {
     for (const now of [CORPUS_DAY, IN_YEAR_1]) expect(at(now, () => settingsOf(draftOf(ALEX), now)).potsAsOf).toBe(POTS_TODAY);
     expect(at(IN_YEAR_0, () => settingsOf(draftOf(ALEX), IN_YEAR_0)).potsAsOf).toBeUndefined();
-    for (const name of ['03-gilt-ladder-runup', '04-buckets-running', '05-saver-committed', '12-lumpy-db-gia']) expect(at(CORPUS_DAY, () => settingsOf(draftOf(read(name)), CORPUS_DAY)).potsAsOf).toBeUndefined();
+    for (const name of ['03-gilt-ladder-runup', '04-buckets-running', '05-saver-committed']) expect(at(CORPUS_DAY, () => settingsOf(draftOf(read(name)), CORPUS_DAY)).potsAsOf).toBeUndefined();
+    // 7.4.0: 12 says when work stopped (July 2026) and its year 0 is that tax year, after whose April its pots were entered
+    expect(at(CORPUS_DAY, () => settingsOf(draftOf(read('12-lumpy-db-gia')), CORPUS_DAY)).potsAsOf).toBe(POTS_TODAY);
   });
   it('a plan locked in a later plan year is seen from where it stood that day, whatever today is', () => {
     expect(lockedPotsAsOf(lockedInYear2(ALEX))).toEqual({ elapsedYears: 2, monthsIntoYear: 5 });

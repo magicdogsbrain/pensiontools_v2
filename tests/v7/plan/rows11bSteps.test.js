@@ -33,8 +33,10 @@ const thisTY = taxYearStartOf(noon(TODAY));
 function staleRaw() {
   const p = copy(C['02-pnv-draft']);
   p.stressTool.settings.firstTaxYear = thisTY - 1;
+  p.decisionTool.settings.firstTaxYear = thisTY - 1;   // both copies saved with the passed year, as a draft saves them
   p.stressTool.settings.retired = true;
   delete p.stressTool.settings.staleDraftDismissedFor;
+  delete p.stressTool.settings.stoppedWork;   // 7.4.0: fixture 02 now says its month; this draft does not
   return p;
 }
 const planOf = (raw) => entryOf(raw, TODAY).plan;
@@ -237,7 +239,7 @@ describe('income.lump-to-steps — "Turn a lump sum into income"', () => {
   it('12: the spend step offers each lump sum inside the plan\'s years with what it could support; the edits make the cards equal the steps the planner makes, and Save writes them to the pound', () => {
     const plan = planOf(C['12-lumpy-db-gia']);
     const s = savedSpend(plan, { today: TODAY });
-    expect(s.lumps.map((l) => [l.label, l.amount, l.atAge])).toEqual([['Inherited pension', 120000, s.ageNow + 4], ['Downsizing', 90000, s.ageNow + 9]]);
+    expect(s.lumps.map((l) => [l.label, l.amount, l.atAge])).toEqual([['Inherited pension', 120000, s.ageNow + 5], ['Downsizing', 90000, s.ageNow + 10]]);   // 7.4.0: from 59, the same ages
     const v = spendOf([{ plan }], plan.id, { today: TODAY });
     expect(v.lumps.length).toBe(2);
     for (const l of v.lumps) {

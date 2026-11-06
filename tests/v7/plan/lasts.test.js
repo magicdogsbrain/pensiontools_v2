@@ -13,11 +13,11 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { lastsOf, lastsPatch, applyPatch, boxesOf, savedLasts, checkLasts, runKeyOf, verdictOf, verdictWord, startRow, notUsedBy, cutPctOf, multOf, FAMILY, CONTRACT, extrasView } from '../../../src/answers/plan/lasts.js';
-import { LASTS_FIELDS, LASTS_WRITES, ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, isLastsPath, isPlanEditPath, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, HOUSEHOLD_WRITES, PLANS_WRITES, MOVE_START_WRITES, CLOSE_WRITES } from '../../../src/answers/plan/schema.js';
+import { LASTS_FIELDS, LASTS_WRITES, ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, isLastsPath, isPlanEditPath, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, HOUSEHOLD_WRITES, PLANS_WRITES, MOVE_START_WRITES, CLOSE_WRITES, LATER_DRAFT_WRITES } from '../../../src/answers/plan/schema.js';
 import { SUB_STEPS, ALL_SUB_STEPS } from '../../../src/answers/plan/steps.js';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { parse, format, screenName, PLAN_SUB_STEPS } from '../../../src/v7/router/routes.js';
-import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
+import { effectiveStressSettings, laterDraftReading } from '../../../src/services/PlanReading.js';
 import { createSimulationConfigFromSettings } from '../../../src/storage/StressRepository.js';
 import { simulationConfigFromSettings } from '../../../src/services/SimulationConfig.js';
 import { oneAnswer, futuresOutOfTen } from '../../../src/services/OneAnswer.js';
@@ -31,7 +31,9 @@ import { corpus, entriesAt, entryOf, household, DATES, TODAY, noon } from './_pl
 const C = corpus();
 const strip = (plan) => { const out = JSON.parse(JSON.stringify(plan)); for (const p of ALL_WRITES) { const parts = p.split('.'); let o = out; for (let i = 0; i < parts.length - 1 && o; i++) o = o[parts[i]]; if (o) delete o[parts[parts.length - 1]]; } return out; };
 const isLocked = (p) => !!(p.decisionTool && p.decisionTool.settings && p.decisionTool.settings.locked);
-const EDITABLE = Object.values(C).filter((p) => !isLocked(p));
+// a draft saved with a later start (7.4.0) is written with its reading by every save (moveStart.withLaterDraft, tested in
+// tests/laterStart.test.js): the pure step writer alone is not its whole save, so it is left out here
+const EDITABLE = Object.values(C).filter((p) => !isLocked(p) && !laterDraftReading(entryOf(p).plan, { now: noon(TODAY) }));
 const LUMPY = C['12-lumpy-db-gia'];
 const ROTATION = C['07-pre-6.13-flat-params'];
 const LADDER = C['03-gilt-ladder-runup'];
@@ -332,7 +334,7 @@ describe('L1 — the sub-step, the address and the plan page\'s links', () => {
     expect(isLastsPath('cuts.0.pct')).toBe(false);
     for (const k of LASTS_WRITES) { expect(k.startsWith('stressTool.settings.')).toBe(true); expect(ALL_WRITES).toContain(k); }
     expect(LASTS_WRITES.map((k) => k.split('.')[2]).sort()).toEqual([...KEYS].sort());
-    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', 'accumulationTool.checkIns', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'decisionTool.history', 'decisionTool.taxYears', 'journey', ...PLANS_WRITES, ...MOVE_START_WRITES, ...CLOSE_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11)
+    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', 'accumulationTool.checkIns', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'decisionTool.history', 'decisionTool.taxYears', 'journey', ...PLANS_WRITES, ...MOVE_START_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11)
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
   });
   for (const today of DATES) {

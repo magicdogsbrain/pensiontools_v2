@@ -212,6 +212,8 @@ describe('signed in: where a plan\'s pots belong is said on the copy in memory, 
     await open(draft());
     expect((await getStressSettingsAsync()).potsAsOf).toBe('today');
     await open(fixture('02-pnv-draft'));
+    expect((await getStressSettingsAsync()).potsAsOf).toBe('today');   // 7.4.0: 02 says it stopped in June 2026, in its year 0
+    await open(fixture('05-saver-committed'));
     expect((await getStressSettingsAsync()).potsAsOf).toBeUndefined();
   });
 

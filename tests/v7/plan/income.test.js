@@ -13,11 +13,11 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { incomeOf, incomePatch, applyPatch, boxesOf, savedIncome, checkIncome, derivedLines, note2028, derivedSpDate, yearOfAge, ageOfYear, FS_LABEL, pounds, poundsPence } from '../../../src/answers/plan/income.js';
 import { answerAge, safeSettings, safeTiming } from '../../../src/answers/plan/about.js';
-import { INCOME_FIELDS, INCOME_LISTS, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, ALL_WRITES, ABOUT_WRITES, isIncomePath, isPlanEditPath, RISES, WRAPPERS, HOUSEHOLD_WRITES, PLANS_WRITES, MOVE_START_WRITES, CLOSE_WRITES } from '../../../src/answers/plan/schema.js';
+import { INCOME_FIELDS, INCOME_LISTS, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, ALL_WRITES, ABOUT_WRITES, isIncomePath, isPlanEditPath, RISES, WRAPPERS, HOUSEHOLD_WRITES, PLANS_WRITES, MOVE_START_WRITES, CLOSE_WRITES, LATER_DRAFT_WRITES } from '../../../src/answers/plan/schema.js';
 import { SUB_STEPS, ALL_SUB_STEPS } from '../../../src/answers/plan/steps.js';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { parse, format, screenName, PLAN_SUB_STEPS } from '../../../src/v7/router/routes.js';
-import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
+import { effectiveStressSettings, laterDraftReading } from '../../../src/services/PlanReading.js';
 import { deriveTiming } from '../../../src/services/PlanTiming.js';
 import { dbStartYearOfAge, dbStartAgeOf } from '../../../src/ui/dbStartSetting.js';
 import { shapeLayersFromSettings } from '../../../src/services/PlanDocument.js';
@@ -32,7 +32,9 @@ const C = corpus();
 const text = (v) => JSON.stringify(v);
 const strip = (plan) => { const out = JSON.parse(JSON.stringify(plan)); for (const p of ALL_WRITES) { const parts = p.split('.'); let o = out; for (let i = 0; i < parts.length - 1 && o; i++) o = o[parts[i]]; if (o) delete o[parts[parts.length - 1]]; } return out; };
 const isLocked = (p) => !!(p.decisionTool && p.decisionTool.settings && p.decisionTool.settings.locked);
-const EDITABLE = Object.values(C).filter((p) => !isLocked(p));
+// a draft saved with a later start (7.4.0) is written with its reading by every save (moveStart.withLaterDraft, tested in
+// tests/laterStart.test.js): the pure step writer alone is not its whole save, so it is left out here
+const EDITABLE = Object.values(C).filter((p) => !isLocked(p) && !laterDraftReading(entryOf(p).plan, { now: noon(TODAY) }));
 const LUMPY = C['12-lumpy-db-gia'];
 
 describe('I1 — the reading, on every corpus plan at three dates', () => {
@@ -58,7 +60,7 @@ describe('I1 — the reading, on every corpus plan at three dates', () => {
   }
   it('the lumpy plan (12): the forecast, one final-salary pension at 65, other income, two incomes for some years, two lump sums — every plan year an age', () => {
     const s = savedIncome(entryOf(LUMPY).plan, { today: TODAY });
-    expect(s.ageNow).toBe(60);
+    expect(s.ageNow).toBe(59);
     expect(s.sp).toMatchObject({ kind: 'forecast', weekly: 224.9, yearly: 11694.8, date: '25 July 2034', fromAge: 67, taxYear: 2034, beforeStart: false, dated: true });
     expect(s.fs).toEqual([{ id: '0', amount: 9400, fromAge: 65, rises: 'lpi5', from: 'db', row: null }]);
     expect(s.other).toBe(1200);
@@ -80,10 +82,10 @@ describe('I1 — the reading, on every corpus plan at three dates', () => {
     expect(poundsPence(230.25)).toBe('£230.25');
     expect(poundsPence(241.3)).toBe('£241.30');
   });
-  it('the State Pension as saved: a forecast (10, 02), the planner\'s assumed figure with no date (01: £12,000 from 67; 11: from 68 by its own year), a locked plan from its document (03)', () => {
+  it('the State Pension as saved: a forecast (10, 02), the planner\'s assumed figure with no date (01: £12,000 from 67; 11: from 67 by its own year — 7.4.0: its plan starts this tax year), a locked plan from its document (03)', () => {
     expect(savedIncome(entryOf(C['10-couple-b']).plan, { today: TODAY }).sp).toMatchObject({ kind: 'forecast', weekly: 230.25, fromAge: 67, taxYear: 2034 });
     expect(savedIncome(entryOf(C['01-fresh-default']).plan, { today: TODAY }).sp).toMatchObject({ kind: 'assumed', yearly: 12000, fromAge: 67 });
-    expect(savedIncome(entryOf(C['11-guest-demo']).plan, { today: TODAY }).sp).toMatchObject({ kind: 'assumed', yearly: 11973, fromAge: 68 });
+    expect(savedIncome(entryOf(C['11-guest-demo']).plan, { today: TODAY }).sp).toMatchObject({ kind: 'assumed', yearly: 11973, fromAge: 67 });
     const l = savedIncome(entryOf(C['03-gilt-ladder-runup']).plan, { today: TODAY });
     expect(l.locked).toBe(true);
     expect(l.sp).toMatchObject({ kind: 'forecast', weekly: 230.25, date: '14 March 2029', fromAge: 67 });
@@ -152,19 +154,19 @@ describe('I1 — the write: the exact paths and values, as the planner\'s Save w
   it('the final-salary pension: the first card is the planner\'s own keys (the year from the age, the age beside it); a changed age; none', () => {
     const p = incomePatch(plan, { 'fs.0.fromAge': '67' }, { today: TODAY });
     // the year the engines read and the age asked, written beside it (the plan had none); the unchanged amount and rises are not sent
-    expect(p.patch).toEqual({ 'stressTool.settings.dbStartYear': 7, 'stressTool.settings.dbStartAge': 67 });
-    expect(p.previous).toEqual({ 'stressTool.settings.dbStartYear': 5, 'stressTool.settings.dbStartAge': undefined });
-    expect(incomePatch(plan, { 'fs.0.fromAge': '67', 'fs.0.amount': '9,500', 'fs.0.rises': 'cpi' }, { today: TODAY }).patch).toEqual({ 'stressTool.settings.dbAmount': 9500, 'stressTool.settings.dbStartYear': 7, 'stressTool.settings.dbStartAge': 67, 'stressTool.settings.dbIndexation': 'cpi' });
-    expect(dbStartYearOfAge(67, 60)).toBe(7);
+    expect(p.patch).toEqual({ 'stressTool.settings.dbStartYear': 8, 'stressTool.settings.dbStartAge': 67 });
+    expect(p.previous).toEqual({ 'stressTool.settings.dbStartYear': 6, 'stressTool.settings.dbStartAge': undefined });
+    expect(incomePatch(plan, { 'fs.0.fromAge': '67', 'fs.0.amount': '9,500', 'fs.0.rises': 'cpi' }, { today: TODAY }).patch).toEqual({ 'stressTool.settings.dbAmount': 9500, 'stressTool.settings.dbStartYear': 8, 'stressTool.settings.dbStartAge': 67, 'stressTool.settings.dbIndexation': 'cpi' });
+    expect(dbStartYearOfAge(67, 59)).toBe(8);
     const after = applyPatch(plan, p.patch);
-    expect(dbStartAgeOf(after.stressTool.settings, 60)).toBe(67);
+    expect(dbStartAgeOf(after.stressTool.settings, 59)).toBe(67);
     expect(savedIncome(after, { today: TODAY }).fs[0]).toMatchObject({ amount: 9400, fromAge: 67, rises: 'lpi5' });
     const none = incomePatch(plan, { 'fs.ids': '' }, { today: TODAY });
     expect(none.patch).toEqual({ 'stressTool.settings.dbAmount': 0 });
     expect(savedIncome(applyPatch(plan, none.patch), { today: TODAY }).fs).toEqual([]);
     // a start before the plan's first year is allowed and said; one after its end is refused as the planner refuses it
     expect(checkIncome(plan, { 'fs.0.fromAge': '58' }, { today: TODAY }).errors).toEqual({});
-    expect(incomeOf([{ plan }], plan.id, { today: TODAY, typed: { 'fs.0.fromAge': '58' } }).derived[1]).toEqual({ id: 'fs.before', slots: { n: 1, amount: '£9,400', age: 58, ageNow: 60, rises: 'lpi5' } });
+    expect(incomeOf([{ plan }], plan.id, { today: TODAY, typed: { 'fs.0.fromAge': '58' } }).derived[1]).toEqual({ id: 'fs.before', slots: { n: 1, amount: '£9,400', age: 58, ageNow: 59, rises: 'lpi5' } });
     expect(checkIncome(plan, { 'fs.0.fromAge': '92' }, { today: TODAY }).errors).toEqual({ 'fs.0.fromAge': 'afterEnd' });
   });
   it('a second final-salary pension goes into the planner\'s own list as income for the rest of the plan, labelled; removing the first makes the second the planner\'s own keys', () => {
@@ -172,7 +174,7 @@ describe('I1 — the write: the exact paths and values, as the planner\'s Save w
     expect(Object.keys(p.patch)).toEqual(['stressTool.settings.extraIncomes']);
     const rows = p.patch['stressTool.settings.extraIncomes'];
     expect(rows.slice(0, 2)).toEqual(plan.stressTool.settings.extraIncomes);   // the planner's rows, byte for byte
-    expect(rows[2]).toEqual({ label: FS_LABEL, annual: 3000, startYear: 6, endYear: null, indexation: 'cpi' });
+    expect(rows[2]).toEqual({ label: FS_LABEL, annual: 3000, startYear: 7, endYear: null, indexation: 'cpi' });
     const after = applyPatch(plan, p.patch);
     const read = savedIncome(after, { today: TODAY });
     expect(read.fs.map((x) => [x.amount, x.fromAge, x.rises, x.from])).toEqual([[9400, 65, 'lpi5', 'db'], [3000, 66, 'cpi', 'row']]);
@@ -182,7 +184,7 @@ describe('I1 — the write: the exact paths and values, as the planner\'s Save w
     expect(layers.other.find((o) => o.label === FS_LABEL)).toMatchObject({ annual: 3000, fromAge: 66, toAge: 999 });
     // the first removed: the second becomes the planner's own keys and its row goes
     const q = incomePatch(after, { 'fs.ids': '1' }, { today: TODAY });
-    expect(q.patch).toEqual({ 'stressTool.settings.dbAmount': 3000, 'stressTool.settings.dbStartYear': 6, 'stressTool.settings.dbStartAge': 66, 'stressTool.settings.dbIndexation': 'cpi', 'stressTool.settings.extraIncomes': plan.stressTool.settings.extraIncomes });
+    expect(q.patch).toEqual({ 'stressTool.settings.dbAmount': 3000, 'stressTool.settings.dbStartYear': 7, 'stressTool.settings.dbStartAge': 66, 'stressTool.settings.dbIndexation': 'cpi', 'stressTool.settings.extraIncomes': plan.stressTool.settings.extraIncomes });
     expect(savedIncome(applyPatch(after, q.patch), { today: TODAY }).fs.map((x) => [x.amount, x.fromAge, x.from])).toEqual([[3000, 66, 'db']]);
   });
   it('income for some years and lump sums: an edited card is merged onto its row (other keys kept), a removed card\'s row goes, a new card is appended; the planner reads the ages back as its years', () => {
@@ -191,8 +193,8 @@ describe('I1 — the write: the exact paths and values, as the planner\'s Save w
     withMix.stressTool.settings.windfalls[1].toIsa = false;
     const p = incomePatch(withMix, { 'lumps.1.atAge': '70', 'streams.ids': '1,n1', 'streams.n1.label': 'Rent', 'streams.n1.amount': '5000', 'streams.n1.fromAge': '70', 'streams.n1.rises': 'level', other: '' }, { today: TODAY });
     expect(p.ok).toBe(true);
-    expect(p.patch['stressTool.settings.windfalls']).toEqual([{ amount: 120000, label: 'Inherited pension', wrapper: 'pension', year: 4 }, { amount: 90000, label: 'Downsizing', wrapper: 'cash', year: 10, mix: 'gilt', toIsa: false }]);
-    expect(p.patch['stressTool.settings.extraIncomes']).toEqual([plan.stressTool.settings.extraIncomes[1], { label: 'Rent', annual: 5000, startYear: 10, endYear: null, indexation: 'level' }]);
+    expect(p.patch['stressTool.settings.windfalls']).toEqual([{ amount: 120000, label: 'Inherited pension', wrapper: 'pension', year: 5 }, { amount: 90000, label: 'Downsizing', wrapper: 'cash', year: 11, mix: 'gilt', toIsa: false }]);
+    expect(p.patch['stressTool.settings.extraIncomes']).toEqual([plan.stressTool.settings.extraIncomes[1], { label: 'Rent', annual: 5000, startYear: 11, endYear: null, indexation: 'level' }]);
     expect(p.patch['stressTool.settings.other']).toBe(0);
     const after = applyPatch(withMix, p.patch);
     const layers = shapeLayersFromSettings(effectiveStressSettings(after, { now: noon(TODAY) }), undefined, { now: noon(TODAY) });
@@ -233,20 +235,20 @@ describe('I1 — the write: the exact paths and values, as the planner\'s Save w
     expect(errs({ 'streams.0.toAge': '59' })).toEqual({ 'streams.0.toAge': 'beforeFrom' });
     expect(errs({ 'streams.0.fromAge': '92' })).toEqual({ 'streams.0.fromAge': 'afterEnd' });
     expect(errs({ 'streams.0.label': 'x'.repeat(61) })).toEqual({ 'streams.0.label': 'tooLong' });
-    expect(errs({ 'lumps.1.atAge': '59' })).toEqual({ 'lumps.1.atAge': 'beforeStart' });
+    expect(errs({ 'lumps.1.atAge': '58' })).toEqual({ 'lumps.1.atAge': 'beforeStart' });
     expect(errs({ 'lumps.1.atAge': '92' })).toEqual({ 'lumps.1.atAge': 'afterEnd' });
     expect(errs({ 'lumps.1.wrapper': 'gold' })).toEqual({ 'lumps.1.wrapper': 'notAnOption' });
     expect(errs({ 'lumps.ids': '0,1,n1', 'lumps.n1.amount': '', 'lumps.n1.atAge': '' })).toEqual({ 'lumps.n1.amount': 'required', 'lumps.n1.atAge': 'required' });
     // an id that is not a card id is ignored; a card id twice is one card
     expect(checkIncome(plan, { 'lumps.ids': '0,0,zz' }, { today: TODAY }).lists.lumps.ids).toEqual(['0']);
     // every error has words
-    for (const [k, e] of Object.entries(errs({ spKind: '', 'fs.0.amount': '', 'streams.0.toAge': '59', 'lumps.1.atAge': '59' }))) {
+    for (const [k, e] of Object.entries(errs({ spKind: '', 'fs.0.amount': '', 'streams.0.toAge': '59', 'lumps.1.atAge': '58' }))) {
       const parts = k.split('.');
       const words = parts.length === 1 ? INCOME.errors[k] : INCOME.lists[parts[0]].errors[parts[2]];
       expect(words[e], k).toBeTypeOf('string');
     }
     // a problem in a card leaves the patch empty
-    expect(incomePatch(plan, { 'lumps.1.atAge': '59' }, { today: TODAY }).patch).toEqual({});
+    expect(incomePatch(plan, { 'lumps.1.atAge': '58' }, { today: TODAY }).patch).toEqual({});
   });
 });
 
@@ -431,7 +433,7 @@ describe('I1 — the sub-step, the address and the plan page\'s section', () => 
     // the planner's Stress keys — and the Decision tool's own copy of the State Pension date (road-to-7.md step 11b, inc.state-pension-date), kept in step only where it already exists
     for (const p of INCOME_WRITES) expect(p).toMatch(/^stressTool\.settings\.[a-zA-Z]+$|^decisionTool\.settings\.spStartDate$/);
     expect(INCOME_WRITES.filter((p) => p.startsWith('decisionTool'))).toEqual(['decisionTool.settings.spStartDate']);
-    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', 'accumulationTool.checkIns', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'decisionTool.history', 'decisionTool.taxYears', 'journey', ...PLANS_WRITES, ...MOVE_START_WRITES, ...CLOSE_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the budget and the saver's settings and record list, each one field (step 11b); the plan menu's name and main flag (step 11)
+    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', 'accumulationTool.checkIns', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'decisionTool.history', 'decisionTool.taxYears', 'journey', ...PLANS_WRITES, ...MOVE_START_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the budget and the saver's settings and record list, each one field (step 11b); the plan menu's name and main flag (step 11)
   });
   it('a plan not in the list, and the partner link both ways', () => {
     expect(incomeOf(entriesAt(TODAY), 'NoSuchPlan', { today: TODAY }).found).toBe(false);

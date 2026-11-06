@@ -47,15 +47,15 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
       }
     });
   }
-  it('the saved facts: 10 stops at 62 in January 2030 and plans to 93; 02 has stopped, starts next April, plans to 95; 03 (locked) reads its document', () => {
+  it('the saved facts: 10 stops at 62 in January 2030 and plans to 93; 02 stopped in June 2026, starts this tax year, plans to 95; 03 (locked) reads its document', () => {
     // 6.51.0: the reading carries the month work stopped or stops (`stopMonth`) — null on these plans, which do not say it
     const b = savedAbout(entryOf(C['10-couple-b']).plan, { today: TODAY });
     expect(b.values).toEqual({ age: 58, stopped: 'age', stopAge: 62, stopMonth: null, startWhen: null, endAge: 93, savedYear: null });
     expect(b.timing.startMonth).toBe('2030-01');
     expect(boxesOf(entryOf(C['10-couple-b']).plan, { today: TODAY })).toEqual({ age: '58', stopped: 'age', stopAge: '62', endAge: '93' });
     const d = savedAbout(entryOf(C['02-pnv-draft']).plan, { today: TODAY });
-    // 7.3.3: next April is no longer a choice, so a draft saved for it (02) reads its year as saved; nothing is written by reading
-    expect(d.values).toEqual({ age: 61, stopped: 'yes', stopAge: null, stopMonth: null, startWhen: 'saved', endAge: 95, savedYear: 2027 });
+    // 7.4.0: 02 is saved as its next Save writes it — year 0 the tax year work stopped, this one (it was next April)
+    expect(d.values).toEqual({ age: 61, stopped: 'yes', stopAge: null, stopMonth: '2026-06', startWhen: 'now', endAge: 95, savedYear: null });
     expect(d.ageSource).toEqual({ kind: 'saved', at: '14 August 2026' });
     const l = savedAbout(entryOf(C['03-gilt-ladder-runup']).plan, { today: TODAY });
     expect(l.locked).toBe(true);
@@ -72,8 +72,8 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
       { id: 'stepsFrom', slots: { age: 62 } }
     ]);
     const d = aboutOf(es, C['02-pnv-draft'].id, { today: TODAY });
-    expect(d.derived.map((x) => x.id)).toEqual(['firstYear', 'runs', 'stepsFrom']);
-    expect(d.derived[1].slots).toEqual({ years: 33, from: 'April 2027', endAge: 95 });
+    expect(d.derived.map((x) => x.id)).toEqual(['stoppedIn', 'firstYear', 'runs', 'stepsFrom']);
+    expect(d.derived[2].slots).toEqual({ years: 34, from: 'April 2026', endAge: 95 });
     expect(derivedLines(null, 30)).toEqual([{ id: 'noAge', slots: {} }]);
   });
   it('a plan as saved writes nothing (10, 02, 09, 12); a plan without its pins stored writes the pins the planner\'s own load would (11)', () => {
@@ -214,12 +214,12 @@ function validTyped(plan) {
 }
 
 describe('the month work stopped (6.51.0, research/plan-start.md §2 C/D, §3): a past month accepted, its tax year the default', () => {
-  const plan = () => entryOf(C['02-pnv-draft']).plan;   // retired, a draft, its income from next April (2027/28), to 95
+  const plan = () => entryOf(C['02-pnv-draft']).plan;   // retired, a draft, stopped June 2026, its income from 2026/27, to 95
   const fill = (t, slots) => String(t).replace(/\{(\w+)\}/g, (m, k) => (k in slots ? slots[k] : m));
   it('stopped in October 2023: the years from then are offered, the stop\'s year chosen, and the plan keeps its end age', () => {
     const c = checkAbout(plan(), { stopMonth: 'October 2023' }, { today: TODAY });
     expect(c.errors).toEqual({});
-    expect(c.offered).toEqual(['stop', 'y2024', 'y2025', 'now', 'saved']);   // 7.3.3: never next April; 02's own saved year kept
+    expect(c.offered).toEqual(['stop', 'y2024', 'y2025', 'now']);   // 7.3.3: never next April (7.4.0: 02 starts this tax year)
     expect(c.values.startWhen).toBe('stop');
     const p = aboutPatch(plan(), { stopMonth: 'October 2023' }, { today: TODAY });
     expect(p.patch['stressTool.settings.stoppedWork']).toBe('2023-10');
@@ -246,21 +246,22 @@ describe('the month work stopped (6.51.0, research/plan-start.md §2 C/D, §3): 
     const p = aboutPatch(plan(), { stopMonth: '2023-10', startWhen: 'y2025' }, { today: TODAY });
     expect(p.patch['stressTool.settings.firstTaxYear']).toBe(2025);
     expect(aboutPatch(plan(), { stopMonth: '2026-08', startWhen: 'april' }, { today: TODAY }).errors).toEqual({ startWhen: 'notAnOption' });
-    // 02's own saved year stays on offer as saved (a choice made before), and keeping it writes no new year
-    const kept = aboutPatch(plan(), { stopMonth: '2026-08', startWhen: 'saved' }, { today: TODAY });
+    // 7.4.0: a later year saved before (next April) is read as this one, so it is never on offer as "saved"
+    expect(aboutPatch(plan(), { stopMonth: '2026-08', startWhen: 'saved' }, { today: TODAY }).errors).toEqual({ startWhen: 'notAnOption' });
+    const kept = aboutPatch(plan(), { stopMonth: '2026-08' }, { today: TODAY });
     expect(kept.patch['stressTool.settings.stoppedWork']).toBe('2026-08');
-    expect(kept.patch['stressTool.settings.firstTaxYear']).toBeUndefined();
+    expect(kept.patch['stressTool.settings.firstTaxYear']).toBeUndefined();   // already this tax year
     const v = aboutOf([entryOf(applyPatch(plan(), kept.patch))], plan().id, { today: TODAY });
     expect(v.derived.map((d) => d.id)).not.toContain('startsLater');   // no words for months before the plan
-    expect(checkAbout(plan(), { stopMonth: '2026-08' }, { today: TODAY })).toMatchObject({ offered: ['now', 'saved'], values: { startWhen: 'now' } });
+    expect(checkAbout(plan(), { stopMonth: '2026-08' }, { today: TODAY })).toMatchObject({ offered: ['now'], values: { startWhen: 'now' } });
   });
   it('a year never saved (a retiree with no saved year and no stop month) is named by its year alone, never "as saved"', () => {
     const p = plan();
-    expect(aboutOf([entryOf(p)], p.id, { today: TODAY }).yearSavedIsSet).toBe(true);   // 02 saved 2027/28
+    expect(aboutOf([entryOf(p)], p.id, { today: TODAY }).yearSavedIsSet).toBe(true);   // 02 saved 2026/27
     const unsaved = JSON.parse(JSON.stringify(p));
-    delete unsaved.stressTool.settings.firstTaxYear; delete unsaved.stressTool.settings.legacyFirstTaxYear;
+    delete unsaved.stressTool.settings.firstTaxYear; delete unsaved.stressTool.settings.legacyFirstTaxYear; delete unsaved.stressTool.settings.stoppedWork;
     const a = savedAbout(unsaved, { today: TODAY });
-    expect(a.values.startWhen).toBe('saved');
+    expect(a.values.startWhen).toBe('now');   // 7.4.0: with nothing saved, this tax year (it was next April)
     expect(a.savedYearIsSet).toBe(false);
     const v = aboutOf([entryOf(unsaved)], unsaved.id, { today: TODAY });
     expect(v.yearSavedIsSet).toBe(false);
@@ -276,7 +277,9 @@ describe('the month work stopped (6.51.0, research/plan-start.md §2 C/D, §3): 
     expect(checkAbout(plan(), { stopMonth: 'June 2030' }, { today: TODAY }).errors).toEqual({ stopMonth: 'month-ahead' });
     expect(checkAbout(plan(), { stopMonth: '1950-01' }, { today: TODAY }).errors).toEqual({ stopMonth: 'too-early' });
     expect(checkAbout(plan(), { stopMonth: '' }, { today: TODAY }).errors).toEqual({});
-    expect(aboutPatch(plan(), { stopMonth: '' }, { today: TODAY }).patch).toEqual({});
+    const noMonth = JSON.parse(JSON.stringify(plan())); delete noMonth.stressTool.settings.stoppedWork;   // 7.4.0: 02 now says its month
+    expect(aboutPatch(noMonth, { stopMonth: '' }, { today: TODAY }).patch).toEqual({});
+    expect(aboutPatch(plan(), { stopMonth: '' }, { today: TODAY }).patch).toEqual({ 'stressTool.settings.stoppedWork': null });   // a month saved, cleared
     // choosing a stop at an age clears a month that was saved
     const after = applyPatch(plan(), aboutPatch(plan(), { stopMonth: '2023-10' }, { today: TODAY }).patch);
     expect(aboutPatch(after, { stopped: 'age', stopAge: '66' }, { today: TODAY }).patch['stressTool.settings.stoppedWork']).toBe(null);

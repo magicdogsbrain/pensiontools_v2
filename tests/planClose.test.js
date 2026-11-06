@@ -101,7 +101,7 @@ describe('the guard: the close allowance, once', () => {
   it('a plan that is not locked may be closed with the lock\'s flags in the same write (closeWrite), and is then read as locked', () => {
     const unlocked = copy(DRAFT);
     const w = closeWrite(unlocked, { month: '2026-11', nextPlanId: 'N1', now: NOW });
-    expect(w).toEqual({ closedAt: '2026-10', nextPlanId: 'N1', 'decisionTool.settings.locked': true, 'decisionTool.settings.lockedAt': NOW.toISOString(), 'decisionTool.settings.lockedBy': 'closed when moving to a new plan', 'decisionTool.settings.lockedPosition': null });
+    expect(w).toEqual({ closedAt: '2026-10', nextPlanId: 'N1', 'decisionTool.settings.locked': true, 'decisionTool.settings.lockedAt': NOW.toISOString(), 'decisionTool.settings.lockedBy': 'closed when moving to a new plan', 'decisionTool.settings.lockedPosition': { elapsedYears: 0, monthsIntoYear: 6 } });   // 7.4.0: 02 is in its year 0 (stopped June 2026), its pots six months in
     expect(refusal(unlocked, w)).toBe(null);
     expect(closeWrite(LADDER, { month: '2026-11', nextPlanId: 'N1', now: NOW })).toEqual({ closedAt: '2026-10', nextPlanId: 'N1' });
   });

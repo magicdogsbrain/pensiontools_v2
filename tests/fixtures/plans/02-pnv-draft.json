@@ -26,7 +26,7 @@
    "oneOffs": [],
    "plsaTier": "moderate",
    "retired": true,
-   "retirementAge": 63,
+   "retirementAge": 62,
    "sharedWithPartner": false,
    "version": 1
   }
@@ -42,7 +42,7 @@
    "consecutiveLimit": 3,
    "duration": 35,
    "equityMin": 250000,
-   "firstTaxYear": 2027,
+   "firstTaxYear": 2026,
    "giaTaxBand": "basic",
    "isaBalance": 0,
    "isaDrawdownStrategy": "minimiseEarlyTax",
@@ -56,6 +56,7 @@
    "statePension": 0,
    "statePensionYear": 0,
    "targetSchedule": [
+    38000,
     38000,
     38000,
     38000,
@@ -140,12 +141,12 @@
    "dbStartYear": 0,
    "disableProtection": false,
    "diversifierStart": 0,
-   "duration": 33,
+   "duration": 34,
    "equityGlideEnabled": false,
    "equityMin": 420000,
    "extraIncomes": [],
    "extraWithdrawals": [],
-   "firstTaxYear": 2027,
+   "firstTaxYear": 2026,
    "giaTaxBand": "basic",
    "glideEndgame": null,
    "hodlEnabled": false,
@@ -155,7 +156,7 @@
    "incomeSteps": [
     {
      "amount": 38000,
-     "fromAge": 63
+     "fromAge": 62
     },
     {
      "amount": 32000,
@@ -177,18 +178,20 @@
    "relevantEarnings": 0,
    "retireAge": null,
    "retired": true,
-   "shapeAgeNow": 63,
+   "shapeAgeNow": 62,
    "spStartDate": "14 March 2032",
    "spWeeklyAmount": 221.2,
    "spendingProfile": "flat",
    "statePension": 12000,
    "statePensionYear": 12,
+   "stoppedWork": "2026-06",
    "strategyId": "pots-and-valves",
    "strategyParams": {},
    "strategyState": {},
    "subAsset": null,
    "taggedFunds": [],
    "targetSchedule": [
+    38000,
     38000,
     38000,
     38000,

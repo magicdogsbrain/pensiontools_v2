@@ -14,11 +14,11 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { potsOf, potsPatch, applyPatch, boxesOf, savedPots, checkPots, splitTotal, sharesOf, notUsedBy, BOUGHT } from '../../../src/answers/plan/pots.js';
 import { answerAge, bandsOf } from '../../../src/answers/plan/about.js';
-import { POTS_FIELDS, POTS_WRITES, ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, isPotsPath, isPlanEditPath, ISA_GROWTHS, ISA_USES, TAXABLE_MIXES, GIA_BANDS, TAX_MODES, TAX_FREES, HOUSEHOLD_WRITES, PLANS_WRITES, MOVE_START_WRITES, CLOSE_WRITES } from '../../../src/answers/plan/schema.js';
+import { POTS_FIELDS, POTS_WRITES, ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, isPotsPath, isPlanEditPath, ISA_GROWTHS, ISA_USES, TAXABLE_MIXES, GIA_BANDS, TAX_MODES, TAX_FREES, HOUSEHOLD_WRITES, PLANS_WRITES, MOVE_START_WRITES, CLOSE_WRITES, LATER_DRAFT_WRITES } from '../../../src/answers/plan/schema.js';
 import { SUB_STEPS, ALL_SUB_STEPS } from '../../../src/answers/plan/steps.js';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { parse, format, screenName, PLAN_SUB_STEPS } from '../../../src/v7/router/routes.js';
-import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
+import { effectiveStressSettings, laterDraftReading } from '../../../src/services/PlanReading.js';
 import { chargesPctOf, normaliseChargesPct } from '../../../src/services/Charges.js';
 import { isaGrowthOf } from '../../../src/services/IsaGrowth.js';
 import { sippTodayOf, potScaleOf } from '../../../src/services/PotsAtRetirement.js';
@@ -36,7 +36,9 @@ const C = corpus();
 const text = (v) => JSON.stringify(v);
 const strip = (plan) => { const out = JSON.parse(JSON.stringify(plan)); for (const p of ALL_WRITES) { const parts = p.split('.'); let o = out; for (let i = 0; i < parts.length - 1 && o; i++) o = o[parts[i]]; if (o) delete o[parts[parts.length - 1]]; } return out; };
 const isLocked = (p) => !!(p.decisionTool && p.decisionTool.settings && p.decisionTool.settings.locked);
-const EDITABLE = Object.values(C).filter((p) => !isLocked(p));
+// a draft saved with a later start (7.4.0) is written with its reading by every save (moveStart.withLaterDraft, tested in
+// tests/laterStart.test.js): the pure step writer alone is not its whole save, so it is left out here
+const EDITABLE = Object.values(C).filter((p) => !isLocked(p) && !laterDraftReading(entryOf(p).plan, { now: noon(TODAY) }));
 const LUMPY = C['12-lumpy-db-gia'];
 const SAVER = C['10-couple-b'];
 const FRESH = C['01-fresh-default'];
@@ -425,7 +427,7 @@ describe('T1 — the sub-step, the address and the plan page\'s section', () => 
     expect(isPlanEditPath('charges')).toBe(true);
     expect(isPlanEditPath('first.amount')).toBe(true);
     for (const p of POTS_WRITES) expect(p).toMatch(/^stressTool\.settings\.[a-zA-Z]+$/);
-    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', 'accumulationTool.checkIns', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'decisionTool.history', 'decisionTool.taxYears', 'journey', ...PLANS_WRITES, ...MOVE_START_WRITES, ...CLOSE_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11); the whole budget, the Accumulation settings and the pot record list (step 11b)
+    expect(ALL_WRITES).toEqual([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', 'accumulationTool.checkIns', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'decisionTool.history', 'decisionTool.taxYears', 'journey', ...PLANS_WRITES, ...MOVE_START_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, 'lastModified'])]);   // the record and the tick-offs, each one field (road-to-7.md step 10); the plan menu's name and main flag (step 11); the whole budget, the Accumulation settings and the pot record list (step 11b)
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
   });
   it('a plan not in the list, and the partner link both ways', () => {

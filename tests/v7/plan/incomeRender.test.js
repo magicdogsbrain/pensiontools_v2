@@ -179,8 +179,8 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(none.text).toContain('No State Pension: the plan counts none.');
     expect(none.root.querySelector('[data-testid="plan.income.lumps.none"]').textContent).toBe('No lump sum in this plan.');
     expect(none.root.querySelector('[data-testid="plan.income.spWeekly"]')).toBe(null);
-    const left = draw(incomeState(entries, id, { typed: { 'lumps.1.atAge': '59', 'fs.0.fromAge': '99' }, touched: ['lumps.1.atAge'] }));
-    expect(left.root.querySelector('[data-error-for="plan.income.lumps.1.atAge"]').textContent).toBe('The plan’s first year is at age 60: money arriving before then counts as part of your pots today. An age of 60 or more, please.');
+    const left = draw(incomeState(entries, id, { typed: { 'lumps.1.atAge': '58', 'fs.0.fromAge': '99' }, touched: ['lumps.1.atAge'] }));
+    expect(left.root.querySelector('[data-error-for="plan.income.lumps.1.atAge"]').textContent).toBe('The plan’s first year is at age 59: money arriving before then counts as part of your pots today. An age of 59 or more, please.');
     expect(left.root.querySelector('[data-error-for="plan.income.fs.0.fromAge"]')).toBe(null);
     const asked = draw(incomeState(entries, id, { typed: { 'lumps.1.atAge': '59', 'fs.0.fromAge': '99' }, asked: true }));
     expect(asked.root.querySelector('[data-error-for="plan.income.fs.0.fromAge"]').textContent).toBe('That is after the plan ends at age 91 — the pension would never pay. An age up to 91, or lengthen the plan.');

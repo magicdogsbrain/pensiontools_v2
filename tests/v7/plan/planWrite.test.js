@@ -14,7 +14,7 @@ import { initialState } from '../../../src/v7/state/initial.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { parse } from '../../../src/v7/router/routes.js';
-import { ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, HOUSEHOLD_WRITES, LOCK_FLAG_WRITES, PLANS_WRITES, MOVE_START_WRITES, CLOSE_WRITES } from '../../../src/answers/plan/schema.js';
+import { ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, HOUSEHOLD_WRITES, LOCK_FLAG_WRITES, PLANS_WRITES, MOVE_START_WRITES, CLOSE_WRITES, LATER_DRAFT_WRITES } from '../../../src/answers/plan/schema.js';
 import { applyPatch, boxesOf, checkAbout } from '../../../src/answers/plan/about.js';
 import { checkIncome } from '../../../src/answers/plan/income.js';
 import { checkSpend, savedSpend } from '../../../src/answers/plan/spend.js';
@@ -29,8 +29,11 @@ import { isLockedSettings, lockedPlanWriteRefusal } from '../../../src/services/
 import { NO_WORKER } from '../../../src/v7/effects/workerClient.js';
 import { KEY_MINUTES } from '../../../src/services/GuestMeter.js';
 import { corpus, entryOf, TODAY, noon } from './_plans.js';
+import { laterDraftReading } from '../../../src/services/PlanReading.js';
 
 const C = corpus();
+/** A draft saved with a later start than it should have (7.4.0): every save of it also writes that reading (withLaterDraft). */
+const LATER = (p) => !!laterDraftReading(entryOf(p).plan, { now: noon(TODAY) });
 const tick = async (n = 6) => { for (let i = 0; i < n; i++) await new Promise((r) => setTimeout(r, 0)); };
 const copy = (v) => JSON.parse(JSON.stringify(v));
 
@@ -86,6 +89,32 @@ function page({ raws, planId, session = 'in', typed = {}, local = storage(), ses
 const SAVER = C['10-couple-b'];           // unlocked, stopping at 62 (approaching)
 const LOCKED = C['03-gilt-ladder-runup'];
 const STAMP = '2026-10-02T14:03:00.000Z';
+
+describe('a draft saved with a later start (7.4.0): opening writes nothing; its next Save writes the reading with the step\'s change', () => {
+  const LATE = C['07-pre-6.13-flat-params'];   // retired, saved with next April (2027/28), read from this tax year
+  it('fixture 07 is read from this tax year; nothing is written until a Save', async () => {
+    expect(LATER(LATE)).toBe(true);
+    const p = page({ raws: [LATE], planId: LATE.id, step: 'spend' });
+    await tick();
+    expect(p.fb.writes).toEqual([]);
+  });
+  it('a Save on any step: ONE write of the step\'s paths and the reading\'s (both copies of year 0, the counts of years moved), Undo every byte back', async () => {
+    const p = page({ raws: [LATE], planId: LATE.id, step: 'spend', typed: { 'first.amount': '2400' } });
+    p.save(); await tick();
+    expect(p.fb.writes.length).toBe(1);
+    const data = p.fb.writes[0].data;
+    expect(data['stressTool.settings.firstTaxYear']).toBe(2026);
+    expect(data['decisionTool.settings.firstTaxYear']).toBe(2026);
+    expect(data['stressTool.settings.duration']).toBe(LATE.stressTool.settings.duration + 1);
+    for (const k of Object.keys(data)) expect(k === 'lastModified' || SPEND_WRITES.includes(k) || LATER_DRAFT_WRITES.includes(k), k).toBe(true);
+    const written = applyPatch(entryOf(LATE).plan, data);
+    expect(LATER(written)).toBe(false);
+    p.store.dispatch({ type: A.PLANS_SET, list: [{ plan: written, newer: false, failed: false }], source: 'account', readAt: '14:04' });
+    p.undo(); await tick();
+    const undone = applyPatch(written, Object.fromEntries(Object.entries(p.fb.writes[1].data).map(([k, v]) => [k, v === null ? undefined : v])));
+    expect(undone.stressTool.settings).toEqual(entryOf(LATE).plan.stressTool.settings);
+  });
+});
 
 describe('an account: one updateDoc of the declared paths, past the guard, after a fresh read', () => {
   it('writes exactly the changed paths plus lastModified to users/{uid}/scenarios/{id}; then plan/saved with the previous values and plans/reading', async () => {
@@ -253,7 +282,7 @@ describe('"Money that comes in anyway" (editing-in-v7.md 7): the same one write,
     expect(p.fb.writes[0].path).toBe('users/u1/scenarios/' + LUMPY.id);
     expect(p.fb.writes[0].data).toEqual({
       'stressTool.settings.spWeeklyAmount': 0, 'stressTool.settings.statePension': 0,
-      'stressTool.settings.dbStartYear': 6, 'stressTool.settings.dbStartAge': 66,
+      'stressTool.settings.dbStartYear': 7, 'stressTool.settings.dbStartAge': 66,
       'stressTool.settings.windfalls': [LUMPY.stressTool.settings.windfalls[0]],
       lastModified: STAMP
     });
@@ -261,12 +290,12 @@ describe('"Money that comes in anyway" (editing-in-v7.md 7): the same one write,
     for (const k of Object.keys(p.fb.writes[0].data)) if (k !== 'lastModified') expect(INCOME_WRITES).toContain(k);
     const ui = p.store.getState().ui;
     expect(ui.toast).toMatchObject({ planId: LUMPY.id, kind: 'saved', line: { id: 'income', slots: { sp: 'none', fs: 1, streams: 2, lumps: 1 } } });
-    expect(ui.toast.previous).toEqual({ 'stressTool.settings.spWeeklyAmount': 224.9, 'stressTool.settings.statePension': 12000, 'stressTool.settings.dbStartYear': 5, 'stressTool.settings.dbStartAge': undefined, 'stressTool.settings.windfalls': LUMPY.stressTool.settings.windfalls, lastModified: LUMPY.lastModified });
+    expect(ui.toast.previous).toEqual({ 'stressTool.settings.spWeeklyAmount': 224.9, 'stressTool.settings.statePension': 12000, 'stressTool.settings.dbStartYear': 6, 'stressTool.settings.dbStartAge': undefined, 'stressTool.settings.windfalls': LUMPY.stressTool.settings.windfalls, lastModified: LUMPY.lastModified });
     expect(p.store.getState().draft.plan.id).toBe(null);
     const written = applyPatch(entryOf(LUMPY).plan, p.fb.writes[0].data);
     p.store.dispatch({ type: A.PLANS_SET, list: [{ plan: written, newer: false, failed: false }], source: 'account', readAt: '14:04' });
     p.undo(); await tick();
-    expect(p.fb.writes[1].data).toEqual({ 'stressTool.settings.spWeeklyAmount': 224.9, 'stressTool.settings.statePension': 12000, 'stressTool.settings.dbStartYear': 5, 'stressTool.settings.dbStartAge': null, 'stressTool.settings.windfalls': LUMPY.stressTool.settings.windfalls, lastModified: LUMPY.lastModified });
+    expect(p.fb.writes[1].data).toEqual({ 'stressTool.settings.spWeeklyAmount': 224.9, 'stressTool.settings.statePension': 12000, 'stressTool.settings.dbStartYear': 6, 'stressTool.settings.dbStartAge': null, 'stressTool.settings.windfalls': LUMPY.stressTool.settings.windfalls, lastModified: LUMPY.lastModified });
     expect(p.store.getState().ui.toast).toEqual({ planId: LUMPY.id, kind: 'undone', previous: null, line: null });
   });
   it('the window: the plan folded with the same patch, every other byte the same, the other plan byte-identical; Undo byte for byte', async () => {
@@ -276,8 +305,8 @@ describe('"Money that comes in anyway" (editing-in-v7.md 7): the same one write,
     expect(p.fb.writes).toEqual([]);
     const after = JSON.parse(p.session.raw(GUEST_PLANS_KEY));
     expect(JSON.stringify(after[0])).toBe(JSON.stringify(JSON.parse(before)[0]));
-    expect(after[1].stressTool.settings.extraIncomes[2]).toEqual({ label: 'Final-salary pension', annual: 3000, startYear: 6, endYear: null, indexation: 'lpi5' });
-    expect(after[1].stressTool.settings.windfalls[2]).toEqual({ label: 'Gift', amount: 10000, year: 2, wrapper: 'cash' });
+    expect(after[1].stressTool.settings.extraIncomes[2]).toEqual({ label: 'Final-salary pension', annual: 3000, startYear: 7, endYear: null, indexation: 'lpi5' });
+    expect(after[1].stressTool.settings.windfalls[2]).toEqual({ label: 'Gift', amount: 10000, year: 3, wrapper: 'cash' });
     const stripped = (plan) => { const out = copy(plan); for (const path of ALL_WRITES) { const parts = path.split('.'); let o = out; for (let i = 0; i < parts.length - 1 && o; i++) o = o[parts[i]]; if (o) delete o[parts[parts.length - 1]]; } return JSON.stringify(out); };
     expect(stripped(after[1])).toBe(stripped(JSON.parse(before)[1]));
     p.store.dispatch({ type: A.PLANS_SET, list: upgradedList(after, noon(TODAY)), source: 'window', readAt: '14:04' });
@@ -289,7 +318,7 @@ describe('"Money that comes in anyway" (editing-in-v7.md 7): the same one write,
     locked.save(); await tick();
     expect(locked.fb.writes).toEqual([]);
     expect(locked.store.getState().ui.saveProblem).toEqual({ planId: LOCKED.id, problem: 'locked' });
-    const bad = onIncome({ raws: [LUMPY], typed: { 'lumps.1.atAge': '59' } });
+    const bad = onIncome({ raws: [LUMPY], typed: { 'lumps.1.atAge': '58' } });
     bad.save(); await tick();
     expect(bad.fb.writes).toEqual([]);
     expect(bad.store.getState().ui.saveProblem).toEqual({ planId: LUMPY.id, problem: 'problems' });
@@ -311,7 +340,7 @@ describe('"Money that comes in anyway" (editing-in-v7.md 7): the same one write,
       'lumps.n1.atAge': fc.oneof(fc.constant(undefined), fc.constantFrom('', '59', '65')),
       'streams.ids': fc.oneof(fc.constant(undefined), fc.constantFrom('', '1', '0,1'))
     }, { requiredKeys: [] }).map((r) => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== undefined)));
-    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked));
+    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked) && !LATER(p));   // a draft saved with a later start: its own test below
     await fc.assert(fc.asyncProperty(fc.constantFrom(...EDITABLE), anyTyped, fc.boolean(), async (raw, typed, account) => {
       const p = onIncome({ raws: [raw, LOCKED], planId: raw.id, session: account ? 'in' : 'nobody', typed });
       const before = p.session.raw(GUEST_PLANS_KEY);
@@ -348,14 +377,14 @@ describe('"What you spend" (editing-in-v7.md 8): the same one write, chosen by t
     expect(Object.keys(data).sort()).toEqual(['decisionTool.settings.baseSalary', 'decisionTool.settings.targetSchedule', 'lastModified', 'stressTool.settings.baseSalary', 'stressTool.settings.extraWithdrawals', 'stressTool.settings.incomeSteps', 'stressTool.settings.targetSchedule']);
     expect(data.lastModified).toBe(STAMP);
     expect(data['stressTool.settings.incomeSteps'].slice(1)).toEqual(LUMPY.stressTool.settings.incomeSteps.slice(1));
-    expect(data['stressTool.settings.incomeSteps'][0].fromAge).toBe(60);
+    expect(data['stressTool.settings.incomeSteps'][0].fromAge).toBe(59);
     expect(data['stressTool.settings.baseSalary']).toBe(data['stressTool.settings.incomeSteps'][0].amount);
     expect(data['decisionTool.settings.baseSalary']).toBe(data['stressTool.settings.baseSalary']);
     expect(data['stressTool.settings.extraWithdrawals']).toEqual([LUMPY.stressTool.settings.extraWithdrawals[0]]);
     for (const k of Object.keys(data)) expect(ALL_WRITES).toContain(k);
     for (const k of Object.keys(data)) if (k !== 'lastModified') expect(SPEND_WRITES).toContain(k);
     const ui = p.store.getState().ui;
-    expect(ui.toast).toMatchObject({ planId: LUMPY.id, kind: 'saved', line: { id: 'spend', slots: { age: 60, monthly: '£3,000', steps: 2, costs: 1 } } });
+    expect(ui.toast).toMatchObject({ planId: LUMPY.id, kind: 'saved', line: { id: 'spend', slots: { age: 59, monthly: '£3,000', steps: 2, costs: 1 } } });
     expect(ui.toast.previous['stressTool.settings.incomeSteps']).toEqual(LUMPY.stressTool.settings.incomeSteps);
     expect(ui.toast.previous['stressTool.settings.baseSalary']).toBe(48000);
     expect(ui.toast.previous.lastModified).toBe(LUMPY.lastModified);
@@ -378,7 +407,7 @@ describe('"What you spend" (editing-in-v7.md 8): the same one write, chosen by t
     expect(steps.length).toBe(4);
     expect(steps[3]).toMatchObject({ fromAge: 85, decline: 1 });
     expect(after[1].stressTool.settings.targetSchedule.length).toBe(after[1].stressTool.settings.duration + 1);
-    expect(after[1].stressTool.settings.extraWithdrawals[2]).toMatchObject({ label: 'Car', year: 3, years: 1, indexation: 'cpi' });
+    expect(after[1].stressTool.settings.extraWithdrawals[2]).toMatchObject({ label: 'Car', year: 4, years: 1, indexation: 'cpi' });
     const stripped = (plan) => { const out = copy(plan); for (const path of ALL_WRITES) { const parts = path.split('.'); let o = out; for (let i = 0; i < parts.length - 1 && o; i++) o = o[parts[i]]; if (o) delete o[parts[parts.length - 1]]; } return JSON.stringify(out); };
     expect(stripped(after[1])).toBe(stripped(JSON.parse(before)[1]));
     p.store.dispatch({ type: A.PLANS_SET, list: upgradedList(after, noon(TODAY)), source: 'window', readAt: '14:04' });
@@ -390,7 +419,7 @@ describe('"What you spend" (editing-in-v7.md 8): the same one write, chosen by t
     locked.save(); await tick();
     expect(locked.fb.writes).toEqual([]);
     expect(locked.store.getState().ui.saveProblem).toEqual({ planId: LOCKED.id, problem: 'locked' });
-    const bad = onSpend({ raws: [LUMPY], typed: { 'steps.0.fromAge': '60' } });
+    const bad = onSpend({ raws: [LUMPY], typed: { 'steps.0.fromAge': '59' } });
     bad.save(); await tick();
     expect(bad.fb.writes).toEqual([]);
     expect(bad.store.getState().ui.saveProblem).toEqual({ planId: LUMPY.id, problem: 'problems' });
@@ -411,7 +440,7 @@ describe('"What you spend" (editing-in-v7.md 8): the same one write, chosen by t
       'costs.n1.amount': fc.oneof(fc.constant(undefined), fc.constantFrom('', '5000')),
       'costs.n1.atAge': fc.oneof(fc.constant(undefined), fc.constantFrom('', '59', '65'))
     }, { requiredKeys: [] }).map((r) => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== undefined)));
-    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked));
+    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked) && !LATER(p));   // a draft saved with a later start: its own test below
     await fc.assert(fc.asyncProperty(fc.constantFrom(...EDITABLE), anyTyped, fc.boolean(), async (raw, typed, account) => {
       const p = onSpend({ raws: [raw, LOCKED], planId: raw.id, session: account ? 'in' : 'nobody', typed });
       const before = p.session.raw(GUEST_PLANS_KEY);
@@ -501,7 +530,7 @@ describe('"Your pots and tax" (editing-in-v7.md 9): the same one write, chosen b
       bandFill: fc.oneof(fc.constant(undefined), fc.constantFrom('yes', 'no')),
       stopSipp: fc.oneof(fc.constant(undefined), fc.constantFrom('', '300,000'))
     }, { requiredKeys: [] }).map((r) => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== undefined)));
-    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked));
+    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked) && !LATER(p));   // a draft saved with a later start: its own test below
     await fc.assert(fc.asyncProperty(fc.constantFrom(...EDITABLE), anyTyped, fc.boolean(), async (raw, typed, account) => {
       const p = onPots({ raws: [raw, LOCKED], planId: raw.id, session: account ? 'in' : 'nobody', typed });
       const before = p.session.raw(GUEST_PLANS_KEY);
@@ -590,7 +619,7 @@ describe('"Does it last?" (editing-in-v7.md 10): the same one write for the cut 
       reserveOn: fc.oneof(fc.constant(undefined), fc.constantFrom('yes', 'no')),
       reserveAmount: fc.oneof(fc.constant(undefined), fc.constantFrom('', '0', '25,000', '40000'))
     }, { requiredKeys: [] }).map((r) => Object.fromEntries(Object.entries(r).filter(([, v]) => v !== undefined)));
-    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked));
+    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked) && !LATER(p));   // a draft saved with a later start: its own test below
     await fc.assert(fc.asyncProperty(fc.constantFrom(...EDITABLE), anyTyped, fc.boolean(), async (raw, typed, account) => {
       const p = onLasts({ raws: [raw, LOCKED], planId: raw.id, session: account ? 'in' : 'nobody', typed });
       const before = p.session.raw(GUEST_PLANS_KEY);
@@ -615,7 +644,7 @@ describe('"Does it last?" (editing-in-v7.md 10): the same one write for the cut 
 });
 
 describe('property: whatever is typed, every path written is declared, and the plan written reads back as typed', () => {
-  const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked) && +p.stressTool.settings.currentAge > 0);
+  const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked) && +p.stressTool.settings.currentAge > 0 && !LATER(p));
   const anyTyped = fc.record({
     age: fc.oneof(fc.constant(undefined), fc.constantFrom('', 'abc', '17', '40', '58', '64', '75')),
     stopped: fc.oneof(fc.constant(undefined), fc.constantFrom('yes', 'age', 'month', 'x')),
@@ -656,7 +685,7 @@ describe('property: whatever is typed, every path written is declared, and the p
     }), { numRuns: 60 });
   });
   it('the declared list is the steps\' and the stamp, nothing more (the record and the tick-offs each one field since step 10; the plan menu\'s name and main flag since step 11; the whole budget, the Accumulation settings and the pot record list since step 11b; the move of a locked plan\'s start since 6.55.0; the close of a plan since 6.56.0)', () => {
-    expect(ALL_WRITES.length).toBe(new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', 'accumulationTool.checkIns', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'decisionTool.history', 'decisionTool.taxYears', 'journey', ...PLANS_WRITES, ...MOVE_START_WRITES, ...CLOSE_WRITES, 'lastModified']).size);
+    expect(ALL_WRITES.length).toBe(new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', 'accumulationTool.checkIns', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'decisionTool.history', 'decisionTool.taxYears', 'journey', ...PLANS_WRITES, ...MOVE_START_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, 'lastModified']).size);
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
   });
 });
@@ -944,7 +973,7 @@ describe('the unlock and the new version (road-to-7.md step 6): one write each t
     p.stop();
   });
   it('property: over every unlocked corpus plan, on the account path and the window path, the lock writes only the declared paths; the other plan in the window is byte-identical; the text differs nowhere else', async () => {
-    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked));
+    const EDITABLE = Object.values(C).filter((p) => !(p.decisionTool.settings && p.decisionTool.settings.locked) && !LATER(p));   // a draft saved with a later start: its own test below
     await fc.assert(fc.asyncProperty(fc.constantFrom(...EDITABLE), fc.boolean(), async (raw, account) => {
       const p = page({ raws: [raw, LOCKED], planId: raw.id, step: 'lock', session: account ? 'in' : 'nobody', client: fakeClient() });
       const before = p.session.raw(GUEST_PLANS_KEY);

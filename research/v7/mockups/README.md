@@ -47,3 +47,24 @@ The site's own tokens (`src/v7/styles/tokens.css`) keep the dark base; these are
 - Words must pass `src/v7/copy/banned.js`. "Tool" and "planner" are banned on the front door: the mock-up's "Tools"
   heading on the home is fine (not the front door), but check the front door's words.
 - Every figure in the mock-ups is invented. Never replace them with a real plan's.
+
+## Motion, the working spinner, the report (added 6 Nov 2026 after the owner saw the mock-ups)
+
+**Motion rule: it shows an amount or time passing, and nothing else.** Every animation ends in the complete picture
+(a screenshot is never half-drawn), respects `prefers-reduced-motion` (then: no motion, same final frame), and runs
+under a second unless it is the test itself.
+- Figures count up to their value (the pot, the share of pay, the monthly figure) when an input changes.
+- The pot-over-a-life line draws itself left to right: that is the years passing. A changed slider redraws the pink
+  line from where it was, so the gap visibly closes or opens.
+- The life line's "you are here" dot slides along to its place.
+- The home's year view fills month by month; a to-do slides away when ticked.
+- The bad-case shading fades in after the middling line.
+
+**The working spinner.** The tests run thousands of futures, so show that: a ring filling with small bars (each a life
+run), a count ("running 2,000 futures… 1,340"), and the verdict appearing when it finishes. Keep a short minimum
+(~600 ms) so a verdict never pops instantly.
+
+**The report.** A printable page of the plan in the new app (the plan told as a story: the life line, the pot picture,
+what goes in or out, the ways tested, where you are), so the browser's Save as PDF makes the PDF — in 7.7.0 with the
+plan document and spreadsheets. **To do, later:** AI elements in the report for paying subscribers (a plain-English
+narrative first); needs the privacy policy and the advice boundary updated before any figure leaves the site.

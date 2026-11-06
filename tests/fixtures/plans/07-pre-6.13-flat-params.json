@@ -1,0 +1,392 @@
+{
+ "id": "Mn5GzE8rTa1YwDk3XoLp",
+ "budgetTool": {
+  "settings": {
+   "currentAge": 58,
+   "currentAgeAsOf": "2026-09-05",
+   "derived": {
+    "allInComfortableAnnual": 0,
+    "allInComfortableMonthly": 0,
+    "comfortableAnnualNet": 0,
+    "comfortableMonthlyNet": 0,
+    "essentialAnnualNet": 0,
+    "essentialMonthlyNet": 0,
+    "householdComfortableAnnual": 0,
+    "householdComfortableMonthly": 0,
+    "partnerAllInAnnual": 0,
+    "partnerAllInMonthly": 0,
+    "periodicAnnualAverage": 0,
+    "periodicMonthlyAverage": 0,
+    "sharedWithPartner": false,
+    "suggestedGrossAnnual": 0
+   },
+   "endAge": 100,
+   "lines": [],
+   "mySharePct": 50,
+   "oneOffs": [],
+   "plsaTier": "moderate",
+   "retired": true,
+   "retirementAge": 59,
+   "sharedWithPartner": false,
+   "version": 1
+  }
+ },
+ "createdAt": "2026-09-05T17:45:00.000Z",
+ "decisionTool": {
+  "history": [],
+  "settings": {
+   "accessMethod": "drawdown",
+   "allocMode": "funds",
+   "bandFillRecycle": false,
+   "baseSalary": 31000,
+   "bedAndIsa": true,
+   "bondMin": 405000,
+   "cashTarget": 65000,
+   "configured": true,
+   "consecutiveLimit": 3,
+   "disableProtection": false,
+   "diversifierStart": 0,
+   "duration": 34,
+   "equityGlideEnabled": false,
+   "equityMin": 210000,
+   "firstTaxYear": 2027,
+   "giaTaxBand": "basic",
+   "glideEndgame": null,
+   "incomeShape": "phases",
+   "incomeSteps": [
+    {
+     "amount": 31000,
+     "fromAge": 59
+    },
+    {
+     "amount": 27000,
+     "fromAge": 70
+    },
+    {
+     "amount": 23000,
+     "fromAge": 80
+    }
+   ],
+   "isaBalance": 40000,
+   "isaDrawdownStrategy": "minimiseEarlyTax",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "protectionEscalateMonths": 12,
+   "protectionFactor": 20,
+   "recoveryBuffer": 15000,
+   "relevantEarnings": 0,
+   "seededFrom": "stress",
+   "shapeAgeNow": 59,
+   "spStartDate": "30 June 2035",
+   "spWeeklyAmount": 226.4,
+   "spendingProfile": "flat",
+   "statePension": 0,
+   "statePensionYear": 0,
+   "strategyId": "gilt-rotation",
+   "strategyParams": {
+    "bandThreshold": 1.2,
+    "bridgeAge": 67,
+    "bridgeCash": 17500,
+    "bucketBand": 10,
+    "cashYears": 2,
+    "drawAnnual": 0,
+    "essentialsAnnual": 18000,
+    "floorToAge": 80,
+    "horizonAge": 92,
+    "isaTotal": 40000,
+    "ladderYears": 15,
+    "ratchet": "none",
+    "rotateCutAge": 80,
+    "rotateDisarmYears": 5,
+    "rotateTrigger": 30,
+    "sippTotal": 680000,
+    "sleeveRate": 0.04,
+    "triggerMode": "band"
+   },
+   "subAsset": null,
+   "taggedFunds": [
+    {
+     "subClass": "worldGrowth",
+     "ticker": "VWRP",
+     "value": 210000,
+     "wrapper": "SIPP"
+    },
+    {
+     "subClass": "indexLinked",
+     "ticker": "INXG",
+     "value": 290000,
+     "wrapper": "SIPP"
+    },
+    {
+     "subClass": "shortGilts",
+     "ticker": "IGLS",
+     "value": 115000,
+     "wrapper": "SIPP"
+    },
+    {
+     "subClass": "moneyMarket",
+     "ticker": "XSTR",
+     "value": 65000,
+     "wrapper": "SIPP"
+    },
+    {
+     "subClass": "worldGrowth",
+     "ticker": "VWRP",
+     "value": 40000,
+     "wrapper": "ISA"
+    }
+   ],
+   "targetSchedule": [
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000
+   ],
+   "taxableMix": "equity",
+   "taxableStart": 0,
+   "ufplsThenPcls": false,
+   "ufplsYears": null,
+   "windfalls": []
+  },
+  "taxYears": {}
+ },
+ "enabledTools": [
+  "budget",
+  "stress",
+  "decision",
+  "accumulation"
+ ],
+ "isActive": true,
+ "journey": [
+  {
+   "at": "2026-09-05T17:45:00.000Z",
+   "label": "Retired, designing the plan",
+   "stage": "draft-retired"
+  }
+ ],
+ "lastModified": "2026-09-05T17:45:00.000Z",
+ "planDetails": {
+  "description": "Tried most strategies on the way here",
+  "name": "Rotation what-if"
+ },
+ "strategy": {
+  "engineVersion": "6.13.4",
+  "id": "gilt-rotation",
+  "lockedAt": "2026-09-05T17:45:00.000Z",
+  "params": {
+   "bandThreshold": 1.2,
+   "bridgeAge": 67,
+   "bridgeCash": 17500,
+   "bucketBand": 10,
+   "cashYears": 2,
+   "drawAnnual": 0,
+   "essentialsAnnual": 18000,
+   "floorToAge": 80,
+   "horizonAge": 92,
+   "isaTotal": 40000,
+   "ladderYears": 15,
+   "ratchet": "none",
+   "rotateCutAge": 80,
+   "rotateDisarmYears": 5,
+   "rotateTrigger": 30,
+   "sippTotal": 680000,
+   "sleeveRate": 0.04,
+   "triggerMode": "band"
+  }
+ },
+ "stressTool": {
+  "settings": {
+   "accessMethod": "drawdown",
+   "allocMode": "funds",
+   "bandFillRecycle": false,
+   "baseSalary": 31000,
+   "bedAndIsa": true,
+   "bondMin": 405000,
+   "brl": 50270,
+   "cashTarget": 65000,
+   "configured": true,
+   "consecutiveLimit": 3,
+   "currentAge": 58,
+   "currentAgeAsOf": "2026-09-05",
+   "dbAmount": 0,
+   "dbIndexation": "lpi5",
+   "dbStartYear": 0,
+   "disableProtection": false,
+   "diversifierStart": 0,
+   "duration": 34,
+   "equityGlideEnabled": false,
+   "equityMin": 210000,
+   "extraIncomes": [],
+   "extraWithdrawals": [],
+   "firstTaxYear": 2027,
+   "giaTaxBand": "basic",
+   "glideEndgame": null,
+   "hodlEnabled": false,
+   "hodlValue": 25000,
+   "hrl": 125140,
+   "incomeShape": "phases",
+   "incomeSteps": [
+    {
+     "amount": 31000,
+     "fromAge": 59
+    },
+    {
+     "amount": 27000,
+     "fromAge": 70
+    },
+    {
+     "amount": 23000,
+     "fromAge": 80
+    }
+   ],
+   "isaBalance": 40000,
+   "isaDrawdownStrategy": "minimiseEarlyTax",
+   "isaMin": 0,
+   "isaReturn": 0.03,
+   "legacyFirstTaxYear": 2027,
+   "other": 0,
+   "pa": 12570,
+   "potAtRetirement": null,
+   "protectionEscalateMonths": 12,
+   "protectionMult": 0.8,
+   "recoveryBuffer": 15000,
+   "relevantEarnings": 0,
+   "retireAge": null,
+   "retired": true,
+   "shapeAgeNow": 59,
+   "spStartDate": "30 June 2035",
+   "spWeeklyAmount": 226.4,
+   "spendingProfile": "flat",
+   "statePension": 12000,
+   "statePensionYear": 12,
+   "strategyId": "gilt-rotation",
+   "strategyParams": {
+    "bandThreshold": 1.2,
+    "bridgeAge": 67,
+    "bridgeCash": 17500,
+    "bucketBand": 10,
+    "cashYears": 2,
+    "drawAnnual": 0,
+    "essentialsAnnual": 18000,
+    "floorToAge": 80,
+    "horizonAge": 92,
+    "isaTotal": 40000,
+    "ladderYears": 15,
+    "ratchet": "none",
+    "rotateCutAge": 80,
+    "rotateDisarmYears": 5,
+    "rotateTrigger": 30,
+    "sippTotal": 680000,
+    "sleeveRate": 0.04,
+    "triggerMode": "band"
+   },
+   "subAsset": null,
+   "taggedFunds": [
+    {
+     "subClass": "worldGrowth",
+     "ticker": "VWRP",
+     "value": 210000,
+     "wrapper": "SIPP"
+    },
+    {
+     "subClass": "indexLinked",
+     "ticker": "INXG",
+     "value": 290000,
+     "wrapper": "SIPP"
+    },
+    {
+     "subClass": "shortGilts",
+     "ticker": "IGLS",
+     "value": 115000,
+     "wrapper": "SIPP"
+    },
+    {
+     "subClass": "moneyMarket",
+     "ticker": "XSTR",
+     "value": 65000,
+     "wrapper": "SIPP"
+    },
+    {
+     "subClass": "worldGrowth",
+     "ticker": "VWRP",
+     "value": 40000,
+     "wrapper": "ISA"
+    }
+   ],
+   "targetSchedule": [
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    31000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    27000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000,
+    23000
+   ],
+   "taxMode": "inflates",
+   "taxableMix": "equity",
+   "taxableStart": 0,
+   "ufplsThenPcls": false,
+   "ufplsYears": null,
+   "windfalls": []
+  }
+ }
+}

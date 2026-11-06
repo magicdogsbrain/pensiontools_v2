@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+
+# Build temp (if any)
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Test coverage
+coverage/
+
+# Browser tests (Playwright)
+test-results/
+playwright-report/
+
+# Local reference material & personal files — documents/spreadsheets/archives are never app code.
+# (App image assets like icons/favicons are kept; they're served by the PWA.)
+*.pdf
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+*.numbers
+*.doc
+*.docx
+*.ppt
+*.pptx
+*.odt
+*.ods
+*.zip
+*.tar
+*.gz
+*.tgz
+*.7z
+*.rar
+
+# Claude Code local (machine-specific) settings
+.claude/settings.local.json
+
+# Your own exported plans and their pinned answers (tests/localPlans.local.test.js) — personal financial data,
+# never committed: this repository is public.
+tests/fixtures/local/

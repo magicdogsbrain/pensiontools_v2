@@ -1,0 +1,119 @@
+/**
+ * The effects — the only code in V7 that touches the outside (address, worker, session storage, the activity stamp in
+ * local storage, the page's own attributes). startEffects(store, …) starts them all; main.jsx calls it once.
+ *
+ *   startEffects(store, { win, client, local }) → { client, stop }
+ *   markReady(root, state)      sets #app's data-ready and data-answer, and fires pt:done (brief 4.9)
+ */
+import { A } from '../state/actions.js';
+import { readyMark } from '../state/select.js';
+import { startAddress } from './address.js';
+import { startDraftStore, sessionStore, localStore } from './draftStore.js';
+import { startRunner } from './run.js';
+import { startLastsRunner } from './lasts.js';
+import { startWaysRunner } from './ways.js';
+import { startMixRunner } from './mix.js';
+import { startHouseholdRunner } from './household.js';
+import { startMoveRunner } from './move.js';
+import { startSaverRunner } from './saver.js';
+import { createWorkerClient } from './workerClient.js';
+import { startActivity } from './activity.js';
+import { startOpenPlace } from './openPlace.js';
+import { startGuestMeter } from './guestMeter.js';
+import { startWhatsNew } from './whatsNew.js';
+import { startDownloads } from './download.js';
+import { startAssumptions } from './assumptions.js';
+import { startPlace, hasSignedInHint } from './place.js';
+
+/**
+ * The answer worked out on the page itself — used only when no worker can start. The answers (and the engines
+ * behind them) are fetched only then, so the shell stays small; the worker has its own copy.
+ */
+export async function answerOnPage(q, inputs, env) {
+  const { ANSWERS } = await import('../../answers/index.js');
+  return ANSWERS[q].answer(inputs, env);
+}
+
+/**
+ * #app carries data-ready="1" only when no run is under way and any answer shown is final, else "0"; and
+ * data-answer="none" | "first" | "final". A pt:done event (bubbling) is sent each time data-ready becomes "1".
+ * Call it after the screen has been drawn for `state`.
+ */
+export function markReady(root, state) {
+  const { ready, answer } = readyMark(state);
+  const was = root.getAttribute('data-ready');
+  if (root.getAttribute('data-answer') !== answer) root.setAttribute('data-answer', answer);
+  if (was !== ready) root.setAttribute('data-ready', ready);
+  if (ready === '1' && was !== '1') root.dispatchEvent(new CustomEvent('pt:done', { bubbles: true }));
+}
+
+export function startEffects(store, { win = window, client = createWorkerClient(), local = answerOnPage } = {}) {
+  const stops = [];
+  // Land where you left off (7.1.0, effects/place.js): the site's root opened with no address of its own, in a browser where
+  // someone is signed in. Read before the address effect tidies an empty address to #/ (the questions' own, which stays them).
+  const hash = win.location && typeof win.location.hash === 'string' ? win.location.hash : '';
+  const landing = (hash === '' || hash === '#') && hasSignedInHint(localStore(win));
+  stops.push(startAddress(store, win));
+  stops.push(startDraftStore(store, sessionStore(win)));
+  stops.push(startRunner({ store, client, local }));
+  // "Does it last?" (research/v7/editing-in-v7.md 10.4): a saved plan's one test, in the worker only, on that step only —
+  // no page fallback, so the engine's chunk is the worker's alone and the plan pages' own chunk does not carry it
+  stops.push(startLastsRunner({ store, client, now: () => Date.now() }));
+  // "How the money is taken" (research/v7/way-and-mix.md 2.2): the nine ways on a saved plan, in the worker only, on that step only
+  stops.push(startWaysRunner({ store, client, now: () => Date.now() }));
+  // "The mix" (research/v7/way-and-mix.md 3.2): the sleeve's and the tent's try and the eight cells, in the worker only, on that step only
+  stops.push(startMixRunner({ store, client, now: () => Date.now() }));
+  // "Your household" (research/v7/road-to-7.md step 9): the pooled run, the survivor and the care questions, in the worker only, on that step only
+  stops.push(startHouseholdRunner({ store, client, now: () => Date.now() }));
+  // "Moving to your plan's mix" (research/v7/holdings-and-move.md §3.3, §3.7): the one run on the held mix in the worker only, and the
+  // equity index fetched once for the rotation watch (the bundled snapshot when the file cannot be read), on that step only
+  stops.push(startMoveRunner({ store, client, now: () => Date.now(), fetchImpl: typeof win.fetch === 'function' ? win.fetch.bind(win) : null }));
+  // "What you pay in" (research/saving-enough-and-check-in.md 4.4): the plan's verdict — question B on the plan's own figures —
+  // in the worker's own lane, on that step only; no page fallback, as for the plan's other runs
+  stops.push(startSaverRunner({ store, client }));
+
+  // The saved plans (research/v7/your-plan.md 4.1, 4.3): activity for the planner's idle sign-out on every page; the
+  // hand-over to the planner; and the plan source — the one Firebase file, with the one write file — loaded only where
+  // the plans are needed: the plan pages, "Keep this as a plan?" (road-to-7.md step 7: the preview makes the plan itself,
+  // so a keep under way loads it too) and "Will it last?" (answer-D.md: a plan in the account is D's way in).
+  stops.push(startActivity(win, { storage: localStore(win) }));
+  stops.push(startOpenPlace(store, { session: sessionStore(win), go: (address) => win.location.assign(address) }));
+  // The visitor's meter, What's new and the downloads (road-to-7.md step 11): on every page, each small; the plans they read come with the plan source.
+  stops.push(startGuestMeter(store, { win, local: localStore(win) }));
+  stops.push(startWhatsNew(store, { local: localStore(win) }));
+  // "Assumptions and data" (road-to-7.md step 11b): the figures loaded lazily when the page is opened
+  stops.push(startAssumptions(store, { now: () => Date.now() }));
+  stops.push(startDownloads(store, { win }));
+  // keep → sign in → back, and the place last left (7.1.0): the way back and the window's place in session storage
+  stops.push(startPlace(store, { session: sessionStore(win), local: localStore(win), landing }));
+  let planSource = null;
+  // … the account page and What's new need the session (and the account's settings document); "Look around an example" pressed on the front door needs the write file
+  const onPlanPage = (state) => state.route && (state.route.screen === 'plans' || state.route.screen === 'plan' || state.route.screen === 'account' || state.route.screen === 'news');
+  const onKeepPage = (state) => state.route && state.route.screen === 'step' && (state.route.step === 'keep' || state.route.q === 'd');
+  const keeping = (state) => !!state.keep && Object.values(state.keep).some((k) => k && k.saving);
+  const exampleAsked = (state) => !!state.ui.saving && state.ui.saving.kind === 'example';
+  // B opened from a saver's plan, or answered after one was kept from it (6.59.0): "Use these in ‘…’" names that plan and
+  // writes to it, so its answer reads the plans — after a reload too
+  const keptSaver = (state) => !!(state.keep && state.keep.b && state.keep.b.made && state.keep.b.made.saverId);
+  const fromPlan = (state) => state.route && state.route.screen === 'step' && state.route.q === 'b' && (!!(state.draft.b && state.draft.b.fromPlan) || keptSaver(state));
+  // … and landing where a signed-in person left off (effects/place.js), and a way back after signing in from the keep panel
+  const needsPlans = (state) => onPlanPage(state) || onKeepPage(state) || keeping(state) || exampleAsked(state) || fromPlan(state) || landing || !!state.ui.returnTo;
+  const loadPlanSource = (state) => {
+    if (planSource || !needsPlans(state)) return;
+    planSource = import('./planSource.js')
+      // the worker client goes with it: the lock's write runs the plan's own test in the worker first (road-to-7.md step 6)
+      .then((m) => { const stop = m.startPlanSource(store, { win, local: localStore(win), session: sessionStore(win), client }); stops.push(stop); return stop; })
+      .catch(() => { store.dispatch({ type: A.PLANS_FAILED }); return () => {}; });
+  };
+  loadPlanSource(store.getState());
+  stops.push(store.subscribe(loadPlanSource));
+
+  const online = () => store.dispatch({ type: A.UI_ONLINE, online: true });
+  const offline = () => store.dispatch({ type: A.UI_ONLINE, online: false });
+  win.addEventListener('online', online);
+  win.addEventListener('offline', offline);
+  if (win.navigator && win.navigator.onLine === false) offline();
+  stops.push(() => { win.removeEventListener('online', online); win.removeEventListener('offline', offline); });
+
+  return { client, stop: () => stops.splice(0).forEach((fn) => fn()) };
+}

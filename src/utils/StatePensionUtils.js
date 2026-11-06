@@ -1,0 +1,490 @@
+/**
+ * UK State Pension Utilities
+ *
+ * Handles State Pension calculations based on HMRC forecast data.
+ * Uses the actual SP start date and weekly amount from the user's forecast.
+ */
+
+import { getTaxYear, getTaxYearStart, getTaxYearEnd } from './DateUtils.js';
+
+/**
+ * Parses a date string in various formats
+ * Accepts: "9 March 2040", "2040-03-09", "09/03/2040"
+ *
+ * @param {string} dateStr - Date string to parse
+ * @returns {Date|null} Parsed date or null if invalid
+ */
+export function parseStatePensionDate(dateStr) {
+  if (!dateStr) return null;
+
+  const months = {
+    january: 0, jan: 0,
+    february: 1, feb: 1,
+    march: 2, mar: 2,
+    april: 3, apr: 3,
+    may: 4,
+    june: 5, jun: 5,
+    july: 6, jul: 6,
+    august: 7, aug: 7,
+    september: 8, sep: 8, sept: 8,
+    october: 9, oct: 9,
+    november: 10, nov: 10,
+    december: 11, dec: 11
+  };
+
+  // Normalize: trim and collapse whitespace
+  const s = dateStr.trim().replace(/\s+/g, ' ');
+
+  // Try ISO format (2040-03-09)
+  // Built from its parts as a LOCAL date, like every other format below. `new Date('2040-03-09')` is
+  // midnight UTC, which is the evening of the 20th anywhere west of Greenwich — a different calendar day
+  // (and, on 6 April, a different tax year) from the same date typed as "9 March 2040".
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [year, month, day] = s.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // Try UK format with slashes (09/03/2040 or 9/3/2040)
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [day, month, year] = s.split('/').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  // Try UK format with dashes (09-03-2040 or 9-3-2040)
+  if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(s)) {
+    const [day, month, year] = s.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  // Try "9 March 2040" or "9 Mar 2040"
+  let match = s.match(/^(\d{1,2})\s+(\w+)\s+(\d{4})$/i);
+  if (match) {
+    const day = parseInt(match[1]);
+    const month = months[match[2].toLowerCase()];
+    const year = parseInt(match[3]);
+    if (month !== undefined) {
+      return new Date(year, month, day);
+    }
+  }
+
+  // Try "March 9 2040" or "Mar 9 2040"
+  match = s.match(/^(\w+)\s+(\d{1,2})\s+(\d{4})$/i);
+  if (match) {
+    const month = months[match[1].toLowerCase()];
+    const day = parseInt(match[2]);
+    const year = parseInt(match[3]);
+    if (month !== undefined) {
+      return new Date(year, month, day);
+    }
+  }
+
+  // Try "March 9th 2040", "March 9th, 2040", "9th March 2040" etc.
+  match = s.match(/^(\w+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$/i);
+  if (match) {
+    const month = months[match[1].toLowerCase()];
+    const day = parseInt(match[2]);
+    const year = parseInt(match[3]);
+    if (month !== undefined) {
+      return new Date(year, month, day);
+    }
+  }
+
+  match = s.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(\w+),?\s+(\d{4})$/i);
+  if (match) {
+    const day = parseInt(match[1]);
+    const month = months[match[2].toLowerCase()];
+    const year = parseInt(match[3]);
+    if (month !== undefined) {
+      return new Date(year, month, day);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Formats a State Pension start date for display
+ *
+ * @param {Date|string} date - Date to format
+ * @returns {string} Formatted date like "9 March 2040"
+ */
+/**
+ * Calendar-day number of a date's LOCAL year/month/day (days since 1970-01-01, a whole number).
+ * Day counts between two dates must be taken from these, never from a millisecond difference:
+ * 6 April is in summer time and a winter date is not, so in the UK "14 March to 6 April" is
+ * 23 days less an hour in milliseconds but exactly 23 days in UTC — the same plan then gave
+ * answers a few pounds apart in different time zones, and a Math.floor of the quotient lost a day.
+ */
+export function calendarDayNumber(d) {
+  return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000;
+}
+
+export function formatStatePensionDate(date) {
+  const d = typeof date === 'string' ? parseStatePensionDate(date) : date;
+  if (!d || isNaN(d.getTime())) return '';
+
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/**
+ * Calculates the annual State Pension amount from weekly
+ *
+ * Note: SP is paid every 4 weeks (13 times/year), not monthly.
+ * Annual = Weekly × 52
+ *
+ * @param {number} weeklyAmount - Weekly State Pension amount
+ * @returns {number} Annual amount
+ */
+export function weeklyToAnnual(weeklyAmount) {
+  return weeklyAmount * 52;
+}
+
+/**
+ * Calculates the monthly average State Pension amount
+ *
+ * For budgeting purposes, we use annual ÷ 12 even though
+ * actual payments are 4-weekly (some months have 2 payments).
+ *
+ * @param {number} weeklyAmount - Weekly State Pension amount
+ * @returns {number} Monthly average amount
+ */
+export function weeklyToMonthlyAverage(weeklyAmount) {
+  return (weeklyAmount * 52) / 12;
+}
+
+/**
+ * Calculates State Pension for a specific tax year
+ *
+ * Handles:
+ * - Years before SP starts: returns 0
+ * - First year: pro-rata based on start date
+ * - Subsequent years: full amount, inflated by CPI
+ *
+ * @param {object} params - Calculation parameters
+ * @param {string} params.taxYear - Tax year to calculate for ('YY/YY' format)
+ * @param {Date|string} params.spStartDate - State Pension start date
+ * @param {number} params.weeklyAmount - Weekly SP amount (today's money)
+ * @param {object} params.taxYearConfigs - All tax year configs (for CPI data)
+ * @returns {object} { annual, monthly, isReceiving, isFirstYear, weeksInYear, startDate }
+ */
+export function calculateStatePensionForTaxYear(params) {
+  const {
+    taxYear,
+    spStartDate,
+    weeklyAmount,
+    taxYearConfigs = {}
+  } = params;
+
+  if (!spStartDate || !weeklyAmount || weeklyAmount <= 0) {
+    return {
+      annual: 0,
+      monthly: 0,
+      isReceiving: false,
+      isFirstYear: false,
+      weeksInYear: 0,
+      startDate: null
+    };
+  }
+
+  const startDate = typeof spStartDate === 'string'
+    ? parseStatePensionDate(spStartDate)
+    : spStartDate;
+
+  if (!startDate || isNaN(startDate.getTime())) {
+    return {
+      annual: 0,
+      monthly: 0,
+      isReceiving: false,
+      isFirstYear: false,
+      weeksInYear: 0,
+      startDate: null
+    };
+  }
+
+  const spStartTaxYear = getTaxYear(startDate);
+  const taxYearStart = getTaxYearStart(taxYear);
+  const taxYearEnd = getTaxYearEnd(taxYear);
+
+  // Compare tax years CHRONOLOGICALLY, not lexicographically.
+  // Tax years are 'YY/YY' strings; a plain string sort places e.g. '70/71'
+  // after '26/27', which would wrongly treat a 1970 date as the year 2070.
+  // getTaxYearStart resolves the real calendar year, so sort by that.
+  const sortedYears = [...new Set([spStartTaxYear, taxYear, ...Object.keys(taxYearConfigs)])]
+    .sort((a, b) => getTaxYearStart(a).getTime() - getTaxYearStart(b).getTime());
+  const spStartIndex = sortedYears.indexOf(spStartTaxYear);
+  const currentIndex = sortedYears.indexOf(taxYear);
+
+  // Before SP starts
+  if (currentIndex < spStartIndex) {
+    return {
+      annual: 0,
+      monthly: 0,
+      isReceiving: false,
+      isFirstYear: false,
+      weeksInYear: 0,
+      startDate: formatStatePensionDate(startDate)
+    };
+  }
+
+  // Calculate cumulative CPI inflation from SP start year
+  let cumulativeInflation = 1;
+  for (let i = spStartIndex; i < currentIndex; i++) {
+    const yr = sortedYears[i];
+    const config = taxYearConfigs[yr];
+    const cpi = config?.cpi || 0.025; // Default 2.5% if no CPI data
+    cumulativeInflation *= (1 + cpi);
+  }
+
+  const inflatedWeekly = weeklyAmount * cumulativeInflation;
+
+  // First year - pro-rata
+  const isFirstYear = taxYear === spStartTaxYear;
+
+  if (isFirstYear) {
+    // Calculate weeks from SP start to end of tax year
+    // Whole calendar days (see calendarDayNumber) — not milliseconds, which are an hour short across a clock change.
+    const weeksInYear = Math.max(0, (calendarDayNumber(taxYearEnd) - calendarDayNumber(startDate)) / 7);
+    const proRataAnnual = inflatedWeekly * weeksInYear;
+
+    return {
+      annual: proRataAnnual,
+      monthly: proRataAnnual / 12,
+      isReceiving: true,
+      isFirstYear: true,
+      weeksInYear: Math.round(weeksInYear * 10) / 10,
+      startDate: formatStatePensionDate(startDate)
+    };
+  }
+
+  // Full year
+  const fullAnnual = inflatedWeekly * 52;
+
+  return {
+    annual: fullAnnual,
+    monthly: fullAnnual / 12,
+    isReceiving: true,
+    isFirstYear: false,
+    weeksInYear: 52,
+    startDate: formatStatePensionDate(startDate)
+  };
+}
+
+/**
+ * Calculates years/months until State Pension starts
+ *
+ * @param {Date|string} spStartDate - State Pension start date
+ * @param {Date} fromDate - Calculate from this date (defaults to now)
+ * @returns {object} { years, months, totalMonths, isPast }
+ */
+export function getTimeUntilStatePension(spStartDate, fromDate = new Date()) {
+  const startDate = typeof spStartDate === 'string'
+    ? parseStatePensionDate(spStartDate)
+    : spStartDate;
+
+  if (!startDate || isNaN(startDate.getTime())) {
+    return { years: 0, months: 0, totalMonths: 0, isPast: false };
+  }
+
+  const diffMs = startDate.getTime() - fromDate.getTime();
+  const isPast = diffMs <= 0;
+
+  if (isPast) {
+    return { years: 0, months: 0, totalMonths: 0, isPast: true };
+  }
+
+  const totalMonths = Math.floor(diffMs / (30.44 * 24 * 60 * 60 * 1000));
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+
+  return { years, months, totalMonths, isPast };
+}
+
+/**
+ * Earliest plausible State Pension start date.
+ * The current ("new") State Pension began 6 April 2016, so any start date
+ * before this is almost certainly a date of birth or a typo.
+ */
+export const MIN_SP_START_YEAR = 2016;
+
+/**
+ * Validates a State Pension start date entered by the user.
+ *
+ * Guards against the common mistake of entering a date of birth instead of
+ * the State Pension start date (which silently distorts every projection).
+ *
+ * @param {string} dateStr - Raw value from the input field
+ * @param {object} [opts]
+ * @param {Date} [opts.now] - Reference "today" (for testing); defaults to now
+ * @returns {{ valid: boolean, error: string|null, warning: string|null, date: Date|null }}
+ */
+export function validateStatePensionDate(dateStr, { now = new Date() } = {}) {
+  // Empty is allowed — State Pension is optional (weekly amount of 0 = not set).
+  if (!dateStr || !String(dateStr).trim()) {
+    return { valid: true, error: null, warning: null, date: null };
+  }
+
+  const date = parseStatePensionDate(dateStr);
+  if (!date || isNaN(date.getTime())) {
+    return {
+      valid: false,
+      error: 'Could not read that date. Try a format like "6 May 2040".',
+      warning: null,
+      date: null
+    };
+  }
+
+  const year = date.getFullYear();
+  if (year < MIN_SP_START_YEAR) {
+    return {
+      valid: false,
+      error: `That looks like a date of birth (${year}), not a State Pension start date. `
+        + 'Enter the date your State Pension begins — check gov.uk/check-your-state-pension.',
+      warning: null,
+      date
+    };
+  }
+
+  if (date.getTime() < now.getTime()) {
+    return {
+      valid: true,
+      error: null,
+      warning: `This date is in the past — State Pension will be treated as already `
+        + `in payment from ${year}.`,
+      date
+    };
+  }
+
+  return { valid: true, error: null, warning: null, date };
+}
+
+/**
+ * Derives the simulation-grid State Pension config ({spStartYear, spWeeklyAmount,
+ * spFirstYearRatio}) from date-based settings, or null when no date/amount is set (callers
+ * fall back to the legacy statePension/statePensionYear fields). Shared by the Stress config
+ * builder and the deterministic Drawdown schedule so every projection sees the SAME start
+ * year and first-year pro-rata. `now` is injectable for tests.
+ */
+/** Age today, aged forward from the date it was recorded (`currentAgeAsOf`) so a stored age does not go stale. */
+export function currentAgeNow(settings, now = new Date()) {
+  const a = +settings.currentAge || 0;
+  if (!a) return 0;
+  if (settings.currentAgeAsOf) { const t = Date.parse(settings.currentAgeAsOf); if (Number.isFinite(t)) return a + Math.max(0, (now.getTime() - t) / (365.25 * 24 * 3600 * 1000)); }
+  return a;
+}
+
+export function spSimConfigFromSettings(settings, now = new Date()) {
+  if (!settings.spStartDate || !settings.spWeeklyAmount) return null;
+  const spDate = parseStatePensionDate(settings.spStartDate);
+  if (!spDate) return null;
+  const msPerYear = 365.25 * 24 * 60 * 60 * 1000;
+  // Plan year 0 is the income-start age (retirement). For someone still working, that is
+  // (shapeAgeNow − currentAge) years away, so the SP arrives that many plan years EARLIER than
+  // "years from today". Without both ages the plan is assumed to start now (the old behaviour).
+  let spStartYear;
+  if (+settings.firstTaxYear > 0) {
+    // 6.4.0: the plan carries its start tax year, so the SP's plan year is exact — the tax year the SP
+    // date falls in minus the plan's first tax year (the ladder has always counted this way). The
+    // first-year share is measured against 6 April for the same reason.
+    const tyStart = (d) => (d.getMonth() > 3 || (d.getMonth() === 3 && d.getDate() >= 6)) ? d.getFullYear() : d.getFullYear() - 1;
+    spStartYear = Math.max(0, tyStart(spDate) - (+settings.firstTaxYear));
+    return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio: spTaxYearFirstRatio(settings) ?? 1 };
+  }
+  if (settings.shapeAgeNow > 0 && settings.currentAge > 0 && settings.shapeAgeNow > Math.floor(currentAgeNow(settings, now)) && spDate.getTime() > now.getTime()) {
+    // Not yet retired: plan year 0 starts on the birthday the income begins, so count birthdays.
+    // The State Pension date IS a birthday (State Pension age is reached on the birthday), so the age
+    // at that date is today's age plus the number of birthdays between now and then — counted on the
+    // SP date's own month/day. Plan year 0 is the birthday the income starts (shapeAgeNow), so the SP
+    // starts in plan year (age at SP − start age). No birth date needed, no drift within the year.
+    let birthdays = 0;
+    for (let y = now.getFullYear(); y <= spDate.getFullYear(); y++) {
+      const bd = new Date(y, spDate.getMonth(), spDate.getDate());
+      if (bd.getTime() > now.getTime() && bd.getTime() <= spDate.getTime()) birthdays++;
+    }
+    const ageAtSp = Math.floor(currentAgeNow(settings, now)) + birthdays;
+    spStartYear = Math.max(0, ageAtSp - settings.shapeAgeNow);
+  } else {
+    const yearsToStart = (settings.shapeAgeNow > 0 && settings.currentAge > 0) ? Math.max(0, settings.shapeAgeNow - currentAgeNow(settings, now)) : 0;
+    const yearsUntilSp = Math.max(0, (spDate.getTime() - now.getTime()) / msPerYear - yearsToStart);
+    spStartYear = Math.floor((Math.round(yearsUntilSp * 12) + 1) / 12);
+  }
+  const daysInYear = 365;
+  // Calendar days, not milliseconds: a summer date is an hour "short" of a whole number of days from
+  // 1 January wherever clocks change, and the old Math.floor of that lost a day (UK) or did not (UTC).
+  const dayOfYear = calendarDayNumber(spDate) - calendarDayNumber(new Date(spDate.getFullYear(), 0, 0));
+  const firstYearRatio = (daysInYear - dayOfYear) / daysInYear;
+  return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio: firstYearRatio };
+}
+
+
+/**
+ * Decision-side SP config: the Decision tool's plan years are UK TAX years (6 April), so the
+ * State Pension starts in the plan year whose tax year contains the SP date — not floor(calendar
+ * years from today). Returns { spStartYear, spWeeklyAmount, spFirstYearRatio } like the sim config.
+ */
+/**
+ * Share of the State Pension paid in the TAX year it starts (6 April boundary). Gilt-ladder rungs
+ * are bought per tax year, so the first-year SP must be measured against 6 April, not 1 January:
+ * an SP starting 6 May pays 335/365 of a year in that tax year (the calendar ratio, 240/365,
+ * would over-buy that rung). Returns null when no SP date is set.
+ */
+export function spTaxYearFirstRatio(settings) {
+  if (!settings || !settings.spStartDate) return null;
+  const spDate = parseStatePensionDate(settings.spStartDate);
+  if (!spDate) return null;
+  const ty = (spDate.getMonth() > 3 || (spDate.getMonth() === 3 && spDate.getDate() >= 6)) ? spDate.getFullYear() : spDate.getFullYear() - 1;
+  const yStart = new Date(ty, 3, 6), yEnd = new Date(ty + 1, 3, 6);
+  return Math.max(0, Math.min(1, (calendarDayNumber(yEnd) - calendarDayNumber(spDate)) / (calendarDayNumber(yEnd) - calendarDayNumber(yStart))));
+}
+
+export function spTaxYearConfigFromSettings(settings, now = new Date()) {
+  if (!settings.spStartDate || !settings.spWeeklyAmount) return null;
+  const spDate = parseStatePensionDate(settings.spStartDate);
+  if (!spDate) return null;
+  const tyStart = (d) => (d.getMonth() > 3 || (d.getMonth() === 3 && d.getDate() >= 6)) ? d.getFullYear() : d.getFullYear() - 1;
+  // Plan year 0 is the plan's saved first tax year (6.4.0) — "today" only when the plan has none.
+  const spStartYear = Math.max(0, tyStart(spDate) - (+settings.firstTaxYear > 0 ? +settings.firstTaxYear : tyStart(now)));
+  const yStart = new Date(tyStart(spDate), 3, 6), yEnd = new Date(tyStart(spDate) + 1, 3, 6);
+  const spFirstYearRatio = Math.max(0, Math.min(1, (calendarDayNumber(yEnd) - calendarDayNumber(spDate)) / (calendarDayNumber(yEnd) - calendarDayNumber(yStart))));
+  return { spStartYear, spWeeklyAmount: settings.spWeeklyAmount, spFirstYearRatio };
+}
+
+/**
+ * The State Pension for one tax year as the Decision tool reads it (DecisionRepository.getStatePensionForTaxYear until
+ * 7.2.0, which now calls this with what it read): the year's total, the monthly payment once it has started and the month
+ * it starts. Pure, so the new app's Month by month reads a saved plan the same way without the repositories.
+ * @param {object} settings  the plan's Decision settings (spStartDate, spWeeklyAmount)
+ * @param {object} allTaxYears  its tax years, keyed 'YY/YY'
+ * @param {string} taxYear  'YY/YY'
+ * @param {Date} [now]  for "how long until" only
+ */
+export function statePensionInfoFor(settings, allTaxYears, taxYear, now = new Date()) {
+  const spStartDate = settings && settings.spStartDate;
+  const spWeeklyAmount = (settings && settings.spWeeklyAmount) || 0;
+  if (!spStartDate || !spWeeklyAmount) {
+    return { amount: 0, monthly: 0, yearsUntil: 0, isReceiving: false, isFirstYear: false, startDate: spStartDate ? formatStatePensionDate(spStartDate) : null };
+  }
+  const result = calculateStatePensionForTaxYear({ taxYear, spStartDate, weeklyAmount: spWeeklyAmount, taxYearConfigs: allTaxYears || {} });
+  const timeUntil = getTimeUntilStatePension(spStartDate, now);
+  // The monthly PAYMENT (weekly × 52 / 12) and the month it starts: a first-year State Pension is paid in full from its
+  // start month, not spread thinly over twelve (6.11.0). `amount` stays the year's total.
+  const sd = parseStatePensionDate(spStartDate);
+  const startYm = sd ? sd.getFullYear() + '-' + String(sd.getMonth() + 1).padStart(2, '0') : null;
+  return {
+    amount: result.annual,
+    monthly: result.monthly,
+    monthlyFull: Math.round((spWeeklyAmount * 52 / 12) * 100) / 100,
+    startYm,
+    yearsUntil: timeUntil.years,
+    monthsUntil: timeUntil.months,
+    isReceiving: result.isReceiving,
+    isFirstYear: result.isFirstYear,
+    weeksInYear: result.weeksInYear,
+    startDate: result.startDate
+  };
+}

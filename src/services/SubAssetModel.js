@@ -1,0 +1,199 @@
+/**
+ * Sub-Asset-Class Model — the asset-class registry (LIVE: read by SimulationEngine via
+ * SubAssetReturns for the bond and diversifier buckets, gated per-run on config.subAsset).
+ * =============================================================================
+ * Phase: asset-class sub-modelling. See docs/asset-class-research.md for the sourced
+ * numbers and the modelling decision behind this file.
+ *
+ * MODELLING APPROACH (decided 2026-07): DRIVER / FACTOR DECOMPOSITION.
+ * The engine replays two primitives — the EQUITY path and the INFLATION path
+ * (constants.EQUITY_RETURNS / INFLATION). Every sub-asset below is modelled as a
+ * TRANSFORM of those primitives plus a small idiosyncratic residual, so each sub-class
+ * stays automatically consistent with historical replay AND every named scenario
+ * (2022 / 1970s / 2008 / Japan) — its crisis behaviour EMERGES from the same equity+
+ * inflation path the engine already replays, rather than being hard-coded.
+ *
+ * The one derived primitive this phase adds is a GILT-YIELD path, itself derived from
+ * the inflation driver (decision: derive-from-inflation, not a new historical series):
+ *     yieldLevel_t = anchor + k * inflationExpectation_t
+ *     dYield_t     = yieldLevel_t - yieldLevel_{t-1}          // driven by inflation surprises
+ * Bond-family capital return then = carry - duration * dYield_t (+ inflation uplift for linkers,
+ * + an equity-linked credit-spread term for corporates). Long gilts crash in 2022 because the
+ * 2022 inflation spike drives dYield up and their duration is large; short gilts barely move.
+ *
+ * Data + pure functions only; the live gate is per-run (config.subAsset, emitted by
+ * readAlloc/StressRepository when a plan uses own-funds tagging or a risk preset).
+ */
+
+import { DEFAULT_FUND_CATALOGUE } from './FundCatalogue.js';
+
+// -----------------------------------------------------------------------------
+// The four buckets. Names Cautious/Balanced/Adventurous are preserved elsewhere;
+// this phase adds DIVERSIFIERS as a 4th bucket held FLAT (like cash — not glided by
+// the bond tent, which continues to de-risk only the equity<->bond growth sleeve).
+// -----------------------------------------------------------------------------
+export const BUCKETS = Object.freeze({
+  SHARES: 'shares',
+  BONDS: 'bonds',
+  DIVERSIFIERS: 'diversifiers',
+  CASH: 'cash'
+});
+
+// -----------------------------------------------------------------------------
+// Sub-class driver profiles.
+//   Anchors (nominalReturn / yield / vol / eqCorr) come from docs/asset-class-research.md
+//   (BlackRock/JPM/Vanguard CMAs central case; DMS/AQR for diversifiers).
+//   Driver loadings are the transform coefficients for the factor decomposition:
+//     duration      — years; capital return sensitivity to dYield (known bond math)
+//     inflationBeta — loading on realised inflation (linkers ~1; gold small +ve)
+//     creditBeta    — loading on the equity-linked credit-spread term (corporates)
+//     crisisBeta    — extra return in the flight-to-quality / crash regime the engine
+//                     already detects (equityBondRho's -0.3 regime); gold > 0, long UST > 0
+//     momentumBeta  — loading on trailing path momentum (trend-following only; path-dependent)
+//     idioVol       — idiosyncratic annual vol, set so total modelled vol ≈ the CMA vol anchor
+//   All figures NOMINAL unless noted; real yields flagged. These are calibration seeds, not
+//   final tuned values — the wiring step calibrates idioVol to hit each vol anchor exactly.
+// -----------------------------------------------------------------------------
+// NOTE: intentionally NOT frozen — admin overrides (Firestore admin/subAssetProfiles) tune the
+// numeric calibration in place at runtime via applySubAssetOverrides(). Object identity is
+// preserved (fields are mutated, never replaced) so identity-keyed lookups stay valid.
+export const SUB_ASSET_PROFILES = ({
+  // ---- SHARES ----------------------------------------------------------------
+  ukEquityIncome:   { bucket: BUCKETS.SHARES, label: 'UK equity income',        nominalReturn: 0.068, yield: 0.040, vol: 0.16, eqCorr: 0.90, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.07 },
+  globalEquityIncome:{ bucket: BUCKETS.SHARES, label: 'Global equity income',    nominalReturn: 0.070, yield: 0.030, vol: 0.16, eqCorr: 0.95, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.05 },
+  worldGrowth:      { bucket: BUCKETS.SHARES, label: 'World growth / tracker',   nominalReturn: 0.070, yield: 0.020, vol: 0.17, eqCorr: 1.00, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.00 },
+  reit:             { bucket: BUCKETS.SHARES, label: 'Property / REITs',          nominalReturn: 0.065, yield: 0.045, vol: 0.19, eqCorr: 0.65, duration: 4,   inflationBeta: 0.3, creditBeta: 0.2, crisisBeta: 0,    idioVol: 0.13, note: 'listed property: equity-like with rate sensitivity; rents partly inflation-linked' },
+  emEquity:         { bucket: BUCKETS.SHARES, label: 'Emerging-markets equity',   nominalReturn: 0.075, yield: 0.028, vol: 0.22, eqCorr: 0.80, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.13 },
+  globalSmallCap:   { bucket: BUCKETS.SHARES, label: 'Global smaller companies',  nominalReturn: 0.075, yield: 0.018, vol: 0.20, eqCorr: 0.90, duration: 0,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.09 },
+
+  // ---- BONDS -----------------------------------------------------------------
+  shortGilts:       { bucket: BUCKETS.BONDS,  label: 'Short gilts 0-5y (buffer)', nominalReturn: 0.043, yield: 0.043, vol: 0.026, eqCorr: 0.10, duration: 2.5, inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.01 },
+  longGilts:        { bucket: BUCKETS.BONDS,  label: 'Long gilts 15y+',           nominalReturn: 0.064, yield: 0.055, vol: 0.108, eqCorr: 0.20, duration: 15,  inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0,    idioVol: 0.02 },
+  indexLinked:      { bucket: BUCKETS.BONDS,  label: 'Index-linked gilts (long)', nominalReturn: 0.047, yieldReal: 0.023, vol: 0.10, eqCorr: 0.33, duration: 15,  inflationBeta: 1.0, creditBeta: 0,   crisisBeta: 0,    idioVol: 0.03, realYield: true },
+  corporateIG:      { bucket: BUCKETS.BONDS,  label: '£ IG corporate',            nominalReturn: 0.053, yield: 0.052, vol: 0.065, eqCorr: 0.41, duration: 6.5, inflationBeta: 0,   creditBeta: 0.4, crisisBeta: 0,    idioVol: 0.03 },
+  globalAggHedged:  { bucket: BUCKETS.BONDS,  label: 'Global-agg £-hedged',       nominalReturn: 0.045, yield: 0.045, vol: 0.053, eqCorr: 0.30, duration: 6,   inflationBeta: 0,   creditBeta: 0.2, crisisBeta: 0,    idioVol: 0.02 },
+  usTreasHedged:    { bucket: BUCKETS.BONDS,  label: 'US treasuries £-hedged',    nominalReturn: 0.040, yield: 0.040, vol: 0.068, eqCorr: 0.10, duration: 7,   inflationBeta: 0,   creditBeta: 0,   crisisBeta: 0.15, idioVol: 0.02 },
+  infraDebt:        { bucket: BUCKETS.BONDS,  label: 'Infrastructure debt',       nominalReturn: 0.064, yield: 0.060, vol: 0.07,  eqCorr: 0.30, duration: 8,   inflationBeta: 0.3, creditBeta: 0.3, crisisBeta: 0,    idioVol: 0.03, note: 'IG + ~115bps illiquidity premium' },
+  highYield:        { bucket: BUCKETS.BONDS,  label: 'Global high-yield (£-hedged)', nominalReturn: 0.058, yield: 0.065, vol: 0.10, eqCorr: 0.60, duration: 3.5, inflationBeta: 0,  creditBeta: 0.8, crisisBeta: 0,    idioVol: 0.05, note: 'credit carry net of defaults; spreads blow out with equities in a crash' },
+
+  // ---- CASH ------------------------------------------------------------------
+  moneyMarket:      { bucket: BUCKETS.CASH,   label: 'Money-market fund',         nominalReturn: 0.034, yield: 0.034, vol: 0.002, eqCorr: 0.00, duration: 0.1, inflationBeta: 0, creditBeta: 0, crisisBeta: 0, idioVol: 0.00, note: 'FCA -1% real; = engine cash model' },
+  savings:          { bucket: BUCKETS.CASH,   label: 'Savings / NS&I',            nominalReturn: 0.034, yield: 0.034, vol: 0.001, eqCorr: 0.00, duration: 0,   inflationBeta: 0, creditBeta: 0, crisisBeta: 0, idioVol: 0.00 },
+
+  // ---- DIVERSIFIERS ----------------------------------------------------------
+  // The two sleeves {equity, inflation, yield} don't fully explain — the real tail hedges.
+  gold:             { bucket: BUCKETS.DIVERSIFIERS, label: 'Gold',               nominalReturn: 0.055, yield: 0.000, vol: 0.155, eqCorr: 0.05, duration: 0, inflationBeta: 0.3, creditBeta: 0, crisisBeta: 0.5, idioVol: 0.14, note: 'near-uncorrelated; rises when stocks AND bonds fall (2022)' },
+  trendMacro:       { bucket: BUCKETS.DIVERSIFIERS, label: 'Trend / macro',      nominalReturn: 0.045, yield: 0.000, vol: 0.12,  eqCorr: 0.07, duration: 0, inflationBeta: 0,   creditBeta: 0, crisisBeta: 0,   momentumBeta: 0.6, idioVol: 0.10, note: 'lagged path-momentum; pays in prolonged 2008/2022, whipsaws in V-shaped 2020' },
+  commodities:      { bucket: BUCKETS.DIVERSIFIERS, label: 'Broad commodities',  nominalReturn: 0.045, yield: 0.000, vol: 0.16,  eqCorr: 0.25, duration: 0, inflationBeta: 0.8, creditBeta: 0, crisisBeta: 0,   idioVol: 0.14, note: 'the strongest inflation hedge (2022); long flat stretches otherwise; crashes WITH equities in a demand shock (2008)' }
+});
+
+// Snapshot of the shipped calibration, for display ("default vs current") and for reverting.
+export const SUB_ASSET_PROFILE_DEFAULTS = Object.freeze(
+  JSON.parse(JSON.stringify(SUB_ASSET_PROFILES))
+);
+
+// Numeric fields the admin may tune. Everything else (bucket, label, notes) stays code-owned.
+export const TUNABLE_PROFILE_FIELDS = Object.freeze([
+  'nominalReturn', 'yield', 'yieldReal', 'vol', 'eqCorr', 'duration',
+  'inflationBeta', 'creditBeta', 'crisisBeta', 'momentumBeta', 'idioVol'
+]);
+
+/**
+ * Apply admin overrides to the live profiles IN PLACE (identity preserved). Only known profiles
+ * and tunable numeric fields are applied; everything else is ignored. Passing null/undefined
+ * restores the shipped defaults.
+ * @param {object|null} overrides - { profileKey: { field: number, … }, … }
+ */
+export function applySubAssetOverrides(overrides) {
+  for (const [key, def] of Object.entries(SUB_ASSET_PROFILE_DEFAULTS)) {
+    const live = SUB_ASSET_PROFILES[key];
+    for (const f of TUNABLE_PROFILE_FIELDS) {
+      if (def[f] !== undefined) live[f] = def[f];        // reset to shipped value first
+      else delete live[f];
+    }
+    const o = overrides && overrides[key];
+    if (o) {
+      for (const f of TUNABLE_PROFILE_FIELDS) {
+        if (o[f] !== undefined && Number.isFinite(+o[f])) live[f] = +o[f];
+      }
+    }
+  }
+}
+
+
+// -----------------------------------------------------------------------------
+// Fund -> sub-class tag map (the user's "tell me what bucket my asset is in"): tagging real
+// fund tickers to a modelled sub-class, so a person's own holdings map onto the model. Labels only.
+// -----------------------------------------------------------------------------
+// Curated catalogue of common UK-listed funds/ETFs/investment trusts, each with a DEFAULT sub-class.
+// These are SUGGESTIONS only — the tagging UI lets the user override the sub-class per holding and add
+// funds not listed here. Not financial advice; illustrative categorisation. UKW/HICL are infrastructure
+// EQUITY income (renewable + social infra, RPI-linked payouts) → shares; SEQI is infra DEBT → bonds;
+// CGT (Capital Gearing) is defensive multi-asset — defaulted to diversifier but commonly re-tagged bonds.
+// The curated fund list now lives in FundCatalogue.js (~150+ UK funds, alphabetical);
+// re-exported here for back-compat. A Firestore admin override can supersede it at runtime.
+export const FUND_CATALOGUE = DEFAULT_FUND_CATALOGUE;
+
+// Ticker -> default sub-class (derived from the catalogue). tagPortfolio honours a per-holding
+// `subClass` override ahead of this, so users can re-categorise any fund.
+export const FUND_TAG_MAP = Object.freeze(
+  Object.fromEntries(FUND_CATALOGUE.map(f => [f.ticker, f.subClass]))
+);
+
+/** Catalogue entry for a ticker (case-insensitive), or null. */
+export function catalogueEntry(ticker) {
+  const t = (ticker || '').toUpperCase().trim();
+  return FUND_CATALOGUE.find(f => f.ticker === t) || null;
+}
+
+/** Sub-class options grouped by bucket, for the tagging category dropdown. */
+export function subClassOptionsByBucket() {
+  const groups = {};
+  for (const [key, p] of Object.entries(SUB_ASSET_PROFILES)) {
+    (groups[p.bucket] = groups[p.bucket] || []).push({ key, label: p.label });
+  }
+  return groups;
+}
+
+// -----------------------------------------------------------------------------
+// Directional 4-bucket preset grid (shares / bonds / diversifiers / cash), from the
+// research. Keeps the Cautious/Balanced/Adventurous NAMES; makes each a 4-way split.
+// Weights are illustrative seeds; not wired into GlidepathService.RISK_PRESETS yet.
+// -----------------------------------------------------------------------------
+export const RISK_PRESETS_4WAY = Object.freeze({
+  cautious:    { shares: 0.30, bonds: 0.45, diversifiers: 0.12, cash: 0.13 },
+  balanced:    { shares: 0.50, bonds: 0.30, diversifiers: 0.15, cash: 0.05 },
+  adventurous: { shares: 0.65, bonds: 0.15, diversifiers: 0.15, cash: 0.05 }
+});
+
+// -----------------------------------------------------------------------------
+// FCA-regulated conservative option (offered alongside the market CMAs above).
+// COBS-13 Annex 2 caps are by PRODUCT, not asset class. FCA/PwC 2017 per-asset reals.
+// See docs/asset-class-research.md §2.
+// -----------------------------------------------------------------------------
+export const FCA_PROJECTION_CAPS = Object.freeze({
+  pension: { lower: 0.02, intermediate: 0.05, higher: 0.08 },  // personal/stakeholder pension
+  other:   { lower: 0.015, intermediate: 0.045, higher: 0.075 }
+});
+export const FCA_PER_ASSET_REAL = Object.freeze({
+  cash: -0.01,        // midpoint; VALIDATES the engine's cash = max(0, prevInf - 1%)
+  gilts: -0.005,      // midpoint of -1% to 0%
+  corporateIG: 0.003  // +0.6-1% over gilts -> real 0.1-0.5%, midpoint
+});
+
+// -----------------------------------------------------------------------------
+// Pure helpers (safe to unit-test; not called by the engine yet).
+// -----------------------------------------------------------------------------
+
+/** Sub-class keys belonging to a bucket. */
+export function subClassesInBucket(bucket) {
+  return Object.entries(SUB_ASSET_PROFILES)
+    .filter(([, p]) => p.bucket === bucket)
+    .map(([key]) => key);
+}
+
+/** Resolve a real-world fund ticker to its modelled sub-class profile (or null). */
+export function profileForFund(ticker) {
+  const key = FUND_TAG_MAP[ticker];
+  return key ? SUB_ASSET_PROFILES[key] : null;
+}

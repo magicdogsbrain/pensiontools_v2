@@ -1,0 +1,45 @@
+{
+  "what": "Income tax for 2026/27 (England, Wales and Northern Ireland) and the step from a pension pot to the pocket, worked by hand from the published rates. The app's own tax code is never used to make a row.",
+  "source": {
+    "urls": [
+      "https://www.gov.uk/income-tax-rates",
+      "https://www.gov.uk/government/publications/rates-and-allowances-income-tax/income-tax-rates-and-allowances-current-and-past",
+      "https://www.gov.uk/tax-on-your-private-pension/pension-tax-free-lump-sum"
+    ],
+    "checkedOn": "2026-09-30",
+    "status": "Rates and thresholds read from gov.uk on the date above (they are the same figures tests/oracles/incomeTax-2026-27.json carries); every row is arithmetic from them. The allowance-reduction rows follow HMRC's worked example: £1 off the allowance for every £2 over £100,000.",
+    "quoted": [
+      "The standard Personal Allowance is £12,570",
+      "Basic rate £12,571 to £50,270 20%; Higher rate £50,271 to £125,140 40%; Additional rate over £125,140 45%",
+      "Your personal allowance goes down by £1 for every £2 that your adjusted net income is above £100,000",
+      "You can usually take up to 25% of the amount built up in any pension as a tax-free lump sum; the tax-free lump sums you can take are limited to £268,275"
+    ]
+  },
+  "rules": { "personalAllowance": 12570, "basicRateLimit": 50270, "higherRateLimit": 125140, "taxFreeShare": 0.25, "taxFreeLimit": 268275 },
+  "income": [
+    { "gross": 12570,  "tax": 0,        "working": "all inside the allowance" },
+    { "gross": 12571,  "tax": 0.20,     "working": "1 at 20%" },
+    { "gross": 20000,  "tax": 1486,     "working": "7,430 at 20%" },
+    { "gross": 50270,  "tax": 7540,     "working": "37,700 at 20%: the top of the 20% band" },
+    { "gross": 50271,  "tax": 7540.40,  "working": "7,540 + 1 at 40%" },
+    { "gross": 60000,  "tax": 11432,    "working": "7,540 + 9,730 at 40%" },
+    { "gross": 100000, "tax": 27432,    "working": "7,540 + 49,730 at 40%: the last pound before the allowance shrinks" },
+    { "gross": 110000, "tax": 33432,    "working": "allowance 7,570; taxable 102,430; 7,540 + 64,730 at 40%" },
+    { "gross": 125140, "tax": 42516,    "working": "allowance 0; taxable 125,140; 7,540 + 87,440 at 40%" },
+    { "gross": 150000, "tax": 53703,    "working": "42,516 + 24,860 at 45%" }
+  ],
+  "potToPocket": [
+    { "other": 0,        "taken": 16760,  "taxed": 12570,    "tax": 0,        "pocket": 16760,     "note": "the most that comes out tax-free in a year" },
+    { "other": 0,        "taken": 16761,  "taxed": 12570.75, "tax": 0.15,     "pocket": 16760.85,  "note": "one pound over" },
+    { "other": 0,        "taken": 40000,  "taxed": 30000,    "tax": 3486,     "pocket": 36514 },
+    { "other": 12547.60, "taken": 20000,  "taxed": 27547.60, "tax": 2995.52,  "pocket": 29552.08,  "note": "with a State Pension of £241.30 a week × 52" },
+    { "other": 21547.60, "taken": 10000,  "taxed": 29047.60, "tax": 3295.52,  "pocket": 28252.08,  "note": "State Pension and a £9,000 final-salary pension" },
+    { "other": 0,        "taken": 80000,  "taxed": 60000,    "tax": 11432,    "pocket": 68568,     "note": "into the 40% band" },
+    { "other": 0,        "taken": 160000, "taxed": 120000,   "tax": 39432,    "pocket": 120568,    "note": "allowance down to 2,570" },
+    { "other": 0,        "taken": 40000,  "taxed": 40000,    "tax": 5486,     "pocket": 34514,     "taxFreeUsedUp": true, "note": "after £268,275 of tax-free cash" }
+  ],
+  "couple": [
+    { "note": "two allowances: 16,760 each, 12,570 taxed each, no tax", "each": 16760, "pocketTogether": 33520 },
+    { "note": "the same money in one name: 33,520, 25,140 taxed, tax 2,514", "one": 33520, "tax": 2514, "pocket": 31006 }
+  ]
+}

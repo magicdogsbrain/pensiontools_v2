@@ -1,0 +1,1380 @@
+/**
+ * Setup Wizard component for new user onboarding
+ * Guides users through initial configuration of the pension planner
+ */
+
+import { validateStatePensionDate } from '../../utils/StatePensionUtils.js';
+import { CLASSIC_NAME_MID } from '../classicName.js';
+
+// Wizard state
+let wizardElement = null;
+let onCompleteCallback = null;
+let onCancelCallback = null;
+let wizardData = {
+  // Scenario info
+  scenarioName: 'My plan',
+  scenarioDescription: '',
+  enabledTools: ['stress', 'decision'],  // all tools enabled; Budget tab always shows
+  // Minimal creation (net-first flow)
+  household: 'single',        // 'single' | 'couple'
+  currentAge: '',
+  retirementAge: '',
+  retired: false,             // already retired (retirement age may be ≤ current age)
+  stopMonth: '',              // 'YYYY-MM' the month work stopped or stops (6.51.0), optional
+  partnerAge: '',
+  partnerRetirementAge: '',
+  partnerRetired: false,
+  startAt: 'budget',          // intent router: 'budget' | 'stress' | 'decision' | 'accumulation'
+  // Intro done flag
+  introDone: false,
+  // Stress tester settings
+  baseSalary: 30000,
+  otherIncome: 0,
+  // State Pension - from HMRC forecast
+  spStartDate: '',      // e.g. "6 May 2040"
+  spWeeklyAmount: 0,    // e.g. 230.25
+  equityMin: 250000,
+  bondMin: 200000,
+  cashTarget: 50000,
+  isaBalance: 0,        // tax-free ISA pot (assumed a steady money-market fund)
+  duration: 35,
+  taxMode: 'inflates',
+  // Decision tool settings (copied from stress or entered)
+  decisionSalary: 30000,
+  decisionEquity: 250000,
+  decisionBond: 200000,
+  decisionCash: 50000,
+  decisionIsaBalance: 0,
+  decisionDuration: 35
+};
+
+// Current step tracking
+let currentPhase = 'scenario'; // 'scenario', 'stress', 'decision'
+let currentStep = 1;
+
+/**
+ * One plan per finish. Signed in, making a plan takes several round trips to the server (a slow or dropping connection
+ * can hold it for as long as the connection is gone), and the wizard stays on screen until they are done. Every door
+ * pressed again in that wait used to make one more plan with the same name. So the first door pressed (a finish, or
+ * Cancel, which makes an empty first plan) closes every door and says the plan is being made; later presses do nothing;
+ * if making the plan fails, the doors open again and the words say it could not be finished — and to look for the plan
+ * before pressing again, since a failure can come after the plan was made (its answer lost). Opening the wizard again
+ * (initSetupWizard, showSetupWizard) starts with the doors open.
+ */
+let finishing = false;
+export const WIZARD_WORDS = Object.freeze({
+  making: 'Making your plan…',
+  // a failure is not always "nothing saved": the main plan may have been un-marked first, or the plan made with its answer
+  // lost, so the words say what is known and send the person to look before pressing again
+  notMade: 'Sorry, we could not finish making your plan. Check your connection, then look for it in your plans before you press this again: it may have been made.'
+});
+
+/** Every door of the wizard open or closed, with a line of words under them (none: the line is hidden). */
+function setDoors(closed, words, alert = false) {
+  if (!wizardElement) return;
+  wizardElement.querySelectorAll('[data-action]').forEach((b) => {
+    b.disabled = closed;
+    if (closed) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled');
+  });
+  let line = wizardElement.querySelector('[data-wizard-status]');
+  if (!line && words) {
+    line = document.createElement('p');
+    line.setAttribute('data-wizard-status', '');
+    line.className = 'wizard-status';
+    (wizardElement.querySelector('.wizard-step') || wizardElement.querySelector('.wizard-box') || wizardElement).appendChild(line);
+  }
+  if (!line) return;
+  line.setAttribute('role', alert ? 'alert' : 'status');
+  line.textContent = words || '';
+  line.style.display = words ? '' : 'none';
+}
+
+/**
+ * Hand the wizard to `fn` once: the doors close (with `words`, if any) until it is done. A promise that rejects, or a
+ * throw, is a plan not made: the doors open again and say so. A plan made leaves them closed — the wizard is hidden by
+ * then, and opening it again opens them.
+ */
+function once(fn, words) {
+  if (finishing || typeof fn !== 'function') return;
+  finishing = true;
+  setDoors(true, words);
+  let done;
+  try { done = fn(); } catch (e) { done = Promise.reject(e); }
+  Promise.resolve(done).catch(() => {
+    finishing = false;
+    setDoors(false, WIZARD_WORDS.notMade, true);
+  });
+}
+
+/**
+ * Reset wizard state to initial values
+ */
+function resetWizardState() {
+  currentPhase = 'scenario';
+  currentStep = 1;
+  wizardData = {
+    scenarioName: 'My plan',
+    scenarioDescription: '',
+    enabledTools: ['stress', 'decision'],
+    household: 'single',
+    currentAge: '',
+    retirementAge: '',
+    retired: false,
+    stopMonth: '',
+    partnerAge: '',
+    partnerRetirementAge: '',
+    partnerRetired: false,
+    startAt: 'budget',
+    introDone: false,
+    baseSalary: 30000,
+    otherIncome: 0,
+    spStartDate: '',
+    spWeeklyAmount: 0,
+    equityMin: 250000,
+    bondMin: 200000,
+    cashTarget: 50000,
+    isaBalance: 0,
+    duration: 35,
+    taxMode: 'inflates',
+    decisionSalary: 30000,
+    decisionEquity: 250000,
+    decisionBond: 200000,
+    decisionCash: 50000,
+    decisionIsaBalance: 0,
+    decisionDuration: 35
+  };
+}
+
+/**
+ * Initialize the setup wizard
+ * @param {HTMLElement} container - Container element
+ * @param {Function} onComplete - Callback when wizard completes
+ */
+export function initSetupWizard(container, onComplete, onCancel = null) {
+  wizardElement = container;
+  onCompleteCallback = onComplete;
+  onCancelCallback = onCancel;
+  // Reset to beginning on every init, the doors open
+  finishing = false;
+  resetWizardState();
+  renderWizard();
+}
+
+/**
+ * Render the current wizard state
+ */
+function renderWizard() {
+  if (!wizardElement) return;
+
+  if (currentPhase === 'scenario') {
+    renderScenarioWizard();
+  } else if (currentPhase === 'stress') {
+    renderStressWizard();
+  } else if (currentPhase === 'decision') {
+    renderDecisionWizard();
+  }
+}
+
+/**
+ * Render scenario setup wizard (name, description, tool selection)
+ */
+function renderScenarioWizard() {
+  const totalSteps = 2;
+
+  wizardElement.innerHTML = `
+    <div class="wizard-overlay">
+      <div class="wizard-box">
+        <div class="wizard-title">${(typeof window !== 'undefined' && window._hasPlans) ? 'New plan' : 'Welcome to ' + CLASSIC_NAME_MID}</div>
+        <div class="wizard-subtitle">${(typeof window !== 'undefined' && window._hasPlans) ? 'A few basics and it is ready — everything else lives in the tools' : "Let's create your first plan"}</div>
+
+        <div class="wizard-progress">
+          ${renderProgressDots(totalSteps, currentStep)}
+        </div>
+
+        ${currentStep === 1 ? renderScenarioStep1() : renderScenarioStep2()}
+      </div>
+    </div>
+  `;
+
+  attachWizardListeners();
+}
+
+/**
+ * Render scenario step 1 - Create the plan (name, who, ages). No money questions.
+ */
+function renderScenarioStep1() {
+  const couple = wizardData.household === 'couple';
+  return `
+    <div class="wizard-step">
+      <div class="wizard-step-title">Let's create your plan</div>
+      <div class="wizard-step-desc">
+        Just a few basics to start — no money questions yet. You'll add your spending, pots and other
+        details in the tools themselves, only when you need them.
+      </div>
+
+      <div class="wizard-input" style="margin-bottom: 16px;">
+        <label style="display:block; font-size:13px; margin-bottom:4px;">Plan name</label>
+        <input type="text" id="wizScenarioName" value="${wizardData.scenarioName}" placeholder="e.g. My plan" style="max-width: 320px;">
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="display:block; font-size:13px; margin-bottom:6px;">Who's this plan for?</label>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <label class="wizard-tool-option" style="flex:0 0 auto; padding:8px 14px; cursor:pointer;">
+            <input type="radio" name="wizHousehold" value="single" ${!couple ? 'checked' : ''} data-on-change="setDisplay('wizPartnerBlock','none')"> Just me
+          </label>
+          <label class="wizard-tool-option" style="flex:0 0 auto; padding:8px 14px; cursor:pointer;">
+            <input type="radio" name="wizHousehold" value="couple" ${couple ? 'checked' : ''} data-on-change="setDisplay('wizPartnerBlock','block')"> Me and a partner
+          </label>
+        </div>
+      </div>
+
+      ${personAgeBlock('You', 'wiz', wizardData.currentAge, wizardData.retirementAge, wizardData.retired, wizardData.stopMonth)}
+      <div id="wizPartnerBlock" style="display:${couple ? 'block' : 'none'};">
+        ${personAgeBlock("Your partner", 'wizPartner', wizardData.partnerAge, wizardData.partnerRetirementAge, wizardData.partnerRetired)}
+        <p style="font-size:12px; color:var(--text-muted); margin:4px 0 0;">
+          You'll plan <strong>your own money</strong> against your share of the joint budget —
+          your partner can do the same in a plan of their own.
+        </p>
+      </div>
+
+      <div class="wizard-buttons">
+        <button class="wizard-btn secondary" data-action="skip-all">Cancel</button>
+        <button class="wizard-btn primary" data-action="to-router">Next</button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * One person's age + retirement status. Supports already-retired (retirement age ≤ current age) so any
+ * combination works for a couple. `prefix` gives the field ids: <prefix>CurrentAge / <prefix>RetireAge /
+ * <prefix>Retired (for the partner, prefix='wizPartner' → wizPartnerCurrentAge etc.). The plan's own person (`stopVal`
+ * given) is also asked the month work stopped, or stops (6.51.0): optional, past or future; it sets when the plan's income
+ * starts (the tax year of that month).
+ */
+function personAgeBlock(who, prefix, ageVal, retVal, retiredChecked, stopVal) {
+  const retLabel = retiredChecked ? 'Age you retired' : 'Target retirement age';
+  const ageId = prefix + 'CurrentAge';
+  const retId = prefix + 'RetireAge';
+  const retiredId = prefix + 'Retired';
+  const stopBox = stopVal === undefined ? '' : `
+        <div class="wizard-input" style="flex:0 0 auto;">
+          <label id="${prefix}StopMonthLabel" for="${prefix}StopMonth" style="display:block; font-size:13px; margin-bottom:4px;">${retiredChecked ? 'Month you stopped work' : 'Or the month you stop'} <span style="color:var(--text-muted);">(optional)</span></label>
+          <input type="month" id="${prefix}StopMonth" value="${/^\d{4}-\d{2}$/.test(String(stopVal || '')) ? stopVal : ''}" placeholder="2023-10" style="max-width:170px;">
+        </div>`;
+  return `
+    <div style="border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:12px;">
+      <strong style="font-size:14px;">${who}</strong>
+      <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; margin-top:8px;">
+        <div class="wizard-input" style="flex:0 0 auto;">
+          <label style="display:block; font-size:13px; margin-bottom:4px;">Age today</label>
+          <input type="number" id="${ageId}" value="${ageVal || ''}" placeholder="e.g. 52" style="max-width:110px;">
+        </div>
+        <div class="wizard-input" style="flex:0 0 auto;">
+          <label id="${retId}Label" style="display:block; font-size:13px; margin-bottom:4px;">${retLabel}</label>
+          <input type="number" id="${retId}" value="${retVal || ''}" placeholder="e.g. 60" style="max-width:150px;">
+        </div>
+        <label style="flex:0 0 auto; display:flex; align-items:center; gap:6px; font-size:13px; padding-bottom:8px; cursor:pointer;">
+          <input type="checkbox" id="${retiredId}" ${retiredChecked ? 'checked' : ''} style="width:auto;"
+            data-on-change="wizRetiredToggle('${retId}Label', this.checked)">
+          Already retired
+        </label>${stopBox}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Render scenario step 2 - Intent router. Pick where to start; the rest is filled in lazily by each tool.
+ */
+function renderScenarioStep2() {
+  return `
+    <div class="wizard-step">
+      <div class="wizard-step-title">Where would you like to start?</div>
+      <div class="wizard-step-desc">
+        You can do any of these, in any order — this just picks your first stop. Everything else is asked
+        for by each tool when it needs it.
+      </div>
+
+      <div class="wizard-tool-choices">
+        <button type="button" class="wizard-tool-option" data-action="start-budget" style="text-align:left; width:100%; cursor:pointer;">
+          <div class="wizard-tool-info">
+            <strong>Work out my budget</strong>
+            <p>"What will I actually spend?" Build your monthly take-home need from your real expenses. The best place to begin — it drives everything else. <em>(Recommended)</em></p>
+          </div>
+        </button>
+
+        <button type="button" class="wizard-tool-option" data-action="start-accumulation" style="text-align:left; width:100%; cursor:pointer;">
+          <div class="wizard-tool-info">
+            <strong>I'm still saving: am I paying in enough?</strong>
+            <p>What goes into your pension each month, with the tax added back, what your pot could grow to by the age you stop, and whether that is on course for the income you want.</p>
+          </div>
+        </button>
+
+        <button type="button" class="wizard-tool-option" data-action="start-stress" style="text-align:left; width:100%; cursor:pointer;">
+          <div class="wizard-tool-info">
+            <strong>See if I can afford to retire</strong>
+            <p>"Will my money last?" Enter your pots and run simulations against real market history.</p>
+          </div>
+        </button>
+
+        <button type="button" class="wizard-tool-option" data-action="start-decision" style="text-align:left; width:100%; cursor:pointer;">
+          <div class="wizard-tool-info">
+            <strong>Decide this month's withdrawal</strong>
+            <p>"Where should I take money from this month?" Tax-efficient drawdown advice from your pots.</p>
+          </div>
+        </button>
+
+        <button type="button" class="wizard-tool-option" data-action="start-retired" style="text-align:left; width:100%; cursor:pointer;">
+          <div class="wizard-tool-info">
+            <strong>I'm already drawing my pension — pick up from here</strong>
+            <p>Retired and in drawdown. The plan starts this tax year with what you hold now; the Stress tester tests it, you lock it, and the Decision tool records each month from now on — no back-filling.</p>
+          </div>
+        </button>
+      </div>
+
+      <div class="wizard-buttons">
+        <button class="wizard-btn secondary" data-action="back">Back</button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Render stress tester wizard
+ */
+function renderStressWizard() {
+  const totalSteps = 6;
+
+  wizardElement.innerHTML = `
+    <div class="wizard-overlay">
+      <div class="wizard-box">
+        <div class="wizard-title">Stress Tester Setup</div>
+        <div class="wizard-subtitle">Let's set up your pension simulation in a few simple steps.</div>
+
+        <div class="wizard-progress">
+          ${renderProgressDots(totalSteps, currentStep)}
+        </div>
+
+        ${renderStressStep(currentStep)}
+      </div>
+    </div>
+  `;
+
+  attachWizardListeners();
+}
+
+/**
+ * Render a stress wizard step
+ */
+function renderStressStep(step) {
+  switch (step) {
+    case 1:
+      return `
+        <div class="wizard-step">
+          <div class="wizard-step-title">How much money do you want each year?</div>
+          <div class="wizard-step-desc">
+            Think of this as your "salary" in retirement. This is the total amount before tax that you want to receive each year.
+          </div>
+
+          <div class="wizard-input">
+            <span class="wizard-unit">£</span>
+            <input type="number" id="wizBaseSalary" value="${wizardData.baseSalary}">
+            <span class="wizard-unit">per year</span>
+          </div>
+
+          <div class="wizard-example">
+            <strong>Example:</strong> If you want £2,500 per month, enter £30,000 here.
+          </div>
+
+          <div class="wizard-buttons">
+            <button class="wizard-btn secondary" data-action="skip-stress">Skip</button>
+            <button class="wizard-btn primary" data-action="next">Next</button>
+          </div>
+        </div>
+      `;
+
+    case 2:
+      return `
+        <div class="wizard-step">
+          <div class="wizard-step-title">Do you have other pension income?</div>
+          <div class="wizard-step-desc">
+            Enter any other guaranteed pension income you'll receive (like a workplace defined benefit pension).
+          </div>
+
+          <div class="wizard-input">
+            <span class="wizard-unit">£</span>
+            <input type="number" id="wizOther" value="${wizardData.otherIncome}">
+            <span class="wizard-unit">per year</span>
+          </div>
+
+          <div class="wizard-example">
+            <strong>Example:</strong> If you have a company pension paying £5,000/year, enter £5,000.
+          </div>
+
+          <div class="wizard-buttons">
+            <button class="wizard-btn secondary" data-action="back">Back</button>
+            <button class="wizard-btn primary" data-action="next">Next</button>
+          </div>
+        </div>
+      `;
+
+    case 3:
+      return `
+        <div class="wizard-step">
+          <div class="wizard-step-title">What about the State Pension?</div>
+          <div class="wizard-step-desc">
+            Get your forecast from <a href="https://www.tax.service.gov.uk/check-your-state-pension/" target="_blank" style="color: var(--primary);">gov.uk/check-your-state-pension</a>
+          </div>
+
+          <div class="wizard-grid">
+            <div class="wizard-grid-item">
+              <label>Start Date (from HMRC)</label>
+              <div class="wizard-input">
+                <input type="text" id="wizSpStartDate" value="${wizardData.spStartDate}" placeholder="e.g. 6 May 2040" style="width: 100%;">
+              </div>
+            </div>
+            <div class="wizard-grid-item">
+              <label>Weekly Amount (from HMRC)</label>
+              <div class="wizard-input">
+                <span class="wizard-unit">£</span>
+                <input type="number" id="wizSpWeeklyAmount" value="${wizardData.spWeeklyAmount || ''}" step="0.01" placeholder="e.g. 221.20">
+              </div>
+            </div>
+          </div>
+
+          <div class="wizard-example">
+            <strong>Tip:</strong> Copy the exact date and weekly amount from your HMRC State Pension forecast. Leave blank if you don't have one yet.
+          </div>
+
+          <div class="wizard-buttons">
+            <button class="wizard-btn secondary" data-action="back">Back</button>
+            <button class="wizard-btn primary" data-action="next">Next</button>
+          </div>
+        </div>
+      `;
+
+    case 4:
+      return `
+        <div class="wizard-step">
+          <div class="wizard-step-title">Your pot &amp; risk level</div>
+          <div class="wizard-step-desc">
+            Enter your total pot, then pick a risk level — the buttons set how it's split across shares, bonds and cash.
+          </div>
+
+          <div class="wizard-grid">
+            <div class="wizard-grid-item">
+              <label>Total in your SIPP (£)</label>
+              <div class="wizard-input">
+                <span class="wizard-unit">£</span>
+                <input type="number" id="wizPot" data-on-input="updateAllocDisplay('wiz')">
+              </div>
+            </div>
+            <div class="wizard-grid-item">
+              <label>Total in your ISA (£)</label>
+              <div class="wizard-input">
+                <span class="wizard-unit">£</span>
+                <input type="number" id="wizIsaBalance" min="0" value="${wizardData.isaBalance}">
+              </div>
+            </div>
+          </div>
+
+          <label style="font-weight:600;font-size:14px;display:block;margin:16px 0 6px;">Risk level</label>
+          <div id="wizRisks" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="risk-btn" data-risk="cautious" data-on-click="setRiskPreset('wiz','cautious')">Cautious</button>
+            <button type="button" class="risk-btn" data-risk="balanced" data-on-click="setRiskPreset('wiz','balanced')">Balanced</button>
+            <button type="button" class="risk-btn" data-risk="adventurous" data-on-click="setRiskPreset('wiz','adventurous')">Adventurous</button>
+          </div>
+          <div id="wizAllocAmounts" class="wizard-example" style="margin-top:12px;"></div>
+
+          <label style="display:flex;align-items:flex-start;cursor:pointer;margin-top:12px;">
+            <input type="checkbox" id="wizEquityGlide" data-on-change="updateAllocDisplay('wiz')" style="width:auto;margin-right:10px;margin-top:2px;">
+            <span><strong>Bond tent (optional)</strong> — start more cautious and let your shares rise over the early years, then hold. You can change this any time in Settings.</span>
+          </label>
+
+          <div class="wizard-example">
+            <strong>About your ISA:</strong> we assume the ISA is a steady money-market fund with low, stable growth, drawn tax-free to top up income. We don't model different ISA investment strategies — leave it at £0 if you don't have one.
+          </div>
+
+          <div class="wizard-example">
+            <strong>Tip:</strong> These are target minimums. The simulation draws from stocks/bonds first and keeps cash as an emergency buffer.
+          </div>
+
+          <div class="wizard-buttons">
+            <button class="wizard-btn secondary" data-action="back">Back</button>
+            <button class="wizard-btn primary" data-action="next">Next</button>
+          </div>
+        </div>
+      `;
+
+    case 5:
+      return `
+        <div class="wizard-step">
+          <div class="wizard-step-title">How long should your money last?</div>
+          <div class="wizard-step-desc">
+            How many years of retirement do you want to plan for?
+          </div>
+
+          <div class="wizard-input">
+            <input type="number" id="wizDuration" value="${wizardData.duration}" style="max-width: 100px;">
+            <span class="wizard-unit">years</span>
+          </div>
+
+          <div class="wizard-example">
+            <strong>Example:</strong> If you're 55 and want money until age 90, enter 35 years.
+          </div>
+
+          <div class="wizard-buttons">
+            <button class="wizard-btn secondary" data-action="back">Back</button>
+            <button class="wizard-btn primary" data-action="next">Next</button>
+          </div>
+        </div>
+      `;
+
+    case 6:
+      return `
+        <div class="wizard-step">
+          <div class="wizard-step-title">One last thing: Tax thresholds</div>
+          <div class="wizard-step-desc">
+            Will the government raise tax thresholds with inflation, or keep them frozen?
+          </div>
+
+          <div class="wizard-input">
+            <select id="wizTaxMode">
+              <option value="inflates" ${wizardData.taxMode === 'inflates' ? 'selected' : ''}>Standard (rise with inflation)</option>
+              <option value="frozen" ${wizardData.taxMode === 'frozen' ? 'selected' : ''}>Frozen (stay at current levels)</option>
+            </select>
+          </div>
+
+          <div class="wizard-example">
+            <strong>Tip:</strong> "Frozen" is more pessimistic - you pay more tax over time as your income grows but thresholds don't.
+          </div>
+
+          <div class="wizard-buttons">
+            <button class="wizard-btn secondary" data-action="back">Back</button>
+            <button class="wizard-btn primary" data-action="finish-stress">${wizardData.enabledTools.includes('decision') ? 'Continue to Decision Tool' : 'Finish Setup'}</button>
+          </div>
+        </div>
+      `;
+
+    default:
+      return '';
+  }
+}
+
+/**
+ * Render decision tool wizard
+ */
+function renderDecisionWizard() {
+  const totalSteps = 4;
+
+  wizardElement.innerHTML = `
+    <div class="wizard-overlay">
+      <div class="wizard-box">
+        <div class="wizard-title">Decision Tool Setup</div>
+        <div class="wizard-subtitle">Now let's set up the tool you'll use each month once you're retired.</div>
+
+        <div class="wizard-progress">
+          ${renderProgressDots(totalSteps, currentStep)}
+        </div>
+
+        ${renderDecisionStep(currentStep)}
+      </div>
+    </div>
+  `;
+
+  attachWizardListeners();
+}
+
+/**
+ * Render a decision wizard step
+ */
+function renderDecisionStep(step) {
+  switch (step) {
+    case 1:
+      return `
+        <div class="wizard-step">
+          <div class="wizard-step-title">How much money do you want each year?</div>
+          <div class="wizard-step-desc">
+            This is your target "salary" from your pension. The tool will calculate how much to withdraw each month.
+          </div>
+
+          <div class="wizard-input">
+            <span class="wizard-unit">£</span>
+            <input type="number" id="wizDBaseSalary" value="${wizardData.decisionSalary}">
+            <span class="wizard-unit">per year (before tax)</span>
+          </div>
+
+          <div class="wizard-example">
+            <strong>Example:</strong> If you want about £2,000 per month after tax, you might need £30,000 gross.
+          </div>
+
+          <div class="wizard-buttons">
+            <button class="wizard-btn secondary" data-action="skip-decision">Skip</button>
+            <button class="wizard-btn primary" data-action="next">Next</button>
+          </div>
+        </div>
+      `;
+
+    case 2:
+      return `
+        <div class="wizard-step">
+          <div class="wizard-step-title">What are your fund size targets?</div>
+          <div class="wizard-step-desc">
+            Enter the minimum you want in each fund at the start of retirement. The tool uses these to decide when to enter "protection mode".
+          </div>
+
+          <div class="wizard-grid">
+            <div class="wizard-grid-item">
+              <label>Total in your SIPP (£)</label>
+              <div class="wizard-input">
+                <span class="wizard-unit">£</span>
+                <input type="number" id="wizDPot" data-on-input="updateAllocDisplay('wizD')">
+              </div>
+            </div>
+            <div class="wizard-grid-item">
+              <label>Total in your ISA (£)</label>
+              <div class="wizard-input">
+                <span class="wizard-unit">£</span>
+                <input type="number" id="wizDIsaBalance" min="0" value="${wizardData.decisionIsaBalance}">
+              </div>
+            </div>
+          </div>
+
+          <label style="font-weight:600;font-size:14px;display:block;margin:16px 0 6px;">Risk level</label>
+          <div id="wizDRisks" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="risk-btn" data-risk="cautious" data-on-click="setRiskPreset('wizD','cautious')">Cautious</button>
+            <button type="button" class="risk-btn" data-risk="balanced" data-on-click="setRiskPreset('wizD','balanced')">Balanced</button>
+            <button type="button" class="risk-btn" data-risk="adventurous" data-on-click="setRiskPreset('wizD','adventurous')">Adventurous</button>
+          </div>
+          <div id="wizDAllocAmounts" class="wizard-example" style="margin-top:12px;"></div>
+
+          <label style="display:flex;align-items:flex-start;cursor:pointer;margin-top:12px;">
+            <input type="checkbox" id="wizDEquityGlide" data-on-change="updateAllocDisplay('wizD')" style="width:auto;margin-right:10px;margin-top:2px;">
+            <span><strong>Bond tent (optional)</strong> — start more cautious and let your shares rise over the early years, then hold. You can change this any time in Settings.</span>
+          </label>
+
+          <div class="wizard-example">
+            <strong>About your ISA:</strong> assumed to be a steady money-market fund with low, stable growth, drawn tax-free to keep income tax-efficient. We don't model different ISA strategies — leave at £0 if none.
+          </div>
+
+          <div class="wizard-example">
+            <strong>Protection Mode:</strong> If your growth funds drop below these minimums, the tool recommends drawing from cash instead.
+          </div>
+
+          <div class="wizard-buttons">
+            <button class="wizard-btn secondary" data-action="back">Back</button>
+            <button class="wizard-btn primary" data-action="next">Next</button>
+          </div>
+        </div>
+      `;
+
+    case 3:
+      return `
+        <div class="wizard-step">
+          <div class="wizard-step-title">How long should your money last?</div>
+          <div class="wizard-step-desc">
+            The fund minimums will gradually reduce to zero over this period. This is your "depletion curve."
+          </div>
+
+          <div class="wizard-input">
+            <input type="number" id="wizDDuration" value="${wizardData.decisionDuration}" style="max-width: 100px;">
+            <span class="wizard-unit">years</span>
+          </div>
+
+          <div class="wizard-example">
+            <strong>Example:</strong> If you're 55 and planning to age 90, enter 35 years.
+          </div>
+
+          <div class="wizard-buttons">
+            <button class="wizard-btn secondary" data-action="back">Back</button>
+            <button class="wizard-btn primary" data-action="next">Next</button>
+          </div>
+        </div>
+      `;
+
+    case 4:
+      return `
+        <div class="wizard-step">
+          <div class="wizard-step-title">You're all set!</div>
+          <div class="wizard-step-desc">
+            The Decision Tool will now help you track monthly withdrawals. Each month, enter your current fund values and it will tell you:
+          </div>
+
+          <ul class="wizard-list">
+            <li>How much to withdraw from your SIPP</li>
+            <li>Whether you need ISA top-up</li>
+            <li>Which fund to take money from</li>
+            <li>Whether to enter protection mode</li>
+          </ul>
+
+          <div class="wizard-example">
+            <strong>Next Step:</strong> Go to "Tax Years" to set up your personal tax details (allowance, other income, state pension dates).
+          </div>
+
+          <div class="wizard-buttons">
+            <button class="wizard-btn secondary" data-action="back">Back</button>
+            <button class="wizard-btn primary" data-action="finish">Finish Setup</button>
+          </div>
+        </div>
+      `;
+
+    default:
+      return '';
+  }
+}
+
+/**
+ * Render progress dots
+ */
+function renderProgressDots(total, current) {
+  let html = '';
+  for (let i = 1; i <= total; i++) {
+    const className = i < current ? 'done' : i === current ? 'active' : '';
+    html += `<div class="wizard-dot ${className}"></div>`;
+  }
+  return html;
+}
+
+/**
+ * Attach event listeners to wizard buttons
+ */
+function attachWizardListeners() {
+  const buttons = wizardElement.querySelectorAll('[data-action]');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => handleAction(btn.dataset.action));
+  });
+
+  // Initialise the shared Pot+risk+tent allocation control when its step is on screen (stress step 4 /
+  // decision allocation step). writeAlloc sets the pot and selects the nearest preset; then restore the
+  // saved bond-tent choice. The control's window functions live in index.html (available at runtime).
+  if (document.getElementById('wizRisks') && typeof window.writeAlloc === 'function') {
+    window.writeAlloc('wiz', wizardData.equityMin, wizardData.bondMin, wizardData.cashTarget);
+    const g = document.getElementById('wizEquityGlide');
+    if (g) { g.checked = !!wizardData.equityGlideEnabled; window.updateAllocDisplay('wiz'); }
+  }
+  if (document.getElementById('wizDRisks') && typeof window.writeAlloc === 'function') {
+    window.writeAlloc('wizD', wizardData.decisionEquity, wizardData.decisionBond, wizardData.decisionCash);
+    const g = document.getElementById('wizDEquityGlide');
+    if (g) { g.checked = !!wizardData.decisionEquityGlideEnabled; window.updateAllocDisplay('wizD'); }
+  }
+}
+
+/**
+ * Handle wizard actions
+ */
+function handleAction(action) {
+  // a plan is being made: every door does nothing until it is done (finishWizard's note)
+  if (finishing) return;
+  // Save any input values before navigation
+  saveCurrentInputs();
+
+  switch (action) {
+    case 'skip-all':
+      // Cancel: abandon plan creation entirely and hand control back to the app. (Legacy
+      // fallback: with no cancel handler wired, behave as before and create a default plan.)
+      // Once, as a finish is: with no plans yet, Cancel makes an empty first plan.
+      if (onCancelCallback) { once(onCancelCallback, null); break; }
+      wizardData.startAt = 'budget';
+      finishWizard();
+      break;
+
+    // Minimal-creation → intent router
+    case 'to-router': {
+      const cur = parseInt(wizardData.currentAge);
+      const ret = parseInt(wizardData.retirementAge);
+      const toast = (m) => { if (typeof window.showToast === 'function') window.showToast(m, 'error'); };
+      if (!ret || ret < 40 || ret > 95) {
+        toast(wizardData.retired ? 'Please enter the age you retired' : 'Please enter a target retirement age');
+        return;
+      }
+      // The month work stopped (optional): it must agree with "Already retired" — a month ahead is a stop to come.
+      if (/^\d{4}-\d{2}$/.test(String(wizardData.stopMonth || ''))) {
+        const now = new Date();
+        const thisMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        if (wizardData.retired && wizardData.stopMonth > thisMonth) { toast("That month is still ahead — untick 'Already retired' for a stop to come, or choose the month you stopped."); return; }
+        if (!wizardData.retired && wizardData.stopMonth <= thisMonth) { toast("That month has passed — tick 'Already retired' if you have stopped work."); return; }
+      }
+      // Already-retired is allowed (retirement age ≤ current age). Only nudge on a contradiction.
+      if (cur && ret > cur && wizardData.retired) {
+        toast("You ticked 'already retired' but the age is in the future — untick it, or lower the age.");
+        return;
+      }
+      if (cur && ret < cur && !wizardData.retired) {
+        toast("That retirement age is in the past — tick 'already retired' if you've already retired.");
+        return;
+      }
+      currentStep = 2;
+      renderWizard();
+      break;
+    }
+
+    case 'start-budget':
+    case 'start-stress':
+    case 'start-decision':
+    // a saver's door (research/saving-enough-and-check-in.md 4.6): straight to the Accumulation planner, never the monthly drawing tool
+    case 'start-accumulation':
+      wizardData.startAt = action.replace('start-', '');
+      finishWizard();
+      break;
+    case 'start-retired':   // 6.6.0: retrospective adopter — retired, plan starts this tax year, go to the Stress tester
+      wizardData.retired = true;
+      wizardData.pickUp = true;
+      wizardData.startAt = 'stress';
+      finishWizard();
+      break;
+
+    case 'next': {
+      // Guard against entering a date of birth instead of the SP start date.
+      const spCheck = validateStatePensionDate(wizardData.spStartDate);
+      if (!spCheck.valid) {
+        if (typeof window.showToast === 'function') {
+          window.showToast(spCheck.error, 'error');
+        }
+        return;
+      }
+      if (currentPhase === 'scenario') {
+        if (currentStep < 2) {
+          currentStep++;
+          renderWizard();
+        }
+      } else if (currentPhase === 'stress') {
+        if (currentStep < 6) {
+          currentStep++;
+          renderWizard();
+        }
+      } else if (currentPhase === 'decision') {
+        if (currentStep < 4) {
+          currentStep++;
+          renderWizard();
+        }
+      }
+      break;
+    }
+
+    case 'back':
+      if (currentPhase === 'scenario' && currentStep > 1) {
+        currentStep--;
+        renderWizard();
+      } else if (currentPhase === 'stress' && currentStep > 1) {
+        currentStep--;
+        renderWizard();
+      } else if (currentPhase === 'decision' && currentStep > 1) {
+        currentStep--;
+        renderWizard();
+      }
+      break;
+
+    case 'start-tools':
+      // Ensure at least one tool is selected
+      if (!wizardData.enabledTools || wizardData.enabledTools.length === 0) {
+        if (typeof window.showToast === 'function') {
+          window.showToast('Please select at least one tool', 'error');
+        }
+        return;
+      }
+      // Move from scenario phase to the first enabled tool
+      advanceToNextToolPhase('scenario');
+      break;
+
+    case 'skip-stress':
+      advanceToNextToolPhase('stress');
+      break;
+
+    case 'finish-stress':
+      // Copy stress settings to decision settings
+      wizardData.decisionSalary = wizardData.baseSalary;
+      wizardData.decisionEquity = wizardData.equityMin;
+      wizardData.decisionBond = wizardData.bondMin;
+      wizardData.decisionCash = wizardData.cashTarget;
+      wizardData.decisionIsaBalance = wizardData.isaBalance;
+      wizardData.decisionDuration = wizardData.duration;
+      wizardData.decisionEquityGlideEnabled = wizardData.equityGlideEnabled;
+      advanceToNextToolPhase('stress');
+      break;
+
+    case 'skip-decision':
+      finishWizard();
+      break;
+
+    case 'finish':
+      finishWizard();
+      break;
+  }
+}
+
+/**
+ * Advance to the next tool phase based on enabled tools
+ * @param {string} currentToolPhase - The phase we're leaving ('scenario', 'stress', 'decision')
+ */
+function advanceToNextToolPhase(currentToolPhase) {
+  const hasStress = wizardData.enabledTools.includes('stress');
+  const hasDecision = wizardData.enabledTools.includes('decision');
+
+  if (currentToolPhase === 'scenario') {
+    if (hasStress) {
+      currentPhase = 'stress';
+      currentStep = 1;
+      renderWizard();
+    } else if (hasDecision) {
+      currentPhase = 'decision';
+      currentStep = 1;
+      renderWizard();
+    } else {
+      // No tools selected, just finish
+      finishWizard();
+    }
+  } else if (currentToolPhase === 'stress') {
+    if (hasDecision) {
+      currentPhase = 'decision';
+      currentStep = 1;
+      renderWizard();
+    } else {
+      finishWizard();
+    }
+  } else {
+    finishWizard();
+  }
+}
+
+/**
+ * Save current input values
+ */
+function saveCurrentInputs() {
+  // Scenario inputs
+  const scenarioName = document.getElementById('wizScenarioName');
+  if (scenarioName) wizardData.scenarioName = scenarioName.value.trim() || 'My Plan';
+
+  const scenarioDesc = document.getElementById('wizScenarioDesc');
+  if (scenarioDesc) wizardData.scenarioDescription = scenarioDesc.value.trim() || '';
+
+  // Minimal-creation fields (net-first flow)
+  const household = document.querySelector('input[name="wizHousehold"]:checked');
+  if (household) wizardData.household = household.value;
+  const curAge = document.getElementById('wizCurrentAge');
+  if (curAge) wizardData.currentAge = parseInt(curAge.value) || '';
+  const retAge = document.getElementById('wizRetireAge');
+  if (retAge) wizardData.retirementAge = parseInt(retAge.value) || '';
+  const retired = document.getElementById('wizRetired');
+  if (retired) wizardData.retired = retired.checked;
+  const stopMonth = document.getElementById('wizStopMonth');
+  if (stopMonth) wizardData.stopMonth = String(stopMonth.value || '').trim();
+  const pAge = document.getElementById('wizPartnerCurrentAge');
+  if (pAge) wizardData.partnerAge = parseInt(pAge.value) || '';
+  const pRetAge = document.getElementById('wizPartnerRetireAge');
+  if (pRetAge) wizardData.partnerRetirementAge = parseInt(pRetAge.value) || '';
+  const pRetired = document.getElementById('wizPartnerRetired');
+  if (pRetired) wizardData.partnerRetired = pRetired.checked;
+
+  // Tool selection checkboxes
+  const toolStress = document.getElementById('wizToolStress');
+  const toolDecision = document.getElementById('wizToolDecision');
+  if (toolStress !== null || toolDecision !== null) {
+    const tools = [];
+    if (toolStress && toolStress.checked) tools.push('stress');
+    if (toolDecision && toolDecision.checked) tools.push('decision');
+    wizardData.enabledTools = tools;
+  }
+
+  // Stress wizard inputs
+  const baseSalary = document.getElementById('wizBaseSalary');
+  if (baseSalary) wizardData.baseSalary = parseFloat(baseSalary.value) || 30000;
+
+  const other = document.getElementById('wizOther');
+  if (other) wizardData.otherIncome = parseFloat(other.value) || 0;
+
+  const spStartDate = document.getElementById('wizSpStartDate');
+  if (spStartDate) wizardData.spStartDate = spStartDate.value.trim() || '';
+
+  const spWeeklyAmount = document.getElementById('wizSpWeeklyAmount');
+  if (spWeeklyAmount) wizardData.spWeeklyAmount = parseFloat(spWeeklyAmount.value) || 0;
+
+  // Stress allocation from the Pot + risk buttons (readAlloc = Pot × the selected preset) + bond tent.
+  if (document.getElementById('wizPot') && typeof window.readAlloc === 'function') {
+    const a = window.readAlloc('wiz');
+    wizardData.equityMin = a.equityMin;
+    wizardData.bondMin = a.bondMin;
+    wizardData.cashTarget = a.cashTarget;
+  }
+  const wizGlide = document.getElementById('wizEquityGlide');
+  if (wizGlide) wizardData.equityGlideEnabled = wizGlide.checked;
+
+  const isaBalance = document.getElementById('wizIsaBalance');
+  if (isaBalance) wizardData.isaBalance = parseFloat(isaBalance.value) || 0;
+
+  const duration = document.getElementById('wizDuration');
+  if (duration) wizardData.duration = parseInt(duration.value) || 35;
+
+  const taxMode = document.getElementById('wizTaxMode');
+  if (taxMode) wizardData.taxMode = taxMode.value;
+
+  // Decision wizard inputs
+  const dBaseSalary = document.getElementById('wizDBaseSalary');
+  if (dBaseSalary) wizardData.decisionSalary = parseFloat(dBaseSalary.value) || 30000;
+
+  // Decision allocation from the Pot + risk buttons + bond tent.
+  if (document.getElementById('wizDPot') && typeof window.readAlloc === 'function') {
+    const a = window.readAlloc('wizD');
+    wizardData.decisionEquity = a.equityMin;
+    wizardData.decisionBond = a.bondMin;
+    wizardData.decisionCash = a.cashTarget;
+  }
+  const wizDGlide = document.getElementById('wizDEquityGlide');
+  if (wizDGlide) wizardData.decisionEquityGlideEnabled = wizDGlide.checked;
+
+  const dIsaBalance = document.getElementById('wizDIsaBalance');
+  if (dIsaBalance) wizardData.decisionIsaBalance = parseFloat(dIsaBalance.value) || 0;
+
+  const dDuration = document.getElementById('wizDDuration');
+  if (dDuration) wizardData.decisionDuration = parseInt(dDuration.value) || 35;
+}
+
+/**
+ * Finish the wizard and trigger callback — once (the note on `finishing`): the callback makes the plan, and a promise it
+ * returns that rejects means the plan was not made.
+ */
+function finishWizard() {
+  if (finishing) return;
+  saveCurrentInputs();
+
+  if (onCompleteCallback) {
+    once(() => onCompleteCallback(wizardData), WIZARD_WORDS.making);
+  }
+}
+
+/**
+ * Hide the wizard
+ */
+export function hideSetupWizard() {
+  if (wizardElement) {
+    wizardElement.style.display = 'none';
+  }
+}
+
+/**
+ * Show the wizard
+ */
+export function showSetupWizard() {
+  if (wizardElement) {
+    wizardElement.style.display = 'block';
+    // Reset to start, the doors open
+    finishing = false;
+    currentPhase = 'scenario';
+    currentStep = 1;
+    renderWizard();
+  }
+}
+
+
+/**
+ * Get the wizard data
+ */
+export function getWizardData() {
+  return { ...wizardData };
+}
+
+/**
+ * Get wizard styles
+ */
+export function getSetupWizardStyles() {
+  return `
+    .wizard-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .wizard-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .wizard-title {
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .wizard-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .wizard-progress {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 24px;
+    }
+
+    .wizard-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+
+    .wizard-dot.active {
+      background: var(--primary);
+    }
+
+    .wizard-dot.done {
+      background: var(--success);
+    }
+
+    .wizard-step {
+      margin-bottom: 24px;
+    }
+
+    .wizard-step-title {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .wizard-step-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .wizard-info-box {
+      margin: 20px 0;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+    }
+
+    .wizard-info-item {
+      margin-bottom: 16px;
+    }
+
+    .wizard-info-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .wizard-info-item strong {
+      color: var(--primary);
+    }
+
+    .wizard-info-item p {
+      margin: 8px 0 0 0;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .wizard-info-box ul {
+      margin: 12px 0 0 0;
+      padding-left: 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .wizard-list {
+      margin: 16px 0;
+      padding-left: 20px;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .wizard-input {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .wizard-input input,
+    .wizard-input select {
+      flex: 1;
+      max-width: 200px;
+      padding: 12px 14px;
+      background: var(--card-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .wizard-input input:focus,
+    .wizard-input select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .wizard-unit {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .wizard-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .wizard-grid-item label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .wizard-grid-item .wizard-input {
+      margin-bottom: 0;
+    }
+
+    .wizard-grid-item .wizard-input input {
+      max-width: none;
+      width: 100%;
+    }
+
+    .wizard-example {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .wizard-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      justify-content: space-between;
+    }
+
+    .wizard-btn {
+      padding: 14px 28px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .wizard-btn.primary {
+      background: linear-gradient(135deg, var(--primary) 0%, #5a9aba 100%);
+      color: var(--bg);
+    }
+
+    .wizard-btn.primary:hover {
+      opacity: 0.9;
+    }
+
+    .wizard-btn.secondary {
+      background: var(--card-alt);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .wizard-btn.secondary:hover {
+      background: var(--border);
+    }
+
+    .wizard-btn:disabled,
+    .wizard-tool-option:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .wizard-status {
+      margin: 16px 0 0;
+      font-size: 14px;
+      color: var(--text);
+    }
+
+    .wizard-tool-choices {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .wizard-tool-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+
+    .wizard-tool-option:hover {
+      border-color: var(--primary);
+    }
+
+    .wizard-tool-option input[type="checkbox"] {
+      margin-top: 3px;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      accent-color: var(--primary);
+    }
+
+    .wizard-tool-info {
+      flex: 1;
+    }
+
+    .wizard-tool-info strong {
+      color: var(--primary);
+      font-size: 14px;
+    }
+
+    .wizard-tool-info p {
+      margin: 6px 0 0 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 600px) {
+      .wizard-box {
+        padding: 20px;
+      }
+
+      .wizard-title {
+        font-size: 20px;
+      }
+
+      .wizard-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .wizard-buttons {
+        flex-direction: column-reverse;
+      }
+
+      .wizard-btn {
+        width: 100%;
+      }
+    }
+  `;
+}

@@ -1,0 +1,205 @@
+/**
+ * "Your plan" (research/v7/your-plan.md 1.3, 2.3, 2.5): one saved plan on one step of its life stage — the step's
+ * figures with their sources, its buttons, and, on "Your plan", the settings as sections with "Everything else this plan
+ * uses". Nothing typeable; nothing worked out here (state/select.js planView). "Change this" leaves for the planner by
+ * the hand-over (plan/change); without an account the warning says what to press there.
+ */
+import { PlanRail, changeAction, PlanLine, PlanSentence, PlanButtons, UndoToast, fill, Button, LinkButton, Money } from '../../components/index.js';
+import { planView, plansView, planActionsView } from '../../state/select.js';
+import { href } from '../../router/routes.js';
+import { PLAN } from '../../copy/plan.js';
+import { LOCK } from '../../copy/lock.js';
+import { MonthScreen } from './MonthScreen.jsx';
+
+const w = PLAN.page;
+const keepFocus = { onMouseDown: (e) => e.preventDefault() };
+
+/**
+ * On "Your plan as locked" only (design question 4(a); road-to-7.md step 6): the one place V7 offers to unlock, and "Write a
+ * new version from today's settings" — each a quiet button, a confirm step on the page, one write (effects/planWrite.js).
+ */
+function LockedActions({ step, view, acts, dispatch }) {
+  const planId = view.id;
+  const saving = acts.saving && (acts.saving.kind === 'unlock' || acts.saving.kind === 'document') ? acts.saving.kind : null;
+  const problem = acts.problem ? (LOCK.problems[acts.problem] || LOCK.problems.failed) : null;
+  const versions = String(step.pastVersions || 0);
+  const hasDocument = !!step.hasDocument;
+  const toggle = (id) => dispatch({ type: 'ui/toggle', id });
+  return (
+    <section class="plan-section locked-actions" data-region="locked-actions" data-saving={saving || ''}>
+      <p class="note" data-testid="plan.unlock">{w.unlock}</p>
+      {saving === 'unlock' && <p class="working" role="status" data-testid="plan.plan.unlocking">{LOCK.unlock.working}</p>}
+      {saving === 'document' && <div class="working" role="status" data-testid="plan.plan.writing"><p class="working-title">{LOCK.document.working}</p><progress aria-label={LOCK.working.progress} /></div>}
+      {!saving && !view.readonly && acts.confirm !== 'unlock' && acts.confirm !== 'document' && (
+        <div class="actions-row">
+          <Button testid="plan.plan.unlock" kind="quiet" onClick={() => toggle('unlockConfirm')} {...keepFocus}>{LOCK.unlock.button}</Button>
+          <Button testid="plan.plan.newVersion" kind="quiet" onClick={() => toggle('documentConfirm')} {...keepFocus}>{hasDocument ? LOCK.document.button : LOCK.document.firstButton}</Button>
+        </div>
+      )}
+      {!saving && !view.readonly && acts.confirm === 'unlock' && (
+        <div class="notice lock-confirm" role="region" aria-label={LOCK.unlock.title} data-testid="plan.plan.unlockConfirm">
+          <h3>{LOCK.unlock.title}</h3>
+          <p>{fill(LOCK.unlock.keeps, { versions: '10' })}</p>
+          <p>{LOCK.unlock.means}</p>
+          {step.unlockDefaults && step.unlockDefaults.length > 0 && <p>{fill(LOCK.unlock.defaults, { which: step.unlockDefaults.map((d) => (d.id === 'charges' ? fill(LOCK.unlock.defaultsCharges, { charges: d.value }) : LOCK.unlock.defaultsIsa)).join(' and ') })}</p>}
+          <div class="actions-row">
+            <Button testid="plan.plan.unlockConfirm.yes" kind="primary" onClick={() => dispatch({ type: 'plan/unlock', planId })} {...keepFocus}>{LOCK.unlock.confirm}</Button>
+            <Button testid="plan.plan.unlockConfirm.no" kind="quiet" onClick={() => toggle('unlockConfirm')} {...keepFocus}>{LOCK.unlock.keep}</Button>
+          </div>
+        </div>
+      )}
+      {!saving && !view.readonly && acts.confirm === 'document' && (
+        <div class="notice lock-confirm" role="region" aria-label={hasDocument ? LOCK.document.title : LOCK.document.firstTitle} data-testid="plan.plan.documentConfirm">
+          <h3>{hasDocument ? LOCK.document.title : LOCK.document.firstTitle}</h3>
+          <p>{hasDocument ? fill(LOCK.document.keeps, { date: step.documentOn || view.lockedOn || '', versions: '10' }) : LOCK.document.first}</p>
+          <p>{LOCK.document.means}</p>
+          <p>{LOCK.document.nothingElse}</p>
+          <div class="actions-row">
+            <Button testid="plan.plan.documentConfirm.yes" kind="primary" onClick={() => dispatch({ type: 'plan/newVersion', planId })} {...keepFocus}>{hasDocument ? LOCK.document.confirm : LOCK.document.firstConfirm}</Button>
+            <Button testid="plan.plan.documentConfirm.no" kind="quiet" onClick={() => toggle('documentConfirm')} {...keepFocus}>{hasDocument ? LOCK.document.keep : LOCK.document.notNow}</Button>
+          </div>
+        </div>
+      )}
+      {problem && <p class="notice" role="alert" data-testid="plan.plan.problem" data-problem={acts.problem}>{problem}</p>}
+      {step.pastVersions > 0 && <p class="note">{fill(w.pastVersions, { n: versions })}</p>}
+    </section>
+  );
+}
+
+const toastText = (toast) => {
+  if (toast.kind === 'undone') return LOCK.toast.undone;
+  if (toast.kind === 'unchanged') return LOCK.toast.unchanged;
+  const line = toast.line;
+  if (line && LOCK.toast[line.id]) return fill(LOCK.toast[line.id], line.slots);
+  return LOCK.toast.locked;
+};
+
+function Section({ section, view, onChange }) {
+  const title = PLAN.sections[section.id];
+  return (
+    <section class="plan-section" data-section={section.id}>
+      <h3>{title}</h3>
+      {section.lines.length ? <ul class="plan-lines">{section.lines.map((l, i) => <PlanLine key={i} line={l} figures={view.figures} hideSource />)}</ul> : null}
+      {section.href
+        // a section edited inside V7 (research/v7/editing-in-v7.md 2): a link to its step, on a locked plan too (read-only there)
+        ? <div class="actions-row">
+          {view.lockedOn && <span class="note plan-fixed">{fill(w.fixed, { date: view.lockedOn })}</span>}
+          <LinkButton testid={`plan.plan.edit.${section.id}`} kind={view.lockedOn || view.readonly ? 'quiet' : 'plain'} href={section.href}>{view.lockedOn && section.lockedButton && PLAN.buttons[section.lockedButton] ? PLAN.buttons[section.lockedButton] : view.lockedOn || view.readonly ? PLAN.buttons.seeAbout : PLAN.buttons.editAbout}</LinkButton>
+        </div>
+        : view.lockedOn ? <p class="note plan-fixed">{fill(w.fixed, { date: view.lockedOn })}</p>
+          : view.readonly ? null
+            : <div class="actions-row"><Button testid={`plan.plan.change.${section.id}`} onClick={() => onChange(section.place)}>{w.changeThis}</Button></div>}
+    </section>
+  );
+}
+
+function Fact({ rowId, f }) {
+  const label = (PLAN.options[rowId] && PLAN.options[rowId].facts[f.k.replace(/\d+$/, '')]) || f.k;
+  const key = `options.${rowId}.${f.k}`;
+  let value;
+  if (f.kind === 'yesNo') value = <span data-key={key} data-value={f.v ? 1 : 0}>{f.v ? PLAN.yes : PLAN.no}</span>;
+  else if (f.kind === 'choice') value = <span data-key={key} data-choice={f.v}>{PLAN.choices[f.v] || f.v}</span>;
+  else if (f.kind === 'text') value = <span data-key={key} data-text={f.v}>{f.v || '—'}</span>;
+  else value = <Money source={{ v: f.v }} k="v" kind={f.kind} />;
+  return <span class="plan-fact">{label}: {value}</span>;
+}
+
+function Options({ step, view, open, dispatch, onChange }) {
+  const rows = open ? step.allOptions : step.options;
+  return (
+    <section class="plan-section plan-options" data-section="else">
+      <h3>{PLAN.sections.else}</h3>
+      {!open && !rows.length && <p class="note">{w.noneChanged}</p>}
+      <ul class="plan-lines">
+        {rows.map((r) => (
+          <li class="plan-line" key={r.id} data-option={r.id} data-set={r.set ? '1' : '0'}>
+            <span class="plan-label">{(PLAN.options[r.id] && PLAN.options[r.id].name) || r.id}.</span>{' '}
+            {r.facts.map((f, i) => <span key={i}>{i > 0 ? '; ' : ''}<Fact rowId={r.id} f={f} /></span>)}
+            {!r.facts.length && <span class="note">—</span>}
+          </li>
+        ))}
+      </ul>
+      <div class="actions-row">
+        <Button testid="plan.plan.allOptions" kind="quiet" aria-expanded={open ? 'true' : 'false'} onClick={() => dispatch({ type: 'ui/toggle', id: 'allOptions' })}>{open ? w.hideAll : w.showAll}</Button>
+        {view.lockedOn ? <span class="note plan-fixed">{fill(w.fixed, { date: view.lockedOn })}</span>
+          : view.readonly ? null : <Button testid="plan.plan.change.else" onClick={() => onChange('settings')}>{w.changeThis}</Button>}
+      </div>
+    </section>
+  );
+}
+
+export function PlanScreen(state, dispatch) {
+  const view = planView(state);
+  const list = plansView(state);
+  const onChange = (place, planId = view.id, month = null) => dispatch(changeAction(planId, place, href.plan(view.id, view.current), month));
+  if (!view.found) {
+    const waiting = list.status === 'none' || list.status === 'checking' || list.status === 'reading';
+    return {
+      question: null, rail: false, full: false,
+      content: (
+        <>
+          <h1 tabIndex={-1}>{w.title}</h1>
+          {waiting ? <p class="lead" role="status" data-testid="plan.opening">{PLAN.list.opening}</p>
+            : list.session.kind === 'nobody' && list.count === 0 ? <p class="lead" data-testid="plan.signIn">{PLAN.list.signIn} <a href={href.plans()}>{PLAN.list.toPlans}</a></p>
+              : <p class="lead" data-testid="plan.unknown">{PLAN.list.unknown} <a href={href.plans()}>{PLAN.list.toPlans}</a></p>}
+        </>
+      )
+    };
+  }
+  const step = view.steps.find((s) => s.id === view.current) || view.steps[0];
+  // a drawing plan opens on Month by month (7.2.0): the tool itself, not a summary of it
+  if (step.id === 'month') return MonthScreen(state, dispatch);
+  const stepName = step.id === 'plan' && view.locked ? PLAN.steps.plan.locked : PLAN.steps[step.id].label;
+  const allOpen = state.ui.open.includes('allOptions');
+  // the lock's, the unlock's and the new version's state for THIS plan (the toast after a lock lands here, "Your plan as locked")
+  const acts = planActionsView(state);
+  const lockToast = acts.toast && acts.toast.op && (acts.toast.op === 'lock' || acts.toast.op === 'unlock' || acts.toast.op === 'document') ? acts.toast : null;
+  return {
+    question: null,
+    rail: <PlanRail view={view} state={state} dispatch={dispatch} onChange={onChange} />,
+    full: false,
+    content: (
+      <>
+        <div class="plan-head">
+          <p class="plan-kicker">{w.title} <span class="plan-name">{view.example ? PLAN.list.actions.exampleRow : <>‘{view.name}’</>}</span></p>
+          <p class="plan-stage-line" data-testid="plan.stageLine">{view.line ? fill(PLAN.stageLines[view.line.id], view.line.slots) : ''}{view.lockedOn ? ' ' + fill(w.lockedOn, { date: view.lockedOn }) : ''}</p>
+          {view.readonly && <p class="notice" role="status" data-testid="plan.readonly">{w.shownAsSaved}</p>}
+          {/* a closed plan, and the plan that carries one on (6.56.0): what came after it, or before, with the way there */}
+          {view.closed && <p class="notice" role="status" data-testid="plan.closed">{view.closed.hasDocument ? w.closedKeeps : w.closedKeepsNoDocument}{view.closed.next && <> <LinkButton testid="plan.closed.open" kind="quiet" href={href.plan(view.closed.next.id)}>{fill(PLAN.buttons.openNext, { name: view.closed.next.name })}</LinkButton></>}</p>}
+          {view.before && <p class="note" data-testid="plan.before">{view.before.previous ? fill(w.before, { name: view.before.previous.name, month: view.before.until }) : fill(w.beforeAlone, { month: view.before.until })}{view.before.previous && <> <LinkButton testid="plan.before.open" kind="quiet" href={href.plan(view.before.previous.id)}>{fill(PLAN.buttons.openPrevious, { name: view.before.previous.name })}</LinkButton></>}</p>}
+          {view.source === 'window' && <p class="note" data-testid="plan.windowWarning">{w.windowWarning}</p>}
+          {state.ui.leaveProblem && <p class="notice" role="alert">{fill(w.leaveProblem, { name: view.name })}</p>}
+          {view.answerStale && <p class="notice" role="status" data-testid="plan.answerStale">{view.answerStale.changedOn ? fill(w.answerStale, { date: view.answerStale.workedOutOn, changed: view.answerStale.changedOn }) : fill(w.answerStaleUndated, { date: view.answerStale.workedOutOn })}</p>}
+        </div>
+        <h1 tabIndex={-1} data-testid={`plan.step.${step.id}`}>{stepName}{step.optional && <span class="rail-optional"> ({w.optional})</span>}</h1>
+        {!step.listed && <p class="note" data-testid="plan.notListed">{w.notListed}</p>}
+        <section class="headline plan-panel" data-region="plan-step">
+          <p class="line"><PlanSentence s={step.result} figures={step.figures} data-testid={`plan.${step.id}.result`} /></p>
+          {step.lines.length > 0 && <ul class="plan-lines">{step.lines.map((l, i) => <PlanLine key={i} line={l} figures={step.figures} />)}</ul>}
+          {step.notes.map((n, i) => (typeof n === 'string'
+            ? <p class="note" key={i}>{PLAN.notes[n] || ''}</p>
+            : <p class="note" key={i}>{n.id === 'prices' ? fill(w.prices, n.slots) : n.id === 'pricesToday' ? w.pricesToday : ''}</p>))}
+          {step.id === 'plan' && step.sections && (
+            <>
+              {step.sections.map((sec) => <Section key={sec.id} section={sec} view={{ figures: step.figures, lockedOn: view.lockedOn, readonly: view.readonly }} onChange={onChange} />)}
+              <Options step={step} view={{ lockedOn: view.lockedOn, readonly: view.readonly }} open={allOpen} dispatch={dispatch} onChange={onChange} />
+              {view.locked && !view.closed && !view.closing && <LockedActions step={step} view={view} acts={acts} dispatch={dispatch} />}
+              {step.journey && step.journey.length > 0 && (
+                <div class="plan-journey">
+                  <h3>{w.journeyTitle}</h3>
+                  <ul class="plan-lines">{step.journey.map((j, i) => <li key={i} class="plan-line">{j.arrival ? fill(w.journeyArrival, { date: j.on }) : j.stage === 'closed' ? w.journeyClosed + ' — ' + j.on : (PLAN.stageLines[j.stage === 'bridge' ? 'bridge-plan' : j.stage] ? fill(PLAN.stageLines[j.stage === 'bridge' ? 'bridge-plan' : j.stage], { month: '' }).replace(/ from \.$/, '.').replace(/ until \.$/, '.') : j.stage) + ' — ' + j.on}</li>)}</ul>
+                </div>
+              )}
+            </>
+          )}
+          <PlanButtons buttons={step.buttons} planId={view.id} stepId={step.id} onChange={onChange} readonly={view.readonly} />
+        </section>
+        <div class="actions-row">
+          <LinkButton testid="plan.toPlans" kind="quiet" href={href.plans()}>{PLAN.list.toPlans}</LinkButton>
+        </div>
+        <UndoToast prefix="plan.plan" toast={lockToast} text={lockToast ? toastText(lockToast) : ''} words={LOCK.buttons}
+          onUndo={() => dispatch({ type: 'plan/undo', planId: view.id })} onClose={() => dispatch({ type: 'plan/toastClose' })} />
+      </>
+    )
+  };
+}

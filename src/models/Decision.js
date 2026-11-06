@@ -1,0 +1,251 @@
+/**
+ * Decision Model
+ * Represents a monthly drawdown decision with all calculations
+ */
+
+import { TAX_DEFAULTS } from '../constants.js';
+import { calculateTax } from '../services/TaxCalculator.js';
+
+/**
+ * Creates a Decision result object
+ * @param {object} params - Decision parameters
+ * @returns {object} Decision object
+ */
+export function createDecision(params = {}) {
+  return {
+    // Context
+    date: params.date || null,
+    taxYear: params.taxYear || null,
+    yearNumber: params.yearNumber ?? 0,
+    monthInTaxYear: params.monthInTaxYear ?? 0,
+    remainingMonths: params.remainingMonths ?? 12,
+
+    // Fund values (current)
+    equity: params.equity ?? 0,
+    bond: params.bond ?? 0,
+    cash: params.cash ?? 0,
+    isa: params.isa ?? 0,
+
+    // Glidepath minimums (adjusted for inflation and depletion)
+    adjEquityMin: params.adjEquityMin ?? 0,
+    adjBondMin: params.adjBondMin ?? 0,
+    adjCashTarget: params.adjCashTarget ?? 0,
+
+    // Tax thresholds (current year)
+    pa: params.pa ?? 0,
+    brl: params.brl ?? 0,
+    hrl: params.hrl ?? 0,
+
+    // Income sources
+    other: params.other ?? 0,           // Monthly other pension
+    statePension: params.statePension ?? 0, // Monthly state pension
+
+    // Calculated draws
+    sippDraw: params.sippDraw ?? 0,     // Recommended SIPP withdrawal
+    isaDraw: params.isaDraw ?? 0,       // Recommended ISA top-up
+    totalMonthlyNet: params.totalMonthlyNet ?? 0,
+
+    // Tax efficiency metrics
+    taxEfficient: params.taxEfficient ?? true,
+    annualTaxableSoFar: params.annualTaxableSoFar ?? 0,
+    projectedAnnualTaxable: params.projectedAnnualTaxable ?? 0,
+    headroomToBRL: params.headroomToBRL ?? 0,
+
+    // Protection status
+    inProtection: params.inProtection ?? false,
+    protectionReason: params.protectionReason || null,
+    consecutiveCashDraws: params.consecutiveCashDraws ?? 0,
+
+    // Tax boost (catch-up)
+    boostAmount: params.boostAmount ?? 0,
+    boostEligible: params.boostEligible ?? false,
+
+    // Withdrawal source
+    source: params.source || 'Growth',  // 'Growth', 'Cash', 'ISA'
+    drawFromEquity: params.drawFromEquity ?? 0,
+    drawFromBond: params.drawFromBond ?? 0,
+    drawFromCash: params.drawFromCash ?? 0,
+
+    // Rebalancing
+    rebalanceNeeded: params.rebalanceNeeded ?? false,
+    rebalanceActions: params.rebalanceActions || [],
+
+    // Warnings and alerts
+    alerts: params.alerts || [],
+
+    // Debug information
+    calculationDetails: params.calculationDetails || {},
+
+    // NEW: Year-level ISA/Savings tracking
+    yearlyIsaSavingsAllocation: params.yearlyIsaSavingsAllocation ?? 0,
+    cumulativeIsaSavingsUsed: params.cumulativeIsaSavingsUsed ?? 0,
+    isTaxEfficientYear: params.isTaxEfficientYear ?? true,
+
+    // NEW: Tax tracking (monthly, YTD, projected)
+    taxPaidYTD: params.taxPaidYTD ?? 0,
+    taxProjectedAnnual: params.taxProjectedAnnual ?? 0,
+    taxSavedMonthly: params.taxSavedMonthly ?? 0,
+    taxSavedYTD: params.taxSavedYTD ?? 0,
+    taxSavedProjectedAnnual: params.taxSavedProjectedAnnual ?? 0,
+
+    // NEW: Protection-induced tax efficiency
+    protectionInducedTaxEfficiency: params.protectionInducedTaxEfficiency ?? false
+  };
+}
+
+/**
+ * Creates a history record from a Decision
+ * @param {object} decision - Decision object
+ * @returns {object} History record for storage
+ */
+export function decisionToHistory(decision) {
+  // Calculate tax on taxable income (SIPP + Other + State)
+  const monthlyTaxable = (decision.sippDraw || 0) + (decision.other || 0) + (decision.statePension || 0);
+  const annualTaxable = monthlyTaxable * 12;
+  const pa = decision.pa || TAX_DEFAULTS.PERSONAL_ALLOWANCE;
+  const brl = decision.brl || TAX_DEFAULTS.BASIC_RATE_LIMIT;
+  const hrl = decision.hrl || TAX_DEFAULTS.HIGHER_RATE_LIMIT;
+
+  // The one tax sum (TaxCalculator): the allowance is withdrawn above £100,000 and the 45% rate
+  // starts at `hrl` of TAXABLE income. Until 6.16.0 this was a hand-written copy with neither
+  // (at £110,000 a year it said £31,432 where the tax is £33,432).
+  const annualTax = calculateTax(annualTaxable, pa, brl, hrl);
+  // Prefer the ENGINE's per-month tax (partial-year aware: mid-year starts spread the year's tax
+  // over the months actually drawn, net of pre-start income). The local recomputation above is a
+  // fallback for legacy callers only — it annualises this month × 12, which is wrong in a partial
+  // first year and duplicated tax logic besides.
+  const monthlyTax = decision.monthlyTax != null ? decision.monthlyTax : annualTax / 12;
+  const monthlyNet = decision.monthlyTax != null
+    ? (decision.totalMonthlyNet != null ? decision.totalMonthlyNet : monthlyTaxable - monthlyTax + (decision.isaDraw || 0) + (decision.giaNet || 0))
+    : monthlyTaxable - monthlyTax + (decision.isaDraw || 0) + (decision.giaNet || 0);
+
+  return {
+    // Date and context
+    date: decision.date,
+    taxYear: decision.taxYear,
+    yearNum: decision.yearNumber,
+    // Where the month sits in the plan and how it was paid (6.4.2) — so the saved record and its PDF show
+    // what the live screen showed: a bridge month before the plan starts; a contract strategy (gilt
+    // ladders) paying from its cash bucket / matured rung, with no pot floors or rebalancing to obey.
+    ...(decision.bridgeYear ? { bridgeYear: true, planStartYear: decision.planStartYear } : {}),
+    ...(decision.strategyOverlay ? {
+      strategyId: decision.strategyOverlay.id || null,
+      contract: !!decision.strategyOverlay.hidePots,
+      strategySource: decision.strategyOverlay.floorLabel || null,
+      strategyNote: decision.strategyOverlay.note || null
+    } : {}),
+
+    // What was typed and the split it became (6.23: the platform view) — only on records made since; older records keep their shape.
+    ...(decision.entered ? { entered: decision.entered } : {}),
+    // "This month's payment has already been made" dated this entry a month on (index.html togglePaidThisMonth): the record
+    // says so, and the preview never reads the month before it as missed (answers/plan/read.js firstGap). Absent on every other record.
+    ...(decision.paidAhead === true ? { paidAhead: true } : {}),
+
+    // Fund balances at time of decision
+    equity: decision.equity,
+    bond: decision.bond,
+    cash: decision.cash,
+    total: decision.equity + decision.bond + decision.cash,
+
+    // Glidepath minimums
+    adjEquity: decision.adjEquityMin,
+    adjBond: decision.adjBondMin,
+    adjCash: decision.adjCashTarget,
+
+    // Withdrawal source
+    source: decision.source,
+    dEquity: decision.drawFromEquity || 0,
+    dBond: decision.drawFromBond || 0,
+    dCash: decision.drawFromCash || 0,
+
+    // Income amounts (monthly)
+    sipp: decision.sippDraw,
+    stdSipp: decision.stdSipp || decision.sippDraw, // Standard SIPP before protection, for tax boost
+    isa: decision.isaDraw,
+    other: decision.other,
+    state: decision.statePension,
+
+    // Tax calculation
+    pa: pa,
+    brl: brl,
+    monthlyTax: monthlyTax,
+    monthlyNet: monthlyNet,
+
+    // Mode and status
+    mode: decision.taxEfficient ? 'Tax-Efficient' : 'Standard',
+    inProtection: decision.inProtection,
+    belowTrack: !!decision.belowTrack,
+    // Pots & Valves (6.13.5): this month's verdict on the protection rule — the growth pots (shares + bonds +
+    // diversifiers) added up to less than the sum of their glidepaths. Saved because the record does not carry the
+    // diversifiers' value: without it a later month would have to judge this one as if the sleeve were on target.
+    // Only when the engine gave a verdict (a record from a legacy caller stays without one and is judged from its pots).
+    ...(typeof decision.belowGlide === 'boolean' ? { belowGlide: decision.belowGlide } : {}),
+    reason: decision.protectionReason || '',
+    consecutiveDraws: decision.consecutiveCashDraws || 0,
+
+    // Boost
+    boostAmount: decision.boostAmount,
+    boostEligible: decision.boostEligible || false,
+
+    // Rebalancing
+    rebal: decision.rebalanceActions ? decision.rebalanceActions.join('; ') : '',
+
+    // NEW: ISA/Savings tracking
+    yearlyIsaSavingsAllocation: decision.yearlyIsaSavingsAllocation || 0,
+    isaSavingsUsedThisMonth: decision.isaDraw || 0,
+    cumulativeIsaSavingsUsed: decision.cumulativeIsaSavingsUsed || 0,
+
+    // NEW: Tax tracking (monthly, YTD, projected)
+    taxPaidMonthly: monthlyTax,
+    taxFree: decision.taxFree || 0,          // UFPLS tax-free slice (drives lifetime LSA tracking)
+    recycleNet: decision.recycleNet || 0,    // band-fill net recycled to ISA (drives the £20k/yr cap)
+    accessMethod: decision.accessMethod || 'drawdown',
+    taxPaidYTD: decision.taxPaidYTD || monthlyTax,
+    taxProjectedAnnual: decision.taxProjectedAnnual || annualTax,
+    taxSavedMonthly: decision.taxSavedMonthly || 0,
+    taxSavedYTD: decision.taxSavedYTD || 0,
+    taxSavedProjectedAnnual: decision.taxSavedProjectedAnnual || 0,
+
+    // NEW: Year-level tax efficiency flags
+    isTaxEfficientYear: decision.isTaxEfficientYear ?? true,
+    protectionInducedTaxEfficiency: decision.protectionInducedTaxEfficiency || false,
+
+    // Context
+    remainingMonths: decision.remainingMonths || 12,
+
+    // Taxable sleeve (GIA) — only when the plan has one. The post-draw balance and cost basis are
+    // what the next month's entry is pre-filled from (the basis has to persist between months, or
+    // CGT cannot be worked out); giaGainUsed is summed per tax year for the £3,000 exemption.
+    ...(decision.giaBalance != null ? {
+      gia: decision.giaBalance,
+      giaBasis: decision.giaBasis,
+      giaDraw: decision.giaDraw || 0,
+      giaCgt: decision.giaCgt || 0,
+      giaNet: decision.giaNet || 0,
+      giaGainUsed: decision.giaGainUsed || 0,
+      giaBalanceAfter: decision.giaBalanceAfter,
+      giaBasisAfter: decision.giaBasisAfter
+    } : {})
+  };
+}
+
+/**
+ * Alert severity levels
+ */
+export const AlertSeverity = {
+  INFO: 'info',
+  WARNING: 'warning',
+  DANGER: 'danger',
+  SUCCESS: 'success'
+};
+
+/**
+ * Creates an alert object
+ * @param {string} message - Alert message
+ * @param {string} severity - Alert severity
+ * @param {string} code - Alert code for identification
+ * @returns {object} Alert object
+ */
+export function createAlert(message, severity = AlertSeverity.INFO, code = null) {
+  return { message, severity, code };
+}

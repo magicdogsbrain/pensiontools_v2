@@ -1,0 +1,50 @@
+{
+  "name": "pensiontools",
+  "version": "7.2.0",
+  "description": "Pension drawdown planning and stress testing tool",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && vite build --config vite.v7.config.js",
+    "build:v7": "vite build --config vite.v7.config.js",
+    "dev:v7": "vite --config vite.v7.config.js",
+    "e2e:build": "SITE_OUT=dist/prod vite build && SITE_OUT=dist/prod vite build --config vite.v7.config.js && SITE_OUT=dist/test vite build --config vite.v7.config.js --mode test",
+    "e2e": "playwright test",
+    "e2e:approve": "playwright test e2e/screens.spec.js --update-snapshots",
+    "v7:cases": "node tests/v7/gen/build-cases.mjs && node tests/v7/gen/dimensionsA.mjs && node tests/v7/gen/dimensionsB.mjs",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:fast": "vitest run --exclude \"**/*.slow.test.js\"",
+    "test:all": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src/**/*.js",
+    "e2e:signed-in": "node scripts/e2e-signed-in.mjs"
+  },
+  "dependencies": {
+    "firebase": "^10.7.0",
+    "preact": "^11.0.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "1.63.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "@vitest/ui": "^1.0.0",
+    "eslint": "^8.56.0",
+    "fast-check": "^4.10.2",
+    "jsdom": "^27.4.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "keywords": [
+    "pension",
+    "retirement",
+    "finance",
+    "sipp",
+    "drawdown",
+    "monte-carlo",
+    "firebase"
+  ],
+  "author": "",
+  "license": "MIT"
+}

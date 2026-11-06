@@ -1,0 +1,8 @@
+{
+  "note": "Written by tests/v7/states/build-states.mjs --question a. Do not edit by hand.",
+  "today": "2026-09-30",
+  "futures": 1000,
+  "inputsKeyFrom": "src/v7/state/inputsKey.js",
+  "answer": "src/answers/a/answer.js",
+  "patched": []
+}

@@ -1,0 +1,69 @@
+rules_version = '2';
+
+// PensionTools — Firestore security rules.
+//
+// All personal data lives under users/{uid}/... (scenarios/{scenarioId},
+// profile/settings). Each signed-in, email-verified user may access only
+// their own subtree; everything else is denied by default.
+//
+// Note: email_verified is true for all Google sign-ins. Email/password
+// accounts must verify their address (see compliance/GDPR_TODO.md P2)
+// before they can read or write data.
+//
+// Who the administrator is lives in the database, not in this file: an account is the administrator
+// while a document admins/{its uid} exists. No client can write (or read) admins/*, so the list is
+// kept by hand in the Firebase console (compliance/GDPR_TODO.md, "Admin"). This file names no account.
+//
+// Deploy with: firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+             && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // The administrators: one empty document per administrator's uid. Never read or written from the
+    // app; isAdmin() reads it with the rules' own access. Added and removed in the console only.
+    match /admins/{uid} {
+      allow read, write: if false;
+    }
+
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == uid
+                         && request.auth.token.email_verified == true;
+    }
+
+    // Administrator probe + soft-lock passphrase: readable/writable ONLY by an administrator.
+    // The client contains no admin identifier — it simply attempts this read; these rules (and the
+    // admins/ list they read) are the server-side authority on who the administrator is.
+    match /adminPrivate/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Shared curated datasets (fund catalogue, sub-asset profile tuning, typical amounts):
+    // readable by any signed-in verified user; writable only by an administrator.
+    match /admin/{docId} {
+      allow read: if request.auth != null && request.auth.token.email_verified == true;
+      allow write: if isAdmin();
+    }
+
+    // Unknown-fund categorisation queue: any signed-in verified user may submit their own
+    // suggestion; only an administrator may read or manage the queue.
+    match /fundSuggestions/{suggestionId} {
+      allow create: if request.auth != null
+                    && request.auth.token.email_verified == true
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['ticker', 'name', 'subClass', 'uid', 'createdAt'])
+                    && request.resource.data.ticker is string
+                    && request.resource.data.ticker.size() >= 1 && request.resource.data.ticker.size() <= 12
+                    && request.resource.data.ticker.matches('^[A-Za-z0-9.\\-]+$')
+                    && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 80))
+                    && (!('subClass' in request.resource.data) || (request.resource.data.subClass is string && request.resource.data.subClass.size() <= 40));
+      allow read, update, delete: if isAdmin();
+      // Right to erasure: a user may read and delete the suggestions they filed themselves.
+      allow read, delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+  }
+}

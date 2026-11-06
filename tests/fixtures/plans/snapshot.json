@@ -1,0 +1,1375 @@
+{
+ "corpusNow": "2026-09-30T08:00:00.000Z",
+ "market": {
+  "giltsAsOf": "2026-09-22",
+  "equityAsOf": "2026-09-22"
+ },
+ "plans": {
+  "01-fresh-default": {
+   "name": "01-fresh-default",
+   "planName": "My Plan",
+   "migratedByNormalize": false,
+   "locked": false,
+   "stage": "unknown",
+   "strategyId": "pots-and-valves",
+   "timingMode": "legacy",
+   "firstTaxYear": 2027,
+   "startAge": 57,
+   "decisionChecksum": "5f2f727e",
+   "stressChecksum": "-64a0e9a6",
+   "historyMonths": 0,
+   "taxYearsSetUp": [],
+   "hasPlanDocument": false,
+   "holdings": {
+    "lines": 0,
+    "total": 0,
+    "bySipp": 0,
+    "byIsa": 0,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": null,
+   "headline": {
+    "affordable": true,
+    "ruinHist": 44.96,
+    "ruinMc": 34.4,
+    "coverage": 93.64,
+    "worst12Min": 0,
+    "worst12Median": 24000,
+    "terminalP10": 0,
+    "terminalP50": 37464,
+    "terminalP90": 815303,
+    "spentMedian": 1038001,
+    "guaranteedToAge": "State Pension only (from age 69, assumed — none entered)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      35
+     ],
+     "wealthP10": [
+      500000,
+      314317,
+      216331,
+      81334,
+      0
+     ],
+     "wealthP50": [
+      500000,
+      432053,
+      353246,
+      248700,
+      38265
+     ],
+     "wealthP90": [
+      500000,
+      570465,
+      571368,
+      623387,
+      827000
+     ],
+     "incomeP50": [
+      30000,
+      29550,
+      28750,
+      30000,
+      30000
+     ]
+    }
+   }
+  },
+  "02-pnv-draft": {
+   "name": "02-pnv-draft",
+   "planName": "Draft — Pots & Valves",
+   "migratedByNormalize": false,
+   "locked": false,
+   "stage": "draft-retired",
+   "strategyId": "pots-and-valves",
+   "timingMode": "retired",
+   "firstTaxYear": 2027,
+   "startAge": 63,
+   "decisionChecksum": "7df0297a",
+   "stressChecksum": "-15b52fc1",
+   "historyMonths": 0,
+   "taxYearsSetUp": [],
+   "hasPlanDocument": false,
+   "holdings": {
+    "lines": 0,
+    "total": 0,
+    "bySipp": 0,
+    "byIsa": 0,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": null,
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 1.9,
+    "coverage": 99.74,
+    "worst12Min": 23664,
+    "worst12Median": 26173,
+    "terminalP10": 151745,
+    "terminalP50": 679233,
+    "terminalP90": 2839263,
+    "spentMedian": 1086169,
+    "guaranteedToAge": "State Pension only (from age 67)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      33
+     ],
+     "wealthP10": [
+      745000,
+      483928,
+      416663,
+      305048,
+      155235
+     ],
+     "wealthP50": [
+      745000,
+      682757,
+      657147,
+      625901,
+      682992
+     ],
+     "wealthP90": [
+      745000,
+      923276,
+      1101438,
+      1572659,
+      2807794
+     ],
+     "incomeP50": [
+      38000,
+      38000,
+      38000,
+      29528,
+      26173
+     ]
+    }
+   }
+  },
+  "03-gilt-ladder-runup": {
+   "name": "03-gilt-ladder-runup",
+   "planName": "Linkers to 85",
+   "migratedByNormalize": false,
+   "locked": true,
+   "stage": "bridge",
+   "strategyId": "full-il-gilt",
+   "timingMode": "retired",
+   "firstTaxYear": 2027,
+   "startAge": 66,
+   "decisionChecksum": "-5f3e2d18",
+   "stressChecksum": "-48552f0e",
+   "historyMonths": 3,
+   "taxYearsSetUp": [
+    "26/27"
+   ],
+   "hasPlanDocument": true,
+   "holdings": {
+    "lines": 8,
+    "total": 682433.6,
+    "bySipp": 639381.6,
+    "byIsa": 35052,
+    "byGia": 0,
+    "byCash": 8000
+   },
+   "fundsToTest": 0,
+   "where": {
+    "planYear": -1,
+    "bridge": true,
+    "taxYear": "2026/27",
+    "age": 65,
+    "stepAmount": 34000,
+    "recorded": 3,
+    "drawn": 8500,
+    "potBand": null,
+    "savingBand": null
+   },
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 0,
+    "coverage": 100,
+    "worst12Min": 22596,
+    "worst12Median": 22596,
+    "terminalP10": 333188,
+    "terminalP50": 333188,
+    "terminalP90": 333188,
+    "spentMedian": 592639,
+    "guaranteedToAge": "85 by contract (every year bought today)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20
+     ],
+     "wealthP10": [
+      654980,
+      533292,
+      453516,
+      333188
+     ],
+     "wealthP50": [
+      654980,
+      533292,
+      453516,
+      333188
+     ],
+     "wealthP90": [
+      654980,
+      533292,
+      453516,
+      333188
+     ],
+     "incomeP50": [
+      34000,
+      34000,
+      29000,
+      22596
+     ]
+    }
+   }
+  },
+  "04-buckets-running": {
+   "name": "04-buckets-running",
+   "planName": "Buckets — three pots",
+   "migratedByNormalize": false,
+   "locked": true,
+   "stage": "running",
+   "strategyId": "buckets-in-order",
+   "timingMode": "retired",
+   "firstTaxYear": 2026,
+   "startAge": 63,
+   "decisionChecksum": "701fc91",
+   "stressChecksum": "-1a05cdb6",
+   "historyMonths": 6,
+   "taxYearsSetUp": [
+    "26/27"
+   ],
+   "hasPlanDocument": true,
+   "holdings": {
+    "lines": 4,
+    "total": 616090,
+    "bySipp": 591050,
+    "byIsa": 25040,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": {
+    "planYear": 0,
+    "bridge": false,
+    "taxYear": "2026/27",
+    "age": 63,
+    "stepAmount": 30000,
+    "recorded": 6,
+    "drawn": 15600,
+    "potBand": "p10–p50",
+    "savingBand": null
+   },
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 1.7,
+    "coverage": 99.75,
+    "worst12Min": 24000,
+    "worst12Median": 27000,
+    "terminalP10": 157539,
+    "terminalP50": 968682,
+    "terminalP90": 3967896,
+    "spentMedian": 928500,
+    "guaranteedToAge": "State Pension only (from age 67)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      30
+     ],
+     "wealthP10": [
+      615000,
+      407388,
+      375192,
+      279714,
+      156898
+     ],
+     "wealthP50": [
+      615000,
+      609025,
+      649649,
+      738434,
+      966359
+     ],
+     "wealthP90": [
+      615000,
+      863146,
+      1189118,
+      2127219,
+      4070876
+     ],
+     "incomeP50": [
+      30000,
+      30000,
+      30000,
+      30000,
+      30000
+     ]
+    }
+   }
+  },
+  "05-saver-committed": {
+   "name": "05-saver-committed",
+   "planName": "Retire at 60",
+   "migratedByNormalize": false,
+   "locked": true,
+   "stage": "committed-saving",
+   "strategyId": "pots-and-valves",
+   "timingMode": "future",
+   "firstTaxYear": 2037,
+   "startAge": 60,
+   "decisionChecksum": "1092bb6d",
+   "stressChecksum": "-5bcc5b8b",
+   "historyMonths": 0,
+   "taxYearsSetUp": [],
+   "hasPlanDocument": true,
+   "holdings": {
+    "lines": 3,
+    "total": 350030,
+    "bySipp": 310000,
+    "byIsa": 40030,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": {
+    "planYear": -11,
+    "bridge": true,
+    "taxYear": "2026/27",
+    "age": 49,
+    "stepAmount": 36000,
+    "recorded": 0,
+    "drawn": 0,
+    "potBand": null,
+    "savingBand": "above the strong line"
+   },
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0.99,
+    "ruinMc": 5.1,
+    "coverage": 99.11,
+    "worst12Min": 0,
+    "worst12Median": 28800,
+    "terminalP10": 67975,
+    "terminalP50": 751621,
+    "terminalP90": 3361233,
+    "spentMedian": 1147307,
+    "guaranteedToAge": "State Pension only (from age 68)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      35
+     ],
+     "wealthP10": [
+      658067,
+      430750,
+      345924,
+      255413,
+      66375
+     ],
+     "wealthP50": [
+      658067,
+      612787,
+      579607,
+      620196,
+      762973
+     ],
+     "wealthP90": [
+      658067,
+      823906,
+      966535,
+      1516994,
+      3392354
+     ],
+     "incomeP50": [
+      36000,
+      36000,
+      31000,
+      31000,
+      31000
+     ]
+    }
+   }
+  },
+  "06-pre-6.4-no-timing": {
+   "name": "06-pre-6.4-no-timing",
+   "planName": "Plan A",
+   "migratedByNormalize": false,
+   "locked": true,
+   "stage": "running",
+   "strategyId": "pots-and-valves",
+   "timingMode": "legacy",
+   "firstTaxYear": 2027,
+   "startAge": 58,
+   "decisionChecksum": "7a99648c",
+   "stressChecksum": "7502ef28",
+   "historyMonths": 3,
+   "taxYearsSetUp": [
+    "26/27"
+   ],
+   "hasPlanDocument": false,
+   "holdings": {
+    "lines": 0,
+    "total": 0,
+    "bySipp": 0,
+    "byIsa": 0,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": null,
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 1.2,
+    "coverage": 99.84,
+    "worst12Min": 26069,
+    "worst12Median": 29445,
+    "terminalP10": 283828,
+    "terminalP50": 1251232,
+    "terminalP90": 5434550,
+    "spentMedian": 1231098,
+    "guaranteedToAge": "State Pension only (from age 67, assumed — none entered)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      35
+     ],
+     "wealthP10": [
+      900000,
+      614417,
+      524677,
+      429159,
+      293769
+     ],
+     "wealthP50": [
+      900000,
+      872282,
+      840728,
+      906549,
+      1267869
+     ],
+     "wealthP90": [
+      900000,
+      1183864,
+      1438119,
+      2256136,
+      5341443
+     ],
+     "incomeP50": [
+      42000,
+      41580,
+      39542,
+      30653,
+      29445
+     ]
+    }
+   }
+  },
+  "07-pre-6.13-flat-params": {
+   "name": "07-pre-6.13-flat-params",
+   "planName": "Rotation what-if",
+   "migratedByNormalize": false,
+   "locked": false,
+   "stage": "draft-retired",
+   "strategyId": "gilt-rotation",
+   "timingMode": "retired",
+   "firstTaxYear": 2027,
+   "startAge": 59,
+   "decisionChecksum": "441674e2",
+   "stressChecksum": "1500564c",
+   "historyMonths": 0,
+   "taxYearsSetUp": [],
+   "hasPlanDocument": false,
+   "holdings": {
+    "lines": 0,
+    "total": 0,
+    "bySipp": 0,
+    "byIsa": 0,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 5,
+   "where": null,
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 0,
+    "coverage": 100,
+    "worst12Min": 23000,
+    "worst12Median": 23000,
+    "terminalP10": 166149,
+    "terminalP50": 259303,
+    "terminalP90": 841899,
+    "spentMedian": 933000,
+    "guaranteedToAge": "80 by contract whatever happens; above that, contract until the trigger fires (78% of futures rotate)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      34
+     ],
+     "wealthP10": [
+      702480,
+      565854,
+      444086,
+      309297,
+      166149
+     ],
+     "wealthP50": [
+      702480,
+      571713,
+      460683,
+      361361,
+      259303
+     ],
+     "wealthP90": [
+      702480,
+      592282,
+      528113,
+      550670,
+      841899
+     ],
+     "incomeP50": [
+      31000,
+      31000,
+      31000,
+      27000,
+      23000
+     ]
+    }
+   }
+  },
+  "08-dotted-keys": {
+   "name": "08-dotted-keys",
+   "planName": "Joint pot — cautious",
+   "migratedByNormalize": true,
+   "locked": false,
+   "stage": "unknown",
+   "strategyId": "pots-and-valves",
+   "timingMode": "legacy",
+   "firstTaxYear": 2027,
+   "startAge": 64,
+   "decisionChecksum": "-7f36d59f",
+   "stressChecksum": "9183fd",
+   "historyMonths": 2,
+   "taxYearsSetUp": [
+    "26/27"
+   ],
+   "hasPlanDocument": false,
+   "holdings": {
+    "lines": 0,
+    "total": 0,
+    "bySipp": 0,
+    "byIsa": 0,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": null,
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 1,
+    "coverage": 99.94,
+    "worst12Min": 22000,
+    "worst12Median": 24979,
+    "terminalP10": 97025,
+    "terminalP50": 371522,
+    "terminalP90": 1313119,
+    "spentMedian": 794846,
+    "guaranteedToAge": "State Pension only (from age 67, assumed — none entered)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      28
+     ],
+     "wealthP10": [
+      518000,
+      361695,
+      313165,
+      206437,
+      99480
+     ],
+     "wealthP50": [
+      518000,
+      482138,
+      468369,
+      420362,
+      376394
+     ],
+     "wealthP90": [
+      518000,
+      620477,
+      717804,
+      959038,
+      1321860
+     ],
+     "incomeP50": [
+      27500,
+      27500,
+      27500,
+      27500,
+      27500
+     ]
+    }
+   }
+  },
+  "09-couple-a": {
+   "name": "09-couple-a",
+   "planName": "Ours — Asha",
+   "migratedByNormalize": false,
+   "locked": false,
+   "stage": "draft-retired",
+   "strategyId": "pots-and-valves",
+   "timingMode": "retired",
+   "firstTaxYear": 2027,
+   "startAge": 66,
+   "decisionChecksum": "-3465e953",
+   "stressChecksum": "-2610ec52",
+   "historyMonths": 0,
+   "taxYearsSetUp": [],
+   "hasPlanDocument": false,
+   "holdings": {
+    "lines": 0,
+    "total": 0,
+    "bySipp": 0,
+    "byIsa": 0,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": null,
+   "headline": {
+    "affordable": true,
+    "ruinHist": 5.31,
+    "ruinMc": 5.3,
+    "coverage": 99.36,
+    "worst12Min": 0,
+    "worst12Median": 21394,
+    "terminalP10": 25811,
+    "terminalP50": 230256,
+    "terminalP90": 1129823,
+    "spentMedian": 741982,
+    "guaranteedToAge": "State Pension only (from age 67)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      30
+     ],
+     "wealthP10": [
+      372000,
+      250231,
+      215910,
+      127390,
+      25314
+     ],
+     "wealthP50": [
+      372000,
+      352974,
+      339070,
+      290141,
+      237206
+     ],
+     "wealthP90": [
+      372000,
+      472956,
+      564778,
+      765388,
+      1160083
+     ],
+     "incomeP50": [
+      24000,
+      24000,
+      24000,
+      24000,
+      24000
+     ]
+    }
+   }
+  },
+  "10-couple-b": {
+   "name": "10-couple-b",
+   "planName": "Ours — Ben",
+   "migratedByNormalize": false,
+   "locked": false,
+   "stage": "approaching",
+   "strategyId": "pots-and-valves",
+   "timingMode": "future",
+   "firstTaxYear": 2029,
+   "startAge": 62,
+   "decisionChecksum": "68ca8666",
+   "stressChecksum": "63cfe107",
+   "historyMonths": 0,
+   "taxYearsSetUp": [],
+   "hasPlanDocument": false,
+   "holdings": {
+    "lines": 0,
+    "total": 0,
+    "bySipp": 0,
+    "byIsa": 0,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": null,
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 1,
+    "coverage": 99.91,
+    "worst12Min": 14400,
+    "worst12Median": 15216,
+    "terminalP10": 85119,
+    "terminalP50": 359500,
+    "terminalP90": 1388156,
+    "spentMedian": 589500,
+    "guaranteedToAge": "State Pension only (from age 67)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      32
+     ],
+     "wealthP10": [
+      288497,
+      169861,
+      154696,
+      130461,
+      87610
+     ],
+     "wealthP50": [
+      288497,
+      256443,
+      262933,
+      290305,
+      361662
+     ],
+     "wealthP90": [
+      288497,
+      357887,
+      457008,
+      727325,
+      1428521
+     ],
+     "incomeP50": [
+      18000,
+      18000,
+      18000,
+      18000,
+      18000
+     ]
+    }
+   }
+  },
+  "11-guest-demo": {
+   "name": "11-guest-demo",
+   "planName": "r/FiredUK — £1M, £40k rising",
+   "migratedByNormalize": false,
+   "locked": false,
+   "stage": "draft-retired",
+   "strategyId": "pots-and-valves",
+   "timingMode": "retired",
+   "firstTaxYear": 2027,
+   "startAge": 57,
+   "decisionChecksum": "5f2f727e",
+   "stressChecksum": "-425ffd1f",
+   "historyMonths": 0,
+   "taxYearsSetUp": [],
+   "hasPlanDocument": false,
+   "holdings": {
+    "lines": 0,
+    "total": 0,
+    "bySipp": 0,
+    "byIsa": 0,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": null,
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 6.8,
+    "coverage": 98.73,
+    "worst12Min": 32000,
+    "worst12Median": 34667,
+    "terminalP10": 49177,
+    "terminalP50": 1287917,
+    "terminalP90": 7645841,
+    "spentMedian": 1597000,
+    "guaranteedToAge": "State Pension only (from age 67, assumed — none entered)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      39
+     ],
+     "wealthP10": [
+      1000000,
+      669982,
+      564077,
+      424568,
+      50609
+     ],
+     "wealthP50": [
+      1000000,
+      1009874,
+      984613,
+      1012860,
+      1291212
+     ],
+     "wealthP90": [
+      1000000,
+      1415746,
+      1789425,
+      2821077,
+      7661143
+     ],
+     "incomeP50": [
+      40000,
+      40000,
+      40000,
+      40000,
+      40000
+     ]
+    }
+   }
+  },
+  "12-lumpy-db-gia": {
+   "name": "12-lumpy-db-gia",
+   "planName": "Everything at once",
+   "migratedByNormalize": false,
+   "locked": false,
+   "stage": "draft-retired",
+   "strategyId": "pots-and-valves",
+   "timingMode": "retired",
+   "firstTaxYear": 2027,
+   "startAge": 60,
+   "decisionChecksum": "1034a7a6",
+   "stressChecksum": "-76a966ae",
+   "historyMonths": 0,
+   "taxYearsSetUp": [],
+   "hasPlanDocument": false,
+   "holdings": {
+    "lines": 6,
+    "total": 586850,
+    "bySipp": 441900,
+    "byIsa": 59950,
+    "byGia": 85000,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": null,
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 0,
+    "coverage": 100,
+    "worst12Min": 30694,
+    "worst12Median": 34000,
+    "terminalP10": 252383,
+    "terminalP50": 765131,
+    "terminalP90": 2554408,
+    "spentMedian": 1379434,
+    "guaranteedToAge": "State Pension only (from age 67)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      32
+     ],
+     "wealthP10": [
+      585000,
+      476366,
+      443806,
+      388472,
+      256641
+     ],
+     "wealthP50": [
+      585000,
+      635595,
+      645249,
+      701074,
+      775162
+     ],
+     "wealthP90": [
+      585000,
+      814592,
+      971390,
+      1453049,
+      2634893
+     ],
+     "incomeP50": [
+      48000,
+      48000,
+      38800,
+      34000,
+      34000
+     ]
+    }
+   }
+  },
+  "13-stopped-drawing-since": {
+   "name": "13-stopped-drawing-since",
+   "planName": "Linkers since 2024",
+   "migratedByNormalize": false,
+   "locked": true,
+   "stage": "running",
+   "strategyId": "full-il-gilt",
+   "timingMode": "retired",
+   "firstTaxYear": 2024,
+   "startAge": 61,
+   "decisionChecksum": "-507de7fc",
+   "stressChecksum": "-224f195c",
+   "historyMonths": 18,
+   "taxYearsSetUp": [
+    "24/25",
+    "25/26",
+    "26/27"
+   ],
+   "hasPlanDocument": true,
+   "holdings": {
+    "lines": 5,
+    "total": 465030,
+    "bySipp": 450000,
+    "byIsa": 15030,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": {
+    "planYear": 2,
+    "bridge": false,
+    "taxYear": "2026/27",
+    "age": 63,
+    "stepAmount": 26500,
+    "recorded": 6,
+    "drawn": 14331,
+    "potBand": null,
+    "savingBand": null
+   },
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 0,
+    "coverage": 100,
+    "worst12Min": 22000,
+    "worst12Median": 22000,
+    "terminalP10": 71040,
+    "terminalP50": 71040,
+    "terminalP90": 71040,
+    "spentMedian": 723000,
+    "guaranteedToAge": "89 by contract (every year bought today)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      29
+     ],
+     "wealthP10": [
+      464980,
+      341472,
+      264951,
+      160079,
+      71040
+     ],
+     "wealthP50": [
+      464980,
+      341472,
+      264951,
+      160079,
+      71040
+     ],
+     "wealthP90": [
+      464980,
+      341472,
+      264951,
+      160079,
+      71040
+     ],
+     "incomeP50": [
+      26500,
+      26500,
+      26500,
+      22000,
+      22000
+     ]
+    }
+   }
+  },
+  "18-moved-to-new-plan": {
+   "name": "18-moved-to-new-plan",
+   "planName": "Pots and valves 2023",
+   "migratedByNormalize": false,
+   "locked": true,
+   "stage": "closed",
+   "strategyId": "pots-and-valves",
+   "timingMode": "retired",
+   "firstTaxYear": 2023,
+   "startAge": 62,
+   "decisionChecksum": "44cae03b",
+   "stressChecksum": "-51822a10",
+   "historyMonths": 15,
+   "taxYearsSetUp": [
+    "23/24",
+    "24/25"
+   ],
+   "hasPlanDocument": true,
+   "holdings": {
+    "lines": 4,
+    "total": 453400,
+    "bySipp": 419000,
+    "byIsa": 34400,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": {
+    "planYear": 1,
+    "bridge": false,
+    "taxYear": "2024/25",
+    "age": 63,
+    "stepAmount": 25500,
+    "recorded": 10,
+    "drawn": 22016,
+    "potBand": "p10–p50",
+    "savingBand": null
+   },
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 0.7,
+    "coverage": 99.97,
+    "worst12Min": 19100,
+    "worst12Median": 21000,
+    "terminalP10": 111523,
+    "terminalP50": 348140,
+    "terminalP90": 1148485,
+    "spentMedian": 708482,
+    "guaranteedToAge": "State Pension only (from age 67)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      30
+     ],
+     "wealthP10": [
+      445000,
+      285552,
+      248502,
+      183036,
+      112392
+     ],
+     "wealthP50": [
+      445000,
+      386345,
+      369736,
+      347563,
+      349589
+     ],
+     "wealthP90": [
+      445000,
+      505194,
+      572714,
+      768353,
+      1153507
+     ],
+     "incomeP50": [
+      25500,
+      25500,
+      25500,
+      21000,
+      21000
+     ]
+    }
+   }
+  },
+  "18-moved-to-new-plan-next": {
+   "name": "18-moved-to-new-plan-next",
+   "planName": "Pots and valves from April 2025",
+   "migratedByNormalize": false,
+   "locked": false,
+   "stage": "draft-retired",
+   "strategyId": "pots-and-valves",
+   "timingMode": "retired",
+   "firstTaxYear": 2025,
+   "startAge": 64,
+   "decisionChecksum": "687d57ba",
+   "stressChecksum": "-5a1baec1",
+   "historyMonths": 0,
+   "taxYearsSetUp": [],
+   "hasPlanDocument": false,
+   "holdings": {
+    "lines": 4,
+    "total": 453400,
+    "bySipp": 419000,
+    "byIsa": 34400,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": null,
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 0,
+    "coverage": 100,
+    "worst12Min": 19100,
+    "worst12Median": 21000,
+    "terminalP10": 180824,
+    "terminalP50": 484094,
+    "terminalP90": 1466227,
+    "spentMedian": 635588,
+    "guaranteedToAge": "State Pension only (from age 67)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      27
+     ],
+     "wealthP10": [
+      453400,
+      315353,
+      281373,
+      222772,
+      181919
+     ],
+     "wealthP50": [
+      453400,
+      432727,
+      429626,
+      448507,
+      494204
+     ],
+     "wealthP90": [
+      453400,
+      571530,
+      688508,
+      1036859,
+      1437467
+     ],
+     "incomeP50": [
+      25500,
+      25500,
+      25500,
+      21000,
+      21000
+     ]
+    }
+   }
+  },
+  "19-back-to-work": {
+   "name": "19-back-to-work",
+   "planName": "Drawing from 57",
+   "migratedByNormalize": false,
+   "locked": true,
+   "stage": "closed",
+   "strategyId": "pots-and-valves",
+   "timingMode": "retired",
+   "firstTaxYear": 2023,
+   "startAge": 58,
+   "decisionChecksum": "-66e56300",
+   "stressChecksum": "-124c29cc",
+   "historyMonths": 14,
+   "taxYearsSetUp": [
+    "23/24",
+    "24/25",
+    "25/26"
+   ],
+   "hasPlanDocument": true,
+   "holdings": {
+    "lines": 4,
+    "total": 347900,
+    "bySipp": 324100,
+    "byIsa": 23800,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": {
+    "planYear": 2,
+    "bridge": false,
+    "taxYear": "2025/26",
+    "age": 60,
+    "stepAmount": 22200,
+    "recorded": 2,
+    "drawn": 4002,
+    "potBand": "p50–p90",
+    "savingBand": null
+   },
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0.42,
+    "ruinMc": 3.1,
+    "coverage": 99.52,
+    "worst12Min": 0,
+    "worst12Median": 15256,
+    "terminalP10": 52405,
+    "terminalP50": 213412,
+    "terminalP90": 742392,
+    "spentMedian": 617438,
+    "guaranteedToAge": "State Pension only (from age 67)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      33
+     ],
+     "wealthP10": [
+      321000,
+      187458,
+      121237,
+      96022,
+      53407
+     ],
+     "wealthP50": [
+      321000,
+      264621,
+      212194,
+      211606,
+      212123
+     ],
+     "wealthP90": [
+      321000,
+      350012,
+      333041,
+      452458,
+      751261
+     ],
+     "incomeP50": [
+      22200,
+      20905,
+      16657,
+      17400,
+      17400
+     ]
+    }
+   }
+  },
+  "19-back-to-work-saving": {
+   "name": "19-back-to-work-saving",
+   "planName": "Saving again from July 2025",
+   "migratedByNormalize": false,
+   "locked": false,
+   "stage": "approaching",
+   "strategyId": "pots-and-valves",
+   "timingMode": "future",
+   "firstTaxYear": 2028,
+   "startAge": 63,
+   "decisionChecksum": "-3e7fc580",
+   "stressChecksum": "712f8cac",
+   "historyMonths": 0,
+   "taxYearsSetUp": [],
+   "hasPlanDocument": false,
+   "holdings": {
+    "lines": 4,
+    "total": 347900,
+    "bySipp": 324100,
+    "byIsa": 23800,
+    "byGia": 0,
+    "byCash": 0
+   },
+   "fundsToTest": 0,
+   "where": null,
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 0,
+    "coverage": 100,
+    "worst12Min": 14827,
+    "worst12Median": 17293,
+    "terminalP10": 199921,
+    "terminalP50": 499064,
+    "terminalP90": 1510681,
+    "spentMedian": 521424,
+    "guaranteedToAge": "State Pension only (from age 67)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20,
+      28
+     ],
+     "wealthP10": [
+      373792,
+      237288,
+      237223,
+      215218,
+      201894
+     ],
+     "wealthP50": [
+      373792,
+      336036,
+      364188,
+      419447,
+      498324
+     ],
+     "wealthP90": [
+      373792,
+      452901,
+      585361,
+      948156,
+      1472415
+     ],
+     "incomeP50": [
+      22200,
+      17400,
+      17400,
+      17400,
+      17400
+     ]
+    }
+   }
+  }
+ }
+}

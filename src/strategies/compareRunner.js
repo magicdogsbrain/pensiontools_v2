@@ -1,0 +1,280 @@
+import { cashCostFactor } from './GiltLadderPlan.js';
+import { monthlyChargeFactor } from '../services/Charges.js';
+import { countLeftFromToday, reviewMonthsFromToday, ladderYearsFromYear0, planYearsOf } from '../services/PlanFromToday.js';
+/**
+ * Phase D — the N-way strategy compare (strategy brief §6, UX brief §3.3).
+ *
+ * THE central promise: every strategy is judged on IDENTICAL markets and ONE income profile.
+ * All three run on the same Shiller real-terms historical windows: the ladder strategies
+ * natively; Pots & Valves through its own production engine fed the window's real annual
+ * returns (epsilon inflation, frozen bands — i.e. the plan in today's money). One window index
+ * = one market history for all strategies.
+ *
+ * Outputs per strategy: the four-row plain table (worst 12-month income; income guaranteed to
+ * age; chance of running out; typical amount left) + signature stats + a layered-spending
+ * breakdown for a representative (median-terminal) window, with contractual income separated
+ * from market income (the solid-vs-translucent law).
+ */
+
+import { getRtr, getCpi, bootstrapPaths, annualNominal, pct } from './ladderEngine.js';
+import { getStrategy } from './registry.js';
+import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
+import { runFlexWindows, runFlexMonteCarlo, floorCost } from './FloorAndFlex.js';
+import { profileTargetForYear } from '../services/IncomeProfile.js';
+import { stressTestAll, stressTestStrategy, STRATEGY_NAMES } from './stressTest.js';
+import { mixCells } from '../services/GlidepathService.js';
+export { mixCells };
+
+
+/**
+ * Pots & Valves over the same historical windows, in today's money.
+ * cfg: the plan's REAL config (pots, floors, target, SP...) with taxMode 'frozen'.
+ */
+export function runPnvWindows(cfg, { END, stride = 1 } = {}) {
+  const rtr = getRtr(), cpi = getCpi();
+  const planYears = Math.round(END / 12);
+  const n = rtr.length - END;
+  const eng = getStrategy('pots-and-valves').engine;
+  const windows = [];
+  for (let s = 0; s < n; s += stride) {
+    const returns = annualNominal(rtr, cpi, s, planYears);   // nominal: real history × its own inflation
+    const r = eng.simulate({ ...cfg, years: planYears, trace: true }, returns, s);
+    // Worst rolling-12-month income from the trace (SIPP + ISA + fixed floors), then drop it.
+    let worst12 = Infinity;
+    const t = r.trace || [];
+    if (t.length >= 12) {
+      let run = 0;
+      const inc = t.map((row) => ((row.effectiveSipp || 0) + (row.effectiveIsa ?? row.isaMonthly ?? 0) + (row.giaNet || 0)
+        + ((row.planInputs && row.planInputs.fixed) || 0) / 12) / (row.cumInf || 1));
+      for (let i = 0; i < inc.length; i++) {
+        run += inc[i];
+        if (i >= 12) run -= inc[i - 12];
+        if (i >= 11) worst12 = Math.min(worst12, run);
+      }
+    }
+    if (r.failed) worst12 = 0;   // a busted plan's worst year is no income at all
+    windows.push({
+      s,
+      failed: r.failed,
+      failAge: r.failed ? (cfg.startAge ?? 57) + r.failMonth / 12 : null,
+      terminal: r.failed ? 0 : (r.finalReal + (r.finalIsa || 0) / (r.cumInflation || 1)),
+      worst12,
+      protMonths: r.protMonths
+    });
+  }
+  return { n: windows.length, windows };
+}
+
+/** P&V Monte Carlo on block-bootstrapped REAL paths — the beyond-history lens the compare
+ *  must show next to the historical one (history alone reads as "never fails" at modest
+ *  withdrawal rates; the bootstrap constructs worse sequences than history served). */
+export function runPnvMonteCarlo(cfg, { END, runs = 400 } = {}) {
+  const planYears = Math.round(END / 12);
+  const eng = getStrategy('pots-and-valves').engine;
+  let failedN = 0;
+  for (let i = 0; i < runs; i++) {
+    const path = bootstrapPaths(i * 31337 + 11, END);
+    const r = eng.simulate({ ...cfg, years: planYears }, annualNominal(path.rtr, path.cpi, 0, planYears), i);
+    if (r.failed) failedN++;
+  }
+  return { runs, ruinPct: 100 * failedN / runs };
+}
+
+/**
+ * Ladder & ratchet's ladder years from year 0 for a plan's saved dial and duration, by the run's own rule
+ * (deriveCompareConfigs below): the planner's Decision month counts the plan year against it (index.html), so a base
+ * ladder the run ends after ten years is not said to pay for fifteen.
+ */
+export const ladderYearsOfPlan = (ladderYears, duration) => ladderYearsFromYear0(ladderYears, planYearsOf(duration));
+
+/**
+ * Derive per-strategy default configurations from the plan's own numbers (real terms).
+ * @param {object} p { pot, isa, targetAnnual, essentialsAnnual, durationYears, startAge,
+ *                     spAnnual, spStartYear, pnvCfg }
+ */
+export function deriveCompareConfigs(p) {
+  const END = p.durationYears * 12;
+  const realYield = 0.023;
+  const yf = p.yieldForYear || (() => realYield);   // live linker curve when the caller has one
+  const total = p.pot + (p.isaHold ? 0 : (p.isa || 0));   // a held ISA is not available to buy gilts
+
+  // Ladder & Ratchet: base ladder covers up to 15 years (or half the plan when shorter);
+  // ratchet rungs run from there to the horizon. Post-SP rungs are net of the State Pension.
+  const prm = p.params || {};
+  // Fund and platform charges (6.19.0): the plan's monthly factor for every sleeve held in a fund (Ladder & Ratchet's
+  // equity sleeve; the Floor & Flex / schedule / to-an-age reserve; Bridge & engine's engine) and the bridge's cash years.
+  // Only put on a config when there IS a charge, so a plan without one derives exactly today's configs.
+  const chargeM = monthlyChargeFactor(p.chargesPct);
+  const charged = chargeM !== 1 ? { chargeM } : {};
+  // A plan whose year 0 is behind it runs from the plan year reached (p.yearOffset: PlanFromToday.js). The counts of years
+  // its dials give from year 0 — the ladder years, Bridge & engine's cash years — are the years left of them from today,
+  // never below none (PlanFromToday.countLeftFromToday). The ladder's count from year 0 is the dial, else the default on
+  // the plan's whole length from year 0 (the years run plus the years lived: ladderYearsFromYear0), so a plan run from
+  // today ends its base ladder where its year 0 put the end, as the Decision tool's month and a move of its start read it.
+  const lived = p.yearOffset > 0 ? p.yearOffset : 0;
+  const ladderFrom0 = ladderYearsFromYear0(prm.ladderYears, p.durationYears + lived);
+  const ladderYears = lived > 0 ? Math.max(0, Math.min(countLeftFromToday(ladderFrom0, lived), p.durationYears - 1)) : ladderFrom0;
+  const ladderDraw = prm.drawAnnual > 0 ? prm.drawAnnual : p.targetAnnual;
+  // Per-year income for plan-year k (1-based): the stepped/budget schedule when present, else flat.
+  const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
+  const amountAt = (k) => (sched ? (sched[Math.min(k - 1, sched.length - 1)] ?? ladderDraw) : ladderDraw);
+  const minDraw = Math.min(...Array.from({ length: p.durationYears }, (_, i) => amountAt(i + 1)));
+  const drawNet = (k) => Math.max(0, amountAt(k) - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
+  const baseLadderCost = (() => { let c = 0; for (let k = 1; k <= ladderYears; k++) c += drawNet(k) * Math.pow(1 + yf(k), -k); return c; })();
+  const lrE0 = total - baseLadderCost;
+  const lr = lrE0 > 0 ? {
+    E0: lrE0, ladderYears, L: ladderYears * 12,
+    firstRung: ladderYears + 1, maxRung: p.durationYears,
+    draw: ladderDraw, minDraw,
+    profile: sched
+      ? { type: 'schedule', values: sched }
+      : { type: 'phases', phases: [{ fromYear: 0, amount: ladderDraw }] },
+    trigger: prm.triggerMode === 'calendar'
+      ? { mode: 'calendar', reviews: lived > 0 ? reviewMonthsFromToday(ladderFrom0, lived).filter((t) => t <= ladderYears * 12) : Array.from({ length: Math.floor(ladderYears / 5) }, (_, i) => (i + 1) * 60) }
+      : { mode: 'band', b: prm.bandThreshold || 1.2 },
+    END, realYield, yieldForYear: p.yieldForYear, glideRate: 0.05, startAge: p.startAge,
+    baseLadderCost, drawNetOfSp: drawNet,
+    mcSeed: (i) => i * 7919 + 3,   // one market per future index, shared with every other strategy
+    ...charged
+  } : null;
+
+  // Floor & Flex: essentials floor (net of SP) to the horizon; remainder is the flex sleeve.
+  const floorDraw = (k) => Math.max(0, p.essentialsAnnual - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
+  const ffYears = prm.horizonAge > p.startAge ? Math.min(prm.horizonAge - p.startAge, p.durationYears) : p.durationYears;
+  const ffFloorCost = floorCost({ drawForYear: floorDraw, years: ffYears, realYield, yieldForYear: p.yieldForYear });
+  const ffE0 = total - ffFloorCost;
+  // Treats rule: a share of the sleeve each year (the flexible design), or a FIXED £ equal to the plan
+  // above the essentials (so Floor & Flex can be read on the same footing as the fixed-draw strategies).
+  const fixedTreats = prm.treatsRule === 'fixed' ? Math.max(0, p.targetAnnual - p.essentialsAnnual) : null;
+  const ff = ffE0 > 0 ? {
+    E0: ffE0, rate: prm.sleeveRate || 0.04, END, floorCost: ffFloorCost, floorDraw, yieldForYear: p.yieldForYear,
+    horizonAge: p.startAge + ffYears,
+    ...(fixedTreats != null ? { flexMin: fixedTreats, flexMax: fixedTreats, treatsRule: 'fixed' } : {}),
+    ...charged
+  } : null;
+
+  // Floor the schedule: the whole income profile (net of SP) to the horizon; the rest is an untouched reserve.
+  const fsCost = floorCost({ drawForYear: drawNet, years: p.durationYears, realYield, yieldForYear: p.yieldForYear });
+  const fsE0 = total - fsCost;
+  const fsc = fsE0 > 0 ? {
+    E0: fsE0, rate: 0, END, floorCost: fsCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
+    horizonAge: p.startAge + p.durationYears, amountAt, minDraw,
+    ...charged
+  } : null;
+
+  // Floor to an age, then decide: schedule bought to age A; the reserve decides the rest AT A.
+  const floorToAge = Math.max(p.startAge + 1, Math.min(prm.floorToAge || 80, p.startAge + p.durationYears - 1));
+  const A = floorToAge - p.startAge;
+  const faCost = floorCost({ drawForYear: drawNet, years: A, realYield, yieldForYear: p.yieldForYear });
+  const faE0 = total - faCost;
+  // Cost AT age A (today's money) of buying years A+1..N at the schedule, and the annuity factor
+  // for a level £1/yr over the same years — both priced on the curve by years-from-A.
+  const restCost = (amountFn) => { let c = 0; for (let k = A + 1; k <= p.durationYears; k++) c += Math.max(0, amountFn(k) - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0)) * Math.pow(1 + yf(k - A), -(k - A)); return c; };
+  let annuityFactor = 0; for (let k = A + 1; k <= p.durationYears; k++) annuityFactor += Math.pow(1 + yf(k - A), -(k - A));
+  const fa = faE0 > 0 ? {
+    E0: faE0, rate: 0, END, floorCost: faCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
+    floorToAge, A, amountAt, restCost, restCostFull: restCost(amountAt), annuityFactor,
+    minDrawToA: Math.min(...Array.from({ length: A }, (_, i) => amountAt(i + 1))),
+    ...charged
+  } : null;
+
+  // Bridge & engine: cash years + one rung per year to the bridge age (default: State Pension
+  // age), priced on the curve (cash years at face); the engine is the rest, in equities, untouched.
+  const spAge = (p.spStartYear != null && p.spStartYear > 0) ? p.startAge + p.spStartYear : p.startAge + Math.min(10, p.durationYears - 1);
+  const bridgeAge = Math.max(p.startAge + 1, Math.min(prm.bridgeAge || spAge, p.startAge + p.durationYears - 1));
+  const B = bridgeAge - p.startAge;
+  const beCashYears = Math.max(0, Math.min(countLeftFromToday(prm.cashYears ?? 3, lived), B));   // from year 0: the years left (above)
+  let beCost = 0; for (let k = 1; k <= B; k++) beCost += drawNet(k) * (k <= beCashYears ? cashCostFactor(k, undefined, p.chargesPct) : Math.pow(1 + yf(k), -k));   // cash years: inflation drag (and the plan's charges), not face
+  const beE0 = total - beCost;
+  let beRest = 0; for (let k = B + 1; k <= p.durationYears; k++) beRest += drawNet(k) * Math.pow(1 + yf(k - B), -(k - B));
+  const be = beE0 > 0 ? {
+    E0: beE0, rate: 0, END, floorCost: beCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
+    bridgeAge, B, cashYears: beCashYears, amountAt, restCostFull: beRest,
+    ...charged
+  } : null;
+
+  return { END, lr, ff, fs: fsc, fa, be, beAffordable: beE0 > 0, beCost, beBridgeAge: bridgeAge, faAffordable: faE0 > 0, faFloorCost: faCost, lrAffordable: lrE0 > 0, ffAffordable: ffE0 > 0, fsAffordable: fsE0 > 0, baseLadderCost, ffFloorCost, fsFloorCost: fsCost, scheduleMin: minDraw };
+}
+
+/**
+ * Every way of drawing through the one test on ONE plan (6.40.0, research/v7/way-and-mix.md 6): the loop that was
+ * index.html cmpRun's inline fallback and the engine worker's 'overview' job, lifted so the planner's Overview, its worker
+ * and V7's "How the money is taken" run one function. The configs are derived once from the plan, so every way reads the
+ * ACTIVE way's parameter bag, as the compare always has; `ids` run in the order given (STRATEGY_NAMES's by default);
+ * `onProgress(i, n, id)` is called before each way. Pure and synchronous: the caller paces the screen.
+ * @param {object} p   planFromSettings's plan
+ * @param {string[]} [ids]
+ * @param {{ onProgress?: (i: number, n: number, id: string) => void, configs?: object }} [o]
+ * @returns {{ configs: object, strategies: Record<string, object> }}
+ */
+export function compareAll(p, ids = Object.keys(STRATEGY_NAMES), { onProgress = null, configs = null } = {}) {
+  const cfgs = configs || deriveCompareConfigs(p);
+  const strategies = {};
+  for (let i = 0; i < ids.length; i++) {
+    if (typeof onProgress === 'function') onProgress(i, ids.length, ids[i]);
+    strategies[ids[i]] = stressTestStrategy(ids[i], p, cfgs);
+  }
+  return { configs: cfgs, strategies };
+}
+
+/**
+ * "Compare allocations" / "Which mix lasts best?" (index.html runCompareStrategiesUI's grid, lifted pure in 6.41.0 —
+ * research/v7/way-and-mix.md 3.2e, 6): every cell of GlidepathService.mixCells (the plan's own mix with the tent off and
+ * on when `own`, then the three levels with the tent off and on) through the one test — stressTestStrategy on the plan
+ * `planFor` builds from the cell's settings (the caller's plan builder, so this file reads no engine config of its own).
+ * The planner's button runs the six it always ran through its worker; the preview runs the eight here. Pure and
+ * synchronous: `onProgress(i, n, cell)` before each run; the caller paces the screen.
+ * @returns {Array<{ key, tent, settings, p: object, r: object }>}
+ */
+export function compareMixes(settings, { own = true, onProgress = null, planFor } = {}) {
+  if (typeof planFor !== 'function') throw new Error('compareMixes needs planFor');
+  const cells = mixCells(settings, { own });
+  return cells.map((cell, i) => {
+    if (typeof onProgress === 'function') onProgress(i, cells.length, cell);
+    const p = planFor(cell.settings);
+    return { ...cell, p, r: stressTestStrategy(cell.settings.strategyId, p) };
+  });
+}
+
+/** Run the full N-way compare — ONE code path with the locked-plan stress test (stressTest.js). */
+export function runCompare(p) {
+  const all = stressTestAll(p);
+  const out = { configs: all.configs, strategies: {} };
+  for (const [id, r] of Object.entries(all.strategies)) {
+    if (!r.affordable) continue;
+    out.strategies[id] = {
+      table: {
+        worst12Median: r.worst12.median, worst12Min: r.worst12.min, guaranteedToAge: r.guaranteedToAge,
+        ruinPct: r.ruin.hist, ruinPctMc: r.ruin.mc, terminalMedian: r.terminal.p50
+      },
+      signature: r.signature, cones: r.cones, n: r.n.hist, full: r
+    };
+  }
+  return out;
+}
+
+/** Outcome of one named vintage (the canned decades: 1966 bust, 1985 boom) per strategy. */
+export function cannedDecade(p, year, month) {
+  const rtr = getRtr();
+  const configs = deriveCompareConfigs(p);
+  const [sy] = [1871];
+  const s = (year - sy) * 12 + (month - 1);
+  const out = {};
+  if (s >= 0 && s + configs.END < rtr.length) {
+    const pnv = runPnvWindows(p.pnvCfg, { END: configs.END, stride: 1 });
+    // cheap: find the window in the already-computed set
+    const w = pnv.windows.find((x) => x.s === s);
+    if (w) out['pots-and-valves'] = { failed: w.failed, failAge: w.failAge, terminal: w.terminal, worst12: w.worst12 };
+    if (configs.lr) {
+      const lr = runLadderWindows(configs.lr);
+      const lw = lr.windows[s];
+      if (lw) out['ladder-and-ratchet'] = { secured: lw.secured, survived: lw.survived, terminal: lw.terminal, sleeveAtLadderEnd: lw.sleeveAtLadderEnd };
+    }
+    if (configs.ff) {
+      const ff = runFlexWindows(configs.ff);
+      const fw = ff.windows[s];
+      if (fw) out['floor-and-flex'] = { worstYearFlex: fw.worstYearD, terminal: fw.terminal };
+    }
+  }
+  return out;
+}

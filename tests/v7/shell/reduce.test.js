@@ -1,0 +1,433 @@
+/**
+ * The reducer (V7 build brief 4.6): each action, the "stale figure" rule, and the two things no action may touch.
+ */
+import { describe, it, expect } from 'vitest';
+import fc from 'fast-check';
+import { reduce } from '../../../src/v7/state/reduce.js';
+import { A, ACTION_TYPES, OPENABLE } from '../../../src/v7/state/actions.js';
+import { initialState } from '../../../src/v7/state/initial.js';
+import { createStore } from '../../../src/v7/effects/store.js';
+import { SCHEMA_C } from '../c/_c.js';
+import { fresh, run, set, typed, route, result, TODAY } from './_shell.js';
+
+const working = (s, key = 'K1') => reduce(s, { type: A.ANSWER_WORKING, q: 'c', inputsKey: key });
+const first = (s, key = 'K1', r = result()) => reduce(s, { type: A.ANSWER_FIRST, q: 'c', inputsKey: key, result: r });
+const final = (s, key = 'K1', r = result()) => reduce(s, { type: A.ANSWER_FINAL, q: 'c', inputsKey: key, result: r });
+
+describe('route/set', () => {
+  it('replaces the route and closes the rail sheet', () => {
+    const s = run(fresh(), { type: A.UI_RAIL, open: true }, { type: A.ROUTE_SET, route: route('step', 'c', 'numbers', 'you.age') });
+    expect(s.route).toEqual(route('step', 'c', 'numbers', 'you.age'));
+    expect(s.ui.railOpen).toBe(false);
+  });
+  it('turns a route that has no address into "not found"', () => {
+    expect(reduce(fresh(), { type: A.ROUTE_SET, route: route('step', 'c', 'nowhere') }).route.screen).toBe('notFound');
+    expect(reduce(fresh(), { type: A.ROUTE_SET, route: route('soon', 'c') }).route.screen).toBe('notFound');
+    expect(reduce(fresh(), { type: A.ROUTE_SET, route: null }).route.screen).toBe('notFound');
+  });
+  it('a plan id belongs to a plan address only (research/v7/your-plan.md 4.2)', () => {
+    const s = reduce(fresh(), { type: A.ROUTE_SET, route: { ...route('step', 'c', 'answer'), planId: 'abc' } });
+    expect(s.route.planId).toBe(null);
+    expect(reduce(fresh(), { type: A.ROUTE_SET, route: { screen: 'plan', q: null, step: null, planId: 'abc', focus: null } }).route.planId).toBe('abc');
+  });
+});
+
+describe('draft/*', () => {
+  it('draft/set holds text exactly as typed', () => {
+    const s = run(fresh(), set('you.pot', '25,00'), set('you.finalSalary.has', true));
+    expect(s.draft.c.values).toEqual({ 'you.pot': '25,00', 'you.finalSalary.has': true });
+  });
+  it('draft/set does not change the state object it was given', () => {
+    const before = fresh();
+    const copy = JSON.stringify(before);
+    reduce(before, set('you.pot', '1'));
+    expect(JSON.stringify(before)).toBe(copy);
+  });
+  it('setting household to single keeps what was typed for the partner', () => {
+    const s = run(fresh(), set('household', 'couple'), set('partner.age', '60'), set('partner.pot', '150000'), set('household', 'single'));
+    expect(s.draft.c.values['partner.age']).toBe('60');
+    expect(s.draft.c.values['partner.pot']).toBe('150000');
+    const again = reduce(s, set('household', 'couple'));
+    expect(again.draft.c.values['partner.age']).toBe('60');
+  });
+  it('a value that is neither text nor yes/no clears the box', () => {
+    const s = run(fresh(), set('take', '1500'), set('take', null));
+    expect('take' in s.draft.c.values).toBe(false);
+  });
+  it('a field that is not on the input list is refused (it throws in the test build, is ignored when published)', () => {
+    expect(() => reduce(fresh(), set('you.shoeSize', '9'))).toThrow();
+    const prod = initialState({ today: TODAY });
+    expect(reduce(prod, set('you.shoeSize', '9'))).toBe(prod);
+  });
+  it('every field of the input list can be set', () => {
+    for (const f of SCHEMA_C.fields) {
+      if (f.type === 'steps') continue;                                      // the spending shape's steps: shape/* (shape.test.js)
+      const v = f.type === 'yesNo' ? true : f.type === 'choice' ? f.options[0] : '1';
+      expect(reduce(fresh(), set(f.path, v)).draft.c.values[f.path]).toBe(v);
+    }
+  });
+  it('draft/touch adds a field once', () => {
+    const s = run(fresh(), { type: A.DRAFT_TOUCH, q: 'c', path: 'you.pot' }, { type: A.DRAFT_TOUCH, q: 'c', path: 'you.pot' }, { type: A.DRAFT_TOUCH, q: 'c', path: 'you.age' });
+    expect(s.draft.c.touched).toEqual(['you.pot', 'you.age']);
+  });
+  it('draft/ask on a draft that parses moves to the answer step', () => {
+    const s = reduce(typed(), { type: A.DRAFT_ASK, q: 'c' });
+    expect(s.draft.c.asked).toBe(true);
+    expect(s.route).toEqual(route('step', 'c', 'answer'));
+  });
+  it('draft/ask on a draft that does not parse stays where it is, with asked set', () => {
+    const at = reduce(fresh(), { type: A.ROUTE_SET, route: route('step', 'c', 'numbers') });
+    const s = run(at, set('you.pot', 'abc'), { type: A.DRAFT_ASK, q: 'c' });
+    expect(s.draft.c.asked).toBe(true);
+    expect(s.route).toEqual(route('step', 'c', 'numbers'));
+  });
+  it('draft/reset empties the draft and the answer', () => {
+    const s = reduce(final(working(reduce(typed(), { type: A.DRAFT_ASK, q: 'c' }))), { type: A.DRAFT_RESET, q: 'c' });
+    expect(s.draft.c).toEqual({ values: {}, touched: [], asked: false, revealed: [] });
+    expect(s.answers.c).toEqual({ status: 'idle', inputsKey: null, result: null, before: null, progress: null, slow: false });
+  });
+});
+
+describe('answer/*', () => {
+  it('working → first → final', () => {
+    let s = working(typed());
+    expect(s.answers.c).toMatchObject({ status: 'working', inputsKey: 'K1', result: null, before: null });
+    s = reduce(s, { type: A.ANSWER_PROGRESS, q: 'c', inputsKey: 'K1', done: 40, total: 100 });
+    expect(s.answers.c.progress).toEqual({ done: 40, total: 100 });
+    s = first(s, 'K1', result(1370));
+    expect(s.answers.c).toMatchObject({ status: 'first', inputsKey: 'K1', progress: null });
+    expect(s.answers.c.result.monthly.careful).toBe(1370);
+    s = final(s, 'K1', result(1380));
+    expect(s.answers.c).toMatchObject({ status: 'final', inputsKey: 'K1', slow: false, progress: null });
+    expect(s.answers.c.result.monthly.careful).toBe(1380);
+  });
+  it('a new run keeps the old result on screen and copies the old final careful amount into "before"', () => {
+    const s = working(final(working(typed())), 'K2');
+    expect(s.answers.c.status).toBe('working');
+    expect(s.answers.c.inputsKey).toBe('K2');
+    expect(s.answers.c.result.monthly.careful).toBe(1380);
+    expect(s.answers.c.before).toEqual({ monthly: { careful: 1380 }, take: null });
+  });
+  it('"before" also keeps how long an amount named under "take" lasted, so Before / Now can compare the tried figure', () => {
+    const tried = result(1380, { take: { perMonth: 1800, lasted: 0.62, runOutAge: 84, covered: false } });
+    let s = working(final(working(typed()), 'K1', tried), 'K2');
+    expect(s.answers.c.before).toEqual({ monthly: { careful: 1380 }, take: { perMonth: 1800, runOutAge: 84, covered: false } });
+    // A tried amount that lasted: covered is true; the run-out age is the end age.
+    s = working(final(s, 'K2', result(1380, { take: { perMonth: 1200, lasted: 0.97, runOutAge: 95, covered: true } })), 'K3');
+    expect(s.answers.c.before.take).toEqual({ perMonth: 1200, runOutAge: 95, covered: true });
+    expect(JSON.parse(JSON.stringify(s.answers.c.before))).toEqual(s.answers.c.before);
+  });
+  it('"before" is the last FINAL amount: a run replaced before it finished does not change it', () => {
+    let s = working(final(working(typed())), 'K2');       // before = 1380
+    s = first(s, 'K2', result(900));
+    s = working(s, 'K3');                                  // the K2 run never finished
+    expect(s.answers.c.before).toEqual({ monthly: { careful: 1380 }, take: null });
+  });
+  it('a stale answer/first is ignored', () => {
+    const s = working(working(typed(), 'K1'), 'K2');
+    expect(first(s, 'K1')).toBe(s);
+  });
+  it('a stale answer/final is ignored', () => {
+    const s = working(working(typed(), 'K1'), 'K2');
+    expect(final(s, 'K1')).toBe(s);
+    const done = final(first(s, 'K2', result(1000)), 'K2', result(1010));
+    expect(final(done, 'K1', result(5))).toBe(done);
+    expect(done.answers.c.result.monthly.careful).toBe(1010);
+  });
+  it('a first figure never replaces a final one', () => {
+    const done = final(working(typed()));
+    expect(first(done, 'K1', result(5))).toBe(done);
+  });
+  it('stale progress and a stale failure are ignored', () => {
+    const s = working(working(typed(), 'K1'), 'K2');
+    expect(reduce(s, { type: A.ANSWER_PROGRESS, q: 'c', inputsKey: 'K1', done: 1, total: 2 })).toBe(s);
+    expect(reduce(s, { type: A.ANSWER_FAILED, q: 'c', inputsKey: 'K1' })).toBe(s);
+  });
+  it('answer/failed leaves the draft alone; answer/retry clears the key so the runner starts again', () => {
+    const before = working(typed());
+    let s = reduce(before, { type: A.ANSWER_FAILED, q: 'c', inputsKey: 'K1' });
+    expect(s.answers.c.status).toBe('failed');
+    expect(s.answers.c.inputsKey).toBe('K1');
+    expect(s.draft).toBe(before.draft);
+    s = reduce(s, { type: A.ANSWER_RETRY, q: 'c' });
+    expect(s.answers.c.inputsKey).toBe(null);
+    expect(s.answers.c.status).toBe('idle');
+    const done = final(working(typed()));
+    expect(reduce(done, { type: A.ANSWER_RETRY, q: 'c' })).toBe(done);      // only a failed run can be tried again
+  });
+  it('answer/slow only while a run is under way', () => {
+    expect(reduce(working(typed()), { type: A.ANSWER_SLOW, q: 'c' }).answers.c.slow).toBe(true);
+    const done = final(working(typed()));
+    expect(reduce(done, { type: A.ANSWER_SLOW, q: 'c' })).toBe(done);
+    expect(working(reduce(working(typed()), { type: A.ANSWER_SLOW, q: 'c' }), 'K2').answers.c.slow).toBe(false);
+  });
+});
+
+describe('ui/*, env/set, state/replace', () => {
+  it('ui/toggle adds then removes', () => {
+    let s = reduce(fresh(), { type: A.UI_TOGGLE, id: 'more' });
+    expect(s.ui.open).toEqual(['more']);
+    s = reduce(s, { type: A.UI_TOGGLE, id: 'assumed' });
+    s = reduce(s, { type: A.UI_TOGGLE, id: 'more' });
+    expect(s.ui.open).toEqual(['assumed']);
+    for (const id of OPENABLE) expect(reduce(fresh(), { type: A.UI_TOGGLE, id }).ui.open).toEqual([id]);
+    expect(() => reduce(fresh(), { type: A.UI_TOGGLE, id: 'nonsense' })).toThrow();
+  });
+  it('ui/rail and ui/online', () => {
+    expect(reduce(fresh(), { type: A.UI_RAIL, open: true }).ui.railOpen).toBe(true);
+    expect(reduce(fresh(), { type: A.UI_ONLINE, online: false }).ui.online).toBe(false);
+  });
+  it('env/set changes the date and the history month, never the build', () => {
+    const s = reduce(fresh(), { type: A.ENV_SET, patch: { today: '2028-04-06', historyEnd: '2025-12', build: 'prod', other: 1 } });
+    expect(s.env).toEqual({ today: '2028-04-06', build: 'test', appVersion: fresh().env.appVersion, historyEnd: '2025-12' });
+    expect(() => reduce(fresh(), { type: A.ENV_SET, patch: { today: 'tomorrow' } })).toThrow();
+  });
+  it('state/replace draws any state — in the test build only', () => {
+    const wanted = final(working(reduce(typed(), { type: A.DRAFT_ASK, q: 'c' })));
+    const s = reduce(fresh(), { type: A.STATE_REPLACE, state: wanted });
+    expect(s).toEqual(wanted);
+    expect(s).not.toBe(wanted);
+    const prod = initialState({ today: TODAY });
+    expect(reduce(prod, { type: A.STATE_REPLACE, state: wanted })).toBe(prod);
+  });
+  it('an unknown action throws in the test build and is ignored in the published build', () => {
+    expect(() => reduce(fresh(), { type: 'plan/save' })).toThrow();
+    const prod = initialState({ today: TODAY });
+    expect(reduce(prod, { type: 'plan/save' })).toBe(prod);
+    expect(reduce(prod, undefined)).toBe(prod);
+  });
+});
+
+// ---- any sequence of actions ------------------------------------------------------------------------------------
+
+// the spending shape's later steps are one list, edited by shape/* (never draft/set): reduce.ab.test.js
+const paths = SCHEMA_C.fields.filter((f) => f.type !== 'steps').map((f) => f.path);
+const text = fc.oneof(fc.constantFrom('', '250,000', '£1', 'abc', '58', '67', '0', '30000', 'couple', 'single', 'forecast', 'age', 'now'), fc.boolean());
+const key = fc.constantFrom('K1', 'K2', null);
+const anyRoute = fc.oneof(
+  fc.constantFrom(route('front'), route('step', 'c', 'numbers'), route('step', 'c', 'answer', 'you.age'), route('step', 'c', 'ways'),
+    route('step', 'c', 'keep'), route('soon', 'a'), route('soon', 'c'), route('notFound'), route('step', 'z', 'answer')),
+  fc.record({ screen: fc.string(), q: fc.string(), planId: fc.string() })
+);
+const anyAction = fc.oneof(
+  anyRoute.map((r) => ({ type: A.ROUTE_SET, route: r })),
+  fc.tuple(fc.constantFrom(...paths), text).map(([path, value]) => set(path, value)),
+  fc.constantFrom(...paths).map((path) => ({ type: A.DRAFT_TOUCH, q: 'c', path })),
+  fc.constant({ type: A.DRAFT_ASK, q: 'c' }),
+  fc.constant({ type: A.DRAFT_RESET, q: 'c' }),
+  key.map((inputsKey) => ({ type: A.ANSWER_WORKING, q: 'c', inputsKey })),
+  key.map((inputsKey) => ({ type: A.ANSWER_PROGRESS, q: 'c', inputsKey, done: 3, total: 100 })),
+  fc.tuple(key, fc.integer({ min: 0, max: 5000 })).map(([inputsKey, n]) => ({ type: A.ANSWER_FIRST, q: 'c', inputsKey, result: result(n) })),
+  fc.tuple(key, fc.integer({ min: 0, max: 5000 })).map(([inputsKey, n]) => ({ type: A.ANSWER_FINAL, q: 'c', inputsKey, result: result(n) })),
+  key.map((inputsKey) => ({ type: A.ANSWER_FAILED, q: 'c', inputsKey })),
+  fc.constant({ type: A.ANSWER_SLOW, q: 'c' }),
+  fc.constant({ type: A.ANSWER_RETRY, q: 'c' }),
+  fc.constantFrom(...OPENABLE).map((id) => ({ type: A.UI_TOGGLE, id })),
+  fc.boolean().map((open) => ({ type: A.UI_RAIL, open })),
+  fc.boolean().map((online) => ({ type: A.UI_ONLINE, online })),
+  fc.constantFrom('2026-09-30', '2028-04-06').map((today) => ({ type: A.ENV_SET, patch: { today } })),
+  fc.constant(null).map(() => ({ type: A.STATE_REPLACE, state: { ...fresh(), plan: { id: 'x' }, session: { kind: 'user', uid: 'u' } } })),
+  // the saved plans, read-only (research/v7/your-plan.md): the session, the plans in page memory, the hand-over
+  fc.constantFrom('checking', 'in', 'unverified', 'nobody', 'failed', 'none').map((kind) => ({ type: A.SESSION_SET, session: { kind, email: kind === 'in' ? 'a@b.c' : null } })),
+  fc.constant({ type: A.SESSION_OUT }),
+  fc.constant({ type: A.PLANS_READING }),
+  fc.constantFrom('account', 'window').map((source) => ({ type: A.PLANS_SET, list: [{ plan: { id: 'p1', planDetails: { name: 'One' } }, newer: false, failed: false }, { plan: null }], source, readAt: '14:03' })),
+  fc.constant({ type: A.PLANS_FAILED }),
+  fc.constant({ type: A.PLANS_VIEW, view: { today: '2026-09-30', rows: [], page: null } }),
+  fc.constant({ type: A.PLANS_CLEAR }),
+  fc.constant({ type: A.PLAN_CHANGE, planId: 'p1', place: 'month', back: '#/plan/p1' }),
+  fc.constant({ type: A.PLAN_CHANGE_FAILED }),
+  // editing a saved plan: "About you and when" (research/v7/editing-in-v7.md 4): the draft of one plan, its save, its undo
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('age', 'stopped', 'stopAge', 'stopMonth', 'startWhen', 'endAge', 'sex', 'chance'), fc.constantFrom('', '58', 'yes', 'age', 'month', '2030-06', 'april', 'abc', null))
+    .map(([planId, path, value]) => ({ type: A.PLAN_EDIT, planId, path, value })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('age', 'stopped', 'stopAge', 'endAge')).map(([planId, path]) => ({ type: A.PLAN_TOUCH, planId, path })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVE, planId })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(null, {}, { 'stressTool.settings.duration': 32 })).map(([planId, previous]) => ({ type: A.PLAN_SAVED, planId, previous, line: { id: 'runsTo', slots: { endAge: 93, years: 32 } } })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('locked', 'notHere', 'usedUp', 'nobody', 'storage', 'failed', 'problems', 'readonly', 'notLocked', 'noWorker', 'noRun', 'noMove')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_CANCEL, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNDO, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNDO_DONE, planId })),
+  fc.constant({ type: A.PLAN_TOAST_CLOSE }),
+  // "Lock the plan" (road-to-7.md step 6): the lock, the unlock, a new version; a lock's toast with its moment
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_LOCK, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_UNLOCK, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_DOCUMENT, planId })),
+  // the move of a locked plan's start (6.55.0): the press, and the write's own toast (no Undo)
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_MOVE_START, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVED, planId, previous: {}, line: { id: 'moved', slots: { year: '2023/24' } }, op: 'moveStart' })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('lock', 'unlock', 'document')).map(([planId, op]) => ({ type: A.PLAN_SAVED, planId, previous: { 'decisionTool.settings.locked': false }, line: { id: 'locked', slots: { date: '2 October 2026' } }, op, lockedAt: '2026-10-02T14:03:00.000Z' })),
+  // "Does it last?" (editing-in-v7.md 10.4): the one test's result for one plan, by its run key
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.LASTS_WORKING, key })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.integer({ min: 0, max: 2 })).map(([key, done]) => ({ type: A.LASTS_PROGRESS, key, done, total: 2 })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom({ strategyId: 'pots-and-valves', a: null }, { strategyId: 'buckets-in-order', a: { share: 0.9 } })).map(([key, result]) => ({ type: A.LASTS_DONE, key, result })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.LASTS_FAILED, key })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.LASTS_SLOW, key })),
+  fc.constant({ type: A.LASTS_RETRY }),
+  // "How the money is taken" (way-and-mix.md 2.2): the nine ways for one plan by its run key; a card opened, a dial typed, a way tried
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.WAYS_WORKING, key })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.integer({ min: 0, max: 9 })).map(([key, done]) => ({ type: A.WAYS_PROGRESS, key, done, total: 9 })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.integer({ min: 0, max: 20000 })).map(([key, ms]) => ({ type: A.WAYS_DONE, key, result: { strategyId: 'pots-and-valves', ways: [{ id: 'pots-and-valves', affordable: true }] }, ms })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.WAYS_FAILED, key })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.WAYS_SLOW, key })),
+  fc.constant({ type: A.WAYS_RETRY }),
+  fc.constantFrom(null, 'pots-and-valves', 'floor-to-age', 'gilt-rotation').map((id) => ({ type: A.WAY_OPEN, id })),
+  fc.tuple(fc.constantFrom('floor-to-age', 'gilt-rotation'), fc.constantFrom('floorToAge', 'cashYears'), fc.constantFrom('', '3', '82')).map(([id, key, value]) => ({ type: A.WAY_DIAL, id, key, value })),
+  fc.tuple(fc.constantFrom('floor-to-age', 'gilt-rotation'), fc.constantFrom({ floorToAge: 82 }, { cashYears: 3 })).map(([id, values]) => ({ type: A.WAY_TRY, id, values })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('floor-to-age', 'gilt-rotation'), fc.constantFrom({ floorToAge: 82 }, { cashYears: 3 })).map(([key, id, values]) => ({ type: A.WAY_TRIED, key, id, values, result: { id, affordable: true }, ms: 120 })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('floor-to-age', 'gilt-rotation'), fc.constantFrom({ floorToAge: 82 }, { cashYears: 3 })).map(([key, id, values]) => ({ type: A.WAY_TRY_FAILED, key, id, values })),
+  fc.constantFrom('lasts', 'left', 'score', 'coverage').map((by) => ({ type: A.WAY_RANK, by })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('floor-to-age', 'gilt-rotation')).map(([planId, id]) => ({ type: A.PLAN_WAY, planId, id })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVED, planId, previous: { 'stressTool.settings.strategyId': 'pots-and-valves' }, line: { id: 'way', slots: { way: 'floor-to-age' } }, op: 'way' })),
+  // "The mix" (way-and-mix.md 3.2): the sleeve's and the tent's try, the eight cells, the cell picked, "Use this mix"
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('sleeve', 'tent')).map(([key, kind]) => ({ type: A.MIX_TRY, key, kind })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('sleeve', 'tent')).map(([key, kind]) => ({ type: A.MIX_TRIED, key, kind, result: { kind, on: true, affordable: true, a: { share: 0.9 } }, ms: 400 })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('sleeve', 'tent')).map(([key, kind]) => ({ type: A.MIX_TRY_FAILED, key, kind })),
+  fc.constantFrom('sleeve', 'tent').map((kind) => ({ type: A.MIX_TRY_CLOSE, kind })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.MIX_COMPARE, key })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.integer({ min: 0, max: 8 })).map(([key, done]) => ({ type: A.MIX_COMPARE_PROGRESS, key, done, total: 8 })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.MIX_COMPARED, key, result: { cells: [{ key: 'own', tent: false, affordable: true, share: 0.9 }] }, ms: 3000 })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.MIX_COMPARE_FAILED, key })),
+  fc.constantFrom(null, { key: 'own', tent: false }, { key: 'balanced', tent: true }).map((cell) => ({ type: A.MIX_PICK, cell })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom({ key: 'own', tent: true }, { key: 'cautious', tent: false })).map(([planId, cell]) => ({ type: A.PLAN_MIX, planId, cell })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVED, planId, previous: { 'stressTool.settings.equityMin': 1 }, line: { id: 'use', slots: { key: 'balanced', tent: 'on' } }, op: 'mix' })),
+  // Try a change on a plan (way-and-mix.md 4): the boxes tried, "Use this", the copy kept
+  fc.constant({ type: A.TRY_RUN, boxes: { way: 'pots-and-valves', pot: 500000 } }),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.TRY_DONE, key, boxes: { way: 'pots-and-valves', pot: 500000 }, result: { strategyId: 'pots-and-valves', a: { share: 0.9 } }, ms: 500 })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.TRY_FAILED, key, boxes: { way: 'pots-and-valves', pot: 500000 } })),
+  fc.constant({ type: A.TRY_CLOSE }),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_TRY, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.TRY_KEEP, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.TRY_KEPT, planId, id: 'Kq8LwT2mJv5PzYc9BnRd', name: 'One · tried', where: 'account' })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SAVED, planId, previous: { 'stressTool.settings.duration': 30 }, line: { id: 'try', slots: { n: '2' } }, op: 'try' })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('full', 'unverified')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem })),
+  // "Your household" (road-to-7.md step 9): the pooled run by the pair's key and its limit, the survivor and care questions, the confirms, the writes, the copies kept
+  fc.tuple(fc.constantFrom('h1', 'h2'), fc.constantFrom(null, { kind: 'untilAge', who: 'b', age: 67 })).map(([key, limit]) => ({ type: A.HH_RUN, key, limit })),
+  fc.tuple(fc.constantFrom('h1', 'h2'), fc.integer({ min: 0, max: 4 })).map(([key, done]) => ({ type: A.HH_PROGRESS, key, done, total: 4 })),
+  fc.tuple(fc.constantFrom('h1', 'h2'), fc.constantFrom(null, { kind: 'untilAge', who: 'b', age: 67 })).map(([key, limit]) => ({ type: A.HH_DONE, key, limit, result: { ok: true, split: { applies: false }, own: { combined: { runs: 1000, jointSuccess: 0.9, successA: 0.9, successB: 0.95 } } }, ms: 1200 })),
+  fc.tuple(fc.constantFrom('h1', 'h2'), fc.constantFrom(null, { kind: 'untilAge', who: 'b', age: 67 })).map(([key, limit]) => ({ type: A.HH_FAILED, key, limit })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_SURVIVOR, key, boxes: { who: 'a', atAge: 75, spendPct: 70, dbPct: 50 } })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_SURVIVOR_DONE, key, boxes: { who: 'a', atAge: 75, spendPct: 70, dbPct: 50 }, result: { affordable: true, who: 'a' }, ms: 900 })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_SURVIVOR_FAILED, key, boxes: { who: 'a', atAge: 75, spendPct: 70, dbPct: 50 } })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_CARE, key, boxes: { who: 'b', fromAge: 85, years: 3, cost: 90000 } })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_CARE_DONE, key, boxes: { who: 'b', fromAge: 85, years: 3, cost: 90000 }, result: { affordable: true, who: 'B' }, ms: 900 })),
+  fc.constantFrom('h1', 'h2').map((key) => ({ type: A.HH_CARE_FAILED, key, boxes: { who: 'b', fromAge: 85, years: 3, cost: 90000 } })),
+  fc.constantFrom('survivor', 'care').map((what) => ({ type: A.HH_CLOSE, what })),
+  fc.constantFrom(null, 'split', 'link', 'unlink', 'share', 'separate').map((what) => ({ type: A.HH_PICK, what })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(null, 'p2', 'Kq8LwT2mJv5PzYc9BnRd')).map(([planId, partnerId]) => ({ type: A.PLAN_LINK, planId, partnerId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_SPLIT, planId })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, dismiss]) => ({ type: A.PLAN_DISMISS, planId, dismiss })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, share]) => ({ type: A.PLAN_BUDGET_SHARE, planId, share })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.SPLIT_KEPT, planId, ids: { a: 'Kq8LwT2mJv5PzYc9BnRd', b: 'guest-k3v9x1qa' }, names: { a: 'One — drawing together', b: 'Two — drawing together' }, where: 'account' })),
+  // "What you hold" and "Moving to your plan's mix" (road-to-7.md step 10)
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom({ kind: 'add', line: { wrapper: 'ISA', ticker: 'VWRP' } }, { kind: 'edit', index: 0, field: 'value', value: '1' }, { kind: 'remove', index: 0 }, { kind: 'paste', text: 'a,1', wrapper: 'SIPP', answers: {} })).map(([planId, change]) => ({ type: A.PLAN_HOLD, planId, change })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('gilt:T29', 'bucket:shares'), fc.boolean()).map(([planId, key, done]) => ({ type: A.PLAN_TICK, planId, key, done })),
+  // the budget on a saved plan (road-to-7.md step 11b): one change, the spreadsheet chosen and read, the download
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom({ kind: 'line', id: 'b1', field: 'amount', value: 100 }, { kind: 'add', tier: 'essential' }, { kind: 'remove', id: 'b1' }, { kind: 'fill' }, { kind: 'reset' }, { kind: 'spreadsheet', text: 'Type,Item' })).map(([planId, change]) => ({ type: A.PLAN_BUDGET, planId, change })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_BUDGET_FILE, planId, file: null })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('Type,Item\nItem,Essential,Gas,50,mo', null)).map(([planId, text]) => ({ type: A.PLAN_BUDGET_FILE_READ, planId, text })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_BUDGET_DOWNLOAD, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_RECORD, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_STALE_LEAVE, planId })),
+  fc.constantFrom(null, { app: '6.45.0', engine: '6.37.0', shares: { from: 1928, to: 2024 } }).map((facts) => ({ type: A.ASSUMPTIONS_SET, facts })),
+  fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_RUN, key })),
+  fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_DONE, key, result: { affordable: true, a: { share: 0.9 }, basis: { runs: 1 } }, ms: 500 })),
+  fc.tuple(fc.constantFrom('m1', 'm2'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.MOVE_FAILED, key, reason })),
+  fc.constantFrom(null, { level: 5000, ath: 7000, asOf: '2026-10-19' }).map((index) => ({ type: A.MOVE_INDEX, index })),
+  // "What you pay in": the plan's verdict (research/saving-enough-and-check-in.md 4.4), question B on the plan's figures
+  fc.constantFrom('saver:p1:a', 'saver:p1:b', 'saver:p2:a').map((key) => ({ type: A.SAVER_WORKING, key })),
+  fc.tuple(fc.constantFrom('saver:p1:a', 'saver:p2:a'), fc.constantFrom(A.SAVER_FIRST, A.SAVER_FINAL)).map(([key, type]) => ({ type, key, result: { status: 'ok', verdict: { band: 'close' }, sentences: {} } })),
+  fc.tuple(fc.constantFrom('saver:p1:a', 'saver:p2:a'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.SAVER_FAILED, key, reason })),
+  fc.constant({ type: A.SAVER_RETRY }),
+  // a saver's check-in (research/saving-enough-and-check-in.md 5; release step R3): the press, its answer held, the two writes after it, the calendar file
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_CHECK_IN, planId })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(null, { status: 'ok', verdict: { band: 'no' }, sentences: {} })).map(([planId, result]) => ({ type: A.CHECKIN_SHOWN, planId, date: '2026-10-02', result })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_USE_CHECKIN, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_RESTART_PATH, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_CALENDAR, planId })),
+  // Month by month (7.2.0): Record and Set up
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_MONTH_RECORD, planId })),
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_TAX_YEAR, planId })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('link', 'split', 'dismiss', 'budgetShare')).map(([planId, op]) => ({ type: A.PLAN_SAVED, planId, previous: { 'household.partnerScenarioId': null }, line: { id: 'linked', slots: {} }, op, others: [{ planId: 'p2', previous: { 'stressTool.settings.baseSalary': 1 } }] })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('noPartner', 'partial')).map(([planId, problem]) => ({ type: A.PLAN_SAVE_FAILED, planId, problem }))
+);
+
+describe('any sequence of actions', () => {
+  it('the generator covers every action type (draft/carry, answer/extend, the budget step and saving: reduce.ab.test.js)', () => {
+    const seen = new Set(fc.sample(anyAction, 2000).map((a) => a.type));
+    const step4 = [A.DRAFT_CARRY, A.ANSWER_EXTEND, A.DRAFT_LOAD];   // draft/load (6.55.0): a saver's B, generated in reduce.ab.test.js
+    // the spending shape's actions (shape/*) are A's, B's and C's alike: generated over the three in reduce.ab.test.js
+    const step5 = ACTION_TYPES.filter((t) => /^(budget|keep|spend|shape)\/|^lasts\/lever/.test(t) || t === A.DRAFT_ONWARD);
+    // the plan menu, the visitor, the account page and What's new (road-to-7.md step 11): generated in reduce.ab.test.js too
+    // … and "Delete several" on Your plans (6.59.0)
+    const step11 = ACTION_TYPES.filter((t) => /^(guest|account|profile|news|place)\//.test(t) || /^plan\/(action|actionText|rename|copy|makeMain|delete|close|download|openFile|example|actionDone)$/.test(t) || /^plans\/(several|tick|severalAsk|deleteSeveral|severalDone)$/.test(t));
+    expect([...seen].sort()).toEqual(ACTION_TYPES.filter((t) => !step4.includes(t) && !step5.includes(t) && !step11.includes(t)).sort());
+  });
+  it('the state survives JSON; plan never changes and the session is always a known kind', () => {
+    fc.assert(fc.property(fc.array(anyAction, { maxLength: 30 }), (actions) => {
+      let s = fresh();
+      for (const a of actions) {
+        s = reduce(s, a);
+        expect(s.plan).toBe(null);
+        expect(['none', 'checking', 'in', 'unverified', 'nobody', 'failed']).toContain(s.session.kind);
+        // the plans never reach the draft store's shape (your-plan.md 3.8): page memory only, under one key
+        if (s.plans !== null) expect(['reading', 'read', 'failed']).toContain(s.plans.status);
+      }
+      expect(JSON.parse(JSON.stringify(s))).toEqual(s);
+      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'checkIn', 'draft', 'env', 'household', 'keep', 'lasts', 'mix', 'move', 'plan', 'plans', 'route', 'saver', 'session', 'ui', 'ways']);
+      expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.saver.status);
+      expect(['idle', 'working', 'done', 'failed']).toContain(s.household.status);
+      expect(['idle', 'working', 'done', 'failed']).toContain(s.move.status);
+      expect(['idle', 'working', 'done', 'failed']).toContain(s.lasts.status);
+      expect(['idle', 'working', 'done', 'failed']).toContain(s.ways.status);
+      expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.answers.c.status);
+    }), { numRuns: 300 });
+  });
+  it('a result only ever comes from the key it is filed under', () => {
+    fc.assert(fc.property(fc.array(anyAction, { maxLength: 30 }), (actions) => {
+      let s = fresh();
+      let filed = null;                                        // the key the stored result was delivered under
+      for (const a of actions) {
+        const next = reduce(s, a);
+        if (next.answers.c.result !== s.answers.c.result) {
+          if (a.type === A.ANSWER_FIRST || a.type === A.ANSWER_FINAL) { filed = a.inputsKey; expect(a.inputsKey).toBe(s.answers.c.inputsKey); }
+          else filed = null;                                   // reset or replaced
+        }
+        s = next;
+        if (s.answers.c.status === 'first' || s.answers.c.status === 'final') expect(s.answers.c.inputsKey).toBe(filed);
+      }
+    }), { numRuns: 300 });
+  });
+});
+
+describe('the store', () => {
+  it('holds the state, applies actions, and tells whoever is listening', () => {
+    const store = createStore(fresh(), reduce);
+    const seen = [];
+    const stop = store.subscribe((state, action) => seen.push([action.type, state.draft.c.values['you.pot']]));
+    store.dispatch(set('you.pot', '1'));
+    store.dispatch(set('you.pot', '12'));
+    expect(store.getState().draft.c.values['you.pot']).toBe('12');
+    expect(seen).toEqual([[A.DRAFT_SET, '1'], [A.DRAFT_SET, '12']]);
+    stop();
+    store.dispatch(set('you.pot', '123'));
+    expect(seen.length).toBe(2);
+  });
+  it('says nothing when an action changed nothing', () => {
+    const store = createStore(working(working(typed(), 'K1'), 'K2'), reduce);
+    let calls = 0;
+    store.subscribe(() => calls++);
+    store.dispatch({ type: A.ANSWER_FINAL, q: 'c', inputsKey: 'K1', result: result() });
+    expect(calls).toBe(0);
+  });
+  it('an action sent from inside a listener is applied after the one under way, in order', () => {
+    const store = createStore(fresh(), reduce);
+    const order = [];
+    store.subscribe((state, action) => {
+      order.push(action.type + ':' + (state.draft.c.values['you.pot'] || ''));
+      if (action.type === A.DRAFT_SET && action.path === 'you.pot' && action.value === '1') store.dispatch(set('you.pot', '2'));
+    });
+    store.subscribe((state, action) => order.push('second:' + action.value));
+    store.dispatch(set('you.pot', '1'));
+    expect(order).toEqual([A.DRAFT_SET + ':1', 'second:1', A.DRAFT_SET + ':2', 'second:2']);
+  });
+});

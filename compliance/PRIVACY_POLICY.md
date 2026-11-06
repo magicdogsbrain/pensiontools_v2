@@ -1,0 +1,87 @@
+# PensionTools — Privacy Policy
+
+_Last updated: 5 November 2026._
+
+## Who we are
+PensionTools is provided by **Usefulish Ltd**, a company registered in England and Wales
+(company number **17360947**), registered office **71-75 Shelton Street, Covent Garden, London,
+WC2H 9JQ**. Usefulish Ltd is the **data controller** for the personal data described here.
+Contact for any privacy question or request: **privacy@usefulish.uk**.
+Usefulish Ltd is registered with the Information Commissioner's Office (ICO), registration
+reference **ZC209401** (registered 29 July 2026).
+
+## What this app is
+PensionTools is a UK pension drawdown planning and stress-testing tool. It is **not financial
+advice** — it performs calculations on figures you enter. You are responsible for the accuracy of
+your inputs and any decisions you make.
+
+## The personal data we process
+To use the saving features you create an account and log in. We process:
+
+| Category | Examples | Purpose | Lawful basis |
+|---|---|---|---|
+| Account identity | email address, display name, (Google) profile photo | create and secure your account | Contract |
+| Saved plans ("scenarios") | plan name/notes, timestamps | let you save and reload your work | Contract |
+| Financial data | portfolio balances over time, SIPP/ISA balances, target income, drawdowns, pay and what you pay into pensions, your saving check-ins and any note you write | run your drawdown plan and your saving plan | Contract |
+| State Pension | forecast start date and weekly amount (from your HMRC forecast) | income modelling | Contract |
+| Tax details | allowances/bands you set, other taxable income, tax paid/projected | tax-efficient calculations | Contract |
+| Ages / dates | current/retirement/end ages | planning horizon | Contract |
+| Household budget | itemised spending you enter, including any health-related, dependent or partner costs | estimate your income needs | Contract |
+| App preferences | the last version whose release notes you have seen; the plan and page you were last on (which plan and which step, no figures) | show release notes once, not every visit; open where you left off | Contract |
+
+All of the above is stored against your account in **Google Cloud Firestore**.
+
+**Storage in your browser.** The app also keeps a few small items in your browser's own storage
+(not cookies, and never sent to us): the time of your last activity (for the automatic sign-out),
+which one-off banners you have dismissed, and the last version whose release notes you have seen; and while you are
+signed in, a note that you are signed in on this browser and, for each browser window, the plan and page you were last on
+(no figures), so the site can open where you left off.
+In **guest mode** ("Just try it") your plan lives only in that browser tab's session storage and is
+discarded when the tab closes; nothing is sent anywhere. Guest use is metered in this browser (a count of
+active minutes, so we can ask you to sign in after a few hours); and if you choose "keep this work" when
+signing in, the guest plan is held in this browser only until it has been copied into your account, then removed. If you keep an answer from the question pages as a plan, the figures you gave there (including any spending lines) are held in this browser until the plan is made and are never used after a day: they are deleted when the plan is made, when you choose "Not now", when you sign out, "Reset" or "Delete Account", and otherwise the next time you open PensionTools after that day; they are never put in the page address. When you move from a plan's pages to the classic planner, this browser tab notes which plan and page to open; the note holds no figures and is gone once it is used. Signing out, "Reset" and "Delete Account"
+clear these items. What you type on the question pages, including any spending lines you work out
+there, and whether a plan was made from it (with the name it was saved under), is kept only in that browser
+tab's session storage and is discarded when the tab closes; nothing is sent anywhere. We do **not** sell
+your data, use it for advertising, or share it for marketing.
+
+## Who processes your data on our behalf
+- **Google / Firebase** (Firebase Authentication and Cloud Firestore) — account sign-in and data
+  storage. Your saved plans and financial data are stored in Cloud Firestore in Google's
+  **London (`europe-west2`)** region, in the UK. Firebase Authentication is a global Google
+  service, so account identity data (email address, display name) may be processed on Google
+  systems outside the UK, including the United States; that transfer is safeguarded by Google's
+  certification under the UK Extension to the EU–US Data Privacy Framework and by Google Cloud's
+  data processing terms (which incorporate the UK International Data Transfer Addendum / EU
+  Standard Contractual Clauses where applicable).
+- **Cloudflare** — serves the app at **pensiontools.uk** (Cloudflare Pages) and receives standard
+  request metadata (IP address, browser) when you load the page. GitHub (Microsoft) provides
+  supporting code-hosting infrastructure. Your financial data does not pass through either; it
+  goes directly from your browser to Firebase.
+
+We do not use analytics or advertising services in this app.
+
+If you categorise an investment fund the app doesn't recognise, the ticker and the category you
+chose are logged (with your account id) to an administrator-only list so the shared fund catalogue
+can be improved. No financial amounts are included.
+
+## How long we keep it
+We keep your account and saved plans until you delete them. In the app you can wipe your saved
+data at any time ("Reset"), or permanently delete your account **and** all data ("Delete
+Account"). You can also ask us to delete everything by emailing **privacy@usefulish.uk**.
+
+## Your rights
+Under UK GDPR you can ask us to: access a copy of your data; correct it; delete it ("right to
+erasure"); restrict or object to processing; or receive it in a portable format. Email
+**privacy@usefulish.uk** and we will respond within one month. You can also complain to the ICO
+(ico.org.uk).
+
+## Security
+Access to your data is restricted to your own account via authentication and database security
+rules. Data is encrypted in transit. Please use a strong, unique password.
+
+## Children
+This app is intended for adults planning their own finances and is not directed at children.
+
+## Changes
+We will update this policy as the app changes and post the new version here.

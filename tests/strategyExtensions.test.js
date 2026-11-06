@@ -1,0 +1,85 @@
+/**
+ * Phase G extensions — every one opt-in; default-off byte-identity is pinned by the golden
+ * sets, so these tests assert the ON behaviour's direction and invariants.
+ */
+import { describe, it, expect } from 'vitest';
+import { runLadderWindows } from '../src/strategies/LadderAndRatchet.js';
+import { runFlexWindows } from '../src/strategies/FloorAndFlex.js';
+
+const B = {
+  E0: 150000, ladderYears: 20, L: 240, firstRung: 21, maxRung: 30,
+  draw: 22000, END: 360, realYield: 0.023, glideRate: 0.05, startAge: 62,
+  trigger: { mode: 'band', b: 1.2 }
+};
+
+describe('Phase G — ladder extensions', () => {
+  const off = runLadderWindows(B);
+
+  it('transaction costs make rungs dearer → fewer secured in aggregate', () => {
+    // NOT per-window: an early skim that buys less leaves a bigger sleeve that can ratchet
+    // MORE at a later trigger (path dependence). The honest invariant is aggregate.
+    const on = runLadderWindows({ ...B, txCostBps: 50 });
+    const mean = (r) => r.windows.reduce((t, w) => t + w.secured, 0) / r.windows.length;
+    expect(mean(on)).toBeLessThanOrEqual(mean(off) + 1e-9);
+    expect(on.windows.some((w, i) => w.secured < off.windows[i].secured)).toBe(true);
+  });
+
+  it('stochastic yields are reproducible and stay centred on the flat anchor', () => {
+    const a = runLadderWindows({ ...B, yieldVol: 0.004 });
+    const b = runLadderWindows({ ...B, yieldVol: 0.004 });
+    expect(a.stats.securedMedian).toBe(b.stats.securedMedian);        // deterministic per window
+    expect(Math.abs(a.stats.securedMedian - off.stats.securedMedian)).toBeLessThanOrEqual(2);
+  });
+
+  it('triggers continuing in decumulation can only ADD secured years (one-way rule)', () => {
+    const on = runLadderWindows({ ...B, triggersContinueInDecumulation: true });
+    for (let i = 0; i < on.meta.fullN; i += 37) {
+      expect(on.windows[i].secured).toBeGreaterThanOrEqual(off.windows[i].secured);
+    }
+    expect(on.stats.survivalPct).toBeGreaterThanOrEqual(off.stats.survivalPct - 1e-9);
+  });
+
+  it('spending-flex guardrail improves worst-case survival, never worsens it', () => {
+    const tight = { ...B, E0: 100000 };                       // stressed sleeve
+    const offT = runLadderWindows(tight);
+    const onT = runLadderWindows({ ...tight, spendFlex: { cutPct: 0.15, floorMult: 1 } });
+    expect(onT.stats.survivalPct).toBeGreaterThanOrEqual(offT.stats.survivalPct);
+  });
+});
+
+describe('Phase G — Floor & Flex annuity swap', () => {
+  it('the swap deducts once when affordable and only lowers terminals', () => {
+    const off = runFlexWindows({ E0: 306937, rate: 0.04, END: 360 });
+    const on = runFlexWindows({ E0: 306937, rate: 0.04, END: 360, annuitySwap: { atYear: 20, cost: 80000 } });
+    let swapped = 0;
+    for (let i = 0; i < on.windows.length; i += 41) {
+      expect(on.windows[i].terminal).toBeLessThanOrEqual(off.windows[i].terminal + 1e-6);
+      if (on.windows[i].annuitySwapDone) swapped++;
+    }
+    expect(swapped).toBeGreaterThan(0);
+  });
+});
+
+describe('Ladder Monte Carlo (block bootstrap)', () => {
+  const B = { E0: 150000, ladderYears: 20, L: 240, firstRung: 21, maxRung: 30,
+    draw: 22000, END: 360, realYield: 0.023, glideRate: 0.05, startAge: 62,
+    trigger: { mode: 'band', b: 1.2 } };
+
+  it('is deterministic per seed set and reports the confidence half-width', async () => {
+    const { runLadderMonteCarlo } = await import('../src/strategies/LadderAndRatchet.js');
+    const a = runLadderMonteCarlo(B, 300);
+    const b = runLadderMonteCarlo(B, 300);
+    expect(a.stats.survivalPct).toBe(b.stats.survivalPct);
+    expect(a.stats.terminalMedian).toBe(b.stats.terminalMedian);
+    expect(a.stats.survivalHalfWidthPp).toBeGreaterThanOrEqual(0);
+    expect(a.meta.mode).toBe('montecarlo');
+  });
+
+  it('MC is broadly consistent with history but explores beyond it (survival within ~10pp)', async () => {
+    const { runLadderMonteCarlo, runLadderWindows } = await import('../src/strategies/LadderAndRatchet.js');
+    const mc = runLadderMonteCarlo(B, 500);
+    const h = runLadderWindows(B);
+    expect(Math.abs(mc.stats.survivalPct - h.stats.survivalPct)).toBeLessThanOrEqual(10);
+    expect(mc.stats.survivalPct).toBeLessThanOrEqual(100);
+  });
+});

@@ -1,0 +1,294 @@
+# V7 — the plan of plans (draft for us, 30 Sep 2026)
+
+Nothing here is built. This is the map: what we want, what we have, how testing is designed in, the order of
+work, the sub-plans still to write, and the decisions only we can make. Sources: product-plan.md, the
+"why people come" research, four inventories of the current code, two testing designs, and three critics
+(a test engineer, a solo-founder engineer, and a reviewer reading as us). Full detail is in the
+workflow outputs; this is the merged, cut-down version.
+
+## 1. What we want (72 testable requirements, in six groups)
+
+- **Front door and rail**: six questions instead of tools; a journey rail replaces the tab bar; "Drawdown
+  Planner"; first answer on your own figures in under two minutes; every screen reachable directly.
+- **A. When can I afford to stop?** A verdict at a named age, a range of ages side by side, what one more year
+  buys, which pot pays the years before State Pension, part-time as a lever.
+- **B. Am I saving enough?** The number, the monthly amount that gets there, and the options if it does not fit
+  (later, less, more risk while saving, or accept a stated chance of falling short).
+- **C. I've got about £X — what is that a month?**
+- **D. I'm retired — will it last, can I spend more, would some work help?**
+- **E. Test my plan and compare strategies.  F. Single decisions** (tax-free cash order, annuity, final-salary
+  early or late, mortgage).
+- **Across all of them**: couples and a final-salary pension in the first questions; the planner asks for a pot
+  and a risk level, and any fund list there is the intended retirement portfolio; "What you hold" is separate;
+  the move between them is a step, with a copy once it is done; no countdown for the retired; every headline
+  has a plain sentence and a bad-case figure; every saved plan has a version; locked plans never break.
+
+## 2. What we have
+
+**Keep as it is**: the retirement-phase engine (monthly simulator, one stress test for all nine strategies,
+tax, tax-free cash, ISA and taxable account), the monthly decision engine, holdings, transition and rotation
+modules, the plan document, guest mode, and 848 passing tests.
+
+**The five real gaps**
+1. **The saving years have no engine.** Three fixed growth rates. No chance of shortfall, no solving for the
+   monthly amount. Question B needs it and so does the front half of A.
+2. **Couples are bolted on.** Two complete plans are needed before anything is said.
+3. **No fast answers.** Nothing turns a pot into a monthly figure, or solves what a retired person can draw.
+4. **The screen code is one 10,400-line script** with 345 global functions, no addresses for screens, and no
+   test of any of it. 39 of the 61 bugs found by hand in September lived here.
+5. **No plan version, no browser tests, nothing checking changes before they publish.** The nightly data
+   update pushes to the live branch without running the tests.
+
+## 3. How testing is designed in
+
+**The rule that makes it possible**: every number comes from a pure function with a declared list of inputs;
+every screen is drawn from the plan's state and has its own address; the screen computes nothing.
+
+### Numbers
+"All possible inputs" cannot be literal: pots and dates are continuous and sixty inputs multiply beyond any
+run. What gives equivalent confidence, in the order it pays off:
+1. **Replay of known bugs.** The 61 September findings become tests. Every new kind of check is measured by how
+   many it would have caught. This is the proof the machinery works.
+2. **Declared inputs with boundary values**: zero, tax thresholds (12,570 / 50,270 / 100,000 / 125,140), ages
+   55 / 57 / 66 / 67 / 75, dates either side of 5 April.
+3. **Generated combinations**: every pair of options appears together in at least one case; the core
+   (strategy × stage × single or couple × final-salary yes or no) in every combination.
+4. **Rules that must hold for any input**, on thousands of random cases nightly: money is conserved, nothing is
+   negative, tax never exceeds income, more pot never gives a worse answer, a deselected strategy's dials never
+   change the result, a solved figure fed back in reproduces itself.
+5. **Independent answers**: every headline recomputed from the month-by-month trace by separate code; HMRC
+   worked examples including mid-year cases; closed-form cases; the existing Decision-against-Stress replay.
+6. **A fixture per research scenario** with its expected plain sentence, reviewed once by us.
+7. **Pinned outputs** with every change explained in a release note.
+
+The monthly decision step and tax-year setup go into the generated set in the first wave: it is our
+live path and was the most-corrected code in September.
+
+Cut on the critics' advice: mutation testing, coverage percentages as gates, and scaling everything by two.
+
+### As a user
+1. **Scripted people in a real browser**: saver at 45, stopping next June with a partner, retired with a ladder
+   in its run-up, retired and worried, a forum guest with two minutes. Each walks its whole journey.
+2. **The number on screen equals the engine's number**, and each sentence equals its number.
+3. **Rail checks**: every step reachable, no dead ends, browsing never changes a locked plan.
+4. **Wording check** on every rendered screen: no "undefined", no "-£0.00", no countdown for a retired person,
+   no leftover "Stress Tester".
+5. **Screenshots** at phone, iPad and desktop on about ten key screens, compared with an approved baseline.
+   Contrast and keyboard checks alongside.
+6. **Counted first answer**: inputs, screens and waiting time per question.
+7. **A simulated person exploring before each release**, as was done by hand this month, with the findings
+   reported, not scored.
+
+Honest limits: screenshots detect change, not ugliness; scripts only walk paths someone wrote; a bug needing
+four particular settings together can still slip through the pairs and will be caught, if at all, by the
+nightly random run.
+
+## 4. The order of work
+
+Built as **vertical slices**: each question is taken from inputs to tested screen before the next starts, so
+there is something to look at early and the method is proved on a small piece.
+
+| Step | What | You see |
+|---|---|---|
+| 0 | Decisions below; we amend the want list | — |
+| 1 | Safety net: tests run on every change and before the nightly data update; dates and market data pinned in tests; the September bug replay | A catch-rate report |
+| 2 | Plan version (6.14): version stamp, upgrade runner, read-only fallback, tested on a copy of our plan | No visible change |
+| 3 | First slice, question C ("£X, what is that a month"), couple-ready, with every test layer attached, in the new rail shell behind a switch | First V7 screen |
+| 4 | Question A with the saving-years engine | When can I stop, range of ages |
+| 5 | Question B on the same engine | The number and the monthly amount |
+| 6 | Question D | Retired re-plan |
+| 7 | Question E re-homed; what you hold and the move | Strategies in the rail |
+| 8 | Month by month carried over; new shell becomes the default as 7.0; rename | Cutover |
+| 9 | Question F modules one at a time; landing and trust pages | — |
+
+The current app stays the default until step 8. Our locked plan is checked against the new shell on
+every change and the switch does not flip until they match.
+
+**Size, stated plainly**: the planners' estimates sum to about 30 weeks of focused work to 7.0. With agents
+doing the building that should compress, but it is a large job and the estimate is not firm.
+
+## 5. Sub-plans still to write
+
+| Plan | Answers | When |
+|---|---|---|
+| Requirements baseline | Which wants are in 7.0 and what passes each | Step 0 |
+| Test strategy | Layers, what runs when, what blocks a release | Step 1 |
+| Saved-data upgrade | Version chain, locked-plan protection | Before step 2 |
+| Rail and screen design | Steps per question and stage; phone layout | Before step 3 |
+| Answer contract per question | Inputs, result, headline, sentence, bad case | Before each slice |
+| Household and guaranteed income | How a couple and a final-salary start age are entered | Before step 3 |
+| Saving-years engine | Simulation, solve, how saving joins drawdown | Before step 4 |
+| Screen-code extraction map | What moves out of the big script, and when | Before step 3 |
+| Language guide | Names, banned jargon, sentence templates | Before step 3 |
+| Cutover | Running old and new side by side; the rule for switching | Before step 3 ships |
+| Holdings and the move | How held, tested and locked portfolios relate | Before step 7 |
+| Decision-module briefs | One per module | Before each |
+
+## 6. Decisions to take
+
+1. **Testing scope.** Accept section 3 as the meaning of "all possible inputs"?
+2. **Your plan as a test case.** May a copy of your locked plan be the main safety fixture? Recommended: kept
+   on your machine and out of the repository.
+3. **Side by side.** Build V7 behind a switch and flip when your plan matches? Recommended.
+4. **Savers early.** Saving-years engine at step 4, ahead of the retired re-plan? Recommended, since most
+   first-time users are saving.
+5. **"A bad case".** Which case gives the run-out age: the worst history, or the worst one in ten?
+6. **The lock.** Leave it where it is stored today? Recommended; moving it risks every locked plan.
+7. **Couples.** Five extra fields and one household spending figure for first answers. Enough to start?
+8. **Does 7.0 wait for question B**, or ship when A, C, D and E are done?
+
+## 7. Our decisions (30 Sep 2026)
+
+1. Testing scope: section 3 accepted as the meaning of "all possible inputs".
+2. A real locked plan may be the main safety fixture, kept locally, never in the repository.
+3. Build V7 beside the current app; switch when a real locked plan matches.
+4. Savers first: questions A and B with the saving-years engine come straight after the first slice.
+5. "A bad case" = the worst one in ten, not the worst in history.
+6. Couples: a short first set of questions, with the option to answer in full detail at any point.
+7. 7.0 includes "am I saving enough" (it is built second, so it is inside the cutover).
+
+## 8. Later decisions and backlog (30 Sep 2026)
+
+- Protection (Pots & Valves): a month counts when shares + bonds + diversifiers are below the sum of their
+  glidepaths; X such months in a row switches it on (shipped 6.14.0). The diversifier target rises with inflation
+  and runs down like the shares and bonds targets (decided 30 Sep — to build). Protection is not applied to a bought
+  ladder's monthly figure (reviewer's rule — to confirm).
+- A draft whose start year has passed: offer to update it to today. No automatic deletion.
+- **Backlog, not now:** what to do with accounts that are never used and plans that are never opened. All data is
+  in Firebase; any clean-up needs a server-side job with an admin key, a warning to the user first, and a line in
+  the privacy policy. We dropped automatic deletion for now.
+
+## 9. Progress log
+
+- 30 Sep 2026: steps 1–2 shipped (6.13.4 portable random generator; 6.14.0 our protection rule + four fixes;
+  6.15.0 diversifier glidepath, penny-exact protection, stale-draft offer, plan download, schemaVersion 1;
+  6.16.0 income tax above £100,000 corrected; 6.17.0 sleeve target everywhere, 2x faster tax-free plans).
+  Step 3 first slice shipped unlinked at /v7/ (question C, single or couple, Chrome/Safari/Firefox identical,
+  three simulated users walked it; 2,470 tests). A real plan is still not exported to tests/fixtures/local.
+- Decisions taken under the standing go-ahead: £100,000 taper point stays fixed in pounds; final-salary pension
+  in the quick answer rises with prices capped at 5% and the pot pays only its own share (the literal "pot makes
+  the cap good" reading collapsed small pots); "good" = best 1 in 10.
+- Next: door A (when can I stop) and door B (saving years engine) — the largest new engine; then D; then E and
+  holdings; then month-by-month carry-over and cutover.
+- 1 Oct 2026: steps 4–5 in the preview — A and B on the saving-years engine; C asks "still paying in?" (a
+  report: a 55-year-old with £275,000 paying £500 + £300 could not say so); ONE joint test for A, B and C (a life
+  runs from today through saving and drawing; careful = lasts in 9 of 10), so the three agree to the pound.
+  6.18.0: "Save this as a plan" (agreed: named by the person, suggested "Stop at 67 · £2,290 a month", never "My
+  plan") into a NEW plan in today's planner; the budget step (agreed: a guide only, skippable with one figure and
+  told so; the figure in the box is always the person's own); five corrections; netToGross 3–4x faster, bit-identical.
+  CI: browser tests in three shards, answer-time budgets scaled by the runner's measured speed.
+- 1–2 Oct 2026: 6.19.0 charges as a per-plan setting (agreed: 0.5% a year, a config parameter; locked plans before it
+  stay at 0%); 6.20.0 couples who stop in different years (agreed: yes; built on the three recommended answers — the
+  worker's pay covers half by default, makes up any gap, and A/B answer about the partner after "I've already
+  stopped"). CI: the test job 30 minutes; wall-clock timing checks run alone in the night job.
+- Open with us: the 2028 drawdown note for singles and same-year couples (today only for a couple apart).
+  Next: D (retired re-plan), then E and holdings, then month-by-month carry-over and cutover.
+
+## 10. Our decisions after the square-one audit (2 Oct 2026)
+
+"Go with recommended on most of these" (research/v7/square-one-audit.md section 6), with one correction:
+
+- **Parity rule (us):** "We NEED to have the same or better optionally than V6. We MUST offer as many steps and
+  tapers as V6 … In general - optional it must be at least v6. We must have Gogo, goslow and nogo years." Every V6
+  option gets a V7 home at least as full, gated by the parity ledger (tests/v7/parity). The "one optional later amount"
+  recommendation is withdrawn: V7's spending shape matches V6's income shape (any number of steps, % declines, glides,
+  go-go / go-slow / no-go suggestion, essentials floor, chart).
+- Accepted: V7 opens saved plans (plan at the centre, a step list for every life stage) BEFORE question D; all nine
+  strategies give V7-style verdicts; 7.0 may ship with the monthly Decision tool on today's screen; "on course" = 9 in
+  10 everywhere; the 2028 drawdown warning for everyone it applies to; savings growth "Mostly cash" (default) or
+  "Invested like my pension" in both apps; D gives its own verdict plus one line when a locked plan differs, never
+  suggesting unlocking; D includes "shares fall by a fifth"; the Budget button on V7-made plans renamed and lock-guarded;
+  V7 answers stay outside the guest meter's three hours.
+- Order from here: lock-safety fixes (6.20.2) → parity ledger + spending shape + 2028 for all → saver lock made
+  trustworthy, savings growth, one on-course bar → V7 opens saved plans → D → E one section at a time → 7.0.
+
+## 11. Our decisions after the V6 usability audit (17 Oct 2026)
+
+"Get on with all of them": all 15 decisions in research/v7/v6-usability-audit.md section 5 taken as recommended —
+editing moves into V7 straight after "Your plan" (before D); one "will it last" answer per plan; every first month asks
+before locking; "how often you draw" stays changeable when locked; couples become one pooled household with "who draws
+what"; the budget stays a guide (false promises removed, the button asks first with Undo); guests get a read-only
+example and up to three plans; a landing-page link to the preview; five retirements (welcome tour, per-tool wizard,
+Edit Tools, headroom box → "+10%", Copy-between-tools); monthly entry asks for platform totals; the five "Your plan"
+questions as recommended. Order: the audit's section 4 road (fix release → one answer → who draws what → Your plan →
+editing in V7 → …). Work leaner from here: direct edits and small agent counts.
+
+## 12. The road to 7.0 (21 Oct 2026)
+
+We: "Review where we are and move completely to v7. Go through all steps necessary to get there." Road steps 1–5
+are shipped (6.23.0–6.31.0) and the strategy-blind sweep is done (6.32.0–6.37.0). The plan for the rest — steps 6 to 11
+and the switch, one release each, with the gates and the decisions taken — is `research/v7/road-to-7.md`.
+
+Progress: **step 6 shipped as 6.38.0 (21 Oct 2026)** — "Lock the plan" is a V7 step; the lock is the planner's own in one
+write (lockedBy "locked in the preview"); the unlock is offered once on "Your plan as locked"; "Write a new version";
+the four opening sentences; "Where you are" like with like. The pure parts of the lock live in `src/services/PlanCommit.js`.
+Step 7 (D, and V7 makes its own plans) started the same day.
+
+Progress: **step 7 shipped as 6.39.0 (21 Oct 2026)** — "I'm retired. Will it last?" (D) is open at `#/d/numbers`: one
+form, the verdict at what you take with the band ("Could I spend more?"), and two levers tried on the answer's own
+futures ("Would some work help?", "What if shares fell by a fifth?"); the same three levers are a "Try a change" section
+of every saved plan's "Does it last?", run in the worker on a copy; "Keep this as a plan" makes the plan in the preview
+itself (one `addDoc` per plan in the account, or this window's list) and the seed hand-over effect is retired. The
+planner's mapping of a seed lives pure in `src/services/PlanFromSeed.js`. Next: step 8 (way, then mix and Try).
+
+Progress: **step 8 designed (`research/v7/way-and-mix.md`) and 8a shipped as 6.40.0 (21 Oct 2026)** — "How the money is
+taken" (`#/plan/<id>/way`) runs the nine ways of drawing on the plan in the one verdict, ranked as the planner's Overview
+ranks them, each with every dial the planner shows anywhere (one set of defaults, the engine's); "Use this way of
+drawing" is the planner's switch field for field in one write; "More columns" keeps the score. The compare loop, the
+ranking and the switch are lifted pure (`compareAll`, `rankWays`, `switchPatch`) and the planner calls them. Next: 8b —
+the mix, Try a change, the income picture rows (6.41.0).
+
+**Step 8b shipped as 6.41.0 (21 Oct).** "The mix" (`#/plan/<id>/mix`) for the Pots & Valves family: a risk level, your
+own split or the funds to test (typed through the bundled search or pasted with "What is this?" and "Left out, and
+why"); the slice and the bond tent each with "What it does in a bad case"; "Which mix lasts best?" (eight runs) with
+"Use this mix" as one write of the eleven mix fields. "Try a change of your own" on "Does it last?" is the planner's
+whole Try in plain words with "What's different", "Use this" (one write of only the fields that differ) and "Keep as a
+separate plan" through the one create. The income picture draws the rows of money that comes in anyway, the budget mark
+and the lump-sum marks. Lifted pure and called by the planner: `mixFromLevel`, `levelOfMix`, `mixCells`, `mixFromFunds`,
+`searchFunds`, `compareMixes`, `trySettingsOf`, `tryDifferencesOf`. Gate 8b (`tests/v7/plan/tryIdentity.test.js`) holds
+the tried copy and verdict to the planner's on the twelve fixtures. Twelve ledger rows flipped to built under `s8-mix`.
+Next: 9 — the household step (6.42.0).
+
+**Step 9 shipped as 6.42.0 (21 Oct).** "Your household" (`#/plan/<id>/household`) draws its own screen: the partner's plan
+linked either way (written on this plan only, as the planner does); the pooled verdict first and each plan alone; Who draws
+what with "Use this split" (one write per unlocked plan of the five income-shape keys; copies through the one create when a
+plan is locked, linked to each other); "If one of you dies first" and "If one of you needs care" asked in ages on each plan's
+own test; one shared budget with "Keeping money separate?" and who-pays. Lifted pure and called by the planner: `splitWrites`,
+`splitCopyNames`, `copyUnlockWrite`, `shareBudgetWrite`, `stopSharingWrite`. Gate 9 (`tests/v7/plan/householdIdentity.test.js`)
+holds the pooled verdict, the split and the applied writes to the planner's on the couple fixtures and a derived unequal pair.
+Five ledger rows flipped to built under `s9-household`. Next: 10 — design `research/v7/holdings-and-move.md`, then build (6.43.0).
+
+**Step 10 shipped as 6.43.0 (21 Oct).** Designed first (`research/v7/holdings-and-move.md`), then built: "What you hold"
+(`#/plan/<id>/hold`) is the one record line by line by account, typed through the bundled search or pasted with every line
+counted ("What is this?", "Left out, and why", "not seen this time — sold?" with its own Remove), the mix as held in words;
+"Moving to your plan's mix" (`#/plan/<id>/move`) says on its face that it is optional and what skipping costs (one run on the
+mix as held, or the uncovered years for a ladder), the saver's five-year rule (where new money goes until `approaching`), the
+buy and sell lists with tick-offs, the schedule, the order sheet that waits for the person's own State Pension figure, and the
+rotation watch and ticket (the switch hands over to the planner). Writes: the whole `holdings` and `transition` objects, past the
+guard on a locked plan as the planner allows. Lifted pure: `holdingsWith`, `applyPaste`, `tickMove`, `orderSheetRows`,
+`rotationWatch`. Gate 10 (`tests/v7/plan/holdIdentity.test.js`): the record round-trips byte for byte on the four fixtures
+with one. Six ledger rows flipped under `s10-hold`. Next: 11 — the shell for 7.0 (6.44.0).
+
+**Step 11a shipped as 6.44.0 (27 Oct).** The shell's first half, built as a workflow (one builder, four reviewers, a fixer,
+a verifier; 16 findings, two fix rounds). "Your plans" has the planner's menu on every row: Rename, Make a copy (as it is or
+with the records; the planner's `duplicateScenario` rules lifted into `services/PlanCopy.js`, which the planner now calls
+too), Make this my main plan, Download this plan, Delete after a confirm that names the plan (two for a locked plan; never
+the last plan), and under the list Start a new plan, Open a downloaded copy (checked, identity never trusted, kept by the
+copy's rules) and Look around an example. "Your account" (`#/account`) is the sign-in, sign-up, Google and forgotten-password
+forms, the confirm-your-email gate, Download everything and Delete my account (two confirms; the planner's wipe, document by
+document; requires-recent-login said plainly). Without an account the planner's three free hours, four reminders and stop
+run through `GuestMeter.js`; the hand-over "Bring in what you built without an account?" copies the window's plans into the
+account and never the example (the planner's own bug, corrected). What's new is the once-only pop-up and the page
+`#/whats-new` from `releases.js`. The preview is named Drawdown Planner. The write rules widened to three Firebase files
+(`account.js` the third), `deleteDoc` allowed and counted (one call in `planWrite.js`, three in `account.js`); every widening
+pinned in `tests/v7/boundaries.test.js`. Ledger: seven rows built under `s11-shell`, the machinery rows carried as stored,
+`acct.admin` retired (administrators only, classic page); 135 built / 22 planned / 12 retired / 10 designed. A dated section in
+`compliance/GDPR_TODO.md` lists the wording we must approve. Next: 11b — every remaining planned or designed row
+(6.45.0), then 12 — the switch (7.0.0).
+
+
+**Step 11b shipped as 6.45.0 (27 Oct).** Every remaining planned or designed row of the parity ledger, built by one workflow builder in a worktree and reviewed through four lenses (writes, parity, security, tests), with a fix round and a verify: the budget on a saved plan (`#/plan/<id>/budget`, the planner's Budget page line by line — totals against the guide levels, the level and "Fill the blanks", a sum in any amount box, the typical hint and the nudge, from and to an age, "Break it down", "Did you miss anything?", the one-off costs, who pays over time on a shared budget, the spreadsheet both ways, "Start again" — each change one write of the whole budget with Undo, the planner's own handlers lifted into `BudgetModel.js`); "What you pay in" (`#/plan/<id>/saving`: pay-ins, the rise a year, the relief block, "Your mix" from the record of what you hold, "Record this month's pot"); the out-of-date draft's offer on the about step; the State Pension date and where a lump sum lands on the income step; a lump sum into the steps on the spend step; the years one by one, the pots' floors and the named stresses on "Does it last?" with no hand-over; "Assumptions and data" (`#/assumptions`) at the foot of every page; the exports' hand-over; a gilt typed by code counted as bonds (a correction). Two retirements for us to confirm (the budget walk-through; Reset to Defaults); the picture's motion built rather than retired because the ledger's rule forbids retiring a spending-shape row. The lock and month rows are marked built on the classic page by the 17 Oct decision. The ledger: 165 built, 14 retired, none planned or designed — step 12's gate 4 is met. The same release carries the night run's fixes: the first nightly to finish (27 Oct, 126 minutes at 2,000 runs) found twelve property failures; one was the answer's (a couple apart with nothing left after the second stop), one a savings-floor correction, ten the properties' own; a replay-by-name facility (`FC_SEED`/`FC_PATH`) now lets a night failure be run again. The night run is two CI jobs since 6.44.0. Next: the household split's baseline, default and words (household-draw-split.md §9, our decisions of 27 Oct) as 6.46.0, then step 12.
+
+**A visitor report, shipped as 6.46.0 (2 Nov).** We tried the site without an account as a young saver and found that most of it seemed not to work and that the plan had to be built by hand after signing in. A guest walk of the live site found the questions, the wizard, the named stresses and the saver's page all running without an account; what broke was the door: the hand-over from a plan kept in the window ("Am I on course? (in the planner)") landed on the planner's account-first landing page, whose third button carried on but whose label the preview's words did not match. Two workflow builders in worktrees, two reviewers each and a fix round: (A) the planner opens straight on a window plan when a hand-over names it and nobody is signed in (`OpenPlace.js straightIn`, one line in index.html, the shell ratchet 9,186); the plan pages' words; "Pay in more", the "Try a change" stepper and a grid cell keep a split entry's employer part through one writer (`payInTo.js`); a late "nobody" from Firebase no longer ends guest mode. (B) the pay-in as a share of pay — kind `share`, `payIn.pay`/`ownPct`/`employerPct` in `saverFields`, one reader `payInParts` for every kind in every answer, the seed and the screens; the planner's saver page gets the salary. The same release puts the night run right after seven red nights: Safari's early load of Google's sign-in iframe (Auth made without the pop-up resolver in both apps), the suite split into three jobs with their own clocks, and a one-person first-pound case printed as a finding. Next: the household split's baseline, default and words (household-draw-split.md §9; the paused worktree's five commits) as 6.47.0, then step 12.
+
+**"Who draws what" in the couple's words, shipped as 6.47.0 (2 Nov).** The household split's baseline, default and words from our decisions of 27 Oct (household-draw-split.md §9), built on 27 Oct by a workflow builder whose review was stopped by the week's usage limit, resumed on 2 Nov: main (6.46.0) merged in, then four review lenses (the rule and its figures, the words, writes/boundaries/parity, tests and time), a fix round (22 findings, 20 fixed: the ISA never handed to the partner's pension once the smaller pension is empty, the fast split offered when the paced count moves nothing, "until 67" counting the bridge years alone, no limit when the smaller's State Pension is already in payment, a limit always the smaller pension's, the made-of line's two figures, the fast line carrying the until figure) and a verify (both suites, Node 20, build, the browser spec, names, banned words). Three refusals recorded for us: the ISA covering its own pension draw at 0p (decision 2 keeps ISA pounds out of the count), "Drawing together" surviving in the headline and toast beside the new column heading, and `applies` meaning the paced split shown earns its place. The same release carries the night run's three settlements of 2 Nov (test-only). Next: step 12, the switch to 7.0.0.

@@ -1,0 +1,326 @@
+# QA audit — Stress Tester and Decision tool, 7 September 2026 (v6.1.0)
+
+Driven through the real app (dev server, signed in as the admin test account) with a browser
+harness: ten persona plans created, every Stress Tester tab and strategy page run on each, the
+couples checks, the allocation optimiser, own-funds mode, then a 26-month walk through the
+Decision tool on one plan (three tax years, protection and tax-boost cycles, a taxable account,
+quarterly batching, an entry deletion, an unlock). Console errors were captured throughout:
+**none** — every finding below is a wrong number, a stale state, a hang or a copy problem, not a
+crash. All QA plans were deleted afterwards.
+
+## Personas run
+
+| Plan | Combination | Result |
+|---|---|---|
+| P1 | £600k balanced, ISA £100k Option A, SP 2035, 30y, Pots & Valves; later own-funds mode (6 tagged holdings incl. gold, money market, ISA-wrapped) + optimiser | clean |
+| P2 | UFPLS 5y + PCLS to ISA, band-fill recycle, declining spend, longevity ISA, Buckets in order | B4, G3 |
+| P3 | ISA on hold, £200k gilt GIA, bed-and-ISA (greyed), recycle warning, £150k house-sale windfall yr10 (shares), £30k car yr2, Full IL gilt | B7 |
+| P4 | 3 income steps, DB £12k from yr8, part-time £10k yrs0–4, diversifiers, bond tent, Ladder & Ratchet | G1 (diversifiers doubled), B7 |
+| P6 | £100k pot, £40k/yr, 5 years, HODL, no SP, Floor to an age | G4, C3 |
+| P7 | £1.4M, 45y, frozen bands, £400k share GIA higher-rate, earnings, recycle, cuts off, inherited pension + ISA yr6, Bridge & engine | B7, B10 |
+| P8a/b | couple: P&V + Floor the schedule (hold ISA), household / survivor / care checks | PERF2, C4 |
+| P9 | £1M Gilt ladder + rotation, inherited pension yr12 | B1, B7 |
+
+## Findings
+
+### Bugs (wrong numbers or broken state)
+- **B2 — Drawdown/Glidepath tabs corrupt the plan's horizon.** `showDrawdownScheduleUI` and
+  `showGlidepathUI` (index.html ~12035/12073) assign their own duration box onto the shared cached
+  settings object. After visiting either tab, the Strategies comparison, Try-a-strategy, Household and
+  the next Save all run that horizon. Reproduced: a 30-year plan compared as 35 years. The two boxes
+  are also not pre-filled from the plan. Fix: `{ ...settings, duration }`; pre-fill from the plan.
+- **B4 — Pots & Valves row equals Buckets in order when the saved strategy is Buckets.**
+  `createSimulationConfigFromSettings` puts `sourcingMode:'ordered'` into cfg for a Buckets plan
+  (StressRepository.js:331) and the P&V strategy runs `p.pnvCfg` as-is. P2's table: both 94% / 1.67
+  / £466,757. Fix: the P&V strategy forces `sourcingMode`/`bucketBand` off (Buckets already forces on).
+- **B7 — "Worst 12 months" for bought strategies ignores income the lump / DB pension pays.**
+  stressTest.js:271 uses `lr.minDraw` (minimum of the BOUGHT schedule). A windfall, an inherited
+  pension or a DB floor zeroes or reduces the bought amount for those years, so Floor the schedule shows
+  100% paid in full with "£0" (P3, P7, P9) or "£28,000" on a £40k-minimum plan (P4). Use total income
+  (bought + other income incl. the lump's use), as the P&V path does (stressTest.js:185-191).
+- **B1 — "chance of a cut after undefined".** index.html:8947 reads `signature.floorToAge` for every
+  strategy with a ruin label; Gilt ladder + rotation carries `rotateCutAge`. Fix: `floorToAge ?? rotateCutAge`.
+- **B6 — Historical tab spinner never stops on contract strategies.** `runStrategyWindowsUI`
+  appends its result under the loading block it inserted (`target.innerHTML = (target.innerHTML||'') + html`)
+  for any target other than `strategyRunResults`. Seen on every non-P&V plan.
+- **B11 — a stalled Firestore write shows "Saving…" forever.** The April 2027 tax-year wizard's final
+  write sat for minutes with the button disabled and no toast; a direct write to another document
+  succeeded meanwhile; it flushed later on its own. There is no timeout, retry or error path around
+  `saveScenario` / `saveDecisionDB` / `finishWizard`. Not reproducible on demand (did not recur on the
+  April 2028 wizard) — treat as a robustness gap.
+- **B10 — stale strategy card after a plan switch.** `#strategyRunResults` keeps the previous plan's
+  card until Run is pressed (P6's Floor-to-an-age card under P7). The switch handler clears `mcResults` only.
+- **B12 — deleting a history entry trips the duplicate guard.** After Delete on Jul 2028 a toast said
+  "May 2028 already has a saved decision. Delete it from the History tab first to recalculate." (the
+  month still typed in the entry form). Observed once; cause not traced.
+
+### Gotchas (behaves as coded, hurts users)
+- **G1 — risk-preset mode silently rewrites saved fund minimums.** In "Pick a risk level" the form snaps
+  the saved split to the NEAREST preset on load (`nearestPresetKey`, ~7729) and Save persists it: every
+  persona's split changed on first save (300/250/50 → 300/240/60; 400/200/100 → 350/280/70; P4's £60k
+  diversifiers became £123k). Any plan seeded from the Decision tool, or with hand-set minimums, is
+  altered the moment Stress Settings is saved. Needs a "Custom" preset (keep the saved split) or a
+  visible "snapped to Balanced" notice with a keep-my-split action.
+- **G2 — "age today" is invisible.** Stress settings take `currentAge` from the Budget (default 45 if
+  the Budget was never set up) with no field on the form; with retirement at 62 the SP date of 2035 read
+  as already in payment. Show it, or flag when it is the default.
+- **G3 — Buckets in order + spending cuts on.** Protection entry needs "growth below minimum AND N
+  consecutive cash draws"; ordered sourcing always draws cash first, so the streak is always satisfied and
+  cuts hinge on growth < minimum alone. P2: 83% of futures cut; Lost Decade scenario 394 of 396 months in
+  protection. Review whether the streak test should apply to ordered sourcing at all.
+- **G4 — no State Pension entered = £12,000 from year 0.** With the date blank the engine falls back to
+  the legacy `statePension: 12000` default at `defaultSpYear` (year 0 for a 70-year-old). The stress tabs
+  warn; the comparison copy says "State Pension only (from age 70)" as if entered.
+- **Design note** — with a £32k GROSS target under the BRL, Option A never touches a £100k ISA and the
+  monthly "Total Monthly Income" (£2,492) sits below target/12 (£2,667); the Drawdown table shows the same.
+  A new user reads it as under-payment. Say so on the panel ("target is gross; ISA is not needed below the BRL").
+
+### Performance (main-thread freezes)
+- **PERF1** Try-a-strategy with Pots & Valves on a 35-year plan: > 60 s synchronous, no progress text.
+- **PERF2** Household survivor check (500 futures) and care check: each > 45 s synchronous.
+- Scenarios tab and the allocation optimiser also run long on the main thread (optimiser 75 s) but yield.
+
+### Cosmetic
+- C1 "£0.00" beside whole-pound figures (Drawdown table, Scenarios "Final: £0.00").
+- C3 Floor-to-an-age copy on an unaffordable plan: "0% paid in full … No simulated future ran out".
+- C4 Survivor "inheriting about £924,615 (median remaining pots)" on a £660k start — confirm today's money.
+- C5 Allocation line "56% shares" (pot + ISA) beside the fund summary's "Shares 65%" (SIPP) in own-funds mode.
+- C6 "Withdraw From" reads "GrowthBond" / "CashFund" / "GrowthEquity" (words concatenated).
+- C7 Calculation reason "Protection | Protection".
+- Unaffordable strategies vanish from the ranked table without a line saying which and why (P6: 6 of 9; P7: 7 of 9).
+
+### Verified working (no change needed)
+Settings round-trip for every field on every persona (UFPLS/PCLS/recycle, hold ISA with greyed
+bed-and-ISA and the recycle warning, GIA + mix + band, windfalls with wrapper and "held as", extra
+incomes/withdrawals, DB, steps, diversifiers, tent, HODL, frozen bands, blank SP); MC / Historical /
+Scenarios / Drawdown / Glidepath on P&V, Buckets, all seven bought strategies; the nine-strategy overview
+with correct horizons when B2 is not triggered; own-funds mode; the optimiser; couples, survivor and care
+checks; Decision tool: settings save, 7-step and 6-step wizards, CPI-uplifted targets, protection entry
+after three cash draws with growth below minimum, tax-boost catch-up to year end, GIA fields persisted and
+pre-filled, bed-and-ISA advice on the first entry of a tax year, CGT exemption from the wizard, quarterly
+batch save, entry delete, History month strip, Plan vs actual, unlock → edit → re-lock → "23 entries
+recorded under previous settings". Not tested: CSV export / print (downloads need your permission), the
+Accumulation tab, the fund-suggestion queue.
+
+## Status — shipped as v6.2.0 (7 Sep 2026)
+
+Fixed and tested: B1, B2, B4, B6, B7, B10, B11 (20 s timeout + one retry + error toast), G1 (Custom
+keeps the saved split; a typed Pot rescales it), G2 (age-today note under the State Pension inputs),
+G4 (assumption flagged on the plan, the P&V card and the ranked table), PERF1/PERF2 (worker), C1, C7.
+Tests: `tests/qaFixes.test.js`; decision golden regenerated for the reason text only.
+G3 fixed in v6.2.1: Buckets in order judges the whole SIPP against the whole glidepath track (dead band of one recovery buffer on entry, same on exit; months-below-track persistence), in both engines. Not changed: B12 (observed once, not
+traced), C3/C4/C5 (copy), C6 (was a text-scrape artefact — the panel shows "Growth" and "Bond: £…" on
+separate lines; not a bug). The unaffordable-strategies line already existed under the table.
+
+## Plan — v6.2.0 "Trustworthy comparisons" (as planned before the fixes)
+
+Ship as one minor release (pops up once): every item changes numbers users see or removes a stall.
+
+1. **Fix B2** (clone settings; pre-fill dd/gp duration from the plan) — test: visiting Glidepath does not
+   change `getStressSettingsAsync().duration`; overview `durationYears` equals the plan's.
+2. **Fix B4** (P&V strategy forces `sourcingMode: undefined, bucketBand: undefined`) — test: a Buckets
+   plan's P&V row differs from its Buckets row.
+3. **Fix B7** (worst-12 for bought strategies = min over years of bought + other income, incl. windfall
+   use) — test: P3/P7 shapes give the target, P4 gives £40,000.
+4. **Fix B1** (`floorToAge ?? rotateCutAge`) — test: no "undefined" in the overview HTML for a rotation plan.
+5. **Fix B6** (replace, don't append; or remove the loading block first) — test: no `.spinner` left in
+   `histResults` after a contract-strategy run.
+6. **G1** — add a "Custom (keep my split)" state to the risk picker: on load, if the saved split is not
+   within 1% of a preset, select Custom and show the saved amounts; Save keeps them. Test: the eight
+   persona splits round-trip byte-identical.
+7. **B11** — wrap `saveScenario` in a 20 s timeout with one retry and an error toast; the wizard's
+   Confirm re-enables with "try again" on failure. Test: a mocked hanging `updateDoc` surfaces the toast.
+8. **B10 / B12** — plan switch clears `#strategyRunResults`; delete-entry does not re-submit the form.
+9. **G4** — comparison copy and the ranked table say "no State Pension entered — assuming £12,000 from
+   age N" (same warning as the stress tabs), or drop the legacy default in favour of £0 + warning.
+10. **G2** — show "Age today (from your Budget): 45" on Stress Settings with a link to change it, and a
+    warning when it is the untouched default.
+11. **PERF1/PERF2** — run Try-a-strategy, survivor and care through the engine worker with the same
+    progress text the overview uses.
+12. **G3** — decide the rule for ordered sourcing (protection on growth<min only, or off by default for
+    Buckets) and write it on the Buckets page.
+13. Cosmetics C1–C7 and the "not shown: N strategies unaffordable" line under the ranked table.
+14. Release note: effects per tool (Stress: ranked-table figures move for plans with lump sums, DB
+    pensions, Buckets, or that visited Glidepath; Decision: none) and the actions (re-run the overview;
+    check your allocation if you saved Stress Settings since August).
+
+Ordering: 1–5 first (numbers), then 6–7 (data safety), then the rest.
+
+## Found 9 Sep 2026 while reading a test plan (for the next patch)
+- **"Priced against" copy quotes the wrong pot.** The bought strategies price against the visible
+  "Total in your SIPP (£)" field in the Your pot block (on that plan, £900,000) — correctly. But the
+  gilt-dial copy beneath says "Priced against Your pot above (£850,000 …)", quoting the allocation
+  pot instead of the field the strategy actually uses. Fix the copy to read the SIPP total field, and
+  show the gap between the two when they differ (here £50k) so a stale SIPP total is noticed.
+- Order sheet: no £0 rungs with a £20 fee; charge the held-over cash drag on multi-year rungs (from 8 Sep).
+
+## 9 Sep 2026 — v6.4.0 Timing block (plan start anchor)
+- Root cause found while starting a plan's Decision tool: the Stress plan's `firstTaxYear` was never written by any UI
+  (fell back to `getFullYear()+1`, so every plan re-anchored each 1 January) and the Decision tool used five different
+  year-0 conventions (hard-coded 2026 ×3, first tax year set up ×2, today, age-indexed schedule). Fixed by one saved
+  anchor (`src/services/PlanTiming.js`, Timing block in Stress → Settings, `decisionAnchorYear` on the Decision side,
+  bridge years before the start). Verified: 664 tests + 3 wizard bridge tests; guest plan on dev shows the block,
+  infers "retire at 62" from age 45 + steps from 62, select rebuilt after both settings loaders.
+- Not browser-verified (needs a signed-in account with no real history): the Decision tool's bridge-year wizard copy
+  and the bridge alert on the monthly panel — covered by `tests/wizardBridge.test.js` and `tests/decisionAnchor.test.js`.
+- Guest mode on the dev server refuses "Save Settings" ("Please sign in to save settings") — check whether guest
+  saving is meant to work for Stress settings (it does for scenarios). Not a 6.4.0 regression (toast pre-exists).
+- **Decision entry form did not switch to the ladder layout on first open (a gilt-ladder plan in production, 9 Sep).** Equity /
+  Diversifiers visible and "Bond Funds" label although the plan is Gilt ladder + rotation; `#dsStrategyPanel` empty.
+  Calling `renderDecisionStrategyPanel()` by hand fixed it instantly, so the tab-switch call (index.html ~5661) ran
+  too early or threw silently. Reproduce: open the Decision tab straight after sign-in with the What's-new popup up.
+  Candidate fix: re-run `renderDecisionStrategyPanel()` when the Monthly Entry sub-tab is shown and after settings load.
+- **Ladder plans: entering the gilt value is a chore (9 Sep).** A broker shows a total, cash and a money-market fund
+  as one line; summing many gilt lines monthly is a chore. Next patch: for contract strategies the Monthly
+  Entry takes "SIPP total" + "cash & money-market" and derives the gilt value (total − cash); keep the direct box as
+  an override. Also consider remembering last month's split as the default.
+- **Mid-year wizard overstates the tax to come for someone who has been drawing all year (a 26/27 setup).**
+  `calculateMonthlyBreakdown` takes tax on the remaining draws as tax(prior + draws) − tax(prior), i.e. it assumes the
+  income to date was taxed on its own bands (right for an ex-employee starting a pension mid-year). For a retiree whose
+  prior income IS pension draws under cumulative PAYE, the earlier months already carried their share of the 40% band,
+  so the remaining months' tax is lower: shown several hundred pounds a month more than the payslips. The SIPP gross
+  recommendation is unaffected. Fix: ask "tax already paid this year" (payslips) and use remaining = annual − paid; or
+  offer "I have been drawing since April" which spreads bands evenly. Also the confirm screen says "Tax-Inefficient"
+  for "take the full target" — rename.
+- 6.4.1 shipped the "tax already paid" box + pro-rated fixed income in partial years. Still open: a "re-do this year's
+  setup" button for a configured tax year (`shouldShowWizard` returns false once `yearSetupComplete`; needs a force flag
+  through `initTaxYearWizard`).
+- 6.4.2 (same evening): saved records/PDF respect contract strategies (no pot floors / rebalancing; source = cash bucket
+  or bridge cash), "Bridge year" label, overlay bridge branch, tax-saved double count of SP/other fixed (goldens moved
+  on taxSaved only, deliberately). A saved record still shows a stale "Tax saved" figure computed before the
+  fix — needs delete + re-enter to clear (config for 26/27 is kept). Still open: redo button for a configured tax year;
+  entry-form layout race (renderDecisionStrategyPanel on Monthly Entry show); the record view of pre-6.4.2 records
+  falls back to the CURRENT strategy (fine unless the plan switches strategy later).
+
+## 9 Sep 2026 (evening) — v6.5.0 lock + plan document; items parked
+- **"Remaining months = 7" in September.** The wizard counts the entry month itself: Sept + Oct–Mar = 7 payments
+  to come, matching 5 paid (Apr–Aug) + 7 = 12. The first instinct was 6 (Oct–Mar) for someone whose September payment
+  had already been made mid-month. Look at: (a) wording — say "7 payments including this month's";
+  (b) an explicit "this month's payment is already made" toggle that shifts the frame (6 months, post-draw balances,
+  income to date incl. September) so the user does not have to add the payment back to cash by hand.
+- Lock from Stress + plan document shipped (6.5.0). Not yet: plan-vs-actual "pot vs plan cone" column (the where-am-I
+  strip covers it for now); redo button for a configured tax year; Decision entry layout race.
+- 6.5.4 shipped the month-frame answer: convention kept ("entry before the payment"; April = 12), plus the
+  "This month's payment has already been made — plan from next month" tick box on Monthly Entry (Sept→Oct, Dec→Jan,
+  March blocked), "payments to come (incl. this month)" wording everywhere, and the bridge suggestion = first step with
+  bridge-cash coverage months. Verified on dev as guest: tick/untick, month roll-over, March toast, wizard for October
+  → 6 payments to come. An already-saved entry (7-payment frame, pre-payment cash) stays valid; to switch to the
+  6-payment frame: delete the Sept entry + the 26/27 setup, tick the box, re-enter from October.
+
+## 11 Sep 2026 — persona walk on the QA account (we asked for plans at different stages / strategies)
+- **P1 QA Saver 45 (P&V, £180k, retire 62, £30k):** MC said 100% / £1.15m left. Cause: `renderTiming` projected potAtRetirement
+  from `window._ssTimingBase` (the SAVED settings = £1m defaults on a new plan), so potScale ≈ 8×. Fixed 6.10.2: projection
+  from `readAlloc('ss')` + form ISA/funds; save re-runs `renderTiming()` first. Also plan-start year was 2043/44 instead of
+  2042/43 because the SP date (birthday) was typed after the block rendered — SP date input now re-renders timing.
+- **P3 QA Approaching 59 lock (gilt rotation, retire at 61, Oct birthday):** "plan starts in 7 months" though retirement is
+  13 months away → 6.10.3: retirement MONTH (`startMonth`) drives the countdown, the stage and the Decision gate; ladders
+  keep the tax year. Lock → committed-saving, document written, Transition lists 24 moves (empty ledger), gate refuses Oct 2026.
+- **P4 QA Retiring now 60 (floor to 80, £900k):** locked+started same day → Running: next-step banner still said "Start the
+  budget walk-through" (fixed 6.10.4: locked + no stage banner → hidden); Transition hidden in Running though nothing bought
+  (6.10.4: shown in Running); where-am-I said "bought by contract" because every cone is flat at year 0 (6.10.4: flat over the
+  whole run only); "Tax Saved −£0.00" floating dust (6.10.4). Decision Sept entry + 26/27 wizard fine; history/PDF clean.
+- **P5 QA Retiring now tight (buckets, £380k cautious):** MC 88%. Decision tool showed Equity min £250k / Bond £200k / Cash £50k
+  = the DEFAULT floors → "24% below target". Root cause: lock-from-Stress never seeded Decision settings (only the target
+  synced). 6.10.4: `lockPlanFromStress` seeds Decision from Stress before locking. Existing locked P&V plans need "Copy all
+  from Stress" — cannot while locked; unlock → copy → re-lock, or the fix below.
+- Convention note (not a bug): people with Jan–Apr birthdays see the first step relabelled to the age they REACH in the
+  tax year (a 61-year-old with a Feb birthday retiring now shows "steps start at 62"). Consistent with the ladder/SP maths;
+  the summary should say so explicitly ("62 in 2026/27").
+- **P6 QA Retrospective 70 (full IL ladder, pick-up-from-here, SP in payment):** stage draft-retired, plan starts 2026/27 ✓,
+  MC "Based on 1 simulated futures and 1 real histories" (contract wording — cosmetic). Paste of 3 rungs + CSH2 + VWRP:
+  Settings save FAILED ("Failed to save stress data") — `undefined` fields from mergeLedger (fixed 6.10.5); guessed code
+  T31 vs order TR31 → matched by maturity year (6.10.5); Transition on a running plan said "1 month to go" → rolling
+  6-month reconcile (6.10.5). Reconcile held T27/T29 rung-for-rung ✓, 31% of target held, honest shortfall.
+- **P7 QA DB heavy (£90k, DB £22k, SP from Nov 2026, £36k):** MC 93%; lock seeds Decision (floors = pots) ✓; wizard shows
+  DB £1,833/mo and SP "Receiving £4,829/year" — the partial first-year SP is spread over 12 months (£402/mo) rather than
+  paid from November: a known approximation, worth a note in the wizard (not fixed).
+- Left in the QA account for us to look at: QA Saver 45 (saving), QA Approaching 58 tight (approaching, 61%), QA Approaching
+  59 lock (committed-saving, 13 months), QA Retiring now 60 (running, floor to 80), QA Retiring now tight (running, buckets,
+  88%), QA Retrospective 70 (running ladder, reconcile 33% held), QA DB heavy (running P&V). Fixes shipped 6.10.2–6.10.5.
+
+## 11 Sep 2026 — complex scenarios (inheritance, rental then sale) + our questions
+
+Shipped today: 6.11.0 (State Pension = the monthly payment from its start month, never the partial year ÷ 12),
+6.11.1 (the months before year 0 are the "run-up", paid from SIPP cash),
+6.11.2 ("Tax saved" = tax-free money used; a saved record showed a saving with nothing tax-free in it because
+the comparison was the TARGET drawn from the SIPP, so any shortfall — protection, run-up, month already paid — read as
+a saving; goldens regenerated, taxSaved fields only), 6.11.3 (ladders with a lump sum later: no £0 orders, Transition
+target skips them, plan document has a "From a lump sum" column).
+
+### QA Landlord 60 (retired, SIPP £450k, ISA £120k held, rent £14k years 0–4, flat sold £600k in plan year 5, steps £42k→£36k at 75, gilt rotation, 3 cash years, £20k to April)
+- Stress: 93% paid in full; ladder buys years 0–4 (£28k net of rent) and 2050+ today (£363k of £450k); the sale pays
+  2032/33–2051/52 (need 0). **P8 (fixed 6.11.3)**: order sheet listed 20 gilts paying £0 with a £20 fee each; the plan
+  document's year-by-year showed the lump's money as "Other / DB £42,000".
+- Lock from Stress: chip "🔒 locked · Run-up to the plan start · 7 months to go"; banner and where-am-I read "run-up";
+  plan document lists "▲ Sale of the flat £600,000" at plan year 5.
+- Tax-year wizard 26/27 (September, 7 payments): "Run-up year" copy correct; other income pre-filled £14,000 (rent);
+  confirm shows SIPP £2,333 + other £1,167 = £3,500 gross. **P9 (open, minor)**: the run-up "cash to April covers about
+  5 of the 7 payments" divides by the full £42k step, ignoring the income streams (rent) — should be (step − other)/12.
+- Harness note: income steps are `updIncomeStep(i,'amount',v)` (key is `amount`, not `annual`); setting
+  `window._ssIncomeSteps` directly leaves `ssBaseSalary` at 30,000 and the ladder prices the wrong schedule.
+- Decision Sept 2026 entry (run-up): "£2,333 from SIPP cash", naming the plan's year 0 (the next tax year), no tax-saved row, History
+  source "From SIPP cash". Fixed in 6.11.4: the overlay note still said "the cash you set aside to reach it"; History note
+  "1 month … are the run-up" grammar.
+
+### QA Inheritance 63 (retired, P&V balanced, SIPP £300k, ISA £80k minimise-early-tax, £30k/yr, £250k inheritance in plan year 2 → cash, balanced, ISA first)
+- Stress 99%. Lock: run-up chip. Plan document year 2: "▲ Inheritance (mother) £250,000" — but the row showed the lump's
+  money as "Other / DB £30,000" for a P&V plan (the pot pays; the lump lands in the pot). **Fixed 6.11.4**: P&V and
+  Buckets keep lump sums out of the income layers; bought strategies show them under "From a lump sum".
+- Tax-year wizard 29/30 (June 2029, plan year 2): **P10 (open, wording)** the suggestion says "From your budget's plan for
+  this year — the per-year schedule you set from the Budget tool" when the schedule came from the Stress income steps.
+  **P11 (open)** suggested £32,448 = £30,000 × 1.04² — the CPI typed (3%) is not applied to the skipped years' uplift
+  (assumed 4% both years); expected £30,000 × 1.04 × 1.03 = £32,136.
+
+### QA Downsizer 68 (retrospective: retired 3 yrs, SP in payment since Mar 2025, plan start = this tax year, P&V cautious, SIPP £240k, ISA £50k, £28k/yr, house downsized £300k in plan year 3 → gilts, ISA first; £40k kitchen year 1)
+- Timing: "Plan starts 6 April 2026, already running"; lock → "🔒 locked · Running the plan"; Accumulation hidden; the
+  next-step banner is hidden (display none — its stale text is only in the DOM).
+- Stress: 100% lasts BUT "£0 typically left at the end" at every percentile. Reproduced in node: the SIPP is drawn
+  to nil by ~year 20 while the windfall, moved into the ISA by bed-and-ISA, grows to £400–630k. **P14 (fixed 6.11.5)**:
+  the headline counted the pension pot only; now all pots, with the pension-pot figure beside it.
+- **P13 (open, design)**: "100 in 100 futures had to cut back spending" for every P&V plan whose floors equal the
+  starting pot (the presets set equityMin/bondMin/cashTarget = the allocation, so any dip below a floor is
+  "protection"). True to the engine, alarming to read. For us to decide whether the stat should count only months the draw
+  was actually cut, or the floors should default below the allocation.
+- Decision Sept 2026: SP £998/month (monthlyFull, in payment) + SIPP £1,336 = £2,333; wizard "Receiving £12,272/year".
+- Without the windfall the same plan is 22% — a 5.7% real withdrawal on a cautious mix; not a bug.
+
+### QA SP starts Nov 66 (retired, SP starts 9 Nov 2026, P&V balanced, SIPP £200k, ISA £30k, £24k/yr) — the 6.11.0 check
+- Stress 61%. Tax-year setup Sept 2026: SIPP £2,000 for the months before November, SP not shown (correct) — but the
+  year's tax was £41/month: the November-start SP was left out of the year's tax. **Fixed 6.11.5** (≈ £179/month).
+  Other-income step said "Receiving £4,834/year" → now "Starts 9 November 2026: £997/month (£4,834 this tax year)".
+- Decision Sept 2026 (after 6.11.5): SIPP £2,000, no SP; November: SIPP £1,002 + SP £998 = £2,000 — the 6.11.0 rule
+  end to end. The recommendation's own tax then understated the year (SP share 7/12 of the partial total, £121 vs
+  £179) — **fixed 6.11.6** (engine). Also fixed 6.11.6: **P11** the typed CPI now replaces the assumed 4% for last year
+  in a schedule-based suggestion. **P10** wording fixed 6.11.5.
+
+### QA Part-time 58 (future: retire at 61 in May 2029, part-time £18k years 0–2, Buckets, SIPP £380k, ISA £100k, £34k/yr)
+- Draft chip "Approaching retirement"; Stress 79%; lock → "🔒 locked · Committed, still saving · 3 years to go";
+  Decision gate: "you retire in May 2029 … record your pot on the Accumulation planner instead"; Transition target for a
+  pot strategy: 3 moves, "32 months to go", next buy Shares £204,923. No anomalies.
+
+Open after today: P9 (done 6.11.4), P13 (design question: "100 in 100 futures cut back" for P&V floors = pot),
+the run-up wizard's other-income prefill for income streams that start at plan year 0 (they are shown for the run-up
+year too — arguably right for rent that already exists), and the cone "How your pot changes" excludes the ISA.
+
+**P13 closed (6.12.0, 12 Sep):** our decision: protection that kicks in when enabled and the pots are below their
+glide paths is not cutting back. The tile now counts futures where income was ACTUALLY cut — a tax year more than 1%
+short of the planned draw and never caught up by the tax boost, or the money ran out — and shows the same futures with
+protection off beside it ("x in 100 without protection"), so protection's value is visible. "Protection engaged in z
+in 100 futures" moved into the help text.
+
+**16 Sep 2026 — a retired test plan whose year 0 is later than its stop:** (1) Household called the retired person
+"still working" in the run-up — `workingA = planYear < 0` ignored the Timing block's "already retired"; fixed 6.12.5 (need
+counts from today; a partner not retired keeps "still working" until their start). (2) Transition read as if the person
+had not retired — run-up note added 6.12.5. (3) The fund list was read as what you hold: five test fund lines typed into
+the fund list while the plan was still an experiment; Transition read that list. Provenance note added 6.12.5; paste matcher hardened (ticker code must agree with the name). The lock
+blocked saving My funds ("settings are frozen") — 6.12.6 lets the holdings list save while locked; nothing else.
+
+**16 Sep 2026 — our ruling on holdings vs strategy inputs → 6.13.0.** The stress tester is a decumulation tool only;
+the portfolio in an active strategy in the stress tester must never be assumed to be what the person has at the
+moment; no stray data in the strategies they deselected (backups fine); Transition needs what you have and the locked
+strategy, and the 'what you have' part was not really done. Map (6 agents): taggedFunds served as P&V test
+allocation AND holdings ledger (Transition, Accumulation, PlanDocument, RetireSweep, isaMix); strategyParams a flat bag
+spread forward by every switch path (7 writers); useSpecStrategy wiped taggedFunds; GlidepathService anchors the tent on
+"tagged = real holdings". Built: scenario.holdings record (HoldingsRecord.js + repository), StrategyState.js (per-strategy
+stash/restore, cleanParams), time-aware Transition target + RotationStatus.js, What-you-hold card on Transition; Stress
+list renamed "Funds to test"; one-time offer to copy an existing Stress list into holdings (never automatic).

@@ -1,0 +1,291 @@
+/**
+ * The page's side of the V7 worker (V7 build brief 4.10). Pairs each reply with its request.
+ *
+ *   createWorkerClient({ makeWorker }) → {
+ *     init(today)                              → Promise<{ historyEnd, engineVersion }>
+ *     answer(q, inputs, env, onProgress)       → Promise<Answer>       env = { today, futures, seed, trace } (+ detail for A, B)
+ *     lasts(plan, env, onProgress)             → Promise<Result>       a saved plan's one test (lane 'lasts'; editing-in-v7.md 10)
+ *     document(plan, env, onProgress)          → Promise<Run>          the run a plan document is built from (lane 'document'; road-to-7.md step 6)
+ *     lever(plan, env, onProgress)             → Promise<Result>       one of the three levers on a saved plan (lane 'lever'; road-to-7.md step 7)
+ *     ways(plan, env, onProgress)              → Promise<Result>       the nine ways of drawing on a saved plan (lane 'ways'; way-and-mix.md 2)
+ *     way(plan, env, onProgress)               → Promise<Result>       one way tried on its dials (lane 'way'): env = { today, way: { id, dials } }
+ *     try(plan, env, onProgress)               → Promise<Result>       a change tried on a saved plan (lane 'try'; way-and-mix.md 4): env = { today, boxes }
+ *     mixTry(plan, env, onProgress)            → Promise<Result>       the mix's sleeve or tent the other way (lane 'mixTry'; way-and-mix.md 3.2): env = { today, kind, base }
+ *     mixCompare(plan, env, onProgress)        → Promise<Result>       the eight cells of "Which mix lasts best?" (lane 'mixCompare'): env = { today }
+ *     household(plan, partner, env, onProgress)         → Promise<Result>   a couple's two plans each way, pooled (lane 'household'; road-to-7.md step 9): env = { today, limit }
+ *     householdSurvivor(plan, partner, env, onProgress) → Promise<Result>   the survivor question (lane 'householdSurvivor'): env = { today, boxes }
+ *     householdCare(plan, partner, env, onProgress)     → Promise<Result>   the care question (lane 'householdCare'): env = { today, boxes }
+ *     moveHeld(plan, env, onProgress)          → Promise<Result>       the one run on the mix as held (lane 'moveHeld'; road-to-7.md step 10): env = { today }
+ *     saver(inputs, env, onProgress)           → Promise<AnswerB>      question B on a saved plan's figures (lane 'saver'; saving-enough-and-check-in.md 4.4)
+ *     checkIn(inputs, env, onProgress)         → Promise<AnswerB>      the same on a check-in's figures, before its one write (lane 'checkIn'; 5.4)
+ *     stop(q?)                                 ends the worker if an answer (of question q, or of any question when q
+ *                                              is not given) is under way; those answers reject with code 'stopped'.
+ *                                              Answers of other questions still under way are sent again, unchanged,
+ *                                              to a fresh worker (step 4: each question runs in its own lane). The
+ *                                              next call starts a fresh worker, which is told the date again.
+ *     available()                              → false once it is known that no worker can start
+ *   }
+ *
+ * When no worker can start (none in this browser, the constructor throws, or it fails before it was ever ready)
+ * every call rejects with code NO_WORKER, and the runner works the answer out on the page instead.
+ * Payloads go through cloneSafe, so a function never reaches postMessage.
+ */
+import { cloneSafe } from '../../utils/cloneSafe.js';
+
+export const NO_WORKER = 'no-worker';
+
+const coded = (message, code) => Object.assign(new Error(message), { code });
+
+function defaultMakeWorker() {
+  if (typeof Worker === 'undefined') return null;
+  return new Worker(new URL('./answerWorker.js', import.meta.url), { type: 'module' });
+}
+
+export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
+  let worker = null;
+  let broken = false;          // no worker can start: stop trying
+  let everReady = false;       // some worker has answered `init`
+  let today = null;
+  let nextId = 1;
+  const pending = new Map();   // id → { kind: 'init' | 'answer', resolve, reject, onProgress }
+
+  function rejectAll(error, kind) {
+    for (const [id, entry] of [...pending]) {
+      if (kind && entry.kind !== kind) continue;
+      pending.delete(id);
+      entry.reject(error);
+    }
+  }
+
+  function drop() {
+    const w = worker;
+    worker = null;
+    if (!w) return;
+    w.onmessage = null;
+    w.onerror = null;
+    try { w.terminate(); } catch { /* already gone */ }
+  }
+
+  function onMessage(data) {
+    if (!data || typeof data !== 'object') return;
+    if (data.ready) {
+      everReady = true;
+      // Any `init` still waiting is answered by any worker that is ready (a stopped worker's init is re-sent).
+      for (const [id, entry] of [...pending]) {
+        if (entry.kind !== 'init') continue;
+        pending.delete(id);
+        entry.resolve({ historyEnd: data.historyEnd ?? null, engineVersion: data.engineVersion ?? null });
+      }
+      return;
+    }
+    const entry = pending.get(data.id);
+    if (!entry) return;                                   // a reply nobody is waiting for
+    if (data.progress) {
+      if (entry.onProgress) entry.onProgress(data.progress.done, data.progress.total);
+      return;
+    }
+    pending.delete(data.id);
+    if ('error' in data) entry.reject(coded(String(data.error), 'worker-error'));
+    else entry.resolve(data.result);
+  }
+
+  function onError(event) {
+    if (event && typeof event.preventDefault === 'function') event.preventDefault();
+    drop();
+    if (!everReady) {
+      broken = true;
+      rejectAll(coded('no worker could start', NO_WORKER));
+    } else {
+      rejectAll(coded('the worker failed', 'worker-error'));
+    }
+  }
+
+  function ensure() {
+    if (broken) return null;
+    if (worker) return worker;
+    try { worker = makeWorker(); } catch { worker = null; }
+    if (!worker) { broken = true; return null; }
+    worker.onmessage = (e) => onMessage(e.data);
+    worker.onerror = onError;
+    worker.onmessageerror = onError;
+    if (today) post({ id: nextId++, type: 'init', today });
+    return worker;
+  }
+
+  function post(msg) {
+    try {
+      worker.postMessage(msg);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** One message in its own lane `q` (stop(q) ends it and nothing else); the plan and the env go as data. */
+  function lane(q, plan, env, onProgress, extra = null) {
+    if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+    return new Promise((resolve, reject) => {
+      const id = nextId++;
+      const msg = { id, type: q, plan: cloneSafe(plan), env: cloneSafe(env), ...(extra ? cloneSafe(extra) : {}) };
+      pending.set(id, { kind: 'answer', q, msg, resolve, reject, onProgress });
+      if (!post(msg)) {
+        pending.delete(id);
+        reject(coded('the worker could not be reached', 'worker-error'));
+      }
+    });
+  }
+
+  return {
+    available: () => !broken,
+
+    init(date) {
+      const fresh = !worker;
+      today = date;
+      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      return new Promise((resolve, reject) => {
+        pending.set(nextId++, { kind: 'init', resolve, reject });
+        // A worker made just now has already been sent the date by ensure().
+        if (!fresh && !post({ id: nextId++, type: 'init', today })) onError();
+      });
+    },
+
+    answer(q, inputs, env, onProgress) {
+      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      return new Promise((resolve, reject) => {
+        const id = nextId++;
+        const msg = { id, type: 'answer', q, inputs: cloneSafe(inputs), env: cloneSafe(env) };
+        pending.set(id, { kind: 'answer', q, msg, resolve, reject, onProgress });
+        if (!post(msg)) {
+          pending.delete(id);
+          reject(coded('the worker could not be reached', 'worker-error'));
+        }
+      });
+    },
+
+    /**
+     * "Does it last?" (editing-in-v7.md 10.4): a saved plan's one test, in its own lane 'lasts' (stop('lasts') ends it and
+     * nothing else). The plan goes as data; the result comes back as data.
+     */
+    lasts(plan, env, onProgress) {
+      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      return new Promise((resolve, reject) => {
+        const id = nextId++;
+        const msg = { id, type: 'lasts', plan: cloneSafe(plan), env: cloneSafe(env) };
+        pending.set(id, { kind: 'answer', q: 'lasts', msg, resolve, reject, onProgress });
+        if (!post(msg)) {
+          pending.delete(id);
+          reject(coded('the worker could not be reached', 'worker-error'));
+        }
+      });
+    },
+
+    /**
+     * The run a plan document is built from (research/v7/road-to-7.md step 6: the lock, and "Write a new version from
+     * today's settings"), in its own lane 'document'. The plan goes as data; the trimmed plan, result and saving path come
+     * back as data (answers/plan/lastsRun.js runForDocument). env = { today, essentials }.
+     */
+    document(plan, env, onProgress) {
+      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      return new Promise((resolve, reject) => {
+        const id = nextId++;
+        const msg = { id, type: 'document', plan: cloneSafe(plan), env: cloneSafe(env) };
+        pending.set(id, { kind: 'answer', q: 'document', msg, resolve, reject, onProgress });
+        if (!post(msg)) {
+          pending.delete(id);
+          reject(coded('the worker could not be reached', 'worker-error'));
+        }
+      });
+    },
+
+    /**
+     * The three levers of "Will it last?" on a saved plan (research/v7/answer-D.md 3.9; road-to-7.md step 7), in their own
+     * lane 'lever': the plan goes as data, the lever's figures come back as data (answers/plan/lastsRun.js runLever).
+     * env = { today, lever: { kind, yearly?, years? } }.
+     */
+    lever(plan, env, onProgress) {
+      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      return new Promise((resolve, reject) => {
+        const id = nextId++;
+        const msg = { id, type: 'lever', plan: cloneSafe(plan), env: cloneSafe(env) };
+        pending.set(id, { kind: 'answer', q: 'lever', msg, resolve, reject, onProgress });
+        if (!post(msg)) {
+          pending.delete(id);
+          reject(coded('the worker could not be reached', 'worker-error'));
+        }
+      });
+    },
+
+    /**
+     * "How the money is taken" (research/v7/way-and-mix.md 2.2): the nine ways on a saved plan in their own lane 'ways', and
+     * one way tried on its dials in the lane 'way' (so a stale try is stopped without ending the nine). The plan goes as
+     * data; the results come back as data (answers/plan/waysRun.js runWays, runWay). env = { today } / { today, way: { id, dials } }.
+     */
+    ways(plan, env, onProgress) {
+      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      return new Promise((resolve, reject) => {
+        const id = nextId++;
+        const msg = { id, type: 'ways', plan: cloneSafe(plan), env: cloneSafe(env) };
+        pending.set(id, { kind: 'answer', q: 'ways', msg, resolve, reject, onProgress });
+        if (!post(msg)) {
+          pending.delete(id);
+          reject(coded('the worker could not be reached', 'worker-error'));
+        }
+      });
+    },
+    way(plan, env, onProgress) {
+      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      return new Promise((resolve, reject) => {
+        const id = nextId++;
+        const msg = { id, type: 'way', plan: cloneSafe(plan), env: cloneSafe(env) };
+        pending.set(id, { kind: 'answer', q: 'way', msg, resolve, reject, onProgress });
+        if (!post(msg)) {
+          pending.delete(id);
+          reject(coded('the worker could not be reached', 'worker-error'));
+        }
+      });
+    },
+
+    /**
+     * Try a change on a saved plan (research/v7/way-and-mix.md 4), in its own lane 'try': env = { today, boxes } (lastsRun.js
+     * runTry). "The mix" (3.2): the sleeve or the tent the other way in the lane 'mixTry' (env = { today, kind, base }), the
+     * eight cells in the lane 'mixCompare' (env = { today }) — each stopped on its own.
+     */
+    try(plan, env, onProgress) { return lane('try', plan, env, onProgress); },
+    mixTry(plan, env, onProgress) { return lane('mixTry', plan, env, onProgress); },
+    mixCompare(plan, env, onProgress) { return lane('mixCompare', plan, env, onProgress); },
+    /** "Your household" (road-to-7.md step 9): the pair, the survivor and the care question, each its own lane; the partner's plan goes as data beside the plan. */
+    household(plan, partner, env, onProgress) { return lane('household', plan, env, onProgress, { partner }); },
+    householdSurvivor(plan, partner, env, onProgress) { return lane('householdSurvivor', plan, env, onProgress, { partner }); },
+    householdCare(plan, partner, env, onProgress) { return lane('householdCare', plan, env, onProgress, { partner }); },
+    /** "Moving to your plan's mix" (road-to-7.md step 10): the one run on the mix as held, in its own lane 'moveHeld'. env = { today }. */
+    moveHeld(plan, env, onProgress) { return lane('moveHeld', plan, env, onProgress); },
+    /**
+     * "What you pay in" (research/saving-enough-and-check-in.md 4.4): question B on a saved plan's own figures
+     * (answers/plan/saverInputs.js), in its own lane 'saver', so neither B's own question nor any plan run ends it.
+     * env = { today, futures, seed, detail, mix?, savingMix? }.
+     */
+    saver(inputs, env, onProgress) { return lane('saver', null, env, onProgress, { inputs }); },
+    /**
+     * A saver's check-in (research/saving-enough-and-check-in.md 5.4; release step R3): question B on the plan's figures with
+     * the check-in's own, in a lane of its own, so leaving "What you pay in" (which ends the 'saver' lane) never ends it.
+     * env = { today, futures, seed, detail, mix?, savingMix? }.
+     */
+    checkIn(inputs, env, onProgress) { return lane('checkIn', null, env, onProgress, { inputs }); },
+
+    stop(q) {
+      const ending = (e) => e.kind === 'answer' && (q === undefined || q === null || e.q === q);
+      if (![...pending.values()].some(ending)) return;                        // nothing under way: keep it ready
+      drop();
+      for (const [id, entry] of [...pending]) {
+        if (!ending(entry)) continue;
+        pending.delete(id);
+        entry.reject(coded('stopped', 'stopped'));
+      }
+      const others = [...pending.values()].filter((e) => e.kind === 'answer');
+      if (!others.length && ![...pending.values()].some((e) => e.kind === 'init')) return;
+      // Someone still waits: to hear "ready", or for another question's answer, which the fresh worker works out again.
+      if (!ensure()) { rejectAll(coded('no worker could start', NO_WORKER)); return; }
+      for (const e of others) if (!post(e.msg)) { onError(); return; }
+    }
+  };
+}

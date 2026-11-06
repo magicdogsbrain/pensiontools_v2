@@ -1,0 +1,83 @@
+name: test
+
+# The safety net: the whole suite plus a production build on every push to a branch and every pull
+# request. A release tag points at a commit main has already tested, so tags do not run it again
+# (the repository is private: Actions minutes are counted).
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# Read-only token: this job never writes to the repo.
+permissions:
+  contents: read
+
+# A newer push to the same ref makes the older run pointless; cancel it.
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45   # the whole suite, slow tier included: 15 minutes on a 2-core runner at 6.20.0, 22 at 6.40.0, past 30 at 6.41.0 (gate 8b runs the planner's Try on every fixture, each box alone and all together)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Everything, slow tier included (*.slow.test.js) — same as `npm run test:all`.
+      - run: npx vitest run
+      # The build writes docs/ in the runner only; nothing is committed. It is here because a
+      # bundle that does not build is a release that cannot ship, and tests do not exercise Vite.
+      - run: npm run build
+
+  browser:
+    # The browser job (V7 build brief, package 5): both builds, served with the real security headers, walked
+    # in real browsers. A SEPARATE job: it does not wait for `test`, `test` does not wait for it, and the
+    # nightly data update (update-gilt-data.yml) never runs it — so a browser problem cannot block the data
+    # bot. Pictures are made and uploaded with the report; they are not compared until we approve a
+    # first set (the picture gate: see e2e/screens.spec.js and RELEASING.md).
+    # Step 4 adds A's and B's journeys, their named states in the crawl, keyboard and sameness cases and 36
+    # pictures: about 4 minutes more, planned under 12 minutes in all against the 15-minute limit (test plan
+    # A–B 13.3). If it runs over, cut in that plan's order — never the journeys' counted first answers.
+    #
+    # In Playwright's own container since 6.45.0, as the night run and the picture workflow are: the browsers and their
+    # system libraries are already there, so nothing is installed from Ubuntu's mirror. Until 27 Oct 2026 the shards
+    # installed the libraries on the plain runner, and that step failed three ways — the mirror stalling at ~100 kB/s
+    # (1 Oct: two 20-minute hangs), the runner's own apt-get holding the dpkg lock for the first minute of a job (27 Oct,
+    # twice), and the step's 8-minute cap killing the front process while the root apt-get it had started kept the lock
+    # for the retries (27 Oct, a docs-only commit). The container's tag is pinned to package.json's Playwright version by
+    # tests/v7/e2eRules.test.js.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    # Split three ways (step 4 tripled the browser tests); each shard runs its third on its own runner.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      HOME: /root            # Firefox refuses to start in a container without this
+      TZ: Europe/London
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # The published build (dist/prod, the current app and V7 exactly as deployed) and V7's test build (dist/test).
+      - run: npm run e2e:build
+      - run: npx playwright test --shard=${{ matrix.shard }}/3
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: browser-report-${{ matrix.shard }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

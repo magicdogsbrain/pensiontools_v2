@@ -1,0 +1,273 @@
+# Releasing PensionTools
+
+Every user-visible change ships under a **version bump with a release note**. The note is data
+(`src/releases.js`) that the app shows once to each user and lists on the What's new page, and a
+test enforces it: `tests/releases.test.js` fails when `package.json`'s version has no matching top
+entry, or when an entry is missing a section. So you cannot bump without explaining, or explain
+without bumping.
+
+## Before anything reaches main
+
+`main` is the publishing branch, so three things stand between a change and a user:
+
+- **CI on every push and pull request** (`.github/workflows/test.yml`): `npm ci`, the full suite,
+  then `npm run build`. A red run means do not release from that commit.
+- **The nightly data bot is gated** (`.github/workflows/update-gilt-data.yml`): it fetches gilt and
+  equity data, runs the full suite against the new data, and commits only if it passes. On failure
+  nothing is pushed, the run goes red and GitHub emails you; yesterday's data stays live.
+- **Two test tiers.** `npm run test:fast` while working (skips files named `*.slow.test.js`, a few
+  seconds); `npm run test:all` before a release (everything, about a minute; the same as
+  `npx vitest run`). A test file that takes more than a few seconds gets the `.slow.test.js` suffix;
+  nothing else changes, because the include glob matches both.
+
+## The browser job (V7, from the first slice)
+
+Beside the vitest job, `.github/workflows/test.yml` runs a **separate** `browser` job on every push: it
+builds the published site and V7's test build (`npm run e2e:build` → `dist/prod`, with V7 at its root and the
+classic planner in `dist/prod/classic`, and `dist/test`, V7's test build at its root), serves
+them with the real headers of `public/_headers` (`e2e/helpers/serve.mjs`, so a script the security policy
+would block is found before deployment), and walks them in Chromium, WebKit and Firefox with Playwright
+(`e2e/*.spec.js`, `playwright.config.js`). The two jobs do not wait for each other, and the nightly data
+update never runs the browser job — a Playwright problem cannot block the data bot. Browsers are cached
+by the exact Playwright version in `package.json`; every container tag in the workflows must equal it
+(`tests/v7/e2eRules.test.js` checks).
+
+- **While the V7 stubs stand**, the scripts that need a part not built yet are *skipped with the reason*
+  (`e2e/helpers/app.js` `BUILT` / `waitsFor`); the moment a stub is replaced they run. Nothing to switch on.
+- **At home**: `npm run e2e:build && npm run e2e` (about 10 seconds per script; the first run needs
+  `npx playwright install chromium webkit firefox`). `npm run e2e -- c-forum-guest` for one journey.
+  The report is `playwright-report/index.html`; `test-results/` holds traces of failures, the pictures
+  (`test-results/screens/`) and the counted first answer (`test-results/first-answer/<project>.json`).
+- **Pictures** (`e2e/screens.spec.js`, 25 of C, 36 of A and B): made and uploaded with the report on every push, **not
+  compared** until we have looked at the three screens on a real phone and approved a first set.
+  To approve: run the **"approve screenshots"** workflow from the Actions page on the branch (one button).
+  It makes the pictures in the official Playwright container — the only place pictures are ever made or
+  compared, so the typefaces are the same every time — and commits them to `e2e/screens.spec.js-snapshots/`
+  as "Screenshots approved: <run>". Never run `--update-snapshots` on a Mac: its pictures would not match
+  the CI machine's. Once a set is approved, comparing on every push is switched on by adding
+  `SCREENS_GATE: '1'` to the environment of a job that runs `screens.spec.js` **in the same container**
+  (the plain runner's typefaces differ; move the picture step into a container job when the gate goes on).
+- **While another package's screens are mid-change**, `E2E_IGNORE=<regexp>` drops matching screen-check
+  problems locally so the rest of a journey can be seen. Never in a workflow (the rules test checks).
+- **The night run** (`.github/workflows/nightly.yml`, 02:30 UTC, and by hand): the long random runs
+  (`NIGHTLY=1 FC_RUNS=2000 npx vitest run tests/v7`), the full sameness list in three browsers, and the
+  journeys in WebKit at phone and iPad widths and in Firefox. A red night sends the usual email; the
+  failing input goes into `tests/v7/c/found.cases.json`.
+- **The wait budget** (first figure within 3 s, final within 15 s with the processor slowed four times) is
+  measured by `c-forum-guest.spec.js` at full speed and multiplied by four, because Chromium can slow a
+  page's processor but not a worker's; the figures are in `test-results/first-answer/`.
+- **Questions A and B (step 4)** add five journeys — `a-stop-soon` (the counted first answer to A, on the
+  published build) and `b-my-number` (A's figures carried into B), `a-couple`, `a-from-savings`, `b-coast`
+  (the counted first answer to B) — A's and B's named states in the crawl, keyboard and sameness cases, and
+  36 more pictures (61 in all). The budgets: A at most 4 typed things, 4 screens, 8 clicks; B at most 5, 4,
+  8 (4 screens since the budget step "What would you spend?" became a screen of its own, 1 Oct 2026; the counts are
+  `FIRST_ANSWER_BUDGET` in `e2e/helpers/app.js`); the first figure within 3 s and the answer step's final figure within 15 s, the optional step ("every
+  age", "two levers together") within 30 s more, arriving as `partial` — slowed four times as above. The
+  counts are in `test-results/first-answer-a/` and `first-answer-b/`. Until A and B are open on the front
+  door (the joining-up change) these scripts are skipped with the reason, as C's were.
+- **`npm run v7:cases`** rewrites all three generated case lists (C's `tests/v7/c/cases.pairs.json`, A's and
+  B's under `tests/v7/a/` and `tests/v7/b/`); the pairs tests fail when a list is out of date.
+
+### The signed-in journeys (from 7.1.0; local, not in CI yet)
+
+Every other browser test runs without an account. The journeys a person makes with one — keep a plan and sign in,
+come back signed in, hand over to the classic planner signed in (research/v7/after-7.md) — run against the **local
+Firebase emulators** of a `demo-pensiontools` project: a `demo-` project cannot reach any live service, and the build
+they run has no live project id or key in it (`tests/emulatorBuild.test.js`). Never point them at the live project or
+a real account; the accounts are fictional (`alex@example.test`, `sam@example.test`).
+
+- **Run**: `node scripts/e2e-signed-in.mjs` (add `--no-build` to reuse the last emulator build, and any Playwright
+  arguments after it, e.g. `--project=signed-in-phone-390`; `E2E_PORT_PROD=<port>` picks the server's port). It builds
+  the emulator build into `dist/emu` (`SITE_OUT=dist/emu VITE_EMULATORS=1`, both apps, the published layout), then runs
+  `firebase emulators:exec --only auth,firestore --project demo-pensiontools` (`firebase.json`'s emulators block: Auth
+  on 9099, Firestore on 8080, the real `firestore.rules`, no UI) around `playwright.signed-in.config.js`, which serves
+  `dist/emu` with the real headers plus the two emulator addresses and runs `e2e/signed-in/*.spec.js` at desktop-1440
+  and phone-390, one test at a time.
+- **Needs** the Firebase CLI (`firebase`) and Java; the CLI fetches the Firestore emulator the first time.
+- **Each spec clears the emulators first**, makes its accounts through the emulator's own endpoints and confirms their
+  emails with the emulator's codes (`e2e/signed-in/emulator.js`).
+- **Not in CI this round**: the GitHub workflows have no Java or Firebase CLI step yet. Run it before every release.
+
+### Before a V7 release: the stopwatch line and the real-phone look
+
+The machine's count guards against creep (a sixth box, a fourth screen, a slow first run); it does not
+prove a real person finishes in two minutes. Once per release we:
+
+1. Time one real person (or ourselves, cold) from arriving at the front page (`/`) to the first figure, and writes the
+   figure here in the release commit, once per question that ships:
+   - C: **stopwatch: __ s (who, device, date)**
+   - A ("When can I afford to stop work?"): **stopwatch: __ s (who, device, date)**
+   - B ("Am I saving enough?"): **stopwatch: __ s (who, device, date)**
+2. Open the three screens (front door, your numbers, the answer) on a real phone and a real iPad, since
+   Playwright's WebKit is close to Safari but is not it, and say yes before the first pictures are approved.
+3. For A and B, the same on a real phone and iPad: A's numbers, answer (a "close" verdict, a couple stopping
+   before 57, stopping now) and every-age screens; B's numbers, answer (short and on course) and two-levers
+   screens — and the four A and five B fixtures' sentences and figures read and approved — before A's and B's
+   first pictures are approved (step 4 brief 7, items 6 and 7).
+
+## Version numbers
+
+- `package.json` `version` is the ONE source. `src/constants.js` imports it; the header chip, the
+  fixed version chip, the Assumptions page and `<title>` all read from it.
+- **Minor / major** (`6.2.0`, `7.0.0`): anything a user can see or that changes a saved plan's
+  numbers. Pops up once for every user (signed in or guest) on their next visit.
+- **Patch** (`6.1.1`): small fixes with no visible change. Listed on the page, no pop-up. Set
+  `announce: true` on the entry to force a pop-up anyway.
+- `src/strategies/version.js` `ENGINE_VERSION` is separate: bump it only when a strategy's
+  arithmetic changes (it is pinned on the plan when it locks). Record it on the release entry.
+
+## Checklist
+
+> **🚨 First, every time: be generic.** The notes are public and shown to every user. Write as "we" (a team of
+> developers), never "the owner". No real person's figures, dates, plans or household — ours included — in the notes, in
+> examples, or in the commit message. Each note says what changed, why, and what it means for the reader, in a few plain
+> sentences; no process (tests, night runs, reviews, who decided), no internal names, no code. See .claude/CLAUDE.md.
+
+1. `npm version minor --no-git-tag-version` (or `patch` / `major`) — bumps `package.json` only.
+2. Add the top entry to `RELEASES` in `src/releases.js`. Fill EVERY section, plain English:
+   - `title`, `summary` — what a user would say changed.
+   - `changes[]`, `corrections[]` — say plainly what was wrong before.
+   - `effects{}` — one array per tool (`budget, stress, strategies, decision, accumulation,
+     household`); an empty array means "no effect" and is rendered as such. Write it from the point
+     of view of a plan saved under the PREVIOUS version: do its numbers move? Is anything re-judged?
+   - `actions[]` — what they may need to enter, re-run or review.
+   - `notes[]` — rules used, data notes, known limits still open, engine version.
+   - `affects(scenario)` — optional plan-specific bullets (must tolerate `{}`; see the 6.1.0 entry).
+   - `engineVersion` — the `ENGINE_VERSION` shipping with it.
+3. `npm run test:all` (= `npx vitest run`) — all green (the release test checks the contract).
+   Then the signed-in journeys, on this machine (see "The signed-in journeys" below): `node scripts/e2e-signed-in.mjs`
+   — all green. A release is not done until the journeys it touches pass end to end, signed in.
+4. `npm run build` (rebuilds `docs/`, the folder that is deployed, in the 7.0 layout: see "Where each bundle lives"
+   below; `docs/sw.js` is the kill switch from `public/sw.js`, published as it is: it clears any old service worker and
+   never needs a stamp, so leave it in place for as long as the site runs).
+5. Commit as `Release vX.Y.Z — <title>` and tag: `git tag vX.Y.Z`.
+6. `git push --follow-tags origin main` (GitHub Pages mirror updates itself).
+7. Deploy to pensiontools.uk: `npx wrangler pages deploy docs --project-name=pension-planner-pwa --branch=main`,
+   then run the checks after a deploy (below): each bundle's name on the live site must match `docs/`.
+8. If the release adds a data category, a processor or analytics: update
+   `compliance/PRIVACY_POLICY.md` + `public/privacy.html` FIRST (see `compliance/GDPR_TODO.md`), with "Last updated"
+   in both set to the day the release ships (wording written earlier keeps the day it was written until then).
+
+## Where each bundle lives (from 7.0.0)
+
+Two builds from one commit, each into its own folder of `docs/`, in either order (`vite.layout.js`; the addresses each
+app hands the other are `src/appLayout.js`'s, chosen by the `LAYOUT` flag at build time):
+
+| Address | What it is | Built by | In `docs/` |
+|---|---|---|---|
+| `/` | PensionTools (V7): the front page, the one installable app (`manifest.json`, named "PensionTools", starting at `/index.html`) | `vite build --config vite.v7.config.js` | `index.html` (`assets/index-*.js`), with the whole public folder: `_headers`, `privacy.html`, `data/`, `sw.js`, `manifest.json`, the icons, `reddit/` |
+| `/classic/` | the classic planner: no manifest, "do not index" (its head and `_headers`) | `vite build` | `classic/index.html` (`classic/assets/main-*.js`), and `classic/data/` (a copy of the market files at release, for its engine worker) |
+| `/v7/` | the old address: a page that forwards to the same place at `/`, the `#/…` part kept | the V7 build | `v7/index.html`, `v7/forward.js` |
+
+The nightly data job still writes `public/data/` and `docs/data/` only: the classic page reads the root's `../data/`,
+so it is as fresh as V7's. `classic/data/` changes only at a release, as the worker's bundled figures do.
+`tests/publishedSite.test.js` checks that `docs/` is one whole build in this layout and that the files asked for by
+name are served as files.
+
+**Checks after a deploy** (none of them signs in or touches an account):
+
+```sh
+curl -s https://pensiontools.uk/ | grep -o 'assets/index-[^"]*\.js'                 # = docs/index.html's
+curl -s https://pensiontools.uk/classic/ | grep -o 'assets/main-[^"]*\.js'          # = docs/classic/index.html's
+for p in /privacy.html /data/gilts.json /data/equity.json /classic/data/gilts.json /sw.js /manifest.json; do
+  curl -s -o /dev/null -w "%{http_code} %{content_type} $p\n" "https://pensiontools.uk$p"   # 200, and never text/html but for the policy
+done
+curl -sI https://pensiontools.uk/classic/ | grep -i x-robots-tag                       # X-Robots-Tag: noindex
+curl -sI https://pensiontools.uk/ | grep -ci x-robots-tag                              # 0
+```
+
+Then in a browser: `https://pensiontools.uk/v7/#/plans` lands on `/#/plans`; "Use the previous version" opens the
+classic planner; a plan's "Change this in the classic planner" lands there and its "Back to PensionTools" comes back.
+The GitHub Pages mirror follows `docs/` with the same layout (every address is relative).
+
+**Rollback** (the layout before 7.0, from the same commit — never redeploy an older build, and never swap the two
+folders by hand: each bundle carries the other app's address). Build it into a scratch folder outside the repository,
+never over `docs/`, and deploy that folder:
+
+```sh
+LAYOUT=preview SITE_OUT=/tmp/pt-rollback npm run build   # the classic page at /, V7 at /v7/
+LAYOUT=preview npm run e2e:build
+LAYOUT=preview E2E_PORT_PROD=<p1> E2E_PORT_TEST=<p2> npx playwright test e2e/production.spec.js e2e/old-app-unchanged.spec.js --project=desktop-1440
+npx wrangler pages deploy /tmp/pt-rollback --project-name=pension-planner-pwa --branch=main
+npm run e2e:build                                        # dist/ back to the 7.0 layout for the next browser run
+```
+
+and check `curl -s https://pensiontools.uk/ | grep -o 'assets/main-[^"]*\.js'` against `/tmp/pt-rollback/index.html`. Both
+layouts publish the kill-switch `sw.js` and the same `_headers` (which marks both `/classic/*` and `/v7/*` "do not index").
+(A build refuses to empty a folder that is the repository, holds it, or holds a `.git` or `package.json`, so a mistyped
+`SITE_OUT` stops it before anything is deleted.)
+
+Nothing of a rollback is committed. `docs/` and the repository stay on 7.0, so the suite stays green
+(`tests/publishedSite.test.js` holds `docs/` to the layout `LAYOUT` names, and CI runs without it) and the GitHub Pages
+mirror, which follows `docs/` on `main`, stays on 7.0 while pensiontools.uk is rolled back. The fix then ships as the next
+release, built and deployed in the 7.0 layout as usual, which puts the two back in step. Going back to the old layout for
+good would be a release of its own: the default in `src/appLayout.js` (`layoutNamed`) changed with its tests, and
+`docs/` rebuilt from it.
+
+## Saved-plan schema version (`schemaVersion`)
+
+Every saved plan carries one whole number at its ROOT, `schemaVersion` (absent = 0, every plan saved
+before 6.15.0). `src/storage/schema.js` holds the one constant, `SCHEMA_VERSION`; the ordered chain
+of upgrades is `MIGRATIONS` in `src/storage/migrations.js`. On every load (signed in, guest, and
+when a plan is created — a new plan, a copy, a guest plan brought into an account) the plan is
+normalised and then moved up the chain, and written back once if anything changed.
+`tests/migrations.test.js` enforces the contract: `SCHEMA_VERSION` must equal the last entry's `to`
+and the chain must be contiguous from 1 — so you cannot bump without a migration, or add a
+migration without bumping.
+
+**When to add one.** Only when the SHAPE of a saved plan changes: a key renamed, moved or split, a
+value that must be written down once instead of worked out on every load. A new optional key that
+is read with a default needs no migration.
+
+**How to add one.**
+
+1. Bump `SCHEMA_VERSION` by one in `src/storage/schema.js`.
+2. Append ONE entry to `MIGRATIONS`: `{ to: <new version>, name: '<plain English>', up(scenario, { now }) }`.
+   Never edit an entry that has shipped — plans in the wild have already been through it.
+3. Add a fixture of the OLD shape to `tests/fixtures/plans/` (see `build.mjs`), so the corpus keeps
+   a plan that has to make the journey, and update the "this release is schema version N" test.
+4. Say what it does to saved plans in the release note's `effects{}`.
+
+**Rules for every step** (the runner refuses a step that breaks the ones marked *enforced*, and
+the plan is then left exactly as it was):
+
+- Pure and synchronous. No storage, no DOM; the clock is the `now` passed in. The result must not
+  depend on today's date (the tests run each fixture either side of 6 April).
+- Patch paths; keep every key you do not know. Never rebuild an object from a fixed list of keys —
+  the write-back is a full replace, so anything left out is gone for good. No root key may
+  disappear (*enforced*).
+- Idempotent: run on its own output it changes nothing.
+- Never touch `planDocument`, `planDocumentArchive`, `decisionTool.planOfRecord`,
+  `decisionTool.planOfRecordArchive` or `decisionTool.history` (*enforced*). They are the record of
+  what was committed; change how they are READ instead.
+- **Never add, rename or remove a key inside `decisionTool.settings` of a plan that is locked or
+  has records** (*enforced*). That map is what `decisionSettingsChecksum` hashes; move it and every
+  recorded month shows as "under previous settings". Put new things at the root or under a new map.
+- A step that throws abandons the whole chain for that plan: nothing is written, the plan opens as
+  it is, and the next load tries again. There is no backup collection — this rule is the safety.
+
+**Old tabs.** A tab left open across a deploy still runs the old code. Every save first reads the
+stored plan's `schemaVersion`; if it is greater than the tab's `SCHEMA_VERSION` the save is refused
+and the app shows "This plan was updated by a newer version of the app — reload the page". This
+guard shipped in 6.15.0, so only bundles from 6.15.0 onward are protected: do not ship schema
+version 2 until 6.15.0 has been live long enough for older tabs to have been closed.
+
+**Still done the old way** (worked out on load, outside the chain): the plan's start year
+(`PlanTiming.pinTiming`, written back by `StressRepository.loadStressDBAsync` since 6.14.0 — it
+depends on today's date and the Budget's age, so it cannot be a pure step), the "Declining with
+age" spending bake, and the merge of default Stress settings.
+
+## How users see it
+
+- The "What's new" pop-up appears once per announced release, after the app has loaded. Signed-in
+  users: the last version seen is stored on their profile (`users/{uid}/profile/settings.lastSeenVersion`),
+  so it is once across devices; guests: in this browser (`localStorage pt_lastSeenVersion`).
+  First-time visitors and brand-new accounts never see it (nothing to compare): their marker is set
+  to the current version silently. Flip `ANNOUNCE_TO_FIRST_VISIT_GUESTS` in index.html to change
+  that for guests. Reading the What's new page also counts as seen. The header chip shows a dot
+  while an announced release is unseen.
+- Strategies → Background → **What's new** lists every release; the header chip and the mobile
+  "More" sheet link to it.
+- There is no live "new version available" banner: the service worker is not registered (a legacy
+  registration is asked to update at boot, which fetches the kill switch and removes it), so a reload fetches the new bundle. A banner would need a
+  registered worker or a `version.json` poll — out of scope for now.

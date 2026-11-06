@@ -1,0 +1,252 @@
+/**
+ * The words of "Does it last?" (research/v7/editing-in-v7.md 10). Data only — this file imports nothing. Placeholders
+ * are written {likeThis} and filled by the screen. The figures are never here: they are the one test's own, read through
+ * the planner's OneAnswer.js.
+ */
+export const LASTS = {
+  title: 'Does it last?',
+  lead: 'The one test every screen of the classic planner shows: your plan, its own way of drawing, its own cuts, its full length, through every real stretch of markets since 1871 and 1,000 possible futures.',
+  savedValue: '({value})',
+  source: { saved: 'From your plan, saved {date}', savedUndated: 'As saved in the plan', locked: 'Fixed when you locked the plan on {date}.' },
+  /** The band and the rows under it, by id. */
+  verdict: {
+    'lasts.headline': 'Your plan lasts {words}.',
+    'lasts.sub': '{pct}% of {futures} futures; {histories} real starts since 1871; {years} years, to {toAge}.',
+    'lasts.subContract': 'Every year is bought by contract, so no future and no start year can run it out; {years} years, to {toAge}.',
+    'lasts.unaffordable': 'This way of drawing cannot be bought with this plan’s pots, so there is no figure. Change the pots, the spending or the way of drawing.',
+    word: { yes: 'On course', close: 'Close', no: 'Not yet' }
+  },
+  rows: {
+    left: 'Left at the end, at today’s prices: typically {typical}; in a bad case (the worst 1 in 10) {bad}; in a good case (the best 1 in 10) {good}.',
+    'cuts.some': 'Income cuts: in {n} of {of} futures{ranOut}, typically {perYear} a year less for about {years} year{s} ({total} in all; the most in any future {worst}). A cut is a tax year in which more than 1% of the planned income went unpaid and was never caught up.',
+    'cuts.none': 'Income cuts: none — in every one of the {of} futures the plan was paid in full.',
+    'cuts.bought': 'Income cuts: none — this way of drawing pays the plan in full until it cannot.',
+    'cuts.flex': 'Income cuts: none — the treats flex instead; the honest risk is a lean year, not running out.',
+    'ran.cuts': 'Run with the spending cuts you set: up to {pct}% after {months} month{s} in a row below the plan’s line.',
+    'ran.cutsOff': 'Run with the spending cuts switched off, as you set it: the plan is paid in full until the money runs out.',
+    'ran.bundled': 'Gilts priced on the bundled yield curve here; the classic planner prices them on the day’s live figures when it has them, so a ladder’s cost can differ there.'
+  },
+  /** Where the figures came from. */
+  ran: { now: 'Worked out just now, on the plan as saved {date}.', nowUndated: 'Worked out just now, on the plan as saved.', document: 'Worked out when the plan was locked on {date}.', today: 'Today’s test on the same plan:' },
+  /** While the run is under way, and when it cannot be. */
+  working: { title: 'Working out your answer…', trying: 'Trying your plan against every real start since 1871 and 1,000 possible futures.', slow: 'Still working. This can take a little longer on a phone.', progress: 'How far the working has got' },
+  failed: { title: 'Sorry, we could not work that out.', body: 'Nothing has been lost. Your plan is still here.', tryAgain: 'Try again',
+    noWorker: 'This browser cannot run the test in the background, so it cannot be run here. The classic planner runs the same test.', inPlanner: 'Run it in the classic planner' },
+  notRun: 'This plan is shown as it was saved, so it is not run here. Nothing has been lost.',
+  /** History: "what if you had retired into a bad year?" — the one test's own real starts. */
+  history: {
+    title: 'What if you had retired into a bad year?',
+    lead: 'The same {histories} real starts the test counted, {ranOut} of which ran out. These are where the figure above comes from, not a second figure.',
+    leadCut: 'The same {histories} real starts the test counted. The plan was cut in {ranOut} of them; it never runs out. These are where the figure above comes from, not a second figure.',
+    leadLean: 'The same {histories} real starts the test counted, {ranOut} of which had a lean year. The bills were paid in every one. These are where the figure above comes from, not a second figure.',
+    leadContract: 'Every year of this plan is bought by contract, so no start year can run it out.',
+    worstTitle: 'The hardest starts in the record — an unfair test',
+    worstLead: 'Nobody retires into the worst month of 150 years on purpose, and the test counts every one of them all the same. Read these as the edge of what has ever happened, not as what will happen.',
+    namedTitle: 'Named starts',
+    namedLead: 'The famous bad years, each replayed from its January with your own plan, its own cuts setting and its full length. Every figure at today’s prices.',
+    lowest: 'Lowest 12 months {lowest}',
+    left: 'left {left}',
+    rows: {
+      'hist.ranOut': 'ran out at {age}',
+      'hist.lastedCut': 'lasted; income cut in {n} year{s} ({total} in all)',
+      'hist.lasted': 'lasted, never cut',
+      'hist.ladderRanOut': 'the money kept to grow ran out at {age} after the ladder',
+      'hist.ladder': 'the ladder paid by contract; the ratchet secured {secured} more year{s}',
+      'hist.rotationFired': 'the market fell 30% below its high at {fired}: the long rungs were sold for shares; paid in full',
+      'hist.rotationFiredShort': 'the market fell 30% below its high at {fired}: the long rungs were sold for shares; the later years ran short from {age}',
+      'hist.rotationHeld': 'the market never fell 30% below its high in time: the whole ladder paid by contract',
+      'hist.rotationHeldShort': 'the whole ladder paid by contract, but the later years ran short from {age}',
+      'hist.flex': 'the floor paid by contract; the leanest treat-year was {leanest}',
+      'hist.contract': 'every year is bought by contract — the start year changes nothing but the pounds that arrive',
+      'hist.contractShares': 'every year of income is bought by contract — the start year changes only what the money left over in shares is worth',
+      'hist.none': 'no start-year replay for this way of drawing yet: its history figure above is the one test’s',
+      'hist.tooShort': 'real history since {year} is not long enough yet for a plan of this length; the futures the test stitches from it carry it on'
+    },
+    /** The named stresses (road-to-7.md step 11b): the famous decades, each replayed from its January, with what the decade did. */
+    scenariosTitle: 'The named stresses — whole decades',
+    scenariosLead: 'What each famous decade did to shares and prices, and what the one test’s real history from that January did to your plan. No second figure: these starts are among the {histories} the test counted.',
+    /** A contract plan (every year bought): the planner's lead to its inflation table, and the figures on each row. */
+    scenariosLeadContract: 'Every year of this plan is bought today, index-linked: a fall in shares changes nothing but the pounds that arrive, and they always buy the same. So the test here is prices — what each famous decade would do to the cash the rungs pay, against the plan at today’s prices.',
+    decade: { 'decade.line': 'shares {firstDir} {firstPct}% in the first three years and {decadeDir} {decadePct}% over the decade; prices {pricesDir} {pricesPct}% over the decade' },
+    cash: { 'cash.line': 'prices {pricesDir} {pricesPct}% after ten years: the rungs would pay {first} at {firstAge} and {tenth} at {tenthAge}, which still buys {worth} at today’s prices — paid in full by contract' },
+    dir: { down: 'down', up: 'up' },
+    synthetic: '{name}: {decade}. A made-up decade: no real start is this bad, so it is not in the test.',
+    syntheticHardest: ' The hardest real start in the record is {when}, above.'
+  },
+  /** The years one by one and the pots’ floors (road-to-7.md step 11b): the planner’s Drawdown and Glidepath pages, read off the one test. */
+  years: {
+    title: 'The years, one by one',
+    show: 'Show the years',
+    hide: 'Hide the years',
+    lead: 'Year by year at {prices}% a year prices, with no ups and downs: what is drawn from the pension to fill the basic-rate band, the State Pension once it starts, the tax, what the ISA tops up to reach the plan’s figure, what is left to spend, and the ISA left. A steady path for reading, not a second test: the figure above counts every real start and 1,000 futures.',
+    leadOwn: 'Year by year as this way of drawing pays: the income in the middle future, the income in a 1-in-10 bad one, and what is left in the middle — read off the same test as the figure above.',
+    columns: { year: 'Year', age: 'Age', pension: 'From the pension', state: 'State Pension', tax: 'Tax', isa: 'From the ISA', spendable: 'To spend', isaLeft: 'ISA left', incomeMid: 'Income (middle)', incomeBad: 'Income (1 in 10 bad)', leftMid: 'Left (middle)' },
+    floorsTitle: 'The pots’ floors over the plan',
+    floorsShow: 'Show the pots’ floors',
+    floorsHide: 'Hide the pots’ floors',
+    floorsLead: 'The least each pot is meant to hold, year by year at {prices}% a year prices: the shares and bonds floors rise with prices and run down to nothing by the end; cash holds its value; the ISA runs down as it tops up income.',
+    floorsLeadTent: 'The least each pot is meant to hold, year by year at {prices}% a year prices. The bond tent is on: the shares part of the pots rises over the early years, then holds; the floors rise with prices and run down to nothing by the end; cash holds its value; the ISA runs down as it tops up income.',
+    floorsDiversifiers: ' Your gold and trend pot runs down the same way.',
+    floorsReserve: ' The emergency reserve is shown apart and never touched.',
+    floorsColumns: { year: 'Year', age: 'Age', shares: 'Shares floor', bonds: 'Bonds floor', cash: 'Cash', diversifiers: 'Gold and trend', reserve: 'Reserve', sharesPct: 'Shares % of the pot', isa: 'ISA', total: 'All floors' },
+    notThisWay: 'This way of drawing keeps no floors: every year is bought or paid by its own rule, so there is no table of floors to show.'
+  },
+  sections: { cuts: 'Cuts in a slump', reserve: 'Emergency reserve' },
+  notes: {
+    cuts: 'What the plan does in a slump instead of running dry: after some months in a row below its line, income is cut by a share, half of it at first and the whole of it if the slump lasts; missed income is made up later. Every run above counts the cuts as you set them.',
+    reserve: 'Money kept aside and touched only when the plan would otherwise run out.'
+  },
+  fields: {
+    cutsOn:            { label: 'Cut spending in a slump', options: { yes: 'Yes', no: 'No: pay the plan in full until the money runs out' } },
+    cutAfterMonths:    { label: 'After how many months in a row below the plan’s line' },
+    cutPct:            { label: 'Cut income by, %', help: 'Half of it for the first months below; the whole of it if the slump lasts.' },
+    deeperAfterMonths: { label: 'Months at half the cut before the whole cut', help: '0 means the whole cut from the first month.' },
+    buffer:            { label: 'Keep this much above the line before the cut ends, in pounds' },
+    reserveOn:         { label: 'Keep an emergency reserve', options: { yes: 'Yes', no: 'No' } },
+    reserveAmount:     { label: 'The reserve, in pounds' }
+  },
+  errors: {
+    cutsOn:            { notAnOption: 'Yes or no.' },
+    cutAfterMonths:    { required: 'How many months in a row, for example 3.', notANumber: 'Whole months, please, like 3.', tooLow: 'At least 1 month.', tooHigh: 'Up to 24 months, please.' },
+    cutPct:            { required: 'The cut as a percent, for example 20.', notANumber: 'A whole percent, please, like 20.', tooLow: 'A percent of 0 or more.', tooHigh: 'Up to 95%, please.' },
+    deeperAfterMonths: { required: 'How many months, for example 12 (or 0).', notANumber: 'Whole months, please, like 12.', tooLow: 'A number of months of 0 or more.', tooHigh: 'Up to 60 months, please.' },
+    buffer:            { notANumber: 'Figures only, like 15,000, or 0.', tooLow: 'An amount of £0 or more.', tooHigh: 'An amount up to £1,000,000, please.' },
+    reserveOn:         { notAnOption: 'Yes or no.' },
+    reserveAmount:     { required: 'Type the reserve, for example 25,000.', notANumber: 'Figures only, like 25,000.', tooLow: 'At least £1.', tooHigh: 'An amount up to £50,000,000, please.' }
+  },
+  notUsed: 'Not used by this way of drawing.',
+  derivedTitle: 'What this works out to',
+  derived: {
+    'cuts.staged': 'In a slump, after {months} months in a row below the plan’s line, income is cut by {half}% for {first} months and by {full}% if it lasts; the cut ends once the pots are {buffer} above the line again, and missed income is made up later.',
+    'cuts.flat': 'In a slump, after {months} months in a row below the plan’s line, income is cut by {full}%; the cut ends once the pots are {buffer} above the line again, and missed income is made up later.',
+    'cuts.off': 'No cuts: the plan is paid in full until the money runs out.',
+    'reserve.on': 'An emergency reserve of {amount}, touched only when the plan would otherwise run out.',
+    'reserve.off': 'No emergency reserve.',
+    'notUsed.bought': 'Not used by this way of drawing: it pays the plan in full until it cannot. The dials are kept for the day you switch to Pots and valves or Buckets in order.',
+    'notUsed.flex': 'Not used by this way of drawing: the treats flex instead. The dials are kept for the day you switch to Pots and valves or Buckets in order.'
+  },
+  partner: '{name}’s plan is tested on {name}’s plan.',
+  partnerLink: 'Open ‘{name}’: does it last?',
+  together: 'The two plans together — whether the household lasts when one pot pays for the other, who draws what, and what happens if one of you dies or needs care — are on ‘Your household’.',
+  togetherButton: 'Check the two plans together',
+  buttons: { save: 'Save', cancel: 'Cancel', undo: 'Undo', close: 'Close', back: 'Back to your plan' },
+  toast: {
+    lasts: 'Saved. Cuts of up to {pct}% after {months} months; {reserve}. The test is running again on the saved plan.',
+    lastsOff: 'Saved. No cuts; {reserve}. The test is running again on the saved plan.',
+    savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.'
+  },
+  problems: {
+    locked: 'This plan is locked, so nothing was changed. To change it, unlock it from “Your plan as locked”.',
+    notHere: 'That plan is not in this account. Nothing was changed.',
+    usedUp: 'Your free time without an account is used up. Sign in to keep and change this plan.',
+    nobody: 'Sign in to change this plan. Nothing was changed.',
+    storage: 'This browser would not keep the change. Nothing was changed.',
+    failed: 'Sorry, the change could not be saved. Nothing was changed.',
+    problems: 'Have a look at the boxes marked above.',
+    readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.'
+  },
+  readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
+  saving: 'Saving…',
+  /** Try a change on a plan (research/v7/way-and-mix.md 4): the planner's whole Try, beside the three levers. */
+  try: {
+    title: 'Try a change of your own',
+    lead: 'Change any of these and try it: the same one test on a copy of your plan, over its full length. Nothing is kept until you press “Use this” or keep it as a separate plan.',
+    fields: {
+      'try.way':        { label: 'The way the money is taken' },
+      'try.pot':        { label: 'The pension pot, in pounds', help: 'The shares, bonds and cash are scaled to this figure in their saved proportions; a slice of gold and trend funds is left as it is.' },
+      'try.isa':        { label: 'The ISA, in pounds' },
+      'try.isaPolicy':  { label: 'The ISA', options: { saved: 'As saved', hold: 'Held back, never drawn for income' } },
+      'try.incomeMode': { label: 'The income', options: { shape: 'As shaped, step by step', flat: 'A flat figure every year' } },
+      'try.income':     { label: 'A month after tax, at today’s prices', help: 'The plan saves it as a figure a year before tax, through its own tax sum.' },
+      'try.years':      { label: 'How many years the plan runs (5 to 45)' },
+      'try.cuts':       { label: 'Cuts in a slump', options: { saved: 'As saved', on: 'On', off: 'Off: pay the plan in full until it runs out' } },
+      'try.cutPct':     { label: 'How deep the cut is, % (blank: as saved)' },
+      'try.cutEsc':     { label: 'Months at half the cut before the whole cut (blank: as saved)' }
+    },
+    errors: {
+      'try.way':        { required: 'Choose a way.', notAnOption: 'One of the nine, please.' },
+      'try.pot':        { required: 'Type the pot, for example 500,000.', notANumber: 'Figures only, like 500,000.', tooLow: 'An amount of £0 or more.', tooHigh: 'An amount up to £50,000,000, please.' },
+      'try.isa':        { notANumber: 'Figures only, like 50,000, or 0.', tooLow: 'An amount of £0 or more.', tooHigh: 'An amount up to £50,000,000, please.' },
+      'try.isaPolicy':  { notAnOption: 'One of the two, please.' },
+      'try.incomeMode': { notAnOption: 'One of the two, please.' },
+      'try.income':     { required: 'Type the figure a month, for example 2,000.', notANumber: 'Figures only, like 2,000.', tooLow: 'At least £1.', tooHigh: 'Up to £50,000 a month, please.' },
+      'try.years':      { required: 'How many years, for example 35.', notANumber: 'Whole years, please, like 35.', tooLow: 'At least 5 years.', tooHigh: 'Up to 45 years, please.' },
+      'try.cuts':       { notAnOption: 'One of the three, please.' },
+      'try.cutPct':     { notANumber: 'A whole percent, please, like 20.', tooLow: 'A percent of 0 or more.', tooHigh: 'Up to 60%, please.' },
+      'try.cutEsc':     { notANumber: 'Whole months, please, like 12.', tooLow: 'A number of months of 0 or more.', tooHigh: 'Up to 60 months, please.' }
+    },
+    buttons: { open: 'Try a change of your own', tryIt: 'Try it', use: 'Use this', keep: 'Keep as a separate plan', close: 'Put it away', again: 'Try again', yes: 'Use it', notNow: 'Not now', openIt: 'Open it', lock: 'Lock this plan?' },
+    working: 'Trying it…',
+    failed: 'Sorry, that could not be tried. Nothing has changed.',
+    noWorker: 'This browser cannot run the test in the background, so a change cannot be tried here.',
+    problems: 'Have a look at the boxes marked above.',
+    stale: 'The boxes have moved since this was tried: press “Try it” again for the new figures.',
+    ran: 'Tried in 1 run.',
+    ranTimed: 'Tried in 1 run ({s} s).',
+    differentTitle: 'What’s different',
+    none: 'This is your plan as saved, run through {way}.',
+    diffs: {
+      way: 'The way the money is taken: {way} (the plan: {old}).',
+      pot: 'The pension pot: {pot} (the plan: {old}).',
+      isa: 'The ISA: {isa} (the plan: {old}).',
+      isaPolicy: 'The ISA: {policy} (the plan: {old}).',
+      income: 'A flat income of {income} a year before tax{steps}.',
+      incomeSteps: ' instead of your steps',
+      years: '{years} years (the plan: {old}).',
+      cuts: 'Cuts in a slump: {on}.',
+      cutPct: 'The cut: {pct}% (the plan: {old}%).',
+      cutEsc: 'Months at half the cut: {months} (the plan: {old}).'
+    },
+    policies: { hold: 'held back, never drawn for income', bridge: 'drawn as the plan is set', minimiseEarlyTax: 'used to keep early tax down', maximiseLongevity: 'used to make the money last', saved: 'as saved' },
+    onOff: { on: 'on', off: 'off' },
+    confirm: {
+      title: 'Use this?',
+      body: 'Your plan changes in {n} way{s}, as listed under “What’s different”; the rest stays as saved.',
+      undo: 'You can undo this straight away.'
+    },
+    kept: {
+      inAccount: 'Kept as ‘{name}’ in your account.',
+      inWindow: 'Kept as ‘{name}’ in this browser window.',
+      unlocked: 'The copy is not locked: lock it when it is right.'
+    },
+    keepProblems: {
+      full: 'Without an account this browser keeps three plans, and it holds three. Sign in to keep more.',
+      unverified: 'Confirm your email address first, then keep it.',
+      failed: 'Sorry, the copy could not be kept. Nothing has changed.',
+      storage: 'This browser would not keep the copy. Nothing has changed.',
+      usedUp: 'Your free time without an account is used up. Sign in to keep this.',
+      nobody: 'Sign in to keep a copy. Nothing has changed.',
+      noRun: 'Try it first, then keep it.'
+    },
+    toast: { try: 'Saved. Your plan changed in {n} way{s}. The test is running again on the saved plan.' }
+  },
+  /** The three levers of "Will it last?" on a saved plan (research/v7/answer-D.md 3.5–3.7, 3.9; road-to-7.md step 7). */
+  levers: {
+    title: 'Try a change',
+    lead: 'Each is the same one test on a copy of your plan. Nothing here changes the plan: put the lever away and it is gone.',
+    names: { spendMore: 'Could I spend more?', work: 'Would some work help?', fall: 'What if shares fell by a fifth?' },
+    buttons: { spendMore: 'Could I spend more?', work: 'Try it', fall: 'What if shares fell by a fifth?', close: 'Put it away', again: 'Try again' },
+    work: { yearly: 'Pay a year, before tax', years: 'For how many years (1 to 5)', note: 'Pay from the plan’s first year, taxed with the rest.' },
+    working: 'Trying it…',
+    failed: 'Sorry, that could not be tried. Nothing has changed.',
+    noWorker: 'This browser cannot run the test in the background, so the levers cannot be tried here.',
+    invalid: { yearly: 'Type the pay a year before tax, from £1 to £200,000.', years: 'Whole years, from 1 to 5.' },
+    /** On a locked plan with a document, once a lever has been tried: one comparison line, never a suggestion to unlock (3.9). */
+    locked: 'The plan as locked on {date} said {docChance}%. The levers are tried against today’s test ({chance}%): the same plan on a different day.',
+    lines: {
+      'spendMore.more': '{perMonth} a month more would still last in 9 futures out of 10: {chance}% of futures, with typically {typical} left at the end (against {baseChance}% as it is).',
+      'spendMore.none': 'What you take is close to the most that lasts in 9 futures out of 10 as it is ({baseChance}% of futures).',
+      'spendMore.noneShort': 'It does not last in 9 futures out of 10 as it is ({baseChance}% of futures), and no smaller amount tried changed that.',
+      'spendMore.less': 'It does not last in 9 futures out of 10 as it is ({baseChance}% of futures). {perMonth} a month less would: {chance}% of futures.',
+      'spendMore.evenHalf': 'Even half the income did not last in 9 futures out of 10 on these pots ({baseChance}% of futures as it is).',
+      'spendMore.capped': 'Even twice the income lasted in 9 futures out of 10 ({chance}% of futures, typically {typical} left) — the most this lever tries.',
+      'work.line': 'With {yearly} a year from work for {years} year{s}, the plan lasts {words}: {chance}% of futures, typically {typical} left — against {baseChance}% without it.',
+      'work.how': 'Added as a row of money that comes in anyway (the classic planner’s own extra incomes), from the plan’s first year for {years} year{s}, rising with prices and taxed with the rest. Nothing else changed.',
+      'fall.line': 'If shares fell by a fifth tomorrow (the pots {potBefore} to {potAfter}), the plan lasts {words}: {chance}% of futures, typically {typical} left — against {baseChance}% as it is.',
+      'fall.how': 'The shares part of each pot cut by a fifth — the pension’s, an ISA’s where it is invested like the pension, a taxable account’s held in shares — and the plan run as it is, the mix kept.',
+      unaffordable: 'This way of drawing cannot be bought with the plan’s pots, so there is no figure to move.',
+      leverNo: 'That could not be tried on these figures.',
+      runs: 'Tried in {runs} run{s} of the one test.'
+    }
+  }
+};

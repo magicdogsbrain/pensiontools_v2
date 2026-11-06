@@ -1,0 +1,919 @@
+/**
+ * ONE stress test for every strategy — the single source of truth behind both the Stress tab
+ * (when a plan is locked to a strategy) and the Strategies compare table. Whatever strategy the
+ * user switches to, the numbers they see come from THIS function on THIS plan, so the compare
+ * row and the locked-plan result can never disagree (tests/strategySwitch.slow.test.js pins it).
+ *
+ * All three strategies run on the same real-terms Shiller history (every window) and the same
+ * block-bootstrapped Monte-Carlo futures (deterministic seeds). Each returns the same shape:
+ *   ruin {hist, mc}, worst12 {min, median}, guaranteedToAge, terminal {p10, p50, p90},
+ *   cones: wealth (p10/p25/p50/p75/p90 by plan year, today's money) and income (same),
+ *   plus a strategy-specific `signature` and the derived config used.
+ */
+
+import { ON_COURSE_SHARE } from '../services/OnCourse.js';   // "on course" = lasts in 9 futures out of 10, everywhere (6.22.0)
+import { getRtr, getCpi, bootstrapPaths, annualNominal, pct, curvePricer, flatYieldPricer } from './ladderEngine.js';
+import { getStrategy } from './registry.js';
+import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
+import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
+import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadderAtAge, runRotationPath, spareGrowthRuns } from './GiltRotation.js';
+import { deriveCompareConfigs, compareAll } from './compareRunner.js';
+import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
+import { deriveTiming, isaAtRetirementOf } from '../services/PlanTiming.js';
+import { planAsSeenFromToday, spPaidBefore, ladderAsSeenFromToday, runUpCashSpent } from '../services/PlanFromToday.js';
+import { grossToNet, netToGross } from '../services/TaxCalculator.js';
+import { scheduleFromSteps } from '../services/IncomeSchedule.js';
+import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadderPlan.js';
+import { activeLinkers } from '../services/LinkerUniverse.js';
+import { activeParams } from '../services/StrategyState.js';
+import { chargesPctOf, monthlyChargeFactor } from '../services/Charges.js';
+import { summariseCuts, pctText } from '../services/OneAnswer.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
+
+export const STRATEGY_NAMES = {
+  'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Bridge & engine', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder', 'gilt-rotation': 'Gilt ladder + rotation'
+};
+
+/** p10/p50/p90 band of one per-window series (array index = plan year). */
+function bandOf(windows, pick, years) { return Array.from({ length: years + 1 }, (_, y) => { const v = windows.map((w) => pick(w, y) ?? 0); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; }); }
+
+/** The money a bought strategy may spend: SIPP + ISA, unless the ISA is held aside (policy 'hold'). */
+const availablePot = (p) => p.pot + (p.isaHold ? 0 : (p.isa || 0));
+
+/** Percentile bands (p10/p25/p50/p75/p90) of a set of per-year series. */
+/** Evenly-spaced sample of the raw per-future series, for spaghetti charts (never the full 1,000). */
+export function sampleOf(seriesList, years, n = 80) {
+  const step = Math.max(1, Math.floor(seriesList.length / n));
+  const out = [];
+  for (let i = 0; i < seriesList.length && out.length < n; i += step) {
+    const src = seriesList[i] || [];
+    out.push(Array.from({ length: years + 1 }, (_, y) => (src[y] != null && Number.isFinite(src[y])) ? src[y] : 0));
+  }
+  return out;
+}
+
+/**
+ * The per-future read-out the couples check pools pots with (6.25.0, household-draw-split.md §8): for every future the
+ * test ran, the wealth left at the plan's end (today's money) and the plan year it was first cut — null when it lasted.
+ * A strategy that knows that year passes `failYears` (the engine's own fail age or first short year); without it, the
+ * first year the wealth is gone. A strategy whose cut still pays part of the income (a lean year, a smaller level
+ * income, a rotated year part paid) also passes `unpaid`: the income it left unpaid from that year on, today's money,
+ * so the other plan is asked to cover only that. Without it the cut plan is taken to pay nothing from that year (an
+ * empty pot). Until 6.37.0 only the rotation passed its year: a Floor & Flex or Floor to an age future that was cut
+ * kept its wealth, so every one read as never cut, or cut only at the plan's end. A read-out of the runs each test
+ * already made, never a second test.
+ */
+export function futuresOf(wealthList, survived, terminals, failYears = null, unpaid = null) {
+  const failYear = wealthList.map((w, i) => {
+    if (survived[i] !== false) return null;
+    if (failYears) return failYears[i] ?? null;   // a strategy that knows the year it was cut says so
+    const y = (w || []).findIndex((v) => !(v > 1));
+    return y >= 0 ? y : null;
+  });
+  const out = { terminal: terminals.map((v) => (Number.isFinite(v) ? v : 0)), failYear };
+  if (unpaid) out.unpaid = failYear.map((fy, i) => (fy == null ? null : Math.max(0, unpaid[i] || 0)));
+  return out;
+}
+
+/** The plan year of a fail age (fractional, from the engine's fail month) — the year it was first short, never later. */
+const yearOfAge = (failAge, startAge) => (failAge == null ? null : Math.max(0, Math.floor(failAge - startAge + 1e-9)));
+
+/** From the first year below `minShare` of plan, that year and what is left unpaid against the plan to the end (6.37.0). */
+function cutFromIncome(income, plannedAt, N, minShare) {
+  const fy = income.findIndex((v, y) => v < plannedAt(y) * minShare);
+  if (fy < 0) return { fy: null, unpaid: 0 };
+  let unpaid = 0;
+  for (let y = fy; y < Math.max(fy + 1, N); y++) unpaid += Math.max(0, plannedAt(y) - income[y]);
+  return { fy, unpaid };
+}
+
+/** DB pension / income streams / 'other' for plan year y, today's money (0 when the plan has none). */
+const otherAt = (p, y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0;
+
+export function coneOf(seriesList, years) {
+  const out = { years: Array.from({ length: years + 1 }, (_, i) => i), p10: [], p25: [], p50: [], p75: [], p90: [] };
+  for (let y = 0; y <= years; y++) {
+    const vals = seriesList.map((s) => (s && s[y] != null && Number.isFinite(s[y])) ? s[y] : 0);
+    out.p10.push(pct(vals, 0.10)); out.p25.push(pct(vals, 0.25)); out.p50.push(pct(vals, 0.50));
+    out.p75.push(pct(vals, 0.75)); out.p90.push(pct(vals, 0.90));
+  }
+  return out;
+}
+
+/** Real-terms per-year other income, extra need and windfalls from the lumpy settings (approximate indexation). */
+export function lumpyByYear(settings, cfg, years, assumedCpi = 0.025) {
+  const otherIncomeByYear = [], extraNeedByYear = [], windfallByYear = [];
+  const real = (amount, mode, y) => mode === 'level' ? amount / Math.pow(1 + assumedCpi, y) : amount;   // cpi & lpi5 ≈ level in real terms
+  for (let y = 0; y <= years; y++) {
+    let inc = (cfg.other || settings.other || 0);
+    if ((cfg.dbAmount || 0) > 0 && y >= (cfg.dbStartYear || 0)) inc += real(cfg.dbAmount, cfg.dbIndexation || 'lpi5', y);
+    for (const s of cfg.extraIncomes || []) if (s.annual > 0 && y >= (s.startYear || 0) && (s.endYear == null || y <= s.endYear)) inc += real(s.annual, s.indexation || 'lpi5', y);
+    let need = 0;
+    for (const w of cfg.extraWithdrawals || []) { if (!(w.amount > 0) || w.year == null) continue; const runs = Math.max(1, w.years || 1); if (y >= w.year && y < w.year + runs) need += real(w.amount, w.indexation || 'cpi', y); }
+    let lump = 0;
+    // An EXISTING taxable account (GIA) is money the bought strategies can spend from day one — it
+    // buys the first rungs exactly as a lump sum arriving in year 0 would (the P&V engine holds it
+    // as its own taxable sleeve via pnvCfg.taxableStart, so nothing is counted twice).
+    if (y === 0) lump += Math.max(0, +cfg.taxableStart || 0);
+    for (const w of cfg.windfalls || []) if (w.amount > 0 && w.year === y) lump += real(w.amount, w.indexation || 'cpi', y);
+    otherIncomeByYear.push(inc); extraNeedByYear.push(need); windfallByYear.push(lump);
+  }
+  return { otherIncomeByYear, extraNeedByYear, windfallByYear };
+}
+
+/**
+ * How a BOUGHT strategy uses a windfall: the lump arrives in its year and buys the rungs from
+ * then on — it pays that year's remaining need and carries forward against the years after,
+ * until it is spent. Parked money is assumed to hold its real value and no more (a short gilt /
+ * cash ladder; gilts in a taxable account are CGT-free, so no tax drag is modelled either —
+ * slightly pessimistic on return, faithful on tax). Returns the per-year amount of need the
+ * windfall pays (`usedByYear`) and the unspent balance carried at each year end (`carryByYear`).
+ */
+export function applyWindfallsToNeed(needNetByYear, windfallByYear) {
+  const usedByYear = [], carryByYear = [];
+  let carry = 0;
+  for (let y = 0; y < needNetByYear.length; y++) {
+    carry += (windfallByYear && windfallByYear[y]) || 0;
+    const use = Math.min(carry, Math.max(0, needNetByYear[y] || 0));
+    carry -= use;
+    usedByYear.push(use); carryByYear.push(carry);
+  }
+  return { usedByYear, carryByYear };
+}
+
+/**
+ * The plan every strategy is judged on, built ONCE from the app's stress settings + the P&V
+ * simulation config (createSimulationConfigFromSettings). Honours the strategy parameters the
+ * user saved in Settings (ladder years, bolted draw, essentials, horizon, sleeve rate) and the
+ * plan's real State Pension start year — never a hard-coded "year 10".
+ * `now` (optional) pins the clock: it reaches deriveTiming here and, carried on the plan as `p.now`, the gilt-ladder
+ * pricing date — so a test (or a replay of a locked plan) gets the same numbers on any day. Omitted = today, as before.
+ * `startAge` is the age at the plan's year 0 (the income shape's first age).
+ *
+ * A plan whose pots belong to a later plan year than its year 0 runs from that year (6.50.0, services/PlanFromToday.js:
+ * its settings' `potsAsOf` — a draft seen from today, a locked plan from the day it was locked): at the age reached in
+ * it, for the years left, on those pots. `cfg` comes shifted from
+ * simulationConfigFromSettings (it carries `yearOffset`); a config built any other way is shifted here, never twice. The
+ * plan then carries `yearOffset` (the years lived: run year k is plan year yearOffset + k), `monthsIntoYear` and
+ * `runFirstTaxYear` (the tax year the run starts in); `firstTaxYear` stays the plan's year 0. A plan in its year 0 or
+ * before has none of the three and is the plan object it always was.
+ */
+export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual, startAge, now } = {}) {
+  // A Pots & Valves plan owns no dials and is sized on its allocation (6.13.5): a "Total in your SIPP", ISA total or
+  // essentials figure left in the flat bag by a deselected strategy (any plan saved before 6.13.0 and not re-saved
+  // — a locked one cannot be) must not size it. Bought strategies read their bag as it is: three of them read dials
+  // StrategyState files under another strategy. A what-if for another strategy must name it in settings.strategyId.
+  const params = settings.strategyId === 'pots-and-valves' ? activeParams(settings) : (settings.strategyParams || {});
+  // WHEN the plan starts (one saved anchor, see PlanTiming): the first tax year, the age the steps
+  // start at, and — for someone retiring later — how much today's pots grow before then.
+  const timing = deriveTiming(settings, now);
+  if (!(startAge > 0)) startAge = timing.shapeAgeNow || 57;
+  // The plan as seen from the day of its pots: the config's own offset when it carries one (a run is never shifted twice),
+  // else where the settings say the pots belong, on this clock. 0 — every plan in its year 0 or before, every plan locked
+  // in it, any settings that do not say — leaves everything below as it always was.
+  cfg = planAsSeenFromToday(cfg, settings, timing);
+  const lived = cfg.yearOffset > 0 ? cfg.yearOffset : 0;
+  const yearZeroAge = startAge;
+  startAge += lived;
+  const alloc = (cfg.equityStart || 0) + (cfg.bondStart || 0) + (cfg.cashStart || 0) + (cfg.diversifierStart || 0);
+  // The strategy settings can pin the SIPP/ISA totals fed to the ladder; otherwise the plan's pots.
+  // A pinned total is today's money too, so it is projected to retirement like the pots (cfg already is).
+  const pot = params.sippTotal > 0 ? params.sippTotal * timing.potScale.sipp : alloc;
+  // With no ISA total pinned and no ISA today, the ISA at retirement (money going into one): PlanTiming.isaAtRetirementOf.
+  const isa = params.sippTotal > 0 ? ((+params.isaTotal || 0) > 0 ? params.isaTotal * timing.potScale.isa : isaAtRetirementOf(settings, 0)) : (cfg.isaBalance || 0);
+  const target = settings.baseSalary || 0;
+  const spWeekly = cfg.spWeeklyAmount || settings.spWeeklyAmount || 0;
+  const spAnnual = spWeekly ? spWeekly * 52 : (cfg.statePension || settings.statePension || 0);
+  const spStartYear = cfg.spStartYear ?? cfg.statePensionYear ?? settings.statePensionYear ?? 99;
+  // 45y: the linker universe and 150y windows both cover it. Seen from today: the years left.
+  const durationYears = lived > 0 ? Math.max(1, Math.min((+settings.duration > 0 ? +settings.duration - lived : (cfg.duration || 35)), 45))
+    : Math.min(settings.duration || cfg.duration || 35, 45);
+  // Stepped income (60k to 72, 50k to 80, 40k after): the saved per-year schedule wins; if a plan
+  // saved steps but no schedule (an old save-order bug), compile it here so nothing runs flat (from the current year on).
+  const compiled = () => { const c = scheduleFromSteps(settings, yearZeroAge); return lived > 0 && Array.isArray(c) && c.length ? c.slice(Math.min(lived, c.length - 1)) : c; };
+  const rawSchedule = Array.isArray(cfg.targetSchedule) && cfg.targetSchedule.length ? cfg.targetSchedule : compiled();
+  // Other income (DB pension, income streams, 'other') and extra withdrawals (one-off spends), in
+  // today's money, per plan year. The P&V engine handles these itself (pnvCfg keeps the raw
+  // schedule); the ladder/floor strategies buy the NET need: target + extras − other income.
+  const { otherIncomeByYear: otherBase, extraNeedByYear, windfallByYear } = lumpyByYear(settings, cfg, durationYears);
+  const hasWindfall = windfallByYear.some((v) => v > 0);
+  const hasLumpy = otherBase.some((v) => v > 0) || extraNeedByYear.some((v) => v > 0) || hasWindfall;
+  const needByYear = Array.from({ length: durationYears + 1 }, (_, y) => (rawSchedule ? (rawSchedule[Math.min(y, rawSchedule.length - 1)] ?? target) : target) + extraNeedByYear[y]);
+  // Windfalls: previously ignored by every bought strategy (one-off SPENDS were modelled, one-off
+  // RECEIPTS were not — a bias against every ladder in the ranked table). The lump pays the need
+  // from its year onward, so for the ladder builders it behaves as other income in those years
+  // (the P&V engine handles the same windfalls itself through pnvCfg — see the engine).
+  const windfallUse = hasWindfall ? applyWindfallsToNeed(needByYear.map((v, y) => Math.max(0, v - otherBase[y])), windfallByYear) : null;
+  const otherIncomeByYear = windfallUse ? otherBase.map((v, y) => v + windfallUse.usedByYear[y]) : otherBase;
+  const targetSchedule = hasLumpy ? needByYear.map((v, y) => Math.max(0, v - otherIncomeByYear[y])) : rawSchedule;
+  return {
+    pot, isa, targetAnnual: target,
+    otherIncomeByYear, extraNeedByYear, needByYear, rawSchedule, windfallByYear,
+    windfallCarryByYear: windfallUse ? windfallUse.carryByYear : null,   // unspent windfall parked at each year end (bought strategies only)
+    essentialsAnnual: params.essentialsAnnual || essentialsAnnual || Math.round(target * 0.55),
+    durationYears, startAge, spAnnual, spStartYear,
+    incomeShape: settings.incomeShape, incomeSteps: settings.incomeSteps, shapeAgeNow: settings.shapeAgeNow,
+    targetSchedule,
+    params: {
+      ladderYears: params.ladderYears, drawAnnual: params.drawAnnual, triggerMode: params.triggerMode,
+      bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate,
+      floorToAge: params.floorToAge, cashYears: params.cashYears, bridgeCash: params.bridgeCash,
+      bridgeAge: params.bridgeAge, bucketBand: params.bucketBand, treatsRule: params.treatsRule,
+      rotateCutAge: params.rotateCutAge, rotateTrigger: params.rotateTrigger, rotateDisarmYears: params.rotateDisarmYears,
+      spareGrowth: params.spareGrowth === true || undefined   // a gilt ladder's money left over in shares (6.35.0); absent = kept
+    },
+    spFirstYearRatio: cfg.spFirstYearRatio ?? 1,
+    // No State Pension entered: the engine falls back to the legacy £12,000-from-67 default. Say so.
+    spAssumed: !settings.spStartDate && !(+settings.spWeeklyAmount > 0) && spAnnual > 0,
+    // Ladder rungs are per TAX year: the SP's first-year share is measured against 6 April (a whole year in a run from
+    // today when it was already being paid before this tax year).
+    spFirstYearRatioTaxYear: (lived > 0 && spPaidBefore(settings, timing.firstTaxYear + lived)) ? 1 : (spTaxYearFirstRatio(settings) ?? cfg.spFirstYearRatio ?? 1),
+    firstTaxYear: timing.firstTaxYear,   // saved with the plan (6.4.0) — it no longer slides each January
+    yearsToStart: timing.yearsToStart, timingMode: timing.mode,
+    ...(lived > 0 ? { yearOffset: lived, monthsIntoYear: cfg.monthsIntoYear || 0, runFirstTaxYear: timing.firstTaxYear + lived } : {}),
+    // Pots that belong to the plan's year 0 after its 6 April (a plan that says when work stopped, 6.51.0): no year lived,
+    // so nothing above moves, but the ladder's cash "until the plan's income starts" is spent (PlanFromToday.runUpCashSpent).
+    // Absent on every other plan, which is the plan object it always was.
+    ...(!(lived > 0) && runUpCashSpent(settings, timing) ? { runUpSpent: true } : {}),
+    stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
+    isaHold: settings.isaDrawdownStrategy === 'hold',   // powder-dry ISA: never funds rungs/floors
+    // Fund and platform charges (6.19.0): the plan's percent a year, from its engine config (createSimulationConfigFromSettings;
+    // a plan locked before charges has none → 0). Pots & Valves reads it from pnvCfg (the same config); the bought
+    // strategies get its monthly factor on their sleeves (compareRunner.deriveCompareConfigs) and the gilt ladders' cash years.
+    chargesPct: chargesPctOf(cfg),
+    pnvCfg: { ...cfg, startAge, targetSchedule: rawSchedule },   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself
+    yieldForYear,
+    ...(now ? { now } : {})   // only when injected: the plan object is otherwise byte-identical to before
+  };
+}
+
+/**
+ * One P&V run on a NOMINAL path (real equity history × that window's own inflation), exactly as the
+ * Monte Carlo tab runs it — tax bands, cash and bond models all see real inflation — with the
+ * outputs converted to today's money. (An earlier version fed the engine inflation≈0 and frozen
+ * bands, which let the nominal bond/cash models read as REAL returns and flattered P&V by
+ * several points of ruin.)
+ */
+function pnvRun(cfg, returns, seed, planYears, startAge) {
+  const eng = getStrategy('pots-and-valves').engine;
+  const r = eng.simulate({ ...cfg, years: planYears, trace: true }, returns, seed);
+  const t = r.trace || [];
+  // Income on a GROSS-EQUIVALENT basis so it is comparable with the £ target and with the ladder
+  // strategies (whose draw is the gross target): SIPP draws are gross; ISA top-ups are net, so
+  // they are grossed up at the plan's own average rate for the year (target ÷ net-of-target).
+  // Previously ISA £ were added at net value, which read a full-income month as a shortfall.
+  const inc = t.map((row) => {
+    const pi = row.planInputs || {};
+    const taxableYr = ((row.effectiveSipp || 0) + (pi.fixed || 0) / 12) * 12;
+    const isaYr = ((row.effectiveIsa ?? row.isaMonthly ?? 0) + (row.giaNet || 0)) * 12;   // tax-free-in-the-hand money: ISA + the taxable sleeve's net
+    if (!(pi.pa > 0)) return (taxableYr + isaYr) / 12;
+    const netYr = grossToNet(taxableYr, pi.pa, pi.brl, pi.hrl) + isaYr;   // what lands in the bank
+    return netToGross(netYr, pi.pa, pi.brl, pi.hrl) / 12 / (row.cumInf || 1);   // gross-equivalent, today's money
+  });
+  let worst12 = Infinity, run = 0;
+  for (let i = 0; i < inc.length; i++) {
+    run += inc[i];
+    if (i >= 12) run -= inc[i - 12];
+    if (i >= 11) worst12 = Math.min(worst12, run);
+  }
+  if (r.failed || !Number.isFinite(worst12)) worst12 = 0;
+  const incomeByYear = [];
+  for (let y = 0; y < planYears; y++) { let s = 0; for (let m = 0; m < 12; m++) s += inc[12 * y + m] || 0; incomeByYear.push(s); }
+  incomeByYear.push(incomeByYear[incomeByYear.length - 1] || 0);
+  const wealth = (r.potByYear || []).map((v, y) => (v == null ? 0 : v) + (r.isaByYear && r.isaByYear[y] != null ? r.isaByYear[y] : 0));
+  return {
+    failed: r.failed, failAge: r.failed ? startAge + r.failMonth / 12 : null,
+    terminal: r.failed ? 0 : (r.finalReal + (r.finalIsa || 0) / (r.cumInflation || 1)),   // today's money
+    worst12, protMonths: r.protMonths, wealthByYear: wealth, incomeByYear,
+    cutYears: r.cutYears || 0, cutReal: r.cutReal || 0   // the engine's own record of income actually unpaid (6.24.0: the cuts the one answer reports)
+  };
+}
+
+function pnvTest(p, configs) {
+  const rtr = getRtr(), cpi = getCpi();
+  const planYears = p.durationYears;
+  const END = configs.END;
+  const hist = [];
+  for (let s = 0; s < rtr.length - END; s += (p.stride || 1)) hist.push({ s, ...pnvRun(p.pnvCfg, annualNominal(rtr, cpi, s, planYears), s, planYears, p.startAge) });
+  const mc = [];
+  const runs = p.mcRuns || 400;
+  // Seed i*7919+3 is the SAME as runFlexMonteCarlo / runLadderMonteCarlo: future i is one market for every strategy.
+  for (let i = 0; i < runs; i++) { const path = bootstrapPaths(i * 7919 + 3, END); mc.push(pnvRun(p.pnvCfg, annualNominal(path.rtr, path.cpi, 0, planYears), i, planYears, p.startAge)); }
+  const terms = mc.map((w) => w.terminal);
+  return {
+    affordable: true,
+    ruin: { hist: 100 * hist.filter((w) => w.failed).length / hist.length, mc: 100 * mc.filter((w) => w.failed).length / mc.length },
+    worst12: { min: Math.min(...hist.map((w) => w.worst12)), median: pct(hist.map((w) => w.worst12), 0.5) },
+    guaranteedToAge: p.spAnnual > 0 ? `State Pension only (from age ${p.startAge + (p.spStartYear || 0)}${p.spAssumed ? ', assumed — none entered' : ''})` : 'None — market-dependent',
+    terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: pct(hist.map((w) => w.terminal), 0.5) },
+    cones: { wealth: coneOf(mc.map((w) => w.wealthByYear), planYears), income: coneOf(mc.map((w) => w.incomeByYear), planYears) },
+    samples: { wealth: sampleOf(mc.map((w) => w.wealthByYear), planYears), income: sampleOf(mc.map((w) => w.incomeByYear), planYears) },
+    failAges: mc.filter((w) => w.failed).map((w) => w.failAge),
+    survivedMc: mc.map((w) => !w.failed),
+    // the year the money ran out (the wealth read-out is start-of-year, so it showed the year after: 6.37.0)
+    futuresMc: futuresOf(mc.map((w) => w.wealthByYear), mc.map((w) => !w.failed), terms, mc.map((w) => (w.failed ? yearOfAge(w.failAge, p.startAge) : null))),
+    // One answer (6.24.0): the income cuts counted from these same futures, and the per-start record of the real
+    // histories (what History and Scenarios explain) — read-outs of the runs above, not a second test.
+    cuts: summariseCuts(mc, planYears),
+    histWindows: hist.map((w) => ({ s: w.s, failed: !!w.failed, failAge: w.failAge, terminal: w.terminal, worst12: w.worst12, protMonths: w.protMonths, cutYears: w.cutYears, cutReal: w.cutReal })),
+    signature: { protMonthsMedian: pct(hist.map((w) => w.protMonths), 0.5),
+      pots: { equity: p.pnvCfg.equityStart || 0, bond: p.pnvCfg.bondStart || 0, cash: p.pnvCfg.cashStart || 0, diversifier: p.pnvCfg.diversifierStart || 0, isa: p.pnvCfg.isaBalance || 0 },
+      floors: { equity: p.pnvCfg.equityMin || 0, bond: p.pnvCfg.bondMin || 0, cash: p.pnvCfg.cashTarget || 0 },
+      protection: { enabled: !p.pnvCfg.disableProtection, cutPct: Math.round((1 - (p.pnvCfg.protectionMult ?? 0.8)) * 100), limit: p.pnvCfg.consecutiveLimit ?? 3 } },
+    n: { hist: hist.length, mc: runs },
+    wealthLabel: 'All pots (SIPP + ISA), today\'s money'
+  };
+}
+
+/**
+ * "Worst 12 months" for a bought strategy: the lowest ANNUAL income the person actually receives in
+ * any year of any history — rungs + State Pension + other income (a DB pension, a lump sum's use) —
+ * NOT the bought amount alone. The bought amount is £0 in a year a lump sum pays, and net of a DB
+ * pension, so the old figure read "£0" or "£28,000" on a plan whose income never dipped.
+ */
+function worst12Of(series) {
+  const mins = series.map((inc) => Math.min(...inc.slice(1)));
+  return { min: mins.length ? Math.min(...mins) : 0, median: mins.length ? pct(mins, 0.5) : 0 };
+}
+
+/** PV at year y of the ladder rungs still to be paid (years y+1 .. lastRung). */
+function ladderPvAt(y, lastRung, drawForYear, pricer) {
+  let v = 0;
+  for (let k = y + 1; k <= lastRung; k++) v += pricer(k, y * 12);
+  return v;
+}
+
+function ladderTest(p, configs) {
+  const lr = configs.lr;
+  if (!lr) return { affordable: false, reason: `the base ladder costs £${Math.round(configs.baseLadderCost).toLocaleString()} — £${Math.round(configs.baseLadderCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.baseLadderCost - availablePot(p) };
+  const planYears = p.durationYears;
+  const drawForYear = lr.drawNetOfSp;
+  const pricer = lr.yieldForYear ? curvePricer(drawForYear, lr.yieldForYear) : flatYieldPricer(drawForYear, lr.realYield);
+  const h = runLadderWindows(lr);
+  const hist = h.windows.slice(0, h.meta.fullN);
+  const mc = runLadderMonteCarlo(lr, p.mcRuns || 400);
+  const enrich = (w) => {
+    const wealth = [], income = [];
+    for (let y = 0; y <= planYears; y++) {
+      const sleeve = w.sleeveByYear[y] ?? 0;
+      // Rungs owned at year y: the base ladder plus whatever the ratchet had bought BY then.
+      const securedBy = (w.trades || []).filter((t) => t.t <= 12 * y).reduce((a, t) => a + t.bought, 0);
+      const lastRung = Math.min(lr.ladderYears + securedBy, planYears);
+      wealth.push(sleeve + ladderPvAt(y, lastRung, drawForYear, pricer));
+      const failedBy = w.survived === false && w.failAge != null && (p.startAge + y) >= w.failAge;
+      income.push(failedBy ? 0 : drawForYear(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + otherAt(p, y));
+    }
+    return { wealth, income };
+  };
+  const mcE = mc.windows.map(enrich);
+  const terms = mc.windows.map((w) => w.terminal ?? 0);
+  const sleeveCone = bandOf(mc.windows, (w, y) => w.sleeveByYear[y], planYears);
+  const failAgesMc = mc.windows.filter((w) => w.survived === false).map((w) => w.failAge);
+  const securedByYear = Array.from({ length: planYears + 1 }, (_, y) => pct(mc.windows.map((w) => (w.trades || []).filter((t) => t.t <= 12 * y).reduce((a, t) => a + t.bought, 0)), 0.5));
+  return {
+    affordable: true,
+    ruin: { hist: 100 * hist.filter((w) => w.survived === false).length / hist.length, mc: 100 - (mc.stats.survivalPct ?? 100) },
+    ruinMcHalfWidthPp: mc.stats.survivalHalfWidthPp,
+    worst12: worst12Of(hist.map((w) => enrich(w).income)),
+    // A plan run from today whose base ladder has all been paid (PlanFromToday.countLeftFromToday: none left) holds nothing by
+    // contract from today: only the rungs the ratchet secures, and the sleeve.
+    guaranteedToAge: lr.ladderYears > 0 ? `${p.startAge + lr.ladderYears} by contract; median ratchets to ${p.startAge + lr.ladderYears + h.stats.securedMedian}`
+      : `none by contract now: the base ladder has all been paid, so the ratcheted rungs and the sleeve pay from today; median ratchets to ${p.startAge + h.stats.securedMedian}`,
+    terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
+    cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
+    samples: { wealth: sampleOf(mcE.map((e) => e.wealth), planYears), income: sampleOf(mcE.map((e) => e.income), planYears) },
+    failAges: mc.windows.filter((w) => w.survived === false).map((w) => w.failAge),
+    survivedMc: mc.windows.map((w) => w.survived !== false),
+    futuresMc: futuresOf(mcE.map((e) => e.wealth), mc.windows.map((w) => w.survived !== false), terms,
+      mc.windows.map((w) => (w.survived === false ? yearOfAge(w.failAge, p.startAge) : null))),
+    signature: {
+      neverPct: h.stats.neverPct, fullySecuredPct: h.stats.fullySecuredPct, securedMedian: h.stats.securedMedian,
+      securedMedianMc: mc.stats.securedMedian, sellEventsMedian: h.stats.sellEventsMedian,
+      sleeveMedian: h.stats.sleeveMedian, sleeveWorst: h.stats.sleeveWorst, baseLadderCost: configs.baseLadderCost, ladderYears: lr.ladderYears,
+      sleeveCone, securedByYear, glide: { E0: lr.E0, gp: lr.glideRate ?? 0.05, b: lr.trigger.b ?? 1.2, mode: lr.trigger.mode },
+      failAgeP10: failAgesMc.length ? pct(failAgesMc, 0.5) : null, drawNet: Array.from({ length: planYears }, (_, k) => drawForYear(k + 1))
+    },
+    n: { hist: hist.length, mc: mc.windows.length },
+    wealthLabel: 'Growth sleeve + unpaid ladder rungs, today\'s money'
+  };
+}
+
+function flexTest(p, configs) {
+  const ff = configs.ff;
+  if (!ff) return { affordable: false, reason: `the essentials floor costs £${Math.round(configs.ffFloorCost).toLocaleString()} — £${Math.round(configs.ffFloorCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.ffFloorCost - availablePot(p) };
+  const planYears = p.durationYears;
+  const floorDraw = ff.floorDraw;
+  const pricer = ff.yieldForYear ? curvePricer(floorDraw, ff.yieldForYear) : flatYieldPricer(floorDraw, 0.023);
+  const h = runFlexWindows(ff);
+  const mc = runFlexMonteCarlo(ff, p.mcRuns || 400);
+  const enrich = (w) => {
+    const wealth = [], income = [];
+    for (let y = 0; y <= planYears; y++) {
+      // Unpaid rungs are valued only to the floor's horizon (what was actually bought), never to the plan end.
+      wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, Math.min(planYears, (ff.horizonAge || (p.startAge + planYears)) - p.startAge), floorDraw, pricer));
+      income.push(floorDraw(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + (w.dByYear[Math.min(y, w.dByYear.length - 1)] ?? 0) + otherAt(p, y));
+    }
+    return { wealth, income };
+  };
+  const mcE = mc.windows.map(enrich);
+  const hE = h.windows.map(enrich);
+  const terms = mc.windows.map((w) => w.terminal);
+  const sleeveCone = bandOf(mc.windows, (w, y) => w.sleeveByYear[y], planYears);
+  const treatsCone = bandOf(mc.windows, (w, y) => w.dByYear[Math.min(y, w.dByYear.length - 1)], planYears);
+  // The bills cannot fail, so "ruin" here is the honest risk: a year that pays LESS THAN THE PLAN
+  // (essentials + treats below the income the plan asked for). Coverage = share of planned income delivered.
+  const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
+  const plannedAt = (y) => (sched ? (sched[Math.min(y, sched.length - 1)] ?? p.targetAnnual) : p.targetAnnual) + otherAt(p, y);
+  // A "lean year" is one paying more than 10% under the plan; a strategy built to flex should not be
+  // marked down for a £200 dip. Coverage (below) still counts every pound of shortfall.
+  const paidInFull = (e) => e.income.every((v, y) => v >= plannedAt(y) * 0.90);
+  const covOf = (arr) => 100 * arr.reduce((t, e) => t + e.income.reduce((a, v, y) => a + Math.min(1, v / Math.max(1, plannedAt(y))), 0) / (planYears + 1), 0) / Math.max(1, arr.length);
+  return {
+    affordable: true,
+    ruin: { hist: 100 * hE.filter((e) => !paidInFull(e)).length / Math.max(1, hE.length), mc: 100 * mcE.filter((e) => !paidInFull(e)).length / Math.max(1, mcE.length) },
+    ruinLabel: 'chance of at least one lean year — more than 10% under the plan (the bills are always paid; the treats shrank)',
+    coverage: covOf(mcE),
+    survivedMc: mcE.map(paidInFull),
+    // a lean year still pays most of the plan: the first one, and what the lean years left unpaid (6.37.0)
+    futuresMc: (() => { const cuts = mcE.map((e) => cutFromIncome(e.income, plannedAt, planYears, 0.90)); return futuresOf(mcE.map((e) => e.wealth), mcE.map(paidInFull), terms, cuts.map((c) => c.fy), cuts.map((c) => c.unpaid)); })(),
+    worst12: { min: p.essentialsAnnual + h.stats.worstMin, median: p.essentialsAnnual + h.stats.worstMedian },
+    guaranteedToAge: `${ff.horizonAge} by contract (essentials)`,
+    terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
+    cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
+    samples: { wealth: sampleOf(mcE.map((e) => e.wealth), planYears), income: sampleOf(mcE.map((e) => e.income), planYears) },
+    failAges: [],
+    signature: {
+      year1Flex: h.stats.year1D, worstFlexMedian: h.stats.worstMedian, worstFlexP10: h.stats.worstP10,
+      shareLeanYears: h.stats.shareYearsUnder(10000), floorCost: configs.ffFloorCost, horizonAge: ff.horizonAge,
+      sleeveCone, treatsCone, rate: ff.rate, sleeveE0: ff.E0, treatsRule: ff.treatsRule || 'share', fixedTreats: ff.flexMax ?? null, floorByYear: Array.from({ length: planYears }, (_, k) => floorDraw(k + 1)),
+      amountsByAge: Array.from({ length: planYears }, (_, k) => ({ age: p.startAge + k, gross: p.essentialsAnnual, sp: (k >= (p.spStartYear ?? 99)) ? p.spAnnual : 0 }))
+    },
+    n: { hist: h.stats.n, mc: mc.windows.length },
+    wealthLabel: 'Flex sleeve + unpaid floor rungs, today\'s money'
+  };
+}
+
+function scheduleFloorTest(p, configs) {
+  const c = configs.fs;
+  if (!c) return { affordable: false, reason: `buying the whole schedule costs £${Math.round(configs.fsFloorCost).toLocaleString()} — £${Math.round(configs.fsFloorCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.fsFloorCost - availablePot(p) };
+  const planYears = p.durationYears;
+  const pricer = c.yieldForYear ? curvePricer(c.floorDraw, c.yieldForYear) : flatYieldPricer(c.floorDraw, 0.023);
+  const h = runFlexWindows(c);
+  const mc = runFlexMonteCarlo(c, p.mcRuns || 400);
+  const enrich = (w) => {
+    const wealth = [], income = [];
+    for (let y = 0; y <= planYears; y++) {
+      wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, planYears, c.floorDraw, pricer));
+      income.push(c.floorDraw(y + 1) + ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0) + otherAt(p, y));   // = the schedule, by contract
+    }
+    return { wealth, income };
+  };
+  const mcE = mc.windows.map(enrich);
+  const terms = mc.windows.map((w) => w.terminal);
+  const sleeveAt = (y) => { const v = mc.windows.map((w) => w.sleeveByYear[Math.min(y, planYears)] ?? 0); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; };
+  const reserveCone = bandOf(mc.windows, (w, y) => w.sleeveByYear[y], planYears);
+  return {
+    affordable: true,
+    ruin: { hist: 0, mc: 0 },   // every year of the schedule is bought; the sleeve is never drawn
+    worst12: worst12Of((Array.isArray(h.windows) ? h.windows : mc.windows).map((w) => enrich(w).income)),
+    guaranteedToAge: `${c.horizonAge} by contract (the whole schedule)`,
+    futuresMc: futuresOf(mcE.map((e) => e.wealth), mcE.map(() => true), terms),
+    terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: h.stats.terminalMedian },
+    cones: { wealth: coneOf(mcE.map((e) => e.wealth), planYears), income: coneOf(mcE.map((e) => e.income), planYears) },
+    samples: { wealth: sampleOf(mcE.map((e) => e.wealth), planYears), income: sampleOf(mcE.map((e) => e.income), planYears) },
+    failAges: [],
+    signature: {
+      floorCost: configs.fsFloorCost, sleeveE0: c.E0, shareOfPot: configs.fsFloorCost / availablePot(p),
+      sleeveAt10: sleeveAt(10), sleeveAt23: sleeveAt(23), sleeveAtEnd: sleeveAt(planYears), horizonAge: c.horizonAge, reserveCone,
+      amountsByAge: Array.from({ length: planYears }, (_, k) => ({ age: p.startAge + k, gross: c.amountAt(k + 1), sp: (k >= (p.spStartYear ?? 99)) ? p.spAnnual : 0 })),
+      rule: 'Once a year: if the reserve is more than double its glide line (starting value x 1.05^years), spend the excess on rungs beyond the horizon or on raising the later years; otherwise leave it.'
+    },
+    n: { hist: h.stats.n, mc: mc.windows.length },
+    wealthLabel: 'Reserve sleeve + unpaid schedule rungs, today\'s money'
+  };
+}
+
+function floorToAgeTest(p, configs) {
+  const c = configs.fa;
+  if (!c) return { affordable: false, reason: `buying the schedule to ${p.params?.floorToAge || 80} costs £${Math.round(configs.faFloorCost).toLocaleString()} — £${Math.round(configs.faFloorCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.faFloorCost - availablePot(p) };
+  const N = p.durationYears, A = c.A;
+  const pricer = c.yieldForYear ? curvePricer(c.floorDraw, c.yieldForYear) : flatYieldPricer(c.floorDraw, 0.023);
+  const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);
+  const h = runFlexWindows(c);
+  const mc = runFlexMonteCarlo(c, p.mcRuns || 400);
+  // AT age A the reserve buys the rest of the schedule if it can; else the level income it can buy.
+  const decide = (w) => {
+    const sA = w.sleeveByYear[A] ?? 0;
+    const full = sA >= c.restCostFull;
+    const level = full ? null : sA / c.annuityFactor;                    // £/yr net of SP, level, to the horizon
+    const leftover = full ? sA - c.restCostFull : 0;
+    const wealth = [], income = [];
+    for (let y = 0; y <= N; y++) {
+      if (y <= A) {
+        wealth.push((w.sleeveByYear[y] ?? 0) + ladderPvAt(y, A, c.floorDraw, pricer));
+        income.push(c.floorDraw(y + 1) + spAt(y) + otherAt(p, y));
+      } else {
+        const grow = (w.sleeveByYear[y] ?? 0) / Math.max(1e-9, sA);
+        const rungsPv = full
+          ? (() => { let v = 0; for (let k = y + 1; k <= N; k++) v += Math.max(0, c.amountAt(k) - (k > (p.spStartYear ?? Infinity) ? p.spAnnual : 0)) * Math.pow(1 + (c.yieldForYear ? c.yieldForYear(k - y) : 0.023), -(k - y)); return v; })()
+          : (() => { let v = 0; for (let k = y + 1; k <= N; k++) v += level * Math.pow(1 + (c.yieldForYear ? c.yieldForYear(k - y) : 0.023), -(k - y)); return v; })();
+        wealth.push(leftover * grow + rungsPv);
+        income.push((full ? Math.max(0, c.amountAt(y + 1) - spAt(y)) : level) + spAt(y) + otherAt(p, y));
+      }
+    }
+    return { sA, full, level, leftover, wealth, income, worst: Math.min(...income) };
+  };
+  const hE = h.windows.map(decide), mcE = mc.windows.map(decide);
+  const pctCut = (arr) => 100 * arr.filter((e) => !e.full).length / arr.length;
+  const sAt = (arr) => { const v = arr.map((e) => e.sA); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; };
+  const reserveCone = Array.from({ length: A + 1 }, (_, y) => { const v = mc.windows.map((w) => w.sleeveByYear[y] ?? 0); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; });
+  const canBuy = (amount) => { const cost = c.restCost(() => amount); return { amount, cost, hist: 100 * hE.filter((e) => e.sA >= cost).length / hE.length, mc: 100 * mcE.filter((e) => e.sA >= cost).length / mcE.length }; };
+  const lowest = Math.min(...Array.from({ length: N - A }, (_, i) => c.amountAt(A + 1 + i)));
+  const terms = mcE.map((e) => e.wealth[N]);
+  const planned = Array.from({ length: N + 1 }, (_, y) => c.amountAt(Math.min(N, y + 1)) + otherAt(p, y));
+  const coverage = 100 * mcE.reduce((t, e) => t + e.income.reduce((a, v, y) => a + Math.min(1, v / Math.max(1, planned[y])), 0) / (N + 1), 0) / mcE.length;
+  const cutAfterA = (e) => {
+    if (e.full) return { fy: null, unpaid: 0 };
+    let fy = null, unpaid = 0;
+    for (let y = A + 1; y < Math.max(A + 2, N); y++) { const short = planned[y] - e.income[y]; if (short > 1) { if (fy == null) fy = y; unpaid += short; } }
+    return { fy: fy ?? Math.min(N, A + 1), unpaid };
+  };
+  return {
+    affordable: true,
+    coverage,
+    // Never runs out: the reserve always buys SOMETHING at A. 'ruin' here = the plan is CUT after A.
+    ruin: { hist: pctCut(hE), mc: pctCut(mcE) },
+    ruinLabel: 'chance the plan is cut after ' + c.floorToAge + ' (it never runs out — the reserve buys a smaller income)',
+    worst12: { min: Math.min(...hE.map((e) => e.worst)), median: pct(hE.map((e) => e.worst), 0.5) },
+    guaranteedToAge: `${c.floorToAge} by contract; the rest decided at ${c.floorToAge} with a known price`,
+    terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: pct(hE.map((e) => e.wealth[N]), 0.5) },
+    cones: { wealth: coneOf(mcE.map((e) => e.wealth), N), income: coneOf(mcE.map((e) => e.income), N) },
+    samples: { wealth: sampleOf(mcE.map((e) => e.wealth), N), income: sampleOf(mcE.map((e) => e.income), N) },
+    failAges: [],
+    survivedMc: mcE.map((e) => e.full),
+    // cut after A: the first year the smaller income is under the plan, and what it leaves unpaid to the end (6.37.0)
+    futuresMc: (() => { const cuts = mcE.map((e) => cutAfterA(e)); return futuresOf(mcE.map((e) => e.wealth), mcE.map((e) => e.full), terms, cuts.map((c) => c.fy), cuts.map((c) => c.unpaid)); })(),
+    signature: {
+      floorToAge: c.floorToAge, A, floorCost: configs.faFloorCost, sleeveE0: c.E0, shareOfPot: configs.faFloorCost / availablePot(p),
+      sleeveAtA: sAt(mcE), sleeveAtAHist: sAt(hE), restCostFull: c.restCostFull, reserveCone,
+      amountsByAge: Array.from({ length: N }, (_, k) => ({ age: p.startAge + k, gross: c.amountAt(k + 1), sp: spAt(k) })),
+      canBuy: [canBuy(c.amountAt(A + 1)), canBuy(lowest)].filter((x, i, a) => i === 0 || x.amount !== a[0].amount),
+      levelIfCut: { p10: pct(mcE.filter((e) => !e.full).map((e) => e.level + p.spAnnual), 0.1) || null, p50: pct(mcE.filter((e) => !e.full).map((e) => e.level + p.spAnnual), 0.5) || null },
+      rule: `Nothing to decide until ${c.floorToAge}. At ${c.floorToAge}: price the remaining years on that day's real-yield curve (or an RPI annuity quote); buy the schedule if the reserve covers it, otherwise the level income it does cover.`
+    },
+    n: { hist: h.stats.n, mc: mc.windows.length },
+    wealthLabel: 'Reserve + unpaid rungs to ' + c.floorToAge + ' (after ' + c.floorToAge + ': what the reserve bought + what is left), today\'s money'
+  };
+}
+
+/**
+ * Bridge & engine: the years to the bridge age (default: State Pension age) are bought today —
+ * the first `cashYears` in cash, the rest as one index-linked rung per year — and the remainder
+ * of the pot (the engine) rides in world equities untouched. After the bridge the engine pays the
+ * schedule net of the State Pension by ordinary total-return draws: nothing is re-bought, there
+ * is no trigger and no ratchet. It can run out — and if it does, it does so late.
+ */
+function bridgeTest(p, configs) {
+  const c = configs.be;
+  if (!c) return { affordable: false, reason: `buying the bridge to ${configs.beBridgeAge} costs £${Math.round(configs.beCost).toLocaleString()} — £${Math.round(configs.beCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.beCost - availablePot(p) };
+  const N = p.durationYears, B = c.B;
+  const yf = c.yieldForYear || (() => 0.023);
+  const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);
+  // Value at plan year y of the unpaid bridge: cash years at face, gilt years discounted from y.
+  const bridgePvAt = (y) => { let v = 0; for (let k = y + 1; k <= B; k++) v += c.floorDraw(k) * (k <= c.cashYears ? cashCostFactor(k - y, undefined, p.chargesPct) : Math.pow(1 + yf(k - y), -(k - y))); return v; };
+  const h = runFlexWindows(c);
+  const mc = runFlexMonteCarlo(c, p.mcRuns || 400);
+  const run = (w) => {
+    // Plan years 1..B (indices 0..B-1) are the bridge; from index B the engine pays the schedule.
+    const wealth = [], income = [];
+    let eng = w.sleeveByYear[B] ?? 0, failAge = null;
+    for (let y = 0; y <= N; y++) {
+      if (y < B) {
+        wealth.push((w.sleeveByYear[y] ?? 0) + bridgePvAt(y));
+        income.push(c.floorDraw(y + 1) + spAt(y) + otherAt(p, y));
+        continue;
+      }
+      if (y > B) eng *= (w.sleeveByYear[y] ?? 0) / Math.max(1e-9, w.sleeveByYear[y - 1] ?? 1e-9);
+      const need = c.floorDraw(y + 1);            // this year's schedule net of the State Pension
+      if (eng >= need) { eng -= need; income.push(c.amountAt(y + 1) + otherAt(p, y)); }
+      else { if (failAge == null) failAge = p.startAge + y; income.push(Math.max(0, eng) + spAt(y) + otherAt(p, y)); eng = 0; }
+      wealth.push(Math.max(0, eng));
+    }
+    return { engineAtB: w.sleeveByYear[B] ?? 0, failed: failAge != null, failAge, wealth, income, worst: Math.min(...income) };
+  };
+  const hE = h.windows.map(run), mcE = mc.windows.map(run);
+  const pctFail = (arr) => 100 * arr.filter((e) => e.failed).length / arr.length;
+  const at = (arr) => { const v = arr.map((e) => e.engineAtB); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; };
+  const engineCone = Array.from({ length: B + 1 }, (_, y) => { const v = mc.windows.map((w) => w.sleeveByYear[y] ?? 0); return { p10: pct(v, 0.1), p50: pct(v, 0.5), p90: pct(v, 0.9) }; });
+  const terms = mcE.map((e) => e.wealth[N]);
+  const fails = mcE.filter((e) => e.failed).map((e) => e.failAge);
+  return {
+    affordable: true,
+    ruin: { hist: pctFail(hE), mc: pctFail(mcE) },
+    worst12: { min: Math.min(...hE.map((e) => e.worst)), median: pct(hE.map((e) => e.worst), 0.5) },
+    guaranteedToAge: `${c.bridgeAge} by contract; then the engine + State Pension`,
+    terminal: { p10: pct(terms, 0.10), p50: pct(terms, 0.5), p90: pct(terms, 0.90), histMedian: pct(hE.map((e) => e.wealth[N]), 0.5) },
+    cones: { wealth: coneOf(mcE.map((e) => e.wealth), N), income: coneOf(mcE.map((e) => e.income), N) },
+    samples: { wealth: sampleOf(mcE.map((e) => e.wealth), N), income: sampleOf(mcE.map((e) => e.income), N) },
+    failAges: fails,
+    survivedMc: mcE.map((e) => !e.failed),
+    futuresMc: futuresOf(mcE.map((e) => e.wealth), mcE.map((e) => !e.failed), terms),
+    signature: {
+      bridgeAge: c.bridgeAge, B, cashYears: c.cashYears, bridgeCost: configs.beCost, engineE0: c.E0, shareOfPot: configs.beCost / availablePot(p),
+      engineAtB: at(mcE), engineAtBHist: at(hE), engineCone, restCostFull: c.restCostFull, pot: availablePot(p),
+      amountsByAge: Array.from({ length: N }, (_, k) => ({ age: p.startAge + k, gross: c.amountAt(k + 1), sp: spAt(k), bridge: k < B })),
+      failAgeP10: fails.length ? pct(fails, 0.1) : null, failAgeMedian: fails.length ? pct(fails, 0.5) : null,
+      rule: `Nothing to decide until ${c.bridgeAge}: the cash years pay first, then each rung matures before the April it funds. From ${c.bridgeAge} the State Pension arrives and the engine pays the rest by a standing monthly withdrawal — no re-buying, no trigger.`
+    },
+    n: { hist: h.stats.n, mc: mc.windows.length },
+    wealthLabel: 'Engine + unpaid bridge to ' + c.bridgeAge + ' (after: the engine), today\'s money'
+  };
+}
+
+/** Buckets in order: the Pots & Valves engine with ordered sourcing and no rebalancing (see WithdrawalSourcing.planSourcingOrdered). */
+function bucketsTest(p, configs) {
+  const q = pnvFamilyPlan('buckets-in-order', p);
+  const band = q.pnvCfg.bucketBand;
+  const r = pnvTest(q, configs);
+  const draw = Math.max(1, p.targetAnnual - (p.spAnnual || 0) * 0);
+  r.signature = { ...r.signature, ordered: true, band, eqPath: q.pnvCfg.equityStart || 0, cashYears: (q.pnvCfg.cashStart || 0) / draw,
+    failAgeP10: r.failAges.length ? pct(r.failAges, 0.1) : null,
+    order: ['cash', 'bonds', 'diversifiers', 'equities (last)'] };
+  r.wealthLabel = 'All pots (SIPP + ISA), today\'s money — buckets in order';
+  return r;
+}
+
+function fullGiltTest(p, configs, { spareRuns = true } = {}) {
+  const N = p.durationYears;
+  const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
+  const amountAtAge = (age) => { const k = age - p.startAge; return sched ? (sched[Math.min(k, sched.length - 1)] ?? p.targetAnnual) : p.targetAnnual; };
+  const now = p.now || new Date();   // injected clock (planFromSettings { now }) or today
+  const todayIso = p.todayIso || now.toISOString().slice(0, 10);   // the pricing date: years-to-maturity picks each rung's spread band
+  // A plan whose year 0 is behind it (p.yearOffset, the plan as seen from today — 6.50.0): the ladder is bought from the
+  // tax year the run starts in (the current one), so no year already lived is bought again; its first rung stays where
+  // the plan's year 0 and cash years put it, the years from today to it paid from cash; no run-up cash, and no gilt that
+  // has matured by today (PlanFromToday.ladderAsSeenFromToday). Its rungs' lives are measured from the day it is priced
+  // (`pricedAt`), not from the April before its first year. A plan in its year 0 or before: exactly as always.
+  const running = p.yearOffset > 0;
+  const cashYears = p.params?.cashYears ?? 2;
+  const fromToday = running ? ladderAsSeenFromToday({ planFirstTaxYear: p.firstTaxYear, runFirstTaxYear: p.runFirstTaxYear, cashYears, linkers: activeLinkers().gilts, todayIso }) : null;
+  const firstTaxYear = fromToday ? fromToday.firstTaxYear : (p.firstTaxYear || now.getFullYear() + 1);
+  // Cash set aside "until the plan's income starts" pays the months from the day of the pots to the plan's first April. On
+  // pots that belong to a plan year already begun that April has passed: nothing is set aside, and the cash years count
+  // from the pots' day to the first rung (research/plan-start.md §6 decision 8). That is a running plan (above) and, from
+  // 6.51.0, a plan that says when work stopped whose pots are its year 0's (p.runUpSpent, judged on the pots' day — a plan
+  // locked before its year 0 keeps the cash its frozen pots still hold). Every other plan keeps its dial, as it always has.
+  const plan = buildGiltLadder({
+    todayIso,
+    pot: availablePot(p), startAge: p.startAge, durationYears: N, amountAtAge,
+    spAnnual: p.spAnnual, spStartAge: p.startAge + (p.spStartYear ?? 99), spFirstYearRatio: p.spFirstYearRatioTaxYear ?? p.spFirstYearRatio ?? 1,
+    firstTaxYear, linkers: fromToday ? fromToday.linkers : activeLinkers().gilts,
+    cashYears: fromToday ? fromToday.cashYears : cashYears, bridgeCash: fromToday ? fromToday.bridgeCash : p.runUpSpent ? 0 : (p.params?.bridgeCash || 0),
+    chargesPct: p.chargesPct,   // the cash years sit in a money-market fund: charged (6.19.0); the gilts are not
+    ...(fromToday ? { lifeFromPricing: true } : {})
+  });
+  if (!plan.affordable) return { affordable: false, reason: plan.reason, plan };
+  // Deterministic: income = the schedule; wealth = unpaid rungs at their accreted value (+ cash, + spare) — no market
+  // exposure. Held at cost until 6.34.0, which understated what a ladder holds mid-plan (the survivor's estate, the cone).
+  const income = [];
+  const wealth = ladderWealthByYear(plan, N);
+  for (let y = 0; y <= N; y++) {
+    const age = p.startAge + y; income.push(amountAtAge(Math.min(age, p.startAge + N - 1)) + otherAt(p, y));
+  }
+  const flat = (arr) => ({ years: arr.map((_, i) => i), p10: arr, p25: arr, p50: arr, p75: arr, p90: arr });
+  const minInc = Math.min(...income.slice(0, N));
+  // The spare in the growth part (strategyParams.spareGrowth, 6.35.0): the income stays bought by contract; what is
+  // left rides the market, on the test's own histories and futures (GiltRotation spareGrowthRuns).
+  const grow = spareRuns && !!(p.params && p.params.spareGrowth) && plan.spare > 0;
+  const runs = grow ? spareGrowthRuns(N, plan.spare, monthlyChargeFactor(p.chargesPct), p.mcRuns || 400) : null;
+  const withSpare = (sp) => wealth.map((w, y) => w - plan.spare + sp[y]);
+  const mcW = grow ? runs.mc.map(withSpare) : null;
+  const ends = grow ? mcW.map((w) => w[N]).sort((a, b) => a - b) : null;
+  const histEnds = grow ? runs.hist.map((sp) => withSpare(sp)[N]).sort((a, b) => a - b) : null;
+  const q = (arr, pr) => arr[Math.min(arr.length - 1, Math.floor(arr.length * pr))] ?? 0;
+  if (grow) return {
+    affordable: true, plan,
+    ruin: { hist: 0, mc: 0 },
+    worst12: { min: minInc, median: minInc },
+    guaranteedToAge: (p.startAge + N - 1) + ' by contract (every year bought today)',
+    futuresMc: futuresOf(mcW, mcW.map(() => true), mcW.map((w) => w[N])),
+    terminal: { p10: q(ends, 0.1), p50: q(ends, 0.5), p90: q(ends, 0.9), histMedian: q(histEnds, 0.5) },
+    cones: { wealth: coneOf(mcW, N), income: flat(income) },
+    samples: { wealth: sampleOf(mcW, N) },
+    survivedMc: mcW.map(() => true),
+    failAges: [],
+    signature: { cash: plan.cash, giltsCost: plan.giltsCost, total: plan.total, spare: plan.spare, orders: plan.orders.length, doubleDrops: plan.orders.filter((o) => o.taxYears.length > 1).length, firstTaxYear, cashYears: plan.cashYears.length, spareGrowth: true },
+    n: { hist: runs.hist.length, mc: mcW.length },
+    wealthLabel: "Unpaid rungs (each rising from its cost to what it pays, yields unchanged) + cash + the money left over in shares, today's money"
+  };
+  return {
+    affordable: true, plan,
+    ruin: { hist: 0, mc: 0 },
+    worst12: { min: minInc, median: minInc },
+    guaranteedToAge: (p.startAge + N - 1) + ' by contract (every year bought today)',
+    futuresMc: { terminal: [plan.spare], failYear: [null] },
+    terminal: { p10: plan.spare, p50: plan.spare, p90: plan.spare, histMedian: plan.spare },
+    cones: { wealth: flat(wealth), income: flat(income) },
+    failAges: [],
+    signature: { cash: plan.cash, giltsCost: plan.giltsCost, total: plan.total, spare: plan.spare, orders: plan.orders.length, doubleDrops: plan.orders.filter((o) => o.taxYears.length > 1).length, firstTaxYear, cashYears: plan.cashYears.length },
+    n: { hist: 1, mc: 1 },
+    wealthLabel: "Unpaid rungs (each rising from its cost to what it pays, yields unchanged) + cash, today's money (no market exposure)"
+  };
+}
+
+// Gilt ladder + rotation: the full ladder, plus the ONE pre-agreed escape — on the first month
+// equities close >=trigger below their running all-time high, the rungs funding ages above
+// cutAge are sold (accreted value) and become an equity sleeve that pays those years instead.
+// Never triggers => identical to the full ladder. See src/strategies/GiltRotation.js.
+/** The rotation's own set-up — the ladder, the cut age, the trigger — as its test builds it (shared with NamedStarts). */
+function rotationSetup(p, configs) {
+  // The ladder only: the rotation grows the money left over in its own paths, so the full ladder's runs of it are not needed.
+  const base = fullGiltTest(p, configs, { spareRuns: false });
+  if (!base.affordable) return { base, ctx: null };
+  const cutAge = Math.max(p.startAge + 1, Math.min(p.params?.rotateCutAge || 75, p.startAge + p.durationYears - 2));
+  const trigger = (p.params?.rotateTrigger > 0 ? p.params.rotateTrigger : 30) / 100;
+  return { base, cutAge, trigger, ctx: rotationPathsCtx(base.plan, p, { cutAge, trigger }) };
+}
+
+/**
+ * One real start replayed through the rotation, exactly as its test counts that window (runRotationWindows walks every
+ * month from January 1871; this is one of them). Null when the ladder cannot be bought. Sweep 18 Oct 2026: History and
+ * Scenarios said "no start-year replay" for the rotation strategy.
+ */
+export function rotationReplay(p, startYear, configs = deriveCompareConfigs(p)) {
+  const { ctx } = rotationSetup(p, configs);
+  if (!ctx) return null;
+  const off = (startYear - 1871) * 12;
+  const hist = getRtr();
+  if (off < 0 || off + (ctx.N + 1) * 12 >= hist.length) return { tooShort: true };
+  const w = runRotationPath(hist, off, ctx);
+  const N = ctx.N;
+  return { failAge: w.failAge, triggeredYear: w.triggeredYear, terminal: w.wealth[N], worst12: Math.min(...w.income.slice(0, N)), startAge: ctx.startAge, rotates: ctx.split.soldOrders.length > 0 };
+}
+
+function rotationTest(p, configs) {
+  const { base, cutAge, trigger, ctx } = rotationSetup(p, configs);
+  if (!ctx) return { ...base, strategyIdHint: 'gilt-rotation' };
+  const plan = base.plan;
+  if (!ctx.split.soldOrders.length) return fullGiltTest(p, configs);   // nothing above the cut: it IS the full ladder
+  const N = p.durationYears;
+  const hist = runRotationWindows(ctx);
+  const mc = runRotationMonteCarlo(ctx, p.mcRuns || 400);
+  const ruinOf = (rs) => 100 * rs.filter((r) => r.failAge != null).length / Math.max(1, rs.length);
+  const failAges = mc.filter((r) => r.failAge != null).map((r) => r.failAge);
+  const wealthList = mc.map((r) => r.wealth), incomeList = mc.map((r) => r.income);
+  const terminals = mc.map((r) => r.wealth[N]).sort((a, b) => a - b);
+  const q = (arr, pr) => arr[Math.floor(arr.length * pr)] ?? 0;
+  const histTerm = hist.map((r) => r.wealth[N]).sort((a, b) => a - b);
+  const worstInc = mc.map((r) => Math.min(...r.income.slice(0, N))).sort((a, b) => a - b);
+  const owed = mc[0] ? mc[0].owed : 0;
+  const coverage = 100 * (1 - (mc.reduce((s2, r) => s2 + r.paidShort, 0) / Math.max(1, mc.length * Math.max(1, owed))) * (owed / Math.max(1, mc[0] ? mc[0].income.slice(0, N).reduce((a, b) => a + b, 0) : 1)));   // the plan's N years (point N repeats the last)
+  const triggeredShare = mc.filter((r) => r.triggeredYear != null).length / Math.max(1, mc.length);
+  return {
+    affordable: true, plan,
+    ruin: { hist: ruinOf(hist), mc: ruinOf(mc) },
+    ruinLabel: 'chance the rotated years (after ' + cutAge + ') are cut' + (ctx.spare > 0 ? ' once the money left over' + (ctx.spareGrowth ? ' in shares' : '') + ' is spent' : '') + ' — the floor to ' + cutAge + ' and the State Pension never fail',
+    worst12: { min: q(worstInc, 0.0), median: q(worstInc, 0.5) },
+    guaranteedToAge: cutAge + ' by contract whatever happens; above that, contract until the trigger fires (' + pctText(triggeredShare * 100) + ' of futures rotate)',
+    terminal: { p10: q(terminals, 0.1), p50: q(terminals, 0.5), p90: q(terminals, 0.9), histMedian: q(histTerm, 0.5) },
+    cones: { wealth: coneOf(wealthList, N), income: coneOf(incomeList, N) },
+    samples: { wealth: sampleOf(wealthList, N), income: sampleOf(incomeList, N) },
+    survivedMc: mc.map((r) => r.failAge == null),
+    // The year each future was first cut, from the path itself: what is left need never reach nothing (the money left
+    // over, the kept rungs), so reading it from wealth said "never cut" and the couples check counted every cut future as
+    // covered (until 6.36.0). What the cut years left unpaid goes with it (6.37.0).
+    futuresMc: futuresOf(wealthList, mc.map((r) => r.failAge == null), mc.map((r) => r.wealth[N]), mc.map((r) => (r.failAge == null ? null : r.failAge - p.startAge)), mc.map((r) => r.paidShort)),
+    coverage: Math.max(0, Math.min(100, coverage)),
+    failAges,
+    signature: { rotateTrigger: trigger * 100, rotateCutAge: cutAge, spareGrowth: !!ctx.spareGrowth, blockValueToday: ctx.split.blockCostToday, blockIncome: ctx.split.soldIncomeTotal, soldRungs: ctx.split.soldOrders.length, giltsCost: plan.giltsCost, total: plan.total, cash: plan.cash, spare: plan.spare, firstTaxYear: plan.firstTaxYear, triggeredShare },
+    n: { hist: hist.length, mc: mc.length },
+    wealthLabel: 'Unpaid rungs + the rotation block (accreted, then the equity sleeve once the trigger fires)' + (ctx.spareGrowth ? ' + the money left over in shares' : '') + ', today\'s money'
+  };
+}
+
+/**
+ * The pot a given strategy needs at retirement for the plan to pass, today's money — the
+ * accumulation "am I on course?" yardstick. Contract strategies (Full IL gilt, floor the schedule)
+ * pass when affordable; market strategies when Monte-Carlo ruin ≤ (1 − successTarget). Bisects the
+ * SIPP pot with the plan's ISA left as configured. Fewer runs than the compare (speed).
+ */
+export function requiredPotForStrategy(strategyId, p, successTarget = ON_COURSE_SHARE, opts = {}) {
+  const runs = opts.mcRuns || 200, stride = opts.stride || 6;
+  const passes = (pot) => {
+    const q = { ...p, pot, mcRuns: runs, stride };
+    if (q.pnvCfg) { const scale = pot / Math.max(1, p.pot); q.pnvCfg = { ...q.pnvCfg, equityStart: (p.pnvCfg.equityStart || 0) * scale, bondStart: (p.pnvCfg.bondStart || 0) * scale, cashStart: (p.pnvCfg.cashStart || 0) * scale, diversifierStart: (p.pnvCfg.diversifierStart || 0) * scale, equityMin: (p.pnvCfg.equityMin || 0) * scale, bondMin: (p.pnvCfg.bondMin || 0) * scale, cashTarget: (p.pnvCfg.cashTarget || 0) * scale }; }
+    const r = stressTestStrategy(strategyId, q);
+    if (!r.affordable) return false;
+    return (r.ruin?.mc ?? 0) <= (1 - successTarget) * 100 + 1e-9;
+  };
+  let lo = 0, hi = Math.max(50_000, p.pot || 0);
+  let n = 0;
+  while (!passes(hi) && n++ < 8) { lo = hi; hi *= 2; }
+  if (n >= 8) return { requiredPot: Infinity, passesAt: null };
+  for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (passes(mid)) hi = mid; else lo = mid; }
+  return { requiredPot: Math.ceil(hi / 1000) * 1000, basis: strategyId };
+}
+
+/** One P&V run on the real history starting at (year, month): wealth + income by plan year, today's money. */
+export function pnvDecadeSeries(p, year, month = 1) {
+  const rtr = getRtr(), cpi = getCpi(); const planYears = p.durationYears; const s = (year - 1871) * 12 + (month - 1);
+  if (s < 0 || s + planYears * 12 >= rtr.length) return null;
+  return pnvRun(p.pnvCfg, annualNominal(rtr, cpi, s, planYears), s, planYears, p.startAge);
+}
+
+/** Stress-test ONE strategy on the plan. */
+/**
+ * The Pots & Valves row is P&V whatever the plan's SAVED strategy. A plan saved on Buckets in order
+ * carries sourcingMode 'ordered' (+ bucketBand) in its config, which used to make the P&V row identical
+ * to the Buckets row in the ranked table.
+ */
+function pnvPlain(p, configs) {
+  return pnvTest(pnvFamilyPlan('pots-and-valves', p), configs);
+}
+/**
+ * The plan the Pots & Valves family's own test ran on (pnvPlain / bucketsTest) — so a replay of one real start year
+ * (NamedStarts) is the same arithmetic the test counted that window with.
+ */
+export function pnvFamilyPlan(strategyId, p) {
+  if (strategyId === 'buckets-in-order') {
+    const band = p.params?.bucketBand > 0 ? p.params.bucketBand / 100 : 0.10;
+    return { ...p, pnvCfg: { ...p.pnvCfg, sourcingMode: 'ordered', bucketBand: band, equityGlide: null } };
+  }
+  return { ...p, pnvCfg: { ...p.pnvCfg, sourcingMode: undefined, bucketBand: undefined } };
+}
+
+export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs(p)) {
+  const fn = { 'pots-and-valves': pnvPlain, 'buckets-in-order': bucketsTest, 'ladder-and-ratchet': ladderTest, 'bridge-and-engine': bridgeTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest, 'gilt-rotation': rotationTest }[strategyId];
+  if (!fn) throw new Error('unknown strategy ' + strategyId);
+  const r = fn(p, configs);
+  // A windfall not yet spent on rungs is still wealth: add the parked balance to the wealth series
+  // of the bought strategies (the P&V engine already carries it inside its own pots).
+  const carry = p.windfallCarryByYear;
+  if (r.affordable && carry && carry.some((v) => v > 0) && strategyId !== 'pots-and-valves' && strategyId !== 'buckets-in-order') {
+    const at = (y) => carry[Math.min(y, carry.length - 1)] || 0;
+    if (r.cones && r.cones.wealth) for (const k of ['p10', 'p25', 'p50', 'p75', 'p90']) if (r.cones.wealth[k]) r.cones.wealth[k] = r.cones.wealth[k].map((v, y) => v + at(y));
+    if (r.samples && r.samples.wealth) r.samples.wealth = r.samples.wealth.map((ser) => ser.map((v, y) => v + at(y)));
+    const end = at(p.durationYears);
+    if (end > 0 && r.terminal) for (const k of ['p10', 'p50', 'p90', 'histMedian']) if (r.terminal[k] != null) r.terminal[k] += end;
+  }
+  // Coverage (Estrada & Kritzman): the average share of the plan's years that were paid, across the
+  // futures — a late shortfall costs far less than an early one. Contract strategies score 100 by
+  // construction; a strategy may set its own income-based figure (Floor to an age does).
+  // Per-future survival for pairing (household): contract strategies survive every future by construction.
+  if (r.affordable && !r.survivedMc) r.survivedMc = Array.from({ length: Math.max(1, (r.n && r.n.mc) || 1) }, () => true);
+  // What was actually spent over the plan (today's money): median across futures of the summed income
+  // series — the counterpart to "what is left". A flexible strategy that spends its upside scores here.
+  if (r.affordable && r.spentMedian == null && r.samples && r.samples.income && r.samples.income.length) {
+    const tots = r.samples.income.map((ser) => ser.reduce((a, v) => a + (v || 0), 0));
+    r.spentMedian = pct(tots, 0.5);
+  } else if (r.affordable && r.spentMedian == null && r.cones && r.cones.income) {
+    r.spentMedian = r.cones.income.p50.reduce((a, v) => a + (v || 0), 0);
+  }
+  if (r.affordable && r.coverage == null) {
+    const N = Math.max(1, p.durationYears), nMc = (r.n && r.n.mc) || 0, fails = r.failAges || [];
+    r.coverage = nMc > 0 ? 100 * ((nMc - fails.length) + fails.reduce((t, a) => t + Math.max(0, Math.min(1, (a - p.startAge) / N)), 0)) / nMc : 100;
+  }
+  return { strategyId, name: STRATEGY_NAMES[strategyId], ...r, configs };
+}
+
+/** All three on the identical plan (the Strategies compare). */
+export function stressTestAll(p) {
+  return compareAll(p);   // the one loop over the nine (compareRunner.compareAll, 6.40.0): the same configs, the same order
+}
+
+
+/**
+ * Scores for ranking strategies on one plan (all in today's money):
+ *  - coverageRatio: Estrada & Kritzman (2019) C = Y/L — years of planned withdrawals sustained during
+ *    the plan PLUS the years the money left over would have paid, over the plan length. C < 1 failed;
+ *    C = 1 lasted exactly; C > 1 left a bequest.
+ *  - vol: the volatility a retiree lives with — the standard deviation of year-on-year changes in total
+ *    wealth along each future, averaged. Floored at VOL_FLOOR so a fully contracted plan (whose wealth
+ *    barely moves) does not divide by zero.
+ *  - vac: Estrada (2024) volatility-adjusted coverage ratio, C / vol, averaged across futures.
+ * Computed on the evenly-spaced sample of futures every strategy exposes (`samples`), so every
+ * strategy is scored the same way. Contract-only strategies without samples use their median path.
+ */
+export const VOL_FLOOR = 0.03;
+export function scoreStrategy(r, p) {
+  if (!r || !r.affordable) return null;
+  const N = Math.max(1, p.durationYears);
+  const need = Math.max(1, p.targetAnnual || 1);
+  const paths = (r.samples && r.samples.wealth && r.samples.wealth.length) ? r.samples.wealth : [r.cones.wealth.p50];
+  let cSum = 0, vSum = 0, vacSum = 0, n = 0;
+  for (const w of paths) {
+    if (!w || !w.length) continue;
+    let fail = -1;
+    for (let y = 1; y < w.length; y++) { if (!(w[y] > 0)) { fail = y; break; } }
+    const yearsFunded = fail < 0 ? N : Math.max(0, fail - 1);
+    const terminal = fail < 0 ? Math.max(0, w[Math.min(N, w.length - 1)] || 0) : 0;
+    const C = (yearsFunded + terminal / need) / N;
+    const rets = [];
+    for (let y = 1; y < w.length && (fail < 0 || y < fail); y++) if (w[y - 1] > 0 && w[y] > 0) rets.push(Math.log(w[y] / w[y - 1]));
+    const mean = rets.length ? rets.reduce((a, b) => a + b, 0) / rets.length : 0;
+    const vol = rets.length > 1 ? Math.sqrt(rets.reduce((a, b) => a + (b - mean) ** 2, 0) / (rets.length - 1)) : 0;
+    const v = Math.max(VOL_FLOOR, vol);
+    cSum += C; vSum += v; vacSum += C / v; n++;
+  }
+  if (!n) return null;
+  return { coverageRatio: cSum / n, vol: vSum / n, vac: vacSum / n, n };
+}

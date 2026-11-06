@@ -1,0 +1,83 @@
+name: nightly
+
+# The night run (V7 test plan 10.2; step 4: test plan A–B 14.2): the long random runs, the luck check and the date
+# sweep in the ordinary suite (NIGHTLY=1, FC_RUNS=2000 — questions A and B and the saving years included), then the
+# browser tests in all three engines — the full sameness list (A and B too), and the journeys in WebKit (the
+# nearest thing to the iPad and phone we test on: C's, and A's J4 and J7) and Firefox. 02:30 UTC, before the data
+# update at 06:30. A red night sends GitHub's usual email; the failing input goes into found.cases.json.
+# Two jobs since 6.44.0 (27 Oct 2026): the suite ran on the plain runner with its own limit, and the browser checks in
+# the official container on their own clock — a red suite no longer hides the browsers' result, and neither waits for
+# the other. Four jobs since 6.46.0 (2 Nov 2026): at FC_RUNS 2000 question A's property file alone takes two hours and
+# C's over an hour (1 Nov 2026: the one suite job was cancelled at 150 minutes every night from 25 Oct), so the suite
+# is three jobs — A's folder, C's folder, and everything else — each with its own clock.
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+# Read-only token: this job never writes to the repo.
+permissions:
+  contents: read
+
+jobs:
+  # The suite (the long random runs, the luck check and the date sweep: NIGHTLY=1, FC_RUNS=2000) in three parts, each on the plain runner with its own clock (the night of 1 Nov 2026 at FC_RUNS 2000:
+  # tests/v7/a/properties.test.js 120 minutes, tests/v7/c/properties.test.js 64 and c/metamorphic 14, the rest about 30).
+  # No browser is needed; tests/v7/liveBundle.test.js reads the published build, so it is built first.
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        part:
+          - { name: a, run: 'npx vitest run tests/v7/a' }
+          - { name: c, run: 'npx vitest run tests/v7/c' }
+          - { name: rest, run: "npx vitest run tests/v7 --exclude 'tests/v7/{a,c}/**'" }   # one glob: vitest 1.6 takes a single --exclude
+    name: nightly (${{ matrix.part.name }})
+    env:
+      TZ: Europe/London
+      NIGHTLY: '1'
+      FC_RUNS: '2000'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run e2e:build
+      - run: ${{ matrix.part.run }}
+
+  # The browsers: the wall-clock timing checks alone, then the full sameness list and the night journeys in all three
+  # engines. The official container: the three browsers, their system libraries and the same typefaces every time.
+  # Its tag MUST equal the Playwright version in package.json (tests/v7/e2eRules.test.js checks).
+  nightly-browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    env:
+      HOME: /root            # Firefox refuses to start in a container without this
+      TZ: Europe/London
+      NIGHTLY: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run e2e:build
+      # The wall-clock timing checks, alone (skipped inside the suite everywhere, CI and a development machine alike: side by side they are noise).
+      - run: npx vitest run tests/v7/shared/speed.apart.slow.test.js
+        env:
+          TIMING_CHECKS: '1'
+      - run: npx playwright test --project='sameness-*' --project='nightly-*'
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: nightly-browser-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

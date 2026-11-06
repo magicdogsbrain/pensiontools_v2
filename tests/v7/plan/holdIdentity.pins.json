@@ -1,0 +1,69 @@
+{
+ "03-gilt-ladder-runup": {
+  "record": "6aae35f6ccb5bbd1",
+  "added": "c0ff4118564fe760",
+  "edited": "bd0b9d61f649bc30",
+  "removed": "148df23d400776a8",
+  "pasted": "015d6e20ff0fbe45",
+  "moves": "72a30f7642e94ac3"
+ },
+ "04-buckets-running": {
+  "record": "6a2d8ab9a9191b49",
+  "added": "77d17d6d67c3d21c",
+  "edited": "e73c02249537df00",
+  "removed": "bcc4885b810b7b8d",
+  "pasted": "98e50b384adb30f9",
+  "moves": "11b0a210173ebcfb",
+  "held": "68a48bc70908c20c"
+ },
+ "05-saver-committed": {
+  "record": "5ac9fb6d9993a8af",
+  "added": "b70daef25a238eac",
+  "edited": "44674fd5b640527e",
+  "removed": "039d5df0d1cc3982",
+  "pasted": "b4a62ebf03957ea4",
+  "moves": "b61721531694e8e5"
+ },
+ "12-lumpy-db-gia": {
+  "record": "6dea017edb658ce1",
+  "added": "a58b5181017328f7",
+  "edited": "354de65e4578217b",
+  "removed": "d0ce78d9e365989e",
+  "pasted": "b1a2de5542d347a8"
+ },
+ "13-stopped-drawing-since": {
+  "record": "98af39ed687534d7",
+  "added": "4fef5cfc6f5eda30",
+  "edited": "4a6988ab74e56415",
+  "removed": "454de3b247b5b05c",
+  "pasted": "4c2bd0f204bdf0f2"
+ },
+ "18-moved-to-new-plan-next": {
+  "record": "4b23d015632ae151",
+  "added": "5c27866e3398b124",
+  "edited": "c684833f4bbca679",
+  "removed": "00485c45c2e9d32f",
+  "pasted": "b94e49cd392625b3"
+ },
+ "18-moved-to-new-plan": {
+  "record": "4b23d015632ae151",
+  "added": "5c27866e3398b124",
+  "edited": "c684833f4bbca679",
+  "removed": "00485c45c2e9d32f",
+  "pasted": "b94e49cd392625b3"
+ },
+ "19-back-to-work-saving": {
+  "record": "f1a65b8f76473528",
+  "added": "218a65217483839a",
+  "edited": "48ab6505ca6732ef",
+  "removed": "4c4fa9595865e6bf",
+  "pasted": "7bc8c83acb4faff2"
+ },
+ "19-back-to-work": {
+  "record": "f1a65b8f76473528",
+  "added": "218a65217483839a",
+  "edited": "48ab6505ca6732ef",
+  "removed": "4c4fa9595865e6bf",
+  "pasted": "7bc8c83acb4faff2"
+ }
+}

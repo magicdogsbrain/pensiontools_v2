@@ -1,0 +1,226 @@
+/**
+ * Accumulation Engine — pre-retirement contribution & growth projection (Tier 3, Aug 2026).
+ *
+ * Net-first, like the rest of the app: the user says what they can spare from take-home pay;
+ * this module works out the gross pension purchase under their scheme's relief method, projects
+ * the pot to retirement, and checks it against the plan's own budget-derived target ("on track
+ * for YOUR retirement, not a rule of thumb").
+ *
+ * Deterministic projection uses the FCA point-of-sale rates (2% / 5% / 8% nominal, the
+ * regulator-prescribed low/mid/high for tax-advantaged products) with results shown in today's
+ * money. The stochastic view is the one test (stressTest.requiredPotForStrategy, 6.24.0); this module's own Monte-Carlo
+ * search, requiredPotForSuccess, had no caller after that and is gone (6.33.0).
+ *
+ * UK rules encoded (2026/27 — update annually):
+ *   Annual Allowance £60,000 (tapered £1 per £2 of adjusted income over £260k, floor £10k;
+ *   both threshold £200k AND adjusted £260k tests must be breached — we warn on salary alone,
+ *   which is conservative). MPAA £10,000 once flexible income has been taken (the Decision
+ *   tool KNOWS this — any history record with taxFree > 0 means UFPLS income was taken).
+ *   Normal minimum pension age rises 55 → 57 on 6 April 2028 (cliff edge).
+ *   Salary-sacrifice NI relief capped at £2,000/yr sacrificed from April 2029 (Budget 2025).
+ *   Lump Sum Allowance £268,275 → tax-free cash effectively dilutes below 25% once the pot
+ *   exceeds £1,073,100.
+ */
+
+import { monthlyChargeFactor, isChargesPct } from './Charges.js';
+import { flexibleAccessWords } from './FlexibleAccess.js';
+
+export const ACCUMULATION_RULES = {
+  ANNUAL_ALLOWANCE: 60000,
+  TAPER_THRESHOLD_INCOME: 200000,
+  TAPER_ADJUSTED_INCOME: 260000,
+  MPAA: 10000,
+  NMPA_CHANGE_DATE: '2028-04-06',
+  NMPA_NEW: 57,
+  SALSAC_NI_CAP_FROM: 2029,
+  SALSAC_NI_CAP: 2000,
+  LSA: 268275,
+  LSA_POT_THRESHOLD: 1073100
+};
+
+// FCA point-of-sale projection rates (nominal, tax-advantaged): the mandated 3-point spread.
+export const FCA_RATES = { low: 0.02, mid: 0.05, high: 0.08 };
+
+/** Marginal income-tax rate on the top slice of a salary (simple UK bands, no PA taper). */
+export function marginalRate(salary, pa = 12570, brl = 50270, hrl = 125140) {
+  if (salary <= pa) return 0;
+  if (salary <= brl) return 0.20;
+  if (salary <= hrl) return 0.40;
+  return 0.45;
+}
+
+/** Employee NI rate on the top slice (8% to the UEL ≈ BRL, 2% above). */
+export function marginalNiRate(salary, brl = 50270) {
+  if (salary <= 12570) return 0;
+  return salary <= brl ? 0.08 : 0.02;
+}
+
+/**
+ * From "£N/month out of my take-home" to the gross monthly pension purchase.
+ * @returns {{grossMonthly, employerMonthly, totalMonthly, reliefMonthly, niSavedMonthly,
+ *            hrClaimMonthly, costPerPound, notes: string[]}}
+ */
+export function contributionBreakdown({ netMonthly = 0, salary = 0, schemeType = 'ras', employerMonthly = 0 }) {
+  const mt = marginalRate(salary);
+  const ni = marginalNiRate(salary);
+  const notes = [];
+  let grossMonthly = 0, hrClaimMonthly = 0, niSavedMonthly = 0;
+
+  if (schemeType === 'salsac') {
+    // Sacrificed salary escapes income tax AND employee NI: £N net costs N/(1-mt-ni) gross.
+    grossMonthly = netMonthly / Math.max(0.2, 1 - mt - ni);
+    niSavedMonthly = grossMonthly * ni;
+    notes.push('Salary sacrifice also saves your employer 15% NI — many employers add some or all of that; ask. From April 2029 the NI exemption is capped at £2,000/yr sacrificed (Autumn Budget 2025).');
+  } else if (schemeType === 'netpay') {
+    grossMonthly = netMonthly / Math.max(0.2, 1 - mt);
+  } else {
+    // Relief at source: provider adds basic-rate relief (gross = net/0.8); higher/additional
+    // rate must be CLAIMED from HMRC — the classic unclaimed-relief money-loser.
+    grossMonthly = netMonthly / 0.8;
+    if (mt > 0.20) {
+      hrClaimMonthly = grossMonthly * (mt - 0.20);
+      notes.push('You must CLAIM the extra ' + Math.round((mt - 0.20) * 100) + '% relief (≈£' + Math.round(hrClaimMonthly) + '/mo) from HMRC via self-assessment — it is not automatic and is commonly missed.');
+    }
+    if (mt === 0) notes.push('Non-taxpayers still get the 25% top-up on contributions up to £3,600 gross/yr (£2,880 net) — relief at source only.');
+  }
+
+  const totalMonthly = grossMonthly + (employerMonthly || 0);
+  return {
+    grossMonthly,
+    employerMonthly: employerMonthly || 0,
+    totalMonthly,
+    reliefMonthly: grossMonthly - netMonthly,
+    niSavedMonthly,
+    hrClaimMonthly,
+    costPerPound: totalMonthly > 0 ? netMonthly / totalMonthly : 1,
+    notes
+  };
+}
+
+/**
+ * Rule warnings for a contribution plan. mpaaTriggered comes from the DECISION TOOL's history
+ * (any saved decision with a UFPLS tax-free slice) — the cross-check no consumer tool does.
+ * `flexibleAccess` ({ since: 'YYYY-MM' }, services/FlexibleAccess.js) is the person's own fact, carried from a plan they
+ * drew on and closed (research/plan-start.md §2 J): with it the £10,000 limit is said whatever is paid in — a line of
+ * information under it, a warning above it — with the month it began; without it, the plan's own history decides as before.
+ * Each of those two carries a `code` ('mpaa-carried', 'mpaa-carried-over') so a reader can find it without the words.
+ * Once the £10,000 limit applies (either way) the Annual Allowance line is not said: it says unused allowance from earlier
+ * years may cover what goes in over £60,000, and carry-forward cannot raise the £10,000 limit — the limit's own line already
+ * says the excess is taxed back.
+ */
+export function contributionWarnings({ annualGrossTotal = 0, salary = 0, mpaaTriggered = false, flexibleAccess = null, currentAge = 0, retirementAge = 0, projectedPotHigh = 0, now = new Date() }) {
+  const R = ACCUMULATION_RULES;
+  const out = [];
+  const rule = flexibleAccess && typeof flexibleAccess.since === 'string' && flexibleAccess.since ? flexibleAccessWords(flexibleAccess.since) : null;
+  if (rule) {
+    out.push(annualGrossTotal > R.MPAA
+      ? { severity: 'danger', code: 'mpaa-carried-over', message: 'MPAA: ' + rule + ' This plan pays in more; the excess is taxed back via an annual-allowance charge.' }
+      : { severity: 'info', code: 'mpaa-carried', message: 'MPAA: ' + rule });
+  } else if (mpaaTriggered && annualGrossTotal > R.MPAA) {
+    out.push({ severity: 'danger', message: 'MPAA: your Decision-tool history shows UFPLS income has been taken, which permanently caps tax-relieved contributions at £10,000/yr — this plan exceeds it. The excess is taxed back via an annual-allowance charge.' });
+  }
+  if (annualGrossTotal > R.ANNUAL_ALLOWANCE && !rule && !mpaaTriggered) {
+    out.push({ severity: 'warning', message: 'Annual Allowance: total contributions exceed £60,000/yr. Unused allowance from the previous 3 tax years (carry-forward) may cover it — otherwise the excess is taxed at your marginal rate.' });
+  }
+  if (salary > R.TAPER_THRESHOLD_INCOME) {
+    out.push({ severity: 'warning', message: 'High income: above £200k threshold income the Annual Allowance may taper (£1 lost per £2 of adjusted income over £260k, floor £10,000).' });
+  }
+  if (retirementAge > 0 && retirementAge < R.NMPA_NEW) {
+    const reaches55 = now.getFullYear() + Math.max(0, 55 - currentAge);
+    if (reaches55 >= 2028 || retirementAge < 55) {
+      out.push({ severity: 'warning', message: 'Access age: the normal minimum pension age rises to 57 on 6 April 2028. Retiring before 57 means bridging from ISA/other savings until the pension can be touched.' });
+    }
+  }
+  if (projectedPotHigh > R.LSA_POT_THRESHOLD) {
+    out.push({ severity: 'info', message: 'Large pot: above £1,073,100 the £268,275 Lump Sum Allowance means your effective tax-free cash falls below 25% — worth planning the crystallisation strategy early.' });
+  }
+  return out;
+}
+
+/**
+ * Deterministic projection at the three FCA rates, in TODAY'S money.
+ *
+ * Fund and platform charges (6.19.0, services/Charges.js): `chargesPct` is the plan's one charge, percent a year. The
+ * FCA rates are before charges (a regulator's projection takes the product's charges off), so each month every line is
+ * pot × (1 + r/12) × (1 − c)^(1/12) + the month's payment. Absent or 0: exactly the projection it always was.
+ * The "your mix" line's return (Holdings.proportions expectedReal) already has the holdings' own fund charges (OCF)
+ * taken off; with a plan charge the plan's ONE setting replaces them — pass that OCF as `mixOcf` and the line grows at
+ * mixRealReturn + mixOcf before the plan charge, so fund costs are never counted twice. Without a plan charge `mixOcf`
+ * is ignored (the OCF stays taken off, as before).
+ *
+ * The cash line (6.22.0, services/IsaGrowth.js): `fixedNominal`, a nominal rate a year, grows EVERY line at that one rate
+ * — a twelfth root of (1 + rate) a month, the engine's convention — with no mix line. It is for an ISA held "Mostly cash"
+ * (IsaGrowth.cashProjectionRate: the cash rule at the assumed rise in prices). Absent (or not a number): the lines above.
+ * @returns {Array<{age, year, potLow, potMid, potHigh, contributedToDate}>} one row per year
+ */
+export function projectAccumulation({ currentAge, retirementAge, potNow = 0, totalMonthly = 0, escalationPct = 0, assumedCpi = 0.025, mixRealReturn = null, chargesPct = 0, mixOcf = null, fixedNominal = null }) {
+  const years = Math.max(0, Math.round(retirementAge - currentAge));
+  const rows = [];
+  const pots = { low: potNow, mid: potNow, high: potNow };
+  const pct = isChargesPct(chargesPct) ? chargesPct : 0;
+  const chargeM = monthlyChargeFactor(pct);
+  if (typeof fixedNominal === 'number' && Number.isFinite(fixedNominal)) return projectFixed({ currentAge, years, potNow, totalMonthly, escalationPct, assumedCpi, chargeM, rate: fixedNominal });
+  // 6.7.0: a fourth line at the holder's OWN mix — its expected real return net of costs (Holdings.proportions),
+  // stated nominally here so the same deflator applies. Null when no holdings are tagged.
+  const hasMix = Number.isFinite(mixRealReturn);
+  const mixReal = hasMix && pct > 0 && Number.isFinite(mixOcf) ? mixRealReturn + mixOcf : mixRealReturn;   // the plan charge replaces the funds' own
+  const mixNominal = hasMix ? (1 + mixReal) * (1 + assumedCpi) - 1 : null;
+  let potMix = potNow;
+  let monthly = totalMonthly;
+  let contributed = 0;
+  rows.push({ age: currentAge, year: 0, potLow: potNow, potMid: potNow, potHigh: potNow, ...(hasMix ? { potMix: potNow } : {}), contributedToDate: 0 });
+  for (let y = 1; y <= years; y++) {
+    for (let m = 0; m < 12; m++) {
+      if (chargeM === 1) {
+        for (const k of Object.keys(pots)) pots[k] = pots[k] * (1 + FCA_RATES[k] / 12) + monthly;
+        if (hasMix) potMix = potMix * (1 + mixNominal / 12) + monthly;
+      } else {
+        for (const k of Object.keys(pots)) pots[k] = pots[k] * (1 + FCA_RATES[k] / 12) * chargeM + monthly;
+        if (hasMix) potMix = potMix * (1 + mixNominal / 12) * chargeM + monthly;
+      }
+      contributed += monthly;
+    }
+    monthly *= 1 + (escalationPct || 0) / 100;
+    const defl = Math.pow(1 + assumedCpi, y);
+    rows.push({
+      age: currentAge + y, year: y,
+      potLow: pots.low / defl, potMid: pots.mid / defl, potHigh: pots.high / defl,
+      ...(hasMix ? { potMix: potMix / defl } : {}),
+      contributedToDate: contributed
+    });
+  }
+  return rows;
+}
+
+/**
+ * projectAccumulation's cash line (6.22.0): every line at one nominal rate a year — pot × (1 + rate)^(1/12) × the charge
+ * factor + the month's payment, the payment rising once a year by escalationPct — deflated at assumedCpi. No mix line.
+ */
+function projectFixed({ currentAge, years, potNow, totalMonthly, escalationPct, assumedCpi, chargeM, rate }) {
+  const q = Math.pow(1 + Math.max(-0.99, rate), 1 / 12);
+  const rows = [{ age: currentAge, year: 0, potLow: potNow, potMid: potNow, potHigh: potNow, contributedToDate: 0 }];
+  let pot = potNow;
+  let monthly = totalMonthly;
+  let contributed = 0;
+  for (let y = 1; y <= years; y++) {
+    for (let m = 0; m < 12; m++) {
+      pot = chargeM === 1 ? pot * q + monthly : pot * q * chargeM + monthly;
+      contributed += monthly;
+    }
+    monthly *= 1 + (escalationPct || 0) / 100;
+    const real = pot / Math.pow(1 + assumedCpi, y);
+    rows.push({ age: currentAge + y, year: y, potLow: real, potMid: real, potHigh: real, contributedToDate: contributed });
+  }
+  return rows;
+}
+
+/** The projected pot at a point between the yearly rows (today's money), for "where am I" against the path. */
+export function potOnPath(rows, yearsElapsed, key = 'potMid') {
+  if (!Array.isArray(rows) || !rows.length) return null;
+  const y = Math.max(0, Math.min(rows.length - 1, yearsElapsed));
+  const i = Math.floor(y), f = y - i;
+  const a = rows[i], b = rows[Math.min(rows.length - 1, i + 1)];
+  if (!a) return null;
+  const va = a[key] ?? a.potMid, vb = (b && (b[key] ?? b.potMid)) ?? va;
+  return va + (vb - va) * f;
+}

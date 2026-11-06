@@ -1,0 +1,48 @@
+name: update-gilt-data
+
+# Refresh public/data/gilts.json (+ docs/ copy, + bundled snapshot) from the DMO gilts-in-issue
+# report and Tradeweb FTSE closing prices (T+1, via LateGenXer's published CSV).
+on:
+  schedule:
+    - cron: '30 6 * * TUE-SAT'   # after the T+1 prices land (UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-gilt-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: node scripts/fetch-gilt-data.mjs
+      # Gate: the fetched data is bundled into the app (src/data/*Snapshot.js), so the tests that read
+      # the live market data run against the NEW data before anything is committed. The rest of the
+      # suite runs on a frozen market (tests/fixtures/plans/market) and is not touched by a refresh, so
+      # it is left to the push that follows (a few minutes here instead of an hour of counted minutes).
+      # A failing step stops the job: nothing is committed, the run goes red and GitHub alerts us.
+      - run: npm ci
+      - name: Test against the fetched data
+        run: >-
+          npx vitest run
+          tests/EquityIndex.test.js tests/LinkerUniverse.test.js tests/GiltLadderPlan.test.js
+          tests/transitionPlanner.test.js tests/transitionView.test.js tests/giltLadderGraphic.test.js
+          tests/floorToAgeGraphic.test.js tests/incomeLayersGraphic.test.js tests/strategyMachines.test.js
+          tests/replay/aprilSlideAndLockedLadder.test.js tests/replay/transition.test.js
+          tests/v7/shell/assumptions.test.js tests/v7/shell/move.test.js
+      - name: Commit if changed (only reached when the suite passed)
+        run: |
+          git config user.name "pensiontools-data-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add public/data/gilts.json docs/data/gilts.json src/data/giltsSnapshot.js public/data/equity.json docs/data/equity.json src/data/equitySnapshot.js
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "Market data: nightly refresh ($(date -u +%F))"
+          git push

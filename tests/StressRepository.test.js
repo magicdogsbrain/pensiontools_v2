@@ -1,0 +1,104 @@
+import { describe, it, expect, vi } from 'vitest';
+
+// Avoid pulling in real Firebase at import time.
+vi.mock('../src/firebase/index.js', () => ({
+  isFirebaseConfigured: () => false,
+  isLoggedIn: () => false
+}));
+
+import { createSimulationConfigFromSettings } from '../src/storage/StressRepository.js';
+import { runMonteCarlo } from '../src/services/SimulationEngine.js';
+
+const base = {
+  equityMin: 600000, bondMin: 480000, cashTarget: 120000,
+  duration: 30, baseSalary: 59450, other: 0,
+  pa: 12570, brl: 50270, hrl: 125140, taxMode: 'inflates',
+  protectionMult: 0.8, consecutiveLimit: 3, disableProtection: false,
+  hodlEnabled: false, hodlValue: 0
+};
+
+describe('createSimulationConfigFromSettings — State Pension wiring', () => {
+  it('BUG FIX: legacy statePension/statePensionYear are honoured when no date is set', () => {
+    // The default stress settings ship statePension:12000/statePensionYear:12 and no
+    // spStartDate. Previously the builder forced spStartYear:999, so the sim's new-format
+    // branch won for every run and the £12k SP was silently dropped.
+    const cfg = createSimulationConfigFromSettings({}, {
+      ...base, statePension: 12000, statePensionYear: 12
+    });
+    expect(cfg.spStartYear).toBeUndefined();      // no new-format field → legacy branch runs
+    expect(cfg.statePension).toBe(12000);
+    expect(cfg.statePensionYear).toBe(12);
+  });
+
+  it('uses date-based SP when spStartDate + spWeeklyAmount are set', () => {
+    const cfg = createSimulationConfigFromSettings({}, {
+      ...base, spStartDate: '6 April 2040', spWeeklyAmount: 230
+    });
+    expect(cfg.spWeeklyAmount).toBe(230);
+    expect(cfg.spStartYear).toBeTypeOf('number');
+    expect(cfg.statePension).toBeUndefined();     // legacy fields not used
+  });
+
+  it('REGRESSION: parses the dash format "9-11-2036" (the optimizer bug) → SP not dropped', () => {
+    // The optimizer used a separate inline parser (parseSpDate) that had no dash-format
+    // branch, so "9-11-2036" → null → spStartYear:999 → State Pension silently dropped,
+    // scoring the current allocation far below the headline Monte Carlo. The shared
+    // builder uses parseStatePensionDate, which handles it.
+    const cfg = createSimulationConfigFromSettings({}, {
+      ...base, spStartDate: '9-11-2036', spWeeklyAmount: 230
+    });
+    expect(cfg.spWeeklyAmount).toBe(230);
+    expect(cfg.spStartYear).toBeTypeOf('number');
+    expect(cfg.spStartYear).toBeLessThan(999); // not the "dropped" sentinel
+  });
+
+  it('means no SP when neither date-based nor legacy fields are set', () => {
+    const cfg = createSimulationConfigFromSettings({}, { ...base });
+    // legacy fallback with no legacy fields → statePensionYear sentinel, statePension 0
+    expect(cfg.statePension).toBe(0);
+    expect(cfg.spStartYear).toBeUndefined();
+  });
+});
+
+describe('ISA composition (own-funds mode → config.isaMix)', () => {
+  const base = { equityMin: 100000, bondMin: 50000, cashTarget: 10000, duration: 30, baseSalary: 30000 };
+
+  it('derives bucket fractions from ISA-wrapped tagged holdings only', () => {
+    const cfg = createSimulationConfigFromSettings({}, {
+      ...base,
+      isaBalance: 60000,
+      taggedFunds: [
+        { ticker: 'UKW', value: 40000, wrapper: 'ISA' },   // ukEquityIncome → shares
+        { ticker: 'IGLS', value: 20000, wrapper: 'ISA' },  // shortGilts → bonds
+        { ticker: 'PACW', value: 500000, wrapper: 'SIPP' } // must NOT influence the ISA mix
+      ]
+    });
+    expect(cfg.isaMix).toBeTruthy();
+    expect(cfg.isaMix.shares).toBeCloseTo(40000 / 60000, 6);
+    expect(cfg.isaMix.bonds).toBeCloseTo(20000 / 60000, 6);
+    expect(cfg.isaMix.diversifiers).toBe(0);
+    expect(cfg.isaMix.bondWeights).toHaveProperty('shortGilts');
+  });
+
+  it('no ISA-wrapped holdings (risk mode / SIPP-only funds) → no isaMix, legacy flat path', () => {
+    const cfg = createSimulationConfigFromSettings({}, {
+      ...base,
+      isaBalance: 60000,
+      taggedFunds: [{ ticker: 'PACW', value: 500000, wrapper: 'SIPP' }]
+    });
+    expect(cfg.isaMix).toBeUndefined();
+    const cfg2 = createSimulationConfigFromSettings({}, { ...base, isaBalance: 60000 });
+    expect(cfg2.isaMix).toBeUndefined();
+  });
+
+  it('an equity-tagged ISA runs through Monte Carlo without error and can lose money in bad runs', () => {
+    const cfg = createSimulationConfigFromSettings({}, {
+      ...base,
+      isaBalance: 60000,
+      isaDrawdownStrategy: 'maximiseLongevity',
+      taggedFunds: [{ ticker: 'UKW', value: 60000, wrapper: 'ISA' }]
+    });
+    const runs = runMonteCarlo(cfg, 100);
+    expect(runs.every((r) => Number.isFinite(r.final))).toBe(true);
+  });
+});

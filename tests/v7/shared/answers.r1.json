@@ -1,0 +1,268 @@
+{
+ "why": "Am I saving enough? said straight (R1, research/saving-enough-and-check-in.md): every B answer gains its verdict, the two incomes and the gap, what would be enough and the one-off sum, so every B case of each corpus is pinned again here, by index — Node 24 as `hash`, Node 20 in byNode where it differs. Written by V7_PIN_R1=1 (tests/v7/shared/r1Moves.mjs).",
+ "sameYear": {
+  "4": {
+   "hash": "181e0a4cc62d1762a9c8bf2f"
+  },
+  "5": {
+   "hash": "e311370dbc494b2d769e9b5f"
+  },
+  "6": {
+   "hash": "390776db79a6a879991d490b"
+  },
+  "7": {
+   "hash": "188a209a085a28640af812ac"
+  },
+  "8": {
+   "hash": "95be14adf9eb645ac8ba273e"
+  },
+  "61": {
+   "hash": "3a698d22a58a5d67eff05630"
+  },
+  "62": {
+   "hash": "dd1c4d9ccfdfa38b39bf8c3b"
+  },
+  "63": {
+   "hash": "cbc118a0a6bfc5ba797c7862"
+  },
+  "64": {
+   "hash": "c2d44ade3d04a0d134451f61"
+  },
+  "65": {
+   "hash": "f6f2168a9a77a33e7c86cbe9"
+  },
+  "66": {
+   "hash": "a763a1c5fcda59a6e3fbeead"
+  },
+  "67": {
+   "hash": "a44eed1f80a1ca775212b17d"
+  },
+  "68": {
+   "hash": "e517a07f422c1b132652fdb7"
+  },
+  "69": {
+   "hash": "c4b2e607b109ff677a46fe57"
+  },
+  "70": {
+   "hash": "41b76f6498035ad6bc1ff46e"
+  },
+  "71": {
+   "hash": "5e38a123be9d7a67482bc842"
+  },
+  "72": {
+   "hash": "fb52d61f8a8a6805b2c61551"
+  },
+  "73": {
+   "hash": "12b4304aa6d810606942a9e4"
+  },
+  "74": {
+   "hash": "c4a9bfa29b59c64b08eb1236"
+  },
+  "75": {
+   "hash": "44041abab803a94f6fa82df8"
+  },
+  "76": {
+   "hash": "27cc44a6c481a0fb4dfeb4a3"
+  },
+  "77": {
+   "hash": "e25c51836ea58ced7713c935"
+  },
+  "78": {
+   "hash": "5c66e5361ba86538e0b9927a"
+  },
+  "79": {
+   "hash": "5558de37125426dac5545cea"
+  },
+  "80": {
+   "hash": "6d083052f5b2064e47df8bf6"
+  },
+  "81": {
+   "hash": "c14c3f9624b68b3f3dfb9c0a"
+  },
+  "82": {
+   "hash": "dee60ef3c865fa820d4bb3ca"
+  },
+  "83": {
+   "hash": "11f816166d9d48afb55d14e1"
+  },
+  "84": {
+   "hash": "0ae966dac61f683eaa75c47d"
+  },
+  "85": {
+   "hash": "0d7808a2ab04bf9daf999a52"
+  },
+  "86": {
+   "hash": "fb81d225ba83aa7166aa4f1a"
+  },
+  "87": {
+   "hash": "d9018f31e192f249e3e5514f"
+  },
+  "88": {
+   "hash": "e83e0847d7106a419c5267e5"
+  },
+  "89": {
+   "hash": "b668219a9f226c6220e4d891"
+  },
+  "90": {
+   "hash": "2863835bf91f417d135f7940"
+  }
+ },
+ "flat": {
+  "4": {
+   "hash": "670c176cae39a29ed85ae16b"
+  },
+  "5": {
+   "hash": "f18dc90dc1568d1280d3fa57"
+  },
+  "6": {
+   "hash": "a33b3bd7e53d2d3d8d40cb0a"
+  },
+  "7": {
+   "hash": "07710982ba7356e35863c469"
+  },
+  "8": {
+   "hash": "85debc7fca0f68a680a8b0da"
+  },
+  "61": {
+   "hash": "ebc09fdbda5e84075e32d712"
+  },
+  "62": {
+   "hash": "99e085317abfeef7329b1106"
+  },
+  "63": {
+   "hash": "a2abd329bdd758e669818a2b"
+  },
+  "64": {
+   "hash": "6366ec34f83278a7a2800655"
+  },
+  "65": {
+   "hash": "9e3faf2826cb91d94190fe88"
+  },
+  "66": {
+   "hash": "81e815e56bc0d68ca34f556f"
+  },
+  "67": {
+   "hash": "945884a50104a2e3f5c76a86"
+  },
+  "68": {
+   "hash": "2a1940eaf45cff980c6cd183"
+  },
+  "69": {
+   "hash": "ccb377a8fcaf3d3df0c1a556"
+  },
+  "70": {
+   "hash": "99fda71b636d50078c1a5217"
+  },
+  "71": {
+   "hash": "dd6a52790f1237f9c7f484a3"
+  },
+  "72": {
+   "hash": "133d9f3552cf550eae238369"
+  },
+  "73": {
+   "hash": "672406a104838a7e331bdd26"
+  },
+  "74": {
+   "hash": "9ac894bfe467a3c57685881d"
+  },
+  "75": {
+   "hash": "8a0eb7c900bdc2535349a6f1"
+  },
+  "76": {
+   "hash": "9be749ec5c6b57da7678bb48"
+  },
+  "77": {
+   "hash": "76e88c6ca30ba6ea7804a6fd"
+  },
+  "78": {
+   "hash": "1528a25ba42071d8faa12ebf"
+  },
+  "79": {
+   "hash": "99d5569eff4feedec3f67014"
+  },
+  "80": {
+   "hash": "46b75684fa0bce40544b64b5"
+  },
+  "81": {
+   "hash": "efc704b93718337fd39ae1a0"
+  },
+  "82": {
+   "hash": "5d697b9625099f6b10a348d8"
+  },
+  "83": {
+   "hash": "6f8d48ffa0e9c779dd687fb5"
+  },
+  "84": {
+   "hash": "b5c0f290721a28f5936ad119"
+  },
+  "85": {
+   "hash": "194543560c681fd0e52edc3c"
+  },
+  "86": {
+   "hash": "93c8a3844ebc6e3e891bc352"
+  },
+  "87": {
+   "hash": "66ee7663ab869b4df9f59869"
+  },
+  "88": {
+   "hash": "28369cc05f5d86924c69ab03"
+  },
+  "89": {
+   "hash": "5c4bdd9739830878a529823a"
+  },
+  "90": {
+   "hash": "636618b454199750a37abce1"
+  },
+  "177": {
+   "hash": "670c176cae39a29ed85ae16b"
+  },
+  "178": {
+   "hash": "f18dc90dc1568d1280d3fa57"
+  },
+  "179": {
+   "hash": "a33b3bd7e53d2d3d8d40cb0a"
+  },
+  "180": {
+   "hash": "07710982ba7356e35863c469"
+  },
+  "181": {
+   "hash": "85debc7fca0f68a680a8b0da"
+  },
+  "182": {
+   "hash": "2fac8ad8fa7c95e169992911"
+  },
+  "183": {
+   "hash": "bf50f0c94054ed2a61352f47"
+  },
+  "193": {
+   "hash": "fc6bdd857cc054427b413e59"
+  },
+  "196": {
+   "hash": "c17b75f42199171d09434e9e"
+  },
+  "199": {
+   "hash": "31a1e7a390593b26e322d13b"
+  },
+  "202": {
+   "hash": "69c232e0d8945cedd34c98fc"
+  },
+  "205": {
+   "hash": "3c4ebedea0ef27dcd8ef7204"
+  },
+  "208": {
+   "hash": "eca0df435df8cc83f7191c09"
+  },
+  "213": {
+   "hash": "31ec3da58e6c0fbb7066e5a5"
+  },
+  "220": {
+   "hash": "aa7bcd8c3979dfd17a6b5c4b"
+  },
+  "227": {
+   "hash": "6342b44b595e99204b14af96"
+  },
+  "234": {
+   "hash": "de7b393ece7c89f2eb8778cf"
+  }
+ }
+}

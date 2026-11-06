@@ -1,0 +1,103 @@
+import { describe, it, expect } from 'vitest';
+import { buildGiltLadder, spreadFor, ladderWealthByYear, accretedValue, yearsToMaturity } from '../src/strategies/GiltLadderPlan.js';
+import { activeLinkers } from '../src/services/LinkerUniverse.js';
+import { rotationPathsCtx, runRotationPath } from '../src/strategies/GiltRotation.js';
+
+// A ladder plan (fictional): £20k bridge, 2 cash years, £50k to 64, £43k to 71, £36k to 95.
+const amountAtAge = (age) => age <= 64 ? 50000 : age <= 71 ? 43000 : 36000;
+const base = { pot: 800000, startAge: 61, durationYears: 35, amountAtAge, spAnnual: 11900, spStartAge: 66, spFirstYearRatio: 5 / 12,
+  firstTaxYear: 2027, linkers: activeLinkers().gilts, cashYears: 2, bridgeCash: 20000, todayIso: '2026-08-26' };
+
+describe('GiltLadderPlan — the fully deterministic ladder', () => {
+  const plan = buildGiltLadder(base);
+  it('every rung matures BEFORE the April of the tax year it pays for (or is held from an earlier one)', () => {
+    for (const y of plan.years.filter((x) => x.from !== 'cash')) {
+      expect(y.from).not.toBe('none');
+      expect(y.matures <= y.Y + '-03-31').toBe(true);
+      if (!y.held) expect(y.matures >= (y.Y - 1) + '-04-01').toBe(true);
+    }
+  });
+  it('cash covers the bridge and the first N years; the State Pension is netted from 66 with a partial first year', () => {
+    expect(plan.cashYears.map((c) => c.Y)).toEqual([2027, 2028]);
+    // Cash years cost their inflation drag (−1% real a year, like every other strategy's cash): year 1 at face, year k × 1.01^(k−1).
+    expect(plan.cash).toBeCloseTo(20000 + 50000 * (1 + 1.01), 6);
+    const y2032 = plan.years.find((y) => y.Y === 2032);
+    expect(y2032.age).toBe(66);
+    expect(y2032.need).toBeCloseTo(43000 - 11900 * 5 / 12, 0);
+    expect(plan.years.find((y) => y.Y === 2033).need).toBe(43000 - 11900);
+  });
+  it('only 3-month-lag linkers; gap years are double-drops of the previous linker, never a sale', () => {
+    expect(plan.orders.every((o) => o.name.includes('Index-linked') || o.name.includes('Index-Linked'))).toBe(true);
+    expect(plan.orders.some((o) => o.name.includes('Stock'))).toBe(false);   // no old-style 8-month-lag stocks
+    const t29 = plan.orders.find((o) => o.tidm === 'T29');
+    expect(t29.taxYears).toEqual([2029, 2030, 2031]);                           // no 2030 linker → 2029 bought three times
+    expect(t29.pays).toBe(50000 + 50000 + 43000);
+    const t58 = plan.orders.find((o) => o.tidm === 'T58');
+    expect(t58.taxYears.length).toBeGreaterThanOrEqual(3);                      // nothing matures 2058-2061 in time
+  });
+  it('nominal = pays ÷ index ratio, rounded UP to £100; cost = pays × clean/100 × (1+spread) + £20', () => {
+    for (const o of plan.orders) {
+      if (o.indexRatio) expect(o.nominal).toBe(Math.ceil(o.pays / o.indexRatio / 100) * 100);
+      expect(o.cost).toBeCloseTo(o.pays * o.cleanPrice / 100 * (1 + o.spread) + 20, 0);
+    }
+    expect(spreadFor(3)).toBe(0.0015); expect(spreadFor(10)).toBe(0.0025); expect(spreadFor(25)).toBe(0.004);
+  });
+  it('reports affordability honestly with a reason and the shortfall', () => {
+    expect(plan.total).toBeGreaterThan(800000);
+    expect(plan.total).toBeLessThan(900000);
+    expect(typeof plan.affordable).toBe('boolean');
+    if (!plan.affordable) expect(plan.reason).toMatch(/more than the pot/);
+    const rich = buildGiltLadder({ ...base, pot: 2000000 });
+    expect(rich.affordable).toBe(true); expect(rich.spare).toBeGreaterThan(1100000);
+  });
+});
+
+describe('what a ladder holds, year by year — never at cost while a rung is held (sweep 20 Oct 2026)', () => {
+  const p = { pot: 1500000, startAge: 60, durationYears: 30, amountAtAge: () => 50000, spAnnual: 0, spStartAge: 99, spFirstYearRatio: 1,
+    firstTaxYear: 2027, linkers: activeLinkers().gilts, cashYears: 2, bridgeCash: 0, todayIso: '2026-10-20' };
+  const plan = buildGiltLadder(p);
+  const w = ladderWealthByYear(plan, p.durationYears);
+  // The old measure: each rung at what it cost, split evenly over the years it pays.
+  const atCost = (y) => plan.spare + plan.years.filter((yr) => yr.Y >= p.firstTaxYear + y).reduce((t, yr) => {
+    if (yr.from === 'cash') return t + yr.cost;
+    const o = plan.orders.find((x) => x.tidm === yr.from);
+    return t + o.cost / o.taxYears.length;
+  }, 0);
+  it('year 0 is what the rungs and cash cost plus what is left; the last year is what is left', () => {
+    expect(plan.affordable).toBe(true);
+    expect(w).toHaveLength(p.durationYears + 1);
+    expect(w[0]).toBeCloseTo(plan.spare + plan.cash + plan.giltsCost, 6);
+    expect(w[0]).toBeCloseTo(atCost(0), 6);
+    expect(w[p.durationYears]).toBeCloseTo(plan.spare, 6);
+  });
+  it('a rung rises from its cost on the day it is bought to what it pays on the day it matures', () => {
+    for (const o of plan.orders) {
+      const T = yearsToMaturity(o, p.firstTaxYear);
+      expect(accretedValue(o, 0, T)).toBeCloseTo(o.cost, 6);
+      expect(accretedValue(o, T, T)).toBeCloseTo(o.pays, 6);
+      expect(accretedValue(o, T + 5, T)).toBeCloseTo(o.pays, 6);   // after maturity it is cash: what it paid
+    }
+  });
+  it('mid-plan, rungs bought below what they pay are worth more than they cost', () => {
+    const cheap = plan.orders.filter((o) => o.cost < o.pays).length;
+    expect(cheap).toBeGreaterThan(0);
+    for (let y = 1; y < p.durationYears; y++) expect(w[y]).toBeGreaterThan(atCost(y) - 1e-6);
+    expect(w[15]).toBeGreaterThan(atCost(15) + 1000);
+  });
+  it('a rotation whose trigger never fires holds exactly what the full ladder holds, every year — the block\'s rungs are not counted again after they pay (6.34.0)', () => {
+    const ctx = rotationPathsCtx(plan, { ...p, params: {}, chargesPct: 0, otherIncomeByYear: [] }, { cutAge: 75, trigger: 0.3 });
+    expect(ctx.split.soldOrders.length).toBeGreaterThan(0);
+    const rising = Array.from({ length: 12 * (p.durationYears + 2) }, (_, i) => 100 * 1.004 ** i);   // never 30% below its high
+    const run = runRotationPath(rising, 0, ctx);
+    expect(run.triggeredYear).toBeNull();
+    expect(run.failAge).toBeNull();
+    for (let y = 0; y <= p.durationYears; y++) expect(run.wealth[y], 'year ' + y).toBeCloseTo(w[y], 6);
+    expect(run.wealth[p.durationYears]).toBeCloseTo(plan.spare, 6);
+  });
+  it('leaving a rung out removes exactly its accreted value (the rotation values its sold block on its own)', () => {
+    const o = plan.orders[plan.orders.length - 1];
+    const without = ladderWealthByYear(plan, p.durationYears, new Set([o.tidm]));
+    const T = yearsToMaturity(o, p.firstTaxYear);
+    for (const y of [0, 5, 10]) expect(w[y] - without[y]).toBeCloseTo(accretedValue(o, y, T), 6);
+  });
+});

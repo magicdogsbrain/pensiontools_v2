@@ -1,0 +1,931 @@
+/**
+ * The input list of "About you and when" (research/v7/editing-in-v7.md 2, 3) — the first editing step of a saved plan in
+ * V7. Data only, like the questions' lists (src/answers/c/schema.js): the fields, by path, with their limits and when each
+ * applies; and the ONLY field paths of the stored plan this step may write (editing-in-v7.md 1, rule 3e).
+ *
+ *   ABOUT_FIELDS       the boxes, in the order they are drawn
+ *   ABOUT_PATHS        their paths
+ *   ABOUT_WRITES       every dotted field path of the stored plan the step may change (the planner's own keys, 3)
+ *   BOOKKEEPING_WRITES the planner's stamp on every save (FirestoreService.saveScenario), written with every patch
+ *   SUB_STEP           the address of the step under a plan: #/plan/<id>/about
+ *   INCOME_FIELDS, INCOME_LISTS, INCOME_WRITES, isIncomePath
+ *                      the second step, "Money that comes in anyway" (editing-in-v7.md 7): its boxes, its card lists and the
+ *                      ONLY field paths it may write
+ *   SPEND_FIELDS, SPEND_LISTS, SPEND_WRITES, isSpendPath
+ *                      the third step, "What you spend" (editing-in-v7.md 8): the first row, the later steps and the one-off
+ *                      costs as cards, and the ONLY field paths it may write
+ *   POTS_FIELDS, POTS_WRITES, isPotsPath
+ *                      the fourth step, "Your pots and tax" (editing-in-v7.md 9): the pots today and at the stop, the ISA
+ *                      choices, the ordinary account, charges, the tax bands and the tax-free part, and the ONLY field paths
+ *                      it may write
+ *   LASTS_FIELDS, LASTS_WRITES, isLastsPath
+ *                      the fifth step, "Does it last?" (editing-in-v7.md 10): the spending cuts in a slump and the emergency
+ *                      reserve, and the ONLY field paths it may write (the run itself writes nothing)
+ *   DECISION_SEED_KEYS, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES
+ *                      "Lock the plan" (road-to-7.md step 6): the ONLY field paths the lock, the unlock and "Write a new
+ *                      version from today's settings" may write — the planner's own, field for field
+ *   WAY_IDS, WAY_DIALS, RANK_BYS, WAY_WRITES
+ *                      "How the money is taken" (way-and-mix.md 2; road-to-7.md step 8a): the nine ways, each one's dials
+ *                      (one set), the orders of the table, and the ONLY field paths "Use this way of drawing" may write
+ *   MIX_FIELDS, MIX_LISTS, MIX_WRITES, isMixPath
+ *                      "The mix" (way-and-mix.md 3; road-to-7.md step 8b): how the pension is held (a level, your own split,
+ *                      the funds to test), the diversifiers sleeve, the bond tent, the funds as cards, the paste's boxes, and
+ *                      the ONLY field paths "Save the mix" and "Use this mix" may write
+ *   TRY_FIELDS, TRY_WRITES, isTryPath
+ *                      Try a change on a plan (way-and-mix.md 4): the boxes beside the three levers on "Does it last?", and
+ *                      the paths "Use this" may write — the union of the steps' own lists, none of its own
+ *   HOUSEHOLD_FIELDS, HOUSEHOLD_WRITES, isHouseholdPath, LIMIT_KINDS, WHOS, PAID_BYS
+ *   HOLD_FIELDS, HOLD_WRITES, isHoldPath, HOLD_WRAPPERS, HOLD_WHATS, MOVE_WRITES, isMovePath
+ *                      "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md; road-to-7.md step 10):
+ *                      the add-a-line and paste boxes, and the ONLY field paths each may write — the whole record, the
+ *                      whole transition object, each as one field
+ *                      "Your household" (road-to-7.md step 9): the limit on the smaller pot, the survivor and care questions in
+ *                      ages, the budget's who-pays, and the ONLY field paths the step may write (the link, the dismissal, the
+ *                      split's five keys, the budget shared, who pays)
+ *   PLANS_WRITES       "Your plans" (road-to-7.md step 11): the ONLY field paths the plan menu may write to a plan that exists —
+ *                      its name (Rename) and which plan is the main one
+ *   BUDGET_*, isBudgetPath, BUDGET_WRITES
+ *                      the budget on a saved plan (road-to-7.md step 11b): the lines, the breakdown rows, the one-offs, the
+ *                      who-pays phases and the spreadsheet opened, as boxes; the whole budget as ONE write
+ *   SAVING_FIELDS, isSavingPath, SAVING_WRITES, SCHEME_TYPES
+ *                      "What you pay in" (step 11b): the Accumulation form's boxes and the pot record's; the whole settings
+ *                      object and the whole record list, each ONE write
+ *   CHECKIN_FIELDS, isCheckInPath, CHECKIN_WRITES, PAY_IN_KINDS, CADENCES
+ *                      "Check in" (research/saving-enough-and-check-in.md 5; release step R3): a saver's check-in boxes, and
+ *                      the ONLY field paths a check-in may write
+ *   MONTH_FIELDS, isMonthPath, MONTH_WRITES, MONTH_MODES, TOP_UP_CHOICES
+ *                      Month by month (research/v7/months-in-v7.md, 7.2.0): the month's boxes and its tax year's set-up, and the
+ *                      ONLY field paths it may write
+ *   isPlanEditPath     the one rule for a draft path of any step
+ *
+ * `when` is the one rule the questions' lists use (src/answers/shared/validate.js applies): the field is drawn and checked
+ * only while the named field shows that value.
+ */
+export const SUB_STEP = 'about';
+
+export const ABOUT_FIELDS = Object.freeze([
+  { path: 'age',       type: 'age',    min: 18, max: 100, required: true },
+  { path: 'stopped',   type: 'choice', options: ['yes', 'age', 'month'], required: true },
+  { path: 'stopAge',   type: 'age',    min: 18, max: 85,  required: true, when: { stopped: 'age' } },
+  // the month work stops (a stop to come: required) or stopped (6.51.0, research/plan-start.md §2 C: optional; past or this month)
+  { path: 'stopMonth', type: 'month',  required: true, when: { stopped: ['month', 'yes'] } },
+  // 'stop': the tax year work stopped in (the default once a month is given); 'y<YYYY>': a tax year between it and this one
+  // (offered by about.js startChoices, each named by its year — the planner's own range, PlanTiming.startYearChoices)
+  { path: 'startWhen', type: 'choice', options: ['stop', 'now', 'april', 'saved'], required: true, when: { stopped: 'yes' } },
+  { path: 'endAge',    type: 'age',    min: 23, max: 110, required: true },
+  // "Suggest from how long people live": neither is saved
+  { path: 'sex',       type: 'choice', options: ['m', 'f'], default: 'm' },
+  { path: 'chance',    type: 'choice', options: ['10', '25', '50'], default: '10' }
+].map(Object.freeze));
+
+export const ABOUT_PATHS = Object.freeze(ABOUT_FIELDS.map((f) => f.path));
+
+/** The least a plan may run (the planner's own floor when the start moves: Math.max(5, …)). */
+export const MIN_YEARS = 5;
+
+export const ABOUT_WRITES = Object.freeze([
+  // "Leave it" on an out-of-date draft (road-to-7.md step 11b, the ledger's timing.stale-draft): the planner's own key, the one
+  // Stress key its guard lets a locked plan write (LockedPlanGuard.LOCKED_BOOKKEEPING) — a locked plan is never offered it
+  'stressTool.settings.staleDraftDismissedFor',
+  // "Leave it" to "When did you stop work?" on a locked plan (6.53.0): remembered, like the one above, by a key the guard
+  // lets a locked plan write; the month itself is stressTool.settings.stoppedWork below, as on a draft
+  'stressTool.settings.stopMonthLeft',
+  'stressTool.settings.currentAge',
+  'stressTool.settings.currentAgeAsOf',
+  'stressTool.settings.retired',
+  'stressTool.settings.retireAge',
+  'stressTool.settings.stoppedWork',
+  'stressTool.settings.firstTaxYear',
+  'stressTool.settings.shapeAgeNow',
+  'stressTool.settings.duration',
+  'decisionTool.settings.firstTaxYear',
+  'budgetTool.settings.currentAge',
+  'budgetTool.settings.currentAgeAsOf',
+  'budgetTool.settings.retired',
+  'budgetTool.settings.retirementAge',
+  // the Accumulation tab's ages, kept in step with the stop when the plan has saving figures (about.js accumulationWant)
+  'accumulationTool.settings.currentAge',
+  'accumulationTool.settings.retirementAge'
+]);
+
+export const BOOKKEEPING_WRITES = Object.freeze(['lastModified']);
+
+// ---- "Money that comes in anyway" (research/v7/editing-in-v7.md 7): the second editing step ---------------------------
+
+export const INCOME_SUB_STEP = 'income';
+
+/** The step's single boxes, in the order they are drawn. */
+export const INCOME_FIELDS = Object.freeze([
+  // the State Pension: the full amount (V7's own figure), the forecast's weekly amount, none — or, only while the plan has no
+  // figure at all, "as the planner assumes" (the old yearly figure from age 67)
+  { path: 'spKind',   type: 'choice', options: ['full', 'forecast', 'none', 'assumed'], required: true },
+  { path: 'spWeekly', type: 'money',  min: 1, max: 1000, required: true, when: { spKind: 'forecast' } },
+  // the start date from the forecast letter (road-to-7.md step 11b, the ledger's inc.state-pension-date): the planner's own box,
+  // read by its own parser (StatePensionUtils.parseStatePensionDate) — drawn while a State Pension is chosen (income.js applies)
+  { path: 'spDate',   type: 'text',   max: 40, required: false },
+  { path: 'other',    type: 'money',  min: 0, max: 1000000, required: false }
+].map(Object.freeze));
+
+/** The three rises the planner offers for a final-salary pension and an income stream (dbIndexation, extraIncomes[].indexation). */
+export const RISES = Object.freeze(['lpi5', 'cpi', 'level']);
+/** What a lump sum is (windfalls[].wrapper): a cash lump sum, an inherited pension, an inherited ISA. */
+export const WRAPPERS = Object.freeze(['cash', 'pension', 'isa']);
+
+/**
+ * The lists, each a set of cards (7.2): `fs` final-salary pensions, `streams` income for some years, `lumps` lump sums. A
+ * card's boxes are "<list>.<id>.<field>"; the list's order is "<list>.ids" ("0,1,n1").
+ */
+export const INCOME_LISTS = Object.freeze({
+  fs: Object.freeze({ fields: Object.freeze([
+    { path: 'amount',  type: 'money',  min: 1, max: 1000000, required: true },
+    { path: 'fromAge', type: 'age',    min: 40, max: 100, required: true },
+    { path: 'rises',   type: 'choice', options: RISES, default: 'lpi5' }
+  ].map(Object.freeze)) }),
+  streams: Object.freeze({ fields: Object.freeze([
+    { path: 'label',   type: 'text',   max: 60, required: false },
+    { path: 'amount',  type: 'money',  min: 1, max: 1000000, required: true },
+    { path: 'fromAge', type: 'age',    min: 18, max: 110, required: true },
+    { path: 'toAge',   type: 'age',    min: 18, max: 110, required: false },
+    { path: 'rises',   type: 'choice', options: RISES, default: 'lpi5' }
+  ].map(Object.freeze)) }),
+  lumps: Object.freeze({ fields: Object.freeze([
+    { path: 'label',   type: 'text',   max: 60, required: false },
+    { path: 'amount',  type: 'money',  min: 1, max: 10000000, required: true },
+    { path: 'atAge',   type: 'age',    min: 18, max: 110, required: true },
+    { path: 'wrapper', type: 'choice', options: WRAPPERS, default: 'cash' }
+  ].map(Object.freeze)) })
+});
+export const INCOME_LIST_IDS = Object.freeze(Object.keys(INCOME_LISTS));
+
+const CARD_ID = /^(\d{1,2}|n\d{1,3})$/;
+/** A card's id: a saved card is "0", "1", … in the order read; a new one "n1", "n2", … */
+export const isCardId = (id) => CARD_ID.test(String(id));
+
+/** The paths of this step a draft may hold: the single boxes, a list's order, a card's boxes (7.2). */
+export function isIncomePath(path) {
+  const p = String(path);
+  if (INCOME_FIELDS.some((f) => f.path === p)) return true;
+  const parts = p.split('.');
+  if (parts.length === 2) return INCOME_LIST_IDS.includes(parts[0]) && parts[1] === 'ids';
+  if (parts.length !== 3) return false;
+  const list = INCOME_LISTS[parts[0]];
+  return !!list && isCardId(parts[1]) && list.fields.some((f) => f.path === parts[2]);
+}
+
+// ---- "What you spend" (research/v7/editing-in-v7.md 8): the third editing step ------------------------------------------
+
+export const SPEND_SUB_STEP = 'spend';
+
+/** What happens from a step's age: stays the same, falls by a percentage a year, or moves evenly to the next step. */
+export const THENS = Object.freeze(['level', 'falls', 'glides']);
+/** How a one-off cost's amount is reckoned over the years (extraWithdrawals[].indexation): with prices ('cpi') or a fixed sum ('level'). */
+export const PRICES = Object.freeze(['rise', 'fixed']);
+
+/**
+ * The first row (8.2): the figure from the plan's start, a month after tax, and what happens from it. Its age is the plan's
+ * start age and is never asked.
+ */
+export const SPEND_FIELDS = Object.freeze([
+  { path: 'first.amount',   type: 'money',   min: 1, max: 50000, required: true },
+  { path: 'first.then',     type: 'choice',  options: THENS, default: 'level' },
+  { path: 'first.fallsPct', type: 'percent', min: 0.25, max: 10, step: 0.25, required: true, when: { 'first.then': 'falls' } }
+].map(Object.freeze));
+
+/** The lists (8.2): `steps` the later steps by age, `costs` the one-off costs by age. Cards as 7.2. */
+export const SPEND_LISTS = Object.freeze({
+  steps: Object.freeze({ fields: Object.freeze([
+    { path: 'fromAge',  type: 'age',     min: 18, max: 110, required: true },
+    { path: 'amount',   type: 'money',   min: 1, max: 50000, required: true },
+    { path: 'then',     type: 'choice',  options: THENS, default: 'level' },
+    { path: 'fallsPct', type: 'percent', min: 0.25, max: 10, step: 0.25, required: true, when: { then: 'falls' } }
+  ].map(Object.freeze)) }),
+  costs: Object.freeze({ fields: Object.freeze([
+    { path: 'label',    type: 'text',    max: 60, required: false },
+    { path: 'amount',   type: 'money',   min: 1, max: 1000000, required: true },
+    { path: 'atAge',    type: 'age',     min: 18, max: 110, required: true },
+    { path: 'years',    type: 'count',   min: 1, max: 60, required: false, default: 1 },
+    { path: 'prices',   type: 'choice',  options: PRICES, default: 'rise' }
+  ].map(Object.freeze)) })
+});
+export const SPEND_LIST_IDS = Object.freeze(Object.keys(SPEND_LISTS));
+
+/**
+ * The paths of "What you spend" a draft may hold: the first row's boxes, a list's order, a card's boxes — and, beside an
+ * amount box, the before-tax figure a lift handed it ("first.gross", "steps.<id>.gross": spend.js lumpEdits, liftedGross), a
+ * path with no box of its own that nobody types.
+ */
+export function isSpendPath(path) {
+  const p = String(path);
+  if (SPEND_FIELDS.some((f) => f.path === p)) return true;
+  if (p === 'first.gross') return true;
+  const parts = p.split('.');
+  if (parts.length === 2) return SPEND_LIST_IDS.includes(parts[0]) && parts[1] === 'ids';
+  if (parts.length !== 3) return false;
+  const list = SPEND_LISTS[parts[0]];
+  return !!list && isCardId(parts[1]) && (list.fields.some((f) => f.path === parts[2]) || (parts[0] === 'steps' && parts[2] === 'gross'));
+}
+
+/** Every dotted field path "What you spend" may change: the planner's own keys (8.3). */
+export const SPEND_WRITES = Object.freeze([
+  'stressTool.settings.incomeShape',
+  'stressTool.settings.incomeSteps',
+  'stressTool.settings.targetSchedule',
+  'stressTool.settings.baseSalary',
+  'stressTool.settings.spendingProfile',
+  'stressTool.settings.extraWithdrawals',
+  'decisionTool.settings.baseSalary',
+  'decisionTool.settings.targetSchedule'
+]);
+
+// ---- "Your pots and tax" (research/v7/editing-in-v7.md 9): the fourth editing step ----------------------------------------
+
+export const POTS_SUB_STEP = 'pots';
+
+/** How the ISA and savings grow (stressTool.settings.isaGrowth, 6.22.0): the two choices, "Mostly cash" first. */
+export const ISA_GROWTHS = Object.freeze(['cash', 'invested']);
+/** How the ISA is used (isaDrawdownStrategy): tax-efficient, make it last, hold — the planner's three (IsaDrawdown.ISA_STRATEGIES). */
+export const ISA_USES = Object.freeze(['minimiseEarlyTax', 'maximiseLongevity', 'hold']);
+/** What the ordinary (taxable) account holds (taxableMix): the planner's five. */
+export const TAXABLE_MIXES = Object.freeze(['equity', 'gilt', 'bond', 'balanced', 'cash']);
+/** The tax band the ordinary account is taxed at (giaTaxBand). */
+export const GIA_BANDS = Object.freeze(['basic', 'higher']);
+/** Whether the tax thresholds rise with prices or stay frozen (taxMode). */
+export const TAX_MODES = Object.freeze(['inflates', 'frozen']);
+/** The 25% tax-free part (accessMethod): kept separate or already taken ('drawdown'), or a quarter of each draw ('ufpls'). */
+export const TAX_FREES = Object.freeze(['drawdown', 'ufpls']);
+/** A tick, as a choice a person makes: yes or no. */
+export const YES_NO = Object.freeze(['yes', 'no']);
+
+/**
+ * The boxes (9.2), in the order they are drawn. `when` as the other lists; the boxes whose showing depends on a figure
+ * (the ordinary account's mix and band while it holds money; the pots at the stop while the plan stops later; bed-and-ISA
+ * while the ISA is not held) are decided by the reading (pots.js checkPots applies).
+ */
+export const POTS_FIELDS = Object.freeze([
+  { path: 'pension',      type: 'money',   min: 0, max: 50000000, required: true },
+  { path: 'stopSipp',     type: 'money',   min: 1, max: 50000000, required: false },
+  { path: 'stopIsa',      type: 'money',   min: 1, max: 50000000, required: false },
+  { path: 'isa',          type: 'money',   min: 0, max: 50000000, required: false, default: 0 },
+  { path: 'isaGrowth',    type: 'choice',  options: ISA_GROWTHS, required: true },
+  { path: 'isaUse',       type: 'choice',  options: ISA_USES, default: 'minimiseEarlyTax' },
+  { path: 'taxable',      type: 'money',   min: 0, max: 50000000, required: false, default: 0 },
+  { path: 'taxableMix',   type: 'choice',  options: TAXABLE_MIXES, default: 'equity' },
+  { path: 'giaBand',      type: 'choice',  options: GIA_BANDS, default: 'basic' },
+  { path: 'earnings',     type: 'money',   min: 0, max: 10000000, required: false, default: 0 },
+  { path: 'bedAndIsa',    type: 'choice',  options: YES_NO, default: 'yes' },
+  { path: 'charges',      type: 'percent', min: 0, max: 3, step: 0.05, required: true },
+  { path: 'pa',           type: 'money',   min: 1, max: 1000000, required: true },
+  { path: 'brl',          type: 'money',   min: 1, max: 1000000, required: true },
+  { path: 'hrl',          type: 'money',   min: 1, max: 1000000, required: true },
+  { path: 'taxMode',      type: 'choice',  options: TAX_MODES, default: 'inflates' },
+  { path: 'taxFree',      type: 'choice',  options: TAX_FREES, default: 'drawdown' },
+  { path: 'ufplsYears',   type: 'count',   min: 1, max: 60, required: false, when: { taxFree: 'ufpls' } },
+  { path: 'ufplsThenIsa', type: 'choice',  options: YES_NO, default: 'no', when: { taxFree: 'ufpls' } },
+  { path: 'bandFill',     type: 'choice',  options: YES_NO, default: 'no' }
+].map(Object.freeze));
+
+export const POTS_PATHS = Object.freeze(POTS_FIELDS.map((f) => f.path));
+
+/** The paths of "Your pots and tax" a draft may hold: the boxes, nothing else. */
+export const isPotsPath = (path) => POTS_PATHS.includes(String(path));
+
+/** Every dotted field path "Your pots and tax" may change: the planner's own keys (9.3), all in the Stress settings. */
+export const POTS_WRITES = Object.freeze([
+  'stressTool.settings.equityMin',
+  'stressTool.settings.bondMin',
+  'stressTool.settings.cashTarget',
+  'stressTool.settings.diversifierStart',
+  'stressTool.settings.potAtRetirement',
+  'stressTool.settings.isaBalance',
+  'stressTool.settings.isaGrowth',
+  'stressTool.settings.isaDrawdownStrategy',
+  'stressTool.settings.taxableStart',
+  'stressTool.settings.taxableMix',
+  'stressTool.settings.giaTaxBand',
+  'stressTool.settings.relevantEarnings',
+  'stressTool.settings.bedAndIsa',
+  'stressTool.settings.chargesPct',
+  'stressTool.settings.pa',
+  'stressTool.settings.brl',
+  'stressTool.settings.hrl',
+  'stressTool.settings.taxMode',
+  'stressTool.settings.accessMethod',
+  'stressTool.settings.ufplsYears',
+  'stressTool.settings.ufplsThenPcls',
+  'stressTool.settings.bandFillRecycle'
+]);
+
+// ---- "Does it last?" (research/v7/editing-in-v7.md 10): the fifth editing step --------------------------------------------
+
+export const LASTS_SUB_STEP = 'lasts';
+
+/**
+ * The dials (10.2), in the order they are drawn: the spending cuts in a slump (the Pots & Valves family's protection) and
+ * the emergency reserve. The cut boxes are drawn while cuts are on; the reserve's amount while the reserve is on. The run
+ * itself has no box: the test's futures are the engine's own fixed seeds and its length is the plan's (10.1).
+ */
+export const LASTS_FIELDS = Object.freeze([
+  { path: 'cutsOn',            type: 'choice', options: YES_NO, default: 'yes' },
+  { path: 'cutAfterMonths',    type: 'count',  min: 1, max: 24, required: true, when: { cutsOn: 'yes' } },
+  { path: 'cutPct',            type: 'count',  min: 0, max: 95, required: true, when: { cutsOn: 'yes' } },
+  { path: 'deeperAfterMonths', type: 'count',  min: 0, max: 60, required: true, when: { cutsOn: 'yes' } },
+  { path: 'buffer',            type: 'money',  min: 0, max: 1000000, required: false, default: 0, when: { cutsOn: 'yes' } },
+  { path: 'reserveOn',         type: 'choice', options: YES_NO, default: 'no' },
+  { path: 'reserveAmount',     type: 'money',  min: 1, max: 50000000, required: true, when: { reserveOn: 'yes' } }
+].map(Object.freeze));
+
+export const LASTS_PATHS = Object.freeze(LASTS_FIELDS.map((f) => f.path));
+
+/** The paths of "Does it last?" a draft may hold: the dials, nothing else. */
+export const isLastsPath = (path) => LASTS_PATHS.includes(String(path));
+
+/** Every dotted field path "Does it last?" may change: the planner's own Stress keys for the cuts and the reserve (10.3). */
+export const LASTS_WRITES = Object.freeze([
+  'stressTool.settings.disableProtection',
+  'stressTool.settings.consecutiveLimit',
+  'stressTool.settings.protectionMult',
+  'stressTool.settings.protectionEscalateMonths',
+  'stressTool.settings.recoveryBuffer',
+  'stressTool.settings.hodlEnabled',
+  'stressTool.settings.hodlValue'
+]);
+
+// ---- "Lock the plan" (research/v7/road-to-7.md step 6; your-plan.md 1.3, 7; v6-usability-audit.md 2.6) ---------------------
+
+export const LOCK_STEP = 'lock';
+
+/**
+ * Every key the Decision tool's seed from the Stress settings may set or change (services/PlanCommit.js seedDecisionFromStress:
+ * the planner's own default Decision settings and the keys the seed sets explicitly), listed by hand — the seed is written as
+ * one dotted path per key that changes, and a test proves the seed never produces a key outside this list.
+ */
+export const DECISION_SEED_KEYS = Object.freeze([
+  'accessMethod', 'allocMode', 'bandFillRecycle', 'baseSalary', 'bedAndIsa', 'bondMin', 'cashTarget', 'configured',
+  'consecutiveLimit', 'disableProtection', 'diversifierStart', 'duration', 'equityGlideEnabled', 'equityMin', 'firstTaxYear',
+  'giaTaxBand', 'glideEndgame', 'incomeShape', 'incomeSteps', 'isaBalance', 'isaDrawdownStrategy', 'isaMin', 'isaReturn',
+  'protectionEscalateMonths', 'protectionFactor', 'recoveryBuffer', 'relevantEarnings', 'seededFrom', 'shapeAgeNow',
+  'spStartDate', 'spWeeklyAmount', 'spendingProfile', 'statePension', 'statePensionYear', 'strategyId', 'strategyParams',
+  'subAsset', 'taggedFunds', 'taxableMix', 'taxableStart', 'ufplsThenPcls', 'ufplsYears', 'windfalls'
+]);
+
+/** The lock's own keys: the flag, its date and who made it (PlanLock.lockPlanIfNeeded), each a dotted path. */
+export const LOCK_FLAG_WRITES = Object.freeze([
+  'decisionTool.settings.locked',
+  'decisionTool.settings.lockedAt',
+  'decisionTool.settings.lockedBy'
+]);
+
+/**
+ * Every dotted field path the lock may write (index.html commitPlanLock, field for field): the Decision tool seeded from the
+ * Stress settings, the lock's flags, the plan of record (the planner's yardstick for its records, one map), the plan document
+ * (one map) and the journey (the stage change the lock causes).
+ */
+export const LOCK_WRITES = Object.freeze([
+  ...DECISION_SEED_KEYS.map((k) => 'decisionTool.settings.' + k),
+  ...LOCK_FLAG_WRITES,
+  'decisionTool.planOfRecord',
+  'planDocument',
+  'journey'
+]);
+
+/**
+ * Every dotted field path the unlock may write (PlanLock.unlockPlan + ScenarioRepository.archivePlanDocument /
+ * archivePlanOfRecord, and the defaults of PlanCommit.unlockPatchesOf): the document and the plan of record each into its
+ * archive (the last ten kept) and cleared, the flag off, the unlock dated and counted, and the Stress defaults a plan locked
+ * before a setting existed gets.
+ */
+export const UNLOCK_WRITES = Object.freeze([
+  'planDocumentArchive',
+  'planDocument',
+  'decisionTool.planOfRecordArchive',
+  'decisionTool.planOfRecord',
+  'decisionTool.settings.locked',
+  'decisionTool.settings.unlockedAt',
+  'decisionTool.settings.unlockCount',
+  'stressTool.settings.chargesPct',
+  'stressTool.settings.isaGrowth'
+]);
+
+/** "Write a new version from today's settings" (index.html createPlanDocumentNow): the current document archived, a new one written. */
+export const DOCUMENT_WRITES = Object.freeze([
+  'planDocumentArchive',
+  'planDocument'
+]);
+
+/**
+ * "Move the plan's start" on a locked plan (research/plan-start.md §4; moveStart.js movePatch; services/PlanMove.js): both
+ * copies of year 0 and the keys the move works out from them (each only as it works it out: the lock guard's `reAnchor`
+ * allowance), the month work stopped, where the lock's pots stood, the strategy block's counts of years, the recorded months,
+ * the document and the plan of record archived and written again, and the journey. The planner sends it (index.html
+ * moveLockedPlanStart), and from 6.55.0 the preview does too, from a locked plan's "About you and when" (effects/planWrite.js
+ * moveStart): one write, past the same guard.
+ */
+const MOVED_KEYS = ['shapeAgeNow', 'duration', 'incomeShape', 'incomeSteps', 'targetSchedule', 'spendingProfile', 'spendingMigratedFrom', 'dbStartYear', 'statePensionYear', 'ufplsYears', 'strategyParams', 'strategyState', 'extraIncomes', 'extraWithdrawals', 'windfalls'];
+export const MOVE_START_WRITES = Object.freeze([
+  // PlanMove.REANCHOR_STRESS_KEYS and REANCHOR_DECISION_KEYS, by hand (this file imports nothing; a test holds them equal)
+  ...['firstTaxYear', 'stoppedWork', ...MOVED_KEYS].map((k) => 'stressTool.settings.' + k),
+  ...['firstTaxYear', 'lockedPosition', ...MOVED_KEYS].map((k) => 'decisionTool.settings.' + k),
+  'strategy.params',
+  'decisionTool.history',
+  'decisionTool.planOfRecordArchive',
+  'decisionTool.planOfRecord',
+  'planDocumentArchive',
+  'planDocument',
+  'journey'
+]);
+
+// ---- "How the money is taken" (research/v7/way-and-mix.md 2; road-to-7.md step 8a): the way of drawing -------------------
+
+export const WAY_SUB_STEP = 'way';
+
+/** The nine ways, in the planner's order (stressTest.js STRATEGY_NAMES: the order the cards run and the ranking breaks ties by). */
+export const WAY_IDS = Object.freeze(['pots-and-valves', 'buckets-in-order', 'ladder-and-ratchet', 'bridge-and-engine', 'floor-and-flex', 'floor-the-schedule', 'floor-to-age', 'full-il-gilt', 'gilt-rotation']);
+/** The orders of the cards' table (OneAnswer.rankWays): by futures out of 10 (the default), what is left, the score, coverage. */
+export const RANK_BYS = Object.freeze(['lasts', 'left', 'score', 'coverage']);
+
+/**
+ * The dials of each way (way-and-mix.md 2.3), ONE set: every dial the planner shows for the way anywhere (its Settings box
+ * or its strategy page), by the key the way keeps in its params — in dial units (a percent as a percent, a choice as a
+ * word). `type`: 'count' (a whole number), 'age', 'money', 'percent' (a number with `step`), 'number' (a decimal with
+ * `step`), 'choice' (`options`). The default of each is the ENGINE's — what runs when the key is absent — and travels
+ * with the run (waysRun.js dialDefaults), since some depend on the plan (the target income, the State Pension age); a
+ * `default` here is the plan-free one. The cut dials (`cut`) are the Stress keys of "Does it last?", drawn on the two
+ * ways of the Pots & Valves family and written through the switch as the planner's strategy page writes them.
+ */
+const CUT_DIALS = Object.freeze([
+  { key: 'protectionOn',     type: 'choice', options: ['yes', 'no'], default: 'yes', cut: true },
+  { key: 'cutPct',           type: 'percent', min: 0, max: 60, step: 5, default: 20, cut: true },
+  { key: 'consecutiveLimit', type: 'count',  min: 1, max: 24, default: 3, cut: true }
+].map(Object.freeze));
+const LADDER_DIALS = Object.freeze([
+  { key: 'cashYears',   type: 'count',  min: 0, max: 5, default: 2 },
+  { key: 'bridgeCash',  type: 'money',  min: 0, max: 50000000, default: 0 },
+  { key: 'spareGrowth', type: 'choice', options: ['kept', 'invested'], default: 'kept' }
+].map(Object.freeze));
+export const WAY_DIALS = Object.freeze({
+  'pots-and-valves': CUT_DIALS,
+  'buckets-in-order': Object.freeze([
+    { key: 'bucketBand', type: 'percent', min: 0, max: 50, step: 5, default: 10 },
+    ...CUT_DIALS
+  ]),
+  'ladder-and-ratchet': Object.freeze([
+    { key: 'ladderYears',   type: 'count',  min: 1, max: 44, default: null },          // min(15, half the plan), within 1 to N−1
+    { key: 'drawAnnual',    type: 'money',  min: 1, max: 10000000, default: null },    // the plan's target income
+    { key: 'triggerMode',   type: 'choice', options: ['band', 'calendar'], default: 'band' },
+    { key: 'bandThreshold', type: 'number', min: 1.05, max: 2, step: 0.05, default: 1.2 }
+  ].map(Object.freeze)),
+  'bridge-and-engine': Object.freeze([
+    { key: 'bridgeAge', type: 'age',   min: 56, max: 90, default: null },               // the State Pension age, else the start + min(10, N−1)
+    { key: 'cashYears', type: 'count', min: 0, max: 10, default: 3 }
+  ].map(Object.freeze)),
+  'floor-and-flex': Object.freeze([
+    { key: 'essentialsAnnual', type: 'money',   min: 1, max: 10000000, default: null },  // round(target × 0.55)
+    { key: 'horizonAge',       type: 'age',     min: 60, max: 105, default: null },      // the engine's: the plan's end
+    { key: 'sleeveRatePct',    type: 'percent', min: 1, max: 10, step: 0.25, default: 4 },
+    { key: 'ratchet',          type: 'choice',  options: ['off', 'extend', 'raise'], default: 'off' },
+    { key: 'treatsRule',       type: 'choice',  options: ['share', 'fixed'], default: 'share' }
+  ].map(Object.freeze)),
+  'floor-the-schedule': Object.freeze([]),
+  'floor-to-age': Object.freeze([
+    { key: 'floorToAge', type: 'age', min: 60, max: 95, default: 80 }
+  ].map(Object.freeze)),
+  'full-il-gilt': LADDER_DIALS,
+  'gilt-rotation': Object.freeze([
+    ...LADDER_DIALS,
+    { key: 'rotateCutAge',      type: 'age',     min: 65, max: 88, default: 75 },
+    { key: 'rotateTrigger',     type: 'percent', min: 20, max: 50, step: 5, default: 30 },
+    { key: 'rotateDisarmYears', type: 'count',   min: 1, max: 15, default: 8 }
+  ].map(Object.freeze))
+});
+
+/**
+ * Every dotted field path "Use this way of drawing" may change (way-and-mix.md 2.4): the planner's switch field for
+ * field — the strategy, its params, every way's stash, the mix's mode and funds list, the pots a restored funds list
+ * gives (switchPatch), the cut dials a Pots & Valves or Buckets card carries (the strategy page's own patch), and the
+ * root strategy block as ScenarioRepository.setActiveStrategy writes it.
+ */
+export const WAY_WRITES = Object.freeze([
+  'stressTool.settings.strategyId',
+  'stressTool.settings.strategyParams',
+  'stressTool.settings.strategyState',
+  'stressTool.settings.allocMode',
+  'stressTool.settings.taggedFunds',
+  'stressTool.settings.equityMin',
+  'stressTool.settings.bondMin',
+  'stressTool.settings.cashTarget',
+  'stressTool.settings.diversifierStart',
+  'stressTool.settings.subAsset',
+  'stressTool.settings.isaBalance',
+  'stressTool.settings.disableProtection',
+  'stressTool.settings.protectionMult',
+  'stressTool.settings.consecutiveLimit',
+  'strategy'
+]);
+
+// ---- "The mix" (research/v7/way-and-mix.md 3; road-to-7.md step 8b): the sixth editing step ------------------------------
+
+export const MIX_SUB_STEP = 'mix';
+/** The three levels (GlidepathService.RISK_PRESETS / DIVERSIFIER_PRESETS), in the planner's order. */
+export const MIX_LEVELS = Object.freeze(['cautious', 'balanced', 'adventurous']);
+/** How the pension is held (3.2a): a risk level, your own split, the funds to test. */
+export const MIX_HOLDS = Object.freeze(['level', 'split', 'funds']);
+/** Where a fund line is held (the planner's funds rows know SIPP and ISA; its paste offers the taxable account too). */
+export const MIX_WRAPPERS = Object.freeze(['SIPP', 'ISA', 'GIA']);
+/** The answers to "What is this?" on a pasted line the tool could not recognise (HoldingsPaste.CATEGORY_CHOICES, by key). */
+export const MIX_WHATS = Object.freeze(['shares', 'bonds', 'cash', 'diversifiers', 'unknown']);
+/** The four pots of a split, in the order they are drawn: each a whole percent, the four kept to 100. */
+export const MIX_SPLIT = Object.freeze(['shares', 'bonds', 'diversifiers', 'cash']);
+
+/**
+ * The boxes (3.2), in the order they are drawn. `when` as the other lists. The split's four boxes are drawn while "your own
+ * split" is chosen; the level while "a risk level" is; the tent's endgame while the tent is on with a funds list (the
+ * reading decides that: mix.js checkMix applies). The diversifiers sleeve is a box for a level and a split; for a funds
+ * list it is read from the tags.
+ */
+export const MIX_FIELDS = Object.freeze([
+  { path: 'held',         type: 'choice',  options: MIX_HOLDS, required: true },
+  { path: 'level',        type: 'choice',  options: MIX_LEVELS, required: true, when: { held: 'level' } },
+  { path: 'shares',       type: 'percent', min: 0, max: 100, step: 1, required: true, when: { held: 'split' } },
+  { path: 'bonds',        type: 'percent', min: 0, max: 100, step: 1, required: true, when: { held: 'split' } },
+  { path: 'diversifiers', type: 'percent', min: 0, max: 100, step: 1, required: true, when: { held: 'split' } },
+  { path: 'cash',         type: 'percent', min: 0, max: 100, step: 1, required: true, when: { held: 'split' } },
+  { path: 'sleeve',       type: 'choice',  options: YES_NO, default: 'no' },
+  { path: 'tent',         type: 'choice',  options: YES_NO, default: 'no' },
+  { path: 'endgame',      type: 'choice',  options: MIX_LEVELS, default: 'balanced', when: { tent: 'yes' } }
+].map(Object.freeze));
+export const MIX_PATHS = Object.freeze(MIX_FIELDS.map((f) => f.path));
+
+/** The funds to test (3.2c) as cards, like the income step's lists: "funds.ids", "funds.<id>.<field>". */
+export const MIX_LISTS = Object.freeze({
+  funds: Object.freeze({ fields: Object.freeze([
+    { path: 'ticker',   type: 'text',   max: 12, required: false },
+    { path: 'name',     type: 'text',   max: 80, required: false },
+    { path: 'value',    type: 'money',  min: 1, max: 50000000, required: true },
+    { path: 'wrapper',  type: 'choice', options: MIX_WRAPPERS, default: 'SIPP' },
+    { path: 'category', type: 'text',   max: 40, required: false }
+  ].map(Object.freeze)) })
+});
+export const MIX_LIST_IDS = Object.freeze(Object.keys(MIX_LISTS));
+/** The boxes of a paste (3.2c): the text, where the lines are held, and "What is this?" by pasted line number. */
+export const MIX_PASTE_PATHS = Object.freeze(['paste.text', 'paste.wrapper']);
+const PASTE_WHAT = /^paste\.(\d{1,3})\.what$/;
+
+/** The paths of "The mix" a draft may hold: the boxes, the search box, the paste's boxes, a list's order, a card's boxes. */
+export function isMixPath(path) {
+  const p = String(path);
+  if (MIX_PATHS.includes(p) || p === 'search' || MIX_PASTE_PATHS.includes(p) || PASTE_WHAT.test(p)) return true;
+  const parts = p.split('.');
+  if (parts.length === 2) return MIX_LIST_IDS.includes(parts[0]) && parts[1] === 'ids';
+  if (parts.length !== 3) return false;
+  const list = MIX_LISTS[parts[0]];
+  return !!list && isCardId(parts[1]) && list.fields.some((f) => f.path === parts[2]);
+}
+
+/**
+ * Every dotted field path "The mix" may change (3.3): the four amounts, the sub-class mix, the mode and the funds list, the
+ * ISA a funds list fills, the bond tent and its endgame, and the active way's stash as the planner's switch stashes it.
+ */
+export const MIX_WRITES = Object.freeze([
+  'stressTool.settings.equityMin',
+  'stressTool.settings.bondMin',
+  'stressTool.settings.cashTarget',
+  'stressTool.settings.diversifierStart',
+  'stressTool.settings.subAsset',
+  'stressTool.settings.allocMode',
+  'stressTool.settings.taggedFunds',
+  'stressTool.settings.isaBalance',
+  'stressTool.settings.equityGlideEnabled',
+  'stressTool.settings.glideEndgame',
+  'stressTool.settings.strategyState'
+]);
+
+// ---- Try a change on a plan (research/v7/way-and-mix.md 4): the boxes on "Does it last?" ------------------------------------
+
+/** The ISA policy a try may name: as saved, or hold it back (the planner's third, "draw as configured", is not offered). */
+export const TRY_ISA_POLICIES = Object.freeze(['saved', 'hold']);
+export const TRY_INCOME_MODES = Object.freeze(['shape', 'flat']);
+export const TRY_CUTS = Object.freeze(['saved', 'on', 'off']);
+/**
+ * The boxes of a try (4), in the order they are drawn, each "try.<name>" in the plan draft beside the lasts step's own
+ * dials: the way, the pot, the ISA, the ISA policy, the income as shaped or a flat figure A MONTH AFTER TAX (the planner's
+ * box is a year before tax: the reading converts through the plan's own tax sum), the years, the cuts, how deep and the
+ * escalation months (a blank depth or months is "as saved").
+ */
+export const TRY_FIELDS = Object.freeze([
+  { path: 'try.way',        type: 'choice',  options: WAY_IDS, required: true },
+  { path: 'try.pot',        type: 'money',   min: 0, max: 50000000, required: true },
+  { path: 'try.isa',        type: 'money',   min: 0, max: 50000000, required: false, default: 0 },
+  { path: 'try.isaPolicy',  type: 'choice',  options: TRY_ISA_POLICIES, default: 'saved' },
+  { path: 'try.incomeMode', type: 'choice',  options: TRY_INCOME_MODES, default: 'shape' },
+  { path: 'try.income',     type: 'money',   min: 1, max: 50000, required: true, when: { 'try.incomeMode': 'flat' } },
+  { path: 'try.years',      type: 'count',   min: 5, max: 45, required: true },
+  { path: 'try.cuts',       type: 'choice',  options: TRY_CUTS, default: 'saved' },
+  { path: 'try.cutPct',     type: 'count',   min: 0, max: 60, required: false },
+  { path: 'try.cutEsc',     type: 'count',   min: 0, max: 60, required: false }
+].map(Object.freeze));
+export const TRY_PATHS = Object.freeze(TRY_FIELDS.map((f) => f.path));
+export const isTryPath = (path) => TRY_PATHS.includes(String(path));
+
+// ---- "Your household" (research/v7/road-to-7.md step 9; your-plan.md 6; v6-usability-audit.md 2.10) --------------------------
+
+export const HOUSEHOLD_SUB_STEP = 'household';
+/**
+ * A limit on the smaller pot (HouseholdDraw.householdDrawSplit; household-draw-split.md 9.2): 'none' is the usual — nothing
+ * chosen, the default limit (the pot kept until its owner's State Pension age); 'fast' is no limit at all (the fast split);
+ * keep it until an age; keep at least a sum in it.
+ */
+export const LIMIT_KINDS = Object.freeze(['none', 'fast', 'untilAge', 'keepAtLeast']);
+/** Who: this plan's person ('a') or the partner's ('b'). */
+export const WHOS = Object.freeze(['a', 'b']);
+/** Who pays a budget line (BudgetModel.myShareFactor): me, my partner, or shared. */
+export const PAID_BYS = Object.freeze(['me', 'partner', 'shared']);
+/**
+ * The boxes of the household step, in the order they are drawn, each "<block>.<name>" in the plan draft: what the couple
+ * needs after tax a year (household-draw-split.md 9.3; blank is the two plans' own take-home), the limit on the smaller pot
+ * (who draws what), the survivor question in ages, the care question in ages, and the budget's who-pays
+ * (the budget-wide share; each line's own is a card path, isHouseholdPath). The defaults are the planner's Household tab's
+ * (householdView.js): 10 years from now and 70% / 50% for the survivor, 15 years from now, 3 years and £90,000 for care —
+ * said here as ages, which the reading turns back into the planner's years.
+ */
+export const HOUSEHOLD_FIELDS = Object.freeze([
+  { path: 'link.choice',        type: 'id' },
+  { path: 'need.amount',        type: 'money',  min: 1, max: 50000000 },
+  { path: 'limit.kind',         type: 'choice', options: LIMIT_KINDS, default: 'none' },
+  { path: 'limit.age',          type: 'age',    min: 55, max: 100, required: true, when: { 'limit.kind': 'untilAge' } },
+  { path: 'limit.amount',       type: 'money',  min: 1, max: 50000000, required: true, when: { 'limit.kind': 'keepAtLeast' } },
+  { path: 'survivor.who',       type: 'choice', options: WHOS, default: 'a' },
+  { path: 'survivor.atAge',     type: 'age',    min: 18, max: 110, required: true },
+  { path: 'survivor.spendPct',  type: 'count',  min: 40, max: 100, required: true },
+  { path: 'survivor.dbPct',     type: 'count',  min: 0, max: 100, required: true },
+  { path: 'care.who',           type: 'choice', options: WHOS, default: 'a' },
+  { path: 'care.fromAge',       type: 'age',    min: 18, max: 110, required: true },
+  { path: 'care.years',         type: 'count',  min: 1, max: 15, required: true },
+  { path: 'care.cost',          type: 'money',  min: 1, max: 1000000, required: true },
+  { path: 'budget.shared',      type: 'choice', options: YES_NO, default: 'no' },
+  { path: 'budget.mySharePct',  type: 'count',  min: 0, max: 100, required: true, when: { 'budget.shared': 'yes' } }
+].map(Object.freeze));
+export const HOUSEHOLD_PATHS = Object.freeze(HOUSEHOLD_FIELDS.map((f) => f.path));
+/** A budget line's or one-off's own who-pays: budget.lines.<id>.paidBy / .mySharePct, budget.oneOffs.<id>.paidBy / .mySharePct. */
+const HOUSEHOLD_CARD = /^budget\.(lines|oneOffs)\.[A-Za-z0-9_-]{1,40}\.(paidBy|mySharePct)$/;
+export const isHouseholdPath = (path) => HOUSEHOLD_PATHS.includes(String(path)) || HOUSEHOLD_CARD.test(String(path));
+/**
+ * Every dotted field path "Your household" may change (road-to-7.md step 9), the planner's own keys: the partner link
+ * (ScenarioRepository.setHouseholdPartnerId), "Keep things as they are" (setHouseholdSplitDismissed), the split's income
+ * shape on each unlocked plan (HouseholdSplitApply.applySplit: settingsWithSchedule's five keys), one budget for the
+ * household (shareBudgetWith / stopSharingBudget: the pointer and the partner's own side), and the budget's who-pays
+ * (BudgetRepository.saveBudget: the sharing flag, the share, the lines and one-offs, and the totals it recomputes).
+ */
+export const HOUSEHOLD_WRITES = Object.freeze([
+  'household.partnerScenarioId',
+  'household.splitDismissed',
+  'stressTool.settings.incomeShape',
+  'stressTool.settings.incomeSteps',
+  'stressTool.settings.targetSchedule',
+  'stressTool.settings.baseSalary',
+  'stressTool.settings.spendingProfile',
+  'budgetTool.sharedFrom',
+  'budgetTool.settings',
+  'budgetTool.settings.sharedWithPartner',
+  'budgetTool.settings.mySharePct',
+  'budgetTool.settings.lines',
+  'budgetTool.settings.oneOffs',
+  'budgetTool.settings.derived'
+]);
+
+// ---- "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md §2, §3; road-to-7.md step 10) -----
+
+export const HOLD_SUB_STEP = 'hold';
+export const MOVE_SUB_STEP = 'move';
+/** The four types of account a line is held in (HoldingsRecord.WRAPPERS), on screen Pension / ISA / Other account / Cash. */
+export const HOLD_WRAPPERS = Object.freeze(['SIPP', 'ISA', 'GIA', 'CASH']);
+/** "What is this?" / "Counted as" for a line the page cannot place (HoldingsPaste.CATEGORY_CHOICES, by key). */
+export const HOLD_WHATS = Object.freeze(['shares', 'bonds', 'cash', 'diversifiers', 'unknown']);
+/**
+ * The boxes of "What you hold", each "<block>.<name>" in the plan draft: the add-a-line box (the type of account, what is
+ * typed — a code, a name, a gilt's code or year, or "cash" —, the value and the units), the paste (its text and the type
+ * of account it is held in), and the line a Remove is asked about. A line's own boxes and a pasted line's "What is this?"
+ * are card paths (isHoldPath). Nothing here is saved by a Save button: each change is its own write (§2.2).
+ */
+export const HOLD_FIELDS = Object.freeze([
+  { path: 'add.wrapper',   type: 'choice', options: HOLD_WRAPPERS, default: 'SIPP' },
+  { path: 'add.text',      type: 'text',   max: 80 },
+  { path: 'add.value',     type: 'money',  min: 0, max: 50000000, required: false },
+  { path: 'add.units',     type: 'count',  min: 0, max: 100000000, required: false },
+  { path: 'paste.text',    type: 'text',   max: 200000 },
+  { path: 'paste.wrapper', type: 'choice', options: HOLD_WRAPPERS, default: 'SIPP' },
+  { path: 'remove.index',  type: 'count',  min: 0, max: 9999, required: false }
+].map(Object.freeze));
+export const HOLD_PATHS = Object.freeze(HOLD_FIELDS.map((f) => f.path));
+/** A line's boxes (line.<index>.<field>: the fields HoldingsRecord.LINE_FIELDS names) and a pasted line's answer (paste.<line>.what). */
+const HOLD_CARD = /^line\.\d{1,4}\.(wrapper|ticker|name|sedol|units|value|ocf|contribution|subClass|kind|asOf)$|^paste\.\d{1,4}\.what$/;
+export const isHoldPath = (path) => HOLD_PATHS.includes(String(path)) || HOLD_CARD.test(String(path));
+/** The move step types nothing: its tick-offs are their own writes (§3.5), its one run writes nothing. */
+export const isMovePath = () => false;
+/**
+ * The ONLY field paths "What you hold" may change (§2.2): the whole record as ONE field in one write (the planner's
+ * saveActiveHoldings writes it whole too), and the planner's stamp.
+ */
+export const HOLD_WRITES = Object.freeze(['holdings', 'lastModified']);
+/** The ONLY field paths "Moving to your plan's mix" may change (§3.8): the whole `transition` object (its tick-offs) in one write, and the stamp. */
+export const MOVE_WRITES = Object.freeze(['transition', 'lastModified']);
+
+// ---- "What you spend" on a saved plan, the budget (research/v7/road-to-7.md step 11b; budget-step.md "The rule") -----------
+
+export const BUDGET_SUB_STEP = 'budget';
+/** A line's or one-off's period as the planner keeps it. */
+export const BUDGET_PERIODS = Object.freeze(['mo', 'yr']);
+/** The national guide levels the typical amounts aim at (BudgetModel.plsaTierOf). */
+export const BUDGET_TIERS = Object.freeze(['minimum', 'moderate', 'comfortable']);
+/** The two groups of the planner's budget page: essentials and the rest (a line's `tier`). */
+export const BUDGET_GROUPS = Object.freeze(['essential', 'discretionary']);
+/**
+ * The boxes of the budget step, each in the plan draft until the box is left (then ONE write of the whole budget: budget.js
+ * budgetPatch). A line: "line.<id>.<field>" — the label, the amount (a sum is allowed), the period, the essential tick, from
+ * and to an age, who pays and the share (a shared budget), the age range and the breakdown open; a breakdown row
+ * "line.<id>.part.<i>.<field>"; a one-off "oneOff.<id>.<field>"; a who-pays phase "phase.<i>.<field>"; the spreadsheet
+ * opened, as text, "import.text".
+ */
+const BUDGET_ID = '[A-Za-z0-9_-]{1,40}';
+const BUDGET_LINE = new RegExp('^line\\.' + BUDGET_ID + '\\.(label|amount|period|essential|fromAge|toAge|paidBy|mySharePct|ages|open)$');
+const BUDGET_PART = new RegExp('^line\\.' + BUDGET_ID + '\\.part\\.\\d{1,3}\\.(label|amount|period)$');
+const BUDGET_ONE_OFF = new RegExp('^oneOff\\.' + BUDGET_ID + '\\.(label|amount|atAge|everyYears|paidBy|mySharePct)$');
+const BUDGET_PHASE = /^phase\.\d{1,3}\.(fromAge|mySharePct)$/;
+const BUDGET_ADD = /^add\.(essential|discretionary|oneOff)$/;   // the name of a new line or one-off cost, typed before the press that adds it
+export const isBudgetPath = (path) => { const p = String(path); return p === 'import.text' || BUDGET_LINE.test(p) || BUDGET_PART.test(p) || BUDGET_ONE_OFF.test(p) || BUDGET_PHASE.test(p) || BUDGET_ADD.test(p); };
+/**
+ * The ONLY field paths the budget step may change: the whole `budgetTool.settings` object as ONE field (the planner's
+ * saveBudget writes it whole, with `derived` worked out again), and the planner's stamp. A shared budget's lines live on the
+ * household's plan: the write goes there, this plan keeping its own side (ScenarioRepository.saveActiveBudget), both declared.
+ */
+export const BUDGET_WRITES = Object.freeze(['budgetTool.settings', 'lastModified']);
+
+// ---- "What you pay in" on a saved plan (research/v7/road-to-7.md step 11b: save.relief, save.escalation, save.own-mix, save.pot-record) ----
+
+export const SAVING_SUB_STEP = 'saving';
+/** How tax relief is given (AccumulationEngine.contributionBreakdown): relief at source, net pay, salary sacrifice. */
+export const SCHEME_TYPES = Object.freeze(['ras', 'netpay', 'salsac']);
+/**
+ * The boxes, in the order they are drawn (the planner's Accumulation form, index.html readAccumulationInputs): what you pay
+ * in a month from take-home pay, your employer's part, into ISAs and savings, the yearly rise, how relief is given and your
+ * salary, the pot today. The ages are "About you and when"'s. Then the pot record's boxes (a month and three pots), written
+ * by their own press, never by Save.
+ */
+export const SAVING_FIELDS = Object.freeze([
+  { path: 'netMonthly',      type: 'money',   min: 0, max: 100000, required: false, default: 0 },
+  { path: 'employerMonthly', type: 'money',   min: 0, max: 100000, required: false, default: 0 },
+  { path: 'isaMonthly',      type: 'money',   min: 0, max: 100000, required: false, default: 0 },
+  { path: 'escalationPct',   type: 'percent', min: 0, max: 20, step: 0.5, required: false, default: 0 },
+  { path: 'schemeType',      type: 'choice',  options: SCHEME_TYPES, default: 'ras' },
+  { path: 'salary',          type: 'money',   min: 0, max: 10000000, required: false, default: 0 },
+  { path: 'potNow',          type: 'money',   min: 0, max: 50000000, required: false, default: 0 },
+  { path: 'record.month',    type: 'month',   required: false },
+  { path: 'record.pension',  type: 'money',   min: 0, max: 50000000, required: false },
+  { path: 'record.isa',      type: 'money',   min: 0, max: 50000000, required: false },
+  { path: 'record.gia',      type: 'money',   min: 0, max: 50000000, required: false }
+].map(Object.freeze));
+export const SAVING_PATHS = Object.freeze(SAVING_FIELDS.map((f) => f.path));
+export const isSavingPath = (path) => SAVING_PATHS.includes(String(path));
+/**
+ * The ONLY field paths "What you pay in" may change: the whole `accumulationTool.settings` object as ONE field (the planner's
+ * saveActiveAccumulation writes it whole), the whole monthly pot record list (saveActiveAccumulationHistory: a record added,
+ * never one deleted), and the stamp. Both outside the lock (LockedPlanGuard.js: the Accumulation planner and its record).
+ */
+export const SAVING_WRITES = Object.freeze(['accumulationTool.settings', 'accumulationTool.history', 'lastModified']);
+
+/**
+ * "Check in" (research/saving-enough-and-check-in.md 5.4; release step R3): the boxes of a saver's check-in, by path (each
+ * under "ci." so no other step's box is mistaken for one). Where you are today (the pension, ISAs and savings, anything
+ * else: typed, never filled in for you), what goes in now in the person's own kind (a share of pay, your part and your
+ * employer's, or one figure, as B asks it), what goes into ISAs and savings, the month it changed, a pause, the note and
+ * how often. Every amount is what lands, as B reads it.
+ */
+export const PAY_IN_KINDS = Object.freeze(['share', 'split', 'total']);
+export const CADENCES = Object.freeze(['year', 'quarter', 'month']);
+export const CHECKIN_FIELDS = Object.freeze([
+  { path: 'ci.pension',     type: 'money',   min: 0, max: 50000000, required: true },
+  { path: 'ci.isa',         type: 'money',   min: 0, max: 50000000, required: false },
+  { path: 'ci.other',       type: 'money',   min: 0, max: 50000000, required: false },
+  { path: 'ci.pay',         type: 'money',   min: 0, max: 5000000,  required: false },
+  { path: 'ci.kind',        type: 'choice',  options: PAY_IN_KINDS },
+  { path: 'ci.ownPct',      type: 'percent', min: 0, max: 100, required: true, when: { 'ci.kind': 'share' } },
+  { path: 'ci.employerPct', type: 'percent', min: 0, max: 100, required: true, when: { 'ci.kind': 'share' } },
+  { path: 'ci.own',         type: 'money',   min: 0, max: 10000, required: true, when: { 'ci.kind': 'split' } },
+  { path: 'ci.employer',    type: 'money',   min: 0, max: 10000, required: true, when: { 'ci.kind': 'split' } },
+  { path: 'ci.total',       type: 'money',   min: 0, max: 10000, required: true, when: { 'ci.kind': 'total' } },
+  { path: 'ci.savingsIn',   type: 'money',   min: 0, max: 10000, required: false },
+  { path: 'ci.since',       type: 'month',   required: false },
+  { path: 'ci.paused',      type: 'choice',  options: ['no', 'yes'], default: 'no' },
+  { path: 'ci.pausedFrom',  type: 'month',   required: true, when: { 'ci.paused': 'yes' } },
+  { path: 'ci.pausedTo',    type: 'month',   required: false, when: { 'ci.paused': 'yes' } },
+  { path: 'ci.note',        type: 'text',    max: 280, required: false },
+  { path: 'ci.every',       type: 'choice',  options: CADENCES }
+].map(Object.freeze));
+export const CHECKIN_PATHS = Object.freeze(CHECKIN_FIELDS.map((f) => f.path));
+export const isCheckInPath = (path) => CHECKIN_PATHS.includes(String(path));
+/**
+ * The ONLY field paths a check-in may write (5.8): the check-ins, the month's pot record (the Accumulation planner's own
+ * list: one ledger for pot values), how often, and on an unlocked plan the saving path it is read against and the paths it
+ * replaced — each a whole field, with the stamp. "Use these in my plan" (5.6) writes What you pay in's own settings
+ * (SAVING_WRITES). LockedPlanGuard.CHECK_IN_KEYS names the same keys, and which a locked plan's check-in may write.
+ */
+export const CHECKIN_WRITES = Object.freeze(['accumulationTool.checkIns', 'accumulationTool.history', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'lastModified']);
+
+// ---- Month by month (research/v7/months-in-v7.md; 7.2.0) --------------------------------------------------------------------
+
+/** How the pots are typed: what the platform shows (the classic default since 6.23), or by type. */
+export const MONTH_MODES = Object.freeze(['platform', 'type']);
+/** The three answers when the tax-free top-up falls short (TaxYearSetUp.settleTopUp). */
+export const TOP_UP_CHOICES = Object.freeze(['increase', 'reduced', 'inefficient']);
+
+/**
+ * The boxes of Month by month: the month and its pots ('mo.'), and setting up its tax year ('ty.'). Text as typed; the reading
+ * (answers/plan/month.js) checks them. `mo.month` and `mo.from` are months ('YYYY-MM') chosen from the reading's own lists.
+ */
+export const MONTH_FIELDS = Object.freeze([
+  { path: 'mo.month',        type: 'month' },
+  { path: 'mo.paid',         type: 'choice', options: YES_NO },
+  { path: 'mo.mode',         type: 'choice', options: MONTH_MODES },
+  { path: 'mo.total',        type: 'money', min: 0, max: 50000000 },
+  { path: 'mo.cash',         type: 'money', min: 0, max: 50000000 },
+  { path: 'mo.bonds',        type: 'money', min: 0, max: 50000000 },
+  { path: 'mo.diversifiers', type: 'money', min: 0, max: 50000000 },
+  { path: 'mo.equity',       type: 'money', min: 0, max: 50000000 },
+  { path: 'mo.bond',         type: 'money', min: 0, max: 50000000 },
+  { path: 'mo.cashT',        type: 'money', min: 0, max: 50000000 },
+  { path: 'mo.diversifier',  type: 'money', min: 0, max: 50000000 },
+  { path: 'mo.isa',          type: 'money', min: 0, max: 50000000 },
+  { path: 'mo.gia',          type: 'money', min: 0, max: 50000000 },
+  { path: 'mo.giaBasis',     type: 'money', min: 0, max: 50000000 },
+  { path: 'mo.fill',         type: 'choice', options: YES_NO },
+  { path: 'mo.from',         type: 'month' },
+  { path: 'ty.cpi',          type: 'percent', min: -5, max: 25 },
+  { path: 'ty.income',       type: 'money', min: 0, max: 5000000 },
+  { path: 'ty.other',        type: 'money', min: 0, max: 5000000 },
+  { path: 'ty.cgt',          type: 'money', min: 0, max: 5000000 },
+  { path: 'ty.toDate',       type: 'money', min: 0, max: 5000000 },
+  { path: 'ty.taxToDate',    type: 'money', min: 0, max: 5000000 },
+  { path: 'ty.pa',           type: 'money', min: 0, max: 1000000 },
+  { path: 'ty.brl',          type: 'money', min: 0, max: 1000000 },
+  { path: 'ty.hrl',          type: 'money', min: 0, max: 1000000 },
+  { path: 'ty.isa',          type: 'money', min: 0, max: 5000000 },
+  { path: 'ty.choice',       type: 'choice', options: TOP_UP_CHOICES }
+]);
+export const MONTH_PATHS = Object.freeze(MONTH_FIELDS.map((f) => f.path));
+export const isMonthPath = (path) => MONTH_PATHS.includes(String(path));
+/**
+ * The ONLY field paths Month by month may write (research/v7/months-in-v7.md §3): the months recorded and the tax years, each a
+ * whole field as the classic planner's repositories write them (DecisionRepository saveActiveHistory, saveActiveTaxYears), the
+ * journey for the arrival check, and the stamp. LockedPlanGuard.MONTH_KEYS names the same keys.
+ */
+export const MONTH_WRITES = Object.freeze(['decisionTool.history', 'decisionTool.taxYears', 'journey', 'lastModified']);
+
+/** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
+export function isPlanEditPath(path) {
+  // stopAskLeft: "Leave it" to "When did you stop work?" on a locked plan's "About you and when" (6.53.0, about.js stopAskPatch)
+  return ABOUT_PATHS.includes(path) || path === 'stopAskLeft' || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path) || isHoldPath(path) || isBudgetPath(path) || isSavingPath(path) || isCheckInPath(path) || isMonthPath(path);
+}
+
+/** Every dotted field path "Money that comes in anyway" may change: the planner's own keys (7.3). */
+export const INCOME_WRITES = Object.freeze([
+  'stressTool.settings.spWeeklyAmount',
+  'stressTool.settings.spStartDate',
+  'decisionTool.settings.spStartDate',
+  'stressTool.settings.statePension',
+  'stressTool.settings.dbAmount',
+  'stressTool.settings.dbStartYear',
+  'stressTool.settings.dbStartAge',
+  'stressTool.settings.dbIndexation',
+  'stressTool.settings.other',
+  'stressTool.settings.extraIncomes',
+  'stressTool.settings.windfalls'
+]);
+
+/** Every path a V7 write may carry, by step, and the planner's stamp (the boundary and the effect's tests read it). */
+/**
+ * "Use this" on a tried change (way-and-mix.md 4): ONE write of exactly the fields that differ, composed from the existing
+ * lists — the way through WAY_WRITES, the pots and the ISA through POTS_WRITES, the income through SPEND_WRITES (the
+ * income shape lives on "What you spend"), the years through ABOUT_WRITES, the cuts through LASTS_WRITES. No path of its own.
+ */
+export const TRY_WRITES = Object.freeze([...new Set([...WAY_WRITES, ...POTS_WRITES, ...SPEND_WRITES, ...ABOUT_WRITES, ...LASTS_WRITES])]);
+
+export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES, mix: MIX_WRITES, try: TRY_WRITES, household: HOUSEHOLD_WRITES, hold: HOLD_WRITES, move: MOVE_WRITES, budget: BUDGET_WRITES, saving: SAVING_WRITES, checkin: CHECKIN_WRITES });
+// the stamp stays last: the hold and move lists name it themselves (holdings-and-move.md §2.2, §3.8), so it is taken out of them here and put back with the bookkeeping
+// ---- "Your plans" (research/v7/road-to-7.md step 11): the plan menu's writes to a plan that exists ----------------------
+
+/**
+ * The ONLY field paths the plan menu may write to a plan that exists: its name (Rename: the planner's renameScenario) and
+ * which plan is the main one (Make this my main plan, and the hand-off when the main plan is deleted: the planner's
+ * setActiveScenarioDoc). Both are outside the lock (LockedPlanGuard.js: "the plan's name … and which plan is open"). A copy,
+ * an opened file and the example are NEW plans (the one create); a delete is the one delete — neither is a field path.
+ */
+export const PLANS_WRITES = Object.freeze(['planDetails.name', 'isActive']);
+
+/**
+ * "Move to a new plan" (6.56.0, research/plan-start.md §2 I; services/PlanClose.js): the new plan is a NEW plan (the one
+ * create). The ONLY field paths it writes to plans that exist: on the old plan, the close's two keys at its root (the guard's
+ * close allowance: once, both together) and — on a plan that was not locked — the lock's flags and where its pots stood; on
+ * the partner's plan, when the person says so, its link and the budget it reads.
+ */
+export const CLOSE_WRITES = Object.freeze(['closedAt', 'nextPlanId', 'decisionTool.settings.locked', 'decisionTool.settings.lockedAt', 'decisionTool.settings.lockedBy', 'decisionTool.settings.lockedPosition', 'household.partnerScenarioId', 'budgetTool.sharedFrom']);
+
+export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BUDGET_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...SAVING_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...CHECKIN_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MONTH_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...PLANS_WRITES, ...MOVE_START_WRITES, ...CLOSE_WRITES, ...BOOKKEEPING_WRITES])]);

@@ -1,0 +1,43 @@
+{
+  "what": "Income tax due on a gross taxable income, England / Wales / Northern Ireland, tax year 2026/27 (6 April 2026 to 5 April 2027). Non-savings income, standard Personal Allowance, no other reliefs.",
+  "source": {
+    "urls": [
+      "https://www.gov.uk/income-tax-rates",
+      "https://www.gov.uk/government/publications/rates-and-allowances-income-tax/income-tax-rates-and-allowances-current-and-past"
+    ],
+    "checkedOn": "2026-09-30",
+    "status": "rates and thresholds read from gov.uk on the date above; each row is arithmetic from those published rates (gov.uk publishes the rates, not worked totals)",
+    "quoted": [
+      "The current tax year is from 6 April 2026 to 5 April 2027.",
+      "The standard Personal Allowance is £12,570",
+      "Basic rate £12,571 to £50,270 20%; Higher rate £50,271 to £125,140 40%; Additional rate over £125,140 45%",
+      "Your personal allowance goes down by £1 for every £2 that your adjusted net income is above £100,000. This means your allowance is zero if your income is £125,140 or above.",
+      "Basic rate band: up to £37,700 of taxable income; higher rate band: £37,701 to £125,140 of taxable income"
+    ]
+  },
+  "rules": {
+    "personalAllowance": 12570,
+    "basicRateLimit": 50270,
+    "basicRateBandWidth": 37700,
+    "additionalRateThreshold": 125140,
+    "allowanceWithdrawalStartsAt": 100000,
+    "allowanceWithdrawalRate": 0.5,
+    "rates": { "basic": 0.20, "higher": 0.40, "additional": 0.45 }
+  },
+  "rows": [
+    { "gross": 0,      "tax": 0,        "working": "nothing to tax" },
+    { "gross": 12570,  "tax": 0,        "working": "all inside the allowance" },
+    { "gross": 12571,  "tax": 0.20,     "working": "1 at 20%" },
+    { "gross": 30000,  "tax": 3486,     "working": "17,430 at 20%" },
+    { "gross": 50270,  "tax": 7540,     "working": "37,700 at 20%" },
+    { "gross": 50271,  "tax": 7540.40,  "working": "7,540 + 1 at 40%" },
+    { "gross": 80000,  "tax": 19432,    "working": "7,540 + 29,730 at 40%" },
+    { "gross": 100000, "tax": 27432,    "working": "7,540 + 49,730 at 40%" },
+    { "gross": 100002, "tax": 27433.20, "working": "allowance 12,569; taxable 87,433; 7,540 + 49,733 at 40%" },
+    { "gross": 110000, "tax": 33432,    "working": "allowance 7,570; taxable 102,430; 7,540 + 64,730 at 40%" },
+    { "gross": 125140, "tax": 42516,    "working": "allowance 0; taxable 125,140; 7,540 + 87,440 at 40%" },
+    { "gross": 125141, "tax": 42516.45, "working": "42,516 + 1 at 45%" },
+    { "gross": 150000, "tax": 53703,    "working": "42,516 + 24,860 at 45%" },
+    { "gross": 200000, "tax": 76203,    "working": "42,516 + 74,860 at 45%" }
+  ]
+}

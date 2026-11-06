@@ -651,3 +651,89 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .budget-add .actions-row { margin: 0 0 2px; }
 .budget-phase .field input[type="text"] { width: 6rem; }
 @media (max-width: 480px) { .plan-oneoff { grid-template-columns: 1fr; } }
+
+/* ---- the plan's home (7.3.0; research/v7/mockups/first-visit.html screen 4 and its README's colour and motion rules) ----
+   Amber saving, teal moving, purple drawing: fills and dots only, never body text. Pink is the one thing to press. The
+   year view fills month by month and the stage dot slides to its place; both end on the complete picture, under a second,
+   and not at all when less motion is asked for (base.css stops every animation then). */
+.btn-pop { background: var(--fill-pop); color: var(--on-pop); border-color: var(--fill-pop); }
+.btn-pop:hover { border-color: var(--text); }
+.eyebrow { margin: 0 0 8px; font-size: var(--size-small); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+h2.eyebrow { font-size: var(--size-small); }
+.home { display: grid; gap: 22px; }
+.home-head h1 { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+.stage-word { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.stage-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--line-strong); flex: none; }
+.stage-word.is-saving .stage-dot { background: var(--stage-saving); }
+.stage-word.is-moving .stage-dot { background: var(--stage-moving); }
+.stage-word.is-drawing .stage-dot { background: var(--stage-drawing); }
+.stage-word.is-closed .stage-dot { background: var(--line-strong); }
+.plan-life-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 4px; font-size: var(--size-small); }
+.plan-todo { color: var(--text); }
+.stage-strip { display: grid; gap: 8px; }
+.strip-segs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+.strip-seg { position: relative; height: 12px; border-radius: 999px; background: var(--surface-raised); }
+.strip-seg.is-done.is-saving, .strip-seg.is-now.is-saving { background: var(--stage-saving); }
+.strip-seg.is-done.is-moving, .strip-seg.is-now.is-moving { background: var(--stage-moving); }
+.strip-seg.is-now.is-drawing { background: var(--stage-drawing); }
+.strip-dot { position: absolute; top: 50%; left: 50%; width: 22px; height: 22px; border-radius: 50%; background: var(--text); border: 5px solid var(--fill-pop); transform: translate(-50%, -50%); box-shadow: 0 0 0 6px var(--pop-soft); animation: strip-slide .7s ease-out both; }
+@keyframes strip-slide { from { left: 0; } to { left: 50%; } }
+.strip-words { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: var(--size-small); color: var(--text-muted); }
+.strip-words strong { color: var(--text); }
+.home-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.home-item { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px 12px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface-raised); border: 1px solid var(--line); }
+.home-item-acts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.home-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--line-strong); }
+.home-item.is-first .home-dot { background: var(--fill-pop); box-shadow: 0 0 0 5px var(--pop-soft); }
+.home-item.is-soon .home-dot { background: var(--soon); }
+.home-item-text { display: grid; gap: 2px; min-width: 0; }
+.home-item-detail { font-size: var(--size-small); color: var(--text-muted); }
+.home-item.is-leaving { animation: todo-away .32s ease-in both; }
+@keyframes todo-away { to { transform: translateX(40%); visibility: hidden; } }
+.home-quiet { margin: 0; padding: 12px 14px; border-radius: var(--radius); border: 1px solid var(--line); }
+.home-partner, .home-soon { margin-top: 10px; }
+.home-row2 { display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr); }
+.home-where-block { margin: 0 0 10px; }
+.home-tools { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.home-tool { display: inline-flex; flex-wrap: wrap; gap: 0 4px; padding: 8px 12px; min-height: var(--target); align-items: center; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--line); color: var(--text); text-decoration: none; font-size: var(--size-small); }
+.home-tool:hover .home-tool-name { text-decoration: underline; }
+.home-tool-state { color: var(--text-muted); }
+.home-steps, .home-links { margin: 8px 0 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.plan-fold { border-top: 1px solid var(--line); padding-top: 10px; }
+.plan-fold > summary { cursor: pointer; font-weight: 700; min-height: var(--target); display: flex; align-items: center; }
+/* the year: twelve months, a bar for what was taken, a dashed line for what the plan said (to scale), filled in from April */
+.year-cells { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; }
+.year-cell { position: relative; aspect-ratio: 1 / 1.6; min-width: 0; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--line); }
+.year-cell.is-recorded { background: var(--stage-drawing-soft); border-color: var(--stage-drawing); }
+.year-cell.is-filled { background: var(--stage-drawing-soft); border: 1px dashed var(--stage-drawing); }
+.year-cell.is-setUp { background: var(--stage-moving-soft); border-color: var(--stage-moving); }
+.year-cell.is-due { border: 2px solid var(--fill-pop); }
+.year-plot { position: absolute; left: 3px; right: 3px; top: 4px; bottom: 18px; }
+.year-bar { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 3px 3px 0 0; background: var(--stage-drawing); transform-origin: bottom; animation: year-fill .35s ease-out both; }
+@keyframes year-fill { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.year-plan { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--text); }
+.year-name { position: absolute; left: 4px; bottom: 2px; font: 600 10px/1 var(--font-mono); color: var(--text-muted); }
+.year-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--text-muted); }
+.year-legend i { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; }
+.year-legend .key-drawn { background: var(--stage-drawing); }
+.year-legend .key-plan { height: 0; border-top: 2px dashed var(--text); border-radius: 0; vertical-align: 3px; }
+.year-legend .key-filled { background: var(--stage-drawing-soft); border: 1px dashed var(--stage-drawing); }
+.year-legend .key-setup { background: var(--stage-moving-soft); border: 1px solid var(--stage-moving); }
+.year-legend .key-due { border: 2px solid var(--fill-pop); }
+.rail-home { display: inline-flex; align-items: center; min-height: var(--target); margin: 0 0 6px; font-weight: 600; }
+/* the working spinner: a ring of bars, each a share of the futures, lit as the worker reports how far it has got */
+.run-ring { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+.run-ring-svg { width: 48px; height: 48px; flex: none; }
+.run-ring-bar { fill: var(--line); }
+.run-ring-bar.is-on { fill: var(--fill-pop); }
+.run-ring.is-turning .run-ring-svg { animation: ring-turn 1.2s linear infinite; }
+.run-ring.is-turning .run-ring-bar:nth-child(-n+6) { fill: var(--fill-pop); }
+@keyframes ring-turn { to { transform: rotate(360deg); } }
+.run-ring-words { font-variant-numeric: tabular-nums; }
+@media (min-width: 700px) {
+  .home-item { grid-template-columns: auto 1fr auto; }
+  .home-item-acts { grid-column: auto; justify-content: flex-end; }
+}
+@media (min-width: 1024px) {
+  .home-row2 { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; }
+}

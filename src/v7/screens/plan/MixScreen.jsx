@@ -10,7 +10,7 @@
  * answers/plan/mix.js through the plan source) and the runs' status is the state's (effects/mix.js). No figure is worked
  * out here. The writes are the one write file's (effects/planWrite.js: the step's save, and kind 'mix' on plan/useMix).
  */
-import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton } from '../../components/index.js';
+import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, RunRing } from '../../components/index.js';
 import { planView, planMixView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -277,7 +277,7 @@ function Compare({ V, planId, dispatch, editable }) {
       {c.status === 'working' && (
         <div class="working" role="status" data-testid="plan.mix.compare.working">
           <p class="working-title">{C.working}</p>
-          {c.progress && c.progress.total > 0 ? <progress value={c.progress.done} max={c.progress.total} aria-label={C.progress} /> : <progress aria-label={C.progress} />}
+          <RunRing progress={c.progress} label={C.progress} />
         </div>
       )}
       {c.status === 'failed' && (

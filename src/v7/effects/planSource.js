@@ -51,6 +51,7 @@ import { guestOwnPlans } from '../../services/GuestPlans.js';
 import { A } from '../state/actions.js';
 import { lastActivity, IDLE_MS } from './activity.js';
 import { planRows, planPage } from '../../answers/plan/read.js';
+import { homeOf } from '../../answers/plan/home.js';
 import { aboutOf } from '../../answers/plan/about.js';
 import { incomeOf } from '../../answers/plan/income.js';
 import { spendOf } from '../../answers/plan/spend.js';
@@ -108,12 +109,17 @@ export function viewFor(state) {
   const plans = state.plans;
   if (!plans || plans.status !== 'read') return null;
   const today = state.env.today;
-  const rows = planRows(plans.list, { today, source: plans.source }).groups;
+  // the to-dos put off with "Not now" in this window (7.3.0; effects/place.js keeps them in session storage, never the plan)
+  const notNow = Array.isArray(state.ui.notNow) ? state.ui.notNow : [];
+  const rows = planRows(plans.list, { today, source: plans.source, notNow }).groups;
   const r = state.route;
   let page = null;
   if (r && r.screen === 'plan' && r.planId) {
     // the rail's B link opens B with a saver's own figures (saving-enough-and-check-in.md 4.1: saving.js askFillOf)
-    page = { ...planPage(plans.list, r.planId, r.step, { today, source: plans.source }), askFill: askFillOf(plans.list, r.planId, { today }), forId: r.planId, forStep: r.step || null };
+    page = { ...planPage(plans.list, r.planId, r.step, { today, source: plans.source, notNow }), askFill: askFillOf(plans.list, r.planId, { today }), forId: r.planId, forStep: r.step || null };
+    // the plan's own address is its home (7.3.0, research/v7/one-product-design.md "The plan home"): what is due, where you
+    // are, then everything else — read from the same reading as the rail, so the two can never disagree
+    if (!r.step && page.found) page.home = homeOf(plans.list, r.planId, { today, source: plans.source, notNow, page });
     // the editing step (editing-in-v7.md 2): the saved facts, what was typed for THIS plan, the problems, the derived figures, the write
     // "How the money is taken" (way-and-mix.md 2.2): the reading, then the cards from the nine-way run held in page memory (state.ways)
     if (r.step === 'way') {
@@ -157,8 +163,8 @@ export function viewFor(state) {
       page.checkin = { ...checkInOf(plans.list, r.planId, { today, typed, source: plans.source }), draftKey: JSON.stringify(typed) };
     }
     // Month by month (research/v7/months-in-v7.md, 7.2.0): the month, its tax year's set-up, the pots, what to draw, the fill, with what was typed
-    // … on its own address, and on the plan's own address when it opens on it (a drawing plan's first step)
-    if (r.step === 'month' || (!r.step && page.found && page.current === 'month')) {
+    // (on its own address: since 7.3.0 the plan's own address is its home, which links here)
+    if (r.step === 'month') {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
       const typed = pd ? pd.values : {};
       page.month = { ...monthOf(plans.list, r.planId, { today, typed, source: plans.source }), draftKey: JSON.stringify(typed) };
@@ -317,7 +323,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move] : null;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move, state.ui.notNow] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;

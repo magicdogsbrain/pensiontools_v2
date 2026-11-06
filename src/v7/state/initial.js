@@ -222,11 +222,13 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
  *   several   "Delete several" (6.59.0): null, or { ticked: [plan ids], confirm, step? } — the ticks on the rows, the one confirm
  *             open, and (step 2) the second confirm a locked plan among them needs
  *   severalDone what the last "Delete several" did: { deleted: [{ id, name, example? }], refused: [{ id, name, problem, example? }] } or null
+ *   notNow    the to-dos put off with "Not now" in this window (7.3.0): ['<plan id>|<to-do id>'] — kept in session storage by
+ *             effects/place.js, never in a plan
  */
 export const emptyAccount = () => ({ mode: 'signIn', busy: null, problem: null, note: null, confirm: null, deleted: null });
 export const emptyGuest = () => ({ minutes: 0, usedUp: false, nag: null });
 export const emptyNews = () => ({ popup: null, page: null, seen: null });
-export const emptyShellUi = () => ({ action: null, download: null, guest: emptyGuest(), bringIn: null, account: emptyAccount(), profile: null, news: emptyNews(), assumptions: null, several: null, severalDone: null });
+export const emptyShellUi = () => ({ action: null, download: null, guest: emptyGuest(), bringIn: null, account: emptyAccount(), profile: null, news: emptyNews(), assumptions: null, several: null, severalDone: null, notNow: [] });
 export const ACCOUNT_MODES = Object.freeze(['signIn', 'signUp', 'reset']);
 export const ACCOUNT_ASKS = Object.freeze(['signIn', 'signUp', 'google', 'reset', 'verifyCheck', 'verifySend', 'download', 'delete', 'signOut']);
 export const PLAN_ACTION_KINDS = Object.freeze(['rename', 'copy', 'delete', 'close']);

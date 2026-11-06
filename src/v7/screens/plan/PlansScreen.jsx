@@ -17,6 +17,7 @@ import { usedWords } from '../../components/Visitor.jsx';
 import { plansView, plansMenuView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
+import { HOME } from '../../copy/home.js';
 import { COMMON } from '../../copy/common.js';
 import { GUEST } from '../../copy/guest.js';
 
@@ -311,6 +312,13 @@ export function PlansScreen(state, dispatch) {
                     {/* the example's row is headed by its tag alone: the stored name is the planner's (GuestPlans.js DEMO_PLANS), not in V7's words */}
                     <span class="plan-name">{r.example ? <span class="plan-tag" data-testid={`plans.exampleTag.${r.id}`}>{W.exampleRow}</span> : <>‘{r.name}’</>}{r.main && <span class="plan-tag" data-testid={`plans.mainTag.${r.id}`}> {W.mainNow}</span>}</span>
                     <span class="plan-stage">{r.example ? W.exampleLine + ' ' : ''}{r.line ? fill(PLAN.stageLines[r.line.id], r.line.slots) : ''}{r.lockedOn ? ' ' + fill(w.lockedOn, { date: r.lockedOn }) : ''}{r.madeOn ? ' ' + fill(w.madeOn, { date: r.madeOn }) : ''}{r.shownAsSaved ? ' ' + w.shownAsSaved : ''}{r.checkInDue ? <> <strong class="plan-due" data-testid={`plans.checkInDue.${r.id}`}>{w.checkInDue}</strong></> : null}</span>
+                    {/* the stage in three words and what is due (7.3.0): the plan's home says what each is */}
+                    {(r.life || r.todo > 0) && !r.shownAsSaved && (
+                      <span class="plan-life-row">
+                        {r.life && <span class={`stage-word is-${r.life}`} data-testid={`plans.life.${r.id}`}><span class="stage-dot" aria-hidden="true" />{HOME.stages[r.life]}</span>}
+                        {r.todo > 0 && <strong class="plan-todo" data-testid={`plans.todo.${r.id}`} data-count={String(r.todo)}>{r.todo === 1 ? HOME.rowTodo.one : fill(HOME.rowTodo.many, { n: String(r.todo) })}</strong>}
+                      </span>
+                    )}
                   </div>
                   <LinkButton testid={`plans.open.${r.id}`} href={href.plan(r.id)}>{w.open}</LinkButton>
                   {/* Month by month (7.2.0): a plain way in beside every drawing plan */}

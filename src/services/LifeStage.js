@@ -158,6 +158,51 @@ export function deriveStage(scenario, now = new Date()) {
   };
 }
 
+/**
+ * The three words a person sees (research/v7/one-product-design.md, "The stage model"): Saving, Moving, Drawing — and Closed
+ * for a plan kept to read. Derived from the eight placings above and nothing stored: the design's three stored agreements
+ * (`accumulationTool.agreedMove`, `transition.finished`, a by-hand `stage`) arrive in a later release, so here they are read
+ * as absent and a plan is placed by its facts alone. Opening a plan never writes anything because of this.
+ *
+ *   placing                                  stage
+ *   unknown                                  null (the home's only to-do: add your age)
+ *   saving, approaching, committed-saving    saving
+ *   bridge, running                          moving while a recorded holding is still short of the plan's mix, else drawing
+ *   draft-retired                            drawing (not locked: its first to-do is the lock)
+ *   closed                                   closed
+ *
+ * `invite` is the move invitation the design asks for: a locked saver within twelve months of the stop, and an unlocked
+ * saver whose stop has passed (never a silent change of placing: the person is asked). The agreement itself comes later;
+ * until then the invitation points at the stop month on "About you and when".
+ *
+ * Pure. `placing` (deriveStage's result, or V7's planStage on the effective settings) and `move` ({ recorded, complete }:
+ * whether a holdings record exists, and whether it matches the plan's mix — PlanReading.moveInputs works that out) may be
+ * passed in by a caller that already has them; without `move` a plan is read as having nothing to move.
+ * @returns {{ key: 'saving'|'moving'|'drawing'|'closed'|null, placing: string, locked: boolean, stop: string|null, since: string|null, by: 'facts', invite: object|null }}
+ */
+export function stageOf(plan, now = new Date(), { placing = null, move = null } = {}) {
+  const st = placing || deriveStage(plan, now);
+  const p = st.key;
+  const nowKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  // the month work stops (a saver) or stopped (someone retired), when the plan says it
+  const stop = st.timingMode === 'future' ? (st.startMonth || null) : (st.stoppedWork ? String(st.stoppedWork).slice(0, 7) : null);
+  const movePending = !!(move && move.recorded && move.complete === false);
+  let key;
+  if (p === 'unknown') key = null;
+  else if (SAVER_STAGE_KEYS.includes(p)) key = 'saving';
+  else if (p === 'closed') key = 'closed';
+  else if (p === 'bridge' || p === 'running') key = movePending ? 'moving' : 'drawing';
+  else key = 'drawing';
+  let invite = null;
+  if (key === 'saving' && st.timingMode === 'future' && stop) {
+    const months = Number.isFinite(st.monthsToStart) ? st.monthsToStart : null;
+    if (p === 'committed-saving' && months != null && months <= 12) invite = { stop, months: Math.max(0, months), passed: false, locked: true };
+    else if (!st.locked && nowKey >= stop) invite = { stop, months: 0, passed: true, locked: false };
+  }
+  const since = key === 'closed' ? (st.closedAt || null) : key === 'saving' ? null : stop || (st.firstTaxYear ? st.firstTaxYear + '-04' : null);
+  return { key, placing: p, locked: !!st.locked, stop, since, by: 'facts', invite };
+}
+
 /** The Accumulation tab's own ages, when both are typed and the stop is later: { currentAge, retirementAge, years }; else null. */
 export function accumulationAgesOf(scenario) {
   const a = scenario && scenario.accumulationTool && scenario.accumulationTool.settings;

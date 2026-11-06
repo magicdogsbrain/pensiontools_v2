@@ -297,7 +297,10 @@ const anyAction = fc.oneof(
   fc.constantFrom('6.44.0', '6.43.0').map((version) => ({ type: A.NEWS_SEEN, version })),
   // keep → sign in → back, and the place last left (7.1.0)
   fc.constantFrom(null, { q: 'b', step: 'answer' }, { planId: 'W1', step: 'saving', kept: true }).map((back) => ({ type: A.ACCOUNT_RETURN, back })),
-  fc.constantFrom({ planId: 'P1', step: null }, { planId: 'P1', step: 'about' }).map((place) => ({ type: A.PLACE_KEEP, place }))
+  fc.constantFrom({ planId: 'P1', step: null }, { planId: 'P1', step: 'about' }).map((place) => ({ type: A.PLACE_KEEP, place })),
+  // a home's "Not now" (7.3.0): the window's own list, never a plan's
+  fc.constantFrom('P1|hold.stale', 'P2|hold.stale').map((key) => ({ type: A.TODO_NOT_NOW, key })),
+  fc.constantFrom([], ['P1|hold.stale']).map((keys) => ({ type: A.TODO_NOT_NOW_SET, keys }))
 );
 
 /** 'NOW' is the key of what is typed at that moment, as the runner would send it; 'fillA'/'fillB' type a whole draft. */

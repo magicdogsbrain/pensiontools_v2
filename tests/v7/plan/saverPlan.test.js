@@ -314,19 +314,23 @@ describe('the rail: a saver is never pushed off saving (4.1, 4.2)', () => {
     expect(pg.stageKey).toBe('saving');
     expect(pg.current).toBe('saving');
     expect(pg.steps.filter((x) => x.later).map((x) => x.id)).toEqual(['lock', 'hold']);
-    expect(pg.next.id).toBe('P.saving');
-    // with the check-in (release step R3), the sentence names the yearly check-in that follows (4.2)
-    expect(nextText(pg)).toBe('Next: see whether what you pay in is enough, then check in once a year.');
-    expect(pg.next.button).toEqual({ id: 'seeSaving', href: '#/plan/' + saver.id + '/saving', slots: {} });
+    // 7.3.0 (retaken on purpose): never checked in, the first check-in is due (the design's rank 10); P.saving, word for word,
+    // is what the rail says once nothing is due
+    expect(pg.next.id).toBe('P.firstCheckIn');
+    expect(pg.next.button).toEqual({ id: 'checkIn', href: '#/plan/' + saver.id + '/checkin', slots: {} });
+    expect(PLAN.next['P.saving']).toBe('Next: see whether what you pay in is enough, then check in once a year.');
   });
   it('no aim: "say what you would want to spend", linking to What you spend; never on a locked plan', () => {
     const saver = copy(C['10-couple-b']);
     saver.stressTool.settings = { ...saver.stressTool.settings, incomeShape: 'level', baseSalary: 0, incomeSteps: [], targetSchedule: null };
     const pg = planPage([entryOf(saver)], saver.id, null, { today: TODAY });
     expect(pg.stageKey).toBe('approaching');
-    expect(pg.next.id).toBe('P.noAim');
-    expect(nextText(pg)).toMatch(/^Next: say what you would want to spend from [A-Z][a-z]+ \d{4}, to see whether what you pay in is enough\.$/);
-    expect(pg.next.button.href).toBe('#/plan/' + saver.id + '/spend');
+    // 7.3.0: the first check-in comes first (rank 10); the aim is due after it (rank 13), with its words and link as before
+    expect(pg.next.id).toBe('P.firstCheckIn');
+    const aim = pg.due.find((d) => d.pid === 'P.noAim');
+    expect(aim.id).toBe('saving.noAim');
+    expect(fill(PLAN.next[aim.pid], aim.slots)).toMatch(/^Next: say what you would want to spend from [A-Z][a-z]+ \d{4}, to see whether what you pay in is enough\.$/);
+    expect(aim.button.href).toBe('#/plan/' + saver.id + '/spend');
   });
   it('a plan locked while saving that never chose how often: today\'s next sentence, word for word, month by month (P.pot, then P.working)', () => {
     const raw = C['05-saver-committed'];
@@ -489,17 +493,19 @@ describe('"What you pay in" draws the plan\'s verdict in B\'s own sentences', ()
     delete saver.planDocument; delete saver.journey;
     saver.decisionTool.settings = { ...saver.decisionTool.settings, locked: false };
     const entries = [entryOf(saver), entryOf(C['02-pnv-draft'])];
-    const base = reduce(stateWith(entries, '#/plan/' + saver.id, { today: TODAY }), { type: A.PLANS_VIEW, view: viewFor(stateWith(entries, '#/plan/' + saver.id, { today: TODAY })) });
+    // the rail on a page of the plan ("Your plan"): since 7.3.0 the plan's own address is its home, which draws no rail
+    const base = reduce(stateWith(entries, '#/plan/' + saver.id + '/plan', { today: TODAY }), { type: A.PLANS_VIEW, view: viewFor(stateWith(entries, '#/plan/' + saver.id + '/plan', { today: TODAY })) });
     const root = document.createElement('div');
     root.id = 'app';
     render(h(App, { state: base, dispatch: () => {} }), root);
-    // the plan opens on "What you pay in": its first button is the plan's verdict, inside V7, named for the question
-    const ask = root.querySelector('[data-testid="plan.saving.payingEnough"]');
-    expect(ask.textContent).toBe('Are you paying in enough?');
-    expect(ask.getAttribute('href')).toBe('#/plan/' + saver.id + '/saving');
-    expect(ask.className).toContain('btn-primary');
-    expect(ask.parentElement.firstElementChild).toBe(ask);
-    expect(root.querySelector('[data-testid="plan.saving.potCheck"]').textContent).toBe('The classic planner’s pot check (fixed rates)');
+    // "What you pay in" is the saver's first step: its first button is the plan's verdict, inside V7, named for the question
+    // (read here from the reading: the step's own address draws its own screen)
+    const first = planPage(entries, saver.id, null, { today: TODAY });
+    expect(first.current).toBe('saving');
+    const sb = first.steps.find((x) => x.id === 'saving').buttons;
+    expect(sb[0]).toMatchObject({ id: 'payingEnough', href: '#/plan/' + saver.id + '/saving', primary: true });
+    expect(PLAN.buttons.payingEnough).toBe('Are you paying in enough?');
+    expect(sb.find((b) => b.id === 'potCheck')).toMatchObject({ place: 'onCourse', quiet: true });
     expect(root.querySelector('[data-testid="rail.later"]').textContent).toBe(PLAN.page.laterTitle);
     const later = [...root.querySelectorAll('.rail-later .rail-step')];
     expect(later.map((li) => li.querySelector('a').getAttribute('data-testid'))).toEqual(['rail.plan.lock', 'rail.plan.hold']);

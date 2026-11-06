@@ -338,18 +338,22 @@ describe('E2 — the stale-answer rule', () => {
     const planner = { ...plan, stressTool: { ...plan.stressTool, settings: { ...plan.stressTool.settings, duration: 40 } } };
     expect(stale(planner)).toMatchObject({ diffs: ['years'], changedOn: null });
   });
-  it('the page: P.recheck after P.working (and a saver\'s check-in sentences, release step R3) and before P.stale; the sentence and its button to the run; the stale line; not on a locked plan', () => {
-    expect(NEXT_ORDER.indexOf('P.recheck')).toBe(NEXT_ORDER.indexOf('P.behind') + 1);
-    expect(NEXT_ORDER.slice(NEXT_ORDER.indexOf('P.working') + 1, NEXT_ORDER.indexOf('P.recheck'))).toEqual(['P.checkinDue', 'P.behind']);
+  it('the page: P.recheck after a saver\'s check-in sentences (release step R3) and just before P.stale; the sentence and its button to the run; the stale line; not on a locked plan', () => {
+    // 7.3.0 (retaken on purpose): the design's rank table — the check-ins (10–12), an aim (13), what you hold (14), then the
+    // out-of-date answer and draft (15)
+    expect(NEXT_ORDER.slice(NEXT_ORDER.indexOf('P.pot'), NEXT_ORDER.indexOf('P.recheck'))).toEqual(['P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale']);
     expect(NEXT_ORDER.indexOf('P.recheck')).toBe(NEXT_ORDER.indexOf('P.stale') - 1);
     expect(PLAN.next['P.recheck']).toContain('check it still lasts');
     const plan = withAnswer(base);
     const changed = applyPatch({ ...plan, lastModified: '2026-10-02T09:00:00.000Z' }, aboutPatch(plan, { endAge: '95' }, { today: TODAY }).patch);
     const pg = planPage([{ plan: changed }], changed.id, 'plan', { today: TODAY });
-    expect(pg.next.id).toBe('P.recheck');
-    expect(pg.next.button).toEqual({ id: 'recheck', href: '#/plan/' + changed.id + '/lasts', slots: {} });   // into "Does it last?" inside V7 (editing-in-v7.md 10), no hand-over
+    // 7.3.0: due behind the saver's first check-in (rank 10), with its words and button as before
+    expect(pg.next.id).toBe('P.firstCheckIn');
+    const recheck = pg.due.find((d) => d.pid === 'P.recheck');
+    expect(recheck.id).toBe('answer.stale');
+    expect(recheck.button).toEqual({ id: 'recheck', href: '#/plan/' + changed.id + '/lasts', slots: {} });   // into "Does it last?" inside V7 (editing-in-v7.md 10), no hand-over
     expect(pg.answerStale).toMatchObject({ workedOutOn: '20 September 2026', changedOn: '2 October 2026' });
-    expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).next.id).toBe('P.approaching');
+    expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).due.map((d) => d.pid)).not.toContain('P.recheck');
     expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).answerStale).toBe(null);
     const locked = { ...changed, decisionTool: { ...changed.decisionTool, settings: { ...changed.decisionTool.settings, locked: true, lockedAt: '2026-10-01T00:00:00.000Z' } } };
     expect(planPage([{ plan: locked }], locked.id, 'plan', { today: TODAY }).answerStale).toBe(null);
@@ -387,8 +391,12 @@ describe('E3 — the sub-step tables', () => {
     const old = JSON.parse(JSON.stringify(C['02-pnv-draft']));
     old.stressTool.settings.firstTaxYear = 2025;
     const stale = planPage([entryOf(old)], old.id, null, { today: TODAY });
-    expect(stale.next.id).toBe('P.stale');
-    expect(stale.next.button.href).toBe('#/plan/' + old.id + '/about');
+    // 7.3.0 (retaken on purpose): the lock is the design's rank 4 and an out-of-date draft rank 15, so the draft's own
+    // sentence comes first; "update it to today" is due with it, into "About you and when" as before
+    expect(stale.next.id).toBe('P.draft');
+    const st = stale.due.find((d) => d.pid === 'P.stale');
+    expect(st.id).toBe('draft.stale');
+    expect(st.button.href).toBe('#/plan/' + old.id + '/about');
     // Re-written in 6.51.0 (research/plan-start.md §7): the same retired draft with a past start that says when work stopped
     // (in that tax year) is running, not out of date — no "update it to today" nudge; its next sentence is the draft's own
     const said = JSON.parse(JSON.stringify(old));

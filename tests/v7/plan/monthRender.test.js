@@ -122,10 +122,13 @@ describe('Month by month, drawn', () => {
     expect(one(root, `${T}.submit`)).toBe(null);
   });
 
-  it('a drawing plan opens on Month by month itself; the rail and the next step lead to it inside the new app, never to the classic page', () => {
+  it('a drawing plan\'s home leads with "Record October" into Month by month (7.3.0; it opened on the tool itself in 7.2.0); the rail and the next step lead to it inside the new app, never to the classic page', () => {
     const entry = entryOf(C['04-buckets-running'], '2026-10-02');
     const id = entry.plan.id;
-    const opened = draw(stateWith([entry], '#/plan/' + id, { today: '2026-10-02' }));
+    const home = draw(stateWith([entry], '#/plan/' + id, { today: '2026-10-02' }));
+    expect(one(home.root, 'plan.home.todo.month.record').getAttribute('href')).toBe('#/plan/' + id + '/month');
+    expect(one(home.root, 'plan.home.todo.month.record').textContent).toBe('Record October');
+    const opened = draw(stateWith([entry], '#/plan/' + id + '/month', { today: '2026-10-02' }));
     expect(one(opened.root, 'plan.step.month').textContent).toBe('Month by month');
     expect(one(opened.root, `${T}.submit`).textContent).toBe('Record October 2026');
     const other = draw(stateWith([entry], '#/plan/' + id + '/plan', { today: '2026-10-02' }));

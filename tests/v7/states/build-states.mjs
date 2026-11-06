@@ -668,6 +668,29 @@ async function buildPlanStates({ today }) {
   states['move-ladder'] = stateHm(holdLadder, 'move', [], { index: INDEX, open: ['moveExplained'] });
   states['move-mix'] = stateHm(moveMix, 'move', [(key) => ({ type: A.MOVE_RUN, key }), (key, s, plan) => ({ type: A.MOVE_DONE, key, result: runHeld(plan, { today }), ms: 620 })], { index: INDEX });
   void moveDone;
+
+  /**
+   * A plan's home (7.3.0; research/v7/one-product-design.md "The plan home"): tests/v7/states/plan/home-*.json — each a state
+   * on #/plan/<id> (no step) holding the plans named, the first the one opened: a saver never checked in (10, Alex), a plan
+   * locked while saving (05, Sam), a locked ladder still short of its rungs (03, Moving), a locked Buckets plan living on it
+   * (04, Drawing), a retired draft (02) and a closed plan with the plan that carries it on (18). Nothing is run on a home:
+   * the reading is left out of the files and refreshed with viewFor by the tests (tests/v7/plan/homeRender.test.js).
+   */
+  const stateHome = (raws) => {
+    let s = initialState({ today, build: 'test' });
+    s = reduce(s, { type: A.ROUTE_SET, route: parse('#/plan/' + raws[0].id) });
+    s = reduce(s, { type: A.SESSION_SET, session: { kind: 'in', email: 'someone@example.com' } });
+    s = reduce(s, { type: A.PLANS_SET, list: raws.map((r) => entryOf(r, today)), source: 'account', readAt: '14:03' });
+    const { view, ...plans } = s.plans; void view;
+    return { ...s, plans };
+  };
+  states['home-saving'] = stateHome([plant(C['10-couple-b'], 'AlexSaver01', 'Alex’s plan', { active: true })]);
+  states['home-locked-saver'] = stateHome([plant(C['05-saver-committed'], 'SamSaver02', 'Sam’s plan')]);
+  states['home-moving'] = stateHome([plant(C['03-gilt-ladder-runup'], 'SamLadder03', 'Sam’s plan')]);
+  states['home-drawing'] = stateHome([plant(C['04-buckets-running'], 'SamBuckets04', 'Sam’s plan')]);
+  states['home-draft-retired'] = stateHome([plant(C['02-pnv-draft'], 'AlexDraft05', 'Alex’s plan')]);
+  // the closed plan keeps the id of the plan that carries it on (its nextPlanId): both are planted under their own ids
+  states['home-closed'] = stateHome([JSON.parse(JSON.stringify(C['18-moved-to-new-plan'])), JSON.parse(JSON.stringify(C['18-moved-to-new-plan-next']))]);
   return { states };
 }
 

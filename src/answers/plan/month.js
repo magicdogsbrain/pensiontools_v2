@@ -30,7 +30,7 @@ import { cadenceOf } from '../../services/DrawCadence.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { isExamplePlan } from '../../services/GuestPlans.js';
 import { MONTH_FIELDS } from './schema.js';
-import { dateOf, monthWords, localMonth } from './dates.js';
+import { dateOf, monthWords, monthName, localMonth } from './dates.js';
 import { partnerOf } from './household.js';
 import { pounds } from './income.js';
 
@@ -264,6 +264,13 @@ function fillHelpOf(offer, boxMonth) {
   return out;
 }
 
+/** The idle line's months: { month, next } as names, when this month (or later) is recorded; else null. */
+function idleOf(history, mon) {
+  const latest = latestRecordedMonth(history);
+  if (!latest || latest < mon) return null;
+  return { month: monthName(latest), next: monthName(addMonth(latest, 1)) };
+}
+
 /**
  * The reading the page and the writes share. `typed` the boxes as typed (plan draft values). The month is the chooser's (or
  * the month it opens on), moved on one when "This month's payment has already been made" is ticked on this month.
@@ -288,7 +295,10 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
     stageKey: stage.key, locked, closed, months: listed.map((m) => ({ ym: m, words: monthWords(m) })), chosen, mon, month, monthWords: month ? monthWords(month) : '',
     paidOffered: chosen === mon && !(I.ceiling && I.ceiling <= mon), paidAhead, cadence: cadenceOf(plan.decisionTool),
     recent: I.history.slice(-3).reverse().map((h) => ({ month: monthWords(h.date), afterTax: pounds(h.monthlyNet), tax: pounds(h.monthlyTax), filled: filledInLabel(h) || null, fromSetUp: h.fromSetUp === true })),
-    recordedCount: I.history.length
+    recordedCount: I.history.length,
+    // nothing due (7.3.0, "Forms become tools"): the latest month recorded (a quarter or a year recorded at once reaches
+    // ahead) and the month that opens next, due from its own 1st — said by name only, the year being plain
+    idle: idleOf(I.history, mon)
   };
   if (!month) return { ...base, nothing: true, errors, ok: false };
   if (paidAhead && I.history.some((h) => monthOfRecord(h) === month)) errors['mo.paid'] = 'recorded';

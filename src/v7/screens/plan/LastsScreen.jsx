@@ -13,7 +13,7 @@
  * the plan in the worker on a press, its lines the reading's (leverViews), put away with one press; on a locked plan the
  * document's figure stays above and ONE comparison line is said. Nothing here is written to the plan.
  */
-import { PlanRail, changeAction, EditField, UndoToast, OutOfTenBar, fill, Button, LinkButton } from '../../components/index.js';
+import { PlanRail, changeAction, EditField, UndoToast, OutOfTenBar, fill, Button, LinkButton, RunRing, AtLeast } from '../../components/index.js';
 import { planView, planLastsView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -160,16 +160,15 @@ function Answer({ L, onChange, dispatch, view }) {
           <p class="note">{LASTS.ran.today}</p>
         </>
       )}
-      {working && (
+      {/* the working spinner (7.3.0): the futures being run, shown at least a moment so a verdict never pops in */}
+      <AtLeast busy={working} working={(
         <div class="working" role="status" data-testid="plan.lasts.working">
           <p class="working-title">{LASTS.working.title}</p>
           <p>{LASTS.working.trying}</p>
-          {run.progress && run.progress.total > 0
-            ? <progress value={run.progress.done} max={run.progress.total} aria-label={LASTS.working.progress} />
-            : <progress aria-label={LASTS.working.progress} />}
+          <RunRing progress={run.progress} label={LASTS.working.progress} />
           {run.slow && <p class="working-slow">{LASTS.working.slow}</p>}
         </div>
-      )}
+      )}>{null}</AtLeast>
       {run.status === 'failed' && run.reason === 'noWorker' && (
         <div class="notice" role="alert" data-testid="plan.lasts.noWorker">
           <p>{LASTS.failed.noWorker}</p>
@@ -183,11 +182,14 @@ function Answer({ L, onChange, dispatch, view }) {
           <Button testid="plan.lasts.retry" kind="quiet" onClick={() => dispatch({ type: 'lasts/retry' })}>{LASTS.failed.tryAgain}</Button>
         </div>
       )}
-      {v && <Band v={v} stale={!run.fresh} testid="plan.lasts.result" />}
-      {v && run.fresh && v.ok && <p class="plan-source" data-testid="plan.lasts.ran">{sourceLine}</p>}
-      {v && run.fresh && L.note && <p class="notice" role="status" data-testid="plan.lasts.earlierTest">{L.note}</p>}
-      {v && run.fresh && <History v={v} />}
-      {v && run.fresh && <Years v={v} L={L} dispatch={dispatch} />}
+      {v && !run.fresh && <Band v={v} stale testid="plan.lasts.result" />}
+      <AtLeast busy={working} working={null}>
+        {v && run.fresh && <Band v={v} stale={false} testid="plan.lasts.result" />}
+        {v && run.fresh && v.ok && <p class="plan-source" data-testid="plan.lasts.ran">{sourceLine}</p>}
+        {v && run.fresh && L.note && <p class="notice" role="status" data-testid="plan.lasts.earlierTest">{L.note}</p>}
+        {v && run.fresh && <History v={v} />}
+        {v && run.fresh && <Years v={v} L={L} dispatch={dispatch} />}
+      </AtLeast>
     </section>
   );
 }
@@ -345,7 +347,7 @@ function Levers({ L, planId, dispatch, sourceText }) {
   const lv = L.levers;
   if (!lv || !v || !v.ok || run.status !== 'done' || !run.fresh) return null;
   const T = LASTS.levers;
-  return (
+  const body = (
     <section class="plan-section lasts-levers" data-section="levers" data-testid="plan.lasts.levers">
       <h2>{T.title}</h2>
       <p class="note">{T.lead}</p>
@@ -356,6 +358,9 @@ function Levers({ L, planId, dispatch, sourceText }) {
       <TryChange L={L} planId={planId} dispatch={dispatch} sourceText={sourceText} />
     </section>
   );
+  // a locked plan is being carried out (7.3.0): the levers, "Try a change" and "Keep as a separate plan" are there, folded
+  // under "Try something", never pushed
+  return L.locked ? <details class="plan-fold" data-testid="plan.lasts.trySomething"><summary>{LASTS.trySomething}</summary>{body}</details> : body;
 }
 
 /** The derived figures (10.2): shown, never asked. */

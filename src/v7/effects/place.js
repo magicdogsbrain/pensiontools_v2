@@ -34,6 +34,8 @@ import { isClosedPlan } from '../../services/PlanClosed.js';
 export const RETURN_KEY = 'pt_v7_return';
 export const PLACE_KEY = 'pt_v7_place';
 export const SIGNED_IN_KEY = 'pt_v7_signed_in';
+/** The to-dos put off with "Not now" on a plan's home (7.3.0): this window only, never the plan — '<plan id>|<to-do id>'. */
+export const NOT_NOW_KEY = 'pt_v7_not_now';
 
 export function hasSignedInHint(local) {
   try { return !!local && local.getItem(SIGNED_IN_KEY) === '1'; } catch { return false; }
@@ -60,8 +62,30 @@ export function landingFor(state, windowPlace = null) {
   if (!plans.length) return null;
   const open = (place) => !!place && plans.some((pl) => String(pl.id) === place.planId && !isClosedPlan(pl));
   const account = state.ui.profile ? cleanPlace(state.ui.profile.lastLocation) : null;
-  for (const place of [cleanPlace(windowPlace), account]) if (open(place)) return placeHref(place);
+  for (const place of [cleanPlace(windowPlace), account]) if (open(place)) return hrefOf(place, plans);
   return href.plans();
+}
+
+/**
+ * A remembered place as an address (7.3.0): on a LOCKED plan the plan's home, whatever step was last open there — someone
+ * carrying out a plan comes back to what is due — and on any other plan the step itself.
+ */
+function hrefOf(place, plans) {
+  const pl = plans.find((x) => String(x.id) === place.planId);
+  const locked = !!(pl && pl.decisionTool && pl.decisionTool.settings && pl.decisionTool.settings.locked);
+  return locked ? href.plan(place.planId) : placeHref(place);
+}
+
+/**
+ * Signed in on the account page with no way back to anything (a new device: 7.3.0, research/v7/one-product-design.md
+ * "Landing"): the last plan the account was on, at its home when it is locked, instead of staying on "Your account";
+ * undefined while not known yet, null to stay (no plan remembered, or that plan gone or closed).
+ */
+export function afterSignInFor(state) {
+  const to = landingFor(state, null);
+  if (to === undefined) return undefined;
+  const account = state.ui.profile ? cleanPlace(state.ui.profile.lastLocation) : null;
+  return to && account && to !== href.plans() ? to : null;
 }
 
 /**
@@ -83,6 +107,13 @@ export function startPlace(store, { session = null, local = null, landing = fals
   let windowPlace = cleanPlace(read(PLACE_KEY));
   let sent = null;                       // the place last sent to the account (or read from it)
   let landed = !landing;
+  let known = !!store.getState().session && store.getState().session.kind !== 'checking';   // the page's first session seen
+  let afterSignIn = false;               // signed in on this page, on the account page with no way back: to the last plan
+  // the to-dos put off in this window (7.3.0): read back once, kept on every "Not now"
+  {
+    const keys = read(NOT_NOW_KEY);
+    if (Array.isArray(keys) && keys.length) dispatch({ type: A.TODO_NOT_NOW_SET, keys });
+  }
 
   // A way back kept in this window survives a reload of the account page (an email confirmed in another tab, this page
   // opened again); on any other page it is let go.
@@ -102,8 +133,18 @@ export function startPlace(store, { session = null, local = null, landing = fals
     go(to);
   };
 
+  const followSignIn = (state) => {
+    if (!afterSignIn) return;
+    if (!state.route || state.route.screen !== 'account' || state.ui.returnTo) { afterSignIn = false; return; }
+    const to = afterSignInFor(state);
+    if (to === undefined) return;
+    afterSignIn = false;
+    go(to);
+  };
+
   const off = store.subscribe((state, action, previous) => {
     const back = state.ui.returnTo || null;
+    if (action.type === A.TODO_NOT_NOW) keep(NOT_NOW_KEY, state.ui.notNow || []);
     if (action.type === A.ACCOUNT_RETURN) {
       keep(RETURN_KEY, back);
       if (back && state.route.screen !== 'account') go(href.account());
@@ -119,6 +160,10 @@ export function startPlace(store, { session = null, local = null, landing = fals
       if (now === 'nobody' && was !== 'in') note(false);
       // signed in with a way back to an answer: back on it (a plan kept in the window waits for the bring-in, below)
       if (back && now === 'in' && was !== 'in' && !back.kept) { letGo(); go(backHref(back)); }
+      // a sign-in on this page (never the page's first known session) on the account page with no way back: once the
+      // account's plans and settings are read, to the last plan (7.3.0)
+      if (!back && known && now === 'in' && was !== 'in' && state.route && state.route.screen === 'account') afterSignIn = true;
+      if (now !== 'checking') known = true;
     }
     // a plan kept in this window and a way back to it: the window's plans brought in at once, then the plan opened
     if (back && back.kept && action.type === A.GUEST_OFFER && state.session.kind === 'in') dispatch({ type: A.GUEST_BRING_IN });
@@ -137,6 +182,7 @@ export function startPlace(store, { session = null, local = null, landing = fals
       if (!samePlace(place, sent) && state.ui.profile !== null) { sent = place; dispatch({ type: A.PLACE_KEEP, place }); }
     }
     land(state);
+    followSignIn(state);
   });
   land(store.getState());
   return () => { stopped = true; off(); };

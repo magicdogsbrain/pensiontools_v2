@@ -37,3 +37,7 @@ export { UndoToast } from './UndoToast.jsx';
 // The shell for 7.0 (research/v7/road-to-7.md step 11): the visitor's boxes, the hand-over, What's new
 export { GuestNag, GuestStop, BringIn, NewsPopup, leftWords, usedWords } from './Visitor.jsx';
 export { Release, ReleaseBody, Effects, dayWords } from './ReleaseNotes.jsx';
+// The plan's home (7.3.0): the working spinner and the motion rule (research/v7/mockups/README.md)
+export { RunRing, AtLeast, AT_LEAST_MS } from './Spinner.jsx';
+export { countUp, slideAway, reducedMotion } from './motion.js';
+export { Counted, notNowPress } from './Motion.jsx';

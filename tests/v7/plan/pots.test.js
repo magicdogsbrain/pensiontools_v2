@@ -386,7 +386,7 @@ describe('T1 — the stale-answer rule gains the pots when the record carries th
     expect(answerAge(matching, now(matching))).toBe(null);
     const pot = applyPatch({ ...matching, lastModified: '2026-10-02T09:00:00.000Z' }, potsPatch(matching, { pension: '250,000' }, { today: TODAY }).patch);
     expect(answerAge(pot, now(pot))).toMatchObject({ diffs: ['pension'], changedOn: '2 October 2026' });
-    expect(planPage([{ plan: pot }], pot.id, 'plan', { today: TODAY }).next.id).toBe('P.recheck');
+    expect(planPage([{ plan: pot }], pot.id, 'plan', { today: TODAY }).due.map((d) => d.pid)).toContain('P.recheck');   // 7.3.0: due, behind the first check-in
     const isa = applyPatch({ ...matching, lastModified: '2026-10-02T09:00:00.000Z' }, potsPatch(matching, { isa: '10,000' }, { today: TODAY }).patch);
     expect(answerAge(isa, now(isa))).toMatchObject({ diffs: ['isa'] });
     // PlanSeed writes the middling pot at the stop as today's pots when today's was £0 on a plan stopping later

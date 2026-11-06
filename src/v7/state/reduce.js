@@ -108,6 +108,10 @@ function noteShown(before, after) {
 }
 const hasField = (q, path) => !!SCHEMAS[q] && (SCHEMAS[q].fields.some((f) => f.path === path) || (hasShape(q) && path !== stepsPath(q) && shapePaths(q).includes(path)));
 const closeRail = (ui) => (ui.railOpen ? { ...ui, railOpen: false } : ui);
+/** A to-do put off with "Not now" (7.3.0): '<plan id>|<to-do id>', letters, digits and the id's dots only — no figure. */
+const NOT_NOW_KEY = /^[A-Za-z0-9_-]{1,64}\|[a-z]+\.[A-Za-z]+$/;
+const NOT_NOW_MAX = 50;
+const cleanNotNowKey = (k) => (typeof k === 'string' && NOT_NOW_KEY.test(k) ? k : null);
 /** A's and B's answers carry detail and extending; C's do not, and keep C's shape. */
 const hasDetail = (answer) => !!answer && 'extending' in answer;
 const detailOf = (result) => (result && result.basis && typeof result.basis.detail === 'string' ? result.basis.detail : null);
@@ -390,7 +394,7 @@ export function reduce(state, action) {
       // paste and example to its "The mix", the move's confirm to its "About you and when" — leaving that page closes them (a
       // locked plan's page starts with no box)
       const stays = (step) => route.screen === 'plan' && route.step === step && state.route && state.route.screen === 'plan' && state.route.step === step && String(state.route.planId) === String(route.planId);
-      const gone = [...(stays('lasts') ? [] : ['tryOpen', 'tryConfirm']), ...(stays('mix') ? [] : ['mixPaste', 'mixExample']), ...(stays('household') ? [] : ['hhWhoPays', 'hhDetail']), ...(stays('hold') ? [] : ['holdPaste']), ...(stays('move') ? [] : ['moveHow', 'moveSheet', 'moveExplained']), ...(stays('budget') ? [] : ['budgetReset']), ...(stays('saving') ? [] : ['savingRelief']), ...(stays('about') ? [] : ['moveStartConfirm'])];
+      const gone = [...(stays('lasts') ? [] : ['tryOpen', 'tryConfirm']), ...(stays('mix') ? [] : ['mixPaste', 'mixExample']), ...(stays('household') ? [] : ['hhWhoPays', 'hhDetail']), ...(stays('hold') ? [] : ['holdPaste']), ...(stays('move') ? [] : ['moveHow', 'moveSheet', 'moveExplained']), ...(stays('budget') ? [] : ['budgetReset']), ...(stays('saving') ? [] : ['savingRelief']), ...(stays('about') ? [] : ['moveStartConfirm']), ...(stays('month') ? [] : ['monthOther']), ...(stays('checkin') ? [] : ['checkInAnyway'])];
       // the household's confirm belongs to its page too
       const hh = state.household && state.household.pick && !stays('household') ? { ...state.household, pick: null } : state.household;
       const ui0 = closeRail(state.ui);
@@ -1719,6 +1723,17 @@ export function reduce(state, action) {
       const back = cleanBack(action.back);
       if (!back) return refuse('account/return: needs a plan kept in this window, or an answer\'s step');
       return { ...state, ui: { ...state.ui, returnTo: back } };
+    }
+    case A.TODO_NOT_NOW: {
+      const key = cleanNotNowKey(action.key);
+      if (!key) return refuse('todo/notNow: needs a plan id and a to-do id');
+      const list = Array.isArray(state.ui.notNow) ? state.ui.notNow : [];
+      return list.includes(key) ? state : { ...state, ui: { ...state.ui, notNow: [...list, key].slice(-NOT_NOW_MAX) } };
+    }
+    case A.TODO_NOT_NOW_SET: {
+      const keys = (Array.isArray(action.keys) ? action.keys : []).map(cleanNotNowKey).filter(Boolean).slice(-NOT_NOW_MAX);
+      const list = Array.isArray(state.ui.notNow) ? state.ui.notNow : [];
+      return keys.length === list.length && keys.every((k, i) => k === list[i]) ? state : { ...state, ui: { ...state.ui, notNow: keys } };
     }
     case A.PLACE_KEEP: {
       // held in the state so the account effect is told (the store tells its listeners of changes only)

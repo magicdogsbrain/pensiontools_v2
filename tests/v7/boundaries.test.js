@@ -280,7 +280,7 @@ const STORAGE_FILES = {
   'src/v7/effects/whatsNew.js':   { keys: ['pt_lastSeenVersion'], names: [] },
   'src/v7/effects/account.js':    { keys: [], names: [] },
   // 7.1.0 (effects/place.js): the way back after signing in and the window's last place (session), the signed-in note (local)
-  'src/v7/effects/place.js':      { keys: ['pt_v7_return', 'pt_v7_place', 'pt_v7_signed_in'], names: [] }
+  'src/v7/effects/place.js':      { keys: ['pt_v7_return', 'pt_v7_place', 'pt_v7_signed_in', 'pt_v7_not_now'], names: [] }
 };
 
 describe('rule 3a — reach: every import from V7\'s entry points, walked', () => {

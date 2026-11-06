@@ -11,7 +11,7 @@
  * the run's status is the state's (effects/ways.js). No figure is worked out here. The write is the one write file's
  * (effects/planWrite.js, kind 'way'), on plan/useWay after the confirm on the same screen.
  */
-import { PlanRail, changeAction, UndoToast, OutOfTenBar, fill, Button, LinkButton } from '../../components/index.js';
+import { PlanRail, changeAction, UndoToast, OutOfTenBar, fill, Button, LinkButton, RunRing } from '../../components/index.js';
 import { planView, planWayView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -250,9 +250,7 @@ export function WayScreen(state, dispatch) {
             <div class="working" role="status" data-testid="plan.way.working">
               <p class="working-title">{WAY.working.title}</p>
               <p>{WAY.working.body}</p>
-              {run.progress && run.progress.total > 0
-                ? <progress value={run.progress.done} max={run.progress.total} aria-label={WAY.working.progress} />
-                : <progress aria-label={WAY.working.progress} />}
+              <RunRing progress={run.progress} label={WAY.working.progress} />
               {run.slow && <p class="working-slow">{WAY.working.slow}</p>}
             </div>
           )}

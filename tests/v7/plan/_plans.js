@@ -10,7 +10,7 @@
  *   household()                 the two plans of one household: the locked ladder in its run-up (03, linked
  *                               one way to the saver) and the saver (05, no link back) — built from the corpus, never a
  *                               new file (the corpus's snapshot would have to move)
- *   stateWith(entries, route, o) a V7 state on a plan page with those plans read
+ *   stateWith(entries, route, o) a V7 state on a plan page with those plans read (o.notNow: to-dos put off in the window)
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -55,10 +55,12 @@ export function household() {
   return { ladder, saver };
 }
 
-export function stateWith(entries, hash = '#/plans', { today = TODAY, source = 'account', session = 'in', readAt = '14:03', open = [] } = {}) {
+export function stateWith(entries, hash = '#/plans', { today = TODAY, source = 'account', session = 'in', readAt = '14:03', open = [], notNow = [] } = {}) {
   let s = initialState({ today, build: 'test' });
   s = reduce(s, { type: A.ROUTE_SET, route: parse(hash) });
   s = reduce(s, { type: A.SESSION_SET, session: { kind: session, email: session === 'in' ? 'someone@example.com' : null } });
+  // the to-dos put off with "Not now" in this window (7.3.0): page memory only
+  for (const key of notNow) s = reduce(s, { type: A.TODO_NOT_NOW, key });
   if (entries) s = reduce(s, { type: A.PLANS_SET, list: entries, source, readAt });
   if (entries) s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });   // as the plan source does on the page
   for (const id of open) s = reduce(s, { type: A.UI_TOGGLE, id });

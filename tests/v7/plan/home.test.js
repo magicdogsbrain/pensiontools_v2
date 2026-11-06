@@ -1,0 +1,408 @@
+/**
+ * A plan's home (7.3.0; research/v7/one-product-design.md, "The plan home", "The to-do reader", "The stage model" — the
+ * derived part only). Reads only: nothing new is written to any plan.
+ *
+ *   - the three words: stageOf over the eight placings, with nothing stored (no stage, no agreement, no finished move);
+ *   - every committed plan at the three dates the stage tests use → the stage word, the to-dos in order, the nothing-due line;
+ *   - one engine: on every plan, every address, the rail's "Next" is the first thing due (read.js dueFor), and the home's
+ *     first to-do is the rail's "Next";
+ *   - the nothing-due line is only ever a true, dated sentence; a drawing plan with nothing due always has one;
+ *   - "Not now" (the window only) leaves a to-do out of the home and the rail alike;
+ *   - the plans list says the stage word and "N to do"; a partner's plan adds its due lines by name, never its figures;
+ *   - landing: a remembered place on a locked plan is its home; a sign-in on the account page goes to the last plan;
+ *   - reads only: ALL_WRITES is the list main has, byte for byte, and a stored plan is byte-identical after its home and
+ *     every step are opened and browsed (gate 2), with not one write sent;
+ *   - the words of copy/home.js pass the banned list in every scope a plan page is shown in.
+ */
+import { describe, it, expect } from 'vitest';
+import { createHash } from 'node:crypto';
+import { planPage, planRows } from '../../../src/answers/plan/read.js';
+import { homeOf } from '../../../src/answers/plan/home.js';
+import { NEXT_ORDER, NEXT_INFO, DUE_IDS, ALL_STEPS } from '../../../src/answers/plan/steps.js';
+import { ALL_WRITES } from '../../../src/answers/plan/schema.js';
+import { stageOf, deriveStage } from '../../../src/services/LifeStage.js';
+import { planStage } from '../../../src/services/PlanReading.js';
+import { HOME, WORKING } from '../../../src/v7/copy/home.js';
+import { PLAN } from '../../../src/v7/copy/plan.js';
+import { bannedHits } from '../render/checkScreen.js';
+import { createStore } from '../../../src/v7/effects/store.js';
+import { initialState } from '../../../src/v7/state/initial.js';
+import { reduce } from '../../../src/v7/state/reduce.js';
+import { A } from '../../../src/v7/state/actions.js';
+import { parse, format, PLAN_SUB_STEPS } from '../../../src/v7/router/routes.js';
+import { startPlanWrite } from '../../../src/v7/effects/planWrite.js';
+import { startPlace, landingFor, afterSignInFor, NOT_NOW_KEY } from '../../../src/v7/effects/place.js';
+import { upgradedList, viewFor } from '../../../src/v7/effects/planSource.js';
+import { corpus, entriesAt, entryOf, household, noon, DATES, TODAY } from './_plans.js';
+
+const C = corpus();
+const copy = (v) => JSON.parse(JSON.stringify(v));
+const fill = (text, slots) => String(text).replace(/\{(\w+)\}/g, (m, k) => (k in slots && slots[k] != null ? String(slots[k]) : m));
+const tick = async (n = 6) => { for (let i = 0; i < n; i++) await new Promise((r) => setTimeout(r, 0)); };
+
+describe('the three words (stageOf): derived from the facts, nothing stored', () => {
+  const placing = (key, more = {}) => ({ key, locked: false, timingMode: 'future', startMonth: '2030-06', monthsToStart: 40, stoppedWork: null, firstTaxYear: 2030, closedAt: null, ...more });
+  it('maps the eight placings to Saving, Moving, Drawing and Closed (and none for an unknown age)', () => {
+    const at = new Date(2026, 9, 15, 12);
+    const w = (p, move) => stageOf({}, at, { placing: p, move }).key;
+    expect(w(placing('unknown'))).toBe(null);
+    for (const k of ['saving', 'approaching', 'committed-saving']) expect(w(placing(k))).toBe('saving');
+    expect(w(placing('draft-retired', { timingMode: 'retired' }))).toBe('drawing');
+    expect(w(placing('closed', { closedAt: '2026-03' }))).toBe('closed');
+    for (const k of ['bridge', 'running']) {
+      expect(w(placing(k, { locked: true, timingMode: 'retired' }))).toBe('drawing');                                                // no holdings record: nothing to move
+      expect(w(placing(k, { locked: true, timingMode: 'retired' }), { recorded: true, complete: true })).toBe('drawing');           // what you hold is the plan's mix
+      expect(w(placing(k, { locked: true, timingMode: 'retired' }), { recorded: true, complete: false })).toBe('moving');           // still short of it
+      expect(w(placing(k, { locked: true, timingMode: 'retired' }), { recorded: false, complete: false })).toBe('drawing');
+    }
+  });
+  it('the move invitation: a locked saver within twelve months of the stop, and an unlocked saver past it — never otherwise', () => {
+    const at = new Date(2026, 9, 15, 12);
+    const inv = (p) => stageOf({}, at, { placing: p }).invite;
+    expect(inv(placing('committed-saving', { locked: true, monthsToStart: 13 }))).toBe(null);
+    expect(inv(placing('committed-saving', { locked: true, monthsToStart: 12, startMonth: '2027-10' }))).toEqual({ stop: '2027-10', months: 12, passed: false, locked: true });
+    expect(inv(placing('approaching', { locked: false, startMonth: '2026-09', monthsToStart: -1 }))).toEqual({ stop: '2026-09', months: 0, passed: true, locked: false });
+    expect(inv(placing('approaching', { locked: false, startMonth: '2026-11', monthsToStart: 1 }))).toBe(null);
+    expect(inv(placing('running', { locked: true }))).toBe(null);
+  });
+  it('reads a plan and writes nothing: deriveStage unchanged, the plan the same before and after, on every committed plan', () => {
+    for (const today of DATES) for (const e of entriesAt(today)) {
+      const before = JSON.stringify(e.plan);
+      const st = stageOf(e.plan, noon(today), { placing: planStage(e.plan, { now: noon(today) }) });
+      expect(['saving', 'moving', 'drawing', 'closed', null]).toContain(st.key);
+      expect(st.by).toBe('facts');
+      expect(JSON.stringify(e.plan)).toBe(before);
+      expect(deriveStage(e.plan, noon(today)).key).toBe(deriveStage(JSON.parse(before), noon(today)).key);
+    }
+  });
+});
+
+describe('every committed plan at three dates: the stage word, the to-dos in order, the nothing-due line', () => {
+  // [stage, to-do ids in order (the first is the rail's Next), the nothing-due line] — a line only when it is true
+  const TABLE = {
+    '2026-10-02': {
+      '01-fresh-default': [null, 'plan.noAge', null],
+      '02-pnv-draft': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '03-gilt-ladder-runup': ['moving', 'month.record move.next hold.stale', null],
+      '04-buckets-running': ['drawing', 'month.record hold.stale', null],
+      '05-saver-committed': ['saving', 'checkin.due', null],
+      '06-pre-6.4-no-timing': ['drawing', 'month.gap', null],
+      '07-pre-6.13-flat-params': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '08-dotted-keys': [null, 'plan.noAge', null],
+      '09-couple-a': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '10-couple-b': ['saving', 'checkin.first', null],
+      '11-guest-demo': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '12-lumpy-db-gia': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '13-stopped-drawing-since': ['moving', 'month.gap move.next hold.stale', null],
+      '18-moved-to-new-plan-next': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '18-moved-to-new-plan': ['closed', 'closed.next', 'Closed March 2025; carried on in ‘Pots and valves from April 2025’.'],
+      '19-back-to-work-saving': ['saving', 'checkin.first', null],
+      '19-back-to-work': ['closed', 'closed.next', 'Closed June 2025; carried on in ‘Saving again from July 2025’.']
+    },
+    '2027-04-05': {
+      '01-fresh-default': [null, 'plan.noAge', null],
+      '02-pnv-draft': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '03-gilt-ladder-runup': ['moving', 'month.gap move.next hold.stale', null],
+      '04-buckets-running': ['drawing', 'month.gap hold.stale', null],
+      '05-saver-committed': ['saving', 'checkin.due', null],
+      '06-pre-6.4-no-timing': ['drawing', 'month.gap', null],
+      '07-pre-6.13-flat-params': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '08-dotted-keys': [null, 'plan.noAge', null],
+      '09-couple-a': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '10-couple-b': ['saving', 'checkin.first', null],
+      '11-guest-demo': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '12-lumpy-db-gia': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '13-stopped-drawing-since': ['moving', 'month.gap move.next hold.stale', null],
+      '18-moved-to-new-plan-next': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '18-moved-to-new-plan': ['closed', 'closed.next', 'Closed March 2025; carried on in ‘Pots and valves from April 2025’.'],
+      '19-back-to-work-saving': ['saving', 'checkin.first', null],
+      '19-back-to-work': ['closed', 'closed.next', 'Closed June 2025; carried on in ‘Saving again from July 2025’.']
+    },
+    '2027-04-06': {
+      '01-fresh-default': [null, 'plan.noAge', null],
+      '02-pnv-draft': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '03-gilt-ladder-runup': ['moving', 'month.taxYear month.gap move.next hold.stale', null],
+      '04-buckets-running': ['drawing', 'month.taxYear month.gap hold.stale', null],
+      '05-saver-committed': ['saving', 'checkin.due', null],
+      '06-pre-6.4-no-timing': ['drawing', 'month.taxYear month.gap', null],
+      '07-pre-6.13-flat-params': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '08-dotted-keys': [null, 'plan.noAge', null],
+      '09-couple-a': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '10-couple-b': ['saving', 'checkin.first', null],
+      '11-guest-demo': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '12-lumpy-db-gia': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '13-stopped-drawing-since': ['moving', 'month.taxYear month.gap move.next hold.stale', null],
+      '18-moved-to-new-plan-next': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
+      '18-moved-to-new-plan': ['closed', 'closed.next', 'Closed March 2025; carried on in ‘Pots and valves from April 2025’.'],
+      '19-back-to-work-saving': ['saving', 'checkin.first', null],
+      '19-back-to-work': ['closed', 'closed.next', 'Closed June 2025; carried on in ‘Saving again from July 2025’.']
+    }
+  };
+  for (const today of DATES) {
+    it(`at ${today}`, () => {
+      const entries = entriesAt(today);
+      const got = {};
+      for (const [name, raw] of Object.entries(C)) {
+        const h = homeOf(entries, entryOf(raw, today).plan.id, { today });
+        got[name] = [h.stage.key, [...h.todo.items, ...h.todo.more].map((x) => x.id).join(' '), h.quiet ? fill(HOME.quiet[h.quiet.id], h.quiet.slots) : null];
+      }
+      expect(got).toEqual(TABLE[today]);
+    });
+  }
+});
+
+describe('one engine: the rail\'s Next is the first thing due, and the home\'s first to-do', () => {
+  it('every due item carries the design\'s id and a P.* id with words; the info sentences are never to-dos', () => {
+    for (const pid of NEXT_ORDER) expect(PLAN.next[pid], pid).toBeTruthy();
+    for (const pid of Object.keys(DUE_IDS)) { expect(NEXT_ORDER).toContain(pid); expect(NEXT_INFO).not.toContain(pid); expect(HOME.items[DUE_IDS[pid]], DUE_IDS[pid]).toBeTruthy(); }
+    for (const pid of NEXT_INFO) expect(DUE_IDS[pid]).toBeUndefined();
+    // the design's rank table: the invitation, the lock, the tax year, the arrival, the month, the move, the check-ins, the
+    // aim, what you hold, the out-of-date answer and draft, the household — then the sentences that say where things stand
+    const due = NEXT_ORDER.filter((x) => DUE_IDS[x]);
+    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.draft', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.recheck', 'P.stale', 'P.householdPending']);
+    expect(NEXT_ORDER.slice(-6)).toEqual(['P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
+  });
+  for (const today of DATES) {
+    it(`on every committed plan, at every address, at ${today}: nextFor === dueFor[0] (or a sentence that is not a to-do); the home agrees`, () => {
+      const entries = entriesAt(today);
+      for (const e of entries) {
+        for (const step of [null, ...ALL_STEPS]) {
+          const pg = planPage(entries, e.plan.id, step, { today });
+          if (pg.due.length) {
+            expect(pg.next.id, `${e.plan.id} ${step}`).toBe(pg.due[0].pid);
+            expect(pg.next.button).toEqual(pg.readonly ? null : pg.due[0].button);
+          } else expect(NEXT_INFO, `${e.plan.id} ${step}: ${pg.next.id}`).toContain(pg.next.id);
+          expect(fill(PLAN.next[pg.next.id], pg.next.slots)).not.toMatch(/\{\w+\}/);
+        }
+        const h = homeOf(entries, e.plan.id, { today });
+        const pg = planPage(entries, e.plan.id, null, { today });
+        if (pg.due.length) expect(h.todo.items[0].pid).toBe(pg.next.id);
+        else expect(h.todo.items).toEqual([]);
+        expect(h.todo.items.length).toBeLessThanOrEqual(3);
+        for (const it of [...h.todo.items, ...h.todo.more]) expect(fill(HOME.items[it.id].title, it.slots), it.id).not.toMatch(/\{\w+\}/);
+      }
+    });
+  }
+  it('a plan shown as saved has nothing to do (nothing can be changed there) and says so on the rail as before', () => {
+    const es = entriesAt(TODAY).map((e) => (e.plan.id === C['04-buckets-running'].id ? { ...e, newer: true } : e));
+    const pg = planPage(es, C['04-buckets-running'].id, null, { today: TODAY });
+    expect(pg.due).toEqual([]);
+    expect(pg.next.id).toBe('P.readonly');
+    expect(homeOf(es, C['04-buckets-running'].id, { today: TODAY }).todo.count).toBe(0);
+  });
+});
+
+describe('nothing due: a dated line, only ever true', () => {
+  /**
+   * A plan with every month up to this one recorded (copies of its latest record, one a month) and this tax year set up
+   * (its last year's set-up, copied): no month is due.
+   */
+  const recordedThisMonth = (raw, month) => {
+    const p = copy(raw);
+    const h = p.decisionTool.history;
+    const last = h.slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).pop();
+    for (let m = last.date.slice(0, 7); m < month;) { const [y, mm] = m.split('-').map(Number); m = mm === 12 ? (y + 1) + '-01' : y + '-' + String(mm + 1).padStart(2, '0'); h.push({ ...last, date: m }); }
+    const [y, mm] = month.split('-').map(Number);
+    const ty = mm >= 4 ? y : y - 1;
+    const key = String(ty % 100).padStart(2, '0') + '/' + String((ty + 1) % 100).padStart(2, '0');
+    const years = p.decisionTool.taxYears || {};
+    if (!years[key]) { const any = Object.values(years).find((t) => t && t.yearSetupComplete); if (any) p.decisionTool.taxYears = { ...years, [key]: { ...any } }; }
+    return p;
+  };
+  it('a drawing plan with nothing due says the month recorded and the 1st of the next; "Not now" put what you hold off', () => {
+    const raw = recordedThisMonth(C['04-buckets-running'], '2026-10');
+    const e = entryOf(raw, TODAY);
+    const id = e.plan.id;
+    const before = homeOf([e], id, { today: TODAY });
+    expect(before.todo.items.map((x) => x.id)).toEqual(['hold.stale']);
+    expect(before.todo.items[0].dismiss).toBe('window');
+    const h = homeOf([e], id, { today: TODAY, notNow: [id + '|hold.stale'] });
+    expect(h.todo.items).toEqual([]);
+    expect(fill(HOME.quiet[h.quiet.id], h.quiet.slots)).toBe('October is recorded. Nothing is due until 1 November.');
+    // the rail agrees, word for word as before
+    const pg = planPage([e], id, 'plan', { today: TODAY, notNow: [id + '|hold.stale'] });
+    expect(pg.next.id).toBe('P.idle');
+    expect(fill(PLAN.next['P.idle'], pg.next.slots)).toBe('October 2026 is recorded. Nothing to do until November.');
+  });
+  it('the plan\'s cadence: three months recorded at once reach ahead, so nothing is due until the 1st after the last of them', () => {
+    const raw = copy(C['04-buckets-running']);
+    raw.decisionTool.cadence = 'quarterly';
+    const h0 = raw.decisionTool.history;
+    for (const m of ['2026-10', '2026-11', '2026-12']) h0.push({ ...h0[h0.length - 1], date: m });
+    const e = entryOf(raw, TODAY);
+    const h = homeOf([e], e.plan.id, { today: TODAY, notNow: [e.plan.id + '|hold.stale'] });
+    expect(h.todo.items).toEqual([]);
+    expect(fill(HOME.quiet[h.quiet.id], h.quiet.slots)).toBe('December is recorded. Nothing is due until 1 January.');
+  });
+  for (const today of DATES) {
+    it(`every locked drawing plan with nothing due has the dated line, at ${today}`, () => {
+      let seen = 0;
+      for (const raw of Object.values(C)) {
+        const month = today.slice(0, 7);
+        if (!raw.decisionTool || !Array.isArray(raw.decisionTool.history) || !raw.decisionTool.history.length) continue;
+        const e = entryOf(recordedThisMonth(raw, month), today);
+        const pg = planPage([e], e.plan.id, null, { today, notNow: [e.plan.id + '|hold.stale'] });
+        if (!pg.life || pg.life.key !== 'drawing' || !pg.locked) continue;
+        const h = homeOf([e], e.plan.id, { today, notNow: [e.plan.id + '|hold.stale'] });
+        if (h.todo.count) continue;
+        seen++;
+        expect(h.quiet, e.plan.id).not.toBe(null);
+        expect(fill(HOME.quiet[h.quiet.id], h.quiet.slots)).toMatch(/ is recorded\. Nothing is due until 1 [A-Z][a-z]+\.$/);
+      }
+      expect(seen).toBeGreaterThan(0);
+    });
+  }
+  it('a saver with a cadence chosen: the next check-in\'s month; the legacy monthly pot: the 1st of next month once it is recorded', () => {
+    const raw = copy(C['05-saver-committed']);
+    raw.accumulationTool.history = [...(raw.accumulationTool.history || []), { date: '2026-10', sipp: 330000, isa: 42000, gia: 0, total: 372000, recordedAt: '2026-10-02T12:00:00.000Z' }];
+    const e = entryOf(raw, TODAY);
+    const h = homeOf([e], e.plan.id, { today: TODAY });
+    expect(h.todo.items).toEqual([]);
+    expect(fill(HOME.quiet[h.quiet.id], h.quiet.slots)).toBe('October’s pot is recorded. Nothing is due until 1 November.');
+  });
+});
+
+describe('the plans list, a partner\'s due lines, the soon item', () => {
+  it('each row: the stage word and how many things are due (the same reading as the home)', () => {
+    const entries = entriesAt(TODAY);
+    const rows = planRows(entries, { today: TODAY }).groups.flatMap((g) => g.rows);
+    const row = (name) => rows.find((r) => r.id === String(C[name].id));
+    expect([row('04-buckets-running').life, row('04-buckets-running').todo]).toEqual(['drawing', 2]);
+    expect([row('03-gilt-ladder-runup').life, row('03-gilt-ladder-runup').todo]).toEqual(['moving', 3]);
+    expect([row('05-saver-committed').life, row('05-saver-committed').todo]).toEqual(['saving', 1]);
+    expect([row('18-moved-to-new-plan').life, row('18-moved-to-new-plan').todo]).toEqual(['closed', 1]);
+    const put = planRows(entries, { today: TODAY, notNow: [C['04-buckets-running'].id + '|hold.stale'] }).groups.flatMap((g) => g.rows);
+    expect(put.find((r) => r.id === String(C['04-buckets-running'].id)).todo).toBe(1);
+  });
+  it('a partner\'s plan adds its month and its move, named by its plan, never its figures; not to the rail', () => {
+    const { ladder, saver } = household();
+    const entries = [entryOf(ladder), entryOf(saver)];
+    const h = homeOf(entries, 'HouseSaver02', { today: TODAY });
+    expect(h.todo.partner.map((x) => [x.name, x.id])).toEqual([['Ladder plan', 'month.record'], ['Ladder plan', 'move.next']]);
+    for (const x of h.todo.partner) expect(JSON.stringify(x)).not.toMatch(/£/);
+    expect(planPage(entries, 'HouseSaver02', null, { today: TODAY }).due.map((d) => d.id)).not.toContain('month.record');
+  });
+  it('the next tax year\'s set-up is "soon" from 1 March: listed apart, never counted, never the rail\'s Next; its button chooses April', () => {
+    const today = '2027-03-05';
+    const raw = copy(C['04-buckets-running']);
+    const h0 = raw.decisionTool.history;
+    for (const m of ['2026-10', '2026-11', '2026-12', '2027-01', '2027-02', '2027-03']) h0.push({ ...h0[h0.length - 1], date: m });
+    const e = entryOf(raw, today);
+    const h = homeOf([e], e.plan.id, { today, notNow: [e.plan.id + '|hold.stale'] });
+    expect(h.todo.count).toBe(0);
+    expect(h.todo.soon.map((x) => [x.id, x.soon, x.slots.year, x.button.choose])).toEqual([['month.taxYear', true, '2027/28', '2027-04']]);
+    expect(planPage([e], e.plan.id, null, { today, notNow: [e.plan.id + '|hold.stale'] }).next.id).toBe('P.idle');
+    expect(homeOf([e], e.plan.id, { today: '2027-02-10', notNow: [e.plan.id + '|hold.stale'] }).todo.soon).toEqual([]);
+  });
+});
+
+describe('"Not now": the window only, never the plan', () => {
+  it('the reducer keeps tidy keys only; the window\'s list is read back on load and kept on every press', () => {
+    let s = initialState({ today: TODAY, build: 'test' });
+    expect(s.ui.notNow).toEqual([]);
+    s = reduce(s, { type: A.TODO_NOT_NOW, key: 'Td4|hold.stale' });
+    expect(s.ui.notNow).toEqual(['Td4|hold.stale']);
+    expect(reduce(s, { type: A.TODO_NOT_NOW, key: 'Td4|hold.stale' })).toBe(s);
+    for (const bad of ['', 'no-bar', 'a|b', 'x|hold.stale £1', 5, null]) expect(() => reduce(s, { type: A.TODO_NOT_NOW, key: bad })).toThrow(/todo\/notNow/);
+    const mem = new Map();
+    const session = { getItem: (k) => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)), removeItem: (k) => mem.delete(k) };
+    const store = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
+    const stop = startPlace(store, { session, local: null });
+    store.dispatch({ type: A.TODO_NOT_NOW, key: 'Td4|hold.stale' });
+    expect(JSON.parse(mem.get(NOT_NOW_KEY))).toEqual(['Td4|hold.stale']);
+    stop();
+    const again = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
+    const stop2 = startPlace(again, { session, local: null });
+    expect(again.getState().ui.notNow).toEqual(['Td4|hold.stale']);
+    stop2();
+  });
+});
+
+describe('landing on the home', () => {
+  const state = (plans, profile) => {
+    let s = initialState({ today: TODAY, build: 'test' });
+    s = reduce(s, { type: A.SESSION_SET, session: { kind: 'in', email: null } });
+    s = reduce(s, { type: A.PROFILE_SET, profile });
+    s = reduce(s, { type: A.PLANS_SET, list: upgradedList(plans, noon(TODAY)), source: 'account', readAt: '14:03' });
+    return s;
+  };
+  it('a remembered place on a LOCKED plan lands on its home, whatever step was open; on any other plan, on the step', () => {
+    const locked = copy(C['04-buckets-running']);
+    const draft = copy(C['02-pnv-draft']);
+    expect(landingFor(state([locked, draft], { lastSeenVersion: null, lastLocation: { planId: locked.id, step: 'month' } }), null)).toBe('#/plan/' + locked.id);
+    expect(landingFor(state([locked, draft], { lastSeenVersion: null }), { planId: locked.id, step: 'plan' })).toBe('#/plan/' + locked.id);
+    expect(landingFor(state([locked, draft], { lastSeenVersion: null }), { planId: draft.id, step: 'about' })).toBe('#/plan/' + draft.id + '/about');
+  });
+  it('signed in on the account page with no way back (a new device): to the last plan\'s home, not "Your account"; with no plan remembered, it stays', () => {
+    const locked = copy(C['04-buckets-running']);
+    expect(afterSignInFor(state([locked], { lastSeenVersion: null, lastLocation: { planId: locked.id, step: null } }))).toBe('#/plan/' + locked.id);
+    expect(afterSignInFor(state([locked], { lastSeenVersion: null }))).toBe(null);
+    const store = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
+    store.dispatch({ type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
+    store.dispatch({ type: A.ROUTE_SET, route: parse('#/account') });
+    const stop = startPlace(store, { session: null, local: null });
+    store.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'alex@example.test' } });
+    expect(format(store.getState().route)).toBe('#/account');                                // waits for the plans and the settings
+    store.dispatch({ type: A.PROFILE_SET, profile: { lastSeenVersion: null, lastLocation: { planId: locked.id, step: 'month' } } });
+    store.dispatch({ type: A.PLANS_SET, list: upgradedList([locked], noon(TODAY)), source: 'account', readAt: '14:03' });
+    expect(format(store.getState().route)).toBe('#/plan/' + locked.id);
+    stop();
+  });
+});
+
+describe('reads only: nothing new is written to any plan', () => {
+  it('ALL_WRITES is the list main has at 7.2.1, byte for byte (no new allow-list, no new write kind)', () => {
+    expect(ALL_WRITES.length).toBe(157);
+    expect(createHash('sha256').update(JSON.stringify(ALL_WRITES)).digest('hex')).toBe('2028b6c1866b4a7c1c02113e71b4e1d5b308155b9ba385f1c63874b7bbffad26');
+  });
+  /** The one write file with a fake firestore that records every call, on an account's plans. */
+  function browse(raws, planId) {
+    const writes = [];
+    const fb = { doc: (db, ...path) => ({ path: path.join('/') }), updateDoc: (ref, data) => { writes.push({ ref, data }); return Promise.resolve(); }, addDoc: () => { writes.push('add'); return Promise.resolve({ id: 'x' }); }, deleteDoc: () => { writes.push('delete'); return Promise.resolve(); }, collection: () => ({}) };
+    const store = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
+    store.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'a@b.c' } });
+    store.dispatch({ type: A.PLANS_SET, list: upgradedList(raws, noon(TODAY)), source: 'account', readAt: '14:03' });
+    const handles = () => ({ db: { name: 'db' }, user: { uid: 'u1', email: 'a@b.c', emailVerified: true }, reread: () => Promise.resolve() });
+    const stop = startPlanWrite(store, { session: null, local: null, now: () => new Date(TODAY + 'T14:03:00.000Z'), fb, client: null, handles });
+    const go = (hash) => { store.dispatch({ type: A.ROUTE_SET, route: parse(hash) }); store.dispatch({ type: A.PLANS_VIEW, view: viewFor(store.getState()) }); };
+    return { store, writes, go, stop };
+  }
+  it('gate 2: every committed plan, its home and every step opened and browsed (the folds, "Not now", the tools) — byte-identical, not one write', async () => {
+    const raws = Object.values(C).map(copy);
+    const before = JSON.stringify(upgradedList(raws, noon(TODAY)).map((e) => e.plan));
+    const b = browse(raws, null);
+    for (const raw of raws) {
+      b.go('#/plan/' + raw.id);
+      const home = b.store.getState().plans.view.page.home;
+      expect(home && home.found, raw.id).toBe(true);
+      if (home.todo.items.some((x) => x.dismiss)) b.store.dispatch({ type: A.TODO_NOT_NOW, key: raw.id + '|hold.stale' });
+      for (const step of [...ALL_STEPS, ...PLAN_SUB_STEPS]) b.go('#/plan/' + raw.id + '/' + step);
+      for (const id of ['monthOther', 'checkInAnyway']) b.store.dispatch({ type: A.UI_TOGGLE, id });
+      b.go('#/plan/' + raw.id);
+    }
+    await tick();
+    expect(b.writes).toEqual([]);
+    expect(JSON.stringify(b.store.getState().plans.list.map((e) => e.plan))).toBe(before);
+    b.stop();
+  });
+});
+
+describe('the words of the home (copy/home.js)', () => {
+  const strings = (obj, path = '', out = []) => {
+    if (typeof obj === 'string') out.push([path, obj]);
+    else if (obj && typeof obj === 'object') for (const [k, v] of Object.entries(obj)) strings(v, path ? `${path}.${k}` : k, out);
+    return out;
+  };
+  const slot = (s) => s.replace(/\{(month|stop|nextCheck|last)\}/g, 'April 2027').replace(/\{(monthName|next)\}/g, 'October').replace(/\{date\}/g, '20 March 2026')
+    .replace(/\{(year|savedYear)\}/g, '2027/28').replace(/\{(n|of|done)\}/g, '3').replace(/\{total\}/g, '1,000').replace(/\{(name|closed)\}/g, 'Ladder plan').replace(/\{label\}/g, 'Index-linked gilt 2031')
+    .replace(/\{title\}/g, 'Record October').replace(/\{drawn\}/g, '£1,200').replace(/\{plan\}/g, '£1,100');
+  it('pass the banned list in every scope a plan page is shown in — records, retired and saver alike; no slot left unfilled', () => {
+    const all = [...strings(HOME), ...strings({ WORKING })];
+    const context = all.map(([, s]) => slot(s)).join('\n');
+    const hits = [];
+    for (const [where, s] of all) for (const h of bannedHits(slot(s), ['all', 'record', 'retired', 'saver'], { context })) hits.push(`home.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+    for (const [where, s] of all) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+    for (const [where, s] of all) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate|dashboard|wizard|onboarding|transition)\b/i);
+  });
+});

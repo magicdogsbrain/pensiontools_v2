@@ -150,6 +150,12 @@ export const MONTH = {
     beforeSetUp: '{month} comes before your {year} set-up (from {from}), which already counts what you received in it. To record it, choose a later month and fill in the earlier months from there: {month} then takes its share.'
   },
   record: { button: 'Record {month}', withFill: 'Record {month} and fill in {n} month{s}', working: 'Recording…' },
+  /**
+   * Nothing due (7.3.0, research/v7/one-product-design.md "Forms become tools"): the tool says so with the date the next
+   * month opens — a month is due from its own 1st — and the form comes only when asked for.
+   */
+  idle: '{month} is recorded. {next} opens on 1 {next} (record it early if the payment has gone).',
+  other: 'Record a different month',
   recent: { row: '{month}: {afterTax} after tax, {tax} tax', none: 'No months recorded yet.' },
   later: {
     items: ['Your months against the plan, by tax year', 'Each tax year as a spreadsheet, and the printed documents', 'Drawing each quarter or once a year', 'Changing a tax year once it is set up'],

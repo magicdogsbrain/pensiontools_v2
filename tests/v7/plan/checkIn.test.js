@@ -137,8 +137,10 @@ describe('how often, and when the next check-in is due (5.2)', () => {
       expect(step.result.id).toBe('pot.notYet');
       expect(pg.next.id).toBe('P.pot');
       expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('Your plan is locked and you stop work in February 2038. Next: record this month’s pot.');
+      // 7.3.0 (retaken on purpose): ONE check-in rule — the plans list says "Check-in due" while this month's pot is not
+      // recorded, as the rail and the home do
       const row = planRows([e], { today }).groups.flatMap((g) => g.rows)[0];
-      expect(row.checkInDue).toBe(false);
+      expect(row.checkInDue).toBe(true);
     }
   });
   it('once a check-in has said how often: "Due" on the rail, the next sentence, "Check-in due" in the plans list; then on course or behind from the stored reading', () => {
@@ -167,9 +169,9 @@ describe('how often, and when the next check-in is due (5.2)', () => {
     expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('On course at your last check-in (November 2026). Next check-in: February 2027.');
     expect(pg.next.button).toBe(null);
     expect(pg.steps.find((s) => s.id === 'checkin').result.text).toBe('Checked in for November 2026: on course');
-    // never checked in: the first step is What you pay in, and the sentence names the yearly check-in that follows
+    // never checked in: the first step is What you pay in; since 7.3.0 the first check-in is due (the design's rank 10)
     pg = planPage(entries(plan, '2027-01-10'), plan.id, null, { today: '2027-01-10' });
-    expect(pg.next.id).toBe('P.saving');
+    expect(pg.next.id).toBe('P.firstCheckIn');
     expect(pg.steps.find((s) => s.id === 'checkin').result.text).toBe('Not checked in yet');
   });
   it('the rail: check-in on every saver\'s rail in the pot step\'s place, never optional; the pot step\'s address opens it; checkInAllowed is the saver stages', () => {

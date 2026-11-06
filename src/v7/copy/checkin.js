@@ -7,6 +7,8 @@
  * steps, already on your way.
  */
 export const CHECKIN = {
+  /** 7.3.0: no check-in due — the last result and the next date; the form only when asked for. */
+  anyway: 'Check in now anyway',
   title: 'Check in',
   lead: 'Tell your plan where you are today — your pot, your pay and what goes in — and see whether you are still on course, how your pot compares with where the plan expected it to be, and what has changed since last time.',
   firstLead: 'This is your first check-in. It draws your saving path from today’s figures, so each check-in after it has something fixed to be read against.',

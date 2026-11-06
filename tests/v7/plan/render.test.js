@@ -79,8 +79,21 @@ describe('every committed plan, every step, three dates (T5)', () => {
           // opens on it at its own address too, drawn as the plan page's first step
           const own = { lock: 'plan.lock', household: 'plan.household', hold: 'plan.hold', move: 'plan.move', budget: 'plan.budget', saving: 'plan.saving', checkin: 'plan.checkin', pot: 'plan.checkin', month: 'plan.month' };
           expect(root.querySelector('main').getAttribute('data-screen')).toBe(own[step] || 'plan');
-          const opensOnMonth = step === null && pg.current === 'month';
-          if (!['household', 'hold', 'move', 'budget', 'saving', 'checkin', 'pot', 'month'].includes(step) && !opensOnMonth) for (const p of checkPlanPage(root, text, scopesOf(pg.stageKey))) problems.push(`${e.plan.id} ${step || '(first)'} [${pg.stageKey}]: ${p}`);
+          // the plan's own address is its home (7.3.0; moved here from "a drawing plan opens on Month by month", 7.2.0): no rail
+          // (the home is the rail laid out), no box, and its first to-do is the rail's next sentence (tests/v7/plan/home.test.js)
+          if (step === null) {
+            const home = root.querySelector('[data-region="plan-home"]');
+            if (!home) problems.push(`${e.plan.id}: no home`);
+            if (root.querySelector('[data-region="rail"]')) problems.push(`${e.plan.id}: a rail on the home`);
+            if (root.querySelector('input, select, textarea')) problems.push(`${e.plan.id}: a box on the home`);
+            if (COUNTDOWN.test(wordsOf(root))) problems.push(`${e.plan.id}: a countdown on the home`);
+            for (const hit of bannedHits(wordsOf(root), scopesOf(pg.stageKey))) problems.push(`${e.plan.id} home: ${hit}`);
+            if (/undefined|NaN|\[object|\{\w+\}/.test(wordsOf(root))) problems.push(`${e.plan.id}: junk on the home`);
+            const first = root.querySelector('[data-region="home-todo"] .home-item[data-pid]');
+            if (pg.due.length && (!first || first.getAttribute('data-pid') !== pg.next.id)) problems.push(`${e.plan.id}: the home's first to-do is not the rail's next`);
+            continue;
+          }
+          if (!['household', 'hold', 'move', 'budget', 'saving', 'checkin', 'pot', 'month'].includes(step)) for (const p of checkPlanPage(root, text, scopesOf(pg.stageKey))) problems.push(`${e.plan.id} ${step} [${pg.stageKey}]: ${p}`);
           // the rail: one current step, a link per listed step, the next sentence
           const rail = root.querySelector('[data-region="rail"]');
           if (!rail) problems.push(`${e.plan.id}: no rail`);
@@ -100,8 +113,8 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
   const entries = entriesAt(TODAY);
   const ladder = entries.find((e) => e.plan.id === C['03-gilt-ladder-runup'].id);
   const saver = entries.find((e) => e.plan.id === C['05-saver-committed'].id);
-  it('03 opens on Month by month with the stage line, no countdown, and "Record October" inside the new app (7.2.0: never the classic page)', () => {
-    const { root, text } = draw(stateWith(entries, '#/plan/' + ladder.plan.id));
+  it('03\'s Month by month: the stage line, no countdown, and "Record October" inside the new app (7.2.0: never the classic page; since 7.3.0 the plan\'s own address is its home)', () => {
+    const { root, text } = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/month'));
     expect(root.querySelector('[data-testid="plan.stageLine"]').textContent).toBe('Retired. Your ladder pays from April 2027. Locked 1 July 2026.');
     expect(root.querySelector('h1').textContent).toBe('Month by month');
     expect(text).toContain('October 2026 is not recorded yet');
@@ -155,8 +168,8 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(pg.steps.find((s) => s.id === 'move').buttons).toEqual([{ id: 'openMove', href: '#/plan/' + ladder.plan.id + '/move', slots: {} }]);
     expect(page.root.querySelector('[data-testid="rail.plan.hold"]').getAttribute('href')).toBe('#/plan/' + ladder.plan.id + '/hold');
   });
-  it('05 opens on its check-in, which reads as its pot step did; Where you are reads the pot against the path; the lock is not offered again', () => {
-    const { root, text } = draw(stateWith(entries, '#/plan/' + saver.plan.id));
+  it('05\'s check-in reads as its pot step did; Where you are reads the pot against the path; the lock is not offered again', () => {
+    const { root, text } = draw(stateWith(entries, '#/plan/' + saver.plan.id + '/checkin'));
     expect(root.querySelector('[data-testid="plan.stageLine"]').textContent).toBe('Plan locked. Still working until February 2038. Locked 15 July 2026.');
     // the check-in took the pot step's place (release step R3); a plan locked while saving that never chose how often reads
     // as before, word for word: this month's pot, and the next sentence
@@ -228,7 +241,7 @@ describe('the household pair: the retired partner\'s plan and the working partne
     expect(pg.steps.find((s) => s.id === 'household').buttons.find((b) => b.id === 'checkTogether').href).toBe('#/plan/HouseLadder01/household');
   });
   it('the working partner\'s plan: What you pay in first; the household step says the ladder pays from April 2027; no countdown', () => {
-    const { root, text } = draw(stateWith(entries, '#/plan/HouseSaver02'));
+    const { root, text } = draw(stateWith(entries, '#/plan/HouseSaver02/saving'));
     expect(root.querySelector('h1').textContent).toBe('What you pay in');
     expect(text).toContain('£600 a month from you, £450 from your employer');
     const h = draw(stateWith(entries, '#/plan/HouseSaver02/household'));
@@ -324,7 +337,7 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
   it('04 without August: "August 2026 is not recorded yet; September 2026 is.", the button records August and carries it, September stays as it is, the next line names August', () => {
     const { raws, id } = withoutAugust();
     const entries = entriesAt(TODAY, raws);
-    const { root, text } = draw(stateWith(entries, '#/plan/' + id));
+    const { root, text } = draw(stateWith(entries, '#/plan/' + id + '/month'));
     expect(root.querySelector('h1').textContent).toBe('Month by month');
     expect(text).toContain('August 2026 is not recorded yet; September 2026 is.');
     expect(text).toContain('September 2026 was recorded without it and stays as it is.');
@@ -352,13 +365,13 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     const { raws, id } = withoutAugust();
     const today = '2026-09-30';   // September, the latest record, is this month
     const entries = entriesAt(today, raws);
-    const { text } = draw(stateWith(entries, '#/plan/' + id, { today }));
+    const { text } = draw(stateWith(entries, '#/plan/' + id + '/month', { today }));
     expect(text).toContain('August 2026 is not recorded yet; September 2026 is.');
     expect(text).toContain('Next: record August 2026.');
     expect(text).not.toContain('September 2026 recorded');
     expect(text).not.toContain('Nothing to do until');
     // the plan as the corpus has it, the same day: recorded, as before
-    const whole = draw(stateWith(entriesAt(today), '#/plan/' + id, { today }));
+    const whole = draw(stateWith(entriesAt(today), '#/plan/' + id + '/month', { today, notNow: [id + '|hold.stale'] }));
     expect(whole.text).toContain('September 2026 recorded');
     expect(whole.text).toContain('September 2026 is recorded. Nothing to do until October.');
   });
@@ -366,17 +379,17 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     const { raws, id } = withoutAugust();
     const b = raws.find((p) => p.id === id);
     b.decisionTool.history = b.decisionTool.history.filter((h) => h.date !== '2026-06');
-    const two = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id));
+    const two = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id + '/month'));
     expect(two.text).toContain('June 2026 is not recorded yet; September 2026 is.');
     expect(two.text).toContain('Record June');
     expect(two.text).not.toContain('Record June in the classic planner');
     // April gone as well: the plan now begins in May, and May is not a gap
     b.decisionTool.history = b.decisionTool.history.filter((h) => h.date !== '2026-04');
-    const later = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id));
+    const later = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id + '/month'));
     expect(later.text).toContain('June 2026 is not recorded yet; September 2026 is.');
     expect(later.text).not.toContain('April 2026 is not');
     expect(later.text).not.toContain('May 2026 is not');
-    const whole = draw(stateWith(entriesAt(TODAY), '#/plan/' + id));
+    const whole = draw(stateWith(entriesAt(TODAY), '#/plan/' + id + '/month'));
     expect(whole.text).toContain('October 2026 is not recorded yet');
     expect(whole.text).not.toContain('October 2026 is not recorded yet;');
     expect(whole.text).toContain('Next: record October 2026.');
@@ -387,12 +400,12 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     const b = raws.find((p) => p.id === id);
     b.decisionTool.history.find((h) => h.date === '2026-09').paidAhead = true;   // September's entry was made in August, after August's payment
     const today = '2026-09-30';
-    const sept = draw(stateWith(entriesAt(today, raws), '#/plan/' + id, { today }));
+    const sept = draw(stateWith(entriesAt(today, raws), '#/plan/' + id + '/month', { today, notNow: [id + '|hold.stale'] }));
     expect(sept.text).toContain('September 2026 recorded');
     expect(sept.text).toContain('September 2026 is recorded. Nothing to do until October.');
     expect(sept.text).not.toContain('August 2026 is not recorded');
     // the calendar moves on: the reading is the same, October is the month to record and no "stays as it is" line
-    const oct = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id));
+    const oct = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id + '/month'));
     expect(oct.text).toContain('October 2026 is not recorded yet');
     expect(oct.text).not.toContain('August 2026 is not recorded');
     expect(oct.text).toContain('Next: record October 2026.');
@@ -401,12 +414,12 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     expect(pg.steps.find((s) => s.id === 'month').gap).toBe(null);
     // July gone as well: August was paid, July was missed
     b.decisionTool.history = b.decisionTool.history.filter((h) => h.date !== '2026-07');
-    const two = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id));
+    const two = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id + '/month'));
     expect(two.text).toContain('July 2026 is not recorded yet; September 2026 is.');
     expect(two.text).toContain('Record July');
     // the mark means true alone: any other value is no mark
     b.decisionTool.history.find((h) => h.date === '2026-09').paidAhead = 'yes';
-    expect(draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id)).text).toContain('July 2026 is not recorded yet; September 2026 is.');
+    expect(draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id + '/month')).text).toContain('July 2026 is not recorded yet; September 2026 is.');
   });
   it('the review\'s case: July to September recorded (03), an entry made in October after the payment and dated November: "November recorded" on 3 November, never "October is not recorded yet"', () => {
     const raws = Object.values(C).map((p) => JSON.parse(JSON.stringify(p)));
@@ -417,7 +430,10 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     const today = '2026-11-03';
     const marked = draw(stateWith(entriesAt(today, raws), '#/plan/' + id + '/month', { today }));
     expect(marked.text).toContain('November 2026 recorded');
-    expect(marked.text).toContain('November 2026 is recorded. Nothing to do until December.');
+    // 7.3.0: 03 holds less than its ladder (Moving), so the rail's next is the next order to place; the tool says nothing
+    // is due until December's 1st
+    expect(marked.text).toContain('November is recorded. December opens on 1 December (record it early if the payment has gone).');
+    expect(marked.root.querySelector('[data-testid="rail.next"] [data-next]').textContent).toMatch(/^Next: move 1 of \d+ to your plan’s mix: /);
     expect(marked.text).not.toContain('October 2026 is not recorded');
     expect(marked.root.querySelector('[data-line="month.gapLater"]')).toBe(null);
     expect(checkPlanPage(marked.root, marked.text, scopesOf('bridge')).filter((p) => p !== 'a box is drawn')).toEqual([]);

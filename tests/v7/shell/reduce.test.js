@@ -358,8 +358,8 @@ describe('any sequence of actions', () => {
     // the spending shape's actions (shape/*) are A's, B's and C's alike: generated over the three in reduce.ab.test.js
     const step5 = ACTION_TYPES.filter((t) => /^(budget|keep|spend|shape)\/|^lasts\/lever/.test(t) || t === A.DRAFT_ONWARD);
     // the plan menu, the visitor, the account page and What's new (road-to-7.md step 11): generated in reduce.ab.test.js too
-    // … and "Delete several" on Your plans (6.59.0)
-    const step11 = ACTION_TYPES.filter((t) => /^(guest|account|profile|news|place)\//.test(t) || /^plan\/(action|actionText|rename|copy|makeMain|delete|close|download|openFile|example|actionDone)$/.test(t) || /^plans\/(several|tick|severalAsk|deleteSeveral|severalDone)$/.test(t));
+    // … and "Delete several" on Your plans (6.59.0), and a home's "Not now" (7.3.0)
+    const step11 = ACTION_TYPES.filter((t) => /^(guest|account|profile|news|place|todo)\//.test(t) || /^plan\/(action|actionText|rename|copy|makeMain|delete|close|download|openFile|example|actionDone)$/.test(t) || /^plans\/(several|tick|severalAsk|deleteSeveral|severalDone)$/.test(t));
     expect([...seen].sort()).toEqual(ACTION_TYPES.filter((t) => !step4.includes(t) && !step5.includes(t) && !step11.includes(t)).sort());
   });
   it('the state survives JSON; plan never changes and the session is always a known kind', () => {

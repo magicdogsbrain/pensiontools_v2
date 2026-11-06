@@ -412,7 +412,7 @@ describe('S1 — the stale-answer rule gains what is spent when the record has t
     const changed = applyPatch({ ...matching, lastModified: '2026-10-02T09:00:00.000Z' }, spendPatch(matching, { 'first.amount': String(monthly + 50) }, { today: TODAY }).patch);
     expect(answerAge(changed, now(changed))).toMatchObject({ diffs: ['spend'], changedOn: '2 October 2026' });
     const page = planPage([{ plan: changed }], changed.id, 'plan', { today: TODAY });
-    expect(page.next.id).toBe('P.recheck');
+    expect(page.due.map((d) => d.pid)).toContain('P.recheck');   // 7.3.0: due, behind the saver's first check-in
   });
 });
 

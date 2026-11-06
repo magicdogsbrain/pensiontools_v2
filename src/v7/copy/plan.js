@@ -264,7 +264,7 @@ export const PLAN = {
     closedStep: 'This plan is closed and kept as it was: make changes on ‘{name}’, the plan that carries it on.',
     closedStepAlone: 'This plan is closed and kept as it was.',
     askTitle: 'Ask a question',
-    ask: { a: 'When can I afford to stop work?', b: 'Am I saving enough?', c: 'What is that a month?' },
+    ask: { a: 'When can I afford to stop work?', b: 'Am I saving enough?', c: 'What is that a month?', d: 'Will it last?' },
     /** On every page of a plan kept in this window (1.4): since 2 Nov 2026 the planner opens on it by itself, no account asked for. */
     windowWarning: 'This plan is kept in this browser window only. The classic planner opens on it without an account.',
     leaveProblem: 'This browser would not pass the request to the classic planner. Open the classic planner and choose ‘{name}’ from the plan menu.',
@@ -487,7 +487,11 @@ export const PLAN = {
     /** Into "Does it last?" inside V7 (editing-in-v7.md 10): the one test runs there, no hand-over. */
     recheck: 'Check it still lasts',
     lasts: 'Does it last?',
-    lastsLocked: 'Does it last? (as locked, and today)'
+    lastsLocked: 'Does it last? (as locked, and today)',
+    /** 7.3.0: the buttons of the things due that the plan's home gathers. */
+    checkStop: 'Check the month you stop',
+    seeMove: 'See the move',
+    updateHold: 'Update what you hold'
   },
 
   /** The next sentence (2.4), by id, first match wins. */
@@ -513,7 +517,17 @@ export const PLAN = {
     'P.behind': 'At your last check-in ({last}) you were not on course yet. Next: see what would put you on course.',
     'P.onCourse': 'On course at your last check-in ({last}). Next check-in: {nextCheck}.',
     'P.nextCheckIn': 'You checked in for {last}. Next check-in: {nextCheck}.',
-    'P.saving': 'Next: see whether what you pay in is enough, then check in once a year.'
+    'P.saving': 'Next: see whether what you pay in is enough, then check in once a year.',
+    /**
+     * 7.3.0 (research/v7/one-product-design.md, "The to-do reader"): the things due that the plan's home gathers, said on the
+     * rail too when one is first. The move invitation points at the stop month until agreeing to move arrives.
+     */
+    'P.invite': 'Your plan says you stop work in {stop}. Ready to plan the move? Next: check the month you stop.',
+    'P.moveNext': 'Next: move {n} of {of} to your plan’s mix: {label}.',
+    'P.moveFinish': 'Every move is ticked. Next: update what you hold, so it shows the plan’s mix.',
+    'P.firstCheckIn': 'Next: your first check-in. It says where your pot is today, and how often you want to check in.',
+    'P.holdStale': 'What you hold was last updated on {date}. Next: update it.',
+    'P.householdPending': 'Your partner’s plan is not in this account. Next: link one, or leave it.'
   },
 
   /** "Everything else this plan uses" (2.5): each row's name and the label of each fact. */

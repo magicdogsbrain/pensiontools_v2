@@ -260,6 +260,7 @@ export function CheckInScreen(state, dispatch) {
   };
   const problem = V.problem ? (W.problems[V.problem] || W.problems.failed) : null;
   const working = !!(V.saving && V.saving.kind === 'checkIn');
+  const formShown = V.cadence.due || V.first || state.ui.open.includes('checkInAnyway') || !!V.problem || !!V.saving;
   const onSubmit = (e) => {
     e.preventDefault();
     const root = e.currentTarget;
@@ -288,7 +289,14 @@ export function CheckInScreen(state, dispatch) {
         {/* a saving plan whose change-over is still to come (research/plan-start.md §2 J): no check-in until it begins */}
         {V.allowed && V.notYet && <p class="notice" role="status" data-testid={`${T}.notYet`}>{fill(W.notYet, V.notYet)}</p>}
         {V.allowed && <Result V={V} dispatch={dispatch} planId={planId} />}
-        {V.editable && (
+        {/* a tool, not a form (7.3.0): the form when a check-in is due, before the first one, or after "Check in now anyway";
+            else the last result above with the date of the next */}
+        {V.editable && !formShown && (
+          <div class="actions-row" data-testid={`${T}.notDue`}>
+            <Button testid={`${T}.anyway`} kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'checkInAnyway' })} {...keepFocus}>{W.anyway}</Button>
+          </div>
+        )}
+        {V.editable && formShown && (
           <form class="ask about-form income-form checkin-form" noValidate onSubmit={onSubmit} data-region="plan-checkin" aria-busy={working ? 'true' : undefined}>
             {V.first ? null : <h2>{W.button}</h2>}
             {V.verdictWhy === 'noAim' && <p class="note" data-testid={`${T}.noAim`}>{W.noVerdict.noAim} <a href={href.plan(planId, 'spend')}>{W.noAimLink}</a></p>}

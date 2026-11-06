@@ -197,6 +197,9 @@ export function MonthScreen(state, dispatch) {
   const fillOffered = !!(offer && offer.count > 0);
   const recordLabel = V.fillOn ? fill(W.record.withFill, { month: V.monthWords, n: String(offer.count), s: offer.count === 1 ? '' : 's' }) : fill(W.record.button, { month: V.monthWords });
   const canRecord = V.editable && V.setUpDone && !V.refused;
+  // a tool, not a form (7.3.0): the form only when a month is due (the rail's own reading: a month missed, or this month not
+  // recorded), when a month was chosen (the tax year's "Set up" to-do chooses April), or after "Record a different month"
+  const showForm = !step || !step.recorded || typeof typed['mo.month'] === 'string' || state.ui.open.includes('monthOther') || !V.idle;
   return {
     question: null, rail, full: false,
     content: (
@@ -221,7 +224,13 @@ export function MonthScreen(state, dispatch) {
           </div>
         )}
         {V.nothing && !V.needsLock && <p class="note" data-testid={`${T}.nothing`}>{W.nothing}</p>}
-        {!V.failed && !V.needsLock && !V.nothing && (
+        {!V.failed && !V.needsLock && !V.nothing && !showForm && (
+          <section class="headline plan-panel month-idle" data-testid={`${T}.idle`}>
+            <p class="line">{fill(W.idle, V.idle)}</p>
+            {V.editable && <div class="actions-row"><Button testid={`${T}.other`} kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'monthOther' })} {...keepFocus}>{W.other}</Button></div>}
+          </section>
+        )}
+        {!V.failed && !V.needsLock && !V.nothing && showForm && (
           <>
             {V.locked && <p class="note" data-testid={`${T}.locked`}>{W.locked}</p>}
             {V.gap && V.editable && !V.fillOn && (

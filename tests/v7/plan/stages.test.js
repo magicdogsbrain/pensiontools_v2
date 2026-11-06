@@ -34,6 +34,22 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
       });
     }
   }
+  // the three words a person sees (7.3.0, LifeStage.stageOf; research/v7/one-product-design.md "The stage model"): each
+  // placing beside its word — derived from the facts only, a locked ladder short of its rungs Moving, a plan with nothing
+  // to move Drawing
+  const WORD = { unknown: null, 'draft-retired': 'drawing', 'committed-saving': 'saving', approaching: 'saving', saving: 'saving', closed: 'closed' };
+  const MOVING = ['03-gilt-ladder-runup', '13-stopped-drawing-since'];   // what they hold is short of the ladder the plan bought
+  for (const today of DATES) {
+    it(`the three-word column at ${today}: Saving, Moving, Drawing (Closed) beside every placing`, () => {
+      const entries = entriesAt(today);
+      for (const [name, key] of Object.entries(EXPECTED[today])) {
+        const e = entryOf(C[name], today);
+        const word = planPage(entries, e.plan.id, null, { today }).life.key;
+        const want = key === 'bridge' || key === 'running' ? (MOVING.includes(name) ? 'moving' : 'drawing') : WORD[key];
+        expect(word, `${name} (${key})`).toBe(want);
+      }
+    });
+  }
   it('the locked ladder moves from bridge to running on 6 April 2027, and never shows a countdown', () => {
     const l = (today) => lineText(stageLine(planStage(entryOf(C['03-gilt-ladder-runup'], today).plan, { now: noon(today) }), entryOf(C['03-gilt-ladder-runup'], today).plan));
     // 03 stays a start chosen for later (research/plan-start.md §7: "03 stays bridge → running as a D plan")
@@ -132,7 +148,8 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
     expect(at('03-gilt-ladder-runup', '2027-04-06').next.id).toBe('P.taxyear');        // 2027/28 is not set up
     expect(at('05-saver-committed', '2026-10-02').next.id).toBe('P.pot');             // October's pot is not recorded
     expect(at('02-pnv-draft', '2026-10-02').next.id).toBe('P.draft');
-    expect(at('10-couple-b', '2026-10-02').next.id).toBe('P.approaching');
+    // 7.3.0: an unlocked saver who has never checked in — the first check-in is the design's rank 10, before the info line
+    expect(at('10-couple-b', '2026-10-02').next.id).toBe('P.firstCheckIn');
     expect(at('01-fresh-default', '2026-10-02').next.id).toBe('P.noAge');
     // a plan saved by a newer version: P.readonly, with no button and no Change buttons
     const es = entriesAt(TODAY); const first = es[0];
@@ -146,8 +163,13 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
     const recorded = { ...plan, decisionTool: { ...plan.decisionTool, history: [...plan.decisionTool.history, { date: '2026-10', monthlyNet: 3395.33, monthlyTax: 938, taxYear: '26/27' }] } };
     const pg = planPage([{ plan: recorded, newer: false, failed: false }], plan.id, 'month', { today: TODAY });
     expect(pg.steps.find((s) => s.id === 'month').result.text).toBe('October 2026 recorded: £3,395 after tax');
-    expect(pg.next.id).toBe('P.idle');
-    expect(fill(PLAN.next['P.idle'], pg.next.slots)).toBe('October 2026 is recorded. Nothing to do until November.');
+    // 7.3.0: 03 holds less than its ladder (Moving), so the next order to place is due before "nothing to do"; with the
+    // move done (a plan with no holdings record) the month recorded reads P.idle, word for word
+    expect(pg.next.id).toBe('P.moveNext');
+    const noHold = { ...recorded, holdings: null };
+    const idle = planPage([{ plan: noHold, newer: false, failed: false }], plan.id, 'month', { today: TODAY });
+    expect(idle.next.id).toBe('P.idle');
+    expect(fill(PLAN.next['P.idle'], idle.next.slots)).toBe('October 2026 is recorded. Nothing to do until November.');
     const paidAhead = { ...plan, decisionTool: { ...plan.decisionTool, history: [...plan.decisionTool.history, { date: '2026-11', monthlyNet: 3400, monthlyTax: 900 }] } };
     expect(planPage([{ plan: paidAhead }], plan.id, 'month', { today: TODAY }).steps.find((s) => s.id === 'month').done).toBe(true);
   });

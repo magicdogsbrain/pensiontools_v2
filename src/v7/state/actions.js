@@ -244,6 +244,9 @@ export const A = Object.freeze({
   ACCOUNT_RETURN:  'account/return',      // { back: { planId, step, kept } | { q, step } }   ui.returnTo; effects/place.js opens the account page and comes back
   // Land where you left off (7.1.0): the plan and step a signed-in person was last on (a plan id and a step name, no figure)
   PLACE_KEEP:      'place/keep',          // { place: { planId, step } }      effects/place.js asks; the account effect writes it to the settings document
+  // "Not now" on a to-do of a plan's home (7.3.0): kept for this window only (effects/place.js, session storage), never the plan
+  TODO_NOT_NOW:    'todo/notNow',         // { key: '<planId>|<to-do id>' }    ui.notNow gains it; the home and the rail leave that to-do out
+  TODO_NOT_NOW_SET: 'todo/notNowSet',     // { keys }                          the window's own list, read back on load
 
   // What's new (road-to-7.md step 11): the once-only pop-up and the page, from src/releases.js through effects/whatsNew.js
   NEWS_SHOW:       'news/show',           // { entries }                      the pop-up: the announced releases not seen, newest first (plain data)
@@ -276,8 +279,9 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   // the confirm steps of the lock, the unlock and the new version (road-to-7.md step 6): on the screen, never a browser dialog;
   // and of the move of a locked plan's start (6.55.0)
   'lockConfirm', 'unlockConfirm', 'documentConfirm', 'moveStartConfirm',
-  // Month by month (7.2.0): the tax bands a set-up assumes, shown to change
-  'monthBands',
+  // Month by month (7.2.0): the tax bands a set-up assumes, shown to change; since 7.3.0 the form shown when no month is due
+  // ("Record a different month"), and the check-in's form when none is due ("Check in now anyway")
+  'monthBands', 'monthOther', 'checkInAnyway',
   // "How the money is taken" (way-and-mix.md 2): the confirm of "Use this way of drawing", and "More columns"
   'wayConfirm', 'waysMore',
   // "The mix" (way-and-mix.md 3): the paste box, the example list; Try a change (4): the boxes (closed until asked), the confirm of "Use this"

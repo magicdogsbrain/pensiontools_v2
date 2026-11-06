@@ -52,6 +52,8 @@ function kept(inputs, payIn = 'now') {
 }
 /** A page on the plan's own step, with the plan read. */
 const onPlan = (plan, today = KEPT_ON) => stateWith([{ plan, newer: false, failed: false }], '#/plan/' + plan.id + '/saving', { today });
+/** The plan's home (7.3.0): "Ask a question with this plan's figures" lives there now, folded away, never on the rail. */
+const onHome = (plan, today = KEPT_ON) => stateWith([{ plan, newer: false, failed: false }], '#/plan/' + plan.id, { today });
 function draw(state) {
   const root = document.createElement('div');
   root.id = 'app';
@@ -155,17 +157,17 @@ describe('draft/load: a whole draft, as text', () => {
   });
 });
 
-describe('the rail: a saver\'s B link opens B with the plan\'s figures; A as before; a retired plan fills nothing', () => {
+describe('the home (the rail until 7.3.0): a saver\'s B link opens B with the plan\'s figures; A as before; a retired plan fills nothing', () => {
   it('a plan kept from B: the B link is marked filled and loads its figures; the A link opens A empty, as before', () => {
     const { plan } = kept(sam({ kind: 'share', pay: 38000, ownPct: 6, employerPct: 4 }));
-    const { root, actions } = draw(onPlan(plan));
-    const b = root.querySelector('[data-testid="rail.ask.b"]');
+    const { root, actions } = draw(onHome(plan));
+    const b = root.querySelector('[data-testid="plan.home.ask.b"]');
     expect(b.getAttribute('href')).toBe('#/b/numbers');
     expect(b.getAttribute('data-filled')).toBe('plan');
     b.click();
     // ... and the plan's id (6.59.0): "Use these in ‘…’" writes back onto this plan, only when pressed
     expect(actions.at(-1)).toEqual({ type: 'draft/load', q: 'b', values: saverDraftOf(plan, { today: KEPT_ON }).values, planId: plan.id });
-    const a = root.querySelector('[data-testid="rail.ask.a"]');
+    const a = root.querySelector('[data-testid="plan.home.ask.a"]');
     expect(a.getAttribute('data-filled')).toBe(null);
     const before = actions.length;
     a.click();
@@ -186,8 +188,10 @@ describe('the rail: a saver\'s B link opens B with the plan\'s figures; A as bef
     }
     expect(filled).toBeGreaterThan(0);
     const retired = corpus()['04-buckets-running'];
-    const { root } = draw(stateWith([entryOf(retired)], '#/plan/' + retired.id + '/plan'));
-    expect(root.querySelector('[data-testid="rail.ask.c"]').getAttribute('data-filled')).toBe(null);
+    const { root } = draw(stateWith([entryOf(retired)], '#/plan/' + retired.id));
+    expect(root.querySelector('[data-testid="plan.home.ask.d"]').getAttribute('data-filled')).toBe(null);
+    // no question is pushed on a page of the plan (7.3.0): the rail asks none
+    expect(draw(stateWith([entryOf(retired)], '#/plan/' + retired.id + '/plan')).root.querySelector('[data-testid^="rail.ask."]')).toBe(null);
   });
 });
 
@@ -242,10 +246,10 @@ describe('a saver\'s plan whose mixes are not a level\'s: B opened from its rail
     }
     expect(() => reduce(s, { type: A.DRAFT_LOAD, q: 'a', values: {}, mixes })).toThrow();
   });
-  it('the rail\'s B link loads the figures with the plan\'s mixes', () => {
+  it('the home\'s B link (the rail\'s until 7.3.0) loads the figures with the plan\'s mixes', () => {
     const e = mixed[0];
-    const { root, actions } = draw(stateWith(entries, '#/plan/' + e.plan.id + '/saving', { today: DAY }));
-    root.querySelector('[data-testid="rail.ask.b"]').click();
+    const { root, actions } = draw(stateWith(entries, '#/plan/' + e.plan.id, { today: DAY }));
+    root.querySelector('[data-testid="plan.home.ask.b"]').click();
     const fill = askFillOf(entries, e.plan.id, { today: DAY }).b;
     expect(actions.at(-1)).toEqual({ type: 'draft/load', q: 'b', values: fill.values, mixes: fill.mixes, planId: String(e.plan.id) });
   });

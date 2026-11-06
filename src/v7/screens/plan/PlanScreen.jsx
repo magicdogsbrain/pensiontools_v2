@@ -9,7 +9,9 @@ import { planView, plansView, planActionsView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { LOCK } from '../../copy/lock.js';
+import { LASTS } from '../../copy/lasts.js';
 import { MonthScreen } from './MonthScreen.jsx';
+import { HomeScreen } from './HomeScreen.jsx';
 
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
@@ -84,7 +86,7 @@ function Section({ section, view, onChange }) {
         // a section edited inside V7 (research/v7/editing-in-v7.md 2): a link to its step, on a locked plan too (read-only there)
         ? <div class="actions-row">
           {view.lockedOn && <span class="note plan-fixed">{fill(w.fixed, { date: view.lockedOn })}</span>}
-          <LinkButton testid={`plan.plan.edit.${section.id}`} kind={view.lockedOn || view.readonly ? 'quiet' : 'plain'} href={section.href}>{view.lockedOn && section.lockedButton && PLAN.buttons[section.lockedButton] ? PLAN.buttons[section.lockedButton] : view.lockedOn || view.readonly ? PLAN.buttons.seeAbout : PLAN.buttons.editAbout}</LinkButton>
+          <LinkButton testid={`plan.plan.edit.${section.id}`} kind={view.lockedOn || view.readonly ? 'quiet' : 'plain'} href={section.href}>{view.lockedOn || view.readonly ? PLAN.buttons.seeAbout : PLAN.buttons.editAbout}</LinkButton>
         </div>
         : view.lockedOn ? <p class="note plan-fixed">{fill(w.fixed, { date: view.lockedOn })}</p>
           : view.readonly ? null
@@ -146,8 +148,11 @@ export function PlanScreen(state, dispatch) {
       )
     };
   }
+  // the plan's own address is its home (7.3.0; research/v7/one-product-design.md "The plan home"), for every plan, locked
+  // or not: what is due, where you are, then everything else. Every step keeps its own address (#/plan/<id>/month is the tool).
+  if (!state.route.step) return HomeScreen(state, dispatch);
   const step = view.steps.find((s) => s.id === view.current) || view.steps[0];
-  // a drawing plan opens on Month by month (7.2.0): the tool itself, not a summary of it
+  // Month by month draws its own screen on its own address (7.2.0)
   if (step.id === 'month') return MonthScreen(state, dispatch);
   const stepName = step.id === 'plan' && view.locked ? PLAN.steps.plan.locked : PLAN.steps[step.id].label;
   const allOpen = state.ui.open.includes('allOptions');
@@ -182,6 +187,13 @@ export function PlanScreen(state, dispatch) {
           {step.id === 'plan' && step.sections && (
             <>
               {step.sections.map((sec) => <Section key={sec.id} section={sec} view={{ figures: step.figures, lockedOn: view.lockedOn, readonly: view.readonly }} onChange={onChange} />)}
+              {/* a locked plan's tries (7.3.0): another way of drawing, another mix — each changes nothing, folded away, never pushed */}
+              {view.locked && !view.readonly && step.sections.some((sec) => sec.lockedButton) && (
+                <details class="plan-fold" data-testid="plan.plan.trySomething">
+                  <summary>{LASTS.trySomething}</summary>
+                  <div class="actions-row">{step.sections.filter((sec) => sec.lockedButton && PLAN.buttons[sec.lockedButton]).map((sec) => <LinkButton key={sec.id} testid={`plan.plan.try.${sec.id}`} kind="quiet" href={sec.href}>{PLAN.buttons[sec.lockedButton]}</LinkButton>)}</div>
+                </details>
+              )}
               <Options step={step} view={{ lockedOn: view.lockedOn, readonly: view.readonly }} open={allOpen} dispatch={dispatch} onChange={onChange} />
               {view.locked && !view.closed && !view.closing && <LockedActions step={step} view={view} acts={acts} dispatch={dispatch} />}
               {step.journey && step.journey.length > 0 && (

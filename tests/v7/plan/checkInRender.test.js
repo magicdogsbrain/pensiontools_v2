@@ -105,8 +105,12 @@ describe('"Check in", drawn', () => {
     expect(one(root, `${T}.result.path`).textContent).toContain(W.result.path.start);
     expect(one(root, `${T}.next`).textContent).toBe('Next check-in: November 2027.');
     expect(one(root, `${T}.calendar`).textContent).toBe(W.result.calendar);
-    // the boxes again under the result: another check-in this month replaces this one, and the form says so
-    expect(one(root, `${T}.again`).textContent).toBe(W.again);
+    // 7.3.0: nothing is due now, so the boxes wait for "Check in now anyway"; asked for, they come back under the result, and
+    // another check-in this month replaces this one, as the form says
+    expect(one(root, `${T}.again`)).toBe(null);
+    expect(one(root, `${T}.anyway`).textContent).toBe(W.anyway);
+    const anyway = draw(reduce(s, { type: A.UI_TOGGLE, id: 'checkInAnyway' }));
+    expect(one(anyway.root, `${T}.again`).textContent).toBe(W.again);
     const rows = root.querySelectorAll(`[data-testid="${T}.history.table"] tbody tr[data-date]`);
     expect(rows).toHaveLength(1);
     expect(rows[0].textContent).toContain('£64,500 pension, £3,200 ISAs and savings');
@@ -152,8 +156,10 @@ describe('"Check in", drawn', () => {
     expect(one(root, `${T}.result.pathDiffers`).textContent).toBe('The path was drawn paying in £317 a month; you now pay in £633.');
     expect(one(root, `${T}.restart`).textContent).toBe(W.result.restart);
     expect(root.querySelectorAll(`[data-testid="${T}.history.table"] tbody tr[data-date]`)).toHaveLength(2);
-    expect(one(root, `${T}.ci.since`)).not.toBe(null);
-    expect(one(root, `${T}.ci.every.year`).checked).toBe(true);
+    // the boxes again, asked for ("Check in now anyway", 7.3.0): "since" now there is a check-in before
+    const anyway = draw(reduce(s, { type: A.UI_TOGGLE, id: 'checkInAnyway' })).root;
+    expect(one(anyway, `${T}.ci.since`)).not.toBe(null);
+    expect(one(anyway, `${T}.ci.every.year`).checked).toBe(true);
     clean(words);
   }, 120000);
   it('a plan locked while saving that never chose: the step reads as its pot step did, the lock\'s note, "Each month" kept; the pot step\'s address opens it', () => {

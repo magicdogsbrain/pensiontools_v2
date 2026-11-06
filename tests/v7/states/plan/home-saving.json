@@ -1,0 +1,431 @@
+{
+  "route": {
+    "screen": "plan",
+    "q": null,
+    "step": null,
+    "planId": "AlexSaver01",
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "7.2.1",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "in",
+    "email": "someone@example.com",
+    "signingOut": false
+  },
+  "plan": null,
+  "plans": {
+    "status": "read",
+    "source": "account",
+    "readAt": "14:03",
+    "list": [
+      {
+        "plan": {
+          "id": "AlexSaver01",
+          "accumulationTool": {
+            "settings": {
+              "currentAge": 58,
+              "employerMonthly": 210,
+              "escalationPct": 0,
+              "netMonthly": 400,
+              "potNow": 221000,
+              "retirementAge": 62,
+              "salary": 41000,
+              "schemeType": "ras"
+            }
+          },
+          "budgetTool": {
+            "settings": {
+              "currentAge": 58,
+              "currentAgeAsOf": "2026-08-22",
+              "derived": {
+                "allInComfortableAnnual": 0,
+                "allInComfortableMonthly": 0,
+                "comfortableAnnualNet": 0,
+                "comfortableMonthlyNet": 0,
+                "essentialAnnualNet": 0,
+                "essentialMonthlyNet": 0,
+                "householdComfortableAnnual": 0,
+                "householdComfortableMonthly": 0,
+                "partnerAllInAnnual": 0,
+                "partnerAllInMonthly": 0,
+                "periodicAnnualAverage": 0,
+                "periodicMonthlyAverage": 0,
+                "sharedWithPartner": true,
+                "suggestedGrossAnnual": 0
+              },
+              "endAge": 100,
+              "lines": [],
+              "mySharePct": 50,
+              "oneOffs": [],
+              "plsaTier": "moderate",
+              "retired": false,
+              "retirementAge": 62,
+              "sharedWithPartner": true,
+              "version": 1
+            }
+          },
+          "createdAt": "2026-08-22T15:00:00.000Z",
+          "decisionTool": {
+            "history": [],
+            "settings": {
+              "baseSalary": 18000,
+              "bedAndIsa": true,
+              "bondMin": 200000,
+              "cashTarget": 50000,
+              "consecutiveLimit": 3,
+              "duration": 35,
+              "equityMin": 250000,
+              "firstTaxYear": 2029,
+              "giaTaxBand": "basic",
+              "isaBalance": 0,
+              "isaDrawdownStrategy": "minimiseEarlyTax",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "protectionFactor": 20,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "spStartDate": null,
+              "spWeeklyAmount": 0,
+              "statePension": 0,
+              "statePensionYear": 0,
+              "targetSchedule": null,
+              "taxableMix": "equity",
+              "taxableStart": 0
+            },
+            "taxYears": {}
+          },
+          "enabledTools": [
+            "budget",
+            "stress",
+            "decision",
+            "accumulation",
+            "household"
+          ],
+          "isActive": true,
+          "journey": [
+            {
+              "at": "2026-08-22T15:00:00.000Z",
+              "label": "Approaching retirement",
+              "stage": "approaching"
+            }
+          ],
+          "lastModified": "2026-08-22T15:00:00.000Z",
+          "planDetails": {
+            "description": "Working to 62",
+            "name": "Alex’s plan"
+          },
+          "strategy": {
+            "engineVersion": "6.13.4",
+            "id": "pots-and-valves",
+            "lockedAt": "2026-08-22T15:00:00.000Z",
+            "params": {}
+          },
+          "stressTool": {
+            "settings": {
+              "accessMethod": "drawdown",
+              "allocMode": "risk",
+              "bandFillRecycle": false,
+              "baseSalary": 18000,
+              "bedAndIsa": true,
+              "bondMin": 60000,
+              "brl": 50270,
+              "cashTarget": 11000,
+              "configured": true,
+              "consecutiveLimit": 3,
+              "currentAge": 58,
+              "currentAgeAsOf": "2026-08-22",
+              "dbAmount": 0,
+              "dbIndexation": "lpi5",
+              "dbStartYear": 0,
+              "disableProtection": false,
+              "diversifierStart": 0,
+              "duration": 32,
+              "equityGlideEnabled": false,
+              "equityMin": 150000,
+              "extraIncomes": [],
+              "extraWithdrawals": [],
+              "firstTaxYear": 2029,
+              "giaTaxBand": "basic",
+              "glideEndgame": null,
+              "hodlEnabled": false,
+              "hodlValue": 25000,
+              "hrl": 125140,
+              "incomeShape": "flat",
+              "incomeSteps": [],
+              "isaBalance": 9000,
+              "isaDrawdownStrategy": "minimiseEarlyTax",
+              "isaMin": 0,
+              "isaReturn": 0.03,
+              "legacyFirstTaxYear": 2027,
+              "other": 0,
+              "pa": 12570,
+              "potAtRetirement": {
+                "isa": 9955,
+                "sipp": 278542,
+                "source": "accumulation"
+              },
+              "protectionEscalateMonths": 12,
+              "protectionMult": 0.8,
+              "recoveryBuffer": 15000,
+              "relevantEarnings": 0,
+              "retireAge": 62,
+              "retired": false,
+              "shapeAgeNow": 62,
+              "spStartDate": "17 January 2035",
+              "spWeeklyAmount": 230.25,
+              "spendingProfile": "flat",
+              "statePension": 12000,
+              "statePensionYear": 12,
+              "strategyId": "pots-and-valves",
+              "strategyParams": {},
+              "strategyState": {},
+              "subAsset": null,
+              "taggedFunds": [],
+              "targetSchedule": null,
+              "taxMode": "inflates",
+              "taxableMix": "equity",
+              "taxableStart": 0,
+              "ufplsThenPcls": false,
+              "ufplsYears": null,
+              "windfalls": [],
+              "chargesPct": 0.5,
+              "isaGrowth": "cash"
+            }
+          },
+          "schemaVersion": 3
+        },
+        "newer": false,
+        "failed": false
+      }
+    ],
+    "usedUp": false
+  },
+  "draft": {
+    "a": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "b": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "c": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "d": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "plan": {
+      "id": null,
+      "values": {},
+      "touched": [],
+      "asked": false
+    }
+  },
+  "answers": {
+    "a": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "b": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    },
+    "d": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "budget": null,
+  "keep": {
+    "a": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null,
+      "pending": null,
+      "used": null
+    },
+    "b": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null,
+      "pending": null,
+      "used": null
+    },
+    "c": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null,
+      "pending": null,
+      "used": null
+    },
+    "d": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null,
+      "pending": null,
+      "used": null
+    }
+  },
+  "lasts": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "levers": {},
+    "workDraft": {
+      "yearly": "",
+      "years": ""
+    },
+    "tried": null,
+    "kept": null
+  },
+  "ways": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "ran": null,
+    "open": null,
+    "dials": {},
+    "tried": {},
+    "rankBy": "lasts"
+  },
+  "mix": {
+    "key": null,
+    "tries": {},
+    "compare": {
+      "status": "idle",
+      "result": null,
+      "ms": null,
+      "progress": null,
+      "reason": null
+    },
+    "pick": null
+  },
+  "household": {
+    "key": null,
+    "status": "idle",
+    "limit": null,
+    "need": null,
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "ms": null,
+    "survivor": null,
+    "care": null,
+    "pick": null
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true,
+    "leaving": null,
+    "leaveProblem": null,
+    "saving": null,
+    "saveProblem": null,
+    "toast": null,
+    "action": null,
+    "download": null,
+    "guest": {
+      "minutes": 0,
+      "usedUp": false,
+      "nag": null
+    },
+    "bringIn": null,
+    "account": {
+      "mode": "signIn",
+      "busy": null,
+      "problem": null,
+      "note": null,
+      "confirm": null,
+      "deleted": null
+    },
+    "profile": null,
+    "news": {
+      "popup": null,
+      "page": null,
+      "seen": null
+    },
+    "assumptions": null,
+    "several": null,
+    "severalDone": null,
+    "notNow": []
+  },
+  "move": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "ms": null,
+    "reason": null,
+    "index": null
+  },
+  "saver": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "checkIn": {
+    "planId": null,
+    "date": null,
+    "result": null
+  }
+}

@@ -5,6 +5,8 @@
  */
 export const LASTS = {
   title: 'Does it last?',
+  /** 7.3.0: on a locked plan the tries are folded away under this, never pushed on someone carrying the plan out. */
+  trySomething: 'Try something (nothing changes in your locked plan)',
   lead: 'The one test every screen of the classic planner shows: your plan, its own way of drawing, its own cuts, its full length, through every real stretch of markets since 1871 and 1,000 possible futures.',
   savedValue: '({value})',
   source: { saved: 'From your plan, saved {date}', savedUndated: 'As saved in the plan', locked: 'Fixed when you locked the plan on {date}.' },

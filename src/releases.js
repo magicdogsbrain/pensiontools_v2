@@ -331,28 +331,28 @@ export const RELEASES = [
   },
   {
     version: '6.55.0', date: '2026-11-05', engineVersion: '6.37.0',
-    title: 'Gilts to State Pension, then shares and Ladder & ratchet count a started plan’s years from its start',
-    summary: 'For a plan whose first tax year has passed, Gilts to State Pension, then shares held its cash, and Ladder & ratchet its base ladder, for as many extra years as had already gone by. They now count from the plan’s first year, so the figures for these plans change. The preview can also move a locked plan’s start itself, and a saving plan opens “Am I saving enough?” with its own figures.',
+    title: '“Gilts to State Pension, then shares” and Ladder & ratchet count a started plan’s years from its start',
+    summary: 'For a plan whose first tax year has passed, “Gilts to State Pension, then shares” held its cash, and Ladder & ratchet its base ladder, for as many extra years as had already gone by. They now count from the plan’s first year, so the figures for these plans change. The preview can also move a locked plan’s start itself, and a saving plan opens “Am I saving enough?” with its own figures.',
     changes: [
       'In the preview, a locked plan’s “About you and when” can now move the plan’s start back to the tax year you stopped work without leaving the page. It says exactly what changes first, in the same words as the planner.',
       'On a saving plan, the link to “Am I saving enough?” now opens the question with your plan’s figures and its own mix of investments filled in, so it gives the same answer as your plan until you change something.'
     ],
     corrections: [
-      'For a plan whose first year is behind it, Gilts to State Pension, then shares held its cash, and Ladder & ratchet its base ladder, for as many extra years as had already passed. They now count from the plan’s first year: a plan two years in with three cash years has one cash year left.',
+      'For a plan whose first year is behind it, “Gilts to State Pension, then shares” held its cash, and Ladder & ratchet its base ladder, for as many extra years as had already passed. They now count from the plan’s first year: a plan two years in with three cash years has one cash year left.',
       'Month by month’s advice for Ladder & ratchet counted the base ladder as 15 years when you had not set it, even when the plan bought fewer. It now counts the years the plan buys.',
       'A Ladder & ratchet plan whose base ladder has all been paid no longer says its income is guaranteed by contract to your age today.',
       'Moving a locked Ladder & ratchet plan’s start back no longer ends a base ladder you had not set a year early.',
       'Pasting your holdings again no longer adds a second copy of a plain cash line, merges two cash accounts into one, or lets a cash line take over a money-market fund. Cash lines are now matched by their name within their account.'
     ],
     effects: {
-      stress: ['Gilts to State Pension, then shares and Ladder & ratchet plans whose first tax year has passed: the cash or base ladder left now counts from the plan’s first year, so their figures change. A locked plan’s plan document keeps its figures until it is written again. Other plans are unchanged.'],
+      stress: ['“Gilts to State Pension, then shares” and Ladder & ratchet plans whose first tax year has passed: the cash or base ladder left now counts from the plan’s first year, so their figures change. A locked plan’s plan document keeps its figures until it is written again. Other plans are unchanged.'],
       strategies: [],
       decision: ['Ladder & ratchet’s month advice counts the base-ladder years your plan buys when you had not set them.'],
       accumulation: [],
       budget: [],
       household: []
     },
-    actions: ['None. If you draw by Gilts to State Pension, then shares or Ladder & ratchet and your plan started in an earlier tax year, look again at its figures.'],
+    actions: ['None. If you draw by “Gilts to State Pension, then shares” or Ladder & ratchet and your plan started in an earlier tax year, look again at its figures.'],
     notes: []
   },
   {
@@ -952,7 +952,7 @@ export const RELEASES = [
       'Household couples check: when a gilt ladder is asked to draw less, the money that frees joins the money left over, in shares or kept, as the plan is set.'
     ],
     corrections: [
-      'Household couples check: the note called every plan that buys its income “a gilt ladder”; it now describes floors and plans that buy only part of their income correctly.',
+      'Household couples check: the note called every plan that buys its income “a gilt ladder”; it now describes floors, gilts held to the State Pension, and plans that buy only part of their income correctly.',
       'History said every strategy’s real starts were two months apart; only Pots & Valves and Buckets in order are, and it now says which.'
     ],
     effects: {
@@ -1063,7 +1063,7 @@ export const RELEASES = [
       'The year boxes now read “Years from now”.'
     ],
     corrections: [
-      'Survivor and care checks tested gilt ladders and floors as growth portfolios; each plan now runs on its own strategy. On a gilt-ladder plan, the inheritance shown was often about double what the plan leaves.',
+      'Survivor and care checks tested gilt ladders, floors and gilts held to the State Pension as growth portfolios; each plan now runs on its own strategy. On a gilt-ladder plan, the inheritance shown was often about double what the plan leaves.',
       'Survivor check: the inheritance mixed figures from different futures and was shown in future pounds beside spending in today’s money; it is now the middle and worst 1 in 10 of what the plan leaves, in today’s money. The survivor’s spending was a share of both plans’ before-tax figures; it is now a share of what you both have after tax, taxed again as one person.',
       'Care check: the cost was added before tax, although care fees are paid from taxed money, and only futures where both pots lasted on their own counted. The cost is now grossed up and the household verdict comes first.',
       'Monthly Entry showed the rotation watch on plans that had not chosen the gilt ladder + rotation, and Stress tester → Drawdown and Glidepath showed fund schedules on plans that never use them. Both now show only where they apply.',
@@ -1081,7 +1081,7 @@ export const RELEASES = [
       accumulation: [],
       budget: [],
       household: [
-        'The survivor and care checks give different figures: lower inheritances on gilt-ladder and floor plans (often about half), all in today’s money. Both are what-ifs and never change a plan.'
+        'The survivor and care checks give different figures: lower inheritances on gilt-ladder, floor and gilts-to-State-Pension plans (often about half), all in today’s money. Both are what-ifs and never change a plan.'
       ]
     },
     actions: [
@@ -2452,7 +2452,7 @@ export const RELEASES = [
       accumulation: []
     },
     actions: [
-      'If you locked a Pots & Valves, Buckets in order, Floor to an age, Gilts to State Pension, then shares or Ladder & Ratchet plan before this release and the Decision tool shows pot minimums you never set: unlock (Decision → Settings), then lock again from Stress tester → Settings.'
+      'If you locked a Pots & Valves, Buckets in order, Floor to an age, “Gilts to State Pension, then shares” or Ladder & Ratchet plan before this release and the Decision tool shows pot minimums you never set: unlock (Decision → Settings), then lock again from Stress tester → Settings.'
     ],
     notes: [],
     affects(scenario) {
@@ -2985,7 +2985,7 @@ export const RELEASES = [
   {
     version: '6.2.7', date: '2026-09-08', engineVersion: '6.2.1',
     title: 'Cash years in the gilt ladders now cost what holding cash really costs',
-    summary: 'The “years funded from cash first” dial on the Full index-linked gilt ladder and Gilts to State Pension, then shares treated cash as keeping its value. Cash now grows at inflation minus 1% a year, as it does everywhere else in the app, so a long run of cash years shows its true cost. The dial is capped at 5.',
+    summary: 'The “years funded from cash first” dial on the Full index-linked gilt ladder and “Gilts to State Pension, then shares” treated cash as keeping its value. Cash now grows at inflation minus 1% a year, as it does everywhere else in the app, so a long run of cash years shows its true cost. The dial is capped at 5.',
     changes: [
       'The dial says what it is for (the first year or two, where no gilt matures at the right time) and is capped at 5.'
     ],
@@ -2994,7 +2994,7 @@ export const RELEASES = [
     ],
     effects: {
       stress: [
-        'Full index-linked gilt ladder and Gilts to State Pension, then shares plans: the ladder cost and spare move slightly, and a plan set above 5 cash years is set to 5 next time you open its dials.'
+        'Full index-linked gilt ladder and “Gilts to State Pension, then shares” plans: the ladder cost and spare move slightly, and a plan set above 5 cash years is set to 5 next time you open its dials.'
       ],
       strategies: [
         'The ranked table’s “what you pay today” for those two strategies moves the same way.'
@@ -3005,7 +3005,7 @@ export const RELEASES = [
       accumulation: []
     },
     actions: [
-      'If you had set more than 3 cash years, look at the dial again: for a large cash holding, Gilts to State Pension, then shares or Buckets in order model it properly.'
+      'If you had set more than 3 cash years, look at the dial again: for a large cash holding, “Gilts to State Pension, then shares” or Buckets in order model it properly.'
     ],
     notes: []
   },

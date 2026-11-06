@@ -150,8 +150,7 @@ test.describe('Say when you stopped work, without an account', () => {
     // the Transition page names no months before the plan either (7.3.3: its "You have stopped work … until then" note is gone)
     await page.evaluate(() => switchToTab('transition'));
     const transition = page.locator('#transitionPage');
-    await expect(transition).toBeVisible({ timeout: 45_000 });
-    await page.waitForTimeout(1000);
+    await expect(transition).toContainText('Target:', { timeout: 45_000 });
     const tt = await transition.innerText();
     expect(tt).not.toMatch(/You have stopped work|set aside|before the plan/);
     noOldWords(tt);

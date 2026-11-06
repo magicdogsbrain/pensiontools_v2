@@ -65,7 +65,6 @@ for (const name of ['03-gilt-ladder-runup', '04-buckets-running', '07-pre-6.13-f
     for (const step of ['', '/where', '/about', '/month', '/plan', '/move', '/way']) {
       await page.goto(PROD + V7_PATH + '#/plan/' + plan.id + step);
       await expect(page.locator('#app [data-screen]')).toBeVisible({ timeout: 45_000 });
-      await page.waitForTimeout(800);
       expect(await oldWordsOn(page, appText), name + step).toEqual([]);
       const said = await page.locator('#app').innerText();
       for (const w of NEVER_ON_SCREEN.filter((x) => /before|run|April/.test(x))) expect(said.toLowerCase(), name + step + ': ' + w).not.toContain(w.toLowerCase());
@@ -78,16 +77,16 @@ for (const name of ['03-gilt-ladder-runup', '04-buckets-running', '07-pre-6.13-f
     const plan = planOf(name);
     await seed(page, plan);
     await intoPlanner(page, plan);
-    await page.waitForTimeout(1500);
+    await expect(page.locator('#tmSummary')).not.toBeEmpty({ timeout: 45_000 });
     expect(await oldWordsOn(page, plannerText), name + ' on opening').toEqual([]);
     for (const tab of ['decision', 'stress', 'strategies', 'transition']) {
       await page.evaluate((t) => switchToTab(t), tab);
-      await page.waitForTimeout(1200);
+      await expect(page.locator('#' + tab + '-content')).toBeVisible({ timeout: 45_000 });
       expect(await oldWordsOn(page, plannerText), name + ' · ' + tab).toEqual([]);
     }
     await page.evaluate(() => switchToTab('stress'));
     await page.evaluate(() => document.querySelector('.sub-tab[data-stresstab="stresssettings"]').click());
-    await page.waitForTimeout(1200);
+    await expect(page.locator('#ssTimingBlock')).toBeVisible({ timeout: 45_000 });
     expect(await oldWordsOn(page, plannerText), name + ' · Stress settings').toEqual([]);
   });
 }

@@ -79,12 +79,15 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
       const decision = locked ? { ...DECISION, locked: true, lockedAt: '2026-04-10T08:05:00.000Z', lockedBy: 'first monthly entry' } : DECISION;
       seedGuestStore(scenarioWith(PRE_6_4, decision));
       const checksumBefore = decisionSettingsChecksum(storedScenario().decisionTool.settings);
+      // 7.4.0: a draft starts this tax year; a LOCKED plan keeps the year it would have been locked with (next April, as
+      // before 7.4.0: PlanMove.withLockedStart), so its figures do not move without the person's confirm
+      const Y = locked ? 2027 : 2026;
 
       const first = await openOn(APR_4);
-      expect(first.firstTaxYear).toBe(2026);
+      expect(first.firstTaxYear).toBe(Y);
       // Written into the saved plan by that first load — no Save button involved (a locked plan has none).
       const saved = storedScenario().stressTool.settings;
-      expect(saved).toMatchObject({ firstTaxYear: 2026, retired: true });
+      expect(saved).toMatchObject({ firstTaxYear: Y, retired: true });
       expect(saved.baseSalary).toBe(40000);                                  // the rest of the plan is as it was
       // Only the timing fields were added — and, on the draft only, the default fund and platform charge (6.19.0, the
       // schema-2 migration on load). A locked plan is given no charge: it keeps its figures until it is unlocked.
@@ -93,22 +96,22 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
       const ladderBefore = frozenAt(APR_4, () => ladderOn(first, APR_4));
 
       const second = await openOn(APR_8);                                    // a new visit, two days after the tax year turned
-      expect(second.firstTaxYear).toBe(2026);                                // was 2027 (and before 6.13.5, 2028)
-      expect(deriveTiming(second, APR_8)).toMatchObject({ mode: 'retired', firstTaxYear: 2026, shapeAgeNow: deriveTiming(first, APR_4).shapeAgeNow });
+      expect(second.firstTaxYear).toBe(Y);                                   // before 6.13.5, a year later
+      expect(deriveTiming(second, APR_8)).toMatchObject({ mode: 'retired', firstTaxYear: Y, shapeAgeNow: deriveTiming(first, APR_4).shapeAgeNow });
       const ladderAfter = frozenAt(APR_8, () => ladderOn(second, APR_8));
       expect(rungs(await ladderAfter)).toEqual(rungs(await ladderBefore));   // same years, ages, gilts, income and units
-      expect((await ladderAfter).firstTaxYear).toBe(2026);
+      expect((await ladderAfter).firstTaxYear).toBe(Y);
 
       // The Decision settings were not written, so a locked plan's checksum — and every record stamped with it — stands.
       expect(decisionSettingsChecksum(storedScenario().decisionTool.settings)).toBe(checksumBefore);
       dropCaches();
       expect(decisionSettingsChecksum((await loadDecisionDBAsync()).settings)).toBe(checksumBefore);
       // …and the Decision tool reads its year 0 from the Stress plan, where the anchor now lives.
-      expect(decisionAnchorYear(storedScenario().decisionTool.settings, {}, null, second, APR_8)).toBe(2026);
+      expect(decisionAnchorYear(storedScenario().decisionTool.settings, {}, null, second, APR_8)).toBe(Y);
 
       // Nothing more to write on later loads.
       expect(timingPinPatch(storedScenario().stressTool.settings, second)).toBeNull();
-      expect((await getActiveScenarioAsync()).stressTool.settings.firstTaxYear).toBe(2026);
+      expect((await getActiveScenarioAsync()).stressTool.settings.firstTaxYear).toBe(Y);
     });
   }
 

@@ -25,7 +25,7 @@ import { longevityAge } from '../../services/LongevityModel.js';
 import { grossToNet } from '../../services/TaxCalculator.js';
 import { grossUpAnnual, DEFAULT_TAX_BANDS } from '../../services/BudgetModel.js';
 import { cleanSteps } from '../../services/IncomeSchedule.js';
-import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveFactsOf, startLaterOf, spDateOf } from '../../services/PlanMove.js';
+import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveFactsOf, startLaterOf, spDateOf, spPlanTaxYearOf } from '../../services/PlanMove.js';
 import { money } from '../shared/format.js';
 import { ABOUT_FIELDS, ABOUT_WRITES, MIN_YEARS } from './schema.js';
 import { dateOf, dayWords, monthWords, localDay, localMonth, MONTHS } from './dates.js';
@@ -428,7 +428,7 @@ export function stalePatch(plan, { today }) {
  * `blocked` stays only for a plan a date cannot carry either (none today: PlanMove.moveBlockedOf's `spFix`).
  * @returns {{ ask: boolean, leave: boolean, move: null | { yearStop, yearStart, month, stepped, spAsk, confirm, how },
  *   nowMove: null | { yearStop, yearStart, stepped, spAsk, confirm, how }, blocked: null | { yearStart: string, month: string },
- *   change: string|null, left: boolean, spShown: string, spError: string|null }}
+ *   change: string|null, left: boolean, spShown: string, spError: string|null, spPlanYear: string|null }}
  */
 export function lockedStartOf(plan, { today, typed = null }) {
   const now = dateOf(today);
@@ -461,7 +461,9 @@ export function lockedStartOf(plan, { today, typed = null }) {
       confirm: !later.spAsk || spDate ? moveConfirmOf(plan, now, nowHow) : [], how: !later.spAsk || spDate ? nowHow : null } : null,
     blocked: blocked ? { yearStart: taxYearLabel(blocked.from), month: monthWords(blocked.stopMonth) } : null,
     change: change ? monthWords(change) : null,
-    left, spShown, spError
+    left, spShown, spError,
+    // where the State Pension's date is asked, the tax year the plan pays it from as it stands, named beside the box
+    spPlanYear: (offer && offer.spAsk) || (nowHow && later.spAsk) ? (() => { let y = null; try { y = spPlanTaxYearOf(plan); } catch { y = null; } return y ? taxYearLabel(y) : null; })() : null
   };
 }
 
@@ -486,6 +488,8 @@ function moveConfirmOf(plan, now, how = {}) {
   // the move to this tax year names no month (7.4.0); a State Pension date given is said as written
   const lines = [m.stopMonth ? { id: 'first', slots: { yearStop, month: monthWords(m.stopMonth), yearStart: taxYearLabel(m.from) } } : { id: 'firstNow', slots: { yearStop, yearStart: taxYearLabel(m.from) } }];
   if (m.spStartDate) lines.push({ id: 'spDate', slots: { date: m.spStartDate } });
+  // a date in another tax year than the plan paid it from: said, as the date then moves it there
+  if (m.spStartDate && m.spDateYear > 0 && m.spPlanYear > 0 && m.spDateYear !== m.spPlanYear) lines.push({ id: 'spDateMoved', slots: { dateTaxYear: taxYearLabel(m.spDateYear), paidFrom: taxYearLabel(m.spPlanYear) } });
   lines.push({ id: (f.stepped ? 'steps' : 'level') + (amount && age ? '' : 'Bare'), slots: { yearStop, ...(amount ? { amount } : {}), ...(age ? { age } : {}) } });
   if (f.endAge > 0) lines.push({ id: 'ends' + one(m.years), slots: { endAge: String(f.endAge), n: String(m.years) } });
   if (f.dated) lines.push({ id: 'dated', slots: {} });
@@ -654,7 +658,8 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
   const derived0 = c.ok ? derivedLines(c.timing, c.duration, { stopAgeFromMonth: c.stopAgeFromMonth }) : derivedLines(saved.timing, saved.duration);
   // a draft saved with a later start than it should have (7.4.0): read from the earlier year, said once, until it is saved
   let later = null; try { later = laterDraftReading(plan, { now: dateOf(today) }); } catch { later = null; }
-  const derived = later && !later.legacy ? [{ id: later.stopMonth ? 'laterStop' : 'laterNow', slots: { year: taxYearLabel(later.to) } }, ...derived0] : derived0;
+  // said for a plan with no age too (it starts this tax year), as the planner's Timing summary says it: one rule in both apps
+  const derived = later ? [{ id: later.stopMonth ? 'laterStop' : 'laterNow', slots: { year: taxYearLabel(later.to) } }, ...derived0] : derived0;
   const sid = (plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.id) || saved.ss.strategyId || 'pots-and-valves';
   const partners = list.filter((e) => e.plan.id !== plan.id && (e.plan.id === partnerIdOf(plan) || partnerIdOf(e.plan) === plan.id)).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
   let suggestion = null;

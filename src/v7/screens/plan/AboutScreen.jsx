@@ -150,6 +150,7 @@ export function AboutScreen(state, dispatch) {
             onInput={(e) => dispatch({ type: 'plan/edit', planId, path: 'moveSpDate', value: e.currentTarget.value })} />
         </div>
         <p class="help">{L.spHelp}</p>
+        {ls && ls.spPlanYear && <p class="help" data-line="about.spPlanYear">{fill(L.spPlanYear, { year: ls.spPlanYear })}</p>}
         {ls && ls.spError && <p class="error" id={spId + '.error'} role="alert">{L.spError}</p>}
       </div>
     );

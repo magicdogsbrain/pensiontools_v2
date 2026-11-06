@@ -14,6 +14,7 @@
  *   decisionPotsYear()                   the plan year the Decision tool's pot floors start from
  *   startLaterOfActive()                 the open plan stored with its start later than it should be (PlanMove.startLaterOf):
  *                                        the next-step banner's one thing to do, the move of its start (7.3.3)
+ *   startDraftOfActive()                 a draft still set to start later than this tax year (PlanMove.laterDraftLeftOf, 7.4.0)
  *
  * "Move to a new plan" and a closed plan's line (6.56.0) are src/ui/planCloseUi.js: installed with this, drawn with the line
  * (renderLockedStart draws both), and its helpers handed on to index.html from here, so the page keeps one import.
@@ -25,7 +26,7 @@ import { saveStressSettings, getStressSettingsAsync } from '../storage/StressRep
 import { getDecisionSettingsAsync, getAllTaxYearsAsync } from '../storage/DecisionRepository.js';
 import { loadAllScenarios } from '../firebase/FirestoreService.js';
 import { effectiveStressSettings } from '../services/PlanReading.js';
-import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveAnchorOf, moveFactsOf, startLaterOf, spDateOf, laterDraftOf } from '../services/PlanMove.js';
+import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveAnchorOf, moveFactsOf, startLaterOf, spDateOf, laterDraftOf, laterDraftLeftOf, spPlanTaxYearOf } from '../services/PlanMove.js';
 import { cleanSteps } from '../services/IncomeSchedule.js';
 import { lockedStopAnswer } from '../answers/plan/about.js';
 import { stoppedWorkOf, monthName, decisionAnchorYear, deriveTiming } from '../services/PlanTiming.js';
@@ -65,6 +66,14 @@ export async function saveLaterDraftFirst() {
 /** The open plan, read as PlanMove.startLaterOf reads it (as stored): null for every plan with nothing to move or ask. */
 export async function startLaterOfActive() {
   try { return startLaterOf(await getActiveScenarioAsStored(), new Date()); } catch (e) { return null; }
+}
+
+/**
+ * The open draft still set to start later than this tax year (7.4.0, PlanMove.laterDraftLeftOf), read on its effective
+ * settings as the form holds them: the next-step banner's one thing to do, its start chosen under Timing. Null otherwise.
+ */
+export async function startDraftOfActive() {
+  try { const sc = await getActiveScenarioAsStored(); const now = new Date(); return sc ? laterDraftLeftOf(sc, effectiveStressSettings(sc, { now }), now) : null; } catch (e) { return null; }
 }
 
 /**
@@ -117,7 +126,7 @@ export function installLockedStart(win, doc, deps) {
         const ss = (sc && sc.stressTool && sc.stressTool.settings) || {};
         html = lockedStartHtml({ ask, offer, start: sc ? moveAnchorOf(ss, sc.decisionTool?.settings) : null, stepAge: move ? move.stress.shapeAgeNow : null,
           stepped: incomeInSteps(ss), income: +ss.baseSalary || null, blocked, stopped: sc ? stopChangeOf(sc, now) : null, left,
-          leave: !(later && later.kind === 'ask' && later.thisYear), thisYear: later && later.kind === 'ask' ? later.thisYear || null : null, spAsk });
+          leave: !(later && later.kind === 'ask' && later.thisYear), thisYear: later && later.kind === 'ask' ? later.thisYear || null : null, spAsk, spPlanYear: spAsk ? spPlanTaxYearOf(sc) : null });
         asking = ask || left;
       }
     } catch (e) { html = ''; asking = false; }

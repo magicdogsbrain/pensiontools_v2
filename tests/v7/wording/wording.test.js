@@ -160,7 +160,9 @@ describe('the words in src/v7/copy/', () => {
     const slot = (s) => s.replace(/\{(month|from)\}/g, 'April 2027').replace(/\{date\}/g, '1 July 2026').replace(/\{(year|yearNow|yearApril|yearSaved|yearStop|yearStart)\}/g, '2027/28')
       .replace(/\{(age|ageNow|endAge|minAge|value)\}/g, '57').replace(/\{(years|min|y)\}/g, '32').replace(/\{who\}/g, 'women').replace(/\{name\}/g, 'Sam')
       // the move's confirm (6.55.0): the first step's amount, a count (never one: those lines have their own words), the months, the tax years
-      .replace(/\{amount\}/g, '£30,000').replace(/\{(n|after|before)\}/g, '2').replace(/\{(first|last)\}/g, 'July 2026').replace(/\{(runYear|spYear)\}/g, '2028/29');
+      .replace(/\{amount\}/g, '£30,000').replace(/\{(n|after|before)\}/g, '2').replace(/\{(first|last)\}/g, 'July 2026').replace(/\{(runYear|spYear)\}/g, '2028/29')
+      // the State Pension's date asked with the move (7.4.0): the date's tax year, and the one the plan paid it from
+      .replace(/\{(dateTaxYear|paidFrom)\}/g, '2030/31');
     const hits = [];
     const all = strings(ABOUT).map(([, s]) => slot(s)).join('\n');
     for (const [where, s] of strings(ABOUT)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`about.js ${where} — ${h}`);

@@ -49,7 +49,11 @@ export const HOME = {
     /** A locked plan stored the old way (its start later than the tax year work stopped): move it, or say the month first. */
     'start.move':         { title: 'Start it from the tax year you stopped', detail: 'Your plan is set to start in {start}, but you stopped work in {stopped}.' },
     'start.ask':          { title: 'When did you stop work?', detail: 'Your plan is set to start in {start}. If you are already drawing, it can start this tax year instead.' },
+    /** The same, on a plan whose start this tax year cannot replace (already this tax year or earlier, or not offered). */
+    'start.askOnly':      { title: 'When did you stop work?', detail: 'Your plan is set to start in {start}.' },
     'start.blocked':      { title: 'Its start can be moved only once the plan is unlocked', detail: 'Your plan is set to start in {start}, but you stopped work in {stopped}.' },
+    /** A draft still set to start later than this tax year (7.4.0, PlanMove.laterDraftLeftOf): its start is chosen there. */
+    'start.draft':        { title: 'Choose your plan’s first tax year', detail: 'Your plan is set to start in {start}. It can start this tax year, or the tax year you stopped work.' },
     'month.taxYear':      { title: 'Set up {year}', detail: 'A new tax year: say what the plan pays this year before the first month is recorded.' },
     'month.arrive':       { title: 'Record your first month', detail: 'You stopped work in {stop}. Month by month then compares your pot with the plan’s.' },
     'month.record':       { title: 'Record {monthName}', detail: 'What your platform shows today. It takes a minute.' },

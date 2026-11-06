@@ -23,7 +23,7 @@ import {
   saveActiveStressSettings,
   invalidateScenarioCache, getActiveBudget, activePlanLocked, storedActiveSettings, getDefaultStressSettings, getActiveScenarioAsync } from './ScenarioRepository.js';
 import { potsAsOfFor, withoutPotsAsOf, draftPotsAsOf } from '../services/PlanFromToday.js';
-import { laterDraftOf } from '../services/PlanMove.js';
+import { laterDraftOf, withLockedStart } from '../services/PlanMove.js';
 import { onPlanCopyStale } from './planCopies.js';
 import { isPlanLockedError } from '../services/LockedPlanGuard.js';
 
@@ -126,18 +126,21 @@ export async function loadStressDBAsync() {
         if (b && budgetAgesKnown(b) && +b.currentAge > (+stressSettings.currentAge || 0)) { stressSettings.currentAge = +b.currentAge; stressSettings.currentAgeAsOf = b.currentAgeAsOf || stressSettings.currentAgeAsOf || null; }
         budget = b || null;
       } catch (e) { /* no budget yet */ }
+      // A locked plan that never saved its year 0 keeps the year it was locked with (7.4.0, PlanMove.withLockedStart;
+      // PlanReading the same); the pin below then writes that year, as it wrote the derived one before.
+      let open = null;
+      try { open = await getActiveScenarioAsync(); } catch (e) { open = null; }
       const db = {
         settings: stressSettings,
         budget,
         lastModified: new Date().toISOString(),
         checksum: null
       };
-      cachedStressDB = migrateStressDB(db);
+      cachedStressDB = migrateStressDB(db, open ? (s) => withLockedStart(open, s, new Date()) : null);
       // Where the plan's pots belong (6.50.0, PlanFromToday.potsAsOfFor; PlanReading.effectiveStressSettings the same): on
       // the copy in memory, never on what is saved, and derived again on every load (a copy saved with one decides nothing).
       let plain = withoutPotsAsOf(cachedStressDB.settings);
-      let potsAsOf = null, open = null;
-      try { open = await getActiveScenarioAsync(); } catch (e) { open = null; }
+      let potsAsOf = null;
       // A retired draft saved with a later start than it should have (7.4.0, PlanMove.laterDraftOf; PlanReading the same):
       // read, in memory, from the tax year work stopped or this one. The form shows it so, and its next Save writes it.
       try { const later = open ? laterDraftOf(open, plain, new Date()) : null; if (later) plain = later.settings; } catch (e) { /* read as saved */ }
@@ -206,8 +209,8 @@ export function generateStressChecksum(db) {
  * @param {object} db - Database to migrate
  * @returns {object} Migrated database
  */
-function migrateStressDB(db) {
-  return migrateStressSettings(db);
+function migrateStressDB(db, beforePin = null) {
+  return migrateStressSettings(db, new Date(), { beforePin });
 }
 
 /**

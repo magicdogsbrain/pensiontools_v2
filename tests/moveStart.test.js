@@ -639,10 +639,10 @@ describe('V7: the question on a locked plan\'s "About you and when", and the mov
   });
   it('once the month is said, the move is offered there, its confirm line by line; the month stays changeable, before and after a move', () => {
     const ls = lockedStartOf(alex(), { today: TODAY });
-    expect({ ...ls, move: { ...ls.move, confirm: undefined } }).toEqual({ ask: false, leave: false, nowMove: null, spShown: '', spError: null, move: { yearStop: '2023/24', yearStart: '2027/28', month: 'October 2023', stepped: true, spAsk: false, how: {}, confirm: undefined }, blocked: null, change: 'October 2023', left: false });
+    expect({ ...ls, move: { ...ls.move, confirm: undefined } }).toEqual({ ask: false, leave: false, nowMove: null, spShown: '', spError: null, spPlanYear: null, move: { yearStop: '2023/24', yearStart: '2027/28', month: 'October 2023', stepped: true, spAsk: false, how: {}, confirm: undefined }, blocked: null, change: 'October 2023', left: false });
     // 7.3.3: no line says the months were "before the plan's income starts" (the old 'bridgedAll'): they are months of the plan
     expect(ls.move.confirm.map((l) => l.id)).toEqual(['first', 'steps', 'ends', 'months', 'documentLadder', 'sp', 'moreLadder', 'fill', 'notAffected']);
-    expect(lockedStartOf(applyPatch(alex(), moved(alex()).patch), { today: TODAY })).toEqual({ ask: false, leave: false, move: null, nowMove: null, blocked: null, change: 'October 2023', left: false, spShown: '', spError: null });
+    expect(lockedStartOf(applyPatch(alex(), moved(alex()).patch), { today: TODAY })).toEqual({ ask: false, leave: false, move: null, nowMove: null, blocked: null, change: 'October 2023', left: false, spShown: '', spError: null, spPlanYear: null });
   });
   it('after "Leave it" the month can still be said, folded, by the same one write: no unlock needed', () => {
     const p = alex(null); p.stressTool.settings.stopMonthLeft = true;

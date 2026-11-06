@@ -288,10 +288,12 @@ export function lockedPartsAfter(plan, data) {
  * @param {object} data  the write (saveScenario's map; dotted keys allowed)
  * @param {object} [stressDefaults]  what a plan with no Stress settings saved reads (ScenarioRepository.getActiveStressSettings
  *   on a locked plan: the defaults). Without them such a write is refused unless nothing changes — the safe way round.
+ * @param {{ now?: Date }} [o]  the day the write is made, where the caller has it: the move of a plan's start to this tax
+ *   year, with no month said, must then be to exactly this tax year (PlanMove.reAnchorAllowance).
  * @returns {string[]|null} null when it may; otherwise the keys it would change, named by part ('stress.baseSalary',
  *   'decision.locked', 'strategy').
  */
-export function lockedPlanWriteRefusal(plan, data, stressDefaults) {
+export function lockedPlanWriteRefusal(plan, data, stressDefaults, { now = null } = {}) {
   const before = { stress: plan?.stressTool?.settings, decision: plan?.decisionTool?.settings, strategy: plan?.strategy };
   // The close (PlanClosed.js): its two keys once, on any plan; on a closed plan, nothing it froze.
   const closed = isClosedPlan(plan) || (!!plan && plan.closedAt != null);
@@ -305,7 +307,7 @@ export function lockedPlanWriteRefusal(plan, data, stressDefaults) {
   const stressNext = orDefaults(after.stress);
   // A move of the plan's start (`reAnchor`, 6.53.0): both copies at once, exactly as the move works them out.
   const none = { stress: [], decision: [], strategy: false };
-  const reAnchor = closed ? none : (reAnchorAllowance({ stress: orDefaults(before.stress), decision: before.decision, strategy: before.strategy }, { stress: stressNext, decision: after.decision, strategy: after.strategy }) || none);
+  const reAnchor = closed ? none : (reAnchorAllowance({ stress: orDefaults(before.stress), decision: before.decision, strategy: before.strategy }, { stress: stressNext, decision: after.decision, strategy: after.strategy }, { now }) || none);
   const stressBad = (lockedWriteRefusal('stress', { locked: true, closed, stored: orDefaults(before.stress), next: stressNext, also: reAnchor.stress }) || [])
     .filter((k) => !(k in onUnlock && isObj(stressNext) && text(stressNext[k]) === text(onUnlock[k])));
   const bad = [

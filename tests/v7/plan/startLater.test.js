@@ -17,7 +17,8 @@ import { describe, it, expect } from 'vitest';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { homeOf } from '../../../src/answers/plan/home.js';
 import { lockedStartOf } from '../../../src/answers/plan/about.js';
-import { startLaterOf } from '../../../src/services/PlanMove.js';
+import { startLaterOf, laterDraftLeftOf } from '../../../src/services/PlanMove.js';
+import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
 import { nextStepFor, NEXT_STEP_WORDS } from '../../../src/services/NextStep.js';
 import { deriveStage } from '../../../src/services/LifeStage.js';
 import { HOME } from '../../../src/v7/copy/home.js';
@@ -129,6 +130,7 @@ describe('the V7 home: one thing to do, ranked first', () => {
     const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
     const slots = { start: 'April 2027', stopped: 'May 2026' };
     for (const t of [HOME.items['start.ask'].title, HOME.items['start.ask'].detail, HOME.items['start.move'].title, HOME.items['start.move'].detail,
+      HOME.items['start.askOnly'].title, HOME.items['start.askOnly'].detail, HOME.items['start.draft'].title, HOME.items['start.draft'].detail, PLAN.next['P.startDraft'], PLAN.buttons.chooseStart, NEXT_STEP_WORDS.startDraft, NEXT_STEP_WORDS.startDraftBtn,
       PLAN.next['P.startAsk'], PLAN.next['P.startMove'], PLAN.buttons.moveStart, PLAN.buttons.sayWhen,
       HOME.items['start.blocked'].title, HOME.items['start.blocked'].detail, PLAN.next['P.startBlocked'], PLAN.buttons.seeWhy, NEXT_STEP_WORDS.startBlocked]) expect(bannedHits(fill(t, slots), scopes), t).toEqual([]);
   });
@@ -138,6 +140,41 @@ describe('the V7 home: one thing to do, ranked first', () => {
     const e = entryOf(raw, TODAY);
     homeOf([e], e.plan.id, { today: TODAY });
     expect(JSON.stringify(raw)).toBe(before);
+  });
+});
+
+describe('a draft still set to start later than this tax year, which the reading leaves as saved (7.4.0, PlanMove.laterDraftLeftOf)', () => {
+  const at = noon(TODAY);
+  /** Fixture 03 unlocked: a draft with months recorded against its saved start (April 2027). */
+  const recorded = () => { const r = copy(C['03-gilt-ladder-runup']); r.decisionTool.settings.locked = false; return r; };
+  /** The same draft with nothing recorded, its State Pension given only as a plan year the reading would land on 12. */
+  const spByYear = () => { const r = recorded(); r.decisionTool.history = []; r.stressTool.settings.stoppedWork = '2026-05'; Object.assign(r.stressTool.settings, { spStartDate: null, spWeeklyAmount: 0, statePension: 12000, statePensionYear: 11 }); return r; };
+  it('named, with why: months recorded, or a State Pension the reading could not keep', () => {
+    for (const [make, why] of [[recorded, 'records'], [spByYear, 'statePension']]) {
+      const e = entryOf(make(), TODAY);
+      expect(startLaterOf(e.plan, at)).toBe(null);
+      expect(laterDraftLeftOf(e.plan, effectiveStressSettings(e.plan, { now: at }), at)).toEqual({ start: 2027, why });
+    }
+  });
+  it('none for the plans the reading moves, a locked plan, a saver, and every corpus plan', () => {
+    const locked = entryOf(C['03-gilt-ladder-runup'], TODAY).plan;
+    expect(laterDraftLeftOf(locked, effectiveStressSettings(locked, { now: at }), at)).toBe(null);
+    for (const e of entriesAt(TODAY)) expect(laterDraftLeftOf(e.plan, effectiveStressSettings(e.plan, { now: at }), at), e.plan.id).toBe(null);
+    expect(laterDraftLeftOf({}, {}, at)).toBe(null);
+  });
+  it('the V7 home: "Choose your plan’s first tax year", first, opening "About you and when"; the planner\'s banner the same', () => {
+    for (const make of [recorded, spByYear]) {
+      const e = entryOf(make(), TODAY);
+      const h = homeOf([e], e.plan.id, { today: TODAY });
+      const first = h.todo.items[0];
+      expect(first.id).toBe('start.draft');
+      expect(first.button).toMatchObject({ id: 'chooseStart', href: '#/plan/' + e.plan.id + '/about' });
+      expect(fill(HOME.items['start.draft'].detail, first.slots)).toBe('Your plan is set to start in April 2027. It can start this tax year, or the tax year you stopped work.');
+      const left = laterDraftLeftOf(e.plan, effectiveStressSettings(e.plan, { now: at }), at);
+      const step = nextStepFor({ stage: deriveStage(e.plan, at), budget: {}, stress: {}, decision: {}, startDraft: left });
+      expect(step.html).toBe('Your plan is set to start in April 2027. It can start this tax year, or the tax year you stopped work: choose it under Timing.');
+      expect(step.action).toEqual({ kind: 'stress-settings' });
+    }
   });
 });
 
@@ -164,7 +201,13 @@ describe('"Where you are" on 03: the months and what was taken, never read again
     const today = '2027-06-01';
     const e = entryOf(C['03-gilt-ladder-runup'], today);
     const pg = planPage([e], e.plan.id, 'where', { today });
-    expect(pg.due.map((d) => d.id)).toContain('start.ask');
+    // its start is already this tax year: "When did you stop work?" without the offer of this tax year (as the planner says it)
+    expect(pg.due.map((d) => d.id)).toContain('start.askOnly');
+    expect(pg.due.map((d) => d.id)).not.toContain('start.ask');
+    const ask = pg.due.find((d) => d.id === 'start.askOnly');
+    expect(fill(HOME.items['start.askOnly'].detail, ask.slots)).toBe('Your plan is set to start in April 2027.');
+    expect(nextStepFor({ stage: deriveStage(e.plan, noon(today)), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(e.plan, noon(today)) }).html)
+      .toBe(NEXT_STEP_WORDS.startAskOnly.replace('{start}', 'April 2027'));
     const w = pg.steps.find((st) => st.id === 'where');
     const ids = w.lines.map((l) => l.id);
     expect(ids).not.toContain('where.startLater');

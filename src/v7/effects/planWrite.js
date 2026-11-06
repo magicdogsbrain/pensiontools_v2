@@ -258,7 +258,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
 
   /** The lock guard on the plan as read (6.20.2's rules, the plan as stored): what a write may still change on a locked plan. */
   function lockedRefusal(plan, data) {
-    return !!lockedPlanWriteRefusal(plan, data, getDefaultStressSettings());
+    return !!lockedPlanWriteRefusal(plan, data, getDefaultStressSettings(), { now: now() });
   }
 
   /** ONE write: an account's plan by its field paths, or this window's plan folded and the list written back. */

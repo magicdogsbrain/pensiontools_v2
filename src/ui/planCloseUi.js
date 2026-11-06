@@ -48,7 +48,8 @@ import { closedReading, beforeReading, closedWords, beforeWords, readDayOf, plan
 import { normaliseHoldings } from '../services/HoldingsRecord.js';
 import { uniqueName } from '../services/PlanFromSeed.js';
 import { taxYearLabel, deriveTiming, taxYearOfMonth } from '../services/PlanTiming.js';
-import { laterDraftOf, laterDraftSentence } from '../services/PlanMove.js';
+import { laterDraftSentence } from '../services/PlanMove.js';
+import { laterDraftReading } from '../services/PlanReading.js';
 import { isGuest, isLoggedIn } from '../firebase/AuthService.js';
 import { guestPlanRefusal } from '../services/GuestPlans.js';
 import { OPEN_PLACE_KEY, makeRequest } from '../services/OpenPlace.js';
@@ -223,9 +224,10 @@ export function householdPickerFor(doc, plan) {
 export async function closedTimingSummary(summary) {
   let sc = null;
   try { sc = await getActiveScenarioAsync(); } catch (e) { return summary; }
-  // a draft read from an earlier start than it saved (7.4.0, PlanMove.laterDraftOf, on the plan as stored): said once, first
+  // a draft read from an earlier start than it saved (7.4.0, PlanReading.laterDraftReading: the settings as the form reads
+  // them, the Budget's age folded in — V7's "About you and when" reads the same): said once, first
   let later = null;
-  try { const st = await getActiveScenarioAsStored(); later = st ? laterDraftOf(st, (st.stressTool && st.stressTool.settings) || {}, new Date()) : null; } catch (e) { later = null; }
+  try { const st = await getActiveScenarioAsStored(); later = st ? laterDraftReading(st, { now: new Date() }) : null; } catch (e) { later = null; }
   const words = closedTimingWords(summary, sc);
   return later ? laterDraftSentence(later) + ' ' + words : words;
 }

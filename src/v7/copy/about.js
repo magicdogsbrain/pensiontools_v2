@@ -83,6 +83,8 @@ export const ABOUT = {
     spLabel: 'When does your State Pension start?',
     spHelp: 'The date on your State Pension forecast, like 14 March 2032. It is saved with the move, so your State Pension keeps its own tax year.',
     spError: 'That is not a date we can read: try 14 March 2032.',
+    /** The tax year the plan pays the State Pension from as it stands, named beside the box (7.4.0). */
+    spPlanYear: 'Your plan pays it from {year} as it stands. A date in another tax year moves it there.',
     /** The box's own help: the unlocked step's speaks of a choice this page does not have. */
     help: 'Like 2023-10, or October 2023.',
     save: 'Save the month',
@@ -104,6 +106,7 @@ export const ABOUT = {
         first: 'The plan’s first tax year becomes {yearStop}, the tax year you stopped work ({month}); it was {yearStart}. The plan stays locked: nothing is unlocked and no setting is added.',
         firstNow: 'The plan’s first tax year becomes {yearStop}, this tax year; it was {yearStart}. The plan stays locked: nothing is unlocked, and no month you stopped work is saved.',
         spDate: 'Your State Pension is saved as starting on {date}, so it keeps its own tax year.',
+        spDateMoved: 'That date is in {dateTaxYear}; the plan had paid your State Pension from {paidFrom}, so it now starts in {dateTaxYear}.',
         steps: 'Your income: the first step keeps its amount ({amount} a year) and now runs from {yearStop}, at {age}; your later steps keep their ages.',
         stepsBare: 'Your income: the first step keeps its amount and now runs from {yearStop}; your later steps keep their ages.',
         level: 'Your income: it stays {amount} a year, now from {yearStop}, at {age}.',

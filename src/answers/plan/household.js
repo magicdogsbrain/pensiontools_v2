@@ -20,7 +20,7 @@
  *   shareBudgetPatches(plan, partner, share)       → the writes of "Share this plan's budget" / "Keep a separate budget"
  *   whoPaysPatches(plan, entries, typed, { today }) → the writes of the budget's who-pays (the lines go where they live)
  *
- * Every path written is in schema.js HOUSEHOLD_WRITES (tested).
+ * Every path written is in schema.js HOUSEHOLD_WRITES (tested), or, on a draft read from an earlier start, LATER_DRAFT_WRITES.
  */
 import { planStage, effectiveStressSettings } from '../../services/PlanReading.js';
 import { personProfile, splitFingerprint, SPLIT_HEADLINE_MIN, settingsWithSchedule } from '../../services/HouseholdDraw.js';
@@ -35,7 +35,8 @@ import { stageLine } from './read.js';
 import { isClosedPlan, closedReading, partnerCandidates } from '../../services/PlanClosed.js';
 import { runKeyOf } from './lasts.js';
 import { pounds } from './income.js';
-import { HOUSEHOLD_FIELDS, HOUSEHOLD_WRITES, PAID_BYS } from './schema.js';
+import { HOUSEHOLD_FIELDS, HOUSEHOLD_WRITES, PAID_BYS, LATER_DRAFT_WRITES } from './schema.js';
+import { laterDraftPatch } from './moveStart.js';
 import { dateOf, dayWords } from './dates.js';
 
 export { runKeyOf };
@@ -248,6 +249,23 @@ function shapePatch(plan, settings) {
 }
 
 /**
+ * A split write on a draft read from an earlier start than it saved (7.4.0, moveStart.js laterDraftPatch): the split's
+ * schedule is worked out from that reading (safeSettings is the effective settings), so its year 0 and every key the
+ * reading moved are written with it, as every other save of the draft's settings writes them (planWrite withLaterDraft) —
+ * a schedule counted from the earlier year, stored against the later one, would be read moved a second time. The split's
+ * own five keys are the split's: where it leaves one as stored, the reading's value for it is not written either. Their
+ * previous values go with the split's, so Undo puts the plan back byte for byte. Every other plan: the split's write alone.
+ */
+function withDraftReading(plan, sp, now) {
+  const ld = laterDraftPatch(plan, { now });
+  if (!Object.keys(ld.patch).length) return sp;
+  const patch = { ...ld.patch }, previous = { ...ld.previous };
+  for (const k of SPLIT_KEYS) { delete patch['stressTool.settings.' + k]; delete previous['stressTool.settings.' + k]; }
+  for (const k of Object.keys(patch)) if (!LATER_DRAFT_WRITES.includes(k)) throw new Error('household: "' + k + '" is not a declared field path');
+  return { patch: { ...patch, ...sp.patch }, previous: { ...previous, ...sp.previous } };
+}
+
+/**
  * "Use this split" (HouseholdSplitApply.applySplit): on two unlocked plans, each plan's Stress settings with the split's
  * income shape (the five keys settingsWithSchedule sets, one write per plan); when either is locked, a copy of each with
  * those settings, named "{name} — drawing together" unless named, linked to each other (the planner's rule: a locked plan
@@ -268,7 +286,7 @@ export function splitPatches(plan, partner, split, { today, copyNames = null } =
     return { name: names[k], from: shapeWords(before), to: shapeWords(settings[k]), changed: !same };
   });
   if (mode === 'write') {
-    const a = shapePatch(plan, settings.a), b = shapePatch(partner, settings.b);
+    const a = withDraftReading(plan, shapePatch(plan, settings.a), now), b = withDraftReading(partner, shapePatch(partner, settings.b), now);
     return { ok: true, errors: {}, mode, changes, writes: [{ planId: String(plan.id), ...a }, { planId: String(partner.id), ...b }], line: { id: 'split', slots: { a: names.a, b: names.b } } };
   }
   const cn = splitCopyNames({ names }, copyNames);

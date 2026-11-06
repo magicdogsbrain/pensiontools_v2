@@ -35,7 +35,7 @@ import { targetHoldings, diffHoldings, progress } from './TransitionPlanner.js';
 import { normaliseHoldings } from './HoldingsRecord.js';
 import { potsAsOfFor, withoutPotsAsOf, lockedPotsAsOf, potsDayOf } from './PlanFromToday.js';
 import { readDayOf } from './PlanClosed.js';
-import { laterDraftOf } from './PlanMove.js';
+import { laterDraftOf, withLockedStart } from './PlanMove.js';
 
 /**
  * Default stress database structure.
@@ -90,9 +90,11 @@ export function getDefaultStressDB() {
  * Migrates old database formats to current version (StressRepository.migrateStressDB until 6.26, unchanged).
  * @param {{ settings?: object, budget?: object|null, lastModified?: *, checksum?: * }} db
  * @param {Date} [now]
+ * @param {{ beforePin?: (settings: object) => object }} [o]  applied to the merged settings just before the timing is
+ *   derived and pinned: a locked plan's own start (PlanMove.withLockedStart, 7.4.0), filled where the pin used to add it
  * @returns {object} Migrated database
  */
-export function migrateStressSettings(db, now = new Date()) {
+export function migrateStressSettings(db, now = new Date(), { beforePin = null } = {}) {
   const migrated = { ...getDefaultStressDB() };
 
   // Merge settings
@@ -136,6 +138,7 @@ export function migrateStressSettings(db, now = new Date()) {
   // 6.4.0: the plan's start (first tax year, retired / retire-at-age) is saved rather than implied by
   // today's date. Derived once from the age today + the income shape's start age; written back by the planner's load
   // path the first time (6.13.5 — StressRepository.loadStressDBAsync), never by the preview.
+  if (typeof beforePin === 'function') migrated.settings = beforePin(migrated.settings);
   migrated.settings = pinTiming(migrated.settings, db.budget || null, now);
 
   migrated.lastModified = db.lastModified;
@@ -199,8 +202,11 @@ function migratedStressSettings(scenario, now) {
     stressSettings.currentAge = +b.currentAge;
     stressSettings.currentAgeAsOf = b.currentAgeAsOf || stressSettings.currentAgeAsOf || null;
   }
+  // A locked plan that never saved its year 0 keeps the year it was locked with (7.4.0, PlanMove.withLockedStart), filled
+  // where the pin used to add it, so every other key keeps its place.
+  const beforePin = (s) => withLockedStart(scenario, s, now);
   // Re-derived on every read, from the lock alone: a copy that once carried it and was saved by mistake decides nothing.
-  return withoutPotsAsOf(migrateStressSettings({ settings: stressSettings, budget: b || null, lastModified: null, checksum: null }, now).settings);
+  return withoutPotsAsOf(migrateStressSettings({ settings: stressSettings, budget: b || null, lastModified: null, checksum: null }, now, { beforePin }).settings);
 }
 
 /** deriveStage on the effective settings, as the planner's refreshLifeStage does. */

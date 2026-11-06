@@ -23,14 +23,15 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { upgradeScenario } from '../src/firebase/scenarioMigration.js';
 import { effectiveStressSettings, laterDraftReading } from '../src/services/PlanReading.js';
-import { deriveTiming, taxYearStartOf, taxYearOfMonth, migrateTiming, startYearChoices, pinTiming, earlyPensionDrawOf, earlyPensionDrawWords, ageInTaxYear } from '../src/services/PlanTiming.js';
+import { deriveTiming, taxYearStartOf, taxYearOfMonth, migrateTiming, startYearChoices, pinTiming, earlyPensionDrawOf, earlyPensionDrawWords, ageInTaxYear, timingPinPatch } from '../src/services/PlanTiming.js';
 import {
-  laterDraftOf, laterStartEffects, startLaterOf, moveOfferOf, moveBlockedOf, planMoveOf, isSuccessorOrClosed, withSpDate, reAnchorCopy, laterDraftSentence
+  laterDraftOf, laterStartEffects, startLaterOf, moveOfferOf, moveBlockedOf, planMoveOf, isSuccessorOrClosed, withSpDate, reAnchorCopy, laterDraftSentence, positionAfterMove, spPlanTaxYearOf, withLockedStart
 } from '../src/services/PlanMove.js';
 import { movedPlanOf, movePatch, laterDraftPatch, withLaterDraft } from '../src/answers/plan/moveStart.js';
 import { runForDocument } from '../src/answers/plan/lastsRun.js';
 import { applyPatch, aboutPatch, lockedStartOf, aboutOf } from '../src/answers/plan/about.js';
 import { lockPatch } from '../src/answers/plan/lock.js';
+import { splitPatches } from '../src/answers/plan/household.js';
 import { homeOf } from '../src/answers/plan/home.js';
 import { MOVE_START_WRITES, ALL_WRITES, LOCK_WRITES, LATER_DRAFT_WRITES } from '../src/answers/plan/schema.js';
 import { lockedPlanWriteRefusal } from '../src/services/LockedPlanGuard.js';
@@ -51,6 +52,7 @@ const GILTS = JSON.parse(readFileSync(join(PLANS, 'market', 'gilts.json'), 'utf8
 const NOW = new Date(2026, 10, 4, 12);   // 4 November 2026: tax year 2026/27
 const TODAY = '2026-11-04';
 const copy = (v) => JSON.parse(JSON.stringify(v));
+const fill = (text, slots) => String(text).replace(/\{(\w+)\}/g, (m, k) => (k in slots && slots[k] != null ? String(slots[k]) : m));
 const S = 'stressTool.settings', D = 'decisionTool.settings';
 const SCOPES = ['all', 'record', 'retired', 'saver'];
 const up = (raw, now = NOW) => upgradeScenario(raw, { now }).scenario;
@@ -99,15 +101,13 @@ describe('no retiree\'s derived year 0 is above this tax year (property)', () =>
         const tm = deriveTiming(s, now);
         if (tm.mode !== 'retired') continue;
         checked++;
-        // never later than this tax year — bar a stop in April's first five days, whose month belongs to the tax year that
-        // starts on the 6th: that tax year is the stop's own, the plan's start, not a later one
-        const stopTY = s.stoppedWork ? taxYearOfMonth(s.stoppedWork) : thisTY;
-        expect(tm.firstTaxYear, JSON.stringify({ s, now })).toBeLessThanOrEqual(Math.max(thisTY, stopTY));
-        if (tm.firstTaxYear > thisTY) expect(s.stoppedWork.endsWith('-04') && now.getMonth() === 3 && now.getDate() < 6).toBe(true);
+        // never later than this tax year: a stop month of April read on 1 to 5 April included (its stop can only be in the
+        // tax year ending on the 5th: PlanTiming.stopTaxYearSoFar)
+        expect(tm.firstTaxYear, JSON.stringify({ s, now })).toBeLessThanOrEqual(thisTY);
         expect(Math.max(...tm.startOptions)).toBe(thisTY);
-        expect(migrateTiming(s, null, now).firstTaxYear).toBeLessThanOrEqual(Math.max(thisTY, stopTY));
-        expect(pinTiming(s, null, now).firstTaxYear).toBeLessThanOrEqual(Math.max(thisTY, stopTY));
-        expect(Math.max(...startYearChoices(tm).map((c) => c.year))).toBeLessThanOrEqual(Math.max(thisTY, stopTY));
+        expect(migrateTiming(s, null, now).firstTaxYear).toBeLessThanOrEqual(thisTY);
+        expect(pinTiming(s, null, now).firstTaxYear).toBeLessThanOrEqual(thisTY);
+        expect(Math.max(...startYearChoices(tm).map((c) => c.year))).toBeLessThanOrEqual(thisTY);
         expect(tm.yearsToStart).toBe(Math.max(0, tm.firstTaxYear - thisTY));
       }
     }
@@ -221,6 +221,32 @@ describe('a retired draft saved with a later start is read from the earlier one,
     const other = { ok: true, patch: { 'holdings': {} }, previous: {} };
     expect(withLaterDraft(p, other, { now: NOW })).toBe(other);
   });
+  it('V7 "Use this split" on such a draft, paired with a partner: the reading is written with the split, so read again every tax year keeps its income', () => {
+    const a = samDraft({ stop: '2024-07' });
+    const b = up(read('10-couple-b'));
+    expect(a.decisionTool.settings.locked).not.toBe(true);
+    const ra = effectiveStressSettings(a, { now: NOW }), rb = effectiveStressSettings(b, { now: NOW });
+    expect(ra.firstTaxYear).toBe(2024);
+    // a split that keeps each plan's own schedule: the write must leave every tax year's income where it was
+    const split = { applies: true, names: { a: 'Sam', b: 'Alex' },
+      schedules: { together: { a: ra.targetSchedule, b: rb.targetSchedule }, own: { a: ra.targetSchedule, b: rb.targetSchedule } },
+      steps: { a: ra.incomeSteps, b: rb.incomeSteps } };
+    const p = splitPatches(a, b, split, { today: TODAY });
+    expect(p.mode).toBe('write');
+    const wa = p.writes.find((w) => w.planId === String(a.id));
+    for (const k of Object.keys(wa.patch)) expect(ALL_WRITES).toContain(k);
+    expect(wa.patch[S + '.firstTaxYear']).toBe(2024);
+    const after = applyPatch(a, wa.patch);
+    expect(laterDraftReading(after, { now: NOW })).toBeNull();
+    const again = effectiveStressSettings(after, { now: NOW });
+    for (const k of ['firstTaxYear', 'duration', 'shapeAgeNow']) expect(again[k], k).toEqual(ra[k]);
+    // aligned by tax year: year y of each reading is the same tax year, with the same income
+    expect(again.targetSchedule).toEqual(ra.targetSchedule.map((v) => Math.round(v)));   // the split's schedule is in whole pounds
+    expect(again.incomeSteps).toEqual(ra.incomeSteps);
+    // Undo: every byte back
+    expect(applyPatch(after, wa.previous).stressTool.settings).toEqual(a.stressTool.settings);
+    expect(applyPatch(after, wa.previous).decisionTool.settings).toEqual(a.decisionTool.settings);
+  });
   it('the lock of such a draft locks it as it reads: its Stress settings from the earlier start, the Decision tool seeded so', () => {
     const p = samDraft({ stop: '2024-07' });
     const out = at(NOW, () => {
@@ -236,6 +262,46 @@ describe('a retired draft saved with a later start is read from the earlier one,
     const after = applyPatch(p, out.patch);
     expect(after.planDocument.timing.firstTaxYear).toBe(2024);
     expect(startLaterOf(after, NOW)).toBeNull();
+  });
+});
+
+describe('a locked plan that never saved its year 0 keeps the year it was locked with (PlanMove.withLockedStart)', () => {
+  /** Fixture 03 (locked, year 0 2027/28) with its Stress copy saving no year 0 and no month work stopped. */
+  const unsaved = (edit = null) => alex((raw) => { delete raw.stressTool.settings.firstTaxYear; if (edit) edit(raw); });
+  it('an aged, retired, locked plan reads the Decision copy\'s year 0, not this tax year; the pin writes that year', () => {
+    const p = unsaved();
+    expect(p.decisionTool.settings.firstTaxYear).toBe(2027);
+    const ss = effectiveStressSettings(p, { now: NOW });
+    expect(ss.firstTaxYear).toBe(2027);
+    expect(deriveTiming(ss, NOW).firstTaxYear).toBe(2027);
+    // the planner's load path pins what it reads: the year the plan was locked with, as the Decision copy says
+    expect(timingPinPatch(p.stressTool.settings, ss)).toMatchObject({ firstTaxYear: 2027 });
+    // still offered the move by the person's own confirm, and the release note says nothing changed
+    expect(startLaterOf(p, NOW)).toMatchObject({ kind: 'ask', start: 2027, thisYear: 2026 });
+    expect(laterStartEffects(p, NOW)).toEqual(['Your plan is locked, so nothing changed. Its home shows how to move its start.']);
+  });
+  it('no Decision year: the plan document\'s; neither: the year it read until 7.4.0 (next April)', () => {
+    const doc = unsaved((raw) => { delete raw.decisionTool.settings.firstTaxYear; raw.planDocument = { ...(raw.planDocument || {}), timing: { ...((raw.planDocument || {}).timing || {}), firstTaxYear: 2028 } }; });
+    expect(effectiveStressSettings(doc, { now: NOW }).firstTaxYear).toBe(2028);
+    const none = unsaved((raw) => { delete raw.decisionTool.settings.firstTaxYear; delete raw.planDocument; });
+    expect(effectiveStressSettings(none, { now: NOW }).firstTaxYear).toBe(2027);
+  });
+  it('fixture 06 (locked, no age, no year pinned) reads the calendar year after today, as it did before 7.4.0', () => {
+    const p = up(read('06-pre-6.4-no-timing'));
+    const ss = effectiveStressSettings(p, { now: NOW });
+    expect(deriveTiming(ss, NOW)).toMatchObject({ mode: 'legacy', firstTaxYear: 2027 });
+    expect(ss.legacyFirstTaxYear).toBe(2027);
+  });
+  it('left as it is: a saved year, a month work stopped, a saver, every unlocked plan, and any shape', () => {
+    const saved = alex();
+    expect(withLockedStart(saved, saved.stressTool.settings, NOW)).toBe(saved.stressTool.settings);
+    const stopped = unsaved((raw) => { raw.stressTool.settings.stoppedWork = '2023-10'; });
+    expect(withLockedStart(stopped, stopped.stressTool.settings, NOW)).toBe(stopped.stressTool.settings);
+    const draft = unsaved((raw) => { raw.decisionTool.settings.locked = false; });
+    expect(withLockedStart(draft, draft.stressTool.settings, NOW)).toBe(draft.stressTool.settings);
+    const saver = up(read('05-saver-committed'));
+    expect(withLockedStart(saver, saver.stressTool.settings, NOW)).toBe(saver.stressTool.settings);
+    for (const v of [null, {}, 3]) expect(withLockedStart(v, { a: 1 }, NOW)).toEqual({ a: 1 });
   });
 });
 
@@ -298,6 +364,24 @@ describe('the move with no month said: "I\'m already drawing: start it this tax 
     // and every other change to a locked plan's settings stays refused
     expect(refusal(plan, { [S + '.duration']: 40 })).not.toBeNull();
   });
+  it('the guard: a move with no month that is consistent in every key, to a year other than this one, is refused', () => {
+    // built as the move builds it, but to an older year: both copies, every moved key and the lock's position agree
+    const consistent = (p, to) => {
+      const ss = p.stressTool.settings, ds = p.decisionTool.settings, from = 2027;
+      const stress = reAnchorCopy(ss, from - to, to, 'stress');
+      return { [S]: stress, [D]: { ...reAnchorCopy(ds, from - to, to, 'decision'), lockedPosition: positionAfterMove(stress, ds.lockedAt) } };
+    };
+    expect(refusal(plan, consistent(plan, 2026))).toBeNull();
+    // before the tax year the plan was locked in (fixture 03 was locked in 2026/27): never this tax year
+    for (const to of [2020, 2024, 2025]) expect(refusal(plan, consistent(plan, to)), String(to)).not.toBeNull();
+    // a plan locked in an earlier tax year: the lock's own year passes without a clock, and is refused with one
+    const older = alex((raw) => { raw.decisionTool.settings.lockedAt = '2025-07-01T08:15:00.000Z'; });
+    const w = consistent(older, 2025);
+    expect(lockedPlanWriteRefusal(older, w, getDefaultStressSettings())).toBeNull();
+    expect(lockedPlanWriteRefusal(older, w, getDefaultStressSettings(), { now: NOW })).not.toBeNull();
+    expect(lockedPlanWriteRefusal(older, consistent(older, 2026), getDefaultStressSettings(), { now: NOW })).toBeNull();
+    expect(lockedPlanWriteRefusal(plan, consistent(plan, 2026), getDefaultStressSettings(), { now: NOW })).toBeNull();
+  });
   it('the planner\'s words: the confirm names this tax year and no month; the toast likewise', () => {
     const m = planMoveOf(plan, NOW, { thisYear: true });
     const q = moveStartQuestion(m, {});
@@ -340,6 +424,27 @@ describe('the State Pension given only as a plan year: its date asked, and writt
     expect(typed.move.how).toEqual({ spStartDate: '14 March 2029' });
     expect(typed.move.confirm.map((l) => l.id)).toContain('spDate');
     expect(lockedStartOf(plan, { today: TODAY, typed: { moveSpDate: 'soon' } }).spError).toBe('notADate');
+  });
+  it('the box names the tax year the plan pays it from as it stands; the confirm says so when the date is in another', () => {
+    // year 0 2027/28, State Pension plan year 8: paid from 2035/36 as it stands
+    expect(spPlanTaxYearOf(plan)).toBe(2035);
+    const ls = lockedStartOf(plan, { today: TODAY });
+    expect(ls.spPlanYear).toBe('2035/36');
+    expect(fill(ABOUT.lockedStart.spPlanYear, { year: ls.spPlanYear })).toBe('Your plan pays it from 2035/36 as it stands. A date in another tax year moves it there.');
+    // a date in 2028/29: said, in both apps
+    const other = lockedStartOf(plan, { today: TODAY, typed: { moveSpDate: '14 March 2029' } });
+    const line = other.move.confirm.find((l) => l.id === 'spDateMoved');
+    expect(line).toEqual({ id: 'spDateMoved', slots: { dateTaxYear: '2028/29', paidFrom: '2035/36' } });
+    expect(fill(ABOUT.lockedStart.confirm.lines.spDateMoved, line.slots)).toBe('That date is in 2028/29; the plan had paid your State Pension from 2035/36, so it now starts in 2028/29.');
+    const m = planMoveOf(plan, NOW, { spStartDate: '14 March 2029' });
+    expect(moveStartQuestion(m, {}).html).toContain('That date is in 2028/29; the plan had paid your State Pension from 2035/36, so it now starts in 2028/29.');
+    expect(lockedStartHtml({ offer: { stopMonth: '2023-10', from: 2027, to: 2023 }, spAsk: true, spPlanYear: 2035 })).toContain('Your plan pays it from 2035/36 as it stands.');
+    // a date in that same tax year: nothing more to say
+    const same = lockedStartOf(plan, { today: TODAY, typed: { moveSpDate: '1 June 2035' } });
+    expect(same.move.confirm.map((l) => l.id)).toContain('spDate');
+    expect(same.move.confirm.map((l) => l.id)).not.toContain('spDateMoved');
+    expect(moveStartQuestion(planMoveOf(plan, NOW, { spStartDate: '1 June 2035' }), {}).html).not.toContain('That date is in');
+    for (const t of [ABOUT.lockedStart.spPlanYear, ABOUT.lockedStart.confirm.lines.spDateMoved]) expect(bannedHits(fill(t, { year: '2035/36', dateTaxYear: '2028/29', paidFrom: '2035/36' }), SCOPES)).toEqual([]);
   });
   it('the move writes the date and the weekly figure in both copies; the State Pension starts in the date\'s tax year', () => {
     const out = moved(plan, { spStartDate: '14 March 2029' });
@@ -417,10 +522,23 @@ describe('laterStartEffects: the release note\'s lines for one plan', () => {
     expect(laterStartEffects(up(read('13-stopped-drawing-since')), NOW)).toEqual([]);
   });
   it('a retired draft with a later year, and a locked plan whose year 0 is later', () => {
-    expect(laterStartEffects(samDraft(), NOW)).toEqual(['Your plan now runs from 2026/27: one more year is drawn, and every figure counted from its start moves with it.']);
-    expect(laterStartEffects(samDraft({ stop: '2024-07' }), NOW)).toEqual(['Your plan now runs from 2024/25: 3 more years are drawn, and every figure counted from its start moves with it.']);
+    expect(laterStartEffects(samDraft(), NOW)).toEqual(['Your plan now runs from 2026/27, this tax year: one more year is drawn, and every figure counted from its start moves with it.']);
+    // stopped in an earlier tax year: 2024/25 and 2025/26 are lived years, read as lived; from today's pots only 2026/27 is newly drawn
+    expect(laterStartEffects(samDraft({ stop: '2024-07' }), NOW)).toEqual(['Your plan now runs from 2024/25, the tax year you stopped work. From today, one more year is drawn, and every figure counted from its start moves with it.']);
+    // saved two years later: two years newly drawn from today
+    expect(laterStartEffects(samDraft({ fty: 2028 }), NOW)).toEqual(['Your plan now runs from 2026/27, this tax year: 2 more years are drawn, and every figure counted from its start moves with it.']);
     expect(laterStartEffects(alex(), NOW)).toEqual(['Your plan is locked, so nothing changed. Its home shows how to move its start.']);
     for (const l of [...laterStartEffects(samDraft(), NOW), ...laterStartEffects(alex(), NOW)]) expect(bannedHits(l, SCOPES)).toEqual([]);
+  });
+  it('a plan with no age, pinned the old way: it only starts earlier, and no figure is said to move', () => {
+    const raw = read('02-pnv-draft');
+    const s = raw.stressTool.settings;
+    for (const k of ['currentAge', 'currentAgeAsOf', 'retired', 'retireAge', 'firstTaxYear', 'stoppedWork']) delete s[k];
+    s.legacyFirstTaxYear = 2030;
+    delete raw.budgetTool;
+    const lines = laterStartEffects(up(raw), NOW);
+    expect(lines).toEqual(['Your plan now runs from 2026/27, this tax year, not from April 2030.']);
+    for (const l of lines) expect(bannedHits(l, SCOPES)).toEqual([]);
   });
 });
 
@@ -434,5 +552,16 @@ describe('V7 "About you and when" on such a draft says once where the plan start
     expect(a.derived.filter((d) => d.id.startsWith('later')).length).toBe(1);
     const fresh = up(read('13-stopped-drawing-since'));
     expect(aboutOf([{ plan: fresh }], fresh.id, { today: TODAY }).derived.some((d) => d.id.startsWith('later'))).toBe(false);
+  });
+  it('a plan with no age, pinned the old way, says it too (this tax year), as the planner\'s Timing summary does', () => {
+    const raw = read('02-pnv-draft');
+    const s = raw.stressTool.settings;
+    for (const k of ['currentAge', 'currentAgeAsOf', 'retired', 'retireAge', 'firstTaxYear', 'stoppedWork']) delete s[k];
+    s.legacyFirstTaxYear = 2027;
+    delete raw.budgetTool;
+    const p = up(raw);
+    const a = aboutOf([{ plan: p }], p.id, { today: TODAY });
+    expect(a.derived[0]).toEqual({ id: 'laterNow', slots: { year: '2026/27' } });
+    expect(laterDraftSentence(laterDraftReading(p, { now: NOW }))).toBe('Your plan runs from 2026/27, this tax year.');
   });
 });

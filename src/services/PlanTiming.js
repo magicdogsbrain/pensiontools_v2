@@ -165,6 +165,15 @@ export function retirementMonth(settings, age, now = new Date()) {
 }
 
 /**
+ * The tax year of a month work stopped in, as far as today can tell (7.4.0): taxYearOfMonth, but never later than this tax
+ * year. A stop month of April, read on 1 to 5 April, can only be a stop in the tax year ending on the 5th — a stop on or
+ * after the 6th has not come yet — so it is read as this tax year, never the next one, for those few days.
+ */
+export function stopTaxYearSoFar(stop, now = new Date()) {
+  return Math.min(taxYearOfMonth(stop), taxYearStartOf(now));
+}
+
+/**
  * Back-fill the timing fields on a plan saved before v6.4.0. Pure and idempotent; the repository
  * runs it on load and the result is persisted on the next save (like the spending migration).
  * Without an age today the plan stays in legacy mode (deriveTiming: this tax year, 7.4.0) — nothing to derive from.
@@ -190,7 +199,7 @@ export function migrateTiming(settings, budget = null, now = new Date()) {
   // here, from today's date, may be pulled forward. Someone who says when they stopped work starts in that tax year
   // (6.51.0) — a year that may well have passed, and is not pulled forward: it is when their plan's income started. With
   // no month, a retiree starts in this tax year (7.4.0; it was next April); a derived year already gone becomes this one.
-  const fromStop = retired && stop && hasStopped(stop, now) ? taxYearOfMonth(stop) : null;
+  const fromStop = retired && stop && hasStopped(stop, now) ? stopTaxYearSoFar(stop, now) : null;
   let fty = +s.firstTaxYear > 0 ? +s.firstTaxYear : fromStop != null ? fromStop : retired ? thisTY : (!retired && stop && !hasStopped(stop, now) ? taxYearOfMonth(stop) : taxYearOfAge(s, +s.retireAge || shape, now));
   if (!(+s.firstTaxYear > 0) && fromStop == null && !(fty >= thisTY)) fty = thisTY;
   return { ...s, firstTaxYear: fty, retired, retireAge: retired ? null : (+s.retireAge || shape) };
@@ -294,7 +303,7 @@ export function deriveTiming(settings, now = new Date()) {
   // began — and one saved as "this tax year" jumped two years on its first 6 April. With nothing saved, someone who
   // says when they stopped work starts in that tax year (6.51.0), a past one included; else this tax year (7.4.0: never
   // next April — nobody retired has months before their plan).
-  const fromStop = stop && hasStopped(stop, now) ? taxYearOfMonth(stop) : null;
+  const fromStop = stop && hasStopped(stop, now) ? stopTaxYearSoFar(stop, now) : null;
   const firstTaxYear = +s.firstTaxYear > 0 ? +s.firstTaxYear : fromStop != null ? fromStop : thisTY;
   const startMonth = firstTaxYear + '-04';
   // The years a retiree may choose from (startYearChoices): the stop's tax year up to this one; else this one alone.

@@ -208,6 +208,24 @@ export function withSpDate(s, date) {
   if (!spDateOf(date) || !spByYearOnly(s)) return s;
   return { ...s, spStartDate: spDateOf(date), spWeeklyAmount: Math.round((+s.statePension / 52) * 100) / 100 };
 }
+/**
+ * The tax year a plan that gives its State Pension only as a plan year pays it from as it stands (7.4.0): its year 0 and that
+ * plan year (IncomeSchedule.defaultSpYear). The move's State Pension question names it, so a date typed is checked against
+ * it, and the confirm says so when the date is in another tax year. Null for a plan that gives a date, or no State Pension.
+ */
+export function spPlanTaxYearOf(scenario) {
+  const ss = settingsOf(scenario, 'stress'), ds = settingsOf(scenario, 'decision');
+  if (!spByYearOnly(ss)) return null;
+  const y0 = moveAnchorOf(ss, ds);
+  if (!(y0 > 0)) return null;
+  let y = null; try { y = defaultSpYear(ss); } catch { y = null; }
+  return Number.isFinite(y) && y < 999 ? y0 + y : null;
+}
+/** The tax year a typed State Pension date falls in; null for a date the planner cannot read. */
+export function spDateTaxYear(text) {
+  const t = spDateOf(text); const d = t ? parseStatePensionDate(t) : null;
+  return d ? taxYearStartOf(d) : null;
+}
 /** A copy with the State Pension date the person gave for the move, when they gave one. */
 const spFixed = (s, how) => (how && spDateOf(how.spStartDate) ? withSpDate(s, how.spStartDate) : s);
 /** Any date the planner reads: by date, a State Pension never blocks the move, whatever the date (moveBlockedOf's probe). */
@@ -223,7 +241,10 @@ const SP_PROBE = '1 January 2030';
 export function moveOfferOf(scenario, now, how = {}) {
   const m = moveParts(scenario, now, how);
   if (!m || blockedMove(spFixed(m.ss, how), spFixed(m.ds, how), m.from, m.to)) return null;
-  const sp = how && spDateOf(how.spStartDate) && spByYearOnly(m.ss) ? { spStartDate: spDateOf(how.spStartDate) } : {};
+  // the date given, its tax year, and the tax year the plan paid the State Pension from until now (its plan year): the
+  // confirm says so when the two differ, as the date then moves it (7.4.0)
+  const date = how && spDateOf(how.spStartDate) && spByYearOnly(m.ss) ? spDateOf(how.spStartDate) : null;
+  const sp = date ? { spStartDate: date, spDateYear: spDateTaxYear(date), spPlanYear: spPlanTaxYearOf(scenario) } : {};
   return { stopMonth: m.stop, from: m.from, to: m.to, years: m.from - m.to, ...(m.stop ? {} : { thisYear: true }), ...sp };
 }
 
@@ -505,10 +526,11 @@ export function planMoveOf(scenario, now, how = {}) {
  * key the move rewrites (REANCHOR_KEYS) at exactly the value reAnchorCopy works out from the copy as stored, and a move it
  * can work out (moveBlockedOf); the Decision copy's `lockedPosition` exactly where the lock's day stands under the new
  * year 0; and the strategy block as it was or exactly as strategyBlockAfterMove moves it. Clock-free, it does not ask
- * whether the month work stopped has come: the offer does (moveOfferOf), and nothing else sends this write.
+ * whether the month work stopped has come: the offer does (moveOfferOf), and nothing else sends this write. With no month
+ * (the move to this tax year, 7.4.0) the year is bounded by the lock's own tax year, and by `now` when the caller gives it.
  * @returns {null | { stress: string[], decision: string[], strategy: boolean }}
  */
-export function reAnchorAllowance(before, after) {
+export function reAnchorAllowance(before, after, { now = null } = {}) {
   const s0 = isObj(before && before.stress) ? before.stress : {}, d0 = isObj(before && before.decision) ? before.decision : {};
   const s1 = isObj(after && after.stress) ? after.stress : null, d1 = isObj(after && after.decision) ? after.decision : null;
   if (!s1 || !d1 || !lockedSettings(d0) || !lockedSettings(d1) || s0.retired === false) return null;
@@ -522,6 +544,14 @@ export function reAnchorAllowance(before, after) {
   if (!(to > 0) || num(s1.firstTaxYear) !== to || num(d1.firstTaxYear) !== to) return null;
   const from = moveAnchorOf(s0, d0);
   if (!(from > to)) return null;
+  // With no month, nothing in the plan names the year moved to, so it is bounded here: never before the tax year the plan
+  // was locked in (this tax year never is, and the lock's day must sit inside the plan's years for its position), and, where
+  // the caller has the clock (`now`), exactly this tax year. A move to any other earlier year is not the move.
+  if (!stop) {
+    const lockDay = d0.lockedAt ? new Date(d0.lockedAt) : null;
+    if (!lockDay || !Number.isFinite(lockDay.getTime()) || to < taxYearStartOf(lockDay)) return null;
+    if (now && to !== taxYearStartOf(now)) return null;
+  }
   // a State Pension date written by the move (its (b), 7.4.0): only onto a copy that gave none, the yearly figure as weekly
   const spChanged = text(s1.spStartDate) !== text(s0.spStartDate);
   const spDate = spChanged ? spDateOf(s1.spStartDate) : null;
@@ -642,10 +672,63 @@ export function laterDraftOf(scenario, settings, now = new Date()) {
   // a stop still to come: its tax year is the plan's start to be, not a start later than it should be
   if (stop && !hasStopped(stop, now)) return null;
   const stopped = stop || null;
-  const to = stopped ? taxYearOfMonth(stopped) : thisTY;
+  const to = stopped ? Math.min(taxYearOfMonth(stopped), thisTY) : thisTY;   // as PlanTiming.stopTaxYearSoFar
   const w = reAnchorWork(s, from - to, to, 'stress');
   if (w.blocked) return null;
   return { from, to, years: from - to, stopMonth: stopped, legacy: false, settings: w.out };
+}
+
+/**
+ * A LOCKED plan whose Stress copy never saved its year 0 (7.4.0): it keeps the year it was locked with. Until 7.4.0 such a
+ * plan derived next April (or, with no age, the calendar year after today), and the first load pinned that year into the
+ * saved plan (PlanTiming.timingPinPatch, 6.13.5); a plan not opened since then still holds none. 7.4.0's defaults would
+ * read it a year earlier — a locked plan's figures changed with nobody confirming anything — so its year is filled in
+ * memory before the timing reads it: the Decision copy's year 0 (seeded at the lock), else its plan document's, else the
+ * default it read until 7.4.0. The planner's pin then writes that same year. Only the case the defaults decide: a plan
+ * with a saved year, a saver, a plan that says when work stopped (its stop's tax year, as before) and every unlocked plan
+ * are returned as they are. Moving its start stays the person's own confirm (startLaterOf).
+ */
+export function withLockedStart(scenario, settings, now = new Date()) {
+  const s = isObj(settings) ? settings : {};
+  if (!isObj(scenario) || !lockedSettings(settingsOf(scenario, 'decision')) || isSuccessorOrClosed(scenario)) return s;
+  if (num(s.firstTaxYear) > 0) return s;
+  let t = null; try { t = deriveTiming(s, now); } catch { t = null; }
+  if (!t) return s;
+  const ds = settingsOf(scenario, 'decision');
+  const doc = isObj(scenario.planDocument) && isObj(scenario.planDocument.timing) ? scenario.planDocument.timing : {};
+  const kept = num(ds.firstTaxYear) > 0 ? num(ds.firstTaxYear) : num(doc.firstTaxYear) > 0 ? num(doc.firstTaxYear) : null;
+  if (t.mode === 'legacy') return num(s.legacyFirstTaxYear) > 0 ? s : { ...s, legacyFirstTaxYear: kept || now.getFullYear() + 1 };
+  if (t.mode !== 'retired') return s;
+  const stop = stoppedWorkOf(s);
+  if (stop && hasStopped(stop, now)) return s;
+  return { ...s, firstTaxYear: kept || taxYearStartOf(now) + 1 };
+}
+
+/**
+ * A retired DRAFT whose year 0 is still later than this tax year once laterDraftOf has read it (7.4.0): the drafts that rule
+ * leaves as saved, because the reading could not keep every figure — months recorded against the saved start (`records`), a
+ * State Pension given only as a plan year that the move would land on the year read as "at 67" (`statePension`), and a plan
+ * with no age whose start was pinned the old way and has months recorded (`records` too). Nothing is read differently for
+ * them; both apps say, as a thing to do, that the start is later than this tax year and where to choose it ("About you and
+ * when", the Timing block), where any year from the stop's to this one is offered. `settings`: the effective settings (the
+ * reading already applied). Null for every other plan: locked (startLaterOf), closed or carried on, a saver, a stop still to
+ * come, and a start this tax year or earlier.
+ * @returns {null | { start: number, why: 'records'|'statePension' }}
+ */
+export function laterDraftLeftOf(scenario, settings, now = new Date()) {
+  if (!isObj(scenario)) return null;
+  if (lockedSettings(settingsOf(scenario, 'decision')) || isSuccessorOrClosed(scenario)) return null;
+  const s = isObj(settings) ? settings : settingsOf(scenario, 'stress');
+  if (s.retired === false) return null;
+  let t = null; try { t = deriveTiming(s, now); } catch { t = null; }
+  if (!t || (t.mode !== 'retired' && t.mode !== 'legacy')) return null;
+  const start = num(t.firstTaxYear);
+  if (!(start > taxYearStartOf(now))) return null;
+  const stop = t.mode === 'retired' ? stoppedWorkOf(s) : null;
+  if (stop && !hasStopped(stop, now)) return null;
+  if (laterDraftOf(scenario, s, now)) return null;
+  const hist = isObj(scenario.decisionTool) && Array.isArray(scenario.decisionTool.history) ? scenario.decisionTool.history : [];
+  return { start, why: hist.length ? 'records' : 'statePension' };
 }
 
 /** The one sentence a draft read from an earlier start says (laterDraftOf), in both apps' timing summaries until it is saved. */
@@ -655,7 +738,9 @@ export function laterDraftSentence(later) {
 
 /**
  * What 7.4.0 means for one saved plan, as plain lines for the release note's `affects(scenario)`; empty when nothing:
- *  - a retired draft saved with a later start (laterDraftOf): it is now read from the earlier year;
+ *  - a retired draft saved with a later start (laterDraftOf): it is now read from the earlier year, and the years drawn
+ *    from today's pots are counted from this tax year (a stop in an earlier one adds lived years, not drawn ones); a plan
+ *    with no age only starts earlier: no figure is moved with it;
  *  - a locked plan whose year 0 is later than this tax year (startLaterOf): nothing changed, and its home shows the move.
  * Tolerates any shape ({}, a plan with no tools, null). Reads the plan as stored; writes nothing.
  * @returns {string[]}
@@ -665,7 +750,16 @@ export function laterStartEffects(scenario, now = new Date()) {
   const out = [];
   try {
     const d = laterDraftOf(scenario, settingsOf(scenario, 'stress'), now);
-    if (d) out.push('Your plan now runs from ' + taxYearLabel(d.to) + ': ' + (d.years === 1 ? 'one more year is' : d.years + ' more years are') + ' drawn, and every figure counted from its start moves with it.');
+    if (d && d.legacy) out.push('Your plan now runs from ' + taxYearLabel(d.to) + ', this tax year, not from April ' + d.from + '.');
+    else if (d) {
+      // the years newly drawn from today's pots: those from this tax year (or the stop's, when later) up to the old start —
+      // a stop in an earlier tax year adds years already lived, which are read as lived, never drawn again
+      const n = d.from - Math.max(d.to, taxYearStartOf(now));
+      const drawn = (n === 1 ? 'one more year is' : n + ' more years are') + ' drawn';
+      out.push(d.stopMonth
+        ? 'Your plan now runs from ' + taxYearLabel(d.to) + ', the tax year you stopped work. From today, ' + drawn + ', and every figure counted from its start moves with it.'
+        : 'Your plan now runs from ' + taxYearLabel(d.to) + ', this tax year: ' + drawn + ', and every figure counted from its start moves with it.');
+    }
   } catch { /* a shape the timing cannot read: nothing to say */ }
   try {
     const l = startLaterOf(scenario, now);

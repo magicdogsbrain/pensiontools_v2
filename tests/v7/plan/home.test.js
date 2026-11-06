@@ -132,7 +132,8 @@ describe('every committed plan at three dates: the stage word, the to-dos in ord
     '2027-04-06': {
       '01-fresh-default': [null, 'plan.noAge', null],
       '02-pnv-draft': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
-      '03-gilt-ladder-runup': ['drawing', 'start.ask month.taxYear month.gap hold.stale', null],
+      // its start (April 2027) is this tax year by now: "When did you stop work?" without the offer of this tax year (7.4.0)
+      '03-gilt-ladder-runup': ['drawing', 'start.askOnly month.taxYear month.gap hold.stale', null],
       '04-buckets-running': ['drawing', 'month.taxYear month.gap hold.stale', null],
       '05-saver-committed': ['saving', 'checkin.due', null],
       '06-pre-6.4-no-timing': ['drawing', 'month.taxYear month.gap', null],
@@ -172,7 +173,7 @@ describe('one engine: the rail\'s Next is the first thing due, and the home\'s f
     const due = NEXT_ORDER.filter((x) => DUE_IDS[x]);
     // (P.moveLater: the move on a drawing plan that records nothing it holds, the design's "move.next: drawing (lower)")
     // (P.startMove / P.startAsk, 7.3.3: a locked plan stored with its start later than it should be, ranked just after the lock)
-    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.draft', 'P.startMove', 'P.startAsk', 'P.startBlocked', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending']);
+    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.startDraft', 'P.draft', 'P.startMove', 'P.startAsk', 'P.startBlocked', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending']);
     expect(NEXT_ORDER.slice(-6)).toEqual(['P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
   });
   for (const today of DATES) {

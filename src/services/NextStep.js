@@ -43,7 +43,11 @@ export const NEXT_STEP_WORDS = Object.freeze({
   // the move cannot keep the State Pension's tax year under the lock (PlanMove.moveBlockedOf): said as it is, and the button
   // opens the line that explains why, never a move it would refuse
   startBlocked: 'Your plan is set to start in {start}, but you stopped work in {stopped}. Its start can be moved only once the plan is unlocked.',
-  startBlockedBtn: 'See why'
+  startBlockedBtn: 'See why',
+  // a draft still set to start later than this tax year (7.4.0, PlanMove.laterDraftLeftOf): the V7 home's to-do, the start
+  // chosen in the Timing block
+  startDraft: 'Your plan is set to start in {start}. It can start this tax year, or the tax year you stopped work: choose it under Timing.',
+  startDraftBtn: 'Choose the start'
 });
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -77,14 +81,16 @@ function startLaterStep(sl) {
 }
 
 /**
- * @param {{ stage: object|null, budget: object, stress: object, decision: object, fromAnswer?: boolean, successorName?: string|null, startLater?: object|null }} plan
+ * @param {{ stage: object|null, budget: object, stress: object, decision: object, fromAnswer?: boolean, successorName?: string|null, startLater?: object|null, startDraft?: object|null }} plan
  *   `stage` from LifeStage.deriveStage; the Budget, Stress and Decision settings as loaded; whether the plan was made
  *   from a V7 answer; for a closed plan, the name of the plan that carries it on (when the page has it); `startLater`, a
- *   locked plan stored with its start later than it should be (PlanMove.startLaterOf), whose one thing to do is the move
+ *   locked plan stored with its start later than it should be (PlanMove.startLaterOf), whose one thing to do is the move;
+ *   `startDraft`, a draft still set to start later than this tax year (PlanMove.laterDraftLeftOf): its start is chosen first
  * @returns {{ html: string, btn: string, action: object }|null}
  */
-export function nextStepFor({ stage, budget, stress, decision, fromAnswer = false, successorName = null, startLater = null }) {
+export function nextStepFor({ stage, budget, stress, decision, fromAnswer = false, successorName = null, startLater = null, startDraft = null }) {
   if (stage && stage.locked && startLater) return startLaterStep(startLater);
+  if (startDraft && !(stage && (stage.locked || stage.key === 'closed'))) return { html: esc(NEXT_STEP_WORDS.startDraft.replace('{start}', 'April ' + startDraft.start)), btn: NEXT_STEP_WORDS.startDraftBtn, action: { kind: 'stress-settings' } };
   if (stage && (stage.locked || stage.key === 'closed')) return stage.banner ? stageStep(stage, false, successorName) : null;
   const b = budget || {}, s = stress || {}, d = decision || {};
   const budgetDone = (b.lines || []).some((l) => +l.annual > 0);

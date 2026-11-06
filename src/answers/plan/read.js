@@ -32,7 +32,7 @@ import { checkInState } from './checkInDue.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
 import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
-import { startLaterOf } from '../../services/PlanMove.js';
+import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
 
 // The dates in words live in dates.js (shared with about.js); kept as exports here for everyone who reads them from read.js.
 export { dateOf, monthWords, monthName, dayWords };
@@ -871,6 +871,8 @@ function rulesFor(C, built) {
     // "Move the start" that the page it opens would refuse
     'P.startBlocked': () => !C.readonly && !!C.startLater && C.startLater.kind === 'move' && !!C.startLater.blocked,
     'P.startAsk':    () => !C.readonly && !!C.startLater && C.startLater.kind === 'ask',
+    // a draft whose start is still later than this tax year (C.startDraft): choose it on "About you and when"
+    'P.startDraft':  () => !C.readonly && !!C.startDraft,
     'P.approaching': () => key === 'approaching',
     'P.onCourse':    () => !!ci && lastBand === 'yes',
     'P.nextCheckIn': () => chosen && !!ci.lastCheckIn,
@@ -885,7 +887,7 @@ function rulesFor(C, built) {
     ...(prog && prog.next ? { n: String(prog.doneCount + 1), of: String(prog.total), label: String(prog.next.label || prog.next.ticker || '') } : prog ? { n: String(prog.doneCount), of: String(prog.total) } : {}),
     ...(holdCount > 0 && rec.updatedAt ? { date: dayWords(rec.updatedAt) } : {}),
     ...(band ? { band } : {}),
-    ...(C.startLater ? { start: 'April ' + C.startLater.start, ...(C.startLater.stopMonth ? { stopped: monthWords(C.startLater.stopMonth) } : {}) } : {}) };
+    ...(C.startLater ? { start: 'April ' + C.startLater.start, ...(C.startLater.stopMonth ? { stopped: monthWords(C.startLater.stopMonth) } : {}) } : C.startDraft ? { start: 'April ' + C.startDraft.start } : {}) };
   const aboutHref = '#/plan/' + plan.id + '/about';   // "About you and when", inside V7 (editing-in-v7.md 2)
   const lastsHref = '#/plan/' + plan.id + '/lasts';   // "Does it last?", inside V7 (editing-in-v7.md 10): no hand-over to the run
   const savingHref = '#/plan/' + plan.id + '/saving'; // "What you pay in", inside V7: whether what goes in is enough (release step R2)
@@ -925,6 +927,7 @@ function rulesFor(C, built) {
     'P.startMove': link('moveStart', aboutHref),
     'P.startAsk': link('sayWhen', aboutHref),
     'P.startBlocked': link('seeWhy', aboutHref),
+    'P.startDraft': link('chooseStart', aboutHref),
     'P.approaching': link('lasts', lastsHref),
     'P.saving': link('seeSaving', savingHref)
   };
@@ -944,7 +947,9 @@ export function dueFor(C, built, R = rulesFor(C, built)) {
   for (const pid of NEXT_ORDER) {
     if (NEXT_INFO.includes(pid) || !R.RULES[pid]()) continue;
     if (C.stage.key === 'closed' && pid !== 'P.closed') continue;
-    const id = pid === 'P.month' && R.gap ? 'month.gap' : DUE_IDS[pid];
+    // "When did you stop work?" offers this tax year beside it only where the move to it is offered (startLater.thisYear),
+    // as the planner's own words do (NextStep startAsk / startAskOnly)
+    const id = pid === 'P.month' && R.gap ? 'month.gap' : pid === 'P.startAsk' && !(C.startLater && C.startLater.thisYear) ? 'start.askOnly' : DUE_IDS[pid];
     // put off for this window: what you hold out of date and the move on a plan that records nothing it holds ("Not now"),
     // and the move invitation ("Not yet", the design's rank 3) — kept in the window only, nothing written
     const dismiss = DISMISSIBLE.includes(pid) ? 'window' : null;
@@ -1015,7 +1020,10 @@ export function planPage(entries, id, stepId, { today, source = 'account', notNo
   // reading of its months against a later year's figure. Read on a read-only entry too, so its months are never set against
   // a later year's figure; only the to-do is left out there (it cannot be acted on), as the home's year view reads it.
   let startLater = null; try { startLater = startLaterOf(plan, now); } catch { startLater = null; }
-  const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, held, startLater, notNow: Array.isArray(notNow) ? notNow : [] };
+  // a retired draft still read from a start later than this tax year (7.4.0, PlanMove.laterDraftLeftOf: months recorded, or
+  // a State Pension by plan year the reading could not keep): one to-do, to choose the start on "About you and when"
+  let startDraft = null; try { startDraft = locked ? null : laterDraftLeftOf(plan, ss, now); } catch { startDraft = null; }
+  const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, held, startLater, startDraft, notNow: Array.isArray(notNow) ? notNow : [] };
   // how far the stop is, for what a saver keeps "For later" (steps.js laterFor): months to the stop month, in years
   const yearsToStop = Number.isFinite(stage.monthsToStart) && stage.timingMode === 'future' ? stage.monthsToStart / 12 : (Number.isFinite(stage.yearsToStart) ? stage.yearsToStart : null);
   const listed = stepsFor(stage.key, { locked, linked: partners.length > 0, manyPlans: list.length > 1, yearsToStop });

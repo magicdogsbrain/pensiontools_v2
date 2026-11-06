@@ -29,6 +29,7 @@ let _catalogue = DEFAULT_FUND_CATALOGUE;
 let _profileOverrides = null;
 let _loaded = false;
 let _isAdmin = false;
+let _probedFor;          // the uid the admin probe last ran for (undefined: never ran)
 let _passphrase = null;
 
 /** The live fund catalogue: the Firestore override when present, else the code default. */
@@ -62,16 +63,28 @@ export function activeProfileOverrides() {
  * the code defaults are always a working configuration.
  */
 export async function initAdminConfig() {
-  if (_loaded || !isFirebaseConfigured() || !db) return;
-  _loaded = true;
-  // Admin probe: only an account listed in admins/ can read adminPrivate/access (firestore.rules).
-  try {
-    const probe = await getDoc(doc(db, 'adminPrivate', 'access'));
-    _isAdmin = true; // read permitted → this IS the admin (even if the doc doesn't exist yet)
-    _passphrase = probe.exists() ? (probe.data().passphrase || null) : null;
-  } catch (e) {
+  if (!isFirebaseConfigured() || !db) return;
+  // Admin probe: only an account listed in admins/ can read adminPrivate/access (firestore.rules). It runs again whenever
+  // the signed-in account is not the one it last ran for: once per page load left a second account, signed in after the
+  // first in the same tab, showing the first one's gear (found 6 Nov 2026; display only — the rules refused its reads).
+  const uid = (getCurrentUser() && getCurrentUser().uid) || null;
+  if (uid !== _probedFor) {
+    _probedFor = uid;
     _isAdmin = false;
+    _passphrase = null;
+    try {
+      const probe = await getDoc(doc(db, 'adminPrivate', 'access'));
+      if (_probedFor === uid) {
+        _isAdmin = true; // read permitted → this IS the admin (even if the doc doesn't exist yet)
+        _passphrase = probe.exists() ? (probe.data().passphrase || null) : null;
+      }
+    } catch (e) {
+      _isAdmin = false;
+    }
   }
+  // The shared lists below are the same for everyone: read once per page load.
+  if (_loaded) return;
+  _loaded = true;
   try {
     const [fundsSnap, profSnap, typSnap, linkSnap] = await Promise.all([
       getDoc(doc(db, 'admin', 'fundCatalogue')),

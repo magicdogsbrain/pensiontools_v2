@@ -37,6 +37,25 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.2.1', date: '2026-11-06', engineVersion: '6.37.0',
+    title: 'The Administration gear follows the account signed in',
+    summary: 'In the classic planner, the Administration gear could stay on the screen after someone else signed in on the same page. It now follows whoever is signed in. It was only ever the button: the administration itself was always refused to anyone who is not an administrator.',
+    changes: [],
+    corrections: [
+      'In the classic planner, signing out and signing in as someone else without reloading the page could leave the previous person’s Administration gear showing. We now check again each time a different account signs in.'
+    ],
+    effects: {
+      stress: [],
+      strategies: [],
+      decision: [],
+      accumulation: [],
+      budget: [],
+      household: []
+    },
+    actions: ['None.'],
+    notes: []
+  },
+  {
     version: '7.2.0', date: '2026-11-05', engineVersion: '6.37.0',
     title: 'Month by month, on the front pages: what to draw, record the month, fill in the months you missed',
     summary: 'If you draw from your plan, you can now do your monthly records without going to the classic planner. Open a drawing plan and Month by month is the first thing you see: set up the tax year, see what to draw and where it comes from, record the month, and fill in any months you missed in one go. The figures are the same as the classic planner’s.',

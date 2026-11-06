@@ -79,7 +79,8 @@ test.describe('Say when you stopped work, without an account', () => {
     await page.locator('#tmStopMonth').fill('2023-10');
     await expect(page.locator('#tmStartYear')).toHaveValue('2023');
     await expect(page.locator('#tmStartYear option[value="2023"]')).toHaveText('2023/24 — the year you stopped work');
-    await expect(page.locator('#tmStartYear option')).toHaveText(['2023/24 — the year you stopped work', '2024/25', '2025/26', 'this tax year — 2026/27', 'next 6 April — 2027/28']);
+    // 7.3.3: never a later year than this one; the draft's own saved year (02: 2027/28) stays on offer as saved
+    await expect(page.locator('#tmStartYear option')).toHaveText(['2023/24 — the year you stopped work', '2024/25', '2025/26', 'this tax year — pick up from here — 2026/27', '2027/28 (saved)']);
     await expect(page.locator('#tmSummary')).toContainText('You stopped work in October 2023. Plan started 6 April 2023 (tax year 2023/24); today is plan year 3 of');
     await expect(page.locator('#giltBridgeWrap')).toBeHidden();
     noOldWords(await page.locator('#ssTimingBlock').innerText());
@@ -127,29 +128,32 @@ test.describe('Say when you stopped work, without an account', () => {
     expect(widths.doc, 'no sideways scroll').toBeLessThanOrEqual(widths.win + 1);
   });
 
-  test('(c) stopped in August 2026, the plan\'s income chosen for next April: the months until then are said for what they are', async ({ page, watch }) => {
+  test('(c) stopped in August 2026, the draft\'s next-April year kept as saved: no words for months before the plan; locked, one thing to do (7.3.3)', async ({ page, watch }) => {
     test.setTimeout(240_000);
     watch.allow(WORKER_DATA_MISSING);
     await openTiming(page, draft());
     await page.locator('#tmStopMonth').fill('2026-08');
     await expect(page.locator('#tmStartYear')).toHaveValue('2026');
     await page.locator('#tmStartYear').selectOption('2027');
-    await expect(page.locator('#tmSummary')).toContainText('You stopped work in August 2026; the plan\'s income starts 6 April 2027 (tax year 2027/28), in 6 months. Until then you live on money set aside or other income: those months are recorded, not compared with the plan.');
-    await expect(page.locator('#giltBridgeWrap')).toBeVisible();
-    await expect(page.locator('#giltBridgeWrap')).toContainText('Pension cash set aside until the plan\'s income starts');
+    await expect(page.locator('#tmSummary')).toContainText('You stopped work in August 2026. Plan starts 6 April 2027 (tax year 2027/28), in 6 months.');
+    expect(await page.locator('#tmSummary').innerText()).not.toMatch(/set aside|not compared|before the plan/);
+    await expect(page.locator('#giltBridgeWrap')).toBeHidden();   // the ladder's extra cash is shown only on a plan that holds some
     noOldWords(await page.locator('#ssTimingBlock').innerText());
     await lock(page);
     const locked = await storedPlan(page);
     expect(locked.stressTool.settings).toMatchObject({ stoppedWork: '2026-08', firstTaxYear: 2027 });
     expect(locked.planDocument.pots.asOfPlanYear).toBeUndefined();
-    await expect(page.locator('.pd-where')).toContainText('Before the plan\'s income starts — tax year 2026/27, 1 tax year before the plan\'s year 0, 2027/28.');
+    // the strip says the one thing to do — move the start — and reads nothing against a later year's figure
+    await expect(page.locator('.pd-where')).toContainText('Your plan is set to start in 2027/28. Start it from the tax year you stopped work: the banner at the top of the page does it.');
+    await expect(page.locator('#nextStepBanner')).toContainText('Your plan is set to start in April 2027, but you stopped work in August 2026. Start it from the tax year you stopped.');
     noOldWords(await page.locator('.pd').innerText());
-    // the Transition page tells the same story (a review of 6.51.0 found "Until then you draw from your SIPP cash" there)
+    // the Transition page names no months before the plan either (7.3.3: its "You have stopped work … until then" note is gone)
     await page.evaluate(() => switchToTab('transition'));
     const transition = page.locator('#transitionPage');
-    await expect(transition).toContainText('You have stopped work.', { timeout: 45_000 });
-    await expect(transition).toContainText('Until then the months are paid from the money set aside');
+    await expect(transition).toBeVisible({ timeout: 45_000 });
+    await page.waitForTimeout(1000);
     const tt = await transition.innerText();
+    expect(tt).not.toMatch(/You have stopped work|set aside|before the plan/);
     noOldWords(tt);
     expect(tt).not.toMatch(/SIPP cash/);
   });

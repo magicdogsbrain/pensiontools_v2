@@ -64,7 +64,7 @@ test.describe('the saved plans, without an account', () => {
     const rows = group.locator('.plan-row');
     await expect(rows).toHaveCount(2);
     await expect(group).toContainText('‘Ladder plan’');
-    await expect(group).toContainText('Retired. Your ladder pays from April 2027. Locked 1 July 2026.');
+    await expect(group).toContainText('Retired. Living on the plan; your ladder’s first gilt pays from April 2029. Locked 1 July 2026.');   // 7.3.3: no words for months before its start
     await expect(group).toContainText('‘Saving plan’');
     await expect(group).toContainText('Still saving.');
     await expect(page.getByTestId('plans.signIn')).toBeVisible();
@@ -78,7 +78,7 @@ test.describe('the saved plans, without an account', () => {
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan');
     await expect(page.getByTestId('plan.home')).toBeVisible();
     await expect(page.getByTestId('plan.home.headline')).toHaveText('Drawing.');
-    await expect(page.getByTestId('plan.stageLine')).toHaveText('Retired. Your ladder pays from April 2027. Locked 1 July 2026.');
+    await expect(page.getByTestId('plan.stageLine')).toHaveText('Retired. Living on the plan; your ladder’s first gilt pays from April 2029. Locked 1 July 2026.');
     await expect(page.locator('[data-todo="move.next"]')).toHaveCount(0);
     await expect(page.getByTestId('plan.home.heldMix')).toContainText('of your plan’s mix');
     await page.evaluate(() => { window.location.hash = '#/plan/HouseLadder01/month'; });

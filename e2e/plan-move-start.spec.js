@@ -83,7 +83,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     expect((await storedPlan(page)).stressTool.settings.stoppedWork).toBeUndefined();
     await page.locator('#tmLockedStopMonth').fill('2023-10');
     await page.locator('#tmLockedStopSave').click();
-    await expect(line).toContainText('You stopped work in October 2023, before the plan\'s income starts (2027/28).', { timeout: 45_000 });
+    await expect(line).toContainText('You stopped work in October 2023, and your plan is set to start in 2027/28. Start it from 2023/24, the tax year you stopped', { timeout: 45_000 });   // 7.3.3
     await expect(line).toContainText('Your first income step keeps its amount and runs from 2023/24, at 62; your later steps keep their ages. The plan stays locked.');
     expect((await page.locator('#tmMoveStartBtn').boundingBox()).height).toBeLessThan(60);
     await expect(line).toContainText('Change the month you stopped work');   // a month typed wrongly stays changeable under the lock
@@ -97,7 +97,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     // the preview, once the month is said: the move is offered there (the preview's own move is case c)
     await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID + '/about');
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.about', { timeout: 45_000 });
-    await expect(page.getByTestId('plan.about.moveStart')).toContainText('The plan’s start can move to 2023/24', { timeout: 45_000 });
+    await expect(page.getByTestId('plan.about.moveStart')).toContainText('It can start from 2023/24, the tax year you stopped', { timeout: 45_000 });   // 7.3.3
     await expect(page.getByTestId('plan.about.stopAsk')).toHaveCount(0);
     // the planner's own action, on the Timing block, opened by the hand-over
     await page.evaluate(([rk, req]) => sessionStorage.setItem(rk, req), [OPEN_PLACE_KEY, makeRequest({ planId: PLAN_ID, place: 'about', back: '#/plan/' + PLAN_ID + '/about', at: NOW })]);
@@ -196,7 +196,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID + '/about');
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.about');
     const offer = page.getByTestId('plan.about.moveStart');
-    await expect(offer).toContainText('The plan’s start can move to 2023/24', { timeout: 45_000 });
+    await expect(offer).toContainText('It can start from 2023/24, the tax year you stopped', { timeout: 45_000 });   // 7.3.3
     await expect(offer).toContainText('Before anything is written, this page says exactly what changes');
     await expect(page.getByTestId('plan.about.moveConfirm')).toHaveCount(0);
     const open = page.getByTestId('plan.about.moveStart.open');

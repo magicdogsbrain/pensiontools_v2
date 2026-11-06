@@ -30,7 +30,7 @@ export const RELEASE_HISTORY = [
     summary: 'A new Strategies tab gives every strategy its own page and a side-by-side comparison. The plan lock became one simple rule, you can try the app without signing up, the app works properly on a phone, and browser security was tightened.',
     changes: [
       'Strategies tab: a page per strategy with diagrams, settings and results, and a comparison page with a guide to choosing.',
-      'New strategies: Full index-linked gilt ladder, Bridge & engine, and Buckets in order, with layered income charts on every card.',
+      'New strategies: Full index-linked gilt ladder, Gilts to State Pension, then shares, and Buckets in order, with layered income charts on every card.',
       'ISA policy “Hold”: never draw the ISA for income, and leave it out of what the ladders are priced on.',
       'One plan lock: it locks itself on the first monthly entry or tax year, and unlocking is always offered with its consequences shown first.',
       'Stress tester “Try a strategy” what-ifs, an Assumptions & data page, and a choice of monthly, quarterly or yearly selling in the Decision tool.',
@@ -136,7 +136,7 @@ export const RELEASE_HISTORY = [
     summary: 'The ISA became a pot that runs down under a drawdown policy shared by both tools, and a rising share of equities (the bond tent) became the main way to set your mix.',
     changes: [
       'ISA drawdown with band management, shared by the Stress tester and the Decision tool; ISA fields can be copied from the Decision tool.',
-      'Bond tent (shares rising, then level) as the main allocation, shown on the Glidepath and Drawdown tabs with the ISA bridge.',
+      'Bond tent (shares rising, then level) as the main allocation, shown on the Glidepath and Drawdown tabs with the ISA top-up.',
       'An option for spending that declines with age, and a share–bond relationship that changes with market conditions.'
     ],
     corrections: [

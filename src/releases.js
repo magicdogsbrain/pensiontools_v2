@@ -331,28 +331,28 @@ export const RELEASES = [
   },
   {
     version: '6.55.0', date: '2026-11-05', engineVersion: '6.37.0',
-    title: 'Bridge & engine and Ladder & ratchet count a started plan’s years from its start',
-    summary: 'For a plan whose first tax year has passed, Bridge & engine held its cash, and Ladder & ratchet its base ladder, for as many extra years as had already gone by. They now count from the plan’s first year, so the figures for these plans change. The preview can also move a locked plan’s start itself, and a saving plan opens “Am I saving enough?” with its own figures.',
+    title: 'Gilts to State Pension, then shares and Ladder & ratchet count a started plan’s years from its start',
+    summary: 'For a plan whose first tax year has passed, Gilts to State Pension, then shares held its cash, and Ladder & ratchet its base ladder, for as many extra years as had already gone by. They now count from the plan’s first year, so the figures for these plans change. The preview can also move a locked plan’s start itself, and a saving plan opens “Am I saving enough?” with its own figures.',
     changes: [
       'In the preview, a locked plan’s “About you and when” can now move the plan’s start back to the tax year you stopped work without leaving the page. It says exactly what changes first, in the same words as the planner.',
       'On a saving plan, the link to “Am I saving enough?” now opens the question with your plan’s figures and its own mix of investments filled in, so it gives the same answer as your plan until you change something.'
     ],
     corrections: [
-      'For a plan whose first year is behind it, Bridge & engine held its cash, and Ladder & ratchet its base ladder, for as many extra years as had already passed. They now count from the plan’s first year: a plan two years in with three cash years has one cash year left.',
+      'For a plan whose first year is behind it, Gilts to State Pension, then shares held its cash, and Ladder & ratchet its base ladder, for as many extra years as had already passed. They now count from the plan’s first year: a plan two years in with three cash years has one cash year left.',
       'Month by month’s advice for Ladder & ratchet counted the base ladder as 15 years when you had not set it, even when the plan bought fewer. It now counts the years the plan buys.',
       'A Ladder & ratchet plan whose base ladder has all been paid no longer says its income is guaranteed by contract to your age today.',
       'Moving a locked Ladder & ratchet plan’s start back no longer ends a base ladder you had not set a year early.',
       'Pasting your holdings again no longer adds a second copy of a plain cash line, merges two cash accounts into one, or lets a cash line take over a money-market fund. Cash lines are now matched by their name within their account.'
     ],
     effects: {
-      stress: ['Bridge & engine and Ladder & ratchet plans whose first tax year has passed: the cash or base ladder left now counts from the plan’s first year, so their figures change. A locked plan’s plan document keeps its figures until it is written again. Other plans are unchanged.'],
+      stress: ['Gilts to State Pension, then shares and Ladder & ratchet plans whose first tax year has passed: the cash or base ladder left now counts from the plan’s first year, so their figures change. A locked plan’s plan document keeps its figures until it is written again. Other plans are unchanged.'],
       strategies: [],
       decision: ['Ladder & ratchet’s month advice counts the base-ladder years your plan buys when you had not set them.'],
       accumulation: [],
       budget: [],
       household: []
     },
-    actions: ['None. If you draw by Bridge & engine or Ladder & ratchet and your plan started in an earlier tax year, look again at its figures.'],
+    actions: ['None. If you draw by Gilts to State Pension, then shares or Ladder & ratchet and your plan started in an earlier tax year, look again at its figures.'],
     notes: []
   },
   {
@@ -361,7 +361,7 @@ export const RELEASES = [
     summary: 'If you locked a plan whose income starts after the tax year you stopped work, the planner now asks when you stopped and can move the plan’s start back to that tax year without unlocking it. The months you have lived since then become months of your plan, and every figure stays in the tax year it was in.',
     changes: [
       'On a locked plan, “When your plan starts” asks once when you stopped work. “Leave it” is remembered, and you can still give the month later under “Say when you stopped work”. You can change the month while the plan is locked.',
-      'If you stopped before the plan’s income starts, “Move the plan’s start…” moves it back to the tax year you stopped. It says exactly what changes first, and the plan stays locked.',
+      'If your plan was set to start after you stopped work, “Move the plan’s start…” moves it back to the tax year you stopped. It says exactly what changes first, and the plan stays locked.',
       'After the move, the months you recorded since you stopped are months of your plan: History, plan vs actual and the line that shows where you are count the plan’s years from the tax year you stopped. Months you did not record can be filled in back to the month you stopped; each earlier tax year is set up first, and a month already recorded is never written over.',
       'Your income keeps its shape. The first step keeps its amount and runs from the tax year you stopped; the years added at the front are paid at the amount the step started at. Later steps keep their ages, and the plan ends at the same age.',
       'Your State Pension, lump sums, one-off costs, other income, a final-salary pension, a gilt ladder’s first gilt and its cash years all keep their tax years. Only the plan’s count of years to them changes.',
@@ -448,13 +448,13 @@ export const RELEASES = [
     changes: [
       'Timing, the set-up steps and the preview’s “About you and when” take the month you stopped work. The plan’s income starts in that tax year by default; a later year is your choice.',
       'A plan that has started says so: “Plan started 6 April 2023; today is plan year 3 of 30”. It is no longer offered an update to start now, and its plan document marks the years already lived and the plan year it was locked in.',
-      'If you start the plan’s income later than you stopped, the months until then are “before the plan’s income starts”: recorded, not compared with the plan. The Transition page now says the same.',
-      'The gilt ladder’s cash box is now “Pension cash set aside until the plan’s income starts”. Money outside your pension does not go there.',
+      'If your plan started later than you stopped, its months until then were recorded but not compared with the plan. The Transition page said the same.',
+      'The gilt ladder’s extra cash box says it holds pension cash. Money outside your pension does not go there.',
       'If the income would start before your pension can be drawn (55, or 57 if you reach 55 from 6 April 2028), Timing tells you and names the tax year to choose.',
       'Plan vs actual compares a year lived before you locked the plan on what you drew. It makes no tax or ISA comparison for those years, because the pots at their start were never entered.'
     ],
     corrections: [
-      'A month recorded under an earlier start could keep a “before the plan” label after the start moved. Labels now follow the plan’s start as it is now.',
+      'A month recorded under an earlier start could keep its old label after the start moved. Labels now follow the plan’s start as it is now.',
       'If you stopped work this tax year or earlier, a gilt ladder no longer holds back cash for a first April that has passed. A ladder still waiting for its start, or a plan locked before it, keeps that cash.',
       'When a plan starts part-way through a tax year, the Decision tool’s monthly figure for the ladder’s first year is now a twelfth of that year’s income, as the plan was worked out. Before, it squeezed the year into the months left to 5 April.',
       'A plan locked by its first monthly record after its first year began now keeps where its pots stood that day. Plans locked before this release read exactly as they did.'
@@ -952,7 +952,7 @@ export const RELEASES = [
       'Household couples check: when a gilt ladder is asked to draw less, the money that frees joins the money left over, in shares or kept, as the plan is set.'
     ],
     corrections: [
-      'Household couples check: the note called every plan that buys its income “a gilt ladder”; it now describes floors, bridges and plans that buy only part of their income correctly.',
+      'Household couples check: the note called every plan that buys its income “a gilt ladder”; it now describes floors and plans that buy only part of their income correctly.',
       'History said every strategy’s real starts were two months apart; only Pots & Valves and Buckets in order are, and it now says which.'
     ],
     effects: {
@@ -1063,7 +1063,7 @@ export const RELEASES = [
       'The year boxes now read “Years from now”.'
     ],
     corrections: [
-      'Survivor and care checks tested gilt ladders, floors and bridges as growth portfolios; each plan now runs on its own strategy. On a gilt-ladder plan, the inheritance shown was often about double what the plan leaves.',
+      'Survivor and care checks tested gilt ladders and floors as growth portfolios; each plan now runs on its own strategy. On a gilt-ladder plan, the inheritance shown was often about double what the plan leaves.',
       'Survivor check: the inheritance mixed figures from different futures and was shown in future pounds beside spending in today’s money; it is now the middle and worst 1 in 10 of what the plan leaves, in today’s money. The survivor’s spending was a share of both plans’ before-tax figures; it is now a share of what you both have after tax, taxed again as one person.',
       'Care check: the cost was added before tax, although care fees are paid from taxed money, and only futures where both pots lasted on their own counted. The cost is now grossed up and the household verdict comes first.',
       'Monthly Entry showed the rotation watch on plans that had not chosen the gilt ladder + rotation, and Stress tester → Drawdown and Glidepath showed fund schedules on plans that never use them. Both now show only where they apply.',
@@ -1081,7 +1081,7 @@ export const RELEASES = [
       accumulation: [],
       budget: [],
       household: [
-        'The survivor and care checks give different figures: lower inheritances on gilt-ladder, floor and bridge plans (often about half), all in today’s money. Both are what-ifs and never change a plan.'
+        'The survivor and care checks give different figures: lower inheritances on gilt-ladder and floor plans (often about half), all in today’s money. Both are what-ifs and never change a plan.'
       ]
     },
     actions: [
@@ -1957,13 +1957,13 @@ export const RELEASES = [
   {
     version: '6.13.3', date: '2026-09-23', engineVersion: '6.4.0',
     title: 'The Transition tab speaks plainly to someone who has already retired',
-    summary: 'For someone already retired whose plan starts in a later tax year, the Transition tab talked as if a retirement date were coming, and sized the run-up on the plan’s first income step rather than what is actually drawn each month. It now says you are retired, uses your real monthly payment, and shows the cash to hold now.',
+    summary: 'For someone already retired whose plan starts in a later tax year, the Transition tab talked as if a retirement date were coming, and sized the cash for the months to the plan’s start on its first income step rather than what is actually drawn each month. It now says you are retired, uses your real monthly payment, and shows the cash to hold now.',
     changes: [
       'Transition opens by saying you are already retired, when your gilt ladder starts paying, and that until then you draw from your pension cash.',
-      'A “Cash to hold now” table lists the run-up months, each cash year, and how much of a year a lump sum pays.'
+      'A “Cash to hold now” table lists the months to the plan’s start, each cash year, and how much of a year a lump sum pays.'
     ],
     corrections: [
-      'The run-up was sized on the plan’s first income step instead of the monthly amount the Decision tool actually pays; it now uses the actual payment.'
+      'That cash was sized on the plan’s first income step instead of the monthly amount the Decision tool actually pays; it now uses the actual payment.'
     ],
     effects: {
       decision: [],
@@ -1980,13 +1980,13 @@ export const RELEASES = [
   },
   {
     version: '6.13.2', date: '2026-09-23', engineVersion: '6.4.0',
-    title: 'Transition counts the run-up months in the cash you need to hold',
-    summary: 'Before a plan starts, the Transition tab’s cash target covered only the cash years, so money still needed for the run-up months looked spare. Those months are now part of the target and drop out as they pass. The boxes on the What you hold card now match the rest of the app.',
+    title: 'Transition counts the months to the plan’s start in the cash you need to hold',
+    summary: 'Before a plan starts, the Transition tab’s cash target covered only the cash years, so money still needed for the months to the start looked spare. Those months are now part of the target and drop out as they pass. The boxes on the What you hold card now match the rest of the app.',
     changes: [
-      'The Transition tab’s cash line now adds the run-up months still to pay, with their total.'
+      'The Transition tab’s cash line now adds the months to the start still to pay, with their total.'
     ],
     corrections: [
-      'The run-up months still to pay were left out of the cash target, so that money showed as spare.',
+      'The months to the start still to pay were left out of the cash target, so that money showed as spare.',
       'The What you hold card’s boxes were white with grey text; they now match the rest of the app.'
     ],
     effects: {
@@ -2098,10 +2098,10 @@ export const RELEASES = [
     title: 'Household and Transition now recognise that you have already retired',
     summary: 'For someone already retired whose plan starts in a later tax year, the Household tab said “still working” and the Transition tab read as if a retirement date were coming. Both now say you are retired. Pasting a statement also no longer tags a line as the wrong fund.',
     changes: [
-      'The Transition tab says the months before your plan starts are the run-up, paid from your pension cash, and shows where its holdings list comes from and how to remove a line that is not yours.'
+      'The Transition tab says the months to your plan’s start are paid from your pension cash, and shows where its holdings list comes from and how to remove a line that is not yours.'
     ],
     corrections: [
-      'Household called someone already retired “still working” until the plan started; it now reads “already retired” from your timing settings and counts the run-up need from today. A partner who really is still working keeps “still working”.',
+      'Household called someone already retired “still working” until the plan started; it now reads “already retired” from your timing settings and counts the spending need from today. A partner who really is still working keeps “still working”.',
       'When pasting a statement, a stray code in the ticker column could tag a line as a fund whose name it does not share; the code must now agree with the name.'
     ],
     effects: {
@@ -2109,7 +2109,7 @@ export const RELEASES = [
       stress: [],
       strategies: [],
       household: [
-        'Retired plans’ run-up years now show their spending need and State Pension instead of “still working”.'
+        'Retired plans’ years to the start now show their spending need and State Pension instead of “still working”.'
       ],
       budget: [],
       accumulation: []
@@ -2285,13 +2285,13 @@ export const RELEASES = [
   },
   {
     version: '6.11.4', date: '2026-09-11', engineVersion: '6.4.0',
-    title: 'Clearer run-up wording, lump sums in pot strategies, and rent counted in the run-up',
-    summary: 'Three follow-up fixes. The Decision tool’s run-up note now says the money comes from your pension cash, the plan document shows a lump sum feeding a pot strategy correctly, and the run-up’s cover count now allows for income such as rent.',
+    title: 'Clearer cash wording, lump sums in pot strategies, and rent counted in the cash cover',
+    summary: 'Three follow-up fixes. The Decision tool’s note on the months to the plan’s start now says the money comes from your pension cash, the plan document shows a lump sum feeding a pot strategy correctly, and the cash cover count now allows for income such as rent.',
     changes: [],
     corrections: [
-      'The Decision tool’s run-up note still spoke of “the cash you set aside”; it now says pension cash.',
+      'The Decision tool’s note on those months still spoke of “the cash you set aside”; it now says pension cash.',
       'For Pots & Valves and Buckets in order plans with a lump sum after the start, the plan document showed the lump sum as “Other / DB” income; the pot takes the lump sum, so the row now shows the pot paying.',
-      'In the run-up year, the tax-year setup’s “the cash to April covers about N payments” ignored income such as rent; it now takes it off, as it already did for a final-salary pension.'
+      'In a year before the plan’s first tax year, the tax-year setup’s “the cash to April covers about N payments” ignored income such as rent; it now takes it off, as it already did for a final-salary pension.'
     ],
     effects: {
       decision: [],
@@ -2335,7 +2335,7 @@ export const RELEASES = [
   {
     version: '6.11.2', date: '2026-09-11', engineVersion: '6.4.0',
     title: '“Tax saved” now counts only tax-free money you actually used',
-    summary: 'History and the monthly record showed “tax saved” for months where nothing tax-free was used, such as a run-up month or a month under protection. Tax saved now appears only when an ISA, taxable-account or tax-free slice was drawn.',
+    summary: 'History and the monthly record showed “tax saved” for months where nothing tax-free was used, such as a month paid from cash or a month under protection. Tax saved now appears only when an ISA, taxable-account or tax-free slice was drawn.',
     changes: [],
     corrections: [
       '“Tax saved” compared the year’s tax with drawing your whole target from the pension, so any month that drew less for another reason showed a saving that was not one. It now compares with the money actually delivered this tax year, as if all of it were taxable pension income.'
@@ -2357,10 +2357,10 @@ export const RELEASES = [
   },
   {
     version: '6.11.1', date: '2026-09-11', engineVersion: '6.4.0',
-    title: 'The months before your plan starts are now called the run-up',
-    summary: 'We called the months before a plan’s first tax year “bridge months” and their money “bridge cash”, as if it were something separate. For someone already retired it is the same pension cash the cash years use. The words now say “run-up” and “SIPP cash”; the sums are unchanged.',
+    title: 'Clearer words for the cash paid before a plan’s first tax year',
+    summary: 'We spoke of the money paid before a plan’s first tax year as if it were something separate. For someone already retired it is the same pension cash the cash years use, and the words now say so; the sums are unchanged.',
     changes: [
-      'The stage label, Decision tool alerts, plan document, History and the tax-year setup say “run-up” and “SIPP cash to the first April” instead of “bridge”.'
+      'The stage label, Decision tool alerts, plan document, History and the tax-year setup say “SIPP cash to the first April”.'
     ],
     corrections: [],
     effects: {
@@ -2452,7 +2452,7 @@ export const RELEASES = [
       accumulation: []
     },
     actions: [
-      'If you locked a Pots & Valves, Buckets in order, Floor to an age, Bridge & engine or Ladder & Ratchet plan before this release and the Decision tool shows pot minimums you never set: unlock (Decision → Settings), then lock again from Stress tester → Settings.'
+      'If you locked a Pots & Valves, Buckets in order, Floor to an age, Gilts to State Pension, then shares or Ladder & Ratchet plan before this release and the Decision tool shows pot minimums you never set: unlock (Decision → Settings), then lock again from Stress tester → Settings.'
     ],
     notes: [],
     affects(scenario) {
@@ -2676,7 +2676,7 @@ export const RELEASES = [
     title: 'The app now knows your life stage, from saving to running your plan',
     summary: 'Every plan now has a life stage, worked out from your age, the plan start and the lock, never asked. The stage decides which tools lead, which are frozen and which do not apply. A plan locked while you are still saving now waits for its start date, then checks the pot you arrive with.',
     changes: [
-      'Stages: Saving (more than five years out), Approaching (within five years), Committed while still saving, Bridge (retired, before the plan starts), Running, and Retired-designing. The leading tools are underlined, frozen ones dimmed, and the Accumulation planner is hidden for retirees.',
+      'Stages: Saving (more than five years out), Approaching (within five years), Committed while still saving, Retired with the plan locked, Running, and Retired-designing. The leading tools are underlined, frozen ones dimmed, and the Accumulation planner is hidden for retirees.',
       'Setup wizard: a new starting point, “I’m already drawing my pension — pick up from here”, which starts the plan this tax year with what you hold.',
       'Decision tool: a plan locked while still saving takes no monthly entries before it starts. In the first month after, if your real pot is more than 10% from the one the plan was priced on, you choose between running the plan on what you have and unlocking to re-plan.',
       'Plan document: a “Journey” section lists each stage change with its date.'
@@ -2705,7 +2705,7 @@ export const RELEASES = [
       const locked = !!scenario?.decisionTool?.settings?.locked;
       if (!Object.keys(ss).length) return [];
       if (!(+ss.currentAge > 0)) return ['This plan has no age today, so its stage reads “Getting started” until you enter your age in the Timing block.'];
-      if (ss.retired === true) return ['This plan is retired, so the Accumulation planner is hidden on it' + (locked ? '; its stage is Bridge or Running, depending on when the plan starts.' : '.')];
+      if (ss.retired === true) return ['This plan is retired, so the Accumulation planner is hidden on it' + (locked ? '; its stage is Running once it is locked.' : '.')];
       if (ss.retired === false && locked) return ['This plan was locked while you are still saving: the Decision tool waits for the plan to start, so record your pot on the Accumulation planner until then.'];
       return [];
     }
@@ -2717,10 +2717,10 @@ export const RELEASES = [
     changes: [
       'Monthly Entry: a “This month’s payment has already been made — plan from next month” tick box. March cannot roll into April: start with April’s setup instead.',
       'Tax-year setup, History and Tax Years: “Remaining months” now reads “Payments to come this tax year (including this month’s)”.',
-      'Bridge year: the suggested target is the plan’s first income step, with a note on how many of the payments to come the bridge cash covers.'
+      'A year before the plan’s first tax year: the suggested target is the plan’s first income step, with a note on how many of the payments to come the cash covers.'
     ],
     corrections: [
-      'The bridge-year suggestion spread all the bridge cash over the months left, overstating the rate for anyone already part-way through the year.'
+      'That suggestion spread all the cash over the months left, overstating the rate for anyone already part-way through the year.'
     ],
     effects: {
       decision: [
@@ -2743,7 +2743,7 @@ export const RELEASES = [
     summary: 'On a gilt-ladder plan, opening History before Monthly Entry could show pot targets and a “surplus” on a saved month. History now looks up the plan’s strategy itself.',
     changes: [],
     corrections: [
-      'A month’s record in History now always shows the ladder view for gilt-ladder plans: no pot floors, no rebalancing, and paid from the cash bucket or bridge cash.'
+      'A month’s record in History now always shows the ladder view for gilt-ladder plans: no pot floors, no rebalancing, and paid from the cash bucket.'
     ],
     effects: {
       decision: [
@@ -2853,12 +2853,12 @@ export const RELEASES = [
     title: 'Saved monthly records for gilt-ladder plans now match the live screen',
     summary: 'For a gilt-ladder plan, the saved monthly record and its PDF showed Pots & Valves floors, a “surplus” and rebalancing moves, and said money came from selling bonds. They now show where the month was really paid from. “Tax saved” was also overstated for plans with other income.',
     changes: [
-      'Saved records keep how the month was paid and whether it was a bridge month, and History and the PDF use them; older records fall back to the plan’s current strategy.',
-      'In a bridge month on a ladder plan, the recommendation says it is paid from bridge cash: nothing is sold and no rung is due yet.'
+      'Saved records keep how the month was paid, and History and the PDF use them; older records fall back to the plan’s current strategy.',
+      'In a month before a ladder plan’s first rung, the recommendation says it is paid from cash: nothing is sold and no rung is due yet.'
     ],
     corrections: [
       '“Tax saved” counted a State Pension or other income twice, inventing a saving of a few hundred pounds a month; months drawn fully from the pension now show no saving.',
-      'History cards and PDFs said “Year 0” for a month before the plan started; they now say it is a bridge year and when the plan starts.'
+      'History cards and PDFs said “Year 0” for a month before the plan’s first tax year; they now say which tax year it is.'
     ],
     effects: {
       decision: [
@@ -2905,11 +2905,11 @@ export const RELEASES = [
   {
     version: '6.4.0', date: '2026-09-09', engineVersion: '6.4.0',
     title: 'Your plan now knows the tax year it starts in',
-    summary: 'A new “When your plan starts” block in the Stress tester settings records your age today, whether you have retired or when you will, and the tax year your plan starts. That start is saved and is year 0 for every tool, instead of being assumed to be “next April” each time the app opened.',
+    summary: 'A new “When your plan starts” block in the Stress tester settings records your age today, whether you have retired or when you will, and the tax year your plan starts. That start is saved and is year 0 for every tool, instead of being worked out again each time the app opened.',
     changes: [
       '“When your plan starts” in Stress tester → Settings: age today (shared with the Budget page), “already retired” or “retire at age X”, and the start tax year. Your income steps start at the age you reach that year.',
       'Retiring later: the pots you enter are today’s, and the plan is priced on the pots projected to retirement in today’s money, from your Accumulation planner contributions or a figure you type. Gilt ladders say they are a guide, priced at today’s yields.',
-      'Decision tool: tax years before the plan starts are bridge years. The tax-year wizard says so and suggests a monthly amount, and “plan vs actual” leaves bridge months out.',
+      'Decision tool: the tax-year wizard suggests a monthly amount for a tax year before the plan’s first, and “plan vs actual” leaves those months out.',
       'Lump sums and one-off spends show the tax year their plan year means, and the plan’s length shows the age it runs to.'
     ],
     corrections: [
@@ -2922,10 +2922,10 @@ export const RELEASES = [
         'Plans with an age today get a saved start, for most the same next-April start as before, so nothing moves. Anyone not yet retired may see the cones move slightly as the State Pension lands in the right year.'
       ],
       strategies: [
-        'Gilt ladders are priced for the saved start year: the same rungs as before for a plan starting next April, and no longer a year late after 1 January.'
+        'Gilt ladders are priced for the saved start year: the same rungs as before, and no longer a year late after 1 January.'
       ],
       decision: [
-        'Plan year 0 is your plan’s start. If your plan starts later than your Decision tool history, the months before it are now bridge months and yearly targets and pot tracks read from the right year.'
+        'Plan year 0 is your plan’s start, and yearly targets and pot tracks read from the right year.'
       ],
       household: [],
       budget: [
@@ -2937,21 +2937,21 @@ export const RELEASES = [
     },
     actions: [
       'Open Stress tester → Settings → “When your plan starts” and check your age today, whether you are retired, and the start tax year. Save, then check your income steps still start at the age you meant.',
-      'If you use the Decision tool and your plan starts after this tax year, expect the tax-year wizard to call this year a bridge year.'
+      'If you use the Decision tool, the tax-year wizard reads each tax year against your plan’s first.'
     ],
     notes: [],
     affects(scenario) {
       const s = scenario?.stressTool?.settings || {};
       const out = [];
       if (!Object.keys(s).length) { /* nothing set up yet */ }
-      else if (!(+s.currentAge > 0)) out.push('This plan has no age today, so it keeps the old assumption: it starts next April, with the income steps counted from ' + (+s.shapeAgeNow > 0 ? 'age ' + s.shapeAgeNow : 'the planner’s default age') + '. Enter your age in the Timing block to fix it.');
+      else if (!(+s.currentAge > 0)) out.push('This plan has no age today, so it keeps the old assumption for its start, with the income steps counted from ' + (+s.shapeAgeNow > 0 ? 'age ' + s.shapeAgeNow : 'the planner’s default age') + '. Enter your age in the Timing block to fix it.');
       else {
         const t = deriveTiming(s);
         out.push('Plan start: tax year ' + t.firstTaxYear + '/' + String(t.firstTaxYear + 1).slice(2) + (t.mode === 'future' ? ' (retiring at ' + t.retireAge + ')' : ' (already retired)') + ', the same next-April start as before unless you change it.');
         if (+s.shapeAgeNow > 0 && t.shapeAgeNow !== +s.shapeAgeNow) out.push('Your income steps were labelled from age ' + s.shapeAgeNow + '; the age you actually reach in that first plan year is ' + t.shapeAgeNow + ', so the steps now start there and each later step lands ' + Math.abs(t.shapeAgeNow - s.shapeAgeNow) + ' year' + (Math.abs(t.shapeAgeNow - s.shapeAgeNow) === 1 ? '' : 's') + (t.shapeAgeNow > s.shapeAgeNow ? ' earlier' : ' later') + ' in the plan. Check the step ages in Settings.');
       }
       const ty = scenario?.decisionTool?.taxYears || {};
-      if (Object.keys(ty).length) out.push('Decision tool: the plan’s first year is now the year it starts; tax years before it are bridge years.');
+      if (Object.keys(ty).length) out.push('Decision tool: the plan’s first year is now the year it starts.');
       return out;
     }
   },
@@ -2985,7 +2985,7 @@ export const RELEASES = [
   {
     version: '6.2.7', date: '2026-09-08', engineVersion: '6.2.1',
     title: 'Cash years in the gilt ladders now cost what holding cash really costs',
-    summary: 'The “years funded from cash first” dial on the Full index-linked gilt ladder and Bridge & engine treated cash as keeping its value. Cash now grows at inflation minus 1% a year, as it does everywhere else in the app, so a long run of cash years shows its true cost. The dial is capped at 5.',
+    summary: 'The “years funded from cash first” dial on the Full index-linked gilt ladder and Gilts to State Pension, then shares treated cash as keeping its value. Cash now grows at inflation minus 1% a year, as it does everywhere else in the app, so a long run of cash years shows its true cost. The dial is capped at 5.',
     changes: [
       'The dial says what it is for (the first year or two, where no gilt matures at the right time) and is capped at 5.'
     ],
@@ -2994,7 +2994,7 @@ export const RELEASES = [
     ],
     effects: {
       stress: [
-        'Full index-linked gilt ladder and Bridge & engine plans: the ladder cost and spare move slightly, and a plan set above 5 cash years is set to 5 next time you open its dials.'
+        'Full index-linked gilt ladder and Gilts to State Pension, then shares plans: the ladder cost and spare move slightly, and a plan set above 5 cash years is set to 5 next time you open its dials.'
       ],
       strategies: [
         'The ranked table’s “what you pay today” for those two strategies moves the same way.'
@@ -3005,7 +3005,7 @@ export const RELEASES = [
       accumulation: []
     },
     actions: [
-      'If you had set more than 3 cash years, look at the dial again: for a large cash holding, Bridge & engine or Buckets in order model it properly.'
+      'If you had set more than 3 cash years, look at the dial again: for a large cash holding, Gilts to State Pension, then shares or Buckets in order model it properly.'
     ],
     notes: []
   },

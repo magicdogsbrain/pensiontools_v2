@@ -1,12 +1,12 @@
 # Mock-ups for the first visit and the record keeper's home (6 Nov 2026)
 
 `first-visit.html` is a self-contained page (open it in a browser) with four mock screens drawn with invented figures
-(Alex, Sam). It was agreed with the owner before anything was built, to be coded from later. It is NOT part of the
+(Alex, Sam). We agreed it before anything was built, to be coded from later. It is NOT part of the
 site: nothing imports it and no build includes it.
 
 ## What it fixes
 
-The agreed design (`../one-product-design.md`) assumed today's front door. The owner added, before 7.3.0:
+The agreed design (`../one-product-design.md`) assumed today’s front door. We added, before 7.3.0:
 
 - **A stranger's front door**: one headline, one picture (the pot over a life), three doors — *Still saving* (question
   B), *Stopping soon* (C), *Already retired* (D) — and the other questions as plain links. A personal answer in under a
@@ -48,7 +48,7 @@ The site's own tokens (`src/v7/styles/tokens.css`) keep the dark base; these are
   heading on the home is fine (not the front door), but check the front door's words.
 - Every figure in the mock-ups is invented. Never replace them with a real plan's.
 
-## Motion, the working spinner, the report (added 6 Nov 2026 after the owner saw the mock-ups)
+## Motion, the working spinner, the report (added 6 Nov 2026 after we reviewed the mock-ups)
 
 **Motion rule: it shows an amount or time passing, and nothing else.** Every animation ends in the complete picture
 (a screenshot is never half-drawn), respects `prefers-reduced-motion` (then: no motion, same final frame), and runs

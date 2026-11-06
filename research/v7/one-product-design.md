@@ -1,17 +1,17 @@
 # One product, two modes, three stages — the design (6 Nov 2026)
 
-The design agreed with the owner on 6 Nov 2026 after 7.2.1, from three independent designs (journeys, data and risk, the simplest product) and two judges (product fit, the safety of saved plans) run against the code at 7.2.1. It supersedes `after-7.md` §4 ("the classic planner retires at 7.3.0": it stays, as Expert mode) and `road-to-7.md` decision 5. Every example is fictional (Alex, Sam).
+The design we agreed on 6 Nov 2026 after 7.2.1, from three independent designs (journeys, data and risk, the simplest product) and two judges (product fit, the safety of saved plans) run against the code at 7.2.1. It supersedes `after-7.md` §4 ("the classic planner retires at 7.3.0": it stays, as Expert mode) and `road-to-7.md` decision 5. Every example is fictional (Alex, Sam).
 
 
 ## Context
 
 pensiontools.uk runs two apps over the same saved plans: the question-led app at the site root (`src/v7`) and the
-classic planner at `/classic/` (`index.html` + `src/ui`). After 7.0–7.2 shipped, the owner walked the site as a person
+classic planner at `/classic/` (`index.html` + `src/ui`). After 7.0–7.2 shipped, we walked the site as a person
 with a plan and found it treats everyone as a first-time visitor: a locked plan opens on a form, Month by month offers
 next month when nothing is due, "Ask a question" and "Keep this as a plan" are pushed on someone carrying out a plan,
 and the classic planner is called "the previous version" although it is the only place with every setting.
 
-The owner's direction (6 Nov 2026), confirmed through eleven decisions in this session:
+Our direction (6 Nov 2026), settled through eleven decisions:
 
 1. **Four user types**, each with a journey: a saver decades away; approaching retirement; retired and drawing;
    couples first-class at every stage.
@@ -159,7 +159,7 @@ Reuses, by name, every item already computed; **one engine**: `read.js nextFor :
 
 Not to-dos: What's new (shell pop-up/footer), close offers and back to work (under "Change the plan").
 **No `tasks` root key in the first releases**: dismissals that need to persist use the existing per-item fields; the
-rest live in the window (sessionStorage) — revisit at 7.7.0 if the owner wants them to persist.
+rest live in the window (sessionStorage) — revisit at 7.7.0 if they should persist.
 
 Nothing-due per stage: Saving with cadence "Nothing due. Your next check-in is {month}." (+ "Add it to your
 calendar"); legacy "{Month}'s pot is recorded. Nothing due until {next}."; Moving "{n} of {m} moves done; next
@@ -232,6 +232,47 @@ stage: B/A → Saving; C → Moving (seed: `retired:true`, `stoppedWork` the mon
 `PlanClose.potsSettings :204`, empty holdings record with `offerDismissed:false`, `stage {key:'moving', by:'byHand'}`);
 D → Drawing (first to-do: lock). C and D's Keep ask "Have you taken taxable money from a pension yet? When?" →
 `flexibleAccess` (a carried fact, `PlanClose.CARRIED_FACTS :64`) so the MPAA note shows on any plan still paying in.
+
+## Changes agreed after 7.3.0 went live (6 Nov 2026)
+
+**The route, renumbered.** The first visit (the front door, the pictures, no limit on questions without an account;
+`mockups/README.md`) comes before the stages: 7.4.0 the first visit; 7.5.0 three stages, by agreement (the section
+headed 7.4.0 below); 7.6.0 Standard and Expert; 7.7.0 "we assumed"; 7.8.0 Month by month part 2 with the PDF report;
+7.9.0 couples and the long arcs; then 8.0.0. The headings below keep their first numbers; read them in this order.
+
+**Drawing while the holdings are not exact (7.3.1).** The mapping table read a retired plan as Moving whenever its
+record of what is held did not match the plan's mix exactly (`diffHoldings().complete === false`). Real holdings almost
+never match exactly (a rung matures, index ratios move the targets, cash is topped up and spent), so a plan that had been
+drawing for a year or more could read Moving for good, with nothing on screen to say otherwise. The rule is now:
+
+| Placing | Stage |
+|---|---|
+| running / bridge, a month recorded (`decisionTool.history` not empty) | **Drawing**, whatever the holdings say |
+| running / bridge, no month recorded yet, holdings recorded and short of the mix | **Moving** |
+| running / bridge, otherwise | **Drawing** |
+
+A person recording months is drawing; the word follows what they do. What they still hold differently from the plan is
+said, not hidden: on a Drawing plan with a holdings record short of the mix, "Where you are" says how much of the plan's
+mix is held and what is different, with the move page one link away. It is information, not a counted to-do and not
+the stage. A Drawing plan with no holdings record keeps 7.3.0's lower-ranked "next move" to-do with "Not now". Still
+nothing stored, nothing written on open; `deriveStage` unchanged.
+
+**Comparing at the first draw (7.5.0, with the agreement flow).** The point where a person agrees the move is done is
+the first draw, and for anyone already drawing, the next visit. One condition covers new drawers, people already
+drawing, and months recorded in Expert: *months are being recorded and the holdings have not been accepted*. It shows
+as a to-do on the home and, before a first record, in Month by month:
+1. **Compare** what they say they hold with the locked plan, in plain words and money: the share of the mix held, the
+   rungs or buckets missing or short, and what that means ("a rung is missing, so that year’s income is not
+   covered"). Small drift (within the plan's own tolerance) is not a warning.
+2. **When the gap is material, offer "Test the plan on what I hold"**: "Does it last?" run on the holdings as recorded,
+   read only. A warning alone says the plan no longer matches but not whether that matters.
+3. **Choose**: **Carry on as I am** (accept; stored, below); **Finish the move** (the moves stay as to-dos); **Move to a
+   new plan** on what they hold (the existing close and carry on).
+4. **Store the acceptance** as `transition.finished: { at, how: 'asHeld', heldPct }` (beside 'done' and 'skipped'),
+   through the `finish` write kind, its own write, never riding on a month's record (the month identity gate). It is
+   the first new thing written to a plan, so it ships with the 7.5.0 write-safety tests listed below.
+5. **Accepting ends the stage question, not the watching.** The stage never goes back to Moving because holdings
+   drift. A new material gap later is a separate, quieter check (at each tax-year set-up), never a change of stage.
 
 ## The route
 
@@ -353,9 +394,9 @@ rename with its reason. `/classic/` stays.
 4. Rollback layout: `LAYOUT=preview SITE_OUT=<scratch> npm run build` + its specs.
 5. Privacy scan (`diffscan.py --cached`) before every commit; no real figures.
 6. Live after deploy: the `RELEASING.md` checks, then a guest walk of the home on the example plan at both widths, and
-   the owner's own walk signed in (we never read his plans).
+   a walk of a real locked plan signed in.
 
-## Open for the owner (not blocking 7.3.0)
+## Still open (not blocking 7.3.0)
 - Whether to-do dismissals should persist across devices (a `tasks` root key, 7.7.0) or stay per window.
 - The rotation guided switch: Expert-only by design (it writes frozen settings), named in the ledger as the one exception.
 - Expert users who never open Standard: their plans still reach Moving/Drawing through the same Transition-tab buttons;

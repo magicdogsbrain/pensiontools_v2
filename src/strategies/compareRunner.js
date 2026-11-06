@@ -118,7 +118,10 @@ export function deriveCompareConfigs(p) {
   // Per-year income for plan-year k (1-based): the stepped/budget schedule when present, else flat.
   const sched = Array.isArray(p.targetSchedule) && p.targetSchedule.length ? p.targetSchedule : null;
   const amountAt = (k) => (sched ? (sched[Math.min(k - 1, sched.length - 1)] ?? ladderDraw) : ladderDraw);
-  const minDraw = Math.min(...Array.from({ length: p.durationYears }, (_, i) => amountAt(i + 1)));
+  // The years the pension cannot yet be touched (7.4.1, planFromSettings p.pensionLock): their need is paid from the ISA, so
+  // the schedule is nothing in them and nothing is bought for them; the lowest year drawn is the lowest open one.
+  const closedYears = p.pensionLock && p.pensionLock.years > 0 ? Math.min(p.pensionLock.years, p.durationYears - 1) : 0;
+  const minDraw = Math.min(...Array.from({ length: p.durationYears - closedYears }, (_, i) => amountAt(closedYears + i + 1)));
   const drawNet = (k) => Math.max(0, amountAt(k) - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
   const baseLadderCost = (() => { let c = 0; for (let k = 1; k <= ladderYears; k++) c += drawNet(k) * Math.pow(1 + yf(k), -k); return c; })();
   const lrE0 = total - baseLadderCost;
@@ -139,7 +142,8 @@ export function deriveCompareConfigs(p) {
   } : null;
 
   // Floor & Flex: essentials floor (net of SP) to the horizon; remainder is the flex sleeve.
-  const floorDraw = (k) => Math.max(0, p.essentialsAnnual - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0));
+  // Closed years (above): no floor is bought for them, and the sleeve pays no treats in them (cfg.closedYears).
+  const floorDraw = (k) => (closedYears > 0 && k <= closedYears ? 0 : Math.max(0, p.essentialsAnnual - (k > (p.spStartYear ?? Infinity) ? (p.spAnnual || 0) : 0)));
   const ffYears = prm.horizonAge > p.startAge ? Math.min(prm.horizonAge - p.startAge, p.durationYears) : p.durationYears;
   const ffFloorCost = floorCost({ drawForYear: floorDraw, years: ffYears, realYield, yieldForYear: p.yieldForYear });
   const ffE0 = total - ffFloorCost;
@@ -150,6 +154,7 @@ export function deriveCompareConfigs(p) {
     E0: ffE0, rate: prm.sleeveRate || 0.04, END, floorCost: ffFloorCost, floorDraw, yieldForYear: p.yieldForYear,
     horizonAge: p.startAge + ffYears,
     ...(fixedTreats != null ? { flexMin: fixedTreats, flexMax: fixedTreats, treatsRule: 'fixed' } : {}),
+    ...(closedYears > 0 ? { closedYears } : {}),
     ...charged
   } : null;
 

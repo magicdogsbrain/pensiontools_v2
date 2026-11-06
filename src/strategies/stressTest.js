@@ -27,7 +27,9 @@ import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadde
 import { activeLinkers } from '../services/LinkerUniverse.js';
 import { activeParams } from '../services/StrategyState.js';
 import { chargesPctOf, monthlyChargeFactor } from '../services/Charges.js';
-import { summariseCuts, pctText } from '../services/OneAnswer.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
+import { summariseCuts, pctText } from '../services/OneAnswer.js';
+import { pensionLockOf, pensionPotOf, payClosedYears } from '../services/PensionLock.js';
+import { simulationConfigFromSettings } from '../services/SimulationConfig.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 
 export const STRATEGY_NAMES = {
   'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Gilts to State Pension, then shares', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder', 'gilt-rotation': 'Gilt ladder + rotation'
@@ -203,12 +205,37 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
   // from its year onward, so for the ladder builders it behaves as other income in those years
   // (the P&V engine handles the same windfalls itself through pnvCfg — see the engine).
   const windfallUse = hasWindfall ? applyWindfallsToNeed(needByYear.map((v, y) => Math.max(0, v - otherBase[y])), windfallByYear) : null;
-  const otherIncomeByYear = windfallUse ? otherBase.map((v, y) => v + windfallUse.usedByYear[y]) : otherBase;
-  const targetSchedule = hasLumpy ? needByYear.map((v, y) => Math.max(0, v - otherIncomeByYear[y])) : rawSchedule;
+  const otherOpen = windfallUse ? otherBase.map((v, y) => v + windfallUse.usedByYear[y]) : otherBase;
+  // The years the pension cannot yet be touched (7.4.1, services/PensionLock.js), from the tax year the run starts in. The
+  // bought strategies buy nothing for them from the pension: what the pots must pay in each (after other income, lump sums
+  // and the taxable account, which the line above has already spent in order) is paid from the ISA, set aside at its real
+  // value, and so reads as other income in those years; what the ISA cannot pay is that year's income cut. Pots & Valves
+  // and Buckets close the pension in their own engine (pnvCfg.pensionLockedMonths, SimulationEngine). Null — every plan
+  // whose holder can already draw — and the plan below is the object it always was.
+  const lockRaw = pensionLockOf(settings, { now, fromTaxYear: timing.firstTaxYear + lived, pensionPot: pot });
+  const closed = lockRaw ? Math.min(lockRaw.years, durationYears + 1) : 0;
+  // The ISA is tax-free in the hand: it pays what the pension's pounds would have left after tax, on top of the year's other
+  // income (the plan's own bands, which rise with prices, so they stand still in today's money).
+  const bands = { pa: settings.pa ?? 12570, brl: settings.brl ?? 50270, hrl: settings.hrl ?? 125140 };
+  const netAt = (g) => grossToNet(Math.max(0, g), bands.pa, bands.brl, bands.hrl);
+  const closedPay = closed > 0 ? payClosedYears(needByYear.map((v, y) => Math.max(0, v - otherOpen[y])), closed, isa, {
+    costOf: (y, g) => netAt(otherOpen[y] + g) - netAt(otherOpen[y]),
+    grossFor: (y, m) => netToGross(netAt(otherOpen[y]) + m, bands.pa, bands.brl, bands.hrl) - otherOpen[y]
+  }) : null;
+  const otherIncomeByYear = closedPay ? otherOpen.map((v, y) => (y < closed ? v + closedPay.paid[y] : v)) : otherOpen;
+  const targetSchedule = closedPay ? needByYear.map((v, y) => (y < closed ? 0 : Math.max(0, v - otherIncomeByYear[y])))
+    : hasLumpy ? needByYear.map((v, y) => Math.max(0, v - otherIncomeByYear[y])) : rawSchedule;
+  // The ISA set aside for a closed year not yet reached is still wealth (stressTestStrategy adds it as it adds a lump not yet spent).
+  const closedParked = closedPay ? Array.from({ length: durationYears + 1 }, (_, y) => closedPay.spent.reduce((a, v, k) => a + (k > y ? v : 0), 0)) : null;
+  const carryByYear = closedParked
+    ? closedParked.map((v, y) => v + ((windfallUse && windfallUse.carryByYear[y]) || 0))
+    : windfallUse ? windfallUse.carryByYear : null;
+  const pnvLock = cfg.pensionLockedMonths === undefined ? pensionLockOf(settings, { now, fromTaxYear: timing.firstTaxYear + lived, pensionPot: pensionPotOf(cfg) }) : null;
   return {
-    pot, isa, targetAnnual: target,
+    pot, isa: closedPay ? closedPay.left : isa, targetAnnual: target,
     otherIncomeByYear, extraNeedByYear, needByYear, rawSchedule, windfallByYear,
-    windfallCarryByYear: windfallUse ? windfallUse.carryByYear : null,   // unspent windfall parked at each year end (bought strategies only)
+    windfallCarryByYear: carryByYear,   // unspent windfall (and ISA set aside for a closed year) parked at each year end (bought strategies only)
+    ...(closedPay ? { pensionLock: { accessAge: lockRaw.accessAge, years: closed, fromTaxYear: lockRaw.fromTaxYear, opensTaxYear: lockRaw.opensTaxYear, paid: closedPay.paid, unpaid: closedPay.unpaid } } : {}),
     essentialsAnnual: params.essentialsAnnual || essentialsAnnual || Math.round(target * 0.55),
     durationYears, startAge, spAnnual, spStartYear,
     incomeShape: settings.incomeShape, incomeSteps: settings.incomeSteps, shapeAgeNow: settings.shapeAgeNow,
@@ -240,10 +267,20 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     // a plan locked before charges has none → 0). Pots & Valves reads it from pnvCfg (the same config); the bought
     // strategies get its monthly factor on their sleeves (compareRunner.deriveCompareConfigs) and the gilt ladders' cash years.
     chargesPct: chargesPctOf(cfg),
-    pnvCfg: { ...cfg, startAge, targetSchedule: rawSchedule },   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself
+    pnvCfg: { ...cfg, startAge, targetSchedule: rawSchedule, ...(pnvLock ? { pensionLockedMonths: pnvLock.years * 12 } : {}) },   // the plan's own tax mode / ISA rate: it runs nominally now; it applies DB/extras itself
     yieldForYear,
     ...(now ? { now } : {})   // only when injected: the plan object is otherwise byte-identical to before
   };
+}
+
+/**
+ * The years a plan's settings cannot take money from the pension, as its run sees them (7.4.1): planFromSettings's
+ * `pensionLock` (the access age, the closed years and what the money outside the pension pays and leaves unpaid in each).
+ * No test is run. Null when nothing is closed.
+ */
+export function pensionLockForSettings(settings, now = undefined) {
+  const s = settings || {};
+  return planFromSettings(s, simulationConfigFromSettings({}, s, now), { now, startAge: +s.shapeAgeNow || 57 }).pensionLock || null;
 }
 
 /**

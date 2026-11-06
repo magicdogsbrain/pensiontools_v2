@@ -24,5 +24,10 @@
  *           start-of-year wealth read it; Ladder & Ratchet: the fail year, which the wealth read late only for a fail in a
  *           year's last month) and, where a cut still pays part of the income, `unpaid`: the
  *           couples check asks the other plan for that, not the whole need.
+ *   6.38.0  (app 7.4.1) The minimum pension age (services/PensionLock.js): no engine takes money from a pension in a plan year
+ *           its holder is younger than their access age (55, or 57 for anyone not 55 by 6 April 2028). Those years are paid
+ *           from the money outside the pension — the taxable account first, the ISA last — and what it cannot pay is income
+ *           cut, never a run out; the pension grows untouched until it opens. Every plan whose holder can already draw in
+ *           the run's first year runs exactly as before.
  */
-export const ENGINE_VERSION = '6.37.0';
+export const ENGINE_VERSION = '6.38.0';

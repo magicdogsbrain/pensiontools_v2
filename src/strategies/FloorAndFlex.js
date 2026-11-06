@@ -66,6 +66,9 @@ function runFlexCore(cfg, mcPaths, isMc) {
   // market series are not. 1 = none: today's figures exactly. Covers Floor & Flex, Floor the schedule, Floor to an age
   // and Bridge & engine (whose later engine years are read off this sleeve, stressTest.js).
   const chargeM = Number.isFinite(cfg.chargeM) && cfg.chargeM > 0 && cfg.chargeM <= 1 ? cfg.chargeM : 1;
+  // The years the pension cannot yet be touched (7.4.1, compareRunner closedYears): the sleeve is pension money, so it pays
+  // no treats in them; the ISA pays those years (stressTest.planFromSettings). 0 = none: today's figures exactly.
+  const closedYears = cfg.closedYears > 0 ? cfg.closedYears : 0;
 
   for (let s = 0; s < n; s++) {
     const series = isMc ? mcPaths[s] : rtr;
@@ -73,7 +76,7 @@ function runFlexCore(cfg, mcPaths, isMc) {
     let V = cfg.E0;
     let d = rate * cfg.E0;
     const clamp = (x) => Math.min(cfg.flexMax ?? Infinity, Math.max(cfg.flexMin ?? 0, x));
-    d = clamp(d);
+    d = closedYears > 0 ? 0 : clamp(d);
     const dByYear = [d];
     const sleeveByYear = [cfg.E0];
     let extendYears = 0;
@@ -130,17 +133,19 @@ function runFlexCore(cfg, mcPaths, isMc) {
       if (R && R.mode === 'calendar' && (R.reviews || []).includes(t)) fireRatchet(t);
       if ((m + 1) % 12 === 0) {
         sleeveByYear[(m + 1) / 12] = V;
-        d = clamp(rate * V);
+        d = (m + 1) / 12 < closedYears ? 0 : clamp(rate * V);
         if (m + 1 < cfg.END) dByYear.push(d);
       }
     }
+    // the treats' worst year and lean years are read over the years the sleeve can pay (closed years pay none by design)
+    const openD = closedYears > 0 ? dByYear.slice(Math.min(closedYears, dByYear.length - 1)) : dByYear;
     out.windows.push({
       s,
       terminal: V,
       dByYear,
       sleeveByYear,
-      worstYearD: Math.min(...dByYear),
-      yearsUnder: (thr) => dByYear.filter((x) => x < thr).length,
+      worstYearD: Math.min(...openD),
+      yearsUnder: (thr) => openD.filter((x) => x < thr).length,
       extendYears,
       uplift,
       upliftSpent,
@@ -150,7 +155,7 @@ function runFlexCore(cfg, mcPaths, isMc) {
 
   const worst = out.windows.map((w) => w.worstYearD);
   const terms = out.windows.map((w) => w.terminal);
-  const allYears = out.windows.flatMap((w) => w.dByYear);
+  const allYears = out.windows.flatMap((w) => (closedYears > 0 ? w.dByYear.slice(Math.min(closedYears, w.dByYear.length - 1)) : w.dByYear));
   out.stats = {
     n,
     year1D: rate * cfg.E0,

@@ -521,6 +521,30 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
         if (recycleGross > 0) sipp += recycleGross;
       }
 
+      // The pension cannot be touched this month (7.4.1, services/PensionLock.js): its holder is under their minimum pension
+      // age in this tax year (deps.pensionOpensTaxYear, MonthDecision.engineSetup). Nothing is drawn from it; what its
+      // standard draw would have left in the hand on top of the other income is paid from the taxable account first and the
+      // ISA last (a held ISA too: it is all there is), as the Stress engine pays a closed month. What they cannot pay is
+      // said, never taken from the pension. Absent: every month worked out exactly as before.
+      const closedMonth = deps.pensionOpensTaxYear > 0 && (month >= 4 ? year : year - 1) < deps.pensionOpensTaxYear;
+      let closedShort = 0;
+      if (closedMonth) {
+        const std = Math.max(0, stdSippForHistory || 0);
+        let netNeed = std > 0 ? Math.max(0, grossToNet(other + std * 12, PA, BRL, HRL) - grossToNet(other, PA, BRL, HRL)) / 12 : 0;
+        if (netNeed > 0 && giaSleeve.value > 0) {
+          const t = topUpFromSleeve(giaSleeve, netNeed, topUpBand, cgtUsedAfter);
+          giaDraw += t.taken; giaCgt += t.cgt; giaNet += t.net; cgtUsedAfter = t.cgtUsed; giaGainUsed = t.cgtUsed - cgtUsedSoFar;
+          netNeed = Math.max(0, netNeed - t.net);
+        }
+        const isaLeft = Math.max(0, (deps.isaBalance || 0) - (isa || 0));
+        const fromIsa = Math.min(isaLeft, netNeed);
+        isa = (isa || 0) + fromIsa;
+        isaSavingsUsedThisMonth = isa;
+        closedShort = netNeed - fromIsa < 0.005 ? 0 : netNeed - fromIsa;
+        sipp = 0; boostAmount = 0; recycleGross = 0; recycleNet = 0;
+        note = 'Pension closed';
+      }
+
       // Store stdSipp for future catch-up calculations
       const stdSippMonthly = (BRL - other) / 12;
 
@@ -602,6 +626,12 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
       }
       if (warn) {
         alerts.push({ message: warn, severity: 'danger', type: 'low-cash' });
+      }
+      if (closedMonth) {
+        const age = deps.pensionAccessAge;
+        alerts.push(closedShort > 0
+          ? { message: 'Before ' + age + ' your plan can’t take money from your pension. Your other savings are about £' + Math.round(closedShort).toLocaleString('en-GB') + ' short this month.', severity: 'danger', type: 'pension-closed' }
+          : { message: 'Before ' + age + ', this plan pays you from your other savings, not your pension.', severity: 'info', type: 'pension-closed' });
       }
       if (boostAmount > 50) {
         alerts.push({ message: `Tax Boost: +£${Math.round(boostAmount).toLocaleString()}/mo catch-up from protection shortfall`, severity: 'success', type: 'tax-boost' });
@@ -732,6 +762,8 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
         // Before the plan starts (6.4.0): flagged with the anchor so the panel can say so. Emitted only
         // then, so a plan year's result is byte-identical to before (golden-safe).
         ...(bridgeYear ? { bridgeYear: true, planStartYear: anchorYear } : {}),
+        // The pension cannot be touched this month (7.4.1): emitted only then, so every other month is as it was.
+        ...(closedMonth ? { pensionClosed: { accessAge: deps.pensionAccessAge, opensTaxYear: deps.pensionOpensTaxYear, shortMonthly: closedShort } } : {}),
         remainingMonths: effectiveRemainingMonths,
 
         // Fund values

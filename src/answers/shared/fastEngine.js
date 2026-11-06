@@ -217,6 +217,9 @@ export function fastEligible(c) {
     && (c.lockedMonths === undefined || (Number.isInteger(c.lockedMonths) && c.lockedMonths >= 0
       && (c.lockedSchedule === undefined ? c.lockedMonths === 0 : (Array.isArray(c.lockedSchedule) && c.lockedSchedule.length === c.years && c.lockedSchedule.every(finite)))))
     && c.equityGlide === undefined && c.sourcingMode === undefined
+    // 7.4.1: the planner's closed pension (SimulationEngine pensionLockedMonths) is `simulate`'s own; the answers close a
+    // pension with lockedMonths (above), so a config carrying the planner's is never replicated here
+    && !(c.pensionLockedMonths > 0)
     && (c.spendingProfile === undefined || c.spendingProfile === 'flat')
     && (c.chargesPct === undefined || isChargesPct(c.chargesPct))   // 6.19.0: a charge the engine takes as given, or none
     // 6.22.0: how the ISA grows — none (the fixed rate), "Mostly cash", or "invested" at an explicit mix

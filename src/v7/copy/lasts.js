@@ -35,8 +35,11 @@ export const LASTS = {
   failed: { title: 'Sorry, we could not work that out.', body: 'Nothing has been lost. Your plan is still here.', tryAgain: 'Try again',
     noWorker: 'This browser cannot run the test in the background, so it cannot be run here. The classic planner runs the same test.', inPlanner: 'Run it in the classic planner' },
   notRun: 'This plan is shown as it was saved, so it is not run here. Nothing has been lost.',
-  /** A plan that draws from a pension before it can usually be taken (7.4.0): the run does not yet hold it back. */
-  pensionAccess: 'You can’t usually take money from a pension before {age}. Until then this plan’s pension draws would have to come from your ISA, savings or other money.',
+  /** A plan that starts before its pension can usually be taken (7.4.0): from 7.4.1 the run holds the pension back until then. */
+  pensionAccess: 'Before {age}, this plan pays you from your other savings, not your pension.',
+  /** … and when the other savings cannot pay those years in full (7.4.1): the run cuts them to what can be paid. The figure is
+   *  the shortfall a year to the nearest £100, said without "about" (a plan page is never an estimate: banned.js about-record). */
+  pensionShort: 'Before {age} your plan can’t take money from your pension. Your other savings run short by {amount} a year in {years}.',
   /** History: "what if you had retired into a bad year?" — the one test's own real starts. */
   history: {
     title: 'What if you had retired into a bad year?',

@@ -24,14 +24,15 @@
 
 import { monthlyChargeFactor, isChargesPct } from './Charges.js';
 import { flexibleAccessWords } from './FlexibleAccess.js';
+import { PENSION_ACCESS } from './PensionAge.js';
 
 export const ACCUMULATION_RULES = {
   ANNUAL_ALLOWANCE: 60000,
   TAPER_THRESHOLD_INCOME: 200000,
   TAPER_ADJUSTED_INCOME: 260000,
   MPAA: 10000,
-  NMPA_CHANGE_DATE: '2028-04-06',
-  NMPA_NEW: 57,
+  NMPA_CHANGE_DATE: PENSION_ACCESS.changesOn,   // the minimum pension age: the one rule (services/PensionAge.js)
+  NMPA_NEW: PENSION_ACCESS.from,
   SALSAC_NI_CAP_FROM: 2029,
   SALSAC_NI_CAP: 2000,
   LSA: 268275,

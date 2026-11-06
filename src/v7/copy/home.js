@@ -134,8 +134,8 @@ export const HOME = {
   },
   /** The full reading, with where each figure is from, is on the "Where you are" step. */
   whereMore: 'See where you are in full',
-  /** A plan that draws from a pension before it can usually be taken (7.4.0): the engines do not yet hold it back. */
-  pensionAccess: 'You can’t usually take money from a pension before {age}. Until then this plan’s pension draws would have to come from your ISA, savings or other money.',
+  /** A plan that starts before its pension can usually be taken (7.4.0): from 7.4.1 the plan holds the pension back until then. */
+  pensionAccess: 'Before {age}, this plan pays you from your other savings, not your pension.',
 
   toolsTitle: 'Tools',
   /** The move tool's state on the home: the same count as the headline. */

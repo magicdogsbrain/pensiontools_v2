@@ -35,6 +35,7 @@ import { spendingSmileFactor } from './SpendingModel.js';
 import { effectiveStressSettings } from './PlanReading.js';
 import { strategyOverlayOf, ladderFromDocument, CONTRACT_IDS } from './DecisionOverlay.js';
 import { beforeOf, closedAtOf, BEFORE_KINDS } from './PlanClosed.js';
+import { pensionLockOf } from './PensionLock.js';
 
 /** The strategy names, as the registry's describe() gives them (equal, name for name: tests/monthDecision.test.js). */
 export const STRATEGY_NAME = Object.freeze({
@@ -80,6 +81,11 @@ export function engineSetup({ decisionSettings, stressSettings, strategy }) {
     stratDeps = { sourcingMode: 'ordered', bucketBand: sp.bucketBand > 0 ? sp.bucketBand / 100 : 0.10 };
   }
   const engineSettings = CONTRACT_IDS.includes(st.id) ? { ...decision, disableProtection: true } : decision;
+  // The tax year the pension opens (7.4.1, services/PensionLock.js): before it the month takes nothing from the pension
+  // (legacyDecision). Read from the plan's Stress settings, which hold the age; only when the plan starts before it.
+  let lock = null;
+  try { const ss = stressSettings || {}; const t = deriveTiming(ss); lock = pensionLockOf(ss, { fromTaxYear: t.firstTaxYear }); } catch { lock = null; }
+  if (lock) stratDeps = { ...stratDeps, pensionOpensTaxYear: lock.opensTaxYear, pensionAccessAge: lock.accessAge };
   return { settings, engineSettings, stratDeps };
 }
 

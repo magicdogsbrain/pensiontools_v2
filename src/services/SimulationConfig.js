@@ -24,6 +24,7 @@ import { potScaleOf, isaAtRetirementOf, deriveTiming } from './PlanTiming.js';
 import { planAsSeenFromToday } from './PlanFromToday.js';
 import { chargesPctOf } from './Charges.js';
 import { isaGrowthOf } from './IsaGrowth.js';
+import { pensionLockOf, pensionPotOf } from './PensionLock.js';
 
 /**
  * Creates simulation config from stress settings
@@ -144,5 +145,12 @@ export function simulationConfigFromSettings(overrides = {}, settings, now = und
     ...(isaGrowthOf(settings) ? { isaGrowth: isaGrowthOf(settings) } : {})
   };
   // The plan as seen from the day of its pots: the identity (this very object) unless they belong to a later plan year.
-  return planAsSeenFromToday(cfg, settings, deriveTiming(settings, now));
+  const timing = deriveTiming(settings, now);
+  const out = planAsSeenFromToday(cfg, settings, timing);
+  // The years its holder cannot yet take money from the pension (7.4.1, services/PensionLock.js), counted from the tax year
+  // the run starts in: the engine leaves the pension's pots alone in those months. Only when there are any — every other
+  // plan gets the config it always got.
+  const lock = pensionLockOf(settings, { now, fromTaxYear: timing.firstTaxYear + (out.yearOffset > 0 ? out.yearOffset : 0), pensionPot: pensionPotOf(out) });
+  return lock ? { ...out, pensionLockedMonths: lock.years * 12 } : out;
 }
+

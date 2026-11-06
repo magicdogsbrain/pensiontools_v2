@@ -4,13 +4,15 @@
  */
 import { DEFAULT_CHARGES_PCT } from '../../services/Charges.js';
 import { DEFAULT_ISA_GROWTH } from '../../services/IsaGrowth.js';
+import { PENSION_ACCESS, accessAgeOn } from '../../services/PensionAge.js';
 
 export const RULES = {
   taxYear: '2026/27',
   // Checked against https://www.gov.uk/new-state-pension/what-youll-get on 30 Sep 2026: £241.30 a week.
   // Update every April (the yearly update checklist).
   fullStatePensionWeekly: 241.30,
-  pensionAccess: { before: 55, from: 57, changesOn: '2028-04-06' },
+  // The minimum pension age: the one rule both apps read (services/PensionAge.js, 7.4.1)
+  pensionAccess: PENSION_ACCESS,
   taxFreeShare: 0.25,
   taxFreeLimit: 268275,                // = LUMP_SUM_ALLOWANCE in PensionAccess.js
   personalAllowance: 12570, basicRateLimit: 50270, higherRateLimit: 125140,   // = TAX_DEFAULTS
@@ -73,10 +75,8 @@ export function addYears(isoDate, years) {
   return `${String(year).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-/** The earliest age a pension can be touched on a given day: 55 before 6 April 2028, 57 from then. */
-export function accessAgeOn(isoDate) {
-  return String(isoDate) < RULES.pensionAccess.changesOn ? RULES.pensionAccess.before : RULES.pensionAccess.from;
-}
+/** The earliest age a pension can be touched on a given day: 55 before 6 April 2028, 57 from then (services/PensionAge.js). */
+export { accessAgeOn };
 
 /**
  * The first age at which a person who is `age` on `today` (the birthday taken to be today) can touch a pension:

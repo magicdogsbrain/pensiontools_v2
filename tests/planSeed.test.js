@@ -431,7 +431,7 @@ describe('the cases (C.3)', () => {
     expect(S.potAtRetirement).toEqual({ sipp: 280000, isa: 90000, source: 'override' });
     expect([S.retireAge, S.equityMin + S.bondMin + S.cashTarget]).toEqual([54, 200000]);
     expect([S.equityMin, S.bondMin, S.cashTarget]).toEqual([140000, 50000, 10000]);   // adventurous: 70 / 25 / 5
-    expect(plan.planDetails.description).toMatch(/Your pension cannot be touched until 57; this planner does not hold it closed\.$/);
+    expect(plan.planDetails.description).toMatch(/Your pension cannot be touched until 57; until then this plan pays from the other savings\.$/);
     // not said when the pension is open at the stop
     expect(make(seedA()).yours.planDetails.description).not.toMatch(/cannot be touched/);
   });

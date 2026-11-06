@@ -29,17 +29,19 @@ import { targetForYear, startOffset, spFor, isRetired } from './HouseholdService
 import { sippTodayOf, potScaleOf, isaTodayOrAtRetirement } from './PotsAtRetirement.js';
 import { ISA_STRATEGIES } from './IsaDrawdown.js';
 import { currentAgeNow } from '../utils/StatePensionUtils.js';
-import { taxYearStartOf } from './PlanTiming.js';
+import { taxYearStartOf, deriveTiming } from './PlanTiming.js';
+import { pensionLockOf } from './PensionLock.js';
 import { simpleHash } from '../utils/MathUtils.js';
 import { withoutPotsAsOf } from './PlanFromToday.js';
 import { futuresOutOfTen } from './OneAnswer.js';
+import { PENSION_ACCESS } from './PensionAge.js';
 
 /** The headline shows when the first full year's saving is more than this (household-draw-split.md §2). */
 export const SPLIT_HEADLINE_MIN = 1000;
 /** Strategies whose income is bought as rungs: the comparison re-sizes the ladder to the lower draw (see ladderNote). */
 export const LADDER_STRATEGIES = Object.freeze(['ladder-and-ratchet', 'bridge-and-engine', 'floor-and-flex', 'floor-the-schedule', 'floor-to-age', 'full-il-gilt', 'gilt-rotation']);
-/** The normal minimum pension age rises from 55 to 57 on this day. */
-export const PENSION_AGE_CHANGE = '2028-04-06';
+/** The normal minimum pension age rises from 55 to 57 on this day (the one rule: services/PensionAge.js). */
+export const PENSION_AGE_CHANGE = PENSION_ACCESS.changesOn;
 
 const DEFAULT_BANDS = { pa: 12570, brl: 50270, hrl: 125140 };
 const bandsOf = (s) => ({ pa: s.pa ?? DEFAULT_BANDS.pa, brl: s.brl ?? DEFAULT_BANDS.brl, hrl: s.hrl ?? DEFAULT_BANDS.hrl });
@@ -62,6 +64,10 @@ export function personProfile(settings, { now = new Date(), years } = {}) {
   const sp = spFor(s, now);
   const startAge = +s.shapeAgeNow || 57;
   const yearsN = years ?? dur + off;
+  // The plan years this person cannot yet take money from their pension (7.4.1, services/PensionLock.js), from the plan's
+  // year 0: their rows say so (`closed`), and neither their own draw nor the split takes anything from that pension.
+  let closedYears = 0;
+  try { const lock = pensionLockOf(s, { now, fromTaxYear: deriveTiming(s, now).firstTaxYear }); closedYears = lock ? lock.years : 0; } catch { closedYears = 0; }
   const rows = [];
   for (let c = 0; c <= yearsN; c++) {
     const y = c - off;
@@ -72,7 +78,7 @@ export function personProfile(settings, { now = new Date(), years } = {}) {
     const spNow = active && y >= sp.startYear ? sp.annual : 0;
     const db = active && +s.dbAmount > 0 && y >= (+s.dbStartYear || 0) ? +s.dbAmount : 0;
     const other = active ? (+s.other || 0) : 0;
-    rows.push({ c, y, planYear, active, target, fixed: spNow + db + other, sp: spNow, db, other, f: ufplsFraction(s, planYear), age: startAge + y, yearsUntilSp: Math.max(0, sp.startYear - y) });
+    rows.push({ c, y, planYear, active, target, fixed: spNow + db + other, sp: spNow, db, other, f: ufplsFraction(s, planYear), age: startAge + y, yearsUntilSp: Math.max(0, sp.startYear - y), ...(closedYears > 0 && active && y < closedYears ? { closed: true } : {}) });
   }
   // A plan whose year 0 is behind it (a negative offset, 6.50.0): its years already lived, at the plan's own figures — so the
   // split's schedules keep them (never a £0 first step written by "Use this split") and the need by plan year has them.
@@ -92,6 +98,11 @@ export function personProfile(settings, { now = new Date(), years } = {}) {
 
 /** What one person's own plan draws this year — planDrawdown on its own target (the app's withdrawal policy). */
 function drawFor(P, r, targetGross, isaLeft) {
+  // a closed year (personProfile): the ISA pays what the target leaves in the hand on top of the guaranteed income, as far as it can
+  if (r.closed) {
+    const want = Math.max(0, grossToNet(Math.max(targetGross, r.fixed), P.bands.pa, P.bands.brl, P.bands.hrl) - grossToNet(r.fixed, P.bands.pa, P.bands.brl, P.bands.hrl));
+    return { ...isaOnlyDraw(P, r, want, Math.max(0, isaLeft)), gross: targetGross };
+  }
   const d = planDrawdown({ targetGross, fixedIncome: r.fixed, pa: P.bands.pa, brl: P.bands.brl, hrl: P.bands.hrl, isaBalance: isaLeft, strategy: P.isaStrategy, yearsUntilSp: r.yearsUntilSp, taxFreeFraction: r.f });
   return { gross: targetGross, sipp: d.sippGross, isa: d.isaDraw, taxable: d.taxable, tax: d.tax, net: d.net, isaLeft: d.remainingIsa };
 }
@@ -107,7 +118,7 @@ function drawFor(P, r, targetGross, isaLeft) {
  * after; "keep at least £X" stops the extra at £X.
  */
 function potCap(key, P, r, own, state, limit) {
-  if (!r.active) return 0;
+  if (!r.active || r.closed) return 0;   // a closed pension (personProfile) gives nothing, to its own plan or the other's
   const left = Math.max(0, state.potLeft[key]);
   if (key === state.smaller && left <= 1e-9) return P.pot > 0 ? 0 : own.sipp;
   if (limit && limit.who === key) {

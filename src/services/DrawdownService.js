@@ -17,6 +17,19 @@ import { spSimConfigFromSettings, spTaxYearConfigFromSettings } from '../utils/S
 import { spendingSmileFactor } from './SpendingModel.js';
 import { chargesPctOf, yearlyChargeFactor } from './Charges.js';
 import { isaTodayOrAtRetirement } from './PotsAtRetirement.js';
+import { pensionLockOf } from './PensionLock.js';
+
+/**
+ * A year the pension cannot be touched (7.4.1): no pension draw; the ISA (held or not: it is all there is) pays what the
+ * target would leave in the hand on top of the other income, up to its balance. planDrawdown's shape, so the schedule
+ * reads it as any other year.
+ */
+function closedYear({ target, fixed, pa, brl, hrl, isaBalance }) {
+  const netFixed = grossToNet(fixed, pa, brl, hrl);
+  const want = Math.max(0, grossToNet(Math.max(target, fixed), pa, brl, hrl) - netFixed);
+  const isaDraw = Math.min(Math.max(0, isaBalance), want);
+  return { sippGross: 0, isaDraw, taxable: fixed, tax: calculateTax(fixed, pa, brl, hrl), net: netFixed + isaDraw, remainingIsa: Math.max(0, isaBalance) - isaDraw, taxFree: 0 };
+}
 
 /**
  * Generates a drawdown schedule for planning
@@ -52,6 +65,11 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
   // UFPLS/phased access — the same treatment as both live engines: 25% of each withdrawal
   // tax-free during the UFPLS phase, until the lifetime Lump Sum Allowance runs out.
   let lsaRemaining = settings.accessMethod === 'ufpls' ? 268275 : 0;
+
+  // The years the pension cannot yet be touched (7.4.1, services/PensionLock.js), from the plan's year 0: nothing is drawn
+  // from it in them; the ISA pays what the year's target leaves in the hand after the other income, as far as it can.
+  let closedYears = 0;
+  try { const lock = pensionLockOf(settings, { now }); closedYears = lock ? lock.years : 0; } catch { closedYears = 0; }
 
   for (let year = 0; year <= duration; year++) {
     const cumInf = Math.pow(1 + assumedInflation, year);
@@ -100,11 +118,13 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
     const inUfplsPhase = !settings.ufplsYears || year < settings.ufplsYears;
     const taxFreeFraction = (settings.accessMethod === 'ufpls' && inUfplsPhase && lsaRemaining > 0) ? 0.25 : 0;
 
-    const plan = planDrawdown({
-      targetGross: target, fixedIncome: fixed, pa, brl, hrl,
-      isaBalance, strategy: settings.isaDrawdownStrategy, yearsUntilSp,
-      taxFreeFraction
-    });
+    const plan = year < closedYears
+      ? closedYear({ target, fixed, pa, brl, hrl, isaBalance })
+      : planDrawdown({
+        targetGross: target, fixedIncome: fixed, pa, brl, hrl,
+        isaBalance, strategy: settings.isaDrawdownStrategy, yearsUntilSp,
+        taxFreeFraction
+      });
     if (lsaRemaining > 0) lsaRemaining = Math.max(0, lsaRemaining - (plan.taxFree || 0));
 
     const netFromTaxable = plan.taxable - plan.tax; // SIPP + fixed income, net of tax

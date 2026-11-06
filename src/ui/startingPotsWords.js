@@ -17,6 +17,8 @@
  */
 import { potScaleOf, sippTodayOf, isaAtRetirementOf } from '../services/PotsAtRetirement.js';
 import { earlyPensionDrawOf, earlyPensionDrawWords } from '../services/PlanTiming.js';
+import { closedYearsWords } from '../services/PensionLock.js';
+import { pensionLockForSettings } from '../strategies/stressTest.js';
 import { answerLastedWords } from '../services/PlanSeed.js';
 import { chargesRunLine, hasStoredCharges, formatChargesPct } from './chargesSetting.js';
 import { chargesPctOf } from '../services/Charges.js';
@@ -120,11 +122,16 @@ export function startSummaryHtml(settings, { fromAnswer = null, locked = null } 
 }
 
 /**
- * A plan that draws from a pension before the age it can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): the runs
- * do not yet hold the pension back until then, so the summary every run starts from says so, as a plain fact. '' otherwise.
+ * A plan that starts before its pension can usually be taken (7.4.0, PlanTiming.earlyPensionDrawOf): from 7.4.1 the runs hold
+ * the pension back until then and pay those years from the other savings, so the summary every run starts from says what
+ * the plan does — or, when those savings cannot pay the years in full, by about how much they run short and when
+ * (PensionLock.closedYearsWords, on the run's own closed years). '' otherwise.
  */
 function accessNote(s) {
-  let e = null; try { e = earlyPensionDrawOf(s, new Date()); } catch { e = null; }
+  const now = new Date();
+  let e = null; try { e = earlyPensionDrawOf(s, now); } catch { e = null; }
+  let lock = null; try { lock = pensionLockForSettings(s, now); } catch { lock = null; }
+  if (lock) return ' <span class="hint" data-note="pension-access">' + closedYearsWords(lock) + '</span>';
   return e ? ' <span class="hint" data-note="pension-access">' + earlyPensionDrawWords(e) + '</span>' : '';
 }
 

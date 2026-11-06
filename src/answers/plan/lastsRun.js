@@ -70,6 +70,7 @@ import { buildSavingPath } from '../../services/SavingPath.js';
 import { ON_COURSE_SHARE } from '../../services/OnCourse.js';
 import { restoredParamsFor } from '../../services/PlanCommit.js';
 import { dateOf } from './dates.js';
+import { closedYearsShort, shortYearsWords } from '../../services/PensionLock.js';
 import { FAMILY } from './lasts.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -151,7 +152,9 @@ export function runLasts(plan, { today, onProgress = null } = {}) {
     : { worst: [], named: [] };
   const stored = storedR && doc.strategy.id === strategyId ? { a: oneAnswer(storedR, doc.strategy.p || {}), note: earlierTestNote(storedR, r) } : null;
   const cfg = (p && p.pnvCfg) || {};
+  const closed = closedOf(p);
   return plain({
+    ...(closed ? { closed } : {}),
     strategyId,
     ran: { family, cutsOn: family && !cfg.disableProtection, cutPct: Math.round((1 - (cfg.protectionMult ?? 0.8)) * 100), months: cfg.consecutiveLimit ?? 3 },
     priced: !family && !(ladder && doc.strategy.p) ? 'bundled' : null,
@@ -162,6 +165,17 @@ export function runLasts(plan, { today, onProgress = null } = {}) {
     extras: extrasOf(settings, strategyId, p, r, a, now),
     basis: { today, engine: 'one-test' }
   });
+}
+
+/**
+ * The years this plan cannot take money from the pension (7.4.1, planFromSettings p.pensionLock): the access age and, when the
+ * other savings cannot pay them in full, about how much a year is short and in which years. Null for every other plan.
+ */
+export function closedOf(p) {
+  const lock = p && p.pensionLock;
+  if (!lock || !(lock.years > 0)) return null;
+  const short = closedYearsShort(lock);
+  return { age: lock.accessAge, short: short ? { perYear: short.perYear, years: shortYearsWords(short) } : null };
 }
 
 /** The prices the planner's Drawdown and Glidepath pages assume by default (their boxes' 2.5%): the preview uses the same, with no box. */
@@ -294,7 +308,9 @@ export function runTry(plan, { today, boxes, onProgress = null } = {}) {
   tell(1, 1);
   const a = oneAnswer(r, p);
   const cfg = (p && p.pnvCfg) || {};
+  const closed = closedOf(p);
   return plain({
+    ...(closed ? { closed } : {}),
     strategyId,
     ran: { family, cutsOn: family && !cfg.disableProtection, cutPct: Math.round((1 - (cfg.protectionMult ?? 0.8)) * 100), months: cfg.consecutiveLimit ?? 3 },
     priced: !family ? 'bundled' : null,

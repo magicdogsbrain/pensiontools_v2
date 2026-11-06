@@ -187,8 +187,10 @@ function Answer({ L, onChange, dispatch, view }) {
         {v && run.fresh && <Band v={v} stale={false} testid="plan.lasts.result" />}
         {v && run.fresh && v.ok && <p class="plan-source" data-testid="plan.lasts.ran">{sourceLine}</p>}
         {v && run.fresh && L.note && <p class="notice" role="status" data-testid="plan.lasts.earlierTest">{L.note}</p>}
-        {/* the plan draws from a pension before it can usually be taken (7.4.0): a plain fact beside the answer */}
-        {v && run.fresh && L.pensionAccess && <p class="note" data-testid="plan.lasts.pensionAccess">{fill(LASTS.pensionAccess, L.pensionAccess)}</p>}
+        {/* the plan starts before its pension can usually be taken (7.4.0): what it does until then, beside the answer, or
+            (7.4.1) the warning when the other savings cannot pay those years in full */}
+        {v && run.fresh && v.closedShort && <p class="notice" role="status" data-testid="plan.lasts.pensionShort">{fill(LASTS.pensionShort, v.closedShort)}</p>}
+        {v && run.fresh && !v.closedShort && L.pensionAccess && <p class="note" data-testid="plan.lasts.pensionAccess">{fill(LASTS.pensionAccess, L.pensionAccess)}</p>}
         {v && run.fresh && <History v={v} />}
         {v && run.fresh && <Years v={v} L={L} dispatch={dispatch} />}
       </AtLeast>

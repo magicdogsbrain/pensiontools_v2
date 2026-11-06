@@ -30,6 +30,7 @@ import { isaGrowthOf, cashProjectionRate } from './IsaGrowth.js';
 import { isaFundsDecide } from './IsaFunds.js';
 import { potScaleOf, sippTodayOf } from './PotsAtRetirement.js';
 import { INFLATION_DEFAULTS } from '../constants.js';
+import { lastDayBeforeChange, accessAgeFromAgeBeforeChange } from './PensionAge.js';
 
 const MS_PER_DAY = 24 * 3600 * 1000;
 
@@ -456,26 +457,34 @@ export function describeTiming(t, settings, now = new Date()) {
 }
 
 /**
- * For a plan that says when work stopped (6.51.0, research/plan-start.md §8: "stopping before 55 (57 from April 2028)
- * and bridging on savings"): when the plan's income starts before the age the pension can first be drawn — 55 for someone
- * who reaches it before 6 April 2028, 57 for everyone else — one line naming that age and the tax year it is reached in,
- * the earliest the plan's income can come from the pension. '' otherwise, and without an age to reckon from.
+ * A person's own minimum pension age (services/PensionAge.js, the one rule): 55 when they are 55 on 5 April 2028, 57
+ * otherwise — read from their age on that day as the plan reckons it (ageOnDate). Null without an age.
  */
-function pensionAccessWords(t, s, now) {
-  if (!(+s.currentAge > 0) || !(t.shapeAgeNow > 0)) return '';
-  const before = ageOnDate(s, new Date(2028, 3, 5), now);
-  const minAge = before != null && before >= 55 ? 55 : 57;
-  if (t.shapeAgeNow >= minAge) return '';
-  const Y = t.firstTaxYear + (minAge - t.shapeAgeNow);
-  return 'Your pension can be drawn from age ' + minAge + ' (tax year ' + taxYearLabel(Y) + '). Until then the plan should pay from your ISA, cash and other savings. The figures do not yet hold your pension back until then.';
+export function accessAgeOf(settings, now = new Date()) {
+  return accessAgeFromAgeBeforeChange(ageOnDate(settings, lastDayBeforeChange(), now));
 }
 
 /**
- * Does this plan draw from a pension before the age a pension can usually first be taken (7.4.0)? 55 for someone who is 55
- * before 6 April 2028, 57 for everyone else (answers/shared/rules.js pensionAccess; pensionAccessWords above). The year the
- * plan draws from first, seen from today — its year 0, or this tax year once that has passed — is reached at an age below
- * it, and the plan has a pension pot to draw. The engines do not yet hold the pension back until then (research design
- * "Release D"), so both apps say so beside the plan's draws: a plain fact, words only. Null otherwise, and without an age.
+ * For a plan that says when work stopped (6.51.0, research/plan-start.md §8: "stopping before 55 (57 from April 2028)
+ * and bridging on savings"): when the plan's income starts before the age the pension can first be drawn — 55 for someone
+ * who reaches it before 6 April 2028, 57 for everyone else — one line naming that age and the tax year it is reached in,
+ * the earliest the plan's income can come from the pension. From 7.4.1 the engines hold the pension back until then
+ * (services/PensionLock.js), so the line says what the plan does. '' otherwise, and without an age to reckon from.
+ */
+function pensionAccessWords(t, s, now) {
+  if (!(+s.currentAge > 0) || !(t.shapeAgeNow > 0)) return '';
+  const minAge = accessAgeOf(s, now);
+  if (minAge == null || t.shapeAgeNow >= minAge) return '';
+  const Y = t.firstTaxYear + (minAge - t.shapeAgeNow);
+  return 'Your pension can be drawn from age ' + minAge + ' (tax year ' + taxYearLabel(Y) + '). Until then the plan pays you from your ISA, cash and other savings.';
+}
+
+/**
+ * Does this plan start before the age a pension can usually first be taken (7.4.0)? 55 for someone who is 55 before
+ * 6 April 2028, 57 for everyone else (accessAgeOf, services/PensionAge.js). The year the plan draws from first, seen from
+ * today — its year 0, or this tax year once that has passed — is reached at an age below it, and the plan has a pension
+ * pot. From 7.4.1 every engine holds the pension back until then and pays those years from the other savings
+ * (services/PensionLock.js), so both apps say what the plan does beside its draws. Null otherwise, and without an age.
  * @returns {null | { age: number, taxYear: number }}  the access age, and the tax year the plan's income is first drawn in
  */
 export function earlyPensionDrawOf(settings, now = new Date()) {
@@ -484,16 +493,15 @@ export function earlyPensionDrawOf(settings, now = new Date()) {
   if (!t || t.mode === 'legacy' || !(+s.currentAge > 0)) return null;
   let pot = 0; try { pot = sippTodayOf(s); } catch { pot = 0; }
   if (!(pot > 0) && !(+(s.potAtRetirement && s.potAtRetirement.sipp) > 0)) return null;
-  const before = ageOnDate(s, new Date(2028, 3, 5), now);
-  const age = before != null && before >= 55 ? 55 : 57;
+  const age = accessAgeOf(s, now);
   const firstDrawn = Math.max(+t.firstTaxYear, taxYearStartOf(now));
   const ageThen = ageInTaxYear(s, firstDrawn, now);
-  return ageThen != null && ageThen < age ? { age, taxYear: firstDrawn } : null;
+  return age != null && ageThen != null && ageThen < age ? { age, taxYear: firstDrawn } : null;
 }
 
-/** The words for earlyPensionDrawOf, in both apps. */
+/** The words for earlyPensionDrawOf, in both apps: what the plan does until the pension can be taken. */
 export function earlyPensionDrawWords(e) {
-  return 'You can’t usually take money from a pension before ' + e.age + '. Until then this plan’s pension draws would have to come from your ISA, savings or other money.';
+  return 'Before ' + e.age + ', this plan pays you from your other savings, not your pension.';
 }
 
 /**

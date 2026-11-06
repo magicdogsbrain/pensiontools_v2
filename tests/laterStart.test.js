@@ -484,7 +484,7 @@ describe('a plan that draws from a pension before it can usually be taken says s
   it('a fictional Sam who stopped at 52: 55 (55 before 6 April 2028? no: 57)', () => {
     const e = earlyPensionDrawOf(base, NOW);
     expect(e).toEqual({ age: 57, taxYear: 2026 });
-    expect(earlyPensionDrawWords(e)).toBe('You can’t usually take money from a pension before 57. Until then this plan’s pension draws would have to come from your ISA, savings or other money.');
+    expect(earlyPensionDrawWords(e)).toBe('Before 57, this plan pays you from your other savings, not your pension.');   // a fact from 7.4.1: the engines hold it back
     expect(earlyPensionDrawOf({ ...base, currentAge: 54 }, NOW)).toEqual({ age: 55, taxYear: 2026 });
   });
   it('absent at or past the age, with no pension pot, and without an age', () => {

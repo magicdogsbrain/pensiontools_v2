@@ -319,6 +319,8 @@ export function verdictOf(result, saved) {
   if (ran.cutsOn) rows.push({ id: 'ran.cuts', slots: { pct: String(ran.cutPct), months: String(ran.months), s: ran.months === 1 ? '' : 's' } });
   else if (ran.family) rows.push({ id: 'ran.cutsOff', slots: {} });
   if (result.priced === 'bundled') rows.push({ id: 'ran.bundled', slots: {} });
+  // the other savings cannot pay the years before the pension opens (7.4.1, lastsRun closedOf): said beside the answer
+  const closedShort = result.closed && result.closed.short ? { age: String(result.closed.age), amount: pounds(result.closed.short.perYear), years: result.closed.short.years } : null;
   const worst = Array.isArray(result.history && result.history.worst) ? result.history.worst.map(startRow) : [];
   const named = Array.isArray(result.history && result.history.named) ? result.history.named.map(startRow) : [];
   return {
@@ -333,6 +335,7 @@ export function verdictOf(result, saved) {
       ? { id: 'lasts.subContract', slots: { years: String(years), toAge } }
       : { id: 'lasts.sub', slots: { pct: pctText(a.chancePct, 1, CHANCE_BARS).replace(/%$/, ''), futures: n0(a.futures), histories: n0(a.histories), years: String(years), toAge } },
     rows, strategyId: result.strategyId || null,
+    ...(closedShort ? { closedShort } : {}),
     history: { worst, named, histRanOut: n0(a.histRanOutN), failKind: a.failKind, histories: n0(a.histories), contract: CONTRACT.includes(result.strategyId) },
     // the year-by-year tables and the named stresses (road-to-7.md step 11b), when the run carried them
     extras: extrasView(result.extras)

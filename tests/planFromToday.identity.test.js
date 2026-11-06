@@ -114,8 +114,10 @@ const withoutAdded = (doc) => {
   // choice offered, never a figure: the pins, taken before it, are read with that one year put back, so every plan whose
   // figures did not move is held to its pins byte for byte
   if (Array.isArray(timing.startOptions) && timing.startOptions.length) timing.startOptions = [...timing.startOptions, timing.startOptions[timing.startOptions.length - 1] + 1];
+  // 7.4.1: the engine's version is a stamp too (strategies/version.js: nothing compares it). The pins, taken under 6.37.0,
+  // are read with it put back, so a plan whose figures did not move under 6.38.0 is held to them byte for byte.
   const { appVersion, ...rest } = doc;
-  return { ...rest, timing };
+  return { ...rest, ...('engineVersion' in rest ? { engineVersion: '6.37.0' } : {}), timing };
 };
 
 function outputsOf(name, now) {
@@ -142,7 +144,7 @@ function outputsOf(name, now) {
       deriveCompareConfigs: sampledConfigs(configs, p.durationYears),
       fullGiltTest: { ...gilt, samples: undefined },
       buildPlanDocument: withoutAdded(doc),
-      planOfRecordFor: por,
+      planOfRecordFor: { ...por, engineVersion: '6.37.0' },   // the engine's stamp as the pins had it (withoutAdded above)
       householdDrawSplit: split
     }
   };

@@ -427,7 +427,7 @@ function describe(seed, p, names = null) {
   let second = differenceWords(seed, p);
   const hasPension = p.pension.today > 0 || p.pension.atStop.middling > 0;
   if (hasPension && p.pensionOpensAge > p.ageAtStop) {
-    second += ' ' + (p.who === 'you' ? 'Your pension' : 'Your partner\'s pension') + ` cannot be touched until ${p.pensionOpensAge}; this planner does not hold it closed.`;
+    second += ' ' + (p.who === 'you' ? 'Your pension' : 'Your partner\'s pension') + ` cannot be touched until ${p.pensionOpensAge}; until then this plan pays from the other savings.`   // 7.4.1: the engines hold it closed, so the words say so;
   }
   const third = coupleWords(seed, p, names);
   return first + '\n' + second + (third ? '\n' + third : '');

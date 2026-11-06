@@ -136,6 +136,9 @@ test.describe('the levers on "Does it last?", without an account', () => {
       await awaitRun(page);
       expect(await page.locator('#app input, #app select, #app textarea').count()).toBe(0);
       await expect(page.getByTestId('plan.lasts.levers.locked')).toHaveCount(0);
+      // a locked plan's tries are folded under "Try something" (7.3.0), never pushed: opened by the person
+      await expect(page.getByTestId('plan.lasts.lever.fall')).toBeHidden();
+      await page.getByTestId('plan.lasts.trySomething').locator('summary').click();
       await page.getByTestId('plan.lasts.lever.fall').click();
       await expect(page.getByTestId('plan.lasts.lever.fall.result')).toBeVisible({ timeout: 60_000 });
       const compare = page.getByTestId('plan.lasts.levers.locked');

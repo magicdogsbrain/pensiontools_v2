@@ -1,6 +1,7 @@
 /**
  * J3 (research/v7/after-7.md §2; research/v7/months-in-v7.md): living on the plan, month by month, signed in. A person with a
- * locked drawing plan in the account opens the site and lands on the plan, which opens on Month by month; sets up the tax
+ * locked drawing plan in the account opens the site and lands on the plan's home (7.3.0; Month by month itself until then),
+ * whose first to-do opens Month by month; sets up the tax
  * year (part-way through it: what came in so far); records this month, filling in the months missed since April with one
  * press; every month shows as recorded. Reloaded, everything is still there — read back from the emulator — and the plan's
  * settings are unchanged. And an unlocked drawing plan: asked to lock first, locked, then a month recorded.
@@ -41,7 +42,8 @@ async function alexWith(page, plan, step) {
   await atFixedTime(page);
   await openAt(page, '#/account');
   await signIn(page, ALEX);
-  await expect(page.getByTestId('account.signedIn')).toBeVisible();
+  // signed in on a new device with a plan remembered (7.3.0): taken to that plan, not left on "Your account"
+  await expect(page).toHaveURL(new RegExp('#/plan/' + plan.id), { timeout: 30_000 });
   return uid;
 }
 async function type(page, path, value) {
@@ -56,10 +58,14 @@ test('a locked plan: lands on Month by month, sets up the tax year, records this
   const planned = lockedPlan();
   const uid = await alexWith(page, planned, null);
 
-  await test.step('the site opens on the plan, and the plan on Month by month', async () => {
+  await test.step('the site opens on the plan\'s home, whose first to-do opens Month by month on the tax year to set up', async () => {
     await openAt(page, '');
-    await expect(page.getByTestId('plan.step.month')).toHaveText('Month by month', { timeout: 30_000 });
+    await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 30_000 });
     expect(planAddress(page)).toEqual({ planId: LOCKED, step: null });
+    await expect(page.getByTestId('plan.home.todo').locator('.home-item').first()).toHaveAttribute('data-todo', 'month.taxYear');
+    await page.getByTestId('plan.home.todo.month.taxYear').click();
+    await expect(page.getByTestId('plan.step.month')).toHaveText('Month by month', { timeout: 30_000 });
+    expect(planAddress(page)).toEqual({ planId: LOCKED, step: 'month' });
     await expect(page.getByTestId(`${T}.setUp`)).toHaveAttribute('data-year', '26/27');
     await expect(page.getByTestId(`${T}.submit`)).toHaveCount(0);
   });
@@ -88,6 +94,9 @@ test('a locked plan: lands on Month by month, sets up the tax year, records this
   const months = ['2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09'];
   const shownAsRecorded = async () => {
     await expect(page.getByTestId(`${T}.gap`)).toHaveCount(0);
+    // nothing due (7.3.0): the tool says so, and the form comes when asked for ("Record a different month")
+    await expect(page.getByTestId(`${T}.idle`)).toContainText('September is recorded. October opens on 1 October');
+    await page.getByTestId(`${T}.other`).click();
     const offered = await page.getByTestId(`${T}.mo.month`).locator('option').evaluateAll((os) => os.map((o) => o.value));
     for (const m of months) expect(offered).not.toContain(m);
     await expect(page.getByTestId(`${T}.recent`).locator('li')).toHaveCount(3);
@@ -106,7 +115,7 @@ test('a locked plan: lands on Month by month, sets up the tax year, records this
     await page.reload();
     await expect(page.getByTestId('plan.step.month')).toHaveText('Month by month', { timeout: 30_000 });
     await shownAsRecorded();
-    await expect(page.getByTestId(`${T}.prefilled`)).toContainText('September 2026');
+    await expect(page.getByTestId(`${T}.prefilled`)).toContainText('September 2026');   // the form asked for: October, from September's figures
     const [p] = await plansOf(uid);
     expect(same(p.decisionTool.settings, planned.decisionTool.settings), 'the Decision settings').toBe(true);
     expect(same(p.stressTool, planned.stressTool), 'the plan\'s settings').toBe(true);

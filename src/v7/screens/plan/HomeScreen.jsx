@@ -153,7 +153,7 @@ export function HomeScreen(state, dispatch) {
           {/* the plan's line, as every page of the plan says it: the stage in words, when it was locked */}
           <p class="plan-stage-line" data-testid="plan.stageLine">{H.line ? fill(PLAN.stageLines[H.line.id], H.line.slots) : ''}{H.lockedOn ? ' ' + fill(PLAN.page.lockedOn, { date: H.lockedOn }) : ''}</p>
           {H.readonly && <p class="notice" role="status" data-testid="plan.readonly">{HOME.readonly}</p>}
-          {H.closed && <p class="notice" role="status" data-testid="plan.closed">{H.closed.hasDocument ? PLAN.page.closedKeeps : PLAN.page.closedKeepsNoDocument}</p>}
+          {H.closed && <p class="notice" role="status" data-testid="plan.closed">{H.closed.hasDocument ? PLAN.page.closedKeeps : PLAN.page.closedKeepsNoDocument}{H.closed.next && <> <LinkButton testid="plan.closed.open" kind="quiet" href={href.plan(H.closed.next.id)}>{fill(PLAN.buttons.openNext, { name: H.closed.next.name })}</LinkButton></>}</p>}
           {H.before && <p class="note" data-testid="plan.before">{H.before.previous ? fill(PLAN.page.before, { name: H.before.previous.name, month: H.before.until }) : fill(PLAN.page.beforeAlone, { month: H.before.until })}{H.before.previous && <> <LinkButton testid="plan.before.open" kind="quiet" href={href.plan(H.before.previous.id)}>{fill(PLAN.buttons.openPrevious, { name: H.before.previous.name })}</LinkButton></>}</p>}
           {H.source === 'window' && <p class="note" data-testid="plan.windowWarning">{PLAN.page.windowWarning}</p>}
         </div>

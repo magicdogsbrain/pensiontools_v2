@@ -118,10 +118,14 @@ test.describe('"About you and when", without an account', () => {
     await page.goto(v7('#/plan/AboutPlan01/plan'));
     await expect(page.getByTestId('plan.step.plan')).toBeVisible();
     await expect(page.getByTestId('plan.answerStale')).toHaveText('Your ‘will it last’ answer was worked out on 20 September 2026, before the plan was changed on 30 September 2026.');
-    await expect(page.getByTestId('rail.next')).toContainText('The plan has changed since its ‘will it last’ answer. Next: check it still lasts.');
-    await expect(page.getByTestId('rail.next.button')).toHaveText('Check it still lasts');
+    // 7.3.0: the rail's next is the first thing due (the saver's first check-in); "check it still lasts" is due on the home
+    await expect(page.getByTestId('rail.next')).toContainText('Next: your first check-in.');
     await expect(page.getByTestId('plan.plan.edit.about')).toHaveText('Change this here');
     await expect(page.locator('[data-region="plan-step"]')).toContainText('Stopping work at 63, in January 2031');
+    await page.goto(v7('#/plan/AboutPlan01'));
+    await expect(page.locator('[data-todo="answer.stale"]')).toContainText('Check it still lasts');
+    await page.goto(v7('#/plan/AboutPlan01/plan'));
+    await expect(page.getByTestId('plan.step.plan')).toBeVisible();
 
     // back to the step, the same change undone: byte for byte, the stale line gone
     await page.getByTestId('plan.plan.edit.about').click();

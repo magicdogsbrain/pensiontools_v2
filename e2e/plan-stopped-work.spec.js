@@ -186,7 +186,12 @@ test.describe('Say when you stopped work, without an account', () => {
     await expect(page.getByTestId('plan.about.stale')).toHaveCount(0, { timeout: 45_000 });
     await page.goto(PROD + V7_PATH + '#/plan/StopAbout02');
     await expect(page.getByTestId('plan.stageLine')).toHaveText('Retired. Plan not locked yet.', { timeout: 45_000 });
-    await expect(page.getByTestId('rail.next')).not.toContainText('was set to start in');
+    // the plan's home (7.3.0): the draft's own to-do, never "update it to today"; the rail on a page of the plan says the same
+    await expect(page.locator('[data-todo="draft.stale"]')).toHaveCount(0);
+    await expect(page.locator('[data-todo="lock.first"]')).toHaveCount(1);
+    await page.goto(PROD + V7_PATH + '#/plan/StopAbout02/plan');
+    await expect(page.getByTestId('rail.next')).not.toContainText('was set to start in', { timeout: 45_000 });
+    await expect(page.getByTestId('rail.next')).toContainText('Next: check it lasts, then lock it when it is right.');
     const text = await page.locator('#app').innerText();
     expect(text).not.toMatch(/\bplan year\b|\byear \d\b|\brun[\s-]?up\b|\bbridge\b/i);
     const widths = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: window.innerWidth }));

@@ -199,6 +199,8 @@ test.describe('Try a change on "Does it last?", without an account', () => {
       await expect(page.getByTestId('plan.step.lasts')).toBeVisible();
       await awaitRun(page);
       expect(await page.locator('#app input, #app select, #app textarea').count(), 'no box on a locked plan before a try is opened').toBe(0);
+      // folded under "Try something" on a locked plan (7.3.0): opened by the person, never pushed
+      await page.getByTestId('plan.lasts.trySomething').locator('summary').click();
       await page.getByTestId('plan.lasts.try.open').click();
       await page.getByTestId('plan.lasts.try.years').fill('28');
       await page.getByTestId('plan.lasts.try.run').click();

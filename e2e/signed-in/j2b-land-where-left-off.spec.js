@@ -5,6 +5,7 @@
  *     id and a step name, no figure);
  *   - a window's own last place wins over another window's in the same browser;
  *   - a plan that is gone, or closed: "Your plans";
+ *   - a LOCKED plan lands on its home (7.3.0), whatever step was last open: someone carrying out a plan comes back to what is due;
  *   - "All questions" (and the name in the header) still open the questions; nobody signed in: the questions, as before.
  * On 7.0.0 the root always opened the questions (the first test failed there). Run against the local emulators, at
  * desktop-1440 and phone-390.
@@ -61,6 +62,20 @@ test('a new tab at the site\'s root lands on the last plan and step; "All questi
   await expect(screen(tab)).toHaveAttribute('data-screen', 'front');
   await tab.reload();
   await expect(screen(tab)).toHaveAttribute('data-screen', 'front');
+});
+
+test('a locked plan lands on its home, whatever step was last open (7.3.0); an unlocked one on the step', async ({ page }) => {
+  const locked = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '04-buckets-running.json'), 'utf8'));
+  delete locked.household;
+  const LOCKED = 'AlexLocked03';
+  await alexWith(page, [{ ...locked, id: LOCKED, planDetails: { ...locked.planDetails, name: 'Alex’s locked plan' }, isActive: false }, plan(ONE, 'Alex’s plan')]);
+  await openAt(page, `#/plan/${LOCKED}/month`);
+  await expect(screen(page)).toHaveAttribute('data-screen', 'plan.month');
+  const tab = await newTab(page);
+  await openAt(tab, '');
+  await expect(tab.getByTestId('plan.home')).toBeVisible({ timeout: 30_000 });
+  expect(planAddress(tab)).toEqual({ planId: LOCKED, step: null });
+  await expect(tab.locator('#app form')).toHaveCount(0);
 });
 
 test('a window\'s own last place wins over another window\'s', async ({ page }) => {

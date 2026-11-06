@@ -71,13 +71,19 @@ test.describe('the saved plans, without an account', () => {
     // no box anywhere on the plan pages
     expect(await page.locator('#app input, #app select, #app textarea').count()).toBe(0);
 
-    // the retired partner's plan opens on Month by month (September 2026 at the fixed clock), with the plan's own record
+    // the retired partner's plan opens on its home (7.3.0; Month by month until then): Moving, its ladder short of its rungs,
+    // so the next order to place is due; Month by month itself has September 2026 recorded at the fixed clock
     await page.getByTestId('plans.open.HouseLadder01').click();
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan');
-    await expect(page.getByTestId('plan.step.month')).toBeVisible();
+    await expect(page.getByTestId('plan.home')).toBeVisible();
+    await expect(page.getByTestId('plan.home.headline')).toContainText('Moving.');
     await expect(page.getByTestId('plan.stageLine')).toHaveText('Retired. Your ladder pays from April 2027. Locked 1 July 2026.');
+    await expect(page.locator('[data-todo="move.next"]')).toHaveCount(1);
+    await page.evaluate(() => { window.location.hash = '#/plan/HouseLadder01/month'; });
+    await expect(page.getByTestId('plan.step.month')).toBeVisible();
     await expect(page.locator('[data-region="plan-step"]')).toContainText('September 2026 recorded: £2,476 after tax');
-    await expect(page.getByTestId('rail.next')).toContainText('September 2026 is recorded. Nothing to do until October.');
+    await expect(page.getByTestId('plan.month.idle')).toContainText('September is recorded. October opens on 1 October');
+    await expect(page.getByTestId('rail.next')).toContainText('Next: move 1 of ');
     const text = await page.locator('#app').innerText();
     expect(text).not.toMatch(/months? to go|years? to go|countdown/i);
     expect(text).not.toMatch(/undefined|NaN/);
@@ -90,12 +96,12 @@ test.describe('the saved plans, without an account', () => {
       if (screen === 'plan') expect(await page.locator('#app input, #app select, #app textarea').count(), step).toBe(0);
       expect(await page.locator('#app').innerText()).not.toMatch(/undefined|NaN|\{\w+\}/);
     }
-    // the household step opens the partner's plan inside the preview; the saver opens on What you pay in
+    // the household step opens the partner's plan inside the preview, on its home (7.3.0): What you pay in among its tools
     await page.evaluate(() => { window.location.hash = '#/plan/HouseLadder01/household'; });
     await expect(page.getByTestId('plan.household.with')).toContainText('With ‘Saving plan’: still saving.');   // the household step draws its own screen since 6.42.0
     await page.getByTestId('plan.household.openPartner').click();
-    await expect(page.getByTestId('plan.step.saving')).toBeVisible();
-    await expect(page.locator('[data-region="plan-step"]')).toContainText('£600 a month from you, £450 from your employer');
+    await expect(page.getByTestId('plan.home')).toBeVisible();
+    await expect(page.getByTestId('plan.home.tool.saving')).toContainText('£600 a month from you, £450 from your employer');
     await expect(page.getByTestId('plan.stageLine')).toHaveText('Still saving.');
     // every link on the plan pages leads inside the preview or to the planner
     const links = await page.locator('#app a[href]').evaluateAll((els) => els.map((el) => el.getAttribute('href')));
@@ -107,7 +113,7 @@ test.describe('the saved plans, without an account', () => {
 
     // a reload: the plans are read again from the window, nothing kept in the page's own storage
     await page.reload();
-    await expect(page.getByTestId('plan.step.saving')).toBeVisible();
+    await expect(page.getByTestId('plan.home')).toBeVisible();
     const after = await page.evaluate(([k]) => ({ guest: sessionStorage.getItem(k), session: Object.keys(sessionStorage), local: Object.keys(localStorage) }), [GUEST_KEY]);
     expect(after.guest === stored, 'the window\'s plans are byte-identical').toBe(true);
     for (const k of [...after.session, ...after.local]) expect(OWN_KEYS.has(k) || k === GUEST_KEY, `a key the preview must not write: ${k}`).toBe(true);
@@ -122,17 +128,17 @@ test.describe('the saved plans, without an account', () => {
     const { ladder, saver } = household();
     const stored = await plant(page, [ladder, saver]);
     await page.goto(v7('#/plan/HouseSaver02'));
-    await expect(page.getByTestId('plan.step.saving')).toBeVisible();
+    await expect(page.getByTestId('plan.home')).toBeVisible();
     await expect(page.getByTestId('plan.windowWarning')).toHaveText('This plan is kept in this browser window only. The classic planner opens on it without an account.');
+    await page.goto(v7('#/plan/HouseSaver02/saving'));
+    await expect(page.getByTestId('plan.step.saving')).toBeVisible();
 
     // "Are you paying in enough?" leads to the plan's verdict inside V7 (release step R2), and "Change this here" to the same
     // page (road-to-7.md step 11b); the planner's fixed-rate pot check is still the planner's: the request in this window, then
     // the planner in the same window
-    await expect(page.getByTestId('plan.saving.payingEnough')).toHaveAttribute('href', '#/plan/HouseSaver02/saving');
-    await expect(page.getByTestId('plan.saving.payingEnough')).toHaveText('Are you paying in enough?');
-    await expect(page.getByTestId('plan.saving.changeSaving')).toHaveAttribute('href', '#/plan/HouseSaver02/saving');
+    // (7.3.0: "What you pay in" draws its own screen; its pot check is the same hand-over)
     await watchLanding(page);   // every frame of the planner's document is looked at: the landing page must never be painted
-    await page.getByTestId('plan.saving.potCheck').click();
+    await page.getByTestId('plan.saving.onCourse').click();
     await page.waitForURL(atClassic);
     // the planner, reloaded: nobody is signed in and the plan is kept in this window, so the planner opens on it by itself —
     // the landing page is never shown (reported 2 Nov 2026: he took its account-first page for "sign in first").
@@ -197,7 +203,11 @@ test.describe('the saved plans, without an account', () => {
     buckets.decisionTool.history = buckets.decisionTool.history.filter((h) => h.date !== '2026-08');
     const july = buckets.decisionTool.history.find((h) => h.date === '2026-07');
     await plant(page, [buckets]);
+    // the plan's home (7.3.0): the month missed is the first thing to do, into Month by month
     await page.goto(v7('#/plan/GapBuckets04'));
+    await expect(page.locator('[data-region="home-todo"] .home-item').first()).toHaveAttribute('data-todo', 'month.gap');
+    await expect(page.getByTestId('plan.home.todo.month.gap')).toHaveText('Record August');
+    await page.goto(v7('#/plan/GapBuckets04/month'));
     await expect(page.getByTestId('plan.step.month')).toBeVisible();
     const panel = page.locator('[data-region="plan-step"]');
     await expect(panel).toContainText('August 2026 is not recorded yet; September 2026 is.');
@@ -236,6 +246,10 @@ test.describe('the saved plans, without an account', () => {
     // every address a plan has (routes.js): the rail's steps and the sub-steps that draw their own screen
     const steps = [...new Set([...PLAN_STEPS, ...PLAN_SUB_STEPS])];
     for (const plan of plans) {
+      // the plan's home (7.3.0) is browsed too: it reads, and writes nothing
+      await page.evaluate((h) => { window.location.hash = h; }, `#/plan/${plan.id}`);
+      await expect(page.getByTestId('plan.home'), plan.id).toBeVisible();
+      expect(await page.locator('#app').innerText(), plan.id).not.toMatch(/undefined|NaN|\{\w+\}/);
       for (const step of steps) {
         const hash = `#/plan/${plan.id}/${step}`;
         await page.evaluate((h) => { window.location.hash = h; }, hash);

@@ -110,15 +110,15 @@ test.describe('"What you pay in", without an account', () => {
       expect(await stored(page), 'working it out writes nothing').toBe(planted);
     });
 
-    await test.step('the rail\'s "Am I saving enough?" opens question B with the plan\'s figures in its boxes (saving-enough-and-check-in.md 4.1, 6.55.0); nothing written', async () => {
+    await test.step('the home\'s "Am I saving enough?" (the rail\'s until 7.3.0) opens question B with the plan\'s figures in its boxes (saving-enough-and-check-in.md 4.1, 6.55.0); nothing written', async () => {
       const want = saverDraftOf(upgradeScenario(JSON.parse(JSON.stringify(sam)), { now: new Date(FIXED_NOW) }).scenario, { today: TODAY });
       expect(want.ok).toBe(true);
-      const ask = page.getByTestId('rail.ask.b');
+      // a question is never pushed on a page of the plan (7.3.0): it is on the plan's home, folded away
+      await expect(page.locator('[data-testid^="rail.ask."]')).toHaveCount(0);
+      await page.goto(v7('#/plan/' + sam.id));
+      await page.getByTestId('plan.home.ask').locator('summary').click();
+      const ask = page.getByTestId('plan.home.ask.b');
       await expect(ask).toHaveAttribute('data-filled', 'plan');
-      // the rail's question links are in its sheet, which a phone opens from the rail's one line; a wider screen draws the rail
-      // open, its plan's question links with it (6.59.0: they open the question filled from the plan on every width)
-      const line = page.getByTestId('rail.line');
-      if (await line.isVisible()) await line.click();
       await ask.click();
       await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'b.numbers', { timeout: 30_000 });
       expect(new URL(page.url()).hash).toBe('#/b/numbers');

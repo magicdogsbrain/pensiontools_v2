@@ -128,9 +128,11 @@ test.describe('Back to work, without an account', () => {
     expect(made).toMatchObject({ before: { kind: 'working', from: '2026-11' }, flexibleAccess: { since: '2024-11', fromPlanId: PLAN_ID } });
     expect(made.stressTool.settings).toMatchObject({ retired: false, stoppedWork: '2030-06' });
 
-    // the saving plan: what came before it, the saver's rail, What you pay in with the limit
+    // the saving plan: what came before it (on its home, 7.3.0, with What you pay in among its tools), the saver's rail, What you pay in with the limit
     await page.goto(PROD + V7_PATH + '#/plan/' + made.id);
     await expect(page.getByTestId('plan.before')).toContainText('Under your previous plan ‘Alex’s linkers’ until October 2026 — its months are there.', { timeout: 45_000 });
+    await expect(page.getByTestId('plan.home.tool.saving')).toHaveCount(1);
+    await page.goto(PROD + V7_PATH + '#/plan/' + made.id + '/plan');
     await expect(page.getByTestId('rail.plan.saving')).toHaveCount(1);
     await page.goto(PROD + V7_PATH + '#/plan/' + made.id + '/saving');
     await expect(page.getByTestId('plan.saving.allowance')).toHaveText(LIMIT, { timeout: 45_000 });

@@ -68,15 +68,15 @@ test.describe('trying figures never makes plans, without an account', () => {
     const app = v7app(page, 'prod', 'b');
     app.as('b');
 
-    await test.step('the plan\'s rail opens "Am I saving enough?" filled from it', async () => {
+    await test.step('the plan\'s home (its rail until 7.3.0) opens "Am I saving enough?" filled from it', async () => {
       await page.goto(v7(`#/plan/${PLAN_ID}/saving`));
       await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.saving');
       // the plan's own verdict worked out first, as a person reading the page would see it (its run belongs to this step)
       await expect(page.getByTestId('plan.saving.verdict')).toHaveAttribute('data-status', 'final', { timeout: 180_000 });
-      const ask = page.getByTestId('rail.ask.b');
+      await page.goto(v7(`#/plan/${PLAN_ID}`));
+      await page.getByTestId('plan.home.ask').locator('summary').click();
+      const ask = page.getByTestId('plan.home.ask.b');
       await expect(ask).toHaveAttribute('data-filled', 'plan');
-      const line = page.getByTestId('rail.line');
-      if (await line.isVisible()) await line.click();
       await ask.click();
       await app.at('b.numbers');
       await expect(page.getByTestId('b.you.payIn.own')).toHaveValue('450');
@@ -161,9 +161,9 @@ test.describe('trying figures never makes plans, without an account', () => {
       await page.goto(v7(`#/plan/${OTHER_ID}/saving`));
       await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.saving');
       await expect(page.getByTestId('plan.saving.verdict')).toHaveAttribute('data-status', 'final', { timeout: 180_000 });
-      const line = page.getByTestId('rail.line');
-      if (await line.isVisible()) await line.click();
-      await page.getByTestId('rail.ask.b').click();
+      await page.goto(v7(`#/plan/${OTHER_ID}`));
+      await page.getByTestId('plan.home.ask').locator('summary').click();
+      await page.getByTestId('plan.home.ask.b').click();
       await app.at('b.numbers');
       await app.set('you.payIn.own', '530');
       await app.click('b.action.show');

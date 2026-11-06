@@ -238,7 +238,10 @@ D → Drawing (first to-do: lock). C and D's Keep ask "Have you taken taxable mo
 **The route, renumbered.** The first visit (the front door, the pictures, no limit on questions without an account;
 `mockups/README.md`) comes before the stages: 7.4.0 the first visit; 7.5.0 three stages, by agreement (the section
 headed 7.4.0 below); 7.6.0 Standard and Expert; 7.7.0 "we assumed"; 7.8.0 Month by month part 2 with the PDF report;
-7.9.0 couples and the long arcs; then 8.0.0. The headings below keep their first numbers; read them in this order.
+7.9.0 couples and the long arcs; then 8.0.0. Later the same day "Off course: re-test and recover" (its own section
+below) was agreed as its own release straight after the stages, which moves the rest on one: 7.6.0 off course; 7.7.0
+Standard and Expert; 7.8.0 "we assumed"; 7.9.0 Month by month part 2 with the PDF report; 7.10.0 couples and the long
+arcs; then 8.0.0. The headings below keep their first numbers; read them in this order.
 
 **Drawing while the holdings are not exact (7.3.1).** The mapping table read a retired plan as Moving whenever its
 record of what is held did not match the plan's mix exactly (`diffHoldings().complete === false`). Real holdings almost
@@ -273,6 +276,88 @@ as a to-do on the home and, before a first record, in Month by month:
    the first new thing written to a plan, so it ships with the 7.5.0 write-safety tests listed below.
 5. **Accepting ends the stage question, not the watching.** The stage never goes back to Moving because holdings
    drift. A new material gap later is a separate, quieter check (at each tax-year set-up), never a change of stage.
+
+## Off course: re-test and recover (agreed 6 Nov 2026; its own release after the stages)
+
+A locked drawing plan is tested before it is locked, and Protection Mode (`ProtectionStrategy.js`: the draw is cut after
+three months in a row with the growth pots below their glide paths, until they are back above them plus a buffer) is part
+of what was tested. So a dip the plan handles is a dip the plan expected. What is missing: when the pots stay under the
+plan's 1-in-10 bad line for a long time, "Where you are" says so (`PlanDocument.whereAmI`, the band verdict) and nothing
+more. A saver who falls behind is shown the share of pay that would put them back on course; a person drawing is shown
+nothing like it. This release gives a drawing plan the same: notice when the plan as tested no longer describes the
+future, test it again from today, and show what each way back does. It can be a large part of what the product is for:
+a plan that keeps watching after it is agreed.
+
+### Principles
+1. **Never react to noise.** Most dips are inside the band and Protection Mode is already handling them. Asking people to
+   act in a normal dip pushes them to sell low. Nothing is said beyond "Where you are" until a trigger below fires.
+2. **The first step is a re-test, not a fix.** Often the answer is "it still lasts, at a lower chance", and the person may
+   be content with that.
+3. **Show what each way back does; never say which to choose.** Options in a fixed order, each with its effect on the
+   chance of lasting; no ranking, no "you should". On the worst readings, point to free guidance (MoneyHelper's Pension
+   Wise) and regulated advice. Not financial advice.
+4. **A locked plan is never changed.** A chosen way back becomes a new plan from today through the existing "Move to a new
+   plan" (close and carry on, `PlanClose.js`); the old plan stays as the record of what was agreed.
+5. **It works upwards too.** Well ahead of the plan for years is "you could spend more", answered the same way. A feature
+   that only ever brings bad news becomes a nag.
+
+### Triggers (derived from the record; read only; thresholds as named constants in one place, tested)
+Readings are recorded months only (never a month filled in later, as the band reading already does), against the
+locked plan's band (`bandAt`, the √time widening already in it):
+- **Below**: the pots under the 1-in-10 bad line at two recorded readings in a row; or Protection Mode on in every
+  recorded month of the last twelve (`history[].inProtection`); or under the middle line at the end of three tax years
+  in a row.
+- **Ahead**: over the 9-in-10 line at the end of two tax years in a row.
+- **Gilt ladder plans** (band verdict `gilts-held-to-pay`, a flat band): no band trigger. Their way off course is a
+  rung the plan needs that is not held, or cash years not covered: the holdings comparison from 7.5.0, read each tax
+  year.
+- **Cannot judge**: no pot recorded for six months: the existing to-dos ask for the month / what is held; no trigger.
+- After a review (below) the trigger is quiet until the reading is materially worse than at the review (a further step
+  down a band, or a new tax year still below), never every month.
+
+### On the home
+A to-do ranked after the month to record and before an out-of-date holdings record: "Your pots have been below the
+plan's 1-in-10 bad line since {month}. Check the plan still lasts from here." ("Not now" for the window.) Ahead: "Your
+pots have been above the plan's 9-in-10 line for two tax years. See what you could spend." Both open the review.
+
+### The review (`#/plan/<id>/review`, a tool page, not a step)
+1. **Where you are, as a picture**: the pot over the life, the locked band behind it and the recorded pots drawn as a
+   line through it (the mock-ups' "pot over a life"; the line draws itself, the motion rule), the months Protection Mode
+   was on marked, the chance it lasts as locked.
+2. **Does it still last from here?** The existing test run on the latest recorded pots, from today, for the years left
+   (`PlanFromToday.js`, the plan's own way and mix), read only: the chance now against the chance when it was locked,
+   and what the bad case leaves.
+3. **Ways back, each tested** (the levers `lasts.js` already has, `LEVER_KINDS`): spend less (solved: the draw that
+   brings the chance back to the chance it was locked at; also "less for the next few years only"); work a little
+   (the existing back-to-work lever); bring in other money (an ISA, cash, a property sale, a pension not yet in the
+   plan); change the timing (a pension or the State Pension later); carry on as it is (the chance as it now stands).
+   Ahead: spend more (solved to the locked chance), or a one-off spend.
+4. **Choose**: **Carry on as I am** (stores the review); **Make this my plan from today** (a new plan from today with
+   the chosen change: close and carry on, then its own "Does it last?" and lock, as today); **Open in Expert** to work it
+   through by hand.
+5. **Couples**: the household reading comes first. If the other plan covers the gap, say so before any way back that
+   cuts this plan's spending; the household test is one link away.
+
+### Data
+- One new stored record, written only by a press on the review: a journey entry `{ event: 'review', at, trigger,
+  chanceLocked, chanceNow, choice: 'carryOn' | 'newPlan' }` through a new write kind `review` held to
+  `['journey','lastModified']` (the journey's typed entries and cap fix come with 7.5.0). Frozen when closed. Nothing
+  written on open; settings, the plan document and the months byte-identical after a review.
+- A new plan from today uses the existing close-and-carry-on chain unchanged (its identity tests as they stand).
+
+### Tests and journeys
+- A truth table of the triggers over band × months × Protection × tax years × ladder × reviewed (no cell writes).
+- A new fictional fixture (Alex, a drawing plan with two years of recorded months through a fall) and an "ahead" twin.
+- Journey j-off-course (signed in): the home shows the to-do → the review → the re-test → spend less, solved → Carry on
+  as I am (the review stored; the to-do quiet; a materially worse month brings it back) and, on a copy, Make this my
+  plan from today (the old plan closed and read only, the new plan from today locked after its test). A ladder plan
+  never gets the band trigger. A couple whose other plan covers is told so first.
+- Words: banned list, no recommendation words ("should", "best", "recommend") on the review; the guidance line on the
+  worst readings.
+
+### Later
+The PDF report (Month by month part 2) carries the reviews as part of the plan's story; the paid report's AI narrative
+(to-do in `mockups/README.md`) can explain a review in plain words, with the same advice boundary.
 
 ## The route
 

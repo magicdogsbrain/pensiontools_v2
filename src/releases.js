@@ -24,7 +24,7 @@
  *                  any shape ({} included) — old plans predate most fields.
  */
 import { ENGINE_VERSION } from './strategies/version.js';
-import { deriveTiming } from './services/PlanTiming.js';
+import { deriveTiming, earlyPensionDrawOf } from './services/PlanTiming.js';
 import { laterStartEffects } from './services/PlanMove.js';
 
 export const TOOL_IDS = ['budget', 'stress', 'strategies', 'decision', 'accumulation', 'household'];
@@ -37,6 +37,35 @@ const pctText = (v) => String(Math.round((+v || 0) * 100) / 100);
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
+  {
+    version: '7.4.1', date: '2026-11-06', engineVersion: '6.38.0', announce: true,
+    title: 'Your plan leaves your pension alone until you can take it',
+    summary: 'If you stop work before you can take money from a pension (55, or 57 for anyone not 55 by 6 April 2028), your plan now pays those years from your other savings and leaves the pension to grow. If those savings can’t cover the gap, we show it as an income cut. Plans for people who can already take their pension work out exactly as before.',
+    changes: [
+      'In any tax year that starts before you reach the age, the plan pays you from your taxable savings first, then your ISA. The year your birthday falls in waits for the next.',
+      'If your other savings can’t cover those years, every way of drawing counts the gap as an income cut. Your plan’s home and “Does it last?” say by how much a year, and in which years.',
+      'The year-by-year table, the tax-year set-up and the monthly figure all leave the pension untouched in those years, and the tax-free lump waits for the year your pension opens.'
+    ],
+    corrections: [
+      'Before this release, a plan for someone who stopped work young could take money from a pension before the law allows it, which made the plan look better than it could be.'
+    ],
+    effects: {
+      stress: ['Only plans for someone under 55 (or 57) during the plan change: those years are paid from other savings, and any gap shows as a cut.'],
+      strategies: ['The same plans compare strategies with the pension closed until it can be taken.'],
+      decision: ['For those plans, the monthly figure takes nothing from the pension until it can be taken. A locked plan’s document is unchanged.'],
+      accumulation: [],
+      budget: [],
+      household: ['Each partner’s pension is closed by their own age.']
+    },
+    actions: ['If you stopped work before 55 (or 57), open your plan and look at “Does it last?”. If it shows a cut in the early years, you may need more in your ISA or other savings to cover them.'],
+    notes: [],
+    affects(scenario) {
+      try {
+        const e = earlyPensionDrawOf(scenario?.stressTool?.settings || {});
+        return e ? ['This plan now pays you from your other savings until ' + e.age + ', not from your pension. Its figures may change.'] : [];
+      } catch { return []; }
+    }
+  },
   {
     version: '7.4.0', date: '2026-11-06', engineVersion: '6.37.0',
     title: 'Once you have stopped work, your plan runs from that tax year',

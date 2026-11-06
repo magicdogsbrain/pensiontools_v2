@@ -274,7 +274,14 @@ as a to-do on the home and, before a first record, in Month by month:
 4. **Store the acceptance** as `transition.finished: { at, how: 'asHeld', heldPct }` (beside 'done' and 'skipped'),
    through the `finish` write kind, its own write, never riding on a month's record (the month identity gate). It is
    the first new thing written to a plan, so it ships with the 7.5.0 write-safety tests listed below.
-5. **Accepting ends the stage question, not the watching.** The stage never goes back to Moving because holdings
+5. **The move is not one line to follow; it needs buy-in and room to differ.** People move in tranches, pick a
+   different fund for a bucket or a neighbouring gilt for a rung, keep a holding they like, or stop part way on
+   purpose. Each difference can be accepted on its own ("Keep this as it is"), and the rest left to move; nothing is
+   all or nothing. What matters is that they always see the difference: the home and the move page show what is held
+   against what was agreed, line by line, with what each difference does (a year of income not covered, more in
+   shares than tested), and the accepted ones are marked as theirs, not as things left to do. The stored record carries
+   them: `transition.finished.accepted: [{ item, plan, held, at }]`, and an accepted difference can be taken back.
+6. **Accepting ends the stage question, not the watching.** The stage never goes back to Moving because holdings
    drift. A new material gap later is a separate, quieter check (at each tax-year set-up), never a change of stage.
 
 ## Off course: re-test and recover (agreed 6 Nov 2026; its own release after the stages)
@@ -332,6 +339,11 @@ pots have been above the plan's 9-in-10 line for two tax years. See what you cou
    (the existing back-to-work lever); bring in other money (an ISA, cash, a property sale, a pension not yet in the
    plan); change the timing (a pension or the State Pension later); carry on as it is (the chance as it now stands).
    Ahead: spend more (solved to the locked chance), or a one-off spend.
+   **Not one line either.** The ways back combine and come in degrees: a little less spending and a year of part-time
+   work, a cut for the next few years only, some of a lump sum, or knowingly accepting a lower chance. Each way back has
+   its own control (an amount, a number of years), the test runs on the combination, and the screen always shows the
+   difference against the plan as locked: the chance then, the chance now, the chance with these changes, and what the
+   bad case leaves. The person builds their own way back; we never pick it for them.
 4. **Choose**: **Carry on as I am** (stores the review); **Make this my plan from today** (a new plan from today with
    the chosen change: close and carry on, then its own "Does it last?" and lock, as today); **Open in Expert** to work it
    through by hand.
@@ -340,7 +352,7 @@ pots have been above the plan's 9-in-10 line for two tax years. See what you cou
 
 ### Data
 - One new stored record, written only by a press on the review: a journey entry `{ event: 'review', at, trigger,
-  chanceLocked, chanceNow, choice: 'carryOn' | 'newPlan' }` through a new write kind `review` held to
+  chanceLocked, chanceNow, chanceChosen, changes: [{ lever, amount, years }], choice: 'carryOn' | 'newPlan' }` through a new write kind `review` held to
   `['journey','lastModified']` (the journey's typed entries and cap fix come with 7.5.0). Frozen when closed. Nothing
   written on open; settings, the plan document and the months byte-identical after a review.
 - A new plan from today uses the existing close-and-carry-on chain unchanged (its identity tests as they stand).

@@ -62,7 +62,7 @@ export function planDocumentHeaderHtml(doc) {
   const asOf = potsAsOfWords(d);
   return '<div class="rpt-header"><h1>Plan document — ' + esc(d.planName || 'My plan') + '</h1>'
     + '<div class="rpt-sub">Locked ' + esc(dateGB(d.lockedAt)) + (d.createdAt && d.createdAt !== d.lockedAt ? ' · document created ' + esc(dateGB(d.createdAt)) : '') + ' · PensionTools v' + esc(d.appVersion || '') + ', engine ' + esc(d.engineVersion || '') + '</div>'
-    + '<table class="rpt-meta"><tr><td>Strategy</td><td>' + esc(d.strategy?.name || d.strategy?.id || '—') + '</td><td>' + (startedAtLock(d) ? 'Plan started' : 'Plan starts') + '</td><td>' + esc(d.decisionRun?.year0 || '—') + (asOf ? ' (locked in plan year ' + asOf.planYear + ')' : '') + '</td></tr>'
+    + '<table class="rpt-meta"><tr><td>Strategy</td><td>' + esc(strategyNameOf(d.strategy) || '—') + '</td><td>' + (startedAtLock(d) ? 'Plan started' : 'Plan starts') + '</td><td>' + esc(d.decisionRun?.year0 || '—') + (asOf ? ' (locked in plan year ' + asOf.planYear + ')' : '') + '</td></tr>'
     + '<tr><td>Priced on</td><td>' + gbp(d.pots?.sipp) + (d.pots?.isa ? (d.pots.isaPolicy === 'hold' ? ', ISA ' + gbp(d.pots.isa) + ' held aside' : ' + ISA ' + gbp(d.pots.isa)) : '') + (d.pots?.gia ? ' + GIA ' + gbp(d.pots.gia) : '') + '</td><td>First step</td><td>' + (d.steps?.[0] ? gbp(d.steps[0].amount) + '/yr from age ' + esc(String(d.steps[0].fromAge)) : '—') + '</td></tr></table></div>';
 }
 
@@ -165,7 +165,7 @@ export function planDocumentHtml(doc, r = {}) {
     const rr = d.strategy.r || {};
     st = '<p><strong>' + esc(strategyNameOf(d.strategy)) + '</strong>' + (rr.ruin ? ' — ran out or was cut in ' + esc(pctShare(+rr.ruin.mc || 0, 1)) + ' of simulated futures; income guaranteed: ' + esc(rr.guaranteedToAge || '—') + '.' : '.') + '</p>';
   }
-  h += section('2. Strategy — ' + (d.strategy?.name || d.strategy?.id || ''), st, { sub: 'the verdict, the cones, and the shopping list as they stood at lock' });
+  h += section('2. Strategy — ' + strategyNameOf(d.strategy), st, { sub: 'the verdict, the cones, and the shopping list as they stood at lock' });
 
   // Portfolio: what you HELD (the holdings record) first; then the pots and funds the strategy was TESTED on —
   // the two are different things and the document never presents the second as the first (6.13.0).
@@ -425,11 +425,13 @@ export function incomeThisYearText(inc) {
 }
 
 /**
- * The way of drawing's name as the document shows it: the name it was written with — but the one renamed for the screen in
- * 7.3.3 (stressTest.js STRATEGY_NAMES) by its name today, so an older document never shows the old one. Nothing stored changes.
+ * The way of drawing's name as a plan document shows it: the name it was written with — but the one renamed for the screen
+ * in 7.3.3 (stressTest.js STRATEGY_NAMES) by its name today, so an older document (its header, its section title, the
+ * new-version question and the list of past versions) never shows the old one. Nothing stored changes.
  */
-function strategyNameOf(st) {
-  return st.id === 'bridge-and-engine' ? 'Gilts to State Pension, then shares' : (st.name || st.id);
+export function strategyNameOf(st) {
+  if (!st) return '';
+  return st.id === 'bridge-and-engine' ? 'Gilts to State Pension, then shares' : (st.name || st.id || '');
 }
 
 /** The "where you are" strip. */
@@ -445,9 +447,12 @@ export function whereAmIHtml(w) {
     if (s.contributions > 0 || s.isaMonthly > 0) parts.push('Going in on the locked plan: ' + [s.contributions > 0 ? gbp(s.contributions) + ' a month gross into your pension' : '', s.isaMonthly > 0 ? gbp(s.isaMonthly) + ' a month into ISAs and savings' : ''].filter(Boolean).join(' and ') + '.');
   }
   else if (w.bridge) {
-    // A plan stored with its year 0 later than today (until 6.51.0 a retired person's plan started at the next April): its
-    // figures are a later year's, so nothing this year is read against them — one thing to do instead, the move of its start.
-    parts.push('<strong>Your plan is set to start in ' + esc(w.planStart) + '.</strong> Start it from the tax year you stopped work: the banner at the top of the page does it.');
+    // A plan whose year 0 is later than today: its figures are a later year's, so nothing this year is read against them.
+    // Only a plan stored the old way (until 6.51.0 a retired person's plan started at the next April; the caller passes
+    // PlanMove.startLaterOf as `w.startLater`) is pointed at the move of its start, and only when the move can be made; a
+    // plan whose year 0 is ahead for its own reasons (the plan that carries a closed one on) is told its first year, no more.
+    const move = w.startLater && !w.startLater.blocked;
+    parts.push('<strong>Your plan is set to start in ' + esc(w.planStart) + '.</strong>' + (move ? ' Start it from the tax year you stopped work: the banner at the top of the page does it.' : ''));
     const income = incomeThisYearText(w.incomeThisYear ? { ...w.incomeThisYear, perMonth: null } : null);
     if (income) parts.push(income);
     return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p></div>';

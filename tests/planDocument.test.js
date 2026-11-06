@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 import { buildPlanDocument, whereAmI, shapeLayersFromSettings, trimResult, CONTRACT_STRATEGIES } from '../src/services/PlanDocument.js';
-import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from '../src/ui/components/PlanDocumentView.js';
+import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from '../src/ui/components/PlanDocumentView.js';
 import { planFromSettings } from '../src/strategies/stressTest.js';
 import { createSimulationConfigFromSettings } from '../src/storage/StressRepository.js';
 
@@ -160,6 +160,16 @@ describe('planDocumentHtml', () => {
     expect(h).toContain('Gilt ladder value');
     expect(h).not.toContain('<Real>');
   });
+  it('a document written under the old name of the gilts-to-State-Pension plan shows its name today everywhere (7.3.3)', () => {
+    const old = { ...doc, strategy: { ...doc.strategy, id: 'bridge-and-engine', name: 'Bridge & engine' } };
+    const h = planDocumentHtml(old, { strategyCard: () => '<div>CARD</div>', staircaseSvg: () => '', whereAmI: '' });
+    expect(h).not.toMatch(/bridge/i);
+    expect(h).toContain('2. Strategy — Gilts to State Pension, then shares');
+    expect(planDocumentHeaderHtml(old)).not.toMatch(/bridge/i);
+    expect(strategyNameOf(old.strategy)).toBe('Gilts to State Pension, then shares');
+    expect(strategyNameOf({ id: 'pots-and-valves', name: 'Pots & Valves' })).toBe('Pots & Valves');
+    expect(strategyNameOf(null)).toBe('');
+  });
   it('survives an empty or legacy document and a throwing renderer', () => {
     expect(planDocumentHtml({})).toContain('No plan document yet');
     expect(planDocumentHtml(null)).toContain('No plan document yet');
@@ -174,6 +184,12 @@ describe('planDocumentHtml', () => {
     // do — move the start — and never names months before the plan, nor reads this year against a later year's figures
     expect(h).toContain('Your plan is set to start in 2028/29.');
     expect(h).not.toMatch(/before the plan|set aside|Income step/);
+    // the move is pointed to only on a plan stored the old way whose start can be moved (PlanMove.startLaterOf, passed in);
+    // a year 0 ahead for its own reasons (the plan that carries a closed one on) is told its first year, with no instruction
+    expect(h).not.toContain('the banner at the top of the page');
+    expect(whereAmIHtml({ ...w, startLater: { kind: 'move', start: 2028, blocked: false } })).toContain('Start it from the tax year you stopped work');
+    expect(whereAmIHtml({ ...w, startLater: { kind: 'move', start: 2028, blocked: true } })).not.toContain('Start it from the tax year');
+    expect(whereAmIHtml({ ...w, startLater: { kind: 'ask', start: 2028 } })).toContain('Start it from the tax year you stopped work');
     expect(whereAmIHtml(null)).toBe('');
   });
 });

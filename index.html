@@ -4152,7 +4152,7 @@
     import { installLockedStart, startLaterOfActive, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, successorNameOf, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's start, and "Move the plan's start" (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { buildPlanDocument, whereAmI, potRecordOf, recordIsaOf } from './src/services/PlanDocument.js';
-    import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
+    import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend, openingTab } from './src/services/LifeStage.js';
@@ -7254,7 +7254,7 @@
       if (!(await planDocumentMay(window))) return;   // signed in, and never on a closed plan (6.56.0): src/ui/planCloseUi.js says why
       const prev = await getActivePlanDocument();
       // A new version is asked for first (audit problem 5): the current document becomes a past version, never lost.
-      if (prev) { const q = newDocumentVersionQuestion({ strategyName: prev.strategy?.name, lockedAt: ukDay(prev.lockedAt) }); if (!(await appConfirm({ html: q.html }, { okLabel: q.okLabel, cancelLabel: q.cancelLabel, danger: false }))) return; }
+      if (prev) { const q = newDocumentVersionQuestion({ strategyName: strategyNameOf(prev.strategy), lockedAt: ukDay(prev.lockedAt) }); if (!(await appConfirm({ html: q.html }, { okLabel: q.okLabel, cancelLabel: q.cancelLabel, danger: false }))) return; }
       showLoading('Running the strategy and writing the plan document…');
       try {
         if (prev) await archivePlanDocument();
@@ -7277,7 +7277,7 @@
       try { if (doc.strategy?.contract) ladderPos = await ladderPositionForPlan(await getStressSettingsAsync()); } catch (e) { ladderPos = null; }
       let accHistory = []; try { if (doc.accumulation) accHistory = await getActiveAccumulationHistory(); } catch (e) { accHistory = []; }
       let holdings = null, taxYears = null; try { holdings = await getActiveHoldings(); } catch (e) { holdings = null; } try { taxYears = await getAllTaxYearsAsync(); } catch (e) { taxYears = null; }   // taxYears: the CPI entered each year, to put the pot in the plan's prices (6.20.1)
-      return whereAmI(doc, { today: await planReadDay(), history, ladderPos, accHistory, holdings, taxYears });   // a closed plan is read as at its close (6.56.0)
+      const w = whereAmI(doc, { today: await planReadDay(), history, ladderPos, accHistory, holdings, taxYears }); if (w && w.bridge && !w.saving) w.startLater = await startLaterOfActive(); return w;   // a closed plan is read as at its close (6.56.0); a year 0 ahead points to the move only on a plan stored the old way (7.3.3)
     }
     window.renderPlanDocumentPage = async function () {
       const box = document.getElementById('planDocumentPage'); if (!box) return;
@@ -7294,7 +7294,7 @@
         const archive = await getActivePlanDocumentArchive();
         if (archive.length) {
           html += '<details class="card" style="margin-top:12px;"><summary class="hint" style="cursor:pointer;">Previous versions (' + archive.length + ')</summary>'
-            + archive.map((a, i) => ({ a, i })).reverse().map(({ a, i }) => '<div style="margin-top:8px;"><strong>' + budEsc(new Date(a.createdAt).toLocaleDateString('en-GB')) + '</strong> — ' + budEsc(a.strategy?.name || '') + ', first step ' + gbp(a.steps?.[0]?.amount || 0) + '/yr; archived ' + budEsc(new Date(a.archivedAt).toLocaleDateString('en-GB')) + ' <button type="button" class="risk-btn" data-on-click="showArchivedPlanDocument(' + i + ')">Open</button></div>').join('')
+            + archive.map((a, i) => ({ a, i })).reverse().map(({ a, i }) => '<div style="margin-top:8px;"><strong>' + budEsc(new Date(a.createdAt).toLocaleDateString('en-GB')) + '</strong> — ' + budEsc(strategyNameOf(a.strategy)) + ', first step ' + gbp(a.steps?.[0]?.amount || 0) + '/yr; archived ' + budEsc(new Date(a.archivedAt).toLocaleDateString('en-GB')) + ' <button type="button" class="risk-btn" data-on-click="showArchivedPlanDocument(' + i + ')">Open</button></div>').join('')
             + '</details>';
         }
         box.innerHTML = '<div id="pdEarlierTest"></div>' + html;

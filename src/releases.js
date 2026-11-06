@@ -25,6 +25,7 @@
  */
 import { ENGINE_VERSION } from './strategies/version.js';
 import { deriveTiming } from './services/PlanTiming.js';
+import { laterStartEffects } from './services/PlanMove.js';
 
 export const TOOL_IDS = ['budget', 'stress', 'strategies', 'decision', 'accumulation', 'household'];
 export const TOOL_LABELS = {
@@ -36,6 +37,30 @@ const pctText = (v) => String(Math.round((+v || 0) * 100) / 100);
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
+  {
+    version: '7.4.0', date: '2026-11-06', engineVersion: '6.37.0',
+    title: 'Once you have stopped work, your plan runs from that tax year',
+    summary: 'A plan for someone who has stopped work now runs from the tax year they stopped, or from this tax year. It never starts at a later April. Drafts saved with a later start are read from the earlier year, and locked plans are only moved when you confirm.',
+    changes: [
+      'A plan you have not locked that was saved to start next April is now read from the earlier tax year. From today one more year is drawn, and your income steps, lump sums and other dated figures keep their ages and tax years. Nothing is saved until you next save the plan.',
+      'We never change a locked plan for you. If it is set to start later than this tax year, its home asks when you stopped work, or offers to start it this tax year if you are already drawing. If your State Pension was entered only as a number of years, the move asks for its date and keeps it in the right tax year. The start moves only when you confirm.',
+      'If your plan draws from a pension before the age you can usually take one (55, or 57 from April 2028), we now say so beside its figures. The figures do not yet hold your pension back until then.'
+    ],
+    corrections: [],
+    effects: {
+      stress: ['A plan you have not locked, saved to start in a later tax year, now runs from the tax year you stopped work, or this tax year. One more year is drawn, so its figures change.'],
+      strategies: ['The same plans are compared from the earlier tax year.'],
+      decision: ['Locked plans are unchanged until you confirm moving the start.'],
+      accumulation: [],
+      budget: [],
+      household: ['A couple’s split is worked out from each plan’s earlier start.']
+    },
+    actions: ['If you have a draft that was set to start next April, open it and check its figures, then save it. If a locked plan’s home asks when you stopped work, answer it and confirm the move.'],
+    notes: [],
+    affects(scenario) {
+      try { return laterStartEffects(scenario || {}); } catch { return []; }
+    }
+  },
   {
     version: '7.3.3', date: '2026-11-06', engineVersion: '6.37.0',
     title: 'No more months “before your plan”',

@@ -94,7 +94,7 @@ describe('every committed plan at three dates: the stage word, the to-dos in ord
     '2026-10-02': {
       '01-fresh-default': [null, 'plan.noAge', null],
       '02-pnv-draft': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
-      '03-gilt-ladder-runup': ['drawing', 'month.record hold.stale', null],
+      '03-gilt-ladder-runup': ['drawing', 'start.ask month.record hold.stale', null],   // 7.3.3: stored with its start later: say when work stopped
       '04-buckets-running': ['drawing', 'month.record hold.stale', null],
       '05-saver-committed': ['saving', 'checkin.due', null],
       '06-pre-6.4-no-timing': ['drawing', 'month.gap', null],
@@ -113,7 +113,7 @@ describe('every committed plan at three dates: the stage word, the to-dos in ord
     '2027-04-05': {
       '01-fresh-default': [null, 'plan.noAge', null],
       '02-pnv-draft': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
-      '03-gilt-ladder-runup': ['drawing', 'month.gap hold.stale', null],
+      '03-gilt-ladder-runup': ['drawing', 'start.ask month.gap hold.stale', null],
       '04-buckets-running': ['drawing', 'month.gap hold.stale', null],
       '05-saver-committed': ['saving', 'checkin.due', null],
       '06-pre-6.4-no-timing': ['drawing', 'month.gap', null],
@@ -132,7 +132,7 @@ describe('every committed plan at three dates: the stage word, the to-dos in ord
     '2027-04-06': {
       '01-fresh-default': [null, 'plan.noAge', null],
       '02-pnv-draft': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
-      '03-gilt-ladder-runup': ['drawing', 'month.taxYear month.gap hold.stale', null],
+      '03-gilt-ladder-runup': ['drawing', 'start.ask month.taxYear month.gap hold.stale', null],
       '04-buckets-running': ['drawing', 'month.taxYear month.gap hold.stale', null],
       '05-saver-committed': ['saving', 'checkin.due', null],
       '06-pre-6.4-no-timing': ['drawing', 'month.taxYear month.gap', null],
@@ -171,7 +171,8 @@ describe('one engine: the rail\'s Next is the first thing due, and the home\'s f
     // aim, what you hold, the out-of-date answer and draft, the household — then the sentences that say where things stand
     const due = NEXT_ORDER.filter((x) => DUE_IDS[x]);
     // (P.moveLater: the move on a drawing plan that records nothing it holds, the design's "move.next: drawing (lower)")
-    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.draft', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending']);
+    // (P.startMove / P.startAsk, 7.3.3: a locked plan stored with its start later than it should be, ranked just after the lock)
+    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.draft', 'P.startMove', 'P.startAsk', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending']);
     expect(NEXT_ORDER.slice(-6)).toEqual(['P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
   });
   for (const today of DATES) {
@@ -281,7 +282,7 @@ describe('the plans list, a partner\'s due lines, the soon item', () => {
     const row = (name) => rows.find((r) => r.id === String(C[name].id));
     expect([row('04-buckets-running').life, row('04-buckets-running').todo]).toEqual(['drawing', 2]);
     // retaken on purpose (7.3.1): 03 records months, so it is Drawing and its move is not counted (it was ['moving', 3])
-    expect([row('03-gilt-ladder-runup').life, row('03-gilt-ladder-runup').todo]).toEqual(['drawing', 2]);
+    expect([row('03-gilt-ladder-runup').life, row('03-gilt-ladder-runup').todo]).toEqual(['drawing', 3]);   // 7.3.3: and "When did you stop work?"
     expect([row('05-saver-committed').life, row('05-saver-committed').todo]).toEqual(['saving', 1]);
     // a closed plan's way on is not counted on its row (retaken on purpose: it was 1, "Closed · 1 to do")
     expect([row('18-moved-to-new-plan').life, row('18-moved-to-new-plan').todo]).toEqual(['closed', 0]);
@@ -417,7 +418,7 @@ describe('the words of the home (copy/home.js)', () => {
   };
   const slot = (s) => s.replace(/\{(month|stop|nextCheck|last)\}/g, 'April 2027').replace(/\{(monthName|next)\}/g, 'October').replace(/\{date\}/g, '20 March 2026')
     .replace(/\{(year|savedYear)\}/g, '2027/28').replace(/\{(n|of|done)\}/g, '3').replace(/\{total\}/g, '1,000').replace(/\{(name|closed)\}/g, 'Ladder plan').replace(/\{label\}/g, 'Index-linked gilt 2031')
-    .replace(/\{pct\}/g, '94').replace(/\{title\}/g, 'Record October').replace(/\{question\}/g, 'Am I saving enough?').replace(/\{drawn\}/g, '£1,200').replace(/\{plan\}/g, '£1,100');
+    .replace(/\{pct\}/g, '94').replace(/\{start\}/g, 'April 2027').replace(/\{stopped\}/g, 'May 2026').replace(/\{title\}/g, 'Record October').replace(/\{question\}/g, 'Am I saving enough?').replace(/\{drawn\}/g, '£1,200').replace(/\{plan\}/g, '£1,100');
   it('pass the banned list in every scope a plan page is shown in — records, retired and saver alike; no slot left unfilled', () => {
     const all = [...strings(HOME), ...strings({ WORKING })];
     const context = all.map(([, s]) => slot(s)).join('\n');
@@ -469,8 +470,8 @@ describe('what the reviews found (7.3.0): the invitation, the move on a drawing 
     const e = entryOf(raw, TODAY);
     const pg = planPage([e], e.plan.id, null, { today: TODAY });
     expect(pg.life.key).toBe('drawing');
-    expect(pg.due.map((d) => [d.id, d.pid, d.dismiss || null])).toEqual([['month.record', 'P.month', null], ['move.next', 'P.moveLater', 'window']]);
-    expect(planPage([e], e.plan.id, null, { today: TODAY, notNow: [e.plan.id + '|move.next'] }).due.map((d) => d.id)).toEqual(['month.record']);
+    expect(pg.due.map((d) => [d.id, d.pid, d.dismiss || null])).toEqual([['start.ask', 'P.startAsk', null], ['month.record', 'P.month', null], ['move.next', 'P.moveLater', 'window']]);
+    expect(planPage([e], e.plan.id, null, { today: TODAY, notNow: [e.plan.id + '|move.next'] }).due.map((d) => d.id)).toEqual(['start.ask', 'month.record']);
     // a plan whose holdings show the plan's mix (04) has nothing to move: no move to-do
     expect(planPage(entriesAt(TODAY), C['04-buckets-running'].id, null, { today: TODAY }).due.map((d) => d.id)).not.toContain('move.next');
   });
@@ -613,7 +614,7 @@ describe('drawing while the holdings are not exact (7.3.1): a plan recording mon
     const h = homeOf([e], e.plan.id, { today: TODAY });
     expect(h.stage.key).toBe('drawing');
     expect(h.heldMix).toBe(null);
-    expect([...h.todo.items, ...h.todo.more].map((x) => [x.id, x.pid, x.dismiss || null])).toEqual([['month.record', 'P.month', null], ['move.next', 'P.moveLater', 'window']]);
+    expect([...h.todo.items, ...h.todo.more].map((x) => [x.id, x.pid, x.dismiss || null])).toEqual([['start.ask', 'P.startAsk', null], ['month.record', 'P.month', null], ['move.next', 'P.moveLater', 'window']]);
   });
   it('the words: the share and what is different, filled; the rail\'s move sentences word for word as 7.3.0 had them', () => {
     const W = HOME.heldMix;

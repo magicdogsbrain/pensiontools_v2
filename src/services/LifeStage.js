@@ -2,9 +2,11 @@
  * Life stage — where this plan's owner is, derived from what the plan already knows. Never asked.
  *
  * Two axes: commitment (draft / locked) and time (before the plan start / after it), with "already
- * retired" from the Timing block splitting "before the start" into saving and the bridge. The bridge is someone who has
- * stopped work and chose a later tax year for the plan's income to start (research/plan-start.md §2 D, 6.51.0): someone
- * who stopped in an earlier tax year and lives on the plan has year 0 in that year, and is running. Each stage
+ * retired" from the Timing block splitting "before the start" into saving and the placing kept as `bridge`: a locked plan
+ * of someone who has stopped work whose year 0 is still ahead — until 6.51.0 a retired person's plan started at the next
+ * April by default. Nobody retired has months before their plan, so from 7.3.3 that placing has no words of its own: it reads
+ * as retired, and a plan stored that way shows one thing to do, the move of its start (PlanMove.startLaterOf). Someone who
+ * stopped in an earlier tax year and lives on the plan has year 0 in that year, and is running. Each stage
  * says which tools lead, which are read-only, which are hidden, what the next-step banner says, and
  * what moves the person on. The stage is recomputed on every load; only the journey (stage changes
  * with dates) is persisted, so a corrected age or start year can never strand anyone.
@@ -46,10 +48,13 @@ export const STAGES = Object.freeze({
     // `nearText` is added within APPROACHING_YEARS of the stop, when moving what you hold starts to matter.
     banner: { text: 'Your plan is locked and you stop work in {stop}. Keep paying in, and record your pot each month on the Accumulation planner; the Decision tool opens when you stop.', nearText: 'Moving what you hold to the plan\'s mix can start now, if you want to.', btn: 'Open the Accumulation planner', tab: 'accumulation' }
   },
+  // A locked retired plan whose year 0 is still ahead (see the note above): no words of its own. A plan stored that way is
+  // shown the move of its start by the next-step banner (NextStep.js, from PlanMove.startLaterOf) in place of this banner;
+  // a plan that carries a closed one on keeps it, its year 0 the hand-over's tax year.
   bridge: {
-    key: 'bridge', label: 'Retired — the plan\'s income starts later', chip: 'starts later',
+    key: 'bridge', label: 'Retired', chip: 'retired',
     leads: ['decision'], readOnly: ['stress', 'strategies'], hidden: ['accumulation'],
-    banner: { text: 'Retired; the plan\'s income starts in {start}. Record each month in the Decision tool: the months until then are recorded, not compared with the plan. The plan\'s steps, and any ladder\'s rungs, begin in {start}.', btn: 'Open the Decision tool', tab: 'decision' }
+    banner: { text: 'Retired. This plan\'s first tax year is {start}; record each month in the Decision tool.', btn: 'Open the Decision tool', tab: 'decision' }
   },
   running: {
     key: 'running', label: 'Running the plan', chip: 'running',
@@ -235,7 +240,7 @@ export function openingTab(stage) {
 }
 
 function chipText(def, monthsToStart, beforeStart) {
-  if (def.key === 'committed-saving' || def.key === 'bridge') {
+  if (def.key === 'committed-saving') {
     if (!beforeStart || monthsToStart <= 0) return def.chip;
     return monthsToStart >= 24 ? Math.round(monthsToStart / 12) + ' years to go' : monthsToStart + ' month' + (monthsToStart === 1 ? '' : 's') + ' to go';
   }
@@ -243,7 +248,7 @@ function chipText(def, monthsToStart, beforeStart) {
 }
 
 /**
- * Decision-tool gate: may a month be entered? Bridge months only exist for someone retired. A closed plan takes no month
+ * Decision-tool gate: may a month be entered? A saver's plan takes none before the stop month. A closed plan takes no month
  * after its close, and the plan that carries it on none before its first month (PlanClosed.monthRefusal): those months
  * belong to the other plan.
  */

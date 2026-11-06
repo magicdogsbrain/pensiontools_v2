@@ -115,13 +115,16 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
   const saver = entries.find((e) => e.plan.id === C['05-saver-committed'].id);
   it('03\'s Month by month: the stage line, no countdown, and "Record October" inside the new app (7.2.0: never the classic page; since 7.3.0 the plan\'s own address is its home)', () => {
     const { root, text } = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/month'));
-    expect(root.querySelector('[data-testid="plan.stageLine"]').textContent).toBe('Retired. Your ladder pays from April 2027. Locked 1 July 2026.');
+    // 7.3.3: no words of its own for the months before its start; it says when the ladder's first gilt pays
+    expect(root.querySelector('[data-testid="plan.stageLine"]').textContent).toBe('Retired. Living on the plan; your ladder’s first gilt pays from April 2029. Locked 1 July 2026.');
     expect(root.querySelector('h1').textContent).toBe('Month by month');
     expect(text).toContain('October 2026 is not recorded yet');
-    expect(text).toContain('Next: record October 2026.');
+    // 7.3.3: the rail's Next is the plan's first thing to do — say when work stopped, so its start can move — and opens
+    // "About you and when"; the month to record is still the page's own
+    expect(text).toContain('Your plan is set to start in April 2027. Next: say when you stopped work.');
     const btn = root.querySelector('[data-testid="rail.next.button"]');
-    expect(btn.textContent).toBe('Record October');
-    expect(btn.getAttribute('href')).toBe('#/plan/' + ladder.plan.id + '/month');
+    expect(btn.textContent).toBe('Say when');
+    expect(btn.getAttribute('href')).toBe('#/plan/' + ladder.plan.id + '/about');
     expect(root.querySelector('[data-testid="plan.month.submit"]').textContent).toBe('Record October 2026');
     // the last records, exact
     expect(root.querySelectorAll('[data-testid="plan.month.recent"] li').length).toBe(3);
@@ -146,9 +149,11 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(root.querySelector('[data-testid="plan.plan.testLocked"]')).not.toBe(null);
     expect(text).toContain('How this plan got here');
   });
-  it('03 Where you are: months recorded this tax year, taken before tax, the plan\'s figure, the ladder from the document', () => {
+  it('03 Where you are: months recorded this tax year, taken before tax; never read against a later year\'s figure (7.3.3); the ladder from the document', () => {
     const { root, text } = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/where'));
-    expect(text).toMatch(/3 months recorded in 2026\/27: £8,500 taken before tax; the plan says £[\d,]+ for the year/);
+    expect(text).toContain('3 months recorded in 2026/27: £8,500 taken before tax');
+    expect(text).not.toMatch(/the plan says £|than the plan said/);
+    expect(text).toContain('Your plan is set to start in April 2027, so these months are not read against it yet: see To do');
     expect(text).not.toContain('months to go');
     expect(root.querySelector('[data-key="drawn"]').getAttribute('data-value')).toBe('8500');
     expect(text).toContain('From your plan as locked, 1 July 2026');
@@ -245,7 +250,7 @@ describe('the household pair: the retired partner\'s plan and the working partne
     expect(root.querySelector('h1').textContent).toBe('What you pay in');
     expect(text).toContain('£600 a month from you, £450 from your employer');
     const h = draw(stateWith(entries, '#/plan/HouseSaver02/household'));
-    expect(h.text).toContain('With ‘Ladder plan’: retired. Their ladder pays from April 2027.');
+    expect(h.text).toContain('With ‘Ladder plan’: retired. Living on their plan; their ladder’s first gilt pays from April 2029.');   // 7.3.3
     expect(COUNTDOWN.test(h.words)).toBe(false);
     expect(bannedHits(h.words, scopesOf('saving'))).toEqual([]);
   });
@@ -277,7 +282,7 @@ describe('the list (1.2) in each of its states', () => {
     expect([...root.querySelectorAll('[data-testid^="plans.group."]')].pop()).toBe(previous);
     expect(text).toContain('‘Ours — Asha’');
     expect(text).toContain('‘My Plan’');                                    // never renamed
-    expect(text).toContain('Retired. Your ladder pays from April 2027. Locked 1 July 2026.');
+    expect(text).toContain('Retired. Living on the plan; your ladder’s first gilt pays from April 2029. Locked 1 July 2026.');   // 7.3.3
     expect(root.querySelectorAll('[data-testid^="plans.open."]').length).toBe(17);   // 19 (back to work) joined the corpus with its two plans
     // 13 (6.51.0): living on its ladder since an earlier tax year, the cash years paying until its first gilt — said by the
     // ladder's own years, never a plan year or a count of years
@@ -325,6 +330,16 @@ describe('the list (1.2) in each of its states', () => {
     expect(warn.root.querySelector('[data-testid="plan.windowWarning"]').textContent).toBe('This plan is kept in this browser window only. The classic planner opens on it without an account.');
   });
 });
+
+/**
+ * 03 with its start already this tax year and no month marked as before it: as stored, 03 shows the move of its start as its
+ * first thing to do (7.3.3), and these tests are about the month to record and what the rail says after it.
+ */
+function settled(p) {
+  p.stressTool.settings.firstTaxYear = 2026; p.decisionTool.settings.firstTaxYear = 2026;
+  for (const h of p.decisionTool.history) { delete h.bridgeYear; delete h.planStartYear; }
+  return p;
+}
 
 describe('a month that was missed (a report of 3 Nov 2026): the earliest month not recorded is the one to record', () => {
   /** The corpus with ONE month taken out of 04\'s records (April to September 2026): August. */
@@ -424,7 +439,7 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
   it('the review\'s case: July to September recorded (03), an entry made in October after the payment and dated November: "November recorded" on 3 November, never "October is not recorded yet"', () => {
     const raws = Object.values(C).map((p) => JSON.parse(JSON.stringify(p)));
     const id = C['03-gilt-ladder-runup'].id;
-    const b = raws.find((p) => p.id === id);
+    const b = settled(raws.find((p) => p.id === id));
     const sep = b.decisionTool.history.find((h) => h.date === '2026-09');
     b.decisionTool.history.push({ ...sep, date: '2026-11', paidAhead: true });
     const today = '2026-11-03';
@@ -448,7 +463,8 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
   it('a month skipped with no later record (03: July to September recorded, November come): October first, and no "stays as it is" line, since nothing was recorded after it', () => {
     const today = '2026-11-15';
     const id = C['03-gilt-ladder-runup'].id;
-    const { root, text } = draw(stateWith(entriesAt(today), '#/plan/' + id + '/month', { today }));
+    const raws = Object.values(C).map((p) => (p.id === id ? settled(JSON.parse(JSON.stringify(p))) : p));
+    const { root, text } = draw(stateWith(entriesAt(today, raws), '#/plan/' + id + '/month', { today }));
     expect(text).toContain('October 2026 is not recorded yet; September 2026 is.');
     expect(text).toContain('Next: record October 2026.');
     expect(root.querySelector('[data-testid="rail.next.button"]').textContent).toBe('Record October');

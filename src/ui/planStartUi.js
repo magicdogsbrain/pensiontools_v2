@@ -10,12 +10,11 @@
  *   wizardStop(wizardData, ...)           the setup wizard's month: the timing it adds and the years it moves year 0 back
  *   recordBeforeStart(h, anchor)          is a Decision record before the plan's income starts — from the plan's year 0 as
  *                                         it is now, the stamped mark only when there is none
- *   recordYearLabel(h, anchor)            "Year N", or "Before the plan's income starts (year 0 is …)"
+ *   recordYearLabel(h, anchor)            "Year N", or "{Month YYYY} · tax year {TY}" for a month before year 0
  *   recordSourceWords(h, anchor, …)       where a ladder month was paid from, never the stamped words of an old start
  *   livedYearRowHtml(y, recs, plan, gbp)  plan vs actual for a year lived before the plan was locked: the draw only
  *   yearRowHtml(y, recs, plan, tyCfg, …)  plan vs actual's row for a plan year: lived, a part year, or a whole one
- *   beforeStartNoteHtml(n, label)         plan vs actual's note on the months recorded before the plan's income starts
- *   decisionStartNote(anchor, now)        the Decision settings' sentence on the months before year 0, when there are any
+ *   beforeStartNoteHtml(n, label)         plan vs actual's note on months recorded before year 0 (a plan stored the old way)
  *   firstSetUpPlanYear(taxYears, anchor)  plan vs actual's part year: the first plan year the tax-year wizard set up
  *   lockedStartHtml(o)                    a locked plan's start, under the Timing block's summary (6.53.0): "When did you
  *                                         stop work?" once, or the action "Move the plan's start…", and the month changeable
@@ -68,25 +67,38 @@ export function installStopMonth(win, doc) {
     return win.renderTiming();
   };
   win.tmStartYearChanged = function () { win._tmStartFromStop = false; return win.renderTiming(); };
+  win.paintGiltCashDial = () => paintGiltCashDial(doc);
 }
 
 /**
  * After the Timing block is derived: the month box's label follows the choice; a month that does not fit the choice is
- * said in front of the summary (never saved); the ladder's cash "until the plan's income starts" is offered only while the
- * engines read it (§6 decision 8; PlanFromToday.runUpCashSpent): a draft is judged on the form as it stands, its pots
- * being today's; a locked plan on the position its lock recorded (the settings it was loaded with). Returns the summary.
+ * said in front of the summary (never saved); the ladder's extra cash in its money-market fund is offered only while the
+ * engines read it (§6 decision 8; PlanFromToday.runUpCashSpent) and only on a plan that holds some (paintGiltCashDial): a
+ * draft is judged on the form as it stands, its pots being today's; a locked plan on the position its lock recorded (the
+ * settings it was loaded with). Returns the summary.
  */
 export function paintStopMonth(doc, t, s, summary, locked = false, now = new Date()) {
   const typed = stoppedWorkOf({ stoppedWork: doc.getElementById('tmStopMonth')?.value || '' });
   const label = doc.getElementById('tmStopLabel');
   if (label) label.textContent = t.mode === 'future' ? 'Or the month you stop work' : 'The month you stopped work';
   const wrap = doc.getElementById('giltBridgeWrap');
-  if (wrap) wrap.style.display = bridgeCashSpent(t, s, locked, now) ? 'none' : 'flex';
+  if (wrap) wrap.dataset.spent = bridgeCashSpent(t, s, locked, now) ? '1' : '';
+  paintGiltCashDial(doc);
   if (typed && !s.stoppedWork) return (t.mode === 'future' ? 'That month has passed: choose “I have stopped work” if you have. ' : 'That month is still ahead: choose “I will stop work” for a stop to come. ') + summary;
   return summary;
 }
 
-/** Is the ladder's cash "until the plan's income starts" spent (not read) for the Timing block's plan (paintStopMonth)? */
+/**
+ * The ladder's extra cash dial (7.3.3): shown only on a plan that holds some (above £0) and while the engines read it. It is
+ * an older plan's setting — a new plan has nothing to set there — so it is never offered empty. Called when the Timing block
+ * is painted and when a ladder's dials are filled from the saved settings.
+ */
+export function paintGiltCashDial(doc) {
+  const wrap = doc.getElementById('giltBridgeWrap');
+  if (wrap) wrap.style.display = !wrap.dataset.spent && +(doc.getElementById('giltBridge')?.value || 0) > 0 ? 'flex' : 'none';
+}
+
+/** Is the ladder's extra cash spent (not read) for the Timing block's plan (paintStopMonth)? */
 export function bridgeCashSpent(t, s, locked = false, now = new Date()) {
   const settings = s || {};
   return runUpCashSpent(locked ? settings : { ...settings, potsAsOf: draftPotsAsOf(settings, now) }, t);
@@ -117,19 +129,27 @@ export function recordBeforeStart(h, anchor) {
   return !!h && h.bridgeYear === true;
 }
 
-/** "Year N" for a saved Decision record — or "Before the plan's income starts (year 0 is …)" before year 0 (6.4.2; 6.51.0). */
+/**
+ * "Year N" for a saved Decision record (6.4.2; 6.51.0). A month before year 0 — only on a plan stored with its start later
+ * than it should be, which shows the move of its start as its to-do — is read by its month and tax year (7.3.3).
+ */
 export function recordYearLabel(h, anchor) {
-  if (recordBeforeStart(h, anchor)) return 'Before the plan\'s income starts' + (anchor > 0 ? ' (year 0 is ' + taxYearLabel(anchor) + ')' : '');
+  if (recordBeforeStart(h, anchor)) {
+    const parts = [h && h.date ? monthName(String(h.date).slice(0, 7)) : '', h && /^\d\d\/\d\d$/.test(String(h.taxYear || '')) ? 'tax year 20' + h.taxYear : ''].filter(Boolean);
+    const words = parts.join(' · ');
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
   const y = anchor > 0 && h && h.taxYear ? planYearOf(h.taxYear, anchor) : ((h && h.yearNum) || 0);
   return 'Year ' + y;
 }
 
 /**
- * Where a gilt ladder's month was paid from, as the record says it — unless the record was stamped before the plan's income
- * started and the plan's year 0 now says it is a plan month (its stamped words would name the old start).
+ * Where a gilt ladder's month was paid from, as the record says it — unless the record was stamped before the plan's year 0
+ * and the plan's year 0 now says it is a plan month (its stamped words would name the old start), or its stamped words are
+ * the old start's own ("SIPP cash (the plan's year 0 is …)", before 6.51.0): those are read in neutral words, as stored.
  */
 export function recordSourceWords(h, anchor, before, otherwise) {
-  const stale = !!h && h.bridgeYear === true && !recordBeforeStart(h, anchor);
+  const stale = !!h && ((h.bridgeYear === true && !recordBeforeStart(h, anchor)) || String(h.strategySource || '').startsWith('SIPP cash (the plan'));
   if (h && h.strategySource && !stale) return h.strategySource;
   return recordBeforeStart(h, anchor) ? before : otherwise;
 }
@@ -175,10 +195,14 @@ export function yearRowHtml(y, recs, plan, tyCfg, firstSetUpYear, gbp) {
     + '<td>' + gbp(Math.round(plan.isaBalance)) + (lastIsaVal != null ? ' <span class="hint">vs ' + gbp(Math.round(lastIsaVal)) + '</span>' : '') + '</td></tr>';
 }
 
-/** Plan vs actual's note on the months recorded before the plan's income starts (a start chosen for later). */
+/**
+ * Plan vs actual's note on months recorded before year 0: only on a plan stored with its start later than it should be (until
+ * 6.51.0 a retired person's plan started at the next April). They are not compared with a later year's figure: the note
+ * says where they are and points to the one thing to do, the move of the start (the banner at the top of the page).
+ */
 export function beforeStartNoteHtml(n, anchor) {
   if (!(n > 0) || !(anchor > 0)) return '';
-  return '<p class="hint" style="margin-top:6px;">' + n + ' month' + (n === 1 ? '' : 's') + ' recorded before the plan\'s income starts (' + taxYearLabel(anchor) + ') — paid from the money set aside until then, so there is no plan figure to compare ' + (n === 1 ? 'it' : 'them') + ' with.</p>';
+  return '<p class="hint" style="margin-top:6px;">Your plan is set to start in ' + taxYearLabel(anchor) + ': ' + n + ' month' + (n === 1 ? '' : 's') + ' recorded since you stopped work ' + (n === 1 ? 'is' : 'are') + ' not in this table until its start is moved (the banner at the top of the page does it).</p>';
 }
 
 /**
@@ -188,11 +212,6 @@ export function beforeStartNoteHtml(n, anchor) {
 export function firstSetUpPlanYear(taxYears, anchor) {
   const ys = Object.keys(taxYears || {}).filter((k) => taxYears[k] && taxYears[k].yearSetupComplete).map((k) => (anchor > 0 ? planYearOf(k, anchor) : NaN)).filter((y) => Number.isFinite(y) && y >= 0);
   return ys.length ? Math.min(...ys) : 0;
-}
-
-/** The Decision settings' sentence on the months before year 0: only while there are some to come (a plan whose income started with the stop has none). */
-export function decisionStartNote(anchor, now = new Date()) {
-  return anchor > taxYearStartOf(now) ? ' The months before it are recorded, not compared with the plan.' : '';
 }
 
 // ---- A locked plan's start (6.53.0, research/plan-start.md §4 "Migration of existing plans") -----------------------------
@@ -234,21 +253,21 @@ const laterStopHtml = () => foldedStopHtml('tmLockedStopLater', 'Say when you st
 export function lockedStartHtml({ ask = false, start = null, offer = null, stepAge = null, stepped = true, income = null, blocked = null, stopped = null, left = false } = {}) {
   if (offer) {
     const at = taxYearLabel(offer.to) + (stepAge > 0 ? ', at ' + stepAge : '');
-    return '<p class="hint" style="margin:0 0 6px;">You stopped work in ' + monthName(offer.stopMonth) + ', before the plan\'s income starts (' + taxYearLabel(offer.from) + '). '
-      + '<strong>Move the plan\'s start to ' + taxYearLabel(offer.to) + '</strong>, the tax year you stopped: the months since are then months of the plan, compared with it. '
+    return '<p class="hint" style="margin:0 0 6px;">You stopped work in ' + monthName(offer.stopMonth) + ', and your plan is set to start in ' + taxYearLabel(offer.from) + '. '
+      + '<strong>Start it from ' + taxYearLabel(offer.to) + '</strong>, the tax year you stopped: your months since then are then read against the plan. '
       + (stepped ? 'Your first income step keeps its amount and runs from ' + at + '; your later steps keep their ages.' : 'Your income stays ' + (income > 0 ? pounds(income) + ' a year' : 'as it is') + ', now from ' + at + '.')
       + ' The plan stays locked.</p>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" id="tmMoveStartBtn" data-on-click="moveLockedPlanStart()">Move the plan\'s start…</button></div>'
       + changeStopHtml(stopped);
   }
   if (blocked) {
-    return '<p class="hint" style="margin:0 0 6px;">You stopped work in ' + monthName(blocked.stopMonth) + ', before the plan\'s income starts (' + taxYearLabel(blocked.from) + '). '
+    return '<p class="hint" style="margin:0 0 6px;">You stopped work in ' + monthName(blocked.stopMonth) + ', and your plan is set to start in ' + taxYearLabel(blocked.from) + '. '
       + 'Its start cannot be moved while the plan is locked: your State Pension is set by the plan\'s count of years, and moved it would read as starting at 67. To change the start, unlock the plan.</p>'
       + changeStopHtml(stopped);
   }
   if (!ask) return stopped ? changeStopHtml(stopped) : left ? laterStopHtml() : '';
   return '<p class="hint" style="margin:0 0 6px;"><strong>When did you stop work?</strong> The plan stays locked, and saying the month changes no figure by itself.'
-    + (start > 0 ? ' If it comes before the plan\'s income starts (' + taxYearLabel(start) + '), you can then move the plan\'s start to the tax year you stopped.' : '') + '</p>'
+    + (start > 0 ? ' Your plan is set to start in ' + taxYearLabel(start) + '; once the month is said, it can start from the tax year you stopped.' : '') + '</p>'
     + stopMonthBox(null)
     + '<button type="button" class="secondary" id="tmLockedStopLeave" data-on-click="leaveLockedStopMonth()">Leave it</button></div>';
 }
@@ -268,14 +287,14 @@ export { spCountOf } from '../services/PlanMove.js';
  * The action's confirm (index.html moveLockedPlanStart, as the unlock's: exactly what changes). `move` is PlanMove.planMoveOf;
  * `facts`: what the plan holds, read before (PlanMove.moveFactsOf, the same facts the preview's confirm states) — the first
  * income step's amount (or the yearly income), whether the income is in steps, the plan's end age, the recorded months and
- * how many were marked as before the plan's income starts, the tax year the run starts in, whether its way of drawing buys
+ * the tax year the run starts in, whether its way of drawing buys
  * a gilt ladder, and the State Pension's count (spCountOf).
  * @param {object} move
- * @param {{ stepAmount?: number|null, stepped?: boolean, endAge?: number|null, months?: string[], bridged?: number,
+ * @param {{ stepAmount?: number|null, stepped?: boolean, endAge?: number|null, months?: string[],
  *   runYear?: number|null, ladder?: boolean, dated?: boolean, sp?: { taxYear: number, before: number|null, after: number }|null }} facts
  * @returns {{ html: string, okLabel: string, cancelLabel: string }}
  */
-export function moveStartQuestion(move, { stepAmount = null, stepped = true, endAge = null, months = [], bridged = 0, runYear = null, ladder = false, dated = false, sp = null } = {}) {
+export function moveStartQuestion(move, { stepAmount = null, stepped = true, endAge = null, months = [], runYear = null, ladder = false, dated = false, sp = null } = {}) {
   const to = taxYearLabel(move.to), from = taxYearLabel(move.from);
   const age = move.stress && +move.stress.shapeAgeNow > 0 ? +move.stress.shapeAgeNow : null;
   const li = [];
@@ -288,11 +307,10 @@ export function moveStartQuestion(move, { stepAmount = null, stepped = true, end
   const ms = (Array.isArray(months) ? months : []).slice().sort();
   if (ms.length) {
     const as = ' They now count from the new start, ' + to + '.';
-    const marked = bridged > 0 ? ' ' + (bridged >= ms.length ? (ms.length === 1 ? 'It is' : 'They are') : bridged + ' of them ' + (bridged === 1 ? 'is' : 'are')) + ' no longer marked as before the plan\'s income starts, and compared with the plan instead.' : '';
-    li.push('<li><strong>' + plural(ms.length, 'recorded month', 'recorded months') + '</strong> (' + monthName(ms[0]) + (ms.length > 1 ? ' to ' + monthName(ms[ms.length - 1]) : '') + ') keep every figure you entered.' + as + marked + '</li>');
+    li.push('<li><strong>' + plural(ms.length, 'recorded month', 'recorded months') + '</strong> (' + monthName(ms[0]) + (ms.length > 1 ? ' to ' + monthName(ms[ms.length - 1]) : '') + ') keep every figure you entered.' + as + '</li>');
   }
   li.push('<li><strong>The plan document and plan vs actual</strong> are written again from the new start, from your pots as they stood when you locked the plan: '
-    + (ladder && runYear ? 'the gilt ladder is bought from ' + taxYearLabel(runYear) + ' on, ' : '') + 'no year you have already lived is bought or paid for again, and no cash is set aside for a start that has passed. The earlier plan document stays under Previous versions on the plan document page; the earlier plan vs actual is kept with the plan\'s saved figures.</li>');
+    + (ladder && runYear ? 'the gilt ladder is bought from ' + taxYearLabel(runYear) + ' on, ' : '') + 'no year you have already lived is bought or paid for again. The earlier plan document stays under Previous versions on the plan document page; the earlier plan vs actual is kept with the plan\'s saved figures.</li>');
   const spWords = sp ? 'Your State Pension still starts in ' + taxYearLabel(sp.taxYear) + ', as before; only the plan\'s count of years to it changes (' + sp.after + ' from the new start' + (sp.before != null && sp.before >= 0 ? ', not ' + sp.before : '') + '). ' : '';
   li.push('<li><strong>The figures move:</strong> ' + spWords + 'The plan counts ' + plural(move.years, 'more year', 'more years') + ' to the same end age, and ' + (ladder ? 'the ladder\'s cost leaves out the years already lived.' : 'the years already lived are no longer run again.') + '</li>');
   li.push('<li>Months you did not record since you stopped can then be filled in on Monthly Entry: set each earlier tax year up first, under Tax Years.</li>');

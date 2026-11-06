@@ -137,7 +137,7 @@ export function unlockNotesHtml(patch) {
 /** Strategies → Background → Assumptions & data: the ISA row, [name, value, note] (the page is not one plan's). */
 export function isaAssumptionsRow() {
   return ['ISA',
-    'Your plan\'s setting in Stress tester → Settings: "Mostly cash" (the default) grows like the cash in your pension — last year\'s rise in prices less 1% a year, never below nothing; "Invested like my pension" follows your pension\'s shares, bonds and cash in the same futures. Before charges. Drawn per the ISA policy (bridge / longevity / <em>hold</em>)',
+    'Your plan\'s setting in Stress tester → Settings: "Mostly cash" (the default) grows like the cash in your pension — last year\'s rise in prices less 1% a year, never below nothing; "Invested like my pension" follows your pension\'s shares, bonds and cash in the same futures. Before charges. Drawn per the ISA policy (to the State Pension / longevity / <em>hold</em>)',
     '<em>Hold</em> keeps the ISA out of every strategy\'s funding; it is never sold to buy rungs. The plan\'s fund and platform charge comes off it every month. An ISA made of ISA funds in your list of funds to test follows those funds. A plan locked before the choice was added keeps a fixed 3% a year until it is unlocked.'];
 }
 

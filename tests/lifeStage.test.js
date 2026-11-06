@@ -68,13 +68,16 @@ describe('deriveStage — the persona matrix', () => {
   // Re-written in 6.51.0 (research/plan-start.md §2 D, §7): the bridge is now only a start CHOSEN for later — Alex stopped
   // work in July 2026 and chose to start the plan's income next April. (The same plan with no stop month derives the same
   // stage, as every plan saved before 6.51.0 does.) Someone who stopped in an earlier tax year is running: the case after.
-  it('Alex in September: stopped in July, chose next April, locked, before the start → Bridge; accumulation hidden', () => {
+  // 7.3.3: the placing keeps its key, but has no words for months before the plan (its chip has no countdown); a plan stored
+  // this way shows the move of its start as its to-do (PlanMove.startLaterOf, the next-step banner)
+  it('Alex in September: stopped in July, saved for next April, locked, before the start → placed bridge, read as Retired; accumulation hidden', () => {
     const alexD = { currentAge: 62, currentAgeAsOf: '2026-03-01', retired: true, firstTaxYear: 2027, spStartDate: '12 June 2030', stoppedWork: '2026-07' };
     const st = deriveStage(sc(alexD, { locked: true }), NOW);
     expect(st.key).toBe('bridge');
     expect(st.hidden).toEqual(['accumulation']);
-    expect(st.chip).toBe('7 months to go');
-    expect(st.banner.text).toBe('Retired; the plan\'s income starts in 2027/28. Record each month in the Decision tool: the months until then are recorded, not compared with the plan. The plan\'s steps, and any ladder\'s rungs, begin in 2027/28.');
+    expect(st.chip).toBe('retired');
+    expect(st.label).toBe('Retired');
+    expect(st.banner.text).toBe('Retired. This plan\'s first tax year is 2027/28; record each month in the Decision tool.');
     expect(decisionEntryAllowed(st, '2026-09').ok).toBe(true);   // the months before the start are recorded
     const { stoppedWork, ...noMonth } = alexD;
     expect(deriveStage(sc(noMonth, { locked: true }), NOW).key).toBe('bridge');

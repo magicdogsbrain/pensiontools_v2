@@ -4,7 +4,7 @@
  */
 import { esc } from './ReleaseNotesView.js';
 import { isaGrowthAssumptionText } from '../isaGrowthSetting.js';
-import { decisionRunWords, runUpWords, mixWords, runUpCashWords } from '../../services/StrategyWords.js';
+import { decisionRunWords, mixWords } from '../../services/StrategyWords.js';
 import { assumedStatePensionWords } from '../plannerWords.js';
 import { ukDate } from '../ukDates.js';
 import { pctText as pctShare } from '../../services/OneAnswer.js';
@@ -163,7 +163,7 @@ export function planDocumentHtml(doc, r = {}) {
     try { st = r.strategyCard(d.strategy.r, d.strategy.p, { compact: true }); } catch (e) { st = '<p class="hint">The strategy result could not be drawn from the stored document (' + esc(e.message) + ').</p>'; }
   } else if (d.strategy) {
     const rr = d.strategy.r || {};
-    st = '<p><strong>' + esc(d.strategy.name || d.strategy.id) + '</strong>' + (rr.ruin ? ' — ran out or was cut in ' + esc(pctShare(+rr.ruin.mc || 0, 1)) + ' of simulated futures; income guaranteed: ' + esc(rr.guaranteedToAge || '—') + '.' : '.') + '</p>';
+    st = '<p><strong>' + esc(strategyNameOf(d.strategy)) + '</strong>' + (rr.ruin ? ' — ran out or was cut in ' + esc(pctShare(+rr.ruin.mc || 0, 1)) + ' of simulated futures; income guaranteed: ' + esc(rr.guaranteedToAge || '—') + '.' : '.') + '</p>';
   }
   h += section('2. Strategy — ' + (d.strategy?.name || d.strategy?.id || ''), st, { sub: 'the verdict, the cones, and the shopping list as they stood at lock' });
 
@@ -189,18 +189,19 @@ export function planDocumentHtml(doc, r = {}) {
   // Assumptions + how the Decision tool runs it
   const A = d.assumptions || {}, DR = d.decisionRun || {};
   const asOfPots = potsAsOfWords(d);
-  // When the plan's income starts (6.51.0): months before it only on a plan whose income starts later than it was locked
-  // (a start chosen for later: research/plan-start.md §2 D); a plan locked once it had started says where it stood.
+  // When the plan's income starts (6.51.0): a plan locked once it had started says where it stood. An older document's count
+  // of months before its start (`decisionRun.bridgeMonths`) is not printed: nobody retired has months before their plan, and
+  // a plan stored that way shows one thing to do instead (PlanMove.startLaterOf). The document itself is never rewritten.
   const startText = asOfPots
     ? esc(DR.year0 || '') + ' — locked in plan year ' + asOfPots.planYear + ', on the pots as they stood in ' + esc(asOfPots.month) + ' (' + asOfPots.monthsLeft + ' month' + (asOfPots.monthsLeft === 1 ? '' : 's') + ' of that year still to pay)'
-    : esc(DR.year0 || '') + (DR.bridgeMonths > 0 ? ' — the plan\'s income starts then; ' + DR.bridgeMonths + ' month' + (DR.bridgeMonths === 1 ? '' : 's') + ' before it, paid from the money set aside for them' : '');
+    : esc(DR.year0 || '');
   let as = table(['Assumption', 'Value'], [
     [startedAtLock(d) ? 'Plan started' : 'Plan starts', startText],
     ['Duration', esc(String(A.duration || '')) + ' years'],
     ['State Pension', A.spStartDate ? esc(ukDate(A.spStartDate)) + ', ' + gbp(A.spWeeklyAmount) + '/week (' + gbp(A.spWeeklyAmount * 52) + '/yr)' : 'not entered' + (assumedStatePensionWords(d.strategy?.p) ? ' — ' + esc(assumedStatePensionWords(d.strategy?.p)) : '')],
     ['Tax bands (year 0)', 'PA ' + gbp(A.pa) + ' · basic-rate limit ' + gbp(A.brl) + ' · higher ' + gbp(A.hrl) + ' · ' + (A.taxMode === 'frozen' ? 'frozen' : 'rise with inflation')],
     ['Decision tool CPI assumption', ((A.cpiDecision || 0) * 100).toFixed(0) + '% a year until each year\'s CPI is entered'],
-    ...(A.cashYears != null ? [['Cash years first', esc(String(A.cashYears)) + (A.bridgeCash ? ' · cash set aside until the plan\'s income starts ' + gbp(A.bridgeCash) : '')]] : []),
+    ...(A.cashYears != null ? [['Cash years first', esc(String(A.cashYears)) + (A.bridgeCash ? ' · extra cash in the money-market fund ' + gbp(A.bridgeCash) : '')]] : []),
     ...(A.spareGrowth ? [['Money left over', 'invested in shares (a growth part); ' + (A.spareFillsCuts ? 'it pays a rotated year the sleeve cannot, before that year counts as cut' : 'never drawn for income')]] : []),   // 6.35.0 (6.36.0: fills cuts); absent = kept, as every earlier document
     ...(!A.spareGrowth && A.spareFillsCuts ? [['Money left over', 'kept, holding its value; it pays a rotated year the sleeve cannot, before that year counts as cut']] : []),   // 6.37.0
     ...(A.giltPricesAsOf ? [['Gilt prices as of', esc(ukDate(A.giltPricesAsOf))]] : []),
@@ -209,7 +210,7 @@ export function planDocumentHtml(doc, r = {}) {
     ['Engine', 'v' + esc(d.engineVersion || '') + ' (app v' + esc(d.appVersion || '') + ')']
   ]);
   as += '<div class="section-title" style="font-size:13px;margin-top:10px;">How the Decision tool runs this plan</div><ul>'
-    + '<li>Plan year 0 is tax year ' + esc(DR.year0 || '') + '.' + (DR.bridgeMonths > 0 ? ' ' + esc(runUpCashWords(A)) : '') + (asOfPots ? ' Months from plan year ' + asOfPots.planYear + ' on are compared with the plan; the years before it are compared with the plan\'s own figures for each year.' : '') + '</li>'
+    + '<li>Plan year 0 is tax year ' + esc(DR.year0 || '') + '.' + (asOfPots ? ' Months from plan year ' + asOfPots.planYear + ' on are compared with the plan; the years before it are compared with the plan\'s own figures for each year.' : '') + '</li>'
     + '<li>Each month you enter: ' + (DR.monthlyAsks || []).map(esc).join(' · ') + '.</li>'
     + '<li>' + esc(decisionRunWords(d.strategy?.id)) + '</li>'
     + '<li>The tax-year wizard each April takes the next step from this document\'s schedule, uplifted by the CPI you enter.</li></ul>';
@@ -231,7 +232,7 @@ export function planDocumentHtml(doc, r = {}) {
   }
   // Journey: the stages this plan has been through, with dates (6.6.0)
   if (Array.isArray(d.journey) && d.journey.length) {
-    h += section('5. Journey', table(['When', 'Stage', 'Note'], d.journey.map((j) => [esc(dateGB(j.at)), esc(j.label || j.stage || ''), esc(j.note || '')])) + '<p class="hint">Stages are worked out from your age, the plan start and the lock — never chosen by hand — and each change is dated here.</p>');
+    h += section('5. Journey', table(['When', 'Stage', 'Note'], d.journey.map((j) => [esc(dateGB(j.at)), esc(j.stage === 'bridge' ? 'Retired' : (j.label || j.stage || '')), esc(j.note || '')])) + '<p class="hint">Stages are worked out from your age, the plan start and the lock — never chosen by hand — and each change is dated here.</p>');
   }
   h += '<p class="hint" style="margin-top:12px;">Illustration, not advice. This document records the plan as it was when it was locked; it does not change when markets or the app move. Compare it with the live Decision tool each month.</p>';
   h += '</div>';
@@ -338,7 +339,7 @@ export function whereAmIPotText(pot) {
   if (parts.length > 1) pt += ' (' + parts.map((x) => PART_NAME[x.key] + ' ' + gbp(x.value) + (sourceText(x) ? ' ' + esc(sourceText(x)) : '')).join('; ') + ')';
   else if (parts[0] && parts[0].source !== 'today' && sourceText(parts[0])) pt += ' (' + esc(sourceText(parts[0])) + ')';
   pt += pricesText(P);
-  const expects = ' against ' + gbp(P.p50) + ' the plan expects by then' + (P.runUp ? ' (' + gbp(P.startP50) + ' at the start of the plan + ' + gbp(P.runUp.value) + ' of cash set aside for the ' + P.runUp.months + ' month' + (P.runUp.months === 1 ? '' : 's') + ' still to pay)' : '');
+  const expects = ' against ' + gbp(P.p50) + ' the plan expects by then';
   const verdict = P.verdict || (P.band ? 'band' : null);
   let s;
   if (verdict === 'gilts-held-to-pay') {
@@ -423,6 +424,14 @@ export function incomeThisYearText(inc) {
   return s + '.';
 }
 
+/**
+ * The way of drawing's name as the document shows it: the name it was written with — but the one renamed for the screen in
+ * 7.3.3 (stressTest.js STRATEGY_NAMES) by its name today, so an older document never shows the old one. Nothing stored changes.
+ */
+function strategyNameOf(st) {
+  return st.id === 'bridge-and-engine' ? 'Gilts to State Pension, then shares' : (st.name || st.id);
+}
+
 /** The "where you are" strip. */
 export function whereAmIHtml(w) {
   if (!w) return '';
@@ -435,7 +444,14 @@ export function whereAmIHtml(w) {
     if (text) parts.push(text);
     if (s.contributions > 0 || s.isaMonthly > 0) parts.push('Going in on the locked plan: ' + [s.contributions > 0 ? gbp(s.contributions) + ' a month gross into your pension' : '', s.isaMonthly > 0 ? gbp(s.isaMonthly) + ' a month into ISAs and savings' : ''].filter(Boolean).join(' and ') + '.');
   }
-  else if (w.bridge) parts.push('<strong>Before the plan\'s income starts</strong> — tax year ' + esc(w.taxYear) + ', ' + (-w.planYear) + ' tax year' + (w.planYear === -1 ? '' : 's') + ' before the plan\'s year 0, ' + esc(w.planStart) + '. ' + esc(runUpWords(w.strategyId)));
+  else if (w.bridge) {
+    // A plan stored with its year 0 later than today (until 6.51.0 a retired person's plan started at the next April): its
+    // figures are a later year's, so nothing this year is read against them — one thing to do instead, the move of its start.
+    parts.push('<strong>Your plan is set to start in ' + esc(w.planStart) + '.</strong> Start it from the tax year you stopped work: the banner at the top of the page does it.');
+    const income = incomeThisYearText(w.incomeThisYear ? { ...w.incomeThisYear, perMonth: null } : null);
+    if (income) parts.push(income);
+    return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p></div>';
+  }
   else parts.push('<strong>Plan year ' + w.planYear + ' of ' + w.planYears + '</strong> — tax year ' + esc(w.taxYear) + ', age ' + w.age + '.');
   if (w.step) parts.push('Income step ' + w.step.index + ' of ' + w.step.of + ': ' + gbp(w.step.amount) + '/yr gross' + (w.step.next ? '; next step ' + gbp(w.step.next.amount) + ' from age ' + w.step.next.fromAge + ' (' + esc(w.step.next.taxYear || '') + ', ' + w.step.next.yearsAway + ' year' + (w.step.next.yearsAway === 1 ? '' : 's') + ' away)' : '; no further steps') + '.');
   const income = incomeThisYearText(w.incomeThisYear);

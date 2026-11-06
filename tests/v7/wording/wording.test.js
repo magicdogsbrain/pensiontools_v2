@@ -143,7 +143,9 @@ describe('the words in src/v7/copy/', () => {
       // a saver's check-in (release step R3): how often, the last check-in's month and the next's
       .replace(/\{often\}/g, 'yearly').replace(/\{(last|nextCheck)\}/g, 'November 2026')
       // Delete several (6.59.0): the names deleted, said as a list, and why one was not
-      .replace(/\{names\}/g, '‘Ladder plan’ and ‘Shares and cash’').replace(/\{why\}/g, 'This plan is locked.');
+      .replace(/\{names\}/g, '‘Ladder plan’ and ‘Shares and cash’').replace(/\{why\}/g, 'This plan is locked.')
+      // a plan stored with its start later than it should be (7.3.3): the month it is set to start, and the month work stopped
+      .replace(/\{start\}/g, 'April 2027').replace(/\{stopped\}/g, 'May 2026');
     const hits = [];
     const all = strings(PLAN).map(([, s]) => slot(s)).join('\n');
     // the strategies' names are shown one at a time beside a label; the one with an ampersand is spelt as the planner spells it

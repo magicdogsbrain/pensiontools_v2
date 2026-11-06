@@ -11,10 +11,10 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const gbpK = (v) => '£' + Math.round(v / 1000) + 'k';
 
 export const BE_FRAMES = [
-  { title: 'Your income plan, year by year', text: 'The steps you chose, in today\'s money. The State Pension slice is shown in yellow — it arrives at the bridge age.' },
-  { title: 'The bridge is bought today', text: 'The first years sit in cash (grey); every later year to the bridge age is one index-linked gilt maturing before the April it pays for (blue). Nothing on the bridge rides the market.' },
-  { title: 'The engine rides untouched until the bridge age', text: 'What is left of the pot is the engine, in world equities, and nothing is drawn from it. The band is the 10th to 90th percentile of 1,000 futures; the line is the median.' },
-  { title: 'After the bridge: the engine pays', text: 'From the bridge age the State Pension arrives and the engine pays the rest by a standing withdrawal. No rungs are re-bought and nothing triggers. If the band touches £0 the money has run out — that is the honest risk, and it is late.' }
+  { title: 'Your income plan, year by year', text: 'The steps you chose, in today\'s money. The State Pension slice is shown in yellow — it arrives at the age the gilts run to.' },
+  { title: 'The years to the State Pension are bought today', text: 'The first years sit in cash (grey); every later year to the State Pension is one index-linked gilt maturing before the April it pays for (blue). Nothing in those years rides the market.' },
+  { title: 'The engine rides untouched until then', text: 'What is left of the pot is the engine, in world equities, and nothing is drawn from it. The band is the 10th to 90th percentile of 1,000 futures; the line is the median.' },
+  { title: 'After the gilts: the engine pays', text: 'From the age the gilts run to, the State Pension arrives and the engine pays the rest by a standing withdrawal. No rungs are re-bought and nothing triggers. If the band touches £0 the money has run out — that is the honest risk, and it is late.' }
 ];
 
 /**

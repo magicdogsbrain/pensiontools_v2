@@ -59,7 +59,7 @@ export function dbStartWords({ year, startAge, firstTaxYear = null, duration = n
     };
   }
   if (y < 0) {
-    return { level: 'warn', text: 'That is before the plan starts' + (startAge > 0 ? ' at age ' + Math.round(startAge) : '') + ': the pension is counted as already being paid from the plan\'s first year' + (firstTaxYear > 0 ? ' (tax year ' + taxYearLabel(+firstTaxYear) + ')' : '') + '.' };
+    return { level: 'warn', text: 'That is younger than the plan\'s start age' + (startAge > 0 ? ' ' + Math.round(startAge) : '') + ': the pension is counted as already paid from the plan\'s first year' + (firstTaxYear > 0 ? ' (tax year ' + taxYearLabel(+firstTaxYear) + ')' : '') + '.' };
   }
   if (y === 0) return { level: null, text: 'That is the plan\'s first year' + (age != null ? ', ' + ageText : '') + ty + ' — the pension is paid from the start.' };
   return { level: null, text: 'That is ' + ageText + ', plan year ' + y + ty + '.' };

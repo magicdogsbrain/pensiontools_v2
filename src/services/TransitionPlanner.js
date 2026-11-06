@@ -129,7 +129,7 @@ export function targetHoldings(doc, { today = new Date(), params = null, runUpMo
     }
     // A plain breakdown of the cash to hold now, row by row, for the page to show as a small table (6.13.3).
     const breakdown = [];
-    if (runUp.value > 0) breakdown.push({ label: 'Cash set aside until the plan\'s income starts: ' + runUp.months + ' month' + (runUp.months === 1 ? '' : 's') + ' × ' + gbp(runUp.monthly), amount: runUp.value });
+    if (runUp.value > 0) breakdown.push({ label: 'Cash for the next ' + runUp.months + ' month' + (runUp.months === 1 ? '' : 's') + ' × ' + gbp(runUp.monthly), amount: runUp.value });
     for (const c of cashYears) {
       if (running && +c.Y < thisTY) continue;
       const row = Array.isArray(d.timeline) ? d.timeline.find((x) => x && taxYearLabel(+c.Y) === x.taxYear) : null;
@@ -138,7 +138,8 @@ export function targetHoldings(doc, { today = new Date(), params = null, runUpMo
     }
     const cash = { key: 'cash:SIPP', wrapper: 'SIPP', kind: 'cash', label: 'Money-market fund / cash', value: cashValue, runUp, breakdown, spending: running, yearsLeft: running ? yearsLeft : cashYears.map((c) => +c.Y), bridgeCash: Math.round(bridgeCash) };
     let note = 'The ladder is bought in the SIPP. The ISA is ' + (d.pots?.isaPolicy === 'hold' ? 'held aside and not part of the ladder.' : 'drawn by its own policy and not part of the ladder.');
-    if (bridgeCash > 0 && !running) note += runUp.value > 0 ? ' The months before the plan\'s income starts are paid from the same cash: ' + runUp.months + ' month' + (runUp.months === 1 ? '' : 's') + ' at about ' + gbp(runUp.monthly) + ' are still to come, so ' + gbp(runUp.value) + ' of the ' + gbp(bridgeCash) + ' set aside is in the target; the rest has been spent as designed.' : ' The ' + gbp(bridgeCash) + ' of pension cash set aside until the plan\'s income starts has been spent as designed, so it is no longer a target.';
+    // an older plan's extra cash (`bridgeCash`): said as cash, never as months "before the plan" (7.3.3)
+    if (bridgeCash > 0 && !running) note += runUp.value > 0 ? ' The same cash pays the next ' + runUp.months + ' month' + (runUp.months === 1 ? '' : 's') + ' at about ' + gbp(runUp.monthly) + ', so ' + gbp(runUp.value) + ' of the ' + gbp(bridgeCash) + ' of extra cash is in the target.' : ' The ' + gbp(bridgeCash) + ' of extra cash in the money-market fund has been spent, so it is no longer a target.';
     if (running) note += ' The plan is running (tax year ' + taxYearLabel(thisTY) + ')' + (paid.length ? ': ' + paid.length + ' rung' + (paid.length === 1 ? ' has' : 's have') + ' matured and paid, so ' + (paid.length === 1 ? 'it is' : 'they are') + ' no longer targets' : '') + '; the cash years\' money is being spent as designed, so cash is reported, not diffed.';
     if (sold.length) note += ' The rotation fired' + (bf.soldAt ? ' on ' + dateGB(bf.soldAt) : '') + ': ' + sold.length + ' rung' + (sold.length === 1 ? ' was' : 's were') + ' sold and the proceeds bought the equity fund, so ' + (sold.length === 1 ? 'it is no longer a target' : 'they are no longer targets') + ' and the fund is kept.';
     return { kind: 'ladder', lines, paid, sold, rotated, cash, running, thisTaxYear: thisTY, firstTaxYear, note };

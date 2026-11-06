@@ -170,11 +170,10 @@ describe('planDocumentHtml', () => {
   it('the where-am-I strip reads as sentences', () => {
     const w = whereAmI(doc, { today: NOW, history: [] , potsToday: 845000 });
     const h = whereAmIHtml(w);
-    // 6.51.0: the months before the plan's income starts are named for what they are, not "Run-up month" (the run-up is now
-    // only a start chosen for later; someone who stopped in an earlier tax year has year 0 there and is in a plan year).
-    expect(h).toContain('Before the plan\'s income starts');
-    expect(h).toContain('2028/29');
-    expect(h).toContain('Income step 1 of 3');
+    // 7.3.3: a plan whose year 0 is still ahead (a retired plan stored before 6.51.0 took the next April) says its one thing to
+    // do — move the start — and never names months before the plan, nor reads this year against a later year's figures
+    expect(h).toContain('Your plan is set to start in 2028/29.');
+    expect(h).not.toMatch(/before the plan|set aside|Income step/);
     expect(whereAmIHtml(null)).toBe('');
   });
 });

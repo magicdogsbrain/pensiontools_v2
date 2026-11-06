@@ -29,7 +29,8 @@ import { deriveTiming, describeTiming } from '../src/services/PlanTiming.js';
 import { planDocumentHtml, potsAsOfWords } from '../src/ui/components/PlanDocumentView.js';
 import { lockPatch, applyPatch } from '../src/answers/plan/lock.js';
 import { runForDocument } from '../src/answers/plan/lastsRun.js';
-import { recordBeforeStart, recordYearLabel, recordSourceWords, livedYearRowHtml, beforeStartNoteHtml, decisionStartNote, firstSetUpPlanYear, wizardStop } from '../src/ui/planStartUi.js';
+import { recordBeforeStart, recordYearLabel, recordSourceWords, livedYearRowHtml, beforeStartNoteHtml, firstSetUpPlanYear, wizardStop } from '../src/ui/planStartUi.js';
+import * as planStartUi from '../src/ui/planStartUi.js';
 import { ladderMonthAdvice, firstRungOf, ladderPosition } from '../src/services/LadderPosition.js';
 import { seedToScenario, checkSeed } from '../src/services/PlanSeed.js';
 import { TODAY as SEED_TODAY, CREATED_AT, NOW_MS, seedCNow } from './integration/fixtures/planSeeds.js';
@@ -223,24 +224,27 @@ describe('the planner\'s words for a record before the plan\'s income starts com
   const stamped = { taxYear: '25/26', yearNum: -1, bridgeYear: true, planStartYear: 2026, strategySource: 'SIPP cash (the plan\'s year 0 is 2026/27)' };
   it('a month stamped before the start under an old year 0 reads as a plan month under the year 0 it has now', () => {
     expect(recordBeforeStart(stamped, 2026)).toBe(true);
-    expect(recordYearLabel(stamped, 2026)).toBe('Before the plan\'s income starts (year 0 is 2026/27)');
+    expect(recordYearLabel(stamped, 2026)).toBe('Tax year 2025/26');   // 7.3.3: by its tax year (and month), never "before the plan"
+    expect(recordYearLabel({ ...stamped, date: '2025-11' }, 2026)).toBe('November 2025 · tax year 2025/26');
     expect(recordBeforeStart(stamped, 2024)).toBe(false);
     expect(recordYearLabel(stamped, 2024)).toBe('Year 1');
     expect(recordSourceWords(stamped, 2024, 'before', 'the cash bucket')).toBe('the cash bucket');   // never the stamped old start
-    expect(recordSourceWords(stamped, 2026, 'before', 'the cash bucket')).toBe(stamped.strategySource);
+    expect(recordSourceWords(stamped, 2026, 'before', 'the cash bucket')).toBe('before');   // the old start's own stamped words are never shown
+    expect(recordSourceWords({ ...stamped, strategySource: 'this year\'s matured rung' }, 2026, 'before', 'x')).toBe('this year\'s matured rung');
     expect(recordBeforeStart(stamped, null)).toBe(true);                                             // no anchor: the stamp
     expect(recordYearLabel({ taxYear: '26/27' }, 2024)).toBe('Year 2');
   });
   it('plan vs actual: a lived year on its draw alone; the months before a later start; the part year is the first year set up', () => {
     const gbp = (v) => '£' + Math.round(v).toLocaleString('en-GB');
     expect(livedYearRowHtml(1, [{ sipp: 2300 }, { sipp: 2100 }], { sippDraw: 26400 }, gbp)).toBe('<tr><td>Year 1 <span class="hint">(2 mo; lived before the plan was locked)</span></td><td>£2,200/mo</td><td>£2,200/mo <span class="hint">(+£0)</span></td><td>—</td><td>—</td><td>—</td></tr>');
-    expect(beforeStartNoteHtml(3, 2027)).toContain('3 months recorded before the plan\'s income starts (2027/28)');
+    expect(beforeStartNoteHtml(3, 2027)).toContain('Your plan is set to start in 2027/28: 3 months recorded since you stopped work are not in this table until its start is moved');
+    expect(beforeStartNoteHtml(3, 2027)).not.toMatch(/before the plan|set aside/);
     expect(beforeStartNoteHtml(0, 2027)).toBe('');
     expect(firstSetUpPlanYear({ '24/25': { yearSetupComplete: true }, '26/27': { yearSetupComplete: true } }, 2024)).toBe(0);
     expect(firstSetUpPlanYear({ '26/27': { yearSetupComplete: true }, '27/28': {} }, 2024)).toBe(2);
     expect(firstSetUpPlanYear({ '25/26': { yearSetupComplete: true } }, 2026)).toBe(0);              // a year before the start is not a plan year
-    expect(decisionStartNote(2027, NOW)).toContain('recorded, not compared with the plan');
-    expect(decisionStartNote(2024, NOW)).toBe('');
+    // 7.3.3: the Decision settings no longer say the months before year 0 are "recorded, not compared" — the sentence is gone
+    expect(planStartUi.decisionStartNote).toBeUndefined();
   });
   it('the setup wizard: a stop month that fits moves year 0 back and keeps the end age; "pick up from here" keeps this tax year', () => {
     const w = wizardStop({ stopMonth: '2024-10' }, { cur: 63, retire: 61, alreadyRetired: true, today: '2026-10-02', now: NOW });
@@ -334,14 +338,15 @@ describe('the Timing block\'s words for a plan that has started say what is past
     const later = { currentAge: 70, currentAgeAsOf: '2026-09-30', retired: true, firstTaxYear: 2027, spStartDate: '2022-05-10', duration: 25 };
     const t = words(later);
     expect(t).toContain('Income steps start at age 71.');
-    expect(t).toContain('State Pension from 2022/23 (before the plan starts).');
+    expect(t).toContain('State Pension from 2022/23 (already being paid when the plan starts).');   // 7.3.3
   });
   it('stopped before the pension can be drawn: the age it can be, and the tax year to choose (55 before 6 April 2028, else 57)', () => {
     // research/plan-start.md §8, "stopping before 55 (57 from April 2028) and bridging on savings"
     const long = words({ currentAge: 63, currentAgeAsOf: '2026-09-30', retired: true, stoppedWork: '2006-06', duration: 50 });
-    expect(long).toContain('Income steps started at age 43. Your pension can be drawn from age 55: if you live on savings or other income until then, choose 2018/19, the tax year you reach it, as the year the plan\'s income starts.');
+    // 7.3.3: the fact and a caveat, never advice to start the plan later
+    expect(long).toContain('Income steps started at age 43. Your pension can be drawn from age 55 (tax year 2018/19). Until then the plan should pay from your ISA, cash and other savings. The figures do not yet hold your pension back until then.');
     const young = words({ currentAge: 52, currentAgeAsOf: '2026-09-30', retired: true, stoppedWork: '2026-06', duration: 40 });
-    expect(young).toContain('Your pension can be drawn from age 57: if you live on savings or other income until then, choose 2031/32,');
+    expect(young).toContain('Your pension can be drawn from age 57 (tax year 2031/32).');
     // a start chosen at or after that age says nothing of it; nor does a plan that does not say when work stopped
     expect(words({ currentAge: 52, currentAgeAsOf: '2026-09-30', retired: true, stoppedWork: '2026-06', firstTaxYear: 2031, duration: 35 })).not.toContain('can be drawn from age');
     expect(words({ currentAge: 52, currentAgeAsOf: '2026-09-30', retired: true, firstTaxYear: 2026, duration: 40 })).not.toContain('can be drawn from age');

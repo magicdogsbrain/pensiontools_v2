@@ -800,7 +800,8 @@ export async function secondReading(app, times, budget) {
 }
 
 /** A fixture's words that must never be on a screen (test plan 9, P4), on top of the banned list. */
-export const NEVER_ON_SCREEN = ['bridge', 'FIRE', 'years to go', 'countdown', 'contribution', 'on track'];
+// 7.3.3: and the months "before the plan" by any of their names (nobody retired has them)
+export const NEVER_ON_SCREEN = ['bridge', 'FIRE', 'years to go', 'countdown', 'contribution', 'on track', 'run-up', 'run up', 'before your plan starts', 'before the plan starts', 'before the plan’s income starts', "before the plan's income starts", 'before your plan’s income starts', 'next 6 April', 'Next April'];
 export async function neverSaid(page, words = NEVER_ON_SCREEN) {
   const text = await page.locator('#app').innerText();
   return words.filter((w) => (w === w.toUpperCase() ? new RegExp(`\\b${w}\\b`).test(text) : text.toLowerCase().includes(w.toLowerCase())));

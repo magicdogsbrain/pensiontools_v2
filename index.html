@@ -3087,7 +3087,7 @@
                 <button type="button" class="risk-btn" data-strat="pots-and-valves" data-on-click="pickStrategy('pots-and-valves')">Pots &amp; Valves</button>
                 <button type="button" class="risk-btn" data-strat="buckets-in-order" data-on-click="pickStrategy('buckets-in-order')">Buckets in order</button>
                 <button type="button" class="risk-btn" data-strat="ladder-and-ratchet" data-on-click="pickStrategy('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
-                <button type="button" class="risk-btn" data-strat="bridge-and-engine" data-on-click="pickStrategy('bridge-and-engine')">Bridge &amp; engine</button>
+                <button type="button" class="risk-btn" data-strat="bridge-and-engine" data-on-click="pickStrategy('bridge-and-engine')">Gilts to State Pension, then shares</button>
                 <button type="button" class="risk-btn" data-strat="floor-and-flex" data-on-click="pickStrategy('floor-and-flex')">Floor &amp; Flex</button>
                 <button type="button" class="risk-btn" data-strat="floor-the-schedule" data-on-click="pickStrategy('floor-the-schedule')">Floor the schedule</button>
                 <button type="button" class="risk-btn" data-strat="floor-to-age" data-on-click="pickStrategy('floor-to-age')">Floor to an age, then decide</button>
@@ -3101,8 +3101,8 @@
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Age today <span class="hlp" tabindex="0" data-tip="Your age now. With your State Pension date (a birthday) this pins every plan year to a tax year and an age. Shared with the Budget page.">?</span><input type="number" id="tmAge" min="18" max="100" style="width:80px;" data-on-input="renderTiming()"></label>
                   <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="radio" name="tmMode" id="tmRetired" value="retired" style="width:auto;" data-on-change="renderTiming()"> I have stopped work</label>
                   <label class="hint" style="display:flex;align-items:center;gap:6px;"><input type="radio" name="tmMode" id="tmFuture" value="future" style="width:auto;" data-on-change="renderTiming()"> I will stop work at age <input type="number" id="tmRetireAge" min="40" max="80" style="width:70px;" data-on-input="tmRetireAgeTyped()"></label>
-                  <label class="hint" id="tmStopWrap" style="display:flex;flex-direction:column;gap:2px;"><span id="tmStopLabel">The month you stopped work</span> <span class="hlp" tabindex="0" data-tip="The month you stopped work, or will stop. It may be long ago. Stopped: the plan's income starts in the tax year you stopped, unless you choose a later one below. Stopping later: the plan starts in the tax year you stop in, and the Decision tool opens that month. Leave it blank and the plan works from your age, as before.">?</span><input type="month" id="tmStopMonth" placeholder="2023-10" style="width:160px;" data-on-input="tmStopMonthChanged()"></label>
-                  <label class="hint" id="tmStartWrap" style="display:flex;flex-direction:column;gap:2px;">When the plan's income starts <span class="hlp" tabindex="0" data-tip="The tax year that is your plan's year 0, for every tool. Stopped work: by default the tax year you stopped in, even if that has passed — the plan then runs from where it stands today. Choose a later year if you live on other money until then: those months are recorded in the Decision tool, not compared with the plan. Without the month you stopped: this tax year or next 6 April. Stopping later: the tax year you stop in.">?</span><select id="tmStartYear" style="width:280px;" data-on-change="tmStartYearChanged()"></select></label>
+                  <label class="hint" id="tmStopWrap" style="display:flex;flex-direction:column;gap:2px;"><span id="tmStopLabel">The month you stopped work</span> <span class="hlp" tabindex="0" data-tip="The month you stopped work, or will stop. It may be long ago. Stopped: the tax year you stopped in is your plan's first year, and the plan runs from where it stands today. Stopping later: the plan starts in the tax year you stop in, and the Decision tool opens that month. Leave it blank and the plan works from your age, as before.">?</span><input type="month" id="tmStopMonth" placeholder="2023-10" style="width:160px;" data-on-input="tmStopMonthChanged()"></label>
+                  <label class="hint" id="tmStartWrap" style="display:flex;flex-direction:column;gap:2px;">The tax year your plan starts <span class="hlp" tabindex="0" data-tip="The tax year that is your plan's year 0, for every tool. Stopped work: by default the tax year you stopped in, even if that has passed — the plan then runs from where it stands today. Without the month you stopped: this tax year, picking the plan up from here. Stopping later: the tax year you stop in.">?</span><select id="tmStartYear" style="width:280px;" data-on-change="tmStartYearChanged()"></select></label>
                 </div>
                 <div id="tmPotWrap" style="display:none;margin-top:6px;">
                   <p class="hint" id="tmProjectionLine" style="margin:0 0 4px;"></p>
@@ -3121,7 +3121,7 @@
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Total in your ISA (£)<input type="number" id="miniIsa" step="1000" style="width:120px;" data-on-input="miniPotChanged()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">How the ISA is used<select id="miniIsaPolicy" style="width:230px;" data-on-change="miniPotChanged()"><option value="minimiseEarlyTax">Tax-efficient — tops up income</option><option value="maximiseLongevity">Make it last to State Pension</option><option value="hold">Hold it — never drawn, not used to buy gilts</option></select></label>
                   <label class="hint" id="miniFtaWrap" style="display:none;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" id="miniFloorToAge" min="60" max="95" style="width:80px;"></label>
-                  <label class="hint" id="miniBridgeWrap" style="display:none;flex-direction:column;gap:2px;">Bridge to age<input type="number" id="miniBridgeAge" min="56" max="90" style="width:80px;" data-on-input="miniPotChanged()"></label>
+                  <label class="hint" id="miniBridgeWrap" style="display:none;flex-direction:column;gap:2px;">Gilts bought to age<input type="number" id="miniBridgeAge" min="56" max="90" style="width:80px;" data-on-input="miniPotChanged()"></label>
                   <label class="hint" id="miniBridgeCashWrap" style="display:none;flex-direction:column;gap:2px;">Years in cash first<input type="number" id="miniBridgeCash" min="0" max="10" style="width:80px;" data-on-input="miniPotChanged()"></label>
                 </div>
                 <p class="hint" id="miniPotNote" style="margin:6px 0 0;"></p>
@@ -3135,7 +3135,7 @@
               <div id="ssGiltParams" style="display:none;margin-top:8px;">
                 <div class="row-flex">
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first <span class="hlp" tabindex="0" data-tip="Covers the first year or two, where no index-linked gilt matures in the right window and a gilt you would sell within months costs a spread for nothing. Cash is priced at inflation minus 1% a year (the same assumption every other strategy uses), so each extra cash year costs a little more than a gilt would and gives up its index-linking. 1–3 is normal.">?</span><input type="number" id="giltCashYears" min="0" max="5" value="2" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
-                  <label class="hint" id="giltBridgeWrap" style="display:flex;flex-direction:column;gap:2px;">Pension cash set aside until the plan's income starts (£) <span class="hlp" tabindex="0" data-tip="Cash kept in your pension (a money-market fund) for the months before the plan's income starts; it is taken from the pot before the ladder is bought. Money outside your pension does not go here. Once the plan's income has started there is nothing to set aside: the cash years count from today to the first rung.">?</span><input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" data-on-input="refreshStrategyCosts()"></label>
+                  <label class="hint" id="giltBridgeWrap" style="display:none;flex-direction:column;gap:2px;">Extra cash in the money-market fund (£) <span class="hlp" tabindex="0" data-tip="Cash kept in your pension's money-market fund on top of the cash years; it is taken from the pot before the ladder is bought. Money outside your pension does not go here. Shown only on a plan that holds some.">?</span><input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" id="giltRotateWrap" style="display:none;flex-direction:column;gap:2px;">Rotation: keep rungs to age<input type="number" id="giltRotateCut" min="65" max="88" value="75" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Money left over <span class="hlp" tabindex="0" data-tip="What is left after the cash years and the gilts are bought. Kept: it holds its value. Invested: it goes into a world-equity fund, charged like your other funds, so what you would have left rides the market. On the full ladder the gilts pay the plan and it is never drawn. On the ladder + rotation, kept or invested, it also pays any rotated year the sleeve cannot, before that year counts as cut.">?</span><select id="giltSpare" style="max-width:260px;" data-on-change="refreshStrategyCosts()"><option value="held">Kept, holding its value</option><option value="growth">Invested in shares (a growth part)</option></select></label>
                 </div>
@@ -3625,7 +3625,7 @@
             <button type="button" class="strat-nav-item" data-page="pots-and-valves" data-on-click="showStrategyPage('pots-and-valves')">Pots &amp; Valves</button>
             <button type="button" class="strat-nav-item" data-page="buckets-in-order" data-on-click="showStrategyPage('buckets-in-order')">Buckets in order</button>
             <button type="button" class="strat-nav-item" data-page="ladder-and-ratchet" data-on-click="showStrategyPage('ladder-and-ratchet')">Ladder &amp; Ratchet</button>
-            <button type="button" class="strat-nav-item" data-page="bridge-and-engine" data-on-click="showStrategyPage('bridge-and-engine')">Bridge &amp; engine</button>
+            <button type="button" class="strat-nav-item" data-page="bridge-and-engine" data-on-click="showStrategyPage('bridge-and-engine')">Gilts to State Pension, then shares</button>
             <button type="button" class="strat-nav-item" data-page="floor-and-flex" data-on-click="showStrategyPage('floor-and-flex')">Floor &amp; Flex</button>
             <button type="button" class="strat-nav-item" data-page="floor-the-schedule" data-on-click="showStrategyPage('floor-the-schedule')">Floor the schedule</button>
             <button type="button" class="strat-nav-item" data-page="floor-to-age" data-on-click="showStrategyPage('floor-to-age')">Floor to an age, then decide</button>
@@ -3795,7 +3795,7 @@
                     you both in the same year.</li>
                 <li><strong>One timeline:</strong> year by year, what the household needs, when each State Pension
                     starts, and how much has to come out of the pots — including the tight
-                    "bridge" years before your State Pensions arrive.</li>
+                    the tight years before your State Pensions arrive.</li>
                 <li><strong>One number for what's left:</strong> your combined pots over time, in today's money,
                     if markets are poor, typical, or strong.</li>
               </ul>
@@ -4148,8 +4148,8 @@
     import { ladderPosition, taxYearOf, borrowedFloorStatus, documentLadder, ladderForDisplay, repriceComparisonText, firstRungOf, ladderMonthAdvice } from './src/services/LadderPosition.js';
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
-    import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, beforeStartNoteHtml, decisionStartNote, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
-    import { installLockedStart, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, successorNameOf, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's start, and "Move the plan's start" (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
+    import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, beforeStartNoteHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
+    import { installLockedStart, startLaterOfActive, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, successorNameOf, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's start, and "Move the plan's start" (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { buildPlanDocument, whereAmI, potRecordOf, recordIsaOf } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
@@ -5030,7 +5030,7 @@
       if (!chip) return;
       const locked = await planIsLocked();
       chip.style.display = 'inline-block';
-      // The stage, by name ("Bridge · 7 months to go"), so the chip answers "where am I?" (6.10.1).
+      // The stage, by name ("Committed, still saving · 7 months to go"), so the chip answers "where am I?" (6.10.1).
       const st = window._lifeStage;
       const stageWord = st && st.key !== 'unknown' ? ' · ' + st.label + (st.chip && !st.label.toLowerCase().includes(st.chip) ? ' · ' + st.chip : '') : '';
       chip.textContent = (locked ? '🔒 locked' : '✏️ draft') + stageWord;
@@ -6350,7 +6350,7 @@
       const divAmtTxt = dv > 0 ? ' &middot; £' + dvAmt.toLocaleString() + ' diversifiers' : '';
       // The ISA rides alongside as its own tax-free pool — remind the user it isn't in the split.
       const isaVal = Math.round(+((document.getElementById(p + 'IsaBalance') || {}).value) || 0);
-      const isaTxt = isaVal > 0 ? '<br><span style="color:var(--text-muted);">+ £' + isaVal.toLocaleString() + ' ISA kept separate (the tax-free bridge)</span>' : '';
+      const isaTxt = isaVal > 0 ? '<br><span style="color:var(--text-muted);">+ £' + isaVal.toLocaleString() + ' ISA kept separate (tax-free, drawn down to your State Pension)</span>' : '';
       if (amt) amt.innerHTML = '<strong>' + preset.label + '</strong> &mdash; ' + eq + '% shares &middot; ' + bd + '% bonds' + divPct + ' &middot; ' + csh + '% cash<br>' +
         '<span style="color:var(--text-muted);">£' + eqAmt.toLocaleString() + ' shares &middot; £' +
         bdAmt.toLocaleString() + ' bonds' + divAmtTxt + ' &middot; £' + cshAmt.toLocaleString() + ' cash</span>' + isaTxt;
@@ -6669,7 +6669,7 @@
       const pct = b => taxable ? Math.round(t.buckets[b] / taxable * 100) : 0;
       const money = n => '£' + Math.round(n).toLocaleString();
       const mix = w => Object.entries(w).map(([k, v]) => (SUB_ASSET_PROFILES[k].label) + ' ' + Math.round(v * 100) + '%').join(' · ');
-      let html = '<div style="font-weight:600;margin-bottom:6px;">Rolls up to ' + money(taxable) + ' pot' + (t.isaTotal ? ' + ' + money(t.isaTotal) + ' ISA (separate tax-free bridge, modelled at its own tagged mix)' : '') + '</div>';
+      let html = '<div style="font-weight:600;margin-bottom:6px;">Rolls up to ' + money(taxable) + ' pot' + (t.isaTotal ? ' + ' + money(t.isaTotal) + ' ISA (separate and tax-free, modelled at its own tagged mix)' : '') + '</div>';
       html += '<div style="font-size:13px;">';
       for (const b of ['shares', 'bonds', 'diversifiers', 'cash']) {
         if (!t.buckets[b]) continue;
@@ -6838,7 +6838,7 @@
         : ['Date', 'Draw source', 'SIPP draw', 'ISA draw', 'From equity', 'From bond', 'From cash', 'Protection', 'Equity target', 'Bond target', 'Cash target', 'Total pot', 'Rebalance'];
       let csv = cols.map(esc).join(',') + '\n';
       for (const h of rows) csv += (contract
-        ? [h.date, recordSourceWords(h, window._decisionAnchor, 'cash set aside before the plan\'s income starts', 'cash bucket / matured rung'), r0(h.sipp), r0(h.isa), r0(h.bond), r0(h.cash), r0(h.total), r0(h.taxPaidMonthly || h.monthlyTax), r0(h.monthlyNet)]
+        ? [h.date, recordSourceWords(h, window._decisionAnchor, 'cash', 'cash bucket / matured rung'), r0(h.sipp), r0(h.isa), r0(h.bond), r0(h.cash), r0(h.total), r0(h.taxPaidMonthly || h.monthlyTax), r0(h.monthlyNet)]
         : [h.date, h.source, r0(h.sipp), r0(h.isa), r0(h.dEquity), r0(h.dBond), r0(h.dCash), h.inProtection ? 'Yes' : 'No', r0(h.adjEquity), r0(h.adjBond), r0(h.adjCash), r0(h.total), h.rebal || '']).map(esc).join(',') + '\n';
       if (!rows.length) csv += '(no monthly records saved for this tax year yet)\n';
       downloadFile('decision-plan-' + taxYear.replace('/', '-') + '.csv', csv, 'text/csv;charset=utf-8;');
@@ -6906,7 +6906,7 @@
         const [budget, stress, decision, fromAnswer] = await Promise.all([getBudgetAsync(), getStressSettingsAsync(), getDecisionSettingsAsync(), planFromAnswer()]);
         // One sentence + one button (src/services/NextStep.js): the onboarding chain, then the life stage's own sentence —
         // never "set up the Decision tool" for a saver; a locked plan's stage wins; a V7 plan's budget is a guide (6.20.2).
-        const step = nextStepFor({ stage, budget, stress, decision, fromAnswer: !!fromAnswer, successorName: stage && stage.key === 'closed' ? await successorNameOf() : null });
+        const step = nextStepFor({ stage, budget, stress, decision, fromAnswer: !!fromAnswer, successorName: stage && stage.key === 'closed' ? await successorNameOf() : null, startLater: stage && stage.locked ? await startLaterOfActive() : null });   // 7.3.3: a plan stored with its start later than it should be shows the move
         if (!step) { banner.style.display = 'none'; return; }
         document.getElementById('nextStepText').innerHTML = step.html;
         const b = document.getElementById('nextStepBtn');
@@ -7643,7 +7643,7 @@
       return taxYearLabel(fty + (+y || 0));
     }
     window.planYearTaxLabel = planYearTaxLabel;
-    window.recordYearLabel = (h) => recordYearLabelFor(h, window._decisionAnchor);   // "Year N", or before the plan's income starts (6.51.0)
+    window.recordYearLabel = (h) => recordYearLabelFor(h, window._decisionAnchor);   // "Year N", or a month before year 0 by its month and tax year (7.3.3)
     window.updateDurationHint = function () {
       const h = document.getElementById('ssDurationAgeHint'); if (!h) return;
       const dur = +document.getElementById('ssDuration')?.value || 0; const a = window._ssTiming?.shapeAgeNow || +document.getElementById('shapeAgeNow')?.value || 0;
@@ -7703,7 +7703,7 @@
       // Start-year choice (already retired): this tax year or next.
       const sel = g('tmStartYear');
       if (sel) {
-        // This tax year, next 6 April — and a saved year that is neither ("2027/28 (saved)"), so the control is never blank (6.15.0).
+        // The stop's tax year to this one — and a saved year outside them ("2027/28 (saved)"), so the control is never blank (6.15.0).
         const savedStart = +(window._ssTimingBase || {}).firstTaxYear || 0;
         const opts = startYearChoices(t, savedStart).map((c) => '<option value="' + c.year + '"' + (c.year === t.firstTaxYear ? ' selected' : '') + '>' + c.label + '</option>').join('');
         if (sel.dataset.opts !== opts) { sel.innerHTML = opts; sel.dataset.opts = opts; }
@@ -7719,7 +7719,7 @@
         g('tmProjectionLine').innerHTML = potsAtRetirementLine(window._tmProjection, { sipp: +g('tmPotSipp')?.value || 0, isa: +g('tmPotIsa')?.value || 0 });
       }
       let summary = t.mode === 'legacy'
-        ? 'Enter your age today to pin the plan to a tax year. Until then the plan is assumed to start next April (' + taxYearLabel(t.firstTaxYear) + ') with the steps from age ' + t.shapeAgeNow + '.'
+        ? 'Enter your age today to pin the plan to a tax year. Until then the plan is read from tax year ' + taxYearLabel(t.firstTaxYear) + ', with the steps from age ' + t.shapeAgeNow + '.'
         : describeTiming(t, s);
       summary = paintStopMonth(document, t, s, await closedTimingSummary(summary), await planIsLocked());   // the month box's label and warning; the cash set aside, while read
       if (t.mode === 'future' && t.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement. The "Funds to test" list sets only the starting mix the strategy is tested on — it is not a record of what you hold (that is the Transition tab); the plan is priced on the pots at retirement.';
@@ -7856,7 +7856,7 @@
         let ss = null; try { ss = await getStressSettingsAsync(); } catch (e) { ss = null; }
         const anchor = decisionAnchorYear(s, await getAllTaxYearsAsync().catch(() => ({})), null, ss);
         const t = ss ? deriveTiming(ss) : null;
-        el.textContent = 'Plan year 0 is tax year ' + taxYearLabel(anchor) + (t && t.mode !== 'legacy' ? ' (steps from age ' + t.shapeAgeNow + ')' : '') + ' — set in Stress tester → Settings → "When your plan starts".' + decisionStartNote(anchor);
+        el.textContent = 'Plan year 0 is tax year ' + taxYearLabel(anchor) + (t && t.mode !== 'legacy' ? ' (steps from age ' + t.shapeAgeNow + ')' : '') + ' — set in Stress tester → Settings → "The tax year your plan starts".';
       } catch (e) { el.textContent = ''; }
     };
 
@@ -8229,7 +8229,7 @@
           'pots-and-valves': 'Rules decide which pot pays each month: growth pots above their floors first, then cash, with the draw cut in a long slump. The recommendation below is that rule applied to the values you enter.',
           'buckets-in-order': 'One order: cash pays first, then bonds, then equities; surplus waterfalls down from equities to bonds to cash. The recommendation below follows that order — nothing is sold in a slump.',
           'ladder-and-ratchet': 'Inside the ladder years the matured rung pays; the equity sleeve is untouched unless the ratchet fires at a review. Check the trigger below.',
-          'bridge-and-engine': 'Until the bridge age the cash years, then the matured rungs, pay; nothing is sold. After it the State Pension is in payment and the engine pays the rest by a standing withdrawal.',
+          'bridge-and-engine': 'Until the age the gilts run to, the cash years, then the matured rungs, pay; nothing is sold. After it the State Pension is in payment and the engine pays the rest by a standing withdrawal.',
           'floor-and-flex': 'The essentials rung pays the bills; the treats are a fixed share of the flex sleeve, set once a year. Check the draw below.',
           'floor-the-schedule': 'This year\'s matured rung pays the whole month; the reserve is never drawn. Nothing to sell.',
           'floor-to-age': 'Until the chosen age the matured rung pays; at that age the reserve buys the rest. Nothing to sell before then.',
@@ -8368,7 +8368,7 @@
       // Switching strategy invalidates any run cards from the previous one — clear them.
       for (const rid of ['strategyRunResults', 'histResults', 'scenResults']) {
         const el = document.getElementById(rid);
-        if (el && /Ladder & Ratchet|Floor & Flex|ladder-and-ratchet|floor-and-flex|Bridge & engine|Buckets in order|Gilt ladder \+ rotation/.test(el.innerHTML)) el.innerHTML = '';
+        if (el && /Ladder & Ratchet|Floor & Flex|ladder-and-ratchet|floor-and-flex|Bridge & engine|Gilts to State Pension, then shares|Buckets in order|Gilt ladder \+ rotation/.test(el.innerHTML)) el.innerHTML = '';
       }
       // Offer the safe path for "I modelled with pots; now model a ratchet future":
       const offer = document.getElementById('stratCopyOffer');
@@ -8420,7 +8420,7 @@
     };
     window.tryStrategyInCopy = async function () {
       const id = window._ssStrategy;
-      const names = { 'buckets-in-order': 'Buckets', 'bridge-and-engine': 'Bridge', 'ladder-and-ratchet': 'Ladder', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age', 'full-il-gilt': 'Full gilt ladder', 'gilt-rotation': 'Gilt rotation' };
+      const names = { 'buckets-in-order': 'Buckets', 'bridge-and-engine': 'Gilts, then shares', 'ladder-and-ratchet': 'Ladder', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age', 'full-il-gilt': 'Full gilt ladder', 'gilt-rotation': 'Gilt rotation' };
       try {
         const scenarios = await listScenariosAsync();
         const activeId = await getActiveScenarioId();
@@ -8562,7 +8562,7 @@
       if (id === 'gilt-rotation' && params) { const a = document.getElementById('giltCashYears'), b = document.getElementById('giltBridge'), c = document.getElementById('giltRotateCut'); if (a && params.cashYears != null) a.value = params.cashYears; if (b && params.bridgeCash != null) b.value = params.bridgeCash; if (c && params.rotateCutAge) c.value = params.rotateCutAge; }
       if (id === 'full-il-gilt' || id === 'gilt-rotation') {   // shared inputs: a clean start must not inherit the other gilt strategy's typed values (6.13.0)
         const p = params || {}; const a = document.getElementById('giltCashYears'), b = document.getElementById('giltBridge'), c = document.getElementById('giltRotateCut');
-        if (a && p.cashYears == null) a.value = LADDER_DEFAULTS.cashYears; if (b && p.bridgeCash == null) b.value = LADDER_DEFAULTS.bridgeCash || 0; if (c && p.rotateCutAge == null) c.value = 75; const sp = document.getElementById('giltSpare'); if (sp) sp.value = p.spareGrowth ? 'growth' : 'held';
+        if (a && p.cashYears == null) a.value = LADDER_DEFAULTS.cashYears; if (b && p.bridgeCash == null) b.value = LADDER_DEFAULTS.bridgeCash || 0; if (c && p.rotateCutAge == null) c.value = 75; window.paintGiltCashDial?.(); const sp = document.getElementById('giltSpare'); if (sp) sp.value = p.spareGrowth ? 'growth' : 'held';
       }
       if (id === 'ladder-and-ratchet' && params) {
         if (params.sippTotal) document.getElementById('stratSipp').value = params.sippTotal;
@@ -8760,7 +8760,7 @@
     const CMP_WORDS = {
       'pots-and-valves':   { fail: 'a long bad run drains the pots; cuts first, then runs dry late', doWhat: 'monthly: a decision on what to draw and from where', exit: 'nothing to unwind — it is just a portfolio' },
       'buckets-in-order':  { fail: 'a slump longer than cash and bonds together; equities are sold low, late', doWhat: 'monthly: draw from the lowest-risk bucket; yearly: waterfall any surplus down', exit: 'nothing to unwind — three funds' },
-      'bridge-and-engine': { fail: 'the engine arrives small at the bridge age — the later years run it down and it can run out, late', doWhat: 'nothing until the bridge age; then a standing withdrawal', exit: 'sell rungs at market; annuitise the engine at any age' },
+      'bridge-and-engine': { fail: 'the engine arrives small at the age the gilts run to — the later years run it down and it can run out, late', doWhat: 'nothing until the gilts run out; then a standing withdrawal', exit: 'sell rungs at market; annuitise the engine at any age' },
       'ladder-and-ratchet':{ fail: 'the sleeve is empty before the horizon — a cliff, late', doWhat: 'yearly: watch the trigger; buy rungs when it fires', exit: 'sell rungs at market; annuitise the sleeve' },
       'floor-and-flex':    { fail: 'lean years — the bills are paid, the treats shrink', doWhat: 'yearly: take a % of the sleeve as treats', exit: 'sell the sleeve any day; the floor stays' },
       'floor-the-schedule':{ fail: 'it costs most of the pot; no growth in the plan', doWhat: 'yearly: one look at the reserve; buy years if far ahead', exit: 'sell rungs at market; annuitise' },
@@ -8814,7 +8814,7 @@
         ['I want to know my number, for life', ['floor-the-schedule', 'full-il-gilt']],
         ['I want the most money over my life', ['pots-and-valves', 'ladder-and-ratchet']],
         ['I want certainty now and options later', ['floor-to-age', 'floor-and-flex']],
-        ['I want a bridge to my State Pension, then to be left alone', ['bridge-and-engine', 'floor-to-age']],
+        ['I want the years to my State Pension bought, then to be left alone', ['bridge-and-engine', 'floor-to-age']],
         ['I want three pots and a simple order', ['buckets-in-order', 'pots-and-valves']],
         ['I never want to think about it again', ['full-il-gilt', 'floor-the-schedule']],
         ['I want the ladder, but with one pre-agreed escape into cheap equities', ['gilt-rotation', 'floor-to-age']]
@@ -8919,8 +8919,8 @@
       // Block 2 — dials
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">'
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first (1–3 is normal; cash is priced at inflation −1%)<input type="number" min="0" max="5" value="' + Math.min(5, prm.cashYears ?? 2) + '" style="width:80px;" data-on-change="setGiltDial(\'cashYears\', this.value)"></label>'
-        + (p.yearOffset > 0 || p.runUpSpent ? ''   /* spent on the run's pots (PlanFromToday.runUpCashSpent, 6.51.0): not read, not offered */
-          : '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Pension cash set aside until the plan\'s income starts (£)<input type="number" min="0" step="1000" value="' + (prm.bridgeCash || 0) + '" style="width:120px;" data-on-change="setGiltDial(\'bridgeCash\', this.value)"></label>')
+        + (p.yearOffset > 0 || p.runUpSpent || !(+prm.bridgeCash > 0) ? ''   /* spent on the run's pots (PlanFromToday.runUpCashSpent, 6.51.0), or none held (7.3.3): not offered */
+          : '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Extra cash in the money-market fund (£)<input type="number" min="0" step="1000" value="' + (prm.bridgeCash || 0) + '" style="width:120px;" data-on-change="setGiltDial(\'bridgeCash\', this.value)"></label>')
         + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears - 1) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
         + '</div>';
       if (plan.affordable && typeof r !== 'undefined' && r && r.affordable) h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p) + '</div>';
@@ -9107,16 +9107,16 @@
         exit: ['Sell rungs at market', 'Annuitise the reserve or the tail at 75/80']
       },
       'bridge-and-engine': {
-        tag: 'a bridge bought to your State Pension, an engine for the rest', frames: BE_FRAMES,
-        intro: 'Every year to the bridge age is bought today — the first years in cash, every later year as one index-linked gilt maturing before the April it pays for. What is left is the engine: one world-equity fund you do not touch until the bridge ends. From then the State Pension arrives and the engine pays the rest of the schedule by a standing monthly withdrawal. Nothing is re-bought, nothing triggers, nothing ratchets — and the engine can run out, late. That is the honest trade: certainty for the expensive early years, market risk moved to the far end.',
+        tag: 'the years to your State Pension bought, an engine for the rest', frames: BE_FRAMES,
+        intro: 'Every year to the State Pension is bought today — the first years in cash, every later year as one index-linked gilt maturing before the April it pays for. What is left is the engine: one world-equity fund you do not touch until the gilts run out. From then the State Pension arrives and the engine pays the rest of the schedule by a standing monthly withdrawal. Nothing is re-bought, nothing triggers, nothing ratchets — and the engine can run out, late. That is the honest trade: certainty for the expensive early years, market risk moved to the far end.',
         machine: (r, p) => { window._beAge = r.signature.bridgeAge; return ({ fn: bridgeEngineSvg, d: { years: r.signature.amountsByAge, startAge: p.startAge, B: r.signature.B, bridgeAge: r.signature.bridgeAge, cashYears: r.signature.cashYears, engineCone: r.signature.engineCone, wealthCone: r.cones.wealth, restCostFull: r.signature.restCostFull, failAgeP10: r.signature.failAgeP10, ruinMc: r.ruin.mc, engineE0: r.signature.engineE0, bridgeCost: r.signature.bridgeCost, pot: r.signature.pot } }); },
-        dials: (prm, s) => dial('Bridge to age', 'bridgeAge', 'type="number" min="56" max="90"', prm.bridgeAge || window._beAge || 67) + dial('Years in cash first', 'cashYears', 'type="number" min="0" max="10"', prm.cashYears ?? 3),
-        verdict: (r, p) => { const sg = r.signature; return '<strong>Bridge to ' + sg.bridgeAge + ': ' + gbp(Math.round(sg.bridgeCost)) + ' (' + Math.round(sg.shareOfPot * 100) + '% of the pot). Engine today: ' + gbp(Math.round(sg.engineE0)) + '.</strong> At ' + sg.bridgeAge + ' the engine is worth a median ' + gbp(Math.round(sg.engineAtB.p50)) + ' (1-in-10 bad ' + gbp(Math.round(sg.engineAtB.p10)) + ', 1-in-10 good ' + gbp(Math.round(sg.engineAtB.p90)) + ')' + (sg.restCostFull ? '; buying the remaining years by contract would cost ' + gbp(Math.round(sg.restCostFull)) + ' that day' : '') + '. Drawing the rest from the engine, the money ran out before the horizon in <strong>' + pctText(r.ruin.mc, 1, RUIN_BARS) + '</strong> of futures and ' + pctText(r.ruin.hist) + ' of real histories' + (sg.failAgeMedian ? ' — typically by ' + Math.round(sg.failAgeMedian) : '') + '. Nothing can go wrong before ' + sg.bridgeAge + '.'; },
+        dials: (prm, s) => dial('Gilts bought to age', 'bridgeAge', 'type="number" min="56" max="90"', prm.bridgeAge || window._beAge || 67) + dial('Years in cash first', 'cashYears', 'type="number" min="0" max="10"', prm.cashYears ?? 3),
+        verdict: (r, p) => { const sg = r.signature; return '<strong>Gilts to ' + sg.bridgeAge + ': ' + gbp(Math.round(sg.bridgeCost)) + ' (' + Math.round(sg.shareOfPot * 100) + '% of the pot). Engine today: ' + gbp(Math.round(sg.engineE0)) + '.</strong> At ' + sg.bridgeAge + ' the engine is worth a median ' + gbp(Math.round(sg.engineAtB.p50)) + ' (1-in-10 bad ' + gbp(Math.round(sg.engineAtB.p10)) + ', 1-in-10 good ' + gbp(Math.round(sg.engineAtB.p90)) + ')' + (sg.restCostFull ? '; buying the remaining years by contract would cost ' + gbp(Math.round(sg.restCostFull)) + ' that day' : '') + '. Drawing the rest from the engine, the money ran out before the horizon in <strong>' + pctText(r.ruin.mc, 1, RUIN_BARS) + '</strong> of futures and ' + pctText(r.ruin.hist) + ' of real histories' + (sg.failAgeMedian ? ' — typically by ' + Math.round(sg.failAgeMedian) : '') + '. Nothing can go wrong before ' + sg.bridgeAge + '.'; },
         decades: (r, p) => { const E0 = r.signature.sleeveE0 ?? r.signature.engineE0; const B = r.signature.B; const rtr = getRtr(); const series = {}; for (const [lab, y] of realStarts(B)) { const s0 = shiller(y); if (s0 + 12 * B < rtr.length) series[lab] = Array.from({ length: B + 1 }, (_, i) => E0 * rtr[s0 + 12 * i] / rtr[s0]); } return '<p class="hint" style="margin:0 0 6px;">The engine\'s actual path to ' + r.signature.bridgeAge + ' had you started in January 1966 (the long bust), 1985 (the long boom) or 2000 (the lost decade), world-adjusted and after inflation. The dashed line is what buying the remaining years by contract would cost at ' + r.signature.bridgeAge + ' on today\'s curve: above it, you could still lock the rest in; below it, the engine has to earn its way.</p>' + decadeLinesSvg({ title: 'The engine from three real starts, against the price of the rest at ' + r.signature.bridgeAge, startAge: p.startAge, series, refLine: r.signature.restCostFull, refLabel: 'cost of the remaining years at ' + r.signature.bridgeAge }); },
-        shines: ['The expensive early years — the ones a bad start would wreck — are certain, and there is nothing to do', 'Sequence risk on the bridge is gone; the engine compounds untouched for a decade', 'When the State Pension arrives the draw on the engine is small, so it usually lasts'],
-        fails: ['A 1966- or 2000-style decade delivers a small engine at the bridge age, and the later years then run it down', 'It fails late and quietly — there is no floor after the bridge unless you buy one then', 'Gilts on the bridge give up equity upside on that capital'],
-        doWhat: ['<strong>Once:</strong> buy the cash years and the rungs to the bridge age, and one world-equity fund', '<strong>Monthly:</strong> nothing until the bridge age; then a standing withdrawal', '<strong>At the bridge age:</strong> one honest look — is the engine big enough to buy a floor for the rest? If so, you can'],
-        exit: ['Sell rungs at market at any time', 'At the bridge age or later: annuitise the engine, or switch to Floor to an age with what it has become']
+        shines: ['The expensive early years — the ones a bad start would wreck — are certain, and there is nothing to do', 'Sequence risk in the years to the State Pension is gone; the engine compounds untouched for a decade', 'When the State Pension arrives the draw on the engine is small, so it usually lasts'],
+        fails: ['A 1966- or 2000-style decade delivers a small engine at the age the gilts run to, and the later years then run it down', 'It fails late and quietly — there is no floor after the gilts unless you buy one then', 'The gilts give up equity upside on that capital'],
+        doWhat: ['<strong>Once:</strong> buy the cash years and the rungs to the State Pension, and one world-equity fund', '<strong>Monthly:</strong> nothing until the gilts run out; then a standing withdrawal', '<strong>When the gilts run out:</strong> one honest look — is the engine big enough to buy a floor for the rest? If so, you can'],
+        exit: ['Sell rungs at market at any time', 'When the gilts run out, or later: annuitise the engine, or switch to Floor to an age with what it has become']
       },
       'buckets-in-order': {
         tag: 'three buckets, one order, a waterfall', frames: BK_FRAMES,
@@ -9395,7 +9395,7 @@
         const fig = split.applies && res.together && res.together.combined ? comparisonFigures(split, res) : null;
         window._hhLast = { cfgA: ways.own.cfgA, cfgB: ways.own.cfgB, ownSettings, partnerSettings, ownName, pName, split, fig, own, partner, mode, locked };
         if (split.applies && !dismissed) top.innerHTML = splitSectionHtml({ split, fig, mode, locked });
-        const stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(ownName) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(pName) + ' — paired future for future on the same markets' + ((offsets.a > 0 || offsets.b > 0) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the bridge years' : '') + '. "Lasts" means paid in full (for Floor to an age and Gilt ladder + rotation: never cut; for Floor &amp; flex: no lean year).</p>';
+        const stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(ownName) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(pName) + ' — paired future for future on the same markets' + ((offsets.a > 0 || offsets.b > 0) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the years before the State Pensions' : '') + '. "Lasts" means paid in full (for Floor to an age and Gilt ladder + rotation: never cut; for Floor &amp; flex: no lean year).</p>';
         const startsNote = householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings).firstTaxYear });   // one plan begins later than the other (couples-different-years.md 7)
         const thisYear = new Date().getFullYear();
         out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote })
@@ -11283,7 +11283,7 @@
         '<div style="background:var(--card); border:1px solid var(--border); border-radius:14px; max-width:720px; width:100%; max-height:88vh; overflow-y:auto; padding:28px; font-size:15px; line-height:1.65;">' +
 
         '<h2 style="margin-bottom:4px;">What the Stress Tester is doing</h2>' +
-        '<p style="color:var(--text-muted); margin-bottom:18px;">One test asks one question \u2014 <em>\u201Cif the future looked like this, would your money last?\u201D</em> \u2014 and simulates your plan month by month: withdrawals sized to your spending need, tax paid, the ISA bridge drawn tax-free, the spending cuts as you set them. It runs your plan at its full length through every real stretch of markets since 1871 and 1,000 possible futures stitched from that history. Every screen of this plan \u2014 the strategy page, the ranking, Try a strategy, the couples check, the plan document \u2014 reads the same result. The three tabs here show different parts of it.</p>' +
+        '<p style="color:var(--text-muted); margin-bottom:18px;">One test asks one question \u2014 <em>\u201Cif the future looked like this, would your money last?\u201D</em> \u2014 and simulates your plan month by month: withdrawals sized to your spending need, tax paid, the ISA drawn tax-free to the State Pension, the spending cuts as you set them. It runs your plan at its full length through every real stretch of markets since 1871 and 1,000 possible futures stitched from that history. Every screen of this plan \u2014 the strategy page, the ranking, Try a strategy, the couples check, the plan document \u2014 reads the same result. The three tabs here show different parts of it.</p>' +
 
         '<div id="sx-mc" style="border-left:3px solid var(--primary,#6366f1); padding-left:14px; margin-bottom:16px;">' +
         '<h3 style="margin-bottom:6px;">\uD83C\uDFB2 Will it last? \u2014 a thousand possible futures</h3>' +
@@ -11307,7 +11307,7 @@
         '<li><strong>Bonds</strong> earn their own yield, and gain or lose as a <strong>gilt-yield path derived from inflation</strong> moves \u2014 so long gilts crash in a 2022-style inflation spike (big duration \u00D7 rising yields) and rally in a 2008-style flight to quality. Your own bond-class mix (short gilts, linkers, credit\u2026) drives the blend.</li>' +
         '<li><strong>Diversifiers</strong>: gold hedges inflation and tends to rise in crashes; trend-following holds a lagged momentum position (pays in long grinding bear markets, whipsaws in V-shapes); commodities hedge inflation hardest but fall <em>with</em> shares in a demand shock.</li>' +
         '<li><strong>Cash</strong> follows a rate model tied to inflation (roughly \u22121% real \u2014 the FCA convention).</li>' +
-        '<li><strong>Your ISA</strong>: if you tagged your own funds, it\u2019s modelled at <em>its</em> mix through all of the above; with a risk level only, it grows at a deliberately modest flat rate (the cash-like \u201Cbridge\u201D).</li>' +
+        '<li><strong>Your ISA</strong>: if you tagged your own funds, it\u2019s modelled at <em>its</em> mix through all of the above; with a risk level only, it grows at a deliberately modest flat rate, like cash.</li>' +
         '</ul>' +
 
         '<h3 style="margin:16px 0 6px;">Are the asset classes correlated? Yes \u2014 three ways</h3>' +
@@ -11789,8 +11789,8 @@
         const settings = { ...(await getStressSettingsAsync()), duration };
         const schedule = generateDrawdownSchedule(settings, duration, inflation);
 
-        let html = '<div class="card"><h2>Projected Drawdown Schedule (SIPP + ISA bridge)</h2>';
-        html += '<div class="alert alert-info" style="margin-bottom:16px;">SIPP is drawn to fill the basic-rate band; the tax-free <strong>ISA tops your income up to the target</strong> and runs down over the years (the bridge to the State Pension). Deterministic projection at your assumed inflation — the stochastic ISA path is in the Monte-Carlo / Historical results. ' + drawdownIsaNoteHtml(settings, { inflation, locked: await planIsLocked().catch(() => null) }) + '</div>';   // how this table's ISA grows against the runs (6.22.0)
+        let html = '<div class="card"><h2>Projected Drawdown Schedule (SIPP + ISA top-up)</h2>';
+        html += '<div class="alert alert-info" style="margin-bottom:16px;">SIPP is drawn to fill the basic-rate band; the tax-free <strong>ISA tops your income up to the target</strong> and runs down over the years to your State Pension. Deterministic projection at your assumed inflation — the stochastic ISA path is in the Monte-Carlo / Historical results. ' + drawdownIsaNoteHtml(settings, { inflation, locked: await planIsLocked().catch(() => null) }) + '</div>';   // how this table's ISA grows against the runs (6.22.0)
         html += '<div style="overflow-x: auto;"><table>';
         html += '<thead><tr><th>Year</th><th>SIPP Draw</th><th>State</th><th>Tax</th><th>Net (SIPP+SP)</th><th>ISA Top-up</th><th>Spendable</th><th>ISA Left</th></tr></thead>';
         html += '<tbody>';
@@ -11837,8 +11837,8 @@
         let html = '<div class="card"><h2>Fund Glidepath Over Time</h2>';
         html += '<div class="alert alert-info" style="margin-bottom: 20px;">';
         html += tentOn
-          ? '<strong>Bond tent on:</strong> the equity share (Shares %) RISES over the early years then holds; the £ floors inflate with CPI and deplete over time, cash holds its real value, and the ISA bridge runs down as it tops up income.'
-          : '<strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete over time to £0; cash inflates only (holds real value); the ISA bridge runs down as it tops up income. Turn on the bond tent in Settings to see the equity share rise.';
+          ? '<strong>Bond tent on:</strong> the equity share (Shares %) RISES over the early years then holds; the £ floors inflate with CPI and deplete over time, cash holds its real value, and the ISA runs down as it tops up income.'
+          : '<strong>Glidepath:</strong> Equity & Bond minimums inflate with CPI but deplete over time to £0; cash inflates only (holds real value); the ISA runs down as it tops up income. Turn on the bond tent in Settings to see the equity share rise.';
         if (hasDiv) html += ' Your diversifiers sleeve (gold + trend/macro — e.g. CGT, PNL) is held flat as a crisis reserve.';
         if (hasHodl) html += ' The Break-Glass HODL reserve is shown separately and untouched until an emergency.';
         html += '</div>';
@@ -12097,12 +12097,12 @@
 
       // A contract strategy (gilt ladders) pays from its cash bucket / matured rung: no pot floors, no
       // rebalancing, nothing sold. Records saved before 6.4.2 carry no flag — fall back to the plan's
-      // current strategy. A bridge month (before the plan starts) is paid from the bridge cash.
+      // current strategy. A month before year 0 (a plan stored the old way) is paid from cash.
       const contract = h.contract != null ? !!h.contract : CONTRACT_IDS.includes(window._activeStrategyId || '');
-      // Format withdrawal source details (before the plan's income starts: from the plan's year 0 as it is now, 6.51.0)
+      // Format withdrawal source details (a month before year 0: from the plan's year 0 as it is now, 6.51.0)
       let sourceDetail = h.source || 'Unknown';
       if (contract) {
-        sourceDetail = recordSourceWords(h, window._decisionAnchor, null, null) ? ('From ' + recordSourceWords(h, window._decisionAnchor, null, null)) : (recordBeforeStart(h, window._decisionAnchor) ? 'The cash set aside before the plan\'s income starts — nothing is sold' : 'The cash bucket / this year\'s matured rung — nothing is sold');
+        sourceDetail = recordSourceWords(h, window._decisionAnchor, null, null) ? ('From ' + recordSourceWords(h, window._decisionAnchor, null, null)) : (recordBeforeStart(h, window._decisionAnchor) ? 'Cash — nothing is sold' : 'The cash bucket / this year\'s matured rung — nothing is sold');
       } else if (h.source === 'Growth' && (h.dEquity > 0 || h.dBond > 0)) {
         sourceDetail = `Growth (Equity: ${fmt(h.dEquity || 0)}, Bond: ${fmt(h.dBond || 0)})`;
       } else if (h.source === 'Cash') {

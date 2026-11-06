@@ -71,7 +71,7 @@ export const ABOUT_FIELDS = Object.freeze([
   { path: 'stopMonth', type: 'month',  required: true, when: { stopped: ['month', 'yes'] } },
   // 'stop': the tax year work stopped in (the default once a month is given); 'y<YYYY>': a tax year between it and this one
   // (offered by about.js startChoices, each named by its year — the planner's own range, PlanTiming.startYearChoices)
-  { path: 'startWhen', type: 'choice', options: ['stop', 'now', 'april', 'saved'], required: true, when: { stopped: 'yes' } },
+  { path: 'startWhen', type: 'choice', options: ['stop', 'now', 'saved'], required: true, when: { stopped: 'yes' } },
   { path: 'endAge',    type: 'age',    min: 23, max: 110, required: true },
   // "Suggest from how long people live": neither is saved
   { path: 'sex',       type: 'choice', options: ['m', 'f'], default: 'm' },

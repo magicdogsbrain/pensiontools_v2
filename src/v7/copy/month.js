@@ -79,8 +79,9 @@ export const MONTH = {
       chain: 'With prices up {cpi}%, this year’s income before tax would be {amount} a year.',
       declining: 'Your plan’s spending falls a little each year (about {pct}% a year at today’s prices). Last year’s income rises with prices, less that fall, to {amount} a year before tax.',
       'budget-schedule': 'From your plan’s income for this year, raised to this year’s prices: {amount} a year before tax.',
-      bridge: 'Your plan’s income starts later: this year is paid from the money set aside until then. Its first income is {amount} a year before tax.',
-      bridgeCover: ' At that rate the money set aside covers {n} of the {m} payments to come.'
+      /** A plan stored with its start later than this tax year: the suggestion is its first income step (its home asks to move the start). */
+      firstStep: 'From your plan’s first income step: {amount} a year before tax.',
+      cashCover: ' At that rate your cash covers {n} of the {m} payments to come.'
     },
     statePension: {
       none: 'State Pension: none in your plan. Add your forecast under Money that comes in anyway.',
@@ -123,7 +124,7 @@ export const MONTH = {
     from: {
       cash: 'Cash', bonds: 'Bonds', shares: 'Shares', diversifiers: 'Gold and trend',
       rung: 'The gilt for {year}, already paid out as cash', thisYear: 'This year’s gilt, already paid out as cash', cashYears: 'The cash set aside for the first years',
-      cashBefore: 'Your cash, before the gilts start paying', essentials: 'The gilt that pays for essentials', invested: 'Your invested money', investedRest: 'Your invested money, for the rest'
+      cashBefore: 'Your cash, until the first gilt pays', essentials: 'The gilt that pays for essentials', invested: 'Your invested money', investedRest: 'Your invested money, for the rest'
     },
     bought: 'Nothing is sold: the money is already in cash. The tax is the same, as it is still taken from your pension.',
     movesTitle: 'Moves to make',

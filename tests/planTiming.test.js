@@ -221,13 +221,15 @@ describe('describeTiming', () => {
     const r = deriveTiming({ ...alex, retired: true, firstTaxYear: 2024 }, NOW);
     expect(describeTiming(r, alex, NOW)).toMatch(/^Plan started 6 April 2024 \(tax year 2024\/25\); today is plan year 2 of 30\./);
     const d = deriveTiming({ ...alex, retired: true, stoppedWork: '2026-07', firstTaxYear: 2027 }, NOW);
-    expect(describeTiming(d, alex, NOW)).toContain('You stopped work in July 2026; the plan\'s income starts 6 April 2027 (tax year 2027/28), in 7 months. Until then you live on money set aside or other income');
+    expect(describeTiming(d, alex, NOW)).toContain('You stopped work in July 2026. Plan starts 6 April 2027 (tax year 2027/28), in 7 months.');
+    expect(describeTiming(d, alex, NOW)).not.toMatch(/set aside|before the plan/);   // 7.3.3
   });
   it('the stop\'s tax year is named among the choices, and a saved year outside them is kept', () => {
     const t = deriveTiming({ ...alex, retired: true, stoppedWork: '2024-11' }, NOW);
-    expect(startYearChoices(t, 2024).map((c) => c.label)).toEqual(['2024/25 — the year you stopped work', '2025/26', 'this tax year — 2026/27', 'next 6 April — 2027/28']);
+    // 7.3.3: never a later year than this one
+    expect(startYearChoices(t, 2024).map((c) => c.label)).toEqual(['2024/25 — the year you stopped work', '2025/26', 'this tax year — pick up from here — 2026/27']);
     const same = deriveTiming({ ...alex, retired: true, stoppedWork: '2026-06' }, NOW);
-    expect(startYearChoices(same, null).map((c) => c.label)).toEqual(['2026/27 — the year you stopped work (this tax year)', 'next 6 April — 2027/28']);
+    expect(startYearChoices(same, null).map((c) => c.label)).toEqual(['2026/27 — the year you stopped work (this tax year)']);
     const outside = deriveTiming({ ...alex, retired: true, stoppedWork: '2024-11', firstTaxYear: 2022 }, NOW);
     expect(startYearChoices(outside, 2022)[0]).toEqual({ year: 2022, label: '2022/23 (saved)', saved: true });
   });

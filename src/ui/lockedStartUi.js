@@ -12,6 +12,8 @@
  *   fillPlanStart()                      the plan's first month, for the Monthly Entry's fill (MonthFill.planFillStart): a
  *                                        plan whose start is behind what is recorded reaches its lived months
  *   decisionPotsYear()                   the plan year the Decision tool's pot floors start from
+ *   startLaterOfActive()                 the open plan stored with its start later than it should be (PlanMove.startLaterOf):
+ *                                        the next-step banner's one thing to do, the move of its start (7.3.3)
  *
  * "Move to a new plan" and a closed plan's line (6.56.0) are src/ui/planCloseUi.js: installed with this, drawn with the line
  * (renderLockedStart draws both), and its helpers handed on to index.html from here, so the page keeps one import.
@@ -23,7 +25,7 @@ import { saveStressSettings, getStressSettingsAsync } from '../storage/StressRep
 import { getDecisionSettingsAsync, getAllTaxYearsAsync } from '../storage/DecisionRepository.js';
 import { loadAllScenarios } from '../firebase/FirestoreService.js';
 import { effectiveStressSettings } from '../services/PlanReading.js';
-import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveAnchorOf, moveFactsOf } from '../services/PlanMove.js';
+import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveAnchorOf, moveFactsOf, startLaterOf } from '../services/PlanMove.js';
 import { cleanSteps } from '../services/IncomeSchedule.js';
 import { lockedStopAnswer } from '../answers/plan/about.js';
 import { stoppedWorkOf, monthName, decisionAnchorYear, deriveTiming } from '../services/PlanTiming.js';
@@ -46,6 +48,11 @@ const incomeInSteps = (s) => !!s && s.incomeShape === 'phases' && cleanSteps(s.i
  */
 export async function decisionPotsYear() {
   try { const ss = await getStressSettingsAsync(); return runPositionOf(ss, deriveTiming(ss)).elapsedYears; } catch (e) { return 0; }
+}
+
+/** The open plan, read as PlanMove.startLaterOf reads it (as stored): null for every plan with nothing to move or ask. */
+export async function startLaterOfActive() {
+  try { return startLaterOf(await getActiveScenarioAsStored(), new Date()); } catch (e) { return null; }
 }
 
 /**
@@ -113,6 +120,7 @@ export function installLockedStart(win, doc, deps) {
     catch (e) { toast('Could not save the month: ' + e.message, 'error'); return; }
     await deps.loadStressSettings();   // the month box, the summary and the line under it, from what was saved
     toast('Saved: you stopped work in ' + monthName(v) + '.', 'success', 4000);
+    if (typeof win.updateNextStepBanner === 'function') win.updateNextStepBanner();   // the to-do moves on from "say when" to the move
   };
 
   win.leaveLockedStopMonth = async function () {
@@ -120,13 +128,14 @@ export function installLockedStart(win, doc, deps) {
     catch (e) { toast('Could not save that choice: ' + e.message, 'error'); return; }
     await renderLockedStart();
     toast('Left as it is. You will not be asked again; you can still say it under “Say when you stopped work”.', 'success', 5000);
+    if (typeof win.updateNextStepBanner === 'function') win.updateNextStepBanner();
   };
 
   win.moveLockedPlanStart = async function () {
     const now = new Date();
     let sc = null; try { sc = await getActiveScenarioAsStored(); } catch (e) { sc = null; }
     const mp = sc ? movedPlanOf(sc, { now }) : null;
-    if (!mp) { await renderLockedStart(); toast('This plan\'s start cannot be moved: it is not locked, or it does not say when you stopped work before its income starts.', 'info', 6000); return; }
+    if (!mp) { await renderLockedStart(); toast('This plan\'s start cannot be moved: it is not locked, or it does not say a month you stopped work earlier than its first tax year.', 'info', 6000); return; }
     const m = mp.move, st = m.stress;
     // what the confirm states: the same facts the preview's confirm reads (PlanMove.moveFactsOf)
     const q = moveStartQuestion(m, moveFactsOf(sc, m));
@@ -153,6 +162,7 @@ export function installLockedStart(win, doc, deps) {
       try { await deps.loadDecisionSettings(); } catch (e) { /* form not built yet */ }
       try { await win.refreshLifeStage(); deps.updatePlanLockChip(); } catch (e) { /* chip optional */ }
       toast(moveStartDoneWords(m), 'success', 7000);
+      if (typeof win.updateNextStepBanner === 'function') win.updateNextStepBanner();   // the plan's start moved: nothing left to do
     } catch (e) {
       console.error('Move the plan start:', e);
       toast(moved ? 'The plan\'s start was moved, but the page could not show it: reload the page.' : 'Could not move the plan\'s start: ' + e.message + ' Nothing was changed.', 'error', 7000);

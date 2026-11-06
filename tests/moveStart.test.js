@@ -634,7 +634,8 @@ describe('V7: the question on a locked plan\'s "About you and when", and the mov
   it('once the month is said, the move is offered there, its confirm line by line; the month stays changeable, before and after a move', () => {
     const ls = lockedStartOf(alex(), { today: TODAY });
     expect({ ...ls, move: { ...ls.move, confirm: undefined } }).toEqual({ ask: false, move: { yearStop: '2023/24', yearStart: '2027/28', month: 'October 2023', stepped: true, confirm: undefined }, blocked: null, change: 'October 2023', left: false });
-    expect(ls.move.confirm.map((l) => l.id)).toEqual(['first', 'steps', 'ends', 'months', 'bridgedAll', 'documentLadder', 'sp', 'moreLadder', 'fill', 'notAffected']);
+    // 7.3.3: no line says the months were "before the plan's income starts" (the old 'bridgedAll'): they are months of the plan
+    expect(ls.move.confirm.map((l) => l.id)).toEqual(['first', 'steps', 'ends', 'months', 'documentLadder', 'sp', 'moreLadder', 'fill', 'notAffected']);
     expect(lockedStartOf(applyPatch(alex(), moved(alex()).patch), { today: TODAY })).toEqual({ ask: false, move: null, blocked: null, change: 'October 2023', left: false });
   });
   it('after "Leave it" the month can still be said, folded, by the same one write: no unlock needed', () => {
@@ -674,7 +675,8 @@ describe('V7: the question on a locked plan\'s "About you and when", and the mov
       expect(ours.join(' '), mine).toContain(mine);
       expect(theirs, planner).toContain(planner);
     }
-    expect(ours.join(' ')).toContain('They are no longer marked as before the plan’s income starts, and are compared with the plan instead.');
+    expect(ours.join(' ')).not.toMatch(/before the plan|set aside/);   // 7.3.3
+    expect(theirs).not.toMatch(/before the plan|set aside/);
     expect(fillIn(C.yes, { yearStop: '2023/24' })).toBe('Move the start to 2023/24');
     expect(C.no).toBe('Keep it as it is');
     for (const w of ours) expect(bannedHits(w, ['all', 'retired', 'record']), w).toEqual([]);
@@ -752,9 +754,11 @@ describe('the words', () => {
     const plan = alex();
     const mm = planMoveOf(plan, NOW);
     const hist = plan.decisionTool.history;
-    const q = plain(moveStartQuestion(mm, { stepAmount: 34000, months: hist.map((h) => h.date), bridged: hist.filter((h) => h.bridgeYear).length - mm.history.filter((h) => h.bridgeYear).length,
+    const q = plain(moveStartQuestion(mm, { stepAmount: 34000, months: hist.map((h) => h.date),
       ladder: true, runYear: 2026, sp: spCountOf(plan.stressTool.settings, mm.stress) }).html);
-    expect(q).toContain('They now count from the new start, 2023/24. They are no longer marked as before the plan\'s income starts');
+    // 7.3.3: the months count from the new start; no line says they were "before the plan's income starts"
+    expect(q).toContain('They now count from the new start, 2023/24.');
+    expect(q).not.toMatch(/before the plan|set aside/);
     expect(spCountOf(plan.stressTool.settings, mm.stress)).toEqual({ taxYear: 2028, before: 1, after: 5 });
     expect(q).toContain('Your State Pension still starts in 2028/29, as before; only the plan\'s count of years to it changes (5 from the new start, not 1).');
     expect(q).not.toMatch(/comes later/);

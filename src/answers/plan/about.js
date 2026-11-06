@@ -169,12 +169,12 @@ function parseAge(t, f) {
 
 /**
  * Which choice a year 0 is, for someone who has stopped: the tax year they stopped in ('stop'), a year between it and this
- * one ('y2024'), this tax year, next April, or another year as saved.
+ * one ('y2024'), this tax year, or another year as saved. A later year is never offered (nobody retired has months before
+ * their plan): one saved before that changed is shown as saved.
  */
 function whenOf(fty, thisTY, stopMonth) {
   const stopTY = stopMonth ? taxYearOfMonth(stopMonth) : null;
   if (fty === thisTY) return 'now';
-  if (fty === thisTY + 1) return 'april';
   if (stopTY != null && fty === stopTY) return 'stop';
   if (stopTY != null && fty > stopTY && fty < thisTY) return 'y' + fty;
   return 'saved';
@@ -184,16 +184,17 @@ export const choiceYear = (w) => { const m = /^y(\d{4})$/.exec(String(w || ''));
 
 /**
  * The start-year choices offered: with the month work stopped (6.51.0), the tax year it is in and every year from it to
- * this one (the planner's own range, PlanTiming.startYearChoices); this tax year and next April; and the saved year when it
- * is none of those.
+ * this one (the planner's own range, PlanTiming.startYearChoices); this tax year; and the saved year when it is none of
+ * those. No later year is offered: a retired person's plan starts in the tax year they stopped or the one they pick it up
+ * from, never after it.
  */
 export function startChoices(saved, stopMonth = null) {
   const out = [];
   const stopTY = stopMonth ? taxYearOfMonth(stopMonth) : null;
   if (stopTY != null && stopTY < saved.thisTY) { out.push('stop'); for (let y = stopTY + 1; y < saved.thisTY; y++) out.push('y' + y); }
-  out.push('now', 'april');
+  out.push('now');
   const sy = saved.values.savedYear;
-  if (sy && sy !== saved.thisTY && sy !== saved.thisTY + 1 && !(stopTY != null && sy >= stopTY && sy < saved.thisTY)) out.push('saved');
+  if (sy && sy !== saved.thisTY && !(stopTY != null && sy >= stopTY && sy < saved.thisTY)) out.push('saved');
   return out;
 }
 
@@ -290,7 +291,7 @@ export function checkAbout(plan, typed, { today }) {
     // The month work stopped or stops (6.51.0): kept when given, cleared for a stop at an age (the age decides then).
     next.stoppedWork = values.stopped === 'age' ? null : (values.stopMonth || null);
     const w = values.startWhen;
-    next.firstTaxYear = retired ? (w === 'now' ? saved.thisTY : w === 'april' ? saved.thisTY + 1 : w === 'stop' ? taxYearOfMonth(values.stopMonth) : choiceYear(w) || saved.values.savedYear) : null;
+    next.firstTaxYear = retired ? (w === 'now' ? saved.thisTY : w === 'stop' ? taxYearOfMonth(values.stopMonth) : choiceYear(w) || saved.values.savedYear) : null;
     timing = safeTiming(next, now);
     // what the planner's Save writes (index.html timingFieldsForSave): the derived start age, and the derived first tax year
     // in every mode but legacy (stopping later: the year the stop age is reached)
@@ -441,7 +442,7 @@ export function lockedStartOf(plan, { today }) {
  * the planner's own confirm (src/ui/planStartUi.js moveStartQuestion), from the same facts (PlanMove.moveFactsOf) — the
  * new first tax year and the old, the plan staying locked; the income (the first step keeps its amount and the later
  * steps their ages, or the one yearly figure) and the age the plan still ends at; the dated figures keeping their tax
- * years; the recorded months, and those no longer marked as before the plan's income starts; the plan document and plan
+ * years; the recorded months, counted from the new start; the plan document and plan
  * vs actual written again (a ladder bought from the tax year the run starts in); the State Pension's count and the years
  * the plan counts; the months not recorded; and what is not affected. A choice of words per count, so no line says
  * "1 years". Empty when the plan is offered no move.
@@ -461,7 +462,6 @@ function moveConfirmOf(plan, now) {
   const ms = f.months.slice().sort();
   if (ms.length) {
     lines.push(ms.length === 1 ? { id: 'monthOne', slots: { first: monthWords(ms[0]), yearStop } } : { id: 'months', slots: { n: String(ms.length), first: monthWords(ms[0]), last: monthWords(ms[ms.length - 1]), yearStop } });
-    if (f.bridged > 0) lines.push(f.bridged >= ms.length ? { id: ms.length === 1 ? 'bridgedIt' : 'bridgedAll', slots: {} } : { id: 'bridgedSome' + one(f.bridged), slots: { n: String(f.bridged) } });
   }
   lines.push(f.ladder && f.runYear ? { id: 'documentLadder', slots: { runYear: taxYearLabel(f.runYear) } } : { id: 'document', slots: {} });
   if (f.sp) lines.push(f.sp.before != null && f.sp.before >= 0 ? { id: 'sp', slots: { spYear: taxYearLabel(f.sp.taxYear), after: String(f.sp.after), before: String(f.sp.before) } } : { id: 'spNoBefore', slots: { spYear: taxYearLabel(f.sp.taxYear), after: String(f.sp.after) } });
@@ -522,8 +522,8 @@ export function applyPatch(plan, patch) {
 
 /**
  * The derived figures (2), as line ids with their slots; from the timing as it would be saved, or as saved. A plan that says
- * when work stopped says so; one that has started says where today stands in it ("plan year 3 of 30"); one whose income
- * starts later than the stop says the months until then are recorded, not compared (6.51.0).
+ * when work stopped says so; one that has started says where today stands in it ("plan year 3 of 30"). A plan stored with
+ * its start later than the stop says nothing of the months before it: its home asks to move the start.
  */
 export function derivedLines(timing, duration, { stopAgeFromMonth = null } = {}) {
   if (!timing || timing.mode === 'legacy') return [{ id: 'noAge', slots: {} }];
@@ -535,7 +535,6 @@ export function derivedLines(timing, duration, { stopAgeFromMonth = null } = {})
   } else if (timing.stoppedWork) lines.push({ id: 'stoppedIn', slots: { month: monthWords(timing.stoppedWork) } });
   lines.push({ id: 'firstYear', slots: { year: taxYearLabel(timing.firstTaxYear), y: timing.firstTaxYear } });
   if (timing.mode !== 'future' && timing.planYearNow > 0) lines.push({ id: 'started', slots: { year: taxYearLabel(timing.firstTaxYear), yearNow: taxYearLabel(timing.firstTaxYear + timing.planYearNow), ageNow: timing.shapeAgeNow + timing.planYearNow } });
-  else if (timing.mode !== 'future' && timing.stoppedWork && timing.planYearNow < 0) lines.push({ id: 'startsLater', slots: { year: taxYearLabel(timing.firstTaxYear) } });
   lines.push({ id: 'runs', slots: { years: duration, from: timing.mode === 'future' ? monthWords(timing.startMonth) : 'April ' + timing.firstTaxYear, endAge } });
   lines.push({ id: 'stepsFrom', slots: { age: timing.shapeAgeNow } });
   return lines;
@@ -645,7 +644,7 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
   }
   return {
     found: true, id: String(plan.id), name: nameOf(plan), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable, stale, lockedStart,
-    source: saved.source, ageSource: saved.ageSource, thisTY: saved.thisTY, yearNow: taxYearLabel(saved.thisTY), yearApril: taxYearLabel(saved.thisTY + 1),
+    source: saved.source, ageSource: saved.ageSource, thisTY: saved.thisTY, yearNow: taxYearLabel(saved.thisTY),
     yearSaved: saved.values.savedYear ? taxYearLabel(saved.values.savedYear) : null,
     // the tax year work stopped in, for the 'stop' choice (as typed, else as saved), and each 'y<YYYY>' choice's year in words
     yearStop: (() => { const m = c.values.stopMonth || saved.values.stopMonth; return m ? taxYearLabel(taxYearOfMonth(m)) : null; })(),

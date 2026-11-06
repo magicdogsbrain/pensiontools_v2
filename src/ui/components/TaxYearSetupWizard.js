@@ -165,9 +165,8 @@ function renderThisYear() {
 
       <div class="wizard-info-box" id="salaryInfoBox">
         ${fromBridge
-          ? `<p><strong>Before the plan's income starts</strong> — your plan's income starts in ${esc(startLabel)}, so this tax year
-             is paid from the money you set aside until then. The suggestion is your plan's first income step${wizardContext.bridgeCoverMonths != null
-               ? `, the rate the cash set aside to April was sized for (at that rate it covers about ${wizardContext.bridgeCoverMonths} of the ${wizardContext.remainingMonths} payments to come)` : ''}:</p>`
+          ? `<p><strong>Your plan is set to start in ${esc(startLabel)}</strong> — the suggestion is your plan's first income step${wizardContext.bridgeCoverMonths != null
+               ? ` (at that rate your cash covers about ${wizardContext.bridgeCoverMonths} of the ${wizardContext.remainingMonths} payments to come)` : ''}:</p>`
           : fromSchedule
           ? `<p><strong>From your plan's income schedule for this year</strong> — the year-by-year income your plan was priced on
              (the income steps, or the Budget tool's plan), uplifted to this year's money:</p>`
@@ -434,7 +433,7 @@ function attachListeners() {
       // decline when the plan declines — same behaviour as the Stress tester.
       const base = wizardContext.suggestionBase ?? wizardContext.baseSalary;
       const declineRate = wizardContext.declineRate || 0;
-      // A bridge-year suggestion is this year's cash spread over the months left — CPI does not move it.
+      // On a plan stored with its start later than this tax year the suggestion is its first income step — CPI does not move it.
       const suggestedSalary = wizardContext.suggestionSource === 'bridge'
         ? Math.round(wizardContext.suggestedSalary)
         : fromScheduleAssumed

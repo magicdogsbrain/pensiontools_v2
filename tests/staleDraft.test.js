@@ -69,24 +69,23 @@ describe('staleDraft: a draft whose saved start year has passed', () => {
 });
 
 describe('startYearChoices: the start-year drop-down is never blank', () => {
-  it('a saved year that is neither option is offered as a third, labelled "(saved)"', () => {
+  it('a saved year that is not offered is kept, labelled "(saved)"; next April is never offered (7.3.3)', () => {
     const t = deriveTiming(retired, SEP_2029);
     const c = startYearChoices(t, retired.firstTaxYear);
     expect(c).toEqual([
       { year: 2027, label: '2027/28 (saved)', saved: true },
-      { year: 2029, label: 'this tax year — 2029/30', saved: false },
-      { year: 2030, label: 'next 6 April — 2030/31', saved: false }
+      { year: 2029, label: 'this tax year — pick up from here — 2029/30', saved: false }
     ]);
     expect(c.some((x) => x.year === t.firstTaxYear)).toBe(true);   // the selected value exists
   });
   it('the saved year stays on offer after another year is picked in the form', () => {
     const t = deriveTiming({ ...retired, firstTaxYear: 2029 }, SEP_2029);
-    expect(startYearChoices(t, 2027).map((x) => x.year)).toEqual([2027, 2029, 2030]);
+    expect(startYearChoices(t, 2027).map((x) => x.year)).toEqual([2027, 2029]);
   });
-  it('no third option when the saved year is one of the two', () => {
+  it('a plan saved for next April keeps that year, as saved, beside this tax year: nothing new can be chosen later', () => {
     const now = new Date(2026, 8, 30);
-    expect(startYearChoices(deriveTiming(retired, now), 2027).map((x) => x.label)).toEqual(['this tax year — 2026/27', 'next 6 April — 2027/28']);
-    expect(startYearChoices(deriveTiming(retired, now), null).length).toBe(2);
+    expect(startYearChoices(deriveTiming(retired, now), 2027).map((x) => x.label)).toEqual(['this tax year — pick up from here — 2026/27', '2027/28 (saved)']);
+    expect(startYearChoices(deriveTiming({ ...retired, firstTaxYear: 2026 }, now), null).length).toBe(1);
   });
 });
 

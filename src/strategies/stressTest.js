@@ -30,7 +30,7 @@ import { chargesPctOf, monthlyChargeFactor } from '../services/Charges.js';
 import { summariseCuts, pctText } from '../services/OneAnswer.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 
 export const STRATEGY_NAMES = {
-  'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Bridge & engine', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder', 'gilt-rotation': 'Gilt ladder + rotation'
+  'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Gilts to State Pension, then shares', 'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide', 'full-il-gilt': 'Full index-linked gilt ladder', 'gilt-rotation': 'Gilt ladder + rotation'
 };
 
 /** p10/p50/p90 band of one per-window series (array index = plan year). */
@@ -574,7 +574,7 @@ function floorToAgeTest(p, configs) {
  */
 function bridgeTest(p, configs) {
   const c = configs.be;
-  if (!c) return { affordable: false, reason: `buying the bridge to ${configs.beBridgeAge} costs £${Math.round(configs.beCost).toLocaleString()} — £${Math.round(configs.beCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.beCost - availablePot(p) };
+  if (!c) return { affordable: false, reason: `buying the gilts to ${configs.beBridgeAge} costs £${Math.round(configs.beCost).toLocaleString()} — £${Math.round(configs.beCost - availablePot(p)).toLocaleString()} more than the pot`, shortfall: configs.beCost - availablePot(p) };
   const N = p.durationYears, B = c.B;
   const yf = c.yieldForYear || (() => 0.023);
   const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);
@@ -625,7 +625,7 @@ function bridgeTest(p, configs) {
       rule: `Nothing to decide until ${c.bridgeAge}: the cash years pay first, then each rung matures before the April it funds. From ${c.bridgeAge} the State Pension arrives and the engine pays the rest by a standing monthly withdrawal — no re-buying, no trigger.`
     },
     n: { hist: h.stats.n, mc: mc.windows.length },
-    wealthLabel: 'Engine + unpaid bridge to ' + c.bridgeAge + ' (after: the engine), today\'s money'
+    wealthLabel: 'Engine + unpaid gilts to ' + c.bridgeAge + ' (after: the engine), today\'s money'
   };
 }
 

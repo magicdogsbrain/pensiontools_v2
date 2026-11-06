@@ -32,6 +32,7 @@ import { checkInState } from './checkInDue.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
 import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
+import { startLaterOf } from '../../services/PlanMove.js';
 
 // The dates in words live in dates.js (shared with about.js); kept as exports here for everyone who reads them from read.js.
 export { dateOf, monthWords, monthName, dayWords };
@@ -48,8 +49,6 @@ const isLadderPlan = (plan, ss) => CONTRACT_STRATEGIES.includes(stratId(plan, ss
 
 /** The ladder a locked plan's document holds (the orders fixed at the lock), or null. */
 const lockedLadderOf = (plan, ss) => (isLadderPlan(plan, ss) && plan && plan.planDocument ? documentLadder(plan.planDocument, stratId(plan, ss)) : null);
-/** The month a ladder pays from: April of the document ladder's first year; else the stage's own start. */
-const ladderMonth = (plan, ss, stage) => { const lad = lockedLadderOf(plan, ss); return lad ? 'April ' + lad.years[0].Y : (monthWords(stage.startMonth) || ('April ' + stage.firstTaxYear)); };
 
 /**
  * The stage line (rail-screens-language.md 1.3; your-plan.md 2.1): the key, the dates and the flags only — never the
@@ -61,11 +60,13 @@ export function stageLine(stage, plan, ss = null) {
   const key = stage && stage.key;
   if (!key || key === 'unknown') return null;
   if (key === 'committed-saving') return { id: 'committed-saving', slots: { month: monthWords(stage.startMonth) || taxYearLabel(stage.firstTaxYear) } };
-  if (key === 'bridge') return { id: isLadderPlan(plan, ss) ? 'bridge-ladder' : 'bridge-plan', slots: { month: isLadderPlan(plan, ss) ? ladderMonth(plan, ss, stage) : (monthWords(stage.startMonth) || ('April ' + stage.firstTaxYear)) } };
-  if (key === 'running') {
+  // A locked retired plan whose year 0 is still ahead (placed 'bridge', a plan stored the old way): it is read as a plan
+  // being lived on, with no words of its own for the months before its start — its home's to-do asks to move the start.
+  if (key === 'running' || key === 'bridge') {
     const rung = firstRungOf(lockedLadderOf(plan, ss));
     const thisTY = Number.isFinite(stage.planYearNow) && stage.firstTaxYear > 0 ? stage.firstTaxYear + stage.planYearNow : null;
     if (rung && thisTY != null && rung.Y > thisTY) return { id: 'running-ladder', slots: { month: 'April ' + rung.Y } };
+    return { id: 'running', slots: {} };
   }
   return { id: key, slots: {} };
 }
@@ -322,7 +323,11 @@ function whereStep(C) {
       lines.push(line('where.saverLine', [money('expected')], figures, sourceOf('locked', lockedAt, now)));
     }
   } else {
-    const inc = w.incomeThisYear || { recorded: 0, drawn: 0, planned: null };
+    // A plan stored the old way (C.startLater): this year's figure is its year 0's, a later tax year's, so the months recorded
+    // are said with what was taken and nothing is read against a plan figure until its start is moved (the home's to-do).
+    const older = !!C.startLater;
+    const inc0 = w.incomeThisYear || { recorded: 0, drawn: 0, planned: null };
+    const inc = older ? { ...inc0, planned: null, perMonth: null } : inc0;
     figures.months = inc.recorded; figures.drawn = r0(inc.drawn);
     const parts = [count('months'), ' month' + (inc.recorded === 1 ? '' : 's') + ' recorded in ' + w.taxYear + ': ', money('drawn'), ' taken before tax'];
     if (inc.planned != null) { figures.planned = r0(inc.planned); parts.push('; the plan says ', money('planned'), ' for the year'); }
@@ -345,13 +350,14 @@ function whereStep(C) {
         : diff > 0 ? [money('diff'), ' more than the plan said'] : ['the same as the plan said'];
       lines.push(line(id, [...head, ...tail], figures, sourceOf('record', null, now), { months: String(inc.recorded), cutMonths: String(cutMonths) }));
     }
+    if (older) lines.push(line('where.startLater', ['Your plan is set to start in April ' + C.startLater.start + ', so these months are not read against it yet: see To do'], figures, sourceOf('locked', lockedAt, now), { start: 'April ' + C.startLater.start }));
     lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
     if (inc.planned != null) lines.push(line('where.planned', [money('planned')], figures, sourceOf('locked', lockedAt, now), { year: w.taxYear }));
     if (w.step && w.step.amount != null) { figures.stepNow = r0(w.step.amount); lines.push(line('where.step', [money('stepNow'), ' a year before tax'], figures, sourceOf('locked', lockedAt, now), { n: String(w.step.index), of: String(w.step.of) })); }
     if (w.pot && w.pot.actual != null) {
       figures.pot = r0(w.pot.actual);
       lines.push(line('where.pot', [money('pot')], figures, sourceOf(w.pot.source === 'holdings' ? 'hold' : 'record', w.pot.asOf, now)));
-      if (w.pot.p50 != null) { figures.potMid = r0(w.pot.p50); lines.push(line('where.potMid', [money('potMid')], figures, sourceOf('locked', lockedAt, now))); }
+      if (w.pot.p50 != null && !older) { figures.potMid = r0(w.pot.p50); lines.push(line('where.potMid', [money('potMid')], figures, sourceOf('locked', lockedAt, now))); }
     }
   }
   if (w.contract && !inputs.ladderInDocument) notes.push('where.ladderNotInDocument');
@@ -857,6 +863,9 @@ function rulesFor(C, built) {
     'P.stale':       () => !!stale,
     'P.householdPending': () => partnerMissing,
     'P.draft':       () => key === 'draft-retired',
+    // a locked plan stored the old way (PlanMove.startLaterOf): move its start to the tax year work stopped, or say when that was
+    'P.startMove':   () => !!C.startLater && C.startLater.kind === 'move',
+    'P.startAsk':    () => !!C.startLater && C.startLater.kind === 'ask',
     'P.approaching': () => key === 'approaching',
     'P.onCourse':    () => !!ci && lastBand === 'yes',
     'P.nextCheckIn': () => chosen && !!ci.lastCheckIn,
@@ -870,7 +879,8 @@ function rulesFor(C, built) {
     // the move's next order, by its place in the list and its own name (never a figure: the move page says the amounts)
     ...(prog && prog.next ? { n: String(prog.doneCount + 1), of: String(prog.total), label: String(prog.next.label || prog.next.ticker || '') } : prog ? { n: String(prog.doneCount), of: String(prog.total) } : {}),
     ...(holdCount > 0 && rec.updatedAt ? { date: dayWords(rec.updatedAt) } : {}),
-    ...(band ? { band } : {}) };
+    ...(band ? { band } : {}),
+    ...(C.startLater ? { start: 'April ' + C.startLater.start, ...(C.startLater.stopMonth ? { stopped: monthWords(C.startLater.stopMonth) } : {}) } : {}) };
   const aboutHref = '#/plan/' + plan.id + '/about';   // "About you and when", inside V7 (editing-in-v7.md 2)
   const lastsHref = '#/plan/' + plan.id + '/lasts';   // "Does it last?", inside V7 (editing-in-v7.md 10): no hand-over to the run
   const savingHref = '#/plan/' + plan.id + '/saving'; // "What you pay in", inside V7: whether what goes in is enough (release step R2)
@@ -906,6 +916,9 @@ function rulesFor(C, built) {
     'P.recheck': link('recheck', lastsHref),
     'P.stale': link('updateIt', aboutHref),
     'P.draft': link('lasts', lastsHref),
+    // both open "About you and when", where the month is asked and the move is made after its confirm
+    'P.startMove': link('moveStart', aboutHref),
+    'P.startAsk': link('sayWhen', aboutHref),
     'P.approaching': link('lasts', lastsHref),
     'P.saving': link('seeSaving', savingHref)
   };
@@ -992,7 +1005,10 @@ export function planPage(entries, id, stepId, { today, source = 'account', notNo
   let mv = null; try { mv = moveInputs(plan, { now }); } catch { mv = null; }
   const held = holdingsSummary(normaliseHoldings(plan.holdings)).count > 0;
   let life = null; try { life = stageOf(plan, now, { placing: stage, move: { recorded: held, complete: mv && mv.diff ? mv.diff.complete === true : null } }); } catch { life = null; }
-  const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, held, notNow: Array.isArray(notNow) ? notNow : [] };
+  // a locked retired plan stored the old way, its start later than it should be (PlanMove.startLaterOf): one to-do, and no
+  // reading of its months against a later year's figure
+  let startLater = null; try { startLater = readonly ? null : startLaterOf(plan, now); } catch { startLater = null; }
+  const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, held, startLater, notNow: Array.isArray(notNow) ? notNow : [] };
   // how far the stop is, for what a saver keeps "For later" (steps.js laterFor): months to the stop month, in years
   const yearsToStop = Number.isFinite(stage.monthsToStart) && stage.timingMode === 'future' ? stage.monthsToStart / 12 : (Number.isFinite(stage.yearsToStart) ? stage.yearsToStart : null);
   const listed = stepsFor(stage.key, { locked, linked: partners.length > 0, manyPlans: list.length > 1, yearsToStop });

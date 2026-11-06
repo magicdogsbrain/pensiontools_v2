@@ -64,8 +64,10 @@ describe('the months before year 0 for someone already retired', () => {
   it('R6.11.1 — never a "bridge" (nor, since 6.51.0, a "run-up" paid from SIPP cash) in the chip, the label and the banner', () => {
     expect(st.key).toBe('bridge');                 // the internal key is unchanged; the words are what we objected to
     for (const text of [st.label, st.chip, st.banner.text, STAGES.bridge.label, STAGES.bridge.chip]) expect(text).not.toMatch(/bridge|run[\s-]?up|SIPP cash/i);
-    expect(st.banner.text).toMatch(/the plan's income starts in 2027\/28/);
-    expect(st.banner.text).toMatch(/recorded, not compared with the plan/);
+    // 7.3.3: no words for months before the plan either: the banner names the plan's first tax year, and a plan stored this
+    // way shows the move of its start in place of it (NextStep.js, PlanMove.startLaterOf)
+    expect(st.banner.text).toBe('Retired. This plan\'s first tax year is 2027/28; record each month in the Decision tool.');
+    expect(st.banner.text).not.toMatch(/before the plan|set aside|not compared/);
   });
 
   it('R6.13.3-b — the stage says "Retired": the run-up is not a countdown to retirement', () => {

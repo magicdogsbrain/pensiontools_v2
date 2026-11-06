@@ -13,7 +13,7 @@ const gbpK = (v) => '£' + Math.round(v / 1000) + 'k';
 
 export const GILT_FRAMES = [
   { title: 'Your income plan, year by year', text: 'Each bar is one tax year of income in today\'s money — the steps you chose. Everything below is about buying these bars today.' },
-  { title: 'The first years sit in cash', text: 'The bridge and the first years are held in a money-market fund: no market, no gilt, just cash waiting for its April.' },
+  { title: 'The first years sit in cash', text: 'The first years are held in a money-market fund: no market, no gilt, just cash waiting for its April.' },
   { title: 'Every later year has its own gilt', text: 'One index-linked gilt per year, chosen so it matures just BEFORE that year\'s April. When it matures the money is sitting in cash; you draw it monthly.' },
   { title: 'Gap years, and nothing left to chance', text: 'Where no gilt matures in a year\'s window, the year before is bought twice and half is held for a year. Nothing rides the market. There is no cone on this page because there is nothing uncertain to draw.' }
 ];

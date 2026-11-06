@@ -44,7 +44,6 @@ function Status({ V }) {
     <section class="plan-section" data-section="status" data-testid={`${T}.status`} data-status={s.id}>
       <p class="figure" data-testid={`${T}.status.line`}>{text}</p>
       {V.next && <p class="note" data-testid={`${T}.next`}>{fill(S.next, { action: V.next.kind === 'bucket' || V.next.key.startsWith('bucket') ? (V.buy.some((b) => b.key === V.next.key) ? W.schedule.buy : W.schedule.sell) : (V.buy.some((b) => b.key === V.next.key) ? W.schedule.buy : W.schedule.sell), label: V.next.label, units: unitsText(V.next.units), amount: amountText(V.next.amount) })}</p>}
-      {V.runUp && <p class="note" data-testid={`${T}.runUp`}>{fill(S.runUp, { ...V.runUp, s: V.runUp.months === '1' ? '' : 's' })}</p>}
       {V.start && V.schedule && !V.schedule.startPassed && <p class="note" data-testid={`${T}.start`}>{fill(S.starts, { months: V.start.months, s: V.start.months === '1' ? '' : 's', when: V.start.when })}</p>}
       <p class="note">{V.ladder ? W.target.ladder + ' ' + (V.isaPolicy === 'hold' ? W.target.isaHold : W.target.isaDraw) : W.target.buckets}</p>
     </section>

@@ -199,7 +199,7 @@ export function PlanScreen(state, dispatch) {
               {step.journey && step.journey.length > 0 && (
                 <div class="plan-journey">
                   <h3>{w.journeyTitle}</h3>
-                  <ul class="plan-lines">{step.journey.map((j, i) => <li key={i} class="plan-line">{j.arrival ? fill(w.journeyArrival, { date: j.on }) : j.stage === 'closed' ? w.journeyClosed + ' — ' + j.on : (PLAN.stageLines[j.stage === 'bridge' ? 'bridge-plan' : j.stage] ? fill(PLAN.stageLines[j.stage === 'bridge' ? 'bridge-plan' : j.stage], { month: '' }).replace(/ from \.$/, '.').replace(/ until \.$/, '.') : j.stage) + ' — ' + j.on}</li>)}</ul>
+                  <ul class="plan-lines">{step.journey.map((j, i) => <li key={i} class="plan-line">{j.arrival ? fill(w.journeyArrival, { date: j.on }) : j.stage === 'closed' ? w.journeyClosed + ' — ' + j.on : (PLAN.stageLines[j.stage === 'bridge' ? 'running' : j.stage] ? fill(PLAN.stageLines[j.stage === 'bridge' ? 'running' : j.stage], { month: '' }).replace(/ from \.$/, '.').replace(/ until \.$/, '.') : j.stage) + ' — ' + j.on}</li>)}</ul>
                 </div>
               )}
             </>

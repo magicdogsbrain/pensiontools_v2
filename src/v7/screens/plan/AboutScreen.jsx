@@ -72,7 +72,7 @@ export function AboutScreen(state, dispatch) {
   const planId = about.id;
   const onChange = (place, id = view.id, month = null) => dispatch(changeAction(id, place, href.plan(view.id, 'about'), month));
   const back = href.plan(view.id, 'plan');
-  const slots = { yearNow: about.yearNow, yearApril: about.yearApril, yearSaved: about.yearSaved || '', yearStop: about.yearStop || '', min: about.minYears, minAge: about.endAgeMin };
+  const slots = { yearNow: about.yearNow, yearSaved: about.yearSaved || '', yearStop: about.yearStop || '', min: about.minYears, minAge: about.endAgeMin };
   // the start-year choices between the tax year work stopped and this one are each named by their year (6.51.0)
   const startWords = { ...ABOUT.fields.startWhen, options: { ...ABOUT.fields.startWhen.options, ...(about.stopThisYear ? { now: ABOUT.fields.startWhen.nowStopped } : {}), ...(about.yearChoices || {}) } };
   const field = (path) => about.fields.find((f) => f.path === path);

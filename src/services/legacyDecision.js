@@ -670,11 +670,6 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
       const isaAllowanceLeft = holdIsa ? 0 : Math.max(0, GIA_DEFAULTS.ISA_ALLOWANCE - isaSubscribedSoFar);
       // Plan year 0 is the plan's saved first tax year — the same anchor as yearNum (6.4.0).
       const planYear = yearNumSigned;
-      if (bridgeYear) {
-        // Only before a start chosen for later (research/plan-start.md §2 D): someone who stopped work in an earlier tax year
-        // and has lived on the plan since has year 0 in that year (6.51.0), so their months are plan months.
-        alerts.push({ type: 'bridge-year', message: 'Before your plan\'s income starts: year 0 is ' + taxYearLabel(anchorYear) + ' (' + (-yearNumSigned) + ' tax year' + (yearNumSigned === -1 ? '' : 's') + ' from now). Until then the plan\'s pot tracks, rungs and yearly steps are not applied: this month is recorded, not compared with the plan.' });
-      }
       for (const w of Array.isArray(settings.windfalls) ? settings.windfalls : []) {
         if (!(w.amount > 0) || w.year !== planYear) continue;
         const amount = Math.round(w.indexation === 'level' ? w.amount : w.amount * cumInf);   // today's money in the plan → this year's £

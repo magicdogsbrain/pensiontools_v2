@@ -138,7 +138,8 @@ describe('each stage\'s home', () => {
     const { root } = draw(load('home-moving'));
     expect(one(root, `${T}.headline`).textContent).toMatch(/^Moving\./);
     const items = [...root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)].map((li) => li.getAttribute('data-todo'));
-    expect(items.slice(0, 2)).toEqual(['month.record', 'move.next']);
+    // 7.3.3: 03 is stored with its start later than it should be, so "When did you stop work?" comes first
+    expect(items.slice(0, 3)).toEqual(['start.ask', 'month.record', 'move.next']);
     expect(one(root, `${T}.heldMix`)).toBe(null);
     expect(one(root, `${T}.todo.move.next`).getAttribute('href')).toBe('#/plan/SamLadder03/move');
     expect(one(root, `${T}.strip`).querySelector('[aria-current="step"]').getAttribute('data-stage')).toBe('moving');
@@ -261,9 +262,10 @@ describe('each stage\'s home', () => {
     const rail = root.querySelector('[data-region="rail"]');
     expect(one(rail, 'rail.home').getAttribute('href')).toBe('#/plan/SamLadder03');
     // retaken on purpose (7.3.1): before its first month the month to record is first, on the rail and the home alike
-    expect(one(rail, 'rail.next').textContent).toMatch(/^Next: record [A-Z][a-z]+ \d{4}\./);
+    // 7.3.3: the to-do of a plan stored with its start later than it should be comes first, on the rail and the home alike
+    expect(one(rail, 'rail.next').textContent).toMatch(/^Your plan is set to start in April 2027\. Next: say when you stopped work\./);
     const { root: home } = draw(stored);
-    expect(home.querySelector(`[data-testid="${T}.todo"] .home-item`).getAttribute('data-todo')).toBe('month.record');
+    expect(home.querySelector(`[data-testid="${T}.todo"] .home-item`).getAttribute('data-todo')).toBe('start.ask');
     expect(rail.querySelector('[data-testid^="rail.ask."]')).toBe(null);
     // a locked plan's steps not done carry no "Not done yet" mark
     expect(rail.textContent).not.toContain(PLAN.page.marks.open);

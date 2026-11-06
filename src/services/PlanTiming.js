@@ -427,15 +427,16 @@ export function describeTiming(t, settings, now = new Date()) {
     const of = +s.duration > 0 ? ' of ' + Math.round(+s.duration) : '';
     parts.push('Plan started 6 April ' + t.firstTaxYear + ' (tax year ' + taxYearLabel(t.firstTaxYear) + '); today is plan year ' + yearNow + of + '.');
   } else if (stop && hasStopped(stop, now)) {
-    // Stopped, with the plan's income starting in a later tax year by choice (research/plan-start.md §2 D).
-    parts.push('You stopped work in ' + monthName(stop) + '; the plan\'s income starts 6 April ' + t.firstTaxYear + ' (tax year ' + taxYearLabel(t.firstTaxYear) + '), ' + when + '. Until then you live on money set aside or other income: those months are recorded, not compared with the plan.');
+    // Stopped, with a start saved in a later tax year (a plan stored before 6.51.0 took the next April): the facts only —
+    // nobody retired has months before their plan, and a locked plan stored that way is asked to move its start.
+    parts.push('You stopped work in ' + monthName(stop) + '. Plan starts 6 April ' + t.firstTaxYear + ' (tax year ' + taxYearLabel(t.firstTaxYear) + '), ' + when + '.');
   } else parts.push('Plan starts 6 April ' + t.firstTaxYear + ' (tax year ' + taxYearLabel(t.firstTaxYear) + '), ' + when + '.');
   parts.push('Income steps ' + (started ? 'started' : 'start') + ' at age ' + t.shapeAgeNow + '.');
   const access = stop ? pensionAccessWords(t, s, now) : '';
   if (access) parts.push(access);
   if (s.spStartDate) {
     const sp = parseStatePensionDate(s.spStartDate);
-    if (sp) { const y = taxYearStartOf(sp) - t.firstTaxYear; parts.push('State Pension from ' + taxYearLabel(taxYearStartOf(sp)) + (y >= 0 ? ' (plan year ' + y + ')' : started ? ' (already paid when the plan started)' : ' (before the plan starts)') + '.'); }
+    if (sp) { const y = taxYearStartOf(sp) - t.firstTaxYear; parts.push('State Pension from ' + taxYearLabel(taxYearStartOf(sp)) + (y >= 0 ? ' (plan year ' + y + ')' : started ? ' (already paid when the plan started)' : t.mode === 'future' ? ' (before you stop work)' : ' (already being paid when the plan starts)') + '.'); }
   }
   if (+s.duration > 0) parts.push('Plan runs to age ' + (t.shapeAgeNow + (+s.duration) - 1) + '.');
   return parts.join(' ');
@@ -453,7 +454,7 @@ function pensionAccessWords(t, s, now) {
   const minAge = before != null && before >= 55 ? 55 : 57;
   if (t.shapeAgeNow >= minAge) return '';
   const Y = t.firstTaxYear + (minAge - t.shapeAgeNow);
-  return 'Your pension can be drawn from age ' + minAge + ': if you live on savings or other income until then, choose ' + taxYearLabel(Y) + ', the tax year you reach it, as the year the plan\'s income starts.';
+  return 'Your pension can be drawn from age ' + minAge + ' (tax year ' + taxYearLabel(Y) + '). Until then the plan should pay from your ISA, cash and other savings. The figures do not yet hold your pension back until then.';
 }
 
 /**
@@ -463,7 +464,7 @@ function pensionAccessWords(t, s, now) {
  *
  *  - Locked plans are never stale: their start year is the plan of record (null).
  *  - Nor is a plan with months already recorded in the Decision tool (an unlocked plan keeps its records): it
- *    really is running, and moving its year 0 would turn its recorded months into run-up months.
+ *    really is running, and moving its year 0 later would leave its recorded months outside the plan.
  *  - Already retired (or no age recorded): stale when the saved year is before the current tax year.
  *  - Retiring later at an age: the year is derived from that age, so the plan is stale once the tax year in
  *    which the age is reached has passed.
@@ -499,21 +500,24 @@ export function staleDraftMessage(sd) {
 }
 
 /**
- * The start-year drop-down's options: this tax year and next 6 April, plus — so the control is never blank —
- * a saved (or currently chosen) year that is neither, labelled "2027/28 (saved)". For someone who has said when they
- * stopped work (6.51.0): the tax year they stopped and every year from it to next April, the stop's year named
- * ("2023/24 — the year you stopped work"); "(saved)" only for a year outside that range.
+ * The start-year drop-down's options: this tax year, plus — so the control is never blank — a saved (or currently chosen)
+ * year that is not offered, labelled "2027/28 (saved)". For someone who has said when they stopped work (6.51.0): the tax
+ * year they stopped and every year from it to this one, the stop's year named ("2023/24 — the year you stopped work").
+ * A later year is never offered (7.3.3): a retired person's plan starts in the tax year they stopped or the one they pick
+ * it up from — nobody retired has months before their plan. The timing's own range still reaches next April (its last
+ * year), so that year is left out here; one saved before is shown "(saved)".
  * @returns {{ year: number, label: string, saved: boolean }[]} in year order
  */
 export function startYearChoices(timing, savedYear = null) {
-  const opts = (timing && timing.startOptions) || [];
+  const all = (timing && timing.startOptions) || [];
+  const opts = all.slice(0, -1);   // the range's last year is next April: never offered
   const extra = [...new Set([+savedYear, +(timing && timing.firstTaxYear)].filter((Y) => Y > 0 && !opts.includes(Y)))];
   const n = opts.length;
   const stopYear = timing && timing.mode === 'retired' && timing.stoppedWork ? taxYearOfMonth(timing.stoppedWork) : null;
   const labelOf = (Y, i) => {
-    const when = i === n - 1 ? 'next 6 April' : i === n - 2 ? 'this tax year' : null;
+    const when = i === n - 1 ? 'this tax year' : null;
     if (Y === stopYear) return taxYearLabel(Y) + ' — the year you stopped work' + (when ? ' (' + when + ')' : '');
-    return when ? when + ' — ' + taxYearLabel(Y) : taxYearLabel(Y);
+    return when ? when + ' — pick up from here — ' + taxYearLabel(Y) : taxYearLabel(Y);
   };
   const out = opts.map((Y, i) => ({ year: Y, label: labelOf(Y, i), saved: false }));
   if (timing && timing.mode !== 'future') for (const Y of extra) out.push({ year: Y, label: taxYearLabel(Y) + ' (saved)', saved: true });

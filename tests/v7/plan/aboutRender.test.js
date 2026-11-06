@@ -147,7 +147,7 @@ describe('the saver 10: what the page says, and what typing does', () => {
     expect(both.root.querySelector('[data-testid="plan.about.stopAge"]').getAttribute('aria-invalid')).toBe(null);   // no age today: the stop age cannot be judged yet
     const stopped = draw(aboutState(entries, id, { typed: { stopped: 'yes' } }));
     expect(stopped.root.querySelector('[data-testid="plan.about.startWhen.now"]')).not.toBe(null);
-    expect(stopped.root.querySelector('label[for="plan.about.startWhen.april"]').textContent).toBe('Next April, 2027/28');
+    expect(stopped.root.querySelector('[data-testid="plan.about.startWhen.april"]')).toBe(null);   // 7.3.3: never next April
     expect(stopped.root.querySelector('[data-testid="plan.about.startWhen.saved"]')).toBe(null);
     expect(stopped.root.querySelector('label[for="plan.about.startWhen.now"]').textContent).toBe('This tax year, 2026/27');
     // work stopped this tax year (6.51.0, a review): this tax year IS the year work stopped, said as the planner says it
@@ -159,7 +159,7 @@ describe('the saver 10: what the page says, and what typing does', () => {
     const longAgo = aboutState(entries, id, { typed: { age: '63', stopped: 'yes', stopMonth: 'June 2006' } });
     const far = draw(longAgo);
     const radios = [...far.root.querySelectorAll('[data-field="startWhen"] input[type="radio"]')].map((r) => r.value);
-    expect(radios).toEqual(['stop', 'other', 'now', 'april']);
+    expect(radios).toEqual(['stop', 'other', 'now']);
     expect(far.root.querySelector('label[for="plan.about.startWhen.other"]').textContent).toBe('Another tax year');
     const list = far.root.querySelector('[data-testid="plan.about.startWhen.otherYear"]');
     const years = [...list.querySelectorAll('option')].filter((o) => o.value).map((o) => o.textContent);
@@ -257,7 +257,8 @@ describe('the locked ladder, a plan shown as saved, the household pair, a plan n
     const said = entries.map((e) => (e.plan.id === id ? { ...e, plan: { ...e.plan, stressTool: { ...e.plan.stressTool, settings: { ...e.plan.stressTool.settings, stoppedWork: '2023-10' } } } } : e));
     const closed = draw(aboutState(said, id));
     const offer = closed.root.querySelector('[data-testid="plan.about.moveStart"]');
-    expect(offer.textContent).toContain('The plan’s start can move to 2023/24');
+    expect(offer.textContent).toContain('and your plan is set to start in 2027/28. It can start from 2023/24, the tax year you stopped');   // 7.3.3
+    expect(offer.textContent).not.toMatch(/before (your|the) plan/);
     expect(offer.textContent).toContain('Before anything is written, this page says exactly what changes');
     expect(closed.root.querySelector('[data-testid="plan.about.moveConfirm"]')).toBe(null);
     const open = closed.root.querySelector('[data-testid="plan.about.moveStart.open"]');

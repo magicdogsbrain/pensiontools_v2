@@ -39,8 +39,8 @@ describe('the pure rules', () => {
     expect(dbStartWords({ year: 29, startAge: 63, duration: 30, amount: 1 }).level).toBeNull();
     const b = dbStartWords({ year: -2, startAge: 63, firstTaxYear: 2029, duration: 30, amount: 5200 });
     expect(b.level).toBe('warn');
-    expect(b.text).toContain('before the plan starts at age 63');
-    expect(b.text).toContain('counted as already being paid from the plan\'s first year (tax year 2029/30)');
+    expect(b.text).toContain('younger than the plan\'s start age 63');   // 7.3.3: never "before the plan starts"
+    expect(b.text).toContain('counted as already paid from the plan\'s first year (tax year 2029/30)');
   });
   it('the engine agrees: a year past the plan\'s length never pays', () => {
     const { otherIncomeByYear } = lumpyByYear({}, { dbAmount: 5200, dbStartYear: 65, dbIndexation: 'cpi' }, 30);

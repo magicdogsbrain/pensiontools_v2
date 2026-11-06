@@ -227,7 +227,10 @@ export function cardsOf(reading, W) {
     const base = { ...defaults, ...(reading.stash[id] || {}), ...(id && FAMILY.includes(id) ? reading.cuts : {}) };
     const typed = typedAll[id] || {};
     const c = checkDials(id, typed, base);
-    const dials = (WAY_DIALS[id] || []).filter((d) => !(d.key === 'bridgeCash' && reading.started)).map((d) => ({ key: d.key, type: d.type, options: d.type === 'choice' ? d.options : null, min: d.min == null ? null : d.min, max: d.max == null ? null : d.max, step: d.step || null, shown: c.shown[d.key], error: c.errors[d.key] || null, cut: !!d.cut }));
+    // the ladder's extra cash in its money-market fund is shown only on a plan that already holds some (an older plan's
+    // setting, read by the engines until the run's pots pass it); a new plan has nothing to set there
+    const extraCash = (d) => d.key === 'bridgeCash' && (reading.started || !(Number(base.bridgeCash) > 0 || 'bridgeCash' in typed));
+    const dials = (WAY_DIALS[id] || []).filter((d) => !extraCash(d)).map((d) => ({ key: d.key, type: d.type, options: d.type === 'choice' ? d.options : null, min: d.min == null ? null : d.min, max: d.max == null ? null : d.max, step: d.step || null, shown: c.shown[d.key], error: c.errors[d.key] || null, cut: !!d.cut }));
     // the values the comparison ran this way with: the card's starting values differ when the way has a stash of its own
     const ranWith = ran ? ran.dials.ranWith : null;
     const differs = ran && c.ok ? dials.some((d) => text(c.values[d.key]) !== text(ranWith[d.key])) : false;

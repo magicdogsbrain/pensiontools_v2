@@ -82,11 +82,15 @@ export const BANNED = [
     say: 'an age ("at 61") or a tax year ("2029/30")' },
   { id: 'year-n',          re: /\byear\s?\d{1,2}\b(?!\d)/i,                 scope: 'all',
     say: 'an age ("at 61") or a tax year ("2029/30")' },
+  // 7.3.3: no allowance — the one strategy that had "bridge" in its name is shown as "Gilts to State Pension, then shares"
   { id: 'bridge',          re: /\bbridg(e|es|ed|ing)\b/i,                   scope: 'all',
-    say: 'the years before your State Pension starts / before your ladder pays',
-    allow: [/Bridge & engine/] },                       // a strategy's name — see open question 6
+    say: 'the years before your State Pension starts / before your ladder pays' },
   { id: 'run-up',          re: /\brun[\s-]?up\b/i,                          scope: 'all',
     say: 'give the dates' },
+  // 7.3.3: nobody retired has months before their plan (a plan stored that way shows the move of its start instead), and a
+  // saver's months are "before you stop work"
+  { id: 'before-plan',     re: /\bbefore (your|the) plan(['’]s income)? starts?\b/i, scope: 'all',
+    say: 'the month and tax year; for a saver, "before you stop work"' },
   { id: 'countdown',       re: /\bcount[\s-]?down\b/i,                      scope: 'all',
     say: 'give the date' },
   { id: 'time-to-wait',    re: /\b\d+\s+(more\s+)?(years?|months?|weeks?|days?)\s+(to go|to wait|until|till|away|from now|before (your|the) (plan|ladder))\b/i,

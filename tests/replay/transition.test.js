@@ -102,12 +102,9 @@ describe('the words on the page', () => {
 
   it('R6.12.5-b — someone already retired is told so; nothing reads as a retirement date', () => {
     const html = page(ladderDoc, held, { stage: bridge });
-    // 6.51.0 (review): "You are already retired … from your SIPP cash" became the words every other page uses for the months
-    // before a start chosen for later — work has stopped, the income starts then, the months until it from money set aside
-    expect(html).toContain('You have stopped work.');
-    expect(html).toContain('Until then the months are paid from the money set aside');
-    expect(html).not.toMatch(/SIPP cash|run[\s-]?up/i);
-    expect(html).toContain('Nothing here is a retirement date');
+    // 7.3.3: no words at all for months before the plan (nobody retired has them): the plan's to-do, the move of its start,
+    // is said by the next-step banner — and still nothing reads as a retirement date
+    expect(html).not.toMatch(/SIPP cash|run[\s-]?up|set aside|before the plan|retirement date/i);
     expect(html).not.toMatch(/plan starts 2027\/28/);              // R6.13.3: "the ladder's first tax year is", not "plan starts"
   });
 

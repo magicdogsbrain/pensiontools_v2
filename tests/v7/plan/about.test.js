@@ -54,7 +54,8 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
     expect(b.timing.startMonth).toBe('2030-01');
     expect(boxesOf(entryOf(C['10-couple-b']).plan, { today: TODAY })).toEqual({ age: '58', stopped: 'age', stopAge: '62', endAge: '93' });
     const d = savedAbout(entryOf(C['02-pnv-draft']).plan, { today: TODAY });
-    expect(d.values).toEqual({ age: 61, stopped: 'yes', stopAge: null, stopMonth: null, startWhen: 'april', endAge: 95, savedYear: null });
+    // 7.3.3: next April is no longer a choice, so a draft saved for it (02) reads its year as saved; nothing is written by reading
+    expect(d.values).toEqual({ age: 61, stopped: 'yes', stopAge: null, stopMonth: null, startWhen: 'saved', endAge: 95, savedYear: 2027 });
     expect(d.ageSource).toEqual({ kind: 'saved', at: '14 August 2026' });
     const l = savedAbout(entryOf(C['03-gilt-ladder-runup']).plan, { today: TODAY });
     expect(l.locked).toBe(true);
@@ -101,12 +102,13 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
       'stressTool.settings.duration': 32, 'decisionTool.settings.firstTaxYear': 2029, 'budgetTool.settings.retirementAge': 62,
       'accumulationTool.settings.retirementAge': 62
     });
-    // stopped, starting next April: the flag, no stop age, the chosen year, the budget's copy
-    const q = aboutPatch(plan, { stopped: 'yes', startWhen: 'april', endAge: '90' }, { today: TODAY });
+    // stopped, starting this tax year: the flag, no stop age, the chosen year, the budget's copy (7.3.3: next April is not offered)
+    expect(aboutPatch(plan, { stopped: 'yes', startWhen: 'april', endAge: '90' }, { today: TODAY }).errors).toEqual({ startWhen: 'notAnOption' });
+    const q = aboutPatch(plan, { stopped: 'yes', startWhen: 'now', endAge: '90' }, { today: TODAY });
     expect(q.patch).toEqual({
-      'stressTool.settings.retired': true, 'stressTool.settings.retireAge': null, 'stressTool.settings.firstTaxYear': 2027,
-      'stressTool.settings.shapeAgeNow': 60, 'stressTool.settings.duration': 31, 'decisionTool.settings.firstTaxYear': 2027,
-      'budgetTool.settings.retired': true, 'budgetTool.settings.retirementAge': 60
+      'stressTool.settings.retired': true, 'stressTool.settings.retireAge': null, 'stressTool.settings.firstTaxYear': 2026,
+      'stressTool.settings.shapeAgeNow': 59, 'decisionTool.settings.firstTaxYear': 2026,
+      'budgetTool.settings.retired': true, 'budgetTool.settings.retirementAge': 59
     });
     // a month: the age reached in it is what the plan holds. Re-written in 6.51.0: the month itself is now kept
     // (stoppedWork), so it is said back as typed and the plan's year 0 is its tax year (research/plan-start.md §2 A: "the
@@ -190,7 +192,7 @@ function validTyped(plan) {
     // 6.51.0: someone who has stopped may say the month, however long ago (up to this month), and choose any year offered
     pastMonth: fc.option(fc.tuple(fc.integer({ min: 2014, max: 2026 }), fc.integer({ min: 1, max: 12 })).map(([y, m]) => y + '-' + String(m).padStart(2, '0')).filter((x) => x <= TODAY.slice(0, 7)), { nil: null }),
     pick: fc.nat(),
-    startWhen: fc.constantFrom('now', 'april'),
+    startWhen: fc.constantFrom('now'),   // 7.3.3: next April is no longer offered
     endExtra: fc.integer({ min: 0, max: 30 }),
     sex: fc.constantFrom('m', 'f'),
     chance: fc.constantFrom('10', '25', '50')
@@ -217,7 +219,7 @@ describe('the month work stopped (6.51.0, research/plan-start.md §2 C/D, §3): 
   it('stopped in October 2023: the years from then are offered, the stop\'s year chosen, and the plan keeps its end age', () => {
     const c = checkAbout(plan(), { stopMonth: 'October 2023' }, { today: TODAY });
     expect(c.errors).toEqual({});
-    expect(c.offered).toEqual(['stop', 'y2024', 'y2025', 'now', 'april']);
+    expect(c.offered).toEqual(['stop', 'y2024', 'y2025', 'now', 'saved']);   // 7.3.3: never next April; 02's own saved year kept
     expect(c.values.startWhen).toBe('stop');
     const p = aboutPatch(plan(), { stopMonth: 'October 2023' }, { today: TODAY });
     expect(p.patch['stressTool.settings.stoppedWork']).toBe('2023-10');
@@ -240,15 +242,17 @@ describe('the month work stopped (6.51.0, research/plan-start.md §2 C/D, §3): 
     expect(words[2]).toBe('Your plan’s income started in 2023/24. It is worked out from where it stands today: tax year 2026/27, at ' + (s.timing.shapeAgeNow + 3) + ', for the years that are left.');
     for (const w of words) for (const hit of bannedHits(w, ['all', 'record', 'retired'])) expect(hit).toBe('');
   });
-  it('a later year may be chosen (the months until then are lived on other money); a stop this tax year offers this year first', () => {
+  it('a year between the stop\'s and this one may be chosen, never a later one (7.3.3); a stop this tax year offers this year first', () => {
     const p = aboutPatch(plan(), { stopMonth: '2023-10', startWhen: 'y2025' }, { today: TODAY });
     expect(p.patch['stressTool.settings.firstTaxYear']).toBe(2025);
-    const later = aboutPatch(plan(), { stopMonth: '2026-08', startWhen: 'april' }, { today: TODAY });
-    expect(later.patch['stressTool.settings.stoppedWork']).toBe('2026-08');
-    expect(later.patch['stressTool.settings.firstTaxYear']).toBeUndefined();   // next April was already its year 0: unchanged, not written
-    const v = aboutOf([entryOf(applyPatch(plan(), later.patch))], plan().id, { today: TODAY });
-    expect(v.derived.map((d) => d.id)).toContain('startsLater');
-    expect(checkAbout(plan(), { stopMonth: '2026-08' }, { today: TODAY })).toMatchObject({ offered: ['now', 'april'], values: { startWhen: 'now' } });
+    expect(aboutPatch(plan(), { stopMonth: '2026-08', startWhen: 'april' }, { today: TODAY }).errors).toEqual({ startWhen: 'notAnOption' });
+    // 02's own saved year stays on offer as saved (a choice made before), and keeping it writes no new year
+    const kept = aboutPatch(plan(), { stopMonth: '2026-08', startWhen: 'saved' }, { today: TODAY });
+    expect(kept.patch['stressTool.settings.stoppedWork']).toBe('2026-08');
+    expect(kept.patch['stressTool.settings.firstTaxYear']).toBeUndefined();
+    const v = aboutOf([entryOf(applyPatch(plan(), kept.patch))], plan().id, { today: TODAY });
+    expect(v.derived.map((d) => d.id)).not.toContain('startsLater');   // no words for months before the plan
+    expect(checkAbout(plan(), { stopMonth: '2026-08' }, { today: TODAY })).toMatchObject({ offered: ['now', 'saved'], values: { startWhen: 'now' } });
   });
   it('stopped at 17, long ago: the end age offered is never one the box refuses (the property test below found one)', () => {
     const c = checkAbout(plan(), { age: '30', stopped: 'yes', stopMonth: '2014-01', startWhen: 'stop' }, { today: TODAY });
@@ -332,7 +336,7 @@ describe('E2 — the stale-answer rule', () => {
     const stale = (p) => answerAge(p, effectiveStressSettings(p, { now: noon(TODAY) }));
     expect(stale(changed({ age: '59' }))).toMatchObject({ workedOutOn: '20 September 2026', changedOn: '2 October 2026', lasted: 9, diffs: ['age'] });
     expect(stale(changed({ stopAge: '63' })).diffs).toEqual(['stopAge', 'years']);   // the end age is kept, so the years change with the stop
-    expect(stale(changed({ stopped: 'yes', startWhen: 'april' })).diffs).toEqual(['stopped', 'years']);
+    expect(stale(changed({ stopped: 'yes', startWhen: 'now' })).diffs).toEqual(['stopped', 'years']);
     expect(stale(changed({ endAge: '95' })).diffs).toEqual(['years']);
     // a change made in the planner is caught the same way (the inputs are the record): no date of the change when none is newer
     const planner = { ...plan, stressTool: { ...plan.stressTool, settings: { ...plan.stressTool.settings, duration: 40 } } };

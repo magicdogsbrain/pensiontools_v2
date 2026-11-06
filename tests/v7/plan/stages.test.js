@@ -61,9 +61,10 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
   }
   it('the locked ladder moves from bridge to running on 6 April 2027, and never shows a countdown', () => {
     const l = (today) => lineText(stageLine(planStage(entryOf(C['03-gilt-ladder-runup'], today).plan, { now: noon(today) }), entryOf(C['03-gilt-ladder-runup'], today).plan));
-    // 03 stays a start chosen for later (research/plan-start.md §7: "03 stays bridge → running as a D plan")
-    expect(l('2026-10-02')).toBe('Retired. Your ladder pays from April 2027.');
-    expect(l('2027-04-05')).toBe('Retired. Your ladder pays from April 2027.');
+    // 03 is placed bridge until 6 April 2027 (research/plan-start.md §7), but from 7.3.3 that placing has no words of its own
+    // for the months before its start: it reads as a plan lived on, and says when the ladder's first gilt pays
+    expect(l('2026-10-02')).toBe('Retired. Living on the plan; your ladder’s first gilt pays from April 2029.');
+    expect(l('2027-04-05')).toBe('Retired. Living on the plan; your ladder’s first gilt pays from April 2029.');
     // Re-written in 6.51.0 (research/plan-start.md §2 E, §3 "Words"): running, its two cash years pay until the ladder's first
     // gilt (2029/30, from its document). The line used to stop at "Living on the plan."; it now says when the first gilt pays
     // — from the ladder's own years, never the plan's start.
@@ -153,8 +154,10 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
   }
   it('the next sentence: the 2.4 table on the corpus', () => {
     const at = (name, today, step = null) => { const es = entriesAt(today); const id = entryOf(C[name], today).plan.id; return planPage(es, id, step, { today }); };
-    expect(at('03-gilt-ladder-runup', '2026-10-02').next.id).toBe('P.month');          // October 2026 is not recorded
-    expect(at('03-gilt-ladder-runup', '2027-04-06').next.id).toBe('P.taxyear');        // 2027/28 is not set up
+    // 7.3.3: 03 is stored with its start later than it should be and says no month work stopped: that is asked first
+    expect(at('03-gilt-ladder-runup', '2026-10-02').next.id).toBe('P.startAsk');
+    expect(at('03-gilt-ladder-runup', '2026-10-02').due.map((d) => d.pid).slice(1, 2)).toEqual(['P.month']);   // October 2026 is not recorded
+    expect(at('03-gilt-ladder-runup', '2027-04-06').due.map((d) => d.pid).slice(0, 2)).toEqual(['P.startAsk', 'P.taxyear']);   // 2027/28 is not set up
     expect(at('05-saver-committed', '2026-10-02').next.id).toBe('P.pot');             // October's pot is not recorded
     expect(at('02-pnv-draft', '2026-10-02').next.id).toBe('P.draft');
     // 7.3.0: an unlocked saver who has never checked in — the first check-in is the design's rank 10, before the info line
@@ -168,7 +171,12 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
     for (const s of pg.steps) for (const b of s.buttons) expect(b.href, `${s.id}.${b.id}`).toBeTruthy();
   });
   it('the month step: recorded when the latest record is this month or later; P.idle then', () => {
-    const plan = entryOf(C['03-gilt-ladder-runup']).plan;
+    // 03 with its start already this tax year and no month marked as before it (7.3.3: as stored it shows the move of its
+    // start first; this test is about the month and what follows it)
+    const raw = JSON.parse(JSON.stringify(C['03-gilt-ladder-runup']));
+    raw.stressTool.settings.firstTaxYear = 2026; raw.decisionTool.settings.firstTaxYear = 2026;
+    for (const h of raw.decisionTool.history) { delete h.bridgeYear; delete h.planStartYear; }
+    const plan = entryOf(raw).plan;
     const recorded = { ...plan, decisionTool: { ...plan.decisionTool, history: [...plan.decisionTool.history, { date: '2026-10', monthlyNet: 3395.33, monthlyTax: 938, taxYear: '26/27' }] } };
     const pg = planPage([{ plan: recorded, newer: false, failed: false }], plan.id, 'month', { today: TODAY });
     expect(pg.steps.find((s) => s.id === 'month').result.text).toBe('October 2026 recorded: £3,395 after tax');
@@ -204,7 +212,7 @@ describe('the linked household pair (your-plan.md 1.5, 6)', () => {
     const names = rows.groups[0].rows.map((r) => r.name).sort();
     expect(names).toEqual(['Ladder plan', 'Saving plan']);
     const l = rows.groups[0].rows.find((r) => r.name === 'Ladder plan');
-    expect(lineText(l.line)).toBe('Retired. Your ladder pays from April 2027.');
+    expect(lineText(l.line)).toBe('Retired. Living on the plan; your ladder’s first gilt pays from April 2029.');   // 7.3.3
     expect(l.lockedOn).toBe('1 July 2026');
     const s = rows.groups[0].rows.find((r) => r.name === 'Saving plan');
     expect(lineText(s.line)).toBe('Still saving.');
@@ -227,8 +235,8 @@ describe('the linked household pair (your-plan.md 1.5, 6)', () => {
     expect(pg.saver).toBe(true);
     expect(pg.steps.find((s) => s.id === 'saving').result.text).toBe('£600 a month from you, £450 from your employer');
     const h = pg.steps.find((s) => s.id === 'household');
-    expect(h.theirLine.id).toBe('bridge-ladder');
-    expect(fill(PLAN.theirLines[h.theirLine.id], h.theirLine.slots)).toBe('retired. Their ladder pays from April 2027.');
+    expect(h.theirLine.id).toBe('running-ladder');   // 7.3.3: no words of its own for the months before its start
+    expect(fill(PLAN.theirLines[h.theirLine.id], h.theirLine.slots)).toBe('retired. Living on their plan; their ladder’s first gilt pays from April 2029.');
     expect(h.buttons.find((b) => b.id === 'checkTogether').href).toBe('#/plan/HouseSaver02/household');   // this plan's own household step, inside V7
   });
   it('a partner named but not in the account: "not in this account"; no link and one plan: no household step', () => {

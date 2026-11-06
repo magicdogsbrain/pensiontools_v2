@@ -38,7 +38,7 @@ import { beforeOf, closedAtOf, BEFORE_KINDS } from './PlanClosed.js';
 
 /** The strategy names, as the registry's describe() gives them (equal, name for name: tests/monthDecision.test.js). */
 export const STRATEGY_NAME = Object.freeze({
-  'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Bridge & engine',
+  'pots-and-valves': 'Pots & Valves', 'buckets-in-order': 'Buckets in order', 'ladder-and-ratchet': 'Ladder & Ratchet', 'bridge-and-engine': 'Gilts to State Pension, then shares',
   'floor-and-flex': 'Floor & Flex', 'floor-the-schedule': 'Floor the schedule', 'floor-to-age': 'Floor to an age, then decide',
   'full-il-gilt': 'Full index-linked gilt ladder', 'gilt-rotation': 'Gilt ladder + rotation'
 });

@@ -46,6 +46,9 @@ export const HOME = {
     'plan.agesFromSaving': { title: 'Check your ages', detail: 'Your age today and the age you want to stop work. We took them from your saving figures.' },
     'move.invite':        { title: 'Ready to plan the move?', detail: 'Your plan says you stop work in {stop}. Check the month you stop first.' },
     'lock.first':         { title: 'Lock the plan when it is right', detail: 'Check it lasts, then lock it. Months are recorded once it is locked.' },
+    /** A locked plan stored the old way (its start later than the tax year work stopped): move it, or say the month first. */
+    'start.move':         { title: 'Start it from the tax year you stopped', detail: 'Your plan is set to start in {start}, but you stopped work in {stopped}.' },
+    'start.ask':          { title: 'When did you stop work?', detail: 'Your plan is set to start in {start}.' },
     'month.taxYear':      { title: 'Set up {year}', detail: 'A new tax year: say what the plan pays this year before the first month is recorded.' },
     'month.arrive':       { title: 'Record your first month', detail: 'You stopped work in {stop}. Month by month then compares your pot with the plan’s.' },
     'month.record':       { title: 'Record {monthName}', detail: 'What your platform shows today. It takes a minute.' },

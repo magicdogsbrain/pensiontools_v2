@@ -244,11 +244,10 @@ describe('gilts valued as held to repay: no verdict against their market value',
     expect(w.pot.p50).toBe(1019460 + 30000);
     expect(w.pot.verdict).toBe('gilts-held-to-pay');
     const h = strip(w);
-    // 6.51.0: the months before a start chosen for later are paid from "cash set aside" (no longer "run-up cash": the words
-    // say what pays them, which need not be the pension's cash); the figures are unchanged.
-    expect(h).toContain('against £1,049,460 the plan expects by then (£1,019,460 at the start of the plan + £30,000 of cash set aside for the 7 months still to pay)');
-    expect(h).toMatch(/ISA is held aside/);
-    expect(h).not.toMatch(/below the plan|the band opens|cone opens/);
+    // 7.3.3: the reading's figures are unchanged (above), but the strip of a plan whose year 0 is still ahead gives no pot
+    // verdict: its figures are a later year's, so it says the plan's one thing to do (move the start) and the months taken
+    expect(h).toContain('Your plan is set to start in 2027/28.');
+    expect(h).not.toMatch(/against £|set aside|before the plan|below the plan|the band opens|cone opens/);
     // January: three months (January to March) still to pay — 3/7 of the cash; by April none, the band is year 0's own
     const w2 = whereAmI(doc, { today: at(2027, 1, 20), history: [record('2027-01', 0, 870000, 150000, { sipp: 4333, taxYear: '26/27' })] });
     expect(w2.pot.runUp).toMatchObject({ months: 3, value: Math.round(30000 * 3 / 7) });
@@ -335,10 +334,11 @@ describe('the sentence when the band has not opened', () => {
     expect(w.pot.verdict).toBe('start');
     expect(strip(w)).toContain('Pot £695,000 (recorded April 2026) at the start of the plan, priced on £700,000; the band opens as the year goes on.');
   });
-  it('the run-up of a plan that starts next April: against the figure it starts from', () => {
+  it('a plan whose year 0 is next April: the reading is "start", but the strip gives no verdict — the plan\'s to-do instead (7.3.3)', () => {
     const w = whereAmI(makeDoc({ isa: 0, cones: pvCones, firstTaxYear: 2027 }), { today: at(2026, 10, 20), history: [record('2026-10', 400000, 200000, 95000, { taxYear: '26/27' })] });
     expect(w.pot.verdict).toBe('start');
-    expect(strip(w)).toContain('Pot £695,000 (recorded October 2026) against £700,000 the plan starts from; the band opens once the plan has started.');
+    expect(strip(w)).toContain('Your plan is set to start in 2027/28.');
+    expect(strip(w)).not.toContain('the plan starts from');
   });
 });
 

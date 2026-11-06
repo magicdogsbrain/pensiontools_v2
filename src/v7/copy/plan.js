@@ -191,8 +191,6 @@ export const PLAN = {
     approaching: 'Stopping work within five years.',
     'committed-saving': 'Plan locked. Still working until {month}.',
     'draft-retired': 'Retired. Plan not locked yet.',
-    'bridge-ladder': 'Retired. Your ladder pays from {month}.',
-    'bridge-plan': 'Retired. Your plan pays from {month}.',
     running: 'Retired. Living on the plan.',
     'running-ladder': 'Retired. Living on the plan; your ladder’s first gilt pays from {month}.',
     /** A closed plan (6.56.0): kept to read; the plan that carries it on named when it is here. */
@@ -211,8 +209,6 @@ export const PLAN = {
     approaching: 'stopping work within five years.',
     'committed-saving': 'plan locked. Still working until {month}.',
     'draft-retired': 'retired. Plan not locked yet.',
-    'bridge-ladder': 'retired. Their ladder pays from {month}.',
-    'bridge-plan': 'retired. Their plan pays from {month}.',
     running: 'retired. Living on the plan.',
     'running-ladder': 'retired. Living on their plan; their ladder’s first gilt pays from {month}.',
     closed: 'closed {month}; carried on as ‘{name}’.',
@@ -304,6 +300,8 @@ export const PLAN = {
     'where.compareLessCut': '',
     'where.compareMore': '',
     'where.compareSame': '',
+    /** A plan stored the old way, its start later than it should be: said in place of reading its months against the plan. */
+    'where.startLater': '',
     'where.taken': 'Taken before tax in {year}',
     'where.planned': 'The plan says, for {year}',
     'where.step': 'Step {n} of {of} of your plan',
@@ -384,7 +382,7 @@ export const PLAN = {
   strategies: {
     'pots-and-valves': 'Pots and valves',
     'buckets-in-order': 'Buckets in order',
-    'bridge-and-engine': 'Bridge & engine',
+    'bridge-and-engine': 'Gilts to State Pension, then shares',
     'ladder-and-ratchet': 'Ladder and ratchet',
     'floor-and-flex': 'Floor and flex',
     'floor-the-schedule': 'Floor the schedule',
@@ -397,7 +395,7 @@ export const PLAN = {
     sippTotal: 'Pension pot the plan is built on',
     isaTotal: 'ISA the plan is built on',
     cashYears: 'Years held in cash',
-    bridgeCash: 'Cash set aside for the years before the ladder pays',
+    bridgeCash: 'Extra cash in the money-market fund',
     floorYears: 'Years the floor covers',
     reserveYears: 'Years in the reserve',
     bridgeAge: 'Age the engine takes over',
@@ -490,6 +488,9 @@ export const PLAN = {
     lastsLocked: 'Does it last? (as locked, and today)',
     /** 7.3.0: the buttons of the things due that the plan's home gathers. */
     checkStop: 'Check the month you stop',
+    /** A locked plan stored the old way (its start later than the tax year work stopped): the move, or the month asked first. */
+    moveStart: 'Move the start',
+    sayWhen: 'Say when',
     seeMove: 'See the move',
     updateHold: 'Update what you hold'
   },
@@ -511,6 +512,8 @@ export const PLAN = {
     'P.recheck': 'The plan has changed since its ‘will it last’ answer. Next: check it still lasts.',
     'P.stale': 'This plan was set to start in {savedYear}, which has passed. Next: update it to today, or leave it as it is.',
     'P.draft': 'Next: check it lasts, then lock it when it is right.',
+    'P.startMove': 'Your plan is set to start in {start}, but you stopped work in {stopped}. Next: start it from the tax year you stopped.',
+    'P.startAsk': 'Your plan is set to start in {start}. Next: say when you stopped work.',
     'P.approaching': 'Next: see how the plan draws from {stop}.',
     /** A saver's check-in (research/saving-enough-and-check-in.md 4.2; release step R3): due, behind, on course. */
     'P.checkinDue': 'Next: your {often} check-in (the last was {last}).',

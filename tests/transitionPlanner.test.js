@@ -287,9 +287,9 @@ describe('spare cash, bridge cash and bank cash (6.13.0)', () => {
     const withBridge = (extra) => ({ ...ladderDoc, ...extra, strategy: { ...ladderDoc.strategy, params: extra.params || {}, r: { plan: { ...ladderDoc.strategy.r.plan, cash: 110000 } } } });
     const a = tgt(withBridge({ assumptions: { bridgeCash: 50000 } }));
     expect(a.cash).toMatchObject({ value: 60000, bridgeCash: 50000, spending: false });
-    // 6.51.0: named for what they are, as on every other page (the months before the plan's income starts), never "run-up"
-    expect(a.note).toMatch(/months before the plan's income starts are paid from the same cash|pension cash set aside until the plan's income starts has been spent/);
-    expect(a.note).not.toMatch(/run-up|bridge cash/);
+    // 7.3.3: said as cash — never months "before the plan", "run-up" or "bridge cash"
+    expect(a.note).toMatch(/The same cash pays the next \d+ months?|of extra cash in the money-market fund has been spent/);
+    expect(a.note).not.toMatch(/run-up|bridge cash|before the plan/);
     // from the strategy params when the document has no assumptions block
     expect(tgt(withBridge({ params: { bridgeCash: 50000 } })).cash).toMatchObject({ value: 60000, bridgeCash: 50000 });
     // no bridge anywhere → the whole of plan.cash, as before
@@ -404,7 +404,7 @@ describe('run-up months still to pay are part of the pre-start cash target (6.13
     expect(t.cash.runUp.months).toBe(6);
     expect(t.cash.runUp.value).toBe(20400);
     expect(t.cash.value).toBe(118000 + 20400);
-    expect(t.cash.breakdown[0].label).toContain('Cash set aside until the plan\'s income starts: 6 months');   // 6.51.0: not "Run-up"
+    expect(t.cash.breakdown[0].label).toBe('Cash for the next 6 months × £3,400');   // 7.3.3: never "before the plan" or "run-up"
     const capped = targetHoldings({ ...doc, assumptions: { bridgeCash: 20000 } }, { today: new Date(Date.UTC(2026, 9, 6)) });
     expect(capped.cash.runUp.value).toBe(20000);
     const running = targetHoldings(doc, { today: new Date(Date.UTC(2027, 4, 6)) });

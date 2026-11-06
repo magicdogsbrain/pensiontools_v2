@@ -132,14 +132,6 @@ export function transitionHtml(a) {
     h += '<div class="alert ' + tone + '"><strong>' + prog.held + '% of the target is held</strong>' + (prog.total ? ' · ' + prog.doneCount + ' of ' + prog.total + ' moves ticked off' : ' · nothing to do') + (seq && seq.startPassed ? ' · the ladder has been paying since tax year ' + esc(startLabel) + ' — schedule spread over the next ' + seq.months + ' months' : (startLabel ? ' · the ladder\'s first tax year is ' + esc(startLabel) : '') + (seq ? ' · the buying spread over the next ' + seq.months + ' month' + (seq.months === 1 ? '' : 's') : '')) + '.'
       + (prog.next ? '<br>Next: <strong>' + esc(prog.next.action) + ' ' + esc(prog.next.label) + '</strong>' + (prog.next.units ? ', ' + units(prog.next.units) + ' units' : '') + (prog.next.amount ? ' (' + gbp(prog.next.amount) + ')' : '') + '.' : '') + '</div>';
   }
-  // Stopped work, the plan's income starting later (research/plan-start.md §2 D): say so, or "months to go" reads as "you
-  // have not retired yet". The months until then are paid from the money set aside — the same words as the Timing block,
-  // the strip and the document (6.51.0); any of it held as pension cash is in the cash to hold below.
-  if (stage && stage.key === 'bridge') {
-    const ru = target && target.cash && target.cash.runUp ? target.cash.runUp : null;
-    h += '<p><strong>You have stopped work.</strong> ' + (target && target.kind === 'ladder' ? 'Your plan\'s income, from the gilt ladder, starts in tax year ' : 'Your plan\'s income starts in tax year ') + esc(startLabel || '?')
-      + (stage.monthsToStart > 0 ? ' (' + stage.monthsToStart + ' month' + (stage.monthsToStart === 1 ? '' : 's') + ' away)' : '') + '. Until then the months are paid from the money set aside' + (ru && ru.monthly ? ', about ' + gbp(ru.monthly) + ' a month' : '') + ' (any pension cash set aside is counted below). Nothing here is a retirement date.</p>';
-  }
   if (target && target.cash && Array.isArray(target.cash.breakdown) && target.cash.breakdown.length && !diff.cashInfo) {
     const held = diff.totals ? diff.totals.cashHeld : 0, tgt = target.cash.value || 0;
     h += '<div class="section-title" style="margin-top:10px;">Cash to hold now (in a money-market fund)</div>'

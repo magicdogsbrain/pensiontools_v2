@@ -535,8 +535,8 @@ export function headlineWords(split, fig = null) {
     headline: 'Drawing together saves about ' + about(split.saving.year) + ' a year in tax — about ' + (split.untilC === 0 ? about(split.saving.whole) + ' over the whole plan.' : about(split.saving.until) + ' by the time ' + nm[small] + ' is ' + split.untilAge + '.'),
     why: 'Your pots are very unequal (' + about(split.pots.a) + ' and ' + about(split.pots.b) + '). When each of you draws for your own plan, ' + nm[big] + ' pays 40% on ' + about(u.over) + ' a year while £' + round(u.allowanceUnused).toLocaleString('en-GB') + ' of ' + nm[small] + '’s tax-free allowance and ' + bandWords + ' go unused.',
     cost: fig && fig.cost.together != null && fig.cost.own != null
-      ? 'The cost: ' + nm[small] + '’s pot is spent as the bridge to the State Pension: about ' + about(fig.cost.together) + ' at ' + split.untilAge + ' in a middling case, instead of about ' + about(fig.cost.own) + ' if each of you draws for your own plan.'
-      : 'The cost: ' + nm[small] + '’s pot is spent as the bridge to the State Pension.',
+      ? 'The cost: ' + nm[small] + '’s pot is spent in the years to the State Pension: about ' + about(fig.cost.together) + ' at ' + split.untilAge + ' in a middling case, instead of about ' + about(fig.cost.own) + ' if each of you draws for your own plan.'
+      : 'The cost: ' + nm[small] + '’s pot is spent in the years to the State Pension.',
     closing: fig && fig.betterOff90 != null
       ? 'Paying the tax keeps ' + nm[small] + '’s pot, and your money more separate. Drawing together leaves the household about ' + about(fig.betterOff90) + (fig.betterOff90 >= 0 ? ' better off' : ' worse off') + ' at 90. This is your choice; neither is wrong.'
       : 'Paying the tax keeps ' + nm[small] + '’s pot, and your money more separate. This is your choice; neither is wrong.',

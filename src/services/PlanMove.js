@@ -194,6 +194,40 @@ export function moveBlockedOf(scenario, now) {
   return why ? { stopMonth: m.stop, from: m.from, to: m.to, why } : null;
 }
 
+/**
+ * A locked retired plan stored the old way, read as ONE thing to do (both apps: the planner's next-step banner and the V7
+ * plan home). Until 6.51.0 a retired person's plan started at the next April by default, and the months until then were
+ * named instead of removed; nobody retired has months "before the plan", so such a plan is shown as what it is — a plan
+ * whose start is later than it should be — and the person is asked to move it (the move above, after its own confirm;
+ * never automatic, never on open). Nothing is written by this reading.
+ *
+ *  - `kind: 'move'`: the plan says when work stopped, and that tax year is earlier than the plan's year 0 (moveParts). The
+ *    to-do opens the move; `blocked` says the move cannot keep the plan's figures under the lock (moveBlockedOf), so the
+ *    place it opens explains that instead.
+ *  - `kind: 'ask'`: the plan does not say when work stopped, and its year 0 is later than this tax year, or a recorded month
+ *    still carries the old mark (`bridgeYear`). The to-do asks the month; once said, the move follows.
+ * Null for every other plan: a draft (its own Save moves it), a saver, a closed plan, the plan that carries a closed one on
+ * (its year 0 is a hand-over the old plan pays up to), a plan with no age (it has no tax year to read), and a locked plan
+ * whose year 0 is the stop's tax year, this tax year, or earlier.
+ * @returns {null | { kind: 'move'|'ask', start: number, stopMonth?: string, to?: number, blocked?: boolean }}
+ */
+export function startLaterOf(scenario, now = new Date()) {
+  const ds = settingsOf(scenario, 'decision'), ss = settingsOf(scenario, 'stress');
+  if (!lockedSettings(ds) || ss.retired === false) return null;
+  if (scenario && (scenario.closedAt != null || (beforeOf(scenario) || {}).kind === 'plan')) return null;
+  let t = null; try { t = deriveTiming(ss, now); } catch { t = null; }
+  if (!t || t.mode !== 'retired') return null;
+  const start = moveAnchorOf(ss, ds);
+  if (!(start > 0)) return null;
+  const m = moveParts(scenario, now);
+  if (m) return { kind: 'move', start: m.from, stopMonth: m.stop, to: m.to, blocked: !!blockedMove(m.ss, m.ds, m.from, m.to) };
+  const stop = stoppedWorkOf(ss);
+  if (stop && hasStopped(stop, now)) return null;
+  const hist = scenario && scenario.decisionTool && Array.isArray(scenario.decisionTool.history) ? scenario.decisionTool.history : [];
+  const marked = hist.some((h) => h && h.bridgeYear === true);
+  return start > taxYearStartOf(now) || marked ? { kind: 'ask', start } : null;
+}
+
 /** The years one copy moves back: from its own year 0, or the plan's when it has none saved. */
 function yearsMoved(copy, from, to) {
   const own = num(copy && copy.firstTaxYear);

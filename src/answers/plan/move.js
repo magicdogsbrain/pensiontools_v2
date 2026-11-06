@@ -179,7 +179,6 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   const done = (plan.transition && isObj(plan.transition) && isObj(plan.transition.done)) ? plan.transition.done : {};
   const rungs = T.kind === 'ladder' ? { total: T.lines.length, bought: D.hold.filter((h) => Array.isArray(h.taxYears)).length } : null;
   const status = D.complete ? { id: 'done', slots: {} } : rungs ? { id: 'gilts', slots: { bought: String(rungs.bought), rungs: String(rungs.total), held: String(D.progressPct) } } : { id: 'held', slots: { held: String(D.progressPct), done: String(P.doneCount), moves: String(P.total) } };
-  const runUp = T.cash && T.cash.runUp && T.cash.runUp.months > 0 && !T.running ? { months: String(T.cash.runUp.months), monthly: pounds(T.cash.runUp.monthly), value: pounds(T.cash.runUp.value) } : null;
   // what skipping it costs (§3.3): for a ladder the tax years whose rung is not bought; for a pot plan the one run on the held mix
   const uncovered = T.kind === 'ladder' ? [...new Set(D.buy.filter((b) => b.kind === 'gilt').flatMap((b) => (b.taxYears || []).map((y) => +y)))].sort((a, b) => a - b) : [];
   const held = heldMixSettings(plan, { today });
@@ -199,7 +198,7 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   } : null;
   return {
     ...base, hasDocument: true, kind: T.kind, running: !!T.running, status, complete: !!D.complete, reason: D.reason, progressPct: String(D.progressPct), movesDone: String(P.doneCount), moves: String(P.total), rungs: rungs ? { bought: String(rungs.bought), total: String(rungs.total) } : null,
-    next: P.next ? moveRow(P.next, done) : null, runUp, waiting: s.waiting, yearsToStart: String(s.stage.yearsToStart || 0), startsAround: s.stage.startMonth ? monthWords(s.stage.startMonth) : (s.stage.firstTaxYear ? 'April ' + s.stage.firstTaxYear : ''),
+    next: P.next ? moveRow(P.next, done) : null, waiting: s.waiting, yearsToStart: String(s.stage.yearsToStart || 0), startsAround: s.stage.startMonth ? monthWords(s.stage.startMonth) : (s.stage.firstTaxYear ? 'April ' + s.stage.firstTaxYear : ''),
     own: s.own, held: held ? { pcts: held.pcts, fromPension: held.fromPension } : null, heldRun, planMix: s.planMix || null,
     newMoney: (() => { const p = proportions(s.record.lines); if (!(p.contributions && p.contributions.monthly > 0)) return null; const m = p.contributions.monthly; return { monthly: pounds(m), parts: ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => p.contributions.byBucket[b] > 0.004).map((b) => ({ bucket: b, word: b === 'diversifiers' ? 'gold and trend' : b, amount: pounds(m * p.contributions.byBucket[b]) })) }; })(),
     cost: { uncovered: uncovered.map((y) => taxYearLabel(y)), canRun: !!held && !s.ladder && !readonly },

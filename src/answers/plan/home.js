@@ -21,6 +21,7 @@ import { readDayOf } from '../../services/PlanClosed.js';
 import { isFilledIn } from '../../services/MonthFill.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { ym } from './dates.js';
+import { startLaterOf } from '../../services/PlanMove.js';
 
 /** At most this many to-dos are listed at once; the rest are "and N more" (the design's rule). */
 export const TODO_SHOWN = 3;
@@ -35,7 +36,7 @@ const PARTNER_IDS = ['month.taxYear', 'month.arrive', 'month.record', 'month.gap
  */
 export const WHERE_LINES = 3;
 /** The lines the home shows, in this order: like with like (taken against what the plan said), the pot and its middle line. */
-const WHERE_HEADLINE = ['where.compareLess', 'where.compareLessCut', 'where.compareMore', 'where.compareSame', 'where.pot', 'where.potMid', 'where.ladderMonthly'];
+const WHERE_HEADLINE = ['where.startLater', 'where.compareLess', 'where.compareLessCut', 'where.compareMore', 'where.compareSame', 'where.pot', 'where.potMid', 'where.ladderMonthly'];
 /** The tools a home lists, by stage, in order (each a step of the plan with its one-line state). */
 const TOOLS = {
   saving: ['checkin', 'saving', 'budget', 'hold', 'household'],
@@ -99,13 +100,15 @@ function quietOf(page, life, now) {
  */
 function yearOf(plan, page, now) {
   if (!page.locked || !['bridge', 'running', 'closed'].includes(page.stageKey)) return null;
+  // a plan stored the old way (PlanMove.startLaterOf): this year's figure is a later year's, so no month is set against it
+  let older = false; try { older = !!startLaterOf(plan, now); } catch { older = false; }
   const day = readDayOf(plan, now);
   const ty = taxYearStartOf(day);
   const key = taxYearKey(ty);
   const hist = historyAscending(plan);
   const byMonth = new Map(hist.map((h) => [String(h.date).slice(0, 7), h]));
   let perMonth = null;
-  try { const w = whereAmIFor(plan, { now }); perMonth = w && w.incomeThisYear ? w.incomeThisYear.perMonth : null; } catch { perMonth = null; }
+  try { const w = older ? null : whereAmIFor(plan, { now }); perMonth = w && w.incomeThisYear ? w.incomeThisYear.perMonth : null; } catch { perMonth = null; }
   const cfg = plan.decisionTool && plan.decisionTool.taxYears ? plan.decisionTool.taxYears[key] : null;
   const setUp = !!(cfg && cfg.yearSetupComplete);
   const setUpMonth = setUp ? addMonth(ty + '-04', ((Number(cfg.startMonth) || 4) + 8) % 12) : null;

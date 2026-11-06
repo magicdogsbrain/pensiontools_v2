@@ -109,12 +109,12 @@ describe('status — complete, run-up, rotation', () => {
     expect(diff.complete).toBe(true);
     expect(html).toContain('Complete — the target mix is held.');
   });
-  it('an incomplete ladder shows progress, the moves and the totals; the run-up note survives for a retiree in the bridge', () => {
+  it('an incomplete ladder shows progress, the moves and the totals; a locked retiree whose year 0 is ahead gets no words for months before the plan', () => {
     const rec = { ...emptyRecord, lines: [line({ ticker: 'TR29', units: 36000, value: 39690 }), line({ ticker: 'VWRP', value: 150000 })] };
     const { html, diff } = page(ladderDoc, rec, { stage: { key: 'bridge', startLabel: '2027/28', firstTaxYear: 2027, startMonth: '2027-04' } });
     expect(diff.complete).toBe(false);
     expect(html).toContain('% of the target is held');
-    expect(html).toContain('You have stopped work.');   // 6.51.0: the words every page uses before the plan's income starts
+    expect(html).not.toMatch(/You have stopped work|set aside|before the plan/);   // 7.3.3: the plan's to-do (the next-step banner) says it
     expect(html).toContain('>Buy<');
     expect(html).toContain('>Sell<');
     expect(html).toContain('Totals: buy');

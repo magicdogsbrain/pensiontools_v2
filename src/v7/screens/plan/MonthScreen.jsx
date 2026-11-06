@@ -68,7 +68,7 @@ function SetUp({ V, dispatch, open }) {
   };
   const sug = W.setUp.suggestion;
   const sw = S.words;
-  const suggestion = S.source === 'bridge' ? fill(sug.bridge, { amount: sw.suggestion }) + (S.bridgeCover != null ? fill(sug.bridgeCover, { n: String(S.bridgeCover), m: String(S.remaining) }) : '')
+  const suggestion = S.source === 'bridge' ? fill(sug.firstStep, { amount: sw.suggestion }) + (S.bridgeCover != null ? fill(sug.cashCover, { n: String(S.bridgeCover), m: String(S.remaining) }) : '')
     : S.source === 'budget-schedule' ? fill(sug['budget-schedule'], { amount: sw.suggestion })
       : S.declining ? fill(sug.declining, { pct: String(S.declinePct), amount: sw.suggestion }) : fill(sug.chain, { cpi: String(S.cpiPct), amount: sw.suggestion });
   const tu = S.topUp;

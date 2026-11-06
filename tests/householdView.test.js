@@ -60,7 +60,7 @@ describe('the headline section', () => {
   });
 
   it('the cost to the smaller pot, each pot at 67/75/90, lasts in N of 10, left at 90 middling and bad case, the closing line', () => {
-    expect(t).toContain('The cost: Sam’s pot is spent as the bridge to the State Pension: about ' + about(fig.cost.together) + ' at 67 in a middling case, instead of about ' + about(fig.cost.own) + ' if each of you draws for your own plan.');
+    expect(t).toContain('The cost: Sam’s pot is spent in the years to the State Pension: about ' + about(fig.cost.together) + ' at 67 in a middling case, instead of about ' + about(fig.cost.own) + ' if each of you draws for your own plan.');
     expect(t).toContain('Alex\'s pot at 67 / 75 / 90 (middling)');
     expect(t).toContain('Sam\'s pot at 67 / 75 / 90 (middling)');
     const lastsRow = [...doc(html).querySelectorAll('#hhSplitTable tbody tr')].find((tr) => tr.children[0].textContent.startsWith('The money lasts for the household (9 in 10 is on course)'));

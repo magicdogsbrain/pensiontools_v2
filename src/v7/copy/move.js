@@ -20,7 +20,6 @@ export const MOVE = {
     held: '{held}% of the plan’s mix held; {done} of {moves} moves ticked off.',
     gilts: '{bought} of {rungs} gilts bought; {held}% of the plan’s mix held.',
     next: 'Next: {action} {label}{units}{amount}.',
-    runUp: 'Until your plan pays you draw {monthly} a month from your pension cash, for {months} more month{s}: {value} of the cash to hold now.',
     starts: 'The buying is spread over the next {months} month{s}, to {when}.'
   },
   waiting: {
@@ -54,7 +53,8 @@ export const MOVE = {
     title: 'Cash to hold now',
     lead: 'A money-market fund or cash in the pension:',
     rows: {
-      runUp: 'The months before your plan pays: {months} month{s} at {monthly}',
+      /** Cash an older plan holds for the months to its first tax year (it shows a to-do to move its start). */
+      runUp: 'Cash for the next {months} month{s} at {monthly}',
       cashYear: 'Cash year {year}',
       cashYearLump: 'Cash year {year} ({lump} of it paid by a lump sum expected that year)'
     },

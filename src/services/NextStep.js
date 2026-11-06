@@ -32,7 +32,12 @@ export const NEXT_STEP_WORDS = Object.freeze({
   guideBtn: 'Open the budget walk-through',
   // A closed plan whose successor is not here (deleted since, 6.56.0): kept to read, its months the way on.
   closedAlone: 'This plan is closed: it ran to the end of {closed}. Its months stay here to read.',
-  closedAloneBtn: 'See its months'
+  closedAloneBtn: 'See its months',
+  // A locked plan stored with its start later than it should be (7.3.3): the V7 home's to-do, word for word
+  startMove: 'Your plan is set to start in {start}, but you stopped work in {stopped}. Start it from the tax year you stopped.',
+  startMoveBtn: 'Move the start',
+  startAsk: 'Your plan is set to start in {start}. When did you stop work?',
+  startAskBtn: 'Say when'
 });
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -54,12 +59,25 @@ function stageStep(stage, fromAnswer, successorName = null) {
 }
 
 /**
- * @param {{ stage: object|null, budget: object, stress: object, decision: object, fromAnswer?: boolean, successorName?: string|null }} plan
+ * A locked plan stored with its start later than it should be (PlanMove.startLaterOf; until 6.51.0 a retired person's plan
+ * started at the next April): the one thing to do, the same to-do as the V7 plan home — move the start to the tax year work
+ * stopped, or say when that was first. The button opens the line under the Timing block that asks and moves (lockedStartUi).
+ */
+function startLaterStep(sl) {
+  const start = 'April ' + sl.start;
+  if (sl.kind === 'move') return { html: esc(NEXT_STEP_WORDS.startMove.replace('{start}', start).replace('{stopped}', monthWordsOf(sl.stopMonth))), btn: NEXT_STEP_WORDS.startMoveBtn, action: { kind: 'start-later' } };
+  return { html: esc(NEXT_STEP_WORDS.startAsk.replace('{start}', start)), btn: NEXT_STEP_WORDS.startAskBtn, action: { kind: 'start-later' } };
+}
+
+/**
+ * @param {{ stage: object|null, budget: object, stress: object, decision: object, fromAnswer?: boolean, successorName?: string|null, startLater?: object|null }} plan
  *   `stage` from LifeStage.deriveStage; the Budget, Stress and Decision settings as loaded; whether the plan was made
- *   from a V7 answer; for a closed plan, the name of the plan that carries it on (when the page has it)
+ *   from a V7 answer; for a closed plan, the name of the plan that carries it on (when the page has it); `startLater`, a
+ *   locked plan stored with its start later than it should be (PlanMove.startLaterOf), whose one thing to do is the move
  * @returns {{ html: string, btn: string, action: object }|null}
  */
-export function nextStepFor({ stage, budget, stress, decision, fromAnswer = false, successorName = null }) {
+export function nextStepFor({ stage, budget, stress, decision, fromAnswer = false, successorName = null, startLater = null }) {
+  if (stage && stage.locked && startLater) return startLaterStep(startLater);
   if (stage && (stage.locked || stage.key === 'closed')) return stage.banner ? stageStep(stage, false, successorName) : null;
   const b = budget || {}, s = stress || {}, d = decision || {};
   const budgetDone = (b.lines || []).some((l) => +l.annual > 0);
@@ -94,5 +112,7 @@ export function nextStepAction(action, win) {
   if (a.kind === 'tab') return () => { win.switchToTab(a.tab); if (a.sub) later(() => win.document.querySelector('.sub-tab[data-decisiontab="' + a.sub + '"]')?.click()); };
   // another plan (a closed plan's successor): the planner's own way to open a plan (src/ui/planCloseUi.js openPlanById)
   if (a.kind === 'plan') return () => win.openPlanById(a.planId);
+  // the move of a plan's start: the Stress tester's settings, at the line under the Timing block that asks and moves
+  if (a.kind === 'start-later') return () => { win.switchToTab('stress'); later(() => win.document.querySelector('.sub-tab[data-stresstab="stresssettings"]')?.click()); setTimeout(() => win.document.getElementById('tmLockedStart')?.scrollIntoView({ block: 'center' }), 900); };
   return () => {};
 }

@@ -9,7 +9,7 @@ const plan = () => planFromSettings(settings, createSimulationConfigFromSettings
 
 describe('registry and names carry the two new strategies', () => {
   it('both ids are named, registered and distinct from their parents', () => {
-    expect(STRATEGY_NAMES['bridge-and-engine']).toBe('Bridge & engine');
+    expect(STRATEGY_NAMES['bridge-and-engine']).toBe('Gilts to State Pension, then shares');   // 7.3.3: "bridge" is never said on screen
     expect(STRATEGY_NAMES['buckets-in-order']).toBe('Buckets in order');
     expect(getStrategy('bridge-and-engine').id).toBe('bridge-and-engine');
     expect(getStrategy('buckets-in-order').id).toBe('buckets-in-order');

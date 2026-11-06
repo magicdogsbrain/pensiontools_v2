@@ -59,13 +59,13 @@ export const BucketsInOrder = {
 /** Bridge & engine — years to the bridge age bought (cash, then linkers); the rest rides untouched, then pays by total return. */
 export const BridgeAndEngine = {
   id: 'bridge-and-engine',
-  name: 'Bridge & engine',
+  name: 'Gilts to State Pension, then shares',   // shown as this from 7.3.3 ("bridge" is never a word on screen); the id and `bridgeAge` stay
   promise: 'Every year to your State Pension bought today — cash first, then one linker per year. The rest rides in equities untouched, then pays the rest of your life by ordinary withdrawals.',
-  failure: 'If the engine arrives small at the bridge age, the later years are drawn from a small pot — it can run out, late.',
+  failure: 'If the engine arrives small at the age the gilts run to, the later years are drawn from a small pot — it can run out, late.',
   granularity: 'windows',
   describe() { return { id: this.id, name: this.name, promise: this.promise, failure: this.failure, engineVersion: _EV,
-      components: ['cash years at face', 'one index-linked rung per bridge year (curve-priced)', 'untouched equity engine to the bridge age', 'total-return draws after the bridge (no re-buying, no trigger)'],
-      usesTrigger: false, sensitivity: 'sequence risk is not removed — it is moved to the bridge age' }; },
+      components: ['cash years at face', 'one index-linked rung per year to the State Pension (curve-priced)', 'untouched equity engine to the age the gilts run to', 'total-return draws after the gilts (no re-buying, no trigger)'],
+      usesTrigger: false, sensitivity: 'sequence risk is not removed — it is moved to the age the gilts run to' }; },
   engine: { runWindows: runFlexWindows, floorCost }
 };
 

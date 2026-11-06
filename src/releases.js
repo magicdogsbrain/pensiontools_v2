@@ -37,6 +37,29 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.3.1', date: '2026-11-06', engineVersion: '6.37.0',
+    title: 'A plan you draw from reads Drawing',
+    summary: 'Once you record months from a plan, its home calls it Drawing, even if what you hold is not exactly the plan’s mix. Real holdings almost never match a plan exactly, so a plan that had been drawing for a long time could stay on Moving for good. Any difference is now shown as information, not as a to-do.',
+    changes: [
+      'If what you hold differs from your plan’s mix, “Where you are” says roughly how much of the mix you hold and what is different, with a link to see the move. It is not added to your to-dos. Small differences inside the plan’s own tolerance are not mentioned.',
+      'On a plan you draw from, the move is called “Your plan’s mix” everywhere: on the home, in the list of steps and on its own page. It gives one share held, the same figure everywhere.',
+      'The stage bar no longer marks the move as done while part of what you hold still differs from the mix.'
+    ],
+    corrections: [
+      'A plan with months recorded could read Moving, with its next move as the first to-do, because what it held was close to the plan’s mix but not exact. It now reads Drawing.'
+    ],
+    effects: {
+      stress: [],
+      strategies: [],
+      decision: [],
+      accumulation: [],
+      budget: [],
+      household: []
+    },
+    actions: ['None. Nothing in your plans has changed. A plan that has not recorded its first month still reads Moving, with its next move to do, as before.'],
+    notes: ['Choosing to keep what you hold as it is, line by line, comes in a later release.']
+  },
+  {
     version: '7.3.0', date: '2026-11-06', engineVersion: '6.37.0',
     title: 'Every plan opens on its home: what is due first',
     summary: 'A plan you are carrying out no longer opens on a form or a question. It opens on its home: what is due now, where you are, then everything else folded away. Your plan’s stage is shown in one word, Saving, Moving or Drawing. Opening a plan changes nothing in it.',

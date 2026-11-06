@@ -1,6 +1,6 @@
 {
   "name": "pensiontools",
-  "version": "7.3.0",
+  "version": "7.3.1",
   "description": "Pension drawdown planning and stress testing tool",
   "type": "module",
   "scripts": {

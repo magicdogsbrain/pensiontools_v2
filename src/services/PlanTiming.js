@@ -520,6 +520,8 @@ export function startYearChoices(timing, savedYear = null) {
     return when ? when + ' — pick up from here — ' + taxYearLabel(Y) : taxYearLabel(Y);
   };
   const out = opts.map((Y, i) => ({ year: Y, label: labelOf(Y, i), saved: false }));
-  if (timing && timing.mode !== 'future') for (const Y of extra) out.push({ year: Y, label: taxYearLabel(Y) + ' (saved)', saved: true });
+  // "(saved)" only for a year really saved: a retiree who has saved no year and given no stop month gets the derived year
+  // (next April) as the plan's start for now, and calling that saved would be untrue (7.3.3).
+  if (timing && timing.mode !== 'future') for (const Y of extra) { const isSaved = Y === +savedYear; out.push({ year: Y, label: taxYearLabel(Y) + (isSaved ? ' (saved)' : ''), saved: isSaved }); }
   return out.sort((a, b) => a.year - b.year);
 }

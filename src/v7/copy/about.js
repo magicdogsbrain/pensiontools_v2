@@ -18,7 +18,7 @@ export const ABOUT = {
     stoppedMonth: { label: 'The month you stopped', help: 'If you know it. Like 2023-10, or October 2023. The tax year you stopped in is then your plan’s first year; the plan runs from where it stands today.' },
     // nowStopped: the 'now' choice when work stopped this tax year — the planner names that year the same way (6.51.0)
     // other: the years between the stop's and this one, folded into one choice with a list when there are many (6.51.0)
-    startWhen: { label: 'Your plan’s first tax year', options: { stop: '{yearStop}, the tax year you stopped work', now: 'This tax year, {yearNow}', saved: '{yearSaved}, as saved', other: 'Another tax year' }, nowStopped: 'This tax year, {yearNow}, the tax year you stopped work', otherList: 'The tax year' },
+    startWhen: { label: 'Your plan’s first tax year', options: { stop: '{yearStop}, the tax year you stopped work', now: 'This tax year, {yearNow}', saved: '{yearSaved}, as saved', other: 'Another tax year' }, notSaved: '{yearSaved}', nowStopped: 'This tax year, {yearNow}, the tax year you stopped work', otherList: 'The tax year' },
     endAge:    { label: 'Plan to age', help: 'The age the money has to last to.' },
     sex:       { label: 'For a', options: { m: 'man', f: 'woman' } },
     chance:    { label: 'How cautious', options: { 10: '1 in 10 live beyond it (cautious)', 25: '1 in 4 live beyond it', 50: 'Half of people live beyond it' } }

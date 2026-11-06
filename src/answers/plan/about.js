@@ -132,6 +132,9 @@ export function savedAbout(plan, { today }) {
   return {
     locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, ss, stored, timing, duration, thisTY,
     values: { age, stopped, stopAge: stopped === 'age' ? num(timing.retireAge) : null, stopMonth: (stopped === 'yes' && !stopAhead) || stopped === 'month' ? stopMonth : null, startWhen, endAge, savedYear: stopped === 'yes' && startWhen === 'saved' ? fty : null },
+    // whether that year was really saved (or fixed by the lock), or is only the derived start of a plan that has saved none:
+    // the choice is then named by its year alone, never "as saved" (7.3.3)
+    savedYearIsSet: doc && isObj(doc.timing) ? num(doc.timing.firstTaxYear) > 0 : num(stored.firstTaxYear) > 0 || num(stored.legacyFirstTaxYear) > 0,
     source, ageSource
   };
 }
@@ -645,7 +648,7 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
   return {
     found: true, id: String(plan.id), name: nameOf(plan), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable, stale, lockedStart,
     source: saved.source, ageSource: saved.ageSource, thisTY: saved.thisTY, yearNow: taxYearLabel(saved.thisTY),
-    yearSaved: saved.values.savedYear ? taxYearLabel(saved.values.savedYear) : null,
+    yearSaved: saved.values.savedYear ? taxYearLabel(saved.values.savedYear) : null, yearSavedIsSet: saved.savedYearIsSet,
     // the tax year work stopped in, for the 'stop' choice (as typed, else as saved), and each 'y<YYYY>' choice's year in words
     yearStop: (() => { const m = c.values.stopMonth || saved.values.stopMonth; return m ? taxYearLabel(taxYearOfMonth(m)) : null; })(),
     // work stopped this tax year: the 'now' choice is the tax year work stopped, and says so

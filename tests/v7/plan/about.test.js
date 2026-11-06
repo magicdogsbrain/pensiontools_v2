@@ -254,6 +254,18 @@ describe('the month work stopped (6.51.0, research/plan-start.md §2 C/D, §3): 
     expect(v.derived.map((d) => d.id)).not.toContain('startsLater');   // no words for months before the plan
     expect(checkAbout(plan(), { stopMonth: '2026-08' }, { today: TODAY })).toMatchObject({ offered: ['now', 'saved'], values: { startWhen: 'now' } });
   });
+  it('a year never saved (a retiree with no saved year and no stop month) is named by its year alone, never "as saved"', () => {
+    const p = plan();
+    expect(aboutOf([entryOf(p)], p.id, { today: TODAY }).yearSavedIsSet).toBe(true);   // 02 saved 2027/28
+    const unsaved = JSON.parse(JSON.stringify(p));
+    delete unsaved.stressTool.settings.firstTaxYear; delete unsaved.stressTool.settings.legacyFirstTaxYear;
+    const a = savedAbout(unsaved, { today: TODAY });
+    expect(a.values.startWhen).toBe('saved');
+    expect(a.savedYearIsSet).toBe(false);
+    const v = aboutOf([entryOf(unsaved)], unsaved.id, { today: TODAY });
+    expect(v.yearSavedIsSet).toBe(false);
+    expect(ABOUT.fields.startWhen.notSaved.replace('{yearSaved}', '2027/28')).not.toMatch(/saved/i);
+  });
   it('stopped at 17, long ago: the end age offered is never one the box refuses (the property test below found one)', () => {
     const c = checkAbout(plan(), { age: '30', stopped: 'yes', stopMonth: '2014-01', startWhen: 'stop' }, { today: TODAY });
     expect(c.errors).toEqual({});

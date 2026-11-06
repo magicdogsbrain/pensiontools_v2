@@ -74,7 +74,7 @@ export function AboutScreen(state, dispatch) {
   const back = href.plan(view.id, 'plan');
   const slots = { yearNow: about.yearNow, yearSaved: about.yearSaved || '', yearStop: about.yearStop || '', min: about.minYears, minAge: about.endAgeMin };
   // the start-year choices between the tax year work stopped and this one are each named by their year (6.51.0)
-  const startWords = { ...ABOUT.fields.startWhen, options: { ...ABOUT.fields.startWhen.options, ...(about.stopThisYear ? { now: ABOUT.fields.startWhen.nowStopped } : {}), ...(about.yearChoices || {}) } };
+  const startWords = { ...ABOUT.fields.startWhen, options: { ...ABOUT.fields.startWhen.options, ...(about.stopThisYear ? { now: ABOUT.fields.startWhen.nowStopped } : {}), ...(about.yearSavedIsSet === false ? { saved: ABOUT.fields.startWhen.notSaved } : {}), ...(about.yearChoices || {}) } };
   const field = (path) => about.fields.find((f) => f.path === path);
   const sourceWords = (src) => (about.locked ? fill(ABOUT.source.locked, { date: about.lockedOn }) : src && src.at ? fill(ABOUT.source.saved, { date: src.at }) : ABOUT.source.savedUndated);
   const sourceText = sourceWords(about.source);

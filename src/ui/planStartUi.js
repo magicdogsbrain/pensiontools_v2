@@ -254,7 +254,7 @@ export function lockedStartHtml({ ask = false, start = null, offer = null, stepA
   if (offer) {
     const at = taxYearLabel(offer.to) + (stepAge > 0 ? ', at ' + stepAge : '');
     return '<p class="hint" style="margin:0 0 6px;">You stopped work in ' + monthName(offer.stopMonth) + ', and your plan is set to start in ' + taxYearLabel(offer.from) + '. '
-      + '<strong>Start it from ' + taxYearLabel(offer.to) + '</strong>, the tax year you stopped: your months since then are then read against the plan. '
+      + '<strong>Start it from ' + taxYearLabel(offer.to) + '</strong>, the tax year you stopped: your months since then are read against the plan. '
       + (stepped ? 'Your first income step keeps its amount and runs from ' + at + '; your later steps keep their ages.' : 'Your income stays ' + (income > 0 ? pounds(income) + ' a year' : 'as it is') + ', now from ' + at + '.')
       + ' The plan stays locked.</p>'
       + '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" id="tmMoveStartBtn" data-on-click="moveLockedPlanStart()">Move the plan\'s start…</button></div>'

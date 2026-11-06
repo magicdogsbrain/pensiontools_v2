@@ -78,8 +78,8 @@ export const ABOUT = {
     change: 'Change the month you stopped work',
     /** After "Leave it": not asked again, but the month can still be said, without unlocking. */
     later: 'Say when you stopped work',
-    move: 'You stopped work in {month}, and your plan is set to start in {yearStart}. It can start from {yearStop}, the tax year you stopped: your months since then are then read against the plan. Your first income step keeps its amount and runs from {yearStop}; your later steps keep their ages. The plan stays locked.',
-    moveLevel: 'You stopped work in {month}, and your plan is set to start in {yearStart}. It can start from {yearStop}, the tax year you stopped: your months since then are then read against the plan. Your income stays the same, now from {yearStop}, and the plan still ends at the same age. The plan stays locked.',
+    move: 'You stopped work in {month}, and your plan is set to start in {yearStart}. It can start from {yearStop}, the tax year you stopped: your months since then are read against the plan. Your first income step keeps its amount and runs from {yearStop}; your later steps keep their ages. The plan stays locked.',
+    moveLevel: 'You stopped work in {month}, and your plan is set to start in {yearStart}. It can start from {yearStop}, the tax year you stopped: your months since then are read against the plan. Your income stays the same, now from {yearStop}, and the plan still ends at the same age. The plan stays locked.',
     moveHelp: 'Before anything is written, this page says exactly what changes: the plan document and plan vs actual are written again from the new start, and the earlier ones are kept.',
     blocked: 'You stopped work in {month}, and your plan is set to start in {yearStart}. Its start cannot be moved while the plan is locked: your State Pension is set by the plan’s count of years, and moved it would read as starting at 67. To change the start, unlock the plan.',
     open: 'Move the plan’s start…',

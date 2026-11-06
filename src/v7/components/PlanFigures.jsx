@@ -57,6 +57,19 @@ export function PlanLine({ line, figures, hideSource = false }) {
 }
 
 /**
+ * A step's name on a plan's pages (the home, the rail, the step's own heading). A locked plan's own step is "Your plan as
+ * locked". On a Drawing plan the move step goes by the mix it keeps to, its short name (7.3.1): such a plan is not moving,
+ * whatever its record of what is held says, so "Moving to your plan's mix" there would name the stage it is not in. `view`
+ * is the plan's page reading (state/select.js planView: `locked`, and `life`, LifeStage.stageOf's stage).
+ */
+const onDrawing = (view) => !!view && !!view.life && view.life.key === 'drawing';
+export function stepNameOf(id, view) {
+  if (id === 'plan' && view && view.locked) return PLAN.steps.plan.locked;
+  if (id === 'move' && onDrawing(view)) return PLAN.steps.move.short;
+  return PLAN.steps[id].label;
+}
+
+/**
  * The hand-over's action (research/v7/your-plan.md 5.2). A button that names a month to record (the month step's: the
  * earliest month not recorded, 2.3) carries it as `month`, so the planner opens Month by month on that month; every other
  * button carries none and the action is as it always was.

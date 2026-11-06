@@ -53,10 +53,14 @@ const thisMonthOf = (now) => now.getFullYear() + '-' + String(now.getMonth() + 1
 const first = (m) => '1 ' + monthName(m);
 
 /** The three segments of the stage strip: each done, now or later, with the month it ends or begins when the plan says it. */
-function stripOf(life) {
+function stripOf(life, heldMix = null) {
   if (!life || !life.key || life.key === 'closed') return null;
   const at = STRIP.indexOf(life.key);
-  return STRIP.map((key, i) => ({ key, state: i < at ? 'done' : i === at ? 'now' : 'later', month: key === 'saving' && life.stop ? monthWords(life.stop) : key === 'drawing' && life.key === 'drawing' && life.since ? monthWords(life.since) : null }));
+  // a Drawing plan whose record of what is held is short of the plan's mix (7.3.1): its move is not called done while the note
+  // under "Where you are" says how much of the mix is held — the segment is 'part', filled to that share, with no word
+  return STRIP.map((key, i) => ({ key, state: i < at ? (key === 'moving' && heldMix ? 'part' : 'done') : i === at ? 'now' : 'later',
+    ...(key === 'moving' && heldMix && i < at ? { held: heldMix.pct } : {}),
+    month: key === 'saving' && life.stop ? monthWords(life.stop) : key === 'drawing' && life.key === 'drawing' && life.since ? monthWords(life.since) : null }));
 }
 
 /**
@@ -204,7 +208,9 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
       : s.id === 'move' && moves && !s.done ? { moves } : {}) }));
   // the steps, read-only with each result line; a saver's "For later" group stays on a plan not locked, but a locked plan
   // is being carried out: its steps are listed plainly, never marked for later or not done
-  const steps = pg.steps.map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: (!pg.locked && s.railResult) || s.result, figures: s.figures || {}, later: !pg.locked && !!s.later, done: s.state === 'done' }));
+  const steps = pg.steps.map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: (!pg.locked && s.railResult) || s.result, figures: s.figures || {}, later: !pg.locked && !!s.later, done: s.state === 'done',
+    // the move step on a Drawing plan short of its mix says the one share the home says everywhere (7.3.1), not its gilts bought
+    ...(s.id === 'move' && heldMix ? { held: heldMix.pct } : {}) }));
   // change the plan, or try something: a locked plan's tries change nothing; an unlocked plan's pages change it
   const base = '#/plan/' + pg.id + '/';
   const lived = pg.locked && ['bridge', 'running'].includes(pg.stageKey) && !!lastRecord && !pg.closing;
@@ -218,7 +224,7 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
     found: true, id: pg.id, name: pg.name, example: pg.example, readonly: pg.readonly, source: pg.source,
     locked: pg.locked, lockedOn: pg.lockedOn, line: pg.line, closing: pg.closing, before: pg.before,
     closed: pg.closed, stageKey: pg.stageKey,
-    stage: { key: life ? life.key : null, invite: life ? life.invite : null, stop: life && life.stop ? monthWords(life.stop) : null, strip: stripOf(life),
+    stage: { key: life ? life.key : null, invite: life ? life.invite : null, stop: life && life.stop ? monthWords(life.stop) : null, strip: stripOf(life, heldMix),
       moves: stageKey === 'moving' ? moves : null },
     todo: { items: due.slice(0, TODO_SHOWN), more: due.slice(TODO_SHOWN), count: due.length, soon: (pg.soon || []).map((d) => item(d)), partner },
     quiet: quietOf({ ...pg, lastRecord }, life, now),

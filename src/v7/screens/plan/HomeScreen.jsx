@@ -8,7 +8,7 @@
  * Draws only: the reading is answers/plan/home.js homeOf (state/select.js planView → page.home), the same reading the
  * rail's "Next" comes from. Nothing here writes a plan; "Not now" is kept for this window only (effects/place.js).
  */
-import { PlanLine, PlanSentence, fill, Button, LinkButton, Money, Counted, notNowPress } from '../../components/index.js';
+import { PlanLine, PlanSentence, fill, Button, LinkButton, Money, Counted, notNowPress, stepNameOf } from '../../components/index.js';
 import { planView, plansView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -18,7 +18,8 @@ const T = 'plan.home';
 
 /** A to-do's title and line, filled from its slots. */
 const itemWords = (it) => {
-  const words = (it.soon ? HOME.soon[it.id] : null) || HOME.items[it.id] || { title: PLAN.next[it.pid] || it.id, detail: '' };
+  // the move on a Drawing plan (P.moveLater) points at the step by the name it goes by there (7.3.1): the same to-do id
+  const words = (it.soon ? HOME.soon[it.id] : null) || (it.pid === 'P.moveLater' && HOME.items['move.later']) || HOME.items[it.id] || { title: PLAN.next[it.pid] || it.id, detail: '' };
   // the move invitation says how the last check-in went, when there was one
   const band = it.id === 'move.invite' && it.slots && HOME.inviteBand[it.slots.band] ? ' ' + HOME.inviteBand[it.slots.band] : '';
   return { title: fill(words.title, it.slots), detail: fill(words.detail, it.slots) + band };
@@ -51,13 +52,15 @@ function Strip({ strip }) {
     <div class="stage-strip" data-testid={`${T}.strip`}>
       <p class="sr-only">{HOME.strip.label}</p>
       <div class="strip-segs" aria-hidden="true">
-        {strip.map((sg) => <span key={sg.key} class={`strip-seg is-${sg.key} is-${sg.state}`}>{sg.state === 'now' && <span class="strip-dot" />}</span>)}
+        {strip.map((sg) => <span key={sg.key} class={`strip-seg is-${sg.key} is-${sg.state}`}>{sg.held != null && <span class="strip-fill" style={`width:${sg.held}%`} />}{sg.state === 'now' && <span class="strip-dot" />}</span>)}
       </div>
       <ul class="strip-words">
         {strip.map((sg) => (
           <li key={sg.key} data-stage={sg.key} data-state={sg.state} aria-current={sg.state === 'now' ? 'step' : undefined}>
-            <strong>{HOME.stages[sg.key]}</strong>{' · '}
-            {sg.state === 'now' ? HOME.strip.now : sg.key === 'saving' && sg.month ? fill(HOME.strip.to, { month: sg.month }) : sg.state === 'done' ? HOME.strip.done : HOME.strip.later}
+            <strong>{HOME.stages[sg.key]}</strong>
+            {/* a move behind a Drawing plan that its record of what is held does not show (7.3.1): no word for it — never "done"
+                beside a note saying how much of the mix is held; the segment fills to that share */}
+            {sg.state !== 'part' && <>{' · '}{sg.state === 'now' ? HOME.strip.now : sg.key === 'saving' && sg.month ? fill(HOME.strip.to, { month: sg.month }) : sg.state === 'done' ? HOME.strip.done : HOME.strip.later}</>}
           </li>
         ))}
       </ul>
@@ -99,16 +102,18 @@ function YearView({ Y }) {
 
 /**
  * A Drawing plan whose record of what you hold is short of the plan's mix (7.3.1): how much of the mix is held and what is
- * different, as a short note under the headline lines (never one of them, never a to-do), the move one link away.
+ * different, as a short note under the headline lines (never one of them, never a to-do), the move one link away. The link
+ * sits on a line of its own, as "See where you are in full" does: on a phone every link is a full-height target, and one
+ * inside the sentence pushed its line apart from the rest.
  */
 function HeldMix({ M }) {
   const W = HOME.heldMix;
   const different = M.label ? (M.more > 0 ? fill(W.differentMany, { label: M.label, n: String(M.more) }) : fill(W.differentOne, { label: M.label })) : M.ticked ? W.ticked : '';
   return (
-    <p class="note home-held" data-testid={`${T}.heldMix`} data-pct={String(M.pct)}>
-      {fill(W.held, { pct: String(M.pct) })}{different ? ' ' + different : ''}{' '}
-      <a href={M.href} data-testid={`${T}.heldMix.move`}>{W.link}</a>
-    </p>
+    <div class="home-held" data-testid={`${T}.heldMix`} data-pct={String(M.pct)}>
+      <p class="note">{fill(W.held, { pct: String(M.pct) })}{different ? ' ' + different : ''}</p>
+      <p class="home-where-more"><a href={M.href} data-testid={`${T}.heldMix.move`}>{W.link}</a></p>
+    </div>
   );
 }
 
@@ -157,7 +162,8 @@ export function HomeScreen(state, dispatch) {
   const planId = H.id;
   const s = H.stage;
   const todo = H.todo;
-  const stepName = (id) => (id === 'plan' && H.locked ? PLAN.steps.plan.locked : PLAN.steps[id].label);
+  // the move step by the mix it keeps to on a Drawing plan (7.3.1), in the tools and the steps alike, as the rail names it
+  const stepName = (id) => stepNameOf(id, view);
   const steps = H.steps.filter((x) => !x.later);
   const later = H.steps.filter((x) => x.later);
   const filled = filledAsk(H, view);
@@ -231,7 +237,7 @@ export function HomeScreen(state, dispatch) {
             <ul class="home-tools">
               {H.tools.map((t) => (
                 <li key={t.id}><a class="home-tool" href={t.href} data-testid={`${T}.tool.${t.id}`}>
-                  <span class="home-tool-name">{t.id === 'move' && s.key === 'drawing' ? HOME.toolMix : stepName(t.id)}</span>
+                  <span class="home-tool-name">{stepName(t.id)}</span>
                   {t.held != null ? <span class="home-tool-state"> · {fill(HOME.toolHeld, { pct: String(t.held) })}</span>
                     : t.moves ? <span class="home-tool-state"> · {fill(HOME.toolMoves, { done: String(t.moves.done), of: String(t.moves.of) })}</span>
                     : t.result && <span class="home-tool-state"> · <PlanSentence s={t.result} figures={t.figures} /></span>}
@@ -245,7 +251,7 @@ export function HomeScreen(state, dispatch) {
           <summary>{HOME.stepsTitle}</summary>
           <p class="note">{HOME.stepsLead}</p>
           <ul class="home-steps">
-            {steps.map((x) => <li key={x.id} data-step={x.id}><a href={x.href} data-testid={`${T}.step.${x.id}`}>{stepName(x.id)}</a>{x.result && <> — <PlanSentence s={x.result} figures={x.figures} /></>}</li>)}
+            {steps.map((x) => <li key={x.id} data-step={x.id}><a href={x.href} data-testid={`${T}.step.${x.id}`}>{stepName(x.id)}</a>{x.held != null ? <> — {fill(HOME.toolHeld, { pct: String(x.held) })}</> : x.result && <> — <PlanSentence s={x.result} figures={x.figures} /></>}</li>)}
           </ul>
           {later.length > 0 && (
             <>

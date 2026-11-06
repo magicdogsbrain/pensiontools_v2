@@ -131,10 +131,20 @@ test.describe('a plan\'s home', () => {
     const note = page.getByTestId(`${T}.heldMix`);
     await expect(note).toBeVisible();
     const pct = await note.getAttribute('data-pct');
-    await expect(note).toHaveText(new RegExp(`^You hold about ${pct}% of your plan’s mix\\. Different from the plan: .+ and \\d+ more\\. See the move$`));
+    await expect(note.locator('p.note')).toHaveText(new RegExp(`^You hold about ${pct}% of your plan’s mix\\. Different from the plan: .+ and \\d+ more\\.$`));
     // inside "Where you are", under its lines; the move tool says the same share, by the mix's name
     await expect(page.getByTestId(`${T}.where`).getByTestId(`${T}.heldMix`)).toHaveCount(1);
     await expect(page.getByTestId(`${T}.tool.move`)).toHaveText(`Your plan’s mix · about ${pct}% held`);
+    // the link on a line of its own, below the whole sentence (at 390 a link is a full-height target: inside the sentence it
+    // pushed its own line apart from the rest)
+    const sentence = await note.locator('p.note').boundingBox();
+    const link = await page.getByTestId(`${T}.heldMix.move`).boundingBox();
+    expect(link.y).toBeGreaterThanOrEqual(sentence.y + sentence.height - 1);
+    // the strip never says "Moving · done" beside that note; "Moving" is said nowhere else on a Drawing home
+    await expect(page.getByTestId(`${T}.strip`).locator('[data-stage="moving"]')).toHaveAttribute('data-state', 'part');
+    await expect(page.getByTestId(`${T}.strip`).locator('[data-stage="moving"]')).toHaveText('Moving');
+    for (const id of [`${T}.todo`, `${T}.where`, `${T}.tools`, `${T}.steps`]) await expect(page.getByTestId(id)).not.toContainText('Moving');
+    await expect(page.getByTestId(`${T}.step.move`)).toHaveText('Your plan’s mix');
     // no page wider than the screen, at either width; on a wide screen the year and where you are still sit side by side
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     if (testInfo.project.name === 'desktop-1440') {
@@ -150,6 +160,8 @@ test.describe('a plan\'s home', () => {
     await page.goto(v7('#/plan/' + LADDER));
     await page.getByTestId(`${T}.heldMix.move`).click();
     await expect(page.getByTestId('plan.move.status.line')).toContainText(`${pct}% of the plan’s mix held`);
+    // headed by the name the home gave it
+    await expect(page.getByTestId('plan.step.move')).toHaveText('Your plan’s mix');
     expect(await stored(page), 'the home writes nothing').toBe(before);
   });
 

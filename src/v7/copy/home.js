@@ -51,6 +51,8 @@ export const HOME = {
     'month.record':       { title: 'Record {monthName}', detail: 'What your platform shows today. It takes a minute.' },
     'month.gap':          { title: 'Record {month}', detail: 'It is not recorded yet. Months you missed can be filled in at once.' },
     'move.next':          { title: 'Move {n} of {of}: {label}', detail: 'Tick it on Moving to your plan’s mix when the order is placed.' },
+    /** The same move on a Drawing plan with nothing it holds recorded (P.moveLater): the step goes by its short name there. */
+    'move.later':         { title: 'Move {n} of {of}: {label}', detail: 'Tick it on ‘Your plan’s mix’ when the order is placed.' },
     'move.finish':        { title: 'Update what you hold', detail: 'Every move is ticked. Update what you hold so it shows the plan’s mix.' },
     'checkin.first':      { title: 'Your first check-in', detail: 'Where your pot is today, and how often you want to check in.' },
     'checkin.due':        { title: 'Check in', detail: 'What your pot is worth today. It takes a minute.' },
@@ -128,8 +130,10 @@ export const HOME = {
   toolsTitle: 'Tools',
   /** The move tool's state on the home: the same count as the headline. */
   toolMoves: '{done} of {of} moves done',
-  /** On a Drawing plan the move tool goes by the mix it keeps to, and says the share held, as "Where you are" does (7.3.1). */
-  toolMix: 'Your plan’s mix',
+  /**
+   * On a Drawing plan the move tool (and the step, in "Your plan's steps") goes by the mix it keeps to, PLAN.steps.move.short,
+   * and says the share held, as "Where you are" does (7.3.1).
+   */
   toolHeld: 'about {pct}% held',
 
   /** Everything else, folded away. */

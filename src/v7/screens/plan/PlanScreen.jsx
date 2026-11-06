@@ -4,7 +4,7 @@
  * uses". Nothing typeable; nothing worked out here (state/select.js planView). "Change this" leaves for the planner by
  * the hand-over (plan/change); without an account the warning says what to press there.
  */
-import { PlanRail, changeAction, PlanLine, PlanSentence, PlanButtons, UndoToast, fill, Button, LinkButton, Money } from '../../components/index.js';
+import { PlanRail, changeAction, PlanLine, PlanSentence, PlanButtons, UndoToast, fill, Button, LinkButton, Money, stepNameOf } from '../../components/index.js';
 import { planView, plansView, planActionsView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -154,7 +154,7 @@ export function PlanScreen(state, dispatch) {
   const step = view.steps.find((s) => s.id === view.current) || view.steps[0];
   // Month by month draws its own screen on its own address (7.2.0)
   if (step.id === 'month') return MonthScreen(state, dispatch);
-  const stepName = step.id === 'plan' && view.locked ? PLAN.steps.plan.locked : PLAN.steps[step.id].label;
+  const stepName = stepNameOf(step.id, view);
   const allOpen = state.ui.open.includes('allOptions');
   // the lock's, the unlock's and the new version's state for THIS plan (the toast after a lock lands here, "Your plan as locked")
   const acts = planActionsView(state);

@@ -23,6 +23,7 @@ import { A } from '../../../src/v7/state/actions.js';
 import { parse } from '../../../src/v7/router/routes.js';
 import { VERSION } from '../../../src/constants.js';
 import { MOVE } from '../../../src/v7/copy/move.js';
+import { PLAN } from '../../../src/v7/copy/plan.js';
 import { viewFor } from '../../../src/v7/effects/planSource.js';
 import { corpus, entryOf } from './_plans.js';
 
@@ -80,9 +81,11 @@ describe('the named states of "Moving to your plan\'s mix"', () => {
     expect(s.env.appVersion).toBe(VERSION);
     expect(s.route).toMatchObject({ screen: 'plan', step: 'move' });
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-    const { root, text, words } = draw(s);
+    const { state, root, text, words } = draw(s);
     expect(root.querySelector('main').getAttribute('data-screen')).toBe('plan.move');
-    expect(one(root, 'plan.step.move').textContent).toBe(MOVE.title);
+    // by the name the rail and the home give the step (7.3.1): on a plan recording months (Drawing) the mix it keeps to
+    const life = state.plans.view.page.life;
+    expect(one(root, 'plan.step.move').textContent).toBe(life && life.key === 'drawing' ? PLAN.steps.move.short : MOVE.title);
     expect(one(root, `${T}.optional`).textContent).toBe(MOVE.optional);
     expect(one(root, `${T}.footer`).textContent).toBe(MOVE.footer);
     expect(root.querySelector('[data-testid="rail.plan.move"]').getAttribute('aria-current')).toBe('step');

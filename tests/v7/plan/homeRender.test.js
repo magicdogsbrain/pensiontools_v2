@@ -148,6 +148,13 @@ describe('each stage\'s home', () => {
     expect(one(root, `${T}.tool.move`).textContent).toContain(`${done} of ${of} moves done`);
     expect(one(root, `${T}.todo`).textContent).toContain(`Move ${Number(done) + 1} of ${of}:`);
     expect(one(root, `${T}.where`).textContent).not.toMatch(/gilts bought/);
+    // a Moving plan keeps the step's long name, on the home, the rail and the move page alike
+    expect(one(root, `${T}.step.move`).textContent).toBe(PLAN.steps.move.label);
+    expect(one(root, `${T}.tool.move`).textContent).toMatch(/^Moving to your plan’s mix · /);
+    expect(root.querySelector('[data-todo="move.next"] .home-item-detail').textContent).toBe(HOME.items['move.next'].detail);
+    const { root: move } = draw({ ...load('home-moving'), route: parse('#/plan/SamLadder03/move') });
+    expect(one(move, 'plan.step.move').textContent).toBe(PLAN.steps.move.label);
+    expect(one(move.querySelector('[data-region="rail"]'), 'rail.plan.move').textContent).toContain(PLAN.steps.move.label);
   });
   it('home-drawing-held: a ladder recording months while short of its rungs reads Drawing; the share held is said, not a to-do', () => {
     const { root, words } = draw(load('home-drawing-held'));
@@ -161,17 +168,53 @@ describe('each stage\'s home', () => {
     expect(note.closest(`[data-testid="${T}.where"]`)).not.toBe(null);
     expect(note.classList.contains('plan-line')).toBe(false);
     const pct = note.getAttribute('data-pct');
-    expect(note.textContent).toMatch(new RegExp(`^You hold about ${pct}% of your plan’s mix\\. Different from the plan: .+ and \\d+ more\\. See the move$`));
-    expect(one(root, `${T}.heldMix.move`).getAttribute('href')).toBe('#/plan/SamLadder07/move');
-    // the move tool goes by the mix and says the same share; "Moving" is not said anywhere on a Drawing home's stage or tools
+    expect(note.querySelector('p.note').textContent).toMatch(new RegExp(`^You hold about ${pct}% of your plan’s mix\\. Different from the plan: .+ and \\d+ more\\.$`));
+    // the link on a line of its own (on a phone every link is a full-height target: inside the sentence it pushed its line apart)
+    const link = one(root, `${T}.heldMix.move`);
+    expect(link.textContent).toBe(HOME.heldMix.link);
+    expect(link.closest('p.note')).toBe(null);
+    expect(link.parentElement.classList.contains('home-where-more')).toBe(true);
+    expect(link.getAttribute('href')).toBe('#/plan/SamLadder07/move');
+    // the move tool goes by the mix and says the same share
     expect(one(root, `${T}.tool.move`).textContent).toBe(`Your plan’s mix · about ${pct}% held`);
-    expect(one(root, `${T}.tools`).textContent).not.toMatch(/Moving/);
-    expect(one(root, `${T}.strip`).querySelector('[data-stage="moving"]').getAttribute('data-state')).toBe('done');
+    // retaken on purpose (7.3.1 review): the strip never says "Moving · done" beside a note saying how much of the mix is held —
+    // no word for that segment, filled to the share
+    const seg = one(root, `${T}.strip`).querySelector('[data-stage="moving"]');
+    expect(seg.getAttribute('data-state')).toBe('part');
+    expect(seg.textContent).toBe('Moving');
+    expect(one(root, `${T}.strip`).querySelector('.strip-seg.is-moving .strip-fill').style.width).toBe(`${pct}%`);
+    // "Moving" is said nowhere on a Drawing home but the strip's own word for the stage behind it: not the tools, not the
+    // steps, not the to-dos
+    const rest = one(root, T).cloneNode(true);
+    rest.querySelector(`[data-testid="${T}.strip"]`).remove();
+    expect(rest.textContent).not.toMatch(/\bMoving\b/);
+    // the move step, in "Your plan's steps", by the mix's name and the one share (not its gilts bought)
+    const stepLine = one(root, `${T}.steps`).querySelector('[data-step="move"]');
+    expect(stepLine.textContent).toBe(`Your plan’s mix — about ${pct}% held`);
     expect(words).not.toMatch(/moves done/);
-    // the rail on a step page: its Next is the home's first to-do, never a move
+    // the rail on a step page: its Next is the home's first to-do, never a move; its move step by the mix's name
     const { root: step } = draw({ ...load('home-drawing-held'), route: parse('#/plan/SamLadder07/plan') });
-    const next = one(step.querySelector('[data-region="rail"]'), 'rail.next').textContent;
-    expect(next).not.toMatch(/to your plan’s mix/);
+    const rail = step.querySelector('[data-region="rail"]');
+    expect(one(rail, 'rail.next').textContent).not.toMatch(/to your plan’s mix/);
+    expect(one(rail, 'rail.plan.move').textContent).toContain(PLAN.steps.move.short);
+    expect(rail.textContent).not.toMatch(/\bMoving\b/);
+    // the page the note links to is headed by the same name
+    const { root: move } = draw({ ...load('home-drawing-held'), route: parse('#/plan/SamLadder07/move') });
+    expect(one(move, 'plan.step.move').textContent).toBe(PLAN.steps.move.short);
+  });
+  it('home-drawing-held with nothing it holds recorded: the move to-do points at the step by the name the tools give it', () => {
+    const s = load('home-drawing-held');
+    s.plans.list[0].plan.holdings = null;
+    const { root } = draw(s);
+    expect(one(root, `${T}.headline`).textContent).toBe('Drawing.');
+    expect(one(root, `${T}.heldMix`)).toBe(null);
+    const li = root.querySelector('[data-todo="move.next"]');
+    expect(li.getAttribute('data-pid')).toBe('P.moveLater');
+    expect(li.querySelector('.home-item-detail').textContent).toBe(HOME.items['move.later'].detail);
+    expect(one(root, `${T}.tool.move`).textContent).toMatch(/^Your plan’s mix · /);
+    const rest = one(root, T).cloneNode(true);
+    rest.querySelector(`[data-testid="${T}.strip"]`).remove();
+    expect(rest.textContent).not.toMatch(/\bMoving\b/);
   });
   it('home-drawing: a record that shows the plan\'s mix says no share and no difference', () => {
     const { root } = draw(load('home-drawing'));

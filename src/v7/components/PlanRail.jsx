@@ -7,7 +7,7 @@
  * state and the next sentence are read.js's (state/select.js planView).
  */
 import { Button, LinkButton } from './Button.jsx';
-import { PlanSentence, fill } from './PlanFigures.jsx';
+import { PlanSentence, fill, stepNameOf } from './PlanFigures.jsx';
 import { href } from '../router/routes.js';
 import { PLAN } from '../copy/plan.js';
 import { HOME } from '../copy/home.js';
@@ -21,7 +21,7 @@ export function PlanRail({ view, state, dispatch, onChange }) {
   const current = view.steps.find((s) => s.state === 'current') || view.steps[0];
   const setOpen = (o) => dispatch({ type: 'ui/rail', open: o });
   const onKeyDown = (e) => { if (e.key === 'Escape' && open) setOpen(false); };
-  const stepName = (s) => (s.id === 'plan' && view.locked ? PLAN.steps.plan.locked : PLAN.steps[s.id].label);
+  const stepName = (s) => stepNameOf(s.id, view);
   const next = view.next || { id: 'P.saving', slots: {}, button: null };
   const sentence = fill(PLAN.next[next.id] || '', next.slots);
   const b = next.button;

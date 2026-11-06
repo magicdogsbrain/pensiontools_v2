@@ -121,6 +121,7 @@ export const HOLD = {
     readonly: 'This plan is shown as it was saved and cannot be changed here.',
     store: { account: 'account', 'window': 'window' }
   },
-  buttons: { undo: 'Undo', close: 'Close', back: 'Back to your plan', move: 'Moving to your plan’s mix' },
+  // the way on to the move is named by the step's own name (components/PlanFigures.jsx stepNameOf: on a Drawing plan, the mix)
+  buttons: { undo: 'Undo', close: 'Close', back: 'Back to your plan' },
   saving: 'Saving…'
 };

@@ -65,7 +65,8 @@ test.describe('"Moving to your plan\'s mix", without an account', () => {
     await test.step('the step: "Optional…" on its face, the status in gilts bought, the cash to hold now, Buy with a Done tick each, the order sheet\'s first rung as the document has it, "How to read this" closed, the last line; nothing written on opening', async () => {
       await page.goto(v7('#/plan/MovePlan01/move'));
       await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.move');
-      await expect(page.getByTestId('plan.step.move')).toHaveText('Moving to your plan’s mix');
+      // 03 records months, so it reads Drawing (7.3.1): the step goes by the mix it keeps to there, as the rail and the home name it
+      await expect(page.getByTestId('plan.step.move')).toHaveText('Your plan’s mix');
       await expect(page.getByTestId(`${T}.optional`)).toHaveText('Optional. Skipping it means what you hold may not match what the plan was tested on.');
       await expect(page.getByTestId(`${T}.status.line`)).toHaveText(`${node.move.rungs.bought} of ${node.move.rungs.total} gilts bought; ${node.move.progressPct}% of the plan’s mix held.`);
       await expect(page.locator(`[data-testid="${T}.buy"] tbody tr`)).toHaveCount(node.move.buy.length);

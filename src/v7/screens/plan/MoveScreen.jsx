@@ -9,7 +9,7 @@
  * switch handed to the planner. Draws only: everything is the reading's (state/select.js planMoveView: answers/plan/move.js
  * through the plan source); the run's status is the state's (effects/move.js). The last line is always the same.
  */
-import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton } from '../../components/index.js';
+import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { planView, planMoveView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -304,7 +304,8 @@ export function MoveScreen(state, dispatch) {
   const headAndTitle = (
     <>
       <Head view={view} />
-      <h1 tabIndex={-1} data-testid="plan.step.move">{W.title}</h1>
+      {/* by the name the rail and the home give it: on a Drawing plan, the mix it keeps to (7.3.1) */}
+      <h1 tabIndex={-1} data-testid="plan.step.move">{stepNameOf('move', view)}</h1>
       <p class="lead">{W.lead}</p>
       <p class="note" data-testid={`${T}.optional`}>{W.optional}</p>
     </>

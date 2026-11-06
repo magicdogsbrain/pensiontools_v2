@@ -7,7 +7,7 @@
  * editable: the record is what is true today, not the plan. Draws only: everything is the reading's (state/select.js
  * planHoldView: answers/plan/hold.js through the plan source). No figure is worked out here; nothing runs here.
  */
-import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton } from '../../components/index.js';
+import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { planView, planHoldView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -270,7 +270,7 @@ export function HoldScreen(state, dispatch) {
           {problem && <p class="notice" role="alert" data-testid={`${T}.problem`} data-problem={V.problem}>{problem}</p>}
         </form>
         <div class="actions-row">
-          <LinkButton testid={`${T}.move`} kind="plain" href={href.plan(view.id, 'move')}>{W.buttons.move}</LinkButton>
+          <LinkButton testid={`${T}.move`} kind="plain" href={href.plan(view.id, 'move')}>{stepNameOf('move', view)}</LinkButton>
           <LinkButton testid={`${T}.back`} kind="quiet" href={back}>{W.buttons.back}</LinkButton>
         </div>
         <UndoToast prefix={T} toast={V.toast} text={V.toast ? toastText(V.toast) : ''} words={W.buttons}

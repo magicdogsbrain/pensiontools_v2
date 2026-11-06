@@ -676,6 +676,9 @@ h2.eyebrow { font-size: var(--size-small); }
 .strip-seg.is-done.is-saving, .strip-seg.is-now.is-saving { background: var(--stage-saving); }
 .strip-seg.is-done.is-moving, .strip-seg.is-now.is-moving { background: var(--stage-moving); }
 .strip-seg.is-now.is-drawing { background: var(--stage-drawing); }
+/* a move behind a Drawing plan that what is held does not show yet (7.3.1): filled to the share of the plan's mix held */
+.strip-seg.is-part { overflow: hidden; }
+.strip-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--stage-moving); }
 .strip-dot { position: absolute; top: 50%; left: 50%; width: 22px; height: 22px; border-radius: 50%; background: var(--text); border: 5px solid var(--fill-pop); transform: translate(-50%, -50%); box-shadow: 0 0 0 6px var(--pop-soft); animation: strip-slide .7s ease-out both; }
 @keyframes strip-slide { from { left: 0; } to { left: 50%; } }
 .strip-words { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: var(--size-small); color: var(--text-muted); }
@@ -695,6 +698,7 @@ h2.eyebrow { font-size: var(--size-small); }
 .home-row2 { display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr); }
 .home-where-block { margin: 0 0 10px; }
 .home-where-more { margin: 4px 0 0; font-size: var(--size-small); }
+.home-held .note { margin: 0; }
 .home-tools { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .home-tool { display: inline-flex; flex-wrap: wrap; gap: 0 4px; padding: 8px 12px; min-height: var(--target); align-items: center; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--line); color: var(--text); text-decoration: none; font-size: var(--size-small); }
 .home-tool:hover .home-tool-name { text-decoration: underline; }

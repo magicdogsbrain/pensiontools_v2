@@ -555,6 +555,11 @@ describe('drawing while the holdings are not exact (7.3.1): a plan recording mon
         expect(tool.moves, today).toBeUndefined();
         expect(h.stage.moves, today).toBe(null);
         expect(h.stage.strip.find((x) => x.state === 'now').key, today).toBe('drawing');
+        // the strip never calls the move done beside the note saying how much of the mix is held: 'part', filled to that share
+        expect(h.stage.strip.find((x) => x.key === 'moving'), today).toMatchObject({ state: 'part', held: h.heldMix.pct });
+        expect(h.stage.strip.find((x) => x.key === 'saving').state, today).toBe('done');
+        // and the move step, in "Your plan's steps", says that one share too (never its gilts bought beside it)
+        expect(h.steps.find((s) => s.id === 'move').held, today).toBe(h.heldMix.pct);
         expect(JSON.stringify(plan), today).toBe(before);
       }
     });
@@ -579,6 +584,10 @@ describe('drawing while the holdings are not exact (7.3.1): a plan recording mon
       expect(h.stage.key, today).toBe('drawing');
       expect(h.heldMix, today).toBe(null);
       expect(h.tools.find((t) => t.id === 'move').held, today).toBeUndefined();
+      // nothing short: the move behind it is done, as 7.3.0 said it
+      expect(h.stage.strip.find((x) => x.key === 'moving'), today).toEqual(expect.objectContaining({ state: 'done' }));
+      expect(h.stage.strip.find((x) => x.key === 'moving').held, today).toBeUndefined();
+      expect(h.steps.find((s) => s.id === 'move').held, today).toBeUndefined();
     }
     // the shares line one per cent over its target: inside the plan's own tolerance, so still the plan's mix
     const raw = copy(C['04-buckets-running']);
@@ -615,6 +624,9 @@ describe('drawing while the holdings are not exact (7.3.1): a plan recording mon
     expect(PLAN.next['P.moveNext']).toBe('Next: move {n} of {of} to your plan’s mix: {label}.');
     expect(PLAN.next['P.moveLater']).toBe('Next: move {n} of {of} to your plan’s mix: {label}.');
     expect(PLAN.next['P.moveFinish']).toBe('Every move is ticked. Next: update what you hold, so it shows the plan’s mix.');
-    for (const s of [W.held, W.differentOne, W.differentMany, W.ticked, W.link, HOME.toolMix, HOME.toolHeld]) expect(s).not.toMatch(/\bmoving\b|transition/i);
+    for (const s of [W.held, W.differentOne, W.differentMany, W.ticked, W.link, PLAN.steps.move.short, HOME.toolHeld, HOME.items['move.later'].title, HOME.items['move.later'].detail]) expect(s).not.toMatch(/\bmoving\b|transition/i);
+    // the Drawing plan's move to-do points at the step by the name it goes by there; the Moving plan's keeps the long name
+    expect(HOME.items['move.later'].detail).toBe('Tick it on ‘Your plan’s mix’ when the order is placed.');
+    expect(HOME.items['move.next'].detail).toBe('Tick it on Moving to your plan’s mix when the order is placed.');
   });
 });

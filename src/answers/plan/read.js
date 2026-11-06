@@ -170,7 +170,8 @@ export function planRows(entries, { today, source = 'account', notNow = [] } = {
       // Month by month (research/v7/months-in-v7.md §0, 7.2.0): a plain way in beside every drawing plan, a plan closed after it was lived on included
       monthByMonth: MONTH_STAGES.includes(stage.key) && plan.example !== true,
       life: pg && pg.life ? pg.life.key : null,
-      todo: pg && Array.isArray(pg.due) ? pg.due.length : 0,
+      // a closed plan's way on is not a thing to do on it (the row says "Closed", and its home opens the plan carrying on)
+      todo: pg && Array.isArray(pg.due) ? pg.due.filter((d) => d.id !== 'closed.next').length : 0,
       lastModified: typeof plan.lastModified === 'string' ? plan.lastModified : ''
     };
   });
@@ -824,13 +825,16 @@ function rulesFor(C, built) {
   const mine = partnerIdOf(plan);
   const partnerMissing = !!mine && !C.entries.some((e) => String(e.plan.id) === mine);
   const drawingOrMoving = !!life && (life.key === 'moving' || life.key === 'drawing');
+  // the last check-in's band, said with the move invitation (the design: "At your last check-in you were on course / behind")
+  const band = lastBand === 'yes' ? 'yes' : lastBand === 'close' || lastBand === 'no' ? 'behind' : null;
   const RULES = {
     'P.readonly':    () => readonly,
     'P.closed':      () => !!closed && !!closed.next,
     'P.closedAlone': () => !!closed,
     'P.noAge':       () => key === 'unknown',
     'P.agesFromSaving': () => saverStage && !locked && stage.fromAccumulation === true,
-    'P.invite':      () => !!life && !!life.invite,
+    // the invitation is a thing to do from the stop month (before it, the home says it is coming: soonFor)
+    'P.invite':      () => !!life && !!life.invite && life.invite.passed === true,
     'P.arrive':      () => key === 'running' && stage.timingMode === 'future' && !!stop && !(latest && latest >= stop) && !arrivalDone,
     'P.taxyear':     () => retiredRunning && !setUp,
     'P.month':       () => retiredRunning && !recorded,
@@ -845,6 +849,10 @@ function rulesFor(C, built) {
     'P.checkinDue':  () => chosen && ci.due,
     'P.behind':      () => !!ci && (lastBand === 'close' || lastBand === 'no'),
     'P.holdStale':   () => locked && drawingOrMoving && holdStale,
+    // a locked plan read as Drawing only because nothing it holds is recorded: its move is still all to make, so it is said,
+    // below the month and the check-ins (the design's "drawing (lower)"); a holdings record that shows the plan's mix has
+    // nothing left to move
+    'P.moveLater':   () => locked && !!life && life.key === 'drawing' && !C.held && !!prog && !!prog.next,
     'P.recheck':     () => !!answerStale,
     'P.stale':       () => !!stale,
     'P.householdPending': () => partnerMissing,
@@ -861,7 +869,8 @@ function rulesFor(C, built) {
     ...(chosen ? { often: OFTEN[ci.every], last: ci.lastCheckIn ? monthWords(ci.lastCheckIn.month) : '', nextCheck: monthWords(ci.next) } : ci && ci.lastCheckIn ? { last: monthWords(ci.lastCheckIn.month) } : {}),
     // the move's next order, by its place in the list and its own name (never a figure: the move page says the amounts)
     ...(prog && prog.next ? { n: String(prog.doneCount + 1), of: String(prog.total), label: String(prog.next.label || prog.next.ticker || '') } : prog ? { n: String(prog.doneCount), of: String(prog.total) } : {}),
-    ...(holdCount > 0 && rec.updatedAt ? { date: dayWords(rec.updatedAt) } : {}) };
+    ...(holdCount > 0 && rec.updatedAt ? { date: dayWords(rec.updatedAt) } : {}),
+    ...(band ? { band } : {}) };
   const aboutHref = '#/plan/' + plan.id + '/about';   // "About you and when", inside V7 (editing-in-v7.md 2)
   const lastsHref = '#/plan/' + plan.id + '/lasts';   // "Does it last?", inside V7 (editing-in-v7.md 10): no hand-over to the run
   const savingHref = '#/plan/' + plan.id + '/saving'; // "What you pay in", inside V7: whether what goes in is enough (release step R2)
@@ -881,6 +890,7 @@ function rulesFor(C, built) {
     'P.taxyear': link('setUpYear', monthHref(plan), { year: taxYearLabel(ty) }),
     'P.month': recordButton(plan, toRecord),
     'P.moveNext': link('seeMove', '#/plan/' + plan.id + '/move'),
+    'P.moveLater': link('seeMove', '#/plan/' + plan.id + '/move'),
     'P.moveFinish': link('updateHold', holdHref),
     'P.firstCheckIn': link('checkIn', checkinHref),
     'P.idle': null,
@@ -908,6 +918,7 @@ function rulesFor(C, built) {
  * (nothing can be changed there), and on a closed plan only the way to the plan that carries it on. A to-do the person put
  * off with "Not now" in this window (`C.notNow`) is left out until the window closes. Pure; nothing is written.
  */
+const DISMISSIBLE = ['P.invite', 'P.holdStale', 'P.moveLater'];
 export function dueFor(C, built, R = rulesFor(C, built)) {
   if (C.readonly) return [];
   const out = [];
@@ -915,7 +926,9 @@ export function dueFor(C, built, R = rulesFor(C, built)) {
     if (NEXT_INFO.includes(pid) || !R.RULES[pid]()) continue;
     if (C.stage.key === 'closed' && pid !== 'P.closed') continue;
     const id = pid === 'P.month' && R.gap ? 'month.gap' : DUE_IDS[pid];
-    const dismiss = pid === 'P.holdStale' ? 'window' : null;
+    // put off for this window: what you hold out of date and the move on a plan that records nothing it holds ("Not now"),
+    // and the move invitation ("Not yet", the design's rank 3) — kept in the window only, nothing written
+    const dismiss = DISMISSIBLE.includes(pid) ? 'window' : null;
     if (dismiss && (C.notNow || []).includes(notNowKey(C.plan.id, id))) continue;
     out.push({ id, pid, slots: R.slots, button: R.BUTTONS[pid] || null, ...(dismiss ? { dismiss } : {}) });
   }
@@ -923,13 +936,19 @@ export function dueFor(C, built, R = rulesFor(C, built)) {
 }
 
 /**
- * What is coming but not due yet ("soon": listed apart on the home, never counted, never the rail's next): the next tax
- * year's set-up from 1 March, on a locked plan that records months, when it is not set up already. Its button chooses
+ * What is coming but not due yet ("soon": listed apart on the home, never counted, never the rail's next): the move
+ * invitation before the stop month (a locked saver within twelve months of it), and the next tax year's set-up from 1 March, on a locked plan that records months, when it is not set up already. Its button chooses
  * April on Month by month, where the set-up is reached (the tool never offers it otherwise).
  */
-function soonFor(C) {
-  const { stage, plan, locked, now, ty, readonly } = C;
-  if (readonly || !locked || !(stage.key === 'bridge' || stage.key === 'running') || now.getMonth() !== 2) return [];
+function soonFor(C, slots = {}) {
+  const { stage, plan, locked, now, ty, readonly, life } = C;
+  if (readonly) return [];
+  // the move invitation on a locked saver within twelve months of the stop: what is coming, said with its month (and the
+  // last check-in's band), never counted until the stop month makes it a thing to do
+  if (life && life.invite && !life.invite.passed) {
+    return [{ id: 'move.invite', pid: 'P.invite', soon: true, slots: { stop: monthWords(life.invite.stop), ...(slots.band ? { band: slots.band } : {}) }, button: link('checkStop', '#/plan/' + plan.id + '/about') }];
+  }
+  if (!locked || !(stage.key === 'bridge' || stage.key === 'running') || now.getMonth() !== 2) return [];
   const nextKey = taxYearKey(ty + 1);
   const ty2 = plan.decisionTool && plan.decisionTool.taxYears && plan.decisionTool.taxYears[nextKey];
   if (ty2 && ty2.yearSetupComplete) return [];
@@ -973,7 +992,7 @@ export function planPage(entries, id, stepId, { today, source = 'account', notNo
   let mv = null; try { mv = moveInputs(plan, { now }); } catch { mv = null; }
   const held = holdingsSummary(normaliseHoldings(plan.holdings)).count > 0;
   let life = null; try { life = stageOf(plan, now, { placing: stage, move: { recorded: held, complete: mv && mv.diff ? mv.diff.complete === true : null } }); } catch { life = null; }
-  const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, notNow: Array.isArray(notNow) ? notNow : [] };
+  const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, held, notNow: Array.isArray(notNow) ? notNow : [] };
   // how far the stop is, for what a saver keeps "For later" (steps.js laterFor): months to the stop month, in years
   const yearsToStop = Number.isFinite(stage.monthsToStart) && stage.timingMode === 'future' ? stage.monthsToStart / 12 : (Number.isFinite(stage.yearsToStart) ? stage.yearsToStart : null);
   const listed = stepsFor(stage.key, { locked, linked: partners.length > 0, manyPlans: list.length > 1, yearsToStop });
@@ -1029,7 +1048,7 @@ export function planPage(entries, id, stepId, { today, source = 'account', notNo
     next: readonly ? { ...next, button: null } : next,
     // 7.3.0 (research/v7/one-product-design.md, "The to-do reader"): every thing due now, in order — the first is `next`
     due,
-    soon: soonFor(C),
+    soon: soonFor(C, next.slots),
     life,
     // the questions the rail ends with: savers get A and B, retired stages C (2.4)
     // (what the B link opens B with, a saver's own figures, is saving.js askFillOf's: the plan source puts it on the page as

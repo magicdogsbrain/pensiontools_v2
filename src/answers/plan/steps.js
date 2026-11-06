@@ -58,18 +58,19 @@ export const SAVER_STAGES = Object.freeze(['saving', 'approaching', 'committed-s
 /**
  * 7.3.0 (research/v7/one-product-design.md, "The to-do reader"): one engine for the rail and the plan's home. The order is
  * the design's rank table — closed, age, the move invitation, the lock, the tax year, the arrival, the month, the move,
- * the first check-in, the check-in due, behind, an aim, what you hold out of date, an out-of-date draft or answer, the
- * household — and then the sentences that are not things to do (NEXT_INFO), said only when nothing is due. The rail's
+ * the first check-in, the check-in due, behind, an aim, what you hold out of date, the move still to make on a drawing plan
+ * that has no record of what it holds (the design's "move.next: moving (lead), drawing (lower)"), an out-of-date draft or
+ * answer, the household — and then the sentences that are not things to do (NEXT_INFO), said only when nothing is due. The rail's
  * "Next" is the first thing to do (read.js dueFor), so it is always the home's first to-do.
  */
-export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.closed', 'P.closedAlone', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.draft', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.recheck', 'P.stale', 'P.householdPending',
+export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.closed', 'P.closedAlone', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.draft', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending',
   'P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
 /** The next sentences that say where things stand rather than something to do: never a to-do on the home. */
 export const NEXT_INFO = Object.freeze(['P.readonly', 'P.closedAlone', 'P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
 /** Each thing to do by the design's own id (the home and its tests name them so; the rail's words are the P.* ones). */
 export const DUE_IDS = Object.freeze({
   'P.closed': 'closed.next', 'P.noAge': 'plan.noAge', 'P.agesFromSaving': 'plan.agesFromSaving', 'P.invite': 'move.invite', 'P.draft': 'lock.first',
-  'P.taxyear': 'month.taxYear', 'P.arrive': 'month.arrive', 'P.month': 'month.record', 'P.moveNext': 'move.next', 'P.moveFinish': 'move.finish',
+  'P.taxyear': 'month.taxYear', 'P.arrive': 'month.arrive', 'P.month': 'month.record', 'P.moveNext': 'move.next', 'P.moveLater': 'move.next', 'P.moveFinish': 'move.finish',
   'P.firstCheckIn': 'checkin.first', 'P.pot': 'checkin.due', 'P.checkinDue': 'checkin.due', 'P.behind': 'checkin.behind', 'P.noAim': 'saving.noAim',
   'P.holdStale': 'hold.stale', 'P.stale': 'draft.stale', 'P.recheck': 'answer.stale', 'P.householdPending': 'household.pending'
 });

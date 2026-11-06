@@ -339,9 +339,10 @@ describe('E2 — the stale-answer rule', () => {
     expect(stale(planner)).toMatchObject({ diffs: ['years'], changedOn: null });
   });
   it('the page: P.recheck after a saver\'s check-in sentences (release step R3) and just before P.stale; the sentence and its button to the run; the stale line; not on a locked plan', () => {
-    // 7.3.0 (retaken on purpose): the design's rank table — the check-ins (10–12), an aim (13), what you hold (14), then the
-    // out-of-date answer and draft (15)
-    expect(NEXT_ORDER.slice(NEXT_ORDER.indexOf('P.pot'), NEXT_ORDER.indexOf('P.recheck'))).toEqual(['P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale']);
+    // 7.3.0 (retaken on purpose): the design's rank table — the check-ins (10–12), an aim (13), what you hold (14), the move
+    // still to make on a drawing plan with no record of what it holds (rank 8, "drawing (lower)"), then the out-of-date
+    // answer and draft (15)
+    expect(NEXT_ORDER.slice(NEXT_ORDER.indexOf('P.pot'), NEXT_ORDER.indexOf('P.recheck'))).toEqual(['P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater']);
     expect(NEXT_ORDER.indexOf('P.recheck')).toBe(NEXT_ORDER.indexOf('P.stale') - 1);
     expect(PLAN.next['P.recheck']).toContain('check it still lasts');
     const plan = withAnswer(base);
@@ -353,7 +354,10 @@ describe('E2 — the stale-answer rule', () => {
     expect(recheck.id).toBe('answer.stale');
     expect(recheck.button).toEqual({ id: 'recheck', href: '#/plan/' + changed.id + '/lasts', slots: {} });   // into "Does it last?" inside V7 (editing-in-v7.md 10), no hand-over
     expect(pg.answerStale).toMatchObject({ workedOutOn: '20 September 2026', changedOn: '2 October 2026' });
+    // the unchanged plan (7.3.0, retaken on purpose: it was P.approaching): no out-of-date answer, and its Next is the saver's
+    // first check-in, the design's rank 10, ahead of the "approaching" sentence that says where things stand
     expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).due.map((d) => d.pid)).not.toContain('P.recheck');
+    expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).next.id).toBe('P.firstCheckIn');
     expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).answerStale).toBe(null);
     const locked = { ...changed, decisionTool: { ...changed.decisionTool, settings: { ...changed.decisionTool.settings, locked: true, lockedAt: '2026-10-01T00:00:00.000Z' } } };
     expect(planPage([{ plan: locked }], locked.id, 'plan', { today: TODAY }).answerStale).toBe(null);

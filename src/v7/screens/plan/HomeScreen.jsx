@@ -19,13 +19,16 @@ const T = 'plan.home';
 /** A to-do's title and line, filled from its slots. */
 const itemWords = (it) => {
   const words = (it.soon ? HOME.soon[it.id] : null) || HOME.items[it.id] || { title: PLAN.next[it.pid] || it.id, detail: '' };
-  return { title: fill(words.title, it.slots), detail: fill(words.detail, it.slots) };
+  // the move invitation says how the last check-in went, when there was one
+  const band = it.id === 'move.invite' && it.slots && HOME.inviteBand[it.slots.band] ? ' ' + HOME.inviteBand[it.slots.band] : '';
+  return { title: fill(words.title, it.slots), detail: fill(words.detail, it.slots) + band };
 };
 
 function Item({ it, first, planId, dispatch, partner = null }) {
   const w = itemWords(it);
   const b = it.button;
-  const label = b ? fill(PLAN.buttons[b.id] || b.id, b.slots) : null;
+  // a month missed in an earlier tax year is named with its year on the home, the button as the title ("Record February 2025")
+  const label = b ? fill(PLAN.buttons[b.id] || b.id, it.id === 'month.gap' && it.slots.month ? { ...b.slots, month: it.slots.month } : b.slots) : null;
   // a soon item's button chooses the month it opens Month by month on (the tax year's set-up is reached from there)
   const onPress = b && b.choose ? () => dispatch({ type: 'plan/edit', planId: partner ? partner.planId : planId, path: 'mo.month', value: b.choose }) : undefined;
   return (
@@ -37,7 +40,7 @@ function Item({ it, first, planId, dispatch, partner = null }) {
       </span>
       <span class="home-item-acts">
         {b && b.href && <LinkButton testid={`${T}.todo.${it.id}${partner ? '.' + partner.planId : ''}`} kind={first ? 'pop' : 'quiet'} href={b.href} onClick={onPress}>{label}</LinkButton>}
-        {it.dismiss && !partner && <Button testid={`${T}.notNow.${it.id}`} kind="quiet" onClick={(e) => notNowPress(e, () => dispatch({ type: 'todo/notNow', key: planId + '|' + it.id }))}>{HOME.notNow}</Button>}
+        {it.dismiss && !partner && <Button testid={`${T}.notNow.${it.id}`} kind="quiet" onClick={(e) => notNowPress(e, () => dispatch({ type: 'todo/notNow', key: planId + '|' + it.id }))}>{it.id === 'move.invite' ? HOME.notYet : HOME.notNow}</Button>}
       </span>
     </li>
   );
@@ -104,6 +107,9 @@ function headlineOf(H) {
   return W.none;
 }
 
+/** The questions a home offers that really open with this plan's figures (a saver's B): the fold's words promise no more. */
+const filledAsk = (H, view) => H.ask.filter((q) => !!(view.askFill && view.askFill[q]));
+
 /** A question with the plan's figures (the rail's links, moved here): B with a saver's own boxes filled, the others plain. */
 function Ask({ H, view, dispatch }) {
   return (
@@ -139,6 +145,11 @@ export function HomeScreen(state, dispatch) {
   const stepName = (id) => (id === 'plan' && H.locked ? PLAN.steps.plan.locked : PLAN.steps[id].label);
   const steps = H.steps.filter((x) => !x.later);
   const later = H.steps.filter((x) => x.later);
+  const filled = filledAsk(H, view);
+  // the closed plan's way on is its to-do when it is listed: the notice then says what happened, without a second button
+  const closedListed = todo.items.some((it) => it.id === 'closed.next');
+  // something on this plan put off in this window ("Not now", "Not yet"): said once, with how long it lasts
+  const putOff = !H.readonly && ((state.ui && state.ui.notNow) || []).some((k) => String(k).startsWith(String(planId) + '|'));
   return {
     question: null, rail: false, full: false,
     content: (
@@ -153,7 +164,7 @@ export function HomeScreen(state, dispatch) {
           {/* the plan's line, as every page of the plan says it: the stage in words, when it was locked */}
           <p class="plan-stage-line" data-testid="plan.stageLine">{H.line ? fill(PLAN.stageLines[H.line.id], H.line.slots) : ''}{H.lockedOn ? ' ' + fill(PLAN.page.lockedOn, { date: H.lockedOn }) : ''}</p>
           {H.readonly && <p class="notice" role="status" data-testid="plan.readonly">{HOME.readonly}</p>}
-          {H.closed && <p class="notice" role="status" data-testid="plan.closed">{H.closed.hasDocument ? PLAN.page.closedKeeps : PLAN.page.closedKeepsNoDocument}{H.closed.next && <> <LinkButton testid="plan.closed.open" kind="quiet" href={href.plan(H.closed.next.id)}>{fill(PLAN.buttons.openNext, { name: H.closed.next.name })}</LinkButton></>}</p>}
+          {H.closed && <p class="notice" role="status" data-testid="plan.closed">{H.closed.hasDocument ? PLAN.page.closedKeeps : PLAN.page.closedKeepsNoDocument}{H.closed.next && !closedListed && <> <LinkButton testid="plan.closed.open" kind="quiet" href={href.plan(H.closed.next.id)}>{fill(PLAN.buttons.openNext, { name: H.closed.next.name })}</LinkButton></>}</p>}
           {H.before && <p class="note" data-testid="plan.before">{H.before.previous ? fill(PLAN.page.before, { name: H.before.previous.name, month: H.before.until }) : fill(PLAN.page.beforeAlone, { month: H.before.until })}{H.before.previous && <> <LinkButton testid="plan.before.open" kind="quiet" href={href.plan(H.before.previous.id)}>{fill(PLAN.buttons.openPrevious, { name: H.before.previous.name })}</LinkButton></>}</p>}
           {H.source === 'window' && <p class="note" data-testid="plan.windowWarning">{PLAN.page.windowWarning}</p>}
         </div>
@@ -174,6 +185,7 @@ export function HomeScreen(state, dispatch) {
           {todo.partner.length > 0 && (
             <ul class="home-items home-partner" data-testid={`${T}.partner`}>{todo.partner.map((it) => <Item key={it.planId + it.id} it={it} first={false} planId={planId} dispatch={dispatch} partner={{ planId: it.planId, name: it.name }} />)}</ul>
           )}
+          {putOff && <p class="note" role="status" data-testid={`${T}.notNowDone`}>{HOME.notNowDone}</p>}
           {todo.soon.length > 0 && (
             <div class="home-soon" data-testid={`${T}.soon`}>
               <p class="eyebrow">{HOME.soonTitle}</p>
@@ -182,16 +194,18 @@ export function HomeScreen(state, dispatch) {
           )}
         </section>
 
-        <div class="home-row2">
+        <div class={`home-row2${H.year ? '' : ' is-one'}`}>
           {H.year && <YearView Y={H.year} />}
           <Counted as="section" class="home-where" data-region="home-where" data-testid={`${T}.where`}>
             <h2 class="eyebrow">{HOME.whereTitle}</h2>
+            {/* the headline only: the result and a few lines; where each figure is from, and the rest, on the step itself */}
             {H.where.length === 0 ? <p class="note">{HOME.whereNone}</p> : H.where.map((b) => (
               <div class="home-where-block" key={b.step} data-step={b.step}>
-                <p class="line"><PlanSentence s={b.result} figures={b.figures} /></p>
-                {b.lines.length > 0 && <ul class="plan-lines">{b.lines.map((l, i) => <PlanLine key={i} line={l} figures={b.figures} />)}</ul>}
+                {b.result && <p class="line"><PlanSentence s={b.result} figures={b.figures} /></p>}
+                {b.lines.length > 0 && <ul class="plan-lines">{b.lines.map((l, i) => <PlanLine key={i} line={l} figures={b.figures} hideSource />)}</ul>}
               </div>
             ))}
+            {H.whereFull && <p class="home-where-more"><a href={H.whereFull} data-testid={`${T}.whereFull`}>{HOME.whereMore}</a></p>}
           </Counted>
         </div>
 
@@ -202,7 +216,8 @@ export function HomeScreen(state, dispatch) {
               {H.tools.map((t) => (
                 <li key={t.id}><a class="home-tool" href={t.href} data-testid={`${T}.tool.${t.id}`}>
                   <span class="home-tool-name">{stepName(t.id)}</span>
-                  {t.result && <span class="home-tool-state"> · <PlanSentence s={t.result} figures={t.figures} /></span>}
+                  {t.moves ? <span class="home-tool-state"> · {fill(HOME.toolMoves, { done: String(t.moves.done), of: String(t.moves.of) })}</span>
+                    : t.result && <span class="home-tool-state"> · <PlanSentence s={t.result} figures={t.figures} /></span>}
                 </a></li>
               ))}
             </ul>
@@ -233,8 +248,8 @@ export function HomeScreen(state, dispatch) {
 
         {H.ask.length > 0 && !H.readonly && (
           <details class="plan-fold" data-testid={`${T}.ask`}>
-            <summary>{HOME.askTitle}</summary>
-            <p class="note">{HOME.askLead}</p>
+            <summary>{filled.length ? HOME.askTitle : HOME.askTitlePlain}</summary>
+            <p class="note" data-testid={`${T}.askLead`}>{filled.length ? fill(HOME.askLead, { question: PLAN.page.ask[filled[0]] }) : HOME.askLeadPlain}</p>
             <Ask H={H} view={view} dispatch={dispatch} />
           </details>
         )}

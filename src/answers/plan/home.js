@@ -4,7 +4,7 @@
  * NOTHING is written because a plan was opened, and nothing here is stored (no stage, no to-do list).
  *
  *   homeOf(entries, id, { today, source, notNow, page })
- *     → { found, id, name, …, stage, todo, quiet, where, year, tools, steps, change, ask }
+ *     → { found, id, name, …, stage, todo, quiet, where, whereFull, year, tools, steps, change, ask }
  *
  * One engine: the to-dos are read.js dueFor's, the very list whose first item is the rail's "Next" (planPage `due`), so
  * the two can never disagree. A partner's plan adds its own due lines (the month, the tax year, the move; never its
@@ -15,8 +15,7 @@
  * Pure: no clock (the day arrives as `today`), no storage.
  */
 import { planPage, dateOf, monthWords, monthName } from './read.js';
-import { NEXT_ORDER } from './steps.js';
-import { whereAmIFor, historyAscending } from '../../services/PlanReading.js';
+import { whereAmIFor, historyAscending, moveInputs } from '../../services/PlanReading.js';
 import { taxYearStartOf, taxYearKey, taxYearLabel } from '../../services/PlanTiming.js';
 import { readDayOf } from '../../services/PlanClosed.js';
 import { isFilledIn } from '../../services/MonthFill.js';
@@ -24,8 +23,18 @@ import { ym } from './dates.js';
 
 /** At most this many to-dos are listed at once; the rest are "and N more" (the design's rule). */
 export const TODO_SHOWN = 3;
-/** A partner's to-dos that reach this home: the month, the tax year and the move (the design's ranks up to 9). */
-const PARTNER_LAST = NEXT_ORDER.indexOf('P.moveFinish');
+/**
+ * A partner's to-dos that reach this home: the month, the tax year and the move (the design's ranks 5 to 9) — never that
+ * plan's age, lock or invitation, whose words speak to the person whose plan it is ("Add your age", "Lock the plan").
+ */
+const PARTNER_IDS = ['month.taxYear', 'month.arrive', 'month.record', 'month.gap', 'move.next', 'move.finish'];
+/**
+ * "Where you are" on the home is the headline, not the whole reading: the result sentence and at most this many of its
+ * lines, chosen below; the full reading, with where each figure is from, is one link away on the "Where you are" step.
+ */
+export const WHERE_LINES = 3;
+/** The lines the home shows, in this order: like with like (taken against what the plan said), the pot and its middle line. */
+const WHERE_HEADLINE = ['where.compareLess', 'where.compareLessCut', 'where.compareMore', 'where.compareSame', 'where.pot', 'where.potMid', 'where.ladderMonthly'];
 /** The tools a home lists, by stage, in order (each a step of the plan with its one-line state). */
 const TOOLS = {
   saving: ['checkin', 'saving', 'budget', 'hold', 'household'],
@@ -142,17 +151,36 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
       if (!linked || pg.closed) continue;
       const their = planPage(list, e.plan.id, null, { today, source, notNow });
       if (!their.found || their.closed) continue;
-      for (const d of their.due || []) if (NEXT_ORDER.indexOf(d.pid) <= PARTNER_LAST) partner.push(item(d, { planId: String(e.plan.id), name: their.name }));
+      for (const d of their.due || []) if (PARTNER_IDS.includes(d.id)) partner.push(item(d, { planId: String(e.plan.id), name: their.name }));
     }
   }
   const stepOf = (sid) => pg.steps.find((s) => s.id === sid) || null;
-  // where you are: the saver's reading against the path (or the last check-in), the move and the months against the plan
+  // the move, counted once on the home: its orders (TransitionPlanner.progress, the very list the to-do names the next of),
+  // in the headline and the move tool alike — never the orders in one place and the gilts bought in another
+  let prog = null; try { const mv = moveInputs(plan, { now }); prog = mv && mv.prog && mv.prog.total > 0 ? mv.prog : null; } catch { prog = null; }
+  const moves = prog ? { done: prog.doneCount, of: prog.total } : null;
+  // where you are, as a headline: the saver's reading against the path (or the last check-in); a moving plan's share of the
+  // mix held, then its months; a drawing plan's months against the plan — each the result and a few chosen lines, the full
+  // reading on the "Where you are" step
   const where = [];
-  const add = (sid) => { const s = stepOf(sid); if (s && s.result) where.push({ step: sid, result: s.result, lines: s.lines || [], figures: s.figures || {} }); };
-  if (stageKey === 'saving') { if (stepOf('where')) add('where'); else add('checkin'); }
-  else if (stageKey === 'moving') { add('move'); add('where'); }
+  let cut = false;
+  const add = (sid, { result = true, ids = WHERE_HEADLINE } = {}) => {
+    const s = stepOf(sid);
+    if (!s || !s.result) return;
+    const all = s.lines || [];
+    const room = Math.max(0, WHERE_LINES - where.reduce((n, b) => n + b.lines.length, 0));
+    const lines = ids.map((id) => all.find((l) => l.id === id)).filter(Boolean).slice(0, room);
+    if (lines.length < all.length) cut = true;
+    if (!result && !lines.length) return;
+    where.push({ step: sid, result: result ? s.result : null, lines, figures: s.figures || {} });
+  };
+  if (stageKey === 'saving') { if (stepOf('where')) add('where', { ids: [] }); else add('checkin', { ids: [] }); }
+  else if (stageKey === 'moving') { add('move', { result: false, ids: ['move.held'] }); add('where'); }
   else if (stageKey === 'drawing' || stageKey === 'closed') add('where');
-  const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {} }));
+  const whereFull = cut && stepOf('where') ? '#/plan/' + pg.id + '/where' : null;
+  const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {},
+    // the move tool says the same count as the headline and the to-do: the orders done
+    ...(s.id === 'move' && moves && !s.done ? { moves } : {}) }));
   // the steps, read-only with each result line; a saver's "For later" group stays on a plan not locked, but a locked plan
   // is being carried out: its steps are listed plainly, never marked for later or not done
   const steps = pg.steps.map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: (!pg.locked && s.railResult) || s.result, figures: s.figures || {}, later: !pg.locked && !!s.later, done: s.state === 'done' }));
@@ -165,16 +193,16 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
       { id: 'unlock', href: base + 'plan' }]
     : [{ id: 'about', href: base + 'about' }, { id: 'income', href: base + 'income' }, { id: 'spend', href: base + 'spend' }, { id: 'pots', href: base + 'pots' },
       { id: 'lasts', href: base + 'lasts' }, { id: 'way', href: base + 'way' }, { id: 'mix', href: base + 'mix' }, ...(pg.example ? [] : [{ id: 'lock', href: base + 'lock' }])];
-  const moveStep = stepOf('move');
   return {
     found: true, id: pg.id, name: pg.name, example: pg.example, readonly: pg.readonly, source: pg.source,
     locked: pg.locked, lockedOn: pg.lockedOn, line: pg.line, closing: pg.closing, before: pg.before,
     closed: pg.closed, stageKey: pg.stageKey,
     stage: { key: life ? life.key : null, invite: life ? life.invite : null, stop: life && life.stop ? monthWords(life.stop) : null, strip: stripOf(life),
-      moves: moveStep && moveStep.figures && moveStep.figures.moves != null ? { done: moveStep.figures.movesDone, of: moveStep.figures.moves } : null },
+      moves: stageKey === 'moving' ? moves : null },
     todo: { items: due.slice(0, TODO_SHOWN), more: due.slice(TODO_SHOWN), count: due.length, soon: (pg.soon || []).map((d) => item(d)), partner },
     quiet: quietOf({ ...pg, lastRecord }, life, now),
     where,
+    whereFull,
     year: yearOf(plan, pg, now),
     tools,
     steps,

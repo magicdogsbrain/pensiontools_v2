@@ -78,14 +78,15 @@ function hrefOf(place, plans) {
 
 /**
  * Signed in on the account page with no way back to anything (a new device: 7.3.0, research/v7/one-product-design.md
- * "Landing"): the last plan the account was on, at its home when it is locked, instead of staying on "Your account";
+ * "Landing"): the last plan the account was on, at its home (locked or not), instead of staying on "Your account";
  * undefined while not known yet, null to stay (no plan remembered, or that plan gone or closed).
  */
 export function afterSignInFor(state) {
   const to = landingFor(state, null);
   if (to === undefined) return undefined;
   const account = state.ui.profile ? cleanPlace(state.ui.profile.lastLocation) : null;
-  return to && account && to !== href.plans() ? to : null;
+  // the plan's home whether or not it is locked: a new device starts from what is due, not from a step left open elsewhere
+  return to && account && to !== href.plans() ? href.plan(account.planId) : null;
 }
 
 /**

@@ -24,6 +24,7 @@ import { CHECKIN as W } from '../../../src/v7/copy/checkin.js';
 import { fill } from '../../../src/v7/components/index.js';
 import { KEEP } from '../../../src/v7/copy/keep.js';
 import { corpus, entryOf, stateWith, noon } from './_plans.js';
+import { planPage } from '../../../src/answers/plan/read.js';
 
 const C = corpus();
 const SCOPES = ['all', 'record', 'saver', 'planner', 'result'];
@@ -135,7 +136,12 @@ describe('"Check in", drawn', () => {
     expect(one(due.root, `${T}.again`), 'the last check-in is from another month').toBe(null);
     expect(due.text).toContain('Next: your yearly check-in (the last was November 2026).');
     const list = draw(stateWith([{ plan: aged, newer: false, failed: false }], '#/plans', { today, source: 'window', session: 'nobody' }));
-    expect(one(list.root, `plans.checkInDue.${aged.id}`).textContent).toBe('Check-in due.');
+    // (7.3.0, retaken on purpose: the row's to-do count covers the check-in due, so the old "Check-in due." mark is said only
+    // on a row with no count) — the row says "1 to do", and its home lists the check-in first
+    expect(one(list.root, `plans.checkInDue.${aged.id}`)).toBe(null);
+    const dueNow = planPage([{ plan: aged, newer: false, failed: false }], aged.id, null, { today, source: 'window' }).due;
+    expect(dueNow.map((d) => d.id)).toContain('checkin.due');
+    expect(one(list.root, `plans.todo.${aged.id}`).getAttribute('data-count')).toBe(String(dueNow.length));
     clean(due.words);
     // the second check-in: pay-in raised from December
     const { plan, result } = checkedIn(aged, today, { 'ci.pension': '74600', 'ci.ownPct': '16', 'ci.since': '2026-12', 'ci.paused': 'no' });

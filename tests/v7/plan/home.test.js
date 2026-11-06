@@ -32,6 +32,8 @@ import { A } from '../../../src/v7/state/actions.js';
 import { parse, format, PLAN_SUB_STEPS } from '../../../src/v7/router/routes.js';
 import { startPlanWrite } from '../../../src/v7/effects/planWrite.js';
 import { startPlace, landingFor, afterSignInFor, NOT_NOW_KEY } from '../../../src/v7/effects/place.js';
+import { moveInputs } from '../../../src/services/PlanReading.js';
+import { WHERE_LINES } from '../../../src/answers/plan/home.js';
 import { upgradedList, viewFor } from '../../../src/v7/effects/planSource.js';
 import { corpus, entriesAt, entryOf, household, noon, DATES, TODAY } from './_plans.js';
 
@@ -159,7 +161,8 @@ describe('one engine: the rail\'s Next is the first thing due, and the home\'s f
     // the design's rank table: the invitation, the lock, the tax year, the arrival, the month, the move, the check-ins, the
     // aim, what you hold, the out-of-date answer and draft, the household — then the sentences that say where things stand
     const due = NEXT_ORDER.filter((x) => DUE_IDS[x]);
-    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.draft', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.recheck', 'P.stale', 'P.householdPending']);
+    // (P.moveLater: the move on a drawing plan that records nothing it holds, the design's "move.next: drawing (lower)")
+    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.draft', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending']);
     expect(NEXT_ORDER.slice(-6)).toEqual(['P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
   });
   for (const today of DATES) {
@@ -270,7 +273,8 @@ describe('the plans list, a partner\'s due lines, the soon item', () => {
     expect([row('04-buckets-running').life, row('04-buckets-running').todo]).toEqual(['drawing', 2]);
     expect([row('03-gilt-ladder-runup').life, row('03-gilt-ladder-runup').todo]).toEqual(['moving', 3]);
     expect([row('05-saver-committed').life, row('05-saver-committed').todo]).toEqual(['saving', 1]);
-    expect([row('18-moved-to-new-plan').life, row('18-moved-to-new-plan').todo]).toEqual(['closed', 1]);
+    // a closed plan's way on is not counted on its row (retaken on purpose: it was 1, "Closed · 1 to do")
+    expect([row('18-moved-to-new-plan').life, row('18-moved-to-new-plan').todo]).toEqual(['closed', 0]);
     const put = planRows(entries, { today: TODAY, notNow: [C['04-buckets-running'].id + '|hold.stale'] }).groups.flatMap((g) => g.rows);
     expect(put.find((r) => r.id === String(C['04-buckets-running'].id)).todo).toBe(1);
   });
@@ -337,6 +341,9 @@ describe('landing on the home', () => {
     const locked = copy(C['04-buckets-running']);
     expect(afterSignInFor(state([locked], { lastSeenVersion: null, lastLocation: { planId: locked.id, step: null } }))).toBe('#/plan/' + locked.id);
     expect(afterSignInFor(state([locked], { lastSeenVersion: null }))).toBe(null);
+    // a plan not locked too: its home, not the step it was left on elsewhere (the design's "Landing")
+    const draft = copy(C['02-pnv-draft']);
+    expect(afterSignInFor(state([draft], { lastSeenVersion: null, lastLocation: { planId: draft.id, step: 'about' } }))).toBe('#/plan/' + draft.id);
     const store = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
     store.dispatch({ type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
     store.dispatch({ type: A.ROUTE_SET, route: parse('#/account') });
@@ -395,7 +402,7 @@ describe('the words of the home (copy/home.js)', () => {
   };
   const slot = (s) => s.replace(/\{(month|stop|nextCheck|last)\}/g, 'April 2027').replace(/\{(monthName|next)\}/g, 'October').replace(/\{date\}/g, '20 March 2026')
     .replace(/\{(year|savedYear)\}/g, '2027/28').replace(/\{(n|of|done)\}/g, '3').replace(/\{total\}/g, '1,000').replace(/\{(name|closed)\}/g, 'Ladder plan').replace(/\{label\}/g, 'Index-linked gilt 2031')
-    .replace(/\{title\}/g, 'Record October').replace(/\{drawn\}/g, '£1,200').replace(/\{plan\}/g, '£1,100');
+    .replace(/\{title\}/g, 'Record October').replace(/\{question\}/g, 'Am I saving enough?').replace(/\{drawn\}/g, '£1,200').replace(/\{plan\}/g, '£1,100');
   it('pass the banned list in every scope a plan page is shown in — records, retired and saver alike; no slot left unfilled', () => {
     const all = [...strings(HOME), ...strings({ WORKING })];
     const context = all.map(([, s]) => slot(s)).join('\n');
@@ -404,5 +411,99 @@ describe('the words of the home (copy/home.js)', () => {
     expect(hits).toEqual([]);
     for (const [where, s] of all) expect(slot(s), where).not.toMatch(/\{\w+\}/);
     for (const [where, s] of all) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate|dashboard|wizard|onboarding|transition)\b/i);
+  });
+});
+
+describe('what the reviews found (7.3.0): the invitation, the move on a drawing plan, one count, the partner, where you are', () => {
+  it('the move invitation: on a locked saver it is what is coming (Soon, never counted, never the rail\'s Next) until the stop month', () => {
+    for (const today of ['2037-03-10', '2038-01-10']) {
+      const e = entryOf(C['05-saver-committed'], today);
+      const pg = planPage([e], e.plan.id, null, { today });
+      expect(pg.life.invite, today).toMatchObject({ stop: '2038-02', passed: false, locked: true });
+      expect(pg.due.map((d) => d.id), today).not.toContain('move.invite');
+      expect(pg.next.id, today).not.toBe('P.invite');
+      const h = homeOf([e], e.plan.id, { today });
+      expect(h.todo.soon.map((x) => [x.id, x.soon, x.slots.stop]), today).toEqual([['move.invite', true, 'February 2038']]);
+      expect(fill(HOME.soon['move.invite'].title, h.todo.soon[0].slots)).toBe('Your move is coming');
+    }
+    // the locked case once the stop month has come (a placing still saving then): a thing to do
+    const placing = { key: 'committed-saving', locked: true, timingMode: 'future', startMonth: '2038-02', monthsToStart: 0 };
+    expect(stageOf({}, new Date(2038, 1, 10, 12), { placing }).invite).toEqual({ stop: '2038-02', months: 0, passed: true, locked: true });
+  });
+  it('an unlocked saver past the stop: the invitation is the first to-do, with "Not yet" for this window, and the last check-in\'s band', () => {
+    const today = '2030-10-02';
+    const e = entryOf(C['10-couple-b'], today);
+    const pg = planPage([e], e.plan.id, null, { today });
+    expect(pg.due[0]).toMatchObject({ id: 'move.invite', pid: 'P.invite', dismiss: 'window' });
+    expect(pg.next.id).toBe('P.invite');
+    const off = planPage([e], e.plan.id, null, { today, notNow: [e.plan.id + '|move.invite'] });
+    expect(off.due.map((d) => d.id)).not.toContain('move.invite');
+    expect(homeOf([e], e.plan.id, { today, notNow: [e.plan.id + '|move.invite'] }).todo.items.map((x) => x.id)).not.toContain('move.invite');
+    // with a check-in behind it, the band rides on the item for the words ("At your last check-in you were …")
+    const raw = copy(C['10-couple-b']);
+    raw.accumulationTool = { ...(raw.accumulationTool || {}), checkIns: [{ date: '2030-09-15', pot: { pension: 200000, isa: 0, other: 0 }, reading: { band: 'close' }, recordedAt: '2030-09-15T12:00:00.000Z' }] };
+    const withBand = planPage([entryOf(raw, today)], raw.id, null, { today });
+    expect(withBand.due[0].id).toBe('move.invite');
+    expect(withBand.due[0].slots.band).toBe('behind');
+    expect(HOME.inviteBand.yes).toBe('At your last check-in you were on course.');
+    expect(HOME.inviteBand.behind).toBe('At your last check-in you were not on course yet.');
+  });
+  it('a locked plan read as Drawing with nothing it holds recorded: its move is still said, below the month, and can be put off', () => {
+    const raw = copy(C['03-gilt-ladder-runup']);
+    raw.holdings = null;
+    const e = entryOf(raw, TODAY);
+    const pg = planPage([e], e.plan.id, null, { today: TODAY });
+    expect(pg.life.key).toBe('drawing');
+    expect(pg.due.map((d) => [d.id, d.pid, d.dismiss || null])).toEqual([['month.record', 'P.month', null], ['move.next', 'P.moveLater', 'window']]);
+    expect(planPage([e], e.plan.id, null, { today: TODAY, notNow: [e.plan.id + '|move.next'] }).due.map((d) => d.id)).toEqual(['month.record']);
+    // a plan whose holdings show the plan's mix (04) has nothing to move: no move to-do
+    expect(planPage(entriesAt(TODAY), C['04-buckets-running'].id, null, { today: TODAY }).due.map((d) => d.id)).not.toContain('move.next');
+  });
+  it('a moving plan says one count on its home: the orders, in the headline, the move tool and the to-do alike', () => {
+    for (const name of ['03-gilt-ladder-runup', '13-stopped-drawing-since']) {
+      const entries = entriesAt(TODAY);
+      const id = entryOf(C[name], TODAY).plan.id;
+      const h = homeOf(entries, id, { today: TODAY });
+      const prog = moveInputs(entries.find((e) => e.plan.id === id).plan, { now: noon(TODAY) }).prog;
+      expect(h.stage.key).toBe('moving');
+      expect(h.stage.moves, name).toEqual({ done: prog.doneCount, of: prog.total });
+      expect(h.tools.find((t) => t.id === 'move').moves, name).toEqual({ done: prog.doneCount, of: prog.total });
+      expect(h.todo.items.find((x) => x.id === 'move.next').slots.of, name).toBe(String(prog.total));
+      // where you are: the share of the mix held, never the gilts bought beside the orders
+      expect(h.where[0]).toMatchObject({ step: 'move', result: null });
+      expect(h.where[0].lines.map((l) => l.id)).toEqual(['move.held']);
+    }
+  });
+  for (const today of DATES) {
+    it(`"Where you are" on every home is a headline, at ${today}: the result and at most ${WHERE_LINES} lines, the full reading one link away`, () => {
+      const entries = entriesAt(today);
+      for (const e of entries) {
+        const h = homeOf(entries, e.plan.id, { today });
+        const lines = h.where.reduce((n, b) => n + b.lines.length, 0);
+        expect(lines, e.plan.id).toBeLessThanOrEqual(WHERE_LINES);
+        // never the year's totals twice: the result says them, the lines are like with like and the pot
+        for (const b of h.where) expect(b.lines.map((l) => l.id), e.plan.id).not.toContain('where.taken');
+        const full = planPage(entries, e.plan.id, 'where', { today }).steps.find((s) => s.id === 'where');
+        if (full && full.lines.length > lines) expect(h.whereFull, e.plan.id).toBe('#/plan/' + e.plan.id + '/where');
+      }
+    });
+  }
+  it('a month missed in an earlier tax year is named with its year, title and button alike', () => {
+    const entries = entriesAt(TODAY);
+    const id = entryOf(C['13-stopped-drawing-since'], TODAY).plan.id;
+    const gap = homeOf(entries, id, { today: TODAY }).todo.items.find((x) => x.id === 'month.gap');
+    expect(gap).toBeTruthy();
+    expect(fill(HOME.items['month.gap'].title, gap.slots)).toMatch(/^Record [A-Z][a-z]+ \d{4}$/);
+    expect(gap.slots.month).toMatch(/ \d{4}$/);
+  });
+  it('a partner\'s plan adds only its month, tax year and move: never its age, lock or invitation, whose words speak to its owner', () => {
+    const entries = entriesAt(TODAY);
+    const a = entryOf(C['09-couple-a'], TODAY).plan.id;
+    const b = entryOf(C['10-couple-b'], TODAY).plan.id;
+    expect(planPage(entries, a, null, { today: TODAY }).due.map((d) => d.id)).toContain('lock.first');
+    expect(homeOf(entries, b, { today: TODAY }).todo.partner.map((x) => x.id)).not.toContain('lock.first');
+    for (const e of entries) for (const x of homeOf(entries, e.plan.id, { today: TODAY }).todo.partner) {
+      expect(['month.taxYear', 'month.arrive', 'month.record', 'month.gap', 'move.next', 'move.finish']).toContain(x.id);
+    }
   });
 });

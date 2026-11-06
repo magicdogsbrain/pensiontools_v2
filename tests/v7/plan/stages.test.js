@@ -163,11 +163,18 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
     const recorded = { ...plan, decisionTool: { ...plan.decisionTool, history: [...plan.decisionTool.history, { date: '2026-10', monthlyNet: 3395.33, monthlyTax: 938, taxYear: '26/27' }] } };
     const pg = planPage([{ plan: recorded, newer: false, failed: false }], plan.id, 'month', { today: TODAY });
     expect(pg.steps.find((s) => s.id === 'month').result.text).toBe('October 2026 recorded: £3,395 after tax');
-    // 7.3.0: 03 holds less than its ladder (Moving), so the next order to place is due before "nothing to do"; with the
-    // move done (a plan with no holdings record) the month recorded reads P.idle, word for word
+    // 7.3.0: 03 holds less than its ladder (Moving), so the next order to place is due before "nothing to do"
     expect(pg.next.id).toBe('P.moveNext');
+    // with no record of what it holds it reads as Drawing, but its whole move is still to make (retaken on purpose: this was
+    // P.idle): the next order is said, below the month (the design's "move.next: drawing (lower)")
     const noHold = { ...recorded, holdings: null };
-    const idle = planPage([{ plan: noHold, newer: false, failed: false }], plan.id, 'month', { today: TODAY });
+    expect(planPage([{ plan: noHold, newer: false, failed: false }], plan.id, 'month', { today: TODAY }).next.id).toBe('P.moveLater');
+    // every order ticked, so nothing is left to move: the month recorded reads P.idle, word for word
+    const orders = moveInputs(noHold, { now: noon(TODAY) }).prog;
+    expect(orders.total).toBeGreaterThan(0);
+    const allTicked = { ...noHold, transition: { ...(noHold.transition || {}), done: Object.fromEntries(moveInputs(noHold, { now: noon(TODAY) }).diff.buy.map((b) => [b.key, '2026-10-01'])) } };
+    expect(moveInputs(allTicked, { now: noon(TODAY) }).prog.next).toBe(null);
+    const idle = planPage([{ plan: allTicked, newer: false, failed: false }], plan.id, 'month', { today: TODAY });
     expect(idle.next.id).toBe('P.idle');
     expect(fill(PLAN.next['P.idle'], idle.next.slots)).toBe('October 2026 is recorded. Nothing to do until November.');
     const paidAhead = { ...plan, decisionTool: { ...plan.decisionTool, history: [...plan.decisionTool.history, { date: '2026-11', monthlyNet: 3400, monthlyTax: 900 }] } };

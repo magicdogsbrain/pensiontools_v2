@@ -172,8 +172,9 @@ export function deriveStage(scenario, now = new Date()) {
  *   closed                                   closed
  *
  * `invite` is the move invitation the design asks for: a locked saver within twelve months of the stop, and an unlocked
- * saver whose stop has passed (never a silent change of placing: the person is asked). The agreement itself comes later;
- * until then the invitation points at the stop month on "About you and when".
+ * saver whose stop has passed (never a silent change of placing: the person is asked). `passed` says the stop month has
+ * come: only then is it a thing to do (the design: "the first to-do from the stop month"); before it, it is said as what is
+ * coming. The agreement itself comes later; until then the invitation points at the stop month on "About you and when".
  *
  * Pure. `placing` (deriveStage's result, or V7's planStage on the effective settings) and `move` ({ recorded, complete }:
  * whether a holdings record exists, and whether it matches the plan's mix — PlanReading.moveInputs works that out) may be
@@ -196,7 +197,7 @@ export function stageOf(plan, now = new Date(), { placing = null, move = null } 
   let invite = null;
   if (key === 'saving' && st.timingMode === 'future' && stop) {
     const months = Number.isFinite(st.monthsToStart) ? st.monthsToStart : null;
-    if (p === 'committed-saving' && months != null && months <= 12) invite = { stop, months: Math.max(0, months), passed: false, locked: true };
+    if (p === 'committed-saving' && months != null && months <= 12) invite = { stop, months: Math.max(0, months), passed: nowKey >= stop, locked: true };
     else if (!st.locked && nowKey >= stop) invite = { stop, months: 0, passed: true, locked: false };
   }
   const since = key === 'closed' ? (st.closedAt || null) : key === 'saving' ? null : stop || (st.firstTaxYear ? st.firstTaxYear + '-04' : null);

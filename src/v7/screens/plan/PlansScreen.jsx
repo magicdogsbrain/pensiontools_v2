@@ -311,8 +311,9 @@ export function PlansScreen(state, dispatch) {
                   <div class="plan-row-text">
                     {/* the example's row is headed by its tag alone: the stored name is the planner's (GuestPlans.js DEMO_PLANS), not in V7's words */}
                     <span class="plan-name">{r.example ? <span class="plan-tag" data-testid={`plans.exampleTag.${r.id}`}>{W.exampleRow}</span> : <>‘{r.name}’</>}{r.main && <span class="plan-tag" data-testid={`plans.mainTag.${r.id}`}> {W.mainNow}</span>}</span>
-                    <span class="plan-stage">{r.example ? W.exampleLine + ' ' : ''}{r.line ? fill(PLAN.stageLines[r.line.id], r.line.slots) : ''}{r.lockedOn ? ' ' + fill(w.lockedOn, { date: r.lockedOn }) : ''}{r.madeOn ? ' ' + fill(w.madeOn, { date: r.madeOn }) : ''}{r.shownAsSaved ? ' ' + w.shownAsSaved : ''}{r.checkInDue ? <> <strong class="plan-due" data-testid={`plans.checkInDue.${r.id}`}>{w.checkInDue}</strong></> : null}</span>
-                    {/* the stage in three words and what is due (7.3.0): the plan's home says what each is */}
+                    <span class="plan-stage">{r.example ? W.exampleLine + ' ' : ''}{r.line ? fill(PLAN.stageLines[r.line.id], r.line.slots) : ''}{r.lockedOn ? ' ' + fill(w.lockedOn, { date: r.lockedOn }) : ''}{r.madeOn ? ' ' + fill(w.madeOn, { date: r.madeOn }) : ''}{r.shownAsSaved ? ' ' + w.shownAsSaved : ''}{r.checkInDue && !(r.todo > 0) ? <> <strong class="plan-due" data-testid={`plans.checkInDue.${r.id}`}>{w.checkInDue}</strong></> : null}</span>
+                    {/* the stage in three words and what is due (7.3.0): the plan's home says what each is; the count covers a
+                        check-in due, so "Check-in due." is said only on a row that has no count */}
                     {(r.life || r.todo > 0) && !r.shownAsSaved && (
                       <span class="plan-life-row">
                         {r.life && <span class={`stage-word is-${r.life}`} data-testid={`plans.life.${r.id}`}><span class="stage-dot" aria-hidden="true" />{HOME.stages[r.life]}</span>}

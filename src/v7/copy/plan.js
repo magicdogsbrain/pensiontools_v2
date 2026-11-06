@@ -524,6 +524,7 @@ export const PLAN = {
      */
     'P.invite': 'Your plan says you stop work in {stop}. Ready to plan the move? Next: check the month you stop.',
     'P.moveNext': 'Next: move {n} of {of} to your plan’s mix: {label}.',
+    'P.moveLater': 'Next: move {n} of {of} to your plan’s mix: {label}.',
     'P.moveFinish': 'Every move is ticked. Next: update what you hold, so it shows the plan’s mix.',
     'P.firstCheckIn': 'Next: your first check-in. It says where your pot is today, and how often you want to check in.',
     'P.holdStale': 'What you hold was last updated on {date}. Next: update it.',

@@ -10,7 +10,7 @@
  * answers/plan/mix.js through the plan source) and the runs' status is the state's (effects/mix.js). No figure is worked
  * out here. The writes are the one write file's (effects/planWrite.js: the step's save, and kind 'mix' on plan/useMix).
  */
-import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, RunRing } from '../../components/index.js';
+import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, RunRing, Held } from '../../components/index.js';
 import { planView, planMixView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -269,24 +269,27 @@ function Compare({ V, planId, dispatch, editable }) {
   if (!key) return null;
   const cell = (k, tent) => c.cells.find((x) => x.key === k && x.tent === tent) || null;
   const tentWord = (tent) => MIX.tentOnOff[tent ? 'on' : 'off'];
+  // the working spinner (7.3.0): the ring shows at least a moment and the cells wait for it, so a quick compare never pops in
+  return <Held busy={c.status === 'working'}>{(held) => {
+  const status = held ? 'working' : c.status;
   return (
-    <section class="plan-section mix-compare" data-section="compare" data-status={c.status} data-testid="plan.mix.compare">
+    <section class="plan-section mix-compare" data-section="compare" data-status={status} data-testid="plan.mix.compare">
       <h2>{MIX.sections.compare}</h2>
       <p class="note">{MIX.notes.compare}</p>
-      {(c.status === 'idle' || c.status === 'done') && <div class="actions-row"><Button testid="plan.mix.compare.run" kind={c.status === 'done' ? 'quiet' : 'primary'} onClick={run} {...keepFocus}>{c.status === 'done' ? C.again : C.button}</Button></div>}
-      {c.status === 'working' && (
+      {(status === 'idle' || status === 'done') && <div class="actions-row"><Button testid="plan.mix.compare.run" kind={c.status === 'done' ? 'quiet' : 'primary'} onClick={run} {...keepFocus}>{c.status === 'done' ? C.again : C.button}</Button></div>}
+      {status === 'working' && (
         <div class="working" role="status" data-testid="plan.mix.compare.working">
           <p class="working-title">{C.working}</p>
-          <RunRing progress={c.progress} label={C.progress} />
+          <RunRing progress={c.progress} unit="mixes" label={C.progress} />
         </div>
       )}
-      {c.status === 'failed' && (
+      {status === 'failed' && (
         <div class="notice" role="alert" data-testid="plan.mix.compare.failed">
           <p>{c.reason === 'noWorker' ? C.noWorker : C.failed}</p>
           {c.reason !== 'noWorker' && <Button testid="plan.mix.compare.again" kind="quiet" onClick={run}>{MIX.buttons.tryAgain}</Button>}
         </div>
       )}
-      {c.status === 'done' && (
+      {status === 'done' && (
         <>
           <div class="table-wrap">
             <table class="way-table mix-grid" data-testid="plan.mix.compare.table">
@@ -334,6 +337,7 @@ function Compare({ V, planId, dispatch, editable }) {
       )}
     </section>
   );
+  }}</Held>;
 }
 
 const toastText = (toast) => {

@@ -38,6 +38,6 @@ export { UndoToast } from './UndoToast.jsx';
 export { GuestNag, GuestStop, BringIn, NewsPopup, leftWords, usedWords } from './Visitor.jsx';
 export { Release, ReleaseBody, Effects, dayWords } from './ReleaseNotes.jsx';
 // The plan's home (7.3.0): the working spinner and the motion rule (research/v7/mockups/README.md)
-export { RunRing, AtLeast, AT_LEAST_MS } from './Spinner.jsx';
+export { RunRing, AtLeast, Held, useAtLeast, AT_LEAST_MS } from './Spinner.jsx';
 export { countUp, slideAway, reducedMotion } from './motion.js';
 export { Counted, notNowPress } from './Motion.jsx';

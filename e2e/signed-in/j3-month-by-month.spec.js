@@ -42,8 +42,10 @@ async function alexWith(page, plan, step) {
   await atFixedTime(page);
   await openAt(page, '#/account');
   await signIn(page, ALEX);
-  // signed in on a new device with a plan remembered (7.3.0): taken to that plan, not left on "Your account"
-  await expect(page).toHaveURL(new RegExp('#/plan/' + plan.id), { timeout: 30_000 });
+  // signed in on a new device with a plan remembered (7.3.0): taken to that plan's home, locked or not, whatever step was
+  // remembered — not left on "Your account"
+  await expect(page).toHaveURL(new RegExp('#/plan/' + plan.id + '$'), { timeout: 30_000 });
+  await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 30_000 });
   return uid;
 }
 async function type(page, path, value) {
@@ -54,7 +56,7 @@ async function type(page, path, value) {
 
 test.beforeEach(async () => { await clearEmulators(); });
 
-test('a locked plan: lands on Month by month, sets up the tax year, records this month and fills in the months since April at once; all still there after a reload, the settings unchanged', async ({ page }) => {
+test('a locked plan: lands on its home, whose first to-do opens Month by month; sets up the tax year, records this month and fills in the months since April at once; all still there after a reload, the settings unchanged', async ({ page }) => {
   const planned = lockedPlan();
   const uid = await alexWith(page, planned, null);
 
@@ -129,7 +131,11 @@ test('an unlocked drawing plan: asked to lock first, locked, then a month record
   const uid = await alexWith(page, draftPlan(), 'month');
 
   await test.step('Month by month says to lock first, with the way there, and nothing to type', async () => {
+    // (7.3.0) the sign-in took this window to the plan's home, so the site's root lands there too (the window's own place);
+    // Month by month is opened by its address — retaken on purpose: the root used to land on the remembered step
     await openAt(page, '');
+    await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 30_000 });
+    await openAt(page, `#/plan/${DRAFT}/month`);
     await expect(screen(page)).toHaveAttribute('data-screen', 'plan.month', { timeout: 30_000 });
     await expect(page.getByTestId(`${T}.needsLock`)).toBeVisible();
     await expect(page.locator('#app form')).toHaveCount(0);

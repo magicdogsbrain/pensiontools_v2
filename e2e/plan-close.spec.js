@@ -179,7 +179,8 @@ test.describe('Move to a new plan, without an account', () => {
     await expect(page.getByTestId('plan.hold.closed')).toContainText('make changes on ‘Alex from November’', { timeout: 45_000 });
     await expect(page.locator('[data-region="plan-hold"]')).toHaveAttribute('data-editable', '0');
     await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID);
-    await page.getByTestId('plan.closed.open').click();
+    // (7.3.0) the closed plan's home offers the way on once, as its to-do (the notice above it no longer repeats the button)
+    await page.getByTestId('plan.home.todo.closed.next').click();
     // the new plan's page: what came before it, with the way back
     await expect(page.getByTestId('plan.before')).toContainText('Under your previous plan ‘Alex’s linkers’ until October 2026 — its months are there.', { timeout: 45_000 });
     await expect(page.getByTestId('plan.before.open')).toBeVisible();

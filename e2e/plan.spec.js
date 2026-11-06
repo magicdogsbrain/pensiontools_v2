@@ -130,6 +130,9 @@ test.describe('the saved plans, without an account', () => {
     await page.goto(v7('#/plan/HouseSaver02'));
     await expect(page.getByTestId('plan.home')).toBeVisible();
     await expect(page.getByTestId('plan.windowWarning')).toHaveText('This plan is kept in this browser window only. The classic planner opens on it without an account.');
+    // (7.3.0) the old step panel's "Are you paying in enough?" and "Change this here" links are no longer drawn at the plan's
+    // address (its home is): the way into "What you pay in" is the home's tool, pinned here in their place
+    await expect(page.getByTestId('plan.home.tool.saving')).toHaveAttribute('href', '#/plan/HouseSaver02/saving');
     await page.goto(v7('#/plan/HouseSaver02/saving'));
     await expect(page.getByTestId('plan.step.saving')).toBeVisible();
 
@@ -206,7 +209,9 @@ test.describe('the saved plans, without an account', () => {
     // the plan's home (7.3.0): the month missed is the first thing to do, into Month by month
     await page.goto(v7('#/plan/GapBuckets04'));
     await expect(page.locator('[data-region="home-todo"] .home-item').first()).toHaveAttribute('data-todo', 'month.gap');
-    await expect(page.getByTestId('plan.home.todo.month.gap')).toHaveText('Record August');
+    // a month missed is named with its year on the home, title and button alike (retaken on purpose: it was "Record August"),
+    // so a gap from an earlier tax year never reads as this year's month
+    await expect(page.getByTestId('plan.home.todo.month.gap')).toHaveText('Record August 2026');
     await page.goto(v7('#/plan/GapBuckets04/month'));
     await expect(page.getByTestId('plan.step.month')).toBeVisible();
     const panel = page.locator('[data-region="plan-step"]');

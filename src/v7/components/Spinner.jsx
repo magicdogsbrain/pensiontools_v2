@@ -1,12 +1,14 @@
 /**
  * The working spinner (research/v7/mockups/README.md, "The working spinner"): the tests run thousands of futures, so the
- * page shows that — a ring of small bars, each a share of the lives being run, filling as the worker reports how far it
- * has got, with the count beside it ("Running 1,000 futures… 640"). When the worker says nothing of how far it is, the
- * ring turns and the words say only that it is working: never a count it does not have. The bar under it stays a real
- * <progress> for a screen reader.
+ * page shows that it is working — a ring of small bars filling as the worker reports how far it has got. The words beside it
+ * count only what the worker really counts, in that run's own unit ("3 of 9 ways tried", "2 of 8 mixes tried"); a run whose
+ * steps are not something a person would count (the "Does it last?" run reports its two stages, not its futures) says only
+ * that futures are being run. Never a count of futures the page does not have. The bar under it stays a real <progress>
+ * for a screen reader.
  *
- *   <RunRing progress={{ done, total }} label="…" />
+ *   <RunRing progress={{ done, total }} unit="ways" label="…" />
  *   <AtLeast busy={…} working={<RunRing …/>}>{the verdict}</AtLeast>   the verdict waits until the ring has shown ~600 ms
+ *   <Held busy={…}>{(held) => …}</Held>                                 the same wait, for a page whose verdict is spread out
  *
  * Draws only; the timing is a relative wait (no clock is read). With less motion asked for, the ring does not turn
  * (components.css) and the wait still holds, so a verdict never pops in before the ring was seen.
@@ -20,9 +22,11 @@ const BARS = 24;
 export const AT_LEAST_MS = 600;
 const count = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-export function RunRing({ progress, label, testid }) {
+export function RunRing({ progress, label, testid, unit = null }) {
   const known = !!(progress && typeof progress.done === 'number' && typeof progress.total === 'number' && progress.total > 0);
   const on = known ? Math.max(0, Math.min(BARS, Math.round((progress.done / progress.total) * BARS))) : 0;
+  // the count only in the run's own unit; with no unit (or none known yet) the words say only that it is working
+  const counted = known && unit && WORKING.count[unit] ? fill(WORKING.count[unit], { total: count(progress.total), done: count(progress.done) }) : null;
   return (
     <div class={`run-ring${known ? ' is-known' : ' is-turning'}`} data-testid={testid}>
       <svg class="run-ring-svg" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -30,17 +34,17 @@ export function RunRing({ progress, label, testid }) {
           <rect key={i} class={`run-ring-bar${i < on ? ' is-on' : ''}`} x="23" y="3" width="2" height="9" rx="1" transform={`rotate(${(360 / BARS) * i} 24 24)`} />
         ))}
       </svg>
-      <span class="run-ring-words">{known ? fill(WORKING.running, { total: count(progress.total), done: count(progress.done) }) : WORKING.runningPlain}</span>
+      <span class="run-ring-words">{counted || WORKING.running}</span>
       {known ? <progress class="sr-only" value={progress.done} max={progress.total} aria-label={label} /> : <progress class="sr-only" aria-label={label} />}
     </div>
   );
 }
 
 /**
- * Shows `working` while `busy`, and for at least AT_LEAST_MS once it has been shown, then `children`. A screen drawn
- * already done (a page opened on a verdict) shows the verdict at once.
+ * True while `busy`, and for at least AT_LEAST_MS once busy was seen, so a verdict never pops in the instant a run ends. A
+ * screen drawn already done (a page opened on a verdict) is never held.
  */
-export function AtLeast({ busy, working, children }) {
+export function useAtLeast(busy) {
   const [held, setHeld] = useState(false);
   const timer = useRef(null);
   const shown = useRef(false);
@@ -53,5 +57,15 @@ export function AtLeast({ busy, working, children }) {
     if (!busy && !timer.current) { shown.current = false; setHeld(false); }
   }, [busy]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
-  return busy || held ? working : children;
+  return !!busy || held;
+}
+
+/** Shows `working` while `busy` (and the least time after), then `children`. */
+export function AtLeast({ busy, working, children }) {
+  return useAtLeast(busy) ? working : children;
+}
+
+/** The same wait for a page whose verdict is in several places: `children(held)`, held true while working or held. */
+export function Held({ busy, children }) {
+  return children(useAtLeast(busy));
 }

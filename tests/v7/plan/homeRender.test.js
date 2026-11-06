@@ -84,6 +84,19 @@ describe('the named home states', () => {
     } else if (!one(root, 'plan.readonly')) expect(one(root, `${T}.quiet`)).not.toBe(null);
     // the stage is a word as well as a colour
     if (stage !== 'none') expect(one(root, `${T}.headline`).textContent).toContain(HOME.stages[stage]);
+    // the questions promise the plan's figures only when a question really opens with them
+    const ask = one(root, `${T}.ask`);
+    if (ask) {
+      const filled = [...ask.querySelectorAll('a[data-filled="plan"]')];
+      const lead = one(root, `${T}.askLead`).textContent;
+      if (filled.length) { expect(lead).toContain('opens with this plan’s figures'); expect(ask.querySelector('summary').textContent).toBe(HOME.askTitle); }
+      else { expect(lead).toBe(HOME.askLeadPlain); expect(ask.querySelector('summary').textContent).toBe(HOME.askTitlePlain); }
+    }
+    // where you are: the headline only, its lines without their sources; alone on its row when there is no year view
+    const where = one(root, `${T}.where`);
+    expect(where.querySelectorAll('.plan-line').length).toBeLessThanOrEqual(3);
+    expect(where.querySelector('.plan-source')).toBe(null);
+    expect(root.querySelector('.home-row2').classList.contains('is-one')).toBe(!one(root, `${T}.year`));
   });
 });
 
@@ -115,6 +128,9 @@ describe('each stage\'s home', () => {
     const { root } = draw(load('home-drawing'), { type: A.TODO_NOT_NOW, key: 'SamBuckets04|hold.stale' });
     expect(root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
     expect(one(root, `${T}.quiet`).textContent).toBe('September is recorded. Nothing is due until 1 October.');
+    // and what "Not now" did, and for how long
+    expect(one(root, `${T}.notNowDone`).textContent).toBe(HOME.notNowDone);
+    expect(one(draw(load('home-drawing')).root, `${T}.notNowDone`)).toBe(null);
   });
   it('home-moving: "Moving. 0 of n moves done.", the next order to place, the strip on Moving', () => {
     const { root } = draw(load('home-moving'));
@@ -124,6 +140,11 @@ describe('each stage\'s home', () => {
     expect(one(root, `${T}.todo.move.next`).getAttribute('href')).toBe('#/plan/SamLadder03/move');
     expect(one(root, `${T}.strip`).querySelector('[aria-current="step"]').getAttribute('data-stage')).toBe('moving');
     expect(one(root, `${T}.tool.move`)).not.toBe(null);
+    // one count on the home: the orders, in the headline, the move tool and the to-do alike
+    const [, done, of] = one(root, `${T}.headline`).textContent.match(/^Moving\. (\d+) of (\d+) moves done\.$/);
+    expect(one(root, `${T}.tool.move`).textContent).toContain(`${done} of ${of} moves done`);
+    expect(one(root, `${T}.todo`).textContent).toContain(`Move ${Number(done) + 1} of ${of}:`);
+    expect(one(root, `${T}.where`).textContent).not.toMatch(/gilts bought/);
   });
   it('home-locked-saver: nothing due once this month\'s pot is recorded, said with its date; the check-in, not the form', () => {
     const { root, text } = draw(load('home-locked-saver'));
@@ -150,6 +171,9 @@ describe('each stage\'s home', () => {
     const { root } = draw(load('home-closed'));
     expect(one(root, `${T}.headline`).textContent).toBe('Closed.');
     expect(one(root, 'plan.closed')).not.toBe(null);
+    // the way on is offered once: its to-do, not a second button in the notice above it
+    expect(one(root, 'plan.closed.open')).toBe(null);
+    expect([...root.querySelectorAll('a')].filter((a) => a.textContent.startsWith('Open ‘'))).toHaveLength(1);
     expect(one(root, `${T}.todo.closed.next`).getAttribute('href')).toMatch(/^#\/plan\/[A-Za-z0-9]+$/);
     expect(one(root, `${T}.change`)).toBe(null);
     expect(one(root, `${T}.ask`)).toBe(null);

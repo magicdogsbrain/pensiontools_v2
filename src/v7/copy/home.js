@@ -11,7 +11,6 @@ export const HOME = {
 
   /** The three stages, said as words (never only a colour), and the strip under them. */
   stages: { saving: 'Saving', moving: 'Moving', drawing: 'Drawing', closed: 'Closed' },
-  stageNone: 'Your plan',
   strip: {
     label: 'Where this plan is: saving, moving, drawing',
     now: 'you are here',
@@ -35,8 +34,10 @@ export const HOME = {
   todoTitle: 'To do',
   more: { one: 'and 1 more', many: 'and {n} more' },
   soonTitle: 'Soon',
-  soonMark: 'Soon',
   notNow: 'Not now',
+  /** "Not now" on the move invitation (the design's words for it). */
+  notYet: 'Not yet',
+  /** Said under the list once something on this plan was put off: what happened, and for how long. Nothing is saved. */
   notNowDone: 'Put off until you next open the site.',
   /** Each thing to do: a short title and a line under it. {slots} as read.js gives them. */
   items: {
@@ -48,7 +49,7 @@ export const HOME = {
     'month.taxYear':      { title: 'Set up {year}', detail: 'A new tax year: say what the plan pays this year before the first month is recorded.' },
     'month.arrive':       { title: 'Record your first month', detail: 'You stopped work in {stop}. Month by month then compares your pot with the plan’s.' },
     'month.record':       { title: 'Record {monthName}', detail: 'What your platform shows today. It takes a minute.' },
-    'month.gap':          { title: 'Record {monthName}', detail: '{month} is not recorded yet. Months you missed can be filled in at once.' },
+    'month.gap':          { title: 'Record {month}', detail: 'It is not recorded yet. Months you missed can be filled in at once.' },
     'move.next':          { title: 'Move {n} of {of}: {label}', detail: 'Tick it on Moving to your plan’s mix when the order is placed.' },
     'move.finish':        { title: 'Update what you hold', detail: 'Every move is ticked. Update what you hold so it shows the plan’s mix.' },
     'checkin.first':      { title: 'Your first check-in', detail: 'Where your pot is today, and how often you want to check in.' },
@@ -62,7 +63,13 @@ export const HOME = {
   },
   /** A soon item: shown apart, never counted. */
   soon: {
-    'month.taxYear': { title: 'Set up {year}', detail: 'From 1 March you can set up the new tax year early; it is due from {month}.' }
+    'month.taxYear': { title: 'Set up {year}', detail: 'From 1 March you can set up the new tax year early; it is due from {month}.' },
+    'move.invite': { title: 'Your move is coming', detail: 'Your plan says you stop work in {stop}. From that month, planning the move is the first thing to do.' }
+  },
+  /** Said after the move invitation's line: how the last check-in went (the design's "you were on course / behind"). */
+  inviteBand: {
+    yes: 'At your last check-in you were on course.',
+    behind: 'At your last check-in you were not on course yet.'
   },
   /** A partner's plan's thing to do, one line each, named by that plan. */
   partnerItem: '{title} — ‘{name}’',
@@ -103,8 +110,12 @@ export const HOME = {
 
   whereTitle: 'Where you are',
   whereNone: 'Nothing recorded to read against the plan yet.',
+  /** The full reading, with where each figure is from, is on the "Where you are" step. */
+  whereMore: 'See where you are in full',
 
   toolsTitle: 'Tools',
+  /** The move tool's state on the home: the same count as the headline. */
+  toolMoves: '{done} of {of} moves done',
 
   /** Everything else, folded away. */
   stepsTitle: 'Your plan’s steps',
@@ -128,8 +139,11 @@ export const HOME = {
     mix: 'The mix',
     lock: 'Lock the plan'
   },
+  /** Questions: the figures are promised only for a question that really opens with them (a saver's "Am I saving enough?"). */
   askTitle: 'Ask a question with this plan’s figures',
-  askLead: 'A question opens with this plan’s figures in its boxes. Nothing in the plan changes unless you say so there.',
+  askTitlePlain: 'Ask a question',
+  askLead: '‘{question}’ opens with this plan’s figures in its boxes. Nothing in the plan changes unless you say so there.',
+  askLeadPlain: 'Each question opens on its own page with its own boxes. Nothing in the plan changes unless you say so there.',
 
   /** The rail's first link on a step page: back to the home. */
   railHome: 'Your plan’s home',
@@ -140,9 +154,15 @@ export const HOME = {
   rowTodo: { one: '1 to do', many: '{n} to do' }
 };
 
-/** The working spinner (research/v7/mockups/README.md): a ring of small bars, each a life run, filling as futures are run. */
+/**
+ * The working spinner (research/v7/mockups/README.md): a ring of small bars filling as the run goes. The count is said only
+ * in the unit the run really counts (the ways, the mixes, the household's tests), never as futures it has not counted.
+ */
 export const WORKING = {
-  running: 'Running {total} futures… {done}',
-  runningPlain: 'Running futures…',
-  working: 'Working…'
+  running: 'Running futures…',
+  count: {
+    ways: '{done} of {total} ways tried',
+    mixes: '{done} of {total} mixes tried',
+    tests: '{done} of {total} tests run'
+  }
 };

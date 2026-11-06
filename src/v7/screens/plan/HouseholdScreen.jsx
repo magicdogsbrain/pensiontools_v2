@@ -10,7 +10,7 @@
  * plan source) and the runs' status is the state's (effects/household.js). No figure is worked out here. The writes are the one
  * write file's (effects/planWrite.js: link, split, dismiss, budgetShare, and the step's save for who pays).
  */
-import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton } from '../../components/index.js';
+import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, RunRing, Held } from '../../components/index.js';
 import { planView, planHouseholdView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -141,22 +141,25 @@ function Verdict({ V, dispatch }) {
   const run = () => dispatch({ type: 'household/run', key: V.runKey, limit: V.run.limit, need: V.run.need });
   if (!V.partner || !V.runKey) return null;
   const v = V.verdict;
+  // the working spinner (7.3.0): the ring shows at least a moment and the verdict waits for it
+  return <Held busy={V.status === 'working'}>{(held) => {
+  const status = held ? 'working' : V.status;
   return (
-    <section class="plan-section" data-section="verdict" data-status={V.status} data-testid={`${T}.verdict`}>
+    <section class="plan-section" data-section="verdict" data-status={status} data-testid={`${T}.verdict`}>
       <h2>{W.sections.verdict}</h2>
       {!V.partner.configured && <p class="note">{fill(W.partner.notSet, { name: V.partner.name })}</p>}
-      {(V.status === 'idle' || V.status === 'done' || V.status === 'failed') && V.partner.configured && (
+      {(status === 'idle' || status === 'done' || status === 'failed') && V.partner.configured && (
         <div class="actions-row"><Button testid={`${T}.check`} kind={V.status === 'idle' ? 'primary' : 'quiet'} onClick={run} {...keepFocus}>{V.status === 'idle' ? C.button : V.stale ? C.rerun : C.again}</Button></div>
       )}
-      {V.status === 'working' && (
+      {status === 'working' && (
         <div class="working" role="status" data-testid={`${T}.working`}>
           <p class="working-title">{C.working}</p>
-          {V.progress && V.progress.total > 0 ? <progress value={V.progress.done} max={V.progress.total} aria-label={C.progress} /> : <progress aria-label={C.progress} />}
+          <RunRing progress={V.progress} unit="tests" label={C.progress} />
         </div>
       )}
-      {V.status === 'failed' && <div class="notice" role="alert" data-testid={`${T}.failed`}><p>{V.reason === 'noWorker' ? C.noWorker : C.failed}</p></div>}
-      {V.status === 'done' && V.unaffordable && <div class="notice" role="alert" data-testid={`${T}.unaffordable`}><p>{V.unaffordable.kind === 'partnerNotSet' ? fill(W.partner.notSet, { name: V.names.b }) : fill(C.unaffordable, { name: V.unaffordable.which, reason: V.unaffordable.reason ? fill(C.reasonWas, { reason: V.unaffordable.reason }) : '' })}</p></div>}
-      {V.status === 'done' && v && (
+      {status === 'failed' && <div class="notice" role="alert" data-testid={`${T}.failed`}><p>{V.reason === 'noWorker' ? C.noWorker : C.failed}</p></div>}
+      {status === 'done' && V.unaffordable && <div class="notice" role="alert" data-testid={`${T}.unaffordable`}><p>{V.unaffordable.kind === 'partnerNotSet' ? fill(W.partner.notSet, { name: V.names.b }) : fill(C.unaffordable, { name: V.unaffordable.which, reason: V.unaffordable.reason ? fill(C.reasonWas, { reason: V.unaffordable.reason }) : '' })}</p></div>}
+      {status === 'done' && v && (
         <div class="lever-result" data-testid={`${T}.result`} data-head={v.head}>
           <p class="figure" data-testid={`${T}.headline`}>{C.head[v.head]}: {fill(C.headline, { words: v.words })}</p>
           {v.pooled && <p class="note" data-testid={`${T}.pooled`}>{C.pooled}</p>}
@@ -177,6 +180,7 @@ function Verdict({ V, dispatch }) {
       )}
     </section>
   );
+  }}</Held>;
 }
 
 /**

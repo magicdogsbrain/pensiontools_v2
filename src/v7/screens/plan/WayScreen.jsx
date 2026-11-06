@@ -11,7 +11,7 @@
  * the run's status is the state's (effects/ways.js). No figure is worked out here. The write is the one write file's
  * (effects/planWrite.js, kind 'way'), on plan/useWay after the confirm on the same screen.
  */
-import { PlanRail, changeAction, UndoToast, OutOfTenBar, fill, Button, LinkButton, RunRing } from '../../components/index.js';
+import { PlanRail, changeAction, UndoToast, OutOfTenBar, fill, Button, LinkButton, RunRing, Held } from '../../components/index.js';
 import { planView, planWayView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -99,7 +99,7 @@ function Dials({ card, locked, dispatch }) {
 }
 
 /** One card: closed (name, promise, the figures, "Open") or open (the dials, the try, "Use this way of drawing", what can go wrong). */
-function Card({ card, V, planId, dispatch }) {
+function Card({ card, V, planId, dispatch, held = false }) {
   const id = card.id;
   const open = card.open;
   const t = card.tried;
@@ -110,8 +110,9 @@ function Card({ card, V, planId, dispatch }) {
     <article class={`way-card${open ? ' is-open' : ''}${card.current ? ' is-current' : ''}`} data-way={id} data-testid={`plan.way.card.${id}`} data-open={open ? '1' : '0'} data-current={card.current ? '1' : '0'} data-rank={card.rank == null ? undefined : card.rank}>
       <h3 class="way-name">{name(id)}</h3>
       <p class="way-promise">{WAY.promise[id]}</p>
-      {card.has ? <Figures card={card} /> : V.run.status === 'working' ? <p class="working-note" role="status">{WAY.working.one}</p> : null}
-      {open && card.has && (
+      {/* while the ring is held (7.3.0, the working spinner's least time) a card waits with the others: no figure pops in */}
+      {card.has && !held ? <Figures card={card} /> : held || V.run.status === 'working' ? <p class="working-note" role="status">{WAY.working.one}</p> : null}
+      {open && card.has && !held && (
         <>
           {card.compare && <p class="note" data-testid="plan.way.compare">{fill(WAY.card.compare, { ...card.compare.slots, docWay: name(card.compare.slots.docWay), way: name(card.compare.slots.way) })}</p>}
           {card.family && <p class="note"><span data-line="way.mix">{WAY.card.mix}</span> <a href={href.plan(planId, 'mix')} data-testid={`plan.way.${id}.mixLink`}>{WAY.card.mixLink}</a></p>}
@@ -237,20 +238,23 @@ export function WayScreen(state, dispatch) {
   const others = V.cards.slice(1);
   return {
     question: null, rail, full: false,
+    // the working spinner (7.3.0): the ring shows at least a moment, and the cards' figures wait for it, so the verdict of
+    // a quick run never pops in the instant it ends
     content: (
+      <Held busy={working}>{(held) => (
       <>
         <Head view={view} />
         <h1 tabIndex={-1} data-testid="plan.step.way">{WAY.title}</h1>
         <p class="lead">{WAY.lead}</p>
         {V.locked && <p class="note" data-testid="plan.way.locked">{WAY.locked.lead} {fill(WAY.locked.fixed, { date: V.lockedOn })}</p>}
         {V.readonly && <p class="notice" role="status" data-testid="plan.way.readonly">{WAY.readonly}</p>}
-        <section class="plan-panel way-answer" data-region="plan-way-answer" data-status={V.runKey ? run.status : 'none'} data-has={V.has ? '1' : '0'}>
+        <section class="plan-panel way-answer" data-region="plan-way-answer" data-status={V.runKey ? (held && !working ? 'working' : run.status) : 'none'} data-has={V.has && !held ? '1' : '0'}>
           {!V.runKey && <p class="notice" role="status" data-testid="plan.way.notRun">{WAY.notRun}</p>}
-          {working && (
+          {held && (
             <div class="working" role="status" data-testid="plan.way.working">
               <p class="working-title">{WAY.working.title}</p>
               <p>{WAY.working.body}</p>
-              <RunRing progress={run.progress} label={WAY.working.progress} />
+              <RunRing progress={run.progress} unit="ways" label={WAY.working.progress} />
               {run.slow && <p class="working-slow">{WAY.working.slow}</p>}
             </div>
           )}
@@ -267,12 +271,12 @@ export function WayScreen(state, dispatch) {
               <Button testid="plan.way.retry" kind="quiet" onClick={() => dispatch({ type: 'ways/retry' })}>{WAY.buttons.tryAgain}</Button>
             </div>
           )}
-          {V.has && V.ran && <p class="plan-source" data-testid="plan.way.ran">{fill(WAY.ran.nine, { s: seconds(V.ran.ms) })}</p>}
+          {V.has && !held && V.ran && <p class="plan-source" data-testid="plan.way.ran">{fill(WAY.ran.nine, { s: seconds(V.ran.ms) })}</p>}
         </section>
         {yours && (
           <section class="plan-section way-yours" data-section="yours">
             <h2>{WAY.yours}</h2>
-            <Card card={yours} V={V} planId={planId} dispatch={dispatch} />
+            <Card card={yours} V={V} planId={planId} dispatch={dispatch} held={held} />
           </section>
         )}
         {others.length > 0 && (
@@ -280,11 +284,11 @@ export function WayScreen(state, dispatch) {
             <h2>{WAY.others}</h2>
             <p class="note">{WAY.othersLead}</p>
             <ol class="way-list" data-testid="plan.way.others">
-              {others.map((c) => <li key={c.id}><Card card={c} V={V} planId={planId} dispatch={dispatch} /></li>)}
+              {others.map((c) => <li key={c.id}><Card card={c} V={V} planId={planId} dispatch={dispatch} held={held} /></li>)}
             </ol>
           </section>
         )}
-        {V.has && <More V={V} dispatch={dispatch} />}
+        {V.has && !held && <More V={V} dispatch={dispatch} />}
         {problem && <p class="notice" role="alert" data-testid="plan.way.problem" data-problem={V.problem}>{problem}</p>}
         {V.saving && V.saving.kind === 'way' && <p class="working-note" role="status" data-testid="plan.way.saving">{WAY.saving}</p>}
         <div class="actions-row">
@@ -293,6 +297,7 @@ export function WayScreen(state, dispatch) {
         <UndoToast prefix="plan.way" toast={V.toast} text={V.toast ? toastText(V.toast) : ''} words={WAY.buttons}
           onUndo={() => dispatch({ type: 'plan/undo', planId })} onClose={() => dispatch({ type: 'plan/toastClose' })} />
       </>
+      )}</Held>
     )
   };
 }

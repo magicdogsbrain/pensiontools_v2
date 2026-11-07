@@ -478,7 +478,7 @@ describe('PROT1 — the two engines agree month for month', () => {
 // Protection is a Pots & Valves rule: a bought gilt ladder has no pot floors to obey.
 // ---------------------------------------------------------------------------------------------------------
 describe('PROT1 — a contract strategy (a bought gilt ladder) is never cut by the pot rule', () => {
-  // A ladder plan in its run-up (the shape of corpus fixture 03): no shares, £529,000 of gilts typed in as "bonds",
+  // A ladder plan saved with a later start (the shape of corpus fixture 03): no shares, £529,000 of gilts typed in as "bonds",
   // Decision floors of £180,000 + £400,000. Shares + bonds (£529,000) are under the sum of the floors (£580,000) every
   // month, so the new count reached 3 in the third month and cut the draw by 10%. The old count did not (bonds over
   // their own floor paid the month, which reset it). The app now switches protection off for the contract strategies

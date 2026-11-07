@@ -7,7 +7,7 @@
  *                               locked in its year 0 and living on its ladder since. They joined these gates with the
  *                               words that read them (6.51.0)
  *   entriesAt(today)            the corpus brought up to date in memory, as the plan source hands it in
- *   household()                 the two plans of one household: the locked ladder in its run-up (03, linked
+ *   household()                 the two plans of one household: the locked ladder saved with a later start (03, linked
  *                               one way to the saver) and the saver (05, no link back) — built from the corpus, never a
  *                               new file (the corpus's snapshot would have to move)
  *   stateWith(entries, route, o) a V7 state on a plan page with those plans read (o.notNow: to-dos put off in the window)

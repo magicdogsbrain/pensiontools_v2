@@ -8,7 +8,7 @@
  *
  * Every button that writes settings is pressed here AS ITS HANDLER WRITES — through the real repositories, in guest
  * mode (FirestoreService keeps a guest's plans in sessionStorage) — on two locked fixtures from the corpus: a saver
- * locked before retiring (05) and a retired ladder plan in its run-up with recorded months (03). Afterwards the stored
+ * locked before retiring (05) and a retired ladder plan saved with a later start, with recorded months (03). Afterwards the stored
  * Stress and Decision settings, the Decision checksum, the strategy, the plan document and its archive, and the plan of
  * record are byte-identical. The named bookkeeping writes still go through.
  *

@@ -1,6 +1,6 @@
 /**
  * "Moving to your plan's mix" drawn from its named states (research/v7/holdings-and-move.md §3, §7; road-to-7.md step 10):
- * tests/v7/states/plan/move-*.json (the locked ladder in its run-up, the locked Buckets plan with its shares line cut by a
+ * tests/v7/states/plan/move-*.json (the locked ladder saved with a later start, the locked Buckets plan with its shares line cut by a
  * third and the one run on the held mix held), written by `node tests/v7/states/build-states.mjs --question plan` — the
  * reading left out and refreshed here through viewFor. The saver's move, the unlocked plan's, the done move, the rotation
  * watch (the ladder read as the rotation), the State Pension gate, the working, failed, confirm, shown-as-saved and window

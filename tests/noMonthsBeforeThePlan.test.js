@@ -211,6 +211,7 @@ const TOKENS = { runUp: /\brunUp[A-Za-z]*/g, bridgeCash: /\bbridgeCash\b/g, brid
  * and the other things called "bridge" that were never the months before a plan. Exact counts: a new one fails here.
  */
 const ALLOWED = {
+  'src/releases.js': { bridgeCash: 2 },   // 7.4.2's note reads an older ladder's stored extra cash to say this plan is affected
   'src/services/StrategyState.js': { bridgeCash: 3 },   // kept as a key of the ladders' own (as stored), so a locked plan's settings never change on load
   'src/services/TransitionPlanner.js': { bridgeCash: 3 },   // an older document's plan.cash holds its extra cash: taken off when the cash years carry no costs
   'src/answers/plan/read.js': { bridgeCash: 2 },   // an older ladder's stored extra cash is not listed as a dial

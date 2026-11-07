@@ -38,6 +38,34 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.4.2', date: '2026-11-07', engineVersion: '6.39.0',
+    title: 'A gilt ladder’s cash years are its only cash',
+    summary: 'Some older ladder plans kept extra cash on top of their cash years, for months before the plan. Nobody who has retired has such months, so that extra cash is no longer added. Those ladders can cost less and leave more over. Every other plan works out exactly as before.',
+    changes: [
+      'A gilt ladder’s cash years, paid from the money-market fund, are now its only cash.',
+      'A locked plan saved with a later start now reads as drawing. The one thing it asks is still to move its start to the tax year you stopped work. Opening it changes nothing in it.',
+      'An older plan document no longer shows extra cash beside its cash years, because your figures no longer count it. The document still keeps it as saved.'
+    ],
+    corrections: [
+      'That extra cash was still counted in three cases: a retired plan with no stop month, a ladder for someone still saving, and the cash a saver was told to hold while still working. None of them counts it now.'
+    ],
+    effects: {
+      stress: ['Ladder plans that held extra cash on top of their cash years: the ladder no longer adds it, so more is left over.'],
+      strategies: ['The same ladders are compared without that extra cash.'],
+      decision: ['Months you have recorded are kept exactly as you recorded them. A locked plan’s document is unchanged.'],
+      accumulation: ['A saver is no longer told to hold that extra cash while still working.'],
+      budget: [],
+      household: []
+    },
+    actions: ['None.'],
+    notes: [],
+    affects(scenario) {
+      const p = scenario?.stressTool?.settings?.strategyParams || {};
+      const has = Object.values(p).some((v) => v && typeof v === 'object' && +v.bridgeCash > 0) || +p.bridgeCash > 0;
+      return has ? ['This plan’s ladder held extra cash on top of its cash years. It no longer counts, so the ladder costs less and leaves more over.'] : [];
+    }
+  },
+  {
     version: '7.4.1', date: '2026-11-06', engineVersion: '6.38.0', announce: true,
     title: 'Your plan leaves your pension alone until you can take it',
     summary: 'If you stop work before you can take money from a pension (55, or 57 for anyone not 55 by 6 April 2028), your plan now pays those years from your other savings and leaves the pension to grow. If those savings can’t cover the gap, we show it as an income cut. Plans for people who can already take their pension work out exactly as before.',

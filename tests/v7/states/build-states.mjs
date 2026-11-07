@@ -624,7 +624,7 @@ async function buildPlanStates({ today }) {
    * "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md §7; road-to-7.md step 10):
    * tests/v7/states/plan/hold-*.json and move-*.json — each a state on #/plan/<id>/hold or …/move holding ONE plan: Alex's
    * Pots & Valves draft with nothing recorded (corpus 02), the committed saver with new money a month (05), the pasted record
-   * (12), the locked ladder in its run-up (03, 8 lines, 14 rungs), the locked Buckets plan (04, whose record already holds its
+   * (12), the locked ladder saved with a later start (03, 8 lines, 14 rungs), the locked Buckets plan (04, whose record already holds its
    * mix — "done"; and a copy with its shares line cut by a third, so there is something to buy and sell). Few and small, on
    * purpose (holdings-and-move.md §7: well under half a megabyte in all): five files, and the reading (plans.view) left out of
    * them — the render tests refresh it through viewFor as the plan source does on load; the locked record (hold-locked), the

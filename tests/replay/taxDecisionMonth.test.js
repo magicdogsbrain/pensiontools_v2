@@ -44,7 +44,7 @@ describe('calculation reason and the History row', () => {
   });
 
   it('R6.4.0-b — plan years are counted from the plan\'s own start, not a hard-coded 2026/27', () => {
-    expect(getYearNum('2026-09', 2027)).toBe(-1);   // before the plan: the run-up
+    expect(getYearNum('2026-09', 2027)).toBe(-1);   // before year 0
     expect(getYearNum('2030-03', 2027)).toBe(2);    // March 2030 is still 2029/30
     expect(getYearNum('2030-04', 2027)).toBe(3);    // the step down lands in April 2030, not April 2029
   });
@@ -52,7 +52,7 @@ describe('calculation reason and the History row', () => {
 
 describe('"tax saved" is tax-free money used, nothing else', () => {
   it('R6.11.2 — a month whose SIPP draw is short of the target, with nothing tax-free in it, saved no tax', async () => {
-    // Tax-efficient year, no ISA, the setup expects £2,000 a month against a £36,000 target (the run-up shape:
+    // Tax-efficient year, no ISA, the setup expects £2,000 a month against a £36,000 target (a later-start shape:
     // the draw is below target/12 for a reason that has nothing to do with tax).
     const r = await calcDecisionPWA('2026-04', 400000, 250000, 60000, deps(taxYear({ isTaxEfficient: true, expectedMonthly: { sipp: { gross: 2000 } } })));
     expect(r.sippDraw).toBeCloseTo(2000, 0);

@@ -106,7 +106,7 @@ describe('household', () => {
     const sam = { retired: false, currentAge: 58, currentAgeAsOf: '2026-09-16', shapeAgeNow: 59, baseSalary: 30000, duration: 35, spStartDate: '20 August 2035', spWeeklyAmount: 230 };
     const rows = householdIncomeTimeline(alex, sam, 3, today);
     expect(rows[0].workingA).toBe(false);
-    expect(rows[0].needA).toBe(46000);             // the run-up need counts from today
+    expect(rows[0].needA).toBe(46000);             // the need before year 0 counts from today
     expect(rows[0].workingB).toBe(true);           // a partner who really is still working keeps "still working"
     expect(rows[0].needB).toBe(0);
     expect(rows[1].workingB).toBe(false);

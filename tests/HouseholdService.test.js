@@ -137,7 +137,7 @@ describe('householdIncomeTimeline — already retired in the run-up (6.12.5)', (
     const sam = { retired: false, currentAge: 58, currentAgeAsOf: '2026-09-16', shapeAgeNow: 59, baseSalary: 30000, duration: 35, spStartDate: '20 August 2035', spWeeklyAmount: 230 };
     const rows = householdIncomeTimeline(alex, sam, 3);
     expect(rows[0].workingA).toBe(false);          // Alex is already drawing
-    expect(rows[0].needA).toBe(46000);             // the run-up need is the first step
+    expect(rows[0].needA).toBe(46000);             // the need before year 0 is the first step
     expect(rows[0].workingB).toBe(true);           // Sam stops next August
     expect(rows[1].workingB).toBe(false);
   });

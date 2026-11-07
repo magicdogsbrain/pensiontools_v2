@@ -323,7 +323,7 @@ for (const name of FROZEN) out[name] = JSON.parse(readFileSync(join(HERE, name +
   ] });
   await lockFromStress();
   at('2026-04-08T09:10:00.000Z');
-  await stageTick();   // first visit after 6 April: the run-up is over
+  await stageTick();   // first visit after 6 April: the later start has come
   await setUpTaxYear('2026-04', { isaSavingsAllocation: 0 });
   const months = [['2026-04', 372400, 150900, 60100], ['2026-05', 379800, 151200, 57600], ['2026-06', 368100, 150400, 55100], ['2026-07', 385300, 151800, 52600], ['2026-08', 391700, 152300, 50100], ['2026-09', 388200, 151900, 47600]];
   for (const [ym, equity, bond, cash] of months) { at(ym + '-08T09:20:00.000Z'); await recordMonth(ym, { equity, bond, cash, isa: 25000 }); }

@@ -320,8 +320,9 @@ export function moveBlockedOf(scenario, now, how = {}) {
  *    (7.4.3) it has recorded months, and the tax year they begin in is earlier than its year 0 — `recordsFrom`, the earliest
  *    month, when that year is not the stop's; never a question first. The to-do opens the move; `blocked` says the move
  *    cannot keep the plan's figures under the lock (moveBlockedOf), so the place it opens explains that instead.
- *  - `kind: 'ask'`: the plan does not say when work stopped, and its year 0 is later than this tax year, or a recorded month
- *    still carries the old mark (`bridgeYear`). The to-do asks the month; once said, the move follows.
+ *  - `kind: 'ask'`: the plan does not say when work stopped (or names a month still ahead), and its year 0 is later than
+ *    this tax year, or a recorded month still carries the old mark (`bridgeYear`) — but never a plan that says no month and
+ *    has recorded months (7.4.3): those say the year. The to-do asks the month; once said, the move follows.
  * Null for every other plan: a draft (its own Save moves it), a saver, a closed plan, the plan that carries a closed one on
  * (its year 0 is a hand-over the old plan pays up to), a plan with no age (it has no tax year to read), and a locked plan
  * whose year 0 is the stop's tax year, this tax year, or earlier.
@@ -344,6 +345,11 @@ export function startLaterOf(scenario, now = new Date()) {
   }
   const stop = stoppedWorkOf(ss);
   if (stop && hasStopped(stop, now)) return null;
+  // With recorded months and no month said, the months say the year (7.4.3): no move means none is due, and "When did you
+  // stop work?" would lead nowhere — whatever month is said, the move still goes to where the months begin. Records left
+  // marked from an old start (the old mark) are not a reason to ask either. A month said that is still ahead is asked again
+  // below, as before: put right, it can move the plan.
+  if (!stop && firstRecordedMonthOf(scenario)) return null;
   const hist = scenario && scenario.decisionTool && Array.isArray(scenario.decisionTool.history) ? scenario.decisionTool.history : [];
   const marked = hist.some((h) => h && h.bridgeYear === true);
   if (!(start > taxYearStartOf(now) || marked)) return null;

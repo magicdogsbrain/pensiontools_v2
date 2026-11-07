@@ -23,7 +23,7 @@ import { upgradeScenario } from '../src/firebase/scenarioMigration.js';
 import { effectiveStressSettings } from '../src/services/PlanReading.js';
 import {
   stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, reAnchorCopy, reAnchorRecords, reAnchorAllowance, positionAfterMove, moveAnchorOf,
-  strategyBlockAfterMove, moveFactsOf, REANCHOR_STRESS_KEYS, REANCHOR_DECISION_KEYS, MOVED_SOURCE, MOVED_NOTE
+  strategyBlockAfterMove, moveFactsOf, REANCHOR_STRESS_KEYS, REANCHOR_DECISION_KEYS, MOVED_SOURCE, MOVED_NOTE, startLaterOf
 } from '../src/services/PlanMove.js';
 import { movedPlanOf, movePatch, noteMoved } from '../src/answers/plan/moveStart.js';
 import { runForDocument, planFor } from '../src/answers/plan/lastsRun.js';
@@ -124,6 +124,34 @@ describe('the question and the offer on a locked plan', () => {
     expect(moveOfferOf(alex('2027-04'), new Date(2027, 5, 1))).toBeNull();   // the plan's own first tax year: nothing to move
     expect(stopAskOf(alex(), NOW)).toBe(false);                // said: not asked again
   });
+});
+
+/**
+ * The tests below record the month work stopped as well, so their moves still go to the stop's tax year (7.4.3). These pin
+ * the same fixtures as they were given before, with their months beginning after the stop: the move now goes to the tax year
+ * the earliest recorded month is in, or nowhere when year 0 is that year already.
+ */
+describe('the original inputs, read from 7.4.3: the move goes to where the recorded months begin', () => {
+  it('fixture 03, stopped October 2023, months from July 2026: to 2026/27, not the stop\'s 2023/24', () => {
+    const raw = read('20-locked-start-after-stop'); raw.stressTool.settings.stoppedWork = '2023-10';
+    const p = upgradeScenario(raw, { now: NOW }).scenario;
+    expect(startLaterOf(p, NOW)).toEqual({ kind: 'move', start: 2027, stopMonth: '2023-10', to: 2026, blocked: false, recordsFrom: '2026-07' });
+    expect(moveOfferOf(p, NOW)).toEqual({ stopMonth: '2023-10', from: 2027, to: 2026, years: 1, recordsFrom: '2026-07' });
+  });
+  it('fixture 13, stopped October 2023, months from November 2024, year 0 2024/25: nothing to move', () => {
+    const raw = read('13-stopped-drawing-since'); raw.stressTool.settings.stoppedWork = '2023-10';
+    const p = upgradeScenario(raw, { now: NOW }).scenario;
+    expect(moveOfferOf(p, NOW)).toBeNull();
+    expect(startLaterOf(p, NOW)).toBeNull();
+  });
+  for (const stop of ['2025-06', '2024-06']) {
+    it('fixture 04, stopped ' + stop + ', months from this tax year, year 0 this tax year: nothing to move', () => {
+      const raw = read('04-buckets-running'); raw.stressTool.settings.stoppedWork = stop;
+      const p = upgradeScenario(raw, { now: NOW }).scenario;
+      expect(moveOfferOf(p, NOW)).toBeNull();
+      expect(startLaterOf(p, NOW)).toBeNull();
+    });
+  }
 });
 
 describe('the move on fixture 03 (§7 "the migration")', () => {

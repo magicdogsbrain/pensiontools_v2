@@ -440,8 +440,10 @@ export function lockedStartOf(plan, { today, typed = null }) {
     later = startLaterOf(plan, now);
     offer = moveOfferOf(plan, now);
     blocked = offer ? null : moveBlockedOf(plan, now);
-    // a move whose State Pension date is asked (7.4.0): offered with the date typed, or waiting for one
-    const spMove = !offer && blocked && blocked.spFix ? (spDate ? moveOfferOf(plan, now, { spStartDate: spDate }) : { stopMonth: blocked.stopMonth, from: blocked.from, to: blocked.to }) : null;
+    // a move whose State Pension date is asked (7.4.0): offered with the date typed, or waiting for one — and, waiting, it
+    // keeps the month the recorded months begin (7.4.3), so its words say why it goes to that year before any date is typed
+    const spMove = !offer && blocked && blocked.spFix ? (spDate ? moveOfferOf(plan, now, { spStartDate: spDate })
+      : { stopMonth: blocked.stopMonth, from: blocked.from, to: blocked.to, ...(blocked.recordsFrom ? { recordsFrom: blocked.recordsFrom } : {}) }) : null;
     if (spMove) { offer = { ...spMove, spAsk: true }; blocked = null; }
     ask = !offer && (stopAskOf(plan, now) || (!!later && later.kind === 'ask' && !!later.thisYear));
     change = ask ? null : stopChangeOf(plan, now);

@@ -9,6 +9,7 @@
  *    extra cash to its ladder; so did a saver's ladder; and a locked saver's cash target held it while still working;
  *  - an older ladder's extra cash is read by nothing: the ladder, the run and a new document are the same with or without it;
  *  - `pots.asOfPlanYear: 0` is written exactly when it was (the old flag's own test), on every committed plan at every clock;
+ *  - a try with the ISA drawn writes 'minimiseEarlyTax', which runs byte for byte as the 'bridge' it wrote before;
  *  - a grep gate: nothing in the code writes the old fields or produces the old placing; the readers of old stored fields
  *    that stay are listed, file by file, with why.
  *
@@ -23,8 +24,11 @@ import { simulationConfigFromSettings } from '../src/services/SimulationConfig.j
 import { planFromSettings, stressTestStrategy } from '../src/strategies/stressTest.js';
 import { buildPlanDocument, potsInYear0 } from '../src/services/PlanDocument.js';
 import { targetHoldings } from '../src/services/TransitionPlanner.js';
+import { planDocumentHtml } from '../src/ui/components/PlanDocumentView.js';
 import { deriveTiming } from '../src/services/PlanTiming.js';
 import { deriveStage, STAGES } from '../src/services/LifeStage.js';
+import { trySettingsOf } from '../src/answers/plan/lastsRun.js';
+import { tryDifferencesOf } from '../src/answers/plan/lasts.js';
 import { setLinkersOverride } from '../src/services/LinkerUniverse.js';
 import { setEquityOverride } from '../src/services/EquityIndex.js';
 
@@ -100,6 +104,17 @@ describe('an older ladder\'s extra cash is read by nothing', () => {
     for (const k of ['bridgeCash', 'bridgeMonths']) expect(k in doc.assumptions).toBe(false);
     expect('bridgeMonths' in doc.decisionRun || 'bridgeMonths' in doc.timing || 'runUpSpent' in doc.strategy.p).toBe(false);
   });
+  it('an older document that recorded the extra cash keeps it as stored, and prints neither it nor its months', () => {
+    const f20 = JSON.parse(readFileSync(join(PLANS, '20-locked-start-after-stop.json'), 'utf8'));
+    const old = f20.planDocument;
+    expect(old.assumptions.bridgeCash).toBeGreaterThan(0);
+    const frozen = JSON.stringify(old);
+    const h = planDocumentHtml(old);
+    expect(JSON.stringify(old)).toBe(frozen);   // read, never rewritten
+    expect(h).toContain('Cash years first');
+    expect(h).not.toMatch(/extra cash|money-market fund £|set aside until|months? before/i);
+    expect(h).not.toContain('£' + Math.round(old.assumptions.bridgeCash).toLocaleString('en-GB') + '<');
+  });
   it('a saver\'s months to their stop are `monthsToStop`; a retiree has none, and no placing before the start exists', () => {
     const saver = deriveTiming({ ...SAM, retired: false, retireAge: 66, firstTaxYear: null }, NOW);
     expect(saver.monthsToStop).toBeGreaterThan(0);
@@ -142,6 +157,43 @@ describe('pots.asOfPlanYear 0 is written exactly when it was', () => {
   });
 });
 
+// ---- The ISA value a try writes ------------------------------------------------------------------------------------------
+
+/**
+ * Until 7.4.2 a try with the ISA drawn wrote `isaDrawdownStrategy: 'bridge'`, which is no ISA policy: every engine fell
+ * through to drawing it uncapped, as 'minimiseEarlyTax' does. It now writes 'minimiseEarlyTax'. Held here: an older plan
+ * stored with 'bridge' runs byte for byte as 'minimiseEarlyTax' on three ways of drawing, and a try saved that way lists no
+ * ISA difference against a plan already drawing it.
+ */
+describe('the ISA drawn: \'bridge\' as an older try stored it is the same run as \'minimiseEarlyTax\'', () => {
+  // Alex (fictional): 60, retired, £520,000 in pensions and £90,000 in an ISA, £38,000 a year, a State Pension from 2033.
+  const ALEX = {
+    configured: true, currentAge: 60, currentAgeAsOf: '2026-06-12', retired: true, firstTaxYear: 2026, shapeAgeNow: 60,
+    spStartDate: '14 March 2033', spWeeklyAmount: 230.25, duration: 30, baseSalary: 38000, incomeShape: 'flat', incomeSteps: [],
+    equityMin: 300000, bondMin: 160000, cashTarget: 60000, isaBalance: 90000, isaDrawdownStrategy: 'minimiseEarlyTax'
+  };
+  const run = (id, policy) => at(NOW, () => {
+    const settings = { ...ALEX, isaDrawdownStrategy: policy, strategyId: id, strategyParams: { sippTotal: 520000, isaTotal: 90000 } };
+    const cfg = simulationConfigFromSettings({}, settings, NOW);
+    const p = planFromSettings(settings, cfg, { startAge: 60, now: NOW });
+    const r = stressTestStrategy(id, { ...p, mcRuns: 60, stride: 12 });
+    return JSON.stringify(r, (k, v) => (k === 'samples' || typeof v === 'function' ? undefined : v));
+  });
+  for (const id of ['pots-and-valves', 'full-il-gilt', 'floor-and-flex']) {
+    it(id + ': byte-identical', () => {
+      const drawn = run(id, 'minimiseEarlyTax');
+      expect(run(id, 'bridge')).toBe(drawn);
+      expect(run(id, 'hold')).not.toBe(drawn);   // the ISA's policy reaches this run, so the sameness above says something
+    });
+  }
+  it('a try with the ISA drawn writes \'minimiseEarlyTax\', and lists no ISA difference on a plan already drawing it', () => {
+    const c = trySettingsOf({ ...ALEX, strategyId: 'pots-and-valves' }, { way: 'pots-and-valves', pot: 520000, isa: 90000, isaPolicy: 'draw' });
+    expect(c.isaDrawdownStrategy).toBe('minimiseEarlyTax');
+    expect(tryDifferencesOf(ALEX, c).map((d) => d.id)).not.toContain('isaPolicy');
+    expect(tryDifferencesOf({ ...ALEX, isaDrawdownStrategy: 'hold' }, c).map((d) => d.id)).toContain('isaPolicy');
+  });
+});
+
 // ---- The grep gate ---------------------------------------------------------------------------------------------------------
 
 /** Every source file of both apps. */
@@ -162,9 +214,10 @@ const ALLOWED = {
   'src/services/StrategyState.js': { bridgeCash: 3 },   // kept as a key of the ladders' own (as stored), so a locked plan's settings never change on load
   'src/services/TransitionPlanner.js': { bridgeCash: 3 },   // an older document's plan.cash holds its extra cash: taken off when the cash years carry no costs
   'src/answers/plan/read.js': { bridgeCash: 2 },   // an older ladder's stored extra cash is not listed as a dial
-  'src/ui/components/PlanDocumentView.js': { bridgeCash: 2, bridgeMonths: 1, "'bridge'": 1 },   // an older document's assumptions as committed; its journey's old placing read as "Retired"
+  'src/ui/components/PlanDocumentView.js': { bridgeMonths: 1, "'bridge'": 1 },   // the comment saying an older document's months are not printed; its journey's old placing read as "Retired"
   'src/v7/screens/plan/PlanScreen.jsx': { "'bridge'": 2 },   // an old journey entry's placing read as "Retired"
-  'src/services/PlanMove.js': { bridgeYear: 7 },   // the move of an older plan's start: reads the old mark and drops it
+  'src/services/LifeStage.js': { "'bridge'": 1 },   // an old journey entry's placing is the stage running, so opening the plan adds none
+  'src/services/PlanMove.js': { bridgeYear: 6 },   // the move of an older plan's start: reads the old mark and drops it
   'src/ui/planStartUi.js': { bridgeYear: 1 },   // an older record's stamped words, never shown once its month is a plan month
   'src/models/Decision.js': { bridgeYear: 1 },   // the comment saying nothing writes it
   'index.html': { "'bridge'": 1 },   // an older try's ISA policy value, read as "drawn"
@@ -189,7 +242,7 @@ describe('the grep gate: nothing writes the old fields or produces the old placi
   it('no code produces the placing, stamps a record, or puts the extra cash, its months or its flag on anything it writes', () => {
     for (const f of files) {
       const text = readFileSync(join(ROOT, f), 'utf8');
-      expect(text, f).not.toMatch(/key:\s*'bridge'|[^=!]=\s*'bridge'\s*[;:?]|bridgeYear:\s*true|bridgeMonths:\s*[^,}\s]|runUpSpent:\s*true|bridgeCash:\s*[^,}\s]/);
+      expect(text, f).not.toMatch(/key:\s*'bridge'|[^=!]=\s*'bridge'\s*[;:?]|bridgeYear:\s*true|\.bridgeYear\s*=(?!=)|\.planStartYear\s*=(?!=)|planStartYear:\s*[^,}\s]|bridgeMonths:\s*[^,}\s]|runUpSpent:\s*true|bridgeCash:\s*[^,}\s]/);
     }
   });
 });

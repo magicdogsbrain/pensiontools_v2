@@ -379,10 +379,13 @@ function pricesWords(doc, compared, factor, when) {
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
-/** Append a stage change to the journey (pure; returns the same array when nothing changed). */
+/** Append a stage change to the journey (pure; returns the same array when nothing changed). A stored `bridge`
+ *  entry is the old placing of a plan now read as running (7.4.2): it is the same stage, so reading the plan again
+ *  adds nothing, and opening it writes nothing. */
 export function journeyAppend(journey, stage, now = new Date(), note = null) {
   const list = Array.isArray(journey) ? journey : [];
   const last = list[list.length - 1];
-  if (last && last.stage === stage.key) return list;
+  const lastKey = last && last.stage === 'bridge' ? 'running' : last?.stage;
+  if (last && lastKey === stage.key) return list;
   return [...list, { stage: stage.key, label: stage.label, at: now.toISOString(), ...(note ? { note } : {}) }].slice(-40);
 }

@@ -11,6 +11,7 @@
  *    no old word on the new app's home and steps, nor on the planner's pages.
  *  - 03 on the new app: the home's first thing to do is "When did you stop work?"; said, it is "Start it from the tax year
  *    you stopped", whose button opens the move on "About you and when", its confirm naming no months before the plan.
+ *  - Opening any of them in the planner adds nothing to its journey (an old `bridge` entry reads as running).
  *  - 03 in the planner: the next-step banner says the same thing to do, and its button opens the line that moves the start.
  * Run at desktop-1440 and phone-390 alike.
  *
@@ -88,6 +89,10 @@ for (const name of ['20-locked-start-after-stop', '04-buckets-running', '07-pre-
     await page.evaluate(() => document.querySelector('.sub-tab[data-stresstab="stresssettings"]').click());
     await expect(page.locator('#ssTimingBlock')).toBeVisible({ timeout: 45_000 });
     expect(await oldWordsOn(page, plannerText), name + ' · Stress settings').toEqual([]);
+    // Opening writes nothing: an old journey ending in `bridge` is the stage the plan reads as now (running), so the
+    // planner's stage check adds no entry to it.
+    const stored = await page.evaluate((k) => JSON.parse(sessionStorage.getItem(k) || '[]'), GUEST_KEY);
+    expect(stored.find((p) => p.id === plan.id)?.journey, name + ' · journey after opening').toEqual(plan.journey);
   });
 }
 

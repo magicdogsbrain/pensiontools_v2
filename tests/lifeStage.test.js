@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { effectiveStressSettings } from '../src/services/PlanReading.js';
 import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend, APPROACHING_YEARS, STAGES, openingTab, accumulationAgesOf } from '../src/services/LifeStage.js';
 
 const NOW = new Date(2026, 8, 10);
@@ -144,6 +146,23 @@ describe('journeyAppend', () => {
     const b = deriveStage(sc({ currentAge: 57, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }), NOW);
     j = journeyAppend(j, b, new Date(2027, 0, 1), 'lock');
     expect(j[1]).toMatchObject({ stage: 'approaching', note: 'lock' });
+  });
+  it('an old journey ending in the placing `bridge` is the same stage as running: reading the plan again adds nothing (7.4.2)', () => {
+    // Fixture 20 is a locked plan stored the old way: its last journey entry is `bridge`, and it now reads as running.
+    // Opening it on the classic page must write nothing, so the journey comes back as the same array.
+    const f20 = JSON.parse(readFileSync('tests/fixtures/plans/20-locked-start-after-stop.json', 'utf8'));
+    expect(f20.journey.at(-1).stage).toBe('bridge');
+    for (const now of [new Date('2026-11-04T09:00:00Z'), new Date(2027, 2, 1), new Date(2027, 5, 1)]) {
+      const settings = effectiveStressSettings(f20, { now });
+      for (const st of [deriveStage(f20, now), deriveStage({ ...f20, stressTool: { ...f20.stressTool, settings } }, now)]) {
+        expect(st.key).toBe('running');
+        expect(journeyAppend(f20.journey, st, now)).toBe(f20.journey);
+      }
+    }
+    // A real change after it is still recorded.
+    const draft = deriveStage(sc({ currentAge: 62, currentAgeAsOf: '2026-03-01', retired: true }), NOW);
+    expect(draft.key).not.toBe('running');
+    expect(journeyAppend(f20.journey, draft, NOW)).toHaveLength(f20.journey.length + 1);
   });
 });
 

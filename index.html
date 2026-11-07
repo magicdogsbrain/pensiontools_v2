@@ -7173,7 +7173,7 @@
     function setStressSettingsEnabled(enabled) {
       const root = document.getElementById('stress-stresssettings'); if (!root) return;
       root.querySelectorAll('input, select, textarea, button').forEach((el) => {
-        if (el.closest('#ssLockBanner') || el.closest('#ssSetupBanner') || el.closest('#tmLockedStart') || el.closest('#ssPlanClose')) return;   // a locked plan's start stays live (6.53.0), and the move to a new plan (6.56.0)
+        if (el.closest('#ssLockBanner') || el.closest('#ssSetupBanner') || el.closest('#tmLockedStart') || el.closest('#tmStartMove') || el.closest('#ssPlanClose')) return;   // a locked plan's start stays live (6.53.0, its pointer beside the start year 7.4.3), and the move to a new plan (6.56.0)
         if (el.id === 'ssSaveBtn' || el.id === 'ssLockBtn') return;
         el.disabled = !enabled;
       });

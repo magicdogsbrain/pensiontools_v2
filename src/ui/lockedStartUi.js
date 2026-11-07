@@ -33,7 +33,7 @@ import { stoppedWorkOf, monthName, decisionAnchorYear, deriveTiming } from '../s
 import { runPositionOf } from '../services/PlanFromToday.js';
 import { planFillStart } from '../services/MonthFill.js';
 import { movedPlanOf, movePatch } from '../answers/plan/moveStart.js';
-import { lockedStartHtml, moveStartQuestion, moveStartDoneWords, LOCKED_STOP_REFUSED } from './planStartUi.js';
+import { lockedStartHtml, moveStartQuestion, moveStartDoneWords, LOCKED_STOP_REFUSED, startMovePointerHtml } from './planStartUi.js';
 import { installPlanClose, planReadDay, stressLockBannerHtml, successorNameOf, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary } from './planCloseUi.js';
 import { beforeOf, closedAtOf, isClosedPlan, partnerCandidates, BEFORE_KINDS } from '../services/PlanClosed.js';
 
@@ -109,7 +109,7 @@ export function installLockedStart(win, doc, deps) {
 
   async function renderLockedStart() {
     const el = doc.getElementById('tmLockedStart'); if (!el) return;
-    let html = '', asking = false;
+    let html = '', asking = false, pointer = '';
     try {
       const sc = await getActiveScenarioAsStored(), now = new Date();
       // a closed plan's start is never moved, nor its stop month asked (its lock banner says it is closed): nothing here
@@ -128,15 +128,35 @@ export function installLockedStart(win, doc, deps) {
           stepped: incomeInSteps(ss), income: +ss.baseSalary || null, blocked, stopped: sc ? stopChangeOf(sc, now) : null, left,
           leave: !(later && later.kind === 'ask' && later.thisYear), thisYear: later && later.kind === 'ask' ? later.thisYear || null : null, spAsk, spPlanYear: spAsk ? spPlanTaxYearOf(sc) : null });
         asking = ask || left;
+        pointer = offer ? startMovePointerHtml(offer, spAsk) : '';
       }
-    } catch (e) { html = ''; asking = false; }
+    } catch (e) { html = ''; asking = false; pointer = ''; }
     el.innerHTML = html; el.style.display = html ? 'flex' : 'none';
+    paintStartMovePointer(pointer);
     // while the line asks the month, the form's own box (frozen, and empty: the plan says no month) is hidden, so one box asks
     const frozen = doc.getElementById('tmStopWrap'); if (frozen) frozen.style.display = asking ? 'none' : 'flex';
     // the line beside the lock: "Move to a new plan", or a closed plan's (planCloseUi.js)
     if (typeof win.renderPlanClose === 'function') await win.renderPlanClose();
   }
   win.renderLockedStart = renderLockedStart;
+
+  /**
+   * The pointer beside the start year (7.4.3, planStartUi.startMovePointerHtml), under the row that holds it; made here, so
+   * the page's markup is unchanged. Its button stays live under the lock, as the line under the summary does.
+   */
+  function paintStartMovePointer(html) {
+    const wrap = doc.getElementById('tmStartWrap'), row = wrap && wrap.parentElement;
+    let el = doc.getElementById('tmStartMove');
+    if (!html) { if (el) el.remove(); return; }
+    if (!row || !row.parentElement) return;
+    if (!el) {
+      el = doc.createElement('p'); el.id = 'tmStartMove'; el.className = 'hint';
+      el.setAttribute('style', 'margin:6px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;');
+      row.parentElement.insertBefore(el, row.nextSibling);
+    }
+    el.innerHTML = html;
+    const btn = el.querySelector('button'); if (btn) btn.disabled = false;
+  }
 
   win.saveLockedStopMonth = async function () {
     // the rules of V7's own box (about.js lockedStopAnswer): a month this one or earlier, after the age of 16

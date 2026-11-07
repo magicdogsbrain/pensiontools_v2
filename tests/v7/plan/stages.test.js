@@ -147,7 +147,8 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
           expect(pg.steps.filter((s) => s.state === 'current').length, `${e.plan.id} ${step}`).toBe(1);
           for (const s of pg.steps) { expect(s.error, `${e.plan.id} ${s.id}: ${s.error}`).toBeUndefined(); expect(s.result && typeof s.result.text, `${e.plan.id} ${s.id}`).toBe('string'); }
           expect(NEXT_ORDER).toContain(pg.next.id);
-          const sentence = fill(PLAN.next[pg.next.id], pg.next.slots);
+          // the rail reads a to-do's own words where it has them (`words`, 7.4.3), as PlanRail does
+          const sentence = fill(PLAN.next[pg.next.words || pg.next.id], pg.next.slots);
           expect(sentence).not.toMatch(/\{\w+\}/);
           // the pot step's address opens the check-in where the stage has one (release step R3); any other step not listed says so
           if (step === 'pot' && STEPS[pg.stageKey].includes('checkin')) expect(pg.current).toBe('checkin');
@@ -158,10 +159,12 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
   }
   it('the next sentence: the 2.4 table on the corpus', () => {
     const at = (name, today, step = null) => { const es = entriesAt(today); const id = entryOf(C[name], today).plan.id; return planPage(es, id, step, { today }); };
-    // 7.3.3: 03 is stored with its start later than it should be and says no month work stopped: that is asked first
-    expect(at('20-locked-start-after-stop', '2026-10-02').next.id).toBe('P.startAsk');
+    // 7.3.3: 03 is stored with its start later than it should be; 7.4.3: its months are recorded from July 2026, so the move
+    // to 2026/27 comes first, in its own words, with no question about when work stopped
+    expect(at('20-locked-start-after-stop', '2026-10-02').next.id).toBe('P.startMove');
+    expect(at('20-locked-start-after-stop', '2026-10-02').next.words).toBe('P.startMoveRecords');
     expect(at('20-locked-start-after-stop', '2026-10-02').due.map((d) => d.pid).slice(1, 2)).toEqual(['P.month']);   // October 2026 is not recorded
-    expect(at('20-locked-start-after-stop', '2027-04-06').due.map((d) => d.pid).slice(0, 2)).toEqual(['P.startAsk', 'P.taxyear']);   // 2027/28 is not set up
+    expect(at('20-locked-start-after-stop', '2027-04-06').due.map((d) => d.pid).slice(0, 2)).toEqual(['P.startMove', 'P.taxyear']);   // 2027/28 is not set up
     expect(at('05-saver-committed', '2026-10-02').next.id).toBe('P.pot');             // October's pot is not recorded
     expect(at('02-pnv-draft', '2026-10-02').next.id).toBe('P.draft');
     // 7.3.0: an unlocked saver who has never checked in — the first check-in is the design's rank 10, before the info line

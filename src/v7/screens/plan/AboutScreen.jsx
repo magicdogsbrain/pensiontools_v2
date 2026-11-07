@@ -170,6 +170,13 @@ export function AboutScreen(state, dispatch) {
     );
     const working = moving && <div class="working" role="status" data-testid="plan.about.moving"><p class="working-title">{C.working}</p><progress aria-label={C.progress} /></div>;
     const nm = ls && ls.nowMove;
+    // beside the saved first tax year (7.4.3): where the start belongs, when the move is offered, with the move's own button
+    const pointer = ls && ls.move && ls.move.how && !moving && !about.moveConfirm ? (
+      <span class="plan-pointer" data-testid="plan.about.startPointer">
+        {'. '}{fill(ls.move.records ? L.pointer : L.pointerStop, ls.move)}{' '}
+        <Button testid="plan.about.startPointer.open" kind="quiet" onClick={toggleMove} disabled={!!about.saving} {...keepFocus}>{L.pointerOpen}</Button>
+      </span>
+    ) : null;
     const lockedStartBlock = ls && ls.ask ? (
       <>
         <form class="ask notice locked-start" noValidate onSubmit={onStopSave} data-testid="plan.about.stopAsk">
@@ -198,7 +205,7 @@ export function AboutScreen(state, dispatch) {
     ) : ls && ls.move ? (
       <>
         <div class="notice locked-start" role="status" data-testid="plan.about.moveStart">
-          <p>{fill(ls.move.stepped ? L.move : L.moveLevel, ls.move)}</p>
+          <p>{fill(ls.move.records ? (ls.move.stepped ? L.moveRecords : L.moveRecordsLevel) : ls.move.stepped ? L.move : L.moveLevel, ls.move)}</p>
           {ls.move.spAsk && spBox}
           {working || (!about.moveConfirm && (
             <div class="actions-row">
@@ -212,7 +219,7 @@ export function AboutScreen(state, dispatch) {
       </>
     ) : ls && ls.blocked ? (
       <div class="notice locked-start" role="status" data-testid="plan.about.moveBlocked">
-        <p>{fill(L.blocked, ls.blocked)}</p>
+        <p>{fill(ls.blocked.records ? L.blockedRecords : L.blocked, ls.blocked)}</p>
         {changeBlock}
       </div>
     ) : changeBlock;
@@ -228,6 +235,7 @@ export function AboutScreen(state, dispatch) {
                 <li class="plan-line" key={f.path} data-line={'about.saved.' + f.path}>
                   <span class="plan-label">{(f.path === 'stopMonth' && field('stopped') && field('stopped').saved === 'yes' ? ABOUT.fields.stoppedMonth : ABOUT.fields[f.path]).label}: </span>
                   <span class="plan-value" data-saved-for={f.path}>{f.type === 'choice' ? fill((f.path === 'startWhen' ? startWords : ABOUT.fields[f.path]).options[f.saved] || f.saved, slots) : f.saved}</span>
+                  {f.path === 'startWhen' && pointer}
                 </li>
               ))}
             </ul>

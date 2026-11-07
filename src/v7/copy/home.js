@@ -52,6 +52,9 @@ export const HOME = {
     /** The same, on a plan whose start this tax year cannot replace (already this tax year or earlier, or not offered). */
     'start.askOnly':      { title: 'When did you stop work?', detail: 'Your plan is set to start in {start}.' },
     'start.blocked':      { title: 'Its start can be moved only once the plan is unlocked', detail: 'Your plan is set to start in {start}, but you stopped work in {stopped}.' },
+    /** The same two, where the plan's recorded months begin later than work stopped, or no month is said (7.4.3). */
+    'start.moveRecords':  { title: 'Start it from {moveTo}', detail: 'Your plan is set to start in {start}, but your recorded months begin in {records}.' },
+    'start.blockedRecords': { title: 'Its start can be moved only once the plan is unlocked', detail: 'Your plan is set to start in {start}, but your recorded months begin in {records}.' },
     /** A draft still set to start later than this tax year (7.4.0, PlanMove.laterDraftLeftOf): its start is chosen there. */
     'start.draft':        { title: 'Choose your plan’s first tax year', detail: 'Your plan is set to start in {start}. It can start this tax year, or the tax year you stopped work.' },
     'month.taxYear':      { title: 'Set up {year}', detail: 'A new tax year: say what the plan pays this year before the first month is recorded.' },

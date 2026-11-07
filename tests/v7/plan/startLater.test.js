@@ -12,6 +12,10 @@
  *     says when work stopped, with a confirm that names no months "before the plan";
  *   - the planner's next-step banner says the same to-do, word for word;
  *   - reads only: opening the home writes nothing.
+ *
+ * From 7.4.3 fixture 03's three recorded months (July to September 2026) say when the plan was picked up: with no month work
+ * stopped it is moved to 2026/27, the tax year they begin in, with no question first ("Start it from 2026/27"; recordsFrom).
+ * The question, and "this tax year" beside it, are a plan's with no months recorded: `noMonths()` below.
  */
 import { describe, it, expect } from 'vitest';
 import { planPage } from '../../../src/answers/plan/read.js';
@@ -32,20 +36,26 @@ const copy = (v) => JSON.parse(JSON.stringify(v));
 const fill = (text, slots) => String(text).replace(/\{(\w+)\}/g, (m, k) => (k in slots && slots[k] != null ? String(slots[k]) : m));
 /** Fixture 03 (locked ladder, year 0 2027/28, months recorded before it) saying it stopped work in a month of 2026/27. */
 const stopped = (month = '2026-05') => { const r = copy(C['20-locked-start-after-stop']); r.stressTool.settings.stoppedWork = month; return r; };
+/** Fixture 03 with no month recorded and no month work stopped: the question (7.4.3: one with months is moved to their year). */
+const noMonths = () => { const r = copy(C['20-locked-start-after-stop']); r.decisionTool.history = []; return r; };
 const SAID = /before (your|the) plan|run[\s-]?up|bridge|set aside until|more than the plan said|less than the plan said/i;
 /** 03 saying it stopped, its State Pension given as a plan year that the move would turn into 12 ("at 67"): the move is blocked. */
 const blocked = () => { const r = stopped(); for (const k of ['stressTool', 'decisionTool']) Object.assign(r[k].settings, { spStartDate: null, spWeeklyAmount: 0, statePension: 12000, statePensionYear: 11 }); return r; };
 
 describe('which plans are stored the old way (PlanMove.startLaterOf)', () => {
   const at = noon(TODAY);
-  it('fixture 03, saying no month work stopped: asks when (its year 0 is later than this tax year), and offers this tax year (7.4.0)', () => {
-    expect(startLaterOf(C['20-locked-start-after-stop'], at)).toEqual({ kind: 'ask', start: 2027, thisYear: 2026 });
+  it('fixture 03, saying no month work stopped: the move to 2026/27, the tax year its recorded months begin in (7.4.3)', () => {
+    expect(startLaterOf(C['20-locked-start-after-stop'], at)).toEqual({ kind: 'move', start: 2027, stopMonth: null, to: 2026, blocked: false, recordsFrom: '2026-07' });
+  });
+  it('with no month recorded either: asks when (its year 0 is later than this tax year), and offers this tax year (7.4.0)', () => {
+    expect(startLaterOf(noMonths(), at)).toEqual({ kind: 'ask', start: 2027, thisYear: 2026 });
   });
   it('fixture 03, saying it stopped in May 2026: the move to 2026/27', () => {
     expect(startLaterOf(stopped(), at)).toMatchObject({ kind: 'move', start: 2027, stopMonth: '2026-05', to: 2026 });
   });
-  it('fixture 03 once its year 0 has come, months still marked: still asks (until the month is said)', () => {
-    expect(startLaterOf(C['20-locked-start-after-stop'], noon('2027-06-01'))).toEqual({ kind: 'ask', start: 2027 });
+  it('fixture 03 once its year 0 has come: still the move back to 2026/27, where its months begin (7.4.3); with none, nothing', () => {
+    expect(startLaterOf(C['20-locked-start-after-stop'], noon('2027-06-01'))).toEqual({ kind: 'move', start: 2027, stopMonth: null, to: 2026, blocked: false, recordsFrom: '2026-07' });
+    expect(startLaterOf(noMonths(), noon('2027-06-01'))).toBe(null);   // nothing marked, its start this tax year: nothing to say
   });
   it('never a draft, a closed plan, or the plan that carries a closed one on; never 04 (a running plan)', () => {
     const draft = copy(C['20-locked-start-after-stop']); draft.decisionTool.settings.locked = false;
@@ -71,8 +81,22 @@ describe('which plans are stored the old way (PlanMove.startLaterOf)', () => {
 });
 
 describe('the V7 home: one thing to do, ranked first', () => {
-  it('fixture 03 without a month work stopped: "When did you stop work?", first, opening "About you and when"', () => {
+  it('fixture 03 without a month work stopped: "Start it from 2026/27", where its recorded months begin, first (7.4.3)', () => {
     const e = entryOf(C['20-locked-start-after-stop'], TODAY);
+    const h = homeOf([e], e.plan.id, { today: TODAY });
+    const first = h.todo.items[0];
+    expect(first.id).toBe('start.moveRecords');
+    expect(first.slots).toMatchObject({ start: 'April 2027', records: 'July 2026', moveTo: '2026/27' });
+    expect(first.button).toMatchObject({ id: 'moveStart', href: '#/plan/' + e.plan.id + '/about' });
+    expect(fill(HOME.items['start.moveRecords'].title, first.slots)).toBe('Start it from 2026/27');
+    expect(fill(HOME.items['start.moveRecords'].detail, first.slots)).toBe('Your plan is set to start in April 2027, but your recorded months begin in July 2026.');
+    // the rail's "Next" is the same thing, in its own words
+    const pg = planPage([e], e.plan.id, null, { today: TODAY });
+    expect(pg.next.words).toBe('P.startMoveRecords');
+    expect(fill(PLAN.next[pg.next.words], pg.next.slots)).toBe('Your plan is set to start in April 2027, but your recorded months begin in July 2026. Next: start it from 2026/27.');
+  });
+  it('with no month recorded either: "When did you stop work?", first, opening "About you and when"', () => {
+    const e = entryOf(noMonths(), TODAY);
     const h = homeOf([e], e.plan.id, { today: TODAY });
     const first = h.todo.items[0];
     expect(first.id).toBe('start.ask');
@@ -122,17 +146,19 @@ describe('the V7 home: one thing to do, ranked first', () => {
     const entries = entriesAt(TODAY);
     for (const e of entries) {
       const ids = planPage(entries, e.plan.id, null, { today: TODAY }).due.map((d) => d.id);
-      if (e.plan.id === C['20-locked-start-after-stop'].id) expect(ids[0]).toBe('start.ask');
+      if (e.plan.id === C['20-locked-start-after-stop'].id) expect(ids[0]).toBe('start.moveRecords');   // 7.4.3
       else expect(ids.filter((x) => x.startsWith('start.')), e.plan.id).toEqual([]);
     }
   });
   it('its words pass the banned list in every scope a plan page is shown in', () => {
     const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
-    const slots = { start: 'April 2027', stopped: 'May 2026' };
+    const slots = { start: 'April 2027', stopped: 'May 2026', records: 'July 2026', moveTo: '2026/27' };
     for (const t of [HOME.items['start.ask'].title, HOME.items['start.ask'].detail, HOME.items['start.move'].title, HOME.items['start.move'].detail,
       HOME.items['start.askOnly'].title, HOME.items['start.askOnly'].detail, HOME.items['start.draft'].title, HOME.items['start.draft'].detail, PLAN.next['P.startDraft'], PLAN.buttons.chooseStart, NEXT_STEP_WORDS.startDraft, NEXT_STEP_WORDS.startDraftBtn,
       PLAN.next['P.startAsk'], PLAN.next['P.startMove'], PLAN.buttons.moveStart, PLAN.buttons.sayWhen,
-      HOME.items['start.blocked'].title, HOME.items['start.blocked'].detail, PLAN.next['P.startBlocked'], PLAN.buttons.seeWhy, NEXT_STEP_WORDS.startBlocked]) expect(bannedHits(fill(t, slots), scopes), t).toEqual([]);
+      HOME.items['start.blocked'].title, HOME.items['start.blocked'].detail, PLAN.next['P.startBlocked'], PLAN.buttons.seeWhy, NEXT_STEP_WORDS.startBlocked,
+      HOME.items['start.moveRecords'].title, HOME.items['start.moveRecords'].detail, HOME.items['start.blockedRecords'].title, HOME.items['start.blockedRecords'].detail,
+      PLAN.next['P.startMoveRecords'], PLAN.next['P.startBlockedRecords'], NEXT_STEP_WORDS.startMoveRecords.replace('{to}', '2026/27'), NEXT_STEP_WORDS.startBlockedRecords]) expect(bannedHits(fill(t, slots), scopes), t).toEqual([]);
   });
   it('opening the home writes nothing: the stored plan is byte-identical', () => {
     const raw = copy(C['20-locked-start-after-stop']);
@@ -197,17 +223,17 @@ describe('"Where you are" on 03: the months and what was taken, never read again
       expect(h.year.cells.every((c) => c.plan == null)).toBe(true);
     });
   }
-  it('03 once its year 0 has come (June 2027, months still marked): the to-do stays, and its months are read against the plan', () => {
+  it('03 once its year 0 has come (June 2027): the to-do stays — the move back to where its months begin — and its months are read against the plan', () => {
     const today = '2027-06-01';
     const e = entryOf(C['20-locked-start-after-stop'], today);
     const pg = planPage([e], e.plan.id, 'where', { today });
-    // its start is already this tax year: "When did you stop work?" without the offer of this tax year (as the planner says it)
-    expect(pg.due.map((d) => d.id)).toContain('start.askOnly');
-    expect(pg.due.map((d) => d.id)).not.toContain('start.ask');
-    const ask = pg.due.find((d) => d.id === 'start.askOnly');
-    expect(fill(HOME.items['start.askOnly'].detail, ask.slots)).toBe('Your plan is set to start in April 2027.');
+    // 7.4.3: its months begin in 2026/27, so the move is to that year, not a question
+    expect(pg.due.map((d) => d.id)).toContain('start.moveRecords');
+    expect(pg.due.map((d) => d.id)).not.toContain('start.askOnly');
+    const mv = pg.due.find((d) => d.id === 'start.moveRecords');
+    expect(fill(HOME.items['start.moveRecords'].detail, mv.slots)).toBe('Your plan is set to start in April 2027, but your recorded months begin in July 2026.');
     expect(nextStepFor({ stage: deriveStage(e.plan, noon(today)), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(e.plan, noon(today)) }).html)
-      .toBe(NEXT_STEP_WORDS.startAskOnly.replace('{start}', 'April 2027'));
+      .toBe('Your plan is set to start in April 2027, but your recorded months begin in July 2026. Start it from 2026/27.');
     const w = pg.steps.find((st) => st.id === 'where');
     const ids = w.lines.map((l) => l.id);
     expect(ids).not.toContain('where.startLater');
@@ -231,8 +257,18 @@ describe('the move still works from the to-do', () => {
     for (const t of words) expect(t).not.toMatch(SAID);
     expect(ls.move.confirm.map((l) => l.id)).not.toContain('bridgedAll');
   });
-  it('on 03 without a month, "About you and when" asks it, and its words name no months before the plan', () => {
+  it('on 03 without a month, "About you and when" offers the move to where its months begin (7.4.3), with no question first', () => {
     const e = entryOf(C['20-locked-start-after-stop'], TODAY);
+    const ls = lockedStartOf(e.plan, { today: TODAY });
+    expect(ls.ask).toBe(false);
+    expect(ls.move).toMatchObject({ yearStop: '2026/27', yearStart: '2027/28', records: 'July 2026', start: 'April 2027', how: {} });
+    const words = [fill(ls.move.stepped ? ABOUT.lockedStart.moveRecords : ABOUT.lockedStart.moveRecordsLevel, ls.move),
+      ...ls.move.confirm.map((l) => fill(ABOUT.lockedStart.confirm.lines[l.id], l.slots))];
+    for (const t of words) expect(t).not.toMatch(SAID);
+    expect(ls.move.confirm[0]).toEqual({ id: 'firstRecords', slots: { yearStop: '2026/27', records: 'July 2026', yearStart: '2027/28' } });
+  });
+  it('with no month recorded either, "About you and when" asks it, and its words name no months before the plan', () => {
+    const e = entryOf(noMonths(), TODAY);
     const ls = lockedStartOf(e.plan, { today: TODAY });
     expect(ls.ask).toBe(true);
     expect(ABOUT.lockedStart.askHelp).not.toMatch(SAID);
@@ -241,8 +277,13 @@ describe('the move still works from the to-do', () => {
 
 describe('the planner\'s next-step banner says the same to-do', () => {
   const stageOf = (raw) => deriveStage(raw, noon(TODAY));
-  it('without a month: asks when, with the V7 words', () => {
+  it('without a month: the move to where its recorded months begin, with the V7 words (7.4.3)', () => {
     const raw = C['20-locked-start-after-stop'];
+    const step = nextStepFor({ stage: stageOf(raw), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(raw, noon(TODAY)) });
+    expect(step).toEqual({ html: 'Your plan is set to start in April 2027, but your recorded months begin in July 2026. Start it from 2026/27.', btn: 'Move the start', action: { kind: 'start-later' } });
+  });
+  it('without a month or a recorded month: asks when, with the V7 words', () => {
+    const raw = noMonths();
     const step = nextStepFor({ stage: stageOf(raw), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(raw, noon(TODAY)) });
     expect(step).toEqual({ html: 'Your plan is set to start in April 2027. When did you stop work? If you are already drawing, it can start this tax year instead.', btn: 'Say when', action: { kind: 'start-later' } });
   });

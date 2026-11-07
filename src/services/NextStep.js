@@ -16,6 +16,7 @@
  * Pure: the caller reads the plan and its stage; nextStepAction turns a step's `action` into what its button does.
  */
 import { monthWordsOf } from './PlanClosed.js';
+import { taxYearLabel } from './PlanTiming.js';
 
 export const NEXT_STEP_WORDS = Object.freeze({
   startHere: 'Start here: walk through what retirement will actually cost — about 10 minutes, with typical UK figures when you\'re unsure.',
@@ -36,6 +37,8 @@ export const NEXT_STEP_WORDS = Object.freeze({
   // A locked plan stored with its start later than it should be (7.3.3): the V7 home's to-do, word for word
   startMove: 'Your plan is set to start in {start}, but you stopped work in {stopped}. Start it from the tax year you stopped.',
   startMoveBtn: 'Move the start',
+  // the same, on a plan whose recorded months begin later than work stopped, or with no month said (7.4.3): it starts when they do
+  startMoveRecords: 'Your plan is set to start in {start}, but your recorded months begin in {records}. Start it from {to}.',
   startAsk: 'Your plan is set to start in {start}. When did you stop work? If you are already drawing, it can start this tax year instead.',
   startAskBtn: 'Say when',
   /** The same, on a plan whose start this tax year cannot replace (it is already this tax year or earlier). */
@@ -44,6 +47,7 @@ export const NEXT_STEP_WORDS = Object.freeze({
   // opens the line that explains why, never a move it would refuse
   startBlocked: 'Your plan is set to start in {start}, but you stopped work in {stopped}. Its start can be moved only once the plan is unlocked.',
   startBlockedBtn: 'See why',
+  startBlockedRecords: 'Your plan is set to start in {start}, but your recorded months begin in {records}. Its start can be moved only once the plan is unlocked.',
   // a draft still set to start later than this tax year (7.4.0, PlanMove.laterDraftLeftOf): the V7 home's to-do, the start
   // chosen in the Timing block
   startDraft: 'Your plan is set to start in {start}. It can start this tax year, or the tax year you stopped work: choose it under Timing.',
@@ -75,6 +79,11 @@ function stageStep(stage, fromAnswer, successorName = null) {
  */
 function startLaterStep(sl) {
   const start = 'April ' + sl.start;
+  // the move to the tax year the recorded months begin in (7.4.3)
+  if (sl.kind === 'move' && sl.recordsFrom) {
+    const words = (sl.blocked ? NEXT_STEP_WORDS.startBlockedRecords : NEXT_STEP_WORDS.startMoveRecords).replace('{start}', start).replace('{records}', monthWordsOf(sl.recordsFrom)).replace('{to}', taxYearLabel(sl.to));
+    return { html: esc(words), btn: sl.blocked ? NEXT_STEP_WORDS.startBlockedBtn : NEXT_STEP_WORDS.startMoveBtn, action: { kind: 'start-later' } };
+  }
   if (sl.kind === 'move' && sl.blocked) return { html: esc(NEXT_STEP_WORDS.startBlocked.replace('{start}', start).replace('{stopped}', monthWordsOf(sl.stopMonth))), btn: NEXT_STEP_WORDS.startBlockedBtn, action: { kind: 'start-later' } };
   if (sl.kind === 'move') return { html: esc(NEXT_STEP_WORDS.startMove.replace('{start}', start).replace('{stopped}', monthWordsOf(sl.stopMonth))), btn: NEXT_STEP_WORDS.startMoveBtn, action: { kind: 'start-later' } };
   return { html: esc((sl.thisYear ? NEXT_STEP_WORDS.startAsk : NEXT_STEP_WORDS.startAskOnly).replace('{start}', start)), btn: NEXT_STEP_WORDS.startAskBtn, action: { kind: 'start-later' } };

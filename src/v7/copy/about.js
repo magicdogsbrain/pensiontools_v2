@@ -65,7 +65,8 @@ export const ABOUT = {
     stopSaved: 'Saved: you stopped work in {month}.', stopLeft: 'Left as it is. You will not be asked again; you can still say it under “Say when you stopped work”.',
     /** The move of a locked plan's start, written (no Undo: the planner offers none). */
     moved: 'The plan’s start is now {year}, the tax year you stopped work. The plan document and plan vs actual were written again; the earlier plan document is kept as a past version.',
-    movedNow: 'The plan’s start is now {year}, this tax year. The plan document and plan vs actual were written again; the earlier plan document is kept as a past version.' },
+    movedNow: 'The plan’s start is now {year}, this tax year. The plan document and plan vs actual were written again; the earlier plan document is kept as a past version.',
+    movedRecords: 'The plan’s start is now {year}, when your recorded months begin. The plan document and plan vs actual were written again; the earlier plan document is kept as a past version.' },
   /**
    * A locked plan's start (6.53.0): the month work stopped, asked once (the plan stays locked; the month changes no figure by
    * itself), and the move to the tax year work stopped — made here from 6.55.0, after a confirm that says what the planner's
@@ -95,6 +96,14 @@ export const ABOUT = {
     later: 'Say when you stopped work',
     move: 'You stopped work in {month}, and your plan is set to start in {yearStart}. It can start from {yearStop}, the tax year you stopped: your months since then are read against the plan. Your first income step keeps its amount and runs from {yearStop}; your later steps keep their ages. The plan stays locked.',
     moveLevel: 'You stopped work in {month}, and your plan is set to start in {yearStart}. It can start from {yearStop}, the tax year you stopped: your months since then are read against the plan. Your income stays the same, now from {yearStop}, and the plan still ends at the same age. The plan stays locked.',
+    /** The plan's recorded months begin later than work stopped, or no month is said (7.4.3): it starts when they do. */
+    moveRecords: 'Your plan is set to start in {start}, but your recorded months begin in {records}. Start it from {yearStop}: your recorded months are kept and read against it. Your first income step keeps its amount and runs from {yearStop}; your later steps keep their ages. The plan stays locked.',
+    moveRecordsLevel: 'Your plan is set to start in {start}, but your recorded months begin in {records}. Start it from {yearStop}: your recorded months are kept and read against it. Your income stays the same, now from {yearStop}, and the plan still ends at the same age. The plan stays locked.',
+    blockedRecords: 'Your plan is set to start in {start}, but your recorded months begin in {records}. Its start cannot be moved while the plan is locked: your State Pension is set by the plan’s count of years, and moved it would read as starting at 67. To change the start, unlock the plan.',
+    /** Beside "Your plan’s first tax year" when the move is offered (7.4.3): where the start belongs, with the move's button. */
+    pointer: 'Move it to {yearStop}, when your recorded months begin.',
+    pointerStop: 'Move it to {yearStop}, the tax year you stopped work.',
+    pointerOpen: 'Move the start…',
     moveHelp: 'Before anything is written, this page says exactly what changes: the plan document and plan vs actual are written again from the new start, and the earlier ones are kept.',
     blocked: 'You stopped work in {month}, and your plan is set to start in {yearStart}. Its start cannot be moved while the plan is locked: your State Pension is set by the plan’s count of years, and moved it would read as starting at 67. To change the start, unlock the plan.',
     open: 'Move the plan’s start…',
@@ -104,6 +113,7 @@ export const ABOUT = {
       intro: 'Here is exactly what changes:',
       lines: {
         first: 'The plan’s first tax year becomes {yearStop}, the tax year you stopped work ({month}); it was {yearStart}. The plan stays locked: nothing is unlocked and no setting is added.',
+        firstRecords: 'The plan’s first tax year becomes {yearStop}, the tax year your recorded months begin ({records}); it was {yearStart}. Your recorded months are kept and read against {yearStop}. The plan stays locked: nothing is unlocked and no setting is added.',
         firstNow: 'The plan’s first tax year becomes {yearStop}, this tax year; it was {yearStart}. The plan stays locked: nothing is unlocked, and no month you stopped work is saved.',
         spDate: 'Your State Pension is saved as starting on {date}, so it keeps its own tax year.',
         spDateMoved: 'That date is in {dateTaxYear}; the plan had paid your State Pension from {paidFrom}, so it now starts in {dateTaxYear}.',

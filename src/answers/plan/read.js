@@ -888,7 +888,9 @@ function rulesFor(C, built) {
     ...(prog && prog.next ? { n: String(prog.doneCount + 1), of: String(prog.total), label: String(prog.next.label || prog.next.ticker || '') } : prog ? { n: String(prog.doneCount), of: String(prog.total) } : {}),
     ...(holdCount > 0 && rec.updatedAt ? { date: dayWords(rec.updatedAt) } : {}),
     ...(band ? { band } : {}),
-    ...(C.startLater ? { start: 'April ' + C.startLater.start, ...(C.startLater.stopMonth ? { stopped: monthWords(C.startLater.stopMonth) } : {}) } : C.startDraft ? { start: 'April ' + C.startDraft.start } : {}) };
+    ...(C.startLater ? { start: 'April ' + C.startLater.start, ...(C.startLater.stopMonth ? { stopped: monthWords(C.startLater.stopMonth) } : {}),
+      // the move to the tax year the recorded months begin in (7.4.3): that month, and the tax year it moves to
+      ...(C.startLater.recordsFrom ? { records: monthWords(C.startLater.recordsFrom), moveTo: taxYearLabel(C.startLater.to) } : {}) } : C.startDraft ? { start: 'April ' + C.startDraft.start } : {}) };
   const aboutHref = '#/plan/' + plan.id + '/about';   // "About you and when", inside V7 (editing-in-v7.md 2)
   const lastsHref = '#/plan/' + plan.id + '/lasts';   // "Does it last?", inside V7 (editing-in-v7.md 10): no hand-over to the run
   const savingHref = '#/plan/' + plan.id + '/saving'; // "What you pay in", inside V7: whether what goes in is enough (release step R2)
@@ -951,11 +953,13 @@ export function dueFor(C, built, R = rulesFor(C, built)) {
     // "When did you stop work?" offers this tax year beside it only where the move to it is offered (startLater.thisYear),
     // as the planner's own words do (NextStep startAsk / startAskOnly)
     const id = pid === 'P.month' && R.gap ? 'month.gap' : pid === 'P.startAsk' && !(C.startLater && C.startLater.thisYear) ? 'start.askOnly' : DUE_IDS[pid];
+    // the move to the tax year the recorded months begin in (7.4.3) says so, in its own words on the home and the rail
+    const records = (pid === 'P.startMove' || pid === 'P.startBlocked') && !!(C.startLater && C.startLater.recordsFrom);
     // put off for this window: what you hold out of date and the move on a plan that records nothing it holds ("Not now"),
     // and the move invitation ("Not yet", the design's rank 3) — kept in the window only, nothing written
     const dismiss = DISMISSIBLE.includes(pid) ? 'window' : null;
     if (dismiss && (C.notNow || []).includes(notNowKey(C.plan.id, id))) continue;
-    out.push({ id, pid, slots: R.slots, button: R.BUTTONS[pid] || null, ...(dismiss ? { dismiss } : {}) });
+    out.push({ id: records ? id + 'Records' : id, pid, slots: R.slots, button: R.BUTTONS[pid] || null, ...(dismiss ? { dismiss } : {}), ...(records ? { words: pid + 'Records' } : {}) });
   }
   return out;
 }
@@ -984,7 +988,7 @@ function soonFor(C, slots = {}) {
 function nextFor(C, built) {
   const R = rulesFor(C, built);
   const due = dueFor(C, built, R);
-  if (due.length) return { id: due[0].pid, slots: R.slots, button: due[0].button, answerStale: R.answerStale, due };
+  if (due.length) return { id: due[0].pid, ...(due[0].words ? { words: due[0].words } : {}), slots: R.slots, button: due[0].button, answerStale: R.answerStale, due };
   // nothing due: where things stand (NEXT_INFO), word for word as before
   const id = NEXT_ORDER.find((x) => NEXT_INFO.includes(x) && R.RULES[x]());
   return { id: id || 'P.saving', slots: R.slots, button: id ? R.BUTTONS[id] : null, answerStale: R.answerStale, due };

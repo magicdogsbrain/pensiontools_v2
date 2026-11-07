@@ -518,6 +518,9 @@ export const PLAN = {
     'P.startAsk': 'Your plan is set to start in {start}. Next: say when you stopped work.',
     'P.startDraft': 'Your plan is set to start in {start}. Next: choose this tax year, or the tax year you stopped work.',
     'P.startBlocked': 'Your plan is set to start in {start}, but you stopped work in {stopped}. Its start can be moved only once the plan is unlocked.',
+    /** The same two, where the plan's recorded months begin later than work stopped, or no month is said (7.4.3). */
+    'P.startMoveRecords': 'Your plan is set to start in {start}, but your recorded months begin in {records}. Next: start it from {moveTo}.',
+    'P.startBlockedRecords': 'Your plan is set to start in {start}, but your recorded months begin in {records}. Its start can be moved only once the plan is unlocked.',
     'P.approaching': 'Next: see how the plan draws from {stop}.',
     /** A saver's check-in (research/saving-enough-and-check-in.md 4.2; release step R3): due, behind, on course. */
     'P.checkinDue': 'Next: your {often} check-in (the last was {last}).',

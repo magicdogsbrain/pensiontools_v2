@@ -23,7 +23,8 @@ export function PlanRail({ view, state, dispatch, onChange }) {
   const onKeyDown = (e) => { if (e.key === 'Escape' && open) setOpen(false); };
   const stepName = (s) => stepNameOf(s.id, view);
   const next = view.next || { id: 'P.saving', slots: {}, button: null };
-  const sentence = fill(PLAN.next[next.id] || '', next.slots);
+  // `words`: a to-do's own words where its sentence differs (the move to the tax year recorded months begin in, 7.4.3)
+  const sentence = fill(PLAN.next[next.words || next.id] || PLAN.next[next.id] || '', next.slots);
   const b = next.button;
   // one step of the rail: a step kept for later carries no mark until it is current or done (and says "For later" to a
   // reader). A plain function, not a component made in here: a component type made afresh on every draw would have Preact

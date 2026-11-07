@@ -59,11 +59,24 @@ const TODAY = '2026-11-04';
 const copy = (v) => JSON.parse(JSON.stringify(v));
 const taxYearKeyOf = (ym) => { const [y, m] = ym.split('-').map(Number); const Y = m >= 4 ? y : y - 1; return String(Y % 100).padStart(2, '0') + '/' + String((Y + 1) % 100).padStart(2, '0'); };
 
-/** Fixture 03 as the planner reads it, saying Alex stopped work in October 2023 (the month written as a locked plan may). */
+/**
+ * Fixture 03 as the planner reads it, saying Alex stopped work in October 2023 (the month written as a locked plan may).
+ * From 7.4.3 a plan with recorded months moves to the tax year they begin in (PlanMove.pickUpYearOf), so Alex has recorded
+ * the month work stopped as well (a copy of the first month, dated then): the plan was picked up from the stop, and the move
+ * is to the stop's tax year, as before. With no month said, no month is recorded either: the question is a plan's with none
+ * (one with months recorded is moved to their tax year, tests/startFromRecords.test.js).
+ */
 function alex(stop = '2023-10') {
   const raw = read('20-locked-start-after-stop');
   if (stop) raw.stressTool.settings.stoppedWork = stop;
+  if (stop && stop < '2026-04') recordedFromStop(raw, stop);
+  if (!stop) raw.decisionTool.history = [];
   return upgradeScenario(raw, { now: NOW }).scenario;
+}
+/** A stored plan (raw) that has also recorded the month work stopped, first: a copy of its first month, dated then (7.4.3). */
+function recordedFromStop(raw, stop) {
+  raw.decisionTool.history = [{ ...raw.decisionTool.history[0], date: stop, taxYear: taxYearKeyOf(stop) }, ...raw.decisionTool.history];
+  return raw;
 }
 function at(now, fn) {
   vi.useFakeTimers({ toFake: ['Date'], now });
@@ -173,7 +186,7 @@ describe('the move on fixture 03 (§7 "the migration")', () => {
     const sum = decisionSettingsChecksum(after.decisionTool.settings);
     h1.forEach((h, i) => {
       expect(JSON.stringify(without(h, DERIVED))).toBe(JSON.stringify(without(h0[i], DERIVED)));
-      expect(h.yearNum).toBe(3);
+      expect(h.yearNum).toBe(i === 0 ? 0 : 3);   // the month work stopped is the plan's first; July to September 2026 its year 3
       expect(h.bridgeYear).toBeUndefined();
       expect(h.planStartYear).toBeUndefined();
       expect(h.strategySource).toBe(MOVED_SOURCE);
@@ -236,7 +249,9 @@ describe('after the move: the history, the strip and the ladder\'s month read th
   const after = applyPatch(alex(), moved(alex()).patch);
   const anchor = decisionAnchorYear(after.decisionTool.settings, after.decisionTool.taxYears, null, after.stressTool.settings);
   it('each record reads as a month of the plan: "Year 3", paid from the cash years, never "before the plan\'s income starts"', () => {
-    for (const h of after.decisionTool.history) {
+    const [stopMonth, ...lived] = after.decisionTool.history;
+    expect(recordYearLabel(stopMonth, anchor)).toBe('Year 0');   // the month work stopped, recorded (7.4.3)
+    for (const h of lived) {
       expect(recordYearLabel(h, anchor)).toBe('Year 3');
       expect(recordSourceWords(h, anchor, 'before', 'otherwise')).toBe(MOVED_SOURCE);
     }
@@ -257,7 +272,7 @@ describe('after the move: the history, the strip and the ladder\'s month read th
   });
   it('plan vs actual: the part year set up mid-year is plan year 3 now, never "a first year"; a plan set up in its year 0 says it as before', () => {
     const gbp = (v) => '£' + Math.round(v).toLocaleString('en-GB');
-    const ty = after.decisionTool.taxYears, recs = after.decisionTool.history, months = ty['26/27'].remainingMonths;
+    const ty = after.decisionTool.taxYears, recs = after.decisionTool.history.slice(1), months = ty['26/27'].remainingMonths;   // year 3's months
     expect(months).toBeGreaterThan(0);
     expect(months).toBeLessThan(12);
     const first = firstSetUpPlanYear(ty, anchor);
@@ -409,7 +424,7 @@ describe('the income from the old start on is the figure it was, whatever the fi
 
 describe('the State Pension given as a plan year keeps its tax year (fictional, Alex)', () => {
   const spByYear = (spy) => (raw) => { const s = raw.stressTool.settings; s.spStartDate = null; s.spWeeklyAmount = 0; s.statePension = 12000; s.statePensionYear = spy; };
-  function alexWith(edit) { const raw = read('20-locked-start-after-stop'); raw.stressTool.settings.stoppedWork = '2023-10'; edit(raw); return upgradeScenario(raw, { now: NOW }).scenario; }
+  function alexWith(edit) { const raw = recordedFromStop(read('20-locked-start-after-stop'), '2023-10'); raw.stressTool.settings.stoppedWork = '2023-10'; edit(raw); return upgradeScenario(raw, { now: NOW }).scenario; }
   const spTaxYear = (s) => s.firstTaxYear + defaultSpYear(s);
   it('the planner\'s default year (12, read as "at 67") is left as it is: it follows the start age, so 2028/29 stays 2028/29', () => {
     const plan = alexWith(spByYear(12));
@@ -512,7 +527,7 @@ describe('Ladder & ratchet and Bridge & engine keep their tax years through a mo
 
 describe('the pots\' floors after a move start from the pots entered, in the tax year they were entered (fictional, Alex)', () => {
   it('fixture 13 (Pots & Valves, locked November 2024) moved to 2023/24: its floors for 2024/25 are the pots as entered', () => {
-    const raw = read('13-stopped-drawing-since');
+    const raw = recordedFromStop(read('13-stopped-drawing-since'), '2023-10');   // its months begin with the stop's (7.4.3)
     raw.stressTool.settings.stoppedWork = '2023-10';
     const plan = upgradeScenario(raw, { now: NOW }).scenario;
     const m = planMoveOf(plan, NOW);
@@ -581,7 +596,8 @@ describe('the records after a move: what names the old start, and only that', ()
 
 describe('back-fill: the lived months back to the new start, never over a recorded month (§6 decision 12)', () => {
   const after = applyPatch(alex(), moved(alex()).patch);
-  const hist = after.decisionTool.history;
+  // the months of 2026/27 the fixture records: the month work stopped (recorded too, 7.4.3) left out, so the gap is the whole way back
+  const hist = after.decisionTool.history.filter((h) => h.date !== '2023-10');
   const taxYears = after.decisionTool.taxYears;
   const start = planFillStart(2023, '2023-10');
   it('the plan\'s first month is the month work stopped (later than its April), else its April', () => {
@@ -639,7 +655,7 @@ describe('V7: the question on a locked plan\'s "About you and when", and the mov
   });
   it('once the month is said, the move is offered there, its confirm line by line; the month stays changeable, before and after a move', () => {
     const ls = lockedStartOf(alex(), { today: TODAY });
-    expect({ ...ls, move: { ...ls.move, confirm: undefined } }).toEqual({ ask: false, leave: false, nowMove: null, spShown: '', spError: null, spPlanYear: null, move: { yearStop: '2023/24', yearStart: '2027/28', month: 'October 2023', stepped: true, spAsk: false, how: {}, confirm: undefined }, blocked: null, change: 'October 2023', left: false });
+    expect({ ...ls, move: { ...ls.move, confirm: undefined } }).toEqual({ ask: false, leave: false, nowMove: null, spShown: '', spError: null, spPlanYear: null, move: { yearStop: '2023/24', yearStart: '2027/28', month: 'October 2023', stepped: true, spAsk: false, records: null, start: 'April 2027', how: {}, confirm: undefined }, blocked: null, change: 'October 2023', left: false });
     // 7.3.3: no line says the months were "before the plan's income starts" (the old 'bridgedAll'): they are months of the plan
     expect(ls.move.confirm.map((l) => l.id)).toEqual(['first', 'steps', 'ends', 'months', 'documentLadder', 'sp', 'moreLadder', 'fill', 'notAffected']);
     expect(lockedStartOf(applyPatch(alex(), moved(alex()).patch), { today: TODAY })).toEqual({ ask: false, leave: false, move: null, nowMove: null, blocked: null, change: 'October 2023', left: false, spShown: '', spError: null, spPlanYear: null });
@@ -661,8 +677,8 @@ describe('V7: the question on a locked plan\'s "About you and when", and the mov
     const plan = alex();
     const m = planMoveOf(plan, NOW);
     const facts = moveFactsOf(plan, m);
-    expect(facts).toMatchObject({ stepAmount: 34000, stepped: true, endAge: 85, bridged: 3, runYear: 2026, ladder: true, dated: false, sp: { taxYear: 2028, before: 1, after: 5 } });
-    expect(facts.months).toEqual(['2026-07', '2026-08', '2026-09']);
+    expect(facts).toMatchObject({ stepAmount: 34000, stepped: true, endAge: 85, bridged: 4, runYear: 2026, ladder: true, dated: false, sp: { taxYear: 2028, before: 1, after: 5 } });
+    expect(facts.months).toEqual(['2023-10', '2026-07', '2026-08', '2026-09']);   // the month work stopped, recorded (7.4.3)
     const theirs = plain(moveStartQuestion(m, facts).html);
     const C = ABOUT.lockedStart.confirm;
     const fillIn = (s, slots) => s.replace(/\{(\w+)\}/g, (x, k) => (k in slots ? slots[k] : x));
@@ -673,7 +689,7 @@ describe('V7: the question on a locked plan\'s "About you and when", and the mov
       ['The plan stays locked: nothing is unlocked and no setting is added.', 'The plan stays locked: nothing is unlocked and no setting is added.'],
       ['the first step keeps its amount (£34,000 a year) and now runs from 2023/24, at 62; your later steps keep their ages.', 'the first step keeps its amount (£34,000 a year) and now runs from 2023/24, at 62; your later steps keep their ages.'],
       ['The plan still runs to age 85, 4 years longer from its new start.', 'The plan still runs to age 85, 4 years longer from its new start.'],
-      ['3 recorded months (July 2026 to September 2026) keep every figure you entered. They now count from the new start, 2023/24.', '3 recorded months (July 2026 to September 2026) keep every figure you entered. They now count from the new start, 2023/24.'],
+      ['4 recorded months (October 2023 to September 2026) keep every figure you entered. They now count from the new start, 2023/24.', '4 recorded months (October 2023 to September 2026) keep every figure you entered. They now count from the new start, 2023/24.'],
       ['the gilt ladder is bought from 2026/27 on, no year you have already lived is bought or paid for again', 'the gilt ladder is bought from 2026/27 on, no year you have already lived is bought or paid for again'],
       ['Your State Pension still starts in 2028/29, as before; only the plan’s count of years to it changes (5 from the new start, not 1).', 'Your State Pension still starts in 2028/29, as before; only the plan\'s count of years to it changes (5 from the new start, not 1).'],
       ['the plan counts 4 more years to the same end age, and the ladder’s cost leaves out the years already lived.', 'The plan counts 4 more years to the same end age, and the ladder\'s cost leaves out the years already lived.']
@@ -690,7 +706,7 @@ describe('V7: the question on a locked plan\'s "About you and when", and the mov
     for (const w of ours) expect(w).not.toMatch(/\{\w+\}|undefined|null/);
   });
   it('a level income and one recorded month: the words for one, never "1 years" or "1 recorded months"', () => {
-    const raw = read('04-buckets-running'); raw.stressTool.settings.stoppedWork = '2025-06';
+    const raw = recordedFromStop(read('04-buckets-running'), '2025-06'); raw.stressTool.settings.stoppedWork = '2025-06';   // its months begin with the stop's (7.4.3)
     const plan = upgradeScenario(raw, { now: NOW }).scenario;
     plan.decisionTool.history = plan.decisionTool.history.slice(0, 1);
     const ls = lockedStartOf(plan, { today: TODAY });
@@ -777,7 +793,7 @@ describe('the words', () => {
     expect(moveStartDoneWords(mm)).toContain('the earlier plan document is under Previous versions');
   });
   it('fixture 04 (level income, months already in the plan): no steps in the words, and no mark said to be taken off', () => {
-    const raw = read('04-buckets-running'); raw.stressTool.settings.stoppedWork = '2024-06';
+    const raw = recordedFromStop(read('04-buckets-running'), '2024-06'); raw.stressTool.settings.stoppedWork = '2024-06';   // its months begin with the stop's (7.4.3)
     const plan = upgradeScenario(raw, { now: NOW }).scenario;
     const mm = planMoveOf(plan, NOW);
     expect(mm).not.toBeNull();

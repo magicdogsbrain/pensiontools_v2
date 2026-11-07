@@ -455,11 +455,13 @@ export function lockedStartOf(plan, { today, typed = null }) {
     ask,
     // "Leave it" only where nothing is to move: the plain question of a plan whose start is where it should be
     leave: ask && !(later && later.kind === 'ask' && later.thisYear),
+    // `records` (7.4.3): the plan's recorded months begin later than work stopped, or no month is said — it starts when they do
     move: offer ? { yearStop: taxYearLabel(offer.to), yearStart: taxYearLabel(offer.from), month: monthWords(offer.stopMonth), stepped, spAsk: !!offer.spAsk,
+      records: offer.recordsFrom ? monthWords(offer.recordsFrom) : null, start: 'April ' + offer.from,
       confirm: moveHow ? moveConfirmOf(plan, now, moveHow) : [], how: moveHow } : null,
     nowMove: nowHow ? { yearStop: taxYearLabel(later.thisYear), yearStart: taxYearLabel(later.start), stepped, spAsk: !!later.spAsk,
       confirm: !later.spAsk || spDate ? moveConfirmOf(plan, now, nowHow) : [], how: !later.spAsk || spDate ? nowHow : null } : null,
-    blocked: blocked ? { yearStart: taxYearLabel(blocked.from), month: monthWords(blocked.stopMonth) } : null,
+    blocked: blocked ? { yearStart: taxYearLabel(blocked.from), month: monthWords(blocked.stopMonth), records: blocked.recordsFrom ? monthWords(blocked.recordsFrom) : null, start: 'April ' + blocked.from } : null,
     change: change ? monthWords(change) : null,
     left, spShown, spError,
     // where the State Pension's date is asked, the tax year the plan pays it from as it stands, named beside the box
@@ -486,7 +488,9 @@ function moveConfirmOf(plan, now, how = {}) {
   const amount = f.stepAmount > 0 ? money(f.stepAmount) : null;
   const one = (n) => (n === 1 ? 'One' : '');
   // the move to this tax year names no month (7.4.0); a State Pension date given is said as written
-  const lines = [m.stopMonth ? { id: 'first', slots: { yearStop, month: monthWords(m.stopMonth), yearStart: taxYearLabel(m.from) } } : { id: 'firstNow', slots: { yearStop, yearStart: taxYearLabel(m.from) } }];
+  // the move to the tax year the recorded months begin in (7.4.3) names their first month, and says they are read against it
+  const lines = [m.recordsFrom ? { id: 'firstRecords', slots: { yearStop, records: monthWords(m.recordsFrom), yearStart: taxYearLabel(m.from) } }
+    : m.stopMonth ? { id: 'first', slots: { yearStop, month: monthWords(m.stopMonth), yearStart: taxYearLabel(m.from) } } : { id: 'firstNow', slots: { yearStop, yearStart: taxYearLabel(m.from) } }];
   if (m.spStartDate) lines.push({ id: 'spDate', slots: { date: m.spStartDate } });
   // a date in another tax year than the plan paid it from: said, as the date then moves it there
   if (m.spStartDate && m.spDateYear > 0 && m.spPlanYear > 0 && m.spDateYear !== m.spPlanYear) lines.push({ id: 'spDateMoved', slots: { dateTaxYear: taxYearLabel(m.spDateYear), paidFrom: taxYearLabel(m.spPlanYear) } });
@@ -500,7 +504,7 @@ function moveConfirmOf(plan, now, how = {}) {
   lines.push(f.ladder && f.runYear ? { id: 'documentLadder', slots: { runYear: taxYearLabel(f.runYear) } } : { id: 'document', slots: {} });
   if (f.sp) lines.push(f.sp.before != null && f.sp.before >= 0 ? { id: 'sp', slots: { spYear: taxYearLabel(f.sp.taxYear), after: String(f.sp.after), before: String(f.sp.before) } } : { id: 'spNoBefore', slots: { spYear: taxYearLabel(f.sp.taxYear), after: String(f.sp.after) } });
   lines.push({ id: (f.ladder ? 'moreLadder' : 'more') + one(m.years), slots: { n: String(m.years) } });
-  if (m.stopMonth) lines.push({ id: 'fill', slots: {} });
+  if (m.stopMonth && !m.recordsFrom) lines.push({ id: 'fill', slots: {} });
   lines.push({ id: 'notAffected', slots: {} });
   return lines;
 }

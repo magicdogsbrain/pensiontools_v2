@@ -119,11 +119,11 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(root.querySelector('[data-testid="plan.stageLine"]').textContent).toBe('Retired. Living on the plan; your ladder’s first gilt pays from April 2029. Locked 1 July 2026.');
     expect(root.querySelector('h1').textContent).toBe('Month by month');
     expect(text).toContain('October 2026 is not recorded yet');
-    // 7.3.3: the rail's Next is the plan's first thing to do — say when work stopped, so its start can move — and opens
-    // "About you and when"; the month to record is still the page's own
-    expect(text).toContain('Your plan is set to start in April 2027. Next: say when you stopped work.');
+    // 7.3.3: the rail's Next is the plan's first thing to do — 7.4.3: the move of its start to the tax year its recorded
+    // months begin in — and opens "About you and when"; the month to record is still the page's own
+    expect(text).toContain('Your plan is set to start in April 2027, but your recorded months begin in July 2026. Next: start it from 2026/27.');
     const btn = root.querySelector('[data-testid="rail.next.button"]');
-    expect(btn.textContent).toBe('Say when');
+    expect(btn.textContent).toBe('Move the start');
     expect(btn.getAttribute('href')).toBe('#/plan/' + ladder.plan.id + '/about');
     expect(root.querySelector('[data-testid="plan.month.submit"]').textContent).toBe('Record October 2026');
     // the last records, exact

@@ -267,7 +267,7 @@ describe('a retired draft saved with a later start is read from the earlier one,
 
 describe('a locked plan that never saved its year 0 keeps the year it was locked with (PlanMove.withLockedStart)', () => {
   /** Fixture 03 (locked, year 0 2027/28) with its Stress copy saving no year 0 and no month work stopped. */
-  const unsaved = (edit = null) => alex((raw) => { delete raw.stressTool.settings.firstTaxYear; if (edit) edit(raw); });
+  const unsaved = (edit = null) => alex((raw) => { delete raw.stressTool.settings.firstTaxYear; if (edit) edit(raw); }, { months: true });
   it('an aged, retired, locked plan reads the Decision copy\'s year 0, not this tax year; the pin writes that year', () => {
     const p = unsaved();
     expect(p.decisionTool.settings.firstTaxYear).toBe(2027);
@@ -277,7 +277,8 @@ describe('a locked plan that never saved its year 0 keeps the year it was locked
     // the planner's load path pins what it reads: the year the plan was locked with, as the Decision copy says
     expect(timingPinPatch(p.stressTool.settings, ss)).toMatchObject({ firstTaxYear: 2027 });
     // still offered the move by the person's own confirm, and the release note says nothing changed
-    expect(startLaterOf(p, NOW)).toMatchObject({ kind: 'ask', start: 2027, thisYear: 2026 });
+    // (7.4.3: its months begin in July 2026, so the move goes to 2026/27 without the question)
+    expect(startLaterOf(p, NOW)).toMatchObject({ kind: 'move', start: 2027, to: 2026, recordsFrom: '2026-07' });
     expect(laterStartEffects(p, NOW)).toEqual(['Your plan is locked, so nothing changed. Its home shows how to move its start.']);
   });
   it('no Decision year: the plan document\'s; neither: the year it read until 7.4.0 (next April)', () => {
@@ -307,10 +308,15 @@ describe('a locked plan that never saved its year 0 keeps the year it was locked
 
 // ---- 3. the move of a locked plan's start, extended -----------------------------------------------------------------------
 
-/** Fixture 03 (Alex, fictional: a gilt ladder locked to start in 2027/28), as the planner reads it. */
-function alex(edit = null) {
+/**
+ * Fixture 03 (Alex, fictional: a gilt ladder locked to start in 2027/28), as the planner reads it, with no month recorded:
+ * from 7.4.3 a plan with recorded months moves to the tax year they begin in, without the question or "this tax year"
+ * (tests/startFromRecords.test.js). `months`: keep the fixture's three months of 2026/27.
+ */
+function alex(edit = null, { months = false } = {}) {
   const raw = read('20-locked-start-after-stop');
   delete raw.stressTool.settings.stoppedWork;
+  if (!months) raw.decisionTool.history = [];
   if (edit) edit(raw);
   return up(raw);
 }

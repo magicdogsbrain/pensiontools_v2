@@ -145,7 +145,7 @@ describe('the words in src/v7/copy/', () => {
       // Delete several (6.59.0): the names deleted, said as a list, and why one was not
       .replace(/\{names\}/g, '‘Ladder plan’ and ‘Shares and cash’').replace(/\{why\}/g, 'This plan is locked.')
       // a plan stored with its start later than it should be (7.3.3): the month it is set to start, and the month work stopped
-      .replace(/\{start\}/g, 'April 2027').replace(/\{stopped\}/g, 'May 2026');
+      .replace(/\{start\}/g, 'April 2027').replace(/\{stopped\}/g, 'May 2026').replace(/\{records\}/g, 'July 2026').replace(/\{moveTo\}/g, '2026/27');
     const hits = [];
     const all = strings(PLAN).map(([, s]) => slot(s)).join('\n');
     // the strategies' names are shown one at a time beside a label; the one with an ampersand is spelt as the planner spells it
@@ -162,7 +162,7 @@ describe('the words in src/v7/copy/', () => {
       // the move's confirm (6.55.0): the first step's amount, a count (never one: those lines have their own words), the months, the tax years
       .replace(/\{amount\}/g, '£30,000').replace(/\{(n|after|before)\}/g, '2').replace(/\{(first|last)\}/g, 'July 2026').replace(/\{(runYear|spYear)\}/g, '2028/29')
       // the State Pension's date asked with the move (7.4.0): the date's tax year, and the one the plan paid it from
-      .replace(/\{(dateTaxYear|paidFrom)\}/g, '2030/31');
+      .replace(/\{(dateTaxYear|paidFrom)\}/g, '2030/31').replace(/\{start\}/g, 'April 2027').replace(/\{records\}/g, 'July 2026');
     const hits = [];
     const all = strings(ABOUT).map(([, s]) => slot(s)).join('\n');
     for (const [where, s] of strings(ABOUT)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`about.js ${where} — ${h}`);

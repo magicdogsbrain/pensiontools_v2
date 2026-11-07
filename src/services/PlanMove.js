@@ -36,6 +36,12 @@
  *    its start date is asked and written in the same move (`spStartDate`, the yearly figure as a weekly one), so it keeps
  *    its own tax year whatever year 0 is.
  *
+ * And a plan that has recorded months (7.4.3): the year it was picked up is the tax year of its EARLIEST recorded month, so
+ * that is the year the move goes to (pickUpYearOf: the stop's tax year when that is later, never after this tax year), with
+ * no question first — the months recorded say when the plan began, with or without a month work stopped. A plan whose
+ * work stopped years before its first recorded month is not moved to the stop: the years between had no plan, and year 0
+ * would be a whole tax year with nothing recorded. A plan with no recorded months is read exactly as before.
+ *
  * And the same rule for a DRAFT (laterDraftOf): a retired draft saved with a year 0 later than the stop's tax year (or this
  * one) is read from that year with the same transform, and written so only by the person's next ordinary Save.
  *
@@ -164,9 +170,38 @@ export function stopChangeOf(scenario, now) {
 }
 
 /**
+ * The earliest month a list of recorded months holds ('YYYY-MM', from each record's `date`), or null with none: the month
+ * the plan was picked up from (7.4.3).
+ */
+export function firstRecordedMonthIn(history) {
+  let first = null;
+  for (const h of Array.isArray(history) ? history : []) {
+    const m = isObj(h) && typeof h.date === 'string' ? /^(\d{4})-(\d{2})/.exec(h.date) : null;
+    if (m && +m[2] >= 1 && +m[2] <= 12 && (!first || m[1] + '-' + m[2] < first)) first = m[1] + '-' + m[2];
+  }
+  return first;
+}
+/** The plan's earliest recorded month (decisionTool.history), or null. */
+export function firstRecordedMonthOf(scenario) {
+  return firstRecordedMonthIn(scenario && isObj(scenario.decisionTool) ? scenario.decisionTool.history : null);
+}
+
+/**
+ * The tax year a plan with recorded months starts in (7.4.3): the tax year of its earliest recorded month — the year it was
+ * picked up from — or the stop's tax year when that is later (records before the stop are odd, but the plan never starts
+ * before work stopped). Clock-free, so the guard works out the same year from the plan as stored.
+ */
+export function pickUpYearOf(stop, first) {
+  const pickUp = taxYearOfMonth(first);
+  return stop ? Math.max(taxYearOfMonth(stop), pickUp) : pickUp;
+}
+
+/**
  * The move's parts on a locked plan that says when work stopped, earlier than its year 0; null otherwise (moveOfferOf).
- * Never on a closed plan (6.56.0, PlanClosed.js: kept as it was), nor on the plan that carries one on: its year 0 is the
- * change-over month's tax year, and the months before it — back to the stop — are the previous plan's.
+ * With recorded months (7.4.3) the year moved to is the pick-up year (pickUpYearOf), with or without a month work stopped,
+ * and only once it has come (this tax year or earlier): `recordsFrom` names the earliest month when that year is not
+ * simply the stop's. Never on a closed plan (6.56.0, PlanClosed.js: kept as it was), nor on the plan that carries one on:
+ * its year 0 is the change-over month's tax year, and the months before it — back to the stop — are the previous plan's.
  */
 function moveParts(scenario, now, how = {}) {
   const ds = settingsOf(scenario, 'decision'), ss = settingsOf(scenario, 'stress');
@@ -176,6 +211,12 @@ function moveParts(scenario, now, how = {}) {
   if (stop && !hasStopped(stop, now)) return null;
   if (deriveTiming(ss, now).mode !== 'retired') return null;
   const from = moveAnchorOf(ss, ds);
+  const first = firstRecordedMonthOf(scenario);
+  if (first) {
+    const to = pickUpYearOf(stop, first);
+    if (!(from > to) || to > taxYearStartOf(now)) return null;
+    return { ss, ds, stop, from, to, ...(stop && to === taxYearOfMonth(stop) ? {} : { recordsFrom: first }) };
+  }
   if (stop) { const to = taxYearOfMonth(stop); return from > to ? { ss, ds, stop, from, to } : null; }
   // No month work stopped (7.4.0): "I'm already drawing: start it this tax year", and only when the person asks for it
   if (!(how && how.thisYear)) return null;
@@ -246,7 +287,9 @@ export function moveOfferOf(scenario, now, how = {}) {
   // confirm says so when the two differ, as the date then moves it (7.4.0)
   const date = how && spDateOf(how.spStartDate) && spByYearOnly(m.ss) ? spDateOf(how.spStartDate) : null;
   const sp = date ? { spStartDate: date, spDateYear: spDateTaxYear(date), spPlanYear: spPlanTaxYearOf(scenario) } : {};
-  return { stopMonth: m.stop, from: m.from, to: m.to, years: m.from - m.to, ...(m.stop ? {} : { thisYear: true }), ...sp };
+  // the move to the tax year the recorded months begin in (7.4.3) names that month; with no month and no records, this tax year
+  const why = m.recordsFrom ? { recordsFrom: m.recordsFrom } : m.stop ? {} : { thisYear: true };
+  return { stopMonth: m.stop, from: m.from, to: m.to, years: m.from - m.to, ...why, ...sp };
 }
 
 /**
@@ -263,7 +306,7 @@ export function moveBlockedOf(scenario, now, how = {}) {
   const why = m ? blockedMove(m.ss, m.ds, m.from, m.to) : null;
   if (!why) return null;
   const fixable = spByYearOnly(m.ss) && !blockedMove(withSpDate(m.ss, SP_PROBE), withSpDate(m.ds, SP_PROBE), m.from, m.to);
-  return { stopMonth: m.stop, from: m.from, to: m.to, why, spFix: fixable ? 'spDate' : null };
+  return { stopMonth: m.stop, from: m.from, to: m.to, why, spFix: fixable ? 'spDate' : null, ...(m.recordsFrom ? { recordsFrom: m.recordsFrom } : {}) };
 }
 
 /**
@@ -273,15 +316,16 @@ export function moveBlockedOf(scenario, now, how = {}) {
  * whose start is later than it should be — and the person is asked to move it (the move above, after its own confirm;
  * never automatic, never on open). Nothing is written by this reading.
  *
- *  - `kind: 'move'`: the plan says when work stopped, and that tax year is earlier than the plan's year 0 (moveParts). The
- *    to-do opens the move; `blocked` says the move cannot keep the plan's figures under the lock (moveBlockedOf), so the
- *    place it opens explains that instead.
+ *  - `kind: 'move'`: the plan says when work stopped, and that tax year is earlier than the plan's year 0 (moveParts); or
+ *    (7.4.3) it has recorded months, and the tax year they begin in is earlier than its year 0 — `recordsFrom`, the earliest
+ *    month, when that year is not the stop's; never a question first. The to-do opens the move; `blocked` says the move
+ *    cannot keep the plan's figures under the lock (moveBlockedOf), so the place it opens explains that instead.
  *  - `kind: 'ask'`: the plan does not say when work stopped, and its year 0 is later than this tax year, or a recorded month
  *    still carries the old mark (`bridgeYear`). The to-do asks the month; once said, the move follows.
  * Null for every other plan: a draft (its own Save moves it), a saver, a closed plan, the plan that carries a closed one on
  * (its year 0 is a hand-over the old plan pays up to), a plan with no age (it has no tax year to read), and a locked plan
  * whose year 0 is the stop's tax year, this tax year, or earlier.
- * @returns {null | { kind: 'move'|'ask', start: number, stopMonth?: string, to?: number, blocked?: boolean }}
+ * @returns {null | { kind: 'move'|'ask', start: number, stopMonth?: string, to?: number, blocked?: boolean, recordsFrom?: string }}
  */
 export function startLaterOf(scenario, now = new Date()) {
   if (!isObj(scenario)) return null;
@@ -296,7 +340,7 @@ export function startLaterOf(scenario, now = new Date()) {
   if (m) {
     // a State Pension by plan year is asked its date in the move itself (7.4.0): only a plan a date cannot carry stays blocked
     const b = blockedMove(m.ss, m.ds, m.from, m.to) ? moveBlockedOf(scenario, now) : null;
-    return { kind: 'move', start: m.from, stopMonth: m.stop, to: m.to, blocked: !!b && !b.spFix, ...(b && b.spFix ? { spAsk: true } : {}) };
+    return { kind: 'move', start: m.from, stopMonth: m.stop, to: m.to, blocked: !!b && !b.spFix, ...(b && b.spFix ? { spAsk: true } : {}), ...(m.recordsFrom ? { recordsFrom: m.recordsFrom } : {}) };
   }
   const stop = stoppedWorkOf(ss);
   if (stop && hasStopped(stop, now)) return null;
@@ -530,6 +574,9 @@ export function planMoveOf(scenario, now, how = {}) {
  * year 0; and the strategy block as it was or exactly as strategyBlockAfterMove moves it. Clock-free, it does not ask
  * whether the month work stopped has come: the offer does (moveOfferOf), and nothing else sends this write. With no month
  * (the move to this tax year, 7.4.0) the year is bounded by the lock's own tax year, and by `now` when the caller gives it.
+ * With recorded months (`before.history`, the plan's as stored; 7.4.3) the year is exactly the pick-up year
+ * (pickUpYearOf: the tax year of the earliest recorded month, or the stop's when later), and no later than this tax year
+ * when the caller gives `now`: a move to the stop's year past the recorded months, or to any other year, is not the move.
  * @returns {null | { stress: string[], decision: string[], strategy: boolean }}
  */
 export function reAnchorAllowance(before, after, { now = null } = {}) {
@@ -542,14 +589,16 @@ export function reAnchorAllowance(before, after, { now = null } = {}) {
   const stop = stoppedWorkOf(s1);
   if (stop && s1.stoppedWork !== stop) return null;
   if (!stop && (s1.stoppedWork != null || s0.stoppedWork != null)) return null;
-  const to = stop ? taxYearOfMonth(stop) : num(s1.firstTaxYear);
+  const first = firstRecordedMonthIn(before && before.history);
+  const to = first ? pickUpYearOf(stop, first) : stop ? taxYearOfMonth(stop) : num(s1.firstTaxYear);
   if (!(to > 0) || num(s1.firstTaxYear) !== to || num(d1.firstTaxYear) !== to) return null;
   const from = moveAnchorOf(s0, d0);
   if (!(from > to)) return null;
+  if (first && now && to > taxYearStartOf(now)) return null;
   // With no month, nothing in the plan names the year moved to, so it is bounded here: never before the tax year the plan
   // was locked in (this tax year never is, and the lock's day must sit inside the plan's years for its position), and, where
   // the caller has the clock (`now`), exactly this tax year. A move to any other earlier year is not the move.
-  if (!stop) {
+  if (!stop && !first) {
     const lockDay = d0.lockedAt ? new Date(d0.lockedAt) : null;
     if (!lockDay || !Number.isFinite(lockDay.getTime()) || to < taxYearStartOf(lockDay)) return null;
     if (now && to !== taxYearStartOf(now)) return null;
@@ -573,6 +622,11 @@ export function reAnchorAllowance(before, after, { now = null } = {}) {
 /** The journey entry a move adds (§4 step 6): the stage it leaves the plan in, the new start in words, and why. */
 export function moveJourneyEntry(move, stageKey, now) {
   const again = ' The plan document and plan vs actual were written again from the new start; the earlier ones are kept.';
+  // the move to the tax year the recorded months begin in (7.4.3)
+  if (move.recordsFrom) {
+    return { stage: stageKey, label: 'The plan’s start moved to ' + taxYearLabel(move.to) + ', when your recorded months begin', at: now.toISOString(),
+      note: 'Your recorded months begin in ' + monthName(move.recordsFrom) + '; the plan’s income had been set to start in ' + taxYearLabel(move.from) + '.' + again };
+  }
   // the move to this tax year (7.4.0): no month was said, so none is named
   if (!move.stopMonth) {
     return { stage: stageKey, label: 'The plan’s start moved to ' + taxYearLabel(move.to) + ', this tax year', at: now.toISOString(),

@@ -454,7 +454,9 @@ export function whereAmIHtml(w) {
     // PlanMove.startLaterOf as `w.startLater`) is pointed at the move of its start, and only when the move can be made; a
     // plan whose year 0 is ahead for its own reasons (the plan that carries a closed one on) is told its first year, no more.
     const move = w.startLater && !w.startLater.blocked;
-    parts.push('<strong>Your plan is set to start in ' + esc(w.planStart) + '.</strong>' + (move ? ' Start it from the tax year you stopped work: the banner at the top of the page does it.' : ''));
+    // a plan with months recorded starts in the tax year they begin (7.4.3): that year, named
+    const to = move && w.startLater.recordsFrom && w.startLater.to > 0 ? w.startLater.to + '/' + String(w.startLater.to + 1).slice(2) : null;
+    parts.push('<strong>Your plan is set to start in ' + esc(w.planStart) + '.</strong>' + (to ? ' Start it from ' + to + ', when your recorded months begin: the banner at the top of the page does it.' : move ? ' Start it from the tax year you stopped work: the banner at the top of the page does it.' : ''));
     const income = incomeThisYearText(w.incomeThisYear ? { ...w.incomeThisYear, perMonth: null } : null);
     if (income) parts.push(income);
     return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p></div>';

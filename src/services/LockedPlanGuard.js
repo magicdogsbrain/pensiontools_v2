@@ -307,7 +307,8 @@ export function lockedPlanWriteRefusal(plan, data, stressDefaults, { now = null 
   const stressNext = orDefaults(after.stress);
   // A move of the plan's start (`reAnchor`, 6.53.0): both copies at once, exactly as the move works them out.
   const none = { stress: [], decision: [], strategy: false };
-  const reAnchor = closed ? none : (reAnchorAllowance({ stress: orDefaults(before.stress), decision: before.decision, strategy: before.strategy }, { stress: stressNext, decision: after.decision, strategy: after.strategy }, { now }) || none);
+  // the recorded months as stored: a plan with months moves only to the tax year they begin in (7.4.3)
+  const reAnchor = closed ? none : (reAnchorAllowance({ stress: orDefaults(before.stress), decision: before.decision, strategy: before.strategy, history: plan?.decisionTool?.history }, { stress: stressNext, decision: after.decision, strategy: after.strategy }, { now }) || none);
   const stressBad = (lockedWriteRefusal('stress', { locked: true, closed, stored: orDefaults(before.stress), next: stressNext, also: reAnchor.stress }) || [])
     .filter((k) => !(k in onUnlock && isObj(stressNext) && text(stressNext[k]) === text(onUnlock[k])));
   const bad = [

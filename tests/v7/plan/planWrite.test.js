@@ -830,8 +830,13 @@ describe('the lock (road-to-7.md step 6): the run in the worker, then ONE write 
 });
 
 describe('the move of a locked plan\'s start (6.55.0): the run of the plan as moved, then ONE write of movePatch\'s paths past the guard; the plan stays locked; no Undo', { timeout: 120_000 }, () => {
-  /** Fixture 03 (locked 1 July 2026, its income to start in 2027/28), saying work stopped in October 2023. */
-  const STOPPED = () => { const r = copy(LOCKED); r.stressTool.settings.stoppedWork = '2023-10'; return r; };
+  /**
+   * Fixture 03 (locked 1 July 2026, its income to start in 2027/28), saying work stopped in October 2023 and having recorded
+   * that month too (a copy of its first, dated then): from 7.4.3 a plan moves to the tax year its months begin in.
+   */
+  const STOPPED = () => { const r = copy(LOCKED); r.stressTool.settings.stoppedWork = '2023-10'; r.decisionTool.history = [{ ...r.decisionTool.history[0], date: '2023-10', taxYear: '23/24' }, ...r.decisionTool.history]; return r; };
+  /** Fixture 03 with no month said and no month recorded: no move is offered without being asked for (7.4.0). */
+  const UNSAID = () => { const r = copy(LOCKED); r.decisionTool.history = []; return r; };
   /** A worker that runs what it is handed (the plan as moved has the plan's own id: never a cached run of the plan as stored). */
   const moveClient = ({ reject = null } = {}) => { const asked = []; return { asked, document: (plan, env) => { asked.push({ plan: copy(plan), env }); return reject ? Promise.reject(reject) : Promise.resolve(runForDocument(plan, env)); } }; };
   const move = (p, id) => p.store.dispatch({ type: A.PLAN_MOVE_START, planId: id });
@@ -882,7 +887,7 @@ describe('the move of a locked plan\'s start (6.55.0): the run of the plan as mo
     move(draft, C['02-pnv-draft'].id); await tick(12);
     expect(draft.fb.writes).toEqual([]);
     expect(draft.store.getState().ui.saveProblem.problem).toBe('notLocked');
-    const unsaid = page({ raws: [LOCKED], planId: LOCKED.id, client: moveClient() });   // no month said: no move offered
+    const unsaid = page({ raws: [UNSAID()], planId: LOCKED.id, client: moveClient() });   // no month said, none recorded: no move offered
     move(unsaid, LOCKED.id); await tick(12);
     expect(unsaid.fb.writes).toEqual([]);
     expect(unsaid.store.getState().ui.saveProblem.problem).toBe('noMove');

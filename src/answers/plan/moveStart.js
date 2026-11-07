@@ -142,5 +142,5 @@ export function movePatch(plan, { now, run, entries = [], thisYear = false, spSt
   set('planDocumentArchive', archived(plan.planDocumentArchive, plan.planDocument || null, at), plan.planDocumentArchive);
   set('planDocument', doc, plan.planDocument);
   for (const k of Object.keys(patch)) if (!MOVE_START_WRITES.includes(k)) throw new Error('movePatch: "' + k + '" is not a declared field path');
-  return { ok: true, errors: {}, patch, previous, line: { id: move.stopMonth ? 'moved' : 'movedNow', slots: { year: taxYearLabel(move.to) } }, move };
+  return { ok: true, errors: {}, patch, previous, line: { id: move.recordsFrom ? 'movedRecords' : move.stopMonth ? 'moved' : 'movedNow', slots: { year: taxYearLabel(move.to) } }, move };
 }

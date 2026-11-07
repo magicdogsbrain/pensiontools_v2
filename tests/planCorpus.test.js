@@ -95,7 +95,7 @@ describe('plan corpus — the fixture set itself', () => {
     expect(d.planDocument.holdingsAtLock.lines.length).toBeGreaterThan(0);
     expect(d.journey.map((j) => j.stage)).toContain('bridge');
     expect(d.holdings.lines.some((l) => l.kind === 'gilt')).toBe(true);
-    expect(snapshot.plans['03-gilt-ladder-runup'].stage).toBe('bridge');
+    expect(snapshot.plans['03-gilt-ladder-runup'].stage).toBe('running');   // 7.4.2: no placing before the start; its journey keeps the old one, only read
   });
   it('04 is a locked Buckets plan that is running', () => {
     const d = load('04-buckets-running.json');

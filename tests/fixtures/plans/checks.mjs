@@ -260,7 +260,7 @@ export async function evaluatePlan(raw, { name = null } = {}) {
     try {
       // as the planner reads it (index.html whereAmINow): a closed plan as at its close (6.56.0), every other plan today
       const w = whereAmI(raw.planDocument, { today: readDayOf(raw, new Date()), history, accHistory: active?.accumulationTool?.history || [], holdings: active?.holdings || null, taxYears: db.taxYears || null });
-      where = w ? { planYear: w.planYear, bridge: w.bridge, taxYear: w.taxYear, age: w.age, stepAmount: w.step ? r0(w.step.amount) : null, recorded: w.incomeThisYear.recorded, drawn: w.incomeThisYear.drawn, potBand: w.pot ? w.pot.band : null, savingBand: w.saving ? w.saving.band : null } : null;
+      where = w ? { planYear: w.planYear, beforeStart: w.beforeStart, taxYear: w.taxYear, age: w.age, stepAmount: w.step ? r0(w.step.amount) : null, recorded: w.incomeThisYear.recorded, drawn: w.incomeThisYear.drawn, potBand: w.pot ? w.pot.band : null, savingBand: w.saving ? w.saving.band : null } : null;
       for (const b of badValues(where, 'whereAmI')) note(b);
     } catch (e) { note('whereAmI threw: ' + e.message); }
   }

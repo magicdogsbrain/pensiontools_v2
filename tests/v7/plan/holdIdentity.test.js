@@ -16,6 +16,8 @@
  *      OneAnswer, to the pound — the only run in this gate.
  *   5. Everything is pinned once into holdIdentity.pins.json (numbers to a millionth: Node 20 and 24 differ in a last digit);
  *      delete the file to pin again — a diff there is a change to what the record or the move says and must be meant.
+ *      7.4.2 retook one, meant: the move of fixture 03 (a ladder stored with a later start) no longer holds its extra cash
+ *      for the months before that start — a ladder's cash years are its only cash — so its cash to hold is the cash years'.
  * Under a minute.
  */
 import { describe, it, expect } from 'vitest';

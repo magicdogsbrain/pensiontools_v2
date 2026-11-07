@@ -162,7 +162,7 @@
    "planName": "Linkers to 85",
    "migratedByNormalize": false,
    "locked": true,
-   "stage": "bridge",
+   "stage": "running",
    "strategyId": "full-il-gilt",
    "timingMode": "retired",
    "firstTaxYear": 2027,
@@ -185,7 +185,7 @@
    "fundsToTest": 0,
    "where": {
     "planYear": -1,
-    "bridge": true,
+    "beforeStart": true,
     "taxYear": "2026/27",
     "age": 65,
     "stepAmount": 34000,
@@ -201,9 +201,9 @@
     "coverage": 100,
     "worst12Min": 22596,
     "worst12Median": 22596,
-    "terminalP10": 333188,
-    "terminalP50": 333188,
-    "terminalP90": 333188,
+    "terminalP10": 353188,
+    "terminalP50": 353188,
+    "terminalP90": 353188,
     "spentMedian": 592639,
     "guaranteedToAge": "85 by contract (every year bought today)",
     "cone": {
@@ -214,22 +214,22 @@
       20
      ],
      "wealthP10": [
-      654980,
-      533292,
-      453516,
-      333188
+      674980,
+      553292,
+      473516,
+      353188
      ],
      "wealthP50": [
-      654980,
-      533292,
-      453516,
-      333188
+      674980,
+      553292,
+      473516,
+      353188
      ],
      "wealthP90": [
-      654980,
-      533292,
-      453516,
-      333188
+      674980,
+      553292,
+      473516,
+      353188
      ],
      "incomeP50": [
       34000,
@@ -268,7 +268,7 @@
    "fundsToTest": 0,
    "where": {
     "planYear": 0,
-    "bridge": false,
+    "beforeStart": false,
     "taxYear": "2026/27",
     "age": 63,
     "stepAmount": 30000,
@@ -354,7 +354,7 @@
    "fundsToTest": 0,
    "where": {
     "planYear": -11,
-    "bridge": true,
+    "beforeStart": true,
     "taxYear": "2026/27",
     "age": 49,
     "stepAmount": 36000,
@@ -524,9 +524,9 @@
     "coverage": 100,
     "worst12Min": 23000,
     "worst12Median": 23000,
-    "terminalP10": 132428,
-    "terminalP50": 240792,
-    "terminalP90": 834728,
+    "terminalP10": 149928,
+    "terminalP50": 258292,
+    "terminalP90": 852228,
     "spentMedian": 964000,
     "guaranteedToAge": "80 by contract whatever happens; above that, contract until the trigger fires (81% of futures rotate)",
     "cone": {
@@ -538,25 +538,25 @@
       35
      ],
      "wealthP10": [
-      702480,
-      563567,
-      429367,
-      290043,
-      132428
+      719980,
+      581067,
+      446867,
+      307543,
+      149928
      ],
      "wealthP50": [
-      702480,
-      569268,
-      445644,
-      346513,
-      240792
+      719980,
+      586768,
+      463144,
+      364013,
+      258292
      ],
      "wealthP90": [
-      702480,
-      589969,
-      513555,
-      532238,
-      834728
+      719980,
+      607469,
+      531055,
+      549738,
+      852228
      ],
      "incomeP50": [
       31000,
@@ -980,7 +980,7 @@
    "fundsToTest": 0,
    "where": {
     "planYear": 2,
-    "bridge": false,
+    "beforeStart": false,
     "taxYear": "2026/27",
     "age": 63,
     "stepAmount": 26500,
@@ -1069,7 +1069,7 @@
    "fundsToTest": 0,
    "where": {
     "planYear": 1,
-    "bridge": false,
+    "beforeStart": false,
     "taxYear": "2024/25",
     "age": 63,
     "stepAmount": 25500,
@@ -1235,7 +1235,7 @@
    "fundsToTest": 0,
    "where": {
     "planYear": 2,
-    "bridge": false,
+    "beforeStart": false,
     "taxYear": "2025/26",
     "age": 60,
     "stepAmount": 22200,

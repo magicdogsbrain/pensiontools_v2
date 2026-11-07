@@ -48,7 +48,9 @@ describe('survivor: what the deceased leaves is their own test\'s wealth, today\
       expect(res.inherited.middling.pension).toBeCloseTo(D.r.cones.wealth.p50[y], 6);
       // the shape of the figure reported: far below what a growth portfolio of the same pots is said to leave
       const asGrowth = stressTestStrategy('pots-and-valves', planOf({ ...dc, strategyId: 'pots-and-valves' }));
-      expect(res.inherited.middling.total).toBeLessThan(0.8 * asGrowth.cones.wealth.p50[y]);
+      // (0.85 from 7.4.2: the ladder no longer spends £20,000 of its pot on extra cash for months before its start, so it
+      // leaves that much more — about 0.80 of the growth figure, where the bound was set at 0.8 with nothing to spare)
+      expect(res.inherited.middling.total).toBeLessThan(0.85 * asGrowth.cones.wealth.p50[y]);
       expect(res.inherited.middling.total).toBeLessThan(1000000);
     }, 120000);
   }

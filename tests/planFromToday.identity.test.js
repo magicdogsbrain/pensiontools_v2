@@ -73,6 +73,10 @@ const ADDED_AFTER_THE_PINS = Object.freeze({
  * draft saved with next April, is read from this tax year (PlanMove.laterDraftOf); 10 is split with 09. 06, locked with no
  * year saved, keeps the year it was locked with (PlanMove.withLockedStart), so its pins are the ones taken before 7.4.0.
  * Every other fixture is held to its old pins byte for byte.
+ * 7.4.2 (engine 6.39.0) retook two on both Nodes, their full gilt ladder and document only: 03 and 07 each carry an older
+ * ladder's extra cash beside the cash years, unspent on their run's pots, which the ladder no longer adds (a ladder's cash
+ * years are its only cash). Every other output of theirs, and every output of every other fixture, kept its pin (the
+ * fields 7.4.2 removed are put back by asPinned below, never a figure).
  */
 const NODE = String(process.versions.node).split('.')[0];
 // One pins file per Node major, each taken on the code before the change with that Node: simulated money can differ in

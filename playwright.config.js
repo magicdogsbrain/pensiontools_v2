@@ -39,6 +39,8 @@ const JOURNEYS_PAYING_IN = ['c-paying-in'];
 // The budget step and "Keep this as a plan" (research/v7/budget-step.md, save-as-plan.md; road-to-7.md step 7: the preview
 // makes the plan itself), and "I'm retired. Will it last?" (answer-D.md): at 390 and 1440.
 const JOURNEYS_KEEP = ['budget-step', 'keep', 'd-retired'];
+// The first visit (7.5.0; research/v7/mockups/README.md): the three doors, a personal answer, Keep → sign in, no limit, less motion.
+const JOURNEYS_FIRST = ['first-visit'];
 // B2 (research/v7/couples-different-years.md 9.7): "I've already stopped" in A, saved as two plans, in today's planner — at
 // 1440 (the planner's Household tab is on the wide tab bar).
 const JOURNEYS_APART = ['a-already-stopped'];
@@ -64,9 +66,9 @@ const JOURNEYS_APART = ['a-already-stopped'];
 // … and a plan's home (7.3.0): what is due, where you are, then everything else folded away: plan-home, at 390 and 1440.
 // … and no months "before the plan" on any screen of either app (7.3.3), a plan stored that way shown the move of its start: plan-no-runup-words, at 390 and 1440.
 const JOURNEYS_PLAN = ['plan', 'plan-home', 'plan-about', 'plan-income', 'plan-spend', 'plan-pots', 'plan-lasts', 'plan-lock', 'plan-levers', 'plan-way', 'plan-mix', 'plan-try', 'plan-household', 'plan-household-words', 'plan-hold', 'plan-move', 'plan-budget', 'plan-saving', 'plan-stale-lumps', 'plans-actions', 'whats-new', 'planner-month-fill', 'plan-stopped-work', 'plan-move-start', 'plan-close', 'plan-checkin', 'plan-back-to-work', 'plan-try-not-copy', 'plan-month', 'plan-no-runup-words'];
-const JOURNEYS_PHONE = ['c-forum-guest', 'c-couple', 'c-retired', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP, ...JOURNEYS_PLAN];
+const JOURNEYS_PHONE = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'c-retired', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP, ...JOURNEYS_PLAN];
 // An old service worker cleared by the kill switch (public/sw.js; switch-readiness.md §3): its own server, at 1440 only.
-const JOURNEYS_DESKTOP = ['c-forum-guest', 'c-couple', 'production', 'old-app-unchanged', 'old-worker', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP, ...JOURNEYS_APART, ...JOURNEYS_PLAN];
+const JOURNEYS_DESKTOP = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'production', 'old-app-unchanged', 'old-worker', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP, ...JOURNEYS_APART, ...JOURNEYS_PLAN];
 const only = (names) => names.map((n) => `**/${n}.spec.js`);
 
 const projects = [

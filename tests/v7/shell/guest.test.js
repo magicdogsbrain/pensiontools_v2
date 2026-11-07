@@ -80,7 +80,10 @@ describe('the meter: GuestMeter.js\'s own count, ticked once a minute for a visi
     p.stop();
   });
   it('counts only a visitor with plans of their own: not signed in, not an empty window, not the example alone, not before the plans are read', () => {
-    const fresh = (session, raws) => { let s = initialState({ today: TODAY, build: 'test' }); s = reduce(s, { type: A.SESSION_SET, session: { kind: session, email: session === 'in' ? 'a@b.c' : null } }); if (raws) s = reduce(s, { type: A.PLANS_SET, list: upgradedList(raws, NOW), source: session === 'in' ? 'account' : 'window', readAt: '14:03' }); return s; };
+    const fresh = (session, raws, address = '#/plans') => { let s = initialState({ today: TODAY, build: 'test' }); s = reduce(s, { type: A.ROUTE_SET, route: parse(address) }); s = reduce(s, { type: A.SESSION_SET, session: { kind: session, email: session === 'in' ? 'a@b.c' : null } }); if (raws) s = reduce(s, { type: A.PLANS_SET, list: upgradedList(raws, NOW), source: session === 'in' ? 'account' : 'window', readAt: '14:03' }); return s; };
+    // 7.5.0: only on the plan pages — "Your plans" and a plan's own pages; never on a question, its Keep step included
+    expect(counting(fresh('nobody', [DRAFT], '#/plan/abc'))).toBe(true);
+    for (const address of ['#/', '#/c/answer', '#/b/answer', '#/d/numbers', '#/b/keep', '#/soon/f', '#/whats-new', '#/assumptions', '#/account']) expect(counting(fresh('nobody', [DRAFT], address)), address).toBe(false);
     expect(counting(fresh('nobody', [DRAFT]))).toBe(true);
     expect(counting(fresh('nobody', [DRAFT, EXAMPLE]))).toBe(true);
     expect(counting(fresh('nobody', [EXAMPLE]))).toBe(false);
@@ -121,12 +124,18 @@ describe('the meter: GuestMeter.js\'s own count, ticked once a minute for a visi
     expect(q.guest()).toEqual({ minutes: 200, usedUp: true, nag: null });
     p.stop(); q.stop();
   });
-  it('the stop is drawn on every page but the account page while nobody is signed in; the visitor\'s reminders in V7\'s words', () => {
+  it('the stop is drawn on the plan pages only while nobody is signed in — never on a question (7.5.0) nor the account page; the visitor\'s reminders in V7\'s words', () => {
     let s = initialState({ today: TODAY, build: 'test' });
+    s = reduce(s, { type: A.ROUTE_SET, route: parse('#/plans') });
     s = reduce(s, { type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
-    s = reduce(s, { type: A.GUEST_TICK, minutes: 181, usedUp: true });
+    s = reduce(s, { type: A.GUEST_TICK, minutes: 181, usedUp: true, nag: { level: 4, left: 0 } });
     expect(guestView(s).stop).toBe(true);
-    expect(guestView(reduce(s, { type: A.ROUTE_SET, route: parse('#/account') })).stop).toBe(false);
+    expect(guestView(reduce(s, { type: A.ROUTE_SET, route: parse('#/plan/abc/month') })).stop).toBe(true);
+    for (const address of ['#/', '#/c/answer', '#/b/answer', '#/d/answer', '#/a/numbers', '#/b/keep', '#/soon/f', '#/whats-new', '#/assumptions', '#/account']) {
+      const g = guestView(reduce(s, { type: A.ROUTE_SET, route: parse(address) }));
+      expect(g.stop, address).toBe(false);
+      expect(g.nag, address).toBe(null);
+    }
     expect(guestView(reduce(s, { type: A.SESSION_SET, session: { kind: 'in', email: 'a@b.c' } })).stop).toBe(false);
     expect(guestView(reduce(s, { type: A.SESSION_SET, session: { kind: 'none', email: null } })).stop).toBe(false);
     for (const level of [1, 2, 3, 4]) expect(GUEST.reminders[level]).not.toMatch(/guest/i);
@@ -330,8 +339,10 @@ function shellState(hash, { session = 'nobody', raws = null, ui = {} } = {}) {
 const SCOPES = ['all', 'first', 'planner', 'retired', 'saver', 'record'];
 
 describe('the shell draws the visitor\'s boxes', () => {
-  it('the stop on the front door and the plans page for a visitor whose hours are used up, never on the account page, never for an account; its one way on is the account page (it covers the questions too, so it offers no link to them)', () => {
-    const s = reduce(shellState('#/', { session: 'nobody' }), { type: A.GUEST_TICK, minutes: 185, usedUp: true });
+  it('the stop on the plans page for a visitor whose hours are used up, never on a question (7.5.0: the front door asks nothing), never on the account page, never for an account; its one way on is the account page', () => {
+    const s = reduce(shellState('#/plans', { session: 'nobody' }), { type: A.GUEST_TICK, minutes: 185, usedUp: true });
+    expect(q(draw(reduce(s, { type: A.ROUTE_SET, route: parse('#/') })).root, '[data-testid="guest.stop"]')).toBe(null);
+    expect(q(draw(reduce(s, { type: A.ROUTE_SET, route: parse('#/c/numbers') })).root, '[data-testid="guest.stop"]')).toBe(null);
     const { root, text } = draw(s);
     const box = q(root, '[data-testid="guest.stop"]');
     expect(box).not.toBe(null);

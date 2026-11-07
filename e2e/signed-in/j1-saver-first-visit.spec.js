@@ -1,8 +1,9 @@
 /**
  * J1 (research/v7/after-7.md §2): a first visit, saving, without an account. Someone in their thirties wants to know
  * "am I saving enough, how much do I need, what does a share of my pay come to":
- *   - the front page is PensionTools, with its one line ("Plan your pension, from saving to living on it."), and the
- *     questions grouped by where the person is — "Still working" first, with "Am I saving enough?" in it;
+ *   - the front page is PensionTools, with its one line ("Plan your pension, from saving to living on it."), and (7.5.0)
+ *     three doors in the order of a life — "Still saving" first, opening "Am I saving enough?" — and no sign-in line: the
+ *     account is asked for only when something is kept;
  *   - that question, answered with a share of pay, gives the ballpark: the pot to aim for, what paying in as now comes to,
  *     and the share of pay that would be enough with what it is in pounds a month.
  * On 7.0.0 the page was headed "Drawdown Planner" and the questions were one list (this test failed there, at the name).
@@ -26,14 +27,13 @@ test('the front page speaks to a saver; "Am I saving enough?" gives the ballpark
   await expect(line).toHaveText(COMMON.tagline);
   expect(await page.locator('#app').innerText()).not.toMatch(/drawdown planner/i);
 
-  // grouped by where the person is: still working first, with "Am I saving enough?" in it
-  const groups = page.locator('#app [data-group]');
-  await expect(groups).toHaveCount(FRONT.groups.length);
-  await expect(groups.first()).toHaveAttribute('data-group', 'working');
-  await expect(groups.first().locator('h2')).toHaveText('Still working');
-  const ask = groups.first().getByTestId('front.q.b');
-  await expect(ask).toContainText('Am I saving enough?');
-  await expect(page.locator('#app [data-group="plan"]').getByTestId('front.signIn')).toHaveAttribute('href', '#/account');
+  // the three doors (7.5.0): still saving first, with "Am I saving enough?" in it; no sign-in line for a stranger
+  const doors = page.locator('#app [data-door]');
+  await expect(doors).toHaveCount(3);
+  await expect(doors.first()).toHaveAttribute('data-door', 'b');
+  await expect(doors.first()).toContainText(FRONT.stranger.doors.b.stage);
+  await expect(doors.first().getByTestId('front.q.b')).toContainText('Am I saving enough?');
+  await expect(page.getByTestId('front.signIn')).toHaveCount(0);
 
   await app.click('front.q.b');
   await app.at('b.numbers');

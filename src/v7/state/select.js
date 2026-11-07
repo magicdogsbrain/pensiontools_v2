@@ -72,6 +72,8 @@ export { payInParts };
  * its words from, the same one the carry picks its map with, so the two cannot disagree.
  */
 export { cAnswerYouStopped } from './carry.js';
+// the first visit's pictures and controls (7.5.0): each figure one the answer already gave (state/pictures.js)
+export { LIFE_EXAMPLE, lifeStages, roundTop, answerSlider, answerTiles, potPicture } from './pictures.js';
 
 /** The input list of each question. A question's draft is in the state only while it is open (rail/questions.js OPEN). */
 export const SCHEMAS = { c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B, d: SCHEMA_D };
@@ -1011,12 +1013,23 @@ export function accountView(state) {
   return { session, email: session.email || null, mode: acc.mode, busy: acc.busy, problem: acc.problem, note: acc.note, confirm: acc.confirm, deleted: acc.deleted };
 }
 
-/** The visitor's state for the shell (road-to-7.md step 11): the reminder due, the stop (used up, nobody signed in, not on the account page), the hand-over offer. */
+/**
+ * The pages where the visitor's meter is about plans kept in this window (7.5.0): "Your plans" and a plan's own pages. The
+ * questions — the front door, every question's steps, its Keep step, What's new, the assumptions — have no limit and no
+ * reminder: the meter counts, reminds and stops only here (effects/guestMeter.js counting reads the same list).
+ */
+export const METERED_SCREENS = Object.freeze(['plans', 'plan']);
+export const metered = (state) => !!state.route && METERED_SCREENS.includes(state.route.screen);
+
+/**
+ * The visitor's state for the shell (road-to-7.md step 11): the reminder due and the stop (used up, nobody signed in) — both
+ * on the plan pages only since 7.5.0, never on a question (METERED_SCREENS) — and the hand-over offer, anywhere.
+ */
 export function guestView(state) {
   const g = (state.ui && state.ui.guest) || { minutes: 0, usedUp: false, nag: null };
   const session = state.session || { kind: 'none' };
-  const onAccount = !!state.route && state.route.screen === 'account';
-  return { minutes: g.minutes, usedUp: g.usedUp, nag: g.nag, stop: g.usedUp && session.kind === 'nobody' && !onAccount, bringIn: (state.ui && state.ui.bringIn) || null };
+  const here = metered(state);
+  return { minutes: g.minutes, usedUp: g.usedUp, nag: here ? g.nag : null, stop: here && g.usedUp && session.kind === 'nobody', bringIn: (state.ui && state.ui.bringIn) || null };
 }
 
 /** What's new (road-to-7.md step 11): the pop-up's entries, the page's data, the version this page is. */

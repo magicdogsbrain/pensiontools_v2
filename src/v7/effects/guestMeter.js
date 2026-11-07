@@ -6,9 +6,10 @@
  * shown once: markNagShown), and the stop when the three hours are used up (isBlocked) — which effects/planWrite.js
  * already refuses as 'usedUp'.
  *
- * The meter counts while the person is a visitor with plans of their own in this window: nobody signed in, the plans
- * read from the window (the example plan alone does not count — nor do V7's answers, which need no plan: the parity
- * ledger's rule for ways.guest-trial). What it says goes to the state (guest/tick); the shell draws the reminder and the
+ * The meter counts while the person is a visitor with plans of their own in this window and is on one of those plans'
+ * pages ("Your plans", a plan): nobody signed in, the plans read from the window (the example plan alone does not count —
+ * nor do V7's answers, which need no plan: the parity ledger's rule for ways.guest-trial). Since 7.5.0 the questions have
+ * no limit at all: no minute spent on them is counted, and no reminder or stop is drawn on them (select.js guestView). What it says goes to the state (guest/tick); the shell draws the reminder and the
  * stop (components/Visitor.jsx).
  *
  *   TICK_MS                                  a minute
@@ -18,13 +19,17 @@ import { A } from '../state/actions.js';
 import { tick, readMinutes, isBlocked, pendingNag, markNagShown, remainingMinutes } from '../../services/GuestMeter.js';
 import { guestOwnPlans } from '../../services/GuestPlans.js';
 import { lastActivity } from './activity.js';
+import { metered } from '../state/select.js';
 
 export const TICK_MS = 60 * 1000;
 
-/** A visitor with plans of their own in this window. */
+/**
+ * A visitor with plans of their own in this window, on one of those plans' pages (7.5.0: the questions are never counted —
+ * time spent asking them, keeping one included, is free; state/select.js METERED_SCREENS).
+ */
 export function counting(state) {
   const p = state.plans;
-  return !!state.session && state.session.kind === 'nobody' && !!p && p.status === 'read' && p.source === 'window' && guestOwnPlans(p.list.map((e) => e.plan)).length > 0;
+  return metered(state) && !!state.session && state.session.kind === 'nobody' && !!p && p.status === 'read' && p.source === 'window' && guestOwnPlans(p.list.map((e) => e.plan)).length > 0;
 }
 
 /**

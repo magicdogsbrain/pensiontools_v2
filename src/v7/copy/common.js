@@ -80,7 +80,34 @@ export const FRONT = {
   ],
   /** Under "I have a plan": the account's way in. */
   signIn: 'Your plans are kept in your account.',
-  signInLink: 'Sign in'
+  signInLink: 'Sign in',
+  /**
+   * The front door for someone who is not signed in (7.5.0; research/v7/mockups/first-visit.html screen 1): one headline,
+   * the life as a picture, three doors — one for each stage, each opening its question's quickest form — and the other
+   * questions as plain links. No account is mentioned until something is kept. The headline is drawn in three parts so that
+   * its middle word can be pink (the one "you" on the page).
+   */
+  stranger: {
+    title: ['Your pension, from ', 'saving', ' to living on it.'],
+    intro: 'Type a few numbers and see your own picture in under a minute. No account. Nothing is kept unless you ask.',
+    /** The picture's words: a stage, and what happens in it (no figure is drawn). */
+    life: {
+      label: 'A pension over a life: it grows while you are saving, becomes an income when you move, and is drawn on while you live on it.',
+      saving: 'Saving', savingWhat: 'paying in, year by year',
+      moving: 'Moving', movingWhat: 'the pot becomes an income',
+      drawing: 'Drawing', drawingWhat: 'living on it, month by month'
+    },
+    /** The three doors, in the order of a life. `stage` is the coloured word, `ask` the question, `what` what you type and see. */
+    doors: {
+      b: { stage: 'Still saving', ask: 'Am I saving enough?', what: 'Your age, your pot, what goes in. See the pot you could reach, and what would be enough.', go: 'Start here' },
+      c: { stage: 'Stopping soon', ask: 'What is my pot worth a month?', what: 'A pot and an age. See the income it could pay, tested against the bad years.', go: 'Show me', potLabel: 'I have about', potHint: 'for example 250,000' },
+      d: { stage: 'Already retired', ask: 'Will it last?', what: 'What is left and what you take. See how long it lasts, and what spending less or some work would do.', go: 'Start here' }
+    },
+    doorsLabel: 'Where are you?',
+    /** The other questions, one tap away. */
+    others: { a: 'When can I afford to stop work?', f: 'I have one decision to make', e: 'I have a plan: open it' },
+    othersLabel: 'Other questions'
+  }
 };
 
 /**

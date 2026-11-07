@@ -11,7 +11,9 @@
  * futures out of 10), never a second headline. "The State Pension covers it" keeps its own headline in words. Then what
  * the pot could be by the stop age, what was assumed; try a change; what next. Computes nothing.
  */
-import { Sentence, Pots, Levers, Assumed, SaverTryAChange, Working, Problem, Retired, isRetired, LinkButton, SpendLine, KeepPanel, ShapeAnswer } from '../../components/index.js';
+import { Sentence, Pots, Levers, Assumed, SaverTryAChange, Working, Problem, Retired, isRetired, LinkButton, SpendLine, KeepPanel, ShapeAnswer, AnswerSlider, FigureTiles, PotLife, KeepLine } from '../../components/index.js';
+import { answerSlider, answerTiles, potPicture } from '../../state/select.js';
+import { PICTURE } from '../../copy/picture.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { B } from '../../copy/b.js';
@@ -106,13 +108,25 @@ function Answer({ state, dispatch, frame }) {
       <Warnings result={result} />
     </section>
   );
+  // the page around the answer (7.5.0, mock-up screen 2): the three figures, the pot becoming theirs, the Keep line
+  const top = (
+    <>
+      <FigureTiles q="b" source={result} tiles={answerTiles(state, 'b')} countKey={answer.inputsKey} />
+      <PotLife picture={potPicture(state, 'b')} words={PICTURE.pot} />
+      <KeepLine state={state} q="b" />
+    </>
+  );
   return (
     <>
+      {/* the slider: the one control, above the answer it moves (never greyed while the answer is worked out again) */}
+      <AnswerSlider slider={answerSlider(state, 'b')} dispatch={dispatch} />
       <AnswerRegion words={B} stale={stale} first={first}>
         {verdictHead}
+        {verdict && top}
         {enough}
         {verdict && !onCourse && <Levers result={result} dispatch={dispatch} />}
         {guide || covered || <>{s.nothing && <Sentence s={s.nothing} source={result} class="nothing" />}{!verdict && <Warnings result={result} />}</>}
+        {!verdict && top}
         {noPot && s.nothing && !sameAsLine(s.nothing) && <Sentence s={s.nothing} source={result} class="nothing" />}
         {!verdict && !onCourse && answer.status === 'first' && !s.none && !s.have && <p class="working-note" role="status">{B.answer.payInWorking}</p>}
         {s.none && !(noPot && sameAsLine(s.none)) && <Sentence s={s.none} source={result} class="none" />}

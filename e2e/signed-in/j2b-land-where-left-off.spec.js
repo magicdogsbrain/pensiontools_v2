@@ -62,6 +62,8 @@ test('a new tab at the site\'s root lands on the last plan and step; "All questi
   await expect(screen(tab)).toHaveAttribute('data-screen', 'front');
   await tab.reload();
   await expect(screen(tab)).toHaveAttribute('data-screen', 'front');
+  // someone signed in keeps today's front door (7.5.0 redesigns only the stranger's)
+  await expect(tab.locator('#app h1')).toHaveText('What would you like to know?', { timeout: 30_000 });
 });
 
 test('a locked plan lands on its home, whatever step was last open (7.3.0); an unlocked one on the step', async ({ page }) => {
@@ -105,9 +107,10 @@ test('the last place\'s plan gone: "Your plans"', async ({ page }) => {
   await expect(screen(tab)).toHaveAttribute('data-screen', 'plans', { timeout: 30_000 });
 });
 
-test('nobody signed in: the site\'s root opens the questions, as before', async ({ page }) => {
+test('nobody signed in: the site\'s root opens the questions — the stranger\'s front door (7.5.0): three doors', async ({ page }) => {
   await atFixedTime(page);
   await openAt(page, '');
   await expect(screen(page)).toHaveAttribute('data-screen', 'front');
-  await expect(page.locator('#app h1')).toHaveText('What would you like to know?');
+  await expect(page.locator('#app h1')).toHaveText('Your pension, from saving to living on it.');
+  await expect(page.locator('#app [data-door]')).toHaveCount(3);
 });

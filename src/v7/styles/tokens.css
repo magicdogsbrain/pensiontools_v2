@@ -1,9 +1,12 @@
 /*
- * V7 tokens — one theme, dark first, taken from today's app (index.html :root). Every colour V7 uses is here and
- * nowhere else; tests/v7/styles/contrast.test.js checks every --text-* on every --surface-* at 4.5:1, every
- * --fill-X against its --on-X at 4.5:1 and against the surfaces at 3:1, and --line-strong / --focus at 3:1.
+ * V7 tokens — dark first, taken from today's app (index.html :root). Every colour V7 uses is here and nowhere else;
+ * tests/v7/styles/contrast.test.js checks every --text-* on every --surface-* at 4.5:1, every --fill-X against its --on-X
+ * at 4.5:1 and against the surfaces at 3:1, and --line-strong / --focus at 3:1 — in both themes.
  *
- * The second (light) theme waits (build brief 2.4 #58).
+ * The light theme (7.5.0; research/v7/mockups/README.md: the mock-up's light values, and a light value for every other
+ * token) is the block at the foot, for a page marked data-theme="light". The site keeps its dark base (the README): nothing
+ * marks a page light yet, so every visitor sees the dark theme whatever their system prefers. Switching it on is that one
+ * attribute, once every page has been looked at in it.
  */
 :root {
   /* surfaces: what text sits on */
@@ -50,6 +53,11 @@
   --on-pop:            #0f0f1a;
   --pop-soft:          rgba(242, 64, 138, 0.16);
   --soon:              #fab219;   /* a "soon" to-do's dot: amber, not counted */
+  /* a verdict's edge (7.5.0; the README's colour table): green, amber and red appear here and nowhere else — the word is
+     always said too (the verdict's figure keeps its --text-verdict-* colour) */
+  --edge-yes:          #0ca30c;
+  --edge-close:        #fab219;
+  --edge-no:           #d03b3b;
 
   /* lines */
   --line:           #2a2a4a;   /* today's --border: decoration only */
@@ -62,10 +70,61 @@
   --target:         44px;      /* the least a control may be tall or wide on a phone */
   --gutter:         16px;
   --measure:        68ch;
-  --font:           -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  --font-mono:      ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* type (7.5.0; the README): Nunito for words, Fraunces for headlines, JetBrains Mono for figures — self-hosted (fonts.css),
+     each with the system's own face behind it while it loads or if it cannot */
+  --font:           'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --font-display:   'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-mono:      'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --size:           17px;
   --size-small:     15px;
   --size-figure:    2.4rem;
   --line-height:    1.5;
+}
+
+/* The light theme (7.5.0): the mock-up's light page, card, raised surface, lines, words and the four life hues; the rest
+   chosen to meet the same contrast rules on these surfaces. For a page marked data-theme="light" only (see the top). */
+:root[data-theme="light"] {
+  --surface-page:   #f6f3ff;
+  --surface-card:   #ffffff;
+  --surface-raised: #efeaff;
+
+  --text:           #1b1733;
+  --text-muted:     #585472;
+  --text-link:      #285a85;
+  --text-danger:    #b3261e;
+  --text-warning:   #7a4f00;
+  --text-success:   #1b6e2f;
+  --text-verdict-yes:   #1b6e2f;
+  --text-verdict-close: #7a4f00;
+  --text-verdict-no:    #b3261e;
+
+  --fill-primary:   #285a85;
+  --on-primary:     #ffffff;
+  --fill-choice:    #4f46e5;
+  --on-choice:      #ffffff;
+
+  --chart-income:   #5f80a0;
+  --chart-pots:     #285a85;
+  --chart-below:    #b85c00;
+  --chart-guide:    #7a4f00;
+  --chart-band:     #efeaff;
+
+  --stage-saving:      #b86a06;
+  --stage-moving:      #0f8c72;
+  --stage-drawing:     #6f49d6;
+  --stage-saving-soft: rgba(184, 106, 6, 0.14);
+  --stage-moving-soft: rgba(15, 140, 114, 0.14);
+  --stage-drawing-soft: rgba(111, 73, 214, 0.14);
+  --fill-pop:          #d62a72;
+  --on-pop:            #ffffff;
+  --pop-soft:          rgba(214, 42, 114, 0.12);
+  --soon:              #b86a06;
+  --edge-yes:          #0c870c;
+  --edge-close:        #c98a00;
+  --edge-no:           #c23030;
+
+  --line:           #e3dcff;
+  --line-strong:    #6f6a8c;
+  --focus:          #8a4b00;
+  color-scheme: light;
 }

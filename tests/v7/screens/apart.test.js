@@ -682,6 +682,10 @@ describe('7 — today, byte for byte', () => {
   // …and 7.1.0 (research/v7/after-7.md §1): the site's name in every header and footer is PensionTools, with its one line
   // ("Plan your pension, from saving to living on it.") beside it, and the front door's questions are grouped by where the
   // person is — words on every screen, so the pinned drawings were re-pinned once more (V7_PIN_TODAY=1, V7_PIN_SCREENS=1)
+  // …and 7.5.0 (research/v7/mockups/README.md, the first visit): the stranger's front door (three doors and the life line),
+  // the slider, the three figures, the pot picture and the Keep line around B's, C's and D's answers, and the working spinner
+  // on every answer still being worked out — so the front door, the not-found page and those answer states were re-pinned
+  // (V7_PIN_TODAY=1, V7_PIN_SCREENS=1); no figure moved (every answer in them is the same answer, byte for byte)
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]'];
   const hash = (html) => createHash('sha256').update(html).digest('hex').slice(0, 32);

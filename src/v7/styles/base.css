@@ -10,7 +10,8 @@ body { margin: 0; background: var(--surface-page); color: var(--text); overflow-
 .pt { min-height: 100vh; display: flex; flex-direction: column; }
 main { flex: 1; width: 100%; max-width: 62rem; margin: 0 auto; padding: 16px var(--gutter) 32px; }
 
-h1, h2, h3 { line-height: 1.25; margin: 0 0 0.5em; font-weight: 650; }
+/* headlines in the display face (7.5.0; the README's type): Fraunces, with a serif of the system's behind it */
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.25; margin: 0 0 0.5em; font-weight: 650; }
 h1 { font-size: 1.6rem; margin-top: 0.25em; }
 h2 { font-size: 1.2rem; }
 p { margin: 0 0 0.75em; max-width: var(--measure); }

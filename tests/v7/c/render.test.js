@@ -92,15 +92,37 @@ describe('the front door', () => {
   const state = load('front-door');
   const root = renderScreen(state);
 
-  it('asks the one question and shows the six, in order, in the visitor\'s words', () => {
-    expect(root.querySelector('h1').textContent).toBe(FRONT.title);
+  it('a stranger (7.5.0): one headline, the life as a picture, three doors in the order of a life, the other questions as plain links', () => {
+    const W = FRONT.stranger;
+    expect(root.querySelector('h1').textContent).toBe(W.title.join(''));
+    expect(root.querySelector('h1 em').textContent).toBe('saving');
+    expect(one(root, 'front.life').querySelectorAll('[data-stage]').length).toBe(3);
+    // the doors: still saving (B), stopping soon (C, its first number in the door), already retired (D)
+    expect([...root.querySelectorAll('[data-door]')].map((d) => d.getAttribute('data-door'))).toEqual(['b', 'c', 'd']);
+    expect([...root.querySelectorAll('[data-door]')].map((d) => d.className)).toEqual(['door is-saving', 'door is-moving', 'door is-drawing']);
     const ids = [...root.querySelectorAll('[data-testid^="front.q."]')].map((el) => el.getAttribute('data-testid'));
-    // grouped by where the person is (7.1.0): still working (B, A), stopping soon or stopped (C, D), with a plan (E), then F
+    expect(ids).toEqual(['front.q.b', 'front.q.c', 'front.q.d', 'front.q.a', 'front.q.f', 'front.q.e']);
+    for (const q of ['b', 'c', 'd']) {
+      expect(one(root, `front.q.${q}`).textContent).toContain(W.doors[q].ask);
+      expect(one(root, `front.q.${q}`).textContent).toContain(W.doors[q].stage);
+    }
+    for (const q of ['a', 'f', 'e']) expect(one(root, `front.q.${q}`).textContent).toContain(W.others[q]);
+    // no account, no meter, no sign-in line: the account is asked for only when something is kept
+    expect(root.querySelector('[data-testid="front.signIn"]')).toBe(null);
+    expect(root.querySelector('[data-group]')).toBe(null);
+  });
+  it('someone signed in keeps today\'s front door, unchanged: the six questions grouped by where the person is', () => {
+    const s = clone(state);
+    s.session = { kind: 'in', email: 'alex@example.com', signingOut: false };
+    const r = renderScreen(s);
+    expect(r.querySelector('h1').textContent).toBe(FRONT.title);
+    const ids = [...r.querySelectorAll('[data-testid^="front.q."]')].map((el) => el.getAttribute('data-testid'));
     expect(ids).toEqual(['front.q.b', 'front.q.a', 'front.q.c', 'front.q.d', 'front.q.e', 'front.q.f']);
-    expect([...root.querySelectorAll('[data-group]')].map((g) => g.getAttribute('data-group'))).toEqual(['working', 'stopping', 'plan', 'other']);
-    expect([...root.querySelectorAll('[data-group] > h2')].map((h) => h.textContent)).toEqual(['Still working', 'Stopping soon, or stopped', 'I have a plan']);
-    expect(one(root, 'front.signIn').getAttribute('href')).toBe('#/account');
-    for (const q of FRONT.questions) expect(one(root, `front.q.${q.id}`).textContent).toContain(q.ask);
+    expect([...r.querySelectorAll('[data-group]')].map((g) => g.getAttribute('data-group'))).toEqual(['working', 'stopping', 'plan', 'other']);
+    expect([...r.querySelectorAll('[data-group] > h2')].map((h) => h.textContent)).toEqual(['Still working', 'Stopping soon, or stopped', 'I have a plan']);
+    expect(one(r, 'front.signIn').getAttribute('href')).toBe('#/account');
+    for (const q of FRONT.questions) expect(one(r, `front.q.${q.id}`).textContent).toContain(q.ask);
+    expect(r.querySelector('[data-door]')).toBe(null);
   });
   it('A and B open their numbers step (step 4 joining up)', () => {
     for (const id of ['a', 'b']) {

@@ -8,8 +8,8 @@
  * Draws only: the reading is answers/plan/home.js homeOf (state/select.js planView → page.home), the same reading the
  * rail's "Next" comes from. Nothing here writes a plan; "Not now" is kept for this window only (effects/place.js).
  */
-import { PlanLine, PlanSentence, fill, Button, LinkButton, Money, Counted, notNowPress, stepNameOf } from '../../components/index.js';
-import { planView, plansView } from '../../state/select.js';
+import { PlanLine, PlanSentence, fill, Button, LinkButton, Counted, notNowPress, stepNameOf, LifeLine, YearCells } from '../../components/index.js';
+import { planView, plansView, lifeStages } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { HOME } from '../../copy/home.js';
@@ -44,59 +44,6 @@ function Item({ it, first, planId, dispatch, partner = null }) {
         {it.dismiss && !partner && <Button testid={`${T}.notNow.${it.id}`} kind="quiet" onClick={(e) => notNowPress(e, () => dispatch({ type: 'todo/notNow', key: planId + '|' + it.id }))}>{it.id === 'move.invite' ? HOME.notYet : HOME.notNow}</Button>}
       </span>
     </li>
-  );
-}
-
-function Strip({ strip }) {
-  return (
-    <div class="stage-strip" data-testid={`${T}.strip`}>
-      <p class="sr-only">{HOME.strip.label}</p>
-      <div class="strip-segs" aria-hidden="true">
-        {strip.map((sg) => <span key={sg.key} class={`strip-seg is-${sg.key} is-${sg.state}`}>{sg.held != null && <span class="strip-fill" style={`width:${sg.held}%`} />}{sg.state === 'now' && <span class="strip-dot" />}</span>)}
-      </div>
-      <ul class="strip-words">
-        {strip.map((sg) => (
-          <li key={sg.key} data-stage={sg.key} data-state={sg.state} aria-current={sg.state === 'now' ? 'step' : undefined}>
-            <strong>{HOME.stages[sg.key]}</strong>
-            {/* a move behind a Drawing plan that its record of what is held does not show (7.3.1): no word for it — never "done"
-                beside a note saying how much of the mix is held; the segment fills to that share */}
-            {sg.state !== 'part' && <>{' · '}{sg.state === 'now' ? HOME.strip.now : sg.key === 'saving' && sg.month ? fill(HOME.strip.to, { month: sg.month }) : sg.state === 'done' ? HOME.strip.done : HOME.strip.later}</>}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function YearView({ Y }) {
-  const W = HOME.year;
-  return (
-    <section class="home-year" data-region="home-year" data-testid={`${T}.year`} data-year={Y.key}>
-      <h2 class="eyebrow">{fill(HOME.yearTitle, { year: Y.year })}</h2>
-      <ol class="year-cells" aria-label={fill(W.label, { year: Y.year })}>
-        {Y.cells.map((c, i) => (
-          <li key={c.month} class={`year-cell is-${c.state}`} data-month={c.month} data-state={c.state}>
-            <span class="year-plot" aria-hidden="true">
-              {c.drawnPct != null && <span class="year-bar" style={`height:${c.drawnPct}%;animation-delay:${i * 45}ms`} />}
-              {c.planPct != null && <span class="year-plan" style={`bottom:${c.planPct}%`} />}
-            </span>
-            <span class="year-name" aria-hidden="true">{c.name.slice(0, 3)}</span>
-            <span class="sr-only">
-              {c.drawn != null ? <>{fill(W.cell[c.state].split('{drawn}')[0], { month: c.words })}<Money source={c} k="drawn" />{W.cell[c.state].split('{drawn}')[1] || ''}</> : fill(W.cell[c.state], { month: c.words })}
-              {c.plan != null && (c.state === 'recorded' || c.state === 'filled') && <>{W.planSaid.split('{plan}')[0]}<Money source={c} k="plan" /></>}
-            </span>
-          </li>
-        ))}
-      </ol>
-      <ul class="year-legend" aria-hidden="true">
-        <li><i class="key-drawn" />{W.legendDrawn}</li>
-        <li><i class="key-plan" />{W.legendPlan}</li>
-        <li><i class="key-filled" />{W.legendFilled}</li>
-        <li><i class="key-setup" />{W.legendSetUp}</li>
-        <li><i class="key-due" />{W.legendDue}</li>
-      </ul>
-      <p class="note" data-testid={`${T}.year.count`}>{Y.recorded === 0 ? fill(W.recordedCount.none, { year: Y.year }) : Y.recorded === 1 ? fill(W.recordedCount.one, { year: Y.year }) : fill(W.recordedCount.many, { n: String(Y.recorded), year: Y.year })}</p>
-    </section>
   );
 }
 
@@ -190,7 +137,8 @@ export function HomeScreen(state, dispatch) {
           {H.source === 'window' && <p class="note" data-testid="plan.windowWarning">{PLAN.page.windowWarning}</p>}
         </div>
 
-        {s.strip && <Strip strip={s.strip} />}
+        {/* the life line reduced to the plan's three stages, the dot on the one it is in (7.5.0: one component with the front door's) */}
+        {s.strip && <LifeLine stages={lifeStages(s.strip)} words={{ ...HOME.strip, stages: HOME.stages }} testid={`${T}.strip`} />}
 
         <section class="home-todo" data-region="home-todo" data-testid={`${T}.todo`} data-count={String(todo.count)}>
           <h2 class="eyebrow">{HOME.todoTitle}</h2>
@@ -216,7 +164,7 @@ export function HomeScreen(state, dispatch) {
         </section>
 
         <div class={`home-row2${H.year ? '' : ' is-one'}`}>
-          {H.year && <YearView Y={H.year} />}
+          {H.year && <YearCells Y={H.year} words={HOME.year} title={HOME.yearTitle} testid={`${T}.year`} />}
           <Counted as="section" class="home-where" data-region="home-where" data-testid={`${T}.where`}>
             <h2 class="eyebrow">{HOME.whereTitle}</h2>
             {/* the headline only: the result and a few lines; where each figure is from, and the rest, on the step itself */}

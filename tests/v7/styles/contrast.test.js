@@ -18,7 +18,19 @@ const DIR = join(process.cwd(), 'src/v7/styles');
 const read = (f) => readFileSync(join(DIR, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 const tokensCss = read('tokens.css');
 
-const TOKENS = Object.fromEntries([...tokensCss.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+/** The custom properties of one block of tokens.css. */
+const tokensOf = (css) => Object.fromEntries([...css.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+/** A block of tokens.css by its selector: the text between its braces. */
+function blockOf(selector) {
+  const at = tokensCss.indexOf(selector + ' {');
+  if (at === -1) return '';
+  const open = tokensCss.indexOf('{', at);
+  return tokensCss.slice(open + 1, tokensCss.indexOf('}', open));
+}
+/** The dark theme (the site's own): the :root block. */
+const TOKENS = tokensOf(blockOf(':root'));
+/** The light theme (7.5.0): the dark one with the light block over it — every token the light block does not name is the dark one's. */
+const LIGHT = { ...TOKENS, ...tokensOf(blockOf(':root[data-theme="light"]')) };
 const isColour = (v) => /^#[0-9a-f]{6}$/i.test(v);
 
 function luminance(hex) {
@@ -103,8 +115,13 @@ describe('the style sheets', () => {
     expect(css.match(names) || []).toEqual([]);
   });
 
+  // 7.5.0: a rule may name a property of its own that holds a token (.door's --door: var(--stage-moving)), set in the same
+  // sheet; and the slider's filled share is set on the element by its component (AnswerPicture.jsx: --at, a percentage)
+  const SET_BY_COMPONENT = ['--at'];
   it.each(sheets)('%s uses only tokens that exist', (_f, css) => {
-    for (const m of css.matchAll(/var\((--[a-z0-9-]+)/g)) expect(TOKENS[m[1]], m[1]).toBeTruthy();
+    const own = new Map([...css.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;}]+)/g)].map((m) => [m[1], m[2].trim()]));
+    for (const [k, v] of own) expect(/^var\(--[a-z0-9-]+\)$/.test(v) && TOKENS[v.slice(4, -1)], `${k}: ${v} — a property of the sheet's own must hold a token`).toBeTruthy();
+    for (const m of css.matchAll(/var\((--[a-z0-9-]+)/g)) expect(TOKENS[m[1]] || own.has(m[1]) || SET_BY_COMPONENT.includes(m[1]), m[1]).toBeTruthy();
   });
 
   it('greys nothing by making it see-through (that would break the contrast the tokens promise)', () => {
@@ -131,5 +148,53 @@ describe('the style sheets', () => {
     const html = readFileSync(join(process.cwd(), 'v7/index.html'), 'utf8');
     for (const f of ['tokens.css', 'base.css', 'components.css']) expect(html).toContain(`styles/${f}`);
     expect(html).not.toMatch(/<style|style="/);
+  });
+});
+
+// ---- the light theme (7.5.0; research/v7/mockups/README.md): the same rules on its own surfaces ---------------------------
+describe('the light theme\'s tokens', () => {
+  const T = LIGHT;
+  const named = (prefix) => Object.keys(T).filter((k) => k.startsWith(prefix) && isColour(T[k]));
+  const surf = named('--surface-');
+  it('is there, and names a light value for every colour the dark theme has', () => {
+    const light = tokensOf(blockOf(':root[data-theme="light"]'));
+    expect(Object.keys(light).length).toBeGreaterThan(20);
+    for (const k of Object.keys(TOKENS).filter((x) => isColour(TOKENS[x]))) expect(isColour(light[k] || ''), `${k} has no light value`).toBe(true);
+    expect(light['--surface-page'].toLowerCase()).toBe('#f6f3ff');
+    expect(light['--stage-saving'].toLowerCase()).toBe('#b86a06');
+    expect(light['--fill-pop'].toLowerCase()).toBe('#d62a72');
+  });
+  it.each(named('--text').flatMap((t) => surf.map((x) => [t, x])))('%s on %s meets 4.5 to 1', (t, x) => {
+    expect(contrast(T[t], T[x])).toBeGreaterThanOrEqual(4.5);
+  });
+  it.each(named('--fill-'))('%s: its words meet 4.5 to 1, and it stands out from every surface at 3 to 1', (f) => {
+    const on = f.replace('--fill-', '--on-');
+    expect(contrast(T[on], T[f])).toBeGreaterThanOrEqual(4.5);
+    for (const x of surf) expect(contrast(T[f], T[x]), `${f} on ${x}`).toBeGreaterThanOrEqual(3);
+  });
+  it.each(['--line-strong', '--focus'])('%s meets 3 to 1 on every surface', (line) => {
+    for (const x of surf) expect(contrast(T[line], T[x]), `${line} on ${x}`).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('the life colours (7.5.0; the README\'s colour table), in both themes', () => {
+  const HUES = ['--stage-saving', '--stage-moving', '--stage-drawing', '--fill-pop'];
+  it.each([['dark', TOKENS], ['light', LIGHT]])('%s: each hue is a mark that stands out from every surface at 3 to 1, and the four differ', (_n, T) => {
+    const surf = Object.keys(T).filter((k) => k.startsWith('--surface-') && isColour(T[k]));
+    for (const h of HUES) for (const x of surf) expect(contrast(T[h], T[x]), `${h} on ${x}`).toBeGreaterThanOrEqual(3);
+    expect(new Set(HUES.map((h) => T[h].toLowerCase())).size).toBe(4);
+  });
+  it('the dark values are the README\'s, letter for letter', () => {
+    expect(TOKENS['--stage-saving']).toBe('#cf7f14');
+    expect(TOKENS['--stage-moving']).toBe('#17a587');
+    expect(TOKENS['--stage-drawing']).toBe('#8a63ee');
+    expect(TOKENS['--fill-pop']).toBe('#f2408a');
+    expect([TOKENS['--edge-yes'], TOKENS['--edge-close'], TOKENS['--edge-no']]).toEqual(['#0ca30c', '#fab219', '#d03b3b']);
+  });
+  it('green, amber and red appear on a verdict\'s edge only', () => {
+    const css = read('components.css');
+    const uses = [...css.matchAll(/[^{}]*\{[^}]*var\(--edge-(yes|close|no)\)[^}]*\}/g)].map((m) => m[0]);
+    expect(uses.length).toBeGreaterThanOrEqual(3);
+    for (const u of uses) expect(u, u).toMatch(/\.verdict/);
   });
 });

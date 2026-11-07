@@ -97,7 +97,11 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   const keptSaver = (state) => !!(state.keep && state.keep.b && state.keep.b.made && state.keep.b.made.saverId);
   const fromPlan = (state) => state.route && state.route.screen === 'step' && state.route.q === 'b' && (!!(state.draft.b && state.draft.b.fromPlan) || keptSaver(state));
   // … and landing where a signed-in person left off (effects/place.js), and a way back after signing in from the keep panel
-  const needsPlans = (state) => onPlanPage(state) || onKeepPage(state) || keeping(state) || exampleAsked(state) || fromPlan(state) || landing || !!state.ui.returnTo;
+  // … and (7.5.0) the front door in a browser where someone is signed in: the session decides which front door is drawn —
+  // the stranger's three doors, or today's questions for someone signed in — so it is read there too
+  const signedInHere = hasSignedInHint(localStore(win));
+  const onFrontSignedIn = (state) => signedInHere && !!state.route && (state.route.screen === 'front' || state.route.screen === 'notFound');
+  const needsPlans = (state) => onPlanPage(state) || onKeepPage(state) || keeping(state) || exampleAsked(state) || fromPlan(state) || landing || onFrontSignedIn(state) || !!state.ui.returnTo;
   const loadPlanSource = (state) => {
     if (planSource || !needsPlans(state)) return;
     planSource = import('./planSource.js')

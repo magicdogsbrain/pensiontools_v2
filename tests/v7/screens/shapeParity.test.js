@@ -208,13 +208,17 @@ describe('today\'s planner\'s income shape, item by item (spending-shape.md sect
 
 describe('the picture\'s colours', () => {
   const css = readFileSync(join(process.cwd(), 'src/v7/styles/tokens.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-  const T = Object.fromEntries([...css.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+  // each theme's tokens (7.5.0): the dark :root block, and the light block over it
+  const block = (sel) => { const at = css.indexOf(sel + ' {'); if (at === -1) return ''; const o = css.indexOf('{', at); return css.slice(o + 1, css.indexOf('}', o)); };
+  const tokens = (text) => Object.fromEntries([...text.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+  const DARK = tokens(block(':root'));
+  const LIGHT = { ...DARK, ...tokens(block(':root[data-theme="light"]')) };
   const lum = (hex) => {
     const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   };
   const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
-  it.each(['--chart-income', '--chart-pots', '--chart-below', '--chart-guide'])('%s meets 3 to 1 on the card and on the go-slow band', (k) => {
+  it.each(['--chart-income', '--chart-pots', '--chart-below', '--chart-guide'].flatMap((k) => [[k, 'dark', DARK], [k, 'light', LIGHT]]))('%s meets 3 to 1 on the card and on the go-slow band (%s)', (k, _theme, T) => {
     expect(T[k], k).toMatch(/^#[0-9a-f]{6}$/i);
     expect(ratio(T[k], T['--surface-card'])).toBeGreaterThanOrEqual(3);
     expect(ratio(T[k], T['--chart-band'])).toBeGreaterThanOrEqual(3);

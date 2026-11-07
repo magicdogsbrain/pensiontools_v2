@@ -8,8 +8,8 @@
  *     try a change, what next — greyed and marked "Updating" while a new one is worked out.
  * Computes nothing: every figure is the answer's, drawn by Money and Sentence.
  */
-import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer } from '../../components/index.js';
-import { isCurrent, cAnswerYouStopped, isShapePath } from '../../state/select.js';
+import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer, AnswerSlider, FigureTiles, KeepLine } from '../../components/index.js';
+import { isCurrent, cAnswerYouStopped, isShapePath, answerSlider, answerTiles } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { frontDoor } from '../../rail/index.js';
 import { C } from '../../copy/c.js';
@@ -121,8 +121,17 @@ export function AnswerScreen(state, dispatch) {
     // spending that changes with age (spending-shape.md 7.2 c.shape): "That is at the start. Then, as you set it: …"
     const shapeLine = s.shape && <Sentence s={s.shape} source={result} class="shape-line" data-testid="c.answer.shape" />;
 
+    // the page around the answer (7.5.0): the slider (what if you took…?) above it, the three figures and the Keep line under
+    // the headline; C draws no pot picture (the README gives it to B and D)
+    const top = !s.none && s.head && s.line && !s.nothing && (
+      <>
+        <FigureTiles q="c" source={result} tiles={answerTiles(state, 'c')} countKey={answer.inputsKey} />
+        <KeepLine state={state} q="c" />
+      </>
+    );
     body = (
       <>
+        <AnswerSlider slider={answerSlider(state, 'c')} dispatch={dispatch} />
         <div class={`answer${stale ? ' is-stale' : ''}`} data-region="answer" aria-live="polite" aria-busy={stale ? 'true' : 'false'}>
           {stale && <p class="updating" role="status">{C.answer.updating}</p>}
           {first && <p class="note first-figure">{C.answer.first}</p>}
@@ -131,6 +140,7 @@ export function AnswerScreen(state, dispatch) {
             : s.head && s.line && !s.nothing
               ? (
                 <Headline result={result} afterLine={payIn || potThen || shapeLine ? <>{shapeLine}{payIn}{potThen}</> : null}>
+                  {top}
                   {s.small && (
                     <div class="small-pot">
                       <Sentence s={s.small} source={result} />

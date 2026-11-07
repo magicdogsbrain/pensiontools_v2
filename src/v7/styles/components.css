@@ -658,7 +658,7 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
    and not at all when less motion is asked for (base.css stops every animation then). */
 .btn-pop { background: var(--fill-pop); color: var(--on-pop); border-color: var(--fill-pop); }
 .btn-pop:hover { border-color: var(--text); }
-.eyebrow { margin: 0 0 8px; font-size: var(--size-small); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.eyebrow { margin: 0 0 8px; font-family: var(--font); font-size: var(--size-small); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
 h2.eyebrow { font-size: var(--size-small); }
 .home { display: grid; gap: 22px; }
 .home-head h1 { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
@@ -744,3 +744,137 @@ h2.eyebrow { font-size: var(--size-small); }
   /* no year view (a saver, a draft): where you are takes the whole row, never half of it beside nothing */
   .home-row2.is-one { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---- the first visit (7.5.0; research/v7/mockups/first-visit.html screens 1–3 and the README's colour, type and motion
+   rules). Amber saving, teal moving, purple drawing: fills, lines and dots, never body text. Pink is the one thing to press
+   and "you, today". Green, amber and red only on a verdict's edge. Motion shows an amount or time passing, ends on the
+   complete picture, runs under a second, and stops when less motion is asked for (base.css). ---- */
+.verdict.is-yes { border-left: 6px solid var(--edge-yes); padding-left: 12px; }
+.verdict.is-close { border-left: 6px solid var(--edge-close); padding-left: 12px; }
+.verdict.is-no { border-left: 6px solid var(--edge-no); padding-left: 12px; }
+
+/* the stranger's front door */
+.front.is-stranger { display: grid; gap: 20px; }
+.front-title { font-size: clamp(1.75rem, 6vw, 2.6rem); line-height: 1.08; font-weight: 800; letter-spacing: -0.01em; margin: 0; }
+.front-title em { font-style: normal; color: var(--fill-pop); }
+.front.is-stranger .lead { margin: 0; color: var(--text-muted); }
+/* the life line, as the front door's explainer: the shape of a pot over a life, no figures */
+.life-line.is-explainer { margin: 0; display: grid; gap: 8px; }
+.life-svg { display: block; width: 100%; height: 110px; animation: pot-reveal .9s ease-out both; }
+.life-curve { fill: none; stroke: url(#life-grad); stroke-width: 5; stroke-linecap: round; }
+.life-area { fill: url(#life-soft); animation: pot-fade .4s .5s ease-out both; }
+.life-stop.is-saving { stop-color: var(--stage-saving); }
+.life-stop.is-moving { stop-color: var(--stage-moving); }
+.life-stop.is-drawing { stop-color: var(--stage-drawing); }
+.life-stop.is-saving.is-soft { stop-color: var(--stage-saving-soft); }
+.life-stop.is-moving.is-soft { stop-color: var(--stage-moving-soft); }
+.life-stop.is-drawing.is-soft { stop-color: var(--stage-drawing-soft); }
+.life-stages { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: var(--size-small); }
+.life-stage { display: grid; gap: 0; color: var(--text-muted); min-width: 0; }
+.life-stage strong { display: inline-flex; align-items: center; gap: 6px; color: var(--text); font-weight: 800; }
+.life-stage strong::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); flex: none; }
+.life-stage.is-saving strong::before { background: var(--stage-saving); }
+.life-stage.is-moving strong::before { background: var(--stage-moving); }
+.life-stage.is-drawing strong::before { background: var(--stage-drawing); }
+/* the three doors, in the order of a life */
+.doors { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.door { --door: var(--stage-saving); --door-soft: var(--stage-saving-soft); position: relative; display: grid; gap: 8px; align-content: start; padding: 16px; border-radius: 14px; background: var(--door-soft); border: 1px solid var(--line); border-top: 4px solid var(--door); min-width: 0; transition: transform .15s ease, box-shadow .15s ease; }
+.door.is-moving { --door: var(--stage-moving); --door-soft: var(--stage-moving-soft); }
+.door.is-drawing { --door: var(--stage-drawing); --door-soft: var(--stage-drawing-soft); }
+.door:hover, .door:focus-within { transform: translateY(-2px); box-shadow: 0 10px 30px -16px var(--door); border-color: var(--door); }
+.door-link { display: grid; gap: 8px; color: var(--text); text-decoration: none; min-height: var(--target); }
+.door-link:hover .door-ask { text-decoration: underline; }
+.door-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text); }
+.door-tag i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--door); }
+.door-ask { font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; line-height: 1.15; }
+.door-what { font-size: var(--size-small); color: var(--text-muted); }
+.door-go { font-weight: 800; color: var(--text-link); }
+.door .field { margin: 4px 0 0; }
+.door .field input[type="text"] { max-width: none; }
+.door .btn-pop { justify-self: start; }
+.front-plain { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: var(--size-small); }
+.front-plain .question-not { display: inline; color: var(--text-muted); }
+
+/* the page around an answer: the slider, the three figures, the Keep line */
+.answer-slider { --slide: var(--stage-saving); display: grid; gap: 6px; margin: 0 0 16px; padding: 14px 16px; border-radius: var(--radius); background: var(--surface-card); border: 1px solid var(--line); }
+.answer-slider.is-c { --slide: var(--stage-moving); }
+.answer-slider.is-d { --slide: var(--stage-drawing); }
+.answer-slider label { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
+.slider-value { font: 500 1.25rem/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); }
+.answer-slider input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: var(--target); margin: 0; background: transparent; cursor: pointer; }
+.answer-slider input[type="range"]::-webkit-slider-runnable-track { height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--slide) 0 var(--at), var(--surface-raised) var(--at)); border: 1px solid var(--line-strong); }
+.answer-slider input[type="range"]::-moz-range-track { height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--slide) 0 var(--at), var(--surface-raised) var(--at)); border: 1px solid var(--line-strong); }
+.answer-slider input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 28px; height: 28px; margin-top: -10px; border-radius: 50%; background: var(--text); border: 5px solid var(--slide); }
+.answer-slider input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--text); border: 5px solid var(--slide); }
+.slider-scale { display: flex; justify-content: space-between; font: 500 12px/1.2 var(--font-mono); color: var(--text-muted); }
+.fig-tiles { list-style: none; margin: 12px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.fig-tile { display: grid; gap: 2px; align-content: start; padding: 12px 14px; border-radius: var(--radius); background: var(--surface-raised); border: 1px solid var(--line); min-width: 0; }
+.fig-n { font: 800 1.5rem/1.1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.fig-tile.is-pop { border-color: var(--fill-pop); }
+.fig-tile.is-pop .fig-n { color: var(--fill-pop); }
+.fig-l { font-size: 13px; color: var(--text-muted); }
+.keep-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 12px 0; }
+.keep-line .note { margin: 0; }
+.answer-picture { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+.answer-picture .fig-tiles { margin: 0; }
+
+/* the pot over a life: drawn to scale; the words on it are text, never stretched */
+.pot-life { margin: 12px 0; display: grid; gap: 6px; }
+.pot-title { font-size: 1.1rem; margin: 0; }
+.pot-plot { position: relative; height: 200px; margin-top: 18px; }
+.pot-svg { display: block; width: 100%; height: 100%; overflow: visible; animation: pot-reveal .8s ease-out both; }
+.pot-grid { stroke: var(--line); stroke-dasharray: 3 5; }
+.pot-base { stroke: var(--line-strong); }
+.pot-stop { stroke: var(--stage-moving); stroke-width: 2; stroke-dasharray: 4 4; }
+.pot-line, .pot-band, .pot-band-edge { transition: d .6s ease-out; }
+.pot-line { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.pot-line.is-pop { stroke: var(--fill-pop); }
+.pot-line.is-now { stroke: var(--stage-saving); stroke-width: 3; stroke-dasharray: 7 5; }
+.pot-line.is-faint { stroke: var(--fill-pop); stroke-width: 2; stroke-dasharray: 2 6; }
+.pot-line.is-drawing { stroke: var(--stage-drawing); }
+.pot-band { animation: pot-fade .4s .5s ease-out both; }
+.pot-band.is-saving { fill: var(--stage-saving-soft); }
+.pot-band.is-drawing { fill: var(--stage-drawing-soft); }
+.pot-band-edge { fill: none; stroke-width: 1.5; stroke-dasharray: 5 5; }
+.pot-band-edge.is-saving { stroke: var(--stage-saving); }
+.pot-band-edge.is-drawing { stroke: var(--stage-drawing); }
+@keyframes pot-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes pot-fade { from { opacity: 0; } to { opacity: 1; } }
+.pot-tick { position: absolute; left: 4px; transform: translateY(-100%); padding-bottom: 2px; font: 500 11px/1 var(--font-mono); color: var(--text-muted); }
+.pot-stop-word { position: absolute; top: 0; margin-left: 6px; font-size: 13px; font-weight: 800; color: var(--text); white-space: nowrap; }
+.pot-mark { position: absolute; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%); }
+.pot-mark.is-you { background: var(--text); border: 4px solid var(--fill-pop); box-shadow: 0 0 0 5px var(--pop-soft); }
+.pot-mark.is-aim { background: var(--surface-page); border: 3px solid var(--fill-pop); }
+.pot-ages { position: relative; height: 18px; font: 500 12px/1 var(--font-mono); color: var(--text-muted); }
+.pot-ages span { position: absolute; top: 2px; transform: translateX(-50%); }
+.pot-ages span:first-child { transform: none; }
+.pot-ages span:last-child { transform: translateX(-100%); }
+.pot-legend { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--text-muted); }
+.pot-legend i { display: inline-block; width: 14px; height: 12px; margin-right: 6px; vertical-align: -1px; border-radius: 3px; }
+.pot-legend .key-line { height: 0; border-radius: 0; border-top: 3px solid var(--line-strong); vertical-align: 3px; }
+.pot-legend .key-line.is-pop { border-top-color: var(--fill-pop); }
+.pot-legend .key-line.is-now { border-top: 3px dashed var(--stage-saving); }
+.pot-legend .key-line.is-faint { border-top: 2px dotted var(--fill-pop); }
+.pot-legend .key-line.is-drawing { border-top-color: var(--stage-drawing); }
+.pot-legend .key-band.is-saving { background: var(--stage-saving-soft); border: 1px dashed var(--stage-saving); }
+.pot-legend .key-band.is-drawing { background: var(--stage-drawing-soft); border: 1px dashed var(--stage-drawing); }
+.pot-legend .key-mark { width: 12px; border-radius: 50%; }
+.pot-legend .key-mark.is-you { background: var(--text); border: 3px solid var(--fill-pop); }
+.pot-legend .key-mark.is-aim { background: var(--surface-page); border: 2px solid var(--fill-pop); }
+.pot-note { margin: 0; }
+.pot-figures summary { cursor: pointer; min-height: var(--target); display: flex; align-items: center; color: var(--text-link); text-decoration: underline; }
+.pot-figures ul { margin: 4px 0 0; }
+
+@media (min-width: 700px) {
+  .doors { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .life-svg { height: 140px; }
+  .pot-plot { height: 240px; }
+}
+@media (min-width: 1024px) {
+  .answer-picture { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; }
+  .answer-picture .fig-tiles { grid-template-columns: minmax(0, 1fr); }
+}
+/* a figure counting up to its value (motion.js countUp): its own text stays, unseen, under the count drawn over it */
+.is-counting { position: relative; color: transparent; }
+.is-counting::after { content: attr(data-count); position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--text); }
+.fig-tile.is-pop .is-counting::after { color: var(--fill-pop); }

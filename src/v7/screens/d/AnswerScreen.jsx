@@ -10,7 +10,9 @@
  * Computes nothing: every figure is the answer's, drawn by Money and Sentence. A lever not opened costs nothing: the
  * answer function runs it only when its box says so (work.has, fall.has — draft fields of the `try` group).
  */
-import { Sentence, MadeOf, Assumed, Working, Problem, Field, Button, LinkButton, KeepPanel, withFixedCounts, stepLabel, blank } from '../../components/index.js';
+import { Sentence, MadeOf, Assumed, Working, Problem, Field, Button, LinkButton, KeepPanel, withFixedCounts, stepLabel, blank, AnswerSlider, FigureTiles, PotLife, KeepLine } from '../../components/index.js';
+import { answerSlider, answerTiles, potPicture } from '../../state/select.js';
+import { PICTURE } from '../../copy/picture.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { D } from '../../copy/d.js';
@@ -135,7 +137,7 @@ function WhatNext({ result }) {
 
 /** The answer itself, for a result that can be drawn. */
 function Answer({ state, dispatch, frame }) {
-  const { form, result, stale, first } = frame;
+  const { form, answer, result, stale, first } = frame;
   const s = result.sentences || {};
   const open = (id) => state.ui.open.includes(id);
   const t = D.answer;
@@ -144,6 +146,8 @@ function Answer({ state, dispatch, frame }) {
   const levers = headline && result.status === 'ok';
   return (
     <>
+      {/* the slider: what you take a month, the one control, above the answer it moves (7.5.0, mock-up screen 3) */}
+      <AnswerSlider slider={answerSlider(state, 'd')} dispatch={dispatch} />
       <AnswerRegion words={D} stale={stale} first={first}>
         {headline
           ? (
@@ -156,6 +160,12 @@ function Answer({ state, dispatch, frame }) {
             </section>
           )
           : <>{s.none && <Sentence s={s.none} source={result} class="none" data-testid="d.answer.none" />}<Warnings result={result} /></>}
+        {/* the three figures, what is left over the years ahead (theirs), and the Keep line */}
+        <div class="answer-picture">
+          <PotLife picture={potPicture(state, 'd')} words={PICTURE.pot} />
+          <FigureTiles q="d" source={result} tiles={answerTiles(state, 'd')} countKey={answer.inputsKey} />
+        </div>
+        <KeepLine state={state} q="d" />
         {headline && s.headroom && <SpendMore result={result} />}
         {headline && !s.headroom && s.nothing && <Sentence s={s.nothing} source={result} class="nothing" data-testid="d.answer.nothing" />}
         <MadeOf result={result} q="d" open={open('madeOf')} dispatch={dispatch} title={t.madeOfTitle} note={t.madeOfNote} lines={s.madeOf || []} />

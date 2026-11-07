@@ -96,19 +96,22 @@ for (const name of ['20-locked-start-after-stop', '04-buckets-running', '07-pre-
   });
 }
 
-test('03 on the new app: one thing to do, first — say when work stopped; then the move, opened from the home', async ({ page, watch }) => {
+test('03 on the new app: one thing to do, first — the move to where its months begin; with a month said, the move, opened from the home', async ({ page, watch }) => {
   test.setTimeout(240_000);
   watch.allow(WORKER_DATA_MISSING);
   const plan = planOf('20-locked-start-after-stop');
   await seed(page, plan);
   await page.goto(PROD + V7_PATH + '#/plan/' + plan.id);
+  // 7.4.3: its months are recorded from July 2026, so it starts in 2026/27 — no question first
   const first = page.locator('#app .home-item').first();
-  await expect(first).toHaveAttribute('data-todo', 'start.ask', { timeout: 45_000 });
-  await expect(first).toContainText('When did you stop work?');
-  await expect(first).toContainText('Your plan is set to start in April 2027.');
-  await page.getByTestId('plan.home.todo.start.ask').click();
+  await expect(first).toHaveAttribute('data-todo', 'start.moveRecords', { timeout: 45_000 });
+  await expect(first).toContainText('Start it from 2026/27');
+  await expect(first).toContainText('Your plan is set to start in April 2027, but your recorded months begin in July 2026.');
+  expect(await first.innerText()).not.toMatch(OLD);
+  await page.getByTestId('plan.home.todo.start.moveRecords').click();
   await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.about');
-  await expect(page.getByTestId('plan.about.stopAsk')).toContainText('When did you stop work?', { timeout: 45_000 });
+  await expect(page.getByTestId('plan.about.moveStart')).toContainText('but your recorded months begin in July 2026. Start it from 2026/27', { timeout: 45_000 });
+  await expect(page.getByTestId('plan.about.stopAsk')).toHaveCount(0);
 
   // said (stored as the question would store it): the to-do becomes the move, and its button opens it
   await page.evaluate(([k, text]) => sessionStorage.setItem(k, text), [GUEST_KEY, JSON.stringify([planOf('20-locked-start-after-stop', { stoppedWork: '2026-05' })])]);

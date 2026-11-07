@@ -171,13 +171,20 @@ test.describe('"About you and when", without an account', () => {
     await page.getByTestId('plan.about.cancel').click();
     await expect(page.getByTestId('plan.about.stopAge')).toHaveValue('62');
     expect(await page.evaluate(() => sessionStorage.getItem('pt_v7_draft'))).toBe(null);
-    // the locked plan: figures only — bar "When did you stop work?" (6.53.0), asked while the plan does not say it, its month
-    // box the one box (nothing is written until it is saved)
+    // the locked plan: figures only — bar its start (6.53.0). Its months are recorded from July 2026, so it is offered the
+    // move to 2026/27 with no question first (7.4.3), said beside its saved first tax year too; no box, nothing written
     await page.goto(v7('#/plan/AboutLocked02/about'));
     await expect(page.getByTestId('plan.step.about')).toBeVisible();
-    await expect(page.getByTestId('plan.about.stopAsk')).toBeVisible();
-    expect(await page.locator('#app input, #app select, #app textarea').count()).toBe(1);
-    await expect(page.getByTestId('plan.about.lockedStopMonth')).toBeVisible();
+    await expect(page.getByTestId('plan.about.stopAsk')).toHaveCount(0);
+    await expect(page.getByTestId('plan.about.moveStart')).toContainText('Your plan is set to start in April 2027, but your recorded months begin in July 2026. Start it from 2026/27');
+    await expect(page.locator('[data-line="about.saved.startWhen"]')).toContainText('2027/28, as saved. Move it to 2026/27, when your recorded months begin.');
+    await expect(page.getByTestId('plan.about.startPointer.open')).toBeVisible();
+    expect(await page.locator('#app input, #app select, #app textarea').count()).toBe(0);
+    // the pointer's button opens the move's confirm, as the line's own does; nothing is written until it is confirmed
+    await page.getByTestId('plan.about.startPointer.open').click();
+    await expect(page.getByTestId('plan.about.moveConfirm')).toContainText('the tax year your recorded months begin (July 2026)');
+    await page.getByTestId('plan.about.moveConfirm.no').click();
+    await expect(page.getByTestId('plan.about.moveConfirm')).toHaveCount(0);
     await expect(page.getByTestId('plan.about.fixed')).toHaveText('Fixed when you locked the plan on 1 July 2026.');
     await expect(page.locator('[data-region="plan-about"]')).toContainText('Your plan runs 20 years, from April 2027 to age 85.');
     expect(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY)).toBe(stored);

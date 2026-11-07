@@ -20,6 +20,13 @@
  * write follows, equal to the same move worked out in Node (e2e/helpers/moveInNode.js) and to the planner's in every figure
  * (b) checks; the toast says it is done, with no Undo (the planner offers none); the move is not offered again.
  *
+ * (d) With no month said and no month recorded, "I'm already drawing: start it this tax year" (7.4.0).
+ *
+ * (e) With months recorded (7.4.3) the plan starts in the tax year its earliest recorded month is in: no question first. The
+ * home's to-do, the line under the Timing block and a pointer beside the saved first tax year ("2027/28 (saved)") say so;
+ * the move goes to 2026/27, ONE write equal to the move worked out in Node. So (b) says the month before any month is
+ * recorded, and records October 2023 (the month work stopped) with July and August 2026 before the move; (c) is that plan.
+ *
  * Firebase is never reached: every request outside the site is stopped (`outside: 'block'`).
  */
 import { readFileSync } from 'node:fs';
@@ -35,15 +42,23 @@ const PLAN_ID = 'MovePlan03';
 const NOW = '2026-11-04T08:00:00.000Z';
 const read = (name) => JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', name + '.json'), 'utf8'));
 
-/** Fixture 03, locked, two months recorded before its start, nothing said about when work stopped. */
-function lockedPlan() {
+/**
+ * Fixture 03, locked, nothing said about when work stopped. `months`: 'later' — July and August 2026 recorded, before its
+ * start; 'fromStop' — October 2023 (the month work stopped, a copy of July's, dated then) and those two; 'none' — nothing.
+ */
+function lockedPlan(months = 'later') {
   const p = read('20-locked-start-after-stop');
   p.id = PLAN_ID;
   p.planDetails.name = 'Alex’s ladder';
   p.isActive = true;
   delete p.stressTool.settings.stoppedWork;
-  p.decisionTool.history = p.decisionTool.history.slice(0, 2);   // July and August 2026
+  p.decisionTool.history = months === 'none' ? [] : monthsFor(p, months);
   return p;
+}
+/** The recorded months lockedPlan names (`months` 'later' or 'fromStop'), from the fixture's own. */
+function monthsFor(p, months) {
+  const two = read('20-locked-start-after-stop').decisionTool.history.slice(0, 2);   // July and August 2026
+  return months === 'fromStop' ? [{ ...two[0], date: '2023-10', taxYear: '23/24' }, ...two] : two;
 }
 const storedPlan = (page) => page.evaluate(([k, id]) => JSON.parse(sessionStorage.getItem(k)).find((p) => p.id === id), [GUEST_KEY, PLAN_ID]);
 
@@ -54,7 +69,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     await page.clock.setFixedTime(new Date(NOW));
     await page.goto(PROD + V7_PATH + '#/');
     await expect(page.locator('#app [data-screen]')).toBeVisible();
-    await page.evaluate(([k, text]) => sessionStorage.setItem(k, text), [GUEST_KEY, JSON.stringify([lockedPlan()])]);
+    await page.evaluate(([k, text]) => sessionStorage.setItem(k, text), [GUEST_KEY, JSON.stringify([lockedPlan('none')])]);
 
     // the preview: a locked plan's "About you and when" asks the month, and its only box is that one
     await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID + '/about');
@@ -96,6 +111,9 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     expect(stored.decisionTool.settings).toMatchObject({ locked: true, firstTaxYear: 2027 });
     await expect(page.locator('#tmStopWrap')).toBeVisible();            // the month said: the frozen form shows it again
     await expect(page.locator('#tmStopMonth')).toHaveValue('2023-10');
+    // the months then recorded: October 2023, the month work stopped, and July and August 2026 (7.4.3: a plan starts in the
+    // tax year its months begin, so they begin with the stop's here, and the move is still to the tax year work stopped)
+    await page.evaluate(([k, id, months]) => { const list = JSON.parse(sessionStorage.getItem(k)); list.find((x) => x.id === id).decisionTool.history = months; sessionStorage.setItem(k, JSON.stringify(list)); }, [GUEST_KEY, PLAN_ID, monthsFor(read('20-locked-start-after-stop'), 'fromStop')]);
 
     // the preview, once the month is said: the move is offered there (the preview's own move is case c)
     await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID + '/about');
@@ -116,7 +134,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     await expect(confirm).toBeVisible();
     await expect(confirm).toContainText('Here is exactly what changes');
     await expect(confirm).toContainText('The plan stays locked');
-    await expect(confirm).toContainText('2 recorded months (July 2026 to August 2026)');
+    await expect(confirm).toContainText('3 recorded months (October 2023 to August 2026)');
     await expect(confirm).toContainText('the gilt ladder is bought from 2026/27 on');
     await expect(confirm).toContainText('Your State Pension still starts in 2028/29, as before');
     await expect(confirm).toContainText('on Monthly Entry');
@@ -135,7 +153,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     expect(stored.planDocument.pots.asOfPlanYear).toBe(3);
     expect('bridgeCash' in stored.planDocument.assumptions).toBe(false);   // 7.4.2: never written
     expect(stored.planDocument.strategy.r.plan.years[0].Y).toBe(2026);
-    expect(stored.decisionTool.history.map((h) => [h.date, h.yearNum, h.bridgeYear ?? null])).toEqual([['2026-07', 3, null], ['2026-08', 3, null]]);
+    expect(stored.decisionTool.history.map((h) => [h.date, h.yearNum, h.bridgeYear ?? null])).toEqual([['2023-10', 0, null], ['2026-07', 3, null], ['2026-08', 3, null]]);
     expect(stored.stressTool.settings.strategyParams.cashYears).toBe(6);   // the ladder's first gilt keeps its tax year
     expect(stored.decisionTool.planOfRecord.rewrittenFor).toBe('start moved to 2023/24');
     expect(stored.journey.at(-1).label).toBe('The plan’s start moved to 2023/24, the tax year you stopped work');
@@ -150,7 +168,9 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     const pva = page.locator('#planVsActual');
     await expect(pva).toContainText('Plan vs actual', { timeout: 45_000 });
     await expect(pva).toContainText('Year 3 (2 mo of the 9 months set up for this tax year)');   // its part year, never "a first year"
-    expect(await pva.innerText()).not.toMatch(/before the plan|first year/i);
+    // October 2023, recorded too, is a year lived before the lock: said so, and never as months before the plan's income
+    await expect(pva).toContainText('Year 0 (1 mo; lived before the plan was locked)');
+    expect(await pva.innerText()).not.toMatch(/before the plan('|’)s income|first year/i);
     await expect(pva).toContainText('written again on 4 November 2026, when the plan\'s start moved to 2023/24 (the plan was locked 1 July 2026');
     expect(await pva.innerText()).not.toMatch(/never moves/);
 
@@ -191,8 +211,8 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     await page.clock.setFixedTime(new Date(NOW));
     await page.goto(PROD + V7_PATH + '#/');
     await expect(page.locator('#app [data-screen]')).toBeVisible();
-    // the same plan, the month already said
-    const planted = lockedPlan();
+    // the same plan, the month already said, its months recorded from it
+    const planted = lockedPlan('fromStop');
     planted.stressTool.settings.stoppedWork = '2023-10';
     const text = JSON.stringify([planted]);
     await page.evaluate(([k, t]) => sessionStorage.setItem(k, t), [GUEST_KEY, text]);
@@ -215,7 +235,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
       'Here is exactly what changes:',
       'The plan’s first tax year becomes 2023/24, the tax year you stopped work (October 2023); it was 2027/28. The plan stays locked: nothing is unlocked and no setting is added.',
       'Your income: the first step keeps its amount (£34,000 a year) and now runs from 2023/24, at 62; your later steps keep their ages.',
-      '2 recorded months (July 2026 to August 2026) keep every figure you entered. They now count from the new start, 2023/24.',
+      '3 recorded months (October 2023 to August 2026) keep every figure you entered. They now count from the new start, 2023/24.',
       'the gilt ladder is bought from 2026/27 on',
       'Your State Pension still starts in 2028/29, as before',
       'Not affected: what you hold, what you spend, and the tax years you set up.'
@@ -247,7 +267,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     expect(stored.planDocument.pots.asOfPlanYear).toBe(3);
     expect('bridgeCash' in stored.planDocument.assumptions).toBe(false);   // 7.4.2: never written
     expect(stored.planDocument.strategy.r.plan.years[0].Y).toBe(2026);
-    expect(stored.decisionTool.history.map((h) => [h.date, h.yearNum, h.bridgeYear ?? null])).toEqual([['2026-07', 3, null], ['2026-08', 3, null]]);
+    expect(stored.decisionTool.history.map((h) => [h.date, h.yearNum, h.bridgeYear ?? null])).toEqual([['2023-10', 0, null], ['2026-07', 3, null], ['2026-08', 3, null]]);
     expect(stored.stressTool.settings.strategyParams.cashYears).toBe(6);
     expect(stored.decisionTool.planOfRecord.rewrittenFor).toBe('start moved to 2023/24');
     expect(stored.journey.at(-1).label).toBe('The plan’s start moved to 2023/24, the tax year you stopped work');
@@ -269,7 +289,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     await page.clock.setFixedTime(new Date(NOW));
     await page.goto(PROD + V7_PATH + '#/');
     await expect(page.locator('#app [data-screen]')).toBeVisible();
-    const planted = lockedPlan();
+    const planted = lockedPlan('none');   // no month recorded either: one with months is moved to their tax year (e)
     planted.stressTool.settings.stopMonthLeft = true;   // "Leave it" said before: the plan is asked all the same while its start is later
     const text = JSON.stringify([planted]);
     await page.evaluate(([k, t]) => sessionStorage.setItem(k, t), [GUEST_KEY, text]);
@@ -305,6 +325,78 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     for (const [path, v] of Object.entries(node.patch)) expect(JSON.stringify(at(stored, path)), path).toBe(JSON.stringify(v));
     // nothing more to move, and no to-do for the start
     await expect(page.getByTestId('plan.about.moveNow')).toHaveCount(0, { timeout: 45_000 });
+    await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID);
+    await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 45_000 });
+    await expect(page.locator('[data-todo^="start."]')).toHaveCount(0);
+  });
+
+  test('(e) months recorded, no month said (7.4.3): the move to the tax year they begin in, said in both apps; ONE write equal to Node', async ({ page, watch }) => {
+    test.setTimeout(300_000);
+    watch.allow(WORKER_DATA_MISSING);
+    await page.clock.setFixedTime(new Date(NOW));
+    await page.goto(PROD + V7_PATH + '#/');
+    await expect(page.locator('#app [data-screen]')).toBeVisible();
+    const planted = lockedPlan();   // July and August 2026 recorded; year 0 2027/28; no month work stopped
+    const text = JSON.stringify([planted]);
+    await page.evaluate(([k, t]) => sessionStorage.setItem(k, t), [GUEST_KEY, text]);
+    // the home: one thing to do, the move — never "When did you stop work?" first
+    await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID);
+    const todo = page.locator('[data-todo="start.moveRecords"]');
+    await expect(todo).toContainText('Start it from 2026/27', { timeout: 45_000 });
+    await expect(todo).toContainText('Your plan is set to start in April 2027, but your recorded months begin in July 2026.');
+    await expect(page.locator('[data-todo="start.ask"]')).toHaveCount(0);
+    expect(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY)).toBe(text);   // read, nothing written
+
+    // the planner: the line under the Timing block, and beside the saved first tax year a pointer with the move's button
+    await page.evaluate(([rk, req]) => sessionStorage.setItem(rk, req), [OPEN_PLACE_KEY, makeRequest({ planId: PLAN_ID, place: 'about', back: '#/plan/' + PLAN_ID + '/about', at: NOW })]);
+    await page.goto(PROD + CLASSIC_PATH);
+    await expect(page.locator('#mainApp')).toBeVisible({ timeout: 45_000 });
+    const line = page.locator('#tmLockedStart');
+    await expect(line).toContainText('Your plan is set to start in April 2027, but your recorded months begin in July 2026. Start it from 2026/27: your recorded months are kept and read against it.', { timeout: 45_000 });
+    await expect(line).not.toContainText('When did you stop work?');
+    await expect(page.locator('#tmStartYear option[value="2027"]')).toHaveText('2027/28 (saved)');
+    await expect(page.locator('#tmStartMove')).toContainText('Move it to 2026/27, when your recorded months begin.');
+    const pointerBtn = page.locator('#tmStartMoveBtn');
+    await expect(pointerBtn).toBeEnabled();
+    expect((await pointerBtn.boundingBox()).height).toBeLessThan(60);
+    // its button opens the move's own confirm; "Keep it as it is" writes nothing
+    await pointerBtn.click();
+    const confirm = page.locator('div', { has: page.locator('h3', { hasText: 'Move the plan\'s start to 2026/27?' }) }).last();
+    await expect(confirm).toContainText('the tax year your recorded months begin (July 2026); it was 2027/28. Your recorded months are kept and read against 2026/27.');
+    await expect(confirm).not.toContainText('on Monthly Entry');   // the years before the months had no plan: nothing to fill
+    await page.getByRole('button', { name: 'Keep it as it is', exact: true }).click();
+    expect((await storedPlan(page)).stressTool.settings.firstTaxYear).toBe(2027);
+
+    // the preview makes it: its line, the pointer beside "2027/28, as saved", the confirm, ONE write
+    await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID + '/about');
+    await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.about', { timeout: 45_000 });
+    await expect(page.getByTestId('plan.about.moveStart')).toContainText('but your recorded months begin in July 2026. Start it from 2026/27', { timeout: 45_000 });
+    await expect(page.getByTestId('plan.about.startPointer')).toContainText('Move it to 2026/27, when your recorded months begin.');
+    await expect(page.getByTestId('plan.about.stopAsk')).toHaveCount(0);
+    await page.getByTestId('plan.about.moveStart.open').click();
+    const onPage = page.getByTestId('plan.about.moveConfirm');
+    await expect(onPage.locator('h3')).toHaveText('Move the plan’s start to 2026/27?');
+    await expect(onPage).toContainText('The plan’s first tax year becomes 2026/27, the tax year your recorded months begin (July 2026); it was 2027/28. Your recorded months are kept and read against 2026/27.');
+    const widths = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: window.innerWidth }));
+    expect(widths.doc, 'no sideways scroll').toBeLessThanOrEqual(widths.win + 1);
+    expect(await page.locator('#app').innerText()).not.toMatch(/undefined|NaN|\[object|\{\w+\}/);
+    await page.getByTestId('plan.about.moveConfirm.yes').click();
+    await expect(page.getByTestId('plan.about.toast')).toContainText('The plan’s start is now 2026/27, when your recorded months begin.', { timeout: 120_000 });
+    const stored = await storedPlan(page);
+    expect(stored.stressTool.settings.firstTaxYear).toBe(2026);
+    expect(stored.stressTool.settings.stoppedWork).toBeUndefined();
+    expect(stored.decisionTool.settings).toMatchObject({ locked: true, firstTaxYear: 2026 });
+    expect(stored.decisionTool.settings.unlockCount).toBeUndefined();
+    // the earliest recorded month is year 0
+    expect(stored.decisionTool.history.map((h) => [h.date, h.yearNum, h.bridgeYear ?? null])).toEqual([['2026-07', 0, null], ['2026-08', 0, null]]);
+    expect(stored.journey.at(-1).label).toBe('The plan’s start moved to 2026/27, when your recorded months begin');
+    const node = moveInNode(planted, NOW.slice(0, 10), NOW);
+    expect(node.ok, JSON.stringify(node.errors)).toBe(true);
+    const at = (o, path) => path.split('.').reduce((x, k) => (x == null ? undefined : x[k]), o);
+    for (const [path, v] of Object.entries(node.patch)) expect(JSON.stringify(at(stored, path)), path).toBe(JSON.stringify(v));
+    // nothing more to move, and no to-do for the start
+    await expect(page.getByTestId('plan.about.moveStart')).toHaveCount(0, { timeout: 45_000 });
+    await expect(page.getByTestId('plan.about.startPointer')).toHaveCount(0);
     await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID);
     await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 45_000 });
     await expect(page.locator('[data-todo^="start."]')).toHaveCount(0);

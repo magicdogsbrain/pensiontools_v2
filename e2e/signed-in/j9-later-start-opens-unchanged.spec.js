@@ -2,7 +2,8 @@
  * J9 (7.4.0, no later start): opening a plan stored with a start later than it should be writes nothing. Two plans saved
  * the old way, fictional (Alex): a retired DRAFT saved with next April (the corpus's fixture 07), which the site now reads
  * from this tax year until its next Save; and a LOCKED gilt ladder set to start next April with no month work stopped (the
- * corpus's fixture 03), whose home asks the month and offers to start it this tax year. Signed in, against the local
+ * corpus's fixture 03), whose months are recorded from July 2026: from 7.4.3 its home and "About you and when" offer to start
+ * it from 2026/27, the tax year those months begin, with no question first. Signed in, against the local
  * emulators: the draft's home and "About you and when", then the locked plan's home and "About you and when", are opened
  * and read; afterwards both plans in the account are byte-identical to what was put there. At desktop-1440 and phone-390.
  */
@@ -34,7 +35,7 @@ function plans() {
 
 test.beforeEach(async () => { await clearEmulators(); });
 
-test('a draft saved with next April reads from this tax year, a locked one asks; opening either writes nothing', async ({ page }) => {
+test('a draft saved with next April reads from this tax year, a locked one is offered the move to where its months begin; opening either writes nothing', async ({ page }) => {
   test.setTimeout(240_000);
   const put = plans();
   const { uid } = await makeAccount(ALEX);
@@ -58,13 +59,15 @@ test('a draft saved with next April reads from this tax year, a locked one asks;
     await expect(page.locator('[data-line^="about.later"]')).toHaveCount(1);
   });
 
-  await test.step('the locked plan: its home asks when work stopped, and its "About you and when" offers this tax year', async () => {
+  await test.step('the locked plan: its home and "About you and when" offer to start it where its recorded months begin', async () => {
     await openAt(page, '#/plan/' + LOCKED);
     await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 30_000 });
-    await expect(page.locator('[data-todo="start.ask"]')).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('[data-todo="start.moveRecords"]')).toContainText('Your plan is set to start in April 2027, but your recorded months begin in July 2026.', { timeout: 30_000 });
+    await expect(page.locator('[data-todo="start.ask"]')).toHaveCount(0);
     await openAt(page, '#/plan/' + LOCKED + '/about');
-    await expect(page.getByTestId('plan.about.stopAsk')).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByTestId('plan.about.moveNow.open')).toHaveText('I’m already drawing: start it this tax year…');
+    await expect(page.getByTestId('plan.about.moveStart')).toContainText('Start it from 2026/27', { timeout: 30_000 });
+    await expect(page.getByTestId('plan.about.startPointer')).toContainText('Move it to 2026/27, when your recorded months begin.');
+    await expect(page.getByTestId('plan.about.stopAsk')).toHaveCount(0);
   });
 
   await test.step('nothing was written: both plans byte-identical in the account', async () => {

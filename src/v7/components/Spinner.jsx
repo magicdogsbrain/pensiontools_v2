@@ -9,6 +9,9 @@
  *   <RunRing progress={{ done, total }} unit="ways" label="…" />
  *   <AtLeast busy={…} working={<RunRing …/>}>{the verdict}</AtLeast>   the verdict waits until the ring has shown ~600 ms
  *   <Held busy={…}>{(held) => …}</Held>                                 the same wait, for a page whose verdict is spread out
+ *   <HeldAnswer busy={…} working={<Working …/>}>{the answer}</HeldAnswer>   the same wait for a question's first answer (7.5.0),
+ *        marked on the page while it holds (data-holding) and saying when it lets go (the bubbling pt:held event), so the
+ *        page's ready mark (effects/index.js markReady, main.jsx) never says ready while the ring still shows
  *
  * Draws only; the timing is a relative wait (no clock is read). With less motion asked for, the ring does not turn
  * (components.css) and the wait still holds, so a verdict never pops in before the ring was seen.
@@ -58,6 +61,23 @@ export function useAtLeast(busy) {
   }, [busy]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   return !!busy || held;
+}
+
+/**
+ * A question's answer, held behind the ring for the least time once a run was seen (the README: "a verdict never pops in
+ * instantly"). The answer's state is ready before the page shows it, so the page marks the hold (data-holding="1") and tells
+ * the ready mark when it ends (pt:held, bubbling from here) — the page is never marked ready on the ring. Its box takes no
+ * room of its own (display: contents), so the page's layout is the answer's.
+ */
+export function HeldAnswer({ busy, working, children }) {
+  const held = useAtLeast(busy);
+  const ref = useRef(null);
+  const was = useRef(false);
+  useEffect(() => {
+    if (was.current && !held && ref.current) ref.current.dispatchEvent(new CustomEvent('pt:held', { bubbles: true }));
+    was.current = held;
+  }, [held]);
+  return <div class="held-answer" ref={ref} data-holding={held && !busy ? '1' : undefined}>{held ? working : children}</div>;
 }
 
 /** Shows `working` while `busy` (and the least time after), then `children`. */

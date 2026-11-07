@@ -1572,7 +1572,13 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const demo = DEMO_PLANS[EXAMPLE_PLAN_KEY];
     let place = await whenPlaced();
     if (stopped) return;
-    if (place.problem) { fail(null, place.problem); return; }
+    if (place.problem) {
+      fail(null, place.problem);
+      // 7.5.0: the stop that explains used-up free time is drawn on the plan pages only (select.js METERED_SCREENS), so a
+      // visitor who asked for the example from the front door is taken to "Your plans", where it says why and how to go on
+      if (place.problem === 'usedUp') { const r = store.getState().route; if (!r || (r.screen !== 'plans' && r.screen !== 'plan')) dispatch({ type: A.ROUTE_SET, route: parse(href.plans()) }); }
+      return;
+    }
     if (place.kind === 'account') {
       try { await place.reread(); } catch { /* the copy in memory is the best there is */ }
       if (stopped) return;

@@ -319,6 +319,26 @@ describe('the hand-over: offered on a sign-in with plans of the person\'s own in
   });
 });
 
+describe('the example asked for from the front door once the free time is used up (review of 7.5.0)', () => {
+  it('goes to "Your plans", where the stop says why and how to go on — never a press with no answer', async () => {
+    const store = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
+    store.dispatch({ type: A.ROUTE_SET, route: parse('#/') });
+    store.dispatch({ type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
+    store.dispatch({ type: A.PLANS_SET, list: upgradedList([DRAFT], NOW), source: 'window', readAt: '14:03', usedUp: true });
+    const local = storage({ [KEY_MINUTES]: String(GUEST_ALLOWANCE_MINUTES + 5) });
+    const stopMeter = startGuestMeter(store, { win: fakeWin(), local, now: () => Date.parse(NOW.toISOString()) });
+    const stop = startPlanWrite(store, { session: storage({ [GUEST_PLANS_KEY]: JSON.stringify([DRAFT]) }), local, now: () => NOW, fb: { doc() {}, updateDoc() {}, addDoc() {}, deleteDoc() {}, collection() {} }, client: null, handles: () => ({ db: null, user: null, reread: () => Promise.resolve() }) });
+    expect(guestView(store.getState()).stop).toBe(false);                   // the front door: no stop drawn on a question page
+    store.dispatch({ type: A.PLAN_EXAMPLE });
+    await tick(12);
+    const s = store.getState();
+    expect(s.ui.saveProblem).toEqual({ planId: null, problem: 'usedUp' });
+    expect(s.route.screen).toBe('plans');
+    expect(guestView(s).stop).toBe(true);
+    stop(); stopMeter();
+  });
+});
+
 // ---- the shell's boxes drawn --------------------------------------------------------------------------------------------
 
 function draw(state) {

@@ -6,6 +6,8 @@
 export const A = Object.freeze({
   ROUTE_SET:       'route/set',        // { route }                          replaces route; closes the rail sheet
   DRAFT_SET:       'draft/set',        // { q, path, value }                 one typed value; household → single keeps the partner's values
+                                       //                                     hold?: { min, max, step } from an answer's slider: its range is
+                                       //                                     kept in ui.slider while it moves; any other draft/set of q lets it go
   DRAFT_TOUCH:     'draft/touch',      // { q, path }                        adds to touched
   DRAFT_ASK:       'draft/ask',        // { q }                              asked: true; if the draft parses, route → the answer step
   DRAFT_RESET:     'draft/reset',      // { q }                              empties the draft and the answer
@@ -26,7 +28,8 @@ export const A = Object.freeze({
   UI_TOGGLE:       'ui/toggle',        // { id }                             adds or removes id in ui.open
   UI_RAIL:         'ui/rail',          // { open }                           the phone rail sheet
   UI_ONLINE:       'ui/online',        // { online }
-  ENV_SET:         'env/set',          // { patch }                          start-up and the test hook only
+  ENV_SET:         'env/set',          // { patch }                          start-up and the test hook only (today, historyEnd, appVersion,
+                                       //                                     signedInHint: the browser's note that someone is signed in)
   STATE_REPLACE:   'state/replace',    // { state }                          the test hook only
 
   // ---- the budget step (research/v7/budget-step.md; save-as-plan.md Contract C.5) ------------------------------------

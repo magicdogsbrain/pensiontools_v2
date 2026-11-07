@@ -102,6 +102,55 @@ test.describe('the first visit', () => {
     await expect(page.locator('#app [data-testid="d.tiles"] [data-key="spend.perMonth"]')).toHaveAttribute('data-value', String(now));
   });
 
+  test('the slider holds its range while it moves, and neither end loses the answer (the 7.5.0 review)', async ({ page }) => {
+    test.setTimeout(180_000);
+    const app = v7(page, 'prod', 'd');
+    await app.open('#/d/numbers');
+    await app.ready();
+    await app.fill(SAM);
+    await app.click('d.action.show');
+    await app.at('d.answer');
+    await app.ready(60_000);
+    const slider = app.id('d.slider.input');
+    const max = await slider.getAttribute('max');
+    // a mouse drag from 40% of the track past its right end, a step at a time, as a hand does
+    const box = await slider.boundingBox();
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + box.width * 0.4, y);
+    await page.mouse.down();
+    // a frame drawn between moves, so each move meets the page the last one left
+    const frame = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+    for (let i = 1; i <= 12; i++) { await page.mouse.move(box.x + box.width * (0.4 + i * 0.06), y); await frame(); }
+    await page.mouse.up();
+    await app.ready(60_000);
+    await expect(slider).toHaveAttribute('max', max);
+    await expect(slider).toHaveValue(max);
+    await expect(app.id('d.tiles')).toBeVisible();
+    // the keyboard's two ends: the answer stays, the box takes the figure the slider wrote
+    await slider.focus();
+    await page.keyboard.press('Home');
+    await app.ready(60_000);
+    await expect(slider).toBeVisible();
+    await expect(app.id('d.tiles')).toBeVisible();
+    expect(Number(await slider.inputValue())).toBeGreaterThanOrEqual(1);
+    await expect(slider).toHaveAttribute('max', max);
+    await slider.focus();
+    await page.keyboard.press('End');
+    await app.ready(60_000);
+    await expect(slider).toHaveValue(max);
+    await expect(slider).toHaveAttribute('max', max);
+  });
+
+  test('each door is one target: a press anywhere on the "Still saving" card opens its question', async ({ page }) => {
+    const app = v7(page, 'prod');
+    await app.open('#/');
+    await app.ready();
+    const door = page.locator('#app [data-door="b"]');
+    const box = await door.boundingBox();
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height - 12);
+    await app.at('b.numbers');
+  });
+
   test('"Am I saving enough?" draws the rising half: the pot today, what paying in as now comes to, and what would be enough', async ({ page }, testInfo) => {
     test.setTimeout(240_000);
     const app = v7(page, 'prod', 'b');

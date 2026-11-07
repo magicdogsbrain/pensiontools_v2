@@ -8,8 +8,8 @@
  *     try a change, what next — greyed and marked "Updating" while a new one is worked out.
  * Computes nothing: every figure is the answer's, drawn by Money and Sentence.
  */
-import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer, AnswerSlider, FigureTiles, KeepLine } from '../../components/index.js';
-import { isCurrent, cAnswerYouStopped, isShapePath, answerSlider, answerTiles } from '../../state/select.js';
+import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, HeldAnswer, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer, AnswerSlider, FigureTiles, KeepLine } from '../../components/index.js';
+import { isCurrent, cAnswerYouStopped, isShapePath, answerSlider, answerTiles, tilesKey } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { frontDoor } from '../../rail/index.js';
 import { C } from '../../copy/c.js';
@@ -98,7 +98,7 @@ export function AnswerScreen(state, dispatch) {
   } else if (answer.status === 'failed' || (result && result.status === 'invalid')) {
     body = <Problem form={form} dispatch={dispatch} />;
   } else if (!result) {
-    body = <Working answer={answer} />;
+    body = null;
   } else {
     const stale = answer.status === 'working' || (form.parsed.ok && !isCurrent(state, 'c'));
     const first = answer.status === 'first' && !stale;
@@ -113,7 +113,11 @@ export function AnswerScreen(state, dispatch) {
     );
     const assumed = (result.assumed || []).length > 0 && <Assumed result={result} open={open('assumed')} all={open('allAssumed')} dispatch={dispatch} />;
     const madeOf = <MadeOf result={result} open={open('madeOf')} dispatch={dispatch} />;
-    const take = s.take && <Sentence s={s.take} source={result} class="take-line" />;
+    // what the slider's amount does ("Taking £… a month, the money lasted…") is drawn in the slider's own card, under it —
+    // the one thing on the page the slider changes — and not again in the headline
+    const slider = answerSlider(state, 'c');
+    const takeBySlider = !!(slider && s.take);
+    const take = s.take && !takeBySlider && <Sentence s={s.take} source={result} class="take-line" />;
     // Money first taken at a later age: what goes in until then, said plainly under the figure ("Paying in £800 a month
     // until 67, rising with prices; the pot invested at Balanced … until then"), and what the pot could be by then.
     const payIn = s.payIn && <Sentence s={s.payIn} source={result} class="pay-in-line" data-testid="c.answer.payIn" />;
@@ -125,13 +129,13 @@ export function AnswerScreen(state, dispatch) {
     // the headline; C draws no pot picture (the README gives it to B and D)
     const top = !s.none && s.head && s.line && !s.nothing && (
       <>
-        <FigureTiles q="c" source={result} tiles={answerTiles(state, 'c')} countKey={answer.inputsKey} />
+        <FigureTiles q="c" source={result} tiles={answerTiles(state, 'c')} countKey={tilesKey(state, 'c')} />
         <KeepLine state={state} q="c" />
       </>
     );
     body = (
       <>
-        <AnswerSlider slider={answerSlider(state, 'c')} dispatch={dispatch} />
+        <AnswerSlider slider={slider} dispatch={dispatch} stale={stale}>{takeBySlider && <Sentence s={s.take} source={result} class="take-line" data-testid="c.answer.take" />}</AnswerSlider>
         <div class={`answer${stale ? ' is-stale' : ''}`} data-region="answer" aria-live="polite" aria-busy={stale ? 'true' : 'false'}>
           {stale && <p class="updating" role="status">{C.answer.updating}</p>}
           {first && <p class="note first-figure">{C.answer.first}</p>}
@@ -164,6 +168,9 @@ export function AnswerScreen(state, dispatch) {
     );
   }
 
+  // the first answer waits behind the ring for its least time (Spinner.jsx HeldAnswer: a verdict never pops in at once)
+  const working = !shortForm && !(answer.status === 'failed' || (result && result.status === 'invalid')) && !result;
+  body = <HeldAnswer busy={working} working={<Working answer={answer} />}>{body}</HeldAnswer>;
   return {
     question: 'c',
     rail: true,

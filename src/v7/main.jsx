@@ -10,7 +10,8 @@ import { A } from './state/actions.js';
 import { parse } from './router/routes.js';
 import { createStore } from './effects/store.js';
 import { today } from './effects/clock.js';
-import { loadDraft, sessionStore } from './effects/draftStore.js';
+import { loadDraft, sessionStore, localStore } from './effects/draftStore.js';
+import { hasSignedInHint } from './effects/place.js';
 import { startEffects, markReady } from './effects/index.js';
 import { classicQueryForward } from './effects/address.js';
 
@@ -39,6 +40,9 @@ async function start() {
   );
   // The route is in the state before the first draw, so the page is never marked ready for the wrong screen.
   store.dispatch({ type: A.ROUTE_SET, route: parse(window.location.hash) });
+  // … and the note that someone is signed in here, so the front door's first draw waits for the session rather than drawing
+  // the stranger's door it would swap a moment later (state/select.js frontWaiting)
+  if (hasSignedInHint(localStore(window))) store.dispatch({ type: A.ENV_SET, patch: { signedInHint: true } });
 
   const dispatch = (action) => store.dispatch(action);
   const draw = (state) => {
@@ -46,6 +50,8 @@ async function start() {
     markReady(root, state);
   };
   store.subscribe(draw);
+  // a question's first answer let go by its least time on the ring (components/Spinner.jsx HeldAnswer): mark the page again
+  root.addEventListener('pt:held', () => markReady(root, store.getState()));
 
   let effects = null;
   if (hooks) hooks.installHooks({ store, root, writes, client: () => effects && effects.client });

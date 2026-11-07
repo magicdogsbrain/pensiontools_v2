@@ -2,10 +2,14 @@
  * The page around an answer (7.5.0; research/v7/mockups/first-visit.html screens 2 and 3): the answers are worked out as
  * before; what changes is how they meet the person.
  *
- *   <AnswerSlider slider dispatch />     the one control that makes the answer feel alive: it moves the same box the form
- *                                        has (draft/set), so the answer is worked out again as a typed change would be
- *   <FigureTiles q source tiles />       the three figures the answer already gives, the first in pink; they count up to
- *                                        their value when the answer changes (the motion rule: an amount)
+ *   <AnswerSlider slider dispatch>…</AnswerSlider>
+ *                                        the one control that makes the answer feel alive: it moves the same box the form
+ *                                        has (draft/set), so the answer is worked out again as a typed change would be; it
+ *                                        sends the range it is drawn with, held while it moves (state/reduce.js). What it
+ *                                        changes, where that is not the picture (C's "Taking £… a month"), is drawn under it
+ *   <FigureTiles q source tiles countKey />  the three figures the answer already gives, the first in pink; they count up to
+ *                                        their value when the figures shown change (countKey: state/pictures.js tilesKey —
+ *                                        the result on screen, never the inputs being worked out)
  *   <KeepLine state q />                 "Keep this as a plan": to the question's own Keep step, the one create path; the
  *                                        account is asked for there and nowhere earlier
  *
@@ -25,21 +29,27 @@ const fill = (text, values) => String(text).replace(/\{(\w+)\}/g, (m, k) => (k i
 const boxText = (unit, v) => (unit === 'pct' ? String(Math.round(v * 100) / 100) : String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ','));
 const valueText = (unit, v) => (unit === 'pct' ? pctText(v) : money(v));
 
-export function AnswerSlider({ slider: S, dispatch }) {
+export function AnswerSlider({ slider: S, dispatch, children = null, stale = false }) {
   if (!S) return null;
   // a box of the shell's own (data-shell-box): it writes the same field the form has, so the input list is unchanged
   const id = `${S.q}.slider.input`;
   const at = S.max > S.min ? ((S.value - S.min) / (S.max - S.min)) * 100 : 0;
   const label = fill(PICTURE.slider[S.words], { employer: S.slots && S.slots.employer != null ? String(S.slots.employer) : '' });
   const shown = valueText(S.unit, S.value);
-  const set = (e) => dispatch({ type: 'draft/set', q: S.q, path: S.path, value: boxText(S.unit, Number(e.currentTarget.value)) });
+  const hold = { min: S.min, max: S.max, step: S.step };
+  const set = (e) => dispatch({ type: 'draft/set', q: S.q, path: S.path, value: boxText(S.unit, Number(e.currentTarget.value)), hold });
   return (
     <div class={`answer-slider is-${S.q}`} data-testid={`${S.q}.slider`} data-path={S.path}>
-      <label for={id}>{label} <span class="slider-value" data-testid={`${S.q}.slider.value`}>{shown}</span></label>
+      {/* the figure beside the label is for the eye: the slider's own aria-valuetext says it, once, as it moves */}
+      <div class="slider-head">
+        <label for={id}>{label}</label>
+        <span class="slider-value" data-testid={`${S.q}.slider.value`} aria-hidden="true">{shown}</span>
+      </div>
       <input type="range" id={id} data-testid={id} data-shell-box="slider" min={S.min} max={S.max} step={S.step} value={S.value}
         aria-valuetext={shown} aria-describedby={`${S.q}.slider.hint`} style={`--at:${at.toFixed(2)}%`} onInput={set} />
       <div class="slider-scale" aria-hidden="true">{S.scale.map((v) => <span key={v}>{valueText(S.unit, v)}</span>)}</div>
       <p class="sr-only" id={`${S.q}.slider.hint`}>{PICTURE.slider.hint}</p>
+      {children && <div class={`slider-result${stale ? ' is-stale' : ''}`} aria-live="polite" data-testid={`${S.q}.slider.result`}>{children}</div>}
     </div>
   );
 }

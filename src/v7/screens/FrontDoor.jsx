@@ -13,12 +13,15 @@
  * C takes its first number here; A, B and D go to their first step; E opens "Your plans" (switch-readiness.md gate 3); F
  * opens "not answered here yet". Landing on the site signed in still opens "Your plans" first (effects/place.js).
  *
+ * While a browser where someone is signed in has not yet heard back from the sign-in check, the front door waits with one
+ * quiet line (Waiting) instead of drawing the stranger's door first.
+ *
  * Both are also drawn, with one extra line, for an address that leads nowhere.
  */
 import { Field, formView, LinkButton, Button, LifeLine } from '../components/index.js';
 import { href, parse } from '../router/routes.js';
 import { frontDoor } from '../rail/index.js';
-import { LIFE_EXAMPLE } from '../state/select.js';
+import { LIFE_EXAMPLE, frontWaiting } from '../state/select.js';
 import { FRONT, COMMON } from '../copy/common.js';
 
 /** The three doors, in the order of a life: the question each opens, and the stage it is coloured by. */
@@ -46,7 +49,7 @@ function Stranger(state, dispatch) {
     full: false,
     content: (
       <div class="front is-stranger" data-front="stranger">
-        <p class="front-tagline" data-testid="front.tagline">{COMMON.tagline}</p>
+        {/* no site line above the headline here: the headline says it (the header carries the line from 700 px up) */}
         <h1 tabIndex={-1} class="front-title">{W.title[0]}<em>{W.title[1]}</em>{W.title[2]}</h1>
         {state.route.screen === 'notFound' && <p class="notice" role="status">{FRONT.notFound}</p>}
         <p class="lead">{W.intro}</p>
@@ -60,7 +63,8 @@ function Stranger(state, dispatch) {
                 <li key={q} class={`door is-${stage}`} data-door={q} data-testid="front.q.c" onKeyDown={onKeyDown}>
                   {words(q, d)}
                   <Field form={form} path="you.pot" dispatch={dispatch} testid="front.c.pot" label={d.potLabel} help="" placeholder={d.potHint} showError={false} />
-                  <LinkButton testid="front.c.show" kind="pop" href={showHref}>{d.go}</LinkButton>
+                  {/* drawn in the door's own colour: the three doors are equal, and none is the page's one pink */}
+                  <LinkButton testid="front.c.show" kind="door" class="door-show" href={showHref}>{d.go} <span aria-hidden="true">→</span></LinkButton>
                 </li>
               );
             }
@@ -87,8 +91,29 @@ function Stranger(state, dispatch) {
 }
 
 export function FrontDoor(state, dispatch) {
+  if (frontWaiting(state)) return Waiting(state);
   if (!(state.session && state.session.kind === 'in')) return Stranger(state, dispatch);
   return SignedIn(state, dispatch);
+}
+
+/**
+ * The front door while the session is not yet known in a browser where someone is signed in (select.js frontWaiting): one
+ * quiet line, not the stranger's doors — which a signed-in person would otherwise see, and could press, before their own
+ * front door replaced them. The page is not marked ready until the session answers.
+ */
+function Waiting(state) {
+  return {
+    question: null,
+    rail: false,
+    full: false,
+    content: (
+      <div class="front is-waiting" data-front="waiting">
+        <h1 tabIndex={-1} class="sr-only">{FRONT.waiting.title}</h1>
+        {state.route.screen === 'notFound' && <p class="notice" role="status">{FRONT.notFound}</p>}
+        <p class="note" role="status" data-testid="front.waiting">{FRONT.waiting.line}</p>
+      </div>
+    )
+  };
 }
 
 /** Today's front door, for someone signed in (7.1.0): unchanged. */

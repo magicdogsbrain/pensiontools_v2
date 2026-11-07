@@ -40,7 +40,11 @@ export async function answerOnPage(q, inputs, env) {
  * Call it after the screen has been drawn for `state`.
  */
 export function markReady(root, state) {
-  const { ready, answer } = readyMark(state);
+  const mark = readyMark(state);
+  // a question's first answer held behind the ring for its least time (components/Spinner.jsx HeldAnswer) is not ready yet:
+  // the state has it, the page does not show it; pt:held, when the hold ends, has this read again (main.jsx)
+  const ready = mark.ready === '1' && root.querySelector('[data-holding="1"]') ? '0' : mark.ready;
+  const answer = mark.answer;
   const was = root.getAttribute('data-ready');
   if (root.getAttribute('data-answer') !== answer) root.setAttribute('data-answer', answer);
   if (was !== ready) root.setAttribute('data-ready', ready);
@@ -53,6 +57,8 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   // someone is signed in. Read before the address effect tidies an empty address to #/ (the questions' own, which stays them).
   const hash = win.location && typeof win.location.hash === 'string' ? win.location.hash : '';
   const landing = (hash === '' || hash === '#') && hasSignedInHint(localStore(win));
+  // the front door waits for the session where the note says someone is signed in here (select.js frontWaiting): told first
+  if (hasSignedInHint(localStore(win))) store.dispatch({ type: A.ENV_SET, patch: { signedInHint: true } });
   stops.push(startAddress(store, win));
   stops.push(startDraftStore(store, sessionStore(win)));
   stops.push(startRunner({ store, client, local }));

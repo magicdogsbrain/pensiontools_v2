@@ -52,6 +52,9 @@
   --fill-pop:          #f2408a;   /* pink: the one thing to press; "you, today" */
   --on-pop:            #0f0f1a;
   --pop-soft:          rgba(242, 64, 138, 0.16);
+  /* a line's faint drawing half (the pot over a life, B): the same hue, half seen, never body text */
+  --pop-faint:         rgba(242, 64, 138, 0.5);
+  --stage-saving-faint: rgba(207, 127, 20, 0.5);
   --soon:              #fab219;   /* a "soon" to-do's dot: amber, not counted */
   /* a verdict's edge (7.5.0; the README's colour table): green, amber and red appear here and nowhere else — the word is
      always said too (the verdict's figure keeps its --text-verdict-* colour) */
@@ -118,6 +121,8 @@
   --fill-pop:          #d62a72;
   --on-pop:            #ffffff;
   --pop-soft:          rgba(214, 42, 114, 0.12);
+  --pop-faint:         rgba(214, 42, 114, 0.5);
+  --stage-saving-faint: rgba(184, 106, 6, 0.5);
   --soon:              #b86a06;
   --edge-yes:          #0c870c;
   --edge-close:        #c98a00;

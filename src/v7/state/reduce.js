@@ -370,7 +370,31 @@ function shapeReduce(state, action, refuse) {
   }
 }
 
+/**
+ * The answer's slider holds its range while it moves (7.5.0): a draft/set sent by the slider carries the range it was drawn
+ * with (`hold`), kept in ui.slider so state/pictures.js answerSlider draws the same track until something else is typed —
+ * otherwise a range worked out from the figure being dragged grows under the pointer. Any other change to that question's
+ * draft lets the range go, so a figure typed in the box is placed on a track that fits it.
+ */
+function withSliderHold(next, action) {
+  const h = action.hold;
+  const cur = next.ui && next.ui.slider;
+  const num = (v) => typeof v === 'number' && Number.isFinite(v);
+  if (h && typeof h === 'object' && num(h.min) && num(h.max) && h.max > h.min) {
+    const want = { q: action.q, path: action.path, min: h.min, max: h.max, step: num(h.step) && h.step > 0 ? h.step : null };
+    if (cur && cur.q === want.q && cur.path === want.path && cur.min === want.min && cur.max === want.max && cur.step === want.step) return next;
+    return { ...next, ui: { ...next.ui, slider: want } };
+  }
+  if (cur && cur.q === action.q) return { ...next, ui: { ...next.ui, slider: null } };
+  return next;
+}
+
 export function reduce(state, action) {
+  const next = reduceAction(state, action);
+  return action && action.type === A.DRAFT_SET && next && next.ui ? withSliderHold(next, action) : next;
+}
+
+function reduceAction(state, action) {
   const refuse = (why) => {
     if (state.env.build === 'test') throw new Error(`V7 reducer: ${why}`);
     return state;
@@ -1247,7 +1271,10 @@ export function reduce(state, action) {
         env.historyEnd = patch.historyEnd;
       }
       if (typeof patch.appVersion === 'string' && patch.appVersion) env.appVersion = patch.appVersion;
-      if (env.today === state.env.today && env.historyEnd === state.env.historyEnd && env.appVersion === state.env.appVersion) return state;
+      // 7.5.0: the browser holds the note that someone is signed in here (effects/place.js), so the front door waits for the
+      // session rather than drawing the stranger's door first (select.js frontWaiting)
+      if (typeof patch.signedInHint === 'boolean') env.signedInHint = patch.signedInHint;
+      if (env.today === state.env.today && env.historyEnd === state.env.historyEnd && env.appVersion === state.env.appVersion && env.signedInHint === state.env.signedInHint) return state;
       return { ...state, env };
     }
 

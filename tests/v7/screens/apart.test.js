@@ -686,6 +686,10 @@ describe('7 — today, byte for byte', () => {
   // the slider, the three figures, the pot picture and the Keep line around B's, C's and D's answers, and the working spinner
   // on every answer still being worked out — so the front door, the not-found page and those answer states were re-pinned
   // (V7_PIN_TODAY=1, V7_PIN_SCREENS=1); no figure moved (every answer in them is the same answer, byte for byte)
+  // …and the 7.5.0 review: the stranger's front door without the site line over its headline and with C's button in the
+  // door's colour, the picture and tiles straight under the verdict, C's "Taking £…" in the slider's card, the slider's
+  // figure beside its label, and every question answer inside the box that holds a first answer behind the ring — so the
+  // same states were re-pinned once more (V7_PIN_TODAY=1, V7_PIN_SCREENS=1); no figure moved
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]'];
   const hash = (html) => createHash('sha256').update(html).digest('hex').slice(0, 32);

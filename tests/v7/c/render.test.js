@@ -519,7 +519,9 @@ describe('what does it pay a month? (the answer step)', () => {
   it('take: the sentence for the amount named is shown, and the box holds what was typed', () => {
     const state = load('answer-take');
     const root = renderScreen(state);
-    expect(root.querySelector('[data-region="answer"]').textContent).toContain(state.answers.c.result.sentences.take.text);
+    // 7.5.0: under the slider that moves it, in the slider's own card — and not again in the headline
+    expect(one(root, 'c.slider.result').textContent).toContain(state.answers.c.result.sentences.take.text);
+    expect(root.querySelector('[data-region="answer"]').textContent).not.toContain(state.answers.c.result.sentences.take.text);
     expect(one(root, 'c.take').value).toBe('1,500');
     expect(root.querySelector('[data-key="take.perMonth"]').getAttribute('data-value')).toBe('1500');
   });

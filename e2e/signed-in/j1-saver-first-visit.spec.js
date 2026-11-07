@@ -1,7 +1,8 @@
 /**
  * J1 (research/v7/after-7.md §2): a first visit, saving, without an account. Someone in their thirties wants to know
  * "am I saving enough, how much do I need, what does a share of my pay come to":
- *   - the front page is PensionTools, with its one line ("Plan your pension, from saving to living on it."), and (7.5.0)
+ *   - the front page is PensionTools, with its one line ("Plan your pension, from saving to living on it."; on a phone the
+ *     stranger's headline says it, 7.5.0), and (7.5.0)
  *     three doors in the order of a life — "Still saving" first, opening "Am I saving enough?" — and no sign-in line: the
  *     account is asked for only when something is kept;
  *   - that question, answered with a share of pay, gives the ballpark: the pot to aim for, what paying in as now comes to,
@@ -21,10 +22,15 @@ test('the front page speaks to a saver; "Am I saving enough?" gives the ballpark
   await app.ready();
   await expect(page).toHaveTitle(/^PensionTools/);
   await expect(page.getByTestId('nav.brand').locator('.brand-name')).toHaveText('PensionTools');
-  // the one line: in the header where there is room, at the top of the front page on a phone
-  const line = (await page.viewportSize()).width < 700 ? page.getByTestId('front.tagline') : page.getByTestId('nav.brand').locator('.brand-line');
-  await expect(line).toBeVisible();
-  await expect(line).toHaveText(COMMON.tagline);
+  // the one line: in the header where there is room; on a phone (7.5.0) the stranger's headline says it, never twice
+  if ((await page.viewportSize()).width < 700) {
+    await expect(page.locator('#app h1')).toHaveText(FRONT.stranger.title.join(''));
+    await expect(page.getByTestId('front.tagline')).toHaveCount(0);
+  } else {
+    const line = page.getByTestId('nav.brand').locator('.brand-line');
+    await expect(line).toBeVisible();
+    await expect(line).toHaveText(COMMON.tagline);
+  }
   expect(await page.locator('#app').innerText()).not.toMatch(/drawdown planner/i);
 
   // the three doors (7.5.0): still saving first, with "Am I saving enough?" in it; no sign-in line for a stranger

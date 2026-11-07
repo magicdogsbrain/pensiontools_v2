@@ -16,7 +16,13 @@ import { reduce } from '../../../src/v7/state/reduce.js';
 import { initialState } from '../../../src/v7/state/initial.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { viewFor } from '../../../src/v7/effects/planSource.js';
-import { potPicture, answerSlider, answerTiles, roundTop, LIFE_EXAMPLE, lifeStages, guestView } from '../../../src/v7/state/select.js';
+import { potPicture, answerSlider, answerTiles, tilesKey, roundTop, LIFE_EXAMPLE, lifeStages, guestView, frontWaiting, readyMark } from '../../../src/v7/state/select.js';
+import { markReady } from '../../../src/v7/effects/index.js';
+import { HeldAnswer, AT_LEAST_MS } from '../../../src/v7/components/Spinner.jsx';
+import { parseDraft } from '../../../src/answers/shared/validate.js';
+import { SCHEMA_B } from '../../../src/answers/b/schema.js';
+import { SCHEMA_C } from '../../../src/answers/c/schema.js';
+import { SCHEMA_D } from '../../../src/answers/d/schema.js';
 import { countUp } from '../../../src/v7/components/motion.js';
 import { PICTURE } from '../../../src/v7/copy/picture.js';
 import { FRONT } from '../../../src/v7/copy/common.js';
@@ -49,8 +55,13 @@ describe('the stranger\'s front door: three doors, each opening its question\'s 
     expect(one(root, 'front.q.e').getAttribute('href')).toBe('#/plans');
     expect(one(root, 'front.q.f').getAttribute('href')).toBe('#/soon/f');
   });
-  it('one pink thing to press, the life line as the explainer with no figure on it, and the words of the front door', () => {
-    expect(root.querySelectorAll('main .btn-pop')).toHaveLength(1);
+  it('three equal doors and no pink button (the one pink is the headline\'s word); the life line as the explainer with no figure on it, and the words of the front door', () => {
+    expect(root.querySelectorAll('main .btn-pop')).toHaveLength(0);
+    expect(root.querySelectorAll('main .front-title em')).toHaveLength(1);
+    // "Show me" in C's door is drawn in the door's own colour, as the other doors' "Start here"
+    expect(one(root, 'front.c.show').classList.contains('door-show')).toBe(true);
+    // the site's line is not drawn again above a headline that says it (fidelity review, 7.5.0)
+    expect(one(root, 'front.tagline')).toBe(null);
     const life = one(root, 'front.life');
     expect([...life.querySelectorAll('[data-stage]')].map((s) => s.getAttribute('data-stage'))).toEqual(['saving', 'moving', 'drawing']);
     expect(life.querySelector('[data-value]')).toBe(null);
@@ -103,14 +114,37 @@ describe('the pot over a life (B): to scale, through the answer\'s own figures, 
     const band = P.band.points;
     expect(band.find((p) => p.age === r.stop.age).value).toBe(r.potAtStop.now.careful);
     expect(band[band.length - 1]).toEqual({ age: Math.min(r.wholeLife.runOutAge, r.basis.endAge), value: 0 });
-    expect(P.marks.find((m) => m.id === 'you')).toEqual({ id: 'you', age: r.inputs.you.age, value: p0 });
-    expect(P.marks.find((m) => m.id === 'aim').value).toBe(r.number.careful);
+    expect(P.marks).toEqual([{ id: 'you', age: r.inputs.you.age, value: p0 }]);
+  });
+  it('each line is one life: its faint drawing half starts where its rising half ends and falls to the age the answer gives (run out in a bad case, or the end age)', () => {
+    const end = r.basis.endAge;
+    const out = (age) => (age < end ? age : end);
+    const halves = { now: out(r.wholeLife.runOutAge), enough: out(r.enough.nineInTen.runOutAge) };
+    for (const [id, age] of Object.entries(halves)) {
+      const rising = P.lines.find((l) => l.id === id);
+      const half = P.lines.find((l) => l.id === `${id}.drawing`);
+      expect(half.part).toBe('drawing');
+      expect(half.role).toBe(rising.role);
+      expect(half.points[0]).toEqual(rising.points[rising.points.length - 1]);
+      expect(half.points[half.points.length - 1]).toEqual({ age, value: 0 });
+    }
+    // the bad case is the band, not another line; and no line of its own for "enough, in a bad case"
+    expect(P.lines.map((l) => l.id)).toEqual(['enough', 'enough.drawing', 'now', 'now.drawing']);
+    const root = renderScreen(state);
+    const legend = [...one(root, 'b.pot.legend').querySelectorAll('li')].map((li) => li.getAttribute('data-series'));
+    expect(legend).toEqual(['enough', 'now', 'bad', 'you']);
+    // a drawing half's end is drawn, never written as a figure on the page
+    for (const id of ['enough.drawing', 'now.drawing']) {
+      const path = one(root, 'b.pot').querySelector(`path[data-series="${id}"]`);
+      expect(path.hasAttribute('data-end-value')).toBe(false);
+      expect(path.getAttribute('data-end')).toBe('guide');
+    }
   });
   it('the scale is a round figure above every value drawn, and every line rises while saving', () => {
     const all = [...P.lines.flatMap((l) => l.points), ...P.band.points, ...P.marks].map((p) => p.value);
     expect(P.top).toBeGreaterThanOrEqual(Math.max(...all));
     expect(P.top).toBe(roundTop(P.top));
-    for (const l of P.lines.filter((x) => x.id !== 'enoughBad')) for (let i = 1; i < l.points.length; i++) expect(l.points[i].value).toBeGreaterThanOrEqual(l.points[i - 1].value);
+    for (const l of P.lines.filter((x) => !x.part)) for (let i = 1; i < l.points.length; i++) expect(l.points[i].value).toBeGreaterThanOrEqual(l.points[i - 1].value);
   });
   it('drawn: each path ends where its figure puts it on a linear scale; the bad case shaded, a legend for every series, a table of figures', () => {
     const root = renderScreen(state);
@@ -130,11 +164,13 @@ describe('the pot over a life (B): to scale, through the answer\'s own figures, 
     expect(band.getAttribute('d')).toMatch(/Z$/);
     expect(firstPoint(band.getAttribute('d')).y).toBeCloseTo(y(P.band.points[0].value), 0);
     const legend = [...one(root, 'b.pot.legend').querySelectorAll('li')].map((li) => li.getAttribute('data-series'));
-    expect(legend).toEqual(expect.arrayContaining(['enough', 'now', 'bad', 'you']));
+    expect(legend).toEqual(['enough', 'now', 'bad', 'you']);
     expect(legend.length).toBeGreaterThanOrEqual(2);
     const you = fig.querySelector('[data-mark="you"]');
     expect(you.getAttribute('style')).toMatch(/left: ?0%/);
     expect(fig.getAttribute('aria-labelledby')).toBeTruthy();
+    // a <figure> is a figure: no role over it (axe: aria-allowed-role)
+    expect(fig.hasAttribute('role')).toBe(false);
     expect(fig.querySelector('figcaption .sr-only').textContent.length).toBeGreaterThan(20);
     const rows = [...one(root, 'b.pot.table').querySelectorAll('li')].map((li) => li.textContent);
     expect(rows[0]).toMatch(/^Today, at \d+: £[\d,]+\.$/);
@@ -173,6 +209,18 @@ describe('the pot over a life (D): what is left over the years ahead', () => {
     const root = renderScreen(state);
     expect(one(root, 'd.pot').querySelector('path.pot-band.is-drawing')).not.toBe(null);
     expect(checkScreen(root, state)).toEqual([]);
+    // the answer gives no pot for the years ahead: the middling line is a guide, its end drawn and never written; the bad case
+    // ends at a figure only when the money runs out; "still there at …" says it lasts, never how much
+    const mid = one(root, 'd.pot').querySelector('path[data-series="middling"]');
+    expect(mid.classList.contains('is-guide')).toBe(true);
+    expect(mid.hasAttribute('data-end-value')).toBe(false);
+    expect(P.band.guide === true).toBe(!(r.runOutAge < r.basis.endAge));
+    const lasting = (p) => p.age >= r.basis.endAge && p.value > 0;
+    const lasts = lasting(P.lines[0].points.at(-1)) || lasting(end);
+    expect(P.lasts).toBe(lasts ? r.basis.endAge : null);
+    expect(one(root, 'd.pot.lasts') !== null).toBe(lasts);
+    if (lasts) expect(one(root, 'd.pot.lasts').textContent).toContain(`still there at ${r.basis.endAge}`);
+    expect(one(root, 'd.pot').querySelector('.pot-note').textContent).toBe(PICTURE.pot.noteD);
   });
   it('no picture with nothing to draw on (the pensions alone)', () => {
     expect(potPicture(load('d', 'answer-pensions-only'), 'd')).toBe(null);
@@ -192,7 +240,11 @@ describe('the page around an answer: the slider, the three figures, the Keep lin
     expect(input.getAttribute('aria-valuetext')).toMatch(/^£[\d,]+$/);
     input.value = String(S.max / 2);
     input.dispatchEvent(new window.Event('input', { bubbles: true }));
-    expect(actions.at(-1)).toEqual({ type: 'draft/set', q: 'b', path: S.path, value: (S.max / 2).toLocaleString('en-GB') });
+    // the slider sends the range it was drawn with, so the range is held while it moves (state/reduce.js withSliderHold)
+    expect(actions.at(-1)).toEqual({ type: 'draft/set', q: 'b', path: S.path, value: (S.max / 2).toLocaleString('en-GB'), hold: { min: S.min, max: S.max, step: S.step } });
+    // the figure beside the label is for the eye only: the slider's name does not change as it moves
+    expect(root.querySelector(`label[for="${input.id}"]`).textContent).not.toMatch(/£/);
+    expect(one(root, 'b.slider.value').getAttribute('aria-hidden')).toBe('true');
   });
   it('C: "What if you took…?" writes the try box; D: what you take writes the spending', () => {
     const c = load('c', 'answer-F1');
@@ -239,6 +291,174 @@ describe('the page around an answer: the slider, the three figures, the Keep lin
       countUp(r2);
       expect(r2.firstChild.classList.contains('is-counting')).toBe(false);
     } finally { window.matchMedia = mm; }
+  });
+});
+
+describe('the slider never runs away and never writes a figure its box refuses (review of 7.5.0)', () => {
+  const SCHEMA = { b: SCHEMA_B, c: SCHEMA_C, d: SCHEMA_D };
+  /** Moves the slider as a person does: draft/set with the range it was drawn with, and the answer at the new figure lands. */
+  const slide = (state, q, value) => {
+    const S = answerSlider(state, q);
+    const text = S.unit === 'pct' ? String(value) : Math.round(value).toLocaleString('en-GB');
+    return reduce(state, { type: A.DRAFT_SET, q, path: S.path, value: text, hold: { min: S.min, max: S.max, step: S.step } });
+  };
+  /** The answer as if it had been worked out again for what the slider wrote (the figure moved into the result's inputs). */
+  const landed = (state, q) => {
+    const s = clone(state);
+    const S = answerSlider(s, q);
+    const v = Number(String(s.draft[q].values[S.path]).replace(/[£,]/g, ''));
+    const ins = s.answers[q].result.inputs;
+    if (q === 'd') { ins.spend.amount = v; s.answers[q].result.spend.perMonth = v; }
+    if (q === 'b') { const p = ins.you.payIn; if (S.path.endsWith('ownPct')) p.ownPct = v; else if (S.path.endsWith('.own')) p.own = v; else p.total = v; }
+    if (q === 'c') ins.take = v;
+    return s;
+  };
+  const errorsAt = (state, q) => parseDraft(SCHEMA[q], state.draft[q].values, { today: state.env.today }).errors;
+  it.each([['b', 'answer-B1'], ['c', 'answer-F1'], ['d', 'answer-D1']])('%s %s: dragged to the right end twice, and to the left end twice, the range stays put and the form takes every figure', (q, name) => {
+    let state = load(q, name);
+    const S0 = answerSlider(state, q);
+    for (const end of ['max', 'max', 'min', 'min', 'max']) {
+      state = landed(slide(state, q, answerSlider(state, q)[end]), q);
+      const S = answerSlider(state, q);
+      expect([S.min, S.max, S.step]).toEqual([S0.min, S0.max, S0.step]);
+      expect(S.value).toBe(S0[end]);
+      expect(errorsAt(state, q), `${q} at the ${end}`).toEqual({});
+    }
+  });
+  it('the range lets go once something is typed in the box, and fits the typed figure', () => {
+    let state = load('d', 'answer-D1');
+    const S0 = answerSlider(state, 'd');
+    state = slide(state, 'd', S0.max);
+    expect(state.ui.slider).toEqual({ q: 'd', path: 'spend.amount', min: S0.min, max: S0.max, step: S0.step });
+    state = reduce(state, { type: A.DRAFT_SET, q: 'd', path: 'spend.amount', value: String(S0.max * 2) });
+    expect(state.ui.slider).toBe(null);
+    expect(answerSlider(state, 'd').max).toBeGreaterThanOrEqual(S0.max * 2);
+  });
+  it('each end is inside the box\'s own limits: D starts at its least amount, never £0; B stops where both parts together reach what one person can pay in', () => {
+    const d = answerSlider(load('d', 'answer-D1'), 'd');
+    const least = SCHEMA_D.fields.find((f) => f.path === 'spend.amount').min;
+    expect(d.min).toBeGreaterThanOrEqual(least);
+    expect(d.min % d.step).toBe(0);
+    expect(d.scale[0]).toBe(d.min);
+    // B1 pays in a split: the slider's top for your own part leaves room for the employer's within the one-person limit
+    const s = clone(load('b', 'answer-B1'));
+    const p = s.answers.b.result.inputs.you.payIn;
+    expect(p.kind).toBe('split');
+    s.answers.b.result.payIn.needed = 9_000;
+    const ceiling = SCHEMA_B.fields.find((f) => f.path === 'you.payIn.total').max;
+    const b = answerSlider(s, 'b');
+    expect(b.max).toBe(ceiling - p.employer);
+    const at = slide(s, 'b', b.max);
+    expect(errorsAt(at, 'b')).toEqual({});
+  });
+  it('C\'s first value is the answer\'s own amount, on the track exactly (no £1,410 shown over a thumb at £1,400)', () => {
+    const c = load('c', 'answer-F1');
+    const S = answerSlider(c, 'c');
+    expect(S.value % S.step).toBe(0);
+    expect(S.value).toBe(c.answers.c.result.monthly.careful);
+  });
+});
+
+describe('the figures count up to the result on screen, never to one being worked out (review of 7.5.0)', () => {
+  it('the key stays while the old result is on screen, and changes when the new figures land', () => {
+    const state = load('d', 'answer-D1');
+    const k0 = tilesKey(state, 'd');
+    expect(k0).toContain(String(state.answers.d.result.spend.perMonth));
+    const working = clone(state);
+    working.answers.d.status = 'working';
+    working.answers.d.inputsKey = 'something else';
+    expect(tilesKey(working, 'd')).toBe(k0);
+    const landed = clone(state);
+    landed.answers.d.result.spend.perMonth += 100;
+    expect(tilesKey(landed, 'd')).not.toBe(k0);
+  });
+});
+
+describe('the front door in a browser where someone is signed in waits for the session (review of 7.5.0)', () => {
+  const front = (session, hint, plans = null) => {
+    let s = reduce(initialState({ today: '2026-11-07', build: 'test' }), { type: A.ROUTE_SET, route: parse('#/') });
+    if (hint) s = reduce(s, { type: A.ENV_SET, patch: { signedInHint: true } });
+    if (session !== 'none') s = reduce(s, { type: A.SESSION_SET, session: { kind: session, email: session === 'in' ? 'alex@example.com' : null } });
+    if (plans === 'failed') s = reduce(s, { type: A.PLANS_FAILED });
+    return s;
+  };
+  it.each([['none', true, 'waiting'], ['checking', true, 'waiting'], ['nobody', true, 'stranger'], ['none', false, 'stranger'], ['checking', false, 'stranger']])('session %s, the note %s: %s', (session, hint, door) => {
+    const s = front(session, hint);
+    expect(frontWaiting(s)).toBe(door === 'waiting');
+    const root = renderScreen(s);
+    expect(root.querySelector('[data-front]').getAttribute('data-front')).toBe(door);
+    expect(readyMark(s).ready).toBe(door === 'waiting' ? '0' : '1');
+    if (door === 'waiting') {
+      expect(root.querySelectorAll('[data-door]')).toHaveLength(0);
+      expect(one(root, 'front.waiting').textContent).toBe(FRONT.waiting.line);
+    }
+  });
+  it('signed in: the signed-in front door; the plans failing to load: the stranger\'s, never a wait for ever', () => {
+    expect(renderScreen(front('in', true)).querySelector('[data-front]')).toBe(null);
+    expect(frontWaiting(front('checking', true, 'failed'))).toBe(false);
+  });
+});
+
+describe('the first answer waits behind the ring for its least time, and the page is not ready until it shows (review of 7.5.0)', () => {
+  it('HeldAnswer holds the answer AT_LEAST_MS once the ring was seen, marks the hold on the page and says when it ends', async () => {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const events = [];
+    root.addEventListener('pt:held', () => events.push('held'));
+    const ui = (busy) => h(HeldAnswer, { busy, working: h('p', { id: 'ring' }, 'ring') }, busy ? null : h('p', { id: 'answer' }, 'answer'));
+    const flush = () => new Promise((r) => setTimeout(r, 0));
+    try {
+      render(ui(true), root); await flush();
+      expect(root.querySelector('#ring')).not.toBe(null);
+      render(ui(false), root); await flush();
+      expect(root.querySelector('#ring')).not.toBe(null);
+      expect(root.querySelector('[data-holding="1"]')).not.toBe(null);
+      await new Promise((r) => setTimeout(r, AT_LEAST_MS + 50)); await flush(); await flush();
+      expect(root.querySelector('#answer')).not.toBe(null);
+      expect(root.querySelector('[data-holding="1"]')).toBe(null);
+      expect(events).toEqual(['held']);
+      // a page opened on an answer is never held
+      const r2 = document.createElement('div');
+      render(ui(false), r2); await flush();
+      expect(r2.querySelector('#answer')).not.toBe(null);
+    } finally { render(null, root); root.remove(); }
+  });
+  it('the page\'s ready mark says not ready while the hold shows', () => {
+    const state = load('d', 'answer-D1');
+    const root = document.createElement('div');
+    root.innerHTML = '<div data-holding="1"></div>';
+    markReady(root, state);
+    expect(root.getAttribute('data-ready')).toBe('0');
+    root.innerHTML = '<div></div>';
+    markReady(root, state);
+    expect(root.getAttribute('data-ready')).toBe('1');
+  });
+});
+
+describe('the style sheet, as the README has it (review of 7.5.0)', () => {
+  const css = readFileSync(join(process.cwd(), 'src/v7/styles/components.css'), 'utf8');
+  it('a verdict\'s words are in the text colour and the display face; green, amber and red are its edge only', () => {
+    expect(css).toMatch(/\.verdict \.figure \{[^}]*color: var\(--text\);[^}]*font-family: var\(--font-display\)/);
+    expect(css).not.toMatch(/\.verdict\.is-(yes|close|no) \.figure/);
+  });
+  it('the reveal ends clipping nothing a still frame shows (a line\'s round end past the box included)', () => {
+    const kf = css.match(/@keyframes pot-reveal \{[^\n]*\}/)[0];
+    expect(kf).toMatch(/to \{ clip-path: inset\(-\d+px -\d+px -\d+px -\d+px\); \}/);
+  });
+  it('the count drawn over a figure is for the eye only (its alternative text is empty)', () => {
+    expect(css).toMatch(/\.is-counting::after \{ content: attr\(data-count\); content: attr\(data-count\) \/ '';/);
+  });
+  it('figures in JetBrains Mono ask only for the weight the site ships (no drawn-on bold)', () => {
+    const fonts = readFileSync(join(process.cwd(), 'src/v7/styles/fonts.css'), 'utf8');
+    const shipped = fonts.match(/'JetBrains Mono';[^}]*font-weight: (\d+);/)[1];
+    for (const m of css.matchAll(/font: (\d+) [^;]*var\(--font-mono\)/g)) expect(m[1]).toBe(shipped);
+  });
+  it('a phone: the tiles two to a row, a third alone across the whole row', () => {
+    expect(css).toMatch(/@media \(max-width: 559px\) \{\s*\.fig-tiles \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}\s*\.fig-tile:last-child:nth-child\(odd\) \{ grid-column: 1 \/ -1; \}/);
+  });
+  it('the headline and body faces are asked for at once (preloaded), and from the site itself', () => {
+    const html = readFileSync(join(process.cwd(), 'v7/index.html'), 'utf8');
+    for (const f of ['fraunces-latin', 'nunito-latin']) expect(html).toMatch(new RegExp(`<link rel="preload" href="\\.\\./src/v7/styles/fonts/${f}\\.woff2" as="font" type="font/woff2" crossorigin>`));
   });
 });
 

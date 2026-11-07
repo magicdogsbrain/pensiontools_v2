@@ -40,14 +40,15 @@ export const PICTURE = {
       enough: 'what would be enough',
       now: 'paying in as now',
       bad: 'a bad case (the worst 1 in 10)',
-      enoughBad: 'enough, in a bad case',
-      middling: 'middling years',
-      you: 'you, today',
-      aim: 'the pot to aim for'
+      middling: 'middling years (a guide)',
+      you: 'you, today'
     },
     stop: 'stop at {age}',
+    /** At the right edge, where a line still has money in it at the end age: that it is there, never how much. */
+    lasts: 'still there at {age}',
     /** The line under the picture: what it is drawn from. */
-    note: 'Drawn to scale through your answer’s own figures. Between them the lines are a guide; the figures are in the table.',
+    noteB: 'Drawn to scale through your answer’s own figures. Between them, and once the money is being drawn, the lines are a guide; the figures are in the table.',
+    noteD: 'Drawn to scale from your pot today and the ages in your answer. The lines between are a guide, not figures: the answer gives no pot for the years ahead. The figures are in the table.',
     show: 'Show the figures',
     hide: 'Hide the figures',
     /** The table: one row each, the answer's own figures. {pot}, {middling}, {bad}, {amount} are figures; {age} an age. */

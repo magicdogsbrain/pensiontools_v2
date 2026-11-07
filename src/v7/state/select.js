@@ -73,7 +73,7 @@ export { payInParts };
  */
 export { cAnswerYouStopped } from './carry.js';
 // the first visit's pictures and controls (7.5.0): each figure one the answer already gave (state/pictures.js)
-export { LIFE_EXAMPLE, lifeStages, roundTop, answerSlider, answerTiles, potPicture } from './pictures.js';
+export { LIFE_EXAMPLE, lifeStages, roundTop, answerSlider, answerTiles, tilesKey, potPicture } from './pictures.js';
 
 /** The input list of each question. A question's draft is in the state only while it is open (rail/questions.js OPEN). */
 export const SCHEMAS = { c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B, d: SCHEMA_D };
@@ -381,6 +381,19 @@ export function payLineOf(state, q, values) {
  * final; answer says which figure is on screen — 'partial' while an optional step's extra pass is due or running
  * (the headline is final, the rest is arriving).
  */
+/**
+ * The front door while it cannot yet say who is here (7.5.0): this browser holds the note that someone is signed in, and the
+ * session has not answered. The door waits (FrontDoor.jsx draws a holding line and the page is not marked ready) rather than
+ * drawing the stranger's three doors and swapping them for the signed-in door a moment later. Nobody signed in, a session
+ * that failed, or plans that could not be read: the stranger's door at once.
+ */
+export function frontWaiting(state) {
+  if (!state.env || state.env.signedInHint !== true) return false;
+  const k = state.session ? state.session.kind : 'none';
+  if (k !== 'none' && k !== 'checking') return false;
+  return !(state.plans && state.plans.status === 'failed');
+}
+
 export function readyMark(state) {
   let busy = false;
   let shown = 'none';
@@ -397,6 +410,7 @@ export function readyMark(state) {
   const L = state.lasts;
   if (L && L.status === 'working') busy = true;
   const r = state.route;
+  if (r && (r.screen === 'front' || r.screen === 'notFound') && frontWaiting(state)) busy = true;
   if (r && r.screen === 'plan' && r.step === 'lasts') {
     const page = state.plans && state.plans.view && state.plans.view.page;
     const key = page && page.forId === r.planId && page.lasts && page.lasts.runKey ? page.lasts.runKey : null;

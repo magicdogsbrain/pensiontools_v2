@@ -16,6 +16,18 @@
 @media (max-width: 699px) { .brand-line { display: none; } }
 .top-nav { display: flex; gap: 12px; }
 .top-nav a { display: inline-flex; align-items: center; min-height: var(--target); padding: 0 8px; }
+/* on a phone the name never shrinks past its own width (it ran onto the page's edge); the links give the room instead */
+@media (max-width: 699px) {
+  .brand { flex: none; }
+  .top { gap: 8px; }
+  .top-nav { gap: 0; }
+  .top-nav a { padding: 0 6px; }
+}
+/* the narrowest phones: the name a little smaller and the links closer, so all of it fits inside the gutters */
+@media (max-width: 420px) {
+  .brand-name { font-size: 1.05rem; }
+  .top-nav a { padding: 0 4px; }
+}
 
 .previous-line { font-size: var(--size-small); color: var(--text-muted); text-align: center; margin: 0; padding: 6px var(--gutter);
   background: var(--surface-page); border-bottom: 1px solid var(--line); max-width: none; }
@@ -140,6 +152,8 @@
 }
 
 /* ---- the answer ---------------------------------------------------------------------------------------------- */
+/* a question's first answer held behind the ring (Spinner.jsx HeldAnswer): its box takes no room of its own */
+.held-answer { display: contents; }
 .working { padding: 16px; background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius); }
 .working-title { font-weight: 650; font-size: 1.2rem; }
 progress { width: 100%; max-width: 24rem; height: 12px; accent-color: var(--fill-primary); }
@@ -215,10 +229,12 @@ progress { width: 100%; max-width: 24rem; height: 12px; accent-color: var(--fill
 
 /* ---- questions A and B (step 4 brief 4.13) -------------------------------------------------------------------- */
 /* the verdict: a word and a colour token, never only a colour */
-.verdict .figure { line-height: 1.2; }
-.verdict.is-yes .figure, .verdict-word.is-yes { color: var(--text-verdict-yes); }
-.verdict.is-close .figure, .verdict-word.is-close { color: var(--text-verdict-close); }
-.verdict.is-no .figure, .verdict-word.is-no { color: var(--text-verdict-no); }
+/* 7.5.0 (the README's colour table): a verdict's status colour is its edge only (.verdict.is-yes …, below); its words are in
+   the ordinary text colour and the display face, the word itself ("Yes", "Close", "Not …") saying which */
+.verdict .figure { line-height: 1.2; color: var(--text); font-family: var(--font-display); }
+.verdict-word.is-yes { color: var(--text-verdict-yes); }
+.verdict-word.is-close { color: var(--text-verdict-close); }
+.verdict-word.is-no { color: var(--text-verdict-no); }
 .answer.is-stale .verdict .figure { color: var(--text-muted); }
 .verdict-word { font-weight: 600; }
 
@@ -717,7 +733,7 @@ h2.eyebrow { font-size: var(--size-small); }
 .year-bar { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 3px 3px 0 0; background: var(--stage-drawing); transform-origin: bottom; animation: year-fill .35s ease-out both; }
 @keyframes year-fill { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 .year-plan { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--text); }
-.year-name { position: absolute; left: 4px; bottom: 2px; font: 600 10px/1 var(--font-mono); color: var(--text-muted); }
+.year-name { position: absolute; left: 4px; bottom: 2px; font: 500 10px/1 var(--font-mono); color: var(--text-muted); }
 .year-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--text-muted); }
 .year-legend i { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border-radius: 3px; vertical-align: -1px; }
 .year-legend .key-drawn { background: var(--stage-drawing); }
@@ -783,15 +799,21 @@ h2.eyebrow { font-size: var(--size-small); }
 .door.is-drawing { --door: var(--stage-drawing); --door-soft: var(--stage-drawing-soft); }
 .door:hover, .door:focus-within { transform: translateY(-2px); box-shadow: 0 10px 30px -16px var(--door); border-color: var(--door); }
 .door-link { display: grid; gap: 8px; color: var(--text); text-decoration: none; min-height: var(--target); }
+/* the whole door is the one target: the link's press area is stretched over the card (the card lifts as one) */
+.door-link::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.door:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
 .door-link:hover .door-ask { text-decoration: underline; }
 .door-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text); }
 .door-tag i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--door); }
 .door-ask { font-family: var(--font-display); font-size: 1.25rem; font-weight: 800; line-height: 1.15; }
 .door-what { font-size: var(--size-small); color: var(--text-muted); }
-.door-go { font-weight: 800; color: var(--text-link); }
+.door-go { font-weight: 800; color: var(--text); }
+.door-go span { color: var(--door); }
+/* "Stopping soon" keeps its pot box in the door; its button is drawn in the door's own colour, not pink — the doors are
+   equal, and the front door's one pink is the headline's word */
+.door .btn.door-show { justify-self: start; background: var(--door); border-color: var(--door); color: var(--on-pop); }
 .door .field { margin: 4px 0 0; }
 .door .field input[type="text"] { max-width: none; }
-.door .btn-pop { justify-self: start; }
 .front-plain { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: var(--size-small); }
 .front-plain .question-not { display: inline; color: var(--text-muted); }
 
@@ -799,7 +821,9 @@ h2.eyebrow { font-size: var(--size-small); }
 .answer-slider { --slide: var(--stage-saving); display: grid; gap: 6px; margin: 0 0 16px; padding: 14px 16px; border-radius: var(--radius); background: var(--surface-card); border: 1px solid var(--line); }
 .answer-slider.is-c { --slide: var(--stage-moving); }
 .answer-slider.is-d { --slide: var(--stage-drawing); }
-.answer-slider label { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
+.slider-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
+.answer-slider label { margin: 0; }
+.slider-result { margin: 0; }
 .slider-value { font: 500 1.25rem/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); }
 .answer-slider input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: var(--target); margin: 0; background: transparent; cursor: pointer; }
 .answer-slider input[type="range"]::-webkit-slider-runnable-track { height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--slide) 0 var(--at), var(--surface-raised) var(--at)); border: 1px solid var(--line-strong); }
@@ -808,8 +832,13 @@ h2.eyebrow { font-size: var(--size-small); }
 .answer-slider input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--text); border: 5px solid var(--slide); }
 .slider-scale { display: flex; justify-content: space-between; font: 500 12px/1.2 var(--font-mono); color: var(--text-muted); }
 .fig-tiles { list-style: none; margin: 12px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+/* a phone: two to a row, and a third alone takes the whole row rather than half of it beside an empty cell */
+@media (max-width: 559px) {
+  .fig-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fig-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
 .fig-tile { display: grid; gap: 2px; align-content: start; padding: 12px 14px; border-radius: var(--radius); background: var(--surface-raised); border: 1px solid var(--line); min-width: 0; }
-.fig-n { font: 800 1.5rem/1.1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.fig-n { font: 500 1.5rem/1.1 var(--font-mono); font-variant-numeric: tabular-nums; }
 .fig-tile.is-pop { border-color: var(--fill-pop); }
 .fig-tile.is-pop .fig-n { color: var(--fill-pop); }
 .fig-l { font-size: 13px; color: var(--text-muted); }
@@ -830,7 +859,10 @@ h2.eyebrow { font-size: var(--size-small); }
 .pot-line { fill: none; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 .pot-line.is-pop { stroke: var(--fill-pop); }
 .pot-line.is-now { stroke: var(--stage-saving); stroke-width: 3; stroke-dasharray: 7 5; }
-.pot-line.is-faint { stroke: var(--fill-pop); stroke-width: 2; stroke-dasharray: 2 6; }
+.pot-line.is-half { stroke-width: 2; }
+.pot-line.is-pop.is-half { stroke: var(--pop-faint); }
+.pot-line.is-now.is-half { stroke: var(--stage-saving-faint); }
+.pot-line.is-guide { stroke-width: 3; stroke-dasharray: 12 7; }
 .pot-line.is-drawing { stroke: var(--stage-drawing); }
 .pot-band { animation: pot-fade .4s .5s ease-out both; }
 .pot-band.is-saving { fill: var(--stage-saving-soft); }
@@ -838,13 +870,14 @@ h2.eyebrow { font-size: var(--size-small); }
 .pot-band-edge { fill: none; stroke-width: 1.5; stroke-dasharray: 5 5; }
 .pot-band-edge.is-saving { stroke: var(--stage-saving); }
 .pot-band-edge.is-drawing { stroke: var(--stage-drawing); }
-@keyframes pot-reveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+/* revealed left to right; the last frame clips nothing a still frame shows (a line's round end past the box included) */
+@keyframes pot-reveal { from { clip-path: inset(-12px 100% -12px -12px); } to { clip-path: inset(-12px -12px -12px -12px); } }
 @keyframes pot-fade { from { opacity: 0; } to { opacity: 1; } }
 .pot-tick { position: absolute; left: 4px; transform: translateY(-100%); padding-bottom: 2px; font: 500 11px/1 var(--font-mono); color: var(--text-muted); }
+.pot-lasts-word { position: absolute; right: 0; top: 0; font-size: 13px; font-weight: 800; color: var(--text); white-space: nowrap; }
 .pot-stop-word { position: absolute; top: 0; margin-left: 6px; font-size: 13px; font-weight: 800; color: var(--text); white-space: nowrap; }
 .pot-mark { position: absolute; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%); }
 .pot-mark.is-you { background: var(--text); border: 4px solid var(--fill-pop); box-shadow: 0 0 0 5px var(--pop-soft); }
-.pot-mark.is-aim { background: var(--surface-page); border: 3px solid var(--fill-pop); }
 .pot-ages { position: relative; height: 18px; font: 500 12px/1 var(--font-mono); color: var(--text-muted); }
 .pot-ages span { position: absolute; top: 2px; transform: translateX(-50%); }
 .pot-ages span:first-child { transform: none; }
@@ -854,13 +887,12 @@ h2.eyebrow { font-size: var(--size-small); }
 .pot-legend .key-line { height: 0; border-radius: 0; border-top: 3px solid var(--line-strong); vertical-align: 3px; }
 .pot-legend .key-line.is-pop { border-top-color: var(--fill-pop); }
 .pot-legend .key-line.is-now { border-top: 3px dashed var(--stage-saving); }
-.pot-legend .key-line.is-faint { border-top: 2px dotted var(--fill-pop); }
 .pot-legend .key-line.is-drawing { border-top-color: var(--stage-drawing); }
+.pot-legend .key-line.is-guide { border-top-style: dashed; }
 .pot-legend .key-band.is-saving { background: var(--stage-saving-soft); border: 1px dashed var(--stage-saving); }
 .pot-legend .key-band.is-drawing { background: var(--stage-drawing-soft); border: 1px dashed var(--stage-drawing); }
 .pot-legend .key-mark { width: 12px; border-radius: 50%; }
 .pot-legend .key-mark.is-you { background: var(--text); border: 3px solid var(--fill-pop); }
-.pot-legend .key-mark.is-aim { background: var(--surface-page); border: 2px solid var(--fill-pop); }
 .pot-note { margin: 0; }
 .pot-figures summary { cursor: pointer; min-height: var(--target); display: flex; align-items: center; color: var(--text-link); text-decoration: underline; }
 .pot-figures ul { margin: 4px 0 0; }
@@ -876,5 +908,6 @@ h2.eyebrow { font-size: var(--size-small); }
 }
 /* a figure counting up to its value (motion.js countUp): its own text stays, unseen, under the count drawn over it */
 .is-counting { position: relative; color: transparent; }
-.is-counting::after { content: attr(data-count); position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--text); }
+/* the count is drawn for the eye only: its alternative text is empty, so a screen reader reads the figure's own words */
+.is-counting::after { content: attr(data-count); content: attr(data-count) / ''; position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--text); }
 .fig-tile.is-pop .is-counting::after { color: var(--fill-pop); }

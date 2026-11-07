@@ -5,9 +5,9 @@
  * Since 7.5.0 the visible sign is the working spinner (Spinner.jsx RunRing; research/v7/mockups/README.md): a ring of bars
  * filling as the run reports how far it has got, its words saying only that futures are being run (an answer's run reports
  * its own stages, which are not futures a person would count). The ring's <progress> carries the same count for a screen
- * reader. The questions' answers draw the answer the moment the state holds it — the page's ready mark is read from the
- * state, so a drawing held back would show another page than the one the state says — and the first pass of 100 futures
- * is what the ring shows; the plan's own runs keep their least time (Spinner.jsx AtLeast).
+ * reader. The questions' first answers wait behind it for the least time too (Spinner.jsx HeldAnswer, 7.5.0), the page's
+ * ready mark waiting with them; the plan's own runs keep theirs (Spinner.jsx AtLeast). The ring counts no futures: the
+ * question's run reports its stages, not how many futures are done, and a count the page does not have is never drawn.
  */
 import { RunRing } from './Spinner.jsx';
 import { C } from '../copy/c.js';

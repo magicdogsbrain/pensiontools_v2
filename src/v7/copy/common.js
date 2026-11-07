@@ -107,7 +107,9 @@ export const FRONT = {
     /** The other questions, one tap away. */
     others: { a: 'When can I afford to stop work?', f: 'I have one decision to make', e: 'I have a plan: open it' },
     othersLabel: 'Other questions'
-  }
+  },
+  /** While the front door waits to hear whether the person signed in here still is (a moment, usually). */
+  waiting: { title: 'PensionTools', line: 'One moment: checking whether you are signed in.' }
 };
 
 /**

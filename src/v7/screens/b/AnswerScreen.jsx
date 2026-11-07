@@ -11,8 +11,8 @@
  * futures out of 10), never a second headline. "The State Pension covers it" keeps its own headline in words. Then what
  * the pot could be by the stop age, what was assumed; try a change; what next. Computes nothing.
  */
-import { Sentence, Pots, Levers, Assumed, SaverTryAChange, Working, Problem, Retired, isRetired, LinkButton, SpendLine, KeepPanel, ShapeAnswer, AnswerSlider, FigureTiles, PotLife, KeepLine } from '../../components/index.js';
-import { answerSlider, answerTiles, potPicture } from '../../state/select.js';
+import { Sentence, Pots, Levers, Assumed, SaverTryAChange, Working, HeldAnswer, Problem, Retired, isRetired, LinkButton, SpendLine, KeepPanel, ShapeAnswer, AnswerSlider, FigureTiles, PotLife, KeepLine } from '../../components/index.js';
+import { answerSlider, answerTiles, tilesKey, potPicture } from '../../state/select.js';
 import { PICTURE } from '../../copy/picture.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
@@ -56,12 +56,22 @@ function Answer({ state, dispatch, frame }) {
   const onCourse = result.onCourse === true;
   // spending that changes with age (spending-shape.md 7.2): said once, after the first headline's sentence that names the spending
   const shapeLine = s.shape && <Sentence s={s.shape} source={result} class="shape-line" data-testid="b.answer.shape" />;
+  // the page around the answer (7.5.0, mock-up screen 2): the three figures, the pot becoming theirs, the Keep line — straight
+  // under the verdict and its first sentence, so the picture is near the slider that moves it
+  const top = (
+    <>
+      <FigureTiles q="b" source={result} tiles={answerTiles(state, 'b')} countKey={tilesKey(state, 'b')} />
+      <PotLife picture={potPicture(state, 'b')} words={PICTURE.pot} />
+      <KeepLine state={state} q="b" />
+    </>
+  );
   const verdictHead = verdict && (
     <section class="headline" data-headline="verdict" aria-labelledby="answer-figure">
       <div class={`band verdict is-${band}`} data-verdict={band}>
         <Sentence s={s.verdictHead} source={result} class="figure" id="answer-figure" />
       </div>
       <Sentence s={s.verdictLine} source={result} class="line" data-sentence="verdict" />
+      {top}
       {s.verdictFour && <Sentence s={s.verdictFour} source={result} class="four" data-testid="b.verdict.four" />}
       {s.income && <Sentence s={s.income} source={result} class="income" data-testid="b.verdict.income" />}
       {shapeLine}
@@ -108,21 +118,12 @@ function Answer({ state, dispatch, frame }) {
       <Warnings result={result} />
     </section>
   );
-  // the page around the answer (7.5.0, mock-up screen 2): the three figures, the pot becoming theirs, the Keep line
-  const top = (
-    <>
-      <FigureTiles q="b" source={result} tiles={answerTiles(state, 'b')} countKey={answer.inputsKey} />
-      <PotLife picture={potPicture(state, 'b')} words={PICTURE.pot} />
-      <KeepLine state={state} q="b" />
-    </>
-  );
   return (
     <>
       {/* the slider: the one control, above the answer it moves (never greyed while the answer is worked out again) */}
       <AnswerSlider slider={answerSlider(state, 'b')} dispatch={dispatch} />
       <AnswerRegion words={B} stale={stale} first={first}>
         {verdictHead}
-        {verdict && top}
         {enough}
         {verdict && !onCourse && <Levers result={result} dispatch={dispatch} />}
         {guide || covered || <>{s.nothing && <Sentence s={s.nothing} source={result} class="nothing" />}{!verdict && <Warnings result={result} />}</>}
@@ -153,8 +154,10 @@ export function AnswerScreen(state, dispatch) {
   let body;
   if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={B.answer.needFive} state={state} />;
   else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} />;
-  else if (frame.kind === 'working') body = <Working answer={frame.answer} />;
-  else body = <Answer state={state} dispatch={dispatch} frame={frame} />;
+  else if (frame.kind !== 'working') body = <Answer state={state} dispatch={dispatch} frame={frame} />;
+  // the first answer waits behind the ring for its least time (Spinner.jsx HeldAnswer: a verdict never pops in at once)
+  const working = frame.kind === 'working';
+  body = <HeldAnswer busy={working} working={<Working answer={frame.answer} />}>{working ? null : body}</HeldAnswer>;
   return {
     question: 'b',
     rail: true,

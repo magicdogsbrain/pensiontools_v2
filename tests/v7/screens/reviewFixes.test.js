@@ -90,7 +90,7 @@ describe('1 — "+ Add a partner" after a first answer', () => {
 });
 
 describe('2 — "Show how long that lasts"', () => {
-  it('draws the sentence for the amount named under the button, and keeps it in the answer card', () => {
+  it('draws the sentence for the amount named under the button, and keeps it on the answer\'s page — since 7.5.0 in the slider\'s card, under the slider that moves it', () => {
     const state = load('answer-take');
     const root = renderScreen(state);
     clean(root, state);
@@ -98,7 +98,7 @@ describe('2 — "Show how long that lasts"', () => {
     const under = one(root, 'c.try.take.result');
     expect(under.textContent).toBe(text);
     expect(under.closest('.try')).not.toBe(null);
-    expect(root.querySelector('[data-region="answer"]').textContent).toContain(text);
+    expect(one(root, 'c.slider.result').textContent).toContain(text);
     // It sits after the button in reading order.
     const order = [...root.querySelectorAll('[data-testid="c.try.take"], [data-testid="c.try.take.result"]')].map((el) => el.getAttribute('data-testid'));
     expect(order).toEqual(['c.try.take', 'c.try.take.result']);

@@ -175,7 +175,7 @@ describe('the one write file: the record, one change at a time (road-to-7.md ste
     stop();
   });
   it('a LOCKED plan (decision 1): the record\'s write passes the guard, as the planner\'s own save does; every other write to that plan stays refused', async () => {
-    const raw = planted(C['03-gilt-ladder-runup'], 'H3');
+    const raw = planted(C['20-locked-start-after-stop'], 'H3');
     expect(isLockedSettings(raw.decisionTool.settings)).toBe(true);
     const p = pageOn([raw], 'H3');
     const f = fakeFb();

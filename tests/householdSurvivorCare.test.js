@@ -18,7 +18,7 @@ import { survivorResultHtml, careResultHtml } from '../src/ui/householdView.js';
 
 const NOW = new Date('2026-10-17T10:00:00Z');
 const fixture = (n) => JSON.parse(readFileSync('tests/fixtures/plans/' + n, 'utf8')).stressTool.settings;
-const BASE = fixture('03-gilt-ladder-runup.json');
+const BASE = fixture('20-locked-start-after-stop.json');
 /** A ladder on a rotation: the run-up fixture's ladder, its own pots as the pots, its ISA held aside (what this test is about). */
 const ladder = (strategyId) => ({ ...BASE, strategyId, isaDrawdownStrategy: 'hold', strategyParams: { ...BASE.strategyParams, sippTotal: 0, isaTotal: 0 } });
 const pnv = fixture('09-couple-a.json');            // a Pots & Valves corpus plan (Alex)

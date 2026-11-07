@@ -23,7 +23,7 @@ const v7 = (hash) => PROD + V7_PATH + hash;
 const TODAY = FIXED_NOW.slice(0, 10);
 
 function plans() {
-  const sam = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '03-gilt-ladder-runup.json'), 'utf8'));
+  const sam = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8'));
   const alex = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '04-buckets-running.json'), 'utf8'));
   sam.id = 'MovePlan01'; sam.planDetails.name = 'Sam’s plan'; sam.isActive = true; delete sam.household;
   alex.id = 'MoveMix02'; alex.planDetails.name = 'Alex’s plan'; alex.isActive = false; delete alex.household;
@@ -71,7 +71,9 @@ test.describe('"Moving to your plan\'s mix", without an account', () => {
       await expect(page.getByTestId(`${T}.status.line`)).toHaveText(`${node.move.rungs.bought} of ${node.move.rungs.total} gilts bought; ${node.move.progressPct}% of the plan’s mix held.`);
       await expect(page.locator(`[data-testid="${T}.buy"] tbody tr`)).toHaveCount(node.move.buy.length);
       await expect(page.locator(`[data-testid="${T}.sell"] tbody tr`)).toHaveCount(node.move.sell.length);
-      await expect(page.locator(`[data-testid="${T}.cash.table"] tr[data-row="runUp"]`)).toBeVisible();
+      // 7.4.2: the cash years are a ladder's only cash, so the table has no row for months before the start
+      await expect(page.locator(`[data-testid="${T}.cash.table"] tr[data-row="cashYear"]`).first()).toBeVisible();
+      await expect(page.locator(`[data-testid="${T}.cash.table"] tr[data-row="runUp"]`)).toHaveCount(0);
       await expect(page.locator(`[data-testid="${T}.sheet.table"] tbody tr`)).toHaveCount(node.move.sheet);
       const first = page.locator(`[data-testid="${T}.sheet.table"] tbody tr`).first();
       await expect(first).toHaveAttribute('data-bought', node.move.sheetFirst.bought);

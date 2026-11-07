@@ -37,7 +37,7 @@ const read = (name) => JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', '
 
 /** Fixture 03, locked, two months recorded before its start, nothing said about when work stopped. */
 function lockedPlan() {
-  const p = read('03-gilt-ladder-runup');
+  const p = read('20-locked-start-after-stop');
   p.id = PLAN_ID;
   p.planDetails.name = 'Alex’s ladder';
   p.isActive = true;
@@ -133,7 +133,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     expect(stored.planDocumentArchive.length).toBe(1);
     expect(stored.decisionTool.planOfRecordArchive.length).toBe(1);
     expect(stored.planDocument.pots.asOfPlanYear).toBe(3);
-    expect(stored.planDocument.assumptions.bridgeCash).toBe(0);
+    expect('bridgeCash' in stored.planDocument.assumptions).toBe(false);   // 7.4.2: never written
     expect(stored.planDocument.strategy.r.plan.years[0].Y).toBe(2026);
     expect(stored.decisionTool.history.map((h) => [h.date, h.yearNum, h.bridgeYear ?? null])).toEqual([['2026-07', 3, null], ['2026-08', 3, null]]);
     expect(stored.stressTool.settings.strategyParams.cashYears).toBe(6);   // the ladder's first gilt keeps its tax year
@@ -172,7 +172,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     await page.locator('#entryIsa').fill('35000');
     await page.locator('#decisionForm button[type="submit"]').click();
     await expect(page.locator('#decisionOutput')).toContainText('Your cash pays until the ladder\'s first gilt, from', { timeout: 60_000 });
-    expect(await page.locator('#decisionOutput').innerText()).not.toMatch(/before the ladder's first year|run[\s-]?up/i);
+    expect(await page.locator('#decisionOutput').innerText()).not.toMatch(/before the ladder's first year|until the first gilt pays|run[\s-]?up/i);
 
     const widths = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: window.innerWidth }));
     expect(widths.doc, 'no sideways scroll').toBeLessThanOrEqual(widths.win + 1);
@@ -245,7 +245,7 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     expect(stored.planDocumentArchive.length).toBe(1);
     expect(stored.decisionTool.planOfRecordArchive.length).toBe(1);
     expect(stored.planDocument.pots.asOfPlanYear).toBe(3);
-    expect(stored.planDocument.assumptions.bridgeCash).toBe(0);
+    expect('bridgeCash' in stored.planDocument.assumptions).toBe(false);   // 7.4.2: never written
     expect(stored.planDocument.strategy.r.plan.years[0].Y).toBe(2026);
     expect(stored.decisionTool.history.map((h) => [h.date, h.yearNum, h.bridgeYear ?? null])).toEqual([['2026-07', 3, null], ['2026-08', 3, null]]);
     expect(stored.stressTool.settings.strategyParams.cashYears).toBe(6);

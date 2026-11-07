@@ -80,7 +80,7 @@ describe('the adapter is read-only (T3)', () => {
     expect(plans.status).toBe('read');
     expect(plans.source).toBe('account');
     expect(plans.readAt).toBe('14:03');
-    expect(plans.list.length).toBe(17);   // the 12 saved-plan shapes, from 6.51.0 the starting situation 13, from 6.56.0 the closed plan and its successor (18), and the drawing plan closed on going back to work and its saving plan (19)
+    expect(plans.list.length).toBe(18);   // the 12 saved-plan shapes, from 6.51.0 the starting situation 13, from 6.56.0 the closed plan and its successor (18), the drawing plan closed on going back to work and its saving plan (19), and from 7.4.2 the frozen 20 (03 as it was)
     // the upgrade ran in memory: every committed plan comes back current (13 was saved current), but nothing is written back
     for (const e of plans.list) { expect(e.plan.schemaVersion).toBe(3); expect(e.newer).toBe(false); expect(e.failed).toBe(false); }
     expect(fb.calls.filter((c) => c[0] === 'getDocs')).toEqual([['getDocs', 'users/u1/scenarios']]);
@@ -110,7 +110,7 @@ describe('the adapter is read-only (T3)', () => {
     stop();
   });
   it('a plan newer than this code, and one whose upgrade fails, are shown as saved', () => {
-    const plan = C['03-gilt-ladder-runup'];
+    const plan = C['20-locked-start-after-stop'];
     const list = upgradedList([{ ...plan, schemaVersion: 99 }, { ...plan, id: 'bad', stressTool: 'not an object' }, null, { noId: true }], new Date(TODAY + 'T12:00:00'));
     expect(list.length).toBe(2);
     expect(list[0].newer).toBe(true);
@@ -121,7 +121,7 @@ describe('the adapter is read-only (T3)', () => {
 
 describe('nobody signed in: the window\'s plans, read with getItem only (design question 5)', () => {
   it('reads pt_guest_scenarios as text, upgrades in memory, and never writes it', async () => {
-    const text = JSON.stringify([C['03-gilt-ladder-runup'], C['11-guest-demo']]);
+    const text = JSON.stringify([C['20-locked-start-after-stop'], C['11-guest-demo']]);
     const session = storage({ [GUEST_PLANS_KEY]: text });
     const fb = fakeFirebase({ user: null });
     const { store, stop } = page({ fb, session });
@@ -129,7 +129,7 @@ describe('nobody signed in: the window\'s plans, read with getItem only (design 
     expect(store.getState().session.kind).toBe('nobody');
     const plans = store.getState().plans;
     expect(plans.source).toBe('window');
-    expect(plans.list.map((e) => e.plan.id)).toEqual([C['03-gilt-ladder-runup'].id, 'guest-k3v9x1qa']);
+    expect(plans.list.map((e) => e.plan.id)).toEqual([C['20-locked-start-after-stop'].id, 'guest-k3v9x1qa']);
     expect(plans.usedUp).toBe(false);
     expect(session.calls.filter((c) => c[1] === GUEST_PLANS_KEY).every((c) => c[0] === 'getItem')).toBe(true);
     expect(session.raw(GUEST_PLANS_KEY)).toBe(text);
@@ -149,7 +149,7 @@ describe('nobody signed in: the window\'s plans, read with getItem only (design 
 });
 
 describe('memory only (T6): pagehide, becoming nobody, sign-out and idle clear the plans; the plans never reach the draft', () => {
-  const signedIn = () => fakeFirebase({ user: { uid: 'u1', email: 'a@b.c', emailVerified: true }, docs: [C['03-gilt-ladder-runup']] });
+  const signedIn = () => fakeFirebase({ user: { uid: 'u1', email: 'a@b.c', emailVerified: true }, docs: [C['20-locked-start-after-stop']] });
   it('pagehide clears; pageshow from the cache reads again', async () => {
     const fb = signedIn();
     const { store, fire, stop } = page({ fb });

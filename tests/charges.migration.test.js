@@ -46,7 +46,7 @@ describe('the step itself', () => {
     expect(MIGRATIONS[0].to).toBe(1);   // the shipped step is still first and unchanged in place
   });
   it('the corpus has locked and unlocked plans to test it on', () => {
-    expect(LOCKED).toEqual(['03-gilt-ladder-runup.json', '04-buckets-running.json', '05-saver-committed.json', '06-pre-6.4-no-timing.json']);
+    expect(LOCKED).toEqual(['04-buckets-running.json', '05-saver-committed.json', '06-pre-6.4-no-timing.json', '20-locked-start-after-stop.json']);   // 20: 03 as it was (7.4.2)
     expect(UNLOCKED.length).toBe(8);
   });
 });
@@ -110,7 +110,7 @@ describe('a LOCKED plan is not touched at all', () => {
     });
   }
   it('a locked plan that already carries a charge keeps it as it is', () => {
-    const s = atV1('03-gilt-ladder-runup.json'); s.stressTool.settings.chargesPct = 1.25;
+    const s = atV1('20-locked-start-after-stop.json'); s.stressTool.settings.chargesPct = 1.25;
     expect(migrateScenario(s, { now: NOW, ...TO_V2 }).scenario.stressTool.settings.chargesPct).toBe(1.25);
   });
 });

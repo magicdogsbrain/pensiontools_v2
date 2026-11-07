@@ -86,7 +86,7 @@ describe('I1 — the reading, on every corpus plan at three dates', () => {
     expect(savedIncome(entryOf(C['10-couple-b']).plan, { today: TODAY }).sp).toMatchObject({ kind: 'forecast', weekly: 230.25, fromAge: 67, taxYear: 2034 });
     expect(savedIncome(entryOf(C['01-fresh-default']).plan, { today: TODAY }).sp).toMatchObject({ kind: 'assumed', yearly: 12000, fromAge: 67 });
     expect(savedIncome(entryOf(C['11-guest-demo']).plan, { today: TODAY }).sp).toMatchObject({ kind: 'assumed', yearly: 11973, fromAge: 67 });
-    const l = savedIncome(entryOf(C['03-gilt-ladder-runup']).plan, { today: TODAY });
+    const l = savedIncome(entryOf(C['20-locked-start-after-stop']).plan, { today: TODAY });
     expect(l.locked).toBe(true);
     expect(l.sp).toMatchObject({ kind: 'forecast', weekly: 230.25, date: '14 March 2029', fromAge: 67 });
     expect(l.source.kind).toBe('locked');
@@ -214,7 +214,7 @@ describe('I1 — the write: the exact paths and values, as the planner\'s Save w
     expect(p.patch['stressTool.settings.windfalls']).toEqual([odd.stressTool.settings.windfalls[0], { label: 'No year', amount: 50000 }]);
   });
   it('a locked plan: no patch, whatever is typed', () => {
-    const locked = entryOf(C['03-gilt-ladder-runup']).plan;
+    const locked = entryOf(C['20-locked-start-after-stop']).plan;
     const p = incomePatch(locked, { spKind: 'none' }, { today: TODAY });
     expect(p).toEqual({ ok: false, errors: { plan: 'locked' }, patch: {}, previous: {} });
   });

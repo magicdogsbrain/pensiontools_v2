@@ -32,7 +32,7 @@ const read = (r) => upgradeScenario(r, { now: NOW }).scenario;
 const CLOSED = read(raw('18-moved-to-new-plan'));
 const NEXT = read(raw('18-moved-to-new-plan-next'));
 const LADDER = read(raw('13-stopped-drawing-since'));      // locked, records to September 2026, a holdings record
-const RUNUP = read(raw('03-gilt-ladder-runup'));           // locked, its income starts in 2027/28
+const RUNUP = read(raw('20-locked-start-after-stop'));           // locked, its income starts in 2027/28
 const DRAFT = read(raw('02-pnv-draft'));                   // a draft with nothing recorded
 const SAVER = read(raw('05-saver-committed'));             // locked while still saving
 const DEFAULTS = getDefaultStressSettings();

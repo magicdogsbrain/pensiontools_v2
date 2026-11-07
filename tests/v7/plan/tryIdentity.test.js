@@ -76,7 +76,7 @@ const pinned = existsSync(PINS) ? JSON.parse(readFileSync(PINS, 'utf8')) : null;
 const made = {};
 
 describe('gate 8b — Try a change equals the planner\'s what-if on every fixture', { timeout: 900_000 }, () => {
-  expect(Object.keys(C).length).toBe(17);   // the 12 saved-plan shapes, from 6.51.0 the starting situation 13, from 6.56.0 the closed plan and its successor (18), and the drawing plan closed on going back to work and its saving plan (19)
+  expect(Object.keys(C).length).toBe(18);   // the 12 saved-plan shapes, from 6.51.0 the starting situation 13, from 6.56.0 the closed plan and its successor (18), the drawing plan closed on going back to work and its saving plan (19), and from 7.4.2 the frozen 20 (03 as it was)
   for (const [name, raw] of Object.entries(C)) {
     it(`${name}: the copy pinned once; the verdict to the pound; "What's different" names the boxes moved`, () => {
       const plan = entryOf(raw).plan;

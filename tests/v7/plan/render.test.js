@@ -111,7 +111,7 @@ describe('every committed plan, every step, three dates (T5)', () => {
 
 describe('the locked ladder in its run-up (03) and the committed saver (05)', () => {
   const entries = entriesAt(TODAY);
-  const ladder = entries.find((e) => e.plan.id === C['03-gilt-ladder-runup'].id);
+  const ladder = entries.find((e) => e.plan.id === C['20-locked-start-after-stop'].id);
   const saver = entries.find((e) => e.plan.id === C['05-saver-committed'].id);
   it('03\'s Month by month: the stage line, no countdown, and "Record October" inside the new app (7.2.0: never the classic page; since 7.3.0 the plan\'s own address is its home)', () => {
     const { root, text } = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/month'));
@@ -283,7 +283,7 @@ describe('the list (1.2) in each of its states', () => {
     expect(text).toContain('‘Ours — Asha’');
     expect(text).toContain('‘My Plan’');                                    // never renamed
     expect(text).toContain('Retired. Living on the plan; your ladder’s first gilt pays from April 2029. Locked 1 July 2026.');   // 7.3.3
-    expect(root.querySelectorAll('[data-testid^="plans.open."]').length).toBe(17);   // 19 (back to work) joined the corpus with its two plans
+    expect(root.querySelectorAll('[data-testid^="plans.open."]').length).toBe(18);   // 19 (back to work) joined the corpus with its two plans; 20 (03 as it was, frozen) in 7.4.2
     // 13 (6.51.0): living on its ladder since an earlier tax year, the cash years paying until its first gilt — said by the
     // ladder's own years, never a plan year or a count of years
     expect(text).toContain('Retired. Living on the plan; your ladder’s first gilt pays from April 2028. Locked 12 November 2024.');
@@ -438,7 +438,7 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
   });
   it('the review\'s case: July to September recorded (03), an entry made in October after the payment and dated November: "November recorded" on 3 November, never "October is not recorded yet"', () => {
     const raws = Object.values(C).map((p) => JSON.parse(JSON.stringify(p)));
-    const id = C['03-gilt-ladder-runup'].id;
+    const id = C['20-locked-start-after-stop'].id;
     const b = settled(raws.find((p) => p.id === id));
     const sep = b.decisionTool.history.find((h) => h.date === '2026-09');
     b.decisionTool.history.push({ ...sep, date: '2026-11', paidAhead: true });
@@ -462,7 +462,7 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
   });
   it('a month skipped with no later record (03: July to September recorded, November come): October first, and no "stays as it is" line, since nothing was recorded after it', () => {
     const today = '2026-11-15';
-    const id = C['03-gilt-ladder-runup'].id;
+    const id = C['20-locked-start-after-stop'].id;
     const raws = Object.values(C).map((p) => (p.id === id ? settled(JSON.parse(JSON.stringify(p))) : p));
     const { root, text } = draw(stateWith(entriesAt(today, raws), '#/plan/' + id + '/month', { today }));
     expect(text).toContain('October 2026 is not recorded yet; September 2026 is.');

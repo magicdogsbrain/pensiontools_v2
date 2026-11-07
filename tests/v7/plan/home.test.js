@@ -94,7 +94,8 @@ describe('every committed plan at three dates: the stage word, the to-dos in ord
     '2026-10-02': {
       '01-fresh-default': [null, 'plan.noAge', null],
       '02-pnv-draft': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
-      '03-gilt-ladder-runup': ['drawing', 'start.ask month.record hold.stale', null],   // 7.3.3: stored with its start later: say when work stopped
+      '20-locked-start-after-stop': ['drawing', 'start.ask month.record hold.stale', null],   // 7.3.3: stored with its start later: say when work stopped
+      '03-gilt-ladder-locked': ['drawing', 'month.record hold.stale', null],   // 7.4.2: a ladder running from the tax year work stopped
       '04-buckets-running': ['drawing', 'month.record hold.stale', null],
       '05-saver-committed': ['saving', 'checkin.due', null],
       '06-pre-6.4-no-timing': ['drawing', 'month.gap', null],
@@ -113,7 +114,8 @@ describe('every committed plan at three dates: the stage word, the to-dos in ord
     '2027-04-05': {
       '01-fresh-default': [null, 'plan.noAge', null],
       '02-pnv-draft': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
-      '03-gilt-ladder-runup': ['drawing', 'start.ask month.gap hold.stale', null],
+      '20-locked-start-after-stop': ['drawing', 'start.ask month.gap hold.stale', null],
+      '03-gilt-ladder-locked': ['drawing', 'month.gap hold.stale', null],
       '04-buckets-running': ['drawing', 'month.gap hold.stale', null],
       '05-saver-committed': ['saving', 'checkin.due', null],
       '06-pre-6.4-no-timing': ['drawing', 'month.gap', null],
@@ -133,7 +135,8 @@ describe('every committed plan at three dates: the stage word, the to-dos in ord
       '01-fresh-default': [null, 'plan.noAge', null],
       '02-pnv-draft': ['drawing', 'lock.first', 'Months are recorded once the plan is locked.'],
       // its start (April 2027) is this tax year by now: "When did you stop work?" without the offer of this tax year (7.4.0)
-      '03-gilt-ladder-runup': ['drawing', 'start.askOnly month.taxYear month.gap hold.stale', null],
+      '20-locked-start-after-stop': ['drawing', 'start.askOnly month.taxYear month.gap hold.stale', null],
+      '03-gilt-ladder-locked': ['drawing', 'month.taxYear month.gap hold.stale', null],
       '04-buckets-running': ['drawing', 'month.taxYear month.gap hold.stale', null],
       '05-saver-committed': ['saving', 'checkin.due', null],
       '06-pre-6.4-no-timing': ['drawing', 'month.taxYear month.gap', null],
@@ -283,7 +286,7 @@ describe('the plans list, a partner\'s due lines, the soon item', () => {
     const row = (name) => rows.find((r) => r.id === String(C[name].id));
     expect([row('04-buckets-running').life, row('04-buckets-running').todo]).toEqual(['drawing', 2]);
     // retaken on purpose (7.3.1): 03 records months, so it is Drawing and its move is not counted (it was ['moving', 3])
-    expect([row('03-gilt-ladder-runup').life, row('03-gilt-ladder-runup').todo]).toEqual(['drawing', 3]);   // 7.3.3: and "When did you stop work?"
+    expect([row('20-locked-start-after-stop').life, row('20-locked-start-after-stop').todo]).toEqual(['drawing', 3]);   // 7.3.3: and "When did you stop work?"
     expect([row('05-saver-committed').life, row('05-saver-committed').todo]).toEqual(['saving', 1]);
     // a closed plan's way on is not counted on its row (retaken on purpose: it was 1, "Closed · 1 to do")
     expect([row('18-moved-to-new-plan').life, row('18-moved-to-new-plan').todo]).toEqual(['closed', 0]);
@@ -470,7 +473,7 @@ describe('what the reviews found (7.3.0): the invitation, the move on a drawing 
     expect(HOME.inviteBand.behind).toBe('At your last check-in you were not on course yet.');
   });
   it('a locked plan read as Drawing with nothing it holds recorded: its move is still said, below the month, and can be put off', () => {
-    const raw = copy(C['03-gilt-ladder-runup']);
+    const raw = copy(C['20-locked-start-after-stop']);
     raw.holdings = null;
     const e = entryOf(raw, TODAY);
     const pg = planPage([e], e.plan.id, null, { today: TODAY });
@@ -482,7 +485,7 @@ describe('what the reviews found (7.3.0): the invitation, the move on a drawing 
   });
   it('a moving plan says one count on its home: the orders, in the headline, the move tool and the to-do alike', () => {
     // retaken in 7.3.1: 03 and 13 record months (Drawing), so each is read here before its first month, as a Moving plan is
-    for (const name of ['03-gilt-ladder-runup', '13-stopped-drawing-since']) {
+    for (const name of ['20-locked-start-after-stop', '13-stopped-drawing-since']) {
       const raw = copy(C[name]); raw.decisionTool.history = [];
       const entries = [entryOf(raw, TODAY)];
       const id = entries[0].plan.id;
@@ -534,7 +537,7 @@ describe('what the reviews found (7.3.0): the invitation, the move on a drawing 
 describe('drawing while the holdings are not exact (7.3.1): a plan recording months reads Drawing; what it holds differently is said', () => {
   const MOVE_PIDS = ['P.moveNext', 'P.moveLater', 'P.moveFinish'];
   const noMonths = (name) => { const raw = copy(C[name]); raw.decisionTool.history = []; return raw; };
-  for (const name of ['03-gilt-ladder-runup', '13-stopped-drawing-since']) {
+  for (const name of ['20-locked-start-after-stop', '13-stopped-drawing-since']) {
     it(`${name}: months recorded and short of the mix → Drawing, the share held under "Where you are", no move to-do, the rail's Next not a move`, () => {
       for (const today of DATES) {
         const entries = entriesAt(today);
@@ -613,7 +616,7 @@ describe('drawing while the holdings are not exact (7.3.1): a plan recording mon
     expect([...h.todo.items, ...h.todo.more].map((x) => x.id)).not.toContain('move.finish');
   });
   it('a Drawing plan with no record of what it holds keeps 7.3.0\'s lower "next move" to-do with "Not now", and says no share', () => {
-    const raw = copy(C['03-gilt-ladder-runup']);
+    const raw = copy(C['20-locked-start-after-stop']);
     raw.holdings = null;
     const e = entryOf(raw, TODAY);
     const h = homeOf([e], e.plan.id, { today: TODAY });

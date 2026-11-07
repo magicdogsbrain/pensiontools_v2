@@ -95,7 +95,7 @@ describe('Month by month, drawn', () => {
   });
 
   it('a bought ladder: where the money comes from, nothing sold', () => {
-    const { root, words } = at('03-gilt-ladder-runup', '2026-10-02');
+    const { root, words } = at('20-locked-start-after-stop', '2026-10-02');
     expect(one(root, `${T}.from`).querySelector('[data-from]').getAttribute('data-from')).toBe('cashBefore');
     expect(words).toContain('Nothing is sold');
     clean(words);

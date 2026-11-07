@@ -23,7 +23,7 @@ const asStored = ({ id, ...fields }) => ({ id, ...fromValue(toValue(fields)) });
 
 function plans() {
   const late = read('07-pre-6.13-flat-params');
-  const locked = read('03-gilt-ladder-runup');
+  const locked = read('20-locked-start-after-stop');
   delete locked.stressTool.settings.stoppedWork;
   delete late.household; delete locked.household;
   return [

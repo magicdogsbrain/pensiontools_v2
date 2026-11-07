@@ -37,7 +37,7 @@ function draftPlan() {
   return plan;
 }
 function lockedPlan() {
-  const plan = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '03-gilt-ladder-runup.json'), 'utf8'));
+  const plan = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8'));
   plan.id = 'LastsLocked02';
   plan.isActive = false;
   return plan;

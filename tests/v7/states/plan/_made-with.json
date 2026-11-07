@@ -12,7 +12,7 @@
   ],
   "plans": [
     "tests/fixtures/plans/02-pnv-draft.json (Alex’s plan)",
-    "tests/fixtures/plans/03-gilt-ladder-runup.json (Sam’s plan, locked)",
+    "tests/fixtures/plans/20-locked-start-after-stop.json (Sam’s plan, locked)",
     "tests/fixtures/plans/01-fresh-default.json (Alex’s first plan)",
     "tests/fixtures/plans/04-buckets-running.json (Sam’s plan, locked, Buckets in order)",
     "tests/fixtures/plans/07-pre-6.13-flat-params.json (Alex’s rotation plan)",

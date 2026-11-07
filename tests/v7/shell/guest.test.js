@@ -36,7 +36,7 @@ const tick = async (n = 8) => { for (let i = 0; i < n; i++) await new Promise((r
 const copy = (v) => JSON.parse(JSON.stringify(v));
 const DRAFT = C['02-pnv-draft'];
 const FRESH = C['01-fresh-default'];
-const LADDER = C['03-gilt-ladder-runup'];
+const LADDER = C['20-locked-start-after-stop'];
 const EXAMPLE = { ...copy(C['11-guest-demo']), id: 'guest-example1', example: true, isActive: false };
 const notActive = (p) => ({ ...copy(p), isActive: false });
 

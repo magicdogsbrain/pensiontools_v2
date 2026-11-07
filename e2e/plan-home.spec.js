@@ -122,7 +122,7 @@ test.describe('a plan\'s home', () => {
 
   test('a ladder recording its months while short of its rungs (7.3.1): Drawing; the share held said under "Where you are", the move one link away, no move to-do; nothing written', async ({ page }, testInfo) => {
     const LADDER = 'HomeLadder03';
-    const before = await plant(page, [planted('03-gilt-ladder-runup.json', LADDER, 'Sam’s ladder'), ...plans()]);
+    const before = await plant(page, [planted('20-locked-start-after-stop.json', LADDER, 'Sam’s ladder'), ...plans()]);
     await page.goto(v7('#/plan/' + LADDER));
     await expect(page.getByTestId(T)).toBeVisible();
     await expect(page.getByTestId(`${T}.headline`)).toHaveText('Drawing.');

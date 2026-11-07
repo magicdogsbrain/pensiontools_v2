@@ -70,7 +70,7 @@ describe('a gilt-ladder plan: the line says what the ladder is bought from', () 
   const corpus = (f) => JSON.parse(readFileSync(join(process.cwd(), 'tests', 'fixtures', 'plans', f), 'utf8'));
   const NOW = new Date('2026-09-30T08:00:00Z');
   const cases = [];
-  for (const f of ['03-gilt-ladder-runup.json', '07-pre-6.13-flat-params.json']) {
+  for (const f of ['20-locked-start-after-stop.json', '07-pre-6.13-flat-params.json']) {
     const S = corpus(f).stressTool.settings;
     cases.push([f + ' as saved', S]);
     cases.push([f + ' unpinned, ISA used', { ...S, strategyParams: { ...(S.strategyParams || {}), sippTotal: 0, isaTotal: 0 }, isaDrawdownStrategy: 'efficient' }]);
@@ -98,7 +98,7 @@ describe('a gilt-ladder plan: the line says what the ladder is bought from', () 
     });
   }
   it('with the money left over in shares, the line says so (not "not grown"), and that the charges come off it; the rotation adds that it fills a cut year', () => {
-    const S0 = { ...corpus('03-gilt-ladder-runup.json').stressTool.settings, chargesPct: 0.25 };
+    const S0 = { ...corpus('20-locked-start-after-stop.json').stressTool.settings, chargesPct: 0.25 };
     for (const id of ['full-il-gilt', 'gilt-rotation']) {
       const S = { ...S0, strategyId: id, strategyParams: { ...(S0.strategyParams || {}), spareGrowth: true } };
       const text = plain(startSummaryHtml(S, {}));
@@ -110,7 +110,7 @@ describe('a gilt-ladder plan: the line says what the ladder is bought from', () 
     }
   });
   it('a growth strategy keeps its own line', () => {
-    const S = { ...corpus('03-gilt-ladder-runup.json').stressTool.settings, strategyId: 'pots-and-valves' };
+    const S = { ...corpus('20-locked-start-after-stop.json').stressTool.settings, strategyId: 'pots-and-valves' };
     expect(plain(startSummaryHtml(S, {}))).toContain('Starting balances come from your Settings (Fund Minimums)');
   });
 });

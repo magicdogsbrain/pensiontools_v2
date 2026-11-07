@@ -506,7 +506,7 @@ describe('PROT1 — a contract strategy (a bought gilt ladder) is never cut by t
     expect(html).toContain('engineDeps(setup, {');
     expect(html).toContain("const CONTRACT_IDS = ['full-il-gilt', 'gilt-rotation', 'floor-the-schedule'];");
     expect(readFileSync(join(root, 'src/services/DecisionOverlay.js'), 'utf8')).toContain("export const CONTRACT_IDS = Object.freeze(['full-il-gilt', 'gilt-rotation', 'floor-the-schedule']);");
-    const fx = JSON.parse(readFileSync(join(root, 'tests/fixtures/plans/03-gilt-ladder-runup.json'), 'utf8'));
+    const fx = JSON.parse(readFileSync(join(root, 'tests/fixtures/plans/20-locked-start-after-stop.json'), 'utf8'));
     const recs = Object.values(fx.decisionTool.history || {}).flat().filter((h) => h && h.date);
     expect(recs.length).toBeGreaterThanOrEqual(3);
     expect(recs.every((h) => h.inProtection === false)).toBe(true);

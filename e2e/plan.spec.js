@@ -31,7 +31,7 @@ const OWN_KEYS = new Set(['pt_v7_draft', 'pt_lastActivity', OPEN_PLACE_KEY, OPEN
 /** The linked pair, from the corpus (tests/v7/plan/_plans.js household()). */
 function household() {
   const load = (f) => JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', f), 'utf8'));
-  const ladder = load('03-gilt-ladder-runup.json');
+  const ladder = load('20-locked-start-after-stop.json');
   const saver = load('05-saver-committed.json');
   ladder.id = 'HouseLadder01'; ladder.planDetails.name = 'Ladder plan'; ladder.isActive = true; ladder.household = { partnerScenarioId: 'HouseSaver02' };
   saver.id = 'HouseSaver02'; saver.planDetails.name = 'Saving plan'; saver.isActive = false;

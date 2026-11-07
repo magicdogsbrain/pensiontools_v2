@@ -34,7 +34,7 @@ const NOW = new Date('2026-10-02T14:03:00.000Z');
 const tick = async (n = 8) => { for (let i = 0; i < n; i++) await new Promise((r) => setTimeout(r, 0)); };
 const copy = (v) => JSON.parse(JSON.stringify(v));
 const DRAFT = C['02-pnv-draft'];
-const LADDER = C['03-gilt-ladder-runup'];
+const LADDER = C['20-locked-start-after-stop'];
 
 function storage(start = {}) {
   const map = new Map(Object.entries(start));

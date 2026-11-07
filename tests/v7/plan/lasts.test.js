@@ -36,7 +36,7 @@ const isLocked = (p) => !!(p.decisionTool && p.decisionTool.settings && p.decisi
 const EDITABLE = Object.values(C).filter((p) => !isLocked(p) && !laterDraftReading(entryOf(p).plan, { now: noon(TODAY) }));
 const LUMPY = C['12-lumpy-db-gia'];
 const ROTATION = C['07-pre-6.13-flat-params'];
-const LADDER = C['03-gilt-ladder-runup'];
+const LADDER = C['20-locked-start-after-stop'];
 const FRESH = C['01-fresh-default'];
 const S = 'stressTool.settings.';
 const KEYS = ['disableProtection', 'consecutiveLimit', 'protectionMult', 'protectionEscalateMonths', 'recoveryBuffer', 'hodlEnabled', 'hodlValue'];

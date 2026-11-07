@@ -14,7 +14,7 @@ import { askBeforeMonthLocks, decisionLockQuestionHtml, LOCKED_FROM_DECISION } f
 
 const NOW = new Date(2026, 9, 2);   // 2 October 2026
 const saver = JSON.parse(readFileSync('tests/fixtures/plans/05-saver-committed.json', 'utf8'));   // 48, retiring at 60
-const ladder = JSON.parse(readFileSync('tests/fixtures/plans/03-gilt-ladder-runup.json', 'utf8'));   // retired, run-up
+const ladder = JSON.parse(readFileSync('tests/fixtures/plans/20-locked-start-after-stop.json', 'utf8'));   // retired, run-up
 const unlocked = (p) => ({ ...p, decisionTool: { ...p.decisionTool, settings: { ...p.decisionTool.settings, locked: false }, history: [], taxYears: {} } });
 const stageOf = (p) => deriveStage(p, NOW);
 

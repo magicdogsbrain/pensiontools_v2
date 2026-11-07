@@ -220,7 +220,7 @@ describe('the saver 10: what the page says, and what typing does', () => {
 describe('the locked ladder, a plan shown as saved, the household pair, a plan not found, a window without an account', () => {
   const entries = entriesAt(TODAY);
   it('03 locked: the figures, "Fixed when you locked the plan on 1 July 2026." once, the unlock sentence once, "See these" on the plan page, no box but "When did you stop work?" (6.53.0)', () => {
-    const { root, text } = draw(aboutState(entries, C['03-gilt-ladder-runup'].id));
+    const { root, text } = draw(aboutState(entries, C['20-locked-start-after-stop'].id));
     // the plan does not say when work stopped: that one question, once, its month box the only box
     expect([...root.querySelectorAll('input, select, textarea')].map((b) => b.id)).toEqual(['plan.about.lockedStopMonth']);
     expect(root.querySelector('[data-testid="plan.about.stopAsk"]').textContent).toContain('When did you stop work?');
@@ -228,12 +228,12 @@ describe('the locked ladder, a plan shown as saved, the household pair, a plan n
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);
     expect(root.querySelector('[data-saved-for="age"]').textContent).toBe('64');
     expect(text).toContain('Your plan runs 20 years, from April 2027 to age 85.');
-    expect(root.querySelector('[data-testid="plan.about.back"]').getAttribute('href')).toBe('#/plan/' + C['03-gilt-ladder-runup'].id + '/plan');
-    const page = draw(stateWith(entries, '#/plan/' + C['03-gilt-ladder-runup'].id + '/plan'));
+    expect(root.querySelector('[data-testid="plan.about.back"]').getAttribute('href')).toBe('#/plan/' + C['20-locked-start-after-stop'].id + '/plan');
+    const page = draw(stateWith(entries, '#/plan/' + C['20-locked-start-after-stop'].id + '/plan'));
     expect(page.root.querySelector('[data-testid="plan.plan.edit.about"]').textContent).toBe('See these');
   });
   it('03 locked: the month box has its own help and errors, never the unlocked step\'s (which speak of choices this page does not have)', () => {
-    const id = C['03-gilt-ladder-runup'].id;
+    const id = C['20-locked-start-after-stop'].id;
     const help = draw(aboutState(entries, id)).root.querySelector('[data-field="lockedStopMonth"] .help').textContent;
     expect(help).toBe('Like 2023-10, or October 2023.');
     expect(help).not.toMatch(/choose a later one below/);
@@ -244,7 +244,7 @@ describe('the locked ladder, a plan shown as saved, the household pair, a plan n
     expect(unread).toBe('That is not a month we can read: try 2023-10 or October 2023.');
   });
   it('03 locked, after "Leave it": still asked while its start is later than this tax year (7.4.0), with "I\'m already drawing" beside it and no "Leave it"', () => {
-    const id = C['03-gilt-ladder-runup'].id;
+    const id = C['20-locked-start-after-stop'].id;
     const left = entries.map((e) => (e.plan.id === id ? { ...e, plan: { ...e.plan, stressTool: { ...e.plan.stressTool, settings: { ...e.plan.stressTool.settings, stopMonthLeft: true } } } } : e));
     const { root, actions } = draw(aboutState(left, id));
     expect(root.querySelector('[data-testid="plan.about.stopAsk"]')).not.toBe(null);
@@ -259,7 +259,7 @@ describe('the locked ladder, a plan shown as saved, the household pair, a plan n
     expect([...root.querySelectorAll('input, select, textarea')].map((b) => b.id)).toEqual(['plan.about.lockedStopMonth']);
   });
   it('03 locked, the month said: the move is offered here; its confirm on the page, line by line; "Move the start to 2023/24" sends it; no Undo after (6.55.0)', () => {
-    const id = C['03-gilt-ladder-runup'].id;
+    const id = C['20-locked-start-after-stop'].id;
     const said = entries.map((e) => (e.plan.id === id ? { ...e, plan: { ...e.plan, stressTool: { ...e.plan.stressTool, settings: { ...e.plan.stressTool.settings, stoppedWork: '2023-10' } } } } : e));
     const closed = draw(aboutState(said, id));
     const offer = closed.root.querySelector('[data-testid="plan.about.moveStart"]');

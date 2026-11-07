@@ -141,7 +141,7 @@ test.describe('V7 cannot change a plan', () => {
   const STEP11_KEYS = ['pt_lastSeenVersion', 'pt_guest_minutes', 'pt_guest_nag_level'];
 
   test('a locked plan in guest storage is byte-identical after every address is visited', async ({ page }) => {
-    const plan = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '03-gilt-ladder-runup.json'), 'utf8'));
+    const plan = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8'));
     expect(plan.decisionTool, 'corpus plan 03 is the locked fixture').toBeTruthy();
     expect(plan.planDocument, 'corpus plan 03 carries a plan document').toBeTruthy();
     const stored = JSON.stringify([plan]);

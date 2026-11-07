@@ -24,7 +24,7 @@ const PASTE = 'Investment\tTicker\tUnits\tValue\niShares Core MSCI World\tSWDA\t
 
 function plans() {
   const alex = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '12-lumpy-db-gia.json'), 'utf8'));
-  const sam = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '03-gilt-ladder-runup.json'), 'utf8'));
+  const sam = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8'));
   alex.id = 'HoldPlan01'; alex.planDetails.name = 'Alex’s plan'; alex.isActive = true; delete alex.household;
   sam.id = 'HoldLocked02'; sam.planDetails.name = 'Sam’s plan'; sam.isActive = false; delete sam.household;
   return { alex, sam };

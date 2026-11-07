@@ -193,7 +193,7 @@ describe('a retired draft saved with a later start is read from the earlier one,
     for (const fty of [2026, 2025, 2023]) expect(laterDraftOf(samDraft({ fty }), samDraft({ fty }).stressTool.settings, NOW)).toBeNull();
   });
   it('every plan of the corpus whose year 0 is not later reads byte for byte as the settings it reads without the draft rule', () => {
-    for (const f of ['01-fresh-default', '02-pnv-draft', '09-couple-a', '12-lumpy-db-gia', '03-gilt-ladder-runup', '04-buckets-running', '05-saver-committed', '06-pre-6.4-no-timing', '10-couple-b', '11-guest-demo', '13-stopped-drawing-since', '18-moved-to-new-plan', '18-moved-to-new-plan-next', '19-back-to-work', '19-back-to-work-saving']) {
+    for (const f of ['01-fresh-default', '02-pnv-draft', '09-couple-a', '12-lumpy-db-gia', '20-locked-start-after-stop', '04-buckets-running', '05-saver-committed', '06-pre-6.4-no-timing', '10-couple-b', '11-guest-demo', '13-stopped-drawing-since', '18-moved-to-new-plan', '18-moved-to-new-plan-next', '19-back-to-work', '19-back-to-work-saving']) {
       const p = up(read(f));
       expect(laterDraftReading(p, { now: NOW }), f).toBeNull();
     }
@@ -309,7 +309,7 @@ describe('a locked plan that never saved its year 0 keeps the year it was locked
 
 /** Fixture 03 (Alex, fictional: a gilt ladder locked to start in 2027/28), as the planner reads it. */
 function alex(edit = null) {
-  const raw = read('03-gilt-ladder-runup');
+  const raw = read('20-locked-start-after-stop');
   delete raw.stressTool.settings.stoppedWork;
   if (edit) edit(raw);
   return up(raw);

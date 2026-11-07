@@ -58,7 +58,7 @@ describe('the step itself', () => {
     expect(MIGRATIONS[1].to).toBe(2);   // the shipped steps are still there, unchanged in place
   });
   it('the corpus has locked and unlocked plans to test it on', () => {
-    expect(LOCKED).toEqual(['03-gilt-ladder-runup.json', '04-buckets-running.json', '05-saver-committed.json', '06-pre-6.4-no-timing.json']);
+    expect(LOCKED).toEqual(['04-buckets-running.json', '05-saver-committed.json', '06-pre-6.4-no-timing.json', '20-locked-start-after-stop.json']);   // 20: 03 as it was (7.4.2)
     expect(UNLOCKED.length).toBe(8);
   });
 });
@@ -116,7 +116,7 @@ describe('a LOCKED plan is not touched at all', () => {
     });
   }
   it('a locked plan that already carries a choice keeps it as it is', () => {
-    const s = atV2('03-gilt-ladder-runup.json'); s.stressTool.settings.isaGrowth = 'invested';
+    const s = atV2('20-locked-start-after-stop.json'); s.stressTool.settings.isaGrowth = 'invested';
     expect(migrateScenario(s, { now: NOW }).scenario.stressTool.settings.isaGrowth).toBe('invested');
   });
   it('the runner refuses a step 3 that would touch a locked plan\'s Stress settings', () => {

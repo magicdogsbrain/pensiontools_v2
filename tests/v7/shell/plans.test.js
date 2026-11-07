@@ -108,7 +108,7 @@ const askDelete = (p, plan) => {
 };
 
 const DRAFT = C['02-pnv-draft'];           // unlocked, active
-const LADDER = C['03-gilt-ladder-runup'];  // locked, records
+const LADDER = C['20-locked-start-after-stop'];  // locked, records
 const FRESH = C['01-fresh-default'];
 const LUMPY = C['12-lumpy-db-gia'];
 const COUPLE_A = C['09-couple-a'];          // linked to COUPLE_B

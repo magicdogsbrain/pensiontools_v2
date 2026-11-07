@@ -145,7 +145,7 @@ describe('every lock path records where the pots stood (the engines step\'s hand
     expect(lockedPotsAsOf(lockedNoDocument(draftC(), new Date(2024, 11, 1, 12)))).toEqual({ elapsedYears: 0, monthsIntoYear: 8 });
     expect(lockedPotsAsOf(lockedNoDocument(draftC(), new Date(2024, 2, 1, 12)))).toBeNull();     // locked before its year 0: nothing recorded
     expect(lockedPotsAsOf({ decisionTool: { settings: { locked: true } }, stressTool: { settings: {} } })).toBeNull();   // no date
-    for (const name of ['03-gilt-ladder-runup', '04-buckets-running', '05-saver-committed', '06-pre-6.4-no-timing']) {
+    for (const name of ['20-locked-start-after-stop', '04-buckets-running', '05-saver-committed', '06-pre-6.4-no-timing']) {
       const raw = read(name); const { planDocument: _d, ...bare } = raw;
       expect(lockedPotsAsOf(bare), name).toBeNull();
     }

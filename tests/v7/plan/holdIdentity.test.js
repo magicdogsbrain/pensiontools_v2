@@ -53,7 +53,7 @@ const r0 = (v) => Math.round(v || 0);
 // its name in its account (HoldingsPaste.mergeLedger), and 13 is gated like the others; so are the two plans of 18 (6.56.0),
 // the closed plan and the plan that carries it on, and the two of 19 (back to work: research/plan-start.md §2 J), the drawing
 // plan closed and the saving plan its record moved to.
-const WITH_RECORD = ['03-gilt-ladder-runup', '04-buckets-running', '05-saver-committed', '12-lumpy-db-gia', '13-stopped-drawing-since', '18-moved-to-new-plan-next', '18-moved-to-new-plan', '19-back-to-work-saving', '19-back-to-work'];
+const WITH_RECORD = ['03-gilt-ladder-locked', '04-buckets-running', '05-saver-committed', '12-lumpy-db-gia', '13-stopped-drawing-since', '18-moved-to-new-plan-next', '18-moved-to-new-plan', '19-back-to-work-saving', '19-back-to-work', '20-locked-start-after-stop'];
 const pinned = existsSync(PINS) ? JSON.parse(readFileSync(PINS, 'utf8')) : null;
 const made = {};
 
@@ -69,7 +69,7 @@ describe('gate 10 — the record round-trips byte for byte, and the move reads a
   it('the fixtures with a record are the four the design names and the starting situation 13', () => {
     const withRecord = Object.entries(C).filter(([, raw]) => raw.holdings && Array.isArray(raw.holdings.lines) && raw.holdings.lines.length).map(([n]) => n);
     expect(withRecord).toEqual(WITH_RECORD);
-    expect(C['03-gilt-ladder-runup'].holdings.lines).toHaveLength(8);
+    expect(C['20-locked-start-after-stop'].holdings.lines).toHaveLength(8);
   });
 
   for (const name of WITH_RECORD) {
@@ -124,7 +124,7 @@ describe('gate 10 — the record round-trips byte for byte, and the move reads a
     });
   }
 
-  for (const name of ['03-gilt-ladder-runup', '04-buckets-running', '05-saver-committed']) {
+  for (const name of ['20-locked-start-after-stop', '04-buckets-running', '05-saver-committed']) {
     it(`${name}: the buy, sell and held lists, the progress and the schedule equal TransitionPlanner with the same today; the order sheet equals the document's orders; a tick round-trips`, () => {
       const plan = entryOf(C[name]).plan;
       const rec = normaliseHoldings(plan.holdings);

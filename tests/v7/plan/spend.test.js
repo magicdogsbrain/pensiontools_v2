@@ -104,7 +104,7 @@ describe('S1 — the reading, on every corpus plan at three dates', () => {
     expect(s.steps).toEqual([]);
     expect(s.costs).toEqual([]);
     expect(s.schedule.length).toBe(s.duration + 1);
-    const l = savedSpend(entryOf(C['03-gilt-ladder-runup']).plan, { today: TODAY });
+    const l = savedSpend(entryOf(C['20-locked-start-after-stop']).plan, { today: TODAY });
     expect(l.locked).toBe(true);
     expect(l.first).toMatchObject({ fromAge: 66, amount: 34000 });
     expect(l.steps.map((x) => [x.fromAge, x.amount, x.then, x.fallsPct])).toEqual([[72, 29000, 'level', null], [79, 24000, 'falls', 1]]);
@@ -230,7 +230,7 @@ describe('S1 — the write: the planner\'s keys, as its Save writes them', () =>
     expect(q.patch['stressTool.settings.incomeSteps'].slice(1)).toEqual(eff.incomeSteps.slice(1));
   });
   it('a locked plan: no patch, whatever is typed', () => {
-    const locked = entryOf(C['03-gilt-ladder-runup']).plan;
+    const locked = entryOf(C['20-locked-start-after-stop']).plan;
     expect(spendPatch(locked, { 'first.amount': '3000' }, { today: TODAY })).toEqual({ ok: false, errors: { plan: 'locked' }, patch: {}, previous: {} });
   });
   it('the problems, in their ids', () => {

@@ -90,7 +90,7 @@ function lastsState(entries, id, { today = TODAY, typed = {}, touched = [], aske
 }
 const LUMPY = C['12-lumpy-db-gia'];
 const ROTATION = C['07-pre-6.13-flat-params'];
-const LADDER = C['03-gilt-ladder-runup'];
+const LADDER = C['20-locked-start-after-stop'];
 const BUCKETS = C['04-buckets-running'];
 
 describe('every corpus plan at three dates, with a result: the band, the rows, the history, the boxes, the sources, the words', () => {

@@ -253,7 +253,7 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
 describe('the locked ladder, a plan shown as saved, the household pair, a plan not found', () => {
   const entries = entriesAt(TODAY);
   it('03 locked: the figures and the picture, "Fixed when you locked the plan on 1 July 2026." once, the unlock sentence once, the budget guide still there, "See these" on the plan page, no box', () => {
-    const { root, text } = draw(spendState(entries, C['03-gilt-ladder-runup'].id));
+    const { root, text } = draw(spendState(entries, C['20-locked-start-after-stop'].id));
     expect(root.querySelector('input, select, textarea')).toBe(null);
     expect((text.match(/Fixed when you locked the plan on 1 July 2026\./g) || []).length).toBe(1);
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);
@@ -262,8 +262,8 @@ describe('the locked ladder, a plan shown as saved, the household pair, a plan n
     expect(root.querySelector('[data-testid="plan.spend.shape.chart"]')).not.toBe(null);
     expect(root.querySelector('[data-testid="plan.spend.budget.change"]')).not.toBe(null);
     expect(root.querySelector('[data-testid="plan.spend.budget.use"]')).toBe(null);
-    expect(root.querySelector('[data-testid="plan.spend.back"]').getAttribute('href')).toBe('#/plan/' + C['03-gilt-ladder-runup'].id + '/plan');
-    const page = draw(stateWith(entries, '#/plan/' + C['03-gilt-ladder-runup'].id + '/plan'));
+    expect(root.querySelector('[data-testid="plan.spend.back"]').getAttribute('href')).toBe('#/plan/' + C['20-locked-start-after-stop'].id + '/plan');
+    const page = draw(stateWith(entries, '#/plan/' + C['20-locked-start-after-stop'].id + '/plan'));
     expect(page.root.querySelector('[data-testid="plan.plan.edit.pays"]').textContent).toBe('See these');
   });
   it('a plan shown as saved: no box, the sentence', () => {

@@ -56,7 +56,7 @@ async function oldWordsOn(page, text) {
   return m ? [m[0] + ' — "' + t.slice(Math.max(0, m.index - 60), m.index + 60).replace(/\s+/g, ' ') + '"'] : [];
 }
 
-for (const name of ['03-gilt-ladder-runup', '04-buckets-running', '07-pre-6.13-flat-params']) {
+for (const name of ['20-locked-start-after-stop', '04-buckets-running', '07-pre-6.13-flat-params']) {
   test(`${name}: no words for months before the plan on the new app's pages`, async ({ page, watch }) => {
     test.setTimeout(240_000);
     watch.allow(WORKER_DATA_MISSING);
@@ -94,7 +94,7 @@ for (const name of ['03-gilt-ladder-runup', '04-buckets-running', '07-pre-6.13-f
 test('03 on the new app: one thing to do, first — say when work stopped; then the move, opened from the home', async ({ page, watch }) => {
   test.setTimeout(240_000);
   watch.allow(WORKER_DATA_MISSING);
-  const plan = planOf('03-gilt-ladder-runup');
+  const plan = planOf('20-locked-start-after-stop');
   await seed(page, plan);
   await page.goto(PROD + V7_PATH + '#/plan/' + plan.id);
   const first = page.locator('#app .home-item').first();
@@ -106,7 +106,7 @@ test('03 on the new app: one thing to do, first — say when work stopped; then 
   await expect(page.getByTestId('plan.about.stopAsk')).toContainText('When did you stop work?', { timeout: 45_000 });
 
   // said (stored as the question would store it): the to-do becomes the move, and its button opens it
-  await page.evaluate(([k, text]) => sessionStorage.setItem(k, text), [GUEST_KEY, JSON.stringify([planOf('03-gilt-ladder-runup', { stoppedWork: '2026-05' })])]);
+  await page.evaluate(([k, text]) => sessionStorage.setItem(k, text), [GUEST_KEY, JSON.stringify([planOf('20-locked-start-after-stop', { stoppedWork: '2026-05' })])]);
   await page.goto(PROD + V7_PATH + '#/plan/' + plan.id);
   await page.reload();   // the window's plans are read when the page loads
   const moved = page.locator('#app .home-item').first();
@@ -130,7 +130,7 @@ test('03 on the new app: one thing to do, first — say when work stopped; then 
 test('03 in the planner: the next-step banner says the same thing to do, and opens the line that moves the start', async ({ page, watch }) => {
   test.setTimeout(240_000);
   watch.allow(WORKER_DATA_MISSING);
-  const plan = planOf('03-gilt-ladder-runup', { stoppedWork: '2026-05' });
+  const plan = planOf('20-locked-start-after-stop', { stoppedWork: '2026-05' });
   await seed(page, plan);
   await intoPlanner(page, plan, 'month');
   const banner = page.locator('#nextStepBanner');

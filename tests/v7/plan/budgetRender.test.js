@@ -212,7 +212,7 @@ describe('the budget on a saved plan, drawn', () => {
   });
 
   it('a locked plan is editable (the budget is outside the lock) and says so; a plan shown as saved has no box; the toast with Undo, the problem line', () => {
-    const lockedRaw = withBudget(C['03-gilt-ladder-runup']);
+    const lockedRaw = withBudget(C['20-locked-start-after-stop']);
     const locked = [entryOf(lockedRaw, TODAY)];
     const { root } = draw(stateWith(locked, '#/plan/' + lockedRaw.id + '/budget'));
     expect(one(root, `${T}.locked`).textContent).toBe(W.locked);

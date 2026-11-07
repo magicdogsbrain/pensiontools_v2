@@ -293,7 +293,7 @@ describe('step 0 → 1, shape by shape', () => {
 });
 
 describe('a step that fails or breaks a rule leaves the plan exactly as it was', () => {
-  const locked = () => normalised('03-gilt-ladder-runup.json');
+  const locked = () => normalised('20-locked-start-after-stop.json');
   const draft = () => normalised('02-pnv-draft.json');
   const run = (input, up) => migrateScenario(input, { now: NOW, target: 1, migrations: [{ to: 1, name: 'bad', up }] });
   const untouched = (input, m, before) => {

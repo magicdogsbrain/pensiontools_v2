@@ -26,7 +26,7 @@ import { corpus, entryOf, TODAY, noon } from '../plan/_plans.js';
 
 const C = corpus();
 const ALEX = C['02-pnv-draft'];
-const LOCKED = C['03-gilt-ladder-runup'];
+const LOCKED = C['20-locked-start-after-stop'];
 const tick = async (n = 6) => { for (let i = 0; i < n; i++) await new Promise((r) => setTimeout(r, 0)); };
 const copy = (v) => JSON.parse(JSON.stringify(v));
 const dialsOf = (id, over = {}) => ({ defaults: over, ranWith: over });

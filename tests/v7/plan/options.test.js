@@ -57,7 +57,7 @@ describe('every saved setting is visible in V7 (the parity rule)', () => {
     }
   });
   it('the rows a plan has moved: the locked ladder shows its lock and its dials; a fresh plan shows almost nothing', () => {
-    const ladder = entryOf(C['03-gilt-ladder-runup']).plan;
+    const ladder = entryOf(C['20-locked-start-after-stop']).plan;
     const set = optionsFor(effectiveStressSettings(ladder, { now: noon(TODAY) }), ladder.decisionTool.settings, ladder).map((r) => r.id);
     expect(set).toContain('lock.lock');
     const fresh = entryOf(C['01-fresh-default']).plan;

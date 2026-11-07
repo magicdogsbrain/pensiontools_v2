@@ -104,18 +104,18 @@ describe('T1 — the reading, on every corpus plan at three dates', () => {
     expect(f.derived.map((d) => d.id)).not.toContain('stop.projection');
   });
   it('a locked plan (03, a gilt ladder): the document\'s pots and assumptions, the dial it is sized on, the parts a bought strategy ignores; 06 (locked before charges and the ISA choice) says so and never gains a key', () => {
-    const l = savedPots(entryOf(C['03-gilt-ladder-runup']).plan, { today: TODAY });
+    const l = savedPots(entryOf(C['20-locked-start-after-stop']).plan, { today: TODAY });
     expect(l.locked).toBe(true);
     expect(l.bought).toBe(true);
     expect(l.pinned).toEqual({ sipp: 640000, isa: 35000 });
     expect(l.values).toMatchObject({ pension: 640000, isa: 35000, isaUse: 'minimiseEarlyTax', charges: 0, pa: 12570 });
-    const v = potsOf(entriesAt(TODAY), C['03-gilt-ladder-runup'].id, { today: TODAY });
+    const v = potsOf(entriesAt(TODAY), C['20-locked-start-after-stop'].id, { today: TODAY });
     expect(v.notUsed).toEqual(['taxFree', 'ufplsYears', 'ufplsThenIsa', 'bandFill', 'earnings', 'bedAndIsa']);
     expect(v.useNotes).toMatchObject({ pension: 'pinned', isa: 'pinned', isaGrowth: 'isaGrowthLocked' });   // locked before the choice: that note wins over the bought one
     expect(v.derived.map((d) => d.id)).toContain('pots.pinned');
     expect(v.derived.map((d) => d.id)).toContain('isa.use.minimiseEarlyTax');
     // the same ladder locked with its ISA held aside: a bought strategy never draws a held ISA, so no "rescue" line
-    const held = JSON.parse(JSON.stringify(C['03-gilt-ladder-runup']));
+    const held = JSON.parse(JSON.stringify(C['20-locked-start-after-stop']));
     held.planDocument.pots.isaPolicy = 'hold'; held.stressTool.settings.isaDrawdownStrategy = 'hold';
     const hv = potsOf(entriesAt(TODAY, [held]), held.id, { today: TODAY });
     expect(hv.derived.map((d) => d.id)).toContain('isa.use.holdBought');
@@ -245,7 +245,7 @@ describe('T1 — the write: the planner\'s keys, as its Save writes them', () =>
     expect(v.derived.map((d) => d.id)).not.toContain('stop.none');
   });
   it('a locked plan: no patch, whatever is typed', () => {
-    expect(potsPatch(entryOf(C['03-gilt-ladder-runup']).plan, { pension: '1' }, { today: TODAY })).toEqual({ ok: false, errors: { plan: 'locked' }, patch: {}, previous: {} });
+    expect(potsPatch(entryOf(C['20-locked-start-after-stop']).plan, { pension: '1' }, { today: TODAY })).toEqual({ ok: false, errors: { plan: 'locked' }, patch: {}, previous: {} });
   });
   it('the problems, in their ids', () => {
     const errs = (typed) => checkPots(plan, typed, { today: TODAY }).errors;

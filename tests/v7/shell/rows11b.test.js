@@ -67,7 +67,7 @@ function page({ raws, planId, step, session = 'in', typed = {}, fb = fakeLite(),
 }
 
 const RAW = withBudget(C['12-lumpy-db-gia']);
-const LOCKED = withBudget(C['03-gilt-ladder-runup']);
+const LOCKED = withBudget(C['20-locked-start-after-stop']);
 const SAVER = C['05-saver-committed'];
 
 describe('the budget on a saved plan: one write of the whole budget', () => {

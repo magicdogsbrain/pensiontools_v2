@@ -19,10 +19,10 @@ const lineText = (line) => (line ? fill(PLAN.stageLines[line.id], line.slots) : 
 
 describe('T1 — the stage of every committed plan, at three dates (your-plan.md "What was run" 4)', () => {
   const EXPECTED = {
-    '2026-10-02': { '01-fresh-default': 'unknown', '02-pnv-draft': 'draft-retired', '03-gilt-ladder-runup': 'running', '04-buckets-running': 'running', '05-saver-committed': 'committed-saving',
+    '2026-10-02': { '01-fresh-default': 'unknown', '02-pnv-draft': 'draft-retired', '20-locked-start-after-stop': 'running', '04-buckets-running': 'running', '05-saver-committed': 'committed-saving',
       '06-pre-6.4-no-timing': 'running', '07-pre-6.13-flat-params': 'draft-retired', '08-dotted-keys': 'unknown', '09-couple-a': 'draft-retired', '10-couple-b': 'approaching', '11-guest-demo': 'draft-retired', '12-lumpy-db-gia': 'draft-retired' },
-    '2027-04-05': { '03-gilt-ladder-runup': 'running' },   // 7.4.2: a locked retired plan is running whatever its stored start
-    '2027-04-06': { '03-gilt-ladder-runup': 'running' }
+    '2027-04-05': { '20-locked-start-after-stop': 'running' },   // 7.4.2: a locked retired plan is running whatever its stored start
+    '2027-04-06': { '20-locked-start-after-stop': 'running' }
   };
   // The starting situation 13 (6.51.0, research/plan-start.md §7: "the new C fixture is running at all three dates"): year 0
   // the tax year Alex stopped work in, locked then, living on the plan since — running, whatever the date.
@@ -39,7 +39,7 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
   // placing beside its word — derived from the facts only. 7.3.1: a locked plan recording months is Drawing whatever it
   // holds; one short of its mix is Moving only before its first month; a plan with nothing to move is Drawing
   const WORD = { unknown: null, 'draft-retired': 'drawing', 'committed-saving': 'saving', approaching: 'saving', saving: 'saving', closed: 'closed' };
-  const SHORT = ['03-gilt-ladder-runup', '13-stopped-drawing-since'];   // what they hold is short of the ladder the plan bought
+  const SHORT = ['20-locked-start-after-stop', '13-stopped-drawing-since'];   // what they hold is short of the ladder the plan bought
   for (const today of DATES) {
     it(`the three-word column at ${today}: Saving, Moving, Drawing (Closed) beside every placing`, () => {
       const entries = entriesAt(today);
@@ -61,7 +61,7 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
     });
   }
   it('the locked ladder moves from bridge to running on 6 April 2027, and never shows a countdown', () => {
-    const l = (today) => lineText(stageLine(planStage(entryOf(C['03-gilt-ladder-runup'], today).plan, { now: noon(today) }), entryOf(C['03-gilt-ladder-runup'], today).plan));
+    const l = (today) => lineText(stageLine(planStage(entryOf(C['20-locked-start-after-stop'], today).plan, { now: noon(today) }), entryOf(C['20-locked-start-after-stop'], today).plan));
     // 03 is placed bridge until 6 April 2027 (research/plan-start.md §7), but from 7.3.3 that placing has no words of its own
     // for the months before its start: it reads as a plan lived on, and says when the ladder's first gilt pays
     expect(l('2026-10-02')).toBe('Retired. Living on the plan; your ladder’s first gilt pays from April 2029.');
@@ -101,7 +101,7 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
     expect(typeof getStressSettingsAsync).toBe('function');
   });
   it('the where-am-I inputs are the planner\'s: history ascending (at most 500), the ladder from the document only, the holdings, the tax years', () => {
-    const plan = entryOf(C['03-gilt-ladder-runup']).plan;
+    const plan = entryOf(C['20-locked-start-after-stop']).plan;
     const i = whereAmIInputs(plan, { now: noon(TODAY) });
     expect(i.history.map((h) => h.date)).toEqual(['2026-07', '2026-08', '2026-09']);
     expect(i.ladderInDocument).toBe(true);
@@ -113,7 +113,7 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
     expect(whereAmIInputs(many, { now: noon(TODAY) }).history.length).toBe(500);
   });
   it('the move inputs read the document\'s target against what is held', () => {
-    const m = moveInputs(entryOf(C['03-gilt-ladder-runup']).plan, { now: noon(TODAY) });
+    const m = moveInputs(entryOf(C['20-locked-start-after-stop']).plan, { now: noon(TODAY) });
     expect(m.target.kind).toBe('ladder');
     expect(m.diff.kind).toBe('ladder');
     expect(moveInputs(entryOf(C['02-pnv-draft']).plan, { now: noon(TODAY) })).toBe(null);
@@ -159,9 +159,9 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
   it('the next sentence: the 2.4 table on the corpus', () => {
     const at = (name, today, step = null) => { const es = entriesAt(today); const id = entryOf(C[name], today).plan.id; return planPage(es, id, step, { today }); };
     // 7.3.3: 03 is stored with its start later than it should be and says no month work stopped: that is asked first
-    expect(at('03-gilt-ladder-runup', '2026-10-02').next.id).toBe('P.startAsk');
-    expect(at('03-gilt-ladder-runup', '2026-10-02').due.map((d) => d.pid).slice(1, 2)).toEqual(['P.month']);   // October 2026 is not recorded
-    expect(at('03-gilt-ladder-runup', '2027-04-06').due.map((d) => d.pid).slice(0, 2)).toEqual(['P.startAsk', 'P.taxyear']);   // 2027/28 is not set up
+    expect(at('20-locked-start-after-stop', '2026-10-02').next.id).toBe('P.startAsk');
+    expect(at('20-locked-start-after-stop', '2026-10-02').due.map((d) => d.pid).slice(1, 2)).toEqual(['P.month']);   // October 2026 is not recorded
+    expect(at('20-locked-start-after-stop', '2027-04-06').due.map((d) => d.pid).slice(0, 2)).toEqual(['P.startAsk', 'P.taxyear']);   // 2027/28 is not set up
     expect(at('05-saver-committed', '2026-10-02').next.id).toBe('P.pot');             // October's pot is not recorded
     expect(at('02-pnv-draft', '2026-10-02').next.id).toBe('P.draft');
     // 7.3.0: an unlocked saver who has never checked in — the first check-in is the design's rank 10, before the info line
@@ -177,7 +177,7 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
   it('the month step: recorded when the latest record is this month or later; P.idle then', () => {
     // 03 with its start already this tax year and no month marked as before it (7.3.3: as stored it shows the move of its
     // start first; this test is about the month and what follows it)
-    const raw = JSON.parse(JSON.stringify(C['03-gilt-ladder-runup']));
+    const raw = JSON.parse(JSON.stringify(C['20-locked-start-after-stop']));
     raw.stressTool.settings.firstTaxYear = 2026; raw.decisionTool.settings.firstTaxYear = 2026;
     for (const h of raw.decisionTool.history) { delete h.bridgeYear; delete h.planStartYear; }
     const plan = entryOf(raw).plan;

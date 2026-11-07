@@ -274,7 +274,7 @@ describe('the write: the check-in, the month\'s pot record, how often, an unlock
     expect(lockedPlanWriteRefusal(locked, { ...data, 'stressTool.settings.baseSalary': 1 }, getDefaultStressSettings())).toEqual(['stress.baseSalary']);
   });
   it('never on a drawing plan: refused before anything is worked out (the stop month makes a saver\'s plan running)', () => {
-    for (const name of ['04-buckets-running', '12-lumpy-db-gia', '03-gilt-ladder-runup']) {
+    for (const name of ['04-buckets-running', '12-lumpy-db-gia', '20-locked-start-after-stop']) {
       const e = entryOf(C[name], '2026-11-05');
       expect(checkInDraft(e.plan, { 'ci.pension': '100000' }, { today: '2026-11-05' })).toEqual({ ok: false, problem: 'notSaving' });
       expect(checkInPatch(e.plan, { 'ci.pension': '100000' }, { today: '2026-11-05', now: at('2026-11-05') }).ok).toBe(false);

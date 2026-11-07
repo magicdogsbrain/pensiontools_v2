@@ -61,7 +61,7 @@ const taxYearKeyOf = (ym) => { const [y, m] = ym.split('-').map(Number); const Y
 
 /** Fixture 03 as the planner reads it, saying Alex stopped work in October 2023 (the month written as a locked plan may). */
 function alex(stop = '2023-10') {
-  const raw = read('03-gilt-ladder-runup');
+  const raw = read('20-locked-start-after-stop');
   if (stop) raw.stressTool.settings.stoppedWork = stop;
   return upgradeScenario(raw, { now: NOW }).scenario;
 }
@@ -409,7 +409,7 @@ describe('the income from the old start on is the figure it was, whatever the fi
 
 describe('the State Pension given as a plan year keeps its tax year (fictional, Alex)', () => {
   const spByYear = (spy) => (raw) => { const s = raw.stressTool.settings; s.spStartDate = null; s.spWeeklyAmount = 0; s.statePension = 12000; s.statePensionYear = spy; };
-  function alexWith(edit) { const raw = read('03-gilt-ladder-runup'); raw.stressTool.settings.stoppedWork = '2023-10'; edit(raw); return upgradeScenario(raw, { now: NOW }).scenario; }
+  function alexWith(edit) { const raw = read('20-locked-start-after-stop'); raw.stressTool.settings.stoppedWork = '2023-10'; edit(raw); return upgradeScenario(raw, { now: NOW }).scenario; }
   const spTaxYear = (s) => s.firstTaxYear + defaultSpYear(s);
   it('the planner\'s default year (12, read as "at 67") is left as it is: it follows the start age, so 2028/29 stays 2028/29', () => {
     const plan = alexWith(spByYear(12));
@@ -482,7 +482,7 @@ describe('Ladder & ratchet and Bridge & engine keep their tax years through a mo
   // years before and after. Before 6.55.0 an unset ladder was worked out again from the moved plan's length and ended a
   // year earlier.
   function drawingBy(id, dials) {
-    const raw = read('03-gilt-ladder-runup');
+    const raw = read('20-locked-start-after-stop');
     raw.stressTool.settings.stoppedWork = '2023-10';
     raw.stressTool.settings.strategyId = id;
     raw.stressTool.settings.strategyParams = { ...(raw.stressTool.settings.strategyParams || {}), ...dials };

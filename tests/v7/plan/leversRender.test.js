@@ -55,7 +55,7 @@ function state(entries, id, { run = 'done', actions = [] } = {}) {
 }
 const entries = entriesAt(TODAY);
 const ALEX = C['02-pnv-draft'].id;
-const LOCKED = C['03-gilt-ladder-runup'].id;
+const LOCKED = C['20-locked-start-after-stop'].id;
 
 describe('"Try a change" on "Does it last?"', () => {
   it('is there once the run is held and fresh: the three levers, each a button; not while the run is under way; no box until a lever is opened', () => {

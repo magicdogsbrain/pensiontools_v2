@@ -84,8 +84,22 @@ describe('plan corpus — the fixture set itself', () => {
     expect(d.stressTool.settings).toMatchObject({ configured: true, strategyId: 'pots-and-valves', retired: true });
     expect(d.decisionTool.settings.locked).toBeFalsy();
   });
-  it('03 is a locked gilt ladder in its run-up with history, a tax year, a plan document, a journey and holdings', () => {
-    const d = load('03-gilt-ladder-runup.json');
+  it('03 is a locked gilt ladder running from the tax year work stopped: cash years its only cash, months recorded as plan months', () => {
+    const d = load('03-gilt-ladder-locked.json');
+    expect(d.decisionTool.settings.locked).toBe(true);
+    expect(d.stressTool.settings).toMatchObject({ strategyId: 'full-il-gilt', firstTaxYear: 2026, stoppedWork: '2026-06' });
+    expect('bridgeCash' in d.stressTool.settings.strategyParams).toBe(false);
+    expect(d.decisionTool.history.length).toBe(3);
+    expect(d.decisionTool.history.every((h) => !('bridgeYear' in h) && h.taxYear === '26/27')).toBe(true);
+    expect(d.planDocument.pots.asOfPlanYear).toBe(0);   // locked in its year 0, after its April, on the plan's own pots
+    expect(['bridgeCash', 'bridgeMonths'].some((k) => k in d.planDocument.assumptions)).toBe(false);
+    expect(d.planDocument.strategy.r.plan.cash).toBeCloseTo(d.planDocument.strategy.r.plan.cashYears.reduce((t, c) => t + c.cost, 0), 6);
+    expect(d.journey.map((j) => j.stage)).not.toContain('bridge');
+    expect(d.holdings.lines.some((l) => l.kind === 'gilt')).toBe(true);
+    expect(snapshot.plans['03-gilt-ladder-locked'].stage).toBe('running');
+  });
+  it('20 is 03 as 7.4.1 saved it, frozen: a locked ladder stored with a later start, records stamped before it, the old placing in its journey', () => {
+    const d = load('20-locked-start-after-stop.json');
     expect(d.decisionTool.settings.locked).toBe(true);
     expect(d.stressTool.settings.strategyId).toBe('full-il-gilt');
     expect(d.decisionTool.history.length).toBeGreaterThanOrEqual(3);
@@ -95,7 +109,7 @@ describe('plan corpus — the fixture set itself', () => {
     expect(d.planDocument.holdingsAtLock.lines.length).toBeGreaterThan(0);
     expect(d.journey.map((j) => j.stage)).toContain('bridge');
     expect(d.holdings.lines.some((l) => l.kind === 'gilt')).toBe(true);
-    expect(snapshot.plans['03-gilt-ladder-runup'].stage).toBe('running');   // 7.4.2: no placing before the start; its journey keeps the old one, only read
+    expect(snapshot.plans['20-locked-start-after-stop'].stage).toBe('running');   // 7.4.2: no placing before the start; its journey keeps the old one, only read
   });
   it('04 is a locked Buckets plan that is running', () => {
     const d = load('04-buckets-running.json');
@@ -202,7 +216,7 @@ describe.each(names)('plan corpus — %s', (n) => {
 // kind that was affected: a pot strategy with a State Pension date, the gilt ladder, a saver whose age was
 // recorded on a date, a legacy plan with no timing, and gilt rotation.
 describe('plan corpus — the time zone does not move an answer', () => {
-  const some = ['02-pnv-draft', '03-gilt-ladder-runup', '05-saver-committed', '06-pre-6.4-no-timing', '07-pre-6.13-flat-params'];
+  const some = ['02-pnv-draft', '20-locked-start-after-stop', '05-saver-committed', '06-pre-6.4-no-timing', '07-pre-6.13-flat-params'];
   const zones = ['UTC', 'America/New_York', 'America/Los_Angeles', 'Pacific/Auckland'];   // New York added 1 Oct 2026 (the plan-seed time-zone review)
   const byZone = {};
   beforeAll(() => {

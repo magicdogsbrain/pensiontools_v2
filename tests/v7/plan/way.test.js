@@ -190,7 +190,7 @@ describe('the cards (cardsOf)', () => {
     expect(v.cards[0].id).toBe('gilt-rotation');
   });
   it('a locked plan with a document: the comparison line on a card that is not the document\'s way, once it has a figure', () => {
-    const sam = entryOf(C['03-gilt-ladder-runup']).plan;
+    const sam = entryOf(C['20-locked-start-after-stop']).plan;
     const r3 = wayOf([{ plan: sam }], sam.id, { today: TODAY });
     expect(r3.locked).toBe(true);
     expect(r3.document).toMatchObject({ lockedOn: expect.any(String) });
@@ -274,7 +274,7 @@ describe('the write (wayPatch): the planner\'s switch, field for field', () => {
     expect(ff.patch['stressTool.settings.strategyParams']).toEqual({ sleeveRate: 0.035 });
   });
   it('a locked plan, an unknown way and a dial with a problem write nothing', () => {
-    const sam = entryOf(C['03-gilt-ladder-runup']).plan;
+    const sam = entryOf(C['20-locked-start-after-stop']).plan;
     expect(wayPatch(sam, 'floor-to-age', {}, { today: TODAY, at: AT })).toMatchObject({ ok: false, errors: { plan: 'locked' }, patch: {} });
     const plan = entryOf(C['02-pnv-draft']).plan;
     expect(wayPatch(plan, 'nothing', {}, { today: TODAY, at: AT })).toMatchObject({ ok: false, errors: { way: 'unknown' }, patch: {} });

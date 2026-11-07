@@ -87,7 +87,7 @@ function page({ raws, planId, session = 'in', typed = {}, local = storage(), ses
 }
 
 const SAVER = C['10-couple-b'];           // unlocked, stopping at 62 (approaching)
-const LOCKED = C['03-gilt-ladder-runup'];
+const LOCKED = C['20-locked-start-after-stop'];
 const STAMP = '2026-10-02T14:03:00.000Z';
 
 describe('a draft saved with a later start (7.4.0): opening writes nothing; its next Save writes the reading with the step\'s change', () => {

@@ -149,7 +149,7 @@ const typePots = (pots) => ({ 'mo.mode': 'type', 'mo.equity': String(pots.equity
 const CASES = [
   { name: '04-buckets-running', today: '2026-10-02', month: '2026-10', pots: { equity: 380000, bond: 150000, cash: 45000, isa: 0 } },
   { name: '04-buckets-running', today: '2026-10-02', month: '2026-11', pots: { equity: 381000, bond: 149500, cash: 43000, isa: 20000 }, label: 'November, with an ISA' },
-  { name: '03-gilt-ladder-runup', today: '2026-10-02', month: '2026-10', pots: { equity: 0, bond: 610000, cash: 52000, isa: 0 } },
+  { name: '20-locked-start-after-stop', today: '2026-10-02', month: '2026-10', pots: { equity: 0, bond: 610000, cash: 52000, isa: 0 } },
   { name: '06-pre-6.4-no-timing', today: '2026-10-02', month: '2026-10', pots: { equity: 300000, bond: 120000, cash: 30000, isa: 0 }, fill: true },
   { name: '13-stopped-drawing-since', today: '2026-10-02', month: '2026-10', pots: { equity: 0, bond: 540000, cash: 31000, isa: 0 }, fill: true, from: '2025-02' },
   { name: '18-moved-to-new-plan', today: '2026-10-02', month: '2025-03', pots: { equity: 260000, bond: 110000, cash: 25000, isa: 0 }, fill: true, from: '2024-01' },
@@ -180,7 +180,7 @@ describe('Month by month: recording a month (and the months filled in) writes wh
   }
 
   it('the month worked out is the classic Calculate, field for field (04, 03, 06)', async () => {
-    for (const c of CASES.filter((x) => ['04-buckets-running', '03-gilt-ladder-runup', '06-pre-6.4-no-timing'].includes(x.name))) {
+    for (const c of CASES.filter((x) => ['04-buckets-running', '20-locked-start-after-stop', '06-pre-6.4-no-timing'].includes(x.name))) {
       const snapshot = await open(fixture(c.name), c.today);
       const typed = { 'mo.month': c.month, ...typePots(c.pots) };
       const plan = upgradeScenario({ id: 'p1', ...snapshot }, { now: noon(c.today) }).scenario;
@@ -240,7 +240,7 @@ async function classicSetUp(month, typedIn = {}) {
 const SETUPS = [
   { name: '04-buckets-running', today: '2027-04-10', month: '2027-04', typed: {}, label: 'April, as suggested' },
   { name: '06-pre-6.4-no-timing', today: '2027-06-10', month: '2027-06', typed: { income: 30000, toDate: 12000, taxToDate: 1500 }, label: 'part-way through the year, with income and tax so far' },
-  { name: '03-gilt-ladder-runup', today: '2027-04-10', month: '2027-04', typed: { cpi: 0.031 }, label: 'a price rise typed' },
+  { name: '20-locked-start-after-stop', today: '2027-04-10', month: '2027-04', typed: { cpi: 0.031 }, label: 'a price rise typed' },
   { name: '04-buckets-running', today: '2027-04-10', month: '2027-04', typed: { income: 70000, isa: 2000, choice: 'inefficient' }, label: 'a top-up that falls short, the higher rate chosen' }
 ];
 

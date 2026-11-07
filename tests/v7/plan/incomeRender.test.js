@@ -234,13 +234,13 @@ describe('a plan with no State Pension figure, the locked ladder, a plan shown a
     expect(none.text).toContain('No State Pension: the plan counts none.');
   });
   it('03 locked: the figures, "Fixed when you locked the plan on 1 July 2026." once, the unlock sentence once, "See these" on the plan page, no box', () => {
-    const { root, text } = draw(incomeState(entries, C['03-gilt-ladder-runup'].id));
+    const { root, text } = draw(incomeState(entries, C['20-locked-start-after-stop'].id));
     expect(root.querySelector('input, select, textarea')).toBe(null);
     expect((text.match(/Fixed when you locked the plan on 1 July 2026\./g) || []).length).toBe(1);
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);
     expect(text).toContain('State Pension: £11,973 a year before tax from age 67 (tax year 2028/29).');
-    expect(root.querySelector('[data-testid="plan.income.back"]').getAttribute('href')).toBe('#/plan/' + C['03-gilt-ladder-runup'].id + '/plan');
-    const page = draw(stateWith(entries, '#/plan/' + C['03-gilt-ladder-runup'].id + '/plan'));
+    expect(root.querySelector('[data-testid="plan.income.back"]').getAttribute('href')).toBe('#/plan/' + C['20-locked-start-after-stop'].id + '/plan');
+    const page = draw(stateWith(entries, '#/plan/' + C['20-locked-start-after-stop'].id + '/plan'));
     expect(page.root.querySelector('[data-testid="plan.plan.edit.income"]').textContent).toBe('See these');
   });
   it('a plan shown as saved: no box, the sentence', () => {

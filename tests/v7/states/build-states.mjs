@@ -463,7 +463,7 @@ async function buildPlanStates({ today }) {
   const C = corpus();
   const plant = (raw, id, name, { active = false } = {}) => { const p = JSON.parse(JSON.stringify(raw)); p.id = id; p.planDetails = { ...(p.planDetails || {}), name }; p.isActive = active; delete p.household; return p; };
   const alex = plant(C['02-pnv-draft'], 'AlexWay01', 'Alex’s plan', { active: true });
-  const sam = plant(C['03-gilt-ladder-runup'], 'SamLocked02', 'Sam’s plan');
+  const sam = plant(C['20-locked-start-after-stop'], 'SamLocked02', 'Sam’s plan');
   const fresh = plant(C['01-fresh-default'], 'AlexFresh03', 'Alex’s first plan');
   const entries = [alex, sam, fresh].map((p) => entryOf(p, today));
   const planOf = (id) => entries.find((e) => e.plan.id === id).plan;
@@ -637,7 +637,7 @@ async function buildPlanStates({ today }) {
   const holdEmpty = plant(C['02-pnv-draft'], 'AlexHold01', 'Alex’s plan', { active: true });
   const holdSaver = plant(C['05-saver-committed'], 'SamSaver02', 'Sam’s plan');
   const holdPasted = plant(C['12-lumpy-db-gia'], 'AlexPasted03', 'Alex’s plan');
-  const holdLadder = plant(C['03-gilt-ladder-runup'], 'SamLadder04', 'Sam’s plan');
+  const holdLadder = plant(C['20-locked-start-after-stop'], 'SamLadder04', 'Sam’s plan');
   const moveDone = plant(C['04-buckets-running'], 'SamBuckets05', 'Sam’s plan');
   const moveMix = plant(C['04-buckets-running'], 'SamMoving06', 'Sam’s plan');
   // a third of the shares line sold into cash: shares to buy back, cash to sell down (never a new fixture: derived here)
@@ -689,10 +689,10 @@ async function buildPlanStates({ today }) {
   states['home-saving'] = stateHome([plant(C['10-couple-b'], 'AlexSaver01', 'Alex’s plan', { active: true })]);
   states['home-locked-saver'] = stateHome([plant(C['05-saver-committed'], 'SamSaver02', 'Sam’s plan')]);
   // a plan recording months is Drawing whatever it holds (7.3.1): Moving is a ladder short of its rungs before its first month
-  const ladderNoMonths = plant(C['03-gilt-ladder-runup'], 'SamLadder03', 'Sam’s plan');
+  const ladderNoMonths = plant(C['20-locked-start-after-stop'], 'SamLadder03', 'Sam’s plan');
   ladderNoMonths.decisionTool = { ...ladderNoMonths.decisionTool, history: [] };
   states['home-moving'] = stateHome([ladderNoMonths]);
-  states['home-drawing-held'] = stateHome([plant(C['03-gilt-ladder-runup'], 'SamLadder07', 'Sam’s plan')]);
+  states['home-drawing-held'] = stateHome([plant(C['20-locked-start-after-stop'], 'SamLadder07', 'Sam’s plan')]);
   states['home-drawing'] = stateHome([plant(C['04-buckets-running'], 'SamBuckets04', 'Sam’s plan')]);
   states['home-draft-retired'] = stateHome([plant(C['02-pnv-draft'], 'AlexDraft05', 'Alex’s plan')]);
   // the closed plan keeps the id of the plan that carries it on (its nextPlanId): both are planted under their own ids
@@ -707,7 +707,7 @@ if (QUESTION === 'plan') {
     writeFileSync(join(target, '_made-with.json'), JSON.stringify({
       note: 'Written by tests/v7/states/build-states.mjs --question plan. Do not edit by hand.',
       today: TODAY, futures: 1000, version: VERSION, run: 'src/answers/plan/waysRun.js', runs: ['src/answers/plan/waysRun.js', 'src/answers/plan/lastsRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/householdRun.js'],
-      plans: ['tests/fixtures/plans/02-pnv-draft.json (Alex’s plan)', 'tests/fixtures/plans/03-gilt-ladder-runup.json (Sam’s plan, locked)', 'tests/fixtures/plans/01-fresh-default.json (Alex’s first plan)', 'tests/fixtures/plans/04-buckets-running.json (Sam’s plan, locked, Buckets in order)', 'tests/fixtures/plans/07-pre-6.13-flat-params.json (Alex’s rotation plan)', 'tests/fixtures/plans/09-couple-a.json and 10-couple-b.json (Alex’s and Sam’s plans, the couple; the split pair with Alex’s pots four times over)'], patched: []
+      plans: ['tests/fixtures/plans/02-pnv-draft.json (Alex’s plan)', 'tests/fixtures/plans/20-locked-start-after-stop.json (Sam’s plan, locked)', 'tests/fixtures/plans/01-fresh-default.json (Alex’s first plan)', 'tests/fixtures/plans/04-buckets-running.json (Sam’s plan, locked, Buckets in order)', 'tests/fixtures/plans/07-pre-6.13-flat-params.json (Alex’s rotation plan)', 'tests/fixtures/plans/09-couple-a.json and 10-couple-b.json (Alex’s and Sam’s plans, the couple; the split pair with Alex’s pots four times over)'], patched: []
     }, null, 2) + '\n');
   }
   console.log(`${names.length} states written to ${target}/`);

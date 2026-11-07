@@ -158,7 +158,7 @@ describe('the runner: the held run in its lane, and the index read once', () => 
   });
   it('the index: fetched once on the move step from ../data/equity.json; the live file when newer than the bundled snapshot, else the snapshot; a failed read falls back; no fetch: the snapshot', async () => {
     const urls = [];
-    const p = pageOn([planted(C['03-gilt-ladder-runup'], 'L1')], 'L1');
+    const p = pageOn([planted(C['20-locked-start-after-stop'], 'L1')], 'L1');
     const stop = startMoveRunner({ store: p.store, client: fakeClient({}), fetchImpl: async (u) => { urls.push(u); return { ok: true, json: async () => live }; } });
     await tick();
     expect(urls).toEqual([EQUITY_URL]);
@@ -169,18 +169,18 @@ describe('the runner: the held run in its lane, and the index read once', () => 
     await tick();
     expect(urls, 'once a page life').toHaveLength(1);
     stop();
-    const old = pageOn([planted(C['03-gilt-ladder-runup'], 'L1')], 'L1');
+    const old = pageOn([planted(C['20-locked-start-after-stop'], 'L1')], 'L1');
     const stopOld = startMoveRunner({ store: old.store, client: fakeClient({}), fetchImpl: async () => ({ ok: true, json: async () => ({ ...live, generated_at: '2000-01-01T00:00:00.000Z' }) }) });
     await tick();
     expect(old.store.getState().move.index).toEqual(indexOf(null, bundled));
     expect(old.store.getState().move.index).toMatchObject({ level: bundled.level, ath: bundled.ath, asOf: bundled.date });
     stopOld();
-    const failed = pageOn([planted(C['03-gilt-ladder-runup'], 'L1')], 'L1');
+    const failed = pageOn([planted(C['20-locked-start-after-stop'], 'L1')], 'L1');
     const stopFailed = startMoveRunner({ store: failed.store, client: fakeClient({}), fetchImpl: async () => { throw new Error('offline'); } });
     await tick();
     expect(failed.store.getState().move.index).toEqual(indexOf(null, bundled));
     stopFailed();
-    const none = pageOn([planted(C['03-gilt-ladder-runup'], 'L1')], 'L1');
+    const none = pageOn([planted(C['20-locked-start-after-stop'], 'L1')], 'L1');
     const stopNone = startMoveRunner({ store: none.store, client: fakeClient({}), fetchImpl: null });
     await tick();
     expect(none.store.getState().move.index).toEqual(indexOf(null, bundled));
@@ -224,7 +224,7 @@ describe('the worker: the moveHeld message, and the client\'s lane', () => {
 
 describe('the one write file: a tick-off, the whole transition object (road-to-7.md step 10)', { timeout: 60_000 }, () => {
   it('on a LOCKED ladder plan: ONE write of `transition` plus the stamp, equal to tickPatch (TransitionPlanner.tickMove); the toast; Undo writes the object the plan had (none → null); the untick; a key that is not a move is refused', async () => {
-    const raw = planted(C['03-gilt-ladder-runup'], 'T1');
+    const raw = planted(C['20-locked-start-after-stop'], 'T1');
     const p = pageOn([raw], 'T1');
     const f = fakeFb();
     const stop = started(p, f);
@@ -291,7 +291,7 @@ describe('the one write file: a tick-off, the whole transition object (road-to-7
     stopL();
   });
   it('without an account: the tick folds into this window\'s plan, the other plan byte-identical, Undo byte for byte', async () => {
-    const raw = planted(C['03-gilt-ladder-runup'], 'W1');
+    const raw = planted(C['20-locked-start-after-stop'], 'W1');
     const other = planted(C['02-pnv-draft'], 'W2');
     const plantedText = JSON.stringify([raw, other]);
     const sessionStore = { text: plantedText, getItem: (k) => (k === GUEST_PLANS_KEY ? sessionStore.text : null), setItem: (k, v) => { if (k === GUEST_PLANS_KEY) sessionStore.text = v; } };

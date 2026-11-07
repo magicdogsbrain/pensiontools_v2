@@ -121,7 +121,7 @@ const BUTTONS = {
   }
 };
 
-for (const name of ['05-saver-committed', '03-gilt-ladder-runup']) {
+for (const name of ['05-saver-committed', '20-locked-start-after-stop']) {
   describe('a locked plan (' + name + '): every button that writes settings is refused, in plain words', () => {
     for (const [button, writes] of Object.entries(BUTTONS)) {
       it(button + ' — refused; nothing stored moves, and nothing in memory either', async () => {
@@ -160,7 +160,7 @@ for (const name of ['05-saver-committed', '03-gilt-ladder-runup']) {
 
 describe('a locked plan: the named bookkeeping writes still go through', () => {
   it('a month recorded and its tax year saved: history and tax years move, the settings and checksum do not', async () => {
-    const before = await openLocked('03-gilt-ladder-runup');
+    const before = await openLocked('20-locked-start-after-stop');
     await addHistoryRecord({ date: '2027-02', taxYear: '26/27', isa: 0, sipp: 2000, settingsChecksum: before.checksum });
     await recalculateIsaSavingsUsed('26/27');
     await saveTaxYearConfig('27/28', { cpi: 0.031 });
@@ -185,9 +185,9 @@ describe('a locked plan: the named bookkeeping writes still go through', () => {
 
   it('the plan\'s start is pinned on load (6.13.5) — those keys only', async () => {
     const strip = (s) => { const o = { ...s }; for (const k of TIMING_PIN_KEYS) delete o[k]; return o; };
-    await openLocked('03-gilt-ladder-runup');
+    await openLocked('20-locked-start-after-stop');
     const asOpened = stored().stressTool.settings;   // the same plan with its start already saved: nothing to pin
-    const plan = fixture('03-gilt-ladder-runup');
+    const plan = fixture('20-locked-start-after-stop');
     const { firstTaxYear, retired, ...noPin } = plan.stressTool.settings;
     enterGuestMode(); clearGuestData();
     sessionStorage.setItem(GUEST_KEY, JSON.stringify([{ ...plan, isActive: true, stressTool: { settings: noPin } }]));
@@ -200,7 +200,7 @@ describe('a locked plan: the named bookkeeping writes still go through', () => {
   });
 
   it('the old "Declining with age" rewrite of the Decision copy is saved with the next tax-year save, as before 6.20.2', async () => {
-    const plan = fixture('03-gilt-ladder-runup');
+    const plan = fixture('20-locked-start-after-stop');
     const ds = { ...plan.decisionTool.settings, spendingProfile: 'declining', targetSchedule: [40000, 40000, 40000, 40000, 40000] };
     enterGuestMode(); clearGuestData();
     sessionStorage.setItem(GUEST_KEY, JSON.stringify([{ ...plan, isActive: true, decisionTool: { ...plan.decisionTool, settings: ds } }]));
@@ -245,12 +245,12 @@ describe('a locked plan: how often months are recorded is a PREFERENCE (v6 usabi
   // their checksum. On a plan unlocked once before, no recorded month is relabelled by it. The OLD key inside the settings
   // is still a setting: a write to it is refused like any other, and it stays as stored.
   it('the picker goes through on a plan unlocked once before: no record is relabelled, nothing frozen moves; the old settings key is still refused', async () => {
-    const plan = fixture('03-gilt-ladder-runup');
+    const plan = fixture('20-locked-start-after-stop');
     plan.decisionTool.settings.unlockCount = 1;
     plan.decisionTool.settings.unlockedAt = '2026-07-01T00:00:00.000Z';
     const sum = decisionSettingsChecksum(plan.decisionTool.settings);
     plan.decisionTool.history = plan.decisionTool.history.map((h) => ({ ...h, settingsChecksum: sum }));
-    const before = await openLocked('03-gilt-ladder-runup', { decisionTool: plan.decisionTool });
+    const before = await openLocked('20-locked-start-after-stop', { decisionTool: plan.decisionTool });
     const dep = await planDependents();
     expect(dep.entriesUnderCurrent).toBe(3);
     expect(dep.entriesUnderPrevious).toBe(0);

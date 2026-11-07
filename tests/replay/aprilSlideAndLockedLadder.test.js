@@ -30,7 +30,7 @@ import { at, frozenAt } from './_replay.js';
 
 const ROOT = join(__dirname, '..', '..');
 const MARKET = JSON.parse(readFileSync(join(ROOT, 'tests/fixtures/plans/market/gilts.json'), 'utf8'));   // the frozen gilt file the fixtures were priced on
-const LOCKED_LADDER = JSON.parse(readFileSync(join(ROOT, 'tests/fixtures/plans/03-gilt-ladder-runup.json'), 'utf8'));
+const LOCKED_LADDER = JSON.parse(readFileSync(join(ROOT, 'tests/fixtures/plans/20-locked-start-after-stop.json'), 'utf8'));
 const INDEX_HTML = readFileSync(join(ROOT, 'index.html'), 'utf8');
 
 const APR_4 = at(2027, 4, 4), APR_8 = at(2027, 4, 8);   // either side of 6 April 2027
@@ -223,7 +223,7 @@ describe('B — a locked plan\'s gilt ladder is the one in its plan document, ne
     expect(text).toMatch(/more than the £[\d,]+ they were priced at on 1 July 2026\./);
     expect(text).toMatch(/Your plan is the locked one: its orders, units and amounts do not change with the market\.$/);
     // The locked ladder itself is untouched by the comparison.
-    expect(LOCKED_LADDER.planDocument.strategy.r.plan).toEqual(JSON.parse(readFileSync(join(ROOT, 'tests/fixtures/plans/03-gilt-ladder-runup.json'), 'utf8')).planDocument.strategy.r.plan);
+    expect(LOCKED_LADDER.planDocument.strategy.r.plan).toEqual(JSON.parse(readFileSync(join(ROOT, 'tests/fixtures/plans/20-locked-start-after-stop.json'), 'utf8')).planDocument.strategy.r.plan);
   });
 
   it('B — a rung that has matured is paid, not re-bought; a gilt missing from today\'s list is named and left out of both sides', () => {

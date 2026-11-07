@@ -157,18 +157,18 @@
     }
    }
   },
-  "03-gilt-ladder-runup": {
-   "name": "03-gilt-ladder-runup",
+  "03-gilt-ladder-locked": {
+   "name": "03-gilt-ladder-locked",
    "planName": "Linkers to 85",
    "migratedByNormalize": false,
    "locked": true,
    "stage": "running",
    "strategyId": "full-il-gilt",
    "timingMode": "retired",
-   "firstTaxYear": 2027,
-   "startAge": 66,
-   "decisionChecksum": "-5f3e2d18",
-   "stressChecksum": "-48552f0e",
+   "firstTaxYear": 2026,
+   "startAge": 65,
+   "decisionChecksum": "3fcbc99c",
+   "stressChecksum": "1d95bc74",
    "historyMonths": 3,
    "taxYearsSetUp": [
     "26/27"
@@ -184,8 +184,8 @@
    },
    "fundsToTest": 0,
    "where": {
-    "planYear": -1,
-    "beforeStart": true,
+    "planYear": 0,
+    "beforeStart": false,
     "taxYear": "2026/27",
     "age": 65,
     "stepAmount": 34000,
@@ -201,40 +201,45 @@
     "coverage": 100,
     "worst12Min": 22596,
     "worst12Median": 22596,
-    "terminalP10": 353188,
-    "terminalP50": 353188,
-    "terminalP90": 353188,
-    "spentMedian": 592639,
+    "terminalP10": 318412,
+    "terminalP50": 318412,
+    "terminalP90": 318412,
+    "spentMedian": 626639,
     "guaranteedToAge": "85 by contract (every year bought today)",
     "cone": {
      "years": [
       0,
       5,
       10,
-      20
+      20,
+      21
      ],
      "wealthP10": [
       674980,
-      553292,
-      473516,
-      353188
+      539657,
+      454491,
+      328828,
+      318412
      ],
      "wealthP50": [
       674980,
-      553292,
-      473516,
-      353188
+      539657,
+      454491,
+      328828,
+      318412
      ],
      "wealthP90": [
       674980,
-      553292,
-      473516,
-      353188
+      539657,
+      454491,
+      328828,
+      318412
      ],
      "incomeP50": [
       34000,
       34000,
       29000,
+      22596,
       22596
      ]
     }
@@ -1367,6 +1372,89 @@
       17400,
       17400,
       17400
+     ]
+    }
+   }
+  },
+  "20-locked-start-after-stop": {
+   "name": "20-locked-start-after-stop",
+   "planName": "Linkers to 85",
+   "migratedByNormalize": false,
+   "locked": true,
+   "stage": "running",
+   "strategyId": "full-il-gilt",
+   "timingMode": "retired",
+   "firstTaxYear": 2027,
+   "startAge": 66,
+   "decisionChecksum": "-5f3e2d18",
+   "stressChecksum": "-48552f0e",
+   "historyMonths": 3,
+   "taxYearsSetUp": [
+    "26/27"
+   ],
+   "hasPlanDocument": true,
+   "holdings": {
+    "lines": 8,
+    "total": 682433.6,
+    "bySipp": 639381.6,
+    "byIsa": 35052,
+    "byGia": 0,
+    "byCash": 8000
+   },
+   "fundsToTest": 0,
+   "where": {
+    "planYear": -1,
+    "beforeStart": true,
+    "taxYear": "2026/27",
+    "age": 65,
+    "stepAmount": 34000,
+    "recorded": 3,
+    "drawn": 8500,
+    "potBand": null,
+    "savingBand": null
+   },
+   "headline": {
+    "affordable": true,
+    "ruinHist": 0,
+    "ruinMc": 0,
+    "coverage": 100,
+    "worst12Min": 22596,
+    "worst12Median": 22596,
+    "terminalP10": 353188,
+    "terminalP50": 353188,
+    "terminalP90": 353188,
+    "spentMedian": 592639,
+    "guaranteedToAge": "85 by contract (every year bought today)",
+    "cone": {
+     "years": [
+      0,
+      5,
+      10,
+      20
+     ],
+     "wealthP10": [
+      674980,
+      553292,
+      473516,
+      353188
+     ],
+     "wealthP50": [
+      674980,
+      553292,
+      473516,
+      353188
+     ],
+     "wealthP90": [
+      674980,
+      553292,
+      473516,
+      353188
+     ],
+     "incomeP50": [
+      34000,
+      34000,
+      29000,
+      22596
      ]
     }
    }

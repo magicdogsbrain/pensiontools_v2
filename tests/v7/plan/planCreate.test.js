@@ -188,7 +188,7 @@ describe('an account: one addDoc of the planner\'s own document, after a fresh r
   it('with plans in the account already: not active; the name made different from a name already taken (" (2)")', async () => {
     const taken = copy(C['10-couple-b']);
     taken.planDetails.name = 'Stop at 60 · £1,900 a month';          // A1's suggested name
-    const p = page('a', 'answer-A1', { raws: [C['03-gilt-ladder-runup'], taken] });
+    const p = page('a', 'answer-A1', { raws: [C['20-locked-start-after-stop'], taken] });
     p.keep();
     await tick();
     expect(p.fb.adds.length).toBe(1);
@@ -297,7 +297,7 @@ describe('an account: one addDoc of the planner\'s own document, after a fresh r
     p.stop();
   });
   it('a locked plan in the account and D: a separate plan, and keep/made says so', async () => {
-    const p = page('d', 'answer-D1', { raws: [C['03-gilt-ladder-runup']] });
+    const p = page('d', 'answer-D1', { raws: [C['20-locked-start-after-stop']] });
     expect(keepView(p.store.getState(), 'd').separate).toBe(true);
     p.keep();
     await tick();
@@ -359,13 +359,13 @@ describe('this window: the new plan appended, every other plan byte-identical, o
     p.stop();
   });
   it('three plans of their own already: "full", nothing written; the example plan does not count', async () => {
-    const three = [C['10-couple-b'], C['05-saver-committed'], C['03-gilt-ladder-runup']];
+    const three = [C['10-couple-b'], C['05-saver-committed'], C['20-locked-start-after-stop']];
     const p = page('c', 'answer-F1', { session: 'nobody', raws: three });
     p.keep();
     await tick();
     expect(p.session.calls.filter(([c]) => c === 'setItem')).toEqual([]);
     expect(p.store.getState().keep.c.problem).toBe('full');
-    const example = { ...copy(C['03-gilt-ladder-runup']), example: true };
+    const example = { ...copy(C['20-locked-start-after-stop']), example: true };
     const p2 = page('c', 'answer-F1', { session: 'nobody', raws: [C['10-couple-b'], C['05-saver-committed'], example] });
     p2.keep();
     await tick();

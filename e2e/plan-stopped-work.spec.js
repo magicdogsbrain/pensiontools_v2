@@ -81,7 +81,7 @@ test.describe('Say when you stopped work, without an account', () => {
     // 7.3.3: never a later year than this one (7.4.0: the year saved the old way is read as this one, so it is not offered)
     await expect(page.locator('#tmStartYear option')).toHaveText(['2023/24 — the year you stopped work', '2024/25', '2025/26', 'this tax year — pick up from here — 2026/27']);
     await expect(page.locator('#tmSummary')).toContainText('You stopped work in October 2023. Plan started 6 April 2023 (tax year 2023/24); today is plan year 3 of');
-    await expect(page.locator('#giltBridgeWrap')).toBeHidden();
+    await expect(page.locator('#giltBridgeWrap')).toHaveCount(0);   // 7.4.2: the ladder's extra cash is gone from the page
     noOldWords(await page.locator('#ssTimingBlock').innerText());
 
     // locked: the document's pots are plan year 3's and its ladder is bought from this tax year on, no year lived bought again
@@ -93,7 +93,7 @@ test.describe('Say when you stopped work, without an account', () => {
     expect(locked.planDocument.timing.monthsIntoYear).toBe(5);
     expect(locked.planDocument.strategy.r.plan.firstTaxYear).toBe(2026);
     expect(locked.planDocument.strategy.r.plan.years[0].Y).toBe(2026);
-    expect(locked.planDocument.assumptions.bridgeCash).toBe(0);
+    expect('bridgeCash' in locked.planDocument.assumptions).toBe(false);   // 7.4.2: never written
     const strip = page.locator('.pd-where');
     await expect(strip).toContainText(/Plan year 3 of \d+ — tax year 2026\/27/);
     const doc = await page.locator('.pd').innerText();
@@ -137,7 +137,7 @@ test.describe('Say when you stopped work, without an account', () => {
     await expect(page.locator('#tmSummary')).toContainText('Your plan runs from 2026/27, this tax year.');
     expect((await page.locator('#tmSummary').innerText()).match(/Your plan runs from/g).length).toBe(1);
     expect(await page.locator('#tmSummary').innerText()).not.toMatch(/set aside|not compared|before the plan/);
-    await expect(page.locator('#giltBridgeWrap')).toBeHidden();   // the ladder's extra cash is shown only on a plan that holds some
+    await expect(page.locator('#giltBridgeWrap')).toHaveCount(0);   // 7.4.2: the ladder's extra cash is gone from the page
     noOldWords(await page.locator('#ssTimingBlock').innerText());
     // opened and read: nothing written (the stored plan is the one planted, its saved year next April)
     expect((await storedPlan(page)).stressTool.settings.firstTaxYear).toBe(2027);

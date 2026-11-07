@@ -99,7 +99,7 @@ describe('where today stands in the plan (deriveTiming: planYearNow, elapsedYear
     const saver = at(now, () => deriveTiming(settingsOf(read('05-saver-committed'), now), now));
     expect(saver.planYearNow).toBeLessThan(0);
     expect([saver.elapsedYears, saver.monthsIntoYear]).toEqual([0, 0]);
-    const runUp = at(now, () => deriveTiming(settingsOf(read('03-gilt-ladder-runup'), now), now));
+    const runUp = at(now, () => deriveTiming(settingsOf(read('20-locked-start-after-stop'), now), now));
     expect([runUp.planYearNow, runUp.elapsedYears, runUp.monthsIntoYear]).toEqual([-1, 0, 0]);
   });
   it('a plan whose year 0 is this tax year has lived nothing until 6 April, and one year from it', () => {
@@ -125,7 +125,7 @@ describe('which plan year the pots belong to: what the readers say (potsAsOf)', 
   it('a draft whose year 0 is behind it is seen from today; one in its year 0 or before says nothing', () => {
     for (const now of [CORPUS_DAY, IN_YEAR_1]) expect(at(now, () => settingsOf(draftOf(ALEX), now)).potsAsOf).toBe(POTS_TODAY);
     expect(at(IN_YEAR_0, () => settingsOf(draftOf(ALEX), IN_YEAR_0)).potsAsOf).toBeUndefined();
-    for (const name of ['03-gilt-ladder-runup', '04-buckets-running', '05-saver-committed']) expect(at(CORPUS_DAY, () => settingsOf(draftOf(read(name)), CORPUS_DAY)).potsAsOf).toBeUndefined();
+    for (const name of ['20-locked-start-after-stop', '04-buckets-running', '05-saver-committed']) expect(at(CORPUS_DAY, () => settingsOf(draftOf(read(name)), CORPUS_DAY)).potsAsOf).toBeUndefined();
     // 7.4.0: 12 says when work stopped (July 2026) and its year 0 is that tax year, after whose April its pots were entered
     expect(at(CORPUS_DAY, () => settingsOf(draftOf(read('12-lumpy-db-gia')), CORPUS_DAY)).potsAsOf).toBe(POTS_TODAY);
   });

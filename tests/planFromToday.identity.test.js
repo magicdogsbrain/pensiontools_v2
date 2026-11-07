@@ -64,6 +64,7 @@ const ADDED_TIMING = ['planYearNow', 'elapsedYears', 'monthsIntoYear'];
  * Only these names are let through: any other plan in year 0 or before that is not pinned still fails below.
  */
 const ADDED_AFTER_THE_PINS = Object.freeze({
+  '03-gilt-ladder-locked': 'rebuilt in 7.4.2 as a locked ladder whose year 0 is the tax year work stopped (2026/27), locked in it; the plan this fixture was is kept, frozen, as 20 with its pins',
   '19-back-to-work-saving': 'the saving plan made on going back to work (research/plan-start.md §2 J): its year 0 is the tax year it stops in again, ahead at every clock'
 });
 /**

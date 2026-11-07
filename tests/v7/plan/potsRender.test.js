@@ -201,7 +201,7 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
 describe('the locked plans, a plan shown as saved, the household pair, a plan not found', () => {
   const entries = entriesAt(TODAY);
   it('03 locked (a gilt ladder): the figures, "Fixed when you locked the plan on 1 July 2026." once, the unlock sentence once, "See these" on the plan page, no box; 06 (locked before charges and the ISA choice) says so', () => {
-    const { root, text } = draw(potsState(entries, C['03-gilt-ladder-runup'].id));
+    const { root, text } = draw(potsState(entries, C['20-locked-start-after-stop'].id));
     expect(root.querySelector('input, select, textarea')).toBe(null);
     expect((text.match(/Fixed when you locked the plan on 1 July 2026\./g) || []).length).toBe(1);
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);
@@ -209,8 +209,8 @@ describe('the locked plans, a plan shown as saved, the household pair, a plan no
     expect(text).toContain('This way of drawing is sized on its own figures: £640,000 pension and £35,000 ISAs, set with the way of drawing (in the classic planner).');
     expect(text).toContain('The ISA tops up your income before you pay higher-rate tax.');
     expect(text).not.toContain('rescues the plan');
-    expect(root.querySelector('[data-testid="plan.pots.back"]').getAttribute('href')).toBe('#/plan/' + C['03-gilt-ladder-runup'].id + '/plan');
-    const page = draw(stateWith(entries, '#/plan/' + C['03-gilt-ladder-runup'].id + '/plan'));
+    expect(root.querySelector('[data-testid="plan.pots.back"]').getAttribute('href')).toBe('#/plan/' + C['20-locked-start-after-stop'].id + '/plan');
+    const page = draw(stateWith(entries, '#/plan/' + C['20-locked-start-after-stop'].id + '/plan'));
     expect(page.root.querySelector('[data-testid="plan.plan.edit.pots"]').textContent).toBe('See these');
     const old = draw(potsState(entries, C['06-pre-6.4-no-timing'].id));
     expect(old.text).toContain('No charges come off: this plan was locked before charges were added.');

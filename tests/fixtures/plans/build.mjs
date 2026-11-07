@@ -38,13 +38,13 @@ const Scn = await import(S('storage/ScenarioRepository.js'));
 const Str = await import(S('storage/StressRepository.js'));
 const Dec = await import(S('storage/DecisionRepository.js'));
 const { saveBudget, getBudgetAsync } = await import(S('storage/BudgetRepository.js'));
-const { deriveTiming, projectedPotAtRetirement, planYearOf, taxYearLabel } = await import(S('services/PlanTiming.js'));
+const { deriveTiming, projectedPotAtRetirement } = await import(S('services/PlanTiming.js'));
 const { compileSteps, cleanSteps } = await import(S('services/IncomeSchedule.js'));
 const { cleanParams } = await import(S('services/StrategyState.js'));
 const { lockPlanIfNeeded } = await import(S('services/PlanLock.js'));
 const { buildPlanDocument, CONTRACT_STRATEGIES } = await import(S('services/PlanDocument.js'));
 const { deriveStage, journeyAppend } = await import(S('services/LifeStage.js'));
-const { planFromSettings, stressTestStrategy, STRATEGY_NAMES } = await import(S('strategies/stressTest.js'));
+const { planFromSettings, stressTestStrategy } = await import(S('strategies/stressTest.js'));
 const { realYieldForYear, activeLinkers } = await import(S('services/LinkerUniverse.js'));
 const { tentGlideForSettings } = await import(S('services/GlidepathService.js'));
 const { calcDecisionPWA, getTaxYearFromDate } = await import(S('services/legacyDecision.js'));
@@ -205,14 +205,9 @@ async function decideMonth(ym, pots, { pre64 = false } = {}) {
     spInfo: await Dec.getStatePensionForTaxYear(getTaxYearFromDate(ym)),
     isaBalance: pots.isa || 0, diversifier: 0, giaBalance: pots.gia || 0, giaBasis: pots.giaBasis ?? null
   });
-  // decisionStrategyOverlay(), bridge-month branch only (the one the ladder fixture is in): a contract strategy
-  // before its first tax year pays the month from SIPP cash; nothing is sold and no rung is due.
-  const t = CONTRACT_STRATEGIES.includes(st.id) ? deriveTiming(ss) : null;
-  if (t && planYearOf(ym, t.firstTaxYear) < 0) {
-    const total = decision.sippDraw || 0, y0 = taxYearLabel(t.firstTaxYear);
-    decision.strategyOverlay = { id: st.id, name: STRATEGY_NAMES[st.id], floorMonthly: Math.round(total), sleeveMonthly: 0, floorLabel: 'SIPP cash (the plan\'s year 0 is ' + y0 + ')',
-      note: 'Run-up to your plan (year 0 is ' + y0 + '): this month comes from your SIPP cash — the money-market fund the cash years will also use. Nothing is sold; the ladder\'s first rung is not due yet.', hidePots: true };
-  } else decision.strategyOverlay = null;
+  // decisionStrategyOverlay() is not mirrored: no fixture records a month before its year 0 (the frozen 20 was recorded so by
+  // 7.4.1 and is not rebuilt), and every other month is stored as the engine works it out.
+  decision.strategyOverlay = null;
   decision.cadenceMonths = 1;
   return decision;
 }
@@ -235,6 +230,14 @@ function exportDocs(idMap) {
 
 // ---- The fixtures ------------------------------------------------------------------------------------------
 const out = {};   // file name → document
+
+// 20 — FROZEN: a LOCKED gilt ladder stored with a later start, as 7.4.1 saved it (this was fixture 03 until 7.4.2). Sam
+//      retired at 64 with year 0 the next April (2027/28): extra cash beside the cash years in the params and the document,
+//      three months of 2026/27 recorded and stamped as before the start, with the old start's own words on them, and a journey that
+//      named the old placing. Nothing writes that shape any more, so it is never rebuilt: it is read back as committed, the
+//      fixture for the move of the start and for every reader of the old fields. It keeps the id it had as 03; the new 03 has its own.
+const FROZEN = ['20-locked-start-after-stop'];
+for (const name of FROZEN) out[name] = JSON.parse(readFileSync(join(HERE, name + '.json'), 'utf8'));
 
 // 01 — a brand-new account's first plan, untouched.
 {
@@ -261,18 +264,21 @@ const out = {};   // file name → document
   [out['02-pnv-draft']] = exportDocs({ [id]: 'h3NpX9sYq1ZtGu6RaEo5' });
 }
 
-// 03 — LOCKED index-linked gilt ladder in its run-up: retired at 64, plan year 0 is 2027/28, so the 2026/27
-//      months are bridge months paid from SIPP cash. Holdings recorded, tax year set up mid-year, three months in.
+// 03 — LOCKED index-linked gilt ladder, RUNNING from the tax year work stopped (7.4.2): Sam stopped at 64 in June 2026, so
+//      plan year 0 is 2026/27 and the ladder's first two years are its cash years, paid from the money-market fund — its only
+//      cash. Holdings recorded, locked in July (its pots are year 0's: asOfPlanYear 0), the tax year set up mid-year, three
+//      months recorded. Until 7.4.2 this fixture was a plan stored with a later start; that shape is kept, frozen, as 20.
 {
   startGuestStore(); at('2026-06-10T09:30:00.000Z');
-  const id = await newPlan('Linkers to 85', 'Index-linked gilts for every year; bridge cash to April 2027');
+  const id = await newPlan('Linkers to 85', 'Index-linked gilts for every year, from the tax year work stopped');
   at('2026-06-12T20:11:00.000Z');
   await saveStressForm({
-    currentAge: 64, firstTaxYear: 2027, spStartDate: '14 March 2029', spWeeklyAmount: 230.25, duration: 20,
+    currentAge: 64, firstTaxYear: 2026, spStartDate: '14 March 2029', spWeeklyAmount: 230.25, duration: 21,
     equityMin: 180000, bondMin: 400000, cashTarget: 60000, isaBalance: 35000, isaDrawdownStrategy: 'minimiseEarlyTax',
-    baseSalary: 34000, incomeShape: 'phases', incomeSteps: [{ fromAge: 66, amount: 34000 }, { fromAge: 72, amount: 29000 }, { fromAge: 79, amount: 24000, decline: 1 }],
-    strategyId: 'full-il-gilt', strategyParams: { sippTotal: 640000, isaTotal: 35000, cashYears: 2, bridgeCash: 20000 }
+    baseSalary: 34000, incomeShape: 'phases', incomeSteps: [{ fromAge: 64, amount: 34000 }, { fromAge: 72, amount: 29000 }, { fromAge: 79, amount: 24000, decline: 1 }],
+    strategyId: 'full-il-gilt', strategyParams: { sippTotal: 640000, isaTotal: 35000, cashYears: 2 }
   });
+  await Str.saveStressSettings({ stoppedWork: '2026-06' });   // the Timing block's month box (6.51.0)
   await stageTick();
   at('2026-06-20T11:00:00.000Z');
   // What is held: a few real index-linked gilts from the pinned universe (names/TIDMs are public data), a
@@ -295,7 +301,7 @@ const out = {};   // file name → document
   at('2026-09-02T18:30:00.000Z');
   await recordMonth('2026-09', { equity: 0, bond: 527100, cash: 86700, isa: 35300 });
   await stageTick();
-  [out['03-gilt-ladder-runup']] = exportDocs({ [id]: 'Kq8LwT2mJv5PzYc9BnRd' });
+  [out['03-gilt-ladder-locked']] = exportDocs({ [id]: 'Ls03SamLadder7Kq2Wd9' });
 }
 
 // 04 — LOCKED Buckets in order, RUNNING: plan year 0 is 2026/27, six months recorded from April.

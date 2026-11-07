@@ -43,7 +43,7 @@ export function entriesAt(today = TODAY, raws = Object.values(corpus())) {
 /** The linked pair: the locked ladder (03) points at the saver (05); the saver has no link back. */
 export function household() {
   const c = corpus();
-  const ladder = JSON.parse(JSON.stringify(c['03-gilt-ladder-runup']));
+  const ladder = JSON.parse(JSON.stringify(c['20-locked-start-after-stop']));
   const saver = JSON.parse(JSON.stringify(c['05-saver-committed']));
   ladder.id = 'HouseLadder01'; ladder.planDetails.name = 'Ladder plan'; ladder.isActive = true;
   ladder.household = { partnerScenarioId: 'HouseSaver02' };

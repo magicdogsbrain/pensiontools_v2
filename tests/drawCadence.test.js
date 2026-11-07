@@ -55,7 +55,7 @@ describe('the pure rules', () => {
 describe('the lock guard: the preference is outside the locked parts', () => {
   it('a write to decisionTool.cadence does not touch the settings or the strategy, locked or not', () => {
     expect(writeTouchesLockedParts({ 'decisionTool.cadence': 'annual' })).toBe(false);
-    const plan = fixture('03-gilt-ladder-runup');
+    const plan = fixture('20-locked-start-after-stop');
     expect(lockedPlanWriteRefusal(plan, { 'decisionTool.cadence': 'annual' })).toBeNull();
     expect(lockedPlanWriteRefusal(plan, { 'decisionTool.settings.cadence': 'annual' })).toEqual(['decision.cadence']);   // the OLD key is still a setting: still refused
   });
@@ -63,7 +63,7 @@ describe('the lock guard: the preference is outside the locked parts', () => {
 
 describe('on a LOCKED plan (the retired ladder in its run-up, with recorded months)', () => {
   it('the picker goes through; the stored settings, checksum, document, history and plan of record are byte-identical; no month is relabelled', async () => {
-    const plan = fixture('03-gilt-ladder-runup');
+    const plan = fixture('20-locked-start-after-stop');
     plan.decisionTool.settings.unlockCount = 1;   // a plan unlocked once before: the case that used to relabel every month
     plan.decisionTool.settings.unlockedAt = '2026-07-01T00:00:00.000Z';
     const sum = decisionSettingsChecksum(plan.decisionTool.settings);

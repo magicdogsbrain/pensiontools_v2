@@ -45,7 +45,7 @@ function lockState(entries, id, { today = TODAY, step = 'lock', source = 'accoun
 }
 const DRAFT = C['02-pnv-draft'];
 const SAVER = C['10-couple-b'];
-const LADDER = C['03-gilt-ladder-runup'];
+const LADDER = C['20-locked-start-after-stop'];
 const BUCKETS = C['04-buckets-running'];
 const OLD = C['06-pre-6.4-no-timing'];
 

@@ -417,7 +417,7 @@ describe('the lock step, the address and the plan page (read.js)', () => {
   it('"Your plan as locked" opens on the four sentences (03, 04, 05): the steps before and after tax by age, the State Pension, the bad case, the cut rules; a bought strategy says no cuts', () => {
     const entries = entriesAt(TODAY);
     const ids = (plan) => planPage(entries, plan.id, 'plan', { today: TODAY }).steps.find((s) => s.id === 'plan').lines.map((l) => l.id);
-    const ladder = entries.find((e) => e.plan.id === C['03-gilt-ladder-runup'].id).plan;
+    const ladder = entries.find((e) => e.plan.id === C['20-locked-start-after-stop'].id).plan;
     const buckets = entries.find((e) => e.plan.id === C['04-buckets-running'].id).plan;
     const saver = entries.find((e) => e.plan.id === C['05-saver-committed'].id).plan;
     const L = planPage(entries, ladder.id, 'plan', { today: TODAY }).steps.find((s) => s.id === 'plan');

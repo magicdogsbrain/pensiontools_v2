@@ -57,7 +57,7 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
     // 7.4.0: 02 is saved as its next Save writes it — year 0 the tax year work stopped, this one (it was next April)
     expect(d.values).toEqual({ age: 61, stopped: 'yes', stopAge: null, stopMonth: '2026-06', startWhen: 'now', endAge: 95, savedYear: null });
     expect(d.ageSource).toEqual({ kind: 'saved', at: '14 August 2026' });
-    const l = savedAbout(entryOf(C['03-gilt-ladder-runup']).plan, { today: TODAY });
+    const l = savedAbout(entryOf(C['20-locked-start-after-stop']).plan, { today: TODAY });
     expect(l.locked).toBe(true);
     expect(l.source.kind).toBe('locked');
     expect(l.values.stopped).toBe('yes');
@@ -125,7 +125,7 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
     expect(aboutPatch(plan, { age: '58' }, { today: TODAY }).patch).toEqual({});
   });
   it('a locked plan: no patch, whatever is typed', () => {
-    const plan = entryOf(C['03-gilt-ladder-runup']).plan;
+    const plan = entryOf(C['20-locked-start-after-stop']).plan;
     const p = aboutPatch(plan, { endAge: '99' }, { today: TODAY });
     expect(p.ok).toBe(false);
     expect(p.errors).toEqual({ plan: 'locked' });

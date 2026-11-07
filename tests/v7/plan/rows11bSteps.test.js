@@ -83,7 +83,7 @@ describe('timing.stale-draft — "Update this draft to today" on the about step'
     const after = applyPatch(plan, p.patch);
     expect(staleOf(after, { today: TODAY })).toBe(null);
     expect(stalePatch(after, { today: TODAY }).ok).toBe(false);
-    expect(stalePatch(C['03-gilt-ladder-runup'], { today: TODAY }).ok, 'nothing on a locked plan').toBe(false);
+    expect(stalePatch(C['20-locked-start-after-stop'], { today: TODAY }).ok, 'nothing on a locked plan').toBe(false);
   });
 
   it('"Update it": the boxes it sets, through the ordinary save, move the start to this tax year with the plan stopped — the planner\'s own keys; the offer gone', () => {
@@ -283,7 +283,7 @@ describe('income.lump-to-steps — "Turn a lump sum into income"', () => {
     expect(vs.lumps[0].edits.find((e) => e.path === 'steps.ids')).toBeUndefined();
     expect(vs.lumps[0].edits.some((e) => /^steps\.\d+\.amount$/.test(e.path))).toBe(true);
     // a locked plan or a plan shown as saved offers no edits; a plan with no lump sum has none
-    expect(spendOf([{ plan: C['03-gilt-ladder-runup'] }], C['03-gilt-ladder-runup'].id, { today: TODAY }).lumps.every((l) => l.edits === null)).toBe(true);
+    expect(spendOf([{ plan: C['20-locked-start-after-stop'] }], C['20-locked-start-after-stop'].id, { today: TODAY }).lumps.every((l) => l.edits === null)).toBe(true);
     expect(spendOf([{ plan: C['01-fresh-default'] }], C['01-fresh-default'].id, { today: TODAY }).lumps).toEqual([]);
   });
 

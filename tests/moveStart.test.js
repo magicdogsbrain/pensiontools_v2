@@ -552,8 +552,8 @@ describe('the records after a move: what names the old start, and only that', ()
   recs[0].settingsChecksum = cur; recs[1].settingsChecksum = cur;
   const out = reAnchorRecords(recs, { to: 2023, decisionBefore: ds, decisionAfter: { ...ds, firstTaxYear: 2023 } });
   const next = decisionSettingsChecksum({ ...ds, firstTaxYear: 2023 });
-  it('a month still before the new start keeps its mark and names the new year; one now inside is a plan month', () => {
-    expect(out[0]).toMatchObject({ yearNum: 0, bridgeYear: true, planStartYear: 2023, settingsChecksum: next });
+  it('a month still before the new start keeps its stored mark as it was (nothing writes it again); one now inside is a plan month', () => {
+    expect(out[0]).toMatchObject({ yearNum: 0, bridgeYear: true, planStartYear: 2028, settingsChecksum: next });
     expect(out[1]).toMatchObject({ yearNum: 3, strategySource: MOVED_SOURCE, strategyNote: MOVED_NOTE, settingsChecksum: next });
     expect('bridgeYear' in out[1] || 'planStartYear' in out[1]).toBe(false);
   });

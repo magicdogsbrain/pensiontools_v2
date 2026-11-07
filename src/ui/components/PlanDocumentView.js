@@ -201,7 +201,9 @@ export function planDocumentHtml(doc, r = {}) {
     ['State Pension', A.spStartDate ? esc(ukDate(A.spStartDate)) + ', ' + gbp(A.spWeeklyAmount) + '/week (' + gbp(A.spWeeklyAmount * 52) + '/yr)' : 'not entered' + (assumedStatePensionWords(d.strategy?.p) ? ' — ' + esc(assumedStatePensionWords(d.strategy?.p)) : '')],
     ['Tax bands (year 0)', 'PA ' + gbp(A.pa) + ' · basic-rate limit ' + gbp(A.brl) + ' · higher ' + gbp(A.hrl) + ' · ' + (A.taxMode === 'frozen' ? 'frozen' : 'rise with inflation')],
     ['Decision tool CPI assumption', ((A.cpiDecision || 0) * 100).toFixed(0) + '% a year until each year\'s CPI is entered'],
-    ...(A.cashYears != null ? [['Cash years first', esc(String(A.cashYears)) + (A.bridgeCash ? ' · extra cash in the money-market fund ' + gbp(A.bridgeCash) : '')]] : []),
+    // An older document's extra ladder cash beside the cash years is not printed (7.4.2): no run counts it any more, so the
+    // figure would sit beside live figures that leave it out. The document itself keeps it as stored.
+    ...(A.cashYears != null ? [['Cash years first', esc(String(A.cashYears))]] : []),
     ...(A.spareGrowth ? [['Money left over', 'invested in shares (a growth part); ' + (A.spareFillsCuts ? 'it pays a rotated year the sleeve cannot, before that year counts as cut' : 'never drawn for income')]] : []),   // 6.35.0 (6.36.0: fills cuts); absent = kept, as every earlier document
     ...(!A.spareGrowth && A.spareFillsCuts ? [['Money left over', 'kept, holding its value; it pays a rotated year the sleeve cannot, before that year counts as cut']] : []),   // 6.37.0
     ...(A.giltPricesAsOf ? [['Gilt prices as of', esc(ukDate(A.giltPricesAsOf))]] : []),

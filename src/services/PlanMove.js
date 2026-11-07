@@ -467,7 +467,8 @@ const underPrevious = (h, ds, cur) => (+ds.unlockCount || 0) > 0 && h.settingsCh
  *  - a month stamped as before the plan's income started (`bridgeYear`) that is now a month of the plan loses the mark and the
  *    year it named (`planStartYear`), and when its words about where it was paid from name the old start (strategySource,
  *    strategyNote: oldStartWords) they are replaced by words that name no year (MOVED_SOURCE, MOVED_NOTE) — any other words
- *    stay byte for byte; a month still before the new year 0 keeps the mark and names the new year;
+ *    stay byte for byte; a month still before the new year 0 keeps its stored fields as they are (7.4.2: nothing writes the
+ *    old mark or the year it named again);
  *  - `settingsChecksum`: the record was made under this plan, only its count of years moved, so it is stamped with the
  *    moved settings' checksum — except a record made under settings the plan was unlocked from (it stays as it was, still
  *    "recorded under previous settings"), and a record with no stamp (read as this plan's already).
@@ -490,7 +491,7 @@ export function reAnchorRecords(history, { to, decisionBefore, decisionAfter }) 
           if (h.strategySource != null) out.strategySource = MOVED_SOURCE;
           if (h.strategyNote != null) out.strategyNote = MOVED_NOTE;
         }
-      } else if (h.bridgeYear === true) out.planStartYear = to;
+      }
     }
     if (h.settingsChecksum !== undefined && !underPrevious(h, before, cur)) out.settingsChecksum = next;
     return out;

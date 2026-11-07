@@ -2690,7 +2690,7 @@
       ],
       "status": "retired",
       "step": "done",
-      "note": "Removed from both apps in 7.4.2: the planner's box and dial and V7's dial are gone, no engine reads it and no new plan document records it. The key stays as stored on a plan that has it (dropping it would change a locked plan's settings on load); an older document that recorded it still shows it under Assumptions, as committed.",
+      "note": "Removed from both apps in 7.4.2: the planner's box and dial and V7's dial are gone, no engine reads it and no new plan document records it. The key stays as stored on a plan that has it (dropping it would change a locked plan's settings on load); an older document that recorded it keeps it as stored but no longer prints it, since no run counts it.",
       "reason": "A gilt ladder's cash years are now its only cash: the extra cash some older plans kept for the months before their first year is no longer added, because a retired person's plan starts in the tax year they stopped work, or this one.",
       "agreed": "approved (agreed 6 Nov 2026, the removal of months before a retired plan's start: both apps, release 7.4.2)"
     },

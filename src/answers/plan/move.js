@@ -79,7 +79,7 @@ export function savedMove(plan, { today, index = null }) {
   let seq = null;
   try { seq = sequence(m.diff, { today: now, startYear: stage.firstTaxYear || (doc.timing && doc.timing.firstTaxYear) || taxYearStartOf(now), startMonth: stage.startMonth || (doc.timing && doc.timing.startMonth) || null, contributionsMonthly }); } catch { seq = null; }
   let sheet = [];
-  if (m.target.kind === 'ladder') { try { sheet = orderSheetRows(doc, rec.lines, { today: now, params: m.strategyParams, runUpMonthly: m.runUpMonthly }); } catch { sheet = []; } }
+  if (m.target.kind === 'ladder') { try { sheet = orderSheetRows(doc, rec.lines, { today: now, params: m.strategyParams }); } catch { sheet = []; } }
   let watch = null;
   if (strategyId === 'gilt-rotation') { try { const t = deriveTiming(ss, now); watch = rotationWatch(doc, { today: now, ageToday: t.currentAge || null, params: ss.strategyParams || null, index }); } catch { watch = null; } }
   const dp = doc.strategy && isObj(doc.strategy.p) ? doc.strategy.p : null;
@@ -89,8 +89,6 @@ export function savedMove(plan, { today, index = null }) {
   const own = a ? { share: a.share, words: futuresOutOfTen(a.share).words, lockedOn: dayWords(doc.lockedAt || lockedAtOf(plan)) } : null;
   const cashRows = m.target.cash && Array.isArray(m.target.cash.breakdown) ? (() => {
     const rows = [];
-    const ru = m.target.cash.runUp;
-    if (ru && ru.value > 0) rows.push({ id: 'runUp', months: String(ru.months), monthly: pounds(ru.monthly), amount: pounds(ru.value) });
     const plan0 = doc.strategy.r.plan;
     for (const c of Array.isArray(plan0.cashYears) ? plan0.cashYears : []) {
       if (m.target.running && +c.Y < m.target.thisTaxYear) continue;

@@ -97,7 +97,7 @@ export function safeSettings(plan, now) {
 }
 export function safeTiming(ss, now) {
   // a plan the timing cannot be read from starts this tax year, as a plan with no age does (7.4.0)
-  try { return deriveTiming(ss, now); } catch { const ty = taxYearStartOf(now); return { mode: 'legacy', firstTaxYear: ty, shapeAgeNow: num(ss.shapeAgeNow) || 57, currentAge: null, retireAge: null, startMonth: ty + '-04', yearsToStart: 0, bridgeMonths: 0 }; }
+  try { return deriveTiming(ss, now); } catch { const ty = taxYearStartOf(now); return { mode: 'legacy', firstTaxYear: ty, shapeAgeNow: num(ss.shapeAgeNow) || 57, currentAge: null, retireAge: null, startMonth: ty + '-04', yearsToStart: 0 }; }
 }
 
 /**

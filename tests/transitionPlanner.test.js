@@ -282,27 +282,26 @@ describe('spare cash, bridge cash and bank cash (6.13.0)', () => {
     expect(diffHoldings([{ ticker: 'CSH2', value: 59000, wrapper: 'SIPP' }], tgt(ladderDoc)).hold.find((h) => h.kind === 'cash')).toMatchObject({ heldValue: 59000, spare: 0 });
     expect(diffHoldings([{ ticker: 'CSH2', value: 50000, wrapper: 'SIPP' }], tgt(ladderDoc)).buy.find((b) => b.kind === 'cash').amount).toBe(10000);
   });
-  it('the pre-start cash target is the cash YEARS\' money only: plan.cash includes the bridge, which the run-up spends', () => {
-    // plan.cash 110,000 = 60,000 for the two cash years + 50,000 bridge (GiltLadderPlan adds bridgeCash into `cash`)
-    const withBridge = (extra) => ({ ...ladderDoc, ...extra, strategy: { ...ladderDoc.strategy, params: extra.params || {}, r: { plan: { ...ladderDoc.strategy.r.plan, cash: 110000 } } } });
-    const a = tgt(withBridge({ assumptions: { bridgeCash: 50000 } }));
-    expect(a.cash).toMatchObject({ value: 60000, bridgeCash: 50000, spending: false });
-    // 7.3.3: said as cash — never months "before the plan", "run-up" or "bridge cash"
-    expect(a.note).toMatch(/The same cash pays the next \d+ months?|of extra cash in the money-market fund has been spent/);
-    expect(a.note).not.toMatch(/run-up|bridge cash|before the plan/);
+  it('the cash target is the cash YEARS\' money only: an older document\'s extra cash in plan.cash is no target (7.4.2)', () => {
+    // plan.cash 110,000 = 60,000 for the two cash years + 50,000 an older document set aside beside them
+    const withExtra = (extra) => ({ ...ladderDoc, ...extra, strategy: { ...ladderDoc.strategy, params: extra.params || {}, r: { plan: { ...ladderDoc.strategy.r.plan, cash: 110000 } } } });
+    const a = tgt(withExtra({ assumptions: { bridgeCash: 50000 } }));
+    expect(a.cash).toMatchObject({ value: 60000, spending: false });
+    for (const k of ['bridgeCash', 'runUp']) expect(k in a.cash).toBe(false);
+    expect(a.note).not.toMatch(/run-up|bridge cash|before the plan|extra cash/);
     // from the strategy params when the document has no assumptions block
-    expect(tgt(withBridge({ params: { bridgeCash: 50000 } })).cash).toMatchObject({ value: 60000, bridgeCash: 50000 });
-    // no bridge anywhere → the whole of plan.cash, as before
-    expect(tgt(ladderDoc).cash).toMatchObject({ value: 60000, bridgeCash: 0 });
+    expect(tgt(withExtra({ params: { bridgeCash: 50000 } })).cash).toMatchObject({ value: 60000 });
+    // no extra cash anywhere → the whole of plan.cash, as before
+    expect(tgt(ladderDoc).cash).toMatchObject({ value: 60000 });
     // the cash years' own costs win when the plan carries them, whatever plan.cash says
     const costed = { ...ladderDoc, assumptions: { bridgeCash: 50000 }, strategy: { ...ladderDoc.strategy, r: { plan: { ...ladderDoc.strategy.r.plan, cash: 111000, cashYears: [{ Y: 2027, cost: 31000 }, { Y: 2028, cost: 30000 }] } } } };
     expect(tgt(costed).cash.value).toBe(61000);
-    // a ledger holding the cash years' money plus the bridge is complete — the bridge is not a surplus to sell
+    // a ledger holding the cash years' money plus the old extra is complete — the extra is spare, never a sale
     const d = diffHoldings([...rungs, { ticker: 'CSH2', value: 110000, wrapper: 'SIPP' }], a);
     expect(d.sell).toEqual([]);
     expect(d.complete).toBe(true);
     // mid-run pro-rating (no `years` on the plan) is of the cash years' money, not of plan.cash
-    expect(tgt(withBridge({ assumptions: { bridgeCash: 50000 } }), new Date(2028, 8, 10)).cash.value).toBe(30000);
+    expect(tgt(withExtra({ assumptions: { bridgeCash: 50000 } }), new Date(2028, 8, 10)).cash.value).toBe(30000);
   });
   it('a CASH-wrapper line is bank money: kept as it is, never counted as the SIPP\'s cash years', () => {
     const v = ledgerView([{ ticker: '', name: 'Bank savings', value: 25000, wrapper: 'CASH' }, { ticker: 'CSH2', value: 60000, wrapper: 'SIPP' }]);
@@ -395,33 +394,16 @@ describe('a fired rotation (6.13.0): sold rungs are not targets, the equity fund
   });
 });
 
-describe('run-up months still to pay are part of the pre-start cash target (6.13.2)', () => {
-  it('6 months at £3,400 adds £20,400 on top of the cash years, capped at the bridge cash; nothing once running', async () => {
-    const { targetHoldings } = await import('../src/services/TransitionPlanner.js');
-    const doc = { timing: { firstTaxYear: 2027 }, assumptions: { bridgeCash: 24000 }, timeline: [{ y: 0, gross: 46000, sp: 0, other: 5200 }],
-      strategy: { contract: true, r: { plan: { firstTaxYear: 2027, cash: 142000, cashYears: [{ Y: 2027, cost: 46000 }, { Y: 2028, cost: 0 }, { Y: 2029, cost: 72000 }], orders: [] } } } };
-    const t = targetHoldings(doc, { today: new Date(Date.UTC(2026, 9, 6)) });   // 6 October 2026: six months to 6 April 2027
-    expect(t.cash.runUp.months).toBe(6);
-    expect(t.cash.runUp.value).toBe(20400);
-    expect(t.cash.value).toBe(118000 + 20400);
-    expect(t.cash.breakdown[0].label).toBe('Cash for the next 6 months × £3,400');   // 7.3.3: never "before the plan" or "run-up"
-    const capped = targetHoldings({ ...doc, assumptions: { bridgeCash: 20000 } }, { today: new Date(Date.UTC(2026, 9, 6)) });
-    expect(capped.cash.runUp.value).toBe(20000);
-    const running = targetHoldings(doc, { today: new Date(Date.UTC(2027, 4, 6)) });
-    expect(running.cash.runUp.value).toBe(0);
-  });
-});
-
-describe('the run-up uses the actual monthly draw and the cash target has a plain breakdown (6.13.3)', () => {
-  it('£3,600 a month when the Decision tool knows it; rows for the run-up and each cash year', async () => {
+describe('the cash to hold before the start is the cash years only, whatever the months to it (7.4.2; it added them from 6.13.2)', () => {
+  it('a document with extra cash and months to its start: the cash years\' money, one breakdown row each', async () => {
     const { targetHoldings } = await import('../src/services/TransitionPlanner.js');
     const doc = { timing: { firstTaxYear: 2027 }, assumptions: { bridgeCash: 24000 }, timeline: [{ y: 0, taxYear: '2027/28', gross: 46000, sp: 0, other: 5200 }, { y: 1, taxYear: '2028/29', gross: 46000, sp: 0, other: 5200, lump: 40800 }],
       strategy: { contract: true, r: { plan: { firstTaxYear: 2027, cash: 142000, cashYears: [{ Y: 2027, cost: 46000 }, { Y: 2028, cost: 0 }, { Y: 2029, cost: 72000 }], orders: [] } } } };
-    const t = targetHoldings(doc, { today: new Date(Date.UTC(2026, 9, 6)), runUpMonthly: 3600 });
-    expect(t.cash.runUp.monthly).toBe(3600);
-    expect(t.cash.runUp.value).toBe(21600);
-    expect(t.cash.breakdown.map((b) => b.amount)).toEqual([21600, 46000, 0, 72000]);
-    expect(t.cash.breakdown[2].label).toContain('paid by a lump sum');
+    const t = targetHoldings(doc, { today: new Date(Date.UTC(2026, 9, 6)) });   // 6 October 2026: six months to 6 April 2027
+    expect(t.cash.value).toBe(118000);
+    expect(t.cash.breakdown.map((b) => b.amount)).toEqual([46000, 0, 72000]);
+    expect(t.cash.breakdown[1].label).toContain('paid by a lump sum');
     expect(t.cash.label).toBe('Money-market fund / cash');
+    expect(t.note).not.toMatch(/month|extra cash/);
   });
 });

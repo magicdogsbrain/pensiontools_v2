@@ -122,8 +122,9 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 /**
  * A gilt ladder's month in the Decision tool (index.html decisionStrategyOverlay): what pays, the label stamped on the
  * record, and the note. Placed by the LADDER's own years (6.51.0, research/plan-start.md §2 E, §4), never by the plan year
- * alone: before the ladder's first year — the months before a start chosen for later, or a month lived before a running
- * plan's ladder was bought — the month comes from cash; in a cash year, the cash years pay until the first gilt. The label
+ * alone: before the ladder's first year — a running plan whose ladder, bought again from today, has no gilt paying yet (or a
+ * month of a plan stored the old way, with a later start) — the month comes from cash; in a cash year, the cash years pay
+ * until the first gilt. The label
  * names no year (models/Decision.js stamps it on the record, and the year moves when the plan's start does).
  * @param {object|null} lp  ladderPosition(), or null when the ladder cannot be built (the month's own draw is used then)
  * @param {{ Y: number, label: string }|null} rung  firstRungOf(the ladder)
@@ -132,8 +133,8 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
  */
 export function ladderMonthAdvice(lp, rung, total, planYearSigned) {
   if (lp ? lp.phase === 'before' : planYearSigned < 0) {
-    return { floorMonthly: total, floorLabel: 'cash, before the ladder\'s first year',
-      note: 'Before the ladder\'s first year' + (lp && lp.upcoming ? ' (' + lp.upcoming.label + ')' : '') + ': this month comes from your cash. Nothing is sold' + (rung ? '; your ladder\'s first gilt pays from ' + rung.label + '.' : '.') };
+    return { floorMonthly: total, floorLabel: 'cash, until the first gilt pays',
+      note: 'Until the ladder\'s first gilt pays' + (lp && lp.upcoming ? ' (' + lp.upcoming.label + ')' : '') + ': this month comes from your cash. Nothing is sold' + (rung ? '; your ladder\'s first gilt pays from ' + rung.label + '.' : '.') };
   }
   if (!lp) return { floorMonthly: total, floorLabel: 'this year\'s matured rung', note: 'Every year is bought by contract — nothing is sold. The money is already in cash.' };
   return { floorMonthly: lp.monthly, floorLabel: lp.source === 'cash' ? 'the cash years bucket' : 'rung ' + lp.source + ' (already cash)',

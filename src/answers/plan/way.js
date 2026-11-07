@@ -24,7 +24,6 @@ import { isBought } from './pots.js';
 import { verdictWord, CONTRACT, FAMILY, runKeyOf } from './lasts.js';
 import { WAY_IDS, WAY_DIALS, WAY_WRITES, RANK_BYS } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
-import { runUpCashSpent } from '../../services/PlanFromToday.js';
 
 export { applyPatch, runKeyOf };
 
@@ -116,10 +115,6 @@ export function wayOf(entries, id, { today } = {}) {
     endAge: (num(timing.shapeAgeNow) || 57) + (num(ss.duration) || 35) - 1,
     runKey: readonly ? null : runKeyOf(plan),
     stash, cuts: cutsOfSettings(ss),
-    // the plan's pots belong to a plan year already begun: a ladder sets no cash aside to its first April, so that dial is
-    // not offered (6.51.0, research/plan-start.md §6 decision 8). The engines' own rule (PlanFromToday.runUpCashSpent), so
-    // the dial goes exactly when they stop reading it; the planner hides it on the same rule.
-    started: runUpCashSpent(ss, timing),
     document: docShare == null ? null : { share: docShare, words: futuresOutOfTen(docShare).words, chance: pctText(docShare * 100, 1, CHANCE_BARS).replace(/%$/, ''), lockedOn: dayWords(doc.lockedAt || lockedAtOf(plan)) }
   };
 }
@@ -227,10 +222,7 @@ export function cardsOf(reading, W) {
     const base = { ...defaults, ...(reading.stash[id] || {}), ...(id && FAMILY.includes(id) ? reading.cuts : {}) };
     const typed = typedAll[id] || {};
     const c = checkDials(id, typed, base);
-    // the ladder's extra cash in its money-market fund is shown only on a plan that already holds some (an older plan's
-    // setting, read by the engines until the run's pots pass it); a new plan has nothing to set there
-    const extraCash = (d) => d.key === 'bridgeCash' && (reading.started || !(Number(base.bridgeCash) > 0 || 'bridgeCash' in typed));
-    const dials = (WAY_DIALS[id] || []).filter((d) => !extraCash(d)).map((d) => ({ key: d.key, type: d.type, options: d.type === 'choice' ? d.options : null, min: d.min == null ? null : d.min, max: d.max == null ? null : d.max, step: d.step || null, shown: c.shown[d.key], error: c.errors[d.key] || null, cut: !!d.cut }));
+    const dials = (WAY_DIALS[id] || []).map((d) => ({ key: d.key, type: d.type, options: d.type === 'choice' ? d.options : null, min: d.min == null ? null : d.min, max: d.max == null ? null : d.max, step: d.step || null, shown: c.shown[d.key], error: c.errors[d.key] || null, cut: !!d.cut }));
     // the values the comparison ran this way with: the card's starting values differ when the way has a stash of its own
     const ranWith = ran ? ran.dials.ranWith : null;
     const differs = ran && c.ok ? dials.some((d) => text(c.values[d.key]) !== text(ranWith[d.key])) : false;

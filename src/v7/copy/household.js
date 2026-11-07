@@ -73,7 +73,7 @@ export const HOUSEHOLD = {
   detail: {
     open: 'Show the years',
     close: 'Hide the years',
-    timeline: { title: 'Where the money comes from', bridge: 'Until {year} at least one of you is still waiting for a State Pension: those are the years when the pots do the most work. This is usually where a couple’s plan is tightest.',
+    timeline: { title: 'Where the money comes from', waiting: 'Until {year} at least one of you is still waiting for a State Pension: those are the years when the pots do the most work. This is usually where a couple’s plan is tightest.',
       columns: { year: 'Year', a: '{name} needs', b: '{name} needs', sp: 'State Pensions', other: 'Other income that comes anyway', draw: 'From the pots' }, working: 'still working',
       note: 'At today’s prices, a year. Rows where something changes and every fifth year. The last column is what the pots must provide after everything that comes anyway.' },
     left: { title: 'What you would have left, combined', lead: 'Everything both plans hold — pensions, ISAs, gilts not yet repaid — at today’s prices.', columns: { year: 'Year', p10: 'In a bad case (the worst 1 in 10)', p50: 'Middling', p90: 'In a good case (the best 1 in 10)' } }

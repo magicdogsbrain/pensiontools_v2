@@ -328,14 +328,14 @@
       "area": "ways-in",
       "kind": "option",
       "name": "Life stages lead the way",
-      "what": "Works out from dates whether the plan is saving, approaching, committed while saving, retired in its run-up or running, and opens the right tool for it.",
+      "what": "Works out from dates whether the plan is saving, approaching, committed while saving, being designed by someone retired, or running, and opens the right tool for it.",
       "whereV6": "LifeStage.js deriveStage; tabs led by stage (index.html:8866-8870)",
       "who": "Everyone",
       "keys": [],
       "status": "built",
       "doc": "research/v7/rail-screens-language.md §1.3",
       "step": "s4-open-plan",
-      "note": "Built, reading (6.26, your-plan.md 2.1): the stage from deriveStage on the effective settings (src/services/PlanReading.js), in V7’s words — the key and the dates only. Which questions each stage is offered: the rail’s “Ask a question” links. From release step R2: a plan whose ages are typed only in the saving figures is placed by them (saving or approaching), the same in the planner and in V7, which asks once to confirm them; a saver's rail opens on \"What you pay in\" and keeps what you hold, the move and the lock \"For later\" while the stop is more than five years away, never as the next sentence; the planner opens a saver on their stage's first lead.",
+      "note": "Built, reading (6.26, your-plan.md 2.1): the stage from deriveStage on the effective settings (src/services/PlanReading.js), in V7’s words — the key and the dates only. Which questions each stage is offered: the rail’s “Ask a question” links. From release step R2: a plan whose ages are typed only in the saving figures is placed by them (saving or approaching), the same in the planner and in V7, which asks once to confirm them; a saver's rail opens on \"What you pay in\" and keeps what you hold, the move and the lock \"For later\" while the stop is more than five years away, never as the next sentence; the planner opens a saver on their stage's first lead. From 7.4.2 there is no placing before a retired plan's start: a locked retired plan is running, whatever year 0 it was stored with (one stored later shows the move of its start as its to-do), and an old journey entry that named the old placing reads as retired.",
       "files": [
         "src/answers/plan/read.js",
         "src/v7/copy/plan.js",
@@ -1502,8 +1502,8 @@
       "id": "timing.plan-start",
       "area": "timing",
       "kind": "option",
-      "name": "When the plan's income starts: the tax year work stopped, a year since, this tax year or next April",
-      "what": "Which tax year is the plan's year 0. For someone who has stopped work, by default the tax year they stopped in, however long ago (the plan is then run from where it stands today); a later year is a choice, and the months before it are recorded, not compared with the plan. Without the month work stopped: this tax year or next April, as before 6.51.0.",
+      "name": "When the plan's income starts: the tax year work stopped, a year since, or this tax year",
+      "what": "Which tax year is the plan's year 0. For someone who has stopped work, the tax year they stopped in, however long ago (the plan is then run from where it stands today), or any year from it to this one; never later. Without the month work stopped: this tax year.",
       "whereV6": "Stress → Settings → \"The plan's income starts\" (index.html:3104; PlanTiming.startYearChoices)",
       "who": "Retired, approaching",
       "keys": [
@@ -1513,7 +1513,7 @@
       ],
       "status": "built",
       "step": "s8-e",
-      "note": "In V7, on a saved plan (\"About you and when\", editing-in-v7.md): \"When the plan's income starts\" for someone who has stopped — the tax year they stopped in (the default once the month is given), each year from it to this one, this tax year or next April, the same range as the planner; derived from the stop age or month otherwise, and said so. The Decision copy (decision.firstTaxYear) is kept in step as the planner's Save keeps it.",
+      "note": "In V7, on a saved plan (\"About you and when\", editing-in-v7.md): \"When the plan's income starts\" for someone who has stopped — the tax year they stopped in (the default once the month is given), each year from it to this one, or this tax year, the same range as the planner; derived from the stop age or month otherwise, and said so. The Decision copy (decision.firstTaxYear) is kept in step as the planner's Save keeps it. From 7.4.0 (7.4.2 in the engines): the stop's tax year or this tax year, never next April; a ladder's cash years are its only cash.",
       "files": [
         "src/answers/plan/about.js",
         "src/v7/screens/plan/AboutScreen.jsx"
@@ -1645,7 +1645,7 @@
         "src/services/PlanMove.js"
       ],
       "editV7": "src/v7/screens/plan/AboutScreen.jsx",
-      "note": "6.53.0; the move itself in V7 from 6.55.0. In V7, on a locked plan's \"About you and when\": \"When did you stop work?\" asked once while the plan does not say it — the month (stress.stoppedWork) or \"Leave it\" (stress.stopMonthLeft), each one write of a key the lock guard lets a locked plan write, with Undo (about.js stopAskPatch through planWrite's save); once said, the month stays changeable under \"Change the month you stopped work\", by the same rules, so a month typed wrongly is not kept for good. Once the month is said and its tax year is earlier than the plan's first, the step offers \"Move the plan's start…\" and makes the move itself: a confirm on the page says exactly what changes, line for line what the planner's confirm says from the same facts (PlanMove.moveFactsOf; about.js moveConfirmOf) — the new first tax year, the plan staying locked, the first step keeping its amount and the later steps their ages, the recorded months, the document and plan vs actual written again — then the plan as moved runs in the worker and ONE write sends movePatch (moveStart.js) through planWrite.js past the same guard (its reAnchor allowance; schema.js MOVE_START_WRITES among the preview's writes). No Undo, as in the planner. No door to the planner is needed for it."
+      "note": "6.53.0; the move itself in V7 from 6.55.0. In V7, on a locked plan's \"About you and when\": \"When did you stop work?\" asked once while the plan does not say it — the month (stress.stoppedWork) or \"Leave it\" (stress.stopMonthLeft), each one write of a key the lock guard lets a locked plan write, with Undo (about.js stopAskPatch through planWrite's save); once said, the month stays changeable under \"Change the month you stopped work\", by the same rules, so a month typed wrongly is not kept for good. Once the month is said and its tax year is earlier than the plan's first, the step offers \"Move the plan's start…\" and makes the move itself: a confirm on the page says exactly what changes, line for line what the planner's confirm says from the same facts (PlanMove.moveFactsOf; about.js moveConfirmOf) — the new first tax year, the plan staying locked, the first step keeping its amount and the later steps their ages, the recorded months, the document and plan vs actual written again — then the plan as moved runs in the worker and ONE write sends movePatch (moveStart.js) through planWrite.js past the same guard (its reAnchor allowance; schema.js MOVE_START_WRITES among the preview's writes). No Undo, as in the planner. No door to the planner is needed for it. From 7.4.2 it is the migration path for plans stored with a later start: the engines no longer price anything for the months before such a start, so the to-do asks to move it; a later release can retire it once no stored plan needs it."
     },
     {
       "id": "plan.move-to-new",
@@ -2622,13 +2622,12 @@
       "area": "strategies",
       "kind": "option",
       "name": "Full index-linked gilt ladder",
-      "what": "Every year of the income shape bought with index-linked gilts, with the first years from cash. Dials: years from cash, the pension cash to the first April, the money left over (kept, or in shares — 6.35.0), the pension and ISA totals.",
+      "what": "Every year of the income shape bought with index-linked gilts, with the first years from cash. Dials: years from cash, the money left over (kept, or in shares — 6.35.0), the pension and ISA totals.",
       "whereV6": "Income strategy: Full index-linked gilt ladder (index.html:3184-3192)",
       "who": "Approaching, retired",
       "keys": [
         "strategies.full-il-gilt",
         "strategyParams.full-il-gilt.cashYears",
-        "strategyParams.full-il-gilt.bridgeCash",
         "strategyParams.full-il-gilt.spareGrowth",
         "strategyParams.full-il-gilt.sippTotal",
         "strategyParams.full-il-gilt.isaTotal"
@@ -2636,7 +2635,7 @@
       "status": "built",
       "doc": "research/v7/way-and-mix.md §2",
       "step": "s8-way",
-      "note": "Built (6.40.0): the card with the years paid from cash first (0–5, default 2 — the engine's; the Settings box agrees), the cash kept to the first April and the money left over (kept or invested).",
+      "note": "Built (6.40.0): the card with the years paid from cash first (0–5, default 2 — the engine's; the Settings box agrees) and the money left over (kept or invested).",
       "files": [
         "src/answers/plan/waysRun.js",
         "src/answers/plan/way.js",
@@ -2651,13 +2650,12 @@
       "area": "strategies",
       "kind": "option",
       "name": "Gilt ladder + rotation",
-      "what": "The full ladder, plus one agreed escape: if shares fall 30% below their high, the rungs beyond an age are sold to buy them cheap. Dials: years from cash, pension cash to April, the age kept to, the trigger and when it disarms, the money left over (kept, or in shares — 6.35.0), the pension and ISA totals.",
+      "what": "The full ladder, plus one agreed escape: if shares fall 30% below their high, the rungs beyond an age are sold to buy them cheap. Dials: years from cash, the age kept to, the trigger and when it disarms, the money left over (kept, or in shares — 6.35.0), the pension and ISA totals.",
       "whereV6": "Income strategy: Gilt ladder + rotation (index.html:3186-3189; strategies/GiltRotation.js)",
       "who": "Approaching, retired",
       "keys": [
         "strategies.gilt-rotation",
         "strategyParams.gilt-rotation.cashYears",
-        "strategyParams.gilt-rotation.bridgeCash",
         "strategyParams.gilt-rotation.rotateCutAge",
         "strategyParams.gilt-rotation.rotateTrigger",
         "strategyParams.gilt-rotation.rotateDisarmYears",
@@ -2677,6 +2675,24 @@
         "src/services/PlanCommit.js"
       ],
       "editV7": "src/v7/screens/plan/WayScreen.jsx"
+    },
+    {
+      "id": "strat.ladder-extra-cash",
+      "area": "strategies",
+      "kind": "setting",
+      "name": "A gilt ladder's extra cash beside its cash years",
+      "what": "An older ladder setting: cash kept in the pension's money-market fund on top of the cash years, for months before the plan's first year. Nobody retired has months before their plan, so a ladder's cash years are its only cash.",
+      "whereV6": "Stress → Settings and the Full gilt ladder page: \"Extra cash in the money-market fund\" (shown only on a plan that held some, 7.3.3)",
+      "who": "Retired, with a gilt ladder saved before 7.4.0",
+      "keys": [
+        "strategyParams.full-il-gilt.bridgeCash",
+        "strategyParams.gilt-rotation.bridgeCash"
+      ],
+      "status": "retired",
+      "step": "done",
+      "note": "Removed from both apps in 7.4.2: the planner's box and dial and V7's dial are gone, no engine reads it and no new plan document records it. The key stays as stored on a plan that has it (dropping it would change a locked plan's settings on load); an older document that recorded it still shows it under Assumptions, as committed.",
+      "reason": "A gilt ladder's cash years are now its only cash: the extra cash some older plans kept for the months before their first year is no longer added, because a retired person's plan starts in the tax year they stopped work, or this one.",
+      "agreed": "approved (agreed 6 Nov 2026, the removal of months before a retired plan's start: both apps, release 7.4.2)"
     },
     {
       "id": "strat.choose",

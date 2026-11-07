@@ -94,7 +94,6 @@ export const WAY = {
       ratchet: 'When markets are kind',
       treatsRule: 'Treats',
       floorToAge: 'Buy the income to age',
-      bridgeCash: 'Extra cash in the money-market fund',
       spareGrowth: 'Money left over',
       rotateCutAge: 'Keep the rungs to age',
       rotateTrigger: 'The escape: % below the all-time high',

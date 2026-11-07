@@ -6,14 +6,14 @@ describe('householdIncomeTimeline', () => {
   const setA = { duration: 30, baseSalary: 30000, statePension: 12000, statePensionYear: 8, other: 0 };
   const setB = { duration: 25, baseSalary: 22000, statePension: 11000, statePensionYear: 3, dbAmount: 6000, dbStartYear: 0 };
 
-  it('SP steps land in the right years; bridge flag clears once both SPs pay', () => {
+  it('SP steps land in the right years; the waiting-for-a-State-Pension flag clears once both SPs pay', () => {
     const rows = householdIncomeTimeline(setA, setB);
     expect(rows[0].guaranteed).toBe(6000);              // DB only
-    expect(rows[0].bridge).toBe(true);
+    expect(rows[0].beforeStatePension).toBe(true);
     expect(rows[3].spB).toBe(11000);                    // partner SP starts year 3
-    expect(rows[3].bridge).toBe(true);                  // still bridging A's SP
+    expect(rows[3].beforeStatePension).toBe(true);                  // still waiting for A's SP
     expect(rows[8].spA).toBe(12000);
-    expect(rows[8].bridge).toBe(false);                 // both in payment
+    expect(rows[8].beforeStatePension).toBe(false);                 // both in payment
     expect(rows[8].guaranteed).toBe(12000 + 11000 + 6000);
   });
 

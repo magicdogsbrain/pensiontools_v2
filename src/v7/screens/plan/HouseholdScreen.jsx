@@ -104,14 +104,14 @@ function Detail({ V, dispatch }) {
   const D = W.detail;
   if (!V.verdict) return null;
   const toggle = () => dispatch({ type: 'ui/toggle', id: 'hhDetail' });
-  const bridge = V.timeline.filter((r) => r.bridge).pop();
+  const waiting = V.timeline.filter((r) => r.beforeStatePension).pop();
   return (
     <section class="plan-section" data-section="detail">
       <div class="actions-row"><Button testid={`${T}.detail`} kind="quiet" onClick={toggle} {...keepFocus} aria-expanded={V.detailOpen ? 'true' : 'false'}>{V.detailOpen ? D.close : D.open}</Button></div>
       {V.detailOpen && (
         <>
           <h3>{D.timeline.title}</h3>
-          {bridge && <p class="note" data-testid={`${T}.bridgeNote`}>{fill(D.timeline.bridge, { year: String(Number(bridge.year) + 1) })}</p>}
+          {waiting && <p class="note" data-testid={`${T}.waitingNote`}>{fill(D.timeline.waiting, { year: String(Number(waiting.year) + 1) })}</p>}
           <div class="table-wrap">
             <table class="way-table" data-testid={`${T}.timeline`}>
               <thead><tr><th>{D.timeline.columns.year}</th><th>{fill(D.timeline.columns.a, { name: V.names.a })}</th><th>{fill(D.timeline.columns.b, { name: V.names.b })}</th><th>{D.timeline.columns.sp}</th><th>{D.timeline.columns.other}</th><th>{D.timeline.columns.draw}</th></tr></thead>

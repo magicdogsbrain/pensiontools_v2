@@ -274,8 +274,8 @@ describe('the rail: a saver is never pushed off saving (4.1, 4.2)', () => {
     expect(STEPS.saving[0]).toBe('saving');
     expect(STEPS.approaching[0]).toBe('saving');
     expect(STEPS['committed-saving'][0]).toBe('checkin');   // the check-in took the pot step's place (release step R3)
-    expect(STEPS.bridge).toEqual(['month', 'where', 'plan', 'hold', 'move', 'budget', 'household']);
-    expect(STEPS.running).toEqual(STEPS.bridge);
+    expect(STEPS.running).toEqual(['month', 'where', 'plan', 'hold', 'move', 'budget', 'household']);
+    expect(STEPS.bridge).toBeUndefined();   // 7.4.2: no placing before a retired plan's start
     expect(STEPS['draft-retired']).toEqual(['plan', 'budget', 'lock', 'month', 'hold', 'move', 'household']);   // Month by month, optional, saying to lock first (7.2.0)
     expect(laterFor('saving')).toEqual(['lock', 'hold']);
     expect(laterFor('approaching')).toEqual([]);

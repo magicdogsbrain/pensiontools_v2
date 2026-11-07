@@ -65,7 +65,7 @@ export function dialDefaults(id, p) {
     horizonAge: start + N,
     sleeveRatePct: 4, ratchet: 'off', treatsRule: 'share',
     floorToAge: Math.max(start + 1, Math.min(80, start + N - 1)),
-    bridgeCash: 0, spareGrowth: 'kept',
+    spareGrowth: 'kept',
     rotateCutAge: Math.max(start + 1, Math.min(75, start + N - 2)),
     rotateTrigger: 30, rotateDisarmYears: 8
   };

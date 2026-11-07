@@ -32,10 +32,11 @@ describe('calculation reason and the History row', () => {
     expect(new Set(parts).size).toBe(parts.length);
   });
 
-  it('R6.4.2-c — a saved month keeps how a gilt-ladder plan paid it and that it was before year 0', () => {
+  it('R6.4.2-c — a saved month keeps how a gilt-ladder plan paid it; from 7.4.2 it is never stamped as before year 0', () => {
     const row = decisionToHistory({ date: '2026-09', taxYear: '26/27', yearNumber: 0, equity: 0, bond: 950000, cash: 220000, sippDraw: 7000, isaDraw: 0, monthlyTax: 1800, totalMonthlyNet: 5200,
       bridgeYear: true, planStartYear: 2027, strategyOverlay: { id: 'gilt-rotation', hidePots: true, floorLabel: 'SIPP cash', note: 'Nothing is sold.' } });
-    expect(row).toMatchObject({ bridgeYear: true, planStartYear: 2027, strategyId: 'gilt-rotation', contract: true, strategySource: 'SIPP cash', strategyNote: 'Nothing is sold.' });
+    expect(row).toMatchObject({ strategyId: 'gilt-rotation', contract: true, strategySource: 'SIPP cash', strategyNote: 'Nothing is sold.' });
+    expect('bridgeYear' in row || 'planStartYear' in row).toBe(false);   // even when an old decision object carries it
     // A pot-strategy month in the plan proper carries none of it (old records stay readable).
     const plain = decisionToHistory({ date: '2027-05', taxYear: '27/28', yearNumber: 0, equity: 1, bond: 1, cash: 1, sippDraw: 1000, isaDraw: 0 });
     expect(plain.bridgeYear).toBeUndefined();
@@ -124,22 +125,15 @@ describe('the setup\'s suggested income', () => {
     strategyId: 'gilt-rotation', strategyParams: { cashYears: 2, bridgeCash: 20000 }
   };
 
-  it('R6.5.4-b — before year 0 the suggestion is the plan\'s first step, not the run-up cash spread over the months left', async () => {
+  it('R6.5.4-b — before year 0 (a plan stored with a later start) the suggestion is the plan\'s first step, never cash spread over the months left', async () => {
     stress.current = alexStress;
     const d = await frozenAt(SEPT_2026, () => getWizardData('2026-09'));
-    expect(d.bridgeYear).toBe(true);
+    expect(d.planYear).toBe(-1);
+    expect('bridgeYear' in d || 'bridgeCoverMonths' in d).toBe(false);   // 7.4.2
+    expect(d.suggestionSource).toBe('budget-schedule');
     expect(d.remainingMonths).toBe(7);
     expect(d.suggestedSalary).toBe(46000);                          // not 20,000 × 12 / 7 = £34,286
     expect(d.suggestedSalary).not.toBe(Math.round(20000 * 12 / 7));
-  });
-
-  it('P9 — "the cash to April covers N payments" nets off rent, like the DB pension', async () => {
-    stress.current = { ...alexStress, extraIncomes: [{ label: 'rent', annual: 12000, startYear: 0, endYear: 3 }] };
-    const withRent = await frozenAt(SEPT_2026, () => getWizardData('2026-09'));
-    stress.current = alexStress;
-    const without = await frozenAt(SEPT_2026, () => getWizardData('2026-09'));
-    expect(without.bridgeCoverMonths).toBe(Math.floor(20000 / ((46000 - 5200) / 12)));           // 5
-    expect(withRent.bridgeCoverMonths).toBe(Math.floor(20000 / ((46000 - 5200 - 12000) / 12)));  // 8
   });
 
   it('P11 — when last year\'s CPI was only assumed, the wizard hands over a base the typed CPI re-uplifts', async () => {

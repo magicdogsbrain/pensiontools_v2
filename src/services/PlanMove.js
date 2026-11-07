@@ -104,15 +104,16 @@ function laterStashes(state, k, duration) {
 export const MOVED_SOURCE = 'the cash years bucket';
 export const MOVED_NOTE = 'This month came from your cash; nothing was sold.';
 /**
- * The words a month before the plan's income started was stamped with, saying where it was paid from: the run-up's (before
+ * The words a month before the plan's income started was stamped with, saying where it was paid from: the old start's own (before
  * 6.51.0: "SIPP cash (the plan's year 0 is 2028/29)", "Run-up to your plan …") and a ladder month before the ladder's first
  * year (LadderPosition.ladderMonthAdvice). Only these name the old start; any other way of drawing's words (the essentials
  * rung, the engine, a matured rung) stay as they were.
  */
-function runUpWords(h) {
+function oldStartWords(h) {
   const src = typeof h.strategySource === 'string' ? h.strategySource : '', note = typeof h.strategyNote === 'string' ? h.strategyNote : '';
   return src.startsWith('SIPP cash (the plan') || note.startsWith('Run-up to your plan')
-    || src === 'cash, before the ladder\'s first year' || note.startsWith('Before the ladder\'s first year');
+    || src === 'cash, before the ladder\'s first year' || note.startsWith('Before the ladder\'s first year')
+    || src === 'cash, until the first gilt pays' || note.startsWith('Until the ladder\'s first gilt pays');   // its words from 7.4.2
 }
 
 const settingsOf = (scenario, kind) => {
@@ -464,8 +465,8 @@ const underPrevious = (h, ds, cur) => (+ds.unlockCount || 0) > 0 && h.settingsCh
  * names the old year 0 is rewritten:
  *  - `yearNum`: the record's plan year from the new year 0 (0 for a month still before it, as the engine stamps it);
  *  - a month stamped as before the plan's income started (`bridgeYear`) that is now a month of the plan loses the mark and the
- *    year it named (`planStartYear`), and when its words about where it was paid from are the run-up's (strategySource,
- *    strategyNote: runUpWords) they are replaced by words that name no year (MOVED_SOURCE, MOVED_NOTE) — any other words
+ *    year it named (`planStartYear`), and when its words about where it was paid from name the old start (strategySource,
+ *    strategyNote: oldStartWords) they are replaced by words that name no year (MOVED_SOURCE, MOVED_NOTE) — any other words
  *    stay byte for byte; a month still before the new year 0 keeps the mark and names the new year;
  *  - `settingsChecksum`: the record was made under this plan, only its count of years moved, so it is stamped with the
  *    moved settings' checksum — except a record made under settings the plan was unlocked from (it stays as it was, still
@@ -485,7 +486,7 @@ export function reAnchorRecords(history, { to, decisionBefore, decisionAfter }) 
       out.yearNum = Math.max(0, y);
       if (h.bridgeYear === true && y >= 0) {
         delete out.bridgeYear; delete out.planStartYear;
-        if (runUpWords(h)) {
+        if (oldStartWords(h)) {
           if (h.strategySource != null) out.strategySource = MOVED_SOURCE;
           if (h.strategyNote != null) out.strategyNote = MOVED_NOTE;
         }

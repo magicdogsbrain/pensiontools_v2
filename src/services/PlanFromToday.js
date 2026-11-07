@@ -27,9 +27,8 @@
  *  - a plan that says when work stopped (6.51.0) whose pots' day is in its year 0, after that year's 6 April: 'today' for a
  *    draft, { elapsedYears: 0, monthsIntoYear } for a locked plan. So does the plan that carries a closed plan on (6.56.0,
  *    services/PlanClosed.js `before`) once its first month has come, whether or not it says when work stopped: its pots are
- *    what was held when it was made, and the months of its year 0 before then were the closed plan's to pay. Nothing is shifted (no year was lived), but the pots are
- *    the plan's own, not pots waiting for its start: the ladder sets no cash aside to a first April that has passed
- *    (runUpCashSpent).
+ *    what was held when it was made, and the months of its year 0 before then were the closed plan's to pay. Nothing is
+ *    shifted (no year was lived): the pots are the plan's own, and its year 0 is read from their day (potsDayOf).
  *  - anything else — every plan locked in its year 0 or before (all of them until now), every plan that does not say when
  *    work stopped whose year 0 is this tax year or later, and settings handed in by any other route — no key: run from
  *    year 0, as every plan always was.
@@ -142,22 +141,6 @@ export function lockPositionOf(settings, now, plan = null) {
   if (!draftPotsAsOf(withoutPotsAsOf(settings), now, plan)) return null;
   const t = deriveTiming(withoutPotsAsOf(settings) || {}, now);
   return { elapsedYears: t.elapsedYears, monthsIntoYear: wholeMonths(t.monthsIntoYear) };
-}
-
-/**
- * Has the gilt ladder's cash "until the plan's income starts" (strategyParams.bridgeCash) been spent by the day of the run's
- * pots (§6 decision 8)? That cash pays the months from the pots' day to the plan's first April. It is spent when the pots
- * belong to a plan year already begun — the settings say so with `potsAsOf` (the module note): a year lived, or, for a plan
- * that says when work stopped, its year 0. A plan locked before its year 0 keeps it on every later day (its pots, frozen at
- * the lock, still hold that cash), and so does every plan that does not say when work stopped, in its year 0 or before
- * (as every plan always has). Read by fullGiltTest, the plan document's assumptions and the dials that offer it.
- * @param {object} settings  effective Stress settings (with the `potsAsOf` a reader put on them)
- * @param {object} timing  deriveTiming(settings, now)
- */
-export function runUpCashSpent(settings, timing) {
-  if (!timing || timing.mode === 'future') return false;
-  const at = settings ? settings.potsAsOf : null;
-  return isObj(at) || (at === POTS_TODAY && timing.planYearNow >= 0);
 }
 
 /**
@@ -390,10 +373,9 @@ const taxYearPaidBy = (iso) => +iso.slice(0, 4) + (iso.slice(5, 10) >= '04-01' ?
  * its cash years are the years from today to that first rung. At least one: the current year's rung, if it had one, matured
  * before its 6 April and its money is cash now. For the same reason only gilts still to mature on `todayIso` are bought, and
  * a year that no such gilt can pay (its rung has matured since the plan was made, or none ever covered it) is paid from cash
- * — without that a running ladder would read as "not affordable" from the day each rung matures to the April it pays. No
- * run-up cash once the plan has started.
+ * — without that a running ladder would read as "not affordable" from the day each rung matures to the April it pays.
  * @param {{ planFirstTaxYear: number, runFirstTaxYear: number, cashYears?: number, linkers?: object[], todayIso: string }} a
- * @returns {{ firstTaxYear: number, cashYears: number, linkers: object[], bridgeCash: number }}  buildGiltLadder's inputs
+ * @returns {{ firstTaxYear: number, cashYears: number, linkers: object[] }}  buildGiltLadder's inputs
  */
 export function ladderAsSeenFromToday({ planFirstTaxYear, runFirstTaxYear, cashYears = 2, linkers = [], todayIso }) {
   const today = String(todayIso || '').slice(0, 10);
@@ -403,5 +385,5 @@ export function ladderAsSeenFromToday({ planFirstTaxYear, runFirstTaxYear, cashY
   const firstPaid = buyable.length ? taxYearPaidBy(buyable[0]) : null;
   const toFirstRung = (+planFirstTaxYear || 0) + Math.max(0, +cashYears || 0) - (+runFirstTaxYear || 0);
   const toFirstPaid = firstPaid != null ? firstPaid - (+runFirstTaxYear || 0) : 0;
-  return { firstTaxYear: +runFirstTaxYear, cashYears: Math.max(1, toFirstRung, toFirstPaid), linkers: live, bridgeCash: 0 };
+  return { firstTaxYear: +runFirstTaxYear, cashYears: Math.max(1, toFirstRung, toFirstPaid), linkers: live };
 }

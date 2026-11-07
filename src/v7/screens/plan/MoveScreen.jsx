@@ -110,7 +110,7 @@ function Cash({ V }) {
         <table class="way-table" data-testid={`${T}.cash.table`}>
           <thead><tr><th>{C.columns.what}</th><th>{C.columns.amount}</th></tr></thead>
           <tbody>
-            {V.cash.rows.map((r, i) => <tr key={i} data-row={r.id}><td>{fill(C.rows[r.id], { ...r, s: r.months === '1' ? '' : 's' })}</td><td>{r.amount}</td></tr>)}
+            {V.cash.rows.map((r, i) => <tr key={i} data-row={r.id}><td>{fill(C.rows[r.id], r)}</td><td>{r.amount}</td></tr>)}
             <tr data-row="total"><th scope="row">{C.total}</th><td>{V.cash.target}</td></tr>
             <tr data-row="held"><td>{C.held}</td><td>{V.cash.held}</td></tr>
             <tr data-row={V.cash.spare != null ? 'spare' : 'short'}><td>{V.cash.spare != null ? C.spare : C.short}</td><td>{V.cash.spare != null ? V.cash.spare : V.cash.short}</td></tr>

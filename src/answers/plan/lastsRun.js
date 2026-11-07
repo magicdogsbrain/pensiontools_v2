@@ -274,7 +274,7 @@ export function trySettingsOf(s, boxes) {
   c.isaBalance = isa;
   c.strategyId = id;
   c.strategyParams = { ...restoredParamsFor(s, id), sippTotal: pot, isaTotal: isa };   // the tried strategy's own dials, never the active strategy's bag (6.13.0)
-  if (b.isaPolicy === 'hold') c.isaDrawdownStrategy = 'hold'; else if (b.isaPolicy === 'draw') c.isaDrawdownStrategy = 'bridge';
+  if (b.isaPolicy === 'hold') c.isaDrawdownStrategy = 'hold'; else if (b.isaPolicy === 'draw') c.isaDrawdownStrategy = 'minimiseEarlyTax';   // drawn uncapped, as every engine read the 'bridge' it wrote until 7.4.2
   if (b.incomeMode === 'flat') { c.baseSalary = +b.income || 0; c.incomeShape = 'level'; c.incomeSteps = []; c.targetSchedule = null; }
   c.duration = Math.max(TRY_YEARS.min, Math.min(TRY_YEARS.max, +b.years || s.duration || 35));   // the plan's full length (the engines run to 45 years), no 35-year cap (audit problem 1)
   if (b.cuts === 'on' || b.cuts === 'off') c.disableProtection = b.cuts === 'off';

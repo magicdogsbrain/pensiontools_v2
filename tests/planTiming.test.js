@@ -111,17 +111,17 @@ describe('deriveTiming', () => {
     expect(t.firstTaxYear).toBe(2026);
     expect(t.shapeAgeNow).toBe(63);
     expect(t.yearsToStart).toBe(0);
-    expect(t.bridgeMonths).toBe(0);
+    expect(t.monthsToStop).toBeUndefined();   // a retiree has no months to a stop, and none before the plan (7.4.2)
     expect(t.startOptions).toEqual([2026]);
     expect(t.potScale).toEqual({ sipp: 1, isa: 1 });
   });
   it('a retiree with a stop month starts that tax year: plan year 3 now, nothing before the start, steps from the age then', () => {
     const t = deriveTiming({ ...alex, retired: true, stoppedWork: '2023-10' }, NOW);
-    expect(t).toMatchObject({ mode: 'retired', firstTaxYear: 2023, shapeAgeNow: 60, yearsToStart: 0, bridgeMonths: 0, planYearNow: 3, elapsedYears: 3, monthsIntoYear: 5, stoppedWork: '2023-10' });
+    expect(t).toMatchObject({ mode: 'retired', firstTaxYear: 2023, shapeAgeNow: 60, yearsToStart: 0, planYearNow: 3, elapsedYears: 3, monthsIntoYear: 5, stoppedWork: '2023-10' });
     // the years a retiree may choose from: the stop's to this tax year (7.4.0: never next April)
     expect(t.startOptions).toEqual([2023, 2024, 2025, 2026]);
     // a later start is a choice that is kept (research/plan-start.md §2 D): the saved year wins over the stop's
-    expect(deriveTiming({ ...alex, retired: true, stoppedWork: '2026-07', firstTaxYear: 2027 }, NOW)).toMatchObject({ firstTaxYear: 2027, bridgeMonths: 7, planYearNow: -1, elapsedYears: 0 });
+    expect(deriveTiming({ ...alex, retired: true, stoppedWork: '2026-07', firstTaxYear: 2027 }, NOW)).toMatchObject({ firstTaxYear: 2027, planYearNow: -1, elapsedYears: 0 });
   });
   it('a plan with no stop month carries no new key: its timing (and the document that spreads it) is what it was', () => {
     expect('stoppedWork' in deriveTiming(alex, NOW)).toBe(false);
@@ -153,7 +153,7 @@ describe('deriveTiming', () => {
     expect(t.firstTaxYear).toBe(2026);
     expect(t.shapeAgeNow).toBe(63);
     expect(t.yearsToStart).toBe(0);
-    expect(t.bridgeMonths).toBe(0);
+    expect(t.monthsToStop).toBeUndefined();   // a retiree has no months to a stop, and none before the plan (7.4.2)
   });
   // 6.13.5: this used to "fall forward to next April" (2027) — which is the April slide: a plan that started in
   // 2027/28 jumped to 2029/30 the day its second year began. A saved start is the plan's anchor for good.
@@ -161,7 +161,7 @@ describe('deriveTiming', () => {
     const t = deriveTiming({ ...alex, retired: true, firstTaxYear: 2024 }, NOW);
     expect(t.firstTaxYear).toBe(2024);
     expect(t.yearsToStart).toBe(0);
-    expect(t.bridgeMonths).toBe(0);
+    expect(t.monthsToStop).toBeUndefined();   // a retiree has no months to a stop, and none before the plan (7.4.2)
   });
   it('retire at 66 → 2029/30, three years out', () => {
     const t = deriveTiming({ ...alex, retired: false, retireAge: 66 }, NOW);
@@ -172,7 +172,7 @@ describe('deriveTiming', () => {
     const t = deriveTiming(s, new Date(2026, 8, 11));
     expect(t.firstTaxYear).toBe(2027);          // 61 is reached in 2027/28 (20 Oct 2027)
     expect(t.startMonth).toBe('2027-10');       // but they retire in October, 13 months away
-    expect(t.bridgeMonths).toBe(13);
+    expect(t.monthsToStop).toBe(13);   // a saver's months to their stop (7.4.2: it was `bridgeMonths`)
     expect(describeTiming(t, s, new Date(2026, 8, 11))).toContain('You retire in October 2027 at 61, 13 months away; the plan\'s year 0 is tax year 2027/28');
     expect(deriveTiming({ ...alex, retired: true, firstTaxYear: 2027 }, NOW).startMonth).toBe('2027-04');
   });

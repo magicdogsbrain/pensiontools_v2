@@ -19,13 +19,13 @@ const lineText = (line) => (line ? fill(PLAN.stageLines[line.id], line.slots) : 
 
 describe('T1 — the stage of every committed plan, at three dates (your-plan.md "What was run" 4)', () => {
   const EXPECTED = {
-    '2026-10-02': { '01-fresh-default': 'unknown', '02-pnv-draft': 'draft-retired', '03-gilt-ladder-runup': 'bridge', '04-buckets-running': 'running', '05-saver-committed': 'committed-saving',
+    '2026-10-02': { '01-fresh-default': 'unknown', '02-pnv-draft': 'draft-retired', '03-gilt-ladder-runup': 'running', '04-buckets-running': 'running', '05-saver-committed': 'committed-saving',
       '06-pre-6.4-no-timing': 'running', '07-pre-6.13-flat-params': 'draft-retired', '08-dotted-keys': 'unknown', '09-couple-a': 'draft-retired', '10-couple-b': 'approaching', '11-guest-demo': 'draft-retired', '12-lumpy-db-gia': 'draft-retired' },
-    '2027-04-05': { '03-gilt-ladder-runup': 'bridge' },
+    '2027-04-05': { '03-gilt-ladder-runup': 'running' },   // 7.4.2: a locked retired plan is running whatever its stored start
     '2027-04-06': { '03-gilt-ladder-runup': 'running' }
   };
   // The starting situation 13 (6.51.0, research/plan-start.md §7: "the new C fixture is running at all three dates"): year 0
-  // the tax year Alex stopped work in, locked then, living on the plan since — never the bridge, whatever the date.
+  // the tax year Alex stopped work in, locked then, living on the plan since — running, whatever the date.
   for (const today of DATES) EXPECTED[today]['13-stopped-drawing-since'] = 'running';
   for (const today of DATES) {
     for (const [name, key] of Object.entries(EXPECTED[today])) {
@@ -123,12 +123,12 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
 
 describe('T2 — the rail: the steps for every stage, one current step, one next sentence', () => {
   it('the 2.2 table', () => {
-    expect(STEPS.bridge).toEqual(['month', 'where', 'plan', 'hold', 'move', 'budget', 'household']);
-    expect(STEPS.running).toEqual(STEPS.bridge);
+    expect(STEPS.running).toEqual(['month', 'where', 'plan', 'hold', 'move', 'budget', 'household']);
+    expect(STEPS.bridge).toBeUndefined();   // 7.4.2: no placing before a retired plan's start
     // a saver's check-in takes the pot step's place (research/saving-enough-and-check-in.md 4.1; release step R3)
     expect(STEPS.saving).toEqual(['saving', 'checkin', 'plan', 'budget', 'lock', 'hold', 'household']);
     expect(STEPS['committed-saving'][0]).toBe('checkin');
-    expect(stepsFor('bridge', { locked: true, linked: false, manyPlans: false }).map((s) => s.id)).toEqual(['month', 'where', 'plan', 'hold', 'move', 'budget']);
+    expect(stepsFor('running', { locked: true, linked: false, manyPlans: false }).map((s) => s.id)).toEqual(['month', 'where', 'plan', 'hold', 'move', 'budget']);
     expect(stepsFor('saving', { locked: false, linked: true, manyPlans: false }).map((s) => s.id)).toContain('lock');
     expect(stepsFor('saving', { locked: true, linked: true, manyPlans: false }).map((s) => s.id)).not.toContain('lock');
     // the check-in is a saver's own step: never optional (the pot step was optional but on a plan locked while saving)

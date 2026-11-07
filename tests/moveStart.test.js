@@ -193,7 +193,7 @@ describe('the move on fixture 03 (§7 "the migration")', () => {
     expect(doc.timing.firstTaxYear).toBe(2023);
     expect(doc.pots.asOfPlanYear).toBe(3);
     expect(doc.timing.monthsIntoYear).toBe(3);
-    expect(doc.assumptions.bridgeCash).toBe(0);              // no cash set aside for a start that has passed
+    expect('bridgeCash' in doc.assumptions).toBe(false);     // 7.4.2: no extra cash, ever (was: 0 here) // no cash set aside for a start that has passed
     expect(doc.lockedAt).toBe(before.decisionTool.settings.lockedAt);
     expect(doc.note).toBe(noteMoved(2023));
     expect(doc.timeline[0]).toMatchObject({ y: 0, taxYear: '2023/24', age: 62, lived: true });
@@ -244,7 +244,7 @@ describe('after the move: the history, the strip and the ladder\'s month read th
   it('the strip: plan year 3 of 24, no months before the start; the ladder\'s month this tax year is a cash year, and its first gilt later', () => {
     const w = whereAmI(after.planDocument, { today: NOW, history: after.decisionTool.history });
     expect(w.planYear).toBe(3);
-    expect(w.bridge).toBe(false);
+    expect(w.beforeStart).toBe(false);
     expect(w.planStart).toBe('2023/24');
     const ladder = documentLadder(after.planDocument, 'full-il-gilt');
     const lp = ladderPosition(ladder, { today: NOW });
@@ -253,7 +253,7 @@ describe('after the move: the history, the strip and the ladder\'s month read th
     expect(advice.floorLabel).toBe('the cash years bucket');
     expect(advice.note).toContain('Your cash pays until the ladder\'s first gilt, from ' + firstRungOf(ladder).label);
     // a lived month of 2023/24 is before the ladder's first year: cash, a label that names no year
-    expect(ladderMonthAdvice(ladderPosition(ladder, { today: new Date(2023, 11, 15) }), firstRungOf(ladder), 2833, 0).floorLabel).toBe('cash, before the ladder\'s first year');
+    expect(ladderMonthAdvice(ladderPosition(ladder, { today: new Date(2023, 11, 15) }), firstRungOf(ladder), 2833, 0).floorLabel).toBe('cash, until the first gilt pays');
   });
   it('plan vs actual: the part year set up mid-year is plan year 3 now, never "a first year"; a plan set up in its year 0 says it as before', () => {
     const gbp = (v) => '£' + Math.round(v).toLocaleString('en-GB');

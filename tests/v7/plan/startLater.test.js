@@ -259,8 +259,8 @@ describe('the planner\'s next-step banner says the same to-do', () => {
   });
   it('the old placing\'s own banner, label and chip carry no words for months before the plan', () => {
     const st = stageOf(C['03-gilt-ladder-runup']);
-    expect(st.key).toBe('bridge');
-    expect([st.label, st.chip, st.banner.text].join(' ')).not.toMatch(SAID);
-    expect(st.chip).toBe('retired');
+    expect(st.key).toBe('running');   // 7.4.2: the old placing is gone; the plan is running, its to-do the move
+    expect([st.label, st.chip].join(' ')).not.toMatch(SAID);
+    expect(st.banner).toBe(null);
   });
 });

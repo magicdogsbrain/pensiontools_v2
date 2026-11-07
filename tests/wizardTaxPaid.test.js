@@ -79,7 +79,7 @@ describe('mid-year wizard: tax already paid (6.4.1)', () => {
     expect(Math.round(withPaid.sippDraw)).toBe(Math.round(without.sippDraw));   // the gross draw is unaffected
     expect(withPaid.monthlyTax).toBeLessThan(without.monthlyTax);
     expect(Math.abs(withPaid.monthlyTax - (5910 - 4900) / 5)).toBeLessThan(2);
-    expect(withPaid.bridgeYear).toBe(true);
+    expect('bridgeYear' in withPaid).toBe(false);   // 7.4.2: a month is never stamped as before the plan
     // Drawing the full target from the SIPP IS the "inefficient" comparison — no saving to report (6.4.2)
     expect(withPaid.taxSavedMonthly).toBe(0);
   });

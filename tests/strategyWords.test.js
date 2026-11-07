@@ -56,7 +56,7 @@ describe('the document and the strip, drawn for each strategy', () => {
   it('a Pots & Valves plan stored with its start later than today: the strip says the to-do, no rungs; pots and protection in section 4', () => {
     const doc = docFor(S.POTS_AND_VALVES);
     const w = whereAmI(doc, { today: new Date(2026, 9, 17) });
-    expect(w.bridge).toBe(true);
+    expect(w.beforeStart).toBe(true);
     expect(w.strategyId).toBe(S.POTS_AND_VALVES);
     const strip = whereAmIHtml(w);
     // 7.3.3: one thing to do (move the start), never words for months before the plan

@@ -38,7 +38,7 @@ export function strategyMonthlyCap(strategy, { isaBalance, monthsUntilSp }) {
   if (strategy === ISA_STRATEGIES.HOLD) return 0;               // Option C: never for income
   if (strategy !== ISA_STRATEGIES.LONGEVITY) return Infinity; // Option A: uncapped
   if (monthsUntilSp == null || monthsUntilSp <= 0) return Infinity; // SP started: uncapped
-  return isaBalance / monthsUntilSp; // level the pot across the pre-SP bridge window
+  return isaBalance / monthsUntilSp; // level the pot across the months before the State Pension
 }
 
 /**

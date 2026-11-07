@@ -438,7 +438,7 @@ export function strategyNameOf(st) {
 export function whereAmIHtml(w) {
   if (!w) return '';
   const parts = [];
-  if (w.saving && w.bridge) {
+  if (w.saving && w.beforeStart) {
     // Still saving for a plan locked in advance (6.7.0; read like with like from 6.22.0 — saverReadingText)
     const s = w.saving;
     parts.push('<strong>' + (s.monthsToGo >= 24 ? Math.round(s.monthsToGo / 12) + ' years' : s.monthsToGo + ' month' + (s.monthsToGo === 1 ? '' : 's')) + ' to go</strong> — the plan starts in ' + esc(w.planStart) + '.');
@@ -446,7 +446,7 @@ export function whereAmIHtml(w) {
     if (text) parts.push(text);
     if (s.contributions > 0 || s.isaMonthly > 0) parts.push('Going in on the locked plan: ' + [s.contributions > 0 ? gbp(s.contributions) + ' a month gross into your pension' : '', s.isaMonthly > 0 ? gbp(s.isaMonthly) + ' a month into ISAs and savings' : ''].filter(Boolean).join(' and ') + '.');
   }
-  else if (w.bridge) {
+  else if (w.beforeStart) {
     // A plan whose year 0 is later than today: its figures are a later year's, so nothing this year is read against them.
     // Only a plan stored the old way (until 6.51.0 a retired person's plan started at the next April; the caller passes
     // PlanMove.startLaterOf as `w.startLater`) is pointed at the move of its start, and only when the move can be made; a

@@ -23,7 +23,7 @@
 import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS } from '../constants.js';
 import { getDefaultStressSettings } from '../storage/stressDefaults.js';
 import { smileToSteps, compileSteps } from './IncomeSchedule.js';
-import { pinTiming, taxYearStartOf, taxYearKey } from './PlanTiming.js';
+import { pinTiming } from './PlanTiming.js';
 import { budgetAgesKnown, defaultBudget } from './BudgetModel.js';
 import { DEFAULT_CHARGES_PCT } from './Charges.js';
 import { DEFAULT_ISA_GROWTH } from './IsaGrowth.js';
@@ -262,8 +262,7 @@ export function whereAmIFor(scenario, { now = new Date() } = {}) {
 
 /**
  * The Transition page's inputs (index.html loadTransitionUI): the target from the plan document with the live strategy
- * dials, the run-up cash sized by this tax year's expected pension draw (else the last recorded month), what you hold
- * against it, and the tick-offs.
+ * dials, what you hold against it, and the tick-offs.
  * @returns {{ target, diff, prog }|null}  null without a plan document
  */
 export function moveInputs(scenario, { now = new Date() } = {}) {
@@ -271,19 +270,10 @@ export function moveInputs(scenario, { now = new Date() } = {}) {
   const doc = sc.planDocument || null;
   if (!doc) return null;
   const ss = effectiveStressSettings(sc, { now });
-  let runUpMonthly = 0;
-  const key = taxYearKey(taxYearStartOf(now));
-  const cfg = sc.decisionTool && sc.decisionTool.taxYears && sc.decisionTool.taxYears[key];
-  runUpMonthly = +(cfg && cfg.expectedMonthly && cfg.expectedMonthly.sipp && cfg.expectedMonthly.sipp.gross) || 0;
-  if (!runUpMonthly) {
-    const hist = historyAscending(sc);
-    const last = hist.length ? hist[hist.length - 1] : null;
-    runUpMonthly = last ? (+last.sippDraw || +last.sipp || 0) : 0;
-  }
-  const target = targetHoldings(doc, { today: now, params: ss.strategyParams || null, runUpMonthly });
+  const target = targetHoldings(doc, { today: now, params: ss.strategyParams || null });
   const rec = normaliseHoldings(sc.holdings);
   const diff = diffHoldings(rec.lines || [], target);
   const done = (sc.transition && sc.transition.done) || {};
   const prog = progress(diff, done);
-  return { target, diff, prog, runUpMonthly, strategyParams: ss.strategyParams || null };
+  return { target, diff, prog, strategyParams: ss.strategyParams || null };
 }

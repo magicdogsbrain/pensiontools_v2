@@ -44,14 +44,14 @@ const tick = async (n = 6) => { for (let i = 0; i < n; i++) await new Promise((r
 
 describe('the three words (stageOf): derived from the facts, nothing stored', () => {
   const placing = (key, more = {}) => ({ key, locked: false, timingMode: 'future', startMonth: '2030-06', monthsToStart: 40, stoppedWork: null, firstTaxYear: 2030, closedAt: null, ...more });
-  it('maps the eight placings to Saving, Moving, Drawing and Closed (and none for an unknown age)', () => {
+  it('maps the seven placings to Saving, Moving, Drawing and Closed (and none for an unknown age)', () => {
     const at = new Date(2026, 9, 15, 12);
     const w = (p, move) => stageOf({}, at, { placing: p, move }).key;
     expect(w(placing('unknown'))).toBe(null);
     for (const k of ['saving', 'approaching', 'committed-saving']) expect(w(placing(k))).toBe('saving');
     expect(w(placing('draft-retired', { timingMode: 'retired' }))).toBe('drawing');
     expect(w(placing('closed', { closedAt: '2026-03' }))).toBe('closed');
-    for (const k of ['bridge', 'running']) {
+    for (const k of ['running']) {   // 7.4.2: the placing kept for a later start is gone; such a plan is running
       expect(w(placing(k, { locked: true, timingMode: 'retired' }))).toBe('drawing');                                                // no holdings record: nothing to move
       expect(w(placing(k, { locked: true, timingMode: 'retired' }), { recorded: true, complete: true })).toBe('drawing');           // what you hold is the plan's mix
       expect(w(placing(k, { locked: true, timingMode: 'retired' }), { recorded: true, complete: false })).toBe('moving');           // still short of it

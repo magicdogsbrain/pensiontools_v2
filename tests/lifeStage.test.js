@@ -20,10 +20,9 @@ describe('deriveStage — the persona matrix', () => {
       [{}, {}, NOW],                                                                                        // empty
       [{ currentAge: 62, currentAgeAsOf: '2026-03-01', retired: true, firstTaxYear: 2027 }, { locked: true }, new Date(2027, 4, 1)]   // running
     ]) expect(deriveStage(sc(stress, decision), at).hidden).not.toContain('transition');
-    for (const key of ['approaching', 'committed-saving', 'bridge', 'draft-retired']) {
+    for (const key of ['approaching', 'committed-saving', 'draft-retired']) {
       const st = { approaching: deriveStage(sc({ currentAge: 57, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }), NOW),
         'committed-saving': deriveStage(sc({ currentAge: 58, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }, { locked: true }), NOW),
-        bridge: deriveStage(sc({ currentAge: 62, currentAgeAsOf: '2026-03-01', retired: true, firstTaxYear: 2027 }, { locked: true }), NOW),
         'draft-retired': deriveStage(sc({ currentAge: 68, currentAgeAsOf: '2026-09-10', retired: true, firstTaxYear: 2026 }), NOW) }[key];
       expect(st.key).toBe(key);
       expect(st.leads).toContain('transition');
@@ -70,17 +69,19 @@ describe('deriveStage — the persona matrix', () => {
   // stage, as every plan saved before 6.51.0 does.) Someone who stopped in an earlier tax year is running: the case after.
   // 7.3.3: the placing keeps its key, but has no words for months before the plan (its chip has no countdown); a plan stored
   // this way shows the move of its start as its to-do (PlanMove.startLaterOf, the next-step banner)
-  it('Alex in September: stopped in July, saved for next April, locked, before the start → placed bridge, read as Retired; accumulation hidden', () => {
+  // 7.4.2: that placing is gone. A locked retired plan is running, whatever year 0 it was stored with; its to-do is the move.
+  it('Alex in September: stopped in July, saved for next April, locked → running (7.4.2), never before the start; accumulation hidden', () => {
     const alexD = { currentAge: 62, currentAgeAsOf: '2026-03-01', retired: true, firstTaxYear: 2027, spStartDate: '12 June 2030', stoppedWork: '2026-07' };
     const st = deriveStage(sc(alexD, { locked: true }), NOW);
-    expect(st.key).toBe('bridge');
+    expect(st.key).toBe('running');
+    expect(st.beforeStart).toBe(false);
     expect(st.hidden).toEqual(['accumulation']);
-    expect(st.chip).toBe('retired');
-    expect(st.label).toBe('Retired');
-    expect(st.banner.text).toBe('Retired. This plan\'s first tax year is 2027/28; record each month in the Decision tool.');
-    expect(decisionEntryAllowed(st, '2026-09').ok).toBe(true);   // the months before the start are recorded
+    expect(st.chip).toBe('running');
+    expect(st.banner).toBe(null);   // the where strip and the to-do speak
+    expect(STAGES.bridge).toBeUndefined();
+    expect(decisionEntryAllowed(st, '2026-09').ok).toBe(true);   // the months are recorded
     const { stoppedWork, ...noMonth } = alexD;
-    expect(deriveStage(sc(noMonth, { locked: true }), NOW).key).toBe('bridge');
+    expect(deriveStage(sc(noMonth, { locked: true }), NOW).key).toBe('running');
   });
   it('stopped in an earlier tax year with the plan\'s income from then: running (plan year 3), never the bridge', () => {
     const st = deriveStage(sc({ currentAge: 62, currentAgeAsOf: '2026-03-01', retired: true, stoppedWork: '2023-10', firstTaxYear: 2023, spStartDate: '12 June 2030' }, { locked: true }), NOW);
@@ -187,7 +188,7 @@ describe('a saver, placed and opened as a saver (release step R2)', () => {
     expect(at({ currentAge: 68, currentAgeAsOf: '2026-09-10', retired: true, firstTaxYear: 2026 })).toBe('decision');                      // draft-retired
     expect(at({})).toBe('decision');                                                                                                          // unknown
     expect(openingTab(null)).toBe('decision');
-    for (const key of ['bridge', 'running', 'draft-retired', 'unknown']) expect(openingTab({ key, leads: STAGES[key].leads })).toBe('decision');
+    for (const key of ['running', 'draft-retired', 'unknown']) expect(openingTab({ key, leads: STAGES[key].leads })).toBe('decision');
     expect(STAGES.saving.leads[0]).toBe('accumulation');
     // a saver's banner button opens the tab the planner opened on: the two never disagree
     for (const key of ['saving', 'approaching', 'committed-saving']) expect(STAGES[key].banner.tab, key).toBe(openingTab({ key, leads: STAGES[key].leads }));

@@ -24,6 +24,9 @@ export const OWNED_KEYS = {
   'floor-and-flex': ['essentialsAnnual', 'horizonAge', 'sleeveRate', 'treatsRule', 'ratchet'],
   'floor-the-schedule': [],
   'floor-to-age': ['floorToAge', 'borrowedFloor'],
+  // `bridgeCash`: the extra cash an older ladder kept beside its cash years. Nothing reads it from 7.4.2 (a ladder's cash
+  // years are its only cash), but it stays a key of its own, kept as stored: dropping it would change a locked plan's
+  // settings — and their checksum — on the next load, which a lock never allows.
   'full-il-gilt': ['cashYears', 'bridgeCash', 'spareGrowth'],
   'gilt-rotation': ['cashYears', 'bridgeCash', 'rotateCutAge', 'rotateTrigger', 'rotateDisarmYears', 'spareGrowth']
 };

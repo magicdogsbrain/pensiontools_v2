@@ -395,7 +395,6 @@ export const PLAN = {
     sippTotal: 'Pension pot the plan is built on',
     isaTotal: 'ISA the plan is built on',
     cashYears: 'Years held in cash',
-    bridgeCash: 'Extra cash in the money-market fund',
     floorYears: 'Years the floor covers',
     reserveYears: 'Years in the reserve',
     bridgeAge: 'Age the engine takes over',

@@ -78,10 +78,7 @@ export const MONTH = {
     suggestion: {
       chain: 'With prices up {cpi}%, this year’s income before tax would be {amount} a year.',
       declining: 'Your plan’s spending falls a little each year (about {pct}% a year at today’s prices). Last year’s income rises with prices, less that fall, to {amount} a year before tax.',
-      'budget-schedule': 'From your plan’s income for this year, raised to this year’s prices: {amount} a year before tax.',
-      /** A plan stored with its start later than this tax year: the suggestion is its first income step (its home asks to move the start). */
-      firstStep: 'From your plan’s first income step: {amount} a year before tax.',
-      cashCover: ' At that rate your cash covers {n} of the {m} payments to come.'
+      'budget-schedule': 'From your plan’s income for this year, raised to this year’s prices: {amount} a year before tax.'
     },
     statePension: {
       none: 'State Pension: none in your plan. Add your forecast under Money that comes in anyway.',

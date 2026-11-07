@@ -44,7 +44,8 @@ import { deriveCompareConfigs } from '../src/strategies/compareRunner.js';
 import { buildPlanDocument } from '../src/services/PlanDocument.js';
 import { planOfRecordFor, seedDecisionFromStress } from '../src/services/PlanCommit.js';
 import { householdDrawSplit } from '../src/services/HouseholdDraw.js';
-import { deriveTiming } from '../src/services/PlanTiming.js';
+import { deriveTiming, monthsUntilStart } from '../src/services/PlanTiming.js';
+import { cleanParams } from '../src/services/StrategyState.js';
 import { realYieldForYear, setLinkersOverride } from '../src/services/LinkerUniverse.js';
 import { setEquityOverride } from '../src/services/EquityIndex.js';
 
@@ -115,10 +116,60 @@ const withoutAdded = (doc) => {
   // figures did not move is held to its pins byte for byte
   if (Array.isArray(timing.startOptions) && timing.startOptions.length) timing.startOptions = [...timing.startOptions, timing.startOptions[timing.startOptions.length - 1] + 1];
   // 7.4.1: the engine's version is a stamp too (strategies/version.js: nothing compares it). The pins, taken under 6.37.0,
-  // are read with it put back, so a plan whose figures did not move under 6.38.0 is held to them byte for byte.
+  // are read with it put back, so a plan whose figures did not move under 6.38.0 or 6.39.0 is held to them byte for byte.
   const { appVersion, ...rest } = doc;
   return { ...rest, ...('engineVersion' in rest ? { engineVersion: '6.37.0' } : {}), timing };
 };
+
+/**
+ * 7.4.2 removed fields, not figures, from every output: the timing's months to a start (`bridgeMonths`; a saver's renamed
+ * `monthsToStop`), the document's copies of it and of a ladder's extra cash (`assumptions.bridgeMonths`/`bridgeCash`,
+ * `decisionRun.bridgeMonths`), and the run's flag that said a plan's pots were its year 0's (`runUpSpent`) beside the extra
+ * cash it passed on (`params.bridgeCash`). The pins, taken before, are read with each put back where it stood, worked out by
+ * the rules of the code that wrote them (the extra cash a document recorded: none once spent, else the plan's own), so every
+ * plan whose FIGURES did not move is held to them byte for byte. The ones that moved — a ladder with extra cash still unspent
+ * on the run's pots — have their pins retaken (the note above the pins' fixtures).
+ */
+const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+function placed(obj, anchor, key, value, before = false) {
+  if (!isObj(obj)) return obj;
+  const out = {};
+  let done = false;
+  for (const [k, v] of Object.entries(obj)) {
+    if (before && k === anchor && !done) { out[key] = value; done = true; }
+    if (k !== key) out[k] = v;
+    if (!before && k === anchor && !done) { out[key] = value; done = true; }
+  }
+  if (!done) out[key] = value;
+  return out;
+}
+function asPinned(outputs, stress, now) {
+  const p = outputs.planFromSettings;
+  const t = deriveTiming(stress, now);
+  const at = stress.potsAsOf;
+  const spent = !(p.yearOffset > 0) && t.mode !== 'future' && (isObj(at) || (at === 'today' && t.planYearNow >= 0));
+  const raw = stress.strategyId === 'pots-and-valves' ? undefined : (stress.strategyParams || {}).bridgeCash;
+  const plan = (q) => {
+    if (!isObj(q)) return q;
+    let o = spent ? placed(q, 'stride', 'runUpSpent', true, true) : q;
+    if (raw !== undefined && isObj(o.params)) o = { ...o, params: placed(o.params, 'cashYears', 'bridgeCash', raw) };
+    return o;
+  };
+  const months = (timing) => (timing.mode === 'future' ? timing.monthsToStop : monthsUntilStart(timing.firstTaxYear, now));
+  const doc = outputs.buildPlanDocument;
+  let d = doc;
+  if (isObj(doc) && isObj(doc.timing)) {
+    const m = months(doc.timing);
+    const { monthsToStop, ...timing } = doc.timing;
+    const lived = p.yearOffset > 0;
+    const extra = lived || spent ? 0 : (+cleanParams(doc.strategy.id, stress.strategyParams).bridgeCash || 0);
+    let assumptions = placed(doc.assumptions, 'firstTaxYear', 'bridgeMonths', m);
+    assumptions = placed(assumptions, 'cashYears', 'bridgeCash', extra);
+    d = { ...doc, timing: placed(timing, 'startMonth', 'bridgeMonths', m), assumptions, decisionRun: placed(doc.decisionRun, 'year0', 'bridgeMonths', m),
+      strategy: { ...doc.strategy, p: plan(doc.strategy.p) } };
+  }
+  return { ...outputs, planFromSettings: plan(p), buildPlanDocument: d };
+}
 
 function outputsOf(name, now) {
   const plan = upgradeScenario(raws[name], { now }).scenario;
@@ -138,7 +189,7 @@ function outputsOf(name, now) {
   const split = householdDrawSplit({ settings: stress, name: 'You' }, { settings: partner, name: 'Partner' }, { now });
   return {
     timing: deriveTiming(stress, now),
-    outputs: {
+    outputs: asPinned({
       simulationConfigFromSettings: cfg,
       planFromSettings: p,
       deriveCompareConfigs: sampledConfigs(configs, p.durationYears),
@@ -146,7 +197,7 @@ function outputsOf(name, now) {
       buildPlanDocument: withoutAdded(doc),
       planOfRecordFor: { ...por, engineVersion: '6.37.0' },   // the engine's stamp as the pins had it (withoutAdded above)
       householdDrawSplit: split
-    }
+    }, stress, now)
   };
 }
 

@@ -64,7 +64,7 @@ describe('the reading (wayOf) on every corpus plan at three dates', () => {
     expect(w.strategyId).toBe('gilt-rotation');
     // the spare's growth is absent in the bag (kept, the engine's reading): not a value of its own, so the card shows the default
     // 7.4.0: 07 is a draft saved with next April, read from this tax year — its counts of years from year 0 one more, the same tax years
-    expect(w.stash['gilt-rotation']).toEqual({ cashYears: 3, bridgeCash: 17500, rotateCutAge: 80, rotateTrigger: 30, rotateDisarmYears: 5 });
+    expect(w.stash['gilt-rotation']).toEqual({ cashYears: 3, rotateCutAge: 80, rotateTrigger: 30, rotateDisarmYears: 5 });   // 7.4.2: its stored extra cash is no dial
     expect(w.stash['floor-to-age']).toEqual({ floorToAge: 80 });
     expect(w.stash['floor-and-flex']).toEqual({ essentialsAnnual: 18000, horizonAge: 92, sleeveRatePct: 4, ratchet: 'off' });   // the old "none" reads as off; no treats rule stored
     expect(w.stash['ladder-and-ratchet']).toEqual({ ladderYears: 16, triggerMode: 'band', bandThreshold: 1.2 });   // drawAnnual 0 reads as "the plan's target": not a value
@@ -92,7 +92,7 @@ describe('the dials\' units', () => {
     expect(dialUnitsOf(d('floor-and-flex', 'ratchet'), 'none')).toBe('off');
     expect(dialUnitsOf(d('floor-and-flex', 'ratchet'), 'extend')).toBe('extend');
     expect(dialUnitsOf(d('ladder-and-ratchet', 'drawAnnual'), 0)).toBe(null);
-    expect(dialUnitsOf(d('full-il-gilt', 'bridgeCash'), 0)).toBe(0);
+    expect(WAY_DIALS['full-il-gilt'].some((x) => x.key === 'bridgeCash')).toBe(false);   // 7.4.2: no dial for an older ladder's extra cash
     expect(dialUnitsOf(d('ladder-and-ratchet', 'triggerMode'), 'calendar')).toBe('calendar');
     expect(dialUnitsOf(d('ladder-and-ratchet', 'triggerMode'), 'odd')).toBe(null);
     expect(stratDialsOf('floor-and-flex', { sleeveRatePct: 3.5, treatsRule: 'fixed', ratchet: 'off' })).toEqual({ sleeveRatePct: 3.5, treatsRule: 'fixed', ratchet: 'off' });
@@ -107,7 +107,7 @@ describe('the dials\' units', () => {
     for (const id of WAY_IDS) {
       const keys = WAY_DIALS[id].filter((d) => !d.cut).map((d) => (d.key === 'sleeveRatePct' ? 'sleeveRate' : d.key));
       for (const k of keys) expect(allowedKeys(id), `${id}.${k}`).toContain(k);
-      for (const k of OWNED_KEYS[id]) if (k !== 'borrowedFloor') expect(keys, `${id}.${k}`).toContain(k);
+      for (const k of OWNED_KEYS[id]) if (k !== 'borrowedFloor' && k !== 'bridgeCash') expect(keys, `${id}.${k}`).toContain(k);
     }
     expect(WAY_DIALS['floor-the-schedule']).toEqual([]);
   });

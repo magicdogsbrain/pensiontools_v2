@@ -64,7 +64,10 @@ describe('buildPlanDocument', () => {
     expect(doc.pots).toMatchObject({ sipp: 860000, isa: 25000, gia: 0, isaPolicy: 'minimiseEarlyTax' });
     expect(doc.strategy).toMatchObject({ id: 'gilt-rotation', contract: true });
     expect(doc.targetMix).toEqual([]);
-    expect(doc.assumptions).toMatchObject({ firstTaxYear: 2028, bridgeMonths: 19, cashYears: 2, bridgeCash: 20000, spStartDate: '3 October 2031' });
+    expect(doc.assumptions).toMatchObject({ firstTaxYear: 2028, cashYears: 2, spStartDate: '3 October 2031' });
+    // 7.4.2: a new document carries no extra cash beside the cash years, and no count of months before its start
+    for (const k of ['bridgeMonths', 'bridgeCash']) expect(k in doc.assumptions).toBe(false);
+    expect('bridgeMonths' in doc.decisionRun || 'bridgeMonths' in doc.timing).toBe(false);
     expect(doc.timing.text).toContain('Plan starts 6 April 2028');
     expect(doc.decisionRun.monthlyAsks[0]).toMatch(/Gilt ladder value/);
   });
@@ -83,7 +86,8 @@ describe('buildPlanDocument', () => {
     expect(d3.pots.sipp).toBe(200000 + 560000 + 100000);   // not 800,000
     expect(d3.pots.isa).toBe(25000);                         // the ISA balance, not the stray isaTotal
     expect(d3.strategy.params).toEqual({});
-    expect(d3.assumptions).toMatchObject({ cashYears: null, bridgeCash: 0 });
+    expect(d3.assumptions).toMatchObject({ cashYears: null });
+    expect('bridgeCash' in d3.assumptions).toBe(false);
     // a ladder strategy still reads its own keys — and only its own
     const s4 = { ...settings, strategyParams: { ...settings.strategyParams, floorToAge: 80 } };
     const d4 = buildPlanDocument({ settings: s4, p, r, now: NOW });
@@ -110,10 +114,10 @@ describe('buildPlanDocument', () => {
 
 describe('whereAmI', () => {
   const doc = buildPlanDocument({ planName: 'Alex Example', settings, p, r, now: NOW });
-  it('September 2026 is a bridge month, step 1, pot compared with the contract path', () => {
+  it('September 2026 is before the start (a plan stored with a later start), step 1, pot compared with the contract path', () => {
     const w = whereAmI(doc, { today: NOW, history: [{ date: '2026-09', taxYear: '26/27', sipp: 3400, other: 0, equity: 0, bond: 640000, cash: 180000 }],
       holdings: { updatedAt: '2026-09-01', lines: [{ wrapper: 'ISA', ticker: 'VWRP', value: 25000 }] } });
-    expect(w.bridge).toBe(true);
+    expect(w.beforeStart).toBe(true);
     expect(w.planYear).toBe(-2);
     expect(w.planStart).toBe('2028/29');
     expect(w.step).toMatchObject({ index: 1, of: 3, amount: 46000 });
@@ -125,7 +129,7 @@ describe('whereAmI', () => {
   });
   it('April 2031 is plan year 3, age 67, step 2', () => {
     const w = whereAmI(doc, { today: new Date(2031, 3, 10), history: [], potsToday: 700000 });
-    expect(w).toMatchObject({ bridge: false, planYear: 3, age: 67, taxYear: '2031/32' });
+    expect(w).toMatchObject({ beforeStart: false, planYear: 3, age: 67, taxYear: '2031/32' });
     expect(w.step).toMatchObject({ index: 2, amount: 39000 });
     expect(w.pot.p50).toBe(845000 - 90000);
   });

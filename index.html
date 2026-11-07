@@ -3135,7 +3135,6 @@
               <div id="ssGiltParams" style="display:none;margin-top:8px;">
                 <div class="row-flex">
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first <span class="hlp" tabindex="0" data-tip="Covers the first year or two, where no index-linked gilt matures in the right window and a gilt you would sell within months costs a spread for nothing. Cash is priced at inflation minus 1% a year (the same assumption every other strategy uses), so each extra cash year costs a little more than a gilt would and gives up its index-linking. 1–3 is normal.">?</span><input type="number" id="giltCashYears" min="0" max="5" value="2" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
-                  <label class="hint" id="giltBridgeWrap" style="display:none;flex-direction:column;gap:2px;">Extra cash in the money-market fund (£) <span class="hlp" tabindex="0" data-tip="Cash kept in your pension's money-market fund on top of the cash years; it is taken from the pot before the ladder is bought. Money outside your pension does not go here. Shown only on a plan that holds some.">?</span><input type="number" id="giltBridge" min="0" step="1000" value="0" style="width:120px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" id="giltRotateWrap" style="display:none;flex-direction:column;gap:2px;">Rotation: keep rungs to age<input type="number" id="giltRotateCut" min="65" max="88" value="75" style="width:80px;" data-on-input="refreshStrategyCosts()"></label>
                   <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Money left over <span class="hlp" tabindex="0" data-tip="What is left after the cash years and the gilts are bought. Kept: it holds its value. Invested: it goes into a world-equity fund, charged like your other funds, so what you would have left rides the market. On the full ladder the gilts pay the plan and it is never drawn. On the ladder + rotation, kept or invested, it also pays any rotated year the sleeve cannot, before that year counts as cut.">?</span><select id="giltSpare" style="max-width:260px;" data-on-change="refreshStrategyCosts()"><option value="held">Kept, holding its value</option><option value="growth">Invested in shares (a growth part)</option></select></label>
                 </div>
@@ -4148,7 +4147,7 @@
     import { ladderPosition, taxYearOf, borrowedFloorStatus, documentLadder, ladderForDisplay, repriceComparisonText, firstRungOf, ladderMonthAdvice } from './src/services/LadderPosition.js';
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
-    import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, beforeStartNoteHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
+    import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
     import { installLockedStart, startLaterOfActive, startDraftOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, successorNameOf, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's start, and "Move the plan's start" (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { buildPlanDocument, whereAmI, potRecordOf, recordIsaOf } from './src/services/PlanDocument.js';
@@ -5813,7 +5812,7 @@
       let h = assumedStatePensionAlertHtml(opts.p) + '<div class="alert alert-warning" style="font-size:12px;margin-top:10px;"><strong>Illustration, not advice.</strong> A shopping list implied by your income schedule, priced from delayed exchange prices and DMO index ratios (settlement ' + budEsc(dataProvenance().index_ratio_settlement || '—') + '). Gilts are dealt in NOMINAL by phone; check nominal × index ratio ≈ the "pays" figure on every order. Prices and ratios move daily.</div>';
       h += '<div class="alert alert-info" style="font-size:12px;margin-top:8px;"><strong>How to give the order (AJ Bell and most platforms take either):</strong> say the <strong>number of units</strong> — that is the nominal figure below (1 unit = £1 nominal; if the screen counts £100 lots, use the bracketed number). Units are what set the income: at maturity you receive units × the index ratio then. Ordering by <em>amount to spend</em> also works, but the units you get depend on the dealing price at that moment, so the income is then only approximately the figure shown. Rule: order by units; check the quoted spend is close to the cost column (plus accrued interest and the dealing fee).</div>'
       h += '<div class="section-title" style="font-size:13px;margin-top:10px;">Order sheet</div><div class="table-scroll-container"><table><thead><tr><th>#</th><th>Buy</th><th>SEDOL</th><th>Ticker</th><th>Matures</th><th>Pays (today\'s £)</th><th>For tax years</th><th>Index ratio</th><th>Units to order <span class="hint">(nominal £)</span></th><th>Or spend <span class="hint">(approx)</span></th></tr></thead><tbody>';
-      h += '<tr><td>1</td><td>Money-market fund</td><td></td><td></td><td>—</td><td>' + gbp(Math.round(plan.cash)) + '</td><td>' + (plan.cashYears.length ? plan.cashYears[0].Y + '/' + String(plan.cashYears[0].Y + 1).slice(2) + ' – ' + plan.cashYears[plan.cashYears.length - 1].Y + '/' + String(plan.cashYears[plan.cashYears.length - 1].Y + 1).slice(2) : 'bridge') + '</td><td></td><td></td><td>' + gbp(Math.round(plan.cash)) + '</td></tr>';
+      h += '<tr><td>1</td><td>Money-market fund</td><td></td><td></td><td>—</td><td>' + gbp(Math.round(plan.cash)) + '</td><td>' + (plan.cashYears.length ? plan.cashYears[0].Y + '/' + String(plan.cashYears[0].Y + 1).slice(2) + ' – ' + plan.cashYears[plan.cashYears.length - 1].Y + '/' + String(plan.cashYears[plan.cashYears.length - 1].Y + 1).slice(2) : '—') + '</td><td></td><td></td><td>' + gbp(Math.round(plan.cash)) + '</td></tr>';
       // 6.11.3: a gilt that pays nothing is not an order. Its years are covered without a rung — a lump sum
       // expected later (a house sale, an inheritance) or other income pays them — so it is left off the sheet
       // and explained below, instead of a £0 row with a £20 fee.
@@ -6071,7 +6070,7 @@
       way: (d) => 'strategy ' + STRATEGY_NAMES[d.slots.way] + ' (plan: ' + STRATEGY_NAMES[d.slots.old] + ')',
       pot: (d) => 'pot ' + gbp(d.slots.pot) + ' (plan: ' + gbp(d.slots.old) + ')',
       isa: (d) => 'ISA ' + gbp(d.slots.isa),
-      isaPolicy: (d) => 'ISA ' + (d.slots.policy === 'hold' ? 'held (powder dry)' : d.slots.policy === 'bridge' ? 'drawn as configured' : (d.slots.policy || 'as saved')) + ' (plan: ' + (d.slots.old === 'hold' ? 'held' : d.slots.old || 'drawn') + ')',
+      isaPolicy: (d) => 'ISA ' + (d.slots.policy === 'hold' ? 'held (powder dry)' : (d.slots.policy === 'bridge' || d.slots.policy === 'minimiseEarlyTax') ? 'drawn as configured' : (d.slots.policy || 'as saved')) + ' (plan: ' + (d.slots.old === 'hold' ? 'held' : d.slots.old || 'drawn') + ')',
       income: (d) => 'flat income ' + gbp(d.slots.income) + (d.slots.steps ? ' instead of your steps' : ''),
       years: (d) => d.slots.years + ' years (plan: ' + d.slots.old + ')',
       cuts: (d) => 'spending cuts ' + (d.slots.on ? 'on' : 'off'),
@@ -6733,7 +6732,7 @@
     function fundBucketBreakdownHtml(t) {
       const byBucket = { shares: [], bonds: [], diversifiers: [], cash: [] };
       const isaFunds = [];
-      // ISA-wrapped holdings are their own pool (the tax-free bridge), not part of the buckets.
+      // ISA-wrapped holdings are their own pool (the tax-free top-up), not part of the buckets.
       t.tagged.forEach(f => {
         if ((f.wrapper || '').toUpperCase() === 'ISA') isaFunds.push(f);
         else if (byBucket[f.bucket]) byBucket[f.bucket].push(f);
@@ -6831,7 +6830,7 @@
       const esc = v => { v = (v == null ? '' : String(v)); if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;   /* spreadsheet formula injection */ return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
       const r0 = v => Math.round(v || 0);
       // Contract strategies (gilt ladders): no pot targets and no rebalancing exist — the columns would be
-      // the Pots & Valves defaults (6.10.1). Source is the cash bucket / bridge cash / matured rung.
+      // the Pots & Valves defaults (6.10.1). Source is the cash bucket / matured rung.
       const contract = CONTRACT_IDS.includes(window._activeStrategyId || '');
       const cols = contract
         ? ['Date', 'Paid from', 'SIPP draw', 'ISA draw', 'Gilt ladder value', 'Cash', 'Total pot', 'Tax (month)', 'Net (month)']
@@ -7277,7 +7276,7 @@
       try { if (doc.strategy?.contract) ladderPos = await ladderPositionForPlan(await getStressSettingsAsync()); } catch (e) { ladderPos = null; }
       let accHistory = []; try { if (doc.accumulation) accHistory = await getActiveAccumulationHistory(); } catch (e) { accHistory = []; }
       let holdings = null, taxYears = null; try { holdings = await getActiveHoldings(); } catch (e) { holdings = null; } try { taxYears = await getAllTaxYearsAsync(); } catch (e) { taxYears = null; }   // taxYears: the CPI entered each year, to put the pot in the plan's prices (6.20.1)
-      const w = whereAmI(doc, { today: await planReadDay(), history, ladderPos, accHistory, holdings, taxYears }); if (w && w.bridge && !w.saving) w.startLater = await startLaterOfActive(); return w;   // a closed plan is read as at its close (6.56.0); a year 0 ahead points to the move only on a plan stored the old way (7.3.3)
+      const w = whereAmI(doc, { today: await planReadDay(), history, ladderPos, accHistory, holdings, taxYears }); if (w && w.beforeStart && !w.saving) w.startLater = await startLaterOfActive(); return w;   // a closed plan is read as at its close (6.56.0); a year 0 ahead points to the move only on a plan stored the old way (7.3.3)
     }
     window.renderPlanDocumentPage = async function () {
       const box = document.getElementById('planDocumentPage'); if (!box) return;
@@ -7439,12 +7438,7 @@
         const doc = await getActivePlanDocument();
         const today = new Date();
         const ssLive = await getStressSettingsAsync();
-        // The person's actual monthly draw (this tax year's expected SIPP payment from the Decision tool, else the last
-        // recorded month) sizes the run-up cash — not the plan's first step (6.13.3).
-        let runUpMonthly = 0;
-        try { const y = taxYearStartOf(today); const key = String(y % 100).padStart(2, '0') + '/' + String((y + 1) % 100).padStart(2, '0'); const cfg = await getTaxYearConfigAsync(key); runUpMonthly = +(cfg && cfg.expectedMonthly && cfg.expectedMonthly.sipp && cfg.expectedMonthly.sipp.gross) || 0;
-          if (!runUpMonthly) { const hist = await getHistoryAsync(); const last = Array.isArray(hist) && hist.length ? hist[hist.length - 1] : null; runUpMonthly = last ? (+last.sippDraw || +last.sipp || 0) : 0; } } catch (e) { runUpMonthly = 0; }
-        const target = targetHoldings(doc, { today, params: ssLive.strategyParams || null, runUpMonthly });   // live params: a fired rotation's sold block drops out of the target
+        const target = targetHoldings(doc, { today, params: ssLive.strategyParams || null });   // live params: a fired rotation's sold block drops out of the target
         // What you hold (6.13.0): the plan-level record — never the Stress tester's funds-to-test list.
         const rec = recOverride || await getActiveHoldings();
         window._holdingsDraft = JSON.parse(JSON.stringify(rec)); try { window._holdingsDraftFor = await getActiveScenarioId(); } catch (e) { window._holdingsDraftFor = null; } window._holdingsLines = (rec.lines || []).slice();
@@ -7721,7 +7715,7 @@
       let summary = t.mode === 'legacy'
         ? 'Enter your age today to pin the plan to a tax year. Until then the plan is read from tax year ' + taxYearLabel(t.firstTaxYear) + ', with the steps from age ' + t.shapeAgeNow + '.'
         : describeTiming(t, s);
-      summary = paintStopMonth(document, t, s, await closedTimingSummary(summary), await planIsLocked());   // the month box's label and warning; the cash set aside, while read
+      summary = paintStopMonth(document, t, s, await closedTimingSummary(summary));   // the month box's label and warning
       if (t.mode === 'future' && t.yearsToStart > 0) summary += ' Gilt ladders are priced at today\'s real yields as a guide — the rungs are bought at retirement. The "Funds to test" list sets only the starting mix the strategy is tested on — it is not a record of what you hold (that is the Transition tab); the plan is priced on the pots at retirement.';
       g('tmSummary').textContent = summary;
       // The first income step starts when the plan starts.
@@ -8514,10 +8508,10 @@
       const saved = window._ssSavedParams || {};
       const mini = () => ({ sippTotal: +document.getElementById('miniSipp')?.value || 0, isaTotal: +document.getElementById('miniIsa')?.value || 0 }); const spare = (o) => { const out = { ...o }; if (document.getElementById('giltSpare')?.value === 'growth') out.spareGrowth = true; else delete out.spareGrowth; return out; };   // absent = kept (6.35.0)
       if (window._ssStrategy === 'full-il-gilt') {
-        return spare({ ...saved, ...mini(), cashYears: +document.getElementById('giltCashYears').value || 0, bridgeCash: +document.getElementById('giltBridge').value || 0 });
+        return spare({ ...saved, ...mini(), cashYears: +document.getElementById('giltCashYears').value || 0 });
       }
       if (window._ssStrategy === 'gilt-rotation') {
-        return spare({ ...saved, ...mini(), cashYears: +document.getElementById('giltCashYears').value || 0, bridgeCash: +document.getElementById('giltBridge').value || 0, rotateCutAge: +document.getElementById('giltRotateCut')?.value || saved.rotateCutAge || 75 });
+        return spare({ ...saved, ...mini(), cashYears: +document.getElementById('giltCashYears').value || 0, rotateCutAge: +document.getElementById('giltRotateCut')?.value || saved.rotateCutAge || 75 });
       }
       if (window._ssStrategy === 'floor-the-schedule') return { ...saved, ...mini() };
       if (window._ssStrategy === 'bridge-and-engine') return { ...saved, ...mini(), bridgeAge: +document.getElementById('miniBridgeAge')?.value || saved.bridgeAge || 67, cashYears: (document.getElementById('miniBridgeCash')?.value !== '' && document.getElementById('miniBridgeCash') != null) ? +document.getElementById('miniBridgeCash').value : (saved.cashYears ?? 3) };
@@ -8558,11 +8552,11 @@
       window._ssApplying = true; try { pickStrategy(id || 'pots-and-valves'); } finally { window._ssApplying = false; }
       if (id === 'bridge-and-engine' && params) { const a = document.getElementById('miniBridgeAge'), b = document.getElementById('miniBridgeCash'); if (a && params.bridgeAge) a.value = params.bridgeAge; if (b && params.cashYears != null) b.value = params.cashYears; }
       if (id === 'buckets-in-order' && params) { const e = document.getElementById('bucketBand'); if (e && params.bucketBand) e.value = params.bucketBand; }
-      if (id === 'full-il-gilt' && params) { const a = document.getElementById('giltCashYears'), b = document.getElementById('giltBridge'); if (a && params.cashYears != null) a.value = params.cashYears; if (b && params.bridgeCash != null) b.value = params.bridgeCash; }
-      if (id === 'gilt-rotation' && params) { const a = document.getElementById('giltCashYears'), b = document.getElementById('giltBridge'), c = document.getElementById('giltRotateCut'); if (a && params.cashYears != null) a.value = params.cashYears; if (b && params.bridgeCash != null) b.value = params.bridgeCash; if (c && params.rotateCutAge) c.value = params.rotateCutAge; }
+      if (id === 'full-il-gilt' && params) { const a = document.getElementById('giltCashYears'); if (a && params.cashYears != null) a.value = params.cashYears; }
+      if (id === 'gilt-rotation' && params) { const a = document.getElementById('giltCashYears'), c = document.getElementById('giltRotateCut'); if (a && params.cashYears != null) a.value = params.cashYears; if (c && params.rotateCutAge) c.value = params.rotateCutAge; }
       if (id === 'full-il-gilt' || id === 'gilt-rotation') {   // shared inputs: a clean start must not inherit the other gilt strategy's typed values (6.13.0)
-        const p = params || {}; const a = document.getElementById('giltCashYears'), b = document.getElementById('giltBridge'), c = document.getElementById('giltRotateCut');
-        if (a && p.cashYears == null) a.value = LADDER_DEFAULTS.cashYears; if (b && p.bridgeCash == null) b.value = LADDER_DEFAULTS.bridgeCash || 0; if (c && p.rotateCutAge == null) c.value = 75; window.paintGiltCashDial?.(); const sp = document.getElementById('giltSpare'); if (sp) sp.value = p.spareGrowth ? 'growth' : 'held';
+        const p = params || {}; const a = document.getElementById('giltCashYears'), c = document.getElementById('giltRotateCut');
+        if (a && p.cashYears == null) a.value = LADDER_DEFAULTS.cashYears; if (c && p.rotateCutAge == null) c.value = 75; const sp = document.getElementById('giltSpare'); if (sp) sp.value = p.spareGrowth ? 'growth' : 'held';
       }
       if (id === 'ladder-and-ratchet' && params) {
         if (params.sippTotal) document.getElementById('stratSipp').value = params.sippTotal;
@@ -8885,7 +8879,7 @@
       const d = window._stratDials;
       const s = await getStressSettingsAsync(); const cur = restoredParamsFor(s, 'full-il-gilt');
       try { await setActiveStrategyChecked('full-il-gilt', {}); } catch (e) { return; }   // a locked plan refuses — nothing is written
-      await switchStressStrategy('full-il-gilt', { cashYears: d.cashYears ?? (cur.cashYears ?? 2), bridgeCash: d.bridgeCash ?? (cur.bridgeCash ?? 0) });
+      await switchStressStrategy('full-il-gilt', { cashYears: d.cashYears ?? (cur.cashYears ?? 2) });
       showToast('Full index-linked gilt ladder is now this plan\'s strategy. The Stress Tester runs it; Settings holds the dials.', 'success');
     };
     /** CPI factor per plan year for a historical start (Shiller monthly CPI, world-independent). */
@@ -8897,10 +8891,10 @@
     async function fullGiltPageHtml() {
       const settings = await getStressSettingsAsync();
       const d = window._stratDials;
-      const over = { ...settings, strategyId: 'full-il-gilt', strategyParams: { ...restoredParamsFor(settings, 'full-il-gilt'), ...(d.cashYears != null ? { cashYears: d.cashYears } : {}), ...(d.bridgeCash != null ? { bridgeCash: d.bridgeCash } : {}) } };
+      const over = { ...settings, strategyId: 'full-il-gilt', strategyParams: { ...restoredParamsFor(settings, 'full-il-gilt'), ...(d.cashYears != null ? { cashYears: d.cashYears } : {}) } };
       // 6.13.5 — on a locked full-ladder plan this page shows the ladder in the plan document, not a rebuild at
       // today's prices. Turning a dial is a what-if: that IS priced today, and says so.
-      const dialled = d.cashYears != null || d.bridgeCash != null;
+      const dialled = d.cashYears != null;
       const locked = settings.strategyId === 'full-il-gilt' ? await lockedPlanLadder(settings) : null;
       const fromDoc = !!(locked && locked.doc.strategy.p && !dialled);
       const p = fromDoc ? locked.doc.strategy.p : strategyPlanFor(over);
@@ -8919,8 +8913,6 @@
       // Block 2 — dials
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">'
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first (1–3 is normal; cash is priced at inflation −1%)<input type="number" min="0" max="5" value="' + Math.min(5, prm.cashYears ?? 2) + '" style="width:80px;" data-on-change="setGiltDial(\'cashYears\', this.value)"></label>'
-        + (p.yearOffset > 0 || p.runUpSpent || !(+prm.bridgeCash > 0) ? ''   /* spent on the run's pots (PlanFromToday.runUpCashSpent, 6.51.0), or none held (7.3.3): not offered */
-          : '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Extra cash in the money-market fund (£)<input type="number" min="0" step="1000" value="' + (prm.bridgeCash || 0) + '" style="width:120px;" data-on-change="setGiltDial(\'bridgeCash\', this.value)"></label>')
         + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears - 1) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
         + '</div>';
       if (plan.affordable && typeof r !== 'undefined' && r && r.affordable) h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p) + '</div>';
@@ -11893,15 +11885,15 @@
         let taxYears = {};
         try { taxYears = await getAllTaxYearsAsync() || {}; } catch (e) { taxYears = {}; }
         // Plan year from the record's TAX YEAR against the plan's saved start (6.4.0) — not the yearNum
-        // stamped at the time, which older records counted from a hard-coded 2026. Negative = bridge.
+        // stamped at the time, which older records counted from a hard-coded 2026. A month before year 0 (a plan stored
+        // the old way, with a later start) is not compared with a later year's figure: it is skipped.
         let anchor = null, lockedAt = null;
         try { const ds = await getDecisionSettingsAsync(); lockedAt = ds.lockedAt || null; let ss = null; try { ss = await getStressSettingsAsync(); } catch (e) { ss = null; } anchor = decisionAnchorYear(ds, taxYears, null, ss); } catch (e) { anchor = null; }
         if (anchor > 0) window._decisionAnchor = anchor;   // read by recordYearLabel / the record view
         const byYear = {};
-        let bridgeRecords = 0;
         for (const h of historyForEngine(history, taxYears)) {   // less a month filled in from its tax year's set-up figures: a part-year first year is measured from its set-up on, as planned
           const y = (anchor && h.taxYear) ? planYearOf(h.taxYear, anchor) : (h.yearNum ?? 0);
-          if (y < 0) { bridgeRecords++; continue; }
+          if (y < 0) continue;
           (byYear[y] = byYear[y] || []).push(h);
         }
         const firstSetUpYear = firstSetUpPlanYear(taxYears, anchor);   // the year that may be a part year (6.51.0: not always year 0)
@@ -11910,14 +11902,12 @@
           const plan = por.drawdown[y];   // a year lived before the lock: the draw only (6.51.0); a part year on its own months (planStartUi.yearRowHtml)
           if (plan) rows += yearRowHtml(y, byYear[y], plan, taxYears[byYear[y][0].taxYear] || null, firstSetUpYear, gbp);
         }
-        const bridgeNote = beforeStartNoteHtml(bridgeRecords, anchor);
-        if (!rows) { box.innerHTML = bridgeNote ? '<div class="settings-section" style="margin-bottom:14px;"><div class="section-title">Plan vs actual</div>' + bridgeNote + '</div>' : ''; return; }
+        if (!rows) { box.innerHTML = ''; return; }
         const pvaWords = planVsActualWords(por, lockedAt, ukDay);   // the lock's date, or when a move of the start wrote it again (6.53.0)
         box.innerHTML = '<div class="settings-section" style="margin-bottom:14px;">'
           + '<div class="section-title">Plan vs actual <span style="font-weight:normal;font-size:12px;color:var(--text-muted);">' + pvaWords.head + '</span></div>'
           + '<div class="table-scroll-container"><table><thead><tr><th>Plan year</th><th>Planned draw</th><th>Actual draw</th><th>Planned tax/yr</th><th>Actual tax pace</th><th>Planned ISA left</th></tr></thead><tbody>'
           + rows + '</tbody></table></div>'
-          + bridgeNote
           + '<p class="hint" style="margin-top:6px;">' + pvaWords.foot + '</p></div>';
       } catch (e) { box.innerHTML = ''; }
     }
@@ -12686,7 +12676,7 @@
       // the tax year's start minus 2026 (same 0-based convention as the engine's getYearNum).
       const dPot = (decisionSettings.equityMin || 0) + (decisionSettings.bondMin || 0) + (decisionSettings.cashTarget || 0);
       const dDur = decisionSettings.duration || 35;
-      // 6.4.0: counted from the plan's saved start (bridge years read as year 0), not a hard-coded 2026.
+      // 6.4.0: counted from the plan's saved start (a month before it reads as year 0), not a hard-coded 2026.
       const planYear = Math.max(0, planYearOf(taxYear, decisionAnchorYear(decisionSettings, allTaxYears, taxYear)));
       const tentOn = !!decisionSettings.equityGlideEnabled;
       const dAlloc = {

@@ -122,12 +122,10 @@ function renderThisYear() {
   // real-spending decline when the plan declines — the Stress tester's own curve; or the plan's schedule for this year.
   const base = wizardContext.suggestionBase ?? wizardContext.baseSalary;
   const declineRate = wizardContext.declineRate || 0;
-  const fromBridge = wizardContext.suggestionSource === 'bridge';
-  const fromSchedule = wizardContext.suggestionSource === 'budget-schedule' || fromBridge;
+  const fromSchedule = wizardContext.suggestionSource === 'budget-schedule';
   const suggestedSalary = fromSchedule ? Math.round(wizardContext.suggestedSalary) : Math.round(base * (1 + currentCpi - declineRate));
   const declining = declineRate > 0;
   const netUpliftPct = ((currentCpi - declineRate) * 100).toFixed(1);
-  const startLabel = wizardContext.planStartYear ? wizardContext.planStartYear + '/' + String(wizardContext.planStartYear + 1).slice(2) : '';
 
   const midYear = wizardContext.isApril ? '' : `
       <div class="wizard-step-desc">
@@ -164,10 +162,7 @@ function renderThisYear() {
       </div>
 
       <div class="wizard-info-box" id="salaryInfoBox">
-        ${fromBridge
-          ? `<p><strong>Your plan is set to start in ${esc(startLabel)}</strong> — the suggestion is your plan's first income step${wizardContext.bridgeCoverMonths != null
-               ? ` (at that rate your cash covers about ${wizardContext.bridgeCoverMonths} of the ${wizardContext.remainingMonths} payments to come)` : ''}:</p>`
-          : fromSchedule
+        ${fromSchedule
           ? `<p><strong>From your plan's income schedule for this year</strong> — the year-by-year income your plan was priced on
              (the income steps, or the Budget tool's plan), uplifted to this year's money:</p>`
           : ''}
@@ -443,10 +438,7 @@ function attachListeners() {
       // decline when the plan declines — same behaviour as the Stress tester.
       const base = wizardContext.suggestionBase ?? wizardContext.baseSalary;
       const declineRate = wizardContext.declineRate || 0;
-      // On a plan stored with its start later than this tax year the suggestion is its first income step — CPI does not move it.
-      const suggestedSalary = wizardContext.suggestionSource === 'bridge'
-        ? Math.round(wizardContext.suggestedSalary)
-        : fromScheduleAssumed
+      const suggestedSalary = fromScheduleAssumed
         ? Math.round(wizardContext.scheduleSuggestedBase * (1 + cpi))   // last year's CPI was assumed: the typed figure replaces it (6.11.6)
         : Math.round(base * (1 + cpi - declineRate));
 

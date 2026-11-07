@@ -29,8 +29,8 @@ import { decisionAnchorYear, taxYearKey, taxYearLabel } from './PlanTiming.js';
     }
 
     // Plan year of a date: the tax year it falls in minus the plan's first tax year (6.4.0: the
-    // saved anchor, see PlanTiming.decisionAnchorYear — not a hard-coded 2026). SIGNED: negative means a
-    // bridge year before the plan starts. Callers clamp at 0 where a track or an inflation chain is read.
+    // saved anchor, see PlanTiming.decisionAnchorYear — not a hard-coded 2026). SIGNED: negative before year 0 (a plan
+    // stored the old way, with a later start). Callers clamp at 0 where a track or an inflation chain is read.
     export function getYearNum(dateStr, firstTaxYear = 2026) {
       const [y, m] = dateStr.split('-').map(Number);
       return (m >= 4 ? y : y - 1) - firstTaxYear;
@@ -51,12 +51,11 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
       const history = deps.history;
       const allTaxYears = deps.allTaxYears;
       const taxYear = getTaxYearFromDate(dateStr);
-      // ONE anchor for plan year 0 (6.4.0): the plan's saved first tax year. A negative plan year is a
-      // bridge year — money is being spent before the plan starts, so its tracks read as year 0.
+      // ONE anchor for plan year 0 (6.4.0): the plan's saved first tax year. A month before it (only on a plan stored the
+      // old way, with a later start) reads its tracks as year 0.
       const anchorYear = decisionAnchorYear(settings, allTaxYears, taxYear);
       const yearNumSigned = getYearNum(dateStr, anchorYear);
       const yearNum = Math.max(0, yearNumSigned);
-      const bridgeYear = yearNumSigned < 0;
       const [year, month] = dateStr.split('-').map(Number);
 
       // Validate that the tax year exists
@@ -745,7 +744,7 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
       // which are added on their own line below (6.4.2: they were counted twice, inventing a "saving").
       // 6.11.2: "saved" means: the money actually delivered this tax year, had ALL of it been taxable SIPP
       // income. Only tax-free money can save tax (an ISA draw, the GIA's net, the UFPLS slice); a smaller
-      // SIPP draw for any other reason (protection, the run-up, a month already paid) is not a saving —
+      // SIPP draw for any other reason (protection, a month before the plan's year 0, a month already paid) is not a saving —
       // comparing with the TARGET drawn from the SIPP reported one whenever the draw fell short of it.
       const taxFreeThisMonth = (isa || 0) + (giaNet || 0);
       const taxFreeYTD = thisTaxYearHistory.reduce((s, h) => s + (h.isa || 0) + (h.giaNet != null ? h.giaNet : (h.giaDraw || 0)), 0);
@@ -762,9 +761,6 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
         date: dateStr,
         taxYear,
         yearNumber: yearNum,
-        // Before the plan starts (6.4.0): flagged with the anchor so the panel can say so. Emitted only
-        // then, so a plan year's result is byte-identical to before (golden-safe).
-        ...(bridgeYear ? { bridgeYear: true, planStartYear: anchorYear } : {}),
         // The pension cannot be touched this month (7.4.1): emitted only then, so every other month is as it was.
         ...(closedMonth ? { pensionClosed: { accessAge: deps.pensionAccessAge, opensTaxYear: deps.pensionOpensTaxYear, shortMonthly: closedShort } } : {}),
         remainingMonths: effectiveRemainingMonths,

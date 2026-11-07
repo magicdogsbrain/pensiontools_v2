@@ -238,9 +238,10 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
       potAtRetirement: settings.potAtRetirement || null,
       // The plan year the pots above belong to (6.50.0): a plan locked in its year N was run from today's pots, so its
       // band's year 0 is plan year N (potReading). Absent = 0: every document locked in year 0 or before. 0, written: a
-      // plan that says when work stopped, locked in its year 0 after its 6 April (6.51.0) — its pots are the plan's own,
-      // not pots waiting for its start, so on every later day its ladder sets no cash aside (PlanFromToday.lockedPotsAsOf).
-      ...(lived > 0 ? { asOfPlanYear: lived } : p && p.runUpSpent ? { asOfPlanYear: 0 } : {}),
+      // retired plan whose pots a reader placed in a plan year already begun (`potsAsOf`: one that says when work stopped,
+      // or carries a closed plan on, locked in its year 0 after its 6 April — 6.51.0): its months of year 0 from the
+      // lock's day are spread from that day (PlanFromToday.lockedPotsAsOf, LadderPosition's potsDay).
+      ...(lived > 0 ? { asOfPlanYear: lived } : potsInYear0(settings, timing) ? { asOfPlanYear: 0 } : {}),
       // The allocation the strategy was TESTED on. `taggedFunds` is the Stress tester's "funds to test" list —
       // a strategy input, not a record of holdings (those are `holdingsAtLock`).
       allocation: { equityMin: +settings.equityMin || 0, bondMin: +settings.bondMin || 0, cashTarget: +settings.cashTarget || 0, diversifierStart: +settings.diversifierStart || 0, allocMode: settings.allocMode || null, taggedFunds: (settings.taggedFunds || []).map((f) => ({ name: f.name ?? null, ticker: f.ticker ?? null, value: +f.value || 0, wrapper: f.wrapper || null })) }
@@ -250,10 +251,10 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
     assumptions: {
       spStartDate: settings.spStartDate || null, spWeeklyAmount: +settings.spWeeklyAmount || 0,
       pa: +settings.pa || 12570, brl: +settings.brl || 50270, hrl: +settings.hrl || 125140, taxMode: settings.taxMode || 'inflates',
-      cpiDecision: DECISION_ASSUMED_CPI_FOR_RECORD, duration: N, firstTaxYear: timing.firstTaxYear, bridgeMonths: timing.bridgeMonths,
-      // A plan run as seen from today, or on pots of its year 0 that say when work stopped (6.51.0), sets no cash aside to its
-      // first April (fullGiltTest: that April has passed): what the run used.
-      cashYears: params.cashYears ?? null, bridgeCash: lived > 0 || (p && p.runUpSpent) ? 0 : (+params.bridgeCash || 0), giltPricesAsOf: giltPricesAsOf || (r?.plan ? now.toISOString().slice(0, 10) : null),
+      cpiDecision: DECISION_ASSUMED_CPI_FOR_RECORD, duration: N, firstTaxYear: timing.firstTaxYear,
+      // A ladder's cash years are its only cash (7.4.2): a document written before may also carry the extra cash it set
+      // aside, which every reader now ignores.
+      cashYears: params.cashYears ?? null, giltPricesAsOf: giltPricesAsOf || (r?.plan ? now.toISOString().slice(0, 10) : null),
       // A gilt ladder's money left over in shares (6.35.0); absent = kept, holding its value (every document before it).
       // On the ladder + rotation it also pays a rotated year the sleeve cannot (in shares from 6.36.0, kept from 6.37.0);
       // an earlier document has no spareFillsCuts and reads as it was locked (never drawn).
@@ -269,11 +270,20 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
       isaGrowth: isaGrowthOf(settings), ...(isaFundsDecide(settings) ? { isaFromFunds: true } : {})
     },
     decisionRun: {
-      year0: taxYearLabel(timing.firstTaxYear), bridgeMonths: timing.bridgeMonths, contract,
+      year0: taxYearLabel(timing.firstTaxYear), contract,
       monthlyAsks: contract ? ['Gilt ladder value (unpaid rungs)', 'Cash, including the money-market fund', ...(params.spareGrowth ? ['The money left over in shares (as equity)'] : []), 'ISA balance', 'Taxable account (GIA), if any']
         : ['Equity funds', 'Bond funds', 'Cash', 'Diversifiers, if any', 'ISA balance', 'Taxable account (GIA), if any']
     }
   });
+}
+
+/**
+ * Do a retired plan's pots belong to its year 0 already begun (6.51.0)? A reader says so with `potsAsOf` on the settings
+ * (PlanFromToday: a plan that says when work stopped, or carries a closed plan on, after its year 0's 6 April); a saver's
+ * never do. Until 7.4.2 the run carried this as a flag of its own, set by the same test on the same settings.
+ */
+export function potsInYear0(settings, timing) {
+  return !!(settings && settings.potsAsOf) && !!timing && timing.mode !== 'future';
 }
 
 /** The strategies whose band is "all pots": the Pots & Valves engine's SIPP + ISA + taxable account (stressTest pnvRun). */
@@ -347,7 +357,7 @@ const monthsIntoTaxYear = (at) => (at.m + 8) % 12;
  * The chain is the Decision tool's own (legacyDecision glidepathsForYear), so the strip and the monthly figures agree:
  * plan year y is in prices Π (1 + CPI of tax year firstTaxYear + i) for i < y — the CPI entered for that tax year in
  * the Decision tool, else the plan's assumption (`assumptions.cpiDecision`, 4%); a blank or 0 reads as not entered,
- * as it does there. Within a year, the year's CPI for the months gone. The run-up before year 0 is at the starting
+ * as it does there. Within a year, the year's CPI for the months gone. A month before year 0 is at the starting
  * prices (factor 1), as the Decision tool and the engines treat it.
  * @param {object} taxYears  the Decision tool's tax-year set-ups ({ 'YY/YY': { cpi } }), or null
  * @returns {{ factor, assumed, years: [{ taxYear, cpi, entered, share }] }}
@@ -423,7 +433,7 @@ function potLikeTheBand(doc, { today, history, potsToday, holdings }) {
   const measureAt = (at) => bandMeasure(doc, { planYear: planYearAt(at, +doc.timing.firstTaxYear) });
   if (potsToday != null) {
     const t = today.toISOString().slice(0, 10), at = monthOf(today);
-    return { source: 'today', asOf: t, at, pension: Math.round(+potsToday), parts: [{ key: 'all', value: +potsToday, source: 'today', asOf: t }], missing: [], measure: measureAt(at), runUpMonthly: 0 };
+    return { source: 'today', asOf: t, at, pension: Math.round(+potsToday), parts: [{ key: 'all', value: +potsToday, source: 'today', asOf: t }], missing: [], measure: measureAt(at) };
   }
   const found = potRecordOf(history);
   const sipp = wrapperFigure(holdings, 'SIPP');
@@ -443,7 +453,7 @@ function potLikeTheBand(doc, { today, history, potsToday, holdings }) {
   } else if (sipp && sipp.value > 0) { source = 'holdings'; pension = sipp.value; asOf = sipp.asOf; }
   const at = monthOf(asOf) || monthOf(today);
   const measure = measureAt(at);
-  if (source == null) return { source: null, asOf: null, at, pension: null, parts: [], missing: ['pension'], measure, runUpMonthly: 0 };
+  if (source == null) return { source: null, asOf: null, at, pension: null, parts: [], missing: ['pension'], measure };
   const parts = [{ key: 'pension', value: pension, source, asOf }, ...extra];
   if (measure.isa) {
     const isa = wrapperFigure(holdings, 'ISA');
@@ -463,7 +473,7 @@ function potLikeTheBand(doc, { today, history, potsToday, holdings }) {
     if (gia) parts.push({ key: 'gia', ...gia });
     else missing.push('gia');
   }
-  return { source, asOf, at, pension: Math.round(pension), parts, missing, measure, runUpMonthly: rec ? (+rec.sipp || 0) : 0 };
+  return { source, asOf, at, pension: Math.round(pension), parts, missing, measure };
 }
 
 /**
@@ -502,13 +512,10 @@ export function bandAt(wc, yi, frac = 0) {
  *  - The same accounts (potLikeTheBand), at the same point in the plan: the band is read at the pot's month (bandAt).
  *  - The same pounds: the band is in prices at the start of the plan, so the pot is turned into those prices
  *    (pricesSinceStart) before it is compared; `actual` stays the pot as recorded, `real` is what is compared.
- *  - Before year 0 of a gilt ladder that set run-up cash aside (`assumptions.bridgeCash`), the ladder's year 0 does
- *    not hold that cash but the pot does: the part of it the plan has not yet spent — spread evenly over the run-up
- *    months it was priced with, the pot's own month still to pay — is added to the band.
  * A verdict (`band`) is given only when the two are the same measure and the band has opened:
  *  - `verdict: 'gilts-held-to-pay'` — Full ladder / Ladder + rotation: the band holds the gilts as held to repay, the
  *    record at today's market prices (RUNGS_HELD_TO_PAY). No verdict; the ladder line says whether the rungs are on track.
- *  - `verdict: 'start'` — the run-up, or April of year 0: every line is still the starting figure.
+ *  - `verdict: 'start'` — before year 0, or April of it: every line is still the starting figure.
  *  - `verdict: 'not-open'` — the 1-in-10 bad line is still the median (nothing to be below).
  *  - `verdict: 'band'` — `band` is set.
  * Stale figures (more than three months older than today) are listed in `stale`.
@@ -528,30 +535,7 @@ function potReading(doc, wc, { today, history, potsToday, holdings, taxYears }) 
   const yi = asOf > 0 ? (sinceRun > 0 ? Math.floor(sinceRun / 12) : 0) : Math.max(0, pY);
   const frac = asOf > 0 ? (sinceRun > 0 ? (sinceRun % 12) / 12 : 0) : (pY >= 0 ? monthsIntoTaxYear(P.at) / 12 : 0);
   const atStart = asOf > 0 ? !(sinceRun > 0) : (pY < 0 || (pY === 0 && frac === 0));
-  let { p10, p50, p90 } = bandAt(wc, yi, frac);
-  const startP50 = p50;
-  let runUp = null;
-  const bridgeCash = Math.max(0, +doc.assumptions?.bridgeCash || 0);
-  if (pY < 0 && bridgeCash > 0) {
-    // Months of the run-up still to pay at the pot's month, that month included (a record is entered before its draw).
-    const months = Math.max(0, (fty * 12 + 4) - (P.at.y * 12 + P.at.m));
-    // The plan was priced with `bridgeCash` set aside for the run-up months it had when it was locked (`bridgeMonths`):
-    // that cash spends down month by month, and by 6 April of year 0 it is gone — the ladder's year 0 never held it.
-    // A run-up dearer than the cash set aside comes out of the spare money year 0 does hold: the pot falls short of it.
-    const of = Math.round(+doc.timing?.bridgeMonths || +doc.assumptions?.bridgeMonths || 0);
-    let value, monthly;
-    if (of > 0) { value = bridgeCash * Math.min(1, months / of); monthly = bridgeCash / of; }
-    else {
-      // A document without its run-up length: the draw the record shows, else the plan's year-0 draw, capped at the cash.
-      const t0 = Array.isArray(doc.timeline) ? doc.timeline[0] : null;
-      monthly = P.runUpMonthly > 0 ? P.runUpMonthly : (t0 ? Math.max(0, ((+t0.gross || 0) - (+t0.sp || 0) - (+t0.other || 0)) / 12) : 0);
-      value = Math.min(bridgeCash, monthly * months);
-    }
-    if (value > 0) {
-      runUp = { months, of: of > 0 ? of : null, monthly: Math.round(monthly), value: Math.round(value) };
-      [p10, p50, p90] = [p10, p50, p90].map((v) => (v == null ? null : v + value));
-    }
-  }
+  const { p10, p50, p90 } = bandAt(wc, yi, frac);
   const actual = P.missing.length ? null : P.parts.reduce((t, x) => t + x.value, 0);
   const prices = pricesSinceStart(doc, P.at, taxYears);
   const real = actual == null ? null : actual / prices.factor;
@@ -578,7 +562,7 @@ function potReading(doc, wc, { today, history, potsToday, holdings, taxYears }) 
     // Months into the pot's tax year (in a document run from a day inside a later plan year, `frac` counts from that day).
     source: P.source, asOf: P.asOf, planYear: pY, monthsIn: pY < 0 ? 0 : monthsIntoTaxYear(P.at),
     prices: { factor: prices.factor, assumed: prices.assumed, years: prices.years.length, entered: prices.years.filter((x) => x.entered).length },
-    p10: r0(p10), p50: r0(p50), p90: r0(p90), startP50: runUp ? r0(startP50) : null, runUp,
+    p10: r0(p10), p50: r0(p50), p90: r0(p90),
     verdict, band, flat: flatAll, atCost, isaLeftOut: P.measure.isaLeftOut, stale
   };
 }
@@ -596,9 +580,7 @@ function engineBefore(v, than) {
  * in, its SIPP total stands in as the pension — never the pots the strategy was tested on (6.13.0).
  * The pot set against the band counts what the band counts (6.20.1; see `bandMeasure`, `potLikeTheBand`), in the
  * band's pounds (`taxYears`: the Decision tool's tax-year set-ups, for the CPI entered each year — see
- * `pricesSinceStart`), and the band is read at the pot's own month (`bandAt`); in the run-up of a gilt ladder that
- * set cash aside for it, the cash still to pay is added (year 0 of the ladder's band does not hold it). A figure the
- * band needs that is missing → `pot.missing`, no reading; a band that is not the same measure → no verdict.
+ * `pricesSinceStart`), and the band is read at the pot's own month (`bandAt`). A figure the band needs that is missing → `pot.missing`, no reading; a band that is not the same measure → no verdict.
  */
 export function whereAmI(doc, { today = new Date(), history = [], potsToday = null, ladderPos = null, accHistory = [], holdings = null, taxYears = null } = {}) {
   if (!doc || !doc.timing) return null;
@@ -625,14 +607,16 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
   }
   const fty = +doc.timing.firstTaxYear;
   const y = planYearOf(today, fty);
-  const bridge = y < 0;
+  // Before the plan's year 0: a saver still working (the saving line above), or a plan stored the old way whose later
+  // start is still ahead (shown the move of its start, never a reading against figures of a later year).
+  const beforeStart = y < 0;
   const yi = Math.max(0, y);
   const N = doc.timeline?.length || doc.assumptions?.duration || 35;
   const age = doc.timing.shapeAgeNow + y;
   const taxYear = taxYearLabel(taxYearStartOf(today));
   const steps = (doc.steps || []).slice().sort((a, b) => a.fromAge - b.fromAge);
   const cur = steps.filter((st) => st.fromAge <= Math.max(age, steps[0]?.fromAge ?? age)).pop() || steps[0] || null;
-  const next = steps.find((st) => st.fromAge > (cur ? cur.fromAge : age)) || null;   // in a bridge month step 1 is still ahead
+  const next = steps.find((st) => st.fromAge > (cur ? cur.fromAge : age)) || null;   // before the start, step 1 is still ahead
   const stepNow = cur ? Math.round(amountAtAge(steps.map((st) => ({ fromAge: st.fromAge, amount: st.amount, decline: st.decline, glideToNext: st.glideToNext })), Math.max(age, cur.fromAge), cur.amount)) : null;
   const row = doc.timeline?.[yi] || null;
   const key = String(taxYearStartOf(today) % 100).padStart(2, '0') + '/' + String((taxYearStartOf(today) + 1) % 100).padStart(2, '0');
@@ -642,7 +626,7 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
   const wc = doc.strategy?.r?.cones?.wealth || null;
   const pot = wc ? potReading(doc, wc, { today, history, potsToday, holdings, taxYears }) : null;
   return {
-    today: today.toISOString().slice(0, 10), planYear: y, planYears: N, bridge, taxYear, age,
+    today: today.toISOString().slice(0, 10), planYear: y, planYears: N, beforeStart, taxYear, age,
     planStart: taxYearLabel(fty),
     step: cur ? { amount: stepNow, from: cur.fromAge, taxYear: cur.taxYear, index: steps.indexOf(cur) + 1, of: steps.length, next: next ? { fromAge: next.fromAge, amount: next.amount, taxYear: next.taxYear, yearsAway: next.fromAge - age } : null } : null,
     // every record of this tax year, whatever it is marked (filled in later, paid ahead): `months` names them, in date

@@ -234,32 +234,25 @@ describe('gilts valued as held to repay: no verdict against their market value',
     expect(h).toContain('The plan counts its gilts at what they cost, and your figure is at today\'s market prices');
     expect(JSON.stringify(doc)).toBe(before);
   });
-  it('a locked ladder with the ISA held aside, in the run-up: the run-up cash on both sides, and still no verdict', () => {
+  it('a locked ladder stored with a later start, ISA held aside: no extra cash added to either side (7.4.2), and no verdict', () => {
     const doc = ladderRotation();
     const w = whereAmI(doc, { today: at(2026, 10, 2), history: [record('2026-09', 0, 870000, 180000, { sipp: 4333, taxYear: '26/27' })], holdings: holdingsWith([isaLine(81000)], '2026-09-01') });
-    expect(w.bridge).toBe(true);
+    expect(w.beforeStart).toBe(true);
     expect(w.pot.actual).toBe(1050000);                    // gilts + cash; the held ISA is not added
-    expect(w.pot.real).toBe(1050000);                      // the run-up is at the starting prices
-    expect(w.pot.runUp).toMatchObject({ months: 7, of: 7, value: 30000 });
-    expect(w.pot.p50).toBe(1019460 + 30000);
+    expect(w.pot.real).toBe(1050000);                      // a month before year 0 is at the starting prices
+    // the document's old `bridgeCash`/`bridgeMonths` are read by nothing: the band is year 0's own
+    expect('runUp' in w.pot).toBe(false);
+    expect('startP50' in w.pot).toBe(false);
+    expect(w.pot.p50).toBe(1019460);
     expect(w.pot.verdict).toBe('gilts-held-to-pay');
     const h = strip(w);
-    // 7.3.3: the reading's figures are unchanged (above), but the strip of a plan whose year 0 is still ahead gives no pot
-    // verdict: its figures are a later year's, so it says the plan's one thing to do (move the start) and the months taken
+    // the strip of a plan whose year 0 is still ahead gives no pot verdict: it says the plan's one thing to do
     expect(h).toContain('Your plan is set to start in 2027/28.');
     expect(h).not.toMatch(/against £|set aside|before the plan|below the plan|the band opens|cone opens/);
-    // January: three months (January to March) still to pay — 3/7 of the cash; by April none, the band is year 0's own
     const w2 = whereAmI(doc, { today: at(2027, 1, 20), history: [record('2027-01', 0, 870000, 150000, { sipp: 4333, taxYear: '26/27' })] });
-    expect(w2.pot.runUp).toMatchObject({ months: 3, value: Math.round(30000 * 3 / 7) });
+    expect(w2.pot.p50).toBe(1019460);
     const w3 = whereAmI(doc, { today: at(2027, 4, 20), history: [record('2027-04', 0, 870000, 150000, { sipp: 4333, taxYear: '27/28' })] });
-    expect(w3.pot.runUp).toBeNull();
     expect(w3.pot.p50).toBe(1019460);
-    // a document without its run-up length: the draw the record shows, else the plan's year-0 draw, capped at the cash
-    const old = makeDoc({ id: 'gilt-rotation', contract: true, isa: 25000, isaPolicy: 'minimiseEarlyTax', firstTaxYear: 2027, bridgeCash: 20000, cones: rot, timeline: series(10, (y) => ({ y, gross: 46000, sp: 0, other: 5200, lumpIn: [] })) });
-    // the record's £2,400 a month for 7 months: £16,800, inside the £20,000 of cash
-    expect(whereAmI(old, { today: at(2026, 10, 2), history: [record('2026-09', 0, 640000, 116000, { sipp: 2400 })] }).pot.runUp).toMatchObject({ months: 7, value: 16800 });
-    // no record: year 0's (46,000 − 5,200) / 12 = £3,400 for 6 months is £20,400, capped at the £20,000 of cash
-    expect(whereAmI(old, { today: at(2026, 10, 2), holdings: holdingsWith([{ wrapper: 'SIPP', ticker: 'T30', value: 700000 }], '2026-10-01') }).pot.runUp).toMatchObject({ months: 6, value: 20000 });
   });
   it('later in the plan the band is read at the record\'s month and the pot in plan-start prices — still numbers only', () => {
     const doc = ladderRotation();

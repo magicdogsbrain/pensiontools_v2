@@ -49,7 +49,7 @@ export function generateDrawdownSchedule(settings, duration, assumedInflation = 
   const schedule = [];
   const yearlyInflation = [];
 
-  // ISA bridge + drawdown via the SAME planDrawdown the engine and Decision Tool use, so the SIPP/ISA
+  // ISA top-up + drawdown via the SAME planDrawdown the engine and Decision Tool use, so the SIPP/ISA
   // split matches them exactly. baseSalary is a GROSS target: SIPP fills the basic-rate band, then the
   // ISA tops the NET take-home up to the take-home of that gross salary. The remaining ISA rolls up at
   // the money-market rate (~inflation - 1% real, FCA, floored at 0% nominal). Deterministic projection.

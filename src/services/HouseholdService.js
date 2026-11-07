@@ -48,8 +48,8 @@ export function spFor(settings, now = new Date()) {
 /**
  * Deterministic household income timeline (today's money, gross-equivalent): what the household
  * needs each year, what is guaranteed (two State Pensions, DB floors, other income), and what
- * must come from the pots — with the bridge years (before both SPs are in payment) flagged.
- * @returns {Array<{year, needA, needB, need, spA, spB, db, other, guaranteed, drawNeed, bridge}>}
+ * must come from the pots — with the years before both State Pensions are in payment flagged (`beforeStatePension`).
+ * @returns {Array<{year, needA, needB, need, spA, spB, db, other, guaranteed, drawNeed, beforeStatePension}>}
  */
 export function householdIncomeTimeline(setA, setB, labelYears = null, now = new Date()) {   // `now`: injectable clock (tests)
   const durA = setA.duration || 35;
@@ -61,9 +61,8 @@ export function householdIncomeTimeline(setA, setB, labelYears = null, now = new
   // `year` is CALENDAR years from today; each plan's own year is that less its start offset.
   for (let c = 0; c <= years; c++) {
     const yA = c - offA, yB = c - offB;
-    // Before a plan's year 0 the person is "still working" ONLY if the Timing block says they have not retired.
-    // Someone already retired whose ladder starts next April is drawing the run-up from their SIPP cash —
-    // their need counts from today (6.12.5; a user, 16 Sep 2026: "Household seems to think I'm still working").
+    // Before a plan's year 0 the person is "still working" ONLY if the Timing block says they have not retired: someone
+    // retired is drawing, and their need counts from today (6.12.5: "Household seems to think I'm still working").
     const workingA = yA < 0 && !isRetired(setA), workingB = yB < 0 && !isRetired(setB);
     const needA = (!workingA && yA <= durA) ? targetForYear(setA, Math.max(0, yA)) : 0;
     const needB = (!workingB && yB <= durB) ? targetForYear(setB, Math.max(0, yB)) : 0;
@@ -77,7 +76,7 @@ export function householdIncomeTimeline(setA, setB, labelYears = null, now = new
     rows.push({
       year: c, needA, needB, need, spA, spB, db, other, guaranteed, workingA, workingB,
       drawNeed: Math.max(0, need - guaranteed),
-      bridge: (!workingA && a.annual > 0 && yA < a.startYear) || (!workingB && b.annual > 0 && yB < b.startYear)
+      beforeStatePension: (!workingA && a.annual > 0 && yA < a.startYear) || (!workingB && b.annual > 0 && yB < b.startYear)
     });
   }
   return rows;
@@ -92,8 +91,8 @@ export function isRetired(settings) { return settings && (settings.retired === t
  * say where its pots belong: PlanFromToday.runPositionOf — a draft whose year 0 is behind it, or a plan locked in a later
  * year) starts −(years lived): calendar year c from today is its plan year c + years lived, and its own test runs from
  * there, so its run's year c is calendar year c. Every other plan — every plan locked in its year 0 or before among them,
- * run as committed — the years until its income starts, by the age rule it always had (0 for someone in year 0 or retired
- * with a start next April that rounds to now), so nothing moves for it.
+ * run as committed — the years until its income starts, by the age rule it always had (0 for someone retired, or in year
+ * 0), so nothing moves for it.
  */
 export function startOffset(settings, clock = new Date()) {
   const lived = runPositionOf(settings, deriveTiming(settings || {}, clock)).elapsedYears;

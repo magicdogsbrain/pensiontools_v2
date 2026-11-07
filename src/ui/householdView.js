@@ -62,9 +62,9 @@ export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNo
 export function timelineSectionHtml(rows, ownName, pName, thisYear) {
   const yr = (y) => thisYear + y;
   let html = '<div class="settings-section"><div class="section-title">Where the money comes from, year by year</div>';
-  const lastBridge = rows.filter((row) => row.bridge).pop();
-  if (lastBridge) {
-    html += '<div class="alert alert-info">Until <strong>' + yr(lastBridge.year + 1) + '</strong> at least one of you is still waiting for their State Pension — those are the years (marked •) when your pots do the most work. This is usually where a couple\'s plan is tightest.</div>';
+  const lastWaiting = rows.filter((row) => row.beforeStatePension).pop();
+  if (lastWaiting) {
+    html += '<div class="alert alert-info">Until <strong>' + yr(lastWaiting.year + 1) + '</strong> at least one of you is still waiting for their State Pension — those are the years (marked •) when your pots do the most work. This is usually where a couple\'s plan is tightest.</div>';
   }
   html += '<div style="overflow-x:auto;"><table><thead><tr><th>Year</th><th>' + esc(ownName) + ' needs</th><th>' + esc(pName) + ' needs</th><th>State Pensions</th><th>Other guaranteed</th><th>From your pots</th></tr></thead><tbody>';
   const marks = new Set([0]);
@@ -73,7 +73,7 @@ export function timelineSectionHtml(rows, ownName, pName, thisYear) {
   [...marks].sort((a, b) => a - b).forEach((i) => {
     const row = rows[i];
     if (!row) return;
-    html += '<tr><td>' + yr(row.year) + (row.bridge ? ' •' : '') + '</td><td>' + (row.workingA ? '<span class="hint">still working</span>' : gbp(row.needA)) + '</td><td>' + (row.workingB ? '<span class="hint">still working</span>' : gbp(row.needB))
+    html += '<tr><td>' + yr(row.year) + (row.beforeStatePension ? ' •' : '') + '</td><td>' + (row.workingA ? '<span class="hint">still working</span>' : gbp(row.needA)) + '</td><td>' + (row.workingB ? '<span class="hint">still working</span>' : gbp(row.needB))
       + '</td><td>' + gbp(row.spA + row.spB) + '</td><td>' + gbp(row.db + row.other) + '</td><td><strong>' + gbp(row.drawNeed) + '</strong></td></tr>';
   });
   html += '</tbody></table></div>'

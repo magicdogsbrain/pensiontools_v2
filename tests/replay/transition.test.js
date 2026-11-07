@@ -73,35 +73,27 @@ describe('the schedule\'s deadline', () => {
 });
 
 describe('cash to hold before the ladder starts paying', () => {
-  // A plan's numbers: £24,000 set aside for the run-up, first step £46,000 less a £5,200 DB = £3,400 a month
-  // from the plan, but £3,600 a month actually drawn. Read on 6 October 2026: six months to 6 April 2027.
+  // A plan stored the old way: £24,000 of extra cash beside its cash years, first step £46,000 less a £5,200 DB. Read on
+  // 6 October 2026: six months to its 6 April 2027 start.
   const doc = { timing: { firstTaxYear: 2027 }, assumptions: { bridgeCash: 24000 }, timeline: [{ y: 0, taxYear: '2027/28', gross: 46000, sp: 0, other: 5200 }],
     strategy: { contract: true, r: { plan: { firstTaxYear: 2027, cash: 142000, cashYears: [{ Y: 2027, cost: 46000 }, { Y: 2028, cost: 0 }, { Y: 2029, cost: 72000 }], orders: [] } } } };
   const october = new Date(Date.UTC(2026, 9, 6));
 
-  it('R6.13.2 — the run-up months still to pay are part of the target, not spare cash', () => {
+  it('R6.13.2 / 7.4.2 — the target is the cash years\' money alone: the extra cash and the months to the start are no target', () => {
     const t = targetHoldings(doc, { today: october });
-    expect(t.cash.runUp).toMatchObject({ months: 6, value: 20400 });
-    expect(t.cash.value).toBe(118000 + 20400);
-    // …capped at what was set aside, and gone once the plan is running
-    expect(targetHoldings({ ...doc, assumptions: { bridgeCash: 20000 } }, { today: october }).cash.runUp.value).toBe(20000);
-    expect(targetHoldings(doc, { today: new Date(Date.UTC(2027, 4, 6)) }).cash.runUp.value).toBe(0);
-  });
-
-  it('R6.13.3-a — the run-up is sized on the £3,600 actually drawn, not the £3,400 the first step implies', () => {
-    const t = targetHoldings(doc, { today: october, runUpMonthly: 3600 });
-    expect(t.cash.runUp.monthly).toBe(3600);
-    expect(t.cash.runUp.value).toBe(21600);
-    expect(t.cash.breakdown.map((b) => b.amount)).toEqual([21600, 46000, 0, 72000]);
+    expect('runUp' in t.cash).toBe(false);
+    expect(t.cash.value).toBe(118000);
+    expect(t.cash.breakdown.map((b) => b.amount)).toEqual([46000, 0, 72000]);
+    expect(targetHoldings(doc, { today: new Date(Date.UTC(2027, 4, 6)) }).cash.value).toBe(118000);   // running: the years still ahead
   });
 });
 
 describe('the words on the page', () => {
-  const bridge = { key: 'bridge', startLabel: '2027/28', firstTaxYear: 2027, startMonth: '2027-04', monthsToStart: 7 };
+  const retired = { key: 'running', startLabel: '2027/28', firstTaxYear: 2027, startMonth: '2027-04', monthsToStart: 7 };
   const held = { ...emptyRecord, lines: [line({ ticker: 'TR29', units: 36000, value: 39690 }), line({ ticker: 'VWRP', value: 150000 })] };
 
   it('R6.12.5-b — someone already retired is told so; nothing reads as a retirement date', () => {
-    const html = page(ladderDoc, held, { stage: bridge });
+    const html = page(ladderDoc, held, { stage: retired });
     // 7.3.3: no words at all for months before the plan (nobody retired has them): the plan's to-do, the move of its start,
     // is said by the next-step banner — and still nothing reads as a retirement date
     expect(html).not.toMatch(/SIPP cash|run[\s-]?up|set aside|before the plan|retirement date/i);

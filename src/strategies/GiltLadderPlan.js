@@ -26,16 +26,16 @@ import { holdingsLines } from '../services/HoldingsRecord.js';
  * rotation ('sold'), read as the move reads it (TransitionPlanner: the same target and diff).
  * @param {object} docOrPlan  the plan document (strategy.r.plan), or a buildGiltLadder plan itself
  * @param {object|Array|null} [holdings]  the holdings record or its lines
- * @param {{ today?: Date|null, params?: object|null, runUpMonthly?: number }} [o]  the day to read against (none: no `bought`)
+ * @param {{ today?: Date|null, params?: object|null }} [o]  the day to read against (none: no `bought`)
  */
-export function orderSheetRows(docOrPlan, holdings = null, { today = null, params = null, runUpMonthly = 0 } = {}) {
+export function orderSheetRows(docOrPlan, holdings = null, { today = null, params = null } = {}) {
   const d = docOrPlan || {};
   const plan = d.strategy && d.strategy.r ? d.strategy.r.plan : (Array.isArray(d.orders) ? d : null);
   if (!plan || !Array.isArray(plan.orders)) return [];
   const live = plan.orders.filter((o) => o && +o.pays > 0);
   let boughtOf = () => null;
   if (today && d.strategy && d.strategy.r) {
-    const target = targetHoldings(d, { today, params, runUpMonthly });
+    const target = targetHoldings(d, { today, params });
     const diff = diffHoldings(holdingsLines(holdings), target);
     const up = (s) => String(s || '').toUpperCase().trim();
     const keyOf = (o) => 'gilt:' + up(o.tidm || o.sedol || o.name);
@@ -57,7 +57,7 @@ export function orderSheetRows(docOrPlan, holdings = null, { today = null, param
 // cashRealDrag: cash earns about inflation minus 1% (the FCA-prescribed assumption every other strategy in the
 // app runs on), so £1 of need k years out costs £1 × 1.01^k of cash today. Two cash years barely notice;
 // fifteen would have looked free without it.
-export const LADDER_DEFAULTS = { cashYears: 2, bridgeCash: 0, dealFee: 20, spreadShort: 0.0015, spreadMid: 0.0025, spreadLong: 0.004, cashRealDrag: 0.01 };
+export const LADDER_DEFAULTS = { cashYears: 2, dealFee: 20, spreadShort: 0.0015, spreadMid: 0.0025, spreadLong: 0.004, cashRealDrag: 0.01 };
 /**
  * Cash set aside today to pay £1 of need in plan year k (k = 1 is spent straight away). The cash sits in a money-market
  * fund inside the pension, so the plan's fund and platform charges (chargesPct, percent a year; 6.19.0) come off it too:
@@ -79,7 +79,8 @@ export function spreadFor(yearsToMaturity, o = LADDER_DEFAULTS) {
  * @param {object} p
  *  pot, startAge, durationYears, amountAtAge(age) → gross £/yr today's money,
  *  spAnnual, spStartAge, spFirstYearRatio (share of the first year SP is paid), firstTaxYear (Apr of),
- *  linkers: [{ name, tidm, isin, maturityDateIso, cleanPrice, indexRatio, lag }], cashYears, bridgeCash,
+ *  linkers: [{ name, tidm, isin, maturityDateIso, cleanPrice, indexRatio, lag }], cashYears (the ladder's only cash: its first
+ *    years, plan years from year 0, paid from the money-market fund),
  *  todayIso ('YYYY-MM-DD', the pricing date) or now (a Date) — either pins the clock; neither = today,
  *  chargesPct (the plan's fund and platform charges, percent a year — on the cash years only; absent = none),
  *  lifeFromPricing (6.50.0: a ladder bought for a plan already running) — the output records `pricedAt`, the pricing date,
@@ -100,7 +101,7 @@ export function buildGiltLadder(p) {
     return p.spAnnual;
   };
   const years = [];
-  let cash = p.bridgeCash || 0;
+  let cash = 0;
   const cashYearsList = [];
   const perGilt = new Map();
   for (let k = 1; k <= p.durationYears; k++) {

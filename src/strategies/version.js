@@ -31,5 +31,11 @@
  *           every strategy's result counts it as a cut (the bought ones on `cuts` and futuresMc), protection is never on in
  *           them, and the tax-free lump waits for the year the pension opens. The pension grows untouched until it opens.
  *           Every plan whose holder can already draw in the run's first year runs exactly as before.
+ *   6.39.0  (app 7.4.2) A gilt ladder's cash years are its only cash. The extra cash an older plan kept beside them
+ *           is no longer added to the ladder, the run or the cash to hold, whatever the day of the run's pots:
+ *           it was added for a plan whose pots waited for a later first year, and nobody retired has one. Figures move only
+ *           for a plan that has some and whose pots did not yet belong to a plan year begun — a retired draft in its year 0
+ *           with no stop month, a saver's ladder, a plan stored with a later start: the ladder costs less, the spare is more.
+ *           Every other plan runs exactly as before.
  */
-export const ENGINE_VERSION = '6.38.0';
+export const ENGINE_VERSION = '6.39.0';

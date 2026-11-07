@@ -53,8 +53,6 @@ export const MOVE = {
     title: 'Cash to hold now',
     lead: 'A money-market fund or cash in the pension:',
     rows: {
-      /** Cash an older plan holds for the months to its first tax year (it shows a to-do to move its start). */
-      runUp: 'Cash for the next {months} month{s} at {monthly}',
       cashYear: 'Cash year {year}',
       cashYearLump: 'Cash year {year} ({lump} of it paid by a lump sum expected that year)'
     },

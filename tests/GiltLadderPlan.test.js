@@ -3,7 +3,8 @@ import { buildGiltLadder, spreadFor, ladderWealthByYear, accretedValue, yearsToM
 import { activeLinkers } from '../src/services/LinkerUniverse.js';
 import { rotationPathsCtx, runRotationPath } from '../src/strategies/GiltRotation.js';
 
-// A ladder plan (fictional): £20k bridge, 2 cash years, £50k to 64, £43k to 71, £36k to 95.
+// A ladder plan (fictional): 2 cash years, £50k to 64, £43k to 71, £36k to 95 — handed an older plan's £20k of extra cash,
+// which the ladder ignores from 7.4.2 (its cash years are its only cash).
 const amountAtAge = (age) => age <= 64 ? 50000 : age <= 71 ? 43000 : 36000;
 const base = { pot: 800000, startAge: 61, durationYears: 35, amountAtAge, spAnnual: 11900, spStartAge: 66, spFirstYearRatio: 5 / 12,
   firstTaxYear: 2027, linkers: activeLinkers().gilts, cashYears: 2, bridgeCash: 20000, todayIso: '2026-08-26' };
@@ -17,10 +18,11 @@ describe('GiltLadderPlan — the fully deterministic ladder', () => {
       if (!y.held) expect(y.matures >= (y.Y - 1) + '-04-01').toBe(true);
     }
   });
-  it('cash covers the bridge and the first N years; the State Pension is netted from 66 with a partial first year', () => {
+  it('cash covers the first N years and nothing else; the State Pension is netted from 66 with a partial first year', () => {
     expect(plan.cashYears.map((c) => c.Y)).toEqual([2027, 2028]);
     // Cash years cost their inflation drag (−1% real a year, like every other strategy's cash): year 1 at face, year k × 1.01^(k−1).
-    expect(plan.cash).toBeCloseTo(20000 + 50000 * (1 + 1.01), 6);
+    // No extra cash: an older plan's `bridgeCash` is not added (7.4.2).
+    expect(plan.cash).toBeCloseTo(50000 * (1 + 1.01), 6);
     const y2032 = plan.years.find((y) => y.Y === 2032);
     expect(y2032.age).toBe(66);
     expect(y2032.need).toBeCloseTo(43000 - 11900 * 5 / 12, 0);

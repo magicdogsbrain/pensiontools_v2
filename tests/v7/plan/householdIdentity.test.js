@@ -109,7 +109,7 @@ describe('gate 9 — "Your household" equals the planner\'s Household tab on the
         expect(mine.together).toBe(null);
         expect(mine.fig).toBe(null);
       }
-      expect(mine.timeline.map((r) => ({ year: r.year, need: r0(r.need), guaranteed: r0(r.guaranteed), drawNeed: r0(r.drawNeed), bridge: r.bridge }))).toEqual(theirs.timeline.map((r) => ({ year: r.year, need: r0(r.need), guaranteed: r0(r.guaranteed), drawNeed: r0(r.drawNeed), bridge: r.bridge })));
+      expect(mine.timeline.map((r) => ({ year: r.year, need: r0(r.need), guaranteed: r0(r.guaranteed), drawNeed: r0(r.drawNeed), beforeStatePension: r.beforeStatePension }))).toEqual(theirs.timeline.map((r) => ({ year: r.year, need: r0(r.need), guaranteed: r0(r.guaranteed), drawNeed: r0(r.drawNeed), beforeStatePension: r.beforeStatePension })));
       made[name] = { ...(made[name] || {}), pooled: sha({ combined: combinedOf(mine.own.combined), rA: resultOf(mine.own.rA), rB: resultOf(mine.own.rB), split: splitOf(mine.split), fig: figOf(mine.fig) }) };
       // the figures as the page says them: the verdict's words and the split's pounds are the run's
       const view = householdOf([{ plan: a, newer: false, failed: false }, { plan: b, newer: false, failed: false }], a.id, { today: TODAY, H: { key: pairKeyOf(a, b), status: 'done', limit: null, result: mine, ms: 1, survivor: null, care: null, pick: null } });

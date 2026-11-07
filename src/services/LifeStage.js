@@ -1,12 +1,11 @@
 /**
  * Life stage — where this plan's owner is, derived from what the plan already knows. Never asked.
  *
- * Two axes: commitment (draft / locked) and time (before the plan start / after it), with "already
- * retired" from the Timing block splitting "before the start" into saving and the placing kept as `bridge`: a locked plan
- * of someone who has stopped work whose year 0 is still ahead — until 6.51.0 a retired person's plan started at the next
- * April by default. Nobody retired has months before their plan, so from 7.3.3 that placing has no words of its own: it reads
- * as retired, and a plan stored that way shows one thing to do, the move of its start (PlanMove.startLaterOf). Someone who
- * stopped in an earlier tax year and lives on the plan has year 0 in that year, and is running. Each stage
+ * Two axes: commitment (draft / locked) and time. Someone still working is before their plan's start (saving, approaching,
+ * committed and still saving); someone retired is never before it: their plan starts in the tax year they stopped work, or
+ * the one they pick it up from (7.4.0), so a locked retired plan is running and a draft one is being designed. A plan stored
+ * the old way, with a year 0 still ahead, is running too (7.4.2), and shows one thing to do, the move of its start
+ * (PlanMove.startLaterOf); an old journey entry that named its placing (`bridge`) is read as retired. Each stage
  * says which tools lead, which are read-only, which are hidden, what the next-step banner says, and
  * what moves the person on. The stage is recomputed on every load; only the journey (stage changes
  * with dates) is persisted, so a corrected age or start year can never strand anyone.
@@ -19,7 +18,7 @@
  *
  * Pure: no DOM, no storage.
  */
-import { deriveTiming, taxYearLabel, taxYearStartOf, monthsUntilStart, monthsUntilMonth } from './PlanTiming.js';
+import { deriveTiming, taxYearLabel, monthsUntilStart, monthsUntilMonth } from './PlanTiming.js';
 import { saverReading, saverPrices, savingPathVersion, pathStart, pathCountsIsa, v3PensionLineAt, figureOrNull, monthOf, monthWords, OLD_PATH_CPI } from './SaverReading.js';
 import { closedAtOf, nextPlanIdOf, beforeOf, monthRefusal, monthRefusalWords, monthWordsOf, closesAhead } from './PlanClosed.js';
 
@@ -47,14 +46,6 @@ export const STAGES = Object.freeze({
     // A locked saver keeps paying in and recording the pot; buying the plan's mix years ahead was never the next step.
     // `nearText` is added within APPROACHING_YEARS of the stop, when moving what you hold starts to matter.
     banner: { text: 'Your plan is locked and you stop work in {stop}. Keep paying in, and record your pot each month on the Accumulation planner; the Decision tool opens when you stop.', nearText: 'Moving what you hold to the plan\'s mix can start now, if you want to.', btn: 'Open the Accumulation planner', tab: 'accumulation' }
-  },
-  // A locked retired plan whose year 0 is still ahead (see the note above): no words of its own. A plan stored that way is
-  // shown the move of its start by the next-step banner (NextStep.js, from PlanMove.startLaterOf) in place of this banner;
-  // a plan that carries a closed one on keeps it, its year 0 the hand-over's tax year.
-  bridge: {
-    key: 'bridge', label: 'Retired', chip: 'retired',
-    leads: ['decision'], readOnly: ['stress', 'strategies'], hidden: ['accumulation'],
-    banner: { text: 'Retired. This plan\'s first tax year is {start}; record each month in the Decision tool.', btn: 'Open the Decision tool', tab: 'decision' }
   },
   running: {
     key: 'running', label: 'Running the plan', chip: 'running',
@@ -95,11 +86,11 @@ export function deriveStage(scenario, now = new Date()) {
   const hasRecords = history.length > 0 || Object.values(taxYears).some((t) => t && t.yearSetupComplete);
   const hasDocument = !!s.planDocument;
   const t = deriveTiming(stress, now);
-  const thisTY = taxYearStartOf(now);
   // A future retiree is "before the start" until the retirement MONTH (their birthday), not just until the
-  // plan's tax year begins — they may still be working in April of plan year 0 (6.10.3).
+  // plan's tax year begins — they may still be working in April of plan year 0 (6.10.3). Only someone still working is ever
+  // before their plan (7.4.2): a retired plan stored with a later year 0 is running, and shows the move of its start.
   const nowKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  const beforeStart = t.mode === 'future' && t.startMonth ? nowKey < t.startMonth : t.firstTaxYear > thisTY;
+  const beforeStart = t.mode === 'future' && !!t.startMonth && nowKey < t.startMonth;
   const monthsToStart = t.mode === 'future' && t.startMonth ? monthsUntilMonth(t.startMonth, now) : monthsUntilStart(t.firstTaxYear, now);
   const reasons = [];
   let key;
@@ -123,8 +114,7 @@ export function deriveStage(scenario, now = new Date()) {
     else key = t.yearsToStart > APPROACHING_YEARS ? 'saving' : 'approaching';
     reasons.push('retiring at ' + t.retireAge + ' (' + taxYearLabel(t.firstTaxYear) + ')');
   } else {
-    if (locked) key = beforeStart ? 'bridge' : 'running';
-    else key = 'draft-retired';
+    key = locked ? 'running' : 'draft-retired';
     reasons.push('already retired; plan starts ' + taxYearLabel(t.firstTaxYear));
   }
   // A closed plan is closed whatever its dates say (PlanClosed.js) — once its last month has passed. Closed at a change-over
@@ -141,7 +131,7 @@ export function deriveStage(scenario, now = new Date()) {
   // ("What you hold"), which a saver records long before there is anything to transition, and a plan that is
   // Running still needs reconciling now and then (6.10.4) — so Saving and Getting started show it without leading with it.
   const leads = def.leads.slice(), hidden = def.hidden.slice();
-  if (['approaching', 'committed-saving', 'bridge', 'draft-retired'].includes(key)) leads.push('transition');
+  if (['approaching', 'committed-saving', 'draft-retired'].includes(key)) leads.push('transition');
   const startLabel = taxYearLabel(t.firstTaxYear);
   const stopWords = (t.mode === 'future' && t.startMonth && monthWords(monthOf(t.startMonth))) || startLabel;
   const near = def.banner && def.banner.nearText && beforeStart && monthsToStart <= APPROACHING_YEARS * 12;
@@ -165,15 +155,15 @@ export function deriveStage(scenario, now = new Date()) {
 
 /**
  * The three words a person sees (research/v7/one-product-design.md, "The stage model"): Saving, Moving, Drawing — and Closed
- * for a plan kept to read. Derived from the eight placings above and nothing stored: the design's three stored agreements
+ * for a plan kept to read. Derived from the seven placings above and nothing stored: the design's three stored agreements
  * (`accumulationTool.agreedMove`, `transition.finished`, a by-hand `stage`) arrive in a later release, so here they are read
  * as absent and a plan is placed by its facts alone. Opening a plan never writes anything because of this.
  *
  *   placing                                  stage
  *   unknown                                  null (the home's only to-do: add your age)
  *   saving, approaching, committed-saving    saving
- *   bridge, running, a month recorded        drawing, whatever the holdings say (7.3.1)
- *   bridge, running, no month recorded yet   moving while a recorded holding is still short of the plan's mix, else drawing
+ *   running, a month recorded                drawing, whatever the holdings say (7.3.1)
+ *   running, no month recorded yet           moving while a recorded holding is still short of the plan's mix, else drawing
  *   draft-retired                            drawing (not locked: its first to-do is the lock)
  *   closed                                   closed
  *
@@ -206,7 +196,7 @@ export function stageOf(plan, now = new Date(), { placing = null, move = null } 
   if (p === 'unknown') key = null;
   else if (SAVER_STAGE_KEYS.includes(p)) key = 'saving';
   else if (p === 'closed') key = 'closed';
-  else if (p === 'bridge' || p === 'running') key = recordedMonths.length > 0 ? 'drawing' : movePending ? 'moving' : 'drawing';
+  else if (p === 'running') key = recordedMonths.length > 0 ? 'drawing' : movePending ? 'moving' : 'drawing';
   else key = 'drawing';
   let invite = null;
   if (key === 'saving' && st.timingMode === 'future' && stop) {

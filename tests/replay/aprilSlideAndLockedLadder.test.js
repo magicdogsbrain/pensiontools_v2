@@ -121,7 +121,6 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
     expect(t.firstTaxYear).toBe(2027);            // was 2029: honoured only while it was this tax year or later
     expect(t.shapeAgeNow).toBe(61);               // the age the steps started at does not creep either
     expect(t.yearsToStart).toBe(0);
-    expect(t.bridgeMonths).toBe(0);
     // "This tax year" chosen in 2026/27 used to jump TWO years on the first 6 April.
     expect(deriveTiming({ ...PRE_6_4, retired: true, firstTaxYear: 2026 }, APR_8).firstTaxYear).toBe(2026);
   });

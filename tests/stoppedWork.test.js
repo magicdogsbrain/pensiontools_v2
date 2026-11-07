@@ -29,7 +29,7 @@ import { deriveTiming, describeTiming } from '../src/services/PlanTiming.js';
 import { planDocumentHtml, potsAsOfWords } from '../src/ui/components/PlanDocumentView.js';
 import { lockPatch, applyPatch } from '../src/answers/plan/lock.js';
 import { runForDocument } from '../src/answers/plan/lastsRun.js';
-import { recordBeforeStart, recordYearLabel, recordSourceWords, livedYearRowHtml, beforeStartNoteHtml, firstSetUpPlanYear, wizardStop } from '../src/ui/planStartUi.js';
+import { recordBeforeStart, recordYearLabel, recordSourceWords, livedYearRowHtml, firstSetUpPlanYear, wizardStop } from '../src/ui/planStartUi.js';
 import * as planStartUi from '../src/ui/planStartUi.js';
 import { ladderMonthAdvice, firstRungOf, ladderPosition } from '../src/services/LadderPosition.js';
 import { seedToScenario, checkSeed } from '../src/services/PlanSeed.js';
@@ -231,15 +231,13 @@ describe('the planner\'s words for a record before the plan\'s income starts com
     expect(recordSourceWords(stamped, 2024, 'before', 'the cash bucket')).toBe('the cash bucket');   // never the stamped old start
     expect(recordSourceWords(stamped, 2026, 'before', 'the cash bucket')).toBe('before');   // the old start's own stamped words are never shown
     expect(recordSourceWords({ ...stamped, strategySource: 'this year\'s matured rung' }, 2026, 'before', 'x')).toBe('this year\'s matured rung');
-    expect(recordBeforeStart(stamped, null)).toBe(true);                                             // no anchor: the stamp
+    expect(recordBeforeStart(stamped, null)).toBe(false);                                            // no anchor: the stamp is not read (7.4.2)
     expect(recordYearLabel({ taxYear: '26/27' }, 2024)).toBe('Year 2');
   });
   it('plan vs actual: a lived year on its draw alone; the months before a later start; the part year is the first year set up', () => {
     const gbp = (v) => '£' + Math.round(v).toLocaleString('en-GB');
     expect(livedYearRowHtml(1, [{ sipp: 2300 }, { sipp: 2100 }], { sippDraw: 26400 }, gbp)).toBe('<tr><td>Year 1 <span class="hint">(2 mo; lived before the plan was locked)</span></td><td>£2,200/mo</td><td>£2,200/mo <span class="hint">(+£0)</span></td><td>—</td><td>—</td><td>—</td></tr>');
-    expect(beforeStartNoteHtml(3, 2027)).toContain('Your plan is set to start in 2027/28: 3 months recorded since you stopped work are not in this table until its start is moved');
-    expect(beforeStartNoteHtml(3, 2027)).not.toMatch(/before the plan|set aside/);
-    expect(beforeStartNoteHtml(0, 2027)).toBe('');
+    expect(planStartUi.beforeStartNoteHtml).toBeUndefined();   // 7.4.2: months before a later start are skipped quietly; the to-do moves the start
     expect(firstSetUpPlanYear({ '24/25': { yearSetupComplete: true }, '26/27': { yearSetupComplete: true } }, 2024)).toBe(0);
     expect(firstSetUpPlanYear({ '26/27': { yearSetupComplete: true }, '27/28': {} }, 2024)).toBe(2);
     expect(firstSetUpPlanYear({ '25/26': { yearSetupComplete: true } }, 2026)).toBe(0);              // a year before the start is not a plan year
@@ -274,7 +272,7 @@ describe('the ladder\'s month in the Decision tool is placed by the ladder\'s ow
     expect([cashYear.floorMonthly, cashYear.floorLabel]).toEqual([2200, 'the cash years bucket']);
     expect(cashYear.note).toContain('Your cash pays until the ladder\'s first gilt, from 2028/29.');
     expect(cashYear.note).not.toMatch(/run-up|SIPP cash/);
-    expect(ladderMonthAdvice(null, null, 1800, -1).floorLabel).toBe('cash, before the ladder\'s first year');   // no ladder, before the start
+    expect(ladderMonthAdvice(null, null, 1800, -1).floorLabel).toBe('cash, until the first gilt pays');   // no ladder, before the start
     expect(ladderMonthAdvice(null, null, 1800, 1).floorLabel).toBe('this year\'s matured rung');
   });
 });

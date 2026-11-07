@@ -471,7 +471,6 @@ const CUT_DIALS = Object.freeze([
 ].map(Object.freeze));
 const LADDER_DIALS = Object.freeze([
   { key: 'cashYears',   type: 'count',  min: 0, max: 5, default: 2 },
-  { key: 'bridgeCash',  type: 'money',  min: 0, max: 50000000, default: 0 },
   { key: 'spareGrowth', type: 'choice', options: ['kept', 'invested'], default: 'kept' }
 ].map(Object.freeze));
 export const WAY_DIALS = Object.freeze({

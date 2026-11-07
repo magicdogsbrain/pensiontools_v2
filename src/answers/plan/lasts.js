@@ -419,7 +419,7 @@ function trySettingsOf(s, boxes) {
   c.isaBalance = isa;
   c.strategyId = id;
   c.strategyParams = { ...restoredParamsOf(s, id), sippTotal: pot, isaTotal: isa };
-  if (b.isaPolicy === 'hold') c.isaDrawdownStrategy = 'hold'; else if (b.isaPolicy === 'draw') c.isaDrawdownStrategy = 'bridge';
+  if (b.isaPolicy === 'hold') c.isaDrawdownStrategy = 'hold'; else if (b.isaPolicy === 'draw') c.isaDrawdownStrategy = 'minimiseEarlyTax';   // drawn uncapped, as every engine read the 'bridge' it wrote until 7.4.2
   if (b.incomeMode === 'flat') { c.baseSalary = +b.income || 0; c.incomeShape = 'level'; c.incomeSteps = []; c.targetSchedule = null; }
   c.duration = Math.max(5, Math.min(45, +b.years || s.duration || 35));
   if (b.cuts === 'on' || b.cuts === 'off') c.disableProtection = b.cuts === 'off';

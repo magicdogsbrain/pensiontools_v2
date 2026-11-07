@@ -121,7 +121,7 @@ describe('the locked accumulation path in the plan document, and the saver\'s wh
     expect(doc.holdingsAtLock.lines.length).toBe(3);
     const later = new Date(2027, 8, 10);   // a year on
     const w = whereAmI(doc, { today: later, accHistory: [{ date: '2027-09', sipp: 380000, isa: 110000, total: 490000 }] });
-    expect(w.bridge).toBe(true);
+    expect(w.beforeStart).toBe(true);
     expect(w.saving.monthsToGo).toBe(7);
     expect(w.saving.actual).toBe(380000);
     expect(w.saving.expected).toBeGreaterThan(320000);

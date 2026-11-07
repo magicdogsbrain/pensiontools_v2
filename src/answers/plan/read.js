@@ -60,9 +60,9 @@ export function stageLine(stage, plan, ss = null) {
   const key = stage && stage.key;
   if (!key || key === 'unknown') return null;
   if (key === 'committed-saving') return { id: 'committed-saving', slots: { month: monthWords(stage.startMonth) || taxYearLabel(stage.firstTaxYear) } };
-  // A locked retired plan whose year 0 is still ahead (placed 'bridge', a plan stored the old way): it is read as a plan
-  // being lived on, with no words of its own for the months before its start — its home's to-do asks to move the start.
-  if (key === 'running' || key === 'bridge') {
+  // A locked retired plan is lived on — one stored the old way, with its year 0 still ahead, too: it has no words of its own
+  // for the months before its start, and its home's to-do asks to move the start.
+  if (key === 'running') {
     const rung = firstRungOf(lockedLadderOf(plan, ss));
     const thisTY = Number.isFinite(stage.planYearNow) && stage.firstTaxYear > 0 ? stage.firstTaxYear + stage.planYearNow : null;
     if (rung && thisTY != null && rung.Y > thisTY) return { id: 'running-ladder', slots: { month: 'April ' + rung.Y } };
@@ -247,7 +247,7 @@ function firstGap(hist, mon) {
 const monthHref = (plan) => '#/plan/' + plan.id + '/month';
 const recordButton = (plan, month) => ({ ...link('record', monthHref(plan), { month: monthName(month) }), month });
 /** The stages a plan draws in, or has drawn in (a closed plan's months up to its close): Month by month is theirs. */
-const MONTH_STAGES = ['draft-retired', 'bridge', 'running', 'closed'];
+const MONTH_STAGES = ['draft-retired', 'running', 'closed'];
 
 /**
  * This month's record (2.3 `month`). The month to record is the EARLIEST month not recorded, from the first record's
@@ -535,7 +535,8 @@ function planStep(C) {
   const sid = stratId(plan, ss);
   way.push(line('way.strategy', [], figures, src, { strategy: sid }));
   const params = (locked && doc && doc.strategy && doc.strategy.params) || ss.strategyParams || {};
-  for (const [k, v] of Object.entries(params)) { if (num(v) == null) continue; figures['dial.' + k] = num(v); way.push(line('way.dial', [k === 'cashYears' || k === 'years' || /Years$|Age$/.test(k) ? count('dial.' + k) : money('dial.' + k)], figures, src, { dial: k })); }
+  // An older ladder's extra cash beside its cash years (`bridgeCash`) is no dial since 7.4.2: nothing reads it, so it is not said.
+  for (const [k, v] of Object.entries(params)) { if (num(v) == null || k === 'bridgeCash') continue; figures['dial.' + k] = num(v); way.push(line('way.dial', [k === 'cashYears' || k === 'years' || /Years$|Age$/.test(k) ? count('dial.' + k) : money('dial.' + k)], figures, src, { dial: k })); }
 
   // The mix (way-and-mix.md 3): how the pension is held, the amounts, the sleeve and the tent — its own section, edited inside V7
   // (the "set by risk level / from the funds to test" line moved here from "How the money is taken" in 6.41.0)
@@ -797,7 +798,7 @@ export const notNowKey = (planId, itemId) => String(planId) + '|' + itemId;
 function rulesFor(C, built) {
   const { stage, readonly, plan, ss, locked, mon, ty, tyKey, now, life, mv } = C;
   const key = stage.key;
-  const retiredRunning = key === 'bridge' || key === 'running';
+  const retiredRunning = key === 'running';
   const month = built.month;
   const pot = built.pot;
   const hist = historyAscending(plan);
@@ -972,7 +973,7 @@ function soonFor(C, slots = {}) {
   if (life && life.invite && !life.invite.passed) {
     return [{ id: 'move.invite', pid: 'P.invite', soon: true, slots: { stop: monthWords(life.invite.stop), ...(slots.band ? { band: slots.band } : {}) }, button: link('checkStop', '#/plan/' + plan.id + '/about') }];
   }
-  if (!locked || !(stage.key === 'bridge' || stage.key === 'running') || now.getMonth() !== 2) return [];
+  if (!locked || stage.key !== 'running' || now.getMonth() !== 2) return [];
   const nextKey = taxYearKey(ty + 1);
   const ty2 = plan.decisionTool && plan.decisionTool.taxYears && plan.decisionTool.taxYears[nextKey];
   if (ty2 && ty2.yearSetupComplete) return [];
@@ -1036,7 +1037,7 @@ export function planPage(entries, id, stepId, { today, source = 'account', notNo
   const built = {};
   for (const s of shown) { try { built[s.id] = BUILDERS[s.id](C); } catch (e) { built[s.id] = { done: false, result: sentence(s.id + '.failed', ['Could not be read'], {}), figures: {}, lines: [], buttons: [], notes: [], error: e && e.message }; } }
   // The next sentence reads the month and pot steps whether or not they are on this stage's list.
-  if (!built.month && ['bridge', 'running'].includes(stage.key)) built.month = monthStep(C);
+  if (!built.month && stage.key === 'running') built.month = monthStep(C);
   if (!built.pot && stage.key === 'committed-saving') built.pot = potStep(C);
   const steps = shown.map((s) => {
     const b = built[s.id];

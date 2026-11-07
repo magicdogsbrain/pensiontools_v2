@@ -51,7 +51,7 @@ export function yearOfTaxKey(key) {
 }
 
 /**
- * Signed plan year of a tax year relative to the anchor. Negative = bridge year (before the plan).
+ * Signed plan year of a tax year relative to the anchor. Negative = still saving (a saver's months before their stop).
  * `x` may be a 'YY/YY' key, a 'YYYY-MM' / 'YYYY-MM-DD' string, a Date, or a calendar year number.
  */
 export function planYearOf(x, firstTaxYear) {
@@ -264,7 +264,7 @@ export function timingPinPatch(stored, loaded) {
  *  - `monthsIntoYear`: whole calendar months of the current plan year already gone (April 0 … March 11, as a Decision
  *    record counts them), 0 before the start.
  * @returns {{ mode: 'retired'|'future'|'legacy', firstTaxYear: number, shapeAgeNow: number,
- *   currentAge: number|null, retireAge: number|null, yearsToStart: number, bridgeMonths: number,
+ *   currentAge: number|null, retireAge: number|null, yearsToStart: number, monthsToStop?: number,
  *   startOptions: number[], potScale: { sipp: number, isa: number },
  *   planYearNow: number, elapsedYears: number, monthsIntoYear: number }}
  */
@@ -278,7 +278,7 @@ export function deriveTiming(settings, now = new Date()) {
     // than anyone retired has). A pin saved the old way, later than this tax year, is read as this tax year on a draft
     // (PlanMove.laterDraftOf); a locked plan keeps the year it was locked with.
     const firstTaxYear = +s.firstTaxYear > 0 ? +s.firstTaxYear : +s.legacyFirstTaxYear > 0 ? +s.legacyFirstTaxYear : thisTY;
-    return { ...base, mode: 'legacy', firstTaxYear, shapeAgeNow: +s.shapeAgeNow || 57, yearsToStart: Math.max(0, firstTaxYear - thisTY), startMonth: firstTaxYear + '-04', bridgeMonths: monthsUntilStart(firstTaxYear, now), ...positionOf(firstTaxYear, now) };
+    return { ...base, mode: 'legacy', firstTaxYear, shapeAgeNow: +s.shapeAgeNow || 57, yearsToStart: Math.max(0, firstTaxYear - thisTY), startMonth: firstTaxYear + '-04', ...positionOf(firstTaxYear, now) };
   }
   const currentAge = ageOnDate(s, now, now);
   // The month work stopped or stops (6.51.0), on the timing only when the plan says it: every plan saved before carries
@@ -297,7 +297,7 @@ export function deriveTiming(settings, now = new Date()) {
     // October birthday retiring at 61 has a 2027/28 plan year 0 and retires in October 2027, 13 months away.
     const startMonth = stopAhead || retirementMonth(s, +s.retireAge, now);
     return { ...base, mode: 'future', firstTaxYear, shapeAgeNow, currentAge, retireAge: +s.retireAge,
-      yearsToStart: firstTaxYear - thisTY, startMonth, bridgeMonths: monthsUntilMonth(startMonth, now), potScale: potScaleOf(s), ...positionOf(firstTaxYear, now), ...said };
+      yearsToStart: firstTaxYear - thisTY, startMonth, monthsToStop: monthsUntilMonth(startMonth, now), potScale: potScaleOf(s), ...positionOf(firstTaxYear, now), ...said };
   }
   // The saved start year is the plan's anchor for good (6.13.5). It used to be honoured only while it was this
   // tax year or later: a plan that started in 2027/28 jumped to 2029/30 on 6 April 2028, the day its second year
@@ -310,7 +310,7 @@ export function deriveTiming(settings, now = new Date()) {
   // The years a retiree may choose from (startYearChoices): the stop's tax year up to this one; else this one alone.
   const startOptions = fromStop != null && fromStop <= thisTY ? Array.from({ length: thisTY + 1 - fromStop }, (_, i) => fromStop + i) : base.startOptions;
   return { ...base, mode: 'retired', firstTaxYear, shapeAgeNow: ageInTaxYear(s, firstTaxYear, now), currentAge, startOptions,
-    yearsToStart: Math.max(0, firstTaxYear - thisTY), startMonth, bridgeMonths: monthsUntilStart(firstTaxYear, now), ...positionOf(firstTaxYear, now), ...said };
+    yearsToStart: Math.max(0, firstTaxYear - thisTY), startMonth, ...positionOf(firstTaxYear, now), ...said };
 }
 
 /**
@@ -421,9 +421,12 @@ export function decisionAnchorYear(decisionSettings, allTaxYears, currentTaxYear
 export function describeTiming(t, settings, now = new Date()) {
   const s = settings || {};
   const start = new Date(t.firstTaxYear, 3, 6);
+  // Months to the start: a saver's to their stop (monthsToStop); else to 6 April of year 0 — only a plan stored the old way,
+  // with a later year 0, is ever ahead of it.
+  const ahead = t.mode === 'future' ? (+t.monthsToStop || 0) : monthsUntilStart(t.firstTaxYear, now);
   const when = t.yearsToStart <= 0 && start.getTime() <= now.getTime() ? 'already running'
-    : t.bridgeMonths < 24 ? 'in ' + t.bridgeMonths + ' month' + (t.bridgeMonths === 1 ? '' : 's')
-    : 'in ' + Math.round(t.bridgeMonths / 12) + ' years';
+    : ahead < 24 ? 'in ' + ahead + ' month' + (ahead === 1 ? '' : 's')
+    : 'in ' + Math.round(ahead / 12) + ' years';
   const parts = [];
   const stop = t.stoppedWork || null;
   const yearNow = Number.isFinite(t.planYearNow) ? t.planYearNow : taxYearStartOf(now) - t.firstTaxYear;
@@ -434,7 +437,7 @@ export function describeTiming(t, settings, now = new Date()) {
     const [y, m] = t.startMonth.split('-').map(Number);
     const mon = MONTH_NAMES[m - 1];
     // "You stop work" when the plan says the month (6.51.0), as the Timing block asks it; every plan before reads as it did
-    parts.push((stop ? 'You stop work in ' : 'You retire in ') + mon + ' ' + y + ' at ' + t.retireAge + ', ' + (t.bridgeMonths >= 24 ? Math.round(t.bridgeMonths / 12) + ' years' : t.bridgeMonths + ' month' + (t.bridgeMonths === 1 ? '' : 's')) + ' away; the plan\'s year 0 is tax year ' + taxYearLabel(t.firstTaxYear) + ' (from 6 April ' + t.firstTaxYear + ').');
+    parts.push((stop ? 'You stop work in ' : 'You retire in ') + mon + ' ' + y + ' at ' + t.retireAge + ', ' + (ahead >= 24 ? Math.round(ahead / 12) + ' years' : ahead + ' month' + (ahead === 1 ? '' : 's')) + ' away; the plan\'s year 0 is tax year ' + taxYearLabel(t.firstTaxYear) + ' (from 6 April ' + t.firstTaxYear + ').');
   } else if (started) {
     // Started: where today stands in it, "plan year N of M" (the plan's own count of years, from its length).
     if (stop) parts.push('You stopped work in ' + monthName(stop) + '.');

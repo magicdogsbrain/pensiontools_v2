@@ -108,10 +108,10 @@ describe('(b) 4 April 2027 vs 8 April 2027: only tax-year facts move', () => {
     expect(deriveTiming(RETIRED, AFTER).firstTaxYear).toBe(2027);
     expect([deriveTiming(RETIRED, BEFORE).yearsToStart, deriveTiming(RETIRED, AFTER).yearsToStart]).toEqual([1, 0]);
   });
-  it('deriveStage: a locked retiree moves from the run-up to Running on 6 April; a saver only loses a tax year of waiting', () => {
+  it('deriveStage: a locked retiree is running on both days (7.4.2: no placing before the start); a saver only loses a tax year of waiting', () => {
     // 6.51.0: the stage also says today's plan year (`planYearNow`, -1 then 0) — a tax-year fact, so it moves on 6 April too
-    expect(changed((now) => deriveStage(scenario(RETIRED, true), now))).toEqual(['banner', 'beforeStart', 'chip', 'key', 'label', 'leads.1', 'planYearNow', 'yearsToStart']);
-    expect([deriveStage(scenario(RETIRED, true), BEFORE).key, deriveStage(scenario(RETIRED, true), AFTER).key]).toEqual(['bridge', 'running']);
+    expect(changed((now) => deriveStage(scenario(RETIRED, true), now))).toEqual(['planYearNow', 'yearsToStart']);
+    expect([deriveStage(scenario(RETIRED, true), BEFORE).key, deriveStage(scenario(RETIRED, true), AFTER).key]).toEqual(['running', 'running']);
     expect(changed((now) => deriveStage(scenario(SAVER, true), now))).toEqual(['planYearNow', 'yearsToStart']);   // (and its plan year, 6.51.0)
   });
   it('projectAccumulation and contributionWarnings: nothing (no tax-year input)', () => {

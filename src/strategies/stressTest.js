@@ -20,7 +20,7 @@ import { rotationPathsCtx, runRotationWindows, runRotationMonteCarlo, splitLadde
 import { deriveCompareConfigs, compareAll } from './compareRunner.js';
 import { spTaxYearFirstRatio } from '../utils/StatePensionUtils.js';
 import { taxYearStartOf } from '../services/PlanTiming.js';
-import { spPaidBefore, ladderAsSeenFromToday, runUpCashSpent } from '../services/PlanFromToday.js';
+import { spPaidBefore, ladderAsSeenFromToday } from '../services/PlanFromToday.js';
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
@@ -148,7 +148,7 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     params: {
       ladderYears: params.ladderYears, drawAnnual: params.drawAnnual, triggerMode: params.triggerMode,
       bandThreshold: params.bandThreshold, horizonAge: params.horizonAge, sleeveRate: params.sleeveRate,
-      floorToAge: params.floorToAge, cashYears: params.cashYears, bridgeCash: params.bridgeCash,
+      floorToAge: params.floorToAge, cashYears: params.cashYears,
       bridgeAge: params.bridgeAge, bucketBand: params.bucketBand, treatsRule: params.treatsRule,
       rotateCutAge: params.rotateCutAge, rotateTrigger: params.rotateTrigger, rotateDisarmYears: params.rotateDisarmYears,
       spareGrowth: params.spareGrowth === true || undefined   // a gilt ladder's money left over in shares (6.35.0); absent = kept
@@ -162,10 +162,6 @@ export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual
     firstTaxYear: timing.firstTaxYear,   // saved with the plan (6.4.0) — it no longer slides each January
     yearsToStart: timing.yearsToStart, timingMode: timing.mode,
     ...(lived > 0 ? { yearOffset: lived, monthsIntoYear: cfg.monthsIntoYear || 0, runFirstTaxYear: timing.firstTaxYear + lived } : {}),
-    // Pots that belong to the plan's year 0 after its 6 April (a plan that says when work stopped, 6.51.0): no year lived,
-    // so nothing above moves, but the ladder's cash "until the plan's income starts" is spent (PlanFromToday.runUpCashSpent).
-    // Absent on every other plan, which is the plan object it always was.
-    ...(!(lived > 0) && runUpCashSpent(settings, timing) ? { runUpSpent: true } : {}),
     stride: 2, mcRuns: 1000,   // identical on both surfaces: compare row == locked-plan run
     isaHold: settings.isaDrawdownStrategy === 'hold',   // powder-dry ISA: never funds rungs/floors
     // Fund and platform charges (6.19.0): the plan's percent a year, from its engine config (createSimulationConfigFromSettings;
@@ -582,24 +578,21 @@ function fullGiltTest(p, configs, { spareRuns = true } = {}) {
   const todayIso = p.todayIso || now.toISOString().slice(0, 10);   // the pricing date: years-to-maturity picks each rung's spread band
   // A plan whose year 0 is behind it (p.yearOffset, the plan as seen from today — 6.50.0): the ladder is bought from the
   // tax year the run starts in (the current one), so no year already lived is bought again; its first rung stays where
-  // the plan's year 0 and cash years put it, the years from today to it paid from cash; no run-up cash, and no gilt that
+  // the plan's year 0 and cash years put it, the years from today to it paid from cash, and no gilt that
   // has matured by today (PlanFromToday.ladderAsSeenFromToday). Its rungs' lives are measured from the day it is priced
   // (`pricedAt`), not from the April before its first year. A plan in its year 0 or before: exactly as always.
   const running = p.yearOffset > 0;
   const cashYears = p.params?.cashYears ?? 2;
   const fromToday = running ? ladderAsSeenFromToday({ planFirstTaxYear: p.firstTaxYear, runFirstTaxYear: p.runFirstTaxYear, cashYears, linkers: activeLinkers().gilts, todayIso }) : null;
   const firstTaxYear = fromToday ? fromToday.firstTaxYear : (p.firstTaxYear || taxYearStartOf(now));   // no year: this tax year (7.4.0; it was the calendar year after today)
-  // Cash set aside "until the plan's income starts" pays the months from the day of the pots to the plan's first April. On
-  // pots that belong to a plan year already begun that April has passed: nothing is set aside, and the cash years count
-  // from the pots' day to the first rung (research/plan-start.md §6 decision 8). That is a running plan (above) and, from
-  // 6.51.0, a plan that says when work stopped whose pots are its year 0's (p.runUpSpent, judged on the pots' day — a plan
-  // locked before its year 0 keeps the cash its frozen pots still hold). Every other plan keeps its dial, as it always has.
+  // The ladder's cash years are its only cash (7.4.2): plan years from year 0, paid from the money-market fund. The extra
+  // cash an older plan may still carry in its params is inert: no plan has months before its year 0.
   const plan = buildGiltLadder({
     todayIso,
     pot: availablePot(p), startAge: p.startAge, durationYears: N, amountAtAge,
     spAnnual: p.spAnnual, spStartAge: p.startAge + (p.spStartYear ?? 99), spFirstYearRatio: p.spFirstYearRatioTaxYear ?? p.spFirstYearRatio ?? 1,
     firstTaxYear, linkers: fromToday ? fromToday.linkers : activeLinkers().gilts,
-    cashYears: fromToday ? fromToday.cashYears : cashYears, bridgeCash: fromToday ? fromToday.bridgeCash : p.runUpSpent ? 0 : (p.params?.bridgeCash || 0),
+    cashYears: fromToday ? fromToday.cashYears : cashYears,
     chargesPct: p.chargesPct,   // the cash years sit in a money-market fund: charged (6.19.0); the gilts are not
     ...(fromToday ? { lifeFromPricing: true } : {})
   });

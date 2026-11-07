@@ -118,7 +118,7 @@ function quietOf(page, life, now) {
  * share of the tallest so the cells are drawn to scale. Null for a plan that does not record months.
  */
 function yearOf(plan, page, now) {
-  if (!page.locked || !['bridge', 'running', 'closed'].includes(page.stageKey)) return null;
+  if (!page.locked || !['running', 'closed'].includes(page.stageKey)) return null;
   // a plan stored the old way (PlanMove.startLaterOf) whose year 0 is still later than this tax year: this year's figure is
   // a later year's, so no month is set against it (read.js whereStep reads it the same way)
   let older = false; try { const sl = startLaterOf(plan, now); older = !!sl && sl.start > taxYearStartOf(now); } catch { older = false; }
@@ -194,7 +194,7 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
   // record diffed against the plan's mix, then the orders still open), so the two figures cannot differ. Drift inside the
   // plan's own tolerance is no difference (`complete`): then nothing is said.
   const recorded = holdingsSummary(normaliseHoldings(plan.holdings)).count > 0;
-  const shortOfMix = stageKey === 'drawing' && !!life && (life.placing === 'bridge' || life.placing === 'running') && recorded
+  const shortOfMix = stageKey === 'drawing' && !!life && life.placing === 'running' && recorded
     && !!mv && !!mv.diff && !!mv.target && mv.target.kind !== 'none' && mv.diff.complete === false && typeof mv.diff.progressPct === 'number';
   const open = prog ? prog.total - prog.doneCount : 0;
   const heldMix = shortOfMix ? {
@@ -236,7 +236,7 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
     ...(s.id === 'move' && heldMix ? { held: heldMix.pct } : {}) }));
   // change the plan, or try something: a locked plan's tries change nothing; an unlocked plan's pages change it
   const base = '#/plan/' + pg.id + '/';
-  const lived = pg.locked && ['bridge', 'running'].includes(pg.stageKey) && !!lastRecord && !pg.closing;
+  const lived = pg.locked && pg.stageKey === 'running' && !!lastRecord && !pg.closing;
   const change = pg.readonly || pg.closed ? [] : pg.locked
     ? [{ id: 'tryChange', href: base + 'lasts' }, { id: 'tryWay', href: base + 'way' }, { id: 'tryMix', href: base + 'mix' },
       ...(lived && !pg.example ? [{ id: 'moveToNew', href: '#/plans' }, { id: 'backToWork', href: '#/plans' }] : []),

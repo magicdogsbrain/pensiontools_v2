@@ -63,12 +63,12 @@ export function planRunning(doc, today = new Date()) {
  * @param {{ today?: Date, params?: object|null }} o   `params` — the LIVE strategy params when the shell has them: the
  *   document is a lock-time snapshot, so a rotation fired afterwards (its `borrowedFloor`) is only on the live settings.
  * @returns {{ kind: 'ladder'|'buckets'|'none', lines: [], paid: [], sold: [], rotated: boolean,
- *   cash: { value, spending, yearsLeft, bridgeCash }|null, running: boolean, thisTaxYear: number, firstTaxYear: number|null, note }}
+ *   cash: { value, spending, yearsLeft, breakdown }|null, running: boolean, thisTaxYear: number, firstTaxYear: number|null, note }}
  *   `paid` = rungs whose gilt has matured (no longer targets). `sold` = rungs the rotation sold (no longer targets;
  *   `rotated` says the equity fund it bought is the plan now). `cash.spending` = true once the plan is running: the cash
  *   years are being spent, so the value is what the years still ahead need, for information.
  */
-export function targetHoldings(doc, { today = new Date(), params = null, runUpMonthly = 0 } = {}) {
+export function targetHoldings(doc, { today = new Date(), params = null } = {}) {
   const d = doc || {};
   const plan = d.strategy?.r?.plan;
   const thisTY = taxYearStartOf(today);
@@ -99,47 +99,30 @@ export function targetHoldings(doc, { today = new Date(), params = null, runUpMo
     const rotated = !!bf;
     const cashYears = Array.isArray(plan.cashYears) ? plan.cashYears : [];
     const yearsLeft = cashYears.filter((c) => +c.Y >= thisTY).map((c) => +c.Y);
-    // plan.cash INCLUDES the bridge cash (GiltLadderPlan.js: `let cash = p.bridgeCash`), which the run-up spends by design,
-    // so the target before the start is the cash YEARS' money only: their costs when the plan carries them, else plan.cash
-    // less the bridge. The bridge travels on the cash line as information.
-    const bridgeCash = Math.max(0, num(d.assumptions?.bridgeCash ?? d.strategy?.params?.bridgeCash));
+    // The cash to hold is the cash YEARS' money (7.4.2: a ladder's only cash): their costs when the plan carries them. A
+    // document written before them is read from plan.cash — less the extra cash an older document set aside beside the
+    // cash years (its `assumptions.bridgeCash`), which is no target: nobody retired has months before their plan.
+    const oldExtra = Math.max(0, num(d.assumptions?.bridgeCash ?? d.strategy?.params?.bridgeCash));
     const cyCost = cashYears.reduce((s, c) => s + num(c.cost), 0);
-    const cashYearsMoney = cyCost > 0 ? cyCost : Math.max(0, num(plan.cash) - bridgeCash);
+    const cashYearsMoney = cyCost > 0 ? cyCost : Math.max(0, num(plan.cash) - oldExtra);
     // While running, the cash target is what the cash years still ahead need (the current one in full — part of it
     // is already spent, which is exactly why this is information and not a move). From `years` when the plan carries
     // them, else the cash years' money pro-rated by the years left.
     let cashValue = Math.round(cashYearsMoney);
-    // Before the start the run-up months still to pay are cash to hold NOW too (6.13.2): each month's draw from the
-    // year-0 row of the plan's timeline (gross less State Pension and other income), for the months left to the start,
-    // capped at the bridge cash the plan set aside. Spent months drop out as they pass.
-    let runUp = { months: 0, monthly: 0, value: 0 };
-    if (!running && bridgeCash > 0) {
-      const t0 = Array.isArray(d.timeline) && d.timeline[0] ? d.timeline[0] : null;
-      // The person's ACTUAL monthly draw when the Decision tool knows it (this tax year's expected SIPP payment, or the
-      // last recorded month) — else the plan's year-0 draw. A plan drawing £7,000 draws that, not the £6,667 the first step implies.
-      const monthly = num(runUpMonthly) > 0 ? num(runUpMonthly) : (t0 ? Math.max(0, (num(t0.gross) - num(t0.sp) - num(t0.other)) / 12) : 0);
-      const startTs = Date.UTC(firstTaxYear || thisTY, 3, 6);   // no year: this tax year (7.4.0), so no month is counted
-      const months = Math.max(0, Math.round((startTs - today.getTime()) / (30.44 * 86400000)));
-      runUp = { months, monthly: Math.round(monthly), value: Math.round(Math.min(bridgeCash, monthly * months)) };
-      cashValue += runUp.value;
-    }
     if (running) {
       if (Array.isArray(plan.years) && plan.years.length) cashValue = Math.round(plan.years.filter((y) => y.from === 'cash' && +y.Y >= thisTY).reduce((t, y) => t + num(y.need), 0));
       else if (cashYears.length) cashValue = Math.round(cashYearsMoney * yearsLeft.length / cashYears.length);
     }
     // A plain breakdown of the cash to hold now, row by row, for the page to show as a small table (6.13.3).
     const breakdown = [];
-    if (runUp.value > 0) breakdown.push({ label: 'Cash for the next ' + runUp.months + ' month' + (runUp.months === 1 ? '' : 's') + ' × ' + gbp(runUp.monthly), amount: runUp.value });
     for (const c of cashYears) {
       if (running && +c.Y < thisTY) continue;
       const row = Array.isArray(d.timeline) ? d.timeline.find((x) => x && taxYearLabel(+c.Y) === x.taxYear) : null;
       const lump = row && num(row.lump) > 0 ? num(row.lump) : 0;
       breakdown.push({ label: 'Cash year ' + taxYearLabel(+c.Y) + (lump > 0 ? ' (' + gbp(lump) + ' of it paid by a lump sum expected that year)' : ''), amount: Math.round(num(c.cost)) });
     }
-    const cash = { key: 'cash:SIPP', wrapper: 'SIPP', kind: 'cash', label: 'Money-market fund / cash', value: cashValue, runUp, breakdown, spending: running, yearsLeft: running ? yearsLeft : cashYears.map((c) => +c.Y), bridgeCash: Math.round(bridgeCash) };
+    const cash = { key: 'cash:SIPP', wrapper: 'SIPP', kind: 'cash', label: 'Money-market fund / cash', value: cashValue, breakdown, spending: running, yearsLeft: running ? yearsLeft : cashYears.map((c) => +c.Y) };
     let note = 'The ladder is bought in the SIPP. The ISA is ' + (d.pots?.isaPolicy === 'hold' ? 'held aside and not part of the ladder.' : 'drawn by its own policy and not part of the ladder.');
-    // an older plan's extra cash (`bridgeCash`): said as cash, never as months "before the plan" (7.3.3)
-    if (bridgeCash > 0 && !running) note += runUp.value > 0 ? ' The same cash pays the next ' + runUp.months + ' month' + (runUp.months === 1 ? '' : 's') + ' at about ' + gbp(runUp.monthly) + ', so ' + gbp(runUp.value) + ' of the ' + gbp(bridgeCash) + ' of extra cash is in the target.' : ' The ' + gbp(bridgeCash) + ' of extra cash in the money-market fund has been spent, so it is no longer a target.';
     if (running) note += ' The plan is running (tax year ' + taxYearLabel(thisTY) + ')' + (paid.length ? ': ' + paid.length + ' rung' + (paid.length === 1 ? ' has' : 's have') + ' matured and paid, so ' + (paid.length === 1 ? 'it is' : 'they are') + ' no longer targets' : '') + '; the cash years\' money is being spent as designed, so cash is reported, not diffed.';
     if (sold.length) note += ' The rotation fired' + (bf.soldAt ? ' on ' + dateGB(bf.soldAt) : '') + ': ' + sold.length + ' rung' + (sold.length === 1 ? ' was' : 's were') + ' sold and the proceeds bought the equity fund, so ' + (sold.length === 1 ? 'it is no longer a target' : 'they are no longer targets') + ' and the fund is kept.';
     return { kind: 'ladder', lines, paid, sold, rotated, cash, running, thisTaxYear: thisTY, firstTaxYear, note };
@@ -225,8 +208,8 @@ export function diffHoldings(holdings, target, { tolerance = TRANSITION_TOLERANC
       cashInfo = { held: Math.round(cashHeld), target: Math.round(cashTarget), yearsLeft: Array.isArray(target.cash.yearsLeft) ? target.cash.yearsLeft.slice() : [] };
     } else if (target.cash) {
       targetTotal += cashTarget; heldOfTarget += Math.min(cashTarget, cashHeld); if (cashTarget > 0) targetCount++;
-      // Spare SIPP cash before the start is never a sell (6.13.0): it is the run-up's spending money, the bridge, or a
-      // float — held, with the spare said. Only a shortfall (beyond tolerance) is a move.
+      // Spare SIPP cash before the start is never a sell (6.13.0): it is spending money or a float — held, with the spare
+      // said. Only a shortfall (beyond tolerance) is a move.
       if (cashTarget > 0 && cashHeld >= cashTarget * (1 - tolerance)) hold.push({ ...target.cash, heldValue: Math.round(cashHeld), spare: Math.round(Math.max(0, cashHeld - cashTarget)) });
       else if (cashTarget > cashHeld) buy.push({ ...target.cash, amount: Math.round(cashTarget - cashHeld), heldValue: Math.round(cashHeld), why: 'the cash years' });
     }

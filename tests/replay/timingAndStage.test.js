@@ -28,7 +28,7 @@ describe('someone who retires on a birthday, not on 6 April', () => {
     const t = deriveTiming(p3, today);
     expect(t.firstTaxYear).toBe(2027);             // the ladder still buys whole tax years
     expect(t.startMonth).toBe('2027-10');
-    expect(t.bridgeMonths).toBe(13);
+    expect(t.monthsToStop).toBe(13);
     expect(describeTiming(t, p3, today)).toMatch(/You retire in October 2027 at 61, 13 months away/);
   });
 
@@ -61,18 +61,18 @@ describe('the months before year 0 for someone already retired', () => {
   // SIPP cash. Since someone who stopped in an earlier tax year has year 0 there, the months before year 0 are only ever a
   // start chosen for later — and what pays them is the person's own (cash, pay, another pension). Still never a "bridge";
   // now not a "run-up" or "SIPP cash" either: the months before the plan's income starts, recorded and not compared.
-  it('R6.11.1 — never a "bridge" (nor, since 6.51.0, a "run-up" paid from SIPP cash) in the chip, the label and the banner', () => {
-    expect(st.key).toBe('bridge');                 // the internal key is unchanged; the words are what we objected to
-    for (const text of [st.label, st.chip, st.banner.text, STAGES.bridge.label, STAGES.bridge.chip]) expect(text).not.toMatch(/bridge|run[\s-]?up|SIPP cash/i);
-    // 7.3.3: no words for months before the plan either: the banner names the plan's first tax year, and a plan stored this
-    // way shows the move of its start in place of it (NextStep.js, PlanMove.startLaterOf)
-    expect(st.banner.text).toBe('Retired. This plan\'s first tax year is 2027/28; record each month in the Decision tool.');
-    expect(st.banner.text).not.toMatch(/before the plan|set aside|not compared/);
+  // 7.4.2: there is no placing before the start at all. A locked retired plan stored with a later year 0 is running; it
+  // shows the move of its start (NextStep.js, PlanMove.startLaterOf), never a countdown or words of its own.
+  it('R6.11.1 — never a "bridge" in the chip, the label or the banner (7.4.2: the plan is running)', () => {
+    expect(st.key).toBe('running');
+    expect(STAGES.bridge).toBeUndefined();
+    for (const text of [st.label, st.chip]) expect(text).not.toMatch(/bridge|run[\s-]?up|SIPP cash/i);
+    expect(st.banner).toBe(null);
   });
 
-  it('R6.13.3-b — the stage says "Retired": the run-up is not a countdown to retirement', () => {
-    expect(st.label).toMatch(/^Retired/);
+  it('R6.13.3-b — the stage is not a countdown to retirement, and the months are recorded', () => {
+    expect(st.beforeStart).toBe(false);
     expect(st.retired).toBe(true);
-    expect(decisionEntryAllowed(st, '2026-09').ok).toBe(true);    // run-up months are recorded
+    expect(decisionEntryAllowed(st, '2026-09').ok).toBe(true);
   });
 });

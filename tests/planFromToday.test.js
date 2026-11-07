@@ -363,46 +363,48 @@ describe('the document, the plan of record and the household read the offset', (
     expect(doc.strategy.p).toMatchObject({ yearOffset: 2, monthsIntoYear: 5, runFirstTaxYear: 2026, firstTaxYear: 2024 });
   });
 
-  it('a running ladder\'s current-year row adds up, and the document records the run-up cash the run used: none', () => {
+  it('a running ladder\'s current-year row adds up; an older plan\'s extra cash is in no document and no run (7.4.2)', () => {
     const row = giltDoc.timeline[2];
     expect(row).toMatchObject({ y: 2, gross: 26500, sp: 0, other: 0, contract: 26500, market: 0 });
     expect(row.contract).toBe(Math.round(giltDoc.strategy.r.plan.years[0].need));
-    expect(giltDoc.assumptions.bridgeCash).toBe(0);            // "SIPP cash to the first April" is behind a running plan
-    expect(gp.params.bridgeCash).toBe(17500);                  // the strategy's own dial is kept as it was set
-    const inYear0 = at(IN_YEAR_0, () => { const gs = { ...settingsOf(draftOf(ALEX), IN_YEAR_0), strategyParams: { ...s.strategyParams, bridgeCash: 17500 } }; const q = quick(planOf(gs, IN_YEAR_0)); return buildPlanDocument({ planName: 'Alex', settings: gs, p: q, r: stressTestStrategy('full-il-gilt', q), lockedAt: '2024-12-15T12:00:00.000Z', now: IN_YEAR_0 }); });
-    expect(inYear0.assumptions.bridgeCash).toBe(17500);        // in year 0, as it always was
-    expect(inYear0.pots.asOfPlanYear).toBeUndefined();
-    const beforeYear0 = at(new Date('2024-03-15T12:00:00.000Z'), () => { const now0 = new Date('2024-03-15T12:00:00.000Z'); const gs = { ...settingsOf(draftOf(ALEX), now0), strategyParams: { ...s.strategyParams, bridgeCash: 17500 } }; const q = quick(planOf(gs, now0)); return buildPlanDocument({ planName: 'Alex', settings: gs, p: q, r: stressTestStrategy('full-il-gilt', q), now: now0 }); });
-    expect(beforeYear0.assumptions.bridgeCash).toBe(17500);   // before year 0 it is set aside, as it always was
+    expect('bridgeCash' in giltDoc.assumptions).toBe(false);
+    expect(gp.params.bridgeCash).toBeUndefined();              // the run is never handed it
+    // In year 0 and before it, the same: the ladder's cash years are its only cash, and nothing records any other.
+    const docAt = (now) => at(now, () => { const gs = { ...settingsOf(draftOf(ALEX), now), strategyParams: { ...s.strategyParams, bridgeCash: 17500 } }; const q = quick(planOf(gs, now)); return buildPlanDocument({ planName: 'Alex', settings: gs, p: q, r: stressTestStrategy('full-il-gilt', q), now }); });
+    const plainAt = (now) => at(now, () => { const gs = { ...settingsOf(draftOf(ALEX), now), strategyParams: { ...s.strategyParams, bridgeCash: 0 } }; return stressTestStrategy('full-il-gilt', quick(planOf(gs, now))).plan.cash; });
+    for (const now of [IN_YEAR_0, new Date('2024-03-15T12:00:00.000Z')]) {
+      const d = docAt(now);
+      expect('bridgeCash' in d.assumptions).toBe(false);
+      expect(d.strategy.r.plan.cash).toBe(plainAt(now));
+    }
+    expect(docAt(IN_YEAR_0).pots.asOfPlanYear).toBeUndefined();   // no stop month: its pots wait for nothing, as always
   });
 
-  it('6.51.0: a plan that says when work stopped, on pots of its year 0, sets no cash aside to a first April that has passed', () => {
+  it('6.51.0: a plan that says when work stopped, on pots of its year 0, records them as year 0\'s (pots.asOfPlanYear 0)', () => {
     // The same draft in December of its year 0, saying it stopped work in October 2024 (research/plan-start.md §6 decision
-    // 8): its pots are today's, entered after that year's 6 April, so the cash "until the plan's income starts" has nothing
-    // to pay — judged on the pots' day, never on today alone (the plan above, without a stop month, keeps it, and so does a
-    // plan locked before its year 0, whose frozen pots still hold that cash).
+    // 8): its pots are today's, entered after that year's 6 April. Nothing is shifted, the document says where its pots
+    // stand, and its ladder's cash is its cash years, as on every plan from 7.4.2.
     const stopped = (raw) => ({ ...raw, stressTool: { ...raw.stressTool, settings: { ...raw.stressTool.settings, stoppedWork: '2024-10', strategyParams: { ...raw.stressTool.settings.strategyParams, bridgeCash: 17500 } } } });
     const runOn = (raw, now, lockedAt = null) => at(now, () => { const gs = settingsOf(raw, now); const q = quick(planOf(gs, now)); return { gs, q, doc: buildPlanDocument({ planName: 'Alex', settings: gs, p: q, r: stressTestStrategy('full-il-gilt', q), lockedAt, now }) }; });
     const noCash = at(IN_YEAR_0, () => { const gs = { ...settingsOf(draftOf(ALEX), IN_YEAR_0), strategyParams: { ...s.strategyParams, bridgeCash: 0 } }; return stressTestStrategy('full-il-gilt', quick(planOf(gs, IN_YEAR_0))).plan.cash; });
     const draft = runOn(stopped(draftOf(ALEX)), IN_YEAR_0);
     expect(draft.gs.potsAsOf).toBe(POTS_TODAY);
     expect(draft.q.yearOffset).toBeUndefined();                // nothing lived: nothing shifted
-    expect(draft.q.runUpSpent).toBe(true);
-    expect(draft.doc.assumptions.bridgeCash).toBe(0);
+    expect('runUpSpent' in draft.q).toBe(false);
     expect(draft.doc.strategy.r.plan.cash).toBe(noCash);
     expect(draft.doc.pots.asOfPlanYear).toBe(0);               // written: its pots are year 0's, after its April
     // Locked that day (its document): the same on every later day of year 0, and from year 0 as before
     const lockedInYear0 = { ...stopped(ALEX), planDocument: draft.doc };
     expect(lockedPotsAsOf(lockedInYear0)).toEqual({ elapsedYears: 0, monthsIntoYear: draft.doc.timing.monthsIntoYear });
     const later = runOn(lockedInYear0, new Date('2025-03-15T12:00:00.000Z'), '2024-12-15T12:00:00.000Z');
-    expect([later.q.runUpSpent, later.q.yearOffset, later.doc.assumptions.bridgeCash]).toEqual([true, undefined, 0]);
-    // Locked before its year 0 (in March 2024, its document says nothing of year 0's pots): read in year 0 it keeps the cash
+    expect([later.q.yearOffset, later.doc.pots.asOfPlanYear, later.doc.strategy.r.plan.cash]).toEqual([undefined, 0, noCash]);
+    // Locked before its year 0 (its document says nothing of year 0's pots): run from year 0, no position written
     const lockedBefore = { ...stopped(ALEX), planDocument: { ...ALEX.planDocument, pots: { ...ALEX.planDocument.pots } } };
     delete lockedBefore.planDocument.pots.asOfPlanYear;
     expect(lockedPotsAsOf(lockedBefore)).toBeNull();
-    const inRunUp = runOn(lockedBefore, IN_YEAR_0, '2024-03-15T12:00:00.000Z');
-    expect(inRunUp.q.runUpSpent).toBeUndefined();
-    expect(inRunUp.doc.assumptions.bridgeCash).toBe(17500);
+    const before = runOn(lockedBefore, IN_YEAR_0, '2024-03-15T12:00:00.000Z');
+    expect(before.doc.pots.asOfPlanYear).toBeUndefined();
+    expect(before.doc.strategy.r.plan.cash).toBe(noCash);
   });
 
   it('the pot is read on the run\'s own axis: index k is the pots\' day plus k years', () => {
@@ -513,7 +515,7 @@ describe('ladderAsSeenFromToday: the ladder\'s own timing is counted from year 0
     { tidm: 'C29', lag: 3, cleanPrice: 100, maturityDateIso: '2029-03-22' }
   ];
   it('the first rung stays at year 0 + cash years; the years from today to it are cash, at least the current one', () => {
-    expect(ladderAsSeenFromToday({ planFirstTaxYear: 2025, runFirstTaxYear: 2026, cashYears: 4, linkers, todayIso: '2026-09-30' })).toMatchObject({ firstTaxYear: 2026, cashYears: 3, bridgeCash: 0 });
+    expect(ladderAsSeenFromToday({ planFirstTaxYear: 2025, runFirstTaxYear: 2026, cashYears: 4, linkers, todayIso: '2026-09-30' })).toEqual(expect.objectContaining({ firstTaxYear: 2026, cashYears: 3 }));
     expect(ladderAsSeenFromToday({ planFirstTaxYear: 2020, runFirstTaxYear: 2026, cashYears: 2, linkers, todayIso: '2026-09-30' }).cashYears).toBe(2);   // 2027/28: no gilt still to mature pays it
     expect(ladderAsSeenFromToday({ planFirstTaxYear: 2020, runFirstTaxYear: 2028, cashYears: 2, linkers, todayIso: '2028-09-30' }).cashYears).toBe(1);   // the current year, C29 pays 2029/30
   });

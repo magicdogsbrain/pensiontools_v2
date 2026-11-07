@@ -5,16 +5,13 @@
  *
  *   installStopMonth(win, doc)            the Timing block's month box: its handlers, and the month as the form holds it
  *   stopMonthFromForm(doc, future, now)   'YYYY-MM' typed in the box when it fits the choice above it, else null
- *   paintStopMonth(doc, t, s, summary, locked)  the box's label, the summary's warning for a month that does not fit,
- *                                         and the ladder's "cash set aside" dial (only while the engines read it)
+ *   paintStopMonth(doc, t, s, summary)    the box's label, and the summary's warning for a month that does not fit
  *   wizardStop(wizardData, ...)           the setup wizard's month: the timing it adds and the years it moves year 0 back
- *   recordBeforeStart(h, anchor)          is a Decision record before the plan's income starts — from the plan's year 0 as
- *                                         it is now, the stamped mark only when there is none
+ *   recordBeforeStart(h, anchor)          is a Decision record before the plan's year 0 as it is now
  *   recordYearLabel(h, anchor)            "Year N", or "{Month YYYY} · tax year {TY}" for a month before year 0
  *   recordSourceWords(h, anchor, …)       where a ladder month was paid from, never the stamped words of an old start
  *   livedYearRowHtml(y, recs, plan, gbp)  plan vs actual for a year lived before the plan was locked: the draw only
  *   yearRowHtml(y, recs, plan, tyCfg, …)  plan vs actual's row for a plan year: lived, a part year, or a whole one
- *   beforeStartNoteHtml(n, label)         plan vs actual's note on months recorded before year 0 (a plan stored the old way)
  *   firstSetUpPlanYear(taxYears, anchor)  plan vs actual's part year: the first plan year the tax-year wizard set up
  *   lockedStartHtml(o)                    a locked plan's start, under the Timing block's summary (6.53.0): "When did you
  *                                         stop work?" once, or the action "Move the plan's start…", and the month changeable
@@ -28,7 +25,6 @@
  * Pure, bar the two that read or write the page they are handed.
  */
 import { stoppedWorkOf, hasStopped, ageOnDate, taxYearStartOf, planYearOf, taxYearLabel, monthName } from '../services/PlanTiming.js';
-import { runUpCashSpent, draftPotsAsOf } from '../services/PlanFromToday.js';
 /** Text made safe for the page's HTML (a date as the person typed it). */
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 // The day of the run's pots, for the Decision tool's ladder month (index.html ladderPositionForPlan; LadderPosition potsDay).
@@ -69,41 +65,18 @@ export function installStopMonth(win, doc) {
     return win.renderTiming();
   };
   win.tmStartYearChanged = function () { win._tmStartFromStop = false; return win.renderTiming(); };
-  win.paintGiltCashDial = () => paintGiltCashDial(doc);
 }
 
 /**
  * After the Timing block is derived: the month box's label follows the choice; a month that does not fit the choice is
- * said in front of the summary (never saved); the ladder's extra cash in its money-market fund is offered only while the
- * engines read it (§6 decision 8; PlanFromToday.runUpCashSpent) and only on a plan that holds some (paintGiltCashDial): a
- * draft is judged on the form as it stands, its pots being today's; a locked plan on the position its lock recorded (the
- * settings it was loaded with). Returns the summary.
+ * said in front of the summary (never saved). Returns the summary.
  */
-export function paintStopMonth(doc, t, s, summary, locked = false, now = new Date()) {
+export function paintStopMonth(doc, t, s, summary) {
   const typed = stoppedWorkOf({ stoppedWork: doc.getElementById('tmStopMonth')?.value || '' });
   const label = doc.getElementById('tmStopLabel');
   if (label) label.textContent = t.mode === 'future' ? 'Or the month you stop work' : 'The month you stopped work';
-  const wrap = doc.getElementById('giltBridgeWrap');
-  if (wrap) wrap.dataset.spent = bridgeCashSpent(t, s, locked, now) ? '1' : '';
-  paintGiltCashDial(doc);
   if (typed && !s.stoppedWork) return (t.mode === 'future' ? 'That month has passed: choose “I have stopped work” if you have. ' : 'That month is still ahead: choose “I will stop work” for a stop to come. ') + summary;
   return summary;
-}
-
-/**
- * The ladder's extra cash dial (7.3.3): shown only on a plan that holds some (above £0) and while the engines read it. It is
- * an older plan's setting — a new plan has nothing to set there — so it is never offered empty. Called when the Timing block
- * is painted and when a ladder's dials are filled from the saved settings.
- */
-export function paintGiltCashDial(doc) {
-  const wrap = doc.getElementById('giltBridgeWrap');
-  if (wrap) wrap.style.display = !wrap.dataset.spent && +(doc.getElementById('giltBridge')?.value || 0) > 0 ? 'flex' : 'none';
-}
-
-/** Is the ladder's extra cash spent (not read) for the Timing block's plan (paintStopMonth)? */
-export function bridgeCashSpent(t, s, locked = false, now = new Date()) {
-  const settings = s || {};
-  return runUpCashSpent(locked ? settings : { ...settings, potsAsOf: draftPotsAsOf(settings, now) }, t);
 }
 
 /**
@@ -122,13 +95,12 @@ export function wizardStop(wizardData, { cur, retire, alreadyRetired, today, now
 }
 
 /**
- * Is a saved Decision record before the plan's income starts? From the plan's year 0 as it is now (`anchor`), and from the
- * mark stamped on the record only when there is no anchor: a plan whose year 0 moved back to the tax year work stopped has
- * months that were stamped as before the start and are plan months now.
+ * Is a saved Decision record before the plan's year 0 as it is now (`anchor`)? Only on a plan stored with its start later
+ * than it should be. Read from the record's tax year alone (7.4.2): the mark older records were stamped with is not read,
+ * since a plan whose year 0 moved back has months that were stamped as before the start and are plan months now.
  */
 export function recordBeforeStart(h, anchor) {
-  if (anchor > 0 && h && h.taxYear) return planYearOf(h.taxYear, anchor) < 0;
-  return !!h && h.bridgeYear === true;
+  return anchor > 0 && !!h && !!h.taxYear && planYearOf(h.taxYear, anchor) < 0;
 }
 
 /**
@@ -195,16 +167,6 @@ export function yearRowHtml(y, recs, plan, tyCfg, firstSetUpYear, gbp) {
       : '<td>' + gbp(Math.round(plan.tax)) + '</td>'
         + '<td>' + gbp(Math.round(actTax * (12 / recs.length))) + '<span class="hint">/yr pace</span></td>')
     + '<td>' + gbp(Math.round(plan.isaBalance)) + (lastIsaVal != null ? ' <span class="hint">vs ' + gbp(Math.round(lastIsaVal)) + '</span>' : '') + '</td></tr>';
-}
-
-/**
- * Plan vs actual's note on months recorded before year 0: only on a plan stored with its start later than it should be (until
- * 6.51.0 a retired person's plan started at the next April). They are not compared with a later year's figure: the note
- * says where they are and points to the one thing to do, the move of the start (the banner at the top of the page).
- */
-export function beforeStartNoteHtml(n, anchor) {
-  if (!(n > 0) || !(anchor > 0)) return '';
-  return '<p class="hint" style="margin-top:6px;">Your plan is set to start in ' + taxYearLabel(anchor) + ': ' + n + ' month' + (n === 1 ? '' : 's') + ' recorded since you stopped work ' + (n === 1 ? 'is' : 'are') + ' not in this table until its start is moved (the banner at the top of the page does it).</p>';
 }
 
 /**

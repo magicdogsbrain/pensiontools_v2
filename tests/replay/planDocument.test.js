@@ -76,7 +76,8 @@ describe('the document as it is saved', () => {
     expect(doc.pots.sipp).toBe(300000);                // not the stray £913,500
     expect(doc.pots.isa).toBe(80000);
     expect(doc.strategy.params).toEqual({});           // Pots & Valves owns no dials
-    expect(doc.assumptions).toMatchObject({ cashYears: null, bridgeCash: 0 });
+    expect(doc.assumptions).toMatchObject({ cashYears: null });
+    expect('bridgeCash' in doc.assumptions).toBe(false);   // 7.4.2: never written
     expect(hasUndefined(doc)).toBe(false);             // it is written to Firestore as it stands
     expect(doc.timeline[2].lumpIn[0]).toMatchObject({ label: 'Inheritance (mother)', amount: 250000 });   // the lump is a marker on its year
   });

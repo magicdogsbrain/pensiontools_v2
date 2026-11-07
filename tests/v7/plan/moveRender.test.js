@@ -105,10 +105,10 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     expect(one(root, `${T}.runUp`)).toBe(null);   // 7.3.3: no sentence for months before the plan (its home's to-do moves the start)
     expect(one(root, `${T}.cost.ladder`).textContent).toBe(`${view.cost.uncovered.length} tax years (${view.cost.uncovered[0]} to ${view.cost.uncovered[view.cost.uncovered.length - 1]}) have no gilt bought yet.`);
     expect(one(root, `${T}.cost.button`), 'a ladder plan has no run to offer').toBe(null);
-    // the cash to hold now: the months before the plan pays, the cash years, the total, what is held, the spare
+    // the cash to hold now: the cash years (7.4.2: a ladder's only cash, whatever an older document set aside), the total,
+    // what is held, the spare
     const cashRows = all(root, `[data-testid="${T}.cash.table"] tbody tr`).map((tr) => tr.getAttribute('data-row'));
-    expect(cashRows).toEqual(['runUp', 'cashYear', 'cashYear', 'total', 'held', 'spare']);
-    expect(root.querySelector(`[data-testid="${T}.cash.table"] tr[data-row="runUp"]`).textContent).toMatch(/^Cash for the next \d+ months at £[\d,]+£[\d,]+$/);
+    expect(cashRows).toEqual(['cashYear', 'cashYear', 'total', 'held', 'spare']);
     expect(root.querySelector(`[data-testid="${T}.cash.table"] tr[data-row="cashYear"]`).textContent).toContain('Cash year 2027/28');
     // Buy and Sell, each line with a Done tick
     const buy = all(root, `[data-testid="${T}.buy"] tbody tr`);

@@ -28,7 +28,6 @@ export const STEPS = Object.freeze({
   'committed-saving': ['checkin', 'where', 'saving', 'plan', 'budget', 'hold', 'move', 'household'],
   // Month by month on a retired plan not locked yet (7.2.0): there, optional, saying to lock first (research/v7/months-in-v7.md §1.2)
   'draft-retired':    ['plan', 'budget', 'lock', 'month', 'hold', 'move', 'household'],
-  bridge:             ['month', 'where', 'plan', 'hold', 'move', 'budget', 'household'],
   running:            ['month', 'where', 'plan', 'hold', 'move', 'budget', 'household'],
   // a closed plan (6.56.0, research/plan-start.md §2 I): kept to read — where it stood when it closed, and the plan as locked;
   // what you hold, the move, the budget and the household are the plan's that carries it on
@@ -43,7 +42,7 @@ export const OPTIONAL = Object.freeze(['pot', 'budget', 'lock', 'hold', 'move', 
 export const ALL_STEPS = Object.freeze(['month', 'where', 'plan', 'pot', 'checkin', 'saving', 'budget', 'lock', 'hold', 'move', 'household']);
 
 /** The stages in which a retired person is shown (the retired wording rules apply; never a countdown). */
-export const RETIRED_STAGES = Object.freeze(['draft-retired', 'bridge', 'running', 'closed']);
+export const RETIRED_STAGES = Object.freeze(['draft-retired', 'running', 'closed']);
 /** The stages in which someone still working is shown (the saver wording rules apply). */
 export const SAVER_STAGES = Object.freeze(['saving', 'approaching', 'committed-saving']);
 

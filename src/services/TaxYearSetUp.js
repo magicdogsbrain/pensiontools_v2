@@ -255,11 +255,10 @@ export function wizardDataFrom(selectedMonth, { settings, stressSettings = null,
   const prevCpi = prevYearConfig?.cpi || DECISION_ASSUMED_CPI;
   const spendingProfile = settings.spendingProfile || 'flat';
   // Plan year for this tax year — the plan's saved first tax year is year 0 (6.4.0, one anchor with
-  // legacyDecision). Negative = a BRIDGE year: the plan has not started, money is being spent to reach it.
+  // legacyDecision). Negative only on a plan stored the old way, with a later start: its tracks read as year 0.
   const planStartYear = decisionAnchorYear(settings, allTaxYears, taxYear, stressSettings);
   const planYearSigned = yearOfTaxKey(taxYear) - planStartYear;
   const planYear = Math.max(0, planYearSigned);
-  const bridgeYear = planYearSigned < 0;
   const declineRate = spendingDeclineRateForYear(planYear, spendingProfile);
   const suggestionBase = (prevYearConfig && prevYearConfig.confirmedSalary) || settings.baseSalary;
   const chainSuggestedSalary = suggestSalary(suggestionBase, prevCpi, declineRate);
@@ -293,22 +292,6 @@ export function wizardDataFrom(selectedMonth, { settings, stressSettings = null,
     }
   } catch (e) { /* no stress settings / no schedule — chain fallback below */ }
 
-  // BRIDGE year (before the plan starts): the plan says nothing about this year's income except that
-  // its first step is the rate the bridge cash was sized for. Suggest the first step (today's money, the
-  // rate the ladder starts at) and say how many of the payments to come the bridge cash covers at that
-  // rate. (6.5.4: spreading the whole bridge cash over the months left overstated the rate for anyone
-  // who had already spent part of it — a September start is 5 payments in.)
-  let bridgeSuggestedSalary = null, bridgeCoverMonths = null;
-  if (bridgeYear) {
-    const bridgeCash = +(stressSettings?.strategyParams?.bridgeCash) || 0;
-    const sched0 = Array.isArray(stressSettings?.targetSchedule) ? +stressSettings.targetSchedule[0] : 0;
-    // Income streams running at year 0 (rent, part-time work) reduce what the cash has to cover, like the DB pension (6.11.4).
-    const streamsNow = (Array.isArray(stressSettings?.extraIncomes) ? stressSettings.extraIncomes : []).reduce((t, r) => t + ((r && +r.annual > 0 && (+r.startYear || 0) <= 0 && (r.endYear == null || +r.endYear >= 0)) ? +r.annual : 0), 0);
-    const otherNow = +(stressSettings?.other || 0) + +(stressSettings?.dbAmount || 0) + streamsNow;
-    bridgeSuggestedSalary = sched0 > 0 ? sched0 : (scheduleSuggestedSalary ?? (bridgeCash > 0 && remainingMonths > 0 ? Math.round(bridgeCash * 12 / remainingMonths) : null));
-    if (bridgeCash > 0 && bridgeSuggestedSalary > 0) bridgeCoverMonths = Math.floor(bridgeCash / Math.max(1, (bridgeSuggestedSalary - otherNow) / 12));
-  }
-
   // The pension cannot be touched in this tax year (7.4.1, services/PensionLock.js; read from the plan's Stress settings, which
   // hold the age): the year is set up with nothing from the pension, and its income comes from the other savings.
   let pensionClosed = null;
@@ -317,19 +300,17 @@ export function wizardDataFrom(selectedMonth, { settings, stressSettings = null,
     if (lock) pensionClosed = { accessAge: lock.accessAge, opensTaxYear: lock.opensTaxYear, words: closedYearsWords({ accessAge: lock.accessAge }) };
   } catch { pensionClosed = null; }
 
-  const suggestedSalary = bridgeSuggestedSalary ?? scheduleSuggestedSalary ?? chainSuggestedSalary;
-  const suggestionSource = bridgeSuggestedSalary != null ? 'bridge' : scheduleSuggestedSalary != null ? 'budget-schedule' : 'chain';
+  const suggestedSalary = scheduleSuggestedSalary ?? chainSuggestedSalary;
+  const suggestionSource = scheduleSuggestedSalary != null ? 'budget-schedule' : 'chain';
 
   return {
     taxYear,
     selectedMonth,
     isApril,
     remainingMonths,
-    // Where this tax year sits in the plan (6.4.0): year 0 is the plan's first tax year; negative = bridge.
+    // Where this tax year sits in the plan (6.4.0): year 0 is the plan's first tax year.
     planStartYear,
     planYear: planYearSigned,
-    bridgeYear,
-    bridgeCoverMonths,   // how many of the payments to come the plan's bridge cash covers at the suggested rate (bridge years only)
     schedulePrevCpiAssumed, scheduleSuggestedBase,   // schedule suggestions: last year's CPI was assumed → the typed CPI re-uplifts from this base
 
     // Current settings
@@ -736,18 +717,18 @@ export function setUpConfigOf(ctx, inputs) {
 
 /**
  * The suggested income before tax for the price rise typed (the wizard's first screen and its _updateWizardSalary): the plan's
- * schedule or its bridge figure as it is; the schedule again from its base when last year's price rise was only assumed; else
+ * schedule as it is; the schedule again from its base when last year's price rise was only assumed; else
  * last year's figure (or the plan's) raised by the price rise, less the plan's yearly fall in spending.
  * `cpiTyped` null: the suggestion the screen opens with.
  */
 export function suggestedIncomeFor(ctx, cpiTyped = null) {
-  const fromSchedule = ctx.suggestionSource === 'budget-schedule' || ctx.suggestionSource === 'bridge';
+  const fromSchedule = ctx.suggestionSource === 'budget-schedule';
   const fromScheduleAssumed = ctx.suggestionSource === 'budget-schedule' && ctx.schedulePrevCpiAssumed && ctx.scheduleSuggestedBase > 0;
   if (cpiTyped == null) {
     if (fromSchedule) return Math.round(ctx.suggestedSalary);
     return Math.round((ctx.suggestionBase ?? ctx.baseSalary) * (1 + ctx.defaults.cpi - (ctx.declineRate || 0)));
   }
-  if (ctx.suggestionSource === 'bridge' || (ctx.suggestionSource === 'budget-schedule' && !fromScheduleAssumed)) return Math.round(ctx.suggestedSalary);
+  if (ctx.suggestionSource === 'budget-schedule' && !fromScheduleAssumed) return Math.round(ctx.suggestedSalary);
   if (fromScheduleAssumed) return Math.round(ctx.scheduleSuggestedBase * (1 + cpiTyped));
   return Math.round((ctx.suggestionBase ?? ctx.baseSalary) * (1 + cpiTyped - (ctx.declineRate || 0)));
 }

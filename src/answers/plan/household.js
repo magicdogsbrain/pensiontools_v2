@@ -513,7 +513,7 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
     runs: result && result.basis ? String(result.basis.runs) : null,
     unaffordable: result && !result.ok ? { which: result.which === 'b' ? names.b : names.a, reason: result.reason === 'partnerNotSet' ? null : (result.why || ''), kind: result.reason } : null,
     verdict: ok ? verdictView(result.own, names, result.offsets) : null,
-    timeline: ok && Array.isArray(result.timeline) ? result.timeline.map((r) => ({ year: String(r.year), bridge: !!r.bridge, workingA: !!r.workingA, workingB: !!r.workingB, needA: pounds(r.needA), needB: pounds(r.needB), sp: pounds(r.spA + r.spB), other: pounds(r.db + r.other), draw: pounds(r.drawNeed) })) : [],
+    timeline: ok && Array.isArray(result.timeline) ? result.timeline.map((r) => ({ year: String(r.year), beforeStatePension: !!r.beforeStatePension, workingA: !!r.workingA, workingB: !!r.workingB, needA: pounds(r.needA), needB: pounds(r.needB), sp: pounds(r.spA + r.spB), other: pounds(r.db + r.other), draw: pounds(r.drawNeed) })) : [],
     left: ok && result.own && result.own.combined ? r5(result.own.combined.potFan).map((f) => ({ year: String(f.year), p10: pounds(f.p10), p50: pounds(f.p50), p90: pounds(f.p90) })) : [],
     split: ok ? splitView(result.split, result.fig, names, saved, saved.mode) : null,
     survivor: survivorView(h ? h.survivor : null, names, sids),

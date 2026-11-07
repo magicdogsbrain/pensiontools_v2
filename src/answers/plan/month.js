@@ -119,7 +119,7 @@ function setUpOf(I, plan, key, ym, typed, now) {
   const sp = ctx.statePension || {};
   return {
     key, year: yearWords(key), month: monthWords(ym), isApril: ctx.isApril, remaining: ctx.remainingMonths, prevMonth: ctx.isApril ? null : monthWords(addMonth(ym, -1)),
-    source: ctx.suggestionSource, bridgeCover: ctx.bridgeCoverMonths, declining: (ctx.declineRate || 0) > 0, declinePct: Math.round((ctx.declineRate || 0) * 100),
+    source: ctx.suggestionSource, declining: (ctx.declineRate || 0) > 0, declinePct: Math.round((ctx.declineRate || 0) * 100),
     suggestion, cpiPct: Math.round(cpi * 1000) / 10, defaults: ctx.defaults,
     statePension: spOf(sp, ym), statePensionLater: sp.amount > 0 && sp.startYm && sp.startYm > ym ? { monthly: pounds(sp.monthlyFull || 0), from: sp.startDate || sp.startYm } : null,
     bands: bandsAssumptionText(final),
@@ -209,7 +209,7 @@ function adviceOf(d) {
     const rung = /^rung (.+) \(already cash\)$/.exec(label);
     const where = rung ? { id: 'rung', slots: { year: rung[1] } }
       : label === 'the cash years bucket' ? { id: 'cashYears', slots: {} }
-        : /^cash, before/.test(label) ? { id: 'cashBefore', slots: {} }
+        : /^cash, (before|until)/.test(label) ? { id: 'cashBefore', slots: {} }   // its label until 7.4.2, and since
           : label === 'the essentials rung' ? { id: 'essentials', slots: {} }
             : label === 'the engine' ? { id: 'invested', slots: {} }
               : { id: 'thisYear', slots: {} };

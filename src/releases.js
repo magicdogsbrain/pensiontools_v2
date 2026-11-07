@@ -38,6 +38,28 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.4.3', date: '2026-11-07', engineVersion: '6.39.0',
+    title: 'A locked plan now starts in the tax year your recorded months begin',
+    summary: 'If your plan was locked to start in a later tax year than the months you have already recorded, it now offers to start from the tax year those months begin. Before, it offered the tax year you stopped work, or asked when you stopped first. Your recorded months are kept and read against that year. Nothing changes until you confirm, and the plan stays locked.',
+    changes: [
+      'A locked plan with recorded months offers to move its start straight to the tax year of its first recorded month, on its home, in About you and when, and beside the saved first tax year.',
+      'The confirm names that tax year and says your recorded months are kept.'
+    ],
+    corrections: [
+      'The move no longer goes back to the tax year you stopped work when your recorded months begin in a later tax year, which left a whole year with nothing recorded.'
+    ],
+    effects: {
+      stress: [],
+      strategies: [],
+      decision: ['A locked plan whose start is later than its recorded months: once you confirm the move, its first year is the tax year your months begin.'],
+      accumulation: [],
+      budget: [],
+      household: []
+    },
+    actions: ['If your plan says it starts later than the months you have recorded, open its home and press “Move the start”.'],
+    notes: []
+  },
+  {
     version: '7.4.2', date: '2026-11-07', engineVersion: '6.39.0',
     title: 'A gilt ladder’s cash years are its only cash',
     summary: 'Some older ladder plans kept extra cash on top of their cash years, for months before the plan. Nobody who has retired has such months, so that extra cash is no longer added. Those ladders can cost less and leave more over. Every other plan works out exactly as before.',

@@ -31,6 +31,7 @@ import { unlockPatchesOf } from '../../services/PlanCommit.js';
 import { checkInState } from './checkInDue.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
 import { gapsOf, gapHeadline } from './gaps.js';
+import { keepTestOf } from './keepTest.js';
 import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
@@ -844,6 +845,9 @@ function rulesFor(C, built) {
       if (h && (h.Y <= ty || monthsBetween({ y: now.getFullYear(), m: now.getMonth() + 1 }, { y: h.Y, m: 4 }) <= 6)) gapSoon = h;
     } catch { gapSoon = null; }
   }
+  // 7.7.0: something kept that the locked plan did not have, not yet tested and agreed as it is now: one to-do, to What you hold
+  let keepTodo = false;
+  if (locked && !readonly && !isClosedPlan(plan)) { try { const k = keepTestOf(plan, {}); keepTodo = !!(k && k.todo); } catch { keepTodo = false; } }
   // the last check-in's band, said with the move invitation (the design: "At your last check-in you were on course / behind")
   const band = lastBand === 'yes' ? 'yes' : lastBand === 'close' || lastBand === 'no' ? 'behind' : null;
   const RULES = {
@@ -860,6 +864,7 @@ function rulesFor(C, built) {
     'P.moveNext':    () => locked && !!life && life.key === 'moving' && !!prog && !!prog.next,
     'P.moveFinish':  () => locked && !!life && life.key === 'moving' && !!prog && prog.total > 0 && !prog.next,
     'P.gapSoon':     () => !!gapSoon,
+    'P.keepTest':    () => keepTodo,
     'P.firstCheckIn': () => saverStage && key !== 'unknown' && !!ci && !ci.chosen && !ci.legacy && !(ci.count > 0),
     'P.idle':        () => retiredRunning,
     'P.noAim':       () => noAim,
@@ -933,6 +938,7 @@ function rulesFor(C, built) {
     'P.behind': link('seeSaving', savingHref),
     'P.holdStale': link('updateHold', holdHref),
     'P.gapSoon': link('seeGaps', holdHref),
+    'P.keepTest': link('testKeep', holdHref),
     'P.householdPending': link('linkOne', '#/plan/' + plan.id + '/household'),
     'P.onCourse': null,
     'P.nextCheckIn': null,

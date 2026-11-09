@@ -496,7 +496,8 @@ export const PLAN = {
     seeMove: 'See the move',
     updateHold: 'Update what you hold',
     /** 7.6.0: a year not yet covered by what is held and kept opens "What you hold", where the gaps are read year by year. */
-    seeGaps: 'See what is covered'
+    seeGaps: 'See what is covered',
+    testKeep: 'Test what you keep against your plan'
   },
 
   /** The next sentence (2.4), by id, first match wins. */
@@ -541,6 +542,7 @@ export const PLAN = {
     'P.firstCheckIn': 'Next: your first check-in. It says where your pot is today, and how often you want to check in.',
     'P.holdStale': 'What you hold was last updated on {date}. Next: update it.',
     'P.gapSoon': '{gapYear}: {gap} is not yet covered by what you hold and keep. Next: see what is covered, year by year.',
+    'P.keepTest': 'You keep something your plan did not have, not yet tested against it. Next: test what you keep against your plan.',
     'P.householdPending': 'Your partner’s plan is not in this account. Next: link one, or leave it.'
   },
 

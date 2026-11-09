@@ -9,7 +9,8 @@
  * rail's "Next" comes from. Nothing here writes a plan; "Not now" is kept for this window only (effects/place.js).
  */
 import { PlanLine, PlanSentence, fill, Button, LinkButton, Counted, notNowPress, stepNameOf, LifeLine, YearCells } from '../../components/index.js';
-import { planView, plansView, lifeStages } from '../../state/select.js';
+import { planView, plansView, lifeStages, planKeepTestView } from '../../state/select.js';
+import { KeepTestLine } from './KeepTest.jsx';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { HOME } from '../../copy/home.js';
@@ -178,6 +179,8 @@ export function HomeScreen(state, dispatch) {
             {H.heldMix && <HeldMix M={H.heldMix} />}
             {/* 7.6.0: a year not yet covered by what the person holds and keeps: the first such year, said once, with the way to see it */}
             {H.gap && <p class="line" data-testid={`${T}.gap`} data-year={H.gap.Y}><a href={H.gap.href}>{fill(GAPS.home, H.gap)}</a></p>}
+            {/* 7.7.0: what the person chose to keep, tested against the plan and agreed — or not yet */}
+            <KeepTestLine K={planKeepTestView(state)} prefix={T} />
             {/* the plan draws from a pension before it can usually be taken (7.4.0): a plain fact beside the plan's draws */}
             {/* the plan starts before its pension can be taken: what it does until then, or (7.4.1) the warning when the other savings run short */}
             {H.pensionAccess && H.pensionAccess.short && <p class="notice" role="status" data-testid={`${T}.pensionShort`}>{fill(HOME.pensionShort, { age: H.pensionAccess.age, ...H.pensionAccess.short })}</p>}

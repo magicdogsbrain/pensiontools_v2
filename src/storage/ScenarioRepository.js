@@ -753,6 +753,20 @@ export async function saveActiveHoldings(record) {
   return holdings;
 }
 
+/**
+ * "I accept this risk" and "Withdraw this" (7.7.0, services/PlanAmendments.js): the whole list of what the person agreed to
+ * keep against the locked plan, written as ONE field (V7 writes it the same way: answers/plan/keepTest.js amendPatch). It sits
+ * beside the settings and the plan document, never in them; the store refuses it on a closed plan (PlanClosed.closedPlanRefusal).
+ */
+export async function saveActivePlanAmendments(list) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  const planAmendments = Array.isArray(list) ? JSON.parse(JSON.stringify(list)) : [];
+  await saveScenario(scenario.id, { planAmendments });
+  if (cachedActiveScenario) cachedActiveScenario.planAmendments = planAmendments;
+  return planAmendments;
+}
+
 /** Switch the active plan's strategy (a switch, not a lock). Refused on a locked plan (6.20.2): its strategy is part of it. */
 export async function setActiveStrategy(id, params = {}) {
   const scenario = await getActiveScenarioAsync();

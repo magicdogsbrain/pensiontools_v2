@@ -80,6 +80,8 @@ function protectedParts(scenario) {
   const out = {
     planDocument: bytes(s.planDocument),
     planDocumentArchive: bytes(s.planDocumentArchive),
+    // what the person agreed to keep against the locked plan (7.7.0): a record of their own, as the document is
+    planAmendments: bytes(s.planAmendments),
     'decisionTool.planOfRecord': bytes(dt.planOfRecord),
     'decisionTool.planOfRecordArchive': bytes(dt.planOfRecordArchive),
     'decisionTool.history': bytes(dt.history)

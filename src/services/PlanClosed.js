@@ -130,9 +130,10 @@ export function writeTouchesClosure(data) { return CLOSE_KEYS.some((k) => reache
  * The root keys under which a closed plan keeps something frozen: Month by month (its months after the close, its tax years
  * after it, its plan of record and the archive of it), what you hold and its tick-offs, and the plan document and its past
  * versions — which stay as they were at the close, so an unlock's archive or "Write a new version" can never clear or
- * rewrite them — and the person's fact of money taken flexibly as it stood (the plan that carries it on has its own copy).
+ * rewrite them — and the person's fact of money taken flexibly as it stood (the plan that carries it on has its own copy), and
+ * what the person agreed to keep against it (7.7.0, planAmendments: an agreement is made on the plan as it runs, never after).
  */
-export const FROZEN_WHEN_CLOSED = Object.freeze(['decisionTool', 'holdings', 'transition', 'planDocument', 'planDocumentArchive', 'flexibleAccess']);
+export const FROZEN_WHEN_CLOSED = Object.freeze(['decisionTool', 'holdings', 'transition', 'planDocument', 'planDocumentArchive', 'flexibleAccess', 'planAmendments']);
 export function writeTouchesClosedParts(data) { return FROZEN_WHEN_CLOSED.some((k) => reaches(data, k)); }
 /** Does a write reach Month by month (where the plan that carries one on keeps its first month)? */
 export function writeTouchesMonths(data) { return reaches(data, 'decisionTool'); }
@@ -178,13 +179,13 @@ function addedRecords(plan, data) {
  * up to `closedAt`, and their tax years, stay as they are and may still be written (a month missed before the close can be
  * filled in). Null for a plan that is not closed.
  * @returns {string[]|null}  the parts refused ('decisionTool.history', 'decisionTool.taxYears.27/28', 'holdings', 'transition',
- *   'planDocument', 'planDocumentArchive', 'flexibleAccess', 'decisionTool.planOfRecord', 'decisionTool.planOfRecordArchive')
+ *   'planDocument', 'planDocumentArchive', 'flexibleAccess', 'planAmendments', 'decisionTool.planOfRecord', 'decisionTool.planOfRecordArchive')
  */
 export function closedPlanRefusal(plan, data) {
   const c = closedAtOf(plan);
   if (!c || !writeTouchesClosedParts(data)) return null;
   const bad = [];
-  for (const k of ['holdings', 'transition', 'planDocument', 'planDocumentArchive', 'flexibleAccess']) if (reaches(data, k) && text(plan[k]) !== text(rootAfter(plan, data, k))) bad.push(k);
+  for (const k of ['holdings', 'transition', 'planDocument', 'planDocumentArchive', 'flexibleAccess', 'planAmendments']) if (reaches(data, k) && text(plan[k]) !== text(rootAfter(plan, data, k))) bad.push(k);
   if (reaches(data, 'decisionTool')) {
     const before = isObj(plan.decisionTool) ? plan.decisionTool : {};
     const after = decisionAfter(plan, data);

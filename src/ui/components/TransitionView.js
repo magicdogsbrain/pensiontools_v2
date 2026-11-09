@@ -15,6 +15,8 @@ import { CATEGORY_CHOICES, needsCategory, isGiltCode } from '../../services/Hold
 import { SUB_ASSET_PROFILES, FUND_TAG_MAP } from '../../services/SubAssetModel.js';
 import { sayGapLine } from '../../answers/plan/gaps.js';
 import { GAPS } from '../../v7/copy/gaps.js';
+import { sayKeep } from '../../answers/plan/keepTest.js';
+import { KEEPTEST } from '../../v7/copy/keepTest.js';
 import { standInYearOf } from '../../services/TransitionPlanner.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -103,6 +105,40 @@ export function gapsHtml(gaps) {
 }
 
 /**
+ * "Test what you keep against your plan" and "I accept this risk" (7.7.0): the same reading and the same words as V7
+ * (answers/plan/keepTest.js keepTestOf, filled with src/v7/copy/keepTest.js). The test runs only on the button; the agreement
+ * is one save after the confirm on the page. Nothing when the plan keeps nothing.
+ */
+export function keepTestHtml(v) {
+  if (!v) return '';
+  const K = KEEPTEST;
+  const say = (p) => esc(sayKeep(p, K));
+  const run = v.run || { status: 'idle' };
+  const r = v.result;
+  const can = !v.closed;
+  let h = '<div id="transitionKeepTest" data-status="' + esc(v.status) + '"><div class="section-title" style="margin-top:12px;">' + esc(K.title) + '</div><p class="hint">' + esc(K.lead) + '</p>';
+  if (v.line) h += '<p class="' + (v.status === 'agreed' ? 'hint' : 'alert alert-info') + '" id="transitionKeepLine" data-status="' + esc(v.status) + '">' + say(v.line) + '</p>';
+  if (v.keeps) h += '<p class="hint">' + esc(K.how) + '</p>';
+  if (can && v.keeps) h += '<div class="row-flex" style="gap:8px;"><button type="button" class="risk-btn" id="keepTestRun" data-on-click="runKeepTest()"' + (run.status === 'working' ? ' disabled' : '') + '>' + esc(r ? K.again : K.run) + '</button></div>';
+  if (run.status === 'working') h += '<p class="hint" role="status">' + esc(K.running) + '</p>';
+  if (run.status === 'failed') h += '<p class="alert alert-warning">' + esc(K.failed) + '</p>';
+  if (r) {
+    const cell = (side, row) => (!side ? '—' : row === 'lasts' ? esc(K.lasts.replace('{words}', side.words)) : say(side.bad));
+    const heads = [K.columns.what, K.columns.locked, K.columns.held, ...(r.without ? [K.columns.without] : [])];
+    h += '<div id="keepTestResult">' + table(heads.map(esc), ['lasts', 'bad'].map((row) => [esc(K.rows[row]), cell(r.locked, row), cell(r.held, row), ...(r.without ? [cell(r.without, row)] : [])]));
+    if (r.firstShort) h += '<p class="hint">' + say(r.firstShort) + '</p>';
+    if (r.shock.length) h += '<div class="section-title" style="margin-top:8px;font-size:13px;">' + esc(K.shockTitle) + '</div>' + r.shock.map((x) => '<p class="hint" data-shock="' + esc(x.id) + '">' + say(x) + '</p>').join('');
+    if (r.single) h += '<p class="alert alert-warning">' + say(r.single) + '</p>';
+    h += '</div>';
+  }
+  if (can && v.canAccept && !v.confirmOpen) h += '<div class="row-flex" style="gap:8px;"><button type="button" id="keepTestAccept" data-on-click="askKeepRisk()">' + esc(K.accept) + '</button></div>';
+  if (can && v.canAccept && v.confirmOpen) h += '<div class="alert alert-info" id="keepTestConfirm"><p style="margin:0 0 6px;">' + esc(K.acceptLead) + '</p><div class="row-flex" style="gap:8px;"><button type="button" id="keepTestConfirmYes" data-on-click="acceptKeepRisk()">' + esc(K.acceptYes) + '</button><button type="button" class="risk-btn" data-on-click="cancelKeepRisk()">' + esc(K.acceptNo) + '</button></div></div>';
+  if (v.agreed) h += '<p class="hint" id="keepTestAgreedOn">' + esc(K.agreedOn.replace('{date}', v.agreed.on)) + '</p>';
+  if (can && v.canWithdraw) h += '<div class="row-flex" style="gap:8px;"><button type="button" class="risk-btn" id="keepTestWithdraw" data-on-click="withdrawKeepRisk()">' + esc(K.withdraw) + '</button></div>';
+  return h + '</div>';
+}
+
+/**
  * The "What you hold" card: the holdings record as an editable table (no import from the Stress
  * tester's fund list as a starting point, and the paste / save buttons.
  * @param {{ holdings?: { updatedAt, source, offerDismissed, lines: [], expected? }, offer?: { taggedFunds: [] }|null, keep?: { ladder: boolean }|null }} a
@@ -164,7 +200,7 @@ export function holdingsCardHtml({ holdings = null, offer = null, keep = null } 
  *   complete — overrides diff.complete when given.
  */
 export function transitionHtml(a) {
-  const { stage, doc, target, diff, seq, prog, done = {}, holdings = null, offer = null, rotation = null, startLabel = '', gaps = null } = a || {};
+  const { stage, doc, target, diff, seq, prog, done = {}, holdings = null, offer = null, rotation = null, startLabel = '', gaps = null, keepTest = null } = a || {};
   const lines = holdings && Array.isArray(holdings.lines) ? holdings.lines : [];
   const ledgerCount = a && a.ledgerCount != null ? a.ledgerCount : lines.filter(valued).length;
   // (i) What you hold — the record, always editable, whether or not there is a plan document yet; "Keep this" (7.6.0) once
@@ -234,6 +270,7 @@ export function transitionHtml(a) {
   if (Array.isArray(diff.kept) && diff.kept.length) h += '<div class="section-title" style="margin-top:10px;">' + esc(GAPS.move.kept) + '</div><ul style="font-size:13px;line-height:1.6;">'
     + diff.kept.map((x) => '<li>' + esc(GAPS.move.keptOne.replace('{label}', x.label || x.ticker).replace('{wrapper}', x.wrapper).replace('{value}', gbp(x.value)).replace('{gaps}', x.fundsGaps ? GAPS.move.keptGaps : '')) + '</li>').join('') + '</ul>';
   h += gapsHtml(gaps);
+  h += keepTestHtml(keepTest);   // 7.7.0: the plan's own test with what is kept, and "I accept this risk"
   if (!complete) h += '<p class="hint">Totals: buy ' + gbp(diff.totals.buyCost) + ' · sell ' + gbp(diff.totals.sellValue) + (diff.totals.shortfall ? ' · <strong>short by ' + gbp(diff.totals.shortfall) + '</strong> before contributions' : '') + '.</p>';
 
   // Timeline

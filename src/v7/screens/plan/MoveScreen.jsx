@@ -10,7 +10,8 @@
  * through the plan source); the run's status is the state's (effects/move.js). The last line is always the same.
  */
 import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
-import { planView, planMoveView } from '../../state/select.js';
+import { planView, planMoveView, planKeepTestView } from '../../state/select.js';
+import { KeepTestLine } from './KeepTest.jsx';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { MOVE as W } from '../../copy/move.js';
@@ -124,7 +125,7 @@ function Cash({ V }) {
 }
 
 /** Buy and Sell (§3.5): the planner's two tables with a Done tick each; Already held; Left alone; the totals. */
-function Lists({ V, dispatch, planId }) {
+function Lists({ V, dispatch, planId, KT }) {
   const L = W.lists;
   const tick = (item, action) => (
     <input type="checkbox" id={`${T}.tick.${item.key}`} data-testid={`${T}.tick.${item.key}`} checked={!!item.done} disabled={!V.editable || !!V.saving} aria-label={L.tick} title={item.done ? fill(L.ticked, { date: item.done }) : L.tick}
@@ -163,6 +164,8 @@ function Lists({ V, dispatch, planId }) {
         </>
       )}
       {/* 7.6.0: what the person keeps instead — held another way (and the rungs it covers), and kept by choice; never a sell */}
+      {/* 7.7.0: what the person chose to keep, tested against the plan and agreed — or not yet (tested on What you hold) */}
+      <KeepTestLine K={KT} prefix={T} />
       {V.standIn && V.standIn.length > 0 && <><h2>{GAPS.move.standIn}</h2><ul class="plan-lines" data-testid={`${T}.standIn`}>{V.standIn.map((x) => <li key={x.key} class="plan-line" data-key={x.key}>{fill(GAPS.move.standInOne, { label: x.label, years: x.years.join(', '), pays: x.pays })}</li>)}{V.covered.map((x) => <li key={x.key} class="plan-line note" data-key={x.key}>{fill(GAPS.move.covered, { label: x.label, years: x.years.join(', ') })}</li>)}</ul></>}
       {V.kept && V.kept.length > 0 && <><h2>{GAPS.move.kept}</h2><ul class="plan-lines" data-testid={`${T}.kept`}>{V.kept.map((x) => <li key={x.key} class="plan-line" data-key={x.key}>{fill(GAPS.move.keptOne, { label: x.label, wrapper: W.wrappers[x.wrapper] || x.wrapper, value: x.value, gaps: x.fundsGaps ? GAPS.move.keptGaps : '' })}</li>)}</ul></>}
       {V.recorded && <p class="note">{L.fix}</p>}
@@ -343,7 +346,7 @@ export function MoveScreen(state, dispatch) {
           {V.waiting ? <Waiting V={V} /> : (
             <>
               <Cash V={V} />
-              <Lists V={V} dispatch={dispatch} planId={planId} />
+              <Lists V={V} dispatch={dispatch} planId={planId} KT={planKeepTestView(state)} />
               <GapsSection gaps={V.gaps} prefix={T} />
               <Schedule V={V} />
               <section class="plan-section" data-section="how" data-testid={`${T}.how`}>

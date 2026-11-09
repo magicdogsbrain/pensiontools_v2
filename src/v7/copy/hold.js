@@ -113,6 +113,9 @@ export const HOLD = {
     expectedAdded: 'Saved. Money you expect added.',
     expectedEdited: 'Saved. Money you expect changed.',
     expectedRemoved: 'Saved. Money you expect removed.',
+    // "I accept this risk" and "Withdraw this" (7.7.0)
+    agreed: 'Saved. You accepted this risk on {date}; it is kept beside your plan.',
+    withdrawn: 'Saved. Your agreement of {date} is withdrawn.',
     undone: 'Put back as it was.',
     unchanged: 'Nothing to save.',
     savedShort: 'Saved.'
@@ -126,6 +129,11 @@ export const HOLD = {
     failed: 'The change could not be written. Nothing has changed.',
     problems: 'Something typed here could not be read: check the boxes.',
     readonly: 'This plan is shown as it was saved and cannot be changed here.',
+    // "I accept this risk" (7.7.0)
+    stale: 'What you keep has changed since the test: test it again, then accept it.',
+    nothingKept: 'Nothing is kept, so there is nothing to accept.',
+    noResult: 'Test what you keep against your plan first.',
+    none: 'There is no agreement to withdraw.',
     store: { account: 'account', 'window': 'window' }
   },
   // the way on to the move is named by the step's own name (components/PlanFigures.jsx stepNameOf: on a Drawing plan, the mix)

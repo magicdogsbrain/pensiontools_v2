@@ -11,7 +11,7 @@
  * The reducer never runs an answer.
  */
 import { A, OPENABLE } from './actions.js';
-import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, cleanPending, cleanUsed, cleanFromPlan, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept, emptyHousehold, HH_PICKS, cleanHouseholdTry, cleanNeed, emptyMove, cleanMove, cleanIndex, emptySaver, cleanSaver, cleanPlanMix, cleanFlexibleAccess, emptyCheckIn, cleanCheckIn,
+import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, cleanPending, cleanUsed, cleanFromPlan, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept, emptyHousehold, HH_PICKS, cleanHouseholdTry, cleanNeed, emptyMove, cleanMove, cleanIndex, emptySaver, cleanSaver, cleanPlanMix, cleanFlexibleAccess, emptyCheckIn, cleanCheckIn, emptyKeepTest, cleanKeepTest,
   emptyShellUi, emptyAccount, emptyGuest, emptyNews, ACCOUNT_MODES, ACCOUNT_ASKS, PLAN_ACTION_KINDS, PLAN_ACTION_OPS } from './initial.js';
 import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber, checkPlanName, fromPlanStale, severalPlan } from './select.js';
 import { hasShape, SHAPE_UNIT, THENS, thenPath, fallsPath, stepsPath, stepBox, stepFields, shapePaths, isShapePath, stepsOf, newStep, cleanSteps,
@@ -54,7 +54,9 @@ const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'fail
   'notYet',
   // Month by month (7.2.0): the month's tax year not set up yet, a month the classic planner refuses (recorded, or before its
   // year's set-up), a year already set up, no month left to record
-  'notSetUp', 'refused', 'setUpAlready', 'noMonth'];
+  'notSetUp', 'refused', 'setUpAlready', 'noMonth',
+  // "I accept this risk" (7.7.0): what is kept changed since the test (run it again), nothing kept, no agreement to withdraw
+  'stale', 'nothingKept', 'noResult', 'none'];
 /** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document, the way switched (way-and-mix.md 2.4), a mix used (3.2e), a tried change used (4). */
 const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
   // the move of a locked plan's start (6.55.0): written, no Undo (the planner offers none)
@@ -71,7 +73,9 @@ const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
   // a saver's check-in (research/saving-enough-and-check-in.md 5; release step R3): the check-in, or its path drawn again
   'checkIn',
   // Month by month (7.2.0): a month recorded (with the months filled in before it), a tax year set up
-  'month', 'taxYear'];
+  'month', 'taxYear',
+  // "I accept this risk" and "Withdraw this" (7.7.0): one write of the whole list of agreements
+  'amend'];
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -673,9 +677,9 @@ function reduceAction(state, action) {
       return withDraft(viewed, 'b', b);
     }
     case A.PLANS_CLEAR:
-      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null && (state.lasts || emptyLasts()).key === null && (state.ways || emptyWays()).key === null && (state.mix || emptyMix()).key === null && (state.household || emptyHousehold()).key === null && (state.move || emptyMove()).key === null && (state.saver || emptySaver()).key === null && (state.checkIn || emptyCheckIn()).planId === null) return state;
+      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null && (state.lasts || emptyLasts()).key === null && (state.ways || emptyWays()).key === null && (state.mix || emptyMix()).key === null && (state.household || emptyHousehold()).key === null && (state.move || emptyMove()).key === null && (state.saver || emptySaver()).key === null && (state.checkIn || emptyCheckIn()).planId === null && (state.keepTest || emptyKeepTest()).key === null) return state;
       // the plans leave the page's memory, and the one test's result, the nine ways', the mix's and the held run with them (editing-in-v7.md 10.1; way-and-mix.md 2.2, 3.2); the index the watch read is the page's, and stays
-      return withPlanDraft({ ...state, plans: null, lasts: emptyLasts(), ways: emptyWays(), mix: emptyMix(), household: emptyHousehold(), move: { ...emptyMove(), index: (state.move || emptyMove()).index || null }, saver: emptySaver(), checkIn: emptyCheckIn(), session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
+      return withPlanDraft({ ...state, plans: null, lasts: emptyLasts(), ways: emptyWays(), mix: emptyMix(), household: emptyHousehold(), move: { ...emptyMove(), index: (state.move || emptyMove()).index || null }, saver: emptySaver(), checkIn: emptyCheckIn(), keepTest: emptyKeepTest(), session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
     case A.PLAN_CHANGE: {
       const { planId = null, place, back, month = null } = action;
       if (typeof place !== 'string' || typeof back !== 'string') return refuse('plan/change: needs a place and a way back');
@@ -1173,6 +1177,38 @@ function reduceAction(state, action) {
       if (state.ui.saving) return state;
       return { ...state, ui: { ...state.ui, saving: { planId, kind: 'tick', key, done: action.done !== false }, saveProblem: null, toast: null } };
     }
+    // ---- "Test what you keep against your plan" and "I accept this risk" (7.7.0) ----
+    case A.KEEP_TEST_RUN: {
+      if (typeof action.key !== 'string' || !action.key) return refuse('keepTest/run: needs a key');
+      if (typeof action.planId !== 'string' || !action.planId) return refuse('keepTest/run: needs a plan id');
+      const Kt = state.keepTest || emptyKeepTest();
+      if (Kt.key === action.key && Kt.status === 'working') return state;
+      return { ...state, keepTest: { key: action.key, planId: action.planId, status: 'working', result: null, reason: null, progress: null } };
+    }
+    case A.KEEP_TEST_PROGRESS: {
+      const Kt = state.keepTest || emptyKeepTest();
+      if (action.key !== Kt.key || Kt.status !== 'working') return state;
+      return { ...state, keepTest: { ...Kt, progress: { done: Number(action.done) || 0, total: Number(action.total) || 0 } } };
+    }
+    case A.KEEP_TEST_DONE: {
+      const Kt = state.keepTest || emptyKeepTest();
+      if (action.key !== Kt.key || Kt.status !== 'working') return state;   // stale
+      if (!action.result || typeof action.result !== 'object') return refuse('keepTest/done: needs a result');
+      return { ...state, keepTest: { ...Kt, status: 'done', result: action.result, reason: null, progress: null } };
+    }
+    case A.KEEP_TEST_FAILED: {
+      const Kt = state.keepTest || emptyKeepTest();
+      if (action.key !== Kt.key || Kt.status !== 'working') return state;   // stale
+      return { ...state, keepTest: { ...Kt, status: 'failed', result: null, reason: action.reason === 'noWorker' ? 'noWorker' : null, progress: null } };
+    }
+    case A.PLAN_AMEND: {
+      const { planId, op } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/amend: needs a plan id');
+      if (op !== 'accept' && op !== 'withdraw') return refuse('plan/amend: needs accept or withdraw');
+      if (state.ui.saving) return state;
+      const open = (state.ui.open || []).filter((x) => x !== 'amendConfirm');
+      return { ...state, ui: { ...state.ui, open, saving: { planId, kind: 'amend', op }, saveProblem: null, toast: null } };
+    }
     case A.MOVE_RUN: {
       if (typeof action.key !== 'string' || !action.key) return refuse('move/run: needs a key');
       const Mv = state.move || emptyMove();
@@ -1437,6 +1473,8 @@ function reduceAction(state, action) {
         saver: cleanSaver(copy.saver),
         // a named plan state may carry the answer of a check-in just written (saving-enough-and-check-in.md 5.5), cleaned
         checkIn: cleanCheckIn(copy.checkIn),
+        // a named plan state may carry the re-test of what is kept (7.7.0), cleaned; none: empty
+        keepTest: cleanKeepTest(copy.keepTest),
         ways: copy.ways && typeof copy.ways === 'object' && typeof copy.ways.key === 'string' && ['working', 'done', 'failed'].includes(copy.ways.status)
           ? { key: copy.ways.key, status: copy.ways.status, reason: copy.ways.reason === 'noWorker' ? 'noWorker' : null, result: copy.ways.result && typeof copy.ways.result === 'object' && Array.isArray(copy.ways.result.ways) ? copy.ways.result : null,
             progress: copy.ways.progress && typeof copy.ways.progress === 'object' ? { done: Number(copy.ways.progress.done) || 0, total: Number(copy.ways.progress.total) || 0 } : null, slow: copy.ways.slow === true,

@@ -180,6 +180,12 @@ export const A = Object.freeze({
   MOVE_DONE:       'move/done',           // { key, result, ms }              the run's figures (moveRun.js runHeld); dropped if the key is stale
   MOVE_FAILED:     'move/failed',         // { key, reason? }                 the run failed ('noWorker': no worker)
   MOVE_INDEX:      'move/index',          // { index: { level, ath, asOf, symbol, athDate } | null }   the equity index the effect fetched for the rotation watch
+  // "Test what you keep against your plan" and "I accept this risk" (7.7.0)
+  KEEP_TEST_RUN:   'keepTest/run',        // { key, planId }                        the re-test on the plan of this key (the effect runs it in the worker)
+  KEEP_TEST_PROGRESS: 'keepTest/progress', // { key, done, total }
+  KEEP_TEST_DONE:  'keepTest/done',       // { key, result }                  keepRun.js runKeepRetest's result; dropped if the key is stale
+  KEEP_TEST_FAILED: 'keepTest/failed',    // { key, reason? }                 the re-test failed ('noWorker': no worker)
+  PLAN_AMEND:      'plan/amend',          // { planId, op: 'accept' | 'withdraw' }   "I accept this risk" confirmed / "Withdraw this": saving { kind: 'amend', op }
 
   // ---- "What you pay in": the plan's own verdict (research/saving-enough-and-check-in.md 4.1, 4.4; release step R2) ----
   // question B on the plan's figures (answers/plan/saverInputs.js), in the worker's 'saver' lane, page memory only
@@ -295,6 +301,8 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   'lastsSchedule', 'lastsGlidepath',
   // "What you hold" (step 10): the paste box; "Moving to your plan's mix": how to read it, the sheet shown anyway, gilt ladders explained
   'holdPaste', 'moveHow', 'moveSheet', 'moveExplained',
+  // "I accept this risk" (7.7.0): its confirm, on the screen
+  'amendConfirm',
   // "Your plans" (step 11): the file box of "Open a downloaded copy"
   'openCopy',
   // the budget on a saved plan (step 11b): the confirm of "Start again"; "What you pay in": the relief block

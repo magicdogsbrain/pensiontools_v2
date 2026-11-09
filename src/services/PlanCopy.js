@@ -20,7 +20,9 @@
  *       plan is not closed (only the close writes `closedAt`, once, with the two plans linked both ways), and a copy of the
  *       plan that carries one on does not refuse the months before its change-over;
  *     - the person's fact of money taken from a pension flexibly (`flexibleAccess`, services/FlexibleAccess.js) IS carried, as
- *       what is held is: it is the person's, not the plan's, and a copy of a saving plan still has the £10,000 limit to say.
+ *       what is held is: it is the person's, not the plan's, and a copy of a saving plan still has the £10,000 limit to say;
+ *     - what the person agreed to keep against the locked plan (7.7.0, `planAmendments`) is never carried: it was agreed
+ *       against that plan's document, which a copy does not have.
  *
  * Pure: no storage, no clock of its own (`now` comes in), the source never changed.
  */
@@ -55,6 +57,8 @@ export function copyOf(source, name, { carryHistory = true, now } = {}) {
   data.planDetails = { ...(isObj(data.planDetails) ? data.planDetails : {}), name, ...(wasExample ? { description: '' } : {}) };
   data.isActive = false;
   if (data.holdings) data.holdings = normaliseHoldings(data.holdings);
+  // what was agreed against the locked plan (7.7.0) belongs to that plan and its document: a copy has neither
+  delete data.planAmendments;
   if (isObj(data.decisionTool)) {
     data.decisionTool = { ...data.decisionTool };
     data.decisionTool.settings = { ...(isObj(data.decisionTool.settings) ? data.decisionTool.settings : {}), locked: false };

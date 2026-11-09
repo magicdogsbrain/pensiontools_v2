@@ -61,6 +61,9 @@
  *      settings with it: on a locked plan they are written as stored (lockedSettingsToWrite);
  *    - what you hold, the Transition tick-offs, the journey, the Accumulation planner and its monthly pot record, the
  *      Budget, the partner link, the plan's name, description and tools, and which plan is open (isActive);
+ *    - what the person agreed to keep against the locked plan (7.7.0, `planAmendments`, services/PlanAmendments.js): a
+ *      root list written whole, beside the settings and the document, never in them; frozen once the plan is closed
+ *      (PlanClosed.closedPlanRefusal);
  *    - a saver's check-in (research/saving-enough-and-check-in.md 5.8, release step R3): on a locked plan exactly three
  *      keys under the Accumulation planner — the check-ins, the month's pot record and how often (CHECK_IN_KEYS.locked).
  *      A locked plan's check-in is read against its plan document's saving path and never writes a path of its own; an

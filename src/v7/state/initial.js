@@ -206,6 +206,7 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     move:    emptyMove(),                            // "Moving to your plan's mix": the one run on the held mix for ONE plan, and the index the watch reads, page memory only (step 10)
     saver:   emptySaver(),                           // "What you pay in": the plan's verdict — question B on its own figures — for ONE plan, page memory only (saving-enough-and-check-in.md 4.4)
     checkIn: emptyCheckIn(),                         // "Check in": the answer of the check-in just written, for ONE plan, page memory only (saving-enough-and-check-in.md 5.5)
+    keepTest: emptyKeepTest(),                       // "Test what you keep against your plan" (7.7.0): the re-test for ONE plan, page memory only
     ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null, ...emptyShellUi() }
   };
 }
@@ -240,6 +241,19 @@ export const PLAN_ACTION_OPS = Object.freeze(['renamed', 'copied', 'copiedLocked
  * effect fetched for the rotation watch ({ level, ath, asOf, symbol, athDate }, or null) — page data, not a plan's, so it outlives the plans.
  */
 export const emptyMove = () => ({ key: null, status: 'idle', result: null, ms: null, reason: null, index: null });
+
+/**
+ * Nothing of "Test what you keep against your plan" held (7.7.0): `key` is lasts.js runKeyOf of the plan the re-test is for, `planId` its id;
+ * `status` 'idle' | 'working' | 'done' | 'failed'; `result` keepRun.js runKeepRetest's; `progress` { done, total } while working.
+ */
+export const emptyKeepTest = () => ({ key: null, planId: null, status: 'idle', result: null, reason: null, progress: null });
+const KEEP_TEST_STATUS = ['idle', 'working', 'done', 'failed'];
+/** The re-test's slice, cleaned (state/replace may draw one); a state without it is empty. */
+export function cleanKeepTest(x) {
+  if (!x || typeof x !== 'object' || typeof x.key !== 'string' || !x.key) return emptyKeepTest();
+  const status = KEEP_TEST_STATUS.includes(x.status) ? x.status : 'idle';
+  return { key: x.key, planId: typeof x.planId === 'string' && x.planId ? x.planId : null, status, result: status === 'done' && x.result && typeof x.result === 'object' ? x.result : null, reason: status === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null, progress: null };
+}
 
 /**
  * Nothing of the plan's verdict held (research/saving-enough-and-check-in.md 4.1, 4.4): `key` is saverInputs.js saverRunKey of

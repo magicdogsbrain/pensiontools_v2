@@ -74,6 +74,9 @@
  *     whole `holdings` field, past the guard; Undo puts the previous record back whole.
  *   - `plan/tick` (kind 'tick'): answers/plan/move.js tickPatch — one tick-off (TransitionPlanner.tickMove / untickMove) written
  *     as the whole `transition` object (never deleteField), past the guard; Undo the same.
+ *   - `plan/amend` (kind 'amend', 7.7.0): answers/plan/keepTest.js amendPatch / withdrawPatch — "I accept this risk" (the re-test
+ *     of what is kept, held in page memory for this plan as it is now) or "Withdraw this", written as the whole `planAmendments`
+ *     list, past the guard (outside the settings; refused on a closed plan); Undo puts the previous list back whole.
  *
  * "Move to a new plan" (6.56.0, research/plan-start.md §2 I; services/PlanClose.js), on a plan someone has lived on: kind 'close'.
  *   - the new plan first, through the ONE create (addDoc; or appended to this window's plans): the old plan's figures with its
@@ -165,7 +168,7 @@ import { aboutPatch, applyPatch, stalePatch, stopAskPatch, parseMonth } from '..
 import { incomePatch } from '../../answers/plan/income.js';
 import { spendPatch } from '../../answers/plan/spend.js';
 import { potsPatch } from '../../answers/plan/pots.js';
-import { lastsPatch, tryPatch, tryCopyOf } from '../../answers/plan/lasts.js';
+import { lastsPatch, tryPatch, tryCopyOf, runKeyOf } from '../../answers/plan/lasts.js';
 import { lockPatch, unlockPatch, documentPatch, isLockReversal, shapeRefsOf } from '../../answers/plan/lock.js';
 import { movedPlanOf, movePatch, withLaterDraft } from '../../answers/plan/moveStart.js';
 import { dateOf } from '../../answers/plan/dates.js';
@@ -174,6 +177,7 @@ import { mixPatch, useMixPatch } from '../../answers/plan/mix.js';
 import { partnerOf, linkPatch, dismissPatch, splitPatches, shareBudgetPatches, whoPaysPatches } from '../../answers/plan/household.js';
 import { holdPatch } from '../../answers/plan/hold.js';
 import { tickPatch } from '../../answers/plan/move.js';
+import { amendPatch, withdrawPatch } from '../../answers/plan/keepTest.js';
 import { budgetPatch } from '../../answers/plan/budget.js';
 import { savingPatch, recordPatch } from '../../answers/plan/saving.js';
 import { checkInDraft, checkInPatch, restartPathPatch, useInPlanPatch, CHECKIN_FUTURES, CHECKIN_SEED } from '../../answers/plan/checkIn.js';
@@ -591,7 +595,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     } else if (op === 'month' || op === 'taxYear') {
       // a month recorded (with its fill) or a tax year set up, put back: the records and the tax years as they were, past the guard (7.2.0)
       if (lockedRefusal(plan, asSent) || monthWriteRefusal(asSent)) { fail(planId, 'locked'); return; }
-    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick' || op === 'budget' || op === 'saving' || op === 'potRecord' || op === 'stale') {
+    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick' || op === 'amend' || op === 'budget' || op === 'saving' || op === 'potRecord' || op === 'stale') {
       // the household's writes (road-to-7.md step 9), the record and the tick-offs (step 10), the budget, "What you pay in", the pot record and
       // "Leave it" (step 11b) go where the planner's go: the guard alone decides — by the write's own mark, never by the step the person has since moved to
       if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
@@ -786,6 +790,33 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;
     dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: 'tick' });
+    dispatch({ type: A.PLANS_READING });
+    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+  }
+
+  /**
+   * "I accept this risk" (7.7.0, keepTest.js amendPatch): the re-test in page memory for THIS plan as it is now (its run key and
+   * what is kept), written into the whole `planAmendments` list with the new agreement on the end, plus the stamp, past the
+   * guard — ONE write, never the settings or the plan document. "Withdraw this" (withdrawPatch): the list without its last
+   * agreement. Undo puts the previous list back whole.
+   */
+  async function amend(planId, op) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const at = now();
+    let p;
+    if (op === 'withdraw') p = withdrawPatch(plan);
+    else {
+      const Kt = state.keepTest || null;
+      const result = Kt && Kt.status === 'done' && Kt.key === runKeyOf(plan) ? Kt.result : null;
+      p = amendPatch(plan, result, { today: state.env.today, at: at.toISOString() });
+    }
+    if (!p.ok) { fail(planId, ['notLocked', 'stale', 'nothingKept', 'noResult', 'none'].includes(p.problem) ? p.problem : 'problems'); return; }
+    const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
+    if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
+    if (!(await send(place, planId, data))) return;
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: 'amend' });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
@@ -1718,6 +1749,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_BUDGET_SHARE && s.kind === 'budgetShare') run(() => shareBudget(s.planId, s.share !== false));
     else if (action.type === A.PLAN_HOLD && s.kind === 'hold') run(() => saveHold(s.planId, s.change));
     else if (action.type === A.PLAN_TICK && s.kind === 'tick') run(() => tick(s.planId, s.key, s.done !== false));
+    // "I accept this risk" / "Withdraw this" (7.7.0)
+    else if (action.type === A.PLAN_AMEND && s.kind === 'amend') run(() => amend(s.planId, s.op));
     // the budget on a saved plan (road-to-7.md step 11b)
     else if (action.type === A.PLAN_BUDGET && s.kind === 'budget') run(() => saveBudgetChange(s.planId, s.change));
     else if (action.type === A.PLAN_BUDGET_FILE && s.kind === 'budgetFile') run(() => readBudgetFile(s.planId, action.file));

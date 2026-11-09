@@ -498,6 +498,15 @@ export function diffHoldings(holdings, target, { tolerance = TRANSITION_TOLERANC
     const held = { shares: 0, bonds: 0, cash: 0, diversifiers: 0 };
     for (const h of sipp) held[h.bucket || 'shares'] += h.value;
     cashHeld = held.cash;
+    // A kept pension line is out of the mix's maths (7.7.0): it is neither counted in its bucket nor replaced. The plan's own
+    // mix is then read on the pension money still in play (what is held less what is kept) — not on the pot the plan was
+    // locked with, which may or may not have held the kept line: either way a pound kept would be asked to be bought again
+    // in its bucket, or the bucket sold down. A record that keeps no pension line reads the plan's pot exactly as before.
+    if (L.some((h) => h.keep && h.wrapper === 'SIPP')) {
+      const inPlay = sipp.reduce((s, h) => s + h.value, 0);
+      const pctSum = target.lines.reduce((s, t) => s + num(t.pct), 0) || 100;
+      target = { ...target, lines: target.lines.map((t) => ({ ...t, value: Math.round(inPlay * num(t.pct) / pctSum) })) };
+    }
     for (const t of target.lines) {
       const hv = held[t.bucket] || 0; const delta = t.value - hv;
       targetTotal += t.value; heldOfTarget += Math.min(t.value, hv); if (t.value > 0) targetCount++;

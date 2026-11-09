@@ -1258,6 +1258,20 @@ export function planView(state) {
 }
 
 /**
+ * "Test what you keep against your plan" and "I accept this risk" (7.7.0): the plan source's reading (page.keepTest:
+ * answers/plan/keepTest.js keepTestOf, with the re-test held in state.keepTest for this plan as it is now), the confirm open
+ * (ui.open: amendConfirm), a write under way for this plan (ui.saving kind 'amend'). Null on a plan that keeps nothing.
+ */
+export function planKeepTestView(state) {
+  const v = planView(state);
+  if (!v.found || !v.keepTest) return null;
+  const ui = state.ui || {};
+  const open = Array.isArray(ui.open) ? ui.open : [];
+  const saving = ui.saving && ui.saving.planId === v.keepTest.planId && ui.saving.kind === 'amend' ? ui.saving : null;
+  return { ...v.keepTest, readonly: !!(v.readonly), confirmOpen: open.includes('amendConfirm'), saving };
+}
+
+/**
  * The lock, the unlock and a new version of the document (research/v7/road-to-7.md step 6): what the route's plan page
  * draws beside its reading — a write under way for THIS plan (ui.saving: lock | unlock | document, or an editing step's save),
  * the problem of the last one, the toast with Undo, and which confirm step is open (ui.open: lockConfirm, unlockConfirm,

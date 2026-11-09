@@ -8,12 +8,14 @@
  * planHoldView: answers/plan/hold.js through the plan source). No figure is worked out here; nothing runs here.
  */
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
-import { planView, planHoldView } from '../../state/select.js';
+import { planView, planHoldView, planKeepTestView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { HOLD as W } from '../../copy/hold.js';
 import { GAPS } from '../../copy/gaps.js';
 import { GapsSection } from './Gaps.jsx';
+import { KeepTestSection } from './KeepTest.jsx';
+import { KEEPTEST } from '../../copy/keepTest.js';
 
 const w = PLAN.page;
 const K = GAPS.keep;
@@ -35,7 +37,7 @@ const headlineText = (h) => (h ? fill(W.headline.main, h) + (h.gia ? fill(W.head
 const countedText = (c) => (c.kind === 'bucket' ? W.counted[c.bucket] || c.bucket : c.kind === 'gilt' ? (c.code ? fill(W.counted.gilt, { code: c.code }) : W.counted.giltNoCode) : W.counted[c.kind] || c.kind);
 
 /** One line of the record: its name and codes, the boxes that save on leaving, "Counted as", Remove. */
-function Line({ l, group, V, dispatch, planId }) {
+function Line({ l, group, V, dispatch, planId, KT }) {
   const base = `${T}.line.${l.index}`;
   const field = (f, words) => <EditField step="hold" f={{ path: f.path, type: 'money', applies: true, shown: f.shown, saved: null, error: f.error }} words={words} errors={W.errors} source={null} planId={planId} dispatch={dispatch} />;
   const onBlur = (f) => () => { dispatch({ type: 'plan/touch', planId, path: f.path }); if (f.change) dispatch({ type: 'plan/hold', planId, change: f.change }); };
@@ -66,7 +68,7 @@ function Line({ l, group, V, dispatch, planId }) {
       ) : (
         <p class="line">{l.units ? fill(W.line.fields.units.label, {}) + ' ' + l.units + ' · ' : ''}{W.line.fields.value.label}: {l.value || '—'}</p>
       )}
-      {l.keep && <KeepLine l={l} V={V} dispatch={dispatch} planId={planId} />}
+      {l.keep && <KeepLine l={l} V={V} dispatch={dispatch} planId={planId} KT={KT} />}
       {V.editable && !removing && (
         <div class="actions-row income-card-actions">
           {/* "Keep this" (7.6.0): the line kept as a stand-in for some years, or by choice — never a sell on the move */}
@@ -92,7 +94,7 @@ function Line({ l, group, V, dispatch, planId }) {
  * "Keep this" on one line (7.6.0): what it is kept as now, and — when asked — the choice: it stands in for the plan's money for
  * some tax years (a ladder only), or it is kept by choice (and counted toward the gaps, or not). "Keep it" is ONE write.
  */
-function KeepLine({ l, V, dispatch, planId }) {
+function KeepLine({ l, V, dispatch, planId, KT }) {
   const k = l.keep;
   const base = `${T}.line.${l.index}.keep`;
   const edit = (path, value) => dispatch({ type: 'plan/edit', planId, path, value });
@@ -101,6 +103,8 @@ function KeepLine({ l, V, dispatch, planId }) {
   return (
     <div class="hold-keep" data-testid={base} data-kept={k.saved ? k.saved.as : ''}>
       {saved && <p class="note" data-testid={`${base}.saved`}>{saved}</p>}
+      {/* 7.7.0: a kept line not yet tested against the plan (or changed since the agreement) says so */}
+      {saved && KT && KT.status !== 'agreed' && <p class="note" data-testid={`${base}.untested`}>{KEEPTEST.keptUntested}</p>}
       {asking && (
         <fieldset class="field field-choice notice" data-testid={`${base}.box`}>
           <legend>{K.asked}</legend>
@@ -344,6 +348,7 @@ export function HoldScreen(state, dispatch) {
     };
   }
   const planId = V.id;
+  const KT = planKeepTestView(state);
   const onChange = (place, id = view.id, month = null) => dispatch(changeAction(id, place, href.plan(view.id, 'hold'), month));
   const rail = <PlanRail view={view} state={state} dispatch={dispatch} onChange={onChange} />;
   const back = href.plan(view.id, 'plan');
@@ -372,13 +377,15 @@ export function HoldScreen(state, dispatch) {
             {V.groups.map((g) => (
               <div class="hold-group" key={g.wrapper} data-wrapper={g.wrapper} data-testid={`${T}.group.${g.wrapper}`}>
                 <h3>{W.wrappers[g.wrapper]} <span class="note">{fill(W.groupTotal, { total: g.total })}</span></h3>
-                {g.lines.map((l) => <Line key={l.index} l={l} group={g} V={V} dispatch={dispatch} planId={planId} />)}
+                {g.lines.map((l) => <Line key={l.index} l={l} group={g} V={V} dispatch={dispatch} planId={planId} KT={KT} />)}
               </div>
             ))}
             {V.editable && V.count > 0 && <p class="note">{W.line.saveNote}</p>}
           </section>
           {V.canKeep && <GapsSection gaps={V.gaps} prefix={T} />}
           {V.canKeep && <Expected V={V} dispatch={dispatch} planId={planId} F={F} />}
+          {/* 7.7.0: the plan's own test with what is kept, and "I accept this risk" */}
+          {KT && <KeepTestSection v={KT} dispatch={dispatch} prefix={T} editable={V.editable} />}
           {V.editable && <Add V={V} dispatch={dispatch} planId={planId} F={F} />}
           {V.editable && <Paste V={V} dispatch={dispatch} planId={planId} />}
           <Mix V={V} />

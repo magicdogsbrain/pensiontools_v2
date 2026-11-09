@@ -6,7 +6,8 @@
  * (state/select.js aboutView, from answers/plan/about.js through the plan source).
  */
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton } from '../../components/index.js';
-import { planView, aboutView } from '../../state/select.js';
+import { planView, aboutView, planKeepTestView } from '../../state/select.js';
+import { KeepTestLine } from './KeepTest.jsx';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { ABOUT } from '../../copy/about.js';
@@ -240,6 +241,8 @@ export function AboutScreen(state, dispatch) {
               ))}
             </ul>
             {about.locked ? <p class="note plan-fixed" data-testid="plan.about.fixed">{fill(w.fixed, { date: about.lockedOn })}</p> : <p class="notice" role="status">{ABOUT.readonly}</p>}
+            {/* 7.7.0: what the person chose to keep, tested against the plan and agreed — or not yet */}
+            <KeepTestLine K={planKeepTestView(state)} prefix="plan.about" />
             <Derived about={about} />
             {lockedStartBlock}
             {lockedProblem && <p class="notice" role="alert" data-testid="plan.about.problem" data-problem={about.problem}>{lockedProblem}</p>}

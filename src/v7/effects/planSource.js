@@ -61,6 +61,8 @@ import { wayOf, cardsOf } from '../../answers/plan/way.js';
 import { mixOf } from '../../answers/plan/mix.js';
 import { householdOf } from '../../answers/plan/household.js';
 import { holdOf } from '../../answers/plan/hold.js';
+import { keepTestOf } from '../../answers/plan/keepTest.js';
+import { isClosedPlan } from '../../services/PlanClosed.js';
 import { moveOf } from '../../answers/plan/move.js';
 import { budgetOf } from '../../answers/plan/budget.js';
 import { savingOf, askFillOf } from '../../answers/plan/saving.js';
@@ -120,6 +122,16 @@ export function viewFor(state) {
     // the plan's own address is its home (7.3.0, research/v7/one-product-design.md "The plan home"): what is due, where you
     // are, then everything else — read from the same reading as the rail, so the two can never disagree
     if (!r.step && page.found) page.home = homeOf(plans.list, r.planId, { today, source: plans.source, notNow, page });
+    // "Test what you keep against your plan" (7.7.0): the agreement's state, the line the home, About, What you hold and the move
+    // say, and the re-test held in page memory (state.keepTest) for THIS plan as it is now — null on a plan that keeps nothing
+    if (page.found) {
+      const entry = plans.list.find((e) => e && e.plan && String(e.plan.id) === String(r.planId));
+      const Kt = state.keepTest || null;
+      const key = entry ? runKeyOf(entry.plan) : null;
+      const mine = Kt && key && Kt.key === key ? Kt : null;
+      try { page.keepTest = entry && !entry.newer && !entry.failed ? keepTestOf(entry.plan, { result: mine && mine.status === 'done' ? mine.result : null, run: mine ? { status: mine.status, reason: mine.reason, progress: mine.progress } : null }) : null; } catch { page.keepTest = null; }
+      if (page.keepTest) page.keepTest = { ...page.keepTest, runKey: key, planId: String(r.planId), closed: isClosedPlan(entry.plan) };
+    }
     // the editing step (editing-in-v7.md 2): the saved facts, what was typed for THIS plan, the problems, the derived figures, the write
     // "How the money is taken" (way-and-mix.md 2.2): the reading, then the cards from the nine-way run held in page memory (state.ways)
     if (r.step === 'way') {
@@ -323,7 +335,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move, state.ui.notNow] : null;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move, state.keepTest, state.ui.notNow] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;

@@ -15,6 +15,7 @@ import { startWaysRunner } from './ways.js';
 import { startMixRunner } from './mix.js';
 import { startHouseholdRunner } from './household.js';
 import { startMoveRunner } from './move.js';
+import { startKeepTestRunner } from './keepTest.js';
 import { startSaverRunner } from './saver.js';
 import { createWorkerClient } from './workerClient.js';
 import { startActivity } from './activity.js';
@@ -77,6 +78,8 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   // "What you pay in" (research/saving-enough-and-check-in.md 4.4): the plan's verdict — question B on the plan's own figures —
   // in the worker's own lane, on that step only; no page fallback, as for the plan's other runs
   stops.push(startSaverRunner({ store, client }));
+  // "Test what you keep against your plan" (7.7.0): the plan's own test as locked and as held, in the worker's own lane, only when asked
+  stops.push(startKeepTestRunner({ store, client }));
 
   // The saved plans (research/v7/your-plan.md 4.1, 4.3): activity for the planner's idle sign-out on every page; the
   // hand-over to the planner; and the plan source — the one Firebase file, with the one write file — loaded only where

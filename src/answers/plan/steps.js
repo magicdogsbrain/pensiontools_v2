@@ -62,7 +62,7 @@ export const SAVER_STAGES = Object.freeze(['saving', 'approaching', 'committed-s
  * answer, the household — and then the sentences that are not things to do (NEXT_INFO), said only when nothing is due. The rail's
  * "Next" is the first thing to do (read.js dueFor), so it is always the home's first to-do.
  */
-export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.closed', 'P.closedAlone', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.startDraft', 'P.draft', 'P.startMove', 'P.startAsk', 'P.startBlocked', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.gapSoon', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending',
+export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.closed', 'P.closedAlone', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.startDraft', 'P.draft', 'P.startMove', 'P.startAsk', 'P.startBlocked', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.gapSoon', 'P.keepTest', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending',
   'P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
 /** The next sentences that say where things stand rather than something to do: never a to-do on the home. */
 export const NEXT_INFO = Object.freeze(['P.readonly', 'P.closedAlone', 'P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
@@ -71,7 +71,7 @@ export const DUE_IDS = Object.freeze({
   'P.closed': 'closed.next', 'P.noAge': 'plan.noAge', 'P.agesFromSaving': 'plan.agesFromSaving', 'P.invite': 'move.invite', 'P.draft': 'lock.first', 'P.startMove': 'start.move', 'P.startAsk': 'start.ask', 'P.startBlocked': 'start.blocked', 'P.startDraft': 'start.draft',
   'P.taxyear': 'month.taxYear', 'P.arrive': 'month.arrive', 'P.month': 'month.record', 'P.moveNext': 'move.next', 'P.moveLater': 'move.next', 'P.moveFinish': 'move.finish',
   'P.firstCheckIn': 'checkin.first', 'P.pot': 'checkin.due', 'P.checkinDue': 'checkin.due', 'P.behind': 'checkin.behind', 'P.noAim': 'saving.noAim',
-  'P.holdStale': 'hold.stale', 'P.gapSoon': 'hold.gap', 'P.stale': 'draft.stale', 'P.recheck': 'answer.stale', 'P.householdPending': 'household.pending'
+  'P.holdStale': 'hold.stale', 'P.gapSoon': 'hold.gap', 'P.keepTest': 'hold.keepTest', 'P.stale': 'draft.stale', 'P.recheck': 'answer.stale', 'P.householdPending': 'household.pending'
 });
 
 /**

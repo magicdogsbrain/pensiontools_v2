@@ -38,6 +38,30 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.6.0', date: '2026-11-09', engineVersion: '6.39.0',
+    title: 'Keep what you hold: say what you are keeping, and see what it covers',
+    summary: 'On a locked plan you can now say you are keeping something you hold, so the plan stops asking you to sell it. A gilt can stand in for some years of your plan’s money, and anything else can be kept by your choice. You can also add money you expect later, such as a pension you plan to transfer in. The plan then shows, year by year, what is covered, what is not yet covered, and roughly when each year’s money runs out without it. Your plan’s settings and its plan document stay exactly as locked.',
+    changes: [
+      'Each line of What you hold has Keep this: it stands in for some years of the plan’s money, or you are keeping it by choice. A line you keep is never listed as a sale.',
+      'A conventional gilt kept in place of a year’s money is shown as what it pays: a fixed amount that does not rise with prices, and what that is worth at today’s prices when it is paid.',
+      'Money you expect later can be added with an amount and a month. The plan shows how long each year’s money lasts without it, and what it covers if it arrives.',
+      'What is covered, year by year, on What you hold and the move, in both apps. The plan’s home says when a year is not yet covered.'
+    ],
+    corrections: [
+      'A pasted conventional gilt is no longer read as an index-linked gilt maturing in the same year.'
+    ],
+    effects: {
+      stress: [],
+      strategies: [],
+      decision: ['A locked plan’s settings and plan document are unchanged by anything you keep.'],
+      accumulation: [],
+      budget: [],
+      household: []
+    },
+    actions: ['If you hold something the plan keeps asking you to sell, open What you hold and press Keep this.'],
+    notes: []
+  },
+  {
     version: '7.5.0', date: '2026-11-09', engineVersion: '6.39.0', announce: true,
     title: 'A new front door, pictures of your own pot, and no limit on questions',
     summary: 'The front door now shows a pension over a life and three ways in: still saving, stopping soon, already retired. Each opens the quickest way to your own answer. The answers gain a slider to try a different figure at once, the three figures that matter, and a picture of your own pot over the years with the bad case shaded. You can ask as many questions as you like without an account. Your figures are worked out exactly as before.',

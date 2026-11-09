@@ -13,6 +13,8 @@
 import { esc } from './ReleaseNotesView.js';
 import { CATEGORY_CHOICES, needsCategory, isGiltCode } from '../../services/HoldingsPaste.js';
 import { SUB_ASSET_PROFILES, FUND_TAG_MAP } from '../../services/SubAssetModel.js';
+import { sayGapLine } from '../../answers/plan/gaps.js';
+import { GAPS } from '../../v7/copy/gaps.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const units = (u) => (u == null ? '' : Math.round(u).toLocaleString('en-GB'));
@@ -50,12 +52,58 @@ function wrapperSelect(i, current) {
   return '<select' + attr + ' style="width:auto;">' + HOLDING_WRAPPERS.map((w) => '<option value="' + w + '"' + (String(current || 'SIPP').toUpperCase() === w ? ' selected' : '') + '>' + w + '</option>').join('') + '</select>';
 }
 
+const taxYearWords = (Y) => Y + '/' + String(+Y + 1).slice(2);
+/**
+ * "Keep this" on one line (7.6.0): not kept, standing in for some tax years (typed as "2027/28, 2028/29"), or kept by
+ * choice (counted toward the gaps, or not). Each change is one save of the record (the shell's keepHolding / keepHoldingYears).
+ */
+function keepCellHtml(i, L, ladder) {
+  const k = L && L.keep;
+  const cur = !k ? '' : k.as === 'rung' ? 'rung' : k.fundsGaps ? 'mineGaps' : 'mine';
+  const opts = [['', 'Not kept'], ...(ladder ? [['rung', 'Stands in for some years']] : []), ['mine', 'Kept by choice'], ['mineGaps', 'Kept by choice, counted toward the gaps']];
+  let h = '<select data-on-change="keepHolding(' + i + ',this.value)" style="width:auto;" title="Keep this">' + opts.map((o) => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('') + '</select>';
+  if (cur === 'rung') h += '<br><input type="text" value="' + esc((k.taxYears || []).map(taxYearWords).join(', ')) + '" placeholder="2027/28, 2028/29" style="width:150px;margin-top:4px;" title="The tax years it stands in for" data-on-change="keepHoldingYears(' + i + ',this.value)">';
+  return h;
+}
+
+/** Money expected later (7.6.0): each item with Remove, and the add row (the shell's addExpected / removeExpected). */
+function expectedHtml(expected) {
+  const E = GAPS.expected;
+  const list = Array.isArray(expected) ? expected : [];
+  let h = '<div class="section-title" style="margin-top:10px;">' + esc(E.title) + '</div><p class="hint">' + esc(E.lead) + '</p>';
+  if (!list.length) h += '<p class="hint">' + esc(E.none) + '</p>';
+  else h += '<ul style="font-size:13px;line-height:1.6;">' + list.map((e) => '<li>' + esc((e.label || E.unnamed) + ': ' + gbp(e.amount) + (e.by ? ', expected by ' + monthName(e.by) : '') + '.') + ' <button type="button" class="risk-btn" data-on-click="removeExpected(\'' + esc(e.id) + '\')">Remove</button></li>').join('') + '</ul>';
+  h += '<div class="row-flex" style="gap:8px;align-items:flex-end;flex-wrap:wrap;">'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + esc(E.fields.label) + '<input type="text" id="hlExpLabel" style="min-width:160px;"></label>'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + esc(E.fields.amount) + '<input type="number" id="hlExpAmount" step="any" style="width:120px;"></label>'
+    + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">' + esc(E.fields.by) + '<input type="month" id="hlExpBy" style="width:150px;"></label>'
+    + '<button type="button" class="risk-btn" data-on-click="addExpected()">' + esc(E.add) + '</button></div>';
+  return h;
+}
+
+/**
+ * "What is covered, year by year" (7.6.0): the same reading and the same sentences as V7 (answers/plan/gaps.js gapsView,
+ * filled with src/v7/copy/gaps.js), as a table and a list. Nothing when the record keeps nothing.
+ */
+export function gapsHtml(gaps) {
+  if (!gaps) return '';
+  const G = GAPS;
+  let h = '<div class="section-title" style="margin-top:12px;">' + esc(G.title) + '</div><p class="hint">' + esc(G.lead) + '</p>';
+  h += '<ul style="font-size:13px;line-height:1.6;" id="transitionGaps">' + gaps.lines.map((l) => '<li data-line="' + esc(l.id) + '">' + esc(sayGapLine(l, G)) + '</li>').join('') + '</ul>';
+  if (gaps.ladder && gaps.rows.length) {
+    const held = (r) => (r.parts.length ? r.parts.map((p) => (p.kind === 'standIn' ? p.label + ' ' + p.amount : G.heldParts[p.kind] + ' ' + p.amount)).join(', ') : G.none) + (r.toBuy ? ' · ' + G.heldParts.toBuy.replace('{amount}', r.toBuy) : '');
+    h += table([G.columns.year, G.columns.need, G.columns.held, G.columns.gap], gaps.rows.map((r) => [esc(r.thisYear ? G.thisYear.replace('{year}', r.year).replace('{months}', r.monthsLeft).replace('{s}', r.monthsLeft === '1' ? '' : 's') : r.year), esc(r.need), esc(held(r)), esc(r.gap || G.none)]));
+  }
+  return h;
+}
+
 /**
  * The "What you hold" card: the holdings record as an editable table (no import from the Stress
  * tester's fund list as a starting point, and the paste / save buttons.
- * @param {{ holdings?: { updatedAt, source, offerDismissed, lines: [] }, offer?: { taggedFunds: [] }|null }} a
+ * @param {{ holdings?: { updatedAt, source, offerDismissed, lines: [], expected? }, offer?: { taggedFunds: [] }|null, keep?: { ladder: boolean }|null }} a
+ *   keep — 7.6.0: set on a plan with a plan document: each line gets "Keep this", and money expected later is listed
  */
-export function holdingsCardHtml({ holdings = null, offer = null } = {}) {
+export function holdingsCardHtml({ holdings = null, offer = null, keep = null } = {}) {
   const rec = holdings || {};
   const lines = Array.isArray(rec.lines) ? rec.lines : [];
   let h = '<div class="card" id="holdingsCard"><h2>What you hold</h2>';   // the shell scrolls here from "what you hold" links elsewhere
@@ -74,10 +122,11 @@ export function holdingsCardHtml({ holdings = null, offer = null } = {}) {
         '<input type="number" step="any" value="' + numAttr(L.units) + '" placeholder="units" style="width:110px;" data-on-change="updHolding(' + i + ',\'units\',this.value)">',
         '<input type="number" step="any" value="' + numAttr(L.value) + '" placeholder="£" style="width:120px;" data-on-change="updHolding(' + i + ',\'value\',this.value)">',
         whatItIsHtml(i, L),
+        ...(keep ? [keepCellHtml(i, L, keep.ladder)] : []),
         '<button type="button" class="risk-btn" title="Remove this line" data-on-click="removeHolding(' + i + ')">Remove</button>'
       ];
     });
-    h += table(['Wrapper', 'Ticker / gilt code', 'Name', 'Units', 'Value', 'What it is', ''], rows);
+    h += table(['Wrapper', 'Ticker / gilt code', 'Name', 'Units', 'Value', 'What it is', ...(keep ? ['Keep this'] : []), ''], rows);
     const byW = {}; for (const l of lines) { const w = String((l && l.wrapper) || 'SIPP').toUpperCase(); byW[w] = (byW[w] || 0) + (+(l && l.value) || 0); }
     h += '<p class="hint" style="margin-top:6px;">Total ' + gbp(Object.values(byW).reduce((t, v) => t + v, 0)) + ' — ' + HOLDING_WRAPPERS.filter((w) => byW[w] > 0).map((w) => w + ' ' + gbp(byW[w])).join(' · ') + '. Units matter for gilts (the nominal); value is enough for a fund.</p>';
     // Every line counts in the total; a line the tool cannot place is said, not dropped from the mix in silence (6.23)
@@ -97,6 +146,7 @@ export function holdingsCardHtml({ holdings = null, offer = null } = {}) {
     + '<button type="button" class="risk-btn" data-on-click="addHoldingLine()">Add line</button></div>';
   h += '<div class="row-flex" style="margin-top:10px;gap:8px;"><button type="button" class="risk-btn" data-on-click="pasteHoldings()">Paste from my platform</button>'
     + '<button type="button" data-on-click="saveHoldingsUI()">Save</button></div>';
+  if (keep) h += expectedHtml(rec.expected);
   h += '</div>';
   return h;
 }
@@ -109,11 +159,13 @@ export function holdingsCardHtml({ holdings = null, offer = null } = {}) {
  *   complete — overrides diff.complete when given.
  */
 export function transitionHtml(a) {
-  const { stage, doc, target, diff, seq, prog, done = {}, holdings = null, offer = null, rotation = null, startLabel = '' } = a || {};
+  const { stage, doc, target, diff, seq, prog, done = {}, holdings = null, offer = null, rotation = null, startLabel = '', gaps = null } = a || {};
   const lines = holdings && Array.isArray(holdings.lines) ? holdings.lines : [];
   const ledgerCount = a && a.ledgerCount != null ? a.ledgerCount : lines.filter(valued).length;
-  // (i) What you hold — the record, always editable, whether or not there is a plan document yet
-  let h = holdingsCardHtml({ holdings, offer });
+  // (i) What you hold — the record, always editable, whether or not there is a plan document yet; "Keep this" (7.6.0) once
+  // there is a plan document to keep against
+  const keep = doc && target && target.kind !== 'none' ? { ladder: target.kind === 'ladder' } : null;
+  let h = holdingsCardHtml({ holdings, offer, keep });
   h += '<div class="card">';
   h += '<h2>Transition — from what you hold to the plan</h2>';
   if (!doc || !target || target.kind === 'none' || !diff || !prog) {
@@ -125,7 +177,7 @@ export function transitionHtml(a) {
   h += '<p class="hint">Target: ' + esc(kindText) + '. ' + esc(target.note || '') + '</p>';
   // (ii) Status
   if (complete) {
-    h += '<div class="alert alert-success"><strong>' + (target.kind === 'ladder' ? 'Complete — nothing to do.</strong> Every rung the plan still needs is held.' : 'Complete — the target mix is held.</strong>')
+    h += '<div class="alert alert-success"><strong>' + (target.kind === 'ladder' ? 'Complete — nothing to do.</strong> ' + (diff.standIn || diff.kept ? 'Every rung is held, or covered by what you chose to keep.' : 'Every rung the plan still needs is held.') : 'Complete — the target mix is held.</strong>')
       + (rotation && rotation.applies ? ' Only the rotation watch below remains.' : '') + '</div>';
   } else {
     const tone = prog.held >= 98 ? 'alert-success' : prog.held >= 50 ? 'alert-info' : 'alert-warning';
@@ -158,6 +210,13 @@ export function transitionHtml(a) {
   if (diff.hold.length) h += '<div class="section-title" style="margin-top:10px;">Already held</div>' + table(['What', 'Held', 'Target'], diff.hold.map((x) => [esc(x.label) + (x.ticker ? ' <span class="hint">' + esc(x.ticker) + '</span>' : ''), (x.heldUnits != null ? units(x.heldUnits) + ' units' : gbp(x.heldValue)) + (x.spare > 0 ? ' <span class="hint">(' + gbp(x.spare) + ' spare — kept, not a sale)</span>' : ''), x.units ? units(x.units) + ' units' : gbp(x.value)]));
   if (ledgerCount) h += '<p class="hint" style="margin-top:8px;">If a line under What you hold is not yours — a pasted statement can mis-read a code — remove it there and this page updates.</p>';
   if (diff.keep.length) h += '<p class="hint" style="margin-top:8px;">Left alone: ' + diff.keep.map((k) => esc(k.ticker || k.name) + ' (' + esc(k.wrapper) + ', ' + gbp(k.value) + ')').join(', ') + '.</p>';
+  // 7.6.0: what you keep instead — never a sale
+  if (Array.isArray(diff.standIn) && diff.standIn.length) h += '<div class="section-title" style="margin-top:10px;">' + esc(GAPS.move.standIn) + '</div><ul style="font-size:13px;line-height:1.6;">'
+    + diff.standIn.map((x) => '<li>' + esc(GAPS.move.standInOne.replace('{label}', x.label || x.ticker).replace('{years}', x.taxYears.map(taxYearWords).join(', ')).replace('{pays}', gbp(x.pays))) + '</li>').join('')
+    + (diff.covered || []).map((x) => '<li class="hint">' + esc(GAPS.move.covered.replace('{label}', x.label).replace('{years}', x.taxYears.map(taxYearWords).join(', '))) + '</li>').join('') + '</ul>';
+  if (Array.isArray(diff.kept) && diff.kept.length) h += '<div class="section-title" style="margin-top:10px;">' + esc(GAPS.move.kept) + '</div><ul style="font-size:13px;line-height:1.6;">'
+    + diff.kept.map((x) => '<li>' + esc(GAPS.move.keptOne.replace('{label}', x.label || x.ticker).replace('{wrapper}', x.wrapper).replace('{value}', gbp(x.value)).replace('{gaps}', x.fundsGaps ? GAPS.move.keptGaps : '')) + '</li>').join('') + '</ul>';
+  h += gapsHtml(gaps);
   if (!complete) h += '<p class="hint">Totals: buy ' + gbp(diff.totals.buyCost) + ' · sell ' + gbp(diff.totals.sellValue) + (diff.totals.shortfall ? ' · <strong>short by ' + gbp(diff.totals.shortfall) + '</strong> before contributions' : '') + '.</p>';
 
   // Timeline

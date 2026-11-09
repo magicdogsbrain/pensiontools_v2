@@ -1161,7 +1161,8 @@ function reduceAction(state, action) {
     case A.PLAN_HOLD: {
       const { planId, change } = action;
       if (typeof planId !== 'string' || !planId) return refuse('plan/hold: needs a plan id');
-      if (!change || typeof change !== 'object' || !['add', 'edit', 'remove', 'paste'].includes(change.kind)) return refuse('plan/hold: needs a change (add, edit, remove or paste)');
+      // 7.6.0: "Keep this" (keep) and money expected later (expected) are changes of the record too
+      if (!change || typeof change !== 'object' || !['add', 'edit', 'remove', 'paste', 'keep', 'expected'].includes(change.kind)) return refuse('plan/hold: needs a change (add, edit, remove, paste, keep or expected)');
       if (state.ui.saving) return state;
       return { ...state, ui: { ...state.ui, saving: { planId, kind: 'hold', change }, saveProblem: null, toast: null } };
     }

@@ -494,7 +494,9 @@ export const PLAN = {
     /** A draft still set to start later than this tax year (7.4.0): its start is chosen on "About you and when". */
     chooseStart: 'Choose the start',
     seeMove: 'See the move',
-    updateHold: 'Update what you hold'
+    updateHold: 'Update what you hold',
+    /** 7.6.0: a year not yet covered by what is held and kept opens "What you hold", where the gaps are read year by year. */
+    seeGaps: 'See what is covered'
   },
 
   /** The next sentence (2.4), by id, first match wins. */
@@ -538,6 +540,7 @@ export const PLAN = {
     'P.moveFinish': 'Every move is ticked. Next: update what you hold, so it shows the plan’s mix.',
     'P.firstCheckIn': 'Next: your first check-in. It says where your pot is today, and how often you want to check in.',
     'P.holdStale': 'What you hold was last updated on {date}. Next: update it.',
+    'P.gapSoon': '{gapYear}: {gap} is not yet covered by what you hold and keep. Next: see what is covered, year by year.',
     'P.householdPending': 'Your partner’s plan is not in this account. Next: link one, or leave it.'
   },
 

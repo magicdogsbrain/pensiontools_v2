@@ -4097,6 +4097,7 @@
       listScenariosAsync,
       getActiveScenarioId,
       getActiveScenarioAsync,
+      getActiveScenarioAsStored,
       switchScenario,
       createNewScenario,
       duplicateScenario,
@@ -4176,8 +4177,9 @@
     import { nextStepFor, nextStepAction } from './src/services/NextStep.js';   // the next-step banner follows the life stage (6.20.2)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js'; import { withV7Keys } from './src/services/SaverPayIn.js';
-    import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove } from './src/services/TransitionPlanner.js';
+    import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
+    import { installKeepHandlers, transitionGaps } from './src/ui/keepHoldingsUi.js';
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { configureMonthlyEntry, readMonthlyEntry, prefillMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
@@ -7446,13 +7448,14 @@
         const ss = ssLive;
         const testList = (Array.isArray(ss.taggedFunds) ? ss.taggedFunds : []).filter((f) => f && f.ticker && +f.value > 0);
         const offer = null;   // 6.13.1: the Stress tester's list is never offered as what you hold — not even as a question
-        const diff = diffHoldings(ledger, target);
+        const diff = diffHoldings(ledger, target, { needs: yearNeedsOf(doc), today });   // the document's needs, read only when a line is kept (7.6.0)
+        const gaps = transitionGaps(await getActiveScenarioAsStored().catch(() => null), rec, today);   // "What is covered, year by year" (7.6.0): V7's reading
         let contributionsMonthly = 0; try { const hp = holdingsProportions(ledger); contributionsMonthly = hp.contributions.monthly || 0; if (!contributionsMonthly) { const acc = await getActiveAccumulation(); if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) contributionsMonthly = (+acc.netMonthly || 0) * 1.25 + (+acc.employerMonthly || 0); } } catch (e) { contributionsMonthly = 0; }
         const seq = target.kind === 'none' ? null : transitionSequence(diff, { today: new Date(), startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (new Date().getFullYear() + 1), startMonth: stage?.startMonth || doc?.timing?.startMonth || null, contributionsMonthly });
         const tr = await getActiveTransition();
         const prog = transitionProgress(diff, tr.done || {});
         let rotation = null; try { const t = deriveTiming(ss); rotation = rotationStatus(doc, { today, ageToday: t.currentAge || null, params: ss.strategyParams || null }); } catch (e) { rotation = null; }
-        box.innerHTML = transitionHtml({ stage, doc, target, diff, seq, prog, done: tr.done || {}, ledgerCount: ledger.filter((f) => f && (+f.value > 0 || +f.units > 0)).length, startLabel: stage?.startLabel || '', holdings: rec, offer, rotation, complete: !!diff.complete });
+        box.innerHTML = transitionHtml({ stage, doc, target, diff, seq, prog, done: tr.done || {}, ledgerCount: ledger.filter((f) => f && (+f.value > 0 || +f.units > 0)).length, startLabel: stage?.startLabel || '', holdings: rec, offer, rotation, complete: !!diff.complete, gaps });
         window._transitionLast = { diff, seq };
       } catch (e) { console.error('transition', e); box.innerHTML = '<p class="hint">Could not build the transition: ' + budEsc(e.message) + '</p>'; }
     };
@@ -7476,6 +7479,8 @@
       // The record after the edit is HoldingsRecord.holdingsWith's (6.43.0: the one function both apps change the record with).
       persistHoldings(holdingsWith(d, { kind: 'edit', index: i, field: k, value: v }, { today: new Date() })).catch(function (e) { showToast('Could not save what you hold: ' + e.message, 'error'); });
     };
+    // "Keep this" and money expected later (7.6.0): each one save of the record, as V7 changes it (src/ui/keepHoldingsUi.js)
+    installKeepHandlers(window, { draft: () => window._holdingsDraft, persist: (rec) => persistHoldings(rec), toast: showToast });
     window.removeHolding = async function (i) { const d = window._holdingsDraft; if (!d || !d.lines || !d.lines[i]) return; await persistHoldings(holdingsWith(d, { kind: 'remove', index: i }, { today: new Date() })); };
     window.addHoldingLine = async function () {
       // The card's inline add row (hlTicker/hlName/hlWrapper/hlValue/hlUnits) when filled in; else an empty editable row.

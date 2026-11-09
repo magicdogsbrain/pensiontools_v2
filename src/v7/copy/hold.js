@@ -50,7 +50,9 @@ export const HOLD = {
     tooLow: '0 or more, please.',
     tooHigh: 'A smaller figure, please.',
     required: 'This box is needed.',
-    notAnOption: 'One of the choices, please.'
+    notAnOption: 'One of the choices, please.',
+    notAMonth: 'A month, like April 2027.',
+    noYears: 'Choose at least one tax year.'
   },
   add: {
     lead: 'A fund by code or name from our own list, a gilt by its code, SEDOL or year, or “cash” as an amount — and the account it is held in. A filled line saves at once.',
@@ -106,6 +108,11 @@ export const HOLD = {
     edited: 'Saved. ‘{name}’ changed.',
     removed: 'Saved. ‘{name}’ removed from your {wrapper}.',
     pasted: 'Saved. {updated} line{s} updated, {added} added to your {wrapper}.',
+    kept: 'Saved. ‘{name}’ kept.',
+    unkept: 'Saved. ‘{name}’ no longer kept.',
+    expectedAdded: 'Saved. Money you expect added.',
+    expectedEdited: 'Saved. Money you expect changed.',
+    expectedRemoved: 'Saved. Money you expect removed.',
     undone: 'Put back as it was.',
     unchanged: 'Nothing to save.',
     savedShort: 'Saved.'

@@ -12,8 +12,11 @@ import { planView, planHoldView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { HOLD as W } from '../../copy/hold.js';
+import { GAPS } from '../../copy/gaps.js';
+import { GapsSection } from './Gaps.jsx';
 
 const w = PLAN.page;
+const K = GAPS.keep;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
 const T = 'plan.hold';
 
@@ -63,8 +66,12 @@ function Line({ l, group, V, dispatch, planId }) {
       ) : (
         <p class="line">{l.units ? fill(W.line.fields.units.label, {}) + ' ' + l.units + ' · ' : ''}{W.line.fields.value.label}: {l.value || '—'}</p>
       )}
+      {l.keep && <KeepLine l={l} V={V} dispatch={dispatch} planId={planId} />}
       {V.editable && !removing && (
         <div class="actions-row income-card-actions">
+          {/* "Keep this" (7.6.0): the line kept as a stand-in for some years, or by choice — never a sell on the move */}
+          {V.canKeep && V.keepIndex !== l.index && <Button testid={`${base}.keep.open`} kind="quiet" onClick={() => dispatch({ type: 'plan/edit', planId, path: 'keep.index', value: String(l.index) })} {...keepFocus}>{l.keep && l.keep.saved ? K.change : K.button}</Button>}
+          {V.canKeep && l.keep && l.keep.stop && V.keepIndex !== l.index && <Button testid={`${base}.keep.stop`} kind="quiet" onClick={() => dispatch({ type: 'plan/hold', planId, change: l.keep.stop })} {...keepFocus}>{K.stop}</Button>}
           <Button testid={`${base}.remove`} kind="quiet" onClick={() => dispatch({ type: 'plan/edit', planId, path: 'remove.index', value: String(l.index) })} {...keepFocus}>{W.line.remove}</Button>
         </div>
       )}
@@ -78,6 +85,93 @@ function Line({ l, group, V, dispatch, planId }) {
         </div>
       )}
     </fieldset>
+  );
+}
+
+/**
+ * "Keep this" on one line (7.6.0): what it is kept as now, and — when asked — the choice: it stands in for the plan's money for
+ * some tax years (a ladder only), or it is kept by choice (and counted toward the gaps, or not). "Keep it" is ONE write.
+ */
+function KeepLine({ l, V, dispatch, planId }) {
+  const k = l.keep;
+  const base = `${T}.line.${l.index}.keep`;
+  const edit = (path, value) => dispatch({ type: 'plan/edit', planId, path, value });
+  const saved = k.saved ? (k.saved.as === 'rung' ? fill(K.standsIn, { years: k.saved.years.join(', ') }) : k.saved.fundsGaps ? K.byChoiceGaps : K.byChoice) : null;
+  const asking = V.canKeep && V.editable && V.keepIndex === l.index;
+  return (
+    <div class="hold-keep" data-testid={base} data-kept={k.saved ? k.saved.as : ''}>
+      {saved && <p class="note" data-testid={`${base}.saved`}>{saved}</p>}
+      {asking && (
+        <fieldset class="field field-choice notice" data-testid={`${base}.box`}>
+          <legend>{K.asked}</legend>
+          {(V.keepLadder ? ['rung', 'mine'] : ['mine']).map((o) => (
+            <div class="option" key={o}>
+              <div class="option-row">
+                <input type="radio" id={`${base}.as.${o}`} data-testid={`${base}.as.${o}`} name={`${base}.as`} value={o} checked={k.as === o} onClick={() => edit(k.paths.as, o)} onChange={() => {}} />
+                <label for={`${base}.as.${o}`}>{K[o]}</label>
+              </div>
+            </div>
+          ))}
+          {k.as === 'rung' && (
+            <fieldset class="hold-keep-years" data-testid={`${base}.years`}>
+              <legend>{K.years}</legend>
+              {k.years.map((y) => (
+                <div class="option-row" key={y.Y}>
+                  <input type="checkbox" id={`${base}.year.${y.Y}`} data-testid={`${base}.year.${y.Y}`} checked={y.on} onClick={() => edit(k.paths.years, y.value)} onChange={() => {}} />
+                  <label for={`${base}.year.${y.Y}`}>{y.label}</label>
+                </div>
+              ))}
+              {k.error && <p class="error" data-testid={`${base}.error`}>{K.noYears}</p>}
+            </fieldset>
+          )}
+          {k.as === 'mine' && (
+            <div class="option-row">
+              <input type="checkbox" id={`${base}.gaps`} data-testid={`${base}.gaps`} checked={k.gaps} onClick={() => edit(k.paths.gaps, k.gaps ? '0' : '1')} onChange={() => {}} />
+              <label for={`${base}.gaps`}>{K.fundsGaps}</label>
+            </div>
+          )}
+          <div class="actions-row">
+            <Button testid={`${base}.save`} kind="primary" disabled={!k.change} onClick={() => { if (k.change) { dispatch({ type: 'plan/hold', planId, change: k.change }); edit('keep.index', ''); } }} {...keepFocus}>{K.save}</Button>
+            <Button testid={`${base}.cancel`} kind="quiet" onClick={() => edit('keep.index', '')} {...keepFocus}>{K.cancel}</Button>
+          </div>
+        </fieldset>
+      )}
+    </div>
+  );
+}
+
+/** Money expected later (7.6.0): each item (its amount and month save on leaving the box; Remove at once), and the add box. */
+function Expected({ V, dispatch, planId, F }) {
+  const E = GAPS.expected;
+  const field = (f, words) => <EditField step="hold" f={{ path: f.path, type: f.path.endsWith('.by') ? 'month' : 'money', applies: true, shown: f.shown, saved: null, error: f.error }} words={words} errors={W.errors} source={null} planId={planId} dispatch={dispatch} />;
+  const onBlur = (f) => () => { dispatch({ type: 'plan/touch', planId, path: f.path }); if (f.change) dispatch({ type: 'plan/hold', planId, change: f.change }); };
+  return (
+    <section class="plan-section" data-section="expected" data-testid={`${T}.expected`}>
+      <h2>{E.title}</h2>
+      <p class="note">{E.lead}</p>
+      {V.expected.length === 0 && <p class="note" data-testid={`${T}.expected.none`}>{E.none}</p>}
+      {V.expected.map((e) => (
+        <fieldset class="income-card hold-line" key={e.id} data-testid={`${T}.expected.${e.id}`}>
+          <legend>{e.label || E.unnamed}</legend>
+          <p class="note" data-testid={`${T}.expected.${e.id}.line`}>{fill(e.by ? E.item : E.itemNoBy, { label: e.label || E.unnamed, amount: e.amount, by: e.by || '' })}</p>
+          {V.editable && (
+            <div class="hold-boxes">
+              <div onfocusout={onBlur(e.fields.amount)}>{field(e.fields.amount, { label: E.fields.amount })}</div>
+              <div onfocusout={onBlur(e.fields.by)}>{field(e.fields.by, { label: E.fields.by })}</div>
+            </div>
+          )}
+          {V.editable && <div class="actions-row"><Button testid={`${T}.expected.${e.id}.remove`} kind="quiet" onClick={() => dispatch({ type: 'plan/hold', planId, change: e.remove })} {...keepFocus}>{E.remove}</Button></div>}
+        </fieldset>
+      ))}
+      {V.editable && (
+        <div data-testid={`${T}.expected.add`}>
+          {F('expected.label', { words: { label: E.fields.label } })}
+          {F('expected.amount', { words: { label: E.fields.amount } })}
+          {F('expected.by', { words: { label: E.fields.by } })}
+          <div class="actions-row"><Button testid={`${T}.expected.addButton`} kind="plain" disabled={!V.expectedAdd} onClick={() => { if (V.expectedAdd) { dispatch({ type: 'plan/hold', planId, change: V.expectedAdd }); for (const p of ['expected.label', 'expected.amount', 'expected.by']) dispatch({ type: 'plan/edit', planId, path: p, value: '' }); } }} {...keepFocus}>{E.add}</Button></div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -283,6 +377,8 @@ export function HoldScreen(state, dispatch) {
             ))}
             {V.editable && V.count > 0 && <p class="note">{W.line.saveNote}</p>}
           </section>
+          {V.canKeep && <GapsSection gaps={V.gaps} prefix={T} />}
+          {V.canKeep && <Expected V={V} dispatch={dispatch} planId={planId} F={F} />}
           {V.editable && <Add V={V} dispatch={dispatch} planId={planId} F={F} />}
           {V.editable && <Paste V={V} dispatch={dispatch} planId={planId} />}
           <Mix V={V} />

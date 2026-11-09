@@ -31,6 +31,7 @@ import { pounds } from './income.js';
 import { MOVE_WRITES } from './schema.js';
 import { dateOf, dayWords, monthWords, MONTHS } from './dates.js';
 import { isClosedPlan, closedReading } from '../../services/PlanClosed.js';
+import { gapsOf, gapsView } from './gaps.js';
 
 export { runKeyOf, APPROACHING_YEARS };
 
@@ -210,6 +211,21 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
     schedule: seq ? { steps: seq.steps.map((st) => ({ when: ym(st.when), action: st.action, label: st.label, ticker: st.ticker || '', units: units(st.units), amount: pounds(st.amount) })), tranches: String(seq.tranches), months: String(seq.months), funded: !!seq.funded, startPassed: !!seq.startPassed, short: !seq.funded ? pounds(seq.totals.buy - seq.totals.sell - seq.totals.contributions) : null, newMoney: seq.totals.contributions > 0 ? pounds(seq.totals.contributions) : null } : null,
     start, isaPolicy: s.ss.isaDrawdownStrategy === 'hold' ? 'hold' : 'draw',
     sheet, example, spGate: s.spGate ? { annual: pounds(s.spGate.annual), atAge: String(s.spGate.atAge) } : null, pricedOn: s.lockedOn,
-    watch
+    watch,
+    // 7.6.0: what the person keeps — held another way, kept by choice, the rungs covered — and the gaps it leaves; only on a
+    // record that keeps something or expects money, so a plan without keeps reads exactly as before
+    ...keptOf(plan, D, today)
+  };
+}
+
+/** The move's view of what the person keeps (7.6.0), or nothing at all when the record keeps nothing and expects nothing. */
+function keptOf(plan, D, today) {
+  let g = null; try { g = gapsOf(plan, { today }); } catch { g = null; }
+  if (!D.standIn && !g) return {};
+  return {
+    standIn: (D.standIn || []).map((x) => ({ key: x.key, label: x.label || x.ticker || '', wrapper: x.wrapper, pays: pounds(x.pays), fixed: !!x.fixed, years: x.taxYears.map((y) => taxYearLabel(+y)) })),
+    kept: (D.kept || []).map((x) => ({ key: x.key, label: x.label || x.ticker || '', wrapper: x.wrapper, value: pounds(x.value), fundsGaps: !!x.fundsGaps })),
+    covered: (D.covered || []).map((x) => ({ key: x.key, label: x.label || x.ticker || '', years: x.taxYears.map((y) => taxYearLabel(+y)), part: !!x.part })),
+    gaps: gapsView(g)
   };
 }

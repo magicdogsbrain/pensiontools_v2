@@ -31,7 +31,7 @@ import { isLockedSettings } from './LockedPlanGuard.js';
 import { deriveStage } from './LifeStage.js';
 import { whereAmI } from './PlanDocument.js';
 import { documentLadder, ladderPosition } from './LadderPosition.js';
-import { targetHoldings, diffHoldings, progress } from './TransitionPlanner.js';
+import { targetHoldings, diffHoldings, progress, yearNeedsOf } from './TransitionPlanner.js';
 import { normaliseHoldings } from './HoldingsRecord.js';
 import { potsAsOfFor, withoutPotsAsOf, lockedPotsAsOf, potsDayOf } from './PlanFromToday.js';
 import { readDayOf } from './PlanClosed.js';
@@ -272,7 +272,8 @@ export function moveInputs(scenario, { now = new Date() } = {}) {
   const ss = effectiveStressSettings(sc, { now });
   const target = targetHoldings(doc, { today: now, params: ss.strategyParams || null });
   const rec = normaliseHoldings(sc.holdings);
-  const diff = diffHoldings(rec.lines || [], target);
+  // the document's needs by year and today: read only when the record keeps something (7.6.0)
+  const diff = diffHoldings(rec.lines || [], target, { needs: yearNeedsOf(doc), today: now });
   const done = (sc.transition && sc.transition.done) || {};
   const prog = progress(diff, done);
   return { target, diff, prog, strategyParams: ss.strategyParams || null };

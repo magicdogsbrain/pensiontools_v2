@@ -17,6 +17,7 @@ export const MOVE = {
   status: {
     done: 'Done — what you hold matches the plan’s mix.',
     doneLadder: 'Done — every rung the plan still needs is held.',
+    doneKept: 'Done — every rung is held, or covered by what you chose to keep.',
     held: '{held}% of the plan’s mix held; {done} of {moves} moves ticked off.',
     gilts: '{bought} of {rungs} gilts bought; {held}% of the plan’s mix held.',
     next: 'Next: {action} {label}{units}{amount}.',
@@ -131,7 +132,7 @@ export const MOVE = {
     columns: { n: '#', buy: 'Buy', code: 'Code', sedol: 'SEDOL', matures: 'Matures', pays: 'Pays', years: 'For tax years', units: 'Units to order', price: 'Price at lock', cost: 'Cost at lock', bought: 'Bought' },
     lots: '({lots} if the screen counts £100 lots)',
     surplus: '(the surplus held in cash)',
-    bought: { bought: 'bought', part: 'part bought', 'not yet': 'not yet', paid: 'paid out', sold: 'sold by the rotation' },
+    bought: { bought: 'bought', part: 'part bought', 'not yet': 'not yet', paid: 'paid out', sold: 'sold by the rotation', covered: 'held another way' },
     gate: 'This sheet is sized on an assumed State Pension of {annual} a year from {atAge}. Enter your State Pension forecast — the figure and the date — under About you and when, and lock the plan again before buying.',
     gateHeld: 'The units and the cost are held back until then.',
     showAnyway: 'Show the sheet anyway',

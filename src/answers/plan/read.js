@@ -30,6 +30,7 @@ import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
 import { unlockPatchesOf } from '../../services/PlanCommit.js';
 import { checkInState } from './checkInDue.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
+import { gapsOf, gapHeadline } from './gaps.js';
 import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
@@ -834,6 +835,15 @@ function rulesFor(C, built) {
   const mine = partnerIdOf(plan);
   const partnerMissing = !!mine && !C.entries.some((e) => String(e.plan.id) === mine);
   const drawingOrMoving = !!life && (life.key === 'moving' || life.key === 'drawing');
+  // 7.6.0: the first tax year not yet covered by what is held and kept, said as a thing to do only when that year has begun
+  // or starts within six months (6 April), and only once (the first such year); it opens "What you hold", never a sale
+  let gapSoon = null;
+  if (locked && !readonly) {
+    try {
+      const h = gapHeadline(gapsOf(plan, { today: localDay(now) }));
+      if (h && (h.Y <= ty || monthsBetween({ y: now.getFullYear(), m: now.getMonth() + 1 }, { y: h.Y, m: 4 }) <= 6)) gapSoon = h;
+    } catch { gapSoon = null; }
+  }
   // the last check-in's band, said with the move invitation (the design: "At your last check-in you were on course / behind")
   const band = lastBand === 'yes' ? 'yes' : lastBand === 'close' || lastBand === 'no' ? 'behind' : null;
   const RULES = {
@@ -849,6 +859,7 @@ function rulesFor(C, built) {
     'P.month':       () => retiredRunning && !recorded,
     'P.moveNext':    () => locked && !!life && life.key === 'moving' && !!prog && !!prog.next,
     'P.moveFinish':  () => locked && !!life && life.key === 'moving' && !!prog && prog.total > 0 && !prog.next,
+    'P.gapSoon':     () => !!gapSoon,
     'P.firstCheckIn': () => saverStage && key !== 'unknown' && !!ci && !ci.chosen && !ci.legacy && !(ci.count > 0),
     'P.idle':        () => retiredRunning,
     'P.noAim':       () => noAim,
@@ -887,6 +898,7 @@ function rulesFor(C, built) {
     // the move's next order, by its place in the list and its own name (never a figure: the move page says the amounts)
     ...(prog && prog.next ? { n: String(prog.doneCount + 1), of: String(prog.total), label: String(prog.next.label || prog.next.ticker || '') } : prog ? { n: String(prog.doneCount), of: String(prog.total) } : {}),
     ...(holdCount > 0 && rec.updatedAt ? { date: dayWords(rec.updatedAt) } : {}),
+    ...(gapSoon ? { gapYear: gapSoon.year, gap: gapSoon.gap } : {}),
     ...(band ? { band } : {}),
     ...(C.startLater ? { start: 'April ' + C.startLater.start, ...(C.startLater.stopMonth ? { stopped: monthWords(C.startLater.stopMonth) } : {}),
       // the move to the tax year the recorded months begin in (7.4.3): that month, and the tax year it moves to
@@ -920,6 +932,7 @@ function rulesFor(C, built) {
     'P.checkinDue': link('checkIn', checkinHref),
     'P.behind': link('seeSaving', savingHref),
     'P.holdStale': link('updateHold', holdHref),
+    'P.gapSoon': link('seeGaps', holdHref),
     'P.householdPending': link('linkOne', '#/plan/' + plan.id + '/household'),
     'P.onCourse': null,
     'P.nextCheckIn': null,

@@ -14,6 +14,8 @@ import { planView, planMoveView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { MOVE as W } from '../../copy/move.js';
+import { GAPS } from '../../copy/gaps.js';
+import { GapsSection } from './Gaps.jsx';
 
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
@@ -39,7 +41,7 @@ const amountText = (a) => (a ? fill(W.schedule.amount, { amount: a }) : '');
 function Status({ V }) {
   const S = W.status;
   const s = V.status;
-  const text = s.id === 'done' ? (V.ladder ? S.doneLadder : S.done) : fill(S[s.id], s.slots);
+  const text = s.id === 'done' ? (V.ladder ? ((V.standIn && V.standIn.length) || (V.kept && V.kept.length) ? S.doneKept : S.doneLadder) : S.done) : fill(S[s.id], s.slots);
   return (
     <section class="plan-section" data-section="status" data-testid={`${T}.status`} data-status={s.id}>
       <p class="figure" data-testid={`${T}.status.line`}>{text}</p>
@@ -160,6 +162,9 @@ function Lists({ V, dispatch, planId }) {
           </div>
         </>
       )}
+      {/* 7.6.0: what the person keeps instead — held another way (and the rungs it covers), and kept by choice; never a sell */}
+      {V.standIn && V.standIn.length > 0 && <><h2>{GAPS.move.standIn}</h2><ul class="plan-lines" data-testid={`${T}.standIn`}>{V.standIn.map((x) => <li key={x.key} class="plan-line" data-key={x.key}>{fill(GAPS.move.standInOne, { label: x.label, years: x.years.join(', '), pays: x.pays })}</li>)}{V.covered.map((x) => <li key={x.key} class="plan-line note" data-key={x.key}>{fill(GAPS.move.covered, { label: x.label, years: x.years.join(', ') })}</li>)}</ul></>}
+      {V.kept && V.kept.length > 0 && <><h2>{GAPS.move.kept}</h2><ul class="plan-lines" data-testid={`${T}.kept`}>{V.kept.map((x) => <li key={x.key} class="plan-line" data-key={x.key}>{fill(GAPS.move.keptOne, { label: x.label, wrapper: W.wrappers[x.wrapper] || x.wrapper, value: x.value, gaps: x.fundsGaps ? GAPS.move.keptGaps : '' })}</li>)}</ul></>}
       {V.recorded && <p class="note">{L.fix}</p>}
       {V.keep.length > 0 && <><h2>{L.keep}</h2><ul class="plan-lines" data-testid={`${T}.keep`}>{V.keep.map((k, i) => <li key={i} class="plan-line">{fill(L.keepOne, { label: k.label, wrapper: W.wrappers[k.wrapper] || k.wrapper, value: k.value, why: whyText(k.why) })}</li>)}</ul></>}
       {!V.complete && <p class="note" data-testid={`${T}.totals`}>{fill(L.totals, V.totals)}{V.totals.short ? fill(L.short, { short: V.totals.short }) : ''}</p>}
@@ -339,6 +344,7 @@ export function MoveScreen(state, dispatch) {
             <>
               <Cash V={V} />
               <Lists V={V} dispatch={dispatch} planId={planId} />
+              <GapsSection gaps={V.gaps} prefix={T} />
               <Schedule V={V} />
               <section class="plan-section" data-section="how" data-testid={`${T}.how`}>
                 <div class="actions-row"><Button testid={`${T}.how.open`} kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'moveHow' })} aria-expanded={V.howOpen ? 'true' : 'false'} {...keepFocus}>{V.howOpen ? W.how.close : W.how.open}</Button></div>

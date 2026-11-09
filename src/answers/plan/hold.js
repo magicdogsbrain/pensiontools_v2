@@ -19,7 +19,9 @@
  * Every path written is in schema.js HOLD_WRITES (tested); the record after a change is HoldingsRecord.holdingsWith's and
  * HoldingsPaste.applyPaste's — the same functions the planner's handlers call.
  */
-import { normaliseHoldings, holdingsSummary, holdingsWith, normaliseLine, numOrNull, WRAPPERS, LINE_FIELDS, LINE_NUMBER_FIELDS } from '../../services/HoldingsRecord.js';
+import { normaliseHoldings, holdingsSummary, holdingsWith, normaliseLine, numOrNull, WRAPPERS, LINE_FIELDS, LINE_NUMBER_FIELDS, normaliseKeep, expectedOf } from '../../services/HoldingsRecord.js';
+import { taxYearLabel, taxYearStartOf } from '../../services/PlanTiming.js';
+import { gapsOf, gapsView } from './gaps.js';
 import { applyPaste, needsCategory, CATEGORY_CHOICES, isGiltCode, parsePaste, giltFromName } from '../../services/HoldingsPaste.js';
 import { proportions } from '../../services/Holdings.js';
 import { SUB_ASSET_PROFILES, FUND_TAG_MAP, catalogueEntry } from '../../services/SubAssetModel.js';
@@ -27,9 +29,9 @@ import { searchFunds } from '../../services/FundCatalogue.js';
 import { planStage } from '../../services/PlanReading.js';
 import { readPasteText, PASTE_WHATS } from './paste.js';
 import { pounds } from './income.js';
-import { HOLD_FIELDS, HOLD_WRITES, HOLD_WRAPPERS, HOLD_WHATS } from './schema.js';
+import { HOLD_FIELDS, HOLD_WRITES, HOLD_WRAPPERS, HOLD_WHATS, HOLD_KEEP_AS } from './schema.js';
 import { SAVER_STAGES } from './steps.js';
-import { dateOf, dayWords } from './dates.js';
+import { dateOf, dayWords, monthWords, MONTHS } from './dates.js';
 import { isClosedPlan, closedReading } from '../../services/PlanClosed.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -113,9 +115,21 @@ function parsePercent(t) {
   if (!/^\d{1,2}(\.\d{1,3})?$/.test(s)) return { error: 'notANumber', value: null };
   return { error: null, value: +s };
 }
+/** A month as typed ('2027-04', '4/2027', 'April 2027') → 'YYYY-MM' (answers/plan/about.js parseMonth's forms). */
+export function parseMonthText(t) {
+  const s = String(t == null ? '' : t).trim();
+  let m = /^(\d{4})[-/](\d{1,2})$/.exec(s);
+  if (m) return +m[2] >= 1 && +m[2] <= 12 ? m[1] + '-' + String(+m[2]).padStart(2, '0') : null;
+  m = /^(\d{1,2})[-/](\d{4})$/.exec(s);
+  if (m) return +m[1] >= 1 && +m[1] <= 12 ? m[2] + '-' + String(+m[1]).padStart(2, '0') : null;
+  m = /^([A-Za-z]{3,9})\s+(\d{4})$/.exec(s);
+  if (m) { const i = MONTHS.findIndex((n) => n.toLowerCase().startsWith(m[1].toLowerCase())); return i >= 0 ? m[2] + '-' + String(i + 1).padStart(2, '0') : null; }
+  return null;
+}
 function parseField(raw, f) {
   if (f.type === 'money') return parseMoney(raw, f);
   if (f.type === 'count') return parseCount(raw, f);
+  if (f.type === 'month') { if (blank(raw)) return { error: f.required ? 'required' : null, value: null }; const v = parseMonthText(raw); return v ? { error: null, value: v } : { error: 'notAMonth', value: null }; }
   if (f.type === 'text') return { error: null, value: blank(raw) ? '' : String(raw).trim().slice(0, f.max || 80) };
   const v = blank(raw) ? f.default : String(raw);
   return f.options.includes(v) ? { error: null, value: v } : { error: 'notAnOption', value: null };
@@ -222,6 +236,22 @@ export function holdPatch(plan, change, { today }) {
       if (!(i >= 0 && i < rec.lines.length)) return fail('index');
       next = holdingsWith(rec, { kind: 'remove', index: i }, { today });
       line = { id: 'removed', slots: { name: lineName(rec.lines[i]), wrapper: rec.lines[i].wrapper } };
+    } else if (c.kind === 'keep') {
+      // "Keep this" (7.6.0): the line kept as a stand-in for some years or by choice, or kept no longer (keep null)
+      const i = +c.index;
+      if (!(i >= 0 && i < rec.lines.length)) return fail('index');
+      const keep = c.keep == null ? null : normaliseKeep(c.keep);
+      if (c.keep != null && !keep) return fail('keep');
+      next = holdingsWith(rec, { kind: 'keep', index: i, keep }, { today });
+      line = { id: keep ? 'kept' : 'unkept', slots: { name: lineName(rec.lines[i]) } };
+    } else if (c.kind === 'expected') {
+      // money expected later (7.6.0): added, changed or removed
+      if (!['add', 'edit', 'remove'].includes(c.op)) return fail('unknown');
+      const item = c.item && typeof c.item === 'object' ? c.item : {};
+      if (c.op !== 'remove' && Object.prototype.hasOwnProperty.call(item, 'amount') && !(numOrNull(item.amount) > 0)) return fail('notANumber');
+      if (c.op === 'add' && !(numOrNull(item.amount) > 0)) return fail('required');
+      next = holdingsWith(rec, { kind: 'expected', op: c.op, id: c.id, item }, { today });
+      line = { id: c.op === 'add' ? 'expectedAdded' : c.op === 'remove' ? 'expectedRemoved' : 'expectedEdited', slots: {} };
     } else if (c.kind === 'paste') {
       const wrapper = HOLD_WRAPPERS.includes(c.wrapper) ? c.wrapper : 'SIPP';
       const parsed = parsePaste(String(c.text || ''));
@@ -256,6 +286,71 @@ export function headlineOf(sum, updatedAt) {
   return { pension: pounds(sum.byWrapper.SIPP), isa: pounds(sum.byWrapper.ISA), gia: sum.byWrapper.GIA > 0 ? pounds(sum.byWrapper.GIA) : null, cash: sum.byWrapper.CASH > 0 ? pounds(sum.byWrapper.CASH) : null, total: pounds(sum.total), lines: String(sum.count), date: updatedAt ? dayWords(updatedAt) : null };
 }
 
+// ---- "Keep this" and money expected later (7.6.0) ----------------------------------------------------------------------------
+
+/**
+ * What "Keep this" can offer on this plan: only a locked plan with a plan document (the move reads against it). A ladder
+ * offers "stands in for" the tax years from this one (or the plan's first) for twelve years at most, to the plan's last;
+ * a pot plan offers only "kept by choice". Null on a plan not locked.
+ */
+export function keepChoices(plan, { today }) {
+  const now = dateOf(today);
+  const doc = isLocked(plan) && plan.planDocument && isObj(plan.planDocument) ? plan.planDocument : null;
+  if (!doc) return null;
+  const p = doc.strategy && doc.strategy.r && doc.strategy.r.plan;
+  const ladder = !!(doc.strategy && doc.strategy.contract && p && Array.isArray(p.orders));
+  if (!ladder) return { ladder: false, years: [] };
+  const thisTY = taxYearStartOf(now);
+  const first = Math.max(thisTY, +p.firstTaxYear || thisTY);
+  const last = Math.min(+p.lastTaxYear > 0 ? +p.lastTaxYear : first + 11, first + 11);
+  const years = [];
+  for (let Y = first; Y <= last; Y++) years.push(Y);
+  return { ladder: true, years };
+}
+
+/** One line's "Keep this", as typed over what is saved: the choice, the years, the gaps box, the change it makes, the way to stop. */
+function keepLine(l, index, t, K) {
+  const saved = normaliseKeep(l.keep);
+  const asT = t[`line.${index}.keepAs`];
+  const as = HOLD_KEEP_AS.includes(asT) ? asT : saved ? saved.as : (K.ladder ? '' : 'mine');
+  const yT = t[`line.${index}.keepYears`];
+  const on = yT != null ? String(yT).split(',').map((y) => +y).filter((y) => Number.isInteger(y) && y > 2000) : saved && saved.as === 'rung' ? saved.taxYears : [];
+  const gT = t[`line.${index}.keepGaps`];
+  const gaps = gT != null ? gT === '1' : !!(saved && saved.fundsGaps);
+  let change = null, error = null;
+  if (as === 'rung' && K.ladder) { if (on.length) change = { kind: 'keep', index, keep: { as: 'rung', taxYears: on.slice().sort((a, b) => a - b) } }; else error = 'noYears'; }
+  else if (as === 'mine') change = { kind: 'keep', index, keep: { as: 'mine', fundsGaps: gaps } };
+  const ys = [...new Set([...K.years, ...on])].sort((a, b) => a - b);
+  return {
+    saved: saved ? { as: saved.as, years: (saved.taxYears || []).map(taxYearLabel), fundsGaps: !!saved.fundsGaps } : null,
+    as, gaps, error, change, stop: saved ? { kind: 'keep', index, keep: null } : null,
+    years: ys.map((Y) => ({ Y: String(Y), label: taxYearLabel(Y), on: on.includes(Y), value: on.includes(Y) ? on.filter((x) => x !== Y).join(',') : [...on, Y].join(',') })),
+    paths: { as: `line.${index}.keepAs`, years: `line.${index}.keepYears`, gaps: `line.${index}.keepGaps` }
+  };
+}
+
+/** Money expected later, as typed over what is saved: each item with its amount and month boxes (each saves on leaving), and the add box. */
+function expectedView(rec, t, values, errors) {
+  const items = expectedOf(rec).map((e) => {
+    const fields = {};
+    for (const field of ['amount', 'by']) {
+      const path = `expected.${e.id}.${field}`;
+      const raw = Object.prototype.hasOwnProperty.call(t, path) ? t[path] : null;
+      const saved = field === 'amount' ? String(e.amount) : (e.by ? monthWords(e.by) : '');
+      let p = { error: null, value: field === 'amount' ? e.amount : e.by };
+      if (raw != null) p = field === 'amount' ? parseMoney(raw, { min: 0, max: 50000000, required: true }) : (blank(raw) ? { error: null, value: null } : (parseMonthText(raw) ? { error: null, value: parseMonthText(raw) } : { error: 'notAMonth', value: null }));
+      if (field === 'amount' && !p.error && !(p.value > 0)) p = { error: 'tooLow', value: p.value };
+      if (p.error) errors[path] = p.error;
+      const changed = raw != null && !p.error && String(p.value == null ? '' : p.value) !== String(field === 'amount' ? e.amount : (e.by || ''));
+      fields[field] = { path, shown: raw == null ? saved : String(raw), error: p.error || null, change: changed ? { kind: 'expected', op: 'edit', id: e.id, item: { [field]: p.value } } : null };
+    }
+    return { id: e.id, label: e.label || '', wrapper: e.wrapper, amount: pounds(e.amount), by: e.by ? monthWords(e.by) : null, fields, remove: { kind: 'expected', op: 'remove', id: e.id } };
+  });
+  const amount = values['expected.amount'];
+  const add = amount > 0 && !errors['expected.by'] ? { kind: 'expected', op: 'add', item: { label: values['expected.label'] || null, amount, by: values['expected.by'] || null, wrapper: 'SIPP' } } : null;
+  return { items, add };
+}
+
 /** Everything the screen draws. */
 export function holdOf(entries, id, { today, typed = null, source = 'account' } = {}) {
   const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
@@ -272,10 +367,21 @@ export function holdOf(entries, id, { today, typed = null, source = 'account' } 
     shown: blank(c.shown[f.path]) ? (f.type === 'choice' && f.default != null ? f.default : '') : String(c.shown[f.path]),
     saved: null, error: c.errors[f.path] || null
   }));
+  // "Keep this" (7.6.0): only on a locked plan with a plan document, and only where the record can be changed here
+  const K = !readonly && !closed ? keepChoices(plan, { today }) : null;
   const groups = s.groups.map((g) => ({ wrapper: g.wrapper, total: pounds(g.lines.reduce((t, l) => t + (+l.value || 0), 0)), lines: g.lines.map((l) => ({
     index: l.index, ticker: l.ticker || '', name: l.name || '', sedol: l.sedol || '', asOf: l.asOf ? dayWords(l.asOf) : null, counted: l.counted, kind: l.kind, value: l.value == null ? null : pounds(l.value), units: l.units == null ? null : String(r0(l.units)),
-    fields: c.lines[l.index].fields
+    fields: c.lines[l.index].fields,
+    ...(K ? { keep: keepLine(l, l.index, typed || {}, K) } : l.keep ? { keep: { saved: { as: l.keep.as, years: (l.keep.taxYears || []).map(taxYearLabel), fundsGaps: !!l.keep.fundsGaps } } } : {})
   })) }));
+  const keepExtra = {};
+  if (K) {
+    const ex = expectedView(s.record, typed || {}, c.values, c.errors);
+    let g = null; try { g = gapsOf(plan, { today }); } catch { g = null; }
+    // the gaps as drawn (gapsView: the table, and the sentences as ids and slots, worded alike in both apps)
+    const ki = c.values['keep.index'];
+    Object.assign(keepExtra, { canKeep: true, keepLadder: K.ladder, keepIndex: Number.isInteger(ki) && ki >= 0 && ki < s.record.lines.length ? ki : null, expected: ex.items, expectedAdd: ex.add, gaps: gapsView(g), ok: Object.keys(c.errors).length === 0, errors: c.errors });
+  }
   const removeLine = c.removeIndex != null ? (() => { const l = s.record.lines[c.removeIndex]; return { index: c.removeIndex, name: lineName(l), wrapper: l.wrapper }; })() : null;
   const pasteChange = c.paste.merged && c.paste.rows.length ? { kind: 'paste', text: c.paste.text, wrapper: c.paste.wrapper, answers: c.paste.answers } : null;
   return {
@@ -287,6 +393,7 @@ export function holdOf(entries, id, { today, typed = null, source = 'account' } 
     atLock: s.atLock ? { ...headlineOf(s.atLock.summary, s.atLock.updatedAt), lockedOn: s.atLock.lockedOn } : null,
     fields, errors: c.errors, ok: c.ok,
     add: c.add, paste: { text: c.paste.text, wrapper: c.paste.wrapper, empty: c.paste.empty, rows: c.paste.rows, counts: c.paste.counts, leftOut: c.paste.leftOut, warnings: c.paste.warnings, unseen: c.paste.unseen, canAdd: !!pasteChange, change: pasteChange, merged: c.paste.merged ? { added: c.paste.merged.added.length, updated: c.paste.merged.updated.length } : null },
-    remove: removeLine, whats: HOLD_WHATS.slice(), wrappers: HOLD_WRAPPERS.slice()
+    remove: removeLine, whats: HOLD_WHATS.slice(), wrappers: HOLD_WRAPPERS.slice(),
+    ...keepExtra
   };
 }

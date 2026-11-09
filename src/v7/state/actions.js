@@ -174,7 +174,7 @@ export const A = Object.freeze({
   SPLIT_KEPT:      'household/splitKept', // { planId, ids: { a, b }, names: { a, b }, where }   the copies are made (in the account, or this window)
 
   // "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md §2.2, §3.3, §3.5, §3.7; road-to-7.md step 10)
-  PLAN_HOLD:       'plan/hold',           // { planId, change }               ONE change of the record (add | edit | remove | paste): saving { kind: 'hold', change }
+  PLAN_HOLD:       'plan/hold',           // { planId, change }               ONE change of the record (add | edit | remove | paste | keep | expected): saving { kind: 'hold', change }
   PLAN_TICK:       'plan/tick',           // { planId, key, done }            a tick-off on the move (the whole transition object): saving { kind: 'tick', key, done }
   MOVE_RUN:        'move/run',            // { key }                          "What if I keep what I hold?": the one run on the plan of this key (the effect runs it)
   MOVE_DONE:       'move/done',           // { key, result, ms }              the run's figures (moveRun.js runHeld); dropped if the key is stale

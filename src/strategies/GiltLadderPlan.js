@@ -14,7 +14,7 @@
  */
 
 import { isChargesPct } from '../services/Charges.js';
-import { targetHoldings, diffHoldings } from '../services/TransitionPlanner.js';
+import { targetHoldings, diffHoldings, yearNeedsOf } from '../services/TransitionPlanner.js';
 import { holdingsLines } from '../services/HoldingsRecord.js';
 
 /**
@@ -36,14 +36,16 @@ export function orderSheetRows(docOrPlan, holdings = null, { today = null, param
   let boughtOf = () => null;
   if (today && d.strategy && d.strategy.r) {
     const target = targetHoldings(d, { today, params });
-    const diff = diffHoldings(holdingsLines(holdings), target);
+    const diff = diffHoldings(holdingsLines(holdings), target, { needs: yearNeedsOf(d), today });
     const up = (s) => String(s || '').toUpperCase().trim();
     const keyOf = (o) => 'gilt:' + up(o.tidm || o.sedol || o.name);
     const held = new Set(diff.hold.map((h) => h.key));
     const part = new Set(diff.buy.filter((b) => +b.heldUnits > 0).map((b) => b.key));
     const paid = new Set((target.paid || []).map((t) => t.key));
     const sold = new Set((target.sold || []).map((t) => t.key));
-    boughtOf = (o) => { const k = keyOf(o); return paid.has(k) ? 'paid' : sold.has(k) ? 'sold' : held.has(k) ? 'bought' : part.has(k) ? 'part' : 'not yet'; };
+    // a rung whose years are all stood in for by a line the person keeps (7.6.0): held another way
+    const covered = new Set((diff.covered || []).filter((c) => !c.part).map((c) => c.key));
+    boughtOf = (o) => { const k = keyOf(o); return paid.has(k) ? 'paid' : sold.has(k) ? 'sold' : held.has(k) ? 'bought' : covered.has(k) ? 'covered' : part.has(k) ? 'part' : 'not yet'; };
   }
   return live.map((o, i) => ({
     n: i + 1, name: String(o.name || ''), tidm: o.tidm || '', sedol: o.sedol || '', matures: o.matures || null,

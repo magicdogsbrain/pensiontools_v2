@@ -16,6 +16,7 @@
  */
 import { planPage, dateOf, monthWords, monthName } from './read.js';
 import { whereAmIFor, historyAscending, moveInputs, effectiveStressSettings } from '../../services/PlanReading.js';
+import { gapsOf, gapHeadline } from './gaps.js';
 import { taxYearStartOf, taxYearKey, taxYearLabel, earlyPensionDrawOf } from '../../services/PlanTiming.js';
 import { readDayOf } from '../../services/PlanClosed.js';
 import { isFilledIn } from '../../services/MonthFill.js';
@@ -224,6 +225,8 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
   else if (stageKey === 'moving') { add('move', { result: false, ids: ['move.held'] }); add('where'); }
   else if (stageKey === 'drawing' || stageKey === 'closed') add('where');
   const whereFull = cut && stepOf('where') ? '#/plan/' + pg.id + '/where' : null;
+  let gapLine = null;
+  if (!pg.readonly && !pg.closed) { try { const h = gapHeadline(gapsOf(plan, { today })); gapLine = h ? { ...h, Y: String(h.Y), href: '#/plan/' + pg.id + '/hold' } : null; } catch { gapLine = null; } }
   const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {},
     // a Drawing plan short of its mix: the move tool says the share held, as "Where you are" does (never a count of moves to make)
     ...(s.id === 'move' && heldMix ? { held: heldMix.pct }
@@ -254,6 +257,8 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
     quiet: quietOf({ ...pg, lastRecord }, life, now),
     where,
     heldMix,
+    // 7.6.0: the first tax year not yet covered by what is held and kept, once — only on a plan that keeps something
+    ...(gapLine ? { gap: gapLine } : {}),
     whereFull,
     year: yearOf(plan, pg, now),
     tools,

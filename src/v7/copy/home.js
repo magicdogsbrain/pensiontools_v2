@@ -70,6 +70,8 @@ export const HOME = {
     'checkin.behind':     { title: 'See what would put you on course', detail: 'At your last check-in ({last}) you were not on course yet.' },
     'saving.noAim':       { title: 'Say what you would want to spend', detail: 'To see whether what you pay in is enough.' },
     'hold.stale':         { title: 'Update what you hold', detail: 'Last updated on {date}.' },
+    /** 7.6.0: a tax year starting within six months (or this one) not yet covered by what is held and kept — once, never a sale. */
+    'hold.gap':           { title: '{gapYear}: {gap} not yet covered', detail: 'What you hold and keep does not cover it yet. See what is covered, year by year.' },
     'draft.stale':        { title: 'Update the plan to today', detail: 'It was set to start in {savedYear}, which has passed. Or leave it as it is.' },
     'answer.stale':       { title: 'Check it still lasts', detail: 'The plan has changed since its ‘will it last’ answer.' },
     'household.pending':  { title: 'Your partner’s plan', detail: 'The plan it is linked with is not in this account. Link one, or leave it.' }

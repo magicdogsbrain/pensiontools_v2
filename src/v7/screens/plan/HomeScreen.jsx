@@ -13,6 +13,7 @@ import { planView, plansView, lifeStages } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { HOME } from '../../copy/home.js';
+import { GAPS } from '../../copy/gaps.js';
 
 const T = 'plan.home';
 
@@ -175,6 +176,8 @@ export function HomeScreen(state, dispatch) {
               </div>
             ))}
             {H.heldMix && <HeldMix M={H.heldMix} />}
+            {/* 7.6.0: a year not yet covered by what the person holds and keeps: the first such year, said once, with the way to see it */}
+            {H.gap && <p class="line" data-testid={`${T}.gap`} data-year={H.gap.Y}><a href={H.gap.href}>{fill(GAPS.home, H.gap)}</a></p>}
             {/* the plan draws from a pension before it can usually be taken (7.4.0): a plain fact beside the plan's draws */}
             {/* the plan starts before its pension can be taken: what it does until then, or (7.4.1) the warning when the other savings run short */}
             {H.pensionAccess && H.pensionAccess.short && <p class="notice" role="status" data-testid={`${T}.pensionShort`}>{fill(HOME.pensionShort, { age: H.pensionAccess.age, ...H.pensionAccess.short })}</p>}

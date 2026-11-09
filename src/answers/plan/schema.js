@@ -35,7 +35,7 @@
  *                      Try a change on a plan (way-and-mix.md 4): the boxes beside the three levers on "Does it last?", and
  *                      the paths "Use this" may write — the union of the steps' own lists, none of its own
  *   HOUSEHOLD_FIELDS, HOUSEHOLD_WRITES, isHouseholdPath, LIMIT_KINDS, WHOS, PAID_BYS
- *   HOLD_FIELDS, HOLD_WRITES, isHoldPath, HOLD_WRAPPERS, HOLD_WHATS, MOVE_WRITES, isMovePath
+ *   HOLD_FIELDS, HOLD_WRITES, isHoldPath, HOLD_WRAPPERS, HOLD_WHATS, HOLD_KEEP_AS, MOVE_WRITES, isMovePath
  *                      "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md; road-to-7.md step 10):
  *                      the add-a-line and paste boxes, and the ONLY field paths each may write — the whole record, the
  *                      whole transition object, each as one field
@@ -724,11 +724,21 @@ export const HOLD_FIELDS = Object.freeze([
   { path: 'add.units',     type: 'count',  min: 0, max: 100000000, required: false },
   { path: 'paste.text',    type: 'text',   max: 200000 },
   { path: 'paste.wrapper', type: 'choice', options: HOLD_WRAPPERS, default: 'SIPP' },
-  { path: 'remove.index',  type: 'count',  min: 0, max: 9999, required: false }
+  { path: 'remove.index',  type: 'count',  min: 0, max: 9999, required: false },
+  // 7.6.0: the line a "Keep this" is asked about (its box open), and money expected later: what it is, how much, and by when
+  { path: 'keep.index',      type: 'count', min: 0, max: 9999, required: false },
+  { path: 'expected.label',  type: 'text',  max: 80 },
+  { path: 'expected.amount', type: 'money', min: 0, max: 50000000, required: false },
+  { path: 'expected.by',     type: 'month', required: false }
 ].map(Object.freeze));
 export const HOLD_PATHS = Object.freeze(HOLD_FIELDS.map((f) => f.path));
-/** A line's boxes (line.<index>.<field>: the fields HoldingsRecord.LINE_FIELDS names) and a pasted line's answer (paste.<line>.what). */
-const HOLD_CARD = /^line\.\d{1,4}\.(wrapper|ticker|name|sedol|units|value|ocf|contribution|subClass|kind|asOf)$|^paste\.\d{1,4}\.what$/;
+/**
+ * A line's boxes (line.<index>.<field>: the fields HoldingsRecord.LINE_FIELDS names), a pasted line's answer (paste.<line>.what),
+ * a line's "Keep this" choice (7.6.0: line.<index>.keepAs | keepYears | keepGaps) and an expected item's boxes (expected.<id>.amount | by).
+ */
+const HOLD_CARD = /^line\.\d{1,4}\.(wrapper|ticker|name|sedol|units|value|ocf|contribution|subClass|kind|asOf|keepAs|keepYears|keepGaps)$|^paste\.\d{1,4}\.what$|^expected\.[A-Za-z0-9_-]{1,40}\.(amount|by)$/;
+/** What a line may be kept as (7.6.0, HoldingsRecord.normaliseKeep): standing in for some years' money, or by choice. */
+export const HOLD_KEEP_AS = Object.freeze(['rung', 'mine']);
 export const isHoldPath = (path) => HOLD_PATHS.includes(String(path)) || HOLD_CARD.test(String(path));
 /** The move step types nothing: its tick-offs are their own writes (§3.5), its one run writes nothing. */
 export const isMovePath = () => false;

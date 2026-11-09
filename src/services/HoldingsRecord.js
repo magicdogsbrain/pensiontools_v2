@@ -3,7 +3,12 @@
  *
  * `scenario.holdings` is a root record on the plan:
  *   { version, updatedAt: 'YYYY-MM-DD'|null, source: 'typed'|'paste'|'imported'|'none', offerDismissed, lines: [] }
- *   line: { wrapper: 'SIPP'|'ISA'|'GIA'|'CASH', ticker, name, sedol, units, value, ocf, contribution, subClass, kind, asOf }
+ *   line: { wrapper: 'SIPP'|'ISA'|'GIA'|'CASH', ticker, name, sedol, units, value, ocf, contribution, subClass, kind, asOf, keep? }
+ *   keep (7.6.0, set and cleared by the person, present only when set): { as: 'rung', taxYears: [Y…] } — the line stands in
+ *     for the plan's money for those tax years — or { as: 'mine', fundsGaps: bool } — kept by choice, never a sell,
+ *     optionally counted toward the gaps. The plan's settings and its document are never changed by it.
+ *   expected (7.6.0, present only when there is any): [{ id, label, wrapper, amount, by: 'YYYY-MM'|null }] — money expected
+ *     later (a pension elsewhere to be transferred in, say), not certain.
  *
  * It is what the Transition tool diffs against the plan document, what the Accumulation planner projects
  * from, what the plan document snapshots at lock (`holdingsAtLock`) and what the retire sweep starts from.
@@ -45,6 +50,49 @@ export function emptyHoldings() {
   return { version: HOLDINGS_VERSION, updatedAt: null, source: 'none', offerDismissed: false, lines: [] };
 }
 
+/** A tax year a keep may name: the April it starts, a whole year this century. */
+const isTaxYear = (y) => Number.isInteger(y) && y >= 2000 && y <= 2100;
+/**
+ * "I'm keeping this" (7.6.0), normalised: { as: 'rung', taxYears } (sorted, unique, at least one) or { as: 'mine', fundsGaps }.
+ * Anything else — no keep, an unknown kind, a stand-in for no year — is null.
+ */
+export function normaliseKeep(raw) {
+  const k = raw && typeof raw === 'object' ? raw : null;
+  if (!k) return null;
+  if (k.as === 'rung') {
+    const ys = [...new Set((Array.isArray(k.taxYears) ? k.taxYears : []).map((y) => +y).filter(isTaxYear))].sort((a, b) => a - b);
+    return ys.length ? { as: 'rung', taxYears: ys } : null;
+  }
+  if (k.as === 'mine') return { as: 'mine', fundsGaps: k.fundsGaps === true };
+  return null;
+}
+/** 'YYYY-MM', or null. */
+export function monthOrNull(v) {
+  const s = String(v == null ? '' : v).trim().slice(0, 7);
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(s) ? s : null;
+}
+/**
+ * Money expected later (7.6.0), normalised: each item { id, label, wrapper, amount, by }, an amount above nothing, an id of
+ * letters, digits, '-' or '_' (one is made from its place when missing), the label cut to 80 characters. Items with no
+ * amount are dropped; a repeated id is dropped.
+ */
+export function normaliseExpected(raw) {
+  const out = [];
+  const seen = new Set();
+  (Array.isArray(raw) ? raw : []).forEach((x, i) => {
+    const e = x && typeof x === 'object' ? x : null;
+    if (!e) return;
+    const amount = numOrNull(e.amount);
+    if (!(amount > 0)) return;
+    let id = String(e.id == null ? '' : e.id).trim();
+    if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) id = 'e' + (i + 1);
+    if (seen.has(id)) return;
+    seen.add(id);
+    out.push({ id, label: (strOrNull(e.label) || '').slice(0, 80) || null, wrapper: normaliseWrapper(e.wrapper), amount, by: monthOrNull(e.by) });
+  });
+  return out;
+}
+
 /** One line, every field present. Null when the line has no identity at all (no ticker, no name, no SEDOL). */
 export function normaliseLine(raw) {
   const h = raw && typeof raw === 'object' ? raw : {};
@@ -53,6 +101,7 @@ export function normaliseLine(raw) {
   const sedol = strOrNull(h.sedol, { upper: true });
   if (!ticker && !name && !sedol) return null;
   const kind = KINDS.includes(h.kind) ? h.kind : null;
+  const keep = normaliseKeep(h.keep);
   return {
     wrapper: normaliseWrapper(h.wrapper),
     ticker, name, sedol,
@@ -62,7 +111,9 @@ export function normaliseLine(raw) {
     contribution: numOrNull(h.contribution),  // £ a month going into this line
     subClass: strOrNull(h.subClass),
     kind,
-    asOf: dateOrNull(h.asOf)
+    asOf: dateOrNull(h.asOf),
+    // only when the person said so (7.6.0): a record without keeps reads, and is written, exactly as before
+    ...(keep ? { keep } : {})
   };
 }
 
@@ -76,7 +127,17 @@ export function normaliseHoldings(raw) {
   if (!raw || typeof raw !== 'object') return emptyHoldings();
   const lines = (Array.isArray(raw.lines) ? raw.lines : []).map(normaliseLine).filter(Boolean);
   const source = SOURCES.includes(raw.source) ? raw.source : (lines.length ? 'typed' : 'none');
-  return { version: HOLDINGS_VERSION, updatedAt: dateOrNull(raw.updatedAt), source, offerDismissed: raw.offerDismissed === true, lines };
+  const expected = normaliseExpected(raw.expected);
+  return { version: HOLDINGS_VERSION, updatedAt: dateOrNull(raw.updatedAt), source, offerDismissed: raw.offerDismissed === true, lines, ...(expected.length ? { expected } : {}) };
+}
+
+/** The money expected later on a record (7.6.0): its `expected`, normalised; none is an empty list. */
+export function expectedOf(rec) {
+  return normaliseExpected(rec && typeof rec === 'object' && !Array.isArray(rec) ? rec.expected : null);
+}
+/** Whether any line is kept or any money is expected (7.6.0): a record with neither reads exactly as before. */
+export function hasKeeps(rec) {
+  return holdingsLines(rec).some((l) => !!normaliseKeep(l && l.keep)) || expectedOf(rec).length > 0;
 }
 
 /** The lines of a record, or an array passed as-is — so consumers accept either without caring which. */
@@ -142,6 +203,8 @@ const typedSource = (rec) => (rec && (rec.source === 'paste' || rec.source === '
  *   { kind: 'edit', index, field, value }      one field of line `index`: a number field takes '' as null, else +value; text as given
  *   { kind: 'remove', index }                  the line taken out; the source is kept
  *   { kind: 'merge', lines, source }           the lines replaced (a paste's merged ledger), stamped with `source`
+ *   { kind: 'keep', index, keep }              line `index` kept (normaliseKeep), or kept no longer (keep null) — 7.6.0
+ *   { kind: 'expected', op, id, item }         money expected later: op 'add' (item), 'edit' (id, item merged in), 'remove' (id)
  * Never writes; the record given is not changed. An index outside the record, or an unknown kind, throws.
  */
 export function holdingsWith(record, change, { today } = {}) {
@@ -167,6 +230,36 @@ export function holdingsWith(record, change, { today } = {}) {
   }
   if (c.kind === 'merge') {
     return stampHoldings({ ...rec, lines: Array.isArray(c.lines) ? c.lines : [] }, today, c.source || 'paste');
+  }
+  if (c.kind === 'keep') {
+    const i = +c.index;
+    if (!(i >= 0 && i < lines.length)) throw new Error('holdingsWith: no line ' + c.index);
+    const keep = normaliseKeep(c.keep);
+    if (c.keep != null && !keep) throw new Error('holdingsWith: not a keep');
+    if (keep) lines[i].keep = keep; else delete lines[i].keep;
+    return stampHoldings({ ...rec, lines }, today, typedSource(rec));
+  }
+  if (c.kind === 'expected') {
+    const list = (rec.expected || []).map((e) => ({ ...e }));
+    if (c.op === 'add') {
+      const used = new Set(list.map((e) => e.id));
+      let n = list.length + 1; while (used.has('e' + n)) n++;
+      const want = c.item && c.item.id != null ? String(c.item.id) : '';
+      const one = normaliseExpected([{ ...(c.item || {}), id: want && !used.has(want) ? want : 'e' + n }]);
+      if (!one.length) throw new Error('holdingsWith: money expected needs an amount');
+      list.push(one[0]);
+    } else if (c.op === 'edit' || c.op === 'remove') {
+      const i = list.findIndex((e) => e.id === String(c.id));
+      if (i < 0) throw new Error('holdingsWith: no money expected called ' + c.id);
+      if (c.op === 'remove') list.splice(i, 1);
+      else {
+        const one = normaliseExpected([{ ...list[i], ...(c.item || {}), id: list[i].id }]);
+        if (!one.length) throw new Error('holdingsWith: money expected needs an amount');
+        list[i] = one[0];
+      }
+    } else throw new Error('holdingsWith: no money-expected change called "' + c.op + '"');
+    const { expected: _was, ...rest } = rec;
+    return stampHoldings({ ...rest, lines, ...(list.length ? { expected: list } : {}) }, today, typedSource(rec));
   }
   throw new Error('holdingsWith: no change called "' + c.kind + '"');
 }

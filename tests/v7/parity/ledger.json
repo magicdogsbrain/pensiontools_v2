@@ -1745,6 +1745,32 @@
       "note": "In V7: the allowance line on \"What you pay in\" and on \"Check in\" carries the rule, in the same plain words, when the plan carries it (\"Since you took money from your pension flexibly in March 2029, what you and your employer pay into pension pots in a tax year is limited to £10,000 before tax charges apply.\"), with what goes in a year when it is more. \"Am I saving enough?\" opened from the plan reads the person as already drawing (B's own yes/no), so B's own answer says its line on the limit when what goes in is over it, and a plan kept from that answer carries the fact on. The planner says it on its Accumulation page."
     },
     {
+      "id": "holdings.keep-test-agree",
+      "area": "holdings",
+      "kind": "record",
+      "name": "Test what you keep against your plan, and accept the risk",
+      "what": "On a locked plan, anything held that the plan as locked did not have (a line kept by choice, a line standing in for some years, money expected later): the plan's own test run again with what is actually held, beside the plan as locked — the chance it lasts, the bad case (the worst 1 in 10) as an age or a first tax year short, with and without the money expected, and what happens if what is kept by choice falls by half (or, one company's shares, to nothing). \"I accept this risk\" records, after a confirm, that the person saw it: one write of a list kept beside the plan (never in its settings or its document), with withdraw; out of date when what is kept or the document changes.",
+      "whereV6": "Transition → the keep-test block under What is covered, year by year (src/ui/components/TransitionView.js keepTestHtml; src/ui/keepHoldingsUi.js); the plan document's Where you are line",
+      "who": "Locked plans that keep something",
+      "keys": [
+        "plan.planAmendments"
+      ],
+      "status": "built",
+      "step": "s10-hold",
+      "files": [
+        "src/services/PlanAmendments.js",
+        "src/answers/plan/keepTest.js",
+        "src/answers/plan/keepRun.js",
+        "src/v7/screens/plan/KeepTest.jsx",
+        "src/v7/effects/keepTest.js",
+        "src/v7/effects/planWrite.js",
+        "src/ui/keepHoldingsUi.js",
+        "src/ui/components/TransitionView.js"
+      ],
+      "editV7": "src/v7/screens/plan/HoldScreen.jsx",
+      "note": "7.7.0. In V7: \"Test what you keep against your plan\" on What you hold (the run in the worker, only when pressed), the agreement with its confirm and Undo, and one line on the plan's home, About you and when, and the move; one to-do while something kept is not agreed as it is now. Both apps read one reader (answers/plan/keepTest.js) and say the same words (src/v7/copy/keepTest.js)."
+    },
+    {
       "id": "pots.pension",
       "area": "pots",
       "kind": "setting",

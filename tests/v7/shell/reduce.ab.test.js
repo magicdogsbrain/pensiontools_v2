@@ -206,6 +206,12 @@ const anyAction = fc.oneof(
   fc.constantFrom('m1', 'm2').map((key) => ({ type: A.MOVE_DONE, key, result: { affordable: true, a: { share: 0.9 }, basis: { runs: 1 } }, ms: 500 })),
   fc.tuple(fc.constantFrom('m1', 'm2'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.MOVE_FAILED, key, reason })),
   fc.constantFrom(null, { level: 5000, ath: 7000, asOf: '2026-10-19' }).map((index) => ({ type: A.MOVE_INDEX, index })),
+  // "Test what you keep against your plan" and "I accept this risk" (7.7.0)
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('p1', 'p2')).map(([key, planId]) => ({ type: A.KEEP_TEST_RUN, key, planId })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.nat(5)).map(([key, done]) => ({ type: A.KEEP_TEST_PROGRESS, key, done, total: 5 })),
+  fc.constantFrom('k1', 'k2').map((key) => ({ type: A.KEEP_TEST_DONE, key, result: { fingerprint: 'f', asLocked: { share: 1 }, asHeld: { share: 0.9 } } })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.KEEP_TEST_FAILED, key, reason })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('accept', 'withdraw')).map(([planId, op]) => ({ type: A.PLAN_AMEND, planId, op })),
   // "What you pay in": the plan's verdict (research/saving-enough-and-check-in.md 4.4), question B on the plan's figures
   fc.constantFrom('saver:p1:a', 'saver:p1:b', 'saver:p2:a').map((key) => ({ type: A.SAVER_WORKING, key })),
   fc.tuple(fc.constantFrom('saver:p1:a', 'saver:p2:a'), fc.constantFrom(A.SAVER_FIRST, A.SAVER_FINAL)).map(([key, type]) => ({ type, key, result: { status: 'ok', verdict: { band: 'close' }, sentences: {} } })),

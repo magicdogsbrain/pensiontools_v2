@@ -257,7 +257,7 @@ describe('the first state and the screen by name', () => {
     expect(JSON.parse(JSON.stringify(s))).toEqual(s);
     // `budget` (the household's budget sheet) and `keep` ("Save this as a plan"): budget-step.md, save-as-plan.md C.2, C.5
     // `checkIn`: the answer of a saver's check-in just written (research/saving-enough-and-check-in.md 5.5; release step R3)
-    expect(Object.keys(s)).toEqual(['route', 'env', 'session', 'plan', 'plans', 'draft', 'answers', 'budget', 'keep', 'lasts', 'ways', 'mix', 'household', 'move', 'saver', 'checkIn', 'ui']);
+    expect(Object.keys(s)).toEqual(['route', 'env', 'session', 'plan', 'plans', 'draft', 'answers', 'budget', 'keep', 'lasts', 'ways', 'mix', 'household', 'move', 'saver', 'checkIn', 'keepTest', 'ui']);
     expect(s.budget).toBeNull();
     // `draft.plan` is the one plan draft of the editing step (research/v7/editing-in-v7.md 4), not a question: no `keep` for it
     expect(Object.keys(s.keep).sort()).toEqual(Object.keys(s.draft).filter((k) => k !== 'plan').sort());

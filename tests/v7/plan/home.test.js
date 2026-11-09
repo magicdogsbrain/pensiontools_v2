@@ -177,7 +177,7 @@ describe('one engine: the rail\'s Next is the first thing due, and the home\'s f
     const due = NEXT_ORDER.filter((x) => DUE_IDS[x]);
     // (P.moveLater: the move on a drawing plan that records nothing it holds, the design's "move.next: drawing (lower)")
     // (P.startMove / P.startAsk, 7.3.3: a locked plan stored with its start later than it should be, ranked just after the lock)
-    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.startDraft', 'P.draft', 'P.startMove', 'P.startAsk', 'P.startBlocked', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.gapSoon', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending']);
+    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.startDraft', 'P.draft', 'P.startMove', 'P.startAsk', 'P.startBlocked', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.gapSoon', 'P.keepTest', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending']);
     expect(NEXT_ORDER.slice(-6)).toEqual(['P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
   });
   for (const today of DATES) {
@@ -383,9 +383,12 @@ describe('reads only: nothing new is written to any plan', () => {
   it('ALL_WRITES is the list main has at 7.2.1, byte for byte (no new allow-list, no new write kind)', () => {
     // 7.4.0 adds one path, on purpose: a draft with no age, pinned the old way to next year, is written from this tax year by
     // its next Save (moveStart.js laterDraftPatch). Opening a plan still writes nothing (below).
-    expect(ALL_WRITES.length).toBe(158);
+    // 7.7.0 adds one more, on purpose: "I accept this risk" writes the whole list of agreements (planAmendments), beside the
+    // settings and the document, never in them. Opening a plan still writes nothing (below).
+    expect(ALL_WRITES.length).toBe(159);
     expect(ALL_WRITES).toContain('stressTool.settings.legacyFirstTaxYear');
-    expect(createHash('sha256').update(JSON.stringify(ALL_WRITES)).digest('hex')).toBe('f8b72a0be99638476a8975ad0ef579e9ed4745be3dc4f28cd10996c117e21f31');
+    expect(ALL_WRITES).toContain('planAmendments');
+    expect(createHash('sha256').update(JSON.stringify(ALL_WRITES)).digest('hex')).toBe('ce432562b8ec3486783ef100d1c6cefdfdb43bd87d255a101c80e515243ed9eb');
   });
   /** The one write file with a fake firestore that records every call, on an account's plans. */
   function browse(raws, planId) {

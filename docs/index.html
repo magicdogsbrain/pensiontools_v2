@@ -8,8 +8,11 @@
   <link rel="apple-touch-icon" href="./icon-192.png">
   <link rel="manifest" href="./manifest.json">
   <title>PensionTools: plan your pension, from saving to living on it</title>
-  <script type="module" crossorigin src="./assets/index-C7DCIVib.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-DLX4wGm6.css">
+  <!-- the two faces every page draws first (headlines, words), asked for at once rather than after the style sheet is read -->
+  <link rel="preload" href="./assets/fraunces-latin-BOz5zopO.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./assets/nunito-latin-CjueodBP.woff2" as="font" type="font/woff2" crossorigin>
+  <script type="module" crossorigin src="./assets/index-CAn8E9Vy.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BW82DYLv.css">
 </head>
 <body>
   <div id="app" data-ready="0" data-answer="none"></div>

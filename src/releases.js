@@ -38,6 +38,29 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.5.0', date: '2026-11-09', engineVersion: '6.39.0', announce: true,
+    title: 'A new front door, pictures of your own pot, and no limit on questions',
+    summary: 'The front door now shows a pension over a life and three ways in: still saving, stopping soon, already retired. Each opens the quickest way to your own answer. The answers gain a slider to try a different figure at once, the three figures that matter, and a picture of your own pot over the years with the bad case shaded. You can ask as many questions as you like without an account. Your figures are worked out exactly as before.',
+    changes: [
+      'A new front door with three ways in: Still saving, Stopping soon and Already retired. If you are signed in, you still see your plans first.',
+      'Am I saving enough?, What is my pot worth a month? and Will it last? now have a slider, three figure tiles and a picture of your pot over the years, with the bad case shaded.',
+      'A plan’s home shows where it is (Saving, Moving or Drawing) and, for a drawing plan, this tax year’s months.',
+      'No limit on asking questions without an account. The free hours now apply only to plans kept in this browser without an account.',
+      'New typefaces, served from our own site, and clearer colours: amber for saving, teal for moving, purple for drawing, pink for the one thing to press.'
+    ],
+    corrections: [],
+    effects: {
+      stress: [],
+      strategies: [],
+      decision: [],
+      accumulation: [],
+      budget: [],
+      household: []
+    },
+    actions: ['None.'],
+    notes: []
+  },
+  {
     version: '7.4.3', date: '2026-11-07', engineVersion: '6.39.0',
     title: 'A locked plan now starts in the tax year your recorded months begin',
     summary: 'If your plan was locked to start in a later tax year than the months you have already recorded, it now offers to start from the tax year those months begin. Before, it offered the tax year you stopped work, or asked when you stopped first. Your recorded months are kept and read against that year. Nothing changes until you confirm, and the plan stays locked.',

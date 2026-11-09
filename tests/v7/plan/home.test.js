@@ -177,7 +177,7 @@ describe('one engine: the rail\'s Next is the first thing due, and the home\'s f
     const due = NEXT_ORDER.filter((x) => DUE_IDS[x]);
     // (P.moveLater: the move on a drawing plan that records nothing it holds, the design's "move.next: drawing (lower)")
     // (P.startMove / P.startAsk, 7.3.3: a locked plan stored with its start later than it should be, ranked just after the lock)
-    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.startDraft', 'P.draft', 'P.startMove', 'P.startAsk', 'P.startBlocked', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending']);
+    expect(due).toEqual(['P.closed', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.startDraft', 'P.draft', 'P.startMove', 'P.startAsk', 'P.startBlocked', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.gapSoon', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending']);
     expect(NEXT_ORDER.slice(-6)).toEqual(['P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
   });
   for (const today of DATES) {
@@ -427,7 +427,7 @@ describe('the words of the home (copy/home.js)', () => {
   };
   const slot = (s) => s.replace(/\{(month|stop|nextCheck|last)\}/g, 'April 2027').replace(/\{(monthName|next)\}/g, 'October').replace(/\{date\}/g, '20 March 2026')
     .replace(/\{(year|savedYear)\}/g, '2027/28').replace(/\{(n|of|done)\}/g, '3').replace(/\{total\}/g, '1,000').replace(/\{(name|closed)\}/g, 'Ladder plan').replace(/\{label\}/g, 'Index-linked gilt 2031')
-    .replace(/\{pct\}/g, '94').replace(/\{start\}/g, 'April 2027').replace(/\{stopped\}/g, 'May 2026').replace(/\{records\}/g, 'July 2026').replace(/\{moveTo\}/g, '2026/27').replace(/\{title\}/g, 'Record October').replace(/\{question\}/g, 'Am I saving enough?').replace(/\{drawn\}/g, '£1,200').replace(/\{age\}/g, '57').replace(/\{plan\}/g, '£1,100')
+    .replace(/\{pct\}/g, '94').replace(/\{start\}/g, 'April 2027').replace(/\{stopped\}/g, 'May 2026').replace(/\{records\}/g, 'July 2026').replace(/\{moveTo\}/g, '2026/27').replace(/\{title\}/g, 'Record October').replace(/\{question\}/g, 'Am I saving enough?').replace(/\{drawn\}/g, '£1,200').replace(/\{age\}/g, '57').replace(/\{plan\}/g, '£1,100').replace(/\{gapYear\}/g, '2027/28').replace(/\{gap\}/g, '£9,000')
     .replace(/\{amount\}/g, '£12,300').replace(/\{years\}/g, '2027/28 to 2029/30');
   it('pass the banned list in every scope a plan page is shown in — records, retired and saver alike; no slot left unfilled', () => {
     const all = [...strings(HOME), ...strings({ WORKING })];

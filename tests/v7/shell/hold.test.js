@@ -67,7 +67,7 @@ describe('the reducer: the hold step\'s actions and paths', () => {
     expect(s.ui.saving).toEqual({ planId: 'p1', kind: 'hold', change: { kind: 'add', line: LINE } });
     expect(reduce(s, { type: A.PLAN_HOLD, planId: 'p1', change: { kind: 'remove', index: 0 } })).toBe(s);
     for (const change of [{ kind: 'edit', index: 0, field: 'value', value: '1' }, { kind: 'remove', index: 0 }, { kind: 'paste', text: 'a', wrapper: 'SIPP', answers: {} }]) expect(reduce(s0, { type: A.PLAN_HOLD, planId: 'p1', change }).ui.saving.change).toEqual(change);
-    expect(() => reduce(s0, { type: A.PLAN_HOLD, planId: 'p1', change: { kind: 'odd' } })).toThrow(/add, edit, remove or paste/);
+    expect(() => reduce(s0, { type: A.PLAN_HOLD, planId: 'p1', change: { kind: 'odd' } })).toThrow(/add, edit, remove, paste, keep or expected/);
     expect(() => reduce(s0, { type: A.PLAN_HOLD, change: { kind: 'add' } })).toThrow(/plan id/);
     expect(s.ui.toast).toBe(null);
     expect(s.ui.saveProblem).toBe(null);

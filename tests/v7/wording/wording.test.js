@@ -133,7 +133,7 @@ describe('the words in src/v7/copy/', () => {
     // A plan page is a record screen (banned.js SCOPES.record); a retired person's and a saver's stages are both drawn from it.
     const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
     const slot = (s) => s.replace(/\{(month|nextMonth|stop)\}/g, 'April 2027').replace(/\{(date|asOf)\}/g, '1 July 2026').replace(/\{(year|savedYear)\}/g, '2027/28')
-      .replace(/\{monthName\}/g, 'October').replace(/\{time\}/g, '14:03').replace(/\{changed\}/g, '17 October 2026').replace(/\{n\}/g, '2').replace(/\{of\}/g, '3').replace(/\{name\}/g, 'Ladder plan').replace(/\{step\}/g, 'This month')
+      .replace(/\{monthName\}/g, 'October').replace(/\{time\}/g, '14:03').replace(/\{changed\}/g, '17 October 2026').replace(/\{n\}/g, '2').replace(/\{of\}/g, '3').replace(/\{name\}/g, 'Ladder plan').replace(/\{step\}/g, 'This month').replace(/\{gapYear\}/g, '2027/28').replace(/\{gap\}/g, '£9,000')
       .replace(/\{strategy\}/g, 'Full gilt ladder').replace(/\{dial\}/g, 'Years held in cash').replace(/\{mode\}/g, 'by risk level').replace(/\{from\}/g, '9 November 2036')
       .replace(/\{label\}/g, 'Rental flat').replace(/\{(to|age)\}/g, '74').replace(/\{what\}/g, 'a cash lump sum').replace(/\{level\}/g, 'balanced').replace(/\{years\}/g, '15')
       // the plan menu (road-to-7.md step 11): the lock's date, a plural, a file's problem in words

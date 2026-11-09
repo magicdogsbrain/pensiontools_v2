@@ -55,7 +55,8 @@ export const MOVE = {
     lead: 'A money-market fund or cash in the pension:',
     rows: {
       cashYear: 'Cash year {year}',
-      cashYearLump: 'Cash year {year} ({lump} of it paid by a lump sum expected that year)'
+      cashYearLump: 'Cash year {year} ({lump} of it paid by a lump sum expected that year)',
+      cashYearCovered: 'Cash year {year}: held another way, by what you keep'
     },
     columns: { what: 'What for', amount: 'Amount' },
     total: 'To hold',

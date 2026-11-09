@@ -10,6 +10,7 @@
  */
 import { FUND_CATALOGUE } from './SubAssetModel.js';
 import { holdingsLines, holdingsWith } from './HoldingsRecord.js';
+import { giltOfName, ilWords } from './GiltName.js';
 
 const up = (s) => String(s || '').toUpperCase().trim();
 const SEDOL_RE = /^[B-DF-HJ-NP-TV-Z0-9]{6}\d$/i;          // 7 chars, last a check digit, no vowels
@@ -229,8 +230,10 @@ export function matchRows(rows, { catalogue = FUND_CATALOGUE, orders = [], wrapp
     // Gilts first: SEDOL, code, then maturity year + index-linked
     if (orders.length) {
       const g = giltFromName(r.name);
+      // a name whose coupon and date are a conventional gilt's (7.6.0) is never the plan's index-linked gilt of that year
+      const conventional = !ilWords(r.name) && (giltOfName(r.name) || {}).type === 'conventional';
       const o = orders.find((x) => r.sedol && up(x.sedol) === r.sedol) || orders.find((x) => r.ticker && up(x.tidm) === r.ticker)
-        || (g && g.year ? orders.find((x) => x.matures && +String(x.matures).slice(0, 4) === g.year && (g.il || /I\/L|INDEX/i.test(x.name || ''))) : null);
+        || (g && g.year && !conventional ? orders.find((x) => x.matures && +String(x.matures).slice(0, 4) === g.year && (g.il || /I\/L|INDEX/i.test(x.name || ''))) : null);
       if (o) match = { kind: 'gilt', ticker: up(o.tidm), name: o.name, sedol: o.sedol || r.sedol, confidence: r.sedol && up(o.sedol) === r.sedol ? 'sedol' : r.ticker && up(o.tidm) === r.ticker ? 'code' : 'year', subClass: 'indexLinked' };
     }
     if (!match) {
@@ -258,7 +261,11 @@ export function matchRows(rows, { catalogue = FUND_CATALOGUE, orders = [], wrapp
       // The ticker column is kept only when it IS a gilt code (TR31, T31, TG54). Anything else there — a statement's
       // "CGT" or "P&L" heading — is not this gilt's code: use the one derived from its maturity year, or none, so the
       // line can never be keyed on a fund's ticker and folded into that fund (6.13.5; the rest of the 6.12.5 fix).
-      const ticker = isGiltCode(r.ticker) ? r.ticker : (g.year ? 'T' + String(g.year).slice(2) : '');
+      // A conventional gilt its name names (its coupon and date, GiltName) takes its own code (7.6.0): the guess "T" + the
+      // year is an index-linked gilt's code for 2027, 2028 and 2029, and would price and match it as one.
+      const named = !ilWords(r.name) ? giltOfName(r.name) : null;
+      const own = named && named.type === 'conventional' ? up(named.tidm) : '';
+      const ticker = isGiltCode(r.ticker) ? r.ticker : own || (g.year ? 'T' + String(g.year).slice(2) : '');
       match = { kind: 'gilt', ticker, name: r.name, sedol: r.sedol, confidence: 'name-only', subClass: g.il ? 'indexLinked' : 'longGilts' };
     }
     if (!match && /\bCASH\b|MONEY MARKET|CSH2|LIQUIDITY|OVERNIGHT|ULTRASHORT|TREASURY BILL|STERLING LIQUID/i.test(r.name)) match = { kind: 'cash', ticker: 'CSH2', name: r.name, subClass: 'moneyMarket', confidence: 'name' };

@@ -16,6 +16,7 @@
  */
 import { tagPortfolio } from './PortfolioTagger.js';
 import { normaliseKeep } from './HoldingsRecord.js';
+import { giltOfName, couponOfName, maturityOfName, ilWords } from './GiltName.js';
 import { taxYearLabel, taxYearStartOf } from './PlanTiming.js';
 import giltsSnapshot from '../data/giltsSnapshot.js';
 
@@ -32,55 +33,160 @@ const GILT_TIDMS = new Set(GILT_LIST.map((g) => up(g && g.tidm)).filter(Boolean)
 /** Is this ledger line a gilt? A TIDM in the bundled universe, a ticker shape (TRxx / TGxx / Txx) or a GB00B… ISIN. */
 export function isGiltTicker(t) { const u = up(t); return GILT_TIDMS.has(u) || /^T[RGNS]?\d{2}[A-Z]?$/.test(u) || /^GB00B/.test(u); }
 
-/** The bundled gilt a line names (7.6.0): by its TIDM, its SEDOL (the ISIN's middle) or its exact name; null when none. */
-export function giltOfLine(h) {
-  const t = up(h && h.ticker), s = up(h && h.sedol), n = String((h && h.name) || '').trim().toLowerCase();
-  return (t && GILT_LIST.find((g) => up(g.tidm) === t)) || (s && GILT_LIST.find((g) => g.isin && up(g.isin).slice(4, 11) === s))
-    || (n && GILT_LIST.find((g) => String(g.name || '').trim().toLowerCase() === n)) || null;
+/** A ledger row → the raw line's subClass and kind (7.6.0): ledgerView's rows keep their shape, so this rides beside them. */
+const RAW = new WeakMap();
+const rawOf = (h) => (h && RAW.get(h)) || h || {};
+
+/**
+ * The bundled gilt a line names (7.6.0), and how it was found. The line's own evidence comes first — its SEDOL, its exact
+ * name, then its name's coupon and maturity date (GiltName.giltOfName) — and its code last: a pasted code is often a guess
+ * ("T" + the year, and T27, T28, T29 are index-linked gilts' codes), so a code whose gilt the name contradicts (another
+ * maturity date, another coupon, index-linked words on a conventional gilt) is not this line's.
+ * @returns {{ g: object, by: 'sedol'|'name'|'words'|'code' }|null}
+ */
+function giltEvidence(h) {
+  const t = up(h && h.ticker), s = up(h && h.sedol), n = String((h && h.name) || '').trim();
+  const bySedol = s && GILT_LIST.find((g) => g.isin && up(g.isin).slice(4, 11) === s);
+  if (bySedol) return { g: bySedol, by: 'sedol' };
+  const byName = n && GILT_LIST.find((g) => String(g.name || '').trim().toLowerCase() === n.toLowerCase());
+  if (byName) return { g: byName, by: 'name' };
+  const byWords = giltOfName(n);
+  if (byWords) return { g: byWords, by: 'words' };
+  const byCode = t && GILT_LIST.find((g) => up(g.tidm) === t);
+  if (byCode && !codeContradicted(byCode, n)) return { g: byCode, by: 'code' };
+  return null;
 }
-/** How platforms write "index-linked" in a gilt's name: Index-linked, I/L, IL, linker. */
-const IL_WORDS = /index|\bI\/L\b|\bIL\b|link/i;
-/** A conventional gilt (fixed pay, not index-linked): the bundled list says so; a gilt line we cannot find is read by its name. */
+function codeContradicted(g, name) {
+  const date = maturityOfName(name);
+  if (date && String(g.maturity || '').slice(0, 10) !== date) return true;
+  const c = couponOfName(name);
+  if (c != null && Number.isFinite(+g.coupon) && Math.abs(+g.coupon - c) >= 0.0005) return true;
+  return ilWords(name) && g.type === 'conventional';
+}
+/** The bundled gilt a line names (7.6.0): by its SEDOL, its exact name, its name's coupon and date, then its code; null when none. */
+export function giltOfLine(h) { const e = giltEvidence(h); return e ? e.g : null; }
+
+/**
+ * What a gilt line's own evidence says it is (7.6.0): true — conventional (fixed pay); false — index-linked; null — it cannot
+ * be told (a typed name with no coupon or date, a code the bundled list does not know). Index-linked words in the name win.
+ */
+export function conventionalEvidence(h) {
+  if (ilWords(h && h.name)) return false;
+  const e = giltEvidence(h);
+  return e ? e.g.type === 'conventional' : null;
+}
+/**
+ * Never matched to an index-linked rung by its year or a guessed code (7.6.0): a line known to be conventional — by its
+ * evidence, or, when that cannot tell, placed as long (conventional) gilts. A line that cannot be told keeps the old reading.
+ */
+function knownConventional(h) {
+  const e = conventionalEvidence(h);
+  return e === true || (e === null && rawOf(h).subClass === 'longGilts');
+}
+/** Known conventional by the line's own words or SEDOL — not by its code alone: a code the plan itself names as a rung is that rung. */
+function conventionalByOwnWords(h) {
+  if (ilWords(h && h.name)) return false;
+  const e = giltEvidence(h);
+  return !!e && e.by !== 'code' && e.g.type === 'conventional';
+}
+/** Priced as a conventional gilt when kept to stand in (7.6.0): its evidence; else how it was placed; else a gilt named as a Treasury or gilt. */
 function isConventional(h) {
-  const n = String((h && h.name) || '');
-  // a name that says index-linked wins over a code: a pasted code is often a guess (a "T30" that is a conventional gilt's)
-  if (IL_WORDS.test(n)) return false;
-  const g = giltOfLine(h);
-  if (g) return g.type === 'conventional';
-  return !!(h && (h.gilt || h.kind === 'gilt')) && /treasury|gilt/i.test(n) && !IL_WORDS.test(n);
+  if (ilWords(h && h.name)) return false;
+  const e = giltEvidence(h);
+  if (e && e.by !== 'code') return e.g.type === 'conventional';
+  const r = rawOf(h);
+  if (r.subClass === 'longGilts') return true;
+  if (r.subClass === 'indexLinked') return false;
+  if (e) return e.g.type === 'conventional';
+  return !!(h && (h.gilt || r.kind === 'gilt')) && /treasury|gilt/i.test(String(h.name || ''));
+}
+
+/** Months of the tax year still to come on `today`, this one included (November: November to March, 5; 1–5 April: 1). */
+export function monthsLeftInTaxYear(today) {
+  const d = today instanceof Date ? today : new Date(String(today).slice(0, 10) + 'T12:00:00');
+  const m = d.getMonth() + 1;
+  if (m === 4 && d.getDate() < 6) return 1;
+  return m >= 4 ? 16 - m : 4 - m;
+}
+
+// The bundled Bank of England implied inflation curve (spot, by years ahead): what a fixed pound later is worth today.
+const INFLATION = (Array.isArray(giltsSnapshot?.boeInflationCurve) ? giltsSnapshot.boeInflationCurve : []).filter((p) => p && +p.years > 0 && Number.isFinite(+p.yield)).sort((a, b) => a.years - b.years);
+const INFLATION_FALLBACK = 0.03;
+/** The yearly inflation the curve implies to `years` ahead (the nearest point before its start or after its end; in between, read along it). */
+export function inflationTo(years) {
+  if (!INFLATION.length) return INFLATION_FALLBACK;
+  if (years <= INFLATION[0].years) return +INFLATION[0].yield;
+  const last = INFLATION[INFLATION.length - 1];
+  if (years >= last.years) return +last.yield;
+  const i = INFLATION.findIndex((p) => p.years >= years);
+  const a = INFLATION[i - 1], b = INFLATION[i];
+  return +a.yield + (+b.yield - +a.yield) * (years - a.years) / (b.years - a.years);
+}
+/** A fixed amount paid on `when`, in today's money: less the inflation the curve implies between today and then. */
+export function inTodaysMoney(amount, when, today) {
+  if (!(when instanceof Date) || !(today instanceof Date) || Number.isNaN(when.getTime()) || Number.isNaN(today.getTime())) return amount;
+  const years = (when.getTime() - today.getTime()) / (365.25 * 24 * 3600 * 1000);
+  if (!(years > 0)) return amount;
+  return amount / Math.pow(1 + inflationTo(years), years);
 }
 
 /**
  * What a line kept to stand in for the plan's money pays (7.6.0), never priced as something it is not:
  *   a conventional gilt — its nominal (the units) at maturity plus the coupons still to come: a fixed amount that does not
- *     rise with prices (`fixed`); the nominal is read from the value at the bundled price when no units are recorded;
+ *     rise with prices (`fixed`); the nominal is read from the value at the bundled price when no units are recorded.
+ *     `real` is that amount in today's money (the plan's needs are in today's money): less the inflation the bundled curve
+ *     implies to its maturity date — or, with none known, to the April of the first tax year it stands in for (`from`);
  *   an index-linked gilt — its nominal times today's index ratio (it rises with prices);
  *   anything else — its value today (it can change).
- * @returns {{ amount: number, payKind: 'conventional'|'indexLinked'|'value', fixed: boolean, matures: string|null, coupon: number|null, nominal: number|null }}
+ * @returns {{ amount: number, real: number, payKind: 'conventional'|'indexLinked'|'value', fixed: boolean, matures: string|null, coupon: number|null, nominal: number|null }}
  */
-export function standInPays(h, { today = null } = {}) {
+export function standInPays(h, { today = null, from = null } = {}) {
   const g = giltOfLine(h);
   const units = num(h && h.units) > 0 ? num(h.units) : null;
   const value = num(h && h.value);
   if (isConventional(h)) {
-    const nominal = units != null ? units : (g && num(g.cleanPrice) > 0 ? value / (num(g.cleanPrice) / 100) : value);
-    const coupon = g && Number.isFinite(+g.coupon) ? +g.coupon : null;
-    const matures = g && g.maturity ? String(g.maturity).slice(0, 10) : null;
+    const gc = g && g.type === 'conventional' ? g : null;
+    const nominal = units != null ? units : (gc && num(gc.cleanPrice) > 0 ? value / (num(gc.cleanPrice) / 100) : value);
+    const coupon = gc && Number.isFinite(+gc.coupon) ? +gc.coupon : null;
+    const matures = gc && gc.maturity ? String(gc.maturity).slice(0, 10) : (maturityOfName(h && h.name) || null);
     // coupons still to come: every six months back from maturity, while after today; with no day to read against, the last one
     let couponsLeft = 1;
-    if (matures && today instanceof Date && !Number.isNaN(today.getTime())) {
+    const now = today instanceof Date && !Number.isNaN(today.getTime()) ? today : null;
+    if (matures && now) {
       const [y, m, d] = matures.split('-').map(Number);
       couponsLeft = 0;
-      for (let k = 0; k < 200; k++) { const at = Date.UTC(y, m - 1 - 6 * k, d); if (at <= today.getTime()) break; couponsLeft++; }
+      for (let k = 0; k < 200; k++) { const at = Date.UTC(y, m - 1 - 6 * k, d); if (at <= now.getTime()) break; couponsLeft++; }
       couponsLeft = Math.max(1, couponsLeft);   // the last coupon is paid with the nominal, even on a line kept past maturity
     }
     const amount = nominal + (coupon ? nominal * coupon / 200 * couponsLeft : 0);
-    return { amount: Math.round(amount), payKind: 'conventional', fixed: true, matures, coupon, nominal: Math.round(nominal) };
+    const when = matures ? new Date(matures + 'T12:00:00') : (+from > 2000 ? new Date(+from, 3, 6, 12) : null);
+    const real = now && when ? inTodaysMoney(amount, when, now) : amount;
+    return { amount: Math.round(amount), real: Math.round(real), payKind: 'conventional', fixed: true, matures, coupon, nominal: Math.round(nominal) };
   }
-  const il = IL_WORDS.test(String((h && h.name) || '')) || (!!g && g.type !== 'conventional');
+  const il = ilWords(h && h.name) || (!!g && g.type !== 'conventional');
   // the index ratio is a ratio (1.4…): a rung of N units pays N × the ratio (the ladder sizes its nominal so)
-  if (il && units != null && g && g.type !== 'conventional' && num(g.indexRatio) > 0) return { amount: Math.round(units * num(g.indexRatio)), payKind: 'indexLinked', fixed: false, matures: g.maturity ? String(g.maturity).slice(0, 10) : null, coupon: null, nominal: Math.round(units) };
-  return { amount: Math.round(value), payKind: 'value', fixed: false, matures: g && g.maturity ? String(g.maturity).slice(0, 10) : null, coupon: null, nominal: null };
+  if (il && units != null && g && g.type !== 'conventional' && num(g.indexRatio) > 0) { const a = Math.round(units * num(g.indexRatio)); return { amount: a, real: a, payKind: 'indexLinked', fixed: false, matures: g.maturity ? String(g.maturity).slice(0, 10) : null, coupon: null, nominal: Math.round(units) }; }
+  return { amount: Math.round(value), real: Math.round(value), payKind: 'value', fixed: false, matures: g && g.maturity ? String(g.maturity).slice(0, 10) : null, coupon: null, nominal: null };
+}
+
+/**
+ * The tax year a kept line most likely stands in for (7.6.0): the tax year its gilt matures in — by its bundled maturity date,
+ * else its name's date, else the year in its name or code — when that is one of `years` (the years "Keep this" offers); null
+ * otherwise. A suggestion only: the person ticks the years.
+ */
+export function standInYearOf(h, years = []) {
+  const g = giltOfLine(h);
+  // a gilt only: a fund with a year in its name ("… 2040") is not one that matures
+  if (!(g || (h && h.kind === 'gilt') || isGiltTicker(h && h.ticker) || /treasury|gilt/i.test(String((h && h.name) || '')))) return null;
+  const date = (g && g.maturity ? String(g.maturity).slice(0, 10) : null) || maturityOfName(h && h.name);
+  let Y = null;
+  if (date) Y = taxYearStartOf(new Date(date + 'T12:00:00'));
+  else {
+    const m = /\b(20\d{2})\b/.exec(String((h && h.name) || '')) || null;
+    const c = /^T[RGNS]?(\d{2})[A-Z]?$/.exec(up(h && h.ticker));
+    Y = m ? +m[1] : c ? 2000 + +c[1] : null;
+  }
+  return Y != null && years.map(Number).includes(Y) ? Y : null;
 }
 
 /**
@@ -231,9 +337,11 @@ export function ledgerView(holdings) {
     const cash = MONEY_MARKET.has(ticker) || up(h.wrapper) === 'CASH' || h.kind === 'cash' || h.subClass === 'cash' || h.subClass === 'moneyMarket';
     const slice = tagged.tagged.find((t) => t.ticker === h.ticker && t.wrapper === h.wrapper && Math.abs(num(t.value) - num(h.value)) < 1);
     const keep = normaliseKeep(h.keep);
-    return { ticker, name: h.name || '', sedol: h.sedol || null, wrapper: up(h.wrapper) || 'SIPP', value: num(h.value), units: num(h.units) || null, gilt, cash, bucket: cash ? 'cash' : gilt ? 'bonds' : (slice ? slice.bucket : (h.subClass ? 'shares' : null)),
+    const row = { ticker, name: h.name || '', sedol: h.sedol || null, wrapper: up(h.wrapper) || 'SIPP', value: num(h.value), units: num(h.units) || null, gilt, cash, bucket: cash ? 'cash' : gilt ? 'bonds' : (slice ? slice.bucket : (h.subClass ? 'shares' : null)),
       // "I'm keeping this" (7.6.0), only on a line the person kept
       ...(keep ? { keep } : {}) };
+    RAW.set(row, { subClass: h.subClass || null, kind: h.kind || null });   // how the line was placed, beside the row (7.6.0)
+    return row;
   });
 }
 
@@ -265,27 +373,34 @@ export function diffHoldings(holdings, target, { tolerance = TRANSITION_TOLERANC
   const standIn = [], kept = [], covered = [];
   const keyOfLine = (h) => (h.ticker || h.sedol || h.name || '').toString();
   for (const h of L) if (h.keep && h.keep.as === 'mine') kept.push({ ...h, key: 'kept:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, fundsGaps: !!h.keep.fundsGaps, why: 'kept by you' });
-  let targetTotal = 0, heldOfTarget = 0, targetCount = 0, cashHeld = 0, cashTarget = 0, cashInfo = null, coveredCount = 0;
+  let targetTotal = 0, heldOfTarget = 0, targetCount = 0, cashHeld = 0, cashTarget = 0, cashInfo = null, coveredCount = 0, coveredCashMoney = null;
   if (target.kind === 'ladder') {
-    // Lines kept to stand in for some tax years (7.6.0): what each pays, set against each year's need in turn.
+    // Lines kept to stand in for some tax years (7.6.0): what each pays (in today's money, as the needs are), set against each
+    // year's need in turn. While the plan runs, this tax year needs only its months still to come.
     const needs = anyKeep ? needsFrom(target, needsGiven) : {};
     const needOf = (Y) => (needs[+Y] ? num(needs[+Y].need) : 0);
+    const now = today instanceof Date && !Number.isNaN(today.getTime()) ? today : null;
+    const running = !!target.running;
+    const shareOf = (Y) => (running && now && +Y === target.thisTaxYear ? monthsLeftInTaxYear(now) / 12 : 1);
+    const wantOf = (Y) => needOf(Y) * shareOf(Y);
     const left = new Map();
     const standYears = new Map();   // Y → labels of the lines standing in for it
     for (const h of L) {
       if (!h.keep || h.keep.as !== 'rung') continue;
-      const p = standInPays(h, { today });
-      let rest = p.amount;
+      const p = standInPays(h, { today: now, from: h.keep.taxYears[0] });
+      let rest = p.real;
       const perYear = h.keep.taxYears.map((Y) => {
-        const need = left.has(Y) ? left.get(Y) : needOf(Y);
-        const pays = Math.max(0, Math.min(rest, need));
-        rest -= pays; left.set(Y, need - pays);
+        const want = left.has(Y) ? left.get(Y) : wantOf(Y);
+        const pays = Math.max(0, Math.min(rest, want));
+        rest -= pays; left.set(Y, want - pays);
         standYears.set(Y, [...(standYears.get(Y) || []), h.name || h.ticker]);
-        return { Y, need: Math.round(needOf(Y)), pays: Math.round(pays), gap: Math.round(Math.max(0, need - pays)) };
+        return { Y, need: Math.round(wantOf(Y)), pays: Math.round(pays), gap: Math.round(Math.max(0, want - pays)) };
       });
-      standIn.push({ ...h, key: 'standIn:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, taxYears: h.keep.taxYears.slice(), pays: p.amount, payKind: p.payKind, fixed: p.fixed, matures: p.matures, coupon: p.coupon, nominal: p.nominal,
+      standIn.push({ ...h, key: 'standIn:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, taxYears: h.keep.taxYears.slice(), pays: p.amount, real: p.real, payKind: p.payKind, fixed: p.fixed, matures: p.matures, coupon: p.coupon, nominal: p.nominal,
         perYear, gap: perYear.reduce((s, y) => s + y.gap, 0), spare: Math.round(Math.max(0, rest)), why: 'stands in for ' + h.keep.taxYears.map(taxYearLabel).join(', ') });
     }
+    // how much of a stood-in year's need what stands in for it pays (0–1): the share of a covered target counted as held
+    const paidShare = (ys) => { const w = ys.reduce((s, Y) => s + wantOf(Y), 0); return w > 0 ? Math.max(0, Math.min(1, ys.reduce((s, Y) => s + (wantOf(Y) - (left.has(+Y) ? left.get(+Y) : wantOf(Y))), 0) / w)) : 1; };
     // a rung all of whose years are stood in for is held by those lines; one some of whose years are keeps only the rest
     const lines = [];
     for (const t of target.lines) {
@@ -293,33 +408,49 @@ export function diffHoldings(holdings, target, { tolerance = TRANSITION_TOLERANC
       if (!cov.length) { lines.push(t); continue; }
       if (cov.length === t.taxYears.length) {
         covered.push({ key: t.key, kind: t.kind, label: t.label, ticker: t.ticker, taxYears: cov.slice(), by: [...new Set(cov.flatMap((Y) => standYears.get(+Y)))] });
-        targetTotal += t.cost; heldOfTarget += t.cost; targetCount++; coveredCount++;
+        targetTotal += t.cost; heldOfTarget += t.cost * paidShare(cov); targetCount++; coveredCount++;
         continue;
       }
       const restYears = t.taxYears.filter((Y) => !standYears.has(+Y));
       const all = t.taxYears.reduce((s, Y) => s + needOf(Y), 0);
       const frac = all > 0 ? restYears.reduce((s, Y) => s + needOf(Y), 0) / all : restYears.length / t.taxYears.length;
       covered.push({ key: t.key + ':part', kind: t.kind, label: t.label, ticker: t.ticker, taxYears: cov.slice(), by: [...new Set(cov.flatMap((Y) => standYears.get(+Y)))], part: true });
+      // the part stood in for counts toward the plan's mix as far as what stands in for it pays
+      targetTotal += t.cost * (1 - frac); heldOfTarget += t.cost * (1 - frac) * paidShare(cov);
       lines.push({ ...t, units: Math.round(t.units * frac), cost: Math.round(t.cost * frac), pays: Math.round(t.pays * frac), taxYears: restYears });
     }
     target = { ...target, lines };
-    // cash years stood in for: their money is not cash to hold
+    // cash years stood in for: their money is not cash to hold (the year in full while running: the target counts it so)
     const coveredCash = [...standYears.keys()].filter((Y) => needs[+Y] && needs[+Y].from === 'cash');
     if (coveredCash.length && target.cash) {
-      const running = !!target.cash.spending;
-      const less = coveredCash.filter((Y) => !running || Y >= (target.thisTaxYear || 0)).reduce((s, Y) => s + (running ? needOf(Y) : num(needs[+Y].cost != null ? needs[+Y].cost : needs[+Y].need)), 0);
-      target = { ...target, cash: { ...target.cash, value: Math.max(0, Math.round(num(target.cash.value) - less)), yearsLeft: (target.cash.yearsLeft || []).filter((Y) => !coveredCash.includes(+Y)) } };
+      const ahead = coveredCash.filter((Y) => !running || Y >= (target.thisTaxYear || 0));
+      const moneyOf = (Y) => (running ? needOf(Y) : num(needs[+Y].cost != null ? needs[+Y].cost : needs[+Y].need));
+      const less = ahead.reduce((s, Y) => s + moneyOf(Y), 0);
+      const ys = target.cash.yearsLeft || [], bd = Array.isArray(target.cash.breakdown) ? target.cash.breakdown : [];
+      // the breakdown is the cash years' rows in the order of yearsLeft (targetHoldings): the covered years' rows come out too
+      const breakdown = bd.length === ys.length ? bd.filter((_, i) => !coveredCash.includes(+ys[i])) : bd;
+      target = { ...target, cash: { ...target.cash, value: Math.max(0, Math.round(num(target.cash.value) - less)), yearsLeft: ys.filter((Y) => !coveredCash.includes(+Y)), breakdown } };
       covered.push({ key: 'cash:covered', kind: 'cash', label: target.cash.label, ticker: '', taxYears: coveredCash.slice().sort((a, b) => a - b), by: [...new Set(coveredCash.flatMap((Y) => standYears.get(+Y)))] });
+      // before the start, the cash years stood in for still count toward the plan's mix: held as far as what stands in for
+      // them pays, and then by the pension's cash beyond the cash still to hold (keeping a line never lowers the share held)
+      if (!running && less > 0) {
+        const cashHeldNow = sipp.filter((h) => h.cash).reduce((s, h) => s + h.value, 0);
+        const paid = ahead.reduce((s, Y) => s + moneyOf(Y) * paidShare([Y]), 0);
+        coveredCashMoney = { target: less, held: Math.min(less, paid + Math.max(0, cashHeldNow - target.cash.value)) };
+      }
     }
     const used = new Set();
     const yearOf = (x) => { const m = String(x || '').match(/(20\d{2})/); if (m) return +m[1]; const c = String(x || '').match(/^T[RGNS]?(\d{2})[A-Z]?$/i); return c ? 2000 + +c[1] : null; };
     // Two passes (6.13.0): every rung takes its EXACT matches (code or SEDOL) first; only a rung left with nothing then
     // falls back to the maturity year — the pasted name gave only a guessed code like "T31" (6.10.5). Each ledger line
     // is used once, so two linkers maturing the same year (T2IL and TR35, both 2035) cannot be mis-paired.
-    const exact = (h, t) => (h.ticker && t.ticker && h.ticker === t.ticker) || (t.sedol && (up(h.sedol) === up(t.sedol) || up(h.name).includes(up(t.sedol))));
-    // A conventional gilt is never an index-linked rung by its year alone (7.6.0): it pays a fixed amount, not one that rises
-    // with prices. Only its exact code makes it one; the person can say it stands in for a year instead ("Keep this").
-    const loose = (h, t, ty) => !isConventional(h) && ((h.ticker && h.ticker.length >= 3 && t.label && up(t.label).includes(h.ticker)) || (ty && (yearOf(h.name) === ty || yearOf(h.ticker) === ty)));
+    // A conventional gilt is never an index-linked rung (7.6.0): it pays a fixed amount, not one that rises with prices. A line
+    // known to be one by its own words or SEDOL (GiltName: its coupon and date) never takes a rung's code its name contradicts
+    // (a pasted "T29" is often a guess); one known by its words, its code or its placing as long gilts is never matched by its
+    // year. A code that IS the rung's code, with nothing in the name against it, is that rung. A line that cannot be told
+    // reads as before. The person can say it stands in for some years instead ("Keep this").
+    const exact = (h, t) => (h.ticker && t.ticker && h.ticker === t.ticker && !conventionalByOwnWords(h)) || (t.sedol && (up(h.sedol) === up(t.sedol) || up(h.name).includes(up(t.sedol))));
+    const loose = (h, t, ty) => !knownConventional(h) && ((h.ticker && h.ticker.length >= 3 && t.label && up(t.label).includes(h.ticker)) || (ty && (yearOf(h.name) === ty || yearOf(h.ticker) === ty)));
     const all = [...(target.paid || []), ...(target.sold || []), ...target.lines];
     const rowsOf = new Map();
     const take = (t, pred) => { const rows = sipp.filter((h) => !used.has(h) && h.gilt && pred(h)); rows.forEach((r) => used.add(r)); rowsOf.set(t, rows); };
@@ -352,6 +483,9 @@ export function diffHoldings(holdings, target, { tolerance = TRANSITION_TOLERANC
       // said. Only a shortfall (beyond tolerance) is a move.
       if (cashTarget > 0 && cashHeld >= cashTarget * (1 - tolerance)) hold.push({ ...target.cash, heldValue: Math.round(cashHeld), spare: Math.round(Math.max(0, cashHeld - cashTarget)) });
       else if (cashTarget > cashHeld) buy.push({ ...target.cash, amount: Math.round(cashTarget - cashHeld), heldValue: Math.round(cashHeld), why: 'the cash years' });
+      // every cash year stood in for (7.6.0): the pension's cash is still held — all of it spare, never a sell
+      else if (coveredCashMoney && cashHeld > 0) hold.push({ ...target.cash, heldValue: Math.round(cashHeld), spare: Math.round(cashHeld) });
+      if (coveredCashMoney) { targetTotal += coveredCashMoney.target; heldOfTarget += coveredCashMoney.held; }
     }
     // Everything else in the SIPP funds the buys — unless the rotation has fired: the fund its proceeds bought IS the plan now.
     for (const h of sipp) if (!used.has(h) && !h.cash) {
@@ -389,7 +523,8 @@ export function diffHoldings(holdings, target, { tolerance = TRANSITION_TOLERANC
     totals: { buyCost: Math.round(buyCost), sellValue: Math.round(sellValue), shortfall: Math.round(Math.max(0, buyCost - sellValue)), cashHeld: Math.round(cashHeld), cashTarget: Math.round(cashTarget) },
     progressPct: targetTotal > 0 ? Math.round(100 * heldOfTarget / targetTotal) : (complete ? 100 : 0), complete, reason,
     // what the person keeps (7.6.0): only on a record that keeps something
-    ...(anyKeep ? { standIn, kept, covered } : {}) };
+    // and, on a ladder, the cash still to hold once the cash years stood in for come out (the move's "Cash to hold now")
+    ...(anyKeep ? { standIn, kept, covered, ...(target.kind === 'ladder' && target.cash ? { cashLeft: target.cash } : {}) } : {}) };
 }
 
 /**

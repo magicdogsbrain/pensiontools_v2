@@ -12,7 +12,7 @@
  * TransitionPlanner's through PlanReading.moveInputs — the very reading the move page and the home make.
  */
 import { moveInputs } from '../../services/PlanReading.js';
-import { yearNeedsOf } from '../../services/TransitionPlanner.js';
+import { yearNeedsOf, monthsLeftInTaxYear as monthsLeftOf } from '../../services/TransitionPlanner.js';
 import { normaliseHoldings, hasKeeps, expectedOf } from '../../services/HoldingsRecord.js';
 import { taxYearLabel, taxYearStartOf } from '../../services/PlanTiming.js';
 import { dateOf, monthWords } from './dates.js';
@@ -27,12 +27,9 @@ const pad = (n) => String(n).padStart(2, '0');
 const addMonths = (ymKey, k) => { const [y, m] = ymKey.split('-').map(Number); const d = new Date(Date.UTC(y, m - 1 + k, 1)); return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1); };
 const monthOfDate = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1);
 
-/** Months of the tax year still to come, this one included (November: November to March, 5). */
+/** Months of the tax year still to come, this one included (November: November to March, 5) — the diff's own count. */
 export function monthsLeftInTaxYear(today) {
-  const d = today instanceof Date ? today : dateOf(today);
-  const m = d.getMonth() + 1;
-  if (m === 4 && d.getDate() < 6) return 1;   // 1–5 April: the last days of the year before
-  return m >= 4 ? 16 - m : 4 - m;
+  return monthsLeftOf(today instanceof Date ? today : dateOf(today));
 }
 
 /**
@@ -56,9 +53,10 @@ export function gapsOf(plan, { today }) {
   const fundsGaps = { lines: fundsLines, total: fundsLines.reduce((s, k) => s + k.value, 0) };
   const expItems = expectedOf(rec).slice().sort((a, b) => String(a.by || '9999').localeCompare(String(b.by || '9999')));
   const expected = { items: expItems.map((e) => ({ id: e.id, label: e.label || '', wrapper: e.wrapper, amount: r0(e.amount), by: e.by })), total: expItems.reduce((s, e) => s + r0(e.amount), 0), late: [] };
-  const standIns = (D.standIn || []).map((s) => ({ label: s.label || s.ticker || '', ticker: s.ticker || '', wrapper: s.wrapper, pays: r0(s.pays), fixed: !!s.fixed, payKind: s.payKind, matures: s.matures || null, taxYears: s.taxYears.slice(), gap: r0(s.gap), spare: r0(s.spare) }));
+  // each stand-in in the diff's order (two lines can share a name: never looked up by it)
+  const standIns = (D.standIn || []).map((s) => ({ label: s.label || s.ticker || '', ticker: s.ticker || '', wrapper: s.wrapper, pays: r0(s.pays), real: r0(s.real != null ? s.real : s.pays), fixed: !!s.fixed, payKind: s.payKind, matures: s.matures || null, taxYears: s.taxYears.slice(), perYear: Array.isArray(s.perYear) ? s.perYear : [], gap: r0(s.gap), spare: r0(s.spare) }));
   const base = { standIns, kept, fundsGaps, expected, heldAnotherWay: new Set(standIns.flatMap((s) => s.taxYears)).size, keptCount: kept.length };
-  if (T.kind !== 'ladder') return { ...base, ladder: false, rows: [], lastYear: null, totalGap: 0, firstGap: null, withExpected: null, withAll: null };
+  if (T.kind !== 'ladder') return { ...base, ladder: false, rows: [], lastYear: null, totalGap: 0, toBuy: 0, firstGap: null, withExpected: null, withAll: null };
 
   const needs = yearNeedsOf(doc);
   const thisTY = taxYearStartOf(now);
@@ -82,15 +80,18 @@ export function gapsOf(plan, { today }) {
     const monthsLeft = thisYear ? monthsLeftInTaxYear(now) : 12;
     const need = full * monthsLeft / 12;
     const from = needs[Y] ? needs[Y].from : null;
-    const sIn = standIns.map((s) => { const p = (D.standIn.find((x) => x.label === s.label && x.wrapper === s.wrapper) || { perYear: [] }).perYear.find((x) => x.Y === Y); return p ? { label: s.label, pays: Math.min(r0(p.pays), r0(need)), fixed: s.fixed } : null; }).filter(Boolean);
+    const sIn = standIns.map((s) => { const p = s.perYear.find((x) => x.Y === Y); return p ? { label: s.label, pays: Math.min(r0(p.pays), r0(need)), fixed: s.fixed } : null; }).filter(Boolean);
     let source = standYears.has(Y) ? 'standIn' : thisYear ? 'thisYear' : from === 'cash' ? 'cash' : (from && paidTidms.has(String(from).toUpperCase())) ? 'paid' : 'rung';
     let rungs = 0, toBuy = 0;
     if (source === 'rung') { const r = rungRow(Y); if (r) { rungs = need * r.held; toBuy = need * r.toBuy; } else source = 'cash'; }
     rows.push({ Y, year: taxYearLabel(Y), need: r0(need), full: r0(full), monthsLeft, thisYear, source, rungs: r0(rungs), standIns: sIn, cash: 0, held: 0, toBuy: r0(toBuy), gap: 0 });
   }
-  // the pension's cash, used year by year: this year's months first, then each year whose money is cash or stood in for
+  // the pension's cash, used year by year: this year's months first, then each year whose money is cash or stood in for. What
+  // a stand-in pays beyond the years it stands in for is cash from the year after its last (said, never lost).
   let pool = num(D.totals && D.totals.cashHeld);
+  const spares = standIns.filter((s) => s.spare > 0).map((s) => ({ after: Math.max(...s.taxYears), amount: s.spare, used: false }));
   for (const r of rows) {
+    for (const x of spares) if (!x.used && x.after < r.Y) { pool += x.amount; x.used = true; }
     if (r.source === 'rung') { r.held = r.rungs; continue; }
     const fromStandIns = r.standIns.reduce((s, x) => s + x.pays, 0);
     const want = Math.max(0, r.need - fromStandIns);
@@ -113,8 +114,9 @@ export function gapsOf(plan, { today }) {
   }
   // money expected after the first year's money runs short (an expected date later than that month)
   if (firstGap) expected.late = expected.items.filter((e) => e.by && e.by > firstGap.shortFrom).map((e) => e.id);
+  const toBuyTotal = rows.reduce((s, r) => s + r.toBuy, 0);
   const cover = (have) => (totalGap <= 0 ? null : have >= totalGap ? { covered: true, short: 0 } : { covered: false, short: r0(totalGap - have) });
-  return { ...base, ladder: true, rows, lastYear: lastY, totalGap: r0(totalGap), firstGap,
+  return { ...base, ladder: true, rows, lastYear: lastY, totalGap: r0(totalGap), toBuy: r0(toBuyTotal), firstGap,
     withExpected: expected.total > 0 ? cover(expected.total) : null,
     withAll: expected.total > 0 && fundsGaps.total > 0 ? cover(expected.total + fundsGaps.total) : fundsGaps.total > 0 ? cover(fundsGaps.total) : null };
 }
@@ -132,9 +134,17 @@ export function gapSentences(g) {
   const out = [];
   const say = (id, ...parts) => out.push({ id, parts: parts.map((p) => ({ key: p[0], slots: p[1] || {}, words: p[2] || {} })) });
   const last = g.lastYear ? taxYearLabel(g.lastYear) : '';
-  if (g.ladder) say('strategy', ['strategy', { n: String(g.heldAnotherWay), k: String(g.keptCount) }, { years: g.heldAnotherWay === 1 ? 'yearOne' : 'yearMany', lines: g.keptCount === 1 ? 'lineOne' : 'lineMany' }]);
-  for (const s of g.standIns.filter((x) => x.fixed)) say('fixed', ['fixed', { label: s.label, pays: pounds(s.pays) }]);
-  if (g.ladder && !g.firstGap) say('noGap', ['noGap', { year: last }]);
+  if (g.ladder) {
+    // a clause with nothing in it is left out
+    const n = g.heldAnotherWay, k = g.keptCount;
+    const key = n > 0 && k > 0 ? 'strategyBoth' : n > 0 ? 'strategyYears' : k > 0 ? 'strategyKept' : 'strategyNone';
+    say('strategy', [key, { n: String(n), k: String(k) }, { years: n === 1 ? 'yearOne' : 'yearMany', holdings: k === 1 ? 'holdingOne' : 'holdingMany' }]);
+  }
+  // a fixed pay, and what it is worth in today's money by the time it is paid (the plan's needs are in today's money)
+  for (const s of g.standIns.filter((x) => x.fixed)) say('fixed', s.real < s.pays - 1 ? ['fixedReal', { label: s.label, pays: pounds(s.pays), real: pounds(s.real) }] : ['fixed', { label: s.label, pays: pounds(s.pays) }]);
+  for (const s of g.standIns.filter((x) => x.spare > 0)) say('spare', ['spare', { label: s.label, spare: pounds(s.spare) }]);
+  // every year covered — by what is held, or once the cash still to set aside is bought (never "held" while it is still to buy)
+  if (g.ladder && !g.firstGap) say('noGap', g.toBuy > 0 ? ['noGapToBuy', { year: last, toBuy: pounds(g.toBuy) }] : ['noGap', { year: last }]);
   if (g.firstGap) {
     const f = g.firstGap;
     const runs = [f.lastMonth ? 'lastsUntil' : 'shortFrom', { year: f.year, month: monthWords(f.lastMonth || f.shortFrom) }];
@@ -170,7 +180,7 @@ export function gapsView(g) {
     ladder: g.ladder, lastYear: g.lastYear ? taxYearLabel(g.lastYear) : null, totalGap: P(g.totalGap), hasGap: g.totalGap > 0,
     rows: g.rows.map((r) => ({ Y: r.Y, year: r.year, thisYear: r.thisYear, monthsLeft: String(r.monthsLeft), source: r.source, need: P(r.need), held: P(r.held), gap: r.gap > 0 ? P(r.gap) : null, toBuy: r.toBuy > 0 ? P(r.toBuy) : null,
       parts: [...r.standIns.filter((s) => s.pays > 0).map((s) => ({ kind: 'standIn', label: s.label, amount: P(s.pays) })), ...(r.rungs > 0 ? [{ kind: 'rungs', amount: P(r.rungs) }] : []), ...(r.cash > 0 ? [{ kind: 'cash', amount: P(r.cash) }] : [])] })),
-    standIns: g.standIns.map((s) => ({ label: s.label, wrapper: s.wrapper, pays: P(s.pays), fixed: s.fixed, years: s.taxYears.map(taxYearLabel) })),
+    standIns: g.standIns.map((s) => ({ label: s.label, wrapper: s.wrapper, pays: P(s.pays), real: P(s.real), fixed: s.fixed, years: s.taxYears.map(taxYearLabel) })),
     kept: g.kept.map((k) => ({ label: k.label, wrapper: k.wrapper, value: P(k.value), fundsGaps: k.fundsGaps })),
     expected: g.expected.items.map((e) => ({ id: e.id, label: e.label, amount: P(e.amount), by: e.by ? monthWords(e.by) : null, late: g.expected.late.includes(e.id) })),
     lines: gapSentences(g)

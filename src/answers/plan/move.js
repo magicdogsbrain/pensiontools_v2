@@ -91,8 +91,11 @@ export function savedMove(plan, { today, index = null }) {
   const cashRows = m.target.cash && Array.isArray(m.target.cash.breakdown) ? (() => {
     const rows = [];
     const plan0 = doc.strategy.r.plan;
+    // cash years a kept line stands in for (7.6.0): said as held another way, never as cash to hold
+    const coveredCash = new Set(((m.diff.covered || []).find((c) => c.kind === 'cash') || { taxYears: [] }).taxYears.map(Number));
     for (const c of Array.isArray(plan0.cashYears) ? plan0.cashYears : []) {
       if (m.target.running && +c.Y < m.target.thisTaxYear) continue;
+      if (coveredCash.has(+c.Y)) { rows.push({ id: 'cashYearCovered', year: taxYearLabel(+c.Y), lump: null, amount: null }); continue; }
       const lump = lumpOf(doc, c.Y);
       rows.push({ id: lump > 0 ? 'cashYearLump' : 'cashYear', year: taxYearLabel(+c.Y), lump: lump > 0 ? pounds(lump) : null, amount: pounds(c.cost) });
     }
@@ -201,7 +204,8 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
     own: s.own, held: held ? { pcts: held.pcts, fromPension: held.fromPension } : null, heldRun, planMix: s.planMix || null,
     newMoney: (() => { const p = proportions(s.record.lines); if (!(p.contributions && p.contributions.monthly > 0)) return null; const m = p.contributions.monthly; return { monthly: pounds(m), parts: ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => p.contributions.byBucket[b] > 0.004).map((b) => ({ bucket: b, word: b === 'diversifiers' ? 'gold and trend' : b, amount: pounds(m * p.contributions.byBucket[b]) })) }; })(),
     cost: { uncovered: uncovered.map((y) => taxYearLabel(y)), canRun: !!held && !s.ladder && !readonly },
-    cash: T.cash && !D.cashInfo ? { rows: s.cashRows, target: pounds(T.cash.value), held: pounds(D.totals.cashHeld), spare: D.totals.cashHeld >= T.cash.value ? pounds(D.totals.cashHeld - T.cash.value) : null, short: D.totals.cashHeld < T.cash.value ? pounds(T.cash.value - D.totals.cashHeld) : null } : null,
+    // the cash to hold: the cash years' money, less the years a kept line stands in for (7.6.0, the diff's cashLeft)
+    cash: T.cash && !D.cashInfo ? (() => { const tv = (D.cashLeft || T.cash).value; return { rows: s.cashRows, target: pounds(tv), held: pounds(D.totals.cashHeld), spare: D.totals.cashHeld >= tv ? pounds(D.totals.cashHeld - tv) : null, short: D.totals.cashHeld < tv ? pounds(tv - D.totals.cashHeld) : null }; })() : null,
     cashInfo: D.cashInfo ? { held: pounds(D.cashInfo.held), target: pounds(D.cashInfo.target), years: D.cashInfo.yearsLeft.map((y) => taxYearLabel(+y)) } : null,
     paid: (T.paid || []).map((p) => ({ label: p.label, ticker: p.ticker || '' })), matured: D.matured.map((x) => moveRow(x, done)), sold: D.sold.map((x) => moveRow(x, done)), rotated: !!T.rotated,
     buy: D.buy.map((x) => moveRow(x, done)), sell: D.sell.map((x) => moveRow(x, done)),

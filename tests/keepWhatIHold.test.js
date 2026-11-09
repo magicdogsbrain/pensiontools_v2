@@ -61,7 +61,8 @@ describe('the record: keep and expected', () => {
     const a = holdingsWith(rec, { kind: 'keep', index: 0, keep: { as: 'rung', taxYears: [2027] } }, { today: '2026-11-09' });
     expect(a.lines[0].keep).toEqual({ as: 'rung', taxYears: [2027] });
     expect(a.source).toBe('paste');
-    expect(a.updatedAt).toBe('2026-11-09');
+    // a keep says what a line is kept as; no value changed, so the record's "as of" date is unchanged (7.6.0 review)
+    expect(a.updatedAt).toBe('2026-10-01');
     const b = holdingsWith(a, { kind: 'keep', index: 0, keep: null }, { today: '2026-11-09' });
     expect(b.lines[0]).toEqual(normaliseHoldings(rec).lines[0]);
     expect(() => holdingsWith(a, { kind: 'keep', index: 0, keep: { as: 'nonsense' } }, { today: '2026-11-09' })).toThrow();
@@ -113,8 +114,12 @@ describe('the diff with keeps', () => {
       expect(s.perYear).toHaveLength(1);
       const y = s.perYear[0];
       expect(y.need).toBe(Math.round(needs[y.Y].need));
-      expect(y.pays).toBe(20000);
-      expect(y.gap).toBe(Math.round(needs[y.Y].need) - 20000);
+      // a fixed 20,000 paid later is worth less in today's money, the money the plan's needs are in
+      const real = standInPays(lines[d.standIn.indexOf(s)], { today: noon(BEFORE), from: y.Y }).real;
+      expect(s.pays).toBe(20000);
+      expect(real).toBeLessThan(20000);
+      expect(y.pays).toBe(real);
+      expect(y.gap).toBe(Math.round(needs[y.Y].need - real));
     }
     // the cash years are stood in for: no cash to buy for them; the 2029 rung keeps only its other years
     expect(d.covered.find((c) => c.kind === 'cash').taxYears).toEqual([2027, 2028]);
@@ -137,7 +142,7 @@ describe('the diff with keeps', () => {
 
   it('both together, every rung covered or held: complete, and the reason says what was kept', () => {
     const rungs = target.lines.map((t) => ({ wrapper: 'SIPP', ticker: t.ticker, name: t.label, units: t.units, value: t.cost }));
-    const lines = [...rungs, { ...conv(2027, 34000), keep: { as: 'rung', taxYears: [2027] } }, { ...conv(2028, 34000), keep: { as: 'rung', taxYears: [2028] } }, { ...shares, keep: { as: 'mine', fundsGaps: false } }];
+    const lines = [...rungs, { ...conv(2027, 36000), keep: { as: 'rung', taxYears: [2027] } }, { ...conv(2028, 36000), keep: { as: 'rung', taxYears: [2028] } }, { ...shares, keep: { as: 'mine', fundsGaps: false } }];
     const d = diffHoldings(lines, target, { needs, today: noon(BEFORE) });
     expect(d.buy).toEqual([]);
     expect(d.sell).toEqual([]);
@@ -188,10 +193,11 @@ describe('the gaps reader', () => {
     const needs = yearNeedsOf(p.planDocument);
     expect(g.rows.map((r) => r.Y)).toEqual([2027, 2028]);
     const [r27, r28] = g.rows;
-    expect(r27).toMatchObject({ source: 'standIn', need: Math.round(needs[2027].need), cash: 5000, held: 25000, gap: Math.round(needs[2027].need) - 25000 });
-    expect(r28).toMatchObject({ source: 'standIn', held: 20000, gap: Math.round(needs[2028].need) - 20000 });
+    const real27 = standInPays(keptLines[0], { today: noon(BEFORE), from: 2027 }).real, real28 = standInPays(keptLines[1], { today: noon(BEFORE), from: 2028 }).real;
+    expect(r27).toMatchObject({ source: 'standIn', need: Math.round(needs[2027].need), cash: 5000, held: real27 + 5000, gap: Math.round(needs[2027].need) - real27 - 5000 });
+    expect(r28).toMatchObject({ source: 'standIn', held: real28, gap: Math.round(needs[2028].need) - real28 });
     const monthly = needs[2027].need / 12;
-    const months = Math.floor((25000 + 0.5) / monthly);
+    const months = Math.floor((real27 + 5000 + 0.5) / monthly);
     const last = new Date(Date.UTC(2027, 3 + months - 1, 1));
     expect(g.firstGap).toMatchObject({ Y: 2027, lastMonth: last.getUTCFullYear() + '-' + String(last.getUTCMonth() + 1).padStart(2, '0') });
     expect(g.totalGap).toBe(r27.gap + r28.gap);
@@ -212,9 +218,9 @@ describe('the gaps reader', () => {
     const words = gapSentences(g2).map((l) => sayGapLine(l, GAPS));
     expect(words.some((t) => t.startsWith('Without the money you expect, 2027/28’s money lasts until about '))).toBe(true);
     expect(words).toContain('Pension elsewhere is expected by June 2028, after the money runs short in ' + words.find((t) => t.includes('runs short in')).split('runs short in ')[1].replace(/\.$/, '') + '.');
-    expect(words).toContain('Example Treasury Gilt 2027 pays a fixed £20,000; it does not rise with prices.');
+    expect(words.some((t) => t.startsWith('Example Treasury Gilt 2027 pays a fixed £20,000; it does not rise with prices, so when it is paid it is worth £'))).toBe(true);
     expect(words).toContain(GAPS.canFall);
-    expect(words[0]).toBe('Your ladder, with 2 years held another way and 1 line you keep by choice.');
+    expect(words[0]).toBe('Your ladder, with 2 years held another way and 1 investment you keep by choice.');
   });
 
   it('while the plan runs: this year counts the months still to come at the plan\'s monthly figure, less what is held', () => {
@@ -277,7 +283,7 @@ describe('both apps: the writes and the views', () => {
     const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: gapsView(gapsOf(p, { today: BEFORE })) });
     for (const l of m.gaps.lines) expect(html).toContain(sayGapLine(l, GAPS).replace(/’/g, '’'));
     expect(html).toContain('Kept by you');
-    expect(html).toContain('keepHolding(1,this.value)');
+    expect(html).toContain('keepHolding(1,this.value,');
   });
 });
 

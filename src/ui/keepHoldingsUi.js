@@ -5,7 +5,6 @@
  * same thing.
  */
 import { holdingsWith } from '../services/HoldingsRecord.js';
-import { taxYearStartOf } from '../services/PlanTiming.js';
 import { gapsOf, gapsView } from '../answers/plan/gaps.js';
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -16,9 +15,16 @@ export function parseTaxYears(text) {
   return [...new Set(String(text || '').split(/[,;\s]+/).map((t) => { const m = /^(20\d{2})/.exec(t.trim()); return m ? +m[1] : null; }).filter(Boolean))];
 }
 
-/** The keep a choice in the "Keep this" box makes: '' none, 'rung' (the years it had, else this tax year), 'mine', 'mineGaps'. */
-export function keepOfChoice(value, was, today = new Date()) {
-  if (value === 'rung') return { as: 'rung', taxYears: was && was.as === 'rung' && Array.isArray(was.taxYears) && was.taxYears.length ? was.taxYears : [taxYearStartOf(today)] };
+/**
+ * The keep a choice in the "Keep this" box makes: '' none, 'rung' (the years it had, else `firstYear` — the plan's year the
+ * gilt matures in, or its first open year, which the page works out), 'mine', 'mineGaps'. A 'rung' with no year to name is
+ * nothing to save (null with `wait`).
+ */
+export function keepOfChoice(value, was, firstYear = null) {
+  if (value === 'rung') {
+    if (was && was.as === 'rung' && Array.isArray(was.taxYears) && was.taxYears.length) return { as: 'rung', taxYears: was.taxYears };
+    return +firstYear > 2000 ? { as: 'rung', taxYears: [+firstYear] } : { wait: true };
+  }
   if (value === 'mine') return { as: 'mine', fundsGaps: false };
   if (value === 'mineGaps') return { as: 'mine', fundsGaps: true };
   return null;
@@ -36,7 +42,12 @@ export function transitionGaps(scenario, rec, today = new Date()) {
  */
 export function installKeepHandlers(w, { draft, persist, toast }) {
   const save = (change) => { const d = draft(); if (!d) return; Promise.resolve().then(() => persist(holdingsWith(d, change, { today: new Date() }))).catch((e) => toast('Could not save what you hold: ' + e.message, 'error')); };
-  w.keepHolding = (i, v) => { const d = draft(); if (!d || !d.lines || !d.lines[i]) return; save({ kind: 'keep', index: i, keep: keepOfChoice(v, d.lines[i].keep) }); };
+  w.keepHolding = (i, v, firstYear) => {
+    const d = draft(); if (!d || !d.lines || !d.lines[i]) return;
+    const keep = keepOfChoice(v, d.lines[i].keep, firstYear);
+    if (keep && keep.wait) { toast('Type the tax years it stands in for, like 2027/28.', 'error'); return; }
+    save({ kind: 'keep', index: i, keep });
+  };
   w.keepHoldingYears = (i, text) => { const ys = parseTaxYears(text); if (!ys.length) { toast('Type at least one tax year, like 2027/28.', 'error'); return; } save({ kind: 'keep', index: i, keep: { as: 'rung', taxYears: ys } }); };
   w.addExpected = () => {
     const g = (id) => { const el = w.document && w.document.getElementById(id); return el ? String(el.value || '').trim() : ''; };

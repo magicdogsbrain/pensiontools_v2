@@ -47,7 +47,7 @@ test('a locked ladder: a share kept by choice and money expected later, each one
 
   await test.step('the share kept by choice, counted toward the gaps: one write of the record', async () => {
     await page.getByTestId(`${T}.line.${SHARE}.keep.open`).click();
-    await page.getByTestId(`${T}.line.${SHARE}.keep.as.mine`).click();
+    await expect(page.getByTestId(`${T}.line.${SHARE}.keep.as.mine`)).toBeChecked();
     await page.getByTestId(`${T}.line.${SHARE}.keep.gaps`).click();
     await page.getByTestId(`${T}.line.${SHARE}.keep.save`).click();
     await expect(page.getByTestId(`${T}.toast`)).toContainText('‘Example Shares plc’ kept.', { timeout: 30_000 });

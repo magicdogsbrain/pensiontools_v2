@@ -550,6 +550,16 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .way-table { border-collapse: collapse; width: 100%; font-size: var(--size-small); }
 .way-table th, .way-table td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); white-space: nowrap; }
 .way-table th { font-weight: 650; }
+/* "What is covered, year by year" (7.6.0): at phone width each year is a block of label–value pairs, the gap never off-screen */
+@media (max-width: 699px) {
+  .gaps-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .gaps-table, .gaps-table tbody, .gaps-table tr, .gaps-table td { display: block; width: 100%; }
+  .gaps-table tr { border-top: 1px solid var(--line); padding: 6px 0; }
+  .gaps-table td { border-top: 0; padding: 2px 0; white-space: normal; display: flex; gap: 8px; justify-content: space-between; }
+  .gaps-table td::before { content: attr(data-label); font-weight: 650; flex: 0 0 auto; }
+  .gaps-table td:first-child { font-weight: 650; }
+  .gaps-table td:first-child::before { content: none; }
+}
 @media (min-width: 744px) {
   .way-list { grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); }
   .way-list li:has(.way-card.is-open) { grid-column: 1 / -1; }

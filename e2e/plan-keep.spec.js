@@ -53,10 +53,12 @@ test.describe('"Keep this", without an account', () => {
     });
 
     await test.step('the gilt kept to stand in for 2027/28: ONE write of the record, the settings and the document byte-identical', async () => {
+      // a gilt opens as "stands in", the tax year it matures in ticked: Keep this, Keep it — and no error before a touch
       await page.getByTestId(`${T}.line.${GILT}.keep.open`).click();
       await expect(page.getByTestId(`${T}.line.${GILT}.keep.box`)).toBeVisible();
-      await page.getByTestId(`${T}.line.${GILT}.keep.as.rung`).click();
-      await page.getByTestId(`${T}.line.${GILT}.keep.year.2027`).click();
+      await expect(page.getByTestId(`${T}.line.${GILT}.keep.as.rung`)).toBeChecked();
+      await expect(page.getByTestId(`${T}.line.${GILT}.keep.year.2027`)).toBeChecked();
+      await expect(page.getByTestId(`${T}.line.${GILT}.keep.error`)).toHaveCount(0);
       expect(await stored(page), 'choosing writes nothing').toBe(planted);
       await page.getByTestId(`${T}.line.${GILT}.keep.save`).click();
       await expect(page.getByTestId(`${T}.toast`)).toContainText('‘Example Treasury Gilt 2027’ kept.', { timeout: 60_000 });
@@ -68,9 +70,13 @@ test.describe('"Keep this", without an account', () => {
       await expect(page.getByTestId(`${T}.line.${GILT}.keep.saved`)).toHaveText('Kept: stands in for 2027/28.');
       const gaps = page.getByTestId(`${T}.gaps`);
       await expect(gaps).toBeVisible({ timeout: 60_000 });
-      await expect(gaps.locator('[data-line="strategy"]')).toHaveText('Your ladder, with 1 year held another way and 0 lines you keep by choice.');
-      await expect(gaps.locator('[data-line="fixed"]')).toHaveText('Example Treasury Gilt 2027 pays a fixed £20,000; it does not rise with prices.');
+      await expect(gaps.locator('[data-line="strategy"]')).toHaveText('Your ladder, with 1 year held another way.');
+      await expect(gaps.locator('[data-line="fixed"]')).toContainText('Example Treasury Gilt 2027 pays a fixed £20,000; it does not rise with prices');
       await expect(gaps.locator('tbody tr[data-year="2027"]')).toBeVisible();
+      // the gap is on screen at every width (a phone stacks each year)
+      const gapCell = gaps.locator('tbody tr[data-year="2027"] td').last();
+      const box = await gapCell.boundingBox();
+      expect(box.x + box.width, 'the gap is not off-screen').toBeLessThanOrEqual(page.viewportSize().width + 1);
       const widths = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: window.innerWidth }));
       expect(widths.doc, 'no sideways scroll').toBeLessThanOrEqual(widths.win);
       const text = await page.locator('#app').innerText();
@@ -93,7 +99,7 @@ test.describe('"Keep this", without an account', () => {
       await expect(page.locator(`[data-testid="plan.move.sell"] tr[data-key="sell:EXMPL"]`)).toHaveCount(1, { timeout: 60_000 });
       await page.goto(v7('#/plan/' + ID + '/hold'));
       await page.getByTestId(`${T}.line.${SHARE}.keep.open`).click();
-      await page.getByTestId(`${T}.line.${SHARE}.keep.as.mine`).click();
+      await expect(page.getByTestId(`${T}.line.${SHARE}.keep.as.mine`)).toBeChecked();
       await page.getByTestId(`${T}.line.${SHARE}.keep.gaps`).click();
       await page.getByTestId(`${T}.line.${SHARE}.keep.save`).click();
       await expect(page.getByTestId(`${T}.toast`)).toContainText('‘Example Shares plc’ kept.', { timeout: 60_000 });
@@ -121,9 +127,13 @@ test.describe('"Keep this", without an account', () => {
     await page.evaluate(() => switchToTab('transition'));
     const box = page.locator('#transitionPage');
     await expect(box).toContainText('Target:', { timeout: 45_000 });
-    await expect(box.locator(`select[data-on-change="keepHolding(${SHARE},this.value)"]`)).toBeVisible();
+    const keepBox = box.locator(`select[data-on-change^="keepHolding(${SHARE},this.value,"]`);
+    await expect(keepBox).toBeVisible();
+    // in the first column: on a phone it is on screen without scrolling the table sideways
+    const kb = await keepBox.boundingBox();
+    expect(kb.x, 'Keep this is on screen').toBeLessThan(page.viewportSize().width - 40);
     const opened = JSON.parse(await stored(page)).find((p) => p.id === ID);
-    await box.locator(`select[data-on-change="keepHolding(${SHARE},this.value)"]`).selectOption('mineGaps');
+    await keepBox.selectOption('mineGaps');
     await expect(box).toContainText('Kept by you', { timeout: 45_000 });
     await expect(box.locator('#transitionGaps [data-line="canFall"]')).toHaveText('What you keep by choice can fall in value; if it is worth less when you sell, the gap is bigger.');
     const after = JSON.parse(await stored(page)).find((p) => p.id === ID);

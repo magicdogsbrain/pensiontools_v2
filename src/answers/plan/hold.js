@@ -21,6 +21,7 @@
  */
 import { normaliseHoldings, holdingsSummary, holdingsWith, normaliseLine, numOrNull, WRAPPERS, LINE_FIELDS, LINE_NUMBER_FIELDS, normaliseKeep, expectedOf } from '../../services/HoldingsRecord.js';
 import { taxYearLabel, taxYearStartOf } from '../../services/PlanTiming.js';
+import { standInYearOf } from '../../services/TransitionPlanner.js';
 import { gapsOf, gapsView } from './gaps.js';
 import { applyPaste, needsCategory, CATEGORY_CHOICES, isGiltCode, parsePaste, giltFromName } from '../../services/HoldingsPaste.js';
 import { proportions } from '../../services/Holdings.js';
@@ -311,14 +312,18 @@ export function keepChoices(plan, { today }) {
 /** One line's "Keep this", as typed over what is saved: the choice, the years, the gaps box, the change it makes, the way to stop. */
 function keepLine(l, index, t, K) {
   const saved = normaliseKeep(l.keep);
+  // the tax year a gilt matures in, when the plan offers it: "stands in" is then the choice already made, that year ticked,
+  // so keeping it is "Keep this", "Keep it"; anything else starts at "kept by choice"
+  const suggested = K.ladder && !saved ? standInYearOf(l, K.years) : null;
   const asT = t[`line.${index}.keepAs`];
-  const as = HOLD_KEEP_AS.includes(asT) ? asT : saved ? saved.as : (K.ladder ? '' : 'mine');
+  const as = HOLD_KEEP_AS.includes(asT) ? asT : saved ? saved.as : (suggested ? 'rung' : 'mine');
   const yT = t[`line.${index}.keepYears`];
-  const on = yT != null ? String(yT).split(',').map((y) => +y).filter((y) => Number.isInteger(y) && y > 2000) : saved && saved.as === 'rung' ? saved.taxYears : [];
+  const on = yT != null ? String(yT).split(',').map((y) => +y).filter((y) => Number.isInteger(y) && y > 2000) : saved && saved.as === 'rung' ? saved.taxYears : suggested ? [suggested] : [];
   const gT = t[`line.${index}.keepGaps`];
   const gaps = gT != null ? gT === '1' : !!(saved && saved.fundsGaps);
   let change = null, error = null;
-  if (as === 'rung' && K.ladder) { if (on.length) change = { kind: 'keep', index, keep: { as: 'rung', taxYears: on.slice().sort((a, b) => a - b) } }; else error = 'noYears'; }
+  // "choose a year" is said only once the person has touched the years (unticked the last one), never before
+  if (as === 'rung' && K.ladder) { if (on.length) change = { kind: 'keep', index, keep: { as: 'rung', taxYears: on.slice().sort((a, b) => a - b) } }; else if (yT != null) error = 'noYears'; }
   else if (as === 'mine') change = { kind: 'keep', index, keep: { as: 'mine', fundsGaps: gaps } };
   const ys = [...new Set([...K.years, ...on])].sort((a, b) => a - b);
   return {

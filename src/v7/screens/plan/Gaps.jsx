@@ -22,15 +22,17 @@ export function GapsSection({ gaps, prefix }) {
       </ul>
       {gaps.ladder && gaps.rows.length > 0 && (
         <div class="table-wrap">
-          <table class="way-table" data-testid={`${T}.table`}>
+          <p class="note">{G.money}</p>
+          {/* at phone width each year stacks as label and value (components.css .gaps-table), so the gap is never off-screen */}
+          <table class="way-table gaps-table" data-testid={`${T}.table`}>
             <thead><tr><th>{G.columns.year}</th><th>{G.columns.need}</th><th>{G.columns.held}</th><th>{G.columns.gap}</th></tr></thead>
             <tbody>
               {gaps.rows.map((r) => (
                 <tr key={r.Y} data-year={r.Y} data-source={r.source} data-gap={r.gap ? '1' : '0'}>
-                  <td>{r.thisYear ? fill(G.thisYear, { year: r.year, months: r.monthsLeft, s: r.monthsLeft === '1' ? '' : 's' }) : r.year}</td>
-                  <td>{r.need}</td>
-                  <td>{heldText(r)}{r.toBuy ? ' · ' + fill(G.heldParts.toBuy, { amount: r.toBuy }) : ''}</td>
-                  <td>{r.gap || G.none}</td>
+                  <td data-label={G.columns.year}>{r.thisYear ? fill(G.thisYear, { year: r.year, months: r.monthsLeft, s: r.monthsLeft === '1' ? '' : 's' }) : r.year}</td>
+                  <td data-label={G.columns.need}>{r.need}</td>
+                  <td data-label={G.columns.held}>{heldText(r)}{r.toBuy ? ' · ' + fill(G.heldParts.toBuy, { amount: r.toBuy }) : ''}</td>
+                  <td data-label={G.columns.gap}>{r.gap || G.none}</td>
                 </tr>
               ))}
             </tbody>

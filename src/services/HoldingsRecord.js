@@ -197,6 +197,17 @@ export const LINE_NUMBER_FIELDS = Object.freeze(['value', 'units', 'ocf', 'contr
 const typedSource = (rec) => (rec && (rec.source === 'paste' || rec.source === 'imported') ? rec.source : 'typed');
 
 /**
+ * A record after a change that says what a line is kept as, or what money is expected (7.6.0): no value changed, so the date
+ * the values are as of (`updatedAt`) and the source stay as they were — the "as of" dates and the reminder to update what
+ * you hold read the values, not the labels.
+ */
+function relabelled(was, next) {
+  const out = normaliseHoldings({ ...next, source: was.source });
+  out.updatedAt = was.updatedAt || null;
+  return out;
+}
+
+/**
  * The next record after ONE change, exactly as the planner's handlers make it (index.html addHoldingLine, updHolding,
  * removeHolding, and the paste's apply), stamped with `today`:
  *   { kind: 'add', line }                      the line pushed (its identity checked by normaliseLine on the stamp)
@@ -237,7 +248,7 @@ export function holdingsWith(record, change, { today } = {}) {
     const keep = normaliseKeep(c.keep);
     if (c.keep != null && !keep) throw new Error('holdingsWith: not a keep');
     if (keep) lines[i].keep = keep; else delete lines[i].keep;
-    return stampHoldings({ ...rec, lines }, today, typedSource(rec));
+    return relabelled(rec, { ...rec, lines });
   }
   if (c.kind === 'expected') {
     const list = (rec.expected || []).map((e) => ({ ...e }));
@@ -259,7 +270,7 @@ export function holdingsWith(record, change, { today } = {}) {
       }
     } else throw new Error('holdingsWith: no money-expected change called "' + c.op + '"');
     const { expected: _was, ...rest } = rec;
-    return stampHoldings({ ...rest, lines, ...(list.length ? { expected: list } : {}) }, today, typedSource(rec));
+    return relabelled(rec, { ...rest, lines, ...(list.length ? { expected: list } : {}) });
   }
   throw new Error('holdingsWith: no change called "' + c.kind + '"');
 }

@@ -22,11 +22,11 @@
  *   amendPatch(plan, result, { today, at })    → { ok, patch: { planAmendments }, previous, line }: "I accept this risk"
  *   withdrawPatch(plan)                        → the same: the last agreement taken off
  */
-import { normaliseHoldings, normaliseKeep, expectedOf, hasKeeps } from '../../services/HoldingsRecord.js';
+import { normaliseHoldings, normaliseKeep, expectedOf } from '../../services/HoldingsRecord.js';
 import { ledgerView, isGiltTicker, inTodaysMoney, yearNeedsOf } from '../../services/TransitionPlanner.js';
 import { catalogueEntry } from '../../services/SubAssetModel.js';
 import { deriveTiming, taxYearStartOf, taxYearOfMonth, taxYearLabel } from '../../services/PlanTiming.js';
-import { amendmentState, amendmentEntry, amendmentsWith, amendmentsWithoutLast, keepFingerprint, keptLinesOf } from '../../services/PlanAmendments.js';
+import { amendmentState, amendmentEntry, amendmentsWith, amendmentsWithoutLast, keepFingerprint, keepsLines, lineKeysOf, holdingsKeyOf } from '../../services/PlanAmendments.js';
 import { gapsOf } from './gaps.js';
 import { savedMove } from './move.js';
 import { pounds } from './income.js';
@@ -47,20 +47,22 @@ export const SHOCKS = Object.freeze({ half: 0.5, nothing: 0 });
  * Each kept line, read by the fund tagging the move uses (TransitionPlanner.ledgerView): { key, label, wrapper, value, as,
  * counted, bucket, single }. `counted`: it pays the plan — it stands in for some years, or it is kept by choice and counted
  * toward the gaps. `bucket`: shares, bonds, cash or diversifiers (a gilt is bonds; a line nothing places is tested as shares).
- * `single`: a line no fund in the catalogue matches and that is not a gilt or cash — tested as shares, and it may be one
- * company's shares, which can fall much further than a world fund.
+ * `single`: a line no fund in the catalogue matches and that is not a gilt or cash — tested on the futures of shares (a world
+ * share fund's), and it may be one company's shares, which can fall much further than a world fund (the shocks say that).
+ * Each row's key is its own line's (PlanAmendments.lineKeysOf), never taken by place: a kept line with no value and no units
+ * (which the ledger leaves out) moves no other line's key.
  */
 export function keptAssetsOf(rec) {
   const r = normaliseHoldings(rec);
   const rows = ledgerView(r.lines);
-  const keys = keptLinesOf(r);
-  let k = 0;
-  return rows.filter((h) => h.keep).map((h) => {
+  const all = lineKeysOf(r);
+  // the ledger keeps the lines with a value or units, in order: their keys, in the same order
+  const keys = r.lines.map((l, i) => [l, all[i]]).filter(([l]) => l && (num(l.value) > 0 || num(l.units) > 0)).map(([, k]) => k);
+  return rows.map((h, i) => [h, keys[i]]).filter(([h]) => h.keep).map(([h, key]) => {
     const keep = normaliseKeep(h.keep);
     const bucket = h.cash ? 'cash' : h.gilt ? 'bonds' : (h.bucket || 'shares');
     const single = !h.cash && !h.gilt && !isGiltTicker(h.ticker) && bucket === 'shares' && !catalogueEntry(h.ticker);
-    const key = keys[k] ? keys[k].key : null; k += 1;
-    return { key, label: h.name || h.ticker || '', wrapper: h.wrapper, value: r0(h.value), as: keep.as, counted: keep.as === 'rung' || !!keep.fundsGaps, bucket, single };
+    return { key: key || null, label: h.name || h.ticker || '', wrapper: h.wrapper, value: r0(h.value), as: keep.as, counted: keep.as === 'rung' || !!keep.fundsGaps, bucket, single };
   });
 }
 
@@ -77,9 +79,14 @@ export function arrivalYearOf(e, now) {
   return Math.max(thisTY, taxYearOfMonth(e.by));
 }
 
+/** The balances outside the pension a kept line can sit in: the ISA and the taxable account (the settings' own fields). */
+const OUTSIDE = Object.freeze({ ISA: 'isaBalance', GIA: 'taxableStart' });
+
 /**
- * A pot plan's inputs as held (see the header). The settings given are never changed; a record that keeps nothing in the
- * pension and expects nothing gives the settings back as they are.
+ * A pot plan's inputs as held (see the header). The settings given are never changed; a record that keeps nothing and
+ * expects nothing gives the settings back as they are. The pension's kept lines re-describe its pots; a line kept in the ISA
+ * or the taxable account is its share of that balance: left out when it is not counted toward the plan, and taking the shock
+ * when it is (the balance itself grows as the plan says it does).
  * @param {object} settings   the plan's effective Stress settings (PlanReading.effectiveStressSettings)
  * @param {object} rec        the holdings record
  * @param {{ withExpected?: boolean, shock?: null|'half'|'nothing', now: Date }} o
@@ -107,6 +114,18 @@ export function heldSettingsOf(settings, rec, { withExpected = true, shock = nul
     // a pinned pension total (a bought strategy's own dial) and a saver's projected pension move with the pots
     if (isObj(s.strategyParams) && num(s.strategyParams.sippTotal) > 0) s.strategyParams = { ...s.strategyParams, sippTotal: Math.round(s.strategyParams.sippTotal * f) };
     if (isObj(s.potAtRetirement) && num(s.potAtRetirement.sipp) > 0) s.potAtRetirement = { ...s.potAtRetirement, sipp: Math.round(s.potAtRetirement.sipp * f) };
+  }
+  for (const [wrapper, field] of Object.entries(OUTSIDE)) {
+    const held = ledgerView(r.lines).filter((h) => h.wrapper === wrapper && h.value > 0).reduce((t, h) => t + h.value, 0);
+    const B = num(s[field]);
+    const keptHere = keptAssetsOf(r).filter((a) => a.wrapper === wrapper && a.value > 0);
+    if (!(held > 0) || !(B > 0) || !keptHere.length) continue;
+    // what is left of the balance: each kept line's share out when it is not counted, its shock's fall out when it is
+    let lose = 0;
+    for (const a of keptHere) { const w = Math.min(1, a.value / held); lose += a.counted ? w * (1 - shockFactor(a, shock)) : w; }
+    const f = Math.max(0, 1 - lose);
+    s[field] = Math.round(B * f);
+    if (wrapper === 'ISA' && isObj(s.potAtRetirement) && num(s.potAtRetirement.isa) > 0) s.potAtRetirement = { ...s.potAtRetirement, isa: Math.round(s.potAtRetirement.isa * f) };
   }
   const exp = withExpected ? expectedOf(r) : [];
   if (exp.length) {
@@ -178,6 +197,8 @@ export function ladderGapsOf(plan, { today, withExpected = true, shock = null } 
   const firstYear = Math.max(thisTY, Math.min(...(ys.length ? ys : [thisTY]), ...(g && g.rows && g.rows.length ? [g.rows[0].Y] : [])));
   const lastYear = ys.length ? Math.max(...ys) : firstYear;
   const firstShort = ys.length ? Math.min(...ys) : null;
+  // money that arrives before the first year read is there, waiting, by that year: never dropped
+  for (const Y of Object.keys(arrivals).map(Number)) if (Y < firstYear) { arrivals[firstYear] = (arrivals[firstYear] || 0) + arrivals[Y]; delete arrivals[Y]; }
   return { gaps: Object.fromEntries(Object.entries(gaps).map(([Y, v]) => [Y, Math.round(v)])), firstYear, lastYear, fund: { flat: Math.round(fund.flat), shares: Math.round(fund.shares) }, arrivals: Object.fromEntries(Object.entries(arrivals).map(([Y, v]) => [Y, Math.round(v)])), firstShort: firstShort == null ? null : { Y: firstShort, gap: Math.round(gaps[firstShort]) } };
 }
 
@@ -190,14 +211,14 @@ const ISO = /^\d{4}-\d{2}-\d{2}T/;
 
 /**
  * "I accept this risk": ONE write of the whole `planAmendments` list with the new agreement on the end. Refused (ok false)
- * when the plan is not locked, keeps nothing, or the result is not for what is kept now (`problem`: 'notLocked', 'nothingKept',
+ * when the plan is not locked, keeps no line, or the result is not for the record as it is now (`problem`: 'notLocked', 'nothingKept',
  * 'stale', 'noResult').
  * @param {{ today: string, at: string }} o  `at` the moment, ISO (the effect's clock)
  */
 export function amendPatch(plan, result, { at } = {}) {
   const fail = (problem) => ({ ok: false, problem, patch: {}, previous: {}, line: null });
   if (!isLocked(plan) || !isObj(plan.planDocument)) return fail('notLocked');
-  if (!hasKeeps(normaliseHoldings(plan.holdings))) return fail('nothingKept');
+  if (!keepsLines(plan.holdings)) return fail('nothingKept');
   if (!isObj(result) || !result.asHeld) return fail('noResult');
   if (typeof at !== 'string' || !ISO.test(at)) return fail('noResult');
   const entry = amendmentEntry(plan, result, { at });
@@ -251,7 +272,8 @@ export function keepTestOf(plan, { result = null, run = null } = {}) {
   const st = amendmentState(plan);
   if (st.status === 'none') return null;
   const fp = keepFingerprint(plan && plan.holdings);
-  const mine = result && isObj(result) && result.fingerprint === fp && fp ? result : null;
+  // the re-test is read only while it is for the record exactly as it is now (what is kept, and every figure)
+  const mine = result && isObj(result) && fp && result.fingerprint === fp && result.recordKey === holdingsKeyOf(plan && plan.holdings) ? result : null;
   const lockedOn = dayWords(lockedAtOf(plan));
   const last = st.last;
   const agreed = last ? { on: dayWords(last.at), held: badOf(last.retest && last.retest.asHeld), locked: badOf(last.retest && last.retest.asLocked) } : null;
@@ -259,7 +281,7 @@ export function keepTestOf(plan, { result = null, run = null } = {}) {
     const single = (mine.kept || []).filter((k) => k.single && k.as === 'mine').map((k) => k.label);
     const sh = mine.shock || null;
     const shock = !sh ? [] : !sh.counted ? [{ id: 'shockNotCounted', slots: {} }]
-      : [sh.half ? { id: 'shockHalf', slots: { bad: badPart(badOf(sh.half)) } } : null, sh.nothing ? { id: 'shockNothing', slots: { list: listOf(single), bad: badPart(badOf(sh.nothing)) } } : null].filter(Boolean);
+      : [sh.half ? { id: 'shockHalf', slots: { words: sideOf(sh.half).words, bad: badPart(badOf(sh.half)) } } : null, sh.nothing ? { id: 'shockNothing', slots: { list: listOf(single), words: sideOf(sh.nothing).words, bad: badPart(badOf(sh.nothing)) } } : null].filter(Boolean);
     return {
       ladder: !!mine.ladder,
       locked: sideOf(mine.asLocked), held: sideOf(mine.asHeld), without: sideOf(mine.withoutExpected),

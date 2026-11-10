@@ -15,8 +15,9 @@ export function GapsSection({ gaps, prefix }) {
   const heldText = (r) => (r.parts.length ? r.parts.map((p) => (p.kind === 'standIn' ? p.label + ' ' + p.amount : G.heldParts[p.kind] + ' ' + p.amount)).join(', ') : G.none);
   return (
     <section class="plan-section" data-section="gaps" data-testid={T} data-gap={gaps.hasGap ? '1' : '0'}>
-      <h2>{G.title}</h2>
-      <p class="note">{G.lead}</p>
+      {/* a plan drawn from a pot has no years bought ahead: what is kept and expected, with no year by year */}
+      <h2>{gaps.ladder ? G.title : G.titlePot}</h2>
+      <p class="note">{gaps.ladder ? G.lead : G.leadPot}</p>
       <ul class="plan-lines" data-testid={`${T}.lines`}>
         {gaps.lines.map((l, i) => <li key={i} class="plan-line" data-line={l.id}>{gapLineText(l)}</li>)}
       </ul>

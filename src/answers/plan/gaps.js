@@ -154,11 +154,12 @@ export function gapSentences(g) {
   if (g.withExpected) say('withExpected', g.withExpected.covered ? ['withExpected', { year: last }] : ['withExpectedShort', { short: pounds(g.withExpected.short), year: last }]);
   for (const e of g.expected.items.filter((x) => g.expected.late.includes(x.id))) say('late', e.label ? ['late', { label: e.label, by: monthWords(e.by), month: monthWords(g.firstGap.shortFrom) }] : ['late', { by: monthWords(e.by), month: monthWords(g.firstGap.shortFrom) }, { label: 'expectedNoLabel' }]);
   if (g.fundsGaps.total > 0) {
-    say('fundsGaps', ['fundsGaps', { list: listWords(g.fundsGaps.lines.map((k) => k.label)), total: pounds(g.fundsGaps.total) }]);
+    // a pot plan has no years to fill: what is counted is counted toward the plan's money
+    say('fundsGaps', [g.ladder ? 'fundsGaps' : 'fundsPlan', { list: listWords(g.fundsGaps.lines.map((k) => k.label)), total: pounds(g.fundsGaps.total) }]);
     const both = g.expected.total > 0;
     if (g.withAll) say('withAll', g.withAll.covered ? [both ? 'withAll' : 'withKept', { year: last }] : [both ? 'withAllShort' : 'withKeptShort', { short: pounds(g.withAll.short), year: last }]);
   }
-  if (g.kept.length) say('canFall', ['canFall']);
+  if (g.kept.length) say('canFall', [g.ladder ? 'canFall' : 'canFallPot']);
   return out;
 }
 

@@ -478,6 +478,8 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .plan-stale { color: var(--text-warning); font-weight: 600; }
 .plan-section { margin: 14px 0 0; }
 .plan-section h3 { margin: 0 0 4px; font-size: 1.05rem; }
+/* a subheading under a table (the keep test's "If what you keep by choice fell", 7.7.0) stands clear of it, as a new section does */
+.plan-section h3.plan-subhead { margin-top: 14px; }
 .plan-fixed { margin: 4px 0 0; }
 .plan-fact { white-space: normal; }
 .plan-actions { margin-top: 10px; }

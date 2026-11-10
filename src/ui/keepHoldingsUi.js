@@ -8,6 +8,7 @@ import { holdingsWith } from '../services/HoldingsRecord.js';
 import { gapsOf, gapsView } from '../answers/plan/gaps.js';
 import { keepTestOf, amendPatch, withdrawPatch, sayKeep } from '../answers/plan/keepTest.js';
 import { keepFingerprint } from '../services/PlanAmendments.js';
+import { isClosedPlan } from '../services/PlanClosed.js';
 import { KEEPTEST } from '../v7/copy/keepTest.js';
 import { HOLD } from '../v7/copy/hold.js';
 import { esc } from './components/ReleaseNotesView.js';
@@ -66,19 +67,39 @@ export function installKeepHandlers(w, { draft, persist, toast }) {
 // ---- "Test what you keep against your plan" and "I accept this risk" (7.7.0) -------------------------------------------------
 
 /**
- * The page's memory of the re-test (never the plan's): the result for the plan as it is now (its fingerprint), whether one is
- * under way, and whether the confirm is open. Opening the tab runs nothing and writes nothing.
+ * The page's memory of the re-test (never the plan's): the result, for ONE plan as it was when the test ran (its id and its
+ * stamp, `lastModified` — as V7 files its result under the plan's run key), whether one is under way, whether the confirm is
+ * open, and the last agreement's Undo (the list before it, and the list it wrote). Another plan, or the plan changed since,
+ * and the result is not read: the test is run again. Opening the tab runs nothing and writes nothing.
  */
-const memory = { result: null, status: 'idle', confirm: false };
+const memory = { planId: null, stamp: null, result: null, status: 'idle', confirm: false, undo: null };
+const idOf = (sc) => (sc && sc.id != null ? String(sc.id) : null);
+const stampOf = (sc) => (sc && sc.lastModified != null ? String(sc.lastModified) : null);
+/** The memory is for this plan: another plan empties it. */
+function forPlan(sc) {
+  const id = idOf(sc);
+  if (memory.planId !== id) Object.assign(memory, { planId: id, stamp: null, result: null, status: 'idle', confirm: false, undo: null });
+}
+/** The result held, when it is for this plan as it is now (its stamp); else none. */
+const resultFor = (sc) => (memory.result && memory.planId === idOf(sc) && memory.stamp === stampOf(sc) ? memory.result : null);
+const listOf = (sc) => JSON.stringify(Array.isArray(sc && sc.planAmendments) ? sc.planAmendments : []);
+
+/** For the tests: the memory emptied, as a new page has it. */
+export function resetKeepTestMemory() { Object.assign(memory, { planId: null, stamp: null, result: null, status: 'idle', confirm: false, undo: null }); }
 
 /** The reading the Transition tab draws: V7's (answers/plan/keepTest.js keepTestOf) with this page's re-test. Null on a plan that keeps nothing. */
 export function transitionKeepTest(scenario, rec) {
   if (!scenario) return null;
   try {
+    forPlan(scenario);
     const plan = { ...scenario, holdings: rec || scenario.holdings };
-    const fresh = !!(memory.result && memory.result.fingerprint === keepFingerprint(plan.holdings));
-    const v = keepTestOf(plan, { result: memory.result, run: { status: fresh ? 'done' : memory.status === 'working' || memory.status === 'failed' ? memory.status : 'idle', reason: null } });
-    return v ? { ...v, confirmOpen: memory.confirm } : null;
+    const result = resultFor(scenario);
+    const fresh = !!(result && result.fingerprint === keepFingerprint(plan.holdings));
+    const v = keepTestOf(plan, { result, run: { status: fresh ? 'done' : memory.status === 'working' || memory.status === 'failed' ? memory.status : 'idle', reason: null } });
+    // Undo, while the list is still the one the last agreement (or withdraw) wrote
+    const undo = memory.undo && memory.undo.after === listOf(scenario) ? { id: memory.undo.id } : null;
+    // a closed plan is kept to read: no test, no agreement, no withdraw (the store refuses them too), as V7
+    return v ? { ...v, closed: isClosedPlan(scenario), confirmOpen: memory.confirm, undo } : null;
   } catch { return null; }
 }
 
@@ -98,19 +119,26 @@ export function keepLineHtml(scenario) {
 /**
  * The handlers the Transition tab's keep-test block names: runKeepTest (the plan's own test as locked and as held, on the
  * engine loaded only now), askKeepRisk / cancelKeepRisk (the confirm on the page), acceptKeepRisk (ONE save of the whole list
- * of agreements), withdrawKeepRisk (the list without its last). `scenario()` is the plan as stored, `persist(list)` the shell's
- * one save, `rerender()` the tab drawn again, `toast(text, kind)` its message.
+ * of agreements), withdrawKeepRisk (the list without its last), undoKeepRisk (the list as it was before either). Each refuses
+ * on a closed plan, and the agreement only takes a result for this plan as it is now. `scenario()` is the plan as stored,
+ * `persist(list)` the shell's one save, `rerender()` the tab drawn again, `toast(text, kind)` its message.
  */
 export function installKeepTestHandlers(w, { scenario, persist, rerender, toast }) {
+  const closed = (sc) => { if (!isClosedPlan(sc)) return false; toast(HOLD.problems.readonly, 'error'); return true; };
   w.runKeepTest = async () => {
     if (memory.status === 'working') return;
+    const sc0 = await scenario();
+    if (!sc0 || closed(sc0)) return;
+    forPlan(sc0);
     memory.status = 'working'; memory.result = null; memory.confirm = false;
     await rerender();
     try {
       const sc = await scenario();
+      forPlan(sc);
       const { runKeepRetest } = await import('../answers/plan/keepRun.js');
       await new Promise((r) => setTimeout(r, 30));   // let the page say it is testing before the engine takes the thread
       memory.result = runKeepRetest(sc, { today: dayOf(new Date()) });
+      memory.stamp = stampOf(sc);
       memory.status = 'done';
     } catch (e) { memory.status = 'failed'; memory.result = null; toast(KEEPTEST.failed, 'error'); }
     await rerender();
@@ -120,10 +148,14 @@ export function installKeepTestHandlers(w, { scenario, persist, rerender, toast 
   w.acceptKeepRisk = async () => {
     try {
       const sc = await scenario();
-      const p = amendPatch(sc, memory.result, { at: new Date().toISOString() });
-      if (!p.ok) { toast(HOLD.problems[p.problem] || KEEPTEST.failed, 'error'); return; }
+      if (!sc || closed(sc)) return;
+      forPlan(sc);
+      // the result is for this plan as it is now, or nothing is written (the plan changed since the test: run it again)
+      const p = amendPatch(sc, resultFor(sc), { at: new Date().toISOString() });
+      if (!p.ok) { memory.confirm = false; toast(HOLD.problems[p.problem] || KEEPTEST.failed, 'error'); await rerender(); return; }
       await persist(p.patch.planAmendments);
       memory.confirm = false;
+      memory.undo = { id: 'agreed', before: p.previous.planAmendments, after: JSON.stringify(p.patch.planAmendments) };
       toast(HOLD.toast.agreed.replace('{date}', p.line.slots.date), 'success');
     } catch (e) { toast('Could not save: ' + e.message, 'error'); }
     await rerender();
@@ -131,10 +163,27 @@ export function installKeepTestHandlers(w, { scenario, persist, rerender, toast 
   w.withdrawKeepRisk = async () => {
     try {
       const sc = await scenario();
+      if (!sc || closed(sc)) return;
+      forPlan(sc);
       const p = withdrawPatch(sc);
       if (!p.ok) return;
       await persist(p.patch.planAmendments);
+      memory.undo = { id: 'withdrawn', before: p.previous.planAmendments, after: JSON.stringify(p.patch.planAmendments) };
       toast(HOLD.toast.withdrawn.replace('{date}', p.line.slots.date), 'success');
+    } catch (e) { toast('Could not save: ' + e.message, 'error'); }
+    await rerender();
+  };
+  // Undo: the list put back as it was before the last agreement or withdraw — ONE save, only while nothing else changed it
+  w.undoKeepRisk = async () => {
+    try {
+      const sc = await scenario();
+      if (!sc || closed(sc)) return;
+      forPlan(sc);
+      const u = memory.undo;
+      if (!u || u.after !== listOf(sc)) { memory.undo = null; await rerender(); return; }
+      await persist(Array.isArray(u.before) ? u.before : []);
+      memory.undo = null;
+      toast(HOLD.toast.undone, 'success');
     } catch (e) { toast('Could not save: ' + e.message, 'error'); }
     await rerender();
   };

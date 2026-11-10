@@ -98,7 +98,8 @@ function KeepLine({ l, V, dispatch, planId, KT }) {
   const k = l.keep;
   const base = `${T}.line.${l.index}.keep`;
   const edit = (path, value) => dispatch({ type: 'plan/edit', planId, path, value });
-  const saved = k.saved ? (k.saved.as === 'rung' ? fill(K.standsIn, { years: k.saved.years.join(', ') }) : k.saved.fundsGaps ? K.byChoiceGaps : K.byChoice) : null;
+  // a ladder's kept money fills its years' gaps; a plan drawn from a pot has no years, so it is counted toward the plan's money
+  const saved = k.saved ? (k.saved.as === 'rung' ? fill(K.standsIn, { years: k.saved.years.join(', ') }) : k.saved.fundsGaps ? (V.keepLadder ? K.byChoiceGaps : K.byChoicePlan) : K.byChoice) : null;
   const asking = V.canKeep && V.editable && V.keepIndex === l.index;
   return (
     <div class="hold-keep" data-testid={base} data-kept={k.saved ? k.saved.as : ''}>
@@ -131,7 +132,7 @@ function KeepLine({ l, V, dispatch, planId, KT }) {
           {k.as === 'mine' && (
             <div class="option-row">
               <input type="checkbox" id={`${base}.gaps`} data-testid={`${base}.gaps`} checked={k.gaps} onClick={() => edit(k.paths.gaps, k.gaps ? '0' : '1')} onChange={() => {}} />
-              <label for={`${base}.gaps`}>{K.fundsGaps}</label>
+              <label for={`${base}.gaps`}>{V.keepLadder ? K.fundsGaps : K.fundsPlan}</label>
             </div>
           )}
           <div class="actions-row">

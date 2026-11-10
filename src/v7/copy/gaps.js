@@ -7,6 +7,9 @@
 export const GAPS = {
   title: 'What is covered, year by year',
   lead: 'Your plan stays as locked. This reads it with what you chose to keep instead.',
+  // a plan drawn from a pot (no years bought ahead): what is kept and expected, with no years to read
+  titlePot: 'What you keep, and money you expect',
+  leadPot: 'Your plan stays as locked. This says what you chose to keep beside it.',
   // the plan stays the same strategy; a clause with nothing in it is left out
   strategyBoth: 'Your ladder, with {n} {years} held another way and {k} {holdings} you keep by choice.',
   strategyYears: 'Your ladder, with {n} {years} held another way.',
@@ -27,11 +30,13 @@ export const GAPS = {
   late: '{label} is expected by {by}, after the money runs short in {month}.',
   expectedNoLabel: 'The money you expect',
   fundsGaps: 'Counted toward the gaps: {list}, {total} at today’s value.',
+  fundsPlan: 'Counted toward the plan’s money: {list}, {total} at today’s value.',
   withAll: 'With the money you expect and what you count toward the gaps, every year to {year} is covered.',
   withAllShort: 'With the money you expect and what you count toward the gaps, {short} is still not covered to {year}.',
   withKept: 'With what you count toward the gaps, every year to {year} is covered.',
   withKeptShort: 'With what you count toward the gaps, {short} is still not covered to {year}.',
   canFall: 'What you keep by choice can fall in value; if it is worth less when you sell, the gap is bigger.',
+  canFallPot: 'What you keep by choice can fall in value; if it falls, the plan has less to draw on.',
   columns: { year: 'Tax year', need: 'The plan needs', held: 'Held for it', gap: 'Not yet covered' },
   // the needs and what is held are at today’s prices
   money: 'At today’s prices.',
@@ -49,11 +54,13 @@ export const GAPS = {
     years: 'The tax years it stands in for',
     yearsTyped: 'Tax years it stands in for (like 2027/28, 2028/29)',
     fundsGaps: 'Count it toward the gaps',
+    fundsPlan: 'Count it toward the plan’s money',
     save: 'Keep it',
     cancel: 'Cancel',
     standsIn: 'Kept: stands in for {years}.',
     byChoice: 'Kept by choice.',
     byChoiceGaps: 'Kept by choice, counted toward the gaps.',
+    byChoicePlan: 'Kept by choice, counted toward the plan’s money.',
     noYears: 'Choose at least one tax year.'
   },
   // money expected later
@@ -75,6 +82,7 @@ export const GAPS = {
     kept: 'Kept by you',
     keptOne: '{label} ({wrapper}, {value}){gaps}',
     keptGaps: ', counted toward the gaps',
+    keptPlan: ', counted toward the plan’s money',
     covered: '{label} for {years}: held another way.'
   },
   home: '{year}: {gap} not yet covered — see What you hold.'

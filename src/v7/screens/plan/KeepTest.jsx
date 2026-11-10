@@ -66,7 +66,7 @@ export function KeepTestSection({ v, dispatch, prefix, editable }) {
             </table>
           </div>
           {r.firstShort && <p class="line" data-testid={`${T}.firstShort`}>{sayKeep(r.firstShort)}</p>}
-          {r.shock.length > 0 && <h3>{K.shockTitle}</h3>}
+          {r.shock.length > 0 && <h3 class="plan-subhead" data-testid={`${T}.shockTitle`}>{K.shockTitle}</h3>}
           {r.shock.map((x, i) => <p key={i} class="line" data-testid={`${T}.shock.${x.id}`}>{sayKeep(x)}</p>)}
           {r.single && <p class="notice" data-testid={`${T}.single`}>{sayKeep(r.single)}</p>}
         </div>

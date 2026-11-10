@@ -65,7 +65,7 @@ const taxYearWords = (Y) => Y + '/' + String(+Y + 1).slice(2);
 function keepCellHtml(i, L, keep) {
   const k = L && L.keep;
   const cur = !k ? '' : k.as === 'rung' ? 'rung' : k.fundsGaps ? 'mineGaps' : 'mine';
-  const opts = [['', 'Not kept'], ...(keep.ladder ? [['rung', 'Stands in for some years']] : []), ['mine', 'Kept by choice'], ['mineGaps', 'Kept by choice, counted toward the gaps']];
+  const opts = [['', 'Not kept'], ...(keep.ladder ? [['rung', 'Stands in for some years']] : []), ['mine', 'Kept by choice'], ['mineGaps', keep.ladder ? GAPS.keep.byChoiceGaps.replace(/\.$/, '') : GAPS.keep.byChoicePlan.replace(/\.$/, '')]];
   const years = Array.isArray(keep.years) ? keep.years : [];
   const first = keep.ladder ? (standInYearOf(L || {}, years) || years[0] || 0) : 0;
   let h = '<label class="hint" style="display:block;margin-top:4px;">Keep this <select data-on-change="keepHolding(' + i + ',this.value,' + first + ')" style="width:auto;" aria-label="Keep this">' + opts.map((o) => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('') + '</select></label>';
@@ -95,7 +95,8 @@ function expectedHtml(expected) {
 export function gapsHtml(gaps) {
   if (!gaps) return '';
   const G = GAPS;
-  let h = '<div class="section-title" style="margin-top:12px;">' + esc(G.title) + '</div><p class="hint">' + esc(G.lead) + '</p>';
+  // a plan drawn from a pot has no years bought ahead: what is kept and expected, with no year by year (as V7 says it)
+  let h = '<div class="section-title" style="margin-top:12px;">' + esc(gaps.ladder ? G.title : G.titlePot) + '</div><p class="hint">' + esc(gaps.ladder ? G.lead : G.leadPot) + '</p>';
   h += '<ul style="font-size:13px;line-height:1.6;" id="transitionGaps">' + gaps.lines.map((l) => '<li data-line="' + esc(l.id) + '">' + esc(sayGapLine(l, G)) + '</li>').join('') + '</ul>';
   if (gaps.ladder && gaps.rows.length) {
     const held = (r) => (r.parts.length ? r.parts.map((p) => (p.kind === 'standIn' ? p.label + ' ' + p.amount : G.heldParts[p.kind] + ' ' + p.amount)).join(', ') : G.none) + (r.toBuy ? ' · ' + G.heldParts.toBuy.replace('{amount}', r.toBuy) : '');
@@ -135,6 +136,8 @@ export function keepTestHtml(v) {
   if (can && v.canAccept && v.confirmOpen) h += '<div class="alert alert-info" id="keepTestConfirm"><p style="margin:0 0 6px;">' + esc(K.acceptLead) + '</p><div class="row-flex" style="gap:8px;"><button type="button" id="keepTestConfirmYes" data-on-click="acceptKeepRisk()">' + esc(K.acceptYes) + '</button><button type="button" class="risk-btn" data-on-click="cancelKeepRisk()">' + esc(K.acceptNo) + '</button></div></div>';
   if (v.agreed) h += '<p class="hint" id="keepTestAgreedOn">' + esc(K.agreedOn.replace('{date}', v.agreed.on)) + '</p>';
   if (can && v.canWithdraw) h += '<div class="row-flex" style="gap:8px;"><button type="button" class="risk-btn" id="keepTestWithdraw" data-on-click="withdrawKeepRisk()">' + esc(K.withdraw) + '</button></div>';
+  // Undo the last agreement or withdraw (one save of the list as it was), while nothing else has changed it
+  if (can && v.undo) h += '<div class="row-flex" style="gap:8px;"><button type="button" class="risk-btn" id="keepTestUndo" data-undo="' + esc(v.undo.id) + '" data-on-click="undoKeepRisk()">' + esc(K.undo) + '</button></div>';
   return h + '</div>';
 }
 
@@ -268,7 +271,7 @@ export function transitionHtml(a) {
     + diff.standIn.map((x) => '<li>' + esc(GAPS.move.standInOne.replace('{label}', x.label || x.ticker).replace('{years}', x.taxYears.map(taxYearWords).join(', ')).replace('{pays}', gbp(x.pays))) + '</li>').join('')
     + (diff.covered || []).map((x) => '<li class="hint">' + esc(GAPS.move.covered.replace('{label}', x.label).replace('{years}', x.taxYears.map(taxYearWords).join(', '))) + '</li>').join('') + '</ul>';
   if (Array.isArray(diff.kept) && diff.kept.length) h += '<div class="section-title" style="margin-top:10px;">' + esc(GAPS.move.kept) + '</div><ul style="font-size:13px;line-height:1.6;">'
-    + diff.kept.map((x) => '<li>' + esc(GAPS.move.keptOne.replace('{label}', x.label || x.ticker).replace('{wrapper}', x.wrapper).replace('{value}', gbp(x.value)).replace('{gaps}', x.fundsGaps ? GAPS.move.keptGaps : '')) + '</li>').join('') + '</ul>';
+    + diff.kept.map((x) => '<li>' + esc(GAPS.move.keptOne.replace('{label}', x.label || x.ticker).replace('{wrapper}', x.wrapper).replace('{value}', gbp(x.value)).replace('{gaps}', x.fundsGaps ? (target.kind === 'ladder' ? GAPS.move.keptGaps : GAPS.move.keptPlan) : '')) + '</li>').join('') + '</ul>';
   h += gapsHtml(gaps);
   h += keepTestHtml(keepTest);   // 7.7.0: the plan's own test with what is kept, and "I accept this risk"
   if (!complete) h += '<p class="hint">Totals: buy ' + gbp(diff.totals.buyCost) + ' · sell ' + gbp(diff.totals.sellValue) + (diff.totals.shortfall ? ' · <strong>short by ' + gbp(diff.totals.shortfall) + '</strong> before contributions' : '') + '.</p>';

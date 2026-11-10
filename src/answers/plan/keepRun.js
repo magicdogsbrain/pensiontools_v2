@@ -13,7 +13,7 @@
  * file is a door to the strategies, so the shell and the plan pages' chunk never carry them.
  *
  *   runKeepRetest(plan, { today, onProgress }) → {
- *     fingerprint, strategyId, ladder, engineVersion,
+ *     fingerprint, recordKey, strategyId, ladder, engineVersion,       recordKey: the record exactly as read (a result is for it only)
  *     asLocked, asHeld, withoutExpected | null,          each { affordable, share, chancePct, badCase: { lasts, age, year }, endAge }
  *     shock: { half, nothing | null, counted } | null,    what is kept by choice worth half (one company's shares: nothing)
  *     firstShort: { Y, gap } | null,                     a ladder's first tax year not covered before what is kept or expected
@@ -30,7 +30,7 @@ import { monthlyChargeFactor } from '../../services/Charges.js';
 import { documentLadder } from '../../services/LadderPosition.js';
 import { oneAnswer } from '../../services/OneAnswer.js';
 import { normaliseHoldings, expectedOf } from '../../services/HoldingsRecord.js';
-import { keepFingerprint } from '../../services/PlanAmendments.js';
+import { keepFingerprint, holdingsKeyOf } from '../../services/PlanAmendments.js';
 import { planFor } from './lastsRun.js';
 import { heldSettingsOf, ladderGapsOf, keptAssetsOf } from './keepTest.js';
 import { dateOf } from './dates.js';
@@ -82,7 +82,8 @@ export function ladderWalk(G, { futures = FUTURES, chargesPct = 0 } = {}) {
   if (!years.some((Y) => gapOf(Y) > 0)) return { share: 1, fail: [], futures: 1 };
   const c = monthlyChargeFactor(chargesPct);
   const walk = (series) => {
-    let flat = num(G.fund.flat), shares = num(G.fund.shares);
+    // money that arrived before the first year is waiting by then (ladderGapsOf folds it in; a walk given it otherwise still counts it)
+    let flat = num(G.fund.flat) + Object.entries(G.arrivals || {}).filter(([Y]) => +Y < G.firstYear).reduce((t, [, v]) => t + num(v), 0), shares = num(G.fund.shares);
     for (let k = 0; k < years.length; k++) {
       const Y = years[k];
       flat += num(G.arrivals[Y]);
@@ -135,7 +136,7 @@ export function runKeepRetest(plan, { today, onProgress = null } = {}) {
   const mine = kept.filter((k) => k.as === 'mine');
   const anySingle = mine.some((k) => k.single);
   const hasExpected = expectedOf(rec).length > 0;
-  const base = { fingerprint, strategyId, engineVersion: ENGINE_VERSION, kept };
+  const base = { fingerprint, recordKey: holdingsKeyOf(rec), strategyId, engineVersion: ENGINE_VERSION, kept };
   const ladder = doc && documentLadder(doc, strategyId) && doc.strategy.p ? doc : null;
   let runs = 0;
   if (ladder) {
@@ -157,8 +158,10 @@ export function runKeepRetest(plan, { today, onProgress = null } = {}) {
       shock: mine.length ? { half, nothing, counted: mine.some((k) => k.counted) } : null,
       firstShort: held.G.firstShort, runs, basis: { today, engine: 'one-test' } });
   }
-  // every other plan: the one test on the locked settings and on those settings as held
-  const counted = mine.some((k) => k.counted && k.wrapper === 'SIPP');
+  // every other plan: the one test on the locked settings and on those settings as held. What is kept by choice and counted
+  // toward the plan is in the plan's money in whichever wrapper it sits (heldSettingsOf: the pension's pots, the ISA's or the
+  // taxable account's balance), so a fall in it is tested wherever it is
+  const counted = mine.some((k) => k.counted && k.value > 0);
   const steps = 2 + (hasExpected ? 1 : 0) + (mine.length && counted ? 1 : 0) + (anySingle && counted ? 1 : 0);
   let done = 0;
   tell(done, steps);

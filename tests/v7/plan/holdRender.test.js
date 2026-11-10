@@ -300,3 +300,23 @@ describe('the states a person meets: shown as saved, without an account, the toa
     for (const w of HOLD_WRAPPERS) { expect(HOLD.wrappers[w]).toBeTypeOf('string'); expect(HOLD.wrapperOf[w]).toBeTypeOf('string'); }
   });
 });
+
+describe('7.7.0 review: a plan drawn from a pot keeps a line in its own words (never "the gaps"), and the keep test reads as a section', () => {
+  it('hold-typed (a locked pot plan) with a line kept by choice and counted: "the plan’s money", no year-by-year title; the box offers the same', () => {
+    const s = JSON.parse(JSON.stringify(load('hold-typed')));
+    const plan = planOf(s);
+    plan.holdings.lines[0].keep = { as: 'mine', fundsGaps: true };
+    const { root, text } = draw(s);
+    expect(one(root, `${T}.line.0.keep.saved`).textContent).toBe('Kept by choice, counted toward the plan’s money.');
+    expect(text).not.toMatch(/toward the gaps|when you sell|the gap is bigger/);
+    const gaps = one(root, `${T}.gaps`);
+    expect(gaps.querySelector('h2').textContent).toBe('What you keep, and money you expect');
+    expect(gaps.textContent).toContain('Counted toward the plan’s money:');
+    expect(gaps.textContent).toContain('if it falls, the plan has less to draw on');
+    expect(gaps.querySelector('table')).toBe(null);
+    const asked = draw(s, { type: A.PLAN_EDIT, planId: plan.id, path: 'keep.index', value: '0' });
+    expect(asked.root.querySelector(`label[for="${T}.line.0.keep.gaps"]`).textContent).toBe('Count it toward the plan’s money');
+    // the keep test: untested, one section, its button
+    expect(one(root, `${T}.keepTest`).getAttribute('data-status')).toBe('untested');
+  });
+});

@@ -57,4 +57,12 @@ describe('a pot plan, tested with what is kept', () => {
     expect(r.withoutExpected).toBe(null);
     expect(r.runs).toBe(2);
   }, 120000);
+  it('kept by choice in the ISA and counted toward the plan: its fall is tested too, never "not counted"', () => {
+    const p = alex([{ wrapper: 'ISA', ticker: 'EXMPL', name: 'Example Shares plc', units: 100, value: 20000, keep: { as: 'mine', fundsGaps: true } }]);
+    const r = runKeepRetest(p, { today: TODAY });
+    expect(r.shock.counted).toBe(true);
+    expect(r.shock.nothing).not.toBe(null);
+    expect(r.shock.nothing.share).toBeLessThanOrEqual(r.asHeld.share + 0.005);
+    expect(keepTestOf(p, { result: r }).result.shock.map((x) => x.id)).toEqual(['shockHalf', 'shockNothing']);
+  }, 120000);
 });

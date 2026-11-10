@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { targetHoldings, diffHoldings, yearNeedsOf } from '../src/services/TransitionPlanner.js';
 import { normaliseHoldings } from '../src/services/HoldingsRecord.js';
 import { moveInputs } from '../src/services/PlanReading.js';
-import { keepFingerprint, amendmentState, keptLinesOf, normaliseAmendments } from '../src/services/PlanAmendments.js';
+import { keepFingerprint, amendmentState, keptLinesOf, normaliseAmendments, holdingsKeyOf, VALUE_BAND } from '../src/services/PlanAmendments.js';
 import { heldSettingsOf, ladderGapsOf, keptAssetsOf, keepTestOf, amendPatch, withdrawPatch, sayKeep } from '../src/answers/plan/keepTest.js';
 import { runKeepRetest, ladderWalk } from '../src/answers/plan/keepRun.js';
 import { closedPlanRefusal } from '../src/services/PlanClosed.js';
@@ -22,7 +22,9 @@ import { homeOf } from '../src/answers/plan/home.js';
 import { KEEPTEST } from '../src/v7/copy/keepTest.js';
 import { BANNED } from '../src/v7/copy/banned.js';
 import { transitionHtml, keepTestHtml } from '../src/ui/components/TransitionView.js';
-import { keepLineHtml } from '../src/ui/keepHoldingsUi.js';
+import { keepLineHtml, transitionKeepTest, installKeepTestHandlers, resetKeepTestMemory } from '../src/ui/keepHoldingsUi.js';
+import { gapsOf, gapsView } from '../src/answers/plan/gaps.js';
+import { GAPS } from '../src/v7/copy/gaps.js';
 import { AMEND_WRITES, ALL_WRITES } from '../src/answers/plan/schema.js';
 
 const FIX = join(import.meta.dirname, 'fixtures', 'plans');
@@ -282,5 +284,192 @@ describe('both apps say the same words, and the words give no advice', () => {
       const hit = b.re.test(t) && !(b.allow || []).some((a) => a.test(t));
       expect(hit, `"${t}" uses ${b.id}`).toBe(false);
     }
+  });
+});
+
+describe('review fixes (7.7.0): generic for anyone who keeps something the plan did not have', () => {
+  it('money expected before the ladder\'s first year is counted by then, never dropped', () => {
+    const p = samKeeps({ expected: false });
+    p.holdings.expected = [{ id: 'e1', label: 'Pension elsewhere', wrapper: 'SIPP', amount: 200000, by: '2027-02' }];   // arrives in this tax year
+    const G = ladderGapsOf(p, { today: TODAY });
+    expect(Object.keys(G.arrivals).map(Number).every((Y) => Y >= G.firstYear)).toBe(true);
+    expect(G.arrivals[G.firstYear]).toBeGreaterThan(190000);
+    const r = runKeepRetest(p, { today: TODAY });
+    expect(r.asHeld.badCase.age).toBeGreaterThan(r.withoutExpected.badCase.age);
+    // a walk handed an arrival before its first year still counts it
+    expect(ladderWalk({ gaps: { 2030: 1000 }, firstYear: 2028, lastYear: 2030, fund: { flat: 0, shares: 0 }, arrivals: { 2026: 1000 } })).toMatchObject({ share: 1 });
+  });
+
+  it('an agreement goes out of date when the figures behind it move far: a kept line bought more of, worth far more, or the rest far less', () => {
+    const p = samKeeps({ counted: true });
+    const r = runKeepRetest(p, { today: TODAY });
+    const q = { ...p, planAmendments: amendPatch(p, r, { at: AT }).patch.planAmendments };
+    expect(amendmentState(q).status).toBe('agreed');
+    const kept = (f) => ({ ...q, holdings: { ...q.holdings, lines: q.holdings.lines.map((l) => (l.keep ? f(l) : l)) } });
+    const rest = (f) => ({ ...q, holdings: { ...q.holdings, lines: q.holdings.lines.map((l) => (l.keep ? l : f(l))) } });
+    expect(amendmentState(kept((l) => ({ ...l, value: l.value * 5 }))).status).toBe('stale');
+    expect(amendmentState(kept((l) => ({ ...l, value: l.value * (1 + VALUE_BAND / 2) }))).status).toBe('agreed');   // a price move
+    expect(amendmentState(kept((l) => ({ ...l, units: (l.units || 1) * 2 }))).status).toBe('stale');
+    expect(amendmentState(rest((l) => ({ ...l, value: l.value * 0.5 }))).status).toBe('stale');
+    expect(amendmentState(rest((l) => ({ ...l, value: l.value * 0.9 }))).status).toBe('agreed');
+    const v = keepTestOf(kept((l) => ({ ...l, value: l.value * 5 })), {});
+    expect(v).toMatchObject({ status: 'stale', todo: { id: 'todo' }, line: { id: 'line.stale' } });
+    expect(sayKeep(v.line, KEEPTEST)).toMatch(/^What you hold has changed since you agreed to it on 9 November 2026/);
+    // the entry keeps what it needs to tell: each kept line's value and units, the rest's total
+    const e = q.planAmendments[0];
+    expect(e.lines.every((l) => 'value' in l && 'units' in l)).toBe(true);
+    expect(e.othersValue).toBeGreaterThan(0);
+  });
+
+  it('a re-test is read, and agreed, only for the record exactly as it was tested', () => {
+    const p = samKeeps();
+    const r = runKeepRetest(p, { today: TODAY });
+    expect(r.recordKey).toBe(holdingsKeyOf(p.holdings));
+    const moved = { ...p, holdings: { ...p.holdings, lines: p.holdings.lines.map((l) => (l.keep ? l : { ...l, value: l.value + 5000 })) } };
+    expect(keepTestOf(moved, { result: r }).result).toBe(null);
+    expect(keepTestOf(moved, { result: r }).canAccept).toBe(false);
+    expect(amendPatch(moved, r, { at: AT })).toMatchObject({ ok: false, problem: 'stale' });
+  });
+
+  it('money expected on its own is not a keep: no to-do, no line, as before; an agreement whose keeps are gone reads as lapsed', () => {
+    const p = samKeeps();
+    const onlyExpected = { ...p, holdings: { ...p.holdings, lines: p.holdings.lines.map(({ keep, ...l }) => l) } };
+    expect(keepFingerprint(onlyExpected.holdings)).toBe('');
+    expect(keepTestOf(onlyExpected, {})).toBe(null);
+    expect(amendmentState(onlyExpected).status).toBe('none');
+    expect(amendPatch(onlyExpected, runKeepRetest(p, { today: TODAY }), { at: AT })).toMatchObject({ ok: false, problem: 'nothingKept' });
+    const agreed = { ...onlyExpected, planAmendments: amendPatch(p, runKeepRetest(p, { today: TODAY }), { at: AT }).patch.planAmendments };
+    expect(keepTestOf(agreed, {})).toMatchObject({ status: 'stale', keeps: false, todo: null, line: { id: 'line.lapsed' }, canWithdraw: true });
+  });
+
+  it('every kept line keeps its own key, even after a kept line with no value', () => {
+    const rec = { lines: [{ wrapper: 'SIPP', ticker: 'ZERO', name: 'Nothing yet', value: 0, keep: { as: 'mine', fundsGaps: false } }, single(60000, { as: 'mine', fundsGaps: true })] };
+    const a = keptAssetsOf(rec);
+    expect(a).toHaveLength(1);
+    expect(a[0].key).toBe('SIPP:EXMPL');
+    expect(a[0].label).toBe('Example Shares plc');
+  });
+
+  it('a pot plan: a line kept in the ISA (or the taxable account) is left out when not counted, and takes the shock when counted', () => {
+    const p = alex();
+    const isa = (keep) => ({ wrapper: 'ISA', ticker: 'EXMPL', name: 'Example Shares plc', units: 100, value: 25000, keep });
+    const s = { equityMin: 400000, bondMin: 150000, cashTarget: 50000, isaBalance: 50000, taxableStart: 20000, strategyId: 'buckets-in-order', firstTaxYear: 2026 };
+    const rec = (keep) => ({ ...p.holdings, lines: [...p.holdings.lines, isa(keep)] });
+    const heldIsa = 25040 + 25000;
+    const out = heldSettingsOf(s, rec({ as: 'mine', fundsGaps: false }), { now: noon(TODAY) });
+    expect(out.isaBalance).toBe(Math.round(50000 * (1 - 25000 / heldIsa)));
+    expect(out.equityMin).toBe(400000);   // the pension as it was
+    const counted = heldSettingsOf(s, rec({ as: 'mine', fundsGaps: true }), { now: noon(TODAY) });
+    expect(counted.isaBalance).toBe(50000);
+    expect(heldSettingsOf(s, rec({ as: 'mine', fundsGaps: true }), { now: noon(TODAY), shock: 'half' }).isaBalance).toBe(Math.round(50000 * (1 - 0.5 * 25000 / heldIsa)));
+    expect(heldSettingsOf(s, rec({ as: 'mine', fundsGaps: true }), { now: noon(TODAY), shock: 'nothing' }).isaBalance).toBe(Math.round(50000 * (1 - 25000 / heldIsa)));
+    const gia = { ...p.holdings, lines: [...p.holdings.lines, { wrapper: 'GIA', ticker: 'EXMPL', name: 'Example Shares plc', value: 20000, keep: { as: 'mine', fundsGaps: true } }] };
+    expect(heldSettingsOf(s, gia, { now: noon(TODAY), shock: 'nothing' }).taxableStart).toBe(0);
+    expect(keptAssetsOf(rec({ as: 'mine', fundsGaps: true }))[0]).toMatchObject({ wrapper: 'ISA', counted: true, single: true });
+  });
+
+  it('the words: a kept single company is not said to be simulated as one company; the shocks say the chance too', () => {
+    expect(KEEPTEST.single).not.toMatch(/tested as one company/);
+    expect(KEEPTEST.single).toMatch(/same futures as a world share fund/);
+    expect(KEEPTEST.how).toMatch(/same futures as a world share fund/);
+    expect(KEEPTEST.shockHalf).toContain('{words}');
+    expect(KEEPTEST.shockNothing).toContain('{words}');
+    const r = runKeepRetest(samKeeps({ counted: true }), { today: TODAY });
+    const v = keepTestOf(samKeeps({ counted: true }), { result: r });
+    const half = v.result.shock.find((x) => x.id === 'shockHalf');
+    expect(sayKeep(half, KEEPTEST)).toMatch(/^If what you keep by choice fell by half: the plan lasts in .+ futures out of 10; in a bad case, the worst 1 in 10, it (lasts to|runs short at) \d+/);
+  });
+
+  it('a pot plan says "the plan’s money", never "the gaps" or "when you sell"; a ladder keeps its words', () => {
+    const p = alex();
+    p.holdings.lines.push(single(60000, { as: 'mine', fundsGaps: true }));
+    const g = gapsView(gapsOf(p, { today: TODAY }));
+    expect(g.ladder).toBe(false);
+    const keys = g.lines.flatMap((l) => l.parts.map((x) => x.key));
+    expect(keys).toContain('fundsPlan');
+    expect(keys).toContain('canFallPot');
+    expect(keys).not.toContain('fundsGaps');
+    expect(keys).not.toContain('canFall');
+    expect(GAPS.canFallPot).not.toMatch(/sell|gap/);
+    expect(GAPS.keep.fundsPlan).not.toMatch(/gap/);
+    const ladder = gapsView(gapsOf(samKeeps({ counted: true }), { today: TODAY }));
+    expect(ladder.lines.flatMap((l) => l.parts.map((x) => x.key))).toContain('fundsGaps');
+  });
+});
+
+describe('the classic app\'s re-test is for one plan as it is now; a closed plan is read only; Undo', () => {
+  const harness = (plan) => {
+    let stored = JSON.parse(JSON.stringify(plan));
+    const w = {}; const toasts = []; const writes = [];
+    installKeepTestHandlers(w, {
+      scenario: async () => JSON.parse(JSON.stringify(stored)),
+      persist: async (list) => { writes.push(list); stored = { ...stored, planAmendments: JSON.parse(JSON.stringify(list)), lastModified: '2026-11-09T12:0' + writes.length + ':00.000Z' }; },
+      rerender: async () => {},
+      toast: (t, kind) => toasts.push([kind, t])
+    });
+    return { w, toasts, writes, get: () => stored, set: (p) => { stored = JSON.parse(JSON.stringify(p)); } };
+  };
+
+  it('a result for one plan is never read on another, nor on the same plan changed since; accepting then is refused', async () => {
+    resetKeepTestMemory();
+    const a = { ...samKeeps(), lastModified: '2026-11-09T10:00:00.000Z' };
+    const h = harness(a);
+    await h.w.runKeepTest();
+    expect(transitionKeepTest(h.get(), h.get().holdings)).toMatchObject({ canAccept: true, run: { status: 'done' } });
+    // another plan with the same keeps (a copy, locked): the first plan's result is not its result
+    const b = { ...a, id: 'SamKeepsCopy' };
+    expect(transitionKeepTest(b, b.holdings)).toMatchObject({ canAccept: false, result: null });
+    // back on the first plan: its result went with the switch, so it is tested again
+    expect(transitionKeepTest(h.get(), h.get().holdings).result).toBe(null);
+    await h.w.runKeepTest();
+    // the plan changed since the test (its stamp): not read, and accepting writes nothing
+    h.set({ ...h.get(), lastModified: '2026-11-09T11:00:00.000Z' });
+    expect(transitionKeepTest(h.get(), h.get().holdings).canAccept).toBe(false);
+    await h.w.acceptKeepRisk();
+    expect(h.writes).toEqual([]);
+    expect(h.toasts.at(-1)[0]).toBe('error');
+  });
+
+  it('accept is one write; Undo puts the list back as it was, in one write; withdraw has Undo too', async () => {
+    resetKeepTestMemory();
+    const h = harness({ ...samKeeps(), lastModified: '2026-11-09T10:00:00.000Z' });
+    await h.w.runKeepTest();
+    await h.w.acceptKeepRisk();
+    expect(h.writes).toHaveLength(1);
+    expect(h.writes[0]).toHaveLength(1);
+    let v = transitionKeepTest(h.get(), h.get().holdings);
+    expect(v).toMatchObject({ status: 'agreed', undo: { id: 'agreed' } });
+    expect(keepTestHtml(v)).toContain('undoKeepRisk()');
+    await h.w.undoKeepRisk();
+    expect(h.writes).toHaveLength(2);
+    expect(h.writes[1]).toEqual([]);
+    expect(transitionKeepTest(h.get(), h.get().holdings)).toMatchObject({ status: 'untested', undo: null });
+    // agree again, then withdraw, then Undo the withdraw
+    await h.w.runKeepTest();
+    await h.w.acceptKeepRisk();
+    await h.w.withdrawKeepRisk();
+    v = transitionKeepTest(h.get(), h.get().holdings);
+    expect(v).toMatchObject({ status: 'untested', undo: { id: 'withdrawn' } });
+    await h.w.undoKeepRisk();
+    expect(transitionKeepTest(h.get(), h.get().holdings).status).toBe('agreed');
+  });
+
+  it('a closed plan: no Test, no accept, no withdraw on the page, and the handlers write nothing', async () => {
+    resetKeepTestMemory();
+    const p = samKeeps();
+    const r = runKeepRetest(p, { today: TODAY });
+    const closed = { ...p, planAmendments: amendPatch(p, r, { at: AT }).patch.planAmendments, closedAt: '2026-10', nextPlanId: 'NextPlan01' };
+    const v = transitionKeepTest(closed, closed.holdings);
+    expect(v.closed).toBe(true);
+    const html = keepTestHtml(v);
+    expect(html).not.toContain('keepTestRun');
+    expect(html).not.toContain('keepTestWithdraw');
+    expect(html).not.toContain('keepTestAccept');
+    const h = harness(closed);
+    await h.w.runKeepTest();
+    await h.w.withdrawKeepRisk();
+    await h.w.acceptKeepRisk();
+    expect(h.writes).toEqual([]);
+    expect(transitionKeepTest(h.get(), h.get().holdings).result).toBe(null);
   });
 });

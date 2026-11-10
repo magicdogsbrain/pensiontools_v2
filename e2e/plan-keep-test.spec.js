@@ -125,5 +125,11 @@ test.describe('"Test what you keep against your plan", without an account', () =
     expect(after.planDocument).toEqual(JSON.parse(planted)[0].planDocument);
     const shot = shots('classic-keep-test', info);
     if (shot) await page.screenshot({ path: shot, fullPage: true });
+    // Undo (7.7.0 review): the list put back as it was, in one save
+    await box.locator('#keepTestUndo').click();
+    await expect(box.locator('#transitionKeepTest')).toHaveAttribute('data-status', 'untested', { timeout: 45_000 });
+    const undone = JSON.parse(await stored(page)).find((p) => p.id === ID);
+    expect(undone.planAmendments || []).toEqual([]);
+    expect(withoutAgreements(undone)).toBe(withoutAgreements(opened));
   });
 });

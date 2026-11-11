@@ -267,7 +267,7 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
       // On the ladder + rotation it also pays a rotated year the sleeve cannot (in shares from 6.36.0, kept from 6.37.0);
       // an earlier document has no spareFillsCuts and reads as it was locked (never drawn).
       ...(params.spareGrowth ? { spareGrowth: true } : {}),
-      // 7.8.0: the definition the plan was tested under (answers/plan/lastsRun.js successOf, worked out from the live result
+      // 7.8.0: the definition the plan was tested under (the plan run's successOf, lastsRun.js, worked out from the live result
       // before trimResult drops its futures): the level, its lines, the age tested to, the age the futures were followed on
       // to, the weighted and fixed-age figures, the table. Absent — every document before, and every one while
       // SUCCESS.weighted is false — means LEGACY_DEFINITION: 9 in 10, to a fixed age, unweighted. Inside the lock's one

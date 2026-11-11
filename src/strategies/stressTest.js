@@ -809,6 +809,11 @@ function closedYearsCut(r, p) {
     const fy0 = short[0].y;
     const unpaidFrom = (y) => short.reduce((a, x) => a + (x.y >= y ? x.v : 0), 0);
     const was = f.failYear, wasUnpaid = f.unpaid || null;
+    // 7.8.0 (the chance the money lasts as long as you do): the run year each future first failed by the strategy's own
+    // test, kept before the cut rewrites failYear for every future, so the weighted chance (services/OneAnswer.js
+    // headYearsOf) counts the futures the strategy's own chance counts. Only here: every result the cut does not touch has
+    // no headYear and is the object it always was (its failYear is that year).
+    f.headYear = was.map((fy, i) => (Array.isArray(r.survivedMc) && r.survivedMc[i] === false ? fy : null));
     f.failYear = was.map((fy) => (fy == null ? fy0 : Math.min(fy, fy0)));
     // what was left unpaid: the closed years' shortfall from the year first cut, and the test's own from its cut year on (a
     // test without its own figure took an empty pot to pay nothing from its cut year: that stays the whole need, said as null)
@@ -820,13 +825,6 @@ export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs
   const fn = { 'pots-and-valves': pnvPlain, 'buckets-in-order': bucketsTest, 'ladder-and-ratchet': ladderTest, 'bridge-and-engine': bridgeTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest, 'gilt-rotation': rotationTest }[strategyId];
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
-  // 7.8.0 (the chance the money lasts as long as you do): the run year each future first failed by the strategy's own test,
-  // null where it lasted, taken BEFORE the closed years' cut below rewrites failYear for every future. The weighted chance
-  // reads it (services/OneAnswer.js), so it counts the same futures the strategy's own chance counts.
-  if (r && r.futuresMc && Array.isArray(r.futuresMc.failYear)) {
-    const lost = (i) => Array.isArray(r.survivedMc) && r.survivedMc[i] === false;
-    r.futuresMc.headYear = r.futuresMc.failYear.map((fy, i) => (lost(i) ? fy : null));
-  }
   if (strategyId !== 'pots-and-valves' && strategyId !== 'buckets-in-order') closedYearsCut(r, p);
   // A windfall not yet spent on rungs is still wealth: add the parked balance to the wealth series
   // of the bought strategies (the P&V engine already carries it inside its own pots).

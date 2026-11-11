@@ -20,7 +20,7 @@ import { verdictOf, verdictWord, BOLD_CONSEQUENCE } from '../../../src/answers/p
 import { lockedLastsWords } from '../../../src/answers/plan/read.js';
 import { lockPatch } from '../../../src/answers/plan/lock.js';
 import { aboutOf } from '../../../src/answers/plan/about.js';
-import { oneAnswer, weightedFailsOf } from '../../../src/services/OneAnswer.js';
+import { oneAnswer, weightedFailsOf, headYearsOf } from '../../../src/services/OneAnswer.js';
 import { LEGACY_DEFINITION, definitionOf } from '../../../src/services/PlanDocument.js';
 import { longevityAge } from '../../../src/services/LongevityModel.js';
 import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
@@ -51,7 +51,8 @@ describe('every way of drawing is classed, and the ones followed on keep the pla
       expect(pW.pnvCfg.duration).toBe(p.pnvCfg.duration);
       const rW = stressTestStrategy(id, pW);
       const N = p.durationYears;
-      const first = (run, i) => (run.survivedMc[i] === false ? run.futuresMc.headYear[i] : null);
+      expect('headYear' in r.futuresMc).toBe(false);   // nothing cut: the result is the object it always was
+      const first = (run, i) => (run.survivedMc[i] === false ? headYearsOf(run)[i] : null);
       let late = 0;
       for (let i = 0; i < r.survivedMc.length; i++) {
         const own = first(r, i), w = first(rW, i);
@@ -81,6 +82,7 @@ describe('headYear is the strategy\'s own failed year, taken before the closed y
     expect(r.affordable).toBe(true);
     const f = r.futuresMc;
     expect(f.failYear.every((fy) => fy === 0)).toBe(true);   // the cut: every future first short in year 0
+    expect(headYearsOf(r)).toBe(f.headYear);
     f.headYear.forEach((hy, i) => {
       if (r.survivedMc[i] === false) expect(hy, `future ${i}`).not.toBe(null);
       else expect(hy, `future ${i}`).toBe(null);

@@ -172,8 +172,8 @@ const RUNS_OUT = { 'ran-out': 'the money ran out', cut: 'your income was first c
  *   level        the level the plan is judged at ('careful' | 'balanced' | 'bold')
  *   weighted     the chance weighted by how long people live (0–1), from the run that follows each future on to the
  *                weighting age (`rW`, the plan's own run `r` when it already runs that far): each future that failed counts
- *                by the chance someone is still alive at the start of the year it first failed (`futuresMc.headYear`, taken
- *                before the closed years' cut; a failed future with no year counts at its run's last year), given alive at
+ *                by the chance someone is still alive at the start of the year it first failed (headYearsOf: the year before
+ *                the closed years' cut; a failed future with no year counts at its run's last year), given alive at
  *                the drawing start. Null — the fixed-age line leads, with its age — when life.reason says so ('couple',
  *                'linked', 'durationShaped') or the result is a stored one with no figure of its own ('stored')
  *   sumW, n      the whole-number weighted failures and the futures they are out of (rules.js passes reads them)
@@ -201,7 +201,7 @@ export function weightedPartOf(r, p, a, { life, rW = null, wYears = null, level 
   let weighted = null, sumW = null, n = null, reason = life.reason || null;
   const S = jointSurvivalOf(life.people, life.d, table);
   const lost = run && Array.isArray(run.survivedMc) ? run.survivedMc : null;
-  const head = run && run.futuresMc && Array.isArray(run.futuresMc.headYear) ? run.futuresMc.headYear : null;
+  const head = headYearsOf(run);
   const lastYear = Math.max(0, (isNum(wYears) ? wYears : num(p && p.durationYears)) - 1);
   if (!reason && stored) {
     // a stored result (a locked ladder's document): its own weighted figure when it was locked with one, else none
@@ -234,6 +234,17 @@ export function weightedPartOf(r, p, a, { life, rW = null, wYears = null, level 
 }
 
 /**
+ * The run year each future first failed by its strategy's own test (null where it lasted): futuresMc.headYear where the
+ * closed years' cut rewrote failYear (stressTest.closedYearsCut keeps it there), else failYear itself, which is that year.
+ * Null when the run keeps no per-future record.
+ */
+export function headYearsOf(run) {
+  const f = run && run.futuresMc;
+  if (!f) return null;
+  return Array.isArray(f.headYear) ? f.headYear : Array.isArray(f.failYear) ? f.failYear : null;
+}
+
+/**
  * The whole-number weighted failures of one run (rules.js passes reads them): every future the run counts as failed
  * (survivedMc false) adds round(S × 2^30), S the chance someone is still alive at the start of the run year it first
  * failed (futuresMc.headYear; `lastYear` when it has none), given alive at the drawing start (life.d). One rule for the
@@ -242,7 +253,7 @@ export function weightedPartOf(r, p, a, { life, rW = null, wYears = null, level 
  */
 export function weightedFailsOf(run, life, startAge, lastYear, S = jointSurvivalOf(life.people, life.d)) {
   const lost = run && Array.isArray(run.survivedMc) ? run.survivedMc : [];
-  const head = run && run.futuresMc && Array.isArray(run.futuresMc.headYear) ? run.futuresMc.headYear : null;
+  const head = headYearsOf(run);
   let sumW = 0;
   for (let i = 0; i < lost.length; i++) if (lost[i] === false) sumW += Math.round(S(startAge + (head && isNum(head[i]) ? head[i] : lastYear) - life.ageNow) * WEIGHT_ONE);
   return { sumW, n: lost.length };

@@ -670,7 +670,7 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
   const partners = list.filter((e) => e.plan.id !== plan.id && (e.plan.id === partnerIdOf(plan) || partnerIdOf(e.plan) === plan.id)).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
   let suggestion = null;
   if (c.values.age != null) {
-    const endAge = longevityAge(c.values.age, c.values.sex || 'm', +(c.values.chance || '10'));
+    const endAge = longevityAge(c.values.age, c.values.sex || 'm', +(c.values.chance || '10'), today);
     suggestion = { endAge, applied: String(shown.endAge || '') === String(endAge), slots: { age: endAge, who: c.values.sex === 'f' ? 'women' : 'men', ageNow: c.values.age, chance: c.values.chance || '10' } };
   }
   const p = editable && c.ok ? aboutPatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };

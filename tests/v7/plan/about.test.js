@@ -164,12 +164,13 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
   });
   it('the suggestion: the planner\'s own helper, by the typed age, sex and chance; "applied" when the box holds it', () => {
     const plan = entryOf(C['10-couple-b']).plan;
-    const a = aboutOf([{ plan }], plan.id, { today: TODAY, typed: { sex: 'f', chance: '25' } });
-    expect(a.suggestion.endAge).toBe(93);
-    expect(a.suggestion.applied).toBe(true);     // 10 plans to 93 already
-    expect(a.suggestion.slots).toEqual({ age: 93, who: 'women', ageNow: 58, chance: '25' });
+    // retaken 11 Nov 2026 (7.8.0): the suggestion reads the ONS 2024-based cohort tables at today's date, rounded up
+    const a = aboutOf([{ plan }], plan.id, { today: TODAY, typed: { sex: 'f', chance: '25', endAge: '96' } });
+    expect(a.suggestion.endAge).toBe(96);
+    expect(a.suggestion.applied).toBe(true);     // the box holds 96
+    expect(a.suggestion.slots).toEqual({ age: 96, who: 'women', ageNow: 58, chance: '25' });
     const b = aboutOf([{ plan }], plan.id, { today: TODAY, typed: { sex: 'm', chance: '10', endAge: '90' } });
-    expect(b.suggestion.endAge).toBe(96);
+    expect(b.suggestion.endAge).toBe(97);
     expect(b.suggestion.applied).toBe(false);
   });
   it('a plan not in the list, and the partner link both ways', () => {

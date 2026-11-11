@@ -11,9 +11,12 @@ describe('LongevityModel', () => {
       expect(longevityAge(65, 'f', p)).toBeGreaterThanOrEqual(longevityAge(65, 'm', p));
     }
   });
-  it('duration = target age minus current age, clamps outside the table', () => {
-    expect(suggestedDuration(65, 'm', 10)).toBe(96 - 65);
-    expect(suggestedDuration(40, 'm', 10)).toBe(96 - 40);  // clamped to the age-55 row
-    expect(suggestedDuration(80, 'f', 50)).toBe(89 - 80);  // clamped to the age-75 row
+  // Retaken 11 Nov 2026 (7.8.0): the hand-typed table (ages 55-75) gave way to the ONS 2024-based cohort tables, read by
+  // year of birth from `today` and rounded up — so no clamping to a table's rows, and the date is fixed.
+  it('duration = target age minus current age, at any age, read at a fixed today', () => {
+    const today = '2026-11-11';
+    expect(suggestedDuration(65, 'm', 10, today)).toBe(97 - 65);
+    expect(suggestedDuration(40, 'm', 10, today)).toBe(99 - 40);
+    expect(suggestedDuration(80, 'f', 50, today)).toBe(91 - 80);
   });
 });

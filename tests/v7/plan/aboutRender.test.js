@@ -173,11 +173,12 @@ describe('the saver 10: what the page says, and what typing does', () => {
     expect(chosen.root.querySelector('[data-error-for="plan.about.startWhen"]')).toBe(null);
   });
   it('the suggestion: "Suggest" fills the end age; the sentence shows when the box holds it', () => {
+    // retaken 11 Nov 2026 (7.8.0): the suggestion reads the ONS 2024-based cohort tables at today's date, rounded up
     const { root, actions } = draw(aboutState(entries, id, { typed: { sex: 'f', chance: '10' } }));
     root.querySelector('[data-testid="plan.about.suggest"]').click();
-    expect(actions).toEqual([{ type: 'plan/edit', planId: id, path: 'endAge', value: '97' }, { type: 'plan/touch', planId: id, path: 'endAge' }]);
-    const applied = draw(aboutState(entries, id, { typed: { sex: 'f', chance: '10', endAge: '97' } }));
-    expect(applied.root.querySelector('[data-testid="plan.about.suggested"]').textContent).toBe('Age 97: 1 in 10 women of 58 live beyond it.');
+    expect(actions).toEqual([{ type: 'plan/edit', planId: id, path: 'endAge', value: '99' }, { type: 'plan/touch', planId: id, path: 'endAge' }]);
+    const applied = draw(aboutState(entries, id, { typed: { sex: 'f', chance: '10', endAge: '99' } }));
+    expect(applied.root.querySelector('[data-testid="plan.about.suggested"]').textContent).toBe('Age 99: 1 in 10 women of 58 live beyond it.');
     expect(draw(aboutState(entries, id, { typed: { sex: 'f', chance: '10', endAge: '90' } })).root.querySelector('[data-testid="plan.about.suggested"]')).toBe(null);
   });
   it('the toast after a save, with Undo; "Saving…" while a write is under way; a problem from the write in plain words', () => {

@@ -4116,7 +4116,7 @@
     import { getStrategy } from './src/strategies/registry.js'; import { strategyOverlayOf } from './src/services/DecisionOverlay.js'; import { engineSetup, engineDeps } from './src/services/MonthDecision.js';   // where a month is paid from, beside the pot advice (7.2.0)
     import { tagPortfolio, allocationFromTags, mixFromFunds } from './src/services/PortfolioTagger.js';   // the mix a funds list makes, lifted pure (6.41.0)
     import { searchFunds as searchFundsIn } from './src/services/FundCatalogue.js';   // the fuzzy fund search, lifted pure (6.41.0)
-    import { trySettingsOf, onCourseOptsOf, documentSuccessOf } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
+    import { trySettingsOf, onCourseOptsOf, documentSuccessOf, chanceRunOf } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
     import { tryDifferencesOf } from './src/answers/plan/lasts.js';   // … and its "What's different" list (6.41.0)
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
     import {
@@ -4136,7 +4136,7 @@
     // One answer per plan (6.24.0; usability audit decision 2): every "will it last" figure is the one test's, read through these.
     import { oneAnswer, worstStarts, earlierTestNote, cutsSettingWords, futuresOutOfTen, pctText, CHANCE_BARS, RUIN_BARS } from './src/services/OneAnswer.js';
     import { namedStartRows, SCENARIO_START } from './src/services/NamedStarts.js';   // the named stresses' start years, lifted (6.45.0): the preview reads the same
-    import { leftRowHtml, cutsRowHtml, withoutCutsLineHtml, historyTabHtml, scenariosTabHtml, rankingCardHtml, allocationGridHtml, earlierTestNoteHtml } from './src/ui/oneAnswerView.js';
+    import { leftRowHtml, cutsRowHtml, withoutCutsLineHtml, historyTabHtml, scenariosTabHtml, rankingCardHtml, allocationGridHtml, earlierTestNoteHtml, verdictBlockView, cardToneOf, chanceOptsOf, countAgeHtml, installChanceLevel, lifeAssumptionsRows } from './src/ui/oneAnswerView.js';
     import { DECISION_ASSUMED_CPI } from './src/services/InflationModel.js';
     import { LADDER_DEFAULTS, orderSheetRows } from './src/strategies/GiltLadderPlan.js';
 
@@ -5852,24 +5852,8 @@
       return h;
     }
 
-    // The verdict every strategy card and page opens with: chance the money lasts, share of the years paid.
-    function verdictBlockHtml(r, p) {
-      if (!r || !r.affordable) return '';
-      const sr = 100 - (r.ruin.mc || 0);
-      const cov = r.coverage != null ? r.coverage : (r.failAges && r.failAges.length === 0 ? 100 : sr);
-      const cut = !!r.ruinLabel;
-      const flex = r.strategyId === 'floor-and-flex';
-      const v = sr >= 90 ? { t: flex ? 'Bills always paid; treats rarely fall short' : cut ? 'Very likely to pay the plan in full' : 'Very likely to last', c: 'success' }
-        : sr >= 75 ? { t: flex ? 'Bills always paid; some lean years for the treats' : cut ? 'Likely to pay the plan in full — with some risk of a cut' : 'Likely to last — with some risk', c: 'success' }
-        : sr >= 50 ? { t: flex ? 'Bills always paid; lean years are a real possibility' : cut ? 'A real chance of a cut' : 'At real risk of running out', c: 'warning' }
-        : { t: flex ? 'Bills always paid; expect lean years for the treats' : cut ? 'A cut is more likely than not' : 'Unlikely to last as planned', c: flex ? 'warning' : 'danger' };
-      const basis = r.n.mc.toLocaleString() + ' simulated futures and ' + r.n.hist + ' real ' + p.durationYears + '-year histories since 1871';
-      return '<div class="verdict verdict-' + v.c + '"><div class="verdict-title">' + (cut ? 'Will you get what you planned? — ' : 'Will your money last? — ') + v.t + '</div>'
-        + '<div class="verdict-heroes"><div><span class="hero">' + pctText(sr, 0, CHANCE_BARS) + '</span><span class="hero-sub">' + (flex ? 'chance of no lean year (never more than 10% under the plan; the bills can\'t fail)' : cut ? 'chance the plan is paid in full, with no year cut' : 'chance your money lasts the whole plan') + ' — ' + (flex ? 'no lean year ' : cut ? 'paid in full ' : 'lasts ') + futuresOutOfTen(sr / 100).words + '</span></div>'
-        + '<div><span class="hero" style="font-size:30px;">' + pctText(cov) + '</span><span class="hero-sub">of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future</span></div>'
-        + '<div><span class="hero" style="font-size:30px;">' + gbp(Math.round(r.worst12.min)) + '</span><span class="hero-sub">worst 12 months lived, today\'s money</span></div></div>'
-        + '<div class="verdict-basis">Based on ' + basis + ' (' + pctText((r.ruin.hist || 0)) + ' of the histories ' + (cut ? 'were cut' : 'ran out') + '). Today\'s money. The one test: the same figure on every screen of this plan.</div></div>';
-    }
+    // The verdict every strategy card and page opens with (7.8.0: src/ui/oneAnswerView.js verdictBlockView, both apps' words).
+    function verdictBlockHtml(r, p, o) { return verdictBlockView(r, p, o || {}); }
     window.verdictBlockHtml = verdictBlockHtml;
     function strategyResultCard(r, p, opts = {}) {
       if (!r.affordable && (r.strategyId === 'full-il-gilt' || r.strategyId === 'gilt-rotation') && r.plan) {
@@ -5884,7 +5868,7 @@
       }
       const yrsN = p.durationYears;
       const ruinMc = r.ruin.mc, ruinH = r.ruin.hist;
-      const tone = ruinMc <= 5 ? 'alert-success' : ruinMc <= 15 ? 'alert-warning' : 'alert-danger';
+      const tone = cardToneOf(r, p, chanceOptsOf(r, opts, window._oneTest));   // 7.8.0: from the verdict word; the block before 7.8.0 keeps 5% and 15%
       let head;
       if (r.strategyId === 'pots-and-valves') {
         head = '<strong>Ran out of money in ' + pctText(ruinMc, 1, RUIN_BARS) + ' of ' + r.n.mc.toLocaleString() + ' simulated futures</strong> (and ' + pctText(ruinH, 1) + ' of ' + r.n.hist + ' real ' + yrsN + '-year histories since 1871). '
@@ -5932,8 +5916,8 @@
           + 'Treats start at ' + gbp(Math.round(r.signature.year1Flex)) + '/yr and flex with the market; the worst treat-year was ' + gbp(Math.round(r.signature.worstFlexMedian)) + ' in the median history and ' + gbp(Math.round(r.signature.worstFlexP10)) + ' in a 1-in-10 bad one. The honest risk is lean years, not running out.';
       }
       let h = '<div class="card">' + (opts.compact ? '<div class="section-title">' + budEsc(r.name) + '</div>' : '<h2>' + (opts.title ? budEsc(opts.title) + ' <span class="hint" style="font-weight:normal;font-size:13px;">— ' + budEsc(r.name) + ' on your plan, stress-tested</span>' : budEsc(r.name) + ' — your plan, stress-tested') + '</h2>');
-      h += verdictBlockHtml(r, p);
-      h += '<div class="alert ' + tone + '">' + head + '</div>';
+      h += verdictBlockHtml(r, p, chanceOptsOf(r, opts, window._oneTest));
+      h += '<div class="alert ' + tone + '">' + head + countAgeHtml(r, p) + '</div>';   // 7.8.0: the count, with the age it is counted to
       const cone = (band, title, sub) => '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">' + title + '</div><p class="hint" style="margin:0 0 4px;">' + sub + '</p><div class="machine-scroll">' + fanChartSvg(band) + '</div></div>';
       h += cone(r.cones.wealth, 'Cone of uncertainty — what you\'d have left', 'Middle line = median of ' + r.n.mc.toLocaleString() + ' bootstrapped futures; dark band = the middle half; light band = 10th to 90th percentile. ' + budEsc(r.wealthLabel) + '.');
       if (r.samples && r.samples.wealth && r.samples.wealth.length > 1) h += '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">The same futures, one line each</div><p class="hint" style="margin:0 0 4px;">A sample of the bootstrapped futures the cone is made from — one line per possible life. Red lines ran out; the white line is the middle outcome.</p><div class="machine-scroll">' + spaghettiSvg(r.samples.wealth, r.cones.wealth.p50) + '</div></div>';
@@ -5942,7 +5926,7 @@
       const fa = r.failAges || [];
       const faTxt = fa.length ? (r.ruinLabel ? 'Of the futures that were cut, half were cut before age ' : 'Of the futures that ran out, half did so before age ') + Math.round([...fa].sort((a, b) => a - b)[Math.floor(fa.length / 2)]) + '; the earliest at ' + Math.round(Math.min(...fa)) + '.' : (r.ruinLabel && (r.ruin.mc || 0) > 0 ? 'No simulated future ran out; the cuts are counted above.' : 'No simulated future ran out.');
       h += '<div class="table-scroll-container" style="margin-top:12px;"><table><tbody>'
-        + '<tr><td>' + (r.ruinLabel ? 'Chance the plan is cut' : 'Chance of running out') + '</td><td>' + pctText(ruinH, 1) + ' <span class="hint">history</span> · ' + pctText(ruinMc, 1, RUIN_BARS) + ' <span class="hint">Monte Carlo</span>' + (r.ruinLabel ? ' <span class="hint">— ' + budEsc(r.ruinLabel) + '</span>' : '') + '</td></tr>'
+        + '<tr><td>' + (r.ruinLabel ? 'Chance the plan is cut' : 'Chance of running out') + '</td><td>' + pctText(ruinH, 1) + ' <span class="hint">history</span> · ' + pctText(ruinMc, 1, RUIN_BARS) + ' <span class="hint">Monte Carlo, to ' + (p.startAge + yrsN) + '</span>' + (r.ruinLabel ? ' <span class="hint">— ' + budEsc(r.ruinLabel) + '</span>' : '') + '</td></tr>'
         + '<tr><td>Worst 12 months you\'d have lived (history)</td><td>' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span></td></tr>'
         + '<tr><td>Income guaranteed to age</td><td>' + budEsc(r.guaranteedToAge) + '</td></tr>'
         + leftRowHtml(oneAnswer(r, p)) + cutsRowHtml(oneAnswer(r, p))
@@ -6006,7 +5990,7 @@
         }
       }
       window._latestStrategyStress = r;
-      window._oneTest = { key, p, r, lockedNote };
+      window._oneTest = { key, p, r, lockedNote, chance: chanceRunOf(await getActiveScenarioAsync().catch(() => null), { settings, strategyId: sid, p, r, now: new Date(), level: window._chanceLevel || null, locked }) };   // 7.8.0: the chance the money lasts as long as you do (none while not weighing)
       return window._oneTest;
     }
     // The "without the cuts" twin: the same futures with the cuts off, as one line of explanation under the one figure.
@@ -7653,7 +7637,7 @@
       h.textContent = dur > 0 && a > 0 ? '— to age ' + (a + dur - 1) : '';
     };
     window.dbStartAgeChanged = function () { dbStartFromAgeInput(document, window._ssTiming); renderIncomeShapePreview(); };
-    installStopMonth(window, document); installLockedStart(window, document, { loadStressSettings: () => loadStressSettings(), loadDecisionSettings: () => loadDecisionSettings(), updatePlanLockChip: () => updatePlanLockChip(), showLoading, hideLoading, strategyResultForDocument: (x) => strategyResultForDocument(x), strategyPlanFor: (x, e) => strategyPlanFor(x, e) });   // the month work stopped or stops: the Timing block's month box (6.51.0); a locked plan's start and "Move the plan's start" (6.53.0, src/ui/lockedStartUi.js)
+    installStopMonth(window, document); installChanceLevel(window, document); installLockedStart(window, document, { loadStressSettings: () => loadStressSettings(), loadDecisionSettings: () => loadDecisionSettings(), updatePlanLockChip: () => updatePlanLockChip(), showLoading, hideLoading, strategyResultForDocument: (x) => strategyResultForDocument(x), strategyPlanFor: (x, e) => strategyPlanFor(x, e) });   // the month work stopped or stops: the Timing block's month box (6.51.0); a locked plan's start and "Move the plan's start" (6.53.0, src/ui/lockedStartUi.js)
     function timingSettingsFromForm() {
       const base = window._ssTimingBase || {};
       const g = (id) => document.getElementById(id);
@@ -8698,7 +8682,7 @@
         row('The one test', SIMULATION_DEFAULTS.MONTE_CARLO_RUNS.toLocaleString() + ' futures, circular block bootstrap, ' + (MC_BLOCK_YEARS || 5) + '-year blocks, plus every real window since 1871', 'Random consecutive 5-year stretches of real history are stitched together, so booms, busts and inflation regimes survive intact. Independent yearly draws would understate sequence risk. One test, one figure on every screen (6.24.0).'),
         row('Historical', 'Every rolling start year ' + yrs[0] + '–' + (yrs[yrs.length - 1]) + ' (Pots &amp; Valves); every start month since 1871 (ladders)', 'Overlapping windows: 150 years is really only about 10 independent 15-year draws. Treat the tail as indicative, not a probability.'),
         row('Calibration', 'Flat 4%/30-year draw, no tax, no pension: ≈82% success (published US Trinity figure ≈95%)', 'About 10 points below the US literature by design — the world haircut. Pinned by ' + gh('tests/calibration.test.js', 'a calibration test') + '; 5%/30y ≈59%, 6%/30y ≈39%.'),
-        row('Named scenarios', 'Great Depression (1929), 1970s stagflation (1973), lost decade (2000), 2008, and a synthetic worst', 'The decade\'s real equity and inflation years REPEATED for the whole plan (35 years of 1929–38 on a loop is far harsher than any real history — treat these as torture tests, not forecasts). For contract strategies only the inflation path matters.')
+        row('Named scenarios', 'Great Depression (1929), 1970s stagflation (1973), lost decade (2000), 2008, and a synthetic worst', 'The decade\'s real equity and inflation years REPEATED for the whole plan (35 years of 1929–38 on a loop is far harsher than any real history — treat these as torture tests, not forecasts). For contract strategies only the inflation path matters.'), ...lifeAssumptionsRows(row)   // 7.8.0: how long the money has to last (src/ui/oneAnswerView.js; while weighing)
       ]) + '</details>';
 
       h += '<details><summary>4 · Bonds, cash and the ISA (Pots &amp; Valves)</summary>' + table([
@@ -8924,7 +8908,7 @@
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first (1–3 is normal; cash is priced at inflation −1%)<input type="number" min="0" max="5" value="' + Math.min(5, prm.cashYears ?? 2) + '" style="width:80px;" data-on-change="setGiltDial(\'cashYears\', this.value)"></label>'
         + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears - 1) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
         + '</div>';
-      if (plan.affordable && typeof r !== 'undefined' && r && r.affordable) h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p) + '</div>';
+      if (plan.affordable && typeof r !== 'undefined' && r && r.affordable) h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p, chanceOptsOf(r, {}, window._oneTest)) + '</div>';
       h += '<div class="alert ' + (plan.affordable ? 'alert-success' : 'alert-danger') + '" style="margin-top:10px;">' + (plan.affordable
         ? '<strong>Affordable.</strong> Cash ' + gbp(Math.round(plan.cash)) + ' + ' + plan.orders.length + ' gilts ' + gbp(Math.round(plan.giltsCost)) + ' = <strong>' + gbp(Math.round(plan.total)) + '</strong> of your ' + gbp(Math.round(p.pot + (p.isaHold ? 0 : (p.isa || 0)))) + (p.isaHold && p.isa ? ' (ISA held aside)' : '') + ' → ' + gbp(Math.round(plan.spare)) + ' left over.'
         : '<strong>Not affordable as it stands:</strong> ' + budEsc(plan.reason || '') + '. Every £1k a year across the whole plan is roughly £27k; the cheapest years to trim are the early ones (they cost nearly £1 per £1), the dearest to add are the late ones (about 55p per £1).') + '</div>';
@@ -8985,7 +8969,7 @@
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Buy the schedule to age<input type="number" min="60" max="95" value="' + age + '" style="width:80px;" data-on-change="setFtaDial(this.value)"></label>'
         + '<div class="hint" style="flex:1 1 260px;">Income shape, State Pension and horizon come from Settings. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change them</button></div></div>';
       const cb = sg.canBuy.map((x) => gbp(Math.round(x.amount)) + '/yr to the horizon (' + gbp(Math.round(x.cost)) + ' at ' + sg.floorToAge + '): <strong>' + pctText(x.mc, 0, CHANCE_BARS) + '</strong> of futures, ' + pctText(x.hist) + ' of real histories').join('; ');
-      h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p) + '</div>';
+      h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p, chanceOptsOf(r, {}, window._oneTest)) + '</div>';
       h += '<div class="alert ' + (r.ruin.mc <= 10 ? 'alert-success' : r.ruin.mc <= 25 ? 'alert-warning' : 'alert-danger') + '" style="margin-top:10px;">'
         + '<strong>Bought to ' + sg.floorToAge + ': ' + gbp(Math.round(sg.floorCost)) + ' (' + Math.round(sg.shareOfPot * 100) + '% of the pot). Reserve today: ' + gbp(Math.round(sg.sleeveE0)) + '.</strong> '
         + 'At ' + sg.floorToAge + ' it is worth a median ' + gbp(Math.round(sg.sleeveAtA.p50)) + ' (1-in-10 bad ' + gbp(Math.round(sg.sleeveAtA.p10)) + ', 1-in-10 good ' + gbp(Math.round(sg.sleeveAtA.p90)) + '). Chance it can then buy ' + cb + '. '
@@ -9195,7 +9179,7 @@
       const m = spec.machine(r, p); m.frames = spec.frames; window._specMachine = m;
       h += '<div class="strat-block"><div class="section-title">1 · The machine</div><div id="specMachine" class="machine-scroll">' + m.fn(m.d, window._specFrame) + '</div><div id="specStepper">' + stepperHtml(spec.frames, window._specFrame, 'setSpecFrame') + '</div></div>';
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">' + spec.dials(prm, over) + '<div class="hint">Income shape, State Pension, horizon and allocation: <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Settings</button></div></div>';
-      h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p) + '</div>';
+      h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p, chanceOptsOf(r, {}, window._oneTest)) + '</div>';
       h += '<div class="alert ' + (r.ruin.mc <= 5 ? 'alert-success' : r.ruin.mc <= 15 ? 'alert-warning' : 'alert-danger') + '" style="margin-top:10px;">' + spec.verdict(r, p) + '</div>';
       h += '<div style="margin-top:8px;"><button type="button" data-on-click="useSpecStrategy(\'' + id + '\')">Use this as my plan\'s strategy</button></div></div>';
       h += '<div class="strat-block"><div class="section-title">3 · Three real starts</div><div class="machine-scroll">' + spec.decades(r, p) + '</div></div>';

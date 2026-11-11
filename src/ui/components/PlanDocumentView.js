@@ -9,6 +9,8 @@ import { assumedStatePensionWords } from '../plannerWords.js';
 import { ukDate } from '../ukDates.js';
 import { pctText as pctShare } from '../../services/OneAnswer.js';
 import { monthsWords, countWords } from '../../services/MonthFill.js';
+import { definitionOf } from '../../services/PlanDocument.js';
+import { successLineHtml } from '../oneAnswerView.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
@@ -160,7 +162,8 @@ export function planDocumentHtml(doc, r = {}) {
   // Strategy
   let st = '';
   if (r.strategyCard && d.strategy?.r && d.strategy?.p) {
-    try { st = r.strategyCard(d.strategy.r, d.strategy.p, { compact: true }); } catch (e) { st = '<p class="hint">The strategy result could not be drawn from the stored document (' + esc(e.message) + ').</p>'; }
+    // 7.8.0: the definition it was locked under (PlanDocument.definitionOf: its own success, else the one before 7.8.0), and one line from it
+    try { st = r.strategyCard(d.strategy.r, d.strategy.p, { compact: true, definition: definitionOf(d) }) + successLineHtml(d); } catch (e) { st = '<p class="hint">The strategy result could not be drawn from the stored document (' + esc(e.message) + ').</p>'; }
   } else if (d.strategy) {
     const rr = d.strategy.r || {};
     st = '<p><strong>' + esc(strategyNameOf(d.strategy)) + '</strong>' + (rr.ruin ? ' — ran out or was cut in ' + esc(pctShare(+rr.ruin.mc || 0, 1)) + ' of simulated futures; income guaranteed: ' + esc(rr.guaranteedToAge || '—') + '.' : '.') + '</p>';

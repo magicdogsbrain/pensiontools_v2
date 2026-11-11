@@ -69,7 +69,11 @@ import { resolve } from 'node:path';
 // Month by month in the new app (7.2.0): the Decision tool's engine inputs (services/MonthDecision.js engineSetup, engineDeps)
 // and where a month is paid from (services/DecisionOverlay.js strategyOverlayOf) lifted out for both apps to call: 58 lines
 // shorter: 9,075.
-const MAX_LINES = 9075;
+// The chance the money lasts as long as you do (7.8.0): the verdict block every strategy card opens with moved to
+// src/ui/oneAnswerView.js (verdictBlockView, with the block before 7.8.0 kept there byte for byte for old documents), the
+// shell keeping a one-line pass-through; its level control, tone and Assumptions row read from the module: 16 lines
+// shorter: 9,059.
+const MAX_LINES = 9059;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

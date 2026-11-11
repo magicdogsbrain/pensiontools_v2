@@ -46,3 +46,5 @@ export { LifeLine } from './LifeLine.jsx';
 export { PotLife } from './PotLife.jsx';
 export { YearCells } from './YearCells.jsx';
 export { AnswerSlider, FigureTiles, KeepLine } from './AnswerPicture.jsx';
+// The chance the money lasts as long as you do (7.8.0): the lines under a headline, and "How careful?" beside it
+export { LastsLines, LevelStrip, LASTS_TOP, LASTS_AFTER } from './Lasts.jsx';

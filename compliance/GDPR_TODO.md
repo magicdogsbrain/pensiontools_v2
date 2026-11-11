@@ -283,3 +283,18 @@ delete call sites).
       wording was written (5 November 2026) until the release ships.
 - [ ] If the web API key has an HTTP-referrer restriction in the Google Cloud console, check it allows the whole site, not
       a path (switch-readiness.md §2, "Firebase and sign-in are not moved by a path change").
+
+## How long the money has to last: an optional "figures for women or for men" on the question pages — 11 Nov 2026 (written, NOT yet published or deployed)
+- **One new optional field, no new collection, processor or Firestore path.** Questions A to D ask, under "Add more
+  detail", whether to use the life-table figures for women or for men (`you.sex`, `partner.sex`; choices "Not said",
+  "Women's figures", "Men's figures"; "Not said" is the default and reads the figures for women, the cautious side). It
+  only chooses which ONS life table weights the futures (src/answers/shared/weigh.js); it is never sent anywhere.
+- **Where it is kept:** in an answer's own inputs (the page address while a question is open, as every other box), and,
+  when a person keeps an answer as a plan, in the kept seed's inputs (`fromAnswer.inputs[who].sex`) — so a signed-in
+  person's choice is stored in Firestore under `users/{uid}/scenarios/{id}`, deleted with the plan or the account as
+  every other figure. It is **not** saved on the plan itself in 7.8.0 (the plan pages read the kept seed, or use the
+  figures for women, and say so).
+- **Lawful basis:** Contract, as the other ages and dates. It is optional and can be left as "Not said" at no loss: the
+  figures for women test the money for longer.
+- [x] `compliance/PRIVACY_POLICY.md` and `public/privacy.html`: the "Ages / dates" row names it as optional.
+- [ ] To read and approve the wording, then publish with the release that ships 7.8.0 — setting "Last updated" then.

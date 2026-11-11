@@ -11,6 +11,9 @@ import { ASSUMPTIONS as W } from '../copy/assumptions.js';
 const pc = (v, d = 1) => (Number.isFinite(+v) ? (+v * 100).toFixed(d) : '—');
 const whole = (n) => String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const day = (s) => (typeof s === 'string' && s ? s.slice(0, 10) : '—');
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+/** '2026-05-15' → '15 May 2026'. */
+const dayWords = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? `${+m[3]} ${MONTHS[+m[2] - 1]} ${m[1]}` : '—'; };
 
 /** One row of a section: the name, the figure, the note. */
 function Row({ id, row, slots }) {
@@ -48,9 +51,18 @@ export function AssumptionsScreen(state) {
     const gilts = g ? { generated: day(g.generated), asOf: (g.asOf || '—') + (g.stale ? S.gilts.pricesStale : ''), source: g.source || '', curveAsOf: g.curveAsOf || '—', curvePoints: String(g.curvePoints) } : {};
     const ladder = { curve: curveWords, nominalCurve: nominalWords || '—', spreadShort: pc(l.spreadShort, 2), spreadMid: pc(l.spreadMid, 2), spreadLong: pc(l.spreadLong, 2), dealFee: String(l.dealFee) };
     const tax = { pa: whole(t.pa), brl: whole(t.brl), hrl: whole(t.hrl), taper: whole(t.taper) };
+    const lf = F.life || {};
+    const t20 = (k) => String(Math.round(((lf.levels && lf.levels[k]) || 0) * 20));
+    const life = { region: lf.region || '', edition: lf.edition || '', published: dayWords(lf.published), planTo: String(Math.round(1 / (lf.planToShare || 0.1))),
+      weight: String(Math.round(1 / (lf.weightShare || 0.02))), careful: t20('careful'), balanced: t20('balanced'), bold: t20('bold') };
     body = (
       <div class="assump" data-testid="assumptions.page">
         <p class="note" data-testid="assumptions.versions">{fill(W.versions, { app: F.app, engine: F.engine })}</p>
+        {F.life && F.life.weighted && (
+          <Section id="life" title={S.life.title}>
+            {['source', 'ages', 'notSaid', 'twoFigures'].map((k) => <Row key={k} id={'life.' + k} row={S.life[k]} slots={life} />)}
+          </Section>
+        )}
         <Section id="shares" title={S.shares.title} open>
           {['series', 'adjustment', 'result', 'ladders', 'notModelled', 'charges'].map((k) => <Row key={k} id={'shares.' + k} row={S.shares[k]} slots={shares} />)}
         </Section>

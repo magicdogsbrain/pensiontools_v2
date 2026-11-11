@@ -5,10 +5,14 @@
  * and whatever the screen puts under them (warnings, what it is made of, what was assumed). `afterLine` is drawn
  * straight under the sentence: C's plain statement of what goes in until the money starts.
  *
+ * 7.8.0: under the line, the fixed-age line and Bold's consequence; under the bad case, what comes in if the money runs
+ * out and what the other levels ask for (Lasts.jsx: only the sentences the answer wrote).
+ *
  * It refuses to draw without its sentence: a figure never stands alone.
  */
 import { Sentence } from './Sentence.jsx';
 import { ADVICE_SHORT } from '../copy/common.js';
+import { LastsLines, LASTS_TOP, LASTS_AFTER } from './Lasts.jsx';
 
 export function Headline({ result, k: given = null, afterLine = null, children }) {
   const s = result && result.sentences;
@@ -21,8 +25,10 @@ export function Headline({ result, k: given = null, afterLine = null, children }
         <Sentence s={s.sub} source={result} class="figure-sub" />
       </div>
       <Sentence s={s.line} source={result} class="line" data-sentence={k} />
+      <LastsLines result={result} only={LASTS_TOP} />
       {afterLine}
       <Sentence s={s.bad} source={result} class="bad" />
+      <LastsLines result={result} only={LASTS_AFTER} />
       <p class="advice">{ADVICE_SHORT}</p>
       {children}
     </section>

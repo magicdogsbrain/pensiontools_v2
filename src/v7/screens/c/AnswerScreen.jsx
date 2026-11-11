@@ -8,6 +8,7 @@
  *     try a change, what next — greyed and marked "Updating" while a new one is worked out.
  * Computes nothing: every figure is the answer's, drawn by Money and Sentence.
  */
+import { LevelStrip } from '../../components/Lasts.jsx';
 import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, HeldAnswer, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer, AnswerSlider, FigureTiles, KeepLine } from '../../components/index.js';
 import { isCurrent, cAnswerYouStopped, isShapePath, answerSlider, answerTiles, tilesKey } from '../../state/select.js';
 import { href } from '../../router/routes.js';
@@ -144,6 +145,7 @@ export function AnswerScreen(state, dispatch) {
             : s.head && s.line && !s.nothing
               ? (
                 <Headline result={result} afterLine={payIn || potThen || shapeLine ? <>{shapeLine}{payIn}{potThen}</> : null}>
+                  <LevelStrip q="c" result={result} dispatch={dispatch} words={C} />
                   {top}
                   {s.small && (
                     <div class="small-pot">

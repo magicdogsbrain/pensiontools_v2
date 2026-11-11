@@ -23,6 +23,7 @@ import {
   Retired, isRetired, formView, stepLabel, withFixedCounts, Button, LinkButton, SpendLine, KeepPanel, StepsField, ShapeAnswer
 } from '../../components/index.js';
 import { SHAPE } from '../../copy/shape.js';
+import { LastsLines, LevelStrip, LASTS_TOP, LASTS_AFTER } from '../../components/Lasts.jsx';
 import { isCurrent, askedAboutOf, partnerStopsNow, isShapePath } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
@@ -243,9 +244,12 @@ function Answer({ state, dispatch, frame }) {
               {/* spending that changes with age (spending-shape.md 7.2): the figure in the band is the start; the steps follow */}
               {s.shape && <Sentence s={s.shape} source={result} class="shape-line" data-testid="a.answer.shape" />}
               <Sentence s={s.line} source={result} class="line" data-sentence="verdict" />
+              <LastsLines result={result} only={LASTS_TOP} />
+              <LevelStrip q="a" result={result} dispatch={dispatch} words={A} />
               {s.partTime && <Sentence s={s.partTime} source={result} class="part-time-line" />}
               <Sentence s={s.bad} source={result} class="bad" />
               {s.after && <Sentence s={s.after} source={result} class="after" />}
+              <LastsLines result={result} only={LASTS_AFTER} />
               {s.late && <Sentence s={s.late} source={result} class="late" />}
               <p class="advice">{ADVICE_SHORT}</p>
               <Warnings result={result} skip={said} />

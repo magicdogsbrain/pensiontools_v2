@@ -17,6 +17,8 @@ import { DEFAULT_CHARGES_PCT } from './Charges.js';
 import { LADDER_DEFAULTS } from '../strategies/GiltLadderPlan.js';
 import { dataProvenance, realYieldForYear, nominalYieldForYear } from './LinkerUniverse.js';
 import { equityProvenance } from './EquityIndex.js';
+import { LIFE_TABLE, HORIZON } from './LongevityModel.js';
+import { SUCCESS, LEVELS } from '../answers/shared/rules.js';
 
 /** The world adjustment the planner applies to every year of the US series (its own page: −1.5 percentage points a year). */
 export const WORLD_ADJUSTMENT_POINTS = 1.5;
@@ -55,6 +57,13 @@ export function assumptionsFacts(nowMs = Date.now()) {
     gilts, curve,
     ladder: { dealFee: LADDER_DEFAULTS.dealFee, spreadShort: LADDER_DEFAULTS.spreadShort, spreadMid: LADDER_DEFAULTS.spreadMid, spreadLong: LADDER_DEFAULTS.spreadLong },
     tax: { pa: TAX_DEFAULTS.PERSONAL_ALLOWANCE, brl: TAX_DEFAULTS.BASIC_RATE_LIMIT, hrl: TAX_DEFAULTS.HIGHER_RATE_LIMIT, taper: TAX_DEFAULTS.PA_TAPER_THRESHOLD },
-    index
+    index,
+    // how long the money has to last (7.8.0): the life tables the figures read, the two ages, the levels; `weighted`
+    // whether the figures are weighted by them (in the rollback the page is as it was)
+    life: {
+      edition: LIFE_TABLE.edition, region: LIFE_TABLE.region, published: LIFE_TABLE.published, retrieved: LIFE_TABLE.retrieved, url: LIFE_TABLE.url,
+      extendedFrom: 101, tablesVersion: LIFE_TABLE.tablesVersion, levels: { ...LEVELS }, planToShare: HORIZON.planToShare, weightShare: HORIZON.weightShare,
+      weighted: SUCCESS.weighted
+    }
   };
 }

@@ -45,9 +45,9 @@ function Band({ v, stale = false, testid }) {
     <div class={`band verdict lasts-band is-${v.verdict}${stale ? ' is-stale' : ''}`} data-verdict={v.verdict} data-testid={testid} data-ok="1" data-stale={stale ? '1' : '0'}
       data-chance={f.chancePct} data-typical={f.typicalLeft} data-bad={f.badCaseLeft} data-good={f.goodCaseLeft} data-futures={f.futures} data-histories={f.histories} data-years={f.years}
       data-cut-n={f.cutN == null ? undefined : f.cutN} data-cut-per-year={f.cutPerYear == null ? undefined : f.cutPerYear} data-cut-years={f.cutYears == null ? undefined : f.cutYears}>
-      <p class="figure" data-testid={testid + '.headline'}>{fill(LASTS.verdict[v.id], v.slots)}</p>
+      <p class="figure" data-testid={testid + '.headline'} {...(v.id === 'lasts.headlineW' ? { 'data-weighted': '1' } : v.id === 'lasts.headlineFixed' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.verdict[v.id], v.slots)}</p>
       <p class="lasts-bar"><span class={`verdict-word is-${v.verdict}`} data-verdict={v.verdict}>{LASTS.verdict.word[v.verdict]}</span> <OutOfTenBar source={v} k="share" /></p>
-      <p class="figure-sub" data-testid={testid + '.sub'}>{fill(LASTS.verdict[v.sub.id], v.sub.slots)}</p>
+      <p class="figure-sub" data-testid={testid + '.sub'} {...(v.sub.id === 'lasts.subFixed' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.verdict[v.sub.id], v.sub.slots)}</p>
       <ul class="plan-lines">
         {v.rows.map((r, i) => <li key={i} class="plan-line" data-line={'lasts.' + r.id}>{fill(LASTS.rows[r.id] || '', r.slots)}</li>)}
       </ul>

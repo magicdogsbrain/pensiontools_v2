@@ -25,7 +25,7 @@ To use the saving features you create an account and log in. We process:
 | Financial data | portfolio balances over time, SIPP/ISA balances, target income, drawdowns, pay and what you pay into pensions, your saving check-ins and any note you write | run your drawdown plan and your saving plan | Contract |
 | State Pension | forecast start date and weekly amount (from your HMRC forecast) | income modelling | Contract |
 | Tax details | allowances/bands you set, other taxable income, tax paid/projected | tax-efficient calculations | Contract |
-| Ages / dates | current/retirement/end ages | planning horizon | Contract |
+| Ages / dates | current/retirement/end ages; if you choose to say it, whether to use the figures for women or for men (optional: not saying uses the figures for women) | planning horizon: how long people your age are likely to live | Contract |
 | Household budget | itemised spending you enter, including any health-related, dependent or partner costs | estimate your income needs | Contract |
 | App preferences | the last version whose release notes you have seen; the plan and page you were last on (which plan and which step, no figures) | show release notes once, not every visit; open where you left off | Contract |
 

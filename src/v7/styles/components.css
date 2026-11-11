@@ -923,3 +923,13 @@ h2.eyebrow { font-size: var(--size-small); }
 /* the count is drawn for the eye only: its alternative text is empty, so a screen reader reads the figure's own words */
 .is-counting::after { content: attr(data-count); content: attr(data-count) / ''; position: absolute; left: 0; top: 0; white-space: nowrap; color: var(--text); }
 .fig-tile.is-pop .is-counting::after { color: var(--fill-pop); }
+
+/* 7.8.0: "How careful?" beside each answer, and the lines the answer writes under its headline (components/Lasts.jsx) */
+.level-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 12px 0 0; padding: 10px 0 0; border-top: 1px solid var(--line); }
+.level-label { font-weight: 600; flex: 1 1 100%; }
+.level-choices { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.level-choices .btn { padding: 8px 10px; white-space: normal; text-align: left; max-width: 100%; }
+.level-help { flex: 1 1 100%; margin: 4px 0 0; }
+.lasts-lines p { margin: 6px 0 0; }
+.lasts-lines .lasts-fixed { font-weight: 600; }
+.headroom-fixed { margin: 6px 0 0; }

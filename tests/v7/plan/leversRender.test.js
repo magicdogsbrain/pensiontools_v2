@@ -120,12 +120,12 @@ describe('"Try a change" on "Does it last?"', () => {
     const d = draw(done.s);
     const lines = (kind) => [...one(d.root, `plan.lasts.lever.${kind}.result`).querySelectorAll('[data-line]')].map((el) => [el.getAttribute('data-line'), el.textContent]);
     expect(lines('spendMore')).toEqual([
-      ['lever.spendMore.more', '£240 a month more would still last in 9 futures out of 10: 91.2% of futures, with typically £200,000 left at the end (against 92.7% as it is).'],
+      ['lever.spendMore.more', '£240 a month more would still be enough at your level: it lasts to the plan’s end in 91.2 of every 100 futures we tried, with typically £200,000 left at the end (against 92.7 as it is).'],
       ['lever.runs', 'Tried in 7 runs of the one test.']
     ]);
-    expect(lines('work')[0]).toEqual(['lever.work.line', 'With £15,000 a year from work for 3 years, the plan lasts in 9 futures out of 10: 91.2% of futures, typically £200,000 left — against 92.7% without it.']);
+    expect(lines('work')[0]).toEqual(['lever.work.line', 'With £15,000 a year from work for 3 years, the plan lasts in 9 futures out of 10: to the plan’s end in 91.2 of every 100 futures we tried, typically £200,000 left — against 92.7 without it.']);
     expect(lines('work')[1][0]).toBe('lever.work.how');
-    expect(lines('fall')[0]).toEqual(['lever.fall.line', 'If shares fell by a fifth tomorrow (the pots £745,000 to £661,000), the plan lasts in 9 futures out of 10: 91.2% of futures, typically £200,000 left — against 92.7% as it is.']);
+    expect(lines('fall')[0]).toEqual(['lever.fall.line', 'If shares fell by a fifth tomorrow (the pots £745,000 to £661,000), the plan lasts in 9 futures out of 10: to the plan’s end in 91.2 of every 100 futures we tried, typically £200,000 left — against 92.7 as it is.']);
     for (const k of ['spendMore', 'work', 'fall']) expect(one(d.root, `plan.lasts.lever.${k}.close`)).not.toBe(null);
     expect(one(d.root, 'plan.lasts.levers.locked')).toBe(null);                  // not a locked plan
     expect(bannedHits(d.text, ['all', 'record', 'retired'])).toEqual([]);

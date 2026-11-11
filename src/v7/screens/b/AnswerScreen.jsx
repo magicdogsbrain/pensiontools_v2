@@ -17,6 +17,7 @@ import { PICTURE } from '../../copy/picture.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { B } from '../../copy/b.js';
+import { LastsLines, LevelStrip, LASTS_TOP, LASTS_AFTER } from '../../components/Lasts.jsx';
 import { saverFrame, ShortForm, Warnings, AnswerRegion, ToC, aboutPartner } from '../a/AnswerScreen.jsx';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -100,6 +101,8 @@ function Answer({ state, dispatch, frame }) {
       <Sentence s={s.head} source={result} class="guide-figure" />
       <Sentence s={s.sub} source={result} class="figure-sub" />
       <Sentence s={s.line} source={result} class="line" data-sentence={hasNumber ? NK : undefined} />
+      <LastsLines result={result} only={LASTS_TOP} />
+      <LevelStrip q="b" result={result} dispatch={dispatch} words={B} />
       <Sentence s={s.bad} source={result} class="bad" />
       {hasNumber && s.guide && <Sentence s={s.guide} source={result} class="guide-why" data-testid="b.guide.why" />}
       {s.outside && <Sentence s={s.outside} source={result} class="outside" />}

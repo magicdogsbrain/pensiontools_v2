@@ -453,7 +453,10 @@ describe('the words in src/v7/copy/', () => {
     // "Assumptions and data" (road-to-7.md step 11b): a page everyone may open, so every scope but the front door's own; the figures are slots
     const slotA = (s) => s.replace(/\{(app|engine)\}/g, '6.45.0').replace(/\{(from|to|worstYear|bestYear)\}/g, '1928').replace(/\{(years|runs|blockYears|months|curvePoints|dealFee|pa|brl|hrl|taper|level)\}/g, '97')
       .replace(/\{(adjustment|nominal|real|worst|best|mean|monthByMonth|charges|mult|spreadShort|spreadMid|spreadLong)\}/g, '2.5').replace(/\{buffer\}/g, '£15,000')
-      .replace(/\{(generated|asOf|curveAsOf|date)\}/g, '2026-10-27').replace(/\{(source|repo)\}/g, 'the exchange').replace(/\{(curve|nominalCurve)\}/g, '1y 0.20% · 2y 0.40%').replace(/\{symbol\}/g, 'S&P 500');
+      .replace(/\{(generated|asOf|curveAsOf|date)\}/g, '2026-10-27').replace(/\{(source|repo)\}/g, 'the exchange').replace(/\{(curve|nominalCurve)\}/g, '1y 0.20% · 2y 0.40%').replace(/\{symbol\}/g, 'S&P 500')
+      // 7.8.0: how long the money has to last (the life tables' edition and the two ages, the levels in twentieths)
+      .replace(/\{region\}/g, 'England and Wales').replace(/\{edition\}/g, '2024-based').replace(/\{published\}/g, '15 May 2026')
+      .replace(/\{planTo\}/g, '10').replace(/\{weight\}/g, '50').replace(/\{(careful|balanced|bold)\}/g, '18');
     const hitsA = [];
     const allA = strings(ASSUMPTIONS).map(([, s]) => slotA(s)).join('\n');
     for (const [where, s] of strings(ASSUMPTIONS)) for (const h of bannedHits(slotA(s), scopes, { context: allA })) hitsA.push(`assumptions.js ${where} — ${h}`);

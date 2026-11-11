@@ -32,6 +32,8 @@ export function keepScreen(q) {
           {/* B with a plan to use these figures in leads with that, as its panel and the rail do (6.59.0) */}
           <p class="lead">{v.useIn ? KEEP.use.stepLead : KEEP.stepLead}</p>
           {line && <Sentence s={line} source={r} class="keep-summary" data-testid={`${q}.keep.summary`} />}
+          {/* 7.8.0: a weighted line never stands without the count to one named age beside it */}
+          {line && line.mark === 'weighted' && r.sentences.fixed && <Sentence s={r.sentences.fixed} source={r} class="keep-summary-fixed" data-testid={`${q}.keep.fixed`} />}
           <KeepPanel state={state} q={q} dispatch={dispatch} heading={false} />
           <div class="actions-row">
             <LinkButton testid={`${q}.keep.back`} href={href.step(q, 'answer')}>{KEEP.backToAnswer}</LinkButton>

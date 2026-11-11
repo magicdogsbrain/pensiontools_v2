@@ -11,6 +11,7 @@
  * answer function runs it only when its box says so (work.has, fall.has — draft fields of the `try` group).
  */
 import { Sentence, MadeOf, Assumed, Working, HeldAnswer, Problem, Field, Button, LinkButton, KeepPanel, withFixedCounts, stepLabel, blank, AnswerSlider, FigureTiles, PotLife, KeepLine } from '../../components/index.js';
+import { LastsLines, LevelStrip, LASTS_TOP, LASTS_AFTER } from '../../components/Lasts.jsx';
 import { answerSlider, answerTiles, tilesKey, potPicture } from '../../state/select.js';
 import { PICTURE } from '../../copy/picture.js';
 import { href } from '../../router/routes.js';
@@ -42,6 +43,7 @@ function SpendMore({ result }) {
     <section class="block spend-more" data-testid="d.more" aria-labelledby="more-title">
       <h2 id="more-title">{t.moreTitle}</h2>
       <Sentence s={s.headroom} source={result} class="headroom" data-testid="d.answer.headroom" data-headroom={result.headroom ? result.headroom.kind : undefined} />
+      {s.headroomFixed && <Sentence s={s.headroomFixed} source={result} class="headroom-fixed" data-testid="d.answer.headroomFixed" />}
       {s.levels && <Sentence s={s.levels} source={result} />}
       <p class="note range-key" data-testid="d.more.key">{withFixedCounts(t.moreNote)}</p>
     </section>
@@ -164,8 +166,11 @@ function Answer({ state, dispatch, frame }) {
             <section class="headline" data-headline="verdict" aria-labelledby="answer-figure">
               <Band result={result} />
               <Sentence s={s.line} source={result} class="line" data-sentence="verdict" />
+              <LastsLines result={result} only={LASTS_TOP} />
+              <LevelStrip q="d" result={result} dispatch={dispatch} words={D} />
               {picture}
               <Sentence s={s.bad} source={result} class="bad" />
+              <LastsLines result={result} only={LASTS_AFTER} />
               <p class="advice">{ADVICE_SHORT}</p>
               <Warnings result={result} />
             </section>

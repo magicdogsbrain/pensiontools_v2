@@ -14,6 +14,14 @@ export const ASSUMPTIONS = {
   failed: 'Sorry, the tables could not be read. The classic planner’s own page has them.',
   /** Each section: a heading, then rows of a name, the figure, and a note. */
   sections: {
+    // 7.8.0: the chance the money lasts as long as you do (research/v7/replan-nov-2026.md 5; the build spec's 11)
+    life: {
+      title: 'How long the money has to last',
+      source: { name: 'Where it comes from', value: 'How long people born in each year are likely to live comes from the Office for National Statistics’ figures for {region}, looking ahead ({edition}, published {published}; Open Government Licence).', note: 'These are figures for everyone in {region}; people with pension savings tend to live a little longer. The ONS publishes figures to age 100; above that we extend each line ourselves.' },
+      ages: { name: 'The two ages', value: 'Your plan runs to the age when fewer than 1 in {planTo} people your age are still alive (for a couple, when fewer than 1 in {planTo} couples still have one of you alive): about 96 to 99 for someone who is 65 now.', note: 'We follow each future on until fewer than 1 in {weight} are, about 101 to 103.' },
+      notSaid: { name: 'If you do not say', value: 'If you do not say, we use the figures for women, which test the money for longer.', note: '' },
+      twoFigures: { name: 'Two figures, always together', value: 'Counting this way gives a higher figure than counting every future to one age, so we always show both, and our levels ask for more: Careful {careful} times in 20, Balanced {balanced}, Bold {bold}.', note: 'Each future counts by how likely you are to be alive when the money runs out: running out at 98 counts for less than at 80.' }
+    },
     shares: {
       title: '1 · Shares',
       series: { name: 'The series', value: 'Calendar-year S&P 500 total return (dividends reinvested), {from}–{to} ({years} years)', note: 'Aswath Damodaran, NYU Stern. Committed with its provenance in the data file.' },

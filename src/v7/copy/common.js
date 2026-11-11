@@ -13,6 +13,16 @@ import { LAYOUT } from '../../appLayout.js';
 /** Directly under the bad-case line of every headline, and in the footer. Checked letter for letter. */
 export const ADVICE_SHORT = 'An illustration from your figures, not financial advice.';
 
+/**
+ * "How careful?" (7.8.0: research/v7/replan-nov-2026.md 5; the build spec's 11), beside every answer: what each level asks
+ * for leads its label, so "Balanced" is never read as the mix of the same name; the help says how a future is counted.
+ */
+export const LEVELS_WORDS = {
+  label: 'How careful?',
+  options: { careful: '19 times in 20: Careful', balanced: '18 times in 20: Balanced (we start here)', bold: '14 times in 20: Bold' },
+  help: 'Each future counts by how likely you are to be alive when the money runs out: running out at 98 counts for less than at 80. Your choice changes every figure on this page.'
+};
+
 /** The closing paragraph of every answer step. Checked letter for letter. */
 export const ADVICE_FULL =
   'This is an illustration worked out from the figures you entered. It is not financial advice and it does ' +

@@ -78,7 +78,7 @@ function KeptVerdict({ L }) {
     return (
       <div class="checkin-kept" data-verdict={v.band} data-level={v.level} data-testid={`${T}.result.kept`}>
         <p class={`band verdict is-${v.band}`} data-weighted={v.weightedWords ? '1' : undefined}><strong>{fill(v.weightedWords ? R.lastedW : R.lastedFixedW, { band: R.band[v.band], level: v.level, words: v.words || '' })}</strong></p>
-        {v.fixed && <p class="note" data-fixed="1">{v.fixed}</p>}
+        {v.fixed && <p class="note" data-fixed="age">{v.fixed}</p>}
         {v.atLevel && v.aim && <p class="note">{fill(R.spendW, v)}</p>}
         {v.gap && <p class="note">{fill(R.gap, v)}</p>}
         {v.band !== 'yes' && L.enough && <p class="note" data-testid={`${T}.result.keptEnough`}>{enoughText(L.enough, R.enoughW, { level: v.level })}</p>}

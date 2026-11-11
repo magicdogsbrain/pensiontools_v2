@@ -46,11 +46,11 @@ export function sexKey(sex, fallback = 'f') {
   return fallback === 'm' ? 'm' : 'f';
 }
 
-/** The year of a 'YYYY-MM-DD' day or a Date; the clock's year when there is none. */
+/** The year of a 'YYYY-MM-DD' day or a Date; the clock's year only when none is given (the caller can always give one). */
 function yearOf(today) {
   if (typeof today === 'string' && /^\d{4}/.test(today)) return Number(today.slice(0, 4));
-  if (today instanceof Date && !Number.isNaN(today.getTime())) return today.getFullYear();
-  return new Date().getFullYear();
+  const day = (today instanceof Date && !Number.isNaN(today.getTime()) && today) || new Date();
+  return day.getFullYear();
 }
 
 /**

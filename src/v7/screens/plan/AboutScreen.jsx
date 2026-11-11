@@ -318,7 +318,7 @@ export function AboutScreen(state, dispatch) {
             </div>
             <div class="actions-row">
               <Button testid="plan.about.suggest" kind="quiet" onClick={onSuggest} disabled={!suggest}>{ABOUT.suggest.button}</Button>
-              {suggest && suggest.applied && <span class="note" data-testid="plan.about.suggested">{fill(ABOUT.suggest.result[suggest.slots.chance] || ABOUT.suggest.result[10], suggest.slots)}</span>}
+              {suggest && suggest.applied && <span class="note" data-testid="plan.about.suggested">{fill(ABOUT.suggest.result[suggest.slots.chance] || ABOUT.suggest.result[10], suggest.slots)}{suggest.notSaid ? ' ' + ABOUT.suggest.notSaid : ''}</span>}
             </div>
             <p class="help">{ABOUT.suggest.note}</p>
           </fieldset>

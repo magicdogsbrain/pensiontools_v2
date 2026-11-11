@@ -72,6 +72,8 @@ import { restoredParamsFor } from '../../services/PlanCommit.js';
 import { dateOf } from './dates.js';
 import { closedYearsShort, shortYearsWords } from '../../services/PensionLock.js';
 import { FAMILY } from './lasts.js';
+import { SUCCESS, LEVEL_FAILS20, LEVELS } from '../shared/rules.js';
+import { lifeOf, lifeOfSettings, planLevelOf, weightedReasonOf, weightedYearsOf, floorAt } from './life.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
@@ -81,8 +83,115 @@ const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'funct
  * index.html strategyPlanFor: the plan every screen runs, built from the settings the planner's loader reads. The one test
  * passes no essentials (oneTestFor: essentialsAnnual undefined); the plan document's run passes the budget's (buildPlanDocumentNow).
  */
-export function planFor(settings, now, essentialsAnnual = undefined) {
-  return planFromSettings(settings, simulationConfigFromSettings({}, settings, now), { yieldForYear: realYieldForYear, essentialsAnnual, startAge: +settings.shapeAgeNow || 57, now });
+export function planFor(settings, now, essentialsAnnual = undefined, { maxYears } = {}) {
+  return planFromSettings(settings, simulationConfigFromSettings({}, settings, now), { yieldForYear: realYieldForYear, essentialsAnnual, startAge: +settings.shapeAgeNow || 57, now, ...(maxYears > 0 ? { maxYears } : {}) });
+}
+
+// ---- 7.8.0: the chance the money lasts as long as you do (research/v7/replan-nov-2026.md 5; answers/plan/life.js) -----------
+
+/** Whether a run weighs by how long people live: `weighted` when a test says (true or false), else SUCCESS.weighted. */
+export const weighing = (o) => (o && typeof o.weighted === 'boolean' ? o.weighted : SUCCESS.weighted);
+
+/** A per-year list carried on to `length` entries by repeating its last ("carrying the last year's spending"). */
+const carried = (list, length) => (Array.isArray(list) && list.length && list.length < length ? list.concat(Array.from({ length: length - list.length }, () => list[list.length - 1])) : list);
+
+/**
+ * The plan followed on to the weighting age: the same settings with the plan's length extended to `years` run years (the
+ * years already lived kept in front), so every future runs on with the plan's own rules, the last year's spending carried
+ * on, the State Pension and other income still coming in. The plan's own glidepath keeps its own length (pnvCfg.duration:
+ * the floors reach nothing at the plan's end and the pots are drawn on from there), so within the plan's years each
+ * future is the one the plan's own run had (tests/v7/plan/life.test.js). Only the futures are read from it: its real
+ * histories are left at one window.
+ */
+export function weightedPlanFor(settings, p, years, now, essentialsAnnual = undefined) {
+  const lived = p.yearOffset > 0 ? p.yearOffset : 0;
+  const pW = planFor({ ...settings, duration: lived + years }, now, essentialsAnnual, { maxYears: years });
+  pW.pnvCfg = { ...pW.pnvCfg, duration: p.pnvCfg.duration, ...(Array.isArray(pW.pnvCfg.targetSchedule) ? { targetSchedule: carried(pW.pnvCfg.targetSchedule, years + 1) } : {}) };
+  pW.stride = WEIGHTED_HIST_STRIDE;
+  return pW;
+}
+/** The weighted run reads its futures only: its real histories are one window. */
+export const WEIGHTED_HIST_STRIDE = 1e9;
+
+/**
+ * A new plan document's `assumptions.success` (PlanDocument.buildPlanDocument's `success`), from the live result before it is
+ * trimmed: both apps lock through it (runForDocument here; index.html buildPlanDocumentNow). Null while not weighing, and
+ * for a way of drawing that cannot be bought.
+ */
+export function documentSuccessOf(plan, { settings, strategyId, p, r, now, essentials = undefined, weighted = undefined } = {}) {
+  if (!weighing({ weighted }) || !r || !r.affordable || !p) return null;
+  const w = weightedOptsOf(plan || {}, { settings, strategyId, p, r, now, essentials });
+  return successOf(oneAnswer(r, p, w.opts), w.opts.life);
+}
+
+/**
+ * The classic planner's one test, weighed (index.html oneTestFor, 7.8.0): the options its verdict block reads
+ * (ui/oneAnswerView.js verdictBlockView) — the person, the level (the page's own for this visit, else the plan's), the run to
+ * the weighting age. A locked ladder's stored result reads its document's own weighted figure (`locked`: { doc }). Null while
+ * not weighing: the block is the one before 7.8.0.
+ */
+export function chanceRunOf(plan, { settings, strategyId, p, r, now, level = null, locked = null, weighted = undefined } = {}) {
+  if (!weighing({ weighted }) || !r || !r.affordable || !p) return null;
+  const doc = locked && isObj(locked.doc) ? locked.doc : null;
+  const def = doc && isObj(doc.assumptions) && isObj(doc.assumptions.success) ? doc.assumptions.success : null;
+  const stored = doc ? { chance: def && isObj(def.weighted) && typeof def.weighted.chance === 'number' ? def.weighted.chance : null } : null;
+  const w = weightedOptsOf(plan || {}, { settings, strategyId, p, r, now, stored });
+  return { ...w.opts, ...(level ? { level } : {}) };
+}
+
+/**
+ * What "Am I on course?" passes a pot at (stressTest.requiredPotForStrategy's third argument), on the plan every screen runs
+ * (`p`, index.html strategyPlanFor): before 7.8.0 and in the rollback ON_COURSE_SHARE, 9 futures in 10, as it always was;
+ * weighing, { level, life, planW } — the level (the page's own, Balanced unless chosen), the person, and the plan followed
+ * on to the weighting age (null where the way of drawing cannot be followed on: the count to the plan's age then).
+ */
+export function onCourseOptsOf(settings, p, strategyId, now, { weighted = undefined, level = 'balanced', sex = null } = {}) {
+  if (!weighing({ weighted })) return ON_COURSE_SHARE;
+  const life = lifeOfSettings(settings, now, { sex, startAge: p.startAge });
+  const reason = weightedReasonOf(life, strategyId, p);
+  const w = weightedYearsOf(life, p);
+  const planW = reason ? null : w.extend ? weightedPlanFor(settings, p, w.years, now) : p;
+  return { level, life: { ...life, reason }, planW };
+}
+
+/**
+ * The definition a plan document records it was tested under (assumptions.success, 7.8.0; the build spec's section 8), from
+ * a weighted oneAnswer and its person: the level and its whole twentieths, the lines a verdict is drawn at (stored, so the
+ * document keeps its own bars if the levels change), the age it was tested to and how that age was set, the age the futures
+ * were followed on to, the weighted and fixed-age figures, the table. Plain data: no functions, no per-future lists.
+ */
+export function successOf(a, life) {
+  if (!a || !a.level) return null;
+  const t = LEVEL_FAILS20[a.level];
+  return {
+    confidence: LEVELS[a.level], level: a.level, levelFails20: t,
+    lines: { yes: 1 - t / 20, close: 1 - (t + 1) / 20 },
+    planTo: { age: a.planToAge, rule: a.horizonRule === 'capped' ? 'capped' : 'plan' },
+    weightToAge: a.weightToAge,
+    weighted: { chance: a.weighted, fixedAge: a.fixedAge, joint: false, sex: life.sex, sexGiven: !!life.sexGiven, ...(a.reason ? { reason: a.reason } : {}) },
+    tablesVersion: life.tablesVersion || null
+  };
+}
+
+/**
+ * The weighted part of a run (see OneAnswer.weightedPartOf): the person (life.lifeOf), the level (life.planLevelOf), and —
+ * when the plan ends before the weighting age and its way of drawing can be followed on — the one more run to that age.
+ * `stored`: a stored result's figure (a locked ladder's document), { chance } or null. → { opts, runs } for oneAnswer.
+ */
+export function weightedOptsOf(plan, { settings, strategyId, p, r, now, essentials = undefined, stored = null }) {
+  const life = lifeOf(plan, now, { settings, startAge: p.startAge });
+  const level = planLevelOf(plan);
+  const reason = stored ? life.reason : weightedReasonOf(life, strategyId, p);
+  const w = weightedYearsOf(life, p);
+  let rW = r, wYears = p.durationYears, runs = 0;
+  if (!stored && !reason && w.extend) {
+    const pW = weightedPlanFor(settings, p, w.years, now, essentials);
+    rW = stressTestStrategy(strategyId, pW);
+    wYears = pW.durationYears;
+    runs = 1;
+  }
+  const floor = (k) => floorAt(settings, p, k, now);
+  return { opts: { life: { ...life, reason }, rW, wYears, level, floorAt: floor, capped: w.capped && !reason, stored }, runs };
 }
 
 /** What the planner hands the document builder for the Accumulation tool (ScenarioRepository.getActiveAccumulation): its settings, {} for none. */
@@ -106,7 +215,7 @@ export function savingPathFor({ settings, accumulation = null, holdings = null, 
  * @param {{ today: string, essentials?: number, onProgress?: Function }} o   `essentials`: the budget's essentials a year
  *   before tax (lock.js shapeRefsOf), 0 or absent for none — the plan is then built as the one test builds it
  */
-export function runForDocument(plan, { today, essentials = 0, onProgress = null } = {}) {
+export function runForDocument(plan, { today, essentials = 0, onProgress = null, weighted = undefined } = {}) {
   const now = dateOf(today);
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const settings = effectiveStressSettings(plan, { now });
@@ -116,17 +225,20 @@ export function runForDocument(plan, { today, essentials = 0, onProgress = null 
   const p = planFor(settings, now, ess);
   const r = stressTestStrategy(strategyId, p);
   tell(1, 2);
+  // 7.8.0: the definition the document is tested under (assumptions.success), worked out from the live result before trimResult
+  // drops its per-future read-out; nothing while SUCCESS.weighted is false (an absent `success` is the definition before it)
+  const success = documentSuccessOf(plan, { settings, strategyId, p, r, now, essentials: ess, weighted });
   // what the planner hands in (index.html buildPlanDocumentNow): the Accumulation tool's settings ({} for none) and the
   // holdings record normalised (ScenarioRepository.getActiveAccumulation, getActiveHoldings)
   const savingPath = savingPathFor({ settings, accumulation: documentAccumulationOf(plan), holdings: documentHoldingsOf(plan), now });
-  return plain({ p: trimPlan(p), r: trimResult(r), savingPath, basis: { today, engine: 'one-test', essentials: ess || 0 } });
+  return plain({ p: trimPlan(p), r: trimResult(r), savingPath, ...(success ? { success } : {}), basis: { today, engine: 'one-test', essentials: ess || 0 } });
 }
 
 /**
  * @param {object} plan   a saved plan, brought up to date in memory (scenarioMigration.upgradeScenario)
  * @param {{ today: string, onProgress?: (done: number, total: number) => void }} o
  */
-export function runLasts(plan, { today, onProgress = null } = {}) {
+export function runLasts(plan, { today, onProgress = null, weighted = undefined } = {}) {
   const now = dateOf(today);
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const settings = effectiveStressSettings(plan, { now });
@@ -135,26 +247,40 @@ export function runLasts(plan, { today, onProgress = null } = {}) {
   const locked = isLocked(plan);
   const doc = locked && isObj(plan.planDocument) ? plan.planDocument : null;
   const storedR = doc && doc.strategy && isObj(doc.strategy.r) ? doc.strategy.r : null;
+  // 7.8.0: the definition a locked document was tested under (absent: 9 in 10 to a fixed age, unweighted)
+  const docSuccess = doc && isObj(doc.assumptions) && isObj(doc.assumptions.success) ? doc.assumptions.success : null;
+  const weigh = weighing({ weighted });
   let p, r;
   // a locked gilt ladder is the document's own (6.13.5, index.html oneTestFor): never re-priced
   const ladder = doc && documentLadder(doc, strategyId);
-  tell(0, 2);
+  const total = weigh ? 3 : 2;
+  tell(0, total);
   if (ladder && doc.strategy.p) {
     p = doc.strategy.p; r = storedR;
   } else {
     p = planFor(settings, now);
     r = stressTestStrategy(strategyId, p);
   }
-  tell(1, 2);
-  const a = oneAnswer(r, p);
+  tell(1, total);
+  let a = oneAnswer(r, p);
+  // weighing (SUCCESS.weighted; `weighted` in a test): the chance the money lasts as long as you do, beside the fixed-age count
+  let level = null;
+  if (weigh && a) {
+    const storedFigure = ladder && doc.strategy.p ? { chance: docSuccess && isObj(docSuccess.weighted) && typeof docSuccess.weighted.chance === 'number' ? docSuccess.weighted.chance : null } : null;
+    const w = weightedOptsOf(plan, { settings, strategyId, p, r, now, stored: storedFigure });
+    a = oneAnswer(r, p, w.opts);
+    level = a.level;
+  }
+  if (weigh) tell(2, total);
   const history = a
     ? { worst: worstStarts(r.histWindows, 5), named: namedStartRows(strategyId, p) }
     : { worst: [], named: [] };
-  const stored = storedR && doc.strategy.id === strategyId ? { a: oneAnswer(storedR, doc.strategy.p || {}), note: earlierTestNote(storedR, r) } : null;
+  const stored = storedR && doc.strategy.id === strategyId ? { a: oneAnswer(storedR, doc.strategy.p || {}), note: earlierTestNote(storedR, r), ...(weigh ? { success: docSuccess } : {}) } : null;
   const cfg = (p && p.pnvCfg) || {};
   const closed = closedOf(p);
   return plain({
     ...(closed ? { closed } : {}),
+    ...(level ? { level } : {}),
     strategyId,
     ran: { family, cutsOn: family && !cfg.disableProtection, cutPct: Math.round((1 - (cfg.protectionMult ?? 0.8)) * 100), months: cfg.consecutiveLimit ?? 3 },
     priced: !family && !(ladder && doc.strategy.p) ? 'bundled' : null,
@@ -335,10 +461,16 @@ export const WORK_LIMITS = Object.freeze({ yearlyMin: 1, yearlyMax: 200_000, yea
 export const WORK_LABEL = 'Work';
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-/** The figures of one run every lever reports: the planner's own (OneAnswer), to the pound. */
+/**
+ * The figures of one run every lever reports: the planner's own (OneAnswer), to the pound. `lasts`: on course — weighing,
+ * the plan's level passes (OneAnswer.weightedPartOf's verdict, on the weighted failures or, with no weighted figure, on the
+ * count to the plan's age); before 7.8.0 and in the rollback, 9 futures in 10 (ON_COURSE_SHARE).
+ */
 export function pickFigures(a) {
   if (!a) return null;
-  return { share: a.share, chancePct: a.chancePct, typicalLeft: Math.round(a.typicalLeft || 0), badCaseLeft: Math.round(a.badCaseLeft || 0), years: Math.round(a.years || 0), lasts: a.share >= ON_COURSE_SHARE - 1e-12 };
+  const lasts = typeof a.lasts === 'boolean' ? a.lasts : a.share >= ON_COURSE_SHARE - 1e-12;
+  return { share: a.share, chancePct: a.chancePct, typicalLeft: Math.round(a.typicalLeft || 0), badCaseLeft: Math.round(a.badCaseLeft || 0), years: Math.round(a.years || 0), lasts,
+    ...(typeof a.lasts === 'boolean' ? { weighted: a.weighted, level: a.level } : {}) };
 }
 
 /**
@@ -392,7 +524,7 @@ export function afterFall(settings, share = FALL_SHARE) {
  * @returns {object}  { kind, ok, runs, base, at, … } — `base` the plan as it is, `at` with the lever; `ok: false` with a `reason`
  *   ('unaffordable': this way of drawing cannot be bought with the pots; 'lever': the lever itself will not do)
  */
-export function runLever(plan, { today, lever, onProgress = null } = {}) {
+export function runLever(plan, { today, lever, onProgress = null, weighted = undefined } = {}) {
   const now = dateOf(today);
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const settings = effectiveStressSettings(plan, { now });
@@ -400,7 +532,18 @@ export function runLever(plan, { today, lever, onProgress = null } = {}) {
   const kind = lever && lever.kind;
   if (!LEVER_KINDS.includes(kind)) throw new Error('runLever: no lever called "' + kind + '"');
   let runs = 0;
-  const one = (s) => { runs += 1; const p = planFor(s, now); const r = stressTestStrategy(strategyId, p); return pickFigures(oneAnswer(r, p)); };
+  const weigh = weighing({ weighted });
+  // weighing, each run is judged at the plan's level on the chance the money lasts as long as you do (with the run to the
+  // weighting age where the plan ends before it: `runs` counts it)
+  const one = (s) => {
+    runs += 1;
+    const p = planFor(s, now); const r = stressTestStrategy(strategyId, p);
+    const a0 = oneAnswer(r, p);
+    if (!weigh || !a0) return pickFigures(a0);
+    const w = weightedOptsOf(plan, { settings: s, strategyId, p, r, now });
+    runs += w.runs;
+    return pickFigures(oneAnswer(r, p, w.opts));
+  };
   const monthly = Math.round((+settings.baseSalary || 0) / 12);
 
   if (kind === 'work') {

@@ -61,7 +61,7 @@ export function applyWindfallsToNeed(needNetByYear, windfallByYear) {
  * The need half of planFromSettings: every figure it reads before it sizes a strategy. `cfg` is the engine config
  * (simulationConfigFromSettings); it comes back shifted to the day of the plan's pots, with the age the run starts at.
  */
-export function planNeedOf(settings, cfg, { startAge, now } = {}) {
+export function planNeedOf(settings, cfg, { startAge, now, maxYears = 45 } = {}) {
   // A Pots & Valves plan owns no dials and is sized on its allocation (6.13.5): a "Total in your SIPP", ISA total or
   // essentials figure left in the flat bag by a deselected strategy (any plan saved before 6.13.0 and not re-saved
   // — a locked one cannot be) must not size it. Bought strategies read their bag as it is: three of them read dials
@@ -88,9 +88,10 @@ export function planNeedOf(settings, cfg, { startAge, now } = {}) {
   const spWeekly = cfg.spWeeklyAmount || settings.spWeeklyAmount || 0;
   const spAnnual = spWeekly ? spWeekly * 52 : (cfg.statePension || settings.statePension || 0);
   const spStartYear = cfg.spStartYear ?? cfg.statePensionYear ?? settings.statePensionYear ?? 99;
-  // 45y: the linker universe and 150y windows both cover it. Seen from today: the years left.
-  const durationYears = lived > 0 ? Math.max(1, Math.min((+settings.duration > 0 ? +settings.duration - lived : (cfg.duration || 35)), 45))
-    : Math.min(settings.duration || cfg.duration || 35, 45);
+  // 45y: the linker universe and 150y windows both cover it. Seen from today: the years left. `maxYears` (7.8.0): only the
+  // run that follows each future on to the weighting age (answers/plan/life.js) asks for more, up to RULES.maxDrawYears.
+  const durationYears = lived > 0 ? Math.max(1, Math.min((+settings.duration > 0 ? +settings.duration - lived : (cfg.duration || 35)), maxYears))
+    : Math.min(settings.duration || cfg.duration || 35, maxYears);
   // Stepped income (60k to 72, 50k to 80, 40k after): the saved per-year schedule wins; if a plan
   // saved steps but no schedule (an old save-order bug), compile it here so nothing runs flat (from the current year on).
   const compiled = () => { const c = scheduleFromSteps(settings, yearZeroAge); return lived > 0 && Array.isArray(c) && c.length ? c.slice(Math.min(lived, c.length - 1)) : c; };

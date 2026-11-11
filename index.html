@@ -3264,13 +3264,13 @@
                 <span class="hint">Suggest from longevity:</span>
                 <input type="number" id="ssLongevityAge" placeholder="age" min="40" max="80" style="max-width:80px;" title="Your current age">
                 <select id="ssLongevitySex" style="max-width:110px;">
-                  <option value="m" selected>Male</option>
+                  <option value="notSaid" selected>Not said</option>
+                  <option value="m">Male</option>
                   <option value="f">Female</option>
                 </select>
                 <select id="ssLongevityPct" style="max-width:230px;">
                   <option value="10" selected>1-in-10 chance of living beyond (cautious)</option>
                   <option value="25">1-in-4 chance of living beyond</option>
-                  <option value="50">Average life expectancy</option>
                 </select>
                 <button type="button" data-on-click="applyLongevitySuggestion()">Use</button>
               </div>
@@ -4116,7 +4116,7 @@
     import { getStrategy } from './src/strategies/registry.js'; import { strategyOverlayOf } from './src/services/DecisionOverlay.js'; import { engineSetup, engineDeps } from './src/services/MonthDecision.js';   // where a month is paid from, beside the pot advice (7.2.0)
     import { tagPortfolio, allocationFromTags, mixFromFunds } from './src/services/PortfolioTagger.js';   // the mix a funds list makes, lifted pure (6.41.0)
     import { searchFunds as searchFundsIn } from './src/services/FundCatalogue.js';   // the fuzzy fund search, lifted pure (6.41.0)
-    import { trySettingsOf } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
+    import { trySettingsOf, onCourseOptsOf, documentSuccessOf } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
     import { tryDifferencesOf } from './src/answers/plan/lasts.js';   // … and its "What's different" list (6.41.0)
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
     import {
@@ -7217,7 +7217,7 @@
       let journey = []; try { journey = await getActiveJourney(); } catch (e) { journey = []; }
       let accumulation = null; try { accumulation = await getActiveAccumulation(); } catch (e) { accumulation = null; }
       let holdings = null; try { holdings = await getActiveHoldings(); } catch (e) { holdings = null; }
-      const doc = buildPlanDocument({ planName: name, holdings, settings, p, r, lockedAt: ds.lockedAt || null, lockedBy: ds.lockedBy || reason, budgetGross: window._shapeRefs?.budgetGross || 0, essentials: window._shapeRefs?.essentials || 0, journey, accumulation, savingPath: await savingPathForLock({ settings, accumulation, holdings }) });   // 6.22.0: a saver's path drawn on V7's saving-years engine
+      const doc = buildPlanDocument({ planName: name, holdings, settings, p, r, lockedAt: ds.lockedAt || null, lockedBy: ds.lockedBy || reason, budgetGross: window._shapeRefs?.budgetGross || 0, essentials: window._shapeRefs?.essentials || 0, journey, accumulation, savingPath: await savingPathForLock({ settings, accumulation, holdings }), success: documentSuccessOf(await getActiveScenarioAsync().catch(() => null), { settings, strategyId: settings.strategyId || 'pots-and-valves', p, r, now: new Date(), essentials: window._shapeRefs?.essentials || undefined }) });   // 6.22.0: a saver's path drawn on V7's saving-years engine; 7.8.0: the definition it was tested under (none while not weighing)
       if (reason && ds.lockedBy && reason !== ds.lockedBy) doc.note = reason;
       await saveActivePlanDocument(doc);
       window._planDocLast = doc;
@@ -9623,7 +9623,7 @@
       try {
         const sSet = await getStressSettingsAsync();
         const stratId = sSet.strategyId || 'pots-and-valves';
-        const { requiredPot } = requiredPotForStrategy(stratId, strategyPlanFor(sSet), ON_COURSE_SHARE);   // the one test for every strategy (6.24.0; Pots & Valves searched its own Monte Carlo before)
+        const acP = strategyPlanFor(sSet), { requiredPot } = requiredPotForStrategy(stratId, acP, onCourseOptsOf(sSet, acP, stratId, new Date(), { level: window._chanceLevel || 'balanced' }));   // the one test for every strategy (6.24.0); 7.8.0: at the page's level, weighted by how long people live while SUCCESS.weighted (else 9 in 10, as before)
         if (!Number.isFinite(requiredPot)) { el.innerHTML = '<div class="alert alert-warning">No pot in the search range passes with ' + budEsc(STRATEGY_NAMES[stratId] || stratId) + ' — check the plan\'s income shape and duration.</div>'; return; }
         el.innerHTML = onCourseCheckHtml({ requiredPot, basis: onCourseBasisHtml({ strategyId: stratId, name: budEsc(STRATEGY_NAMES[stratId] || stratId) }), rows: window._acProjection.rows });
       } catch (e) {
@@ -9696,7 +9696,7 @@
       const targetAge = longevityAge(age, sex, pct);
       document.getElementById('ssDuration').value = Math.max(1, targetAge - age);
       document.getElementById('ssLongevityNote').textContent =
-        'Set to age ' + targetAge + ' (' + Math.max(1, targetAge - age) + ' years). Approximate ONS-style cohort figures — planning to the average means a 50% chance of outliving the plan.';
+        'Set to age ' + targetAge + ' (' + Math.max(1, targetAge - age) + ' years), from the ONS figures for how long people born in each year are likely to live' + (sex === 'notSaid' ? '; not said, so the figures for women, who tend to live longer' : '') + '. Planning only to the half-way age would give a 1 in 2 chance of outliving the plan.';
     };
 
     // Show the double-counting caution in the Spending sections only while a budget-derived

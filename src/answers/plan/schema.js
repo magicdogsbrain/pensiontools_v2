@@ -73,9 +73,11 @@ export const ABOUT_FIELDS = Object.freeze([
   // (offered by about.js startChoices, each named by its year — the planner's own range, PlanTiming.startYearChoices)
   { path: 'startWhen', type: 'choice', options: ['stop', 'now', 'saved'], required: true, when: { stopped: 'yes' } },
   { path: 'endAge',    type: 'age',    min: 23, max: 110, required: true },
-  // "Suggest from how long people live": neither is saved
-  { path: 'sex',       type: 'choice', options: ['m', 'f'], default: 'm' },
-  { path: 'chance',    type: 'choice', options: ['10', '25', '50'], default: '10' }
+  // "Suggest from how long people live": neither is saved. 7.8.0: the sex may be left unsaid (the women's figures, which test
+  // the money for longer); the half-way age ("average life expectancy") is no longer offered: planning to it gives a 1 in 2
+  // chance of outliving the plan. The classic planner's Suggest offers the same (index.html ssLongevitySex, ssLongevityPct).
+  { path: 'sex',       type: 'choice', options: ['notSaid', 'm', 'f'], default: 'notSaid' },
+  { path: 'chance',    type: 'choice', options: ['10', '25'], default: '10' }
 ].map(Object.freeze));
 
 export const ABOUT_PATHS = Object.freeze(ABOUT_FIELDS.map((f) => f.path));

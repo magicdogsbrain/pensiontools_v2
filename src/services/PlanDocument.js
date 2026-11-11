@@ -38,6 +38,14 @@ import { VERSION } from '../constants.js';
 // saving-years engine (`accumulation.version` 3, services/SavingPath.js) — pension and ISA, 1,000 futures, the 1-in-10
 // lines, in pounds of the day. Documents written before are never rewritten; services/SaverReading.js reads both kinds.
 export const PLAN_DOCUMENT_VERSION = 3;
+/**
+ * The definition a document without `assumptions.success` was tested under (7.8.0; every document locked before it): the
+ * share of futures that lasted to the plan's own age, counted, not weighted; its verdict and tone read at the bars of the
+ * time (OneAnswer CHANCE_BARS), its words "count to {age}". A document keeps the words it was locked with.
+ */
+export const LEGACY_DEFINITION = Object.freeze({ weighted: false, bars: Object.freeze([90, 75, 50]), words: 'count to {age}' });
+/** The definition a document was tested under: its own `assumptions.success`, else LEGACY_DEFINITION. */
+export const definitionOf = (doc) => (doc && doc.assumptions && doc.assumptions.success && typeof doc.assumptions.success === 'object' ? doc.assumptions.success : LEGACY_DEFINITION);
 export const CONTRACT_STRATEGIES = ['full-il-gilt', 'gilt-rotation', 'floor-the-schedule'];
 export const DECISION_ASSUMED_CPI_FOR_RECORD = 0.04;   // = PlanLock.PLAN_OF_RECORD_CPI (not imported: PlanLock pulls in the repositories)
 
@@ -199,7 +207,7 @@ export function buildAccumulationPath({ settings = {}, timing, accumulation = nu
  *                      savingPath (6.22.0: the saving path already drawn on V7's engine — services/SavingPath.js, which the
  *                      lock loads on demand so this module stays pure and light; absent → the FCA path, as before) }
  */
-export function buildPlanDocument({ planName = 'My plan', settings = {}, p = null, r = null, lockedAt = null, lockedBy = null, budgetGross = 0, essentials = 0, giltPricesAsOf = null, journey = [], accumulation = null, holdings = null, now = new Date(), savingPath = undefined } = {}) {
+export function buildPlanDocument({ planName = 'My plan', settings = {}, p = null, r = null, lockedAt = null, lockedBy = null, budgetGross = 0, essentials = 0, giltPricesAsOf = null, journey = [], accumulation = null, holdings = null, now = new Date(), savingPath = undefined, success = null } = {}) {
   const timing = deriveTiming(settings, now);
   const H = normaliseHoldings(holdings);   // absent → the empty record; never the Stress tester's fund list
   const layers = shapeLayersFromSettings(settings, timing, { budgetGross, essentials, now });
@@ -259,6 +267,12 @@ export function buildPlanDocument({ planName = 'My plan', settings = {}, p = nul
       // On the ladder + rotation it also pays a rotated year the sleeve cannot (in shares from 6.36.0, kept from 6.37.0);
       // an earlier document has no spareFillsCuts and reads as it was locked (never drawn).
       ...(params.spareGrowth ? { spareGrowth: true } : {}),
+      // 7.8.0: the definition the plan was tested under (answers/plan/lastsRun.js successOf, worked out from the live result
+      // before trimResult drops its futures): the level, its lines, the age tested to, the age the futures were followed on
+      // to, the weighted and fixed-age figures, the table. Absent — every document before, and every one while
+      // SUCCESS.weighted is false — means LEGACY_DEFINITION: 9 in 10, to a fixed age, unweighted. Inside the lock's one
+      // write, with no version bump: no reader before 7.8.0 reads it.
+      ...(success && typeof success === 'object' ? { success: plainClone(success) } : {}),
       // Only where there is a block to rotate: with nothing above the cut age the test is the full ladder's (no cut years).
       ...(strategyId === 'gilt-rotation' && r?.signature?.soldRungs > 0 && (params.spareGrowth || r.signature.spare > 0) ? { spareFillsCuts: true } : {}),
       // Fund and platform charges the plan's figures were worked out at, percent a year (6.19.0). A document locked

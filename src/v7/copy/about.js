@@ -20,8 +20,8 @@ export const ABOUT = {
     // other: the years between the stop's and this one, folded into one choice with a list when there are many (6.51.0)
     startWhen: { label: 'Your plan’s first tax year', options: { stop: '{yearStop}, the tax year you stopped work', now: 'This tax year, {yearNow}', saved: '{yearSaved}, as saved', other: 'Another tax year' }, notSaved: '{yearSaved}', nowStopped: 'This tax year, {yearNow}, the tax year you stopped work', otherList: 'The tax year' },
     endAge:    { label: 'Plan to age', help: 'The age the money has to last to.' },
-    sex:       { label: 'For a', options: { m: 'man', f: 'woman' } },
-    chance:    { label: 'How cautious', options: { 10: '1 in 10 live beyond it (cautious)', 25: '1 in 4 live beyond it', 50: 'Half of people live beyond it' } }
+    sex:       { label: 'For a', options: { notSaid: 'person (not said)', m: 'man', f: 'woman' } },
+    chance:    { label: 'How cautious', options: { 10: '1 in 10 live beyond it (cautious)', 25: '1 in 4 live beyond it' } }
   },
   /** The problems, in plain words, by field path and message id. */
   errors: {
@@ -37,9 +37,11 @@ export const ABOUT = {
   suggest: {
     title: 'Suggest from how long people live',
     button: 'Suggest',
-    /** After "Suggest": the age it filled in and why. {who}: men or women; {chance}: 10, 25 or 50. */
-    result: { 10: 'Age {age}: 1 in 10 {who} of {ageNow} live beyond it.', 25: 'Age {age}: 1 in 4 {who} of {ageNow} live beyond it.', 50: 'Age {age}: half of {who} of {ageNow} live beyond it.' },
-    note: 'Rounded figures of the kind the Office for National Statistics publishes. Planning only to the half-way age gives a 1 in 2 chance of outliving the plan.'
+    /** After "Suggest": the age it filled in and why. {who}: men or women; {chance}: 10 or 25. */
+    result: { 10: 'Age {age}: 1 in 10 {who} of {ageNow} live beyond it.', 25: 'Age {age}: 1 in 4 {who} of {ageNow} live beyond it.' },
+    /** 7.8.0: the sex left unsaid reads the women's figures */
+    notSaid: 'We used the figures for women, who tend to live longer, because you did not say.',
+    note: 'From the Office for National Statistics’ figures for how long people born in each year are likely to live (England and Wales). Planning only to the half-way age would give a 1 in 2 chance of outliving the plan, so it is not offered.'
   },
   /** The derived figures (2): shown, never asked. */
   derivedTitle: 'What this works out to',

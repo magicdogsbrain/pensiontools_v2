@@ -55,7 +55,8 @@ import { notBegunOf } from '../../services/PlanClosed.js';
 import { contributionBreakdown } from '../../services/AccumulationEngine.js';
 import { shareSettings } from '../../services/SaverPayIn.js';
 import { payInParts } from '../shared/payIn.js';
-import { lastedText } from '../shared/format.js';
+import { lastedText, chanceWords, fixedAgeWords, twentiethsOfFutures } from '../shared/format.js';
+import { SUCCESS } from '../shared/rules.js';
 import { saverInputsOf, planPayInOf } from './saverInputs.js';
 import { savedSaving, allowanceOf } from './saving.js';
 import { CADENCE_MONTHS, addMonths, checkInsOf, cadenceOf, checkInDueOf, checkInState } from './checkInDue.js';
@@ -316,9 +317,16 @@ function pathFrom(plan, record, now) {
   });
 }
 
-/** The answer's figures, frozen small (5.1). B's band, the lives that failed, the aim, the incomes, the gap, what would be enough. */
-function verdictPart(result) {
+/**
+ * The answer's figures, frozen small (5.1). B's band, the lives that failed, the aim, the incomes, the gap, what would be enough.
+ * 7.8.0, while weighing (SUCCESS.weighted; `weighted` in a test): the reading of the level instead — { band, level, weighted,
+ * fixedAge, planToAge, fails, aim, atLevel (what you could spend a month at the level, paying in as then), gap, enough:
+ * { atLevel, level, … } } — and a reading with `level` is worded by its level (rowOf, latestOf). Every reading kept before
+ * keeps its keys (nine, four, bad, middling) and its words.
+ */
+function verdictPart(result, weighted = SUCCESS.weighted) {
   const ok = !!result && result.status !== 'invalid' && isObj(result.verdict) && ['yes', 'close', 'no'].includes(result.verdict.band);
+  if (weighted) return levelPart(ok ? result : null);
   if (!ok) return { band: null, fails: null, aim: null, bad: null, middling: null, gap: null, enough: null };
   const en = result.enough;
   const fig = (x) => (isObj(x) && isNum(x.payIn) ? x : null);
@@ -340,6 +348,30 @@ function verdictPart(result) {
   };
 }
 
+/** The new reading (7.8.0): the level's figures, see verdictPart. */
+function levelPart(result) {
+  if (!result) return { band: null, level: null, weighted: null, fixedAge: null, planToAge: null, fails: null, aim: null, atLevel: null, gap: null, enough: null };
+  const en = result.enough;
+  const fig = en && isObj(en.atLevel) && isNum(en.atLevel.payIn) ? en.atLevel : null;
+  const ch = isObj(result.chance) ? result.chance : {};
+  return {
+    band: result.verdict.band,
+    level: typeof result.level === 'string' ? result.level : 'balanced',
+    weighted: isNum(ch.weighted) ? ch.weighted : null,
+    fixedAge: isNum(ch.fixedAge) ? ch.fixedAge : null,
+    planToAge: isNum(ch.planToAge) ? ch.planToAge : null,
+    fails: isNum(ch.fails) ? ch.fails : null,
+    aim: isObj(result.spend) && isNum(result.spend.perMonth) ? result.spend.perMonth : null,
+    atLevel: isObj(result.income) && isNum(result.income.bad) ? result.income.bad : null,
+    gap: isObj(result.gap) && isNum(result.gap.year) ? result.gap.year : null,
+    enough: en ? {
+      atLevel: fig ? fig.payIn : null, level: typeof en.level === 'string' ? en.level : (typeof result.level === 'string' ? result.level : 'balanced'),
+      ...(fig && isNum(fig.ownPct) ? { atLevelOwnPct: fig.ownPct, atLevelTotalPct: fig.totalPct } : {}),
+      ...(en.closeNow ? { closeNow: true } : {}), ...(en.outOfReach ? { outOfReach: true } : {})
+    } : null
+  };
+}
+
 /**
  * What puts a reading's lines into the pot's own pounds: a version-2 path (every plan locked before 6.22.0) is in the
  * prices of the day it was drawn, and saverReading turns the pot back into those prices to place it (`compared`, at the
@@ -349,7 +381,7 @@ function verdictPart(result) {
 const toPotPounds = (pr) => (pr && pr.prices && isNum(pr.prices.factor) && pr.prices.factor > 0 ? pr.prices.factor : 1);
 
 /** The reading frozen into the check-in: against the path (SaverReading's own), and the verdict from here. */
-export function readingOf(record, pathDoc, result) {
+export function readingOf(record, pathDoc, result, { weighted = SUCCESS.weighted } = {}) {
   const month = monthOfDate(record.date);
   const pr = pathDoc ? saverReading(pathDoc.doc, { at: month, pension: record.pot.pension, isa: record.pot.isa }) : null;
   const start = pathDoc ? pathStart(pathDoc.doc).at : null;
@@ -358,7 +390,7 @@ export function readingOf(record, pathDoc, result) {
     pathBand: pr && pr.band ? pr.band : null,
     // the middle figure in the pounds of the check-in's own month, as the pot it is set beside (toPotPounds)
     expected: pr && isNum(pr.expected) ? Math.round(pr.expected * toPotPounds(pr)) : null,
-    ...verdictPart(result),
+    ...verdictPart(result, weighted),
     engineVersion: result && isObj(result.basis) && typeof result.basis.engineVersion === 'string' ? result.basis.engineVersion : null
   };
 }
@@ -379,7 +411,7 @@ const declared = (patch) => { for (const k of Object.keys(patch)) if (!CHECKIN_W
  * the plan document. `result` is B's answer on checkInDraft's inputs (null: no verdict — no aim yet, or figures the test
  * cannot take; the check-in still records the pot and reads it against the path).
  */
-export function checkInPatch(plan, typed, { today, now, result = null, plans = [] }) {
+export function checkInPatch(plan, typed, { today, now, result = null, plans = [], weighted = undefined }) {
   const d = checkInDraft(plan, typed, { today, now, plans });
   if (!d.ok) return { ok: false, problem: d.problem, errors: d.errors || {}, patch: {}, previous: {} };
   const acc = accOf(plan);
@@ -402,7 +434,7 @@ export function checkInPatch(plan, typed, { today, now, result = null, plans = [
       }
     }
   }
-  const record = { ...d.record, reading: readingOf(d.record, pathDoc, result) };
+  const record = { ...d.record, reading: readingOf(d.record, pathDoc, result, { weighted: typeof weighted === 'boolean' ? weighted : SUCCESS.weighted }) };
   patch['accumulationTool.checkIns'] = kept.concat([record]).sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(-CHECKINS_KEPT);
   // one ledger for pot values (5.1): the check-in's pot is this month's pot record
   const pot = potRecordOf({ date: month, sipp: d.record.pot.pension, isa: isNum(d.record.pot.isa) ? d.record.pot.isa : '', gia: d.record.pot.other || 0 }, now);
@@ -604,7 +636,9 @@ function pctText(v) {
 function enoughWords(reading, which = 'nine') {
   const e = reading && reading.enough;
   if (!e) return null;
-  if (e.outOfReach && which === 'nine' && !isNum(e.nine)) return { id: 'outOfReach', slots: {} };
+  // a reading of the level (7.8.0) keeps one figure, at its level
+  if (isLevelReading(reading)) { if (which !== 'nine') return null; which = 'atLevel'; }
+  if (e.outOfReach && (which === 'nine' || which === 'atLevel') && !isNum(e[which])) return { id: 'outOfReach', slots: {} };
   const amount = e[which];
   if (!isNum(amount)) return null;
   const pct = e[which + 'TotalPct'];
@@ -614,10 +648,31 @@ function enoughWords(reading, which = 'nine') {
 const PATH_BANDS = { 'below p10': 'below', 'p10–p50': 'lower', 'p50–p90': 'upper', 'above p90': 'above', start: 'start',
   'below the cautious line': 'below', 'below the locked path': 'lower', 'on or above the locked path': 'upper', 'above the strong line': 'above' };
 
+/** A reading kept from 7.8.0 on, while weighing: it names its level (old readings never do). */
+const isLevelReading = (r) => !!r && typeof r.level === 'string' && !!r.level;
+/** The level's name as said ("Careful", "Balanced", "Bold"). */
+const LEVEL_NAMES = { careful: 'Careful', balanced: 'Balanced', bold: 'Bold' };
+/**
+ * How long the money lasted, in a reading's own words: a reading of the level, the chance weighted by how long people live
+ * (chanceWords), or with no weighted figure the fixed-age count; an old reading, its count out of 10 as it always said.
+ */
+function lastedOf(r) {
+  if (isLevelReading(r)) return isNum(r.weighted) ? chanceWords(r.weighted) : isNum(r.fixedAge) ? twentiethsOfFutures(r.fixedAge) : null;
+  return isNum(r.fails) ? lastedText(1 - r.fails / CHECKIN_FUTURES) : null;
+}
+/** The level reading's own lines: its level's name, the fixed-age line with its age, what you could spend at the level. */
+function levelVerdictOf(r) {
+  return {
+    level: LEVEL_NAMES[r.level] || 'Balanced', weightedWords: isNum(r.weighted),
+    fixed: isNum(r.fixedAge) && isNum(r.planToAge) ? fixedAgeWords(r.fixedAge, r.planToAge) : null,
+    atLevel: isNum(r.atLevel) ? pounds(r.atLevel) : null
+  };
+}
+
 /** One row of "Your check-ins" (5.7), newest first: exact figures only (a record). */
 function rowOf(ci, before) {
   const r = ci.reading || {};
-  const lasted = isNum(r.fails) ? lastedText(1 - r.fails / CHECKIN_FUTURES) : null;
+  const lasted = lastedOf(r);
   const pathKey = r.path ? (r.path.source || '') + ':' + (r.path.asOf || '') : null;
   const prevKey = before && before.reading && before.reading.path ? (before.reading.path.source || '') + ':' + (before.reading.path.asOf || '') : null;
   const pathChanged = !!pathKey && pathKey !== prevKey;
@@ -629,7 +684,7 @@ function rowOf(ci, before) {
     savingsIn: isNum(ci.payIn && ci.payIn.savingsIn) && ci.payIn.savingsIn > 0 ? pounds(ci.payIn.savingsIn) : null,
     paused: isObj(ci.paused) && ci.paused.from ? { from: monthWords(ci.paused.from), to: ci.paused.to ? monthWords(ci.paused.to) : null } : null,
     path: r.pathBand ? { band: PATH_BANDS[r.pathBand] || 'start', expected: isNum(r.expected) ? pounds(r.expected) : null } : null,
-    verdict: r.band ? { band: r.band, words: lasted } : null,
+    verdict: r.band ? { band: r.band, words: lasted, ...(isLevelReading(r) ? { level: LEVEL_NAMES[r.level] || 'Balanced' } : {}) } : null,
     enough: enoughWords(r, 'nine'),
     note: typeof ci.note === 'string' && ci.note ? ci.note : null,
     pathChanged: pathChanged ? { month: monthWords(r.path.asOf), why: r.path.source === 'document' ? 'lock' : !before ? 'first' : 'again' } : null
@@ -660,12 +715,12 @@ function latestOf(list, { pathDoc }) {
   }
   const isaCounted = pathDoc ? pathCountsIsa(pathDoc.doc) : (!!prev && isNum(prev.pot.isa) && isNum(ci.pot.isa));
   const ch = prev ? whatChanged(prev, ci, { isaCounted }) : null;
-  const lasted = isNum(r.fails) ? lastedText(1 - r.fails / CHECKIN_FUTURES) : null;
+  const lasted = lastedOf(r);
   const pr0 = prev && prev.reading ? prev.reading : null;
-  const lastedThen = pr0 && isNum(pr0.fails) ? lastedText(1 - pr0.fails / CHECKIN_FUTURES) : null;
+  const lastedThen = pr0 ? lastedOf(pr0) : null;
   return {
     date: ci.date, month: monthWords(month),
-    verdict: r.band ? { band: r.band, words: lasted, aim: isNum(r.aim) ? pounds(r.aim) : null, bad: isNum(r.bad) ? pounds(r.bad) : null, middling: isNum(r.middling) ? pounds(r.middling) : null, gap: isNum(r.gap) && r.gap > 0 ? pounds(r.gap) : null } : null,
+    verdict: r.band ? { band: r.band, words: lasted, aim: isNum(r.aim) ? pounds(r.aim) : null, bad: isNum(r.bad) ? pounds(r.bad) : null, middling: isNum(r.middling) ? pounds(r.middling) : null, gap: isNum(r.gap) && r.gap > 0 ? pounds(r.gap) : null, ...(isLevelReading(r) ? levelVerdictOf(r) : {}) } : null,
     enough: enoughWords(r, 'nine'), four: r.enough && r.enough.fourNow ? { id: 'fourNow', slots: {} } : enoughWords(r, 'four'),
     path: r.pathBand ? { band: PATH_BANDS[r.pathBand] || 'start', expected: isNum(r.expected) ? pounds(r.expected) : null, ...(lines || {}), pension: !(pathDoc && pathCountsIsa(pathDoc.doc)) } : null,
     changed: ch ? {

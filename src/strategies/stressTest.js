@@ -25,7 +25,8 @@ import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
 import { chargesPctOf, monthlyChargeFactor } from '../services/Charges.js';
-import { summariseCuts, pctText } from '../services/OneAnswer.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
+import { summariseCuts, pctText, weightedFailsOf } from '../services/OneAnswer.js';
+import { LEVEL_FAILS20, levelOf, passes as passesLevel } from '../answers/shared/rules.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 import { pensionLockOf, pensionPotOf } from '../services/PensionLock.js';
 import { planNeedOf, lockOfNeed } from '../services/PlanNeed.js';
 // the closed years as a plan's run sees them, with no test run (services/PlanNeed.js): re-exported, as both apps read it here
@@ -121,10 +122,10 @@ export { lumpyByYear, applyWindfallsToNeed } from '../services/PlanNeed.js';
  * `runFirstTaxYear` (the tax year the run starts in); `firstTaxYear` stays the plan's year 0. A plan in its year 0 or
  * before has none of the three and is the plan object it always was.
  */
-export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual, startAge, now } = {}) {
+export function planFromSettings(settings, cfg, { yieldForYear, essentialsAnnual, startAge, now, maxYears } = {}) {
   // The plan's need year by year, what pays it before the pots, and the years the pension is closed: services/PlanNeed.js
   // (7.4.1 review: lifted out so the plan's home reads the closed years' shortfall without the engine), exactly as it was here.
-  const n = planNeedOf(settings, cfg, { startAge, now });
+  const n = planNeedOf(settings, cfg, { startAge, now, ...(maxYears > 0 ? { maxYears } : {}) });
   const { params, timing, lived, pot, isa, target, spAnnual, spStartYear, durationYears, rawSchedule, extraNeedByYear, windfallByYear, hasLumpy, needByYear, windfallUse, otherOpen, closed, closedPay } = n;
   cfg = n.cfg; startAge = n.startAge;
   const otherIncomeByYear = closedPay ? otherOpen.map((v, y) => (y < closed ? v + closedPay.paid[y] : v)) : otherOpen;
@@ -720,22 +721,37 @@ function rotationTest(p, configs) {
  * accumulation "am I on course?" yardstick. Contract strategies (Full IL gilt, floor the schedule)
  * pass when affordable; market strategies when Monte-Carlo ruin ≤ (1 − successTarget). Bisects the
  * SIPP pot with the plan's ISA left as configured. Fewer runs than the compare (speed).
+ *
+ * 7.8.0: the third argument may instead be { level, life, planW } (answers/plan/lastsRun.js onCourseOptsOf): a pot passes
+ * when the chance the money lasts as long as you do passes the level (rules.js passes on the weighted failures,
+ * OneAnswer.weightedFailsOf), run on `planW` — the plan followed on to the weighting age, scaled to the pot as the plan is.
+ * Where there is no weighted figure (life.reason, or no planW: a way of drawing whose purchases follow the plan's length),
+ * it passes on the count to the plan's own age at floor(t·n/20), and the result says so (`weighted: false`).
  */
 export function requiredPotForStrategy(strategyId, p, successTarget = ON_COURSE_SHARE, opts = {}) {
+  const how = successTarget && typeof successTarget === 'object' ? successTarget : null;
+  if (how) opts = how;
   const runs = opts.mcRuns || 200, stride = opts.stride || 6;
+  const level = how ? levelOf(how.level) : null;
+  const t = level ? LEVEL_FAILS20[level] : null;
+  const weighted = !!(how && how.planW && how.life && !how.life.reason);
+  const base = weighted ? how.planW : p;
   const passes = (pot) => {
-    const q = { ...p, pot, mcRuns: runs, stride };
-    if (q.pnvCfg) { const scale = pot / Math.max(1, p.pot); q.pnvCfg = { ...q.pnvCfg, equityStart: (p.pnvCfg.equityStart || 0) * scale, bondStart: (p.pnvCfg.bondStart || 0) * scale, cashStart: (p.pnvCfg.cashStart || 0) * scale, diversifierStart: (p.pnvCfg.diversifierStart || 0) * scale, equityMin: (p.pnvCfg.equityMin || 0) * scale, bondMin: (p.pnvCfg.bondMin || 0) * scale, cashTarget: (p.pnvCfg.cashTarget || 0) * scale }; }
+    const q = { ...base, pot, mcRuns: runs, stride: weighted ? base.stride : stride };
+    if (q.pnvCfg) { const scale = pot / Math.max(1, base.pot); q.pnvCfg = { ...q.pnvCfg, equityStart: (base.pnvCfg.equityStart || 0) * scale, bondStart: (base.pnvCfg.bondStart || 0) * scale, cashStart: (base.pnvCfg.cashStart || 0) * scale, diversifierStart: (base.pnvCfg.diversifierStart || 0) * scale, equityMin: (base.pnvCfg.equityMin || 0) * scale, bondMin: (base.pnvCfg.bondMin || 0) * scale, cashTarget: (base.pnvCfg.cashTarget || 0) * scale }; }
     const r = stressTestStrategy(strategyId, q);
     if (!r.affordable) return false;
-    return (r.ruin?.mc ?? 0) <= (1 - successTarget) * 100 + 1e-9;
+    if (!how) return (r.ruin?.mc ?? 0) <= (1 - successTarget) * 100 + 1e-9;
+    const lost = Array.isArray(r.survivedMc) ? r.survivedMc : [];
+    if (weighted) { const f = weightedFailsOf(r, how.life, q.startAge, Math.max(0, q.durationYears - 1)); return passesLevel(f.sumW, f.n, t); }
+    return lost.filter((x) => x === false).length <= Math.floor((t * lost.length) / 20);
   };
   let lo = 0, hi = Math.max(50_000, p.pot || 0);
   let n = 0;
   while (!passes(hi) && n++ < 8) { lo = hi; hi *= 2; }
   if (n >= 8) return { requiredPot: Infinity, passesAt: null };
   for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (passes(mid)) hi = mid; else lo = mid; }
-  return { requiredPot: Math.ceil(hi / 1000) * 1000, basis: strategyId };
+  return { requiredPot: Math.ceil(hi / 1000) * 1000, basis: strategyId, ...(how ? { level, weighted, planToAge: Math.round(p.startAge + p.durationYears) } : {}) };
 }
 
 /** One P&V run on the real history starting at (year, month): wealth + income by plan year, today's money. */
@@ -804,6 +820,13 @@ export function stressTestStrategy(strategyId, p, configs = deriveCompareConfigs
   const fn = { 'pots-and-valves': pnvPlain, 'buckets-in-order': bucketsTest, 'ladder-and-ratchet': ladderTest, 'bridge-and-engine': bridgeTest, 'floor-and-flex': flexTest, 'floor-the-schedule': scheduleFloorTest, 'floor-to-age': floorToAgeTest, 'full-il-gilt': fullGiltTest, 'gilt-rotation': rotationTest }[strategyId];
   if (!fn) throw new Error('unknown strategy ' + strategyId);
   const r = fn(p, configs);
+  // 7.8.0 (the chance the money lasts as long as you do): the run year each future first failed by the strategy's own test,
+  // null where it lasted, taken BEFORE the closed years' cut below rewrites failYear for every future. The weighted chance
+  // reads it (services/OneAnswer.js), so it counts the same futures the strategy's own chance counts.
+  if (r && r.futuresMc && Array.isArray(r.futuresMc.failYear)) {
+    const lost = (i) => Array.isArray(r.survivedMc) && r.survivedMc[i] === false;
+    r.futuresMc.headYear = r.futuresMc.failYear.map((fy, i) => (lost(i) ? fy : null));
+  }
   if (strategyId !== 'pots-and-valves' && strategyId !== 'buckets-in-order') closedYearsCut(r, p);
   // A windfall not yet spent on rungs is still wealth: add the parked balance to the wealth series
   // of the bought strategies (the P&V engine already carries it inside its own pots).

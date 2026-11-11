@@ -57,7 +57,9 @@ export function documentFor(plan, { now, run, entries, lockedAt, lockedBy }) {
     journey: Array.isArray(plan.journey) ? plan.journey : [],
     accumulation: accumulationOf(plan),
     now,
-    savingPath: run.savingPath
+    savingPath: run.savingPath,
+    // 7.8.0: the definition it was tested under, worked out in the run before the result was trimmed (absent while not weighing)
+    success: run.success || null
   });
 }
 

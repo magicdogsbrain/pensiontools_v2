@@ -15,6 +15,11 @@
  *
  * Pure: no DOM, no storage, no engine. index.html reads words and figures from here (its script may only shrink).
  */
+import { jointSurvivalOf } from './LongevityModel.js';
+import { RULES, WEIGHT_ONE, LEVEL_FAILS20, levelOf, verdictAtLevel } from '../answers/shared/rules.js';
+import { chanceWords, fixedAgeWords } from '../answers/shared/format.js';
+
+const RULES_MAX_DRAW_YEARS = RULES.maxDrawYears;
 
 /** The named start years History and Scenarios explain: real crises, in plain words. */
 export const NAMED_STARTS = [
@@ -113,8 +118,18 @@ export function summariseCuts(windows, planYears) {
 /**
  * The figures every screen reads from one strategy result (stressTestStrategy) on one plan (planFromSettings).
  * null when there is no result or the strategy is not affordable on the plan.
+ *
+ * 7.8.0 (research/v7/replan-nov-2026.md 5): with `opts.life` (answers/plan/life.js lifeOf) the answer also carries the
+ * chance the money lasts as long as you do — weightedPartOf below — beside the fixed-age count it always had. Without it the
+ * answer is the object it always was (every caller before 7.8.0, and every one while SUCCESS.weighted is false).
  */
-export function oneAnswer(r, p) {
+export function oneAnswer(r, p, opts = null) {
+  const a = oneAnswerCount(r, p);
+  if (!a || !opts || !opts.life) return a;
+  return { ...a, ...weightedPartOf(r, p, a, opts) };
+}
+
+function oneAnswerCount(r, p) {
   if (!r || !r.affordable || !r.ruin) return null;
   const chancePct = Math.max(0, Math.min(100, 100 - num(r.ruin.mc)));
   const share = chancePct / 100;
@@ -142,6 +157,135 @@ export function oneAnswer(r, p) {
     // age, a rotation — neither runs out); or a lean year (Floor & flex — the bills are always paid).
     failKind: !r.ruinLabel ? 'ran-out' : r.strategyId === 'floor-and-flex' ? 'lean' : 'cut'
   };
+}
+
+// ---- 7.8.0: the chance the money lasts as long as you do (the build spec's sections 1, 4, 6 and 11) -------------------------
+
+const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+const gbpW = (v) => '£' + String(Math.abs(Math.round(+v || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+/** What failing means, in the words of each kind (OneAnswer.failKind). */
+const LASTS_AS_LONG = { 'ran-out': 'the money lasts as long as you do', cut: 'your income is paid in full as long as you live', lean: 'you have no lean year while you are alive' };
+const RUNS_OUT = { 'ran-out': 'the money ran out', cut: 'your income was first cut', lean: 'you had your first lean year' };
+
+/**
+ * The weighted part of one answer on a saved plan:
+ *   level        the level the plan is judged at ('careful' | 'balanced' | 'bold')
+ *   weighted     the chance weighted by how long people live (0–1), from the run that follows each future on to the
+ *                weighting age (`rW`, the plan's own run `r` when it already runs that far): each future that failed counts
+ *                by the chance someone is still alive at the start of the year it first failed (`futuresMc.headYear`, taken
+ *                before the closed years' cut; a failed future with no year counts at its run's last year), given alive at
+ *                the drawing start. Null — the fixed-age line leads, with its age — when life.reason says so ('couple',
+ *                'linked', 'durationShaped') or the result is a stored one with no figure of its own ('stored')
+ *   sumW, n      the whole-number weighted failures and the futures they are out of (rules.js passes reads them)
+ *   fixedAge     the plain count to the plan's end age (= share), always shown beside it, with its age
+ *   planToAge    the age the plan runs to; weightToAge the age the weighted run follows each future on to; horizonRule
+ *                'plan' or 'capped' (the run could not reach it: RULES.maxDrawYears)
+ *   verdict      'yes' | 'close' | 'no' at the level: on the weighted failures (rules.js verdictAtLevel) or, with none, on
+ *                the count to the plan's age at floor(t·n/20) and one more twentieth
+ *   lasts        verdict === 'yes'
+ *   floor        { age, yearly, spAge } at the middle age the money ran out at in the futures that ran out, what comes in
+ *                anyway that year after tax (`floorAt`), and the State Pension's age when it has not started by then; null
+ *                when none ran out
+ *   left         { age, typical, best, mostNone }: what is left at the plan's end age, typically and in the best 1 in 10,
+ *                at today's prices; mostNone when more than half the futures have nothing left by then
+ *   words        { headline, fixed, floor, left, assumed[], why }: the sentences, by failKind (both apps say these)
+ * @param {object} opts { life, rW, wYears, level, floorAt(runYear) → £ a year after tax, capped, stored: { chance }|null, table }
+ */
+export function weightedPartOf(r, p, a, { life, rW = null, wYears = null, level = 'balanced', floorAt = null, capped = false, stored = null, table = undefined } = {}) {
+  const lvl = levelOf(level);
+  const t = LEVEL_FAILS20[lvl];
+  const startAge = num(p && p.startAge);
+  const planToAge = Math.round(startAge + num(p && p.durationYears));
+  const run = rW || r;
+  const kind = a.failKind;
+  let weighted = null, sumW = null, n = null, reason = life.reason || null;
+  const S = jointSurvivalOf(life.people, life.d, table);
+  const lost = run && Array.isArray(run.survivedMc) ? run.survivedMc : null;
+  const head = run && run.futuresMc && Array.isArray(run.futuresMc.headYear) ? run.futuresMc.headYear : null;
+  const lastYear = Math.max(0, (isNum(wYears) ? wYears : num(p && p.durationYears)) - 1);
+  if (!reason && stored) {
+    // a stored result (a locked ladder's document): its own weighted figure when it was locked with one, else none
+    if (isNum(stored.chance)) weighted = stored.chance; else reason = 'stored';
+  } else if (!reason && lost) {
+    const f = weightedFailsOf(run, life, startAge, lastYear, S);
+    n = f.n; sumW = f.sumW;
+    weighted = n ? 1 - sumW / (n * WEIGHT_ONE) : 1;
+  } else if (!reason) reason = 'stored';
+  const nCount = num(a.futures) || 0;
+  const fails = Math.round((1 - a.share) * nCount);
+  let verdict;
+  if (weighted !== null && sumW !== null) verdict = verdictAtLevel(sumW, n, lvl, true);
+  else if (weighted !== null) verdict = weighted >= 1 - t / 20 - 1e-12 ? 'yes' : weighted >= 1 - (t + 1) / 20 - 1e-12 ? 'close' : 'no';
+  else verdict = fails <= Math.floor((t * nCount) / 20) ? 'yes' : fails <= Math.floor(((t + 1) * nCount) / 20) ? 'close' : 'no';
+  // the middle age the money ran out at, in the futures that ran out (to the weighting age), and what comes in anyway then
+  let floor = null;
+  if (lost && lost.some((x) => x === false)) {
+    const ys = []; lost.forEach((x, i) => { if (x === false) ys.push(head && isNum(head[i]) ? head[i] : lastYear); });
+    ys.sort((x, y) => x - y);
+    const mid = ys[Math.floor((ys.length - 1) / 2)];
+    const yearly = typeof floorAt === 'function' ? floorAt(mid) : null;
+    const spAge = num(p && p.spAnnual) > 0 && isNum(p && p.spStartYear) && p.spStartYear > mid ? Math.round(startAge + p.spStartYear) : null;
+    floor = { age: Math.round(startAge + mid), yearly: isNum(yearly) ? Math.round(yearly) : null, spAge };
+  }
+  const left = { age: planToAge, typical: Math.round(a.typicalLeft), best: Math.round(a.goodCaseLeft), mostNone: a.share < 0.5 };
+  const weightToAge = Math.min(life.weightToAge, Math.round(startAge + (isNum(wYears) ? wYears : num(p && p.durationYears))));
+  const out = { level: lvl, weighted, sumW, n, fixedAge: a.share, planToAge, weightToAge, horizonRule: capped ? 'capped' : 'plan', reason, verdict, lasts: verdict === 'yes', floor, left };
+  return { ...out, words: weightedWordsOf({ ...a, ...out }, life, S) };
+}
+
+/**
+ * The whole-number weighted failures of one run (rules.js passes reads them): every future the run counts as failed
+ * (survivedMc false) adds round(S × 2^30), S the chance someone is still alive at the start of the run year it first
+ * failed (futuresMc.headYear; `lastYear` when it has none), given alive at the drawing start (life.d). One rule for the
+ * answer (weightedPartOf) and the pot that passes (stressTest.requiredPotForStrategy).
+ * @returns {{ sumW: number, n: number }}
+ */
+export function weightedFailsOf(run, life, startAge, lastYear, S = jointSurvivalOf(life.people, life.d)) {
+  const lost = run && Array.isArray(run.survivedMc) ? run.survivedMc : [];
+  const head = run && run.futuresMc && Array.isArray(run.futuresMc.headYear) ? run.futuresMc.headYear : null;
+  let sumW = 0;
+  for (let i = 0; i < lost.length; i++) if (lost[i] === false) sumW += Math.round(S(startAge + (head && isNum(head[i]) ? head[i] : lastYear) - life.ageNow) * WEIGHT_ONE);
+  return { sumW, n: lost.length };
+}
+
+/**
+ * The sentences of the weighted part (the build spec's section 11), one reading for both apps:
+ *   headline   "Counting how long people your age live, the money lasts as long as you do 18 times in 20." (by failKind);
+ *              null when there is no weighted figure (the fixed-age line then leads)
+ *   fixed      "If you live to 97, the money lasts that long in 14 of 20 futures we tried." — always, with its age
+ *   floor      "If the money ran out at 88, you would still have £12,500 a year after tax from the income you get anyway."
+ *   left       "If you live to 97, what is typically left then is £180,000 at today's prices. In the best 1 in 10 futures
+ *              it is £640,000 or more." (or "In more than half the futures nothing is left at 97.")
+ *   assumed    what we assumed: the plan's age against how long people live, the age the futures are followed on to, the
+ *              cap, the table used when the sex is not said
+ *   why        one line when there is no weighted figure, saying what the figure counts instead
+ */
+export function weightedWordsOf(w, life, S) {
+  const kind = LASTS_AS_LONG[w.failKind] ? w.failKind : 'ran-out';
+  const headline = w.weighted === null ? null
+    : 'Counting how long people your age live, ' + LASTS_AS_LONG[kind] + ' ' + chanceWords(w.weighted, { sumW: w.sumW, n: w.n }) + '.';
+  const fixed = fixedAgeWords(w.fixedAge, w.planToAge, { kind });
+  let floor = null;
+  if (w.floor && isNum(w.floor.yearly)) {
+    const at = 'If ' + RUNS_OUT[kind] + ' at ' + w.floor.age;
+    floor = w.floor.yearly > 0 ? at + ', you would still have ' + gbpW(w.floor.yearly) + ' a year after tax from the income you get anyway.'
+      : w.floor.spAge ? at + ', nothing would come in until your State Pension starts at ' + w.floor.spAge + '.'
+      : at + ', nothing else would come in.';
+  }
+  const left = w.left.mostNone ? 'In more than half the futures nothing is left at ' + w.left.age + '.'
+    : 'If you live to ' + w.left.age + ', what is typically left then is ' + gbpW(w.left.typical) + ' at today\'s prices. In the best 1 in 10 futures it is ' + gbpW(w.left.best) + ' or more.';
+  const who = life.sex === 'm' ? 'men' : 'women';
+  const assumed = [];
+  const livesOn = Math.round(10 * S(w.planToAge - life.ageNow));
+  assumed.push('We tested to ' + w.planToAge + ', the age your plan runs to. ' + (livesOn >= 1 ? 'About ' + livesOn + ' in 10 ' + who + ' your age live longer than that.' : 'Fewer than 1 in 10 ' + who + ' your age live longer than that.'));
+  if (w.weighted !== null && w.weightToAge > w.planToAge) assumed.push('We follow each future on to ' + w.weightToAge + ', when fewer than 1 in 50 ' + who + ' your age are still alive.');
+  if (w.horizonRule === 'capped') assumed.push('We could test only to ' + w.weightToAge + ': ' + RULES_MAX_DRAW_YEARS + ' years is the most we run.');
+  if (!life.sexGiven) assumed.push('We used the figures for women, who tend to live longer, because the plan does not say.');
+  const why = w.weighted !== null ? null
+    : w.reason === 'durationShaped' ? 'This way of drawing buys what the plan\'s own years need, so its figure counts the futures to ' + w.planToAge + ', the age your plan runs to.'
+    : w.reason === 'stored' ? 'This is the figure the plan was locked with, counted to ' + w.planToAge + '.'
+    : 'For a plan shared with a partner, the figure counts the futures to ' + w.planToAge + ', the age the plan runs to.';
+  return { headline, fixed, floor, left, assumed, why };
 }
 
 /** A month index since January 1871 (the one test's history) → the calendar start. */

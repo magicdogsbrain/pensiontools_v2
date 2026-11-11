@@ -195,8 +195,9 @@ function validTyped(plan) {
     pick: fc.nat(),
     startWhen: fc.constantFrom('now'),   // 7.3.3: next April is no longer offered
     endExtra: fc.integer({ min: 0, max: 30 }),
-    sex: fc.constantFrom('m', 'f'),
-    chance: fc.constantFrom('10', '25', '50')
+    // 7.8.0: the sex may be left unsaid (the women's figures); the half-way age is no longer offered
+    sex: fc.constantFrom('notSaid', 'm', 'f'),
+    chance: fc.constantFrom('10', '25')
   }).map((r) => {
     const typed = { age: r.age, stopped: r.stopped, sex: r.sex, chance: r.chance };
     if (r.stopped === 'age') typed.stopAge = String(Math.min(85, +r.age + r.stopExtra));

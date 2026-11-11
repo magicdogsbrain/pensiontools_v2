@@ -271,12 +271,40 @@ export function lastsOf(entries, id, { today, typed = null } = {}) {
 
 // ---- the words of a result (10.2) ----------------------------------------------------------------------------------------
 
-/** The verdict word for a share: on course (the 9-in-10 bar) is yes; from 85% to just under it close; else no. */
-export function verdictWord(share) {
+/**
+ * The verdict word for a share: on course (the 9-in-10 bar) is yes; from 85% to just under it close; else no.
+ * 7.8.0: with `w` (a run's weighted part, OneAnswer.weightedPartOf) the word at the plan's level — on the weighted failures,
+ * falling back to the count to the plan's age when there is no weighted figure — which the weighted part carries as `verdict`.
+ */
+export function verdictWord(share, w = null) {
+  if (w && typeof w === 'object' && ['yes', 'close', 'no'].includes(w.verdict)) return w.verdict;
   const s = Math.max(0, Math.min(1, +share || 0));
   if (s >= ON_COURSE_SHARE) return 'yes';
   if (s >= 0.85) return 'close';
   return 'no';
+}
+
+/** Bold's consequence (7.8.0, the build spec's section 11): said in the headline block whenever a plan is judged at Bold. */
+export const BOLD_CONSEQUENCE = {
+  'ran-out': 'About 3 times in 10 the money runs out while you are alive, and you would spend less from then on.',
+  other: 'About 3 times in 10 your income falls short while you are alive, and you would spend less from then on.'
+};
+
+/**
+ * 7.8.0: the band of a weighted result — the chance the money lasts as long as you do in the headline (or, with no weighted
+ * figure, the fixed-age count with its age and one line on why), the fixed-age line always beside it, then the floor, what
+ * is left at the plan's age and what we assumed. The words are OneAnswer.weightedWordsOf's (both apps say the same).
+ */
+function weightedBand(a, years, toAge) {
+  const w = a.words || {};
+  const bold = a.level === 'bold' ? (a.failKind === 'ran-out' ? BOLD_CONSEQUENCE['ran-out'] : BOLD_CONSEQUENCE.other) : '';
+  const head = a.weighted !== null ? { id: 'lasts.headlineW', slots: { words: w.headline, bold: bold ? ' ' + bold : '' } } : { id: 'lasts.headlineFixed', slots: { words: w.fixed, bold: bold ? ' ' + bold : '' } };
+  const sub = a.weighted !== null ? { id: 'lasts.subFixed', slots: { words: w.fixed, years: String(years), toAge } } : { id: 'lasts.subWhy', slots: { words: w.why || '', years: String(years), toAge } };
+  const rows = [];
+  if (w.floor) rows.push({ id: 'floorW', slots: { words: w.floor } });
+  rows.push({ id: 'leftW', slots: { words: w.left } });
+  for (const x of (Array.isArray(w.assumed) ? w.assumed : [])) rows.push({ id: 'assumedW', slots: { words: x } });
+  return { head, sub, rows, level: a.level, weighted: { level: a.level, chance: a.weighted, fixedAge: a.fixedAge, planToAge: a.planToAge, weightToAge: a.weightToAge, horizonRule: a.horizonRule, reason: a.reason } };
 }
 
 /** One real start (OneAnswer.worstStarts or NamedStarts.namedStartRows) in words: a line id with its slots. */
@@ -308,6 +336,8 @@ export function verdictOf(result, saved) {
   }
   const years = Math.round(a.years || 0);
   const toAge = saved && Number.isFinite(saved.endAge) ? String(saved.endAge) : '';
+  // 7.8.0: a run that weighed (it carries its level) reads the weighted band; one that did not reads as before, word for word
+  const wb = typeof a.level === 'string' && a.words ? weightedBand(a, years, toAge) : null;
   const rows = [];
   rows.push({ id: 'left', slots: { typical: pounds(a.typicalLeft), bad: pounds(a.badCaseLeft), good: pounds(a.goodCaseLeft) } });
   const c = a.cuts;
@@ -323,15 +353,17 @@ export function verdictOf(result, saved) {
   const closedShort = result.closed && result.closed.short ? { age: String(result.closed.age), amount: pounds(result.closed.short.perYear), years: result.closed.short.years } : null;
   const worst = Array.isArray(result.history && result.history.worst) ? result.history.worst.map(startRow) : [];
   const named = Array.isArray(result.history && result.history.named) ? result.history.named.map(startRow) : [];
+  if (wb) rows.splice(1, 0, ...wb.rows);
   return {
     ok: true,
-    verdict: verdictWord(a.share), share: a.share, chancePct: a.chancePct,
+    verdict: verdictWord(a.share, wb ? a : null), share: a.share, chancePct: a.chancePct,
+    ...(wb ? { level: wb.level, weighted: wb.weighted } : {}),
     // the raw figures, for the tests that read them off the screen (data-* on the band) — the planner's own, to the pound
     figures: { chancePct: a.chancePct, typicalLeft: r0(a.typicalLeft), badCaseLeft: r0(a.badCaseLeft), goodCaseLeft: r0(a.goodCaseLeft), futures: a.futures, histories: a.histories, histRanOutN: a.histRanOutN, years,
       cutN: c ? c.cutN : null, cutPerYear: c ? c.typicalCutPerYear : null, cutYears: c ? c.typicalCutYears : null, cutTotal: c ? c.typicalCutTotal : null, worstCut: c ? c.worstCutTotal : null },
-    id: 'lasts.headline', slots: { words: futuresOutOfTen(a.share).words },
+    ...(wb ? wb.head : { id: 'lasts.headline', slots: { words: futuresOutOfTen(a.share).words } }),
     // a contract strategy runs no futures: every year is bought (the test counts one window), so its line says that
-    sub: CONTRACT.includes(result.strategyId)
+    sub: wb ? wb.sub : CONTRACT.includes(result.strategyId)
       ? { id: 'lasts.subContract', slots: { years: String(years), toAge } }
       : { id: 'lasts.sub', slots: { pct: pctText(a.chancePct, 1, CHANCE_BARS).replace(/%$/, ''), futures: n0(a.futures), histories: n0(a.histories), years: String(years), toAge } },
     rows, strategyId: result.strategyId || null,

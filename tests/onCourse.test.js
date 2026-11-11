@@ -70,7 +70,9 @@ describe('"Am I on course?" on the Accumulation planner', () => {
     expect(at).toBeGreaterThan(-1);
     const body = script.slice(at, script.indexOf('\n    };', at));
     expect(body).not.toMatch(/requiredPotForSuccess/);   // Pots & Valves searched its own Monte Carlo until 6.24.0
-    expect(body).toMatch(/requiredPotForStrategy\(stratId, strategyPlanFor\(sSet\), ON_COURSE_SHARE\)/);
+    // 7.8.0: the plan every screen runs, at the bar onCourseOptsOf gives: ON_COURSE_SHARE (9 in 10) while not weighing, the
+    // page's level weighted by how long people live once SUCCESS.weighted (tests/v7/plan/onCourseWeighted.test.js)
+    expect(body).toMatch(/acP = strategyPlanFor\(sSet\), \{ requiredPot \} = requiredPotForStrategy\(stratId, acP, onCourseOptsOf\(sSet, acP, stratId, new Date\(\)/);
     expect(body).not.toMatch(/0\.85/);
     expect(body).not.toMatch(/on track/);
   });

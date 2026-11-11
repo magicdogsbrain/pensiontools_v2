@@ -2,6 +2,7 @@
  * The one formatter (V7 build brief 4.3), used by the sentences and by the screen's Money and Sentence.
  * Pure, and the same on every device: no toLocaleString.
  */
+import { LEVEL_LINES, passes } from './rules.js';
 
 /** 1380 → '£1,380'. Whole pounds; never a minus, never pence; 0 → '£0'. */
 export function money(n) {
@@ -57,6 +58,57 @@ export function underNine(share) {
 /** outOfTen's words, with "in just under 9 futures out of 10" for 85% to under 90%. */
 export function lastedText(share) {
   return underNine(share) ? 'in just under 9 futures out of 10' : outOfTen(share).words;
+}
+
+/**
+ * 7.8.0 (research/v7/replan-nov-2026.md 5): a weighted chance (0–1, weighted by how long people live) in twentieths, said
+ * as a chance and never as a count of futures: "18 times in 20". It rounds to the nearest twentieth, but never up across
+ * a level's line or the close line under it (LEVEL_LINES): a chance a hair under 18 in 20 reads 17, so the words never
+ * claim a level the figure does not reach. With the weighted failures (`sumW`, `n`) the line is judged by the one test
+ * (rules.js passes), else on the share.
+ *   s = 1                       "in every future we tried" (literally: none ran out)
+ *   rounds to 20, s < 1         "more than 19 times in 20"
+ *   0 < s, rounds to 0          "less than once in 20"
+ *   s = 0                       "in none of the futures we tried"
+ */
+export function chanceWords(s, { sumW = null, n = null } = {}) {
+  const v = Math.max(0, Math.min(1, Number(s) || 0));
+  if (v >= 1) return 'in every future we tried';
+  if (v <= 0) return 'in none of the futures we tried';
+  let k = Math.round(v * 20);
+  // a line in twentieths (19, 18, 17, 14, 13): rounding up onto one the chance does not reach goes one twentieth down
+  const reaches = (k20) => (Number.isFinite(sumW) && Number.isFinite(n) && n > 0 ? passes(sumW, n, 20 - k20) : v >= k20 / 20);
+  if (LINES20.includes(k) && !reaches(k)) k -= 1;
+  if (k >= 20) return 'more than 19 times in 20';
+  if (k <= 0) return 'less than once in 20';
+  return k === 1 ? 'once in 20' : `${k} times in 20`;
+}
+const LINES20 = LEVEL_LINES.map((l) => Math.round(l * 20));
+
+/**
+ * 7.8.0: a fixed-age share (a plain count of the futures that lasted to one named age) in twentieths of the futures we
+ * tried, always with its age: "If you live to 97, the money lasts that long in 14 of 20 futures we tried." Plain
+ * nearest-twentieth rounding, never "only" or "just under"; never 20 of 20 while one ran out, never 0 while one lasted.
+ *   `kind`   what failing means: 'ran-out' (the money), 'cut' (the income paid in full), 'lean' (no lean year)
+ *   `couple` { name }: "If one of you is still alive when Sam is 100, …" (the younger person, by name or "the younger of you")
+ * @returns {string}
+ */
+export function fixedAgeWords(share, age, { kind = 'ran-out', couple = null } = {}) {
+  const at = ageText(age);
+  const lead = couple ? `If one of you is still alive when ${couple.name || 'the younger of you'} is ${at}` : `If you live to ${at}`;
+  const what = kind === 'cut' ? 'your income is paid in full that long' : kind === 'lean' ? 'you have no lean year that long' : 'the money lasts that long';
+  return `${lead}, ${what} ${twentiethsOfFutures(share)}.`;
+}
+
+/** A count's share in twentieths of the futures we tried ("in 14 of 20 futures we tried"), plain rounding, see fixedAgeWords. */
+export function twentiethsOfFutures(share) {
+  const v = Math.max(0, Math.min(1, Number(share) || 0));
+  if (v >= 1) return 'in every future we tried';
+  if (v <= 0) return 'in none of the futures we tried';
+  const k = Math.round(v * 20);
+  if (k >= 20) return 'in more than 19 of 20 futures we tried';
+  if (k <= 0) return 'in fewer than 1 of 20 futures we tried';
+  return `in ${k} of 20 futures we tried`;
 }
 
 /** Read a dotted key out of a result: get(answer, 'phases.1.shown.fromPots'). */

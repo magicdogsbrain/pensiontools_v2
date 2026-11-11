@@ -27,6 +27,28 @@ import { isBought } from './pots.js';
 import { savedLasts } from './lasts.js';
 import { savedMix } from './mix.js';
 import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
+import { SUCCESS } from '../shared/rules.js';
+import { chanceWords, fixedAgeWords } from '../shared/format.js';
+
+/**
+ * What a locked document says about lasting, in its own words (7.8.0, the build spec's section 8). A document tested
+ * under the weighted definition (assumptions.success with a weighted figure) says it as it was locked: the chance the money
+ * lasted as long as you do, then the fixed-age count with its age. A document without one (every document before 7.8.0) keeps
+ * its words, "Your plan lasts in 9 futures out of 10", and — once the figures are weighted (SUCCESS.weighted) — says how it
+ * was counted, so it is never read against the weighted figures beside it. Nothing is written.
+ */
+export function lockedLastsWords(doc, a, dp, weighted = SUCCESS.weighted) {
+  const def = doc && doc.assumptions && doc.assumptions.success && typeof doc.assumptions.success === 'object' ? doc.assumptions.success : null;
+  const w = def && def.weighted && typeof def.weighted === 'object' ? def.weighted : null;
+  if (w && typeof w.chance === 'number') {
+    const age = def.planTo && Number.isFinite(def.planTo.age) ? def.planTo.age : Math.round((+(dp && dp.startAge) || 0) + (+(dp && dp.durationYears) || 0));
+    return 'When the plan was locked, counting how long people your age live, the money lasted as long as you do ' + chanceWords(w.chance) + '. ' + fixedAgeWords(typeof w.fixedAge === 'number' ? w.fixedAge : a.share, age).replace(/\.$/, '');
+  }
+  const own = 'Your plan lasts ' + futuresOutOfTen(a.share).words;
+  if (!weighted || def) return own;
+  const toAge = Math.round((+(dp && dp.startAge) || 0) + (+(dp && dp.durationYears) || 0));
+  return own + '; when it was locked, counted to ' + toAge + '; not by how long you might live';
+}
 import { unlockPatchesOf } from '../../services/PlanCommit.js';
 import { checkInState } from './checkInDue.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
@@ -437,7 +459,7 @@ function planStep(C) {
     if (a) {
       figures.saysBad = r0(a.badCaseLeft); figures.saysTypical = r0(a.typicalLeft);
       if (doc.strategy.contract) lines.push(line('says.badContract', ['Every year is bought by contract, so no future and no start year can run it out. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
-      else lines.push(line('says.bad', ['Your plan lasts ' + futuresOutOfTen(a.share).words + '. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
+      else lines.push(line('says.bad', [lockedLastsWords(doc, a, dp) + '. Left at the end, at today’s prices: typically ', money('saysTypical'), '; in a bad case (the worst 1 in 10) ', money('saysBad')], figures, src));
     }
     const sl = savedLasts(plan, { today: now.toISOString().slice(0, 10) });
     const v = sl.values;

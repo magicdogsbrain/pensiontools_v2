@@ -96,6 +96,15 @@ export const CHECKIN = {
     lasted: '{band}: paying in as you did then, your money lasted {words}.',
     spend: 'Paying in as then, you could spend {bad} a month from when you stop in 9 futures out of 10 ({middling} in a middling case), against the {aim} a month you want, after tax at today’s prices.',
     gap: 'That is {gap} a year less than you want.',
+    /** 7.8.0: a reading of the level (kept while the figures are weighted by how long people live); older readings keep the lines above */
+    lastedW: '{band} at {level}: paying in as you did then, counting how long people your age live, your money lasted as long as you do {words}.',
+    lastedFixedW: '{band} at {level}: paying in as you did then, your money lasted {words}.',
+    spendW: 'Paying in as then, you could spend {atLevel} a month from when you stop at {level}, against the {aim} a month you want, after tax at today’s prices.',
+    enoughW: {
+      share: '{pct}% of your pay in all ({amount} a month) would put you on course at {level}.',
+      pounds: '{amount} a month going into your pension would put you on course at {level}.',
+      outOfReach: 'Even all of your pay going in would not be on course. Stopping later or spending less are the other ways: see What you pay in.'
+    },
     enough: {
       share: '{pct}% of your pay in all ({amount} a month) would put you on course, which is 9 in 10.',
       pounds: '{amount} a month going into your pension would put you on course, which is 9 in 10.',

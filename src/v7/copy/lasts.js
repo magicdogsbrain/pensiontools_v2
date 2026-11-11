@@ -16,6 +16,12 @@ export const LASTS = {
     'lasts.sub': '{pct}% of {futures} futures; {histories} real starts since 1871; {years} years, to {toAge}.',
     'lasts.subContract': 'Every year is bought by contract, so no future and no start year can run it out; {years} years, to {toAge}.',
     'lasts.unaffordable': 'This way of drawing cannot be bought with this plan’s pots, so there is no figure. Change the pots, the spending or the way of drawing.',
+    /** 7.8.0: the chance the money lasts as long as you do (the sentences are OneAnswer.js weightedWordsOf's, both apps), the
+     *  fixed-age line beside it with its age; with no weighted figure the fixed-age line leads and one line says why. */
+    'lasts.headlineW': '{words}{bold}',
+    'lasts.headlineFixed': '{words}{bold}',
+    'lasts.subFixed': '{words}',
+    'lasts.subWhy': '{words}',
     word: { yes: 'On course', close: 'Close', no: 'Not yet' }
   },
   rows: {
@@ -26,7 +32,11 @@ export const LASTS = {
     'cuts.flex': 'Income cuts: none — the treats flex instead; the honest risk is a lean year, not running out.',
     'ran.cuts': 'Run with the spending cuts you set: up to {pct}% after {months} month{s} in a row below the plan’s line.',
     'ran.cutsOff': 'Run with the spending cuts switched off, as you set it: the plan is paid in full until the money runs out.',
-    'ran.bundled': 'Gilts priced on the bundled yield curve here; the classic planner prices them on the day’s live figures when it has them, so a ladder’s cost can differ there.'
+    'ran.bundled': 'Gilts priced on the bundled yield curve here; the classic planner prices them on the day’s live figures when it has them, so a ladder’s cost can differ there.',
+    /** 7.8.0: the floor, what is left at the plan's age, and what we assumed (OneAnswer.js weightedWordsOf) */
+    floorW: '{words}',
+    leftW: '{words}',
+    assumedW: '{words}'
   },
   /** Where the figures came from. */
   ran: { now: 'Worked out just now, on the plan as saved {date}.', nowUndated: 'Worked out just now, on the plan as saved.', document: 'Worked out when the plan was locked on {date}.', today: 'Today’s test on the same plan:' },

@@ -350,7 +350,9 @@ export function expandHousehold(short, now) {
       stopWork: p.stopWork ? { ...p.stopWork } : null,
       pots, statePension, finalSalary,
       otherIncome: Array.isArray(p.otherIncome) ? p.otherIncome.map((o) => ({ ...o })) : [],
-      pensionTaxFreeCash: taken
+      pensionTaxFreeCash: taken,
+      // 7.8.0: which life tables are read for this person ('female' | 'male' | 'notSaid'), carried only when given
+      ...(typeof p.sex === 'string' ? { sex: p.sex } : {})
     };
     // A saver household (questions A and B): what each person pays in. Absent = nothing paid in, and said so.
     if (saver) {

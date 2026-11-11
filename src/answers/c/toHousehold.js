@@ -37,6 +37,7 @@ function person(who, p, inputs) {
   const out = {
     who,
     age: p.age,
+    ...(typeof p.sex === 'string' ? { sex: p.sex } : {}),   // 7.8.0: which life tables (weigh.js), only when given
     pots: { pension: p.pot || 0 },
     statePension: sp.kind === 'full' ? {} : { amountPerYear: sp.kind === 'none' ? 0 : sp.yearly },
     // Rising with prices up to 5% a year (build brief 4.3 point 1; the commonest scheme rule). In a future where

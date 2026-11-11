@@ -33,6 +33,8 @@ import { potsShareOf, potsNeedByYear } from '../shared/toEngine.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt } from '../shared/stopAt.js';
 import { weigherOf } from '../shared/weigh.js';
+import { lifeFactsOf } from '../shared/lastsWords.js';
+import { shortfallOf } from '../shared/shortfall.js';
 import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, horizonRuleOf } from '../shared/levels.js';
 import { savingRows } from '../shared/saving.js';
 import { apartOf } from '../shared/apart.js';
@@ -401,7 +403,7 @@ export function answerOnLives(checked, env, ctx) {
   const result = {
     status: 'ok', inputs,
     level, levels, ...(shaped || {}),
-    chance: chanceBlock(band.levels[level].chance, n, { planToAge, weightToAge: weigher.weighted ? weigher.weightToAge : planToAge, horizonRule: horizonRuleOf({ defaulted: (ctx.defaulted || []).includes('endAge'), capped: false }) }),
+    chance: chanceBlock(band.levels[level].chance, n, { planToAge, weightToAge: weigher.weighted ? weigher.weightToAge : planToAge, horizonRule: horizonRuleOf({ defaulted: (ctx.defaulted || []).includes('endAge'), capped: Boolean(plan.runCapped) }) }),
     whose: plan.whose,
     ...(apart ? { apart } : {}),
     guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
@@ -416,7 +418,10 @@ export function answerOnLives(checked, env, ctx) {
   };
   // (the count's middling amount, inside only: the "pot used up" note reads where a bad case runs out at it)
   const middlingRunOut = band.k.middling > band.k.careful ? band.runOutAgeAt.middling : null;
-  ctx.finish(result, plan, household, { middling: mid, potAtStartMiddling: potAtStart.middling, own, middlingRunOut });
+  // 7.8.0, weighing: what the words of the chance read, and the shortfall at the level's amount
+  const weighing = weigher.weighted
+    ? { lf: lifeFactsOf(result, weigher, plan, inputs), sf: shownMonthly > 0 ? shortfallOf(plan, band.levels[level].months, shownMonthly * 12, { toMonth }) : null } : null;
+  ctx.finish(result, plan, household, { middling: mid, potAtStartMiddling: potAtStart.middling, own, middlingRunOut, weighing });
 
   if (env.trace) {
     // the saving months of the life whose pot at the start is the bad case, and every life's most and run-out months

@@ -105,7 +105,10 @@ describe('the weighted path with nobody dying gives the rollback\'s figures (spe
 describe('the weighted path on the ONS tables (env.weighted: the shipped flag stays off)', () => {
   const W = { ...ENV, weighted: true };
   it('C, D, A and B answer; every level\'s weighted chance is at least its fixed-age count; the levels in order', () => {
-    for (const [answer, inputs] of [[answerC, ALEX_C], [answerC, SAM_C], [answerD, ALEX_D], [answerA, ALEX_A]]) {
+    // (the end age left to its default, the plan-to age: a typed end age below it lets a future that runs out after the
+    // end age count as lasting to it while it still weighs, so only the default rule keeps weighted ≥ fixed-age)
+    const own = (x) => { const { endAge, ...rest } = x; return rest; };
+    for (const [answer, inputs] of [[answerC, own(ALEX_C)], [answerC, own(SAM_C)], [answerD, own(ALEX_D)], [answerA, own(ALEX_A)]]) {
       const r = answer(inputs, W);
       expect(r.status).toBe('ok');
       const L = r.levels.careful.monthly !== undefined ? r.levels : r.shown.levels;
@@ -115,7 +118,7 @@ describe('the weighted path on the ONS tables (env.weighted: the shipped flag st
       expect(r.basis.tablesVersion).toBe('ons-ew-2024-cohort/1');
       expect(r.chance.weighted + 1e-12).toBeGreaterThanOrEqual(r.chance.fixedAge);
     }
-    const b = answerB(SAM_B, W);
+    const b = answerB(own(SAM_B), W);
     expect(b.levels.careful.pot).toBeGreaterThanOrEqual(b.levels.balanced.pot);
     expect(b.levels.balanced.pot).toBeGreaterThanOrEqual(b.levels.bold.pot);
     expect(b.payIn.needed).toBe(b.levels.balanced.payIn);
@@ -130,6 +133,11 @@ describe('the weighted path on the ONS tables (env.weighted: the shipped flag st
     // a young household asking for a long plan: 45 years in the rollback, more while weighing
     const young = { you: { age: 50, pot: 600000, taxFreeTaken: 'no' }, spend: { kind: 'amount', amount: 1500 }, endAge: 100 };
     expect(answerD(young, ENV).basis.years).toBe(45);
-    expect(answerD(young, W).basis.years).toBe(50);
+    // while weighing the run goes on past the end age to the weighting age (1 in 50 still alive), at most 60 years
+    const w = answerD(young, W);
+    expect(w.basis.weightToAge).toBeGreaterThan(100);
+    expect(w.basis.lifeYears).toBe(Math.min(60, w.basis.weightToAge - 50));
+    expect(w.basis.years).toBe(50);
+    expect(w.basis.endAge).toBe(100);
   });
 });

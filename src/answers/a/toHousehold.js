@@ -77,6 +77,7 @@ function person(who, p, inputs, stopWork, savingsInShare) {
   return {
     who,
     age: p.age,
+    ...(typeof p.sex === 'string' ? { sex: p.sex } : {}),   // 7.8.0: which life tables (weigh.js), only when given
     pots: { pension: p.pot || 0 },
     statePension: sp.kind === 'full' ? {} : { amountPerYear: sp.kind === 'none' ? 0 : sp.yearly },
     finalSalary: fs.has ? [{ amountPerYear: fs.yearly, startAge: fs.fromAge, increases: 'pricesCapped5' }] : [],

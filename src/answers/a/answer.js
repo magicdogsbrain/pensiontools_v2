@@ -37,7 +37,9 @@ import { agesToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf, sha
 import { livesList } from '../shared/lives.js';
 import { savingRows } from '../shared/saving.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt } from '../shared/stopAt.js';
-import { weigherOf } from '../shared/weigh.js';
+import { weigherOf, runToAgeOfInputs } from '../shared/weigh.js';
+import { lifeFactsOf } from '../shared/lastsWords.js';
+import { shortfallOf } from '../shared/shortfall.js';
 import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, horizonRuleOf, passesLevel } from '../shared/levels.js';
 import { apartOf, before2028, payKeepsPensions } from '../shared/apart.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
@@ -396,7 +398,8 @@ export function answerA(inputs, env) {
     const s = span(a);
     return ins.endAge > younger + s.last && s.last - s.first < drawYearsCap(env);
   };
-  const lifeYears = (a) => { const S = span(a).first; return S + Math.max(1, Math.min(drawYearsCap(env), ins.endAge - (younger + S))); };
+  // (7.8.0, weighing: the drawing years go on to the later of the end age and the weighting age from the first stop)
+  const lifeYears = (a) => { const S = span(a).first; return S + Math.max(1, Math.min(drawYearsCap(env), runToAgeOfInputs(ins, S, env) - (younger + S))); };
 
   // "show me ages": a verdict at every whole age from today's to 75 finds the earliest that lasted (and the earliest close)
   const sweep = ask.kind === 'ages' ? [] : null;
@@ -530,7 +533,7 @@ export function answerA(inputs, env) {
       : levelsOfStops(ctx, sweep || [ask.named, ...(later || [])]),
     chance: chanceBlock({ weighted: sc.verdict.weighted, fixedAge: sc.verdict.lasted, fails: sc.verdict.fails }, n, {
       planToAge: plan.endAge, weightToAge: sc.at.weigher.weighted ? sc.at.weigher.weightToAge : plan.endAge,
-      horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped: Boolean(plan.capped) })
+      horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped: Boolean(plan.capped || plan.runCapped) })
     }),
     headline: {
       kind: status !== 'ok' ? 'nothing' : ask.kind === 'age' ? 'named' : earliest.yes !== null ? 'earliest' : 'noneWorked',
@@ -565,10 +568,17 @@ export function answerA(inputs, env) {
     keepsPensions: payKeepsPensions(plan),
     drawdown: drawdown2028
   };
+  // 7.8.0, weighing: the basis says so; the words read the chance's facts and the shortfall at the shown stop's spend
+  let weighing = null;
+  if (sc.at.weigher.weighted) {
+    result.basis.weighted = true;
+    if (status === 'ok') weighing = { lf: lifeFactsOf(result, sc.at.weigher, plan, ins), sf: shortfallOf(plan, sc.verdict.runOutMonths, sc.spendAYear, { toMonth: sc.at.toMonth }) };
+    else weighing = { lf: lifeFactsOf(result, sc.at.weigher, plan, ins), sf: null };
+  }
   textsFor(result, {
     usedDefault: defaultedFields(ins, env), fullStatePensionAYear: named.fullStatePensionAYear, historyStartYear: historyStartYear(),
     madeUpFutures: typeof env.futureReturns === 'function', capped: Boolean(plan.capped), drawdown2028,
-    ...(apartCtx ? { apart: apartCtx } : {})
+    ...(apartCtx ? { apart: apartCtx } : {}), weighing
   });
 
   if (env.trace) {

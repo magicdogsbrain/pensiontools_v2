@@ -44,6 +44,29 @@ export const failsBound = (n, t) => Math.floor((t * n) / 20);
 export const sexOfInputs = (inputs, who) => sexKey(inputs && inputs[who] ? inputs[who].sex : undefined);
 
 /**
+ * The age the runs go to (7.8.0, spec section 1: "Runs go to max(plan-to age, weighting age)"). Weighing: the later of the
+ * end age (the plan-to age, typed or the default rule's) and the weighting age of these people from the drawing start
+ * `d` (years from today), so a shorter plan-to age never shortens the weighted sum; the plan-to age stays the label, the
+ * fixed-age count and nothing else. Not weighing (the rollback): the end age, as before 7.8.0.
+ *   people  [{ age (whole years today), sex }]   env  { today, weighted?, weightToAge?, lifeTable? } (the last three tests only)
+ */
+export function runToAgeOf(endAge, people, d, env) {
+  if (!weighs(env) || !isNum(endAge)) return endAge;
+  if (isNum(env && env.weightToAge)) return Math.max(endAge, env.weightToAge);
+  const year = yearOf(env && env.today);
+  const ps = (people || []).filter((p) => p && isNum(p.age)).map((p) => ({ age: p.age, by: year - p.age, sex: sexKey(p.sex) }));
+  if (!ps.length) return endAge;
+  return Math.max(endAge, weightToAge({ people: ps, d: isNum(d) ? d : 0, table: (env && env.lifeTable) || LIFE_TABLE }));
+}
+
+/** runToAgeOf from an answer's checked inputs (you, and the partner of a couple; `endAge`), `d` years from today. */
+export function runToAgeOfInputs(inputs, d, env) {
+  const ins = inputs || {};
+  const people = [ins.you, ins.household === 'couple' ? ins.partner : null].filter((p) => p && isNum(p.age)).map((p) => ({ age: p.age, sex: p.sex }));
+  return runToAgeOf(ins.endAge, people, d, env);
+}
+
+/**
  * The people of an engine plan as the life tables read them: age today (whole), year of birth (today's year less the
  * age), sex from the inputs. In plan order.
  */

@@ -43,7 +43,7 @@ import { createBandSolver, STEP, runFuture, levelsFromSolver } from './band.js';
 import { livesList, sliceReturns } from './lives.js';
 import { savingPlan, savingKernel, kernelPasses, stopYearsFor } from './saving.js';
 import { RULES, SAVING, legacyVerdictOf, LEVEL_FAILS20, levelOf, passes, drawYearsCap } from './rules.js';
-import { weightOf, failsBound } from './weigh.js';
+import { weightOf, failsBound, runToAgeOf } from './weigh.js';
 import { chanceOf, verdictOfChance, LEVEL_IDS } from './levels.js';
 
 const round2 = (x) => Math.round(x * 100) / 100;
@@ -90,7 +90,9 @@ export function stopAtPlan(household, stopAge, env, lives = null) {
   const own = stopYearsFor(household, stopAge, env.today);
   const S = own.S;
   const youngest = Math.min(...people.map((p) => p.age));
-  const D = Math.max(1, Math.min(drawYearsCap(env), household.planToAge - (youngest + S)));
+  // 7.8.0: the drawing years go on to the later of the plan-to age and the weighting age from the stop (weigh.js)
+  const runTo = runToAgeOf(household.planToAge, people.map((p) => ({ age: p.age, sex: p.sex })), Math.min(...own.own), env);
+  const D = Math.max(1, Math.min(drawYearsCap(env), runTo - (youngest + S)));
   const T = S + D;
   const saving = savingPlan(household, stopAge, env);
   const L = lives || livesList(env.futures, T, env);
@@ -118,7 +120,7 @@ export function stopAtPlan(household, stopAge, env, lives = null) {
   const midTotal = middling.reduce((s, q, j) => s + (stillSaving[j] ? q.pension : 0), 0);
   const split = middling.map((q, j) => (!stillSaving[j] ? 0 : midTotal > 0 ? q.pension / midTotal : 1 / scaled));
 
-  const plan = drawingPlan(household, own.own, env, maxes);
+  const plan = drawingPlan(runTo === household.planToAge ? household : { ...household, runToAge: runTo }, own.own, env, maxes);
   const years = plan.years;
   // each life's drivers, read from the stop of the run: the household's (offset 0) and, apart, the joiner's (offset g)
   const drivers = new Array(n).fill(null);

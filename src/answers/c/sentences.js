@@ -13,6 +13,7 @@
  * read by people who have stopped: "stops at 56", never "stop work at 56". With one stop for both nothing here changes.
  */
 import { money, outOfTen, partsText, lastedText } from '../shared/format.js';
+import { LEVEL_NAME, countingLead, asLongAs, chanceParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, lifeAssumed } from '../shared/lastsWords.js';
 import { shownOf } from '../shared/levels.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES } from '../shared/rules.js';
@@ -24,7 +25,7 @@ const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
 const P = (key) => ({ key, kind: 'pot' });
 const F = (fixed) => ({ fixed: String(fixed) });
-const S = (id, parts) => ({ id, text: '', parts: parts.filter((p) => p !== '' && p != null) });
+const S = (id, parts, mark) => ({ id, text: '', parts: parts.filter((p) => p !== '' && p != null), ...(mark ? { mark } : {}) });
 // The result's key for the take-home once every State Pension and final-salary pension has started. Spelt in two
 // halves because the first half is a word the language guide keeps off every screen; this is a key, not a word.
 const AFTER_KEY = ['guar', 'anteed.monthlyAfterTax'].join('');
@@ -455,7 +456,48 @@ export function sentencesFor(result, facts) {
   if (shown.monthly <= 0) {
     sentences.none = S('c.none', ['With these figures there is no monthly amount that lasts to ', A('basis.endAge'), '. Try a later start age or a shorter time.']);
   }
+  if (facts.weighing && shown.monthly > 0) weighedSentences(sentences, result, facts);
   return sentences;
+}
+
+/**
+ * 7.8.0, weighing (research/v7/replan-nov-2026.md 5; the build spec's 11): the amount at the level, the chance it lasts as
+ * long as you do, the fixed-age line to the plan-to age beside it, Bold's consequence, what happens if the money runs out
+ * at it, and what each other level asks for.
+ */
+function weighedSentences(sentences, result, facts) {
+  const { lf, sf } = facts.weighing;
+  const c = facts.couple;
+  const level = result.level;
+  const name = LEVEL_NAME[level];
+  const LM = 'levels.' + level + '.monthly';
+  const shown = shownOf(result);
+  sentences.line = S(c ? 'c.line.couple' : 'c.line', [
+    'With ', ...(facts.life ? sourcesOnLivesParts(result, facts) : sourcesParts(facts)), ', at ', name, ' ', c ? 'the two of you' : 'you', ' could have about ', M(LM), ' a month after tax, ',
+    ...fromParts(facts), ' ', ...untilParts(facts), '. ', countingLead(c), ', the money lasts ', asLongAs(c), ' ', ...chanceParts(shown.weighted), '.'
+  ], 'weighted');
+  sentences.fixed = fixedSentence('c.fixed', shown.fixedAge, lf);
+  if (level === 'bold') sentences.boldLine = boldSentence('c.bold', shown.weighted, lf);
+  // the bad case at the level's amount: when the money runs out at it (the worst 1 in 10 among them), or that it lasts
+  const wp = whenParts(sf, lf);
+  sentences.bad = wp ? S('c.when', wp) : S('c.bad.lasts', ['In every future we tried, ', M(LM), ' a month lasts to ', A('basis.endAge'), ' and beyond.']);
+  const hl = howLongParts(sf, lf);
+  if (hl) sentences.howLong = S('c.howLong', hl);
+  const hm = howMuchParts(sf);
+  if (hm) sentences.howMuch = S('c.howMuch', hm);
+  const fp = floorParts(sf, lf);
+  if (fp) sentences.floor = S('c.floor', fp);
+  // what the other levels ask for (spec 11, "Cost")
+  const lv = result.levels;
+  const less = Math.max(0, shown.monthly - lv.careful.monthly);
+  const more = Math.max(0, lv.bold.monthly - shown.monthly);
+  const gap = (k) => F(money(Math.abs(lv[k].monthly - shown.monthly)));
+  const cost = level === 'balanced'
+    ? [...(less > 0 ? ['Careful asks for ', gap('careful'), ' a month less than Balanced.'] : []), ...(more > 0 ? [less > 0 ? ' ' : '', 'Bold would let you take ', gap('bold'), ' a month more.'] : [])]
+    : level === 'careful'
+      ? (more > 0 ? ['Balanced would let you take ', gap('balanced'), ' a month more; Bold ', gap('bold'), ' more.'] : [])
+      : (less > 0 ? ['Balanced asks for ', gap('balanced'), ' a month less than Bold; Careful ', gap('careful'), ' less.'] : []);
+  if (cost.length) sentences.cost = S('c.cost', cost);
 }
 
 /** The sentences when there is no pot to draw on: status 'guaranteed-only' or 'none'. */
@@ -596,7 +638,8 @@ export function assumedFor(result, facts) {
     line('pot-as-is', 'start.age', 'rule', null, [what, ' today: no growth and nothing more paid in before then.']);
   }
 
-  line('plan-to', 'endAge', src('endAge'), inputs.endAge, c ? ['The money needs to last until the younger of you is ', A('basis.endAge'), '.'] : ['The money needs to last until you are ', A('basis.endAge'), '.']);
+  if (facts.weighing) for (const a of lifeAssumed(facts.weighing.lf)) out.push(a);
+  else line('plan-to', 'endAge', src('endAge'), inputs.endAge, c ? ['The money needs to last until the younger of you is ', A('basis.endAge'), '.'] : ['The money needs to last until you are ', A('basis.endAge'), '.']);
   line('todays-prices', null, 'rule', null, ["All figures are in today's prices."]);
 
   for (const p of facts.people) {
@@ -620,7 +663,7 @@ export function assumedFor(result, facts) {
   // how the savings grow (6.22.0), with Change: "Mostly cash" or "Invested like my pension" — while the money waits to be
   // taken (on the lives) and while it is drawn
   if (facts.savings > 0) line('savings-growth', 'isaGrowth', src('isaGrowth'), inputs.isaGrowth, savingsGrowthParts(inputs.isaGrowth));
-  if (c) line('both-alive', null, 'rule', null, ['Both of you are alive throughout.']);
+  if (c && !facts.weighing) line('both-alive', null, 'rule', null, ['Both of you are alive throughout.']);
   line('tax-rules', null, 'rule', RULES.taxYear, ['Tax rules for ', F(RULES.taxYear), ' in England, Wales and Northern Ireland, with allowances rising with prices; the ', F(money(RULES.taperFrom)), ' point where the allowance starts to be withdrawn stays fixed.']);
   if (facts.anyPots && !facts.madeUpFutures) {
     line('futures', null, 'rule', result.basis.futures, ['Tested against ', F(money(result.basis.futures).slice(1)), ' possible futures, each pieced together from stretches of US share returns and US price rises since ', F(facts.historyStartYear),

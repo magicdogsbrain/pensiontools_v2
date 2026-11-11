@@ -37,7 +37,9 @@ import { historyEnd, historyStartYear } from '../shared/futures.js';
 import { outOfTen } from '../shared/format.js';
 import { livesList } from '../shared/lives.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt } from '../shared/stopAt.js';
-import { weigherOf } from '../shared/weigh.js';
+import { weigherOf, runToAgeOfInputs } from '../shared/weigh.js';
+import { lifeFactsOf } from '../shared/lastsWords.js';
+import { shortfallOf } from '../shared/shortfall.js';
 import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, horizonRuleOf } from '../shared/levels.js';
 import { before2028 } from '../shared/apart.js';
 import { toHousehold, fallInputs, fallFactorOf } from './toHousehold.js';
@@ -110,7 +112,8 @@ export function answerD(inputs, env) {
   const stopAge = ins.you.age;
   const younger = couple ? Math.min(ins.you.age, ins.partner.age) : ins.you.age;
   // the drawing years from today: as A's lifeYears at a stop of today (S = 0), the end capped at 45 years ahead
-  const D = Math.max(1, Math.min(drawYearsCap(env), ins.endAge - younger));
+  // (7.8.0, weighing: on to the later of the end age and the weighting age, weigh.js runToAgeOfInputs)
+  const D = Math.max(1, Math.min(drawYearsCap(env), runToAgeOfInputs(ins, 0, env) - younger));
   const lives = livesList(n, D, env);
   const tell = (done, total) => { if (typeof env.onProgress === 'function') env.onProgress(done, total); };
   const steps = 2 + (ins.work && ins.work.has ? 1 : 0) + (ins.fall && ins.fall.has ? 1 : 0);
@@ -176,7 +179,7 @@ export function answerD(inputs, env) {
     levels: Object.fromEntries(LEVEL_IDS.map((id) => [id, { monthly: band.levels[id].monthly, yearly: band.levels[id].yearly, weighted: band.levels[id].chance.weighted, fixedAge: band.levels[id].chance.fixedAge }])),
     chance: chanceBlock({ weighted: verdict.weighted, fixedAge: verdict.lasted, fails: verdict.fails }, n, {
       planToAge: plan.endAge, weightToAge: weigher.weighted ? weigher.weightToAge : plan.endAge,
-      horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped: false })
+      horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped: Boolean(plan.runCapped) })
     }),
     headroom,
     guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
@@ -187,7 +190,7 @@ export function answerD(inputs, env) {
     assumed: [], warnings: [], sentences: {},
     basis: {
       today: env.today, futures: n, seed: env.seed ?? 0, ...levelBasis(level, weigher, ins, plan.endAge),
-      historyEnd: historyEnd(), engineVersion: VERSION, startAge: stopAge, endAge: plan.endAge, years: D, lifeYears: D,
+      historyEnd: historyEnd(), engineVersion: VERSION, startAge: stopAge, endAge: plan.endAge, years: plan.endAge - plan.startAge, lifeYears: D,
       bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly', strategyId: 'pots-and-valves', cutsSwitchedOff: true,
       // (the default end age moved past 95: the age today + 5, answer-D.md 4.1)
       endAgeDefaulted: defaultedFields(ins, env).includes('endAge')
@@ -196,9 +199,17 @@ export function answerD(inputs, env) {
   };
   // who moves money into drawdown before 6 April 2028 at 55 or 56 (shared/apart.js): everyone it applies to
   const drawdown2028 = before2028(plan.people.map((p) => ({ who: p.who, age: ins[p.who].age, S: 0, pension: p.pension > 0 })), env.today);
+  // 7.8.0, weighing: the basis says so, and the words read the chance's facts and the shortfall at the spend (the amount
+  // the verdict is about: when the money runs out at it, how much is still paid, what comes in after)
+  let weighing = null;
+  if (weigher.weighted) {
+    result.basis.weighted = true;
+    const toMonth = 12 * (plan.endAge - plan.startAge);
+    weighing = { lf: lifeFactsOf(result, weigher, plan, ins), sf: status === 'ok' ? shortfallOf(plan, verdict.runOutMonths, spendAYear, { toMonth }) : null };
+  }
   textsFor(result, {
     usedDefault: defaultedFields(ins, env), fullStatePensionAYear: named.fullStatePensionAYear, historyStartYear: historyStartYear(),
-    madeUpFutures: typeof env.futureReturns === 'function', capped: Boolean(plan.capped), drawdown2028
+    madeUpFutures: typeof env.futureReturns === 'function', capped: Boolean(plan.capped), drawdown2028, weighing
   });
   if (env.trace) {
     result.trace = { lives: Array.from({ length: n }, (_, i) => ({ id: i, runOutMonth: verdict.runOutMonths[i] })), evaluations: runner.evaluations };

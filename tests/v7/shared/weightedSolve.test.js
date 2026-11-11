@@ -24,7 +24,7 @@ import {
   stopAtPlan, createStopRunner, verdictAt, withinWeighted, lastsWithinWeighted, lastsWithin, potNeededAt, potNeededWeighted,
   potNeededWeightedPlain, leastPayIn, runnerAtPayIns
 } from '../../../src/answers/shared/stopAt.js';
-import { weigherOf, weightedFails, failsBound } from '../../../src/answers/shared/weigh.js';
+import { weigherOf, weightedFails, failsBound, runToAgeOfInputs } from '../../../src/answers/shared/weigh.js';
 import { LEVEL_FAILS20, WEIGHT_ONE, passes } from '../../../src/answers/shared/rules.js';
 
 const TODAY = '2026-11-11';
@@ -53,7 +53,8 @@ function dCase(inputs, n) {
   const ins = checked.inputs;
   const { household } = toHouseholdD(ins, env);
   const younger = Math.min(ins.you.age, ins.partner ? ins.partner.age : Infinity);
-  const lives = livesList(n, ins.endAge - younger, env);
+  // (the drawing years go on to the weighting age while weighing: weigh.js runToAgeOfInputs)
+  const lives = livesList(n, runToAgeOfInputs(ins, 0, env) - younger, env);
   const sp = stopAtPlan(household, ins.you.age, env, lives);
   return { sp, ins, env, weigher: weigherOf(sp.plan, ins, env) };
 }
@@ -120,10 +121,14 @@ describe('the weighted levels: the fast path is the reference', () => {
     const r = s.solveLevels(c.weigher);
     // (retaken in step 4b: while weighing, C's end age defaults to the plan-to age from the tables — one end-age rule,
     // horizonEndAge: 99 for someone of 66 who has not said, 33 years where it was 95 and 29)
-    expect(c.plan.years).toBe(33);
-    expect([r.careful.k, r.balanced.k, r.bold.k]).toEqual([212, 227, 266]);
+    // (retaken when the runs began to follow each future on to the weighting age: the plan-to age stays 99, the label and
+    // the fixed-age count; the run goes on to 103, the age with 1 in 50 still alive from the figures for women, which a
+    // household that has not said its sex reads — 37 years where it was 33; Careful one step lower, the weights the same)
+    expect(c.plan.years).toBe(37);
+    expect(c.plan.endAge).toBe(99);
+    expect([r.careful.k, r.balanced.k, r.bold.k]).toEqual([211, 227, 266]);
     expect([c.weigher.byMonth[100], c.weigher.byMonth[300]]).toEqual([929174634, 318114023]);
-    expect(s.weightedFailsAt(c.weigher, r.balanced.k)).toBe(21130399500);
+    expect(s.weightedFailsAt(c.weigher, r.balanced.k)).toBe(21389793573);
   });
 
   it('one level alone is the same figure as all three at once; the same again on a fresh solver (deterministic)', () => {
@@ -187,7 +192,8 @@ describe('withinWeighted, B\'s pot and B\'s pay-in', () => {
   };
   /** B's stop plan for checked inputs, followed on to `to`. */
   function bCase(inputs, n, to = 103) {
-    const env = ON(n);
+    // (the run goes exactly to `to`: the weighting age is set to it, so runToAgeOf follows on no further)
+    const env = { ...ON(n), weightToAge: to };
     const checked = checkInputs(SCHEMA_B, inputs, env);
     expect(checked.ok, JSON.stringify(checked.errors)).toBe(true);
     const ins = checked.inputs;

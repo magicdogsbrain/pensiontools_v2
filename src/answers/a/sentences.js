@@ -28,6 +28,7 @@
  * that leans on it (shared/apart.js, the same words in C, A and B). With one stop for both nothing here changes.
  */
 import { money, outOfTen, partsText, underNine } from '../shared/format.js';
+import { LEVEL_NAME, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, lifeAssumed } from '../shared/lastsWords.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES, accessRiseAffects, firstAccessAge } from '../shared/rules.js';
 import { statePensionAgeOf } from '../shared/schemaParts.js';
@@ -39,7 +40,7 @@ const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
 const P = (key) => ({ key, kind: 'pot' });
 const F = (fixed) => ({ fixed: String(fixed) });
-const S = (id, parts) => ({ id, text: '', parts: parts.flat().filter((p) => p !== '' && p != null) });
+const S = (id, parts, mark) => ({ id, text: '', parts: parts.flat().filter((p) => p !== '' && p != null), ...(mark ? { mark } : {}) });
 const BAD = ['a bad case (the worst ', F('1'), ' in ', F('10'), ')'];
 const BAD_CAP = ['In a bad case (the worst ', F('1'), ' in ', F('10'), ')'];
 const GOOD = ['a good case (the best ', F('1'), ' in ', F('10'), ')'];
@@ -459,7 +460,46 @@ export function sentencesFor(result, facts) {
       out.change = S('a.change', ['Now: ', { yes: 'yes', close: 'close', no: 'not' }[h.verdict], ' at ', A('headline.age'), forPartner, ', ', ...count, ...pt, '.']);
     }
   }
+  if (facts.weighing && result.status === 'ok' && h && (h.kind === 'named' || h.kind === 'earliest')) weighedSentences(out, result, facts);
   return out;
+}
+
+/**
+ * 7.8.0, weighing (research/v7/replan-nov-2026.md 5; the build spec's 11): the verdict at the shown stop said as the chance
+ * the money lasts as long as you do at the level, the fixed-age line to the plan-to age beside it, Bold's consequence, when
+ * the money runs out and what comes in after it; the level's amount and the earliest stop said at their level, never "in 9
+ * futures out of 10". The chart's rows keep their counts to the plan-to age.
+ */
+function weighedSentences(out, result, facts) {
+  const { lf, sf } = facts.weighing;
+  const c = facts.couple;
+  const p = facts.asked === 'partner';
+  const level = result.level;
+  const name = LEVEL_NAME[level];
+  const shown = result.shown;
+  const h = result.headline;
+  const SL = 'shown.levels.' + level + '.monthly';
+  const SP = result.shapeNotes && result.shapeNotes.inForce ? 'spendShape.0.perMonth' : 'spend.perMonth';
+  if (level === 'bold' && out.head) out.head = { ...out.head, parts: ['At Bold: ', ...out.head.parts] };
+  out.line = S('a.line.weighted', [countingLead(c), ', ', p ? 'your partner stopping at ' : 'stopping at ', A('shown.age'), ' and spending ', M(SP), ' a month lasts ', asLongAs(c), ' ',
+    ...chanceParts(result.chance.weighted), ...(shown.verdict === 'close' ? asksForParts(level) : []), '.'], 'weighted');
+  out.fixed = fixedSentence('a.fixed', result.chance.fixedAge, lf);
+  if (level === 'bold') out.boldLine = boldSentence('a.bold', result.chance.weighted, lf);
+  const wp = whenParts(sf, lf);
+  const nearest = result.earliest && result.earliest.yes;
+  const tail = shown.verdict === 'yes' ? [' At ', name, ' you could spend up to about ', M(SL), ' a month from ', A('shown.age'), '.']
+    : nearest === null || nearest === undefined ? []
+      : nearest > shown.age ? [p ? ' Your partner stopping at ' : ' Stopping at ', A('earliest.yes'), ' instead is within ', name, '.']
+        : [' The earliest age shown within ', name, ' is ', A('earliest.yes'), '.'];
+  out.bad = wp ? S('a.when', [...wp, ...tail]) : S('a.bad.lasts', ['In every future we tried the money lasts to ', A('basis.endAge'), ' and beyond.', ...tail]);
+  delete out.after;
+  const hl = howLongParts(sf, lf);
+  if (hl) out.howLong = S('a.howLong', hl);
+  const hm = howMuchParts(sf);
+  if (hm) out.howMuch = S('a.howMuch', hm);
+  const fp = floorParts(sf, lf);
+  if (fp) out.floor = S('a.floor', fp);
+  if (out.change && h.kind === 'named') out.change = S('a.change', ['Now: ', { yes: 'yes', close: 'close', no: 'not' }[h.verdict], ' at ', A('headline.age'), p ? ' for your partner' : '', ', at ', name, '.']);
 }
 
 const RISK_WORDS = {
@@ -601,7 +641,8 @@ export function assumedFor(result, facts) {
   // the one fund and platform charge (6.19.0), with Change: whenever money is held in funds or cash — while saving and
   // once stopped (it replaces "a charge … while you are saving; none once you have stopped")
   if (anyMoney || inputs.savingsIn > 0) line('charges', 'charge', src('charge'), inputs.charge, chargesParts(inputs.charge));
-  line('plan-to', 'endAge', src('endAge'), inputs.endAge, c ? ['The money needs to last until the younger of you is ', A('basis.endAge'), '.'] : ['The money needs to last until you are ', A('basis.endAge'), '.']);
+  if (facts.weighing) for (const a of lifeAssumed(facts.weighing.lf)) out.push(a);
+  else line('plan-to', 'endAge', src('endAge'), inputs.endAge, c ? ['The money needs to last until the younger of you is ', A('basis.endAge'), '.'] : ['The money needs to last until you are ', A('basis.endAge'), '.']);
   line('todays-prices', null, 'rule', null, ["All figures are in today's prices."]);
   for (const x of facts.people) {
     if (x.fsDefault) line('no-final-salary' + suffix(x), `${x.who}.finalSalary.has`, 'default', false, x.who === 'you' ? ['No final-salary pension.'] : ['Your partner has no final-salary pension.']);
@@ -616,7 +657,7 @@ export function assumedFor(result, facts) {
   }
   // how the savings grow (6.22.0), with Change: "Mostly cash" or "Invested like my pension", while saving and once stopped
   if ((inputs.savings || 0) > 0 || inputs.savingsIn > 0) line('savings-growth', 'isaGrowth', src('isaGrowth'), inputs.isaGrowth, savingsGrowthParts(inputs.isaGrowth));
-  if (c) line('both-alive', null, 'rule', null, ['Both of you are alive throughout.']);
+  if (c && !facts.weighing) line('both-alive', null, 'rule', null, ['Both of you are alive throughout.']);
   line('tax-rules', null, 'rule', RULES.taxYear, ['Tax rules for ', F(RULES.taxYear), ' in England, Wales and Northern Ireland, with allowances rising with prices; the ', F(money(RULES.taperFrom)), ' point where the allowance starts to be withdrawn stays fixed.']);
   if ((facts.money || facts.payInTotal > 0) && !facts.madeUpFutures) {
     line('futures', null, 'rule', result.basis.futures, ['Tested against ', F(money(result.basis.futures).slice(1)), ' possible futures, each pieced together from stretches of US share returns and US price rises since ', F(facts.historyStartYear),
@@ -713,6 +754,7 @@ export function warningsFor(result, facts) {
 /** Sentences, what was assumed and the warnings of a result, filled in. */
 export function textsFor(result, ctx) {
   const facts = factsOf(result, ctx);
+  facts.weighing = (ctx && ctx.weighing) || null;
   result.sentences = sentencesFor(result, facts);
   result.assumed = assumedFor(result, facts);
   result.warnings = warningsFor(result, facts);

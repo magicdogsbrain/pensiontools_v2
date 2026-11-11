@@ -22,11 +22,12 @@ import { RULES } from '../shared/rules.js';
 import { statePensionAgeOf } from '../shared/schemaParts.js';
 import { savingsGrowthParts } from '../shared/savingsGrowth.js';
 import { taxFreeGone } from './toHousehold.js';
+import { LEVEL_NAME, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, lifeAssumed } from '../shared/lastsWords.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
 const F = (fixed) => ({ fixed: String(fixed) });
-const S = (id, parts) => ({ id, text: '', parts: parts.flat().filter((p) => p !== '' && p != null) });
+const S = (id, parts, mark) => ({ id, text: '', parts: parts.flat().filter((p) => p !== '' && p != null), ...(mark ? { mark } : {}) });
 const BAD_CAP = ['In a bad case (the worst ', F('1'), ' in ', F('10'), ')'];
 const NINE = ['in ', F('9'), ' futures out of ', F('10')];
 
@@ -234,7 +235,61 @@ export function sentencesFor(result, facts) {
     const count = lastedWords(result.lasted).map((x, i) => (i === 0 && typeof x === 'string' ? x.replace(/^in /, '') : x)).filter((x) => x !== '');
     out.change = S('d.change', ['Now: ', VERDICT_WORD[result.verdict], ' at ', M('spend.perMonth'), ' a month, ', ...count, '.']);
   }
+  if (facts.weighing && result.status === 'ok') weighedSentences(out, result, facts);
   return out;
+}
+
+/**
+ * 7.8.0, weighing (research/v7/replan-nov-2026.md 5; the build spec's 11): the verdict at the level said as a chance the
+ * money lasts as long as you do, with the fixed-age line to the plan-to age beside it, Bold's consequence, the level's
+ * amount said at its level (never "in 9 futures out of 10"), and what happens if the money runs out.
+ */
+function weighedSentences(out, result, facts) {
+  const { lf, sf } = facts.weighing;
+  const c = facts.couple;
+  const level = result.level;
+  const name = LEVEL_NAME[level];
+  const at = level === 'bold' ? 'At Bold: ' : '';
+  const v = result.verdict;
+  const LM = 'levels.' + level + '.monthly';
+  const shown = result.levels[level];
+  out.head = v === 'yes' ? S('d.head.yes', [at, 'Yes — ', M('spend.perMonth'), ' a month'])
+    : v === 'close' ? S('d.head.close', [at, 'Close — ', M('spend.perMonth'), ' a month is tight'])
+      : S('d.head.no', [at, 'Not at ', M('spend.perMonth'), ' a month on these figures']);
+  out.line = S('d.line.weighted', [countingLead(c), ', ', M('spend.perMonth'), ' a month after tax lasts ', asLongAs(c), ' ', ...chanceParts(result.chance.weighted),
+    ...(v === 'close' ? asksForParts(level) : []), '.'], 'weighted');
+  out.fixed = fixedSentence('d.fixed', result.chance.fixedAge, lf);
+  if (level === 'bold') out.boldLine = boldSentence('d.bold', result.chance.weighted, lf);
+  // the shortfall at the level's amount: when, how long, how much, and what comes in after it
+  // (the bad case of the count at the spend gives way to when the money runs out at it: the same worst 1 in 10, and the
+  // typical age beside it)
+  const wp = whenParts(sf, lf);
+  if (wp) out.bad = S('d.when', wp);
+  const hl = howLongParts(sf, lf);
+  if (hl) out.howLong = S('d.howLong', hl);
+  const hm = howMuchParts(sf);
+  if (hm) out.howMuch = S('d.howMuch', hm);
+  const fp = floorParts(sf, lf);
+  if (fp) out.floor = S('d.floor', fp);
+  // "Could I spend more?": the level's amount at its level, with its own fixed-age line in the same block
+  const h = result.headroom || { kind: 'about' };
+  const atLevel = ['At ', name, ', about ', M(LM), ' a month lasts ', asLongAs(c), ' ', ...chanceParts(shown.weighted), '.'];
+  out.headroom = h.kind === 'more' ? S('d.more', ['You could spend about ', M('headroom.perMonth'), ' a month more. ', ...atLevel], 'weighted')
+    : h.kind === 'less' ? S('d.less', [...atLevel, ' That is ', M('headroom.perMonth'), ' a month less than you spend now.'], 'weighted')
+      : S('d.about', ['What you spend is about what ', name, ' allows: ', ...chanceParts(shown.weighted), ', ', asLongAs(c), '.'], 'weighted');
+  const fx = fixedSentence('x', shown.fixedAge, lf).parts;
+  out.headroomFixed = S('d.more.fixed', ['At ', M(LM), ' a month: ', typeof fx[0] === 'string' ? fx[0].charAt(0).toLowerCase() + fx[0].slice(1) : fx[0], ...fx.slice(1)], 'fixed');
+  if (result.work && out.workCareful) {
+    out.workCareful = v === 'yes'
+      ? S('d.work.notNeeded', [M('spend.perMonth'), ' a month is already within ', name, '. That work would let you spend about ', M('work.extra'), ' a month more.'])
+      : S('d.work.careful', ['With that work, ', name, ' allows about ', M('work.monthly'), ' a month.']);
+  }
+  if (result.fall && out.fallCareful) {
+    out.fallCareful = result.fall.drop > 0
+      ? S('d.fall.careful', ['After such a fall, ', name, ' allows about ', M('fall.monthly'), ' a month: ', M('fall.drop'), ' a month less than now.'])
+      : S('d.fall.careful.same', ['After such a fall, ', name, ' allows about ', M('fall.monthly'), ' a month, the same as now.']);
+  }
+  out.change = S('d.change', ['Now: ', VERDICT_WORD[v], ' at ', M('spend.perMonth'), ' a month, at ', name, '.']);
 }
 
 const RISK_WORDS = {
@@ -285,7 +340,8 @@ export function assumedFor(result, facts) {
   }
   if (facts.money) line('risk-drawing', 'risk', src('risk'), inputs.risk, ['Your money is held ', RISK_WORDS[inputs.risk].charAt(0).toLowerCase() + RISK_WORDS[inputs.risk].slice(1)]);
   if (facts.money) line('charges', 'charge', src('charge'), inputs.charge, chargesParts(inputs.charge));
-  if (result.basis.endAgeDefaulted && inputs.endAge > 95) line('d-end-age', 'endAge', 'default', inputs.endAge, ['Your money is tested ', ...untilEnd(facts), ', five years on from ', c ? 'the younger of you' : 'your age today', '.']);
+  if (facts.weighing) for (const a of lifeAssumed(facts.weighing.lf)) out.push(a);
+  else if (result.basis.endAgeDefaulted && inputs.endAge > 95) line('d-end-age', 'endAge', 'default', inputs.endAge, ['Your money is tested ', ...untilEnd(facts), ', five years on from ', c ? 'the younger of you' : 'your age today', '.']);
   else line('plan-to', 'endAge', src('endAge'), inputs.endAge, c ? ['The money needs to last until the younger of you is ', A('basis.endAge'), '.'] : ['The money needs to last until you are ', A('basis.endAge'), '.']);
   line('todays-prices', null, 'rule', null, ["All figures are in today's prices."]);
   for (const x of facts.people) {
@@ -301,7 +357,7 @@ export function assumedFor(result, facts) {
   if (facts.anySavings) line('savings-growth', 'isaGrowth', src('isaGrowth'), inputs.isaGrowth, savingsGrowthParts(inputs.isaGrowth));
   if (result.work) line('d-work-tax', null, 'rule', null, ['Pay from work is taxed with your other income. National Insurance is not included.']);
   if (result.fall) line('d-fall', null, 'rule', null, ['In "What if shares fell?", shares fall by a fifth tomorrow, you keep the same mix, and the futures then run as usual.']);
-  if (c) line('both-alive', null, 'rule', null, ['Both of you are alive throughout.']);
+  if (c && !facts.weighing) line('both-alive', null, 'rule', null, ['Both of you are alive throughout.']);
   line('tax-rules', null, 'rule', RULES.taxYear, ['Tax rules for ', F(RULES.taxYear), ' in England, Wales and Northern Ireland, with allowances rising with prices; the ', F(money(RULES.taperFrom)), ' point where the allowance starts to be withdrawn stays fixed.']);
   if (facts.money && !facts.madeUpFutures) {
     line('futures', null, 'rule', result.basis.futures, ['Tested against ', F(money(result.basis.futures).slice(1)), ' possible futures, each pieced together from stretches of US share returns and US price rises since ', F(facts.historyStartYear),
@@ -362,6 +418,7 @@ export function warningsFor(result, facts) {
  */
 export function textsFor(result, ctx = {}) {
   const facts = factsOf(result, ctx);
+  facts.weighing = ctx.weighing || null;
   result.sentences = sentencesFor(result, facts);
   result.assumed = assumedFor(result, facts);
   result.warnings = warningsFor(result, facts);

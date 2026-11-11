@@ -24,7 +24,9 @@ import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { enginePlan, configsAt, breakdownAt, yearlyPlan, BANDS, ONE_NAME_SHARE } from '../shared/toEngine.js';
 import { futuresList, historyEnd, historyStartYear, priceIndexByYear, cappedIndexByYear } from '../shared/futures.js';
 import { createBandSolver, bandIndexes, STEP, levelsFromSolver } from '../shared/band.js';
-import { weigherOf } from '../shared/weigh.js';
+import { weigherOf, runToAgeOfInputs } from '../shared/weigh.js';
+import { lifeFactsOf } from '../shared/lastsWords.js';
+import { shortfallOf } from '../shared/shortfall.js';
 import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, chanceOf, verdictOfChance, horizonRuleOf } from '../shared/levels.js';
 import { createReferenceBandSolver, weightedThresholdReference } from '../shared/bandReference.js';
 import { toHousehold } from './toHousehold.js';
@@ -195,6 +197,8 @@ function finishOnLives(result, plan, checked, household, env, more) {
   const mid = more.middling;
   const inputs = checked.inputs;
   facts.life = true;
+  // 7.8.0, weighing (onLives.js): the chance's facts and the shortfall at the level's amount
+  if (more.weighing) { result.basis.weighted = true; facts.weighing = more.weighing; }
   // the money from today's age (an age that is now): nothing more goes in, as from now. Couples apart: someone who has
   // stopped (you from now) pays nothing more in; the one still working pays in until their own stop
   facts.payInUnused = plan.apart ? result.saving.some((x) => x.yearsSaving === 0 && x.payIn.total > 0) : result.basis.yearsSaving === 0 && result.payIn.total > 0;
@@ -257,7 +261,7 @@ function basisOf(plan, env, n, lb) {
   return {
     today: env.today, futures: n, seed: env.seed ?? 0, ...lb,
     historyEnd: historyEnd(), engineVersion: VERSION,
-    startAge: plan.startAge, endAge: plan.endAge, accessAge: plan.accessAge, start: plan.start, years: plan.years,
+    startAge: plan.startAge, endAge: plan.endAge, accessAge: plan.accessAge, start: plan.start, years: plan.endAge - plan.startAge,
     split: plan.people.map((p) => ({ who: p.who, share: p.share })), strategyId: 'pots-and-valves', cutsSwitchedOff: true
   };
 }
@@ -434,7 +438,7 @@ export function answerCReal(inputs, env) {
   const toMonth = 12 * (planToAge - plan.startAge);
   const lw = {
     level, weigher, basis: levelBasis(level, weigher, checked.inputs, planToAge),
-    chance: { planToAge, weightToAge: weigher.weighted ? weigher.weightToAge : planToAge, horizonRule: horizonRuleOf({ defaulted: defaultedFields(checked.inputs, env).includes('endAge'), capped: false }) }
+    chance: { planToAge, weightToAge: weigher.weighted ? weigher.weightToAge : planToAge, horizonRule: horizonRuleOf({ defaulted: defaultedFields(checked.inputs, env).includes('endAge'), capped: Boolean(plan.runCapped) }) }
   };
   if (!(plan.totalPots > 0)) return withoutPots(plan, checked, household, fullStatePensionAYear, env, n, lw);
 
@@ -482,6 +486,11 @@ export function answerCReal(inputs, env) {
   const typed = payInTyped(checked.inputs);
   if (typed) result.payIn = typed;
   const facts = factsOf(plan, checked, household, fullStatePensionAYear, env);
+  // 7.8.0, weighing: the basis says so; the words read the chance's facts and the shortfall at the level's amount
+  if (weigher.weighted) {
+    result.basis.weighted = true;
+    facts.weighing = { lf: lifeFactsOf(result, weigher, plan, checked.inputs), sf: shownMonthly > 0 ? shortfallOf(plan, lv[level].months, shownMonthly * 12, { toMonth }) : null };
+  }
   if (plan.startMoved && plan.totalIsa > 0 && shownMonthly > 0) facts.lockedSavingsMonths = Math.min(plan.movedBy * 12, Math.floor(plan.totalIsa / shownMonthly));
   result.sentences = sentencesFor(result, facts);
   result.assumed = assumedFor(result, facts);

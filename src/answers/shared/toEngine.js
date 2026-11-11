@@ -65,6 +65,9 @@ import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS } from '../../constants.js';
 import { isChargesPct } from '../../services/Charges.js';
 import { isIsaGrowth } from '../../services/IsaGrowth.js';
 import { RULES, addYears, drawYearsCap } from './rules.js';
+import { runToAgeOf, weighs } from './weigh.js';
+
+const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 import { startWhenPensionsOpen, startAsGiven, stopsOf, APART, PAY_COVERS } from './household.js';
 import { ratiosOf, startFactor } from './shape.js';
 
@@ -207,8 +210,15 @@ export function enginePlan(household, env, opts = {}) {
   const youngerAtStart = Math.min(...people.map((p) => p.ageAtStart));
   const wanted = household.planToAge - youngerAtStart;
   const cap = drawYearsCap(env);
-  const years = Math.max(1, Math.min(cap, wanted));
+  // 7.8.0: the runs go on to the later of the plan-to age and the weighting age (weigh.js runToAgeOf; the stop plan
+  // passes its own as household.runToAge); the plan-to age stays the label and the fixed-age count. Not weighing: the
+  // plan-to age, as before.
+  const runTo = isNum(household.runToAge) ? Math.max(household.planToAge, household.runToAge)
+    : runToAgeOf(household.planToAge, household.people.map((p) => ({ age: p.age, sex: p.sex })), d, env);
+  const years = Math.max(1, Math.min(cap, runTo - youngerAtStart));
   const capped = wanted > cap;
+  // the run could not reach the age it goes on to (the weighting age): horizonRule 'capped'
+  const runCapped = runTo - youngerAtStart > cap;
   const whoseIdx = people.reduce((best, p) => (p.ageAtStart < people[best].ageAtStart ? p.index : best), 0);
   const whose = people[whoseIdx].who;
   // The pay line of a couple apart: what the worker's pay covers of what is spent until the second stop, and whether it
@@ -371,7 +381,10 @@ export function enginePlan(household, env, opts = {}) {
     today, startDate, start: startDate.slice(0, 7), yearsFromNow: d, startMoved: start.moved, movedBy: start.movedBy, movedFor: start.movedFor,
     locked: start.locked, lockedUntil: start.lockedUntil,
     accessAge: start.accessAge, years, capped, wanted, planToAge: household.planToAge,
-    endAge: youngerAtStart + years, startAge: youngerAtStart, whose, people, order, periods, runs, mix,
+    // endAge: the plan-to age (the label and the fixed-age count; the run's end when that comes first)
+    endAge: Math.min(household.planToAge, youngerAtStart + years), startAge: youngerAtStart,
+    // weighing: the age the run goes on to, and whether the cap stopped it short of the weighting age
+    ...(weighs(env) ? { runToAge: youngerAtStart + years, runCapped } : {}), whose, people, order, periods, runs, mix,
     totalPots: total, totalPension: people.reduce((s, p) => s + p.pension, 0), totalIsa: people.reduce((s, p) => s + p.isa, 0),
     guaranteedAYear, spCount,
     // the band's floor (band.js kLow: an amount every future lasts at). Under asGiven part-time work can end, so the

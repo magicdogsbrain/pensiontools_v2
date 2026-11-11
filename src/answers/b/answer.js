@@ -44,7 +44,8 @@
 import { SCHEMA_B } from './schema.js';
 import { checkInputs, defaults, flatten } from '../shared/validate.js';
 import { RULES, SAVING, CLOSED_YEARS_FAILS, accessRiseAffects, LEVEL_FAILS20, drawYearsCap } from '../shared/rules.js';
-import { weigherOf, failsBound } from '../shared/weigh.js';
+import { weigherOf, failsBound, runToAgeOfInputs } from '../shared/weigh.js';
+import { lifeFactsOf } from '../shared/lastsWords.js';
 import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, horizonRuleOf } from '../shared/levels.js';
 import { VERSION } from '../../constants.js';
 import { validateHousehold, firstOpenAge } from '../shared/household.js';
@@ -60,7 +61,7 @@ import { gridToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf } fr
 import { apartOf, before2028, payKeepsPensions } from '../shared/apart.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
 import { toHousehold, payInOf } from './toHousehold.js';
-import { sentencesFor, assumedFor, warningsFor, finishTexts } from './sentences.js';
+import { sentencesFor, assumedFor, warningsFor, finishTexts, weighWords } from './sentences.js';
 import { enoughOf, oneOffSum } from './enough.js';
 
 const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' };
@@ -120,7 +121,8 @@ function lifeYearsAt(inputs, stopAge, env = null) {
   const S = askedAbout(inputs) === 'partner' ? own.partner : own.you;
   const younger = Math.min(inputs.you.age, couple ? inputs.partner.age : Infinity);
   const cap = drawYearsCap(env);
-  const D = Math.min(cap, inputs.endAge - (younger + first));
+  // (7.8.0, weighing: on to the later of the end age and the weighting age from the first stop, weigh.js)
+  const D = Math.min(cap, runToAgeOfInputs(inputs, first, env) - (younger + first));
   return { S, D, T: first + D, own, fits: D >= 1 && inputs.endAge > younger + last && last - first < cap };
 }
 
@@ -591,7 +593,7 @@ export function answerB(inputs, env) {
     // the chance at today's pay-ins (the whole life: `wholeLife` says the same count)
     chance: chanceBlock({ weighted: whole.weighted ?? lasted, fixedAge: lasted, fails }, n, {
       planToAge: plan.endAge, weightToAge: base.at.weigher.weighted ? base.at.weigher.weightToAge : plan.endAge,
-      horizonRule: horizonRuleOf({ defaulted: defaultedFields(inp, env).includes('endAge'), capped: inp.endAge - plan.startAge > drawYearsCap(env) })
+      horizonRule: horizonRuleOf({ defaulted: defaultedFields(inp, env).includes('endAge'), capped: inp.endAge - plan.startAge > drawYearsCap(env) || Boolean(plan.runCapped) })
     }),
     onCourse,
     // said straight (saving-enough-and-check-in.md 2.3): the band, the two incomes from the stop paying in as now (a
@@ -692,10 +694,21 @@ export function answerB(inputs, env) {
     laterTo: stopLaterSearched
   };
   if (facts.gridRow === -1) facts.gridRow = null;
-  result.sentences = sentencesFor(result, facts);
-  result.assumed = assumedFor(result, facts);
-  result.warnings = warningsFor(result, facts);
-  finishTexts(result);
+  // 7.8.0, weighing: the basis says so; the words say the level as a chance (sentences.js weighWords) and read the facts
+  const weigher = base.at.weigher;
+  if (weigher.weighted) {
+    result.basis.weighted = true;
+    facts.weighing = { lf: lifeFactsOf(result, weigher, plan, inp), sf: null };
+  }
+  weighWords(weigher.weighted ? { level, couple: facts.couple } : null);
+  try {
+    result.sentences = sentencesFor(result, facts);
+    result.assumed = assumedFor(result, facts);
+    result.warnings = warningsFor(result, facts);
+    finishTexts(result);
+  } finally {
+    weighWords(null);
+  }
 
   if (env.trace) {
     // (couples apart: the pensions of those still saving — the number's)

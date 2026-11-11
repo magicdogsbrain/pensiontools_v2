@@ -1,5 +1,10 @@
 # One product, two modes, three stages — the design (6 Nov 2026)
 
+> **Superseded from 7.8.0 on (11 Nov 2026).** The route below was built to 7.6.0. The plan from 7.8.0 is
+> `replan-nov-2026.md`: one plan, three phases (Saving, Moving, Living on it), Simple and Full views, three detail
+> levels, and a success definition advisers would recognise. Read that first.
+
+
 The design we agreed on 6 Nov 2026 after 7.2.1, from three independent designs (journeys, data and risk, the simplest product) and two judges (product fit, the safety of saved plans) run against the code at 7.2.1. It supersedes `after-7.md` §4 ("the classic planner retires at 7.3.0": it stays, as Expert mode) and `road-to-7.md` decision 5. Every example is fictional (Alex, Sam).
 
 

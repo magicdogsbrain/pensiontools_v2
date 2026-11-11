@@ -41,6 +41,7 @@ import { answerC } from '../c/_c.js';
 import { VERSION } from '../../../src/constants.js';
 import { movesOf, holdsSavings, PIN_SAVINGS } from './savingsGrowthMoves.mjs';
 import { r1MovesOf, PIN_R1 } from './r1Moves.mjs';
+import { levelMovesOf, PIN_LEVELS } from './levelMoves.mjs';
 
 const CASES = JSON.parse(readFileSync(resolve(process.cwd(), 'tests/v7/shared/answers.sameYear.json'), 'utf8'));
 const ANSWER = { a: answerA, b: answerB, c: answerC };
@@ -72,6 +73,7 @@ describe('same-year couples and single people: today\'s answers, byte for byte',
 
   const MOVES = movesOf('sameYear');
   const R1 = r1MovesOf('sameYear');
+  const LV = levelMovesOf('sameYear');
   for (const q of ['a', 'b', 'c']) {
     it(`question ${q.toUpperCase()}: every case hashes as it did in 6.19.0, the 2028 note aside on the listed cases, and how savings grow on the cases with savings`, () => {
       const moved = [];
@@ -83,6 +85,13 @@ describe('same-year couples and single people: today\'s answers, byte for byte',
         const gains = (r.warnings || []).some((w) => w.id === 'drawdown-2028');
         if (gains) gained.push(k);
         const got = hash(gains ? without2028(r) : r);
+        // the levels (7.8.0, levelMoves.mjs): every case moved on purpose, by its keys, to its level pin
+        if (PIN_LEVELS) LV.record(k, got);
+        if (LV.has(k)) {
+          if (holdsSavings(q, r) && (q === 'b' || MOVES.has(k))) savings.push(k);
+          if (got !== LV.wanted(k)) moved.push(`case ${k} (levels): ${JSON.stringify(x.inputs)}`);
+          return;
+        }
         if (q === 'b') {
           // R1 (r1Moves.mjs): every B answer moved on purpose — said straight, with what would be enough — to its R1 pin
           if (holdsSavings(q, r)) savings.push(k);
@@ -98,6 +107,7 @@ describe('same-year couples and single people: today\'s answers, byte for byte',
       });
       if (PIN_SAVINGS) MOVES.save();
       if (PIN_R1 && q === 'b') R1.save();
+      if (PIN_LEVELS) LV.save();
       expect(moved).toEqual([]);
       expect(gained).toEqual(GAINS_2028.filter((k) => CASES[k].q === q));
       // every case listed as moved for this question holds savings

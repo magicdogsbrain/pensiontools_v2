@@ -64,7 +64,7 @@ function draw(state) {
 
 describe('the text of B\'s boxes reads back to the inputs it was written from (validate.js draftTextOf)', () => {
   const cases = {
-    'a share of pay': sam({ kind: 'share', pay: 38000, ownPct: 6, employerPct: 4.5 }, { savingRisk: 'adventurous', risk: 'balanced', confidence: 'threeInFour' }),
+    'a share of pay': sam({ kind: 'share', pay: 38000, ownPct: 6, employerPct: 4.5 }, { savingRisk: 'adventurous', risk: 'balanced', confidence: 'bold' }),
     'your part and your employer\'s in pounds, to the penny': sam({ kind: 'split', own: 333.33, employer: 211.17 }),
     'one figure, a forecast, a final-salary pension, savings, a charge and a spending shape with a step': alex()
   };
@@ -118,7 +118,7 @@ describe('the round trip: a plan kept from B, opened back into B from its rail, 
       expect(again.chance.fails).toBe(result.chance.fails);
       expect(again.verdict).toEqual(result.verdict);
       expect(again.payIn.needed).toBe(result.payIn.needed);
-      expect(again.enough && again.enough.nineInTen && again.enough.nineInTen.payIn).toBe(result.enough && result.enough.nineInTen && result.enough.nineInTen.payIn);
+      expect(again.enough && again.enough.atLevel && again.enough.atLevel.payIn).toBe(result.enough && result.enough.atLevel && result.enough.atLevel.payIn);
     }, 30000);
   }
 });

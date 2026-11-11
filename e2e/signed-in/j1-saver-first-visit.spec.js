@@ -49,7 +49,7 @@ test('the front page speaks to a saver; "Am I saving enough?" gives the ballpark
   await app.ready(120_000);
 
   // the ballpark: the pot to aim for, what paying in as now comes to, the share of pay that would be enough and its pounds
-  await expect(page.locator('#app [data-guide="number.careful"]')).toContainText(/About £[\d,]+ by age 62/);
+  await expect(page.locator('#app [data-guide="levels.balanced.pot"]')).toContainText(/About £[\d,]+ by age 62/);
   await expect(page.locator('#app main')).toContainText(/Paying in 8% of your pay as now/);
   await expect(page.locator('#app main')).toContainText(/your pension at 62: £[\d,]+ in a bad case/);
   await expect(page.locator('#enough-title')).toContainText(/To be on course: [\d.]+% of your pay/);

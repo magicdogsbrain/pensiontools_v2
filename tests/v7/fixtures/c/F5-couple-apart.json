@@ -141,27 +141,38 @@
       "risk": "balanced",
       "charge": 0.5,
       "endAge": 95,
+      "confidence": "balanced",
       "take": 3500
     },
-    "monthly": {
-      "careful": 3640,
-      "middling": 4730,
-      "good": 5310
+    "level": "balanced",
+    "levels": {
+      "careful": {
+        "monthly": 3530,
+        "yearly": 42360,
+        "weighted": 0.95,
+        "fixedAge": 0.95
+      },
+      "balanced": {
+        "monthly": 3640,
+        "yearly": 43680,
+        "weighted": 0.9,
+        "fixedAge": 0.9
+      },
+      "bold": {
+        "monthly": 3990,
+        "yearly": 47880,
+        "weighted": 0.7,
+        "fixedAge": 0.7
+      }
     },
-    "yearly": {
-      "careful": 43680,
-      "middling": 56760,
-      "good": 63720
-    },
-    "lasted": {
-      "careful": 0.9,
-      "middling": 0.5,
-      "good": 0.1
-    },
-    "runOutAge": {
-      "careful": 95,
-      "middling": 74,
-      "good": 70
+    "chance": {
+      "weighted": 0.9,
+      "fixedAge": 0.9,
+      "fails": 4,
+      "n": 40,
+      "planToAge": 95,
+      "weightToAge": 95,
+      "horizonRule": "survival"
     },
     "whose": "partner",
     "apart": {
@@ -402,7 +413,9 @@
       "perMonth": 3500,
       "lasted": 0.95,
       "runOutAge": 95,
-      "covered": true
+      "covered": true,
+      "weighted": 0.95,
+      "verdict": "yes"
     },
     "payIn": {
       "total": 850,
@@ -893,7 +906,7 @@
         "parts": [
           "About ",
           {
-            "key": "monthly.careful",
+            "key": "levels.balanced.monthly",
             "kind": "money"
           },
           " a month"
@@ -962,7 +975,7 @@
           "the two of you",
           " could have about ",
           {
-            "key": "monthly.careful",
+            "key": "levels.balanced.monthly",
             "kind": "money"
           },
           " a month after tax, ",
@@ -987,7 +1000,7 @@
       },
       "bad": {
         "id": "c.bad",
-        "text": "In a bad case (the worst 1 in 10), £3,640 a month only just lasts to 95. If you took £4,730 a month instead, a bad case would run out when the younger of you is 74. After that you would have £2,091 a month from your State Pensions.",
+        "text": "In a bad case (the worst 1 in 10), £3,640 a month only just lasts to 95.",
         "parts": [
           "In a bad case (the worst ",
           {
@@ -999,7 +1012,7 @@
           },
           "), ",
           {
-            "key": "monthly.careful",
+            "key": "levels.balanced.monthly",
             "kind": "money"
           },
           " a month only just lasts to ",
@@ -1007,46 +1020,26 @@
             "key": "basis.endAge",
             "kind": "age"
           },
-          ".",
-          " If you took ",
-          {
-            "key": "monthly.middling",
-            "kind": "money"
-          },
-          " a month instead, a bad case would run out ",
-          "when the younger of you is ",
-          {
-            "key": "runOutAge.middling",
-            "kind": "age"
-          },
-          ".",
-          " After that you would have ",
-          {
-            "key": "guaranteed.monthlyAfterTax",
-            "kind": "money"
-          },
-          " a month from ",
-          "your State Pensions",
           "."
         ]
       },
       "range": {
         "id": "c.range",
-        "text": "You could take: careful £3,640, middling £4,730, good £5,310 a month.",
+        "text": "You could take: Careful £3,530, Balanced £3,640, Bold £3,990 a month.",
         "parts": [
-          "You could take: careful ",
+          "You could take: Careful ",
           {
-            "key": "monthly.careful",
+            "key": "levels.careful.monthly",
             "kind": "money"
           },
-          ", middling ",
+          ", Balanced ",
           {
-            "key": "monthly.middling",
+            "key": "levels.balanced.monthly",
             "kind": "money"
           },
-          ", good ",
+          ", Bold ",
           {
-            "key": "monthly.good",
+            "key": "levels.bold.monthly",
             "kind": "money"
           },
           " a month."
@@ -1314,7 +1307,15 @@
       "today": "2026-09-30",
       "futures": 40,
       "seed": 0,
-      "failuresAllowed": 4,
+      "level": "balanced",
+      "levelFails20": 2,
+      "planToAge": 95,
+      "weightToAge": 95,
+      "tablesVersion": "ons-ew-2024-cohort/1",
+      "sexUsed": {
+        "you": "f",
+        "partner": "f"
+      },
       "historyEnd": "2023-06",
       "engineVersion": "(any)",
       "startAge": 55,

@@ -16,7 +16,7 @@
  */
 import { APART } from '../shared/household.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, agesToShow, stopKindField, partnerStopFields, untilBothStopField,
-  taxFreeFields, partTimeHidden, shapeFields, isaGrowthField, savingsGrowthDefault } from '../shared/schemaParts.js';
+  taxFreeFields, partTimeHidden, shapeFields, isaGrowthField, savingsGrowthDefault, levelField } from '../shared/schemaParts.js';
 
 const hiddenWhenStopped = (f) => (Object.keys(partTimeHidden()).length ? { ...f, whenNot: partTimeHidden() } : f);
 
@@ -58,6 +58,8 @@ export const SCHEMA_A = {
     // someone who has stopped has none: not answered is not taken).
     ...taxFreeFields('a'),
     ...moreFields(),
+    // "How careful?" (7.8.0): Careful, Balanced (the default) or Bold, every figure at it
+    levelField(),
     // How the savings grow (6.22.0): "Mostly cash" or "Invested like my pension". In the savings box's group (the first
     // form), drawn straight under it; declared last because its default reads the savings and what goes into them each
     // month — "Mostly cash" once there is money in savings, nothing at all otherwise (today's inputs, key for key).

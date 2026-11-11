@@ -40,6 +40,7 @@ import { configsAt } from './toEngine.js';
 import { createFastRunner } from './fastEngine.js';
 import { LEVEL_FAILS20, levelOf, passes } from './rules.js';
 import { weightOf, failsBound } from './weigh.js';
+import { chanceOf, LEVEL_IDS } from './levels.js';
 
 /** £ a month per step of the search. */
 export const STEP = 10;
@@ -368,8 +369,10 @@ export function createBandSolver(plan, futures, opts = {}) {
      * → { [level]: { k, monthly, capped, floorHit } }; `floorHit` (k null) when even kLow does not pass.
      * @param {{ byMonth: Float64Array }} weigher   weigh.js weigherOf(plan, …)
      * @param {string[]} [ids]   the levels to solve (default all three)
+     * @param {{ balanced?: number }} [known]   Balanced's k when it is already known (the rollback: the count's careful
+     *   figure from solve(), figure for figure): Careful is then searched at or below it and Bold at or above it
      */
-    solveLevels(weigher, ids = Object.keys(LEVEL_FAILS20)) {
+    solveLevels(weigher, ids = Object.keys(LEVEL_FAILS20), known = {}) {
       const want = new Set(ids.map((id) => levelOf(id)));
       const out = {};
       const done = {};
@@ -428,7 +431,8 @@ export function createBandSolver(plan, futures, opts = {}) {
         return { k: r.k, monthly: r.k * STEP, capped: r.capped, floorHit: false, countK: g };
       };
       // Balanced first; Careful at or below it; Bold at or above it
-      const bal = want.has('balanced') || (want.has('careful') && want.has('bold')) ? solveOne('balanced', kLow, kMax, kLow, kMax) : null;
+      const bal = Number.isFinite(known.balanced) ? { k: known.balanced, monthly: known.balanced * STEP, capped: known.balanced >= kMax, floorHit: false, countK: known.balanced }
+        : want.has('balanced') || (want.has('careful') && want.has('bold')) ? solveOne('balanced', kLow, kMax, kLow, kMax) : null;
       const balK = bal && bal.k !== null ? bal.k : null;
       const balCount = bal && Number.isFinite(bal.countK) ? bal.countK : null;
       if (want.has('balanced')) out.balanced = bal;
@@ -468,4 +472,34 @@ export function mostPerFuture(plan, future, range = {}) {
     if (lasts(mid)) g = mid; else b = mid;
   }
   return g * STEP;
+}
+
+/**
+ * The amounts at the levels asked for (7.8.0), from a solver that has run solve() (`solved`): weighing, solveLevels'
+ * figures; not weighing (the rollback), Balanced is solve()'s careful figure exactly and Careful and Bold the counts at
+ * floor(n/20) and floor(6n/20). Each with the months its futures run out in and its chance (levels.js chanceOf).
+ * `toMonth`: the plan-to age's month on the run's clock (the fixed-age count). An amount even the floor of the search
+ * does not pass is the floor (k = kLow), flagged floorHit.
+ * @returns {{ [level]: { k, monthly, yearly, months, chance, capped, floorHit } }}
+ */
+export function levelsFromSolver(solver, solved, weigher, ids = LEVEL_IDS, toMonth = Infinity, reference = null) {
+  const want = LEVEL_IDS.filter((id) => ids.includes(id));
+  // the reference solver (tests: env.solver 'reference') has no solveLevels: its levels are bandReference.js's plain
+  // bisection, `reference` = (weigher, levels) → { [level]: { k, capped, floorHit } }
+  const solveLevels = solver.solveLevels ? (w, l, known) => solver.solveLevels(w, l, known) : (w, l) => reference(w, l);
+  let ks;
+  if (weigher.weighted) ks = solveLevels(weigher, want);
+  else {
+    const rest = want.filter((id) => id !== 'balanced');
+    ks = rest.length ? solveLevels(weigher, rest, { balanced: solved.k.careful }) : {};
+    if (want.includes('balanced')) ks.balanced = { k: solved.k.careful, capped: solved.k.careful >= solver.kMax, floorHit: false };
+  }
+  const out = {};
+  for (const id of want) {
+    const r = ks[id];
+    const k = r.k === null ? solver.kLow : r.k;
+    const months = solver.runOutMonthsAt(k);
+    out[id] = { k, monthly: k * STEP, yearly: Math.round(k * STEP * 12 * 100) / 100, months, chance: chanceOf(weigher, months, toMonth), capped: Boolean(r.capped), floorHit: Boolean(r.floorHit) };
+  }
+  return out;
 }

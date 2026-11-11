@@ -87,7 +87,7 @@ describe('A: a stop past a step — the words read the figure tested there', () 
     r.ages.forEach((row, k) => {
       const tested = testedAt(row.age);
       expect(r.sentences.chart[k].text, `row ${row.age}`).toContain(`; ${money(tested)} a month at the start, as you set it, lasted `);
-      if (row.verdict === 'yes') expect(row.monthly.careful, `row ${row.age}`).toBeGreaterThanOrEqual(Math.floor(tested / 10) * 10);
+      if (row.verdict === 'yes') expect(row.levels.balanced.monthly, `row ${row.age}`).toBeGreaterThanOrEqual(Math.floor(tested / 10) * 10);
       // a row before the step keeps the typed figure and no extra key; a row past it carries what was tested
       if (row.age < 63) expect(row.spendAtStart).toBeUndefined();
       else expect(row.spendAtStart).toBeCloseTo(tested, 2);

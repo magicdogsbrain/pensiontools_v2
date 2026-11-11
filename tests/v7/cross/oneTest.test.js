@@ -56,7 +56,7 @@ function asSaver(h, spend, q) {
     payIn: p.payIn ? { kind: 'split', own: p.payIn.own, employer: p.payIn.employer } : { kind: 'total', total: 0 } });
   const out = { household: h.partner ? 'couple' : 'single', you: person(h.you), ...(h.partner ? { partner: person(h.partner) } : {}),
     savings: h.savings || 0, spend: { kind: 'amount', amount: spend }, savingsIn: 0, savingRisk: h.risk || 'balanced', risk: h.risk || 'balanced', charge: h.charge === undefined ? 0.5 : h.charge, endAge: h.endAge || 95 };
-  return q === 'a' ? { ...out, stop: { kind: 'age', age: h.stop }, partTime: { has: false } } : { ...out, stop: { age: h.stop }, confidence: 'nineInTen' };
+  return q === 'a' ? { ...out, stop: { kind: 'age', age: h.stop }, partTime: { has: false } } : { ...out, stop: { age: h.stop }, confidence: 'balanced' };
 }
 const payInOf = (h) => [h.you, h.partner].filter(Boolean).reduce((t, p) => t + (p.payIn ? p.payIn.own + p.payIn.employer : 0), 0);
 
@@ -111,7 +111,7 @@ function oneTest(h) {
   expect(c.status, `${where}: C ${JSON.stringify(c.problems)}`).not.toBe('invalid');
   if (c.status !== 'ok') return 'skipped: nothing to draw on';
   expect(c.saving, `${where}: C at an age is worked on the lives`).toBeTruthy();
-  const s = c.monthly.careful;
+  const s = c.levels.balanced.monthly;
   if (s < 1) return 'skipped: no careful amount';
 
   // OT1 C's careful amount is A's yes, and £10 more is not
@@ -119,11 +119,11 @@ function oneTest(h) {
   const a = answerA(asSaver(h, s, 'a'), aEnv);
   expect(a.status, where).toBe('ok');
   expect(a.shown.age, where).toBe(h.stop);
-  expect(a.shown.monthly, `${where}: A's band at the stop age is C's`).toEqual(c.monthly);
+  expect(a.shown.levels, `${where}: A's band at the stop age is C's`).toEqual(c.levels);
   expect(a.shown.lastedAt, where).toEqual(c.lasted);
   expect(a.shown.runOutAgeAt, where).toEqual(c.runOutAge);
   expect(a.shown.verdict, `${where}: A at C's careful £${s}`).toBe('yes');
-  expect(a.shown.lasted, where).toBe(c.lasted.careful);
+  expect(a.shown.lasted, where).toBe(c.levels.balanced.fixedAge);
   const a10 = answerA(asSaver(h, s + 10, 'a'), aEnv);
   expect(a10.shown.verdict, `${where}: A at £${s + 10}`).not.toBe('yes');
 
@@ -132,8 +132,8 @@ function oneTest(h) {
   const b = answerB(asSaver(h, s, 'b'), { ...ENV, detail: 'answer' });
   expect(b.status, `${where}: B ${JSON.stringify(b.problems)}`).not.toBe('invalid');
   expect(b.onCourse, `${where}: B at C's careful £${s}`).toBe(true);
-  expect(b.chance.lasted, where).toBe(a.shown.lasted);
-  if (b.payIn.at.nineInTen !== null) expect(b.payIn.at.nineInTen, `${where}: B's pay-in against £${c0}`).toBeLessThanOrEqual(c0 + 10);
+  expect(b.chance.fixedAge, where).toBe(a.shown.lasted);
+  if (b.levels[b.level].payIn !== null) expect(b.levels[b.level].payIn, `${where}: B's pay-in against £${c0}`).toBeLessThanOrEqual(c0 + 10);
   const more = Math.ceil(s * 1.15 / 10) * 10 + 10;
   const bMore = answerB(asSaver(h, more, 'b'), { ...ENV, detail: 'answer' });
   if (bMore.status === 'guaranteed-only') return 'compared (spend covered by pensions at the higher spend)';

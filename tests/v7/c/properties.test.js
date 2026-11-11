@@ -6,6 +6,7 @@
  * Nightly: NIGHTLY=1 (a fresh seed, printed on failure) and FC_RUNS large. A night failure is run again by name with
  * FC_SEED and FC_PATH (tests/v7/oracles/fcOptions.mjs).
  */
+import { monthlyOf } from '../shared/levelsOf.mjs';
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { readFileSync } from 'node:fs';
@@ -23,6 +24,8 @@ const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
 const LIMIT = SCHEMA_C.fields.find((f) => f.path === 'you.pot').max;
 const FOUND = JSON.parse(readFileSync(resolve(process.cwd(), 'tests/v7/c/found.cases.json'), 'utf8'));
 const THREE = ['careful', 'middling', 'good'];
+/** The three levels (7.8.0). */
+const LEVELS3 = ['careful', 'balanced', 'bold'];
 const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 
 const ok = (a, inputs) => { const f = checkAnswer(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
@@ -46,12 +49,12 @@ function noLowerOrFinding(a, b, inputs, findings, who = 'you', alsoBinding = fal
     // raised person's pension pounds are taxed at the margin beside savings (27 Oct 2026), or — their guaranteed income
     // raised — taxed at the margin against a partner whose allowance has room (3 Nov 2026): a fall of more than one step
     // is a finding, printed, not asserted
-    for (const k of THREE) if (b.monthly[k] < a.monthly[k] - STEP.amount) found = true;
+    for (const k of LEVELS3) if (b.levels[k].monthly < a.levels[k].monthly - STEP.amount) found = true;
   } else {
-    amountsToAStep(a.monthly, b.monthly, (k, floor) => expect(b.monthly[k], k).toBeGreaterThanOrEqual(floor), () => { found = true; });
+    amountsToAStep(monthlyOf(a), monthlyOf(b), (k, floor) => expect(b.levels[k].monthly, k).toBeGreaterThanOrEqual(floor), () => { found = true; });
   }
-  if (found) findings.push({ inputs, from: a.monthly, to: b.monthly });
-  return !largeHousehold(a.monthly.careful) && !binding;
+  if (found) findings.push({ inputs, from: monthlyOf(a), to: monthlyOf(b) });
+  return !largeHousehold(a.levels[a.level].monthly) && !binding;
 }
 /**
  * A couple with a fund and platform charge over 1% a year (6.19.0; exceptions.md, "A couple's fixed-ratio drain on the
@@ -147,11 +150,11 @@ function pensionStartsAtTheEnd(inputs) {
 }
 function noHigherOrFinding(a, b, findings) {
   let found = false;
-  for (const k of THREE) {
-    if (largeHousehold(a.monthly[k])) { if (b.monthly[k] > a.monthly[k] + STEP.amount) found = true; }
-    else expect(b.monthly[k], k).toBeLessThanOrEqual(a.monthly[k] + STEP.amount);
+  for (const k of ['careful', 'balanced', 'bold']) {
+    if (largeHousehold(a.levels[k].monthly)) { if (b.levels[k].monthly > a.levels[k].monthly + STEP.amount) found = true; }
+    else expect(b.levels[k].monthly, k).toBeLessThanOrEqual(a.levels[k].monthly + STEP.amount);
   }
-  if (found) findings.push({ from: a.monthly, to: b.monthly });
+  if (found) findings.push({ from: monthlyOf(a), to: monthlyOf(b) });
 }
 const sameFutures = (a, b) => { expect(b.basis.seed).toBe(a.basis.seed); expect(b.basis.futures).toBe(a.basis.futures); };
 
@@ -331,16 +334,17 @@ describe('C — properties between two answers', () => {
   });
 
   describe('feeding the answer back through `take`', () => {
-    const withPots = arbitraryInputs(SCHEMA_C, ENV).filter((i) => i.you.pot > 0 || (i.partner && i.partner.pot > 0) || i.savings > 0);
+    // (at Balanced: the level whose amount is the worst-1-in-10 line of the count while not weighing, 7.8.0)
+    const withPots = arbitraryInputs(SCHEMA_C, ENV).filter((i) => i.you.pot > 0 || (i.partner && i.partner.pot > 0) || i.savings > 0).map((i) => ({ ...i, confidence: 'balanced' }));
 
     it('M10 take = the careful amount: covered, and it lasts to the end age in a bad case', () => {
       fc.assert(fc.property(withPots, (inputs) => {
         const a = ok(answerC({ ...inputs, take: null }, ENV), inputs);
-        fc.pre(a.status === 'ok' && a.monthly.careful > 0 && a.monthly.careful <= 50000);
-        const b = ok(answerC({ ...inputs, take: a.monthly.careful }, ENV), inputs);
+        fc.pre(a.status === 'ok' && a.levels[a.level].monthly > 0 && a.levels[a.level].monthly <= 50000);
+        const b = ok(answerC({ ...inputs, take: a.levels[a.level].monthly }, ENV), inputs);
         expect(b.take.covered).toBe(true);
         expect(b.take.runOutAge).toBe(a.basis.endAge);
-        expect(b.take.lasted).toBe(a.lasted.careful);
+        expect(b.take.lasted).toBe(a.levels[a.level].fixedAge);
         // M9 in this brief: giving a take changes nothing else
         const { take: t1, sentences: s1, inputs: i1, ...restA } = a;
         const { take: t2, sentences: s2, inputs: i2, ...restB } = b;
@@ -354,20 +358,19 @@ describe('C — properties between two answers', () => {
     it('M11 take = the careful amount + £50: not covered, and a bad case runs out before the end age', () => {
       fc.assert(fc.property(withPots, (inputs) => {
         const a = answerC({ ...inputs, take: null }, ENV);
-        fc.pre(a.status === 'ok' && a.monthly.careful % 10 === 0 && a.monthly.careful + 50 <= 50000);
-        const b = ok(answerC({ ...inputs, take: a.monthly.careful + 50 }, ENV), inputs);
+        fc.pre(a.status === 'ok' && a.levels[a.level].monthly % 10 === 0 && a.levels[a.level].monthly + 50 <= 50000);
+        const b = ok(answerC({ ...inputs, take: a.levels[a.level].monthly + 50 }, ENV), inputs);
         expect(b.take.covered).toBe(false);
         expect(b.take.runOutAge).toBeLessThan(a.basis.endAge);
       }), opts());
     });
 
-    it('M12 take = the middling amount: the same run-out age by both routes', () => {
+    it('M12 take = Bold\'s amount (7.8.0, in place of the middling amount): the same share lasted by both routes', () => {
       fc.assert(fc.property(withPots, (inputs) => {
         const a = answerC({ ...inputs, take: null }, ENV);
-        fc.pre(a.status === 'ok' && a.monthly.middling <= 50000);
-        const b = ok(answerC({ ...inputs, take: a.monthly.middling }, ENV), inputs);
-        expect(b.take.runOutAge).toBe(a.runOutAge.middling);
-        expect(b.take.lasted).toBe(a.lasted.middling);
+        fc.pre(a.status === 'ok' && a.levels.bold.monthly <= 50000);
+        const b = ok(answerC({ ...inputs, take: a.levels.bold.monthly }, ENV), inputs);
+        expect(b.take.lasted).toBe(a.levels.bold.fixedAge);
       }), opts());
     });
   });

@@ -232,7 +232,7 @@ describe('the numbers step goes on; the spend step asks for the spending only', 
 });
 
 describe('question C: "Your budget adds up to … this gives …"', () => {
-  const c = (careful, extra = {}) => answered(at(typedC(), 'c', 'answer'), 'c', { status: 'ok', monthly: { careful, middling: careful + 100, good: careful + 200 }, basis: {}, ...extra });
+  const c = (careful, extra = {}) => answered(at(typedC(), 'c', 'answer'), 'c', { status: 'ok', level: 'balanced', levels: { careful: { monthly: careful - 100 }, balanced: { monthly: careful }, bold: { monthly: careful + 100 } }, basis: {}, ...extra });
   it('only once a budget exists, and only for an amount C stands by', () => {
     expect(budgetAgainstC(c(1850))).toBe(null);
     const withSheet = (s) => withBudget(s, { 'Council tax': '150', 'Groceries & household': '2,190' });

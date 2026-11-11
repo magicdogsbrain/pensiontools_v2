@@ -81,7 +81,7 @@ export function AgesChart({ result, dispatch, table = false }) {
                   ? <LinkButton kind="quiet" class="age-pick" testid={`a.ages.pick.${row.age}`} href={href.step('a', 'answer')} onClick={() => pick(row.age)}>{age}</LinkButton>
                   : age}
               </th>
-              <td><Money source={result} k={`ages.${k}.monthly.careful`} /></td>
+              <td><Money source={result} k={`ages.${k}.levels.${result.level || 'balanced'}.monthly`} /></td>
               <td class="lasted">
                 <OutOfTenBar source={result} k={`ages.${k}.lasted`} />
                 <span class="count" aria-hidden="true">{countText(row.lasted, t)}</span>

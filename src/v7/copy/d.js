@@ -113,7 +113,7 @@ export const D = {
     assumedFewer: 'Show fewer',
     /** "Could I spend more?" (answer-D.md 3.5): the band in full. */
     moreTitle: 'Could I spend more?',
-    moreNote: 'careful = lasted in 9 futures out of 10 · middling = 5 out of 10 · good = the best 1 in 10',
+    moreNote: 'Careful = lasted in 19 futures out of 20 · Balanced = 9 out of 10 · Bold = 7 out of 10',
     /** "Would some work help?" (3.6). */
     workTitle: 'Would some work help?',
     workNote: 'Pay from work from today, for a whole number of years, taxed with your other income.',
@@ -250,6 +250,11 @@ export const D = {
       label: 'Make it last to age',
       help: 'The later of 95 and five years on from today unless you say.',
       errors: { 'd-end-after-now': 'That is not later than your age now. Choose a later age.', tooLow: 'Type an age from 75 to 105.', tooHigh: 'Type an age from 75 to 105.' }
+    },
+    // "How careful?" (7.8.0): the count each level lets through leads the label, so "Balanced" is never read as a mix
+    confidence: {
+      label: 'How careful?',
+      options: { careful: 'In 19 futures out of 20: Careful', balanced: 'In 9 futures out of 10: Balanced (we start here)', bold: 'In 7 futures out of 10: Bold' }
     },
     'work.has': { label: 'Some work', options: { no: 'No', yes: 'Yes' } },
     'work.yearly': {

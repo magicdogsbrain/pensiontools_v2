@@ -51,7 +51,7 @@
   "answers": {
     "a": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"single\",\"isaGrowth\":\"cash\",\"partTime\":{\"has\":true,\"yearly\":12000,\"years\":3},\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":40000,\"savingsIn\":0,\"spend\":{\"amount\":1900,\"kind\":\"amount\"},\"stop\":{\"age\":60,\"kind\":\"age\"},\"you\":{\"age\":50,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":600},\"pot\":250000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":95,\"household\":\"single\",\"isaGrowth\":\"cash\",\"partTime\":{\"has\":true,\"yearly\":12000,\"years\":3},\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":40000,\"savingsIn\":0,\"spend\":{\"amount\":1900,\"kind\":\"amount\"},\"stop\":{\"age\":60,\"kind\":\"age\"},\"you\":{\"age\":50,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":600},\"pot\":250000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -90,6 +90,7 @@
           "risk": "balanced",
           "charge": 0.5,
           "endAge": 95,
+          "confidence": "balanced",
           "isaGrowth": "cash"
         },
         "whose": "you",
@@ -102,6 +103,33 @@
         "stop": {
           "kind": "age",
           "age": 60
+        },
+        "level": "balanced",
+        "levels": {
+          "careful": {
+            "stopAge": 64,
+            "weighted": 0.971,
+            "fixedAge": 0.971
+          },
+          "balanced": {
+            "stopAge": 62,
+            "weighted": 0.926,
+            "fixedAge": 0.926
+          },
+          "bold": {
+            "stopAge": 60,
+            "weighted": 0.834,
+            "fixedAge": 0.834
+          }
+        },
+        "chance": {
+          "weighted": 0.834,
+          "fixedAge": 0.834,
+          "fails": 166,
+          "n": 1000,
+          "planToAge": 95,
+          "weightToAge": 95,
+          "horizonRule": "survival"
         },
         "headline": {
           "kind": "named",
@@ -130,25 +158,26 @@
             "count": 8
           },
           "runOutAge": 89,
-          "monthly": {
-            "careful": 1790,
-            "middling": 2300,
-            "good": 3110
-          },
-          "yearly": {
-            "careful": 21480,
-            "middling": 27600,
-            "good": 37320
-          },
-          "lastedAt": {
-            "careful": 0.905,
-            "middling": 0.503,
-            "good": 0.1
-          },
-          "runOutAgeAt": {
-            "careful": 95,
-            "middling": 78,
-            "good": 70
+          "weighted": 0.834,
+          "levels": {
+            "careful": {
+              "monthly": 1690,
+              "yearly": 20280,
+              "weighted": 0.952,
+              "fixedAge": 0.952
+            },
+            "balanced": {
+              "monthly": 1790,
+              "yearly": 21480,
+              "weighted": 0.905,
+              "fixedAge": 0.905
+            },
+            "bold": {
+              "monthly": 2050,
+              "yearly": 24600,
+              "weighted": 0.705,
+              "fixedAge": 0.705
+            }
           },
           "spare": 0,
           "potAtStop": {
@@ -335,25 +364,26 @@
               "count": 7
             },
             "runOutAge": 82,
-            "monthly": {
-              "careful": 1660,
-              "middling": 2090,
-              "good": 2740
-            },
-            "yearly": {
-              "careful": 19920,
-              "middling": 25080,
-              "good": 32880
-            },
-            "lastedAt": {
-              "careful": 0.904,
-              "middling": 0.506,
-              "good": 0.1
-            },
-            "runOutAgeAt": {
-              "careful": 95,
-              "middling": 77,
-              "good": 69
+            "weighted": 0.682,
+            "levels": {
+              "careful": {
+                "monthly": 1570,
+                "yearly": 18840,
+                "weighted": 0.952,
+                "fixedAge": 0.952
+              },
+              "balanced": {
+                "monthly": 1660,
+                "yearly": 19920,
+                "weighted": 0.904,
+                "fixedAge": 0.904
+              },
+              "bold": {
+                "monthly": 1880,
+                "yearly": 22560,
+                "weighted": 0.702,
+                "fixedAge": 0.702
+              }
             },
             "spare": 0,
             "potAtStop": {
@@ -406,25 +436,26 @@
               "count": 8
             },
             "runOutAge": 86,
-            "monthly": {
-              "careful": 1730,
-              "middling": 2190,
-              "good": 2930
-            },
-            "yearly": {
-              "careful": 20760,
-              "middling": 26280,
-              "good": 35160
-            },
-            "lastedAt": {
-              "careful": 0.9,
-              "middling": 0.507,
-              "good": 0.1
-            },
-            "runOutAgeAt": {
-              "careful": 95,
-              "middling": 78,
-              "good": 70
+            "weighted": 0.759,
+            "levels": {
+              "careful": {
+                "monthly": 1630,
+                "yearly": 19560,
+                "weighted": 0.952,
+                "fixedAge": 0.952
+              },
+              "balanced": {
+                "monthly": 1730,
+                "yearly": 20760,
+                "weighted": 0.9,
+                "fixedAge": 0.9
+              },
+              "bold": {
+                "monthly": 1960,
+                "yearly": 23520,
+                "weighted": 0.705,
+                "fixedAge": 0.705
+              }
             },
             "spare": 0,
             "potAtStop": {
@@ -477,25 +508,26 @@
               "count": 8
             },
             "runOutAge": 89,
-            "monthly": {
-              "careful": 1790,
-              "middling": 2300,
-              "good": 3110
-            },
-            "yearly": {
-              "careful": 21480,
-              "middling": 27600,
-              "good": 37320
-            },
-            "lastedAt": {
-              "careful": 0.905,
-              "middling": 0.503,
-              "good": 0.1
-            },
-            "runOutAgeAt": {
-              "careful": 95,
-              "middling": 78,
-              "good": 70
+            "weighted": 0.834,
+            "levels": {
+              "careful": {
+                "monthly": 1690,
+                "yearly": 20280,
+                "weighted": 0.952,
+                "fixedAge": 0.952
+              },
+              "balanced": {
+                "monthly": 1790,
+                "yearly": 21480,
+                "weighted": 0.905,
+                "fixedAge": 0.905
+              },
+              "bold": {
+                "monthly": 2050,
+                "yearly": 24600,
+                "weighted": 0.705,
+                "fixedAge": 0.705
+              }
             },
             "spare": 0,
             "potAtStop": {
@@ -681,25 +713,26 @@
               "count": 9
             },
             "runOutAge": 93,
-            "monthly": {
-              "careful": 1870,
-              "middling": 2420,
-              "good": 3300
-            },
-            "yearly": {
-              "careful": 22440,
-              "middling": 29040,
-              "good": 39600
-            },
-            "lastedAt": {
-              "careful": 0.902,
-              "middling": 0.5,
-              "good": 0.101
-            },
-            "runOutAgeAt": {
-              "careful": 95,
-              "middling": 79,
-              "good": 71
+            "weighted": 0.884,
+            "levels": {
+              "careful": {
+                "monthly": 1760,
+                "yearly": 21120,
+                "weighted": 0.952,
+                "fixedAge": 0.952
+              },
+              "balanced": {
+                "monthly": 1870,
+                "yearly": 22440,
+                "weighted": 0.902,
+                "fixedAge": 0.902
+              },
+              "bold": {
+                "monthly": 2150,
+                "yearly": 25800,
+                "weighted": 0.7,
+                "fixedAge": 0.7
+              }
             },
             "spare": 0,
             "potAtStop": {
@@ -752,25 +785,26 @@
               "count": 9
             },
             "runOutAge": 95,
-            "monthly": {
-              "careful": 1950,
-              "middling": 2540,
-              "good": 3480
-            },
-            "yearly": {
-              "careful": 23400,
-              "middling": 30480,
-              "good": 41760
-            },
-            "lastedAt": {
-              "careful": 0.902,
-              "middling": 0.5,
-              "good": 0.102
-            },
-            "runOutAgeAt": {
-              "careful": 95,
-              "middling": 80,
-              "good": 72
+            "weighted": 0.926,
+            "levels": {
+              "careful": {
+                "monthly": 1830,
+                "yearly": 21960,
+                "weighted": 0.951,
+                "fixedAge": 0.951
+              },
+              "balanced": {
+                "monthly": 1950,
+                "yearly": 23400,
+                "weighted": 0.902,
+                "fixedAge": 0.902
+              },
+              "bold": {
+                "monthly": 2240,
+                "yearly": 26880,
+                "weighted": 0.703,
+                "fixedAge": 0.703
+              }
             },
             "spare": 50,
             "potAtStop": {
@@ -814,25 +848,26 @@
               "count": 9
             },
             "runOutAge": 95,
-            "monthly": {
-              "careful": 2200,
-              "middling": 2970,
-              "good": 4170
-            },
-            "yearly": {
-              "careful": 26400,
-              "middling": 35640,
-              "good": 50040
-            },
-            "lastedAt": {
-              "careful": 0.903,
-              "middling": 0.503,
-              "good": 0.1
-            },
-            "runOutAgeAt": {
-              "careful": 95,
-              "middling": 81,
-              "good": 74
+            "weighted": 0.984,
+            "levels": {
+              "careful": {
+                "monthly": 2060,
+                "yearly": 24720,
+                "weighted": 0.95,
+                "fixedAge": 0.95
+              },
+              "balanced": {
+                "monthly": 2200,
+                "yearly": 26400,
+                "weighted": 0.903,
+                "fixedAge": 0.903
+              },
+              "bold": {
+                "monthly": 2590,
+                "yearly": 31080,
+                "weighted": 0.702,
+                "fixedAge": 0.702
+              }
             },
             "spare": 300,
             "potAtStop": {
@@ -876,25 +911,26 @@
               "count": 9
             },
             "runOutAge": 95,
-            "monthly": {
-              "careful": 2400,
-              "middling": 3290,
-              "good": 4820
-            },
-            "yearly": {
-              "careful": 28800,
-              "middling": 39480,
-              "good": 57840
-            },
-            "lastedAt": {
-              "careful": 0.901,
-              "middling": 0.502,
-              "good": 0.101
-            },
-            "runOutAgeAt": {
-              "careful": 95,
-              "middling": 82,
-              "good": 75
+            "weighted": 0.993,
+            "levels": {
+              "careful": {
+                "monthly": 2240,
+                "yearly": 26880,
+                "weighted": 0.954,
+                "fixedAge": 0.954
+              },
+              "balanced": {
+                "monthly": 2400,
+                "yearly": 28800,
+                "weighted": 0.901,
+                "fixedAge": 0.901
+              },
+              "bold": {
+                "monthly": 2870,
+                "yearly": 34440,
+                "weighted": 0.701,
+                "fixedAge": 0.701
+              }
             },
             "spare": 500,
             "potAtStop": {
@@ -946,9 +982,7 @@
             "verdict": "close",
             "lasted": 0.75,
             "runOutAge": 85,
-            "monthly": {
-              "careful": 1710
-            }
+            "monthly": 1710
           },
           "oneMore": {
             "years": 4,
@@ -1416,26 +1450,26 @@
           },
           "range": {
             "id": "a.range",
-            "text": "At 60 you could spend: careful £1,790, middling £2,300, good £3,110 a month.",
+            "text": "At 60 you could spend: Careful £1,690, Balanced £1,790, Bold £2,050 a month.",
             "parts": [
               "At ",
               {
                 "key": "shown.age",
                 "kind": "age"
               },
-              " you could spend: careful ",
+              " you could spend: Careful ",
               {
-                "key": "shown.monthly.careful",
+                "key": "shown.levels.careful.monthly",
                 "kind": "money"
               },
-              ", middling ",
+              ", Balanced ",
               {
-                "key": "shown.monthly.middling",
+                "key": "shown.levels.balanced.monthly",
                 "kind": "money"
               },
-              ", good ",
+              ", Bold ",
               {
-                "key": "shown.monthly.good",
+                "key": "shown.levels.bold.monthly",
                 "kind": "money"
               },
               " a month."
@@ -1620,7 +1654,7 @@
                 },
                 ", you could spend about ",
                 {
-                  "key": "ages.0.monthly.careful",
+                  "key": "ages.0.levels.balanced.monthly",
                   "kind": "money"
                 },
                 " a month; ",
@@ -1651,7 +1685,7 @@
                 },
                 ", you could spend about ",
                 {
-                  "key": "ages.1.monthly.careful",
+                  "key": "ages.1.levels.balanced.monthly",
                   "kind": "money"
                 },
                 " a month; ",
@@ -1682,7 +1716,7 @@
                 },
                 ", you could spend about ",
                 {
-                  "key": "ages.2.monthly.careful",
+                  "key": "ages.2.levels.balanced.monthly",
                   "kind": "money"
                 },
                 " a month; ",
@@ -1713,7 +1747,7 @@
                 },
                 ", you could spend about ",
                 {
-                  "key": "ages.3.monthly.careful",
+                  "key": "ages.3.levels.balanced.monthly",
                   "kind": "money"
                 },
                 " a month; ",
@@ -1744,7 +1778,7 @@
                 },
                 ", you could spend about ",
                 {
-                  "key": "ages.4.monthly.careful",
+                  "key": "ages.4.levels.balanced.monthly",
                   "kind": "money"
                 },
                 " a month; ",
@@ -1775,7 +1809,7 @@
                 },
                 ", you could spend about ",
                 {
-                  "key": "ages.5.monthly.careful",
+                  "key": "ages.5.levels.balanced.monthly",
                   "kind": "money"
                 },
                 " a month; ",
@@ -1806,7 +1840,7 @@
                 },
                 ", you could spend about ",
                 {
-                  "key": "ages.6.monthly.careful",
+                  "key": "ages.6.levels.balanced.monthly",
                   "kind": "money"
                 },
                 " a month; ",
@@ -1994,8 +2028,14 @@
           "today": "2026-09-30",
           "futures": 1000,
           "seed": 0,
-          "failuresAllowed": 100,
-          "closeAllowed": 250,
+          "level": "balanced",
+          "levelFails20": 2,
+          "planToAge": 95,
+          "weightToAge": 95,
+          "tablesVersion": "ons-ew-2024-cohort/1",
+          "sexUsed": {
+            "you": "f"
+          },
           "historyEnd": "2023-06",
           "engineVersion": "7.6.0",
           "endAge": 95,

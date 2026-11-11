@@ -31,7 +31,7 @@ describe('SCHEMA_A — the declaration', () => {
   });
 
   it('holds no words: only the known keys, and no label, help or error text', () => {
-    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options', 'unit'];   // unit: a steps field's (perMonth | share)
+    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options', 'legacy', 'unit'];   // unit: a steps field's (perMonth | share)
     for (const f of SCHEMA_A.fields) expect(Object.keys(f).filter((k) => !allowed.includes(k)), f.path).toEqual([]);
   });
 
@@ -163,7 +163,7 @@ describe('SCHEMA_A — the declaration', () => {
       household: 'single',
       you: { age: 50, pot: 250000, payIn: { kind: 'total', total: 600 }, alreadyDrawing: false, statePension: { kind: 'full' }, finalSalary: { has: false } },
       savings: 40000, stop: { kind: 'age', age: 60 }, spend: { kind: 'amount', amount: 2000 }, partTime: { has: false },
-      savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95, isaGrowth: 'cash'
+      savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'balanced', isaGrowth: 'cash'
     });
     expect(validate(SCHEMA_A, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_A, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);   // checking twice changes nothing
@@ -245,10 +245,10 @@ describe('the shared parts — one declaration for A, B and C', () => {
     expect(bByPath.get('you.payIn.total').default).toBeUndefined();
   });
 
-  it('A alone has the part-time block; B alone has confidence (both have the stop question: B\'s gained "I\'ve already stopped")', () => {
+  it('A alone has the part-time block; both have the level, "How careful?" (7.8.0), and the stop question (B\'s gained "I\'ve already stopped")', () => {
     const only = (s, t) => s.fields.map((f) => f.path).filter((p) => !t.fields.some((g) => g.path === p));
     expect(only(SCHEMA_A, SCHEMA_B)).toEqual(['partTime.has', 'partTime.yearly', 'partTime.years']);
-    expect(only(SCHEMA_B, SCHEMA_A)).toEqual(['confidence']);
+    expect(only(SCHEMA_B, SCHEMA_A)).toEqual([]);
   });
 
   it('saverFields and moreFields are the brief\'s (4.1)', () => {
@@ -291,10 +291,10 @@ describe('A: each of a couple stops on their own date', () => {
   it('never answered: today\'s checked inputs, key for key, single or couple', () => {
     const r = two({ 'you.payIn.total': '600', 'partner.payIn.total': '300' });
     expect(r.ok).toBe(true);
-    expect(Object.keys(flatten(r.inputs)).sort()).toEqual(['charge', 'endAge', 'household', 'partTime.has', 'partner.age', 'partner.alreadyDrawing', 'partner.finalSalary.has',
+    expect(Object.keys(flatten(r.inputs)).sort()).toEqual(['charge', 'confidence', 'endAge', 'household', 'partTime.has', 'partner.age', 'partner.alreadyDrawing', 'partner.finalSalary.has',
       'partner.payIn.kind', 'partner.payIn.total', 'partner.pot', 'partner.statePension.kind', 'risk', 'savingRisk', 'savings', 'savingsIn', 'spend.amount', 'spend.kind',
       'stop.age', 'stop.kind', 'you.age', 'you.alreadyDrawing', 'you.finalSalary.has', 'you.payIn.kind', 'you.payIn.total', 'you.pot', 'you.statePension.kind']);
-    expect(JSON.stringify(Object.keys(r.inputs))).toBe(JSON.stringify(['household', 'you', 'savings', 'stop', 'spend', 'partTime', 'partner', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge']));
+    expect(JSON.stringify(Object.keys(r.inputs))).toBe(JSON.stringify(['household', 'you', 'savings', 'stop', 'spend', 'partTime', 'partner', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence']));
   });
 
   it('"They already have" hides their pay-in; an age is theirs; "show me ages" is for the one the answer is about', () => {
@@ -510,7 +510,7 @@ describe('the rules between fields', () => {
   });
   it('usedDefault lists every default that was used, and not the ones typed over', () => {
     expect(parse().usedDefault).toEqual(['household', 'you.statePension.kind', 'you.finalSalary.has', 'savings', 'stop.kind', 'you.payIn.kind', 'you.payIn.total',
-      'you.alreadyDrawing', 'spend.kind', 'partTime.has', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge']);
+      'you.alreadyDrawing', 'spend.kind', 'partTime.has', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence']);
     expect(parse({ 'you.payIn.total': '600', charge: '1' }).usedDefault).not.toContain('you.payIn.total');
     expect(parse({ 'you.payIn.total': '600', charge: '1' }).usedDefault).not.toContain('charge');
   });
@@ -660,7 +660,7 @@ describe('the answer function', () => {
     const r = answerA(inputs, TEST_ENV);
     expect(r.status).toBe('ok');
     expect(r.inputs).toEqual(checkInputs(SCHEMA_A, inputs, TEST_ENV).inputs);
-    expect(r.basis).toMatchObject({ today: '2026-09-30', futures: 40, seed: 0, failuresAllowed: 4, closeAllowed: 10, detail: 'chart', bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly' });
+    expect(r.basis).toMatchObject({ today: '2026-09-30', futures: 40, seed: 0, level: 'balanced', levelFails20: 2, detail: 'chart', bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly' });
     for (const key of ['whose', 'spend', 'stop', 'headline', 'shown', 'ages', 'earliest', 'pensionOpens', 'gapYears', 'savingsNeeded', 'partTime', 'saving', 'guaranteed', 'assumed', 'warnings', 'sentences', 'basis', 'units']) {
       expect(key in r, key).toBe(true);
     }
@@ -681,11 +681,11 @@ describe('the answer function', () => {
     for (const row of r.ages) {
       expect(['yes', 'close', 'no']).toContain(row.verdict);
       expect(row.status).toBe('final');
-      expect(row.monthly.careful).toBeLessThanOrEqual(row.monthly.middling);
-      expect(row.monthly.middling).toBeLessThanOrEqual(row.monthly.good);
+      if (row.levels.bold) expect(row.levels.balanced.monthly).toBeLessThanOrEqual(row.levels.bold.monthly);
+      if (row.levels.careful) expect(row.levels.careful.monthly).toBeLessThanOrEqual(row.levels.balanced.monthly);
       expect(row.potAtStop.careful).toBeLessThanOrEqual(row.potAtStop.middling);
       expect(row.potAtStop.middling).toBeLessThanOrEqual(row.potAtStop.good);
-      expect(row.spare).toBe(Math.max(0, row.monthly.careful - r.spend.perMonth));
+      expect(row.spare).toBe(Math.max(0, row.levels.balanced.monthly - r.spend.perMonth));
       expect(row.outOfTen.words).toMatch(/futures? out of 10|every future|none of the futures/);
     }
     expect(r.shown.phases.at(-1).toAge).toBe(r.basis.endAge);

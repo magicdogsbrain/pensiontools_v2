@@ -40,10 +40,10 @@ describe('C — the words of couples who stop in different years', () => {
     expect(c.apart).toMatchObject({ first: 'partner', years: 1, stops: { you: { age: 56, already: false }, partner: { age: 61, already: true } }, payCovers: 0.5, coversGap: true });
     expect(c.sentences.sub).toMatchObject({ id: 'c.sub.apart',
       text: "after tax, for the two of you, from when you have both stopped (you at 56) until the younger of you is 95, going up each year with prices. Until then, half of it comes from your partner's money and your pay covers the rest." });
-    expect(c.sentences.line.text).toContain(', the two of you could have about ' + money(c.monthly.careful) + ' a month after tax, from when you have both stopped until the younger of you is 95.');
-    const half = money(c.monthly.careful / 2);
+    expect(c.sentences.line.text).toContain(', the two of you could have about ' + money(c.levels.balanced.monthly) + ' a month after tax, from when you have both stopped until the younger of you is 95.');
+    const half = money(c.levels.balanced.monthly / 2);
     expect(c.sentences.madeOf[0]).toMatchObject({ id: 'c.madeOf.apart', text: `Until you are 56, while you are still working: ${half} from your partner's money + ${half} from your pay.` });
-    expect(c.phases[0].fromPay).toBe(c.monthly.careful / 2);
+    expect(c.phases[0].fromPay).toBe(c.levels.balanced.monthly / 2);
   });
 
   it('what was assumed: the pay line with Change, the partner who has stopped, the savings with them, each person\'s start, the pay-in', () => {
@@ -64,28 +64,28 @@ describe('C — the words of couples who stop in different years', () => {
   it('"All of it" and "None of it": their own sub-line, first row and pay line; the cover line only under Half', () => {
     const all = run({ ...PARTNER_FIRST, untilBothStop: 'all' });
     expect(all.sentences.sub.text).toBe('after tax, for the two of you, from when you have both stopped (you at 56) until the younger of you is 95, going up each year with prices. Until then, your pay covers all of it.');
-    expect(all.sentences.madeOf[0].text).toBe(`Until you are 56, while you are still working: ${money(all.monthly.careful)} a month, all from your pay.`);
+    expect(all.sentences.madeOf[0].text).toBe(`Until you are 56, while you are still working: ${money(all.levels.balanced.monthly)} a month, all from your pay.`);
     expect(line(all, 'stop-apart')).toMatchObject({ source: 'entered', value: 'all' });
     expect(line(all, 'partner-already').text).toBe('Your partner has already stopped, so nothing more goes into their pension.');
     expect(ids(all.assumed)).not.toContain('stop-apart-cover');
     const none = run({ ...PARTNER_FIRST, untilBothStop: 'none' });
     expect(none.sentences.sub.text).toBe("after tax, for the two of you, from when you have both stopped (you at 56) until the younger of you is 95, going up each year with prices. Until then, all of it comes from your partner's money.");
-    expect(none.sentences.madeOf[0].text).toBe(`Until you are 56, while you are still working: ${money(none.monthly.careful)} from your partner's money.`);
+    expect(none.sentences.madeOf[0].text).toBe(`Until you are 56, while you are still working: ${money(none.levels.balanced.monthly)} from your partner's money.`);
     expect(line(none, 'stop-apart').text).toBe("Your partner has already stopped and you stop at 56. Until then, your partner's money pays all of what you spend. You keep paying in until you stop.");
     expect(ids(none.assumed)).not.toContain('stop-apart-cover');
     // the pay that covers more never pays less (couples-different-years.md 9.3 P3), to one step
     const half = run(PARTNER_FIRST);
-    expect(none.monthly.careful).toBeLessThanOrEqual(half.monthly.careful + 10);
-    expect(half.monthly.careful).toBeLessThanOrEqual(all.monthly.careful + 10);
+    expect(none.levels.balanced.monthly).toBeLessThanOrEqual(half.levels.balanced.monthly + 10);
+    expect(half.levels.balanced.monthly).toBeLessThanOrEqual(all.levels.balanced.monthly + 10);
   });
 
   it('either of you can be "you": the same figures, and the words follow whoever is the one still working', () => {
     const x = run(YOU_FIRST);
     const y = run(PARTNER_FIRST);
-    expect(x.monthly).toEqual(y.monthly);
+    expect(x.levels).toEqual(y.levels);
     expect(x.lasted).toEqual(y.lasted);
     expect(x.sentences.sub.text).toBe("after tax, for the two of you, from when you have both stopped (your partner at 56) until the younger of you is 95, going up each year with prices. Until then, half of it comes from your money and your partner's pay covers the rest.");
-    const half = money(x.monthly.careful / 2);
+    const half = money(x.levels.balanced.monthly / 2);
     expect(x.sentences.madeOf[0].text).toBe(`Until you are 62, while your partner is still working: ${half} from your money + ${half} from your partner's pay.`);
     expect(line(x, 'stop-apart').text).toBe('You have already stopped and your partner stops at 56. Until then, their pay covers half of what you spend; the other half comes from your money. They keep paying in until they stop.');
     expect(line(x, 'savings-first').text).toBe('Your savings between you go with your money: you stop first.');

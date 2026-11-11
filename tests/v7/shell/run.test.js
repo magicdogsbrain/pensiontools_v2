@@ -101,13 +101,13 @@ describe('two passes, in order', () => {
     expect(client.calls[0].inputs).toMatchObject({ household: 'single', you: { pot: 250000, age: 58 } });
     await settle(client.calls[0], result(1370));
     expect(answer().status).toBe('first');
-    expect(answer().result.monthly.careful).toBe(1370);
+    expect(answer().result.levels.balanced.monthly).toBe(1370);
     expect(client.calls.length).toBe(2);
     expect(client.calls[1].env).toEqual({ today: '2026-09-30', futures: 1000, seed: 0, trace: false });
     expect(client.calls[1].inputs).toEqual(client.calls[0].inputs);
     await settle(client.calls[1], result(1380));
     expect(answer().status).toBe('final');
-    expect(answer().result.monthly.careful).toBe(1380);
+    expect(answer().result.levels.balanced.monthly).toBe(1380);
     expect(types()).toEqual([A.ANSWER_WORKING, A.ANSWER_FIRST, A.ANSWER_FINAL]);
     expect(answer().inputsKey).toBe(currentKey(store.getState(), 'c'));
     vi.advanceTimersByTime(60000);
@@ -178,11 +178,11 @@ describe('a change mid-run', () => {
     expect(answer().status).toBe('working');
     await settle(newCall, result(1650));
     expect(answer().status).toBe('first');
-    expect(answer().result.monthly.careful).toBe(1650);
+    expect(answer().result.levels.balanced.monthly).toBe(1650);
     const last = client.calls[client.calls.length - 1];
     await settle(last, result(1660));
     expect(answer().status).toBe('final');
-    expect(answer().result.monthly.careful).toBe(1660);
+    expect(answer().result.levels.balanced.monthly).toBe(1660);
     expect(answer().inputsKey).toBe(currentKey(store.getState(), 'c'));
     expect(types().filter((t) => t === A.ANSWER_FAILED)).toEqual([]);
   });
@@ -204,8 +204,8 @@ describe('a change mid-run', () => {
     expect(answer().status).toBe('final');               // still the old answer, no longer current
     vi.advanceTimersByTime(WAIT_MS);
     expect(answer().status).toBe('working');
-    expect(answer().before).toEqual({ monthly: { careful: 1380 }, take: null });
-    expect(answer().result.monthly.careful).toBe(1380);  // kept on screen, greyed
+    expect(answer().before).toEqual({ monthly: 1380, take: null });
+    expect(answer().result.levels.balanced.monthly).toBe(1380);  // kept on screen, greyed
   });
   it('typing back to the figures already answered cancels the wait', async () => {
     const { client, store } = setUp();
@@ -311,7 +311,7 @@ describe('no worker', () => {
     await flush();
     expect(local.mock.calls.map((c) => [c[0], c[2].futures, c[2].today, c[2].seed])).toEqual([['c', 100, '2026-09-30', 0], ['c', 1000, '2026-09-30', 0]]);
     expect(types()).toEqual([A.ANSWER_WORKING, A.ANSWER_FIRST, A.ANSWER_FINAL]);
-    expect(answer().result.monthly.careful).toBe(1380);
+    expect(answer().result.levels.balanced.monthly).toBe(1380);
   });
   it('an error on the page → answer/failed', async () => {
     const { answer } = setUp({ client: fakeClient({ broken: true }), local: () => { throw new Error('boom'); } });

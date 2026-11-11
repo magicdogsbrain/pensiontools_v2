@@ -142,7 +142,7 @@ test.describe(`the published build of ${V7_PATH}`, () => {
     await app.type('c.you.age', '58', { path: 'you.age' });
     await app.click('c.action.show');
     await app.ready(60_000);
-    await expect(page.locator('[data-headline="monthly.careful"]')).toBeVisible();
+    await expect(page.locator('[data-headline="levels.balanced.monthly"]')).toBeVisible();
     await expect(page.locator('#app')).toHaveAttribute('data-answer', 'final');
   });
 

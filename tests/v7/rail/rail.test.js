@@ -291,15 +291,15 @@ describe('the short results — the person\'s own numbers, and only numbers the 
     const step = railFor(answered(onAnswer(typed()), A.ANSWER_FINAL, result(1380))).steps[1];
     expect(step.result.text).toBe('about £1,380 a month');
     expect(step.result.id).toBe('c.rail.answer');
-    expect(step.result.parts).toEqual(['about ', { key: 'monthly.careful', kind: 'money' }, ' a month']);
+    expect(step.result.parts).toEqual(['about ', { key: 'levels.balanced.monthly', kind: 'money' }, ' a month']);
     expect(text(step)).toBe(step.result.text);
-    expect(step.source.monthly.careful).toBe(1380);
+    expect(step.source.levels.balanced.monthly).toBe(1380);
   });
   it('answer: with the answer function\'s own result (the stub until the real one lands)', () => {
     const s = onAnswer(typed());
     const real = answerC(parsedDraft(s, 'c').inputs, { ...TEST_ENV, today: TODAY });
     const step = railFor(answered(s, A.ANSWER_FINAL, real)).steps[1];
-    expect(step.result.text).toBe(`about ${money(real.monthly.careful)} a month`);
+    expect(step.result.text).toBe(`about ${money(real.levels.balanced.monthly)} a month`);
     expect(text(step)).toBe(step.result.text);
   });
   it('answer: a first figure is shown, but the step is not done until it is final', () => {

@@ -68,19 +68,19 @@ describe('the careful amount fed back through today\'s saved-plan path', () => {
 
   it('on the same first-year share of the State Pension: at most 1 future in 10 fails, the same futures as the answer; £50 a month more fails in more', () => {
     expect(answer.status).toBe('ok');
-    const { settings, plan } = settingsFor(inputs, answer.monthly.careful);
+    const { settings, plan } = settingsFor(inputs, answer.levels.balanced.monthly);
     const same = ruinOf(settings, plan, { firstYearShare: 1 });
     expect(same.p.durationYears).toBe(plan.years);
     expect(same.p.spStartYear).toBe(9);
     expect(same.survived).toHaveLength(N);
     expect(same.ruin).toBeLessThanOrEqual(10);
-    expect(Math.round((100 - same.ruin) / 100 * N) / N).toBeCloseTo(answer.lasted.careful, 9);
-    const higher = settingsFor(inputs, answer.monthly.careful + 50);
+    expect(Math.round((100 - same.ruin) / 100 * N) / N).toBeCloseTo(answer.levels.balanced.fixedAge, 9);
+    const higher = settingsFor(inputs, answer.levels.balanced.monthly + 50);
     expect(ruinOf(higher.settings, higher.plan, { firstYearShare: 1 }).ruin).toBeGreaterThan(10);
   }, 120000);
 
   it('on the saved plan\'s own share (about 52% of the first tax year): about 1.2 futures in 10, as the household plan measured', () => {
-    const { settings, plan } = settingsFor(inputs, answer.monthly.careful);
+    const { settings, plan } = settingsFor(inputs, answer.levels.balanced.monthly);
     const saved = ruinOf(settings, plan);
     expect(saved.p.spFirstYearRatio).toBeGreaterThan(0.4);
     expect(saved.p.spFirstYearRatio).toBeLessThan(0.6);
@@ -89,7 +89,7 @@ describe('the careful amount fed back through today\'s saved-plan path', () => {
   }, 120000);
 
   it('the adapter builds the config today\'s function builds from the same settings, but for the first-year share of the State Pension', () => {
-    const { settings, config } = settingsFor(inputs, answer.monthly.careful);
+    const { settings, config } = settingsFor(inputs, answer.levels.balanced.monthly);
     const theirs = createSimulationConfigFromSettings({}, settings);
     for (const key of ['equityStart', 'bondStart', 'cashStart', 'equityMin', 'bondMin', 'cashTarget', 'years', 'duration', 'baseSalary', 'other', 'spStartYear', 'spWeeklyAmount',
       'pa', 'brl', 'hrl', 'taxMode', 'protectionMult', 'consecutiveLimit', 'disableProtection', 'hodlEnabled', 'isaBalance', 'strategyId', 'accessMethod', 'dbAmount', 'dbStartYear', 'dbIndexation', 'spendingProfile', 'targetSchedule', 'chargesPct']) {

@@ -67,7 +67,7 @@ describe.skipIf(!ENGINE_READY)('A — the answer fed back through today\'s saved
     const inputs = { you: { pot: 250000, age: 58 }, stop: { age: 58 }, spend: { amount: 1200 } };
     const a = answerA(inputs, { ...ENV, ages: [58] });
     expect(a.status).toBe('ok');
-    const careful = a.shown.monthly.careful;
+    const careful = a.shown.levels.balanced.monthly;
     expect(ruinOf(58, 250000, careful)).toBeLessThanOrEqual(10);
     expect(ruinOf(58, 250000, careful + 50)).toBeGreaterThan(10);
   }, 180000);
@@ -76,7 +76,7 @@ describe.skipIf(!ENGINE_READY)('A — the answer fed back through today\'s saved
     const inputs = { you: { pot: 300000, age: 55, payIn: { total: 800 } }, stop: { age: 60 }, spend: { amount: 2000 } };
     const a = answerA(inputs, { ...ENV, ages: [60] });
     expect(a.status).toBe('ok');
-    const careful = a.shown.monthly.careful;
+    const careful = a.shown.levels.balanced.monthly;
     const good = ruinOf(60, a.shown.potAtStop.good, careful);
     const bad = ruinOf(60, a.shown.potAtStop.careful, careful);
     expect(good).toBeLessThanOrEqual(15);

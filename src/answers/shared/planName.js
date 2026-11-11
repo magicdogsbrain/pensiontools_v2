@@ -28,6 +28,7 @@
  * (`stop.age`, the asked person's), C's start and the partner's own stop in its inputs. When both stop in the same year
  * every suggestion is the one above, word for word (tests/v7/keep/planName.test.js holds it to the frozen 6.19.0 copy).
  */
+import { shownOf } from './levels.js';
 import { money } from './format.js';
 
 export const PLAN_NAME = Object.freeze({ suggestMax: 50, typedMax: 60, sep: ' · ' });
@@ -81,11 +82,12 @@ function suggestC(inputs, result) {
   const basis = result.basis || {};
   const whose = result.whose === 'partner' ? 'partner' : 'you';
   const whoseAge = inputs[whose] && inputs[whose].age;
-  if (!isNum(basis.startAge) || !isNum(whoseAge) || !result.monthly || !isNum(result.monthly.careful)) return '';
+  const shown = shownOf(result);
+  if (!isNum(basis.startAge) || !isNum(whoseAge) || !shown || !isNum(shown.monthly)) return '';
   const wait = basis.startAge - whoseAge;
   const couple = coupleOf(inputs);
   const goingIn = !!result.payIn && isNum(result.payIn.total) && result.payIn.total > 0;
-  const tail = `${PLAN_NAME.sep}${tenner(result.monthly.careful)} a month`;
+  const tail = `${PLAN_NAME.sep}${tenner(shown.monthly)} a month`;
   const apart = apartName(inputs, stopAgesC(inputs), goingIn ? 'Stop at' : 'From', tail, !(inputs.start && inputs.start.kind === 'age'));
   if (apart) return apart;
   const ages = agesText(inputs.you.age + wait, couple ? inputs.partner.age + wait : null);
@@ -168,7 +170,7 @@ export function suggestedPlanName(source, inputs, result) {
   if (!ins || !ins.you || !isNum(ins.you.age)) return '';
   const name = SUGGEST[source](ins, result);
   // what is spent changing with age (spending-shape.md 8.3): "Stop at 62 · £2,500 a month, less from 75" — when it fits
-  const tail = shapeTail(source === 'c' ? result.shapeAt && result.shapeAt.careful : result.spendShape);
+  const tail = shapeTail(source === 'c' ? result.shapeAt && result.shapeAt[result.level || 'balanced'] : result.spendShape);
   if (!name || !tail) return name;
   const shaped = name.replace(' a month', ` a month${tail}`);
   return chars(shaped) > PLAN_NAME.suggestMax ? name : shaped;

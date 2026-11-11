@@ -224,17 +224,14 @@ export function checkTrace(answer) {
     // every month of the first phase was paid by savings (a rescue, checked only from above): the later months must not fall below it
     out.push(`the lowest household take-home ${careful.lowest.toFixed(2)} is below the first phase ${paid}`);
   }
-  if (paid - answer.monthly.careful < -0.005 || paid - answer.monthly.careful >= 10) out.push(`the first phase ${paid} is not the careful amount ${answer.monthly.careful} rounded down to £10`);
-  if (paid - answer.monthly.careful > 0.005 && answer.phases[0].fromPots > 0.005) out.push(`the first phase ${paid} is above the careful amount ${answer.monthly.careful} although the pots pay`);
+  if (paid - answer.levels.balanced.monthly < -0.005 || paid - answer.levels.balanced.monthly >= 10) out.push(`the first phase ${paid} is not the careful amount ${answer.levels.balanced.monthly} rounded down to £10`);
+  if (paid - answer.levels.balanced.monthly > 0.005 && answer.phases[0].fromPots > 0.005) out.push(`the first phase ${paid} is above the careful amount ${answer.levels.balanced.monthly} although the pots pay`);
   if (careful.months !== answer.basis.years * 12) out.push(`${careful.months} months traced, not ${answer.basis.years * 12}`);
 
-  // at the middling amount: the bad-case future runs out at the run-out age the answer gives
+  // at the middling amount of the search's spread (the trace's own: 7.8.0, the answer carries the levels, not the middling
+  // amount): the bad-case future's months recompute, and it runs out where the futures list says (futuresChecks)
   const middling = recompute(answer.trace.atMiddling, answer);
   out.push(...middling.problems.filter((p) => !/household take-home|no phase|rescued month/.test(p)));   // the phases are the careful amount's
-  if (answer.monthly.middling > answer.monthly.careful || answer.runOutAge.middling < answer.basis.endAge) {
-    if (middling.runOutAge !== null && middling.runOutAge !== answer.runOutAge.middling) out.push(`atMiddling runs out at ${middling.runOutAge}, the answer says ${answer.runOutAge.middling}`);
-    if (middling.runOutAge === null && answer.runOutAge.middling !== answer.basis.endAge) out.push('atMiddling never runs out but the answer gives a run-out age');
-  }
 
   return [...out, ...futuresChecks(answer, n, tenth, true)];
 }
@@ -255,15 +252,14 @@ function futuresChecks(answer, n, tenth, traced) {
   const most = byMost.map((f) => f.most);
   const down = (v) => Math.floor(v / 10 + 1e-9) * 10;
   const expect = { careful: down(most[tenth]), middling: down(most[Math.floor(n / 2)]), good: down(most[n - Math.ceil(n / 10)]) };
-  for (const k of ['careful', 'middling', 'good']) {
-    if (expect[k] !== answer.monthly[k]) out.push(`sorting every future's most gives ${k} ${expect[k]}, the answer says ${answer.monthly[k]}`);
-  }
-  // the run-out months agree with the futures list
-  for (const k of ['careful', 'middling', 'good']) {
-    const ages = futures.map((f) => (f.runOutMonth[k] === null ? answer.basis.endAge : answer.basis.startAge + Math.floor(f.runOutMonth[k] / 12))).sort((a, b) => a - b);
-    if (ages[tenth] !== answer.runOutAge[k]) out.push(`runOutAge.${k}: the futures give ${ages[tenth]}, the answer ${answer.runOutAge[k]}`);
-    const fails = futures.filter((f) => f.runOutMonth[k] !== null).length;
-    if (Math.abs((n - fails) / n - answer.lasted[k]) > 1e-9) out.push(`lasted.${k}: the futures give ${(n - fails) / n}, the answer ${answer.lasted[k]}`);
-  }
+  // (7.8.0: the answer's Balanced amount — while not weighing — is the careful amount of the spread; the middling and good
+  // amounts stay the trace's own)
+  if (answer.level === 'balanced' && expect.careful !== answer.levels.balanced.monthly) out.push(`sorting every future's most gives careful ${expect.careful}, the answer's Balanced is ${answer.levels.balanced.monthly}`);
+  if (!(expect.careful <= expect.middling && expect.middling <= expect.good)) out.push(`the spread is out of order: ${JSON.stringify(expect)}`);
+  // the run-out months agree with the futures list: the careful amount's bad case lasts, and its share is the answer's
+  const ages = futures.map((f) => (f.runOutMonth.careful === null ? answer.basis.endAge : answer.basis.startAge + Math.floor(f.runOutMonth.careful / 12))).sort((a, b) => a - b);
+  if (ages[tenth] !== answer.basis.endAge) out.push(`the careful amount's bad case runs out at ${ages[tenth]}, before the end age`);
+  const fails = futures.filter((f) => f.runOutMonth.careful !== null).length;
+  if (answer.level === 'balanced' && Math.abs((n - fails) / n - answer.levels.balanced.fixedAge) > 1e-9) out.push(`levels.balanced.fixedAge: the futures give ${(n - fails) / n}, the answer ${answer.levels.balanced.fixedAge}`);
   return out;
 }

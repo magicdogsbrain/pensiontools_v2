@@ -71,14 +71,14 @@ describe('outOfTen — counting out of 10', () => {
 });
 
 describe('sentence parts', () => {
-  const result = { monthly: { careful: 1380 }, inputs: { endAge: 95 }, phases: [{}, { shown: { fromPots: 334 } }] };
+  const result = { level: 'balanced', levels: { balanced: { monthly: 1380 } }, inputs: { endAge: 95 }, phases: [{}, { shown: { fromPots: 334 } }] };
   it('get reads a dotted key', () => {
     expect(get(result, 'phases.1.shown.fromPots')).toBe(334);
     expect(get(result, 'nothing.here')).toBeUndefined();
   });
   it('a part is a string, a key with a kind, or a fixed count', () => {
     expect(partText('About ', result)).toBe('About ');
-    expect(partText({ key: 'monthly.careful', kind: 'money' }, result)).toBe('£1,380');
+    expect(partText({ key: 'levels.balanced.monthly', kind: 'money' }, result)).toBe('£1,380');
     expect(partText({ key: 'inputs.endAge', kind: 'age' }, result)).toBe('95');
     expect(partText({ fixed: '9' }, result)).toBe('9');
   });
@@ -89,6 +89,6 @@ describe('sentence parts', () => {
     expect(partsText(['about ', { key: 'shown.potAtStop.middling', kind: 'pot' }, ' by 60'], r)).toBe('about £481,000 by 60');
   });
   it('text is the parts joined', () => {
-    expect(partsText(['About ', { key: 'monthly.careful', kind: 'money' }, ' a month'], result)).toBe('About £1,380 a month');
+    expect(partsText(['About ', { key: 'levels.balanced.monthly', kind: 'money' }, ' a month'], result)).toBe('About £1,380 a month');
   });
 });

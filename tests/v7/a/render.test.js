@@ -389,7 +389,7 @@ describe('A, step 2: could I stop at 60?', () => {
       expect(one(root, 'a.action.seeAges').getAttribute('href')).toBe('#/a/ages');
       r.ages.forEach((row, k) => {
         const tr = chart.querySelector(`[data-age="${row.age}"]`);
-        expect(tr.querySelector(`[data-key="ages.${k}.monthly.careful"]`).textContent).toBe(money(row.monthly.careful));
+        expect(tr.querySelector(`[data-key="ages.${k}.levels.balanced.monthly"]`).textContent).toBe(money(row.levels.balanced.monthly));
         expect(tr.querySelector('[data-verdict]').textContent).toBe(A.answer.verdictWord[row.verdict]);
       });
     });

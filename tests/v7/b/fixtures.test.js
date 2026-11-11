@@ -74,7 +74,7 @@ describe('the five B fixtures', () => {
         }
         const all = sentencesOf(answer).map((s) => s.text).join('\n');
         for (const text of fx.data.expect.texts || []) expect(all, text).toContain(text);
-        if (answer.number && !answer.onCourse) expect(answer.sentences.head.text).toContain(potText(answer.number.careful));
+        if (answer.number && !answer.onCourse) expect(answer.sentences.head.text).toContain(potText(answer.levels.balanced.pot));
       });
 
       it('never counts down: ages, never a length of time to wait', () => {

@@ -106,7 +106,7 @@ describe('2 — "Show how long that lasts"', () => {
   it('"Now" speaks about the amount tried, not the headline; "Before" about what was tried before', () => {
     const state = load('answer-take');
     const r = state.answers.c.result;
-    state.answers.c.before = { monthly: { careful: 1290 }, take: null };
+    state.answers.c.before = { monthly: 1290, take: null };
     let root = renderScreen(state);
     clean(root, state);
     let line = root.querySelector('.before-now');
@@ -114,9 +114,9 @@ describe('2 — "Show how long that lasts"', () => {
     expect(line.querySelector('.now [data-key="take.perMonth"]').textContent).toBe('£1,500');
     expect(line.querySelector('.now [data-key="take.runOutAge"]').getAttribute('data-value')).toBe(String(r.take.runOutAge));
     expect(line.querySelector('.now').textContent).toContain(r.take.covered ? C.answer.takeLastsTo : C.answer.takeRunsOut);
-    expect(line.querySelector('.now [data-key="monthly.careful"]')).toBe(null);
+    expect(line.querySelector('.now [data-key="levels.balanced.monthly"]')).toBe(null);
     // A second try: the one before was a tried amount too.
-    state.answers.c.before = { monthly: { careful: 1380 }, take: { perMonth: 1800, runOutAge: 84, covered: false } };
+    state.answers.c.before = { monthly: 1380, take: { perMonth: 1800, runOutAge: 84, covered: false } };
     root = renderScreen(state);
     clean(root, state);
     line = root.querySelector('.before-now');
@@ -124,18 +124,18 @@ describe('2 — "Show how long that lasts"', () => {
     expect(line.querySelector('.before [data-key="before.take.runOutAge"]').textContent).toBe('84');
     expect(line.querySelector('.before').textContent).toContain(C.answer.takeRunsOut);
     // …and one that lasted.
-    state.answers.c.before = { monthly: { careful: 1380 }, take: { perMonth: 1200, runOutAge: 95, covered: true } };
+    state.answers.c.before = { monthly: 1380, take: { perMonth: 1200, runOutAge: 95, covered: true } };
     root = renderScreen(state);
     clean(root, state);
     expect(root.querySelector('.before-now .before').textContent).toContain(`${C.answer.takeLastsTo} 95 ${C.answer.takeEvenBad}`);
   });
   it('with no amount named, Before / Now is the careful amount as before', () => {
     const state = load('answer-F1');
-    state.answers.c.before = { monthly: { careful: 1290 }, take: null };
+    state.answers.c.before = { monthly: 1290, take: null };
     const root = renderScreen(state);
     clean(root, state);
-    expect(root.querySelector('.before-now .now [data-key="monthly.careful"]')).not.toBe(null);
-    expect(root.querySelector('.before-now .before [data-key="before.monthly.careful"]').textContent).toBe('£1,290');
+    expect(root.querySelector('.before-now .now [data-key="levels.balanced.monthly"]')).not.toBe(null);
+    expect(root.querySelector('.before-now .before [data-key="before.monthly"]').textContent).toBe('£1,290');
   });
 });
 
@@ -253,17 +253,15 @@ describe('5 — who the answer is for', () => {
 });
 
 describe('6 — what moves with the risk level', () => {
-  it('shows the middling and good amounts and the bad-case run-out age at the middling amount, from the answer', () => {
+  it('shows the other two levels\' amounts, from the answer (7.8.0: in place of the count\'s middling and good amounts)', () => {
     const state = load('answer-F1');
     const r = state.answers.c.result;
     const root = renderScreen(state);
     clean(root, state);
     const moves = one(root, 'c.try.risk.moves');
     expect(moves.closest('.try-risk')).not.toBe(null);
-    expect(moves.querySelector('[data-key="monthly.middling"]').getAttribute('data-value')).toBe(String(r.monthly.middling));
-    expect(moves.querySelector('[data-key="monthly.good"]').getAttribute('data-value')).toBe(String(r.monthly.good));
-    expect(moves.querySelector('[data-key="runOutAge.middling"]').getAttribute('data-value')).toBe(String(r.runOutAge.middling));
-    expect(moves.textContent).toContain('the worst 1 in 10');
+    expect(moves.querySelector('[data-key="levels.careful.monthly"]').getAttribute('data-value')).toBe(String(r.levels.careful.monthly));
+    expect(moves.querySelector('[data-key="levels.bold.monthly"]').getAttribute('data-value')).toBe(String(r.levels.bold.monthly));
   });
   it('is not drawn when the answer has no such figures', () => {
     const root = renderScreen(load('answer-nothing'));
@@ -272,14 +270,14 @@ describe('6 — what moves with the risk level', () => {
 });
 
 describe('7 — the key under the three amounts', () => {
-  it('names what careful, middling and good mean, with every count marked as the answer\'s own', () => {
+  it('names what Careful, Balanced and Bold mean (7.8.0), with every count marked as the answer\'s own', () => {
     const state = load('answer-F1');
     const root = renderScreen(state);
     clean(root, state);
     const key = one(root, 'c.madeOf.key');
     expect(key.textContent).toBe(C.answer.rangeKey);
-    expect(key.textContent).toMatch(/careful = .*9.*out of 10.*middling = 5 out of 10.*good = the best 1 in 10/);
-    expect([...key.querySelectorAll('[data-fixed]')].map((el) => el.textContent)).toEqual(['9', '10', '5', '10', '1', '10']);
+    expect(key.textContent).toMatch(/Careful = .*19.*out of 20.*Balanced = 9 out of 10.*Bold = 7 out of 10/);
+    expect([...key.querySelectorAll('[data-fixed]')].map((el) => el.textContent)).toEqual(['19', '20', '9', '10', '7', '10']);
     // Under the three amounts, inside "what it is made of".
     expect(key.previousElementSibling.classList.contains('range')).toBe(true);
     expect(key.closest('.made-of')).not.toBe(null);

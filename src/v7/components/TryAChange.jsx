@@ -35,8 +35,8 @@ export const resting = (busy) => (busy ? { 'aria-disabled': 'true' } : {});
 
 /**
  * One side of "Before / Now". `at` holds the figures (the answer, or the kept `before`); `source` and `prefix` say
- * where Money finds them (the answer at 'monthly.*', the kept one at 'before.monthly.*'). With an amount named
- * under "take", it is that amount and how long it lasted; else the careful amount.
+ * where Money finds them (the answer at its level's 'levels.<level>.monthly', the kept one at 'before.monthly'). With an
+ * amount named under "take", it is that amount and how long it lasted; else the amount at the level.
  */
 function Tried({ at, source, prefix = '', t }) {
   const take = at && at.take;
@@ -49,7 +49,7 @@ function Tried({ at, source, prefix = '', t }) {
       </>
     );
   }
-  return <>{t.about} <Money source={source} k={`${prefix}monthly.careful`} /> {t.aMonth}.</>;
+  return <>{t.about} <Money source={source} k={prefix ? `${prefix}monthly` : `levels.${at.level || 'balanced'}.monthly`} /> {t.aMonth}.</>;
 }
 
 export function TryAChange({ state, form, result, dispatch }) {
@@ -73,9 +73,11 @@ export function TryAChange({ state, form, result, dispatch }) {
   const endAge = isNum(v.endAge) ? v.endAge : 105;
   const t = C.answer;
   const s = result.sentences || {};
-  const moves = result.status === 'ok' && result.monthly && isNum(result.monthly.middling) && isNum(result.monthly.good) && result.runOutAge && isNum(result.runOutAge.middling);
-  const hasNow = result.monthly && isNum(result.monthly.careful);
-  const before = answer.before && answer.before.monthly && isNum(answer.before.monthly.careful) ? answer.before : null;
+  // the other two levels' amounts at this mix (7.8.0: the levels, in place of the count's middling and good amounts)
+  const lv = result.levels || null;
+  const moves = result.status === 'ok' && !!lv && isNum(lv.careful && lv.careful.monthly) && isNum(lv.bold && lv.bold.monthly);
+  const hasNow = !!lv && !!lv[result.level || 'balanced'] && isNum(lv[result.level || 'balanced'].monthly);
+  const before = answer.before && isNum(answer.before.monthly) ? answer.before : null;
 
   const startTo = (n) => (n <= age ? [set('start.kind', 'now'), set('start.age', '')] : [set('start.kind', 'age'), set('start.age', String(n))]);
   // Still paying in: what goes in, £50 at a time — your part when it is split (your employer's stays as typed), else the
@@ -158,8 +160,7 @@ export function TryAChange({ state, form, result, dispatch }) {
         ))}
         {moves && (
           <p class="note risk-moves" data-testid="c.try.risk.moves">
-            {t.riskMovesAt} {t.riskMiddling} <Money source={result} k="monthly.middling" />, {t.riskGood} <Money source={result} k="monthly.good" /> {t.aMonth}.
-            {' '}{t.riskRunOut} <Money source={result} k="runOutAge.middling" kind="age" />.
+            {t.riskMovesAt} {t.riskCareful} <Money source={result} k="levels.careful.monthly" />, {t.riskBold} <Money source={result} k="levels.bold.monthly" /> {t.aMonth}.
           </p>
         )}
       </div>

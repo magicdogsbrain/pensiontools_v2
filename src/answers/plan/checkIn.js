@@ -322,18 +322,20 @@ function verdictPart(result) {
   if (!ok) return { band: null, fails: null, aim: null, bad: null, middling: null, gap: null, enough: null };
   const en = result.enough;
   const fig = (x) => (isObj(x) && isNum(x.payIn) ? x : null);
-  const nine = en ? fig(en.nineInTen) : null, four = en ? fig(en.threeInFour) : null;
+  // 7.8.0: what would be enough is one figure, at the level (`atLevel`); the reading keeps its keys (`nine`: the figure
+  // that is on course) so old readings and new are read the same way; the "3 in 4" figure and the middling income left
+  const nine = en ? fig(en.atLevel) : null;
   return {
     band: result.verdict.band,
     fails: isObj(result.chance) && isNum(result.chance.fails) ? result.chance.fails : null,
     aim: isObj(result.spend) && isNum(result.spend.perMonth) ? result.spend.perMonth : null,
     bad: isObj(result.income) && isNum(result.income.bad) ? result.income.bad : null,
-    middling: isObj(result.income) && isNum(result.income.middling) ? result.income.middling : null,
+    middling: null,
     gap: isObj(result.gap) && isNum(result.gap.year) ? result.gap.year : null,
     enough: en ? {
       nine: nine ? nine.payIn : null, ...(nine && isNum(nine.ownPct) ? { nineOwnPct: nine.ownPct, nineTotalPct: nine.totalPct } : {}),
-      four: four ? four.payIn : null, ...(four && isNum(four.ownPct) ? { fourOwnPct: four.ownPct, fourTotalPct: four.totalPct } : {}),
-      ...(en.threeInFourNow ? { fourNow: true } : {}), ...(en.outOfReach ? { outOfReach: true } : {})
+      four: null,
+      ...(en.closeNow ? { fourNow: true } : {}), ...(en.outOfReach ? { outOfReach: true } : {})
     } : null
   };
 }

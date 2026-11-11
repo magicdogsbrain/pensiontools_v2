@@ -54,7 +54,7 @@ describe('A — the words, from a result alone', () => {
     expect(r.sentences.line.text).toBe('Stopping at 60 and spending £2,000 a month, your money lasted to 95 in only 8 futures out of 10.');
     expect(r.sentences.bad.text).toBe('In a bad case (the worst 1 in 10) it would run out at age 89. Stopping at 61 instead lasted in 9 futures out of 10.');
     expect(r.sentences.after.text).toBe('After it runs out at 89, you would have £1,046 a month from your State Pension.');
-    expect(r.sentences.range.text).toBe('At 60 you could spend: careful £1,900, middling £2,300, good £2,650 a month.');
+    expect(r.sentences.range.text).toBe('At 60 you could spend: Careful £1,800, Balanced £1,900, Bold £2,100 a month.');
     expect(r.sentences.pot.text).toBe('By 60 your pension and savings could be about £480,000. In a bad case (the worst 1 in 10) it is £390,000, and in a good case (the best 1 in 10) £590,000.');
     expect(r.sentences.chart).toHaveLength(r.ages.length);
     expect(r.sentences.chart[0].text).toBe('At 58, you could spend about £1,650 a month; £2,000 a month lasted in only 5 futures out of 10.');
@@ -156,7 +156,7 @@ describe('A — the words, from a result alone', () => {
   it('part-time work: the line with it and without it, and one more year of it', () => {
     const r = made((x) => {
       x.inputs.partTime = { has: true, yearly: 12000, years: 3 };
-      x.partTime = { yearly: 12000, years: 3, fromAge: 60, toAge: 63, lastedWith: 0.8, lastedWithout: 0.6, runOutWith: 89, runOutWithout: 84, without: { verdict: 'no', lasted: 0.6, runOutAge: 84, monthly: { careful: 1700 } }, oneMore: { years: 4, lasted: 0.9, runOutAge: 95 } };
+      x.partTime = { yearly: 12000, years: 3, fromAge: 60, toAge: 63, lastedWith: 0.8, lastedWithout: 0.6, runOutWith: 89, runOutWithout: 84, without: { verdict: 'no', lasted: 0.6, runOutAge: 84, monthly: 1700 }, oneMore: { years: 4, lasted: 0.9, runOutAge: 95 } };
     }, { ...CTX, usedDefault: CTX.usedDefault.filter((p) => p !== 'partTime.has') });
     expect(wordsAreClean(r)).toEqual([]);
     expect(r.sentences.partTime.text).toBe('That is with £12,000 a year from part-time work for 3 years after you stop (from 60 until 63), taxed as income. Without it, the money lasted in only 6 futures out of 10.');
@@ -165,7 +165,7 @@ describe('A — the words, from a result alone', () => {
     expect(r.assumed.map((a) => a.id)).not.toContain('no-part-time');
     const one = made((x) => {
       x.inputs.partTime = { has: true, yearly: 12000, years: 1 };
-      x.partTime = { yearly: 12000, years: 1, fromAge: 60, toAge: 61, lastedWith: 0.8, lastedWithout: 0.8, runOutWith: 89, runOutWithout: 89, without: { verdict: 'close', lasted: 0.8, runOutAge: 89, monthly: { careful: 1900 } }, oneMore: { years: 2, lasted: 0.8, runOutAge: 89 } };
+      x.partTime = { yearly: 12000, years: 1, fromAge: 60, toAge: 61, lastedWith: 0.8, lastedWithout: 0.8, runOutWith: 89, runOutWithout: 89, without: { verdict: 'close', lasted: 0.8, runOutAge: 89, monthly: 1900 }, oneMore: { years: 2, lasted: 0.8, runOutAge: 89 } };
     });
     expect(one.sentences.partTime.text).toContain('for 1 year after you stop');
   });
@@ -214,7 +214,7 @@ describe('A — the words, from a result alone', () => {
     expect(made().sentences.agesNote).toBeUndefined();
     const pt = made((x) => {
       x.inputs.partTime = { has: true, yearly: 12000, years: 3 };
-      x.partTime = { yearly: 12000, years: 3, fromAge: 60, toAge: 63, lastedWith: 0.8, lastedWithout: 0.6, runOutWith: 89, runOutWithout: 84, without: { verdict: 'no', lasted: 0.6, runOutAge: 84, monthly: { careful: 1700 } }, oneMore: { years: 4, lasted: 0.9, runOutAge: 95 } };
+      x.partTime = { yearly: 12000, years: 3, fromAge: 60, toAge: 63, lastedWith: 0.8, lastedWithout: 0.6, runOutWith: 89, runOutWithout: 84, without: { verdict: 'no', lasted: 0.6, runOutAge: 84, monthly: 1700 }, oneMore: { years: 4, lasted: 0.9, runOutAge: 95 } };
     });
     expect(pt.sentences.change.text).toMatch(/, with 3 years of part-time work\.$/);
     expect(made().sentences.change.text).not.toMatch(/part-time/);

@@ -39,11 +39,12 @@
  */
 import { enginePlan, configsAt, breakdownAt, joinAt, passOnAt, unpaidOf, amountInYear, yearlyPlan } from './toEngine.js';
 import { createFastRunner, prepareFutureFrom } from './fastEngine.js';
-import { createBandSolver, STEP, runFuture } from './band.js';
+import { createBandSolver, STEP, runFuture, levelsFromSolver } from './band.js';
 import { livesList, sliceReturns } from './lives.js';
 import { savingPlan, savingKernel, kernelPasses, stopYearsFor } from './saving.js';
 import { RULES, SAVING, legacyVerdictOf, LEVEL_FAILS20, levelOf, passes } from './rules.js';
 import { weightOf, failsBound } from './weigh.js';
+import { chanceOf, verdictOfChance, LEVEL_IDS } from './levels.js';
 
 const round2 = (x) => Math.round(x * 100) / 100;
 
@@ -309,7 +310,7 @@ export function coverAt(sp, runner, H) {
  * The verdict at a stop age and a spend: one run per life (every person's, for the earliest month anyone ran out).
  * @param {number} spendAYear   household take-home a year, today's prices
  */
-export function verdictAt(sp, runner, spendAYear) {
+export function verdictAt(sp, runner, spendAYear, at = null) {
   const plan = runner.plan;
   const n = sp.n;
   let months;
@@ -321,9 +322,18 @@ export function verdictAt(sp, runner, spendAYear) {
       months[i] = res.failed ? res.failMonth : null;
     }
   }
-  const fails = months.filter((m) => m !== null).length;
   const ageOf = (m) => (m === null ? plan.endAge : plan.startAge + Math.floor(m / 12));
-  return { fails, lasted: (n - fails) / n, verdict: legacyVerdictOf(fails, n), runOutAge: badCaseOf(months.map(ageOf)), runOutMonths: months };
+  if (!at) {
+    const fails = months.filter((m) => m !== null).length;
+    return { fails, lasted: (n - fails) / n, verdict: legacyVerdictOf(fails, n), runOutAge: badCaseOf(months.map(ageOf)), runOutMonths: months };
+  }
+  // 7.8.0: at a level, `at` = { weigher, level, toMonth }: the fixed-age count to the plan-to age, the weighted chance and
+  // the verdict at the level (the count before 7.8.0 when not weighing: the same figures as above)
+  const c = chanceOf(at.weigher, months, at.toMonth ?? Infinity);
+  const toAge = Number.isFinite(at.toMonth) ? plan.startAge + at.toMonth / 12 : plan.endAge;
+  const ageTo = (m) => (m === null || m >= (at.toMonth ?? Infinity) ? toAge : plan.startAge + Math.floor(m / 12));
+  return { fails: c.fails, lasted: c.fixedAge, verdict: verdictOfChance(c, n, at.level, at.weigher), runOutAge: badCaseOf(months.map(ageTo)),
+    runOutMonths: months, sumW: c.sumW, weighted: c.weighted };
 }
 
 /**
@@ -336,17 +346,25 @@ export function bandAt(sp, runner = createStopRunner(sp), estimate = null, opts 
   const n = sp.n;
   const ageOf = (m) => (m === null ? plan.endAge : plan.startAge + Math.floor(m / 12));
   const three = (f) => ({ careful: f('careful'), middling: f('middling'), good: f('good') });
+  // 7.8.0: the levels asked for (opts.weigher, opts.levels, opts.toMonth: the plan-to age's month) — `levels` on the band
+  const want = opts.weigher ? LEVEL_IDS.filter((id) => (opts.levels || LEVEL_IDS).includes(id)) : [];
   if (!plan.runs.length) {
     // nothing to draw on: every amount up to the lowest guaranteed take-home lasts, and nothing above it
     const k = Math.floor(plan.guaranteedAtStartAYear / 12 / STEP + 1e-9);
     const monthly = k * STEP;
-    return { k: three(() => k), fails: three(() => 0), monthly: three(() => monthly), yearly: three(() => monthly * 12),
-      lastedAt: three(() => 1), runOutAgeAt: three(() => plan.endAge), runOutMonths: three(() => new Array(n).fill(null)), solver: null, engineRuns: 0, evaluations: 0 };
+    const none = new Array(n).fill(null);
+    const out = { k: three(() => k), fails: three(() => 0), monthly: three(() => monthly), yearly: three(() => monthly * 12),
+      lastedAt: three(() => 1), runOutAgeAt: three(() => plan.endAge), runOutMonths: three(() => none), solver: null, engineRuns: 0, evaluations: 0 };
+    if (want.length) {
+      out.levels = Object.fromEntries(want.map((id) => [id, { k, monthly, yearly: monthly * 12, months: none, chance: chanceOf(opts.weigher, none), capped: false, floorHit: false }]));
+    }
+    return out;
   }
   const solver = createBandSolver(plan, sp.lives, { runner, estimate, configsFor: runner.configsFor, onProgress: opts.onProgress });
-  const { k, fails } = solver.solve();
+  const solved = solver.solve();
+  const { k, fails } = solved;
   const runOutMonths = three((w) => solver.runOutMonthsAt(k[w]));
-  return {
+  const out = {
     k, fails,
     monthly: three((w) => k[w] * STEP),
     yearly: three((w) => round2(k[w] * STEP * 12)),
@@ -354,6 +372,8 @@ export function bandAt(sp, runner = createStopRunner(sp), estimate = null, opts 
     runOutAgeAt: three((w) => badCaseOf(runOutMonths[w].map(ageOf))),
     runOutMonths, solver, engineRuns: solver.engineRuns, evaluations: solver.evaluations
   };
+  if (want.length) out.levels = levelsFromSolver(solver, solved, opts.weigher, want, opts.toMonth ?? Infinity);
+  return out;
 }
 
 /**
@@ -753,7 +773,8 @@ export function leastPayIn(ok, ceiling, from = 0, guess = null, unit = 10) {
 /** The careful amount (£ a month) with every life's pension at a household total `potsFixed` (B's monthlyIfShort). */
 export function monthlyAt(sp, runner, potsFixed, opts = {}) {
   void runner;
-  return bandAt(sp, runnerAtPot(sp, potsFixed, opts), opts.estimate || null).monthly.careful;
+  // (the band's careful step: the amount at floor(n/10), the count's own figure)
+  return bandAt(sp, runnerAtPot(sp, potsFixed, opts), opts.estimate || null).k.careful * STEP;
 }
 
 /**

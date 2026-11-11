@@ -187,13 +187,13 @@ export function sentencesFor(result, facts) {
   // the careful amount beside the spend (3.4): more, about, or less — never contradicting the verdict
   const h = result.headroom || { kind: 'about' };
   if (result.status === 'ok') {
-    if (h.kind === 'more') out.headroom = S('d.more', ['You could spend about ', M('headroom.perMonth'), ' a month more. About ', M('monthly.careful'), ' a month lasted ', ...NINE, '.']);
-    else if (h.kind === 'less') out.headroom = S('d.less', ['About ', M('monthly.careful'), ' a month lasted ', ...NINE, '. That is about ', M('headroom.perMonth'), ' a month less than you spend now.']);
+    const LM = 'levels.' + result.level + '.monthly';
+    if (h.kind === 'more') out.headroom = S('d.more', ['You could spend about ', M('headroom.perMonth'), ' a month more. About ', M(LM), ' a month lasted ', ...NINE, '.']);
+    else if (h.kind === 'less') out.headroom = S('d.less', ['About ', M(LM), ' a month lasted ', ...NINE, '. That is about ', M('headroom.perMonth'), ' a month less than you spend now.']);
     else out.headroom = S('d.about', ['What you spend is about what lasted ', ...NINE, '.']);
-    // "Could I spend more?" (3.5): the band in full
-    out.middling = S('d.middling', ['About ', M('monthly.middling'), ' a month lasted in ', F('5'), ' futures out of ', F('10'), '. ',
-      ...(result.runOutAgeAt.middling >= result.basis.endAge ? [...BAD_CAP, ' it still lasted ', ...untilEnd(facts), '.'] : [...BAD_CAP, ' it would run out ', ...runOutAt(facts, 'runOutAgeAt.middling'), '.'])]);
-    out.good = S('d.good', ['In a good case (the best ', F('1'), ' in ', F('10'), ') about ', M('monthly.good'), ' a month lasted.']);
+    // "Could I spend more?" (3.5): the other two levels (7.8.0: the count's middling and good amounts are no longer
+    // figures of the answer)
+    out.levels = S('d.levels', ['At Careful, about ', M('levels.careful.monthly'), ' a month. At Bold, about ', M('levels.bold.monthly'), ' a month.']);
   } else {
     out.nothing = S('d.nothing', ['There is no pot to draw on, so this is ', afterPhrase(facts) || 'your pension income', ' only: ', M('guaranteed.monthlyAfterTax'), ' a month after tax once it has all started.']);
   }
@@ -210,7 +210,7 @@ export function sentencesFor(result, facts) {
         : S('d.work.bad', [...BAD_CAP, ' it would run out ', ...runOutAt(facts, 'work.runOutAge'), lasts ? '' : ' instead of ', ...(lasts ? [] : [A('runOutAge')]), '.']);
     out.workCareful = yes
       ? S('d.work.notNeeded', [M('spend.perMonth'), ' a month already lasted ', ...NINE, '. That work would let you spend about ', M('work.extra'), ' a month more.'])
-      : S('d.work.careful', ['With that work, about ', M('work.monthly.careful'), ' a month lasted ', ...NINE, '.']);
+      : S('d.work.careful', ['With that work, about ', M('work.monthly'), ' a month lasted ', ...NINE, '.']);
     out.workRows = (w.byYears || []).map((r, i) => S('d.work.row', ['Until ', A(`work.byYears.${i}.toAge`), ': lasted ', ...lastedWords(r.lasted), '; ',
       ...(r.runOutAge >= result.basis.endAge ? ['in a bad case (the worst ', F('1'), ' in ', F('10'), ') it still lasted ', ...untilEnd(facts), '.']
         : ['in a bad case (the worst ', F('1'), ' in ', F('10'), ') it would run out ', ...runOutAt(facts, `work.byYears.${i}.runOutAge`), '.'])]));
@@ -223,8 +223,8 @@ export function sentencesFor(result, facts) {
     out.fall = S('d.fall', ['If shares fell by a fifth tomorrow and you kept the same mix, ', M('spend.perMonth'), ' a month lasted ', ...lastedWords(f.lasted), '. ',
       ...(fLasts ? [...BAD_CAP, ' it still lasted ', ...untilEnd(facts), '.'] : [...BAD_CAP, ' it would run out ', ...runOutAt(facts, 'fall.runOutAge'), '.'])]);
     out.fallCareful = f.drop > 0
-      ? S('d.fall.careful', ['After such a fall, about ', M('fall.monthly.careful'), ' a month lasted ', ...NINE, ': ', M('fall.drop'), ' a month less than now.'])
-      : S('d.fall.careful.same', ['After such a fall, about ', M('fall.monthly.careful'), ' a month lasted ', ...NINE, ', the same as now.']);
+      ? S('d.fall.careful', ['After such a fall, about ', M('fall.monthly'), ' a month lasted ', ...NINE, ': ', M('fall.drop'), ' a month less than now.'])
+      : S('d.fall.careful.same', ['After such a fall, about ', M('fall.monthly'), ' a month lasted ', ...NINE, ', the same as now.']);
     const after = afterPhrase(facts);
     if (after) out.fallUnchanged = S('d.fall.unchanged', [after.charAt(0).toUpperCase() + after.slice(1), ' would not change.']);
   }

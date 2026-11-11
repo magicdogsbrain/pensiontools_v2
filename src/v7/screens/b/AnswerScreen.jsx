@@ -50,8 +50,10 @@ function Answer({ state, dispatch, frame }) {
   const band = result.verdict && result.verdict.band;
   // the verdict headline: every answer but "the State Pension covers it", which says so in a headline of its own words
   const verdict = !!(s.verdictHead && s.verdictLine && s.atAim && VERDICTS.includes(band));
-  const hasNumber = !!(s.head && s.line && result.number && isNum(result.number.careful) && result.number.careful > 0);
-  const noPot = !hasNumber && !!(s.head && s.line) && (result.status === 'guaranteed-only' || result.number === null || result.number.careful === 0);
+  const pot = result.levels && result.levels[result.level] ? result.levels[result.level].pot : null;
+  const hasNumber = !!(s.head && s.line && isNum(pot) && pot > 0);
+  const noPot = !hasNumber && !!(s.head && s.line) && (result.status === 'guaranteed-only' || pot === null || pot === 0);
+  const NK = `levels.${result.level || 'balanced'}.pot`;
   const sameAsLine = (x) => !!(x && s.line && x.text === s.line.text);
   const onCourse = result.onCourse === true;
   // spending that changes with age (spending-shape.md 7.2): said once, after the first headline's sentence that names the spending
@@ -93,11 +95,11 @@ function Answer({ state, dispatch, frame }) {
   // the guide number, a smaller block of its own and never a second headline (the reviewers' finding, 1 Oct 2026): with
   // the sentence that says why the pot and the pay-in are not to be added up; no pension pot needed, or none enough, in words
   const guide = verdict && (hasNumber || noPot) && (
-    <section class="block guide" data-guide={hasNumber ? 'number.careful' : 'none'} aria-labelledby="guide-title">
+    <section class="block guide" data-guide={hasNumber ? NK : 'none'} aria-labelledby="guide-title">
       <h2 id="guide-title" class="guide-title">{B.answer.guideTitle}</h2>
       <Sentence s={s.head} source={result} class="guide-figure" />
       <Sentence s={s.sub} source={result} class="figure-sub" />
-      <Sentence s={s.line} source={result} class="line" data-sentence={hasNumber ? 'number.careful' : undefined} />
+      <Sentence s={s.line} source={result} class="line" data-sentence={hasNumber ? NK : undefined} />
       <Sentence s={s.bad} source={result} class="bad" />
       {hasNumber && s.guide && <Sentence s={s.guide} source={result} class="guide-why" data-testid="b.guide.why" />}
       {s.outside && <Sentence s={s.outside} source={result} class="outside" />}

@@ -54,7 +54,7 @@ describe('A → C: C shows A\'s careful figure for the age shown', () => {
     expect(hand, 'these households ask C nothing beyond it, at an age C takes').toEqual({ ok: true, same: true });
     const c = carriedToC(state, 'a');
     expect(c.status).toBe('ok');
-    expect(c.monthly.careful, name).toBe(result.shown.monthly.careful);
+    expect(c.levels.balanced.monthly, name).toBe(result.shown.levels.balanced.monthly);
   });
 });
 
@@ -70,6 +70,6 @@ describe('B → C: C shows what B says the pay-in now gives from the stop age', 
     expect(hand).toEqual({ ok: true, same: true });
     const c = carriedToC(state, 'b');
     expect(c.status).toBe('ok');
-    expect(c.monthly.careful, name).toBe(result.monthlyIfShort);
+    expect(c.levels.balanced.monthly, name).toBe(result.monthlyIfShort);
   });
 });

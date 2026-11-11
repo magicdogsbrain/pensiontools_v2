@@ -200,8 +200,8 @@ describe('D: the answer step', () => {
     const line = one(root, 'd.answer.headroom');
     expect(line.textContent).toBe(r.sentences.headroom.text);
     expect(line.getAttribute('data-headroom')).toBe(r.headroom.kind);
-    expect(block.textContent).toContain(r.sentences.middling.text);
-    expect(block.textContent).toContain(r.sentences.good.text);
+    // (7.8.0: the other two levels, in place of the count's middling and good amounts)
+    expect(block.textContent).toContain(r.sentences.levels.text);
     expect(one(root, 'd.more.key').textContent).toBe(D.answer.moreNote);
     // the headroom never contradicts the verdict (answer-D.md 3.4)
     if (r.verdict === 'yes') expect(['more', 'about']).toContain(r.headroom.kind);
@@ -301,7 +301,7 @@ describe('D: the levers, tried on the answer\'s own lives (answer-D.md 3.6, 3.7)
     expect(press(on, 'd.lever.fall.off')).toEqual([set('fall.has', false)]);
     // a fall never raises the share that lasted (answer-D.md 3.7)
     expect(r.fall.lasted).toBeLessThanOrEqual(r.lasted);
-    expect(r.fall.monthly.careful).toBeLessThanOrEqual(r.monthly.careful);
+    expect(r.fall.monthly).toBeLessThanOrEqual(r.levels.balanced.monthly);
   });
   it('a lever not opened costs nothing: the answer without a lever holds no work and no fall', () => {
     const r = load('answer-D1').answers.d.result;

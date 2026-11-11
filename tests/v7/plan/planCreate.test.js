@@ -153,7 +153,7 @@ describe('an account: one addDoc of the planner\'s own document, after a fresh r
     const p = page('b', 'answer-B1', { raws: [] });
     const state = p.store.getState();
     const r = state.answers.b.result;
-    const nine = r.enough.nineInTen;
+    const nine = r.enough.atLevel;
     const view = keepView(state, 'b');
     expect(view.payIn).toMatchObject({ how: 'pounds' });
     // the seed the effect must build: the answer at the figure that would be on course, the name following it (left as suggested)
@@ -170,7 +170,8 @@ describe('an account: one addDoc of the planner\'s own document, after a fresh r
     const ac = written.accumulationTool.settings;
     expect(ac.employerMonthly).toBe(nine.employer);
     expect(ac.netMonthly).toBe(Math.round(nine.own * 0.8 * 100) / 100);
-    expect(written.fromAnswer.answer).toMatchObject({ lasted: nine.lasted, verdict: 'yes' });
+    // (seed version 4, 7.8.0: the level's answer row, the count at the figure that would be on course)
+    expect(written.fromAnswer.answer).toMatchObject({ level: 'balanced', chance: { fixedAge: nine.lasted } });
     expect(written.planDetails.name).toContain('paying £' + (Math.round(nine.payIn / 10) * 10).toLocaleString('en-GB'));
     // the choice is spent with the keep: the next one asks again
     expect('payIn' in p.store.getState().keep.b).toBe(false);

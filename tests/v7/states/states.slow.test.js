@@ -40,7 +40,7 @@ for (const q of ['a', 'b', 'd']) {
  */
 describe('B1 — the apart states give the same figures with either of you as "you"', () => {
   const load = (name) => JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/states/c', `${name}.json`), 'utf8'));
-  const figures = (r) => ({ status: r.status, monthly: r.monthly, yearly: r.yearly, lasted: r.lasted, runOutAge: r.runOutAge, guaranteed: r.guaranteed,
+  const figures = (r) => ({ status: r.status, levels: r.levels, chance: r.chance, guaranteed: r.guaranteed,
     years: r.basis.years, endAge: r.basis.endAge, payIn: r.payIn.total, takeHome: r.phases.map((ph) => ph.takeHome) });
 
   it('numbers-apart holds the very figures answer-apart was worked out from', () => {

@@ -23,7 +23,7 @@ describe('SCHEMA_D — the declaration', () => {
   it('has id d and unique paths, and holds no words', () => {
     expect(SCHEMA_D.id).toBe('d');
     expect(byPath.size).toBe(SCHEMA_D.fields.length);
-    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options'];
+    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options', 'legacy'];
     for (const f of SCHEMA_D.fields) expect(Object.keys(f).filter((k) => !allowed.includes(k)), f.path).toEqual([]);
   });
   it.each(SCHEMA_D.fields.map((f) => [f.path, f]))('%s has a type, a group, and limits or options', (_p, f) => {

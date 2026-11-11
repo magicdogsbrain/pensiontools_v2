@@ -1,6 +1,6 @@
 /**
  * The spending shape in words (research/v7/spending-shape.md 7.1, 7.2): a list of steps — as typed (select.js
- * shapeView(…).list) or as an answer carries it (result.spendShape, result.shapeAt.careful) — written the language
+ * shapeView(…).list) or as an answer carries it (result.spendShape, result.shapeAt[result.level]) — written the language
  * guide's way: "£2,500 a month from 62, £2,130 from 75 and £1,750 from 85"; with a fall or a move, "…; £3,000 from 75,
  * falling 2% a year to £2,501 at 84; and £2,000 from 85". The figures are the list's own; nothing is worked out here.
  *

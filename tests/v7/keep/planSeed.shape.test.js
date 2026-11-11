@@ -65,21 +65,21 @@ const CASES = [
 
 describe('K-SS1 — the seed of a shaped answer', () => {
   it('version 3 only with a shape: the same answer flat is version 2', () => {
-    expect(SEED_VERSION).toBe(2);
-    expect(SEED_VERSION_SHAPE).toBe(3);
+    expect(SEED_VERSION).toBe(4);                                        // 7.8.0: the level's answer row
+    expect(SEED_VERSION_SHAPE).toBe(5);
     const { shape, ...flat } = C_IN;
     void shape;
-    expect(seedOf('c', answerC(flat, ENV)).seedVersion).toBe(2);
-    expect(seedOf('c', answerC(C_IN, ENV)).seedVersion).toBe(3);
+    expect(seedOf('c', answerC(flat, ENV)).seedVersion).toBe(4);
+    expect(seedOf('c', answerC(C_IN, ENV)).seedVersion).toBe(5);
   });
 
   it.each(CASES)('%s %s: spend.shape as tested, and every year\'s row', (q, _name, make) => {
     const r = make();
     expect(r.status).toBe('ok');
     const seed = seedOf(q, r);
-    expect(seed.seedVersion).toBe(3);
+    expect(seed.seedVersion).toBe(5);
     expect(seed.spend.shape.unit).toBe('perMonth');
-    if (q === 'c') seed.spend.shape.steps.forEach((s, i) => expect(s.perMonth).toBe(Math.round(r.monthly.careful * r.inputs.shape.steps[i].share) / 100));
+    if (q === 'c') seed.spend.shape.steps.forEach((s, i) => expect(s.perMonth).toBe(Math.round(r.levels.balanced.monthly * r.inputs.shape.steps[i].share) / 100));
     else expect(seed.spend.shape.steps.map((s) => s.perMonth)).toEqual(r.inputs.spend.steps.map((s) => s.perMonth));
     const couple = seed.household === 'couple';
     for (const p of seed.people) {
@@ -135,7 +135,7 @@ describe('K-SS2, K-SS3, K-SS4 — today\'s planner targets the answer\'s amount 
     const S = seedToScenario(seed, DAY).yours.stressTool.settings;
     const checked = checkInputs(SCHEMA_C, C_FALLS, ENV);
     const plan = enginePlan(toHouseholdC(checked.inputs, ENV).household, ENV);
-    const [run] = configsAt(plan, r.monthly.careful * 12);
+    const [run] = configsAt(plan, r.levels.balanced.monthly * 12);
     const compiled = compileSteps(S, S.shapeAgeNow);
     let compared = 0;
     for (let y = 0; y < plan.years; y++) {
@@ -250,7 +250,7 @@ describe('K-SS5 — compressSteps: the fewest of today\'s steps, exact', () => {
 
 describe('K-SS6 — who reads version 3', () => {
   it('today\'s planner reads 1, 2 and 3; a bad shape is refused; a planner that reads only 1 refuses 3', () => {
-    expect(SEED_VERSIONS).toEqual([1, 2, 3]);
+    expect(SEED_VERSIONS).toEqual([1, 2, 3, 4, 5]);
     const seed = seedOf('c', answerC(C_IN, ENV));
     expect(checkSeed(seed, NOW_MS)).toEqual({ ok: true });
     const bad = JSON.parse(JSON.stringify(seed));

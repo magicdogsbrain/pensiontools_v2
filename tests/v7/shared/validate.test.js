@@ -79,12 +79,12 @@ describe('parseDraft — text as typed', () => {
   });
 
   it('usedDefault lists every default that was used, and not the ones typed over', () => {
-    expect(parse().usedDefault).toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'savings', 'risk', 'charge', 'endAge']);
+    expect(parse().usedDefault).toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'savings', 'risk', 'charge', 'endAge', 'confidence']);
     // (savings typed: how they grow is then asked, and "Mostly cash" is its default — 6.22.0)
     expect(parse({ risk: 'cautious', charge: '0.75', endAge: '90', savings: '5000', take: '1500' }).usedDefault)
-      .toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'isaGrowth']);
+      .toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'isaGrowth', 'confidence']);
     expect(parse({ risk: 'cautious', charge: '0.75', endAge: '90', savings: '5000', isaGrowth: 'invested', take: '1500' }).usedDefault)
-      .toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has']);
+      .toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'confidence']);
     expect(parse({ take: '1,500' }).inputs.take).toBe(1500);
     expect(parse().inputs.take).toBeNull();
   });
@@ -301,7 +301,7 @@ describe('defaults by rule: when the money starts', () => {
   it('defaults() lists every default that applies', () => {
     expect(defaults(SCHEMA_C, { 'you.pot': 250000, 'you.age': 50 }, TEST_ENV)).toEqual({
       household: 'single', 'start.kind': 'age', 'start.age': 57, 'you.statePension.kind': 'full', 'you.finalSalary.has': false,
-      savings: 0, risk: 'balanced', charge: 0.5, endAge: 95, take: null
+      savings: 0, risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'balanced', take: null
     });
     expect(defaults(SCHEMA_C, { household: 'couple' }, TEST_ENV)).toMatchObject({ 'partner.pot': 0, 'partner.statePension.kind': 'full' });
     expect(defaults(SCHEMA_C, {}, TEST_ENV)['start.kind']).toBe('now');   // no age yet: nothing to work it out from

@@ -690,6 +690,9 @@ describe('7 — today, byte for byte', () => {
   // door's colour, the picture and tiles straight under the verdict, C's "Taking £…" in the slider's card, the slider's
   // figure beside its label, and every question answer inside the box that holds a first answer behind the ring — so the
   // same states were re-pinned once more (V7_PIN_TODAY=1, V7_PIN_SCREENS=1); no figure moved
+  // …and 7.8.0 step 4a (the levels): every answer reads its figure at levels[level] — the same figure, Balanced being the
+  // careful amount before 7.8.0 — the count's middling and best-1-in-10 amounts leave the range lines, D's "Could I spend
+  // more?" names the other two levels, and the numbers steps gain "How careful?"; re-pinned (V7_PIN_TODAY=1, V7_PIN_SCREENS=1)
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]'];
   const hash = (html) => createHash('sha256').update(html).digest('hex').slice(0, 32);

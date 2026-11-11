@@ -15,6 +15,7 @@
  *   9  "420k", "0.42m", "£420,000" and "420 000" are all £420,000
  *  10  a State Pension already being paid: "check what you are paid", not a forecast
  */
+import { monthlyOf, fixedAgeOf } from '../shared/levelsOf.mjs';
 import { describe, it, expect } from 'vitest';
 import { SCHEMA_C, TEST_ENV } from './_c.js';
 import { answerC, checkAnswer } from './invariants.js';
@@ -98,10 +99,10 @@ describe('2 a couple with one partner under the earliest pension age', () => {
     const none = ok(answerC({ ...inputs, partner: { age: 50, pot: 0 } }, ENV));
     const one = ok(answerC({ ...inputs, partner: { age: 50, pot: 1 } }, ENV));
     const some = ok(answerC(inputs, ENV));
-    for (const k of ['careful', 'middling', 'good']) {
-      expect(one.monthly[k] - none.monthly[k], k).toBeGreaterThanOrEqual(0);
-      expect(one.monthly[k] - none.monthly[k], k).toBeLessThanOrEqual(10);
-      expect(some.monthly[k], k).toBeGreaterThanOrEqual(one.monthly[k]);
+    for (const k of ['careful', 'balanced', 'bold']) {
+      expect(one.levels[k].monthly - none.levels[k].monthly, k).toBeGreaterThanOrEqual(0);
+      expect(one.levels[k].monthly - none.levels[k].monthly, k).toBeLessThanOrEqual(10);
+      expect(some.levels[k].monthly, k).toBeGreaterThanOrEqual(one.levels[k].monthly);
     }
     expect(none.basis.start).toBe(one.basis.start);
     expect(warning(none, 'pension-locked-partner')).toBeUndefined();
@@ -132,13 +133,13 @@ describe('2 a couple with one partner under the earliest pension age', () => {
     // their own, and cash falls behind prices (exceptions.md, "Savings held as cash beside a closed pension"). Invested
     // like the pension, they lower none of the three.
     expect(a.inputs.isaGrowth).toBe('cash');
-    expect(a.monthly.careful).toBeGreaterThanOrEqual(without.monthly.careful);
+    expect(a.levels.balanced.monthly).toBeGreaterThanOrEqual(without.levels.balanced.monthly);
     const invested = ok(answerC({ ...withSavings, isaGrowth: 'invested' }, ENV), { ...withSavings, isaGrowth: 'invested' });
-    for (const k of ['careful', 'middling', 'good']) expect(invested.monthly[k], k).toBeGreaterThanOrEqual(without.monthly[k]);
+    for (const k of ['careful', 'balanced', 'bold']) expect(invested.levels[k].monthly, k).toBeGreaterThanOrEqual(without.levels[k].monthly);
     // a partner with savings and no pension is the same household as one with savings and a £1 pension
     const none = ok(answerC({ ...withSavings, partner: { age: 50, pot: 0 } }, ENV));
     const one = ok(answerC({ ...withSavings, partner: { age: 50, pot: 1 } }, ENV));
-    for (const k of ['careful', 'middling', 'good']) { expect(one.monthly[k] - none.monthly[k], k).toBeGreaterThanOrEqual(0); expect(one.monthly[k] - none.monthly[k], k).toBeLessThanOrEqual(10); }
+    for (const k of ['careful', 'balanced', 'bold']) { expect(one.levels[k].monthly - none.levels[k].monthly, k).toBeGreaterThanOrEqual(0); expect(one.levels[k].monthly - none.levels[k].monthly, k).toBeLessThanOrEqual(10); }
   });
 
   it('the household model: the start waits only while every pension is closed', () => {
@@ -214,20 +215,20 @@ describe('3 no pot to draw on', () => {
     expect(a.status).toBe('guaranteed-only');
     const g = a.guaranteed.monthlyAfterTax;
     expect(g).toBeCloseTo(1045.63, 2);
-    expect(a.monthly).toEqual({ careful: g, middling: g, good: g });
-    expect(a.yearly.careful).toBeCloseTo(g * 12, 2);
+    expect(monthlyOf(a)).toEqual({ careful: g, balanced: g, bold: g });
+    expect(a.levels.balanced.yearly).toBeCloseTo(g * 12, 2);
     expect(a.phases.map((p) => p.takeHome)).toEqual([0, g]);
-    expect(a.sentences.head.parts).toEqual([{ key: 'monthly.careful', kind: 'money' }, ' a month']);
+    expect(a.sentences.head.parts).toEqual([{ key: 'levels.balanced.monthly', kind: 'money' }, ' a month']);
     expect(a.sentences.head.text).toBe('£1,046 a month');
     expect(a.sentences.sub.text).toBe('after tax, from age 67 until you are 95, going up each year with prices');
-    expect(a.sentences.range.text).toBe('Careful, middling and good are all the same here: £1,046 a month.');
+    expect(a.sentences.range.text).toBe('Careful, Balanced and Bold are all the same here: £1,046 a month.');
     expect(a.sentences.nothing.text).toBe('There is no pot to draw on, so this is your State Pension only: £1,046 a month after tax.');
   });
 
   it('68, already paid: the same field, from now', () => {
     const a = ok(answerC({ you: { pot: 0, age: 68 } }, ENV));
-    expect(a.monthly.careful).toBe(a.guaranteed.monthlyAfterTax);
-    expect(a.phases[0].takeHome).toBe(a.monthly.careful);
+    expect(a.levels.balanced.monthly).toBe(a.guaranteed.monthlyAfterTax);
+    expect(a.phases[0].takeHome).toBe(a.levels.balanced.monthly);
     expect(a.sentences.sub.text).toBe('after tax, from now until you are 95, going up each year with prices');
   });
 });
@@ -314,8 +315,8 @@ describe('5 savings', () => {
 describe('6 the guaranteed floor', () => {
   it('£1,000 at 66: the careful amount is the State Pension rounded down to £10, a whole £10 like every other amount', () => {
     const a = ok(answerC({ you: { pot: 1000, age: 66 } }, { ...ENV, trace: true }));
-    expect(a.monthly.careful).toBe(1040);
-    for (const k of ['careful', 'middling', 'good']) expect(a.monthly[k] % 10).toBe(0);
+    expect(a.levels.balanced.monthly).toBe(1040);
+    for (const k of ['careful', 'balanced', 'bold']) expect(a.levels[k].monthly % 10).toBe(0);
     expect(a.phases[0].takeHome).toBeCloseTo(1045.63, 2);
     expect(a.sentences.head.text).toBe('About £1,040 a month');
     expect(checkTrace(a)).toEqual([]);
@@ -356,14 +357,14 @@ describe('8 a final-salary pension rises with prices up to 5% a year', () => {
     const large = ok(answerC({ you: { pot: 100000, age: 60, finalSalary: { has: true, yearly: 20000, fromAge: 60 } } }, ENV));
     const floor = ok(answerC({ you: { pot: 0, age: 60, finalSalary: { has: true, yearly: 20000, fromAge: 60 } } }, ENV)).phases[0].takeHome;   // the pension alone, before the State Pension
     expect(floor).toBeCloseTo(1542.83, 1);                               // £20,000 less tax on it, a month
-    expect(small.monthly.careful).toBeGreaterThan(floor + 100);
-    expect(large.monthly.careful).toBeGreaterThan(small.monthly.careful + 300);
+    expect(small.levels.balanced.monthly).toBeGreaterThan(floor + 100);
+    expect(large.levels.balanced.monthly).toBeGreaterThan(small.levels.balanced.monthly + 300);
     // the review's counterexample: a £100 pension from 60 beside a £1 pot must not sink the household
     const base = { household: 'couple', you: { pot: 1, age: 18 }, start: { kind: 'now' }, partner: { age: 18, pot: 150000 }, endAge: 75 };
     const more = { ...base, you: { ...base.you, finalSalary: { has: true, yearly: 100, fromAge: 60 } } };
     const a = ok(answerC(base, ENV), base);
     const b = ok(answerC(more, ENV), more);
-    for (const k of ['careful', 'middling', 'good']) expect(b.monthly[k], k).toBeGreaterThanOrEqual(a.monthly[k]);
+    for (const k of ['careful', 'balanced', 'bold']) expect(b.levels[k].monthly, k).toBeGreaterThanOrEqual(a.levels[k].monthly);
   });
 });
 

@@ -39,15 +39,19 @@ import { toHousehold as toHouseholdB } from '../b/toHousehold.js';
 import { toHousehold as toHouseholdD } from '../d/toHousehold.js';
 import { stopsOf } from '../shared/household.js';
 import { payInParts } from '../shared/schemaParts.js';
-import { firstAccessAge, addYears, legacyVerdictOf, RULES } from '../shared/rules.js';
+import { firstAccessAge, addYears, RULES, LEVEL_DEFAULT } from '../shared/rules.js';
+import { shownOf } from '../shared/levels.js';
 import { suggestedPlanName, checkPlanName } from '../shared/planName.js';
 import { checkSheet, sheetForSeed } from './budgetSheet.js';
 
 export const SEED_KEY = 'pt_v7_plan_seed';
-/** 2 from 6.20.0: each person at their own stop. Today's planner still reads 1 (src/services/PlanSeed.js). */
-export const SEED_VERSION = 2;
-/** 3: what is spent changes with age — written only then (spending-shape.md 8.1); a flat spend is version 2. */
-export const SEED_VERSION_SHAPE = 3;
+/**
+ * 4 from 7.8.0: the answer row is the level's (`answer: { level, levelChosen, shown, chance }`). 2 (6.20.0, each person
+ * at their own stop) and 1 are still read (src/services/PlanSeed.js), as written.
+ */
+export const SEED_VERSION = 4;
+/** 5 from 7.8.0 (3 before): what is spent changes with age — written only then (spending-shape.md 8.1); a flat spend is 4. */
+export const SEED_VERSION_SHAPE = 5;
 /** A seed older than this is discarded unread (Contract C.2). */
 export const SEED_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 /**
@@ -74,14 +78,14 @@ export function keepable(source, result) {
   if (!result.inputs || !result.inputs.you || !result.basis) return { ok: false, why: 'noAnswer' };
   if (source === 'c') {
     if (result.closedYears) return { ok: false, why: 'closedYears' };
-    if (!result.monthly || !isNum(result.monthly.careful) || !isNum(result.basis.startAge)) return { ok: false, why: 'noAnswer' };
+    if (!shownOf(result) || !isNum(shownOf(result).monthly) || !isNum(result.basis.startAge)) return { ok: false, why: 'noAnswer' };
   } else if (source === 'a') {
     if (!result.shown || !isNum(result.shown.age) || !result.spend) return { ok: false, why: 'noAnswer' };
   } else if (source === 'b') {
     if (!result.stop || !isNum(result.stop.age) || !result.spend) return { ok: false, why: 'noAnswer' };
   } else if (source === 'd') {
     // D (answer-D.md 10): from today, the spend tried; a "no" is still a try, as A's is
-    if (!result.spend || !isNum(result.spend.perMonth) || !result.monthly || !isNum(result.basis.endAge)) return { ok: false, why: 'noAnswer' };
+    if (!result.spend || !isNum(result.spend.perMonth) || !shownOf(result) || !isNum(shownOf(result).monthly) || !isNum(result.basis.endAge)) return { ok: false, why: 'noAnswer' };
   } else return { ok: false, why: 'noAnswer' };
   return { ok: true };
 }
@@ -179,7 +183,7 @@ function seedShapeOf(source, result) {
   const inputs = result.inputs;
   const base = source === 'c' ? inputs.shape : inputs.spend;
   if (!base || typeof base !== 'object') return null;
-  const careful = source === 'c' ? result.monthly.careful : null;
+  const careful = source === 'c' ? shownOf(result).monthly : null;
   const all = (Array.isArray(base.steps) ? base.steps : []).map((x) => ({
     fromAge: x.fromAge, perMonth: source === 'c' ? round2(careful * x.share / 100) : x.perMonth, ...thenOf(x)
   }));
@@ -283,30 +287,21 @@ function personOf({ source, result, today, who, index, stop, years, household, c
   };
 }
 
-/** The answer's key figures, by question (Contract C.1, the `answer` row). */
+/**
+ * The answer's key figures (Contract C.1, the `answer` row; seed version 4 from 7.8.0): the level, whether the person
+ * chose it (a level other than Balanced can only have been chosen), the figures of that level in the answer's own kind
+ * (shownOf: C and D a month, A the stop age, B the pot and the pay-in) and the chance of the figure shown, with the age
+ * it is counted to. Older seeds keep the row they were written with (PlanFromSeed.js reads both).
+ */
 function answerOf(source, result) {
-  const three = (t) => (t && isNum(t.careful) ? { careful: t.careful, middling: t.middling, good: t.good } : null);
-  const pots = (t) => (t && isNum(t.careful) ? { careful: pounds(t.careful), middling: pounds(t.middling) } : null);
-  if (source === 'c') {
-    return { monthly: three(result.monthly), lasted: result.lasted.careful, runOutAge: result.runOutAge.careful, verdict: null,
-      potAtStop: pots(result.potAtStart), number: null, payInNeeded: null };
-  }
-  if (source === 'a') {
-    const s = result.shown;
-    return { monthly: three(s.monthly), lasted: s.lasted, runOutAge: s.runOutAge, verdict: s.verdict, potAtStop: pots(s.potAtStop), number: null, payInNeeded: null };
-  }
-  if (source === 'd') {
-    return { monthly: three(result.monthly), lasted: result.lasted, runOutAge: result.runOutAge, verdict: result.verdict, potAtStop: null, number: null, payInNeeded: null };
-  }
-  const chance = result.chance || {};
+  const level = result.level || LEVEL_DEFAULT;
+  const ch = result.chance || {};
+  const num = (v) => (isNum(v) ? v : null);
   return {
-    monthly: null,
-    lasted: isNum(chance.lasted) ? chance.lasted : null,
-    runOutAge: result.wholeLife && isNum(result.wholeLife.runOutAge) ? result.wholeLife.runOutAge : null,
-    verdict: isNum(chance.fails) && isNum(result.basis.futures) ? legacyVerdictOf(chance.fails, result.basis.futures) : null,
-    potAtStop: pots(result.potAtStop && result.potAtStop.now),
-    number: three(result.number),
-    payInNeeded: result.payIn && isNum(result.payIn.needed) ? result.payIn.needed : null
+    level,
+    levelChosen: level !== LEVEL_DEFAULT,
+    shown: copy(shownOf(result) || {}),
+    chance: { weighted: num(ch.weighted), fixedAge: num(ch.fixedAge), planToAge: num(ch.planToAge) }
   };
 }
 
@@ -361,7 +356,7 @@ export function buildPlanSeed({ source, result: asked, env, name, budget = null,
   const ownYears = (w) => (apart ? years - (S[w] - stop.yearsFromNow) : years);
 
   const spend = source === 'c'
-    ? { perMonth: result.monthly.careful, from: 'careful', level: null, budgetSkipped: null }
+    ? { perMonth: shownOf(result).monthly, from: 'careful', level: null, budgetSkipped: null }
     : {
       perMonth: spendStartOf(result),
       from: result.spend.kind === 'level' ? 'level' : spendHow === 'lines' ? 'budget' : 'typed',
@@ -408,14 +403,14 @@ export function buildPlanSeed({ source, result: asked, env, name, budget = null,
 /**
  * B's answer as if it had been asked paying in what would be on course (research/saving-enough-and-check-in.md 3.6:
  * "Keep: paying in 31% (on course)"), from the figures B worked out with the answer at exactly that pay-in
- * (result.enough.nineInTen, whose count B asked again there): each person's pay-in in their own kind (a share stays a
+ * (result.enough.atLevel, whose count B asked again there): each person's pay-in in their own kind (a share stays a
  * share), what goes into savings a month, each one's pension and savings at the stop, the count and the bad case's age.
  * So the seed keeps what the screen said, and has the same keys as one kept paying in as now: nothing new is stored.
  * null when the answer is on course already, or has no such figure.
  */
 export function atEnough(result) {
   const en = result && result.enough;
-  const fig = en && result.verdict && result.verdict.band !== 'yes' ? en.nineInTen : null;
+  const fig = en && result.verdict && result.verdict.band !== 'yes' ? en.atLevel : null;
   if (!fig || !Array.isArray(fig.parts) || !Array.isArray(result.saving)) return null;
   const out = JSON.parse(JSON.stringify(result));
   const inputs = out.inputs;
@@ -432,8 +427,9 @@ export function atEnough(result) {
     if (part.atStop) saving.potAtStop = { ...saving.potAtStop, pension: part.atStop.pension, savings: part.atStop.savings };
   }
   if (isNum(fig.savingsIn)) inputs.savingsIn = fig.savingsIn;
-  out.chance = { lasted: fig.lasted, outOfTen: fig.outOfTen, fails: fig.fails };
-  out.onCourse = fig.fails <= result.basis.failuresAllowed;
+  out.chance = { ...out.chance, weighted: fig.weighted ?? fig.lasted, fixedAge: fig.lasted, fails: fig.fails };
+  // on course at the figure that would be enough: the count B asked again there is within the level's twentieths
+  out.onCourse = fig.fails <= Math.floor((result.basis.levelFails20 * result.basis.futures) / 20);
   out.wholeLife = { ...out.wholeLife, lasted: fig.lasted, outOfTen: fig.outOfTen, runOutAge: fig.runOutAge };
   if (fig.potAtStop) out.potAtStop = { ...out.potAtStop, now: fig.potAtStop };
   out.payIn = { ...out.payIn, now: fig.payIn };

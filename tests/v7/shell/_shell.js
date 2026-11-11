@@ -24,7 +24,9 @@ export const onAnswer = (state) => reduce(state, { type: A.ROUTE_SET, route: rou
 /** A result that looks like an answer, without running anything. */
 export const result = (careful = 1380, extra = {}) => ({
   status: 'ok',
-  monthly: { careful, middling: careful + 210, good: careful + 480 },
+  // (7.8.0: the three levels; `careful` here is the level chosen's, Balanced)
+  level: 'balanced',
+  levels: { careful: { monthly: careful - 60 }, balanced: { monthly: careful }, bold: { monthly: careful + 210 } },
   basis: { historyEnd: '2025-12' },
   ...extra
 });

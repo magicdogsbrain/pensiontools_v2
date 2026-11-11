@@ -3,6 +3,7 @@
  * returning exactly 0%, the pots held as cash (env.mix), so the sums can be done by hand. "0% on everything" includes the
  * fund and platform charge (`charge: 0`, 6.19.0); CF8 puts one back and does the sum with it.
  */
+import { monthlyOf, fixedAgeOf } from '../shared/levelsOf.mjs';
 import { describe, it, expect } from 'vitest';
 import { TEST_ENV } from './_c.js';
 import { answerC, checkAnswer } from './invariants.js';
@@ -18,8 +19,8 @@ describe('closed forms: a flat future, 0% on everything, all in cash', () => {
     expect(a.status).toBe('ok');
     expect(checkAnswer(a)).toEqual([]);
     expect(a.basis.years).toBe(30);
-    expect(a.monthly).toEqual({ careful: 830, middling: 830, good: 830 });        // 833.33 rounded down to £10
-    expect(a.lasted).toEqual({ careful: 1, middling: 1, good: 1 });
+    expect(monthlyOf(a)).toEqual({ careful: 830, balanced: 830, bold: 830 });        // 833.33 rounded down to £10
+    expect(fixedAgeOf(a)).toEqual({ careful: 1, balanced: 1, bold: 1 });
     expect(a.phases).toHaveLength(1);
     expect(a.phases[0].tax).toBe(0);
     expect(a.phases[0].takeHome).toBe(830);
@@ -40,8 +41,8 @@ describe('closed forms: a flat future, 0% on everything, all in cash', () => {
   it('CF2 the same with tax: £603,360 → £20,112 a year, tax £502.80, £1,634.10 in the pocket → £1,630', () => {
     const a = answerC({ charge: 0, you: { pot: 603360, age: 65, statePension: NO_SP } }, FLAT);
     expect(checkAnswer(a)).toEqual([]);
-    expect(a.monthly.careful).toBe(1630);
-    expect(a.monthly.good).toBe(1630);
+    expect(a.levels.balanced.monthly).toBe(1630);
+    expect(a.levels.bold.monthly).toBe(1630);
     // At the exact figure the search stops at: gross G with 0.85G + 2,514 = 19,560 → G = 20,054.12, tax £494.12
     const ph = a.phases[0];
     expect(ph.takeHome).toBe(1630);
@@ -70,7 +71,7 @@ describe('closed forms: a flat future, 0% on everything, all in cash', () => {
     expect(a.status).toBe('guaranteed-only');
     expect(checkAnswer(a)).toEqual([]);
     const sp = Math.round((RULES.fullStatePensionWeekly * 52) / 12 * 100) / 100;
-    expect(a.monthly).toEqual({ careful: sp, middling: sp, good: sp });
+    expect(monthlyOf(a)).toEqual({ careful: sp, balanced: sp, bold: sp });
     expect(a.phases).toHaveLength(1);
     expect(a.phases[0].tax).toBe(0);
     expect(a.phases[0].fromPots).toBe(0);
@@ -96,7 +97,7 @@ describe('closed forms: a flat future, 0% on everything, all in cash', () => {
     const a = answerC({ charge: 0, you: { pot: 0, age: 60, statePension: NO_SP } }, FLAT);
     expect(a.status).toBe('none');
     expect(checkAnswer(a)).toEqual([]);
-    expect(a.monthly).toEqual({ careful: 0, middling: 0, good: 0 });
+    expect(monthlyOf(a)).toEqual({ careful: 0, balanced: 0, bold: 0 });
     expect(a.guaranteed.monthlyAfterTax).toBe(0);
     expect(a.sentences.nothing.id).toBe('c.nothing');
     expect(a.sentences.line.id).toBe('c.nothing');
@@ -108,7 +109,7 @@ describe('closed forms: a flat future, 0% on everything, all in cash', () => {
     const one = answerC({ charge: 0, you: { pot: 300000, age: 65, statePension: NO_SP } }, FLAT);
     const two = answerC({ charge: 0, household: 'couple', you: { pot: 300000, age: 65, statePension: NO_SP }, partner: { pot: 300000, age: 65, statePension: NO_SP } }, FLAT);
     expect(checkAnswer(two)).toEqual([]);
-    expect(two.monthly).toEqual({ careful: 1660, middling: 1660, good: 1660 });
+    expect(monthlyOf(two)).toEqual({ careful: 1660, balanced: 1660, bold: 1660 });
     expect(two.phases[0].takeHome).toBe(2 * one.phases[0].takeHome);
     expect(two.phases[0].fromPension).toBeCloseTo(2 * one.phases[0].fromPension, 2);
     expect(two.basis.split).toEqual([{ who: 'you', share: 0.5 }, { who: 'partner', share: 0.5 }]);
@@ -125,7 +126,7 @@ describe('closed forms: a flat future, 0% on everything, all in cash', () => {
     const Q = Math.pow(1 - c / 100, 1 / 12);
     const D = 300000 * Math.pow(Q, 360) * (1 - Q) / (1 - Math.pow(Q, 360));
     expect(Math.floor(D / 10) * 10).toBe(want);
-    expect(a.monthly).toEqual({ careful: want, middling: want, good: want });
+    expect(monthlyOf(a)).toEqual({ careful: want, balanced: want, bold: want });
     expect(a.phases[0].tax).toBe(0);
     const r = rows(a);
     expect(r).toHaveLength(360);

@@ -422,7 +422,7 @@ describe('14 — B when no pension pot is needed, or none is enough', () => {
   it('a £0 number: a headline in words, no "£0" as a target, and no number headline to key', () => {
     const state = load('b', 'answer-B2-on-course');
     const r = state.answers.b.result;
-    r.number = { careful: 0, middling: 0, good: 0, byPerson: [{ who: 'you', pot: 0 }] };
+    r.levels = { careful: { pot: 0 }, balanced: { ...r.levels.balanced, pot: 0, byPerson: [{ who: 'you', pot: 0 }] }, bold: { pot: 0 } };
     r.sentences.head = sentence('b.head.zero', 'No pension pot is needed for that a month');
     r.sentences.line = sentence('b.line.zero', 'Your savings and State Pension already pay for this: nothing more is needed in your pension.');
     r.sentences.sub = sentence('b.sub.zero', 'your savings and State Pension pay for it after tax from then, going up each year with prices');
@@ -430,7 +430,7 @@ describe('14 — B when no pension pot is needed, or none is enough', () => {
       parts: ['In a bad case (the worst ', { fixed: '1' }, ' in ', { fixed: '10' }, '), as things are now, your money lasts.'] };
     const root = renderScreen(state);
     clean(root, state);
-    expect(root.querySelector('[data-headline="number.careful"]')).toBe(null);
+    expect(root.querySelector('[data-headline="levels.balanced.pot"]')).toBe(null);
     // the verdict is the headline (saving-enough-and-check-in.md 2.3); what pays, in words, is the guide's block below it
     expect(root.querySelector('[data-headline="verdict"]')).not.toBe(null);
     const block = root.querySelector('[data-guide="none"]');
@@ -442,7 +442,7 @@ describe('14 — B when no pension pot is needed, or none is enough', () => {
   it('no pot up to the most we try: the headline says so, and its sentence is said once', () => {
     const state = load('b', 'answer-B1');
     const r = state.answers.b.result;
-    r.number = null;
+    r.levels = { careful: { pot: null }, balanced: { ...r.levels.balanced, pot: null, byPerson: null }, bold: { pot: null } };
     r.status = 'out-of-reach';
     r.sentences.head = sentence('b.head.none', 'More than the most we try');
     r.sentences.none = sentence('b.none.pot', 'No pot we tried paid it. The ways to make it fit are below.');

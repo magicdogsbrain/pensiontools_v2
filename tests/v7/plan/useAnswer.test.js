@@ -93,7 +93,7 @@ describe('useAnswer.js: the answer\'s saving figures onto the plan, nothing else
     const now = answerInPlanPatch(sharePlan, tried, { today: DAY });
     expect(now.patch['accumulationTool.settings']).toMatchObject({ payInKind: 'share', ownPct: 3, employerPct: 4, salary: 38000 });
     expect(now.line.slots.payIn).toMatch(/^7% of your pay \(£\d{3} a month\)$/);
-    if (tried.verdict.band !== 'yes' && tried.enough && tried.enough.nineInTen) {
+    if (tried.verdict.band !== 'yes' && tried.enough && tried.enough.atLevel) {
       const on = answerInPlanPatch(sharePlan, tried, { today: DAY, payIn: 'enough' });
       const a = answerPayInOf(tried, { payIn: 'enough' });
       expect(on.patch['accumulationTool.settings'].ownPct).toBe(a.payIn.ownPct);

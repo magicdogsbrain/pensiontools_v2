@@ -60,7 +60,7 @@
     },
     "b": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"nineInTen\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":0,\"savingsIn\":0,\"spend\":{\"amount\":1810,\"kind\":\"amount\"},\"stop\":{\"age\":63},\"you\":{\"age\":41,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"employerPct\":4,\"kind\":\"share\",\"ownPct\":6,\"pay\":38000},\"pot\":62000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":0,\"savingsIn\":0,\"spend\":{\"amount\":1810,\"kind\":\"amount\"},\"stop\":{\"age\":63},\"you\":{\"age\":41,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"employerPct\":4,\"kind\":\"share\",\"ownPct\":6,\"pay\":38000},\"pot\":62000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -95,7 +95,7 @@
           "risk": "balanced",
           "charge": 0.5,
           "endAge": 95,
-          "confidence": "nineInTen"
+          "confidence": "balanced"
         },
         "whose": "you",
         "spend": {
@@ -162,26 +162,36 @@
             "chargeAYear": 0.005
           }
         ],
-        "number": {
-          "careful": 386000,
-          "middling": 276000,
-          "good": 214000,
-          "byPerson": [
-            {
-              "who": "you",
-              "pot": 386000
-            }
-          ]
+        "level": "balanced",
+        "levels": {
+          "careful": {
+            "pot": 417000
+          },
+          "balanced": {
+            "pot": 386000,
+            "payIn": 980,
+            "byPerson": [
+              {
+                "who": "you",
+                "pot": 386000
+              }
+            ],
+            "weighted": 0.905,
+            "fixedAge": 0.905
+          },
+          "bold": {
+            "pot": 313000
+          }
         },
         "already": false,
         "chance": {
-          "lasted": 0.317,
-          "outOfTen": {
-            "words": "in only 3 futures out of 10",
-            "only": true,
-            "count": 3
-          },
-          "fails": 683
+          "weighted": 0.317,
+          "fixedAge": 0.317,
+          "fails": 683,
+          "n": 1000,
+          "planToAge": 95,
+          "weightToAge": 95,
+          "horizonRule": "survival"
         },
         "onCourse": false,
         "verdict": {
@@ -194,7 +204,6 @@
           }
         },
         "income": {
-          "middling": 1630,
           "bad": 1310
         },
         "gap": {
@@ -220,8 +229,9 @@
           "savingsOnly": false,
           "outOfReach": null,
           "caps": null,
-          "threeInFourNow": false,
-          "nineInTen": {
+          "level": "balanced",
+          "closeNow": false,
+          "atLevel": {
             "payIn": 981.67,
             "extra": 665,
             "savingsIn": null,
@@ -267,53 +277,6 @@
               "middling": 468642,
               "good": 692461
             }
-          },
-          "threeInFour": {
-            "payIn": 696.67,
-            "extra": 380,
-            "savingsIn": null,
-            "own": 570,
-            "employer": 126.67,
-            "ownPct": 18,
-            "employerPct": 4,
-            "totalPct": 22,
-            "parts": [
-              {
-                "who": "you",
-                "payIn": 696.67,
-                "own": 570,
-                "employer": 126.67,
-                "ownPct": 18,
-                "employerPct": 4,
-                "totalPct": 22,
-                "atStop": {
-                  "pension": {
-                    "careful": 245084,
-                    "middling": 366586,
-                    "good": 547974
-                  },
-                  "savings": {
-                    "careful": 0,
-                    "middling": 0,
-                    "good": 0
-                  }
-                }
-              }
-            ],
-            "fails": 241,
-            "lasted": 0.759,
-            "outOfTen": {
-              "words": "in only 8 futures out of 10",
-              "only": true,
-              "count": 8
-            },
-            "verdict": "close",
-            "runOutAge": 84,
-            "potAtStop": {
-              "careful": 245084,
-              "middling": 366586,
-              "good": 547974
-            }
           }
         },
         "payIn": {
@@ -322,11 +285,6 @@
           "employer": 126.67,
           "needed": 980,
           "extra": 663.3299999999999,
-          "confidence": "nineInTen",
-          "at": {
-            "nineInTen": 980,
-            "threeInFour": 690
-          },
           "outside": null,
           "savingsNow": 0
         },
@@ -1166,7 +1124,7 @@
             "id": "confidence",
             "field": "confidence",
             "source": "default",
-            "value": "nineInTen",
+            "value": "balanced",
             "text": "The pay-in that gets there makes your money last in 9 futures out of 10.",
             "parts": [
               "The pay-in that gets there makes your money last ",
@@ -1318,7 +1276,7 @@
             "parts": [
               "About ",
               {
-                "key": "number.careful",
+                "key": "levels.balanced.pot",
                 "kind": "pot"
               },
               " by age ",
@@ -1381,7 +1339,7 @@
               ", ",
               "you would want a pot of about ",
               {
-                "key": "number.careful",
+                "key": "levels.balanced.pot",
                 "kind": "pot"
               },
               " by then",
@@ -1635,28 +1593,28 @@
             "parts": [
               "Paying in ",
               {
-                "key": "enough.nineInTen.totalPct",
+                "key": "enough.atLevel.totalPct",
                 "kind": "pct"
               },
               " of your pay (",
               {
-                "key": "enough.nineInTen.payIn",
+                "key": "enough.atLevel.payIn",
                 "kind": "money"
               },
               " a month)",
               ": ",
               {
-                "key": "enough.nineInTen.potAtStop.careful",
+                "key": "enough.atLevel.potAtStop.careful",
                 "kind": "pot"
               },
               " in a bad case, ",
               {
-                "key": "enough.nineInTen.potAtStop.middling",
+                "key": "enough.atLevel.potAtStop.middling",
                 "kind": "pot"
               },
               " in a middling case, ",
               {
-                "key": "enough.nineInTen.potAtStop.good",
+                "key": "enough.atLevel.potAtStop.good",
                 "kind": "pot"
               },
               " in a good case."
@@ -1956,7 +1914,7 @@
           },
           "verdictLine": {
             "id": "b.verdict.line.no",
-            "text": "Paying in 10% of your pay as now (£317 a month, your employer's 4% included), your money lasted until you are 95 in only 3 futures out of 10. 31% of your pay in all (you 27%, £982 a month) would put you on course, which is 9 in 10; 22% (you 18%, £697 a month) would do it in 3 futures out of 4.",
+            "text": "Paying in 10% of your pay as now (£317 a month, your employer's 4% included), your money lasted until you are 95 in only 3 futures out of 10. 31% of your pay in all (you 27%, £982 a month) would put you on course, which is 9 in 10.",
             "parts": [
               "Paying in ",
               {
@@ -1997,7 +1955,7 @@
               },
               ". ",
               {
-                "key": "enough.nineInTen.totalPct",
+                "key": "enough.atLevel.totalPct",
                 "kind": "pct"
               },
               " of ",
@@ -2006,12 +1964,12 @@
               "you",
               " ",
               {
-                "key": "enough.nineInTen.ownPct",
+                "key": "enough.atLevel.ownPct",
                 "kind": "pct"
               },
               ", ",
               {
-                "key": "enough.nineInTen.payIn",
+                "key": "enough.atLevel.payIn",
                 "kind": "money"
               },
               " a month)",
@@ -2023,38 +1981,12 @@
               {
                 "fixed": "10"
               },
-              "; ",
-              {
-                "key": "enough.threeInFour.totalPct",
-                "kind": "pct"
-              },
-              " (",
-              "you",
-              " ",
-              {
-                "key": "enough.threeInFour.ownPct",
-                "kind": "pct"
-              },
-              ", ",
-              {
-                "key": "enough.threeInFour.payIn",
-                "kind": "money"
-              },
-              " a month)",
-              " would do it in ",
-              {
-                "fixed": "3"
-              },
-              " futures out of ",
-              {
-                "fixed": "4"
-              },
               "."
             ]
           },
           "income": {
             "id": "b.verdict.income",
-            "text": "To last in 9 futures out of 10 paying in as now, you could spend £1,310 a month from 63 (£1,630 in a middling case, 5 futures out of 10), with your State Pension from 68 (the full amount, as assumed): £500 a month (£6,000 a year) less than you want.",
+            "text": "To last in 9 futures out of 10 paying in as now, you could spend £1,310 a month from 63, with your State Pension from 68 (the full amount, as assumed): £500 a month (£6,000 a year) less than you want.",
             "parts": [
               "To last in ",
               {
@@ -2075,20 +2007,6 @@
                 "key": "stop.age",
                 "kind": "age"
               },
-              " (",
-              {
-                "key": "income.middling",
-                "kind": "money"
-              },
-              " in a middling case, ",
-              {
-                "fixed": "5"
-              },
-              " futures out of ",
-              {
-                "fixed": "10"
-              },
-              ")",
               ", with ",
               "your",
               " State Pension",
@@ -2144,7 +2062,7 @@
             "parts": [
               "To be on course: ",
               {
-                "key": "enough.nineInTen.totalPct",
+                "key": "enough.atLevel.totalPct",
                 "kind": "pct"
               },
               " of ",
@@ -2159,19 +2077,19 @@
               "You",
               " ",
               {
-                "key": "enough.nineInTen.ownPct",
+                "key": "enough.atLevel.ownPct",
                 "kind": "pct"
               },
               " and ",
               "your employer",
               " ",
               {
-                "key": "enough.nineInTen.employerPct",
+                "key": "enough.atLevel.employerPct",
                 "kind": "pct"
               },
               " as now: ",
               {
-                "key": "enough.nineInTen.payIn",
+                "key": "enough.atLevel.payIn",
                 "kind": "money"
               },
               " a month going ",
@@ -2202,40 +2120,6 @@
               "."
             ]
           },
-          "enoughFour": {
-            "id": "b.enough.four",
-            "text": "For 3 futures out of 4: 22% in all (you 18%), £697 a month.",
-            "parts": [
-              "For ",
-              {
-                "fixed": "3"
-              },
-              " futures out of ",
-              {
-                "fixed": "4"
-              },
-              ": ",
-              {
-                "key": "enough.threeInFour.totalPct",
-                "kind": "pct"
-              },
-              " in all (",
-              "you",
-              " ",
-              {
-                "key": "enough.threeInFour.ownPct",
-                "kind": "pct"
-              },
-              ")",
-              ", ",
-              {
-                "key": "enough.threeInFour.payIn",
-                "kind": "money"
-              },
-              " a month",
-              "."
-            ]
-          },
           "enoughMatch": {
             "id": "b.enough.match",
             "text": "If your employer adds more when you pay more, you would need less: these keep your employer's part as it is now.",
@@ -2248,8 +2132,14 @@
           "today": "2026-09-30",
           "futures": 1000,
           "seed": 0,
-          "failuresAllowed": 100,
-          "closeAllowed": 250,
+          "level": "balanced",
+          "levelFails20": 2,
+          "planToAge": 95,
+          "weightToAge": 95,
+          "tablesVersion": "ons-ew-2024-cohort/1",
+          "sexUsed": {
+            "you": "f"
+          },
           "historyEnd": "2023-06",
           "engineVersion": "7.6.0",
           "endAge": 95,

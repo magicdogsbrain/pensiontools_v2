@@ -91,7 +91,7 @@ export function answersInNode(cases) {
 export const answerInNode = (inputs, env, q = 'c') => answersInNode([{ q, inputs, env }])[0];
 export const answerFromDraft = (draft, env, q = 'c') => answersInNode([{ q, draft, env }])[0];
 
-/** A value of the answer by its dotted key ('monthly.careful', 'phases.1.shown.fromPots'). */
+/** A value of the answer by its dotted key ('levels.balanced.monthly', 'phases.1.shown.fromPots'). */
 export const get = (answer, key) => String(key).split('.').reduce((o, k) => (o == null ? undefined : o[k]), answer);
 
 /** Raw money agrees within 1p, or one part in a thousand million, whichever is larger (test plan 9). */

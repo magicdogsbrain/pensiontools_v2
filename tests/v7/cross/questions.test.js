@@ -26,6 +26,7 @@
  * Every push: fixed seeds and small counts (40 futures; A narrowed to the rows it needs with `env.ages`).
  * Nightly (NIGHTLY=1): a fresh seed and more runs, capped so the night's budget holds (test plan 13.3, 14.2).
  */
+import { monthlyOf } from '../shared/levelsOf.mjs';
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { fcOptions } from '../oracles/fcOptions.mjs';
@@ -146,7 +147,8 @@ const X1_FIXED = [
 function stopNowHouseholds() {
   const age = fc.oneof({ weight: 6, arbitrary: fc.integer({ min: 55, max: 75 }) }, { weight: 1, arbitrary: fc.integer({ min: 18, max: 54 }) });
   return fc.tuple(arbitraryInputs(SCHEMA_C, ENV), age, age).map(([c, you, partner]) => {
-    const out = { ...copy(c), you: { ...c.you, age: you } };
+    // (7.8.0: at Balanced — A at "stop now" is asked at its own default level)
+    const out = { ...copy(c), you: { ...c.you, age: you }, confidence: 'balanced' };
     if (c.household === 'couple') out.partner = { ...c.partner, age: partner };
     return out;
   });
@@ -166,7 +168,7 @@ function nonMonotoneNear(cIn, monthly, reach = 20) {
   const { household } = toHouseholdC(checked.inputs, ENV);
   const plan = enginePlan(household, ENV);
   const futures = futuresList(ENV.futures, plan.years, ENV);
-  for (const m of [monthly.careful, monthly.middling, monthly.good]) {
+  for (const m of [monthly.careful, monthly.balanced, monthly.bold]) {
     const k0 = Math.round(m / STEP);
     for (const f of futures) {
       let ranOutBelow = false;
@@ -198,7 +200,7 @@ function x1(cRaw, extra = {}) {
   // and C keeps its own rule (brief conflict 1): two models, by design, so nothing to compare.
   const people = [cIn.you, cIn.household === 'couple' ? cIn.partner : null].filter(Boolean);
   if (people.some((p) => firstAccessAge(p.age, TODAY) > p.age)) return 'closed';
-  const careful = c0.status === 'ok' ? c0.monthly.careful : 0;
+  const careful = c0.status === 'ok' ? c0.levels[c0.level].monthly : 0;
   if (careful > SPEND_MAX) return 'skipped';                                  // more than A's spending box takes
   const spend = careful >= 1 ? careful : 1000;
   const c = answerC({ ...copy(cIn), take: spend }, ENV);
@@ -213,24 +215,25 @@ function x1(cRaw, extra = {}) {
   if (c.status !== 'ok') return 'compared';
 
   // The band does not depend on `take` (C's own rule), so both C calls agree.
-  expect(c.monthly, where).toEqual(c0.monthly);
+  expect(c.levels, where).toEqual(c0.levels);
   const row = a.shown;
   expect(row.age, where).toBe(cIn.you.age);
   expect(row.yearsSaving, where).toBe(0);
-  expect(row.monthly, where).toEqual(c.monthly);
-  expect(row.yearly, where).toEqual(c.yearly);
+  // (7.8.0: the amounts at the three levels; their counts below)
+  const amounts = (r) => Object.fromEntries(Object.entries(r.levels).map(([k, v]) => [k, [v.monthly, v.yearly]]));
+  const shares = (r) => Object.fromEntries(Object.entries(r.levels).map(([k, v]) => [k, v.fixedAge]));
+  expect(amounts(row), where).toEqual(amounts(c));
   // The counts at the three amounts, and with take := spend C's test of the amount is A's test of the spending: the
   // same — unless today's engine is shown not to be monotone near the amounts, and then one future apart at most.
   expect(c.take, where).toBeTruthy();
   const counts = (lasted, runOut, take) => JSON.stringify([lasted, runOut, take.lasted, take.runOutAge]);
-  const nonMonotone = counts(row.lastedAt, row.runOutAgeAt, row) !== counts(c.lasted, c.runOutAge, c.take);
+  const nonMonotone = counts(shares(row), null, row) !== counts(shares(c), null, c.take);
   if (nonMonotone) {
-    expect(nonMonotoneNear(cIn, c.monthly), `${where}: the counts differ (A ${counts(row.lastedAt, row.runOutAgeAt, row)}, C ${counts(c.lasted, c.runOutAge, c.take)}), and the engine is monotone near the amounts`).toBe(true);
-    for (const b of ['careful', 'middling', 'good']) expect(Math.abs(row.lastedAt[b] - c.lasted[b]) * ENV.futures, `${where} ${b}`).toBeLessThanOrEqual(1 + 1e-9);
+    expect(nonMonotoneNear(cIn, monthlyOf(c)), `${where}: the counts differ (A ${counts(shares(row), null, row)}, C ${counts(shares(c), null, c.take)}), and the engine is monotone near the amounts`).toBe(true);
+    for (const b of ['careful', 'balanced', 'bold']) expect(Math.abs(row.levels[b].fixedAge - c.levels[b].fixedAge) * ENV.futures, `${where} ${b}`).toBeLessThanOrEqual(1 + 1e-9);
     expect(Math.abs(row.lasted - c.take.lasted) * ENV.futures, where).toBeLessThanOrEqual(1 + 1e-9);
   } else {
-    expect(row.lastedAt, where).toEqual(c.lasted);
-    expect(row.runOutAgeAt, where).toEqual(c.runOutAge);
+    expect(shares(row), where).toEqual(shares(c));
     expect(row.lasted, where).toBe(c.take.lasted);
     expect(row.runOutAge, where).toBe(c.take.runOutAge);
   }
@@ -286,7 +289,9 @@ describe.skipIf(A_STUB)(`X1 — A at "stop now" equals C, byte for byte${A_STUB 
       fc.constantFrom('cautious', 'balanced', 'adventurous'),
       fc.constantFrom(0, 0.5, 2),
       (cIn, payIn, savingRisk, charge) => { tally[x1(cIn, { payIn, partnerPayIn: payIn, savingRisk, charge })] += 1; }
-    ), opts(runs(16, 120)));
+      // (32 households: C's input list gained "How careful?" in 7.8.0, which moved the generator's draws; with 16, only 6
+      // were compared or counted, too few for a share — the bound is unchanged)
+    ), opts(runs(32, 120)));
     const n = tally.compared + tally['non-monotone'] + tally.moved + tally.closed;
     expect(n).toBeGreaterThan(0);
     expect((tally.moved + tally.closed) / n, `${JSON.stringify(tally)}: too many cases with a pension closed today — the generator is skewed`).toBeLessThan(1 / 3);
@@ -317,12 +322,12 @@ describe.skipIf(A_STUB || B_STUB)(`X2 — B's number round-trips (a flat market:
   it.each(X2_CASES.map((x) => [x.name, x]))('%s', (_n, x) => {
     const b = answerB(x.b, FLAT);
     expect(b.status, x.name).not.toBe('invalid');
-    expect(b.number, x.name).not.toBeNull();
-    const n = b.number.careful;
+    expect(b.levels[b.level].pot, x.name).not.toBeNull();
+    const n = b.levels[b.level].pot;
     expect(n % 1000, 'a whole £1,000').toBe(0);
-    // One future: the careful, middling and good positions are the same life.
-    expect(b.number.middling).toBe(n);
-    expect(b.number.good).toBe(n);
+    // One future: every level is the same life (7.8.0: the pot at each level).
+    expect(b.levels.careful.pot).toBe(n);
+    expect(b.levels.bold.pot).toBe(n);
     const spend = x.b.spend.amount;
     const stopAge = x.b.stop.age;
     const opens = firstAccessAge(x.b.you.age, TODAY);
@@ -333,8 +338,8 @@ describe.skipIf(A_STUB || B_STUB)(`X2 — B's number round-trips (a flat market:
       const cAt = (pot) => answerC({ you: { age: stopAge, pot, statePension: { kind: 'none' } }, savings: x.b.savings || 0, start: { kind: 'now' }, charge: 0, endAge: x.b.endAge }, FLAT);
       const at = cAt(n);
       expect(at.basis.start, 'C did not move the start').toBe(MONTH);
-      expect(at.monthly.careful, `${x.name}: C with the number`).toBeGreaterThanOrEqual(spend);
-      if (n > 0) expect(cAt(n - 1000).monthly.careful, `${x.name}: C with £1,000 less`).toBeLessThan(spend);
+      expect(at.levels[at.level].monthly, `${x.name}: C with the number`).toBeGreaterThanOrEqual(spend);
+      if (n > 0) expect(cAt(n - 1000).levels.balanced.monthly, `${x.name}: C with £1,000 less`).toBeLessThan(spend);
     }
 
     // Through A's join (always; the only way below the access age): nothing paid in, no charge, so the pot typed is

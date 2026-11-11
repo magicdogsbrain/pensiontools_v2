@@ -23,8 +23,10 @@ import { simulate } from '../../services/SimulationEngine.js';
 import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { enginePlan, configsAt, breakdownAt, yearlyPlan, BANDS, ONE_NAME_SHARE } from '../shared/toEngine.js';
 import { futuresList, historyEnd, historyStartYear, priceIndexByYear, cappedIndexByYear } from '../shared/futures.js';
-import { createBandSolver, bandIndexes, STEP } from '../shared/band.js';
-import { createReferenceBandSolver } from '../shared/bandReference.js';
+import { createBandSolver, bandIndexes, STEP, levelsFromSolver } from '../shared/band.js';
+import { weigherOf } from '../shared/weigh.js';
+import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, chanceOf, verdictOfChance, horizonRuleOf } from '../shared/levels.js';
+import { createReferenceBandSolver, weightedThresholdReference } from '../shared/bandReference.js';
 import { toHousehold } from './toHousehold.js';
 import { sentencesFor, sentencesWithoutPots, sentencesOnLives, assumedFor, warningsFor, finishTexts } from './sentences.js';
 import { usesLives, answerOnLives } from './onLives.js';
@@ -244,15 +246,16 @@ function finishOnLives(result, plan, checked, household, env, more) {
   facts.oneName = plan.people.length === 2 && totalMid > 0 && plan.people.some((p, i) => mid[i].pension / totalMid > ONE_NAME_SHARE
     && plan.periods[0].byPerson[1 - i].gross < BANDS.pa);
   facts.totalPots = more.potAtStartMiddling;
+  facts.middlingRunOut = more.middlingRunOut ?? null;
   result.sentences = sentencesOnLives(result, facts);
   result.assumed = assumedFor(result, facts);
   result.warnings = warningsFor(result, facts);
   finishTexts(result);
 }
 
-function basisOf(plan, env, n) {
+function basisOf(plan, env, n, lb) {
   return {
-    today: env.today, futures: n, seed: env.seed ?? 0, failuresAllowed: Math.floor(n / 10),
+    today: env.today, futures: n, seed: env.seed ?? 0, ...lb,
     historyEnd: historyEnd(), engineVersion: VERSION,
     startAge: plan.startAge, endAge: plan.endAge, accessAge: plan.accessAge, start: plan.start, years: plan.years,
     split: plan.people.map((p) => ({ who: p.who, share: p.share })), strategyId: 'pots-and-valves', cutsSwitchedOff: true
@@ -383,17 +386,18 @@ function traceOf(plan, future, monthly) {
  * final-salary pension has started (brief 4.3 point 7) — the one figure the sentences, the rail and the screen
  * all read; the phases say what is paid before then.
  */
-function withoutPots(plan, checked, household, fullSp, env, n) {
+function withoutPots(plan, checked, household, fullSp, env, n, lw) {
   const status = plan.guaranteedAYear > 0 ? 'guaranteed-only' : 'none';
   const phases = phasesOf(plan, 0);
   const monthly = round2(plan.guaranteedAYear / 12);
-  const three = (v) => ({ careful: v, middling: v, good: v });
+  const each = { monthly, yearly: round2(monthly * 12), weighted: 1, fixedAge: 1 };
   const result = {
     status, inputs: checked.inputs,
-    monthly: three(monthly), yearly: three(round2(monthly * 12)), lasted: three(1), runOutAge: three(plan.endAge), whose: plan.whose,
+    level: lw.level, levels: Object.fromEntries(LEVEL_IDS.map((id) => [id, { ...each }])),
+    chance: chanceBlock(chanceOf(lw.weigher, new Array(n).fill(null)), n, lw.chance), whose: plan.whose,
     guaranteed: { monthlyAfterTax: monthly },
     phases, take: null, assumed: [], warnings: [], sentences: {},
-    basis: basisOf(plan, env, n), units: UNITS
+    basis: basisOf(plan, env, n, lw.basis), units: UNITS
   };
   const typed = payInTyped(checked.inputs);
   if (typed) result.payIn = typed;
@@ -413,7 +417,7 @@ export function answerCReal(inputs, env) {
   // Money first taken at an age: the lives from today, through the years of paying in (step 4 brief section 10, J8).
   // From now (or with nothing to draw on and nothing going in) it is C as it has always been, below.
   if (usesLives(checked.inputs, env.today)) {
-    const r = answerOnLives(checked, env, { units: UNITS, basisOf: (plan, n) => basisOf(plan, env, n), finish: (result, plan, household, more) => finishOnLives(result, plan, checked, household, env, more) });
+    const r = answerOnLives(checked, env, { units: UNITS, basisOf: (plan, n, lb) => basisOf(plan, env, n, lb), defaulted: defaultedFields(checked.inputs, env), finish: (result, plan, household, more) => finishOnLives(result, plan, checked, household, env, more) });
     return JSON.parse(JSON.stringify(r, (key, v) => (typeof v === 'number' ? noNegZero(v) : v)));
   }
 
@@ -423,48 +427,62 @@ export function answerCReal(inputs, env) {
 
   const plan = enginePlan(household, env);
   const n = env.futures;
-  if (!(plan.totalPots > 0)) return withoutPots(plan, checked, household, fullStatePensionAYear, env, n);
+  // the level, the weights and the plan-to age (7.8.0: shared/levels.js)
+  const level = levelOfInputs(checked.inputs);
+  const weigher = weigherOf(plan, checked.inputs, env);
+  const planToAge = plan.endAge;
+  const toMonth = 12 * (planToAge - plan.startAge);
+  const lw = {
+    level, weigher, basis: levelBasis(level, weigher, checked.inputs, planToAge),
+    chance: { planToAge, weightToAge: weigher.weighted ? weigher.weightToAge : planToAge, horizonRule: horizonRuleOf({ defaulted: defaultedFields(checked.inputs, env).includes('endAge'), capped: false }) }
+  };
+  if (!(plan.totalPots > 0)) return withoutPots(plan, checked, household, fullStatePensionAYear, env, n, lw);
 
   const futures = futuresList(n, plan.years, env);
   const onProgress = typeof env.onProgress === 'function' ? env.onProgress : undefined;
   const solver = env.solver === 'reference'
     ? createReferenceBandSolver(plan, futures, { onProgress })
     : createBandSolver(plan, futures, { onProgress, estimate: rememberedEstimate(plan, env) });
-  const { k, fails } = solver.solve();
+  const solved = solver.solve();
+  const { k } = solved;
   if (env.solver !== 'reference') rememberEstimate(plan, env, k);
-  const monthly = { careful: amountAt(k.careful), middling: amountAt(k.middling), good: amountAt(k.good) };
-  const lasted = { careful: (n - fails.careful) / n, middling: (n - fails.middling) / n, good: (n - fails.good) / n };
+  // the band's own amounts (the search's spread: kept for the trace, never in the result)
+  const spread = { careful: amountAt(k.careful), middling: amountAt(k.middling), good: amountAt(k.good) };
   const ageOfMonth = (m) => (m === null ? plan.endAge : plan.startAge + Math.floor(m / 12));
   const badAge = (months) => { const ages = months.map(ageOfMonth).sort((a, b) => a - b); return ages[Math.floor(n / 10)]; };
   const runOut = { careful: solver.runOutMonthsAt(k.careful), middling: solver.runOutMonthsAt(k.middling), good: solver.runOutMonthsAt(k.good) };
-  const runOutAge = { careful: badAge(runOut.careful), middling: badAge(runOut.middling), good: badAge(runOut.good) };
+  // the three levels (7.8.0): each its amount, a month and a year, and its chance
+  const lv = levelsFromSolver(solver, solved, weigher, LEVEL_IDS, toMonth, (w, ids) => weightedThresholdReference(plan, futures, w, ids));
+  const levels = Object.fromEntries(LEVEL_IDS.map((id) => [id, { monthly: lv[id].monthly, yearly: round2(lv[id].monthly * 12), weighted: lv[id].chance.weighted, fixedAge: lv[id].chance.fixedAge }]));
+  const shownMonthly = lv[level].monthly;
 
   let take = null;
   if (typeof checked.inputs.take === 'number') {
     const perMonth = checked.inputs.take;
     const months = solver.runOutMonthsAtMonthly(perMonth);
-    const failed = months.filter((m) => m !== null).length;
-    take = { perMonth, lasted: (n - failed) / n, runOutAge: badAge(months), covered: failed <= Math.floor(n / 10) };
+    const c = chanceOf(weigher, months, toMonth);
+    const verdict = verdictOfChance(c, n, level, weigher);
+    take = { perMonth, lasted: c.fixedAge, runOutAge: badAge(months), covered: verdict === 'yes', weighted: c.weighted, verdict };
   }
 
-  // what you could spend changing with age (spending-shape.md 6.2): the careful, middling and good amounts at the start
-  // with the later steps in proportion, and each year's figures at the careful amount
+  // what you could spend changing with age (spending-shape.md 6.2): each level's amount at the start with the later steps
+  // in proportion, and each year's figures at the level's amount
   const shaped = household.shape
-    ? shapeOfAnswer({ household, plan, at: monthly, yearly: phasesOf(yearlyPlan(plan), monthly.careful * 12), H0: monthly.careful * 12 }) : null;
+    ? shapeOfAnswer({ household, plan, at: Object.fromEntries(LEVEL_IDS.map((id) => [id, levels[id].monthly])), level, yearly: phasesOf(yearlyPlan(plan), shownMonthly * 12), H0: shownMonthly * 12 }) : null;
   const result = {
     status: 'ok', inputs: checked.inputs,
-    monthly, yearly: { careful: round2(monthly.careful * 12), middling: round2(monthly.middling * 12), good: round2(monthly.good * 12) },
+    level, levels,
     ...(shaped || {}),
-    lasted, runOutAge, whose: plan.whose,
+    chance: chanceBlock(lv[level].chance, n, lw.chance), whose: plan.whose,
     guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
     // (a phase the shape moves inside — a fall, moving evenly — says its figures are its first year's)
-    phases: shaped ? markShapeMoves(phasesOf(plan, monthly.careful * 12), shaped.byYear) : phasesOf(plan, monthly.careful * 12), take, assumed: [], warnings: [], sentences: {},
-    basis: basisOf(plan, env, n), units: UNITS
+    phases: shaped ? markShapeMoves(phasesOf(plan, shownMonthly * 12), shaped.byYear) : phasesOf(plan, shownMonthly * 12), take, assumed: [], warnings: [], sentences: {},
+    basis: basisOf(plan, env, n, lw.basis), units: UNITS
   };
   const typed = payInTyped(checked.inputs);
   if (typed) result.payIn = typed;
   const facts = factsOf(plan, checked, household, fullStatePensionAYear, env);
-  if (plan.startMoved && plan.totalIsa > 0 && monthly.careful > 0) facts.lockedSavingsMonths = Math.min(plan.movedBy * 12, Math.floor(plan.totalIsa / monthly.careful));
+  if (plan.startMoved && plan.totalIsa > 0 && shownMonthly > 0) facts.lockedSavingsMonths = Math.min(plan.movedBy * 12, Math.floor(plan.totalIsa / shownMonthly));
   result.sentences = sentencesFor(result, facts);
   result.assumed = assumedFor(result, facts);
   result.warnings = warningsFor(result, facts);
@@ -476,8 +494,8 @@ export function answerCReal(inputs, env) {
     const byMost = futures.map((f, i) => i).sort((a, b) => most[a] - most[b] || a - b);
     const byMiddling = futures.map((f, i) => i).sort((a, b) => (runOut.middling[a] ?? Infinity) - (runOut.middling[b] ?? Infinity) || a - b);
     result.trace = {
-      atCareful: traceOf(plan, futures[byMost[at.careful]], monthly.careful),
-      atMiddling: traceOf(plan, futures[byMiddling[at.careful]], monthly.middling),
+      atCareful: traceOf(plan, futures[byMost[at.careful]], spread.careful),
+      atMiddling: traceOf(plan, futures[byMiddling[at.careful]], spread.middling),
       futures: futures.map((f, i) => ({ id: f.id, most: most[i], runOutMonth: { careful: runOut.careful[i], middling: runOut.middling[i], good: runOut.good[i] } })),
       evaluations: solver.evaluations
     };

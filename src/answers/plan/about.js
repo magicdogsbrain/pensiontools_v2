@@ -637,7 +637,7 @@ export function answerAge(plan, settings) {
   if (!diffs.length) return null;
   const savedOn = typeof fa.savedOn === 'string' ? fa.savedOn : '';
   const changed = plan.lastModified && String(plan.lastModified) > savedOn ? dayWords(plan.lastModified) : null;
-  return { workedOutOn: dayWords(savedOn), changedOn: changed, lasted: isObj(fa.answer) ? num(fa.answer.lasted) : null, diffs };
+  return { workedOutOn: dayWords(savedOn), changedOn: changed, lasted: isObj(fa.answer) ? num(isObj(fa.answer.chance) ? fa.answer.chance.fixedAge : fa.answer.lasted) : null, diffs };
 }
 
 /**

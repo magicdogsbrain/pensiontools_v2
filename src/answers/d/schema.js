@@ -20,7 +20,7 @@
  *
  * The end age: the later of 95 and the younger person's age + 5, capped at 105 (answer-D.md 4.1 endAge).
  */
-import { personFields, SPEND_FIELDS, chargeField, isaGrowthField, savingsGrowthDefault, spendLevelAMonth } from '../shared/schemaParts.js';
+import { personFields, SPEND_FIELDS, chargeField, isaGrowthField, savingsGrowthDefault, spendLevelAMonth, levelField } from '../shared/schemaParts.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
@@ -65,6 +65,8 @@ export const SCHEMA_D = {
     { path: 'risk', type: 'choice', options: ['cautious', 'balanced', 'adventurous'], default: 'balanced', group: 'more' },
     chargeField(),
     { path: 'endAge', type: 'age', min: 75, max: 105, default: { rule: 'endAge' }, group: 'more', boundaries: [75, 95, 100, 105] },
+    // "How careful?" (7.8.0): Careful, Balanced (the default) or Bold, every figure at it
+    levelField(),
 
     // The levers (answer-D.md 7): try only, never on the first form. Work from today for N whole years; a fall in shares.
     { path: 'work.has', type: 'yesNo', default: false, group: 'try' },

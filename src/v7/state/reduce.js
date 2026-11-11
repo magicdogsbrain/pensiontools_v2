@@ -10,6 +10,7 @@
  * draft by the declared map and opens the place the map names; `answer/extend` marks an optional step's extra pass.
  * The reducer never runs an answer.
  */
+import { shownOf } from '../../answers/shared/shown.js';
 import { A, OPENABLE } from './actions.js';
 import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, cleanPending, cleanUsed, cleanFromPlan, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept, emptyHousehold, HH_PICKS, cleanHouseholdTry, cleanNeed, emptyMove, cleanMove, cleanIndex, emptySaver, cleanSaver, cleanPlanMix, cleanFlexibleAccess, emptyCheckIn, cleanCheckIn, emptyKeepTest, cleanKeepTest,
   emptyShellUi, emptyAccount, emptyGuest, emptyNews, ACCOUNT_MODES, ACCOUNT_ASKS, PLAN_ACTION_KINDS, PLAN_ACTION_OPS } from './initial.js';
@@ -170,7 +171,8 @@ function carried(state, from, to) {
     let base = null;
     if (SHAPE_UNIT[from] === 'share' && SHAPE_UNIT[to] !== 'share' && stepsOf(from, source.values).length) {
       base = typedNumber(values['spend.amount']);
-      const careful = readable && answer.result && answer.result.monthly ? answer.result.monthly.careful : null;
+      const shownC = readable && answer.result ? shownOf(answer.result) : null;
+      const careful = shownC ? shownC.monthly : null;
       if (base === null && typeof careful === 'number' && careful > 0) {
         base = Math.floor(careful);
         values['spend.amount'] = asTyped(base);
@@ -565,16 +567,17 @@ function reduceAction(state, action) {
     case A.ANSWER_WORKING: {
       if (!answer) return refuse(`answer/working: no question "${q}"`);
       if (typeof action.inputsKey !== 'string') return state;
-      // The old result stays on screen (greyed). "before" is the last FINAL answer's careful amount — and, when an
+      // The old result stays on screen (greyed). "before" is the last FINAL answer's amount at its level — and, when an
       // amount to take had been named, how long that lasted — for "Before / Now".
-      const wasFinal = answer.status === 'final' && answer.result && answer.result.monthly && typeof answer.result.monthly.careful === 'number';
+      const shownBefore = answer.status === 'final' && answer.result ? shownOf(answer.result) : null;
+      const wasFinal = !!shownBefore && typeof shownBefore.monthly === 'number';
       const oldTake = wasFinal && answer.result.take && typeof answer.result.take.perMonth === 'number' ? answer.result.take : null;
       // A and B keep the last final answer's own "Now:" sentence (a.change / b.change), which the screen shows as "Before:",
       // and the inputs it was worked out from, so the screen can name what was changed since ("the stop age from 60 to 61").
       const changeOf = answer.status === 'final' && answer.result && answer.result.sentences && answer.result.sentences.change;
       const keptInputs = answer.result && answer.result.inputs && typeof answer.result.inputs === 'object' ? { inputs: answer.result.inputs } : {};
       const before = wasFinal
-        ? { monthly: { careful: answer.result.monthly.careful }, take: oldTake ? { perMonth: oldTake.perMonth, runOutAge: oldTake.runOutAge, covered: oldTake.covered === true } : null }
+        ? { monthly: shownBefore.monthly, take: oldTake ? { perMonth: oldTake.perMonth, runOutAge: oldTake.runOutAge, covered: oldTake.covered === true } : null }
         : q !== 'c' && changeOf && typeof changeOf.text === 'string'
           ? { change: { id: changeOf.id, text: changeOf.text, parts: changeOf.parts }, ...keptInputs }
           : answer.before;

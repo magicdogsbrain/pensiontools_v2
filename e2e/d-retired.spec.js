@@ -83,7 +83,7 @@ test.describe('D — "I\'m retired. Will it last?"', () => {
       await expect(app.id('d.answer.headroom')).toHaveText(answer.sentences.headroom.text);
       await expect(app.id('d.answer.headroom')).toHaveAttribute('data-headroom', answer.headroom.kind);
       await expect(app.id('d.more')).toContainText(answer.sentences.middling.text);
-      await expect(page.locator('[data-key="monthly.careful"]').first()).toHaveAttribute('data-value', String(answer.monthly.careful));
+      await expect(page.locator('[data-key="levels.balanced.monthly"]').first()).toHaveAttribute('data-value', String(answer.levels.balanced.monthly));
       await expect(page.locator('#app h1')).toHaveText(D.steps.answer.label);
       expect(await page.locator('#app').innerText()).not.toMatch(RETIRED_WORDS);
       // the levers are off: nothing was run for them
@@ -102,7 +102,7 @@ test.describe('D — "I\'m retired. Will it last?"', () => {
       expect(answer.fall).not.toBe(null);
       await expect(app.id('d.lever.fall')).toHaveAttribute('data-lever-on', '1');
       await expect(app.id('d.fall.result')).toContainText(answer.sentences.fall.text);
-      await expect(page.locator('[data-key="fall.monthly.careful"]').first()).toHaveAttribute('data-value', String(answer.fall.monthly.careful));
+      await expect(page.locator('[data-key="fall.monthly"]').first()).toHaveAttribute('data-value', String(answer.fall.monthly));
       expect(answer.fall.lasted).toBeLessThanOrEqual(answer.lasted);
     }, { answer: () => answer });
 

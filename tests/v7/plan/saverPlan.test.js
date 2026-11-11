@@ -74,7 +74,7 @@ describe('the round trip: a plan kept from B gives back B\'s count and pay-in on
       expect(again.chance.fails).toBe(result.chance.fails);
       expect(again.verdict).toEqual(result.verdict);
       expect(again.payIn.needed).toBe(result.payIn.needed);
-      expect(again.enough && again.enough.nineInTen && again.enough.nineInTen.payIn).toBe(result.enough && result.enough.nineInTen && result.enough.nineInTen.payIn);
+      expect(again.enough && again.enough.atLevel && again.enough.atLevel.payIn).toBe(result.enough && result.enough.atLevel && result.enough.atLevel.payIn);
       // read from the plan's own figures alone (as if it had not come from B), the count and the pay-in are the same
       const bare = { ...plan }; delete bare.fromAnswer;
       const plain = saverInputsOf(bare, { today: KEPT_ON });
@@ -89,9 +89,9 @@ describe('the round trip: a plan kept from B gives back B\'s count and pay-in on
     expect(result.verdict.band).not.toBe('yes');
     const s = plan.accumulationTool.settings;
     expect(s.payInKind).toBe('share');
-    expect(s.ownPct).toBe(result.enough.nineInTen.parts[0].ownPct);
+    expect(s.ownPct).toBe(result.enough.atLevel.parts[0].ownPct);
     const again = askAgain(saverInputsOf(plan, { today: KEPT_ON }));
-    expect(again.chance.fails).toBe(result.enough.nineInTen.fails);
+    expect(again.chance.fails).toBe(result.enough.atLevel.fails);
   }, 30000);
   it('a group the person changed since is read from the plan, not from the answer', () => {
     const { plan } = kept(sam({ kind: 'split', own: 333.33, employer: 211.17 }));
@@ -101,18 +101,18 @@ describe('the round trip: a plan kept from B gives back B\'s count and pay-in on
     expect(read.inputs.you.payIn).toEqual({ kind: 'split', own: 500, employer: 211.17 });
     expect(read.notes.from.spend).toBe(true);
   });
-  it('asked at 3 in 4: the plan gives back the answer\'s leading figure too (its chance is the answer\'s choice, not a plan figure)', () => {
-    const { result, plan } = kept(sam({ kind: 'share', pay: 38000, ownPct: 6, employerPct: 4 }, { confidence: 'threeInFour' }));
+  it('asked at Bold: the plan gives back the answer\'s level too (the person chose it: levelChosen, 7.8.0), not a plan figure', () => {
+    const { result, plan } = kept(sam({ kind: 'share', pay: 38000, ownPct: 6, employerPct: 4 }, { confidence: 'bold' }));
     const read = saverInputsOf(plan, { today: KEPT_ON });
-    expect(read.inputs.confidence).toBe('threeInFour');
+    expect(read.inputs.confidence).toBe('bold');
     const again = askAgain(read);
     expect(again.chance.fails).toBe(result.chance.fails);
     expect(again.payIn.needed).toBe(result.payIn.needed);
     expect(again.sentences.enoughHead.text).toBe(result.sentences.enoughHead.text);
-    // a plan kept at 9 in 10, or one with no record of an answer, reads at 9 in 10
-    expect(saverInputsOf(kept(sam({ kind: 'total', total: 400 })).plan, { today: KEPT_ON }).inputs.confidence).toBe('nineInTen');
+    // a plan kept at the level we start at, or one with no record of an answer, reads at Balanced
+    expect(saverInputsOf(kept(sam({ kind: 'total', total: 400 })).plan, { today: KEPT_ON }).inputs.confidence).toBe('balanced');
     const bare = { ...plan }; delete bare.fromAnswer;
-    expect(saverInputsOf(bare, { today: KEPT_ON }).inputs.confidence).toBe('nineInTen');
+    expect(saverInputsOf(bare, { today: KEPT_ON }).inputs.confidence).toBe('balanced');
   }, 30000);
 });
 

@@ -188,9 +188,9 @@ describe('3 — the reported 55-year-old reaches a monthly figure from 67', () =
     expect(r.status).toBe('ok');
     const root = renderScreen(state);
     clean(root, state);
-    const head = root.querySelector('[data-headline="monthly.careful"]');
+    const head = root.querySelector('[data-headline="levels.balanced.monthly"]');
     expect(head).not.toBe(null);
-    expect(head.querySelector('[data-key="monthly.careful"]').getAttribute('data-value')).toBe(String(r.monthly.careful));
+    expect(head.querySelector('[data-key="levels.balanced.monthly"]').getAttribute('data-value')).toBe(String(r.levels.balanced.monthly));
     const answerText = visibleText(root.querySelector('[data-region="answer"]'));
     // what was assumed about the paying in is said plainly, on the answer: £800 a month, until 67, rising with prices
     expect(answerText).toContain('£800');
@@ -204,11 +204,11 @@ describe('3 — the reported 55-year-old reaches a monthly figure from 67', () =
     const state = answered(PAYING_IN);
     const r = state.answers.c.result;
     const root = renderScreen(state);
-    const head = root.querySelector('[data-headline="monthly.careful"]');
+    const head = root.querySelector('[data-headline="levels.balanced.monthly"]');
     const pay = one(root, 'c.answer.payIn');
     expect(pay).not.toBe(null);
     expect(head.contains(pay)).toBe(true);
-    expect(head.querySelector('[data-sentence="monthly.careful"]').nextElementSibling).toBe(pay);
+    expect(head.querySelector('[data-sentence="levels.balanced.monthly"]').nextElementSibling).toBe(pay);
     expect(pay.textContent).toBe(r.sentences.payIn.text);
     if (r.sentences.pot) expect(one(root, 'c.answer.pot').textContent).toBe(r.sentences.pot.text);
   });
@@ -221,7 +221,7 @@ describe('3 — the reported 55-year-old reaches a monthly figure from 67', () =
   it('paying in raises what it pays from 67, against the same person paying nothing in', () => {
     const paying = answered(PAYING_IN).answers.c.result;
     const none = answered({ ...PAYING_IN, 'you.payIn.has': 'no' }).answers.c.result;
-    expect(paying.monthly.careful).toBeGreaterThan(none.monthly.careful);
+    expect(paying.levels.balanced.monthly).toBeGreaterThan(none.levels.balanced.monthly);
   });
 
   it('"Try a change" moves what goes in, £50 at a time (your part, the employer\'s left as typed); the button rests while worked out', () => {

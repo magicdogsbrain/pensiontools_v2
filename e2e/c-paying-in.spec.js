@@ -64,9 +64,9 @@ test.describe('J6 — 55, £275,000, still paying in £500 + £300 a month: what
     await app.step('the monthly figure from 67 is the engine\'s, and the answer says what it assumed about the paying in', async () => {
       expect(answer.status).toBe('ok');
       expect(answer.inputs.start.age).toBe(67);
-      const head = page.locator('#app [data-headline="monthly.careful"]');
-      await expect(head.locator('[data-key="monthly.careful"]').first()).toHaveAttribute('data-value', String(answer.monthly.careful));
-      await expect(head.locator('[data-sentence="monthly.careful"]')).toHaveText(answer.sentences.line.text);
+      const head = page.locator('#app [data-headline="levels.balanced.monthly"]');
+      await expect(head.locator('[data-key="levels.balanced.monthly"]').first()).toHaveAttribute('data-value', String(answer.levels.balanced.monthly));
+      await expect(head.locator('[data-sentence="levels.balanced.monthly"]')).toHaveText(answer.sentences.line.text);
       const text = await page.locator('#app [data-region="answer"]').innerText();
       expect(text).toContain('£800');
       expect(text).toMatch(/\b67\b/);
@@ -78,7 +78,7 @@ test.describe('J6 — 55, £275,000, still paying in £500 + £300 a month: what
       const typed = app.typedBy.c;
       const none = answerFromDraft({ ...typed, 'you.payIn.has': 'no' }, FINAL_ENV, 'c');
       expect(none.status).toBe('ok');
-      expect(answer.monthly.careful).toBeGreaterThan(none.monthly.careful);
+      expect(answer.levels.balanced.monthly).toBeGreaterThan(none.levels.balanced.monthly);
     });
 
     await app.step('try a change: the pot up — the keyboard stays on the button while the answer is worked out again', async () => {
@@ -119,11 +119,11 @@ test.describe('J6 — 55, £275,000, still paying in £500 + £300 a month: what
     const answer = app.engine(FINAL_ENV);
     await app.step('the monthly figure is from 67, with £800 a month going in until then', async () => {
       expect(answer.inputs.start).toEqual({ kind: 'age', age: 67 });
-      const head = page.locator('#app [data-headline="monthly.careful"]');
-      await expect(head.locator('[data-key="monthly.careful"]').first()).toHaveAttribute('data-value', String(answer.monthly.careful));
+      const head = page.locator('#app [data-headline="levels.balanced.monthly"]');
+      await expect(head.locator('[data-key="levels.balanced.monthly"]').first()).toHaveAttribute('data-value', String(answer.levels.balanced.monthly));
       await expect(app.id('c.answer.payIn')).toHaveText(answer.sentences.payIn.text);
       const typedFrom67 = answerFromDraft({ ...app.typedBy.c, 'start.kind': 'age', 'start.age': '67' }, FINAL_ENV, 'c');
-      expect(answer.monthly).toEqual(typedFrom67.monthly);
+      expect(answer.levels).toEqual(typedFrom67.levels);
     }, { answer });
   });
 });

@@ -49,7 +49,9 @@ export const resultA = ({ detail = 'chart', verdict = 'close', kind = 'named', a
 export const resultB = ({ detail = 'answer', onCourse = false, careful = 470000, status = 'ok', age = 60, payIn = 700 } = {}) => ({
   status,
   stop: { age, year: '2041' },
-  number: careful === null ? null : { careful, middling: careful - 70000, good: careful - 130000 },
+  // (7.8.0: the pot to aim for at each level; `careful` here is the level chosen's, Balanced)
+  level: 'balanced',
+  levels: { careful: { pot: careful === null ? null : careful + 40000 }, balanced: { pot: careful }, bold: { pot: careful === null ? null : careful - 70000 } },
   onCourse,
   payIn: { now: payIn, needed: 1050 },
   saving: [{ who: 'you', payIn: { total: payIn } }],

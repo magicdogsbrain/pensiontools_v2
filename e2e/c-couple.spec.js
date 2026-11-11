@@ -38,7 +38,7 @@ test.describe('J2 — a couple, the partner added part-way through', () => {
       await app.ready(ANSWER_MS);
     }, { answer: () => app.engine(FINAL_ENV) });
     const single = app.engine(FINAL_ENV);
-    await expect(page.locator('[data-headline="monthly.careful"] [data-key="monthly.careful"]').first()).toHaveAttribute('data-value', String(single.monthly.careful));
+    await expect(page.locator('[data-headline="levels.balanced.monthly"] [data-key="levels.balanced.monthly"]').first()).toHaveAttribute('data-value', String(single.levels.balanced.monthly));
 
     await app.step('goes back and says "two of us"', async () => {
       await app.rail('numbers');
@@ -79,11 +79,11 @@ test.describe('J2 — a couple, the partner added part-way through', () => {
     await app.step('the couple\'s answer is the engine\'s', async () => {
       expect(couple.status).toBe('ok');
       expect(couple.inputs.household).toBe('couple');
-      const headline = page.locator('[data-headline="monthly.careful"]');
-      await expect(headline.locator('[data-key="monthly.careful"]').first()).toHaveAttribute('data-value', String(couple.monthly.careful));
-      await expect(headline.locator('[data-sentence="monthly.careful"]')).toHaveText(couple.sentences.line.text);
+      const headline = page.locator('[data-headline="levels.balanced.monthly"]');
+      await expect(headline.locator('[data-key="levels.balanced.monthly"]').first()).toHaveAttribute('data-value', String(couple.levels.balanced.monthly));
+      await expect(headline.locator('[data-sentence="levels.balanced.monthly"]')).toHaveText(couple.sentences.line.text);
       // The package 1 stub answers with one person's sentence whatever is typed; the real answer names the two of them.
-      if (BUILT.answer) await expect(headline.locator('[data-sentence="monthly.careful"]')).toContainText('the two of you');
+      if (BUILT.answer) await expect(headline.locator('[data-sentence="levels.balanced.monthly"]')).toContainText('the two of you');
       else test.info().annotations.push({ type: 'not checked yet', description: 'the couple\'s wording waits for the real answer (package 2)' });
     }, { answer: couple, before: single });   // "Before / Now": the one-person figure beside the couple's
 
@@ -106,10 +106,10 @@ test.describe('J2 — a couple, the partner added part-way through', () => {
       await app.ready(ANSWER_MS);
       await app.note();
       const more = app.engine(FINAL_ENV);
-      if (BUILT.answer) expect(more.monthly.careful).toBeGreaterThan(couple.monthly.careful);
-      const shown = await page.locator('#app [data-key="monthly.careful"]').evaluateAll((els) => els.map((el) => el.getAttribute('data-value')));
+      if (BUILT.answer) expect(more.levels.balanced.monthly).toBeGreaterThan(couple.levels.balanced.monthly);
+      const shown = await page.locator('#app [data-key="levels.balanced.monthly"]').evaluateAll((els) => els.map((el) => el.getAttribute('data-value')));
       expect(shown.length).toBeGreaterThan(0);
-      expect([...new Set(shown)]).toEqual([String(more.monthly.careful)]);
+      expect([...new Set(shown)]).toEqual([String(more.levels.balanced.monthly)]);
       await app.check({ answer: more, before: couple });
       await app.reloadKeeps();
     });

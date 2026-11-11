@@ -77,12 +77,12 @@ test.describe('J1 — the forum guest: one person, 58, about £250,000', () => {
       await expect(page.locator('#app')).toHaveAttribute('data-answer', 'final');
       expect(answer.status).toBe('ok');
 
-      const headline = page.locator('[data-headline="monthly.careful"]');
+      const headline = page.locator('[data-headline="levels.balanced.monthly"]');
       await expect(headline).toBeVisible();
-      const number = headline.locator('[data-key="monthly.careful"]').first();
-      await expect(number).toHaveAttribute('data-value', String(answer.monthly.careful));
+      const number = headline.locator('[data-key="levels.balanced.monthly"]').first();
+      await expect(number).toHaveAttribute('data-value', String(answer.levels.balanced.monthly));
       // The sentence is the engine's sentence, letter for letter (the fixture test pins the engine's own words).
-      await expect(headline.locator('[data-sentence="monthly.careful"]')).toHaveText(answer.sentences.line.text);
+      await expect(headline.locator('[data-sentence="levels.balanced.monthly"]')).toHaveText(answer.sentences.line.text);
       await expect(headline).toContainText(answer.sentences.bad.text);
       // Every default used is listed under what was assumed, in the engine's order.
       const assumed = await headline.locator('[data-assumed] [data-assumed-id]').evaluateAll((els) => els.map((el) => el.getAttribute('data-assumed-id')));

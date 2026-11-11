@@ -16,7 +16,7 @@
 export { answerB, SCHEMA_B, TEST_ENV } from './_b.js';
 import { get, money, pot as potText, partsText, outOfTen } from '../../../src/answers/shared/format.js';
 import { flatten } from '../../../src/answers/shared/validate.js';
-import { RULES, SAVING } from '../../../src/answers/shared/rules.js';
+import { RULES, SAVING, LEVEL_FAILS20, levelOf } from '../../../src/answers/shared/rules.js';
 import { gridToShow, spendLevelAMonth, askedAbout, stopYearsOf, payInParts } from '../../../src/answers/shared/schemaParts.js';
 import { bannedHits } from '../render/checkScreen.js';
 
@@ -43,7 +43,7 @@ const THREE = ['careful', 'middling', 'good'];
 const STATUSES = ['ok', 'guaranteed-only', 'out-of-reach', 'none'];
 const LEVERS = ['stopLater', 'payMore', 'spendLess', 'oneOff', 'moreRisk', 'accept'];
 const RISKS = ['cautious', 'balanced', 'adventurous'];
-const KEYS = ['inputs', 'whose', 'spend', 'stop', 'ages', 'years', 'pensionOpens', 'gapYears', 'saving', 'number', 'already', 'chance', 'onCourse', 'verdict', 'income', 'gap', 'enough',
+const KEYS = ['inputs', 'whose', 'spend', 'stop', 'ages', 'years', 'pensionOpens', 'gapYears', 'saving', 'level', 'levels', 'already', 'chance', 'onCourse', 'verdict', 'income', 'gap', 'enough',
   'payIn', 'potAtStop', 'short', 'monthlyIfShort', 'wholeLife', 'outside', 'levers', 'grid', 'phases', 'guaranteed', 'assumed', 'warnings',
   'sentences', 'basis', 'units'];
 /** No length of time to wait, anywhere in A or B (brief conflict 47's `countdown-any`). */
@@ -52,8 +52,14 @@ const SCOPES = ['all', 'first', 'planner', 'result'];
 
 /** The positions in a sorted spread of n figures (band.js bandIndexes, written again here). */
 export const positions = (n) => ({ careful: Math.floor(n / 10), middling: Math.floor(n / 2), good: n - Math.ceil(n / 10) });
-/** How many lives may miss at each confidence. */
-export const allowedAt = (n) => ({ nineInTen: Math.floor(n / 10), threeInFour: Math.floor(n / 4) });
+/**
+ * How many lives may miss (7.8.0, while not weighing): `nineInTen` the level's own count, floor(t·n/20) (Balanced: floor(n/10));
+ * `threeInFour` the close band's, floor(n/4) (never below the level's).
+ */
+export const allowedAt = (n, level = 'balanced') => {
+  const yes = Math.floor((LEVEL_FAILS20[level] * n) / 20);
+  return { nineInTen: yes, threeInFour: Math.max(yes, Math.floor(n / 4)) };
+};
 
 /** True when anything in the value is undefined, a function, a Date, NaN or infinite. */
 export function unsaveable(v, path = '', out = []) {
@@ -140,7 +146,9 @@ export function checkAnswerB(answer, given) {
   const people = peopleOf(inputs).map((p) => (st.saves(p.who) ? p : { ...p, payIn: { total: 0, own: null, employer: null } }));
   const savers = people.filter((p) => st.saves(p.who));
   const S = st.S;
-  const allowed = allowedAt(n);
+  const allowed = allowedAt(n, answer.level);
+  const LV = answer.levels;
+  const lvShown = LV && LV[answer.level];
   if ((answer.askedAbout || 'you') !== st.asked) fail('B2', `askedAbout ${answer.askedAbout}, the inputs ask about ${st.asked}`);
   if (Boolean(answer.apart) !== st.apart) fail('B2', `apart ${JSON.stringify(answer.apart)}, the stops ${JSON.stringify(st.own)}`);
   if (answer.apart) {
@@ -150,8 +158,8 @@ export function checkAnswerB(answer, given) {
   }
 
   // B2 the basis and the plain facts of the question
-  if (b.failuresAllowed !== Math.floor(n / 10)) fail('B2', 'failuresAllowed ≠ floor(n / 10)');
-  if (b.closeAllowed !== Math.floor(n / 4)) fail('B2', 'closeAllowed ≠ floor(n / 4)');
+  if (b.level !== answer.level || b.levelFails20 !== LEVEL_FAILS20[answer.level]) fail('B2', `basis.level ${b.level} / ${b.levelFails20}`);
+  if (!lvShown || !['careful', 'balanced', 'bold'].every((k) => LV[k] && 'pot' in LV[k])) fail('B2', 'no levels');
   for (const [k, v] of Object.entries({ bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly', strategyId: 'pots-and-valves', cutsSwitchedOff: true,
     potStep: SAVING.potStep, potMax: SAVING.potMax, payInCeiling: SAVING.payInCeiling * savers.length, laterYears: SAVING.laterYears })) {
     if (b[k] !== v) fail('B2', `basis.${k} = ${b[k]}, not ${v}`);
@@ -180,14 +188,16 @@ export function checkAnswerB(answer, given) {
     if (!(open === 55 || open === 57 || (Number.isInteger(open) && open === p.age && p.age >= 55))) fail('B2', `pensionOpens.${p.who} = ${open}`);
   }
 
-  // B3 the number: whole £1,000, careful ≥ middling ≥ good; nought when the pensions cover the spend; none when out of reach
-  const num = answer.number;
+  // B3 the number (7.8.0: the pot at each level): whole £1,000, Careful ≥ Balanced ≥ Bold; nought when the pensions cover
+  // the spend; none when out of reach. `num.careful` below is the level chosen's (the figure the answer stands behind)
+  const num = !lvShown || lvShown.pot === null ? null : { careful: lvShown.pot, byPerson: lvShown.byPerson };
   if (num === null) {
     if (answer.status !== 'out-of-reach') fail('B3', 'no number, but the status is not out-of-reach');
   } else {
-    for (const k of THREE) if (!Number.isInteger(num[k] / 1000) || num[k] < 0 || num[k] > SAVING.potMax) fail('B3', `number.${k} = ${num[k]}`);
-    if (!(num.careful >= num.middling && num.middling >= num.good)) fail('B3', `number out of order ${JSON.stringify(num)}`);
-    if (answer.status === 'guaranteed-only' && (num.careful !== 0 || num.good !== 0)) fail('B3', 'guaranteed-only but a number above nought');
+    for (const k of ['careful', 'balanced', 'bold']) { const v = LV[k].pot; if (v !== null && (!Number.isInteger(v / 1000) || v < 0 || v > SAVING.potMax)) fail('B3', `levels.${k}.pot = ${v}`); }
+    if (LV.careful.pot !== null && !(LV.careful.pot >= LV.balanced.pot)) fail('B3', 'Careful asks for a smaller pot than Balanced');
+    if (LV.balanced.pot !== null && !(LV.balanced.pot >= LV.bold.pot)) fail('B3', 'Balanced asks for a smaller pot than Bold');
+    if (answer.status === 'guaranteed-only' && (LV.careful.pot !== 0 || LV.bold.pot !== 0)) fail('B3', 'guaranteed-only but a number above nought');
     // (a nought with status ok has a payer outside the number: savings, the closed years' floor — or, a couple apart, the
     // pension pot of the one who has stopped, kept as given outside the number (couples-different-years.md 5.3 and 4.3 m)
     // and paying the spend in every life; the State Pensions, starting after the end, do not make it guaranteed-only. The
@@ -195,8 +205,8 @@ export function checkAnswerB(answer, given) {
     // you with nothing, still working, your partner stopped with £23 to £1,073,100 in a pension)
     const stoppedPot = Boolean(answer.apart) && people.some((p) => !st.saves(p.who) && p.pot > 0);
     if (answer.status === 'ok' && num.careful === 0 && !(inputs.savings > 0 || inputs.savingsIn > 0) && !answer.outside && !stoppedPot) fail('B3', 'status ok with a number of nought, and no savings to pay instead');
-    if (!Array.isArray(num.byPerson) || num.byPerson.length !== people.length) fail('B3', 'number.byPerson is not one per person');
-    else if (num.byPerson.reduce((s, x) => s + x.pot, 0) !== num.careful) fail('B3', 'number.byPerson does not add up to number.careful');
+    if (!Array.isArray(num.byPerson) || num.byPerson.length !== people.length) fail('B3', 'levels[level].byPerson is not one per person');
+    else if (num.byPerson.reduce((s, x) => s + x.pot, 0) !== num.careful) fail('B3', 'levels[level].byPerson does not add up to the pot');
     // (couples apart: the pensions of those still saving — the number's)
     const today = savers.reduce((s, p) => s + p.pot, 0);
     if (answer.already !== (today >= num.careful)) fail('B3', `already ${answer.already} but today's pension is ${today} against ${num.careful}`);
@@ -204,12 +214,12 @@ export function checkAnswerB(answer, given) {
 
   // B4 the chance is the one test (J9): the lives in which the money lasted to the end age, paying in as now and then
   // spending the target — the whole-life count, A's verdict at the stop age
-  const ch = answer.chance;
+  const ch = { ...answer.chance, lasted: answer.chance.fixedAge };
   if (!Number.isInteger(ch.fails) || ch.fails < 0 || ch.fails > n) fail('B4', `chance.fails ${ch.fails}`);
-  if (Math.abs(ch.lasted - (n - ch.fails) / n) > 1e-12) fail('B4', 'chance.lasted ≠ (n − fails) / n');
-  if (JSON.stringify(ch.outOfTen) !== JSON.stringify(outOfTen(ch.lasted))) fail('B4', 'chance.outOfTen is not outOfTen(lasted)');
+  if (Math.abs(ch.lasted - (n - ch.fails) / n) > 1e-12) fail('B4', 'chance.fixedAge ≠ (n − fails) / n');
+  if (ch.weighted < ch.lasted - 1e-12) fail('B4', 'chance.weighted below chance.fixedAge');
   if (answer.onCourse !== (ch.fails <= allowed.nineInTen)) fail('B4', `onCourse ${answer.onCourse} with ${ch.fails} of ${n} short`);
-  if (ch.lasted !== answer.wholeLife.lasted) fail('B4', `chance.lasted ${ch.lasted} is not the whole life's ${answer.wholeLife.lasted}: one test`);
+  if (ch.lasted !== answer.wholeLife.lasted) fail('B4', `chance.fixedAge ${ch.lasted} is not the whole life's ${answer.wholeLife.lasted}: one test`);
 
   // B5 the pay-ins: whole £10, what is needed at the chosen confidence, 9 in 10 never less than 3 in 4, on course ⟺ enough now
   const pi = answer.payIn;
@@ -217,20 +227,16 @@ export function checkAnswerB(answer, given) {
   if (pi.now !== nowTotal) fail('B5', `payIn.now ${pi.now} ≠ ${nowTotal}`);
   // to the penny: each person's total is their two parts added to the penny (payInParts), and the parts are summed apart
   if (pi.own !== null && Math.abs(pi.own + pi.employer - pi.now) > 0.005) fail('B5', 'own + employer ≠ now');
-  if (pi.confidence !== inputs.confidence) fail('B5', 'payIn.confidence is not the one asked for');
-  for (const k of ['nineInTen', 'threeInFour']) {
-    const v = pi.at[k];
-    if (v !== null && (!Number.isInteger(v / 10) || v < 0 || v > b.payInCeiling)) fail('B5', `payIn.at.${k} = ${v}`);
-  }
-  if (pi.at.nineInTen !== null && pi.at.threeInFour === null) fail('B5', '9 in 10 reached but 3 in 4 not');
-  if (pi.at.nineInTen !== null && pi.at.nineInTen < pi.at.threeInFour) fail('B5', `9 in 10 (${pi.at.nineInTen}) below 3 in 4 (${pi.at.threeInFour})`);
-  if (pi.needed !== pi.at[pi.confidence]) fail('B5', 'payIn.needed ≠ payIn.at[confidence]');
+  if (answer.level !== levelOf(inputs.confidence)) fail('B5', 'the level is not the one asked for');
+  const at = { nineInTen: lvShown ? lvShown.payIn : null };
+  if (at.nineInTen !== null && at.nineInTen !== undefined && (!Number.isInteger(at.nineInTen / 10) || at.nineInTen < 0 || at.nineInTen > b.payInCeiling)) fail('B5', `levels[level].payIn = ${at.nineInTen}`);
+  if (pi.needed !== at.nineInTen) fail('B5', 'payIn.needed ≠ levels[level].payIn');
   if (pi.extra !== (pi.needed === null ? 0 : Math.max(0, pi.needed - pi.now))) fail('B5', `payIn.extra ${pi.extra}`);
   const savingsShort = pi.outside !== null && pi.outside > (pi.savingsNow || 0);
   if (num !== null && answer.status !== 'guaranteed-only') {
-    if (answer.onCourse && !(pi.at.nineInTen !== null && pi.at.nineInTen < pi.now + 10)) fail('B5', `on course at ${pi.now} but 9 in 10 needs ${pi.at.nineInTen}`);
+    if (answer.onCourse && !(at.nineInTen !== null && at.nineInTen < pi.now + 10)) fail('B5', `on course at ${pi.now} but the level needs ${at.nineInTen}`);
     // not on course: more must go into the pension — or, before a pension opens, into savings
-    if (!answer.onCourse && pi.at.nineInTen !== null && !(pi.at.nineInTen > pi.now) && !savingsShort) fail('B5', `not on course at ${pi.now} but 9 in 10 needs only ${pi.at.nineInTen}`);
+    if (!answer.onCourse && at.nineInTen !== null && !(at.nineInTen > pi.now) && !savingsShort) fail('B5', `not on course at ${pi.now} but the level needs only ${at.nineInTen}`);
   }
   if (answer.status === 'guaranteed-only' && (pi.needed !== 0 || !answer.onCourse)) fail('B5', 'guaranteed-only: nothing is needed and it is on course');
   if ((answer.status === 'out-of-reach') !== (num === null || pi.needed === null)) fail('B5', 'out-of-reach ⟺ no number or no pay-in that gets there');
@@ -255,7 +261,7 @@ export function checkAnswerB(answer, given) {
   if (JSON.stringify(wl.outOfTen) !== JSON.stringify(outOfTen(wl.lasted))) fail('B7', 'wholeLife.outOfTen');
   if (!Number.isInteger(wl.runOutAge) || wl.runOutAge < youngerAtStop || wl.runOutAge > b.endAge) fail('B7', `wholeLife.runOutAge ${wl.runOutAge}`);   // the younger person's age, as the end age
   const wlFails = Math.round((1 - wl.lasted) * n);
-  if ((wl.runOutAge === b.endAge) !== (wlFails <= allowed.nineInTen)) fail('B7', `bad case lasted = ${wl.runOutAge === b.endAge} with ${wlFails} of ${n} run out`);
+  if ((wl.runOutAge === b.endAge) !== (wlFails <= Math.floor(n / 10))) fail('B7', `bad case lasted = ${wl.runOutAge === b.endAge} with ${wlFails} of ${n} run out`);
 
   // B8 the levers: the fixed five in order, each null or its shape; honest about what it claims
   const lv = answer.levers;
@@ -272,7 +278,7 @@ export function checkAnswerB(answer, given) {
   // in the person's own kind, with the count B asked again at it; before that, and when only the savings fall short, B's
   // own whole £10)
   const en = answer.enough;
-  const lead = en && !en.savingsOnly ? en[pi.confidence] : null;
+  const lead = en && !en.savingsOnly ? en.atLevel : null;
   if (lv.payMore) {
     const m = lv.payMore;
     if (en && !en.savingsOnly) {
@@ -287,7 +293,7 @@ export function checkAnswerB(answer, given) {
       if (!(pi.needed > pi.now || (m.savingsIn !== null && m.savingsIn > (pi.savingsNow || 0)))) fail('B8', 'payMore changes nothing');
     }
     if (m.savingsIn !== null && m.savingsIn !== pi.outside) fail('B8', `payMore.savingsIn ${m.savingsIn} is not payIn.outside ${pi.outside}`);
-    if (m.lasted < 1 - allowed.nineInTen / n - 1e-12 && pi.confidence === 'nineInTen') fail('B8', `payMore lasted in only ${m.lasted}`);
+    if (m.lasted < 1 - allowed.nineInTen / n - 1e-12) fail('B8', `payMore lasted in only ${m.lasted}`);
   } else if (lead && !answer.onCourse && (lead.payIn > pi.now || lead.savingsIn !== null)) fail('B8', 'something would be enough, and no payMore');
   if (lv.oneOff) {
     const o = lv.oneOff;
@@ -317,7 +323,7 @@ export function checkAnswerB(answer, given) {
   if (b.detail === 'grid') {
     const g = answer.grid;
     // (a share of pay: the columns are shares up to what would be enough, saving-enough-and-check-in.md 3.4)
-    const enoughPct = en && en.how === 'share' && en[pi.confidence] && Number.isFinite(en[pi.confidence].totalPct) ? en[pi.confidence].totalPct : null;
+    const enoughPct = en && en.how === 'share' && en.atLevel && Number.isFinite(en.atLevel.totalPct) ? en.atLevel.totalPct : null;
     const want = gridToShow(inputs, { today: b.today }, { stopLater: lv.stopLater ? lv.stopLater.age : null, needed: pi.needed, enoughPct });
     if (!g) fail('B9', 'detail "grid" but no grid');
     else {
@@ -337,7 +343,7 @@ export function checkAnswerB(answer, given) {
       if (g.reaches !== g.ages.some((r) => r.cells.some((c) => c.verdict === 'yes'))) fail('B9', 'grid.reaches is not "some cell lasted in 9 in 10"');
       if (lv.stopLater && !g.ages.some((r) => r.age === lv.stopLater.age)) fail('B9', 'the grid has no row for the stop-later age');
       if (g.shares) {
-        if (enoughPct !== null && en[pi.confidence].payIn > pi.now && !g.shares.includes(enoughPct)) fail('B9', 'the grid in shares has no column for the share that would be enough');
+        if (enoughPct !== null && en.atLevel.payIn > pi.now && !g.shares.includes(enoughPct)) fail('B9', 'the grid in shares has no column for the share that would be enough');
       } else if (pi.needed !== null && pi.needed > pi.now && !g.payIns.includes(pi.needed)) fail('B9', 'the grid has no column for the pay-in that gets there');
       const own = g.ages.find((r) => r.age === st.stopAge);
       if (own && num !== null) {
@@ -476,7 +482,7 @@ export function checkAnswerB(answer, given) {
   const share = savers.length;
   // (the figure the words state: what would be enough at the chance asked for, each person's part — a share lands up to
   // a grid step above B's £10, and the warnings are about what the person is told to pay in; no enough block, B's own)
-  const enLead = answer.enough ? answer.enough[pi.confidence] : null;
+  const enLead = answer.enough ? answer.enough.atLevel : null;
   const neededOf = (p) => (answer.enough ? (enLead ? (enLead.parts.find((x) => x.who === p.who) || { payIn: 0 }).payIn : 0)
     : pi.needed === null || !st.saves(p.who) ? 0 : nowTotal > 0 ? pi.needed * p.payIn.total / nowTotal : pi.needed / share);
   const overAA = people.some((p) => p.payIn.total * 12 > RULES.annualAllowance || neededOf(p) * 12 > RULES.annualAllowance + 1e-6);
@@ -554,19 +560,18 @@ export function checkAnswerB(answer, given) {
   const band = ch.fails <= allowed.nineInTen ? 'yes' : ch.fails <= allowed.threeInFour ? 'close' : 'no';
   if (!vd || vd.band !== band || vd.lasted !== ch.lasted) fail('B17', `verdict ${JSON.stringify(vd)}, the count says ${band}`);
   if (answer.income.bad !== answer.monthlyIfShort) fail('B17', `income.bad ${answer.income.bad} is not the careful amount paying in as now (${answer.monthlyIfShort})`);
-  if (!(answer.income.middling >= answer.income.bad)) fail('B17', 'the middling income is below the bad case');
   const gapWant = Math.round(Math.max(0, spend - answer.income.bad) * 100) / 100;
   if (answer.gap.month !== gapWant || Math.abs(answer.gap.year - gapWant * 12) > 0.005) fail('B17', `gap ${JSON.stringify(answer.gap)}, the aim less the bad case is ${gapWant}`);
   if (answer.status === 'guaranteed-only') { if (en !== null) fail('B17', 'enough when the State Pension covers it'); }
   else if (!en) fail('B17', 'no enough');
   else {
-    if (en.threeInFourNow !== (band === 'close')) fail('B17', 'threeInFourNow ⟺ the Close band');
-    if (band !== 'no' && en.threeInFour !== null) fail('B17', 'a 3-in-4 figure outside the bottom band');
+    if (en.closeNow !== (band === 'close')) fail('B17', 'closeNow ⟺ the Close band');
+    if (en.level !== answer.level) fail('B17', 'enough.level is not the answer\'s');
     const saversHere = savers.length;
     const one = saversHere === 1 ? savers[0] : null;
     const how = !one ? 'couple' : (inputs[one.who].payIn.kind === 'share' && inputs[one.who].payIn.pay > 0) ? 'share' : 'pounds';
     if (en.how !== how) fail('B17', `enough.how ${en.how}, the pay-in says ${how}`);
-    for (const [k, cap] of [['nineInTen', allowed.nineInTen], ['threeInFour', allowed.threeInFour]]) {
+    for (const [k, cap] of [['atLevel', allowed.nineInTen]]) {
       const fig = en[k];
       if (!fig) continue;
       if (!(fig.fails <= cap)) fail('B17', `enough.${k} counts ${fig.fails} failing, more than ${cap}`);
@@ -582,14 +587,13 @@ export function checkAnswerB(answer, given) {
       }
       if (fig.payIn > b.payInCeiling + 1e-9) fail('B17', `enough.${k} above the ceiling`);
     }
-    if (en.nineInTen && en.threeInFour && en.threeInFour.payIn > en.nineInTen.payIn + 1e-9 && how === 'share') fail('B17', '3 in 4 needs more than 9 in 10');
-    if (en.outOfReach !== null && en.nineInTen !== null) fail('B17', 'out of reach, yet a figure');
+    if (en.outOfReach !== null && en.atLevel !== null) fail('B17', 'out of reach, yet a figure');
     // (a couple: each saver at their most, and one of those all of a share of a pay — `caps` says whose; a part past its
     // person's most goes to the other, so a couple's figure is never out of reach because of today's split)
     if (en.outOfReach === 'pay' && how !== 'share' && !(how === 'couple' && Array.isArray(en.caps) && en.caps.some((x) => x.by === 'pay'
       && inputs[x.who].payIn.kind === 'share' && inputs[x.who].payIn.pay > 0))) fail('B17', '"all of your pay" without a share of a pay');
     if (how === 'couple') {
-      for (const k of ['nineInTen', 'threeInFour']) {
+      for (const k of ['atLevel']) {
         const fig = en[k];
         if (!fig) continue;
         fig.parts.forEach((part) => {
@@ -598,7 +602,7 @@ export function checkAnswerB(answer, given) {
         });
       }
     }
-    if (band !== 'yes' && en.nineInTen === null && en.outOfReach === null) fail('B17', 'not on course, no figure and no reason');
+    if (band !== 'yes' && en.atLevel === null && en.outOfReach === null) fail('B17', 'not on course, no figure and no reason');
   }
 
   // B16 can be saved

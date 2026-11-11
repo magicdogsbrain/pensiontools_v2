@@ -25,7 +25,7 @@ describe('SCHEMA_C — the declaration', () => {
   });
 
   it('holds no words: only the known keys, and no label, help or error text', () => {
-    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options', 'unit'];   // unit: a steps field's (perMonth | share)
+    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options', 'legacy', 'unit'];   // unit: a steps field's (perMonth | share)
     for (const f of SCHEMA_C.fields) expect(Object.keys(f).filter((k) => !allowed.includes(k)), f.path).toEqual([]);
   });
 
@@ -121,7 +121,7 @@ describe('SCHEMA_C — the declaration', () => {
     // in the more-detail block, between the risk level and the end age (the order A and B keep)
     const more = SCHEMA_C.fields.filter((f) => f.group === 'more').map((f) => f.path);
     // the tax-free part: under more detail too; how the savings grow straight after them (6.22.0)
-    expect(more).toEqual(['you.taxFreeTaken', 'partner.taxFreeTaken', 'savings', 'isaGrowth', 'risk', 'charge', 'endAge']);
+    expect(more).toEqual(['you.taxFreeTaken', 'partner.taxFreeTaken', 'savings', 'isaGrowth', 'risk', 'charge', 'endAge', 'confidence']);
     const at = (path) => parseDraft(SCHEMA_C, { 'you.pot': '250000', 'you.age': '58', charge: path }, TEST_ENV);
     expect(at('1.35').inputs.charge).toBe(1.35);
     expect(at('0.07').errors).toEqual({ charge: 'notANumber' });
@@ -139,7 +139,7 @@ describe('SCHEMA_C — the declaration', () => {
     expect(r.ok).toBe(true);
     expect(r.inputs).toEqual({
       household: 'single', you: { pot: 250000, age: 58, statePension: { kind: 'full' }, finalSalary: { has: false } },
-      start: { kind: 'now' }, savings: 0, risk: 'balanced', charge: 0.5, endAge: 95, take: null
+      start: { kind: 'now' }, savings: 0, risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'balanced', take: null
     });
     expect(validate(SCHEMA_C, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_C, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);   // checking twice changes nothing
@@ -148,7 +148,7 @@ describe('SCHEMA_C — the declaration', () => {
     expect('isaGrowth' in r.inputs).toBe(false);
     expect(Object.keys(flatten(r.inputs)).sort()).toEqual(fieldsThatApply(SCHEMA_C, r.values).filter((f) => (f.required || 'default' in f) && f.path !== 'isaGrowth').map((f) => f.path).sort());
     const saved = parseDraft(SCHEMA_C, { 'you.pot': '250000', 'you.age': '58', savings: '40,000' }, TEST_ENV);
-    expect(JSON.stringify(Object.keys(saved.inputs))).toBe(JSON.stringify(['household', 'you', 'start', 'savings', 'isaGrowth', 'risk', 'charge', 'endAge', 'take']));
+    expect(JSON.stringify(Object.keys(saved.inputs))).toBe(JSON.stringify(['household', 'you', 'start', 'savings', 'isaGrowth', 'risk', 'charge', 'endAge', 'confidence', 'take']));
     expect(saved.inputs.isaGrowth).toBe('cash');
   });
 
@@ -192,7 +192,7 @@ describe('C: each of a couple stops on their own date', () => {
   it('never answered: today\'s inputs, key for key, in today\'s order', () => {
     const r = two({ 'partner.payIn.has': 'yes', 'partner.payIn.own': '200', 'partner.payIn.employer': '100', 'start.kind': 'age', 'start.age': '60' });
     expect(r.ok).toBe(true);
-    expect(JSON.stringify(Object.keys(r.inputs))).toBe(JSON.stringify(['household', 'you', 'start', 'partner', 'savings', 'risk', 'charge', 'endAge', 'take']));
+    expect(JSON.stringify(Object.keys(r.inputs))).toBe(JSON.stringify(['household', 'you', 'start', 'partner', 'savings', 'risk', 'charge', 'endAge', 'confidence', 'take']));
     expect(Object.keys(r.inputs.partner)).toEqual(['age', 'pot', 'statePension', 'finalSalary', 'payIn']);
     expect(Object.keys(two().inputs.you)).toEqual(['pot', 'age', 'statePension', 'finalSalary']);   // from now: the tax-free question not answered
   });
@@ -228,7 +228,7 @@ describe('the answer function', () => {
     const r = answerC(couple, TEST_ENV);
     expect(r.status).toBe('ok');
     expect(r.inputs.partner).toEqual({ age: 60, pot: 0, statePension: { kind: 'full' }, finalSalary: { has: false } });
-    expect(r.basis).toMatchObject({ today: '2026-09-30', futures: 40, seed: 0, failuresAllowed: 4 });
+    expect(r.basis).toMatchObject({ today: '2026-09-30', futures: 40, seed: 0, level: 'balanced', levelFails20: 2 });
     for (const s of sentencesOf(r)) expect(partsText(s.parts, r), s.id).toBe(s.text);
     for (const s of sentencesOf(r)) for (const p of s.parts) if (p && p.key) expect(typeof get(r, p.key), `${s.id}: ${p.key}`).toBe('number');
     for (const a of r.assumed) if (a.source === 'default') expect(typeof a.field, a.id).toBe('string');

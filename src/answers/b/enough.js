@@ -1,7 +1,7 @@
 /**
  * "What would be enough" for question B (research/saving-enough-and-check-in.md 3.1–3.4; release step R1): the least
- * pay-in that is on course — 9 futures out of 10, the one bar — and the least for 3 futures out of 4, each said the way
- * the person gave what goes in now; and the one-off sum into the pension today that would be on course, paying in as now.
+ * pay-in that is on course at the level chosen (7.8.0: `atLevel`; the separate "3 in 4" figure is gone), said the way the
+ * person gave what goes in now; and the one-off sum into the pension today that would be on course, paying in as now.
  *
  * ONE TEST. Every figure here is B's own test (stopAt.js lastsWithin, and verdictAtPayIns for the count) on the stop
  * plan's lives, at another pay-in or another pot: no second model and no new saving run. The pot at the stop is exactly
@@ -117,18 +117,19 @@ function capOf(q) {
  * @param {object} o.row        B's stop age as answer.js reads it (createAges): `lasts`, `count`, `payInsAt`, `sp`, `H`
  * @param {number} o.H          the spend a year, as typed
  * @param {object} o.ctx        answer.js's context: now, shares, savingsInNow, savers, saverCount
- * @param {object} o.solved     payInsThatGetThere's: { savingsIn, at: { nineInTen, threeInFour } } — B's whole-£10 figures
+ * @param {object} o.solved     payInsThatGetThere's: { savingsIn, needed } — B's whole-£10 figure at the level
  * @param {object} o.inp        the checked inputs
  * @param {string[]} o.whos
  * @param {boolean[]} o.savers
- * @param {'yes'|'close'|'no'} o.band   legacyVerdictOf at today's pay-ins
- * @param {{ careful: number, close: number }} o.allowed   the lives that may fail: floor(n / 10), floor(n / 4)
+ * @param {'yes'|'close'|'no'} o.band   the verdict at the level at today's pay-ins
+ * @param {{ level: number }} o.allowed   the lives the level lets fail (floor(t·n/20) while not weighing)
+ * @param {string} o.level      the level chosen
  * @param {boolean} o.reachable  a number exists (some pot pays the spend): when not, no pay-in can be enough
  * @param {boolean[]|null} o.only    couples apart: whose pensions the number is (those still saving); null for everyone
  * @param {boolean} o.closedYears    the answer names savings set aside for the years before a pension opens (result.outside)
  * @returns {object}
  */
-export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed, reachable, only, closedYears }) {
+export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed, level, reachable, only, closedYears }) {
   const people = peopleOf(inp, whos, savers);
   const saving = people.filter((q) => q.saves);
   const one = saving.length === 1 ? saving[0] : null;
@@ -138,7 +139,6 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
   // what goes into savings now, so no figure here leans on savings the answer does not name
   const savingsIn = closedYears ? solved.savingsIn : ctx.savingsInNow;
   const savingsMore = savingsIn > ctx.savingsInNow + 1e-9 ? savingsIn : null;
-  const at = solved.at;
   // each saver's most (all of their pay, or £10,000 a month)
   const caps = people.map((q) => (q.saves ? capOf(q) : null));
   const out = {
@@ -156,9 +156,10 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
     outOfReach: null,
     // a couple out of reach by paying in: each saver's most, and whether it is all of their pay or £10,000 a month
     caps: null,
-    threeInFourNow: band === 'close',
-    nineInTen: null,
-    threeInFour: null
+    // the level the figure is at, whether today's pay-in is close to it, and the figure (7.8.0)
+    level,
+    closeNow: band === 'close',
+    atLevel: null
   };
   if (!reachable) { out.outOfReach = 'pot'; return out; }
 
@@ -264,25 +265,20 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
   };
 
   // ---- what goes into the pension as now is enough: the savings for the closed years alone (row P) ---------------------
-  if (band !== 'yes' && savingsMore !== null && at.nineInTen !== null && at.nineInTen <= now) {
+  if (band !== 'yes' && savingsMore !== null && solved.needed !== null && solved.needed <= now) {
     const fig = figureOf(people.map(asNow));
     const v = countAt(fig);
-    if (v.fails <= allowed.careful) {
+    if (v.fails <= allowed.level) {
       out.savingsOnly = true;
-      out.nineInTen = { ...fig, ...v };
+      out.atLevel = { ...fig, ...v };
       return withAtStop(out, row, listOf, only);
     }
   }
 
-  const nine = solve(allowed.careful, at.nineInTen);
-  out.nineInTen = nine;
-  if (nine === null && band !== 'yes') out.outOfReach = whyNot(at.nineInTen);
-  if (band === 'no') {
-    // 3 in 4 never needs more than 9 in 10 (searched below it when 9 in 10 was found)
-    out.threeInFour = solve(allowed.close, at.threeInFour, nine && isNum(nine.k) ? nine.k : null);
-  }
-  if (nine && 'k' in nine) delete nine.k;
-  if (out.threeInFour && 'k' in out.threeInFour) delete out.threeInFour.k;
+  const fig = solve(allowed.level, solved.needed);
+  out.atLevel = fig;
+  if (fig === null && band !== 'yes') out.outOfReach = whyNot(solved.needed);
+  if (fig && 'k' in fig) delete fig.k;
   return band === 'yes' ? out : withAtStop(out, row, listOf, only);
 }
 
@@ -293,7 +289,7 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
  * Kernel arithmetic only: no run.
  */
 function withAtStop(out, row, listOf, only) {
-  for (const fig of [out.nineInTen, out.threeInFour]) if (fig) atStopOf(fig, row, listOf, only);
+  if (out.atLevel) atStopOf(out.atLevel, row, listOf, only);
   return out;
 }
 

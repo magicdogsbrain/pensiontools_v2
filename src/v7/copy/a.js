@@ -145,7 +145,7 @@ export const A = {
     rangeTitle: 'What you could spend from',
     rangeNote: '(a month, after tax, at today’s prices)',
     /** The key under the three amounts. Its counts are the answer's own (BAND in src/answers/shared/rules.js). */
-    rangeKey: 'careful = lasts in 9 futures out of 10 · middling = 5 out of 10 · good = the best 1 in 10',
+    rangeKey: 'Careful = lasts in 19 futures out of 20 · Balanced = 9 out of 10 · Bold = 7 out of 10',
 
     yearsTitle: 'The years before your State Pension',
     yearsNote: '(what you spend, a month, after tax, at today’s prices)',
@@ -581,6 +581,11 @@ export const A = {
         /** The same rule for a couple whose stops are their own: the end comes after both, and the stops less than 45 years apart. */
         'end-after-stop-apart': 'That is not after you have both stopped. Choose a later age. The two of you also need to stop less than 45 years apart.'
       }
+    },
+    // "How careful?" (7.8.0): the count each level lets through leads the label, so "Balanced" is never read as a mix
+    confidence: {
+      label: 'How careful?',
+      options: { careful: 'In 19 futures out of 20: Careful', balanced: 'In 9 futures out of 10: Balanced (we start here)', bold: 'In 7 futures out of 10: Bold' }
     }
   },
 

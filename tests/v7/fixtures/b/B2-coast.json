@@ -74,7 +74,7 @@
       "charge": 0.5,
       "endAge": 95,
       "isaGrowth": "cash",
-      "confidence": "nineInTen"
+      "confidence": "balanced"
     },
     "whose": "you",
     "spend": {
@@ -141,26 +141,36 @@
         "chargeAYear": 0.005
       }
     ],
-    "number": {
-      "careful": 521000,
-      "middling": 346000,
-      "good": 267000,
-      "byPerson": [
-        {
-          "who": "you",
-          "pot": 521000
-        }
-      ]
+    "level": "balanced",
+    "levels": {
+      "careful": {
+        "pot": 540000
+      },
+      "balanced": {
+        "pot": 521000,
+        "payIn": 270,
+        "byPerson": [
+          {
+            "who": "you",
+            "pot": 521000
+          }
+        ],
+        "weighted": 0.9,
+        "fixedAge": 0.9
+      },
+      "bold": {
+        "pot": 412000
+      }
     },
     "already": false,
     "chance": {
-      "lasted": 0.975,
-      "outOfTen": {
-        "words": "in more than 9 futures out of 10",
-        "only": false,
-        "count": 9
-      },
-      "fails": 1
+      "weighted": 0.975,
+      "fixedAge": 0.975,
+      "fails": 1,
+      "n": 40,
+      "planToAge": 95,
+      "weightToAge": 95,
+      "horizonRule": "survival"
     },
     "onCourse": true,
     "verdict": {
@@ -173,7 +183,6 @@
       }
     },
     "income": {
-      "middling": 3240,
       "bad": 2430
     },
     "gap": {
@@ -192,8 +201,9 @@
       "savingsOnly": false,
       "outOfReach": null,
       "caps": null,
-      "threeInFourNow": false,
-      "nineInTen": {
+      "level": "balanced",
+      "closeNow": false,
+      "atLevel": {
         "payIn": 270,
         "extra": 0,
         "savingsIn": null,
@@ -216,8 +226,7 @@
         },
         "verdict": "yes",
         "runOutAge": 95
-      },
-      "threeInFour": null
+      }
     },
     "payIn": {
       "now": 1400,
@@ -225,11 +234,6 @@
       "employer": null,
       "needed": 270,
       "extra": 0,
-      "confidence": "nineInTen",
-      "at": {
-        "nineInTen": 270,
-        "threeInFour": 0
-      },
       "outside": null,
       "savingsNow": 0
     },
@@ -519,7 +523,7 @@
         "id": "confidence",
         "field": "confidence",
         "source": "default",
-        "value": "nineInTen",
+        "value": "balanced",
         "text": "The pay-in that gets there makes your money last in 9 futures out of 10.",
         "parts": [
           "The pay-in that gets there makes your money last ",
@@ -690,7 +694,7 @@
         "parts": [
           "About ",
           {
-            "key": "number.careful",
+            "key": "levels.balanced.pot",
             "kind": "pot"
           },
           " by age ",
@@ -753,7 +757,7 @@
           ", ",
           "you would want a pot of about ",
           {
-            "key": "number.careful",
+            "key": "levels.balanced.pot",
             "kind": "pot"
           },
           " by then",
@@ -1012,7 +1016,7 @@
           ". ",
           "You could pay in as little as ",
           {
-            "key": "enough.nineInTen.payIn",
+            "key": "enough.atLevel.payIn",
             "kind": "money"
           },
           " a month",
@@ -1021,7 +1025,7 @@
       },
       "income": {
         "id": "b.verdict.income",
-        "text": "To last in 9 futures out of 10, you could spend £2,430 a month from 60 (£3,240 in a middling case, 5 futures out of 10), with your savings and your State Pension from 68 (the full amount, as assumed).",
+        "text": "To last in 9 futures out of 10, you could spend £2,430 a month from 60, with your savings and your State Pension from 68 (the full amount, as assumed).",
         "parts": [
           "To last in ",
           {
@@ -1041,20 +1045,6 @@
             "key": "stop.age",
             "kind": "age"
           },
-          " (",
-          {
-            "key": "income.middling",
-            "kind": "money"
-          },
-          " in a middling case, ",
-          {
-            "fixed": "5"
-          },
-          " futures out of ",
-          {
-            "fixed": "10"
-          },
-          ")",
           ", with ",
           "your savings",
           " and ",
@@ -1100,8 +1090,14 @@
       "today": "2026-09-30",
       "futures": 40,
       "seed": 0,
-      "failuresAllowed": 4,
-      "closeAllowed": 10,
+      "level": "balanced",
+      "levelFails20": 2,
+      "planToAge": 95,
+      "weightToAge": 95,
+      "tablesVersion": "ons-ew-2024-cohort/1",
+      "sexUsed": {
+        "you": "f"
+      },
       "historyEnd": "2023-06",
       "engineVersion": "(any)",
       "endAge": 95,

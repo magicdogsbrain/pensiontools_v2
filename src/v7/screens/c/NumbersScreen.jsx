@@ -76,6 +76,7 @@ export function NumbersScreen(state, dispatch) {
               <Field form={form} path="risk" dispatch={dispatch} />
               <Field form={form} path="charge" dispatch={dispatch} />
               <Field form={form} path="endAge" dispatch={dispatch} />
+              <FieldGroup form={form} path="confidence" dispatch={dispatch} />
             </section>
           )}
 

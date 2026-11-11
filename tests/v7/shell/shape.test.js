@@ -254,7 +254,7 @@ describe('the hand-overs carry the shape (spending-shape.md 4.5)', () => {
   });
   it('C → A: each step in pounds from C\'s careful start, rounded down; the box takes the careful start', () => {
     let c = run(typedC(fresh(), '250,000', '67'), { type: A.SHAPE_SUGGEST, q: 'c' }, { type: A.SHAPE_STEP, q: 'c', i: 0, field: 'share', value: '85.5' });
-    c = answered(c, 'c', { status: 'ok', monthly: { careful: 1333, middling: 1500, good: 1700 }, basis: {} });
+    c = answered(c, 'c', { status: 'ok', level: 'balanced', levels: { careful: { monthly: 1250 }, balanced: { monthly: 1333 }, bold: { monthly: 1500 } }, basis: {} });
     const s = reduce(c, { type: A.DRAFT_CARRY, from: 'c', to: 'a' });
     expect(s.draft.a.values['spend.amount']).toBe('1,333');
     expect(steps(s)).toEqual([{ fromAge: '75', perMonth: '1,139', then: 'level', fallsPct: '' }, { fromAge: '85', perMonth: '933', then: 'level', fallsPct: '' }]);

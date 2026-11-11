@@ -19,9 +19,9 @@ const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
 const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 const FOUND = JSON.parse(readFileSync(resolve(process.cwd(), 'tests/v7/c/found.cases.json'), 'utf8'));
 const ok = (a, inputs) => { const f = checkAnswer(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
-const household = (a) => ({ monthly: a.monthly, yearly: a.yearly, lasted: a.lasted, runOutAge: a.runOutAge, guaranteed: a.guaranteed, take: a.take, status: a.status,
+const household = (a) => ({ levels: a.levels, chance: a.chance, guaranteed: a.guaranteed, take: a.take, status: a.status,
   phases: a.phases.map((p) => ({ takeHome: p.takeHome, fromPots: p.fromPots, statePension: p.statePension, finalSalary: p.finalSalary, tax: p.tax, shown: p.shown, beforeStatePension: p.beforeStatePension })),
-  years: a.basis.years, endAge: a.basis.endAge, failuresAllowed: a.basis.failuresAllowed });
+  years: a.basis.years, endAge: a.basis.endAge, failuresAllowed: Math.floor(a.basis.futures * a.basis.levelFails20 / 20) });
 /** M5's comparison: every household figure the same, and each phase's ages and person's figures with the labels moved. */
 function sameWithLabelsMoved(a, b) {
   expect(household(b)).toEqual(household(a));
@@ -173,10 +173,10 @@ describe('C — metamorphic relations', () => {
       // personal allowance, in two names two, so the even split takes home £160 a month less (£21,440 against £21,600);
       // and 58 with a £20,000 State Pension forecast beside the same, £110,000 a year in all (seed -2110052139): the
       // middling £60 a month less.
-      fc.pre(a.yearly.good <= 60_000);
+      fc.pre(a.levels.bold.yearly <= 60_000);
       const b = ok(answerC(evenSplit, ENV), evenSplit);
       // to a £10 step: two pots searched separately can land a step apart from one pot (a large final-salary pension beside them makes the pots' part small)
-      for (const k of ['careful', 'middling', 'good']) expect(b.monthly[k], k).toBeGreaterThanOrEqual(a.monthly[k] - 10);
+      for (const k of ['careful', 'balanced', 'bold']) expect(b.levels[k].monthly, k).toBeGreaterThanOrEqual(a.levels[k].monthly - 10);
     }), opts());
   });
 
@@ -231,6 +231,6 @@ describe('C — metamorphic relations', () => {
     // a different seed is a different market
     const c = answerC({ you: { pot: 100000, age: 60 } }, { ...ENV, seed: 1 });
     expect(c.basis.seed).toBe(1);
-    expect(c.monthly).not.toEqual(a.monthly);
+    expect(c.levels).not.toEqual(a.levels);
   });
 });

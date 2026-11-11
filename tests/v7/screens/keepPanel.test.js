@@ -90,8 +90,8 @@ describe('at the foot of every answer', () => {
     const { root, actions } = draw(s);
     expect(one(root, 'b.keep.payIn').querySelector('legend').textContent).toBe(KEEP.payIn.ask);
     expect(one(root, 'b.action.save.now').textContent).toBe(`Keep: paying in as now (${money(r.payIn.now)} a month)`);
-    expect(one(root, 'b.action.save.enough').textContent).toBe(`Keep: paying in ${money(r.enough.nineInTen.payIn)} a month (on course)`);
-    expect(one(root, 'b.action.save.enough').querySelector('[data-key="enough.nineInTen.payIn"]').getAttribute('data-value')).toBe(String(r.enough.nineInTen.payIn));
+    expect(one(root, 'b.action.save.enough').textContent).toBe(`Keep: paying in ${money(r.enough.atLevel.payIn)} a month (on course)`);
+    expect(one(root, 'b.action.save.enough').querySelector('[data-key="enough.atLevel.payIn"]').getAttribute('data-value')).toBe(String(r.enough.atLevel.payIn));
     fire(one(root, 'b.keep.name').closest('form'), 'submit');
     expect(actions).toEqual([]);
     one(root, 'b.action.save.enough').click();
@@ -100,7 +100,7 @@ describe('at the foot of every answer', () => {
     // a share of pay says the shares
     const share = clone(s);
     const sr = share.answers.b.result;
-    sr.enough = { ...sr.enough, how: 'share', now: { totalPct: 10, ownPct: 6, employerPct: 4, payIn: sr.payIn.now }, nineInTen: { ...sr.enough.nineInTen, totalPct: 31, ownPct: 27, employerPct: 4 } };
+    sr.enough = { ...sr.enough, how: 'share', now: { totalPct: 10, ownPct: 6, employerPct: 4, payIn: sr.payIn.now }, atLevel: { ...sr.enough.atLevel, totalPct: 31, ownPct: 27, employerPct: 4 } };
     const sroot = renderScreen(share);
     expect(one(sroot, 'b.action.save.now').textContent).toBe('Keep: paying in as now (10%)');
     expect(one(sroot, 'b.action.save.enough').textContent).toBe('Keep: paying in 31% (on course)');

@@ -101,7 +101,7 @@
     },
     "d": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"fall\":{\"has\":false},\"household\":\"couple\",\"isaGrowth\":\"cash\",\"partner\":{\"age\":70,\"finalSalary\":{\"has\":false},\"pot\":150000,\"statePension\":{\"kind\":\"full\"},\"stopped\":\"yes\",\"taxFreeTaken\":\"yes\"},\"risk\":\"balanced\",\"savings\":30000,\"spend\":{\"amount\":2800,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":72,\"finalSalary\":{\"fromAge\":65,\"has\":true,\"yearly\":8000},\"pot\":250000,\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"yes\"}}|2026-09-30|7.6.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":95,\"fall\":{\"has\":false},\"household\":\"couple\",\"isaGrowth\":\"cash\",\"partner\":{\"age\":70,\"finalSalary\":{\"has\":false},\"pot\":150000,\"statePension\":{\"kind\":\"full\"},\"stopped\":\"yes\",\"taxFreeTaken\":\"yes\"},\"risk\":\"balanced\",\"savings\":30000,\"spend\":{\"amount\":2800,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":72,\"finalSalary\":{\"fromAge\":65,\"has\":true,\"yearly\":8000},\"pot\":250000,\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"yes\"}}|2026-09-30|7.6.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -141,6 +141,7 @@
           "risk": "balanced",
           "charge": 0.5,
           "endAge": 95,
+          "confidence": "balanced",
           "work": {
             "has": false
           },
@@ -164,25 +165,35 @@
           "only": false,
           "count": null
         },
-        "monthly": {
-          "careful": 3800,
-          "middling": 4200,
-          "good": 4680
+        "level": "balanced",
+        "levels": {
+          "careful": {
+            "monthly": 3710,
+            "yearly": 44520,
+            "weighted": 0.952,
+            "fixedAge": 0.952
+          },
+          "balanced": {
+            "monthly": 3800,
+            "yearly": 45600,
+            "weighted": 0.901,
+            "fixedAge": 0.901
+          },
+          "bold": {
+            "monthly": 4020,
+            "yearly": 48240,
+            "weighted": 0.705,
+            "fixedAge": 0.705
+          }
         },
-        "yearly": {
-          "careful": 45600,
-          "middling": 50400,
-          "good": 56160
-        },
-        "lastedAt": {
-          "careful": 0.901,
-          "middling": 0.505,
-          "good": 0.101
-        },
-        "runOutAgeAt": {
-          "careful": 95,
-          "middling": 87,
-          "good": 83
+        "chance": {
+          "weighted": 1,
+          "fixedAge": 1,
+          "fails": 0,
+          "n": 1000,
+          "planToAge": 95,
+          "weightToAge": 95,
+          "horizonRule": "survival"
         },
         "headroom": {
           "kind": "more",
@@ -598,7 +609,7 @@
               },
               " a month more. About ",
               {
-                "key": "monthly.careful",
+                "key": "levels.balanced.monthly",
                 "kind": "money"
               },
               " a month lasted ",
@@ -613,60 +624,21 @@
               "."
             ]
           },
-          "middling": {
-            "id": "d.middling",
-            "text": "About £4,200 a month lasted in 5 futures out of 10. In a bad case (the worst 1 in 10) it would run out when the younger of you is 87.",
+          "levels": {
+            "id": "d.levels",
+            "text": "At Careful, about £3,710 a month. At Bold, about £4,020 a month.",
             "parts": [
-              "About ",
+              "At Careful, about ",
               {
-                "key": "monthly.middling",
+                "key": "levels.careful.monthly",
                 "kind": "money"
               },
-              " a month lasted in ",
+              " a month. At Bold, about ",
               {
-                "fixed": "5"
-              },
-              " futures out of ",
-              {
-                "fixed": "10"
-              },
-              ". ",
-              "In a bad case (the worst ",
-              {
-                "fixed": "1"
-              },
-              " in ",
-              {
-                "fixed": "10"
-              },
-              ")",
-              " it would run out ",
-              "when the younger of you is ",
-              {
-                "key": "runOutAgeAt.middling",
-                "kind": "age"
-              },
-              "."
-            ]
-          },
-          "good": {
-            "id": "d.good",
-            "text": "In a good case (the best 1 in 10) about £4,680 a month lasted.",
-            "parts": [
-              "In a good case (the best ",
-              {
-                "fixed": "1"
-              },
-              " in ",
-              {
-                "fixed": "10"
-              },
-              ") about ",
-              {
-                "key": "monthly.good",
+                "key": "levels.bold.monthly",
                 "kind": "money"
               },
-              " a month lasted."
+              " a month."
             ]
           },
           "madeOf": [
@@ -730,8 +702,15 @@
           "today": "2026-09-30",
           "futures": 1000,
           "seed": 0,
-          "failuresAllowed": 100,
-          "closeAllowed": 250,
+          "level": "balanced",
+          "levelFails20": 2,
+          "planToAge": 95,
+          "weightToAge": 95,
+          "tablesVersion": "ons-ew-2024-cohort/1",
+          "sexUsed": {
+            "you": "f",
+            "partner": "f"
+          },
           "historyEnd": "2023-06",
           "engineVersion": "7.6.0",
           "startAge": 72,
@@ -764,28 +743,36 @@
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "b": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "c": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     },
     "d": {
       "name": null,
       "problem": null,
       "saving": false,
       "made": null,
-      "partnerKept": null
+      "partnerKept": null,
+      "pending": null,
+      "used": null
     }
   },
   "lasts": {
@@ -794,7 +781,14 @@
     "reason": null,
     "result": null,
     "progress": null,
-    "slow": false
+    "slow": false,
+    "levers": {},
+    "workDraft": {
+      "yearly": "",
+      "years": ""
+    },
+    "tried": null,
+    "kept": null
   },
   "ui": {
     "railOpen": false,

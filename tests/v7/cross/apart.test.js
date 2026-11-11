@@ -61,7 +61,7 @@ function asSaver(h, spend, q) {
     charge: h.charge ?? 0.5, endAge: h.endAge || 95, ...(h.payCovers ? { untilBothStop: h.payCovers } : {})
   };
   if (q === 'a') return { ...out, stop: h.stop === 'already' ? { kind: 'already' } : { kind: 'age', age: h.stop }, partTime: { has: false } };
-  return { ...out, stop: h.stop === 'already' ? { kind: 'already' } : { age: h.stop }, confidence: 'nineInTen' };
+  return { ...out, stop: h.stop === 'already' ? { kind: 'already' } : { age: h.stop }, confidence: 'balanced' };
 }
 /** The stop the answer is about: yours, or your partner's after "I've already stopped". */
 const askedStop = (h) => (h.stop === 'already' ? h.partner.stop : h.stop);
@@ -151,14 +151,14 @@ function oneTest(h) {
   expect(c.status, `${where}: C ${JSON.stringify(c.problems)}`).not.toBe('invalid');
   if (c.status !== 'ok') return 'skipped: nothing to draw on';
   expect(c.apart, `${where}: C takes each at their own stop`).toBeTruthy();
-  const s = c.monthly.careful;
+  const s = c.levels.balanced.monthly;
   if (s < 1) return 'skipped: no careful amount';
 
   // XA1 C's careful amount is A's yes, £10 more is not; the band to the pound
   const a = answerA(asSaver(h, s, 'a'), aEnv(h));
   expect(a.status, `${where}: A ${JSON.stringify(a.problems)}`).toBe('ok');
   expect(a.apart, where).toEqual(c.apart);
-  expect(a.shown.monthly, `${where}: A's band at the stop is C's`).toEqual(c.monthly);
+  expect(a.shown.levels, `${where}: A's band at the stop is C's`).toEqual(c.levels);
   expect(a.shown.lastedAt, where).toEqual(c.lasted);
   expect(a.shown.runOutAgeAt, where).toEqual(c.runOutAge);
   // (only where a future is not monotone in the spend near it — notMonotoneNear — is either let through, and printed)
@@ -212,7 +212,7 @@ describe('XA1–XA4 — couples who stop in different years: C, A and B are stil
 });
 
 /** What a household's answer is, whoever is "you": the figures, not the labels. */
-const figuresC = (r) => ({ monthly: r.monthly, lasted: r.lasted, runOutAge: r.runOutAge, guaranteed: r.guaranteed, takeHome: r.phases.map((p) => p.takeHome), years: r.basis.years });
+const figuresC = (r) => ({ levels: r.levels, chance: r.chance, guaranteed: r.guaranteed, takeHome: r.phases.map((p) => p.takeHome), years: r.basis.years });
 
 describe('P2 — either of you can be "you"', () => {
   it('C: "you from now, your partner at 56" is "you at 56, your partner already stopped", figure for figure', () => {
@@ -241,14 +241,14 @@ describe('P2 — either of you can be "you"', () => {
     const a = answerA(asSaver(CLOSED, 1000, 'a'), aEnv(CLOSED));
     expect(a.askedAbout).toBe('partner');
     expect(a.handOver.c).toEqual({ ok: true, same: true });
-    expect(a.shown.monthly).toEqual(c.monthly);
+    expect(a.shown.levels).toEqual(c.levels);
     expect(a.shown.lastedAt).toEqual(c.lasted);
     expect(a.shown.runOutAgeAt).toEqual(c.runOutAge);
     const o = answerC(asC(CLOSED_OTHER), ENV);
     expect(figuresC(o)).toEqual(figuresC(c));
     // B's whole-life count at the careful amount is A's row there
-    const b = answerB(asSaver(CLOSED, c.monthly.careful, 'b'), { ...ENV, detail: 'answer' });
-    const at = answerA(asSaver(CLOSED, c.monthly.careful, 'a'), aEnv(CLOSED));
+    const b = answerB(asSaver(CLOSED, c.levels.balanced.monthly, 'b'), { ...ENV, detail: 'answer' });
+    const at = answerA(asSaver(CLOSED, c.levels.balanced.monthly, 'a'), aEnv(CLOSED));
     expect(b.wholeLife.lasted).toBe(at.shown.lasted);
   }, 120_000);
 
@@ -268,13 +268,13 @@ describe('P2 — either of you can be "you"', () => {
       const c = answerC(asC(h), ENV);
       if (c.status !== 'ok') return;
       expect(c.apart.stops.you, where).toEqual({ age: h.you.age, already: true });
-      const a = answerA(asSaver(h, Math.max(STEP, c.monthly.careful), 'a'), aEnv(h));
+      const a = answerA(asSaver(h, Math.max(STEP, c.levels.balanced.monthly), 'a'), aEnv(h));
       expect(a.status, where).toBe('ok');
-      expect(a.shown.monthly, where).toEqual(c.monthly);
+      expect(a.shown.levels, where).toEqual(c.levels);
       const other = { you: { ...h.partner, stop: undefined }, partner: { ...h.you, stop: 'already' }, savings: h.savings, stop: h.partner.stop, payCovers: h.payCovers };
       const o = answerC(asC(other), ENV);
       expect(o.status, where).toBe('ok');
-      expect(o.monthly, where).toEqual(c.monthly);
+      expect(o.levels, where).toEqual(c.levels);
       expect(o.lasted, where).toEqual(c.lasted);
       compared++;
     }), fcOptions({ seed: SEED, runs: RUNS + 2 }));
@@ -294,13 +294,13 @@ describe('P2 — either of you can be "you"', () => {
       const strip = (v) => (k === 'number' && v ? { careful: v.careful, middling: v.middling, good: v.good } : v);
       expect(strip(bx[k]), k).toEqual(strip(by[k]));
     }
-    expect(bx.payIn.at).toEqual(by.payIn.at);
+    expect(bx.levels[bx.level].payIn).toEqual(by.levels[by.level].payIn);
   }, 120_000);
 });
 
 describe('P3 — "None of it" ≤ "Half" ≤ "All of it" (the careful amount, to one step)', () => {
   it.each(NAMED.map((x) => [x.name, x]))('%s', (_n, x) => {
-    const at = (payCovers) => answerC(asC({ ...x.h, payCovers }), ENV).monthly.careful;
+    const at = (payCovers) => answerC(asC({ ...x.h, payCovers }), ENV).levels.balanced.monthly;
     const none = at('none'); const half = at('half'); const all = at('all');
     expect(none).toBeLessThanOrEqual(half + STEP);
     expect(half).toBeLessThanOrEqual(all + STEP);

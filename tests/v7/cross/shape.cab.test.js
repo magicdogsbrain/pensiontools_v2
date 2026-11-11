@@ -35,7 +35,7 @@ function asSaver(h, spend, shape, q) {
   const person = (p) => ({ age: p.age, pot: p.pot, payIn: p.payIn ? { kind: 'split', own: p.payIn.own, employer: p.payIn.employer } : { kind: 'total', total: 0 } });
   const out = { household: h.partner ? 'couple' : 'single', you: person(h.you), ...(h.partner ? { partner: person(h.partner) } : {}),
     savings: h.savings || 0, spend: { kind: 'amount', amount: spend, ...inPounds(shape, spend) }, savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95 };
-  return q === 'a' ? { ...out, stop: { kind: 'age', age: h.stop }, partTime: { has: false } } : { ...out, stop: { age: h.stop }, confidence: 'nineInTen' };
+  return q === 'a' ? { ...out, stop: { kind: 'age', age: h.stop }, partTime: { has: false } } : { ...out, stop: { age: h.stop }, confidence: 'balanced' };
 }
 
 const HOUSEHOLDS = [
@@ -55,16 +55,16 @@ describe('I-SS5 — C, A and B agree to the pound with a spending shape', () => 
       it(`${h.name}; ${shape.name}`, () => {
         const c = answerC(asC(h, shape), ENV);
         expect(c.status, JSON.stringify(c.problems)).toBe('ok');
-        const s = c.monthly.careful;
+        const s = c.levels.balanced.monthly;
         // S1: A's row at the stop is C's band, the shape the same share of the start every year
         const a = answerA(asSaver(h, s, shape, 'a'), { ...ENV, detail: 'chart', ages: [h.stop] });
         expect(a.status, JSON.stringify(a.problems)).toBe('ok');
-        expect(a.shown.monthly).toEqual(c.monthly);
+        expect(a.shown.levels).toEqual(c.levels);
         expect(a.shown.verdict).toBe('yes');
         const above = answerA(asSaver(h, s + 10, shape, 'a'), { ...ENV, detail: 'chart', ages: [h.stop] });
         expect(above.shown.verdict).not.toBe('yes');
         // S4: the lists at the start, step for step
-        expect(a.shapeAt.careful).toEqual(c.shapeAt.careful);
+        expect(a.shapeAt.balanced).toEqual(c.shapeAt.balanced);
         // S3: C's take at s counts the same lives as A's verdict at s
         const take = answerC({ ...asC(h, shape), take: s }, ENV);
         expect(take.take.lasted).toBe(a.shown.lasted);
@@ -73,7 +73,7 @@ describe('I-SS5 — C, A and B agree to the pound with a spending shape', () => 
         if (h.stop > h.you.age) {
           const b = answerB(asSaver(h, s, shape, 'b'), { ...ENV, detail: 'answer' });
           expect(b.status, JSON.stringify(b.problems)).not.toBe('invalid');
-          expect(b.chance.lasted).toBe(a.shown.lasted);
+          expect(b.chance.fixedAge).toBe(a.shown.lasted);
           expect(b.onCourse).toBe(true);
           const tight = answerB(asSaver(h, s + 200, shape, 'b'), { ...ENV, detail: 'answer' });
           if (tight.levers.spendLess) expect(tight.levers.spendLess.spend).toBe(s);

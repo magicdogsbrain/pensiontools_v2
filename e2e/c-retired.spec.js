@@ -53,9 +53,9 @@ test.describe('J3 — already retired: 68, taking money now', () => {
     const answer = app.engine(FINAL_ENV);
     await app.step('the answer', async () => {
       expect(answer.status).toBe('ok');
-      const headline = page.locator('[data-headline="monthly.careful"]');
-      await expect(headline.locator('[data-key="monthly.careful"]').first()).toHaveAttribute('data-value', String(answer.monthly.careful));
-      await expect(headline.locator('[data-sentence="monthly.careful"]')).toHaveText(answer.sentences.line.text);
+      const headline = page.locator('[data-headline="levels.balanced.monthly"]');
+      await expect(headline.locator('[data-key="levels.balanced.monthly"]').first()).toHaveAttribute('data-value', String(answer.levels.balanced.monthly));
+      await expect(headline.locator('[data-sentence="levels.balanced.monthly"]')).toHaveText(answer.sentences.line.text);
       await wording();
       // Every sentence the engine wrote for this person passes the same rule.
       const sentences = [answer.sentences.head, answer.sentences.sub, answer.sentences.line, answer.sentences.bad, answer.sentences.range, ...(answer.sentences.madeOf || [])]

@@ -4,12 +4,12 @@
  * than the shape. Nothing here runs the engine: the steps are shape.js stepsAt on the plan's own start, the years are
  * phasesAt's own figures one year at a time.
  *
- *   shapeOfAnswer({ household, plan, at, asTyped?, yearly, round? })
+ *   shapeOfAnswer({ household, plan, at, level, asTyped?, yearly, round? })
  *     → null without a shape (a flat answer has none of these keys), else
- *       { shapeAt?: { careful, middling, good }, spendShape?, byYear, shapeNotes }
- *       - shapeAt: each solved figure ("about £2,300 a month at the start") with the later steps moved in proportion —
- *         careful figures rounded DOWN (no year a person reads is higher than a year tested), middling and good to the
- *         nearest (£10 from £1,000, £5 below);
+ *       { shapeAt?: { [level]: ShapeStep[] }, spendShape?, byYear, shapeNotes }
+ *       - shapeAt: each level's solved figure ("about £2,300 a month at the start") with the later steps moved in
+ *         proportion, rounded DOWN (no year a person reads is higher than a year tested) — the levels the answer has a
+ *         figure for (7.8.0: C all three; A and B the level chosen);
  *       - spendShape: the spending as typed and tested (A, B): the start as typed (or the step in force from it), each step
  *         as typed, the end of a fall to the pound;
  *       - byYear: one row a year, at the amount the answer is about, on the pots its phases read: your age, each person's
@@ -32,12 +32,13 @@ const startAgeYou = (plan) => (plan.people.find((p) => p.who === 'you') || plan.
  * @param {object} o
  * @param {object} o.household   the household the plan was made from (household.shape: shape.js)
  * @param {object} o.plan        the plan the answer was worked out on (enginePlan: plan.shape when it moves here)
- * @param {null|{ careful: number, middling: number, good: number }} [o.at]   the solved year-0 amounts, £ a month
+ * @param {null|{ careful?: number, balanced?: number, bold?: number }} [o.at]   the solved year-0 amounts by level, £ a month
+ * @param {string} [o.level]     the level the answer stands behind (the step in force reads its figure)
  * @param {null|number} [o.asTyped]   the year-0 amount as typed and tested, £ a month (A, B)
  * @param {object[]} [o.yearly]  phasesAt(…, { yearly: true }) at the amount the answer is about (one phase a year)
  * @param {number} [o.H0]        that amount, £ a year in the first year
  */
-export function shapeOfAnswer({ household, plan, at = null, asTyped = null, yearly = [], H0 = 0 }) {
+export function shapeOfAnswer({ household, plan, at = null, level = 'balanced', asTyped = null, yearly = [], H0 = 0 }) {
   const hs = household && household.shape;
   if (!hs) return null;
   const first = hs.unit === 'share' ? 1 : hs.first;
@@ -45,7 +46,7 @@ export function shapeOfAnswer({ household, plan, at = null, asTyped = null, year
   const years = plan.years;
   const list = (monthly, round) => stepsAt(hs, first, start, years, monthly, round);
   const out = {};
-  if (at) out.shapeAt = { careful: list(at.careful, downMonthly), middling: list(at.middling, nearMonthly), good: list(at.good, nearMonthly) };
+  if (at) out.shapeAt = Object.fromEntries(Object.entries(at).map(([id, v]) => [id, list(v, downMonthly)]));
   // (as typed: each figure to the pound; where a fall ends is worked out, so to the nearest £10 from £1,000, £5 below —
   // rounded once, from the year's own figure: £2,044.77 is £2,040, never £2,045 and then £2,050)
   if (asTyped !== null) {
@@ -71,7 +72,7 @@ export function shapeOfAnswer({ household, plan, at = null, asTyped = null, year
   // the notes: a step in force from the start; the first year the incomes you get anyway pay more than the shape
   const a0 = plan.shape ? plan.shape.a0 : 1;
   const inForce = a0 !== 1 && (hs.steps || []).some((s) => s.fromAge <= start)
-    ? { age: [...hs.steps].filter((s) => s.fromAge <= start).pop().fromAge, perMonth: list(asTyped !== null ? asTyped : at ? at.careful : 0, (n) => Math.round(n))[0].perMonth }
+    ? { age: [...hs.steps].filter((s) => s.fromAge <= start).pop().fromAge, perMonth: list(asTyped !== null ? asTyped : at ? at[level] : 0, (n) => Math.round(n))[0].perMonth }
     : null;
   const above = out.byYear.find((row) => row.spend > 0 && row.takeHome > row.spend + 0.5 && row.fromPots <= 0.005);
   out.shapeNotes = { inForce, belowIncome: above ? { age: above.age, perMonth: Math.round(above.takeHome) } : null };

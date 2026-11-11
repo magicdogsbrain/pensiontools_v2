@@ -6,6 +6,7 @@
  * M-A4 (a later stop is not worse) is a finding on random cases (brief, conflict 52): printed, and recorded in
  * tests/v7/a/exceptions.md; on the four fixtures it is asserted to one step (£10 and one life).
  */
+import { monthlyOf } from '../shared/levelsOf.mjs';
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { fcOptions } from '../oracles/fcOptions.mjs';
@@ -34,7 +35,7 @@ const named = arbitraryInputs(SCHEMA_A, ENV).filter((i) => i.stop.kind === 'age'
 /** The household's figures of the shown row: what a swap or an empty partner must not move. */
 const household = (a) => {
   const s = a.shown;
-  return { verdict: s.verdict, lasted: s.lasted, runOutAge: s.runOutAge, monthly: s.monthly, yearly: s.yearly, lastedAt: s.lastedAt, runOutAgeAt: s.runOutAgeAt,
+  return { verdict: s.verdict, lasted: s.lasted, runOutAge: s.runOutAge, levels: s.levels,
     pots: { careful: s.potAtStop.careful, middling: s.potAtStop.middling, good: s.potAtStop.good }, paidIn: s.paidIn.total, yearsSaving: s.yearsSaving,
     guaranteed: a.guaranteed, endAge: a.basis.endAge, takeHome: s.phases.map((p) => p.takeHome) };
 };
@@ -82,14 +83,14 @@ describe.skipIf(!ENGINE_READY)('A — metamorphic relations', () => {
       // over £10,000 a month a finding (largeHousehold)
       const fewer = b.shown.lasted < a.shown.lasted - 1e-12;
       let found = false;
-      amountsToAStep(a.shown.monthly, b.shown.monthly, (k, floor) => expect(b.shown.monthly[k], k).toBeGreaterThanOrEqual(floor), () => { found = true; });
-      if (largeHousehold(a.shown.monthly.careful)) {
+      amountsToAStep(monthlyOf(a.shown), monthlyOf(b.shown), (k, floor) => expect(b.shown.levels[k].monthly, k).toBeGreaterThanOrEqual(floor), () => { found = true; });
+      if (largeHousehold(a.shown.levels[a.level].monthly)) {
         if (b.shown.lasted < a.shown.lasted - oneLife(a.basis.futures)) found = true;
       } else {
         expect(b.shown.lasted).toBeGreaterThanOrEqual(a.shown.lasted - oneLife(a.basis.futures));
         expect(RANK[b.shown.verdict]).toBeGreaterThanOrEqual(RANK[a.shown.verdict] - (fewer ? 1 : 0));
       }
-      if (found) findings.push({ inputs, how, extra, from: a.shown.monthly, to: b.shown.monthly });
+      if (found) findings.push({ inputs, how, extra, from: monthlyOf(a.shown), to: monthlyOf(b.shown) });
       expect(b.guaranteed.monthlyAfterTax).toBeGreaterThanOrEqual(a.guaranteed.monthlyAfterTax - 1e-9);
       expect(b.shown.potAtStop).toEqual(a.shown.potAtStop);
     }), opts());
@@ -105,7 +106,7 @@ describe.skipIf(!ENGINE_READY)('A — metamorphic relations', () => {
       // to one life (oneStep.mjs): where today's engine is not monotone a life can last at the higher spend and not the
       // lower; the verdict follows the count, the bad-case age is asserted while the count holds
       const more1 = b.shown.lasted > a.shown.lasted + 1e-12;
-      if (largeHousehold(a.shown.monthly.careful)) {
+      if (largeHousehold(a.shown.levels[a.level].monthly)) {
         if (b.shown.lasted > a.shown.lasted + oneLife(a.basis.futures)) findings.push({ inputs, more, lasted: [a.shown.lasted, b.shown.lasted] });
       } else {
         expect(b.shown.lasted).toBeLessThanOrEqual(a.shown.lasted + oneLife(a.basis.futures));
@@ -125,7 +126,7 @@ describe.skipIf(!ENGINE_READY)('A — metamorphic relations', () => {
       a.ages.forEach((r, i) => {
         const next = a.ages[i + 1];
         if (!next) return;
-        if (next.monthly.careful < r.monthly.careful - 10 || next.lasted < r.lasted - 1 / n - 1e-12) findings.push({ inputs, from: r.age, to: next.age, careful: [r.monthly.careful, next.monthly.careful], lasted: [r.lasted, next.lasted] });
+        if (next.levels[a.level].monthly < r.levels[a.level].monthly - 10 || next.lasted < r.lasted - 1 / n - 1e-12) findings.push({ inputs, from: r.age, to: next.age, careful: [r.levels[a.level].monthly, next.levels[a.level].monthly], lasted: [r.lasted, next.lasted] });
       });
     }), opts(4));
     if (findings.length) console.log(`M-A4: a later row worse by more than one step in ${findings.length} place(s); record them in tests/v7/a/exceptions.md`, JSON.stringify(findings.slice(0, 3)));
@@ -136,7 +137,7 @@ describe.skipIf(!ENGINE_READY)('A — metamorphic relations', () => {
       a.ages.forEach((r, i) => {
         const next = a.ages[i + 1];
         if (!next) return;
-        expect(next.monthly.careful, `${fx.id} ${r.age}→${next.age} careful`).toBeGreaterThanOrEqual(r.monthly.careful - 10);
+        expect(next.levels[a.level].monthly, `${fx.id} ${r.age}→${next.age} careful`).toBeGreaterThanOrEqual(r.levels[a.level].monthly - 10);
         expect(next.lasted, `${fx.id} ${r.age}→${next.age} lasted`).toBeGreaterThanOrEqual(r.lasted - 1 / N - 1e-12);
       });
     }

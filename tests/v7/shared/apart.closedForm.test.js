@@ -88,7 +88,7 @@ describe('C2: on All the stopped person\'s money is untouched, and the answer is
     expect(together.sp.plan.apart).toBe(undefined);
     const bandApart = live.bandAt(a.sp, a.runner);
     const bandTogether = live.bandAt(together.sp, together.runner);
-    expect(bandApart.monthly).toEqual(bandTogether.monthly);
+    expect(bandApart.levels).toEqual(bandTogether.levels);
     expect(bandApart.runOutAgeAt).toEqual(bandTogether.runOutAgeAt);
   });
 });
@@ -135,7 +135,7 @@ describe('C4: a closed pension and no savings, on Half — no run-out before the
     }
     const bh = live.bandAt(half.sp, half.runner);
     const ba = live.bandAt(all.sp, all.runner);
-    expect(bh.monthly).toEqual(ba.monthly);
+    expect(bh.levels).toEqual(ba.levels);
     expect(bh.runOutMonths).toEqual(ba.runOutMonths);
   });
 });
@@ -174,7 +174,7 @@ describe('C6: a partner with nothing — "already" is "same" on Half or All, whe
       expect(s.sp.plan.apart).toBe(undefined);
       const ba = live.bandAt(a.sp, a.runner);
       const bs = live.bandAt(s.sp, s.runner);
-      expect(ba.monthly).toEqual(bs.monthly);
+      expect(ba.levels).toEqual(bs.levels);
       expect(ba.runOutAgeAt).toEqual(bs.runOutAgeAt);
       for (const w of ['careful', 'middling', 'good']) expect(ba.runOutMonths[w]).toEqual(bs.runOutMonths[w].map((m) => (m === null ? null : m + 60)));
       const va = live.verdictAt(a.sp, a.runner, 30_000);
@@ -227,7 +227,7 @@ describe('the engine\'s properties on apart households', () => {
         const b = planOf(apart({ you: c.partner, partner: c.you, payCovers }), env);
         const ba = live.bandAt(a.sp, a.runner);
         const bb = live.bandAt(b.sp, b.runner);
-        expect(bb.monthly).toEqual(ba.monthly);
+        expect(bb.levels).toEqual(ba.levels);
         expect(bb.runOutMonths).toEqual(ba.runOutMonths);
         expect(live.verdictAt(b.sp, b.runner, 30_000).runOutMonths).toEqual(live.verdictAt(a.sp, a.runner, 30_000).runOutMonths);
       }

@@ -38,7 +38,7 @@ describe.skipIf(!ENGINE_READY)('A — closed forms: a flat future, 0% on everyth
     expect(a.shown.verdict).toBe('no');
     expect(a.shown.lasted).toBe(0);
     expect(a.shown.runOutAge).toBe(77);                                  // 210,100 ÷ 1,000 = 210 months paid, month 211 short: age 60 + 17
-    expect(a.shown.monthly).toEqual(three(500));                         // 210,100 ÷ 420 = 500.24, whole £10 down; a quarter tax-free keeps it under the allowance
+    expect([a.shown.levels.careful.monthly, a.shown.levels.balanced.monthly, a.shown.levels.bold.monthly]).toEqual([500, 500, 500]);                         // 210,100 ÷ 420 = 500.24, whole £10 down; a quarter tax-free keeps it under the allowance
     expect(a.shown.gapYears).toBe(0);
     expect(a.headline).toMatchObject({ kind: 'named', age: 60, verdict: 'no', runOutAge: 77 });
     expect(a.sentences.head.text).toBe('Not at 60 on these figures');
@@ -62,7 +62,7 @@ describe.skipIf(!ENGINE_READY)('A — closed forms: a flat future, 0% on everyth
     expect(a.ages.map((r) => r.age)).toEqual([58, 59, 60, 61, 62]);
     expect(a.ages.map((r) => r.potAtStop.middling)).toEqual([198100, 204100, 210100, 216100, 222100]);
     // 198,100 ÷ 444 = 446.2 · 204,100 ÷ 432 = 472.5 · 210,100 ÷ 420 = 500.2 · 216,100 ÷ 408 = 529.7 · 222,100 ÷ 396 = 560.9
-    expect(a.ages.map((r) => r.monthly.careful)).toEqual([440, 470, 500, 520, 560]);
+    expect(a.ages.map((r) => r.levels.balanced.monthly)).toEqual([440, 470, 500, 520, 560]);
     expect(a.shown.oneMoreYear).toMatchObject({ toAge: 61, extraMonthly: 20, sameish: true, potExtra: 6000 });
     expect(a.ages[4].oneMoreYear).toBeNull();
     expect(a.earliest).toEqual({ yes: null, close: null });
@@ -145,17 +145,15 @@ describe.skipIf(!ENGINE_READY)('A — closed forms: a flat future, 0% on everyth
   it('AF9 stopping today is question C: the same band, the same bad case, the same phases (40 real futures)', () => {
     const env = { ...TEST_ENV, futures: 40 };
     const c = answerC({ you: { pot: 250000, age: 60 } }, env);
-    const inputs = { you: { pot: 250000, age: 60 }, stop: { age: 60 }, spend: { amount: c.monthly.careful } };
+    const inputs = { you: { pot: 250000, age: 60 }, stop: { age: 60 }, spend: { amount: c.levels.balanced.monthly } };
     const a = ok(answerA(inputs, { ...env, ages: [60] }), inputs, { ...env, ages: [60] });
     expect(a.shown.yearsSaving).toBe(0);
-    expect(a.shown.monthly).toEqual(c.monthly);
+    expect(a.shown.levels).toEqual(c.levels);
     expect(a.shown.yearly).toEqual(c.yearly);
-    expect(a.shown.lastedAt).toEqual(c.lasted);
-    expect(a.shown.runOutAgeAt).toEqual(c.runOutAge);
     expect(a.guaranteed).toEqual(c.guaranteed);
     const cFields = (p) => ({ fromAge: p.fromAge, toAge: p.toAge, ages: p.ages, takeHome: p.takeHome, fromPension: p.fromPension, fromSavings: p.fromSavings, fromPots: p.fromPots, statePension: p.statePension, finalSalary: p.finalSalary, tax: p.tax, beforeStatePension: p.beforeStatePension });
     expect(a.shown.phases.map(cFields)).toEqual(c.phases.map(cFields));
-    expect(a.shown.lasted).toBe(c.lasted.careful);
+    expect(a.shown.lasted).toBe(c.levels.balanced.fixedAge);
     // with a spend of £1,000 against C's `take` of £1,000: the same count and the same bad case
     const c2 = answerC({ you: { pot: 250000, age: 60 }, take: 1000 }, env);
     const a2 = answerA({ ...inputs, spend: { amount: 1000 } }, { ...env, ages: [60] });
@@ -168,7 +166,7 @@ describe.skipIf(!ENGINE_READY)('A — closed forms: a flat future, 0% on everyth
     const inputs = { household: 'couple', you: one, partner: one, stop: { age: 60 }, spend: { amount: 1000 }, charge: 0 };
     const env = { ...FLAT, ages: [60] };
     const a = ok(answerA(inputs, env), inputs, env);
-    expect(a.shown.monthly.careful).toBe(1000);
+    expect(a.shown.levels.balanced.monthly).toBe(1000);
     expect(a.shown.verdict).toBe('yes');
     expect(a.shown.potAtStop.middling).toBe(420200);
     expect(a.basis.split).toEqual([{ who: 'you', share: 0.5 }, { who: 'partner', share: 0.5 }]);

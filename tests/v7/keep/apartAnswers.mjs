@@ -21,11 +21,19 @@ export const TODAY = '2026-09-30';
 const SP = { kind: 'full' };
 const NO_FS = { has: false };
 const basisOf = (over) => ({
-  today: TODAY, futures: 1000, seed: 0, failuresAllowed: 100, closeAllowed: 250, historyEnd: '2023-06', engineVersion: '6.19.0',
+  today: TODAY, futures: 1000, seed: 0, level: 'balanced', levelFails20: 2, planToAge: 95, weightToAge: 95, tablesVersion: 'ons-ew-2024-cohort/1', sexUsed: { you: 'f', partner: 'f' },
+  historyEnd: '2023-06', engineVersion: '6.19.0',
   endAge: 95, bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly', strategyId: 'pots-and-valves', cutsSwitchedOff: true, ...over
 });
 const three = (careful, middling, good) => ({ careful, middling, good });
 const zero = () => three(0, 0, 0);
+/** The three levels (7.8.0): each its £ a month, a year, and its chance (the count, not weighing). */
+const levelsOf = (careful, balanced, bold, lasted) => ({
+  careful: { monthly: careful, yearly: careful * 12, weighted: 0.95, fixedAge: 0.95 },
+  balanced: { monthly: balanced, yearly: balanced * 12, weighted: lasted, fixedAge: lasted },
+  bold: { monthly: bold, yearly: bold * 12, weighted: 0.7, fixedAge: 0.7 }
+});
+const chanceOf = (lasted, fails) => ({ weighted: lasted, fixedAge: lasted, fails, n: 1000, planToAge: 95, weightToAge: 95, horizonRule: 'survival' });
 
 /** A person's figures in one stretch of years. `working`: still working — every figure 0. */
 function by(who, takeHome, more = {}) {
@@ -87,7 +95,7 @@ export function aPartnerAlready() {
     shown: {
       age: 56, ages: { you: 56, partner: 58 }, stopYear: '2027', status: 'final', verdict: 'yes', lasted: 0.913,
       outOfTen: { words: 'in 9 futures out of 10', only: false, count: 9 }, runOutAge: 95,
-      monthly: three(3350, 3800, 4400), yearly: three(40200, 45600, 52800),
+      weighted: 0.913, levels: levelsOf(3250, 3350, 3800, 0.9),
       potAtStop: { careful: 589000, middling: 661948, good: 712086, byPerson: [{ who: 'you', pension: 441948, savings: 0 }, { who: 'partner', pension: 180000, savings: 40000 }] },
       phases
     },
@@ -125,7 +133,7 @@ export function aYouAlready() {
     shown: {
       age: 56, ages: { you: 58, partner: 56 }, stopYear: '2027', status: 'final', verdict: 'yes', lasted: 0.913,
       outOfTen: { words: 'in 9 futures out of 10', only: false, count: 9 }, runOutAge: 95,
-      monthly: three(3350, 3800, 4400), yearly: three(40200, 45600, 52800),
+      weighted: 0.913, levels: levelsOf(3250, 3350, 3800, 0.9),
       potAtStop: { careful: 589000, middling: 661948, good: 712086, byPerson: [{ who: 'you', pension: 180000, savings: 40000 }, { who: 'partner', pension: 441948, savings: 0 }] },
       phases
     },
@@ -147,7 +155,7 @@ export function bYouAlready() {
     you: { pot: 300000, age: 60, statePension: SP, finalSalary: NO_FS },
     stop: { kind: 'already' }, spend: { kind: 'amount', amount: 3000 },
     partner: { age: 52, pot: 150000, statePension: SP, finalSalary: NO_FS, payIn: { kind: 'split', own: 400, employer: 300 }, alreadyDrawing: false, stop: { kind: 'age', age: 60 } },
-    untilBothStop: 'none', savings: 20000, savingsIn: 200, savingRisk: 'balanced', risk: 'cautious', charge: 0.75, endAge: 95, confidence: 'nineInTen'
+    untilBothStop: 'none', savings: 20000, savingsIn: 200, savingRisk: 'balanced', risk: 'cautious', charge: 0.75, endAge: 95, confidence: 'balanced'
   };
   const phases = [
     phase('partner', { you: span(60, 68), partner: span(52, 60) }, [by('you', 3000, { statePension: 1045.63 }), working('partner')], 0),
@@ -164,9 +172,10 @@ export function bYouAlready() {
       saving('partner', 60, 8, { pension: 150000, savings: 0 }, { total: 700, own: 400, employer: 300, savings: 200 },
         { pension: three(210000, 260000, 330000), savings: three(17000, 21000, 26000) })
     ],
-    number: { careful: 280000, middling: 200000, good: 150000, byPerson: [{ who: 'partner', pot: 280000 }] },
-    chance: { lasted: 0.88, outOfTen: { words: 'in 9 futures out of 10', only: false, count: 9 }, fails: 120 },
-    payIn: { now: 700, own: 400, employer: 300, needed: 900, extra: 200, confidence: 'nineInTen', at: { nineInTen: 900, threeInFour: 640 }, outside: null, savingsNow: 200 },
+    level: 'balanced',
+    levels: { careful: { pot: 310000 }, balanced: { pot: 280000, payIn: 900, byPerson: [{ who: 'partner', pot: 280000 }], weighted: 0.9, fixedAge: 0.9 }, bold: { pot: 200000 } },
+    chance: chanceOf(0.88, 120),
+    payIn: { now: 700, own: 400, employer: 300, needed: 900, extra: 200, outside: null, savingsNow: 200 },
     potAtStop: { now: three(227000, 281000, 356000), needed: three(280000, 200000, 150000) },
     wholeLife: { lasted: 0.88, outOfTen: { words: 'in 9 futures out of 10', only: false, count: 9 }, runOutAge: 93 },
     phases,
@@ -182,7 +191,7 @@ export function bBothLater() {
     you: { pot: 250000, age: 50, statePension: SP, finalSalary: NO_FS, payIn: { kind: 'total', total: 700 }, alreadyDrawing: false },
     stop: { age: 60 }, spend: { kind: 'amount', amount: 3200 },
     partner: { age: 48, pot: 150000, statePension: SP, finalSalary: NO_FS, payIn: { kind: 'total', total: 300 }, alreadyDrawing: false, stop: { kind: 'age', age: 62 } },
-    untilBothStop: 'all', savings: 10000, savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'nineInTen'
+    untilBothStop: 'all', savings: 10000, savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'balanced'
   };
   const phases = [
     phase('partner', { you: span(60, 64), partner: span(58, 62) }, [by('you', 0), working('partner')], 3200),
@@ -200,9 +209,10 @@ export function bBothLater() {
       saving('partner', 62, 14, { pension: 150000, savings: 0 }, { total: 300, own: null, employer: null, savings: 0 },
         { pension: three(190000, 280000, 390000), savings: zero() })
     ],
-    number: { careful: 750000, middling: 537000, good: 412000, byPerson: [{ who: 'you', pot: 480082 }, { who: 'partner', pot: 269918 }] },
-    chance: { lasted: 0.91, outOfTen: { words: 'in 9 futures out of 10', only: false, count: 9 }, fails: 90 },
-    payIn: { now: 1000, own: null, employer: null, needed: 1100, extra: 100, confidence: 'nineInTen', at: { nineInTen: 1100, threeInFour: 800 }, outside: null, savingsNow: 0 },
+    level: 'balanced',
+    levels: { careful: { pot: 810000 }, balanced: { pot: 750000, payIn: 1100, byPerson: [{ who: 'you', pot: 480082 }, { who: 'partner', pot: 269918 }], weighted: 0.91, fixedAge: 0.91 }, bold: { pot: 537000 } },
+    chance: chanceOf(0.91, 90),
+    payIn: { now: 1000, own: null, employer: null, needed: 1100, extra: 100, outside: null, savingsNow: 0 },
     potAtStop: { now: three(497000, 711000, 986000), needed: three(750000, 537000, 412000) },
     wholeLife: { lasted: 0.91, outOfTen: { words: 'in 9 futures out of 10', only: false, count: 9 }, runOutAge: 95 },
     phases,
@@ -228,8 +238,7 @@ export function cYouNow() {
   ];
   return {
     status: 'ok', inputs,
-    monthly: three(3500, 3950, 4480), yearly: three(42000, 47400, 53760),
-    lasted: three(0.906, 0.5, 0.101), runOutAge: three(95, 79, 73), whose: 'partner',
+    level: 'balanced', levels: levelsOf(3400, 3500, 3950, 0.906), chance: chanceOf(0.906, 94), whose: 'partner',
     potAtStart: { careful: 570000, middling: 609000, good: 650000, byPerson: [{ who: 'you', pension: 400000, savings: 30000 }, { who: 'partner', pension: 179000, savings: 0 }] },
     payIn: { total: 300, byPerson: [{ who: 'partner', total: 300 }] },
     saving: [

@@ -19,7 +19,7 @@ const CASES = {
   'a young saver, adventurous while saving': { you: { age: 35, pot: 40000, payIn: { total: 400 } }, stop: { age: 65 }, spend: { amount: 2000 }, savingRisk: 'adventurous' },
   'late start, cautious': { you: { age: 58, pot: 90000, payIn: { total: 300 } }, stop: { age: 65 }, spend: { amount: 1800 }, savingRisk: 'cautious', risk: 'cautious' },
   'a couple': { household: 'couple', you: { age: 52, pot: 200000, payIn: { total: 600 } }, partner: { age: 50, pot: 80000, payIn: { total: 300 } }, stop: { age: 60 }, spend: { kind: 'level', level: 'moderate' } },
-  'three in four': { you: { age: 48, pot: 350000, payIn: { total: 900 } }, stop: { age: 60 }, spend: { amount: 2500 }, confidence: 'threeInFour' },
+  'three in four': { you: { age: 48, pot: 350000, payIn: { total: 900 } }, stop: { age: 60 }, spend: { amount: 2500 }, confidence: 'bold' },
   // stopping before the pension opens (the numbers review's cases): the savings and the pension are one life
   'closed until 57, some savings': { you: { age: 47, pot: 150000, payIn: { total: 800 } }, savings: 30000, stop: { age: 55 }, spend: { amount: 1800 } },
   'closed until 57, no savings': { you: { age: 47, pot: 400000, payIn: { total: 2500 } }, stop: { age: 55 }, spend: { amount: 1800 } }
@@ -47,25 +47,25 @@ describe('B — the pay-in that gets there is the one test', () => {
 
   it.each(Object.keys(CASES))('%s: paying in what is needed (with the savings the closed years need) is on course; £10 less into the pension is not', (name) => {
     const a = answers[name];
-    const need = a.payIn.at.nineInTen;
+    const need = a.levels[a.level].payIn;
     if (need === null) { expect(a.status).toBe('out-of-reach'); return; }
     const savingsIn = a.payIn.outside !== null && a.payIn.outside > (a.payIn.savingsNow || 0) ? a.payIn.outside : a.inputs.savingsIn;
     const at = ok(answerB({ ...withPayIn(CASES[name], a, need), savingsIn }, { ...ENV, trace: false }));
     expect(at.onCourse, `${name}: at ${need}`).toBe(true);
-    expect(at.chance.fails).toBeLessThanOrEqual(a.basis.failuresAllowed);
+    expect(at.chance.fails).toBeLessThanOrEqual(Math.floor(a.basis.futures * a.basis.levelFails20 / 20));
     if (need > 0) {
       const less = answerB({ ...withPayIn(CASES[name], a, need - 10), savingsIn }, { ...ENV, trace: false });
       expect(less.onCourse, `${name}: at ${need - 10}`).toBe(false);
     }
   });
 
-  it.each(Object.keys(CASES))('%s: 3 in 4 is B asked at 3 in 4, and never more than 9 in 10', (name) => {
+  it.each(Object.keys(CASES))('%s: Bold is B asked at Bold, and never more than Balanced (7.8.0: one solve at the level)', (name) => {
     const a = answers[name];
-    const other = a.inputs.confidence === 'nineInTen' ? 'threeInFour' : 'nineInTen';
-    const b = answerB(withChange(CASES[name], { confidence: other }), { ...ENV, trace: false });
-    expect(b.payIn.at).toEqual(a.payIn.at);
-    expect(b.payIn.needed).toBe(b.payIn.at[other]);
-    if (a.payIn.at.nineInTen !== null) expect(a.payIn.at.threeInFour).toBeLessThanOrEqual(a.payIn.at.nineInTen);
+    const b = answerB(withChange(CASES[name], { confidence: 'bold' }), { ...ENV, trace: false });
+    expect(b.level).toBe('bold');
+    expect(b.payIn.needed).toBe(b.levels.bold.payIn);
+    if (a.payIn.needed !== null && b.payIn.needed !== null) expect(b.payIn.needed).toBeLessThanOrEqual(a.payIn.needed);
+    expect(b.levels.bold.pot).toBe(a.levels.bold.pot);
   });
 });
 
@@ -89,7 +89,7 @@ describe('B — the ways to make it fit: each applied, and B asked again, gives 
     if (lever) {
       const later = ok(at(lever.age));
       expect(later.onCourse).toBe(true);
-      expect(later.chance.lasted).toBe(lever.lasted);
+      expect(later.chance.fixedAge).toBe(lever.lasted);
     } else {
       expect(a.sentences.lever.stopLaterNone.text).toContain(String(a.basis.laterTo));
     }
@@ -101,7 +101,7 @@ describe('B — the ways to make it fit: each applied, and B asked again, gives 
     if (!lever) { expect(a.payIn.needed === null || (a.payIn.needed <= a.payIn.now && !(a.payIn.outside > a.payIn.savingsNow))).toBe(true); return; }
     const given = { ...withPayIn(CASES[name], a, lever.payIn), ...(lever.savingsIn !== null ? { savingsIn: lever.savingsIn } : {}) };
     const at = ok(answerB(given, { ...ENV, trace: false }));
-    expect(at.chance.lasted).toBe(lever.lasted);
+    expect(at.chance.fixedAge).toBe(lever.lasted);
     if (a.inputs.confidence === 'nineInTen') expect(at.onCourse).toBe(true);
   });
 
@@ -112,7 +112,7 @@ describe('B — the ways to make it fit: each applied, and B asked again, gives 
     expect(lever.spend).toBe(a.monthlyIfShort);
     const at = ok(answerB(withChange(CASES[name], { spend: { kind: 'amount', amount: lever.spend } }), { ...ENV, trace: false }));
     expect(at.onCourse).toBe(true);
-    expect(at.chance.lasted).toBe(lever.lasted);
+    expect(at.chance.fixedAge).toBe(lever.lasted);
     const more = answerB(withChange(CASES[name], { spend: { kind: 'amount', amount: lever.spend + 10 } }), { ...ENV, trace: false });
     expect(more.onCourse).toBe(false);
   });
@@ -122,8 +122,8 @@ describe('B — the ways to make it fit: each applied, and B asked again, gives 
     const lever = a.levers.moreRisk;
     if (a.inputs.savingRisk === 'adventurous') { expect(lever).toBeNull(); return; }
     const at = ok(answerB(withChange(CASES[name], { savingRisk: lever.level }), { ...ENV, trace: false }));
-    expect(lever.payIn).toBe(at.payIn.at[a.inputs.confidence]);
-    expect(lever.lasted).toBe(at.chance.lasted);
+    expect(lever.payIn).toBe(at.levels[at.level].payIn);
+    expect(lever.lasted).toBe(at.chance.fixedAge);
     expect(lever.helps).toBe(lever.payIn !== null && (a.payIn.needed === null || (a.payIn.needed > a.payIn.now && lever.payIn < a.payIn.needed)));
   });
 
@@ -169,13 +169,13 @@ describe('B — before the pension opens, the savings do not spend the 1-in-10 a
     const at55 = answers['closed until 57, no savings'];
     const at57 = answerB({ ...case47, stop: { age: 57 } }, { ...ENV, trace: false });
     expect(at57.outside).toBeNull();
-    expect(at55.number.careful).toBeLessThanOrEqual(Math.ceil(at57.number.careful * 1.02 / 1000) * 1000);
+    expect(at55.levels.balanced.pot).toBeLessThanOrEqual(Math.ceil(at57.levels.balanced.pot * 1.02 / 1000) * 1000);
   });
 
   it('when it is savings that fall short, the pension pay-in is left as it is and the headline is the savings', () => {
     const a = answers['closed until 57, no savings'];
     expect(a.onCourse).toBe(false);
-    expect(a.payIn.at.nineInTen).toBeLessThanOrEqual(a.payIn.now);
+    expect(a.levels[a.level].payIn).toBeLessThanOrEqual(a.payIn.now);
     expect(a.payIn.outside).toBeGreaterThan(0);
     expect(a.levers.payMore).toMatchObject({ payIn: a.payIn.now, savingsIn: a.payIn.outside });
     expect(a.sentences.payInHead.id).toBe('b.payIn.head.savings');
@@ -196,7 +196,7 @@ describe('B — the number of nought, and the notes that must not over-reach (th
   it('savings that already pay: no "£0 number" — the line says the savings and State Pension pay, and nothing more is needed in the pension', () => {
     const given = { you: { age: 47, pot: 60000, payIn: { total: 500 } }, savings: 1000000, stop: { age: 53 }, spend: { amount: 2000 } };
     const a = ok(answerB(given, ENV), given);
-    expect(a.number.careful).toBe(0);
+    expect(a.levels.balanced.pot).toBe(0);
     expect(a.onCourse).toBe(true);
     expect(a.sentences.line).toMatchObject({ id: 'b.line.zero', text: 'Your savings and State Pension already pay for this: nothing more is needed in your pension.' });
     expect(a.sentences.have).toBeUndefined();
@@ -228,7 +228,7 @@ describe('B — the number of nought, and the notes that must not over-reach (th
     expect(a.grid.reaches).toBe(true);
     expect(a.sentences.gridNone).toBeUndefined();
     const own = a.grid.ages.find((r) => r.age === a.stop.age);
-    expect(own.cells[0].lasted).toBe(a.chance.lasted);
+    expect(own.cells[0].lasted).toBe(a.chance.fixedAge);
     expect(own.cells[own.cells.length - 1].verdict).toBe('yes');
     // a household no cell reaches: the grid says so in a sentence
     const far = { you: { age: 58, pot: 20000, payIn: { total: 100 } }, stop: { age: 59 }, spend: { amount: 4000 } };

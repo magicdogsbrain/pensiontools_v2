@@ -734,14 +734,14 @@ export async function expectHeadlineA(page, answer) {
  * data-headline="verdict", its band in words (data-verdict), the first sentence that says how it stands paying in as now
  * AND what would be enough (data-sentence="verdict"), what you could spend from the stop and the gap, the bad case at the
  * aim — then what would be enough ([data-enough], not when on course), then the number as a guide in a smaller block that
- * is not a headline (data-guide="number.careful"; the reviewers' finding, 1 Oct 2026). "The State Pension covers it" keeps
+ * is not a headline (data-guide="levels.balanced.pot"; the reviewers' finding, 1 Oct 2026). "The State Pension covers it" keeps
  * a headline of its own words, with no data-headline. Every sentence is the answer's own; the number is drawn from it.
  */
 export async function expectHeadlinesB(page, answer) {
   const verdict = answer.status !== 'guaranteed-only' && !!answer.sentences.verdictHead;
-  const hasNumber = !!answer.number && answer.number.careful > 0;
+  const hasNumber = !!answer.levels && answer.levels.balanced.pot > 0;
   const head = page.locator('#app [data-headline="verdict"]');
-  const guide = page.locator('#app [data-guide="number.careful"]');
+  const guide = page.locator('#app [data-guide="levels.balanced.pot"]');
   await expect(page.locator('#app [data-headline]')).toHaveCount(verdict ? 1 : 0);
   await expect(guide).toHaveCount(verdict && hasNumber ? 1 : 0);
   const texts = sentenceTexts(answer).map(plain);
@@ -761,7 +761,7 @@ export async function expectHeadlinesB(page, answer) {
     const sentences = await guide.locator('[data-sentence]').allInnerTexts();
     expect(sentences.length, 'the guide has its sentence').toBeGreaterThan(0);
     for (const t of sentences) expect(texts, 'a guide sentence is the answer\'s own').toContain(plain(t));
-    await expect(guide.locator('[data-key="number.careful"]').first()).toHaveAttribute('data-value', String(answer.number.careful));
+    await expect(guide.locator('[data-key="levels.balanced.pot"]').first()).toHaveAttribute('data-value', String(answer.levels.balanced.pot));
   }
 }
 

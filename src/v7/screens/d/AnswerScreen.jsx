@@ -42,8 +42,7 @@ function SpendMore({ result }) {
     <section class="block spend-more" data-testid="d.more" aria-labelledby="more-title">
       <h2 id="more-title">{t.moreTitle}</h2>
       <Sentence s={s.headroom} source={result} class="headroom" data-testid="d.answer.headroom" data-headroom={result.headroom ? result.headroom.kind : undefined} />
-      {s.middling && <Sentence s={s.middling} source={result} />}
-      {s.good && <Sentence s={s.good} source={result} />}
+      {s.levels && <Sentence s={s.levels} source={result} />}
       <p class="note range-key" data-testid="d.more.key">{withFixedCounts(t.moreNote)}</p>
     </section>
   );

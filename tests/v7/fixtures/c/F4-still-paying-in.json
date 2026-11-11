@@ -77,27 +77,38 @@
       "risk": "balanced",
       "charge": 0.5,
       "endAge": 95,
+      "confidence": "balanced",
       "take": null
     },
-    "monthly": {
-      "careful": 2390,
-      "middling": 3030,
-      "good": 4240
+    "level": "balanced",
+    "levels": {
+      "careful": {
+        "monthly": 2250,
+        "yearly": 27000,
+        "weighted": 0.95,
+        "fixedAge": 0.95
+      },
+      "balanced": {
+        "monthly": 2390,
+        "yearly": 28680,
+        "weighted": 0.9,
+        "fixedAge": 0.9
+      },
+      "bold": {
+        "monthly": 2590,
+        "yearly": 31080,
+        "weighted": 0.7,
+        "fixedAge": 0.7
+      }
     },
-    "yearly": {
-      "careful": 28680,
-      "middling": 36360,
-      "good": 50880
-    },
-    "lasted": {
-      "careful": 0.9,
-      "middling": 0.5,
-      "good": 0.1
-    },
-    "runOutAge": {
-      "careful": 95,
-      "middling": 82,
-      "good": 76
+    "chance": {
+      "weighted": 0.9,
+      "fixedAge": 0.9,
+      "fails": 4,
+      "n": 40,
+      "planToAge": 95,
+      "weightToAge": 95,
+      "horizonRule": "survival"
     },
     "whose": "you",
     "guaranteed": {
@@ -432,7 +443,7 @@
         "parts": [
           "About ",
           {
-            "key": "monthly.careful",
+            "key": "levels.balanced.monthly",
             "kind": "money"
           },
           " a month"
@@ -485,7 +496,7 @@
           "you",
           " could have about ",
           {
-            "key": "monthly.careful",
+            "key": "levels.balanced.monthly",
             "kind": "money"
           },
           " a month after tax, ",
@@ -514,7 +525,7 @@
       },
       "bad": {
         "id": "c.bad",
-        "text": "In a bad case (the worst 1 in 10), £2,390 a month only just lasts to 95. If you took £3,030 a month instead, a bad case would run out at age 82. After that you would have £1,046 a month from your State Pension.",
+        "text": "In a bad case (the worst 1 in 10), £2,390 a month only just lasts to 95.",
         "parts": [
           "In a bad case (the worst ",
           {
@@ -526,7 +537,7 @@
           },
           "), ",
           {
-            "key": "monthly.careful",
+            "key": "levels.balanced.monthly",
             "kind": "money"
           },
           " a month only just lasts to ",
@@ -534,46 +545,26 @@
             "key": "basis.endAge",
             "kind": "age"
           },
-          ".",
-          " If you took ",
-          {
-            "key": "monthly.middling",
-            "kind": "money"
-          },
-          " a month instead, a bad case would run out ",
-          "at age ",
-          {
-            "key": "runOutAge.middling",
-            "kind": "age"
-          },
-          ".",
-          " After that you would have ",
-          {
-            "key": "guaranteed.monthlyAfterTax",
-            "kind": "money"
-          },
-          " a month from ",
-          "your State Pension",
           "."
         ]
       },
       "range": {
         "id": "c.range",
-        "text": "You could take: careful £2,390, middling £3,030, good £4,240 a month.",
+        "text": "You could take: Careful £2,250, Balanced £2,390, Bold £2,590 a month.",
         "parts": [
-          "You could take: careful ",
+          "You could take: Careful ",
           {
-            "key": "monthly.careful",
+            "key": "levels.careful.monthly",
             "kind": "money"
           },
-          ", middling ",
+          ", Balanced ",
           {
-            "key": "monthly.middling",
+            "key": "levels.balanced.monthly",
             "kind": "money"
           },
-          ", good ",
+          ", Bold ",
           {
-            "key": "monthly.good",
+            "key": "levels.bold.monthly",
             "kind": "money"
           },
           " a month."
@@ -690,7 +681,14 @@
       "today": "2026-09-30",
       "futures": 40,
       "seed": 0,
-      "failuresAllowed": 4,
+      "level": "balanced",
+      "levelFails20": 2,
+      "planToAge": 95,
+      "weightToAge": 95,
+      "tablesVersion": "ons-ew-2024-cohort/1",
+      "sexUsed": {
+        "you": "f"
+      },
       "historyEnd": "2023-06",
       "engineVersion": "(any)",
       "startAge": 67,

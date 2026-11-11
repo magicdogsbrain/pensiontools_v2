@@ -21,6 +21,7 @@ import { grossToNet } from '../src/services/TaxCalculator.js';
 import { startOffset } from '../src/services/HouseholdService.js';
 import * as frozenPlanner from './v7/keep/seed.v1/plannerSeed.js';
 import * as frozenV7 from './v7/keep/seed.v1/v7Seed.js';
+import { asBefore, noAnswer } from './v7/keep/asBefore.mjs';
 import { APART_ANSWERS, TODAY as APART_TODAY } from './v7/keep/apartAnswers.mjs';
 
 const BUILDER = resolve(__dirname, '../src/answers/keep/planSeed.js');
@@ -75,7 +76,8 @@ describe.skipIf(!READY)('stopping in the same year: V7\'s version 2 seed makes t
     const { buildPlanSeed } = await import('../src/answers/keep/planSeed.js');
     const result = JSON.parse(readFileSync(join(STATES_DIR, q, f + '.json'), 'utf8')).answers[q].result;
     const args = { source: q, result, env: ENV, name: { chosen: 'My try' }, createdAt: AT };
-    const v2 = buildPlanSeed(args), v1 = frozenV7.buildPlanSeed(args);
+    // (7.8.0: the frozen copy is handed the answer as it read it before; the seed's answer row is compared apart)
+    const v2 = buildPlanSeed(args), v1 = frozenV7.buildPlanSeed({ ...args, result: asBefore(q, result) });
     const day = new Date(2026, 8, 30, 15, 0);
     const now = seedToScenario(v2, day), then = frozenPlanner.seedToScenario(v1, day);
     for (const k of ['yours', 'partner']) {
@@ -119,7 +121,7 @@ describe.skipIf(!READY)('stopping in the same year: V7\'s version 2 seed makes t
       expect(JSON.stringify(restNow), k).toBe(JSON.stringify(restThen));
       // the record differs only by the version 2 keys
       const strip = (x) => { const c = JSON.parse(JSON.stringify(x)); c.seedVersion = 1; delete c.untilBothStop; for (const p of c.people) { delete p.stop; delete p.years; } return c; };
-      expect(JSON.stringify(strip(a))).toBe(JSON.stringify(b));
+      expect(JSON.stringify(noAnswer(strip(a)))).toBe(JSON.stringify(noAnswer(b)));
     }
     // the Household tab says nothing about one plan beginning later
     if (now.partner) {

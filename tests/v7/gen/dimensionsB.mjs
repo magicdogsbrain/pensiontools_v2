@@ -56,20 +56,21 @@ export const DIMENSIONS_B = [
   { name: 'charge', values: [v('chargeDefault', () => {}), v('charge0', (c) => setPath(c, 'charge', 0)), v('charge1.5', (c) => setPath(c, 'charge', 1.5))] },
   // how the savings grow (6.22.0): "Mostly cash" (the default, once there are savings) or "Invested like my pension"
   { name: 'isaGrowth', values: [v('isaGrowthDefault', () => {}), v('invested', (c) => setPath(c, 'isaGrowth', 'invested'))] },
-  { name: 'confidence', values: [v('nineInTen', () => {}), v('threeInFour', (c) => setPath(c, 'confidence', 'threeInFour'))] },
+  // "How careful?" (7.8.0): the three levels, Balanced the default
+  { name: 'confidence', values: [v('balanced', () => {}), v('careful', (c) => setPath(c, 'confidence', 'careful')), v('bold', (c) => setPath(c, 'confidence', 'bold'))] },
   partnerDim('partnerAge', [53, 58, 62].map((a) => v(`partnerAge${a}`, (c) => setPath(c, 'partner.age', a)))),
   partnerDim('partnerPot', [0, 150_000].map((p) => v(`partnerPot${p}`, (c) => setPath(c, 'partner.pot', p)))),
   partnerDim('partnerPayIn', [0, 400].map((p) => v(`partnerPayIn${p}`, (c) => setPath(c, 'partner.payIn', { kind: 'total', total: p }))))
 ];
 
-/** household (2) × final-salary (yes, no) × State Pension (yes, no) × saving risk (3) × confidence (2) on one middle-of-the-road saver: 48. */
+/** household (2) × final-salary (yes, no) × State Pension (yes, no) × saving risk (3) × level (Balanced, Bold) on one middle-of-the-road saver: 48. */
 export function coreCasesB() {
   const out = [];
   for (const household of ['single', 'couple']) {
     for (const fs of [false, true]) {
       for (const sp of [true, false]) {
         for (const savingRisk of ['cautious', 'balanced', 'adventurous']) {
-          for (const confidence of ['nineInTen', 'threeInFour']) {
+          for (const confidence of ['balanced', 'bold']) {
             const inputs = { household, you: { pot: 120000, age: 45, payIn: { total: 400 } }, stop: { age: 60 }, spend: { amount: 2608 }, savingRisk, confidence };
             if (fs) inputs.you.finalSalary = { has: true, yearly: 9000, fromAge: 65 };
             if (!sp) inputs.you.statePension = { kind: 'none' };

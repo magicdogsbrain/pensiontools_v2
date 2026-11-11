@@ -59,7 +59,7 @@
     },
     "b": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"nineInTen\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":0,\"savingsIn\":0,\"spend\":{\"amount\":5000,\"kind\":\"amount\"},\"stop\":{\"age\":52},\"you\":{\"age\":50,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":250,\"kind\":\"split\",\"own\":450},\"pot\":120000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":0,\"savingsIn\":0,\"spend\":{\"amount\":5000,\"kind\":\"amount\"},\"stop\":{\"age\":52},\"you\":{\"age\":50,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":250,\"kind\":\"split\",\"own\":450},\"pot\":120000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
       "result": {
         "status": "out-of-reach",
         "inputs": {
@@ -93,7 +93,7 @@
           "risk": "balanced",
           "charge": 0.5,
           "endAge": 95,
-          "confidence": "nineInTen"
+          "confidence": "balanced"
         },
         "whose": "you",
         "spend": {
@@ -160,26 +160,36 @@
             "chargeAYear": 0.005
           }
         ],
-        "number": {
-          "careful": 2061000,
-          "middling": 1262000,
-          "good": 723000,
-          "byPerson": [
-            {
-              "who": "you",
-              "pot": 2061000
-            }
-          ]
+        "level": "balanced",
+        "levels": {
+          "careful": {
+            "pot": 2346000
+          },
+          "balanced": {
+            "pot": 2061000,
+            "payIn": null,
+            "byPerson": [
+              {
+                "who": "you",
+                "pot": 2061000
+              }
+            ],
+            "weighted": null,
+            "fixedAge": null
+          },
+          "bold": {
+            "pot": 1547000
+          }
         },
         "already": false,
         "chance": {
-          "lasted": 0,
-          "outOfTen": {
-            "words": "in none of the futures we tried",
-            "only": true,
-            "count": null
-          },
-          "fails": 1000
+          "weighted": 0,
+          "fixedAge": 0,
+          "fails": 1000,
+          "n": 1000,
+          "planToAge": 95,
+          "weightToAge": 95,
+          "horizonRule": "survival"
         },
         "onCourse": false,
         "verdict": {
@@ -192,7 +202,6 @@
           }
         },
         "income": {
-          "middling": 0,
           "bad": 0
         },
         "gap": {
@@ -213,9 +222,9 @@
           "savingsOnly": false,
           "outOfReach": "ceiling",
           "caps": null,
-          "threeInFourNow": false,
-          "nineInTen": null,
-          "threeInFour": null
+          "level": "balanced",
+          "closeNow": false,
+          "atLevel": null
         },
         "payIn": {
           "now": 700,
@@ -223,11 +232,6 @@
           "employer": 250,
           "needed": null,
           "extra": 0,
-          "confidence": "nineInTen",
-          "at": {
-            "nineInTen": null,
-            "threeInFour": null
-          },
           "outside": null,
           "savingsNow": 0
         },
@@ -590,7 +594,7 @@
             "id": "confidence",
             "field": "confidence",
             "source": "default",
-            "value": "nineInTen",
+            "value": "balanced",
             "text": "The pay-in that gets there makes your money last in 9 futures out of 10.",
             "parts": [
               "The pay-in that gets there makes your money last ",
@@ -863,7 +867,7 @@
             "parts": [
               "About ",
               {
-                "key": "number.careful",
+                "key": "levels.balanced.pot",
                 "kind": "pot"
               },
               " by age ",
@@ -926,7 +930,7 @@
               ", ",
               "you would want a pot of about ",
               {
-                "key": "number.careful",
+                "key": "levels.balanced.pot",
                 "kind": "pot"
               },
               " by then",
@@ -1380,8 +1384,14 @@
           "today": "2026-09-30",
           "futures": 1000,
           "seed": 0,
-          "failuresAllowed": 100,
-          "closeAllowed": 250,
+          "level": "balanced",
+          "levelFails20": 2,
+          "planToAge": 95,
+          "weightToAge": 95,
+          "tablesVersion": "ons-ew-2024-cohort/1",
+          "sexUsed": {
+            "you": "f"
+          },
           "historyEnd": "2023-06",
           "engineVersion": "7.6.0",
           "endAge": 95,

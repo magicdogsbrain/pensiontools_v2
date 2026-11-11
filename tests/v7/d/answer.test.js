@@ -35,18 +35,18 @@ export function checkAnswerD(r) {
   if (!['ok', 'guaranteed-only', 'none', 'invalid'].includes(r.status)) out.push(`status ${r.status}`);
   if (r.status === 'invalid') return out;
   for (const p of unsaveable(r)) out.push(`unsaveable at ${p}`);
-  for (const k of ['inputs', 'spend', 'verdict', 'lasted', 'runOutAge', 'monthly', 'lastedAt', 'runOutAgeAt', 'headroom', 'guaranteed', 'phases', 'assumed', 'warnings', 'sentences', 'basis', 'units']) if (!(k in r)) out.push(`no ${k}`);
+  for (const k of ['inputs', 'spend', 'verdict', 'lasted', 'runOutAge', 'level', 'levels', 'chance', 'headroom', 'guaranteed', 'phases', 'assumed', 'warnings', 'sentences', 'basis', 'units']) if (!(k in r)) out.push(`no ${k}`);
   if (!['yes', 'close', 'no'].includes(r.verdict)) out.push(`verdict ${r.verdict}`);
   if (!(r.lasted >= 0 && r.lasted <= 1)) out.push(`lasted ${r.lasted}`);
   if (!(r.runOutAge >= r.basis.startAge && r.runOutAge <= r.basis.endAge)) out.push(`runOutAge ${r.runOutAge}`);
-  for (const w of ['careful', 'middling', 'good']) if (!(r.monthly[w] >= 0) || r.monthly[w] % 10 !== 0) out.push(`monthly.${w} ${r.monthly[w]}`);
-  if (!(r.monthly.careful <= r.monthly.middling && r.monthly.middling <= r.monthly.good)) out.push('the band is out of order');
+  for (const w of ['careful', 'balanced', 'bold']) if (!(r.levels[w].monthly >= 0) || r.levels[w].monthly % 10 !== 0) out.push(`monthly.${w} ${r.levels[w].monthly}`);
+  if (!(r.levels.careful.monthly <= r.levels.balanced.monthly && r.levels.balanced.monthly <= r.levels.bold.monthly)) out.push('the levels are out of order');
   // P-D6: the headroom's kind agrees with the verdict, and the amount is a whole £10
   const h = r.headroom;
   if (!['more', 'about', 'less'].includes(h.kind) || h.perMonth % 10 !== 0 || h.perMonth < 0) out.push(`headroom ${JSON.stringify(h)}`);
   if (r.verdict === 'yes' && h.kind === 'less') out.push('a yes beside "less lasted"');
   if (r.verdict !== 'yes' && h.kind === 'more') out.push('not a yes beside "more"');
-  if (JSON.stringify(h) !== JSON.stringify(headroomOf(r.verdict, r.monthly.careful, r.spend.perMonth))) out.push('the headroom is not the rule\'s');
+  if (JSON.stringify(h) !== JSON.stringify(headroomOf(r.verdict, r.levels[r.level].monthly, r.spend.perMonth))) out.push('the headroom is not the rule\'s');
   // the words
   const all = allSentences(r);
   const context = all.map((s) => s.text).join(' ');
@@ -62,7 +62,7 @@ export function checkAnswerD(r) {
   if (ids[0] !== 'd-from-today') out.push('what was assumed does not start with d-from-today');
   if (new Set(ids).size !== ids.length) out.push('an assumed line twice');
   if (r.status === 'ok') {
-    if (!r.sentences.head || !r.sentences.line || !r.sentences.bad || !r.sentences.headroom || !r.sentences.middling) out.push('a headline sentence is missing');
+    if (!r.sentences.head || !r.sentences.line || !r.sentences.bad || !r.sentences.headroom || !r.sentences.levels) out.push('a headline sentence is missing');
     if (!/the worst 1 in 10/.test(r.sentences.bad.text)) out.push('the bad case without its explanation');
     const ok = { yes: /^Yes — /, close: /^Close — /, no: /^Not at / };
     if (!ok[r.verdict].test(r.sentences.head.text)) out.push(`the headline "${r.sentences.head.text}" does not say ${r.verdict}`);
@@ -106,7 +106,7 @@ describe('the shape of an answer, and the headroom rule', () => {
   it('the answer is the same with and without the levers; a lever not asked for costs nothing (its block is null)', () => {
     const plain = answerD(D1, ENV);
     const both = answerD({ ...D1, work: { has: true, yearly: 12000, years: 3 }, fall: { has: true } }, ENV);
-    for (const k of ['verdict', 'lasted', 'runOutAge', 'monthly', 'lastedAt', 'runOutAgeAt', 'headroom', 'guaranteed', 'phases']) expect(both[k]).toEqual(plain[k]);
+    for (const k of ['verdict', 'lasted', 'runOutAge', 'level', 'levels', 'chance', 'headroom', 'guaranteed', 'phases']) expect(both[k]).toEqual(plain[k]);
     expect(plain.work).toBe(null);
     expect(plain.fall).toBe(null);
     expect(both.work.byYears.map((r) => r.years)).toEqual([1, 2, 3, 4, 5]);
@@ -225,7 +225,7 @@ describe('properties on random households (answer-D.md 11.3; at most one £10 st
     fc.assert(fc.property(households, (inputs) => {
       const r = answerD(inputs, ENV);
       const more = answerD({ ...inputs, you: { ...inputs.you, pot: Math.min(10_000_000, inputs.you.pot + 100000) } }, ENV);
-      expect(more.monthly.careful).toBeGreaterThanOrEqual(r.monthly.careful - STEP);
+      expect(more.levels[more.level].monthly).toBeGreaterThanOrEqual(r.levels[r.level].monthly - STEP);
       const spend = inputs.spend.kind === 'amount' ? inputs.spend.amount : 2000;
       const dearer = answerD({ ...inputs, spend: { kind: 'amount', amount: Math.min(50000, spend + 500) } }, ENV);
       expect(dearer.lasted).toBeLessThanOrEqual(r.lasted + 1e-9);
@@ -237,7 +237,7 @@ describe('properties on random households (answer-D.md 11.3; at most one £10 st
       expect(r.work.lasted).toBeGreaterThanOrEqual(r.lasted - 1e-9);
       r.work.byYears.forEach((row, i, rows) => { if (i > 0) expect(row.lasted).toBeGreaterThanOrEqual(rows[i - 1].lasted - 1e-9); });
       expect(r.fall.lasted).toBeLessThanOrEqual(r.lasted + 1e-9);
-      expect(r.fall.monthly.careful).toBeLessThanOrEqual(r.monthly.careful + STEP);
+      expect(r.fall.monthly).toBeLessThanOrEqual(r.levels[r.level].monthly + STEP);
     }), { ...opts, numRuns: 5 });
   });
 });

@@ -104,13 +104,16 @@ export function getDefaultScenario(name = 'My Plan', description = '', enabledTo
 
 // ---- the seed (services/PlanSeed.js, by the same names) --------------------------------------------------------------
 
-/** The version V7 writes now for a flat spend (src/answers/keep/planSeed.js has the same value; a shaped spend writes 3). */
-export const SEED_VERSION = 2;
+/** The version V7 writes now for a flat spend (src/answers/keep/planSeed.js has the same value; a shaped spend writes 5). */
+export const SEED_VERSION = 4;
 /**
- * The versions this code makes plans from: 1 (one stop for everyone), 2 (each person at their own stop) and 3 (what is spent
- * changes with age: takeHome rows exact to the year, spend.shape).
+ * The versions this code makes plans from: 1 (one stop for everyone), 2 (each person at their own stop), 3 (what is spent
+ * changes with age: takeHome rows exact to the year, spend.shape); 4 and 5 (7.8.0) are 2 and 3 with the answer row of the
+ * level (`answer: { level, levelChosen, shown, chance }`). Every one is read as written.
  */
-export const SEED_VERSIONS = Object.freeze([1, 2, 3]);
+export const SEED_VERSIONS = Object.freeze([1, 2, 3, 4, 5]);
+/** Whether a seed's spend changes with age (version 3, and 5 from 7.8.0). */
+export const shapedSeed = (seed) => !!seed && (seed.seedVersion === 3 || seed.seedVersion === 5);
 export const SEED_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 /** A seed dated further ahead than this was not written by this browser's clock in the last day: it is discarded. */
 export const SEED_FUTURE_SLACK_MS = 5 * 60 * 1000;
@@ -338,7 +341,7 @@ export function checkSeed(seed, nowMs) {
   if (!Array.isArray(seed.people) || seed.people.length !== (seed.household === 'couple' ? 2 : 1)) return bad('people');
   for (let i = 0; i < seed.people.length; i++) { const p = personProblem(seed.people[i], i, seed); if (p) return bad(p); }
   if (seed.seedVersion >= 2) { const st = stopsProblem(seed); if (st) return bad(st); }
-  if (seed.seedVersion === 3) { const sh = shapeProblem(seed.spend.shape); if (sh) return bad(sh); }
+  if (shapedSeed(seed)) { const sh = shapeProblem(seed.spend.shape); if (sh) return bad(sh); }
   const b = budgetProblem(seed.budget); if (b) return bad(b);
   return { ok: true };
 }
@@ -479,11 +482,30 @@ function budgetFor(seed, p, other, endAge) {
 }
 
 /**
+ * The share of futures the kept answer's figure lasted in, to its end age, as written: the level's fixed-age count (seed
+ * version 4 and 5, 7.8.0) or `lasted` (versions 1 to 3). null when the row has none.
+ */
+export function seedLasted(answer) {
+  if (!isObj(answer)) return null;
+  const v = isObj(answer.chance) && isNum(answer.chance.fixedAge) ? answer.chance.fixedAge : isNum(answer.lasted) ? answer.lasted : null;
+  return v === null ? null : Math.max(0, Math.min(1, v));
+}
+
+/**
+ * The pay-in the kept answer said would get there (B), as written: the level's (versions 4 and 5) or `payInNeeded`.
+ */
+export function seedPayInNeeded(answer) {
+  if (!isObj(answer)) return null;
+  if (isObj(answer.shown) && isNum(answer.shown.payIn)) return answer.shown.payIn;
+  return isNum(answer.payInNeeded) ? answer.payInNeeded : null;
+}
+
+/**
  * "lasted to 95 in 4 futures out of 10 (43%)" — the quick answer's own figure, beside which the planner's percentage
  * can be read (language guide 3.4's counting, with the share as the planner states it). '' when the seed has none.
  */
 export function answerLastedWords(seed) {
-  const share = seed && seed.answer && isNum(seed.answer.lasted) ? Math.max(0, Math.min(1, seed.answer.lasted)) : null;
+  const share = seed && seed.answer ? seedLasted(seed.answer) : null;
   if (share === null) return '';
   const out = share >= 1 ? 'in every future it tried'
     : share >= 0.95 ? 'in more than 9 futures out of 10'
@@ -560,7 +582,7 @@ function partWords(p) {
  * plan holds one step a year. '' for a flat spend.
  */
 function shapeWords(seed, p) {
-  const sh = seed.seedVersion === 3 && seed.spend && seed.spend.shape;
+  const sh = shapedSeed(seed) && seed.spend && seed.spend.shape;
   if (!sh) return '';
   const pct = (x) => String(Math.round(x * 100) / 100);
   const then = (x) => (x.then === 'falls' ? ', then ' + pct(x.fallsPct) + '% less each year' : x.then === 'glides' ? ', then moving evenly to the next' : '');
@@ -667,7 +689,7 @@ function planFor(seed, p, other, name, savedOn, lockedAt, names, record) {
 
   // The target: the person's own part of the monthly amount they chose, grossed up by today's own sum — exact to the year
   // when what is spent changes with age (seed version 3).
-  Object.assign(S, seed.seedVersion === 3 ? incomeTargetByYear(p.takeHome, S.shapeAgeNow, S.duration) : incomeTarget(p.takeHome, S.shapeAgeNow, S.duration));
+  Object.assign(S, shapedSeed(seed) ? incomeTargetByYear(p.takeHome, S.shapeAgeNow, S.duration) : incomeTarget(p.takeHome, S.shapeAgeNow, S.duration));
 
   // A final-salary pension and part-time work.
   const fs = p.finalSalary && p.finalSalary.yearly > 0 ? p.finalSalary : null;

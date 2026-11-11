@@ -342,20 +342,20 @@ describe('L11 — the short results', () => {
   it('B\'s answer names the figure the verdict states (what would be enough, in the person\'s own kind), never B\'s own £10 beside it', () => {
     const s = at(typedB(), 'b', 'answer');
     const fig = (more) => ({ payIn: 982.33, savingsIn: null, parts: [], ...more });
-    const withEnough = (enough, confidence = 'nineInTen') => ({ ...resultB({ careful: 470000 }), payIn: { now: 317, needed: 980, confidence }, enough });
-    const share = withEnough({ how: 'share', who: 'you', savingsOnly: false, nineInTen: fig({ totalPct: 31, ownPct: 27 }), threeInFour: fig({ payIn: 696.67, totalPct: 22, ownPct: 18 }) });
+    const withEnough = (enough) => ({ ...resultB({ careful: 470000 }), payIn: { now: 317, needed: 980 }, enough });
+    // (7.8.0: what would be enough is one figure, at the level chosen: enough.atLevel)
+    const share = withEnough({ how: 'share', who: 'you', savingsOnly: false, atLevel: fig({ totalPct: 31, ownPct: 27 }) });
     const step = railFor(answered(s, 'b', share)).steps[2];
     expect(step.result.text).toBe('31% of your pay in');
-    expect(step.result.parts).toEqual([{ key: 'enough.nineInTen.totalPct', kind: 'pct' }, ' of your pay in']);
+    expect(step.result.parts).toEqual([{ key: 'enough.atLevel.totalPct', kind: 'pct' }, ' of your pay in']);
     expect(text(step)).toBe(step.result.text);
-    expect(railFor(answered(s, 'b', { ...share, payIn: { ...share.payIn, confidence: 'threeInFour' } })).steps[2].result.text).toBe('22% of your pay in');
     expect(railFor(answered(s, 'b', { ...share, enough: { ...share.enough, who: 'partner' } })).steps[2].result.text).toBe("31% of your partner's pay in");
-    const pounds = withEnough({ how: 'pounds', who: 'you', savingsOnly: false, nineInTen: fig({ payIn: 990 }), threeInFour: null });
+    const pounds = withEnough({ how: 'pounds', who: 'you', savingsOnly: false, atLevel: fig({ payIn: 990 }) });
     expect(railFor(answered(s, 'b', pounds)).steps[2].result.text).toBe('About £990 a month in');
-    const savings = withEnough({ how: 'pounds', who: 'you', savingsOnly: true, nineInTen: fig({ payIn: 317, savingsIn: 240 }), threeInFour: null });
+    const savings = withEnough({ how: 'pounds', who: 'you', savingsOnly: true, atLevel: fig({ payIn: 317, savingsIn: 240 }) });
     expect(railFor(answered(s, 'b', savings)).steps[2].result.text).toBe('About £240 a month into savings');
     // nothing would be enough by paying in: the guide number, never a pay-in the words do not state
-    const none = withEnough({ how: 'share', who: 'you', savingsOnly: false, outOfReach: 'pay', nineInTen: null, threeInFour: null });
+    const none = withEnough({ how: 'share', who: 'you', savingsOnly: false, outOfReach: 'pay', atLevel: null });
     expect(railFor(answered(s, 'b', none)).steps[2].result.text).toBe('About £470,000 by 60');
   });
 
@@ -414,7 +414,7 @@ const RESULTS = {
   a: [resultA({ verdict: 'yes' }), resultA({ verdict: 'close' }), resultA({ verdict: 'no' }), resultA({ kind: 'earliest', verdict: 'yes', age: 61 }),
     resultA({ kind: 'noneWorked', verdict: 'no', age: 75, earliestYes: null }), resultA({ detail: 'all' })],
   b: [resultB(), resultB({ onCourse: true }), resultB({ status: 'out-of-reach', careful: null }), resultB({ detail: 'grid' })],
-  c: [{ status: 'ok', monthly: { careful: 1380 }, basis: {} }]
+  c: [{ status: 'ok', level: 'balanced', levels: { careful: { monthly: 1380 }, balanced: { monthly: 1380 }, bold: { monthly: 1380 } }, basis: {} }]
 };
 const stateAction = fc.oneof(
   { weight: 3, arbitrary: fc.constantFrom('fillA', 'fillB', 'fillC', 'retiredA', 'retiredB', 'spendlessA', 'spendlessB') },

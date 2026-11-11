@@ -541,9 +541,10 @@ export const B = {
         'end-after-stop-apart': 'That is not after you have both stopped. Choose a later age. The two of you also need to stop less than 45 years apart.'
       }
     },
+    // "How careful?" (7.8.0): the count each level lets through leads the label, so "Balanced" is never read as a mix
     confidence: {
-      label: 'How often your money should last',
-      options: { nineInTen: 'In 9 futures out of 10', threeInFour: 'In 3 futures out of 4' }
+      label: 'How careful?',
+      options: { careful: 'In 19 futures out of 20: Careful', balanced: 'In 9 futures out of 10: Balanced (we start here)', bold: 'In 7 futures out of 10: Bold' }
     }
   },
 

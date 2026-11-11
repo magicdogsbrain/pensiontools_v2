@@ -43,7 +43,9 @@
  */
 import { SCHEMA_B } from './schema.js';
 import { checkInputs, defaults, flatten } from '../shared/validate.js';
-import { RULES, SAVING, CLOSED_YEARS_FAILS, accessRiseAffects, legacyVerdictOf } from '../shared/rules.js';
+import { RULES, SAVING, CLOSED_YEARS_FAILS, accessRiseAffects, LEVEL_FAILS20 } from '../shared/rules.js';
+import { weigherOf, failsBound } from '../shared/weigh.js';
+import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, horizonRuleOf } from '../shared/levels.js';
 import { VERSION } from '../../constants.js';
 import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { historyEnd, historyStartYear } from '../shared/futures.js';
@@ -185,6 +187,9 @@ function createAges(inputs, env, lives, ctx) {
       const sp = stopAtPlan(household, inputs.you.age + own.you, env, lives);
       const runner = createStopRunner(sp);
       row = { stopAge, sp, runner, household, numbers: new Map(), floors: new Map(), whole: null, band: null };
+      // the level and the weights of this stop (7.8.0): the one test at a spend, and the band at the level
+      const weigher = weigherOf(sp.plan, inputs, env);
+      row.at = { weigher, level: ctx.level, toMonth: 12 * (sp.plan.endAge - sp.plan.startAge) };
       // the spend in this stop's first year: a step at or before a later stop is in force from it (spending-shape.md 6.4);
       // the stop asked about starts before every step, so its amount is the figure as typed
       const f = sp.plan.shape ? sp.plan.shape.a0 : 1;
@@ -222,8 +227,8 @@ function createAges(inputs, env, lives, ctx) {
       // the one test at pay-ins (c into the pension, d into savings, household totals)
       row.lasts = (H, c, d, allowed) => lastsWithin(sp, row.H(H), row.payInsAt(c, d), allowed);
       row.count = (H, c, d) => verdictAtPayIns(sp, row.H(H), row.payInsAt(c, d));
-      row.wholeNow = (H) => (row.whole && row.whole.H === H ? row.whole.v : (row.whole = { H, v: verdictAt(sp, runner, row.H(H)) }).v);
-      row.bandNow = () => row.band || (row.band = bandAt(sp, runner));
+      row.wholeNow = (H) => (row.whole && row.whole.H === H ? row.whole.v : (row.whole = { H, v: verdictAt(sp, runner, row.H(H), row.at) }).v);
+      row.bandNow = () => row.band || (row.band = bandAt(sp, runner, null, { weigher: row.at.weigher, levels: [ctx.level], toMonth: row.at.toMonth }));
     }
     cache.set(key, row);
     return row;
@@ -261,11 +266,11 @@ function guessFrom(row, least, allowed, ctx) {
 
 /**
  * The pay-ins that get there at one stop age and saving risk: what goes into savings each month for the closed years
- * (when the pension is closed at the stop), and the least whole £10 into the pension at which the whole life lasts with
- * at most `allowed` lives failing. → { outside: number|null, savingsIn, at: { nineInTen, threeInFour } } — only the
- * confidences asked for (`which`) are worked out; the others are null.
+ * (when the pension is closed at the stop), and the least whole £10 into the pension at which the whole life lasts at the
+ * level chosen (7.8.0: one solve; the "3 in 4" pass is gone) — at most `ctx.allowed.level` lives failing.
+ * → { outside: number|null, savingsIn, needed: number|null }
  */
-function payInsThatGetThere(row, H, ctx, least = null, which = ['nineInTen', 'threeInFour']) {
+function payInsThatGetThere(row, H, ctx, least = null) {
   const o = row.outsideAt(H);
   let outsideIn = null;
   if (o) {
@@ -290,13 +295,7 @@ function payInsThatGetThere(row, H, ctx, least = null, which = ['nineInTen', 'th
   }
   const savingsIn = outsideIn === null ? ctx.savingsInNow : Math.max(ctx.savingsInNow, outsideIn);
   const solve = (allowed, cap = ctx.ceiling) => leastPayIn((c) => row.lasts(H, c, savingsIn, allowed), cap, 0, guessFrom(row, least, allowed, ctx));
-  const at = { nineInTen: null, threeInFour: null };
-  if (which.includes('nineInTen')) at.nineInTen = solve(ctx.allowed.careful);
-  if (which.includes('threeInFour')) {
-    // 3 in 4 never needs more than 9 in 10
-    at.threeInFour = at.nineInTen === 0 ? 0 : solve(ctx.allowedClose, at.nineInTen === null ? ctx.ceiling : at.nineInTen);
-  }
-  return { outside: o ? outsideIn : null, savingsIn, at };
+  return { outside: o ? outsideIn : null, savingsIn, needed: solve(ctx.allowed.level) };
 }
 
 export function answerB(inputs, env) {
@@ -319,7 +318,10 @@ export function answerB(inputs, env) {
 
   const n = env.futures;
   const detail = env.detail === 'grid' ? 'grid' : 'answer';
-  const allowed = { careful: Math.floor(n / 10), middling: Math.floor(n / 2), good: n - Math.ceil(n / 10) };
+  // the level chosen (7.8.0) and the lives each level lets fail (the count at floor(t·n/20) while not weighing)
+  const level = levelOfInputs(inp);
+  const failsAt = Object.fromEntries(LEVEL_IDS.map((id) => [id, failsBound(n, LEVEL_FAILS20[id])]));
+  const allowed = { level: failsAt[level] };
   const couple = inp.household === 'couple' && Boolean(inp.partner);
   const whos = couple ? ['you', 'partner'] : ['you'];
   // each person's years until their own stop at the asked stop; who is still saving (one stop for both: everyone)
@@ -339,7 +341,7 @@ export function answerB(inputs, env) {
   // the most the household can pay in, split as now: no one's part above their box's £10,000 (a couple paying in
   // evenly: £20,000; with everything going into one name: £10,000)
   const solveCeiling = Math.floor(SAVING.payInCeiling / Math.max(...shares) / 10 + 1e-9) * 10;
-  const ctx = { now, shares, savingsInNow, ceiling: solveCeiling, people: whos.length, savers, saverCount, allowed, allowedClose: Math.floor(n / 4) };
+  const ctx = { now, shares, savingsInNow, ceiling: solveCeiling, people: whos.length, savers, saverCount, allowed, level };
 
   // The lives: long enough for the stop and every later age the stop-later lever and the grid may try (to 75).
   const later = [];
@@ -365,23 +367,25 @@ export function answerB(inputs, env) {
       : plan.periods.every((per) => per.netTotal >= H - 1e-9);
   const opts = base.optsAt(H);
   let least = null;
-  const [rc, rm, rg] = potNeededAt(sp, H, [allowed.careful, allowed.middling, allowed.good], { ...opts, onLeast: (l) => { least = l; } });
-  for (const [f, v] of [[allowed.careful, rc], [allowed.middling, rm], [allowed.good, rg]]) base.numbers.set(`${H}:${f}`, v);
-  let number = null;
-  if (guaranteedCovers) number = { careful: 0, middling: 0, good: 0 };
-  else if (rc !== null) number = { careful: rc, middling: rm ?? rc, good: rg ?? rc };
-  if (number) {
+  // the pot to aim for at each level (7.8.0: levels[k].pot; null where nothing up to SAVING.potMax gets there)
+  const potList = potNeededAt(sp, H, LEVEL_IDS.map((id) => failsAt[id]), { ...opts, onLeast: (l) => { least = l; } });
+  LEVEL_IDS.forEach((id, i) => base.numbers.set(`${H}:${failsAt[id]}`, potList[i]));
+  const potOf = Object.fromEntries(LEVEL_IDS.map((id, i) => [id, guaranteedCovers ? 0 : potList[i]]));
+  /** The pot the answer stands behind: the level chosen's (null: out of reach). */
+  const number = potOf[level];
+  let byPerson = null;
+  if (number !== null) {
     // each person's part by the split: the larger part rounded, the smaller the rest, so a half pound goes the same way
     // whichever of the two is "you" (M-B11)
     const big = sp.split.indexOf(Math.max(...sp.split));
-    const pots = whos.map((who, p) => Math.round(number.careful * sp.split[p]));
-    if (whos.length === 2) pots[1 - big] = number.careful - pots[big];
-    number.byPerson = whos.map((who, p) => ({ who, pot: pots[p] }));
+    const pots = whos.map((who, p) => Math.round(number * sp.split[p]));
+    if (whos.length === 2) pots[1 - big] = number - pots[big];
+    byPerson = whos.map((who, p) => ({ who, pot: pots[p] }));
   }
 
   // ---- the years before a pension can be touched: what the savings must pay (brief conflict 38; J9) ----------------------
   const baseOutside = base.outsideAt(H);
-  const anyPensionAtStop = sp.middling.some((q) => q.pension > 0) || (number !== null && number.careful > 0);
+  const anyPensionAtStop = sp.middling.some((q) => q.pension > 0) || (number !== null && number > 0);
   const floorUsed = Boolean(baseOutside) && sp.pots.some((q, j) => q.savings.some((v) => v < (baseOutside.careful ?? baseOutside.amount) * sp.split[j]));
   const outside = baseOutside && (anyPensionAtStop || floorUsed)
     ? { amount: baseOutside.amount, careful: baseOutside.careful ?? baseOutside.amount, untilAge: baseOutside.untilAge } : null;
@@ -392,24 +396,26 @@ export function answerB(inputs, env) {
   const wholeRunOutAge = whole.runOutAge;
   const fails = whole.fails;
   const lasted = whole.lasted;
-  const onCourse = fails <= allowed.careful;
+  // the band said straight: the verdict at the level (legacyVerdictOf's while not weighing) — on course is its yes
+  const band = whole.verdict;
+  const onCourse = band === 'yes';
 
   // ---- the pay-ins that get there: the whole life in 9 in 10 (and 3 in 4) ------------------------------------------------
-  const solved = guaranteedCovers ? { outside: null, savingsIn: savingsInNow, at: { nineInTen: 0, threeInFour: 0 } } : payInsThatGetThere(base, H, ctx, least);
-  const at = solved.at;
-  const confidence = inp.confidence;
-  const needed = at[confidence];
+  const solved = guaranteedCovers ? { outside: null, savingsIn: savingsInNow, needed: 0 } : payInsThatGetThere(base, H, ctx, least);
+  const needed = solved.needed;
   // (someone who has stopped pays nothing in, and is left out of the split)
   const everySplit = payIns.every((p, j) => !savers[j] || p.own !== null);
   // (couples apart: the pensions of those still saving — what the number is of; one who has stopped keeps theirs as given)
   const only = plan.apart ? savers : null;
   const potNow = spread(pensionsAt(sp, base.payInsAt(now), only));
   const potNeededSpread = needed === null ? null : spread(pensionsAt(sp, base.payInsAt(needed, solved.savingsIn), only));
-  const short = number === null ? null : Math.max(0, number.careful - potNow.careful);
-  // what you could spend from the stop with today's pay-in (A's careful amount at this stop age; C's from that age)
-  const careNow = base.bandNow();
-  const monthlyIfShort = careNow.monthly.careful;
+  const short = number === null ? null : Math.max(0, number - potNow.careful);
+  // what you could spend from the stop with today's pay-in, at the level (A's amount at this stop age; C's from that age)
+  const careNow = base.bandNow().levels[level];
+  const monthlyIfShort = careNow.monthly;
   const payInOutside = outside ? solved.outside : null;
+  // the whole life at the pay-in that gets there (the level's chance): today's count when that is what goes in now
+  const neededChance = needed === null ? null : needed === now && solved.savingsIn === savingsInNow ? whole : base.count(H, needed, solved.savingsIn);
 
   // ---- the status ---------------------------------------------------------------------------------------------------
   const status = guaranteedCovers ? 'guaranteed-only' : number === null || needed === null ? 'out-of-reach' : 'ok';
@@ -419,17 +425,16 @@ export function answerB(inputs, env) {
   // what you could spend from the stop paying in as now — the most a month that lasted in 9 and in 5 futures out of 10
   // (careNow, the same test) — and how far the bad case falls short of what you want, a month and a year. On course and a
   // gap of £0 agree to B's £10 step: the bad-case income is the most that lasts in 9 in 10.
-  const band = legacyVerdictOf(fails, n);
   const verdict = { band, lasted, outOfTen: outOfTen(lasted) };
-  const income = { middling: careNow.monthly.middling, bad: careNow.monthly.careful };
+  const income = { bad: monthlyIfShort };
   const gapMonth = round2(Math.max(0, spendMonth - income.bad));
   const gap = { month: gapMonth, year: round2(gapMonth * 12) };
   // what would be enough (3.1–3.3): the least share of pay (or pounds) on course and for 3 futures out of 4, each count
   // asked again at the figure said; none when the State Pension alone covers it
   const enough = status === 'guaranteed-only' ? null
-    : enoughOf({ row: base, H, ctx, solved, inp, whos, savers, band, allowed: { careful: allowed.careful, close: ctx.allowedClose }, reachable: number !== null, only, closedYears: outside !== null });
-  /** The figure that leads, at the chance asked for (B's confidence choice changes which figure leads, never the bar). */
-  const enoughLead = enough ? enough[confidence] : null;
+    : enoughOf({ row: base, H, ctx, solved, inp, whos, savers, band, allowed, level, reachable: number !== null, only, closedYears: outside !== null });
+  /** The figure that leads: what would be enough at the level chosen. */
+  const enoughLead = enough ? enough.atLevel : null;
 
   // ---- the ways to make it fit: each applied and asked again gives its own figures --------------------------------------
   const levers = { stopLater: null, payMore: null, spendLess: null, oneOff: null, moreRisk: null, accept: { lasted, short, monthlyIfShort } };
@@ -440,7 +445,7 @@ export function answerB(inputs, env) {
     for (const a of later) {
       const row = ages(a);
       if (!row) continue;
-      if (!lastsWithin(row.sp, row.H(H), row.payInsAt(now), allowed.careful)) continue;
+      if (!lastsWithin(row.sp, row.H(H), row.payInsAt(now), allowed.level)) continue;
       levers.stopLater = { age: a, lasted: row.wholeNow(H).lasted };
       break;
     }
@@ -459,7 +464,7 @@ export function answerB(inputs, env) {
     }
     // spend less: the careful amount with today's pay-ins (A's careful amount at this stop age)
     if (monthlyIfShort > 0 && monthlyIfShort < spendMonth) {
-      levers.spendLess = { spend: monthlyIfShort, lasted: careNow.lastedAt.careful };
+      levers.spendLess = { spend: monthlyIfShort, lasted: careNow.chance.fixedAge };
     }
     // a one-off sum now (3.4): the least whole £1,000 into the pension (a couple's pensions, split as the number is),
     // paying in as now — the test at a pot today that much larger. Checked a person at a time, with a year of what goes in
@@ -467,7 +472,7 @@ export function answerB(inputs, env) {
     // the words say so), and, for someone who gave their pay, against it — the tax is added back only on what a person
     // pays in up to their pay (or RULES.reliefFloor)
     if (number !== null) {
-      const sum = oneOffSum({ row: base, H, ctx, least, fails: allowed.careful });
+      const sum = oneOffSum({ row: base, H, ctx, least, fails: allowed.level });
       if (sum) {
         const lumpOf = (w) => (sum.byPerson ? (sum.byPerson.find((x) => x.who === w) || { amount: 0 }).amount : sum.amount);
         const over = whos.filter((w, j) => lumpOf(w) > 0 && lumpOf(w) + payIns[j].total * 12 > RULES.annualAllowance);
@@ -482,8 +487,7 @@ export function answerB(inputs, env) {
     const up = RISKS[RISKS.indexOf(inp.savingRisk) + 1];
     if (up) {
       const riskier = ages(stopAge, up);
-      const r = payInsThatGetThere(riskier, H, ctx, least, [confidence]);
-      const payIn = r.at[confidence];
+      const payIn = payInsThatGetThere(riskier, H, ctx, least).needed;
       // it helps when it lowers a pay-in into the pension that has to rise (not one already covered by today's)
       levers.moreRisk = { level: up, payIn, lasted: riskier.wholeNow(H).lasted, helps: payIn !== null && (needed === null || (needed > now && payIn < needed)) };
     }
@@ -495,13 +499,13 @@ export function answerB(inputs, env) {
     // a share of pay: the columns are shares, up to what would be enough (3.4, "The grid in shares")
     const enoughPct = enough && enough.how === 'share' && enoughLead && Number.isFinite(enoughLead.totalPct) ? enoughLead.totalPct : null;
     const g = gridToShow(inp, env, { stopLater: levers.stopLater ? levers.stopLater.age : null, needed, enoughPct });
-    let lastNumber = number && number.careful > 0 ? number.careful : null;
+    let lastNumber = number !== null && number > 0 ? number : null;
     gridOut = {
       ages: g.ages.map((a) => {
         const row = ages(a);
         // each row's guide number from its neighbour's (a hint: the search settles on the same £1,000 either way)
         const guess = lastNumber !== null ? lastNumber : row ? row.carefulPot() : null;
-        const num = row ? row.number(H, allowed.careful, guess, lastNumber !== null ? 0.03 : 0.05) : null;
+        const num = row ? row.number(H, allowed.level, guess, lastNumber !== null ? 0.03 : 0.05) : null;
         if (num !== null && num > 0) lastNumber = num;
         const counts = row ? countsAtPayIns(row.sp, row.H(H), g.payIns.map((p) => row.payInsAt(p, savingsInNow))) : null;
         const cells = g.payIns.map((p, j) => {
@@ -520,7 +524,7 @@ export function answerB(inputs, env) {
   // ---- the phases: the drawing years at the spend, from the stop -----------------------------------------------------
   // at the number (careful), split as the number is; each person's savings at the middling life (no less than the
   // closed years draw). Out of reach: at the most the search tries, so the phases still show what the spend is made of.
-  const phasePot = number ? number.careful : SAVING.potMax;
+  const phasePot = number !== null ? number : SAVING.potMax;
   // (no pension needed but savings set aside for the years before one opens: the savings pay, and the phases say so)
   // (couples apart: the number is the pensions of those still saving; one who has stopped keeps their middling money)
   const phasePension = (w, j) => (plan.apart && !savers[j] ? sp.middling[j].pension : phasePot * w);
@@ -528,7 +532,7 @@ export function answerB(inputs, env) {
   const phases = phasePots ? phasesAt(sp, H, phasePots) : phasesAt(sp, H);
   // what is spent changing with age (spending-shape.md 6.4): the spend as typed and tested, the careful amount at the start
   // paying in as now (the "spend less" lever) with the later steps in proportion, and each year's figures
-  const shaped = household.shape ? shapeOfAnswer({ household, plan, at: careNow.monthly, asTyped: spendMonth, H0: H,
+  const shaped = household.shape ? shapeOfAnswer({ household, plan, at: { [level]: monthlyIfShort }, level, asTyped: spendMonth, H0: H,
     yearly: phasePots ? phasesAt(sp, H, phasePots, { yearly: true }) : phasesAt(sp, H, null, { yearly: true }) }) : null;
   if (shaped) markShapeMoves(phases, shaped.byYear);
 
@@ -549,7 +553,7 @@ export function answerB(inputs, env) {
   });
   // the pension there is today against the number (couples apart: the pensions of those still saving)
   const potTodayTotal = whos.reduce((s, w, j) => s + (only && !only[j] ? 0 : (inp[w].pot || 0)), 0);
-  const already = number !== null && potTodayTotal >= number.careful;
+  const already = number !== null && potTodayTotal >= number;
   // couples apart at the stop asked about: each person's own stop, the pay line, and — in a bad case (the worst 1 in 10),
   // paying in as now — the age from which the pay of the one still working covers all of what is spent (the pensions
   // covering it from the check year on, too: before it, the pay may be what makes up the stopped person's part)
@@ -568,15 +572,21 @@ export function answerB(inputs, env) {
     years: { saving: S, drawing: D },
     pensionOpens, gapYears,
     saving,
-    number,
+    level,
+    levels: Object.fromEntries(LEVEL_IDS.map((id) => [id, id !== level ? { pot: potOf[id] }
+      : { pot: number, payIn: needed, byPerson, weighted: neededChance ? (neededChance.weighted ?? neededChance.lasted) : null, fixedAge: neededChance ? neededChance.lasted : null }])),
     already,
-    chance: { lasted, outOfTen: outOfTen(lasted), fails },
+    // the chance at today's pay-ins (the whole life: `wholeLife` says the same count)
+    chance: chanceBlock({ weighted: whole.weighted ?? lasted, fixedAge: lasted, fails }, n, {
+      planToAge: plan.endAge, weightToAge: base.at.weigher.weighted ? base.at.weigher.weightToAge : plan.endAge,
+      horizonRule: horizonRuleOf({ defaulted: defaultedFields(inp, env).includes('endAge'), capped: inp.endAge - plan.startAge > RULES.maxYears })
+    }),
     onCourse,
     // said straight (saving-enough-and-check-in.md 2.3): the band, the two incomes from the stop paying in as now (a
     // month, today's prices, after tax) and how far the bad case falls short of what you want; what would be enough (3)
     verdict, income, gap, enough,
     payIn: { now, own: everySplit ? payIns.reduce((s, p) => s + p.own, 0) : null, employer: everySplit ? payIns.reduce((s, p) => s + p.employer, 0) : null,
-      needed, extra: needed === null ? 0 : Math.max(0, needed - now), confidence, at, outside: payInOutside, savingsNow: savingsInNow },
+      needed, extra: needed === null ? 0 : Math.max(0, needed - now), outside: payInOutside, savingsNow: savingsInNow },
     potAtStop: { now: potNow, needed: potNeededSpread },
     short, monthlyIfShort,
     wholeLife: { lasted, outOfTen: outOfTen(lasted), runOutAge: wholeRunOutAge },
@@ -588,7 +598,7 @@ export function answerB(inputs, env) {
     handOver: { c: handOverToC(inp, stopAge, env.today) },
     assumed: [], warnings: [], sentences: {},
     basis: {
-      today: env.today, futures: n, seed: env.seed ?? 0, failuresAllowed: Math.floor(n / 10), closeAllowed: Math.floor(n / 4),
+      today: env.today, futures: n, seed: env.seed ?? 0, ...levelBasis(level, base.at.weigher, inp, plan.endAge),
       historyEnd: historyEnd(), engineVersion: VERSION, endAge: plan.endAge, detail, lifeYears: firstOwn + D,
       bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly', strategyId: 'pots-and-valves', cutsSwitchedOff: true,
       split: plan.people.map((p) => ({ who: p.who, share: Math.round(p.share * 1e6) / 1e6 })),   // reported to 6 places: the last binary digit differs between engines
@@ -641,7 +651,7 @@ export function answerB(inputs, env) {
     }),
     usedDefault: used,
     fullStatePensionAYear,
-    anyPension: totalPension > 0 || (number !== null && number.careful > 0),
+    anyPension: totalPension > 0 || (number !== null && number > 0),
     anySavings: (inp.savings || 0) > 0 || savingsInNow > 0,
     savingsMostly: midSavings > midPension,
     madeUpFutures: typeof env.futureReturns === 'function',
@@ -666,7 +676,7 @@ export function answerB(inputs, env) {
     overMpaa: over(RULES.moneyPurchaseAllowance, (p) => Boolean(inp[whos[p]].alreadyDrawing)),
     // (couples apart: what goes into savings each month is split among those still saving)
     overIsa: savingsInNow / (plan.apart ? saverCount : whos.length) * 12 > RULES.isaAllowance,
-    largePot: potNow.good > RULES.largePot || (number !== null && number.careful > RULES.largePot),
+    largePot: potNow.good > RULES.largePot || (number !== null && number > RULES.largePot),
     laterTo: stopLaterSearched
   };
   if (facts.gridRow === -1) facts.gridRow = null;

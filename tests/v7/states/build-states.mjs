@@ -144,10 +144,9 @@ const PATCH = {
     if (r.status === 'guaranteed-only') return false;
     r.status = 'guaranteed-only';
     const g = r.guaranteed.monthlyAfterTax;
-    r.monthly = { careful: g, middling: g, good: g };
-    r.yearly = { careful: g * 12, middling: g * 12, good: g * 12 };
-    r.lasted = { careful: 1, middling: 1, good: 1 };
-    r.runOutAge = { careful: r.basis.endAge, middling: r.basis.endAge, good: r.basis.endAge };
+    // (7.8.0: the three levels, each the take-home from the pensions)
+    r.levels = { careful: { monthly: g, yearly: g * 12, weighted: 1, fixedAge: 1 }, balanced: { monthly: g, yearly: g * 12, weighted: 1, fixedAge: 1 }, bold: { monthly: g, yearly: g * 12, weighted: 1, fixedAge: 1 } };
+    r.chance = { ...r.chance, weighted: 1, fixedAge: 1, fails: 0 };
     r.assumed = r.assumed.filter((a) => !['all-pension', 'quarter-tax-free', 'risk', 'steady', 'futures', 'charges'].includes(a.id));
     r.warnings = [{ id: 'nothing-to-draw', severity: 'note', text: '', parts: ['There is no pot to draw on, so this is your State Pension only.'] }];
     r.warnings.forEach((w) => { w.text = partsText(w.parts, r); });
@@ -158,10 +157,8 @@ const PATCH = {
   nothing(r) {
     if (r.status === 'none') return false;
     r.status = 'none';
-    r.monthly = { careful: 0, middling: 0, good: 0 };
-    r.yearly = { careful: 0, middling: 0, good: 0 };
-    r.lasted = { careful: 1, middling: 1, good: 1 };
-    r.runOutAge = { careful: r.basis.endAge, middling: r.basis.endAge, good: r.basis.endAge };
+    r.levels = { careful: { monthly: 0, yearly: 0, weighted: 1, fixedAge: 1 }, balanced: { monthly: 0, yearly: 0, weighted: 1, fixedAge: 1 }, bold: { monthly: 0, yearly: 0, weighted: 1, fixedAge: 1 } };
+    r.chance = { ...r.chance, weighted: 1, fixedAge: 1, fails: 0 };
     r.guaranteed = { monthlyAfterTax: 0 };
     r.phases = [];
     r.assumed = r.assumed.filter((a) => ['plan-to', 'todays-prices', 'tax-rules'].includes(a.id));
@@ -220,7 +217,7 @@ const KIND = {
     couple: (r) => r.status === 'ok' && r.inputs.household === 'couple',
     grid: (r) => r.status === 'ok' && r.basis.detail === 'grid' && r.grid,
     // a share of pay, not on course: what would be enough said as a share (R1); the grid's columns in shares
-    share: (r) => r.status === 'ok' && !r.onCourse && r.enough && r.enough.how === 'share' && r.enough.nineInTen !== null,
+    share: (r) => r.status === 'ok' && !r.onCourse && r.enough && r.enough.how === 'share' && r.enough.atLevel !== null,
     gridShare: (r) => r.status === 'ok' && r.basis.detail === 'grid' && r.grid && Array.isArray(r.grid.shares)
   }
 };
@@ -784,7 +781,7 @@ states['answer-F3'] = answered('answer-F3', F3, { patch: 'take' });
   s.draft.c.values['you.pot'] = '275,000';
   const parsed = parseDraft(SCHEMA_C, s.draft.c.values, s.env);
   s.answers.c = { status: 'working', inputsKey: inputsKey(parsed.inputs, s.env), result: old,
-    before: { monthly: { careful: old.monthly.careful } }, progress: { done: 10, total: 100 }, slow: false };
+    before: { monthly: old.levels[old.level].monthly }, progress: { done: 10, total: 100 }, slow: false };
   states['answer-updating'] = s;
 }
 states['answer-take'] = answered('answer-take', { ...F1, take: '1,500' }, { patch: 'take' });
@@ -857,7 +854,7 @@ if (whole) {
     today: TODAY,
     futures: FUTURES,
     inputsKeyFrom: keyFrom,
-    answer: probe.monthly && probe.monthly.careful === 1380 ? 'the STUB of package 1 (figures do not follow the inputs)' : 'src/answers/c/answer.js',
+    answer: probe.levels && probe.levels.balanced && probe.levels.balanced.monthly === 1380 ? 'the STUB of package 1 (figures do not follow the inputs)' : 'src/answers/c/answer.js',
     patched
   }, null, 2) + '\n');
 }

@@ -37,11 +37,11 @@ describe('B — the words of couples who stop in different years', () => {
   it('your partner has stopped: the number is your pension at your stop, with your partner\'s money as you gave it', () => {
     const b = run(PARTNER_STOPPED);
     expect(b.apart).toMatchObject({ first: 'partner', stops: { you: { age: 60 }, partner: { age: 59, already: true } } });
-    expect(b.number.byPerson.find((x) => x.who === 'partner').pot).toBe(0);
+    expect(b.levels[b.level].byPerson.find((x) => x.who === 'partner').pot).toBe(0);
     expect(b.saving.map((x) => [x.who, x.yearsSaving, x.stopAge])).toEqual([['you', 8, 60], ['partner', 0, 59]]);
-    if (b.status === 'ok' && !b.onCourse && b.number.careful > 0) {
-      expect(b.sentences.head.text).toBe(`About ${pot(b.number.careful)} by age 60`);
-      expect(b.sentences.line.text).toBe(`You need about ${pot(b.number.careful)} in your pension when you stop at 60, with your partner's money as you gave it. With exactly that, the money lasted in 9 futures out of 10.`);
+    if (b.status === 'ok' && !b.onCourse && b.levels.balanced.pot > 0) {
+      expect(b.sentences.head.text).toBe(`About ${pot(b.levels.balanced.pot)} by age 60`);
+      expect(b.sentences.line.text).toBe(`You need about ${pot(b.levels.balanced.pot)} in your pension when you stop at 60, with your partner's money as you gave it. With exactly that, the money lasted in 9 futures out of 10.`);
     }
     expect(b.assumed.find((x) => x.id === 'pay-in').text).toBe('£600 a month goes into your pension until you stop at 60, rising with prices.');
     expect(b.assumed.find((x) => x.id === 'stop-apart')).toMatchObject({ field: 'untilBothStop', source: 'default', value: 'half' });
@@ -57,9 +57,9 @@ describe('B — the words of couples who stop in different years', () => {
     expect(b.stop.age).toBe(60);
     // the verdict is the household's, from your partner's stop (saving-enough-and-check-in.md 2.2)
     if (b.onCourse) expect(b.sentences.verdictHead.text).toMatch(/^On course for £[\d,]+ a month from when your partner stops at 60$/);
-    else if (b.status === 'ok' && b.number.careful > 0) {
-      expect(b.sentences.head.text).toBe(`About ${pot(b.number.careful)} by the time your partner is 60`);
-      expect(b.sentences.line.text).toBe(`Your partner needs about ${pot(b.number.careful)} in their pension when they stop at 60, with your money as you gave it. With exactly that, the money lasted in 9 futures out of 10.`);
+    else if (b.status === 'ok' && b.levels.balanced.pot > 0) {
+      expect(b.sentences.head.text).toBe(`About ${pot(b.levels.balanced.pot)} by the time your partner is 60`);
+      expect(b.sentences.line.text).toBe(`Your partner needs about ${pot(b.levels.balanced.pot)} in their pension when they stop at 60, with your money as you gave it. With exactly that, the money lasted in 9 futures out of 10.`);
     }
     expect(b.assumed.find((x) => x.id === 'stop-age')).toMatchObject({ field: 'partner.stop.age', value: 60, text: 'Your partner stops working at 60, and nothing more goes into their pension from then.' });
     expect(b.assumed.find((x) => x.id === 'pay-in')).toMatchObject({ field: 'partner.payIn.total', text: "£600 a month goes into your partner's pension until they stop at 60, rising with prices." });
@@ -70,18 +70,18 @@ describe('B — the words of couples who stop in different years', () => {
   it('either of you can be "you": the two chairs give one number, one count and one pay-in (couples-different-years.md 9.3 P2)', () => {
     const x = run(PARTNER_STOPPED);
     const y = run(YOU_STOPPED);
-    expect(y.number.careful).toBe(x.number.careful);
+    expect(y.levels.balanced.pot).toBe(x.levels.balanced.pot);
     expect(y.chance).toEqual(x.chance);
-    expect(y.payIn.at).toEqual(x.payIn.at);
+    expect(y.levels[y.level].payIn).toEqual(x.levels[x.level].payIn);
     expect(y.wholeLife).toEqual(x.wholeLife);
   });
 
   it('both still saving, each until their own stop: the pensions between you at your own stops', () => {
     const b = run(BOTH_SAVING);
     expect(b.apart).toMatchObject({ first: 'partner', years: 2, stops: { you: { age: 60 }, partner: { age: 56 } } });
-    if (b.status === 'ok' && !b.onCourse && b.number.careful > 0) {
-      expect(b.sentences.head.text).toBe(`About ${pot(b.number.careful)} between you by the time you have both stopped`);
-      expect(b.sentences.line.text).toBe(`You need about ${pot(b.number.careful)} in pensions between you: yours when you stop at 60 and your partner's when they stop at 56. With exactly that, the money lasted in 9 futures out of 10.`);
+    if (b.status === 'ok' && !b.onCourse && b.levels.balanced.pot > 0) {
+      expect(b.sentences.head.text).toBe(`About ${pot(b.levels.balanced.pot)} between you by the time you have both stopped`);
+      expect(b.sentences.line.text).toBe(`You need about ${pot(b.levels.balanced.pot)} in pensions between you: yours when you stop at 60 and your partner's when they stop at 56. With exactly that, the money lasted in 9 futures out of 10.`);
       expect(b.sentences.payInSub.text).toMatch(/from now until each of you stops, going up each year with prices$/);
     }
     expect(b.assumed.find((x) => x.id === 'pay-in').text).toBe('£750 a month goes in between you, each until your own stop, rising with prices.');
@@ -100,7 +100,7 @@ describe('B — the words of couples who stop in different years', () => {
       savings: 0, spend: { kind: 'amount', amount: 1000 }, stop: { age: 58 } };
     const b = run(G);
     expect(b.status).toBe('guaranteed-only');
-    expect(b.number).toMatchObject({ careful: 0, middling: 0, good: 0 });
+    expect([b.levels.careful.pot, b.levels.balanced.pot, b.levels.bold.pot]).toEqual([0, 0, 0]);
     expect(b.sentences.sub.text).toBe('your State Pensions and final-salary pension cover it after tax from when you have both stopped until the younger of you is 95, going up each year with prices');
     // a partner with nothing at all but their State Pension, years away: the pay makes up their half until then — the same
     // status, and the bad case that leans on the pay said with the age (a NIGHTLY=1 run, 1 Oct 2026: "ok" with a number of

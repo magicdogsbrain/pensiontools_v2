@@ -136,9 +136,9 @@ describe('2 — A, B and C answer a share as the split of the pounds it lands, b
     // not last), and within one 0.5% step of pay above it
     expect([share.enough.how, split.enough.how]).toEqual(['share', 'pounds']);
     const step = 35000 * 0.5 / 100 / 12;
-    expect(share.enough.nineInTen.payIn).toBeGreaterThan(split.enough.nineInTen.payIn - 10);
-    expect(share.enough.nineInTen.payIn).toBeLessThan(split.enough.nineInTen.payIn + step + 0.02);
-    expect(share.enough.nineInTen.employerPct).toBe(6);
+    expect(share.enough.atLevel.payIn).toBeGreaterThan(split.enough.atLevel.payIn - 10);
+    expect(share.enough.atLevel.payIn).toBeLessThan(split.enough.atLevel.payIn + step + 0.02);
+    expect(share.enough.atLevel.employerPct).toBe(6);
     expect(said(share, 'pay-in-as-given')).toMatchObject({ field: 'you.payIn.kind', value: 'share', parts: [AS_GIVEN.share] });
     expect(said(split, 'pay-in-as-given')).toMatchObject({ field: 'you.payIn.kind', value: 'split', parts: [AS_GIVEN.figure] });
   }, 120000);

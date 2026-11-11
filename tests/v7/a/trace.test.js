@@ -49,7 +49,8 @@ export function checkTraceA(a) {
   if (t.lives.every((l) => typeof l.most === 'number')) {
     const most = t.lives.map((l) => l.most).sort((x, y) => x - y);
     const down = (v) => Math.floor(v / 10 + 1e-9) * 10;
-    for (const k of ['careful', 'middling', 'good']) if (a.shown.potAtStop.good > 0 && down(most[at[k]]) !== a.shown.monthly[k]) out.push(`monthly.${k}: the lives give ${down(most[at[k]])}, the answer ${a.shown.monthly[k]}`);
+    // (7.8.0, not weighing: Balanced is the careful amount of the lives' spread, the worst 1 in 10 of what each could spend)
+    if (a.level === 'balanced' && a.shown.potAtStop.good > 0 && down(most[at.careful]) !== a.shown.levels.balanced.monthly) out.push(`levels.balanced.monthly: the lives give ${down(most[at.careful])}, the answer ${a.shown.levels.balanced.monthly}`);
   }
 
   // the saving months of the bad-case life

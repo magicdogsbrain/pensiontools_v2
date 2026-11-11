@@ -21,6 +21,8 @@ const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
 const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 const ok = (a, inputs) => { const f = checkAnswerB(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
 const THREE = ['careful', 'middling', 'good'];
+/** The three levels (7.8.0): the pot to aim for at each. */
+const LEVELS3 = ['careful', 'balanced', 'bold'];
 const belowTaper = (i) => [i.you, i.partner].every((p) => !p || !(p.finalSalary && p.finalSalary.has && p.finalSalary.yearly >= 85000));
 const singles = arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(asksB).filter((i) => i.household === 'single' && belowTaper(i));
 /**
@@ -29,8 +31,8 @@ const singles = arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(asks
  */
 function withinAStepB(a, b, sign) {
   const ok = (x, y, step) => (sign < 0 ? y <= x + step : y >= x - step);
-  return THREE.every((k) => ok(a.number[k], b.number[k], STEP.pot))
-    && ['nineInTen', 'threeInFour'].every((k) => a.payIn.at[k] === null || b.payIn.at[k] === null || ok(a.payIn.at[k], b.payIn.at[k], STEP.payIn));
+  return LEVELS3.every((k) => a.levels[k].pot === null || b.levels[k].pot === null || ok(a.levels[k].pot, b.levels[k].pot, STEP.pot))
+    && [a.level].every((k) => a.levels[k].payIn === null || b.levels[k].payIn === null || ok(a.levels[k].payIn, b.levels[k].payIn, STEP.payIn));
 }
 const report = (name, findings) => {
   if (findings.length) console.log(`${name}: a household spending £10,000 a month or more, or whose closed years reach the £100,000 point in pounds of the day, moved by more than a step in ${findings.length} case(s) — a finding (tests/v7/b/exceptions.md)`, JSON.stringify(findings[0]));
@@ -53,8 +55,8 @@ function swappedB(inputs) {
 }
 
 /** The household figures: what does not depend on whose name a thing is in. */
-const household = (a) => ({ status: a.status, number: a.number && { careful: a.number.careful, middling: a.number.middling, good: a.number.good },
-  chance: a.chance, onCourse: a.onCourse, payIn: { now: a.payIn.now, at: a.payIn.at, needed: a.payIn.needed, outside: a.payIn.outside },
+const household = (a) => ({ status: a.status, pots: Object.fromEntries(LEVELS3.map((k) => [k, a.levels[k].pot])),
+  chance: a.chance, onCourse: a.onCourse, payIn: { now: a.payIn.now, needed: a.payIn.needed, outside: a.payIn.outside }, payInAtLevel: a.levels[a.level].payIn,
   potAtStop: a.potAtStop, short: a.short, monthlyIfShort: a.monthlyIfShort, wholeLife: a.wholeLife, outside: a.outside, years: a.years,
   guaranteed: a.guaranteed, endAge: a.basis.endAge,
   // a couple's one-off sum names each part by whose pension it goes into (saving-enough-and-check-in.md 3.4): the sum is the
@@ -87,15 +89,15 @@ describe('B — metamorphic relations', () => {
       const a = ok(answerB(inputs, ENV), inputs);
       const more = { ...inputs, you };
       const b = ok(answerB(more, ENV), more);
-      if (a.number === null) return;
-      expect(b.number).not.toBeNull();
+      if (a.levels[a.level].pot === null) return;
+      expect(b.levels[b.level].pot).not.toBeNull();
       // to one step (tests/v7/oracles/oneStep.mjs): £1,000 of a number, £10 of a pay-in, one life of a count — a NIGHTLY=1
       // run, 1 Oct 2026 (seed -2069838574): 18 with nothing, stopping at 50 on £8,234 a month, £100 a year more final-salary
       // pension raised both pay-ins £10 (£4,380 → £4,390 at 9 in 10)
       if (largeHousehold(a.spend.perMonth)) { if (!withinAStepB(a, b, -1)) findings.push({ inputs, how, extra }); return; }     // over £10,000 a month: a finding
-      for (const k of THREE) expect(b.number[k], k).toBeLessThanOrEqual(a.number[k] + STEP.pot);
-      for (const k of ['nineInTen', 'threeInFour']) if (a.payIn.at[k] !== null) expect(b.payIn.at[k], k).toBeLessThanOrEqual(a.payIn.at[k] + STEP.payIn);
-      if (how === 'employer') expect(b.chance.lasted).toBeGreaterThanOrEqual(a.chance.lasted - oneLife(a.basis.futures));
+      for (const k of LEVELS3) if (a.levels[k].pot !== null && b.levels[k].pot !== null) expect(b.levels[k].pot, k).toBeLessThanOrEqual(a.levels[k].pot + STEP.pot);
+      for (const k of [a.level]) if (a.levels[k].payIn !== null) expect(b.levels[k].payIn, k).toBeLessThanOrEqual(a.levels[k].payIn + STEP.payIn);
+      if (how === 'employer') expect(b.chance.fixedAge).toBeGreaterThanOrEqual(a.chance.fixedAge - oneLife(a.basis.futures));
     }), opts());
     report('M-B1', findings);
   });
@@ -109,7 +111,7 @@ describe('B — metamorphic relations', () => {
       const b = ok(answerB(lower, ENV), lower);
       // not a couple whose pensions are both closed at the stop: an OPEN FAULT in B's guide number there (properties.test.js, "PB4 found")
       fc.pre(!(inputs.household === 'couple' && (a.outside || b.outside)));
-      if (a.number === null) return;
+      if (a.levels[a.level].pot === null) return;
       // to one step (oneStep.mjs) — a NIGHTLY=1 run, 1 Oct 2026 (seed -1058045961): 18 with nothing, stopping at 31 on
       // £22,860 a month, £10 less raised the middling number £1,000 (£85,000 → £86,000)
       // over £10,000 a month a finding (largeHousehold) — a NIGHTLY=1 run, 1 Oct 2026 (seed 1869286316): 18 with nothing,
@@ -118,8 +120,8 @@ describe('B — metamorphic relations', () => {
       // the £100,000 point reached in pounds of the day while the savings alone pay — PB4's finding of 2 Nov 2026 (seed 1515732724),
       // the same household from the other side: a finding (oneStep.mjs pointReachedInClosedYears, read on the higher spend)
       if (pointReachedInClosedYears(a, ENV)) { if (!withinAStepB(a, b, -1)) findings.push({ inputs, less, point: true }); return; }
-      for (const k of THREE) expect(b.number[k], k).toBeLessThanOrEqual(a.number[k] + STEP.pot);
-      for (const k of ['nineInTen', 'threeInFour']) if (a.payIn.at[k] !== null) expect(b.payIn.at[k]).toBeLessThanOrEqual(a.payIn.at[k] + STEP.payIn);
+      for (const k of LEVELS3) if (a.levels[k].pot !== null && b.levels[k].pot !== null) expect(b.levels[k].pot, k).toBeLessThanOrEqual(a.levels[k].pot + STEP.pot);
+      for (const k of [a.level]) if (a.levels[k].payIn !== null) expect(b.levels[k].payIn).toBeLessThanOrEqual(a.levels[k].payIn + STEP.payIn);
     }), opts());
     report('M-B2', findings);
   });
@@ -132,30 +134,29 @@ describe('B — metamorphic relations', () => {
     // the good number came out £2,000 HIGHER for £10 a month less (tests/v7/b/exceptions.md, "Fixed on 27 Oct 2026"). Only a
     // run-out before every pension is open counts for the floor now (stopAt.js savingsNeeded); found.cases.json pins it.
     const inputs = { household: 'single', you: { pot: 0, age: 18, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'total', total: 0 }, alreadyDrawing: false },
-      stop: { kind: 'age', age: 53 }, spend: { kind: 'amount', amount: 7635 }, savings: 0, savingsIn: 0, savingRisk: 'cautious', risk: 'cautious', charge: 0, endAge: 95, confidence: 'nineInTen' };
+      stop: { kind: 'age', age: 53 }, spend: { kind: 'amount', amount: 7635 }, savings: 0, savingsIn: 0, savingRisk: 'cautious', risk: 'cautious', charge: 0, endAge: 95, confidence: 'balanced' };
     const lower = { ...inputs, spend: { kind: 'amount', amount: 7625 } };
     const a = ok(answerB(inputs, ENV), inputs);
     const b = ok(answerB(lower, ENV), lower);
     expect(a.outside).not.toBeNull();
     expect(b.outside.careful).toBeLessThanOrEqual(a.outside.careful);
-    for (const k of THREE) expect(b.number[k], k).toBeLessThanOrEqual(a.number[k] + STEP.pot);
-    for (const k of ['nineInTen', 'threeInFour']) if (a.payIn.at[k] !== null) expect(b.payIn.at[k]).toBeLessThanOrEqual(a.payIn.at[k] + STEP.payIn);
+    for (const k of LEVELS3) if (a.levels[k].pot !== null && b.levels[k].pot !== null) expect(b.levels[k].pot, k).toBeLessThanOrEqual(a.levels[k].pot + STEP.pot);
+    for (const k of [a.level]) if (a.levels[k].payIn !== null) expect(b.levels[k].payIn).toBeLessThanOrEqual(a.levels[k].payIn + STEP.payIn);
   });
 
   it('M-B4 and M-B6: 3 in 4 never needs more than 9 in 10; more pay-in never reaches the number in fewer lives (the grid, row by row)', () => {
     fc.assert(fc.property(arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(asksB), (inputs) => {
       const a = ok(answerB(inputs, { ...ENV, detail: 'grid' }), inputs);
-      if (a.payIn.at.nineInTen !== null) expect(a.payIn.at.threeInFour).toBeLessThanOrEqual(a.payIn.at.nineInTen);
       for (const row of a.grid.ages) row.cells.forEach((c, j) => { if (j) expect(c.lasted).toBeGreaterThanOrEqual(row.cells[j - 1].lasted); });
     }), opts(4));
   });
 
   it('M-B9 fed back: paying in the pay-in that gets there (and the savings the closed years need) is on course — the whole life lasts in 9 lives out of 10; £10 less does not', () => {
     fc.assert(fc.property(singles, (inputs) => {
-      const a = ok(answerB({ ...inputs, confidence: 'nineInTen' }, ENV));
+      const a = ok(answerB({ ...inputs, confidence: 'balanced' }, ENV));
       fc.pre(a.status === 'ok' && a.payIn.needed !== null && a.payIn.needed > 0);
       const savingsIn = a.payIn.outside !== null && a.payIn.outside > a.payIn.savingsNow ? a.payIn.outside : inputs.savingsIn;
-      const at = (total) => answerB({ ...inputs, savingsIn, confidence: 'nineInTen', you: { ...inputs.you, payIn: { kind: 'total', total } } }, ENV);
+      const at = (total) => answerB({ ...inputs, savingsIn, confidence: 'balanced', you: { ...inputs.you, payIn: { kind: 'total', total } } }, ENV);
       expect(at(a.payIn.needed).onCourse).toBe(true);
       expect(at(a.payIn.needed - 10).onCourse).toBe(false);
     }), opts());
@@ -175,7 +176,7 @@ describe('B — metamorphic relations', () => {
       // goes into the pension of the person asked about, so it moves with "you" too (saving-enough-and-check-in.md 3.4)
       const strip = (h) => ({ ...h, levers: { ...h.levers, stopLater: null, oneOff: null }, ...(a.apart ? { years: { ...h.years, saving: null } } : {}) });
       expect(strip(household(b))).toEqual(strip(household(a)));
-      expect(b.number && b.number.byPerson.map((x) => x.pot).reverse()).toEqual(a.number && a.number.byPerson.map((x) => x.pot));
+      expect(b.levels[b.level].byPerson && b.levels[b.level].byPerson.map((x) => x.pot).reverse()).toEqual(a.levels[a.level].byPerson && a.levels[a.level].byPerson.map((x) => x.pot));
     }), opts());
   });
 
@@ -195,7 +196,7 @@ describe('B — metamorphic relations', () => {
       const pa = sumParts(a);
       const pb = sumParts(b);
       if (pa) expect(pb).toEqual({ you: pa.partner, partner: pa.you });
-      expect(b.number && b.number.byPerson.map((x) => x.pot).reverse()).toEqual(a.number && a.number.byPerson.map((x) => x.pot));
+      expect(b.levels[b.level].byPerson && b.levels[b.level].byPerson.map((x) => x.pot).reverse()).toEqual(a.levels[a.level].byPerson && a.levels[a.level].byPerson.map((x) => x.pot));
     }), opts());
   });
 
@@ -205,15 +206,15 @@ describe('B — metamorphic relations', () => {
   it('M-B11 a number that splits on a half pound: each person\'s part is the same whichever of the two is "you"', () => {
     const inputs = { household: 'couple', you: { pot: 10000, age: 55, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'total', total: 100 }, alreadyDrawing: false },
       stop: { age: 58 }, spend: { kind: 'amount', amount: 1867 }, partner: { age: 62, pot: 150000, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'total', total: 1500 }, alreadyDrawing: false },
-      savings: 0, savingsIn: 1667, savingRisk: 'cautious', risk: 'adventurous', charge: 1, endAge: 75, confidence: 'nineInTen' };
+      savings: 0, savingsIn: 1667, savingRisk: 'cautious', risk: 'adventurous', charge: 1, endAge: 75, confidence: 'balanced' };
     const other = JSON.parse(JSON.stringify(inputs));
     [other.you, other.partner] = [other.partner, other.you];
     other.stop.age = inputs.stop.age - inputs.you.age + inputs.partner.age;
     const a = ok(answerB(inputs, ENV), inputs);
     const b = ok(answerB(other, ENV), other);
-    expect(a.number.careful).toBe(b.number.careful);
-    expect(b.number.byPerson.map((x) => x.pot).reverse()).toEqual(a.number.byPerson.map((x) => x.pot));
-    expect(a.number.byPerson.reduce((t, x) => t + x.pot, 0)).toBe(a.number.careful);
+    expect(a.levels[a.level].pot).toBe(b.levels[b.level].pot);
+    expect(b.levels[b.level].byPerson.map((x) => x.pot).reverse()).toEqual(a.levels[a.level].byPerson.map((x) => x.pot));
+    expect(a.levels[a.level].byPerson.reduce((t, x) => t + x.pot, 0)).toBe(a.levels[a.level].pot);
   });
 
   // ONE TEST (step 4 brief J9): the whole life is taxed person by person, so a pay-in the couple would split between them
@@ -241,8 +242,8 @@ describe('M-B3 stopping later needs no more — on the fixtures (a finding on ra
     for (let later = 1; later <= 3; later++) {
       const inputs = { ...fx.inputs, stop: { age: fx.inputs.stop.age + later } };
       const a = ok(answerB(inputs, env), inputs);
-      expect(a.number.careful, `number at +${later}`).toBeLessThanOrEqual(prev.number.careful + 1000);
-      if (prev.payIn.at.nineInTen !== null) expect(a.payIn.at.nineInTen, `pay-in at +${later}`).toBeLessThanOrEqual(prev.payIn.at.nineInTen + 10);
+      expect(a.levels[a.level].pot, `number at +${later}`).toBeLessThanOrEqual(prev.levels[prev.level].pot + 1000);
+      if (prev.levels[prev.level].payIn !== null) expect(a.levels[a.level].payIn, `pay-in at +${later}`).toBeLessThanOrEqual(prev.levels[prev.level].payIn + 10);
       prev = a;
     }
   }, 120000);

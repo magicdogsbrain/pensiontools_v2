@@ -70,7 +70,7 @@
     },
     "c": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"endAge\":95,\"household\":\"couple\",\"partner\":{\"age\":60,\"finalSalary\":{\"has\":false},\"pot\":150000,\"statePension\":{\"kind\":\"full\"}},\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":62,\"finalSalary\":{\"fromAge\":65,\"has\":true,\"yearly\":9000},\"pot\":400000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":95,\"household\":\"couple\",\"partner\":{\"age\":60,\"finalSalary\":{\"has\":false},\"pot\":150000,\"statePension\":{\"kind\":\"full\"}},\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":62,\"finalSalary\":{\"fromAge\":65,\"has\":true,\"yearly\":9000},\"pot\":400000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -104,27 +104,38 @@
           "risk": "balanced",
           "charge": 0.5,
           "endAge": 95,
+          "confidence": "balanced",
           "take": null
         },
-        "monthly": {
-          "careful": 3500,
-          "middling": 3950,
-          "good": 4480
+        "level": "balanced",
+        "levels": {
+          "careful": {
+            "monthly": 3400,
+            "yearly": 40800,
+            "weighted": 0.952,
+            "fixedAge": 0.952
+          },
+          "balanced": {
+            "monthly": 3500,
+            "yearly": 42000,
+            "weighted": 0.906,
+            "fixedAge": 0.906
+          },
+          "bold": {
+            "monthly": 3740,
+            "yearly": 44880,
+            "weighted": 0.706,
+            "fixedAge": 0.706
+          }
         },
-        "yearly": {
-          "careful": 42000,
-          "middling": 47400,
-          "good": 53760
-        },
-        "lasted": {
-          "careful": 0.906,
-          "middling": 0.5,
-          "good": 0.101
-        },
-        "runOutAge": {
-          "careful": 95,
-          "middling": 79,
-          "good": 73
+        "chance": {
+          "weighted": 0.906,
+          "fixedAge": 0.906,
+          "fails": 94,
+          "n": 1000,
+          "planToAge": 95,
+          "weightToAge": 95,
+          "horizonRule": "survival"
         },
         "whose": "partner",
         "guaranteed": {
@@ -607,7 +618,7 @@
             "parts": [
               "About ",
               {
-                "key": "monthly.careful",
+                "key": "levels.balanced.monthly",
                 "kind": "money"
               },
               " a month"
@@ -652,7 +663,7 @@
               "the two of you",
               " could have about ",
               {
-                "key": "monthly.careful",
+                "key": "levels.balanced.monthly",
                 "kind": "money"
               },
               " a month after tax, ",
@@ -677,7 +688,7 @@
           },
           "bad": {
             "id": "c.bad",
-            "text": "In a bad case (the worst 1 in 10), £3,500 a month only just lasts to 95. If you took £3,950 a month instead, a bad case would run out when the younger of you is 79. After that you would have £2,692 a month from your State Pensions and your final-salary pension.",
+            "text": "In a bad case (the worst 1 in 10), £3,500 a month only just lasts to 95.",
             "parts": [
               "In a bad case (the worst ",
               {
@@ -689,7 +700,7 @@
               },
               "), ",
               {
-                "key": "monthly.careful",
+                "key": "levels.balanced.monthly",
                 "kind": "money"
               },
               " a month only just lasts to ",
@@ -697,46 +708,26 @@
                 "key": "basis.endAge",
                 "kind": "age"
               },
-              ".",
-              " If you took ",
-              {
-                "key": "monthly.middling",
-                "kind": "money"
-              },
-              " a month instead, a bad case would run out ",
-              "when the younger of you is ",
-              {
-                "key": "runOutAge.middling",
-                "kind": "age"
-              },
-              ".",
-              " After that you would have ",
-              {
-                "key": "guaranteed.monthlyAfterTax",
-                "kind": "money"
-              },
-              " a month from ",
-              "your State Pensions and your final-salary pension",
               "."
             ]
           },
           "range": {
             "id": "c.range",
-            "text": "You could take: careful £3,500, middling £3,950, good £4,480 a month.",
+            "text": "You could take: Careful £3,400, Balanced £3,500, Bold £3,740 a month.",
             "parts": [
-              "You could take: careful ",
+              "You could take: Careful ",
               {
-                "key": "monthly.careful",
+                "key": "levels.careful.monthly",
                 "kind": "money"
               },
-              ", middling ",
+              ", Balanced ",
               {
-                "key": "monthly.middling",
+                "key": "levels.balanced.monthly",
                 "kind": "money"
               },
-              ", good ",
+              ", Bold ",
               {
-                "key": "monthly.good",
+                "key": "levels.bold.monthly",
                 "kind": "money"
               },
               " a month."
@@ -909,7 +900,15 @@
           "today": "2026-09-30",
           "futures": 1000,
           "seed": 0,
-          "failuresAllowed": 100,
+          "level": "balanced",
+          "levelFails20": 2,
+          "planToAge": 95,
+          "weightToAge": 95,
+          "tablesVersion": "ons-ew-2024-cohort/1",
+          "sexUsed": {
+            "you": "f",
+            "partner": "f"
+          },
           "historyEnd": "2023-06",
           "engineVersion": "7.6.0",
           "startAge": 60,

@@ -78,7 +78,7 @@ describe('the worked fixtures', () => {
           const all = [...Object.values(answer.sentences).flatMap((s) => (Array.isArray(s) ? s : [s])), ...answer.assumed, ...answer.warnings].map((s) => s.text).join('\n');
           expect(all, text).toContain(text);
         }
-        expect(answer.sentences.head.text).toContain(money(answer.monthly.careful));
+        expect(answer.sentences.head.text).toContain(money(answer.levels.balanced.monthly));
       });
 
       it('says nothing about stopping work or waiting, in any sentence', () => {

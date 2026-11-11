@@ -69,10 +69,10 @@ describe('R2 — C from an age before the pension opens', () => {
   it('50, £300,000, £5,000 of savings, from 55: the closed years set the amount — said in words, with the amount from 57', () => {
     const c = answerC({ you: { age: 50, pot: 300000 }, savings: 5000, start: { kind: 'age', age: 55 } }, ENV);
     expect(c.status).toBe('ok');
-    expect(c.closedYears).toMatchObject({ from: 55, until: 57, who: ['you'], careful: c.monthly.careful });
+    expect(c.closedYears).toMatchObject({ from: 55, until: 57, who: ['you'], monthly: c.levels.balanced.monthly });
     // the amount starting when the pension opens is C's own answer from that age
     const at57 = answerC({ you: { age: 50, pot: 300000 }, savings: 5000, start: { kind: 'age', age: 57 } }, ENV);
-    expect(c.closedYears.instead.monthly).toEqual(at57.monthly);
+    expect(c.closedYears.instead.levels).toEqual(at57.levels.balanced.levels);
     expect(c.sentences.none.id).toBe('c.none.closed');
     expect(c.sentences.none.text).toMatch(/^You can't take money from your pension until you are 57\. Until then only your savings can pay, so a steady amount from 55 could be only about £\d+ a month\. Starting at 57 instead, you could have about £[\d,]+ a month after tax until you are 95, going up each year with prices\.$/);
     // the untouched pot is not "used up by 67"; the pension-locked warning would only repeat the sentence
@@ -127,20 +127,24 @@ describe('R3 — a bad case that runs out while the pension is closed', () => {
   // £40,000 of savings (6.22.0: they grow as "Mostly cash" while the money waits to be taken, where they once followed the
   // pension's mix — with £50,000 they now last to 71 in the middle case; with £40,000 they still run out at 56)
   const given = { you: { age: 50, pot: 300000 }, savings: 40000 };
+  /** An amount whose bad case runs out before the pension opens: a quarter above Bold's (the most of the three levels). */
+  const TAKE = (c) => Math.round((c.levels.bold.monthly * 1.25) / 10) * 10;
 
   it('C: no "After that … State Pension"; the savings-run-short warning says what ran out, and when the pension opens', () => {
     const c = answerC({ ...given, start: { kind: 'age', age: 55 } }, ENV);
-    expect(c.runOutAge.middling).toBeLessThan(57);
     expect(c.sentences.bad.text).not.toContain('After that');
-    expect(warning(c, 'savings-run-short').text).toMatch(/^In a bad case \(the worst 1 in 10\), taking £[\d,]+ a month, your savings run out at 5[56], before you can touch your pension at 57\.$/);
-    // …and, with a take that runs out then, for that take
-    const t = answerC({ ...given, start: { kind: 'age', age: 55 }, take: c.monthly.middling }, ENV);
-    expect(warning(t, 'savings-run-short').text).toContain(`taking £${c.monthly.middling.toLocaleString('en-GB')} a month`);
+    // (7.8.0: the warning is said for an amount named under "take" — the count's middling amount it was also said for is no
+    // longer a figure of the answer): a take that runs out before the pension opens
+    const take = TAKE(c);
+    const t = answerC({ ...given, start: { kind: 'age', age: 55 }, take }, ENV);
+    expect(t.take.runOutAge).toBeLessThan(57);
+    expect(warning(t, 'savings-run-short').text).toMatch(/^In a bad case \(the worst 1 in 10\), taking £[\d,]+ a month, your savings run out at 5[56], before you can touch your pension at 57\.$/);
+    expect(warning(t, 'savings-run-short').text).toContain(`taking £${take.toLocaleString('en-GB')} a month`);
   });
 
   it('A: no a.after when the bad case runs out before a pension opens; the savings-run-short warning stands', () => {
     const c = answerC({ ...given, start: { kind: 'age', age: 55 } }, ENV);
-    const a = answerA({ ...given, you: { ...given.you, payIn: { kind: 'total', total: 0 } }, stop: { kind: 'age', age: 55 }, spend: { kind: 'amount', amount: c.monthly.middling } }, ENV);
+    const a = answerA({ ...given, you: { ...given.you, payIn: { kind: 'total', total: 0 } }, stop: { kind: 'age', age: 55 }, spend: { kind: 'amount', amount: TAKE(c) } }, ENV);
     expect(a.shown.verdict).not.toBe('yes');
     expect(a.shown.runOutAge).toBeLessThan(57);
     expect(a.sentences.after).toBeUndefined();
@@ -194,7 +198,7 @@ describe('R5 — B\'s number is a guide, never a second verdict', () => {
     // on course after paying in what it says: the guide sentence is there too, where the bad-case pot falls below the number
     const paying = answerB({ ...payingIn, you: { ...payingIn.you, payIn: { kind: 'total', total: b.payIn.needed } } }, ENV);
     expect(paying.onCourse).toBe(true);
-    expect(paying.potAtStop.now.careful).toBeLessThan(paying.number.careful);
+    expect(paying.potAtStop.now.careful).toBeLessThan(paying.levels.balanced.pot);
     expect(paying.sentences.guide).toBeDefined();
   });
 });
@@ -206,7 +210,7 @@ describe('R6 — C\'s first form, still paying in, the start left alone', () => 
     expect(d.inputs.start).toEqual({ kind: 'age', age: 67 });
     const fromDefault = answerC(d.inputs, ENV);
     const typed = answerC({ ...d.inputs, start: { kind: 'age', age: 67 } }, ENV);
-    expect(fromDefault.monthly).toEqual(typed.monthly);
+    expect(fromDefault.levels).toEqual(typed.levels);
     expect(fromDefault.sentences.payIn.text).toBe('Paying in £800 a month until 67, rising with prices; the pot invested at Balanced, about half in shares, until then.');
     expect(ids(fromDefault)).not.toContain('pay-in-unused');
   });
@@ -244,7 +248,7 @@ describe('R10 — 85% to under 90% is "just under 9" everywhere', () => {
   // (6.19.0: the spend and the take that give 35 futures of 40 moved with the 0.5% charge — £2,500 → £2,400, £1,390 → £1,360)
   it('B at 87.5% (55, £275,000, £800 in, stop 67, £2,400): not on course, and nothing says "in 9 futures out of 10" of that count', () => {
     const b = answerB({ you: { age: 55, pot: 275000, payIn: { kind: 'total', total: 800 } }, stop: { age: 67 }, spend: { kind: 'amount', amount: 2400 } }, ENV);
-    expect(b.chance.lasted).toBe(0.875);
+    expect(b.chance.fixedAge).toBe(0.875);
     expect(b.onCourse).toBe(false);
     for (const s of [b.sentences.change, b.sentences.wholeLife, b.sentences.lever.accept]) {
       expect(s.text, s.id).toContain('in just under 9 futures out of 10');
@@ -263,7 +267,7 @@ describe('R11 — C\'s take at or below the careful amount still lasts in a bad 
   it('at and below the careful amount: "In a bad case (the worst 1 in 10) it still lasts to 95"', () => {
     const base = answerC({ you: { age: 58, pot: 250000 } }, ENV);
     // (careful − £10: with the 0.5% charge, careful − £80 lasts in every future, which has words of its own)
-    for (const take of [base.monthly.careful, base.monthly.careful - 10]) {
+    for (const take of [base.levels.balanced.monthly, base.levels.balanced.monthly - 10]) {
       const c = answerC({ you: { age: 58, pot: 250000 }, take }, ENV);
       expect(c.take.runOutAge).toBe(95);
       expect(c.sentences.take.text).toMatch(/In a bad case \(the worst 1 in 10\) it still lasts to 95\.$/);
@@ -309,7 +313,7 @@ describe('R14 — C "now" for someone under the pension age who is still paying 
     const now = answerC({ ...given, start: { kind: 'now' } }, ENV);
     const at57 = answerC({ ...given, start: { kind: 'age', age: 57 } }, ENV);
     expect(now.basis.startAge).toBe(57);
-    expect(now.monthly).toEqual(at57.monthly);
+    expect(now.levels).toEqual(at57.levels);
     expect(now.basis.yearsSaving).toBe(7);
     expect(ids(now)).not.toContain('pay-in-unused');
     expect(warning(now, 'pension-locked').text).toBe("You can't take money from your pension until you are 57 (April 2028 rules). These figures start from then.");

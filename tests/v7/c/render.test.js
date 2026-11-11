@@ -411,7 +411,7 @@ describe('what does it pay a month? (the answer step)', () => {
 
   it('first figure: the answer is shown and marked as a first figure', () => {
     const root = renderScreen(load('answer-first'));
-    expect(root.querySelector('[data-headline="monthly.careful"]')).not.toBe(null);
+    expect(root.querySelector('[data-headline="levels.balanced.monthly"]')).not.toBe(null);
     expect(root.textContent).toContain(C.answer.first);
     expect(renderScreen(load('answer-F1')).textContent).not.toContain(C.answer.first);
   });
@@ -420,15 +420,15 @@ describe('what does it pay a month? (the answer step)', () => {
     const state = load(name);
     const result = state.answers.c.result;
     const root = renderScreen(state);
-    const head = root.querySelector('[data-headline="monthly.careful"]');
+    const head = root.querySelector('[data-headline="levels.balanced.monthly"]');
 
     it('the headline is the careful amount, with its sentence, the bad-case line and the short advice line', () => {
-      const number = head.querySelector('[data-key="monthly.careful"]');
-      expect(number.getAttribute('data-value')).toBe(String(result.monthly.careful));
-      expect(number.textContent).toBe(money(result.monthly.careful));
+      const number = head.querySelector('[data-key="levels.balanced.monthly"]');
+      expect(number.getAttribute('data-value')).toBe(String(result.levels.balanced.monthly));
+      expect(number.textContent).toBe(money(result.levels.balanced.monthly));
       expect(head.textContent).toContain(result.sentences.head.text);
       expect(head.textContent).toContain(result.sentences.sub.text);
-      expect(head.querySelector('[data-sentence="monthly.careful"]').textContent).toBe(result.sentences.line.text);
+      expect(head.querySelector('[data-sentence="levels.balanced.monthly"]').textContent).toBe(result.sentences.line.text);
       expect(head.textContent).toContain(result.sentences.bad.text);
       expect(head.textContent).toContain(ADVICE_SHORT);
       expect(head.textContent.indexOf(result.sentences.bad.text)).toBeLessThan(head.textContent.indexOf(ADVICE_SHORT));
@@ -502,9 +502,9 @@ describe('what does it pay a month? (the answer step)', () => {
     expect(region.getAttribute('aria-busy')).toBe('true');
     expect(region.className).toContain('is-stale');
     expect(region.textContent).toContain(C.answer.updating);
-    expect(root.querySelector('[data-headline="monthly.careful"]')).not.toBe(null);
-    const before = root.querySelector('[data-key="before.monthly.careful"]');
-    expect(before.getAttribute('data-value')).toBe(String(state.answers.c.before.monthly.careful));
+    expect(root.querySelector('[data-headline="levels.balanced.monthly"]')).not.toBe(null);
+    const before = root.querySelector('[data-key="before.monthly"]');
+    expect(before.getAttribute('data-value')).toBe(String(state.answers.c.before.monthly));
   });
 
   it('a final answer for other figures than those typed is never shown as current', () => {
@@ -612,12 +612,12 @@ describe('try a change', () => {
     expect(actions).toEqual([set('take', '1,500'), { type: 'draft/ask', q: 'c' }]);
   });
   it('before and now: nothing before the first change, then the amount from before', () => {
-    expect(renderScreen(load('answer-F1')).querySelector('[data-key="before.monthly.careful"]')).toBe(null);
+    expect(renderScreen(load('answer-F1')).querySelector('[data-key="before.monthly"]')).toBe(null);
     const s = load('answer-F1');
-    s.answers.c.before = { monthly: { careful: 1290 } };
+    s.answers.c.before = { monthly: 1290 };
     const root = renderScreen(s);
     expect(checkScreen(root, s)).toEqual([]);
-    expect(root.querySelector('[data-key="before.monthly.careful"]').textContent).toBe('£1,290');
+    expect(root.querySelector('[data-key="before.monthly"]').textContent).toBe('£1,290');
   });
 });
 

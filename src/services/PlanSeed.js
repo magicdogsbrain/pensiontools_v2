@@ -69,7 +69,7 @@ import { LAYOUT } from '../appLayout.js';
 import {
   SEED_VERSION, SEED_VERSIONS, SEED_MAX_AGE_MS, SEED_FUTURE_SLACK_MS, PLAN_NAME_LIMITS, SEED_WORDS, QUESTION_TITLES,
   isObj, isNum, gbp, pot, localDate, localDay, cleanPlanName, checkPlanName, uniqueName, checkSeed, asVersion2, apartOf,
-  PLANNER_DECLINE, compressSteps, answerLastedWords, differenceWords, coupleWords, seedToScenario, targetAtAge
+  PLANNER_DECLINE, compressSteps, answerLastedWords, differenceWords, coupleWords, seedToScenario, targetAtAge, shapedSeed, seedPayInNeeded
 } from './PlanFromSeed.js';
 
 // The pure part — the seed's versions and life, the name rules, the seed check, the mapping to a plan — lives in
@@ -278,9 +278,9 @@ export function seedSummary(seed) {
   const later = seed.stop.kind === 'later';
   const ages = seed.people.map((p) => p.ageAtStop).join(' and ');
   // seed version 3: what is spent changes with age, as the answer was given it (the description lists the steps)
-  let line = (later ? 'Stop at ' : 'From ') + ages + ', ' + gbp(seed.spend.perMonth) + ' a month' + (seed.seedVersion === 3 ? ' at the start, changing with age as you set it' : '');
+  let line = (later ? 'Stop at ' : 'From ') + ages + ', ' + gbp(seed.spend.perMonth) + ' a month' + (shapedSeed(seed) ? ' at the start, changing with age as you set it' : '');
   const paying = later ? seed.people.reduce((t, p) => t + (p.payIn && p.payIn.total > 0 ? p.payIn.total : 0), 0) : 0;
-  const needed = seed.source === 'b' && seed.answer && isNum(seed.answer.payInNeeded) ? seed.answer.payInNeeded : null;
+  const needed = seed.source === 'b' ? seedPayInNeeded(seed.answer) : null;
   if (paying > 0) {
     line += ', paying in ' + gbp(paying) + ' a month' + (seed.source === 'b' ? ' as now' : '');
     if (needed !== null && needed > paying + 0.5) line += ' (the answer suggested about ' + aboutMonthly(needed) + ')';
@@ -305,9 +305,9 @@ function apartSummary(seed) {
   const [you, partner] = people;
   const when = (p) => (p.stop.kind === 'now' ? 'now' : String(p.ageAtStop));
   let line = (bothLater ? `You stop at ${you.ageAtStop} and your partner at ${partner.ageAtStop}` : `You from ${when(you)} and your partner from ${when(partner)}`)
-    + ', ' + gbp(seed.spend.perMonth) + ' a month' + (seed.seedVersion === 3 ? ' at the start (changing with age as you set it)' : ' once you\'ve both stopped');
+    + ', ' + gbp(seed.spend.perMonth) + ' a month' + (shapedSeed(seed) ? ' at the start (changing with age as you set it)' : ' once you\'ve both stopped');
   const paying = people.reduce((t, p) => t + (p.stop.kind === 'later' && p.payIn && p.payIn.total > 0 ? p.payIn.total : 0), 0);
-  const needed = seed.source === 'b' && seed.answer && isNum(seed.answer.payInNeeded) ? seed.answer.payInNeeded : null;
+  const needed = seed.source === 'b' ? seedPayInNeeded(seed.answer) : null;
   if (paying > 0) {
     line += ', paying in ' + gbp(paying) + ' a month' + (seed.source === 'b' ? ' as now' : '');
     if (needed !== null && needed > paying + 0.5) line += ' (the answer suggested about ' + aboutMonthly(needed) + ')';

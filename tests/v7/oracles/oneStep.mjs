@@ -48,7 +48,8 @@ export const largeHousehold = (amountAMonth) => amountAMonth >= LARGE_A_MONTH;
  * more than a step handed to `onFinding(which)` instead of asserted. `assert(which, floor)` makes the assertion.
  */
 export function amountsToAStep(from, to, assert, onFinding) {
-  for (const k of ['careful', 'middling', 'good']) {
+  // (7.8.0: the amounts of each level, { careful, balanced, bold } — whatever keys `from` holds)
+  for (const k of Object.keys(from)) {
     if (largeHousehold(from[k])) { if (to[k] < from[k] - STEP.amount) onFinding(k); }
     else assert(k, from[k] - STEP.amount);
   }

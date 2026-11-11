@@ -49,22 +49,26 @@ describe('X2 — the number round-trips through C at or after the earliest pensi
       risk: b.inputs.risk, endAge: b.inputs.endAge
     }, env);
     const spend = b.spend.perMonth;
-    for (const k of ['careful', 'middling', 'good']) {
-      expect(b.number[k] % 1000).toBe(0);
-      const at = cOf(b.number[k]);
+    // (7.8.0: the pot to aim for at each level; C at that pot gives at least the spend at the same level)
+    for (const k of ['careful', 'balanced', 'bold']) {
+      const pot = b.levels[k].pot;
+      expect(pot % 1000).toBe(0);
+      const at = cOf(pot);
       expect(at.basis.start, 'C did not move its start').toBe(env.today.slice(0, 7));
-      expect(at.monthly[k], `${k} at the number`).toBeGreaterThanOrEqual(spend);
-      if (b.number[k] > 0) expect(cOf(b.number[k] - 1000).monthly[k], `${k} at £1,000 less`).toBeLessThan(spend);
+      expect(at.levels[k].monthly, `${k} at the number`).toBeGreaterThanOrEqual(spend);
+      if (pot > 0) expect(cOf(pot - 1000).levels[k].monthly, `${k} at £1,000 less`).toBeLessThan(spend);
     }
     // what the bad-case pot pays, as C would say it
-    expect(cOf(b.potAtStop.now.careful).monthly.careful).toBe(b.monthlyIfShort);
+    expect(cOf(b.potAtStop.now.careful).levels.balanced.monthly).toBe(b.monthlyIfShort);
   });
 
-  it('the confidence never moves the number; 3 in 4 never needs more than 9 in 10', () => {
+  it('the level never moves the pots at each level; Bold never needs more than Balanced', () => {
     const [, given] = OPEN[0];
     const nine = answerB(given, ENV);
-    const four = answerB({ ...given, confidence: 'threeInFour' }, ENV);
-    expect(four.number).toEqual(nine.number);
+    const four = answerB({ ...given, confidence: 'bold' }, ENV);
+    expect(four.levels.careful.pot).toBe(nine.levels.careful.pot);
+    expect(four.levels.balanced.pot).toBe(nine.levels.balanced.pot);
+    expect(four.levels.bold.pot).toBe(nine.levels.bold.pot);
     expect(four.payIn.needed).toBeLessThanOrEqual(nine.payIn.needed);
   });
 });
@@ -92,8 +96,8 @@ describe.skipIf(!aIsReal)('X2 below the earliest pension age, through A\'s stop-
     expect(b.outside).not.toBeNull();
     const env = { ...onStopDate(b), ages: [b.stop.age] };
     const aOf = (pot) => answerA({ you: { age: b.stop.age, pot, payIn: { total: 0 } }, savings: b.outside.careful, stop: { kind: 'age', age: b.stop.age }, spend: given.spend }, env);
-    expect(aOf(b.number.careful).shown.verdict).toBe('yes');
-    expect(aOf(b.number.careful - 1000).shown.verdict).not.toBe('yes');
+    expect(aOf(b.levels.balanced.pot).shown.verdict).toBe('yes');
+    expect(aOf(b.levels.balanced.pot - 1000).shown.verdict).not.toBe('yes');
   });
 });
 

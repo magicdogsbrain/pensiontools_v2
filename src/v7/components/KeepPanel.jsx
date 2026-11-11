@@ -54,8 +54,8 @@ function PayInChoice({ result, choice, saving, onPress, words, ask, note, ids, k
   const amount = (k) => slotted(choice.how === 'couple' ? t.between : t.aMonth, { amount: <Money source={result} k={k} /> });
   const nowNothing = !(result.payIn && result.payIn.now > 0);
   const now = nowNothing ? t.nowNothing : slotted(t.now, { now: share ? <Money source={result} k="enough.now.totalPct" kind="pct" /> : amount('payIn.now') });
-  const savings = <Money source={result} k="enough.nineInTen.savingsIn" />;
-  const pension = share ? <Money source={result} k="enough.nineInTen.totalPct" kind="pct" /> : amount('enough.nineInTen.payIn');
+  const savings = <Money source={result} k="enough.atLevel.savingsIn" />;
+  const pension = share ? <Money source={result} k="enough.atLevel.totalPct" kind="pct" /> : amount('enough.atLevel.payIn');
   const enough = choice.savingsOnly ? slotted(t.savingsOnly, { savings })
     : slotted(t.enough, { enough: typeof choice.savingsIn === 'number' ? slotted(t.withSavings, { pension, savings }) : pension });
   // each label is one run of text inside its button: the button lays its children out side by side with a gap, so the

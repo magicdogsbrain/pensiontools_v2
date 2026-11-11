@@ -31,18 +31,18 @@ describe('B closed forms: flat lives, 0% on everything, no charge', () => {
     const a = ok(answerB(BF1, FLAT), BF1);
     expect(a.status).toBe('ok');
     // 416,000 / 420 months = 990.48 a month: it lasts; 415,000 / 420 = 988.10: it does not
-    expect(a.number).toMatchObject({ careful: 416000, middling: 416000, good: 416000 });
-    expect(a.number.careful).toBe(flatNumber(990, 35));
+    expect([a.levels.careful.pot, a.levels.balanced.pot, a.levels.bold.pot]).toEqual([416000, 416000, 416000]);
+    expect(a.levels.balanced.pot).toBe(flatNumber(990, 35));
     expect(a.years).toEqual({ saving: 15, drawing: 35 });
     // the pot at 60: 120,000 + 180 × 500 = 210,000 in every future
     expect(a.potAtStop.now).toEqual({ careful: 210000, middling: 210000, good: 210000 });
     expect(a.saving[0].paidIn.total).toBe(90000);
-    expect(a.chance.lasted).toBe(0);
+    expect(a.chance.fixedAge).toBe(0);
     expect(a.onCourse).toBe(false);
     expect(a.already).toBe(false);
     const p = flatPayIn(120000, 180, 416000);
     expect(p).toBe(1650);                                          // p ≥ 1,644.44
-    expect(a.payIn.at).toEqual({ nineInTen: p, threeInFour: p });
+    expect(a.levels[a.level].payIn).toBe(p);
     expect(a.payIn.needed).toBe(p);
     expect(a.payIn.extra).toBe(p - 500);
     expect(a.potAtStop.needed.careful).toBe(120000 + 180 * p);
@@ -87,12 +87,12 @@ describe('B closed forms: flat lives, 0% on everything, no charge', () => {
   it('BF2 already there: a pot of £417,000 and nothing paid in reaches the number in every future; nothing more is needed; no lever applies', () => {
     const given = { ...BF1, you: { ...BF1.you, pot: 417000, payIn: { total: 0 } } };
     const a = ok(answerB(given, FLAT), given);
-    expect(a.number.careful).toBe(416000);
-    expect(a.chance.lasted).toBe(1);
+    expect(a.levels.balanced.pot).toBe(416000);
+    expect(a.chance.fixedAge).toBe(1);
     expect(a.onCourse).toBe(true);
     expect(a.already).toBe(true);
     expect(a.payIn.needed).toBe(0);
-    expect(a.payIn.at).toEqual({ nineInTen: 0, threeInFour: 0 });
+    expect(a.levels[a.level].payIn).toBe(0);
     expect(a.levers).toEqual({ stopLater: null, payMore: null, spendLess: null, oneOff: null, moreRisk: null, accept: { lasted: 1, short: 0, monthlyIfShort: a.monthlyIfShort } });
     // on course is the verdict's headline; the number's own block says the number (saving-enough-and-check-in.md 2.3)
     expect(a.sentences.verdictHead.id).toBe('b.verdict.head.yes');
@@ -114,17 +114,17 @@ describe('B closed forms: flat lives, 0% on everything, no charge', () => {
     const zero = 120000 * Math.pow(q, 180);
     const perPound = q * (Math.pow(q, 180) - 1) / (q - 1);
     const falling = Math.ceil(((416000 - zero) / perPound) / 10) * 10;
-    for (const confidence of ['nineInTen', 'threeInFour']) {
+    for (const confidence of ['careful', 'balanced', 'bold']) {
       const given = { ...BF1, confidence };
       const a = ok(answerB(given, env), given);
-      expect(a.number.careful, confidence).toBe(416000);            // the drawing years are flat in every life
+      expect(a.levels[confidence].pot, confidence).toBe(416000);         // the drawing years are flat in every life
       expect(a.payIn.needed, confidence).toBe(falling);
-      expect(a.payIn.confidence).toBe(confidence);
+      expect(a.level).toBe(confidence);
     }
     // at the flat lives' figure (£1,650) half the lives reach it: the flat five
     const half = { ...BF1, you: { ...BF1.you, payIn: { total: 1650 } } };
     const h = ok(answerB(half, env), half);
-    expect(h.chance.lasted).toBe(0.5);
+    expect(h.chance.fixedAge).toBe(0.5);
     expect(h.chance.fails).toBe(5);
     expect(h.onCourse).toBe(false);
     expect(h.potAtStop.now.good).toBe(120000 + 180 * 1650);
@@ -135,7 +135,7 @@ describe('B closed forms: flat lives, 0% on everything, no charge', () => {
     const given = { you: { age: 60, pot: 0, payIn: { total: 0 } }, stop: { age: 67 }, spend: { amount: 1000 }, charge: 0 };
     const a = ok(answerB(given, FLAT), given);
     expect(a.status).toBe('guaranteed-only');
-    expect(a.number).toMatchObject({ careful: 0, middling: 0, good: 0 });
+    expect([a.levels.careful.pot, a.levels.balanced.pot, a.levels.bold.pot]).toEqual([0, 0, 0]);
     expect(a.payIn.needed).toBe(0);
     expect(a.onCourse).toBe(true);
     expect(a.guaranteed.monthlyAfterTax).toBeCloseTo(RULES.fullStatePensionWeekly * 52 / 12, 2);
@@ -147,7 +147,7 @@ describe('B closed forms: flat lives, 0% on everything, no charge', () => {
     const given = { ...BF1, spend: { amount: 50000 } };
     const a = ok(answerB(given, FLAT), given);
     expect(a.status).toBe('out-of-reach');
-    expect(a.number).toBeNull();
+    expect(a.levels[a.level].pot).toBeNull();
     expect(a.payIn.needed).toBeNull();
     expect(a.warnings.map((w) => w.id)).toContain('out-of-reach');
     expect(a.sentences.none).toBeDefined();
@@ -159,8 +159,8 @@ describe('B closed forms: flat lives, 0% on everything, no charge', () => {
   it('BF6 a couple is two of BF1: £1,980 a month needs £832,000 between them, split by their pots; one household pay-in, split as now', () => {
     const given = { household: 'couple', you: BF1.you, partner: { age: 45, pot: 120000, payIn: { total: 500 }, statePension: NO_SP }, stop: { age: 60 }, spend: { amount: 1980 }, charge: 0 };
     const a = ok(answerB(given, FLAT), given);
-    expect(a.number.careful).toBe(832000);
-    expect(a.number.byPerson).toEqual([{ who: 'you', pot: 416000 }, { who: 'partner', pot: 416000 }]);
+    expect(a.levels.balanced.pot).toBe(832000);
+    expect(a.levels[a.level].byPerson).toEqual([{ who: 'you', pot: 416000 }, { who: 'partner', pot: 416000 }]);
     expect(a.payIn.now).toBe(1000);
     expect(a.potAtStop.now.careful).toBe(420000);
     const p = flatPayIn(240000, 180, 832000);

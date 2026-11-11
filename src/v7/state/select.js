@@ -44,6 +44,7 @@
  *   payInTypedOf(values, who)        → the total as typed on a form, from flat values, or null while a box it needs is blank
  *   shareLandsOf(values, who)        → a share of pay as typed: what lands from the person and the employer, or null
  */
+import { shownOf } from '../../answers/shared/shown.js';
 import { SCHEMA_C } from '../../answers/c/schema.js';
 import { SCHEMA_A } from '../../answers/a/schema.js';
 import { SCHEMA_B } from '../../answers/b/schema.js';
@@ -618,11 +619,12 @@ export function spendView(state, q) {
 export function budgetAgainstC(state) {
   const answer = state.answers.c;
   const r = answer && answer.result;
-  if (!r || r.status !== 'ok' || r.closedYears || !r.monthly || typeof r.monthly.careful !== 'number') return null;
+  const shown = shownOf(r);
+  if (!r || r.status !== 'ok' || r.closedYears || !shown || typeof shown.monthly !== 'number') return null;
   // the budget is the household's, written on A's or B's spend step; C reads the household from its own draft
   const checked = budgetOf(state, 'c');
   if (!hasBudget(checked)) return null;
-  return carefulAgainstBudget(r.monthly.careful, checked.totals.monthly);
+  return carefulAgainstBudget(shown.monthly, checked.totals.monthly);
 }
 
 // ---- "Save this as a plan" (save-as-plan.md Contract C.2) ------------------------------------------------------------
@@ -771,8 +773,8 @@ export function useInOf(state, q) {
  */
 function keepPayInOf(q, r) {
   const en = q === 'b' && r && r.enough;
-  if (!en || !r.verdict || r.verdict.band === 'yes' || !en.nineInTen || !Array.isArray(en.nineInTen.parts)) return null;
-  return { how: en.how, savingsOnly: en.savingsOnly === true, savingsIn: en.nineInTen.savingsIn };
+  if (!en || !r.verdict || r.verdict.band === 'yes' || !en.atLevel || !Array.isArray(en.atLevel.parts)) return null;
+  return { how: en.how, savingsOnly: en.savingsOnly === true, savingsIn: en.atLevel.savingsIn };
 }
 
 // ---- the spending shape (research/v7/spending-shape.md 3.6, 4.1–4.4) --------------------------------------------------
@@ -939,7 +941,7 @@ export function answerShapeChart(state, q) {
   const first = r.byYear[0];
   const gap = first.ages && typeof first.ages.you === 'number' && typeof first.ages.partner === 'number' ? first.ages.you - first.ages.partner : null;
   const olderBy = gap !== null && gap > 0 ? gap : 0;
-  const list = q === 'c' ? r.shapeAt && r.shapeAt.careful : r.spendShape;
+  const list = q === 'c' ? r.shapeAt && r.shapeAt[r.level || 'balanced'] : r.spendShape;
   return {
     unit: 'perMonth', years, essentials: ess, layers: true, couple: gap !== null, gap,
     bands: { goSlow: 75 + olderBy, noGo: 85 + olderBy },

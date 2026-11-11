@@ -37,6 +37,8 @@ import { agesToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf, sha
 import { livesList } from '../shared/lives.js';
 import { savingRows } from '../shared/saving.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt } from '../shared/stopAt.js';
+import { weigherOf } from '../shared/weigh.js';
+import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, horizonRuleOf, passesLevel } from '../shared/levels.js';
 import { apartOf, before2028, payKeepsPensions } from '../shared/apart.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
 import { toHousehold, payInOf } from './toHousehold.js';
@@ -164,8 +166,10 @@ function stopCase(ctx, age, { partTime = 'asTyped' } = {}) {
   const runner = createStopRunner(sp);
   // the spend as typed, in this row's first year: a step at or before this stop is in force from it (spending-shape.md 6.3)
   const spendAYear = startAYear(ctx.spendAYear, sp.plan);
-  const verdict = verdictAt(sp, runner, spendAYear);
-  const c = { age, S: sp.S, own: ownOf(sp), sp, runner, verdict, band: null, inputs: ins, spendAYear };
+  // the weights of this stop and the verdict at the level (7.8.0)
+  const at = { weigher: weigherOf(sp.plan, ins, ctx.env), level: ctx.level, toMonth: 12 * (sp.plan.endAge - sp.plan.startAge) };
+  const verdict = verdictAt(sp, runner, spendAYear, at);
+  const c = { age, S: sp.S, own: ownOf(sp), sp, runner, verdict, band: null, inputs: ins, spendAYear, at };
   ctx.cases.set(key, c);
   return c;
 }
@@ -204,10 +208,10 @@ function smallerPass(key, n) {
   return best ? { ...best.k } : null;
 }
 
-function bandOf(ctx, c, estimate) {
+function bandOf(ctx, c, estimate, levels = [ctx.level]) {
   if (c.band) return c.band;
   const key = estimateKey(c.inputs, ctx.env, c.age);
-  c.band = bandAt(c.sp, c.runner, smallerPass(key, ctx.n) || estimate);
+  c.band = bandAt(c.sp, c.runner, smallerPass(key, ctx.n) || estimate, { weigher: c.at.weigher, levels, toMonth: c.at.toMonth });
   const byN = remembered.get(key) || new Map();
   byN.set(ctx.n, { ...c.band.k });
   remembered.delete(key);
@@ -215,9 +219,6 @@ function bandOf(ctx, c, estimate) {
   if (remembered.size > REMEMBER_AT_MOST) remembered.delete(remembered.keys().next().value);
   return c.band;
 }
-
-/** A row's band amounts in steps of the search (its monthly amounts are whole steps: band.k × STEP). */
-const stepsOf = (row) => ({ careful: row.monthly.careful / STEP, middling: row.monthly.middling / STEP, good: row.monthly.good / STEP });
 
 /**
  * Where to start the band search at age `a`, from the rows already worked out (ages below it, in `kAt`): nothing before
@@ -260,7 +261,7 @@ function heldRows(prev, ins, env, n) {
   if (JSON.stringify(prev.inputs) !== JSON.stringify(ins)) return null;
   const held = new Map();
   for (const r of prev.ages) {
-    if (!r || !Number.isInteger(r.age) || r.status !== 'final' || !r.monthly || typeof r.verdict !== 'string') continue;
+    if (!r || !Number.isInteger(r.age) || r.status !== 'final' || !r.levels || typeof r.verdict !== 'string') continue;
     held.set(r.age, { ...JSON.parse(JSON.stringify(r)), phases: null, oneMoreYear: null });
   }
   return held.size ? held : null;
@@ -294,9 +295,10 @@ function rowOf(ctx, c, band) {
   const v = c.verdict;
   return {
     age: c.age, ages, stopYear: addYears(env.today, asked).slice(0, 4), status: 'final',
-    verdict: v.verdict, lasted: v.lasted, outOfTen: outOfTen(v.lasted), runOutAge: v.runOutAge,
-    monthly: { ...band.monthly }, yearly: { ...band.yearly }, lastedAt: { ...band.lastedAt }, runOutAgeAt: { ...band.runOutAgeAt },
-    spare: round2(Math.max(0, band.monthly.careful - (c.spendAYear === ctx.spendAYear ? spend : c.spendAYear / 12))),
+    verdict: v.verdict, lasted: v.lasted, outOfTen: outOfTen(v.lasted), runOutAge: v.runOutAge, weighted: v.weighted,
+    // the band at every level, each with its chance (7.8.0)
+    levels: Object.fromEntries(Object.entries(band.levels).map(([id, lv]) => [id, { monthly: lv.monthly, yearly: lv.yearly, weighted: lv.chance.weighted, fixedAge: lv.chance.fixedAge }])),
+    spare: round2(Math.max(0, band.levels[ctx.level].monthly - (c.spendAYear === ctx.spendAYear ? spend : c.spendAYear / 12))),
     // a stop at or after a step starts on that step (spending-shape.md 6.3): the figure THIS row tested, a month — only
     // then, so a row before every step (and every flat answer) is as it was
     ...(c.spendAYear === ctx.spendAYear ? {} : { spendAtStart: round2(c.spendAYear / 12) }),
@@ -346,6 +348,27 @@ function savingOf(ctx, c) {
   });
 }
 
+/**
+ * The earliest stop age at each level (7.8.0: levels[k].stopAge), each with its chance at the spend there: "show me
+ * ages": the first age of the sweep that lasts at the level (carried on past the level chosen for Careful, which never
+ * stops earlier); an age in mind: that age when it lasts at the level, else the first later age that does. The same
+ * ages whatever the detail, so the chart and the full table agree. null when none lasts at that level.
+ */
+function levelsOfStops(ctx, ages) {
+  const n = ctx.n;
+  const out = {};
+  for (const id of LEVEL_IDS) {
+    let found = null;
+    for (const a of ages) {
+      const c = stopCase(ctx, a);
+      const v = c.verdict;
+      if (passesLevel({ fails: v.fails, sumW: v.sumW }, n, id, c.at.weigher)) { found = { a, v }; break; }
+    }
+    out[id] = found ? { stopAge: found.a, weighted: found.v.weighted, fixedAge: found.v.lasted } : { stopAge: null, weighted: null, fixedAge: null };
+  }
+  return out;
+}
+
 export function answerA(inputs, env) {
   const problems = envProblems(env);
   if (problems.length) return { status: 'invalid', problems };
@@ -353,6 +376,7 @@ export function answerA(inputs, env) {
   if (!checked.ok) return { status: 'invalid', problems: Object.entries(checked.errors).map(([field, messageId]) => ({ field, messageId })) };
   const ins = checked.inputs;
   const couple = ins.household === 'couple';
+  const level = levelOfInputs(ins);
 
   const named = toHousehold(ins, env);
   const hp = validateHousehold(named.household, env.today);
@@ -400,7 +424,7 @@ export function answerA(inputs, env) {
     return { status: 'invalid', problems: [ask.asked === 'partner' ? { field: 'partner.stop.kind', messageId: 'partner-stop-ages-past-75' } : { field: 'stop.kind', messageId: 'stop-ages-past-75' }] };
   }
   const lives = livesList(n, Math.max(...[...touched].map(lifeYears)), env);
-  const ctx = { inputs: ins, env, n, spend, spendAYear: spend * 12, lives, cases: new Map(), asked: ask.asked };
+  const ctx = { inputs: ins, env, n, spend, spendAYear: spend * 12, lives, cases: new Map(), asked: ask.asked, level };
   // the rows an earlier answer for these very inputs already holds (the answer step's, for the every-age step)
   const held = heldRows(env.reuse, ins, env, n);
   const verdictOfAge = (a) => (held && held.has(a) ? held.get(a) : stopCase(ctx, a).verdict);
@@ -421,6 +445,9 @@ export function answerA(inputs, env) {
     if (!before.some((a) => verdictOfAge(a).verdict === 'yes')) laterYes = later.find((a) => verdictOfAge(a).verdict === 'yes') ?? null;
   }
   const rowAges = rowAgesFor(sweep ? earliest.yes : laterYes);
+  // the row shown: the age named, or the earliest that lasted, or the last row. Every row has every level (7.8.0), so a
+  // row is the same whichever detail it is worked out at (the chart and the full table share their rows: X4)
+  const shownAge = ask.kind === 'age' ? ask.named : earliest.yes !== null ? earliest.yes : rowAges[rowAges.length - 1];
 
   // the rows, in age order: a row held already is taken as it stands; any other has its band searched from the rows
   // before it (estimateAt — a hint: the result is the same)
@@ -429,11 +456,10 @@ export function answerA(inputs, env) {
   rowAges.forEach((a, k) => {
     const row = held && held.get(a);
     if (row) {
-      kAt.set(a, stepsOf(row));
       rows.push(row);
     } else {
       const c = stopCase(ctx, a);
-      const band = bandOf(ctx, c, estimateAt(kAt, a));
+      const band = bandOf(ctx, c, estimateAt(kAt, a), LEVEL_IDS);
       kAt.set(a, band.k);
       rows.push(rowOf(ctx, c, band));
     }
@@ -451,13 +477,11 @@ export function answerA(inputs, env) {
   rows.forEach((r, i) => {
     const next = rows[i + 1];
     if (!next || next.age !== r.age + 1) return;
-    const extra = next.monthly.careful - r.monthly.careful;
+    const extra = next.levels[level].monthly - r.levels[level].monthly;
     r.oneMoreYear = { toAge: next.age, extraMonthly: extra, lastedFrom: r.lasted, lastedTo: next.lasted, runOutFrom: r.runOutAge, runOutTo: next.runOutAge,
       potExtra: next.potAtStop.middling - r.potAtStop.middling, sameish: Math.abs(extra) <= 20 };
   });
 
-  // the row shown: the age named, or the earliest that lasted, or the last row
-  const shownAge = ask.kind === 'age' ? ask.named : earliest.yes !== null ? earliest.yes : rows[rows.length - 1].age;
   const shown = rows.find((r) => r.age === shownAge);
   const sc = stopCase(ctx, shownAge);
   const plan = sc.runner.plan;
@@ -467,7 +491,8 @@ export function answerA(inputs, env) {
   // what is spent changing with age (spending-shape.md 6.3): the spend as typed and tested, the careful amount at the start
   // with the later steps in proportion, and each year's figures (one phase a year: the same figures, year by year)
   const yearly = sc.sp.household.shape ? phasesAt(sc.sp, shown.potAtStop.good > 0 ? sc.spendAYear : 0, null, { yearly: true }) : null;
-  const shaped = yearly ? shapeOfAnswer({ household: sc.sp.household, plan, at: status === 'ok' ? shown.monthly : null, asTyped: sc.spendAYear / 12, yearly, H0: sc.spendAYear }) : null;
+  const shaped = yearly ? shapeOfAnswer({ household: sc.sp.household, plan, at: status === 'ok' ? Object.fromEntries(Object.entries(shown.levels).map(([id, lv]) => [id, lv.monthly])) : null, level,
+    asTyped: sc.spendAYear / 12, yearly, H0: sc.spendAYear }) : null;
   if (shaped) markShapeMoves(shown.phases, shaped.byYear);
 
   // Couples apart at the shown row (couples-different-years.md 2.4): each person's own stop, the pay line, and — in a bad
@@ -480,12 +505,12 @@ export function answerA(inputs, env) {
   let partTime = null;
   if (ins.partTime && ins.partTime.has) {
     const without = stopCase(ctx, shownAge, { partTime: { has: false } });
-    const wb = bandOf(ctx, without, kAt.get(shownAge));
+    const wb = bandOf(ctx, without, kAt.get(shownAge) || null);
     const more = stopCase(ctx, shownAge, { partTime: { ...ins.partTime, years: ins.partTime.years + 1 } });
     partTime = {
       yearly: ins.partTime.yearly, years: ins.partTime.years, fromAge: shownAge, toAge: shownAge + ins.partTime.years,
       lastedWith: shown.lasted, lastedWithout: without.verdict.lasted, runOutWith: shown.runOutAge, runOutWithout: without.verdict.runOutAge,
-      without: { verdict: without.verdict.verdict, lasted: without.verdict.lasted, runOutAge: without.verdict.runOutAge, monthly: { careful: wb.monthly.careful } },
+      without: { verdict: without.verdict.verdict, lasted: without.verdict.lasted, runOutAge: without.verdict.runOutAge, monthly: wb.levels[level].monthly },
       oneMore: { years: ins.partTime.years + 1, lasted: more.verdict.lasted, runOutAge: more.verdict.runOutAge }
     };
   }
@@ -499,6 +524,14 @@ export function answerA(inputs, env) {
     spend: { perMonth: spend, perYear: round2(spend * 12), kind: ins.spend.kind, level: ins.spend.kind === 'level' ? ins.spend.level : null },
     ...(shaped || {}),
     stop: { kind: ask.kind, age: shownAge },
+    level,
+    // (the every-age step asks again for exactly the inputs the answer step answered: its levels are the same)
+    levels: held && env.reuse.levels ? JSON.parse(JSON.stringify(env.reuse.levels))
+      : levelsOfStops(ctx, sweep || [ask.named, ...(later || [])]),
+    chance: chanceBlock({ weighted: sc.verdict.weighted, fixedAge: sc.verdict.lasted, fails: sc.verdict.fails }, n, {
+      planToAge: plan.endAge, weightToAge: sc.at.weigher.weighted ? sc.at.weigher.weightToAge : plan.endAge,
+      horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped: Boolean(plan.capped) })
+    }),
     headline: {
       kind: status !== 'ok' ? 'nothing' : ask.kind === 'age' ? 'named' : earliest.yes !== null ? 'earliest' : 'noneWorked',
       age: shownAge, verdict: shown.verdict, lasted: shown.lasted, outOfTen: outOfTen(shown.lasted), runOutAge: shown.runOutAge
@@ -516,7 +549,7 @@ export function answerA(inputs, env) {
     handOver: { c: handOverToC(ins, shownAge, env.today) },
     assumed: [], warnings: [], sentences: {},
     basis: {
-      today: env.today, futures: n, seed: env.seed ?? 0, failuresAllowed: Math.floor(n / 10), closeAllowed: Math.floor(n / 4),
+      today: env.today, futures: n, seed: env.seed ?? 0, ...levelBasis(level, sc.at.weigher, ins, plan.endAge),
       historyEnd: historyEnd(), engineVersion: VERSION, endAge: plan.endAge, detail, lifeYears: T,
       bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly', strategyId: 'pots-and-valves', cutsSwitchedOff: true,
       split: sc.sp.saving.people.map((p, j) => ({ who: p.who, share: midTotal > 0 ? (mid[j].pension + mid[j].isa) / midTotal : 1 / mid.length }))
@@ -557,7 +590,7 @@ export function answerA(inputs, env) {
       // the drawing months of a stop are question C's trace when it is today (tests/v7/c/trace.test.js); the fast path's
       // locked run keeps no month-by-month record yet, so the drawing years are given here by their outcome per life
       drawing: null,
-      lives: totals.map((t, i) => ({ id: i, potAtStop: round2(t), runOutMonth: sc.verdict.runOutMonths[i], most: band && band.solver ? band.solver.most(i) * STEP : band.monthly.careful }))
+      lives: totals.map((t, i) => ({ id: i, potAtStop: round2(t), runOutMonth: sc.verdict.runOutMonths[i], most: band && band.solver ? band.solver.most(i) * STEP : band.levels[level].monthly }))
     };
   }
   return JSON.parse(JSON.stringify(result, (key, v) => (typeof v === 'number' ? noNegZero(v) : v)));

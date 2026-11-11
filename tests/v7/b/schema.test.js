@@ -23,7 +23,7 @@ describe('SCHEMA_B — the declaration', () => {
   });
 
   it('holds no words: only the known keys, and no label, help or error text', () => {
-    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options', 'unit'];   // unit: a steps field's (perMonth | share)
+    const allowed = ['path', 'type', 'min', 'max', 'step', 'required', 'default', 'when', 'whenNot', 'group', 'boundaries', 'options', 'legacy', 'unit'];   // unit: a steps field's (perMonth | share)
     for (const f of SCHEMA_B.fields) expect(Object.keys(f).filter((k) => !allowed.includes(k)), f.path).toEqual([]);
   });
 
@@ -96,7 +96,8 @@ describe('SCHEMA_B — the declaration', () => {
     expect([...new Set(SCHEMA_B.fields.map((f) => f.group))]).toEqual(['who', 'you', 'stop', 'more', 'spend', 'shape', 'partner']);
     expect(byPath.get('savings').group).toBe('more');
     expect(byPath.get('isaGrowth').group).toBe('more');                 // how the savings grow, with them (6.22.0)
-    expect(byPath.get('confidence')).toEqual({ path: 'confidence', type: 'choice', options: ['nineInTen', 'threeInFour'], default: 'nineInTen', group: 'more' });
+    // "How careful?" (7.8.0): the shared level field; "9 in 10" and "3 in 4" typed before still read
+    expect(byPath.get('confidence')).toEqual({ path: 'confidence', type: 'choice', options: ['careful', 'balanced', 'bold'], default: 'balanced', legacy: { nineInTen: 'careful', threeInFour: 'balanced' }, group: 'more' });
     expect(byPath.get('stop.kind')).toEqual({ path: 'stop.kind', type: 'choice', options: ['age', 'already'], group: 'stop' });   // no "show me ages", no default
     expect(byPath.has('partTime.has')).toBe(false);
   });
@@ -147,7 +148,7 @@ describe('SCHEMA_B — the declaration', () => {
       household: 'single',
       you: { age: 50, pot: 120000, payIn: { kind: 'total', total: 700 }, alreadyDrawing: false, statePension: { kind: 'full' }, finalSalary: { has: false } },
       stop: { age: 60 }, spend: { kind: 'amount', amount: 2000 },
-      savings: 0, savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'nineInTen'
+      savings: 0, savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'balanced'
     });
     expect(validate(SCHEMA_B, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_B, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);
@@ -334,8 +335,8 @@ describe('the answer function', () => {
     const r = answerB(inputs, TEST_ENV);
     expect(r.status).toBe('ok');
     expect(r.inputs).toEqual(checkInputs(SCHEMA_B, inputs, TEST_ENV).inputs);
-    expect(r.basis).toMatchObject({ today: '2026-09-30', futures: 40, seed: 0, failuresAllowed: 4, closeAllowed: 10, detail: 'answer', potStep: 1000, potMax: 5000000, payInCeiling: 10000, laterYears: 10 });
-    for (const key of ['whose', 'spend', 'stop', 'ages', 'years', 'pensionOpens', 'gapYears', 'saving', 'number', 'already', 'chance', 'onCourse', 'payIn', 'potAtStop',
+    expect(r.basis).toMatchObject({ today: '2026-09-30', futures: 40, seed: 0, level: 'balanced', levelFails20: 2, detail: 'answer', potStep: 1000, potMax: 5000000, payInCeiling: 10000, laterYears: 10 });
+    for (const key of ['whose', 'spend', 'stop', 'ages', 'years', 'pensionOpens', 'gapYears', 'saving', 'level', 'levels', 'already', 'chance', 'onCourse', 'payIn', 'potAtStop',
       'short', 'monthlyIfShort', 'wholeLife', 'outside', 'levers', 'grid', 'phases', 'guaranteed', 'assumed', 'warnings', 'sentences', 'basis', 'units']) {
       expect(key in r, key).toBe(true);
     }
@@ -349,19 +350,18 @@ describe('the answer function', () => {
 
   it('the number is a whole £1,000; the pay-ins whole £10; short and extra never below 0; the levers each null or of their shape', () => {
     const r = answerB(inputs, TEST_ENV);
-    for (const k of ['careful', 'middling', 'good']) expect(r.number[k] % 1000).toBe(0);
-    expect(r.number.careful).toBeGreaterThanOrEqual(r.number.middling);
-    expect(r.number.middling).toBeGreaterThanOrEqual(r.number.good);
+    for (const k of ['careful', 'balanced', 'bold']) expect(r.levels[k].pot % 1000).toBe(0);
+    expect(r.levels.careful.pot).toBeGreaterThanOrEqual(r.levels.balanced.pot);
+    expect(r.levels.balanced.pot).toBeGreaterThanOrEqual(r.levels.bold.pot);
     expect(r.payIn.now).toBe(r.payIn.own + r.payIn.employer);
     expect(r.payIn.needed % 10).toBe(0);
     expect(r.payIn.extra).toBe(Math.max(0, r.payIn.needed - r.payIn.now));
-    expect(r.payIn.at.nineInTen).toBeGreaterThanOrEqual(r.payIn.at.threeInFour);
-    expect(r.payIn.needed).toBe(r.payIn.at[r.payIn.confidence]);
-    expect(r.short).toBe(Math.max(0, r.number.careful - r.potAtStop.now.careful));
-    expect(r.already).toBe(r.inputs.you.pot >= r.number.careful);
-    expect(r.onCourse).toBe(r.chance.fails <= r.basis.failuresAllowed);
+    expect(r.payIn.needed).toBe(r.levels[r.level].payIn);
+    expect(r.short).toBe(Math.max(0, r.levels.balanced.pot - r.potAtStop.now.careful));
+    expect(r.already).toBe(r.inputs.you.pot >= r.levels.balanced.pot);
+    expect(r.onCourse).toBe(r.chance.fails <= Math.floor(r.basis.futures * r.basis.levelFails20 / 20));
     expect(Object.keys(r.levers)).toEqual(['stopLater', 'payMore', 'spendLess', 'oneOff', 'moreRisk', 'accept']);
-    expect(r.levers.accept).toEqual({ lasted: r.chance.lasted, short: r.short, monthlyIfShort: r.monthlyIfShort });
+    expect(r.levers.accept).toEqual({ lasted: r.chance.fixedAge, short: r.short, monthlyIfShort: r.monthlyIfShort });
     if (r.levers.moreRisk) expect(r.levers.moreRisk.helps).toBe(r.levers.moreRisk.payIn < r.payIn.needed);
     r.phases.forEach((ph, i) => {
       expect(ph.shown.fromPots + ph.shown.statePension + ph.shown.finalSalary + ph.shown.fromWork).toBe(ph.shown.takeHome);

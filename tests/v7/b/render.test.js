@@ -173,8 +173,8 @@ describe('B, step 1: what have you saved, and what are you paying in?', () => {
     s.ui.open = ['more'];
     const root = renderScreen(s);
     expect(checkScreen(root, s)).toEqual([]);
-    for (const id of ['b.savings', 'b.savingsIn', 'b.savingRisk.balanced', 'b.risk.balanced', 'b.charge', 'b.endAge', 'b.confidence.nineInTen', 'b.you.alreadyDrawing.no']) expect(one(root, id), id).not.toBe(null);
-    expect(one(root, 'b.confidence.nineInTen').checked).toBe(true);
+    for (const id of ['b.savings', 'b.savingsIn', 'b.savingRisk.balanced', 'b.risk.balanced', 'b.charge', 'b.endAge', 'b.confidence.balanced', 'b.you.alreadyDrawing.no']) expect(one(root, id), id).not.toBe(null);
+    expect(one(root, 'b.confidence.balanced').checked).toBe(true);
   });
 
   it('the age in mind must be later than today\'s age, said with the way to "Will it last?"', () => {
@@ -237,7 +237,7 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     // The number, a guide, follows in a smaller block that is not a headline (the reviewers' finding, 1 Oct 2026 — two
     // headline cards invited a sum that contradicted the answer); "the State Pension covers it" has a headline in words
     const verdict = r.status !== 'guaranteed-only';
-    const num = r.number !== null && r.number.careful > 0;
+    const num = r.number !== null && r.levels.balanced.pot > 0;
     expect(heads).toEqual(verdict ? ['verdict'] : []);
     if (verdict) {
       const v = root.querySelector('[data-headline="verdict"]');
@@ -248,12 +248,12 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
       expect(v.textContent).toContain(r.sentences.atAim.text);
       if (r.verdict.band === 'close') expect(v.textContent).toContain(r.sentences.verdictFour.text);
     }
-    const guide = root.querySelector('[data-guide="number.careful"]');
+    const guide = root.querySelector('[data-guide="levels.balanced.pot"]');
     expect(!!guide, 'the number as a guide').toBe(verdict && num);
     if (guide) {
       expect(guide.classList.contains('headline')).toBe(false);
       expect(guide.querySelector('.figure')).toBe(null);
-      expect(guide.querySelector('[data-sentence="number.careful"]').textContent).toBe(r.sentences.line.text);
+      expect(guide.querySelector('[data-sentence="levels.balanced.pot"]').textContent).toBe(r.sentences.line.text);
       expect(guide.textContent).toContain(r.sentences.guide.text);
     }
     if (num) expect(root.textContent).toContain(r.sentences.guide.text);
@@ -282,11 +282,11 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     // the first sentence: as now (the employer's part named), then the figure that would be on course, and for 3 in 4
     const first = v.querySelector('[data-sentence="verdict"]');
     expect(first.textContent).toContain(`Paying in ${money(r.payIn.now)} a month as now (your employer's ${money(r.payIn.employer)} included)`);
-    expect(first.textContent).toContain(`${money(r.enough.nineInTen.payIn)} a month (you ${money(r.enough.nineInTen.own)}, your employer's ${money(r.enough.nineInTen.employer)} as now) would put you on course, which is 9 in 10`);
-    expect(first.querySelector('[data-key="enough.nineInTen.payIn"]').getAttribute('data-value')).toBe(String(r.enough.nineInTen.payIn));
+    expect(first.textContent).toContain(`${money(r.enough.atLevel.payIn)} a month (you ${money(r.enough.atLevel.own)}, your employer's ${money(r.enough.atLevel.employer)} as now) would put you on course, which is 9 in 10`);
+    expect(first.querySelector('[data-key="enough.atLevel.payIn"]').getAttribute('data-value')).toBe(String(r.enough.atLevel.payIn));
     // the two incomes and the gap a year, with the State Pension named
     const income = v.querySelector('[data-testid="b.verdict.income"]');
-    expect(income.textContent).toContain(`you could spend ${money(r.income.bad)} a month from ${r.stop.age} (${money(r.income.middling)} in a middling case`);
+    expect(income.textContent).toContain(`you could spend ${money(r.income.bad)} a month from ${r.stop.age}, with`);   // (7.8.0: the middling income left)
     expect(income.textContent).toMatch(/State Pension from \d+ \(the full amount, as assumed\)/);
     expect(income.textContent).toContain(`${money(r.gap.month)} a month (${money(r.gap.year)} a year) less than you want`);
     // what would be enough, straight under it
@@ -294,11 +294,11 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     expect(enough.getAttribute('data-enough')).toBe('pounds');
     expect(enough.querySelector('h2').textContent).toBe(r.sentences.enoughHead.text);
     expect(enough.textContent).toContain(r.sentences.enoughLine.text);
-    expect(enough.textContent).toContain(r.sentences.enoughFour.text);
+    expect(r.sentences.enoughFour).toBeUndefined();                    // (7.8.0: one figure, at the level)
     expect(enough.textContent).toContain(r.sentences.enoughMatch.text);
-    const number = root.querySelector('[data-guide="number.careful"]');
-    expect(number.querySelector('[data-key="number.careful"]').textContent).toBe(pot(r.number.careful));
-    expect(number.querySelector('[data-sentence="number.careful"]').textContent).toBe(r.sentences.line.text);
+    const number = root.querySelector('[data-guide="levels.balanced.pot"]');
+    expect(number.querySelector('[data-key="levels.balanced.pot"]').textContent).toBe(pot(r.levels.balanced.pot));
+    expect(number.querySelector('[data-sentence="levels.balanced.pot"]').textContent).toBe(r.sentences.line.text);
     expect(number.textContent).toContain(r.sentences.bad.text);
     // B's own whole-£10 figure is no longer a headline of its own: what would be enough says it
     expect(root.querySelector('[data-headline="payIn.needed"]')).toBe(null);
@@ -374,15 +374,15 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     const v = root.querySelector('[data-headline="verdict"]');
     expect(v.querySelector('[data-verdict]').getAttribute('data-verdict')).toBe('yes');
     expect(v.querySelector('#answer-figure').textContent).toBe(`On course for ${money(r.spend.perMonth)} a month from ${r.stop.age}`);
-    expect(r.enough.nineInTen.payIn).toBeLessThan(r.payIn.now);
-    expect(v.querySelector('[data-sentence="verdict"]').textContent).toContain(`You could pay in as little as ${money(r.enough.nineInTen.payIn)} a month and still be on course.`);
-    expect(root.querySelector('[data-guide="number.careful"]').textContent).toContain(r.sentences.bad.text);
+    expect(r.enough.atLevel.payIn).toBeLessThan(r.payIn.now);
+    expect(v.querySelector('[data-sentence="verdict"]').textContent).toContain(`You could pay in as little as ${money(r.enough.atLevel.payIn)} a month and still be on course.`);
+    expect(root.querySelector('[data-guide="levels.balanced.pot"]').textContent).toContain(r.sentences.bad.text);
   });
 
   it('before the pension opens: the part outside the pension is named under the number', () => {
     const state = load('answer-B4-before-57');
     const root = renderScreen(state);
-    expect(root.querySelector('[data-headline="number.careful"], [data-guide="number.careful"]').textContent).toContain(state.answers.b.result.sentences.outside.text);
+    expect(root.querySelector('[data-headline="levels.balanced.pot"], [data-guide="levels.balanced.pot"]').textContent).toContain(state.answers.b.result.sentences.outside.text);
     expect(root.querySelector('[data-warning-id="pension-closed"]')).not.toBe(null);
   });
 
@@ -404,7 +404,7 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     const root = renderScreen(state);
     // the verdict is the headline, the number a guide below it, between you
     const r = state.answers.b.result;
-    expect(root.querySelector('[data-guide="number.careful"] .guide-figure').textContent).toBe(r.sentences.head.text);
+    expect(root.querySelector('[data-guide="levels.balanced.pot"] .guide-figure').textContent).toBe(r.sentences.head.text);
     expect(root.querySelector('#answer-figure').textContent).toBe(r.sentences.verdictHead.text);
     expect(r.sentences.verdictHead.text).toContain(' a month between you from when you are ');
     expect(one(root, 'b.lever.payMore.try')).toBe(null);
@@ -416,12 +416,12 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     const state = load('answer-share');
     const r = state.answers.b.result;
     const { root, actions } = draw(state);
-    const nine = r.enough.nineInTen;
+    const nine = r.enough.atLevel;
     expect(r.enough.how).toBe('share');
     const first = root.querySelector('[data-sentence="verdict"]');
     expect(first.textContent).toContain(`Paying in ${r.enough.now.totalPct}% of your pay as now (${money(r.payIn.now)} a month, your employer's 4% included)`);
     expect(first.textContent).toContain(`${nine.totalPct}% of your pay in all (you ${nine.ownPct}%, ${money(nine.payIn)} a month) would put you on course, which is 9 in 10`);
-    expect(first.querySelector('[data-key="enough.nineInTen.totalPct"]').getAttribute('data-kind')).toBe('pct');
+    expect(first.querySelector('[data-key="enough.atLevel.totalPct"]').getAttribute('data-kind')).toBe('pct');
     expect(root.querySelector('[data-enough="share"] h2').textContent).toBe(`To be on course: ${nine.totalPct}% of your pay in all`);
     one(root, 'b.lever.payMore.try').click();
     expect(actions).toEqual([set('you.payIn.ownPct', String(nine.ownPct)), set('you.payIn.kind', 'share')]);
@@ -437,15 +437,15 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
       return [...seen].filter(([, k]) => k > 1).map(([t]) => t);
     };
     for (const name of answers) expect(repeats(renderScreen(load(name))), name).toEqual([]);
-    // Sam paying 22% in all (18% and the employer's 4%): Close, at the chance B asks for first and at 3 in 4
-    for (const confidence of ['nineInTen', 'threeInFour']) {
+    // Sam paying 22% in all (18% and the employer's 4%): Close at Balanced (7.8.0: the level, typed or not)
+    for (const confidence of ['balanced']) {
       const state = clone(load('answer-share'));
       const inputs = { ...state.answers.b.result.inputs, you: { ...state.answers.b.result.inputs.you, payIn: { ...state.answers.b.result.inputs.you.payIn, ownPct: 18 } }, confidence };
       const r = answerB(inputs, { ...TEST_ENV, futures: state.answers.b.result.basis.futures });
       expect(r.verdict.band).toBe('close');
       state.answers.b.result = r;
       const root = renderScreen(state);
-      expect(root.querySelector('[data-testid="b.verdict.four"]').textContent).toBe('For 3 futures out of 4, what you pay in now is already enough.');
+      expect(root.querySelector('[data-testid="b.verdict.four"]')).toBe(null);           // (the "3 in 4" line left with its figure)
       expect(repeats(root), confidence).toEqual([]);
     }
   });
@@ -458,7 +458,7 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     expect(heads.map((h) => Number(h.getAttribute('data-share')))).toEqual(r.grid.shares);
     expect(heads.map((h) => h.querySelector('[data-key^="grid.shares."]').textContent)).toEqual(r.grid.shares.map((x) => `${x}%`));
     expect(heads.map((h) => h.querySelector('[data-key^="grid.payIns."]').textContent)).toEqual(r.grid.payIns.map((x) => money(x)));
-    expect(root.querySelector(`[data-grid] th[data-share="${r.enough.nineInTen.totalPct}"]`).hasAttribute('data-col-needed')).toBe(true);
+    expect(root.querySelector(`[data-grid] th[data-share="${r.enough.atLevel.totalPct}"]`).hasAttribute('data-col-needed')).toBe(true);
     expect(one(root, 'b.grid.shareKey').textContent).toBe(B.choices.shareKey);
     const age = r.grid.ages[0].age;
     const j = r.grid.shares.length - 1;
@@ -518,8 +518,8 @@ describe('B, try a change', () => {
     expect(one(renderScreen(s), 'b.try.stop.down').disabled).toBe(true);
     expect(press(load('answer-B1'), 'b.try.spend.up')).toEqual([set('spend.amount', '2,100'), set('spend.kind', 'amount')]);
     expect(press(load('answer-B1'), 'b.try.savingRisk.cautious')).toEqual([set('savingRisk', 'cautious')]);
-    expect(press(load('answer-B1'), 'b.try.confidence.threeInFour')).toEqual([set('confidence', 'threeInFour')]);
-    expect(one(renderScreen(load('answer-B1')), 'b.try.confidence.nineInTen').getAttribute('aria-pressed')).toBe('true');
+    expect(press(load('answer-B1'), 'b.try.confidence.bold')).toEqual([set('confidence', 'bold')]);
+    expect(one(renderScreen(load('answer-B1')), 'b.try.confidence.balanced').getAttribute('aria-pressed')).toBe('true');
   });
   it('before / now: the answer\'s own b.change for now', () => {
     const state = load('answer-B1');

@@ -114,7 +114,7 @@
  *   later steps in proportion". Phases (and made-of lines) are cut at each step's first year.
  *
  * @typedef {string | { key: string, kind: 'money' | 'age' | 'pot' } | { fixed: string }} Part
- *   `key` is a dotted path into the result ('monthly.careful', 'phases.1.shown.fromPots', 'inputs.you.pot').
+ *   `key` is a dotted path into the result ('levels.balanced.monthly', 'phases.1.shown.fromPots', 'inputs.you.pot').
  *   `kind: 'pot'` is formatted to the nearest £1,000 (format.pot); 'money' to the pound; 'age' whole years.
  *   `fixed` is a count or a fixed figure the answer itself wrote ('9', '10', '2026/27').
  *
@@ -176,6 +176,28 @@
  *   (+ fromPay while one of a couple is still working).
  *
  * @typedef {{ careful: number, middling: number, good: number }} Three
+ *   The SPREAD of the futures only (rules.js BAND: the worst 1 in 10, the middling, the best 1 in 10) — pots, never a
+ *   level: `potAtStop.careful` is the worst 1 in 10 of the pots.
+ *
+ * ---- The levels (7.8.0: research/v7/replan-nov-2026.md 5; shared/levels.js) ------------------------------------------
+ *
+ * @typedef {'careful' | 'balanced' | 'bold'} Level   "How careful?" (the `confidence` input on A to D): the whole twentieths
+ *   of weighted failure each lets through (rules.js LEVEL_FAILS20 1, 2, 6). Balanced unless chosen.
+ * @typedef {{ weighted: number, fixedAge: number }} LevelChance
+ *   weighted: the chance the money lasts as long as you do (weigh.js; with SUCCESS.weighted false, = fixedAge);
+ *   fixedAge: the share of futures that lasted to the plan-to age.
+ * @typedef {{ careful: object, balanced: object, bold: object }} Levels   Each level's figures in the answer's own kind, each
+ *   with its LevelChance: C and D { monthly, yearly } (£ a month and a year, whole £10); A { stopAge } (the earliest stop at
+ *   the level, null when none); B { pot } (whole £1,000, null when out of reach), and at the level chosen also { payIn,
+ *   byPerson, weighted, fixedAge } (the pay-in that gets there and the whole-life chance at it). shownOf(result) =
+ *   result.levels[result.level] is the one reader of the figure the answer stands behind.
+ * @typedef {{ weighted: number, fixedAge: number, fails: number, n: number, planToAge: number, weightToAge: number,
+ *   horizonRule: 'survival' | 'chosen' | 'plan' | 'capped' }} Chance   The chance of the figure shown (A and D: at the spend;
+ *   B: paying in as now; C: the level's amount). fails: the futures that ran out before the plan-to age.
+ * Every answer's basis also carries { level, levelFails20, planToAge, weightToAge, tablesVersion, sexUsed }, in place of
+ * failuresAllowed / closeAllowed. Deleted from every answer (7.8.0): the top-level `monthly`/`yearly`/`lasted`/
+ * `runOutAge`/`lastedAt`/`runOutAgeAt`, B's `number`, enough's 9-in-10 and 3-in-4 figures, `payIn.at`, `payIn.confidence`,
+ * `income.middling` — the count's middling and best-1-in-10 amounts are no longer figures of an answer.
  *
  * ---- The saving years (step 4 brief 4.7, 4.8) ------------------------------------------------------------------
  *
@@ -211,15 +233,16 @@
  * @property {{ you: number, partner?: number }} ages   Each person's own age at their own stop (couples apart: the other's is fixed, or moves alongside).
  * @property {string} stopYear                'YYYY'
  * @property {'final'} status
- * @property {'yes' | 'close' | 'no'} verdict   At `spend`: yes when fails ≤ floor(n/10), close ≤ floor(n/4), no otherwise.
- * @property {number} lasted                  Share of lives in which `spend` lasted to the end age, 0–1.
+ * @property {'yes' | 'close' | 'no'} verdict   At `spend`, at the level (rules.js verdictAtLevel; the count before 7.8.0 while
+ *   not weighing: yes when fails ≤ floor(n/10), close ≤ floor(n/4)).
+ * @property {number} lasted                  Share of lives in which `spend` lasted to the plan-to age, 0–1.
+ * @property {number} weighted                The chance at `spend`, weighted (= lasted while not weighing).
  * @property {{ words: string, only: boolean, count: number|null }} outOfTen
  * @property {number} runOutAge               In a bad case; = endAge when it lasted.
- * @property {Three} monthly                  C's band at this stop age: £ a month, after tax, today's prices, whole £10.
- * @property {Three} yearly
- * @property {Three} lastedAt
- * @property {Three} runOutAgeAt
- * @property {number} spare                   max(0, monthly.careful − the spending this row tested: spendAtStart, or spend.perMonth)
+ * @property {{ careful: object, balanced: object, bold: object }} levels   C's amount at this stop age at each level, each
+ *   { monthly, yearly, weighted, fixedAge }: £ a month, after tax, today's prices, whole £10 (every row every level, so a
+ *   row is one figure whatever the detail).
+ * @property {number} spare                   max(0, the level's monthly − the spending this row tested: spendAtStart, or spend.perMonth)
  * @property {number} [spendAtStart]          Only when what is spent changes with age and this stop is at or after a step: the
  *   step in force is the start (spending-shape.md 6.3), so this row tested THIS figure, £ a month to the penny — not the
  *   first amount typed. Its verdict, lasted and spare are at it. Absent on every other row, and on every flat answer.
@@ -243,6 +266,10 @@
  * @property {{ kind: 'age' | 'ages', age: number }} [stop]      age = shown.age (the asked person's)
  * @property {{ kind: 'named' | 'earliest' | 'noneWorked' | 'nothing', age: number, verdict: 'yes' | 'close' | 'no', lasted: number,
  *              outOfTen: { words: string, only: boolean, count: number|null }, runOutAge: number }} [headline]
+ * @property {Level} [level]
+ * @property {Levels} [levels]               { stopAge, weighted, fixedAge } a level: "show me ages", the first age of the
+ *   sweep that lasts at it; an age in mind, that age or the first later one that does.
+ * @property {Chance} [chance]                At the shown row's spend.
  * @property {AgeRow} [shown]                 Deep-equals the ages[] entry for stop.age.
  * @property {AgeRow[]} [ages]                In age order, no repeats (agesToShow).
  * @property {{ yes: number|null, close: number|null }} [earliest]   "Show me ages": from every whole age from today's to 75.
@@ -253,7 +280,8 @@
  * @property {number} [gapYears]
  * @property {null | { amount: number, untilAge: number }} [savingsNeeded]   The closed periods' savings draw, today's prices (from the phases).
  * @property {null | { yearly: number, years: number, fromAge: number, toAge: number, lastedWith: number, lastedWithout: number, runOutWith: number, runOutWithout: number,
- *            without: { verdict: string, lasted: number, runOutAge: number, monthly: { careful: number } }, oneMore: { years: number, lasted: number, runOutAge: number } }} [partTime]
+ *            without: { verdict: string, lasted: number, runOutAge: number, monthly: number }, oneMore: { years: number, lasted: number, runOutAge: number } }} [partTime]
+ *   without.monthly: the level's amount without the work.
  * @property {SavingOutcome[]} [saving]       Per person, for the shown row.
  * @property {{ monthlyAfterTax: number }} [guaranteed]
  * @property {Assumed[]} [assumed]
@@ -261,7 +289,8 @@
  * @property {{ head: Sentence, sub: Sentence, line: Sentence, bad: Sentence, after?: Sentence, range: Sentence, pot: Sentence, pays: Sentence[],
  *              savingsNeeded?: Sentence, chart: Sentence[], oneMore?: Sentence, oneMoreMoves?: Sentence, partTime?: Sentence, partTimeOneMore?: Sentence,
  *              change?: Sentence, none?: Sentence, nothing?: Sentence, late?: Sentence }} [sentences]
- * @property {{ today: string, futures: number, seed: number, failuresAllowed: number, closeAllowed: number, historyEnd: string, engineVersion: string,
+ * @property {{ today: string, futures: number, seed: number, level: Level, levelFails20: number, planToAge: number, weightToAge: number,
+ *              tablesVersion: string, sexUsed: { you: 'f'|'m', partner?: 'f'|'m' }, historyEnd: string, engineVersion: string,
  *              endAge: number, detail: 'chart' | 'all', lifeYears: number, bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly',
  *              strategyId: 'pots-and-valves', cutsSwitchedOff: true, split: { who: string, share: number }[] }} [basis]
  * @property {{ money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' }} [units]
@@ -288,22 +317,25 @@
  * @property {{ you: number, partner?: number }} [pensionOpens]
  * @property {number} [gapYears]
  * @property {SavingOutcome[]} [saving]
- * @property {null | (Three & { byPerson: { who: string, pot: number }[] })} [number]   Whole £1,000, today's prices; the pension pot(s) at the stop. Headline = number.careful.
- * @property {boolean} [already]              Today's pension pot ≥ number.careful.
- * @property {{ lasted: number, outOfTen: { words: string, only: boolean, count: number|null }, fails: number }} [chance]
- *   ONE TEST (step 4 brief J9): the share of lives in which the money lasted to the end age, paying in as now until the
- *   stop and then spending the target — the whole-life count, A's verdict at the stop age. Equal to wholeLife.
- * @property {boolean} [onCourse]             chance.fails ≤ floor(n/10): A's "yes" at the stop age.
+ * @property {Level} [level]
+ * @property {Levels} [levels]                { pot } a level: whole £1,000, today's prices, the pension pot(s) at the stop
+ *   (null: out of reach); at the level chosen also { payIn, byPerson, weighted, fixedAge }. Headline = the level's pot.
+ * @property {boolean} [already]              Today's pension pot ≥ the level's pot.
+ * @property {Chance} [chance]
+ *   ONE TEST (step 4 brief J9): paying in as now until the stop and then spending the target — the whole-life chance, A's
+ *   verdict at the stop age. fixedAge equals wholeLife.lasted.
+ * @property {boolean} [onCourse]             The verdict at the level is yes: A's "yes" at the stop age.
  * @property {{ band: 'yes' | 'close' | 'no', lasted: number, outOfTen: object }} [verdict]   R1 (research/saving-enough-and-
- *   check-in.md 2.1): legacyVerdictOf(chance.fails, n) — on course at 9 futures in 10, close from 3 in 4 — the count's own share.
- * @property {{ middling: number, bad: number }} [income]   R1 (2.1): what you could spend from the stop paying in as now, a
- *   month after tax at today's prices — the most that lasted in 5 and in 9 futures out of 10 (bad = monthlyIfShort).
+ *   check-in.md 2.1): the verdict at the level (while not weighing legacyVerdictOf(fails, n): on course at 9 futures in 10,
+ *   close from 3 in 4).
+ * @property {{ bad: number }} [income]   R1 (2.1): what you could spend from the stop paying in as now, a month after tax at
+ *   today's prices — the most at the level (= monthlyIfShort).
  * @property {{ month: number, year: number }} [gap]   R1 (2.1): the aim less the bad-case income, never below £0, a month and × 12.
  * @property {null | { how: 'share' | 'pounds' | 'couple', who: null | 'you' | 'partner', employers: string[],
  *              now: null | { totalPct: number, ownPct: number, employerPct: number, payIn: number },
  *              employerKept: boolean, paused: boolean, pausedWho: string[], pausedEmployer: boolean, savingsOnly: boolean,
  *              outOfReach: null | 'pay' | 'ceiling' | 'pot', caps: null | { who: string, by: 'pay' | 'ceiling' }[],
- *              threeInFourNow: boolean, nineInTen: EnoughFigure | null, threeInFour: EnoughFigure | null }} [enough]
+ *              level: Level, closeNow: boolean, atLevel: EnoughFigure | null }} [enough]
  *   R1 (3.1–3.3; src/answers/b/enough.js): what would be enough, said the way the pay-in was given — a share of pay (one
  *   person saving, pay above £0; the person's part on 0.5% steps, the employer's as entered), pounds, or each part of a
  *   couple in its own kind (a part past its person's most — all of their pay, or £10,000 a month — held there and the rest
@@ -312,21 +344,21 @@
  *   pay of £0. Each EnoughFigure — { payIn (what lands a month, the household's), extra, savingsIn (the savings
  *   a month for the closed years when more than now, else null), own?, employer?, totalPct?, ownPct?, employerPct?, parts:
  *   per person, fails, lasted, outOfTen, verdict, runOutAge, and when not on course potAtStop and each part's atStop (for
- *   keeping it, and for the pots at the figure said) } — is a figure whose full count was asked again at exactly the pay-ins it names. On course:
- *   nineInTen is the least that stays on course; threeInFour only in the bottom band (threeInFourNow in the Close band, where
- *   today's pay-in already lasts in 3 futures out of 4). null when the State Pension alone covers the spend.
- * @property {{ now: number, own: number|null, employer: number|null, needed: number|null, extra: number, confidence: 'nineInTen' | 'threeInFour',
- *              at: { nineInTen: number|null, threeInFour: number|null }, outside: number|null, savingsNow: number }} [payIn]   £ a month, whole £10 up.
- *   at.* (J9): the least whole £10 a month into the pension (the household's, split as now) at which the WHOLE life lasts
- *   in 9 lives out of 10 (at most floor(n/4) failing for threeInFour) — with, before a pension opens, `outside` a month
- *   going into savings when that is more than now. null above the ceiling (no one's part above £10,000).
+ *   keeping it, and for the pots at the figure said) } — is a figure whose full count was asked again at exactly the pay-ins it names.
+ *   atLevel is the least that is on course at the level chosen (7.8.0: one figure; the "3 in 4" figure is gone); closeNow
+ *   in the Close band. null when the State Pension alone covers the spend.
+ * @property {{ now: number, own: number|null, employer: number|null, needed: number|null, extra: number, outside: number|null,
+ *              savingsNow: number }} [payIn]   £ a month, whole £10 up.
+ *   needed (J9; 7.8.0 one solve at the level): the least whole £10 a month into the pension (the household's, split as now)
+ *   at which the WHOLE life passes the level — with, before a pension opens, `outside` a month going into savings when that
+ *   is more than now. null above the ceiling (no one's part above £10,000). = levels[level].payIn.
  *   outside (J9): the least whole £10 a month into savings (the household's, split evenly) at which the years before a
  *   pension opens never fail (CLOSED_YEARS_FAILS = 0), with a pension that cannot run out behind them (a run-out once every
  *   pension is open is the pension's and is not counted; the same for outside.careful); never below what goes in now. null
  *   when no pension is closed at the stop.
  * @property {{ now: Three, needed: Three | null }} [potAtStop]   Household pension + savings, today's prices.
- * @property {number} [short]                 max(0, number.careful − potAtStop.now.careful) (a guide, as the number is)
- * @property {number} [monthlyIfShort]        J9: the careful amount from the stop paying in as now — A's careful amount at this
+ * @property {number} [short]                 max(0, the level's pot − potAtStop.now.careful) (a guide, as the number is)
+ * @property {number} [monthlyIfShort]        J9: the amount at the level from the stop paying in as now — A's amount at this
  *   stop age, C's from that age with that pay-in.
  * @property {{ lasted: number, outOfTen: object, runOutAge: number }} [wholeLife]   One run per life at today's pay-in then the target.
  * @property {null | { amount: number, careful: number, untilAge: number }} [outside]   The savings the closed years draw
@@ -372,21 +404,23 @@
  * @property {{ field: string, messageId: string }[]} [problems]   Only when 'invalid'; then nothing below is present.
  * @property {object} [inputs]              As used, defaults filled in — `charge` among them (6.19.0: percent a year, 0.5 unless
  *   changed; the household's one fund and platform charge, taken while drawing and, on the lives, while the money waits).
- * @property {Three} [monthly]              £ a month, after tax, today's prices, household; whole £10.
- * @property {Three} [yearly]               monthly × 12
- * @property {Three} [lasted]               Share of futures that lasted to endAge, 0–1.
- * @property {Three} [runOutAge]            In a bad case; whole years; careful = endAge by construction.
+ * @property {Level} [level]
+ * @property {Levels} [levels]              { monthly, yearly } a level: £ a month, after tax, today's prices, household; whole £10
+ *   (yearly = monthly × 12), each with its LevelChance.
+ * @property {Chance} [chance]              At the level's amount.
  * @property {'you' | 'partner'} [whose]    Whose age the ages refer to (the younger; 'you' when single).
  * @property {ApartAnswer} [apart]          Only when the two stops differ: the careful amount is what the household can
  *   spend once you have both stopped; until then the pots pay 1 − payCovers of it.
  * @property {{ monthlyAfterTax: number }} [guaranteed]
  * @property {Phase[]} [phases]
- * @property {null | { perMonth: number, lasted: number, runOutAge: number, covered: boolean }} [take]
+ * @property {null | { perMonth: number, lasted: number, runOutAge: number, covered: boolean, weighted: number, verdict: string }} [take]
+ *   covered: the verdict at the level at the amount taken is yes.
  * @property {Assumed[]} [assumed]
  * @property {Warning[]} [warnings]
  * @property {{ head: Sentence, sub: Sentence, line: Sentence, bad: Sentence, range: Sentence, madeOf: Sentence[],
  *              take?: Sentence, small?: Sentence, none?: Sentence, nothing?: Sentence }} [sentences]
- * @property {{ today: string, futures: number, seed: number, failuresAllowed: number, historyEnd: string,
+ * @property {{ today: string, futures: number, seed: number, level: Level, levelFails20: number, planToAge: number,
+ *              weightToAge: number, tablesVersion: string, sexUsed: object, historyEnd: string,
  *              engineVersion: string, startAge: number, endAge: number, accessAge: number, start: string,
  *              years: number, split: { who: string, share: number }[], strategyId: 'pots-and-valves',
  *              cutsSwitchedOff: true }} [basis]
@@ -400,15 +434,15 @@
  * @property {SavingOutcome[]} [saving]       J8, on the lives: per person, A's shape (the saving risk is C's one risk).
  *   Sentences added (J8): `payIn` ('c.payIn' — "Paying in £800 a month until 67, rising with prices; the pot invested at
  *   Balanced, about half in shares, until then." — or 'c.payIn.none'), `pot` ('c.pot', the pot at the start).
- * @property {{ from: number, until: number, who: ('you'|'partner')[], careful: number, partnerUntil: number|null, reachable: number,
- *              need: number, instead: { age: number, monthly: Three, lasted: Three } }} [closedYears]   J18, on the lives: the years
+ * @property {{ from: number, until: number, who: ('you'|'partner')[], monthly: number, partnerUntil: number|null, reachable: number,
+ *              need: number, instead: { age: number, monthly: number, fixedAge: number, weighted: number } }} [closedYears]   J18, on the lives: the years
  *   before a closed pension opens set the amount — some pension closed at the start, less than half the pension money open
  *   then, and the savings and open pensions there (middling, `reachable`) short of the closed years' draw (`need`) at the
  *   careful amount starting `until` (your age when enough opens; `instead` is C's own answer from that age). The figures
  *   above stay the band at the start (A's row); `sentences.none` ('c.none.closed') says it in words with both amounts, in
  *   place of the headline, and the rail shows no figure.
- *   Warnings added (J18): 'savings-run-short' (on the lives, every pension closed at the start, a bad case at the take or
- *   the middling amount running out before the first opens), 'annual-allowance' / '-partner' (what goes in, a person, over
+ *   Warnings added (J18): 'savings-run-short' (on the lives, every pension closed at the start, a bad case at the take
+ *   running out before the first opens), 'annual-allowance' / '-partner' (what goes in, a person, over
  *   £60,000 a year), 'partner-stops-with-you' (a partner past their State Pension age, the money from later than now).
  * @property {{ money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' }} [units]
  * @property {object} [trace]               Only when env.trace (brief 4.3). On the lives: { saving: { atCareful }, futures,

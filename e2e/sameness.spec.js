@@ -113,7 +113,7 @@ function casesAB() {
   const bf1 = { you: { age: 45, pot: 120000, payIn: { kind: 'total', total: 400 }, statePension: NO_SP }, stop: { age: 60 }, spend: { kind: 'amount', amount: 990 }, charge: 0 };
   list.push({ q: 'b', name: 'BF1 the number', inputs: bf1, env: { ...FLAT, detail: 'answer' }, madeUp: true });
   list.push({ q: 'b', name: 'BF2 already there', inputs: { ...bf1, you: { ...bf1.you, pot: 416000, payIn: { kind: 'total', total: 0 } } }, env: { ...FLAT, detail: 'answer' }, madeUp: true });
-  list.push({ q: 'b', name: 'BF3 the confidence (five futures at 0%, five at −10%)', inputs: { ...bf1, confidence: 'threeInFour' }, env: { ...FLAT, futures: 10, market: { equity: [0, 0, 0, 0, 0, -0.1, -0.1, -0.1, -0.1, -0.1], inflation: 0 }, mix: SHARES, savingMix: SHARES, detail: 'answer' }, madeUp: true });
+  list.push({ q: 'b', name: 'BF3 the confidence (five futures at 0%, five at −10%)', inputs: { ...bf1, confidence: 'bold' }, env: { ...FLAT, futures: 10, market: { equity: [0, 0, 0, 0, 0, -0.1, -0.1, -0.1, -0.1, -0.1], inflation: 0 }, mix: SHARES, savingMix: SHARES, detail: 'answer' }, madeUp: true });
   list.push({ q: 'b', name: 'BF4 pension income alone', inputs: { you: { age: 60, pot: 50000, payIn: { kind: 'total', total: 100 } }, stop: { age: 67 }, spend: { kind: 'amount', amount: 1000 } }, env: { ...ENV, detail: 'answer' } });
   // CF-S1–S3: the saving years in a made-up market, read from A's `saving` block.
   const cf = (payIn, charge) => ({ you: { age: 45, pot: 120000, payIn: { kind: 'total', total: payIn }, statePension: NO_SP }, stop: { kind: 'age', age: 60 }, spend: { kind: 'amount', amount: 1000 }, charge });

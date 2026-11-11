@@ -14,7 +14,7 @@
  */
 import { APART } from '../shared/household.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, gridToShow, stopKindField, partnerStopFields, untilBothStopField,
-  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault } from '../shared/schemaParts.js';
+  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, levelField } from '../shared/schemaParts.js';
 
 const STOP_KIND = stopKindField('b');
 
@@ -49,7 +49,8 @@ export const SCHEMA_B = {
     // How the savings grow (6.22.0): "Mostly cash" or "Invested like my pension", under more detail with the savings box
     // and drawn straight under it; declared after what its default reads (the savings, and what goes into them each month).
     isaGrowthField('more'),
-    { path: 'confidence', type: 'choice', options: ['nineInTen', 'threeInFour'], default: 'nineInTen', group: 'more' }
+    // "How careful?" (7.8.0): Careful, Balanced (the default) or Bold; "9 in 10" and "3 in 4" typed before still read
+    levelField()
   ],
 
   // Checked by validate.js after every field has passed its own limits. The error goes on the FIRST field named.

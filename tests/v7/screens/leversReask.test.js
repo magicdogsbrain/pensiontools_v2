@@ -73,7 +73,7 @@ describe.each(Object.entries(HOUSEHOLDS))('%s: each lever, tried and asked again
     }
     // stop later, pay in more, spend less: each makes the money last in 9 futures out of 10 — on course
     expect(again.onCourse, `${id}: on course once tried`).toBe(true);
-    expect(again.chance.lasted).toBe(lever.lasted);
+    expect(again.chance.fixedAge).toBe(lever.lasted);
   });
 });
 
@@ -102,7 +102,7 @@ describe('"Pay in more" on a pay-in entered as your part and your employer\'s (r
     expect(again.payIn.now).toBe(lever.payIn);
     expect(again.payIn.employer).toBe(250);
     expect(again.onCourse).toBe(true);
-    expect(again.chance.lasted).toBe(lever.lasted);
+    expect(again.chance.fixedAge).toBe(lever.lasted);
     // "What you changed" names the whole figure before and after, as for one figure
     expect(changedLine('b', B, result.inputs, again.inputs)).toBe(`You changed what goes in each month from £700 to ${money(lever.payIn)}.`);
   });

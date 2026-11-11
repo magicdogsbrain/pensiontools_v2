@@ -14,7 +14,7 @@
  */
 import { RULES, accessAgeOn, firstAccessAge } from '../shared/rules.js';
 import { payingInFields, statePensionAgeOf, earliestPensionStart, peopleFromValues, chargeField, partnerStopFields, untilBothStopField,
-  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, payInParts } from '../shared/schemaParts.js';
+  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, payInParts, levelField } from '../shared/schemaParts.js';
 
 const POT = [0, 1, 10_000, 30_000, 250_000, 1_073_100, 3_000_000, 10_000_000];
 const STATE_PENSION = [0, 1, 6_000, 12_570, 12_571, 20_000];
@@ -101,6 +101,8 @@ export const SCHEMA_C = {
     // while the money is still invested before it is first taken and while it is drawn (schemaParts.js chargeField).
     chargeField(),
     { path: 'endAge', type: 'age', min: 75, max: 105, default: 95, group: 'more', boundaries: [75, 95, 100, 105] },
+    // "How careful?" (7.8.0): Careful, Balanced (the default) or Bold, every figure at it
+    levelField(),
 
     // "Try a change" — optional; never on the numbers step. null = not asked.
     { path: 'take', type: 'money', min: 0, max: 50_000, default: null, group: 'try', boundaries: [0, 1, 1_000, 50_000] }

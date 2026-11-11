@@ -84,7 +84,7 @@ describe('the fixtures of spending-shape.md 10, each with its plain sentence', (
     wordsHold(a, all, scopesForA(a.inputs));
     expect(a.sentences.shape.text).toBe('That is at the start. Then, as you set it: £2,130 from 75 and £1,750 from 85.');
     expect(a.sentences.pays.some((l) => /in its first year/.test(l.text))).toBe(false);   // level steps: every figure is every year's
-    const c = a.shapeAt.careful;
+    const c = a.shapeAt.balanced;
     expect(a.sentences.couldShape.text).toBe(`You could spend about ${money(c[0].perMonth)} a month at the start, then as you set it: ${money(c[1].perMonth)} from 75 and ${money(c[2].perMonth)} from 85.`);
     // careful figures rounded down: never above the start × the share
     expect(c[1].perMonth).toBeLessThanOrEqual(c[0].perMonth * 2130 / 2500);
@@ -109,7 +109,7 @@ describe('the fixtures of spending-shape.md 10, each with its plain sentence', (
     expect(checkAnswer(r, inputs)).toEqual([]);
     const all = [...Object.values(r.sentences).flatMap((v) => (Array.isArray(v) ? v : [v])), ...r.assumed, ...r.warnings];
     wordsHold(r, all, C_SCOPES);
-    const [s0, s1, s2] = r.shapeAt.careful;
+    const [s0, s1, s2] = r.shapeAt.balanced;
     expect(r.sentences.shape.text).toBe(`That is at the start. Then, as you set it: ${money(s1.perMonth)} from 75 and ${money(s2.perMonth)} from 85, then falling 1% a year to ${money(s2.endPerMonth)} at 94.`);
     expect(r.sentences.head.text).toBe(`About ${money(s0.perMonth)} a month`);
     // the made-of lines follow the periods, cut at each step; the one the shape moves inside says its figures are its first year's
@@ -173,7 +173,7 @@ describe('the fixtures of spending-shape.md 10, each with its plain sentence', (
     const a = answerA(inputs, env);
     // the row at 65 tests £2,000 a month from the start; its spare is against that
     const row65 = a.ages.find((r) => r.age === 65);
-    expect(row65.spare).toBe(Math.max(0, row65.monthly.careful - 2000));
+    expect(row65.spare).toBe(Math.max(0, row65.levels.balanced.monthly - 2000));
     const past = answerA({ ...inputs, stop: { kind: 'age', age: 63 }, spend: { ...inputs.spend, steps: [{ fromAge: 64, perMonth: 2000 }] } }, { ...env, ages: [63, 65] });
     expect(past.status).toBe('ok');
     // asked about 65 itself, from the ages ("show me ages" shows the same rows): the note on the shown row

@@ -9,7 +9,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readdirSync } from 'node:fs';
 import { suggestedPlanName, checkPlanName, cleanName, withDuplicateSuffix, PLAN_NAME } from '../../../src/answers/shared/planName.js';
-import * as frozen from './seed.v1/planName.js';
+import * as frozenCopy from './seed.v1/planName.js';
+
+/**
+ * The frozen copy reads an answer as it was before 7.8.0: the careful figure at `monthly.careful` (and a shape at
+ * `shapeAt.careful`). The level keys (7.8.0) hold the same figure at levels.balanced; the copy is handed it where it reads it.
+ */
+const asBefore = (r) => (!r || !r.levels ? r : { ...r, monthly: { careful: r.levels[r.level || 'balanced'].monthly }, ...(r.shapeAt ? { shapeAt: { careful: r.shapeAt[r.level || 'balanced'] } } : {}) });
+const frozen = { suggestedPlanName: (q, inputs, r) => frozenCopy.suggestedPlanName(q, inputs, asBefore(r)) };
 import { aPartnerAlready, aYouAlready, bYouAlready, bBothLater, cYouNow } from './apartAnswers.mjs';
 
 const load = (q, name) => JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/states', q, `${name}.json`), 'utf8')).answers[q].result;
@@ -45,7 +52,7 @@ describe('stopping in the same year: every suggestion is 6.19.0\'s, word for wor
         if (r.inputs.partner) { r.inputs.partner.age = partner; if (said) r.inputs.partner.stop = { kind: 'same' }; }
         if (q === 'a') { r.shown.age = you + wait; r.shown.ages = r.inputs.partner ? { you: you + wait, partner: partner + wait } : { you: you + wait }; r.spend.perMonth = spend; }
         if (q === 'b') { r.stop.age = you + wait; r.ages = { you: you + wait, partner: partner + wait }; r.spend.perMonth = spend; r.payIn.now = payIn; }
-        if (q === 'c') { r.whose = 'you'; r.basis.startAge = you + wait; r.monthly.careful = Math.round(spend / 10) * 10; if (r.payIn) r.payIn.total = payIn; }
+        if (q === 'c') { r.whose = 'you'; r.basis.startAge = you + wait; r.levels.balanced.monthly = Math.round(spend / 10) * 10; if (r.payIn) r.payIn.total = payIn; }
         expect(suggestedPlanName(q, r.inputs, r)).toBe(frozen.suggestedPlanName(q, r.inputs, r));
       }
     ), { numRuns: 400 });
@@ -209,7 +216,7 @@ describe('rounding, length and what is never suggested', () => {
         r.inputs.you.age = you; r.inputs.partner.age = partner;
         if (q === 'a') { r.shown.age = you + wait; r.shown.ages = { you: you + wait, partner: partner + wait }; r.spend.perMonth = spend; }
         if (q === 'b') { r.stop.age = you + wait; r.ages = { you: you + wait, partner: partner + wait }; r.spend.perMonth = spend; r.payIn.now = payIn; }
-        if (q === 'c') { r.whose = 'you'; r.basis.startAge = you + wait; r.monthly.careful = Math.round(spend / 10) * 10; }
+        if (q === 'c') { r.whose = 'you'; r.basis.startAge = you + wait; r.levels.balanced.monthly = Math.round(spend / 10) * 10; }
         const s = suggestedPlanName(q, r.inputs, r);
         expect(s).toMatch(/^(Stop at|From) \d+ and \d+ · £[\d,]+ a month( · paying £[\d,]+)?$/);
         expect([...s].length).toBeLessThanOrEqual(PLAN_NAME.suggestMax);
@@ -269,6 +276,6 @@ describe('the duplicate suffix', () => {
 
 describe('the named state of a couple stopping apart (C\'s answer-apart: you from now, your partner at 56)', () => {
   it('is named for your partner\'s stop, the answer being from when you have both stopped', () => {
-    expect(name('c', 'answer-apart')).toBe(`Partner stops at 56 · £${load('c', 'answer-apart').monthly.careful.toLocaleString('en-GB')} a month`);
+    expect(name('c', 'answer-apart')).toBe(`Partner stops at 56 · £${load('c', 'answer-apart').levels.balanced.monthly.toLocaleString('en-GB')} a month`);
   });
 });

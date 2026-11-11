@@ -36,9 +36,9 @@ describe('1 the reported 55-year-old: £275,000, £500 + £300 a month, the mone
   });
 
   it('the headline is the monthly figure from 67, and paying in raises it', () => {
-    expect(a.sentences.head.text).toBe(`About £${a.monthly.careful.toLocaleString('en-GB')} a month`);
+    expect(a.sentences.head.text).toBe(`About £${a.levels.balanced.monthly.toLocaleString('en-GB')} a month`);
     expect(a.sentences.sub.text).toBe('after tax, from age 67 until you are 95, going up each year with prices');
-    expect(a.monthly.careful).toBeGreaterThan(none.monthly.careful);
+    expect(a.levels.balanced.monthly).toBeGreaterThan(none.levels.balanced.monthly);
     expect(a.potAtStart.middling).toBeGreaterThan(none.potAtStart.middling);
   });
 
@@ -55,12 +55,12 @@ describe('1 the reported 55-year-old: £275,000, £500 + £300 a month, the mone
   });
 
   it('a careful amount means the same as everywhere: it lasts in 9 lives out of 10, and £10 more does not', () => {
-    expect(a.lasted.careful).toBeGreaterThanOrEqual(0.9);
-    const more = answerC({ ...PAYING_IN, take: a.monthly.careful + 10 }, ENV);
+    expect(a.levels.balanced.fixedAge).toBeGreaterThanOrEqual(0.9);
+    const more = answerC({ ...PAYING_IN, take: a.levels.balanced.monthly + 10 }, ENV);
     expect(more.take.covered).toBe(false);
-    const at = answerC({ ...PAYING_IN, take: a.monthly.careful }, ENV);
+    const at = answerC({ ...PAYING_IN, take: a.levels.balanced.monthly }, ENV);
     expect(at.take.covered).toBe(true);
-    expect(at.take.lasted).toBe(a.lasted.careful);
+    expect(at.take.lasted).toBe(a.levels.balanced.fixedAge);
   });
 
   it('the trace: the saving months add up, nothing goes in from 67, and the band is every life\'s most', () => {
@@ -110,7 +110,7 @@ describe('4 more going in never pays less; one figure is own + employer', () => 
     let prev = null;
     for (const own of [0, 200, 500, 1500]) {
       const a = ok(answerC({ ...PAYING_IN, you: { ...PAYING_IN.you, payIn: { has: 'yes', own, employer: 300 } } }, ENV));
-      if (prev) for (const k of ['careful', 'middling', 'good']) expect(a.monthly[k], `${own} ${k}`).toBeGreaterThanOrEqual(prev.monthly[k]);
+      if (prev) for (const k of ['careful', 'balanced', 'bold']) expect(a.levels[k].monthly, `${own} ${k}`).toBeGreaterThanOrEqual(prev.levels[k].monthly);
       prev = a;
     }
   });
@@ -129,7 +129,7 @@ describe('5 from now nothing more goes in', () => {
   it('the figures are C\'s from now; a note says what is paid in now is not counted', () => {
     const now = ok(answerC({ you: { pot: 250000, age: 60, payIn: { has: 'yes', own: 500, employer: 300 } }, start: { kind: 'now' } }, ENV));
     const plain = answerC({ you: { pot: 250000, age: 60 } }, ENV);
-    expect(now.monthly).toEqual(plain.monthly);
+    expect(now.levels).toEqual(plain.levels);
     expect(now.sentences.payIn).toBeUndefined();
     expect(now.warnings.find((w) => w.id === 'pay-in-unused').text).toBe('With the money taken from now, nothing more goes into a pension, so what you pay in now is not counted. To count it, choose the age the money starts.');
   });
@@ -141,8 +141,8 @@ describe('5 from now nothing more goes in', () => {
     const from60 = ok(answerC({ you: { pot: 0, age: 60, payIn: { has: 'yes', own: 500, employer: 300 } }, start: { kind: 'age', age: 60 } }, ENV));
     const now = ok(answerC({ you: { pot: 0, age: 60, payIn: { has: 'yes', own: 500, employer: 300 } }, start: { kind: 'now' } }, ENV));
     expect(from60.status).toBe('guaranteed-only');
-    expect(from60.monthly).toEqual(now.monthly);
-    expect(from60.monthly.careful).toBeGreaterThan(1000);
+    expect(from60.levels).toEqual(now.levels);
+    expect(from60.levels.balanced.monthly).toBeGreaterThan(1000);
     expect(from60.warnings.map((w) => w.id)).toContain('pay-in-unused');
     // a couple of 18-year-olds, one paying in £1, the money from 18: the only pension is closed then and there are no
     // savings, so the start is refused, as for one person (per person since the reviewers' finding, 1 Oct 2026) — never

@@ -332,7 +332,7 @@ describe('C "from now" with your partner stopping later: into A and B as "I\'ve 
     'partner.age': '55', 'partner.pot': '260,000', 'partner.payIn.has': 'yes', 'partner.payIn.kind': 'total', 'partner.payIn.total': '700',
     'partner.stop.kind': 'age', 'partner.stop.age': '57', untilBothStop: 'all', ...more }).map(([p, v]) => set('c', p, v)));
   const APART_STOPS = { first: 'you', years: 2, stops: { you: { age: 62, already: true }, partner: { age: 57, already: false } }, payCovers: 1, coversGap: true, coverUsed: null };
-  const cResult = (apart = APART_STOPS, start = { kind: 'now' }) => ({ status: 'ok', inputs: { household: 'couple', start }, monthly: { careful: 2800, middling: 3200, good: 3700 },
+  const cResult = (apart = APART_STOPS, start = { kind: 'now' }) => ({ status: 'ok', inputs: { household: 'couple', start }, level: 'balanced', levels: { careful: { monthly: 2700 }, balanced: { monthly: 2800 }, bold: { monthly: 3200 } },
     payIn: { total: 700, byPerson: [{ who: 'you', total: 0 }, { who: 'partner', total: 700 }] }, ...(apart ? { apart } : {}) });
 
   it('there is one for C → A and C → B while the switch offers "I\'ve already stopped"; every entry names real fields', () => {

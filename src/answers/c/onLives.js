@@ -32,6 +32,8 @@ import { bandIndexes, STEP } from '../shared/band.js';
 import { potsShareOf, potsNeedByYear } from '../shared/toEngine.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt } from '../shared/stopAt.js';
+import { weigherOf } from '../shared/weigh.js';
+import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, horizonRuleOf } from '../shared/levels.js';
 import { savingRows } from '../shared/saving.js';
 import { apartOf } from '../shared/apart.js';
 import { toHousehold as toSaverHousehold } from '../a/toHousehold.js';
@@ -210,15 +212,21 @@ const spreadOf = (values) => { const p = positionsOf(values); return { careful: 
 const remembered = new Map();                                  // key → Map(lives → amounts in steps)
 const keyOf = (inputs, env) => { const { take, ...rest } = inputs; void take; return JSON.stringify([rest, env.seed ?? 0, typeof env.futureReturns === 'function', env.mix || null, env.savingMix || null]); };
 
-/** The band at one start age on the lives, its search started where a smaller pass of the same inputs ended (a hint). */
-function bandOn(inputs, household, startAge, env, onProgress) {
+/**
+ * The band at one start age on the lives, its search started where a smaller pass of the same inputs ended (a hint), with
+ * the levels asked for (7.8.0; the level chosen when none are named) on the weights of the stop plan.
+ */
+function bandOn(inputs, household, startAge, env, onProgress, ids = [levelOfInputs(inputs)]) {
   const sp = stopAtPlan(household, startAge, env);
   const runner = createStopRunner(sp);
   const key = keyOf({ ...inputs, start: { kind: 'age', age: startAge } }, env);
   const byN = remembered.get(key) || new Map();
   let hint = null;
   for (const [m, k] of byN) if (m < sp.n && (!hint || m > hint.m)) hint = { m, k };
-  const band = bandAt(sp, runner, hint ? { ...hint.k } : null, { onProgress });
+  const weigher = weigherOf(sp.plan, inputs, env);
+  const toMonth = 12 * (sp.plan.endAge - sp.plan.startAge);
+  const band = bandAt(sp, runner, hint ? { ...hint.k } : null, { onProgress, weigher, levels: ids, toMonth });
+  band.weigher = weigher;
   byN.set(sp.n, { ...band.k });
   remembered.delete(key);
   remembered.set(key, byN);
@@ -254,8 +262,9 @@ function closedYearsOf(inputs, sp, band, env) {
   const gap = [...new Set(closed.map((l) => l.years))].sort((a, b) => a - b).find((y) => openAt(y) >= total / 2);
   const until = startAge + gap;
   const reachable = mid.reduce((t, q, j) => t + q.isa + (closed.some((l) => l.who === plan.people[j].who) ? 0 : q.pension), 0);
+  const level = levelOfInputs(inputs);
   const later = bandOn(inputs, saverHouseholdOf(inputs, until, env), until, env);
-  const H = later.band.monthly.careful * 12;
+  const H = later.band.levels[level].monthly * 12;
   // (a shape: year by year — spending-shape.md 5.2)
   const need = plan.shape && plan.shape.r ? needIn(plan, H, 0, gap)
     : plan.periods.filter((per) => per.from < gap).reduce((t, per) => t + Math.max(0, H - per.netTotal) * (Math.min(per.to, gap) - per.from), 0);
@@ -263,12 +272,15 @@ function closedYearsOf(inputs, sp, band, env) {
   const opening = closed.filter((l) => l.years === gap).map((l) => l.who);
   const partner = plan.people.find((p) => p.who === 'partner');
   return {
-    from: startAge, until, who: opening, careful: band.monthly.careful,
+    from: startAge, until, who: opening, monthly: band.levels[level].monthly,
     partnerUntil: partner ? partner.ageAtStart + gap : null,
     reachable: Math.round(reachable), need: Math.round(need),
-    instead: { age: until, monthly: { ...later.band.monthly }, lasted: { ...later.band.lastedAt } }
+    instead: insteadOf(later.band.levels[level], until)
   };
 }
+
+/** "Starting at X instead": the level's amount there and its chance. */
+const insteadOf = (lv, age) => ({ age, monthly: lv.monthly, fixedAge: lv.chance.fixedAge, weighted: lv.chance.weighted });
 
 /**
  * closedYearsOf for a couple who stop in different years (couples-different-years.md 5.1): the same test, from where the
@@ -304,16 +316,17 @@ function closedYearsApart(inputs, sp, band, env) {
   if (!(until > sp.stopAge && inputs.endAge > younger + last && last - first < RULES.maxYears)) return null;
   // what can pay from the check: the savings of those who have stopped by then, and every pension open then
   const reachable = plan.people.reduce((t, p, j) => (p.join > cy ? t : t + mid[j].isa + (closed.some((x) => x.j === j) ? 0 : mid[j].pension)), 0);
+  const level = levelOfInputs(inputs);
   const later = bandOn(inputs, saverHouseholdOf(inputs, until, env), until, env);
-  const H = later.band.monthly.careful * 12;
+  const H = later.band.levels[level].monthly * 12;
   const need = plan.shape && plan.shape.r ? needIn(plan, H, cy, gap) : plan.periods.filter((per) => per.to > cy && per.from < gap)
     .reduce((t, per) => t + Math.max(0, H * potsShareOf(per) - per.netTotal) * (Math.min(per.to, gap) - Math.max(per.from, cy)), 0);
   if (reachable >= need) return null;
   return {
-    from: you.ageAtStart + you.join, until, who: closed.filter((x) => x.shut === gap).map((x) => x.p.who), careful: band.monthly.careful,
+    from: you.ageAtStart + you.join, until, who: closed.filter((x) => x.shut === gap).map((x) => x.p.who), monthly: band.levels[level].monthly,
     partnerUntil: partner ? partner.ageAtStart + gap : null,
     reachable: Math.round(reachable), need: Math.round(need),
-    instead: { age: until, monthly: { ...later.band.monthly }, lasted: { ...later.band.lastedAt } }
+    instead: insteadOf(later.band.levels[level], until)
   };
 }
 
@@ -329,8 +342,14 @@ export function answerOnLives(checked, env, ctx) {
   const hp = validateHousehold(household, env.today);
   if (hp.length) return { status: 'invalid', problems: hp.map((p) => ({ field: p.field, messageId: p.problem })) };
 
-  const { sp, runner, band } = bandOn(inputs, household, startAge, env, typeof env.onProgress === 'function' ? env.onProgress : undefined);
+  const level = levelOfInputs(inputs);
+  const { sp, runner, band } = bandOn(inputs, household, startAge, env, typeof env.onProgress === 'function' ? env.onProgress : undefined, LEVEL_IDS);
   const plan = runner.plan;
+  const weigher = band.weigher;
+  const planToAge = plan.endAge;
+  const toMonth = 12 * (planToAge - plan.startAge);
+  const shownMonthly = band.levels[level].monthly;
+  const levels = Object.fromEntries(LEVEL_IDS.map((id) => [id, { monthly: band.levels[id].monthly, yearly: band.levels[id].yearly, weighted: band.levels[id].chance.weighted, fixedAge: band.levels[id].chance.fixedAge }]));
   const closedYears = closedYearsOf(inputs, sp, band, env);
 
   // the pots at the start, per life: each person's pension and savings, today's prices
@@ -360,31 +379,33 @@ export function answerOnLives(checked, env, ctx) {
 
   let take = null;
   if (isNum(inputs.take)) {
-    const v = verdictAt(sp, runner, inputs.take * 12);
-    take = { perMonth: inputs.take, lasted: v.lasted, runOutAge: v.runOutAge, covered: v.fails <= Math.floor(n / 10) };
+    const v = verdictAt(sp, runner, inputs.take * 12, { weigher, level, toMonth });
+    take = { perMonth: inputs.take, lasted: v.lasted, runOutAge: v.runOutAge, covered: v.verdict === 'yes', weighted: v.weighted, verdict: v.verdict };
   }
 
   const mid = sp.middling;
   const midTotal = mid.reduce((t, q) => t + q.pension + q.isa, 0);
   const basis = {
-    ...ctx.basisOf(plan, n),
+    ...ctx.basisOf(plan, n, levelBasis(level, weigher, inputs, planToAge)),
     split: sp.saving.people.map((p, j) => ({ who: p.who, share: midTotal > 0 ? (mid[j].pension + mid[j].isa) / midTotal : 1 / mid.length })),
     yearsSaving: S, lifeYears: sp.T, bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly'
   };
   // couples apart: each person's own stop, the pay line, and — in a bad case (the worst 1 in 10), at the careful amount —
   // the age from which the pay of the one still working covers all of what is spent
-  const cover = plan.apart && plan.apart.coversGap && band.monthly.careful > 0 ? coverAt(sp, runner, band.monthly.careful * 12) : null;
+  const cover = plan.apart && plan.apart.coversGap && shownMonthly > 0 ? coverAt(sp, runner, shownMonthly * 12) : null;
   const apart = apartOf(plan, inputs, own, cover);
-  // what you could spend changing with age (spending-shape.md 6.2): the three amounts at the start with the later steps in
-  // proportion, and each year's figures at the careful amount
-  const shaped = household.shape ? shapeOfAnswer({ household, plan, at: band.monthly, H0: band.monthly.careful * 12,
-    yearly: phasesAt(sp, band.monthly.careful * 12, null, { yearly: true }).map(asCPhase) }) : null;
+  // what you could spend changing with age (spending-shape.md 6.2): each level's amount at the start with the later steps
+  // in proportion, and each year's figures at the level's amount
+  const shaped = household.shape ? shapeOfAnswer({ household, plan, at: Object.fromEntries(LEVEL_IDS.map((id) => [id, levels[id].monthly])), level, H0: shownMonthly * 12,
+    yearly: phasesAt(sp, shownMonthly * 12, null, { yearly: true }).map(asCPhase) }) : null;
   const result = {
     status: 'ok', inputs,
-    monthly: { ...band.monthly }, yearly: { ...band.yearly }, ...(shaped || {}), lasted: { ...band.lastedAt }, runOutAge: { ...band.runOutAgeAt }, whose: plan.whose,
+    level, levels, ...(shaped || {}),
+    chance: chanceBlock(band.levels[level].chance, n, { planToAge, weightToAge: weigher.weighted ? weigher.weightToAge : planToAge, horizonRule: horizonRuleOf({ defaulted: (ctx.defaulted || []).includes('endAge'), capped: false }) }),
+    whose: plan.whose,
     ...(apart ? { apart } : {}),
     guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
-    phases: shaped ? markShapeMoves(phasesAt(sp, band.monthly.careful * 12).map(asCPhase), shaped.byYear) : phasesAt(sp, band.monthly.careful * 12).map(asCPhase),
+    phases: shaped ? markShapeMoves(phasesAt(sp, shownMonthly * 12).map(asCPhase), shaped.byYear) : phasesAt(sp, shownMonthly * 12).map(asCPhase),
     take,
     payIn: { total: payInTotal, byPerson: saving.map((s) => ({ who: s.who, total: s.payIn.total })) },
     potAtStart,
@@ -393,7 +414,9 @@ export function answerOnLives(checked, env, ctx) {
     assumed: [], warnings: [], sentences: {},
     basis, units: ctx.units
   };
-  ctx.finish(result, plan, household, { middling: mid, potAtStartMiddling: potAtStart.middling, own });
+  // (the count's middling amount, inside only: the "pot used up" note reads where a bad case runs out at it)
+  const middlingRunOut = band.k.middling > band.k.careful ? band.runOutAgeAt.middling : null;
+  ctx.finish(result, plan, household, { middling: mid, potAtStartMiddling: potAtStart.middling, own, middlingRunOut });
 
   if (env.trace) {
     // the saving months of the life whose pot at the start is the bad case, and every life's most and run-out months
@@ -405,7 +428,7 @@ export function answerOnLives(checked, env, ctx) {
     result.trace = {
       saving: { atCareful: { futureId: bad, priceAtStop: sp.saving.people[0].until > 0 ? sp.kernels[0].pension.priceAtStop[bad] : 1, potAtStart: round2(totals[bad]),
         rows: saves ? sp.saving.people.flatMap((p) => savingRows(sp.saving, p, sp.lives[bad])) : [] } },
-      futures: Array.from({ length: n }, (_, i) => ({ id: i, most: band.solver ? band.solver.most(i) * STEP : band.monthly.careful,
+      futures: Array.from({ length: n }, (_, i) => ({ id: i, most: band.solver ? band.solver.most(i) * STEP : band.k.careful * STEP,
         runOutMonth: { careful: band.runOutMonths.careful[i], middling: band.runOutMonths.middling[i], good: band.runOutMonths.good[i] } })),
       evaluations: band.evaluations
     };

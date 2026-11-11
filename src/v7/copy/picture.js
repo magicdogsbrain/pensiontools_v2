@@ -22,9 +22,9 @@ export const PICTURE = {
     enough: 'a month going in that would be enough',
     enoughShare: 'of your pay going in that would be enough',
     payInNow: 'a month going in now',
-    careful: 'a month, lasting in 9 futures out of 10',
-    middling: 'a month in middling years',
-    good: 'a month in good years',
+    careful: 'a month at Careful, lasting in 19 futures out of 20',
+    balanced: 'a month at Balanced, lasting in 9 futures out of 10',
+    bold: 'a month at Bold, lasting in 7 futures out of 10',
     take: 'a month you take, after tax',
     could: 'a month you could take, lasting to {age} in 9 futures out of 10',
     runsOut: 'the age the money runs out in a bad case (the worst 1 in 10)',
@@ -40,7 +40,7 @@ export const PICTURE = {
       enough: 'what would be enough',
       now: 'paying in as now',
       bad: 'a bad case (the worst 1 in 10)',
-      middling: 'middling years (a guide)',
+      middling: 'at Bold (a guide)',
       you: 'you, today'
     },
     stop: 'stop at {age}',
@@ -62,7 +62,7 @@ export const PICTURE = {
       dToday: 'Today, at {age}: {pot} in your pension and savings.',
       dOut: 'At what you take, in a bad case the money runs out at {age}.',
       dLasts: 'At what you take, the money lasts to {age} even in a bad case.',
-      dMiddling: 'In middling years, {amount} a month would last to {age}.'
+      dMiddling: 'At Bold, {amount} a month lasted to {age} in 7 futures out of 10.'
     }
   },
   /** The line that keeps an answer: the one create path is the question's own "Keep" step. */

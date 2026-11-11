@@ -16,6 +16,7 @@
  *
  * Every push: fixed seeds, small counts. Nightly (NIGHTLY=1): a fresh seed and more households.
  */
+import { weigherOf } from '../../../src/answers/shared/weigh.js';
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { fcOptions } from '../oracles/fcOptions.mjs';
@@ -70,7 +71,7 @@ describe('R1 — the every-age step from the answer step\'s rows is the every-ag
       // there today's engine is not monotone at £10 and a band depends on where its search starts (a row searched from
       // the answer step's neighbours or from the full table's can land a few steps apart: tests/v7/oracles/oneStep.mjs).
       // A NIGHTLY=1 run, 1 Oct 2026 (seed -109027457): one person of 42 with £10,000,000, "show me ages". Printed, not asserted.
-      if (cold.ages.some((r) => largeHousehold(r.monthly.good))) { if (J(warm) !== J(cold)) findings.push(inputs); return; }
+      if (cold.ages.some((r) => largeHousehold(r.levels.bold.monthly))) { if (J(warm) !== J(cold)) findings.push(inputs); return; }
       expect(J(warm), J(inputs)).toBe(J(cold));
     }), fcOptions({ seed: SEED, runs: RUNS }));
     if (findings.length) console.log(`R1: the every-age step from the answer step's rows differed from it worked out cold in ${findings.length} household(s) with an amount over £10,000 a month — a finding (tests/v7/a/exceptions.md)`, J(findings[0]));
@@ -98,7 +99,7 @@ describe('R2 — an earlier answer that is not for these inputs on these lives i
   const cold = J(answerA(fx.inputs, env));
   const chart = answerA(fx.inputs, { ...env, detail: 'chart' });
   // a row doctored so that any use of it would show
-  const doctored = (r) => ({ ...r, ages: r.ages.map((row) => ({ ...row, monthly: { ...row.monthly, careful: row.monthly.careful + 10_000 } })) });
+  const doctored = (r) => ({ ...r, ages: r.ages.map((row) => ({ ...row, levels: Object.fromEntries(Object.entries(row.levels).map(([k, v]) => [k, { ...v, monthly: v.monthly + 10_000 }])) })) });
   const other = (patch) => doctored({ ...chart, ...patch });
   const cases = [
     ['another spend', other({ inputs: { ...chart.inputs, spend: { kind: 'amount', amount: chart.inputs.spend.amount + 10 } } })],
@@ -153,9 +154,11 @@ describe('R4 — each row\'s band is the band searched with no hint: where the s
     for (const row of a.ages) {
       const { household } = toHousehold(ins, env, row.age);
       const sp = stopAtPlan(household, row.age, env, lives);
-      const band = bandAt(sp, createStopRunner(sp), null);
-      expect({ monthly: band.monthly, lastedAt: band.lastedAt, runOutAgeAt: band.runOutAgeAt }, `${fx.id} at ${row.age}`)
-        .toEqual({ monthly: row.monthly, lastedAt: row.lastedAt, runOutAgeAt: row.runOutAgeAt });
+      // (7.8.0: the row's level figures, searched again with no hint, on the weights of the stop)
+      const weigher = weigherOf(sp.plan, ins, env);
+      const band = bandAt(sp, createStopRunner(sp), null, { weigher, levels: Object.keys(row.levels), toMonth: 12 * (sp.plan.endAge - sp.plan.startAge) });
+      const got = Object.fromEntries(Object.entries(band.levels).map(([k, v]) => [k, { monthly: v.monthly, yearly: v.yearly, weighted: v.chance.weighted, fixedAge: v.chance.fixedAge }]));
+      expect(got, `${fx.id} at ${row.age}`).toEqual(row.levels);
     }
   }, 120_000);
 });

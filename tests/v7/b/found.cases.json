@@ -34,7 +34,7 @@
         "risk": "cautious",
         "charge": 0,
         "endAge": 95,
-        "confidence": "nineInTen"
+        "confidence": "balanced"
       },
       "env": {
         "futures": 20,
@@ -42,8 +42,7 @@
       },
       "expect": {
         "outside.careful": 383000,
-        "number.careful": 3885000,
-        "number.good": 1687000
+        "levels.balanced.pot": 3885000
       },
       "found": {
         "date": "2026-10-27",
@@ -84,7 +83,7 @@
         "risk": "cautious",
         "charge": 0,
         "endAge": 95,
-        "confidence": "nineInTen"
+        "confidence": "balanced"
       },
       "env": {
         "futures": 20,
@@ -92,7 +91,7 @@
       },
       "expect": {
         "outside.careful": 1251000,
-        "number.careful": 25000
+        "levels.balanced.pot": 25000
       },
       "found": {
         "date": "2026-11-02",

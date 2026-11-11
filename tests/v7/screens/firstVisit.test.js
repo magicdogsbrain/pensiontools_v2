@@ -119,7 +119,7 @@ describe('the pot over a life (B): to scale, through the answer\'s own figures, 
   it('each line is one life: its faint drawing half starts where its rising half ends and falls to the age the answer gives (run out in a bad case, or the end age)', () => {
     const end = r.basis.endAge;
     const out = (age) => (age < end ? age : end);
-    const halves = { now: out(r.wholeLife.runOutAge), enough: out(r.enough.nineInTen.runOutAge) };
+    const halves = { now: out(r.wholeLife.runOutAge), enough: out(r.enough.atLevel.runOutAge) };
     for (const [id, age] of Object.entries(halves)) {
       const rising = P.lines.find((l) => l.id === id);
       const half = P.lines.find((l) => l.id === `${id}.drawing`);
@@ -174,7 +174,7 @@ describe('the pot over a life (B): to scale, through the answer\'s own figures, 
     expect(fig.querySelector('figcaption .sr-only').textContent.length).toBeGreaterThan(20);
     const rows = [...one(root, 'b.pot.table').querySelectorAll('li')].map((li) => li.textContent);
     expect(rows[0]).toMatch(/^Today, at \d+: £[\d,]+\.$/);
-    expect(rows.join(' ')).toContain(`£${r.number.careful.toLocaleString('en-GB')}`);
+    expect(rows.join(' ')).toContain(`£${r.levels.balanced.pot.toLocaleString('en-GB')}`);
   });
   it('the final frame is drawn complete: every line has its whole shape in the page before any motion, and the motion is CSS that less motion switches off', () => {
     const root = renderScreen(state);
@@ -249,7 +249,7 @@ describe('the page around an answer: the slider, the three figures, the Keep lin
   it('C: "What if you took…?" writes the try box; D: what you take writes the spending', () => {
     const c = load('c', 'answer-F1');
     expect(answerSlider(c, 'c')).toMatchObject({ path: 'take', unit: 'money' });
-    expect(answerSlider(c, 'c').value).toBe(c.answers.c.result.monthly.careful);
+    expect(answerSlider(c, 'c').value).toBe(c.answers.c.result.levels.balanced.monthly);
     const d = load('d', 'answer-D1');
     expect(answerSlider(d, 'd')).toMatchObject({ path: 'spend.amount', value: d.answers.d.result.spend.perMonth });
   });
@@ -355,7 +355,7 @@ describe('the slider never runs away and never writes a figure its box refuses (
     const c = load('c', 'answer-F1');
     const S = answerSlider(c, 'c');
     expect(S.value % S.step).toBe(0);
-    expect(S.value).toBe(c.answers.c.result.monthly.careful);
+    expect(S.value).toBe(c.answers.c.result.levels.balanced.monthly);
   });
 });
 

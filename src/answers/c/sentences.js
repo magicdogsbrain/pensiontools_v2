@@ -12,7 +12,8 @@
  * says so; what was assumed and the warnings carry the pay line (shared/apart.js, the same words in C, A and B). C is
  * read by people who have stopped: "stops at 56", never "stop work at 56". With one stop for both nothing here changes.
  */
-import { money, outOfTen, partsText, get, lastedText } from '../shared/format.js';
+import { money, outOfTen, partsText, lastedText } from '../shared/format.js';
+import { shownOf } from '../shared/levels.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES } from '../shared/rules.js';
 import { apartAssumed, apartWarnings, workerOf } from '../shared/apart.js';
@@ -363,11 +364,11 @@ function closedYearsSentence(result, facts) {
   const reach = reachableWords(result, facts);
   const meanwhile = !reach
     ? [' Until then nothing else can pay, so there is no steady amount from ', A('closedYears.from'), ' that lasts.']
-    : cy.careful >= 10
-      ? [' Until then only ', reach, ' can pay, so a steady amount from ', A('closedYears.from'), ' could be only about ', M('closedYears.careful'), ' a month.']
+    : cy.monthly >= 10
+      ? [' Until then only ', reach, ' can pay, so a steady amount from ', A('closedYears.from'), ' could be only about ', M('closedYears.monthly'), ' a month.']
       : [' Until then only ', reach, ' can pay, and that is not enough for a steady amount from ', A('closedYears.from'), '.'];
-  const instead = cy.instead.monthly.careful > 0
-    ? [c ? ' Starting when you are ' : ' Starting at ', A('closedYears.instead.age'), ' instead, ', c ? 'the two of you' : 'you', ' could have about ', M('closedYears.instead.monthly.careful'),
+  const instead = cy.instead.monthly > 0
+    ? [c ? ' Starting when you are ' : ' Starting at ', A('closedYears.instead.age'), ' instead, ', c ? 'the two of you' : 'you', ' could have about ', M('closedYears.instead.monthly'),
       ' a month after tax ', ...untilParts(facts), ', going up each year with prices.']
     : [];
   return S('c.none.closed', [...who, ...meanwhile, ...instead]);
@@ -409,36 +410,27 @@ export function sentencesOnLives(result, facts) {
  */
 export function sentencesFor(result, facts) {
   const c = facts.couple;
-  const lastedParts = wordsParts(result.lasted.careful >= 0.95 - 1e-9 ? outOfTen(result.lasted.careful).words : 'in 9 futures out of 10');
+  // the level the answer stands behind (7.8.0: shared/levels.js shownOf)
+  const LM = 'levels.' + result.level + '.monthly';
+  const shown = shownOf(result);
+  const lastedParts = wordsParts(shown.fixedAge >= 0.95 - 1e-9 ? outOfTen(shown.fixedAge).words : 'in 9 futures out of 10');
 
-  const head = S('c.head', ['About ', M('monthly.careful'), ' a month']);
+  const head = S('c.head', ['About ', M(LM), ' a month']);
   const sub = facts.apart ? apartSub(facts) : S(c ? 'c.sub.couple' : 'c.sub', ['after tax, ', c ? 'for the two of you, ' : '', ...fromParts(facts), ' ', ...untilParts(facts), ', going up each year with prices', ...(facts.life ? [] : ifStaysParts(facts))]);
   const line = S(c ? 'c.line.couple' : 'c.line', [
-    'With ', ...(facts.life ? sourcesOnLivesParts(result, facts) : sourcesParts(facts)), ', ', c ? 'the two of you' : 'you', ' could have about ', M('monthly.careful'), ' a month after tax, ',
+    'With ', ...(facts.life ? sourcesOnLivesParts(result, facts) : sourcesParts(facts)), ', ', c ? 'the two of you' : 'you', ' could have about ', M(LM), ' a month after tax, ',
     ...fromParts(facts), ' ', ...untilParts(facts), '. That amount lasted ', ...lastedParts, '.'
   ]);
 
-  const badParts = ['In a bad case (the worst ', F('1'), ' in ', F('10'), '), ', M('monthly.careful'), ' a month only just lasts to ', A('basis.endAge'), '.'];
-  const middlingRunsOut = result.monthly.middling > result.monthly.careful && result.runOutAge.middling < result.basis.endAge;
-  if (middlingRunsOut) {
-    badParts.push(' If you took ', M('monthly.middling'), ' a month instead, a bad case would run out ',
-      ...(c ? ['when the younger of you is ', A('runOutAge.middling')] : ['at age ', A('runOutAge.middling')]), '.');
-    // (not when that bad case runs out while every pension is still closed: the pension is there, untouched — the
-    // savings-run-short warning says what ran out, and when the pension can be touched)
-    const closedThen = facts.life && facts.allClosedUntil !== null && result.runOutAge.middling < facts.allClosedUntil;
-    // (on the lives: that figure is once every State Pension and final-salary pension has started — said, when the bad case
-    // runs out before then, as A says it)
-    const later = facts.life && facts.incomes ? facts.incomes.filter((x) => x.at > result.runOutAge.middling) : [];
-    const once = !later.length ? [] : facts.incomes.length === 1 ? [' once it starts at ', F(later[0].age)] : [' once they have all started'];
-    if (get(result, AFTER_KEY) > 0 && !closedThen) badParts.push(' After that you would have ', AFTER, ' a month from ', afterPhrase(facts), ...once, '.');
-  }
+  const badParts = ['In a bad case (the worst ', F('1'), ' in ', F('10'), '), ', M(LM), ' a month only just lasts to ', A('basis.endAge'), '.'];
   const bad = S('c.bad', badParts);
-  const range = S('c.range', ['You could take: careful ', M('monthly.careful'), ', middling ', M('monthly.middling'), ', good ', M('monthly.good'), ' a month.']);
+  // the three levels (7.8.0: the middling and best-1-in-10 amounts of the count are no longer figures of the answer)
+  const range = S('c.range', ['You could take: Careful ', M('levels.careful.monthly'), ', Balanced ', M('levels.balanced.monthly'), ', Bold ', M('levels.bold.monthly'), ' a month.']);
 
   // what you could spend changing with age (spending-shape.md 6.2): the figure is the start; the next sentence the steps
-  const shaped = result.shapeAt && result.monthly.careful > 0 && shapeMoves(result.shapeAt.careful);
+  const shaped = result.shapeAt && shown.monthly > 0 && shapeMoves(result.shapeAt[result.level]);
   const sentences = shaped
-    ? { head, sub, shape: atTheStart('c.shape', result.shapeAt.careful, 'shapeAt.careful'), line, bad, range, madeOf: madeOfLines(result, facts) }
+    ? { head, sub, shape: atTheStart('c.shape', result.shapeAt[result.level], 'shapeAt.' + result.level), line, bad, range, madeOf: madeOfLines(result, facts) }
     : { head, sub, line, bad, range, madeOf: madeOfLines(result, facts) };
 
   if (result.take) {
@@ -460,7 +452,7 @@ export function sentencesFor(result, facts) {
       ? S('c.small', ['A pot of ', M('inputs.you.pot'), ' is small to spread over ', F(result.basis.years), yearsWord(result.basis.years), '. Many people with a pot this size take it as one or a few lump sums instead.'])
       : S('c.small', ['That is not much to spread over ', F(result.basis.years), yearsWord(result.basis.years), '. Many people with pots this size take them as one or a few lump sums instead.']);
   }
-  if (result.monthly.careful <= 0) {
+  if (shown.monthly <= 0) {
     sentences.none = S('c.none', ['With these figures there is no monthly amount that lasts to ', A('basis.endAge'), '. Try a later start age or a shorter time.']);
   }
   return sentences;
@@ -476,7 +468,7 @@ export function sentencesWithoutPots(result, facts) {
       sub: S(c ? 'c.sub.couple' : 'c.sub', ['there is no pot and no pension income in these figures']),
       line: nothing,
       bad: S('c.bad', ['A bad case (the worst ', F('1'), ' in ', F('10'), ') makes no difference here: nothing in these figures depends on markets.']),
-      range: S('c.range', ['There is no careful, middling or good amount to show.']),
+      range: S('c.range', ['There is no Careful, Balanced or Bold amount to show.']),
       madeOf: [],
       nothing
     };
@@ -489,14 +481,14 @@ export function sentencesWithoutPots(result, facts) {
     : (c ? ['from when you are ', A('phases.' + last + '.ages.you.from')] : ['from age ', A('phases.' + last + '.fromAge')]);
   // the pensions start after the plan ends (a young person with nothing yet): say the age, and no "until"
   const later = !lastHasIncome ? ['from age ', F(facts.allStartedAge)] : null;
-  // The three amounts ARE the take-home once every pension has started (answer.js), so the headline reads the same
-  // field the rail and the screen read: monthly.careful.
+  // The three levels ARE the take-home once every pension has started (answer.js), so the headline reads the same
+  // field the rail and the screen read: the level's monthly figure.
   return {
-    head: S('c.head', [M('monthly.careful'), ' a month']),
+    head: S('c.head', [M('levels.' + result.level + '.monthly'), ' a month']),
     sub: S(c ? 'c.sub.couple' : 'c.sub', later ? ['after tax, ', c ? 'for the two of you, ' : '', ...later, ', going up each year with prices'] : ['after tax, ', c ? 'for the two of you, ' : '', ...startParts, ' ', ...untilParts(facts), ', going up each year with prices']),
     line: nothing,
     bad: S('c.bad', ['A bad case (the worst ', F('1'), ' in ', F('10'), ') makes no difference here: none of this depends on markets.']),
-    range: S('c.range', ['Careful, middling and good are all the same here: ', M('monthly.careful'), ' a month.']),
+    range: S('c.range', ['Careful, Balanced and Bold are all the same here: ', M('levels.' + result.level + '.monthly'), ' a month.']),
     madeOf: madeOfLines(result, facts),
     nothing
   };
@@ -661,14 +653,13 @@ export function warningsFor(result, facts) {
   }
   // every pension closed at the start, and a bad case running out before the first opens: it is the savings that ran
   // out, and the pension is there, untouched (A's savings-run-short, the reviewers' finding, 1 Oct 2026). Said for the
-  // amount named under "take", else the middling amount (the bad-case line's "if you took … instead").
+  // amount named under "take" (7.8.0: the middling amount it was also said for is no longer a figure of the answer).
   if (facts.life && facts.allClosedUntil !== null && !facts.closedYears && result.status === 'ok') {
     const t = result.take;
-    const key = t && t.runOutAge < facts.allClosedUntil ? 'take' : result.monthly.middling > result.monthly.careful && result.runOutAge.middling < facts.allClosedUntil ? 'middling' : null;
-    if (key) {
+    if (t && t.runOutAge < facts.allClosedUntil) {
       const first = facts.firstClosed;
-      warn('savings-run-short', 'important', ['In a bad case (the worst ', F('1'), ' in ', F('10'), '), taking ', M(key === 'take' ? 'take.perMonth' : 'monthly.middling'), ' a month, your savings run out ',
-        ...(c ? ['when the younger of you is ', A(key === 'take' ? 'take.runOutAge' : 'runOutAge.middling')] : ['at ', A(key === 'take' ? 'take.runOutAge' : 'runOutAge.middling')]),
+      warn('savings-run-short', 'important', ['In a bad case (the worst ', F('1'), ' in ', F('10'), '), taking ', M('take.perMonth'), ' a month, your savings run out ',
+        ...(c ? ['when the younger of you is ', A('take.runOutAge')] : ['at ', A('take.runOutAge')]),
         ', before ', first.who === 'you' ? 'you can touch your pension at ' : 'your partner can touch their pension at ', F(first.untilAge), '.']);
     }
   }
@@ -676,7 +667,7 @@ export function warningsFor(result, facts) {
     const found = result.phases.findIndex((ph, i) => i > 0 && ph.fromPots <= 0 && result.phases[i - 1].fromPots > 0);
     // on the lives, only when the pot is spent by then: a bad case at the next amount up runs out in the years just before
     // (not when the guaranteed income merely covers a small amount held down by closed years — the pot is still there)
-    const spent = !facts.life || (!facts.closedYears && found > 0 && result.monthly.middling > result.monthly.careful && result.runOutAge.middling >= result.phases[found - 1].fromAge);
+    const spent = !facts.life || (!facts.closedYears && found > 0 && facts.middlingRunOut !== null && facts.middlingRunOut >= result.phases[found - 1].fromAge);
     const usedUp = spent ? found : -1;
     if (usedUp > 0) {
       warn('pot-used-before-state-pension', 'important', ['Your ', facts.anyPension ? 'pot' : 'savings', facts.anyPension ? ' is' : ' are', ' used up by ',

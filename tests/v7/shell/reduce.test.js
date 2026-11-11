@@ -96,22 +96,22 @@ describe('answer/*', () => {
     expect(s.answers.c.progress).toEqual({ done: 40, total: 100 });
     s = first(s, 'K1', result(1370));
     expect(s.answers.c).toMatchObject({ status: 'first', inputsKey: 'K1', progress: null });
-    expect(s.answers.c.result.monthly.careful).toBe(1370);
+    expect(s.answers.c.result.levels.balanced.monthly).toBe(1370);
     s = final(s, 'K1', result(1380));
     expect(s.answers.c).toMatchObject({ status: 'final', inputsKey: 'K1', slow: false, progress: null });
-    expect(s.answers.c.result.monthly.careful).toBe(1380);
+    expect(s.answers.c.result.levels.balanced.monthly).toBe(1380);
   });
   it('a new run keeps the old result on screen and copies the old final careful amount into "before"', () => {
     const s = working(final(working(typed())), 'K2');
     expect(s.answers.c.status).toBe('working');
     expect(s.answers.c.inputsKey).toBe('K2');
-    expect(s.answers.c.result.monthly.careful).toBe(1380);
-    expect(s.answers.c.before).toEqual({ monthly: { careful: 1380 }, take: null });
+    expect(s.answers.c.result.levels.balanced.monthly).toBe(1380);
+    expect(s.answers.c.before).toEqual({ monthly: 1380, take: null });
   });
   it('"before" also keeps how long an amount named under "take" lasted, so Before / Now can compare the tried figure', () => {
     const tried = result(1380, { take: { perMonth: 1800, lasted: 0.62, runOutAge: 84, covered: false } });
     let s = working(final(working(typed()), 'K1', tried), 'K2');
-    expect(s.answers.c.before).toEqual({ monthly: { careful: 1380 }, take: { perMonth: 1800, runOutAge: 84, covered: false } });
+    expect(s.answers.c.before).toEqual({ monthly: 1380, take: { perMonth: 1800, runOutAge: 84, covered: false } });
     // A tried amount that lasted: covered is true; the run-out age is the end age.
     s = working(final(s, 'K2', result(1380, { take: { perMonth: 1200, lasted: 0.97, runOutAge: 95, covered: true } })), 'K3');
     expect(s.answers.c.before.take).toEqual({ perMonth: 1200, runOutAge: 95, covered: true });
@@ -121,7 +121,7 @@ describe('answer/*', () => {
     let s = working(final(working(typed())), 'K2');       // before = 1380
     s = first(s, 'K2', result(900));
     s = working(s, 'K3');                                  // the K2 run never finished
-    expect(s.answers.c.before).toEqual({ monthly: { careful: 1380 }, take: null });
+    expect(s.answers.c.before).toEqual({ monthly: 1380, take: null });
   });
   it('a stale answer/first is ignored', () => {
     const s = working(working(typed(), 'K1'), 'K2');
@@ -132,7 +132,7 @@ describe('answer/*', () => {
     expect(final(s, 'K1')).toBe(s);
     const done = final(first(s, 'K2', result(1000)), 'K2', result(1010));
     expect(final(done, 'K1', result(5))).toBe(done);
-    expect(done.answers.c.result.monthly.careful).toBe(1010);
+    expect(done.answers.c.result.levels.balanced.monthly).toBe(1010);
   });
   it('a first figure never replaces a final one', () => {
     const done = final(working(typed()));

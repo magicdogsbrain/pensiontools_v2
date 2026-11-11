@@ -633,8 +633,9 @@ describe('the words stay out of the code that calculates, and the other way roun
   });
   it('the state, address and rail layers import only each other, input lists, validate.js and the version', () => {
     const files = V7.filter((f) => under(f, 'src/v7/state') || under(f, 'src/v7/router') || under(f, 'src/v7/rail'));
+    // (7.8.0: shared/shown.js, the one reader of the figure an answer stands behind — it imports nothing)
     const allowed = (t) => under(t, 'src/v7/state') || under(t, 'src/v7/router') || under(t, 'src/v7/rail') ||
-      /^src\/answers\/[a-z]+\/schema\.js$/.test(t) || t === 'src/answers/shared/validate.js' || t === 'src/constants.js';
+      /^src\/answers\/[a-z]+\/schema\.js$/.test(t) || t === 'src/answers/shared/validate.js' || t === 'src/constants.js' || t === 'src/answers/shared/shown.js';
     // Step 4 brief 4.11: select.js alone may also read schemaParts.js (alreadyStopped, for the retired view) and format.js.
     // The budget step and "Save this as a plan" (budget-step.md; save-as-plan.md C.4, C.5): select.js also reads the pure
     // name rules (planName.js), the budget sheet's check and whether an answer can be saved (src/answers/keep/); the

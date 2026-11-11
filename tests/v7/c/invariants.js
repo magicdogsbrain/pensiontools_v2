@@ -10,10 +10,12 @@
 export { answerC } from './_c.js';
 import { get, money, partsText } from '../../../src/answers/shared/format.js';
 import { flatten } from '../../../src/answers/shared/validate.js';
-import { RULES } from '../../../src/answers/shared/rules.js';
+import { RULES, LEVEL_FAILS20 } from '../../../src/answers/shared/rules.js';
+import { shownOf } from '../../../src/answers/shared/levels.js';
 
 const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' };
-const THREE = ['careful', 'middling', 'good'];
+/** The three levels (7.8.0): Careful asks for the least a month, Bold the most. */
+const THREE = ['careful', 'balanced', 'bold'];
 
 /** True when anything in the value is undefined, a function, a Date, NaN or infinite. */
 export function unsaveable(v, path = '', out = []) {
@@ -54,19 +56,24 @@ export function checkAnswer(answer, given) {
     if (Object.is(v, -0)) fail('I2', `${path} is -0`);
     if (v < 0 && !/growth/.test(path)) fail('I2', `${path} is negative (${v})`);
   }
-  for (const k of THREE) { if (answer.monthly[k] < 0) fail('I2', `monthly.${k} negative`); }
+  const L = answer.levels || {};
+  const shown = shownOf(answer);
+  if (!shown || !THREE.every((k) => L[k])) { fail('I3', 'no levels'); return f; }
+  for (const k of THREE) { if (L[k].monthly < 0) fail('I2', `levels.${k}.monthly negative`); }
 
-  // I3 the band is in order
-  if (!(answer.monthly.careful <= answer.monthly.middling && answer.monthly.middling <= answer.monthly.good)) fail('I3', `band out of order ${JSON.stringify(answer.monthly)}`);
-  if (!(answer.lasted.careful >= answer.lasted.middling && answer.lasted.middling >= answer.lasted.good)) fail('I3', `lasted out of order ${JSON.stringify(answer.lasted)}`);
-  if (!(answer.runOutAge.careful >= answer.runOutAge.middling && answer.runOutAge.middling >= answer.runOutAge.good)) fail('I3', `runOutAge out of order ${JSON.stringify(answer.runOutAge)}`);
-  if (answer.status === 'ok' && answer.lasted.careful < 0.9 - 1e-12) fail('I3', `careful lasted in only ${answer.lasted.careful}`);
+  // I3 the levels are in order: Careful takes no more than Balanced, Balanced no more than Bold; each lasts as its level
+  // asks (the count at floor(t·n/20) while not weighing), and its weighted chance is never below its fixed-age count
+  if (!(L.careful.monthly <= L.balanced.monthly && L.balanced.monthly <= L.bold.monthly)) fail('I3', `levels out of order ${JSON.stringify(L)}`);
+  if (!(L.careful.fixedAge >= L.balanced.fixedAge && L.balanced.fixedAge >= L.bold.fixedAge)) fail('I3', `fixedAge out of order ${JSON.stringify(L)}`);
+  const n = answer.basis.futures;
   for (const k of THREE) {
-    if (Math.abs(answer.yearly[k] - answer.monthly[k] * 12) > 0.01) fail('I3', `yearly.${k} is not 12 × monthly`);
-    if (answer.status === 'ok' && answer.monthly[k] % 10 !== 0) fail('I3', `monthly.${k} = ${answer.monthly[k]} is not a whole £10`);
+    if (answer.status === 'ok' && Math.round((1 - L[k].fixedAge) * n) > Math.floor((LEVEL_FAILS20[k] * n) / 20) && L[k].weighted === L[k].fixedAge) fail('I3', `${k} lasted in only ${L[k].fixedAge}`);
+    if (L[k].weighted < L[k].fixedAge - 1e-12) fail('I3', `${k}: weighted ${L[k].weighted} below fixed-age ${L[k].fixedAge}`);
+    if (Math.abs(L[k].yearly - L[k].monthly * 12) > 0.01) fail('I3', `levels.${k}.yearly is not 12 × monthly`);
+    if (answer.status === 'ok' && L[k].monthly % 10 !== 0) fail('I3', `levels.${k}.monthly = ${L[k].monthly} is not a whole £10`);
   }
   // no pot to draw on: the three amounts are the take-home once every pension has started, the one figure everything reads
-  if (answer.status !== 'ok') for (const k of THREE) if (answer.monthly[k] !== answer.guaranteed.monthlyAfterTax) fail('I3', `monthly.${k} = ${answer.monthly[k]} is not the take-home from the pensions, ${answer.guaranteed.monthlyAfterTax}`);
+  if (answer.status !== 'ok') for (const k of THREE) if (L[k].monthly !== answer.guaranteed.monthlyAfterTax) fail('I3', `levels.${k}.monthly = ${L[k].monthly} is not the take-home from the pensions, ${answer.guaranteed.monthlyAfterTax}`);
 
   // I4 the phases add up, in order, no gaps, from the start age to the end age
   const ph = answer.phases;
@@ -100,8 +107,8 @@ export function checkAnswer(answer, given) {
   // year — answer.byYear's `spend` — rather than the first phase)
   const shapeAt = (q) => { const y = Array.isArray(answer.byYear) ? answer.byYear.find((r) => r.age === q.ages.you.from) : null; return y ? y.spend : null; };
   if (answer.status === 'ok' && ph && ph.length && !answer.apart) {
-    const gap = ph[0].takeHome - answer.monthly.careful;
-    if (Math.abs(gap) > 0.005 && !(gap > 0 && gap < 10 && ph[0].fromPots <= 0.005)) fail('I5', `monthly.careful ${answer.monthly.careful} ≠ phases[0].takeHome ${ph[0].takeHome}`);
+    const gap = ph[0].takeHome - shown.monthly;
+    if (Math.abs(gap) > 0.005 && !(gap > 0 && gap < 10 && ph[0].fromPots <= 0.005)) fail('I5', `the level's monthly ${shown.monthly} ≠ phases[0].takeHome ${ph[0].takeHome}`);
     for (let i = 1; i < ph.length; i++) {
       const floor = answer.byYear ? shapeAt(ph[i]) : ph[0].takeHome;
       if (floor === null) fail('I5', `phase ${i} has no year of its own in byYear`);
@@ -113,9 +120,9 @@ export function checkAnswer(answer, given) {
   if (answer.status === 'ok' && ph && ph.length && answer.apart) {
     const k0 = ph.findIndex((p) => p.fromPay === undefined);
     for (let i = k0; i < ph.length; i++) {
-      const target = answer.byYear ? (shapeAt(ph[i]) ?? answer.monthly.careful) : answer.monthly.careful;
+      const target = answer.byYear ? (shapeAt(ph[i]) ?? shown.monthly) : shown.monthly;
       const over = ph[i].takeHome - target;
-      if (over < -0.005 || (over > 0.005 && ph[i].fromPots > 0.005 && !(over < 10))) fail('I5', `phase ${i}: take-home ${ph[i].takeHome} against the careful amount ${answer.monthly.careful}`);
+      if (over < -0.005 || (over > 0.005 && ph[i].fromPots > 0.005 && !(over < 10))) fail('I5', `phase ${i}: take-home ${ph[i].takeHome} against the level's amount ${shown.monthly}`);
     }
   }
 
@@ -126,7 +133,7 @@ export function checkAnswer(answer, given) {
   if (pots === 0) {
     if (answer.status === 'ok') fail('I6', 'no pots but status ok');
     for (const p of ph || []) if (p.fromPots !== 0) fail('I6', 'no pots but something from the pots');
-    if (!(answer.monthly.careful === answer.monthly.middling && answer.monthly.middling === answer.monthly.good)) fail('I6', 'no pots: nothing is left to chance, the three should agree');
+    if (!(L.careful.monthly === L.balanced.monthly && L.balanced.monthly === L.bold.monthly)) fail('I6', 'no pots: nothing is left to chance, the three should agree');
   } else if (answer.status !== 'ok') fail('I6', `pots of ${pots} but status ${answer.status}`);
   if (answer.trace && answer.trace.atCareful) {
     for (const who of ['you', 'partner']) {
@@ -168,8 +175,6 @@ export function checkAnswer(answer, given) {
       });
     }
   }
-  for (const k of THREE) if (!(b.startAge <= answer.runOutAge[k] && answer.runOutAge[k] <= b.endAge) || !Number.isInteger(answer.runOutAge[k])) fail('I7', `runOutAge.${k} = ${answer.runOutAge[k]}`);
-  if (answer.status === 'ok' && answer.runOutAge.careful !== b.endAge) fail('I7', 'the careful amount runs out before the end age in a bad case');
   for (const key of ['startAge', 'endAge', 'accessAge', 'years']) if (!Number.isInteger(b[key])) fail('I7', `basis.${key} is not whole`);
   if (b.endAge - b.startAge !== b.years) fail('I7', 'years ≠ endAge − startAge');
   if (b.years > RULES.maxYears) fail('I7', `${b.years} years is over the cap`);
@@ -178,9 +183,10 @@ export function checkAnswer(answer, given) {
   if (!['you', 'partner'].includes(answer.whose)) fail('I7', `whose = ${answer.whose}`);
   if (answer.inputs.household !== 'couple' && answer.whose !== 'you') fail('I7', 'single but whose is not you');
 
-  // I8 the bad case is the worst 1 in 10
-  if (b.failuresAllowed !== Math.floor(b.futures / 10)) fail('I8', 'failuresAllowed ≠ floor(futures / 10)');
-  if (answer.status === 'ok' && Math.round((1 - answer.lasted.careful) * b.futures) > b.failuresAllowed) fail('I8', 'the careful amount fails in more futures than allowed');
+  // I8 the level is the one asked for, and its amount fails in no more futures than it lets through (while not weighing)
+  if (b.level !== answer.level || b.levelFails20 !== LEVEL_FAILS20[answer.level]) fail('I8', `basis.level ${b.level} / ${b.levelFails20} is not the answer's ${answer.level}`);
+  if (answer.status === 'ok' && shown.weighted === shown.fixedAge && Math.round((1 - shown.fixedAge) * b.futures) > Math.floor((b.levelFails20 * b.futures) / 20)) fail('I8', 'the level\'s amount fails in more futures than it lets through');
+  if (answer.chance.fixedAge !== shown.fixedAge || answer.chance.weighted !== shown.weighted) fail('I8', 'chance is not the shown level\'s');
 
   // I9 units are stated
   if (JSON.stringify(answer.units) !== JSON.stringify(UNITS)) fail('I9', `units ${JSON.stringify(answer.units)}`);
@@ -261,8 +267,8 @@ export function checkAnswer(answer, given) {
   for (const id of ['head', 'sub', 'line', 'bad', 'range']) if (!answer.sentences[id]) fail('I11', `no ${id} sentence`);
   if (!Array.isArray(answer.sentences.madeOf)) fail('I11', 'madeOf is not a list');
   if (answer.status === 'ok' && !answer.sentences.madeOf.length) fail('I11', 'no made-of lines');
-  if (answer.status === 'ok' && !answer.sentences.head.text.includes(money(answer.monthly.careful))) fail('I11', 'the headline is not the careful amount');
-  if (answer.status === 'ok' && answer.monthly.careful <= 0 && !answer.sentences.none) fail('I11', 'nothing lasts but no c.none sentence');
+  if (answer.status === 'ok' && !answer.sentences.head.text.includes(money(shown.monthly))) fail('I11', 'the headline is not the level\'s amount');
+  if (answer.status === 'ok' && shown.monthly <= 0 && !answer.sentences.none) fail('I11', 'nothing lasts but no c.none sentence');
   if (answer.status !== 'ok' && !answer.sentences.nothing) fail('I11', 'no pots but no c.nothing sentence');
   if (answer.take && !answer.sentences.take) fail('I11', 'take given but no take sentence');
   if (!answer.take && answer.sentences.take) fail('I11', 'take sentence without a take');

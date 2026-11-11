@@ -53,7 +53,7 @@ function asCPhase(aPhase, cPhase) {
   };
   return pick(aPhase, cPhase);
 }
-const band = (r) => ({ monthly: r.monthly, lastedAt: r.lastedAt, runOutAgeAt: r.runOutAgeAt });
+const band = (r) => ({ levels: r.levels });
 
 describe('I-D1, I-D2 — D is question C from now', () => {
   it.each([['D1 (the worked example)', D1], ['D2 (a couple, both stopped)', D2], ['D3 (an invested ISA larger than the pension)', D3]])('%s', (name, d) => {
@@ -62,7 +62,7 @@ describe('I-D1, I-D2 — D is question C from now', () => {
     expect(D.status).toBe('ok');
     expect(C.status).toBe('ok');
     // I-D1: the band, to the bit
-    expect(band(D)).toEqual({ monthly: C.monthly, lastedAt: C.lasted, runOutAgeAt: C.runOutAge });
+    expect(band(D)).toEqual({ levels: C.levels });
     expect(D.guaranteed).toEqual(C.guaranteed);
     // the phases are at the spend (C's are at its careful amount): the same shape, the same stretches of years
     expect(D.phases.map((ph) => [ph.fromAge, ph.toAge])).toEqual(C.phases.map((ph) => [ph.fromAge, ph.toAge]));
@@ -76,10 +76,10 @@ describe('I-D1, I-D2 — D is question C from now', () => {
     const env = { ...ENV, futures: 400 };
     const D = answerD(D1, env);
     const C = answerC(asC(D1, 2100), env);
-    expect(band(D)).toEqual({ monthly: C.monthly, lastedAt: C.lasted, runOutAgeAt: C.runOutAge });
+    expect(band(D)).toEqual({ levels: C.levels });
     expect(D.lasted).toBe(C.take.lasted);
-    expect(D.monthly.careful).toBeGreaterThan(1500);
-    expect(D.monthly.careful).toBeLessThan(2500);
+    expect(D.levels.balanced.monthly).toBeGreaterThan(1500);
+    expect(D.levels.balanced.monthly).toBeLessThan(2500);
     expect(D.runOutAge).toBeGreaterThanOrEqual(85);
     expect(D.runOutAge).toBeLessThanOrEqual(95);
   }, 60000);
@@ -98,8 +98,8 @@ describe('I-D3, I-D4 — D is question A stopping now', () => {
     if (d.work && d.work.has) {
       // I-D4: A's shown row carries the work; its `without` is D's answer; D's work block is A's row
       expect(D.work).toMatchObject({ yearly: d.work.yearly, years: d.work.years, fromAge: d.you.age, toAge: d.you.age + d.work.years });
-      expect([D.work.verdict, D.work.lasted, D.work.runOutAge, D.work.monthly.careful]).toEqual([shown.verdict, shown.lasted, shown.runOutAge, shown.monthly.careful]);
-      expect([D.verdict, D.lasted, D.runOutAge, D.monthly.careful]).toEqual([A.partTime.without.verdict, A.partTime.without.lasted, A.partTime.without.runOutAge, A.partTime.without.monthly.careful]);
+      expect([D.work.verdict, D.work.lasted, D.work.runOutAge, D.work.monthly]).toEqual([shown.verdict, shown.lasted, shown.runOutAge, shown.levels.balanced.monthly]);
+      expect([D.verdict, D.lasted, D.runOutAge, D.levels.balanced.monthly]).toEqual([A.partTime.without.verdict, A.partTime.without.lasted, A.partTime.without.runOutAge, A.partTime.without.monthly]);
       // the row for N years in byYears is the same figure
       const row = D.work.byYears.find((r) => r.years === d.work.years);
       expect([row.verdict, row.lasted, row.runOutAge]).toEqual([shown.verdict, shown.lasted, shown.runOutAge]);
@@ -109,7 +109,7 @@ describe('I-D3, I-D4 — D is question A stopping now', () => {
     } else {
       // I-D3: the verdict, lasted, run-out age and band; the phases at the spend, A's own shape
       expect([D.verdict, D.lasted, D.runOutAge]).toEqual([shown.verdict, shown.lasted, shown.runOutAge]);
-      expect(band(D)).toEqual({ monthly: shown.monthly, lastedAt: shown.lastedAt, runOutAgeAt: shown.runOutAgeAt });
+      expect(band(D)).toEqual({ levels: shown.levels });
       expect(D.phases).toEqual(shown.phases);
     }
     expect(D.guaranteed).toEqual(A.guaranteed);
@@ -122,8 +122,8 @@ describe('I-D5 — the fall lever is D on the smaller pots typed in', () => {
     const withFall = answerD({ ...d, fall: { has: true } }, ENV);
     const typed = answerD(fallInputs(d, ENV), ENV);
     expect(withFall.fall).toMatchObject({ share: 0.2, factor });
-    expect([withFall.fall.verdict, withFall.fall.lasted, withFall.fall.runOutAge, withFall.fall.monthly.careful]).toEqual([typed.verdict, typed.lasted, typed.runOutAge, typed.monthly.careful]);
-    expect(withFall.fall.drop).toBe(Math.max(0, withFall.monthly.careful - typed.monthly.careful));
+    expect([withFall.fall.verdict, withFall.fall.lasted, withFall.fall.runOutAge, withFall.fall.monthly]).toEqual([typed.verdict, typed.lasted, typed.runOutAge, typed.levels.balanced.monthly]);
+    expect(withFall.fall.drop).toBe(Math.max(0, withFall.levels.balanced.monthly - typed.levels.balanced.monthly));
     // the answer itself is untouched by the lever
     const plain = answerD(d, ENV);
     expect([withFall.verdict, withFall.lasted, withFall.runOutAge, withFall.monthly]).toEqual([plain.verdict, plain.lasted, plain.runOutAge, plain.monthly]);

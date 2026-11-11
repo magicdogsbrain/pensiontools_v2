@@ -35,6 +35,7 @@ import { answerC } from '../c/_c.js';
 import { flatCases, hashOf, whoIn2028, whoNamed2028 } from './flatCorpus.mjs';
 import { movesOf, holdsSavings, PIN_SAVINGS } from './savingsGrowthMoves.mjs';
 import { r1MovesOf, PIN_R1 } from './r1Moves.mjs';
+import { levelMovesOf, PIN_LEVELS } from './levelMoves.mjs';
 
 const FILE = resolve(process.cwd(), 'tests/v7/shared/answers.flat.json');
 const ANSWER = { a: answerA, b: answerB, c: answerC };
@@ -78,6 +79,7 @@ describe('I-SS1: a flat spend is today\'s answer, byte for byte (the 2028 note t
 
   const MOVES = movesOf('flat');
   const R1 = r1MovesOf('flat');
+  const LV = levelMovesOf('flat');
   for (const q of ['a', 'b', 'c']) {
     it(`question ${q.toUpperCase()}: every case hashes as pinned, the 2028 note aside, and only the listed cases gain it; how savings grow on the cases with savings`, () => {
       const moved = [];
@@ -90,7 +92,12 @@ describe('I-SS1: a flat spend is today\'s answer, byte for byte (the 2028 note t
         const gains = has2028(r) && !x.had2028;
         if (gains) gained.push(k);
         const h = hashOf(gains ? without2028(r) : r);
-        if (q === 'b') {
+        // the levels (7.8.0, levelMoves.mjs): every case moved on purpose, by its keys, to its level pin
+        if (PIN_LEVELS) LV.record(k, h);
+        if (LV.has(k)) {
+          if (holdsSavings(q, r) && (q === 'b' || MOVES.has(k))) savings.push(k);
+          if (h !== LV.wanted(k)) moved.push(`case ${k} (${x.from}, levels): ${JSON.stringify(x.inputs)}`);
+        } else if (q === 'b') {
           // R1 (r1Moves.mjs): every B answer moved on purpose — said straight, with what would be enough — to its R1 pin
           if (holdsSavings(q, r)) savings.push(k);
           if (PIN_R1) R1.record(k, h);
@@ -109,6 +116,7 @@ describe('I-SS1: a flat spend is today\'s answer, byte for byte (the 2028 note t
       });
       if (PIN_SAVINGS) MOVES.save();
       if (PIN_R1 && q === 'b') R1.save();
+      if (PIN_LEVELS) LV.save();
       expect(moved).toEqual([]);
       // a case that moved with how savings grow may gain the note with it — its shown stop moved before 6 April 2028 (case
       // 237: "show me ages" at 54, £80,000 of savings, now 55); its new pin holds the rest, and `named` checks the note

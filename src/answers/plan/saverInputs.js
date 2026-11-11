@@ -51,7 +51,7 @@
  */
 import { SCHEMA_B } from '../b/schema.js';
 import { checkInputs, draftTextOf } from '../shared/validate.js';
-import { fullStatePensionYearly, SAVING } from '../shared/rules.js';
+import { fullStatePensionYearly, SAVING, LEVEL_DEFAULT, levelOf as levelOfValue } from '../shared/rules.js';
 import { effectiveStressSettings, planStage } from '../../services/PlanReading.js';
 import { deriveTiming } from '../../services/PlanTiming.js';
 import { saverPotOf } from '../../services/SaverReading.js';
@@ -205,7 +205,7 @@ function keptFrom(plan, now) {
     const { who, savedOn, ...rest } = fa;
     void who;
     const made = seedToScenario({ ...rest, budget: null }, savedOn || fa.today).yours;
-    return { plan: made, ss: effectiveStressSettings(made, { now }), acc: accOf(made), inputs: fa.inputs };
+    return { plan: made, ss: effectiveStressSettings(made, { now }), acc: accOf(made), inputs: fa.inputs, answer: isObj(fa.answer) ? fa.answer : null };
   } catch { return null; }
 }
 
@@ -269,7 +269,7 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
     charge: clamp(round2(Math.round(charge / CHARGES_LIMITS.step) * CHARGES_LIMITS.step), CHARGES_LIMITS.min, CHARGES_LIMITS.max),
     ...(isIsaGrowth(ss.isaGrowth) ? { isaGrowth: ss.isaGrowth } : {}),
     endAge,
-    confidence: 'nineInTen'
+    confidence: LEVEL_DEFAULT
   };
   let env = { mix: mixes.drawing, savingMix: mixes.saving };
   const from = {};
@@ -298,10 +298,10 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
     if (S(['chargesPct'])) inputs.charge = b.charge;
     if (S(['isaGrowth'])) { if (b.isaGrowth !== undefined) inputs.isaGrowth = b.isaGrowth; else delete inputs.isaGrowth; }
   }
-  // the answer's own chance for what would be enough (B's `confidence`): a choice of which figure leads, never the bar the
-  // verdict is read at (design 3.2) and no figure of the plan's, so it stays the answer's for as long as the plan keeps the
-  // record of it — with a check-in too
-  if (kept && (kept.inputs.confidence === 'threeInFour' || kept.inputs.confidence === 'nineInTen')) inputs.confidence = kept.inputs.confidence;
+  // the answer's own level (7.8.0): the person's only when they chose it (the kept answer row's `levelChosen`); a level
+  // stored before 7.8.0 ("9 in 10" was everyone's default) is Balanced. No figure of the plan's, so it stays the answer's
+  // for as long as the plan keeps the record of it — with a check-in too
+  if (kept && kept.answer && kept.answer.levelChosen === true) inputs.confidence = levelOfValue(kept.inputs.confidence, { stored: true });
 
   const checked = checkInputs(SCHEMA_B, inputs, { today });
   if (!checked.ok) return { ok: false, why: 'invalid', errors: checked.errors };

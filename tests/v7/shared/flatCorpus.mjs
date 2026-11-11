@@ -47,7 +47,7 @@ function asSaver(h, spend, q) {
     charge: h.charge ?? 0.5, endAge: h.endAge || 95, ...(h.payCovers ? { untilBothStop: h.payCovers } : {})
   };
   if (q === 'a') return { ...out, stop: h.stop === 'already' ? { kind: 'already' } : { kind: 'age', age: h.stop }, partTime: { has: false } };
-  return { ...out, stop: h.stop === 'already' ? { kind: 'already' } : { age: h.stop }, confidence: 'nineInTen' };
+  return { ...out, stop: h.stop === 'already' ? { kind: 'already' } : { age: h.stop }, confidence: 'balanced' };
 }
 
 const NAMED = [

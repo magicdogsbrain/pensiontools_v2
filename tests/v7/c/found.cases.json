@@ -34,9 +34,7 @@
         "seed": 0
       },
       "expect": {
-        "monthly.careful": 4350,
-        "monthly.middling": 5450,
-        "monthly.good": 6550
+        "levels.balanced.monthly": 4350
       },
       "found": {
         "date": "2026-11-03",
@@ -77,9 +75,7 @@
         "seed": 0
       },
       "expect": {
-        "monthly.careful": 4350,
-        "monthly.middling": 5520,
-        "monthly.good": 6530
+        "levels.balanced.monthly": 4350
       },
       "found": {
         "date": "2026-11-03",
@@ -135,9 +131,7 @@
         "seed": 0
       },
       "expect": {
-        "monthly.careful": 6270,
-        "monthly.middling": 7300,
-        "monthly.good": 8460
+        "levels.balanced.monthly": 6270
       },
       "found": {
         "date": "2026-11-03",
@@ -194,9 +188,7 @@
         "seed": 0
       },
       "expect": {
-        "monthly.careful": 6150,
-        "monthly.middling": 7310,
-        "monthly.good": 8460
+        "levels.balanced.monthly": 6150
       },
       "found": {
         "date": "2026-11-03",
@@ -258,9 +250,7 @@
       "expect": {
         "status": "guaranteed-only",
         "basis.start": "2026-09",
-        "monthly.careful": 2091.27,
-        "monthly.middling": 2091.27,
-        "monthly.good": 2091.27
+        "levels.balanced.monthly": 2091.27
       },
       "found": {
         "date": "2026-11-03",

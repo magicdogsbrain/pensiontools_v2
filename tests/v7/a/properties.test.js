@@ -12,6 +12,7 @@
  * Every push: a fixed seed and a small count. Nightly: NIGHTLY=1 (a fresh seed, printed on failure) and FC_RUNS large.
  * A night failure is run again by name with FC_SEED and FC_PATH (tests/v7/oracles/fcOptions.mjs).
  */
+import { monthlyOf } from '../shared/levelsOf.mjs';
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { fcOptions } from '../oracles/fcOptions.mjs';
@@ -48,7 +49,7 @@ function noWorse(a, b, couple, onFinding = () => {}) {
   const n = a.basis.futures;
   const x = a.shown;
   const y = b.shown;
-  amountsToAStep(x.monthly, y.monthly, (k, floor) => expect(y.monthly[k], `monthly.${k}`).toBeGreaterThanOrEqual(floor), onFinding);
+  amountsToAStep(monthlyOf(x), monthlyOf(y), (k, floor) => expect(y.levels[k].monthly, `monthly.${k}`).toBeGreaterThanOrEqual(floor), onFinding);
   expect(y.lasted, 'lasted').toBeGreaterThanOrEqual(x.lasted - oneLife(n));
   if (!couple) {
     const fewer = y.lasted < x.lasted - 1e-12;             // the one life the step allows
@@ -76,12 +77,12 @@ function noWorseOrFinding(a, b, inputs, findings) {
   // asserted.
   const bindingCouple = inputs.household === 'couple'
     && (inputs.charge > 1 || ((inputs.savings > 0 || inputs.savingsIn > 0) && drawTaxedAtStart(a.shown.phases, 'you')));
-  if (largeHousehold(a.shown.monthly.careful) || bindingCouple) {
-    amountsToAStep(a.shown.monthly, b.shown.monthly, (k, floor) => { if (b.shown.monthly[k] < floor) note(); }, note);
+  if (largeHousehold(a.shown.levels[a.level].monthly) || bindingCouple) {
+    amountsToAStep(monthlyOf(a.shown), monthlyOf(b.shown), (k, floor) => { if (b.shown.levels[k].monthly < floor) note(); }, note);
     if (b.shown.lasted < a.shown.lasted - oneLife(a.basis.futures)) note();
   } else noWorse(a, b, inputs.household === 'couple', note);
-  if (found) findings.push({ inputs, from: a.shown.monthly, to: b.shown.monthly });
-  return !largeHousehold(a.shown.monthly.careful) && !bindingCouple;
+  if (found) findings.push({ inputs, from: monthlyOf(a.shown), to: monthlyOf(b.shown) });
+  return !largeHousehold(a.shown.levels[a.level].monthly) && !bindingCouple;
 }
 const report = (name, findings) => {
   if (findings.length) console.log(`${name}: an amount of £10,000 a month or more, or a couple's with a charge over 1% or a run taxed from the first pound beside savings, moved the wrong way by more than a step in ${findings.length} case(s) — a finding (tests/v7/a/exceptions.md; tests/v7/c/exceptions.md)`, JSON.stringify(findings[0]));
@@ -158,7 +159,7 @@ describe.skipIf(!ENGINE_READY)('A — properties between two answers', () => {
       // "spending less never lasts less", to one life (oneStep.mjs): a life can run out at a lower spend where it lasted
       // at a higher one where today's engine is not monotone at £10 steps; the verdict follows the count
       const fewer = b.shown.lasted < a.shown.lasted - 1e-12;
-      if (largeHousehold(a.shown.monthly.careful)) {
+      if (largeHousehold(a.shown.levels[a.level].monthly)) {
         if (b.shown.lasted < a.shown.lasted - oneLife(a.basis.futures)) findings.push({ inputs, less, lasted: [a.shown.lasted, b.shown.lasted] });
       } else {
         expect(b.shown.lasted).toBeGreaterThanOrEqual(a.shown.lasted - oneLife(a.basis.futures));
@@ -183,8 +184,8 @@ describe.skipIf(!ENGINE_READY)('A — properties between two answers', () => {
       for (const k of ['potAtStop', 'paidIn']) expect(b.shown[k], k).toEqual(a.shown[k]);
       // over £10,000 a month (a couple's fixed-ratio drain; one person drawing £100,000 a month in a one-year plan, seed
       // -1451045040: the careful amount "without" £140 from the answer without): a finding, printed (tests/v7/a/exceptions.md)
-      if (noWorseOrFinding(a, b, inputs, findings)) expect(Math.abs(monthly.careful - a.shown.monthly.careful)).toBeLessThanOrEqual(STEP.amount);
-      else if (Math.abs(monthly.careful - a.shown.monthly.careful) > STEP.amount) findings.push({ inputs, yearly, years, without: monthly.careful, answerWithout: a.shown.monthly.careful });
+      if (noWorseOrFinding(a, b, inputs, findings)) expect(Math.abs(monthly - a.shown.levels[a.level].monthly)).toBeLessThanOrEqual(STEP.amount);
+      else if (Math.abs(monthly - a.shown.levels[a.level].monthly) > STEP.amount) findings.push({ inputs, yearly, years, without: monthly, answerWithout: a.shown.levels[a.level].monthly });
     }), opts());
     report('PA5', findings);
   });
@@ -237,13 +238,13 @@ describe.skipIf(!ENGINE_READY)('A — properties between two answers', () => {
       const b = run({ ...inputs, endAge: inputs.endAge + 1 });
       sameFutures(a, b);
       let found = false;
-      for (const k of THREE) {
-        if (largeHousehold(a.shown.monthly[k])) { if (b.shown.monthly[k] > a.shown.monthly[k] + STEP.amount) found = true; }
-        else expect(b.shown.monthly[k], k).toBeLessThanOrEqual(a.shown.monthly[k] + STEP.amount);
+      for (const k of ['careful', 'balanced', 'bold']) {
+        if (largeHousehold(a.shown.levels[k].monthly)) { if (b.shown.levels[k].monthly > a.shown.levels[k].monthly + STEP.amount) found = true; }
+        else expect(b.shown.levels[k].monthly, k).toBeLessThanOrEqual(a.shown.levels[k].monthly + STEP.amount);
       }
-      if (largeHousehold(a.shown.monthly.careful)) { if (b.shown.lasted > a.shown.lasted + oneLife(a.basis.futures)) found = true; }
+      if (largeHousehold(a.shown.levels[a.level].monthly)) { if (b.shown.lasted > a.shown.lasted + oneLife(a.basis.futures)) found = true; }
       else expect(b.shown.lasted).toBeLessThanOrEqual(a.shown.lasted + oneLife(a.basis.futures));
-      if (found) findings.push({ inputs, from: a.shown.monthly, to: b.shown.monthly });
+      if (found) findings.push({ inputs, from: monthlyOf(a.shown), to: monthlyOf(b.shown) });
     }), opts());
     report('PA10', findings);
   });

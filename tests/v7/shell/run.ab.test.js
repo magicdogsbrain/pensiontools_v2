@@ -238,7 +238,7 @@ describe('each question in its own lane', () => {
     go('a', 'answer');
     expect(client.calls.map((c) => c.q)).toEqual(['c', 'a']);
     expect(client.stops).toEqual([]);
-    await settle(client.calls[0], { status: 'ok', monthly: { careful: 1380 }, basis: {} });
+    await settle(client.calls[0], { status: 'ok', level: 'balanced', levels: { careful: { monthly: 1380 }, balanced: { monthly: 1380 }, bold: { monthly: 1380 } }, basis: {} });
     expect(answer('c').status).toBe('first');
     await settle(client.calls[1], resultA());
     expect(answer('a').status).toBe('first');

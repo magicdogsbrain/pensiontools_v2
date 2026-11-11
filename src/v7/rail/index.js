@@ -267,8 +267,9 @@ function shownResult(state, q) {
  */
 function answerResultC(state) {
   const r = shownResult(state, 'c');
-  if (!r || !(r.status === 'ok' || r.status === 'guaranteed-only') || !r.monthly || typeof r.monthly.careful !== 'number' || r.closedYears) return NONE;
-  return { result: sentence('c.rail.answer', ['about ', { key: 'monthly.careful', kind: 'money' }, ' a month'], r), source: r };
+  const level = (r && r.level) || 'balanced';
+  if (!r || !(r.status === 'ok' || r.status === 'guaranteed-only') || !r.levels || !r.levels[level] || typeof r.levels[level].monthly !== 'number' || r.closedYears) return NONE;
+  return { result: sentence('c.rail.answer', ['about ', { key: `levels.${level}.monthly`, kind: 'money' }, ' a month'], r), source: r };
 }
 
 /** A: "Yes at 60" / "Close at 60" / "Not at 60" / "Earliest that worked: 61" — the headline's verdict and age. */
@@ -298,21 +299,22 @@ function answerResultB(state) {
   const r = shownResult(state, 'b');
   if (!r || !r.stop || typeof r.stop.age !== 'number') return NONE;
   if (r.onCourse === true) return { result: sentence('b.rail.answer', ['On course for ', { key: 'stop.age', kind: 'age' }], r), source: r };
-  const c = r.payIn && (r.payIn.confidence === 'threeInFour' ? 'threeInFour' : 'nineInTen');
   // what goes into the pension is enough, and the savings for the years before it opens fall short: those are the answer
-  const savings = r.enough && r.enough.savingsOnly && r.enough.nineInTen && typeof r.enough.nineInTen.savingsIn === 'number' ? r.enough.nineInTen : null;
-  if (savings) return { result: sentence('b.rail.answer', ['About ', { key: 'enough.nineInTen.savingsIn', kind: 'money' }, ' a month into savings'], r), source: r };
-  const lead = r.enough && !r.enough.savingsOnly ? r.enough[c] : null;
+  // (7.8.0: what would be enough at the level chosen, `enough.atLevel`)
+  const savings = r.enough && r.enough.savingsOnly && r.enough.atLevel && typeof r.enough.atLevel.savingsIn === 'number' ? r.enough.atLevel : null;
+  if (savings) return { result: sentence('b.rail.answer', ['About ', { key: 'enough.atLevel.savingsIn', kind: 'money' }, ' a month into savings'], r), source: r };
+  const lead = r.enough && !r.enough.savingsOnly ? r.enough.atLevel : null;
   if (lead && typeof lead.payIn === 'number' && lead.payIn > 0) {
     return { result: sentence('b.rail.answer', typeof lead.totalPct === 'number'
-      ? [{ key: `enough.${c}.totalPct`, kind: 'pct' }, r.enough.who === 'partner' ? " of your partner's pay in" : ' of your pay in']
-      : ['About ', { key: `enough.${c}.payIn`, kind: 'money' }, ' a month in'], r), source: r };
+      ? [{ key: 'enough.atLevel.totalPct', kind: 'pct' }, r.enough.who === 'partner' ? " of your partner's pay in" : ' of your pay in']
+      : ['About ', { key: 'enough.atLevel.payIn', kind: 'money' }, ' a month in'], r), source: r };
   }
   if (!r.enough && r.payIn && typeof r.payIn.needed === 'number' && r.payIn.needed > 0) {
     return { result: sentence('b.rail.answer', ['About ', { key: 'payIn.needed', kind: 'money' }, ' a month in'], r), source: r };
   }
-  if (!r.number || typeof r.number.careful !== 'number' || r.number.careful <= 0) return NONE;
-  return { result: sentence('b.rail.answer', ['About ', { key: 'number.careful', kind: 'pot' }, ' by ', { key: 'stop.age', kind: 'age' }], r), source: r };
+  const pot = r.levels && r.levels[r.level] ? r.levels[r.level].pot : null;
+  if (typeof pot !== 'number' || pot <= 0) return NONE;
+  return { result: sentence('b.rail.answer', ['About ', { key: `levels.${r.level}.pot`, kind: 'pot' }, ' by ', { key: 'stop.age', kind: 'age' }], r), source: r };
 }
 
 /** The spend step: "£2,000 a month" as typed, or "Moderate level: £2,608 a month" — the one figure the answer uses. */

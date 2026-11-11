@@ -16,7 +16,8 @@ import { stopsOf } from '../../../src/answers/shared/household.js';
 import { toHousehold as toHouseholdA } from '../../../src/answers/a/toHousehold.js';
 import { toHousehold as toHouseholdB } from '../../../src/answers/b/toHousehold.js';
 import { toHousehold as toHouseholdC } from '../../../src/answers/c/toHousehold.js';
-import * as frozen from './seed.v1/v7Seed.js';
+import * as frozenCopy from './seed.v1/v7Seed.js';
+import { asBefore, noAnswer } from './asBefore.mjs';
 import { APART_ANSWERS, aPartnerAlready, aYouAlready, bYouAlready, bBothLater, cYouNow, TODAY as APART_TODAY } from './apartAnswers.mjs';
 
 const load = (q, name) => JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/states', q, `${name}.json`), 'utf8')).answers[q].result;
@@ -62,7 +63,7 @@ describe('every seed has the contract\'s shape and goes to Firestore almost unch
   });
   it('the key, the version and the age limit are the contract\'s', () => {
     expect(SEED_KEY).toBe('pt_v7_plan_seed');
-    expect(SEED_VERSION).toBe(2);
+    expect(SEED_VERSION).toBe(4);                                        // 7.8.0: the level's answer row
     expect(SEED_MAX_AGE_MS).toBe(24 * 60 * 60 * 1000);
   });
   it('the checker finds what Firestore would not take', () => {
@@ -87,7 +88,8 @@ describe('C — "what is that a month?"', () => {
     expect(you.savings).toEqual({ today: 0, atStop: { careful: 0, middling: 0 } });
     expect(you.statePension).toEqual({ yearly: 12547.6, fromAge: 67, fromDate: '2035-09-30' });
     expect(you.takeHome).toEqual([{ fromAge: 58, perMonth: 1350 }]);
-    expect(s.answer).toEqual({ monthly: r.monthly, lasted: r.lasted.careful, runOutAge: r.runOutAge.careful, verdict: null, potAtStop: null, number: null, payInNeeded: null });
+    // (seed version 4, 7.8.0: the level's answer row)
+    expect(s.answer).toEqual({ level: 'balanced', levelChosen: false, shown: r.levels.balanced, chance: { weighted: r.chance.weighted, fixedAge: r.chance.fixedAge, planToAge: r.chance.planToAge } });
   });
   it('a forecast and a final-salary pension (F3)', () => {
     const [you] = seedOf('c', 'answer-F3').people;
@@ -117,7 +119,7 @@ describe('C — "what is that a month?"', () => {
     expect(you.pensionOpensAge).toBe(55);      // 55 today, before 6 April 2028: the pension can be touched now (rules.firstAccessAge)
     expect(you.pension.atStop).toEqual({ careful: r.saving[0].potAtStop.pension.careful, middling: r.saving[0].potAtStop.pension.middling });
     expect(you.payIn).toEqual({ kind: 'split', total: 800, own: 500, employer: 300, savingsIn: 0 });
-    expect(s.answer.potAtStop).toEqual({ careful: r.potAtStart.careful, middling: r.potAtStart.middling });
+    expect(s.answer).toEqual({ level: 'balanced', levelChosen: false, shown: r.levels.balanced, chance: { weighted: r.chance.weighted, fixedAge: r.chance.fixedAge, planToAge: r.chance.planToAge } });
   });
 });
 
@@ -134,8 +136,8 @@ describe('A — "when can I afford to stop work?"', () => {
     expect(you.payIn).toEqual({ kind: 'total', total: 600, own: null, employer: null, savingsIn: 0 });
     expect(you.pensionOpensAge).toBe(r.pensionOpens.you);
     expect(you.takeHome).toEqual([{ fromAge: 60, perMonth: 1900 }]);
-    expect(s.answer).toEqual({ monthly: r.shown.monthly, lasted: r.shown.lasted, runOutAge: r.shown.runOutAge, verdict: 'close',
-      potAtStop: { careful: r.shown.potAtStop.careful, middling: r.shown.potAtStop.middling }, number: null, payInNeeded: null });
+    expect(s.answer).toEqual({ level: 'balanced', levelChosen: false, shown: r.levels.balanced, chance: { weighted: r.chance.weighted, fixedAge: r.chance.fixedAge, planToAge: r.chance.planToAge } });
+    expect(r.shown.verdict).toBe('close');
   });
   it('stopping today (stop now): taken as now, today\'s pots, nothing going in', () => {
     const s = seedOf('a', 'answer-stop-now');
@@ -170,12 +172,9 @@ describe('B — "am I saving enough?"', () => {
     const r = load('b', 'answer-B1');
     expect(s.stop).toEqual({ kind: 'later', yearsFromNow: 10 });
     expect(s.people[0].payIn).toEqual({ kind: 'split', total: 700, own: 450, employer: 250, savingsIn: 0 });
-    expect(s.answer).toEqual({
-      monthly: null, lasted: r.chance.lasted, runOutAge: r.wholeLife.runOutAge, verdict: verdictOf(r.chance.fails, r.basis.futures),
-      potAtStop: { careful: r.potAtStop.now.careful, middling: r.potAtStop.now.middling },
-      number: { careful: r.number.careful, middling: r.number.middling, good: r.number.good }, payInNeeded: 2920
-    });
-    expect(s.answer.verdict).toBe('no');
+    expect(s.answer).toEqual({ level: 'balanced', levelChosen: false, shown: r.levels.balanced, chance: { weighted: r.chance.weighted, fixedAge: r.chance.fixedAge, planToAge: r.chance.planToAge } });
+    expect(s.answer.shown.payIn).toBe(2920);
+    expect(r.verdict.band).toBe('no');
   });
   it('B5, a couple: both stop in the same year, each with their own pay-in', () => {
     const s = seedOf('b', 'answer-B5-couple');
@@ -262,9 +261,17 @@ const byShare = (r) => ['you', 'partner'].some((w) => r.inputs[w] && r.inputs[w]
 const KEEPABLE = ['c', 'a', 'b'].flatMap((q) => readdirSync(join(process.cwd(), 'tests/v7/states', q))
   .filter((f) => f.endsWith('.json') && !f.startsWith('_')).map((f) => [q, f.slice(0, -5)])
   .filter(([q, f]) => { const st = JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/states', q, `${f}.json`), 'utf8')); return !!(st.answers && st.answers[q] && keepable(q, st.answers[q].result).ok && !st.answers[q].result.apart && !byShare(st.answers[q].result)); }));
-/** A version 2 seed with its version 2 keys taken out and the version written back as 1. */
+/**
+ * The frozen copy (6.19.0) reads an answer as it was before 7.8.0: the figure at the level is handed to it under the keys
+ * it reads (C, D `monthly`/`lasted`/`runOutAge`; A the shown row's `monthly`; B `number`, `chance`, `payIn.at`,
+ * `enough.nineInTen`, `basis.failuresAllowed`) — the same figure the level keys hold. Only the `answer` row differs by
+ * design (seed version 4, 7.8.0: the level's row), so it is compared on its own.
+ */
+const frozen = { ...frozenCopy, buildPlanSeed: (args) => frozenCopy.buildPlanSeed({ ...args, result: asBefore(args.source, args.result) }) };
+
+/** A version 2 seed with its version 2 keys taken out and the version written back as 1 (and no answer row: above). */
 function asVersion1(seed) {
-  const out = JSON.parse(JSON.stringify(seed));
+  const out = noAnswer(JSON.parse(JSON.stringify(seed)));
   out.seedVersion = 1;
   delete out.untilBothStop;
   for (const p of out.people) { delete p.stop; delete p.years; }
@@ -282,11 +289,11 @@ describe('stopping in the same year: the seed is 6.19.0\'s, key for key, plus on
       const now = buildPlanSeed(args);
       const then = frozen.buildPlanSeed(args);
       expect(then.seedVersion).toBe(1);
-      expect(now.seedVersion).toBe(2);
+      expect(now.seedVersion).toBe(4);
       expect(now.untilBothStop).toBe(null);
       for (const p of now.people) { expect(p.stop).toEqual(now.stop); expect(p.years).toBe(now.years); }
       // byte for byte, key order included, once the version 2 keys are taken out
-      expect(JSON.stringify(asVersion1(now))).toBe(JSON.stringify(then));
+      expect(JSON.stringify(asVersion1(now))).toBe(JSON.stringify(noAnswer(then)));
     }
   });
   it('over random same-year answers (savings, saving each month, ages, the partner\'s stop said as "when you do"), as 6.19.0', () => {
@@ -302,7 +309,7 @@ describe('stopping in the same year: the seed is 6.19.0\'s, key for key, plus on
         if (q === 'a') { r.shown.age = r.inputs.you.age + wait; r.shown.ages = r.inputs.partner ? { you: r.shown.age, partner: r.inputs.partner.age + wait } : { you: r.shown.age }; r.inputs.stop = { kind: 'age', age: r.shown.age }; }
         if (q === 'b') { r.stop.age = r.inputs.you.age + 1 + wait; r.inputs.stop = { age: r.stop.age }; r.ages = { you: r.stop.age, partner: r.inputs.partner.age + 1 + wait }; }
         const args = { source: q, result: r, env: ENV, name: { chosen: 'x' }, createdAt: AT };
-        expect(JSON.stringify(asVersion1(buildPlanSeed(args)))).toBe(JSON.stringify(frozen.buildPlanSeed(args)));
+        expect(JSON.stringify(asVersion1(buildPlanSeed(args)))).toBe(JSON.stringify(noAnswer(frozen.buildPlanSeed(args))));
       }
     ), { numRuns: 200 });
   });
@@ -319,7 +326,7 @@ describe('stopping in different years: each person at their own stop (6.1)', () 
     expect(Object.keys(seed)).toEqual(KEYS);
     for (const p of seed.people) expect(Object.keys(p)).toEqual(PERSON);
     expect(seedProblems(seed)).toEqual([]);
-    expect(seed.seedVersion).toBe(2);
+    expect(seed.seedVersion).toBe(4);
     // each person's own stop: the answer's (apart.stops) and the household's own (stopsOf), the same
     const stopAge = q === 'a' ? r.shown.age : q === 'b' ? r.stop.age : undefined;
     const household = { a: toHouseholdA, b: toHouseholdB, c: toHouseholdC }[q](r.inputs, { today: APART_TODAY }, stopAge).household;
@@ -436,7 +443,7 @@ describe('stopping in different years: each person at their own stop (6.1)', () 
 describe('the named state of a couple stopping apart (C\'s answer-apart: you from now, your partner at 56)', () => {
   it('keeps each person at their own stop, both ending in the same tax year, with the pay line', () => {
     const seed = buildPlanSeed({ source: 'c', result: load('c', 'answer-apart'), env: ENV, name: { chosen: 'My try' }, createdAt: AT, budget: null, spendHow: null });
-    expect(seed.seedVersion).toBe(2);
+    expect(seed.seedVersion).toBe(4);
     expect(seed.untilBothStop).toEqual({ payCovers: 0.5 });
     const [you, partner] = seed.people;
     expect(you.stop).toEqual({ kind: 'now', yearsFromNow: 0 });

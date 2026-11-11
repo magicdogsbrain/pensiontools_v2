@@ -32,7 +32,7 @@ describe('the detail an answer holds', () => {
     expect(answered(typedA(), 'a', { status: 'ok', basis: {} }).answers.a.detail).toBe(null);
   });
   it('C\'s answer keeps C\'s shape: no detail, no extending', () => {
-    const s = answered(typedC(), 'c', { status: 'ok', monthly: { careful: 1 }, basis: { detail: 'x' } });
+    const s = answered(typedC(), 'c', { status: 'ok', level: 'balanced', levels: { careful: { monthly: 1 }, balanced: { monthly: 1 }, bold: { monthly: 1 } }, basis: { detail: 'x' } });
     expect(Object.keys(s.answers.c).sort()).toEqual(['before', 'inputsKey', 'progress', 'result', 'slow', 'status']);
   });
 });
@@ -66,7 +66,7 @@ describe('answer/extend', () => {
     expect(extend(ext, 'a')).toBe(ext);
   });
   it('C has no optional pass: refused (throws in the test build, ignored when published)', () => {
-    const c = answered(typedC(), 'c', { status: 'ok', monthly: { careful: 1 }, basis: {} });
+    const c = answered(typedC(), 'c', { status: 'ok', level: 'balanced', levels: { careful: { monthly: 1 }, balanced: { monthly: 1 }, bold: { monthly: 1 } }, basis: {} });
     expect(() => extend(c, 'c')).toThrow();
     const prod = initialState({ today: TODAY });
     expect(reduce(prod, { type: A.ANSWER_EXTEND, q: 'c', inputsKey: 'K' })).toBe(prod);

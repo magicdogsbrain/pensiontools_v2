@@ -481,9 +481,9 @@ describe('answers whose spending changes with age (the answer functions\' own re
     const r = s.answers.c.result;
     const root = renderScreen(s);
     clean(root, s);
-    expect(r.shapeAt.careful.map((x) => x.fromAge)).toEqual([66, 75, 85]);
+    expect(r.shapeAt.balanced.map((x) => x.fromAge)).toEqual([66, 75, 85]);
     expect(one(root, 'c.shape.answer').querySelector('h2').textContent).toBe(SHAPE.answer.titleC);
-    expect(one(root, 'c.shape.answer.list').textContent).toContain(`${money(r.shapeAt.careful[0].perMonth)} a month from 66`);
+    expect(one(root, 'c.shape.answer.list').textContent).toContain(`${money(r.shapeAt.balanced[0].perMonth)} a month from 66`);
     expect(one(root, 'c.shape.answer').querySelectorAll('g.year').length).toBe(r.byYear.length);
     if (r.sentences.shape) expect(one(root, 'c.answer.shape').textContent).toBe(r.sentences.shape.text);
     expect(one(root, 'c.try.shapeLevel')).not.toBe(null);

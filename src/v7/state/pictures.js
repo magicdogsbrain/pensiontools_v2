@@ -20,6 +20,7 @@
  * The table under each picture lists only the answer's figures.
  */
 
+import { shownOf, LEVEL_IDS } from '../../answers/shared/shown.js';
 import { SCHEMA_B } from '../../answers/b/schema.js';
 import { SCHEMA_C } from '../../answers/c/schema.js';
 import { SCHEMA_D } from '../../answers/d/schema.js';
@@ -157,15 +158,16 @@ function sliderOf(state, r, q) {
       p.kind === 'split' ? Math.max(0, ceiling - theirs) : Infinity);
   }
   if (q === 'c') {
-    if (!r.monthly || !isNum(r.monthly.good) || r.status === 'none') return null;
+    // (7.8.0: the scale reaches past Bold's amount, the most of the three levels)
+    if (!r.levels || !r.levels.bold || !isNum(r.levels.bold.monthly) || r.status === 'none') return null;
     const take = typed(d.take);
-    const value = take ?? (isNum(ins.take) ? ins.take : r.monthly.careful);
-    return { ...money('take', 'take', 1.6 * r.monthly.good, value), set: take !== null || isNum(ins.take) };
+    const value = take ?? (isNum(ins.take) ? ins.take : shownOf(r).monthly);
+    return { ...money('take', 'take', 1.6 * r.levels.bold.monthly, value), set: take !== null || isNum(ins.take) };
   }
   if (q === 'd') {
-    if (!ins.spend || ins.spend.kind !== 'amount' || !r.monthly || !isNum(r.monthly.good)) return null;
+    if (!ins.spend || ins.spend.kind !== 'amount' || !r.levels || !r.levels.bold || !isNum(r.levels.bold.monthly)) return null;
     const spend = typed(d['spend.amount']) ?? ins.spend.amount;
-    return money('spend.amount', 'spend', Math.max(1.5 * r.monthly.good, 1.5 * (isNum(spend) ? spend : 0)), spend);
+    return money('spend.amount', 'spend', Math.max(1.5 * r.levels.bold.monthly, 1.5 * (isNum(spend) ? spend : 0)), spend);
   }
   return null;
 }
@@ -185,20 +187,19 @@ export function answerTiles(state, q) {
   const out = [];
   const add = (t) => { if (has(t.k)) out.push(t); };
   if (q === 'b') {
-    add({ id: 'aim', k: 'number.careful', kind: 'pot', ageKey: 'stop.age' });
+    add({ id: 'aim', k: `levels.${r.level}.pot`, kind: 'pot', ageKey: 'stop.age' });
     add({ id: 'nowBad', k: 'potAtStop.now.careful', kind: 'pot', ageKey: 'stop.age' });
-    if (r.onCourse !== true && r.enough && r.enough.how === 'share' && has('enough.nineInTen.totalPct')) add({ id: 'enoughShare', k: 'enough.nineInTen.totalPct', kind: 'pct', pop: true });
+    if (r.onCourse !== true && r.enough && r.enough.how === 'share' && has('enough.atLevel.totalPct')) add({ id: 'enoughShare', k: 'enough.atLevel.totalPct', kind: 'pct', pop: true });
     else if (r.onCourse !== true && has('payIn.needed') && r.payIn.needed > 0) add({ id: 'enough', k: 'payIn.needed', kind: 'money', pop: true });
     else add({ id: 'payInNow', k: 'payIn.now', kind: 'money', pop: true });
   } else if (q === 'c') {
     if (r.status === 'none') return [];
-    add({ id: 'careful', k: 'monthly.careful', kind: 'money', pop: true });
-    add({ id: 'middling', k: 'monthly.middling', kind: 'money' });
-    add({ id: 'good', k: 'monthly.good', kind: 'money' });
+    // the three levels (7.8.0), the one the answer stands behind first
+    for (const id of [r.level, ...LEVEL_IDS.filter((x) => x !== r.level)]) add({ id, k: `levels.${id}.monthly`, kind: 'money', ...(id === r.level ? { pop: true } : {}) });
   } else if (q === 'd') {
     const end = r.basis && r.basis.endAge;
     add({ id: 'take', k: 'spend.perMonth', kind: 'money', pop: true });
-    if (r.status === 'ok') add({ id: 'could', k: 'monthly.careful', kind: 'money', ageKey: 'basis.endAge' });
+    if (r.status === 'ok') add({ id: 'could', k: `levels.${r.level}.monthly`, kind: 'money', ageKey: 'basis.endAge' });
     if (r.status === 'ok' && isNum(r.runOutAge) && isNum(end)) add(r.runOutAge < end ? { id: 'runsOut', k: 'runOutAge', kind: 'age' } : { id: 'lasts', k: 'basis.endAge', kind: 'age' });
   }
   return out;
@@ -261,7 +262,7 @@ function saverPicture(r) {
   const needed = r.onCourse !== true && r.potAtStop.needed && isNum(r.potAtStop.needed.middling) ? r.potAtStop.needed : null;
   const outAt = (age) => (isNum(age) && age < end ? age : end);
   const nowOut = outAt(r.wholeLife && r.wholeLife.runOutAge);
-  const enoughOut = outAt(r.enough && r.enough.nineInTen && r.enough.nineInTen.runOutAge);
+  const enoughOut = outAt(r.enough && r.enough.atLevel && r.enough.atLevel.runOutAge);
   // one life per line: its rising half to the pot at the stop, then, faint, its drawing half down to the age the money runs
   // out in a bad case (or the end age) — the answer's own ages; the fall between is a guide
   const lines = [];
@@ -272,7 +273,8 @@ function saverPicture(r) {
   lines.push({ id: 'now', role: 'now', points: rise(p0, now.middling, a, s) });
   lines.push({ id: 'now.drawing', role: 'now', part: 'drawing', points: [{ age: s, value: now.middling }, { age: nowOut, value: 0 }] });
   const band = { id: 'bad', role: 'saving', points: [...rise(p0, now.careful, a, s), { age: nowOut, value: 0 }] };
-  const aim = r.number && isNum(r.number.careful) && r.number.careful > 0 ? r.number.careful : null;
+  const pot = r.levels && r.levels[r.level] ? r.levels[r.level].pot : null;
+  const aim = isNum(pot) && pot > 0 ? pot : null;
   const marks = [{ id: 'you', age: a, value: p0 }];
   const values = [p0, now.middling, now.careful, needed ? needed.middling : 0];
   // a little room above the highest figure, so no line or dot sits on the picture's top edge
@@ -288,7 +290,7 @@ function saverPicture(r) {
 }
 
 function drawingPicture(r) {
-  if (r.status !== 'ok' || !r.monthly || !Array.isArray(r.phases)) return null;
+  if (r.status !== 'ok' || !r.levels || !Array.isArray(r.phases)) return null;
   const ins = r.inputs;
   const a = ins.you && ins.you.age;
   const end = r.basis.endAge;
@@ -296,7 +298,10 @@ function drawingPicture(r) {
   const p0 = (ins.you.pot || 0) + (ins.partner && ins.household === 'couple' ? ins.partner.pot || 0 : 0) + (ins.savings || 0);
   if (!(p0 > 0)) return null;
   const S = r.spend && r.spend.perMonth;
-  const { careful: C, middling: M } = r.monthly;
+  // the level's amount for the bad case, and Bold's (the most of the three) for the guide line above it (7.8.0: the
+  // count's middling amount is no longer a figure of the answer)
+  const C = shownOf(r).monthly;
+  const M = r.levels.bold.monthly;
   if (!isNum(S) || !isNum(C) || !isNum(M)) return null;
   const T = end - a;
   // The answer gives the pot today, and the age the money runs out in a bad case when it does; it gives no pot for the

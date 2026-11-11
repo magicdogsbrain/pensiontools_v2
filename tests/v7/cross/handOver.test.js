@@ -49,8 +49,8 @@ describe('A → C: the inputs as typed, the age the answer shows; C gives A\'s c
     const r = answerC(p.inputs, ENV);
     expect(r.status).toBe('ok');
     expect(r.payIn.total).toBe(a.saving.reduce((t, x) => t + x.payIn.total, 0));
-    expect(r.monthly.careful, 'C\'s careful figure is A\'s at the age shown').toBe(a.shown.monthly.careful);
-    expect(r.monthly).toEqual(a.shown.monthly);
+    expect(r.levels.balanced.monthly, 'C\'s careful figure is A\'s at the age shown').toBe(a.shown.levels.balanced.monthly);
+    expect(r.levels).toEqual(a.shown.levels);
     // no note that the pot leaves out growth or what goes in (it does not), and no one-name note made by the hand-over
     const ids = r.warnings.map((w) => w.id);
     expect(ids).not.toContain('start-later');
@@ -88,7 +88,7 @@ describe('the charge is carried into C, and C still gives A\'s and B\'s figure',
     expect(p.ok, JSON.stringify(p.errors)).toBe(true);
     expect(p.inputs.charge).toBe(Number(charge));
     const r = answerC(p.inputs, ENV);
-    expect(r.monthly).toEqual(a.shown.monthly);
+    expect(r.levels).toEqual(a.shown.levels);
   });
   it.each(['0', '1.5'])('B → C at %s%%: C\'s careful figure is B\'s paying in as now', (charge) => {
     const s = answered(typed('b', { 'you.age': '50', 'you.pot': '120,000', 'you.payIn.total': '700', 'stop.age': '60', 'spend.amount': '2,000', charge }), 'b', answerB, 'answer');
@@ -96,10 +96,10 @@ describe('the charge is carried into C, and C still gives A\'s and B\'s figure',
     expect(b.handOver.c).toEqual({ ok: true, same: true });
     const p = parsedDraft(carry(s, 'b', 'c'), 'c');
     expect(p.inputs.charge).toBe(Number(charge));
-    expect(answerC(p.inputs, ENV).monthly.careful).toBe(b.monthlyIfShort);
+    expect(answerC(p.inputs, ENV).levels.balanced.monthly).toBe(b.monthlyIfShort);
   });
   it('a higher charge, a lower careful figure: 1.5% gives less than 0.5%, which gives less than 0% (A\'s row, at 60)', () => {
-    const at = (charge) => answered(typed('a', { ...A_BASE, charge }), 'a', answerA, 'chart').answers.a.result.shown.monthly.careful;
+    const at = (charge) => answered(typed('a', { ...A_BASE, charge }), 'a', answerA, 'chart').answers.a.result.shown.levels.balanced.monthly;
     const [c0, c05, c15] = ['0', '0.5', '1.5'].map(at);
     expect(c05).toBeLessThan(c0);
     expect(c15).toBeLessThan(c05);
@@ -118,7 +118,7 @@ describe('B → C: the inputs as typed, the stop age; C gives B\'s careful amoun
     expect(p.ok, JSON.stringify(p.errors)).toBe(true);
     expect(p.inputs.you.pot).toBe(b.inputs.you.pot);
     const r = answerC(p.inputs, ENV);
-    expect(r.monthly.careful).toBe(b.monthlyIfShort);
+    expect(r.levels.balanced.monthly).toBe(b.monthlyIfShort);
   });
 });
 
@@ -172,7 +172,7 @@ describe('"I\'ve already stopped": the hand-overs carry it, and C still gives th
     expect(r.status).toBe('ok');
     expect(r.payIn.total).toBe(850);
     expect(r.apart).toEqual(a.apart);
-    expect(r.monthly, 'C\'s band is the band of A\'s row at the age shown').toEqual(a.shown.monthly);
+    expect(r.levels, 'C\'s band is the band of A\'s row at the age shown').toEqual(a.shown.levels);
   });
 
   it('B → C: from now, your partner at the stop age B was asked about; C gives B\'s careful amount paying in as now', () => {
@@ -184,7 +184,7 @@ describe('"I\'ve already stopped": the hand-overs carry it, and C still gives th
     expect(p.ok, JSON.stringify(p.errors)).toBe(true);
     expect(p.inputs.start).toEqual({ kind: 'now' });
     expect(p.inputs.partner.stop).toEqual({ kind: 'age', age: b.stop.age });
-    expect(answerC(p.inputs, ENV).monthly.careful).toBe(b.monthlyIfShort);
+    expect(answerC(p.inputs, ENV).levels.balanced.monthly).toBe(b.monthlyIfShort);
   });
 
   it('A → B → A: "I\'ve already stopped" both ways, your partner at the age shown; B\'s whole-life count is A\'s row', () => {
@@ -223,13 +223,13 @@ describe('"I\'ve already stopped": the hand-overs carry it, and C still gives th
     expect(p.ok, JSON.stringify(p.errors)).toBe(true);
     const r = answerC(p.inputs, ENV);
     expect(r.apart.stops).toEqual({ you: { age: 52, already: true }, partner: { age: 53, already: false } });
-    expect(r.monthly).toEqual(a.shown.monthly);
+    expect(r.levels).toEqual(a.shown.levels);
     const sb = answered(typed('b', { ...CLOSED, 'you.payIn.total': '0' }), 'b', answerB, 'answer');
     const b = sb.answers.b.result;
     expect(b.handOver.c).toEqual({ ok: true, same: true });
     const pb = parsedDraft(carry(sb, 'b', 'c'), 'c');
     expect(pb.ok, JSON.stringify(pb.errors)).toBe(true);
-    expect(answerC(pb.inputs, ENV).monthly.careful).toBe(b.monthlyIfShort);
+    expect(answerC(pb.inputs, ENV).levels.balanced.monthly).toBe(b.monthlyIfShort);
   });
 
   // The other way (the reviewers' finding, 2 Oct 2026): C from now with your partner stopping later goes into A and B as
@@ -245,15 +245,15 @@ describe('"I\'ve already stopped": the hand-overs carry it, and C still gives th
     const pa = parsedDraft(toA, 'a');
     expect(pa.ok, JSON.stringify(pa.errors)).toBe(true);
     expect(pa.inputs.stop).toEqual({ kind: 'already' });
-    const a = answerA({ ...pa.inputs, spend: { kind: 'amount', amount: c.monthly.careful } }, { ...ENV, detail: 'chart' });
+    const a = answerA({ ...pa.inputs, spend: { kind: 'amount', amount: c.levels.balanced.monthly } }, { ...ENV, detail: 'chart' });
     expect(a.askedAbout).toBe('partner');
     expect(a.shown.age).toBe(57);
-    expect(a.shown.monthly).toEqual(c.monthly);
+    expect(a.shown.levels).toEqual(c.levels);
     expect(a.shown.verdict).toBe('yes');
     const toB = carry(s, 'c', 'b');
     const pb = parsedDraft(toB, 'b');
     expect(pb.ok, JSON.stringify(pb.errors)).toBe(true);
-    const b = answerB({ ...pb.inputs, spend: { kind: 'amount', amount: c.monthly.careful } }, { ...ENV, detail: 'answer' });
+    const b = answerB({ ...pb.inputs, spend: { kind: 'amount', amount: c.levels.balanced.monthly } }, { ...ENV, detail: 'answer' });
     expect(b.askedAbout).toBe('partner');
     expect(b.wholeLife.lasted).toBe(a.shown.lasted);
   });

@@ -241,6 +241,8 @@ const ageOfRunOut = (facts) => (facts.couple ? ['when the younger of you is ', A
 export function sentencesFor(result, facts) {
   const c = facts.couple;
   const shown = result.shown;
+  // the shown row's amount at the level the answer stands behind (7.8.0)
+  const SL = 'shown.levels.' + result.level + '.monthly';
   const h = result.headline;
   const yes = shown.verdict === 'yes';
   const untilEnd = c ? ['until the younger of you is ', A('basis.endAge')] : ['until you are ', A('basis.endAge')];
@@ -319,8 +321,8 @@ export function sentencesFor(result, facts) {
       out.bad = S('a.bad.earliest', [...BAD_CAP, ', stopping at ', A('earliest.yes'), ' still lasts to ', A('basis.endAge'), '.', ...prev]);
     }
   } else if (yes) {
-    out.bad = S('a.bad.yes', [...BAD_CAP, ' it still lasts to ', A('basis.endAge'), '. You could spend up to about ', M('shown.monthly.careful'),
-      shapeMoves(result.shapeAt && result.shapeAt.careful) ? ' a month at the start, the later steps in proportion, and it would still last in ' : ' a month and it would still last in ', F('9'), ' futures out of ', F('10'), '.']);
+    out.bad = S('a.bad.yes', [...BAD_CAP, ' it still lasts to ', A('basis.endAge'), '. You could spend up to about ', M(SL),
+      shapeMoves(result.shapeAt && result.shapeAt[result.level]) ? ' a month at the start, the later steps in proportion, and it would still last in ' : ' a month and it would still last in ', F('9'), ' futures out of ', F('10'), '.']);
   } else {
     const nearest = result.earliest.yes;
     const tail = nearest === null ? []
@@ -345,10 +347,10 @@ export function sentencesFor(result, facts) {
   const what = facts.anySavings ? (c ? 'your pensions and savings' : 'your pension and savings') : (c ? 'your pots' : 'your pot');
   const noMoney = !(shown.potAtStop.good > 0);
   out.range = noMoney
-    ? S('a.range', ['There is no careful, middling or good amount to show at ', A('shown.age'), ': nothing here depends on markets.'])
+    ? S('a.range', ['There is no Careful, Balanced or Bold amount to show at ', A('shown.age'), ': nothing here depends on markets.'])
     : p
-      ? S('a.range', ['With your partner stopping at ', A('shown.age'), ', you could spend: careful ', M('shown.monthly.careful'), ', middling ', M('shown.monthly.middling'), ', good ', M('shown.monthly.good'), ' a month.'])
-      : S('a.range', ['At ', A('shown.age'), ' you could spend: careful ', M('shown.monthly.careful'), ', middling ', M('shown.monthly.middling'), ', good ', M('shown.monthly.good'), ' a month.']);
+      ? S('a.range', ['With your partner stopping at ', A('shown.age'), ', you could spend: Careful ', M('shown.levels.careful.monthly'), ', Balanced ', M('shown.levels.balanced.monthly'), ', Bold ', M('shown.levels.bold.monthly'), ' a month.'])
+      : S('a.range', ['At ', A('shown.age'), ' you could spend: Careful ', M('shown.levels.careful.monthly'), ', Balanced ', M('shown.levels.balanced.monthly'), ', Bold ', M('shown.levels.bold.monthly'), ' a month.']);
   if (noMoney) {
     out.pot = S('a.pot.nothing', ['There is nothing in a pension pot or in savings to draw on at ', A('shown.age'), '.']);
   } else if (ap) {
@@ -363,8 +365,8 @@ export function sentencesFor(result, facts) {
   }
 
   // the careful amount at the start, with the later steps moved in proportion (spending-shape.md 6.1, 6.3)
-  if (result.status === 'ok' && shown.monthly.careful > 0 && shapeMoves(result.shapeAt && result.shapeAt.careful)) {
-    out.couldShape = couldAtTheStart('a.couldSpend.shape', result.shapeAt.careful, 'shapeAt.careful');
+  if (result.status === 'ok' && shown.levels[result.level].monthly > 0 && shapeMoves(result.shapeAt && result.shapeAt[result.level])) {
+    out.couldShape = couldAtTheStart('a.couldSpend.shape', result.shapeAt[result.level], 'shapeAt.' + result.level);
   }
   out.pays = paysLines(result, facts);
   if (result.savingsNeeded) {
@@ -382,7 +384,7 @@ export function sentencesFor(result, facts) {
   // (with a spending shape each figure is the start: the later steps go with it, spending-shape.md 6.3)
   const atStart = shapeMoves(result.spendShape);
   // (a row at or after a step tested that step's figure: spendAtStart, spending-shape.md 6.3)
-  out.chart = result.ages.map((r, k) => S('a.chart.row', [p ? 'Your partner stopping at ' : 'At ', A(`ages.${k}.age`), ', you could spend about ', M(`ages.${k}.monthly.careful`),
+  out.chart = result.ages.map((r, k) => S('a.chart.row', [p ? 'Your partner stopping at ' : 'At ', A(`ages.${k}.age`), ', you could spend about ', M(`ages.${k}.levels.${result.level}.monthly`),
     atStart ? ' a month at the start; ' : ' a month; ', M(r.spendAtStart !== undefined ? `ages.${k}.spendAtStart` : 'spend.perMonth'), atStart ? ' a month at the start, as you set it, lasted ' : ' a month lasted ', ...countWords(r), '.']));
 
   // under the every-age table: the ages before a pension can be touched, and the ages left out (the asked person's)

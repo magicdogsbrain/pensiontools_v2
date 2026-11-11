@@ -78,8 +78,8 @@ export function Grid({ result, dispatch }) {
   const stopAge = result.stop && result.stop.age;
   const payIn = result.payIn || {};
   const shares = Array.isArray(grid.shares) && grid.shares.length === grid.payIns.length ? grid.shares : null;
-  // in shares, the column that would be enough is the answer's share at the chance asked for (3.4)
-  const lead = shares && result.enough && result.enough[payIn.confidence] ? result.enough[payIn.confidence] : null;
+  // in shares, the column that would be enough is the answer's share at the level chosen (3.4; 7.8.0 `enough.atLevel`)
+  const lead = shares && result.enough && result.enough.atLevel ? result.enough.atLevel : null;
   // The column paid in now, and the one that is what it needs (when the grid holds it), are marked in words.
   return (
     <table class="grid" data-grid>

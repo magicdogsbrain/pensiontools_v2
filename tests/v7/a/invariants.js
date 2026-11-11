@@ -16,7 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { get, money, partsText, outOfTen, pot as potText } from '../../../src/answers/shared/format.js';
 import { flatten } from '../../../src/answers/shared/validate.js';
-import { RULES, legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
+import { RULES, legacyVerdictOf as verdictOf, LEVEL_FAILS20 } from '../../../src/answers/shared/rules.js';
 import { agesToShow, askedAbout, stopYearsOf, payInParts } from '../../../src/answers/shared/schemaParts.js';
 import { bannedHits } from '../render/checkScreen.js';
 import { largeHousehold } from '../oracles/oneStep.mjs';
@@ -55,6 +55,8 @@ export const FIXTURE_FILES = ['A1-stop-soon.json', 'A2-couple-before-57.json', '
 
 const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' };
 const THREE = ['careful', 'middling', 'good'];
+/** The three levels (7.8.0). */
+const LEVELS3 = ['careful', 'balanced', 'bold'];
 const STATUSES = ['ok', 'invalid', 'guaranteed-only', 'none'];
 /** The one pattern of a wait: never on A (brief 2.4 #47, `countdown-any`). */
 export const COUNTDOWN = /\b\d+ (more )?(years?|months?) (to go|until|till|before|from now)\b/i;
@@ -149,8 +151,8 @@ export function checkAnswerA(answer, given, env) {
   const younger = couple ? Math.min(inputs.you.age, inputs.partner.age) : inputs.you.age;
 
   // A-I13 the basis and the units
-  if (b.failuresAllowed !== Math.floor(n / 10)) fail('A-I13', 'failuresAllowed ≠ floor(futures / 10)');
-  if (b.closeAllowed !== Math.floor(n / 4)) fail('A-I13', 'closeAllowed ≠ floor(futures / 4)');
+  if (b.level !== answer.level || b.levelFails20 !== LEVEL_FAILS20[answer.level]) fail('A-I13', `basis.level ${b.level} / ${b.levelFails20}`);
+  if (!answer.levels || !['careful', 'balanced', 'bold'].every((k) => answer.levels[k] && 'stopAge' in answer.levels[k])) fail('A-I13', 'no levels');
   for (const [k, v] of Object.entries({ bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly', strategyId: 'pots-and-valves', cutsSwitchedOff: true })) if (b[k] !== v) fail('A-I13', `basis.${k} = ${b[k]}`);
   if (!['chart', 'all'].includes(b.detail)) fail('A-I13', `basis.detail = ${b.detail}`);
   if (!Number.isInteger(b.lifeYears) || b.lifeYears < 1) fail('A-I13', `basis.lifeYears = ${b.lifeYears}`);
@@ -252,21 +254,26 @@ export function checkAnswerA(answer, given, env) {
     const tested = s.perMonth * factor;
     if (factor === 1 ? r.spendAtStart !== undefined : Math.abs(r.spendAtStart - tested) > 0.006) fail('A-I5', `${at}: spendAtStart ${r.spendAtStart}, the spending this stop tested is ${tested}`);
 
-    // A-I5 the band: in order, whole £10, and it agrees with the verdict (at the spending this row tested)
-    const m = r.monthly;
-    if (!(m.careful <= m.middling && m.middling <= m.good)) fail('A-I5', `${at}: band out of order ${JSON.stringify(m)}`);
-    for (const k of THREE) {
-      if (Math.abs(r.yearly[k] - m[k] * 12) > 0.01) fail('A-I5', `${at}: yearly.${k} ≠ 12 × monthly`);
-      if (r.potAtStop.good > 0 && m[k] % 10 !== 0) fail('A-I5', `${at}: monthly.${k} = ${m[k]} is not a whole £10`);
-      if (!Number.isInteger(r.runOutAgeAt[k]) || r.runOutAgeAt[k] > endAge) fail('A-I5', `${at}: runOutAgeAt.${k} = ${r.runOutAgeAt[k]}`);
+    // A-I5 the levels (7.8.0): the level chosen on every row, all three on the shown one; in order, whole £10, each lasting
+    // as its level asks (the count at floor(t·n/20) while not weighing), and the level's amount agrees with the verdict
+    // (at the spending this row tested)
+    const LV = r.levels || {};
+    const lv = LV[answer.level];
+    if (!lv) { fail('A-I5', `${at}: no figures at ${answer.level}`); return; }
+    if (r.age === answer.shown.age && !LEVELS3.every((k) => LV[k])) fail('A-I5', `${at}: the shown row has not every level`);
+    if (LV.careful && LV.balanced && !(LV.careful.monthly <= LV.balanced.monthly)) fail('A-I5', `${at}: Careful above Balanced`);
+    if (LV.balanced && LV.bold && !(LV.balanced.monthly <= LV.bold.monthly)) fail('A-I5', `${at}: Balanced above Bold`);
+    for (const [k, x] of Object.entries(LV)) {
+      if (Math.abs(x.yearly - x.monthly * 12) > 0.01) fail('A-I5', `${at}: levels.${k}.yearly ≠ 12 × monthly`);
+      if (r.potAtStop.good > 0 && x.monthly % 10 !== 0) fail('A-I5', `${at}: levels.${k}.monthly = ${x.monthly} is not a whole £10`);
+      if (r.potAtStop.good > 0 && x.weighted === x.fixedAge && Math.round((1 - x.fixedAge) * n) > Math.floor((LEVEL_FAILS20[k] * n) / 20)) fail('A-I5', `${at}: ${k} lasted in only ${x.fixedAge}`);
+      if (x.weighted < x.fixedAge - 1e-12) fail('A-I5', `${at}: ${k} weighted below fixed-age`);
     }
-    if (!(r.lastedAt.careful >= r.lastedAt.middling && r.lastedAt.middling >= r.lastedAt.good)) fail('A-I5', `${at}: lastedAt out of order`);
-    if (r.potAtStop.good > 0) {
-      if (r.lastedAt.careful < 0.9 - 1e-12) fail('A-I5', `${at}: the careful amount lasted in only ${r.lastedAt.careful}`);
-      if (r.runOutAgeAt.careful !== endAge) fail('A-I5', `${at}: the careful amount runs out in a bad case`);
+    const m = { careful: lv.monthly };
+    if (r.potAtStop.good > 0 && answer.level === 'balanced') {
       const floor10 = Math.floor(tested / 10 + 1e-9) * 10;
-      if (r.verdict === 'yes' && m.careful < floor10) fail('A-I5', `${at}: yes, but the careful amount ${m.careful} is under the spending ${tested}`);
-      if (m.careful >= Math.ceil(tested / 10 - 1e-9) * 10 && r.verdict !== 'yes') fail('A-I5', `${at}: careful ${m.careful} ≥ spending ${tested} but ${r.verdict}`);
+      if (r.verdict === 'yes' && m.careful < floor10) fail('A-I5', `${at}: yes, but the level's amount ${m.careful} is under the spending ${tested}`);
+      if (m.careful >= Math.ceil(tested / 10 - 1e-9) * 10 && r.verdict !== 'yes') fail('A-I5', `${at}: the level's amount ${m.careful} ≥ spending ${tested} but ${r.verdict}`);
     }
     if (Math.abs(r.spare - Math.max(0, m.careful - tested)) > 0.005) fail('A-I5', `${at}: spare ${r.spare}`);
 
@@ -286,7 +293,8 @@ export function checkAnswerA(answer, given, env) {
     if (!next) { if (r.oneMoreYear !== null) fail('A-I7', `${at}: oneMoreYear without the next row`); }
     else {
       const o = r.oneMoreYear;
-      const want = { toAge: next.age, extraMonthly: next.monthly.careful - m.careful, lastedFrom: r.lasted, lastedTo: next.lasted, runOutFrom: r.runOutAge, runOutTo: next.runOutAge, potExtra: next.potAtStop.middling - p.middling, sameish: Math.abs(next.monthly.careful - m.careful) <= 20 };
+      const nm = next.levels[answer.level].monthly;
+      const want = { toAge: next.age, extraMonthly: nm - m.careful, lastedFrom: r.lasted, lastedTo: next.lasted, runOutFrom: r.runOutAge, runOutTo: next.runOutAge, potExtra: next.potAtStop.middling - p.middling, sameish: Math.abs(nm - m.careful) <= 20 };
       if (!o || JSON.stringify(o) !== JSON.stringify(want)) fail('A-I7', `${at}: oneMoreYear ${JSON.stringify(o)} ≠ ${JSON.stringify(want)}`);
     }
     if (r.age !== answer.shown.age && r.phases !== null) fail('A-I8', `${at}: phases on a row that is not shown`);
@@ -376,7 +384,7 @@ export function checkAnswerA(answer, given, env) {
       // a household taking home £10,000 a month or more is not held to it (a NIGHTLY=1 run, 1 Oct 2026, seed -1221394728: a
       // couple spending £15,190 a month, one more year of £30,000 part-time pay — 11 lives of 20 → 10)
       const life = 1 / answer.basis.futures + 1e-9;
-      if (!largeHousehold(pt.without.monthly.careful)) {
+      if (!largeHousehold(pt.without.monthly)) {
         if (pt.lastedWith < pt.lastedWithout - life) fail('A-I10', `part-time made it worse: ${pt.lastedWithout} → ${pt.lastedWith}`);
         if (pt.lastedWith >= pt.lastedWithout - 1e-12 && pt.runOutWith < pt.runOutWithout) fail('A-I10', `part-time made a bad case worse: ${pt.runOutWithout} → ${pt.runOutWith}`);
         if (pt.oneMore.lasted < pt.lastedWith - life) fail('A-I10', `one more year of part-time made it worse: ${pt.lastedWith} → ${pt.oneMore.lasted}`);
@@ -384,8 +392,8 @@ export function checkAnswerA(answer, given, env) {
       if (pt.oneMore.years !== pt.years + 1) fail('A-I10', 'partTime.oneMore.years');
       // To one step — except a household above £10,000 a month (for a couple the fixed-ratio drain, C's exceptions.md 4, in
       // proportion to the amount: 0.2% to 1.3% in NIGHTLY=1 runs, 1 Oct 2026): a finding (tests/v7/oracles/oneStep.mjs, largeHousehold)
-      const proportional = largeHousehold(pt.without.monthly.careful);
-      if (answer.shown.monthly.careful < pt.without.monthly.careful - 10 && !proportional) fail('A-I10', 'the careful amount fell with part-time work');
+      const proportional = largeHousehold(pt.without.monthly);
+      if (answer.shown.levels[answer.level].monthly < pt.without.monthly - 10 && !proportional) fail('A-I10', 'the level\'s amount fell with part-time work');
     }
   } else if (answer.partTime !== null) fail('A-I10', 'a partTime block with no part-time work');
 

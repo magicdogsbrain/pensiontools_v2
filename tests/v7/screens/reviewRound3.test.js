@@ -119,7 +119,7 @@ describe('S6 — still paying in, "Start taking it" left alone', () => {
     expect(r.basis.startAge).toBe(67);
     const root = renderScreen(state);
     clean(root, state);
-    expect(root.querySelector('[data-headline="monthly.careful"]')).not.toBe(null);
+    expect(root.querySelector('[data-headline="levels.balanced.monthly"]')).not.toBe(null);
     expect(one(root, 'c.answer.payIn').textContent).toBe(r.sentences.payIn.text);
     // the same figure as the state with 67 typed
     expect(r.monthly).toEqual(load('answer-paying-in').answers.c.result.monthly);

@@ -37,6 +37,8 @@ import { historyEnd, historyStartYear } from '../shared/futures.js';
 import { outOfTen } from '../shared/format.js';
 import { livesList } from '../shared/lives.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt } from '../shared/stopAt.js';
+import { weigherOf } from '../shared/weigh.js';
+import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, horizonRuleOf } from '../shared/levels.js';
 import { before2028 } from '../shared/apart.js';
 import { toHousehold, fallInputs, fallFactorOf } from './toHousehold.js';
 import { textsFor } from './sentences.js';
@@ -74,13 +76,18 @@ export function headroomOf(verdict, careful, spend) {
   return -diff >= HEADROOM_LEAST ? { kind: 'less', perMonth: tenner(-diff) } : { kind: 'about', perMonth: 0 };
 }
 
-/** One verdict and (when asked) one band on the shared lives, for a household built from `ins`. */
-function caseOf(ins, env, lives, stopAge, spendAYear, { band = true } = {}) {
+/**
+ * One verdict at the level and (when asked) one band on the shared lives, for a household built from `ins`: the band's
+ * levels (`levels`, default the level chosen) on the stop plan's weights (7.8.0).
+ */
+function caseOf(ins, env, lives, stopAge, spendAYear, { band = true, levels = [levelOfInputs(ins)] } = {}) {
   const { household } = toHousehold(ins, env);
   const sp = stopAtPlan(household, stopAge, env, lives);
   const runner = createStopRunner(sp);
-  const verdict = verdictAt(sp, runner, spendAYear);
-  return { household, sp, runner, verdict, band: band ? bandAt(sp, runner) : null };
+  const weigher = weigherOf(sp.plan, ins, env);
+  const toMonth = 12 * (sp.plan.endAge - sp.plan.startAge);
+  const verdict = verdictAt(sp, runner, spendAYear, { weigher, level: levelOfInputs(ins), toMonth });
+  return { household, sp, runner, weigher, verdict, band: band ? bandAt(sp, runner, null, { weigher, levels, toMonth }) : null };
 }
 
 const verdictBit = (v) => ({ verdict: v.verdict, fails: v.fails, lasted: v.lasted, runOutAge: v.runOutAge });
@@ -111,15 +118,17 @@ export function answerD(inputs, env) {
 
   // the answer: the household as given — without the levers — one verdict at the spend, the band
   const base = { ...ins, work: { has: false }, fall: { has: false } };
-  const main = caseOf(base, env, lives, stopAge, spendAYear);
+  const level = levelOfInputs(ins);
+  const main = caseOf(base, env, lives, stopAge, spendAYear, { levels: LEVEL_IDS });
   tell(++step, steps);
-  const { sp, runner, verdict, band } = main;
+  const { sp, runner, verdict, band, weigher } = main;
+  const shownMonthly = band.levels[level].monthly;
   const plan = runner.plan;
   const anyMoney = sp.pots.some((q) => q.pension.some((v) => v > 0) || q.savings.some((v) => v > 0));
   const status = anyMoney ? 'ok' : plan.guaranteedAYear > 0 ? 'guaranteed-only' : 'none';
   const phases = phasesAt(sp, anyMoney ? spendAYear : 0);
   tell(++step, steps);
-  const headroom = headroomOf(verdict.verdict, band.monthly.careful, spend);
+  const headroom = headroomOf(verdict.verdict, shownMonthly, spend);
 
   // "Would some work help?" (answer-D.md 3.6, 7): the verdict with the work at its N years, one band with the work, and
   // a verdict only for 1 to 5 years (the row equal to N is the one above). All on the same lives.
@@ -134,12 +143,12 @@ export function answerD(inputs, env) {
       const c = y === years ? atN : caseOf({ ...base, work: { has: true, yearly, years: y } }, env, lives, stopAge, spendAYear, { band: false });
       byYears.push({ years: y, toAge: stopAge + y, ...verdictBit(c.verdict) });
     }
-    const careful = atN.band.monthly.careful;
+    const atLevel = atN.band.levels[level].monthly;
     work = {
       yearly, years, fromAge: stopAge, toAge: stopAge + years,
       ...verdictBit(atN.verdict),
-      monthly: { careful },
-      extra: Math.max(0, tenner(careful - spend)),
+      monthly: atLevel,
+      extra: Math.max(0, tenner(atLevel - spend)),
       byYears
     };
     tell(++step, steps);
@@ -153,8 +162,8 @@ export function answerD(inputs, env) {
     fall = {
       share: FALL_SHARE, factor: round2(factor),
       ...verdictBit(c.verdict),
-      monthly: { careful: c.band.monthly.careful },
-      drop: Math.max(0, band.monthly.careful - c.band.monthly.careful)
+      monthly: c.band.levels[level].monthly,
+      drop: Math.max(0, shownMonthly - c.band.levels[level].monthly)
     };
     tell(++step, steps);
   }
@@ -163,7 +172,12 @@ export function answerD(inputs, env) {
     status, inputs: ins, whose: 'you',
     spend: { perMonth: spend, perYear: round2(spendAYear), kind: ins.spend.kind, level: ins.spend.kind === 'level' ? ins.spend.level : null },
     ...verdictBit(verdict), outOfTen: outOfTen(verdict.lasted),
-    monthly: { ...band.monthly }, yearly: { ...band.yearly }, lastedAt: { ...band.lastedAt }, runOutAgeAt: { ...band.runOutAgeAt },
+    level,
+    levels: Object.fromEntries(LEVEL_IDS.map((id) => [id, { monthly: band.levels[id].monthly, yearly: band.levels[id].yearly, weighted: band.levels[id].chance.weighted, fixedAge: band.levels[id].chance.fixedAge }])),
+    chance: chanceBlock({ weighted: verdict.weighted, fixedAge: verdict.lasted, fails: verdict.fails }, n, {
+      planToAge: plan.endAge, weightToAge: weigher.weighted ? weigher.weightToAge : plan.endAge,
+      horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped: false })
+    }),
     headroom,
     guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },
     phases,
@@ -172,7 +186,7 @@ export function answerD(inputs, env) {
     fall,
     assumed: [], warnings: [], sentences: {},
     basis: {
-      today: env.today, futures: n, seed: env.seed ?? 0, failuresAllowed: Math.floor(n / 10), closeAllowed: Math.floor(n / 4),
+      today: env.today, futures: n, seed: env.seed ?? 0, ...levelBasis(level, weigher, ins, plan.endAge),
       historyEnd: historyEnd(), engineVersion: VERSION, startAge: stopAge, endAge: plan.endAge, years: D, lifeYears: D,
       bondDraws: 'life', cashRule: 'previous-year', grid: 'yearly', strategyId: 'pots-and-valves', cutsSwitchedOff: true,
       // (the default end age moved past 95: the age today + 5, answer-D.md 4.1)

@@ -97,7 +97,7 @@
       "risk": "balanced",
       "charge": 0.5,
       "endAge": 95,
-      "confidence": "nineInTen"
+      "confidence": "balanced"
     },
     "whose": "partner",
     "spend": {
@@ -207,30 +207,40 @@
         "chargeAYear": 0.005
       }
     ],
-    "number": {
-      "careful": 820000,
-      "middling": 659000,
-      "good": 485000,
-      "byPerson": [
-        {
-          "who": "you",
-          "pot": 576684
-        },
-        {
-          "who": "partner",
-          "pot": 243316
-        }
-      ]
+    "level": "balanced",
+    "levels": {
+      "careful": {
+        "pot": 888000
+      },
+      "balanced": {
+        "pot": 820000,
+        "payIn": 5140,
+        "byPerson": [
+          {
+            "who": "you",
+            "pot": 576684
+          },
+          {
+            "who": "partner",
+            "pot": 243316
+          }
+        ],
+        "weighted": 0.9,
+        "fixedAge": 0.9
+      },
+      "bold": {
+        "pot": 732000
+      }
     },
     "already": false,
     "chance": {
-      "lasted": 0.075,
-      "outOfTen": {
-        "words": "in only 1 future out of 10",
-        "only": true,
-        "count": 1
-      },
-      "fails": 37
+      "weighted": 0.075,
+      "fixedAge": 0.075,
+      "fails": 37,
+      "n": 40,
+      "planToAge": 95,
+      "weightToAge": 95,
+      "horizonRule": "survival"
     },
     "onCourse": false,
     "verdict": {
@@ -243,7 +253,6 @@
       }
     },
     "income": {
-      "middling": 2990,
       "bad": 2570
     },
     "gap": {
@@ -262,8 +271,9 @@
       "savingsOnly": false,
       "outOfReach": null,
       "caps": null,
-      "threeInFourNow": false,
-      "nineInTen": {
+      "level": "balanced",
+      "closeNow": false,
+      "atLevel": {
         "payIn": 5140,
         "extra": 4240,
         "savingsIn": null,
@@ -319,63 +329,6 @@
           "middling": 907655,
           "good": 1134641
         }
-      },
-      "threeInFour": {
-        "payIn": 4010,
-        "extra": 3110,
-        "savingsIn": null,
-        "parts": [
-          {
-            "who": "you",
-            "payIn": 2673.33,
-            "own": null,
-            "employer": null,
-            "atStop": {
-              "pension": {
-                "careful": 388068,
-                "middling": 541357,
-                "good": 688269
-              },
-              "savings": {
-                "careful": 0,
-                "middling": 0,
-                "good": 0
-              }
-            }
-          },
-          {
-            "who": "partner",
-            "payIn": 1336.67,
-            "own": null,
-            "employer": null,
-            "atStop": {
-              "pension": {
-                "careful": 177182,
-                "middling": 246099,
-                "good": 308036
-              },
-              "savings": {
-                "careful": 0,
-                "middling": 0,
-                "good": 0
-              }
-            }
-          }
-        ],
-        "fails": 10,
-        "lasted": 0.75,
-        "outOfTen": {
-          "words": "in only 8 futures out of 10",
-          "only": true,
-          "count": 8
-        },
-        "verdict": "close",
-        "runOutAge": 88,
-        "potAtStop": {
-          "careful": 565250,
-          "middling": 788129,
-          "good": 996305
-        }
       }
     },
     "payIn": {
@@ -384,11 +337,6 @@
       "employer": null,
       "needed": 5140,
       "extra": 4240,
-      "confidence": "nineInTen",
-      "at": {
-        "nineInTen": 5140,
-        "threeInFour": 4010
-      },
       "outside": null,
       "savingsNow": 0
     },
@@ -852,7 +800,7 @@
         "id": "confidence",
         "field": "confidence",
         "source": "default",
-        "value": "nineInTen",
+        "value": "balanced",
         "text": "The pay-in that gets there makes your money last in 9 futures out of 10.",
         "parts": [
           "The pay-in that gets there makes your money last ",
@@ -1058,7 +1006,7 @@
         "parts": [
           "About ",
           {
-            "key": "number.careful",
+            "key": "levels.balanced.pot",
             "kind": "pot"
           },
           " between you by the time you are ",
@@ -1119,7 +1067,7 @@
           ", ",
           "the two of you would want pots of about ",
           {
-            "key": "number.careful",
+            "key": "levels.balanced.pot",
             "kind": "pot"
           },
           " between you by then",
@@ -1367,23 +1315,23 @@
         "parts": [
           "Paying in ",
           {
-            "key": "enough.nineInTen.payIn",
+            "key": "enough.atLevel.payIn",
             "kind": "money"
           },
           " a month",
           ": ",
           {
-            "key": "enough.nineInTen.potAtStop.careful",
+            "key": "enough.atLevel.potAtStop.careful",
             "kind": "pot"
           },
           " in a bad case, ",
           {
-            "key": "enough.nineInTen.potAtStop.middling",
+            "key": "enough.atLevel.potAtStop.middling",
             "kind": "pot"
           },
           " in a middling case, ",
           {
-            "key": "enough.nineInTen.potAtStop.good",
+            "key": "enough.atLevel.potAtStop.good",
             "kind": "pot"
           },
           " in a good case."
@@ -1654,7 +1602,7 @@
       },
       "verdictLine": {
         "id": "b.verdict.line.no",
-        "text": "Paying in £900 a month between you as now, your money lasted until the younger of you is 95 in only 1 future out of 10. £5,140 a month between you (you £3,427 a month, your partner £1,713 a month) would put you on course, which is 9 in 10; £4,010 a month between you would do it in 3 futures out of 4.",
+        "text": "Paying in £900 a month between you as now, your money lasted until the younger of you is 95 in only 1 future out of 10. £5,140 a month between you (you £3,427 a month, your partner £1,713 a month) would put you on course, which is 9 in 10.",
         "parts": [
           "Paying in ",
           {
@@ -1680,21 +1628,21 @@
           },
           ". ",
           {
-            "key": "enough.nineInTen.payIn",
+            "key": "enough.atLevel.payIn",
             "kind": "money"
           },
           " a month between you",
           " (",
           "you ",
           {
-            "key": "enough.nineInTen.parts.0.payIn",
+            "key": "enough.atLevel.parts.0.payIn",
             "kind": "money"
           },
           " a month",
           ", ",
           "your partner ",
           {
-            "key": "enough.nineInTen.parts.1.payIn",
+            "key": "enough.atLevel.parts.1.payIn",
             "kind": "money"
           },
           " a month",
@@ -1707,26 +1655,12 @@
           {
             "fixed": "10"
           },
-          "; ",
-          {
-            "key": "enough.threeInFour.payIn",
-            "kind": "money"
-          },
-          " a month between you",
-          " would do it in ",
-          {
-            "fixed": "3"
-          },
-          " futures out of ",
-          {
-            "fixed": "4"
-          },
           "."
         ]
       },
       "income": {
         "id": "b.verdict.income",
-        "text": "To last in 9 futures out of 10 paying in as now, you could spend £2,570 a month between you from when you are 60 (£2,990 in a middling case, 5 futures out of 10), with your State Pensions from 67 (the full amounts, as assumed): £1,022 a month (£12,264 a year) less than you want.",
+        "text": "To last in 9 futures out of 10 paying in as now, you could spend £2,570 a month between you from when you are 60, with your State Pensions from 67 (the full amounts, as assumed): £1,022 a month (£12,264 a year) less than you want.",
         "parts": [
           "To last in ",
           {
@@ -1747,20 +1681,6 @@
             "key": "stop.age",
             "kind": "age"
           },
-          " (",
-          {
-            "key": "income.middling",
-            "kind": "money"
-          },
-          " in a middling case, ",
-          {
-            "fixed": "5"
-          },
-          " futures out of ",
-          {
-            "fixed": "10"
-          },
-          ")",
           ", with ",
           "your State Pensions",
           " from ",
@@ -1815,7 +1735,7 @@
         "parts": [
           "To be on course: ",
           {
-            "key": "enough.nineInTen.payIn",
+            "key": "enough.atLevel.payIn",
             "kind": "money"
           },
           " a month ",
@@ -1829,7 +1749,7 @@
           "You",
           " ",
           {
-            "key": "enough.nineInTen.parts.0.payIn",
+            "key": "enough.atLevel.parts.0.payIn",
             "kind": "money"
           },
           " a month",
@@ -1837,7 +1757,7 @@
           "your partner",
           " ",
           {
-            "key": "enough.nineInTen.parts.1.payIn",
+            "key": "enough.atLevel.parts.1.payIn",
             "kind": "money"
           },
           " a month",
@@ -1867,31 +1787,10 @@
           ".",
           " That is ",
           {
-            "key": "enough.nineInTen.extra",
+            "key": "enough.atLevel.extra",
             "kind": "money"
           },
           " a month more than now."
-        ]
-      },
-      "enoughFour": {
-        "id": "b.enough.four",
-        "text": "For 3 futures out of 4: £4,010 a month between you.",
-        "parts": [
-          "For ",
-          {
-            "fixed": "3"
-          },
-          " futures out of ",
-          {
-            "fixed": "4"
-          },
-          ": ",
-          {
-            "key": "enough.threeInFour.payIn",
-            "kind": "money"
-          },
-          " a month between you",
-          "."
         ]
       }
     },
@@ -1899,8 +1798,15 @@
       "today": "2026-09-30",
       "futures": 40,
       "seed": 0,
-      "failuresAllowed": 4,
-      "closeAllowed": 10,
+      "level": "balanced",
+      "levelFails20": 2,
+      "planToAge": 95,
+      "weightToAge": 95,
+      "tablesVersion": "ons-ew-2024-cohort/1",
+      "sexUsed": {
+        "you": "f",
+        "partner": "f"
+      },
       "historyEnd": "2023-06",
       "engineVersion": "(any)",
       "endAge": 95,

@@ -17,7 +17,7 @@ import { fcOptions } from '../oracles/fcOptions.mjs';
 import { SCHEMA_B, answerB, checkAnswerB, withinCeiling, asksB } from './invariants.js';
 import { arbitraryInputs } from '../gen/arbitrary.mjs';
 import { payInParts } from '../../../src/answers/shared/schemaParts.js';
-import { verdictOf, RULES } from '../../../src/answers/shared/rules.js';
+import { legacyVerdictOf as verdictOf, RULES } from '../../../src/answers/shared/rules.js';
 import { buildPlanSeed, atEnough } from '../../../src/answers/keep/planSeed.js';
 import { oneLife } from '../oracles/oneStep.mjs';
 

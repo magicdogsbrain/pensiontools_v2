@@ -8,7 +8,7 @@ import { SCHEMA_B } from '../b/_b.js';
 import { SCHEMA_C } from '../c/_c.js';
 import { defaults, fieldsThatApply, parseDraft, validate, checkInputs, flatten, MESSAGE_IDS } from '../../../src/answers/shared/validate.js';
 import { partsText } from '../../../src/answers/shared/format.js';
-import { RULES, SAVING, VERDICT, verdictOf } from '../../../src/answers/shared/rules.js';
+import { RULES, SAVING, LEGACY_VERDICT as VERDICT, legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, spendLevelAMonth, partnerStopFields, untilBothStopField, taxFreeFields, stopKindField,
   askedAbout, alreadyStopped, agesToShow, handOverToC, stopYearsOf } from '../../../src/answers/shared/schemaParts.js';
 import { APART } from '../../../src/answers/shared/household.js';

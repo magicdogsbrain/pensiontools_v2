@@ -11,7 +11,7 @@ import { buildPlanSeed, seedProblems, keepable, SEED_KEY, SEED_VERSION, SEED_MAX
 import { starterSheet, checkSheet, sheetForSeed } from '../../../src/answers/keep/budgetSheet.js';
 import { stillSavingOf } from '../../../src/answers/keep/planCreate.js';
 import { suggestedPlanName } from '../../../src/answers/shared/planName.js';
-import { verdictOf } from '../../../src/answers/shared/rules.js';
+import { legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
 import { stopsOf } from '../../../src/answers/shared/household.js';
 import { toHousehold as toHouseholdA } from '../../../src/answers/a/toHousehold.js';
 import { toHousehold as toHouseholdB } from '../../../src/answers/b/toHousehold.js';

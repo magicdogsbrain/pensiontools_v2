@@ -4,7 +4,7 @@
  * "On course" means the money lasts in 9 futures out of 10, everywhere. Until 6.22.0 today's planner had three bars:
  * "Am I on track?" searched for the pot that lasted in 85% of futures, the "When could I retire?" spin cleared 90%, and
  * the couples, survivor and care checks called a plan solid from 85%. V7 has always used 9 in 10 (BAND.careful = 0.9,
- * VERDICT.yes = 0.10 in src/answers/shared/rules.js); tests/onCourse.test.js holds the two apps to this one number.
+ * LEGACY_VERDICT.yes = 0.10 in src/answers/shared/rules.js); tests/onCourse.test.js holds the two apps to this one number.
  *
  * Pure: no DOM, no storage. index.html imports the words and thresholds from here (its script may only shrink).
  */

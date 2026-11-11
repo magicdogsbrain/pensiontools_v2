@@ -20,7 +20,7 @@
 import { toHousehold as toHouseholdC } from '../../../../src/answers/c/toHousehold.js';
 import { toHousehold as toHouseholdA } from '../../../../src/answers/a/toHousehold.js';
 import { toHousehold as toHouseholdB } from '../../../../src/answers/b/toHousehold.js';
-import { firstAccessAge, addYears, verdictOf, RULES } from '../../../../src/answers/shared/rules.js';
+import { firstAccessAge, addYears, legacyVerdictOf as verdictOf, RULES } from '../../../../src/answers/shared/rules.js';
 import { suggestedPlanName, checkPlanName } from './planName.js';
 import { checkSheet, sheetForSeed } from '../../../../src/answers/keep/budgetSheet.js';
 

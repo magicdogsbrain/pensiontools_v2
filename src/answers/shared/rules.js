@@ -39,8 +39,67 @@ export const RULES = {
   stopAgeMax: 75
 };
 
-/** The share of futures each amount must last in. */
+/**
+ * The spread of the futures (7.8.0: the spread only, not the levels): the worst 1 in 10, the middling and the best 1 in
+ * 10 of the pots, the ages and the amounts (bandIndexes, badCaseOf, the pot paths). The keys keep their names:
+ * `potNow.careful` is the worst 1 in 10 of the spread, not a level.
+ */
 export const BAND = { careful: 0.9, middling: 0.5, good: 0.1 };
+
+/**
+ * The chance the money lasts as long as you do (research/v7/replan-nov-2026.md 5; 7.8.0). `weighted`: each future that
+ * runs out counts by the chance of being alive when it does (shared/weigh.js). false is the rollback: every weight is
+ * one whole future, the runs and the plan-to age follow the end-age rule before 7.8.0, and the verdicts are
+ * legacyVerdictOf's — so Balanced is the figure and the verdict before 7.8.0, byte for byte.
+ */
+export const SUCCESS = { weighted: false };
+
+/** The three levels a person picks from: the whole twentieths of weighted failure each lets through. Never a float. */
+export const LEVEL_FAILS20 = Object.freeze({ careful: 1, balanced: 2, bold: 6 });
+/** The same as a share that lasts, for words only (.95 / .90 / .70). */
+export const LEVELS = Object.freeze(Object.fromEntries(Object.entries(LEVEL_FAILS20).map(([k, t]) => [k, 1 - t / 20])));
+export const LEVEL_DEFAULT = 'balanced';
+/** Each level and the line just under it (close): the lines the weighted words never round across. */
+export const LEVEL_LINES = Object.freeze([0.95, 0.90, 0.85, 0.70, 0.65]);
+
+/**
+ * The old `confidence` values (B before 7.8.0) as levels. Typed (a URL, a draft): "9 in 10" was a choice → Careful;
+ * "3 in 4" → Balanced. Stored (a seed's or a plan's inputs): B stored "9 in 10" for everyone by default, so both are
+ * Balanced; a stored level is the person's own only when `levelChosen` says so.
+ */
+export const LEGACY_LEVEL = Object.freeze({
+  typed: Object.freeze({ nineInTen: 'careful', threeInFour: 'balanced' }),
+  stored: Object.freeze({ nineInTen: 'balanced', threeInFour: 'balanced' })
+});
+
+const own = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
+
+/** A level from any value said for one: a level as it is, an old value by where it came from, anything else Balanced. */
+export function levelOf(v, { stored = false } = {}) {
+  if (own(LEVEL_FAILS20, v)) return v;
+  const old = stored ? LEGACY_LEVEL.stored : LEGACY_LEVEL.typed;
+  return own(old, v) ? old[v] : LEVEL_DEFAULT;
+}
+
+/** One whole future's weight: a weight is round(S × 2^30), so sums of up to 1,000 are exact whatever their order. */
+export const WEIGHT_ONE = 2 ** 30;
+
+/**
+ * THE one test of a level: the weighted failures `sumW` (whole numbers, see WEIGHT_ONE) of n futures are within t
+ * twentieths. 20·sumW ≤ t·n·2^30, in whole numbers. Every verdict, solver and word guard calls this. With every weight
+ * one whole future it is fails ≤ floor(t·n/20).
+ */
+export const passes = (sumW, n, t) => 20 * sumW <= t * n * WEIGHT_ONE;
+
+/**
+ * 'yes' | 'close' | 'no' at a level from the weighted failures: yes within its twentieths, close within one more. With
+ * SUCCESS.weighted false (or `weighted` false), the verdict before 7.8.0 on the count (sumW / 2^30 failures).
+ */
+export function verdictAtLevel(sumW, n, level, weighted = SUCCESS.weighted) {
+  if (!weighted) return legacyVerdictOf(sumW / WEIGHT_ONE, n);
+  const t = LEVEL_FAILS20[levelOf(level)];
+  return passes(sumW, n, t) ? 'yes' : passes(sumW, n, t + 1) ? 'close' : 'no';
+}
 
 /**
  * The saving years' constants (step 4 brief 4.2): the default charge a year, the slide to the drawing mix, the ceilings
@@ -57,11 +116,14 @@ export const SAVING = { chargesPct: DEFAULT_CHARGES_PCT, charge: DEFAULT_CHARGES
  */
 export const CLOSED_YEARS_FAILS = 0;
 
-/** The share of lives that may fail: yes = floor(n × 0.10), close = floor(n × 0.25) (conflict 16: counts, not shares). */
-export const VERDICT = { yes: 0.10, close: 0.25 };
+/**
+ * Before 7.8.0 (and the rollback, old readings and old documents): the share of lives that may fail, yes = floor(n ×
+ * 0.10), close = floor(n × 0.25) (conflict 16: counts, not shares).
+ */
+export const LEGACY_VERDICT = { yes: 0.10, close: 0.25 };
 
-/** 'yes' | 'close' | 'no' from the number of lives that failed out of n. */
-export const verdictOf = (fails, n) => (fails <= Math.floor(n * VERDICT.yes) ? 'yes' : fails <= Math.floor(n * VERDICT.close) ? 'close' : 'no');
+/** 'yes' | 'close' | 'no' from the number of lives that failed out of n, by LEGACY_VERDICT. */
+export const legacyVerdictOf = (fails, n) => (fails <= Math.floor(n * LEGACY_VERDICT.yes) ? 'yes' : fails <= Math.floor(n * LEGACY_VERDICT.close) ? 'close' : 'no');
 
 /** The full State Pension for a year: weekly × 52, to the penny. */
 export const fullStatePensionYearly = () => Math.round(RULES.fullStatePensionWeekly * 52 * 100) / 100;

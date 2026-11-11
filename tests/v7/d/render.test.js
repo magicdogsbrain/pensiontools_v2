@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { renderScreen, SCHEMA_D, get, readForm } from './_d.js';
 import { checkScreen, draw, visibleText, expectedInputs, scopesFor, bannedHits } from '../render/checkScreen.js';
 import { parseDraft } from '../../../src/answers/shared/validate.js';
-import { verdictOf } from '../../../src/answers/shared/rules.js';
+import { legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
 import { suggestedPlanName } from '../../../src/answers/shared/planName.js';
 import { ADVICE_SHORT, ADVICE_FULL, FRONT } from '../../../src/v7/copy/common.js';
 import { D } from '../../../src/v7/copy/d.js';

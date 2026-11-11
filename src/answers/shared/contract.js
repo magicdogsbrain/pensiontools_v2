@@ -295,7 +295,7 @@
  *   stop and then spending the target — the whole-life count, A's verdict at the stop age. Equal to wholeLife.
  * @property {boolean} [onCourse]             chance.fails ≤ floor(n/10): A's "yes" at the stop age.
  * @property {{ band: 'yes' | 'close' | 'no', lasted: number, outOfTen: object }} [verdict]   R1 (research/saving-enough-and-
- *   check-in.md 2.1): verdictOf(chance.fails, n) — on course at 9 futures in 10, close from 3 in 4 — the count's own share.
+ *   check-in.md 2.1): legacyVerdictOf(chance.fails, n) — on course at 9 futures in 10, close from 3 in 4 — the count's own share.
  * @property {{ middling: number, bad: number }} [income]   R1 (2.1): what you could spend from the stop paying in as now, a
  *   month after tax at today's prices — the most that lasted in 5 and in 9 futures out of 10 (bad = monthlyIfShort).
  * @property {{ month: number, year: number }} [gap]   R1 (2.1): the aim less the bad-case income, never below £0, a month and × 12.

@@ -16,7 +16,7 @@ import {
   ON_COURSE_SHARE, ON_COURSE_PCT, ON_COURSE_WORDS, isOnCourse, onCourseAlertClass, jointVerdictHtml, onCourseBasisHtml,
   onCourseVerdictHtml, ON_COURSE_SEARCHING, confidenceWords
 } from '../src/services/OnCourse.js';
-import { BAND, VERDICT } from '../src/answers/shared/rules.js';
+import { BAND, LEGACY_VERDICT as VERDICT } from '../src/answers/shared/rules.js';
 import { requiredPotForStrategy } from '../src/strategies/stressTest.js';
 import { earliestAt, sweepHeadline } from '../src/services/RetireSweep.js';
 import { answerLastedWords } from '../src/services/PlanSeed.js';

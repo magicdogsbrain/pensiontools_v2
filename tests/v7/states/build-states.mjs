@@ -37,7 +37,7 @@ import { answerB } from '../../../src/answers/b/answer.js';
 import { SCHEMA_D } from '../../../src/answers/d/schema.js';
 import { answerD } from '../../../src/answers/d/answer.js';
 import { outOfTen } from '../../../src/answers/shared/format.js';
-import { verdictOf } from '../../../src/answers/shared/rules.js';
+import { legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
 import { emptySaverDraft, emptySaverAnswer } from '../../../src/v7/state/initial.js';
 import { checkInputs } from '../../../src/answers/shared/validate.js';
 import { VERSION } from '../../../src/constants.js';

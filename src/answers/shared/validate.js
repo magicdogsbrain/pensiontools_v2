@@ -80,6 +80,12 @@ function defaultOf(schema, field, values, env) {
   return d;
 }
 
+/**
+ * An old value of a choice as today's (7.8.0): a field's `legacy` map ({ old: new }) is read before its options are
+ * checked, so an old URL or draft still reads ("How careful?": "9 in 10" is Careful, "3 in 4" Balanced).
+ */
+const legacyOf = (field, raw) => (field.legacy && typeof raw === 'string' && Object.prototype.hasOwnProperty.call(field.legacy, raw) ? field.legacy[raw] : raw);
+
 /** Text as typed → a value, or a messageId. */
 function parseText(field, raw) {
   if (field.type === 'yesNo') {
@@ -90,7 +96,8 @@ function parseText(field, raw) {
     return { error: 'notAnOption' };
   }
   if (field.type === 'choice') {
-    return field.options.includes(raw) ? { value: raw } : { error: 'notAnOption' };
+    const v = legacyOf(field, raw);
+    return field.options.includes(v) ? { value: v } : { error: 'notAnOption' };
   }
   if (typeof raw === 'number') return Number.isFinite(raw) && (field.type !== 'percent' || onStep(field, raw)) ? { value: raw } : { error: 'notANumber' };
   if (field.type === 'percent') {
@@ -173,7 +180,7 @@ function parseSteps(field, raw, typed) {
 /** A real value (from code, not a text box) → the value, or a messageId. */
 function checkTyped(field, raw) {
   if (field.type === 'yesNo') return typeof raw === 'boolean' ? { value: raw } : { error: 'notAnOption' };
-  if (field.type === 'choice') return field.options.includes(raw) ? { value: raw } : { error: 'notAnOption' };
+  if (field.type === 'choice') { const v = legacyOf(field, raw); return field.options.includes(v) ? { value: v } : { error: 'notAnOption' }; }
   if (typeof raw !== 'number' || !Number.isFinite(raw)) return { error: 'notANumber' };
   if ((field.type === 'age' || field.type === 'count') && !Number.isInteger(raw)) return { error: 'notANumber' };
   if (field.type === 'percent' && !onStep(field, raw)) return { error: 'notANumber' };

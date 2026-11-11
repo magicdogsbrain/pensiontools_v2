@@ -19,7 +19,7 @@ export { simulate } from '../../../src/services/SimulationEngine.js';
 export { projectAccumulation } from '../../../src/services/AccumulationEngine.js';
 export { RISK_PRESETS } from '../../../src/services/GlidepathService.js';
 export { bootstrapPaths, annualNominal } from '../../../src/strategies/ladderEngine.js';
-export { RULES, SAVING, VERDICT, verdictOf } from '../../../src/answers/shared/rules.js';
+export { RULES, SAVING, LEGACY_VERDICT as VERDICT, legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
 export { checkInputs } from '../../../src/answers/shared/validate.js';
 export { toHousehold as toHouseholdC } from '../../../src/answers/c/toHousehold.js';
 export { SCHEMA_C } from '../../../src/answers/c/schema.js';

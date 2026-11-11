@@ -121,7 +121,7 @@ function capOf(q) {
  * @param {object} o.inp        the checked inputs
  * @param {string[]} o.whos
  * @param {boolean[]} o.savers
- * @param {'yes'|'close'|'no'} o.band   verdictOf at today's pay-ins
+ * @param {'yes'|'close'|'no'} o.band   legacyVerdictOf at today's pay-ins
  * @param {{ careful: number, close: number }} o.allowed   the lives that may fail: floor(n / 10), floor(n / 4)
  * @param {boolean} o.reachable  a number exists (some pot pays the spend): when not, no pay-in can be enough
  * @param {boolean[]|null} o.only    couples apart: whose pensions the number is (those still saving); null for everyone

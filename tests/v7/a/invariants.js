@@ -16,7 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { get, money, partsText, outOfTen, pot as potText } from '../../../src/answers/shared/format.js';
 import { flatten } from '../../../src/answers/shared/validate.js';
-import { RULES, verdictOf } from '../../../src/answers/shared/rules.js';
+import { RULES, legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
 import { agesToShow, askedAbout, stopYearsOf, payInParts } from '../../../src/answers/shared/schemaParts.js';
 import { bannedHits } from '../render/checkScreen.js';
 import { largeHousehold } from '../oracles/oneStep.mjs';

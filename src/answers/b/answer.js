@@ -14,7 +14,7 @@
  * The number stays as a guide: the pot that, if you had exactly that at the stop in every future, pays the spend in 9
  * futures out of 10. It is not the test.
  *
- * Said straight (research/saving-enough-and-check-in.md 2–3, release step R1): the verdict's band (verdictOf on the same
+ * Said straight (research/saving-enough-and-check-in.md 2–3, release step R1): the verdict's band (legacyVerdictOf on the same
  * count), what you could spend from the stop paying in as now and the gap to the aim (`verdict`, `income`, `gap`, from
  * figures already worked out), and what would be enough (`enough`, enough.js) — the same test at the share of pay, or the
  * pounds, that is on course and that lasts in 3 futures out of 4, each count asked again at the figure said — with a
@@ -43,7 +43,7 @@
  */
 import { SCHEMA_B } from './schema.js';
 import { checkInputs, defaults, flatten } from '../shared/validate.js';
-import { RULES, SAVING, CLOSED_YEARS_FAILS, accessRiseAffects, verdictOf } from '../shared/rules.js';
+import { RULES, SAVING, CLOSED_YEARS_FAILS, accessRiseAffects, legacyVerdictOf } from '../shared/rules.js';
 import { VERSION } from '../../constants.js';
 import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { historyEnd, historyStartYear } from '../shared/futures.js';
@@ -415,11 +415,11 @@ export function answerB(inputs, env) {
   const status = guaranteedCovers ? 'guaranteed-only' : number === null || needed === null ? 'out-of-reach' : 'ok';
 
   // ---- the verdict, said straight (research/saving-enough-and-check-in.md 2.1–2.3) --------------------------------------
-  // V7's one set of bands (verdictOf: on course at 9 futures in 10, close from 3 in 4), by the count at today's pay-ins;
+  // V7's one set of bands (legacyVerdictOf: on course at 9 futures in 10, close from 3 in 4), by the count at today's pay-ins;
   // what you could spend from the stop paying in as now — the most a month that lasted in 9 and in 5 futures out of 10
   // (careNow, the same test) — and how far the bad case falls short of what you want, a month and a year. On course and a
   // gap of £0 agree to B's £10 step: the bad-case income is the most that lasts in 9 in 10.
-  const band = verdictOf(fails, n);
+  const band = legacyVerdictOf(fails, n);
   const verdict = { band, lasted, outOfTen: outOfTen(lasted) };
   const income = { middling: careNow.monthly.middling, bad: careNow.monthly.careful };
   const gapMonth = round2(Math.max(0, spendMonth - income.bad));

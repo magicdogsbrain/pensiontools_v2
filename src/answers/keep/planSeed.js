@@ -39,7 +39,7 @@ import { toHousehold as toHouseholdB } from '../b/toHousehold.js';
 import { toHousehold as toHouseholdD } from '../d/toHousehold.js';
 import { stopsOf } from '../shared/household.js';
 import { payInParts } from '../shared/schemaParts.js';
-import { firstAccessAge, addYears, verdictOf, RULES } from '../shared/rules.js';
+import { firstAccessAge, addYears, legacyVerdictOf, RULES } from '../shared/rules.js';
 import { suggestedPlanName, checkPlanName } from '../shared/planName.js';
 import { checkSheet, sheetForSeed } from './budgetSheet.js';
 
@@ -303,7 +303,7 @@ function answerOf(source, result) {
     monthly: null,
     lasted: isNum(chance.lasted) ? chance.lasted : null,
     runOutAge: result.wholeLife && isNum(result.wholeLife.runOutAge) ? result.wholeLife.runOutAge : null,
-    verdict: isNum(chance.fails) && isNum(result.basis.futures) ? verdictOf(chance.fails, result.basis.futures) : null,
+    verdict: isNum(chance.fails) && isNum(result.basis.futures) ? legacyVerdictOf(chance.fails, result.basis.futures) : null,
     potAtStop: pots(result.potAtStop && result.potAtStop.now),
     number: three(result.number),
     payInNeeded: result.payIn && isNum(result.payIn.needed) ? result.payIn.needed : null

@@ -37,7 +37,7 @@ import { createFastRunner, prepareFutureFrom } from './fastEngine.js';
 import { createBandSolver, STEP, runFuture } from './band.js';
 import { livesList, sliceReturns } from './lives.js';
 import { savingPlan, savingKernel, kernelPasses, stopYearsFor } from './saving.js';
-import { RULES, SAVING, verdictOf } from './rules.js';
+import { RULES, SAVING, legacyVerdictOf } from './rules.js';
 
 const round2 = (x) => Math.round(x * 100) / 100;
 
@@ -317,7 +317,7 @@ export function verdictAt(sp, runner, spendAYear) {
   }
   const fails = months.filter((m) => m !== null).length;
   const ageOf = (m) => (m === null ? plan.endAge : plan.startAge + Math.floor(m / 12));
-  return { fails, lasted: (n - fails) / n, verdict: verdictOf(fails, n), runOutAge: badCaseOf(months.map(ageOf)), runOutMonths: months };
+  return { fails, lasted: (n - fails) / n, verdict: legacyVerdictOf(fails, n), runOutAge: badCaseOf(months.map(ageOf)), runOutMonths: months };
 }
 
 /**
@@ -581,7 +581,7 @@ export function countsAtPayIns(sp, spendAYear, payInsList) {
     }
     open = still;
     const fails = still.length;
-    return { fails, lasted: (n - fails) / n, verdict: verdictOf(fails, n) };
+    return { fails, lasted: (n - fails) / n, verdict: legacyVerdictOf(fails, n) };
   });
 }
 

@@ -8,6 +8,11 @@
  *   payInParts(p)                ONE reader of what goes into a pension a month, for every way it can be said (6.46.0)
  *   payInTotalOf(inputs, who)    what lands in `who`'s pension a month, from checked inputs of A, B or C
  *   moreFields()                 savingsIn, savingRisk, risk, charge, endAge
+ *   levelField()                 "How careful?" — Careful, Balanced (the default), Bold; old values read by `legacy` (7.8.0)
+ *   sexField(who)                the figures for women or men, or not said (women's); declared ahead of endAge (7.8.0)
+ *   horizonEndAge(values, env)   the end age's one default rule: the plan-to age (1 in 10 still alive) from the ages and
+ *                                sexes so far; with SUCCESS.weighted false, the rule before 7.8.0
+ *   weightToAge(values, env)     the age the futures are followed on to (1 in 50 still alive)
  *   chargeField()                the one fund and platform charge, percent a year (6.19.0): in C's "more" too
  *   isaGrowthField(group)        how ISAs and savings grow (6.22.0): "Mostly cash" or "Invested like my pension", in C, A, B
  *   savingsGrowthAsked(values)   whether there is money in savings for that choice to grow (it is asked, and defaulted, then)
@@ -34,7 +39,9 @@
  *
  * Pure: no clock (env.today is the date), no storage, no screen.
  */
-import { RULES, SAVING } from './rules.js';
+import { RULES, SAVING, LEVEL_FAILS20, LEVEL_DEFAULT, LEGACY_LEVEL } from './rules.js';
+import { horizonEndAge as planToAgeFor, weightToAge as weightAgeFor } from '../../services/LongevityModel.js';
+import { weighs } from './weigh.js';
 import { bornFromAge, wholeStatePensionAge, firstOpenAge, APART, PAY_COVERS } from './household.js';
 import { CHARGES_LIMITS } from '../../services/Charges.js';
 import { ISA_GROWTH_VALUES } from '../../services/IsaGrowth.js';
@@ -209,6 +216,86 @@ export function moreFields() {
     chargeField(),                                                                                                                       // a year, saving and drawing
     { path: 'endAge', type: 'age', min: 75, max: 105, default: 95, group: 'more', boundaries: [75, 95, 100, 105] }
   ];
+}
+
+/*
+ * ---- How careful, and how long people live (7.8.0: research/v7/replan-nov-2026.md 5) ------------------------------------
+ */
+
+/**
+ * "How careful?": the one level on every question, under more detail. Old values still read: a URL or a typed draft's
+ * "9 in 10" is Careful and "3 in 4" Balanced (validate.js rewrites `legacy` values before the options are checked).
+ * Values stored on a seed or a plan go through levelOf(v, { stored: true }) first.
+ */
+export function levelField() {
+  return { path: 'confidence', type: 'choice', options: Object.keys(LEVEL_FAILS20), default: LEVEL_DEFAULT, legacy: LEGACY_LEVEL.typed, group: 'more' };
+}
+
+/**
+ * Which figures to use for `who`: women's, men's, or not said (the women's: a later plan-to age, the cautious side).
+ * Declared AHEAD of endAge: the defaults are filled in field order from the values seen so far (validate.js), and the
+ * end age's default reads it. The partner's applies to a couple.
+ */
+export function sexField(who) {
+  return field({ path: `${who}.sex`, type: 'choice', options: ['notSaid', 'female', 'male'], default: 'notSaid', group: 'more' },
+    who === 'partner' ? { household: 'couple' } : {});
+}
+
+/** The household's people from flat values, as the life tables read them (no one without an age). null when none. */
+export function lifePeopleFromValues(values, today) {
+  const v = values || {};
+  if (!isNum(v['you.age'])) return null;
+  const year = Number(String(today || '').slice(0, 4));
+  const one = (who) => ({ age: v[`${who}.age`], by: year - v[`${who}.age`], sex: v[`${who}.sex`] });
+  return v.household === 'couple' && isNum(v['partner.age']) ? [one('you'), one('partner')] : [one('you')];
+}
+
+/**
+ * Years from today until the money is first drawn, from flat values: D (it asks "Have you stopped work?") today; C its
+ * start; A and B the first stop (not yet given: today).
+ */
+export function drawingStartFromValues(values) {
+  const v = values || {};
+  if ('stopped' in v) return 0;
+  const s = stopYearsFromValues(v);
+  const known = [s.you, s.partner].filter(isNum);
+  return known.length ? Math.min(...known) : 0;
+}
+
+/** The end-age rule before 7.8.0 (and the rollback): 95; D the later of 95 and the younger person's age + 5, at most 105. */
+function endAgeBefore780(v) {
+  if (!('stopped' in v) || !isNum(v['you.age'])) return 95;
+  const partner = v.household === 'couple' ? v['partner.age'] : undefined;
+  const younger = isNum(partner) ? Math.min(v['you.age'], partner) : v['you.age'];
+  return Math.min(105, Math.max(95, younger + 5));
+}
+
+/**
+ * The end age's one default rule (A, B, C and D): the plan-to age — the younger person's age when fewer than 1 in 10
+ * (for a couple, fewer than 1 in 10 couples with one of them) are still alive, counted from the drawing start, rounded
+ * up, at least 5 years after it and at most 105. Reads the ages, the sexes (declared ahead of it) and the start or stop.
+ * Not weighing (SUCCESS.weighted false; env.weighted in tests): the rule before 7.8.0, figure for figure.
+ * env.lifeTable (tests): another table.
+ */
+export function horizonEndAge(values, env = {}) {
+  const v = values || {};
+  if (!weighs(env)) return endAgeBefore780(v);
+  const people = lifePeopleFromValues(v, env && env.today);
+  if (!people) return 95;
+  return planToAgeFor({ people, d: drawingStartFromValues(v), table: (env && env.lifeTable) || undefined });
+}
+
+/**
+ * The age the futures are followed on to: the younger person's age when fewer than 1 in 50 are still alive, rounded up,
+ * at most 105 (env.weightToAge in tests). Not weighing: the end age's rule before 7.8.0 (the runs end there).
+ */
+export function weightToAge(values, env = {}) {
+  const v = values || {};
+  if (!weighs(env)) return endAgeBefore780(v);
+  if (env && isNum(env.weightToAge)) return env.weightToAge;
+  const people = lifePeopleFromValues(v, env && env.today);
+  if (!people) return 95;
+  return weightAgeFor({ people, d: drawingStartFromValues(v), table: (env && env.lifeTable) || undefined });
 }
 
 /*

@@ -374,7 +374,7 @@ export function sentencesFor(result, facts) {
  * pounds) that would put you on course — because that was what was hard to find.
  *
  *   verdictHead   "On course for £1,500 a month from 66" / "Close — £1,810 a month from 63 is tight" / "Not on course for …"
- *                 (verdictOf's bands: on course at 9 futures in 10, close from 3 in 4)
+ *                 (legacyVerdictOf's bands: on course at 9 futures in 10, close from 3 in 4)
  *   verdictLine   paying in as now: the count; then what would be on course (and, not on course, for 3 futures out of 4),
  *                 or "even all of your pay going in would not be on course"; on course, how little would still be
  *   verdictFour   the Close band only: today's pay-in is already enough for 3 futures out of 4 (decided by the count)

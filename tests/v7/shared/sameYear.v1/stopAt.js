@@ -30,7 +30,7 @@ import { createFastRunner, prepareFutureFrom } from './fastEngine.js';
 import { createBandSolver, STEP, runFuture } from './band.js';
 import { livesList, sliceReturns } from './lives.js';
 import { savingPlan, savingKernel, kernelPasses } from './saving.js';
-import { RULES, SAVING, verdictOf } from '../../../../src/answers/shared/rules.js';
+import { RULES, SAVING, legacyVerdictOf as verdictOf } from '../../../../src/answers/shared/rules.js';
 
 const round2 = (x) => Math.round(x * 100) / 100;
 

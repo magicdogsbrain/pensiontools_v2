@@ -211,3 +211,70 @@ export function mostPerFutureReference(plan, future, range = {}) {
   }
   return g * STEP;
 }
+
+/*
+ * ---- 7.8.0: the weighted levels' reference (appended; the code above is untouched) --------------------------------------
+ */
+import { LEVEL_FAILS20, levelOf, passes } from './rules.js';
+import { weightOf } from './weigh.js';
+
+/**
+ * THE REFERENCE for the weighted levels (spec 7.8.0 §3 c): for each level, the largest k on the £10 grid in [kLow, kMax]
+ * whose weighted failures pass its twentieths — passes(Σ weight of each future that runs out at k, n, t) — by plain
+ * bisection, every future run at every probe (every person's run, for the earliest month). band.js solveLevels is held to
+ * it (tests/v7/shared/weightedSolve.test.js). Nothing on the page uses it.
+ * @param {object} plan          enginePlan(...) (C), or a stop runner's plan (A, B, D)
+ * @param {object[]} futures     the futures (C) or the lives (A, B, D)
+ * @param {{ byMonth: Float64Array }} weigher   weigh.js weigherOf(plan, …)
+ * @param {string[]} [levels]    default all three
+ * @param {{ run?: (r: number, i: number, config: object) => { failed: boolean, failMonth: number|null },
+ *           configsFor?: (k: number, i: number) => object[] }} [opts]   the engine (default: today's, run by run) and the
+ *   configs at step k for future i (default configsAt(plan, k × £120), the same for every future)
+ * @returns {{ [level]: { k, monthly, sumW, fails, capped, floorHit, verdict? }, kLow, kMax, probes, evaluations }}
+ *   floorHit (k null, verdict 'no'): even kLow does not pass; capped: kMax passes
+ */
+export function weightedThresholdReference(plan, futures, weigher, levels = Object.keys(LEVEL_FAILS20), opts = {}) {
+  const n = futures.length;
+  const { kLow, kMax } = bandRange(plan);
+  const run = opts.run || null;
+  const configCache = new Map();
+  const configsFor = opts.configsFor || ((k) => { let c = configCache.get(k); if (!c) { c = configsAt(plan, k * STEP * 12); configCache.set(k, c); } return c; });
+  const probes = new Map();
+  let evaluations = 0;
+  /** Every future at k: the weighted failures, the count, each month. */
+  const probe = (k) => {
+    let p = probes.get(k);
+    if (p) return p;
+    let sumW = 0, fails = 0;
+    const months = new Array(n);
+    for (let i = 0; i < n; i++) {
+      const configs = configsFor(k, i);
+      let failed = false, failMonth = null;
+      for (let r = 0; r < configs.length; r++) {
+        const res = run ? run(r, i, configs[r].config) : simulate(configs[r].config, futures[i].returns, futures[i].seed);
+        if (res.failed) { failed = true; if (failMonth === null || res.failMonth < failMonth) failMonth = res.failMonth; }
+      }
+      evaluations++;
+      months[i] = failed ? failMonth : null;
+      if (failed) { fails++; sumW += weightOf(weigher, failMonth); }
+    }
+    p = { k, sumW, fails, months };
+    probes.set(k, p);
+    return p;
+  };
+  const out = {};
+  for (const level of levels) {
+    const t = LEVEL_FAILS20[levelOf(level)];
+    const ok = (k) => passes(probe(k).sumW, n, t);
+    if (!ok(kLow)) { out[level] = { k: null, monthly: null, sumW: probe(kLow).sumW, fails: probe(kLow).fails, capped: false, floorHit: true, verdict: 'no' }; continue; }
+    let g = kLow;
+    let capped = false;
+    if (ok(kMax)) { g = kMax; capped = true; } else {
+      let b = kMax;
+      while (b - g > 1) { const mid = Math.floor((g + b) / 2); if (ok(mid)) g = mid; else b = mid; }
+    }
+    const p = probe(g);
+    out[level] = { k: g, monthly: g * STEP, sumW: p.sumW, fails: p.fails, capped, floorHit: false };
+  }
+  return { ...out, kLow, kMax, probes: probes.size, evaluations };
+}

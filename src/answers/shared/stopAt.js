@@ -13,6 +13,11 @@
  *   phasesAt(sp, spendAYear, pots?, opts?)        → Phase[] (C's phases, plus fromWork, work, pensionOpen, shown.fromWork);
  *                                                   opts.yearly: one a year (a shaped answer's rows, spending-shape.md 5.6)
  *   monthlyAt(sp, runner, potsFixed, opts?)       → the careful amount with every life's pension at a given household total
+ * The weighted levels (7.8.0; weigh.js gives the weights, rules.js passes() the one test):
+ *   withinWeighted(sp, runner, spendAYear, weigher, t, before?, lives?)  → { ok, sumW }: withinFails, weighted
+ *   lastsWithinWeighted(sp, spendAYear, payIns, weigher, t, opts?)       → lastsWithin, weighted (B's pay-in)
+ *   potNeededWeighted(sp, spendAYear, weigher, levels?, opts?)           → { [level]: { pot, capped } }: B's pot to aim for
+ *   potNeededWeightedPlain(sp, spendAYear, weigher, level, opts?)        → the same by plain bisection (its reference)
  *
  * The drawing years: the start is the stop and never moves; a pension still closed at the stop is closed inside its
  * holder's one run (the fast path's locked run) and the run's own ISA pays meanwhile — a run-out while it is closed is
@@ -37,7 +42,8 @@ import { createFastRunner, prepareFutureFrom } from './fastEngine.js';
 import { createBandSolver, STEP, runFuture } from './band.js';
 import { livesList, sliceReturns } from './lives.js';
 import { savingPlan, savingKernel, kernelPasses, stopYearsFor } from './saving.js';
-import { RULES, SAVING, legacyVerdictOf } from './rules.js';
+import { RULES, SAVING, legacyVerdictOf, LEVEL_FAILS20, levelOf, passes } from './rules.js';
+import { weightOf, failsBound } from './weigh.js';
 
 const round2 = (x) => Math.round(x * 100) / 100;
 
@@ -376,6 +382,38 @@ function withinFails(sp, runner, spendAYear, allowed, before = Infinity) {
 }
 
 /**
+ * The weighted withinFails (7.8.0): whether the weights of the lives that run out at a spend pass `t` twentieths —
+ * passes(sumW, n, t), weigh.js — stopping as soon as it is settled: "no" once the sum fails; "yes" once even every life
+ * still to run failing whole (byMonth[0], one whole future) would pass. A life is run for its month (every person's run,
+ * the earliest month); one that lasts adds nothing. `before` as withinFails. `lives` (optional, ascending): run only these
+ * — every other life is known to last (potNeededWeighted's lives that fail at a pot). → { ok, sumW } (the sum so far).
+ */
+export function withinWeighted(sp, runner, spendAYear, weigher, t, before = Infinity, lives = null) {
+  const plan = runner.plan;
+  const n = sp.n;
+  const counted = (m) => m !== null && m < before;
+  if (!plan.runs.length) {
+    let sumW = 0;
+    for (const m of withoutRuns(plan, spendAYear, n)) if (counted(m)) sumW += weightOf(weigher, m);
+    return { ok: passes(sumW, n, t), sumW };
+  }
+  const W0 = weigher.byMonth[0];
+  const count = lives ? lives.length : n;
+  let sumW = 0;
+  if (passes(count * W0, n, t)) return { ok: true, sumW };
+  for (let x = 0; x < count; x++) {
+    const i = lives ? lives[x] : x;
+    const res = runFuture(runner.configsAtH(spendAYear, i), null, true, (r, config) => runner.run(r, i, config));
+    if (res.failed && (!Number.isFinite(res.failMonth) || counted(res.failMonth))) {
+      sumW += weightOf(weigher, res.failMonth);
+      if (!passes(sumW, n, t)) return { ok: false, sumW };
+    }
+    if (passes(sumW + (count - 1 - x) * W0, n, t)) return { ok: true, sumW };
+  }
+  return { ok: passes(sumW, n, t), sumW };
+}
+
+/**
  * Life i's pension of person j with the household's pension at the stop at a total P: P split by the middling pots
  * between the people still saving (everyone when they stop together); the pension of someone who has stopped as it is.
  */
@@ -489,12 +527,19 @@ export function potNeededWithin(sp, spendAYear, fails, P, opts = {}) {
  *   whole £1,000 (SAVING.potMax / step + 1 where nothing up to SAVING.potMax lasts) — B brackets its pay-in search with it
  * @returns {(number|null)[]}   in the order of failsList
  */
-export function potNeededAt(sp, spendAYear, failsList, opts = {}) {
-  const step = SAVING.potStep;
-  const top = Math.round(SAVING.potMax / step);
-  const n = sp.n;
+/** A cache of runners at whole £1,000 household pensions (runnerAtPot), one per pot. */
+function runnersAtPots(sp, opts) {
   const runners = new Map();
-  const runnerAt = (k) => { let r = runners.get(k); if (!r) { r = runnerAtPot(sp, k * step, opts); runners.set(k, r); } return r; };
+  return (k) => { let r = runners.get(k); if (!r) { r = runnerAtPot(sp, k * SAVING.potStep, opts); runners.set(k, r); } return r; };
+}
+
+/**
+ * Each life's own least pot: the least whole £1,000 (in steps) at which that life lasts, by bisection over 0 …
+ * SAVING.potMax with one run per step (SAVING.potMax / step + 1 where nothing up to it lasts).
+ */
+function leastPotsOf(sp, spendAYear, runnerAt) {
+  const top = Math.round(SAVING.potMax / SAVING.potStep);
+  const n = sp.n;
   const lastsAt = (k, i) => {
     const runner = runnerAt(k);
     if (!runner.plan.runs.length) return !withoutRuns(runner.plan, spendAYear, 1)[0];
@@ -509,6 +554,15 @@ export function potNeededAt(sp, spendAYear, failsList, opts = {}) {
     }
     least[i] = lo;
   }
+  return least;
+}
+
+export function potNeededAt(sp, spendAYear, failsList, opts = {}) {
+  const step = SAVING.potStep;
+  const top = Math.round(SAVING.potMax / step);
+  const n = sp.n;
+  const runnerAt = runnersAtPots(sp, opts);
+  const least = leastPotsOf(sp, spendAYear, runnerAt);
   if (typeof opts.onLeast === 'function') opts.onLeast(least);
   const sorted = Array.from(least).sort((a, b) => a - b);
   return failsList.map((f) => {
@@ -517,6 +571,72 @@ export function potNeededAt(sp, spendAYear, failsList, opts = {}) {
     const holds = withinFails(sp, runnerAt(k), spendAYear, f).ok && (k === 0 || !withinFails(sp, runnerAt(k - 1), spendAYear, f).ok);
     return holds ? k * step : potNeeded(sp, null, spendAYear, f, opts);
   });
+}
+
+/**
+ * The pot to aim for at each weighted level (7.8.0, B): the least whole £1,000 P — the household's pension at the stop,
+ * the same in every life, split as potNeeded splits it — at which the weights of the lives that run out pass the level's
+ * twentieths (withinWeighted). The same figure as plain bisection (potNeededWeightedPlain), in fewer runs:
+ *   1. each life's own least pot (potNeededAt's pass, or `opts.least` when B has it already): the lives that fail at P
+ *      are those whose least pot is above it, with no run needed;
+ *   2. known yes: the count's figure at floor(t·n/20) (every weight is at most one whole future); bisect on £1,000 steps
+ *      below it, running only the lives that fail there, for their months;
+ *   3. checked as potNeededAt checks: it holds at P and not at P − £1,000 with every life run; if not, plain bisection.
+ * → { [level]: { pot, capped } }: pot null and capped when even SAVING.potMax does not pass.
+ * @param {{ byMonth: Float64Array }} weigher   weigh.js weigherOf(sp.plan, …)
+ * @param {string[]} [ids]   the levels (default all three)
+ * @param {{ savingsOf?: Function, least?: Int32Array, onLeast?: Function }} [opts]
+ */
+export function potNeededWeighted(sp, spendAYear, weigher, ids = Object.keys(LEVEL_FAILS20), opts = {}) {
+  const step = SAVING.potStep;
+  const top = Math.round(SAVING.potMax / step);
+  const n = sp.n;
+  const runnerAt = runnersAtPots(sp, opts);
+  const least = opts.least && opts.least.length === n ? opts.least : leastPotsOf(sp, spendAYear, runnerAt);
+  if (typeof opts.onLeast === 'function' && least !== opts.least) opts.onLeast(least);
+  const sorted = Array.from(least).sort((a, b) => a - b);
+  const failingAt = (k) => { const out = []; for (let i = 0; i < n; i++) if (least[i] > k) out.push(i); return out; };
+  const out = {};
+  for (const id of ids) {
+    const level = levelOf(id);
+    const t = LEVEL_FAILS20[level];
+    const at = (k) => withinWeighted(sp, runnerAt(k), spendAYear, weigher, t, Infinity, failingAt(k)).ok;
+    const full = (k) => withinWeighted(sp, runnerAt(k), spendAYear, weigher, t).ok;
+    const f = failsBound(n, t);
+    let hi = f >= n ? 0 : sorted[n - 1 - f];
+    if (hi > top) { if (!at(top)) hi = null; else hi = top; }
+    let k = null;
+    if (hi !== null) {
+      let lo = -1;                                                   // lo: known not to pass (−1: below the floor)
+      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (at(mid)) hi = mid; else lo = mid; }
+      k = hi;
+    }
+    // the check: it holds at P and not at P − £1,000, every life run; else the plain search
+    if (k !== null && full(k) && (k === 0 || !full(k - 1))) out[level] = { pot: k * step, capped: false };
+    else {
+      const pot = potNeededWeightedPlain(sp, spendAYear, weigher, level, opts, runnerAt);
+      out[level] = { pot, capped: pot === null };
+    }
+  }
+  return out;
+}
+
+/**
+ * The pot to aim for at one weighted level by plain bisection over 0 … SAVING.potMax on £1,000 steps, every life run at
+ * every step (withinWeighted, stopping once settled). null when SAVING.potMax does not pass. The reference
+ * potNeededWeighted is held to.
+ */
+export function potNeededWeightedPlain(sp, spendAYear, weigher, level, opts = {}, runnerAt = runnersAtPots(sp, opts)) {
+  const step = SAVING.potStep;
+  const top = Math.round(SAVING.potMax / step);
+  const t = LEVEL_FAILS20[levelOf(level)];
+  const ok = (k) => withinWeighted(sp, runnerAt(k), spendAYear, weigher, t).ok;
+  let lo = 0, hi = top + 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (ok(mid)) hi = mid; else lo = mid + 1;
+  }
+  return lo > top ? null : lo * step;
 }
 
 // ---- the one test at another pay-in (step 4 brief section 10, J9) --------------------------------------------------
@@ -550,6 +670,14 @@ export function runnerAtPayIns(sp, payIns, opts = {}) {
  */
 export function lastsWithin(sp, spendAYear, payIns, allowed, opts = {}) {
   return withinFails(sp, runnerAtPayIns(sp, payIns, opts), spendAYear, allowed, opts.before).ok;
+}
+
+/**
+ * The weighted lastsWithin (7.8.0): whether the weights of the lives that run out at a spend with these pay-ins pass the
+ * level's `t` twentieths (withinWeighted on runnerAtPayIns; stops as soon as it is settled). `opts` as lastsWithin.
+ */
+export function lastsWithinWeighted(sp, spendAYear, payIns, weigher, t, opts = {}) {
+  return withinWeighted(sp, runnerAtPayIns(sp, payIns, opts), spendAYear, weigher, t, opts.before).ok;
 }
 
 /** The one test in full at a spend with these pay-ins: verdictAt on that runner (one run per life). */

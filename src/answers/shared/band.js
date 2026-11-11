@@ -8,7 +8,9 @@
  *   bandFrom(sortedMost)     the three amounts from the sorted most-per-future list
  *   badCaseAge(ages)         the age in a bad case: sort upwards, take position floor(n/10)
  *   mostPerFuture(...)       the most one future could take, searched to £10 a month
- *   createBandSolver(...)    the search over all futures at once, sharing what each run taught it
+ *   createBandSolver(...)    the search over all futures at once, sharing what each run taught it; from 7.8.0 its
+ *                            solveLevels(weigher, levels) finds the weighted levels' amounts on the same brackets
+ *                            (held to bandReference.js weightedThresholdReference)
  *
  * The solver finds the same three amounts as sorting every future's most (bandFrom), without finding every
  * future's most: the careful amount is the largest amount that fails in at most floor(n/10) futures, and
@@ -36,6 +38,8 @@
 import { simulate } from '../../services/SimulationEngine.js';
 import { configsAt } from './toEngine.js';
 import { createFastRunner } from './fastEngine.js';
+import { LEVEL_FAILS20, levelOf, passes } from './rules.js';
+import { weightOf, failsBound } from './weigh.js';
 
 /** £ a month per step of the search. */
 export const STEP = 10;
@@ -351,6 +355,94 @@ export function createBandSolver(plan, futures, opts = {}) {
         if (lastsAt(i, mid)) g = mid; else b = mid;
       }
       return g;
+    },
+    /**
+     * The weighted levels (7.8.0): for each level asked, the largest k whose weighted failures pass its twentieths —
+     * passes(Σ weight of each future failing at k, n, t). The same k as weightedThresholdReference (bandReference.js)
+     * wherever a run-out never comes later as k rises; fewer runs:
+     *   1. known yes: the count's own threshold at floor(t·n/20) (every weight is at most one whole future);
+     *   2. known no: kMax + 1 (when even kMax passes, kMax, flagged capped);
+     *   3. between them, weightedAtMost: futures known to last add nothing, the rest run at k for their month (each run
+     *      kept), stopping once the sum fails or once every future still open failing whole would still pass;
+     *   4. Balanced first, then Careful at or below it, then Bold at or above it.
+     * → { [level]: { k, monthly, capped, floorHit } }; `floorHit` (k null) when even kLow does not pass.
+     * @param {{ byMonth: Float64Array }} weigher   weigh.js weigherOf(plan, …)
+     * @param {string[]} [ids]   the levels to solve (default all three)
+     */
+    solveLevels(weigher, ids = Object.keys(LEVEL_FAILS20)) {
+      const want = new Set(ids.map((id) => levelOf(id)));
+      const out = {};
+      const done = {};
+      const est = opts.estimate && Number.isFinite(opts.estimate.careful) ? opts.estimate : null;
+      const guessAt = (j) => {
+        // where the count threshold at j failures is likely: from an estimate of the spread, else the 4% guess
+        const e = est || (done.est === undefined ? (done.est = sampleEstimate()) : done.est);
+        const at = bandIndexes(n);
+        if (!e) return kLow + Math.max(1, Math.round((plan.totalPots * 0.04) / 12 / STEP));
+        if (j <= at.careful) return Math.round(kLow + (e.careful - kLow) * (0.9 + 0.1 * (j / Math.max(1, at.careful))));
+        const f = Math.min(1, (j - at.careful) / Math.max(1, at.middling - at.careful));
+        return Math.round(e.careful + (e.middling - e.careful) * f);
+      };
+      const countYes = (j, good, top) => {
+        const g0 = Math.max(good, Math.min(top, guessAt(j)));
+        return threshold(j, good, top, g0, Math.max(GAP.sample.least, Math.round(Math.abs(g0 - kLow) * GAP.sample.share)));
+      };
+      /** Whether the weighted failures at k pass t, exactly, running as few futures as the answer needs. */
+      const weightedAtMost = (t, k, expectNo) => {
+        const W0 = weigher.byMonth[0];
+        const open = [];
+        for (let i = 0; i < n; i++) if (lo[i] < k) open.push(i);
+        let unsettled = open.length;
+        if (passes(unsettled * W0, n, t)) return true;
+        const p = (i) => (hi[i] <= k ? 2 : (k - lo[i]) / ((Number.isFinite(hi[i]) ? hi[i] : kMax + 1) - lo[i]));
+        open.sort((a, b) => (expectNo ? p(b) - p(a) : p(a) - p(b)) || a - b);
+        let sum = 0;
+        for (const i of open) {
+          const r = evaluate(i, k, true);
+          unsettled--;
+          if (r.failed) { sum += weightOf(weigher, r.failMonth); if (!passes(sum, n, t)) return false; }
+          if (passes(sum + unsettled * W0, n, t)) return true;
+        }
+        return passes(sum, n, t);
+      };
+      /** The largest k in [good, top] that passes t (good known to; top + 1 known not to, or kMax + 1, unknown). */
+      const weightedYes = (t, good, top) => {
+        let g = good, b = top + 1;
+        let step = Math.max(2, Math.round(Math.abs(g - kLow) * 0.03));
+        let k = Math.min(top, g + step);
+        while (k > g) {
+          if (weightedAtMost(t, k, false)) { g = k; if (k >= top) break; k = Math.min(top, k + step); step *= 2; }
+          else { b = k; break; }
+        }
+        while (b - g > 1) {
+          const mid = Math.floor((g + b) / 2);
+          if (weightedAtMost(t, mid, true)) g = mid; else b = mid;
+        }
+        return { k: g, capped: g >= kMax };
+      };
+      const solveOne = (level, good, top, countGood, countTop) => {
+        const t = LEVEL_FAILS20[level];
+        if (!weightedAtMost(t, kLow, false)) return { k: null, monthly: null, capped: false, floorHit: true };
+        const g = countYes(failsBound(n, t), countGood, countTop);
+        const r = weightedYes(t, Math.max(g, good), top);
+        return { k: r.k, monthly: r.k * STEP, capped: r.capped, floorHit: false, countK: g };
+      };
+      // Balanced first; Careful at or below it; Bold at or above it
+      const bal = want.has('balanced') || (want.has('careful') && want.has('bold')) ? solveOne('balanced', kLow, kMax, kLow, kMax) : null;
+      const balK = bal && bal.k !== null ? bal.k : null;
+      const balCount = bal && Number.isFinite(bal.countK) ? bal.countK : null;
+      if (want.has('balanced')) out.balanced = bal;
+      // the count at Careful's floor(n/20) is at or below Balanced's at floor(n/10); Bold's floor(6n/20) at or above it
+      if (want.has('careful')) out.careful = solveOne('careful', kLow, balK ?? kMax, kLow, balCount ?? kMax);
+      if (want.has('bold')) out.bold = solveOne('bold', balK ?? kLow, kMax, balCount ?? kLow, kMax);
+      for (const v of Object.values(out)) if (v) delete v.countK;
+      return out;
+    },
+    /** The weighted failures at k, whole (every future not known to last run for its month). */
+    weightedFailsAt(weigher, k) {
+      let sum = 0;
+      for (let i = 0; i < n; i++) if (lo[i] < k) { const r = evaluate(i, k, true); if (r.failed) sum += weightOf(weigher, r.failMonth); }
+      return sum;
     },
     get evaluations() { return evaluations; },
     get engineRuns() { return engineRuns; },

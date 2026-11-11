@@ -22,6 +22,9 @@ export const RULES = {
   // How savings grow when the answer does not say (6.22.0): today's planner's one default, "Mostly cash" (services/IsaGrowth.js)
   isaGrowthDefault: DEFAULT_ISA_GROWTH,
   maxYears: 45,
+  // 7.8.0: the most drawing years a run goes to while weighing (105 − 45): the runs follow each future on to the
+  // weighting age (drawYearsCap)
+  maxDrawYears: 60,
   smallPot: 30000,
 
   // The saving years (step 4 brief 4.2). tests/v7/a/schema.test.js asserts these against today's engine and BudgetModel.
@@ -53,6 +56,12 @@ export const BAND = { careful: 0.9, middling: 0.5, good: 0.1 };
  * legacyVerdictOf's — so Balanced is the figure and the verdict before 7.8.0, byte for byte.
  */
 export const SUCCESS = { weighted: false };
+
+/**
+ * The most drawing years a run goes to: RULES.maxDrawYears while weighing (env.weighted in tests, else SUCCESS.weighted),
+ * RULES.maxYears before 7.8.0 and in the rollback.
+ */
+export const drawYearsCap = (env) => ((env && typeof env.weighted === 'boolean' ? env.weighted : SUCCESS.weighted) ? RULES.maxDrawYears : RULES.maxYears);
 
 /** The three levels a person picks from: the whole twentieths of weighted failure each lets through. Never a float. */
 export const LEVEL_FAILS20 = Object.freeze({ careful: 1, balanced: 2, bold: 6 });

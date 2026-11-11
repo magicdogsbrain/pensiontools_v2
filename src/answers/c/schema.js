@@ -14,7 +14,7 @@
  */
 import { RULES, accessAgeOn, firstAccessAge } from '../shared/rules.js';
 import { payingInFields, statePensionAgeOf, earliestPensionStart, peopleFromValues, chargeField, partnerStopFields, untilBothStopField,
-  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, payInParts, levelField } from '../shared/schemaParts.js';
+  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, payInParts, levelField, horizonEndAge } from '../shared/schemaParts.js';
 
 const POT = [0, 1, 10_000, 30_000, 250_000, 1_073_100, 3_000_000, 10_000_000];
 const STATE_PENSION = [0, 1, 6_000, 12_570, 12_571, 20_000];
@@ -100,7 +100,8 @@ export const SCHEMA_C = {
     // Fund and platform charges (6.19.0): A's and B's very field — the household's one charge, percent a year, taken
     // while the money is still invested before it is first taken and while it is drawn (schemaParts.js chargeField).
     chargeField(),
-    { path: 'endAge', type: 'age', min: 75, max: 105, default: 95, group: 'more', boundaries: [75, 95, 100, 105] },
+    // the end age's one default rule (7.8.0: horizonEndAge; 95 while not weighing)
+    { path: 'endAge', type: 'age', min: 75, max: 105, default: { rule: 'endAge' }, group: 'more', boundaries: [75, 95, 100, 105] },
     // "How careful?" (7.8.0): Careful, Balanced (the default) or Bold, every figure at it
     levelField(),
 
@@ -123,6 +124,8 @@ export const SCHEMA_C = {
 
   // Defaults that depend on other values. `values` is { [path]: checked value } for the fields before this one.
   defaultRules: {
+    /** The end age (7.8.0): the plan-to age from the life tables while weighing, 95 before (schemaParts.js horizonEndAge). */
+    endAge: horizonEndAge,
     /**
      * 'age' while still paying in and under the State Pension age (the money is taken when the paying in stops: the
      * most likely person — 55, paying in, asking about 67 — must not be answered "from now" with the pay-in

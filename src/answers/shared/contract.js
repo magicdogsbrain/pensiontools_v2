@@ -194,6 +194,8 @@
  * @typedef {{ weighted: number, fixedAge: number, fails: number, n: number, planToAge: number, weightToAge: number,
  *   horizonRule: 'survival' | 'chosen' | 'plan' | 'capped' }} Chance   The chance of the figure shown (A and D: at the spend;
  *   B: paying in as now; C: the level's amount). fails: the futures that ran out before the plan-to age.
+ * While weighing a run goes up to RULES.maxDrawYears (60) drawing years (rules.js drawYearsCap), 45 in the rollback; B's
+ * pots come from potNeededWeighted and its pay-in from one solve on lastsWithinWeighted at the level.
  * Every answer's basis also carries { level, levelFails20, planToAge, weightToAge, tablesVersion, sexUsed }, in place of
  * failuresAllowed / closeAllowed. Deleted from every answer (7.8.0): the top-level `monthly`/`yearly`/`lasted`/
  * `runOutAge`/`lastedAt`/`runOutAgeAt`, B's `number`, enough's 9-in-10 and 3-in-4 figures, `payIn.at`, `payIn.confidence`,

@@ -42,7 +42,7 @@ import { createFastRunner, prepareFutureFrom } from './fastEngine.js';
 import { createBandSolver, STEP, runFuture, levelsFromSolver } from './band.js';
 import { livesList, sliceReturns } from './lives.js';
 import { savingPlan, savingKernel, kernelPasses, stopYearsFor } from './saving.js';
-import { RULES, SAVING, legacyVerdictOf, LEVEL_FAILS20, levelOf, passes } from './rules.js';
+import { RULES, SAVING, legacyVerdictOf, LEVEL_FAILS20, levelOf, passes, drawYearsCap } from './rules.js';
 import { weightOf, failsBound } from './weigh.js';
 import { chanceOf, verdictOfChance, LEVEL_IDS } from './levels.js';
 
@@ -90,7 +90,7 @@ export function stopAtPlan(household, stopAge, env, lives = null) {
   const own = stopYearsFor(household, stopAge, env.today);
   const S = own.S;
   const youngest = Math.min(...people.map((p) => p.age));
-  const D = Math.max(1, Math.min(RULES.maxYears, household.planToAge - (youngest + S)));
+  const D = Math.max(1, Math.min(drawYearsCap(env), household.planToAge - (youngest + S)));
   const T = S + D;
   const saving = savingPlan(household, stopAge, env);
   const L = lives || livesList(env.futures, T, env);

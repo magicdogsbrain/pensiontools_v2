@@ -118,9 +118,12 @@ describe('the weighted levels: the fast path is the reference', () => {
     const c = cCase(...C_CASES['Alex, 66, a man, £400,000'], 200);
     const s = createBandSolver(c.plan, c.futures);
     const r = s.solveLevels(c.weigher);
-    expect([r.careful.k, r.balanced.k, r.bold.k]).toEqual([215, 229, 267]);
+    // (retaken in step 4b: while weighing, C's end age defaults to the plan-to age from the tables — one end-age rule,
+    // horizonEndAge: 99 for someone of 66 who has not said, 33 years where it was 95 and 29)
+    expect(c.plan.years).toBe(33);
+    expect([r.careful.k, r.balanced.k, r.bold.k]).toEqual([212, 227, 266]);
     expect([c.weigher.byMonth[100], c.weigher.byMonth[300]]).toEqual([929174634, 318114023]);
-    expect(s.weightedFailsAt(c.weigher, r.balanced.k)).toBe(21043438460);
+    expect(s.weightedFailsAt(c.weigher, r.balanced.k)).toBe(21130399500);
   });
 
   it('one level alone is the same figure as all three at once; the same again on a fresh solver (deterministic)', () => {

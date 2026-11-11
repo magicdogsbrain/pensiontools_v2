@@ -20,7 +20,7 @@
  *
  * The end age: the later of 95 and the younger person's age + 5, capped at 105 (answer-D.md 4.1 endAge).
  */
-import { personFields, SPEND_FIELDS, chargeField, isaGrowthField, savingsGrowthDefault, spendLevelAMonth, levelField } from '../shared/schemaParts.js';
+import { personFields, SPEND_FIELDS, chargeField, isaGrowthField, savingsGrowthDefault, spendLevelAMonth, levelField, horizonEndAge } from '../shared/schemaParts.js';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
@@ -31,7 +31,10 @@ export const FALL_SHARE = 0.2;
 /** Work from today: whole years, 1 to 5 (answer-D.md 3.6, 7). */
 export const WORK_YEARS = Object.freeze({ min: 1, max: 5 });
 
-/** The end age the form puts in: the later of 95 and the younger person's age + 5, capped at 105. */
+/**
+ * The end age's rule before 7.8.0 (and in the rollback): the later of 95 and the younger person's age + 5, capped at 105.
+ * The schema reads the one shared rule, schemaParts.js horizonEndAge, which gives exactly this while not weighing.
+ */
 export function defaultEndAge(values) {
   const you = values['you.age'];
   const partner = values.household === 'couple' ? values['partner.age'] : undefined;
@@ -85,7 +88,7 @@ export const SCHEMA_D = {
   ],
 
   /** Defaults that depend on other values (validate.js). */
-  defaultRules: { isaGrowth: savingsGrowthDefault, endAge: defaultEndAge },
+  defaultRules: { isaGrowth: savingsGrowthDefault, endAge: horizonEndAge },
 
   agesToShow: null,
   gridToShow: null

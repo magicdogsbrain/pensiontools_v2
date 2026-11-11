@@ -14,7 +14,7 @@
  */
 import { APART } from '../shared/household.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, gridToShow, stopKindField, partnerStopFields, untilBothStopField,
-  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, levelField } from '../shared/schemaParts.js';
+  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, levelField, horizonEndAge } from '../shared/schemaParts.js';
 
 const STOP_KIND = stopKindField('b');
 
@@ -69,7 +69,7 @@ export const SCHEMA_B = {
   ],
 
   /** Defaults that depend on other values (validate.js): how the savings grow, only once there is money in savings. */
-  defaultRules: { isaGrowth: savingsGrowthDefault },
+  defaultRules: { isaGrowth: savingsGrowthDefault, endAge: horizonEndAge },
 
   agesToShow: null,
   /** The rows (stop ages) and columns (pay-in totals) of the choices step (conflict 37): a rule of the list. */

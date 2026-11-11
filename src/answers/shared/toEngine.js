@@ -64,7 +64,7 @@ import { RISK_PRESETS } from '../../services/GlidepathService.js';
 import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS } from '../../constants.js';
 import { isChargesPct } from '../../services/Charges.js';
 import { isIsaGrowth } from '../../services/IsaGrowth.js';
-import { RULES, addYears } from './rules.js';
+import { RULES, addYears, drawYearsCap } from './rules.js';
 import { startWhenPensionsOpen, startAsGiven, stopsOf, APART, PAY_COVERS } from './household.js';
 import { ratiosOf, startFactor } from './shape.js';
 
@@ -206,8 +206,9 @@ export function enginePlan(household, env, opts = {}) {
   const order = [...people].sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.index - b.index)).map((p) => p.index);
   const youngerAtStart = Math.min(...people.map((p) => p.ageAtStart));
   const wanted = household.planToAge - youngerAtStart;
-  const years = Math.max(1, Math.min(RULES.maxYears, wanted));
-  const capped = wanted > RULES.maxYears;
+  const cap = drawYearsCap(env);
+  const years = Math.max(1, Math.min(cap, wanted));
+  const capped = wanted > cap;
   const whoseIdx = people.reduce((best, p) => (p.ageAtStart < people[best].ageAtStart ? p.index : best), 0);
   const whose = people[whoseIdx].who;
   // The pay line of a couple apart: what the worker's pay covers of what is spent until the second stop, and whether it

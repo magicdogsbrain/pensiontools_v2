@@ -25,7 +25,7 @@
  * 56" and "you at 56, your partner already stopped" are one figure. A partner who stops when you start — not answered,
  * "when you start", or said another way — is C as before: from now (answer.js) or here, byte for byte.
  */
-import { SAVING, firstAccessAge, RULES } from '../shared/rules.js';
+import { SAVING, firstAccessAge, RULES, drawYearsCap } from '../shared/rules.js';
 import { payInTotalOf, payInParts, earliestPensionStart, stopYearsOf, shapeOfInputs } from '../shared/schemaParts.js';
 import { validateHousehold } from '../shared/household.js';
 import { bandIndexes, STEP } from '../shared/band.js';
@@ -313,7 +313,7 @@ function closedYearsApart(inputs, sp, band, env) {
   const younger = Math.min(inputs.you.age, inputs.partner.age);
   const first = Math.min(own.you, own.partner);
   const last = Math.max(own.you, own.partner);
-  if (!(until > sp.stopAge && inputs.endAge > younger + last && last - first < RULES.maxYears)) return null;
+  if (!(until > sp.stopAge && inputs.endAge > younger + last && last - first < drawYearsCap(env))) return null;
   // what can pay from the check: the savings of those who have stopped by then, and every pension open then
   const reachable = plan.people.reduce((t, p, j) => (p.join > cy ? t : t + mid[j].isa + (closed.some((x) => x.j === j) ? 0 : mid[j].pension)), 0);
   const level = levelOfInputs(inputs);

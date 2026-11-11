@@ -27,7 +27,7 @@
  */
 import { SCHEMA_A } from './schema.js';
 import { checkInputs, defaults, flatten } from '../shared/validate.js';
-import { RULES, addYears } from '../shared/rules.js';
+import { RULES, addYears, drawYearsCap } from '../shared/rules.js';
 import { VERSION } from '../../constants.js';
 import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { historyEnd, historyStartYear } from '../shared/futures.js';
@@ -394,9 +394,9 @@ export function answerA(inputs, env) {
   const fits = (a) => {
     if (!(Number.isInteger(a) && a >= ask.ageToday && a <= RULES.stopAgeMax)) return false;
     const s = span(a);
-    return ins.endAge > younger + s.last && s.last - s.first < RULES.maxYears;
+    return ins.endAge > younger + s.last && s.last - s.first < drawYearsCap(env);
   };
-  const lifeYears = (a) => { const S = span(a).first; return S + Math.max(1, Math.min(RULES.maxYears, ins.endAge - (younger + S))); };
+  const lifeYears = (a) => { const S = span(a).first; return S + Math.max(1, Math.min(drawYearsCap(env), ins.endAge - (younger + S))); };
 
   // "show me ages": a verdict at every whole age from today's to 75 finds the earliest that lasted (and the earliest close)
   const sweep = ask.kind === 'ages' ? [] : null;

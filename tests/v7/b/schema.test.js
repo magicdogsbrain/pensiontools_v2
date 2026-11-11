@@ -87,7 +87,7 @@ describe('SCHEMA_B — the declaration', () => {
     expect(byPath.get('you.age').default).toBeUndefined();
     expect(byPath.get('stop.age').default).toBeUndefined();
     // the one rule of B's list (6.22.0): "Mostly cash" once there is money in savings, nothing otherwise
-    expect(Object.keys(SCHEMA_B.defaultRules)).toEqual(['isaGrowth']);
+    expect(Object.keys(SCHEMA_B.defaultRules)).toEqual(['isaGrowth', 'endAge']);   // 7.8.0: the end age's one rule (horizonEndAge)
   });
 
   it('the groups are the blocks of the form; savings and confidence are under more detail', () => {

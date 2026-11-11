@@ -214,7 +214,8 @@ export function moreFields() {
     { path: 'savingRisk', type: 'choice', options: ['cautious', 'balanced', 'adventurous'], default: 'balanced', group: 'more' },
     { path: 'risk', type: 'choice', options: ['cautious', 'balanced', 'adventurous'], default: 'balanced', group: 'more' },
     chargeField(),                                                                                                                       // a year, saving and drawing
-    { path: 'endAge', type: 'age', min: 75, max: 105, default: 95, group: 'more', boundaries: [75, 95, 100, 105] }
+    // the end age's one default rule (7.8.0: the schema's defaultRules.endAge = horizonEndAge; 95 while not weighing)
+    { path: 'endAge', type: 'age', min: 75, max: 105, default: { rule: 'endAge' }, group: 'more', boundaries: [75, 95, 100, 105] }
   ];
 }
 

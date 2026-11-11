@@ -77,7 +77,7 @@ export function weigherOf(plan, inputs, env = {}) {
     planToAge = horizonEndAge({ people, d, table });
     toAge = isNum(env.weightToAge) ? env.weightToAge : weightToAge({ people, d, table });
   }
-  return { weighted, byMonth, months, d, years: plan.years, people, planToAge, weightToAge: toAge };
+  return { weighted, byMonth, months, d, years: plan.years, people, planToAge, weightToAge: toAge, tablesVersion: table.tablesVersion || null };
 }
 
 /**

@@ -16,7 +16,7 @@
  */
 import { APART } from '../shared/household.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, agesToShow, stopKindField, partnerStopFields, untilBothStopField,
-  taxFreeFields, partTimeHidden, shapeFields, isaGrowthField, savingsGrowthDefault, levelField } from '../shared/schemaParts.js';
+  taxFreeFields, partTimeHidden, shapeFields, isaGrowthField, savingsGrowthDefault, levelField, horizonEndAge } from '../shared/schemaParts.js';
 
 const hiddenWhenStopped = (f) => (Object.keys(partTimeHidden()).length ? { ...f, whenNot: partTimeHidden() } : f);
 
@@ -84,7 +84,7 @@ export const SCHEMA_A = {
   ],
 
   /** Defaults that depend on other values (validate.js): how the savings grow, only once there is money in savings. */
-  defaultRules: { isaGrowth: savingsGrowthDefault },
+  defaultRules: { isaGrowth: savingsGrowthDefault, endAge: horizonEndAge },
 
   /** The stop ages a result carries (conflict 31): a rule of the list, never a choice a screen makes. */
   agesToShow,

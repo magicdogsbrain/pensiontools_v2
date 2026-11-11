@@ -30,7 +30,7 @@
  */
 import { SCHEMA_D, spendOf, FALL_SHARE } from './schema.js';
 import { checkInputs, defaults, flatten } from '../shared/validate.js';
-import { RULES } from '../shared/rules.js';
+import { RULES, drawYearsCap } from '../shared/rules.js';
 import { VERSION } from '../../constants.js';
 import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { historyEnd, historyStartYear } from '../shared/futures.js';
@@ -110,7 +110,7 @@ export function answerD(inputs, env) {
   const stopAge = ins.you.age;
   const younger = couple ? Math.min(ins.you.age, ins.partner.age) : ins.you.age;
   // the drawing years from today: as A's lifeYears at a stop of today (S = 0), the end capped at 45 years ahead
-  const D = Math.max(1, Math.min(RULES.maxYears, ins.endAge - younger));
+  const D = Math.max(1, Math.min(drawYearsCap(env), ins.endAge - younger));
   const lives = livesList(n, D, env);
   const tell = (done, total) => { if (typeof env.onProgress === 'function') env.onProgress(done, total); };
   const steps = 2 + (ins.work && ins.work.has ? 1 : 0) + (ins.fall && ins.fall.has ? 1 : 0);

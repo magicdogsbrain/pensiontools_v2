@@ -97,7 +97,7 @@ describe('SCHEMA_A — the declaration', () => {
     expect(byPath.get('partner.age').default).toBeUndefined();
     expect(byPath.get('stop.age').default).toBeUndefined();
     // the one rule of A's list (6.22.0): "Mostly cash" once there is money in savings, nothing otherwise
-    expect(Object.keys(SCHEMA_A.defaultRules)).toEqual(['isaGrowth']);
+    expect(Object.keys(SCHEMA_A.defaultRules)).toEqual(['isaGrowth', 'endAge']);   // 7.8.0: the end age's one rule (horizonEndAge)
     expect(SCHEMA_A.defaultRules.isaGrowth({ savings: 1 })).toBe('cash');
     expect(SCHEMA_A.defaultRules.isaGrowth({ savings: 0, savingsIn: 1 })).toBe('cash');
     expect(SCHEMA_A.defaultRules.isaGrowth({ savings: 0, savingsIn: 0 })).toBeUndefined();

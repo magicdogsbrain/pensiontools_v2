@@ -43,7 +43,7 @@
  */
 import { SCHEMA_B } from './schema.js';
 import { checkInputs, defaults, flatten } from '../shared/validate.js';
-import { RULES, SAVING, CLOSED_YEARS_FAILS, accessRiseAffects, LEVEL_FAILS20 } from '../shared/rules.js';
+import { RULES, SAVING, CLOSED_YEARS_FAILS, accessRiseAffects, LEVEL_FAILS20, drawYearsCap } from '../shared/rules.js';
 import { weigherOf, failsBound } from '../shared/weigh.js';
 import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, horizonRuleOf } from '../shared/levels.js';
 import { VERSION } from '../../constants.js';
@@ -55,7 +55,7 @@ import { ONE_NAME_SHARE, BANDS, potsShareOf, potsNeedByYear, amountInYear } from
 import { livesList } from '../shared/lives.js';
 import { savingRows } from '../shared/saving.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, savingsNeeded, potNeededAt, potNeeded,
-  lastsWithin, verdictAtPayIns, countsAtPayIns, leastPayIn, coverAt } from '../shared/stopAt.js';
+  lastsWithin, verdictAtPayIns, countsAtPayIns, leastPayIn, coverAt, lastsWithinWeighted, potNeededWeighted } from '../shared/stopAt.js';
 import { gridToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf } from '../shared/schemaParts.js';
 import { apartOf, before2028, payKeepsPensions } from '../shared/apart.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
@@ -111,7 +111,7 @@ function pensionsAt(sp, payIns, only = null) {
  * of life used. Couples apart: each at their own stop (schemaParts.js stopYearsOf) — D runs from the first stop, and the
  * later stop must come before the end and under 45 years after the first (`fits`). One stop for both: as before.
  */
-function lifeYearsAt(inputs, stopAge) {
+function lifeYearsAt(inputs, stopAge, env = null) {
   const couple = inputs.household === 'couple' && inputs.partner;
   const own = stopYearsOf(inputs, stopAge);
   const list = couple ? [own.you, own.partner] : [own.you];
@@ -119,8 +119,9 @@ function lifeYearsAt(inputs, stopAge) {
   const last = Math.max(...list);
   const S = askedAbout(inputs) === 'partner' ? own.partner : own.you;
   const younger = Math.min(inputs.you.age, couple ? inputs.partner.age : Infinity);
-  const D = Math.min(RULES.maxYears, inputs.endAge - (younger + first));
-  return { S, D, T: first + D, own, fits: D >= 1 && inputs.endAge > younger + last && last - first < RULES.maxYears };
+  const cap = drawYearsCap(env);
+  const D = Math.min(cap, inputs.endAge - (younger + first));
+  return { S, D, T: first + D, own, fits: D >= 1 && inputs.endAge > younger + last && last - first < cap };
 }
 
 /**
@@ -179,7 +180,7 @@ function createAges(inputs, env, lives, ctx) {
   return function at(stopAge, savingRisk = inputs.savingRisk) {
     const key = `${stopAge}:${savingRisk}`;
     if (cache.has(key)) return cache.get(key);
-    const { D, own, fits } = lifeYearsAt(inputs, stopAge);
+    const { D, own, fits } = lifeYearsAt(inputs, stopAge, env);
     let row = null;
     if (D >= 1 && fits && stopAge > asked.age && stopAge <= RULES.stopAgeMax) {
       // the asked person stops at `stopAge`: you (as before), or your partner when you have already stopped
@@ -226,6 +227,11 @@ function createAges(inputs, env, lives, ctx) {
       row.carefulPot = () => spread(pensionsAt(sp, row.payInsAt(ctx.now))).careful;
       // the one test at pay-ins (c into the pension, d into savings, household totals)
       row.lasts = (H, c, d, allowed) => lastsWithin(sp, row.H(H), row.payInsAt(c, d), allowed);
+      // the one test at the level (7.8.0): weighing, the weights of the lives that run out pass the level's twentieths;
+      // not weighing, the count at floor(t·n/20) (ctx.allowed.level) — lastsWithin, as before
+      row.lastsAtLevel = (H, c, d) => (row.at.weigher.weighted
+        ? lastsWithinWeighted(sp, row.H(H), row.payInsAt(c, d), row.at.weigher, LEVEL_FAILS20[ctx.level])
+        : lastsWithin(sp, row.H(H), row.payInsAt(c, d), ctx.allowed.level));
       row.count = (H, c, d) => verdictAtPayIns(sp, row.H(H), row.payInsAt(c, d));
       row.wholeNow = (H) => (row.whole && row.whole.H === H ? row.whole.v : (row.whole = { H, v: verdictAt(sp, runner, row.H(H), row.at) }).v);
       row.bandNow = () => row.band || (row.band = bandAt(sp, runner, null, { weigher: row.at.weigher, levels: [ctx.level], toMonth: row.at.toMonth }));
@@ -294,8 +300,9 @@ function payInsThatGetThere(row, H, ctx, least = null) {
     outsideIn = leastPayIn(okSavings, SAVING.payInCeiling * ctx.saverCount, ctx.savingsInNow, guess);
   }
   const savingsIn = outsideIn === null ? ctx.savingsInNow : Math.max(ctx.savingsInNow, outsideIn);
-  const solve = (allowed, cap = ctx.ceiling) => leastPayIn((c) => row.lasts(H, c, savingsIn, allowed), cap, 0, guessFrom(row, least, allowed, ctx));
-  return { outside: o ? outsideIn : null, savingsIn, needed: solve(ctx.allowed.level) };
+  // one solve, at the level (the count's figure at floor(t·n/20) brackets it: guessFrom)
+  const needed = leastPayIn((c) => row.lastsAtLevel(H, c, savingsIn), ctx.ceiling, 0, guessFrom(row, least, ctx.allowed.level, ctx));
+  return { outside: o ? outsideIn : null, savingsIn, needed };
 }
 
 export function answerB(inputs, env) {
@@ -325,7 +332,7 @@ export function answerB(inputs, env) {
   const couple = inp.household === 'couple' && Boolean(inp.partner);
   const whos = couple ? ['you', 'partner'] : ['you'];
   // each person's years until their own stop at the asked stop; who is still saving (one stop for both: everyone)
-  const { D, S, own } = lifeYearsAt(inp, stopAge);
+  const { D, S, own } = lifeYearsAt(inp, stopAge, env);
   const apartNow = couple && own.you !== own.partner;
   const savers = whos.map((w) => !apartNow || own[w] > 0);
   const saverCount = savers.filter(Boolean).length;
@@ -345,8 +352,8 @@ export function answerB(inputs, env) {
 
   // The lives: long enough for the stop and every later age the stop-later lever and the grid may try (to 75).
   const later = [];
-  for (let a = stopAge + 1; a <= RULES.stopAgeMax; a++) { const x = lifeYearsAt(inp, a); if (x.D >= 1 && x.fits) later.push(a); }
-  const T = Math.max(...[stopAge, ...later].map((a) => lifeYearsAt(inp, a)).filter((x) => x.D >= 1 && x.fits).map((x) => x.T));
+  for (let a = stopAge + 1; a <= RULES.stopAgeMax; a++) { const x = lifeYearsAt(inp, a, env); if (x.D >= 1 && x.fits) later.push(a); }
+  const T = Math.max(...[stopAge, ...later].map((a) => lifeYearsAt(inp, a, env)).filter((x) => x.D >= 1 && x.fits).map((x) => x.T));
   const lives = livesList(n, T, env);
   const ages = createAges(inp, env, lives, ctx);
   const base = ages(stopAge);
@@ -370,6 +377,11 @@ export function answerB(inputs, env) {
   // the pot to aim for at each level (7.8.0: levels[k].pot; null where nothing up to SAVING.potMax gets there)
   const potList = potNeededAt(sp, H, LEVEL_IDS.map((id) => failsAt[id]), { ...opts, onLeast: (l) => { least = l; } });
   LEVEL_IDS.forEach((id, i) => base.numbers.set(`${H}:${failsAt[id]}`, potList[i]));
+  // weighing (7.8.0): each level's pot from the weights, on the same lives' own least pots (potNeededWeighted)
+  if (base.at.weigher.weighted) {
+    const w = potNeededWeighted(sp, H, base.at.weigher, LEVEL_IDS, { ...opts, least });
+    LEVEL_IDS.forEach((id, i) => { potList[i] = w[id].pot; });
+  }
   const potOf = Object.fromEntries(LEVEL_IDS.map((id, i) => [id, guaranteedCovers ? 0 : potList[i]]));
   /** The pot the answer stands behind: the level chosen's (null: out of reach). */
   const number = potOf[level];
@@ -445,7 +457,7 @@ export function answerB(inputs, env) {
     for (const a of later) {
       const row = ages(a);
       if (!row) continue;
-      if (!lastsWithin(row.sp, row.H(H), row.payInsAt(now), allowed.level)) continue;
+      if (!row.lastsAtLevel(H, now, savingsInNow)) continue;
       levers.stopLater = { age: a, lasted: row.wholeNow(H).lasted };
       break;
     }
@@ -579,7 +591,7 @@ export function answerB(inputs, env) {
     // the chance at today's pay-ins (the whole life: `wholeLife` says the same count)
     chance: chanceBlock({ weighted: whole.weighted ?? lasted, fixedAge: lasted, fails }, n, {
       planToAge: plan.endAge, weightToAge: base.at.weigher.weighted ? base.at.weigher.weightToAge : plan.endAge,
-      horizonRule: horizonRuleOf({ defaulted: defaultedFields(inp, env).includes('endAge'), capped: inp.endAge - plan.startAge > RULES.maxYears })
+      horizonRule: horizonRuleOf({ defaulted: defaultedFields(inp, env).includes('endAge'), capped: inp.endAge - plan.startAge > drawYearsCap(env) })
     }),
     onCourse,
     // said straight (saving-enough-and-check-in.md 2.3): the band, the two incomes from the stop paying in as now (a
@@ -656,7 +668,7 @@ export function answerB(inputs, env) {
     savingsMostly: midSavings > midPension,
     madeUpFutures: typeof env.futureReturns === 'function',
     historyStartYear: historyStartYear(),
-    capped: inp.endAge - plan.startAge > RULES.maxYears,
+    capped: inp.endAge - plan.startAge > drawYearsCap(env),
     oneName: couple && totalPension > 0 && plan.people.some((p, i) => p.pension / totalPension > ONE_NAME_SHARE && bothStopped.byPerson[1 - i].gross < BANDS.pa),
     accessRises: whos.some((w) => accessRiseAffects(inp[w].age, env.today, inp[w].age + own[w])),
     // a partner past their State Pension age, their stop not given: most likely stopped already (said so)

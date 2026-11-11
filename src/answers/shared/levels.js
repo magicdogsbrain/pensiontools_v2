@@ -46,7 +46,7 @@ export function horizonRuleOf({ defaulted, capped }) {
 export function levelBasis(level, weigher, inputs, planToAge) {
   return {
     level, levelFails20: LEVEL_FAILS20[level], planToAge, weightToAge: weigher.weighted ? weigher.weightToAge : planToAge,
-    tablesVersion: LIFE_TABLE.tablesVersion, sexUsed: sexUsedOf(inputs)
+    tablesVersion: weigher.tablesVersion || LIFE_TABLE.tablesVersion, sexUsed: sexUsedOf(inputs)
   };
 }
 

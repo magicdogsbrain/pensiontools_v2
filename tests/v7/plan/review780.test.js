@@ -166,3 +166,11 @@ describe('the new app says the levels as chances while weighing', () => {
     if (out.a.floor && out.a.floor.age >= out.a.planToAge - 40 && out.p && out.p.spAnnual > 0) expect(out.a.floor.yearly).not.toBe(null);
   });
 });
+
+describe('A\'s chart key while weighing', () => {
+  it('reads the level chosen, never "9 futures out of 10"', async () => {
+    const { A } = await import('../../../src/v7/copy/a.js');
+    expect(A.answer.chartKeyW).not.toMatch(/futures|9 in 10/);
+    expect(A.answer.chartKeyW).toMatch(/How careful\?/);
+  });
+});

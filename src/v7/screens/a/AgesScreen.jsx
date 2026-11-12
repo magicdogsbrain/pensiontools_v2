@@ -9,6 +9,7 @@ import { Money, AgesChart, Working, Problem, Retired, isRetired, withFixedCounts
 import { href } from '../../router/routes.js';
 import { A } from '../../copy/a.js';
 import { SHAPE } from '../../copy/shape.js';
+import { weighedResult } from '../../copy/common.js';
 import { saverFrame, ShortForm, AnswerRegion, spendingWords } from './AnswerScreen.jsx';
 
 /**
@@ -60,7 +61,7 @@ export function AgesScreen(state, dispatch) {
           <p class="note">{t.chartSpending} <Money source={result} k="spend.perMonth" /> {spendingWords(result, t)}</p>
           <AgesChart result={result} dispatch={dispatch} table={all} />
           {!all && <p class="working-note" role="status">{t.chartWorking}</p>}
-          <p class="note chart-key">{withFixedCounts(result.shapeAt ? SHAPE.answer.agesKey : t.chartKey)}</p>
+          <p class="note chart-key">{withFixedCounts(result.shapeAt ? SHAPE.answer.agesKey : weighedResult(result) ? t.chartKeyW : t.chartKey)}</p>
           {all && <ClosedNotes result={result} />}
           {all && <From50 result={result} />}
           {all && <p class="note">{t.chartPress}</p>}

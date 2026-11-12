@@ -26,7 +26,7 @@ import { SHAPE } from '../../copy/shape.js';
 import { LastsLines, LevelStrip, LASTS_TOP, LASTS_AFTER } from '../../components/Lasts.jsx';
 import { isCurrent, askedAboutOf, partnerStopsNow, isShapePath } from '../../state/select.js';
 import { href } from '../../router/routes.js';
-import { ADVICE_SHORT } from '../../copy/common.js';
+import { ADVICE_SHORT, weighedResult } from '../../copy/common.js';
 import { A } from '../../copy/a.js';
 import { get } from '../../../answers/shared/format.js';
 
@@ -213,7 +213,7 @@ function ChartBlock({ result, answer, dispatch }) {
         ? (
           <>
             <AgesChart result={result} dispatch={dispatch} />
-            <p class="note chart-key">{withFixedCounts(result.shapeAt ? SHAPE.answer.agesKey : t.chartKey)}</p>
+            <p class="note chart-key">{withFixedCounts(result.shapeAt ? SHAPE.answer.agesKey : weighedResult(result) ? t.chartKeyW : t.chartKey)}</p>
             {byAges && <p class="note">{t.chartPress}</p>}
           </>
         )

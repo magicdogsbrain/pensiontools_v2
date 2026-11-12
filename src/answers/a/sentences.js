@@ -27,8 +27,8 @@
  * says what the pay of the one still working covers; what was assumed carries the pay line and the warnings the bad case
  * that leans on it (shared/apart.js, the same words in C, A and B). With one stop for both nothing here changes.
  */
-import { money, outOfTen, partsText, underNine } from '../shared/format.js';
-import { LEVEL_NAME, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, leftParts, lifeAssumed } from '../shared/lastsWords.js';
+import { money, outOfTen, partsText, underNine, twentiethsOfFutures } from '../shared/format.js';
+import { LEVEL_NAME, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, leftParts, lifeAssumed, digits as digitsOf } from '../shared/lastsWords.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES, accessRiseAffects, firstAccessAge } from '../shared/rules.js';
 import { statePensionAgeOf } from '../shared/schemaParts.js';
@@ -427,7 +427,16 @@ export function sentencesFor(result, facts) {
     const next = result.ages.find((x) => x.age === o.toAge);
     const tested = (row) => (row && row.spendAtStart !== undefined ? row.spendAtStart : result.spend.perMonth);
     const same = tested(next) === tested(shown);
-    if (moved) out.oneMoreMoves = S('a.oneMore.moves', [...(same ? ['It moves ', M(SP), ' a month from lasting '] : ['It moves what you spend, as you set it, from lasting ']), ...plainWords(o.lastedFrom), ' to ', ...countParts(o.lastedTo), ...bad, '.']);
+    // 7.8.0, weighing: a count names the age it is counted to, in twentieths of the futures we tried, never "only"
+    const wf = facts.weighing ? facts.weighing.lf : null;
+    const tw = (share) => digitsOf(twentiethsOfFutures(share));
+    // (a count in twentieths for "from 7 to 9 of 20": 20 only when every future lasted, 0 only when none did)
+    const k20 = (share) => { const v = Math.max(0, Math.min(1, +share || 0)); const k = Math.round(v * 20); return v >= 1 ? 20 : v <= 0 ? 0 : Math.min(19, Math.max(1, k)); };
+    if (wf && (moved || bad.length)) {
+      out.oneMoreMoves = moved
+        ? S('a.oneMore.moves', ['If you live to ', F(wf.planToAge), ', it moves how often ', ...(same ? [M(SP), ' a month'] : ['what you spend, as you set it,']), ' lasts that long from ', F(k20(o.lastedFrom)), ' to ', F(k20(o.lastedTo)), ' of ', F('20'), ' futures we tried', ...bad, '.'])
+        : S('a.oneMore.moves', ['If you live to ', F(wf.planToAge), ', ', ...(same ? [M(SP), ' a month'] : ['what you spend, as you set it,']), ' still lasts that long ', ...tw(o.lastedTo), ', and it moves ', ...bad.slice(1), '.']);
+    } else if (moved) out.oneMoreMoves = S('a.oneMore.moves', [...(same ? ['It moves ', M(SP), ' a month from lasting '] : ['It moves what you spend, as you set it, from lasting ']), ...plainWords(o.lastedFrom), ' to ', ...countParts(o.lastedTo), ...bad, '.']);
     // the count stays, the bad case moves: "It keeps £2,200 a month lasting in 7 futures out of 10, and moves a bad case …"
     else if (bad.length) out.oneMoreMoves = S('a.oneMore.moves', [...(same ? ['It keeps ', M(SP), ' a month lasting '] : ['It keeps what you spend, as you set it, lasting ']), ...plainWords(o.lastedTo), ', and moves ', ...bad.slice(1), '.']);
   }
@@ -435,8 +444,15 @@ export function sentencesFor(result, facts) {
   // part-time work
   const pt = result.partTime;
   if (pt) {
-    out.partTime = S('a.partTime', ['That is with ', M('partTime.yearly'), ' a year from part-time work for ', F(pt.years), yearsWord(pt.years), ' after you stop (from ', A('partTime.fromAge'), ' until ', A('partTime.toAge'), '), taxed as income. Without it, the money lasted ', ...lastedWords(pt.lastedWithout), '.']);
-    if (outOfTen(pt.oneMore.lasted).words !== outOfTen(pt.lastedWith).words) {
+    const wf = facts.weighing ? facts.weighing.lf : null;
+    out.partTime = wf
+      ? S('a.partTime', ['That is with ', M('partTime.yearly'), ' a year from part-time work for ', F(pt.years), yearsWord(pt.years), ' after you stop (from ', A('partTime.fromAge'), ' until ', A('partTime.toAge'), '), taxed as income. Without it, if you live to ',
+        F(wf.planToAge), ', the money lasts that long ', ...digitsOf(twentiethsOfFutures(pt.lastedWithout)), '.'])
+      : S('a.partTime', ['That is with ', M('partTime.yearly'), ' a year from part-time work for ', F(pt.years), yearsWord(pt.years), ' after you stop (from ', A('partTime.fromAge'), ' until ', A('partTime.toAge'), '), taxed as income. Without it, the money lasted ', ...lastedWords(pt.lastedWithout), '.']);
+    if (wf && Math.round(pt.oneMore.lasted * 20) !== Math.round(pt.lastedWith * 20)) {
+      out.partTimeOneMore = S('a.partTime.oneMore', ['One more year of part-time work, until ', F(pt.toAge + 1), ': if you live to ', F(wf.planToAge), ', ', M(SP), ' a month lasts that long ', ...digitsOf(twentiethsOfFutures(pt.oneMore.lasted)),
+        ', where it was ', ...digitsOf(twentiethsOfFutures(pt.lastedWith)), '.']);
+    } else if (!wf && outOfTen(pt.oneMore.lasted).words !== outOfTen(pt.lastedWith).words) {
       out.partTimeOneMore = S('a.partTime.oneMore', ['One more year of part-time work, until ', F(pt.toAge + 1), ', moves ', M(SP), ' a month from lasting ', ...plainWords(pt.lastedWith), ' to ', ...countParts(pt.oneMore.lasted), '.']);
     }
   }

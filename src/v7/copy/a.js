@@ -164,6 +164,8 @@ export const A = {
     chartVerdict: 'On these figures',
     chartNow: 'now',
     chartKey: '"Could spend" is the careful amount: the most that lasted in 9 futures out of 10 if you stopped at that age. 9 in 10 or better is a yes.',
+    /** 7.8.0, while the figures are weighed: the chart reads each age at the level chosen ("How careful?"). */
+    chartKeyW: '"Could spend" is the most a month at the level you chose under "How careful?", if you stopped at that age. A yes is on course at that level, counting how long people your age live.',
     chartPress: 'Press an age to see it in full.',
     chartWorking: 'Working out the other ages…',
     /** A count out of 10 in a chart row, and its two words-only ends. */

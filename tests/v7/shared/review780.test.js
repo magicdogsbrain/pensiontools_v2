@@ -172,3 +172,20 @@ describe('what we assumed while weighing', () => {
     expect(r.assumed.find((a) => a.id === 'life-couple').always).toBe(true);
   });
 });
+
+describe('A\'s counts while weighing name the age they are counted to', () => {
+  const ALEX_A = { you: { age: 52, pot: 240000 }, stop: { kind: 'age', age: 60 }, spend: { kind: 'amount', amount: 1900 } };
+  it('one more year and part-time work: in twentieths to the plan-to age, never "only" or "out of 10"; the rollback as before', () => {
+    for (const inputs of [ALEX_A, { ...ALEX_A, partTime: { has: true, years: 3, yearly: 12000 } }]) {
+      const r = answerA(inputs, ENV);
+      const said = ['oneMoreMoves', 'partTime', 'partTimeOneMore'].map((k) => r.sentences[k]).filter(Boolean);
+      expect(said.length).toBeGreaterThan(0);
+      for (const s of said) {
+        expect(s.text, s.id).not.toMatch(/futures out of|\bonly\b/);
+        expect(s.text, s.id).toMatch(new RegExp(`if you live to ${r.chance.planToAge}, `, 'i'));
+      }
+      const off = answerA(inputs, OFF);
+      for (const k of ['oneMoreMoves', 'partTime']) if (off.sentences[k]) expect(off.sentences[k].text, k).toMatch(/futures out of 10/);
+    }
+  });
+});

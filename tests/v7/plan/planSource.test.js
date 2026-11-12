@@ -14,6 +14,8 @@ import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { ACTIVITY_KEY } from '../../../src/v7/effects/activity.js';
 import { corpus, TODAY } from './_plans.js';
+import { runKeyOf } from '../../../src/answers/plan/lasts.js';
+import { runLasts } from '../../../src/answers/plan/lastsRun.js';
 
 const C = corpus();
 
@@ -220,6 +222,31 @@ describe('memory only (T6): pagehide, becoming nobody, sign-out and idle clear t
     expect(store.getState().session.kind).toBe('nobody');
     expect(store.getState().plans.source).toBe('window');
     expect(fb.calls.some((c) => c[0] === 'initializeApp')).toBe(false);
+    stop();
+  });
+});
+
+describe('"How careful?" on "Does it last?" (7.8.0): page memory only, and the page reads the band again', () => {
+  it('a press judges the run held for this plan at the page\'s level, at once; nothing is written', { timeout: 240_000 }, async () => {
+    const text = JSON.stringify([C['02-pnv-draft']]);
+    const session = storage({ [GUEST_PLANS_KEY]: text });
+    const fb = fakeFirebase({ user: null });
+    const { store, stop } = page({ fb, session });
+    await tick(); await tick();
+    const entry = store.getState().plans.list[0];
+    store.dispatch({ type: A.ROUTE_SET, route: { screen: 'plan', planId: entry.plan.id, step: 'lasts' } });
+    const key = runKeyOf(entry.plan);
+    store.dispatch({ type: A.LASTS_WORKING, key });
+    store.dispatch({ type: A.LASTS_DONE, key, result: runLasts(entry.plan, { today: TODAY, weighted: true }) });
+    const verdict = () => store.getState().plans.view.page.lasts.verdict;
+    expect(verdict().level).toBe('balanced');
+    store.dispatch({ type: A.UI_LEVEL, level: 'bold' });
+    expect(verdict().level).toBe('bold');
+    expect(verdict().slots.bold).toMatch(/while you are alive/);
+    store.dispatch({ type: A.UI_LEVEL, level: 'careful' });
+    expect(verdict().level).toBe('careful');
+    expect(session.raw(GUEST_PLANS_KEY)).toBe(text);
+    expect(session.calls.some((c) => c[0] !== 'getItem')).toBe(false);
     stop();
   });
 });

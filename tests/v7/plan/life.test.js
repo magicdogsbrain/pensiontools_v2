@@ -16,7 +16,7 @@
 import { describe, it, expect } from 'vitest';
 import { STRATEGY_LIFE, DURATION_SHAPED, lifeOf, lifeOfSettings, planLevelOf, weightedReasonOf, weightedYearsOf } from '../../../src/answers/plan/life.js';
 import { runLasts, runForDocument, planFor, weightedPlanFor, onCourseOptsOf, weighing, documentSuccessOf, successOf } from '../../../src/answers/plan/lastsRun.js';
-import { verdictOf, verdictWord, BOLD_CONSEQUENCE } from '../../../src/answers/plan/lasts.js';
+import { verdictOf, verdictWord, boldConsequenceOf } from '../../../src/answers/plan/lasts.js';
 import { lockedLastsWords } from '../../../src/answers/plan/read.js';
 import { lockPatch } from '../../../src/answers/plan/lock.js';
 import { aboutOf } from '../../../src/answers/plan/about.js';
@@ -136,7 +136,7 @@ describe('the weighted part of one answer', () => {
     expect(a.verdict).toBe('yes');
     expect(a.floor).toBe(null);
     expect(a.words.headline).toMatch(/in every future we tried\.$/);
-    expect(a.words.fixed).toBe('If you live to 97, the money lasts that long in every future we tried.');
+    expect(a.words.fixed).toBe('If you live to 96, the money lasts that long in every future we tried.');
   });
   it('each failure counts by the chance someone is alive in the year it failed: late ones count for less; weights are whole', () => {
     const early = oneAnswer(fake('pots-and-valves', { 3: 10, 7: 12 }), P, { life: LIFE });
@@ -153,8 +153,8 @@ describe('the weighted part of one answer', () => {
     expect(ran.failKind).toBe('ran-out');
     expect(ran.words.headline).toMatch(/^Counting how long people your age live, the money lasts as long as you do .+ in 20\.$/);
     expect(ran.words.floor).toBe('If the money ran out at 88, you would still have £12,500 a year after tax from the income you get anyway.');
-    expect(ran.words.left).toBe('If you live to 97, what is typically left then is £150,000 at today\'s prices. In the best 1 in 10 futures it is £600,000 or more.');
-    expect(ran.words.assumed.join(' ')).toMatch(/We tested to 97, the age your plan runs to\./);
+    expect(ran.words.left).toBe('If you live to 96, what is typically left then is £150,000 at today\'s prices. In the best 1 in 10 futures it is £600,000 or more.');
+    expect(ran.words.assumed.join(' ')).toMatch(/We tested to 96, the age your plan runs to\./);
     expect(ran.words.assumed.join(' ')).toMatch(/figures for women/);
     const cut = oneAnswer(fake('gilt-rotation', { 1: 22 }, 20, { ruinLabel: 'chance the rotated years are cut' }), P, { life: LIFE });
     expect(cut.failKind).toBe('cut');
@@ -176,8 +176,9 @@ describe('the weighted part of one answer', () => {
       const a = oneAnswer(fake('full-il-gilt', { 1: 5 }), P, { life: { ...LIFE, reason } });
       expect(a.weighted, reason).toBe(null);
       expect(a.words.headline).toBe(null);
-      expect(a.words.fixed).toMatch(/^If you live to 97, /);
-      expect(a.words.why).toMatch(/97/);
+      // (the age the plan runs to as the plan says it, 66 + 31 − 1; a couple's plan counts while one of you is alive)
+      expect(a.words.fixed).toMatch(reason === 'couple' ? /^If one of you is still alive when you are 96, / : /^If you live to 96, /);
+      expect(a.words.why).toMatch(/96/);
     }
     const stored = oneAnswer(fake('full-il-gilt', {}), P, { life: LIFE, stored: { chance: null } });
     expect(stored.weighted).toBe(null);
@@ -199,9 +200,12 @@ describe('the weighted part of one answer', () => {
     expect(verdictWord(a.share, a)).toBe(a.verdict);
     const v = verdictOf({ strategyId: 'pots-and-valves', a, ran: { family: true, cutsOn: true, cutPct: 20, months: 3 } }, { endAge: 97 });
     expect(v.id).toBe('lasts.headlineW');
-    expect(v.slots.bold).toBe(' ' + BOLD_CONSEQUENCE['ran-out']);
+    // (Bold's consequence from the plan's own weighted chance, never a fixed "3 in 10")
+    expect(v.slots.bold).toBe(' ' + boldConsequenceOf(a));
     expect(v.sub.id).toBe('lasts.subFixed');
-    expect(v.rows.map((r) => r.id)).toEqual(expect.arrayContaining(['left', 'floorW', 'leftW', 'assumedW']));
+    // what is left is said once, by the weighted band (to the nearest £1,000)
+    expect(v.rows.map((r) => r.id)).toEqual(expect.arrayContaining(['floorW', 'leftW', 'assumedW']));
+    expect(v.rows.map((r) => r.id)).not.toContain('left');
     expect(verdictWord(0.95)).toBe('yes');   // without a weighted part, the count as before
   });
 });

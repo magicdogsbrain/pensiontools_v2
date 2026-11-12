@@ -199,7 +199,8 @@ export function viewFor(state) {
       // "Does it last?": the words of the one test's result held in page memory (state.lasts), read here with the plan (10.2)
       if (r.step === 'lasts' && page.lasts.found) {
         const pl = page.lasts;
-        pl.verdict = L && L.result ? verdictOf(L.result, pl) : null;
+        // (the page's own level when one was picked here — ui.level, never saved — else the plan's: the run's)
+        pl.verdict = L && L.result ? verdictOf(L.result, pl, { level: state.ui && state.ui.level }) : null;
         // a locked plan: the document's own figure (10.5), and the one line of 6.24.0 when today's run differs
         pl.documentVerdict = pl.document ? verdictOf({ a: pl.document.a, strategyId: pl.strategyId, ran: pl.document.ran, history: null }, pl) : null;
         pl.note = L && L.result && L.key === pl.runKey && L.result.stored && typeof L.result.stored.note === 'string' && L.result.stored.note ? L.result.stored.note : null;

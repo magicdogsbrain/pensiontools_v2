@@ -28,6 +28,9 @@ export const A = Object.freeze({
   UI_TOGGLE:       'ui/toggle',        // { id }                             adds or removes id in ui.open
   UI_RAIL:         'ui/rail',          // { open }                           the phone rail sheet
   UI_ONLINE:       'ui/online',        // { online }
+  UI_LEVEL:        'ui/level',         // { level }                          "How careful?" on a plan's "Does it last?" (7.8.0): page
+                                       //                                     memory only (ui.level), never saved — a plan's level is
+                                       //                                     its kept answer's until 7.9.0 saves one
   ENV_SET:         'env/set',          // { patch }                          start-up and the test hook only (today, historyEnd, appVersion,
                                        //                                     signedInHint: the browser's note that someone is signed in)
   STATE_REPLACE:   'state/replace',    // { state }                          the test hook only

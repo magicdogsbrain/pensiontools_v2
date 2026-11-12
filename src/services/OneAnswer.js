@@ -163,9 +163,24 @@ function oneAnswerCount(r, p) {
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const gbpW = (v) => '£' + String(Math.abs(Math.round(+v || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+/** Pounds to the nearest £1,000 (money left: a spread of futures, never a balance to the pound). */
+const gbpK = (v) => gbpW(Math.round((+v || 0) / 1000) * 1000);
 /** What failing means, in the words of each kind (OneAnswer.failKind). */
 const LASTS_AS_LONG = { 'ran-out': 'the money lasts as long as you do', cut: 'your income is paid in full as long as you live', lean: 'you have no lean year while you are alive' };
 const RUNS_OUT = { 'ran-out': 'the money ran out', cut: 'your income was first cut', lean: 'you had your first lean year' };
+
+/**
+ * Bold's consequence from the plan's own chance (the weighted one; the fixed-age count when there is none), in tenths:
+ * "About 2 times in 10 …", "Less than 1 time in 10 …" — never a figure the plan did not give.
+ */
+export function boldConsequenceOf(a) {
+  const share = a && typeof a.weighted === 'number' ? a.weighted : a ? a.share : 1;
+  const out = (1 - Math.max(0, Math.min(1, +share || 0))) * 10;
+  const tens = Math.round(out);
+  const what = a && a.failKind && a.failKind !== 'ran-out' ? 'your income falls short' : 'the money runs out';
+  if (!(out > 0)) return 'In none of the futures we tried does ' + (what === 'the money runs out' ? 'the money run out' : 'your income fall short') + ' while you are alive.';
+  return (tens < 1 ? 'Less than 1 time in 10 ' : 'About ' + tens + (tens === 1 ? ' time' : ' times') + ' in 10 ') + what + ' while you are alive, and you would spend less from then on.';
+}
 
 /**
  * The weighted part of one answer on a saved plan:
@@ -195,7 +210,8 @@ export function weightedPartOf(r, p, a, { life, rW = null, wYears = null, level 
   const lvl = levelOf(level);
   const t = LEVEL_FAILS20[lvl];
   const startAge = num(p && p.startAge);
-  const planToAge = Math.round(startAge + num(p && p.durationYears));
+  // the age the plan runs to, as the plan says it everywhere ("Plan to age 98": the age in its last year, lastsOf's endAge)
+  const planToAge = Math.round(startAge + num(p && p.durationYears)) - 1;
   const run = rW || r;
   const kind = a.failKind;
   let weighted = null, sumW = null, n = null, reason = life.reason || null;
@@ -225,7 +241,7 @@ export function weightedPartOf(r, p, a, { life, rW = null, wYears = null, level 
     const mid = ys[Math.floor((ys.length - 1) / 2)];
     const yearly = typeof floorAt === 'function' ? floorAt(mid) : null;
     const spAge = num(p && p.spAnnual) > 0 && isNum(p && p.spStartYear) && p.spStartYear > mid ? Math.round(startAge + p.spStartYear) : null;
-    floor = { age: Math.round(startAge + mid), yearly: isNum(yearly) ? Math.round(yearly) : null, spAge };
+    floor = { age: Math.round(startAge + mid), yearly: isNum(yearly) ? Math.round(yearly) : null, spAge, ...(p && p.spAssumed && !spAge && num(p.spAnnual) > 0 ? { spAssumed: true } : {}) };
   }
   const left = { age: planToAge, typical: Math.round(a.typicalLeft), best: Math.round(a.goodCaseLeft), mostNone: a.share < 0.5 };
   const weightToAge = Math.min(life.weightToAge, Math.round(startAge + (isNum(wYears) ? wYears : num(p && p.durationYears))));
@@ -275,16 +291,18 @@ export function weightedWordsOf(w, life, S) {
   const kind = LASTS_AS_LONG[w.failKind] ? w.failKind : 'ran-out';
   const headline = w.weighted === null ? null
     : 'Counting how long people your age live, ' + LASTS_AS_LONG[kind] + ' ' + chanceWords(w.weighted, { sumW: w.sumW, n: w.n }) + '.';
-  const fixed = fixedAgeWords(w.fixedAge, w.planToAge, { kind });
+  // (a couple's plan counts its futures while one of you is alive: said by the plan's own age, never as one person's life)
+  const fixed = fixedAgeWords(w.fixedAge, w.planToAge, { kind, couple: life.reason === 'couple' ? { name: 'you' } : null });
   let floor = null;
   if (w.floor && isNum(w.floor.yearly)) {
     const at = 'If ' + RUNS_OUT[kind] + ' at ' + w.floor.age;
-    floor = w.floor.yearly > 0 ? at + ', you would still have ' + gbpW(w.floor.yearly) + ' a year after tax from the income you get anyway.'
+    floor = w.floor.yearly > 0 ? at + ', you would still have ' + gbpW(w.floor.yearly) + ' a year after tax from the income you get anyway' + (w.floor.spAssumed ? ', with the State Pension we assumed (none is entered).' : '.')
       : w.floor.spAge ? at + ', nothing would come in until your State Pension starts at ' + w.floor.spAge + '.'
       : at + ', nothing else would come in.';
   }
+  // (to the nearest £1,000, as every answer rounds what is left: these are spreads of futures, not balances)
   const left = w.left.mostNone ? 'In more than half the futures nothing is left at ' + w.left.age + '.'
-    : 'If you live to ' + w.left.age + ', what is typically left then is ' + gbpW(w.left.typical) + ' at today\'s prices. In the best 1 in 10 futures it is ' + gbpW(w.left.best) + ' or more.';
+    : 'If you live to ' + w.left.age + ', what is typically left then is ' + gbpK(w.left.typical) + ' at today\'s prices. In the best 1 in 10 futures it is ' + gbpK(w.left.best) + ' or more.';
   const who = life.sex === 'm' ? 'men' : 'women';
   const assumed = [];
   const livesOn = Math.round(10 * S(w.planToAge - life.ageNow));

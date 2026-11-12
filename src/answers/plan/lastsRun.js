@@ -142,16 +142,17 @@ export function chanceRunOf(plan, { settings, strategyId, p, r, now, level = nul
 /**
  * What "Am I on course?" passes a pot at (stressTest.requiredPotForStrategy's third argument), on the plan every screen runs
  * (`p`, index.html strategyPlanFor): before 7.8.0 and in the rollback ON_COURSE_SHARE, 9 futures in 10, as it always was;
- * weighing, { level, life, planW } — the level (the page's own, Balanced unless chosen), the person, and the plan followed
- * on to the weighting age (null where the way of drawing cannot be followed on: the count to the plan's age then).
+ * weighing, { level, life, planW } — the level (the page's own when chosen this visit; else the plan's, planLevelOf, as
+ * "Does it last?" and the verdict block read it; Balanced when neither), the person, and the plan followed on to the
+ * weighting age (null where the way of drawing cannot be followed on: the count to the plan's age then).
  */
-export function onCourseOptsOf(settings, p, strategyId, now, { weighted = undefined, level = 'balanced', sex = null } = {}) {
+export function onCourseOptsOf(settings, p, strategyId, now, { weighted = undefined, level = null, sex = null, plan = null } = {}) {
   if (!weighing({ weighted })) return ON_COURSE_SHARE;
   const life = lifeOfSettings(settings, now, { sex, startAge: p.startAge });
   const reason = weightedReasonOf(life, strategyId, p);
   const w = weightedYearsOf(life, p);
   const planW = reason ? null : w.extend ? weightedPlanFor(settings, p, w.years, now) : p;
-  return { level, life: { ...life, reason }, planW };
+  return { level: level || (plan ? planLevelOf(plan) : 'balanced'), life: { ...life, reason }, planW };
 }
 
 /**
@@ -183,14 +184,16 @@ export function weightedOptsOf(plan, { settings, strategyId, p, r, now, essentia
   const level = planLevelOf(plan);
   const reason = stored ? life.reason : weightedReasonOf(life, strategyId, p);
   const w = weightedYearsOf(life, p);
-  let rW = r, wYears = p.durationYears, runs = 0;
+  let rW = r, wYears = p.durationYears, runs = 0, pRun = p;
   if (!stored && !reason && w.extend) {
     const pW = weightedPlanFor(settings, p, w.years, now, essentials);
     rW = stressTestStrategy(strategyId, pW);
     wYears = pW.durationYears;
     runs = 1;
+    pRun = pW;
   }
-  const floor = (k) => floorAt(settings, p, k, now);
+  // (the floor reads the run the futures ran out in: its State Pension and its other income, year by year)
+  const floor = (k) => floorAt(settings, pRun, k, now);
   return { opts: { life: { ...life, reason }, rW, wYears, level, floorAt: floor, capped: w.capped && !reason, stored }, runs };
 }
 

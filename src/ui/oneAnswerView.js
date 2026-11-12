@@ -4,7 +4,7 @@
  * and the locked document's "earlier test" line. HTML strings only; no DOM, no storage, no engine.
  */
 import { inflationDecadesSvg } from './giltLadderGraphic.js';
-import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS, rankWays, oneAnswer } from '../services/OneAnswer.js';
+import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS, rankWays, oneAnswer, boldConsequenceOf } from '../services/OneAnswer.js';
 import { decadeFigures } from '../services/NamedStarts.js';
 import { LEGACY_DEFINITION } from '../services/PlanDocument.js';
 import { LIFE_TABLE, HORIZON } from '../services/LongevityModel.js';
@@ -31,6 +31,8 @@ export function cutsRowHtml(a) {
   if (!a || !a.cuts) return '';
   const c = a.cuts;
   if (!(c.cutN > 0)) return '<tr><td>Income cuts</td><td>never cut: in every one of the ' + n0(c.futures) + ' futures the plan was paid in full</td></tr>';
+  // a future that only ran out, with nothing cut before it, is not a cut (with the cuts switched off every one is)
+  if (!(c.typicalCutTotal > 0 || c.worstCutTotal > 0)) return '<tr><td>Income cuts</td><td>never cut: the plan is paid in full until the money runs out</td></tr>';
   return '<tr><td>Income cuts</td><td>income was cut in <strong>' + n0(c.cutN) + ' of ' + n0(c.futures) + ' futures</strong>' + (c.ranOutN > 0 ? ' (' + n0(c.ranOutN) + ' of them later ran out)' : '')
     + ': typically <strong>' + gbp(c.typicalCutPerYear) + ' a year less</strong>, for about <strong>' + n0(c.typicalCutYears) + ' year' + (c.typicalCutYears === 1 ? '' : 's') + '</strong> (' + gbp(c.typicalCutTotal) + ' in total; the most in any future ' + gbp(c.worstCutTotal) + '). A cut is a tax year in which more than 1% of the planned income went unpaid and was never caught up.</td></tr>';
 }
@@ -267,14 +269,14 @@ export function chanceOptsOf(r, opts = {}, oneTest = null) {
 /** The fixed-age line under a card's opening (a count, always with its age): "If you live to 96, the money lasts that long in …". */
 export function countAgeHtml(r, p) {
   if (!r || !r.affordable || !r.ruin || !p) return '';
-  const age = Math.round((+p.startAge || 0) + (+p.durationYears || 0));
+  // (the age the plan runs to, as the plan says it: the age in its last year — OneAnswer.weightedPartOf's planToAge)
+  const age = Math.round((+p.startAge || 0) + (+p.durationYears || 0)) - 1;
   return ' <span class="hint" data-fixed="1">' + esc(fixedAgeWords(Math.max(0, Math.min(1, 1 - (+r.ruin.mc || 0) / 100)), age, { kind: kindOf(r) })) + '</span>';
 }
 
-const levelSelectHtml = (level) => '<label class="verdict-level">How careful? <select data-on-change="setChanceLevel(el.value)" aria-label="How careful?">'
+const levelSelectHtml = (level) => '<label class="verdict-level">How careful? <select data-on-change="setChanceLevel(this.value)" data-testid="verdict.level" aria-label="How careful?">'
   + LEVEL_IDS.map((k) => '<option value="' + k + '"' + (k === level ? ' selected' : '') + '>' + esc(LEVEL_OPTIONS[k]) + '</option>').join('') + '</select></label>';
 const VERDICT_TITLE = { yes: 'On course', close: 'Close', no: 'Not on course' };
-const BOLD_LINE = { 'ran-out': 'About 3 times in 10 the money runs out while you are alive, and you would spend less from then on.', other: 'About 3 times in 10 your income falls short while you are alive, and you would spend less from then on.' };
 
 /**
  * The verdict block (7.8.0), both apps' words (services/OneAnswer.js weightedWordsOf):
@@ -295,18 +297,20 @@ export function verdictBlockView(r, p, o = {}) {
   const w = a.words;
   const tone = a.verdict === 'yes' ? 'success' : a.verdict === 'close' ? 'warning' : 'danger';
   const name = LEVEL_NAMES[a.level];
-  const bold = a.level === 'bold' ? ' ' + (a.failKind === 'ran-out' ? BOLD_LINE['ran-out'] : BOLD_LINE.other) : '';
+  const bold = a.level === 'bold' ? ' ' + boldConsequenceOf(a) : '';
   const hero = a.weighted !== null
     ? '<div data-weighted="' + a.weighted + '"><span class="hero" style="font-size:30px;">' + esc(chanceWords(a.weighted, { sumW: a.sumW, n: a.n })) + '</span><span class="hero-sub">' + esc(w.headline) + esc(bold) + '</span></div>'
     : '<div><span class="hero" style="font-size:30px;">' + esc(fixedShort(a.fixedAge)) + '</span><span class="hero-sub">' + esc(w.fixed) + esc(bold) + '</span></div>';
   const cov = r.coverage != null ? r.coverage : (r.failAges && r.failAges.length === 0 ? 100 : 100 - (r.ruin.mc || 0));
+  // ("How careful?" straight under the title, beside the figure it changes)
   return '<div class="verdict verdict-' + tone + '" data-chance-block="1" data-level="' + a.level + '"><div class="verdict-title">' + (r.ruinLabel ? 'Will you get what you planned? — ' : 'Will your money last? — ') + VERDICT_TITLE[a.verdict] + ' at ' + name + '</div>'
+    + levelSelectHtml(a.level)
     + '<div class="verdict-heroes">' + hero
     + '<div><span class="hero" style="font-size:30px;">' + pctText(cov) + '</span><span class="hero-sub">of the plan\'s years covered — the share of your planned income the money actually paid, averaged over every future</span></div>'
     + '<div><span class="hero" style="font-size:30px;">' + gbpC(Math.round(r.worst12.min)) + '</span><span class="hero-sub">worst 12 months lived, today\'s money</span></div></div>'
     + '<p class="verdict-fixed" data-fixed="1">' + esc(a.weighted !== null ? w.fixed : (w.why || '')) + '</p>'
     + (w.floor ? '<p class="hint">' + esc(w.floor) + '</p>' : '') + '<p class="hint">' + esc(w.left) + '</p>'
-    + '<div class="verdict-basis">' + esc(w.assumed.join(' ')) + ' ' + levelSelectHtml(a.level) + '</div></div>';
+    + '<div class="verdict-basis">' + esc(w.assumed.join(' ')) + '</div></div>';
 }
 
 /** A fixed-age share as a hero figure: "16 in 20". */
@@ -318,7 +322,7 @@ function documentBlockHtml(r, p, def) {
   const v = chanceVerdictOf(r, p, { definition: def }) || 'no';
   const tone = v === 'yes' ? 'success' : v === 'close' ? 'warning' : 'danger';
   const kind = kindOf(r);
-  const age = def.planTo && Number.isFinite(def.planTo.age) ? def.planTo.age : Math.round((+p.startAge || 0) + (+p.durationYears || 0));
+  const age = def.planTo && Number.isFinite(def.planTo.age) ? def.planTo.age : Math.round((+p.startAge || 0) + (+p.durationYears || 0)) - 1;
   const name = LEVEL_NAMES[def.level] || 'Balanced';
   const head = typeof w.chance === 'number'
     ? '<div data-weighted="' + w.chance + '"><span class="hero" style="font-size:30px;">' + esc(chanceWords(w.chance)) + '</span><span class="hero-sub">When the plan was locked, counting how long people your age live, ' + esc(LASTS_AS_LONG[kind]) + ' ' + esc(chanceWords(w.chance)) + '.</span></div>'
@@ -353,7 +357,7 @@ export function lifeAssumptionsRow() {
   const t = LIFE_TABLE;
   return ['How long the money has to last',
     'How long people born in each year are likely to live comes from the Office for National Statistics\' figures for ' + esc(t.region || 'England and Wales') + ' (' + esc(t.edition || '') + ', published ' + esc(dayText(t.published)) + '; Open Government Licence). Your plan runs to the age when fewer than 1 in ' + Math.round(1 / HORIZON.planToShare) + ' people your age are still alive; we follow each future on until fewer than 1 in ' + Math.round(1 / HORIZON.weightShare) + ' are.',
-    'These are figures for everyone in England and Wales; people with pension savings tend to live a little longer. The ONS publishes figures to age 100; above that we extend each line ourselves. If you do not say, we use the figures for women, which test the money for longer. Counting this way gives a higher figure than counting every future to one age, so we always show both, and our levels ask for more: Careful 19 times in 20, Balanced 18, Bold 14.'];
+    'These are figures for everyone in England and Wales; people with pension savings tend to live a little longer. The ONS publishes figures to age 100; above that we extend each line ourselves. If you do not say, we use the figures for women, which test the money for longer. The two figures answer different questions, so we always show both. Counting by how long people live is usually the kinder of the two, so our levels ask for more: Careful 19 times in 20, Balanced 18, Bold 14.'];
 }
 
 /** The row in the Assumptions page's list, while the figures are weighted (in the rollback the page is as it was). */

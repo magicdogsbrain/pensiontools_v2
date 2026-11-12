@@ -97,6 +97,8 @@ const anyAction = fc.oneof(
   fc.constantFrom(...OPENABLE).map((id) => ({ type: A.UI_TOGGLE, id })),
   fc.boolean().map((open) => ({ type: A.UI_RAIL, open })),
   fc.boolean().map((online) => ({ type: A.UI_ONLINE, online })),
+  // 7.8.0: "How careful?" on a plan's "Does it last?" (page memory only)
+  fc.constantFrom('careful', 'balanced', 'bold').map((level) => ({ type: A.UI_LEVEL, level })),
   fc.constantFrom('2026-09-30', '2028-04-06').map((today) => ({ type: A.ENV_SET, patch: { today } })),
   fc.constant(null).map(() => ({ type: A.STATE_REPLACE, state: { ...fresh(), plan: { id: 'x' }, session: { kind: 'user', uid: 'u' } } })),
   // the saved plans, read-only (research/v7/your-plan.md): the session, the plans in page memory, the hand-over

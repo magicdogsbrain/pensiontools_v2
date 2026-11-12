@@ -21,7 +21,10 @@
 import { DRAWDOWN_DEFAULTS, SIMULATION_DEFAULTS } from '../../constants.js';
 import { ON_COURSE_SHARE } from '../../services/OnCourse.js';
 import { PROTECTION_ESCALATE_MONTHS } from '../../services/ProtectionStrategy.js';
-import { oneAnswer, futuresOutOfTen, pctText, CHANCE_BARS } from '../../services/OneAnswer.js';
+import { oneAnswer, futuresOutOfTen, pctText, CHANCE_BARS, boldConsequenceOf } from '../../services/OneAnswer.js';
+
+export { boldConsequenceOf };
+import { LEVEL_FAILS20, verdictAtLevel } from '../shared/rules.js';
 import { switchPatch } from '../../services/PlanCommit.js';
 import { cleanParams } from '../../services/StrategyState.js';
 import { get, applyPatch, safeSettings, safeTiming, bandsOf } from './about.js';
@@ -291,13 +294,32 @@ export const BOLD_CONSEQUENCE = {
 };
 
 /**
+ * A weighted answer judged at another level (the page's "How careful?", ui.level; never saved): the same figures, the
+ * verdict at that level — on the weighted sum when the answer has one (rules.js verdictAtLevel), else on the count to the
+ * plan's age at floor(t·n/20) and one more twentieth, as OneAnswer.weightedPartOf judges. The answer as it is otherwise.
+ */
+export function atLevel(a, level) {
+  if (!a || typeof a.level !== 'string' || !level || !(level in LEVEL_FAILS20) || level === a.level) return a;
+  const t = LEVEL_FAILS20[level];
+  let verdict;
+  if (a.weighted !== null && typeof a.sumW === 'number' && typeof a.n === 'number' && a.n > 0) verdict = verdictAtLevel(a.sumW, a.n, level, true);
+  else if (a.weighted !== null && typeof a.weighted === 'number') verdict = a.weighted >= 1 - t / 20 - 1e-12 ? 'yes' : a.weighted >= 1 - (t + 1) / 20 - 1e-12 ? 'close' : 'no';
+  else {
+    const n = +a.futures || 0;
+    const fails = Math.round((1 - a.share) * n);
+    verdict = fails <= Math.floor((t * n) / 20) ? 'yes' : fails <= Math.floor(((t + 1) * n) / 20) ? 'close' : 'no';
+  }
+  return { ...a, level, verdict, lasts: verdict === 'yes' };
+}
+
+/**
  * 7.8.0: the band of a weighted result — the chance the money lasts as long as you do in the headline (or, with no weighted
  * figure, the fixed-age count with its age and one line on why), the fixed-age line always beside it, then the floor, what
  * is left at the plan's age and what we assumed. The words are OneAnswer.weightedWordsOf's (both apps say the same).
  */
 function weightedBand(a, years, toAge) {
   const w = a.words || {};
-  const bold = a.level === 'bold' ? (a.failKind === 'ran-out' ? BOLD_CONSEQUENCE['ran-out'] : BOLD_CONSEQUENCE.other) : '';
+  const bold = a.level === 'bold' ? boldConsequenceOf(a) : '';
   const head = a.weighted !== null ? { id: 'lasts.headlineW', slots: { words: w.headline, bold: bold ? ' ' + bold : '' } } : { id: 'lasts.headlineFixed', slots: { words: w.fixed, bold: bold ? ' ' + bold : '' } };
   const sub = a.weighted !== null ? { id: 'lasts.subFixed', slots: { words: w.fixed, years: String(years), toAge } } : { id: 'lasts.subWhy', slots: { words: w.why || '', years: String(years), toAge } };
   const rows = [];
@@ -328,9 +350,9 @@ export function startRow(x) {
  * words), the rows under it, and the history. Every figure is the planner's own reading of the one test (OneAnswer.js).
  * `saved` is lastsOf's reading of the same plan (the end age, the way of drawing, the source).
  */
-export function verdictOf(result, saved) {
+export function verdictOf(result, saved, { level = null } = {}) {
   if (!result || typeof result !== 'object') return null;
-  const a = result.a;
+  const a = atLevel(result.a, level);
   if (!a) {
     return { ok: false, id: 'lasts.unaffordable', slots: { strategy: result.strategyId || '' }, strategyId: result.strategyId || null, rows: [], history: null };
   }
@@ -339,10 +361,15 @@ export function verdictOf(result, saved) {
   // 7.8.0: a run that weighed (it carries its level) reads the weighted band; one that did not reads as before, word for word
   const wb = typeof a.level === 'string' && a.words ? weightedBand(a, years, toAge) : null;
   const rows = [];
-  rows.push({ id: 'left', slots: { typical: pounds(a.typicalLeft), bad: pounds(a.badCaseLeft), good: pounds(a.goodCaseLeft) } });
+  // (weighing, what is left is the weighted band's own line, at the plan's age and to the nearest £1,000: said once)
+  if (!wb) rows.push({ id: 'left', slots: { typical: pounds(a.typicalLeft), bad: pounds(a.badCaseLeft), good: pounds(a.goodCaseLeft) } });
   const c = a.cuts;
+  // a cut is income that went unpaid: a future that only ran out, with nothing cut before it, is not one (with the cuts
+  // switched off every "cut" is a run-out with £0 cut, which the headline already counts)
+  const realCut = c && c.cutN > 0 && (c.typicalCutTotal > 0 || c.worstCutTotal > 0);
   if (c && c.futures > 0) {
-    if (c.cutN > 0) rows.push({ id: 'cuts.some', slots: { n: n0(c.cutN), of: n0(c.futures), ranOut: c.ranOutN > 0 ? ' (' + n0(c.ranOutN) + ' of them later ran out)' : '', perYear: pounds(c.typicalCutPerYear), years: n0(c.typicalCutYears), s: c.typicalCutYears === 1 ? '' : 's', total: pounds(c.typicalCutTotal), worst: pounds(c.worstCutTotal) } });
+    if (c.cutN > 0 && !realCut) rows.push({ id: 'cuts.untilOut', slots: {} });
+    else if (c.cutN > 0) rows.push({ id: 'cuts.some', slots: { n: n0(c.cutN), of: n0(c.futures), ranOut: c.ranOutN > 0 ? ' (' + n0(c.ranOutN) + ' of them later ran out)' : '', perYear: pounds(c.typicalCutPerYear), years: n0(c.typicalCutYears), s: c.typicalCutYears === 1 ? '' : 's', total: pounds(c.typicalCutTotal), worst: pounds(c.worstCutTotal) } });
     else rows.push({ id: 'cuts.none', slots: { of: n0(c.futures) } });
   } else rows.push({ id: result.strategyId === 'floor-and-flex' ? 'cuts.flex' : 'cuts.bought', slots: {} });
   const ran = result.ran && typeof result.ran === 'object' ? result.ran : {};
@@ -353,7 +380,7 @@ export function verdictOf(result, saved) {
   const closedShort = result.closed && result.closed.short ? { age: String(result.closed.age), amount: pounds(result.closed.short.perYear), years: result.closed.short.years } : null;
   const worst = Array.isArray(result.history && result.history.worst) ? result.history.worst.map(startRow) : [];
   const named = Array.isArray(result.history && result.history.named) ? result.history.named.map(startRow) : [];
-  if (wb) rows.splice(1, 0, ...wb.rows);
+  if (wb) rows.splice(0, 0, ...wb.rows);
   return {
     ok: true,
     verdict: verdictWord(a.share, wb ? a : null), share: a.share, chancePct: a.chancePct,

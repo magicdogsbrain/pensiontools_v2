@@ -19,6 +19,9 @@ import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { LASTS } from '../../copy/lasts.js';
 import { WAY } from '../../copy/way.js';
+import { LEVELS_WORDS } from '../../copy/common.js';
+
+const LEVEL_IDS = ['careful', 'balanced', 'bold'];
 
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
@@ -36,8 +39,29 @@ function Head({ view }) {
   );
 }
 
+/**
+ * "How careful?" on a plan (7.8.0): the three levels, each label leading with what it asks for; a press judges this page at
+ * that level (ui.level, page memory only — never saved: a plan's level is its kept answer's until 7.9.0 saves one). Inside
+ * the band, beside its fixed-age line (the render rule).
+ */
+function PlanLevelStrip({ v, dispatch }) {
+  if (!dispatch || !v || !v.level || !v.weighted) return null;
+  return (
+    <div class="level-strip" role="group" aria-labelledby="plan-level-title" data-testid="plan.lasts.level" data-level={v.level} data-weighted="1">
+      <span class="level-label" id="plan-level-title">{LEVELS_WORDS.label}</span>
+      <div class="level-choices">
+        {LEVEL_IDS.map((k) => (
+          <Button key={k} testid={`plan.lasts.level.${k}`} kind="choice" aria-pressed={v.level === k ? 'true' : 'false'}
+            onClick={() => dispatch({ type: 'ui/level', level: k })} {...keepFocus}>{LEVELS_WORDS.options[k]}</Button>
+        ))}
+      </div>
+      <p class="note level-help">{LEVELS_WORDS.help}</p>
+    </div>
+  );
+}
+
 /** The band of one result (verdictOf): the word, the bar, the headline, the rows. `stale`: an older run's, greyed. */
-function Band({ v, stale = false, testid }) {
+function Band({ v, stale = false, testid, dispatch = null }) {
   if (!v) return null;
   if (!v.ok) return <p class="notice" role="status" data-testid={testid} data-ok="0">{fill(LASTS.verdict[v.id] || '', v.slots)}</p>;
   const f = v.figures || {};
@@ -46,11 +70,12 @@ function Band({ v, stale = false, testid }) {
       data-chance={f.chancePct} data-typical={f.typicalLeft} data-bad={f.badCaseLeft} data-good={f.goodCaseLeft} data-futures={f.futures} data-histories={f.histories} data-years={f.years}
       data-cut-n={f.cutN == null ? undefined : f.cutN} data-cut-per-year={f.cutPerYear == null ? undefined : f.cutPerYear} data-cut-years={f.cutYears == null ? undefined : f.cutYears}>
       <p class="figure" data-testid={testid + '.headline'} {...(v.id === 'lasts.headlineW' ? { 'data-weighted': '1' } : v.id === 'lasts.headlineFixed' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.verdict[v.id], v.slots)}</p>
-      <p class="lasts-bar"><span class={`verdict-word is-${v.verdict}`} data-verdict={v.verdict}>{LASTS.verdict.word[v.verdict]}</span> <OutOfTenBar source={v} k="share" /></p>
+      <p class="lasts-bar">{v.level && v.weighted && <span class="lasts-level" data-testid={testid + '.level'}>{fill(LASTS.verdict.atLevel, { level: LEVELS_WORDS.names[v.level] })} </span>}<span class={`verdict-word is-${v.verdict}`} data-verdict={v.verdict}>{LASTS.verdict.word[v.verdict]}</span> <OutOfTenBar source={v} k="share" /></p>
       <p class="figure-sub" data-testid={testid + '.sub'} {...(v.sub.id === 'lasts.subFixed' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.verdict[v.sub.id], v.sub.slots)}</p>
       <ul class="plan-lines">
         {v.rows.map((r, i) => <li key={i} class="plan-line" data-line={'lasts.' + r.id}>{fill(LASTS.rows[r.id] || '', r.slots)}</li>)}
       </ul>
+      {!stale && <PlanLevelStrip v={v} dispatch={dispatch} />}
     </div>
   );
 }
@@ -186,7 +211,7 @@ function Answer({ L, onChange, dispatch, view }) {
       )}
       {v && !run.fresh && <Band v={v} stale testid="plan.lasts.result" />}
       <AtLeast busy={working} working={null}>
-        {v && run.fresh && <Band v={v} stale={false} testid="plan.lasts.result" />}
+        {v && run.fresh && <Band v={v} stale={false} testid="plan.lasts.result" dispatch={dispatch} />}
         {v && run.fresh && v.ok && <p class="plan-source" data-testid="plan.lasts.ran">{sourceLine}</p>}
         {v && run.fresh && L.note && <p class="notice" role="status" data-testid="plan.lasts.earlierTest">{L.note}</p>}
         {/* the plan starts before its pension can usually be taken (7.4.0): what it does until then, beside the answer, or

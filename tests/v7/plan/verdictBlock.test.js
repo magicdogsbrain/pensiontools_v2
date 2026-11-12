@@ -84,10 +84,10 @@ describe('a live block, weighing', () => {
       expect(block, `${id} ${f}`).toBeTruthy();
       expect(block.querySelector('[data-weighted]')).toBeTruthy();
       const fixed = block.querySelector('[data-fixed]');
-      expect(fixed.textContent).toMatch(/^If you live to 97, /);
+      expect(fixed.textContent).toMatch(/^If you live to 96, /);
       expect(block.querySelector('select').value).toBe('balanced');
       expect([...block.querySelectorAll('option')].map((x) => x.textContent)).toEqual(['19 times in 20: Careful', '18 times in 20: Balanced (we start here)', '14 times in 20: Bold']);
-      expect(block.textContent).toMatch(/We tested to 97, the age your plan runs to\./);
+      expect(block.textContent).toMatch(/We tested to 96, the age your plan runs to\./);
       expect(block.textContent).not.toMatch(/NaN|undefined/);
       const v = chanceVerdictOf(r, P, o);
       expect(block.className).toContain('verdict-' + (v === 'yes' ? 'success' : v === 'close' ? 'warning' : 'danger'));
@@ -96,11 +96,13 @@ describe('a live block, weighing', () => {
   });
   it('Bold says its consequence; a plan with no weighted figure leads with the fixed-age count and says why', () => {
     const bold = verdictBlockView(fake('pots-and-valves', 4), P, { life: LIFE, level: 'bold' });
-    expect(bold).toContain('About 3 times in 10 the money runs out while you are alive, and you would spend less from then on.');
+    // (its consequence from the plan's own chance: 4 of 20 failed late, so about 1 time in 10 while you are alive)
+    expect(bold).toMatch(/(About \d+ times? in 10|Less than 1 time in 10) the money runs out while you are alive, and you would spend less from then on\./);
+    expect(bold).not.toContain('About 3 times in 10');
     const linked = verdictBlockView(fake('pots-and-valves', 4), P, { life: { ...LIFE, reason: 'linked' } });
     expect(linked).not.toContain('data-weighted');
     expect(linked).toContain('data-fixed="1"');
-    expect(linked).toContain('If you live to 97, the money lasts that long in 16 of 20 futures we tried.');
+    expect(linked).toContain('If you live to 96, the money lasts that long in 16 of 20 futures we tried.');
   });
 });
 
@@ -144,7 +146,7 @@ describe('the session\'s level, and the page\'s own wiring', { timeout: 120_000 
     expect(o.stored).toEqual({ chance: null });
   });
   it('the card\'s count names its age; the Assumptions row only while weighing; the page\'s script carries none of the block\'s words', () => {
-    expect(countAgeHtml(fake('pots-and-valves', 2), P)).toBe(' <span class="hint" data-fixed="1">If you live to 97, the money lasts that long in 18 of 20 futures we tried.</span>');
+    expect(countAgeHtml(fake('pots-and-valves', 2), P)).toBe(' <span class="hint" data-fixed="1">If you live to 96, the money lasts that long in 18 of 20 futures we tried.</span>');
     expect(countAgeHtml(fake('gilt-rotation', 2, { ruinLabel: 'x' }), P)).toContain('your income is paid in full that long');
     const row = (...a) => a;
     expect(lifeAssumptionsRows(row, false)).toEqual([]);

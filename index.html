@@ -1788,6 +1788,9 @@
     .hero { font-size: 40px; font-weight: 800; line-height: 1; }
     .hero-sub { font-size: 13px; color: var(--text-muted); display: block; margin-top: 4px; max-width: 190px; }
     .verdict-basis { font-size: 12px; color: var(--text-muted); margin-top: 14px; }
+    .verdict-level { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin: -6px 0 14px; }
+    .verdict-level select { font: inherit; font-weight: 400; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border, rgba(127,127,127,0.4)); background: var(--bg-secondary, transparent); color: var(--text); max-width: 100%; }
+    .verdict-fixed { font-size: 14px; margin: 12px 0 0; }
     .callout { border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; border: 1px solid rgba(96,165,250,0.25); background: rgba(96,165,250,0.06); }
     .callout-title { font-weight: 700; margin-bottom: 6px; }
     .callout p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; }
@@ -9607,7 +9610,7 @@
       try {
         const sSet = await getStressSettingsAsync();
         const stratId = sSet.strategyId || 'pots-and-valves';
-        const acP = strategyPlanFor(sSet), { requiredPot } = requiredPotForStrategy(stratId, acP, onCourseOptsOf(sSet, acP, stratId, new Date(), { level: window._chanceLevel || 'balanced' }));   // the one test for every strategy (6.24.0); 7.8.0: at the page's level, weighted by how long people live while SUCCESS.weighted (else 9 in 10, as before)
+        const acP = strategyPlanFor(sSet), { requiredPot } = requiredPotForStrategy(stratId, acP, onCourseOptsOf(sSet, acP, stratId, new Date(), { level: window._chanceLevel || null, plan: await getActiveScenarioAsync().catch(() => null) }));   // the one test for every strategy (6.24.0); 7.8.0: at the page's level, else the plan's kept level (as the verdict block), weighted by how long people live while SUCCESS.weighted (else 9 in 10, as before)
         if (!Number.isFinite(requiredPot)) { el.innerHTML = '<div class="alert alert-warning">No pot in the search range passes with ' + budEsc(STRATEGY_NAMES[stratId] || stratId) + ' — check the plan\'s income shape and duration.</div>'; return; }
         el.innerHTML = onCourseCheckHtml({ requiredPot, basis: onCourseBasisHtml({ strategyId: stratId, name: budEsc(STRATEGY_NAMES[stratId] || stratId) }), rows: window._acProjection.rows });
       } catch (e) {

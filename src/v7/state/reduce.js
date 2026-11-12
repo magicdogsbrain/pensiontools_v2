@@ -644,6 +644,10 @@ function reduceAction(state, action) {
       return state.ui.railOpen === !!action.open ? state : { ...state, ui: { ...state.ui, railOpen: !!action.open } };
     case A.UI_ONLINE:
       return state.ui.online === !!action.online ? state : { ...state, ui: { ...state.ui, online: !!action.online } };
+    case A.UI_LEVEL: {
+      if (!['careful', 'balanced', 'bold'].includes(action.level)) return refuse(`ui/level: no level called "${action.level}"`);
+      return state.ui.level === action.level ? state : { ...state, ui: { ...state.ui, level: action.level } };
+    }
 
     // ---- the saved plans, read-only (research/v7/your-plan.md 3.8, 4.3): page memory only, never the draft ----------
     case A.SESSION_SET: {

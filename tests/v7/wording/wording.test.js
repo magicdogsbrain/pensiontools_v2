@@ -208,7 +208,7 @@ describe('the words in src/v7/copy/', () => {
       .replace(/\{(perMonth|potBefore|potAfter|yearly)\}/g, '£25,000').replace(/\{(chance|baseChance|docChance)\}/g, '92.7').replace(/\{runs\}/g, '7').replace(/\{s\}/g, 's')
       .replace(/\{(typical|bad|good|perYear|total|worst|lowest|left|amount|buffer|leanest)\}/g, '£25,000')
       .replace(/\{(pct|half|full)\}/g, '20').replace(/\{(futures|of|n|histories|ranOut)\}/g, '1,000').replace(/\{(years|months|first|age|toAge|secured|year|lastStart|fired)\}/g, '12')
-      .replace(/\{s\}/g, 's').replace(/\{name\}/g, 'Sam').replace(/\{value\}/g, '3').replace(/\{reserve\}/g, 'no reserve').replace(/\{strategy\}/g, 'Pots and valves')
+      .replace(/\{level\}/g, 'Balanced').replace(/\{s\}/g, 's').replace(/\{name\}/g, 'Sam').replace(/\{value\}/g, '3').replace(/\{reserve\}/g, 'no reserve').replace(/\{strategy\}/g, 'Pots and valves')
       // Try a change (way-and-mix.md 4): the way, the pots, the policy, the income, the old figure, on or off, "instead of your steps"
       .replace(/\{way\}/g, 'Floor to an age, then decide').replace(/\{(pot|isa|income)\}/g, '£500,000').replace(/\{old\}/g, '35').replace(/\{policy\}/g, 'held back, never drawn for income').replace(/\{on\}/g, 'on').replace(/\{steps\}/g, ' instead of your steps')
       // the named stresses and the years one by one (road-to-7.md step 11b): the prices assumed, what a decade did, the hardest start

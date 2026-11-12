@@ -184,10 +184,20 @@ export function survivalFrom(life, table = LIFE_TABLE) {
  */
 export function floorAt(settings, p, k, now) {
   const s = settings || {};
+  const pa = isNum(+s.pa) && +s.pa > 0 ? +s.pa : 12570, brl = +s.brl > 0 ? +s.brl : 50270, hrl = +s.hrl > 0 ? +s.hrl : 125140;
+  // the run's own figures (planFromSettings): the State Pension it pays — the one entered, or the one it assumes when none
+  // is (p.spAssumed), as a weekly amount or a yearly one — from its run year, and the other income it pays each run year
+  // (a final-salary pension, income streams, other income; one-off sums left out). So the floor is what the run paid.
+  if (p && (isNum(p.spAnnual) || Array.isArray(p.otherIncomeByYear))) {
+    const sp = isNum(p.spAnnual) && p.spAnnual > 0 && k >= (isNum(p.spStartYear) ? p.spStartYear : 99) ? p.spAnnual : 0;
+    const o = Array.isArray(p.otherIncomeByYear) && p.otherIncomeByYear.length ? p.otherIncomeByYear : null;
+    const other = o ? +o[Math.max(0, Math.min(k, o.length - 1))] || 0 : 0;
+    const g = sp + other;
+    return g > 0 ? Math.round(grossToNet(g, pa, brl, hrl)) : 0;
+  }
   let timing;
   try { timing = deriveTiming(s, now); } catch { return null; }
   const lived = p && p.yearOffset > 0 ? p.yearOffset : 0;
   const gross = guaranteedAtYear(s, timing, timing.shapeAgeNow || (p && p.startAge) || 57, lived + k, now);
-  const pa = isNum(+s.pa) && +s.pa > 0 ? +s.pa : 12570, brl = +s.brl > 0 ? +s.brl : 50270, hrl = +s.hrl > 0 ? +s.hrl : 125140;
   return gross > 0 ? Math.round(grossToNet(gross, pa, brl, hrl)) : 0;
 }

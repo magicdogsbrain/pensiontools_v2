@@ -22,12 +22,15 @@ export const LASTS = {
     'lasts.headlineFixed': '{words}{bold}',
     'lasts.subFixed': '{words}',
     'lasts.subWhy': '{words}',
-    word: { yes: 'On course', close: 'Close', no: 'Not yet' }
+    word: { yes: 'On course', close: 'Close', no: 'Not yet' },
+    /** 7.8.0: the level the band is judged at, before its word ("At Balanced: On course"). */
+    atLevel: 'At {level}:'
   },
   rows: {
     left: 'Left at the end, at today’s prices: typically {typical}; in a bad case (the worst 1 in 10) {bad}; in a good case (the best 1 in 10) {good}.',
     'cuts.some': 'Income cuts: in {n} of {of} futures{ranOut}, typically {perYear} a year less for about {years} year{s} ({total} in all; the most in any future {worst}). A cut is a tax year in which more than 1% of the planned income went unpaid and was never caught up.',
     'cuts.none': 'Income cuts: none — in every one of the {of} futures the plan was paid in full.',
+    'cuts.untilOut': 'Income cuts: none — the plan is paid in full until the money runs out.',
     'cuts.bought': 'Income cuts: none — this way of drawing pays the plan in full until it cannot.',
     'cuts.flex': 'Income cuts: none — the treats flex instead; the honest risk is a lean year, not running out.',
     'ran.cuts': 'Run with the spending cuts you set: up to {pct}% after {months} month{s} in a row below the plan’s line.',

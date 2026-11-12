@@ -15,7 +15,7 @@ import { LastsLines, LevelStrip, LASTS_TOP, LASTS_AFTER } from '../../components
 import { answerSlider, answerTiles, tilesKey, potPicture } from '../../state/select.js';
 import { PICTURE } from '../../copy/picture.js';
 import { href } from '../../router/routes.js';
-import { ADVICE_SHORT } from '../../copy/common.js';
+import { ADVICE_SHORT, levelKeyOf } from '../../copy/common.js';
 import { D } from '../../copy/d.js';
 import { saverFrame, ShortForm, Warnings, AnswerRegion } from '../a/AnswerScreen.jsx';
 
@@ -45,7 +45,7 @@ function SpendMore({ result }) {
       <Sentence s={s.headroom} source={result} class="headroom" data-testid="d.answer.headroom" data-headroom={result.headroom ? result.headroom.kind : undefined} />
       {s.headroomFixed && <Sentence s={s.headroomFixed} source={result} class="headroom-fixed" data-testid="d.answer.headroomFixed" />}
       {s.levels && <Sentence s={s.levels} source={result} />}
-      <p class="note range-key" data-testid="d.more.key">{withFixedCounts(t.moreNote)}</p>
+      <p class="note range-key" data-testid="d.more.key">{withFixedCounts(levelKeyOf(result, t.moreNote))}</p>
     </section>
   );
 }

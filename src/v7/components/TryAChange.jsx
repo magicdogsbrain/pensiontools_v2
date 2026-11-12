@@ -21,6 +21,7 @@ import { Field, blank } from './Field.jsx';
 import { Button } from './Button.jsx';
 import { payInTo, payInEntered } from './payInTo.js';
 import { C } from '../copy/c.js';
+import { LEVELS_WORDS, weighedResult } from '../copy/common.js';
 
 const set = (path, value) => ({ type: 'draft/set', q: 'c', path, value });
 const pounds = (n) => money(n).slice(1);             // "275,000" — as a person would type it
@@ -390,7 +391,8 @@ export function SaverTryAChange({ q, state, form, result, dispatch }) {
   } else if (form.byPath.get('confidence')) {
     const options = form.byPath.get('confidence').options;
     rows.push(
-      <Choices key="confidence" q={q} id="confidence" label={t.tryConfidence} options={options} words={words.fields.confidence.options}
+      <Choices key="confidence" q={q} id="confidence" label={weighedResult(result) ? LEVELS_WORDS.label : t.tryConfidence} options={options}
+        words={weighedResult(result) ? LEVELS_WORDS.options : words.fields.confidence.options}
         chosen={form.shown.confidence} onPick={(o) => dispatch(set('confidence', o))} />
     );
   }
@@ -443,7 +445,8 @@ function changeItems(words) {
     { id: 'partTimeYearly', read: (i) => (i.partTime && i.partTime.has ? i.partTime.yearly : null), text: (v) => money(v), skipWhen: (a, b) => a === null || b === null },
     { id: 'savingRisk', read: (i) => i.savingRisk, text: level('savingRisk') },
     { id: 'risk', read: (i) => i.risk, text: level('risk') },
-    { id: 'confidence', read: (i) => i.confidence, text: (v) => level('confidence')(v).replace(/^in /, '') }
+    // a level by its name alone ("from Balanced to Careful"): its chance or count is the answer's to say
+    { id: 'confidence', read: (i) => i.confidence, text: (v) => LEVELS_WORDS.names[v] || String(v) }
   ];
 }
 

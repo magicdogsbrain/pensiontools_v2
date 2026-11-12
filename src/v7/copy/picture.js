@@ -27,6 +27,19 @@ export const PICTURE = {
     bold: 'a month at Bold, lasting in 7 futures out of 10',
     take: 'a month you take, after tax',
     could: 'a month you could take, lasting to {age} in 9 futures out of 10',
+    /*
+     * While the figures are weighed by how long people live (7.8.0), a level's figure is said at its level — never as a
+     * count of futures, which it is not; its count to one named age is the answer's fixed-age line beside the tiles.
+     */
+    carefulW: 'a month at Careful: it lasts as long as you live 19 times in 20',
+    balancedW: 'a month at Balanced: it lasts as long as you live 18 times in 20',
+    boldW: 'a month at Bold: it lasts as long as you live 14 times in 20',
+    couldCarefulW: 'a month you could take at Careful: 19 times in 20, counting how long people live',
+    couldBalancedW: 'a month you could take at Balanced: 18 times in 20, counting how long people live',
+    couldBoldW: 'a month you could take at Bold: 14 times in 20, counting how long people live',
+    aimCarefulW: 'pot to aim for at {age} at Careful, at today’s prices (Balanced and Bold are in the guide below)',
+    aimBalancedW: 'pot to aim for at {age} at Balanced, at today’s prices (Careful and Bold are in the guide below)',
+    aimBoldW: 'pot to aim for at {age} at Bold, at today’s prices (Careful and Balanced are in the guide below)',
     runsOut: 'the age the money runs out in a bad case (the worst 1 in 10)',
     lasts: 'still there at this age, even in a bad case (the worst 1 in 10)'
   },
@@ -62,7 +75,9 @@ export const PICTURE = {
       dToday: 'Today, at {age}: {pot} in your pension and savings.',
       dOut: 'At what you take, in a bad case the money runs out at {age}.',
       dLasts: 'At what you take, the money lasts to {age} even in a bad case.',
-      dMiddling: 'At Bold, {amount} a month lasted to {age} in 7 futures out of 10.'
+      dMiddling: 'At Bold, {amount} a month lasted to {age} in 7 futures out of 10.',
+      /** While weighing: the guide line is Bold's amount; its chance is the answer's to say, beside its count to an age. */
+      dMiddlingW: 'The guide line above the shading is what Bold allows, {amount} a month.'
     }
   },
   /** The line that keeps an answer: the one create path is the question's own "Keep" step. */

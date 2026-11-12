@@ -56,7 +56,7 @@ export function AnswerSlider({ slider: S, dispatch, children = null, stale = fal
 
 /** A tile's words, its {age} drawn as the answer's own figure (Money, by the key the tile names). */
 function tileWords(t, source) {
-  const text = PICTURE.tiles[t.id];
+  const text = PICTURE.tiles[t.words || t.id];
   const at = text.indexOf('{age}');
   // the fixed counts of the words ("9 futures out of 10") are marked as such, as every key line marks them
   if (at === -1 || !t.ageKey) return withFixedCounts(text);

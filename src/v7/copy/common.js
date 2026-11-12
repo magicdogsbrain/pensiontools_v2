@@ -20,8 +20,19 @@ export const ADVICE_SHORT = 'An illustration from your figures, not financial ad
 export const LEVELS_WORDS = {
   label: 'How careful?',
   options: { careful: '19 times in 20: Careful', balanced: '18 times in 20: Balanced (we start here)', bold: '14 times in 20: Bold' },
-  help: 'Each future counts by how likely you are to be alive when the money runs out: running out at 98 counts for less than at 80. Your choice changes every figure on this page.'
+  help: 'Each future counts by how likely you are to be alive when the money runs out: running out at 98 counts for less than at 80. Your choice changes every figure on this page.',
+  /** The key under a range of the three levels, while the figures are weighed (a couple: "as long as one of you is alive"). */
+  key: (couple) => `Careful = lasts as long as ${couple ? 'one of you is alive' : 'you do'} 19 times in 20 · Balanced = 18 times in 20 · Bold = 14 times in 20`,
+  /** A level by its name alone, as a change is said ("You changed how careful to be from Balanced to Careful."). */
+  names: { careful: 'Careful', balanced: 'Balanced', bold: 'Bold' }
 };
+
+/** Whether an answer's figures are weighed by how long people live (7.8.0): its basis says so. */
+export const weighedResult = (result) => Boolean(result && result.basis && result.basis.weighted);
+/** Whether an answer is about a couple. */
+const coupleResult = (result) => Boolean(result && result.inputs && result.inputs.household === 'couple');
+/** The key under a range of levels: while weighing, the levels as chances (LEVELS_WORDS.key); else the copy's own counts. */
+export const levelKeyOf = (result, counts) => (weighedResult(result) ? LEVELS_WORDS.key(coupleResult(result)) : counts);
 
 /** The closing paragraph of every answer step. Checked letter for letter. */
 export const ADVICE_FULL =

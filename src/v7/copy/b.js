@@ -202,7 +202,7 @@ export const B = {
       shape: ['the spending from', 'to'],
       savingRisk: ['the risk while saving from', 'to'],
       risk: ['the risk once stopped from', 'to'],
-      confidence: ['how often it should last from', 'to'],
+      confidence: ['how careful to be from', 'to'],
       other: 'your numbers'
     },
 

@@ -13,6 +13,7 @@ import { Money } from './Money.jsx';
 import { withFixedCounts } from './MadeOf.jsx';
 import { A } from '../copy/a.js';
 import { B } from '../copy/b.js';
+import { levelKeyOf } from '../copy/common.js';
 
 export function Pots({ result, q }) {
   const s = (result && result.sentences) || {};
@@ -24,7 +25,7 @@ export function Pots({ result, q }) {
         <h2 id="pots-title">{t.rangeTitle} <Money source={result} k="shown.age" kind="age" /></h2>
         <p class="note">{t.rangeNote}</p>
         {s.range && <Sentence s={s.range} source={result} class="range" />}
-        {s.range && <p class="note range-key" data-testid="a.pots.key">{withFixedCounts(t.rangeKey)}</p>}
+        {s.range && <p class="note range-key" data-testid="a.pots.key">{withFixedCounts(levelKeyOf(result, t.rangeKey))}</p>}
         {s.couldShape && <Sentence s={s.couldShape} source={result} class="shape-line" data-testid="a.answer.couldShape" />}
         {s.pot && <Sentence s={s.pot} source={result} class="pot-line" />}
       </section>

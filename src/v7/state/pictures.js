@@ -187,7 +187,9 @@ export function answerTiles(state, q) {
   const out = [];
   const add = (t) => { if (has(t.k)) out.push(t); };
   if (q === 'b') {
-    add({ id: 'aim', k: `levels.${r.level}.pot`, kind: 'pot', ageKey: 'stop.age' });
+    // (weighing, 7.8.0: the pot is said at its level, never as a lone pot — the other two are in the guide's range)
+    const w = Boolean(r.basis && r.basis.weighted);
+    add({ id: 'aim', k: `levels.${r.level}.pot`, kind: 'pot', ageKey: 'stop.age', ...(w ? { words: `aim${r.level.charAt(0).toUpperCase()}${r.level.slice(1)}W` } : {}) });
     add({ id: 'nowBad', k: 'potAtStop.now.careful', kind: 'pot', ageKey: 'stop.age' });
     if (r.onCourse !== true && r.enough && r.enough.how === 'share' && has('enough.atLevel.totalPct')) add({ id: 'enoughShare', k: 'enough.atLevel.totalPct', kind: 'pct', pop: true });
     else if (r.onCourse !== true && has('payIn.needed') && r.payIn.needed > 0) add({ id: 'enough', k: 'payIn.needed', kind: 'money', pop: true });
@@ -195,11 +197,17 @@ export function answerTiles(state, q) {
   } else if (q === 'c') {
     if (r.status === 'none') return [];
     // the three levels (7.8.0), the one the answer stands behind first
-    for (const id of [r.level, ...LEVEL_IDS.filter((x) => x !== r.level)]) add({ id, k: `levels.${id}.monthly`, kind: 'money', ...(id === r.level ? { pop: true } : {}) });
+    // (weighing, 7.8.0: each said at its level, never as a count of futures — `words` names the tile's words)
+    const w = Boolean(r.basis && r.basis.weighted);
+    for (const id of [r.level, ...LEVEL_IDS.filter((x) => x !== r.level)]) add({ id, k: `levels.${id}.monthly`, kind: 'money', ...(id === r.level ? { pop: true } : {}), ...(w ? { words: `${id}W` } : {}) });
   } else if (q === 'd') {
     const end = r.basis && r.basis.endAge;
     add({ id: 'take', k: 'spend.perMonth', kind: 'money', pop: true });
-    if (r.status === 'ok') add({ id: 'could', k: `levels.${r.level}.monthly`, kind: 'money', ageKey: 'basis.endAge' });
+    if (r.status === 'ok') {
+      add(r.basis && r.basis.weighted
+        ? { id: 'could', k: `levels.${r.level}.monthly`, kind: 'money', words: `could${r.level.charAt(0).toUpperCase()}${r.level.slice(1)}W` }
+        : { id: 'could', k: `levels.${r.level}.monthly`, kind: 'money', ageKey: 'basis.endAge' });
+    }
     if (r.status === 'ok' && isNum(r.runOutAge) && isNum(end)) add(r.runOutAge < end ? { id: 'runsOut', k: 'runOutAge', kind: 'age' } : { id: 'lasts', k: 'basis.endAge', kind: 'age' });
   }
   return out;
@@ -325,7 +333,7 @@ function drawingPicture(r) {
   const rows = [
     { id: 'dToday', slots: { age: a, pot: round(p0) } },
     runsOut ? { id: 'dOut', slots: { age: r.runOutAge } } : { id: 'dLasts', slots: { age: end } },
-    { id: 'dMiddling', slots: { amount: M, age: end } }
+    r.basis && r.basis.weighted ? { id: 'dMiddling', words: 'dMiddlingW', slots: { amount: M } } : { id: 'dMiddling', slots: { amount: M, age: end } }
   ];
   const still = (p) => p.age >= end && p.value > 0;
   return {

@@ -12,6 +12,7 @@
 import { Sentence } from './Sentence.jsx';
 import { Button } from './Button.jsx';
 import { C } from '../copy/c.js';
+import { levelKeyOf } from '../copy/common.js';
 
 /** The words of the key with each run of digits in a data-fixed span (a count, not a figure to work out). */
 export function withFixedCounts(text) {
@@ -37,7 +38,7 @@ export function MadeOf({ result, open, dispatch, q = 'c', title, note, lines: gi
         </ul>
         {after}
         {range && <Sentence s={s.range} source={result} class="range" />}
-        {range && <p class="note range-key" data-testid="c.madeOf.key">{withFixedCounts(C.answer.rangeKey)}</p>}
+        {range && <p class="note range-key" data-testid="c.madeOf.key">{withFixedCounts(levelKeyOf(result, C.answer.rangeKey))}</p>}
       </div>
     </section>
   );

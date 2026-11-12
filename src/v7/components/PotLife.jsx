@@ -84,7 +84,7 @@ export function PotLife({ picture: P, words: W }) {
       <p class="note pot-note">{P.q === 'b' ? W.noteB : W.noteD}</p>
       <details class="pot-figures" data-testid={`${P.q}.pot.table`}>
         <summary>{W.show}</summary>
-        <ul>{P.rows.map((r) => <li key={r.id} data-row={r.id}>{rowText(W.rows[r.id], r.slots)}</li>)}</ul>
+        <ul>{P.rows.map((r) => <li key={r.id} data-row={r.id}>{rowText(W.rows[r.words || r.id], r.slots)}</li>)}</ul>
       </details>
     </figure>
   );

@@ -82,7 +82,8 @@ test.describe('D — "I\'m retired. Will it last?"', () => {
       await expect(page.locator('#app [data-sentence="verdict"]')).toHaveText(answer.sentences.line.text);
       await expect(app.id('d.answer.headroom')).toHaveText(answer.sentences.headroom.text);
       await expect(app.id('d.answer.headroom')).toHaveAttribute('data-headroom', answer.headroom.kind);
-      await expect(app.id('d.more')).toContainText(answer.sentences.middling.text);
+      // (7.8.0: the count's middling amount left the answer; the other two levels are said instead)
+      await expect(app.id('d.more')).toContainText(answer.sentences.levels.text);
       await expect(page.locator('[data-key="levels.balanced.monthly"]').first()).toHaveAttribute('data-value', String(answer.levels.balanced.monthly));
       await expect(page.locator('#app h1')).toHaveText(D.steps.answer.label);
       expect(await page.locator('#app').innerText()).not.toMatch(RETIRED_WORDS);

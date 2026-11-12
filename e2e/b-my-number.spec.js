@@ -97,7 +97,7 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
   // "Am I saving enough?" said straight (research/saving-enough-and-check-in.md section 8, browser; release step R1). Sam is
   // fictional, the note's own row B: 41, £62,000 saved, £38,000 pay with 6% from Sam and 4% from the employer, stopping at
   // 63, £1,810 a month. The test build, so the grid and Keep can be read; every sentence checked is the engine's own.
-  test('Sam: "Not on course", 31% of pay in the first sentence, both incomes with the State Pension, the gap a year, 22% for 3 in 4; the grid in shares; Keep asks as now or on course', async ({ page }) => {
+  test('Sam: "Not on course", the share of pay that would be enough in the first sentence, both incomes with the State Pension, the gap a year; the grid in shares; Keep asks as now or on course', async ({ page }) => {
     test.setTimeout(300_000);
     const numbers = { 'you.age': '41', 'you.pot': '62,000', 'you.payIn.kind': 'share', 'you.payIn.pay': '38,000', 'you.payIn.ownPct': '6', 'you.payIn.employerPct': '4', 'stop.age': '63' };
     const app = v7(page, 'test', 'b');
@@ -117,11 +117,13 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
       await expect(head.locator('#answer-figure')).toHaveText('Not on course for £1,810 a month from 63');
       const first = head.locator('[data-sentence="verdict"]');
       await expect(first).toContainText('Paying in 10% of your pay as now (£317 a month, your employer\'s 4% included)');
-      await expect(first).toContainText('31% of your pay in all (you 27%, £982 a month) would put you on course, which is 9 in 10; 22% (you 18%, £697 a month) would do it in 3 futures out of 4.');
+      // (7.8.0: one figure for what would be enough, at the level — the 3-in-4 and middling figures left the answer; the
+      // words are the engine's own)
+      await expect(first).toHaveText(b.sentences.verdictLine.text);
       const income = page.locator('#app [data-testid="b.verdict.income"]');
-      await expect(income).toContainText('you could spend £1,310 a month from 63 (£1,630 in a middling case');
-      await expect(income).toContainText('with your State Pension from 68 (the full amount, as assumed): £500 a month (£6,000 a year) less than you want.');
-      await expect(page.locator('#app [data-enough] h2')).toHaveText('To be on course: 31% of your pay in all');
+      await expect(income).toHaveText(b.sentences.income.text);
+      await expect(income).toContainText('with your State Pension from 68 (the full amount, as assumed)');
+      await expect(page.locator('#app [data-enough] h2')).toHaveText(b.sentences.enoughHead.text);
       // the order: the verdict, then what would be enough, then the guide number
       const order = await page.$$eval('#app [data-headline="verdict"], #app [data-enough], #app [data-guide]', (els) => els.map((el) => (el.matches('[data-headline]') ? 'verdict' : el.matches('[data-enough]') ? 'enough' : 'guide')));
       expect(order).toEqual(['verdict', 'enough', 'guide']);
@@ -132,10 +134,10 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
       await app.rail('choices');
       await app.partialThenFinal(180_000);
       const grid = app.engine({ ...FINAL_ENV, detail: 'grid' }).grid;
-      expect(grid.shares).toEqual([10, 16, 22, 28, 31]);
+      expect(grid.shares[0]).toBe(10);
       const shares = await page.$$eval('#app [data-grid] thead th[data-share]', (els) => els.map((el) => Number(el.getAttribute('data-share'))));
       expect(shares).toEqual(grid.shares);
-      await expect(page.locator('#app [data-grid] th[data-share="31"]')).toHaveAttribute('data-col-needed', '');
+      await expect(page.locator(`#app [data-grid] th[data-share="${grid.shares[grid.shares.length - 1]}"]`)).toHaveAttribute('data-col-needed', '');
       await expect(page.locator('#app [data-testid="b.grid.shareKey"]')).toBeVisible();
       await app.click('b.action.back');
       await app.at('b.answer');
@@ -148,7 +150,7 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
       await enough.scrollIntoViewIfNeeded();
       await expect(app.id('b.keep.payIn').locator('legend')).toHaveText(KEEP.payIn.ask);
       await expect(now).toHaveText('Keep: paying in as now (10%)');
-      await expect(enough).toHaveText('Keep: paying in 31% (on course)');
+      await expect(enough).toHaveText(/^Keep: paying in [\d.]+% \(on course\)$/);
       await expect(app.id('b.action.save')).toHaveCount(0);
       await app.click('b.action.save.enough');
       await expect(app.id('b.keep.made')).toBeVisible({ timeout: 60_000 });

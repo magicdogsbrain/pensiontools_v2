@@ -47,7 +47,8 @@ async function awaitRun(page) {
   await expect(page.locator('[data-region="plan-lasts-answer"]')).toHaveAttribute('data-fresh', '1');
 }
 /** The chance the lever's line says, as the number before "% of futures". */
-const chanceOn = (text) => { const m = /([\d.]+)% of futures/.exec(text); return m ? Number(m[1]) : null; };
+// (7.8.0: a share of futures is never a percentage — "in 92.7 of every 100 futures we tried")
+const chanceOn = (text) => { const m = /in ([\d.]+) of every 100 futures/.exec(text); return m ? Number(m[1]) : null; };
 const tenth = (n) => Math.round(n * 10) / 10;
 
 test.describe('the levers on "Does it last?", without an account', () => {
@@ -93,9 +94,9 @@ test.describe('the levers on "Does it last?", without an account', () => {
       await expect(result.locator('[data-line="lever.runs"]')).toHaveText(`Tried in ${node.runs} run${node.runs === 1 ? '' : 's'} of the one test.`);
       const text = await result.innerText();
       if (node.perMonth > 0) {
-        expect(text).toContain(`£${node.perMonth.toLocaleString('en-GB')} a month more would still last in 9 futures out of 10`);
+        expect(text).toContain(`£${node.perMonth.toLocaleString('en-GB')} a month more would still be enough at your level`);
         expect(chanceOn(text)).toBe(tenth(node.at.chancePct));
-      } else expect(text).toMatch(/9 futures out of 10/);
+      } else expect(text).toMatch(/enough at your level/);
       expect(await stored(page)).toBe(planted);
     });
 

@@ -156,7 +156,12 @@ describe('the words, weighing', () => {
     expect(ids).toEqual(expect.arrayContaining(['life-plan-to', 'life-sex', 'life-sex-partner', 'life-couple']));
     expect(ids).not.toContain('both-alive');
     expect(ids).not.toContain('plan-to');
-    expect(c.assumed.find((a) => a.id === 'life-sex').field).toBe('you.sex');
+    // (the answers do not ask for it yet: the line names the figures used and links to no box that is not there)
+    expect(c.assumed.find((a) => a.id === 'life-sex').field).toBe(null);
+    expect(c.assumed.find((a) => a.id === 'life-sex').text).toBe('We used figures for women, who tend to live longer.');
+    // the age the plan runs to and how a couple is counted are shown without "See all of them"
+    expect(c.assumed.find((a) => a.id === 'life-plan-to').always).toBe(true);
+    expect(c.assumed.find((a) => a.id === 'life-couple').always).toBe(true);
     expect(c.assumed.find((a) => a.id === 'life-plan-to').text).toMatch(/^Your plan runs to when the younger of you is \d+, when fewer than 1 in 10 couples your ages still have one of you alive\. We follow each future on to \d+, when fewer than 1 in 50 do\.$/);
     const chosen = answerC({ ...ALEX_C, endAge: 85 }, ENV).assumed.find((a) => a.id === 'life-plan-to');
     expect(chosen.text).toMatch(/^Your plan runs to 85, the age you chose\. About \d+ in 10 women your age live longer than that, so we still follow each future on to \d+\.$/);

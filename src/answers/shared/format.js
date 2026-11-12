@@ -95,7 +95,8 @@ const LINES20 = LEVEL_LINES.map((l) => Math.round(l * 20));
  */
 export function fixedAgeWords(share, age, { kind = 'ran-out', couple = null } = {}) {
   const at = ageText(age);
-  const lead = couple ? `If one of you is still alive when ${couple.name || 'the younger of you'} is ${at}` : `If you live to ${at}`;
+  // (a couple: by the younger person's age, or — a plan, whose age is its own person's — "when you are 103")
+  const lead = couple ? `If one of you is still alive when ${couple.name === 'you' ? 'you are' : `${couple.name || 'the younger of you'} is`} ${at}` : `If you live to ${at}`;
   const what = kind === 'cut' ? 'your income is paid in full that long' : kind === 'lean' ? 'you have no lean year that long' : 'the money lasts that long';
   return `${lead}, ${what} ${twentiethsOfFutures(share)}.`;
 }

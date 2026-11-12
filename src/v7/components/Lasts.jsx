@@ -19,12 +19,12 @@ import { Sentence } from './Sentence.jsx';
 import { Button } from './Button.jsx';
 import { LEVELS_WORDS } from '../copy/common.js';
 
-const ORDER = ['fixed', 'boldLine', 'floor', 'howLong', 'howMuch', 'cost'];
+const ORDER = ['fixed', 'boldLine', 'floor', 'howLong', 'howMuch', 'left', 'cost'];
 const LEVEL_IDS = ['careful', 'balanced', 'bold'];
 
 /** The first two (straight under the line) and the rest (under the bad case), as the screens draw them. */
 export const LASTS_TOP = ['fixed', 'boldLine'];
-export const LASTS_AFTER = ['floor', 'howLong', 'howMuch', 'cost'];
+export const LASTS_AFTER = ['floor', 'howLong', 'howMuch', 'left', 'cost'];
 
 export function LastsLines({ result, only = ORDER }) {
   const s = (result && result.sentences) || {};
@@ -39,9 +39,11 @@ export function LastsLines({ result, only = ORDER }) {
 
 export function LevelStrip({ q, result, dispatch, words = null }) {
   if (!result || !result.levels || !LEVEL_IDS.includes(result.level)) return null;
-  const f = words && words.fields && words.fields.confidence;
-  const label = (f && f.label) || LEVELS_WORDS.label;
-  const options = (f && f.options) || LEVELS_WORDS.options;
+  void words;
+  // the strip is drawn only while weighing, so it always says the levels as chances (LEVELS_WORDS): the copy's field
+  // options say the counts the rollback's "Try a change" uses
+  const label = LEVELS_WORDS.label;
+  const options = LEVELS_WORDS.options;
   // drawn only while the answer weighs (in the rollback the answer is as it was before 7.8.0, "Try a change" holds the
   // box), and only beside the fixed-age line the answer wrote (the render rule)
   const weighted = Boolean(result.basis && result.basis.weighted);

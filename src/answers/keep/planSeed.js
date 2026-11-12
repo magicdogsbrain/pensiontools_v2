@@ -428,9 +428,11 @@ export function atEnough(result) {
   }
   if (isNum(fig.savingsIn)) inputs.savingsIn = fig.savingsIn;
   out.chance = { ...out.chance, weighted: fig.weighted ?? fig.lasted, fixedAge: fig.lasted, fails: fig.fails };
-  // on course at the figure that would be enough: the count B asked again there is within the level's twentieths
-  out.onCourse = fig.fails <= Math.floor((result.basis.levelFails20 * result.basis.futures) / 20);
-  out.wholeLife = { ...out.wholeLife, lasted: fig.lasted, outOfTen: fig.outOfTen, runOutAge: fig.runOutAge };
+  // on course at the figure that would be enough: the count B asked again there is within the level's twentieths; weighing
+  // (7.8.0), the verdict at the level B asked again there — the same test the pay-in was solved on
+  const weighed = Boolean(result.basis && result.basis.weighted) && typeof fig.weighted === 'number';
+  out.onCourse = weighed ? fig.verdict === 'yes' : fig.fails <= Math.floor((result.basis.levelFails20 * result.basis.futures) / 20);
+  out.wholeLife = { ...out.wholeLife, lasted: fig.lasted, outOfTen: fig.outOfTen, runOutAge: fig.runOutAge, ...(weighed ? { weighted: fig.weighted } : {}) };
   if (fig.potAtStop) out.potAtStop = { ...out.potAtStop, now: fig.potAtStop };
   out.payIn = { ...out.payIn, now: fig.payIn };
   return out;

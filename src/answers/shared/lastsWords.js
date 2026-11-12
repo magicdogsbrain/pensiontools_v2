@@ -46,6 +46,9 @@ export function lifeFactsOf(result, weigher, plan, inputs) {
   const sex = (result.basis && result.basis.sexUsed) || { you: 'f' };
   const said = (who) => !!(ins[who] && (ins[who].sex === 'female' || ins[who].sex === 'male'));
   const given = couple ? { you: said('you'), partner: said('partner') } : { you: said('you') };
+  // whether the answer asks for it: its checked inputs hold the box (schemaParts sexField) only when the schema has it, so
+  // a line never offers a box the answer does not have
+  const asked = !!(ins.you && Object.prototype.hasOwnProperty.call(ins.you, 'sex'));
   const capped = Boolean(plan && plan.runCapped);
   const planToAge = isNum(ch.planToAge) ? ch.planToAge : plan.endAge;
   const startAge = plan.startAge;
@@ -57,9 +60,12 @@ export function lifeFactsOf(result, weigher, plan, inputs) {
     const younger = Math.min(...weigher.people.map((p) => p.age));
     liveLonger = S(planToAge - younger);
   }
+  // a capped run keeps how its plan-to age was set: typed when it is not the tables' own (the default rule's)
+  let rule = ch.horizonRule || 'survival';
+  if (rule === 'capped') rule = weigher && isNum(weigher.planToAge) && isNum(ins.endAge) && ins.endAge !== weigher.planToAge ? 'chosen' : 'survival';
   return {
-    weighted: Boolean(weigher && weigher.weighted), couple, level: result.level || 'balanced', sex, given, planToAge, weightToAge,
-    rule: ch.horizonRule || 'survival', capped, capYears: plan.years, liveLonger, startAge
+    weighted: Boolean(weigher && weigher.weighted), couple, level: result.level || 'balanced', sex, given, asked, planToAge, weightToAge,
+    rule, capped, capYears: plan.years, liveLonger, startAge
   };
 }
 
@@ -76,9 +82,12 @@ export function fixedAgeParts(share, lf, { kind = 'ran-out' } = {}) {
 
 /** Bold's consequence, always in the headline block: "About 3 times in 10 the money runs out while you are alive, …". */
 export function boldParts(share, lf) {
-  const tens = Math.max(1, Math.round((1 - (isNum(share) ? share : 0)) * 10));
-  return ['About ', F(tens), tens === 1 ? ' time' : ' times', ' in ', F('10'), ' the money runs out while ', lf.couple ? 'one of you is' : 'you are',
-    ' alive, and you would spend less from then on.'];
+  const out = (1 - (isNum(share) ? share : 0)) * 10;
+  const tens = Math.round(out);
+  const lead = !(out > 0) ? ['In none of the futures we tried does the money run out while ']
+    : tens < 1 ? ['Less than ', F('1'), ' time in ', F('10'), ' the money runs out while ']
+      : ['About ', F(tens), tens === 1 ? ' time' : ' times', ' in ', F('10'), ' the money runs out while '];
+  return [...lead, lf.couple ? 'one of you is' : 'you are', ' alive', out > 0 ? ', and you would spend less from then on.' : '.'];
 }
 
 /** Bold's consequence as a sentence (mark: weighted, a chance), for the headline block. */
@@ -132,6 +141,19 @@ export function floorParts(sf, lf) {
     ...(lf.couple && isNum(f.survivor) ? ['; if one of you has died by then, about ', F(money(f.survivor)), ' at least'] : []), '.'];
 }
 
+/**
+ * What is left at the plan-to age (spec 11, "Money left"): "If you live to 97, what is typically left then is £180,000 at
+ * today's prices. In the best 1 in 10 futures it is £640,000 or more." — or, when more than half the futures have nothing
+ * left then, "In more than half the futures nothing is left at 97." A couple: by the younger person's age.
+ */
+export function leftParts(sf, lf) {
+  if (!sf || !sf.left) return null;
+  const l = sf.left;
+  if (l.mostNone) return ['In more than half the futures nothing is left ', ...atAge(lf, lf.planToAge), '.'];
+  return [...(lf.couple ? ['If one of you is still alive when the younger of you is ', F(lf.planToAge)] : ['If you live to ', F(lf.planToAge)]),
+    ', what is typically left then is ', F(money(l.typical)), ' at today\'s prices. In the best ', F('1'), ' in ', F('10'), ' futures it is ', F(money(l.best)), ' or more.'];
+}
+
 const WHO = { f: 'women', m: 'men' };
 
 /** "women your age" / "men your age" / a couple: "couples your ages". */
@@ -144,27 +166,37 @@ const peopleLike = (lf) => (lf.couple ? 'couples your ages' : `${WHO[lf.sex.you]
  */
 export function lifeAssumed(lf, { endAgeField = 'endAge' } = {}) {
   const out = [];
-  const line = (id, field, source, value, parts) => out.push({ id, field, source, value, text: '', parts: parts.flat().filter((p) => p !== '' && p != null) });
+  // (`always`: shown without "See all of them" — the plan-to age, the cap and how a couple is counted are what every
+  // figure on the page is measured against)
+  const line = (id, field, source, value, parts, always = false) => out.push({ id, field, source, value, text: '', parts: parts.flat().filter((p) => p !== '' && p != null), ...(always ? { always: true } : {}) });
   const like = peopleLike(lf);
   const toWhom = lf.couple ? ['when the younger of you is ', F(lf.planToAge)] : [F(lf.planToAge)];
   if (lf.capped) {
-    line('life-capped', null, 'rule', lf.capYears, ['We could test only to ', F(lf.weightToAge), ': ', F(lf.capYears), ' years is the most we run.']);
+    line('life-capped', null, 'rule', lf.capYears, ['We could test only to ', F(lf.weightToAge), ': ', F(lf.capYears), ' years is the most we run.'], true);
   }
-  if (lf.rule === 'chosen') {
+  // the cap cut the plan-to age itself (the run ends at or before it): the line above names the real end, and no share of
+  // people living past it is claimed for an age nobody chose
+  const cut = lf.capped && !(lf.planToAge < lf.weightToAge);
+  if (cut) {
+    // (nothing more: "We could test only to …" says the age every figure is counted to)
+  } else if (lf.rule === 'chosen') {
     const k = isNum(lf.liveLonger) ? Math.round(lf.liveLonger * 10) : null;
     const many = k === null ? [] : k <= 0 ? [' Fewer than 1 in 10 ', like, lf.couple ? ' still have one of you alive then' : ' live longer than that'] : k >= 10 ? [' Almost all ', like, lf.couple ? ' still have one of you alive then' : ' live longer than that']
       : [' About ', F(k), ' in ', F('10'), ' ', like, lf.couple ? ' still have one of you alive then' : ' live longer than that'];
     line('life-plan-to', endAgeField, 'entered', lf.planToAge, ['Your plan runs to ', ...toWhom, ', the age you chose.', ...many,
-      lf.capped ? '.' : [many.length ? ', so we' : ' We', ' still follow each future on to ', F(lf.weightToAge), '.']]);
+      lf.capped ? '.' : [many.length ? ', so we' : ' We', ' still follow each future on to ', F(lf.weightToAge), '.']], true);
   } else {
     line('life-plan-to', endAgeField, 'default', lf.planToAge, ['Your plan runs to ', ...toWhom, ', when fewer than ', F('1'), ' in ', F('10'), ' ', like,
       lf.couple ? ' still have one of you alive.' : ' are still alive.',
-      ...(lf.capped ? [] : [' We follow each future on to ', F(lf.weightToAge), ', when fewer than ', F('1'), ' in ', F('50'), lf.couple ? ' do.' : ' are.'])]);
+      ...(lf.capped ? [] : [' We follow each future on to ', F(lf.weightToAge), ', when fewer than ', F('1'), ' in ', F('50'), lf.couple ? ' do.' : ' are.'])], true);
   }
   const sexLine = (who) => {
-    const field = `${who}.sex`;
+    // (a box to change it only where the answer asks: the line never links to a box that is not there)
+    const field = lf.asked === false ? null : `${who}.sex`;
     const id = who === 'you' ? 'life-sex' : 'life-sex-partner';
-    if (!lf.given[who]) {
+    if (lf.asked === false) {
+      line(id, null, 'rule', 'notSaid', who === 'you' ? ['We used figures for women, who tend to live longer.'] : ['For your partner we used figures for women, who tend to live longer.']);
+    } else if (!lf.given[who]) {
       line(id, field, 'default', 'notSaid', who === 'you'
         ? ['We used figures for women, who tend to live longer, because you did not say.']
         : ['For your partner we used figures for women, who tend to live longer, because you did not say.']);
@@ -175,8 +207,24 @@ export function lifeAssumed(lf, { endAgeField = 'endAge' } = {}) {
   };
   sexLine('you');
   if (lf.couple) sexLine('partner');
-  if (lf.couple) line('life-couple', null, 'rule', null, ['We work the money out as if you both live to the end of each future, and count each future by the chance at least one of you is still alive.']);
+  if (lf.couple) line('life-couple', null, 'rule', null, ['We work the money out as if you both live to the end of each future, and count each future by the chance at least one of you is still alive.'], true);
   return out;
+}
+
+/**
+ * What the other levels ask for (spec 11, "Cost"), from an answer's levels of monthly amounts and the level shown:
+ * "Careful asks for £140 a month less than Balanced. Bold would let you take £360 a month more." Empty when they ask the same.
+ */
+export function costParts(lv, level) {
+  const shown = lv[level];
+  const less = Math.max(0, shown.monthly - lv.careful.monthly);
+  const more = Math.max(0, lv.bold.monthly - shown.monthly);
+  const gap = (k) => F(money(Math.abs(lv[k].monthly - shown.monthly)));
+  return level === 'balanced'
+    ? [...(less > 0 ? ['Careful asks for ', gap('careful'), ' a month less than Balanced.'] : []), ...(more > 0 ? [less > 0 ? ' ' : '', 'Bold would let you take ', gap('bold'), ' a month more.'] : [])]
+    : level === 'careful'
+      ? (more > 0 ? ['Balanced would let you take ', gap('balanced'), ' a month more; Bold ', gap('bold'), ' more.'] : [])
+      : (less > 0 ? ['Balanced asks for ', gap('balanced'), ' a month less than Bold; Careful ', gap('careful'), ' less.'] : []);
 }
 
 /** The words a level's name leads with at Bold: "At Bold: " (the verdict names the level there). */

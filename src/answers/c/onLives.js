@@ -31,7 +31,7 @@ import { validateHousehold } from '../shared/household.js';
 import { bandIndexes, STEP } from '../shared/band.js';
 import { potsShareOf, potsNeedByYear } from '../shared/toEngine.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
-import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt } from '../shared/stopAt.js';
+import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt, leftAtStop } from '../shared/stopAt.js';
 import { weigherOf } from '../shared/weigh.js';
 import { lifeFactsOf } from '../shared/lastsWords.js';
 import { shortfallOf } from '../shared/shortfall.js';
@@ -420,7 +420,8 @@ export function answerOnLives(checked, env, ctx) {
   const middlingRunOut = band.k.middling > band.k.careful ? band.runOutAgeAt.middling : null;
   // 7.8.0, weighing: what the words of the chance read, and the shortfall at the level's amount
   const weighing = weigher.weighted
-    ? { lf: lifeFactsOf(result, weigher, plan, inputs), sf: shownMonthly > 0 ? shortfallOf(plan, band.levels[level].months, shownMonthly * 12, { toMonth }) : null } : null;
+    ? { lf: lifeFactsOf(result, weigher, plan, inputs),
+      sf: shownMonthly > 0 ? shortfallOf(plan, band.levels[level].months, shownMonthly * 12, { toMonth, left: leftAtStop(sp, runner, shownMonthly * 12, band.levels[level].months, toMonth) }) : null } : null;
   ctx.finish(result, plan, household, { middling: mid, potAtStartMiddling: potAtStart.middling, own, middlingRunOut, weighing });
 
   if (env.trace) {

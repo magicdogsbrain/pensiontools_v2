@@ -7,7 +7,8 @@
  * who the answer is for — "for you alone" or "for the two of you" — with the way to add or remove a partner
  * (#/<q>/numbers?focus=household), so a partner can be added from the answer.
  *
- * The lines a person could change are always shown; the rules the answer follows are behind "See all of them".
+ * The lines a person could change are always shown; the rules the answer follows are behind "See all of them" — but a
+ * line marked `always` (7.8.0: the age the plan runs to, the cap, how a couple is counted) is shown with the first.
  * On a phone the whole block opens and closes (ui.open 'assumed'); on a wider screen it is always open.
  * `q` is the question (default C); the words are that question's.
  */
@@ -41,7 +42,7 @@ export function Assumed({ result, open, all, dispatch, q = 'c' }) {
             {' '}<a class="change" href={href.step(q, 'numbers', 'household')} data-testid={`${q}.action.household`}>{t.assumedChange}</a>
           </li>
           {lines.map((a) => (
-            <li key={a.id} data-assumed-id={a.id} class={a.source === 'default' ? 'is-default' : 'is-rule'} hidden={a.source !== 'default' && !all ? true : undefined}>
+            <li key={a.id} data-assumed-id={a.id} class={a.source === 'default' ? 'is-default' : 'is-rule'} hidden={a.source !== 'default' && !a.always && !all ? true : undefined}>
               <Sentence as="span" s={a} source={result} />
               {a.field && <> <a class="change" href={href.step(q, 'numbers', a.field)} data-testid={`assumed.${a.id}.change`}>{t.assumedChange}</a></>}
             </li>

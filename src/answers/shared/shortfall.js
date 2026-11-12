@@ -21,6 +21,11 @@
  *                   survivor  a couple: the lower of the two people's own (no survivor's share is asked for)
  *                   sp, fs    how many State Pensions are paid then; whether a final-salary pension is
  *                   spAge     nothing paid yet: the age the first State Pension starts (null when none does)
+ *       left      absent when not worked out; else what is left at the plan-to age at today's prices, from each future's
+ *                 figure (`opts.left`, band.js leftAt: £0 where the money ran out before then) — { typical, best, mostNone }:
+ *                   typical   the middle of all the futures, to the nearest £1,000
+ *                   best      the best 1 in 10 (position n − ⌈n/10⌉ of them in order), to the nearest £1,000
+ *                   mostNone  more than half the futures have nothing left then
  *     }
  *
  * Pure: no clock, no storage.
@@ -58,12 +63,22 @@ function spStartAfter(plan, y) {
   return starts.length ? plan.startAge + Math.min(...starts) : null;
 }
 
-export function shortfallOf(plan, months, H, { toMonth = Infinity } = {}) {
+/** What is left at the plan-to age, from each future's figure at today's prices (null: not worked out). */
+export function leftOf(values) {
+  if (!values || !values.length) return null;
+  const s = Array.from(values).sort((a, b) => a - b);
+  const n = s.length;
+  const k = (x) => Math.round(x / 1000) * 1000;
+  return { typical: k(s[Math.floor((n - 1) / 2)]), best: k(s[Math.max(0, n - Math.ceil(n / 10))]), mostNone: s.filter((v) => !(v > 0)).length * 2 > n };
+}
+
+export function shortfallOf(plan, months, H, { toMonth = Infinity, left = null } = {}) {
   const n = months.length;
   const toYears = Number.isFinite(toMonth) ? toMonth / 12 : plan.years;
   const ageOf = (m) => plan.startAge + Math.floor(m / 12);
   const failing = months.filter((m) => m !== null && isNum(m));
-  if (!n || !failing.length) return { when: null, howLong: null, howMuch: 1, floor: null };
+  const leftSaid = leftOf(left);
+  if (!n || !failing.length) return { when: null, howLong: null, howMuch: 1, floor: null, ...(leftSaid ? { left: leftSaid } : {}) };
 
   // when: the middle of the failing futures' ages; the worst 1 in 10 of all of them
   const ages = failing.map(ageOf).sort((a, b) => a - b);
@@ -94,5 +109,5 @@ export function shortfallOf(plan, months, H, { toMonth = Infinity } = {}) {
   const fy = Math.max(0, typical - plan.startAge);
   const f = floorAtYear(plan, fy);
   const floor = { age: typical, yearly: f.yearly, survivor: f.survivor, sp: f.sp, fs: f.fs, spAge: f.yearly > 0 ? null : spStartAfter(plan, fy) };
-  return { when, howLong, howMuch, floor };
+  return { when, howLong, howMuch, floor, ...(leftSaid ? { left: leftSaid } : {}) };
 }

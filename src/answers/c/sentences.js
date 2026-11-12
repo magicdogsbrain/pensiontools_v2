@@ -13,7 +13,7 @@
  * read by people who have stopped: "stops at 56", never "stop work at 56". With one stop for both nothing here changes.
  */
 import { money, outOfTen, partsText, lastedText } from '../shared/format.js';
-import { LEVEL_NAME, countingLead, asLongAs, chanceParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, lifeAssumed } from '../shared/lastsWords.js';
+import { LEVEL_NAME, countingLead, asLongAs, chanceParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, leftParts, lifeAssumed, costParts } from '../shared/lastsWords.js';
 import { shownOf } from '../shared/levels.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES } from '../shared/rules.js';
@@ -487,16 +487,10 @@ function weighedSentences(sentences, result, facts) {
   if (hm) sentences.howMuch = S('c.howMuch', hm);
   const fp = floorParts(sf, lf);
   if (fp) sentences.floor = S('c.floor', fp);
+  const lp = leftParts(sf, lf);
+  if (lp) sentences.left = S('c.left', lp);
   // what the other levels ask for (spec 11, "Cost")
-  const lv = result.levels;
-  const less = Math.max(0, shown.monthly - lv.careful.monthly);
-  const more = Math.max(0, lv.bold.monthly - shown.monthly);
-  const gap = (k) => F(money(Math.abs(lv[k].monthly - shown.monthly)));
-  const cost = level === 'balanced'
-    ? [...(less > 0 ? ['Careful asks for ', gap('careful'), ' a month less than Balanced.'] : []), ...(more > 0 ? [less > 0 ? ' ' : '', 'Bold would let you take ', gap('bold'), ' a month more.'] : [])]
-    : level === 'careful'
-      ? (more > 0 ? ['Balanced would let you take ', gap('balanced'), ' a month more; Bold ', gap('bold'), ' more.'] : [])
-      : (less > 0 ? ['Balanced asks for ', gap('balanced'), ' a month less than Bold; Careful ', gap('careful'), ' less.'] : []);
+  const cost = costParts(result.levels, level);
   if (cost.length) sentences.cost = S('c.cost', cost);
 }
 
@@ -720,7 +714,7 @@ export function warningsFor(result, facts) {
   if (result.status === 'guaranteed-only' || result.status === 'none') {
     warn('nothing-to-draw', 'note', result.status === 'none' ? ['There is no pot to draw on.'] : ['There is no pot to draw on, so this is ', afterPhrase(facts), ' only.']);
   }
-  if (facts.capped) warn('long-plan', 'important', ['We can only test ', F(RULES.maxYears), ' years ahead, so this runs to age ', A('basis.endAge'), ', not ', A('inputs.endAge'), '.']);
+  if (facts.capped) warn('long-plan', 'important', ['We can only test ', F(facts.capYears ?? RULES.maxYears), ' years ahead, so this runs to age ', A('basis.endAge'), ', not ', A('inputs.endAge'), '.']);
   if (!facts.life && !facts.startsNow && facts.anyPots && !facts.startMoved) warn('start-later', 'note', ['This leaves out any growth, and anything you pay in, between now and then.']);
   if (facts.payInUnused) warn('pay-in-unused', 'note', ['With the money taken from now, nothing more goes into a pension, so what you pay in now is not counted. To count it, choose the age the money starts.']);
   // what goes in, per person, against the yearly most that gets the tax added back (A's words; the reviewers' finding:

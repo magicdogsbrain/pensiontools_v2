@@ -39,7 +39,7 @@
  */
 import { enginePlan, configsAt, breakdownAt, joinAt, passOnAt, unpaidOf, amountInYear, yearlyPlan } from './toEngine.js';
 import { createFastRunner, prepareFutureFrom } from './fastEngine.js';
-import { createBandSolver, STEP, runFuture, levelsFromSolver } from './band.js';
+import { createBandSolver, STEP, runFuture, levelsFromSolver, leftAt } from './band.js';
 import { livesList, sliceReturns } from './lives.js';
 import { savingPlan, savingKernel, kernelPasses, stopYearsFor } from './saving.js';
 import { RULES, SAVING, legacyVerdictOf, LEVEL_FAILS20, levelOf, passes, drawYearsCap } from './rules.js';
@@ -257,6 +257,8 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
   };
   return {
     plan, potsFor, potsOf, configsFor, configsAtH, fastRun,
+    /** (7.8.0) life i's drivers for run r: the price level what is left is read at (band.js leftAt). */
+    driversOf: (r, i) => fast.driversOf(r, i),
     run(r, i, config) { evaluations++; return plan.apart ? runApart(r, i, config) : fastRun(r, i, config); },
     get evaluations() { return evaluations; },
     get months() { return months; }
@@ -336,6 +338,22 @@ export function verdictAt(sp, runner, spendAYear, at = null) {
   const ageTo = (m) => (m === null || m >= (at.toMonth ?? Infinity) ? toAge : plan.startAge + Math.floor(m / 12));
   return { fails: c.fails, lasted: c.fixedAge, verdict: verdictOfChance(c, n, at.level, at.weigher), runOutAge: badCaseOf(months.map(ageTo)),
     runOutMonths: months, sumW: c.sumW, weighted: c.weighted };
+}
+
+/**
+ * What is left at the plan-to month in every life at a spend (7.8.0; band.js leftAt on the stop runner, each run stopped
+ * at that month). null for a couple apart (the hand-over at the second stop is not followed part-way) or nothing to draw on.
+ */
+export function leftAtStop(sp, runner, spendAYear, months, toMonth) {
+  const plan = runner.plan;
+  if (plan.apart || !plan.runs.length || plan.runs.some((run) => run.offset > 0)) return null;
+  // (a run only `simulate` can make cannot stop part-way: then nothing is said, rather than a figure from another engine)
+  try {
+    return leftAt({ runner: { run: (r, i, config, hook, until) => runner.fastRun(r, i, config, hook, until), driversOf: runner.driversOf },
+      configsOf: (i) => runner.configsAtH(spendAYear, i), months, toMonth, years: plan.years });
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -446,9 +464,12 @@ function runnerAtPot(sp, P, opts = {}) {
   return createStopRunner(sp, sp.lives, sp.kernels, { pensionOf: pensionAtTotal(sp, P), savingsOf: opts.savingsOf });
 }
 
-/** The verdict with every life's pension at a household total of P at the stop (split by the middling pots); savings as projected. */
+/**
+ * The verdict with every life's pension at a household total of P at the stop (split by the middling pots); savings as
+ * projected. `opts.at` (7.8.0, a level) as verdictAt.
+ */
 export function verdictAtPot(sp, spendAYear, P, opts = {}) {
-  return verdictAt(sp, runnerAtPot(sp, P, opts), spendAYear);
+  return verdictAt(sp, runnerAtPot(sp, P, opts), spendAYear, opts.at || null);
 }
 
 /**
@@ -702,9 +723,12 @@ export function lastsWithinWeighted(sp, spendAYear, payIns, weigher, t, opts = {
   return withinWeighted(sp, runnerAtPayIns(sp, payIns, opts), spendAYear, weigher, t, opts.before).ok;
 }
 
-/** The one test in full at a spend with these pay-ins: verdictAt on that runner (one run per life). */
+/**
+ * The one test in full at a spend with these pay-ins: verdictAt on that runner (one run per life). `opts.at` (7.8.0, a
+ * level: { weigher, level, toMonth }) gives the weighted chance and the count to the plan-to age as verdictAt does.
+ */
 export function verdictAtPayIns(sp, spendAYear, payIns, opts = {}) {
-  return verdictAt(sp, runnerAtPayIns(sp, payIns, opts), spendAYear);
+  return verdictAt(sp, runnerAtPayIns(sp, payIns, opts), spendAYear, opts.at || null);
 }
 
 /**
@@ -713,23 +737,31 @@ export function verdictAtPayIns(sp, spendAYear, payIns, opts = {}) {
  * each column runs only the lives that ran out in the column before. → [{ fails, lasted, verdict }] in the list's order.
  * @param {{ pension: number, savings: number }[][]} payInsList   per column, per person (plan order)
  */
-export function countsAtPayIns(sp, spendAYear, payInsList) {
+export function countsAtPayIns(sp, spendAYear, payInsList, at = null) {
   const n = sp.n;
+  // 7.8.0, weighing (`at`: { weigher, level, toMonth }): each column's months of the lives still failing give its weighted
+  // chance, its count to the plan-to age and its verdict at the level, as verdictAt gives them
+  const weighing = Boolean(at && at.weigher && at.weigher.weighted);
   let open = Array.from({ length: n }, (_, i) => i);          // the lives not yet known to last
   return payInsList.map((payIns) => {
     const runner = runnerAtPayIns(sp, payIns);
     const plan = runner.plan;
     const still = [];
+    const months = weighing ? new Array(n).fill(null) : null;
     if (!plan.runs.length) {
-      const failing = Boolean(withoutRuns(plan, spendAYear, 1)[0] !== null);
-      if (failing) still.push(...open);
+      const m0 = withoutRuns(plan, spendAYear, 1)[0];
+      if (m0 !== null) { still.push(...open); if (months) for (const i of open) months[i] = m0; }
     } else {
       for (const i of open) {
-        const res = runFuture(runner.configsAtH(spendAYear, i), null, false, (r, config) => runner.run(r, i, config));
-        if (res.failed) still.push(i);
+        const res = runFuture(runner.configsAtH(spendAYear, i), null, weighing, (r, config) => runner.run(r, i, config));
+        if (res.failed) { still.push(i); if (months) months[i] = res.failMonth; }
       }
     }
     open = still;
+    if (weighing) {
+      const c = chanceOf(at.weigher, months, at.toMonth ?? Infinity);
+      return { fails: c.fails, lasted: c.fixedAge, weighted: c.weighted, verdict: verdictOfChance(c, n, at.level, at.weigher) };
+    }
     const fails = still.length;
     return { fails, lasted: (n - fails) / n, verdict: legacyVerdictOf(fails, n) };
   });

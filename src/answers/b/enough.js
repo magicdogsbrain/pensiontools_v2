@@ -32,7 +32,7 @@
  * Pure: reads nothing but what it is handed.
  */
 import { payInParts } from '../shared/schemaParts.js';
-import { leastPayIn, verdictAtPayIns, lastsWithin } from '../shared/stopAt.js';
+import { leastPayIn } from '../shared/stopAt.js';
 import { SAVING } from '../shared/rules.js';
 import { outOfTen } from '../shared/format.js';
 import { bandIndexes } from '../shared/band.js';
@@ -54,8 +54,17 @@ function spread(values) {
   return { careful: Math.round(s[at.careful]), middling: Math.round(s[at.middling]), good: Math.round(s[at.good]) };
 }
 
-/** A count as the words read it: the lives that failed, the share that lasted, outOfTen, the band and the bad-case age. */
-const countOf = (v) => ({ fails: v.fails, lasted: v.lasted, outOfTen: outOfTen(v.lasted), verdict: v.verdict, runOutAge: v.runOutAge });
+/**
+ * A count as the words read it: the lives that failed, the share that lasted, outOfTen, the band and the bad-case age;
+ * weighing (7.8.0), also the weighted chance (`lasted` is then the count to the plan-to age).
+ */
+function countOf(v) {
+  const out = { fails: v.fails, lasted: v.lasted, outOfTen: outOfTen(v.lasted), verdict: v.verdict, runOutAge: v.runOutAge,
+    ...(typeof v.weighted === 'number' ? { weighted: v.weighted } : {}) };
+  // (the whole-number sum the level's test reads, kept off the figures said: never spread into them, never written out)
+  if (typeof v.sumW === 'number') Object.defineProperty(out, 'sumW', { value: v.sumW, enumerable: false });
+  return out;
+}
 
 /**
  * Each person as the solver reads them: whether they still save, how they gave what goes in ('share' of a pay above £0,
@@ -114,7 +123,8 @@ function capOf(q) {
 /**
  * "What would be enough" (3.1–3.3).
  * @param {object} o
- * @param {object} o.row        B's stop age as answer.js reads it (createAges): `lasts`, `count`, `payInsAt`, `sp`, `H`
+ * @param {object} o.row        B's stop age as answer.js reads it (createAges): `lastsAtLevel`, `countPayIns`, `test`
+ *                              (the level's test: `holds` on a full count, `quick` stopping once settled), `payInsAt`, `sp`, `H`
  * @param {number} o.H          the spend a year, as typed
  * @param {object} o.ctx        answer.js's context: now, shares, savingsInNow, savers, saverCount
  * @param {object} o.solved     payInsThatGetThere's: { savingsIn, needed } — B's whole-£10 figure at the level
@@ -165,8 +175,10 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
 
   /** The pay-ins of every person for a figure: each one's part into their pension, the savings a month as B holds them. */
   const listOf = (fig) => row.payInsAt(fig.payIn, savingsIn).map((x, j) => ({ ...x, pension: fig.parts[j].payIn }));
-  /** The full count at exactly the pay-ins a figure names. */
-  const countAt = (fig) => countOf(verdictAtPayIns(row.sp, row.H(H), listOf(fig)));
+  /** The full count at exactly the pay-ins a figure names (at the level: row.countPayIns). */
+  const countAt = (fig) => countOf(row.countPayIns(H, listOf(fig)));
+  /** Whether a full count passes the level (weighing, on the weighted sum; not weighing, at most allowed.level failed). */
+  const holds = (v) => row.test.holds(v);
   /** One figure from each person's part (those who have stopped put nothing in). */
   const figureOf = (parts) => {
     const payIn = round2(parts.reduce((s, x) => s + x.payIn, 0));
@@ -206,11 +218,11 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
   const coupleTop = caps.reduce((s, x) => s + (x ? x.payIn : 0), 0);
 
   /**
-   * The least figure at which at most `fails` lives fail. Shares: searched on the grid with B's £10 figure `hint` as the
-   * bracket, below `kTop` steps. Pounds and couples: B's figure. Then the full count at exactly that figure, one step up
-   * at a time until it holds (never assumed). null when nothing within the caps holds.
+   * The least figure at which the level's test holds (row.test: the same test as B's pay-in). Shares: searched on the grid
+   * with B's £10 figure `hint` as the bracket, below `kTop` steps. Pounds and couples: B's figure. Then the full count at
+   * exactly that figure, one step up at a time until it holds (never assumed). null when nothing within the caps holds.
    */
-  const solve = (fails, hint, kTop = null) => {
+  const solve = (hint, kTop = null) => {
     if (how === 'share') {
       const cap = shareSteps(one, SAVING.payInCeiling);
       const top = kTop === null ? cap : Math.min(cap, kTop);
@@ -220,12 +232,12 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
       // answer and stops as soon as it is settled
       const counts = new Map();
       const countOfStep = (k) => { if (!counts.has(k)) counts.set(k, countAt(shareAt(k))); return counts.get(k); };
-      const ok = (k) => (k === 0 && guessK !== 0 ? row.lasts(H, shareAt(0).payIn, savingsIn, fails) : countOfStep(k).fails <= fails);
+      const ok = (k) => (k === 0 && guessK !== 0 ? row.lastsAtLevel(H, shareAt(0).payIn, savingsIn) : holds(countOfStep(k)));
       let k = leastPayIn(ok, top, 0, { lo: guessK, hi: guessK }, 1);
       while (k !== null && k <= top) {
         const fig = shareAt(k);
         const v = countOfStep(k);
-        if (v.fails <= fails) return { ...fig, ...v, k };
+        if (holds(v)) return { ...fig, ...v, k };
         k += 1;
       }
       return null;
@@ -240,9 +252,9 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
       const fig = figAt(c);
       if (fig === null) return null;
       const v = countAt(fig);
-      if (v.fails <= fails) return { ...fig, ...v };
+      if (holds(v)) return { ...fig, ...v };
       if (tries === 0) {
-        const ok = (x) => { const f = figAt(x); return f !== null && lastsWithin(row.sp, row.H(H), listOf(f), fails); };
+        const ok = (x) => { const f = figAt(x); return f !== null && row.test.quick(row.H(H), listOf(f)); };
         const next = leastPayIn(ok, ceiling, c + 10, { lo: c + 10, hi: c + 10 });
         if (next === null) return null;
         c = next - 10;
@@ -268,14 +280,14 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
   if (band !== 'yes' && savingsMore !== null && solved.needed !== null && solved.needed <= now) {
     const fig = figureOf(people.map(asNow));
     const v = countAt(fig);
-    if (v.fails <= allowed.level) {
+    if (holds(v)) {
       out.savingsOnly = true;
       out.atLevel = { ...fig, ...v };
       return withAtStop(out, row, listOf, only);
     }
   }
 
-  const fig = solve(allowed.level, solved.needed);
+  const fig = solve(solved.needed);
   out.atLevel = fig;
   if (fig === null && band !== 'yes') out.outOfReach = whyNot(solved.needed);
   if (fig && 'k' in fig) delete fig.k;
@@ -320,7 +332,9 @@ function atStopOf(fig, row, listOf, only) {
  * each life's own least pot at the stop (`least`, answer.js's potNeededAt, at the household's total split that way) brackets
  * it closely, as B's pay-in search is bracketed. The likely sum, and every step near it, is counted in full: a count that
  * holds runs nearly every life anyway, so the count said is never run twice. null when no sum up to SAVING.potMax would do.
- * @returns {null | { amount: number, fails: number, lasted: number, outOfTen: object, byPerson: null | { who: string, amount: number }[] }}
+ * The test is the level's (row.test, as the pay-in's); `fails`, the count the level allows when every weight is whole,
+ * only brackets the search.
+ * @returns {null | { amount: number, fails: number, lasted: number, weighted?: number, outOfTen: object, byPerson: null | { who: string, amount: number }[] }}
  */
 export function oneOffSum({ row, H, ctx, least, fails }) {
   const sp = row.sp;
@@ -353,16 +367,16 @@ export function oneOffSum({ row, H, ctx, least, fails }) {
   // the first try, at the least sum, is far from the answer and stops as soon as it is settled; every other is a full count
   const counts = new Map();
   const countOfSum = (L) => {
-    if (!counts.has(L)) counts.set(L, verdictAtPayIns(sp, row.H(H), payIns, { lumps: lumpsOf(L) }));
+    if (!counts.has(L)) counts.set(L, row.countPayIns(H, payIns, { lumps: lumpsOf(L) }));
     return counts.get(L);
   };
   const probe = (L) => (L === LUMP_STEP && !(guess && guess.hi === LUMP_STEP)
-    ? lastsWithin(sp, row.H(H), payIns, fails, { lumps: lumpsOf(L) })
-    : countOfSum(L).fails <= fails);
+    ? row.test.quick(row.H(H), payIns, { lumps: lumpsOf(L) })
+    : row.test.holds(countOfSum(L)));
   let L = leastPayIn(probe, SAVING.potMax, LUMP_STEP, guess, LUMP_STEP);
   while (L !== null && L <= SAVING.potMax) {
     const v = countOfSum(L);
-    if (v.fails <= fails) {
+    if (row.test.holds(v)) {
       // a couple's parts: the larger rounded to the pound, the smaller the rest (as the number's byPerson)
       let byPerson = null;
       if (two) {
@@ -371,7 +385,7 @@ export function oneOffSum({ row, H, ctx, least, fails }) {
         parts[1 - big] = L - parts[big];
         byPerson = sp.kernels.map((k, j) => ({ who: k.who, amount: parts[j] }));
       }
-      return { amount: L, fails: v.fails, lasted: v.lasted, outOfTen: outOfTen(v.lasted), byPerson };
+      return { amount: L, fails: v.fails, lasted: v.lasted, ...(typeof v.weighted === 'number' ? { weighted: v.weighted } : {}), outOfTen: outOfTen(v.lasted), byPerson };
     }
     L += LUMP_STEP;
   }

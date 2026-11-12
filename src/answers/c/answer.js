@@ -16,14 +16,15 @@
  */
 import { SCHEMA_C } from './schema.js';
 import { checkInputs, defaults, flatten } from '../shared/validate.js';
-import { RULES, fullStatePensionYearly } from '../shared/rules.js';
+import { RULES, fullStatePensionYearly, drawYearsCap } from '../shared/rules.js';
 import { VERSION } from '../../constants.js';
 import { calculateTax } from '../../services/TaxCalculator.js';
 import { simulate } from '../../services/SimulationEngine.js';
 import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { enginePlan, configsAt, breakdownAt, yearlyPlan, BANDS, ONE_NAME_SHARE } from '../shared/toEngine.js';
 import { futuresList, historyEnd, historyStartYear, priceIndexByYear, cappedIndexByYear } from '../shared/futures.js';
-import { createBandSolver, bandIndexes, STEP, levelsFromSolver } from '../shared/band.js';
+import { createBandSolver, bandIndexes, STEP, levelsFromSolver, leftAt } from '../shared/band.js';
+import { createFastRunner } from '../shared/fastEngine.js';
 import { weigherOf, runToAgeOfInputs } from '../shared/weigh.js';
 import { lifeFactsOf } from '../shared/lastsWords.js';
 import { shortfallOf } from '../shared/shortfall.js';
@@ -165,7 +166,7 @@ function factsOf(plan, checked, household, fullSp, env) {
     life: false, payInUnused,
     couple: plan.people.length === 2, startsNow: plan.yearsFromNow === 0, yearsFromNow: plan.yearsFromNow, startMoved: plan.startMoved, movedBy: plan.movedBy, movedFor: plan.movedFor,
     lockedUntil: plan.lockedUntil.map((l) => ({ who: l.who, untilAge: l.untilAge, years: l.years })),
-    accessFrom: RULES.pensionAccess.from, capped: plan.capped,
+    accessFrom: RULES.pensionAccess.from, capped: plan.capped, capYears: drawYearsCap(env),
     people, savings: inputs.savings || 0, fullStatePensionAYear: fullSp, usedDefault: used,
     anyPension: totalPension > 0, anyPots: plan.totalPots > 0, totalPots: plan.totalPots,
     lockedSavingsMonths: 0, oneName, madeUpFutures: typeof env.futureReturns === 'function', historyStartYear: historyStartYear(),
@@ -489,7 +490,14 @@ export function answerCReal(inputs, env) {
   // 7.8.0, weighing: the basis says so; the words read the chance's facts and the shortfall at the level's amount
   if (weigher.weighted) {
     result.basis.weighted = true;
-    facts.weighing = { lf: lifeFactsOf(result, weigher, plan, checked.inputs), sf: shownMonthly > 0 ? shortfallOf(plan, lv[level].months, shownMonthly * 12, { toMonth }) : null };
+    // (what is left at the plan-to age at the level's amount: each future's runs stopped at that month; none when a run
+    // only `simulate` can make cannot stop part-way)
+    let left = null;
+    if (shownMonthly > 0) {
+      const configs = configsAt(plan, shownMonthly * 12);
+      try { left = leftAt({ runner: solver.runner || createFastRunner(plan, futures), configsOf: () => configs, months: lv[level].months, toMonth, years: plan.years }); } catch { left = null; }
+    }
+    facts.weighing = { lf: lifeFactsOf(result, weigher, plan, checked.inputs), sf: shownMonthly > 0 ? shortfallOf(plan, lv[level].months, shownMonthly * 12, { toMonth, left }) : null };
   }
   if (plan.startMoved && plan.totalIsa > 0 && shownMonthly > 0) facts.lockedSavingsMonths = Math.min(plan.movedBy * 12, Math.floor(plan.totalIsa / shownMonthly));
   result.sentences = sentencesFor(result, facts);

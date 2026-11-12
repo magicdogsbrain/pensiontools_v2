@@ -57,6 +57,9 @@ function Answer({ state, dispatch, frame }) {
   const NK = `levels.${result.level || 'balanced'}.pot`;
   const sameAsLine = (x) => !!(x && s.line && x.text === s.line.text);
   const onCourse = result.onCourse === true;
+  // 7.8.0, weighing: the verdict's block carries the fixed-age line, "How careful?" and what happens if the money runs out
+  // (paying in as now); the guide's block keeps its own pot's fixed-age line
+  const weighing = !!(result.basis && result.basis.weighted && s.fixed);
   // spending that changes with age (spending-shape.md 7.2): said once, after the first headline's sentence that names the spending
   const shapeLine = s.shape && <Sentence s={s.shape} source={result} class="shape-line" data-testid="b.answer.shape" />;
   // the page around the answer (7.5.0, mock-up screen 2): the three figures, the pot becoming theirs, the Keep line — straight
@@ -74,11 +77,14 @@ function Answer({ state, dispatch, frame }) {
         <Sentence s={s.verdictHead} source={result} class="figure" id="answer-figure" />
       </div>
       <Sentence s={s.verdictLine} source={result} class="line" data-sentence="verdict" />
+      {weighing && <LastsLines result={result} only={LASTS_TOP} />}
+      {weighing && <LevelStrip q="b" result={result} dispatch={dispatch} words={B} />}
       {top}
       {s.verdictFour && <Sentence s={s.verdictFour} source={result} class="four" data-testid="b.verdict.four" />}
       {s.income && <Sentence s={s.income} source={result} class="income" data-testid="b.verdict.income" />}
       {shapeLine}
       <Sentence s={s.atAim} source={result} class="bad" />
+      {weighing && <LastsLines result={result} only={LASTS_AFTER} />}
       <p class="advice">{ADVICE_SHORT}</p>
       <Warnings result={result} />
     </section>
@@ -88,6 +94,7 @@ function Answer({ state, dispatch, frame }) {
     <section class="block enough" data-enough={result.enough ? result.enough.how : undefined} aria-labelledby="enough-title">
       <h2 id="enough-title"><Sentence s={s.enoughHead} source={result} as="span" /></h2>
       {s.enoughLine && <Sentence s={s.enoughLine} source={result} class="enough-line" data-testid="b.enough.line" />}
+      {s.enoughFixed && <Sentence s={s.enoughFixed} source={result} class="enough-fixed" data-testid="b.enough.fixed" />}
       {s.enoughFour && <Sentence s={s.enoughFour} source={result} class="enough-four" data-testid="b.enough.four" />}
       {s.enoughPaused && <Sentence s={s.enoughPaused} source={result} class="note" data-testid="b.enough.paused" />}
       {s.enoughMatch && <Sentence s={s.enoughMatch} source={result} class="note" data-testid="b.enough.match" />}
@@ -101,8 +108,9 @@ function Answer({ state, dispatch, frame }) {
       <Sentence s={s.head} source={result} class="guide-figure" />
       <Sentence s={s.sub} source={result} class="figure-sub" />
       <Sentence s={s.line} source={result} class="line" data-sentence={hasNumber ? NK : undefined} />
-      <LastsLines result={result} only={LASTS_TOP} />
-      <LevelStrip q="b" result={result} dispatch={dispatch} words={B} />
+      {s.guideFixed && <Sentence s={s.guideFixed} source={result} class="guide-fixed" data-testid="b.guide.fixed" />}
+      {!verdictHead && <LastsLines result={result} only={LASTS_TOP} />}
+      {!verdictHead && <LevelStrip q="b" result={result} dispatch={dispatch} words={B} />}
       <Sentence s={s.bad} source={result} class="bad" />
       {hasNumber && s.guide && <Sentence s={s.guide} source={result} class="guide-why" data-testid="b.guide.why" />}
       {s.outside && <Sentence s={s.outside} source={result} class="outside" />}

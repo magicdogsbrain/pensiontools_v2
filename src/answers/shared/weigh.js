@@ -99,6 +99,8 @@ export function weigherOf(plan, inputs, env = {}) {
     for (let m = 0; m <= months; m++) byMonth[m] = Math.round(S(d + m / 12) * WEIGHT_ONE);
     planToAge = horizonEndAge({ people, d, table });
     toAge = isNum(env.weightToAge) ? env.weightToAge : weightToAge({ people, d, table });
+    // a run the cap stops short of the weighting age is followed only to its end: never claim an age past it
+    if (plan.runCapped && isNum(plan.startAge)) toAge = Math.min(toAge, plan.startAge + plan.years);
   }
   return { weighted, byMonth, months, d, years: plan.years, people, planToAge, weightToAge: toAge, tablesVersion: table.tablesVersion || null };
 }

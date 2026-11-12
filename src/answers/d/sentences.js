@@ -22,7 +22,7 @@ import { RULES } from '../shared/rules.js';
 import { statePensionAgeOf } from '../shared/schemaParts.js';
 import { savingsGrowthParts } from '../shared/savingsGrowth.js';
 import { taxFreeGone } from './toHousehold.js';
-import { LEVEL_NAME, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, lifeAssumed } from '../shared/lastsWords.js';
+import { LEVEL_NAME, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, leftParts, lifeAssumed, costParts } from '../shared/lastsWords.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -271,6 +271,11 @@ function weighedSentences(out, result, facts) {
   if (hm) out.howMuch = S('d.howMuch', hm);
   const fp = floorParts(sf, lf);
   if (fp) out.floor = S('d.floor', fp);
+  const lp = leftParts(sf, lf);
+  if (lp) out.left = S('d.left', lp);
+  // what the other levels ask for (spec 11, "Cost"), as C says it
+  const cost = costParts(result.levels, level);
+  if (cost.length) out.cost = S('d.cost', cost);
   // "Could I spend more?": the level's amount at its level, with its own fixed-age line in the same block
   const h = result.headroom || { kind: 'about' };
   const atLevel = ['At ', name, ', about ', M(LM), ' a month lasts ', asLongAs(c), ' ', ...chanceParts(shown.weighted), '.'];
@@ -389,7 +394,7 @@ export function warningsFor(result, facts) {
   // 55 or 56 on 6 April 2028 with the tax-free part not all taken (answer-D.md 6.4 d-2028): the 2028 rise is not modelled
   const d2028 = (facts.drawdown2028 || []).filter((who) => facts.people.some((x) => x.who === who && x.pot && !x.taxFreeTaken));
   if (d2028.length) warn('d-2028', 'important', ['Move into drawdown what you will need before ', F(RULES.pensionAccess.from), ' by ', F('5'), ' April ', F('2028'), ': after that, nothing new can be taken from your pension until you are ', F(RULES.pensionAccess.from), '.']);
-  if (facts.capped) warn('long-plan', 'important', ['We can only test ', F(RULES.maxYears), ' years ahead, so this runs to age ', A('basis.endAge'), ', not ', A('inputs.endAge'), '.']);
+  if (facts.capped) warn('long-plan', 'important', ['We can only test ', F(facts.capYears ?? RULES.maxYears), ' years ahead, so this runs to age ', A('basis.endAge'), ', not ', A('inputs.endAge'), '.']);
   if (result.status === 'ok' && (result.phases || []).some((ph) => ph.byPerson.some((b) => b.higherRate))) {
     warn('higher-rate', 'note', ['Some of this is taxed at ', F('40'), '%. Spreading it ', c ? 'between you, or ' : '', 'over more years may lower the tax.']);
   }

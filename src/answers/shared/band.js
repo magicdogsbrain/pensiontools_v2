@@ -328,6 +328,9 @@ export function createBandSolver(plan, futures, opts = {}) {
     },
     failsAt,
     runOutMonthsAt,
+    /** (7.8.0) the engine runner and the configs at an amount in steps: what is left at the plan-to age reads them (leftAt). */
+    runner,
+    configsFor,
     /** Run-out month of every future at any £ a month (null = lasted). */
     runOutMonthsAtMonthly(monthly) {
       const H = monthly * 12;
@@ -482,6 +485,37 @@ export function mostPerFuture(plan, future, range = {}) {
  * does not pass is the floor (k = kLow), flagged floorHit.
  * @returns {{ [level]: { k, monthly, yearly, months, chance, capped, floorHit } }}
  */
+/**
+ * What is left at the plan-to month in each future at one amount (7.8.0, the build spec's section 4): every run of the
+ * future stopped at `toMonth` (the runner's `until`), its pots added up and brought to today's prices by the future's own
+ * price level that year (the same index the spending rises with); a future whose money ran out before then, £0.
+ *   o.runner        { run(r, i, config, hook, until) → { equity, bond, cash, isa, failed }, driversOf(r, i) → { cumInf, inf } }
+ *   o.configsOf(i)  the configs of future i at the amount (configsAt)
+ *   o.months        each future's run-out month at that amount (null: it lasted)
+ *   o.years         the run's years (the drivers' length)
+ * → a Float64Array of n, or null when there is nothing to follow (no run, no plan-to month inside the run).
+ */
+export function leftAt({ runner, configsOf, months, toMonth, years }) {
+  const n = months.length;
+  if (!n || !Number.isFinite(toMonth) || toMonth <= 0 || toMonth > 12 * years) return null;
+  const Y = Math.floor(toMonth / 12);
+  const out = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    const m = months[i];
+    if (m !== null && m !== undefined && !(Number.isFinite(m) && m >= toMonth)) { out[i] = 0; continue; }
+    const configs = configsOf(i);
+    let total = 0;
+    for (let r = 0; r < configs.length; r++) {
+      const res = runner.run(r, i, configs[r].config, null, toMonth);
+      total += (res.equity || 0) + (res.bond || 0) + (res.cash || 0) + (res.isa || 0);
+    }
+    const d = runner.driversOf(0, i);
+    const price = Y < years ? d.cumInf[Y] : d.cumInf[Y - 1] * (1 + d.inf[Y - 1]);
+    out[i] = price > 0 ? Math.max(0, total / price) : 0;
+  }
+  return out;
+}
+
 export function levelsFromSolver(solver, solved, weigher, ids = LEVEL_IDS, toMonth = Infinity, reference = null) {
   const want = LEVEL_IDS.filter((id) => ids.includes(id));
   // the reference solver (tests: env.solver 'reference') has no solveLevels: its levels are bandReference.js's plain

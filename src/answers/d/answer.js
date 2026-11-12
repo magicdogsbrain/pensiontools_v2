@@ -36,7 +36,7 @@ import { validateHousehold, firstOpenAge } from '../shared/household.js';
 import { historyEnd, historyStartYear } from '../shared/futures.js';
 import { outOfTen } from '../shared/format.js';
 import { livesList } from '../shared/lives.js';
-import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt } from '../shared/stopAt.js';
+import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, leftAtStop } from '../shared/stopAt.js';
 import { weigherOf, runToAgeOfInputs } from '../shared/weigh.js';
 import { lifeFactsOf } from '../shared/lastsWords.js';
 import { shortfallOf } from '../shared/shortfall.js';
@@ -205,11 +205,12 @@ export function answerD(inputs, env) {
   if (weigher.weighted) {
     result.basis.weighted = true;
     const toMonth = 12 * (plan.endAge - plan.startAge);
-    weighing = { lf: lifeFactsOf(result, weigher, plan, ins), sf: status === 'ok' ? shortfallOf(plan, verdict.runOutMonths, spendAYear, { toMonth }) : null };
+    weighing = { lf: lifeFactsOf(result, weigher, plan, ins),
+      sf: status === 'ok' ? shortfallOf(plan, verdict.runOutMonths, spendAYear, { toMonth, left: leftAtStop(sp, runner, spendAYear, verdict.runOutMonths, toMonth) }) : null };
   }
   textsFor(result, {
     usedDefault: defaultedFields(ins, env), fullStatePensionAYear: named.fullStatePensionAYear, historyStartYear: historyStartYear(),
-    madeUpFutures: typeof env.futureReturns === 'function', capped: Boolean(plan.capped), drawdown2028, weighing
+    madeUpFutures: typeof env.futureReturns === 'function', capped: Boolean(plan.capped), capYears: drawYearsCap(env), drawdown2028, weighing
   });
   if (env.trace) {
     result.trace = { lives: Array.from({ length: n }, (_, i) => ({ id: i, runOutMonth: verdict.runOutMonths[i] })), evaluations: runner.evaluations };

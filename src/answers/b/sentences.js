@@ -15,7 +15,7 @@
  * same words in C, A and B). With one stop for both nothing here changes.
  */
 import { money, partsText, lastedText } from '../shared/format.js';
-import { LEVEL_NAME as LEVEL_WORD, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, lifeAssumed } from '../shared/lastsWords.js';
+import { LEVEL_NAME as LEVEL_WORD, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, fixedAgeParts, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, leftParts, lifeAssumed } from '../shared/lastsWords.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES, SAVING, LEVEL_FAILS20 } from '../shared/rules.js';
 import { LEVEL_IDS } from '../shared/shown.js';
@@ -67,10 +67,17 @@ const levelT20 = (level) => 20 - LEVEL_FAILS20[level in LEVEL_FAILS20 ? level : 
 const levelChance = (level) => [asLongAs(WEIGH.couple), ' ', F(levelT20(level)), ' times in ', F('20')];
 /** The level's line after `prefix` ('… lasted in '): the count before 7.8.0, part for part, or the level's chance. */
 const nineP = (prefix) => (WEIGH
-  ? [prefix.replace(/(lasted |last )?in $/, (m, v) => v || ''), ...levelChance(WEIGH.level)]
+  ? [prefix.replace(/(lasted |last )?in $/, (m, v) => (v === 'lasted ' ? 'lasts ' : v || '')), ...levelChance(WEIGH.level)]
   : [prefix, F('9'), ' futures out of ', F('10')]);
 /** "9 in 10" for "which is 9 in 10" — weighing, "Balanced: 18 times in 20". */
 const levelIn = (k) => (WEIGH ? [LEVEL_WORD[k in LEVEL_IN_COUNT ? k : 'balanced'], ': ', F(levelT20(k)), ' times in ', F('20')] : LEVEL_IN_COUNT[k] || LEVEL_IN_COUNT.balanced);
+/**
+ * 7.8.0, weighing: whether a figure B worked out carries its weighted chance, and that chance said — "lasts as long as you
+ * do 3 times in 20" — never a count of futures (the fixed-age line beside it says the count, with its age). Not weighing,
+ * every site keeps its count words, part for part.
+ */
+const weighedV = (v) => Boolean(WEIGH && v && isNum(v.weighted));
+const lastsChance = (v) => ['lasts ', asLongAs(WEIGH.couple), ' ', ...chanceParts(v.weighted)];
 const BAD = ['In a bad case (the worst ', F('1'), ' in ', F('10'), ')'];
 const GOOD = ['in a good case (the best ', F('1'), ' in ', F('10'), ')'];
 
@@ -257,7 +264,7 @@ export function sentencesFor(result, facts) {
     out.payInHead = S('b.payIn.head.savings', ['About ', M('payIn.outside'), ' a month into savings']);
     out.payInSub = S('b.payIn.sub.savings', ['beside ', M('payIn.now'), ' a month into ', pensionsWord, ap ? [' as now, from now ', ...untilStop] : [' as now, from now until you are ', A('stop.age')], ', going up each year with prices']);
     out.payInLine = S('b.payIn.savings', ['Putting about ', M('payIn.outside'), ' a month into savings, with ', M('payIn.now'), ' a month going into ', pensionsWord, ' as now, ',
-      ...lastedTo, countParts(result.levers.payMore.lasted), '.']);
+      ...(weighedV(result.levers.payMore) ? ['your money ', lastsChance(result.levers.payMore)] : [...lastedTo, countParts(result.levers.payMore.lasted)]), '.']);
     out.payInBad = S('b.payIn.bad.savings', [...BAD, ', about ', P('outside.careful'), ' in savings by ', A('stop.age'), ' carries the years from ', A('stop.age'), ' to ', A('outside.untilAge'), '.']);
   } else if (two) {
     const pensions = !ap ? (c ? 'into your pensions between you' : 'into your pension') : both ? 'into your pensions between you' : `into ${pensionsWord}`;
@@ -315,7 +322,7 @@ export function sentencesFor(result, facts) {
   if (lv.stopLater) {
     lever.stopLater = S('b.lever.stopLater', [p ? ['Your partner stops at ', A('levers.stopLater.age'), ', not ', A('stop.age')]
       : c && !ap ? ['Both stop when you are ', A('levers.stopLater.age'), ', not ', A('stop.age')] : ['Stop at ', A('levers.stopLater.age'), ', not ', A('stop.age')],
-      ': ', nowParts(result), ' as now, your money lasted ', countParts(lv.stopLater.lasted), '.']);
+      ': ', nowParts(result), ...(weighedV(lv.stopLater) ? [' as now, your money ', lastsChance(lv.stopLater)] : [' as now, your money lasted ', countParts(lv.stopLater.lasted)]), '.']);
   } else if (st !== 'guaranteed-only' && !result.onCourse && facts.laterTo !== null) {
     lever.stopLaterNone = S('b.lever.stopLater.none', [p ? 'Your partner stopping later alone, even at ' : 'Stopping later alone, even at ', F(facts.laterTo), ...nineP(', did not make it last in '), ' paying in as now.']);
   }
@@ -331,13 +338,13 @@ export function sentencesFor(result, facts) {
         : [theirs ? ' of their pay (' : ' of your pay (', M('levers.payMore.payIn'), ' a month)']]
         : [M('levers.payMore.payIn'), ' a month'],
       lv.payMore.savingsIn ? [' and put ', M('levers.payMore.savingsIn'), ' a month into savings'] : '',
-      ': your money lasted ', countParts(lv.payMore.lasted), '.']);
+      ...(weighedV(lv.payMore) ? [': your money ', lastsChance(lv.payMore)] : [': your money lasted ', countParts(lv.payMore.lasted)]), '.']);
   }
   if (lv.spendLess) {
     lever.spendLess = shapeMoves(result.spendShape)
       // a shape (spending-shape.md 6.4): the whole shape moves to the careful start
-      ? S('b.lever.spendLess', ['Spend ', M('levers.spendLess.spend'), ' a month at the start, not ', M('spend.perMonth'), ', the later steps in proportion: ', nowParts(result), ' as now, your money lasted ', countParts(lv.spendLess.lasted), '.'])
-      : S('b.lever.spendLess', ['Spend ', M('levers.spendLess.spend'), ' a month, not ', M('spend.perMonth'), ': ', nowParts(result), ' as now, your money lasted ', countParts(lv.spendLess.lasted), '.']);
+      ? S('b.lever.spendLess', ['Spend ', M('levers.spendLess.spend'), ' a month at the start, not ', M('spend.perMonth'), ', the later steps in proportion: ', nowParts(result), ...(weighedV(lv.spendLess) ? [' as now, your money ', lastsChance(lv.spendLess)] : [' as now, your money lasted ', countParts(lv.spendLess.lasted)]), '.'])
+      : S('b.lever.spendLess', ['Spend ', M('levers.spendLess.spend'), ' a month, not ', M('spend.perMonth'), ': ', nowParts(result), ...(weighedV(lv.spendLess) ? [' as now, your money ', lastsChance(lv.spendLess)] : [' as now, your money lasted ', countParts(lv.spendLess.lasted)]), '.']);
   }
   if (lv.oneOff) {
     // a one-off sum now (saving-enough-and-check-in.md 3.4): what lands, with the tax added back. Checked a person at a
@@ -355,7 +362,7 @@ export function sentencesFor(result, facts) {
     const over = Array.isArray(o.over) ? o.over : o.overAllowance ? ['you'] : [];
     const overPay = Array.isArray(o.overPay) ? o.overPay : [];
     const someone = (list) => (!parts ? '' : list.length === 2 ? ' for each of you' : list[0] === 'you' ? ' for you' : ' for your partner');
-    lever.oneOff = S('b.lever.oneOff', ['Put ', M('levers.oneOff.amount'), into, lands, ' and keep paying in as now: your money lasted ', countParts(o.lasted), '.',
+    lever.oneOff = S('b.lever.oneOff', ['Put ', M('levers.oneOff.amount'), into, lands, ...(weighedV(o) ? [' and keep paying in as now: your money ', lastsChance(o)] : [' and keep paying in as now: your money lasted ', countParts(o.lasted)]), '.',
       over.length ? [' With what goes in now, that is more than ', F(money(RULES.annualAllowance)), ' in one year', someone(over), ': the most that gets the tax the government adds back (less for the highest earners). Allowance not used in the three years before can add to it; that is not counted here.'] : '',
       overPay.length ? [' The tax is added back only on what ', overPay.length === 2 ? 'each of you pays in up to your own pay in a year' : overPay[0] === 'you' ? 'you pay in up to your pay in a year' : 'your partner pays in up to their pay in a year',
         ', and with what goes in now this is more than that.'] : '']);
@@ -368,7 +375,7 @@ export function sentencesFor(result, facts) {
   }
   lever.accept = st === 'guaranteed-only'
     ? S('b.lever.accept', ['Keep paying in ', nowParts(result), ' as now.'])
-    : S('b.lever.accept', ['Keep paying in ', nowParts(result), ' as now: your money lasted ', countParts(lv.accept.lasted), '.',
+    : S('b.lever.accept', ['Keep paying in ', nowParts(result), ...(weighedV(lv.accept) ? [' as now: your money ', lastsChance(lv.accept)] : [' as now: your money lasted ', countParts(lv.accept.lasted)]), '.',
       ...(lv.accept.monthlyIfShort > 0 ? [' About ', M('levers.accept.monthlyIfShort'), p ? ' a month from when your partner stops at ' : ' a month from ', A('stop.age'),
         ...nineP(shapeMoves(result.spendShape) ? ', with the later steps in proportion, lasted in ' : ' lasted in '), '.']
         : [p ? ' No amount a month from when your partner stops at ' : ' No amount a month from ', A('stop.age'), ...nineP(' lasted in '), '.'])]);
@@ -420,9 +427,66 @@ function weighedSentences(out, result, facts) {
   } else if (out.line) out.line = { ...out.line, mark: 'weighted' };
   // the fixed-age line, paying in as now (the chance the answer carries: today's pay-ins, the whole of each future)
   out.fixed = { ...fixedSentence('b.fixed', result.chance.fixedAge, lf) };
-  out.fixed.parts = ['Paying in as now: ', ...out.fixed.parts.map((x, i) => (i === 0 && typeof x === 'string' ? x.charAt(0).toLowerCase() + x.slice(1) : x))];
+  out.fixed.parts = ['Paying in as now: ', ...lower(out.fixed.parts)];
   if (level === 'bold') out.boldLine = boldSentence('b.bold', lv.bold && isNum(lv.bold.weighted) ? lv.bold.weighted : 1 - LEVEL_FAILS20.bold / 20, lf);
+  /** A fixed-age sentence after `lead` ("Paying in £1,380 a month: if you live to 100, the money lasts that long …"). */
+  const fixedAfter = (id, lead, share) => S(id, [lead, ...lower(fixedAgeParts(share, lf))], 'fixed');
+  // the guide's pot: its line says the level's chance, so its own count to the plan-to age stands beside it
+  if (out.line && isNum(lv[level].potFixedAge)) out.guideFixed = fixedAfter('b.guide.fixed', ['With exactly that at ', A('stop.age'), ': '], lv[level].potFixedAge);
+  // the verdict paying in as now, said as a chance (the fixed-age line, b.fixed, sits beside it in the verdict's block)
+  if (out.verdictLine && result.verdict && isNum(result.verdict.weighted)) out.verdictLine = { ...out.verdictLine, mark: 'weighted' };
+  // what would be enough: its chance, and its own count to the plan-to age in the same block
+  const en = result.enough;
+  const lead = en && en.atLevel;
+  if (out.enoughLine && lead && isNum(lead.weighted) && !en.savingsOnly) {
+    out.enoughLine = { ...out.enoughLine, mark: 'weighted' };
+    out.enoughFixed = fixedAfter('b.enough.fixed', ['Paying in ', M('enough.atLevel.payIn'), ' a month: '], lead.lasted);
+  } else if (out.enoughLine && lead && isNum(lead.weighted) && en.savingsOnly) {
+    out.enoughLine = { ...out.enoughLine, mark: 'weighted' };
+    out.enoughFixed = fixedAfter('b.enough.fixed', ['With that in savings: '], lead.lasted);
+  }
+  // the ways: each said as its chance, each with its own count to the plan-to age (the lever's card is its block)
+  const lever = out.lever || {};
+  for (const id of ['stopLater', 'payMore', 'spendLess', 'oneOff', 'accept']) {
+    const v = result.levers && result.levers[id];
+    if (!lever[id] || !v || !isNum(v.weighted)) continue;
+    lever[id] = { ...lever[id], mark: 'weighted' };
+    lever[`${id}Fixed`] = S(`b.lever.${id}.fixed`, fixedAgeParts(v.lasted, lf), 'fixed');
+  }
+  // paying in as now, the whole life: the count to the plan-to age (a count, so with its age, never "only")
+  if (out.wholeLife && isNum(result.wholeLife.weighted)) {
+    const nowIn = result.payIn.now > 0;
+    out.wholeLife = fixedAfter('b.wholeLife', [nowIn ? ['Paying in ', M('payIn.now'), ' a month as you do now'] : 'Paying nothing in', ' and then spending ', M('spend.perMonth'), ' a month: '], result.wholeLife.lasted);
+  }
+  if (out.have && isNum(facts.haveLasted)) {
+    const p = facts.asked === 'partner';
+    out.have = fixedAfter('b.have', [p ? 'Your partner already has more than ' : 'You already have more than ', P(NK), p ? ' in their pension. Paying in nothing more: ' : ' in your pension. Paying in nothing more: '], facts.haveLasted);
+  }
+  if (out.gridCell && result.grid && isNum(facts.gridRow)) {
+    const k = facts.gridRow;
+    out.gridCell = fixedAfter('b.grid.cell', [facts.asked === 'partner' ? 'Your partner stopping at ' : 'Stopping at ', A(`grid.ages.${k}.age`), ' and paying in ', M(`grid.ages.${k}.cells.0.payIn`), ' a month: '], result.grid.ages[k].cells[0].lasted);
+  }
+  // the try-a-change row: where it stands, at the level (the chance is the verdict's to say)
+  if (out.change && isNum(lv[level].pot)) {
+    out.change = S('b.change', ['Now: ', result.onCourse ? 'on course for ' : 'not on course for ', facts.asked === 'partner' ? ['your partner at ', A('stop.age')] : A('stop.age'), ', at ', name, '.']);
+  }
+  // if the money runs out paying in as now: when, how long it pays, how much is still paid, what comes in after it
+  const sf = facts.weighing.sf;
+  // (when it runs out takes the place of the bad case at the aim: the same worst 1 in 10, with the typical age beside it)
+  const wp = whenParts(sf, lf);
+  if (wp && out.atAim) out.atAim = S('b.when', wp);
+  const hl = howLongParts(sf, lf);
+  if (hl) out.howLong = S('b.howLong', hl);
+  const hm = howMuchParts(sf);
+  if (hm) out.howMuch = S('b.howMuch', hm);
+  const fp = floorParts(sf, lf);
+  if (fp) out.floor = S('b.floor', fp);
+  const lp = leftParts(sf, lf);
+  if (lp) out.left = S('b.left', lp);
 }
+
+/** A sentence's parts with its first word in lower case (it follows a lead-in). */
+const lower = (parts) => parts.map((x, i) => (i === 0 && typeof x === 'string' ? x.charAt(0).toLowerCase() + x.slice(1) : x));
 
 /**
  * The verdict said straight, and what would be enough (research/saving-enough-and-check-in.md 2.2 and 3.5; release step
@@ -533,7 +597,9 @@ function verdictSentences(result, facts) {
       employerPct > 0 ? [', ', W.employers, ' ', PCT('enough.now.employerPct'), ' included'] : '', '), ']
       : pair ? ['Paying in ', M('payIn.now'), ' a month between you as now', employersIncluded(employers), ', ']
         : [W.paying, M('payIn.now'), ' a month as now', (result.payIn.employer || 0) > 0 ? [' (', W.employers, ' ', M('payIn.employer'), ' included)'] : '', ', '];
-  const asNow = [nowWords, 'your money lasted ', until(facts), ' ', countParts(v.lasted)];
+  // (weighing: the chance paying in as now, counted by how long people live; the fixed-age line beside it says the count)
+  const asNow = weighedV(v) ? [nowWords, countingLead(c).charAt(0).toLowerCase() + countingLead(c).slice(1), ', your money ', lastsChance(v)]
+    : [nowWords, 'your money lasted ', until(facts), ' ', countParts(v.lasted)];
   let enoughWords;
   if (band === 'yes') {
     // on course: how little would still be (only when less than now, and no more into savings)
@@ -583,12 +649,12 @@ function verdictSentences(result, facts) {
   // the block leads with what would be on course at the level chosen
   const LEAD = NINE;
   const leadFig = nine;
-  const lastedLine = (fig) => [' Your money lasted ', until(facts), ' ', countParts(fig.lasted), '.'];
+  const lastedLine = (fig) => (weighedV(fig) ? [' ', countingLead(c), ', your money ', lastsChance(fig), '.'] : [' Your money lasted ', until(facts), ' ', countParts(fig.lasted), '.']);
   const going = ['from now ', untilStop, ', going up with prices.'];
   if (en.savingsOnly && nine) {
     out.enoughHead = S('b.enough.head.savings', ['What goes into ', pensionWord, ' is enough. The years from ', A('stop.age'), ' to ', A('outside.untilAge'), ' need ', M(`${NINE}.savingsIn`),
       ' a month into ISAs or savings ', untilStop, '.']);
-    out.enoughLine = S('b.enough.line.savings', ['Paying in as now beside it, your money lasted ', until(facts), ' ', countParts(nine.lasted), '.']);
+    out.enoughLine = S('b.enough.line.savings', [...(weighedV(nine) ? ['Paying in as now beside it, your money ', lastsChance(nine)] : ['Paying in as now beside it, your money lasted ', until(facts), ' ', countParts(nine.lasted)]), '.']);
     return out;
   }
   if (!leadFig) {
@@ -889,7 +955,7 @@ export function warningsFor(result, facts) {
       : ['No pay-in up to ', F(money(SAVING.payInCeiling)), (result.apart ? facts.people.filter((p) => p.saves).length === 2 : c) ? ' a month each' : ' a month', ' makes the money last from ', A('stop.age'), ...nineP(' in '), '.']);
   }
   if (result.status === 'guaranteed-only') warn('target-below-pensions', 'note', [c ? 'Your State Pensions cover' : 'Your State Pension covers', ' what you want to spend once it starts.']);
-  if (facts.capped) warn('long-plan', 'important', ['We can only test ', F(RULES.maxYears), ' years ahead, so this runs to age ', A('basis.endAge'), ', not ', A('inputs.endAge'), '.']);
+  if (facts.capped) warn('long-plan', 'important', ['We can only test ', F(facts.capYears ?? RULES.maxYears), ' years ahead, so this runs to age ', A('basis.endAge'), ', not ', A('inputs.endAge'), '.']);
   if (result.phases.some((ph) => ph.byPerson.some((b) => b.higherRate))) warn('higher-rate', 'note', ['Some of this is taxed at ', F('40'), '%. Spreading it ', c ? 'between you, or ' : '', 'over more years may lower the tax.']);
   if (c && facts.oneName) warn('one-name', 'note', ['Most of the pension is in one name, so one tax allowance is barely used.']);
   if (facts.people.some((p) => p.sp && p.spDefault)) warn('state-pension-assumed', 'note', ['This assumes the full State Pension. If yours is lower, so is the figure.']);

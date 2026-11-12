@@ -28,7 +28,7 @@
  * that leans on it (shared/apart.js, the same words in C, A and B). With one stop for both nothing here changes.
  */
 import { money, outOfTen, partsText, underNine } from '../shared/format.js';
-import { LEVEL_NAME, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, lifeAssumed } from '../shared/lastsWords.js';
+import { LEVEL_NAME, countingLead, asLongAs, chanceParts, asksForParts, fixedSentence, boldSentence, whenParts, howLongParts, howMuchParts, floorParts, leftParts, lifeAssumed } from '../shared/lastsWords.js';
 import { shareCutPercent } from '../shared/futures.js';
 import { RULES, accessRiseAffects, firstAccessAge } from '../shared/rules.js';
 import { statePensionAgeOf } from '../shared/schemaParts.js';
@@ -499,6 +499,8 @@ function weighedSentences(out, result, facts) {
   if (hm) out.howMuch = S('a.howMuch', hm);
   const fp = floorParts(sf, lf);
   if (fp) out.floor = S('a.floor', fp);
+  const lp = leftParts(sf, lf);
+  if (lp) out.left = S('a.left', lp);
   if (out.change && h.kind === 'named') out.change = S('a.change', ['Now: ', { yes: 'yes', close: 'close', no: 'not' }[h.verdict], ' at ', A('headline.age'), p ? ' for your partner' : '', ', at ', name, '.']);
 }
 
@@ -715,7 +717,7 @@ export function warningsFor(result, facts) {
       ? ['No age up to ', F(RULES.stopAgeMax), ' lasted in ', F('9'), ' futures out of ', F('10'), ' at ', ...at]
       : ['No age from ', A('ages.0.age'), ' to ', F(RULES.stopAgeMax), ' lasted in ', F('9'), ' futures out of ', F('10'), ' at ', ...at]);
   }
-  if (facts.capped) warn('long-plan', 'important', ['We can only test ', F(RULES.maxYears), ' years ahead from the stop, so this runs to age ', A('basis.endAge'), ', not ', A('inputs.endAge'), '.']);
+  if (facts.capped) warn('long-plan', 'important', ['We can only test ', F(facts.capYears ?? RULES.maxYears), ' years ahead from the stop, so this runs to age ', A('basis.endAge'), ', not ', A('inputs.endAge'), '.']);
   if (result.status === 'ok' && (shown.phases || []).some((ph) => ph.byPerson.some((b) => b.higherRate))) {
     warn('higher-rate', 'note', ['Some of this is taxed at ', F('40'), '%. Spreading it ', c ? 'between you, or ' : '', 'over more years may lower the tax.']);
   }
@@ -755,6 +757,7 @@ export function warningsFor(result, facts) {
 export function textsFor(result, ctx) {
   const facts = factsOf(result, ctx);
   facts.weighing = (ctx && ctx.weighing) || null;
+  if (ctx && Number.isFinite(ctx.capYears)) facts.capYears = ctx.capYears;
   result.sentences = sentencesFor(result, facts);
   result.assumed = assumedFor(result, facts);
   result.warnings = warningsFor(result, facts);

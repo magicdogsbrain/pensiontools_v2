@@ -115,8 +115,8 @@ export function lifeOfSettings(settings, now, { sex = null, startAge = null, tab
   };
 }
 
-/** The sex the answer a plan was kept from says for its person ('m', 'f' or null: not said). */
-function keptSexOf(plan) {
+/** The sex the answer a plan was kept from says for its person ('m', 'f' or null: not said), whatever answer it was kept from. */
+export function keptSexOf(plan) {
   const fa = plan && plan.fromAnswer;
   if (!isObj(fa) || !isObj(fa.inputs)) return null;
   const who = fa.who === 'partner' ? 'partner' : 'you';

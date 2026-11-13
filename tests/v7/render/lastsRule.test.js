@@ -111,10 +111,14 @@ describe('Bold carries its consequence; the level control and the key', () => {
     a: { you: { age: 55, pot: 250000, payIn: { kind: 'total', total: 500 } }, savings: 30000, stop: { kind: 'age', age: 60 }, spend: { kind: 'amount', amount: 1700 }, confidence: 'bold' },
     b: { you: { age: 45, pot: 90000, payIn: { kind: 'total', total: 400 } }, stop: { kind: 'age', age: 62 }, spend: { kind: 'amount', amount: 2000 }, confidence: 'bold' }
   };
-  it.each(Object.entries(CASES))('%s at Bold: "About 3 times in 10 the money runs out while you are alive …" in the answer', (q, inputs) => {
+  it.each(Object.entries(CASES))('%s at Bold: "About 6 times in 20 the money runs out while you are alive …" in the answer, in the twentieths of the chance before it', (q, inputs) => {
     const r = ANSWER[q](inputs, ENV);
     expect(r.level).toBe('bold');
-    expect(r.sentences.boldLine.text).toMatch(/^About \d+ times? in 10 the money runs out while you are alive, and you would spend less from then on\.$/);
+    expect(r.sentences.boldLine.text).toMatch(/^(About (\d+ times|once) in 20|Less than once in 20) the money runs out while you are alive, and you would spend less from then on\.$/);
+    // the consequence and the chance said before it are the same twentieths
+    const chance = Object.values(r.sentences).map((x) => x && x.text).find((t) => typeof t === 'string' && /as long as you do (\d+) times in 20/.test(t) && !/would put you on course/.test(t));
+    const said = r.sentences.boldLine.text.match(/About (\d+) times in 20/);
+    if (chance && said) expect(+said[1]).toBe(20 - +chance.match(/as long as you do (\d+) times in 20/)[1]);
     expect(r.sentences.boldLine.mark).toBe('weighted');
     expect(r.sentences.fixed.mark).toBe('fixed');
     expect(r.sentences.fixed.text).toMatch(/^(Paying in as now: if|If) you live to \d+, the money lasts that long (in \d+ of 20 futures we tried|in every future we tried|in none of the futures we tried|in more than 19 of 20 futures we tried|in fewer than 1 of 20 futures we tried)\.$/);
@@ -128,7 +132,7 @@ describe('Bold carries its consequence; the level control and the key', () => {
         expect(marked.length, `${q} ${level}`).toBeGreaterThan(0);
         for (const s of marked) {
           expect(s.text, `${q} ${level} ${s.id}`).not.toMatch(/futures we tried|futures out of|\d\s?%/);
-          expect(s.text, `${q} ${level} ${s.id}`).toMatch(s.id.endsWith('.bold') ? /^About \d+ times? in 10 / : /times? in 20|every future we tried|none of the futures we tried/);
+          expect(s.text, `${q} ${level} ${s.id}`).toMatch(s.id.endsWith('.bold') ? /^(About (\d+ times|once) in 20|Less than once in 20) / : /times? in 20|every future we tried|none of the futures we tried/);
         }
       }
     }

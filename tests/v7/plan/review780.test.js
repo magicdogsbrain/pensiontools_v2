@@ -103,9 +103,10 @@ describe('"How careful?" on a plan\'s "Does it last?"', () => {
     expect(v.slots.bold).toBe(' ' + boldConsequenceOf(a));
   });
   it('Bold\'s consequence from the plan\'s own chance', () => {
-    expect(boldConsequenceOf({ weighted: 0.7, failKind: 'ran-out' })).toBe('About 3 times in 10 the money runs out while you are alive, and you would spend less from then on.');
-    expect(boldConsequenceOf({ weighted: 0.97, failKind: 'ran-out' })).toBe('Less than 1 time in 10 the money runs out while you are alive, and you would spend less from then on.');
-    expect(boldConsequenceOf({ weighted: 0.8, failKind: 'cut' })).toBe('About 2 times in 10 your income falls short while you are alive, and you would spend less from then on.');
+    expect(boldConsequenceOf({ weighted: 0.7, failKind: 'ran-out' })).toBe('About 6 times in 20 the money runs out while you are alive, and you would spend less from then on.');
+    expect(boldConsequenceOf({ weighted: 0.97, failKind: 'ran-out' })).toBe('About once in 20 the money runs out while you are alive, and you would spend less from then on.');
+    expect(boldConsequenceOf({ weighted: 0.99, failKind: 'ran-out' })).toBe('Less than once in 20 the money runs out while you are alive, and you would spend less from then on.');
+    expect(boldConsequenceOf({ weighted: 0.8, failKind: 'cut' })).toBe('About 4 times in 20 your income falls short while you are alive, and you would spend less from then on.');
     expect(boldConsequenceOf({ weighted: 1, failKind: 'ran-out' })).toBe('In none of the futures we tried does the money run out while you are alive.');
   });
   it('page memory only: ui/level sets the page\'s level and nothing else', () => {

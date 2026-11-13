@@ -16,7 +16,7 @@
  * Sentences are { id, text: '', parts, mark? } as every question writes them; a part is a string, { fixed } (a count or
  * an age the answer wrote, drawn data-fixed), { key, kind } (a figure of the result). Pure: no clock, no storage.
  */
-import { chanceWords, fixedAgeWords, money } from './format.js';
+import { chanceWords, fixedAgeWords, failTwentiethsWords, money } from './format.js';
 import { LEVEL_FAILS20, RULES } from './rules.js';
 import { jointSurvivalOf } from '../../services/LongevityModel.js';
 
@@ -80,14 +80,15 @@ export function fixedAgeParts(share, lf, { kind = 'ran-out' } = {}) {
   return digits(fixedAgeWords(share, lf.planToAge, { kind, couple: lf.couple ? { name: 'the younger of you' } : null }));
 }
 
-/** Bold's consequence, always in the headline block: "About 3 times in 10 the money runs out while you are alive, …". */
+/**
+ * Bold's consequence, always in the headline block: "About 6 times in 20 the money runs out while you are alive, …" — in the
+ * same twentieths as the chance said just before it (format.js failTwentiethsWords), never rounded the kinder way.
+ */
 export function boldParts(share, lf) {
-  const out = (1 - (isNum(share) ? share : 0)) * 10;
-  const tens = Math.round(out);
-  const lead = !(out > 0) ? ['In none of the futures we tried does the money run out while ']
-    : tens < 1 ? ['Less than ', F('1'), ' time in ', F('10'), ' the money runs out while ']
-      : ['About ', F(tens), tens === 1 ? ' time' : ' times', ' in ', F('10'), ' the money runs out while '];
-  return [...lead, lf.couple ? 'one of you is' : 'you are', ' alive', out > 0 ? ', and you would spend less from then on.' : '.'];
+  const words = failTwentiethsWords(isNum(share) ? share : 0);
+  const lead = words === null ? ['In none of the futures we tried does the money run out while ']
+    : [...digits(words.charAt(0).toUpperCase() + words.slice(1)), ' the money runs out while '];
+  return [...lead, lf.couple ? 'one of you is' : 'you are', ' alive', words !== null ? ', and you would spend less from then on.' : '.'];
 }
 
 /** Bold's consequence as a sentence (mark: weighted, a chance), for the headline block. */

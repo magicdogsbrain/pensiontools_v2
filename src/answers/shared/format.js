@@ -75,15 +75,42 @@ export function chanceWords(s, { sumW = null, n = null } = {}) {
   const v = Math.max(0, Math.min(1, Number(s) || 0));
   if (v >= 1) return 'in every future we tried';
   if (v <= 0) return 'in none of the futures we tried';
-  let k = Math.round(v * 20);
-  // a line in twentieths (19, 18, 17, 14, 13): rounding up onto one the chance does not reach goes one twentieth down
-  const reaches = (k20) => (Number.isFinite(sumW) && Number.isFinite(n) && n > 0 ? passes(sumW, n, 20 - k20) : v >= k20 / 20);
-  if (LINES20.includes(k) && !reaches(k)) k -= 1;
+  const k = chanceTwentieths(v, { sumW, n });
   if (k >= 20) return 'more than 19 times in 20';
   if (k <= 0) return 'less than once in 20';
   return k === 1 ? 'once in 20' : `${k} times in 20`;
 }
 const LINES20 = LEVEL_LINES.map((l) => Math.round(l * 20));
+
+/**
+ * The whole twentieths chanceWords says a weighted share in (0 to 20): the nearest, one down where rounding up would put it
+ * on a level's line it does not reach. Bold's consequence reads the same figure (20 less it), so the two never disagree.
+ */
+export function chanceTwentieths(s, { sumW = null, n = null } = {}) {
+  const v = Math.max(0, Math.min(1, Number(s) || 0));
+  let k = Math.round(v * 20);
+  // a line in twentieths (19, 18, 17, 14, 13): rounding up onto one the chance does not reach goes one twentieth down
+  const reaches = (k20) => (Number.isFinite(sumW) && Number.isFinite(n) && n > 0 ? passes(sumW, n, 20 - k20) : v >= k20 / 20);
+  if (v > 0 && v < 1 && LINES20.includes(k) && !reaches(k)) k -= 1;
+  return k;
+}
+
+/**
+ * How often the money runs out while you are alive, from the same twentieths chanceWords gives the chance (Bold's
+ * consequence): "about 6 times in 20", "about once in 20", "less than once in 20" (the chance said as more than 19 times in
+ * 20), "more than 19 times in 20" (the chance said as less than once in 20); null when it never runs out (s = 1).
+ */
+export function failTwentiethsWords(s, { plain = false } = {}) {
+  const v = Math.max(0, Math.min(1, Number(s) || 0));
+  if (v >= 1) return null;
+  if (v <= 0) return 'in every future we tried';
+  // (`plain`: a fixed-age count, read as twentiethsOfFutures reads it — the nearest twentieth)
+  const k = plain ? Math.round(v * 20) : chanceTwentieths(v);
+  if (k >= 20) return 'less than once in 20';
+  if (k <= 0) return 'more than 19 times in 20';
+  const out = 20 - k;
+  return out === 1 ? 'about once in 20' : `about ${out} times in 20`;
+}
 
 /**
  * 7.8.0: a fixed-age share (a plain count of the futures that lasted to one named age) in twentieths of the futures we

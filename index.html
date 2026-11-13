@@ -5929,7 +5929,7 @@
       const fa = r.failAges || [];
       const faTxt = fa.length ? (r.ruinLabel ? 'Of the futures that were cut, half were cut before age ' : 'Of the futures that ran out, half did so before age ') + Math.round([...fa].sort((a, b) => a - b)[Math.floor(fa.length / 2)]) + '; the earliest at ' + Math.round(Math.min(...fa)) + '.' : (r.ruinLabel && (r.ruin.mc || 0) > 0 ? 'No simulated future ran out; the cuts are counted above.' : 'No simulated future ran out.');
       h += '<div class="table-scroll-container" style="margin-top:12px;"><table><tbody>'
-        + '<tr><td>' + (r.ruinLabel ? 'Chance the plan is cut' : 'Chance of running out') + '</td><td>' + pctText(ruinH, 1) + ' <span class="hint">history</span> · ' + pctText(ruinMc, 1, RUIN_BARS) + ' <span class="hint">Monte Carlo, to ' + (p.startAge + yrsN) + '</span>' + (r.ruinLabel ? ' <span class="hint">— ' + budEsc(r.ruinLabel) + '</span>' : '') + '</td></tr>'
+        + '<tr><td>' + (r.ruinLabel ? 'Chance the plan is cut' : 'Chance of running out') + '</td><td>' + pctText(ruinH, 1) + ' <span class="hint">history</span> · ' + pctText(ruinMc, 1, RUIN_BARS) + ' <span class="hint">Monte Carlo, to ' + (p.startAge + yrsN - 1) + '</span>' + (r.ruinLabel ? ' <span class="hint">— ' + budEsc(r.ruinLabel) + '</span>' : '') + '</td></tr>'
         + '<tr><td>Worst 12 months you\'d have lived (history)</td><td>' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span></td></tr>'
         + '<tr><td>Income guaranteed to age</td><td>' + budEsc(r.guaranteedToAge) + '</td></tr>'
         + leftRowHtml(oneAnswer(r, p)) + cutsRowHtml(oneAnswer(r, p))

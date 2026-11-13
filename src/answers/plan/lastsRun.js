@@ -148,7 +148,9 @@ export function chanceRunOf(plan, { settings, strategyId, p, r, now, level = nul
  */
 export function onCourseOptsOf(settings, p, strategyId, now, { weighted = undefined, level = null, sex = null, plan = null } = {}) {
   if (!weighing({ weighted })) return ON_COURSE_SHARE;
-  const life = lifeOfSettings(settings, now, { sex, startAge: p.startAge });
+  // the plan's own person, as "Does it last?", the verdict block and the check-in read it (life.lifeOf): the sex its answer
+  // kept, and a couple's or linked plan's reason (no weighted figure: the count to the plan's age, as the verdict block)
+  const life = plan ? lifeOf(plan, now, { settings, startAge: p.startAge }) : lifeOfSettings(settings, now, { sex, startAge: p.startAge });
   const reason = weightedReasonOf(life, strategyId, p);
   const w = weightedYearsOf(life, p);
   const planW = reason ? null : w.extend ? weightedPlanFor(settings, p, w.years, now) : p;

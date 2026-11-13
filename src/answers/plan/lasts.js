@@ -287,11 +287,6 @@ export function verdictWord(share, w = null) {
   return 'no';
 }
 
-/** Bold's consequence (7.8.0, the build spec's section 11): said in the headline block whenever a plan is judged at Bold. */
-export const BOLD_CONSEQUENCE = {
-  'ran-out': 'About 3 times in 10 the money runs out while you are alive, and you would spend less from then on.',
-  other: 'About 3 times in 10 your income falls short while you are alive, and you would spend less from then on.'
-};
 
 /**
  * A weighted answer judged at another level (the page's "How careful?", ui.level; never saved): the same figures, the

@@ -751,7 +751,7 @@ export function requiredPotForStrategy(strategyId, p, successTarget = ON_COURSE_
   while (!passes(hi) && n++ < 8) { lo = hi; hi *= 2; }
   if (n >= 8) return { requiredPot: Infinity, passesAt: null };
   for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (passes(mid)) hi = mid; else lo = mid; }
-  return { requiredPot: Math.ceil(hi / 1000) * 1000, basis: strategyId, ...(how ? { level, weighted, planToAge: Math.round(p.startAge + p.durationYears) } : {}) };
+  return { requiredPot: Math.ceil(hi / 1000) * 1000, basis: strategyId, ...(how ? { level, weighted, planToAge: Math.round(p.startAge + p.durationYears) - 1 } : {}) };
 }
 
 /** One P&V run on the real history starting at (year, month): wealth + income by plan year, today's money. */

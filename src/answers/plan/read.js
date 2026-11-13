@@ -41,14 +41,16 @@ export function lockedLastsWords(doc, a, dp, weighted = SUCCESS.weighted) {
   const def = doc && doc.assumptions && doc.assumptions.success && typeof doc.assumptions.success === 'object' ? doc.assumptions.success : null;
   const w = def && def.weighted && typeof def.weighted === 'object' ? def.weighted : null;
   if (w && typeof w.chance === 'number') {
-    const age = def.planTo && Number.isFinite(def.planTo.age) ? def.planTo.age : Math.round((+(dp && dp.startAge) || 0) + (+(dp && dp.durationYears) || 0));
+    const age = def.planTo && Number.isFinite(def.planTo.age) ? def.planTo.age : planToAgeOf(dp);
     return 'When the plan was locked, counting how long people your age live, the money lasted as long as you do ' + chanceWords(w.chance) + '. ' + fixedAgeWords(typeof w.fixedAge === 'number' ? w.fixedAge : a.share, age).replace(/\.$/, '');
   }
   const own = 'Your plan lasts ' + futuresOutOfTen(a.share).words;
   if (!weighted || def) return own;
-  const toAge = Math.round((+(dp && dp.startAge) || 0) + (+(dp && dp.durationYears) || 0));
-  return own + '; when it was locked, counted to ' + toAge + '; not by how long you might live';
+  return own + '; when it was locked, counted to ' + planToAgeOf(dp) + '; not by how long you might live';
 }
+
+/** The age a document's plan runs to: the age in its last year, as every page of a plan says it (OneAnswer.weightedPartOf). */
+const planToAgeOf = (dp) => Math.round((+(dp && dp.startAge) || 0) + (+(dp && dp.durationYears) || 0)) - 1;
 import { unlockPatchesOf } from '../../services/PlanCommit.js';
 import { checkInState } from './checkInDue.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';

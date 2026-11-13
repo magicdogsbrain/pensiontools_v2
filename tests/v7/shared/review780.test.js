@@ -116,11 +116,12 @@ describe('a run the 60-year cap stops short', () => {
 
 describe('Bold\'s consequence from the answer\'s own chance', () => {
   const lf = { couple: false };
-  it('tenths, with no floor of 1 in 10: less than one, and none at all', () => {
-    expect(partsText(boldParts(0.7, lf), {})).toBe('About 3 times in 10 the money runs out while you are alive, and you would spend less from then on.');
-    expect(partsText(boldParts(0.96, lf), {})).toBe('Less than 1 time in 10 the money runs out while you are alive, and you would spend less from then on.');
+  it('in the twentieths the chance is said in, never rounded the kinder way: less than one, and none at all', () => {
+    expect(partsText(boldParts(0.7, lf), {})).toBe('About 6 times in 20 the money runs out while you are alive, and you would spend less from then on.');
+    expect(partsText(boldParts(0.96, lf), {})).toBe('About once in 20 the money runs out while you are alive, and you would spend less from then on.');
+    expect(partsText(boldParts(0.99, lf), {})).toBe('Less than once in 20 the money runs out while you are alive, and you would spend less from then on.');
     expect(partsText(boldParts(1, lf), {})).toBe('In none of the futures we tried does the money run out while you are alive.');
-    expect(partsText(boldParts(0.97, { couple: true }), {})).toMatch(/^Less than 1 time in 10 the money runs out while one of you is alive/);
+    expect(partsText(boldParts(0.99, { couple: true }), {})).toMatch(/^Less than once in 20 the money runs out while one of you is alive/);
   });
 });
 

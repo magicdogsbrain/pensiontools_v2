@@ -17,7 +17,7 @@
  */
 import { jointSurvivalOf } from './LongevityModel.js';
 import { RULES, WEIGHT_ONE, LEVEL_FAILS20, levelOf, verdictAtLevel } from '../answers/shared/rules.js';
-import { chanceWords, fixedAgeWords } from '../answers/shared/format.js';
+import { chanceWords, fixedAgeWords, failTwentiethsWords } from '../answers/shared/format.js';
 
 const RULES_MAX_DRAW_YEARS = RULES.maxDrawYears;
 
@@ -170,16 +170,17 @@ const LASTS_AS_LONG = { 'ran-out': 'the money lasts as long as you do', cut: 'yo
 const RUNS_OUT = { 'ran-out': 'the money ran out', cut: 'your income was first cut', lean: 'you had your first lean year' };
 
 /**
- * Bold's consequence from the plan's own chance (the weighted one; the fixed-age count when there is none), in tenths:
- * "About 2 times in 10 …", "Less than 1 time in 10 …" — never a figure the plan did not give.
+ * Bold's consequence from the plan's own chance (the weighted one; the fixed-age count when there is none), in the same
+ * twentieths the chance is said in (format.js failTwentiethsWords): "About 4 times in 20 …", "Less than once in 20 …" —
+ * never a figure the plan did not give, never rounded the kinder way.
  */
 export function boldConsequenceOf(a) {
-  const share = a && typeof a.weighted === 'number' ? a.weighted : a ? a.share : 1;
-  const out = (1 - Math.max(0, Math.min(1, +share || 0))) * 10;
-  const tens = Math.round(out);
+  const weighted = !!a && typeof a.weighted === 'number';
+  const share = weighted ? a.weighted : a ? a.share : 1;
+  const words = failTwentiethsWords(Math.max(0, Math.min(1, +share || 0)), { plain: !weighted });
   const what = a && a.failKind && a.failKind !== 'ran-out' ? 'your income falls short' : 'the money runs out';
-  if (!(out > 0)) return 'In none of the futures we tried does ' + (what === 'the money runs out' ? 'the money run out' : 'your income fall short') + ' while you are alive.';
-  return (tens < 1 ? 'Less than 1 time in 10 ' : 'About ' + tens + (tens === 1 ? ' time' : ' times') + ' in 10 ') + what + ' while you are alive, and you would spend less from then on.';
+  if (words === null) return 'In none of the futures we tried does ' + (what === 'the money runs out' ? 'the money run out' : 'your income fall short') + ' while you are alive.';
+  return words.charAt(0).toUpperCase() + words.slice(1) + ' ' + what + ' while you are alive, and you would spend less from then on.';
 }
 
 /**

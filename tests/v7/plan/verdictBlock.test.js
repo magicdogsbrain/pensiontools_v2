@@ -97,7 +97,7 @@ describe('a live block, weighing', () => {
   it('Bold says its consequence; a plan with no weighted figure leads with the fixed-age count and says why', () => {
     const bold = verdictBlockView(fake('pots-and-valves', 4), P, { life: LIFE, level: 'bold' });
     // (its consequence from the plan's own chance: 4 of 20 failed late, so about 1 time in 10 while you are alive)
-    expect(bold).toMatch(/(About \d+ times? in 10|Less than 1 time in 10) the money runs out while you are alive, and you would spend less from then on\./);
+    expect(bold).toMatch(/(About (\d+ times|once) in 20|Less than once in 20) the money runs out while you are alive, and you would spend less from then on\./);
     expect(bold).not.toContain('About 3 times in 10');
     const linked = verdictBlockView(fake('pots-and-valves', 4), P, { life: { ...LIFE, reason: 'linked' } });
     expect(linked).not.toContain('data-weighted');

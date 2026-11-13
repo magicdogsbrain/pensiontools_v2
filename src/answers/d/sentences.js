@@ -13,7 +13,7 @@
  * @property {number} fullStatePensionAYear
  * @property {number} historyStartYear
  * @property {boolean} madeUpFutures         env.futureReturns (tests): the futures line is left out
- * @property {boolean} capped                the drawing years were cut at 45
+ * @property {boolean} capped                the drawing years were cut at the cap (capYears: 45, or 60 while weighing)
  * @property {string[]} drawdown2028         who moves money into drawdown before 6 April 2028 at 55 or 56
  */
 import { money, outOfTen, partsText, underNine } from '../shared/format.js';
@@ -90,6 +90,7 @@ export function factsOf(result, ctx = {}) {
     endAge: result.basis.endAge,
     fullStatePensionAYear: ctx.fullStatePensionAYear || 0, historyStartYear: ctx.historyStartYear || 1871,
     madeUpFutures: Boolean(ctx.madeUpFutures), capped: Boolean(ctx.capped),
+    ...(Number.isFinite(ctx.capYears) ? { capYears: ctx.capYears } : {}),
     drawdown2028: ctx.drawdown2028 || []
   };
 }

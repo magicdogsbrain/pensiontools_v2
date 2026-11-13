@@ -203,8 +203,8 @@ describe('the words in src/v7/copy/', () => {
     const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
     // the levers' slots (road-to-7.md step 7): money, a chance, the cost in runs, a plural
     const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{words\}/g, 'in 9 futures out of 10')
-      // 7.8.0: Bold's consequence, said in the headline block at Bold (lasts.js BOLD_CONSEQUENCE)
-      .replace(/\{bold\}/g, ' About 3 times in 10 the money runs out while you are alive, and you would spend less from then on.')
+      // 7.8.0: Bold's consequence, said in the headline block at Bold (OneAnswer.boldConsequenceOf)
+      .replace(/\{bold\}/g, ' About 6 times in 20 the money runs out while you are alive, and you would spend less from then on.')
       .replace(/\{(perMonth|potBefore|potAfter|yearly)\}/g, '£25,000').replace(/\{(chance|baseChance|docChance)\}/g, '92.7').replace(/\{runs\}/g, '7').replace(/\{s\}/g, 's')
       .replace(/\{(typical|bad|good|perYear|total|worst|lowest|left|amount|buffer|leanest)\}/g, '£25,000')
       .replace(/\{(pct|half|full)\}/g, '20').replace(/\{(futures|of|n|histories|ranOut)\}/g, '1,000').replace(/\{(years|months|first|age|toAge|secured|year|lastStart|fired)\}/g, '12')

@@ -176,10 +176,10 @@ describe('the words, weighing', () => {
     expect(off.assumed.map((a) => a.id)).not.toContain('life-plan-to');
   });
 
-  it('the pieces: the fixed-age words name the age; Bold\'s consequence in tenths', () => {
+  it('the pieces: the fixed-age words name the age; Bold\'s consequence in the chance\'s own twentieths', () => {
     const lf = { couple: false, planToAge: 97, sex: { you: 'f' }, given: { you: false } };
     expect(partsText(fixedAgeParts(0.7, lf), {})).toBe('If you live to 97, the money lasts that long in 14 of 20 futures we tried.');
-    expect(partsText(boldParts(0.70, lf), {})).toBe('About 3 times in 10 the money runs out while you are alive, and you would spend less from then on.');
+    expect(partsText(boldParts(0.70, lf), {})).toBe('About 6 times in 20 the money runs out while you are alive, and you would spend less from then on.');
     const lines = lifeAssumed({ ...lf, weightToAge: 103, rule: 'survival', capped: false, capYears: 37, liveLonger: null });
     expect(lines.map((a) => partsText(a.parts, {}))).toEqual([
       'Your plan runs to 97, when fewer than 1 in 10 women your age are still alive. We follow each future on to 103, when fewer than 1 in 50 are.',

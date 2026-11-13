@@ -68,9 +68,11 @@ test.describe('J4 — can I stop soon? (question A, the published build)', () =>
       const rows = page.locator('#app [data-region="answer"] [data-chart="ages"] [data-age]');
       expect(await rows.evaluateAll((els) => els.map((el) => Number(el.getAttribute('data-age'))))).toEqual(answer.ages.map((r) => r.age));
       await expect(page.locator(`#app [data-chart="ages"] [data-age="${answer.shown.age}"]`)).toHaveAttribute('aria-current', 'true');
-      // Each bar is ten cells, labelled with the count in words.
+      // Each bar is ten cells (twenty while the answer's figures are weighed, 7.8.0: in twentieths, as its sentences count),
+      // labelled with the count in words.
       const bars = page.locator('#app [data-chart="ages"] [data-key$=".lasted"]');
-      for (let i = 0; i < await bars.count(); i++) await expect(bars.nth(i).locator('[data-fixed]')).toHaveCount(10);
+      const cells = answer.basis && answer.basis.weighted ? 20 : 10;
+      for (let i = 0; i < await bars.count(); i++) await expect(bars.nth(i).locator('[data-fixed]')).toHaveCount(cells);
     }, { answer });
 
     await test.step('counts the first answer', async () => {

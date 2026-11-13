@@ -38,6 +38,32 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.8.0', date: '2026-11-13', engineVersion: '6.39.0',
+    title: 'How likely your money is to last as long as you do',
+    summary: 'Every answer now counts how long people your age are likely to live, so money running short at 98 counts for far less than money running short at 75. You choose how careful to be, and every figure is worked out at that level. Beside it we always show how often the money lasts to one named age. If the money does run out, we now say when, what would still come in from your pensions, and what is likely to be left if it does not.',
+    changes: [
+      'The chance the money lasts as long as you do, counted by how long people your age live, from the Office for National Statistics’ 2024-based figures. Beside it, always, how often the money lasts to the age your plan runs to.',
+      'How careful? beside every answer and on a plan’s Does it last?: Careful (19 times in 20), Balanced (18 times in 20, where we start) or Bold (14 times in 20). Every amount, pot and pay-in is worked out at the level you choose, with the other two beside it.',
+      'If the money runs out, each answer says when that typically happens, how much of what you planned to spend is still paid, and what would still come in from your State Pension and other pensions. It also says what is likely to be left at the age your plan runs to.',
+      'The age a plan runs to now comes from how long people your age live (about 97 to 101 for someone who is 65 today), not a fixed 95. You can still type your own.',
+      'Under Add more detail you can choose the figures for women or for men. If you do not say, we use the figures for women, which test the money for longer.',
+      'On a plan, you can keep something the plan did not have, test the plan with it, see the new risk, and accept it as your plan. What you keep is then never listed as a sale.'
+    ],
+    corrections: [
+      'A plan’s Does it last? no longer lists income cuts of £0 when nothing is cut.'
+    ],
+    effects: {
+      stress: ['Does it last? shows the chance the money lasts as long as you do beside the count to the plan’s own age. For now, a couple’s plan and a gilt ladder or rotation plan show the count to the plan’s age only.'],
+      strategies: ['Each strategy’s verdict names the level it was judged at and the age its count runs to.'],
+      decision: ['A plan locked before this keeps its own figures and words, and says how it was counted.'],
+      accumulation: ['Am I on course? now finds the pot at the level you choose, with the pots for the other two levels beside it.'],
+      budget: [],
+      household: ['Couples’ checks are still counted to one age.']
+    },
+    actions: ['Nothing you need to do. To change how careful to be, use How careful? beside the answer.'],
+    notes: ['The figures for how long people live are for everyone in England and Wales. People with pension savings tend to live a little longer, so the chance we show may be slightly kind.']
+  },
+  {
     version: '7.6.0', date: '2026-11-09', engineVersion: '6.39.0',
     title: 'Keep what you hold: say what you are keeping, and see what it covers',
     summary: 'On a locked plan you can now say you are keeping something you hold, so the plan stops asking you to sell it. A gilt can stand in for some years of your plan’s money, and anything else can be kept by your choice. You can also add money you expect later, such as a pension you plan to transfer in. The plan then shows, year by year, what is covered, what is not yet covered, and roughly when each year’s money runs out without it. Your plan’s settings and its plan document stay exactly as locked.',

@@ -1786,6 +1786,9 @@
     .hero { font-size: 40px; font-weight: 800; line-height: 1; }
     .hero-sub { font-size: 13px; color: var(--text-muted); display: block; margin-top: 4px; max-width: 190px; }
     .verdict-basis { font-size: 12px; color: var(--text-muted); margin-top: 14px; }
+    .verdict-level { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin: -6px 0 14px; }
+    .verdict-level select { font: inherit; font-weight: 400; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border, rgba(127,127,127,0.4)); background: var(--bg-secondary, transparent); color: var(--text); max-width: 100%; }
+    .verdict-fixed { font-size: 14px; margin: 12px 0 0; }
     .callout { border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; border: 1px solid rgba(96,165,250,0.25); background: rgba(96,165,250,0.06); }
     .callout-title { font-weight: 700; margin-bottom: 6px; }
     .callout p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; }
@@ -2130,7 +2133,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-CQtOD2n8.js"></script>
+  <script type="module" crossorigin src="./assets/main-DzvtHSjQ.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -3265,13 +3268,13 @@
                 <span class="hint">Suggest from longevity:</span>
                 <input type="number" id="ssLongevityAge" placeholder="age" min="40" max="80" style="max-width:80px;" title="Your current age">
                 <select id="ssLongevitySex" style="max-width:110px;">
-                  <option value="m" selected>Male</option>
+                  <option value="notSaid" selected>Not said</option>
+                  <option value="m">Male</option>
                   <option value="f">Female</option>
                 </select>
                 <select id="ssLongevityPct" style="max-width:230px;">
                   <option value="10" selected>1-in-10 chance of living beyond (cautious)</option>
                   <option value="25">1-in-4 chance of living beyond</option>
-                  <option value="50">Average life expectancy</option>
                 </select>
                 <button type="button" data-on-click="applyLongevitySuggestion()">Use</button>
               </div>
@@ -3685,11 +3688,11 @@
           </div>
 
           <div class="settings-section" id="acSweepSection" style="border-color:var(--accent);">
-            <div class="section-title">When could I retire? <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— the quick spin: if I keep saving and want £Y a year, which age is on course (the money lasting in 9 futures out of 10)?</span></div>
+            <div class="section-title">When could I retire? <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">— the quick spin: if I keep saving and want £Y a year, from which age does the money last to the plan's own age in the share of futures I pick (9 in 10 to start)? A plain count, not the "Am I on course?" test below.</span></div>
             <p class="hint" style="margin:0 0 8px;">For each age from next year to 75: your pension pot projected to that age from what you hold and pay in, then your strategy run from that age on your income shape. A compass you can re-run every year, not the full stress test.</p>
             <div class="row-flex">
               <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Income I want (£/yr gross, today's money) <span class="hlp" tabindex="0" data-tip="Leave blank to use your income shape's first step (the plan's own steps, moved to start at each candidate age). Type a flat figure to spin a different level.">?</span><input type="number" id="acSweepIncome" step="1000" placeholder="from your income shape" style="width:150px;"></label>
-              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Lasting in<select id="acSweepTarget" style="width:170px;"><option value="90" selected>9 in 10 (on course)</option><option value="85">85% of futures</option><option value="75">3 in 4 (75%)</option><option value="95">95% of futures</option></select></label>
+              <label class="hint" style="display:flex;flex-direction:column;gap:2px;">Lasting in<select id="acSweepTarget" style="width:170px;"><option value="90" selected>9 in 10</option><option value="85">85% of futures</option><option value="75">3 in 4 (75%)</option><option value="95">95% of futures</option></select></label>
               <button type="button" data-on-click="runRetireSweep()">Spin it</button>
             </div>
             <div id="acSweepResult" style="margin-top:10px;"></div>
@@ -3712,8 +3715,8 @@
             <div class="section-title">Am I on course?</div>
             <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">
               Runs your ACTUAL Stress-Tester plan (budget-derived target, allocation, State
-              Pension, access method) through the Monte Carlo to find the pot that
-              <strong>lasts in 9 futures out of 10</strong> — "on course" — then compares your projection against it.
+              Pension, access method) through the Monte Carlo to find the pot your plan needs to be
+              <strong>on course</strong>, then compares your projection against it. The answer says how on course was counted.
             </p>
             <button type="button" data-on-click="runOnTrackCheck()">Check against my plan's target</button>
             <div id="acOnTrack" style="margin-top:10px;"></div>

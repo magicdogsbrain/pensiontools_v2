@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "7.6.0",
+    "appVersion": "7.8.0",
     "historyEnd": null
   },
   "session": {
@@ -75,7 +75,7 @@
     },
     "c": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":101,\"household\":\"couple\",\"isaGrowth\":\"cash\",\"partner\":{\"age\":55,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":350,\"has\":\"yes\",\"kind\":\"split\",\"own\":500},\"pot\":450000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"stop\":{\"age\":56,\"kind\":\"age\"}},\"risk\":\"balanced\",\"savings\":60000,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":56,\"finalSalary\":{\"has\":false},\"pot\":500000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":101,\"household\":\"couple\",\"isaGrowth\":\"cash\",\"partner\":{\"age\":55,\"finalSalary\":{\"has\":false},\"payIn\":{\"employer\":350,\"has\":\"yes\",\"kind\":\"split\",\"own\":500},\"pot\":450000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"stop\":{\"age\":56,\"kind\":\"age\"}},\"risk\":\"balanced\",\"savings\":60000,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":56,\"finalSalary\":{\"has\":false},\"pot\":500000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.8.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -1408,7 +1408,7 @@
             "partner": "f"
           },
           "historyEnd": "2023-06",
-          "engineVersion": "7.6.0",
+          "engineVersion": "7.8.0",
           "startAge": 55,
           "endAge": 101,
           "accessAge": 55,

@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { targetHoldings, diffHoldings, yearNeedsOf } from '../src/services/TransitionPlanner.js';
 import { normaliseHoldings } from '../src/services/HoldingsRecord.js';
 import { moveInputs } from '../src/services/PlanReading.js';
-import { keepFingerprint, amendmentState, keptLinesOf, normaliseAmendments, holdingsKeyOf, VALUE_BAND } from '../src/services/PlanAmendments.js';
+import { keepFingerprint, amendmentState, keptLinesOf, normaliseAmendments, amendmentsOf, holdingsKeyOf, VALUE_BAND } from '../src/services/PlanAmendments.js';
 import { heldSettingsOf, ladderGapsOf, keptAssetsOf, keepTestOf, amendPatch, withdrawPatch, sayKeep } from '../src/answers/plan/keepTest.js';
 import { runKeepRetest, ladderWalk } from '../src/answers/plan/keepRun.js';
 import { closedPlanRefusal } from '../src/services/PlanClosed.js';
@@ -240,8 +240,10 @@ describe('"I accept this risk": one write, withdraw, out of date, the guard', ()
     const m = migrateScenario(old, { now: noon(TODAY), migrations: [bad], target: 99 });
     expect(m.error && m.error.message).toMatch(/planAmendments/);
   });
-  it('normalises the stored list: anything not an agreement is dropped', () => {
-    expect(normaliseAmendments([null, { at: 'x' }, { at: AT, kind: 'keep', fingerprint: 'f' }, { at: AT, kind: 'other', fingerprint: 'f' }])).toEqual([{ at: AT, kind: 'keep', fingerprint: 'f' }]);
+  it('normalises the stored list: anything not an agreement is dropped; a kind not read is kept, never read, carried on every write (7.9.0)', () => {
+    const other = { at: AT, kind: 'other', fingerprint: 'f' };
+    expect(normaliseAmendments([null, { at: 'x' }, { at: AT, kind: 'keep', fingerprint: 'f' }, other])).toEqual([{ at: AT, kind: 'keep', fingerprint: 'f' }, other]);
+    expect(amendmentsOf({ planAmendments: [{ at: AT, kind: 'keep', fingerprint: 'f' }, other] })).toEqual([{ at: AT, kind: 'keep', fingerprint: 'f' }]);
   });
 });
 

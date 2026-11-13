@@ -115,7 +115,7 @@ describe('every corpus plan at three dates, with a result: the band, the rows, t
         else {
           if (answer.getAttribute('data-status') !== 'done' || answer.getAttribute('data-fresh') !== '1') problems.push(`${e.plan.id}: the run is not shown as done and fresh`);
           if (!['yes', 'close', 'no'].includes(band.getAttribute('data-verdict'))) problems.push(`${e.plan.id}: no verdict word`);
-          if (!band.querySelector('.verdict-word') || !band.querySelector('.bar[data-kind="outOfTen"]')) problems.push(`${e.plan.id}: no word or bar`);
+          if (!band.querySelector('.verdict-word') || !band.querySelector('.bar[data-kind="outOfTen"], .bar[data-kind="outOf20"]')) problems.push(`${e.plan.id}: no word or bar`);
           if (band.getAttribute('data-chance') !== '92.7') problems.push(`${e.plan.id}: the chance on the band is ${band.getAttribute('data-chance')}`);
           if (!band.querySelector('[data-line="lasts.left"]')) problems.push(`${e.plan.id}: no "left" row`);
           if (!root.querySelector('[data-testid="plan.lasts.ran"]')) problems.push(`${e.plan.id}: no "worked out" line`);

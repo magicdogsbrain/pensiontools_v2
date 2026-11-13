@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { renderScreen, SCHEMA_A, get } from './_a.js';
 import { checkScreen, draw, visibleText, expectedInputs, scopesFor, bannedHits } from '../render/checkScreen.js';
 import { parseDraft, checkInputs } from '../../../src/answers/shared/validate.js';
-import { money, pot, outOfTen, partsText } from '../../../src/answers/shared/format.js';
+import { money, pot, outOfTen, partsText, twentiethsOfFutures } from '../../../src/answers/shared/format.js';
 import { legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
 import { agesToShow, spendLevelAMonth } from '../../../src/answers/shared/schemaParts.js';
 import { ADVICE_SHORT, ADVICE_FULL, NOT_BUILT } from '../../../src/v7/copy/common.js';
@@ -129,15 +129,21 @@ describe('A: what each answer shows is the answer\'s, by its own rules', () => {
     expect([...table.querySelectorAll('[data-age]')].map((el) => Number(el.getAttribute('data-age')))).toEqual(want);
   });
 
-  it.each(withResult)('%s: each bar has ten cells, round(lasted × 10) filled, labelled with the count in words', (name) => {
+  // (7.8.0: while the answer's figures are weighed, every bar counts in twentieths — twenty cells, labelled "in 16 of 20
+  // futures we tried" — so no tenths sit beside a sentence in twentieths; an answer on the count keeps its ten)
+  it.each(withResult)('%s: each bar has ten cells (twenty while weighed), the share of them filled, labelled with the count in words', (name) => {
     const state = load(name);
     const r = state.answers.a.result;
     const root = renderScreen(state);
-    for (const bar of root.querySelectorAll('[data-kind="outOfTen"]')) {
+    const weighed = !!(r.basis && r.basis.weighted);
+    if (weighed) expect(root.querySelectorAll('[data-kind="outOfTen"]').length).toBe(0);
+    for (const bar of root.querySelectorAll('[data-kind="outOfTen"], [data-kind="outOf20"]')) {
       const share = get(r, bar.getAttribute('data-key'));
-      expect(bar.querySelectorAll('.bar-cell').length).toBe(10);
-      expect(bar.querySelectorAll('.bar-cell.is-on').length).toBe(Math.round(share * 10));
-      expect(bar.getAttribute('aria-label')).toBe(outOfTen(share).words);
+      const of = bar.getAttribute('data-kind') === 'outOf20' ? 20 : 10;
+      expect(of).toBe(weighed ? 20 : 10);
+      expect(bar.querySelectorAll('.bar-cell').length).toBe(of);
+      expect(bar.querySelectorAll('.bar-cell.is-on').length).toBe(Math.round(share * of));
+      expect(bar.getAttribute('aria-label')).toBe(of === 20 ? twentiethsOfFutures(share) : outOfTen(share).words);
       expect(bar.getAttribute('role')).toBe('img');
     }
   });

@@ -15,7 +15,8 @@
  *
  * written whole (one field), frozen once the plan is closed (PlanClosed.FROZEN_WHEN_CLOSED), dropped by a copy
  * (PlanCopy.copyOf) and kept byte-for-byte by every migration (storage/migrations.js protectedParts). Withdraw removes the
- * last entry. An agreement holds while what is kept is what was agreed (the fingerprint: which lines are kept and how, and
+ * last KEEP entry (7.9.0: the list also holds the agreements of "Try the bad years", kinds 'stress' and 'confidence' —
+ * answers/plan/stressPanel.js — and every write carries every kind through as it is, one this code does not read too). An agreement holds while what is kept is what was agreed (the fingerprint: which lines are kept and how, and
  * the money expected), the figures behind it have not moved far (each kept line's units, and its value within VALUE_BAND of
  * the value agreed; the rest of what is held within VALUE_BAND of its total then), and the plan document is the version it
  * was made against; a kept line removed, a new keep, a change of the money expected, a kept line bought more of or sold down,
@@ -28,10 +29,13 @@
  *   keepFingerprint(rec)               what an agreement is for: '' when no line is kept
  *   holdingsKeyOf(rec)                 the record exactly as a re-test read it (a result is for that record only)
  *   figuresMoved(entry, rec)           whether the figures behind an agreement have moved far since
- *   normaliseAmendments(raw)           the list, every entry checked; anything else dropped
- *   amendmentState(plan)               { status: 'none'|'untested'|'agreed'|'stale', last, count, keeps }
+ *   normaliseAmendments(raw)           the list, every entry checked (a moment, a kind, a fingerprint); anything else dropped —
+ *                                      an entry of a kind this code does not read is kept, so every write carries it
+ *   amendmentsOf(plan, kinds)          the entries of the kinds asked for (AMENDMENT_KINDS by default), for a reader
+ *   amendmentState(plan)               { status: 'none'|'untested'|'agreed'|'stale', last, count, keeps } — keep entries only
  *   amendmentEntry(plan, result, { at })   the entry an "I accept this risk" writes, or null when the result is not for what is kept now
- *   amendmentsWith(plan, entry) / amendmentsWithoutLast(plan)   the whole list after an agreement / a withdraw
+ *   amendmentsWith(plan, entry) / amendmentsWithoutLast(plan)   the whole list after an agreement / a keep withdraw (the last keep entry)
+ *   amendmentsWithout(plan, pick)      the whole list without the entries `pick` chooses (every other entry as it was)
  */
 import { normaliseHoldings, normaliseKeep, expectedOf } from './HoldingsRecord.js';
 import { TO_AGE_RULE } from './AgeConvention.js';
@@ -46,7 +50,12 @@ export const VALUE_BAND = 0.25;
 /** Below this many pounds a change is never "far" (rounding, a pound of interest). */
 const VALUE_FLOOR = 100;
 
-export const AMENDMENT_KINDS = Object.freeze(['keep']);
+/**
+ * The kinds this code reads (7.9.0): 'keep' (7.7.0, What you hold), 'stress' and 'confidence' (a row of "Try the bad years"
+ * accepted, stressPanel.js), 'asHeld' (read only; nothing writes it yet). Rolling back to ['keep'] hides the others from every
+ * reader and still carries them through every write.
+ */
+export const AMENDMENT_KINDS = Object.freeze(['keep', 'stress', 'confidence', 'asHeld']);
 /** The root key the agreements live under. */
 export const AMENDMENTS_KEY = 'planAmendments';
 
@@ -127,11 +136,14 @@ export function retestRecordOf(result) {
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}T/;
-/** The list, every entry checked: a moment, a known kind, a fingerprint; anything else is dropped. */
+/** The list, every entry checked: a moment, a kind, a fingerprint; anything else is dropped. A kind not read here is kept. */
 export function normaliseAmendments(raw) {
-  return (Array.isArray(raw) ? raw : []).filter((e) => isObj(e) && typeof e.at === 'string' && ISO.test(e.at) && AMENDMENT_KINDS.includes(e.kind) && typeof e.fingerprint === 'string');
+  return (Array.isArray(raw) ? raw : []).filter((e) => isObj(e) && typeof e.at === 'string' && ISO.test(e.at) && typeof e.kind === 'string' && e.kind !== '' && typeof e.fingerprint === 'string');
 }
-export const amendmentsOf = (plan) => normaliseAmendments(plan && plan.planAmendments);
+/** The entries a reader reads: of the kinds asked for that this code reads (AMENDMENT_KINDS). */
+export const amendmentsOf = (plan, kinds = AMENDMENT_KINDS) => normaliseAmendments(plan && plan.planAmendments).filter((e) => AMENDMENT_KINDS.includes(e.kind) && kinds.includes(e.kind));
+/** Every entry of the stored list (checked), whatever its kind: what a write starts from. */
+const storedList = (plan) => normaliseAmendments(plan && plan.planAmendments);
 
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 /** The version of the plan document an agreement is made against: the moment it was written (its createdAt, else its lockedAt). */
@@ -164,7 +176,7 @@ export function figuresMoved(entry, rec) {
  * kept now.
  */
 export function amendmentState(plan) {
-  const list = amendmentsOf(plan);
+  const list = amendmentsOf(plan, ['keep']);
   const rec = normaliseHoldings(plan && plan.holdings);
   const keeps = keepsLines(rec);
   const locked = isLocked(plan) && isObj(plan && plan.planDocument);
@@ -201,13 +213,17 @@ export function amendmentEntry(plan, result, { at }) {
   };
 }
 
-/** The whole list after one more agreement (the stored entries untouched). */
+/** The whole list after one more agreement (the stored entries untouched, of every kind). */
 export function amendmentsWith(plan, entry) {
-  return [...copy(amendmentsOf(plan)), copy(entry)];
+  return [...copy(storedList(plan)), copy(entry)];
 }
-/** The whole list without its last agreement ("Withdraw this"). */
+/** The whole list without the entries `pick` chooses (every other entry, of every kind, as it was). */
+export function amendmentsWithout(plan, pick) {
+  return copy(storedList(plan).filter((e) => !pick(e)));
+}
+/** The whole list without its last KEEP agreement ("Withdraw this" on What you hold); an entry of another kind is never taken. */
 export function amendmentsWithoutLast(plan) {
-  const list = copy(amendmentsOf(plan));
-  list.pop();
+  const list = copy(storedList(plan));
+  for (let i = list.length - 1; i >= 0; i--) if (list[i].kind === 'keep') { list.splice(i, 1); break; }
   return list;
 }

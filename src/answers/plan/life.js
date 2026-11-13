@@ -124,8 +124,8 @@ export function keptSexOf(plan) {
   return v === 'male' || v === 'm' ? 'm' : v === 'female' || v === 'f' ? 'f' : null;
 }
 
-/** Why a saved plan has no weighted figure in 7.8.0 whatever its strategy: a couple's answer, or two plans paired. */
-function householdReasonOf(plan) {
+/** Why a saved plan has no weighted figure in 7.8.0 whatever its strategy: a couple's answer, or two plans paired (stressPanel.js keys on it). */
+export function householdReasonOf(plan) {
   if (plan && isObj(plan.household) && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId) return 'linked';
   const fa = plan && plan.fromAnswer;
   if (isObj(fa) && (fa.household === 'couple' || (isObj(fa.inputs) && fa.inputs.household === 'couple'))) return 'couple';

@@ -86,11 +86,13 @@ test.describe('the levers on "Does it last?", without an account', () => {
       const t0 = Date.now();
       await page.getByTestId('plan.lasts.lever.spendMore').click();
       const result = page.getByTestId('plan.lasts.lever.spendMore.result');
-      await expect(result).toBeVisible({ timeout: 90_000 });
+      // (7.8.0: each probe may make the weighted run too — up to twice the time)
+      await expect(result).toBeVisible({ timeout: 180_000 });
       testInfo.annotations.push({ type: 'lever-spend-more-ms', description: `${Date.now() - t0} ms` });
       const node = leverInNode(plan, TODAY, { kind: 'spendMore' });
       expect(node.ok).toBe(true);
-      expect(node.runs).toBeLessThanOrEqual(7);
+      // (7.8.0: each probe may make the weighted run too, on to the weighting age — at most twice the 7 runs it took before)
+      expect(node.runs).toBeLessThanOrEqual(14);
       await expect(result.locator('[data-line="lever.runs"]')).toHaveText(`Tried in ${node.runs} run${node.runs === 1 ? '' : 's'} of the one test.`);
       const text = await result.innerText();
       if (node.perMonth > 0) {

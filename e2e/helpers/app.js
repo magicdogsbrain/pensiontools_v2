@@ -322,7 +322,10 @@ export function againstEngine(drawn, answer, { before = null } = {}) {
   for (const d of drawn) {
     // "Before / Now": the previous final answer's careful amount, kept in the state (brief 4.5 `before`), not in this answer.
     if (d.key.startsWith('before.')) { if (!before) continue; }
-    const want = d.key.startsWith('before.') ? get(before, d.key.slice('before.'.length)) : get(answer, d.key);
+    // (7.8.0: the state keeps the previous answer's figure at its level as `before.monthly`; a whole answer handed in as
+    // `before` carries it at levels[level])
+    const fromBefore = (k) => { const v = get(before, k); return v === undefined && k === 'monthly' && before && before.levels ? (before.levels[before.level || 'balanced'] || {}).monthly : v; };
+    const want = d.key.startsWith('before.') ? fromBefore(d.key.slice('before.'.length)) : get(answer, d.key);
     if (want === undefined) { out.push(`${d.key} is on the screen but not in the answer`); continue; }
     if (typeof want === 'number') {
       const got = Number(d.value);
@@ -421,7 +424,8 @@ class V7Page {
   }
 
   /** Nothing is running and any answer shown is final. */
-  async ready(timeout = 30_000) { await expect(this.app).toHaveAttribute('data-ready', '1', { timeout }); }
+  // (7.8.0: an answer worked out again on the weighted test may take up to twice as long: 30 s → 60 s)
+  async ready(timeout = 60_000) { await expect(this.app).toHaveAttribute('data-ready', '1', { timeout }); }
 
   /**
    * An optional step's extra pass (A's every age, B's grid): the page says `partial` while it runs, with the
@@ -675,8 +679,11 @@ export function mustFill(q, typed) {
 // The budget step (research/v7/budget-step.md, agreed 1 Oct 2026) puts every A and B visitor through "What
 // would you spend?": one more screen (4, was 3) and its button; the things typed and the clicks stay within budget.
 export const FIRST_ANSWER_BUDGET = Object.freeze({
-  a: { mustFill: 4, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000, journeyMs: 40_000 },
-  b: { mustFill: 5, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 15_000, optionalMs: 30_000, journeyMs: 40_000 }
+  // (7.8.0: the final figure counts the weighted run — each future followed on to the weighting age, up to 60 years, and
+  // the levels solved on the weighted test: the budget for it, with the processor slowed four times, 15 s → 20 s; the
+  // optional step, every age, 30 s → 40 s)
+  a: { mustFill: 4, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 20_000, optionalMs: 40_000, journeyMs: 45_000 },
+  b: { mustFill: 5, screens: 4, clicks: 8, firstMs: 3_000, finalMs: 20_000, optionalMs: 40_000, journeyMs: 45_000 }
 });
 // Chromium cannot slow a worker: waits are measured at full speed × SLOWDOWN, which stands for a phone four times
 // slower than the reference machine — 4 there, less on a machine already slower than it (e2e/global-setup.js).
@@ -739,9 +746,11 @@ export async function expectHeadlineA(page, answer) {
  */
 export async function expectHeadlinesB(page, answer) {
   const verdict = answer.status !== 'guaranteed-only' && !!answer.sentences.verdictHead;
-  const hasNumber = !!answer.levels && answer.levels.balanced.pot > 0;
+  // (7.8.0: the guide number is the level's own pot — Careful's, Balanced's or Bold's)
+  const level = answer.level || 'balanced';
+  const hasNumber = !!answer.levels && answer.levels[level].pot > 0;
   const head = page.locator('#app [data-headline="verdict"]');
-  const guide = page.locator('#app [data-guide="levels.balanced.pot"]');
+  const guide = page.locator(`#app [data-guide="levels.${level}.pot"]`);
   await expect(page.locator('#app [data-headline]')).toHaveCount(verdict ? 1 : 0);
   await expect(guide).toHaveCount(verdict && hasNumber ? 1 : 0);
   const texts = sentenceTexts(answer).map(plain);

@@ -6,6 +6,7 @@
  * futures: £17,000 a year less £886 tax), and — on every screen passed, rail labels and "what next" links
  * included — that nothing speaks of retiring, stopping work, or a length of time to wait.
  */
+import { expectLevelLines, pickLevel } from './helpers/levels.js';
 import { test, expect, v7, waitsFor, fixtureTyping, retiredWording, BUILT, FINAL_ENV } from './helpers/app.js';
 
 test.describe('J3 — already retired: 68, taking money now', () => {
@@ -63,6 +64,18 @@ test.describe('J3 — already retired: 68, taking money now', () => {
       expect(retiredWording([...sentences, ...answer.assumed.map((a) => a.text), ...answer.warnings.map((w) => w.text)].join('\n'))).toEqual([]);
     }, { answer });
 
+    await app.step('"How careful?" (7.8.0): the chance at the level with its fixed-age line and the floor; Bold moves the figure up and says what it costs; Balanced puts it back', async () => {
+      await expectLevelLines(page, 'c', answer);
+      const bold = await pickLevel(page, app, 'c', 'bold', () => app.engine(FINAL_ENV));
+      expect(bold.levels.bold.monthly).toBeGreaterThanOrEqual(answer.levels.balanced.monthly);
+      await expect(page.locator('[data-headline="levels.bold.monthly"] [data-key="levels.bold.monthly"]').first()).toHaveAttribute('data-value', String(bold.levels.bold.monthly));
+      await expect(page.locator('#app [data-testid="lasts.boldLine"]').first()).toHaveText(bold.sentences.boldLine.text);
+      await expectLevelLines(page, 'c', bold);
+      await wording();
+      const back = await pickLevel(page, app, 'c', 'balanced', () => app.engine(FINAL_ENV));
+      expect(back.levels.balanced.monthly).toBe(answer.levels.balanced.monthly);
+    });
+
     await test.step('the pensions alone: £1,343 a month', async () => {
       // The package 1 stub answers with the forum guest's figures whatever is typed, so this waits for the real answer.
       if (!BUILT.answer) { test.info().annotations.push({ type: 'not checked yet', description: 'the £1,343 figure waits for the real answer (package 2)' }); return; }
@@ -71,7 +84,9 @@ test.describe('J3 — already retired: 68, taking money now', () => {
       const shown = page.locator('#app [data-key="guaranteed.monthlyAfterTax"]').first();
       // Whole pounds, like every figure in "what it is made of" and the State Pension line beside it (the
       // build brief's phases.shown rule): £1,342.83 reads "£1,343", not the test plan's "£1,340".
-      await expect(shown).toHaveText('£1,343');
+      // (7.8.0: weighing, what comes in after the money runs out is the floor line, a year: £16,114)
+      if (answer.basis.weighted) await expect(page.locator('#app [data-testid="lasts.floor"]').first()).toContainText('£16,114 a year after tax, from your pensions');
+      else await expect(shown).toHaveText('£1,343');
     });
 
     await app.step('says what they spend: how long that lasts', async () => {

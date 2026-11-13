@@ -16,6 +16,8 @@
  */
 import { test, expect, v7, waitsFor, record, fixtureTyping, fixtureFile, mustFill, expectHeadlineA, askAndTime, secondReading, NEEDS, BUILT, FINAL_ENV, FIRST_ANSWER_BUDGET, SLOWDOWN, KEY_DELAY } from './helpers/app.js';
 
+import { expectLevelLines, pickLevel } from './helpers/levels.js';
+
 const BUDGET = FIRST_ANSWER_BUDGET.a;
 const CHART = { ...FINAL_ENV, detail: 'chart' };
 const ALL = { ...FINAL_ENV, detail: 'all' };
@@ -103,6 +105,19 @@ test.describe('J4 — can I stop soon? (question A, the published build)', () =>
       await expectHeadlineA(page, full);
       const pinned = fixtureFile('A1');
       if (BUILT.aAnswer && pinned && pinned.expect && pinned.expect.verdict) expect(full.headline.verdict).toBe(pinned.expect.verdict);
+    }, { answer: () => app.engine(CHART) });
+
+    await app.step('"How careful?" (7.8.0): the verdict at the level with its fixed-age line; Bold moves the verdict and says what it costs; Balanced puts it back', async () => {
+      const full = app.engine(CHART);
+      await expectLevelLines(page, 'a', full);
+      const bold = await pickLevel(page, app, 'a', 'bold', () => app.engine(CHART));
+      await expectHeadlineA(page, bold);
+      await expect(page.locator('#app [data-sentence="verdict"]')).toHaveText(bold.sentences.line.text);
+      await expect(page.locator('#app [data-testid="lasts.boldLine"]').first()).toHaveText(bold.sentences.boldLine.text);
+      await expectLevelLines(page, 'a', bold);
+      const back = await pickLevel(page, app, 'a', 'balanced', () => app.engine(CHART));
+      await expectHeadlineA(page, back);
+      expect(back.headline.verdict).toBe(full.headline.verdict);
     }, { answer: () => app.engine(CHART) });
 
     await app.step('every age: one more pass arrives as "partial", then the table is Node\'s, row for row', async () => {

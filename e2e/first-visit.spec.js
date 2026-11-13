@@ -87,6 +87,13 @@ test.describe('the first visit', () => {
     await expect(pot.locator('path.pot-band')).toHaveCount(1);
     await expect(pot.locator('[data-mark="you"]')).toHaveAttribute('data-pounds', '340000');
     await expect(app.id('d.pot.legend').locator('li')).toHaveCount(3);
+    // 7.8.0: the verdict said as the chance the money lasts as long as you do, the count to one named age beside it, and
+    // "How careful?" beside the verdict — all fitting the width
+    await expect(page.locator('#app [data-sentence="verdict"]')).toHaveAttribute('data-weighted', '1');
+    await expect(page.locator('#app [data-sentence="verdict"]')).toContainText(/^Counting how long people your age live, £1,650 a month after tax lasts as long as you do /);
+    await expect(page.locator('#app [data-testid="lasts.fixed"]').first()).toContainText(/^If you live to \d+, the money lasts that long /);
+    await expect(app.id('d.level')).toBeVisible();
+    await expect(app.id('d.level').locator('button[aria-pressed="true"]')).toHaveText('18 times in 20: Balanced (we start here)');
     await noSideways(page);
     await shot(page, '3-retired', testInfo);
 

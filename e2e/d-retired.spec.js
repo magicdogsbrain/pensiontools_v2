@@ -12,6 +12,7 @@
  *   - no figure in any address at any point.
  * The household is made up (the design's worked example, round figures).
  */
+import { expectLevelLines, pickLevel } from './helpers/levels.js';
 import { test, expect, v7, PROD, FIXED_NOW, TODAY, FINAL_ENV, V7_PATH } from './helpers/app.js';
 import { SCHEMA_D } from '../src/answers/d/schema.js';
 import { answerD } from '../src/answers/d/answer.js';
@@ -84,6 +85,8 @@ test.describe('D — "I\'m retired. Will it last?"', () => {
       await expect(app.id('d.answer.headroom')).toHaveAttribute('data-headroom', answer.headroom.kind);
       // (7.8.0: the count's middling amount left the answer; the other two levels are said instead)
       await expect(app.id('d.more')).toContainText(answer.sentences.levels.text);
+      // (7.8.0: the headroom's own count to the plan-to age beside it)
+      if (answer.sentences.headroomFixed) await expect(app.id('d.answer.headroomFixed')).toHaveText(answer.sentences.headroomFixed.text);
       await expect(page.locator('[data-key="levels.balanced.monthly"]').first()).toHaveAttribute('data-value', String(answer.levels.balanced.monthly));
       await expect(page.locator('#app h1')).toHaveText(D.steps.answer.label);
       expect(await page.locator('#app').innerText()).not.toMatch(RETIRED_WORDS);
@@ -92,6 +95,17 @@ test.describe('D — "I\'m retired. Will it last?"', () => {
       await expect(app.id('d.lever.fall')).toHaveAttribute('data-lever-on', '0');
       expect(answer.work).toBe(null);
       expect(answer.fall).toBe(null);
+    }, { answer: () => answer });
+
+    await app.step('"How careful?" (7.8.0): the chance at the level with its fixed-age line and the floor; Careful moves the figures, Balanced puts them back', async () => {
+      await expectLevelLines(page, 'd', answer);
+      const careful = await pickLevel(page, app, 'd', 'careful', engine);
+      expect(careful.levels.careful.monthly).toBeLessThanOrEqual(answer.levels.balanced.monthly);
+      await expect(page.locator('[data-key="levels.careful.monthly"]').first()).toHaveAttribute('data-value', String(careful.levels.careful.monthly));
+      await expect(page.locator('#app [data-sentence="verdict"]')).toHaveText(careful.sentences.line.text);
+      await expectLevelLines(page, 'd', careful);
+      answer = await pickLevel(page, app, 'd', 'balanced', engine);
+      await expect(page.locator('#app [data-sentence="verdict"]')).toHaveText(answer.sentences.line.text);
     }, { answer: () => answer });
 
     await app.step('"What if shares fell by a fifth?": one press, the engine\'s own figures on the same lives', async () => {

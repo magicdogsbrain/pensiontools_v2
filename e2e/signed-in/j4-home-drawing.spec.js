@@ -102,4 +102,27 @@ test('a locked drawing plan: the root lands on its home; "Not now" on what you h
     const changed = Object.keys({ ...p, ...planned }).filter((k) => !same(p[k], planned[k])).sort();
     expect(changed).toEqual(['decisionTool', 'lastModified']);
   });
+
+  // 7.8.0 (the build spec's section 10, signed in, j4): "Does it last?" on the locked plan shows today's test — the chance
+  // the money lasts as long as you do with the count to the plan's age beside it — above the document's own figure, which
+  // reads as it was locked (counted to its age); opening it writes nothing
+  await test.step('"Does it last?": today\'s test with both lines; the document as locked; nothing written', async () => {
+    const before = await plansOf(uid);
+    await openAt(page, `#/plan/${ID}/lasts`);
+    await expect(page.locator('[data-region="plan-lasts-answer"]')).toHaveAttribute('data-status', 'done', { timeout: 90_000 });
+    const today = page.getByTestId('plan.lasts.result');
+    const head = today.getByTestId('plan.lasts.result.headline');
+    const sub = today.getByTestId('plan.lasts.result.sub');
+    // a weighted figure leads with the count beside it; with none (a way of drawing whose purchases follow the plan's
+    // length, or a couple's plan) the count to the age leads, labelled
+    if (await head.getAttribute('data-weighted')) {
+      await expect(head).toContainText('Counting how long people your age live');
+      await expect(sub).toHaveAttribute('data-fixed', 'age');
+      await expect(sub).toContainText(/^If you live to \d+, /);
+    } else await expect(head.or(sub).first()).toContainText(/\d+/);
+    await expect(page.getByTestId('plan.lasts.document')).toBeVisible();
+    await expect(page.locator('[data-testid="plan.lasts.document"] [data-weighted]')).toHaveCount(0);
+    expect(await page.locator('#app').innerText()).not.toMatch(/undefined|NaN/);
+    expect(same(await plansOf(uid), before), 'opening "Does it last?" writes nothing').toBe(true);
+  });
 });

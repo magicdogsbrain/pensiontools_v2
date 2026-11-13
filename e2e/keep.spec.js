@@ -131,9 +131,9 @@ test.describe('keep this as a plan (the published build)', () => {
     await expect(app.id('c.keep.made')).toBeVisible({ timeout: 60_000 });
     const first = await storedPlans(page);
     expect(first.length).toBe(1);
-    expect(first[0].planDetails.name).toBe('From 58 · £1,350 a month');               // F1's careful amount at 0.5% a year in charges (6.19.0)
+    expect(first[0].planDetails.name).toBe('From 58 · £1,380 a month');               // F1's figure at Balanced, weighted (7.8.0), at 0.5% a year in charges
     expect(first[0].fromAnswer.inputs.charge).toBe(0.5);
-    expect(stripId(first[0])).toEqual(stripId(expectedPlans('c', c.result, 'From 58 · £1,350 a month').yours));
+    expect(stripId(first[0])).toEqual(stripId(expectedPlans('c', c.result, 'From 58 · £1,380 a month').yours));
 
     const b = await answer(app, 'b', 'B5', { all: true });
     // not on course, B asks which pay-in the plan keeps (saving-enough-and-check-in.md 3.6): "as now" makes today's plan
@@ -149,7 +149,7 @@ test.describe('keep this as a plan (the published build)', () => {
     const plans = await storedPlans(page);
     expect(plans.length).toBe(3);
     expect(JSON.stringify(plans[0])).toBe(JSON.stringify(first[0]));                  // the first plan byte-identical
-    const expected = expectedPlans('b', b.result, suggestedPlanName('b', b.result.inputs, b.result), { takenNames: ['From 58 · £1,350 a month'], first: false });
+    const expected = expectedPlans('b', b.result, suggestedPlanName('b', b.result.inputs, b.result), { takenNames: ['From 58 · £1,380 a month'], first: false });
     expect(stripId(plans[1])).toEqual(stripId(expected.partner));
     expect(plans[1].isActive).toBe(false);
     expect(plans[2].household).toEqual({ partnerScenarioId: plans[1].id });
@@ -245,7 +245,7 @@ test.describe('the spending shape, kept as a plan', () => {
       const plans = await storedPlans(page);
       const made = plans.filter((p) => p.fromAnswer);
       expect(made).toHaveLength(1);
-      expect(made[0].fromAnswer.seedVersion).toBe(3);
+      expect(made[0].fromAnswer.seedVersion).toBe(5);   // (7.8.0: a shaped seed's version 5, the level's answer row)
       const S = made[0].stressTool.settings;
       expect(S.incomeShape).toBe('phases');
       expect(S.incomeSteps.length).toBeGreaterThan(2);

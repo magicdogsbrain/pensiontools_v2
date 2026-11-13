@@ -41,9 +41,13 @@ export function expectLastsAsPlanner(plan, { today }) {
   const t0 = performance.now();
   const out = runLasts(plan, { today, onProgress: (d, t) => progress.push([d, t]) });
   const ms = performance.now() - t0;
-  expect(progress).toEqual([[0, 2], [1, 2]]);
+  // (7.8.0, weighing: a plan that ends before the weighting age makes one more run, followed on to it — three stages)
+  const stages = progress.length ? progress[0][1] : 0;
+  expect([2, 3]).toContain(stages);
+  expect(progress).toEqual(Array.from({ length: stages }, (_, i) => [i, stages]));
   // wall-clock: only where timing means something (not shared CI runners — the rule of tests/v7/shared/speed.*)
-  if (!process.env.CI || process.env.TIMING_CHECKS === '1') expect(ms, 'a run takes well under five seconds here').toBeLessThan(5000);
+  // (7.8.0: a plan that ends before the weighting age makes one more run, followed on to it — the budget is twice today's)
+  if (!process.env.CI || process.env.TIMING_CHECKS === '1') expect(ms, 'a run takes well under ten seconds here (twice the five before 7.8.0)').toBeLessThan(10000);
   // plain data: it survives JSON and a worker boundary
   expect(JSON.parse(JSON.stringify(out))).toEqual(out);
   expect(() => structuredClone(out)).not.toThrow();

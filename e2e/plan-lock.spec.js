@@ -145,7 +145,9 @@ test.describe('"Lock the plan", without an account', () => {
     const step = page.locator('[data-region="plan-step"]');
     await expect(step.locator('[data-line="says.pays"]').first()).toContainText(/From age \d+: £[\d,]+ a year before tax, £[\d,]+ a month after tax/);
     await expect(step.locator('[data-line="says.sp"], [data-line="says.spAssumed"], [data-line="says.noSp"]')).toHaveCount(1);
-    await expect(step.locator('[data-line="says.bad"]')).toContainText(/Your plan lasts in .+ out of 10\. Left at the end, at today’s prices: typically £[\d,]+; in a bad case \(the worst 1 in 10\) £[\d,]+/);
+    // (7.8.0: a plan locked now records the definition it was tested under: the chance it lasted as long as you do when it
+    // was locked, beside its count to the plan's age)
+    await expect(step.locator('[data-line="says.bad"]')).toContainText(/(Your plan lasts in .+ out of 10|When the plan was locked, counting how long people your age live, the money lasted as long as you do .+ If you live to \d+, the money lasts that long in .+ futures we tried)\. Left at the end, at today’s prices: typically £[\d,]+; in a bad case \(the worst 1 in 10\) £[\d,]+/);
     await expect(step.locator('[data-line="says.cuts"]')).toContainText(/Income cuts: in a slump, after \d+ months? in a row below the plan’s line/);
     await expect(page.getByTestId('plan.unlock')).toHaveCount(1);
     await expect(page.getByTestId('plan.plan.unlock')).toHaveText('Unlock this plan');

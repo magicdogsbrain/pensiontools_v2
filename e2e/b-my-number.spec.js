@@ -10,6 +10,7 @@
 import { test, expect, v7, waitsFor, record, fixtureTyping, carriedDraft, expectHeadlineA, expectHeadlinesB, askAndTime, secondReading, NEEDS, BUILT, FINAL_ENV, SLOWDOWN } from './helpers/app.js';
 import { money } from '../src/answers/shared/format.js';
 import { KEEP } from '../src/v7/copy/keep.js';
+import { expectLevelLines, pickLevel } from './helpers/levels.js';
 
 const A_ENV = { ...FINAL_ENV, detail: 'chart' };
 const B_ENV = { ...FINAL_ENV, detail: 'answer' };
@@ -67,6 +68,19 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
       await expectHeadlinesB(page, b);
     }, { answer: () => app.engine(B_ENV) });
 
+    await app.step('"How careful?" (7.8.0): the pot at the level with the other two beside it and the fixed-age line; Careful asks for more, Balanced puts it back', async () => {
+      const b = app.engine(B_ENV);
+      await expectLevelLines(page, 'b', b);
+      await expect(page.locator('#app [data-guide] .line').first()).toHaveText(b.sentences.line.text);
+      const careful = await pickLevel(page, app, 'b', 'careful', () => app.engine(B_ENV));
+      if (careful.levels.careful.pot !== null && b.levels.balanced.pot !== null) expect(careful.levels.careful.pot).toBeGreaterThanOrEqual(b.levels.balanced.pot);
+      await expectHeadlinesB(page, careful);
+      await expectLevelLines(page, 'b', careful);
+      const back = await pickLevel(page, app, 'b', 'balanced', () => app.engine(B_ENV));
+      expect(back.levels.balanced.pot).toBe(b.levels.balanced.pot);
+      delete app.typed.confidence;
+    }, { answer: () => app.engine(B_ENV) });
+
     await test.step('counts the hand-over', async () => {
       const counts = {
         project: testInfo.project.name, build: 'published', question: 'b', from: 'a', stubAnswer: !BUILT.bAnswer,
@@ -77,7 +91,8 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
       expect(counts.typedAfterHandOver, 'nothing typed again after the hand-over').toBe(0);
       // the link, "Next: what you would spend" (the budget step: the spending came over too) and the button
       expect(counts.clicksAfterHandOver, 'the link, on to the spending, and the button').toBeLessThanOrEqual(3);
-      expect(counts.waitFinalSlowedMs, 'final figure, processor slowed four times').toBeLessThanOrEqual(15_000);
+      // (7.8.0: the final figure counts the weighted run, as FIRST_ANSWER_BUDGET says: 15 s → 20 s)
+      expect(counts.waitFinalSlowedMs, 'final figure, processor slowed four times').toBeLessThanOrEqual(20_000);
     });
 
     await test.step('back returns to A\'s answer as it was', async () => {
@@ -120,6 +135,7 @@ test.describe('J4 — what\'s my number? (A, then B with the figures carried acr
       // (7.8.0: one figure for what would be enough, at the level — the 3-in-4 and middling figures left the answer; the
       // words are the engine's own)
       await expect(first).toHaveText(b.sentences.verdictLine.text);
+      await expect(first).toContainText('would put you on course, which is Balanced: 18 times in 20.');
       const income = page.locator('#app [data-testid="b.verdict.income"]');
       await expect(income).toHaveText(b.sentences.income.text);
       await expect(income).toContainText('with your State Pension from 68 (the full amount, as assumed)');

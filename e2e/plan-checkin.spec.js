@@ -40,7 +40,7 @@ async function wordsOk(page) {
 test.describe('a saver\'s check-in, without an account', () => {
   test('kept from "Am I saving enough?": the first check-in, a year on the second, the classic planner\'s pot list; a locked saver checks in too', async ({ page, watch }) => {
     waitsFor(...NEEDS.b);
-    test.setTimeout(600_000);
+    test.setTimeout(900_000);   // (7.8.0: the check-ins' B answers weigh)
     watch.allow(WORKER_DATA_MISSING);
     const app = v7(page, 'prod', 'b');
     let planId = null;
@@ -80,7 +80,7 @@ test.describe('a saver\'s check-in, without an account', () => {
       await page.getByTestId(`${T}.ci.every.year`).check();
       await page.getByTestId(`${T}.ci.note`).fill('First check-in.');
       await page.getByTestId(`${T}.submit`).click();
-      await expect(page.getByTestId(`${T}.result`)).toHaveAttribute('data-live', '1', { timeout: 180_000 });
+      await expect(page.getByTestId(`${T}.result`)).toHaveAttribute('data-live', '1', { timeout: 360_000 });
       await expect(page.locator('#app')).toHaveAttribute('data-ready', '1', { timeout: 60_000 });
       await expect(page.getByTestId(`${T}.result`).locator('h2')).toHaveText('Checked in for September 2026');
       await expect(page.getByTestId(`${T}.result`).locator('[data-verdict]').first()).toBeVisible();
@@ -100,6 +100,10 @@ test.describe('a saver\'s check-in, without an account', () => {
       expect(acc.checkIns).toHaveLength(1);
       expect(acc.checkIns[0]).toMatchObject({ date: '2026-09-30', pot: { pension: 124000, isa: 6500 }, note: 'First check-in.' });
       expect(['yes', 'close', 'no']).toContain(acc.checkIns[0].reading.band);
+      // 7.8.0: a reading kept now names its level and both figures (the weighted chance and the count to its age)
+      expect(acc.checkIns[0].reading).toMatchObject({ level: 'balanced' });
+      expect(typeof acc.checkIns[0].reading.weighted).toBe('number');
+      expect(typeof acc.checkIns[0].reading.fixedAge).toBe('number');
       expect(acc.path.path[0].nominal.middling).toBe(130500);
       expect(acc.history.map((r) => r.date)).toEqual(['2026-09']);
       expect(new URL(page.url()).hash).toBe(`#/plan/${planId}/checkin`);
@@ -116,7 +120,7 @@ test.describe('a saver\'s check-in, without an account', () => {
       await page.getByTestId(`${T}.ci.pension`).fill('139,000');
       await page.getByTestId(`${T}.ci.isa`).fill('8,900');
       await page.getByTestId(`${T}.submit`).click();
-      await expect(page.getByTestId(`${T}.result`)).toHaveAttribute('data-live', '1', { timeout: 180_000 });
+      await expect(page.getByTestId(`${T}.result`)).toHaveAttribute('data-live', '1', { timeout: 360_000 });
       await expect(page.locator('#app')).toHaveAttribute('data-ready', '1', { timeout: 60_000 });
       await expect(page.getByTestId(`${T}.result`).locator('h2')).toHaveText('Checked in for October 2027');
       await expect(page.getByTestId(`${T}.result.path`)).not.toHaveAttribute('data-band', 'start');
@@ -155,7 +159,8 @@ test.describe('a saver\'s check-in, without an account', () => {
       await page.getByTestId(`${T}.ci.pension`).fill('331,000');
       await page.getByTestId(`${T}.ci.isa`).fill('41,500');
       await page.getByTestId(`${T}.submit`).click();
-      await expect(page.getByTestId(`${T}.toast`)).toContainText('Checked in for October 2027.', { timeout: 180_000 });
+      // (7.8.0: the check-in's B answer weighs: up to twice the time)
+      await expect(page.getByTestId(`${T}.toast`)).toContainText('Checked in for October 2027.', { timeout: 360_000 });
       const after = (await stored(page)).find((p) => p.id === 'LockedSaver01');
       expect(after.decisionTool.settings.locked).toBe(true);
       expect(JSON.stringify(after.planDocument)).toBe(JSON.stringify(before.planDocument));

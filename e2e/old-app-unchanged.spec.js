@@ -75,6 +75,20 @@ test.describe('the classic planner, beside V7', () => {
     expect(first).toMatch(/\d+%/);
     expect(first).not.toMatch(/undefined|NaN/);
 
+    // 7.8.0: the plan's verdict block on the stress page says the chance the money lasts as long as you do at the level, with
+    // the count to the plan's age in the same block (the one render rule, both apps)
+    await (wide ? page.locator('nav.tabs .tab[data-tab="stress"]') : page.locator(`button[data-on-click="mobileGo('stress')"]`)).click();
+    // ("Run the test": the one test on the demo plan, its card opening with the verdict block)
+    await page.locator('#stress-content button[data-on-click="runMonteCarloUI()"]').click();
+    const chanceBlock = page.locator('#stress-content [data-chance-block]').first();
+    await expect(chanceBlock).toBeVisible({ timeout: 120_000 });
+    const weightedLine = chanceBlock.locator('[data-weighted]');
+    if (await weightedLine.count()) {
+      await expect(weightedLine.first()).toContainText(/times? in 20|every future we tried|none of the futures we tried/);
+      await expect(chanceBlock.locator('[data-fixed]').first()).toContainText(/If (you live to|one of you is still alive when) /);
+    } else await expect(chanceBlock.locator('[data-fixed]').first()).toContainText(/If (you live to|one of you is still alive when) /);
+    expect(await chanceBlock.innerText()).not.toMatch(/undefined|NaN/);
+
     // and the way back lands on the front door
     if (SWITCHED) {
       await toFront.click();

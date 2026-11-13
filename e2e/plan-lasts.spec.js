@@ -66,7 +66,9 @@ async function bandFigures(page, testid) {
 /** The same figures from the Node run's result (lastsRun.js), as lasts.js verdictOf reads them. */
 function nodeFigures(result) {
   const a = result.a;
-  return { chance: a.chancePct, typical: Math.round(a.typicalLeft), bad: Math.round(a.badCaseLeft), good: Math.round(a.goodCaseLeft), futures: a.futures, histories: a.histories, years: Math.round(a.years), cutN: a.cuts ? a.cuts.cutN : null, cutPerYear: a.cuts ? a.cuts.typicalCutPerYear : null, cutYears: a.cuts ? a.cuts.typicalCutYears : null, verdict: a.share >= 0.9 ? 'yes' : a.share >= 0.85 ? 'close' : 'no' };
+  // (7.8.0: weighing, the word is the weighted part's at the plan's level; with no weighted part, the count's 9 in 10)
+  const word = a.words && ['yes', 'close', 'no'].includes(a.verdict) ? a.verdict : a.share >= 0.9 ? 'yes' : a.share >= 0.85 ? 'close' : 'no';
+  return { chance: a.chancePct, typical: Math.round(a.typicalLeft), bad: Math.round(a.badCaseLeft), good: Math.round(a.goodCaseLeft), futures: a.futures, histories: a.histories, years: Math.round(a.years), cutN: a.cuts ? a.cuts.cutN : null, cutPerYear: a.cuts ? a.cuts.typicalCutPerYear : null, cutYears: a.cuts ? a.cuts.typicalCutYears : null, verdict: word };
 }
 /** Wait for the run on the page to finish and be the plan's own; return how long it took from `since`. */
 async function awaitRun(page, since) {
@@ -99,9 +101,17 @@ test.describe('"Does it last?", without an account', () => {
     const node = lastsInNode(plan, TODAY);
     expect(before).toEqual(nodeFigures(node));
     const band = page.getByTestId('plan.lasts.result');
-    await expect(band).toContainText('Your plan lasts in');
+    // 7.8.0: the chance the money lasts as long as you do leads, with the count to the plan's age beside it in the band
+    if (node.a.words && node.a.weighted !== null && node.a.weighted !== undefined) {
+      await expect(band.locator('[data-testid="plan.lasts.result.headline"]')).toHaveAttribute('data-weighted', '1');
+      await expect(band.locator('[data-testid="plan.lasts.result.headline"]')).toContainText('Counting how long people your age live');
+      await expect(band.locator('[data-testid="plan.lasts.result.sub"]')).toHaveAttribute('data-fixed', 'age');
+      await expect(band.locator('[data-testid="plan.lasts.result.sub"]')).toContainText(/^If you live to \d+, /);
+    } else await expect(band).toContainText('Your plan lasts in');
     await expect(band.locator('.verdict-word')).toHaveText(/On course|Close|Not yet/);
-    await expect(band).toContainText('Left at the end, at today’s prices: typically £');
+    // (7.8.0: weighing, what is left is said at the plan-to age, typically and in the best 1 in 10)
+    if (node.a.words && node.a.weighted !== null && node.a.weighted !== undefined) await expect(band).toContainText(/what is typically left then is £[\d,]+ at today's prices/);
+    else await expect(band).toContainText('Left at the end, at today’s prices: typically £');
     await expect(band).toContainText('Income cuts: in ');
     await expect(band).toContainText('Run with the spending cuts you set: up to 20% after 3 months in a row below the plan’s line.');
     await expect(page.getByTestId('plan.lasts.ran')).toContainText('Worked out just now, on the plan as saved');
@@ -215,10 +225,15 @@ test.describe('"Does it last?", without an account', () => {
     expect(today).toEqual(nodeFigures(node));
     expect(doc.chance).toBe(node.stored.a.chancePct);
     expect(doc.chance).toBe(100);
+    // a document locked before 7.8.0 reads as it was: its own count, never weighted after the event
+    await expect(page.locator('[data-testid="plan.lasts.document"] [data-weighted]')).toHaveCount(0);
     // a locked gilt ladder is the document's own: today's test is the same, so no "earlier test" line
     expect(node.stored.note).toBe('');
     await expect(page.getByTestId('plan.lasts.earlierTest')).toHaveCount(0);
-    await expect(page.getByTestId('plan.lasts.result')).toContainText('Every year is bought by contract');
+    // (7.8.0: a ladder's purchases follow the plan's length, so it has no weighted figure: today's test says its count to the
+    // plan's age, and that it is the figure the plan was locked with)
+    if (node.a.words) await expect(page.getByTestId('plan.lasts.result')).toContainText('This is the figure the plan was locked with, counted to');
+    else await expect(page.getByTestId('plan.lasts.result')).toContainText('Every year is bought by contract');
     expect(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY)).toBe(stored);
   });
 });

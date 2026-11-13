@@ -250,12 +250,13 @@ test.describe('the spending shape on the spend step', () => {
       const bars = await page.$$eval('[data-testid="a.shape.chart"] g.year', (gs) => gs.map((g) => [Number(g.getAttribute('data-age')), Number(g.getAttribute('data-figure'))]));
       const model = { unit: 'perMonth', start: { then: 'level' }, steps: [
         { fromAge: 70, perMonth: 2800, then: 'falls', fallsPct: 2 }, { fromAge: 86, perMonth: 2000, then: 'level' }] };
-      const want = yearFigures(model, 3000, 62, 33);
+      // (7.8.0: the plan runs to the plan-to age, 100 for someone of 50 not said: 38 years from 62)
+      const want = yearFigures(model, 3000, 62, 38);
       expect(bars.map(([age]) => age)).toEqual(want.map((_, y) => 62 + y));
       bars.forEach(([, v], y) => expect(Math.abs(v - want[y])).toBeLessThan(0.005));
       await app.id('a.shape.years').focus();
       await page.keyboard.press('Enter');
-      await expect(page.locator('table[data-table="shape"] tbody tr')).toHaveCount(33);
+      await expect(page.locator('table[data-table="shape"] tbody tr')).toHaveCount(38);   // (7.8.0: to the plan-to age, 100)
       expect(await axeProblems(page), 'accessibility with steps, falls, moves and the table (WCAG 2.1 A and AA)').toEqual([]);
     });
 

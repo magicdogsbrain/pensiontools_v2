@@ -10,7 +10,10 @@
  * On 7.0.0 the page was headed "Drawdown Planner" and the questions were one list (this test failed there, at the name).
  * Nothing here signs in. Run with the signed-in journeys (the emulator build), at desktop-1440 and phone-390.
  */
-import { test, expect, v7 } from '../helpers/app.js';
+import { test, expect, v7, WORKER_DATA_MISSING } from '../helpers/app.js';
+import { clearEmulators, makeAccount, putSettings, plansOf, SAM } from './emulator.js';
+import { answer, keep, signIn, openAt } from './journeys.js';
+import { VERSION } from '../../src/constants.js';
 import { COMMON, FRONT } from '../../src/v7/copy/common.js';
 
 /** A saver of 33 (fictional): £30,000 in pensions, 5% of £32,000 pay in and 3% from the employer, stopping at 62, £2,000 a month. */
@@ -54,4 +57,44 @@ test('the front page speaks to a saver; "Am I saving enough?" gives the ballpark
   await expect(page.locator('#app main')).toContainText(/your pension at 62: £[\d,]+ in a bad case/);
   await expect(page.locator('#enough-title')).toContainText(/To be on course: [\d.]+% of your pay/);
   await expect(page.getByTestId('b.enough.line')).toContainText(/£[\d,]+ a month going into your pension/);
+});
+
+/**
+ * 7.8.0 (research/v7/replan-nov-2026.md 5; the build spec's section 10, signed in, j1): a level chosen on the answer is the
+ * plan's. Sam (fictional) signs in, answers "Am I saving enough?", picks Bold on "How careful?", keeps the answer as a
+ * plan in the account; the plan's first check-in then reads at Bold — its reading names Bold, read back from the account.
+ */
+test('signed in: B kept at Bold; the check-in reads at Bold', async ({ page, watch }) => {
+  test.setTimeout(420_000);
+  await clearEmulators();
+  watch.allow(WORKER_DATA_MISSING);
+  const { uid } = await makeAccount(SAM);
+  await putSettings(uid, { lastSeenVersion: VERSION });
+  await openAt(page, '#/account');
+  await signIn(page, SAM);
+  const app = await answer(page, 'b');
+  // the level control beside the guide number: Bold, worked out again
+  await page.getByTestId('b.level.bold').scrollIntoViewIfNeeded();
+  await page.getByTestId('b.level.bold').click();
+  await expect(page.getByTestId('b.level')).toHaveAttribute('data-level', 'bold', { timeout: 120_000 });
+  await app.ready(120_000);
+  await expect(page.locator('#app [data-testid="lasts.boldLine"]').first()).toContainText(/^About \d+ times? in 10 the money runs out while you are alive/);
+  const made = await keep(page, 'b');
+  await expect(made).toContainText('in your account');
+  const planId = await made.getAttribute('data-plan-id');
+  const kept = (await plansOf(uid)).find((p) => p.id === planId);
+  expect(kept, 'the plan in the account').toBeTruthy();
+  // the kept answer row names its level, chosen
+  expect(JSON.stringify(kept)).toContain('"levelChosen":true');
+  await openAt(page, `#/plan/${planId}/checkin`);
+  await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.checkin', { timeout: 60_000 });
+  await page.getByTestId('plan.checkin.ci.pension').fill('40,000');
+  await page.getByTestId('plan.checkin.submit').click();
+  await expect(page.getByTestId('plan.checkin.result')).toHaveAttribute('data-live', '1', { timeout: 180_000 });
+  await expect(page.getByTestId('plan.checkin.result')).toContainText(/bold/i);
+  const after = (await plansOf(uid)).find((p) => p.id === planId);
+  const reading = after.accumulationTool.checkIns[after.accumulationTool.checkIns.length - 1].reading;
+  expect(reading.level).toBe('bold');
+  expect(typeof reading.weighted).toBe('number');
+  expect(typeof reading.fixedAge).toBe('number');
 });

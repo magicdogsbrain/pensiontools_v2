@@ -85,6 +85,15 @@ test.describe('J2 — a couple, the partner added part-way through', () => {
       // The package 1 stub answers with one person's sentence whatever is typed; the real answer names the two of them.
       if (BUILT.answer) await expect(headline.locator('[data-sentence="levels.balanced.monthly"]')).toContainText('the two of you');
       else test.info().annotations.push({ type: 'not checked yet', description: 'the couple\'s wording waits for the real answer (package 2)' });
+      // 7.8.0: counted while one of you is alive, said so; the count to the younger one's age beside it; the floor when the
+      // money runs out says what comes in between you and, if one of you has died, to the one left
+      await expect(headline.locator('[data-sentence="levels.balanced.monthly"]')).toContainText('as long as one of you is alive');
+      await expect(headline.locator('[data-testid="lasts.fixed"]')).toContainText(/^If one of you is still alive when the younger of you is \d+, /);
+      if (couple.sentences.floor) {
+        await expect(headline.locator('[data-testid="lasts.floor"]')).toHaveText(couple.sentences.floor.text);
+        if (/between you/.test(couple.sentences.floor.text)) await expect(headline.locator('[data-testid="lasts.floor"]')).toContainText('if one of you has died by then');
+      }
+      await expect(page.locator('#app [data-assumed-id="life-couple"]')).toHaveCount(1);
     }, { answer: couple, before: single });   // "Before / Now": the one-person figure beside the couple's
 
     await app.step('"answer in full detail" opens, and coming back shows the same figures', async () => {

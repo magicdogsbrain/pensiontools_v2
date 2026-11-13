@@ -13,10 +13,12 @@
  *                                      again. Drawn only while the answer weighs, and carries [data-weighted]: it sits in
  *                                      a block with the fixed-age line. Never saved anywhere but the answer's own boxes.
  *
- * Computes nothing: the words are the answer's sentences and the copy's.
+ * Computes nothing: the words are the answer's sentences and the copy's; the counts in the labels are marked data-fixed
+ * (counts the copy wrote, never a figure worked out).
  */
 import { Sentence } from './Sentence.jsx';
 import { Button } from './Button.jsx';
+import { withFixedCounts } from './MadeOf.jsx';
 import { LEVELS_WORDS } from '../copy/common.js';
 
 const ORDER = ['fixed', 'boldLine', 'floor', 'howLong', 'howMuch', 'left', 'cost'];
@@ -55,10 +57,10 @@ export function LevelStrip({ q, result, dispatch, words = null }) {
       <div class="level-choices">
         {LEVEL_IDS.map((k) => (
           <Button key={k} testid={`${q}.level.${k}`} kind="choice" aria-pressed={result.level === k ? 'true' : 'false'}
-            onClick={() => dispatch({ type: 'draft/set', q, path: 'confidence', value: k })}>{options[k]}</Button>
+            onClick={() => dispatch({ type: 'draft/set', q, path: 'confidence', value: k })}><span class="level-option">{withFixedCounts(options[k])}</span></Button>
         ))}
       </div>
-      <p class="note level-help">{LEVELS_WORDS.help}</p>
+      <p class="note level-help">{withFixedCounts(LEVELS_WORDS.help)}</p>
     </div>
   );
 }

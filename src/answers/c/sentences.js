@@ -480,7 +480,7 @@ function weighedSentences(sentences, result, facts) {
   if (level === 'bold') sentences.boldLine = boldSentence('c.bold', shown.weighted, lf);
   // the bad case at the level's amount: when the money runs out at it (the worst 1 in 10 among them), or that it lasts
   const wp = whenParts(sf, lf);
-  sentences.bad = wp ? S('c.when', wp) : S('c.bad.lasts', ['In every future we tried, ', M(LM), ' a month lasts to ', A('basis.endAge'), ' and beyond.']);
+  sentences.bad = wp ? S('c.when', wp) : S('c.bad.lasts', ['Even in a bad case (the worst ', F('1'), ' in ', F('10'), '), ', M(LM), ' a month lasts to ', A('basis.endAge'), ': in every future we tried it lasts beyond.']);
   const hl = howLongParts(sf, lf);
   if (hl) sentences.howLong = S('c.howLong', hl);
   const hm = howMuchParts(sf);

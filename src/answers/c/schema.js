@@ -14,7 +14,7 @@
  */
 import { RULES, accessAgeOn, firstAccessAge } from '../shared/rules.js';
 import { payingInFields, statePensionAgeOf, earliestPensionStart, peopleFromValues, chargeField, partnerStopFields, untilBothStopField,
-  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, payInParts, levelField, horizonEndAge } from '../shared/schemaParts.js';
+  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, payInParts, levelField, horizonEndAge, sexField } from '../shared/schemaParts.js';
 
 const POT = [0, 1, 10_000, 30_000, 250_000, 1_073_100, 3_000_000, 10_000_000];
 const STATE_PENSION = [0, 1, 6_000, 12_570, 12_571, 20_000];
@@ -100,6 +100,9 @@ export const SCHEMA_C = {
     // Fund and platform charges (6.19.0): A's and B's very field — the household's one charge, percent a year, taken
     // while the money is still invested before it is first taken and while it is drawn (schemaParts.js chargeField).
     chargeField(),
+    // which figures for how long people live (7.8.0): ahead of the end age, whose default reads them
+    sexField('you'),
+    sexField('partner'),
     // the end age's one default rule (7.8.0: horizonEndAge; 95 while not weighing)
     { path: 'endAge', type: 'age', min: 75, max: 105, default: { rule: 'endAge' }, group: 'more', boundaries: [75, 95, 100, 105] },
     // "How careful?" (7.8.0): Careful, Balanced (the default) or Bold, every figure at it

@@ -47,7 +47,9 @@ const same = (paths) => paths.map((p) => [p, p]);
  * fund and platform charge (6.19.0: C asks it too, so it is carried every way and a hand-over shows the same figure), the
  * end age.
  */
-const HOUSEHOLD = same(['household', ...YOU, ...PARTNER, ...APART_PATHS, 'savings', 'isaGrowth', 'risk', 'charge', 'endAge']);
+// (7.8.0: which figures for how long each person lives, as typed — the same people in every question; not typed, nothing)
+const SEX = ['you.sex', 'partner.sex'].filter(askedEverywhere);
+const HOUSEHOLD = same(['household', ...YOU, ...PARTNER, ...APART_PATHS, 'savings', 'isaGrowth', 'risk', 'charge', ...SEX, 'endAge']);
 
 /**
  * What A and B share beyond the person block: the spending, the pay-ins (every way of saying one — one figure, two

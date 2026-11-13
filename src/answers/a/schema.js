@@ -16,7 +16,7 @@
  */
 import { APART } from '../shared/household.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, agesToShow, stopKindField, partnerStopFields, untilBothStopField,
-  taxFreeFields, partTimeHidden, shapeFields, isaGrowthField, savingsGrowthDefault, levelField, horizonEndAge } from '../shared/schemaParts.js';
+  taxFreeFields, partTimeHidden, shapeFields, isaGrowthField, savingsGrowthDefault, levelField, horizonEndAge, sexField } from '../shared/schemaParts.js';
 
 const hiddenWhenStopped = (f) => (Object.keys(partTimeHidden()).length ? { ...f, whenNot: partTimeHidden() } : f);
 
@@ -57,6 +57,9 @@ export const SCHEMA_A = {
     // "Add more detail" — all optional, each with a default that is listed under what was assumed (the tax-free part of
     // someone who has stopped has none: not answered is not taken).
     ...taxFreeFields('a'),
+    // which figures for how long people live (7.8.0): ahead of the end age, whose default reads them
+    sexField('you'),
+    sexField('partner'),
     ...moreFields(),
     // "How careful?" (7.8.0): Careful, Balanced (the default) or Bold, every figure at it
     levelField(),

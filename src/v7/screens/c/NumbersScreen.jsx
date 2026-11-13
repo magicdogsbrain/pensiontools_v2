@@ -75,6 +75,9 @@ export function NumbersScreen(state, dispatch) {
               <FieldGroup form={form} path="isaGrowth" dispatch={dispatch} />
               <Field form={form} path="risk" dispatch={dispatch} />
               <Field form={form} path="charge" dispatch={dispatch} />
+              {/* which figures for how long people live (7.8.0): the end age's default reads them */}
+              <FieldGroup form={form} path="you.sex" dispatch={dispatch} />
+              <FieldGroup form={form} path="partner.sex" dispatch={dispatch} />
               <Field form={form} path="endAge" dispatch={dispatch} />
               <FieldGroup form={form} path="confidence" dispatch={dispatch} />
             </section>

@@ -248,13 +248,26 @@ export const D = {
     },
     endAge: {
       label: 'Make it last to age',
-      help: 'The later of 95 and five years on from today unless you say.',
+      help: 'Unless you say, the age when fewer than 1 in 10 people your age are still alive.',
       errors: { 'd-end-after-now': 'That is not later than your age now. Choose a later age.', tooLow: 'Type an age from 75 to 105.', tooHigh: 'Type an age from 75 to 105.' }
     },
-    // "How careful?" (7.8.0): the count each level lets through leads the label, so "Balanced" is never read as a mix
+    // 7.8.0: which figures for how long people live (optional; not said reads the figures for women, the cautious side)
+    'you.sex': {
+      label: 'Figures for how long people live',
+      help: 'Women tend to live longer, so their figures test the money for longer. If you do not say, we use them.',
+      options: { notSaid: 'Not said (we use the figures for women)', female: 'The figures for women', male: 'The figures for men' }
+    },
+    'partner.sex': {
+      label: 'Your partner’s figures for how long people live',
+      help: 'Women tend to live longer, so their figures test the money for longer. If you do not say, we use them.',
+      options: { notSaid: 'Not said (we use the figures for women)', female: 'The figures for women', male: 'The figures for men' }
+    },
+    // "How careful?" (7.8.0): what each level asks for leads the label, so "Balanced" is never read as a mix. `optionsCounted`
+    // are the rollback's words (SUCCESS.weighted false: the levels are counts of futures), for "Try a change" there
     confidence: {
       label: 'How careful?',
-      options: { careful: 'In 19 futures out of 20: Careful', balanced: 'In 9 futures out of 10: Balanced (we start here)', bold: 'In 7 futures out of 10: Bold' }
+      options: { careful: '19 times in 20: Careful', balanced: '18 times in 20: Balanced (we start here)', bold: '14 times in 20: Bold' },
+      optionsCounted: { careful: 'In 19 futures out of 20: Careful', balanced: 'In 9 futures out of 10: Balanced (we start here)', bold: 'In 7 futures out of 10: Bold' }
     },
     'work.has': { label: 'Some work', options: { no: 'No', yes: 'Yes' } },
     'work.yearly': {

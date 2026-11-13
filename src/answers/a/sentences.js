@@ -497,7 +497,12 @@ function weighedSentences(out, result, facts) {
   const SL = 'shown.levels.' + level + '.monthly';
   const SP = result.shapeNotes && result.shapeNotes.inForce ? 'spendShape.0.perMonth' : 'spend.perMonth';
   if (level === 'bold' && out.head) out.head = { ...out.head, parts: ['At Bold: ', ...out.head.parts] };
-  out.line = S('a.line.weighted', [countingLead(c), ', ', p ? 'your partner stopping at ' : 'stopping at ', A('shown.age'), ' and spending ', M(SP), ' a month lasts ', asLongAs(c), ' ',
+  // (couples who stop in different years: the line names both stops, as it always has — couples-different-years.md 2.4)
+  const ap = result.apart;
+  const stops = p ? ['with you already stopped, your partner stopping at ', A('shown.age'), ', and spending ', M(SP), ' a month between you']
+    : ap ? ['stopping at ', A('shown.age'), ', with your partner ', ...(ap.stops.partner.already ? ['already stopped'] : ['stopping at ', A('apart.stops.partner.age')]), ', and spending ', M(SP), ' a month between you']
+      : ['stopping at ', A('shown.age'), ' and spending ', M(SP), ' a month'];
+  out.line = S('a.line.weighted', [countingLead(c), ', ', ...stops, ' lasts ', asLongAs(c), ' ',
     ...chanceParts(result.chance.weighted), ...(shown.verdict === 'close' ? asksForParts(level) : []), '.'], 'weighted');
   out.fixed = fixedSentence('a.fixed', result.chance.fixedAge, lf);
   if (level === 'bold') out.boldLine = boldSentence('a.bold', result.chance.weighted, lf);
@@ -507,7 +512,7 @@ function weighedSentences(out, result, facts) {
     : nearest === null || nearest === undefined ? []
       : nearest > shown.age ? [p ? ' Your partner stopping at ' : ' Stopping at ', A('earliest.yes'), ' instead is within ', name, '.']
         : [' The earliest age shown within ', name, ' is ', A('earliest.yes'), '.'];
-  out.bad = wp ? S('a.when', [...wp, ...tail]) : S('a.bad.lasts', ['In every future we tried the money lasts to ', A('basis.endAge'), ' and beyond.', ...tail]);
+  out.bad = wp ? S('a.when', [...wp, ...tail]) : S('a.bad.lasts', ['Even in a bad case (the worst ', F('1'), ' in ', F('10'), ') the money lasts to ', A('basis.endAge'), ': in every future we tried it lasts beyond.', ...tail]);
   delete out.after;
   const hl = howLongParts(sf, lf);
   if (hl) out.howLong = S('a.howLong', hl);

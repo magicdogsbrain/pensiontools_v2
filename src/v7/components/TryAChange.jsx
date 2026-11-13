@@ -388,11 +388,15 @@ export function SaverTryAChange({ q, state, form, result, dispatch }) {
       <Choices key="risk" q={q} id="risk" label={t.tryRisk} options={LEVELS} words={words.fields.risk.options}
         chosen={form.shown.risk} onPick={(o) => dispatch(set('risk', o))} />
     );
-  } else if (form.byPath.get('confidence')) {
+  }
+  // "How careful?" (7.8.0): on every question that has the box while the answer weighs; in the rollback, as before 7.8.0
+  // (B alone, in its counted words)
+  if (form.byPath.get('confidence') && (q !== 'a' || weighedResult(result))) {
     const options = form.byPath.get('confidence').options;
+    const f = words.fields.confidence;
     rows.push(
       <Choices key="confidence" q={q} id="confidence" label={weighedResult(result) ? LEVELS_WORDS.label : t.tryConfidence} options={options}
-        words={weighedResult(result) ? LEVELS_WORDS.options : words.fields.confidence.options}
+        words={weighedResult(result) ? LEVELS_WORDS.options : f.optionsCounted || f.options}
         chosen={form.shown.confidence} onPick={(o) => dispatch(set('confidence', o))} />
     );
   }

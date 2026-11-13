@@ -753,6 +753,16 @@ export function toEngine(household, takeHomeAYear, env) {
 }
 
 /**
+ * 7.8.0: the stretches of years an answer shows end at the plan-to age (plan.endAge), the label, even while the run goes on
+ * to the weighting age (plan.runToAge): what it is made of describes the plan's own years. Not weighing, every stretch.
+ */
+function labelYearsOf(plan, list) {
+  if (!(plan && Number.isFinite(plan.runToAge))) return list;
+  const Y = plan.endAge - plan.startAge;
+  return list.filter((x) => x.from < Y).map((x) => (x.to > Y ? { ...x, to: Y } : x));
+}
+
+/**
  * What a household take-home of `H` a year is made of, period by period, at today's prices and in the first
  * year of each period: each person's State Pension, final-salary pension, pension withdrawal, savings draw, tax
  * and take-home. £ a year. The household take-home of a period is max(H, the guaranteed take-home).
@@ -768,8 +778,8 @@ export function toEngine(household, takeHomeAYear, env) {
  * lives) — and the periods are today's shape. Without `atJoin` the first stopper's money at the start is used.
  */
 export function breakdownAt(plan, H0, pots = null, atJoin = null) {
-  if (plan.apart) return apartBreakdownAt(plan, H0, pots, atJoin);
-  return plan.periods.map((per) => {
+  if (plan.apart) return labelYearsOf(plan, apartBreakdownAt(plan, H0, pots, atJoin));
+  return labelYearsOf(plan, plan.periods.map((per) => {
     // the household's take-home in the period's first year (with a shape, H × r there: periods are cut at each step)
     const H = amountInYear(plan, H0, per.from);
     const R = Math.max(0, H - per.netTotal);
@@ -806,7 +816,7 @@ export function breakdownAt(plan, H0, pots = null, atJoin = null) {
       return out;
     });
     return { from: per.from, to: per.to, takeHome: Math.max(H, per.netTotal), byPerson, beforeStatePension: plan.spCount > 0 && per.spPaidCount < plan.spCount };
-  });
+  }));
 }
 
 /**

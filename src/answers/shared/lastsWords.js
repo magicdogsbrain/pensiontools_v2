@@ -202,7 +202,8 @@ export function lifeAssumed(lf, { endAgeField = 'endAge' } = {}) {
         : ['For your partner we used figures for women, who tend to live longer, because you did not say.']);
     } else {
       const w = WHO[lf.sex[who]] || 'women';
-      line(id, field, 'entered', lf.sex[who], who === 'you' ? [`We used the figures for ${w}, as you said.`] : [`For your partner we used the figures for ${w}, as you said.`]);
+      // (the value as typed: 'female' or 'male', the box's own)
+      line(id, field, 'entered', lf.sex[who] === 'm' ? 'male' : 'female', who === 'you' ? [`We used the figures for ${w}, as you said.`] : [`For your partner we used the figures for ${w}, as you said.`]);
     }
   };
   sexLine('you');

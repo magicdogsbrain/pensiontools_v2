@@ -510,10 +510,16 @@ export function answerCReal(inputs, env) {
     const most = futures.map((f, i) => solver.most(i) * STEP);
     const byMost = futures.map((f, i) => i).sort((a, b) => most[a] - most[b] || a - b);
     const byMiddling = futures.map((f, i) => i).sort((a, b) => (runOut.middling[a] ?? Infinity) - (runOut.middling[b] ?? Infinity) || a - b);
+    // 7.8.0, weighing: the months traced are at the amount the answer stands behind (its level's, which the phases are),
+    // in the future that is the worst 1 in 10 by when it runs out at it; each future's run-out month at it is listed
+    // (`shown`) beside the spread's. The runs go on past the plan-to age, to the weighting age: the trace keeps those
+    // months, and what is counted to the plan-to age is counted to its month. Not weighing, as before.
+    const shownMonths = weigher.weighted ? lv[level].months : null;
+    const byShown = shownMonths ? futures.map((f, i) => i).sort((a, b) => (shownMonths[a] ?? Infinity) - (shownMonths[b] ?? Infinity) || a - b) : null;
     result.trace = {
-      atCareful: traceOf(plan, futures[byMost[at.careful]], spread.careful),
+      atCareful: shownMonths ? traceOf(plan, futures[byShown[at.careful]], shownMonthly) : traceOf(plan, futures[byMost[at.careful]], spread.careful),
       atMiddling: traceOf(plan, futures[byMiddling[at.careful]], spread.middling),
-      futures: futures.map((f, i) => ({ id: f.id, most: most[i], runOutMonth: { careful: runOut.careful[i], middling: runOut.middling[i], good: runOut.good[i] } })),
+      futures: futures.map((f, i) => ({ id: f.id, most: most[i], runOutMonth: { careful: runOut.careful[i], middling: runOut.middling[i], good: runOut.good[i], ...(shownMonths ? { shown: shownMonths[i] } : {}) } })),
       evaluations: solver.evaluations
     };
   }

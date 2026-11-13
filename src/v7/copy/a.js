@@ -262,6 +262,7 @@ export const A = {
       partTimeYearly: ['part-time earnings from', 'to', 'a year'],
       savingRisk: ['the risk while saving from', 'to'],
       risk: ['the risk once stopped from', 'to'],
+      confidence: ['how careful to be from', 'to'],
       other: 'your numbers'
     },
 
@@ -584,10 +585,23 @@ export const A = {
         'end-after-stop-apart': 'That is not after you have both stopped. Choose a later age. The two of you also need to stop less than 45 years apart.'
       }
     },
-    // "How careful?" (7.8.0): the count each level lets through leads the label, so "Balanced" is never read as a mix
+    // 7.8.0: which figures for how long people live (optional; not said reads the figures for women, the cautious side)
+    'you.sex': {
+      label: 'Figures for how long people live',
+      help: 'Women tend to live longer, so their figures test the money for longer. If you do not say, we use them.',
+      options: { notSaid: 'Not said (we use the figures for women)', female: 'The figures for women', male: 'The figures for men' }
+    },
+    'partner.sex': {
+      label: 'Your partner’s figures for how long people live',
+      help: 'Women tend to live longer, so their figures test the money for longer. If you do not say, we use them.',
+      options: { notSaid: 'Not said (we use the figures for women)', female: 'The figures for women', male: 'The figures for men' }
+    },
+    // "How careful?" (7.8.0): what each level asks for leads the label, so "Balanced" is never read as a mix. `optionsCounted`
+    // are the rollback's words (SUCCESS.weighted false: the levels are counts of futures), for "Try a change" there
     confidence: {
       label: 'How careful?',
-      options: { careful: 'In 19 futures out of 20: Careful', balanced: 'In 9 futures out of 10: Balanced (we start here)', bold: 'In 7 futures out of 10: Bold' }
+      options: { careful: '19 times in 20: Careful', balanced: '18 times in 20: Balanced (we start here)', bold: '14 times in 20: Bold' },
+      optionsCounted: { careful: 'In 19 futures out of 20: Careful', balanced: 'In 9 futures out of 10: Balanced (we start here)', bold: 'In 7 futures out of 10: Bold' }
     }
   },
 

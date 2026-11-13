@@ -536,7 +536,9 @@ export function answerB(inputs, env) {
         const row = ages(a);
         // each row's guide number from its neighbour's (a hint: the search settles on the same £1,000 either way)
         const guess = lastNumber !== null ? lastNumber : row ? row.carefulPot() : null;
-        const num = row ? row.number(H, allowed.level, guess, lastNumber !== null ? 0.03 : 0.05) : null;
+        // (7.8.0, weighing: the row of the stop asked about says the answer's own pot at the level; the other rows' guide
+        // numbers are their counts at the level's failures — a weighted pot for every row costs too much to work out here)
+        const num = row ? (weighing && a === stopAge ? number : row.number(H, allowed.level, guess, lastNumber !== null ? 0.03 : 0.05)) : null;
         if (num !== null && num > 0) lastNumber = num;
         // (weighing: each cell at the level, on the weighted chance — the same test as the pay-in and what would be enough)
         const counts = row ? countsAtPayIns(row.sp, row.H(H), g.payIns.map((p) => row.payInsAt(p, savingsInNow)), weighing ? row.at : null) : null;
@@ -601,7 +603,8 @@ export function answerB(inputs, env) {
     ...(shaped || {}),
     stop: { age: stopAge, year: String(Number(env.today.slice(0, 4)) + S) },
     ages: Object.fromEntries(whos.map((w) => [w, inp[w].age + own[w]])),
-    years: { saving: S, drawing: D },
+    // (the drawing years to the plan-to age, the label: while weighing the run goes on past it, to plan.runToAge)
+    years: { saving: S, drawing: Number.isFinite(plan.runToAge) ? plan.endAge - plan.startAge : D },
     pensionOpens, gapYears,
     saving,
     level,

@@ -14,7 +14,7 @@
  */
 import { APART } from '../shared/household.js';
 import { personFields, saverFields, moreFields, SPEND_FIELDS, gridToShow, stopKindField, partnerStopFields, untilBothStopField,
-  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, levelField, horizonEndAge } from '../shared/schemaParts.js';
+  taxFreeFields, shapeFields, isaGrowthField, savingsGrowthDefault, levelField, horizonEndAge, sexField } from '../shared/schemaParts.js';
 
 const STOP_KIND = stopKindField('b');
 
@@ -45,6 +45,9 @@ export const SCHEMA_B = {
     // someone who has stopped has none: not answered is not taken).
     ...taxFreeFields('b'),
     { path: 'savings', type: 'money', min: 0, max: 10_000_000, default: 0, group: 'more', boundaries: [0, 1, 60_000, 150_000, 10_000_000] },
+    // which figures for how long people live (7.8.0): ahead of the end age, whose default reads them
+    sexField('you'),
+    sexField('partner'),
     ...moreFields(),
     // How the savings grow (6.22.0): "Mostly cash" or "Invested like my pension", under more detail with the savings box
     // and drawn straight under it; declared after what its default reads (the savings, and what goes into them each month).

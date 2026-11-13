@@ -29,7 +29,7 @@ export const LAYOUT_A = {
   // "How your savings grow" straight under the savings box, once there is money in savings (select.js choiceAsked)
   you: ['you.age', 'you.pot', 'you.payIn.kind', 'savings', 'isaGrowth', 'stop.kind', 'partTime.has', 'you.statePension.kind', 'you.finalSalary.has'],
   partner: ['partner.age', 'partner.pot', 'partner.stop.kind', 'partner.payIn.kind', 'partner.statePension.kind', 'partner.finalSalary.has'],
-  more: ['you.alreadyDrawing', 'partner.alreadyDrawing', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence'],
+  more: ['you.alreadyDrawing', 'partner.alreadyDrawing', 'savingsIn', 'savingRisk', 'risk', 'charge', 'you.sex', 'partner.sex', 'endAge', 'confidence'],
   // the spending shape's fields: drawn by its own block under the figure (StepsField), never by LayoutField
   spend: ['spend.kind', 'spend.then', 'spend.steps'],
   /** Drawn first under more detail, each only while it applies (someone who has stopped). */

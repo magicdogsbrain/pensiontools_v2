@@ -435,7 +435,8 @@ export function answerOnLives(checked, env, ctx) {
       saving: { atCareful: { futureId: bad, priceAtStop: sp.saving.people[0].until > 0 ? sp.kernels[0].pension.priceAtStop[bad] : 1, potAtStart: round2(totals[bad]),
         rows: saves ? sp.saving.people.flatMap((p) => savingRows(sp.saving, p, sp.lives[bad])) : [] } },
       futures: Array.from({ length: n }, (_, i) => ({ id: i, most: band.solver ? band.solver.most(i) * STEP : band.k.careful * STEP,
-        runOutMonth: { careful: band.runOutMonths.careful[i], middling: band.runOutMonths.middling[i], good: band.runOutMonths.good[i] } })),
+        // (7.8.0, weighing: each life's run-out month at the amount the answer stands behind, beside the spread's)
+        runOutMonth: { careful: band.runOutMonths.careful[i], middling: band.runOutMonths.middling[i], good: band.runOutMonths.good[i], ...(weigher.weighted ? { shown: band.levels[level].months[i] } : {}) } })),
       evaluations: band.evaluations
     };
   }

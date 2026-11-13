@@ -43,7 +43,8 @@ export function shapeOfAnswer({ household, plan, at = null, level = 'balanced', 
   if (!hs) return null;
   const first = hs.unit === 'share' ? 1 : hs.first;
   const start = startAgeYou(plan);
-  const years = plan.years;
+  // (7.8.0: the shape is said to the plan-to age, the label — while weighing the run goes on past it, to plan.runToAge)
+  const years = Number.isFinite(plan.runToAge) ? plan.endAge - plan.startAge : plan.years;
   const list = (monthly, round) => stepsAt(hs, first, start, years, monthly, round);
   const out = {};
   if (at) out.shapeAt = Object.fromEntries(Object.entries(at).map(([id, v]) => [id, list(v, downMonthly)]));

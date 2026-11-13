@@ -420,11 +420,12 @@ function weighedSentences(out, result, facts) {
   const others = LEVEL_IDS.filter((k) => k !== level && lv[k] && isNum(lv[k].pot)).map((k) => [LEVEL_WORD[k], ' ', P(`levels.${k}.pot`)]);
   const range = others.length ? [' (', ...others.flatMap((x, i) => (i ? [', ', ...x] : x)), ')'] : [];
   const simple = !result.apart && result.askedAbout !== 'partner';
-  if (simple && out.line && isNum(lv[level].pot)) {
+  // (a pot of nought keeps its own line, b.line.zero: the savings and State Pension already pay — never "a pot of £0")
+  if (simple && out.line && isNum(lv[level].pot) && lv[level].pot > 0) {
     out.line = S(c ? 'b.line.couple' : 'b.line', ['At ', name, ', to spend ', M('spend.perMonth'), ' a month from ', A('stop.age'), ', ', c ? 'the two of you would want pots of about ' : 'you would want a pot of about ',
       P(NK), c ? ' between you by then' : ' by then', ...range, '. ', countingLead(c), ', with exactly that at ', A('stop.age'), ' the money lasts ', asLongAs(c), ' ',
       F(20 - LEVEL_FAILS20[level]), ' times in ', F('20'), '.'], 'weighted');
-  } else if (out.line) out.line = { ...out.line, mark: 'weighted' };
+  } else if (out.line && out.line.id !== 'b.line.zero') out.line = { ...out.line, mark: 'weighted' };
   // the fixed-age line, paying in as now (the chance the answer carries: today's pay-ins, the whole of each future)
   out.fixed = { ...fixedSentence('b.fixed', result.chance.fixedAge, lf) };
   out.fixed.parts = ['Paying in as now: ', ...lower(out.fixed.parts)];
@@ -445,13 +446,21 @@ function weighedSentences(out, result, facts) {
     out.enoughLine = { ...out.enoughLine, mark: 'weighted' };
     out.enoughFixed = fixedAfter('b.enough.fixed', ['With that in savings: '], lead.lasted);
   }
-  // the ways: each said as its chance, each with its own count to the plan-to age (the lever's card is its block)
+  // the ways: each said as its chance, each with its own count to the plan-to age (the lever's card is its block), led by
+  // the way it counts, so no two ways ever say the same sentence (several often reach the level with the same count)
   const lever = out.lever || {};
+  const leverLead = {
+    stopLater: () => [facts.asked === 'partner' ? 'Your partner stopping at ' : 'Stopping at ', A('levers.stopLater.age'), ': '],
+    payMore: () => ['Paying in ', M('levers.payMore.payIn'), ' a month from now', result.levers.payMore.savingsIn ? [' and ', M('levers.payMore.savingsIn'), ' into savings'] : '', ': '],
+    spendLess: () => ['Spending ', M('levers.spendLess.spend'), ' a month: '],
+    oneOff: () => ['With ', M('levers.oneOff.amount'), ' put in now: '],
+    accept: () => ['As it stands: ']
+  };
   for (const id of ['stopLater', 'payMore', 'spendLess', 'oneOff', 'accept']) {
     const v = result.levers && result.levers[id];
     if (!lever[id] || !v || !isNum(v.weighted)) continue;
     lever[id] = { ...lever[id], mark: 'weighted' };
-    lever[`${id}Fixed`] = S(`b.lever.${id}.fixed`, fixedAgeParts(v.lasted, lf), 'fixed');
+    lever[`${id}Fixed`] = fixedAfter(`b.lever.${id}.fixed`, leverLead[id](), v.lasted);
   }
   // paying in as now, the whole life: the count to the plan-to age (a count, so with its age, never "only")
   if (out.wholeLife && isNum(result.wholeLife.weighted)) {

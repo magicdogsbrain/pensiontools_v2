@@ -22,7 +22,7 @@ import { D } from '../../copy/d.js';
 export const LAYOUT_D = {
   you: ['stopped', 'you.age', 'you.pot', 'you.taxFreeTaken', 'you.statePension.kind', 'you.finalSalary.has', 'savings', 'isaGrowth', 'spend.kind'],
   partner: ['partner.age', 'partner.pot', 'partner.stopped', 'partner.taxFreeTaken', 'partner.statePension.kind', 'partner.finalSalary.has'],
-  more: ['risk', 'charge', 'endAge', 'confidence']
+  more: ['risk', 'charge', 'you.sex', 'partner.sex', 'endAge', 'confidence']
 };
 
 const fill = (text, values) => String(text).replace(/\{(\w+)\}/g, (m, k) => (k in values ? values[k] : m));

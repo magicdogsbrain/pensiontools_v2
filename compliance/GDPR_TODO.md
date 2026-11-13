@@ -286,8 +286,9 @@ delete call sites).
 
 ## How long the money has to last: an optional "figures for women or for men" on the question pages — 11 Nov 2026 (written, NOT yet published or deployed)
 - **One new optional field, no new collection, processor or Firestore path.** Questions A to D ask, under "Add more
-  detail", whether to use the life-table figures for women or for men (`you.sex`, `partner.sex`; choices "Not said",
-  "Women's figures", "Men's figures"; "Not said" is the default and reads the figures for women, the cautious side). It
+  detail", whether to use the life-table figures for women or for men (`you.sex`, `partner.sex`, "Figures for how long
+  people live"; choices "Not said", "The figures for women", "The figures for men"; "Not said" is the default and reads
+  the figures for women, the cautious side; the partner's is asked only for a couple). It
   only chooses which ONS life table weights the futures (src/answers/shared/weigh.js); it is never sent anywhere.
 - **Where it is kept:** in an answer's own inputs (the page address while a question is open, as every other box), and,
   when a person keeps an answer as a plan, in the kept seed's inputs (`fromAnswer.inputs[who].sex`) — so a signed-in

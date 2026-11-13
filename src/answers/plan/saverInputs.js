@@ -302,6 +302,10 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   // stored before 7.8.0 ("9 in 10" was everyone's default) is Balanced. No figure of the plan's, so it stays the answer's
   // for as long as the plan keeps the record of it — with a check-in too
   if (kept && kept.answer && kept.answer.levelChosen === true) inputs.confidence = levelOfValue(kept.inputs.confidence, { stored: true });
+  // which figures for how long people live (7.8.0): the kept answer's, only when it said one (a plan saves none of its own);
+  // else the box's default, not said (the figures for women). The saver's plan is read for one person, so `you` alone
+  const keptSex = kept && kept.inputs && kept.inputs.you && kept.inputs.you.sex;
+  if (keptSex === 'female' || keptSex === 'male') inputs.you.sex = keptSex;
 
   const checked = checkInputs(SCHEMA_B, inputs, { today });
   if (!checked.ok) return { ok: false, why: 'invalid', errors: checked.errors };

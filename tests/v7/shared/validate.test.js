@@ -74,17 +74,17 @@ describe('parseDraft — text as typed', () => {
   it('a couple: the partner block applies, the pot starts at nothing', () => {
     const r = parse({ household: 'couple', 'partner.age': '60' });
     expect(r.ok).toBe(true);
-    expect(r.inputs.partner).toEqual({ age: 60, pot: 0, statePension: { kind: 'full' }, finalSalary: { has: false } });
+    expect(r.inputs.partner).toEqual({ age: 60, pot: 0, statePension: { kind: 'full' }, finalSalary: { has: false }, sex: 'notSaid' });
     expect(parse({ household: 'couple' }).errors).toEqual({ 'partner.age': 'required' });
   });
 
   it('usedDefault lists every default that was used, and not the ones typed over', () => {
-    expect(parse().usedDefault).toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'savings', 'risk', 'charge', 'endAge', 'confidence']);
+    expect(parse().usedDefault).toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'savings', 'risk', 'charge', 'you.sex', 'endAge', 'confidence']);
     // (savings typed: how they grow is then asked, and "Mostly cash" is its default — 6.22.0)
     expect(parse({ risk: 'cautious', charge: '0.75', endAge: '90', savings: '5000', take: '1500' }).usedDefault)
-      .toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'isaGrowth', 'confidence']);
+      .toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'isaGrowth', 'you.sex', 'confidence']);
     expect(parse({ risk: 'cautious', charge: '0.75', endAge: '90', savings: '5000', isaGrowth: 'invested', take: '1500' }).usedDefault)
-      .toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'confidence']);
+      .toEqual(['household', 'start.kind', 'you.statePension.kind', 'you.finalSalary.has', 'you.sex', 'confidence']);
     expect(parse({ take: '1,500' }).inputs.take).toBe(1500);
     expect(parse().inputs.take).toBeNull();
   });
@@ -174,7 +174,7 @@ describe('C: the partner\'s own stop, and the rules that read each person\'s sto
   const couple = (extra = {}) => parse({ household: 'couple', 'partner.age': '56', 'partner.pot': '100000', ...extra });
 
   it('not answered leaves today\'s inputs; "when you do" and an age keep their answer; C has no "show me ages"', () => {
-    expect(couple().inputs.partner).toEqual({ age: 56, pot: 100000, statePension: { kind: 'full' }, finalSalary: { has: false } });
+    expect(couple().inputs.partner).toEqual({ age: 56, pot: 100000, statePension: { kind: 'full' }, finalSalary: { has: false }, sex: 'notSaid' });
     expect('untilBothStop' in couple().inputs).toBe(false);
     expect(couple({ 'partner.stop.kind': 'same' }).inputs.partner.stop).toEqual({ kind: 'same' });
     expect(couple({ 'partner.stop.kind': 'age', 'partner.stop.age': '60' }).inputs.partner.stop).toEqual({ kind: 'age', age: 60 });
@@ -202,7 +202,7 @@ describe('C: the partner\'s own stop, and the rules that read each person\'s sto
   it('"They already have" hides the partner\'s paying-in block; the tax-free part is asked only of someone who has stopped', () => {
     const r = couple({ 'partner.stop.kind': 'already', 'partner.payIn.has': 'yes', 'partner.payIn.own': '300', 'partner.payIn.employer': '0', 'partner.taxFreeTaken': 'yes', 'you.taxFreeTaken': 'yes' });
     expect(r.ok).toBe(true);
-    expect(r.inputs.partner).toEqual({ age: 56, pot: 100000, statePension: { kind: 'full' }, finalSalary: { has: false }, stop: { kind: 'already' }, taxFreeTaken: true });
+    expect(r.inputs.partner).toEqual({ age: 56, pot: 100000, statePension: { kind: 'full' }, finalSalary: { has: false }, stop: { kind: 'already' }, taxFreeTaken: true, sex: 'notSaid' });
     expect(r.inputs.you.taxFreeTaken).toBe(true);                                                   // C from now: you have stopped
     expect('taxFreeTaken' in parse({ 'start.kind': 'age', 'start.age': '60', 'you.taxFreeTaken': 'yes' }).inputs.you).toBe(false);
     expect('taxFreeTaken' in couple({ 'partner.stop.kind': 'age', 'partner.stop.age': '60', 'partner.taxFreeTaken': 'yes' }).inputs.partner).toBe(false);
@@ -301,7 +301,8 @@ describe('defaults by rule: when the money starts', () => {
   it('defaults() lists every default that applies', () => {
     expect(defaults(SCHEMA_C, { 'you.pot': 250000, 'you.age': 50 }, TEST_ENV)).toEqual({
       household: 'single', 'start.kind': 'age', 'start.age': 57, 'you.statePension.kind': 'full', 'you.finalSalary.has': false,
-      savings: 0, risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'balanced', take: null
+      // (7.8.0: which figures for how long people live, not said; the end age's default the plan-to age — 50 now: 100)
+      savings: 0, risk: 'balanced', charge: 0.5, 'you.sex': 'notSaid', endAge: 100, confidence: 'balanced', take: null
     });
     expect(defaults(SCHEMA_C, { household: 'couple' }, TEST_ENV)).toMatchObject({ 'partner.pot': 0, 'partner.statePension.kind': 'full' });
     expect(defaults(SCHEMA_C, {}, TEST_ENV)['start.kind']).toBe('now');   // no age yet: nothing to work it out from

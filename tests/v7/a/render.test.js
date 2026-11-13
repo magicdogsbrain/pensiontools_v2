@@ -108,7 +108,12 @@ describe('A: what each answer shows is the answer\'s, by its own rules', () => {
     const band = root.querySelector('[data-headline="verdict"] [data-verdict]');
     if (!band) return;
     const n = r.basis.futures;
-    expect(band.getAttribute('data-verdict')).toBe(verdictOf(Math.round((1 - r.headline.lasted) * n), n));
+    // (7.8.0, weighing: the level's one test on the weighted chance of the row shown — yes at 1 − t/20, close one twentieth
+    // below; a chance on a line itself may go either way. Not weighing: the count)
+    const t = r.basis.levelFails20;
+    const w = r.shown && r.shown.weighted;
+    const onLine = r.basis.weighted && [t, t + 1].some((x) => Math.abs(w - (1 - x / 20)) < 1e-9);
+    if (!onLine) expect(band.getAttribute('data-verdict')).toBe(r.basis.weighted ? (w >= 1 - t / 20 ? 'yes' : w >= 1 - (t + 1) / 20 ? 'close' : 'no') : verdictOf(Math.round((1 - r.headline.lasted) * n), n));
     expect(band.getAttribute('data-verdict')).toBe(r.headline.verdict);
     expect(band.querySelector('#answer-figure').textContent).toBe(r.sentences.head.text);
   });
@@ -242,7 +247,8 @@ describe('A, step 1: what have you got, and when would you stop?', () => {
     expect(charge.getAttribute('inputmode')).toBe('decimal');
     expect(charge.getAttribute('placeholder')).toBe('0.5');
     expect(charge.closest('.box').querySelector('.suffix').textContent).toBe('%');
-    expect(one(root, 'a.endAge').getAttribute('placeholder')).toBe('95');
+    // (7.8.0: the end age starts from the plan-to age — 50 now, the figures for women as not said: 100)
+    expect(one(root, 'a.endAge').getAttribute('placeholder')).toBe('100');
     expect(one(root, 'a.savingsIn')).not.toBe(null);
     expect(one(root, 'a.action.moreDetail').getAttribute('aria-expanded')).toBe('true');
   });
@@ -533,7 +539,8 @@ describe('A, try a change', () => {
   });
   it('the pot by £25,000 from £100,000, the spending by £100', () => {
     expect(press(load('answer-A1'), 'a.try.pot.up')).toEqual([set('you.pot', '275,000')]);
-    expect(press(load('answer-A1'), 'a.try.spend.down')).toEqual([set('spend.amount', '1,800'), set('spend.kind', 'amount')]);
+    // (answer-A1 spends £1,850 since 7.8.0: its "close" while weighing)
+    expect(press(load('answer-A1'), 'a.try.spend.down')).toEqual([set('spend.amount', '1,750'), set('spend.kind', 'amount')]);
   });
   it('part-time years: from none, one year at £12,000; back to none', () => {
     expect(press(load('answer-A1'), 'a.try.partTime.up')).toEqual([set('partTime.yearly', '12,000'), set('partTime.years', '1'), set('partTime.has', true)]);

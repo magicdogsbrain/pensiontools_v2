@@ -162,13 +162,15 @@ describe('what we assumed while weighing', () => {
     expect(line.always).toBe(true);
     expect(line.text).toMatch(/^Your plan runs to 85, the age you chose\. About \d+ in 10 women your age live longer than that, so we still follow each future on to \d+\.$/);
   });
-  it('the figures used link to no box the answer does not ask', () => {
-    const r = answerD({ household: 'couple', you: { age: 68, pot: 300000, taxFreeTaken: 'no' }, partner: { age: 66, pot: 50000, taxFreeTaken: 'no' }, spend: { kind: 'amount', amount: 2000 } }, ENV);
-    for (const id of ['life-sex', 'life-sex-partner']) {
-      const a = r.assumed.find((x) => x.id === id);
-      expect(a.field, id).toBe(null);
-      expect(a.text, id).not.toMatch(/because you did not say/);
-    }
+  it('the figures used link to the box that changes them (step 8: every answer asks), and say "because you did not say" only when not said', () => {
+    const r = answerD({ household: 'couple', you: { age: 68, pot: 300000, taxFreeTaken: 'no' }, partner: { age: 66, pot: 50000, taxFreeTaken: 'no', sex: 'male' }, spend: { kind: 'amount', amount: 2000 } }, ENV);
+    const you = r.assumed.find((x) => x.id === 'life-sex');
+    expect(you).toMatchObject({ field: 'you.sex', source: 'default' });
+    expect(you.text).toMatch(/because you did not say/);
+    const partner = r.assumed.find((x) => x.id === 'life-sex-partner');
+    expect(partner).toMatchObject({ field: 'partner.sex', source: 'entered', value: 'male' });
+    expect(partner.text).not.toMatch(/because you did not say/);
+    expect(partner.text).toBe('For your partner we used the figures for men, as you said.');
     expect(r.assumed.find((a) => a.id === 'life-couple').always).toBe(true);
   });
 });

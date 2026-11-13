@@ -101,7 +101,7 @@
     },
     "d": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":95,\"fall\":{\"has\":false},\"household\":\"couple\",\"isaGrowth\":\"cash\",\"partner\":{\"age\":70,\"finalSalary\":{\"has\":false},\"pot\":150000,\"statePension\":{\"kind\":\"full\"},\"stopped\":\"yes\",\"taxFreeTaken\":\"yes\"},\"risk\":\"balanced\",\"savings\":30000,\"spend\":{\"amount\":2800,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":72,\"finalSalary\":{\"fromAge\":65,\"has\":true,\"yearly\":8000},\"pot\":250000,\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"yes\"}}|2026-09-30|7.6.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":100,\"fall\":{\"has\":false},\"household\":\"couple\",\"isaGrowth\":\"cash\",\"partner\":{\"age\":70,\"finalSalary\":{\"has\":false},\"pot\":150000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"stopped\":\"yes\",\"taxFreeTaken\":\"yes\"},\"risk\":\"balanced\",\"savings\":30000,\"spend\":{\"amount\":2800,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":72,\"finalSalary\":{\"fromAge\":65,\"has\":true,\"yearly\":8000},\"pot\":250000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"yes\"}}|2026-09-30|7.6.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -118,7 +118,8 @@
               "yearly": 8000,
               "fromAge": 65
             },
-            "taxFreeTaken": "yes"
+            "taxFreeTaken": "yes",
+            "sex": "notSaid"
           },
           "savings": 30000,
           "isaGrowth": "cash",
@@ -136,11 +137,12 @@
               "has": false
             },
             "stopped": "yes",
-            "taxFreeTaken": "yes"
+            "taxFreeTaken": "yes",
+            "sex": "notSaid"
           },
           "risk": "balanced",
           "charge": 0.5,
-          "endAge": 95,
+          "endAge": 100,
           "confidence": "balanced",
           "work": {
             "has": false
@@ -159,7 +161,7 @@
         "verdict": "yes",
         "fails": 0,
         "lasted": 1,
-        "runOutAge": 95,
+        "runOutAge": 100,
         "outOfTen": {
           "words": "in every future we tried",
           "only": false,
@@ -170,20 +172,20 @@
           "careful": {
             "monthly": 3710,
             "yearly": 44520,
-            "weighted": 0.952,
-            "fixedAge": 0.952
+            "weighted": 0.9502715935697779,
+            "fixedAge": 0.841
           },
           "balanced": {
-            "monthly": 3800,
-            "yearly": 45600,
-            "weighted": 0.901,
-            "fixedAge": 0.901
+            "monthly": 3830,
+            "yearly": 45960,
+            "weighted": 0.9011792770838365,
+            "fixedAge": 0.715
           },
           "bold": {
-            "monthly": 4020,
-            "yearly": 48240,
-            "weighted": 0.705,
-            "fixedAge": 0.705
+            "monthly": 4130,
+            "yearly": 49560,
+            "weighted": 0.7034834293313325,
+            "fixedAge": 0.364
           }
         },
         "chance": {
@@ -191,13 +193,13 @@
           "fixedAge": 1,
           "fails": 0,
           "n": 1000,
-          "planToAge": 95,
-          "weightToAge": 95,
+          "planToAge": 100,
+          "weightToAge": 104,
           "horizonRule": "survival"
         },
         "headroom": {
           "kind": "more",
-          "perMonth": 1000
+          "perMonth": 1030
         },
         "guaranteed": {
           "monthlyAfterTax": 2624.97
@@ -205,15 +207,15 @@
         "phases": [
           {
             "fromAge": 70,
-            "toAge": 95,
+            "toAge": 100,
             "ages": {
               "you": {
                 "from": 72,
-                "to": 97
+                "to": 102
               },
               "partner": {
                 "from": 70,
-                "to": 95
+                "to": 100
               }
             },
             "takeHome": 2800,
@@ -288,7 +290,7 @@
             "field": "spend.amount",
             "source": "entered",
             "value": 2800,
-            "text": "You spend £2,800 a month after tax, going up with prices, until the younger of you is 95. No cuts in bad years.",
+            "text": "You spend £2,800 a month after tax, going up with prices, until the younger of you is 100. No cuts in bad years.",
             "parts": [
               "You spend ",
               {
@@ -392,19 +394,74 @@
             ]
           },
           {
-            "id": "plan-to",
+            "id": "life-plan-to",
             "field": "endAge",
             "source": "default",
-            "value": 95,
-            "text": "The money needs to last until the younger of you is 95.",
+            "value": 100,
+            "text": "Your plan runs to when the younger of you is 100, when fewer than 1 in 10 couples your ages still have one of you alive. We follow each future on to 104, when fewer than 1 in 50 do.",
             "parts": [
-              "The money needs to last until the younger of you is ",
+              "Your plan runs to ",
+              "when the younger of you is ",
               {
-                "key": "basis.endAge",
-                "kind": "age"
+                "fixed": "100"
               },
-              "."
+              ", when fewer than ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              " ",
+              "couples your ages",
+              " still have one of you alive.",
+              " We follow each future on to ",
+              {
+                "fixed": "104"
+              },
+              ", when fewer than ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "50"
+              },
+              " do."
+            ],
+            "always": true
+          },
+          {
+            "id": "life-sex",
+            "field": "you.sex",
+            "source": "default",
+            "value": "notSaid",
+            "text": "We used figures for women, who tend to live longer, because you did not say.",
+            "parts": [
+              "We used figures for women, who tend to live longer, because you did not say."
             ]
+          },
+          {
+            "id": "life-sex-partner",
+            "field": "partner.sex",
+            "source": "default",
+            "value": "notSaid",
+            "text": "For your partner we used figures for women, who tend to live longer, because you did not say.",
+            "parts": [
+              "For your partner we used figures for women, who tend to live longer, because you did not say."
+            ]
+          },
+          {
+            "id": "life-couple",
+            "field": null,
+            "source": "rule",
+            "value": null,
+            "text": "We work the money out as if you both live to the end of each future, and count each future by the chance at least one of you is still alive.",
+            "parts": [
+              "We work the money out as if you both live to the end of each future, and count each future by the chance at least one of you is still alive."
+            ],
+            "always": true
           },
           {
             "id": "todays-prices",
@@ -471,16 +528,6 @@
             ]
           },
           {
-            "id": "both-alive",
-            "field": null,
-            "source": "rule",
-            "value": null,
-            "text": "Both of you are alive throughout.",
-            "parts": [
-              "Both of you are alive throughout."
-            ]
-          },
-          {
             "id": "tax-rules",
             "field": null,
             "source": "rule",
@@ -534,19 +581,19 @@
         "sentences": {
           "head": {
             "id": "d.head.yes",
-            "text": "Yes — £2,800 a month lasted",
+            "text": "Yes — £2,800 a month",
             "parts": [
               "Yes — ",
               {
                 "key": "spend.perMonth",
                 "kind": "money"
               },
-              " a month lasted"
+              " a month"
             ]
           },
           "sub": {
             "id": "d.sub",
-            "text": "after tax between you, going up with prices, until the younger of you is 95",
+            "text": "after tax between you, going up with prices, until the younger of you is 100",
             "parts": [
               "after tax between you, going up with prices, ",
               "until the younger of you is ",
@@ -557,28 +604,26 @@
             ]
           },
           "line": {
-            "id": "d.line",
-            "text": "Spending £2,800 a month after tax, your money lasted until the younger of you is 95 in every future we tried.",
+            "id": "d.line.weighted",
+            "text": "Counting how long people your ages live, £2,800 a month after tax lasts as long as one of you is alive in every future we tried.",
             "parts": [
-              "Spending ",
+              "Counting how long people your ages live",
+              ", ",
               {
                 "key": "spend.perMonth",
                 "kind": "money"
               },
-              " a month after tax, your money lasted ",
-              "until the younger of you is ",
-              {
-                "key": "basis.endAge",
-                "kind": "age"
-              },
+              " a month after tax lasts ",
+              "as long as one of you is alive",
               " ",
               "in every future we tried",
               "."
-            ]
+            ],
+            "mark": "weighted"
           },
           "bad": {
             "id": "d.bad.lasts",
-            "text": "In a bad case (the worst 1 in 10) it still lasted until the younger of you is 95.",
+            "text": "In a bad case (the worst 1 in 10) it still lasted until the younger of you is 100.",
             "parts": [
               "In a bad case (the worst ",
               {
@@ -600,33 +645,38 @@
           },
           "headroom": {
             "id": "d.more",
-            "text": "You could spend about £1,000 a month more. About £3,800 a month lasted in 9 futures out of 10.",
+            "text": "You could spend about £1,030 a month more. At Balanced, about £3,830 a month lasts as long as one of you is alive 18 times in 20.",
             "parts": [
               "You could spend about ",
               {
                 "key": "headroom.perMonth",
                 "kind": "money"
               },
-              " a month more. About ",
+              " a month more. ",
+              "At ",
+              "Balanced",
+              ", about ",
               {
                 "key": "levels.balanced.monthly",
                 "kind": "money"
               },
-              " a month lasted ",
-              "in ",
+              " a month lasts ",
+              "as long as one of you is alive",
+              " ",
               {
-                "fixed": "9"
+                "fixed": "18"
               },
-              " futures out of ",
+              " times in ",
               {
-                "fixed": "10"
+                "fixed": "20"
               },
               "."
-            ]
+            ],
+            "mark": "weighted"
           },
           "levels": {
             "id": "d.levels",
-            "text": "At Careful, about £3,710 a month. At Bold, about £4,020 a month.",
+            "text": "At Careful, about £3,710 a month. At Bold, about £4,130 a month.",
             "parts": [
               "At Careful, about ",
               {
@@ -683,7 +733,7 @@
           ],
           "change": {
             "id": "d.change",
-            "text": "Now: yes at £2,800 a month, every future we tried.",
+            "text": "Now: yes at £2,800 a month, at Balanced.",
             "parts": [
               "Now: ",
               "yes",
@@ -692,10 +742,92 @@
                 "key": "spend.perMonth",
                 "kind": "money"
               },
-              " a month, ",
-              "every future we tried",
+              " a month, at ",
+              "Balanced",
               "."
             ]
+          },
+          "fixed": {
+            "id": "d.fixed",
+            "text": "If one of you is still alive when the younger of you is 100, the money lasts that long in every future we tried.",
+            "parts": [
+              "If one of you is still alive when the younger of you is ",
+              {
+                "fixed": "100"
+              },
+              ", the money lasts that long in every future we tried."
+            ],
+            "mark": "fixed"
+          },
+          "left": {
+            "id": "d.left",
+            "text": "If one of you is still alive when the younger of you is 100, what is typically left then is £927,000 at today's prices. In the best 1 in 10 futures it is £2,506,000 or more.",
+            "parts": [
+              "If one of you is still alive when the younger of you is ",
+              {
+                "fixed": "100"
+              },
+              ", what is typically left then is ",
+              {
+                "fixed": "£927,000"
+              },
+              " at today's prices. In the best ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              " futures it is ",
+              {
+                "fixed": "£2,506,000"
+              },
+              " or more."
+            ]
+          },
+          "cost": {
+            "id": "d.cost",
+            "text": "Careful asks for £120 a month less than Balanced. Bold would let you take £300 a month more.",
+            "parts": [
+              "Careful asks for ",
+              {
+                "fixed": "£120"
+              },
+              " a month less than Balanced.",
+              " ",
+              "Bold would let you take ",
+              {
+                "fixed": "£300"
+              },
+              " a month more."
+            ]
+          },
+          "headroomFixed": {
+            "id": "d.more.fixed",
+            "text": "At £3,830 a month: if one of you is still alive when the younger of you is 100, the money lasts that long in 14 of 20 futures we tried.",
+            "parts": [
+              "At ",
+              {
+                "key": "levels.balanced.monthly",
+                "kind": "money"
+              },
+              " a month: ",
+              "if one of you is still alive when the younger of you is ",
+              {
+                "fixed": "100"
+              },
+              ", the money lasts that long in ",
+              {
+                "fixed": "14"
+              },
+              " of ",
+              {
+                "fixed": "20"
+              },
+              " futures we tried."
+            ],
+            "mark": "fixed"
           }
         },
         "basis": {
@@ -704,8 +836,8 @@
           "seed": 0,
           "level": "balanced",
           "levelFails20": 2,
-          "planToAge": 95,
-          "weightToAge": 95,
+          "planToAge": 100,
+          "weightToAge": 104,
           "tablesVersion": "ons-ew-2024-cohort/1",
           "sexUsed": {
             "you": "f",
@@ -714,15 +846,16 @@
           "historyEnd": "2023-06",
           "engineVersion": "7.6.0",
           "startAge": 72,
-          "endAge": 95,
-          "years": 25,
-          "lifeYears": 25,
+          "endAge": 100,
+          "years": 30,
+          "lifeYears": 34,
           "bondDraws": "life",
           "cashRule": "previous-year",
           "grid": "yearly",
           "strategyId": "pots-and-valves",
           "cutsSwitchedOff": true,
-          "endAgeDefaulted": true
+          "endAgeDefaulted": true,
+          "weighted": true
         },
         "units": {
           "money": "todays-prices",

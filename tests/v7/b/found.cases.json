@@ -1,5 +1,5 @@
 {
-  "what": "Cases found by B's random runs (properties, metamorphic, the nightly), each with the seed and the reason, kept for ever. pairs.test.js runs every one through checkAnswerB. Shape: { name, inputs, env?: { futures, seed }, expect?: { 'dotted.key': value }, found: { date, by, seed } }.",
+  "what": "Cases found by B's random runs (properties, metamorphic, the nightly), each with the seed and the reason, kept for ever. pairs.test.js runs every one through checkAnswerB. Shape: { name, inputs, env?: { futures, seed }, expect?: { 'dotted.key': value }, found: { date, by, seed } }. 7.8.0: a case found on the count and pinning the count's figures (its name says them) carries env.weighted false: it is held on the count, the engine's finding it records.",
   "cases": [
     {
       "name": "M-B2 at 300 (27 Oct 2026): one person of 18 with nothing, stopping at 53 (closed until 57), full State Pension, cautious, to 95, £7,635 a month — the closed years' floor is the closed years' own (£383,000), not raised for the life £5,000,000 of pension cannot carry",
@@ -38,7 +38,8 @@
       },
       "env": {
         "futures": 20,
-        "seed": 0
+        "seed": 0,
+        "weighted": false
       },
       "expect": {
         "outside.careful": 383000,
@@ -87,7 +88,8 @@
       },
       "env": {
         "futures": 20,
-        "seed": 0
+        "seed": 0,
+        "weighted": false
       },
       "expect": {
         "outside.careful": 1251000,

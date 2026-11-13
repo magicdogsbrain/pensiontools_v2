@@ -140,7 +140,7 @@ describe('the session\'s level, and the page\'s own wiring', { timeout: 120_000 
   it('the classic one test weighs only while weighing; a locked ladder reads its document\'s figure', () => {
     const plan = entryOf(C['03-gilt-ladder-locked']).plan;
     const d = plan.planDocument;
-    expect(chanceRunOf(plan, { settings: {}, strategyId: d.strategy.id, p: d.strategy.p, r: d.strategy.r, now })).toBe(null);
+    expect(chanceRunOf(plan, { settings: {}, strategyId: d.strategy.id, p: d.strategy.p, r: d.strategy.r, now, weighted: false })).toBe(null);
     const o = chanceRunOf(plan, { settings: {}, strategyId: d.strategy.id, p: d.strategy.p, r: d.strategy.r, now, weighted: true, locked: { doc: d }, level: 'careful' });
     expect(o.level).toBe('careful');
     expect(o.stored).toEqual({ chance: null });

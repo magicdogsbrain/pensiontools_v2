@@ -138,7 +138,9 @@ describe('B — properties between two answers', () => {
       const b = ok(answerB(fed, ENV), fed);
       if (!a.outside) expect(potsOf(b)).toEqual(potsOf(a));       // the guide number does not move with the pay-in (before 57 the savings floor can)
       expect(b.onCourse).toBe(true);
-      expect(b.chance.fails).toBeLessThanOrEqual(Math.floor(b.basis.futures * b.basis.levelFails20 / 20));
+      // (7.8.0: weighing, on course is the level's one test on the weighted chance; not weighing, its count)
+      if (b.basis.weighted) expect(b.chance.weighted).toBeGreaterThanOrEqual(1 - b.basis.levelFails20 / 20 - 1e-9);
+      else expect(b.chance.fails).toBeLessThanOrEqual(Math.floor(b.basis.futures * b.basis.levelFails20 / 20));
       expect(b.levers.payMore).toBeNull();
     }), opts());
   });

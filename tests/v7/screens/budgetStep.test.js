@@ -206,7 +206,7 @@ describe('under the answer: the spending used, and whether a budget is behind it
     clean(root, s);
     const line = one(root, 'a.spend.line');
     expect(line.getAttribute('data-budget')).toBe('no');
-    expect(line.textContent).toContain(fill(BUDGET.answer.noBudget, { amount: '£1,900' }));
+    expect(line.textContent).toContain(fill(BUDGET.answer.noBudget, { amount: '£1,850' }));
     const link = one(root, 'a.spend.workItOut');
     expect(link.getAttribute('href')).toBe('#/a/spend');
     expect(line.closest('[data-region="answer"]')).toBe(null);                           // the answer's region holds only its own figures
@@ -220,10 +220,11 @@ describe('under the answer: the spending used, and whether a budget is behind it
     expect(actions).toEqual([{ type: 'budget/use', q: 'b' }]);
   });
   it('a budget that matches: "your budget\'s total", with the way to it', () => {
-    const s = withSheet('a', 'answer-A1', { 'Council tax': '150', 'Groceries & household': '1,750' });
+    // (answer-A1 spends £1,850 since 7.8.0: a budget of £1,850 matches it)
+    const s = withSheet('a', 'answer-A1', { 'Council tax': '150', 'Groceries & household': '1,700' });
     const root = renderScreen(s);
     clean(root, s);
-    expect(one(root, 'a.spend.line').textContent).toContain(fill(BUDGET.answer.fromBudget, { amount: '£1,900' }));
+    expect(one(root, 'a.spend.line').textContent).toContain(fill(BUDGET.answer.fromBudget, { amount: '£1,850' }));
     expect(one(root, 'a.spend.see').getAttribute('href')).toBe('#/a/spend');
   });
   it('C, once a budget exists: what the careful amount gives against it — less, more or about the same', () => {
@@ -232,9 +233,9 @@ describe('under the answer: the spending used, and whether a budget is behind it
     const less = c({ 'Council tax': '150', 'Groceries & household': '1,500' });
     const root = renderScreen(less);
     clean(root, less);
-    expect(one(root, 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.less, { amount: '£1,650', diff: '£300' }));   // F1's careful £1,350 (6.19.0: £1,380 before charges)
+    expect(one(root, 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.less, { amount: '£1,650', diff: '£270' }));   // F1's Balanced £1,380 (7.8.0, weighted by how long people live)
     expect(one(root, 'c.budget.against').closest('[data-region="answer"]')).toBe(null);
-    expect(one(renderScreen(c({ 'Council tax': '150', 'Groceries & household': '1,000' })), 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.more, { amount: '£1,150', diff: '£200' }));
-    expect(one(renderScreen(c({ 'Council tax': '1,350' })), 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.same, { amount: '£1,350' }));
+    expect(one(renderScreen(c({ 'Council tax': '150', 'Groceries & household': '1,000' })), 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.more, { amount: '£1,150', diff: '£230' }));
+    expect(one(renderScreen(c({ 'Council tax': '1,380' })), 'c.budget.against').textContent).toBe(fill(BUDGET.answer.c.same, { amount: '£1,380' }));
   });
 });

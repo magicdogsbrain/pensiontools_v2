@@ -146,9 +146,10 @@ describe('SCHEMA_B — the declaration', () => {
     expect(r.ok).toBe(true);
     expect(r.inputs).toEqual({
       household: 'single',
-      you: { age: 50, pot: 120000, payIn: { kind: 'total', total: 700 }, alreadyDrawing: false, statePension: { kind: 'full' }, finalSalary: { has: false } },
+      you: { age: 50, pot: 120000, payIn: { kind: 'total', total: 700 }, alreadyDrawing: false, statePension: { kind: 'full' }, finalSalary: { has: false }, sex: 'notSaid' },
       stop: { age: 60 }, spend: { kind: 'amount', amount: 2000 },
-      savings: 0, savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'balanced'
+      // (7.8.0: the end age's default is the plan-to age — 50 now, the figures for women as not said: 100)
+      savings: 0, savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 100, confidence: 'balanced'
     });
     expect(validate(SCHEMA_B, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_B, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);
@@ -158,7 +159,7 @@ describe('SCHEMA_B — the declaration', () => {
     expect(Object.keys(flatten(r.inputs)).sort()).toEqual(fieldsThatApply(SCHEMA_B, r.values).filter((f) => (f.required || 'default' in f) && f.path !== 'isaGrowth').map((f) => f.path).sort());
     expect(parse({ savings: '40000' }).inputs.isaGrowth).toBe('cash');
     expect(r.usedDefault).toEqual(['household', 'you.statePension.kind', 'you.finalSalary.has', 'you.payIn.kind', 'you.alreadyDrawing', 'spend.kind',
-      'savings', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence']);
+      'savings', 'you.sex', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence']);
   });
 
   it('nothing typed: the five required boxes, and nothing else', () => {
@@ -265,7 +266,7 @@ describe('B: each of a couple stops on their own date', () => {
     expect(r.ok).toBe(true);
     expect(JSON.stringify(Object.keys(r.inputs))).toBe(JSON.stringify(['household', 'you', 'stop', 'spend', 'partner', 'savings', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence']));
     expect(r.inputs.stop).toEqual({ age: 60 });
-    expect(Object.keys(r.inputs.partner)).toEqual(['age', 'pot', 'statePension', 'finalSalary', 'payIn', 'alreadyDrawing']);
+    expect(Object.keys(r.inputs.partner)).toEqual(['age', 'pot', 'statePension', 'finalSalary', 'payIn', 'alreadyDrawing', 'sex']);
   });
 
   it('"I\'ve already stopped" hides your stop age and your pay-in; the partner must then stop after today', () => {
@@ -359,9 +360,11 @@ describe('the answer function', () => {
     expect(r.payIn.needed).toBe(r.levels[r.level].payIn);
     expect(r.short).toBe(Math.max(0, r.levels.balanced.pot - r.potAtStop.now.careful));
     expect(r.already).toBe(r.inputs.you.pot >= r.levels.balanced.pot);
-    expect(r.onCourse).toBe(r.chance.fails <= Math.floor(r.basis.futures * r.basis.levelFails20 / 20));
+    // (7.8.0, weighing: on course is the level's one test on the weighted chance; not weighing, its count)
+    expect(r.onCourse).toBe(r.basis.weighted ? r.chance.weighted >= 1 - r.basis.levelFails20 / 20 - 1e-9 : r.chance.fails <= Math.floor(r.basis.futures * r.basis.levelFails20 / 20));
     expect(Object.keys(r.levers)).toEqual(['stopLater', 'payMore', 'spendLess', 'oneOff', 'moreRisk', 'accept']);
-    expect(r.levers.accept).toEqual({ lasted: r.chance.fixedAge, short: r.short, monthlyIfShort: r.monthlyIfShort });
+    // (7.8.0, weighing: the answer as it stands also says its weighted chance)
+    expect(r.levers.accept).toEqual({ lasted: r.chance.fixedAge, ...(r.basis.weighted ? { weighted: r.chance.weighted } : {}), short: r.short, monthlyIfShort: r.monthlyIfShort });
     if (r.levers.moreRisk) expect(r.levers.moreRisk.helps).toBe(r.levers.moreRisk.payIn < r.payIn.needed);
     r.phases.forEach((ph, i) => {
       expect(ph.shown.fromPots + ph.shown.statePension + ph.shown.finalSalary + ph.shown.fromWork).toBe(ph.shown.takeHome);

@@ -32,9 +32,10 @@ const clean = (root, state) => expect(checkScreen(root, state)).toEqual([]);
 const at = (state, step) => ({ ...state, route: { ...state.route, step } });
 const clone = (o) => JSON.parse(JSON.stringify(o));
 const WORDS = { a: A, b: B, c: C, d: D };
-const MADE = { id: 'Kq8LwT2mJv5PzYc9BnRd', name: 'Stop at 60 · £1,900 a month', where: 'account' };
+const MADE = { id: 'Kq8LwT2mJv5PzYc9BnRd', name: 'Stop at 60 · £1,850 a month', where: 'account' };
 
-const ANSWERS = [['c', 'answer-F1', 'From 58 · £1,350 a month'], ['c', 'answer-F2', 'From 62 and 60 · £3,500 a month'], ['a', 'answer-A1', 'Stop at 60 · £1,900 a month'],
+// (7.8.0: C's figures at Balanced weighted by how long people live; answer-A1 spends £1,850, its "close" while weighing)
+const ANSWERS = [['c', 'answer-F1', 'From 58 · £1,380 a month'], ['c', 'answer-F2', 'From 62 and 60 · £3,530 a month'], ['a', 'answer-A1', 'Stop at 60 · £1,850 a month'],
   ['a', 'answer-A2-couple', 'Stop at 56 and 54 · £3,590 a month'], ['b', 'answer-B1', 'Stop at 60 · £2,000 a month · paying £700'], ['b', 'answer-B2-on-course', 'Stop at 60 · £2,000 a month · paying £1,400'],
   ['d', 'answer-D1', 'From 68 · £2,100 a month'], ['d', 'answer-D2-couple', 'From 72 and 70 · £2,800 a month']];
 
@@ -155,11 +156,11 @@ describe('after keeping (road-to-7.md step 7): "Kept as ‘…’", the lock ste
     const root = renderScreen(s);
     clean(root, s);
     const made = one(root, 'a.keep.made');
-    expect(made.querySelector('p').textContent).toBe('Kept as ‘Stop at 60 · £1,900 a month’ in your account. Trying other figures here changes nothing in it.');
+    expect(made.querySelector('p').textContent).toBe('Kept as ‘Stop at 60 · £1,850 a month’ in your account. Trying other figures here changes nothing in it.');
     expect(made.getAttribute('data-plan-id')).toBe(MADE.id);
     // the panel leads with opening the plan kept (6.59.0); a keep from here is another new plan, plainly second
     expect(one(root, 'a.keep.open').getAttribute('href')).toBe(`#/plan/${MADE.id}`);
-    expect(one(root, 'a.keep.open').textContent).toBe('Open ‘Stop at 60 · £1,900 a month’');
+    expect(one(root, 'a.keep.open').textContent).toBe('Open ‘Stop at 60 · £1,850 a month’');
     expect(one(root, 'a.keep.open').className).toContain('primary');
     expect(one(root, 'a.keep.lock').className).not.toContain('primary');
     expect(one(root, 'a.action.save').textContent).toBe(KEEP.saveAnother);
@@ -170,7 +171,7 @@ describe('after keeping (road-to-7.md step 7): "Kept as ‘…’", the lock ste
     expect(one(root, 'a.keep.lock').getAttribute('href')).toBe(`#/plan/${MADE.id}/lock`);
     expect(one(root, 'a.keep.plans').getAttribute('href')).toBe('#/plans');
     // the box follows the answer, made different from the plan just kept: what it says is what another keep would make
-    expect(one(root, 'a.keep.name').value).toBe('Stop at 60 · £1,900 a month (2)');
+    expect(one(root, 'a.keep.name').value).toBe('Stop at 60 · £1,850 a month (2)');
     const step = root.querySelector('[data-testid="rail.a.keep"]').closest('li');
     expect(step.className).toContain('is-done');
     expect(step.textContent).toContain('Kept');

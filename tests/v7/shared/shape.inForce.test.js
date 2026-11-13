@@ -76,9 +76,10 @@ describe('A: a stop past a step — the words read the figure tested there', () 
 
   it('the sub line and the verdict\'s sentence: the figure tested at 67, never the £2,500 typed (no year of a stop at 67 is £2,500)', () => {
     const at67 = money(testedAt(67));
-    expect(r.sentences.sub.text).toBe(`spending ${at67} a month after tax from 67 until you are 95, going up each year with prices`);
+    expect(r.sentences.sub.text).toBe(`spending ${at67} a month after tax from 67 until you are 99, going up each year with prices`);
     expect(r.sentences.line.text).not.toContain('£2,500');
-    expect(r.sentences.line.text).toMatch(/^The earliest age at which what you spend, as you set it, lasted to 95 in 9 futures out of 10 is 67\./);
+    // (7.8.0: the earliest stop within the level, said as the chance the money lasts as long as you do, at the figure tested)
+    expect(r.sentences.line.text).toMatch(new RegExp(`^Counting how long people your age live, stopping at 67 and spending ${at67.replace('£', '£')} a month lasts as long as you do `));
     // "That is at the start": the start is the figure the sub line names — its fall ends where that figure's would
     expect(r.sentences.shape.text).toBe(`That is at the start, falling 1% a year to ${money(Math.round(testedAt(67) * 0.99 ** 15 / 10) * 10)} at 82. Then, as you set it: £2,045 from 83.`);
   });

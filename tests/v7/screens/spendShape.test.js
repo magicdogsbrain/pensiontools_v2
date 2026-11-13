@@ -100,9 +100,9 @@ describe('open: everything today\'s planner offers on its income shape', () => {
     const chart = one(root, 'a.shape.chart');
     expect(chart.getAttribute('data-unit')).toBe('perMonth');
     const bars = chart.querySelectorAll('g.year');
-    expect(bars.length).toBe(33);
+    expect(bars.length).toBe(38);
     expect([...bars].every((g) => Number(g.getAttribute('data-figure')) === 2500)).toBe(true);
-    expect(chart.querySelector('[role="img"]').getAttribute('aria-label')).toBe('A bar for each year from 62 to 94: £2,500 a month from 62.');
+    expect(chart.querySelector('[role="img"]').getAttribute('aria-label')).toBe('A bar for each year from 62 to 99: £2,500 a month from 62.');
     expect([...chart.querySelectorAll('.shape-band')].map((b) => b.textContent)).toEqual(['go-go', 'go-slow', 'no-go']);
     expect(chart.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
     expect(expectedInputs(s)).toContain('a.spend.then');
@@ -191,7 +191,7 @@ describe('open: everything today\'s planner offers on its income shape', () => {
     paint();
     host.querySelector('[data-testid="a.shape.add"]').click();
     expect(document.activeElement.getAttribute('data-testid')).toBe('a.spend.steps.2.fromAge');
-    expect(document.activeElement.value).toBe('94');                               // 85 + 10 is the end: the last year before it
+    expect(document.activeElement.value).toBe('95');                               // 85 + 10 (7.8.0: the plan runs to 100, the plan-to age)
     host.querySelector('[data-testid="a.shape.remove.2"]').click();
     expect(document.activeElement.getAttribute('data-testid')).toBe('a.shape.add');
     host.remove();
@@ -217,7 +217,7 @@ describe('problems: the sentence under its box', () => {
     for (let k = 0; k < 3; k++) s = reduce(s, { type: ACT.SHAPE_ADD, q: 'a' });
     s = run(s,
       { type: ACT.SHAPE_STEP, q: 'a', i: 0, field: 'fromAge', value: '60' },
-      { type: ACT.SHAPE_STEP, q: 'a', i: 1, field: 'fromAge', value: '96' },
+      { type: ACT.SHAPE_STEP, q: 'a', i: 1, field: 'fromAge', value: '101' },
       { type: ACT.SHAPE_STEP, q: 'a', i: 2, field: 'then', value: 'falls' },
       { type: ACT.SHAPE_STEP, q: 'a', i: 2, field: 'perMonth', value: '0' },
       { type: ACT.SHAPE_STEP, q: 'a', i: 2, field: 'then', value: 'glides' },
@@ -228,7 +228,7 @@ describe('problems: the sentence under its box', () => {
     clean(root, s);
     const err = (id) => root.querySelector(`[data-error-for="${id}"]`)?.textContent;
     expect(err('a.spend.steps.0.fromAge')).toBe('This is not later than when you stop, at 62. Make it later, or change the figure above instead.');
-    expect(err('a.spend.steps.1.fromAge')).toBe('This is after the end of the plan, at 95. Make it earlier, or remove it.');
+    expect(err('a.spend.steps.1.fromAge')).toBe('This is after the end of the plan, at 100. Make it earlier, or remove it.');
     expect(err('a.spend.steps.2.perMonth')).toBe(SHAPE.errors.perMonth.tooLow);
     expect(err('a.spend.steps.2.then')).toBe(SHAPE.errors.then.glidesLast);
     const box = one(root, 'a.spend.steps.0.fromAge');
@@ -290,9 +290,9 @@ describe('two of you; question C; the budget\'s essentials', () => {
   it('the ages under the picture never run into each other: a multiple of 5 less than 3 years after the first age is left out', () => {
     const at63 = toggle(spendA({ stop: '63' }));
     const ages = [...renderScreen(at63).querySelectorAll('[data-testid="a.shape.chart"] .shape-age')].map((x) => Number(x.textContent));
-    expect(ages).toEqual([63, 70, 75, 80, 85, 90]);
+    expect(ages).toEqual([63, 70, 75, 80, 85, 90, 95]);
     const at62 = toggle(spendA());
-    expect([...renderScreen(at62).querySelectorAll('[data-testid="a.shape.chart"] .shape-age')].map((x) => Number(x.textContent))).toEqual([62, 65, 70, 75, 80, 85, 90]);
+    expect([...renderScreen(at62).querySelectorAll('[data-testid="a.shape.chart"] .shape-age')].map((x) => Number(x.textContent))).toEqual([62, 65, 70, 75, 80, 85, 90, 95]);
   });
 
   it('a couple whose stops are their own, your partner first: the first row says the household\'s money starts then', () => {
@@ -345,7 +345,7 @@ describe('the picture: every year, in words too', () => {
     const { root, actions } = draw(s);
     clean(root, s);
     const table = root.querySelector('table[data-table="shape"]');
-    expect(table.querySelectorAll('tbody tr').length).toBe(33);
+    expect(table.querySelectorAll('tbody tr').length).toBe(38);
     expect([...table.querySelectorAll('thead th')].map((th) => th.textContent)).toEqual([SHAPE.chart.tableAge, SHAPE.chart.tableAmount]);
     expect(table.querySelector('tbody tr[data-age="75"] td').textContent).toBe('£2,130');
     expect(one(root, 'a.shape.years').getAttribute('aria-expanded')).toBe('true');
@@ -359,7 +359,7 @@ describe('the picture: every year, in words too', () => {
     const svg = root.querySelector('[data-testid="a.shape.chart"] svg');
     expect(svg.getAttribute('width')).toBe(null);
     expect(svg.getAttribute('preserveAspectRatio')).toBe('none');
-    expect(svg.getAttribute('viewBox')).toBe('0 0 33 100');
+    expect(svg.getAttribute('viewBox')).toBe('0 0 38 100');
   });
 });
 
@@ -377,9 +377,9 @@ describe('an answer whose spending changes with age: "Try a change"', () => {
     one(root, 'a.try.spend.down').click();
     one(root, 'a.try.shapeLevel').click();
     expect(actions).toEqual([
-      { type: 'draft/set', q: 'a', path: 'spend.amount', value: '1,800' },
+      { type: 'draft/set', q: 'a', path: 'spend.amount', value: '1,750' },
       { type: 'draft/set', q: 'a', path: 'spend.kind', value: 'amount' },
-      { type: 'shape/rescale', q: 'a', from: 1900 },
+      { type: 'shape/rescale', q: 'a', from: 1850 },
       { type: 'shape/preset', q: 'a', id: 'level' }
     ]);
     expect(one(root, 'a.try.shapeLevel').textContent).toBe(SHAPE.try.level);

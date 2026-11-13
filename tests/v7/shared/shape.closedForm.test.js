@@ -14,7 +14,9 @@ import { describe, it, expect } from 'vitest';
 import { answerC } from '../c/_c.js';
 import { answerA } from '../a/_a.js';
 
-const FLAT = { today: '2026-09-30', futures: 1, seed: 0, trace: false, futureReturns: () => ({ equity: {}, inflation: {} }), mix: { equity: 0, bond: 0, cash: 1 } };
+// 7.8.0: a closed form is the engine's sum on one flat future; with one future each weighted level is only an age the money
+// may run out at, so these run on the count to the end age (env.weighted false, the rollback)
+const FLAT = { today: '2026-09-30', futures: 1, seed: 0, trace: false, weighted: false, futureReturns: () => ({ equity: {}, inflation: {} }), mix: { equity: 0, bond: 0, cash: 1 } };
 const NO_SP = { kind: 'none' };
 const base = (pot, shape, more = {}) => ({ charge: 0, you: { pot, age: 65, statePension: NO_SP, ...more }, start: { kind: 'now' }, shape });
 /** The largest whole £10 a month at the start whose shape the pot covers, from the shape's yearly multiple of the start. */

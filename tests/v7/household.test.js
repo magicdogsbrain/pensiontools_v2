@@ -317,21 +317,22 @@ describe('couples who stop in different years: the household', () => {
 
 describe('the engine adapter', () => {
   const env = { today: TODAY };
-  const inputsOf = (raw) => checkInputs(SCHEMA_C, raw, env).inputs;
-  const planOf = (raw) => enginePlan(toHousehold(inputsOf(raw), env).household, env);
+  const inputsOf = (raw, e = env) => checkInputs(SCHEMA_C, raw, e).inputs;
+  const planOf = (raw, more = {}) => enginePlan(toHousehold(inputsOf(raw, { ...env, ...more }), { ...env, ...more }).household, { ...env, ...more });
 
   it('builds one config per person with money, in the shape createSimulationConfigFromSettings builds', () => {
     const plan = planOf({ you: { pot: 250000, age: 58 } });
-    expect(plan).toMatchObject({ years: 37, startAge: 58, endAge: 95, whose: 'you', accessAge: 55, start: '2026-09', yearsFromNow: 0, totalPots: 250000 });
+    expect(plan).toMatchObject({ years: 46, startAge: 58, endAge: 99, whose: 'you', accessAge: 55, start: '2026-09', yearsFromNow: 0, totalPots: 250000 });
     const [c] = configsAt(plan, 16560);
     expect(c.who).toBe('you');
     expect(c.config).toMatchObject({
       equityStart: 125000, bondStart: 100000, cashStart: 25000, equityMin: 125000, bondMin: 100000, cashTarget: 25000,
-      years: 37, duration: 37, spStartYear: 9, spWeeklyAmount: RULES.fullStatePensionWeekly, spFirstYearRatio: 1,
+      // (7.8.0: the run goes on past the plan-to age, 99, to the weighting age, 104: 46 years)
+      years: 46, duration: 46, spStartYear: 9, spWeeklyAmount: RULES.fullStatePensionWeekly, spFirstYearRatio: 1,
       pa: 12570, brl: 50270, hrl: 125140, taxMode: 'inflates', disableProtection: true, accessMethod: 'ufpls', strategyId: 'pots-and-valves',
       isaBalance: 0, dbAmount: 0, hodlEnabled: false
     });
-    expect(c.config.targetSchedule).toHaveLength(37);
+    expect(c.config.targetSchedule).toHaveLength(46);
     // before the State Pension the whole take-home comes from the pot; after it, the pot pays the rest
     expect(grossToNet(c.config.targetSchedule[0], BANDS.pa, BANDS.brl, BANDS.hrl)).toBeCloseTo(16560, 6);
     expect(grossToNet(c.config.targetSchedule[9], BANDS.pa, BANDS.brl, BANDS.hrl)).toBeCloseTo(16560, 6);
@@ -352,8 +353,10 @@ describe('the engine adapter', () => {
   });
 
   it('a partner with nothing changes nothing in the plan but the labels', () => {
-    const single = planOf({ you: { pot: 250000, age: 58 } });
-    const couple = planOf({ household: 'couple', you: { pot: 250000, age: 58 }, partner: { age: 58, pot: 0, statePension: { kind: 'none' } } });
+    // (7.8.0: weighing, a couple is followed on until neither is likely alive, so a partner with nothing still lengthens the
+    // run; the relation is the engine's and is held on the count, env.weighted false)
+    const single = planOf({ you: { pot: 250000, age: 58 } }, { weighted: false });
+    const couple = planOf({ household: 'couple', you: { pot: 250000, age: 58 }, partner: { age: 58, pot: 0, statePension: { kind: 'none' } } }, { weighted: false });
     expect(couple.people[1].kind).toBe('none');
     expect(configsAt(couple, 16560).map((c) => c.config)).toEqual(configsAt(single, 16560).map((c) => c.config));
     expect(breakdownAt(couple, 16560).map((p) => p.takeHome)).toEqual(breakdownAt(single, 16560).map((p) => p.takeHome));
@@ -374,7 +377,7 @@ describe('the engine adapter', () => {
     const per = breakdownAt(plan, 16560);
     expect(per).toHaveLength(2);
     expect(per[0]).toMatchObject({ from: 0, to: 9, takeHome: 16560, beforeStatePension: true });
-    expect(per[1]).toMatchObject({ from: 9, to: 37, takeHome: 16560, beforeStatePension: false });
+    expect(per[1]).toMatchObject({ from: 9, to: 41, takeHome: 16560, beforeStatePension: false });
     const you = per[1].byPerson[0];
     expect(you.statePension).toBeCloseTo(fullStatePensionYearly(), 6);
     expect(you.statePension + you.fromPension + you.fromSavings - you.tax).toBeCloseTo(16560, 6);
@@ -385,10 +388,11 @@ describe('the engine adapter', () => {
     expect(small[1].byPerson[0].fromPension).toBeCloseTo(0, 6);
   });
 
-  it('the years are capped at 45 and the plan says so; the mix follows the risk level', () => {
-    const plan = planOf({ you: { pot: 100000, age: 30 }, endAge: 105 });
+  // (7.8.0: weighing, a run goes on to the weighting age, up to 60 years; this is the cap of 45 in the rollback)
+  it('the years are capped at 45 and the plan says so (the rollback); the mix follows the risk level', () => {
+    const plan = planOf({ you: { pot: 100000, age: 30 }, endAge: 105 }, { weighted: false });
     expect(plan).toMatchObject({ years: 45, capped: true, startAge: 57, endAge: 102, startMoved: false, yearsFromNow: 27 });   // the form's default start is the first pension age
-    const moved = planOf({ you: { pot: 100000, age: 30 }, start: { kind: 'now' }, endAge: 105 });
+    const moved = planOf({ you: { pot: 100000, age: 30 }, start: { kind: 'now' }, endAge: 105 }, { weighted: false });
     expect(moved).toMatchObject({ years: 45, startAge: 57, startMoved: true, movedBy: 27, locked: ['you'] });
     expect(mixOf({ kind: 'risk', level: 'cautious' })).toEqual({ equity: RISK_PRESETS.cautious.equity, bond: RISK_PRESETS.cautious.bond, cash: RISK_PRESETS.cautious.cash });
     expect(mixOf({ kind: 'mix', equity: 1, bond: 0, cash: 0 })).toEqual({ equity: 1, bond: 0, cash: 0 });

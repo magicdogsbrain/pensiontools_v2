@@ -261,8 +261,8 @@ describe('8 — Before / Now names the change', () => {
     state.answers.a.before = { change: { id: 'a.change', text: 'Now: no at 59.', parts: [] }, inputs: was };
     const text = one(renderScreen(state), 'a.try.changed').textContent;
     expect(text).toContain(String(r.inputs.stop.age - 1));
-    expect(text).toContain('£2,000');
-    expect(text).toContain('£1,900');
+    expect(text).toContain('£1,950');   // (answer-A1 spends £1,850 since 7.8.0: £100 more before)
+    expect(text).toContain('£1,850');
   });
   it('nothing kept from before: no "changed" line', () => {
     expect(one(renderScreen(load('a', 'answer-A1')), 'a.try.changed')).toBe(null);

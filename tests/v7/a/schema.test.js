@@ -161,9 +161,11 @@ describe('SCHEMA_A — the declaration', () => {
     expect(r.ok).toBe(true);
     expect(r.inputs).toEqual({
       household: 'single',
-      you: { age: 50, pot: 250000, payIn: { kind: 'total', total: 600 }, alreadyDrawing: false, statePension: { kind: 'full' }, finalSalary: { has: false } },
+      you: { age: 50, pot: 250000, payIn: { kind: 'total', total: 600 }, alreadyDrawing: false, statePension: { kind: 'full' }, finalSalary: { has: false }, sex: 'notSaid' },
       savings: 40000, stop: { kind: 'age', age: 60 }, spend: { kind: 'amount', amount: 2000 }, partTime: { has: false },
-      savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'balanced', isaGrowth: 'cash'
+      // (7.8.0: the end age's default is the plan-to age, when fewer than 1 in 10 people that age are still alive — 50 now,
+      // the figures for women as not said: 100)
+      savingsIn: 0, savingRisk: 'balanced', risk: 'balanced', charge: 0.5, endAge: 100, confidence: 'balanced', isaGrowth: 'cash'
     });
     expect(validate(SCHEMA_A, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_A, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);   // checking twice changes nothing
@@ -177,7 +179,9 @@ describe('the shared parts — one declaration for A, B and C', () => {
   const withoutWhen = ({ when, ...rest }) => rest;
 
   it('personFields(who) deep-equals SCHEMA_C\'s person block, field for field and in C\'s order', () => {
-    const own = (p) => /\.(payIn\.|stop\.|taxFreeTaken$)/.test(p);   // paying in, the partner's stop and the tax-free part are blocks of their own
+    // paying in, the partner's stop and the tax-free part are blocks of their own; which figures for how long people live
+    // (7.8.0) is a "more detail" box of its own
+    const own = (p) => /\.(payIn\.|stop\.|taxFreeTaken$|sex$)/.test(p);
     for (const who of ['you', 'partner']) {
       const ours = personFields(who);
       const theirs = SCHEMA_C.fields.filter((f) => f.path.startsWith(`${who}.`) && !own(f.path));
@@ -292,15 +296,15 @@ describe('A: each of a couple stops on their own date', () => {
     const r = two({ 'you.payIn.total': '600', 'partner.payIn.total': '300' });
     expect(r.ok).toBe(true);
     expect(Object.keys(flatten(r.inputs)).sort()).toEqual(['charge', 'confidence', 'endAge', 'household', 'partTime.has', 'partner.age', 'partner.alreadyDrawing', 'partner.finalSalary.has',
-      'partner.payIn.kind', 'partner.payIn.total', 'partner.pot', 'partner.statePension.kind', 'risk', 'savingRisk', 'savings', 'savingsIn', 'spend.amount', 'spend.kind',
-      'stop.age', 'stop.kind', 'you.age', 'you.alreadyDrawing', 'you.finalSalary.has', 'you.payIn.kind', 'you.payIn.total', 'you.pot', 'you.statePension.kind']);
+      'partner.payIn.kind', 'partner.payIn.total', 'partner.pot', 'partner.sex', 'partner.statePension.kind', 'risk', 'savingRisk', 'savings', 'savingsIn', 'spend.amount', 'spend.kind',
+      'stop.age', 'stop.kind', 'you.age', 'you.alreadyDrawing', 'you.finalSalary.has', 'you.payIn.kind', 'you.payIn.total', 'you.pot', 'you.sex', 'you.statePension.kind']);
     expect(JSON.stringify(Object.keys(r.inputs))).toBe(JSON.stringify(['household', 'you', 'savings', 'stop', 'spend', 'partTime', 'partner', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence']));
   });
 
   it('"They already have" hides their pay-in; an age is theirs; "show me ages" is for the one the answer is about', () => {
     const r = two({ 'partner.stop.kind': 'already', 'partner.payIn.total': '300', 'partner.taxFreeTaken': true });
     expect(r.ok).toBe(true);
-    expect(r.inputs.partner).toEqual({ age: 58, pot: 90000, statePension: { kind: 'full' }, finalSalary: { has: false }, stop: { kind: 'already' }, taxFreeTaken: true });
+    expect(r.inputs.partner).toEqual({ age: 58, pot: 90000, statePension: { kind: 'full' }, finalSalary: { has: false }, stop: { kind: 'already' }, taxFreeTaken: true, sex: 'notSaid' });
     expect(two({ 'partner.stop.kind': 'age', 'partner.stop.age': '62', untilBothStop: 'all' }).inputs).toMatchObject({ partner: { stop: { kind: 'age', age: 62 } }, untilBothStop: 'all' });
     expect(two({ 'partner.stop.kind': 'ages' }).errors).toEqual({ 'partner.stop.kind': 'partner-ages-one-at-a-time' });
     expect(two({ 'partner.stop.kind': 'age', 'partner.stop.age': '57' }).errors).toEqual({ 'partner.stop.age': 'partner-stop-not-before-now' });
@@ -315,7 +319,7 @@ describe('A: each of a couple stops on their own date', () => {
     const r = two({ 'stop.kind': 'already', 'partner.stop.kind': 'age', 'partner.stop.age': '60', 'you.payIn.total': '600', 'partTime.has': true, 'you.taxFreeTaken': 'yes' });
     expect(r.ok).toBe(true);
     expect(r.inputs.stop).toEqual({ kind: 'already' });
-    expect(r.inputs.you).toEqual({ pot: 250000, age: 50, statePension: { kind: 'full' }, finalSalary: { has: false }, taxFreeTaken: true });   // no pay-in
+    expect(r.inputs.you).toEqual({ pot: 250000, age: 50, statePension: { kind: 'full' }, finalSalary: { has: false }, taxFreeTaken: true, sex: 'notSaid' });   // no pay-in
     expect('partTime' in r.inputs).toBe(false);
     expect(two({ 'stop.kind': 'already', 'partner.stop.kind': 'ages' }).ok).toBe(true);
     expect(two({ 'stop.kind': 'already', 'partner.stop.kind': 'already' }).ok).toBe(true);   // both stopped: the retired view, not an error
@@ -510,7 +514,7 @@ describe('the rules between fields', () => {
   });
   it('usedDefault lists every default that was used, and not the ones typed over', () => {
     expect(parse().usedDefault).toEqual(['household', 'you.statePension.kind', 'you.finalSalary.has', 'savings', 'stop.kind', 'you.payIn.kind', 'you.payIn.total',
-      'you.alreadyDrawing', 'spend.kind', 'partTime.has', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence']);
+      'you.alreadyDrawing', 'spend.kind', 'partTime.has', 'you.sex', 'savingsIn', 'savingRisk', 'risk', 'charge', 'endAge', 'confidence']);
     expect(parse({ 'you.payIn.total': '600', charge: '1' }).usedDefault).not.toContain('you.payIn.total');
     expect(parse({ 'you.payIn.total': '600', charge: '1' }).usedDefault).not.toContain('charge');
   });

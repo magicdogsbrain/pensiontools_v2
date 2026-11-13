@@ -25,12 +25,14 @@ import { SCHEMA_C, TEST_ENV } from './_c.js';
 import { answerC } from './invariants.js';
 
 const N = Number(process.env.V7_FEEDBACK_FUTURES || 300);
-const ENV = { ...TEST_ENV, futures: N };
+// (7.8.0: the amount fed back is held to today's saved-plan run on the count, env.weighted false: that run counts to its
+// end age, which the weighted level is not)
+const ENV = { ...TEST_ENV, futures: N, weighted: false };
 const NOW = at(2026, 9, 30);
 
 /** The answer's plan for a single person, saved the way today's app saves a plan (answer-C-and-household.md 1.6). */
 function settingsFor(inputs, monthly) {
-  const env = { today: ENV.today };
+  const env = { today: ENV.today, weighted: false };   // (the answer's own plan on the count, as the answer above)
   const checked = checkInputs(SCHEMA_C, inputs, env).inputs;
   const plan = enginePlan(toHousehold(checked, env).household, env);
   const [{ config }] = configsAt(plan, monthly * 12);

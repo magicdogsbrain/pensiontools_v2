@@ -116,7 +116,7 @@ describe('the section', () => {
     expect(diffs).toEqual(tryDifferences(s.plans.list[0].plan, s.lasts.tried.boxes, s.env.today).map((d) => d.id));
     expect(diffs).toEqual(['way', 'isaPolicy', 'years']);
     expect(root.querySelector('[data-diff="way"]').textContent).toBe('The way the money is taken: Floor to an age, then decide (the plan: Pots & Valves).');
-    expect(root.querySelector('[data-diff="years"]').textContent).toBe('30 years (the plan: 33).');
+    expect(root.querySelector('[data-diff="years"]').textContent).toBe('30 years (the plan: 34).');
     expect(root.querySelector('[data-diff="isaPolicy"]').textContent).toBe('The ISA: held back, never drawn for income (the plan: used to keep early tax down).');
     one(root, 'plan.lasts.try.use').click();
     expect(actions.pop()).toEqual({ type: 'ui/toggle', id: 'tryConfirm' });

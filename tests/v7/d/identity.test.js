@@ -28,17 +28,20 @@ const PERSON = ['age', 'pot', 'statePension', 'finalSalary'];
 const personOf = (p) => Object.fromEntries(PERSON.filter((k) => p && p[k] !== undefined).map((k) => [k, copy(p[k])]));
 const taxFree = (p) => (p && (p.taxFreeTaken === 'yes' || p.taxFreeTaken === 'some') ? { taxFreeTaken: true } : {});
 
-/** D's household as C's inputs, from now, taking `take` a month. */
-function asC(d, take = null) {
-  const c = { household: d.household || 'single', you: { ...personOf(d.you), ...taxFree(d.you) }, savings: d.savings || 0, start: { kind: 'now' }, risk: d.risk || 'balanced', charge: d.charge === undefined ? 0.5 : d.charge, endAge: d.endAge || 95, take };
+/**
+ * D's household as C's inputs, from now, taking `take` a month. `endAge`: D's own (7.8.0: its default is the plan-to age,
+ * from the ages and the figures for how long people live — the same rule C's box has, so pass D's checked one).
+ */
+function asC(d, take = null, endAge = d.endAge || 95) {
+  const c = { household: d.household || 'single', you: { ...personOf(d.you), ...taxFree(d.you) }, savings: d.savings || 0, start: { kind: 'now' }, risk: d.risk || 'balanced', charge: d.charge === undefined ? 0.5 : d.charge, endAge, take };
   if (d.isaGrowth) c.isaGrowth = d.isaGrowth;
   if (c.household === 'couple') c.partner = { ...personOf(d.partner), stop: { kind: 'already' }, ...taxFree(d.partner) };
   return c;
 }
-/** D's household as A's inputs, stopping today, spending `spend`, with D's work as A's part-time. */
-function asA(d) {
+/** D's household as A's inputs, stopping today, spending `spend`, with D's work as A's part-time; `endAge` D's own. */
+function asA(d, endAge = d.endAge || 95) {
   const a = { household: d.household || 'single', you: { ...personOf(d.you), payIn: { kind: 'total', total: 0 }, ...taxFree(d.you) }, savings: d.savings || 0, stop: { kind: 'age', age: d.you.age },
-    spend: copy(d.spend), partTime: d.work && d.work.has ? { has: true, yearly: d.work.yearly, years: d.work.years } : { has: false }, savingRisk: d.risk || 'balanced', risk: d.risk || 'balanced', charge: d.charge === undefined ? 0.5 : d.charge, endAge: d.endAge || 95 };
+    spend: copy(d.spend), partTime: d.work && d.work.has ? { has: true, yearly: d.work.yearly, years: d.work.years } : { has: false }, savingRisk: d.risk || 'balanced', risk: d.risk || 'balanced', charge: d.charge === undefined ? 0.5 : d.charge, endAge };
   if (d.isaGrowth) a.isaGrowth = d.isaGrowth;
   if (a.household === 'couple') a.partner = { ...personOf(d.partner), payIn: { kind: 'total', total: 0 }, stop: { kind: 'already' }, ...taxFree(d.partner) };
   return a;
@@ -58,7 +61,7 @@ const band = (r) => ({ levels: r.levels });
 describe('I-D1, I-D2 — D is question C from now', () => {
   it.each([['D1 (the worked example)', D1], ['D2 (a couple, both stopped)', D2], ['D3 (an invested ISA larger than the pension)', D3]])('%s', (name, d) => {
     const D = answerD(d, ENV);
-    const C = answerC(asC(d, d.spend.amount), ENV);
+    const C = answerC(asC(d, d.spend.amount, D.inputs.endAge), ENV);
     expect(D.status).toBe('ok');
     expect(C.status).toBe('ok');
     // I-D1: the band, to the bit
@@ -75,13 +78,13 @@ describe('I-D1, I-D2 — D is question C from now', () => {
   it('the worked example at 400 futures: the same, and the design\'s shape of figures (careful ≈ £2,000, a bad case in the 90s)', () => {
     const env = { ...ENV, futures: 400 };
     const D = answerD(D1, env);
-    const C = answerC(asC(D1, 2100), env);
+    const C = answerC(asC(D1, 2100, D.inputs.endAge), env);
     expect(band(D)).toEqual({ levels: C.levels });
     expect(D.lasted).toBe(C.take.lasted);
     expect(D.levels.balanced.monthly).toBeGreaterThan(1500);
     expect(D.levels.balanced.monthly).toBeLessThan(2500);
     expect(D.runOutAge).toBeGreaterThanOrEqual(85);
-    expect(D.runOutAge).toBeLessThanOrEqual(95);
+    expect(D.runOutAge).toBeLessThanOrEqual(D.basis.endAge);
   }, 60000);
 });
 
@@ -92,7 +95,7 @@ describe('I-D3, I-D4 — D is question A stopping now', () => {
   const D2_NO = { ...D2, you: { ...D2.you, taxFreeTaken: 'no' } };
   it.each([['D1', D1], ['D2 (a couple; the partner\'s tax-free part had, as A asks it)', D2_NO], ['D7 (with work: £15,000 a year for 3 years)', D7_NO]])('%s', (name, d) => {
     const D = answerD(d, ENV);
-    const A = answerA(asA(d), { ...ENV, detail: 'chart', ages: [d.you.age] });
+    const A = answerA(asA(d, D.inputs.endAge), { ...ENV, detail: 'chart', ages: [d.you.age] });
     expect(A.status).toBe('ok');
     const shown = A.shown;
     if (d.work && d.work.has) {

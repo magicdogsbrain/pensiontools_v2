@@ -12,7 +12,7 @@ import { checkScreen, draw, visibleText, expectedInputs, scopesFor, bannedHits }
 import { parseDraft } from '../../../src/answers/shared/validate.js';
 import { legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.js';
 import { suggestedPlanName } from '../../../src/answers/shared/planName.js';
-import { ADVICE_SHORT, ADVICE_FULL, FRONT } from '../../../src/v7/copy/common.js';
+import { ADVICE_SHORT, ADVICE_FULL, FRONT, levelKeyOf } from '../../../src/v7/copy/common.js';
 import { D } from '../../../src/v7/copy/d.js';
 import { KEEP } from '../../../src/v7/copy/keep.js';
 import { LAYOUT_D } from '../../../src/v7/screens/d/NumbersScreen.jsx';
@@ -127,8 +127,11 @@ describe('D: the numbers step', () => {
   });
   it('more detail: the risk level, the charge and the end age', () => {
     const root = renderScreen(load('numbers-more-open'));
-    for (const p of LAYOUT_D.more) expect(root.querySelector(`[data-field="${p}"]`), p).not.toBe(null);
-    expect(one(root, 'd.endAge').getAttribute('placeholder')).toBe('95');
+    // (7.8.0: the partner's figures for how long people live are asked of a couple only)
+    for (const p of LAYOUT_D.more.filter((x) => x !== 'partner.sex')) expect(root.querySelector(`[data-field="${p}"]`), p).not.toBe(null);
+    expect(root.querySelector('[data-field="partner.sex"]')).toBe(null);
+    // (7.8.0: the end age starts from the plan-to age — 68 now, the figures for women as not said: 99)
+    expect(one(root, 'd.endAge').getAttribute('placeholder')).toBe('99');
   });
   it('typing sends draft/set; the form reads back what the state holds', () => {
     const state = load('numbers-more-open');
@@ -181,7 +184,12 @@ describe('D: the answer step', () => {
     const r = state.answers.d.result;
     const root = renderScreen(state);
     const band = root.querySelector('[data-headline="verdict"] [data-verdict]');
-    expect(band.getAttribute('data-verdict')).toBe(verdictOf(r.fails, r.basis.futures));
+    // (7.8.0, weighing: the level's one test on the weighted chance — yes at 1 − t/20, close one twentieth below; a chance on
+    // a line itself may go either way. Not weighing: the count)
+    const t = r.basis.levelFails20;
+    const w = r.chance.weighted;
+    const onLine = r.basis.weighted && [t, t + 1].some((x) => Math.abs(w - (1 - x / 20)) < 1e-9);
+    if (!onLine) expect(band.getAttribute('data-verdict')).toBe(r.basis.weighted ? (w >= 1 - t / 20 ? 'yes' : w >= 1 - (t + 1) / 20 ? 'close' : 'no') : verdictOf(r.fails, r.basis.futures));
     expect(band.getAttribute('data-verdict')).toBe(r.verdict);
     expect(band.querySelector('#answer-figure').textContent).toBe(r.sentences.head.text);
     const head = root.querySelector('[data-headline="verdict"]');
@@ -202,7 +210,8 @@ describe('D: the answer step', () => {
     expect(line.getAttribute('data-headroom')).toBe(r.headroom.kind);
     // (7.8.0: the other two levels, in place of the count's middling and good amounts)
     expect(block.textContent).toContain(r.sentences.levels.text);
-    expect(one(root, 'd.more.key').textContent).toBe(D.answer.moreNote);
+    // (7.8.0, weighing: the levels said as chances, levelKeyOf)
+    expect(one(root, 'd.more.key').textContent).toBe(levelKeyOf(r, D.answer.moreNote));
     // the headroom never contradicts the verdict (answer-D.md 3.4)
     if (r.verdict === 'yes') expect(['more', 'about']).toContain(r.headroom.kind);
     else expect(['less', 'about']).toContain(r.headroom.kind);

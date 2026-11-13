@@ -53,8 +53,8 @@ describe('editing the steps (shape/*)', () => {
     expect(steps(s)).toEqual([{ fromAge: '72', perMonth: '2,250', then: 'level', fallsPct: '' }]);
     s = run(s, add('a'), add('a'));
     expect(steps(s).map((x) => [x.fromAge, x.perMonth])).toEqual([['72', '2,250'], ['82', '2,030'], ['92', '1,830']]);
-    s = run(s, add('a'));                                  // 102 is past 95, the end for one person: the last year before it
-    expect(steps(s)[3].fromAge).toBe('94');
+    s = run(s, add('a'));                                  // 102 is past 100, the end for one person (7.8.0: the plan-to age): the last year before it
+    expect(steps(s)[3].fromAge).toBe('99');
     s = run(s, add('a'));                                  // no year left: the age is left for the person
     expect(steps(s)[4].fromAge).toBe('');
     // C: shares, 10 points less each time
@@ -278,8 +278,8 @@ describe('the hand-overs carry the shape (spending-shape.md 4.5)', () => {
 describe('what the block draws (select.js shapeView)', () => {
   it('closed by default; the same every year; the start is the stop; the end is the plan\'s', () => {
     const v = shapeView(at62(), 'a');
-    expect(v).toMatchObject({ open: false, shaped: false, startAge: 62, startKind: 'stop', endAge: 95, first: 2500, then: 'level', steps: [] });
-    expect(v.chart.years).toHaveLength(33);
+    expect(v).toMatchObject({ open: false, shaped: false, startAge: 62, startKind: 'stop', endAge: 100, first: 2500, then: 'level', steps: [] });
+    expect(v.chart.years).toHaveLength(38);
     expect(v.chart.years.every((y) => y.value === 2500)).toBe(true);
     expect(shapeView(fresh(), 'z')).toBe(null);
   });
@@ -302,7 +302,7 @@ describe('what the block draws (select.js shapeView)', () => {
     expect(shapeContext(ages, 'a')).toMatchObject({ startAge: null, startKind: 'ages' });
     const apart = run(typedA(fresh(), { age: '55', stop: '60' }), set('a', 'household', 'couple'), set('a', 'partner.age', '53'), set('a', 'partner.pot', '0'),
       set('a', 'partner.stop.kind', 'age'), set('a', 'partner.stop.age', '55'));
-    expect(shapeContext(apart, 'a')).toMatchObject({ startAge: 57, startKind: 'apart', gap: 2, olderBy: 2, endAge: 97 });
+    expect(shapeContext(apart, 'a')).toMatchObject({ startAge: 57, startKind: 'apart', gap: 2, olderBy: 2, endAge: 103 });   // (7.8.0: the younger one's plan-to age, 101, in your age)
   });
 });
 

@@ -51,7 +51,7 @@
   "answers": {
     "a": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":95,\"household\":\"single\",\"isaGrowth\":\"cash\",\"partTime\":{\"has\":true,\"yearly\":12000,\"years\":3},\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":40000,\"savingsIn\":0,\"spend\":{\"amount\":1900,\"kind\":\"amount\"},\"stop\":{\"age\":60,\"kind\":\"age\"},\"you\":{\"age\":50,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":600},\"pot\":250000,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":100,\"household\":\"single\",\"isaGrowth\":\"cash\",\"partTime\":{\"has\":true,\"yearly\":12000,\"years\":3},\"risk\":\"balanced\",\"savingRisk\":\"balanced\",\"savings\":40000,\"savingsIn\":0,\"spend\":{\"amount\":1900,\"kind\":\"amount\"},\"stop\":{\"age\":60,\"kind\":\"age\"},\"you\":{\"age\":50,\"alreadyDrawing\":false,\"finalSalary\":{\"has\":false},\"payIn\":{\"kind\":\"total\",\"total\":600},\"pot\":250000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
       "result": {
         "status": "ok",
         "inputs": {
@@ -69,7 +69,8 @@
               "kind": "total",
               "total": 600
             },
-            "alreadyDrawing": false
+            "alreadyDrawing": false,
+            "sex": "notSaid"
           },
           "savings": 40000,
           "stop": {
@@ -89,7 +90,7 @@
           "savingRisk": "balanced",
           "risk": "balanced",
           "charge": 0.5,
-          "endAge": 95,
+          "endAge": 100,
           "confidence": "balanced",
           "isaGrowth": "cash"
         },
@@ -107,35 +108,35 @@
         "level": "balanced",
         "levels": {
           "careful": {
-            "stopAge": 64,
-            "weighted": 0.971,
-            "fixedAge": 0.971
+            "stopAge": 62,
+            "weighted": 0.9501661007208749,
+            "fixedAge": 0.879
           },
           "balanced": {
-            "stopAge": 62,
-            "weighted": 0.926,
-            "fixedAge": 0.926
+            "stopAge": 61,
+            "weighted": 0.9250729562006891,
+            "fixedAge": 0.836
           },
           "bold": {
             "stopAge": 60,
-            "weighted": 0.834,
-            "fixedAge": 0.834
+            "weighted": 0.888352785576135,
+            "fixedAge": 0.76
           }
         },
         "chance": {
-          "weighted": 0.834,
-          "fixedAge": 0.834,
-          "fails": 166,
+          "weighted": 0.888352785576135,
+          "fixedAge": 0.76,
+          "fails": 240,
           "n": 1000,
-          "planToAge": 95,
-          "weightToAge": 95,
+          "planToAge": 100,
+          "weightToAge": 104,
           "horizonRule": "survival"
         },
         "headline": {
           "kind": "named",
           "age": 60,
           "verdict": "close",
-          "lasted": 0.834,
+          "lasted": 0.76,
           "outOfTen": {
             "words": "in only 8 futures out of 10",
             "only": true,
@@ -151,32 +152,32 @@
           "stopYear": "2036",
           "status": "final",
           "verdict": "close",
-          "lasted": 0.834,
+          "lasted": 0.76,
           "outOfTen": {
             "words": "in only 8 futures out of 10",
             "only": true,
             "count": 8
           },
           "runOutAge": 89,
-          "weighted": 0.834,
+          "weighted": 0.888352785576135,
           "levels": {
             "careful": {
-              "monthly": 1690,
-              "yearly": 20280,
-              "weighted": 0.952,
-              "fixedAge": 0.952
+              "monthly": 1750,
+              "yearly": 21000,
+              "weighted": 0.9514382875673473,
+              "fixedAge": 0.885
             },
             "balanced": {
-              "monthly": 1790,
-              "yearly": 21480,
-              "weighted": 0.905,
-              "fixedAge": 0.905
+              "monthly": 1870,
+              "yearly": 22440,
+              "weighted": 0.9038558842074126,
+              "fixedAge": 0.789
             },
             "bold": {
-              "monthly": 2050,
-              "yearly": 24600,
-              "weighted": 0.705,
-              "fixedAge": 0.705
+              "monthly": 2210,
+              "yearly": 26520,
+              "weighted": 0.7055732186809183,
+              "fixedAge": 0.504
             }
           },
           "spare": 0,
@@ -294,11 +295,11 @@
             },
             {
               "fromAge": 67,
-              "toAge": 95,
+              "toAge": 100,
               "ages": {
                 "you": {
                   "from": 67,
-                  "to": 95
+                  "to": 100
                 }
               },
               "takeHome": 1900,
@@ -340,8 +341,8 @@
           "oneMoreYear": {
             "toAge": 61,
             "extraMonthly": 80,
-            "lastedFrom": 0.834,
-            "lastedTo": 0.884,
+            "lastedFrom": 0.76,
+            "lastedTo": 0.836,
             "runOutFrom": 89,
             "runOutTo": 93,
             "potExtra": 16429,
@@ -357,32 +358,32 @@
             "stopYear": "2034",
             "status": "final",
             "verdict": "no",
-            "lasted": 0.682,
+            "lasted": 0.626,
             "outOfTen": {
-              "words": "in only 7 futures out of 10",
+              "words": "in only 6 futures out of 10",
               "only": true,
-              "count": 7
+              "count": 6
             },
             "runOutAge": 82,
-            "weighted": 0.682,
+            "weighted": 0.7858199843736365,
             "levels": {
               "careful": {
-                "monthly": 1570,
-                "yearly": 18840,
-                "weighted": 0.952,
-                "fixedAge": 0.952
+                "monthly": 1620,
+                "yearly": 19440,
+                "weighted": 0.9517059761509299,
+                "fixedAge": 0.89
               },
               "balanced": {
-                "monthly": 1660,
-                "yearly": 19920,
-                "weighted": 0.904,
-                "fixedAge": 0.904
+                "monthly": 1720,
+                "yearly": 20640,
+                "weighted": 0.9054629105571658,
+                "fixedAge": 0.807
               },
               "bold": {
-                "monthly": 1880,
-                "yearly": 22560,
-                "weighted": 0.702,
-                "fixedAge": 0.702
+                "monthly": 2010,
+                "yearly": 24120,
+                "weighted": 0.7049389050696044,
+                "fixedAge": 0.517
               }
             },
             "spare": 0,
@@ -412,9 +413,9 @@
             "phases": null,
             "oneMoreYear": {
               "toAge": 59,
-              "extraMonthly": 70,
-              "lastedFrom": 0.682,
-              "lastedTo": 0.759,
+              "extraMonthly": 80,
+              "lastedFrom": 0.626,
+              "lastedTo": 0.694,
               "runOutFrom": 82,
               "runOutTo": 86,
               "potExtra": 16947,
@@ -428,33 +429,33 @@
             },
             "stopYear": "2035",
             "status": "final",
-            "verdict": "close",
-            "lasted": 0.759,
+            "verdict": "no",
+            "lasted": 0.694,
             "outOfTen": {
-              "words": "in only 8 futures out of 10",
+              "words": "in only 7 futures out of 10",
               "only": true,
-              "count": 8
+              "count": 7
             },
             "runOutAge": 86,
-            "weighted": 0.759,
+            "weighted": 0.8413844312401488,
             "levels": {
               "careful": {
-                "monthly": 1630,
-                "yearly": 19560,
-                "weighted": 0.952,
-                "fixedAge": 0.952
+                "monthly": 1680,
+                "yearly": 20160,
+                "weighted": 0.9522434060731902,
+                "fixedAge": 0.889
               },
               "balanced": {
-                "monthly": 1730,
-                "yearly": 20760,
-                "weighted": 0.9,
-                "fixedAge": 0.9
+                "monthly": 1800,
+                "yearly": 21600,
+                "weighted": 0.9006279608244077,
+                "fixedAge": 0.789
               },
               "bold": {
-                "monthly": 1960,
-                "yearly": 23520,
-                "weighted": 0.705,
-                "fixedAge": 0.705
+                "monthly": 2110,
+                "yearly": 25320,
+                "weighted": 0.7031961819371209,
+                "fixedAge": 0.51
               }
             },
             "spare": 0,
@@ -484,9 +485,9 @@
             "phases": null,
             "oneMoreYear": {
               "toAge": 60,
-              "extraMonthly": 60,
-              "lastedFrom": 0.759,
-              "lastedTo": 0.834,
+              "extraMonthly": 70,
+              "lastedFrom": 0.694,
+              "lastedTo": 0.76,
               "runOutFrom": 86,
               "runOutTo": 89,
               "potExtra": 22035,
@@ -501,32 +502,32 @@
             "stopYear": "2036",
             "status": "final",
             "verdict": "close",
-            "lasted": 0.834,
+            "lasted": 0.76,
             "outOfTen": {
               "words": "in only 8 futures out of 10",
               "only": true,
               "count": 8
             },
             "runOutAge": 89,
-            "weighted": 0.834,
+            "weighted": 0.888352785576135,
             "levels": {
               "careful": {
-                "monthly": 1690,
-                "yearly": 20280,
-                "weighted": 0.952,
-                "fixedAge": 0.952
+                "monthly": 1750,
+                "yearly": 21000,
+                "weighted": 0.9514382875673473,
+                "fixedAge": 0.885
               },
               "balanced": {
-                "monthly": 1790,
-                "yearly": 21480,
-                "weighted": 0.905,
-                "fixedAge": 0.905
+                "monthly": 1870,
+                "yearly": 22440,
+                "weighted": 0.9038558842074126,
+                "fixedAge": 0.789
               },
               "bold": {
-                "monthly": 2050,
-                "yearly": 24600,
-                "weighted": 0.705,
-                "fixedAge": 0.705
+                "monthly": 2210,
+                "yearly": 26520,
+                "weighted": 0.7055732186809183,
+                "fixedAge": 0.504
               }
             },
             "spare": 0,
@@ -644,11 +645,11 @@
               },
               {
                 "fromAge": 67,
-                "toAge": 95,
+                "toAge": 100,
                 "ages": {
                   "you": {
                     "from": 67,
-                    "to": 95
+                    "to": 100
                   }
                 },
                 "takeHome": 1900,
@@ -690,8 +691,8 @@
             "oneMoreYear": {
               "toAge": 61,
               "extraMonthly": 80,
-              "lastedFrom": 0.834,
-              "lastedTo": 0.884,
+              "lastedFrom": 0.76,
+              "lastedTo": 0.836,
               "runOutFrom": 89,
               "runOutTo": 93,
               "potExtra": 16429,
@@ -705,36 +706,36 @@
             },
             "stopYear": "2037",
             "status": "final",
-            "verdict": "close",
-            "lasted": 0.884,
+            "verdict": "yes",
+            "lasted": 0.836,
             "outOfTen": {
-              "words": "in 9 futures out of 10",
-              "only": false,
-              "count": 9
+              "words": "in only 8 futures out of 10",
+              "only": true,
+              "count": 8
             },
             "runOutAge": 93,
-            "weighted": 0.884,
+            "weighted": 0.9250729562006891,
             "levels": {
               "careful": {
-                "monthly": 1760,
-                "yearly": 21120,
-                "weighted": 0.952,
-                "fixedAge": 0.952
+                "monthly": 1820,
+                "yearly": 21840,
+                "weighted": 0.9517836468918249,
+                "fixedAge": 0.88
               },
               "balanced": {
-                "monthly": 1870,
-                "yearly": 22440,
-                "weighted": 0.902,
-                "fixedAge": 0.902
+                "monthly": 1950,
+                "yearly": 23400,
+                "weighted": 0.9043774565132334,
+                "fixedAge": 0.789
               },
               "bold": {
-                "monthly": 2150,
-                "yearly": 25800,
-                "weighted": 0.7,
-                "fixedAge": 0.7
+                "monthly": 2330,
+                "yearly": 27960,
+                "weighted": 0.7012878449354321,
+                "fixedAge": 0.489
               }
             },
-            "spare": 0,
+            "spare": 50,
             "potAtStop": {
               "careful": 336915,
               "middling": 474842,
@@ -761,11 +762,11 @@
             "phases": null,
             "oneMoreYear": {
               "toAge": 62,
-              "extraMonthly": 80,
-              "lastedFrom": 0.884,
-              "lastedTo": 0.926,
+              "extraMonthly": 90,
+              "lastedFrom": 0.836,
+              "lastedTo": 0.879,
               "runOutFrom": 93,
-              "runOutTo": 95,
+              "runOutTo": 97,
               "potExtra": 16723,
               "sameish": false
             }
@@ -778,35 +779,35 @@
             "stopYear": "2038",
             "status": "final",
             "verdict": "yes",
-            "lasted": 0.926,
+            "lasted": 0.879,
             "outOfTen": {
               "words": "in 9 futures out of 10",
               "only": false,
               "count": 9
             },
-            "runOutAge": 95,
-            "weighted": 0.926,
+            "runOutAge": 97,
+            "weighted": 0.9501661007208749,
             "levels": {
               "careful": {
-                "monthly": 1830,
-                "yearly": 21960,
-                "weighted": 0.951,
-                "fixedAge": 0.951
+                "monthly": 1900,
+                "yearly": 22800,
+                "weighted": 0.9501661007208749,
+                "fixedAge": 0.879
               },
               "balanced": {
-                "monthly": 1950,
-                "yearly": 23400,
-                "weighted": 0.902,
-                "fixedAge": 0.902
+                "monthly": 2040,
+                "yearly": 24480,
+                "weighted": 0.9028202991923318,
+                "fixedAge": 0.779
               },
               "bold": {
-                "monthly": 2240,
-                "yearly": 26880,
-                "weighted": 0.703,
-                "fixedAge": 0.703
+                "monthly": 2450,
+                "yearly": 29400,
+                "weighted": 0.7007569024488329,
+                "fixedAge": 0.478
               }
             },
-            "spare": 50,
+            "spare": 140,
             "potAtStop": {
               "careful": 348435,
               "middling": 491565,
@@ -841,35 +842,35 @@
             "stopYear": "2041",
             "status": "final",
             "verdict": "yes",
-            "lasted": 0.984,
+            "lasted": 0.964,
             "outOfTen": {
               "words": "in more than 9 futures out of 10",
               "only": false,
               "count": 9
             },
-            "runOutAge": 95,
-            "weighted": 0.984,
+            "runOutAge": 100,
+            "weighted": 0.987067902000621,
             "levels": {
               "careful": {
-                "monthly": 2060,
-                "yearly": 24720,
-                "weighted": 0.95,
-                "fixedAge": 0.95
+                "monthly": 2130,
+                "yearly": 25560,
+                "weighted": 0.9517471723370254,
+                "fixedAge": 0.876
               },
               "balanced": {
-                "monthly": 2200,
-                "yearly": 26400,
-                "weighted": 0.903,
-                "fixedAge": 0.903
+                "monthly": 2330,
+                "yearly": 27960,
+                "weighted": 0.900673953124322,
+                "fixedAge": 0.771
               },
               "bold": {
-                "monthly": 2590,
-                "yearly": 31080,
-                "weighted": 0.702,
-                "fixedAge": 0.702
+                "monthly": 2850,
+                "yearly": 34200,
+                "weighted": 0.7038270662957802,
+                "fixedAge": 0.466
               }
             },
-            "spare": 300,
+            "spare": 430,
             "potAtStop": {
               "careful": 382603,
               "middling": 548224,
@@ -904,35 +905,35 @@
             "stopYear": "2043",
             "status": "final",
             "verdict": "yes",
-            "lasted": 0.993,
+            "lasted": 0.986,
             "outOfTen": {
               "words": "in more than 9 futures out of 10",
               "only": false,
               "count": 9
             },
-            "runOutAge": 95,
-            "weighted": 0.993,
+            "runOutAge": 100,
+            "weighted": 0.9946994488798082,
             "levels": {
               "careful": {
-                "monthly": 2240,
-                "yearly": 26880,
-                "weighted": 0.954,
-                "fixedAge": 0.954
+                "monthly": 2320,
+                "yearly": 27840,
+                "weighted": 0.9516855528429151,
+                "fixedAge": 0.869
               },
               "balanced": {
-                "monthly": 2400,
-                "yearly": 28800,
-                "weighted": 0.901,
-                "fixedAge": 0.901
+                "monthly": 2550,
+                "yearly": 30600,
+                "weighted": 0.9022092479672283,
+                "fixedAge": 0.771
               },
               "bold": {
-                "monthly": 2870,
-                "yearly": 34440,
-                "weighted": 0.701,
-                "fixedAge": 0.701
+                "monthly": 3180,
+                "yearly": 38160,
+                "weighted": 0.7014785701334476,
+                "fixedAge": 0.446
               }
             },
-            "spare": 500,
+            "spare": 650,
             "potAtStop": {
               "careful": 401936,
               "middling": 597426,
@@ -961,8 +962,8 @@
           }
         ],
         "earliest": {
-          "yes": 62,
-          "close": 59
+          "yes": 61,
+          "close": 60
         },
         "pensionOpens": {
           "you": 57
@@ -974,19 +975,19 @@
           "years": 3,
           "fromAge": 60,
           "toAge": 63,
-          "lastedWith": 0.834,
-          "lastedWithout": 0.75,
+          "lastedWith": 0.76,
+          "lastedWithout": 0.689,
           "runOutWith": 89,
           "runOutWithout": 85,
           "without": {
-            "verdict": "close",
-            "lasted": 0.75,
+            "verdict": "no",
+            "lasted": 0.689,
             "runOutAge": 85,
-            "monthly": 1710
+            "monthly": 1780
           },
           "oneMore": {
             "years": 4,
-            "lasted": 0.857,
+            "lasted": 0.787,
             "runOutAge": 91
           }
         },
@@ -1220,18 +1221,51 @@
             ]
           },
           {
-            "id": "plan-to",
+            "id": "life-plan-to",
             "field": "endAge",
             "source": "default",
-            "value": 95,
-            "text": "The money needs to last until you are 95.",
+            "value": 100,
+            "text": "Your plan runs to 100, when fewer than 1 in 10 women your age are still alive. We follow each future on to 104, when fewer than 1 in 50 are.",
             "parts": [
-              "The money needs to last until you are ",
+              "Your plan runs to ",
               {
-                "key": "basis.endAge",
-                "kind": "age"
+                "fixed": "100"
               },
-              "."
+              ", when fewer than ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              " ",
+              "women your age",
+              " are still alive.",
+              " We follow each future on to ",
+              {
+                "fixed": "104"
+              },
+              ", when fewer than ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "50"
+              },
+              " are."
+            ],
+            "always": true
+          },
+          {
+            "id": "life-sex",
+            "field": "you.sex",
+            "source": "default",
+            "value": "notSaid",
+            "text": "We used figures for women, who tend to live longer, because you did not say.",
+            "parts": [
+              "We used figures for women, who tend to live longer, because you did not say."
             ]
           },
           {
@@ -1339,7 +1373,7 @@
           },
           "sub": {
             "id": "a.sub",
-            "text": "spending £1,900 a month after tax from 60 until you are 95, going up each year with prices",
+            "text": "spending £1,900 a month after tax from 60 until you are 100, going up each year with prices",
             "parts": [
               "spending ",
               {
@@ -1362,10 +1396,12 @@
             ]
           },
           "line": {
-            "id": "a.line",
-            "text": "Stopping at 60 and spending £1,900 a month, your money lasted to 95 in only 8 futures out of 10.",
+            "id": "a.line.weighted",
+            "text": "Counting how long people your age live, stopping at 60 and spending £1,900 a month lasts as long as you do 17 times in 20; Balanced asks for 18.",
             "parts": [
-              "Stopping at ",
+              "Counting how long people your age live",
+              ", ",
+              "stopping at ",
               {
                 "key": "shown.age",
                 "kind": "age"
@@ -1375,28 +1411,38 @@
                 "key": "spend.perMonth",
                 "kind": "money"
               },
-              " a month, your money lasted to ",
-              {
-                "key": "basis.endAge",
-                "kind": "age"
-              },
+              " a month",
+              " lasts ",
+              "as long as you do",
               " ",
-              "in only ",
               {
-                "fixed": "8"
+                "fixed": "17"
               },
-              " futures out of ",
+              " times in ",
               {
-                "fixed": "10"
+                "fixed": "20"
+              },
+              "; ",
+              "Balanced",
+              " asks for ",
+              {
+                "fixed": "18"
               },
               "."
-            ]
+            ],
+            "mark": "weighted"
           },
           "bad": {
-            "id": "a.bad",
-            "text": "In a bad case (the worst 1 in 10) it would run out at age 89. Stopping at 62 instead lasted in 9 futures out of 10.",
+            "id": "a.when",
+            "text": "In the futures where the money runs out, it typically runs out at 93. In the worst 1 in 10 of all the futures, by 89. Stopping at 61 instead is within Balanced.",
             "parts": [
-              "In a bad case (the worst ",
+              "In the futures where the money runs out, it typically runs out ",
+              "at ",
+              {
+                "fixed": "93"
+              },
+              ". ",
+              "In the worst ",
               {
                 "fixed": "1"
               },
@@ -1404,12 +1450,10 @@
               {
                 "fixed": "10"
               },
-              ")",
-              " it would run out ",
-              "at age ",
+              " of all the futures, ",
+              "by ",
               {
-                "key": "shown.runOutAge",
-                "kind": "age"
+                "fixed": "89"
               },
               ".",
               " Stopping at ",
@@ -1417,40 +1461,14 @@
                 "key": "earliest.yes",
                 "kind": "age"
               },
-              " instead lasted in ",
-              {
-                "fixed": "9"
-              },
-              " futures out of ",
-              {
-                "fixed": "10"
-              },
-              "."
-            ]
-          },
-          "after": {
-            "id": "a.after",
-            "text": "After it runs out at 89, you would have £1,046 a month from your State Pension.",
-            "parts": [
-              "After it runs out ",
-              "at ",
-              {
-                "key": "shown.runOutAge",
-                "kind": "age"
-              },
-              ", you would have ",
-              {
-                "key": "guaranteed.monthlyAfterTax",
-                "kind": "money"
-              },
-              " a month from ",
-              "your State Pension",
+              " instead is within ",
+              "Balanced",
               "."
             ]
           },
           "range": {
             "id": "a.range",
-            "text": "At 60 you could spend: Careful £1,690, Balanced £1,790, Bold £2,050 a month.",
+            "text": "At 60 you could spend: Careful £1,750, Balanced £1,870, Bold £2,210 a month.",
             "parts": [
               "At ",
               {
@@ -1645,7 +1663,7 @@
           "chart": [
             {
               "id": "a.chart.row",
-              "text": "At 58, you could spend about £1,660 a month; £1,900 a month lasted in only 7 futures out of 10.",
+              "text": "At 58, you could spend about £1,720 a month; £1,900 a month lasted in only 6 futures out of 10.",
               "parts": [
                 "At ",
                 {
@@ -1655,6 +1673,37 @@
                 ", you could spend about ",
                 {
                   "key": "ages.0.levels.balanced.monthly",
+                  "kind": "money"
+                },
+                " a month; ",
+                {
+                  "key": "spend.perMonth",
+                  "kind": "money"
+                },
+                " a month lasted ",
+                "in only ",
+                {
+                  "fixed": "6"
+                },
+                " futures out of ",
+                {
+                  "fixed": "10"
+                },
+                "."
+              ]
+            },
+            {
+              "id": "a.chart.row",
+              "text": "At 59, you could spend about £1,800 a month; £1,900 a month lasted in only 7 futures out of 10.",
+              "parts": [
+                "At ",
+                {
+                  "key": "ages.1.age",
+                  "kind": "age"
+                },
+                ", you could spend about ",
+                {
+                  "key": "ages.1.levels.balanced.monthly",
                   "kind": "money"
                 },
                 " a month; ",
@@ -1676,38 +1725,7 @@
             },
             {
               "id": "a.chart.row",
-              "text": "At 59, you could spend about £1,730 a month; £1,900 a month lasted in only 8 futures out of 10.",
-              "parts": [
-                "At ",
-                {
-                  "key": "ages.1.age",
-                  "kind": "age"
-                },
-                ", you could spend about ",
-                {
-                  "key": "ages.1.levels.balanced.monthly",
-                  "kind": "money"
-                },
-                " a month; ",
-                {
-                  "key": "spend.perMonth",
-                  "kind": "money"
-                },
-                " a month lasted ",
-                "in only ",
-                {
-                  "fixed": "8"
-                },
-                " futures out of ",
-                {
-                  "fixed": "10"
-                },
-                "."
-              ]
-            },
-            {
-              "id": "a.chart.row",
-              "text": "At 60, you could spend about £1,790 a month; £1,900 a month lasted in only 8 futures out of 10.",
+              "text": "At 60, you could spend about £1,870 a month; £1,900 a month lasted in only 8 futures out of 10.",
               "parts": [
                 "At ",
                 {
@@ -1738,7 +1756,7 @@
             },
             {
               "id": "a.chart.row",
-              "text": "At 61, you could spend about £1,870 a month; £1,900 a month lasted in just under 9 futures out of 10.",
+              "text": "At 61, you could spend about £1,950 a month; £1,900 a month lasted in only 8 futures out of 10.",
               "parts": [
                 "At ",
                 {
@@ -1748,6 +1766,37 @@
                 ", you could spend about ",
                 {
                   "key": "ages.3.levels.balanced.monthly",
+                  "kind": "money"
+                },
+                " a month; ",
+                {
+                  "key": "spend.perMonth",
+                  "kind": "money"
+                },
+                " a month lasted ",
+                "in only ",
+                {
+                  "fixed": "8"
+                },
+                " futures out of ",
+                {
+                  "fixed": "10"
+                },
+                "."
+              ]
+            },
+            {
+              "id": "a.chart.row",
+              "text": "At 62, you could spend about £2,040 a month; £1,900 a month lasted in just under 9 futures out of 10.",
+              "parts": [
+                "At ",
+                {
+                  "key": "ages.4.age",
+                  "kind": "age"
+                },
+                ", you could spend about ",
+                {
+                  "key": "ages.4.levels.balanced.monthly",
                   "kind": "money"
                 },
                 " a month; ",
@@ -1769,38 +1818,7 @@
             },
             {
               "id": "a.chart.row",
-              "text": "At 62, you could spend about £1,950 a month; £1,900 a month lasted in 9 futures out of 10.",
-              "parts": [
-                "At ",
-                {
-                  "key": "ages.4.age",
-                  "kind": "age"
-                },
-                ", you could spend about ",
-                {
-                  "key": "ages.4.levels.balanced.monthly",
-                  "kind": "money"
-                },
-                " a month; ",
-                {
-                  "key": "spend.perMonth",
-                  "kind": "money"
-                },
-                " a month lasted ",
-                "in ",
-                {
-                  "fixed": "9"
-                },
-                " futures out of ",
-                {
-                  "fixed": "10"
-                },
-                "."
-              ]
-            },
-            {
-              "id": "a.chart.row",
-              "text": "At 65, you could spend about £2,200 a month; £1,900 a month lasted in more than 9 futures out of 10.",
+              "text": "At 65, you could spend about £2,330 a month; £1,900 a month lasted in more than 9 futures out of 10.",
               "parts": [
                 "At ",
                 {
@@ -1831,7 +1849,7 @@
             },
             {
               "id": "a.chart.row",
-              "text": "At 67, you could spend about £2,400 a month; £1,900 a month lasted in more than 9 futures out of 10.",
+              "text": "At 67, you could spend about £2,550 a month; £1,900 a month lasted in more than 9 futures out of 10.",
               "parts": [
                 "At ",
                 {
@@ -1885,28 +1903,29 @@
           },
           "oneMoreMoves": {
             "id": "a.oneMore.moves",
-            "text": "It moves £1,900 a month from lasting in 8 futures out of 10 to just under 9, and a bad case (the worst 1 in 10) from running out at 89 to running out at 93.",
+            "text": "If you live to 100, £1,900 a month still lasts that long in 17 of 20 futures we tried, and it moves a bad case (the worst 1 in 10) from running out at 89 to running out at 93.",
             "parts": [
-              "It moves ",
+              "If you live to ",
+              {
+                "fixed": "100"
+              },
+              ", ",
               {
                 "key": "spend.perMonth",
                 "kind": "money"
               },
-              " a month from lasting ",
+              " a month",
+              " still lasts that long ",
               "in ",
               {
-                "fixed": "8"
+                "fixed": "17"
               },
-              " futures out of ",
+              " of ",
               {
-                "fixed": "10"
+                "fixed": "20"
               },
-              " to ",
-              "just under ",
-              {
-                "fixed": "9"
-              },
-              ", and ",
+              " futures we tried",
+              ", and it moves ",
               "a bad case (the worst ",
               {
                 "fixed": "1"
@@ -1931,7 +1950,7 @@
           },
           "partTime": {
             "id": "a.partTime",
-            "text": "That is with £12,000 a year from part-time work for 3 years after you stop (from 60 until 63), taxed as income. Without it, the money lasted in only 8 futures out of 10.",
+            "text": "That is with £12,000 a year from part-time work for 3 years after you stop (from 60 until 63), taxed as income. Without it, if you live to 100, the money lasts that long in 14 of 20 futures we tried.",
             "parts": [
               "That is with ",
               {
@@ -1953,51 +1972,66 @@
                 "key": "partTime.toAge",
                 "kind": "age"
               },
-              "), taxed as income. Without it, the money lasted ",
-              "in only ",
+              "), taxed as income. Without it, if you live to ",
               {
-                "fixed": "8"
+                "fixed": "100"
               },
-              " futures out of ",
+              ", the money lasts that long ",
+              "in ",
               {
-                "fixed": "10"
+                "fixed": "14"
               },
+              " of ",
+              {
+                "fixed": "20"
+              },
+              " futures we tried",
               "."
             ]
           },
           "partTimeOneMore": {
             "id": "a.partTime.oneMore",
-            "text": "One more year of part-time work, until 64, moves £1,900 a month from lasting in 8 futures out of 10 to just under 9.",
+            "text": "One more year of part-time work, until 64: if you live to 100, £1,900 a month lasts that long in 16 of 20 futures we tried, where it was in 15 of 20 futures we tried.",
             "parts": [
               "One more year of part-time work, until ",
               {
                 "fixed": "64"
               },
-              ", moves ",
+              ": if you live to ",
+              {
+                "fixed": "100"
+              },
+              ", ",
               {
                 "key": "spend.perMonth",
                 "kind": "money"
               },
-              " a month from lasting ",
+              " a month lasts that long ",
               "in ",
               {
-                "fixed": "8"
+                "fixed": "16"
               },
-              " futures out of ",
+              " of ",
               {
-                "fixed": "10"
+                "fixed": "20"
               },
-              " to ",
-              "just under ",
+              " futures we tried",
+              ", where it was ",
+              "in ",
               {
-                "fixed": "9"
+                "fixed": "15"
               },
+              " of ",
+              {
+                "fixed": "20"
+              },
+              " futures we tried",
               "."
             ]
           },
           "change": {
             "id": "a.change",
-            "text": "Now: close at 60, 8 futures out of 10, with 3 years of part-time work.",
+            "text": "Now: close at 60, at Balanced.",
             "parts": [
               "Now: ",
               "close",
@@ -2006,21 +2040,114 @@
                 "key": "headline.age",
                 "kind": "age"
               },
-              ", ",
+              ", at ",
+              "Balanced",
+              "."
+            ]
+          },
+          "fixed": {
+            "id": "a.fixed",
+            "text": "If you live to 100, the money lasts that long in 15 of 20 futures we tried.",
+            "parts": [
+              "If you live to ",
               {
-                "fixed": "8"
+                "fixed": "100"
               },
-              " futures out of ",
+              ", the money lasts that long in ",
+              {
+                "fixed": "15"
+              },
+              " of ",
+              {
+                "fixed": "20"
+              },
+              " futures we tried."
+            ],
+            "mark": "fixed"
+          },
+          "howLong": {
+            "id": "a.howLong",
+            "text": "In the futures where it runs out before 100, it still pays for 30 of the 40 years to 100.",
+            "parts": [
+              "In the futures where it runs out before ",
+              {
+                "fixed": "100"
+              },
+              ", it still pays for ",
+              {
+                "fixed": "30"
+              },
+              " of the ",
+              {
+                "fixed": "40"
+              },
+              " years to ",
+              {
+                "fixed": "100"
+              },
+              "."
+            ]
+          },
+          "howMuch": {
+            "id": "a.howMuch",
+            "text": "Across those futures, about £8 of every £10 you planned to spend is still paid.",
+            "parts": [
+              "Across those futures, about ",
+              {
+                "fixed": "£8"
+              },
+              " of every ",
+              {
+                "fixed": "£10"
+              },
+              " you planned to spend is still paid."
+            ]
+          },
+          "floor": {
+            "id": "a.floor",
+            "text": "If the money ran out at 93, you would still have £12,548 a year after tax, from your State Pension.",
+            "parts": [
+              "If the money ran out ",
+              "at ",
+              {
+                "fixed": "93"
+              },
+              ", ",
+              "you would still have ",
+              {
+                "fixed": "£12,548"
+              },
+              " a year after tax",
+              ", ",
+              "from your State Pension",
+              "."
+            ]
+          },
+          "left": {
+            "id": "a.left",
+            "text": "If you live to 100, what is typically left then is £296,000 at today's prices. In the best 1 in 10 futures it is £2,111,000 or more.",
+            "parts": [
+              "If you live to ",
+              {
+                "fixed": "100"
+              },
+              ", what is typically left then is ",
+              {
+                "fixed": "£296,000"
+              },
+              " at today's prices. In the best ",
+              {
+                "fixed": "1"
+              },
+              " in ",
               {
                 "fixed": "10"
               },
-              ", with ",
+              " futures it is ",
               {
-                "fixed": "3"
+                "fixed": "£2,111,000"
               },
-              " years",
-              " of part-time work",
-              "."
+              " or more."
             ]
           }
         },
@@ -2030,17 +2157,17 @@
           "seed": 0,
           "level": "balanced",
           "levelFails20": 2,
-          "planToAge": 95,
-          "weightToAge": 95,
+          "planToAge": 100,
+          "weightToAge": 104,
           "tablesVersion": "ons-ew-2024-cohort/1",
           "sexUsed": {
             "you": "f"
           },
           "historyEnd": "2023-06",
           "engineVersion": "7.6.0",
-          "endAge": 95,
+          "endAge": 100,
           "detail": "chart",
-          "lifeYears": 45,
+          "lifeYears": 54,
           "bondDraws": "life",
           "cashRule": "previous-year",
           "grid": "yearly",
@@ -2051,7 +2178,8 @@
               "who": "you",
               "share": 1
             }
-          ]
+          ],
+          "weighted": true
         },
         "units": {
           "money": "todays-prices",

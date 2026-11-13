@@ -147,6 +147,14 @@ export function checkAnswerB(answer, given) {
   const savers = people.filter((p) => st.saves(p.who));
   const S = st.S;
   const allowed = allowedAt(n, answer.level);
+  // 7.8.0, weighing: every verdict, "on course" and "would be enough" is the level's one test on the weighted chance —
+  // yes when it is at least 1 − t/20 (rules.js passes, on whole numbers; read back from the share, a chance on the line
+  // itself may go either way), close within one more twentieth. Not weighing: the counts as before.
+  const W = Boolean(b.weighted);
+  const T20 = LEVEL_FAILS20[answer.level];
+  const onLine = (w, t = T20) => Math.abs(w - (1 - t / 20)) < 1e-9;
+  const passesW = (w, t = T20) => w >= 1 - t / 20 - 1e-9;
+  const bandW = (w) => (passesW(w) ? 'yes' : passesW(w, T20 + 1) ? 'close' : 'no');
   const LV = answer.levels;
   const lvShown = LV && LV[answer.level];
   if ((answer.askedAbout || 'you') !== st.asked) fail('B2', `askedAbout ${answer.askedAbout}, the inputs ask about ${st.asked}`);
@@ -171,10 +179,12 @@ export function checkAnswerB(answer, given) {
   if (answer.years.saving !== S) fail('B2', `years.saving ${answer.years.saving} ≠ ${S}`);
   // the household's start: the first stop (one stop for both: the stop)
   const youngerAtStop = Math.min(...people.map((p) => p.age)) + st.first;
-  const D = Math.min(RULES.maxYears, inputs.endAge - youngerAtStop);
+  const D = Math.min(b.weighted ? RULES.maxDrawYears : RULES.maxYears, inputs.endAge - youngerAtStop);
   if (answer.years.drawing !== D) fail('B2', `years.drawing ${answer.years.drawing} ≠ ${D}`);
   if (b.endAge !== youngerAtStop + D) fail('B2', `basis.endAge ${b.endAge} ≠ ${youngerAtStop + D}`);
-  if (b.lifeYears !== st.first + D) fail('B2', `basis.lifeYears ${b.lifeYears} ≠ ${st.first + D}`);
+  // (weighing: the lives run on to the later of the plan-to age and the weighting age, within the cap — the run's years)
+  const runYears = W ? Math.min(RULES.maxDrawYears, Math.max(inputs.endAge, b.weightToAge) - youngerAtStop) : D;
+  if (b.lifeYears !== st.first + runYears) fail('B2', `basis.lifeYears ${b.lifeYears} ≠ ${st.first + runYears}`);
   for (const p of people) if (answer.ages[p.who] !== p.age + st.own[p.who]) fail('B2', `ages.${p.who} ${answer.ages[p.who]} ≠ ${p.age + st.own[p.who]}`);
   if (inputs.household !== 'couple' && answer.whose !== 'you') fail('B2', 'single but whose is not you');
   const spend = spendOf(inputs);
@@ -217,8 +227,10 @@ export function checkAnswerB(answer, given) {
   const ch = { ...answer.chance, lasted: answer.chance.fixedAge };
   if (!Number.isInteger(ch.fails) || ch.fails < 0 || ch.fails > n) fail('B4', `chance.fails ${ch.fails}`);
   if (Math.abs(ch.lasted - (n - ch.fails) / n) > 1e-12) fail('B4', 'chance.fixedAge ≠ (n − fails) / n');
-  if (ch.weighted < ch.lasted - 1e-12) fail('B4', 'chance.weighted below chance.fixedAge');
-  if (answer.onCourse !== (ch.fails <= allowed.nineInTen)) fail('B4', `onCourse ${answer.onCourse} with ${ch.fails} of ${n} short`);
+  // (a typed end age below the plan-to age lets a future that runs out after it count as lasting to it while it still weighs)
+  // (the plan-to age from the tables: a future that runs out after it still weighs, at most 1 in 10 — never below 9/10)
+  if (ch.horizonRule === 'survival' && ch.weighted < 0.9 * ch.lasted - 1e-12) fail('B4', 'chance.weighted below 9/10 of chance.fixedAge');
+  if (W ? !onLine(ch.weighted) && answer.onCourse !== passesW(ch.weighted) : answer.onCourse !== (ch.fails <= allowed.nineInTen)) fail('B4', `onCourse ${answer.onCourse} with ${ch.fails} of ${n} short (weighted ${ch.weighted})`);
   if (ch.lasted !== answer.wholeLife.lasted) fail('B4', `chance.fixedAge ${ch.lasted} is not the whole life's ${answer.wholeLife.lasted}: one test`);
 
   // B5 the pay-ins: whole £10, what is needed at the chosen confidence, 9 in 10 never less than 3 in 4, on course ⟺ enough now
@@ -266,7 +278,7 @@ export function checkAnswerB(answer, given) {
   // B8 the levers: the fixed five in order, each null or its shape; honest about what it claims
   const lv = answer.levers;
   if (JSON.stringify(Object.keys(lv)) !== JSON.stringify(LEVERS)) fail('B8', `levers ${Object.keys(lv)}`);
-  if (JSON.stringify(lv.accept) !== JSON.stringify({ lasted: ch.lasted, short: answer.short, monthlyIfShort: answer.monthlyIfShort })) fail('B8', 'levers.accept is not the answer as it stands');
+  if (JSON.stringify(lv.accept) !== JSON.stringify({ lasted: ch.lasted, ...(W ? { weighted: ch.weighted } : {}), short: answer.short, monthlyIfShort: answer.monthlyIfShort })) fail('B8', 'levers.accept is not the answer as it stands');
   if (answer.onCourse) for (const k of ['stopLater', 'payMore', 'spendLess', 'moreRisk']) if (lv[k] !== null) fail('B8', `on course but levers.${k} is set`);
   if (inputs.savingRisk === 'adventurous' && lv.moreRisk !== null) fail('B8', 'moreRisk with the saving risk already adventurous');
   if (lv.moreRisk) {
@@ -293,12 +305,12 @@ export function checkAnswerB(answer, given) {
       if (!(pi.needed > pi.now || (m.savingsIn !== null && m.savingsIn > (pi.savingsNow || 0)))) fail('B8', 'payMore changes nothing');
     }
     if (m.savingsIn !== null && m.savingsIn !== pi.outside) fail('B8', `payMore.savingsIn ${m.savingsIn} is not payIn.outside ${pi.outside}`);
-    if (m.lasted < 1 - allowed.nineInTen / n - 1e-12) fail('B8', `payMore lasted in only ${m.lasted}`);
+    if (!(answer.basis && answer.basis.weighted) && m.lasted < 1 - allowed.nineInTen / n - 1e-12) fail('B8', `payMore lasted in only ${m.lasted}`);
   } else if (lead && !answer.onCourse && (lead.payIn > pi.now || lead.savingsIn !== null)) fail('B8', 'something would be enough, and no payMore');
   if (lv.oneOff) {
     const o = lv.oneOff;
     if (!Number.isInteger(o.amount / 1000) || !(o.amount >= 1000) || o.amount > SAVING.potMax) fail('B8', `oneOff.amount ${o.amount}`);
-    if (o.lasted < 1 - allowed.nineInTen / n - 1e-12) fail('B8', `oneOff lasted in only ${o.lasted}`);
+    if (!(answer.basis && answer.basis.weighted) && o.lasted < 1 - allowed.nineInTen / n - 1e-12) fail('B8', `oneOff lasted in only ${o.lasted}`);
     // a person at a time, the sum with a year of what goes in now (both count in the same tax year)
     const lumpOf = (w) => (Array.isArray(o.byPerson) ? (o.byPerson.find((x) => x.who === w) || { amount: 0 }).amount : o.amount);
     const over = people.filter((q) => lumpOf(q.who) > 0 && lumpOf(q.who) + q.payIn.total * 12 > RULES.annualAllowance).map((q) => q.who);
@@ -309,13 +321,13 @@ export function checkAnswerB(answer, given) {
   if (lv.stopLater) {
     const s = lv.stopLater;
     if (!(s.age > st.stopAge && s.age <= RULES.stopAgeMax)) fail('B8', `stopLater.age ${s.age}`);
-    if (s.lasted < 1 - allowed.nineInTen / n - 1e-12) fail('B8', `stopLater lasted in only ${s.lasted}`);
+    if (!(answer.basis && answer.basis.weighted) && s.lasted < 1 - allowed.nineInTen / n - 1e-12) fail('B8', `stopLater lasted in only ${s.lasted}`);
   }
   if (lv.spendLess) {
     const s = lv.spendLess;
     if (!Number.isInteger(s.spend / 10) || !(s.spend < spend)) fail('B8', `spendLess.spend ${s.spend}`);
     if (s.spend !== answer.monthlyIfShort) fail('B8', 'spendLess.spend is not monthlyIfShort (the careful amount paying in as now)');
-    if (s.lasted < 1 - allowed.nineInTen / n - 1e-12) fail('B8', `spendLess lasted in only ${s.lasted}`);
+    if (!(answer.basis && answer.basis.weighted) && s.lasted < 1 - allowed.nineInTen / n - 1e-12) fail('B8', `spendLess lasted in only ${s.lasted}`);
   }
 
   // B9 the grid, only with detail 'grid': the rows and columns of gridToShow; more pay-in never reaches it in fewer lives
@@ -336,7 +348,9 @@ export function checkAnswerB(answer, given) {
           if (JSON.stringify(c.outOfTen) !== JSON.stringify(outOfTen(c.lasted))) fail('B9', `row ${row.age} cell ${j}: outOfTen`);
           if (j > 0 && c.lasted < row.cells[j - 1].lasted) fail('B9', `row ${row.age}: more pay-in lasted in fewer lives`);
           const cellFails = Math.round((1 - c.lasted) * n);
-          if (c.verdict !== (cellFails <= allowed.nineInTen ? 'yes' : cellFails <= Math.floor(n / 4) ? 'close' : 'no')) fail('B9', `row ${row.age} cell ${j}: verdict ${c.verdict}`);
+          // (weighing: the level's one test on the cell's weighted chance; not weighing, the count)
+          const cellWant = W ? bandW(c.weighted) : cellFails <= allowed.nineInTen ? 'yes' : cellFails <= Math.floor(n / 4) ? 'close' : 'no';
+          if (!(W && (onLine(c.weighted) || onLine(c.weighted, T20 + 1))) && c.verdict !== cellWant) fail('B9', `row ${row.age} cell ${j}: verdict ${c.verdict}`);
         });
         if (row.number !== null && !Number.isInteger(row.number / 1000)) fail('B9', `row ${row.age}: number ${row.number}`);
       }
@@ -428,15 +442,17 @@ export function checkAnswerB(answer, given) {
   // B12 every default that was used is listed; the lines that are always there
   const ids = answer.assumed.map((a) => a.id);
   if (new Set(ids).size !== ids.length) fail('B12', 'assumed ids repeat');
+  // (a run the 60-year cap stops at or before the plan-to age says only that: "We could test only to …", life-capped)
+  const cutShort = W && ids.includes('life-capped') && !ids.includes('life-plan-to');
   for (const a of answer.assumed) {
     if (a.source === 'default' && typeof a.field !== 'string') fail('B12', `${a.id} is a default with no field`);
     if (!['default', 'entered', 'rule'].includes(a.source)) fail('B12', `${a.id}: source ${a.source}`);
   }
   const always = ['pay-in-as-given', 'risk-saving', 'risk-drawing', 'charges', 'same-futures', 'saving-rebalanced', 'stop-age', 'spend-steady',
-    'number-is-careful', 'confidence', 'plan-to', 'todays-prices', 'tax-rules'];
+    'number-is-careful', 'confidence', W ? (cutShort ? 'life-capped' : 'life-plan-to') : 'plan-to', 'todays-prices', 'tax-rules'];
   always.push(nowTotal > 0 ? 'pay-in' : 'nothing-paid-in');
   // a couple: one stop for both says so; each on their own date, the pay line (couples-different-years.md 2.4)
-  if (inputs.household === 'couple') always.push(answer.apart ? 'stop-apart' : 'stop-together', 'both-alive');
+  if (inputs.household === 'couple') always.push(answer.apart ? 'stop-apart' : 'stop-together', (answer.basis && answer.basis.weighted) ? 'life-couple' : 'both-alive');
   if (inputs.household === 'couple' && nowTotal > 0 && savers.length === 2) always.push('pay-in-split');
   if (answer.apart) {
     if (ids.includes('stop-together')) fail('B12', 'stop-together with the two stops apart');
@@ -461,12 +477,12 @@ export function checkAnswerB(answer, given) {
   if (inputs.savingRisk === inputs.risk && ids.includes('slide')) fail('B12', 'a slide line with one risk level');
   if (given) {
     const flat = flatten(given);
-    const FIELD = { savingsIn: 'savings-in', savingRisk: 'risk-saving', risk: 'risk-drawing', charge: 'charges', isaGrowth: 'savings-growth', endAge: 'plan-to', confidence: 'confidence',
+    const FIELD = { savingsIn: 'savings-in', savingRisk: 'risk-saving', risk: 'risk-drawing', charge: 'charges', isaGrowth: 'savings-growth', endAge: W ? (cutShort ? null : 'life-plan-to') : 'plan-to', confidence: 'confidence',
       'you.statePension.kind': 'state-pension-full', 'partner.statePension.kind': 'state-pension-full-partner',
       'you.finalSalary.has': 'no-final-salary', 'partner.finalSalary.has': 'no-final-salary-partner', 'partner.pot': 'partner-no-pot' };
     const applies = flatten(inputs);
     for (const [field, id] of Object.entries(FIELD)) {
-      if (!(field in applies) || flat[field] !== undefined) continue;
+      if (!(field in applies) || flat[field] !== undefined || id === null) continue;
       const line = answer.assumed.find((a) => a.id === id);
       if (!line) fail('B12', `${field} was defaulted but ${id} is not under what was assumed`);
       else if (line.source !== 'default') fail('B12', `${field} was defaulted but ${id} says ${line.source}`);
@@ -495,7 +511,7 @@ export function checkAnswerB(answer, given) {
   if (answer.gapYears > 0 && !wids.some((id) => id.startsWith('pension-closed'))) fail('B13', 'every pension closed at the stop, and no pension-closed warning');
   if (answer.outside && has('no-savings-for-gap') !== (!(inputs.savings > 0) && !(inputs.savingsIn > 0))) fail('B13', 'no-savings-for-gap');
   if (has('state-pension-assumed') !== people.some((p) => (p.statePension || {}).kind === 'full')) fail('B13', 'state-pension-assumed');
-  if (has('long-plan') !== (inputs.endAge - youngerAtStop > RULES.maxYears)) fail('B13', 'long-plan');
+  if (has('long-plan') !== (inputs.endAge - youngerAtStop > (W ? RULES.maxDrawYears : RULES.maxYears))) fail('B13', 'long-plan');
 
   // B14 every sentence carries its own numbers; the headline is the number; no banned word, no wait
   const all = sentencesOf(answer);
@@ -544,12 +560,14 @@ export function checkAnswerB(answer, given) {
     const lives = answer.trace.lives;
     if (lives.length !== n) fail('B15', `${lives.length} lives in the trace, ${n} in the basis`);
     for (const l of lives) if (Math.abs(l.pension - (l.zero + pi.now * l.perPound)) > 0.01 * (1 + l.pension * 1e-9)) fail('B15', `life ${l.id}: pension ≠ zero + now × perPound`);
-    const ranOut = lives.filter((l) => l.runOutMonth !== null).length;
+    // (weighing: the lives run on past the plan-to age; the count is to its month, the drawing years to it)
+    const toMonth = W ? 12 * (b.endAge - youngerAtStop) : Infinity;
+    const ranOut = lives.filter((l) => l.runOutMonth !== null && l.runOutMonth < toMonth).length;
     if (ch.fails !== ranOut) fail('B15', `chance.fails ${ch.fails}, but ${ranOut} lives ran out in the trace`);
     const at = positions(n);
     const sorted = lives.map((l) => l.pension).sort((x, y) => x - y);
     for (const k of THREE) if (Math.abs(pa.now[k] - sorted[at[k]]) > 0.5 + 1e-9) fail('B15', `potAtStop.now.${k} ${pa.now[k]} ≠ the trace's ${sorted[at[k]]}`);
-    const ran = lives.filter((l) => l.runOutMonth !== null).length;
+    const ran = ranOut;
     if (Math.abs(wl.lasted - (n - ran) / n) > 1e-12) fail('B15', `wholeLife.lasted ${wl.lasted}, ${n - ran} of ${n} lasted in the trace`);
   }
 
@@ -557,15 +575,16 @@ export function checkAnswerB(answer, given) {
   // two incomes are the careful and middling amounts paying in as now, the gap what the bad case is short of the aim; what
   // would be enough is a figure whose own count holds, within the caps, in the person's own kind
   const vd = answer.verdict;
-  const band = ch.fails <= allowed.nineInTen ? 'yes' : ch.fails <= allowed.threeInFour ? 'close' : 'no';
-  if (!vd || vd.band !== band || vd.lasted !== ch.lasted) fail('B17', `verdict ${JSON.stringify(vd)}, the count says ${band}`);
+  const band = W ? bandW(ch.weighted) : ch.fails <= allowed.nineInTen ? 'yes' : ch.fails <= allowed.threeInFour ? 'close' : 'no';
+  const lineW = W && (onLine(ch.weighted) || onLine(ch.weighted, T20 + 1));
+  if (!vd || (!lineW && vd.band !== band) || vd.lasted !== ch.lasted) fail('B17', `verdict ${JSON.stringify(vd)}, the ${W ? 'weighted chance' : 'count'} says ${band}`);
   if (answer.income.bad !== answer.monthlyIfShort) fail('B17', `income.bad ${answer.income.bad} is not the careful amount paying in as now (${answer.monthlyIfShort})`);
   const gapWant = Math.round(Math.max(0, spend - answer.income.bad) * 100) / 100;
   if (answer.gap.month !== gapWant || Math.abs(answer.gap.year - gapWant * 12) > 0.005) fail('B17', `gap ${JSON.stringify(answer.gap)}, the aim less the bad case is ${gapWant}`);
   if (answer.status === 'guaranteed-only') { if (en !== null) fail('B17', 'enough when the State Pension covers it'); }
   else if (!en) fail('B17', 'no enough');
   else {
-    if (en.closeNow !== (band === 'close')) fail('B17', 'closeNow ⟺ the Close band');
+    if (!lineW && en.closeNow !== (band === 'close')) fail('B17', 'closeNow ⟺ the Close band');
     if (en.level !== answer.level) fail('B17', 'enough.level is not the answer\'s');
     const saversHere = savers.length;
     const one = saversHere === 1 ? savers[0] : null;
@@ -574,7 +593,7 @@ export function checkAnswerB(answer, given) {
     for (const [k, cap] of [['atLevel', allowed.nineInTen]]) {
       const fig = en[k];
       if (!fig) continue;
-      if (!(fig.fails <= cap)) fail('B17', `enough.${k} counts ${fig.fails} failing, more than ${cap}`);
+      if (W ? !passesW(fig.weighted) : !(fig.fails <= cap)) fail('B17', W ? `enough.${k} lasts ${fig.weighted} weighted, below ${answer.level}` : `enough.${k} counts ${fig.fails} failing, more than ${cap}`);
       if (Math.abs(fig.lasted - (n - fig.fails) / n) > 1e-12) fail('B17', `enough.${k}.lasted`);
       if (Math.abs(fig.payIn - fig.parts.reduce((s, x) => s + x.payIn, 0)) > 0.011) fail('B17', `enough.${k}: the parts do not add up`);
       if (fig.savingsIn !== null && fig.savingsIn !== pi.outside) fail('B17', `enough.${k}.savingsIn is not payIn.outside`);

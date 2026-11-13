@@ -52,7 +52,7 @@
               "oneOffs": [],
               "plsaTier": "moderate",
               "retired": true,
-              "retirementAge": 66,
+              "retirementAge": 65,
               "sharedWithPartner": true,
               "version": 1
             }
@@ -68,7 +68,7 @@
               "consecutiveLimit": 3,
               "duration": 35,
               "equityMin": 250000,
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "basic",
               "isaBalance": 0,
               "isaDrawdownStrategy": "minimiseEarlyTax",
@@ -132,12 +132,12 @@
               "dbStartYear": 0,
               "disableProtection": false,
               "diversifierStart": 0,
-              "duration": 30,
+              "duration": 31,
               "equityGlideEnabled": false,
               "equityMin": 210000,
               "extraIncomes": [],
               "extraWithdrawals": [],
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "basic",
               "glideEndgame": null,
               "hodlEnabled": false,
@@ -159,12 +159,13 @@
               "relevantEarnings": 0,
               "retireAge": null,
               "retired": true,
-              "shapeAgeNow": 66,
+              "shapeAgeNow": 65,
               "spStartDate": "2 October 2028",
               "spWeeklyAmount": 198.4,
               "spendingProfile": "flat",
               "statePension": 12000,
               "statePensionYear": 12,
+              "stoppedWork": "2026-05",
               "strategyId": "pots-and-valves",
               "strategyParams": {},
               "strategyState": {},
@@ -387,6 +388,8 @@
                 "id": "draft-retired",
                 "slots": {}
               },
+              "closed": false,
+              "close": null,
               "locked": false,
               "lockedOn": null,
               "madeOn": null,
@@ -395,6 +398,10 @@
               "main": true,
               "records": false,
               "linked": true,
+              "checkInDue": false,
+              "monthByMonth": true,
+              "life": "drawing",
+              "todo": 1,
               "lastModified": "2026-08-22T15:00:00.000Z"
             },
             {
@@ -405,6 +412,8 @@
                 "id": "approaching",
                 "slots": {}
               },
+              "closed": false,
+              "close": null,
               "locked": false,
               "lockedOn": null,
               "madeOn": null,
@@ -413,6 +422,10 @@
               "main": false,
               "records": false,
               "linked": true,
+              "checkInDue": false,
+              "monthByMonth": false,
+              "life": "saving",
+              "todo": 1,
               "lastModified": "2026-08-22T15:00:00.000Z"
             }
           ]
@@ -456,10 +469,10 @@
             "figures": {
               "yearly": 24000,
               "ageToday": 64,
-              "years": 30,
+              "years": 31,
               "ageEnd": 95,
               "step0": 24000,
-              "stepAge0": 66,
+              "stepAge0": 65,
               "sipp": 350000,
               "isa": 22000,
               "gia": 0,
@@ -511,10 +524,12 @@
                     }
                   },
                   {
-                    "id": "about.retired",
-                    "slots": {},
+                    "id": "about.stoppedIn",
+                    "slots": {
+                      "month": "May 2026"
+                    },
                     "sentence": {
-                      "id": "about.retired",
+                      "id": "about.stoppedIn",
                       "parts": [],
                       "text": ""
                     },
@@ -527,7 +542,7 @@
                   {
                     "id": "about.firstYear",
                     "slots": {
-                      "year": "2027/28"
+                      "year": "2026/27"
                     },
                     "sentence": {
                       "id": "about.firstYear",
@@ -556,7 +571,7 @@
                           "kind": "age"
                         }
                       ],
-                      "text": "30 years, to age 95"
+                      "text": "31 years, to age 95"
                     },
                     "source": {
                       "kind": "saved",
@@ -590,7 +605,7 @@
                         },
                         " a year before tax"
                       ],
-                      "text": "From age 66: £24,000 a year before tax"
+                      "text": "From age 65: £24,000 a year before tax"
                     },
                     "source": {
                       "kind": "saved",
@@ -798,7 +813,7 @@
                   {
                     "id": "mix.tentOff",
                     "slots": {
-                      "years": "10"
+                      "years": "11"
                     },
                     "sentence": {
                       "id": "mix.tentOff",
@@ -1311,9 +1326,43 @@
             "locked": false,
             "lockedOn": null,
             "saver": false,
+            "stopMonth": null,
             "strategyId": "pots-and-valves",
             "bought": false,
             "hasDocument": false
+          },
+          {
+            "id": "month",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "month.lockFirst",
+              "parts": [
+                "Months are recorded once the plan is locked"
+              ],
+              "text": "Months are recorded once the plan is locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "lockFirst",
+                "href": "#/plan/AlexCouple06/lock",
+                "slots": {}
+              },
+              {
+                "id": "monthByMonth",
+                "href": "#/plan/AlexCouple06/month",
+                "slots": {}
+              }
+            ],
+            "notes": [],
+            "recorded": false,
+            "setUp": false,
+            "gap": null,
+            "toRecord": "2026-09"
           },
           {
             "id": "hold",
@@ -1462,8 +1511,10 @@
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
-            "stop": "April 2027",
-            "savedYear": ""
+            "stop": "April 2026",
+            "savedYear": "",
+            "closed": "",
+            "next": ""
           },
           "button": {
             "id": "lasts",
@@ -1510,7 +1561,7 @@
             "a": "Alex’s plan",
             "b": "Sam’s plan"
           },
-          "runKey": "AlexCouple06|2026-08-22T15:00:00.000Z|johalt|U+SamCouple07|2026-08-22T15:00:00.000Z|1k5mjcs|U",
+          "runKey": "AlexCouple06|2026-08-22T15:00:00.000Z|1ko20gy|U+SamCouple07|2026-08-22T15:00:00.000Z|1k5mjcs|U",
           "mode": "write",
           "lockedNames": [],
           "copyRoom": true,
@@ -1776,6 +1827,15 @@
             "b": "pots-and-valves"
           },
           "draftKey": "{\"budget.shared\":\"yes\",\"budget.mySharePct\":\"60\"}"
+        },
+        "life": {
+          "key": "drawing",
+          "placing": "draft-retired",
+          "locked": false,
+          "stop": "2026-05",
+          "since": "2026-05",
+          "by": "facts",
+          "invite": null
         }
       }
     }

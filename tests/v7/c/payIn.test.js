@@ -37,14 +37,15 @@ describe('1 the reported 55-year-old: £275,000, £500 + £300 a month, the mone
 
   it('the headline is the monthly figure from 67, and paying in raises it', () => {
     expect(a.sentences.head.text).toBe(`About £${a.levels.balanced.monthly.toLocaleString('en-GB')} a month`);
-    expect(a.sentences.sub.text).toBe('after tax, from age 67 until you are 95, going up each year with prices');
+    expect(a.sentences.sub.text).toBe('after tax, from age 67 until you are 100, going up each year with prices');
     expect(a.levels.balanced.monthly).toBeGreaterThan(none.levels.balanced.monthly);
     expect(a.potAtStart.middling).toBeGreaterThan(none.potAtStart.middling);
   });
 
   it('says plainly what it assumed: what goes in, until when, rising with prices, and the pot invested meanwhile', () => {
     expect(a.sentences.payIn.text).toBe('Paying in £800 a month until 67, rising with prices; the pot invested at Balanced, about half in shares, until then.');
-    expect(a.sentences.line.text).toMatch(/^With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, you could have about £[\d,]+ a month after tax, from age 67 until you are 95\. That amount lasted in 9 futures out of 10\.$/);
+    // (7.8.0: at the level, to the plan-to age — 55 now, not said: 100 — and the chance the money lasts as long as you do)
+    expect(a.sentences.line.text).toMatch(/^With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, at Balanced you could have about £[\d,]+ a month after tax, from age 67 until you are 100\. Counting how long people your age live, the money lasts as long as you do 18 times in 20\.$/);
     expect(a.sentences.pot.text).toMatch(/^By 67 your pot could be about £[\d,]+\. In a bad case \(the worst 1 in 10\) it would be £[\d,]+, and in a good case \(the best 1 in 10\) £[\d,]+\.$/);
     const ids = a.assumed.map((x) => x.id);
     for (const id of ['pay-in', 'pay-in-as-given', 'pot-invested', 'charges', 'same-futures']) expect(ids, id).toContain(id);
@@ -54,8 +55,9 @@ describe('1 the reported 55-year-old: £275,000, £500 + £300 a month, the mone
     for (const t of texts(a)) expect(t).not.toMatch(/leaves out any growth|stays at £275,000|contribution|tax relief/i);
   });
 
-  it('a careful amount means the same as everywhere: it lasts in 9 lives out of 10, and £10 more does not', () => {
-    expect(a.levels.balanced.fixedAge).toBeGreaterThanOrEqual(0.9);
+  it('a careful amount means the same as everywhere: it passes the level\'s test, and £10 more does not', () => {
+    // (7.8.0: Balanced is 18 times in 20 weighted by how long people live; its count to the plan-to age is its own figure)
+    expect(a.levels.balanced.weighted).toBeGreaterThanOrEqual(0.9);
     const more = answerC({ ...PAYING_IN, take: a.levels.balanced.monthly + 10 }, ENV);
     expect(more.take.covered).toBe(false);
     const at = answerC({ ...PAYING_IN, take: a.levels.balanced.monthly }, ENV);
@@ -121,7 +123,7 @@ describe('4 more going in never pays less; one figure is own + employer', () => 
     const a = ok(answerC({ you: { pot: 0, age: 50, payIn: { has: 'yes', own: 300, employer: 200 } } }, ENV));
     expect(a.inputs.start).toEqual({ kind: 'age', age: 67 });
     expect(a.status).toBe('ok');
-    expect(a.sentences.line.text).toMatch(/^With £500 a month going in until 67 and your State Pension, you could have about/);
+    expect(a.sentences.line.text).toMatch(/^With £500 a month going in until 67 and your State Pension, at Balanced you could have about/);
   });
 });
 

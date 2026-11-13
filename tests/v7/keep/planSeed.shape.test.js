@@ -138,7 +138,10 @@ describe('K-SS2, K-SS3, K-SS4 — today\'s planner targets the answer\'s amount 
     const [run] = configsAt(plan, r.levels.balanced.monthly * 12);
     const compiled = compileSteps(S, S.shapeAgeNow);
     let compared = 0;
-    for (let y = 0; y < plan.years; y++) {
+    // (7.8.0: the answer's years and the seed's schedule end at the plan-to age, the label; the run goes on past it to the
+    // weighting age, so the years compared are the plan's own)
+    const years = Number.isFinite(plan.runToAge) ? plan.endAge - plan.startAge : plan.years;
+    for (let y = 0; y < years; y++) {
       const per = plan.periods.find((x) => x.from <= y && y < x.to);
       if (per.netTotal > r.byYear[y].spend * 12) continue;          // the State Pension pays more: today's floor, not the shape (T12)
       expect(Math.abs(compiled[y] - run.config.targetSchedule[y]), `year ${y}`).toBeLessThan(1);

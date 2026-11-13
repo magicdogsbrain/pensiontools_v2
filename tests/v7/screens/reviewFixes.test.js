@@ -31,7 +31,7 @@ import { initialState } from '../../../src/v7/state/initial.js';
 import { currentKey } from '../../../src/v7/state/select.js';
 import { railFor } from '../../../src/v7/rail/index.js';
 import { C } from '../../../src/v7/copy/c.js';
-import { COMMON, NOT_BUILT } from '../../../src/v7/copy/common.js';
+import { COMMON, NOT_BUILT, levelKeyOf } from '../../../src/v7/copy/common.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
 
 const DIR = join(process.cwd(), 'tests/v7/states/c');
@@ -213,7 +213,7 @@ describe('4 — "Save this as a plan" now that it is built (save-as-plan.md); "w
     clean(root, state);
     expect(one(root, 'rail.next').querySelector('[data-next]').textContent).toBe(C.next['c.keep']);
     expect(one(root, 'rail.next.button')).toBe(null);
-    expect(one(root, 'c.keep.name').value).toBe('From 58 · £1,350 a month');
+    expect(one(root, 'c.keep.name').value).toBe('From 58 · £1,380 a month');
     expect(root.textContent).not.toContain(NOT_BUILT.line);
   });
   // C's unbuilt "ways" step and its two checks here left with it at 7.0 (switch-readiness.md gate 3): no rail has an unbuilt
@@ -275,9 +275,9 @@ describe('7 — the key under the three amounts', () => {
     const root = renderScreen(state);
     clean(root, state);
     const key = one(root, 'c.madeOf.key');
-    expect(key.textContent).toBe(C.answer.rangeKey);
-    expect(key.textContent).toMatch(/Careful = .*19.*out of 20.*Balanced = 9 out of 10.*Bold = 7 out of 10/);
-    expect([...key.querySelectorAll('[data-fixed]')].map((el) => el.textContent)).toEqual(['19', '20', '9', '10', '7', '10']);
+    expect(key.textContent).toBe(levelKeyOf(state.answers.c.result, C.answer.rangeKey));   // (7.8.0: the levels as chances while weighing)
+    expect(key.textContent).toMatch(/Careful = .*19 times in 20.*Balanced = 18 times in 20.*Bold = 14 times in 20/);
+    expect([...key.querySelectorAll('[data-fixed]')].map((el) => el.textContent)).toEqual(['19', '20', '18', '20', '14', '20']);
     // Under the three amounts, inside "what it is made of".
     expect(key.previousElementSibling.classList.contains('range')).toBe(true);
     expect(key.closest('.made-of')).not.toBe(null);

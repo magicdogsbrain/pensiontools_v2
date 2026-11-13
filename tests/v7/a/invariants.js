@@ -16,7 +16,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { get, money, partsText, outOfTen, pot as potText } from '../../../src/answers/shared/format.js';
 import { flatten } from '../../../src/answers/shared/validate.js';
-import { RULES, legacyVerdictOf as verdictOf, LEVEL_FAILS20 } from '../../../src/answers/shared/rules.js';
+import { RULES, legacyVerdictOf as verdictOf, LEVEL_FAILS20, SUCCESS } from '../../../src/answers/shared/rules.js';
 import { agesToShow, askedAbout, stopYearsOf, payInParts } from '../../../src/answers/shared/schemaParts.js';
 import { bannedHits } from '../render/checkScreen.js';
 import { largeHousehold } from '../oracles/oneStep.mjs';
@@ -42,7 +42,7 @@ export function ownAt(inputs, a) {
   return { ...own, first: Math.min(...list), last: Math.max(...list) };
 }
 /** Whether a row at `a` can be answered: the end after the later stop, under 45 years after the first. */
-export const fitsAt = (inputs, a, younger) => { const o = ownAt(inputs, a); return inputs.endAge > younger + o.last && o.last - o.first < RULES.maxYears; };
+export const fitsAt = (inputs, a, younger, cap = SUCCESS.weighted ? RULES.maxDrawYears : RULES.maxYears) => { const o = ownAt(inputs, a); return inputs.endAge > younger + o.last && o.last - o.first < cap; };
 
 const ROOT = process.cwd();
 const P1_FILES = ['lives', 'saving', 'stopAt'].map((f) => resolve(ROOT, `src/answers/shared/${f}.js`));
@@ -232,15 +232,29 @@ export function checkAnswerA(answer, given, env) {
     const own = ownAt(inputs, r.age);
     const S = own[ask.asked];
     const S0 = own.first;
-    const endAge = Math.min(inputs.endAge, younger + S0 + RULES.maxYears);
+    const endAge = Math.min(inputs.endAge, younger + S0 + (answer.basis && answer.basis.weighted ? RULES.maxDrawYears : RULES.maxYears));
     const payInYears = one(inputs.you) * own.you + (couple ? one(inputs.partner) * own.partner : 0);
     // A-I4 the verdict is the count
     const fails = Math.round((1 - r.lasted) * n);
     if (Math.abs((n - fails) / n - r.lasted) > 1e-9) fail('A-I4', `${at}: lasted ${r.lasted} is not a count out of ${n}`);
-    if (r.verdict !== verdictOf(fails, n)) fail('A-I4', `${at}: verdict ${r.verdict} but ${fails} of ${n} ran out`);
+    // (7.8.0, weighing: the verdict is the level's on the weighted chance — yes within the level's twentieths, close within
+    // one more — so it is read from the row's weighted chance; not weighing, the count as before)
+    if (answer.basis && answer.basis.weighted) {
+      const t = LEVEL_FAILS20[answer.level];
+      const want = r.weighted >= 1 - t / 20 - 1e-9 ? 'yes' : r.weighted >= 1 - (t + 1) / 20 - 1e-9 ? 'close' : 'no';
+      if (Math.abs(r.weighted - (1 - t / 20)) > 1e-9 && Math.abs(r.weighted - (1 - (t + 1) / 20)) > 1e-9 && r.verdict !== want) fail('A-I4', `${at}: verdict ${r.verdict} but weighted ${r.weighted} at ${answer.level}`);
+    } else {
+      // (not weighing: the level's count — yes within floor(t·n/20) failures, close within floor(n/4) — so at Balanced it is
+      // legacyVerdictOf's verdict exactly)
+      const yes = Math.floor((LEVEL_FAILS20[answer.level] * n) / 20);
+      const want = answer.level === 'balanced' ? verdictOf(fails, n) : fails <= yes ? 'yes' : fails <= Math.max(yes, Math.floor(n / 4)) ? 'close' : 'no';
+      if (r.verdict !== want) fail('A-I4', `${at}: verdict ${r.verdict} but ${fails} of ${n} ran out`);
+    }
     if (JSON.stringify(r.outOfTen) !== JSON.stringify(outOfTen(r.lasted))) fail('A-I4', `${at}: outOfTen ≠ outOfTen(lasted)`);
     if (!Number.isInteger(r.runOutAge) || r.runOutAge > endAge || r.runOutAge < younger + S0) fail('A-I4', `${at}: runOutAge ${r.runOutAge}`);
-    if ((r.verdict === 'yes') !== (r.runOutAge === endAge)) fail('A-I4', `${at}: verdict ${r.verdict} but a bad case runs out at ${r.runOutAge} (end ${endAge})`);
+    // (not weighing: yes is the count at 9 in 10, so the bad case, the worst 1 in 10, lasts exactly then; weighing, the level's
+    // weighted test is not a count, and the bad case is the spread's — the two no longer imply each other)
+    if (!(answer.basis && answer.basis.weighted) && answer.level === 'balanced' && (r.verdict === 'yes') !== (r.runOutAge === endAge)) fail('A-I4', `${at}: verdict ${r.verdict} but a bad case runs out at ${r.runOutAge} (end ${endAge})`);
     if (r.status !== 'final') fail('A-I4', `${at}: status ${r.status}`);
     if (r.yearsSaving !== S) fail('A-I4', `${at}: yearsSaving ${r.yearsSaving} ≠ ${S}`);
     if (r.stopYear !== String(Number(b.today.slice(0, 4)) + S)) fail('A-I4', `${at}: stopYear ${r.stopYear}`);
@@ -267,7 +281,8 @@ export function checkAnswerA(answer, given, env) {
       if (Math.abs(x.yearly - x.monthly * 12) > 0.01) fail('A-I5', `${at}: levels.${k}.yearly ≠ 12 × monthly`);
       if (r.potAtStop.good > 0 && x.monthly % 10 !== 0) fail('A-I5', `${at}: levels.${k}.monthly = ${x.monthly} is not a whole £10`);
       if (r.potAtStop.good > 0 && x.weighted === x.fixedAge && Math.round((1 - x.fixedAge) * n) > Math.floor((LEVEL_FAILS20[k] * n) / 20)) fail('A-I5', `${at}: ${k} lasted in only ${x.fixedAge}`);
-      if (x.weighted < x.fixedAge - 1e-12) fail('A-I5', `${at}: ${k} weighted below fixed-age`);
+      // (the plan-to age from the tables: a future that runs out after it still weighs, at most 1 in 10 — never below 9/10)
+      if (answer.chance && answer.chance.horizonRule === 'survival' && x.weighted < 0.9 * x.fixedAge - 1e-12) fail('A-I5', `${at}: ${k} weighted below 9/10 of fixed-age`);
     }
     const m = { careful: lv.monthly };
     if (r.potAtStop.good > 0 && answer.level === 'balanced') {
@@ -423,10 +438,14 @@ export function checkAnswerA(answer, given, env) {
   if (ch && (ch.field !== 'charge' || ch.value !== inputs.charge)) fail('A-I11', `charges: field ${ch.field}, value ${ch.value} (input ${inputs.charge})`);
   if (!ch && (potsToday(inputs) > 0 || householdPayIn(inputs) > 0 || inputs.savingsIn > 0)) fail('A-I11', 'money in funds or cash, and no charges line');
   if (ids.includes('pay-in') && ids.includes('nothing-paid-in')) fail('A-I11', 'pay-in and nothing-paid-in together');
-  const always = ['stop-age', 'spend-steady', 'plan-to', 'todays-prices', 'tax-rules'];
+  // 7.8.0, weighing: the plan-to line is life-plan-to, a couple is counted while one is alive (life-couple)
+  const W = Boolean(answer.basis && answer.basis.weighted);
+  // (a run the 60-year cap stops at or before the plan-to age says only that: "We could test only to …", life-capped)
+  const cutShort = W && ids.includes('life-capped') && !ids.includes('life-plan-to');
+  const always = ['stop-age', 'spend-steady', W ? (cutShort ? 'life-capped' : 'life-plan-to') : 'plan-to', 'todays-prices', 'tax-rules'];
   if (shownOwn.last > 0) always.push('same-futures');
   // a couple: one stop for both says so; each on their own date, the pay line (couples-different-years.md 2.4)
-  if (couple) always.push(answer.apart ? 'stop-apart' : 'stop-together', 'both-alive');
+  if (couple) always.push(answer.apart ? 'stop-apart' : 'stop-together', W ? 'life-couple' : 'both-alive');
   if (answer.apart) {
     if (ids.includes('stop-together')) fail('A-I11', 'stop-together with the two stops apart');
     const line = answer.assumed.find((a) => a.id === 'stop-apart');
@@ -451,7 +470,9 @@ export function checkAnswerA(answer, given, env) {
   if (given) {
     const flatGiven = flatten(given);
     const flatInputs = flatten(inputs);
-    for (const [field, [id, applies]] of Object.entries(ASSUMED_FIELD)) {
+    for (const [field, [id0, applies]] of Object.entries({ ...ASSUMED_FIELD, ...(W ? { 'you.sex': ['life-sex', () => true], 'partner.sex': ['life-sex-partner', () => true] } : {}) })) {
+      if (cutShort && id0 === 'plan-to') continue;
+      const id = W && id0 === 'plan-to' ? 'life-plan-to' : id0;
       if (!(field in flatInputs) || flatGiven[field] !== undefined || !applies(answer)) continue;
       const line = answer.assumed.find((a) => a.id === id);
       if (!line) fail('A-I11', `${field} was defaulted but ${id} is not under what was assumed`);
@@ -495,7 +516,9 @@ export function checkAnswerA(answer, given, env) {
   // the words of couples apart: the line names both stops; the years before the second stop are said with the pay
   if (answer.apart && answer.status === 'ok') {
     const ap = answer.apart;
-    if (ask.asked === 'you' && h.kind === 'named' && !(answer.sentences.line.text.includes('your partner') && answer.sentences.line.text.includes('the younger of you was'))) fail('A-I12', `line does not name both stops: ${answer.sentences.line.text}`);
+    // (7.8.0, weighing: the line is the chance while one of you is alive; the younger one's age is the fixed-age line's)
+    const named = answer.sentences.line.text.includes('your partner') && (W ? true : answer.sentences.line.text.includes('the younger of you was'));
+    if (ask.asked === 'you' && h.kind === 'named' && !named) fail('A-I12', `line does not name both stops: ${answer.sentences.line.text}`);
     const apartPays = answer.sentences.pays.filter((x) => x.id === 'a.pays.apart');
     const apartPhases = (answer.shown.phases || []).filter((q) => q.fromPay !== undefined);
     if (apartPays.length !== apartPhases.length) fail('A-I12', `${apartPays.length} a.pays.apart lines for ${apartPhases.length} phases before the second stop`);

@@ -282,7 +282,7 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     // the first sentence: as now (the employer's part named), then the figure that would be on course, and for 3 in 4
     const first = v.querySelector('[data-sentence="verdict"]');
     expect(first.textContent).toContain(`Paying in ${money(r.payIn.now)} a month as now (your employer's ${money(r.payIn.employer)} included)`);
-    expect(first.textContent).toContain(`${money(r.enough.atLevel.payIn)} a month (you ${money(r.enough.atLevel.own)}, your employer's ${money(r.enough.atLevel.employer)} as now) would put you on course, which is 9 in 10`);
+    expect(first.textContent).toContain(`${money(r.enough.atLevel.payIn)} a month (you ${money(r.enough.atLevel.own)}, your employer's ${money(r.enough.atLevel.employer)} as now) would put you on course, which is Balanced: 18 times in 20`);
     expect(first.querySelector('[data-key="enough.atLevel.payIn"]').getAttribute('data-value')).toBe(String(r.enough.atLevel.payIn));
     // the two incomes and the gap a year, with the State Pension named
     const income = v.querySelector('[data-testid="b.verdict.income"]');
@@ -420,7 +420,7 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     expect(r.enough.how).toBe('share');
     const first = root.querySelector('[data-sentence="verdict"]');
     expect(first.textContent).toContain(`Paying in ${r.enough.now.totalPct}% of your pay as now (${money(r.payIn.now)} a month, your employer's 4% included)`);
-    expect(first.textContent).toContain(`${nine.totalPct}% of your pay in all (you ${nine.ownPct}%, ${money(nine.payIn)} a month) would put you on course, which is 9 in 10`);
+    expect(first.textContent).toContain(`${nine.totalPct}% of your pay in all (you ${nine.ownPct}%, ${money(nine.payIn)} a month) would put you on course, which is Balanced: 18 times in 20`);
     expect(first.querySelector('[data-key="enough.atLevel.totalPct"]').getAttribute('data-kind')).toBe('pct');
     expect(root.querySelector('[data-enough="share"] h2').textContent).toBe(`To be on course: ${nine.totalPct}% of your pay in all`);
     one(root, 'b.lever.payMore.try').click();
@@ -437,10 +437,11 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
       return [...seen].filter(([, k]) => k > 1).map(([t]) => t);
     };
     for (const name of answers) expect(repeats(renderScreen(load(name))), name).toEqual([]);
-    // Sam paying 22% in all (18% and the employer's 4%): Close at Balanced (7.8.0: the level, typed or not)
+    // Sam paying 24% in all (20% and the employer's 4%): Close at Balanced (7.8.0: weighed by how long people live, the level,
+    // typed or not; 22% in all is no longer close)
     for (const confidence of ['balanced']) {
       const state = clone(load('answer-share'));
-      const inputs = { ...state.answers.b.result.inputs, you: { ...state.answers.b.result.inputs.you, payIn: { ...state.answers.b.result.inputs.you.payIn, ownPct: 18 } }, confidence };
+      const inputs = { ...state.answers.b.result.inputs, you: { ...state.answers.b.result.inputs.you, payIn: { ...state.answers.b.result.inputs.you.payIn, ownPct: 20 } }, confidence };
       const r = answerB(inputs, { ...TEST_ENV, futures: state.answers.b.result.basis.futures });
       expect(r.verdict.band).toBe('close');
       state.answers.b.result = r;

@@ -14,6 +14,7 @@ import { join, resolve } from 'node:path';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 
 import { checkSeed, seedToScenario, targetAtAge, localDate, householdStartWords } from '../src/services/PlanSeed.js';
+import { answerLastedWords } from '../src/services/PlanFromSeed.js';
 import { upgradeScenario } from '../src/firebase/scenarioMigration.js';
 import { pinTiming, timingPinPatch, deriveTiming, taxYearStartOf } from '../src/services/PlanTiming.js';
 import { createSimulationConfigFromSettings } from '../src/storage/StressRepository.js';
@@ -117,6 +118,17 @@ describe.skipIf(!READY)('stopping in the same year: V7\'s version 2 seed makes t
         expect(St.isaBalance, k).toBeGreaterThan(0);
         expect(createSimulationConfigFromSettings({}, Sn).isaBalance, k).toBe(createSimulationConfigFromSettings({}, St).isaBalance);
         Sn.isaBalance = St.isaBalance;
+      }
+      // 7.8.0: the quick answer's count named in the description ("where the money lasted to 99 in …") is said by today's
+      // counting words, which the frozen copy predates: a share just under a bar ("49.9%", never over the line) and "just
+      // under 9" (6.22.0). With the counts the flip moved next to those bars, the clause is compared apart: today's words
+      // of the seed's own count (PlanFromSeed.answerLastedWords), the rest byte for byte
+      const clause = /, where the money lasted [^.]*\(\d+(?:\.\d)?%\)/;
+      if (restNow.planDetails && restThen.planDetails && typeof restNow.planDetails.description === 'string') {
+        const m = restNow.planDetails.description.match(clause);
+        if (m) expect(m[0], k).toBe(', where ' + answerLastedWords(a));
+        restNow.planDetails.description = restNow.planDetails.description.replace(clause, '');
+        restThen.planDetails.description = restThen.planDetails.description.replace(clause, '');
       }
       expect(JSON.stringify(restNow), k).toBe(JSON.stringify(restThen));
       // the record differs only by the version 2 keys

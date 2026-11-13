@@ -23,8 +23,11 @@ import { oneLife } from '../oracles/oneStep.mjs';
 
 const RUNS = Number(process.env.FC_RUNS || 8);
 const SEED = process.env.NIGHTLY ? undefined : 20261104;
-const ENV = { today: '2026-09-30', futures: Number(process.env.V7_PROP_FUTURES || 20), seed: 0, trace: false, detail: 'answer' };
-const MEASURED = { today: '2026-11-04', futures: 1000, seed: 0, trace: false, detail: 'answer' };
+// 7.8.0: these are R1's words and solver as measured on the count ("verdictOf on the count", "lasted until you are 95 in
+// only 3 futures out of 10", the 3-in-4 line): they are held on the count, env.weighted false — the rollback, one switch away.
+// The weighted words of what would be enough are pinned by the B states and fixtures and by tests/v7/shared/review780.test.js
+const ENV = { today: '2026-09-30', futures: Number(process.env.V7_PROP_FUTURES || 20), seed: 0, trace: false, detail: 'answer', weighted: false };
+const MEASURED = { today: '2026-11-04', futures: 1000, seed: 0, trace: false, detail: 'answer', weighted: false };
 const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 const ok = (a, inputs) => { const f = checkAnswerB(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
 const text = (a) => JSON.stringify(Object.fromEntries(Object.entries(a.sentences).filter(([, s]) => s && s.text).map(([k, s]) => [k, s.text])));

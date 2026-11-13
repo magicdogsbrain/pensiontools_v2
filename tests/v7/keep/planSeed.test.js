@@ -79,15 +79,15 @@ describe('C — "what is that a month?"', () => {
     const r = load('c', 'answer-F1');
     expect(s.stop).toEqual({ kind: 'now', yearsFromNow: 0 });
     expect(s.household).toBe('single');
-    expect(s.endAge).toBe(95);
+    expect(s.endAge).toBe(99);
     expect(s.years).toBe(r.basis.years);
-    expect(s.spend).toEqual({ perMonth: 1350, from: 'careful', level: null, budgetSkipped: null });
+    expect(s.spend).toEqual({ perMonth: 1380, from: 'careful', level: null, budgetSkipped: null });
     const [you] = s.people;
     expect(you).toMatchObject({ ageToday: 58, ageAtStop: 58, pensionOpensAge: 55, alreadyDrawing: false, payIn: null, partTime: null, finalSalary: null });
     expect(you.pension).toEqual({ today: 250000, atStop: { careful: 250000, middling: 250000 } });
     expect(you.savings).toEqual({ today: 0, atStop: { careful: 0, middling: 0 } });
     expect(you.statePension).toEqual({ yearly: 12547.6, fromAge: 67, fromDate: '2035-09-30' });
-    expect(you.takeHome).toEqual([{ fromAge: 58, perMonth: 1350 }]);
+    expect(you.takeHome).toEqual([{ fromAge: 58, perMonth: 1380 }]);
     // (seed version 4, 7.8.0: the level's answer row)
     expect(s.answer).toEqual({ level: 'balanced', levelChosen: false, shown: r.levels.balanced, chance: { weighted: r.chance.weighted, fixedAge: r.chance.fixedAge, planToAge: r.chance.planToAge } });
   });
@@ -100,7 +100,7 @@ describe('C — "what is that a month?"', () => {
     const s = seedOf('c', 'answer-F2');
     const r = load('c', 'answer-F2');
     expect(s.household).toBe('couple');
-    expect(s.years).toBe(35);
+    expect(s.years).toBe(40);
     const [you, partner] = s.people;
     expect([you.ageToday, partner.ageToday]).toEqual([62, 60]);
     expect(partner.pension).toEqual({ today: 150000, atStop: { careful: 150000, middling: 150000 } });
@@ -128,14 +128,14 @@ describe('A — "when can I afford to stop work?"', () => {
     const s = seedOf('a', 'answer-A1');
     const r = load('a', 'answer-A1');
     expect(s.stop).toEqual({ kind: 'later', yearsFromNow: 10 });
-    expect(s.spend).toEqual({ perMonth: 1900, from: 'typed', level: null, budgetSkipped: true });
+    expect(s.spend).toEqual({ perMonth: 1850, from: 'typed', level: null, budgetSkipped: true });
     const [you] = s.people;
     expect(you.pension).toEqual({ today: 250000, atStop: { careful: 295340, middling: 417982 } });
     // (6.22.0: the savings grow as "Mostly cash" while saving — they were £36,402 / £53,500 when they followed the pension's mix)
     expect(you.savings).toEqual({ today: 40000, atStop: { careful: 32871, middling: 39245 } });
     expect(you.payIn).toEqual({ kind: 'total', total: 600, own: null, employer: null, savingsIn: 0 });
     expect(you.pensionOpensAge).toBe(r.pensionOpens.you);
-    expect(you.takeHome).toEqual([{ fromAge: 60, perMonth: 1900 }]);
+    expect(you.takeHome).toEqual([{ fromAge: 60, perMonth: 1850 }]);
     expect(s.answer).toEqual({ level: 'balanced', levelChosen: false, shown: r.levels.balanced, chance: { weighted: r.chance.weighted, fixedAge: r.chance.fixedAge, planToAge: r.chance.planToAge } });
     expect(r.shown.verdict).toBe('close');
   });
@@ -173,7 +173,7 @@ describe('B — "am I saving enough?"', () => {
     expect(s.stop).toEqual({ kind: 'later', yearsFromNow: 10 });
     expect(s.people[0].payIn).toEqual({ kind: 'split', total: 700, own: 450, employer: 250, savingsIn: 0 });
     expect(s.answer).toEqual({ level: 'balanced', levelChosen: false, shown: r.levels.balanced, chance: { weighted: r.chance.weighted, fixedAge: r.chance.fixedAge, planToAge: r.chance.planToAge } });
-    expect(s.answer.shown.payIn).toBe(2920);
+    expect(s.answer.shown.payIn).toBe(2630);
     expect(r.verdict.band).toBe('no');
   });
   it('B5, a couple: both stop in the same year, each with their own pay-in', () => {
@@ -218,7 +218,7 @@ describe('the name, and what cannot be saved', () => {
     expect(seedOf('a', 'answer-A1', { name: 'Plain text' }).name.chosen).toBe('Plain text');
     expect(seedOf('a', 'answer-A1', { name: { chosen: '   ' } })).toBe(null);
     expect(seedOf('a', 'answer-A1', { name: { chosen: 'x'.repeat(61) } })).toBe(null);
-    expect(seedOf('a', 'answer-A1', { name: undefined }).name.chosen).toBe('Stop at 60 · £1,900 a month');
+    expect(seedOf('a', 'answer-A1', { name: undefined }).name.chosen).toBe('Stop at 60 · £1,850 a month');
   });
   it('only an answer of status ok — C not held down by a closed pension — can be saved', () => {
     expect(keepable('c', load('c', 'answer-F1'))).toEqual({ ok: true });

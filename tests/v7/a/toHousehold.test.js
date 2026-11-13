@@ -32,7 +32,7 @@ describe('A — toHousehold', () => {
     // 6.19.0: the household's one charge (percent a year, saving and drawing), not a saving-years share any more
     expect(household.saving).toEqual({ risk: 'balanced' });
     expect(household.chargesPct).toBe(0.5);
-    expect(household.planToAge).toBe(95);
+    expect(household.planToAge).toBe(100);   // (7.8.0: the plan-to age, 1 in 10 still alive — 50 now, not said: 100)
     expect(household.portfolio).toEqual({ kind: 'risk', level: 'balanced' });
     expect(validateHousehold(household, TEST_ENV.today)).toEqual([]);
   });

@@ -53,9 +53,10 @@ describe('a figure from the stop is the start, never "for life", once the spendi
     expect(checkAnswerB(b, inputs)).toEqual([]);
     wordsHold(b, sentencesOf(b), B_SCOPES);
     expect(b.monthlyIfShort).toBeGreaterThan(0);
-    expect(b.sentences.bad.text).toMatch(/ Paying in as now, about £[\d,]+ a month from 60, with the later steps in proportion, lasted in 9 futures out of 10\.$/);
+    // (7.8.0: said at the level, as the chance the money lasts as long as you do)
+    expect(b.sentences.bad.text).toMatch(/ Paying in as now, about £[\d,]+ a month from 60, with the later steps in proportion, lasts as long as you do 18 times in 20\.$/);
     const flat = answerB({ ...inputs, spend: { amount: 2500 } }, { ...ENV, detail: 'answer' });
-    expect(flat.sentences.bad.text).toMatch(/ Paying in as now, about £[\d,]+ a month from 60 lasted in 9 futures out of 10\.$/);
+    expect(flat.sentences.bad.text).toMatch(/ Paying in as now, about £[\d,]+ a month from 60 lasts as long as you do 18 times in 20\.$/);
   });
 });
 
@@ -110,7 +111,7 @@ describe('the fixtures of spending-shape.md 10, each with its plain sentence', (
     const all = [...Object.values(r.sentences).flatMap((v) => (Array.isArray(v) ? v : [v])), ...r.assumed, ...r.warnings];
     wordsHold(r, all, C_SCOPES);
     const [s0, s1, s2] = r.shapeAt.balanced;
-    expect(r.sentences.shape.text).toBe(`That is at the start. Then, as you set it: ${money(s1.perMonth)} from 75 and ${money(s2.perMonth)} from 85, then falling 1% a year to ${money(s2.endPerMonth)} at 94.`);
+    expect(r.sentences.shape.text).toBe(`That is at the start. Then, as you set it: ${money(s1.perMonth)} from 75 and ${money(s2.perMonth)} from 85, then falling 1% a year to ${money(s2.endPerMonth)} at 98.`);   // (7.8.0: the plan-to age, 99, less a year)
     expect(r.sentences.head.text).toBe(`About ${money(s0.perMonth)} a month`);
     // the made-of lines follow the periods, cut at each step; the one the shape moves inside says its figures are its first year's
     expect(r.phases.map((p) => p.fromAge)).toEqual([67, 75, 85]);
@@ -152,7 +153,7 @@ describe('the fixtures of spending-shape.md 10, each with its plain sentence', (
     expect(a.status).toBe('ok');
     expect(checkAnswerA(a, inputs, env)).toEqual([]);
     wordsHold(a, allSentences(a), scopesForA(a.inputs));
-    expect(a.sentences.shape.text).toMatch(/^That is at the start, falling 1\.5% a year to £[\d,]+ at 94\.$/);
+    expect(a.sentences.shape.text).toMatch(/^That is at the start, falling 1\.5% a year to £[\d,]+ at 99\.$/);   // (7.8.0: the plan-to age, 100, less a year)
     // the years on savings are counted year by year: what they draw falls with the shape
     if (a.savingsNeeded) expect(a.savingsNeeded.amount).toBeGreaterThan(0);
   });

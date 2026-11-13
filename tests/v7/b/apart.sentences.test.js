@@ -41,7 +41,7 @@ describe('B — the words of couples who stop in different years', () => {
     expect(b.saving.map((x) => [x.who, x.yearsSaving, x.stopAge])).toEqual([['you', 8, 60], ['partner', 0, 59]]);
     if (b.status === 'ok' && !b.onCourse && b.levels.balanced.pot > 0) {
       expect(b.sentences.head.text).toBe(`About ${pot(b.levels.balanced.pot)} by age 60`);
-      expect(b.sentences.line.text).toBe(`You need about ${pot(b.levels.balanced.pot)} in your pension when you stop at 60, with your partner's money as you gave it. With exactly that, the money lasted in 9 futures out of 10.`);
+      expect(b.sentences.line.text).toBe(`You need about ${pot(b.levels.balanced.pot)} in your pension when you stop at 60, with your partner's money as you gave it. With exactly that, the money lasts as long as one of you is alive 18 times in 20.`);
     }
     expect(b.assumed.find((x) => x.id === 'pay-in').text).toBe('£600 a month goes into your pension until you stop at 60, rising with prices.');
     expect(b.assumed.find((x) => x.id === 'stop-apart')).toMatchObject({ field: 'untilBothStop', source: 'default', value: 'half' });
@@ -59,7 +59,7 @@ describe('B — the words of couples who stop in different years', () => {
     if (b.onCourse) expect(b.sentences.verdictHead.text).toMatch(/^On course for £[\d,]+ a month from when your partner stops at 60$/);
     else if (b.status === 'ok' && b.levels.balanced.pot > 0) {
       expect(b.sentences.head.text).toBe(`About ${pot(b.levels.balanced.pot)} by the time your partner is 60`);
-      expect(b.sentences.line.text).toBe(`Your partner needs about ${pot(b.levels.balanced.pot)} in their pension when they stop at 60, with your money as you gave it. With exactly that, the money lasted in 9 futures out of 10.`);
+      expect(b.sentences.line.text).toBe(`Your partner needs about ${pot(b.levels.balanced.pot)} in their pension when they stop at 60, with your money as you gave it. With exactly that, the money lasts as long as one of you is alive 18 times in 20.`);
     }
     expect(b.assumed.find((x) => x.id === 'stop-age')).toMatchObject({ field: 'partner.stop.age', value: 60, text: 'Your partner stops working at 60, and nothing more goes into their pension from then.' });
     expect(b.assumed.find((x) => x.id === 'pay-in')).toMatchObject({ field: 'partner.payIn.total', text: "£600 a month goes into your partner's pension until they stop at 60, rising with prices." });
@@ -81,7 +81,7 @@ describe('B — the words of couples who stop in different years', () => {
     expect(b.apart).toMatchObject({ first: 'partner', years: 2, stops: { you: { age: 60 }, partner: { age: 56 } } });
     if (b.status === 'ok' && !b.onCourse && b.levels.balanced.pot > 0) {
       expect(b.sentences.head.text).toBe(`About ${pot(b.levels.balanced.pot)} between you by the time you have both stopped`);
-      expect(b.sentences.line.text).toBe(`You need about ${pot(b.levels.balanced.pot)} in pensions between you: yours when you stop at 60 and your partner's when they stop at 56. With exactly that, the money lasted in 9 futures out of 10.`);
+      expect(b.sentences.line.text).toBe(`You need about ${pot(b.levels.balanced.pot)} in pensions between you: yours when you stop at 60 and your partner's when they stop at 56. With exactly that, the money lasts as long as one of you is alive 18 times in 20.`);
       expect(b.sentences.payInSub.text).toMatch(/from now until each of you stops, going up each year with prices$/);
     }
     expect(b.assumed.find((x) => x.id === 'pay-in').text).toBe('£750 a month goes in between you, each until your own stop, rising with prices.');
@@ -101,7 +101,7 @@ describe('B — the words of couples who stop in different years', () => {
     const b = run(G);
     expect(b.status).toBe('guaranteed-only');
     expect([b.levels.careful.pot, b.levels.balanced.pot, b.levels.bold.pot]).toEqual([0, 0, 0]);
-    expect(b.sentences.sub.text).toBe('your State Pensions and final-salary pension cover it after tax from when you have both stopped until the younger of you is 95, going up each year with prices');
+    expect(b.sentences.sub.text).toBe('your State Pensions and final-salary pension cover it after tax from when you have both stopped until the younger of you is 100, going up each year with prices');
     // a partner with nothing at all but their State Pension, years away: the pay makes up their half until then — the same
     // status, and the bad case that leans on the pay said with the age (a NIGHTLY=1 run, 1 Oct 2026: "ok" with a number of
     // nought and no savings before)

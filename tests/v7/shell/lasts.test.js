@@ -195,7 +195,8 @@ describe('the worker: the `lasts` message, and the client\'s lane', () => {
     handle({ id: 5, type: 'lasts', plan, env: { today: TODAY } }, (m) => out.push(m));
     for (let i = 0; i < 200 && !out.some((m) => 'result' in m || 'error' in m); i++) await new Promise((r) => setTimeout(r, 25));
     const last = out[out.length - 1];
-    expect(out.slice(0, -1).map((m) => m.progress)).toEqual([{ done: 0, total: 2 }, { done: 1, total: 2 }]);
+    // (7.8.0: the plan ends before the weighting age, so one more run follows it on — three stages)
+    expect(out.slice(0, -1).map((m) => m.progress)).toEqual([{ done: 0, total: 3 }, { done: 1, total: 3 }, { done: 2, total: 3 }]);
     expect(last.result).toBeTruthy();
     expect(last.result.strategyId).toBe('pots-and-valves');
     expect(last.result.a.futures).toBe(1000);

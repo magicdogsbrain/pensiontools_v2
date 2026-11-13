@@ -25,8 +25,8 @@
     "status": "ok",
     "values": {
       "basis.startAge": 67,
-      "basis.endAge": 95,
-      "basis.years": 28,
+      "basis.endAge": 100,
+      "basis.years": 33,
       "basis.yearsSaving": 12,
       "basis.start": "2038-09",
       "payIn.total": 800,
@@ -36,8 +36,8 @@
       "saving.0.yearsSaving": 12
     },
     "texts": [
-      "With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, you could have about",
-      "a month after tax, from age 67 until you are 95.",
+      "With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, at Balanced you could have about",
+      "a month after tax, from age 67 until you are 100.",
       "Paying in £800 a month until 67, rising with prices; the pot invested at Balanced, about half in shares, until then.",
       "By 67 your pot could be about",
       "£800 a month goes into your pension until the money is first taken, rising with prices.",
@@ -67,7 +67,8 @@
         },
         "finalSalary": {
           "has": false
-        }
+        },
+        "sex": "notSaid"
       },
       "start": {
         "kind": "age",
@@ -76,38 +77,38 @@
       "savings": 0,
       "risk": "balanced",
       "charge": 0.5,
-      "endAge": 95,
+      "endAge": 100,
       "confidence": "balanced",
       "take": null
     },
     "level": "balanced",
     "levels": {
       "careful": {
-        "monthly": 2250,
-        "yearly": 27000,
-        "weighted": 0.95,
-        "fixedAge": 0.95
+        "monthly": 2260,
+        "yearly": 27120,
+        "weighted": 0.9515986097278073,
+        "fixedAge": 0.875
       },
       "balanced": {
-        "monthly": 2390,
-        "yearly": 28680,
-        "weighted": 0.9,
-        "fixedAge": 0.9
+        "monthly": 2420,
+        "yearly": 29040,
+        "weighted": 0.9006812613923103,
+        "fixedAge": 0.675
       },
       "bold": {
-        "monthly": 2590,
-        "yearly": 31080,
-        "weighted": 0.7,
-        "fixedAge": 0.7
+        "monthly": 2930,
+        "yearly": 35160,
+        "weighted": 0.700858992850408,
+        "fixedAge": 0.45
       }
     },
     "chance": {
-      "weighted": 0.9,
-      "fixedAge": 0.9,
-      "fails": 4,
+      "weighted": 0.9006812613923103,
+      "fixedAge": 0.675,
+      "fails": 13,
       "n": 40,
-      "planToAge": 95,
-      "weightToAge": 95,
+      "planToAge": 100,
+      "weightToAge": 104,
       "horizonRule": "survival"
     },
     "whose": "you",
@@ -117,37 +118,37 @@
     "phases": [
       {
         "fromAge": 67,
-        "toAge": 95,
+        "toAge": 100,
         "ages": {
           "you": {
             "from": 67,
-            "to": 95
+            "to": 100
           }
         },
-        "takeHome": 2390,
-        "fromPension": 1581.17,
+        "takeHome": 2420,
+        "fromPension": 1616.46,
         "fromSavings": 0,
-        "fromPots": 1581.17,
+        "fromPots": 1616.46,
         "statePension": 1045.63,
         "finalSalary": 0,
-        "tax": 236.8,
+        "tax": 242.1,
         "byPerson": [
           {
             "who": "you",
             "statePension": 1045.63,
             "finalSalary": 0,
-            "fromPension": 1581.17,
+            "fromPension": 1616.46,
             "fromSavings": 0,
-            "tax": 236.8,
-            "takeHome": 2390,
+            "tax": 242.1,
+            "takeHome": 2420,
             "higherRate": false,
             "locked": false
           }
         ],
         "beforeStatePension": false,
         "shown": {
-          "takeHome": 2390,
-          "fromPots": 1344,
+          "takeHome": 2420,
+          "fromPots": 1374,
           "statePension": 1046,
           "finalSalary": 0
         }
@@ -351,18 +352,51 @@
         ]
       },
       {
-        "id": "plan-to",
+        "id": "life-plan-to",
         "field": "endAge",
         "source": "default",
-        "value": 95,
-        "text": "The money needs to last until you are 95.",
+        "value": 100,
+        "text": "Your plan runs to 100, when fewer than 1 in 10 women your age are still alive. We follow each future on to 104, when fewer than 1 in 50 are.",
         "parts": [
-          "The money needs to last until you are ",
+          "Your plan runs to ",
           {
-            "key": "basis.endAge",
-            "kind": "age"
+            "fixed": "100"
           },
-          "."
+          ", when fewer than ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "10"
+          },
+          " ",
+          "women your age",
+          " are still alive.",
+          " We follow each future on to ",
+          {
+            "fixed": "104"
+          },
+          ", when fewer than ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "50"
+          },
+          " are."
+        ],
+        "always": true
+      },
+      {
+        "id": "life-sex",
+        "field": "you.sex",
+        "source": "default",
+        "value": "notSaid",
+        "text": "We used figures for women, who tend to live longer, because you did not say.",
+        "parts": [
+          "We used figures for women, who tend to live longer, because you did not say."
         ]
       },
       {
@@ -439,7 +473,7 @@
     "sentences": {
       "head": {
         "id": "c.head",
-        "text": "About £2,390 a month",
+        "text": "About £2,420 a month",
         "parts": [
           "About ",
           {
@@ -451,7 +485,7 @@
       },
       "sub": {
         "id": "c.sub",
-        "text": "after tax, from age 67 until you are 95, going up each year with prices",
+        "text": "after tax, from age 67 until you are 100, going up each year with prices",
         "parts": [
           "after tax, ",
           "from age ",
@@ -470,7 +504,7 @@
       },
       "line": {
         "id": "c.line",
-        "text": "With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, you could have about £2,390 a month after tax, from age 67 until you are 95. That amount lasted in 9 futures out of 10.",
+        "text": "With a pot of £275,000 today, £800 a month going in until 67 and your State Pension, at Balanced you could have about £2,420 a month after tax, from age 67 until you are 100. Counting how long people your age live, the money lasts as long as you do 18 times in 20.",
         "parts": [
           "With ",
           "a pot of ",
@@ -492,7 +526,9 @@
           },
           " and ",
           "your State Pension",
-          ", ",
+          ", at ",
+          "Balanced",
+          " ",
           "you",
           " could have about ",
           {
@@ -511,23 +547,33 @@
             "key": "basis.endAge",
             "kind": "age"
           },
-          ". That amount lasted ",
-          "in ",
+          ". ",
+          "Counting how long people your age live",
+          ", the money lasts ",
+          "as long as you do",
+          " ",
           {
-            "fixed": "9"
+            "fixed": "18"
           },
-          " futures out of ",
+          " times in ",
           {
-            "fixed": "10"
+            "fixed": "20"
           },
           "."
-        ]
+        ],
+        "mark": "weighted"
       },
       "bad": {
-        "id": "c.bad",
-        "text": "In a bad case (the worst 1 in 10), £2,390 a month only just lasts to 95.",
+        "id": "c.when",
+        "text": "In the futures where the money runs out, it typically runs out at 96. In the worst 1 in 10 of all the futures, by 94.",
         "parts": [
-          "In a bad case (the worst ",
+          "In the futures where the money runs out, it typically runs out ",
+          "at ",
+          {
+            "fixed": "96"
+          },
+          ". ",
+          "In the worst ",
           {
             "fixed": "1"
           },
@@ -535,22 +581,17 @@
           {
             "fixed": "10"
           },
-          "), ",
+          " of all the futures, ",
+          "by ",
           {
-            "key": "levels.balanced.monthly",
-            "kind": "money"
-          },
-          " a month only just lasts to ",
-          {
-            "key": "basis.endAge",
-            "kind": "age"
+            "fixed": "94"
           },
           "."
         ]
       },
       "range": {
         "id": "c.range",
-        "text": "You could take: Careful £2,250, Balanced £2,390, Bold £2,590 a month.",
+        "text": "You could take: Careful £2,260, Balanced £2,420, Bold £2,930 a month.",
         "parts": [
           "You could take: Careful ",
           {
@@ -573,7 +614,7 @@
       "madeOf": [
         {
           "id": "c.madeOf.paid",
-          "text": "Your State Pension (£1,046 a month) + £1,344 from your pot.",
+          "text": "Your State Pension (£1,046 a month) + £1,374 from your pot.",
           "parts": [
             "Your ",
             "State Pension",
@@ -595,7 +636,7 @@
         },
         {
           "id": "c.madeOf.tax",
-          "text": "Tax of £237 a month is already taken off.",
+          "text": "Tax of £242 a month is already taken off.",
           "parts": [
             "Tax of ",
             {
@@ -606,6 +647,128 @@
           ]
         }
       ],
+      "fixed": {
+        "id": "c.fixed",
+        "text": "If you live to 100, the money lasts that long in 14 of 20 futures we tried.",
+        "parts": [
+          "If you live to ",
+          {
+            "fixed": "100"
+          },
+          ", the money lasts that long in ",
+          {
+            "fixed": "14"
+          },
+          " of ",
+          {
+            "fixed": "20"
+          },
+          " futures we tried."
+        ],
+        "mark": "fixed"
+      },
+      "howLong": {
+        "id": "c.howLong",
+        "text": "In the futures where it runs out before 100, it still pays for 27 of the 33 years to 100.",
+        "parts": [
+          "In the futures where it runs out before ",
+          {
+            "fixed": "100"
+          },
+          ", it still pays for ",
+          {
+            "fixed": "27"
+          },
+          " of the ",
+          {
+            "fixed": "33"
+          },
+          " years to ",
+          {
+            "fixed": "100"
+          },
+          "."
+        ]
+      },
+      "howMuch": {
+        "id": "c.howMuch",
+        "text": "Across those futures, about £9 of every £10 you planned to spend is still paid.",
+        "parts": [
+          "Across those futures, about ",
+          {
+            "fixed": "£9"
+          },
+          " of every ",
+          {
+            "fixed": "£10"
+          },
+          " you planned to spend is still paid."
+        ]
+      },
+      "floor": {
+        "id": "c.floor",
+        "text": "If the money ran out at 96, you would still have £12,548 a year after tax, from your State Pension.",
+        "parts": [
+          "If the money ran out ",
+          "at ",
+          {
+            "fixed": "96"
+          },
+          ", ",
+          "you would still have ",
+          {
+            "fixed": "£12,548"
+          },
+          " a year after tax",
+          ", ",
+          "from your State Pension",
+          "."
+        ]
+      },
+      "left": {
+        "id": "c.left",
+        "text": "If you live to 100, what is typically left then is £318,000 at today's prices. In the best 1 in 10 futures it is £1,632,000 or more.",
+        "parts": [
+          "If you live to ",
+          {
+            "fixed": "100"
+          },
+          ", what is typically left then is ",
+          {
+            "fixed": "£318,000"
+          },
+          " at today's prices. In the best ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "10"
+          },
+          " futures it is ",
+          {
+            "fixed": "£1,632,000"
+          },
+          " or more."
+        ]
+      },
+      "cost": {
+        "id": "c.cost",
+        "text": "Careful asks for £160 a month less than Balanced. Bold would let you take £510 a month more.",
+        "parts": [
+          "Careful asks for ",
+          {
+            "fixed": "£160"
+          },
+          " a month less than Balanced.",
+          " ",
+          "Bold would let you take ",
+          {
+            "fixed": "£510"
+          },
+          " a month more."
+        ]
+      },
       "payIn": {
         "id": "c.payIn",
         "text": "Paying in £800 a month until 67, rising with prices; the pot invested at Balanced, about half in shares, until then.",
@@ -683,8 +846,8 @@
       "seed": 0,
       "level": "balanced",
       "levelFails20": 2,
-      "planToAge": 95,
-      "weightToAge": 95,
+      "planToAge": 100,
+      "weightToAge": 104,
       "tablesVersion": "ons-ew-2024-cohort/1",
       "sexUsed": {
         "you": "f"
@@ -692,10 +855,10 @@
       "historyEnd": "2023-06",
       "engineVersion": "(any)",
       "startAge": 67,
-      "endAge": 95,
+      "endAge": 100,
       "accessAge": 57,
       "start": "2038-09",
-      "years": 28,
+      "years": 33,
       "split": [
         {
           "who": "you",
@@ -705,10 +868,11 @@
       "strategyId": "pots-and-valves",
       "cutsSwitchedOff": true,
       "yearsSaving": 12,
-      "lifeYears": 40,
+      "lifeYears": 49,
       "bondDraws": "life",
       "cashRule": "previous-year",
-      "grid": "yearly"
+      "grid": "yearly",
+      "weighted": true
     },
     "units": {
       "money": "todays-prices",

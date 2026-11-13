@@ -52,7 +52,7 @@
               "oneOffs": [],
               "plsaTier": "moderate",
               "retired": true,
-              "retirementAge": 66,
+              "retirementAge": 65,
               "sharedWithPartner": true,
               "version": 1
             }
@@ -68,7 +68,7 @@
               "consecutiveLimit": 3,
               "duration": 35,
               "equityMin": 250000,
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "basic",
               "isaBalance": 0,
               "isaDrawdownStrategy": "minimiseEarlyTax",
@@ -132,12 +132,12 @@
               "dbStartYear": 0,
               "disableProtection": false,
               "diversifierStart": 0,
-              "duration": 30,
+              "duration": 31,
               "equityGlideEnabled": false,
               "equityMin": 840000,
               "extraIncomes": [],
               "extraWithdrawals": [],
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "basic",
               "glideEndgame": null,
               "hodlEnabled": false,
@@ -159,12 +159,13 @@
               "relevantEarnings": 0,
               "retireAge": null,
               "retired": true,
-              "shapeAgeNow": 66,
+              "shapeAgeNow": 65,
               "spStartDate": "2 October 2028",
               "spWeeklyAmount": 198.4,
               "spendingProfile": "flat",
               "statePension": 12000,
               "statePensionYear": 12,
+              "stoppedWork": "2026-05",
               "strategyId": "pots-and-valves",
               "strategyParams": {},
               "strategyState": {},
@@ -388,6 +389,8 @@
                 "id": "draft-retired",
                 "slots": {}
               },
+              "closed": false,
+              "close": null,
               "locked": false,
               "lockedOn": null,
               "madeOn": null,
@@ -396,6 +399,10 @@
               "main": true,
               "records": false,
               "linked": true,
+              "checkInDue": false,
+              "monthByMonth": true,
+              "life": "drawing",
+              "todo": 1,
               "lastModified": "2026-08-22T15:00:00.000Z"
             },
             {
@@ -408,6 +415,8 @@
                   "month": "January 2030"
                 }
               },
+              "closed": false,
+              "close": null,
               "locked": true,
               "lockedOn": "1 September 2026",
               "madeOn": null,
@@ -416,6 +425,10 @@
               "main": false,
               "records": false,
               "linked": true,
+              "checkInDue": true,
+              "monthByMonth": false,
+              "life": "saving",
+              "todo": 1,
               "lastModified": "2026-08-22T15:00:00.000Z"
             }
           ]
@@ -459,10 +472,10 @@
             "figures": {
               "yearly": 70000,
               "ageToday": 64,
-              "years": 30,
+              "years": 31,
               "ageEnd": 95,
               "step0": 70000,
-              "stepAge0": 66,
+              "stepAge0": 65,
               "sipp": 1400000,
               "isa": 22000,
               "gia": 0,
@@ -514,10 +527,12 @@
                     }
                   },
                   {
-                    "id": "about.retired",
-                    "slots": {},
+                    "id": "about.stoppedIn",
+                    "slots": {
+                      "month": "May 2026"
+                    },
                     "sentence": {
-                      "id": "about.retired",
+                      "id": "about.stoppedIn",
                       "parts": [],
                       "text": ""
                     },
@@ -530,7 +545,7 @@
                   {
                     "id": "about.firstYear",
                     "slots": {
-                      "year": "2027/28"
+                      "year": "2026/27"
                     },
                     "sentence": {
                       "id": "about.firstYear",
@@ -559,7 +574,7 @@
                           "kind": "age"
                         }
                       ],
-                      "text": "30 years, to age 95"
+                      "text": "31 years, to age 95"
                     },
                     "source": {
                       "kind": "saved",
@@ -593,7 +608,7 @@
                         },
                         " a year before tax"
                       ],
-                      "text": "From age 66: £70,000 a year before tax"
+                      "text": "From age 65: £70,000 a year before tax"
                     },
                     "source": {
                       "kind": "saved",
@@ -801,7 +816,7 @@
                   {
                     "id": "mix.tentOff",
                     "slots": {
-                      "years": "10"
+                      "years": "11"
                     },
                     "sentence": {
                       "id": "mix.tentOff",
@@ -1314,9 +1329,43 @@
             "locked": false,
             "lockedOn": null,
             "saver": false,
+            "stopMonth": null,
             "strategyId": "pots-and-valves",
             "bought": false,
             "hasDocument": false
+          },
+          {
+            "id": "month",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "month.lockFirst",
+              "parts": [
+                "Months are recorded once the plan is locked"
+              ],
+              "text": "Months are recorded once the plan is locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "lockFirst",
+                "href": "#/plan/AlexCouple06/lock",
+                "slots": {}
+              },
+              {
+                "id": "monthByMonth",
+                "href": "#/plan/AlexCouple06/month",
+                "slots": {}
+              }
+            ],
+            "notes": [],
+            "recorded": false,
+            "setUp": false,
+            "gap": null,
+            "toRecord": "2026-09"
           },
           {
             "id": "hold",
@@ -1469,8 +1518,10 @@
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
-            "stop": "April 2027",
-            "savedYear": ""
+            "stop": "April 2026",
+            "savedYear": "",
+            "closed": "",
+            "next": ""
           },
           "button": {
             "id": "lasts",
@@ -1519,7 +1570,7 @@
             "a": "Alex’s plan",
             "b": "Sam’s plan"
           },
-          "runKey": "AlexCouple06|2026-08-22T15:00:00.000Z|1azaftb|U+SamCouple07|2026-08-22T15:00:00.000Z|nbkq3u|L",
+          "runKey": "AlexCouple06|2026-08-22T15:00:00.000Z|182d0po|U+SamCouple07|2026-08-22T15:00:00.000Z|nbkq3u|L",
           "mode": "copies",
           "lockedNames": [
             "Sam’s plan"
@@ -1708,27 +1759,27 @@
           "unaffordable": null,
           "verdict": {
             "head": "close",
-            "share": 0.869,
-            "pct": "87",
+            "share": 0.854,
+            "pct": "85",
             "words": "in just under 9 futures out of 10",
             "pooled": true,
             "covered": {
-              "n": "27",
+              "n": "34",
               "of": "1000",
               "from": "95",
-              "earliest": "94"
+              "earliest": null
             },
             "rows": [
               {
                 "id": "household",
                 "words": "in just under 9 futures out of 10",
-                "pct": "87"
+                "pct": "85"
               },
               {
                 "id": "a",
                 "name": "Alex’s plan",
                 "words": "in 8 futures out of 10",
-                "pct": "84"
+                "pct": "82"
               },
               {
                 "id": "b",
@@ -1739,20 +1790,20 @@
               {
                 "id": "both",
                 "words": "in 8 futures out of 10",
-                "pct": "84"
+                "pct": "82"
               }
             ],
             "runs": "1000",
             "shifted": true,
             "weak": {
               "name": "Alex’s plan",
-              "pct": "84"
+              "pct": "82"
             }
           },
           "timeline": [
             {
               "year": "0",
-              "bridge": true,
+              "beforeStatePension": true,
               "workingA": false,
               "workingB": true,
               "needA": "£70,000",
@@ -1763,7 +1814,7 @@
             },
             {
               "year": "1",
-              "bridge": true,
+              "beforeStatePension": true,
               "workingA": false,
               "workingB": true,
               "needA": "£70,000",
@@ -1774,7 +1825,7 @@
             },
             {
               "year": "2",
-              "bridge": true,
+              "beforeStatePension": true,
               "workingA": false,
               "workingB": true,
               "needA": "£70,000",
@@ -1785,7 +1836,7 @@
             },
             {
               "year": "3",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": true,
               "needA": "£70,000",
@@ -1796,7 +1847,7 @@
             },
             {
               "year": "4",
-              "bridge": true,
+              "beforeStatePension": true,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1807,7 +1858,7 @@
             },
             {
               "year": "5",
-              "bridge": true,
+              "beforeStatePension": true,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1818,7 +1869,7 @@
             },
             {
               "year": "6",
-              "bridge": true,
+              "beforeStatePension": true,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1829,7 +1880,7 @@
             },
             {
               "year": "7",
-              "bridge": true,
+              "beforeStatePension": true,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1840,7 +1891,7 @@
             },
             {
               "year": "8",
-              "bridge": true,
+              "beforeStatePension": true,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1851,7 +1902,7 @@
             },
             {
               "year": "9",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1862,7 +1913,7 @@
             },
             {
               "year": "10",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1873,7 +1924,7 @@
             },
             {
               "year": "11",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1884,7 +1935,7 @@
             },
             {
               "year": "12",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1895,7 +1946,7 @@
             },
             {
               "year": "13",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1906,7 +1957,7 @@
             },
             {
               "year": "14",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1917,7 +1968,7 @@
             },
             {
               "year": "15",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1928,7 +1979,7 @@
             },
             {
               "year": "16",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1939,7 +1990,7 @@
             },
             {
               "year": "17",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1950,7 +2001,7 @@
             },
             {
               "year": "18",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1961,7 +2012,7 @@
             },
             {
               "year": "19",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1972,7 +2023,7 @@
             },
             {
               "year": "20",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1983,7 +2034,7 @@
             },
             {
               "year": "21",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -1994,7 +2045,7 @@
             },
             {
               "year": "22",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -2005,7 +2056,7 @@
             },
             {
               "year": "23",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -2016,7 +2067,7 @@
             },
             {
               "year": "24",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -2027,7 +2078,7 @@
             },
             {
               "year": "25",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -2038,7 +2089,7 @@
             },
             {
               "year": "26",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -2049,7 +2100,7 @@
             },
             {
               "year": "27",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -2060,7 +2111,7 @@
             },
             {
               "year": "28",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -2071,7 +2122,7 @@
             },
             {
               "year": "29",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -2082,7 +2133,7 @@
             },
             {
               "year": "30",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -2093,7 +2144,7 @@
             },
             {
               "year": "31",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -2104,7 +2155,7 @@
             },
             {
               "year": "32",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£70,000",
@@ -2115,7 +2166,7 @@
             },
             {
               "year": "33",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£0",
@@ -2126,7 +2177,7 @@
             },
             {
               "year": "34",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£0",
@@ -2137,7 +2188,7 @@
             },
             {
               "year": "35",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£0",
@@ -2148,7 +2199,7 @@
             },
             {
               "year": "36",
-              "bridge": false,
+              "beforeStatePension": false,
               "workingA": false,
               "workingB": false,
               "needA": "£0",
@@ -2167,46 +2218,46 @@
             },
             {
               "year": "5",
-              "p10": "£1,141,212",
-              "p50": "£1,645,886",
-              "p90": "£2,349,730"
+              "p10": "£1,132,830",
+              "p50": "£1,635,448",
+              "p90": "£2,334,195"
             },
             {
               "year": "10",
-              "p10": "£1,005,599",
-              "p50": "£1,632,090",
-              "p90": "£3,074,268"
+              "p10": "£1,000,702",
+              "p50": "£1,616,117",
+              "p90": "£3,047,953"
             },
             {
               "year": "15",
-              "p10": "£801,867",
-              "p50": "£1,485,654",
-              "p90": "£3,826,877"
+              "p10": "£796,902",
+              "p50": "£1,468,257",
+              "p90": "£3,795,087"
             },
             {
               "year": "20",
-              "p10": "£591,272",
-              "p50": "£1,546,922",
-              "p90": "£3,983,635"
+              "p10": "£588,040",
+              "p50": "£1,521,837",
+              "p90": "£3,941,550"
             },
             {
               "year": "25",
-              "p10": "£300,328",
-              "p50": "£1,528,264",
-              "p90": "£4,538,805"
+              "p10": "£304,675",
+              "p50": "£1,493,533",
+              "p90": "£4,471,623"
             },
             {
               "year": "30",
-              "p10": "£144,103",
-              "p50": "£1,485,731",
-              "p90": "£5,983,833"
+              "p10": "£159,296",
+              "p50": "£1,466,252",
+              "p90": "£5,330,414"
             }
           ],
           "split": {
             "applies": true,
             "unchanged": false,
             "dismissed": false,
-            "fingerprint": "-21d43603",
+            "fingerprint": "70ecde6a",
             "mode": "copies",
             "lockedNames": [
               "Sam’s plan"
@@ -2250,7 +2301,7 @@
               "own": "£263,508"
             },
             "betterOff": {
-              "amount": "£9,052",
+              "amount": "£52,246",
               "better": false
             },
             "tax": {
@@ -2269,23 +2320,23 @@
             },
             "ages": "67 / 75 / 90",
             "own": {
-              "a": "£1,415,786 / £1,312,638 / £944,250",
+              "a": "£1,408,345 / £1,297,000 / £915,226",
               "b": "£263,508 / £291,850 / £399,707",
               "lasts": "in just under 9 futures out of 10",
-              "left": "£1,501,223 / £272,575"
+              "left": "£1,498,934 / £281,691"
             },
             "together": {
-              "a": "£1,415,786 / £1,420,725 / £1,131,321",
+              "a": "£1,408,345 / £1,411,614 / £1,092,733",
               "b": "£199,171 / £207,937 / £233,094",
               "lasts": "in just under 9 futures out of 10",
-              "left": "£1,492,170 / £270,866"
+              "left": "£1,446,689 / £286,402"
             },
             "note2028": "",
             "ladderNote": "",
             "steps": {
               "a": [
                 {
-                  "fromAge": "66",
+                  "fromAge": "65",
                   "amount": "£70,000"
                 },
                 {
@@ -2321,7 +2372,7 @@
             {
               "name": "Alex’s plan",
               "from": "£70,000 a year",
-              "to": "£70,000 a year from 66, £50,270 from 68, £70,000 from 73",
+              "to": "£70,000 a year from 65, £50,270 from 68, £70,000 from 73",
               "changed": true
             },
             {
@@ -2357,6 +2408,15 @@
             "b": "pots-and-valves"
           },
           "draftKey": "{}"
+        },
+        "life": {
+          "key": "drawing",
+          "placing": "draft-retired",
+          "locked": false,
+          "stop": "2026-05",
+          "since": "2026-05",
+          "by": "facts",
+          "invite": null
         }
       }
     }
@@ -2509,7 +2569,7 @@
     "pick": null
   },
   "household": {
-    "key": "AlexCouple06|2026-08-22T15:00:00.000Z|1azaftb|U+SamCouple07|2026-08-22T15:00:00.000Z|nbkq3u|L",
+    "key": "AlexCouple06|2026-08-22T15:00:00.000Z|182d0po|U+SamCouple07|2026-08-22T15:00:00.000Z|nbkq3u|L",
     "status": "done",
     "limit": null,
     "need": null,
@@ -2521,7 +2581,7 @@
         "b": "Sam’s plan"
       },
       "offsets": {
-        "a": 2,
+        "a": 1,
         "b": 4
       },
       "split": {
@@ -2536,7 +2596,7 @@
         "steps": {
           "a": [
             {
-              "fromAge": 66,
+              "fromAge": 65,
               "amount": 70000
             },
             {
@@ -2562,6 +2622,7 @@
         "schedules": {
           "own": {
             "a": [
+              70000,
               70000,
               70000,
               70000,
@@ -2632,6 +2693,7 @@
           },
           "together": {
             "a": [
+              70000,
               70000,
               70000,
               50270,
@@ -2760,6 +2822,7 @@
           "own": {
             "a": [
               70000,
+              70000,
               59683.2,
               59683.2,
               59683.2,
@@ -2829,6 +2892,7 @@
           },
           "together": {
             "a": [
+              70000,
               70000,
               59683.2,
               39953.2,
@@ -2906,15 +2970,15 @@
         },
         "note2028": "",
         "ladderNote": "",
-        "fingerprint": "-21d43603"
+        "fingerprint": "70ecde6a"
       },
       "own": {
         "combined": {
           "runs": 1000,
-          "jointSuccess": 0.842,
-          "successA": 0.842,
+          "jointSuccess": 0.82,
+          "successA": 0.82,
           "successB": 0.995,
-          "independenceAssumed": 0.8377899999999999,
+          "independenceAssumed": 0.8159,
           "potFan": [
             {
               "year": 0,
@@ -2930,216 +2994,216 @@
             },
             {
               "year": 2,
-              "p10": 1330577.5525174446,
-              "p50": 1729017.6188706495,
-              "p90": 2041716.107505831
+              "p10": 1325741.7142054583,
+              "p50": 1723470.112645524,
+              "p90": 2036274.9066531204
             },
             {
               "year": 3,
-              "p10": 1319405.501096183,
-              "p50": 1715409.8625171666,
-              "p90": 2041513.3785565672
+              "p10": 1310255.3828250892,
+              "p50": 1705452.6975652603,
+              "p90": 2030700.7938790163
             },
             {
               "year": 4,
-              "p10": 1243432.1512748462,
-              "p50": 1682527.1209646435,
-              "p90": 2180146.2653396847
+              "p10": 1235209.5487343739,
+              "p50": 1672449.2808829676,
+              "p90": 2167476.774969883
             },
             {
               "year": 5,
-              "p10": 1141211.702672891,
-              "p50": 1645885.9240303189,
-              "p90": 2349729.6798373633
+              "p10": 1132830.4578689602,
+              "p50": 1635447.5423995696,
+              "p90": 2334195.046841629
             },
             {
               "year": 6,
-              "p10": 1076408.2150244855,
-              "p50": 1602074.3365645977,
-              "p90": 2522398.7977725235
+              "p10": 1067628.7273460617,
+              "p50": 1592084.898268212,
+              "p90": 2507362.445429614
             },
             {
               "year": 7,
-              "p10": 1100477.4044240029,
-              "p50": 1650979.4034114731,
-              "p90": 2481317.506248203
+              "p10": 1092514.8835145503,
+              "p50": 1638167.540302983,
+              "p90": 2463040.9654158237
             },
             {
               "year": 8,
-              "p10": 1072292.3534743912,
-              "p50": 1594959.7193089216,
-              "p90": 2627334.915403969
+              "p10": 1067241.8834985034,
+              "p50": 1583372.5921702278,
+              "p90": 2606441.683647189
             },
             {
               "year": 9,
-              "p10": 1035908.4148013784,
-              "p50": 1656141.6831717321,
-              "p90": 3018987.3283661935
+              "p10": 1027210.6582627621,
+              "p50": 1643741.2748993046,
+              "p90": 2993984.9340525176
             },
             {
               "year": 10,
-              "p10": 1005598.6950044547,
-              "p50": 1632090.3874047527,
-              "p90": 3074268.475656322
+              "p10": 1000702.2305746217,
+              "p50": 1616116.621441174,
+              "p90": 3047953.446870695
             },
             {
               "year": 11,
-              "p10": 961124.18808538,
-              "p50": 1559591.5622083098,
-              "p90": 3313643.998677302
+              "p10": 963250.4096525384,
+              "p50": 1544349.652817231,
+              "p90": 3289664.279042111
             },
             {
               "year": 12,
-              "p10": 903709.6758404899,
-              "p50": 1568762.5987214064,
-              "p90": 3427081.151315522
+              "p10": 894398.9671902974,
+              "p50": 1556313.5671226773,
+              "p90": 3401888.2473302484
             },
             {
               "year": 13,
-              "p10": 887154.9961212396,
-              "p50": 1554690.6575088217,
-              "p90": 3268274.8623126005
+              "p10": 886101.6206914086,
+              "p50": 1541673.761826511,
+              "p90": 3235702.790207838
             },
             {
               "year": 14,
-              "p10": 778747.798763373,
-              "p50": 1534029.2554624358,
-              "p90": 3254261.3297474496
+              "p10": 779705.9709620705,
+              "p50": 1519801.5602682822,
+              "p90": 3223937.7692581313
             },
             {
               "year": 15,
-              "p10": 801867.4487696572,
-              "p50": 1485654.2626445547,
-              "p90": 3826877.2288383935
+              "p10": 796901.9819796521,
+              "p50": 1468257.0556210512,
+              "p90": 3795087.240179957
             },
             {
               "year": 16,
-              "p10": 778240.6861171008,
-              "p50": 1502336.6496723082,
-              "p90": 3804183.9238841655
+              "p10": 778467.1037044628,
+              "p50": 1484565.0490964053,
+              "p90": 3775386.689445829
             },
             {
               "year": 17,
-              "p10": 744821.6714111875,
-              "p50": 1446779.6024808236,
-              "p90": 4139024.186554103
+              "p10": 747289.5739552759,
+              "p50": 1429726.7563418583,
+              "p90": 4097923.5857913783
             },
             {
               "year": 18,
-              "p10": 684282.2281895527,
-              "p50": 1521214.3074409766,
-              "p90": 3799028.7112504137
+              "p10": 697858.2429379695,
+              "p50": 1504244.2601633323,
+              "p90": 3756306.380387314
             },
             {
               "year": 19,
-              "p10": 669698.5702848705,
-              "p50": 1546751.238062146,
-              "p90": 3656018.7718224865
+              "p10": 668433.8385279507,
+              "p50": 1519740.5758556786,
+              "p90": 3613787.4296369934
             },
             {
               "year": 20,
-              "p10": 591271.535955054,
-              "p50": 1546921.7388338516,
-              "p90": 3983635.1332937493
+              "p10": 588039.6778314784,
+              "p50": 1521836.6925656968,
+              "p90": 3941549.7497996967
             },
             {
               "year": 21,
-              "p10": 520597.2298390218,
-              "p50": 1587503.6224123188,
-              "p90": 4260621.477442635
+              "p10": 525625.3432985534,
+              "p50": 1563839.093181226,
+              "p90": 4226611.137693094
             },
             {
               "year": 22,
-              "p10": 442346.46533616935,
-              "p50": 1504613.3844374302,
-              "p90": 4815147.662704164
+              "p10": 445269.2620106639,
+              "p50": 1499872.9172386306,
+              "p90": 4745832.7898556525
             },
             {
               "year": 23,
-              "p10": 415179.912585928,
-              "p50": 1636172.3864360373,
-              "p90": 4934798.217098768
+              "p10": 419610.63884179073,
+              "p50": 1617302.527004952,
+              "p90": 4891984.4969887305
             },
             {
               "year": 24,
-              "p10": 306172.9599435615,
-              "p50": 1557378.560891726,
-              "p90": 5158718.569719187
+              "p10": 320138.05308934685,
+              "p50": 1538667.7237958196,
+              "p90": 5082918.941747842
             },
             {
               "year": 25,
-              "p10": 300327.9096738397,
-              "p50": 1528263.8307005796,
-              "p90": 4538805.109901573
+              "p10": 304674.944753332,
+              "p50": 1493532.7921298733,
+              "p90": 4471622.806266208
             },
             {
               "year": 26,
-              "p10": 272574.74942125916,
-              "p50": 1501222.5971069403,
-              "p90": 4419336.729051188
+              "p10": 281690.7548955314,
+              "p50": 1498934.094791163,
+              "p90": 4353429.185615225
             },
             {
               "year": 27,
-              "p10": 243884.7303905823,
-              "p50": 1618596.5490096807,
-              "p90": 4847681.253303752
+              "p10": 232001.2360812192,
+              "p50": 1611097.394128773,
+              "p90": 4774194.738688404
             },
             {
               "year": 28,
-              "p10": 209465.2965650541,
-              "p50": 1488083.7582878456,
-              "p90": 5270529.5037782155
+              "p10": 218748.48885608252,
+              "p50": 1497369.2574162027,
+              "p90": 5192075.698936063
             },
             {
               "year": 29,
-              "p10": 157158.52711167358,
-              "p50": 1502871.554063984,
-              "p90": 5389080.791272027
+              "p10": 183078.36279908303,
+              "p50": 1487680.583201069,
+              "p90": 5317503.070353253
             },
             {
               "year": 30,
-              "p10": 144103.34394975082,
-              "p50": 1485730.8253537475,
-              "p90": 5983832.585332857
+              "p10": 159295.9506275323,
+              "p50": 1466252.4778620915,
+              "p90": 5330414.309593761
             },
             {
               "year": 31,
-              "p10": 145731.16736492226,
-              "p50": 1434538.4904449321,
-              "p90": 6323661.942935994
+              "p10": 145731.16736492395,
+              "p50": 1374496.735836675,
+              "p90": 6388327.924649876
             },
             {
               "year": 32,
-              "p10": 164879.06992772233,
-              "p50": 1482003.0398183176,
-              "p90": 6289867.788200264
+              "p10": 164879.06992772192,
+              "p50": 1486590.6625467557,
+              "p90": 6450772.485142358
             }
           ],
           "sampleFutures": 80,
           "byStrategy": true,
           "pooled": {
-            "success": 0.869,
+            "success": 0.854,
             "coveredByA": 0,
-            "coveredByB": 27,
+            "coveredByB": 34,
             "fromAgeMedian": 95,
-            "fromAgeEarliest": 94
+            "fromAgeEarliest": 95
           }
         },
         "rA": {
           "affordable": true,
           "name": "Pots & Valves",
           "ruin": {
-            "hist": 11.700680272108844,
-            "mc": 15.8
+            "hist": 17.695473251028808,
+            "mc": 18
           },
           "terminal": {
             "p10": 0,
-            "p50": 732552.858873843,
-            "p90": 4562935.92174833,
-            "histMedian": 726349.2823366048
+            "p50": 687398.9889877415,
+            "p90": 4552637.514974446,
+            "histMedian": 622977.393135351
           },
           "n": {
-            "hist": 735,
+            "hist": 729,
             "mc": 1000
           },
           "cones": {
@@ -3147,68 +3211,70 @@
               "p10": [
                 1422000,
                 1229131.0817327881,
-                1140527.5480934603,
-                1095092.5778121778,
-                1014173.9690494821,
-                963040.7622913033,
-                922176.8489479613,
-                899373.0810149127,
-                841166.935462526,
-                815121.5479963549,
-                799406.3340357607,
-                744844.8458019189,
-                705472.960423706,
-                680276.840481202,
-                631651.0440232847,
-                606843.9497084747,
-                580147.15540528,
-                521448.24019007204,
-                491673.1179613311,
-                449865.94321235426,
-                412729.08210423175,
-                365578.2294914598,
-                317090.9731941245,
-                273249.7032693525,
-                227162.3380721957,
-                183367.53425301804,
-                143201.66875224723,
-                95244.42865868121,
-                51521.37320694296,
-                3074.576630572836,
+                1136569.9313291837,
+                1087150.4257702208,
+                1007053.496148961,
+                955201.1214901046,
+                915159.5378531587,
+                892433.8857926962,
+                833755.0132791762,
+                807049.6521555919,
+                793119.2579483872,
+                736968.0570467296,
+                701006.4875786554,
+                674852.7552312949,
+                630495.1565655497,
+                607931.6380064808,
+                575725.1908882818,
+                516371.53544638824,
+                492776.9824855325,
+                447729.1885661151,
+                409940.3012625663,
+                363467.16883153305,
+                320031.20841363736,
+                274836.25448908715,
+                229084.1743047735,
+                186695.59810717523,
+                150765.07770284318,
+                103347.36047651607,
+                57516.52891463573,
+                13128.799947236315,
+                0,
                 0
               ],
               "p50": [
                 1422000,
                 1415786.336610529,
-                1413627.9604883497,
-                1413554.5568239244,
-                1402599.859487462,
-                1382466.662895813,
-                1367271.3901008323,
-                1355729.4398829858,
-                1328441.2603773032,
-                1312637.637286569,
-                1309688.5301578154,
-                1288731.990487309,
-                1258238.8060202638,
-                1243877.0958816672,
-                1218018.7200664713,
-                1182237.8914189383,
-                1162442.493148292,
-                1147464.6970649587,
-                1132609.4836036565,
-                1096365.3903381985,
-                1041136.154046525,
-                1022589.8923432195,
-                1002869.2901346509,
-                975080.2970129508,
-                944250.2894384933,
-                933499.4598034739,
-                876018.2253940619,
-                852836.4357559414,
-                796014.2620646855,
-                760408.0636235628,
-                749645.158501639
+                1408345.4255307855,
+                1402832.5056644934,
+                1392380.2472913517,
+                1371687.0414771452,
+                1356764.4735584497,
+                1343334.3985146163,
+                1316525.3048180046,
+                1301937.5705885647,
+                1297000.2400815175,
+                1275231.6306824763,
+                1251350.9968333007,
+                1228656.9307744852,
+                1205894.047738009,
+                1164995.2034354194,
+                1150823.2688728732,
+                1132211.8124166133,
+                1119873.3136518174,
+                1083987.7762109872,
+                1022599.4147893605,
+                1007193.5638736973,
+                992745.7044133176,
+                960578.7510667953,
+                923993.0604961588,
+                915225.5580802023,
+                859630.2968510858,
+                833107.2624016602,
+                777764.7777877358,
+                750251.2834735021,
+                711632.5494135682,
+                690223.0453428592
               ]
             }
           }
@@ -3221,9 +3287,9 @@
             "mc": 0.5
           },
           "terminal": {
-            "p10": 115781.15564031838,
-            "p50": 456549.48979359155,
-            "p90": 1718529.4994285346,
+            "p10": 115781.15564031832,
+            "p50": 456549.4897935905,
+            "p90": 1718529.499428531,
             "histMedian": 411617.86455780634
           },
           "n": {
@@ -3241,66 +3307,66 @@
                 175914.67422697606,
                 167109.43981830712,
                 166972.88388363968,
-                160631.48037094146,
-                163355.91078923462,
+                160631.48037094137,
+                163355.910789235,
                 163081.30121907845,
-                157961.41147364094,
-                158193.6220661735,
-                158699.24733264552,
+                157961.41147364135,
+                158193.62206617312,
+                158699.24733264546,
                 155786.9694943972,
-                157569.83850705312,
-                159714.48804195283,
-                153184.51850790528,
-                153654.09818780527,
-                150130.03887642035,
-                147791.17767923954,
-                145232.06825393348,
+                157569.8385070526,
+                159714.48804195214,
+                153184.51850790507,
+                153654.09818780544,
+                150130.0388764205,
+                147791.17767923963,
+                145232.06825393316,
                 140405.0352740573,
-                136834.95511002952,
-                132984.3249415334,
-                132369.9495244576,
-                134031.35499080777,
-                128210.12826884817,
-                129557.66297154037,
-                127415.188047015,
-                128306.84680772852,
-                120257.18243478762,
-                118090.01442537998
+                136834.95511002967,
+                132984.32494153315,
+                132369.94952445696,
+                134031.35499080765,
+                128210.12826884852,
+                129557.66297154067,
+                127415.1880470148,
+                128306.84680772887,
+                120257.18243478728,
+                118090.01442537995
               ],
               "p50": [
                 288497,
                 284476.3738727577,
-                280756.05172063067,
-                276820.3949469595,
+                280756.05172063014,
+                276820.39494695945,
                 270231.73616712156,
                 263508.1201350436,
-                258653.328051988,
+                258653.3280519874,
                 264313.78657259664,
-                267844.3940273969,
+                267844.3940273973,
                 270543.83674260665,
                 278642.690475391,
-                282975.3651985961,
-                287466.5871378808,
-                291849.5226384483,
-                294597.83853589185,
-                298824.5120718855,
-                301047.691378891,
-                311982.74339476775,
-                322249.7974951689,
-                326099.6614346431,
-                329808.89383008087,
-                337344.58585297165,
-                349577.0932073865,
-                354893.7090926741,
-                366232.75325547723,
-                378673.1041859285,
-                393104.8964330578,
-                396632.5874742265,
-                399706.9407844321,
-                412429.0772338599,
-                428930.4624766514,
-                437914.0897160714,
-                461766.97956752946
+                282975.36519859603,
+                287466.5871378798,
+                291849.52263844747,
+                294597.8385358924,
+                298824.5120718859,
+                301047.69137889094,
+                311982.74339476734,
+                322249.79749516747,
+                326099.6614346426,
+                329808.89383008203,
+                337344.5858529713,
+                349577.09320738685,
+                354893.7090926737,
+                366232.7532554781,
+                378673.1041859262,
+                393104.8964330546,
+                396632.58747422596,
+                399706.9407844334,
+                412429.0772338619,
+                428930.4624766496,
+                437914.08971607214,
+                461766.9795675287
               ]
             }
           }
@@ -3309,10 +3375,10 @@
       "together": {
         "combined": {
           "runs": 1000,
-          "jointSuccess": 0.882,
-          "successA": 0.884,
+          "jointSuccess": 0.854,
+          "successA": 0.856,
           "successB": 0.954,
-          "independenceAssumed": 0.843336,
+          "independenceAssumed": 0.8166239999999999,
           "potFan": [
             {
               "year": 0,
@@ -3328,216 +3394,216 @@
             },
             {
               "year": 2,
-              "p10": 1303313.0433589509,
-              "p50": 1703753.9459925345,
-              "p90": 2007994.318590749
+              "p10": 1298477.2050469646,
+              "p50": 1698206.4397674096,
+              "p90": 2002553.1177380383
             },
             {
               "year": 3,
-              "p10": 1295284.6367941166,
-              "p50": 1693535.4700481407,
-              "p90": 2008512.1323762415
+              "p10": 1269959.7214766862,
+              "p50": 1665116.98489272,
+              "p90": 1979615.3035114398
             },
             {
               "year": 4,
-              "p10": 1217521.6648993236,
-              "p50": 1675104.2363243755,
-              "p90": 2147544.041376823
+              "p10": 1193224.7592290728,
+              "p50": 1645629.4653257737,
+              "p90": 2113398.908436021
             },
             {
               "year": 5,
-              "p10": 1131498.6239923562,
-              "p50": 1632435.8054470131,
-              "p90": 2314919.1508838455
+              "p10": 1112164.6394588759,
+              "p50": 1604333.4829908698,
+              "p90": 2274205.7011173824
             },
             {
               "year": 6,
-              "p10": 1073890.2512078728,
-              "p50": 1615126.9913477397,
-              "p90": 2509295.4352444694
+              "p10": 1046844.3490976545,
+              "p50": 1583487.0163414166,
+              "p90": 2469207.328002848
             },
             {
               "year": 7,
-              "p10": 1125363.483205588,
-              "p50": 1693936.3452073056,
-              "p90": 2484423.483703698
+              "p10": 1103290.6227740368,
+              "p50": 1659959.131436524,
+              "p90": 2437307.960345094
             },
             {
               "year": 8,
-              "p10": 1092081.3054131167,
-              "p50": 1635811.769109188,
-              "p90": 2631326.50807783
+              "p10": 1089501.3313647227,
+              "p50": 1624002.4054665552,
+              "p90": 2607524.5737855984
             },
             {
               "year": 9,
-              "p10": 1044227.918352768,
-              "p50": 1693981.5796268915,
-              "p90": 3074487.924061599
+              "p10": 1040701.0270297863,
+              "p50": 1673425.3086923992,
+              "p90": 3037074.357252583
             },
             {
               "year": 10,
-              "p10": 1017663.8828913277,
-              "p50": 1685133.1093276036,
-              "p90": 3132029.372493662
+              "p10": 1007773.6035239173,
+              "p50": 1667066.7326555264,
+              "p90": 3092643.344226638
             },
             {
               "year": 11,
-              "p10": 964179.2850321671,
-              "p50": 1613299.380372894,
-              "p90": 3347771.806228914
+              "p10": 957157.8663583911,
+              "p50": 1595326.332184396,
+              "p90": 3315818.973447039
             },
             {
               "year": 12,
-              "p10": 893372.1547899967,
-              "p50": 1581315.8462159147,
-              "p90": 3462154.346445936
+              "p10": 894500.545495154,
+              "p50": 1564505.9340211984,
+              "p90": 3428583.3559727264
             },
             {
               "year": 13,
-              "p10": 879971.7830560282,
-              "p50": 1590487.6502458714,
-              "p90": 3343671.928113044
+              "p10": 872719.8757741142,
+              "p50": 1566718.422795096,
+              "p90": 3298354.079934933
             },
             {
               "year": 14,
-              "p10": 807695.6846886266,
-              "p50": 1582889.170378562,
-              "p90": 3294197.656544612
+              "p10": 799689.4864235645,
+              "p50": 1569864.4952759775,
+              "p90": 3248249.69331327
             },
             {
               "year": 15,
-              "p10": 819259.0382060059,
-              "p50": 1529245.2577210835,
-              "p90": 3854711.4711349793
+              "p10": 811002.8815308904,
+              "p50": 1503636.2253341856,
+              "p90": 3813047.0005506333
             },
             {
               "year": 16,
-              "p10": 786580.6988289749,
-              "p50": 1550218.8284970769,
-              "p90": 3836953.7520561498
+              "p10": 784516.9495964051,
+              "p50": 1523933.1005170124,
+              "p90": 3799204.778841316
             },
             {
               "year": 17,
-              "p10": 746729.3477342298,
-              "p50": 1498592.964133313,
-              "p90": 4114601.530340689
+              "p10": 744493.5359447035,
+              "p50": 1476298.7899652678,
+              "p90": 4052264.488511816
             },
             {
               "year": 18,
-              "p10": 666190.7304927245,
-              "p50": 1574681.602179031,
-              "p90": 3817497.6627544574
+              "p10": 668865.9780751666,
+              "p50": 1561689.9577467747,
+              "p90": 3737711.3415726647
             },
             {
               "year": 19,
-              "p10": 670333.5756184338,
-              "p50": 1626446.6906911312,
-              "p90": 3745275.1924176794
+              "p10": 671091.8824877909,
+              "p50": 1604925.6340198778,
+              "p90": 3686690.3980706343
             },
             {
               "year": 20,
-              "p10": 572299.3862591413,
-              "p50": 1589334.4518549265,
-              "p90": 3983426.864628682
+              "p10": 587264.3232994732,
+              "p50": 1575132.1851511023,
+              "p90": 3895236.7964088134
             },
             {
               "year": 21,
-              "p10": 496061.91227165464,
-              "p50": 1637273.5967139574,
-              "p90": 4193115.0073930807
+              "p10": 509494.9693649109,
+              "p50": 1606730.571592869,
+              "p90": 4129778.1821129653
             },
             {
               "year": 22,
-              "p10": 422386.1163263061,
-              "p50": 1604576.4243781073,
-              "p90": 4777496.181658924
+              "p10": 429074.52504310396,
+              "p50": 1571712.711102015,
+              "p90": 4677487.249989987
             },
             {
               "year": 23,
-              "p10": 404536.6240192606,
-              "p50": 1687034.8295956403,
-              "p90": 4846412.768639142
+              "p10": 403273.98614380887,
+              "p50": 1649112.1633961145,
+              "p90": 4767150.13119208
             },
             {
               "year": 24,
-              "p10": 324856.5486771393,
-              "p50": 1635288.3316007704,
-              "p90": 5112555.790861694
+              "p10": 308081.59172571346,
+              "p50": 1597244.543038276,
+              "p90": 5003152.333747124
             },
             {
               "year": 25,
-              "p10": 298533.7800574568,
-              "p50": 1625630.3373890654,
-              "p90": 4549837.087747842
+              "p10": 289537.5024229603,
+              "p50": 1575606.8344147974,
+              "p90": 4471305.315783661
             },
             {
               "year": 26,
-              "p10": 270865.84550678986,
-              "p50": 1492170.1427116303,
-              "p90": 4495666.999465302
+              "p10": 286402.3846244294,
+              "p50": 1446688.5831088102,
+              "p90": 4393616.220565452
             },
             {
               "year": 27,
-              "p10": 202625.83113692634,
-              "p50": 1636631.6166147147,
-              "p90": 4841002.005656732
+              "p10": 224010.18370574896,
+              "p50": 1591758.1960658452,
+              "p90": 4728722.767331586
             },
             {
               "year": 28,
-              "p10": 130621.44514217961,
-              "p50": 1508928.7554039266,
-              "p90": 5256278.136698296
+              "p10": 152181.94512366957,
+              "p50": 1465969.2097280142,
+              "p90": 5145122.54453593
             },
             {
               "year": 29,
-              "p10": 76393.85667876285,
-              "p50": 1506931.1687185671,
-              "p90": 5448551.653844786
+              "p10": 100001.51963962142,
+              "p50": 1461247.544119902,
+              "p90": 5340083.153191922
             },
             {
               "year": 30,
-              "p10": 48786.99773626857,
-              "p50": 1533359.7289504192,
-              "p90": 6067244.266505422
+              "p10": 60539.36348738629,
+              "p50": 1449834.6504371932,
+              "p90": 5413607.696113859
             },
             {
               "year": 31,
-              "p10": 42792.7624708133,
-              "p50": 1521622.6654631523,
-              "p90": 6209419.097916225
+              "p10": 39905.61515721781,
+              "p50": 1426457.0561807756,
+              "p90": 6416055.473451303
             },
             {
               "year": 32,
-              "p10": 39868.334599298,
-              "p50": 1500298.532403294,
-              "p90": 6217233.271922778
+              "p10": 36014.6757310616,
+              "p50": 1414496.8533765385,
+              "p90": 6367907.43841281
             }
           ],
           "sampleFutures": 80,
           "byStrategy": true,
           "pooled": {
-            "success": 0.884,
-            "coveredByA": 2,
+            "success": 0.854,
+            "coveredByA": 0,
             "coveredByB": 0,
-            "fromAgeMedian": 91,
-            "fromAgeEarliest": 88
+            "fromAgeMedian": null,
+            "fromAgeEarliest": null
           }
         },
         "rA": {
           "affordable": true,
           "name": "Pots & Valves",
           "ruin": {
-            "hist": 7.891156462585034,
-            "mc": 11.6
+            "hist": 9.876543209876543,
+            "mc": 14.4
           },
           "terminal": {
             "p10": 0,
-            "p50": 969653.4320615156,
-            "p90": 5215890.858913213,
-            "histMedian": 929059.5653870453
+            "p50": 921000.6930233156,
+            "p90": 5293071.957919347,
+            "histMedian": 856279.9272002288
           },
           "n": {
-            "hist": 735,
+            "hist": 729,
             "mc": 1000
           },
           "cones": {
@@ -3545,68 +3611,70 @@
               "p10": [
                 1422000,
                 1229131.0817327881,
-                1140527.5480934603,
-                1110283.1442104317,
-                1043184.4406558368,
-                1007347.7852142652,
-                987657.0847638292,
-                976082.9993910337,
-                926817.16527847,
-                886610.2869959944,
-                874318.619288245,
-                808883.0524900828,
-                778004.3351231297,
-                740377.5127491467,
-                700883.5995808241,
-                672153.8158150063,
-                656698.4554340447,
-                595981.6191193761,
-                559183.4509645093,
-                511170.72098429035,
-                470258.98910267785,
-                421465.89016973344,
-                368374.76136949495,
-                330670.8610500616,
-                278104.16661639814,
-                231396.82507202734,
-                188701.328992422,
-                139811.6569373447,
-                88878.088708888,
-                40850.47219008875,
+                1136569.9313291837,
+                1087150.4257702208,
+                1021954.7182778876,
+                986883.0233857856,
+                963744.0133087191,
+                954526.2413528898,
+                918115.3183211427,
+                882532.2886212996,
+                870329.0929195434,
+                811509.968392295,
+                772425.1044207966,
+                743869.2800370071,
+                697099.8729895018,
+                670469.6363724045,
+                650142.7756483566,
+                593163.2994821969,
+                558805.4726053205,
+                515356.65139593615,
+                475002.95362057403,
+                429061.22279886575,
+                377169.05336267507,
+                341038.31600094365,
+                286283.5173722692,
+                244423.62610041868,
+                201057.83664811772,
+                158189.98251627566,
+                112967.74442455707,
+                66465.62030733323,
+                20385.154878130204,
                 0
               ],
               "p50": [
                 1422000,
                 1415786.336610529,
-                1413627.9604883497,
-                1431518.3616075332,
-                1440429.6102672047,
-                1440791.2391404794,
-                1448470.1759032556,
-                1454415.871354106,
-                1437236.7991794578,
-                1420725.4269819506,
-                1427538.4683913202,
-                1400228.7984255834,
-                1376718.0786897733,
-                1367598.9799707609,
-                1341132.6642987253,
-                1315788.1712200022,
-                1301674.3616463523,
-                1283721.7605035023,
-                1283631.552810973,
-                1248676.4758515966,
-                1204593.8393330174,
-                1172866.0576581766,
-                1187903.6893234784,
-                1158025.9493993262,
-                1131321.4993529855,
-                1115424.185504381,
-                1091632.4480244527,
-                1043544.9659854983,
-                1009485.7151250971,
-                995170.918848537,
-                991040.1286315548
+                1408345.4255307855,
+                1402832.5056644934,
+                1411384.287187411,
+                1410489.805441544,
+                1415378.3596305302,
+                1423861.4221264997,
+                1422297.5941737324,
+                1407195.671294016,
+                1411614.2776885054,
+                1388556.8315070188,
+                1363519.206470848,
+                1348913.5688288333,
+                1325588.0905675024,
+                1298165.729430653,
+                1282728.4600293972,
+                1264953.805490332,
+                1261870.1588808477,
+                1231253.7955611716,
+                1183832.0528788238,
+                1154149.7116093014,
+                1163868.3841384784,
+                1142435.772889555,
+                1107138.8049180415,
+                1092732.7464467303,
+                1070203.4029254273,
+                1014967.1617697165,
+                990931.7221493153,
+                970903.7535058724,
+                954952.8119385139,
+                935598.8172231802
               ]
             }
           }
@@ -3619,9 +3687,9 @@
             "mc": 4.6
           },
           "terminal": {
-            "p10": 36208.933564024155,
-            "p50": 257785.08302813268,
-            "p90": 1044720.5539746312,
+            "p10": 36208.93356402463,
+            "p50": 257785.08302813003,
+            "p90": 1044720.5539746261,
             "histMedian": 221215.94918424284
           },
           "n": {
@@ -3633,72 +3701,72 @@
               "p10": [
                 288497,
                 229424.90371009673,
-                195791.70086592567,
-                169752.1663635277,
-                140677.28697855168,
+                195791.7008659252,
+                169752.166363528,
+                140677.28697855189,
                 118421.83435952628,
                 107214.50940468491,
                 107401.01972196861,
                 102261.0158261032,
-                103072.39410517942,
-                99123.05461542189,
-                95896.39301810757,
-                94773.61226940915,
+                103072.39410517916,
+                99123.054615422,
+                95896.39301810738,
+                94773.61226940916,
                 93199.2126848739,
-                91755.58691116568,
-                90817.95633623555,
-                88276.49198557549,
-                86757.82426822717,
-                86191.13967498152,
-                81940.3628803632,
-                77461.42464994424,
-                76520.76015840335,
-                70296.25777453963,
-                67367.37836711641,
-                65033.032616544704,
-                60235.94994346009,
-                62608.40617137391,
-                56778.36603197425,
-                53851.7837226949,
-                50731.90992344939,
-                45402.41867051089,
-                40710.00063060905,
-                36307.937920632976
+                91755.58691116539,
+                90817.95633623499,
+                88276.49198557578,
+                86757.82426822715,
+                86191.13967498163,
+                81940.36288036304,
+                77461.4246499441,
+                76520.76015840317,
+                70296.25777453919,
+                67367.37836711646,
+                65033.03261654355,
+                60235.94994345984,
+                62608.40617137355,
+                56778.36603197438,
+                53851.783722694985,
+                50731.90992344837,
+                45402.41867051039,
+                40710.000630608825,
+                36307.93792063388
               ],
               "p50": [
                 288497,
                 269887.4946836727,
-                252924.37716980005,
+                252924.37716979955,
                 237041.0683720103,
-                219648.10180279135,
+                219648.10180279138,
                 199170.69304998431,
                 194373.49306267232,
-                196349.77957670193,
+                196349.77957670225,
                 198786.54791641177,
                 200579.22772761554,
-                203732.62578501253,
-                202610.64941183105,
-                206186.70077535347,
-                207936.96883180196,
+                203732.62578501276,
+                202610.64941183102,
+                206186.7007753539,
+                207936.96883180246,
                 208052.53157282653,
-                209306.98318520206,
-                212818.49994887054,
-                211767.51619494762,
-                216692.3465433142,
-                219509.20613206373,
+                209306.98318520133,
+                212818.49994887036,
+                211767.5161949474,
+                216692.3465433136,
+                219509.2061320642,
                 215092.8022382469,
-                220810.4333764947,
-                227207.25392193475,
-                228198.71991728953,
-                225955.39481815544,
-                232540.30377229143,
-                238112.26393272617,
-                234305.82483848344,
-                233094.20655389703,
-                239536.36198698383,
-                241903.6228238801,
-                248273.22089369522,
-                256917.72630231633
+                220810.43337649494,
+                227207.2539219351,
+                228198.7199172899,
+                225955.39481815542,
+                232540.30377229015,
+                238112.26393272594,
+                234305.8248384839,
+                233094.20655389622,
+                239536.36198698357,
+                241903.62282388005,
+                248273.22089369554,
+                256917.72630231504
               ]
             }
           }
@@ -3725,27 +3793,27 @@
               "words": "in more than 9 futures out of 10"
             },
             "pooled": {
-              "success": 0.869,
+              "success": 0.854,
               "coveredByA": 0,
-              "coveredByB": 27,
+              "coveredByB": 34,
               "fromAgeMedian": 95,
-              "fromAgeEarliest": 94
+              "fromAgeEarliest": 95
             },
-            "shareHousehold": 0.869
+            "shareHousehold": 0.854
           },
           "potA": [
-            1415786.336610529,
-            1312637.637286569,
-            944250.2894384933
+            1408345.4255307855,
+            1297000.2400815175,
+            915225.5580802023
           ],
           "potB": [
             263508.1201350436,
-            291849.5226384483,
-            399706.9407844321
+            291849.52263844747,
+            399706.9407844334
           ],
           "left90": {
-            "p50": 1501222.5971069403,
-            "p10": 272574.74942125916
+            "p50": 1498934.094791163,
+            "p10": 281690.7548955314
           },
           "smallerAtUntil": 263508.1201350436
         },
@@ -3764,27 +3832,27 @@
               "words": "in more than 9 futures out of 10"
             },
             "pooled": {
-              "success": 0.884,
-              "coveredByA": 2,
+              "success": 0.854,
+              "coveredByA": 0,
               "coveredByB": 0,
-              "fromAgeMedian": 91,
-              "fromAgeEarliest": 88
+              "fromAgeMedian": null,
+              "fromAgeEarliest": null
             },
-            "shareHousehold": 0.884
+            "shareHousehold": 0.854
           },
           "potA": [
-            1415786.336610529,
-            1420725.4269819506,
-            1131321.4993529855
+            1408345.4255307855,
+            1411614.2776885054,
+            1092732.7464467303
           ],
           "potB": [
             199170.69304998431,
-            207936.96883180196,
-            233094.20655389703
+            207936.96883180246,
+            233094.20655389622
           ],
           "left90": {
-            "p50": 1492170.1427116303,
-            "p10": 270865.84550678986
+            "p50": 1446688.5831088102,
+            "p10": 286402.3846244294
           },
           "smallerAtUntil": 199170.69304998431
         },
@@ -3803,7 +3871,7 @@
             "together": 505764.8333333333
           }
         },
-        "betterOff90": -9052.454395310022,
+        "betterOff90": -52245.51168235275,
         "cost": {
           "own": 263508.1201350436,
           "together": 199170.69304998431
@@ -3823,7 +3891,7 @@
           "workingA": false,
           "workingB": true,
           "drawNeed": 70000,
-          "bridge": true
+          "beforeStatePension": true
         },
         {
           "year": 1,
@@ -3838,7 +3906,7 @@
           "workingA": false,
           "workingB": true,
           "drawNeed": 70000,
-          "bridge": true
+          "beforeStatePension": true
         },
         {
           "year": 2,
@@ -3853,7 +3921,7 @@
           "workingA": false,
           "workingB": true,
           "drawNeed": 70000,
-          "bridge": true
+          "beforeStatePension": true
         },
         {
           "year": 3,
@@ -3868,7 +3936,7 @@
           "workingA": false,
           "workingB": true,
           "drawNeed": 59683.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 4,
@@ -3883,7 +3951,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 77683.2,
-          "bridge": true
+          "beforeStatePension": true
         },
         {
           "year": 5,
@@ -3898,7 +3966,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 77683.2,
-          "bridge": true
+          "beforeStatePension": true
         },
         {
           "year": 6,
@@ -3913,7 +3981,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 77683.2,
-          "bridge": true
+          "beforeStatePension": true
         },
         {
           "year": 7,
@@ -3928,7 +3996,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 77683.2,
-          "bridge": true
+          "beforeStatePension": true
         },
         {
           "year": 8,
@@ -3943,7 +4011,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 77683.2,
-          "bridge": true
+          "beforeStatePension": true
         },
         {
           "year": 9,
@@ -3958,7 +4026,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 10,
@@ -3973,7 +4041,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 11,
@@ -3988,7 +4056,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 12,
@@ -4003,7 +4071,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 13,
@@ -4018,7 +4086,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 14,
@@ -4033,7 +4101,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 15,
@@ -4048,7 +4116,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 16,
@@ -4063,7 +4131,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 17,
@@ -4078,7 +4146,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 18,
@@ -4093,7 +4161,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 19,
@@ -4108,7 +4176,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 20,
@@ -4123,7 +4191,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 21,
@@ -4138,7 +4206,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 22,
@@ -4153,7 +4221,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 23,
@@ -4168,7 +4236,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 24,
@@ -4183,7 +4251,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 25,
@@ -4198,7 +4266,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 26,
@@ -4213,7 +4281,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 27,
@@ -4228,7 +4296,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 28,
@@ -4243,7 +4311,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 29,
@@ -4258,7 +4326,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 30,
@@ -4273,7 +4341,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 31,
@@ -4288,7 +4356,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 32,
@@ -4303,7 +4371,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 65710.2,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 33,
@@ -4318,7 +4386,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 0,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 34,
@@ -4333,7 +4401,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 0,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 35,
@@ -4348,7 +4416,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 0,
-          "bridge": false
+          "beforeStatePension": false
         },
         {
           "year": 36,
@@ -4363,7 +4431,7 @@
           "workingA": false,
           "workingB": false,
           "drawNeed": 0,
-          "bridge": false
+          "beforeStatePension": false
         }
       ],
       "basis": {

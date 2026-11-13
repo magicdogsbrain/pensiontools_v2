@@ -205,7 +205,8 @@ describe('a locked plan by its address, and "Your plan as locked"', () => {
     expect(lines).toContain('says.bad');
     expect(lines).toContain('says.cuts');
     expect(text).toMatch(/From age \d+: £[\d,]+ a year before tax, £[\d,]+ a month after tax \(tax year \d{4}\/\d{2}\)/);
-    expect(text).toMatch(/Your plan lasts in .+ out of 10\. Left at the end, at today’s prices: typically £[\d,]+; in a bad case \(the worst 1 in 10\) £[\d,]+/);
+    // (7.8.0: the document's own count, and how it was counted when it was locked)
+    expect(text).toMatch(/Your plan lasts in .+ out of 10; when it was locked, counted to \d+; not by how long you might live\. Left at the end, at today’s prices: typically £[\d,]+; in a bad case \(the worst 1 in 10\) £[\d,]+/);
     expect(text).toMatch(/Income cuts: in a slump, after \d+ months? in a row below the plan’s line/);
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);
     expect(root.querySelector('[data-testid="plan.unlock"]').textContent).toBe('To change a locked plan, unlock it first from ‘Your plan as locked’. Unlocking keeps this plan document as a past version, and your records stay.');

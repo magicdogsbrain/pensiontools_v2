@@ -14,7 +14,11 @@ import { RULES, SAVING } from '../../../src/answers/shared/rules.js';
 const CASH = { equity: 0, bond: 0, cash: 1 };
 const SHARES = { equity: 1, bond: 0, cash: 0 };
 const flat = () => ({ equity: {}, inflation: {} });
-const FLAT = { ...TEST_ENV, futures: 1, trace: true, futureReturns: flat, mix: CASH, savingMix: CASH, savingsGrowth: 0 };
+// 7.8.0: a closed form is the engine's sum on one flat future. With one future, each weighted level is only the age the
+// money may run out at (where fewer than 1 in 20, 2 in 20 or 6 in 20 are still alive), which a sum does not describe, so
+// these run on the count to the end age (env.weighted false, the rollback); the weighted path gives the count's very figures
+// with a table where nobody dies (tests/v7/shared/levelsAnswers.test.js)
+const FLAT = { ...TEST_ENV, weighted: false, futures: 1, trace: true, futureReturns: flat, mix: CASH, savingMix: CASH, savingsGrowth: 0 };
 const NO_SP = { kind: 'none' };
 const ok = (a, given) => { const f = checkAnswerB(a, given); expect(f, f.join('\n')).toEqual([]); return a; };
 

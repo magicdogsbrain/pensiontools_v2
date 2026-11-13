@@ -2384,11 +2384,125 @@
                 "id": "running",
                 "slots": {}
               },
+              "closed": false,
+              "close": {
+                "months": [
+                  {
+                    "month": "2026-10",
+                    "words": "October 2026",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from October 2026",
+                    "workingName": "Sam’s plan, back to work from October 2026"
+                  },
+                  {
+                    "month": "2026-11",
+                    "words": "November 2026",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from November 2026",
+                    "workingName": "Sam’s plan, back to work from November 2026"
+                  },
+                  {
+                    "month": "2026-12",
+                    "words": "December 2026",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from December 2026",
+                    "workingName": "Sam’s plan, back to work from December 2026"
+                  },
+                  {
+                    "month": "2027-01",
+                    "words": "January 2027",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from January 2027",
+                    "workingName": "Sam’s plan, back to work from January 2027"
+                  },
+                  {
+                    "month": "2027-02",
+                    "words": "February 2027",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from February 2027",
+                    "workingName": "Sam’s plan, back to work from February 2027"
+                  },
+                  {
+                    "month": "2027-03",
+                    "words": "March 2027",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from March 2027",
+                    "workingName": "Sam’s plan, back to work from March 2027"
+                  },
+                  {
+                    "month": "2027-04",
+                    "words": "April 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from April 2027",
+                    "workingName": "Sam’s plan, back to work from April 2027"
+                  },
+                  {
+                    "month": "2027-05",
+                    "words": "May 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from May 2027",
+                    "workingName": "Sam’s plan, back to work from May 2027"
+                  },
+                  {
+                    "month": "2027-06",
+                    "words": "June 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from June 2027",
+                    "workingName": "Sam’s plan, back to work from June 2027"
+                  },
+                  {
+                    "month": "2027-07",
+                    "words": "July 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from July 2027",
+                    "workingName": "Sam’s plan, back to work from July 2027"
+                  },
+                  {
+                    "month": "2027-08",
+                    "words": "August 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from August 2027",
+                    "workingName": "Sam’s plan, back to work from August 2027"
+                  },
+                  {
+                    "month": "2027-09",
+                    "words": "September 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from September 2027",
+                    "workingName": "Sam’s plan, back to work from September 2027"
+                  }
+                ],
+                "suggested": "2026-10",
+                "name": "Sam’s plan from October 2026",
+                "asked": true,
+                "held": true,
+                "pots": {
+                  "pension": 587700,
+                  "isa": 25040,
+                  "gia": 0
+                },
+                "potsFrom": "your record for September 2026 for the pension; What you hold (20 March 2026) for the ISAs; this plan’s own figure for the ordinary investment account",
+                "partner": null,
+                "working": {
+                  "name": "Sam’s plan, back to work from October 2026",
+                  "ageNow": 62,
+                  "flexibleAccess": {
+                    "month": "April 2026"
+                  }
+                }
+              },
               "locked": true,
               "lockedOn": "20 March 2026",
               "madeOn": null,
               "shownAsSaved": false,
+              "example": false,
+              "main": false,
+              "records": true,
               "linked": false,
+              "checkInDue": false,
+              "monthByMonth": true,
+              "life": "drawing",
+              "todo": 1,
               "lastModified": "2026-09-08T09:20:00.000Z"
             }
           ]
@@ -2551,15 +2665,18 @@
             "buttons": [
               {
                 "id": "record",
-                "place": "month",
+                "href": "#/plan/SamBuckets04/month",
                 "slots": {
                   "month": "September"
-                }
+                },
+                "month": "2026-09"
               }
             ],
             "notes": [],
             "recorded": true,
-            "setUp": true
+            "setUp": true,
+            "gap": null,
+            "toRecord": "2026-09"
           },
           {
             "id": "where",
@@ -2743,6 +2860,11 @@
                 "id": "seeDocument",
                 "place": "document",
                 "slots": {}
+              },
+              {
+                "id": "exports",
+                "place": "exports",
+                "slots": {}
               }
             ],
             "notes": []
@@ -2859,7 +2981,7 @@
                 "sentence": {
                   "id": "says.bad",
                   "parts": [
-                    "Your plan lasts in more than 9 futures out of 10. Left at the end, at today’s prices: typically ",
+                    "Your plan lasts in more than 9 futures out of 10; when it was locked, counted to 93; not by how long you might live. Left at the end, at today’s prices: typically ",
                     {
                       "key": "saysTypical",
                       "kind": "money"
@@ -2870,7 +2992,7 @@
                       "kind": "money"
                     }
                   ],
-                  "text": "Your plan lasts in more than 9 futures out of 10. Left at the end, at today’s prices: typically £968,682; in a bad case (the worst 1 in 10) £157,539"
+                  "text": "Your plan lasts in more than 9 futures out of 10; when it was locked, counted to 93; not by how long you might live. Left at the end, at today’s prices: typically £968,682; in a bad case (the worst 1 in 10) £157,539"
                 },
                 "source": {
                   "kind": "locked",
@@ -3856,7 +3978,7 @@
             "buttons": [
               {
                 "id": "changeHold",
-                "place": "hold",
+                "href": "#/plan/SamBuckets04/hold",
                 "slots": {}
               }
             ],
@@ -3903,7 +4025,7 @@
             "buttons": [
               {
                 "id": "openMove",
-                "place": "move",
+                "href": "#/plan/SamBuckets04/move",
                 "slots": {}
               }
             ],
@@ -3915,6 +4037,7 @@
             "id": "budget",
             "optional": true,
             "listed": true,
+            "unmarked": true,
             "state": "open",
             "done": false,
             "result": {
@@ -3929,7 +4052,7 @@
             "buttons": [
               {
                 "id": "changeBudget",
-                "place": "budget",
+                "href": "#/plan/SamBuckets04/budget",
                 "slots": {}
               }
             ],
@@ -3971,16 +4094,25 @@
         "current": "month",
         "answerStale": null,
         "next": {
-          "id": "P.idle",
+          "id": "P.holdStale",
           "slots": {
             "month": "September 2026",
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
             "stop": "April 2026",
-            "savedYear": ""
+            "savedYear": "",
+            "closed": "",
+            "next": "",
+            "n": "0",
+            "of": "0",
+            "date": "20 March 2026"
           },
-          "button": null
+          "button": {
+            "id": "updateHold",
+            "href": "#/plan/SamBuckets04/hold",
+            "slots": {}
+          }
         },
         "askLinks": [
           "c"
@@ -4145,6 +4277,16 @@
             "verdict": "yes",
             "share": 0.983,
             "chancePct": 98.3,
+            "level": "balanced",
+            "weighted": {
+              "level": "balanced",
+              "chance": 0.9823688416108489,
+              "fixedAge": 0.983,
+              "planToAge": 92,
+              "weightToAge": 103,
+              "horizonRule": "plan",
+              "reason": null
+            },
             "figures": {
               "chancePct": 98.3,
               "typicalLeft": 968682,
@@ -4160,27 +4302,48 @@
               "cutTotal": 18619,
               "worstCut": 119198
             },
-            "id": "lasts.headline",
+            "id": "lasts.headlineW",
             "slots": {
-              "words": "in more than 9 futures out of 10"
+              "words": "Counting how long people your age live, the money lasts as long as you do more than 19 times in 20.",
+              "bold": ""
             },
             "sub": {
-              "id": "lasts.sub",
+              "id": "lasts.subFixed",
               "slots": {
-                "pct": "98.3",
-                "futures": "1,000",
-                "histories": "735",
+                "words": "If you live to 92, the money lasts that long in more than 19 of 20 futures we tried.",
                 "years": "30",
                 "toAge": "92"
               }
             },
             "rows": [
               {
-                "id": "left",
+                "id": "floorW",
                 "slots": {
-                  "typical": "£968,682",
-                  "bad": "£157,539",
-                  "good": "£3,967,896"
+                  "words": "If the money ran out at 99, you would still have £11,211 a year after tax from the income you get anyway."
+                }
+              },
+              {
+                "id": "leftW",
+                "slots": {
+                  "words": "If you live to 92, what is typically left then is £969,000 at today's prices. In the best 1 in 10 futures it is £3,968,000 or more."
+                }
+              },
+              {
+                "id": "assumedW",
+                "slots": {
+                  "words": "We tested to 92, the age your plan runs to. About 4 in 10 women your age live longer than that."
+                }
+              },
+              {
+                "id": "assumedW",
+                "slots": {
+                  "words": "We follow each future on to 103, when fewer than 1 in 50 women your age are still alive."
+                }
+              },
+              {
+                "id": "assumedW",
+                "slots": {
+                  "words": "We used the figures for women, who tend to live longer, because the plan does not say."
                 }
               },
               {
@@ -4356,6 +4519,459 @@
               "failKind": "ran-out",
               "histories": "735",
               "contract": false
+            },
+            "extras": {
+              "prices": "2.5",
+              "schedule": null,
+              "glidepath": null,
+              "own": [
+                {
+                  "year": 1,
+                  "age": 63,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£28,250",
+                  "leftMid": "£615,000",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 615000
+                  }
+                },
+                {
+                  "year": 2,
+                  "age": 64,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£25,250",
+                  "leftMid": "£613,905",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 613905
+                  }
+                },
+                {
+                  "year": 3,
+                  "age": 65,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£24,000",
+                  "leftMid": "£613,316",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 613316
+                  }
+                },
+                {
+                  "year": 4,
+                  "age": 66,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£24,000",
+                  "leftMid": "£615,092",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 615092
+                  }
+                },
+                {
+                  "year": 5,
+                  "age": 67,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£24,381",
+                  "leftMid": "£611,392",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 611392
+                  }
+                },
+                {
+                  "year": 6,
+                  "age": 68,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£26,242",
+                  "leftMid": "£609,025",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 609025
+                  }
+                },
+                {
+                  "year": 7,
+                  "age": 69,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£26,242",
+                  "leftMid": "£611,786",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 611786
+                  }
+                },
+                {
+                  "year": 8,
+                  "age": 70,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£26,242",
+                  "leftMid": "£622,692",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 622692
+                  }
+                },
+                {
+                  "year": 9,
+                  "age": 71,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£26,242",
+                  "leftMid": "£629,104",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 629104
+                  }
+                },
+                {
+                  "year": 10,
+                  "age": 72,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£26,242",
+                  "leftMid": "£633,355",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 633355
+                  }
+                },
+                {
+                  "year": 11,
+                  "age": 73,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£26,242",
+                  "leftMid": "£649,649",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 649649
+                  }
+                },
+                {
+                  "year": 12,
+                  "age": 74,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£26,242",
+                  "leftMid": "£651,327",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 651327
+                  }
+                },
+                {
+                  "year": 13,
+                  "age": 75,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£26,242",
+                  "leftMid": "£659,180",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 659180
+                  }
+                },
+                {
+                  "year": 14,
+                  "age": 76,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£26,242",
+                  "leftMid": "£677,480",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 677480
+                  }
+                },
+                {
+                  "year": 15,
+                  "age": 77,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£26,242",
+                  "leftMid": "£680,687",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 680687
+                  }
+                },
+                {
+                  "year": 16,
+                  "age": 78,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£27,651",
+                  "leftMid": "£684,263",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 684263
+                  }
+                },
+                {
+                  "year": 17,
+                  "age": 79,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£29,061",
+                  "leftMid": "£694,596",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 694596
+                  }
+                },
+                {
+                  "year": 18,
+                  "age": 80,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£717,033",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 717033
+                  }
+                },
+                {
+                  "year": 19,
+                  "age": 81,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£728,375",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 728375
+                  }
+                },
+                {
+                  "year": 20,
+                  "age": 82,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£738,304",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 738304
+                  }
+                },
+                {
+                  "year": 21,
+                  "age": 83,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£738,434",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 738434
+                  }
+                },
+                {
+                  "year": 22,
+                  "age": 84,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£739,246",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 739246
+                  }
+                },
+                {
+                  "year": 23,
+                  "age": 85,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£778,990",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 778990
+                  }
+                },
+                {
+                  "year": 24,
+                  "age": 86,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£792,242",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 792242
+                  }
+                },
+                {
+                  "year": 25,
+                  "age": 87,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£810,996",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 810996
+                  }
+                },
+                {
+                  "year": 26,
+                  "age": 88,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£846,842",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 846842
+                  }
+                },
+                {
+                  "year": 27,
+                  "age": 89,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£887,220",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 887220
+                  }
+                },
+                {
+                  "year": 28,
+                  "age": 90,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£883,821",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 883821
+                  }
+                },
+                {
+                  "year": 29,
+                  "age": 91,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£910,535",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 910535
+                  }
+                },
+                {
+                  "year": 30,
+                  "age": 92,
+                  "incomeMid": "£30,000",
+                  "incomeBad": "£30,000",
+                  "leftMid": "£915,888",
+                  "raw": {
+                    "incomeMid": 30000,
+                    "leftMid": 915888
+                  }
+                }
+              ],
+              "scenarios": [
+                {
+                  "when": "1929",
+                  "label": "Great Depression",
+                  "unfair": false,
+                  "lowest": "£24,000",
+                  "left": "£578,363",
+                  "id": "hist.lastedCut",
+                  "slots": {
+                    "n": "16",
+                    "s": "s",
+                    "total": "£51,050"
+                  },
+                  "key": "GREAT_DEPRESSION",
+                  "decade": {
+                    "id": "decade.line",
+                    "slots": {
+                      "firstDir": "down",
+                      "firstPct": "63",
+                      "decadeDir": "down",
+                      "decadePct": "27",
+                      "pricesDir": "down",
+                      "pricesPct": "18"
+                    }
+                  }
+                },
+                {
+                  "when": "1973",
+                  "label": "Stagflation 70s",
+                  "unfair": false,
+                  "lowest": "£24,000",
+                  "left": "£411,035",
+                  "id": "hist.lastedCut",
+                  "slots": {
+                    "n": "13",
+                    "s": "s",
+                    "total": "£54,681"
+                  },
+                  "key": "STAGFLATION_70S",
+                  "decade": {
+                    "id": "decade.line",
+                    "slots": {
+                      "firstDir": "down",
+                      "firstPct": "17",
+                      "decadeDir": "up",
+                      "decadePct": "66",
+                      "pricesDir": "up",
+                      "pricesPct": "129"
+                    }
+                  }
+                },
+                {
+                  "when": "2000",
+                  "label": "Lost Decade 2000s",
+                  "unfair": false,
+                  "lowest": null,
+                  "left": null,
+                  "id": "hist.tooShort",
+                  "slots": {
+                    "year": "2000",
+                    "lastStart": "1993"
+                  },
+                  "key": "LOST_DECADE_2000S",
+                  "decade": {
+                    "id": "decade.line",
+                    "slots": {
+                      "firstDir": "down",
+                      "firstPct": "40",
+                      "decadeDir": "down",
+                      "decadePct": "22",
+                      "pricesDir": "up",
+                      "pricesPct": "29"
+                    }
+                  }
+                },
+                {
+                  "when": "2008",
+                  "label": "2008 Crisis",
+                  "unfair": false,
+                  "lowest": null,
+                  "left": null,
+                  "id": "hist.tooShort",
+                  "slots": {
+                    "year": "2008",
+                    "lastStart": "1993"
+                  },
+                  "key": "CRISIS_2008",
+                  "decade": {
+                    "id": "decade.line",
+                    "slots": {
+                      "firstDir": "down",
+                      "firstPct": "13",
+                      "decadeDir": "up",
+                      "decadePct": "92",
+                      "pricesDir": "up",
+                      "pricesPct": "19"
+                    }
+                  }
+                }
+              ],
+              "synthetic": {
+                "name": "Synthetic Worst",
+                "decade": {
+                  "id": "decade.line",
+                  "slots": {
+                    "firstDir": "down",
+                    "firstPct": "27",
+                    "decadeDir": "down",
+                    "decadePct": "47",
+                    "pricesDir": "up",
+                    "pricesPct": "77"
+                  }
+                },
+                "hardest": "November 1964"
+              },
+              "years": 30
             }
           },
           "documentVerdict": {
@@ -4422,7 +5038,8 @@
               "failKind": "ran-out",
               "histories": "735",
               "contract": false
-            }
+            },
+            "extras": null
           },
           "note": null,
           "levers": {
@@ -4653,7 +5270,8 @@
                   "failKind": "ran-out",
                   "histories": "747",
                   "contract": false
-                }
+                },
+                "extras": null
               },
               "diffs": [
                 {
@@ -4682,6 +5300,15 @@
             "kept": null,
             "same": true
           }
+        },
+        "life": {
+          "key": "drawing",
+          "placing": "running",
+          "locked": true,
+          "stop": null,
+          "since": "2026-04",
+          "by": "facts",
+          "invite": null
         }
       }
     }
@@ -4801,6 +5428,7 @@
     "status": "done",
     "reason": null,
     "result": {
+      "level": "balanced",
       "strategyId": "buckets-in-order",
       "ran": {
         "family": true,
@@ -4839,7 +5467,41 @@
           "worstCutTotal": 119198
         },
         "cutLabel": null,
-        "failKind": "ran-out"
+        "failKind": "ran-out",
+        "level": "balanced",
+        "weighted": 0.9823688416108489,
+        "sumW": 18931312168,
+        "n": 1000,
+        "fixedAge": 0.983,
+        "planToAge": 92,
+        "weightToAge": 103,
+        "horizonRule": "plan",
+        "reason": null,
+        "verdict": "yes",
+        "lasts": true,
+        "floor": {
+          "age": 99,
+          "yearly": 11211,
+          "spAge": null
+        },
+        "left": {
+          "age": 92,
+          "typical": 968682,
+          "best": 3967896,
+          "mostNone": false
+        },
+        "words": {
+          "headline": "Counting how long people your age live, the money lasts as long as you do more than 19 times in 20.",
+          "fixed": "If you live to 92, the money lasts that long in more than 19 of 20 futures we tried.",
+          "floor": "If the money ran out at 99, you would still have £11,211 a year after tax from the income you get anyway.",
+          "left": "If you live to 92, what is typically left then is £969,000 at today's prices. In the best 1 in 10 futures it is £3,968,000 or more.",
+          "assumed": [
+            "We tested to 92, the age your plan runs to. About 4 in 10 women your age live longer than that.",
+            "We follow each future on to 103, when fewer than 1 in 50 women your age are still alive.",
+            "We used the figures for women, who tend to live longer, because the plan does not say."
+          ],
+          "why": null
+        }
       },
       "reason": null,
       "history": {
@@ -5005,7 +5667,307 @@
           "cutLabel": null,
           "failKind": "ran-out"
         },
-        "note": ""
+        "note": "",
+        "success": null
+      },
+      "extras": {
+        "prices": 0.025,
+        "startAge": 63,
+        "duration": 30,
+        "schedule": null,
+        "glidepath": null,
+        "own": [
+          {
+            "year": 1,
+            "age": 63,
+            "incomeMid": 30000,
+            "incomeBad": 28250,
+            "leftMid": 615000
+          },
+          {
+            "year": 2,
+            "age": 64,
+            "incomeMid": 30000,
+            "incomeBad": 25250,
+            "leftMid": 613905
+          },
+          {
+            "year": 3,
+            "age": 65,
+            "incomeMid": 30000,
+            "incomeBad": 24000,
+            "leftMid": 613316
+          },
+          {
+            "year": 4,
+            "age": 66,
+            "incomeMid": 30000,
+            "incomeBad": 24000,
+            "leftMid": 615092
+          },
+          {
+            "year": 5,
+            "age": 67,
+            "incomeMid": 30000,
+            "incomeBad": 24381,
+            "leftMid": 611392
+          },
+          {
+            "year": 6,
+            "age": 68,
+            "incomeMid": 30000,
+            "incomeBad": 26242,
+            "leftMid": 609025
+          },
+          {
+            "year": 7,
+            "age": 69,
+            "incomeMid": 30000,
+            "incomeBad": 26242,
+            "leftMid": 611786
+          },
+          {
+            "year": 8,
+            "age": 70,
+            "incomeMid": 30000,
+            "incomeBad": 26242,
+            "leftMid": 622692
+          },
+          {
+            "year": 9,
+            "age": 71,
+            "incomeMid": 30000,
+            "incomeBad": 26242,
+            "leftMid": 629104
+          },
+          {
+            "year": 10,
+            "age": 72,
+            "incomeMid": 30000,
+            "incomeBad": 26242,
+            "leftMid": 633355
+          },
+          {
+            "year": 11,
+            "age": 73,
+            "incomeMid": 30000,
+            "incomeBad": 26242,
+            "leftMid": 649649
+          },
+          {
+            "year": 12,
+            "age": 74,
+            "incomeMid": 30000,
+            "incomeBad": 26242,
+            "leftMid": 651327
+          },
+          {
+            "year": 13,
+            "age": 75,
+            "incomeMid": 30000,
+            "incomeBad": 26242,
+            "leftMid": 659180
+          },
+          {
+            "year": 14,
+            "age": 76,
+            "incomeMid": 30000,
+            "incomeBad": 26242,
+            "leftMid": 677480
+          },
+          {
+            "year": 15,
+            "age": 77,
+            "incomeMid": 30000,
+            "incomeBad": 26242,
+            "leftMid": 680687
+          },
+          {
+            "year": 16,
+            "age": 78,
+            "incomeMid": 30000,
+            "incomeBad": 27651,
+            "leftMid": 684263
+          },
+          {
+            "year": 17,
+            "age": 79,
+            "incomeMid": 30000,
+            "incomeBad": 29061,
+            "leftMid": 694596
+          },
+          {
+            "year": 18,
+            "age": 80,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 717033
+          },
+          {
+            "year": 19,
+            "age": 81,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 728375
+          },
+          {
+            "year": 20,
+            "age": 82,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 738304
+          },
+          {
+            "year": 21,
+            "age": 83,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 738434
+          },
+          {
+            "year": 22,
+            "age": 84,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 739246
+          },
+          {
+            "year": 23,
+            "age": 85,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 778990
+          },
+          {
+            "year": 24,
+            "age": 86,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 792242
+          },
+          {
+            "year": 25,
+            "age": 87,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 810996
+          },
+          {
+            "year": 26,
+            "age": 88,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 846842
+          },
+          {
+            "year": 27,
+            "age": 89,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 887220
+          },
+          {
+            "year": 28,
+            "age": 90,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 883821
+          },
+          {
+            "year": 29,
+            "age": 91,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 910535
+          },
+          {
+            "year": 30,
+            "age": 92,
+            "incomeMid": 30000,
+            "incomeBad": 30000,
+            "leftMid": 915888
+          }
+        ],
+        "scenarios": [
+          {
+            "year": 1929,
+            "label": "Great Depression",
+            "available": true,
+            "kind": "pnv",
+            "failed": false,
+            "failAge": null,
+            "terminal": 578363.0328139319,
+            "worst12": 24000,
+            "protMonths": 166,
+            "cutYears": 16,
+            "cutReal": 51049.739689497714,
+            "key": "GREAT_DEPRESSION",
+            "decade": {
+              "first": -0.6336999999999999,
+              "decade": -0.2748832668317438,
+              "prices": -0.1847637589812795
+            }
+          },
+          {
+            "year": 1973,
+            "label": "Stagflation 70s",
+            "available": true,
+            "kind": "pnv",
+            "failed": false,
+            "failAge": null,
+            "terminal": 411034.9584555698,
+            "worst12": 24000,
+            "protMonths": 157,
+            "cutYears": 13,
+            "cutReal": 54681.206356164366,
+            "key": "STAGFLATION_70S",
+            "decade": {
+              "first": -0.17218,
+              "decade": 0.6598807976141519,
+              "prices": 1.2940762129969223
+            }
+          },
+          {
+            "year": 2000,
+            "label": "Lost Decade 2000s",
+            "available": false,
+            "kind": "pnv",
+            "tooShort": true,
+            "lastStart": 1993,
+            "key": "LOST_DECADE_2000S",
+            "decade": {
+              "first": -0.39708999999999994,
+              "decade": -0.222611126754926,
+              "prices": 0.29161597942275885
+            }
+          },
+          {
+            "year": 2008,
+            "label": "2008 Crisis",
+            "available": false,
+            "kind": "pnv",
+            "tooShort": true,
+            "lastStart": 1993,
+            "key": "CRISIS_2008",
+            "decade": {
+              "first": -0.13125600000000004,
+              "decade": 0.9224424578078723,
+              "prices": 0.19463087536932333
+            }
+          }
+        ],
+        "synthetic": {
+          "name": "Synthetic Worst",
+          "decade": {
+            "first": -0.2739999999999999,
+            "decade": -0.4680002316999996,
+            "prices": 0.7725412876251507
+          },
+          "hardest": {
+            "year": 1964,
+            "month": 11
+          }
+        }
       },
       "basis": {
         "today": "2026-09-30",

@@ -9,7 +9,11 @@ import { TEST_ENV } from './_c.js';
 import { answerC, checkAnswer } from './invariants.js';
 import { RULES } from '../../../src/answers/shared/rules.js';
 
-const FLAT = { ...TEST_ENV, futures: 1, trace: true, futureReturns: () => ({ equity: {}, inflation: {} }), mix: { equity: 0, bond: 0, cash: 1 } };
+// 7.8.0: a closed form is the engine's sum on one flat future. With one future, each weighted level is only the age the
+// money may run out at (where fewer than 1 in 20, 2 in 20 or 6 in 20 are still alive), which a sum does not describe, so
+// these run on the count to the end age (env.weighted false, the rollback); the weighted path gives the count's very figures
+// with a table where nobody dies (tests/v7/shared/levelsAnswers.test.js)
+const FLAT = { ...TEST_ENV, weighted: false, futures: 1, trace: true, futureReturns: () => ({ equity: {}, inflation: {} }), mix: { equity: 0, bond: 0, cash: 1 } };
 const NO_SP = { kind: 'none' };
 const rows = (a, who = 'you') => a.trace.atCareful.rows.filter((r) => r.who === who);
 

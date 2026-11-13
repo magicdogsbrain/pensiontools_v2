@@ -52,7 +52,7 @@
               "oneOffs": [],
               "plsaTier": "moderate",
               "retired": true,
-              "retirementAge": 63,
+              "retirementAge": 62,
               "sharedWithPartner": false,
               "version": 1
             }
@@ -68,7 +68,7 @@
               "consecutiveLimit": 3,
               "duration": 35,
               "equityMin": 250000,
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "basic",
               "isaBalance": 0,
               "isaDrawdownStrategy": "minimiseEarlyTax",
@@ -82,6 +82,7 @@
               "statePension": 0,
               "statePensionYear": 0,
               "targetSchedule": [
+                38000,
                 38000,
                 38000,
                 38000,
@@ -166,12 +167,12 @@
               "dbStartYear": 0,
               "disableProtection": false,
               "diversifierStart": 0,
-              "duration": 33,
+              "duration": 34,
               "equityGlideEnabled": false,
               "equityMin": 420000,
               "extraIncomes": [],
               "extraWithdrawals": [],
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "basic",
               "glideEndgame": null,
               "hodlEnabled": false,
@@ -181,7 +182,7 @@
               "incomeSteps": [
                 {
                   "amount": 38000,
-                  "fromAge": 63
+                  "fromAge": 62
                 },
                 {
                   "amount": 32000,
@@ -203,18 +204,20 @@
               "relevantEarnings": 0,
               "retireAge": null,
               "retired": true,
-              "shapeAgeNow": 63,
+              "shapeAgeNow": 62,
               "spStartDate": "14 March 2032",
               "spWeeklyAmount": 221.2,
               "spendingProfile": "flat",
               "statePension": 12000,
               "statePensionYear": 12,
+              "stoppedWork": "2026-06",
               "strategyId": "pots-and-valves",
               "strategyParams": {},
               "strategyState": {},
               "subAsset": null,
               "taggedFunds": [],
               "targetSchedule": [
+                38000,
                 38000,
                 38000,
                 38000,
@@ -281,11 +284,20 @@
                 "id": "draft-retired",
                 "slots": {}
               },
+              "closed": false,
+              "close": null,
               "locked": false,
               "lockedOn": null,
               "madeOn": null,
               "shownAsSaved": false,
+              "example": false,
+              "main": true,
+              "records": false,
               "linked": false,
+              "checkInDue": false,
+              "monthByMonth": true,
+              "life": "drawing",
+              "todo": 1,
               "lastModified": "2026-08-14T10:05:00.000Z"
             }
           ]
@@ -328,10 +340,10 @@
             "figures": {
               "yearly": 38000,
               "ageToday": 61,
-              "years": 33,
+              "years": 34,
               "ageEnd": 95,
               "step0": 38000,
-              "stepAge0": 63,
+              "stepAge0": 62,
               "step1": 32000,
               "stepAge1": 75,
               "sipp": 700000,
@@ -385,10 +397,12 @@
                     }
                   },
                   {
-                    "id": "about.retired",
-                    "slots": {},
+                    "id": "about.stoppedIn",
+                    "slots": {
+                      "month": "June 2026"
+                    },
                     "sentence": {
-                      "id": "about.retired",
+                      "id": "about.stoppedIn",
                       "parts": [],
                       "text": ""
                     },
@@ -401,7 +415,7 @@
                   {
                     "id": "about.firstYear",
                     "slots": {
-                      "year": "2027/28"
+                      "year": "2026/27"
                     },
                     "sentence": {
                       "id": "about.firstYear",
@@ -430,7 +444,7 @@
                           "kind": "age"
                         }
                       ],
-                      "text": "33 years, to age 95"
+                      "text": "34 years, to age 95"
                     },
                     "source": {
                       "kind": "saved",
@@ -464,7 +478,7 @@
                         },
                         " a year before tax"
                       ],
-                      "text": "From age 63: £38,000 a year before tax"
+                      "text": "From age 62: £38,000 a year before tax"
                     },
                     "source": {
                       "kind": "saved",
@@ -699,7 +713,7 @@
                   {
                     "id": "mix.tentOff",
                     "slots": {
-                      "years": "13"
+                      "years": "14"
                     },
                     "sentence": {
                       "id": "mix.tentOff",
@@ -1182,7 +1196,7 @@
             "buttons": [
               {
                 "id": "changeBudget",
-                "place": "budget",
+                "href": "#/plan/AlexWay01/budget",
                 "slots": {}
               }
             ],
@@ -1212,9 +1226,43 @@
             "locked": false,
             "lockedOn": null,
             "saver": false,
+            "stopMonth": null,
             "strategyId": "pots-and-valves",
             "bought": false,
             "hasDocument": false
+          },
+          {
+            "id": "month",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "month.lockFirst",
+              "parts": [
+                "Months are recorded once the plan is locked"
+              ],
+              "text": "Months are recorded once the plan is locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "lockFirst",
+                "href": "#/plan/AlexWay01/lock",
+                "slots": {}
+              },
+              {
+                "id": "monthByMonth",
+                "href": "#/plan/AlexWay01/month",
+                "slots": {}
+              }
+            ],
+            "notes": [],
+            "recorded": false,
+            "setUp": false,
+            "gap": null,
+            "toRecord": "2026-09"
           },
           {
             "id": "hold",
@@ -1234,7 +1282,7 @@
             "buttons": [
               {
                 "id": "changeHold",
-                "place": "hold",
+                "href": "#/plan/AlexWay01/hold",
                 "slots": {}
               }
             ],
@@ -1258,7 +1306,7 @@
             "buttons": [
               {
                 "id": "openMove",
-                "place": "move",
+                "href": "#/plan/AlexWay01/move",
                 "slots": {}
               }
             ],
@@ -1306,8 +1354,10 @@
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
-            "stop": "April 2027",
-            "savedYear": ""
+            "stop": "April 2026",
+            "savedYear": "",
+            "closed": "",
+            "next": ""
           },
           "button": {
             "id": "lasts",
@@ -1336,7 +1386,7 @@
           "bought": false,
           "family": true,
           "buckets": false,
-          "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|17yztx6|U",
+          "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|13z6pso|U",
           "pot": "£700,000",
           "isa": "£45,000",
           "held": "split",
@@ -1608,8 +1658,8 @@
                 {
                   "id": "sleeve.withTried",
                   "slots": {
-                    "withBad": "£168,024",
-                    "withoutBad": "£151,745",
+                    "withBad": "£144,750",
+                    "withoutBad": "£129,113",
                     "triedWords": "in more than 9 futures out of 10",
                     "ownWords": "in more than 9 futures out of 10"
                   }
@@ -1622,7 +1672,7 @@
           },
           "tent": {
             "on": false,
-            "years": "13",
+            "years": "14",
             "endgameApplies": false,
             "ignored": false,
             "try": {
@@ -1702,9 +1752,9 @@
           "document": null,
           "documentBase": null,
           "base": {
-            "badCaseLeft": "£151,745",
+            "badCaseLeft": "£129,113",
             "words": "in more than 9 futures out of 10",
-            "chance": "98.1"
+            "chance": "97.6"
           },
           "partners": [],
           "changed": false,
@@ -1727,6 +1777,15 @@
             "unknown"
           ],
           "draftKey": "{}"
+        },
+        "life": {
+          "key": "drawing",
+          "placing": "draft-retired",
+          "locked": false,
+          "stop": "2026-06",
+          "since": "2026-06",
+          "by": "facts",
+          "invite": null
         }
       }
     }
@@ -1839,10 +1898,11 @@
     }
   },
   "lasts": {
-    "key": "AlexWay01|2026-08-14T10:05:00.000Z|17yztx6|U",
+    "key": "AlexWay01|2026-08-14T10:05:00.000Z|13z6pso|U",
     "status": "done",
     "reason": null,
     "result": {
+      "level": "balanced",
       "strategyId": "pots-and-valves",
       "ran": {
         "family": true,
@@ -1853,63 +1913,97 @@
       "priced": null,
       "a": {
         "strategyId": "pots-and-valves",
-        "chancePct": 98.1,
-        "share": 0.981,
+        "chancePct": 97.6,
+        "share": 0.976,
         "outOfTen": {
           "n": 10,
           "words": "in more than 9 futures out of 10"
         },
         "futures": 1000,
-        "histories": 717,
-        "years": 33,
+        "histories": 711,
+        "years": 34,
         "histStrideMonths": 2,
         "histRanOutPct": 0,
         "histRanOutN": 0,
-        "typicalLeft": 679232.794030698,
-        "badCaseLeft": 151744.89979562565,
-        "goodCaseLeft": 2839263.292882285,
-        "worst12": 23664.032293122073,
-        "coverage": 99.7429292929293,
+        "typicalLeft": 623838.8074818947,
+        "badCaseLeft": 129112.720052651,
+        "goodCaseLeft": 2922127.109856862,
+        "worst12": 22949.65985028873,
+        "coverage": 99.58823529411765,
         "cuts": {
           "futures": 1000,
-          "cutN": 739,
-          "cutPct": 73.9,
-          "ranOutN": 19,
-          "typicalCutPerYear": 3008,
+          "cutN": 752,
+          "cutPct": 75.2,
+          "ranOutN": 24,
+          "typicalCutPerYear": 3146,
           "typicalCutYears": 7,
-          "typicalCutTotal": 20707,
-          "worstCutTotal": 143212
+          "typicalCutTotal": 24583,
+          "worstCutTotal": 150796
         },
         "cutLabel": null,
-        "failKind": "ran-out"
+        "failKind": "ran-out",
+        "level": "balanced",
+        "weighted": 0.9843780572628602,
+        "sumW": 16773933289,
+        "n": 1000,
+        "fixedAge": 0.976,
+        "planToAge": 95,
+        "weightToAge": 104,
+        "horizonRule": "plan",
+        "reason": null,
+        "verdict": "yes",
+        "lasts": true,
+        "floor": {
+          "age": 99,
+          "yearly": 11502,
+          "spAge": null
+        },
+        "left": {
+          "age": 95,
+          "typical": 623839,
+          "best": 2922127,
+          "mostNone": false
+        },
+        "words": {
+          "headline": "Counting how long people your age live, the money lasts as long as you do more than 19 times in 20.",
+          "fixed": "If you live to 95, the money lasts that long in more than 19 of 20 futures we tried.",
+          "floor": "If the money ran out at 99, you would still have £11,502 a year after tax from the income you get anyway.",
+          "left": "If you live to 95, what is typically left then is £624,000 at today's prices. In the best 1 in 10 futures it is £2,922,000 or more.",
+          "assumed": [
+            "We tested to 95, the age your plan runs to. About 2 in 10 women your age live longer than that.",
+            "We follow each future on to 104, when fewer than 1 in 50 women your age are still alive.",
+            "We used the figures for women, who tend to live longer, because the plan does not say."
+          ],
+          "why": null
+        }
       },
       "reason": null,
       "history": {
         "worst": [
-          {
-            "year": 1965,
-            "month": 5,
-            "s": 1132,
-            "failed": false,
-            "failAge": null,
-            "terminal": 52703.14383427395,
-            "worst12": 23664.032293122073,
-            "protMonths": 355,
-            "cutYears": 31,
-            "cutReal": 121132.08220241935,
-            "unfair": true
-          },
           {
             "year": 1966,
             "month": 1,
             "s": 1140,
             "failed": false,
             "failAge": null,
-            "terminal": 56310.676572656346,
-            "worst12": 23664.03229312218,
-            "protMonths": 354,
-            "cutYears": 30,
-            "cutReal": 121923.74886908603,
+            "terminal": 10356.354223518454,
+            "worst12": 22949.65985028873,
+            "protMonths": 392,
+            "cutYears": 34,
+            "cutReal": 138127.14814069628,
+            "unfair": true
+          },
+          {
+            "year": 1965,
+            "month": 5,
+            "s": 1132,
+            "failed": false,
+            "failAge": null,
+            "terminal": 7563.7880251835095,
+            "worst12": 22951.262849179948,
+            "protMonths": 391,
+            "cutYears": 34,
+            "cutReal": 134717.73620041506,
             "unfair": true
           },
           {
@@ -1918,24 +2012,11 @@
             "s": 1128,
             "failed": false,
             "failAge": null,
-            "terminal": 51686.96001930601,
-            "worst12": 23664.03229312226,
-            "protMonths": 343,
-            "cutYears": 29,
-            "cutReal": 114712.19667697225,
-            "unfair": true
-          },
-          {
-            "year": 1965,
-            "month": 11,
-            "s": 1138,
-            "failed": false,
-            "failAge": null,
-            "terminal": 67334.75116458623,
-            "worst12": 23879.825750628414,
-            "protMonths": 342,
-            "cutYears": 29,
-            "cutReal": 118883.34079580546,
+            "terminal": 7939.095295473479,
+            "worst12": 22953.536496498273,
+            "protMonths": 378,
+            "cutYears": 32,
+            "cutReal": 127789.51162450846,
             "unfair": true
           },
           {
@@ -1944,11 +2025,24 @@
             "s": 1126,
             "failed": false,
             "failAge": null,
-            "terminal": 62484.3945175135,
-            "worst12": 23879.82575062858,
-            "protMonths": 331,
-            "cutYears": 28,
-            "cutReal": 112180.66363733548,
+            "terminal": 19861.761064957358,
+            "worst12": 23021.89422250372,
+            "protMonths": 379,
+            "cutYears": 32,
+            "cutReal": 128431.92623091077,
+            "unfair": true
+          },
+          {
+            "year": 1965,
+            "month": 11,
+            "s": 1138,
+            "failed": false,
+            "failAge": null,
+            "terminal": 21413.20427667221,
+            "worst12": 23058.976834745612,
+            "protMonths": 390,
+            "cutYears": 33,
+            "cutReal": 135325.80558702396,
             "unfair": true
           }
         ],
@@ -1960,11 +2054,11 @@
             "kind": "pnv",
             "failed": false,
             "failAge": null,
-            "terminal": 386955.254841676,
-            "worst12": 26101.70072415287,
-            "protMonths": 207,
-            "cutYears": 20,
-            "cutReal": 75956.21471850573
+            "terminal": 343331.45743393165,
+            "worst12": 26121.584784908177,
+            "protMonths": 234,
+            "cutYears": 22,
+            "cutReal": 92170.58799831616
           },
           {
             "year": 1937,
@@ -1973,11 +2067,11 @@
             "kind": "pnv",
             "failed": false,
             "failAge": null,
-            "terminal": 367228.16339738376,
-            "worst12": 26173.022003111386,
-            "protMonths": 197,
+            "terminal": 302242.6387621534,
+            "worst12": 26173.022003111353,
+            "protMonths": 206,
             "cutYears": 17,
-            "cutReal": 86551.15273827323
+            "cutReal": 92868.7079169399
           },
           {
             "year": 1966,
@@ -1986,11 +2080,11 @@
             "kind": "pnv",
             "failed": false,
             "failAge": null,
-            "terminal": 56310.676572656346,
-            "worst12": 23664.03229312218,
-            "protMonths": 354,
-            "cutYears": 30,
-            "cutReal": 121923.74886908603
+            "terminal": 10356.354223518454,
+            "worst12": 22949.65985028873,
+            "protMonths": 392,
+            "cutYears": 34,
+            "cutReal": 138127.14814069628
           },
           {
             "year": 1973,
@@ -1999,11 +2093,11 @@
             "kind": "pnv",
             "failed": false,
             "failAge": null,
-            "terminal": 211909.98560138835,
-            "worst12": 26173.0220031114,
-            "protMonths": 222,
-            "cutYears": 19,
-            "cutReal": 93640.65503027807
+            "terminal": 176317.59959671908,
+            "worst12": 26173.022003111408,
+            "protMonths": 238,
+            "cutYears": 21,
+            "cutReal": 102494.62261159258
           },
           {
             "year": 2000,
@@ -2011,7 +2105,7 @@
             "available": false,
             "kind": "pnv",
             "tooShort": true,
-            "lastStart": 1990
+            "lastStart": 1989
           },
           {
             "year": 2008,
@@ -2019,11 +2113,911 @@
             "available": false,
             "kind": "pnv",
             "tooShort": true,
-            "lastStart": 1990
+            "lastStart": 1989
           }
         ]
       },
       "stored": null,
+      "extras": {
+        "prices": 0.025,
+        "startAge": 62,
+        "duration": 34,
+        "schedule": [
+          {
+            "year": 0,
+            "age": 62,
+            "pension": 38000,
+            "state": 0,
+            "tax": 5086,
+            "net": 32914,
+            "isa": 0,
+            "spendable": 32914,
+            "isaLeft": 45000
+          },
+          {
+            "year": 1,
+            "age": 63,
+            "pension": 38950,
+            "state": 0,
+            "tax": 5213,
+            "net": 33737,
+            "isa": 0,
+            "spendable": 33737,
+            "isaLeft": 45447
+          },
+          {
+            "year": 2,
+            "age": 64,
+            "pension": 39924,
+            "state": 0,
+            "tax": 5343,
+            "net": 34580,
+            "isa": 0,
+            "spendable": 34580,
+            "isaLeft": 45898
+          },
+          {
+            "year": 3,
+            "age": 65,
+            "pension": 40922,
+            "state": 0,
+            "tax": 5477,
+            "net": 35445,
+            "isa": 0,
+            "spendable": 35445,
+            "isaLeft": 46353
+          },
+          {
+            "year": 4,
+            "age": 66,
+            "pension": 41945,
+            "state": 0,
+            "tax": 5614,
+            "net": 36331,
+            "isa": 0,
+            "spendable": 36331,
+            "isaLeft": 46813
+          },
+          {
+            "year": 5,
+            "age": 67,
+            "pension": 42176,
+            "state": 818,
+            "tax": 5754,
+            "net": 37239,
+            "isa": 0,
+            "spendable": 37239,
+            "isaLeft": 47278
+          },
+          {
+            "year": 6,
+            "age": 68,
+            "pension": 30729,
+            "state": 13339,
+            "tax": 5898,
+            "net": 38170,
+            "isa": 0,
+            "spendable": 38170,
+            "isaLeft": 47747
+          },
+          {
+            "year": 7,
+            "age": 69,
+            "pension": 31497,
+            "state": 13673,
+            "tax": 6046,
+            "net": 39124,
+            "isa": 0,
+            "spendable": 39124,
+            "isaLeft": 48221
+          },
+          {
+            "year": 8,
+            "age": 70,
+            "pension": 32285,
+            "state": 14015,
+            "tax": 6197,
+            "net": 40103,
+            "isa": 0,
+            "spendable": 40103,
+            "isaLeft": 48700
+          },
+          {
+            "year": 9,
+            "age": 71,
+            "pension": 33092,
+            "state": 14365,
+            "tax": 6352,
+            "net": 41105,
+            "isa": 0,
+            "spendable": 41105,
+            "isaLeft": 49183
+          },
+          {
+            "year": 10,
+            "age": 72,
+            "pension": 33919,
+            "state": 14724,
+            "tax": 6511,
+            "net": 42133,
+            "isa": 0,
+            "spendable": 42133,
+            "isaLeft": 49671
+          },
+          {
+            "year": 11,
+            "age": 73,
+            "pension": 34767,
+            "state": 15092,
+            "tax": 6673,
+            "net": 43186,
+            "isa": 0,
+            "spendable": 43186,
+            "isaLeft": 50164
+          },
+          {
+            "year": 12,
+            "age": 74,
+            "pension": 35636,
+            "state": 15469,
+            "tax": 6840,
+            "net": 44266,
+            "isa": 0,
+            "spendable": 44266,
+            "isaLeft": 50662
+          },
+          {
+            "year": 13,
+            "age": 75,
+            "pension": 28256,
+            "state": 15856,
+            "tax": 5357,
+            "net": 38755,
+            "isa": 0,
+            "spendable": 38755,
+            "isaLeft": 51165
+          },
+          {
+            "year": 14,
+            "age": 76,
+            "pension": 28510,
+            "state": 16253,
+            "tax": 5400,
+            "net": 39363,
+            "isa": 0,
+            "spendable": 39363,
+            "isaLeft": 51673
+          },
+          {
+            "year": 15,
+            "age": 77,
+            "pension": 28764,
+            "state": 16659,
+            "tax": 5444,
+            "net": 39980,
+            "isa": 0,
+            "spendable": 39980,
+            "isaLeft": 52185
+          },
+          {
+            "year": 16,
+            "age": 78,
+            "pension": 29018,
+            "state": 17075,
+            "tax": 5487,
+            "net": 40607,
+            "isa": 0,
+            "spendable": 40607,
+            "isaLeft": 52703
+          },
+          {
+            "year": 17,
+            "age": 79,
+            "pension": 29271,
+            "state": 17502,
+            "tax": 5529,
+            "net": 41244,
+            "isa": 0,
+            "spendable": 41244,
+            "isaLeft": 53226
+          },
+          {
+            "year": 18,
+            "age": 80,
+            "pension": 29523,
+            "state": 17940,
+            "tax": 5572,
+            "net": 41891,
+            "isa": 0,
+            "spendable": 41891,
+            "isaLeft": 53755
+          },
+          {
+            "year": 19,
+            "age": 81,
+            "pension": 29775,
+            "state": 18388,
+            "tax": 5614,
+            "net": 42550,
+            "isa": 0,
+            "spendable": 42550,
+            "isaLeft": 54288
+          },
+          {
+            "year": 20,
+            "age": 82,
+            "pension": 30026,
+            "state": 18848,
+            "tax": 5655,
+            "net": 43218,
+            "isa": 0,
+            "spendable": 43218,
+            "isaLeft": 54827
+          },
+          {
+            "year": 21,
+            "age": 83,
+            "pension": 30275,
+            "state": 19319,
+            "tax": 5696,
+            "net": 43898,
+            "isa": 0,
+            "spendable": 43898,
+            "isaLeft": 55371
+          },
+          {
+            "year": 22,
+            "age": 84,
+            "pension": 30524,
+            "state": 19802,
+            "tax": 5737,
+            "net": 44589,
+            "isa": 0,
+            "spendable": 44589,
+            "isaLeft": 55921
+          },
+          {
+            "year": 23,
+            "age": 85,
+            "pension": 30771,
+            "state": 20297,
+            "tax": 5777,
+            "net": 45291,
+            "isa": 0,
+            "spendable": 45291,
+            "isaLeft": 56476
+          },
+          {
+            "year": 24,
+            "age": 86,
+            "pension": 31017,
+            "state": 20805,
+            "tax": 5817,
+            "net": 46004,
+            "isa": 0,
+            "spendable": 46004,
+            "isaLeft": 57036
+          },
+          {
+            "year": 25,
+            "age": 87,
+            "pension": 31261,
+            "state": 21325,
+            "tax": 5856,
+            "net": 46730,
+            "isa": 0,
+            "spendable": 46730,
+            "isaLeft": 57602
+          },
+          {
+            "year": 26,
+            "age": 88,
+            "pension": 31504,
+            "state": 21858,
+            "tax": 5895,
+            "net": 47467,
+            "isa": 0,
+            "spendable": 47467,
+            "isaLeft": 58174
+          },
+          {
+            "year": 27,
+            "age": 89,
+            "pension": 31744,
+            "state": 22404,
+            "tax": 5933,
+            "net": 48216,
+            "isa": 0,
+            "spendable": 48216,
+            "isaLeft": 58751
+          },
+          {
+            "year": 28,
+            "age": 90,
+            "pension": 31983,
+            "state": 22964,
+            "tax": 5970,
+            "net": 48977,
+            "isa": 0,
+            "spendable": 48977,
+            "isaLeft": 59335
+          },
+          {
+            "year": 29,
+            "age": 91,
+            "pension": 32219,
+            "state": 23539,
+            "tax": 6007,
+            "net": 49751,
+            "isa": 0,
+            "spendable": 49751,
+            "isaLeft": 59923
+          },
+          {
+            "year": 30,
+            "age": 92,
+            "pension": 32453,
+            "state": 24127,
+            "tax": 6043,
+            "net": 50537,
+            "isa": 0,
+            "spendable": 50537,
+            "isaLeft": 60518
+          },
+          {
+            "year": 31,
+            "age": 93,
+            "pension": 32684,
+            "state": 24730,
+            "tax": 6078,
+            "net": 51337,
+            "isa": 0,
+            "spendable": 51337,
+            "isaLeft": 61119
+          },
+          {
+            "year": 32,
+            "age": 94,
+            "pension": 32913,
+            "state": 25348,
+            "tax": 6112,
+            "net": 52150,
+            "isa": 0,
+            "spendable": 52150,
+            "isaLeft": 61725
+          },
+          {
+            "year": 33,
+            "age": 95,
+            "pension": 33139,
+            "state": 25982,
+            "tax": 6145,
+            "net": 52976,
+            "isa": 0,
+            "spendable": 52976,
+            "isaLeft": 62338
+          },
+          {
+            "year": 34,
+            "age": 96,
+            "pension": 33361,
+            "state": 26632,
+            "tax": 6178,
+            "net": 53815,
+            "isa": 0,
+            "spendable": 53815,
+            "isaLeft": 62957
+          }
+        ],
+        "glidepath": {
+          "tent": false,
+          "diversifiers": false,
+          "reserve": false,
+          "rows": [
+            {
+              "year": 0,
+              "age": 62,
+              "shares": 420000,
+              "bonds": 210000,
+              "cash": 70000,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 60,
+              "isa": 45000,
+              "total": 700000
+            },
+            {
+              "year": 1,
+              "age": 63,
+              "shares": 417838,
+              "bonds": 208919,
+              "cash": 71750,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 60,
+              "isa": 45447,
+              "total": 698507
+            },
+            {
+              "year": 2,
+              "age": 64,
+              "shares": 415306,
+              "bonds": 207653,
+              "cash": 73544,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 60,
+              "isa": 45898,
+              "total": 696503
+            },
+            {
+              "year": 3,
+              "age": 65,
+              "shares": 412386,
+              "bonds": 206193,
+              "cash": 75382,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 59,
+              "isa": 46353,
+              "total": 693961
+            },
+            {
+              "year": 4,
+              "age": 66,
+              "shares": 409060,
+              "bonds": 204530,
+              "cash": 77267,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 59,
+              "isa": 46813,
+              "total": 690857
+            },
+            {
+              "year": 5,
+              "age": 67,
+              "shares": 405310,
+              "bonds": 202655,
+              "cash": 79199,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 59,
+              "isa": 47278,
+              "total": 687164
+            },
+            {
+              "year": 6,
+              "age": 68,
+              "shares": 401117,
+              "bonds": 200559,
+              "cash": 81179,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 59,
+              "isa": 47747,
+              "total": 682855
+            },
+            {
+              "year": 7,
+              "age": 69,
+              "shares": 396462,
+              "bonds": 198231,
+              "cash": 83208,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 58,
+              "isa": 48221,
+              "total": 677900
+            },
+            {
+              "year": 8,
+              "age": 70,
+              "shares": 391322,
+              "bonds": 195661,
+              "cash": 85288,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 58,
+              "isa": 48700,
+              "total": 672272
+            },
+            {
+              "year": 9,
+              "age": 71,
+              "shares": 385678,
+              "bonds": 192839,
+              "cash": 87420,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 58,
+              "isa": 49183,
+              "total": 665938
+            },
+            {
+              "year": 10,
+              "age": 72,
+              "shares": 379507,
+              "bonds": 189754,
+              "cash": 89606,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 58,
+              "isa": 49671,
+              "total": 658867
+            },
+            {
+              "year": 11,
+              "age": 73,
+              "shares": 372787,
+              "bonds": 186393,
+              "cash": 91846,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 57,
+              "isa": 50164,
+              "total": 651027
+            },
+            {
+              "year": 12,
+              "age": 74,
+              "shares": 365493,
+              "bonds": 182747,
+              "cash": 94142,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 57,
+              "isa": 50662,
+              "total": 642382
+            },
+            {
+              "year": 13,
+              "age": 75,
+              "shares": 357602,
+              "bonds": 178801,
+              "cash": 96496,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 57,
+              "isa": 51165,
+              "total": 632899
+            },
+            {
+              "year": 14,
+              "age": 76,
+              "shares": 349088,
+              "bonds": 174544,
+              "cash": 98908,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 56,
+              "isa": 51673,
+              "total": 622540
+            },
+            {
+              "year": 15,
+              "age": 77,
+              "shares": 339924,
+              "bonds": 169962,
+              "cash": 101381,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 56,
+              "isa": 52185,
+              "total": 611267
+            },
+            {
+              "year": 16,
+              "age": 78,
+              "shares": 330084,
+              "bonds": 165042,
+              "cash": 103915,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 55,
+              "isa": 52703,
+              "total": 599042
+            },
+            {
+              "year": 17,
+              "age": 79,
+              "shares": 319540,
+              "bonds": 159770,
+              "cash": 106513,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 55,
+              "isa": 53226,
+              "total": 585823
+            },
+            {
+              "year": 18,
+              "age": 80,
+              "shares": 308262,
+              "bonds": 154131,
+              "cash": 109176,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 54,
+              "isa": 53755,
+              "total": 571569
+            },
+            {
+              "year": 19,
+              "age": 81,
+              "shares": 296220,
+              "bonds": 148110,
+              "cash": 111906,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 53,
+              "isa": 54288,
+              "total": 556236
+            },
+            {
+              "year": 20,
+              "age": 82,
+              "shares": 283384,
+              "bonds": 141692,
+              "cash": 114703,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 53,
+              "isa": 54827,
+              "total": 539780
+            },
+            {
+              "year": 21,
+              "age": 83,
+              "shares": 269721,
+              "bonds": 134861,
+              "cash": 117571,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 52,
+              "isa": 55371,
+              "total": 522152
+            },
+            {
+              "year": 22,
+              "age": 84,
+              "shares": 255198,
+              "bonds": 127599,
+              "cash": 120510,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 51,
+              "isa": 55921,
+              "total": 503306
+            },
+            {
+              "year": 23,
+              "age": 85,
+              "shares": 239779,
+              "bonds": 119890,
+              "cash": 123523,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 50,
+              "isa": 56476,
+              "total": 483192
+            },
+            {
+              "year": 24,
+              "age": 86,
+              "shares": 223431,
+              "bonds": 111715,
+              "cash": 126611,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 48,
+              "isa": 57036,
+              "total": 461757
+            },
+            {
+              "year": 25,
+              "age": 87,
+              "shares": 206115,
+              "bonds": 103057,
+              "cash": 129776,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 47,
+              "isa": 57602,
+              "total": 438949
+            },
+            {
+              "year": 26,
+              "age": 88,
+              "shares": 187794,
+              "bonds": 93897,
+              "cash": 133020,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 45,
+              "isa": 58174,
+              "total": 414711
+            },
+            {
+              "year": 27,
+              "age": 89,
+              "shares": 168427,
+              "bonds": 84214,
+              "cash": 136346,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 43,
+              "isa": 58751,
+              "total": 388987
+            },
+            {
+              "year": 28,
+              "age": 90,
+              "shares": 147976,
+              "bonds": 73988,
+              "cash": 139755,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 41,
+              "isa": 59335,
+              "total": 361718
+            },
+            {
+              "year": 29,
+              "age": 91,
+              "shares": 126396,
+              "bonds": 63198,
+              "cash": 143249,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 38,
+              "isa": 59923,
+              "total": 332842
+            },
+            {
+              "year": 30,
+              "age": 92,
+              "shares": 103645,
+              "bonds": 51822,
+              "cash": 146830,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 34,
+              "isa": 60518,
+              "total": 302297
+            },
+            {
+              "year": 31,
+              "age": 93,
+              "shares": 79677,
+              "bonds": 39838,
+              "cash": 150500,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 30,
+              "isa": 61119,
+              "total": 270016
+            },
+            {
+              "year": 32,
+              "age": 94,
+              "shares": 54446,
+              "bonds": 27223,
+              "cash": 154263,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 23,
+              "isa": 61725,
+              "total": 235932
+            },
+            {
+              "year": 33,
+              "age": 95,
+              "shares": 27903,
+              "bonds": 13952,
+              "cash": 158120,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 14,
+              "isa": 62338,
+              "total": 199975
+            },
+            {
+              "year": 34,
+              "age": 96,
+              "shares": 0,
+              "bonds": 0,
+              "cash": 162073,
+              "diversifiers": 0,
+              "reserve": 0,
+              "sharesPct": 0,
+              "isa": 62957,
+              "total": 162073
+            }
+          ]
+        },
+        "own": null,
+        "scenarios": [
+          {
+            "year": 1929,
+            "label": "Great Depression",
+            "available": true,
+            "kind": "pnv",
+            "failed": false,
+            "failAge": null,
+            "terminal": 343331.45743393165,
+            "worst12": 26121.584784908177,
+            "protMonths": 234,
+            "cutYears": 22,
+            "cutReal": 92170.58799831616,
+            "key": "GREAT_DEPRESSION",
+            "decade": {
+              "first": -0.6336999999999999,
+              "decade": -0.2748832668317438,
+              "prices": -0.1847637589812795
+            }
+          },
+          {
+            "year": 1973,
+            "label": "Stagflation 70s",
+            "available": true,
+            "kind": "pnv",
+            "failed": false,
+            "failAge": null,
+            "terminal": 176317.59959671908,
+            "worst12": 26173.022003111408,
+            "protMonths": 238,
+            "cutYears": 21,
+            "cutReal": 102494.62261159258,
+            "key": "STAGFLATION_70S",
+            "decade": {
+              "first": -0.17218,
+              "decade": 0.6598807976141519,
+              "prices": 1.2940762129969223
+            }
+          },
+          {
+            "year": 2000,
+            "label": "Lost Decade 2000s",
+            "available": false,
+            "kind": "pnv",
+            "tooShort": true,
+            "lastStart": 1989,
+            "key": "LOST_DECADE_2000S",
+            "decade": {
+              "first": -0.39708999999999994,
+              "decade": -0.222611126754926,
+              "prices": 0.29161597942275885
+            }
+          },
+          {
+            "year": 2008,
+            "label": "2008 Crisis",
+            "available": false,
+            "kind": "pnv",
+            "tooShort": true,
+            "lastStart": 1989,
+            "key": "CRISIS_2008",
+            "decade": {
+              "first": -0.13125600000000004,
+              "decade": 0.9224424578078723,
+              "prices": 0.19463087536932333
+            }
+          }
+        ],
+        "synthetic": {
+          "name": "Synthetic Worst",
+          "decade": {
+            "first": -0.2739999999999999,
+            "decade": -0.4680002316999996,
+            "prices": 0.7725412876251507
+          },
+          "hardest": {
+            "year": 1966,
+            "month": 1
+          }
+        }
+      },
       "basis": {
         "today": "2026-09-30",
         "engine": "one-test"
@@ -2053,7 +3047,7 @@
     "rankBy": "lasts"
   },
   "mix": {
-    "key": "AlexWay01|2026-08-14T10:05:00.000Z|17yztx6|U",
+    "key": "AlexWay01|2026-08-14T10:05:00.000Z|13z6pso|U",
     "tries": {
       "sleeve": {
         "status": "done",
@@ -2062,18 +3056,18 @@
           "on": true,
           "affordable": true,
           "a": {
-            "share": 0.976,
-            "chancePct": 97.6,
-            "typicalLeft": 796972,
-            "badCaseLeft": 168024,
-            "years": 33,
+            "share": 0.972,
+            "chancePct": 97.2,
+            "typicalLeft": 771014,
+            "badCaseLeft": 144750,
+            "years": 34,
             "lasts": true
           },
           "base": {
-            "share": 0.981,
-            "chancePct": 98.1,
-            "typicalLeft": 679233,
-            "badCaseLeft": 151745
+            "share": 0.976,
+            "chancePct": 97.6,
+            "typicalLeft": 623839,
+            "badCaseLeft": 129113
           },
           "basis": {
             "today": "2026-09-30",

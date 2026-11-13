@@ -83,7 +83,9 @@ describe('the answer\'s trace pays the table\'s tax', () => {
       expect(Math.abs(r.tax * 12 - ukTax(12 * (r.taxable + r.statePension + r.finalSalary), bands))).toBeLessThan(0.01);
       checked++;
     }
-    expect(checked).toBe(35 * 12);
+    // (7.8.0: the trace is at the level's amount, on to the weighting age; on this one flat future it runs out at 99 — 39
+    // years of months, each taxed as the oracle says. On the count, env.weighted false, it is 35 years to 95, as before)
+    expect(checked).toBe(a.basis.weighted ? 39 * 12 : 35 * 12);
     expect(a.phases[0].tax).toBeGreaterThan(0);
   });
 });

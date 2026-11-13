@@ -18,7 +18,8 @@ const CASES = [
   ['part-time for the most years (15)', { you: { age: 55, pot: 200000 }, stop: { age: 56 }, spend: { amount: 1500 }, partTime: { has: true, yearly: 12000, years: 15 } }, {}, { 'partTime.toAge': 71, 'partTime.oneMore.years': 16 }],
   ['a couple, the partner older (State Pension age already passed)', { household: 'couple', you: { age: 50, pot: 100000, payIn: { total: 300 } }, partner: { age: 66, pot: 200000 }, stop: { age: 60 }, spend: { kind: 'level', level: 'moderate' } }, {}, { whose: 'you', 'spend.perMonth': 3592 }],
   ['a couple by level, "show me ages", savings going in', { household: 'couple', you: { age: 45, pot: 100000, payIn: { total: 300 } }, partner: { age: 43, pot: 50000 }, stop: { kind: 'ages' }, spend: { kind: 'level', level: 'minimum' }, savings: 20000, savingsIn: 300 }, {}, { whose: 'partner' }],
-  ['18 stopping at 30, to 105: the drawing years cut at 45', { you: { age: 18, pot: 1000, payIn: { total: 2000 } }, stop: { age: 30 }, spend: { amount: 1000 }, endAge: 105 }, {}, { 'basis.endAge': 75 }],
+  // (7.8.0: 60 drawing years is the most a run goes to while weighing, RULES.maxDrawYears; 45 before)
+  ['18 stopping at 30, to 105: the drawing years cut at 60', { you: { age: 18, pot: 1000, payIn: { total: 2000 } }, stop: { age: 30 }, spend: { amount: 1000 }, endAge: 105 }, {}, { 'basis.endAge': 90 }],
   ['adventurous while saving, cautious once stopped: the slide is listed', { you: { age: 40, pot: 50000, payIn: { total: 600 } }, stop: { age: 60 }, spend: { amount: 1500 }, savingRisk: 'adventurous', risk: 'cautious' }, {}, { 'saving.0.mix.slideYears': 10 }],
   ['over the yearly limits: £6,000 a month in after taking pension money, £2,000 a month into ISAs', { you: { age: 50, pot: 100000, payIn: { total: 6000 }, alreadyDrawing: true }, stop: { age: 55 }, spend: { amount: 3000 }, savingsIn: 2000, savings: 100000 }, {}, {}]
 ];
@@ -47,6 +48,6 @@ describe.skipIf(!ENGINE_READY)('A — at the edges', () => {
     const a = answerA(CASES[10][1], TEST_ENV);
     const w = a.warnings.find((x) => x.id === 'long-plan');
     expect(w).toBeDefined();
-    expect(w.text).toContain('75');
+    expect(w.text).toContain('90');
   });
 });

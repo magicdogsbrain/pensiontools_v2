@@ -42,15 +42,24 @@ export function checkTraceA(a) {
   if (t.lives.some((l, i) => l.id !== i)) out.push('the lives are not listed in order');
   const pots = t.lives.map((l) => l.potAtStop).sort((x, y) => x - y);
   for (const k of ['careful', 'middling', 'good']) if (Math.abs(Math.round(pots[at[k]]) - a.shown.potAtStop[k]) > 1) out.push(`potAtStop.${k}: the lives give ${pots[at[k]]}, the answer ${a.shown.potAtStop[k]}`);
-  const fails = t.lives.filter((l) => l.runOutMonth !== null).length;
+  // (7.8.0, weighing: each life runs on past the plan-to age, to the weighting age; what is counted to the plan-to age is
+  // counted to its month, and a life that runs out after it lasted to it)
+  const weighing = Boolean(a.basis.weighted);
+  const toMonth = weighing ? 12 * (endAge - (younger + S)) : Infinity;
+  const short = (l) => l.runOutMonth !== null && l.runOutMonth < toMonth;
+  const fails = t.lives.filter(short).length;
   if (Math.abs((n - fails) / n - a.shown.lasted) > 1e-9) out.push(`lasted: the lives give ${(n - fails) / n}, the answer ${a.shown.lasted}`);
-  const runOut = t.lives.map((l) => (l.runOutMonth === null ? endAge : younger + S + Math.floor(l.runOutMonth / 12))).sort((x, y) => x - y);
+  const runOut = t.lives.map((l) => (!short(l) ? endAge : younger + S + Math.floor(l.runOutMonth / 12))).sort((x, y) => x - y);
   if (runOut[at.careful] !== a.shown.runOutAge) out.push(`runOutAge: the lives give ${runOut[at.careful]}, the answer ${a.shown.runOutAge}`);
   if (t.lives.every((l) => typeof l.most === 'number')) {
     const most = t.lives.map((l) => l.most).sort((x, y) => x - y);
     const down = (v) => Math.floor(v / 10 + 1e-9) * 10;
     // (7.8.0, not weighing: Balanced is the careful amount of the lives' spread, the worst 1 in 10 of what each could spend)
-    if (a.level === 'balanced' && a.shown.potAtStop.good > 0 && down(most[at.careful]) !== a.shown.levels.balanced.monthly) out.push(`levels.balanced.monthly: the lives give ${down(most[at.careful])}, the answer ${a.shown.levels.balanced.monthly}`);
+    if (!weighing && a.level === 'balanced' && a.shown.potAtStop.good > 0 && down(most[at.careful]) !== a.shown.levels.balanced.monthly) out.push(`levels.balanced.monthly: the lives give ${down(most[at.careful])}, the answer ${a.shown.levels.balanced.monthly}`);
+    // (weighing: each life's most is over the whole run; a level never asks for less than its count, floor(t·n/20) lives
+    // short over it)
+    const lvAt = a.shown.levels && a.shown.levels[a.level];
+    if (weighing && lvAt && a.shown.potAtStop.good > 0 && lvAt.monthly < down(most[Math.floor((a.basis.levelFails20 * n) / 20)])) out.push(`levels.${a.level}.monthly ${lvAt.monthly} is below its count ${down(most[Math.floor((a.basis.levelFails20 * n) / 20)])}`);
   }
 
   // the saving months of the bad-case life

@@ -52,7 +52,9 @@ describe('B — the pay-in that gets there is the one test', () => {
     const savingsIn = a.payIn.outside !== null && a.payIn.outside > (a.payIn.savingsNow || 0) ? a.payIn.outside : a.inputs.savingsIn;
     const at = ok(answerB({ ...withPayIn(CASES[name], a, need), savingsIn }, { ...ENV, trace: false }));
     expect(at.onCourse, `${name}: at ${need}`).toBe(true);
-    expect(at.chance.fails).toBeLessThanOrEqual(Math.floor(a.basis.futures * a.basis.levelFails20 / 20));
+    // (7.8.0: weighing, on course is the level's one test on the weighted chance; not weighing, its count)
+    if (at.basis.weighted) expect(at.chance.weighted).toBeGreaterThanOrEqual(1 - a.basis.levelFails20 / 20 - 1e-9);
+    else expect(at.chance.fails).toBeLessThanOrEqual(Math.floor(a.basis.futures * a.basis.levelFails20 / 20));
     if (need > 0) {
       const less = answerB({ ...withPayIn(CASES[name], a, need - 10), savingsIn }, { ...ENV, trace: false });
       expect(less.onCourse, `${name}: at ${need - 10}`).toBe(false);
@@ -233,6 +235,6 @@ describe('B — the number of nought, and the notes that must not over-reach (th
     // a household no cell reaches: the grid says so in a sentence
     const far = { you: { age: 58, pot: 20000, payIn: { total: 100 } }, stop: { age: 59 }, spend: { amount: 4000 } };
     const b = answerB(far, { ...ENV, detail: 'grid', trace: false });
-    if (!b.grid.reaches) expect(b.sentences.gridNone.text).toBe('None of these lasted in 9 futures out of 10. A later age, or a lower amount to spend, is needed as well.');
+    if (!b.grid.reaches) expect(b.sentences.gridNone.text).toBe('None of these lasts as long as you do 18 times in 20. A later age, or a lower amount to spend, is needed as well.');
   });
 });

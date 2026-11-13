@@ -1,5 +1,5 @@
 {
-  "what": "Cases found by the random runs (properties, metamorphic, the nightly), each with the seed and the reason, kept for ever. pairs.test.js runs every one through checkAnswer. Shape: { name, inputs, env?: { futures, seed }, expect?: { 'dotted.key': value }, found: { date, by, seed } }. A finding of a relation between two answers is kept as its two households, one after the other, under the same seed (properties.test.js replays them).",
+  "what": "Cases found by the random runs (properties, metamorphic, the nightly), each with the seed and the reason, kept for ever. pairs.test.js runs every one through checkAnswer. Shape: { name, inputs, env?: { futures, seed }, expect?: { 'dotted.key': value }, found: { date, by, seed } }. A finding of a relation between two answers is kept as its two households, one after the other, under the same seed (properties.test.js replays them). 7.8.0: a case found on the count and pinning the count's figures (its name says them) carries env.weighted false: it is held on the count, the engine's finding it records.",
   "cases": [
     {
       "name": "M1 at 2,000 (3 Nov 2026), the household: one person of 18 with nothing in the pot, the full State Pension, £814,250 of savings held as cash, the money from 55, cautious, no charge, to 75 — a savings-only run",
@@ -31,7 +31,8 @@
       },
       "env": {
         "futures": 20,
-        "seed": 0
+        "seed": 0,
+        "weighted": false
       },
       "expect": {
         "levels.balanced.monthly": 4350
@@ -72,7 +73,8 @@
       },
       "env": {
         "futures": 20,
-        "seed": 0
+        "seed": 0,
+        "weighted": false
       },
       "expect": {
         "levels.balanced.monthly": 4350
@@ -128,7 +130,8 @@
       },
       "env": {
         "futures": 20,
-        "seed": 0
+        "seed": 0,
+        "weighted": false
       },
       "expect": {
         "levels.balanced.monthly": 6270
@@ -185,7 +188,8 @@
       },
       "env": {
         "futures": 20,
-        "seed": 0
+        "seed": 0,
+        "weighted": false
       },
       "expect": {
         "levels.balanced.monthly": 6150

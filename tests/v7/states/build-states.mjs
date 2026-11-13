@@ -268,7 +268,8 @@ function buildSaverStates(q, { today, futures, inputsKey: keyOf }) {
       states['answer-working'] = s;
     }
     states['answer-first'] = answered('answer-first', 'answer', A1, { status: 'first', detail: D, n: 100 });
-    states['answer-A1'] = answered('answer-A1', 'answer', A1, { detail: D, kind: 'close' });
+    // (7.8.0: weighed by how long people live, A1's £1,900 is "no" — £1,850 is the "close" this state shows)
+    states['answer-A1'] = answered('answer-A1', 'answer', { ...A1, 'spend.amount': '1,850' }, { detail: D, kind: 'close' });
     states['answer-yes'] = answered('answer-yes', 'answer', { ...A1, 'spend.amount': '1,600' }, { detail: D, kind: 'yes' });
     states['answer-no'] = answered('answer-no', 'answer', { ...A1, 'spend.amount': '2,600' }, { detail: D, kind: 'no' });
     const ages = { ...A1, 'stop.kind': 'ages' };

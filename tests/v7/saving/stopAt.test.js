@@ -307,10 +307,12 @@ describe('the drawing years read the life on from the stop', () => {
   });
 
   it('lives passed in are used as they are (every stop age a cut of the same lives)', () => {
-    const lives = livesList(20, 60, TEST_ENV);
+    // (7.8.0: on the count, env.weighted false — weighing, the lives run on to the weighting age, longer than these 60 years)
+    const COUNT = { ...TEST_ENV, weighted: false };
+    const lives = livesList(20, 60, COUNT);
     const h = saver({ age: 40, pot: 50_000, payIn: 400, stopAge: 60 });
-    const a = stopAtPlan(h, 58, TEST_ENV, lives);
-    const b = stopAtPlan(h, 62, TEST_ENV, lives);
+    const a = stopAtPlan(h, 58, COUNT, lives);
+    const b = stopAtPlan(h, 62, COUNT, lives);
     expect(a.lives).toBe(lives);
     expect(b.lives).toBe(lives);
     expect(a.S).toBe(18);
@@ -379,7 +381,8 @@ describe('the household\'s saving fields (step 4 brief 4.10)', () => {
       saving: {}, planToAge: 95
     });
     const h = expandHousehold(short({ kind: 'already' }), TEST_ENV.today).household;
-    const sp = stopAtPlan(h, 60, { ...TEST_ENV, futures: 4 });
+    // (7.8.0: on the count, env.weighted false, the drawing years to the end age; weighing, on to the weighting age)
+    const sp = stopAtPlan(h, 60, { ...TEST_ENV, futures: 4, weighted: false });
     expect(sp.S).toBe(0);
     expect(sp.stops).toEqual([{ who: 'you', S: 5, join: 5 }, { who: 'partner', S: 0, join: 0 }]);
     expect(sp.saving.people.map((p) => p.until)).toEqual([5, 0]);

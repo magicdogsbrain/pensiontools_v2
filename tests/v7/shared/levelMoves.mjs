@@ -19,7 +19,7 @@ import { resolve } from 'node:path';
 const FILE = resolve(process.cwd(), 'tests/v7/shared/answers.levels780.json');
 const NODE = process.versions.node.split('.')[0];
 export const PIN_LEVELS = process.env.V7_PIN_LEVELS === '1';
-const WHY = 'The levels (7.8.0 step 4a): every answer reads the figure it stands behind at levels[level] and gains level, levels, chance and the basis\'s level block; the count\'s middling and best-1-in-10 amounts leave it. Every case of each corpus is pinned again here, by index — Node 24 as `hash`, Node 20 in byNode where it differs. Written by V7_PIN_LEVELS=1 (tests/v7/shared/levelMoves.mjs).';
+const WHY = 'The levels (7.8.0): every answer reads the figure it stands behind at levels[level] and gains level, levels, chance and the basis\'s level block; the count\'s middling and best-1-in-10 amounts leave it; with SUCCESS.weighted true each level is weighted by how long people live (Balanced 18 times in 20), the runs follow each future on to the 1-in-50 age and the plan-to age is the 1-in-10 age. Every case of each corpus is pinned again here, by index — Node 24 as `hash`, Node 20 in byNode where it differs. Written by V7_PIN_LEVELS=1 (tests/v7/shared/levelMoves.mjs).';
 
 /** The level pins of one corpus ('sameYear' | 'flat'): { wanted(k), has(k), keys(), record(k, hash), save() }. */
 export function levelMovesOf(corpus) {

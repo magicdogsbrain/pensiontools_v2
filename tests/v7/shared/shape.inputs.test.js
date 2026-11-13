@@ -16,7 +16,9 @@ import { toHousehold as toHouseholdB } from '../../../src/answers/b/toHousehold.
 import { toHousehold as toHouseholdC } from '../../../src/answers/c/toHousehold.js';
 import { shapeOfInputs, spendLevelAMonth } from '../../../src/answers/shared/schemaParts.js';
 
-const ENV = { today: '2026-09-30' };
+// (7.8.0: the end age's default here is the rule before 7.8.0, 95 — env.weighted false — so the steps are tried against a
+// fixed end; the plan-to age that weighing gives is the end age's own business, tests/v7/a/schema.test.js)
+const ENV = { today: '2026-09-30', weighted: false };
 const A0 = { 'you.pot': '250000', 'you.age': '58', 'stop.age': '62', 'spend.amount': '2500' };
 const C0 = { 'you.pot': '400000', 'you.age': '67', 'start.kind': 'now' };
 const step = (fromAge, amount, then = 'level', fallsPct = '') => ({ fromAge: String(fromAge), perMonth: String(amount), then, fallsPct: String(fallsPct) });

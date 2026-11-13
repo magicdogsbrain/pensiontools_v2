@@ -38,8 +38,9 @@ describe('A — the words of couples who stop in different years', () => {
     expect(a.apart).toMatchObject({ first: 'partner', years: 3, stops: { you: { age: 58, already: false }, partner: { age: 61, already: true } }, payCovers: 0.5, coversGap: true });
     const verdictWords = { yes: 'Yes — you could stop at 58', close: 'Close — stopping at 58 is tight', no: 'Not at 58 on these figures' };
     expect(a.sentences.head.text).toBe(verdictWords[a.shown.verdict]);
-    expect(a.sentences.sub.text).toBe('spending £2,500 a month after tax between you, from now until the younger of you is 95, going up each year with prices');
-    expect(a.sentences.line.text).toBe(`Stopping at 58, with your partner already stopped, and spending £2,500 a month between you, the money lasted until the younger of you was 95 ${count(a.shown.lasted)}.`);
+    expect(a.sentences.sub.text).toBe('spending £2,500 a month after tax between you, from now until the younger of you is 100, going up each year with prices');
+    // (7.8.0: the chance while one of you is alive, both stops named; the count to the younger one's age is the fixed-age line)
+    expect(a.sentences.line.text).toMatch(/^Counting how long people your ages live, stopping at 58, with your partner already stopped, and spending £2,500 a month between you lasts as long as one of you is alive .+\.$/);
     const first = a.sentences.pays[0];
     expect(first.id).toBe('a.pays.apart');
     expect(first.text).toMatch(/^From when you are 55 until 58, while you are still working: £1,250 from your partner's (money|savings) \+ £1,250 from your pay\./);
@@ -77,7 +78,9 @@ describe('A — the words of couples who stop in different years', () => {
     expect(a.askedAbout).toBe('partner');
     const verdictWords = { yes: 'Yes — your partner could stop at 58', close: 'Close — your partner stopping at 58 is tight', no: 'Your partner could not stop at 58 on these figures' };
     expect(a.sentences.head.text).toBe(verdictWords[a.shown.verdict]);
-    expect(a.sentences.line.text).toBe(`With you already stopped, your partner stopping at 58, and spending £2,500 a month between you, the money lasted until the younger of you was 95 ${count(a.shown.lasted)}.`);
+    // (7.8.0: the chance while one of you is alive, both stops named; the count to the younger one's age is the fixed-age line)
+    expect(a.sentences.line.text).toMatch(/^Counting how long people your ages live, with you already stopped, your partner stopping at 58, and spending £2,500 a month between you lasts as long as one of you is alive .+\.$/);
+    expect(a.sentences.fixed.text).toMatch(/^If one of you is still alive when the younger of you is \d+, the money lasts that long /);
     expect(a.sentences.chart.map((s) => s.text.slice(0, 29))).toEqual(['Your partner stopping at 57, ', 'Your partner stopping at 58, ', 'Your partner stopping at 59, ']);
     expect(a.sentences.change.text).toMatch(/^Now: (yes|close|not) at 58 for your partner, /);
     expect(a.sentences.oneMore.text).toMatch(/^Your partner working until 59 instead of 58 /);
@@ -94,7 +97,8 @@ describe('A — the words of couples who stop in different years', () => {
     expect(a.askedAbout).toBe('partner');
     if (a.headline.kind === 'earliest') {
       expect(a.sentences.head.text).toBe(`Your partner could stop at ${a.earliest.yes} on these figures`);
-      expect(a.sentences.line.text).toMatch(/^The earliest age your partner could stop at, with £1,800 a month lasting to 95 in 9 futures out of 10, is \d+\./);
+      // (7.8.0: the earliest age within the level, said as the chance while one of you is alive)
+      expect(a.sentences.line.text).toMatch(/^Counting how long people your ages live, /);
     }
   });
 

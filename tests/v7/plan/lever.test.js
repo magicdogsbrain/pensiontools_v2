@@ -64,7 +64,10 @@ describe('the levers on Alex\'s plan (corpus 02) and the couple\'s (corpus 10): 
       const f = runLever(plan, { today: TODAY, lever: { kind: 'fall' }, onProgress: (d, t) => progress.push([d, t]) });
       expect(progress).toEqual([[0, 1], [1, 1]]);
       expect(plan).toEqual(before);
-      expect(f).toMatchObject({ kind: 'fall', ok: true, runs: 1, share: 0.2 });
+      // (7.8.0: a plan that ends before the weighting age is run once more, followed on to it — two runs; a couple's plan,
+      // whose weighted figure waits for joint weighting on the plan side, one)
+      expect(f).toMatchObject({ kind: 'fall', ok: true, share: 0.2 });
+      expect([1, 2]).toContain(f.runs);
       const s = effectiveStressSettings(plan, { now });
       expect(f.potBefore).toBe(Math.round((+s.equityMin || 0) + (+s.bondMin || 0) + (+s.cashTarget || 0) + (+s.isaBalance || 0) + (+s.taxableStart || 0)));
       expect(f.potAfter).toBeLessThan(f.potBefore);
@@ -74,7 +77,8 @@ describe('the levers on Alex\'s plan (corpus 02) and the couple\'s (corpus 10): 
     it(`${name}: "Would some work help?" — one run through extraIncomes; never a worse chance than without it; the limits refuse what will not do`, () => {
       const base = runLasts(plan, { today: TODAY });
       const w = runLever(plan, { today: TODAY, lever: { kind: 'work', yearly: 15000, years: 3 } });
-      expect(w).toMatchObject({ kind: 'work', ok: true, runs: 1, yearly: 15000, years: 3, field: 'extraIncomes' });
+      expect(w).toMatchObject({ kind: 'work', ok: true, yearly: 15000, years: 3, field: 'extraIncomes' });
+      expect([1, 2]).toContain(w.runs);   // (7.8.0: with the weighted run, two)
       expect(w.at.chancePct).toBeGreaterThanOrEqual(base.a.chancePct - 1e-9);
       for (const bad of [{ yearly: 0, years: 3 }, { yearly: 15000, years: 0 }, { yearly: 15000, years: 6 }, { yearly: 15000, years: 2.5 }, { yearly: WORK_LIMITS.yearlyMax + 1, years: 1 }]) {
         expect(runLever(plan, { today: TODAY, lever: { kind: 'work', ...bad } })).toMatchObject({ kind: 'work', ok: false, reason: 'lever', runs: 0 });
@@ -86,7 +90,8 @@ describe('the levers on Alex\'s plan (corpus 02) and the couple\'s (corpus 10): 
       const sm = runLever(plan, { today: TODAY, lever: { kind: 'spendMore' }, onProgress: (d, t) => progress.push([d, t]) });
       expect(sm.kind).toBe('spendMore');
       expect(sm.ok).toBe(true);
-      expect(sm.runs).toBeLessThanOrEqual(1 + SPEND_SEARCH_STEPS);
+      // (7.8.0: each probe may make the weighted run too — at most twice the runs it took before)
+      expect(sm.runs).toBeLessThanOrEqual(2 * (1 + SPEND_SEARCH_STEPS));
       expect(sm.runs).toBeGreaterThanOrEqual(2);
       expect(progress[0]).toEqual([0, 1 + SPEND_SEARCH_STEPS]);
       expect(sm.base.chancePct).toBeCloseTo(base.a.chancePct, 9);

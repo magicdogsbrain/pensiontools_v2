@@ -64,7 +64,8 @@ export function checkAnswerD(r) {
   if (r.status === 'ok') {
     if (!r.sentences.head || !r.sentences.line || !r.sentences.bad || !r.sentences.headroom || !r.sentences.levels) out.push('a headline sentence is missing');
     if (!/the worst 1 in 10/.test(r.sentences.bad.text)) out.push('the bad case without its explanation');
-    const ok = { yes: /^Yes — /, close: /^Close — /, no: /^Not at / };
+    // (7.8.0: at Bold the verdict names its level first, "At Bold: Yes — …")
+    const ok = { yes: /^(At Bold: )?Yes — /, close: /^(At Bold: )?Close — /, no: /^(At Bold: )?Not at / };
     if (!ok[r.verdict].test(r.sentences.head.text)) out.push(`the headline "${r.sentences.head.text}" does not say ${r.verdict}`);
   }
   if (r.work) {
@@ -123,9 +124,10 @@ describe('the shape of an answer, and the headroom rule', () => {
 describe('the fixtures of answer-D.md 11.4 that this release covers', () => {
   it('D1 — 68, drawing for a year, the worked example: a verdict, the band, a bad case in the 80s or 90s, the State Pension after it', () => {
     const r = answerD(D1, ENV);
-    expect(r.sentences.sub.text).toBe('after tax, going up with prices, until you are 95');
-    expect(r.sentences.line.text).toMatch(/^Spending £2,100 a month after tax, your money lasted until you are 95 in /);
-    expect(r.assumed.map((a) => a.id)).toEqual(['d-from-today', 'd-spend', 'd-tax-year', 'state-pension-full', 'quarter-tax-free', 'risk-drawing', 'charges', 'plan-to', 'todays-prices', 'no-final-salary', 'savings-growth', 'tax-rules', 'futures']);
+    expect(r.sentences.sub.text).toBe('after tax, going up with prices, until you are 99');
+    // (7.8.0: the verdict as the chance the money lasts as long as you do; the plan-to age and the figures used, assumed)
+    expect(r.sentences.line.text).toMatch(/^Counting how long people your age live, £2,100 a month after tax lasts as long as you do /);
+    expect(r.assumed.map((a) => a.id)).toEqual(['d-from-today', 'd-spend', 'd-tax-year', 'state-pension-full', 'quarter-tax-free', 'risk-drawing', 'charges', 'life-plan-to', 'life-sex', 'todays-prices', 'no-final-salary', 'savings-growth', 'tax-rules', 'futures']);
     expect(r.warnings.map((w) => w.id)).toEqual(['state-pension-assumed']);
     expect(r.sentences.madeOf.map((s) => s.id)).toEqual(['d.madeOf.mixed', 'd.madeOf.tax']);
     expect(r.sentences.madeOf[0].text).toMatch(/^£1,046 State Pension \+ £[\d,]+ from your pot and savings\.$/);
@@ -133,12 +135,13 @@ describe('the fixtures of answer-D.md 11.4 that this release covers', () => {
   });
   it('D2 — a couple of 72 and 70, both stopped, one final-salary pension, the tax-free part had', () => {
     const r = answerD(D2, ENV);
-    expect(r.sentences.sub.text).toBe('after tax between you, going up with prices, until the younger of you is 95');
-    expect(r.sentences.line.text).toMatch(/until the younger of you is 95/);
+    expect(r.sentences.sub.text).toBe('after tax between you, going up with prices, until the younger of you is 100');
+    expect(r.sentences.line.text).toMatch(/as long as one of you is alive/);
+    expect(r.sentences.fixed.text).toMatch(/^If one of you is still alive when the younger of you is 100, /);
     const ids = r.assumed.map((a) => a.id);
     expect(ids).toContain('tax-free-taken');
     expect(ids).toContain('tax-free-taken-partner');
-    expect(ids).toContain('both-alive');
+    expect(ids).toContain('life-couple');   // (7.8.0: counted while one of you is alive, said so)
     expect(ids).toContain('savings-split');
     expect(ids).toContain('final-salary-rises');
     expect(r.assumed.find((a) => a.id === 'tax-free-taken').text).toBe('You have already had the tax-free part of your pension, so everything taken from it is taxed.');
@@ -176,21 +179,23 @@ describe('the fixtures of answer-D.md 11.4 that this release covers', () => {
     expect(r.work.lasted).toBeGreaterThanOrEqual(r.lasted);
     expect(r.work.byYears.every((row, i, rows) => i === 0 || row.lasted >= rows[i - 1].lasted - 1e-9)).toBe(true);
   });
-  it('D9 — 88, near the end age: the default end age stays 95; the "near the end" note; the tax-free part had', () => {
+  // (7.8.0: the end age's default is the plan-to age, when fewer than 1 in 10 people that age are still alive — never near
+  // an 88-year-old's own age, so the "near the end" note and the "five years on" rule are the rollback's)
+  it('D9 — 88: the default end age is the plan-to age (100), said with the age followed on to; the tax-free part had', () => {
     const r = answerD(D9, ENV);
-    expect(r.inputs.endAge).toBe(95);
-    expect(r.warnings.map((w) => w.id)).toContain('d-end-near');
-    expect(r.warnings.find((w) => w.id === 'd-end-near').text).toBe('Your money is tested until you are 95. You can test to a later age under more detail.');
+    expect(r.inputs.endAge).toBe(100);
+    expect(r.warnings.map((w) => w.id)).not.toContain('d-end-near');
+    expect(r.assumed.find((a) => a.id === 'life-plan-to').text).toBe('Your plan runs to 100, when fewer than 1 in 10 women your age are still alive. We follow each future on to 103, when fewer than 1 in 50 are.');
     expect(r.assumed.map((a) => a.id)).toContain('tax-free-taken');
     expect(r.assumed.map((a) => a.id)).not.toContain('d-end-age');
     const older = answerD({ ...D9, you: { ...D9.you, age: 93 } }, ENV);
-    expect(older.inputs.endAge).toBe(98);
-    expect(older.assumed.find((a) => a.id === 'd-end-age').text).toBe('Your money is tested until you are 98, five years on from your age today.');
+    expect(older.inputs.endAge).toBe(101);
+    expect(older.assumed.find((a) => a.id === 'life-plan-to').text).toBe('Your plan runs to 101, when fewer than 1 in 10 women your age are still alive. We follow each future on to 104, when fewer than 1 in 50 are.');
   });
   it('the fall on D1: the bad case, the careful amount after the fall, what does not change', () => {
     const r = answerD({ ...D1, fall: { has: true } }, ENV);
     expect(r.sentences.fall.text).toMatch(/^If shares fell by a fifth tomorrow and you kept the same mix, £2,100 a month lasted in /);
-    expect(r.sentences.fallCareful.text).toMatch(/^After such a fall, about £[\d,]+ a month lasted in 9 futures out of 10/);
+    expect(r.sentences.fallCareful.text).toMatch(/^After such a fall, Balanced allows about £[\d,]+ a month/);
     expect(r.sentences.fallUnchanged.text).toBe('Your State Pension would not change.');
     expect(r.fall.lasted).toBeLessThanOrEqual(r.lasted);
     const couple = answerD({ ...D2, fall: { has: true } }, ENV);
@@ -204,7 +209,7 @@ describe('the fixtures of answer-D.md 11.4 that this release covers', () => {
     const only = answerD({ you: { age: 70, pot: 0, taxFreeTaken: 'no' }, spend: { kind: 'amount', amount: 1000 } }, ENV);
     expect(only.status).toBe('guaranteed-only');
     expect(only.verdict).toBe('yes');
-    expect(only.runOutAge).toBe(95);
+    expect(only.runOutAge).toBe(only.basis.endAge);   // (the plan-to age: 70 now, not said — 99)
     expect(only.sentences.nothing.text).toMatch(/^There is no pot to draw on, so this is your State Pension only: £1,046 a month after tax once it has all started\.$/);
     expect(checkAnswerD(only)).toEqual([]);
   });

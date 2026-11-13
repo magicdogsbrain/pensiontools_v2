@@ -107,7 +107,8 @@
         },
         "finalSalary": {
           "has": false
-        }
+        },
+        "sex": "notSaid"
       },
       "stop": {
         "kind": "already"
@@ -133,14 +134,15 @@
           "kind": "total",
           "total": 850
         },
-        "alreadyDrawing": false
+        "alreadyDrawing": false,
+        "sex": "notSaid"
       },
       "savings": 60000,
       "savingsIn": 0,
       "savingRisk": "balanced",
       "risk": "balanced",
       "charge": 0.5,
-      "endAge": 95,
+      "endAge": 101,
       "isaGrowth": "cash",
       "confidence": "balanced"
     },
@@ -179,7 +181,7 @@
     },
     "years": {
       "saving": 1,
-      "drawing": 40
+      "drawing": 46
     },
     "pensionOpens": {
       "you": 56,
@@ -273,10 +275,10 @@
     "level": "balanced",
     "levels": {
       "careful": {
-        "pot": 404000
+        "pot": 421000
       },
       "balanced": {
-        "pot": 391000,
+        "pot": 371000,
         "payIn": 0,
         "byPerson": [
           {
@@ -285,38 +287,40 @@
           },
           {
             "who": "partner",
-            "pot": 391000
+            "pot": 371000
           }
         ],
-        "weighted": 0.95,
-        "fixedAge": 0.95
+        "weighted": 0.950533350976184,
+        "fixedAge": 0.925,
+        "potFixedAge": 0.825
       },
       "bold": {
-        "pot": 239000
+        "pot": 230000
       }
     },
     "already": true,
     "chance": {
-      "weighted": 0.95,
-      "fixedAge": 0.95,
-      "fails": 2,
+      "weighted": 0.9546818913659081,
+      "fixedAge": 0.925,
+      "fails": 3,
       "n": 40,
-      "planToAge": 95,
-      "weightToAge": 95,
+      "planToAge": 101,
+      "weightToAge": 105,
       "horizonRule": "survival"
     },
     "onCourse": true,
     "verdict": {
       "band": "yes",
-      "lasted": 0.95,
+      "lasted": 0.925,
       "outOfTen": {
-        "words": "in more than 9 futures out of 10",
+        "words": "in 9 futures out of 10",
         "only": false,
         "count": 9
-      }
+      },
+      "weighted": 0.9546818913659081
     },
     "income": {
-      "bad": 3640
+      "bad": 3670
     },
     "gap": {
       "month": 0,
@@ -356,15 +360,16 @@
             "employer": null
           }
         ],
-        "fails": 2,
-        "lasted": 0.95,
+        "fails": 3,
+        "lasted": 0.925,
         "outOfTen": {
-          "words": "in more than 9 futures out of 10",
+          "words": "in 9 futures out of 10",
           "only": false,
           "count": 9
         },
         "verdict": "yes",
-        "runOutAge": 95
+        "runOutAge": 101,
+        "weighted": 0.950533350976184
       }
     },
     "payIn": {
@@ -389,15 +394,16 @@
       }
     },
     "short": 0,
-    "monthlyIfShort": 3640,
+    "monthlyIfShort": 3670,
     "wholeLife": {
-      "lasted": 0.95,
+      "lasted": 0.925,
       "outOfTen": {
-        "words": "in more than 9 futures out of 10",
+        "words": "in 9 futures out of 10",
         "only": false,
         "count": 9
       },
-      "runOutAge": 95
+      "runOutAge": 101,
+      "weighted": 0.9546818913659081
     },
     "outside": null,
     "levers": {
@@ -407,9 +413,10 @@
       "oneOff": null,
       "moreRisk": null,
       "accept": {
-        "lasted": 0.95,
+        "lasted": 0.925,
+        "weighted": 0.9546818913659081,
         "short": 0,
-        "monthlyIfShort": 3640
+        "monthlyIfShort": 3670
       }
     },
     "grid": null,
@@ -509,10 +516,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 2172.25,
+            "fromPension": 2224.4,
             "fromSavings": 0,
-            "tax": 116.34,
-            "takeHome": 2055.91,
+            "tax": 124.16,
+            "takeHome": 2100.24,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -523,10 +530,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 1452.46,
+            "fromPension": 1400.31,
             "fromSavings": 0,
-            "tax": 8.37,
-            "takeHome": 1444.09,
+            "tax": 0.55,
+            "takeHome": 1399.76,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -556,12 +563,12 @@
           }
         },
         "takeHome": 3500,
-        "fromPension": 2708.35,
+        "fromPension": 2713.83,
         "fromSavings": 0,
-        "fromPots": 2708.35,
+        "fromPots": 2713.83,
         "statePension": 1045.63,
         "finalSalary": 0,
-        "tax": 253.98,
+        "tax": 259.46,
         "work": 0,
         "fromWork": 0,
         "byPerson": [
@@ -571,10 +578,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 1695.68,
+            "fromPension": 1732.25,
             "fromSavings": 0,
-            "tax": 253.98,
-            "takeHome": 2487.34,
+            "tax": 259.46,
+            "takeHome": 2518.42,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -585,10 +592,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 1012.66,
+            "fromPension": 981.58,
             "fromSavings": 0,
             "tax": 0,
-            "takeHome": 1012.66,
+            "takeHome": 981.58,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -606,15 +613,15 @@
       },
       {
         "fromAge": 67,
-        "toAge": 95,
+        "toAge": 101,
         "ages": {
           "you": {
             "from": 68,
-            "to": 96
+            "to": 102
           },
           "partner": {
             "from": 67,
-            "to": 95
+            "to": 101
           }
         },
         "takeHome": 3500,
@@ -633,10 +640,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 973.08,
+            "fromPension": 994.07,
             "fromSavings": 0,
-            "tax": 145.59,
-            "takeHome": 1873.13,
+            "tax": 148.74,
+            "takeHome": 1890.97,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -647,10 +654,10 @@
             "finalSalary": 0,
             "work": 0,
             "fromWork": 0,
-            "fromPension": 683.37,
+            "fromPension": 662.38,
             "fromSavings": 0,
-            "tax": 102.13,
-            "takeHome": 1626.87,
+            "tax": 98.98,
+            "takeHome": 1609.03,
             "higherRate": false,
             "locked": false,
             "pensionOpen": true
@@ -864,16 +871,17 @@
         "field": null,
         "source": "rule",
         "value": null,
-        "text": "The number is a guide: the pot that, if you had exactly that when you stop, pays what you want in 9 futures out of 10. The pay-in is worked out on the whole of each future, from now to the end.",
+        "text": "The number is a guide: the pot that, if you had exactly that when you stop, pays what you want as long as one of you is alive 18 times in 20. The pay-in is worked out on the whole of each future, from now to the end.",
         "parts": [
           "The number is a guide: the pot that, if you had exactly that when you stop, pays what you want ",
-          "in ",
+          "as long as one of you is alive",
+          " ",
           {
-            "fixed": "9"
+            "fixed": "18"
           },
-          " futures out of ",
+          " times in ",
           {
-            "fixed": "10"
+            "fixed": "20"
           },
           ". The pay-in is worked out on the whole of each future, from now to the end."
         ]
@@ -883,16 +891,17 @@
         "field": "confidence",
         "source": "default",
         "value": "balanced",
-        "text": "The pay-in that gets there makes your money last in 9 futures out of 10.",
+        "text": "The pay-in that gets there makes your money last as long as one of you is alive 18 times in 20.",
         "parts": [
           "The pay-in that gets there makes your money last ",
-          "in ",
+          "as long as one of you is alive",
+          " ",
           {
-            "fixed": "9"
+            "fixed": "18"
           },
-          " futures out of ",
+          " times in ",
           {
-            "fixed": "10"
+            "fixed": "20"
           },
           "."
         ]
@@ -976,19 +985,74 @@
         ]
       },
       {
-        "id": "plan-to",
+        "id": "life-plan-to",
         "field": "endAge",
         "source": "default",
-        "value": 95,
-        "text": "The money needs to last until the younger of you is 95.",
+        "value": 101,
+        "text": "Your plan runs to when the younger of you is 101, when fewer than 1 in 10 couples your ages still have one of you alive. We follow each future on to 105, when fewer than 1 in 50 do.",
         "parts": [
-          "The money needs to last until the younger of you is ",
+          "Your plan runs to ",
+          "when the younger of you is ",
           {
-            "key": "basis.endAge",
-            "kind": "age"
+            "fixed": "101"
           },
-          "."
+          ", when fewer than ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "10"
+          },
+          " ",
+          "couples your ages",
+          " still have one of you alive.",
+          " We follow each future on to ",
+          {
+            "fixed": "105"
+          },
+          ", when fewer than ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "50"
+          },
+          " do."
+        ],
+        "always": true
+      },
+      {
+        "id": "life-sex",
+        "field": "you.sex",
+        "source": "default",
+        "value": "notSaid",
+        "text": "We used figures for women, who tend to live longer, because you did not say.",
+        "parts": [
+          "We used figures for women, who tend to live longer, because you did not say."
         ]
+      },
+      {
+        "id": "life-sex-partner",
+        "field": "partner.sex",
+        "source": "default",
+        "value": "notSaid",
+        "text": "For your partner we used figures for women, who tend to live longer, because you did not say.",
+        "parts": [
+          "For your partner we used figures for women, who tend to live longer, because you did not say."
+        ]
+      },
+      {
+        "id": "life-couple",
+        "field": null,
+        "source": "rule",
+        "value": null,
+        "text": "We work the money out as if you both live to the end of each future, and count each future by the chance at least one of you is still alive.",
+        "parts": [
+          "We work the money out as if you both live to the end of each future, and count each future by the chance at least one of you is still alive."
+        ],
+        "always": true
       },
       {
         "id": "todays-prices",
@@ -1037,16 +1101,6 @@
             "fixed": "1"
           },
           "%."
-        ]
-      },
-      {
-        "id": "both-alive",
-        "field": null,
-        "source": "rule",
-        "value": null,
-        "text": "Both of you are alive throughout.",
-        "parts": [
-          "Both of you are alive throughout."
         ]
       },
       {
@@ -1127,7 +1181,7 @@
     "sentences": {
       "head": {
         "id": "b.head.partner",
-        "text": "About £391,000 by the time your partner is 56",
+        "text": "About £371,000 by the time your partner is 56",
         "parts": [
           "About ",
           {
@@ -1143,7 +1197,7 @@
       },
       "sub": {
         "id": "b.sub",
-        "text": "the pot that, if your partner had exactly that at 56, pays £3,500 a month after tax until the younger of you is 95, going up each year with prices, in 9 futures out of 10, with your State Pensions from 67",
+        "text": "the pot that, if your partner had exactly that at 56, pays £3,500 a month after tax until the younger of you is 101, going up each year with prices, as long as one of you is alive 18 times in 20, with your State Pensions from 67",
         "parts": [
           "the pot that, if your partner had exactly that at ",
           {
@@ -1161,13 +1215,15 @@
             "key": "basis.endAge",
             "kind": "age"
           },
-          ", going up each year with prices, in ",
+          ", going up each year with prices, ",
+          "as long as one of you is alive",
+          " ",
           {
-            "fixed": "9"
+            "fixed": "18"
           },
-          " futures out of ",
+          " times in ",
           {
-            "fixed": "10"
+            "fixed": "20"
           },
           ", with your State Pensions from ",
           {
@@ -1177,7 +1233,7 @@
       },
       "line": {
         "id": "b.line.partner",
-        "text": "Your partner needs about £391,000 in their pension when they stop at 56, with your money as you gave it. With exactly that, the money lasted in 9 futures out of 10.",
+        "text": "Your partner needs about £371,000 in their pension when they stop at 56, with your money as you gave it. With exactly that, the money lasts as long as one of you is alive 18 times in 20.",
         "parts": [
           "Your partner needs about ",
           {
@@ -1190,20 +1246,23 @@
             "kind": "age"
           },
           ", with your money as you gave it",
-          ". With exactly that, the money lasted in ",
+          ". With exactly that, the money lasts ",
+          "as long as one of you is alive",
+          " ",
           {
-            "fixed": "9"
+            "fixed": "18"
           },
-          " futures out of ",
+          " times in ",
           {
-            "fixed": "10"
+            "fixed": "20"
           },
           "."
-        ]
+        ],
+        "mark": "weighted"
       },
       "bad": {
         "id": "b.bad.onCourse",
-        "text": "In a bad case (the worst 1 in 10), £850 a month as now, your money still lasts to 95.",
+        "text": "In a bad case (the worst 1 in 10), £850 a month as now, your money still lasts to 101.",
         "parts": [
           "In a bad case (the worst ",
           {
@@ -1230,7 +1289,7 @@
       },
       "guide": {
         "id": "b.guide",
-        "text": "The pot is a guide. A bad case while you are saving and a bad case once you have stopped are rarely the same future, so what you pay in is tried on each whole future, from now until the younger of you is 95, and that is the answer.",
+        "text": "The pot is a guide. A bad case while you are saving and a bad case once you have stopped are rarely the same future, so what you pay in is tried on each whole future, from now until the younger of you is 101, and that is the answer.",
         "parts": [
           "The pot is a guide. A bad case while you are saving and a bad case once you have stopped are rarely the same future, so what you pay in is tried on each whole future, from now ",
           "until the younger of you is ",
@@ -1243,31 +1302,29 @@
       },
       "have": {
         "id": "b.have",
-        "text": "Your partner already has more than £391,000 in their pension. Paying in nothing more, your money lasted until the younger of you is 95 in more than 9 futures out of 10.",
+        "text": "Your partner already has more than £371,000 in their pension. Paying in nothing more: if one of you is still alive when the younger of you is 101, the money lasts that long in 19 of 20 futures we tried.",
         "parts": [
           "Your partner already has more than ",
           {
             "key": "levels.balanced.pot",
             "kind": "pot"
           },
-          " in their pension. Paying in nothing more, ",
-          "your money lasted ",
-          "until the younger of you is ",
+          " in their pension. Paying in nothing more: ",
+          "if one of you is still alive when the younger of you is ",
           {
-            "key": "basis.endAge",
-            "kind": "age"
+            "fixed": "101"
           },
-          " ",
-          "in more than ",
+          ", the money lasts that long in ",
           {
-            "fixed": "9"
+            "fixed": "19"
           },
-          " futures out of ",
+          " of ",
           {
-            "fixed": "10"
+            "fixed": "20"
           },
-          "."
-        ]
+          " futures we tried."
+        ],
+        "mark": "fixed"
       },
       "potsNow": {
         "id": "b.pots.now",
@@ -1326,7 +1383,7 @@
       },
       "wholeLife": {
         "id": "b.wholeLife",
-        "text": "Paying in £850 a month as you do now and then spending £3,500 a month, your money lasted until the younger of you is 95 in more than 9 futures out of 10.",
+        "text": "Paying in £850 a month as you do now and then spending £3,500 a month: if one of you is still alive when the younger of you is 101, the money lasts that long in 19 of 20 futures we tried.",
         "parts": [
           "Paying in ",
           {
@@ -1339,29 +1396,27 @@
             "key": "spend.perMonth",
             "kind": "money"
           },
-          " a month, ",
-          "your money lasted ",
-          "until the younger of you is ",
+          " a month: ",
+          "if one of you is still alive when the younger of you is ",
           {
-            "key": "basis.endAge",
-            "kind": "age"
+            "fixed": "101"
           },
-          " ",
-          "in more than ",
+          ", the money lasts that long in ",
           {
-            "fixed": "9"
+            "fixed": "19"
           },
-          " futures out of ",
+          " of ",
           {
-            "fixed": "10"
+            "fixed": "20"
           },
-          "."
-        ]
+          " futures we tried."
+        ],
+        "mark": "fixed"
       },
       "lever": {
         "accept": {
           "id": "b.lever.accept",
-          "text": "Keep paying in £850 a month as now: your money lasted in more than 9 futures out of 10. About £3,640 a month from when your partner stops at 56 lasted in 9 futures out of 10.",
+          "text": "Keep paying in £850 a month as now: your money lasts as long as one of you is alive 19 times in 20. About £3,670 a month from when your partner stops at 56 lasts as long as one of you is alive 18 times in 20.",
           "parts": [
             "Keep paying in ",
             {
@@ -1369,14 +1424,16 @@
               "kind": "money"
             },
             " a month",
-            " as now: your money lasted ",
-            "in more than ",
+            " as now: your money ",
+            "lasts ",
+            "as long as one of you is alive",
+            " ",
             {
-              "fixed": "9"
+              "fixed": "19"
             },
-            " futures out of ",
+            " times in ",
             {
-              "fixed": "10"
+              "fixed": "20"
             },
             ".",
             " About ",
@@ -1389,21 +1446,45 @@
               "key": "stop.age",
               "kind": "age"
             },
-            " lasted in ",
+            " lasts ",
+            "as long as one of you is alive",
+            " ",
             {
-              "fixed": "9"
+              "fixed": "18"
             },
-            " futures out of ",
+            " times in ",
             {
-              "fixed": "10"
+              "fixed": "20"
             },
             "."
-          ]
+          ],
+          "mark": "weighted"
+        },
+        "acceptFixed": {
+          "id": "b.lever.accept.fixed",
+          "text": "As it stands: if one of you is still alive when the younger of you is 101, the money lasts that long in 19 of 20 futures we tried.",
+          "parts": [
+            "As it stands: ",
+            "if one of you is still alive when the younger of you is ",
+            {
+              "fixed": "101"
+            },
+            ", the money lasts that long in ",
+            {
+              "fixed": "19"
+            },
+            " of ",
+            {
+              "fixed": "20"
+            },
+            " futures we tried."
+          ],
+          "mark": "fixed"
         }
       },
       "change": {
         "id": "b.change",
-        "text": "Now: on course for your partner at 56, lasted in more than 9 futures out of 10.",
+        "text": "Now: on course for your partner at 56, at Balanced.",
         "parts": [
           "Now: ",
           "on course for ",
@@ -1412,15 +1493,8 @@
             "key": "stop.age",
             "kind": "age"
           },
-          ", lasted ",
-          "in more than ",
-          {
-            "fixed": "9"
-          },
-          " futures out of ",
-          {
-            "fixed": "10"
-          },
+          ", at ",
+          "Balanced",
           "."
         ]
       },
@@ -1442,7 +1516,7 @@
       },
       "verdictLine": {
         "id": "b.verdict.line.yes",
-        "text": "With your partner paying in £850 a month as now, your money lasted until the younger of you is 95 in more than 9 futures out of 10. Your partner could stop paying in and still be on course.",
+        "text": "With your partner paying in £850 a month as now, counting how long people your ages live, your money lasts as long as one of you is alive 19 times in 20. Your partner could stop paying in and still be on course.",
         "parts": [
           "With your partner paying in ",
           {
@@ -1451,37 +1525,37 @@
           },
           " a month as now",
           ", ",
-          "your money lasted ",
-          "until the younger of you is ",
-          {
-            "key": "basis.endAge",
-            "kind": "age"
-          },
+          "counting how long people your ages live",
+          ", your money ",
+          "lasts ",
+          "as long as one of you is alive",
           " ",
-          "in more than ",
           {
-            "fixed": "9"
+            "fixed": "19"
           },
-          " futures out of ",
+          " times in ",
           {
-            "fixed": "10"
+            "fixed": "20"
           },
           ". ",
           "Your partner could stop paying in",
           " and still be on course."
-        ]
+        ],
+        "mark": "weighted"
       },
       "income": {
         "id": "b.verdict.income",
-        "text": "To last in 9 futures out of 10, you could spend £3,640 a month from when your partner stops at 56, with your savings and your State Pensions from 67 (the full amounts, as assumed).",
+        "text": "To last as long as one of you is alive 18 times in 20, you could spend £3,670 a month from when your partner stops at 56, with your savings and your State Pensions from 67 (the full amounts, as assumed).",
         "parts": [
-          "To last in ",
+          "To last ",
+          "as long as one of you is alive",
+          " ",
           {
-            "fixed": "9"
+            "fixed": "18"
           },
-          " futures out of ",
+          " times in ",
           {
-            "fixed": "10"
+            "fixed": "20"
           },
           ", you could spend ",
           {
@@ -1506,16 +1580,16 @@
         ]
       },
       "atAim": {
-        "id": "b.verdict.atAim.lasts",
-        "text": "Spending £3,500 a month, in a bad case (the worst 1 in 10) your money lasted until the younger of you is 95.",
+        "id": "b.when",
+        "text": "In the futures where the money runs out, it typically runs out when the younger of you is 95. In the worst 1 in 10 of all the futures it still lasts to 101.",
         "parts": [
-          "Spending ",
+          "In the futures where the money runs out, it typically runs out ",
+          "when the younger of you is ",
           {
-            "key": "spend.perMonth",
-            "kind": "money"
+            "fixed": "95"
           },
-          " a month",
-          ", in a bad case (the worst ",
+          ". ",
+          "In the worst ",
           {
             "fixed": "1"
           },
@@ -1523,12 +1597,121 @@
           {
             "fixed": "10"
           },
-          ") your money lasted ",
-          "until the younger of you is ",
+          " of all the futures it still lasts to ",
           {
-            "key": "basis.endAge",
+            "fixed": "101"
+          },
+          "."
+        ]
+      },
+      "fixed": {
+        "id": "b.fixed",
+        "text": "Paying in as now: if one of you is still alive when the younger of you is 101, the money lasts that long in 19 of 20 futures we tried.",
+        "parts": [
+          "Paying in as now: ",
+          "if one of you is still alive when the younger of you is ",
+          {
+            "fixed": "101"
+          },
+          ", the money lasts that long in ",
+          {
+            "fixed": "19"
+          },
+          " of ",
+          {
+            "fixed": "20"
+          },
+          " futures we tried."
+        ],
+        "mark": "fixed"
+      },
+      "guideFixed": {
+        "id": "b.guide.fixed",
+        "text": "With exactly that at 56: if one of you is still alive when the younger of you is 101, the money lasts that long in 17 of 20 futures we tried.",
+        "parts": [
+          "With exactly that at ",
+          {
+            "key": "stop.age",
             "kind": "age"
           },
+          ": ",
+          "if one of you is still alive when the younger of you is ",
+          {
+            "fixed": "101"
+          },
+          ", the money lasts that long in ",
+          {
+            "fixed": "17"
+          },
+          " of ",
+          {
+            "fixed": "20"
+          },
+          " futures we tried."
+        ],
+        "mark": "fixed"
+      },
+      "howLong": {
+        "id": "b.howLong",
+        "text": "In the futures where it runs out before 101, it still pays for 37 of the 46 years to 101.",
+        "parts": [
+          "In the futures where it runs out before ",
+          {
+            "fixed": "101"
+          },
+          ", it still pays for ",
+          {
+            "fixed": "37"
+          },
+          " of the ",
+          {
+            "fixed": "46"
+          },
+          " years to ",
+          {
+            "fixed": "101"
+          },
+          "."
+        ]
+      },
+      "howMuch": {
+        "id": "b.howMuch",
+        "text": "Across those futures, about £9 of every £10 you planned to spend is still paid.",
+        "parts": [
+          "Across those futures, about ",
+          {
+            "fixed": "£9"
+          },
+          " of every ",
+          {
+            "fixed": "£10"
+          },
+          " you planned to spend is still paid."
+        ]
+      },
+      "floor": {
+        "id": "b.floor",
+        "text": "If the money ran out when the younger of you is 95, you would still have £25,095 a year after tax between you, from your State Pensions; if one of you has died by then, about £12,548 at least.",
+        "parts": [
+          "If the money ran out ",
+          "when the younger of you is ",
+          {
+            "fixed": "95"
+          },
+          ", ",
+          "you would still have ",
+          {
+            "fixed": "£25,095"
+          },
+          " a year after tax",
+          " between you",
+          ", ",
+          "from your State Pensions",
+          "; if one of you has died by then, about ",
+          {
+            "fixed": "£12,548"
+          },
+          " at least",
           "."
         ]
       }
@@ -1539,8 +1722,8 @@
       "seed": 0,
       "level": "balanced",
       "levelFails20": 2,
-      "planToAge": 95,
-      "weightToAge": 95,
+      "planToAge": 101,
+      "weightToAge": 105,
       "tablesVersion": "ons-ew-2024-cohort/1",
       "sexUsed": {
         "you": "f",
@@ -1548,9 +1731,9 @@
       },
       "historyEnd": "2023-06",
       "engineVersion": "(any)",
-      "endAge": 95,
+      "endAge": 101,
       "detail": "answer",
-      "lifeYears": 40,
+      "lifeYears": 50,
       "bondDraws": "life",
       "cashRule": "previous-year",
       "grid": "yearly",
@@ -1571,7 +1754,8 @@
       "payInCeiling": 10000,
       "laterYears": 10,
       "laterTo": null,
-      "closedYearsFails": 0
+      "closedYearsFails": 0,
+      "weighted": true
     },
     "units": {
       "money": "todays-prices",

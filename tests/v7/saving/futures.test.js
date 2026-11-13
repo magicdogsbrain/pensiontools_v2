@@ -110,7 +110,9 @@ describe('a life is a prefix-extension of C\'s future', () => {
 
 describe('the lives depend on the seed, the count and the length only', () => {
   it('two households of every different amount, the same length, get the same lives (hash unchanged)', () => {
-    const env = { ...TEST_ENV, futures: 25 };
+    // (7.8.0: on the count, env.weighted false — the lives are the end age's length; weighing, each follows on to the
+    // weighting age, a length of its own: the rule under test is the same)
+    const env = { ...TEST_ENV, futures: 25, weighted: false };
     const a = stopAtPlan(saver({ age: 40, pot: 10_000, payIn: 300, stopAge: 60, endAge: 95 }), 60, env);
     const b = stopAtPlan(saver({ age: 40, pot: 900_000, isa: 50_000, payIn: 4000, savingsIn: 500, stopAge: 55, endAge: 90, risk: 'adventurous', charge: 0.02 }), 55, env);
     expect(a.T).toBe(55);

@@ -125,7 +125,7 @@ describe('today\'s planner\'s income shape, item by item (spending-shape.md sect
     Object.assign(sheet.lines.find((l) => l.essential), { amount: '2,000', period: 'mo' });
     const s = run({ ...spendA(), budget: sheet }, { type: ACT.SHAPE_ADD, q: 'a' }, { type: ACT.SHAPE_STEP, q: 'a', i: 0, field: 'perMonth', value: '1,500' });
     const root = renderScreen(s);
-    expect(root.querySelectorAll('[data-testid="a.shape.chart"] g.year').length).toBe(33);
+    expect(root.querySelectorAll('[data-testid="a.shape.chart"] g.year').length).toBe(38);
     expect([...root.querySelectorAll('.shape-band')].map((b) => b.textContent)).toEqual(['go-go', 'go-slow', 'no-go']);
     expect(one(root, 'a.shape.chart.essentials')).not.toBe(null);
     expect(root.querySelector('g[data-age="72"]').getAttribute('class')).toContain('is-below');

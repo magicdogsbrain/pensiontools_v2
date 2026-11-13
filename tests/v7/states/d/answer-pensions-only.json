@@ -93,7 +93,7 @@
     },
     "d": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":95,\"fall\":{\"has\":false},\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"spend\":{\"amount\":900,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":0,\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"no\"}}|2026-09-30|7.6.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":99,\"fall\":{\"has\":false},\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"spend\":{\"amount\":900,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":0,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"no\"}}|2026-09-30|7.6.0",
       "result": {
         "status": "guaranteed-only",
         "inputs": {
@@ -108,7 +108,8 @@
             "finalSalary": {
               "has": false
             },
-            "taxFreeTaken": "no"
+            "taxFreeTaken": "no",
+            "sex": "notSaid"
           },
           "savings": 0,
           "spend": {
@@ -117,7 +118,7 @@
           },
           "risk": "balanced",
           "charge": 0.5,
-          "endAge": 95,
+          "endAge": 99,
           "confidence": "balanced",
           "work": {
             "has": false
@@ -136,7 +137,7 @@
         "verdict": "yes",
         "fails": 0,
         "lasted": 1,
-        "runOutAge": 95,
+        "runOutAge": 99,
         "outOfTen": {
           "words": "in every future we tried",
           "only": false,
@@ -168,8 +169,8 @@
           "fixedAge": 1,
           "fails": 0,
           "n": 1000,
-          "planToAge": 95,
-          "weightToAge": 95,
+          "planToAge": 99,
+          "weightToAge": 103,
           "horizonRule": "survival"
         },
         "headroom": {
@@ -182,11 +183,11 @@
         "phases": [
           {
             "fromAge": 68,
-            "toAge": 95,
+            "toAge": 99,
             "ages": {
               "you": {
                 "from": 68,
-                "to": 95
+                "to": 99
               }
             },
             "takeHome": 1045.63,
@@ -246,7 +247,7 @@
             "field": "spend.amount",
             "source": "entered",
             "value": 900,
-            "text": "You spend £900 a month after tax, going up with prices, until you are 95. No cuts in bad years.",
+            "text": "You spend £900 a month after tax, going up with prices, until you are 99. No cuts in bad years.",
             "parts": [
               "You spend ",
               {
@@ -289,18 +290,51 @@
             ]
           },
           {
-            "id": "plan-to",
+            "id": "life-plan-to",
             "field": "endAge",
             "source": "default",
-            "value": 95,
-            "text": "The money needs to last until you are 95.",
+            "value": 99,
+            "text": "Your plan runs to 99, when fewer than 1 in 10 women your age are still alive. We follow each future on to 103, when fewer than 1 in 50 are.",
             "parts": [
-              "The money needs to last until you are ",
+              "Your plan runs to ",
               {
-                "key": "basis.endAge",
-                "kind": "age"
+                "fixed": "99"
               },
-              "."
+              ", when fewer than ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              " ",
+              "women your age",
+              " are still alive.",
+              " We follow each future on to ",
+              {
+                "fixed": "103"
+              },
+              ", when fewer than ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "50"
+              },
+              " are."
+            ],
+            "always": true
+          },
+          {
+            "id": "life-sex",
+            "field": "you.sex",
+            "source": "default",
+            "value": "notSaid",
+            "text": "We used figures for women, who tend to live longer, because you did not say.",
+            "parts": [
+              "We used figures for women, who tend to live longer, because you did not say."
             ]
           },
           {
@@ -367,7 +401,7 @@
           },
           "sub": {
             "id": "d.sub",
-            "text": "after tax, going up with prices, until you are 95",
+            "text": "after tax, going up with prices, until you are 99",
             "parts": [
               "after tax, going up with prices, ",
               "until you are ",
@@ -379,7 +413,7 @@
           },
           "line": {
             "id": "d.line",
-            "text": "Spending £900 a month after tax, your money lasted until you are 95 in every future we tried.",
+            "text": "Spending £900 a month after tax, your money lasted until you are 99 in every future we tried.",
             "parts": [
               "Spending ",
               {
@@ -399,7 +433,7 @@
           },
           "bad": {
             "id": "d.bad.lasts",
-            "text": "In a bad case (the worst 1 in 10) it still lasted until you are 95.",
+            "text": "In a bad case (the worst 1 in 10) it still lasted until you are 99.",
             "parts": [
               "In a bad case (the worst ",
               {
@@ -455,8 +489,8 @@
           "seed": 0,
           "level": "balanced",
           "levelFails20": 2,
-          "planToAge": 95,
-          "weightToAge": 95,
+          "planToAge": 99,
+          "weightToAge": 103,
           "tablesVersion": "ons-ew-2024-cohort/1",
           "sexUsed": {
             "you": "f"
@@ -464,15 +498,16 @@
           "historyEnd": "2023-06",
           "engineVersion": "7.6.0",
           "startAge": 68,
-          "endAge": 95,
-          "years": 27,
-          "lifeYears": 27,
+          "endAge": 99,
+          "years": 31,
+          "lifeYears": 35,
           "bondDraws": "life",
           "cashRule": "previous-year",
           "grid": "yearly",
           "strategyId": "pots-and-valves",
           "cutsSwitchedOff": true,
-          "endAgeDefaulted": true
+          "endAgeDefaulted": true,
+          "weighted": true
         },
         "units": {
           "money": "todays-prices",

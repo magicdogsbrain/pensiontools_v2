@@ -74,7 +74,8 @@ describe('the defaults and the checks', () => {
     const r = parse();
     expect(r.ok, JSON.stringify(r.errors)).toBe(true);
     expect(r.inputs).toMatchObject({ household: 'single', stopped: 'yes', you: { age: 68, pot: 300000, taxFreeTaken: 'no', statePension: { kind: 'full' }, finalSalary: { has: false } },
-      savings: 0, spend: { kind: 'amount', amount: 2100 }, risk: 'balanced', charge: 0.5, endAge: 95, work: { has: false }, fall: { has: false } });
+      // (7.8.0: the end age's default is the plan-to age — 68 now, the figures for women as not said: 99)
+      savings: 0, spend: { kind: 'amount', amount: 2100 }, risk: 'balanced', charge: 0.5, endAge: 99, work: { has: false }, fall: { has: false } });
     expect('isaGrowth' in r.inputs).toBe(false);                 // no money in savings: not asked, not defaulted
     expect(parse({ savings: '40000' }).inputs.isaGrowth).toBe('cash');
   });
@@ -93,7 +94,9 @@ describe('the defaults and the checks', () => {
     expect(defaultEndAge({ 'you.age': 100 })).toBe(105);
     expect(defaultEndAge({ 'you.age': 93, household: 'couple', 'partner.age': 70 })).toBe(95);
     expect(defaultEndAge({})).toBe(95);
-    expect(parse({ 'you.age': '93' }).inputs.endAge).toBe(98);
+    // (7.8.0: defaultEndAge is the rule before 7.8.0, kept for the rollback; the box's default is now the plan-to age, the age
+    // when fewer than 1 in 10 people that age are still alive — 93, the figures for women as not said: 101)
+    expect(parse({ 'you.age': '93' }).inputs.endAge).toBe(101);
     expect(parse({ 'you.age': '100', endAge: '100' }).errors.endAge).toBe('d-end-after-now');
     expect(parse({ 'you.age': '92', endAge: '95', 'work.has': true, 'work.yearly': '10000', 'work.years': '3' }).errors['work.years']).toBe('d-work-before-end');
     expect(parse({ 'work.has': true, 'work.yearly': '10000', 'work.years': '6' }).errors['work.years']).toBe('tooHigh');

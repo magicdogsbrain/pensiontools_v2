@@ -58,10 +58,11 @@ const sans = (r) => {
 const sansB = (r) => {
   const { enough, levers, grid, sentences, ...rest } = r;
   void enough; void grid;
-  const { verdictLine, enoughHead, enoughLine, enoughFour, enoughMatch, potsNeeded, lever, ...said } = sentences;
-  void verdictLine; void enoughHead; void enoughLine; void enoughFour; void enoughMatch; void potsNeeded;
-  const { payMore, oneOff, ...ways } = lever;
-  void payMore; void oneOff;
+  // (7.8.0: what would be enough and the ways to it carry their own counts to the plan-to age — the share's figure)
+  const { verdictLine, enoughHead, enoughLine, enoughFour, enoughMatch, enoughFixed, potsNeeded, lever, ...said } = sentences;
+  void verdictLine; void enoughHead; void enoughLine; void enoughFour; void enoughMatch; void enoughFixed; void potsNeeded;
+  const { payMore, oneOff, payMoreFixed, oneOffFixed, ...ways } = lever;
+  void payMore; void oneOff; void payMoreFixed; void oneOffFixed;
   const { overPay, ...oneOffLever } = levers.oneOff || {};
   void overPay;
   return sans({ ...rest, levers: { ...levers, payMore: null, oneOff: levers.oneOff ? oneOffLever : null }, sentences: { ...said, lever: ways } });

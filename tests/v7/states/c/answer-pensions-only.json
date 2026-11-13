@@ -64,7 +64,7 @@
     },
     "c": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":95,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":0,\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":99,\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"start\":{\"kind\":\"now\"},\"take\":null,\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":0,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"}}}|2026-09-30|7.6.0",
       "result": {
         "status": "guaranteed-only",
         "inputs": {
@@ -77,7 +77,8 @@
             },
             "finalSalary": {
               "has": false
-            }
+            },
+            "sex": "notSaid"
           },
           "start": {
             "kind": "now"
@@ -85,7 +86,7 @@
           "savings": 0,
           "risk": "balanced",
           "charge": 0.5,
-          "endAge": 95,
+          "endAge": 99,
           "confidence": "balanced",
           "take": null
         },
@@ -115,8 +116,8 @@
           "fixedAge": 1,
           "fails": 0,
           "n": 1000,
-          "planToAge": 95,
-          "weightToAge": 95,
+          "planToAge": 99,
+          "weightToAge": 103,
           "horizonRule": "survival"
         },
         "whose": "you",
@@ -126,11 +127,11 @@
         "phases": [
           {
             "fromAge": 68,
-            "toAge": 95,
+            "toAge": 99,
             "ages": {
               "you": {
                 "from": 68,
-                "to": 95
+                "to": 99
               }
             },
             "takeHome": 1045.63,
@@ -199,8 +200,8 @@
             "id": "plan-to",
             "field": "endAge",
             "source": "default",
-            "value": 95,
-            "text": "The money needs to last until you are 95.",
+            "value": 99,
+            "text": "The money needs to last until you are 99.",
             "parts": [
               "The money needs to last until you are ",
               {
@@ -283,7 +284,7 @@
           },
           "sub": {
             "id": "c.sub",
-            "text": "after tax, from now until you are 95, going up each year with prices",
+            "text": "after tax, from now until you are 99, going up each year with prices",
             "parts": [
               "after tax, ",
               "from now",
@@ -375,8 +376,8 @@
           "seed": 0,
           "level": "balanced",
           "levelFails20": 2,
-          "planToAge": 95,
-          "weightToAge": 95,
+          "planToAge": 99,
+          "weightToAge": 103,
           "tablesVersion": "ons-ew-2024-cohort/1",
           "sexUsed": {
             "you": "f"
@@ -384,10 +385,10 @@
           "historyEnd": "2023-06",
           "engineVersion": "7.6.0",
           "startAge": 68,
-          "endAge": 95,
+          "endAge": 99,
           "accessAge": 55,
           "start": "2026-09",
-          "years": 27,
+          "years": 31,
           "split": [
             {
               "who": "you",

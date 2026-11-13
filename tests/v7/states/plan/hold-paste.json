@@ -52,7 +52,7 @@
               "oneOffs": [],
               "plsaTier": "moderate",
               "retired": true,
-              "retirementAge": 60,
+              "retirementAge": 59,
               "sharedWithPartner": false,
               "version": 1
             }
@@ -68,7 +68,7 @@
               "consecutiveLimit": 3,
               "duration": 35,
               "equityMin": 250000,
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "basic",
               "isaBalance": 0,
               "isaDrawdownStrategy": "minimiseEarlyTax",
@@ -82,6 +82,7 @@
               "statePension": 0,
               "statePensionYear": 0,
               "targetSchedule": [
+                48000,
                 48000,
                 48000,
                 48000,
@@ -248,42 +249,42 @@
               "currentAgeAsOf": "2026-09-11",
               "dbAmount": 9400,
               "dbIndexation": "lpi5",
-              "dbStartYear": 5,
+              "dbStartYear": 6,
               "disableProtection": false,
               "diversifierStart": 0,
-              "duration": 32,
+              "duration": 33,
               "equityGlideEnabled": false,
               "equityMin": 280000,
               "extraIncomes": [
                 {
                   "annual": 7200,
-                  "endYear": 14,
+                  "endYear": 15,
                   "indexation": "cpi",
                   "label": "Rental flat",
-                  "startYear": 0
+                  "startYear": 1
                 },
                 {
                   "annual": 12000,
-                  "endYear": 3,
+                  "endYear": 4,
                   "indexation": "level",
                   "label": "Part-time consulting",
-                  "startYear": 0
+                  "startYear": 1
                 }
               ],
               "extraWithdrawals": [
                 {
                   "amount": 25000,
                   "label": "New roof",
-                  "year": 2
+                  "year": 3
                 },
                 {
                   "amount": 36000,
                   "label": "Camper van",
-                  "year": 6,
+                  "year": 7,
                   "years": 3
                 }
               ],
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "higher",
               "glideEndgame": null,
               "hodlEnabled": false,
@@ -293,7 +294,7 @@
               "incomeSteps": [
                 {
                   "amount": 48000,
-                  "fromAge": 60
+                  "fromAge": 59
                 },
                 {
                   "amount": 42000,
@@ -319,18 +320,20 @@
               "relevantEarnings": 12000,
               "retireAge": null,
               "retired": true,
-              "shapeAgeNow": 60,
+              "shapeAgeNow": 59,
               "spStartDate": "25 July 2034",
               "spWeeklyAmount": 224.9,
               "spendingProfile": "flat",
               "statePension": 12000,
               "statePensionYear": 12,
+              "stoppedWork": "2026-07",
               "strategyId": "pots-and-valves",
               "strategyParams": {},
               "strategyState": {},
               "subAsset": null,
               "taggedFunds": [],
               "targetSchedule": [
+                48000,
                 48000,
                 48000,
                 48000,
@@ -375,13 +378,13 @@
                   "amount": 120000,
                   "label": "Inherited pension",
                   "wrapper": "pension",
-                  "year": 4
+                  "year": 5
                 },
                 {
                   "amount": 90000,
                   "label": "Downsizing",
                   "wrapper": "cash",
-                  "year": 9
+                  "year": 10
                 }
               ],
               "chargesPct": 0.5,

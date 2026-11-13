@@ -64,9 +64,11 @@ function samPlan(inputs = SAM) {
   return upgradeScenario(copy(made), { now: noon(KEPT_ON) }).scenario;
 }
 /** One check-in on `today`, written as the one write file writes it; the plan after it. */
-function checkIn(plan, today, typed, { result = null } = {}) {
+// (7.8.0: `weighted` false makes the reading kept before 7.8.0 — its counts and words, as old readings stay — for the results
+// written out by hand here in the old shape; left out, the shipped state's reading, of the level)
+function checkIn(plan, today, typed, { result = null, weighted = undefined } = {}) {
   const now = at(today, 10);
-  const p = checkInPatch(plan, typed, { today, now, result });
+  const p = checkInPatch(plan, typed, { today, now, result, weighted });
   expect(p.ok, JSON.stringify(p.errors)).toBe(true);
   return { plan: applyPatch(plan, { ...p.patch, lastModified: now.toISOString() }), patch: p.patch, record: p.record, previous: p.previous };
 }
@@ -374,8 +376,11 @@ describe('the verdict from here is B\'s own answer on the check-in\'s figures (5
     expect(same.inputs).toEqual(d.read.inputs);
     const result = answerB(d.read.inputs, { ...ENV(today, CHECKIN_FUTURES), ...d.read.env });
     const { record } = checkIn(plan, today, typed, { result });
-    expect(record.reading).toMatchObject({ band: result.verdict.band, fails: result.chance.fails, aim: result.spend.perMonth, bad: result.income.bad, middling: null, gap: result.gap.year, engineVersion: result.basis.engineVersion });
-    if (result.enough && result.enough.atLevel) expect(record.reading.enough).toMatchObject({ nine: result.enough.atLevel.payIn, nineTotalPct: result.enough.atLevel.totalPct });
+    // (7.8.0: a reading of the level — the band, the level, the weighted chance and the count to its age, what you could spend
+    // at the level paying in as then, the gap, what would be enough at the level)
+    expect(record.reading).toMatchObject({ band: result.verdict.band, level: result.level, weighted: result.chance.weighted, fixedAge: result.chance.fixedAge, planToAge: result.chance.planToAge,
+      fails: result.chance.fails, aim: result.spend.perMonth, atLevel: result.income.bad, gap: result.gap.year, engineVersion: result.basis.engineVersion });
+    if (result.enough && result.enough.atLevel) expect(record.reading.enough).toMatchObject({ atLevel: result.enough.atLevel.payIn, atLevelTotalPct: result.enough.atLevel.totalPct });
     // the frozen reading is small: no futures, no lines, no repeated aim object
     expect(JSON.stringify(record.reading).length).toBeLessThan(500);
     // a pause still running: the verdict at £0 now, in the same kind
@@ -490,9 +495,9 @@ describe('what changed (5.5, 5.6): the parts add up to the change in the pot the
   });
   it('on the screen, the last check-in\'s result says it: what changed, then and now, the next check-in', () => {
     const plan = samPlan();
-    const one = checkIn(plan, '2026-11-20', SHARE(64500), { result: { status: 'ok', verdict: { band: 'no' }, chance: { fails: 700 }, spend: { perMonth: 1810 }, income: { bad: 1310, middling: 1630 }, gap: { year: 6000 }, enough: { atLevel: { payIn: 982, ownPct: 27, totalPct: 31 } }, basis: { engineVersion: 'test' } } }).plan;
+    const one = checkIn(plan, '2026-11-20', SHARE(64500), { weighted: false, result: { status: 'ok', verdict: { band: 'no' }, chance: { fails: 700 }, spend: { perMonth: 1810 }, income: { bad: 1310, middling: 1630 }, gap: { year: 6000 }, enough: { atLevel: { payIn: 982, ownPct: 27, totalPct: 31 } }, basis: { engineVersion: 'test' } } }).plan;
     const twoP = upgradeScenario(copy(one), { now: noon('2027-11-10') }).scenario;
-    const two = checkIn(twoP, '2027-11-10', SHARE(74600, { 'ci.ownPct': '16', 'ci.since': '2026-12', 'ci.note': 'Raised what goes in.' }), { result: { status: 'ok', verdict: { band: 'no' }, chance: { fails: 300 }, spend: { perMonth: 1810 }, income: { bad: 1500, middling: 1800 }, gap: { year: 3720 }, enough: { atLevel: { payIn: 918, ownPct: 25, totalPct: 29 } }, basis: { engineVersion: 'test' } } }).plan;
+    const two = checkIn(twoP, '2027-11-10', SHARE(74600, { 'ci.ownPct': '16', 'ci.since': '2026-12', 'ci.note': 'Raised what goes in.' }), { weighted: false, result: { status: 'ok', verdict: { band: 'no' }, chance: { fails: 300 }, spend: { perMonth: 1810 }, income: { bad: 1500, middling: 1800 }, gap: { year: 3720 }, enough: { atLevel: { payIn: 918, ownPct: 25, totalPct: 29 } }, basis: { engineVersion: 'test' } } }).plan;
     const v = checkInOf([{ plan: two }], two.id, { today: '2027-11-10' });
     expect(v.latest.month).toBe('November 2027');
     expect(v.latest.verdict).toMatchObject({ band: 'no', words: 'in only 7 futures out of 10', aim: '£1,810', bad: '£1,500', gap: '£3,720' });
@@ -641,7 +646,7 @@ describe('the privacy policy names the check-in, in both its copies (5.10)', () 
 describe('the size budget (5.11)', () => {
   it('a plan with 120 check-ins with full notes, 600 pot records, a path, a full archive, a plan document and an archive of ten stays under 600 KB; the check-in\'s own parts under 250 KB', () => {
     const plan = samPlan();
-    const one = checkIn(plan, '2026-11-20', SHARE(64500, { 'ci.isa': '3200' }), { result: { status: 'ok', verdict: { band: 'close' }, chance: { fails: 180 }, spend: { perMonth: 1810 }, income: { bad: 1700, middling: 2100 }, gap: { year: 1320 }, enough: { atLevel: { payIn: 412.5, ownPct: 9.5, totalPct: 13.5 }, closeNow: false }, basis: { engineVersion: '6.54.0' } } });
+    const one = checkIn(plan, '2026-11-20', SHARE(64500, { 'ci.isa': '3200' }), { weighted: false, result: { status: 'ok', verdict: { band: 'close' }, chance: { fails: 180 }, spend: { perMonth: 1810 }, income: { bad: 1700, middling: 2100 }, gap: { year: 1320 }, enough: { atLevel: { payIn: 412.5, ownPct: 9.5, totalPct: 13.5 }, closeNow: false }, basis: { engineVersion: '6.54.0' } } });
     const ci = one.record;
     const note = '€'.repeat(NOTE_MAX);   // three bytes each
     const big = copy(one.plan);

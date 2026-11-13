@@ -208,7 +208,9 @@ describe('3 — the reported 55-year-old reaches a monthly figure from 67', () =
     const pay = one(root, 'c.answer.payIn');
     expect(pay).not.toBe(null);
     expect(head.contains(pay)).toBe(true);
-    expect(head.querySelector('[data-sentence="levels.balanced.monthly"]').nextElementSibling).toBe(pay);
+    // (7.8.0: the count to the plan-to age sits straight under the sentence, in its block — then the pay-in line)
+    const next = head.querySelector('[data-sentence="levels.balanced.monthly"]').nextElementSibling;
+    expect(next.matches('[data-testid^="lasts.lines"]') ? next.nextElementSibling : next).toBe(pay);
     expect(pay.textContent).toBe(r.sentences.payIn.text);
     if (r.sentences.pot) expect(one(root, 'c.answer.pot').textContent).toBe(r.sentences.pot.text);
   });

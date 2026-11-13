@@ -39,7 +39,7 @@ describe('every way of drawing is classed, and the ones followed on keep the pla
     expect(Object.keys(STRATEGY_LIFE).sort()).toEqual(Object.keys(STRATEGY_NAMES).sort());
     for (const v of Object.values(STRATEGY_LIFE)) expect(['extends', 'durationShaped']).toContain(v);
     for (const id of ['full-il-gilt', 'gilt-rotation']) expect(DURATION_SHAPED).toContain(id);
-    expect(SUCCESS.weighted).toBe(false);   // the switch is step 8's
+    expect(SUCCESS.weighted).toBe(true);   // the switch, step 8 (7.8.0)
   });
   for (const id of Object.keys(STRATEGY_LIFE).filter((k) => STRATEGY_LIFE[k] === 'extends')) {
     it(`${id}: followed on 12 more years, every future fails in the same year within the plan's years (and runs on after)`, () => {
@@ -225,8 +225,8 @@ describe('"Does it last?" weighing, and the rollback', { timeout: 240_000 }, () 
     const v = verdictOf(out, { endAge: a.planToAge });
     expect(v.id).toBe('lasts.headlineW');
     expect(v.sub.slots.words).toMatch(new RegExp('^If you live to ' + a.planToAge + ', '));
-    // not weighing (SUCCESS.weighted false): the result it always was
-    const off = runLasts(plan, { today: TODAY });
+    // not weighing (the rollback, weighted false): the result it always was
+    const off = runLasts(plan, { today: TODAY, weighted: false });
     expect('level' in off).toBe(false);
     expect('weighted' in off.a).toBe(false);
     expect(off.a.chancePct).toBe(a.chancePct);
@@ -254,7 +254,7 @@ describe('the plan document records its definition; an old one reads as written'
     const P1 = lockPatch(plan, { now, run, entries: [{ plan }] });
     expect(P1.patch.planDocument.assumptions.success).toEqual(run.success);
     expect(definitionOf(P1.patch.planDocument)).toEqual(run.success);
-    const off = runForDocument(plan, { today: TODAY });
+    const off = runForDocument(plan, { today: TODAY, weighted: false });
     expect('success' in off).toBe(false);
     const P0 = lockPatch(plan, { now, run: off, entries: [{ plan }] });
     expect('success' in P0.patch.planDocument.assumptions).toBe(false);
@@ -264,7 +264,7 @@ describe('the plan document records its definition; an old one reads as written'
     const p = planFor(s, now);
     const r = stressTestStrategy(s.strategyId, p);
     expect(documentSuccessOf(plan, { settings: s, strategyId: s.strategyId, p, r, now, weighted: true })).toEqual(run.success);
-    expect(documentSuccessOf(plan, { settings: s, strategyId: s.strategyId, p, r, now })).toBe(null);
+    expect(documentSuccessOf(plan, { settings: s, strategyId: s.strategyId, p, r, now, weighted: false })).toBe(null);
     expect(successOf(null)).toBe(null);
   });
   it('an old document: lastsRun\'s stored figure and read.js\'s words as it was locked, the counting said once weighing', () => {
@@ -288,7 +288,7 @@ describe('"Am I on course?" at the level', { timeout: 240_000 }, () => {
   it('not weighing: 9 futures in 10, as before; weighing: the level on the run to the weighting age, a pot no bigger than the count\'s', () => {
     const s = settingsOf('02-pnv-draft');
     const p = planFor(s, now);
-    expect(onCourseOptsOf(s, p, 'pots-and-valves', now)).toBe(ON_COURSE_SHARE);
+    expect(onCourseOptsOf(s, p, 'pots-and-valves', now, { weighted: false })).toBe(ON_COURSE_SHARE);
     const how = onCourseOptsOf(s, p, 'pots-and-valves', now, { weighted: true });
     expect(how.level).toBe('balanced');
     expect(how.planW.durationYears).toBeGreaterThan(p.durationYears);

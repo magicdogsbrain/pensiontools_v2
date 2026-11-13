@@ -48,7 +48,7 @@ describe('parsedDraft, currentKey, isCurrent', () => {
     const s = typed('£250,000', '58');
     const p = parsedDraft(s, 'c');
     expect(p.ok).toBe(true);
-    expect(p.inputs).toMatchObject({ household: 'single', you: { pot: 250000, age: 58 }, risk: 'balanced', endAge: 95, take: null });
+    expect(p.inputs).toMatchObject({ household: 'single', you: { pot: 250000, age: 58 }, risk: 'balanced', endAge: 99, take: null });   // (7.8.0: the plan-to age, 58 now, not said)
     expect(currentKey(s, 'c')).toBe(inputsKey(p.inputs, s.env));
   });
   it('the same figures typed another way give the same key', () => {

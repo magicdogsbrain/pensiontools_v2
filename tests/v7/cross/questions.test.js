@@ -71,7 +71,8 @@ const waiting = (...w) => w.filter(Boolean).join(';');
 
 // ---- mapping one question's inputs onto another's -----------------------------------------------------------
 
-const PERSON = ['age', 'pot', 'statePension', 'finalSalary'];
+// (7.8.0: which figures for how long each person lives goes with the person, as the hand-overs carry it)
+const PERSON = ['age', 'pot', 'statePension', 'finalSalary', 'sex'];
 const personOf = (p) => Object.fromEntries(PERSON.filter((k) => p && p[k] !== undefined).map((k) => [k, copy(p[k])]));
 
 /** C's household (start now, no take) as A's inputs stopping today, spending `spend`, paying in `payIn` (it stops today). */
@@ -302,7 +303,9 @@ describe.skipIf(A_STUB)(`X1 — A at "stop now" equals C, byte for byte${A_STUB 
 
 /** One made-up future: 0% on everything, prices flat, every pot in cash, while saving and once stopped. */
 const CASH = { equity: 0, bond: 0, cash: 1 };
-const FLAT = { ...ENV, futures: 1, futureReturns: () => ({ equity: {}, inflation: {} }), mix: CASH, savingMix: CASH };
+// (7.8.0: one flat future — each weighted level would be only an age the money may run out at, so the round trip, a sum,
+// runs on the count to the end age: env.weighted false, the rollback; the weighted path equals it with nobody dying)
+const FLAT = { ...ENV, weighted: false, futures: 1, futureReturns: () => ({ equity: {}, inflation: {} }), mix: CASH, savingMix: CASH };
 
 /**
  * Singles with no State Pension and no final-salary pension (a later-born person's State Pension age may differ, which

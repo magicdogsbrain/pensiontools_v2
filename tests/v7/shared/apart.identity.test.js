@@ -45,7 +45,10 @@ import { toHousehold as toHouseholdC } from '../../../src/answers/c/toHousehold.
 import { checkInputs } from '../../../src/answers/shared/validate.js';
 import { SCHEMA_C } from '../../../src/answers/c/schema.js';
 
-const { TEST_ENV } = live;
+// 7.8.0: the frozen 6.19.0 copies run each future to the end age, 45 years at most; weighing, the live code follows each on to
+// the weighting age (up to 60). The plumbing compared here is the same either way, so it is compared on the count (the
+// rollback, env.weighted false), as the copies were written
+const TEST_ENV = { ...live.TEST_ENV, weighted: false };
 const TODAY = TEST_ENV.today;
 const SEED = 20261001;
 const close = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
@@ -186,7 +189,7 @@ describe('I4 and I9: a same-year household through the new code is 6.19.0\'s, bi
   });
 
   it('the C path (enginePlan without options): the plan, the configs, the breakdown and the band, for random C households', () => {
-    const env = { today: TODAY, seed: 0 };
+    const env = { today: TODAY, seed: 0, weighted: false };
     let compared = 0;
     for (const inputs of fc.sample(arbitraryInputs(SCHEMA_C, env), { seed: SEED, numRuns: 50 })) {
       const checked = checkInputs(SCHEMA_C, inputs, env);

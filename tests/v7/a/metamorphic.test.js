@@ -146,8 +146,10 @@ describe.skipIf(!ENGINE_READY)('A — metamorphic relations', () => {
   it('M-A5 a partner with nothing — no pot, nothing going in, no State Pension, no final-salary pension, the same age — is the single answer (an amount: a level is a couple\'s figure)', () => {
     fc.assert(fc.property(named.filter((i) => i.household === 'single' && i.spend.kind === 'amount' && !(i.savings > 0) && !(i.savingsIn > 0)), (single) => {
       const couple = { ...single, household: 'couple', partner: { age: single.you.age, pot: 0, payIn: { kind: 'total', total: 0 }, statePension: { kind: 'none' }, finalSalary: { has: false } } };
-      const a = run(single);
-      const b = run(couple);
+      // (7.8.0: while weighing, a couple is counted while either of you is alive, so a partner with nothing still moves the
+      // weights and the plan-to age; the relation is the engine's and is held on the count, env.weighted false)
+      const a = run(single, { ...envFor(single), weighted: false });
+      const b = run(couple, { ...envFor(couple), weighted: false });
       expect(household(b)).toEqual(household(a));
     }), opts());
   });

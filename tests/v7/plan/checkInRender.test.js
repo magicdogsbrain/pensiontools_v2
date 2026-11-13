@@ -156,7 +156,8 @@ describe('"Check in", drawn', () => {
     expect(changed).toContain('Your pension went from £64,500 to £74,600.');
     expect(changed).toContain('£317 a month for 1 month and £633 a month for 11 months, £7,280 in all.');
     expect(one(root, `${T}.result.rest`).textContent).toMatch(/^Markets, charges and anything not recorded: [+−]£[\d,]+\.$/);
-    expect(one(root, `${T}.result.thenNow`).textContent).toMatch(/^Then: lasted in .+ futures out of 10\. Now: in .+\./);
+    // (7.8.0: readings of the level, said as chances)
+    expect(one(root, `${T}.result.thenNow`).textContent).toMatch(/^Then: lasted .+ times in 20\. Now: .+ times in 20\./);
     expect(one(root, `${T}.useInPlan`).textContent).toContain('You now pay in 20% in all; your plan says 10%.');
     expect(one(root, `${T}.use`).textContent).toBe('Use 20% in my plan');
     expect(one(root, `${T}.result.pathDiffers`).textContent).toBe('The path was drawn paying in £317 a month; you now pay in £633.');

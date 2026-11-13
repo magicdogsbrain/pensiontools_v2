@@ -52,7 +52,7 @@
               "oneOffs": [],
               "plsaTier": "moderate",
               "retired": true,
-              "retirementAge": 63,
+              "retirementAge": 62,
               "sharedWithPartner": false,
               "version": 1
             }
@@ -68,7 +68,7 @@
               "consecutiveLimit": 3,
               "duration": 35,
               "equityMin": 250000,
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "basic",
               "isaBalance": 0,
               "isaDrawdownStrategy": "minimiseEarlyTax",
@@ -82,6 +82,7 @@
               "statePension": 0,
               "statePensionYear": 0,
               "targetSchedule": [
+                38000,
                 38000,
                 38000,
                 38000,
@@ -166,12 +167,12 @@
               "dbStartYear": 0,
               "disableProtection": false,
               "diversifierStart": 0,
-              "duration": 33,
+              "duration": 34,
               "equityGlideEnabled": false,
               "equityMin": 420000,
               "extraIncomes": [],
               "extraWithdrawals": [],
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "basic",
               "glideEndgame": null,
               "hodlEnabled": false,
@@ -181,7 +182,7 @@
               "incomeSteps": [
                 {
                   "amount": 38000,
-                  "fromAge": 63
+                  "fromAge": 62
                 },
                 {
                   "amount": 32000,
@@ -203,18 +204,20 @@
               "relevantEarnings": 0,
               "retireAge": null,
               "retired": true,
-              "shapeAgeNow": 63,
+              "shapeAgeNow": 62,
               "spStartDate": "14 March 2032",
               "spWeeklyAmount": 221.2,
               "spendingProfile": "flat",
               "statePension": 12000,
               "statePensionYear": 12,
+              "stoppedWork": "2026-06",
               "strategyId": "pots-and-valves",
               "strategyParams": {},
               "strategyState": {},
               "subAsset": null,
               "taggedFunds": [],
               "targetSchedule": [
+                38000,
                 38000,
                 38000,
                 38000,
@@ -2743,6 +2746,8 @@
               "name": "Alex’s first plan",
               "stageKey": "unknown",
               "line": null,
+              "closed": false,
+              "close": null,
               "locked": false,
               "lockedOn": null,
               "madeOn": null,
@@ -2751,16 +2756,127 @@
               "main": false,
               "records": false,
               "linked": false,
+              "checkInDue": false,
+              "monthByMonth": false,
+              "life": null,
+              "todo": 1,
               "lastModified": "2026-09-28T18:42:10.000Z"
             },
             {
               "id": "SamLocked02",
               "name": "Sam’s plan",
-              "stageKey": "bridge",
+              "stageKey": "running",
               "line": {
-                "id": "bridge-ladder",
+                "id": "running-ladder",
                 "slots": {
-                  "month": "April 2027"
+                  "month": "April 2029"
+                }
+              },
+              "closed": false,
+              "close": {
+                "months": [
+                  {
+                    "month": "2026-10",
+                    "words": "October 2026",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from October 2026",
+                    "workingName": "Sam’s plan, back to work from October 2026"
+                  },
+                  {
+                    "month": "2026-11",
+                    "words": "November 2026",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from November 2026",
+                    "workingName": "Sam’s plan, back to work from November 2026"
+                  },
+                  {
+                    "month": "2026-12",
+                    "words": "December 2026",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from December 2026",
+                    "workingName": "Sam’s plan, back to work from December 2026"
+                  },
+                  {
+                    "month": "2027-01",
+                    "words": "January 2027",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from January 2027",
+                    "workingName": "Sam’s plan, back to work from January 2027"
+                  },
+                  {
+                    "month": "2027-02",
+                    "words": "February 2027",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from February 2027",
+                    "workingName": "Sam’s plan, back to work from February 2027"
+                  },
+                  {
+                    "month": "2027-03",
+                    "words": "March 2027",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from March 2027",
+                    "workingName": "Sam’s plan, back to work from March 2027"
+                  },
+                  {
+                    "month": "2027-04",
+                    "words": "April 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from April 2027",
+                    "workingName": "Sam’s plan, back to work from April 2027"
+                  },
+                  {
+                    "month": "2027-05",
+                    "words": "May 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from May 2027",
+                    "workingName": "Sam’s plan, back to work from May 2027"
+                  },
+                  {
+                    "month": "2027-06",
+                    "words": "June 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from June 2027",
+                    "workingName": "Sam’s plan, back to work from June 2027"
+                  },
+                  {
+                    "month": "2027-07",
+                    "words": "July 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from July 2027",
+                    "workingName": "Sam’s plan, back to work from July 2027"
+                  },
+                  {
+                    "month": "2027-08",
+                    "words": "August 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from August 2027",
+                    "workingName": "Sam’s plan, back to work from August 2027"
+                  },
+                  {
+                    "month": "2027-09",
+                    "words": "September 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from September 2027",
+                    "workingName": "Sam’s plan, back to work from September 2027"
+                  }
+                ],
+                "suggested": "2026-10",
+                "name": "Sam’s plan from October 2026",
+                "asked": true,
+                "held": true,
+                "pots": {
+                  "pension": 613800,
+                  "isa": 35052,
+                  "gia": 0
+                },
+                "potsFrom": "your record for September 2026 for the pension; What you hold (20 June 2026) for the ISAs; this plan’s own figure for the ordinary investment account",
+                "partner": null,
+                "working": {
+                  "name": "Sam’s plan, back to work from October 2026",
+                  "ageNow": 64,
+                  "flexibleAccess": {
+                    "month": "July 2026"
+                  }
                 }
               },
               "locked": true,
@@ -2771,6 +2887,10 @@
               "main": false,
               "records": true,
               "linked": false,
+              "checkInDue": false,
+              "monthByMonth": true,
+              "life": "drawing",
+              "todo": 1,
               "lastModified": "2026-09-02T18:30:00.000Z"
             },
             {
@@ -2781,6 +2901,8 @@
                 "id": "draft-retired",
                 "slots": {}
               },
+              "closed": false,
+              "close": null,
               "locked": false,
               "lockedOn": null,
               "madeOn": null,
@@ -2789,6 +2911,10 @@
               "main": true,
               "records": false,
               "linked": false,
+              "checkInDue": false,
+              "monthByMonth": true,
+              "life": "drawing",
+              "todo": 1,
               "lastModified": "2026-08-14T10:05:00.000Z"
             }
           ]
@@ -2832,10 +2958,10 @@
             "figures": {
               "yearly": 38000,
               "ageToday": 61,
-              "years": 33,
+              "years": 34,
               "ageEnd": 95,
               "step0": 38000,
-              "stepAge0": 63,
+              "stepAge0": 62,
               "step1": 32000,
               "stepAge1": 75,
               "sipp": 700000,
@@ -2889,10 +3015,12 @@
                     }
                   },
                   {
-                    "id": "about.retired",
-                    "slots": {},
+                    "id": "about.stoppedIn",
+                    "slots": {
+                      "month": "June 2026"
+                    },
                     "sentence": {
-                      "id": "about.retired",
+                      "id": "about.stoppedIn",
                       "parts": [],
                       "text": ""
                     },
@@ -2905,7 +3033,7 @@
                   {
                     "id": "about.firstYear",
                     "slots": {
-                      "year": "2027/28"
+                      "year": "2026/27"
                     },
                     "sentence": {
                       "id": "about.firstYear",
@@ -2934,7 +3062,7 @@
                           "kind": "age"
                         }
                       ],
-                      "text": "33 years, to age 95"
+                      "text": "34 years, to age 95"
                     },
                     "source": {
                       "kind": "saved",
@@ -2968,7 +3096,7 @@
                         },
                         " a year before tax"
                       ],
-                      "text": "From age 63: £38,000 a year before tax"
+                      "text": "From age 62: £38,000 a year before tax"
                     },
                     "source": {
                       "kind": "saved",
@@ -3203,7 +3331,7 @@
                   {
                     "id": "mix.tentOff",
                     "slots": {
-                      "years": "13"
+                      "years": "14"
                     },
                     "sentence": {
                       "id": "mix.tentOff",
@@ -3716,9 +3844,43 @@
             "locked": false,
             "lockedOn": null,
             "saver": false,
+            "stopMonth": null,
             "strategyId": "pots-and-valves",
             "bought": false,
             "hasDocument": false
+          },
+          {
+            "id": "month",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "month.lockFirst",
+              "parts": [
+                "Months are recorded once the plan is locked"
+              ],
+              "text": "Months are recorded once the plan is locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "lockFirst",
+                "href": "#/plan/AlexWay01/lock",
+                "slots": {}
+              },
+              {
+                "id": "monthByMonth",
+                "href": "#/plan/AlexWay01/month",
+                "slots": {}
+              }
+            ],
+            "notes": [],
+            "recorded": false,
+            "setUp": false,
+            "gap": null,
+            "toRecord": "2026-09"
           },
           {
             "id": "hold",
@@ -3834,8 +3996,10 @@
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
-            "stop": "April 2027",
-            "savedYear": ""
+            "stop": "April 2026",
+            "savedYear": "",
+            "closed": "",
+            "next": ""
           },
           "button": {
             "id": "lasts",
@@ -3865,7 +4029,7 @@
           "bought": false,
           "family": true,
           "endAge": 95,
-          "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|17yztx6|U",
+          "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|13z6pso|U",
           "stash": {
             "pots-and-valves": {},
             "buckets-in-order": {},
@@ -4319,17 +4483,6 @@
                   "cut": false
                 },
                 {
-                  "key": "bridgeCash",
-                  "type": "money",
-                  "options": null,
-                  "min": 0,
-                  "max": 50000000,
-                  "step": null,
-                  "shown": "",
-                  "error": null,
-                  "cut": false
-                },
-                {
                   "key": "spareGrowth",
                   "type": "choice",
                   "options": [
@@ -4346,7 +4499,6 @@
               ],
               "values": {
                 "cashYears": null,
-                "bridgeCash": null,
                 "spareGrowth": null
               },
               "ok": true,
@@ -4376,17 +4528,6 @@
                   "options": null,
                   "min": 0,
                   "max": 5,
-                  "step": null,
-                  "shown": "",
-                  "error": null,
-                  "cut": false
-                },
-                {
-                  "key": "bridgeCash",
-                  "type": "money",
-                  "options": null,
-                  "min": 0,
-                  "max": 50000000,
                   "step": null,
                   "shown": "",
                   "error": null,
@@ -4442,7 +4583,6 @@
               ],
               "values": {
                 "cashYears": null,
-                "bridgeCash": null,
                 "spareGrowth": null,
                 "rotateCutAge": null,
                 "rotateTrigger": null,
@@ -4462,6 +4602,15 @@
           "rankBy": "lasts",
           "ran": null,
           "has": false
+        },
+        "life": {
+          "key": "drawing",
+          "placing": "draft-retired",
+          "locked": false,
+          "stop": "2026-06",
+          "since": "2026-06",
+          "by": "facts",
+          "invite": null
         }
       }
     }
@@ -4589,7 +4738,7 @@
     "kept": null
   },
   "ways": {
-    "key": "AlexWay01|2026-08-14T10:05:00.000Z|17yztx6|U",
+    "key": "AlexWay01|2026-08-14T10:05:00.000Z|13z6pso|U",
     "status": "working",
     "reason": null,
     "result": null,

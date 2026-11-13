@@ -10,7 +10,7 @@
 export { answerC } from './_c.js';
 import { get, money, partsText } from '../../../src/answers/shared/format.js';
 import { flatten } from '../../../src/answers/shared/validate.js';
-import { RULES, LEVEL_FAILS20 } from '../../../src/answers/shared/rules.js';
+import { RULES, LEVEL_FAILS20, SUCCESS } from '../../../src/answers/shared/rules.js';
 import { shownOf } from '../../../src/answers/shared/levels.js';
 
 const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' };
@@ -68,7 +68,10 @@ export function checkAnswer(answer, given) {
   const n = answer.basis.futures;
   for (const k of THREE) {
     if (answer.status === 'ok' && Math.round((1 - L[k].fixedAge) * n) > Math.floor((LEVEL_FAILS20[k] * n) / 20) && L[k].weighted === L[k].fixedAge) fail('I3', `${k} lasted in only ${L[k].fixedAge}`);
-    if (L[k].weighted < L[k].fixedAge - 1e-12) fail('I3', `${k}: weighted ${L[k].weighted} below fixed-age ${L[k].fixedAge}`);
+    // (with the plan-to age from the tables, when fewer than 1 in 10 are still alive: a future that runs out after it is
+    // counted as lasting to it but still weighs, at most 1 in 10 — so the weighted chance is never below 9/10 of the count.
+    // A typed end age below it, or a run the 60-year cap stops short, has no such bound)
+    if (answer.chance && answer.chance.horizonRule === 'survival' && L[k].weighted < 0.9 * L[k].fixedAge - 1e-12) fail('I3', `${k}: weighted ${L[k].weighted} below 9/10 of fixed-age ${L[k].fixedAge}`);
     if (Math.abs(L[k].yearly - L[k].monthly * 12) > 0.01) fail('I3', `levels.${k}.yearly is not 12 × monthly`);
     if (answer.status === 'ok' && L[k].monthly % 10 !== 0) fail('I3', `levels.${k}.monthly = ${L[k].monthly} is not a whole £10`);
   }
@@ -177,7 +180,8 @@ export function checkAnswer(answer, given) {
   }
   for (const key of ['startAge', 'endAge', 'accessAge', 'years']) if (!Number.isInteger(b[key])) fail('I7', `basis.${key} is not whole`);
   if (b.endAge - b.startAge !== b.years) fail('I7', 'years ≠ endAge − startAge');
-  if (b.years > RULES.maxYears) fail('I7', `${b.years} years is over the cap`);
+  // (weighing, every run may go to 60 years — an answer with no pot to weigh does not say it weighs, but runs as far)
+  if (b.years > (b.weighted || SUCCESS.weighted ? RULES.maxDrawYears : RULES.maxYears)) fail('I7', `${b.years} years is over the cap`);
   if (b.endAge > answer.inputs.endAge) fail('I7', 'runs past the end age asked for');
   if (b.endAge < answer.inputs.endAge && !answer.warnings.some((w) => w.id === 'long-plan')) fail('I7', 'capped without saying so');
   if (!['you', 'partner'].includes(answer.whose)) fail('I7', `whose = ${answer.whose}`);
@@ -204,21 +208,29 @@ export function checkAnswer(answer, given) {
       else if (v !== a.value) fail('I10', `${a.id}: entered value ${a.value} ≠ input ${v}`);
     }
   }
+  // 7.8.0, weighing: the plan-to age and the age followed on to are one line (life-plan-to), the figures used another
+  // (life-sex, life-sex-partner), and a couple is counted while one of them is alive (life-couple, in place of both-alive)
+  const W = Boolean(answer.basis && answer.basis.weighted);
+  // (a run the 60-year cap stops at or before the plan-to age says only that: "We could test only to …", life-capped)
+  const cutShort = W && answer.assumed.some((a) => a.id === 'life-capped') && !answer.assumed.some((a) => a.id === 'life-plan-to');
+  const lineFor = (id) => (W && id === 'plan-to' ? (cutShort ? 'life-capped' : 'life-plan-to') : id);
   if (given) {
     const flat = flatten(given);
-    for (const [field, id] of Object.entries(ASSUMED_FIELD)) {
+    for (const [field, id0] of Object.entries({ ...ASSUMED_FIELD, ...(W ? { 'you.sex': 'life-sex', 'partner.sex': 'life-sex-partner' } : {}) })) {
+      const id = lineFor(id0);
       const applies = Object.prototype.hasOwnProperty.call(flatten(answer.inputs), field);
       if (!applies || flat[field] !== undefined) continue;
       if (field === 'savings' && !answer.assumed.some((a) => a.id === 'savings-growth') && !(answer.inputs.you.pot > 0 || (answer.inputs.partner && answer.inputs.partner.pot > 0))) continue;
       if (field === 'risk' && !(answer.inputs.you.pot > 0 || (answer.inputs.partner && answer.inputs.partner.pot > 0))) continue;
       if (field === 'start.age' && answer.inputs.start.kind !== 'age') continue;
       if (field === 'charge' && answer.status !== 'ok') continue;   // nothing held in funds or cash: nothing to charge
+      if (field === 'endAge' && cutShort) continue;                     // the cap's line says the age instead (a rule)
       const line = answer.assumed.find((a) => a.id === id);
       if (!line) fail('I10', `${field} was defaulted but ${id} is not under what was assumed`);
       else if (line.source !== 'default') fail('I10', `${field} was defaulted but ${id} says ${line.source}`);
     }
   }
-  const always = ['start', 'plan-to', 'todays-prices', 'tax-rules'];
+  const always = ['start', lineFor('plan-to'), 'todays-prices', 'tax-rules'];
   if (answer.status === 'ok' && (answer.inputs.you.pot > 0 || (answer.inputs.partner && answer.inputs.partner.pot > 0))) {
     always.push('risk', 'steady');
     // the tax-free part (couples-different-years.md 2.3): a quarter of each withdrawal, unless every pot's holder has had it
@@ -226,7 +238,7 @@ export function checkAnswer(answer, given) {
     if (holders.some((w) => answer.inputs[w].taxFreeTaken !== true)) always.push('quarter-tax-free');
     for (const w of holders) if (answer.inputs[w].taxFreeTaken === true) always.push('tax-free-taken' + (w === 'you' ? '' : '-partner'));
   }
-  if (answer.inputs.household === 'couple') always.push('both-alive');
+  if (answer.inputs.household === 'couple') always.push(W ? 'life-couple' : 'both-alive');
   // couples apart: the pay line, never "you both start at the same time" (couples-different-years.md 2.4)
   if (answer.apart) {
     always.push('stop-apart');

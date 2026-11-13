@@ -249,7 +249,8 @@ describe('what have you got? (the numbers step)', () => {
     expect(charge.closest('.box').querySelector('.suffix').textContent).toBe('%');
     expect(root.querySelector('label[for="c.charge"]').textContent).toBe(C.fields.charge.label);
     expect(one(root, 'c.endAge').value).toBe('');
-    expect(one(root, 'c.endAge').getAttribute('placeholder')).toBe('95');
+    // (7.8.0: the end age starts from the plan-to age — F1 is 58, the figures for women as not said: 99)
+    expect(one(root, 'c.endAge').getAttribute('placeholder')).toBe('99');
     expect(one(root, 'c.action.moreDetail').getAttribute('aria-expanded')).toBe('true');
     expect(one(root, 'c.take')).toBe(null);                      // "take" is never on the numbers step
   });
@@ -545,7 +546,7 @@ describe('what does it pay a month? (the answer step)', () => {
   it('"no amount lasts" takes the place of the headline', () => {
     const s = load('answer-F1');
     const r = s.answers.c.result;
-    r.sentences = { madeOf: [], none: { id: 'c.none', text: 'With these figures there is no monthly amount that lasts to 95. Try a later start age or a shorter time.',
+    r.sentences = { madeOf: [], none: { id: 'c.none', text: 'With these figures there is no monthly amount that lasts to 99. Try a later start age or a shorter time.',
       parts: ['With these figures there is no monthly amount that lasts to ', { key: 'inputs.endAge', kind: 'age' }, '. Try a later start age or a shorter time.'] } };
     const root = renderScreen(s);
     expect(checkScreen(root, s)).toEqual([]);

@@ -31,8 +31,8 @@ const MADE = { id: 'Kq8LwT2mJv5PzYc9BnRd', name: 'Stop at 60 (2)', where: 'accou
 describe('when an answer can be kept', () => {
   it('a final answer, for what is typed now, of status ok: the box holds the suggested name', () => {
     const v = keepView(loaded('a', 'answer-A1'), 'a');
-    expect(v).toMatchObject({ can: true, why: null, suggested: 'Stop at 60 · £1,900 a month', name: 'Stop at 60 · £1,900 a month', problem: null, saving: false, made: null, separate: false });
-    expect(keepView(loaded('c', 'answer-F1'), 'c').name).toBe('From 58 · £1,350 a month');
+    expect(v).toMatchObject({ can: true, why: null, suggested: 'Stop at 60 · £1,850 a month', name: 'Stop at 60 · £1,850 a month', problem: null, saving: false, made: null, separate: false });
+    expect(keepView(loaded('c', 'answer-F1'), 'c').name).toBe('From 58 · £1,380 a month');
     expect(keepView(loaded('b', 'answer-B1'), 'b').name).toBe('Stop at 60 · £2,000 a month · paying £700');
     expect(keepView(loaded('d', 'answer-D1'), 'd').name).toBe('From 68 · £2,100 a month');
   });
@@ -94,7 +94,7 @@ describe('keep/made and keep/failed: what the one write file says', () => {
     const saving = reduce(loaded('a', 'answer-A1'), { type: A.KEEP_SAVE, q: 'a' });
     const s = reduce(run(saving, { type: A.KEEP_NAME, q: 'a', value: 'Typed' }), { type: A.KEEP_MADE, q: 'a', ...MADE });
     expect(s.keep.a).toEqual({ name: null, problem: null, saving: false, partnerKept: null, pending: null, used: null, made: { ...MADE, partnerId: null, partnerName: null, separate: false } });
-    expect(keepView(s, 'a')).toMatchObject({ name: 'Stop at 60 · £1,900 a month', made: { id: MADE.id, name: 'Stop at 60 (2)', where: 'account' } });
+    expect(keepView(s, 'a')).toMatchObject({ name: 'Stop at 60 · £1,850 a month', made: { id: MADE.id, name: 'Stop at 60 (2)', where: 'account' } });
     const rail = railFor(s);
     expect(rail.steps.find((x) => x.id === 'keep')).toMatchObject({ state: 'done', result: { text: 'Kept' } });
     // a couple: the partner's plan beside it; D: a separate plan

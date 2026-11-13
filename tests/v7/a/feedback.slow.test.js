@@ -26,12 +26,14 @@ import { at } from '../../helpers/clock.js';
 import { answerA, TEST_ENV, ENGINE_READY } from './invariants.js';
 
 const N = Number(process.env.V7_FEEDBACK_FUTURES || 300);
-const ENV = { ...TEST_ENV, futures: N };
+// (7.8.0: the amount fed back is held to today's saved-plan run on the count, env.weighted false: that run counts to its
+// end age, which the weighted level is not)
+const ENV = { ...TEST_ENV, futures: N, weighted: false };
 const NOW = at(2026, 9, 30);
 
 /** A single person of `age` with `pot` (pension only), taking `monthly`, saved the way today's app saves a plan. */
 function settingsFor(age, pot, monthly) {
-  const env = { today: ENV.today };
+  const env = { today: ENV.today, weighted: false };   // (the plan on the count, as the answer above)
   const checked = checkInputs(SCHEMA_C, { you: { pot, age } }, env).inputs;
   const plan = enginePlan(toHouseholdC(checked, env).household, env);
   const [{ config }] = configsAt(plan, monthly * 12);

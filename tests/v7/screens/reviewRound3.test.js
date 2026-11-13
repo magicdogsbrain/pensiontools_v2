@@ -145,11 +145,12 @@ describe('S13 — paying in is counted until 75', () => {
 
 describe('S17 — "Make it last to age" before the start: never a dead end', () => {
   it('pressing "Show what it pays" opens "Add more detail" and puts the keyboard in the box, with its sentence', () => {
-    const state = numbers({ 'you.pot': '100,000', 'you.age': '70', 'start.kind': 'age', 'start.age': '96' });
+    // (7.8.0: the end age's default is the plan-to age counted from the start, never before it — so the end age is typed)
+    const state = numbers({ 'you.pot': '100,000', 'you.age': '70', 'start.kind': 'age', 'start.age': '96', endAge: '95' });
     state.route = { ...state.route, screen: 'step', q: 'c', step: 'numbers', focus: null };
     const page = live(state);
     try {
-      expect(page.root.querySelector('#more-detail')).toBe(null);
+      // (a typed end age is under more detail, so the block may already be open; pressing "Show" keeps it open and goes to it)
       act(() => { one(page.root, 'c.action.show').click(); });
       expect(page.store.getState().ui.open).toContain('more');
       const box = one(page.root, 'c.endAge');
@@ -161,7 +162,7 @@ describe('S17 — "Make it last to age" before the start: never a dead end', () 
   });
 
   it('the reducer: asked with a problem inside more detail, the block opens; with none there, it stays as it was', () => {
-    const bad = numbers({ 'you.pot': '100,000', 'you.age': '70', 'start.kind': 'age', 'start.age': '96' });
+    const bad = numbers({ 'you.pot': '100,000', 'you.age': '70', 'start.kind': 'age', 'start.age': '96', endAge: '95' });
     expect(reduce(bad, { type: 'draft/ask', q: 'c' }).ui.open).toContain('more');
     const elsewhere = numbers({ 'you.pot': '100,000' });
     expect(reduce(elsewhere, { type: 'draft/ask', q: 'c' }).ui.open).not.toContain('more');

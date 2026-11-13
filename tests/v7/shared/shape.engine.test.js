@@ -80,7 +80,8 @@ describe('I-SS2 — a shape that never changes is no shape', () => {
     expect('shape' in plan).toBe(false);
     // a shape whose every step is past the plan: no change inside it (validation refuses it on the form; the model holds)
     const { household } = planC(C_FLAT);
-    const late = enginePlan({ ...household, shape: { unit: 'share', start: { then: 'level' }, steps: [{ fromAge: 99, share: 50, then: 'level' }] } }, ENV);
+    // (7.8.0: past the run's own end, which goes on past the plan-to age to the weighting age)
+    const late = enginePlan({ ...household, shape: { unit: 'share', start: { then: 'level' }, steps: [{ fromAge: 106, share: 50, then: 'level' }] } }, ENV);
     expect(JSON.stringify(late)).toBe(JSON.stringify(plan));
   });
 });
@@ -127,7 +128,8 @@ describe('T2, T12, T17 — each year\'s target, per person, from the shape', () 
     expect(per.map((p) => p.from)).toEqual(plan.periods.map((p) => p.from));
     per.forEach((p) => expect(p.takeHome).toBe(Math.max(amountInYear(plan, H, p.from), plan.periods.find((x) => x.from === p.from).netTotal)));
     const yearly = breakdownAt(yearlyPlan(plan), H);
-    expect(yearly).toHaveLength(plan.years);
+    // (7.8.0: what it is made of is said to the plan-to age, the label, while the run goes on past it)
+    expect(yearly).toHaveLength(Number.isFinite(plan.runToAge) ? plan.endAge - plan.startAge : plan.years);
     yearly.forEach((p, y) => expect(p.takeHome).toBe(Math.max(amountInYear(plan, H, y), plan.periods.find((x) => x.from <= y && y < x.to).netTotal)));
   });
 });

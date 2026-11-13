@@ -430,7 +430,8 @@ describe('the lock step, the address and the plan page (read.js)', () => {
     for (const l of L.lines.filter((x) => x.id.startsWith('says.'))) expect(l.source).toMatchObject({ kind: 'locked', at: '1 July 2026' });
     const B = planPage(entries, buckets.id, 'plan', { today: TODAY }).steps.find((s) => s.id === 'plan');
     expect(ids(buckets).filter((id) => id.startsWith('says.'))).toEqual([...Array(buckets.planDocument.steps.length).fill('says.pays'), 'says.sp', 'says.bad', 'says.cuts']);
-    expect(B.lines.find((l) => l.id === 'says.bad').sentence.text).toMatch(/^Your plan lasts in .+ futures? out of 10\. Left at the end/);
+    // (7.8.0: a document locked before 7.8.0 keeps its own count, and says how it was counted — never weighted after the event)
+    expect(B.lines.find((l) => l.id === 'says.bad').sentence.text).toMatch(/^Your plan lasts in .+ futures? out of 10; when it was locked, counted to \d+; not by how long you might live\. Left at the end/);
     expect(B.lines.find((l) => l.id === 'says.cuts').sentence.text).toMatch(/^Income cuts: in a slump, after \d+ months? in a row below the plan’s line, income is cut by \d+% for \d+ months and by \d+% if the slump lasts; the cut ends once the pots are £[\d,]+ above the line again, and missed income is made up later$/);
     const S = planPage(entries, saver.id, 'plan', { today: TODAY }).steps.find((s) => s.id === 'plan');
     expect(S.lines.filter((l) => l.id.startsWith('says.')).length).toBeGreaterThanOrEqual(4);

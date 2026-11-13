@@ -156,9 +156,14 @@ describe('the words, weighing', () => {
     expect(ids).toEqual(expect.arrayContaining(['life-plan-to', 'life-sex', 'life-sex-partner', 'life-couple']));
     expect(ids).not.toContain('both-alive');
     expect(ids).not.toContain('plan-to');
-    // (the answers do not ask for it yet: the line names the figures used and links to no box that is not there)
-    expect(c.assumed.find((a) => a.id === 'life-sex').field).toBe(null);
-    expect(c.assumed.find((a) => a.id === 'life-sex').text).toBe('We used figures for women, who tend to live longer.');
+    // (the answers ask for it under more detail since step 8: not said, the line says why and links to its box)
+    expect(c.assumed.find((a) => a.id === 'life-sex').field).toBe('you.sex');
+    expect(c.assumed.find((a) => a.id === 'life-sex').source).toBe('default');
+    expect(c.assumed.find((a) => a.id === 'life-sex').text).toBe('We used figures for women, who tend to live longer, because you did not say.');
+    expect(c.assumed.find((a) => a.id === 'life-sex-partner').field).toBe('partner.sex');
+    // said: the figures named, "as you said", no "because"
+    const said = answerC({ ...SAM_C, you: { ...SAM_C.you, sex: 'male' } }, ENV).assumed.find((a) => a.id === 'life-sex');
+    expect(said).toMatchObject({ field: 'you.sex', source: 'entered', value: 'male', text: 'We used the figures for men, as you said.' });
     // the age the plan runs to and how a couple is counted are shown without "See all of them"
     expect(c.assumed.find((a) => a.id === 'life-plan-to').always).toBe(true);
     expect(c.assumed.find((a) => a.id === 'life-couple').always).toBe(true);

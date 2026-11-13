@@ -55,7 +55,7 @@ export const BAND = { careful: 0.9, middling: 0.5, good: 0.1 };
  * one whole future, the runs and the plan-to age follow the end-age rule before 7.8.0, and the verdicts are
  * legacyVerdictOf's — so Balanced is the figure and the verdict before 7.8.0, byte for byte.
  */
-export const SUCCESS = { weighted: false };
+export const SUCCESS = { weighted: true };
 
 /**
  * The most drawing years a run goes to: RULES.maxDrawYears while weighing (env.weighted in tests, else SUCCESS.weighted),

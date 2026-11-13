@@ -7,7 +7,7 @@
  * plan on the reference machine. The check itself is _l2.js's, which a plan kept locally runs too (localIdentity.local.test.js).
  */
 import { describe, it, expect } from 'vitest';
-import { runLasts, planFor, runForDocument, savingPathFor, documentAccumulationOf, documentHoldingsOf } from '../../../src/answers/plan/lastsRun.js';
+import { runLasts, planFor, runForDocument, savingPathFor, documentAccumulationOf, documentHoldingsOf, documentSuccessOf } from '../../../src/answers/plan/lastsRun.js';
 import { buildPlanDocument, trimPlan, trimResult } from '../../../src/services/PlanDocument.js';
 import { savingPathForLock } from '../../../src/ui/savingPathForLock.js';
 import { lockPatch, LOCKED_BY } from '../../../src/answers/plan/lock.js';
@@ -64,7 +64,9 @@ describe('the document\'s run in the preview equals the planner\'s document, to 
     const r = stressTestStrategy(sid, p);
     const accumulation = (plan.accumulationTool && plan.accumulationTool.settings) || {};
     const savingPath = await savingPathForLock({ settings: s, accumulation, holdings: documentHoldingsOf(plan), now });
-    return buildPlanDocument({ planName: plan.planDetails.name || 'My plan', holdings: documentHoldingsOf(plan), settings: s, p, r, lockedAt, lockedBy, budgetGross, essentials, journey: plan.journey || [], accumulation, now, savingPath });
+    // (7.8.0: the definition it is tested under, as index.html works it out from the live result: documentSuccessOf)
+    const success = documentSuccessOf(plan, { settings: s, strategyId: sid, p, r, now, essentials: ess });
+    return buildPlanDocument({ planName: plan.planDetails.name || 'My plan', holdings: documentHoldingsOf(plan), settings: s, p, r, lockedAt, lockedBy, budgetGross, essentials, journey: plan.journey || [], accumulation, now, savingPath, success });
   }
   for (const [name, raw] of Object.entries(C)) {
     if (isLocked(raw)) continue;

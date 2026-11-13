@@ -121,7 +121,8 @@ describe('SCHEMA_C — the declaration', () => {
     // in the more-detail block, between the risk level and the end age (the order A and B keep)
     const more = SCHEMA_C.fields.filter((f) => f.group === 'more').map((f) => f.path);
     // the tax-free part: under more detail too; how the savings grow straight after them (6.22.0)
-    expect(more).toEqual(['you.taxFreeTaken', 'partner.taxFreeTaken', 'savings', 'isaGrowth', 'risk', 'charge', 'endAge', 'confidence']);
+    // (7.8.0: which figures for how long people live, ahead of the end age whose default reads them)
+    expect(more).toEqual(['you.taxFreeTaken', 'partner.taxFreeTaken', 'savings', 'isaGrowth', 'risk', 'charge', 'you.sex', 'partner.sex', 'endAge', 'confidence']);
     const at = (path) => parseDraft(SCHEMA_C, { 'you.pot': '250000', 'you.age': '58', charge: path }, TEST_ENV);
     expect(at('1.35').inputs.charge).toBe(1.35);
     expect(at('0.07').errors).toEqual({ charge: 'notANumber' });
@@ -138,8 +139,9 @@ describe('SCHEMA_C — the declaration', () => {
     const r = parseDraft(SCHEMA_C, { 'you.pot': '250000', 'you.age': '58' }, TEST_ENV);
     expect(r.ok).toBe(true);
     expect(r.inputs).toEqual({
-      household: 'single', you: { pot: 250000, age: 58, statePension: { kind: 'full' }, finalSalary: { has: false } },
-      start: { kind: 'now' }, savings: 0, risk: 'balanced', charge: 0.5, endAge: 95, confidence: 'balanced', take: null
+      // (7.8.0: the end age's default is the plan-to age — 58 now, the figures for women as not said: 99)
+      household: 'single', you: { pot: 250000, age: 58, statePension: { kind: 'full' }, finalSalary: { has: false }, sex: 'notSaid' },
+      start: { kind: 'now' }, savings: 0, risk: 'balanced', charge: 0.5, endAge: 99, confidence: 'balanced', take: null
     });
     expect(validate(SCHEMA_C, r.inputs, TEST_ENV)).toEqual({ ok: true, errors: {} });
     expect(checkInputs(SCHEMA_C, r.inputs, TEST_ENV).inputs).toEqual(r.inputs);   // checking twice changes nothing
@@ -193,8 +195,8 @@ describe('C: each of a couple stops on their own date', () => {
     const r = two({ 'partner.payIn.has': 'yes', 'partner.payIn.own': '200', 'partner.payIn.employer': '100', 'start.kind': 'age', 'start.age': '60' });
     expect(r.ok).toBe(true);
     expect(JSON.stringify(Object.keys(r.inputs))).toBe(JSON.stringify(['household', 'you', 'start', 'partner', 'savings', 'risk', 'charge', 'endAge', 'confidence', 'take']));
-    expect(Object.keys(r.inputs.partner)).toEqual(['age', 'pot', 'statePension', 'finalSalary', 'payIn']);
-    expect(Object.keys(two().inputs.you)).toEqual(['pot', 'age', 'statePension', 'finalSalary']);   // from now: the tax-free question not answered
+    expect(Object.keys(r.inputs.partner)).toEqual(['age', 'pot', 'statePension', 'finalSalary', 'payIn', 'sex']);
+    expect(Object.keys(two().inputs.you)).toEqual(['pot', 'age', 'statePension', 'finalSalary', 'sex']);   // from now: the tax-free question not answered
   });
 
   it('stopYearsOf reads C\'s start as your stop', () => {
@@ -227,7 +229,7 @@ describe('the answer function', () => {
     const couple = { household: 'couple', you: { pot: 400000, age: 62 }, partner: { age: 60 } };
     const r = answerC(couple, TEST_ENV);
     expect(r.status).toBe('ok');
-    expect(r.inputs.partner).toEqual({ age: 60, pot: 0, statePension: { kind: 'full' }, finalSalary: { has: false } });
+    expect(r.inputs.partner).toEqual({ age: 60, pot: 0, statePension: { kind: 'full' }, finalSalary: { has: false }, sex: 'notSaid' });
     expect(r.basis).toMatchObject({ today: '2026-09-30', futures: 40, seed: 0, level: 'balanced', levelFails20: 2 });
     for (const s of sentencesOf(r)) expect(partsText(s.parts, r), s.id).toBe(s.text);
     for (const s of sentencesOf(r)) for (const p of s.parts) if (p && p.key) expect(typeof get(r, p.key), `${s.id}: ${p.key}`).toBe('number');

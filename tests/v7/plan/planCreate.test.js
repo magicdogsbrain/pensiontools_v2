@@ -188,25 +188,25 @@ describe('an account: one addDoc of the planner\'s own document, after a fresh r
   });
   it('with plans in the account already: not active; the name made different from a name already taken (" (2)")', async () => {
     const taken = copy(C['10-couple-b']);
-    taken.planDetails.name = 'Stop at 60 · £1,900 a month';          // A1's suggested name
+    taken.planDetails.name = 'Stop at 60 · £1,850 a month';          // A1's suggested name (£1,850 since 7.8.0)
     const p = page('a', 'answer-A1', { raws: [C['20-locked-start-after-stop'], taken] });
     p.keep();
     await tick();
     expect(p.fb.adds.length).toBe(1);
     const written = p.fb.adds[0].data;
     expect(written.isActive).toBe(false);
-    expect(written.planDetails.name).toBe('Stop at 60 · £1,900 a month (2)');
-    expect(written.planDetails.name).toBe(uniqueName('Stop at 60 · £1,900 a month', ['Linkers to 85', 'Stop at 60 · £1,900 a month']));
-    expect(p.store.getState().keep.a.made.name).toBe('Stop at 60 · £1,900 a month (2)');
+    expect(written.planDetails.name).toBe('Stop at 60 · £1,850 a month (2)');
+    expect(written.planDetails.name).toBe(uniqueName('Stop at 60 · £1,850 a month', ['Linkers to 85', 'Stop at 60 · £1,850 a month']));
+    expect(p.store.getState().keep.a.made.name).toBe('Stop at 60 · £1,850 a month (2)');
     p.stop();
   });
   it('the fresh read is what counts: a plan made elsewhere since the page opened takes the name and the first place', async () => {
     const elsewhere = copy(C['10-couple-b']);
-    elsewhere.planDetails.name = 'From 58 · £1,350 a month';         // F1's suggested name
+    elsewhere.planDetails.name = 'From 58 · £1,380 a month';         // F1's suggested name (7.8.0: at Balanced, weighted)
     const p = page('c', 'answer-F1', { raws: [], rereadList: [elsewhere] });
     p.keep();
     await tick();
-    expect(p.fb.adds[0].data.planDetails.name).toBe('From 58 · £1,350 a month (2)');
+    expect(p.fb.adds[0].data.planDetails.name).toBe('From 58 · £1,380 a month (2)');
     expect(p.fb.adds[0].data.isActive).toBe(false);
     p.stop();
   });
@@ -415,10 +415,10 @@ describe('this window: the new plan appended, every other plan byte-identical, o
 describe('the property: random answers × random existing plans (road-to-7.md step 7)', () => {
   const PLANS = Object.values(C);
   const existing = fc.array(fc.integer({ min: 0, max: PLANS.length - 1 }), { maxLength: 3 }).chain((ix) =>
-    fc.tuple(...ix.map(() => fc.constantFrom(null, 'Stop at 60 · £1,900 a month', 'From 58 · £1,350 a month', 'Mine'))).map((names) =>
+    fc.tuple(...ix.map(() => fc.constantFrom(null, 'Stop at 60 · £1,850 a month', 'From 58 · £1,380 a month', 'Mine'))).map((names) =>
       ix.map((i, k) => { const p = copy(PLANS[i]); p.id = p.id + k; if (names[k]) { p.planDetails.name = names[k]; if ('planDetails.name' in p) p['planDetails.name'] = names[k]; } return p; })));
   it('a fresh id, no updateDoc, the existing plans byte-identical, the written plan passes seedProblems, the window never exceeds three', async () => {
-    await fc.assert(fc.asyncProperty(fc.constantFrom(...ANSWERS), existing, fc.constantFrom('in', 'nobody'), fc.constantFrom('', '   ', 'Mine', 'My own  plan', 'x'.repeat(61), 'Stop at 60 · £1,900 a month'), async ([q, name], raws, session, typedName) => {
+    await fc.assert(fc.asyncProperty(fc.constantFrom(...ANSWERS), existing, fc.constantFrom('in', 'nobody'), fc.constantFrom('', '   ', 'Mine', 'My own  plan', 'x'.repeat(61), 'Stop at 60 · £1,850 a month'), async ([q, name], raws, session, typedName) => {
       const p = page(q, name, { session, raws });
       if (typedName.trim()) p.store.dispatch({ type: A.KEEP_NAME, q, value: typedName });
       const before = session === 'nobody' ? p.session.raw(GUEST_PLANS_KEY) : null;

@@ -146,8 +146,11 @@ describe('C — metamorphic relations', () => {
     // no savings: a couple's savings are split between them, so a partner would then have something
     fc.assert(fc.property(arbitraryInputs(SCHEMA_C, ENV).filter((i) => i.household === 'single' && !(i.savings > 0)), (single) => {
       const couple = { ...single, household: 'couple', partner: { age: single.you.age, pot: 0, statePension: { kind: 'none' }, finalSalary: { has: false } } };
-      const a = ok(answerC(single, ENV), single);
-      const b = ok(answerC(couple, ENV), couple);
+      // (7.8.0: while weighing, a couple is counted while either of you is alive, so a partner with nothing still moves the
+      // weights and the plan-to age; the relation is the engine's and is held on the count, env.weighted false)
+      const COUNT = { ...ENV, weighted: false };
+      const a = ok(answerC(single, COUNT), single);
+      const b = ok(answerC(couple, COUNT), couple);
       const strip = (h) => ({ ...h, phases: h.phases.map(({ shown, ...p }) => p) });
       expect(strip(household(b))).toEqual(strip(household(a)));
       expect(b.phases.map((p) => p.takeHome)).toEqual(a.phases.map((p) => p.takeHome));

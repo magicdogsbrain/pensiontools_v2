@@ -125,25 +125,25 @@ describe('stopping in different years (couples-different-years.md 2.4, "Plan nam
 
 describe('the suggestion, pattern by pattern (from the pinned answers)', () => {
   it('C, money from now: "From {age} · £{careful} a month"', () => {
-    expect(name('c', 'answer-F1')).toBe('From 58 · £1,350 a month');
-    expect(name('c', 'answer-F3')).toBe('From 68 · £1,820 a month');
+    expect(name('c', 'answer-F1')).toBe('From 58 · £1,380 a month');
+    expect(name('c', 'answer-F3')).toBe('From 68 · £1,860 a month');
   });
   it('C, a couple from now: both ages on the same date', () => {
-    expect(name('c', 'answer-F2')).toBe('From 62 and 60 · £3,500 a month');
+    expect(name('c', 'answer-F2')).toBe('From 62 and 60 · £3,530 a month');
   });
   it('C, starting later with money still going in: "Stop at {age at the start}"', () => {
-    expect(name('c', 'answer-paying-in')).toBe('Stop at 67 · £2,220 a month');
+    expect(name('c', 'answer-paying-in')).toBe('Stop at 67 · £2,340 a month');
   });
   it('C, starting later with nothing going in: "From {age at the start}"', () => {
     const r = load('c', 'answer-paying-in');
     const none = copy(r);
     none.payIn = { total: 0, byPerson: [{ who: 'you', total: 0 }] };
-    expect(suggestedPlanName('c', none.inputs, none)).toBe('From 67 · £2,220 a month');
+    expect(suggestedPlanName('c', none.inputs, none)).toBe('From 67 · £2,340 a month');
     delete none.payIn;
-    expect(suggestedPlanName('c', none.inputs, none)).toBe('From 67 · £2,220 a month');
+    expect(suggestedPlanName('c', none.inputs, none)).toBe('From 67 · £2,340 a month');
   });
   it('A: "Stop at {shown age} · £{spend} a month" — the spending tried, not the careful amount', () => {
-    expect(name('a', 'answer-A1')).toBe('Stop at 60 · £1,900 a month');
+    expect(name('a', 'answer-A1')).toBe('Stop at 60 · £1,850 a month');
     expect(name('a', 'answer-stop-now')).toBe('Stop at 60 · £2,000 a month');
     expect(name('a', 'answer-A4')).toBe('Stop at 55 · £2,200 a month');
   });

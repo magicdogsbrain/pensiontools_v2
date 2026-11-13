@@ -343,7 +343,8 @@ describe('C — properties between two answers', () => {
         fc.pre(a.status === 'ok' && a.levels[a.level].monthly > 0 && a.levels[a.level].monthly <= 50000);
         const b = ok(answerC({ ...inputs, take: a.levels[a.level].monthly }, ENV), inputs);
         expect(b.take.covered).toBe(true);
-        expect(b.take.runOutAge).toBe(a.basis.endAge);
+        // (not weighing, covered is the count at 9 in 10, so the bad case lasts; weighing, the level is not a count)
+        if (!a.basis.weighted) expect(b.take.runOutAge).toBe(a.basis.endAge);
         expect(b.take.lasted).toBe(a.levels[a.level].fixedAge);
         // M9 in this brief: giving a take changes nothing else
         const { take: t1, sentences: s1, inputs: i1, ...restA } = a;
@@ -361,7 +362,8 @@ describe('C — properties between two answers', () => {
         fc.pre(a.status === 'ok' && a.levels[a.level].monthly % 10 === 0 && a.levels[a.level].monthly + 50 <= 50000);
         const b = ok(answerC({ ...inputs, take: a.levels[a.level].monthly + 50 }, ENV), inputs);
         expect(b.take.covered).toBe(false);
-        expect(b.take.runOutAge).toBeLessThan(a.basis.endAge);
+        // (not weighing, not covered is more than 1 in 10 short, so the bad case runs out; weighing, the level is not a count)
+        if (!a.basis.weighted) expect(b.take.runOutAge).toBeLessThan(a.basis.endAge);
       }), opts());
     });
 

@@ -52,7 +52,7 @@
               "oneOffs": [],
               "plsaTier": "moderate",
               "retired": true,
-              "retirementAge": 63,
+              "retirementAge": 62,
               "sharedWithPartner": false,
               "version": 1
             }
@@ -68,7 +68,7 @@
               "consecutiveLimit": 3,
               "duration": 35,
               "equityMin": 250000,
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "basic",
               "isaBalance": 0,
               "isaDrawdownStrategy": "minimiseEarlyTax",
@@ -82,6 +82,7 @@
               "statePension": 0,
               "statePensionYear": 0,
               "targetSchedule": [
+                38000,
                 38000,
                 38000,
                 38000,
@@ -166,12 +167,12 @@
               "dbStartYear": 0,
               "disableProtection": false,
               "diversifierStart": 0,
-              "duration": 33,
+              "duration": 34,
               "equityGlideEnabled": false,
               "equityMin": 420000,
               "extraIncomes": [],
               "extraWithdrawals": [],
-              "firstTaxYear": 2027,
+              "firstTaxYear": 2026,
               "giaTaxBand": "basic",
               "glideEndgame": null,
               "hodlEnabled": false,
@@ -181,7 +182,7 @@
               "incomeSteps": [
                 {
                   "amount": 38000,
-                  "fromAge": 63
+                  "fromAge": 62
                 },
                 {
                   "amount": 32000,
@@ -203,18 +204,20 @@
               "relevantEarnings": 0,
               "retireAge": null,
               "retired": true,
-              "shapeAgeNow": 63,
+              "shapeAgeNow": 62,
               "spStartDate": "14 March 2032",
               "spWeeklyAmount": 221.2,
               "spendingProfile": "flat",
               "statePension": 12000,
               "statePensionYear": 12,
+              "stoppedWork": "2026-06",
               "strategyId": "pots-and-valves",
               "strategyParams": {},
               "strategyState": {},
               "subAsset": null,
               "taggedFunds": [],
               "targetSchedule": [
+                38000,
                 38000,
                 38000,
                 38000,
@@ -2743,6 +2746,8 @@
               "name": "Alex’s first plan",
               "stageKey": "unknown",
               "line": null,
+              "closed": false,
+              "close": null,
               "locked": false,
               "lockedOn": null,
               "madeOn": null,
@@ -2751,16 +2756,127 @@
               "main": false,
               "records": false,
               "linked": false,
+              "checkInDue": false,
+              "monthByMonth": false,
+              "life": null,
+              "todo": 1,
               "lastModified": "2026-09-28T18:42:10.000Z"
             },
             {
               "id": "SamLocked02",
               "name": "Sam’s plan",
-              "stageKey": "bridge",
+              "stageKey": "running",
               "line": {
-                "id": "bridge-ladder",
+                "id": "running-ladder",
                 "slots": {
-                  "month": "April 2027"
+                  "month": "April 2029"
+                }
+              },
+              "closed": false,
+              "close": {
+                "months": [
+                  {
+                    "month": "2026-10",
+                    "words": "October 2026",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from October 2026",
+                    "workingName": "Sam’s plan, back to work from October 2026"
+                  },
+                  {
+                    "month": "2026-11",
+                    "words": "November 2026",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from November 2026",
+                    "workingName": "Sam’s plan, back to work from November 2026"
+                  },
+                  {
+                    "month": "2026-12",
+                    "words": "December 2026",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from December 2026",
+                    "workingName": "Sam’s plan, back to work from December 2026"
+                  },
+                  {
+                    "month": "2027-01",
+                    "words": "January 2027",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from January 2027",
+                    "workingName": "Sam’s plan, back to work from January 2027"
+                  },
+                  {
+                    "month": "2027-02",
+                    "words": "February 2027",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from February 2027",
+                    "workingName": "Sam’s plan, back to work from February 2027"
+                  },
+                  {
+                    "month": "2027-03",
+                    "words": "March 2027",
+                    "year": "2026/27",
+                    "name": "Sam’s plan from March 2027",
+                    "workingName": "Sam’s plan, back to work from March 2027"
+                  },
+                  {
+                    "month": "2027-04",
+                    "words": "April 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from April 2027",
+                    "workingName": "Sam’s plan, back to work from April 2027"
+                  },
+                  {
+                    "month": "2027-05",
+                    "words": "May 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from May 2027",
+                    "workingName": "Sam’s plan, back to work from May 2027"
+                  },
+                  {
+                    "month": "2027-06",
+                    "words": "June 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from June 2027",
+                    "workingName": "Sam’s plan, back to work from June 2027"
+                  },
+                  {
+                    "month": "2027-07",
+                    "words": "July 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from July 2027",
+                    "workingName": "Sam’s plan, back to work from July 2027"
+                  },
+                  {
+                    "month": "2027-08",
+                    "words": "August 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from August 2027",
+                    "workingName": "Sam’s plan, back to work from August 2027"
+                  },
+                  {
+                    "month": "2027-09",
+                    "words": "September 2027",
+                    "year": "2027/28",
+                    "name": "Sam’s plan from September 2027",
+                    "workingName": "Sam’s plan, back to work from September 2027"
+                  }
+                ],
+                "suggested": "2026-10",
+                "name": "Sam’s plan from October 2026",
+                "asked": true,
+                "held": true,
+                "pots": {
+                  "pension": 613800,
+                  "isa": 35052,
+                  "gia": 0
+                },
+                "potsFrom": "your record for September 2026 for the pension; What you hold (20 June 2026) for the ISAs; this plan’s own figure for the ordinary investment account",
+                "partner": null,
+                "working": {
+                  "name": "Sam’s plan, back to work from October 2026",
+                  "ageNow": 64,
+                  "flexibleAccess": {
+                    "month": "July 2026"
+                  }
                 }
               },
               "locked": true,
@@ -2771,6 +2887,10 @@
               "main": false,
               "records": true,
               "linked": false,
+              "checkInDue": false,
+              "monthByMonth": true,
+              "life": "drawing",
+              "todo": 1,
               "lastModified": "2026-09-02T18:30:00.000Z"
             },
             {
@@ -2781,6 +2901,8 @@
                 "id": "draft-retired",
                 "slots": {}
               },
+              "closed": false,
+              "close": null,
               "locked": false,
               "lockedOn": null,
               "madeOn": null,
@@ -2789,6 +2911,10 @@
               "main": true,
               "records": false,
               "linked": false,
+              "checkInDue": false,
+              "monthByMonth": true,
+              "life": "drawing",
+              "todo": 1,
               "lastModified": "2026-08-14T10:05:00.000Z"
             }
           ]
@@ -2832,10 +2958,10 @@
             "figures": {
               "yearly": 38000,
               "ageToday": 61,
-              "years": 33,
+              "years": 34,
               "ageEnd": 95,
               "step0": 38000,
-              "stepAge0": 63,
+              "stepAge0": 62,
               "step1": 32000,
               "stepAge1": 75,
               "sipp": 700000,
@@ -2889,10 +3015,12 @@
                     }
                   },
                   {
-                    "id": "about.retired",
-                    "slots": {},
+                    "id": "about.stoppedIn",
+                    "slots": {
+                      "month": "June 2026"
+                    },
                     "sentence": {
-                      "id": "about.retired",
+                      "id": "about.stoppedIn",
                       "parts": [],
                       "text": ""
                     },
@@ -2905,7 +3033,7 @@
                   {
                     "id": "about.firstYear",
                     "slots": {
-                      "year": "2027/28"
+                      "year": "2026/27"
                     },
                     "sentence": {
                       "id": "about.firstYear",
@@ -2934,7 +3062,7 @@
                           "kind": "age"
                         }
                       ],
-                      "text": "33 years, to age 95"
+                      "text": "34 years, to age 95"
                     },
                     "source": {
                       "kind": "saved",
@@ -2968,7 +3096,7 @@
                         },
                         " a year before tax"
                       ],
-                      "text": "From age 63: £38,000 a year before tax"
+                      "text": "From age 62: £38,000 a year before tax"
                     },
                     "source": {
                       "kind": "saved",
@@ -3203,7 +3331,7 @@
                   {
                     "id": "mix.tentOff",
                     "slots": {
-                      "years": "13"
+                      "years": "14"
                     },
                     "sentence": {
                       "id": "mix.tentOff",
@@ -3716,9 +3844,43 @@
             "locked": false,
             "lockedOn": null,
             "saver": false,
+            "stopMonth": null,
             "strategyId": "pots-and-valves",
             "bought": false,
             "hasDocument": false
+          },
+          {
+            "id": "month",
+            "optional": true,
+            "listed": true,
+            "state": "open",
+            "done": false,
+            "result": {
+              "id": "month.lockFirst",
+              "parts": [
+                "Months are recorded once the plan is locked"
+              ],
+              "text": "Months are recorded once the plan is locked"
+            },
+            "figures": {},
+            "lines": [],
+            "buttons": [
+              {
+                "id": "lockFirst",
+                "href": "#/plan/AlexWay01/lock",
+                "slots": {}
+              },
+              {
+                "id": "monthByMonth",
+                "href": "#/plan/AlexWay01/month",
+                "slots": {}
+              }
+            ],
+            "notes": [],
+            "recorded": false,
+            "setUp": false,
+            "gap": null,
+            "toRecord": "2026-09"
           },
           {
             "id": "hold",
@@ -3834,8 +3996,10 @@
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
-            "stop": "April 2027",
-            "savedYear": ""
+            "stop": "April 2026",
+            "savedYear": "",
+            "closed": "",
+            "next": ""
           },
           "button": {
             "id": "lasts",
@@ -3865,7 +4029,7 @@
           "bought": false,
           "family": true,
           "endAge": 95,
-          "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|17yztx6|U",
+          "runKey": "AlexWay01|2026-08-14T10:05:00.000Z|13z6pso|U",
           "stash": {
             "pots-and-valves": {},
             "buckets-in-order": {},
@@ -3888,7 +4052,7 @@
               "id": "pots-and-valves",
               "current": true,
               "open": false,
-              "rank": 3,
+              "rank": 2,
               "has": true,
               "affordable": true,
               "bought": false,
@@ -3903,26 +4067,26 @@
                 {
                   "id": "sub",
                   "slots": {
-                    "pct": "98.1",
+                    "pct": "97.6",
                     "futures": "1,000",
-                    "histories": "717"
+                    "histories": "711"
                   }
                 },
                 {
                   "id": "left",
                   "slots": {
-                    "typical": "£679,233",
-                    "bad": "£151,745"
+                    "typical": "£623,839",
+                    "bad": "£129,113"
                   }
                 }
               ],
               "verdict": {
                 "word": "yes",
-                "share": 0.981,
-                "chancePct": 98.1,
+                "share": 0.976,
+                "chancePct": 97.6,
                 "words": "in more than 9 futures out of 10",
-                "typicalLeft": 679233,
-                "badCaseLeft": 151745
+                "typicalLeft": 623839,
+                "badCaseLeft": 129113
               },
               "stale": false,
               "dials": [
@@ -3974,12 +4138,12 @@
               "needsRun": false,
               "tried": null,
               "table": {
-                "worst12": "£23,664",
-                "covered": "99.7%",
-                "coverage": "1.89",
-                "spent": "£1,086,169",
+                "worst12": "£22,950",
+                "covered": "99.6%",
+                "coverage": "1.86",
+                "spent": "£1,123,033",
                 "bumpiness": "11",
-                "score": "17.4"
+                "score": "17.1"
               },
               "compare": null
             },
@@ -4002,22 +4166,22 @@
                 {
                   "id": "subContract",
                   "slots": {
-                    "years": "33",
+                    "years": "34",
                     "toAge": "95"
                   }
                 },
                 {
                   "id": "left",
                   "slots": {
-                    "typical": "£890,160",
-                    "bad": "£258,476"
+                    "typical": "£781,008",
+                    "bad": "£239,868"
                   }
                 },
                 {
                   "id": "cost",
                   "slots": {
-                    "cost": "£548,648",
-                    "left": "£196,352"
+                    "cost": "£578,589",
+                    "left": "£166,411"
                   }
                 }
               ],
@@ -4026,8 +4190,8 @@
                 "share": 1,
                 "chancePct": 100,
                 "words": "in every future it tried",
-                "typicalLeft": 890160,
-                "badCaseLeft": 258476
+                "typicalLeft": 781008,
+                "badCaseLeft": 239868
               },
               "stale": false,
               "dials": [],
@@ -4040,10 +4204,10 @@
               "table": {
                 "worst12": "£25,911",
                 "covered": "100%",
-                "coverage": "2.01",
-                "spent": "£1,090,782",
-                "bumpiness": "12",
-                "score": "17.5"
+                "coverage": "1.89",
+                "spent": "£1,128,782",
+                "bumpiness": "11",
+                "score": "17.2"
               },
               "compare": null
             },
@@ -4066,22 +4230,22 @@
                 {
                   "id": "subContract",
                   "slots": {
-                    "years": "33",
+                    "years": "34",
                     "toAge": "95"
                   }
                 },
                 {
                   "id": "left",
                   "slots": {
-                    "typical": "£136,008",
-                    "bad": "£136,008"
+                    "typical": "£96,429",
+                    "bad": "£96,429"
                   }
                 },
                 {
                   "id": "cost",
                   "slots": {
-                    "cost": "£608,992",
-                    "left": "£136,008"
+                    "cost": "£648,571",
+                    "left": "£96,429"
                   }
                 }
               ],
@@ -4090,8 +4254,8 @@
                 "share": 1,
                 "chancePct": 100,
                 "words": "in every future it tried",
-                "typicalLeft": 136008,
-                "badCaseLeft": 136008
+                "typicalLeft": 96429,
+                "badCaseLeft": 96429
               },
               "stale": false,
               "dials": [
@@ -4103,17 +4267,6 @@
                   "max": 5,
                   "step": null,
                   "shown": "2",
-                  "error": null,
-                  "cut": false
-                },
-                {
-                  "key": "bridgeCash",
-                  "type": "money",
-                  "options": null,
-                  "min": 0,
-                  "max": 50000000,
-                  "step": null,
-                  "shown": "0",
                   "error": null,
                   "cut": false
                 },
@@ -4134,7 +4287,6 @@
               ],
               "values": {
                 "cashYears": 2,
-                "bridgeCash": 0,
                 "spareGrowth": "kept"
               },
               "ok": true,
@@ -4145,10 +4297,10 @@
               "table": {
                 "worst12": "£26,173",
                 "covered": "100%",
-                "coverage": "1.11",
-                "spent": "£1,091,044",
+                "coverage": "1.07",
+                "spent": "£1,129,044",
                 "bumpiness": "3",
-                "score": "36.9"
+                "score": "35.8"
               },
               "compare": null
             },
@@ -4156,7 +4308,7 @@
               "id": "buckets-in-order",
               "current": false,
               "open": false,
-              "rank": 2,
+              "rank": 3,
               "has": true,
               "affordable": true,
               "bought": false,
@@ -4171,26 +4323,26 @@
                 {
                   "id": "sub",
                   "slots": {
-                    "pct": "98.2",
+                    "pct": "97.6",
                     "futures": "1,000",
-                    "histories": "717"
+                    "histories": "711"
                   }
                 },
                 {
                   "id": "left",
                   "slots": {
-                    "typical": "£940,659",
-                    "bad": "£177,212"
+                    "typical": "£896,306",
+                    "bad": "£153,953"
                   }
                 }
               ],
               "verdict": {
                 "word": "yes",
-                "share": 0.982,
-                "chancePct": 98.2,
+                "share": 0.976,
+                "chancePct": 97.6,
                 "words": "in more than 9 futures out of 10",
-                "typicalLeft": 940659,
-                "badCaseLeft": 177212
+                "typicalLeft": 896306,
+                "badCaseLeft": 153953
               },
               "stale": false,
               "dials": [
@@ -4254,19 +4406,19 @@
               "needsRun": false,
               "tried": null,
               "table": {
-                "worst12": "£23,880",
-                "covered": "99.7%",
-                "coverage": "2.28",
-                "spent": "£1,083,095",
-                "bumpiness": "13",
-                "score": "17.4"
+                "worst12": "£23,736",
+                "covered": "99.5%",
+                "coverage": "2.26",
+                "spent": "£1,120,017",
+                "bumpiness": "14",
+                "score": "17.3"
               },
               "compare": null
             },
             {
-              "id": "gilt-rotation",
+              "id": "floor-to-age",
               "current": false,
-              "open": false,
+              "open": true,
               "rank": 4,
               "has": true,
               "affordable": true,
@@ -4282,7 +4434,7 @@
                 {
                   "id": "sub",
                   "slots": {
-                    "pct": "97.0",
+                    "pct": "95.8",
                     "futures": "1,000",
                     "histories": "1,422"
                   }
@@ -4290,25 +4442,109 @@
                 {
                   "id": "left",
                   "slots": {
-                    "typical": "£136,008",
-                    "bad": "£136,008"
+                    "typical": "£963,415",
+                    "bad": "£124,720"
                   }
                 },
                 {
                   "id": "cost",
                   "slots": {
-                    "cost": "£608,992",
-                    "left": "£136,008"
+                    "cost": "£455,224",
+                    "left": "£289,776"
                   }
                 }
               ],
               "verdict": {
                 "word": "yes",
-                "share": 0.97,
-                "chancePct": 97,
+                "share": 0.958,
+                "chancePct": 95.8,
                 "words": "in more than 9 futures out of 10",
-                "typicalLeft": 136008,
-                "badCaseLeft": 136008
+                "typicalLeft": 963415,
+                "badCaseLeft": 124720
+              },
+              "stale": false,
+              "dials": [
+                {
+                  "key": "floorToAge",
+                  "type": "age",
+                  "options": null,
+                  "min": 60,
+                  "max": 95,
+                  "step": null,
+                  "shown": "82",
+                  "error": null,
+                  "cut": false
+                }
+              ],
+              "values": {
+                "floorToAge": 82
+              },
+              "ok": true,
+              "errors": {},
+              "typed": true,
+              "needsRun": false,
+              "tried": {
+                "status": "done",
+                "reason": null,
+                "runs": 1,
+                "ms": 180
+              },
+              "table": {
+                "worst12": "£25,911",
+                "covered": "99.8%",
+                "coverage": "2.20",
+                "spent": "£1,128,782",
+                "bumpiness": "14",
+                "score": "16.5"
+              },
+              "compare": null
+            },
+            {
+              "id": "gilt-rotation",
+              "current": false,
+              "open": false,
+              "rank": 5,
+              "has": true,
+              "affordable": true,
+              "bought": true,
+              "family": false,
+              "lines": [
+                {
+                  "id": "lasts",
+                  "slots": {
+                    "words": "in 9 futures out of 10"
+                  }
+                },
+                {
+                  "id": "sub",
+                  "slots": {
+                    "pct": "94.1",
+                    "futures": "1,000",
+                    "histories": "1,410"
+                  }
+                },
+                {
+                  "id": "left",
+                  "slots": {
+                    "typical": "£96,429",
+                    "bad": "£96,429"
+                  }
+                },
+                {
+                  "id": "cost",
+                  "slots": {
+                    "cost": "£648,571",
+                    "left": "£96,429"
+                  }
+                }
+              ],
+              "verdict": {
+                "word": "yes",
+                "share": 0.941,
+                "chancePct": 94.1,
+                "words": "in 9 futures out of 10",
+                "typicalLeft": 96429,
+                "badCaseLeft": 96429
               },
               "stale": false,
               "dials": [
@@ -4320,17 +4556,6 @@
                   "max": 5,
                   "step": null,
                   "shown": "2",
-                  "error": null,
-                  "cut": false
-                },
-                {
-                  "key": "bridgeCash",
-                  "type": "money",
-                  "options": null,
-                  "min": 0,
-                  "max": 50000000,
-                  "step": null,
-                  "shown": "0",
                   "error": null,
                   "cut": false
                 },
@@ -4384,7 +4609,6 @@
               ],
               "values": {
                 "cashYears": 2,
-                "bridgeCash": 0,
                 "spareGrowth": "kept",
                 "rotateCutAge": 75,
                 "rotateTrigger": 30,
@@ -4397,95 +4621,11 @@
               "tried": null,
               "table": {
                 "worst12": "£11,502",
-                "covered": "99.9%",
-                "coverage": "1.37",
-                "spent": "£1,091,044",
-                "bumpiness": "6",
-                "score": "30.4"
-              },
-              "compare": null
-            },
-            {
-              "id": "floor-to-age",
-              "current": false,
-              "open": true,
-              "rank": 5,
-              "has": true,
-              "affordable": true,
-              "bought": true,
-              "family": false,
-              "lines": [
-                {
-                  "id": "lasts",
-                  "slots": {
-                    "words": "in more than 9 futures out of 10"
-                  }
-                },
-                {
-                  "id": "sub",
-                  "slots": {
-                    "pct": "97.4",
-                    "futures": "1,000",
-                    "histories": "1,434"
-                  }
-                },
-                {
-                  "id": "left",
-                  "slots": {
-                    "typical": "£1,051,000",
-                    "bad": "£163,621"
-                  }
-                },
-                {
-                  "id": "cost",
-                  "slots": {
-                    "cost": "£425,611",
-                    "left": "£319,389"
-                  }
-                }
-              ],
-              "verdict": {
-                "word": "yes",
-                "share": 0.9740000000000001,
-                "chancePct": 97.4,
-                "words": "in more than 9 futures out of 10",
-                "typicalLeft": 1051000,
-                "badCaseLeft": 163621
-              },
-              "stale": false,
-              "dials": [
-                {
-                  "key": "floorToAge",
-                  "type": "age",
-                  "options": null,
-                  "min": 60,
-                  "max": 95,
-                  "step": null,
-                  "shown": "82",
-                  "error": null,
-                  "cut": false
-                }
-              ],
-              "values": {
-                "floorToAge": 82
-              },
-              "ok": true,
-              "errors": {},
-              "typed": true,
-              "needsRun": false,
-              "tried": {
-                "status": "done",
-                "reason": null,
-                "runs": 1,
-                "ms": 180
-              },
-              "table": {
-                "worst12": "£25,911",
-                "covered": "99.8%",
-                "coverage": "2.28",
-                "spent": "£1,090,782",
-                "bumpiness": "14",
-                "score": "16.8"
+                "covered": "99.7%",
+                "coverage": "1.38",
+                "spent": "£1,129,044",
+                "bumpiness": "7",
+                "score": "28.6"
               },
               "compare": null
             },
@@ -4508,32 +4648,32 @@
                 {
                   "id": "sub",
                   "slots": {
-                    "pct": "89.2",
+                    "pct": "87.3",
                     "futures": "1,000",
-                    "histories": "1,434"
+                    "histories": "1,422"
                   }
                 },
                 {
                   "id": "left",
                   "slots": {
-                    "typical": "£1,262,052",
+                    "typical": "£1,197,754",
                     "bad": "£0"
                   }
                 },
                 {
                   "id": "cost",
                   "slots": {
-                    "cost": "£152,161",
-                    "left": "£592,839"
+                    "cost": "£187,575",
+                    "left": "£557,425"
                   }
                 }
               ],
               "verdict": {
                 "word": "close",
-                "share": 0.892,
-                "chancePct": 89.2,
+                "share": 0.873,
+                "chancePct": 87.3,
                 "words": "in just under 9 futures out of 10",
-                "typicalLeft": 1262052,
+                "typicalLeft": 1197754,
                 "badCaseLeft": 0
               },
               "stale": false,
@@ -4573,8 +4713,8 @@
               "table": {
                 "worst12": "£11,502",
                 "covered": "97%",
-                "coverage": "2.69",
-                "spent": "£1,090,782",
+                "coverage": "2.66",
+                "spent": "£1,128,782",
                 "bumpiness": "19",
                 "score": "16.1"
               },
@@ -4593,38 +4733,38 @@
                 {
                   "id": "lasts",
                   "slots": {
-                    "words": "in just under 9 futures out of 10"
+                    "words": "in 8 futures out of 10"
                   }
                 },
                 {
                   "id": "sub",
                   "slots": {
-                    "pct": "86.3",
+                    "pct": "82.3",
                     "futures": "1,000",
-                    "histories": "1,434"
+                    "histories": "1,422"
                   }
                 },
                 {
                   "id": "left",
                   "slots": {
-                    "typical": "£822,708",
+                    "typical": "£749,187",
                     "bad": "£0"
                   }
                 },
                 {
                   "id": "cost",
                   "slots": {
-                    "cost": "£375,236",
-                    "left": "£369,764"
+                    "cost": "£391,537",
+                    "left": "£353,463"
                   }
                 }
               ],
               "verdict": {
-                "word": "close",
-                "share": 0.863,
-                "chancePct": 86.3,
-                "words": "in just under 9 futures out of 10",
-                "typicalLeft": 822708,
+                "word": "no",
+                "share": 0.823,
+                "chancePct": 82.3,
+                "words": "in 8 futures out of 10",
+                "typicalLeft": 749187,
                 "badCaseLeft": 0
               },
               "stale": false,
@@ -4690,11 +4830,11 @@
               "tried": null,
               "table": {
                 "worst12": "£0",
-                "covered": "98%",
-                "coverage": "1.96",
-                "spent": "£1,090,782",
+                "covered": "97%",
+                "coverage": "1.89",
+                "spent": "£1,128,782",
                 "bumpiness": "15",
-                "score": "14.4"
+                "score": "13.9"
               },
               "compare": null
             },
@@ -4717,33 +4857,33 @@
                 {
                   "id": "sub",
                   "slots": {
-                    "pct": "60.6",
+                    "pct": "56.0",
                     "futures": "1,000",
-                    "histories": "1,434"
+                    "histories": "1,422"
                   }
                 },
                 {
                   "id": "left",
                   "slots": {
-                    "typical": "£582,121",
-                    "bad": "£163,586"
+                    "typical": "£555,753",
+                    "bad": "£165,263"
                   }
                 },
                 {
                   "id": "cost",
                   "slots": {
-                    "cost": "£261,746",
-                    "left": "£483,254"
+                    "cost": "£279,124",
+                    "left": "£465,876"
                   }
                 }
               ],
               "verdict": {
                 "word": "no",
-                "share": 0.606,
-                "chancePct": 60.6,
+                "share": 0.56,
+                "chancePct": 56,
                 "words": "in 6 futures out of 10",
-                "typicalLeft": 582121,
-                "badCaseLeft": 163586
+                "typicalLeft": 555753,
+                "badCaseLeft": 165263
               },
               "stale": false,
               "dials": [
@@ -4823,10 +4963,10 @@
               "needsRun": false,
               "tried": null,
               "table": {
-                "worst12": "£25,090",
+                "worst12": "£24,939",
                 "covered": "98%",
-                "coverage": "1.67",
-                "spent": "£1,520,911",
+                "coverage": "1.65",
+                "spent": "£1,551,653",
                 "bumpiness": "14",
                 "score": "11.9"
               },
@@ -4841,6 +4981,15 @@
             "ms": 4600
           },
           "has": true
+        },
+        "life": {
+          "key": "drawing",
+          "placing": "draft-retired",
+          "locked": false,
+          "stop": "2026-06",
+          "since": "2026-06",
+          "by": "facts",
+          "invite": null
         }
       }
     }
@@ -4968,7 +5117,7 @@
     "kept": null
   },
   "ways": {
-    "key": "AlexWay01|2026-08-14T10:05:00.000Z|17yztx6|U",
+    "key": "AlexWay01|2026-08-14T10:05:00.000Z|13z6pso|U",
     "status": "done",
     "reason": null,
     "result": {
@@ -4981,52 +5130,52 @@
           "reason": null,
           "a": {
             "strategyId": "pots-and-valves",
-            "chancePct": 98.1,
-            "share": 0.981,
+            "chancePct": 97.6,
+            "share": 0.976,
             "outOfTen": {
               "n": 10,
               "words": "in more than 9 futures out of 10"
             },
             "futures": 1000,
-            "histories": 717,
-            "years": 33,
+            "histories": 711,
+            "years": 34,
             "histStrideMonths": 2,
             "histRanOutPct": 0,
             "histRanOutN": 0,
-            "typicalLeft": 679232.7940306971,
-            "badCaseLeft": 151744.8997956248,
-            "goodCaseLeft": 2839263.2928823023,
-            "worst12": 23664.032293122073,
-            "coverage": 99.7429292929293,
+            "typicalLeft": 623838.8074818947,
+            "badCaseLeft": 129112.720052651,
+            "goodCaseLeft": 2922127.109856862,
+            "worst12": 22949.65985028873,
+            "coverage": 99.58823529411765,
             "cuts": {
               "futures": 1000,
-              "cutN": 739,
-              "cutPct": 73.9,
-              "ranOutN": 19,
-              "typicalCutPerYear": 3008,
+              "cutN": 752,
+              "cutPct": 75.2,
+              "ranOutN": 24,
+              "typicalCutPerYear": 3146,
               "typicalCutYears": 7,
-              "typicalCutTotal": 20707,
-              "worstCutTotal": 143212
+              "typicalCutTotal": 24583,
+              "worstCutTotal": 150796
             },
             "cutLabel": null,
             "failKind": "ran-out"
           },
           "bought": false,
           "ruin": {
-            "mc": 1.9,
+            "mc": 2.4,
             "hist": 0
           },
           "terminal": {
-            "p10": 151744.8997956248,
-            "p50": 679232.7940306971,
-            "p90": 2839263.2928823023
+            "p10": 129112.720052651,
+            "p50": 623838.8074818947,
+            "p90": 2922127.109856862
           },
-          "coverage": 99.7429292929293,
-          "spentMedian": 1086168.883695084,
-          "worst12": 23664.032293122073,
-          "vol": 0.10938725699098859,
-          "vac": 17.37539194125928,
-          "coverageRatio": 1.8893628513204248,
+          "coverage": 99.58823529411765,
+          "spentMedian": 1123033.2005985451,
+          "worst12": 22949.65985028873,
+          "vol": 0.11270119852052518,
+          "vac": 17.094723538017014,
+          "coverageRatio": 1.8608559880650923,
           "cost": 0,
           "left": null,
           "ruinLabel": null,
@@ -5049,52 +5198,52 @@
           "reason": null,
           "a": {
             "strategyId": "buckets-in-order",
-            "chancePct": 98.2,
-            "share": 0.982,
+            "chancePct": 97.6,
+            "share": 0.976,
             "outOfTen": {
               "n": 10,
               "words": "in more than 9 futures out of 10"
             },
             "futures": 1000,
-            "histories": 717,
-            "years": 33,
+            "histories": 711,
+            "years": 34,
             "histStrideMonths": 2,
             "histRanOutPct": 0,
             "histRanOutN": 0,
-            "typicalLeft": 940658.9045006981,
-            "badCaseLeft": 177212.44510236656,
-            "goodCaseLeft": 4311741.260682205,
-            "worst12": 23879.825750628486,
-            "coverage": 99.67651515151515,
+            "typicalLeft": 896306.0221614905,
+            "badCaseLeft": 153953.46647370455,
+            "goodCaseLeft": 4409312.287020369,
+            "worst12": 23735.963445624322,
+            "coverage": 99.51617647058823,
             "cuts": {
               "futures": 1000,
-              "cutN": 708,
-              "cutPct": 70.8,
-              "ranOutN": 18,
-              "typicalCutPerYear": 3919,
-              "typicalCutYears": 7,
-              "typicalCutTotal": 31755,
-              "worstCutTotal": 143212
+              "cutN": 724,
+              "cutPct": 72.4,
+              "ranOutN": 24,
+              "typicalCutPerYear": 4071,
+              "typicalCutYears": 8,
+              "typicalCutTotal": 36474,
+              "worstCutTotal": 150564
             },
             "cutLabel": null,
             "failKind": "ran-out"
           },
           "bought": false,
           "ruin": {
-            "mc": 1.8,
+            "mc": 2.4,
             "hist": 0
           },
           "terminal": {
-            "p10": 177212.44510236656,
-            "p50": 940658.9045006981,
-            "p90": 4311741.260682205
+            "p10": 153953.46647370455,
+            "p50": 896306.0221614905,
+            "p90": 4409312.287020369
           },
-          "coverage": 99.67651515151515,
-          "spentMedian": 1083094.563695084,
-          "worst12": 23879.825750628486,
-          "vol": 0.134144989517817,
-          "vac": 17.42262814487637,
-          "coverageRatio": 2.2798857345067223,
+          "coverage": 99.51617647058823,
+          "spentMedian": 1120016.606536614,
+          "worst12": 23735.963445624322,
+          "vol": 0.1352139798395185,
+          "vac": 17.344641680433032,
+          "coverageRatio": 2.263023872743829,
           "cost": 0,
           "left": null,
           "ruinLabel": null,
@@ -5119,45 +5268,45 @@
           "reason": null,
           "a": {
             "strategyId": "ladder-and-ratchet",
-            "chancePct": 86.3,
-            "share": 0.863,
+            "chancePct": 82.3,
+            "share": 0.823,
             "outOfTen": {
-              "n": 9,
-              "words": "in just under 9 futures out of 10"
+              "n": 8,
+              "words": "in 8 futures out of 10"
             },
             "futures": 1000,
-            "histories": 1434,
-            "years": 33,
+            "histories": 1422,
+            "years": 34,
             "histStrideMonths": 1,
-            "histRanOutPct": 7.322175732217573,
-            "histRanOutN": 105,
-            "typicalLeft": 822707.5187992018,
+            "histRanOutPct": 10.618846694796062,
+            "histRanOutN": 151,
+            "typicalLeft": 749187.129415169,
             "badCaseLeft": 0,
-            "goodCaseLeft": 3313674.4193137675,
+            "goodCaseLeft": 3146182.9261929947,
             "worst12": 0,
-            "coverage": 97.50934343434344,
+            "coverage": 96.7200980392157,
             "cuts": null,
             "cutLabel": null,
             "failKind": "ran-out"
           },
           "bought": true,
           "ruin": {
-            "mc": 13.700000000000003,
-            "hist": 7.322175732217573
+            "mc": 17.700000000000003,
+            "hist": 10.618846694796062
           },
           "terminal": {
             "p10": 0,
-            "p50": 822707.5187992018,
-            "p90": 3313674.4193137675
+            "p50": 749187.129415169,
+            "p90": 3146182.9261929947
           },
-          "coverage": 97.50934343434344,
-          "spentMedian": 1090782.1134750529,
+          "coverage": 96.7200980392157,
+          "spentMedian": 1128782.1134750529,
           "worst12": 0,
-          "vol": 0.15070593151200778,
-          "vac": 14.352908533043268,
-          "coverageRatio": 1.9622684999444746,
-          "cost": 375236,
-          "left": 369764,
+          "vol": 0.15067024451142125,
+          "vac": 13.946777362774151,
+          "coverageRatio": 1.8868738126128286,
+          "cost": 391537,
+          "left": 353463,
           "ruinLabel": null,
           "dials": {
             "defaults": {
@@ -5180,45 +5329,45 @@
           "reason": null,
           "a": {
             "strategyId": "bridge-and-engine",
-            "chancePct": 89.2,
-            "share": 0.892,
+            "chancePct": 87.3,
+            "share": 0.873,
             "outOfTen": {
               "n": 9,
               "words": "in just under 9 futures out of 10"
             },
             "futures": 1000,
-            "histories": 1434,
-            "years": 33,
+            "histories": 1422,
+            "years": 34,
             "histStrideMonths": 1,
-            "histRanOutPct": 4.044630404463041,
-            "histRanOutN": 58,
-            "typicalLeft": 1262052.2423940243,
+            "histRanOutPct": 4.922644163150492,
+            "histRanOutN": 70,
+            "typicalLeft": 1197754.4866178655,
             "badCaseLeft": 0,
-            "goodCaseLeft": 6452893.398113589,
+            "goodCaseLeft": 6333006.454883219,
             "worst12": 11502.4,
-            "coverage": 97.22121212121212,
+            "coverage": 96.59117647058824,
             "cuts": null,
             "cutLabel": null,
             "failKind": "ran-out"
           },
           "bought": true,
           "ruin": {
-            "mc": 10.8,
-            "hist": 4.044630404463041
+            "mc": 12.7,
+            "hist": 4.922644163150492
           },
           "terminal": {
             "p10": 0,
-            "p50": 1262052.2423940243,
-            "p90": 6452893.398113589
+            "p50": 1197754.4866178655,
+            "p90": 6333006.454883219
           },
-          "coverage": 97.22121212121212,
-          "spentMedian": 1090782.1134750529,
+          "coverage": 96.59117647058824,
+          "spentMedian": 1128782.1134750529,
           "worst12": 11502.4,
-          "vol": 0.19087501213478114,
-          "vac": 16.095460591166816,
-          "coverageRatio": 2.6863749831458454,
-          "cost": 152161,
-          "left": 592839,
+          "vol": 0.1872955899510961,
+          "vac": 16.070443004114082,
+          "coverageRatio": 2.655202837575018,
+          "cost": 187575,
+          "left": 557425,
           "ruinLabel": null,
           "dials": {
             "defaults": {
@@ -5237,45 +5386,45 @@
           "reason": null,
           "a": {
             "strategyId": "floor-and-flex",
-            "chancePct": 60.6,
-            "share": 0.606,
+            "chancePct": 56,
+            "share": 0.56,
             "outOfTen": {
               "n": 6,
               "words": "in 6 futures out of 10"
             },
             "futures": 1000,
-            "histories": 1434,
-            "years": 33,
+            "histories": 1422,
+            "years": 34,
             "histStrideMonths": 1,
-            "histRanOutPct": 33.751743375174335,
-            "histRanOutN": 484,
-            "typicalLeft": 582120.9726617595,
-            "badCaseLeft": 163586.01351197562,
-            "goodCaseLeft": 2060109.7557057203,
-            "worst12": 25089.91761713011,
-            "coverage": 98.41369651597766,
+            "histRanOutPct": 38.25597749648382,
+            "histRanOutN": 544,
+            "typicalLeft": 555752.821280535,
+            "badCaseLeft": 165262.65635907743,
+            "goodCaseLeft": 2066581.4280736041,
+            "worst12": 24939.25124398285,
+            "coverage": 98.09606182182793,
             "cuts": null,
             "cutLabel": "chance of at least one lean year — more than 10% under the plan (the bills are always paid; the treats shrank)",
             "failKind": "lean"
           },
           "bought": true,
           "ruin": {
-            "mc": 39.4,
-            "hist": 33.751743375174335
+            "mc": 44,
+            "hist": 38.25597749648382
           },
           "terminal": {
-            "p10": 163586.01351197562,
-            "p50": 582120.9726617595,
-            "p90": 2060109.7557057203
+            "p10": 165262.65635907743,
+            "p50": 555752.821280535,
+            "p90": 2066581.4280736041
           },
-          "coverage": 98.41369651597766,
-          "spentMedian": 1520911.336835038,
-          "worst12": 25089.91761713011,
-          "vol": 0.14465083472201515,
-          "vac": 11.911735510724615,
-          "coverageRatio": 1.6725342002184878,
-          "cost": 261746,
-          "left": 483254,
+          "coverage": 98.09606182182793,
+          "spentMedian": 1551653.2378177065,
+          "worst12": 24939.25124398285,
+          "vol": 0.14197996270802343,
+          "vac": 11.926837992078065,
+          "coverageRatio": 1.6487455403653084,
+          "cost": 279124,
+          "left": 465876,
           "ruinLabel": "chance of at least one lean year — more than 10% under the plan (the bills are always paid; the treats shrank)",
           "dials": {
             "defaults": {
@@ -5307,14 +5456,14 @@
               "words": "in every future it tried"
             },
             "futures": 1000,
-            "histories": 1434,
-            "years": 33,
+            "histories": 1422,
+            "years": 34,
             "histStrideMonths": 1,
             "histRanOutPct": 0,
             "histRanOutN": 0,
-            "typicalLeft": 890159.6781421468,
-            "badCaseLeft": 258476.04848097818,
-            "goodCaseLeft": 3084214.007586575,
+            "typicalLeft": 781008.0058819812,
+            "badCaseLeft": 239868.2408624062,
+            "goodCaseLeft": 2805626.204111438,
             "worst12": 25911.29178308027,
             "coverage": 100,
             "cuts": null,
@@ -5327,18 +5476,18 @@
             "hist": 0
           },
           "terminal": {
-            "p10": 258476.04848097818,
-            "p50": 890159.6781421468,
-            "p90": 3084214.007586575
+            "p10": 239868.2408624062,
+            "p50": 781008.0058819812,
+            "p90": 2805626.204111438
           },
           "coverage": 100,
-          "spentMedian": 1090782.1134750529,
+          "spentMedian": 1128782.1134750529,
           "worst12": 25911.29178308027,
-          "vol": 0.11806815265805297,
-          "vac": 17.480630065234283,
-          "coverageRatio": 2.0123277237768664,
-          "cost": 548648,
-          "left": 196352,
+          "vol": 0.1123118092310805,
+          "vac": 17.189418127741696,
+          "coverageRatio": 1.8925099217496304,
+          "cost": 578589,
+          "left": 166411,
           "ruinLabel": null,
           "dials": {
             "defaults": {},
@@ -5351,45 +5500,45 @@
           "reason": null,
           "a": {
             "strategyId": "floor-to-age",
-            "chancePct": 95.8,
-            "share": 0.958,
+            "chancePct": 94.8,
+            "share": 0.948,
             "outOfTen": {
-              "n": 10,
-              "words": "in more than 9 futures out of 10"
+              "n": 9,
+              "words": "in 9 futures out of 10"
             },
             "futures": 1000,
-            "histories": 1434,
-            "years": 33,
+            "histories": 1422,
+            "years": 34,
             "histStrideMonths": 1,
-            "histRanOutPct": 0.9762900976290098,
-            "histRanOutN": 14,
-            "typicalLeft": 1042113.8709231149,
-            "badCaseLeft": 138939.89318562558,
-            "goodCaseLeft": 4452176.888739792,
-            "worst12": 25910.79257296102,
-            "coverage": 99.73908509920963,
+            "histRanOutPct": 1.8284106891701828,
+            "histRanOutN": 26,
+            "typicalLeft": 958524.7370027996,
+            "badCaseLeft": 114420.61829381627,
+            "goodCaseLeft": 4309722.332208238,
+            "worst12": 24997.128442036024,
+            "coverage": 99.67053023350728,
             "cuts": null,
             "cutLabel": "chance the plan is cut after 80 (it never runs out — the reserve buys a smaller income)",
             "failKind": "cut"
           },
           "bought": true,
           "ruin": {
-            "mc": 4.2,
-            "hist": 0.9762900976290098
+            "mc": 5.2,
+            "hist": 1.8284106891701828
           },
           "terminal": {
-            "p10": 138939.89318562558,
-            "p50": 1042113.8709231149,
-            "p90": 4452176.888739792
+            "p10": 114420.61829381627,
+            "p50": 958524.7370027996,
+            "p90": 4309722.332208238
           },
-          "coverage": 99.73908509920963,
-          "spentMedian": 1090782.1134750529,
-          "worst12": 25910.79257296102,
-          "vol": 0.13850707276089796,
-          "vac": 16.89600374355272,
-          "coverageRatio": 2.2938048450089576,
-          "cost": 401552,
-          "left": 343448,
+          "coverage": 99.67053023350728,
+          "spentMedian": 1128782.1134750529,
+          "worst12": 24997.128442036024,
+          "vol": 0.13739865957535727,
+          "vac": 16.65679438445681,
+          "coverageRatio": 2.2322255957954935,
+          "cost": 431400,
+          "left": 313600,
           "ruinLabel": "chance the plan is cut after 80 (it never runs out — the reserve buys a smaller income)",
           "dials": {
             "defaults": {
@@ -5414,13 +5563,13 @@
             },
             "futures": 1,
             "histories": 1,
-            "years": 33,
+            "years": 34,
             "histStrideMonths": 1,
             "histRanOutPct": 0,
             "histRanOutN": 0,
-            "typicalLeft": 136008.04455957888,
-            "badCaseLeft": 136008.04455957888,
-            "goodCaseLeft": 136008.04455957888,
+            "typicalLeft": 96428.55423392844,
+            "badCaseLeft": 96428.55423392844,
+            "goodCaseLeft": 96428.55423392844,
             "worst12": 26173.022003111386,
             "coverage": 100,
             "cuts": null,
@@ -5433,28 +5582,26 @@
             "hist": 0
           },
           "terminal": {
-            "p10": 136008.04455957888,
-            "p50": 136008.04455957888,
-            "p90": 136008.04455957888
+            "p10": 96428.55423392844,
+            "p50": 96428.55423392844,
+            "p90": 96428.55423392844
           },
           "coverage": 100,
-          "spentMedian": 1091043.843695084,
+          "spentMedian": 1129043.843695084,
           "worst12": 26173.022003111386,
           "vol": 0.03,
-          "vac": 36.94864552258317,
-          "coverageRatio": 1.108459365677495,
-          "cost": 608992,
-          "left": 136008,
+          "vac": 35.82117012987432,
+          "coverageRatio": 1.0746351038962294,
+          "cost": 648571,
+          "left": 96429,
           "ruinLabel": null,
           "dials": {
             "defaults": {
               "cashYears": 2,
-              "bridgeCash": 0,
               "spareGrowth": "kept"
             },
             "ranWith": {
               "cashYears": 2,
-              "bridgeCash": 0,
               "spareGrowth": "kept"
             }
           }
@@ -5465,50 +5612,49 @@
           "reason": null,
           "a": {
             "strategyId": "gilt-rotation",
-            "chancePct": 97,
-            "share": 0.97,
+            "chancePct": 94.1,
+            "share": 0.941,
             "outOfTen": {
-              "n": 10,
-              "words": "in more than 9 futures out of 10"
+              "n": 9,
+              "words": "in 9 futures out of 10"
             },
             "futures": 1000,
-            "histories": 1422,
-            "years": 33,
+            "histories": 1410,
+            "years": 34,
             "histStrideMonths": 1,
             "histRanOutPct": 0,
             "histRanOutN": 0,
-            "typicalLeft": 136008.04455957888,
-            "badCaseLeft": 136008.04455957888,
-            "goodCaseLeft": 852463.4642805782,
-            "worst12": 11502.4,
-            "coverage": 99.85093866670307,
+            "typicalLeft": 96428.55423392844,
+            "badCaseLeft": 96428.55423392844,
+            "goodCaseLeft": 1131182.5915373075,
+            "worst12": 11502.399999999998,
+            "coverage": 99.6720989121237,
             "cuts": null,
             "cutLabel": "chance the rotated years (after 75) are cut once the money left over is spent — the floor to 75 and the State Pension never fail",
             "failKind": "cut"
           },
           "bought": true,
           "ruin": {
-            "mc": 3,
+            "mc": 5.9,
             "hist": 0
           },
           "terminal": {
-            "p10": 136008.04455957888,
-            "p50": 136008.04455957888,
-            "p90": 852463.4642805782
+            "p10": 96428.55423392844,
+            "p50": 96428.55423392844,
+            "p90": 1131182.5915373075
           },
-          "coverage": 99.85093866670307,
-          "spentMedian": 1091043.843695084,
-          "worst12": 11502.4,
-          "vol": 0.0598019455108776,
-          "vac": 30.4347953030529,
-          "coverageRatio": 1.3687421515087455,
-          "cost": 608992,
-          "left": 136008,
+          "coverage": 99.6720989121237,
+          "spentMedian": 1129043.843695084,
+          "worst12": 11502.399999999998,
+          "vol": 0.06785743094740564,
+          "vac": 28.579523727065947,
+          "coverageRatio": 1.3761485911702673,
+          "cost": 648571,
+          "left": 96429,
           "ruinLabel": "chance the rotated years (after 75) are cut once the money left over is spent — the floor to 75 and the State Pension never fail",
           "dials": {
             "defaults": {
               "cashYears": 2,
-              "bridgeCash": 0,
               "spareGrowth": "kept",
               "rotateCutAge": 75,
               "rotateTrigger": 30,
@@ -5516,7 +5662,6 @@
             },
             "ranWith": {
               "cashYears": 2,
-              "bridgeCash": 0,
               "spareGrowth": "kept",
               "rotateCutAge": 75,
               "rotateTrigger": 30,
@@ -5555,45 +5700,45 @@
           "reason": null,
           "a": {
             "strategyId": "floor-to-age",
-            "chancePct": 97.4,
-            "share": 0.9740000000000001,
+            "chancePct": 95.8,
+            "share": 0.958,
             "outOfTen": {
               "n": 10,
               "words": "in more than 9 futures out of 10"
             },
             "futures": 1000,
-            "histories": 1434,
-            "years": 33,
+            "histories": 1422,
+            "years": 34,
             "histStrideMonths": 1,
-            "histRanOutPct": 0.0697350069735007,
-            "histRanOutN": 1,
-            "typicalLeft": 1050999.8600560143,
-            "badCaseLeft": 163620.7564156702,
-            "goodCaseLeft": 4306245.873290815,
+            "histRanOutPct": 0.2812939521800281,
+            "histRanOutN": 4,
+            "typicalLeft": 963414.7533348588,
+            "badCaseLeft": 124719.87413237839,
+            "goodCaseLeft": 4104575.597463844,
             "worst12": 25911.29178308027,
-            "coverage": 99.81061209419929,
+            "coverage": 99.76516664859938,
             "cuts": null,
             "cutLabel": "chance the plan is cut after 82 (it never runs out — the reserve buys a smaller income)",
             "failKind": "cut"
           },
           "bought": true,
           "ruin": {
-            "mc": 2.6,
-            "hist": 0.0697350069735007
+            "mc": 4.2,
+            "hist": 0.2812939521800281
           },
           "terminal": {
-            "p10": 163620.7564156702,
-            "p50": 1050999.8600560143,
-            "p90": 4306245.873290815
+            "p10": 124719.87413237839,
+            "p50": 963414.7533348588,
+            "p90": 4104575.597463844
           },
-          "coverage": 99.81061209419929,
-          "spentMedian": 1090782.1134750529,
+          "coverage": 99.76516664859938,
+          "spentMedian": 1128782.1134750529,
           "worst12": 25911.29178308027,
-          "vol": 0.140029823255734,
-          "vac": 16.786899165340312,
-          "coverageRatio": 2.2832475791796076,
-          "cost": 425611,
-          "left": 319389,
+          "vol": 0.13693806094941605,
+          "vac": 16.494770023656073,
+          "coverageRatio": 2.201920290299017,
+          "cost": 455224,
+          "left": 289776,
           "ruinLabel": "chance the plan is cut after 82 (it never runs out — the reserve buys a smaller income)",
           "dials": {
             "defaults": {

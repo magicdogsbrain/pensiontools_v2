@@ -28,7 +28,9 @@ const steady = (i, years) => {
   for (let y = 0; y < years; y++) { equity[y] = -0.02 + 0.005 * i; inflation[y] = 0.02 + 0.001 * i; }
   return { equity, inflation };
 };
-const ENV = { ...TEST_ENV, futures: 20, futureReturns: steady, mix: NO_BONDS, savingMix: NO_BONDS };
+// (7.8.0: B's number and C's monthly figure meet on the count to the end age, on these made-up steady lives; weighing, B
+// weighs from the stop and C from its own start on the same lives, so the round trip is held on the count, env.weighted false)
+const ENV = { ...TEST_ENV, futures: 20, futureReturns: steady, mix: NO_BONDS, savingMix: NO_BONDS, weighted: false };
 const ok = (a, given) => { const f = checkAnswerB(a, given); expect(f, f.join('\n')).toEqual([]); return a; };
 const onStopDate = (a) => ({ ...ENV, today: addYears(ENV.today, a.years.saving) });
 

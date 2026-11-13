@@ -223,10 +223,13 @@ describe('B — metamorphic relations', () => {
   it('M-B11 a partner with nothing — no pot, nothing paid in, no State Pension or final-salary pension, the same age — is the single answer, while all that goes in is the first person\'s', () => {
     fc.assert(fc.property(singles.filter((i) => !(i.savings > 0) && !(i.savingsIn > 0) && i.spend.kind === 'amount' && payInParts(i.you.payIn).total > 0), (single) => {   // a level is a couple's figure for a couple
       const couple = { ...single, household: 'couple', partner: { age: single.you.age, pot: 0, payIn: { kind: 'total', total: 0 }, statePension: { kind: 'none' }, finalSalary: { has: false } } };
-      const a = ok(answerB(single, ENV), single);
+      // (7.8.0: while weighing, a couple is counted while either of you is alive, so a partner with nothing still moves the
+      // weights and the plan-to age; the relation is the engine's and is held on the count, env.weighted false)
+      const COUNT = { ...ENV, weighted: false };
+      const a = ok(answerB(single, COUNT), single);
       // before a pension opens the savings a month are split between the two of you (two ISAs): not the single's question
       fc.pre(a.outside === null);
-      const b = ok(answerB(couple, ENV), couple);
+      const b = ok(answerB(couple, COUNT), couple);
       const h = (x) => { const y = household(x); return { ...y, levers: null }; };
       expect(h(b)).toEqual(h(a));
     }), opts());

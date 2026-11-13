@@ -37,7 +37,9 @@ import { chainRun } from '../saving/chain.mjs';
 import { perLifeBandReference } from '../c/identity.js';
 
 const TODAY = '2026-09-30';
-const ENV = { today: TODAY, futures: 40, seed: 0, trace: false };
+// (7.8.0: the replica against today's engine on the count, env.weighted false — the runs to the end age the chains are
+// built for; weighing only lengthens the runs, the same replica)
+const ENV = { today: TODAY, futures: 40, seed: 0, trace: false, weighted: false };
 const FIXTURES = resolve(process.cwd(), 'tests/v7/fixtures/c');
 const fixtures = readdirSync(FIXTURES).filter((f) => f.endsWith('.json')).map((f) => JSON.parse(readFileSync(resolve(FIXTURES, f), 'utf8')));
 const SHARES = { equity: 1, bond: 0, cash: 0 };

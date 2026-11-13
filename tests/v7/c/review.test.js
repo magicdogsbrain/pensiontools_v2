@@ -69,7 +69,7 @@ describe('2 a couple with one partner under the earliest pension age', () => {
     expect(a.basis.start).toBe('2026-09');
     expect(a.basis.startAge).toBe(50);                       // the younger person's age at the start
     expect(a.phases[0].ages.you.from).toBe(60);
-    expect(a.sentences.sub.text).toContain('from now until the younger of you is 95');
+    expect(a.sentences.sub.text).toContain('from now until the younger of you is 100');
     expect(assumed(a, 'start').text).toBe('The money is taken from now, when you are 60.');
     expect(warning(a, 'pension-locked')).toBeUndefined();
     const w = warning(a, 'pension-locked-partner');
@@ -220,7 +220,7 @@ describe('3 no pot to draw on', () => {
     expect(a.phases.map((p) => p.takeHome)).toEqual([0, g]);
     expect(a.sentences.head.parts).toEqual([{ key: 'levels.balanced.monthly', kind: 'money' }, ' a month']);
     expect(a.sentences.head.text).toBe('£1,046 a month');
-    expect(a.sentences.sub.text).toBe('after tax, from age 67 until you are 95, going up each year with prices');
+    expect(a.sentences.sub.text).toBe('after tax, from age 67 until you are 99, going up each year with prices');
     expect(a.sentences.range.text).toBe('Careful, Balanced and Bold are all the same here: £1,046 a month.');
     expect(a.sentences.nothing.text).toBe('There is no pot to draw on, so this is your State Pension only: £1,046 a month after tax.');
   });
@@ -229,7 +229,7 @@ describe('3 no pot to draw on', () => {
     const a = ok(answerC({ you: { pot: 0, age: 68 } }, ENV));
     expect(a.levels.balanced.monthly).toBe(a.guaranteed.monthlyAfterTax);
     expect(a.phases[0].takeHome).toBe(a.levels.balanced.monthly);
-    expect(a.sentences.sub.text).toBe('after tax, from now until you are 95, going up each year with prices');
+    expect(a.sentences.sub.text).toBe('after tax, from now until you are 99, going up each year with prices');
   });
 });
 
@@ -247,7 +247,7 @@ describe('4 under the earliest pension age, through the form — a start at an a
     expect(warning(a, 'pension-locked').text).toBe("You can't take money from your pension until you are 57 (April 2028 rules). These figures start from then.");
     expect(warning(a, 'start-later')).toBeUndefined();
     expect(assumed(a, 'pot-as-is')).toBeUndefined();
-    expect(a.sentences.sub.text).toBe('after tax, from age 57 until you are 95, going up each year with prices');
+    expect(a.sentences.sub.text).toBe('after tax, from age 57 until you are 100, going up each year with prices');
     expect(a.sentences.payIn.text).toBe('Nothing more paid in; the pot stays invested at Balanced, about half in shares, until 57.');
     expect(a.sentences.pot.text).toMatch(/^By 57 your pot could be about £[\d,]+\. In a bad case \(the worst 1 in 10\) it would be £[\d,]+, and in a good case \(the best 1 in 10\) £[\d,]+\.$/);
     expect(a.potAtStart.careful).toBeLessThanOrEqual(a.potAtStart.middling);
@@ -279,7 +279,7 @@ describe('4 under the earliest pension age, through the form — a start at an a
     const savings = ok(answerC({ you: { pot: 250000, age: 58 }, savings: 20000, start: { kind: 'age', age: 62 } }, ENV));
     expect(savings.sentences.payIn.text).toBe('Nothing more paid in; the pot and savings stay invested at Balanced, about half in shares, until 62.');
     const now = ok(answerC({ you: { pot: 250000, age: 58 } }, ENV));
-    expect(now.sentences.sub.text).toBe('after tax, from now until you are 95, going up each year with prices');
+    expect(now.sentences.sub.text).toBe('after tax, from now until you are 99, going up each year with prices');
     expect(now.sentences.payIn).toBeUndefined();
   });
 

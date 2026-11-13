@@ -1144,9 +1144,13 @@
       },
       "atAim": {
         "id": "b.when",
-        "text": "In the futures where the money runs out, it typically runs out at 91. In the worst 1 in 10 of all the futures it still lasts to 100.",
+        "text": "In the futures where the money runs out before 104, it typically runs out at 91. In the worst 1 in 10 of all the futures it still lasts to 100.",
         "parts": [
-          "In the futures where the money runs out, it typically runs out ",
+          "In the futures where the money runs out before ",
+          {
+            "fixed": "104"
+          },
+          ", it typically runs out ",
           "at ",
           {
             "fixed": "91"

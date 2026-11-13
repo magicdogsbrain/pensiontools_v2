@@ -2981,7 +2981,7 @@
                 "sentence": {
                   "id": "says.bad",
                   "parts": [
-                    "Your plan lasts in more than 9 futures out of 10; when it was locked, counted to 93; not by how long you might live. Left at the end, at today’s prices: typically ",
+                    "Your plan lasts in more than 9 futures out of 10; when it was locked, counted to 92; not by how long you might live. Left at the end, at today’s prices: typically ",
                     {
                       "key": "saysTypical",
                       "kind": "money"
@@ -2992,7 +2992,7 @@
                       "kind": "money"
                     }
                   ],
-                  "text": "Your plan lasts in more than 9 futures out of 10; when it was locked, counted to 93; not by how long you might live. Left at the end, at today’s prices: typically £968,682; in a bad case (the worst 1 in 10) £157,539"
+                  "text": "Your plan lasts in more than 9 futures out of 10; when it was locked, counted to 92; not by how long you might live. Left at the end, at today’s prices: typically £968,682; in a bad case (the worst 1 in 10) £157,539"
                 },
                 "source": {
                   "kind": "locked",

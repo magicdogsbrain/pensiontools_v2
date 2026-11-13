@@ -411,8 +411,8 @@
       "moreRisk": {
         "level": "adventurous",
         "payIn": 5070,
-        "lasted": 0.075,
-        "weighted": 0.14821337489411235,
+        "lasted": 0.85,
+        "weighted": 0.9003943579737097,
         "helps": true
       },
       "accept": {
@@ -1589,16 +1589,17 @@
         },
         "moreRisk": {
           "id": "b.lever.moreRisk",
-          "text": "More risk while saving, about two thirds in shares: £5,070 a month made it last as long as one of you is alive 18 times in 20.",
+          "text": "More risk while saving, about two thirds in shares: paying in £5,070 a month, your money lasts as long as one of you is alive 18 times in 20.",
           "parts": [
             "More risk while saving, ",
             "about two thirds in shares",
-            ": ",
+            ": paying in ",
             {
               "key": "levers.moreRisk.payIn",
               "kind": "money"
             },
-            " a month made it last ",
+            " a month, your money ",
+            "lasts ",
             "as long as one of you is alive",
             " ",
             {
@@ -1609,7 +1610,8 @@
               "fixed": "20"
             },
             "."
-          ]
+          ],
+          "mark": "weighted"
         },
         "accept": {
           "id": "b.lever.accept",
@@ -1782,6 +1784,32 @@
             " futures we tried."
           ],
           "mark": "fixed"
+        },
+        "moreRiskFixed": {
+          "id": "b.lever.moreRisk.fixed",
+          "text": "With more risk, paying in £5,070 a month: if one of you is still alive when the younger of you is 101, the money lasts that long in 17 of 20 futures we tried.",
+          "parts": [
+            "With more risk, paying in ",
+            {
+              "key": "levers.moreRisk.payIn",
+              "kind": "money"
+            },
+            " a month: ",
+            "if one of you is still alive when the younger of you is ",
+            {
+              "fixed": "101"
+            },
+            ", the money lasts that long in ",
+            {
+              "fixed": "17"
+            },
+            " of ",
+            {
+              "fixed": "20"
+            },
+            " futures we tried."
+          ],
+          "mark": "fixed"
         }
       },
       "change": {
@@ -1921,9 +1949,14 @@
       },
       "atAim": {
         "id": "b.when",
-        "text": "In the futures where the money runs out, it typically runs out when the younger of you is 73. In the worst 1 in 10 of all the futures, by the time the younger of you is 65.",
+        "text": "In the futures where the money runs out before the younger of you is 105, it typically runs out when the younger of you is 73. In the worst 1 in 10 of all the futures, by the time the younger of you is 65.",
         "parts": [
-          "In the futures where the money runs out, it typically runs out ",
+          "In the futures where the money runs out before ",
+          "the younger of you is ",
+          {
+            "fixed": "105"
+          },
+          ", it typically runs out ",
           "when the younger of you is ",
           {
             "fixed": "73"

@@ -308,8 +308,8 @@
       "moreRisk": {
         "level": "adventurous",
         "payIn": 1990,
-        "lasted": 0.025,
-        "weighted": 0.2617833775933832,
+        "lasted": 0.725,
+        "weighted": 0.9012287049088628,
         "helps": false
       },
       "accept": {
@@ -1562,9 +1562,13 @@
       },
       "atAim": {
         "id": "b.when",
-        "text": "In the futures where the money runs out, it typically runs out at 80. In the worst 1 in 10 of all the futures, by 74.",
+        "text": "In the futures where the money runs out before 104, it typically runs out at 80. In the worst 1 in 10 of all the futures, by 74.",
         "parts": [
-          "In the futures where the money runs out, it typically runs out ",
+          "In the futures where the money runs out before ",
+          {
+            "fixed": "104"
+          },
+          ", it typically runs out ",
           "at ",
           {
             "fixed": "80"

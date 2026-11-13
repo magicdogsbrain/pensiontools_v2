@@ -596,9 +596,13 @@
           },
           "bad": {
             "id": "d.when",
-            "text": "In the futures where the money runs out, it typically runs out at 82. In the worst 1 in 10 of all the futures, by 78.",
+            "text": "In the futures where the money runs out before 103, it typically runs out at 82. In the worst 1 in 10 of all the futures, by 78.",
             "parts": [
-              "In the futures where the money runs out, it typically runs out ",
+              "In the futures where the money runs out before ",
+              {
+                "fixed": "103"
+              },
+              ", it typically runs out ",
               "at ",
               {
                 "fixed": "82"

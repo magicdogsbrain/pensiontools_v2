@@ -525,9 +525,13 @@
           },
           "bad": {
             "id": "c.when",
-            "text": "In the futures where the money runs out, it typically runs out at 66. In the worst 1 in 10 of all the futures it still lasts to 99.",
+            "text": "In the futures where the money runs out before 104, it typically runs out at 66. In the worst 1 in 10 of all the futures it still lasts to 99.",
             "parts": [
-              "In the futures where the money runs out, it typically runs out ",
+              "In the futures where the money runs out before ",
+              {
+                "fixed": "104"
+              },
+              ", it typically runs out ",
               "at ",
               {
                 "fixed": "66"
@@ -649,15 +653,15 @@
           },
           "howLong": {
             "id": "c.howLong",
-            "text": "In the futures where it runs out before 99, it still pays for 8 of the 41 years to 99.",
+            "text": "In the futures where it runs out before 99, what you planned to spend is still met in 40 of the 41 years to 99, with what comes in anyway.",
             "parts": [
               "In the futures where it runs out before ",
               {
                 "fixed": "99"
               },
-              ", it still pays for ",
+              ", what you planned to spend is still met in ",
               {
-                "fixed": "8"
+                "fixed": "40"
               },
               " of the ",
               {
@@ -667,7 +671,7 @@
               {
                 "fixed": "99"
               },
-              "."
+              ", with what comes in anyway."
             ]
           },
           "howMuch": {

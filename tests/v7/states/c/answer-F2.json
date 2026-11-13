@@ -741,9 +741,14 @@
           },
           "bad": {
             "id": "c.when",
-            "text": "In the futures where the money runs out, it typically runs out when the younger of you is 94. In the worst 1 in 10 of all the futures, by the time the younger of you is 93.",
+            "text": "In the futures where the money runs out before the younger of you is 104, it typically runs out when the younger of you is 94. In the worst 1 in 10 of all the futures, by the time the younger of you is 93.",
             "parts": [
-              "In the futures where the money runs out, it typically runs out ",
+              "In the futures where the money runs out before ",
+              "the younger of you is ",
+              {
+                "fixed": "104"
+              },
+              ", it typically runs out ",
               "when the younger of you is ",
               {
                 "fixed": "94"

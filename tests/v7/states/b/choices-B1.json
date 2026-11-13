@@ -335,8 +335,8 @@
           "moreRisk": {
             "level": "adventurous",
             "payIn": 2600,
-            "lasted": 0.138,
-            "weighted": 0.31292714480869477,
+            "lasted": 0.803,
+            "weighted": 0.9011035714196041,
             "helps": true
           },
           "accept": {
@@ -350,7 +350,7 @@
           "ages": [
             {
               "age": 58,
-              "number": 639000,
+              "number": 604000,
               "cells": [
                 {
                   "payIn": 700,
@@ -411,7 +411,7 @@
             },
             {
               "age": 59,
-              "number": 619000,
+              "number": 588000,
               "cells": [
                 {
                   "payIn": 700,
@@ -472,7 +472,7 @@
             },
             {
               "age": 60,
-              "number": 481000,
+              "number": 561000,
               "cells": [
                 {
                   "payIn": 700,
@@ -533,7 +533,7 @@
             },
             {
               "age": 61,
-              "number": 573000,
+              "number": 542000,
               "cells": [
                 {
                   "payIn": 700,
@@ -594,7 +594,7 @@
             },
             {
               "age": 62,
-              "number": 559000,
+              "number": 529000,
               "cells": [
                 {
                   "payIn": 700,
@@ -655,7 +655,7 @@
             },
             {
               "age": 63,
-              "number": 539000,
+              "number": 504000,
               "cells": [
                 {
                   "payIn": 700,
@@ -716,7 +716,7 @@
             },
             {
               "age": 64,
-              "number": 525000,
+              "number": 484000,
               "cells": [
                 {
                   "payIn": 700,
@@ -777,7 +777,7 @@
             },
             {
               "age": 65,
-              "number": 491000,
+              "number": 455000,
               "cells": [
                 {
                   "payIn": 700,
@@ -838,7 +838,7 @@
             },
             {
               "age": 68,
-              "number": 436000,
+              "number": 400000,
               "cells": [
                 {
                   "payIn": 700,
@@ -1866,16 +1866,17 @@
             },
             "moreRisk": {
               "id": "b.lever.moreRisk",
-              "text": "More risk while saving, about two thirds in shares: £2,600 a month made it last as long as you do 18 times in 20.",
+              "text": "More risk while saving, about two thirds in shares: paying in £2,600 a month, your money lasts as long as you do 18 times in 20.",
               "parts": [
                 "More risk while saving, ",
                 "about two thirds in shares",
-                ": ",
+                ": paying in ",
                 {
                   "key": "levers.moreRisk.payIn",
                   "kind": "money"
                 },
-                " a month made it last ",
+                " a month, your money ",
+                "lasts ",
                 "as long as you do",
                 " ",
                 {
@@ -1886,7 +1887,8 @@
                   "fixed": "20"
                 },
                 "."
-              ]
+              ],
+              "mark": "weighted"
             },
             "accept": {
               "id": "b.lever.accept",
@@ -2051,6 +2053,32 @@
                 ", the money lasts that long in ",
                 {
                   "fixed": "2"
+                },
+                " of ",
+                {
+                  "fixed": "20"
+                },
+                " futures we tried."
+              ],
+              "mark": "fixed"
+            },
+            "moreRiskFixed": {
+              "id": "b.lever.moreRisk.fixed",
+              "text": "With more risk, paying in £2,600 a month: if you live to 100, the money lasts that long in 16 of 20 futures we tried.",
+              "parts": [
+                "With more risk, paying in ",
+                {
+                  "key": "levers.moreRisk.payIn",
+                  "kind": "money"
+                },
+                " a month: ",
+                "if you live to ",
+                {
+                  "fixed": "100"
+                },
+                ", the money lasts that long in ",
+                {
+                  "fixed": "16"
                 },
                 " of ",
                 {
@@ -2237,9 +2265,13 @@
           },
           "atAim": {
             "id": "b.when",
-            "text": "In the futures where the money runs out, it typically runs out at 75. In the worst 1 in 10 of all the futures, by 68.",
+            "text": "In the futures where the money runs out before 104, it typically runs out at 75. In the worst 1 in 10 of all the futures, by 68.",
             "parts": [
-              "In the futures where the money runs out, it typically runs out ",
+              "In the futures where the money runs out before ",
+              {
+                "fixed": "104"
+              },
+              ", it typically runs out ",
               "at ",
               {
                 "fixed": "75"

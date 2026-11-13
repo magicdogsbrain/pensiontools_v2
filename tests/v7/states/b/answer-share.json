@@ -352,8 +352,8 @@
           "moreRisk": {
             "level": "adventurous",
             "payIn": 850,
-            "lasted": 0.357,
-            "weighted": 0.5265440652780236,
+            "lasted": 0.81,
+            "weighted": 0.9016595996962861,
             "helps": true
           },
           "accept": {
@@ -1340,16 +1340,17 @@
             },
             "moreRisk": {
               "id": "b.lever.moreRisk",
-              "text": "More risk while saving, about two thirds in shares: £850 a month made it last as long as you do 18 times in 20.",
+              "text": "More risk while saving, about two thirds in shares: paying in £850 a month, your money lasts as long as you do 18 times in 20.",
               "parts": [
                 "More risk while saving, ",
                 "about two thirds in shares",
-                ": ",
+                ": paying in ",
                 {
                   "key": "levers.moreRisk.payIn",
                   "kind": "money"
                 },
-                " a month made it last ",
+                " a month, your money ",
+                "lasts ",
                 "as long as you do",
                 " ",
                 {
@@ -1360,7 +1361,8 @@
                   "fixed": "20"
                 },
                 "."
-              ]
+              ],
+              "mark": "weighted"
             },
             "accept": {
               "id": "b.lever.accept",
@@ -1533,6 +1535,32 @@
                 " futures we tried."
               ],
               "mark": "fixed"
+            },
+            "moreRiskFixed": {
+              "id": "b.lever.moreRisk.fixed",
+              "text": "With more risk, paying in £850 a month: if you live to 101, the money lasts that long in 16 of 20 futures we tried.",
+              "parts": [
+                "With more risk, paying in ",
+                {
+                  "key": "levers.moreRisk.payIn",
+                  "kind": "money"
+                },
+                " a month: ",
+                "if you live to ",
+                {
+                  "fixed": "101"
+                },
+                ", the money lasts that long in ",
+                {
+                  "fixed": "16"
+                },
+                " of ",
+                {
+                  "fixed": "20"
+                },
+                " futures we tried."
+              ],
+              "mark": "fixed"
             }
           },
           "change": {
@@ -1687,9 +1715,13 @@
           },
           "atAim": {
             "id": "b.when",
-            "text": "In the futures where the money runs out, it typically runs out at 80. In the worst 1 in 10 of all the futures, by 72.",
+            "text": "In the futures where the money runs out before 105, it typically runs out at 80. In the worst 1 in 10 of all the futures, by 72.",
             "parts": [
-              "In the futures where the money runs out, it typically runs out ",
+              "In the futures where the money runs out before ",
+              {
+                "fixed": "105"
+              },
+              ", it typically runs out ",
               "at ",
               {
                 "fixed": "80"

@@ -301,7 +301,7 @@
           "ages": [
             {
               "age": 58,
-              "number": 630000,
+              "number": 601000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -362,7 +362,7 @@
             },
             {
               "age": 59,
-              "number": 615000,
+              "number": 585000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -423,7 +423,7 @@
             },
             {
               "age": 60,
-              "number": 484000,
+              "number": 569000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -484,7 +484,7 @@
             },
             {
               "age": 61,
-              "number": 580000,
+              "number": 547000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -545,7 +545,7 @@
             },
             {
               "age": 62,
-              "number": 563000,
+              "number": 526000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -606,7 +606,7 @@
             },
             {
               "age": 63,
-              "number": 528000,
+              "number": 494000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -667,7 +667,7 @@
             },
             {
               "age": 64,
-              "number": 508000,
+              "number": 475000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -728,7 +728,7 @@
             },
             {
               "age": 65,
-              "number": 491000,
+              "number": 449000,
               "cells": [
                 {
                   "payIn": 1400,
@@ -1691,9 +1691,13 @@
           },
           "atAim": {
             "id": "b.when",
-            "text": "In the futures where the money runs out, it typically runs out at 96. In the worst 1 in 10 of all the futures it still lasts to 100.",
+            "text": "In the futures where the money runs out before 104, it typically runs out at 96. In the worst 1 in 10 of all the futures it still lasts to 100.",
             "parts": [
-              "In the futures where the money runs out, it typically runs out ",
+              "In the futures where the money runs out before ",
+              {
+                "fixed": "104"
+              },
+              ", it typically runs out ",
               "at ",
               {
                 "fixed": "96"

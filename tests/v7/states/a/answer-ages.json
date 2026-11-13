@@ -1272,9 +1272,13 @@
           },
           "bad": {
             "id": "a.when",
-            "text": "In the futures where the money runs out, it typically runs out at 94. In the worst 1 in 10 of all the futures, by 93. At Balanced you could spend up to about £1,950 a month from 62.",
+            "text": "In the futures where the money runs out before 104, it typically runs out at 94. In the worst 1 in 10 of all the futures, by 93. At Balanced you could spend up to about £1,950 a month from 62.",
             "parts": [
-              "In the futures where the money runs out, it typically runs out ",
+              "In the futures where the money runs out before ",
+              {
+                "fixed": "104"
+              },
+              ", it typically runs out ",
               "at ",
               {
                 "fixed": "94"

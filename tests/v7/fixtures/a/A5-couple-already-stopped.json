@@ -1918,9 +1918,14 @@
       },
       "bad": {
         "id": "a.when",
-        "text": "In the futures where the money runs out, it typically runs out when the younger of you is 95. In the worst 1 in 10 of all the futures it still lasts to 101. At Balanced you could spend up to about £3,670 a month from 56.",
+        "text": "In the futures where the money runs out before the younger of you is 105, it typically runs out when the younger of you is 95. In the worst 1 in 10 of all the futures it still lasts to 101. At Balanced you could spend up to about £3,670 a month from 56.",
         "parts": [
-          "In the futures where the money runs out, it typically runs out ",
+          "In the futures where the money runs out before ",
+          "the younger of you is ",
+          {
+            "fixed": "105"
+          },
+          ", it typically runs out ",
           "when the younger of you is ",
           {
             "fixed": "95"

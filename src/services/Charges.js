@@ -55,6 +55,21 @@ export function monthlyChargeFactor(pct) {
 }
 
 /**
+ * The monthly factor a charged pot is multiplied by after the month's growth, with "lower returns" (7.9.0, "Try the bad
+ * years"): exactly monthlyChargeFactor(cfg.chargesPct) unless the config carries `returnDragPct` above 0 (percent a year
+ * off what every fund and cash pot grows by — a run's own field, never stored on a plan); then that times
+ * (1 − returnDragPct/100)^(1/12). A field of its own, not a larger charge: a charge and the drag together can pass the 3%
+ * a charge may be (CHARGES_LIMITS), where monthlyChargeFactor would read the sum as no charge at all.
+ * @param {object} cfg   an engine config, a plan or a V7 household: { chargesPct?, returnDragPct? }
+ */
+export function monthlyCostFactor(cfg) {
+  const c = monthlyChargeFactor(cfg && typeof cfg === 'object' ? cfg.chargesPct : undefined);
+  const d = cfg && typeof cfg === 'object' ? cfg.returnDragPct : undefined;
+  if (!(isFiniteNumber(d) && d > 0 && d < 100)) return c;
+  return c * Math.pow(1 - d / 100, 1 / 12);
+}
+
+/**
  * A typed-in charge made fit to store: clamped to 0–3 and put on the 0.05 grid (to two decimals). null when it is not
  * a number at all — the caller keeps what was there.
  * @param {number|string} v

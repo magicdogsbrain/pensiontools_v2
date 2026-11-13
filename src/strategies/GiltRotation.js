@@ -13,8 +13,8 @@
  * yield implied by its purchase price (a yields-unchanged assumption; ±25% price sensitivity
  * moves the historical odds by single digits — see the research doc).
  */
-import { getRtr, bootstrapPaths } from './ladderEngine.js';
-import { monthlyChargeFactor } from '../services/Charges.js';
+import { getRtr, bootstrapPaths, shockRtr } from './ladderEngine.js';
+import { monthlyCostFactor } from '../services/Charges.js';
 import { accretedValue, yearsToMaturity, ladderWealthByYear } from './GiltLadderPlan.js';
 // The split of a ladder at the cut age lives with the rotation watch's pure reading (services/RotationStatus.js, 6.43.0),
 // so the preview's page can read the block without the engine; it keeps its name here for the engine and the planner.
@@ -41,12 +41,15 @@ export function spareGrowthPath(series, off, N, spare, chargeM = 1) {
   return out;
 }
 
-/** spareGrowthPath over the one test's real starts (every month since 1871) and its futures (seed i × 7919 + 3). */
-export function spareGrowthRuns(N, spare, chargeM, runs = 400) {
+/**
+ * spareGrowthPath over the one test's real starts (every month since 1871) and its futures (seed i × 7919 + 3). `shock`
+ * (7.9.0, "Try the bad years": ladderEngine.shockRtr) goes on the futures only, never on a real start.
+ */
+export function spareGrowthRuns(N, spare, chargeM, runs = 400, shock = null) {
   const months = (N + 1) * 12;
   const hist = getRtr(), h = [], mc = [];
   for (let s = 0; s + months < hist.length; s++) h.push(spareGrowthPath(hist, s, N, spare, chargeM));
-  for (let i = 0; i < runs; i++) mc.push(spareGrowthPath(bootstrapPaths(i * 7919 + 3, months + 1, 60).rtr, 0, N, spare, chargeM));
+  for (let i = 0; i < runs; i++) mc.push(spareGrowthPath(shockRtr(bootstrapPaths(i * 7919 + 3, months + 1, 60).rtr, shock), 0, N, spare, chargeM));
   return { hist: h, mc };
 }
 
@@ -149,7 +152,8 @@ export function rotationPathsCtx(plan, p, { cutAge, trigger }) {
   return { N, startAge: p.startAge, cutAge, trigger, split, keptWealthByYear, blockWealthByYear, needAt,
     soldAges: new Set(split.soldYears.map((yr) => yr.age)),
     spareGrowth: !!(p.params && p.params.spareGrowth) && plan.spare > 0, spare: plan.spare,
-    chargeM: monthlyChargeFactor(p.chargesPct),   // the plan's fund and platform charges, on the sleeve after a rotation (6.19.0)
+    chargeM: monthlyCostFactor(p),   // the plan's fund and platform charges, on the sleeve after a rotation (6.19.0); with a row's lower returns (7.9.0)
+    ...(p.shock ? { shock: p.shock } : {}),   // a row's shock, on the futures only (7.9.0)
     lastRotateYear: Math.max(0, (cutAge - disarm) - p.startAge),
     otherAtY: (y) => (p.otherIncomeByYear && p.otherIncomeByYear[y]) || 0,
     spAtY: (y) => { const yr = plan.years[Math.min(y, plan.years.length - 1)]; return yr ? Math.max(0, yr.gross - yr.need) : 0; } };
@@ -167,7 +171,7 @@ export function runRotationMonteCarlo(ctx, runs = 400) {
   const months = (ctx.N + 1) * 12;
   const out = [];
   for (let i = 0; i < runs; i++) {
-    const { rtr } = bootstrapPaths(i * 7919 + 3, months + 1, 60);   // the shared per-future market
+    const rtr = shockRtr(bootstrapPaths(i * 7919 + 3, months + 1, 60).rtr, ctx.shock);   // the shared per-future market (a row's shock: 7.9.0)
     out.push(runRotationPath(rtr, 0, ctx));
   }
   return out;

@@ -71,7 +71,9 @@ export function trimResult(r) {
 /** The plan object without its function-valued fields. */
 export function trimPlan(p) {
   if (!p) return null;
-  const { pnvCfg, yieldForYear, now, ...rest } = p;   // `now` is a test/replay clock (planFromSettings { now }), never part of the saved plan
+  // `now` is a test/replay clock (planFromSettings { now }), never part of the saved plan; `shock`, `returnDragPct` and
+  // `perFutureCuts` are a row of "Try the bad years" (7.9.0, lastsRun.rowPlanOf), a run's own, never a document's
+  const { pnvCfg, yieldForYear, now, shock, returnDragPct, perFutureCuts, ...rest } = p;
   return plainClone(rest);
 }
 

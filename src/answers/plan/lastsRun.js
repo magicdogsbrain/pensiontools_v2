@@ -114,6 +114,28 @@ export function weightedPlanFor(settings, p, years, now, essentialsAnnual = unde
 export const WEIGHTED_HIST_STRIDE = 1e9;
 
 /**
+ * A row of "Try the bad years" (7.9.0) on the plan every screen runs: the row's shock to the futures (ladderEngine.shockPath,
+ * `from` 0 — the run's first month: the drawing start, or today when already drawing) and its lower returns (percent a year:
+ * on the plan for the bought strategies' fund parts and cash years, and on the Pots & Valves config), with the real
+ * histories at one window — a row reads its futures only, and no row shows a history figure — and each future's income cut
+ * kept (`perFutureCuts`: Pots & Valves and Buckets put it on futuresMc.cutReal, for OneAnswer.planShortfallOf). `row` =
+ * { shock?, returnDragPct? }; with neither, the plan as it is but for those two (the As planned row). Never stored
+ * (PlanDocument.trimPlan drops all three). weightedOptsOf puts the same on the plan followed on to the weighting age.
+ */
+export function rowPlanOf(p, row) {
+  if (!p || !row) return p;
+  const shock = row.shock && typeof row.shock === 'object' ? { ...row.shock } : null;
+  const d = Number.isFinite(row.returnDragPct) && row.returnDragPct > 0 ? row.returnDragPct : 0;
+  return {
+    ...p,
+    ...(shock ? { shock } : {}),
+    ...(d ? { returnDragPct: d, pnvCfg: { ...p.pnvCfg, returnDragPct: d } } : {}),
+    stride: WEIGHTED_HIST_STRIDE,
+    perFutureCuts: true
+  };
+}
+
+/**
  * A new plan document's `assumptions.success` (PlanDocument.buildPlanDocument's `success`), from the live result before it is
  * trimmed: both apps lock through it (runForDocument here; index.html buildPlanDocumentNow). Null while not weighing, and
  * for a way of drawing that cannot be bought.
@@ -192,16 +214,18 @@ export function successOf(a, life) {
 /**
  * The weighted part of a run (see OneAnswer.weightedPartOf): the person (life.lifeOf), the level (life.planLevelOf), and —
  * when the plan ends before the weighting age and its way of drawing can be followed on — the one more run to that age.
- * `stored`: a stored result's figure (a locked ladder's document), { chance } or null. → { opts, runs } for oneAnswer.
+ * `stored`: a stored result's figure (a locked ladder's document), { chance } or null. `row` (7.9.0): a row of "Try the bad
+ * years" — the run followed on to the weighting age carries its shock and lower returns too (rowPlanOf). → { opts, runs, pW }
+ * for oneAnswer (`pW`: the plan the futures were followed on with, the plan itself when there was no more run).
  */
-export function weightedOptsOf(plan, { settings, strategyId, p, r, now, essentials = undefined, stored = null }) {
+export function weightedOptsOf(plan, { settings, strategyId, p, r, now, essentials = undefined, stored = null, row = null }) {
   const life = lifeOf(plan, now, { settings, startAge: p.startAge });
   const level = planLevelOf(plan);
   const reason = stored ? life.reason : weightedReasonOf(life, strategyId, p);
   const w = weightedYearsOf(life, p);
   let rW = r, wYears = p.durationYears, runs = 0, pRun = p;
   if (!stored && !reason && w.extend) {
-    const pW = weightedPlanFor(settings, p, w.years, now, essentials);
+    const pW = row ? rowPlanOf(weightedPlanFor(settings, p, w.years, now, essentials), row) : weightedPlanFor(settings, p, w.years, now, essentials);
     rW = stressTestStrategy(strategyId, pW);
     wYears = pW.durationYears;
     runs = 1;
@@ -209,7 +233,7 @@ export function weightedOptsOf(plan, { settings, strategyId, p, r, now, essentia
   }
   // (the floor reads the run the futures ran out in: its State Pension and its other income, year by year)
   const floor = (k) => floorAt(settings, pRun, k, now);
-  return { opts: { life: { ...life, reason }, rW, wYears, level, floorAt: floor, capped: w.capped && !reason, stored }, runs };
+  return { opts: { life: { ...life, reason }, rW, wYears, level, floorAt: floor, capped: w.capped && !reason, stored }, runs, pW: pRun };
 }
 
 /** What the planner hands the document builder for the Accumulation tool (ScenarioRepository.getActiveAccumulation): its settings, {} for none. */

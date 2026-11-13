@@ -8,7 +8,7 @@
 import { EQUITY_RETURNS, INFLATION, ISA_DEFAULTS } from '../constants.js';
 import { seededRng, gaussianRandom } from '../utils/MathUtils.js';
 import { newSleeve, addToSleeve, growSleeve, chargeSleeve, withdrawFromSleeve, incomeTaxOnSleeve, bedAndIsa, payTaxFromSleeve, topUpFromSleeve, routeWindfall, sippRoomFor, GIA_DEFAULTS } from './TaxableSleeve.js';
-import { monthlyChargeFactor } from './Charges.js';
+import { monthlyCostFactor } from './Charges.js';
 import { calculateGlidepath, glideShareForYear } from './GlidepathService.js';
 import { calculateTax, grossToNet } from './TaxCalculator.js';
 import { cappedInflation } from './InflationModel.js';
@@ -58,8 +58,10 @@ export function simulate(config, returns, seed = 0) {
   const rng = seededRng(seed);
   // Fund and platform charges (6.19.0, services/Charges.js): the plan's percent a year, as a monthly factor taken off
   // every charged pot straight after the month's growth. A config without `chargesPct` (a plan locked before charges,
-  // every golden and pin) gets exactly 1 and the charge block below is skipped — the run it always was.
-  const chargeM = monthlyChargeFactor(config.chargesPct);
+  // every golden and pin) gets exactly 1 and the charge block below is skipped — the run it always was. A row of "Try the bad
+  // years" (7.9.0) may add `returnDragPct`, taken off the same pots the same way (Charges.monthlyCostFactor: without it, the
+  // charge's factor exactly).
+  const chargeM = monthlyCostFactor(config);
   // How the ISA grows (6.22.0, services/IsaGrowth.js): 'cash' — by the month's cash factor, the pension's own; 'invested'
   // — by the pension's three factors weighted by its mix (worked out once here). A config without the choice (a plan
   // locked before it, every golden and pin) grows the ISA at the fixed `isaReturn` below — the run it always was. The

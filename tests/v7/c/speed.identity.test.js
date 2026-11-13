@@ -124,6 +124,33 @@ describe('the engine replica is today\'s engine, run by run', () => {
     expect(compared).toBeGreaterThan(2000);
   }, 60_000);
 
+  it('7.9.0 "lower returns" (a row\'s returnDragPct, 1% a year; and at the 3% charge cap): the fixtures and 40 random households, to the bit', () => {
+    const env = { today: TEST_ENV.today, seed: 0 };
+    const households = [...fixtures.map((f) => f.inputs), ...random(40, env)];
+    let compared = 0, dragged = 0;
+    for (const inputs of households) {
+      const c = cases(inputs, env, 12, [0, 30, 200]);
+      if (!c) continue;
+      for (const configs of c.configsAtK) {
+        for (const { config } of configs) {
+          for (const more of [{ returnDragPct: 1 }, { chargesPct: 3, returnDragPct: 1 }]) {
+            const dc = { ...config, ...more };
+            expect(fastEligible(dc)).toBe(true);
+            for (const future of c.futures) {
+              const a = simulate(dc, future.returns, future.seed);
+              const b = simulateFast(dc, future);
+              if (!same(a, b)) expect.fail(`differs with ${JSON.stringify(more)}: ${JSON.stringify(inputs)} in future ${future.id}`);
+              if (a.finalEquity + a.finalBond + a.finalCash < simulate(config, future.returns, future.seed).finalEquity + simulate(config, future.returns, future.seed).finalBond + simulate(config, future.returns, future.seed).finalCash - 1e-6) dragged++;
+              compared++;
+            }
+          }
+        }
+      }
+    }
+    expect(compared).toBeGreaterThan(2000);
+    expect(dragged).toBeGreaterThan(100);   // the drag takes something off
+  }, 120_000);
+
   it('the runner shares a future\'s drivers between runs and gives the same outcome as a fresh replica', () => {
     const env = { today: TEST_ENV.today, seed: 0 };
     const c = cases(fixtures.find((f) => f.id === 'F2').inputs, env, 25, [40, 300, 450, 380]);

@@ -102,6 +102,51 @@ export function bootstrapPaths(seed, months, blockMonths = 60, data) {
   return { rtr, cpi };
 }
 
+/**
+ * "Try the bad years" (7.9.0): a future made worse on purpose, from the month the money is drawn on. Pure: the path given is
+ * never changed, and a null shock returns the very object given, so a run without a row is the run it always was.
+ *   shock = { kind: 'fall', share: 0.30, from }    shares lose at least `share` of their real value over the twelve months
+ *       from month `from`: R = rtr[f+12] / rtr[f], g = min(1, (1 − share) / R); each month of that year takes its twelfth
+ *       of g (rtr′[m] = rtr[m]·g^((m−f)/12)), and every month after it keeps the year's whole g (rtr′[m] = rtr[m]·g). The
+ *       year's real return is min(R, 1 − share); every later month's return is the future's own; no month is ever above
+ *       the future's own (g ≤ 1), so no future is made better. A future that already lost more is left as it is.
+ *   shock = { kind: 'prices', add: 0.02, from }    prices rise `add` a year faster from month `from`: cpi′[m] =
+ *       cpi[m]·(1 + add)^((m−f)/12) for m > f. Real share returns are unchanged (shares keep up with prices); what reads
+ *       the price path — the bond model, cash, the fixed ISA rate, level sums, capped rises, the tax bands — sees faster prices.
+ * `from` is set by the caller, in months from the path's month 0 (the plan side: 0, the drawing start or today when already
+ * drawing; an answer on lives: 12 × the years to the stop).
+ */
+export function shockPath(path, shock) {
+  if (!shock || !path) return path;
+  if (shock.kind === 'fall') {
+    const rtr = shockRtr(path.rtr, shock);
+    return rtr === path.rtr ? path : { ...path, rtr };
+  }
+  if (shock.kind === 'prices') {
+    const f = Math.max(0, Math.round(+shock.from || 0));
+    const add = +shock.add;
+    if (!(add > 0) || !Array.isArray(path.cpi) || f >= path.cpi.length - 1) return path;
+    const cpi = path.cpi.slice();
+    for (let m = f + 1; m < cpi.length; m++) cpi[m] = path.cpi[m] * Math.pow(1 + add, (m - f) / 12);
+    return { ...path, cpi };
+  }
+  return path;
+}
+
+/** shockPath's fall on a real total-return path alone (the strategies that run on real returns only); prices leave it as it is. */
+export function shockRtr(rtr, shock) {
+  if (!shock || shock.kind !== 'fall' || !Array.isArray(rtr)) return rtr;
+  const f = Math.max(0, Math.round(+shock.from || 0));
+  const share = +shock.share;
+  if (!(share > 0 && share < 1) || f + 12 >= rtr.length) return rtr;
+  const R = rtr[f + 12] / rtr[f];
+  const g = Math.min(1, (1 - share) / R);
+  if (!(g < 1)) return rtr;
+  const out = rtr.slice();
+  for (let m = f + 1; m < out.length; m++) out[m] = rtr[m] * (m <= f + 12 ? Math.pow(g, (m - f) / 12) : g);
+  return out;
+}
+
 /** Annual NOMINAL equity returns + inflation for the P&V engine from a (real TR, CPI) path pair. */
 export function annualNominal(rtr, cpi, off, planYears) {
   const equity = {}, inflation = {};

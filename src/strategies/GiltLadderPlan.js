@@ -64,10 +64,13 @@ export const LADDER_DEFAULTS = { cashYears: 2, dealFee: 20, spreadShort: 0.0015,
  * Cash set aside today to pay £1 of need in plan year k (k = 1 is spent straight away). The cash sits in a money-market
  * fund inside the pension, so the plan's fund and platform charges (chargesPct, percent a year; 6.19.0) come off it too:
  * ((1 + drag) / (1 − c))^(k − 1). Without a charge it is exactly the factor it always was. The rungs (gilts held
- * directly) are not charged.
+ * directly) are not charged. "Lower returns" (7.9.0, returnDragPct d, percent a year, a run's own field): the cash grows
+ * d% a year less too, ((1 + drag) / ((1 − c)(1 − d)))^(k − 1); with d = 0 exactly the factor without it.
  */
-export function cashCostFactor(k, drag = LADDER_DEFAULTS.cashRealDrag, chargesPct = 0) {
+export function cashCostFactor(k, drag = LADDER_DEFAULTS.cashRealDrag, chargesPct = 0, returnDragPct = 0) {
   const c = isChargesPct(chargesPct) ? chargesPct / 100 : 0;
+  const d = typeof returnDragPct === 'number' && Number.isFinite(returnDragPct) && returnDragPct > 0 && returnDragPct < 100 ? returnDragPct / 100 : 0;
+  if (d > 0) return Math.pow((1 + drag) / ((1 - c) * (1 - d)), Math.max(0, k - 1));
   if (c === 0) return Math.pow(1 + drag, Math.max(0, k - 1));
   return Math.pow((1 + drag) / (1 - c), Math.max(0, k - 1));
 }
@@ -85,6 +88,7 @@ export function spreadFor(yearsToMaturity, o = LADDER_DEFAULTS) {
  *    years, plan years from year 0, paid from the money-market fund),
  *  todayIso ('YYYY-MM-DD', the pricing date) or now (a Date) — either pins the clock; neither = today,
  *  chargesPct (the plan's fund and platform charges, percent a year — on the cash years only; absent = none),
+ *  returnDragPct (7.9.0, "lower returns": percent a year less growth on the cash years; a run's own field, absent = none),
  *  lifeFromPricing (6.50.0: a ladder bought for a plan already running) — the output records `pricedAt`, the pricing date,
  *    and every rung's life is measured from it (yearsToMaturity); without it, from 6 April of the year before the ladder's
  *    first year, as every ladder before (a plan in its year 0 or before is priced in the year before its first year or in it)
@@ -111,7 +115,7 @@ export function buildGiltLadder(p) {
     const Y = p.firstTaxYear + k - 1;
     const gross = p.amountAtAge(age);
     const need = Math.max(0, gross - spIn(age));
-    if (k <= cashYears) { const cost = need * cashCostFactor(k, o.cashRealDrag, p.chargesPct); cash += cost; cashYearsList.push({ Y, age, gross, need, cost }); years.push({ Y, age, gross, need, cost, from: 'cash' }); continue; }
+    if (k <= cashYears) { const cost = need * cashCostFactor(k, o.cashRealDrag, p.chargesPct, p.returnDragPct); cash += cost; cashYearsList.push({ Y, age, gross, need, cost }); years.push({ Y, age, gross, need, cost, from: 'cash' }); continue; }
     const lo = (Y - 1) + '-04-01', hi = Y + '-03-31';
     let g = il.filter((x) => x.maturityDateIso >= lo && x.maturityDateIso <= hi).pop();
     let held = false;

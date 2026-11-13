@@ -10,7 +10,7 @@
  * floor_and_flex); the ratchet is property-tested.
  */
 
-import { getRtr, bootstrapRtr, pct, dataMeta } from './ladderEngine.js';
+import { getRtr, bootstrapRtr, shockRtr, pct, dataMeta } from './ladderEngine.js';
 import { ENGINE_VERSION } from './version.js';
 
 /** Deterministic floor cost: Σ P(k) × (1+y_k)^-k over years 1..horizon — y_k from the real-yield
@@ -42,7 +42,8 @@ export function floorCost({ drawForYear, years, realYield, yieldForYear }) {
  */
 export function runFlexMonteCarlo(cfg, runs = 500) {
   const paths = [];
-  for (let i = 0; i < runs; i++) paths.push(bootstrapRtr(i * 7919 + 3, cfg.END));
+  // (cfg.shock: a row of "Try the bad years", 7.9.0 — on the futures only; absent, each path is the bootstrap's own)
+  for (let i = 0; i < runs; i++) paths.push(shockRtr(bootstrapRtr(i * 7919 + 3, cfg.END), cfg.shock));
   const r = runFlexCore(cfg, paths, true);
   r.meta.mode = 'montecarlo';
   return r;

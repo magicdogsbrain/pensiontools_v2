@@ -12,7 +12,7 @@
  */
 
 import { ON_COURSE_SHARE } from '../services/OnCourse.js';   // "on course" = lasts in 9 futures out of 10, everywhere (6.22.0)
-import { getRtr, getCpi, bootstrapPaths, annualNominal, pct, curvePricer, flatYieldPricer } from './ladderEngine.js';
+import { getRtr, getCpi, bootstrapPaths, annualNominal, pct, curvePricer, flatYieldPricer, shockPath } from './ladderEngine.js';
 import { getStrategy } from './registry.js';
 import { runLadderWindows, runLadderMonteCarlo } from './LadderAndRatchet.js';
 import { runFlexWindows, runFlexMonteCarlo } from './FloorAndFlex.js';
@@ -24,7 +24,7 @@ import { spPaidBefore, ladderAsSeenFromToday } from '../services/PlanFromToday.j
 import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
-import { chargesPctOf, monthlyChargeFactor } from '../services/Charges.js';
+import { chargesPctOf, monthlyCostFactor } from '../services/Charges.js';
 import { summariseCuts, pctText, weightedFailsOf, headYearsOf } from '../services/OneAnswer.js';
 import { LEVEL_FAILS20, levelOf, passes as passesLevel } from '../answers/shared/rules.js';
 import { planToAgeOf } from '../services/AgeConvention.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
@@ -61,12 +61,13 @@ export function sampleOf(seriesList, years, n = 80) {
  * A strategy that knows that year passes `failYears` (the engine's own fail age or first short year); without it, the
  * first year the wealth is gone. A strategy whose cut still pays part of the income (a lean year, a smaller level
  * income, a rotated year part paid) also passes `unpaid`: the income it left unpaid from that year on, today's money,
- * so the other plan is asked to cover only that. Without it the cut plan is taken to pay nothing from that year (an
+ * so the other plan is asked to cover only that. `cutReal` (7.9.0, a row's run only): each future's income cut over the run.
+ * Without `unpaid` the cut plan is taken to pay nothing from that year (an
  * empty pot). Until 6.37.0 only the rotation passed its year: a Floor & Flex or Floor to an age future that was cut
  * kept its wealth, so every one read as never cut, or cut only at the plan's end. A read-out of the runs each test
  * already made, never a second test.
  */
-export function futuresOf(wealthList, survived, terminals, failYears = null, unpaid = null) {
+export function futuresOf(wealthList, survived, terminals, failYears = null, unpaid = null, cutReal = null) {
   const failYear = wealthList.map((w, i) => {
     if (survived[i] !== false) return null;
     if (failYears) return failYears[i] ?? null;   // a strategy that knows the year it was cut says so
@@ -75,6 +76,8 @@ export function futuresOf(wealthList, survived, terminals, failYears = null, unp
   });
   const out = { terminal: terminals.map((v) => (Number.isFinite(v) ? v : 0)), failYear };
   if (unpaid) out.unpaid = failYear.map((fy, i) => (fy == null ? null : Math.max(0, unpaid[i] || 0)));
+  // a row of "Try the bad years" (7.9.0, p.perFutureCuts): each future's income cut, today's money (Pots & Valves, Buckets)
+  if (cutReal) out.cutReal = cutReal.map((v) => (Number.isFinite(v) ? Math.max(0, v) : 0));
   return out;
 }
 
@@ -227,7 +230,8 @@ function pnvTest(p, configs) {
   const mc = [];
   const runs = p.mcRuns || 400;
   // Seed i*7919+3 is the SAME as runFlexMonteCarlo / runLadderMonteCarlo: future i is one market for every strategy.
-  for (let i = 0; i < runs; i++) { const path = bootstrapPaths(i * 7919 + 3, END); mc.push(pnvRun(p.pnvCfg, annualNominal(path.rtr, path.cpi, 0, planYears), i, planYears, p.startAge)); }
+  // "Try the bad years" (7.9.0): a row's shock on every future (p.shock; absent, the path itself), never on a real history
+  for (let i = 0; i < runs; i++) { const path = shockPath(bootstrapPaths(i * 7919 + 3, END), p.shock); mc.push(pnvRun(p.pnvCfg, annualNominal(path.rtr, path.cpi, 0, planYears), i, planYears, p.startAge)); }
   const terms = mc.map((w) => w.terminal);
   return {
     affordable: true,
@@ -240,7 +244,7 @@ function pnvTest(p, configs) {
     failAges: mc.filter((w) => w.failed).map((w) => w.failAge),
     survivedMc: mc.map((w) => !w.failed),
     // the year the money ran out (the wealth read-out is start-of-year, so it showed the year after: 6.37.0)
-    futuresMc: futuresOf(mc.map((w) => w.wealthByYear), mc.map((w) => !w.failed), terms, mc.map((w) => (w.failed ? yearOfAge(w.failAge, p.startAge) : null))),
+    futuresMc: futuresOf(mc.map((w) => w.wealthByYear), mc.map((w) => !w.failed), terms, mc.map((w) => (w.failed ? yearOfAge(w.failAge, p.startAge) : null)), null, p.perFutureCuts ? mc.map((w) => w.cutReal) : null),
     // One answer (6.24.0): the income cuts counted from these same futures, and the per-start record of the real
     // histories (what History and Scenarios explain) — read-outs of the runs above, not a second test.
     cuts: summariseCuts(mc, planYears),
@@ -509,7 +513,7 @@ function bridgeTest(p, configs) {
   const yf = c.yieldForYear || (() => 0.023);
   const spAt = (y) => ((y >= (p.spStartYear ?? 99)) ? p.spAnnual : 0);
   // Value at plan year y of the unpaid bridge: cash years at face, gilt years discounted from y.
-  const bridgePvAt = (y) => { let v = 0; for (let k = y + 1; k <= B; k++) v += c.floorDraw(k) * (k <= c.cashYears ? cashCostFactor(k - y, undefined, p.chargesPct) : Math.pow(1 + yf(k - y), -(k - y))); return v; };
+  const bridgePvAt = (y) => { let v = 0; for (let k = y + 1; k <= B; k++) v += c.floorDraw(k) * (k <= c.cashYears ? cashCostFactor(k - y, undefined, p.chargesPct, p.returnDragPct) : Math.pow(1 + yf(k - y), -(k - y))); return v; };
   const h = runFlexWindows(c);
   const mc = runFlexMonteCarlo(c, p.mcRuns || 400);
   const run = (w) => {
@@ -596,6 +600,7 @@ function fullGiltTest(p, configs, { spareRuns = true } = {}) {
     firstTaxYear, linkers: fromToday ? fromToday.linkers : activeLinkers().gilts,
     cashYears: fromToday ? fromToday.cashYears : cashYears,
     chargesPct: p.chargesPct,   // the cash years sit in a money-market fund: charged (6.19.0); the gilts are not
+    ...(p.returnDragPct > 0 ? { returnDragPct: p.returnDragPct } : {}),   // "lower returns" (7.9.0): on the cash years too
     ...(fromToday ? { lifeFromPricing: true } : {})
   });
   if (!plan.affordable) return { affordable: false, reason: plan.reason, plan };
@@ -611,7 +616,7 @@ function fullGiltTest(p, configs, { spareRuns = true } = {}) {
   // The spare in the growth part (strategyParams.spareGrowth, 6.35.0): the income stays bought by contract; what is
   // left rides the market, on the test's own histories and futures (GiltRotation spareGrowthRuns).
   const grow = spareRuns && !!(p.params && p.params.spareGrowth) && plan.spare > 0;
-  const runs = grow ? spareGrowthRuns(N, plan.spare, monthlyChargeFactor(p.chargesPct), p.mcRuns || 400) : null;
+  const runs = grow ? spareGrowthRuns(N, plan.spare, monthlyCostFactor(p), p.mcRuns || 400, p.shock) : null;
   const withSpare = (sp) => wealth.map((w, y) => w - plan.spare + sp[y]);
   const mcW = grow ? runs.mc.map(withSpare) : null;
   const ends = grow ? mcW.map((w) => w[N]).sort((a, b) => a - b) : null;

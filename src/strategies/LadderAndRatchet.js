@@ -8,7 +8,7 @@
  * always reported separately.
  */
 
-import { getRtr, bootstrapRtr, stage1Band, stage1Calendar, stage2, flatYieldPricer, curvePricer, pct, dataMeta, monthIndexFor } from './ladderEngine.js';
+import { getRtr, bootstrapRtr, shockRtr, stage1Band, stage1Calendar, stage2, flatYieldPricer, curvePricer, pct, dataMeta, monthIndexFor } from './ladderEngine.js';
 import { profileTargetForYear } from '../services/IncomeProfile.js';
 import { ENGINE_VERSION } from './version.js';
 
@@ -30,7 +30,8 @@ export const LADDER_DEFAULTS = {
  */
 export function runLadderMonteCarlo(cfg, runs = 1000) {
   const paths = [];
-  for (let i = 0; i < runs; i++) paths.push(bootstrapRtr(cfg.mcSeed ? cfg.mcSeed(i) : i * 12345 + 7, cfg.END));
+  // (cfg.shock: a row of "Try the bad years", 7.9.0 — on the futures only; absent, each path is the bootstrap's own)
+  for (let i = 0; i < runs; i++) paths.push(shockRtr(bootstrapRtr(cfg.mcSeed ? cfg.mcSeed(i) : i * 12345 + 7, cfg.END), cfg.shock));
   const sub = runLadderCore(cfg, paths, paths.map(() => 0));
   const p = (sub.stats.survivalPct ?? 100) / 100;
   sub.stats.survivalHalfWidthPp = 196 * Math.sqrt(Math.max(0, p * (1 - p)) / runs) / 2 * 2 / 2; // 1.96·√(p(1−p)/n) in pp

@@ -70,7 +70,7 @@ import { calculateGlidepath } from '../../services/GlidepathService.js';
 import { planDrawdown } from '../../services/DrawdownStrategy.js';
 import { SOURCING_DEFAULTS } from '../../services/WithdrawalSourcing.js';
 import { spendingSmileFactor } from '../../services/SpendingModel.js';
-import { monthlyChargeFactor, isChargesPct } from '../../services/Charges.js';
+import { monthlyCostFactor, isChargesPct } from '../../services/Charges.js';
 import { isIsaGrowthMix, isaGrowthWeights, investedIsaFactor } from '../../services/IsaGrowth.js';
 import { ISA_DEFAULTS } from '../../constants.js';
 
@@ -222,6 +222,7 @@ export function fastEligible(c) {
     && !(c.pensionLockedMonths > 0)
     && (c.spendingProfile === undefined || c.spendingProfile === 'flat')
     && (c.chargesPct === undefined || isChargesPct(c.chargesPct))   // 6.19.0: a charge the engine takes as given, or none
+    && (c.returnDragPct === undefined || (finite(c.returnDragPct) && c.returnDragPct >= 0))   // 7.9.0: a row's lower returns, or none
     // 6.22.0: how the ISA grows — none (the fixed rate), "Mostly cash", or "invested" at an explicit mix
     && (c.isaGrowth === undefined || c.isaGrowth === 'cash' || (c.isaGrowth === 'invested' && isIsaGrowthMix(c.isaGrowthMix)))
     // couples apart: the months the other's pay covers a shortfall, a whole number of the run's months
@@ -376,8 +377,9 @@ function runFast(config, pf, pr, start = null, hook = null, until = null, resume
   const isaKind = config.isaGrowth === 'cash' ? 1 : config.isaGrowth === 'invested' ? 2 : 0;
   const isaW = isaKind === 2 ? isaGrowthWeights(config) : null;
   // SimulationEngine's charge factor, worked out the same way (services/Charges.js): 1 without a charge, and then the
-  // charge blocks below are skipped, so an uncharged run is the run it always was.
-  const chargeM = monthlyChargeFactor(config.chargesPct);
+  // charge blocks below are skipped, so an uncharged run is the run it always was. With a row's lower returns (7.9.0,
+  // `returnDragPct`) the factor `simulate` takes (Charges.monthlyCostFactor).
+  const chargeM = monthlyCostFactor(config);
   const strategy = config.isaDrawdownStrategy || ISA_DEFAULTS.DRAWDOWN_STRATEGY;
 
   let equity = start ? start.equity : config.equityStart;

@@ -10,7 +10,7 @@
  *
  * Bundled market history only: no live prices are read.
  */
-import { bootstrapPaths, annualNominal, dataMeta, getEquityHaircut } from '../../strategies/ladderEngine.js';
+import { bootstrapPaths, annualNominal, dataMeta, getEquityHaircut, shockPath } from '../../strategies/ladderEngine.js';
 
 /** The engine reads a rise in prices of exactly nought as "not given" and uses 2.5%. This is the smallest rise it takes as given. */
 const FLAT_PRICES = 1e-12;
@@ -40,11 +40,13 @@ function madeUp(raw, years) {
 
 /**
  * Yearly returns for future `i`: { equity: { [year]: return }, inflation: { [year]: rise in prices } }.
- * `env.futureReturns(i, years)`, when given (tests only), replaces the market history.
+ * `env.futureReturns(i, years)`, when given (tests only), replaces the market history. `env.shock` (7.9.0, a row of "Try the
+ * bad years": ladderEngine.shockPath, its start month set by the caller) makes the market history's future worse; absent,
+ * the path is the bootstrap's own, so every answer is what it was.
  */
 export function futureReturns(i, years, env = {}) {
   if (typeof env.futureReturns === 'function') return madeUp(env.futureReturns(i, years), years);
-  const path = bootstrapPaths(marketSeed(i, env.seed || 0), years * 12);
+  const path = shockPath(bootstrapPaths(marketSeed(i, env.seed || 0), years * 12), env.shock);
   return annualNominal(path.rtr, path.cpi, 0, years);
 }
 

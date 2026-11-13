@@ -1,5 +1,5 @@
 import { cashCostFactor } from './GiltLadderPlan.js';
-import { monthlyChargeFactor } from '../services/Charges.js';
+import { monthlyCostFactor } from '../services/Charges.js';
 import { countLeftFromToday, reviewMonthsFromToday, ladderYearsFromYear0, planYearsOf } from '../services/PlanFromToday.js';
 /**
  * Phase D — the N-way strategy compare (strategy brief §6, UX brief §3.3).
@@ -104,8 +104,11 @@ export function deriveCompareConfigs(p) {
   // Fund and platform charges (6.19.0): the plan's monthly factor for every sleeve held in a fund (Ladder & Ratchet's
   // equity sleeve; the Floor & Flex / schedule / to-an-age reserve; Bridge & engine's engine) and the bridge's cash years.
   // Only put on a config when there IS a charge, so a plan without one derives exactly today's configs.
-  const chargeM = monthlyChargeFactor(p.chargesPct);
+  // "Lower returns" (7.9.0, a row's p.returnDragPct) rides the same factor (Charges.monthlyCostFactor: exactly the charge's
+  // without it); a row's shock (p.shock) goes on every config that draws futures, and on nothing else.
+  const chargeM = monthlyCostFactor(p);
   const charged = chargeM !== 1 ? { chargeM } : {};
+  const shocked = p.shock ? { shock: p.shock } : {};
   // A plan whose year 0 is behind it runs from the plan year reached (p.yearOffset: PlanFromToday.js). The counts of years
   // its dials give from year 0 — the ladder years, Bridge & engine's cash years — are the years left of them from today,
   // never below none (PlanFromToday.countLeftFromToday). The ladder's count from year 0 is the dial, else the default on
@@ -138,7 +141,7 @@ export function deriveCompareConfigs(p) {
     END, realYield, yieldForYear: p.yieldForYear, glideRate: 0.05, startAge: p.startAge,
     baseLadderCost, drawNetOfSp: drawNet,
     mcSeed: (i) => i * 7919 + 3,   // one market per future index, shared with every other strategy
-    ...charged
+    ...charged, ...shocked
   } : null;
 
   // Floor & Flex: essentials floor (net of SP) to the horizon; remainder is the flex sleeve.
@@ -155,7 +158,7 @@ export function deriveCompareConfigs(p) {
     horizonAge: p.startAge + ffYears,
     ...(fixedTreats != null ? { flexMin: fixedTreats, flexMax: fixedTreats, treatsRule: 'fixed' } : {}),
     ...(closedYears > 0 ? { closedYears } : {}),
-    ...charged
+    ...charged, ...shocked
   } : null;
 
   // Floor the schedule: the whole income profile (net of SP) to the horizon; the rest is an untouched reserve.
@@ -164,7 +167,7 @@ export function deriveCompareConfigs(p) {
   const fsc = fsE0 > 0 ? {
     E0: fsE0, rate: 0, END, floorCost: fsCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
     horizonAge: p.startAge + p.durationYears, amountAt, minDraw,
-    ...charged
+    ...charged, ...shocked
   } : null;
 
   // Floor to an age, then decide: schedule bought to age A; the reserve decides the rest AT A.
@@ -180,7 +183,7 @@ export function deriveCompareConfigs(p) {
     E0: faE0, rate: 0, END, floorCost: faCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
     floorToAge, A, amountAt, restCost, restCostFull: restCost(amountAt), annuityFactor,
     minDrawToA: Math.min(...Array.from({ length: A }, (_, i) => amountAt(i + 1))),
-    ...charged
+    ...charged, ...shocked
   } : null;
 
   // Bridge & engine: cash years + one rung per year to the bridge age (default: State Pension
@@ -189,13 +192,13 @@ export function deriveCompareConfigs(p) {
   const bridgeAge = Math.max(p.startAge + 1, Math.min(prm.bridgeAge || spAge, p.startAge + p.durationYears - 1));
   const B = bridgeAge - p.startAge;
   const beCashYears = Math.max(0, Math.min(countLeftFromToday(prm.cashYears ?? 3, lived), B));   // from year 0: the years left (above)
-  let beCost = 0; for (let k = 1; k <= B; k++) beCost += drawNet(k) * (k <= beCashYears ? cashCostFactor(k, undefined, p.chargesPct) : Math.pow(1 + yf(k), -k));   // cash years: inflation drag (and the plan's charges), not face
+  let beCost = 0; for (let k = 1; k <= B; k++) beCost += drawNet(k) * (k <= beCashYears ? cashCostFactor(k, undefined, p.chargesPct, p.returnDragPct) : Math.pow(1 + yf(k), -k));   // cash years: inflation drag (and the plan's charges), not face
   const beE0 = total - beCost;
   let beRest = 0; for (let k = B + 1; k <= p.durationYears; k++) beRest += drawNet(k) * Math.pow(1 + yf(k - B), -(k - B));
   const be = beE0 > 0 ? {
     E0: beE0, rate: 0, END, floorCost: beCost, floorDraw: drawNet, yieldForYear: p.yieldForYear,
     bridgeAge, B, cashYears: beCashYears, amountAt, restCostFull: beRest,
-    ...charged
+    ...charged, ...shocked
   } : null;
 
   return { END, lr, ff, fs: fsc, fa, be, beAffordable: beE0 > 0, beCost, beBridgeAge: bridgeAge, faAffordable: faE0 > 0, faFloorCost: faCost, lrAffordable: lrE0 > 0, ffAffordable: ffE0 > 0, fsAffordable: fsE0 > 0, baseLadderCost, ffFloorCost, fsFloorCost: fsCost, scheduleMin: minDraw };

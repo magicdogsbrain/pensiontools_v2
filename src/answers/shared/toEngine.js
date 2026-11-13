@@ -367,6 +367,9 @@ export function enginePlan(household, env, opts = {}) {
       // sleeves and the ISA, while drawing and while a pension is closed. Only a valid charge is handed on: without one
       // the config is exactly what it was (the engine reads a missing charge as 0; the household model gives 0.5).
       ...(isChargesPct(household.chargesPct) ? { chargesPct: household.chargesPct } : {}),
+      // "Lower returns" (7.9.0, a row of "Try the bad years"): the household's drag, percent a year, on the same pots as the charge
+      // (Charges.monthlyCostFactor); only a run's household carries it, so every other config is what it was
+      ...(Number.isFinite(household.returnDragPct) && household.returnDragPct > 0 ? { returnDragPct: household.returnDragPct } : {}),
       // How the ISA grows (6.22.0): see isaGrowthKeys above (each run gets its own copy of the mix)
       ...(isaGrowthKeys.isaGrowthMix ? { ...isaGrowthKeys, isaGrowthMix: { ...isaGrowthKeys.isaGrowthMix } } : isaGrowthKeys),
       // Couples apart: the first stopper's months before the second stop, when the worker's pay makes up a shortfall

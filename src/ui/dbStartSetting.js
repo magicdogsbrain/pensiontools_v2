@@ -55,7 +55,8 @@ export function dbStartWords({ year, startAge, firstTaxYear = null, duration = n
     const lastAge = startAge > 0 ? Math.round(startAge) + duration - 1 : null;
     return {
       level: 'error',
-      text: 'That is after the plan ends' + (lastAge != null ? ' at age ' + lastAge : ' (' + duration + ' years)') + ' — the pension would never pay. Enter an age up to ' + (lastAge != null ? lastAge : duration - 1) + ', or lengthen the plan.'
+      // (the age in the plan's last year: "the plan ends at 97" would say the 97th birthday, rules.js planToAgeOf)
+      text: (lastAge != null ? 'That is after the plan’s last year, at age ' + lastAge : 'That is after the plan ends (' + duration + ' years)') + ' — the pension would never pay. Enter an age up to ' + (lastAge != null ? lastAge : duration - 1) + ', or lengthen the plan.'
     };
   }
   if (y < 0) {

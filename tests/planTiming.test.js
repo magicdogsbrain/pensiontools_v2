@@ -241,7 +241,7 @@ describe('describeTiming', () => {
     expect(text).toContain('Plan starts 6 April 2027 (tax year 2027/28), in 7 months.');
     expect(text).toContain('Income steps start at age 64.');
     expect(text).toContain('State Pension from 2030/31 (plan year 3).');
-    expect(text).toContain('Plan runs to age 93.');
+    expect(text).toContain('Plan runs to age 94.');
     // with nothing saved (7.4.0): this tax year
     const n = migrateTiming(alex, null, NOW);
     expect(describeTiming(deriveTiming(n, NOW), n, NOW)).toContain('State Pension from 2030/31 (plan year 4).');

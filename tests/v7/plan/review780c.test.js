@@ -119,7 +119,7 @@ describe('the classic "Am I on course?" names the test it ran', { timeout: 600_0
     expect(found.levels.balanced).toBe(found.requiredPot);
     expect(found.levels.bold).toBeLessThanOrEqual(found.levels.balanced);
     expect(found.chance.weighted).toBeGreaterThanOrEqual(0.9 - 1e-9);
-    expect(found.planToAge).toBe(Math.round(p.startAge + p.durationYears) - 1);
+    expect(found.planToAge).toBe(Math.round(p.startAge + p.durationYears));   // 7.9.0: to that birthday
     const basis = onCourseBasisHtml({ strategyId: 'pots-and-valves', name: 'Pots & Valves', found });
     expect(basis).toMatch(/^to be on course at <strong>Balanced<\/strong> \(Careful £[\d,]+, Bold £[\d,]+\) with <strong>Pots &amp; Valves<\/strong>/);
     expect(basis).not.toMatch(/9 futures out of 10/);

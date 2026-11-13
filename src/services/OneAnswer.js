@@ -17,6 +17,7 @@
  */
 import { jointSurvivalOf } from './LongevityModel.js';
 import { RULES, WEIGHT_ONE, LEVEL_FAILS20, levelOf, verdictAtLevel } from '../answers/shared/rules.js';
+import { planToAgeOf } from './AgeConvention.js';
 import { chanceWords, fixedAgeWords, failTwentiethsWords } from '../answers/shared/format.js';
 
 const RULES_MAX_DRAW_YEARS = RULES.maxDrawYears;
@@ -32,6 +33,7 @@ export const NAMED_STARTS = [
 ];
 
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+
 const median = (arr) => { if (!arr.length) return 0; const s = [...arr].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 
 /**
@@ -211,8 +213,8 @@ export function weightedPartOf(r, p, a, { life, rW = null, wYears = null, level 
   const lvl = levelOf(level);
   const t = LEVEL_FAILS20[lvl];
   const startAge = num(p && p.startAge);
-  // the age the plan runs to, as the plan says it everywhere ("Plan to age 98": the age in its last year, lastsOf's endAge)
-  const planToAge = Math.round(startAge + num(p && p.durationYears)) - 1;
+  // the age the plan runs to, as both apps say it everywhere (planToAgeOf: "to 97" = to the 97th birthday, lastsOf's endAge)
+  const planToAge = planToAgeOf(startAge, p && p.durationYears);
   const run = rW || r;
   const kind = a.failKind;
   let weighted = null, sumW = null, n = null, reason = life.reason || null;

@@ -65,14 +65,14 @@ describe('the floor is what the run paid', () => {
 });
 
 describe('one plan-to age; what is left said once and rounded', () => {
-  it('the plan-to age is the age in the plan\'s last year, as About and the planner say it', () => {
+  it('the plan-to age is the birthday the plan\'s last year ends on (7.9.0), as About, the planner and the answers say it', () => {
     const a = oneAnswer(fake('pots-and-valves', 4), P, { life: LIFE });
-    expect(a.planToAge).toBe(66 + 31 - 1);
-    expect(a.words.fixed).toMatch(/^If you live to 96, /);
+    expect(a.planToAge).toBe(66 + 31);
+    expect(a.words.fixed).toMatch(/^If you live to 97, /);
   });
   it('what is left: to the nearest £1,000, one line on the band', () => {
     const a = oneAnswer(fake('pots-and-valves', 4), P, { life: LIFE });
-    expect(a.words.left).toBe('If you live to 96, what is typically left then is £153,000 at today\'s prices. In the best 1 in 10 futures it is £713,000 or more.');
+    expect(a.words.left).toBe('If you live to 97, what is typically left then is £153,000 at today\'s prices. In the best 1 in 10 futures it is £713,000 or more.');
     const v = verdictOf({ strategyId: 'pots-and-valves', a, ran: { family: true, cutsOn: false } }, { endAge: 96 });
     expect(v.rows.filter((r) => r.id === 'left' || r.id === 'leftW').map((r) => r.id)).toEqual(['leftW']);
   });

@@ -410,7 +410,7 @@ describe('one placing from the Accumulation tab\'s ages (4.6)', () => {
     const before = saverInputsOf(e.plan, { today: TODAY });
     expect(before.ok).toBe(true);
     const boxes = aboutBoxes(e.plan, { today: TODAY });
-    expect(before.inputs.endAge).toBe(+boxes.endAge + 1);   // the plan's own last age, on its own clock
+    expect(before.inputs.endAge).toBe(+boxes.endAge);   // one convention (7.9.0): the box and the verdict both name the birthday the plan runs to
     const p = aboutPatch(e.plan, boxes, { today: TODAY });
     expect(p.ok).toBe(true);
     const after = saverInputsOf(applyPatch(e.plan, p.patch), { today: TODAY });

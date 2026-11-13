@@ -100,7 +100,7 @@ describe('L1 — the reading, on every corpus plan at three dates', () => {
         expect(s.values.buffer).toBe(cfg.recoveryBuffer);
         expect(s.values.reserveOn).toBe(cfg.hodlEnabled ? 'yes' : 'no');
         // the end age the band says: the plan's start age and its length, the "About" step's own rule
-        expect(s.endAge).toBe((s.timing.shapeAgeNow || 57) + (ss.duration || 35) - 1);
+        expect(s.endAge).toBe((s.timing.shapeAgeNow || 57) + (ss.duration || 35));   // 7.9.0: to that birthday
         // a locked plan carries its document's figure, read not run
         if (a.locked && e.plan.planDocument && e.plan.planDocument.strategy && e.plan.planDocument.strategy.r) {
           expect(a.document).not.toBe(null);

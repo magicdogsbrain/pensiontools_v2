@@ -705,7 +705,7 @@ describe('V7: the question on a locked plan\'s "About you and when", and the mov
     const plan = alex();
     const m = planMoveOf(plan, NOW);
     const facts = moveFactsOf(plan, m);
-    expect(facts).toMatchObject({ stepAmount: 34000, stepped: true, endAge: 85, bridged: 4, runYear: 2026, ladder: true, dated: false, sp: { taxYear: 2028, before: 1, after: 5 } });
+    expect(facts).toMatchObject({ stepAmount: 34000, stepped: true, endAge: 86, bridged: 4, runYear: 2026, ladder: true, dated: false, sp: { taxYear: 2028, before: 1, after: 5 } });
     expect(facts.months).toEqual(['2023-10', '2026-07', '2026-08', '2026-09']);   // the month work stopped, recorded (7.4.3)
     const theirs = plain(moveStartQuestion(m, facts).html);
     const C = ABOUT.lockedStart.confirm;
@@ -716,7 +716,7 @@ describe('V7: the question on a locked plan\'s "About you and when", and the mov
       ['The plan’s first tax year becomes 2023/24, the tax year you stopped work (October 2023); it was 2027/28.', 'The plan\'s first tax year becomes 2023/24 , the tax year you stopped work (October 2023); it was 2027/28.'],
       ['The plan stays locked: nothing is unlocked and no setting is added.', 'The plan stays locked: nothing is unlocked and no setting is added.'],
       ['the first step keeps its amount (£34,000 a year) and now runs from 2023/24, at 62; your later steps keep their ages.', 'the first step keeps its amount (£34,000 a year) and now runs from 2023/24, at 62; your later steps keep their ages.'],
-      ['The plan still runs to age 85, 4 years longer from its new start.', 'The plan still runs to age 85, 4 years longer from its new start.'],
+      ['The plan still runs to age 86, 4 years longer from its new start.', 'The plan still runs to age 86, 4 years longer from its new start.'],
       ['4 recorded months (October 2023 to September 2026) keep every figure you entered. They now count from the new start, 2023/24.', '4 recorded months (October 2023 to September 2026) keep every figure you entered. They now count from the new start, 2023/24.'],
       ['the gilt ladder is bought from 2026/27 on, no year you have already lived is bought or paid for again', 'the gilt ladder is bought from 2026/27 on, no year you have already lived is bought or paid for again'],
       ['Your State Pension still starts in 2028/29, as before; only the plan’s count of years to it changes (5 from the new start, not 1).', 'Your State Pension still starts in 2028/29, as before; only the plan\'s count of years to it changes (5 from the new start, not 1).'],

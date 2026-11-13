@@ -127,7 +127,7 @@ export function savedAbout(plan, { today }) {
   const stopped = age == null ? null : timing.mode === 'future' ? (stopMonth && stopAhead ? 'month' : 'age') : 'yes';
   const fty = timing.firstTaxYear;
   const startWhen = stopped === 'yes' ? whenOf(fty, thisTY, stopped === 'yes' && stopMonth && !stopAhead ? stopMonth : null) : null;
-  const endAge = timing.shapeAgeNow + duration - 1;
+  const endAge = timing.shapeAgeNow + duration;   // "Plan to age 97" = to the 97th birthday: the last year is at 96 (rules.js planToAgeOf)
   const source = locked ? { kind: 'locked', at: dayWords(lockedAtOf(plan)) } : { kind: 'saved', at: plan && plan.lastModified ? dayWords(plan.lastModified) : null };
   const ageSource = locked ? source : { kind: 'saved', at: ageAsOf ? dayWords(ageAsOf) : source.at };
   return {
@@ -304,12 +304,13 @@ export function checkAbout(plan, typed, { today }) {
   }
   // never below the box's own lowest age: a plan whose income started when work stopped at 16 or 17 (6.51.0) would
   // otherwise be offered an end age the box refuses
-  const minEnd = timing ? Math.max(field('endAge').min, timing.shapeAgeNow + MIN_YEARS - 1) : field('endAge').min;
+  const minEnd = timing ? Math.max(field('endAge').min, timing.shapeAgeNow + MIN_YEARS) : field('endAge').min;
   const e = parseAge(boxes.endAge, field('endAge'));
   if (e.error) errors.endAge = e.error;
   else if (e.value < minEnd) errors.endAge = 'too-short';
   else values.endAge = e.value;
-  if (next && values.endAge != null) { duration = Math.max(MIN_YEARS, values.endAge - timing.shapeAgeNow + 1); next.duration = duration; }
+  // "Plan to age 97" = to the 97th birthday (rules.js planToAgeOf): the years from the start age to it
+  if (next && values.endAge != null) { duration = Math.max(MIN_YEARS, values.endAge - timing.shapeAgeNow); next.duration = duration; }
 
   const ok = Object.keys(errors).length === 0 && next !== null && duration !== null;
   return { ok, values, errors, applies, offered, next: ok ? next : null, timing: ok ? timing : null, duration, stopAgeFromMonth, saved, minEnd };
@@ -568,7 +569,7 @@ export function applyPatch(plan, patch) {
  */
 export function derivedLines(timing, duration, { stopAgeFromMonth = null } = {}) {
   if (!timing || timing.mode === 'legacy') return [{ id: 'noAge', slots: {} }];
-  const endAge = timing.shapeAgeNow + duration - 1;
+  const endAge = timing.shapeAgeNow + duration;   // to that birthday (rules.js planToAgeOf)
   const lines = [];
   if (timing.mode === 'future') {
     if (stopAgeFromMonth != null) lines.push({ id: 'monthAs', slots: { age: timing.retireAge, month: monthWords(timing.startMonth) } });

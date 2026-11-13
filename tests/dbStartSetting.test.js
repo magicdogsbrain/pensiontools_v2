@@ -32,7 +32,7 @@ describe('the pure rules', () => {
   it('past the plan\'s end is an error that names the last age; before the start is a warning', () => {
     const w = dbStartWords({ year: 65, startAge: 63, firstTaxYear: 2029, duration: 30, amount: 5200 });   // "65" typed as a plan year
     expect(w.level).toBe('error');
-    expect(w.text).toContain('after the plan ends at age 92');
+    expect(w.text).toContain('after the plan’s last year, at age 92');
     expect(w.text).toContain('would never pay');
     expect(w.text).toContain('Enter an age up to 92');
     expect(dbStartWords({ year: 30, startAge: 63, duration: 30, amount: 1 }).level).toBe('error');   // the first year past the end
@@ -85,7 +85,7 @@ describe('the form', () => {
     doc.getElementById('ssDbStartAge').value = '101';
     dbStartFromAgeInput(doc, timing);
     expect(doc.getElementById('ssDbStartYear').value).toBe('38');
-    expect(doc.getElementById('ssDbStartHint').textContent).toContain('after the plan ends at age 92');
+    expect(doc.getElementById('ssDbStartHint').textContent).toContain('after the plan’s last year, at age 92');
     const err = dbStartError(doc, timing);
     expect(err).toContain('Final-salary pension start:');
     expect(err).toContain('would never pay');

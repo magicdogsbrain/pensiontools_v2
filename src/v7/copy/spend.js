@@ -60,7 +60,7 @@ export const SPEND = {
     gross: '{gross} a year before tax, as the plan saves it. {pct}% of the start.',
     grossBudget: '{gross} a year before tax, as the plan saves it. {pct}% of the start, {budgetPct}% of your budget (a guide).',
     errors: {
-      fromAge: { required: 'Type the age this step starts, for example 75.', notANumber: 'Whole years, please.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 110, please.', beforeStart: 'This is not later than the plan’s first year, at {startAge}. Make it later, or change the figure above instead.', afterEnd: 'This is after the end of the plan, at {endAge}. Make it earlier, or remove it.', sameAge: 'Two steps start at this age. Each step starts at its own age.' },
+      fromAge: { required: 'Type the age this step starts, for example 75.', notANumber: 'Whole years, please.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 110, please.', beforeStart: 'This is not later than the plan’s first year, at {startAge}. Make it later, or change the figure above instead.', afterEnd: 'This is after the plan’s last year, at age {endAge}. Make it earlier, or remove it.', sameAge: 'Two steps start at this age. Each step starts at its own age.' },
       amount: { required: 'Type what you would spend a month from this age, for example 2,000.', notANumber: 'Figures only, like 2,000.', tooLow: 'At least £1 a month. To stop a step, remove it.', tooHigh: 'An amount up to £50,000 a month, please.' },
       then: { notAnOption: 'Choose what happens from this age.', glidesLast: 'There is no later step to move towards. Add one, or choose another.' },
       fallsPct: { required: 'Type a fall from 0.25% to 10% a year, in steps of 0.25, for example 1.', range: 'Type a fall from 0.25% to 10% a year, in steps of 0.25, for example 1.' }
@@ -83,8 +83,8 @@ export const SPEND = {
     errors: {
       label:  { tooLong: 'Up to 60 letters, please.' },
       amount: { required: 'Type the amount a year.', notANumber: 'Figures only, like 20,000.', tooLow: 'An amount of at least £1.', tooHigh: 'An amount up to £1,000,000 a year, please.' },
-      atAge:  { required: 'Type the age this cost is paid, for example 70.', notANumber: 'Whole years, please.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 110, please.', beforeStart: 'The plan’s first year is at age {ageNow}. An age of {ageNow} or more, please.', beforeToday: 'That age has passed: a cost already paid is out of your pots today. An age of {ageToday} or more, please.', afterEnd: 'That is after the plan ends at age {endAge}. An age up to {endAge}, please.' },
-      years:  { notANumber: 'Whole years, please.', tooLow: 'At least 1 year.', tooHigh: 'Up to 60 years, please.', tooManyYears: 'That runs past the end of the plan at age {endAge}. Fewer years, please.' },
+      atAge:  { required: 'Type the age this cost is paid, for example 70.', notANumber: 'Whole years, please.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 110, please.', beforeStart: 'The plan’s first year is at age {ageNow}. An age of {ageNow} or more, please.', beforeToday: 'That age has passed: a cost already paid is out of your pots today. An age of {ageToday} or more, please.', afterEnd: 'That is after the plan’s last year, at age {endAge}. An age up to {endAge}, please.' },
+      years:  { notANumber: 'Whole years, please.', tooLow: 'At least 1 year.', tooHigh: 'Up to 60 years, please.', tooManyYears: 'That runs past the plan’s last year, at age {endAge}. Fewer years, please.' },
       prices: { notAnOption: 'Choose one.' }
     }
   },

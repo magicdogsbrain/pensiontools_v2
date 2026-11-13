@@ -110,7 +110,7 @@ export function savedLasts(plan, { today }) {
   const source = locked ? { kind: 'locked', at: dayWords(lockedAtOf(plan)) } : { kind: 'saved', at: plan && plan.lastModified ? dayWords(plan.lastModified) : null };
   return {
     locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, ss, stored, timing, strategyId, bought, family: FAMILY.includes(strategyId),
-    endAge: (num(timing.shapeAgeNow) || 57) + (num(ss.duration) || 35) - 1,
+    endAge: (num(timing.shapeAgeNow) || 57) + (num(ss.duration) || 35),   // "to 97" = to the 97th birthday (rules.js planToAgeOf)
     // the document's figure as a result verdictOf can word: the same shape lastsRun.js returns, without a history
     document: docA ? { a: docA, lockedOn: dayWords(doc.lockedAt || lockedAtOf(plan)), ladder: !!(docR.plan && Array.isArray(docR.plan.years) && docR.plan.years.length),
       ran: { family: FAMILY.includes(strategyId), cutsOn: FAMILY.includes(strategyId) && values.cutsOn === 'yes', cutPct: values.cutPct, months: values.cutAfterMonths } } : null,

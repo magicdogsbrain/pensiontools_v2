@@ -16,7 +16,7 @@ export const KEEP = {
   nameHelp: 'Filled in from this answer. Change it to anything you like.',
   /**
    * 7.8.0: the answer counts to an age more than 45 years after the money starts (the plan-to age follows how long people
-   * live); a plan runs 45 years at most, so it is kept to an earlier age. {kept} the age in the plan's last year, {years} 45,
+   * live); a plan runs 45 years at most, so it is kept to an earlier age. {kept} the age the kept plan runs to ("to 97" = to the 97th birthday), {years} 45,
    * {age} the answer's plan-to age.
    */
   cut: 'The plan this keeps runs to {kept}: {years} years from when the money starts is the longest a plan runs. This answer counts to {age}.',

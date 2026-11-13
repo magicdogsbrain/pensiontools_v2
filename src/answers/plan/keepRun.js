@@ -48,13 +48,13 @@ const BAD = 0.1;
 /**
  * One run's figures: the chance (OneAnswer), the bad case — the worst 1 in 10 of the futures, read from the per-future fail
  * year the test keeps (futuresMc.failYear), else from the 1-in-10 wealth line — as the age and tax year it first runs short,
- * or lasting to the plan's end.
+ * or lasting to the plan's end — its age as both apps say it ("to 97" = to the 97th birthday, rules.js planToAgeOf).
  */
 export function figuresOf(r, p) {
   const startAge = Math.round(num(p && p.startAge));
   const N = Math.max(1, Math.round(num(p && p.durationYears)));
   const firstTY = Math.round(num(p && (p.runFirstTaxYear || p.firstTaxYear)));
-  const endAge = startAge + N - 1;
+  const endAge = startAge + N;
   const a = oneAnswer(r, p);
   if (!a) return { affordable: false, share: 0, chancePct: 0, badCase: { lasts: false, age: startAge, year: firstTY || null }, endAge };
   let failY = null;

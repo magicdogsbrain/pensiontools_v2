@@ -7637,7 +7637,7 @@
     window.updateDurationHint = function () {
       const h = document.getElementById('ssDurationAgeHint'); if (!h) return;
       const dur = +document.getElementById('ssDuration')?.value || 0; const a = window._ssTiming?.shapeAgeNow || +document.getElementById('shapeAgeNow')?.value || 0;
-      h.textContent = dur > 0 && a > 0 ? '— to age ' + (a + dur - 1) : '';
+      h.textContent = dur > 0 && a > 0 ? '— to age ' + (a + dur) : '';
     };
     window.dbStartAgeChanged = function () { dbStartFromAgeInput(document, window._ssTiming); renderIncomeShapePreview(); };
     installStopMonth(window, document); installChanceLevel(window, document); installLockedStart(window, document, { loadStressSettings: () => loadStressSettings(), loadDecisionSettings: () => loadDecisionSettings(), updatePlanLockChip: () => updatePlanLockChip(), showLoading, hideLoading, strategyResultForDocument: (x) => strategyResultForDocument(x), strategyPlanFor: (x, e) => strategyPlanFor(x, e) });   // the month work stopped or stops: the Timing block's month box (6.51.0); a locked plan's start and "Move the plan's start" (6.53.0, src/ui/lockedStartUi.js)
@@ -8909,7 +8909,7 @@
       // Block 2 — dials
       h += '<div class="strat-block"><div class="section-title">2 · Turn the dials</div><div class="row-flex" style="align-items:flex-end;">'
         + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years funded from cash first (1–3 is normal; cash is priced at inflation −1%)<input type="number" min="0" max="5" value="' + Math.min(5, prm.cashYears ?? 2) + '" style="width:80px;" data-on-change="setGiltDial(\'cashYears\', this.value)"></label>'
-        + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears - 1) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
+        + '<div class="hint" style="flex:1 1 260px;">Income shape: <strong>' + budEsc(shape) + '</strong>; State Pension ' + gbp(Math.round(p.spAnnual)) + ' from age ' + (p.startAge + (p.spStartYear ?? 0)) + '; horizon age ' + (p.startAge + p.durationYears) + '. <button type="button" class="risk-btn" style="padding:2px 8px;" data-on-click="switchToTab(\'stress\'); setTimeout(() => openToolSettingsTab(\'stress\'), 300);">Change these in Settings</button></div>'
         + '</div>';
       if (plan.affordable && typeof r !== 'undefined' && r && r.affordable) h += '<div style="margin-top:10px;">' + verdictBlockHtml(r, p, chanceOptsOf(r, {}, window._oneTest)) + '</div>';
       h += '<div class="alert ' + (plan.affordable ? 'alert-success' : 'alert-danger') + '" style="margin-top:10px;">' + (plan.affordable

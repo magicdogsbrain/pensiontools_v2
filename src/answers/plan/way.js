@@ -112,7 +112,7 @@ export function wayOf(entries, id, { today } = {}) {
     found: true, id: String(plan.id), name: nameOf(plan), locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, readonly, editable: !locked && !readonly,
     source: locked ? { kind: 'locked', at: dayWords(lockedAtOf(plan)) } : { kind: 'saved', at: plan.lastModified ? dayWords(plan.lastModified) : null },
     strategyId, docStrategyId, bought: isBought(strategyId), family: FAMILY.includes(strategyId),
-    endAge: (num(timing.shapeAgeNow) || 57) + (num(ss.duration) || 35) - 1,
+    endAge: (num(timing.shapeAgeNow) || 57) + (num(ss.duration) || 35),   // "to 97" = to the 97th birthday (rules.js planToAgeOf)
     runKey: readonly ? null : runKeyOf(plan),
     stash, cuts: cutsOfSettings(ss),
     document: docShare == null ? null : { share: docShare, words: futuresOutOfTen(docShare).words, chance: pctText(docShare * 100, 1, CHANCE_BARS).replace(/%$/, ''), lockedOn: dayWords(doc.lockedAt || lockedAtOf(plan)) }

@@ -118,7 +118,7 @@ describe('a draft saved with a later start (7.4.0): opening writes nothing; its 
 
 describe('an account: one updateDoc of the declared paths, past the guard, after a fresh read', () => {
   it('writes exactly the changed paths plus lastModified to users/{uid}/scenarios/{id}; then plan/saved with the previous values and plans/reading', async () => {
-    const p = page({ raws: [SAVER, LOCKED], planId: SAVER.id, typed: { stopAge: '63', endAge: '95' } });
+    const p = page({ raws: [SAVER, LOCKED], planId: SAVER.id, typed: { stopAge: '63', endAge: '96' } });
     const actions = [];
     p.store.subscribe((s, a) => actions.push(a.type));
     p.save();
@@ -136,14 +136,14 @@ describe('an account: one updateDoc of the declared paths, past the guard, after
     expect(actions).toContain(A.PLANS_READING);
     const ui = p.store.getState().ui;
     expect(ui.saving).toBe(null);
-    expect(ui.toast).toMatchObject({ planId: SAVER.id, kind: 'saved', line: { id: 'runsTo', slots: { endAge: 95, years: 33 } } });
+    expect(ui.toast).toMatchObject({ planId: SAVER.id, kind: 'saved', line: { id: 'runsTo', slots: { endAge: 96, years: 33 } } });
     expect(ui.toast.previous).toEqual({ 'stressTool.settings.retireAge': 62, 'stressTool.settings.firstTaxYear': 2029, 'stressTool.settings.shapeAgeNow': 62, 'stressTool.settings.duration': 32, 'decisionTool.settings.firstTaxYear': 2029, 'budgetTool.settings.retirementAge': 62, 'accumulationTool.settings.retirementAge': 62, lastModified: SAVER.lastModified });
     expect(p.store.getState().draft.plan.id, 'the draft is cleared on save').toBe(null);
     // the window's storage was never touched on the account path
     expect(p.session.calls.filter(([c]) => c === 'setItem')).toEqual([]);
   });
   it('Undo: one more updateDoc with the previous values, the last-changed stamp among them (a key the plan did not have goes back as null), then the toast says so', async () => {
-    const p = page({ raws: [SAVER], planId: SAVER.id, typed: { stopAge: '63', endAge: '95' } });
+    const p = page({ raws: [SAVER], planId: SAVER.id, typed: { stopAge: '63', endAge: '96' } });
     p.save(); await tick();
     // the plan source would hand the written plan back on the read again; the test does it by hand
     const written = applyPatch(entryOf(SAVER).plan, p.fb.writes[0].data);
@@ -219,7 +219,7 @@ describe('an account: one updateDoc of the declared paths, past the guard, after
 
 describe('without an account: the window\'s plans, the one plan folded, every other byte the same', () => {
   it('writes the plan into pt_guest_scenarios with the same patch; the other plan is byte-identical; nothing goes to Firestore', async () => {
-    const p = page({ raws: [LOCKED, SAVER], planId: SAVER.id, session: 'nobody', typed: { stopAge: '63', endAge: '95' } });
+    const p = page({ raws: [LOCKED, SAVER], planId: SAVER.id, session: 'nobody', typed: { stopAge: '63', endAge: '96' } });
     const before = p.session.raw(GUEST_PLANS_KEY);
     p.save(); await tick();
     expect(p.fb.writes).toEqual([]);

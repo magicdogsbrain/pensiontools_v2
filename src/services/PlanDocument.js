@@ -29,6 +29,7 @@ import { cleanParams } from './StrategyState.js';
 import { GIA_DEFAULTS } from './TaxableSleeve.js';
 import { ENGINE_VERSION } from '../strategies/version.js';
 import { VERSION } from '../constants.js';
+import { toAgeAsWritten } from './AgeConvention.js';
 
 // 2 (6.13.0): `holdingsAtLock` — what the person held when the plan was locked, from the holdings record —
 // for every strategy; the accumulation path projects from the holdings record or the recorded pot today,
@@ -46,6 +47,12 @@ export const PLAN_DOCUMENT_VERSION = 3;
 export const LEGACY_DEFINITION = Object.freeze({ weighted: false, bars: Object.freeze([90, 75, 50]), words: 'count to {age}' });
 /** The definition a document was tested under: its own `assumptions.success`, else LEGACY_DEFINITION. */
 export const definitionOf = (doc) => (doc && doc.assumptions && doc.assumptions.success && typeof doc.assumptions.success === 'object' ? doc.assumptions.success : LEGACY_DEFINITION);
+/**
+ * The age a definition says its plan was tested to, in the one convention both apps say from 7.9.0 (AgeConvention.planToAgeOf:
+ * "to 97" = to the 97th birthday): `planTo.age` as written when `planTo.ageRule` says so; a 7.8.0 definition stored the age in
+ * the plan's last year, and is read one on (the same run, the age said as every page says it now). Null without one.
+ */
+export const planToAgeOfDefinition = (def) => (def && def.planTo && typeof def.planTo === 'object' ? toAgeAsWritten(def.planTo.age, def.planTo.ageRule) : null);
 export const CONTRACT_STRATEGIES = ['full-il-gilt', 'gilt-rotation', 'floor-the-schedule'];
 export const DECISION_ASSUMED_CPI_FOR_RECORD = 0.04;   // = PlanLock.PLAN_OF_RECORD_CPI (not imported: PlanLock pulls in the repositories)
 

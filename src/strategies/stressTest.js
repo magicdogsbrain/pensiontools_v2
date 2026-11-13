@@ -26,7 +26,8 @@ import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadde
 import { activeLinkers } from '../services/LinkerUniverse.js';
 import { chargesPctOf, monthlyChargeFactor } from '../services/Charges.js';
 import { summariseCuts, pctText, weightedFailsOf, headYearsOf } from '../services/OneAnswer.js';
-import { LEVEL_FAILS20, levelOf, passes as passesLevel } from '../answers/shared/rules.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
+import { LEVEL_FAILS20, levelOf, passes as passesLevel } from '../answers/shared/rules.js';
+import { planToAgeOf } from '../services/AgeConvention.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 import { pensionLockOf, pensionPotOf } from '../services/PensionLock.js';
 import { planNeedOf, lockOfNeed } from '../services/PlanNeed.js';
 // the closed years as a plan's run sees them, with no test run (services/PlanNeed.js): re-exported, as both apps read it here
@@ -620,7 +621,7 @@ function fullGiltTest(p, configs, { spareRuns = true } = {}) {
     affordable: true, plan,
     ruin: { hist: 0, mc: 0 },
     worst12: { min: minInc, median: minInc },
-    guaranteedToAge: (p.startAge + N - 1) + ' by contract (every year bought today)',
+    guaranteedToAge: planToAgeOf(p.startAge, N) + ' by contract (every year bought today)',
     futuresMc: futuresOf(mcW, mcW.map(() => true), mcW.map((w) => w[N])),
     terminal: { p10: q(ends, 0.1), p50: q(ends, 0.5), p90: q(ends, 0.9), histMedian: q(histEnds, 0.5) },
     cones: { wealth: coneOf(mcW, N), income: flat(income) },
@@ -635,7 +636,7 @@ function fullGiltTest(p, configs, { spareRuns = true } = {}) {
     affordable: true, plan,
     ruin: { hist: 0, mc: 0 },
     worst12: { min: minInc, median: minInc },
-    guaranteedToAge: (p.startAge + N - 1) + ' by contract (every year bought today)',
+    guaranteedToAge: planToAgeOf(p.startAge, N) + ' by contract (every year bought today)',
     futuresMc: { terminal: [plan.spare], failYear: [null] },
     terminal: { p10: plan.spare, p50: plan.spare, p90: plan.spare, histMedian: plan.spare },
     cones: { wealth: flat(wealth), income: flat(income) },
@@ -779,8 +780,8 @@ export function requiredPotForStrategy(strategyId, p, successTarget = ON_COURSE_
   if (found === null) return { requiredPot: Infinity, passesAt: null };
   const requiredPot = Math.ceil(found / 1000) * 1000;
   if (!how) return { requiredPot, basis: strategyId };
-  // the plan's own age (the age in its last year, as every page of a plan says it) and, at the pot found, the chance said
-  // beside it: the weighted one and the count to that age (the same run)
+  // the plan's own age ("to 97" = to the 97th birthday, as both apps say it: rules.js planToAgeOf) and, at the pot found, the
+  // chance said beside it: the weighted one and the count to that age (the same run)
   const at = runAt(found);
   const chance = at.ok ? { weighted: weighted ? 1 - at.sumW / (at.n * 2 ** 30) : null, fixedAge: at.n ? 1 - at.failsToAge / at.n : 1, n: at.n, sumW: at.sumW } : null;
   // `levels` (7.8.0): the other two levels' pots as well, never a lone pot — Careful's at or above it, Bold's at or below
@@ -794,7 +795,7 @@ export function requiredPotForStrategy(strategyId, p, successTarget = ON_COURSE_
       levels[k] = v === null ? null : Math.ceil(v / 1000) * 1000;
     }
   }
-  return { requiredPot, basis: strategyId, level, weighted, planToAge: Math.round(p.startAge + p.durationYears) - 1, chance, ...(levels ? { levels } : {}) };
+  return { requiredPot, basis: strategyId, level, weighted, planToAge: planToAgeOf(p.startAge, p.durationYears), chance, ...(levels ? { levels } : {}) };
 }
 
 /** One P&V run on the real history starting at (year, month): wealth + income by plan year, today's money. */

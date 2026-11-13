@@ -72,7 +72,7 @@ import { restoredParamsFor } from '../../services/PlanCommit.js';
 import { dateOf } from './dates.js';
 import { closedYearsShort, shortYearsWords } from '../../services/PensionLock.js';
 import { FAMILY } from './lasts.js';
-import { SUCCESS, LEVEL_FAILS20, LEVELS } from '../shared/rules.js';
+import { SUCCESS, LEVEL_FAILS20, LEVELS, TO_AGE_RULE } from '../shared/rules.js';
 import { lifeOf, lifeOfSettings, planLevelOf, weightedReasonOf, weightedYearsOf, floorAt } from './life.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -172,7 +172,8 @@ export function onCourseFind(settings, p, strategyId, now, o = {}) {
 /**
  * The definition a plan document records it was tested under (assumptions.success, 7.8.0; the build spec's section 8), from
  * a weighted oneAnswer and its person: the level and its whole twentieths, the lines a verdict is drawn at (stored, so the
- * document keeps its own bars if the levels change), the age it was tested to and how that age was set, the age the futures
+ * document keeps its own bars if the levels change), the age it was tested to ("to 97" = to the 97th birthday: `ageRule`, 7.9.0)
+ * and how that age was set, the age the futures
  * were followed on to, the weighted and fixed-age figures, the table. Plain data: no functions, no per-future lists.
  */
 export function successOf(a, life) {
@@ -181,7 +182,7 @@ export function successOf(a, life) {
   return {
     confidence: LEVELS[a.level], level: a.level, levelFails20: t,
     lines: { yes: 1 - t / 20, close: 1 - (t + 1) / 20 },
-    planTo: { age: a.planToAge, rule: a.horizonRule === 'capped' ? 'capped' : 'plan' },
+    planTo: { age: a.planToAge, rule: a.horizonRule === 'capped' ? 'capped' : 'plan', ageRule: TO_AGE_RULE },
     weightToAge: a.weightToAge,
     weighted: { chance: a.weighted, fixedAge: a.fixedAge, joint: false, sex: life.sex, sexGiven: !!life.sexGiven, ...(a.reason ? { reason: a.reason } : {}) },
     tablesVersion: life.tablesVersion || null

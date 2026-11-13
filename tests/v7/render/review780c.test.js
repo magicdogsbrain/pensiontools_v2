@@ -67,7 +67,7 @@ describe('the levels\' twentieths the screens say are the rules\'', () => {
 });
 
 describe('Keep says the age a plan cut by the 45-year limit runs to', () => {
-  it('A stopping at 52, counted to 100: the Keep panel names 96, 45 years and 100', async () => {
+  it('A stopping at 52, counted to 100: the Keep panel names 97, 45 years and 100', async () => {
     const { parseDraft } = await import('../../../src/answers/shared/validate.js');
     const { inputsKey } = await import('../../../src/v7/state/inputsKey.js');
     const { SCHEMA_A } = await import('../../../src/answers/a/schema.js');
@@ -83,9 +83,9 @@ describe('Keep says the age a plan cut by the 45-year limit runs to', () => {
     state.answers.a = { status: 'final', inputsKey: inputsKey(parsed.inputs, state.env), result, before: null, progress: null, slow: false };
     const v = keepView(state, 'a');
     expect(v.can).toBe(true);
-    expect(v.cut).toMatchObject({ cut: true, years: 45, keptToAge: 96, planToAge: result.chance.planToAge });
+    expect(v.cut).toMatchObject({ cut: true, years: 45, keptToAge: 97, planToAge: result.chance.planToAge });
     const root = document.createElement('div');
     render(h(KeepPanel, { state, q: 'a', dispatch: () => {} }), root);
-    expect(root.querySelector('[data-testid="a.keep.cut"]').textContent).toBe(`The plan this keeps runs to 96: 45 years from when the money starts is the longest a plan runs. This answer counts to ${result.chance.planToAge}.`);
+    expect(root.querySelector('[data-testid="a.keep.cut"]').textContent).toBe(`The plan this keeps runs to 97: 45 years from when the money starts is the longest a plan runs. This answer counts to ${result.chance.planToAge}.`);
   });
 });

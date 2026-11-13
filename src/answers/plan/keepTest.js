@@ -33,6 +33,7 @@ import { pounds } from './income.js';
 import { dateOf, dayWords } from './dates.js';
 import { futuresOutOfTen } from '../../services/OneAnswer.js';
 import { AMEND_WRITES } from './schema.js';
+import { TO_AGE_RULE, toAgeAsWritten } from '../shared/rules.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
@@ -237,12 +238,17 @@ export function withdrawPatch(plan) {
 
 // ---- the words, as ids and slots ------------------------------------------------------------------------------------------
 
-/** A run's bad case as words' slots: "lasts to {age}" (its end, or the age it runs short at), and whether it runs short. */
-function badOf(f) {
+/**
+ * A run's bad case as words' slots: "lasts to {age}" (its end, or the age it runs short at), and whether it runs short.
+ * `rule`: the rule an agreement's ages were stored under (its ageRule, 7.9.0) — the end age of one stored before was the age
+ * in the plan's last year, read one on (rules.js toAgeAsWritten); a re-test held in memory is always this code's own.
+ */
+function badOf(f, rule = TO_AGE_RULE) {
   if (!f || !f.badCase) return null;
   const b = f.badCase;
   const short = !b.lasts && b.age != null;
-  return { short, age: String(short ? b.age : (f.endAge != null ? f.endAge : b.age != null ? b.age : '')), year: b.year != null ? taxYearLabel(+b.year) : null };
+  const end = (v) => toAgeAsWritten(Math.round(num(v)), rule);
+  return { short, age: String(short ? b.age : (f.endAge != null ? end(f.endAge) : b.age != null ? end(b.age) : '')), year: b.year != null ? taxYearLabel(+b.year) : null };
 }
 /** The bad case as a sentence part (KEEPTEST.badLasts / badShort / badShortNoYear) with its slots. */
 const badPart = (b) => (!b ? null : !b.short ? { id: 'badLasts', slots: { age: b.age } } : b.year ? { id: 'badShort', slots: { age: b.age, year: b.year } } : { id: 'badShortNoYear', slots: { age: b.age } });
@@ -276,7 +282,8 @@ export function keepTestOf(plan, { result = null, run = null } = {}) {
   const mine = result && isObj(result) && fp && result.fingerprint === fp && result.recordKey === holdingsKeyOf(plan && plan.holdings) ? result : null;
   const lockedOn = dayWords(lockedAtOf(plan));
   const last = st.last;
-  const agreed = last ? { on: dayWords(last.at), held: badOf(last.retest && last.retest.asHeld), locked: badOf(last.retest && last.retest.asLocked) } : null;
+  const rule = last && last.ageRule ? last.ageRule : null;   // (null: an agreement made before 7.9.0, its end ages in the last year)
+  const agreed = last ? { on: dayWords(last.at), held: badOf(last.retest && last.retest.asHeld, rule), locked: badOf(last.retest && last.retest.asLocked, rule) } : null;
   const view = mine ? (() => {
     const single = (mine.kept || []).filter((k) => k.single && k.as === 'mine').map((k) => k.label);
     const sh = mine.shock || null;

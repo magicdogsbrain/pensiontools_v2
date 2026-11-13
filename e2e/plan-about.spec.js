@@ -77,25 +77,25 @@ test.describe('"About you and when", without an account', () => {
     await expect(page.getByTestId('plan.about.age')).toHaveValue('58');
     await expect(page.getByTestId('plan.about.stopped.age')).toBeChecked();
     await expect(page.getByTestId('plan.about.stopAge')).toHaveValue('62');
-    await expect(page.getByTestId('plan.about.endAge')).toHaveValue('93');
+    await expect(page.getByTestId('plan.about.endAge')).toHaveValue('94');
     await expect(page.locator('[data-saved-for="age"]')).toHaveText('From your plan, saved 22 August 2026 (58)');
-    await expect(page.locator('[data-saved-for="endAge"]')).toHaveText('From your plan, saved 20 September 2026 (93)');
+    await expect(page.locator('[data-saved-for="endAge"]')).toHaveText('From your plan, saved 20 September 2026 (94)');
     await expect(page.locator('[data-region="plan-about"]')).toContainText('You stop work in January 2030, at 62.');
-    await expect(page.locator('[data-region="plan-about"]')).toContainText('Your plan runs 32 years, from January 2030 to age 93.');
+    await expect(page.locator('[data-region="plan-about"]')).toContainText('Your plan runs 32 years, from January 2030 to age 94.');
     const text = await page.locator('#app').innerText();
     expect(text).not.toMatch(/months? to go|years? to go|countdown/i);
     expect(text).not.toMatch(/undefined|NaN/);
 
     // the stop age and the end age, changed; the derived lines follow before Save
     await page.getByTestId('plan.about.stopAge').fill('63');
-    await page.getByTestId('plan.about.endAge').fill('95');
+    await page.getByTestId('plan.about.endAge').fill('96');
     await expect(page.locator('[data-region="plan-about"]')).toContainText('You stop work in January 2031, at 63.');
-    await expect(page.locator('[data-region="plan-about"]')).toContainText('Your plan runs 33 years, from January 2031 to age 95.');
+    await expect(page.locator('[data-region="plan-about"]')).toContainText('Your plan runs 33 years, from January 2031 to age 96.');
     // the keyboard reaches Save: Enter in a box submits
     await page.getByTestId('plan.about.endAge').press('Enter');
     const toast = page.getByTestId('plan.about.toast');
     await expect(toast).toBeVisible();
-    await expect(toast).toContainText('Saved. Your plan now runs 33 years, to age 95.');
+    await expect(toast).toContainText('Saved. Your plan now runs 33 years, to age 96.');
     // one plan written, by the declared keys only; the locked plan byte-identical; the boxes now show the saved facts
     const after = await storedPlans(page);
     const before = JSON.parse(stored);
@@ -109,7 +109,7 @@ test.describe('"About you and when", without an account', () => {
     expect(after[0].budgetTool.settings.retirementAge).toBe(63);
     expect(after[0].lastModified).not.toBe(before[0].lastModified);
     await expect(page.getByTestId('plan.about.stopAge')).toHaveValue('63');
-    await expect(page.locator('[data-saved-for="endAge"]')).toHaveText('From your plan, saved 30 September 2026 (95)');
+    await expect(page.locator('[data-saved-for="endAge"]')).toHaveText('From your plan, saved 30 September 2026 (96)');
     // nothing else was written: only the preview's own keys and the window's plans
     const keys = await page.evaluate(() => ({ session: Object.keys(sessionStorage), local: Object.keys(localStorage) }));
     for (const k of [...keys.session, ...keys.local]) expect(OWN_KEYS.has(k) || k === GUEST_KEY, `a key the preview must not write: ${k}`).toBe(true);
@@ -131,19 +131,19 @@ test.describe('"About you and when", without an account', () => {
     await page.getByTestId('plan.plan.edit.about').click();
     await expect(page.getByTestId('plan.step.about')).toBeVisible();
     await page.getByTestId('plan.about.stopAge').fill('62');
-    await page.getByTestId('plan.about.endAge').fill('93');
+    await page.getByTestId('plan.about.endAge').fill('94');
     await page.getByTestId('plan.about.save').click();
-    await expect(page.getByTestId('plan.about.toast')).toContainText('Saved. Your plan now runs 32 years, to age 93.');
+    await expect(page.getByTestId('plan.about.toast')).toContainText('Saved. Your plan now runs 32 years, to age 94.');
     await page.getByTestId('plan.about.undo').click();
     await expect(page.getByTestId('plan.about.toast')).toContainText('Put back as it was.');
     const undone = await storedPlans(page);
     expect(stripped(undone[0])).toBe(stripped(before[0]));
-    expect(undone[0].stressTool.settings.retireAge).toBe(63);   // the undo of the second save: back to 63 and 95
+    expect(undone[0].stressTool.settings.retireAge).toBe(63);   // the undo of the second save: back to 63 and 96
     expect(undone[0].stressTool.settings.duration).toBe(33);
 
     // and the first change undone by hand: the plan as planted, byte for byte
     await page.getByTestId('plan.about.stopAge').fill('62');
-    await page.getByTestId('plan.about.endAge').fill('93');
+    await page.getByTestId('plan.about.endAge').fill('94');
     await page.getByTestId('plan.about.save').click();
     await expect(page.getByTestId('plan.about.toast')).toContainText('Saved.');
     const restored = await storedPlans(page);
@@ -186,7 +186,7 @@ test.describe('"About you and when", without an account', () => {
     await page.getByTestId('plan.about.moveConfirm.no').click();
     await expect(page.getByTestId('plan.about.moveConfirm')).toHaveCount(0);
     await expect(page.getByTestId('plan.about.fixed')).toHaveText('Fixed when you locked the plan on 1 July 2026.');
-    await expect(page.locator('[data-region="plan-about"]')).toContainText('Your plan runs 20 years, from April 2027 to age 85.');
+    await expect(page.locator('[data-region="plan-about"]')).toContainText('Your plan runs 20 years, from April 2027 to age 86.');
     expect(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY)).toBe(stored);
   });
 });

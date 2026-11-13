@@ -455,7 +455,7 @@ export function describeTiming(t, settings, now = new Date()) {
     const sp = parseStatePensionDate(s.spStartDate);
     if (sp) { const y = taxYearStartOf(sp) - t.firstTaxYear; parts.push('State Pension from ' + taxYearLabel(taxYearStartOf(sp)) + (y >= 0 ? ' (plan year ' + y + ')' : started ? ' (already paid when the plan started)' : t.mode === 'future' ? ' (before you stop work)' : ' (already being paid when the plan starts)') + '.'); }
   }
-  if (+s.duration > 0) parts.push('Plan runs to age ' + (t.shapeAgeNow + (+s.duration) - 1) + '.');
+  if (+s.duration > 0) parts.push('Plan runs to age ' + (t.shapeAgeNow + (+s.duration)) + '.');   // to that birthday (answers/shared/rules.js planToAgeOf)
   return parts.join(' ');
 }
 

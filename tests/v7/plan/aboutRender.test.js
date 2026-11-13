@@ -103,13 +103,13 @@ describe('the saver 10: what the page says, and what typing does', () => {
     expect(root.querySelector('[data-testid="plan.about.age"]').value).toBe('58');
     expect(root.querySelector('[data-testid="plan.about.stopped.age"]').checked).toBe(true);
     expect(root.querySelector('[data-testid="plan.about.stopAge"]').value).toBe('62');
-    expect(root.querySelector('[data-testid="plan.about.endAge"]').value).toBe('93');
+    expect(root.querySelector('[data-testid="plan.about.endAge"]').value).toBe('94');
     expect(root.querySelector('[data-testid="plan.about.startWhen"]')).toBe(null);   // stopping later: not asked
     expect(root.querySelector('[data-saved-for="age"]').textContent).toBe('From your plan, saved 22 August 2026 (58)');
-    expect(root.querySelector('[data-saved-for="endAge"]').textContent).toBe('From your plan, saved 22 August 2026 (93)');
+    expect(root.querySelector('[data-saved-for="endAge"]').textContent).toBe('From your plan, saved 22 August 2026 (94)');
     expect(text).toContain('You stop work in January 2030, at 62.');
     expect(text).toContain('The plan’s first tax year is 2029/30, from 6 April 2029.');
-    expect(text).toContain('Your plan runs 32 years, from January 2030 to age 93.');
+    expect(text).toContain('Your plan runs 32 years, from January 2030 to age 94.');
     expect(text).toContain('Income steps start at age 62.');
     expect(root.querySelector('[data-testid="plan.about.suggest"]').disabled).toBe(false);
     // the stop-age box sits inside its option's row
@@ -131,16 +131,16 @@ describe('the saver 10: what the page says, and what typing does', () => {
     expect(actions.pop()).toEqual({ type: 'plan/cancel', planId: id });
   });
   it('a typed change redraws the derived lines and the problems: a box left shows its sentence; Save pressed shows every problem', () => {
-    const typed = draw(aboutState(entries, id, { typed: { stopAge: '64', endAge: '95' } }));
+    const typed = draw(aboutState(entries, id, { typed: { stopAge: '64', endAge: '96' } }));   // 7.9.0: to the 96th birthday
     expect(typed.text).toContain('You stop work in January 2032, at 64.');
-    expect(typed.text).toContain('Your plan runs 32 years, from January 2032 to age 95.');
+    expect(typed.text).toContain('Your plan runs 32 years, from January 2032 to age 96.');
     expect(typed.root.querySelector('.error')).toBe(null);
     const left = draw(aboutState(entries, id, { typed: { stopAge: '50', endAge: '60' }, touched: ['stopAge'] }));
     expect(left.root.querySelector('[data-error-for="plan.about.stopAge"]').textContent).toBe('The age you stop cannot be below your age today.');
     expect(left.root.querySelector('[data-error-for="plan.about.endAge"]')).toBe(null);   // not left yet
     // Save pressed: every box's problem shows (the end age's minimum is known only once the stop is right)
     const asked = draw(aboutState(entries, id, { typed: { endAge: '60' }, asked: true }));
-    expect(asked.root.querySelector('[data-error-for="plan.about.endAge"]').textContent).toBe('The plan has to run at least 5 years: an age of 66 or more.');
+    expect(asked.root.querySelector('[data-error-for="plan.about.endAge"]').textContent).toBe('The plan has to run at least 5 years: an age of 67 or more.');
     expect(asked.root.querySelector('[data-testid="plan.about.endAge"]').getAttribute('aria-invalid')).toBe('true');
     const both = draw(aboutState(entries, id, { typed: { stopAge: '50', age: '' }, asked: true }));
     expect(both.root.querySelector('[data-error-for="plan.about.age"]').textContent).toBe('Type your age today.');
@@ -244,7 +244,7 @@ describe('the locked ladder, a plan shown as saved, the household pair, a plan n
     expect((text.match(/Fixed when you locked the plan on 1 July 2026\./g) || []).length).toBe(1);
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);
     expect(root.querySelector('[data-saved-for="age"]').textContent).toBe('64');
-    expect(text).toContain('Your plan runs 20 years, from April 2027 to age 85.');
+    expect(text).toContain('Your plan runs 20 years, from April 2027 to age 86.');
     expect(root.querySelector('[data-testid="plan.about.back"]').getAttribute('href')).toBe('#/plan/' + C['20-locked-start-after-stop'].id + '/plan');
     const page = draw(stateWith(entries, '#/plan/' + C['20-locked-start-after-stop'].id + '/plan'));
     expect(page.root.querySelector('[data-testid="plan.plan.edit.about"]').textContent).toBe('See these');

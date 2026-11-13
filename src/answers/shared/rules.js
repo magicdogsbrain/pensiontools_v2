@@ -116,6 +116,9 @@ export function verdictAtLevel(sumW, n, level, weighted = SUCCESS.weighted) {
  * `chargesPct` in percent (0.5), `charge` the same as a share (0.005 — the form saving.js and the households used first).
  * From 6.19.0 it is taken off while drawing as well as while saving (household.chargesPct; fastEngine.js, saving.js).
  */
+// the age a plan runs to, one convention for both apps (7.9.0): services/AgeConvention.js, here for the answers' readers
+export { planToAgeOf, TO_AGE_RULE, toAgeAsWritten } from '../../services/AgeConvention.js';
+
 export const SAVING = { chargesPct: DEFAULT_CHARGES_PCT, charge: DEFAULT_CHARGES_PCT / 100, slideYears: 10, payInCeiling: 10000, potStep: 1000, potMax: 5_000_000, laterYears: 10 };
 
 /**

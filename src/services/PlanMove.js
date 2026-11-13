@@ -684,7 +684,7 @@ export function moveFactsOf(scenario, move) {
   const bridgedIn = (list) => (Array.isArray(list) ? list : []).filter((h) => h && h.bridgeYear === true).length;
   return {
     stepAmount: stepped ? +steps[0].amount : (+st.baseSalary || null), stepped,
-    endAge: +st.shapeAgeNow > 0 && +st.duration > 0 ? +st.shapeAgeNow + +st.duration - 1 : null,
+    endAge: +st.shapeAgeNow > 0 && +st.duration > 0 ? +st.shapeAgeNow + +st.duration : null,   // "runs to age 97" = to the 97th birthday (rules.js planToAgeOf)
     months: history.map((h) => String((h && h.date) || '').slice(0, 7)).filter(Boolean),
     bridged: bridgedIn(history) - bridgedIn(move.history),
     runYear: move.to + (move.position ? move.position.elapsedYears : 0),

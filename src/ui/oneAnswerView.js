@@ -6,11 +6,11 @@
 import { inflationDecadesSvg } from './giltLadderGraphic.js';
 import { futuresOutOfTen, pctText, tenthsOutOfTen, CHANCE_BARS, rankWays, oneAnswer, boldConsequenceOf } from '../services/OneAnswer.js';
 import { decadeFigures } from '../services/NamedStarts.js';
-import { LEGACY_DEFINITION } from '../services/PlanDocument.js';
+import { LEGACY_DEFINITION, planToAgeOfDefinition } from '../services/PlanDocument.js';
 import { LIFE_TABLE, HORIZON } from '../services/LongevityModel.js';
 import { chanceWords, fixedAgeWords } from '../answers/shared/format.js';
 import { LEVEL_IDS } from '../answers/shared/shown.js';
-import { SUCCESS } from '../answers/shared/rules.js';
+import { SUCCESS, planToAgeOf } from '../answers/shared/rules.js';
 
 const futuresWords = (share) => futuresOutOfTen(share).words;
 
@@ -266,11 +266,11 @@ export function chanceOptsOf(r, opts = {}, oneTest = null) {
   return {};
 }
 
-/** The fixed-age line under a card's opening (a count, always with its age): "If you live to 96, the money lasts that long in …". */
+/** The fixed-age line under a card's opening (a count, always with its age): "If you live to 97, the money lasts that long in …". */
 export function countAgeHtml(r, p) {
   if (!r || !r.affordable || !r.ruin || !p) return '';
-  // (the age the plan runs to, as the plan says it: the age in its last year — OneAnswer.weightedPartOf's planToAge)
-  const age = Math.round((+p.startAge || 0) + (+p.durationYears || 0)) - 1;
+  // (the age the plan runs to, as both apps say it: "to 97" = to the 97th birthday — rules.js planToAgeOf, OneAnswer's planToAge)
+  const age = planToAgeOf(+p.startAge || 0, +p.durationYears || 0);
   return ' <span class="hint" data-fixed="1">' + esc(fixedAgeWords(Math.max(0, Math.min(1, 1 - (+r.ruin.mc || 0) / 100)), age, { kind: kindOf(r) })) + '</span>';
 }
 
@@ -322,7 +322,7 @@ function documentBlockHtml(r, p, def) {
   const v = chanceVerdictOf(r, p, { definition: def }) || 'no';
   const tone = v === 'yes' ? 'success' : v === 'close' ? 'warning' : 'danger';
   const kind = kindOf(r);
-  const age = def.planTo && Number.isFinite(def.planTo.age) ? def.planTo.age : Math.round((+p.startAge || 0) + (+p.durationYears || 0)) - 1;
+  const age = planToAgeOfDefinition(def) ?? planToAgeOf(+p.startAge || 0, +p.durationYears || 0);
   const name = LEVEL_NAMES[def.level] || 'Balanced';
   const head = typeof w.chance === 'number'
     ? '<div data-weighted="' + w.chance + '"><span class="hero" style="font-size:30px;">' + esc(chanceWords(w.chance)) + '</span><span class="hero-sub">When the plan was locked, counting how long people your age live, ' + esc(LASTS_AS_LONG[kind]) + ' ' + esc(chanceWords(w.chance)) + '.</span></div>'
@@ -374,7 +374,7 @@ export function successLineHtml(doc) {
   if (!def) return '';
   const name = LEVEL_NAMES[def.level] || 'Balanced';
   const want = Number.isInteger(def.levelFails20) ? 20 - def.levelFails20 : ({ careful: 19, balanced: 18, bold: 14 }[def.level] || 18);   // the document's own lines
-  const age = def.planTo && Number.isFinite(def.planTo.age) ? def.planTo.age : null;
+  const age = planToAgeOfDefinition(def);
   return '<p class="hint" data-fixed="1">Locked at ' + name + ' (lasting as long as you do ' + want + ' times in 20, counting how long people your age live)'
     + (age ? ', tested to ' + age + (Number.isFinite(def.weightToAge) && def.weightToAge > age ? ' and each future followed on to ' + def.weightToAge : '') : '') + '.</p>';
 }

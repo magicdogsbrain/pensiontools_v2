@@ -331,7 +331,8 @@ function lengthOf(source, result, who, S, apart) {
  * How long the plan a keep makes runs (7.8.0): the answer's plan-to age can be more than the planner's longest plan
  * (RULES.maxYears, 45 years) after the drawing starts, now that the plan-to age follows how long people live. Then the plan
  * is kept for 45 years, and Keep says so before it is kept. → null when the answer cannot be kept; else { cut, years,
- * keptToAge, planToAge }: keptToAge is the age in the plan's last year (the younger person's), as the plan's pages say it.
+ * keptToAge, planToAge }: keptToAge is the age the kept plan runs to (the younger person's), as the plan's pages say it — "to 97"
+ * = to the 97th birthday, as the answer's planToAge (rules.js planToAgeOf).
  */
 export function keptLengthOf(source, result, today) {
   if (!result || typeof today !== 'string' || !keepable(source, result).ok) return null;
@@ -340,7 +341,7 @@ export function keptLengthOf(source, result, today) {
   const who = couple ? ['you', 'partner'] : ['you'];
   const { S, apart } = householdOf(source, result, today, who);
   const L = lengthOf(source, result, who, S, apart);
-  return { cut: L.want > L.years, years: L.years, keptToAge: L.from + L.years - 1, planToAge: L.endAge };
+  return { cut: L.want > L.years, years: L.years, keptToAge: L.from + L.years, planToAge: L.endAge };
 }
 
 /**

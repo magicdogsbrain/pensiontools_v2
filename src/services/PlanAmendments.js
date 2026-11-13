@@ -8,7 +8,10 @@
  *
  *   planAmendments: [{ at, kind: 'keep', lines: [{ key, wrapper, label, ticker, sedol, keep, value, units }],
  *                      expected: [{ id, label, wrapper, amount, by }], retest: { asLocked, asHeld, withoutExpected, shock },
- *                      engineVersion, othersValue, fingerprint, documentAt }]
+ *                      engineVersion, othersValue, fingerprint, documentAt, ageRule }]
+ *
+ * `ageRule` (7.9.0, AgeConvention.TO_AGE_RULE): the re-test's "lasts to {age}" is to that birthday, as every page says it; an
+ * entry written before it kept the age in the plan's last year, and is read one on (keepTest.js).
  *
  * written whole (one field), frozen once the plan is closed (PlanClosed.FROZEN_WHEN_CLOSED), dropped by a copy
  * (PlanCopy.copyOf) and kept byte-for-byte by every migration (storage/migrations.js protectedParts). Withdraw removes the
@@ -31,6 +34,7 @@
  *   amendmentsWith(plan, entry) / amendmentsWithoutLast(plan)   the whole list after an agreement / a withdraw
  */
 import { normaliseHoldings, normaliseKeep, expectedOf } from './HoldingsRecord.js';
+import { TO_AGE_RULE } from './AgeConvention.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const up = (s) => String(s == null ? '' : s).toUpperCase().trim();
@@ -192,7 +196,8 @@ export function amendmentEntry(plan, result, { at }) {
     engineVersion: typeof result.engineVersion === 'string' ? result.engineVersion : null,
     othersValue: othersValueOf(rec),
     fingerprint: fp,
-    documentAt: documentAtOf(plan)
+    documentAt: documentAtOf(plan),
+    ageRule: TO_AGE_RULE
   };
 }
 

@@ -34,7 +34,7 @@ export const INCOME = {
       },
       errors: {
         amount:  { required: 'Type the pension a year.', notANumber: 'Figures only, like 9,400.', tooLow: 'An amount of at least 1 a year.', tooHigh: 'An amount up to 1,000,000 a year, please.' },
-        fromAge: { required: 'Type the age it starts.', notANumber: 'Whole years, please.', tooLow: 'An age of 40 or more.', tooHigh: 'An age up to 100, please.', afterEnd: 'That is after the plan ends at age {endAge} — the pension would never pay. An age up to {endAge}, or lengthen the plan.' },
+        fromAge: { required: 'Type the age it starts.', notANumber: 'Whole years, please.', tooLow: 'An age of 40 or more.', tooHigh: 'An age up to 100, please.', afterEnd: 'That is after the plan’s last year, at age {endAge} — the pension would never pay. An age up to {endAge}, or lengthen the plan.' },
         rises:   { notAnOption: 'Choose one.' }
       }
     },
@@ -50,7 +50,7 @@ export const INCOME = {
       errors: {
         label:   { tooLong: 'Up to 60 letters, please.' },
         amount:  { required: 'Type the amount a year.', notANumber: 'Figures only, like 7,200.', tooLow: 'An amount of at least 1 a year.', tooHigh: 'An amount up to 1,000,000 a year, please.' },
-        fromAge: { required: 'Type the age it starts.', notANumber: 'Whole years, please.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 110, please.', afterEnd: 'That is after the plan ends at age {endAge}. An age up to {endAge}, please.' },
+        fromAge: { required: 'Type the age it starts.', notANumber: 'Whole years, please.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 110, please.', afterEnd: 'That is after the plan’s last year, at age {endAge}. An age up to {endAge}, please.' },
         toAge:   { notANumber: 'Whole years, please.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 110, please.', beforeFrom: 'The age it ends cannot be before the age it starts.' },
         rises:   { notAnOption: 'Choose one.' }
       }
@@ -66,7 +66,7 @@ export const INCOME = {
       errors: {
         label:   { tooLong: 'Up to 60 letters, please.' },
         amount:  { required: 'Type the amount.', notANumber: 'Figures only, like 90,000.', tooLow: 'An amount of at least 1.', tooHigh: 'An amount up to 10,000,000, please.' },
-        atAge:   { required: 'Type the age it arrives.', notANumber: 'Whole years, please.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 110, please.', beforeStart: 'The plan’s first year is at age {ageNow}: money arriving before then counts as part of your pots today. An age of {ageNow} or more, please.', beforeToday: 'That age has passed: money that has already arrived counts as part of your pots today. An age of {ageToday} or more, please.', afterEnd: 'That is after the plan ends at age {endAge}. An age up to {endAge}, please.' },
+        atAge:   { required: 'Type the age it arrives.', notANumber: 'Whole years, please.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 110, please.', beforeStart: 'The plan’s first year is at age {ageNow}: money arriving before then counts as part of your pots today. An age of {ageNow} or more, please.', beforeToday: 'That age has passed: money that has already arrived counts as part of your pots today. An age of {ageToday} or more, please.', afterEnd: 'That is after the plan’s last year, at age {endAge}. An age up to {endAge}, please.' },
         wrapper: { notAnOption: 'Choose one.' }
       },
       /** Where it lands, in the year it arrives (the planner's own rule, TaxableSleeve.routeWindfall): by the parts it has. */

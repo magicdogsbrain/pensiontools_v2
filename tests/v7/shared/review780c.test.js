@@ -133,15 +133,16 @@ describe('a kept plan\'s last age: the answer\'s plan-to age, or said on Keep wh
     const seed = buildPlanSeed({ source: q, result: r, env: { today: env.today, appVersion: 'x' }, name: 'Alex plan', createdAt: '2026-09-30T10:00:00.000Z' });
     const made = PF.seedToScenario(seed, env.today).yours;
     const ss = made.stressTool.settings;
-    return { len: keptLengthOf(q, r, env.today), lastAge: ss.shapeAgeNow + ss.duration - 1 };
+    // (7.9.0: the age the kept plan runs to, as its pages say it — to the birthday its last year ends on)
+    return { len: keptLengthOf(q, r, env.today), endAge: ss.shapeAgeNow + ss.duration };
   };
-  it('A stopping at 52, counted to 100: kept for 45 years, to 96, and Keep says so', async () => {
+  it('A stopping at 52, counted to 100: kept for 45 years, to 97, and Keep says so', async () => {
     const { answerA } = await import('../../../src/answers/a/answer.js');
     const r = answerA({ you: { pot: 150000, age: 45, sex: 'female', payIn: { kind: 'total', total: 900 } }, savings: 200000, stop: { kind: 'age', age: 52 }, spend: { kind: 'amount', amount: 2000 } }, env);
-    const { len, lastAge } = await keep('a', r);
+    const { len, endAge } = await keep('a', r);
     expect(len.cut).toBe(true);
     expect(len.planToAge).toBe(r.chance.planToAge);
-    expect(len.keptToAge).toBe(lastAge);
+    expect(len.keptToAge).toBe(endAge);
     expect(len.years).toBe(45);
     const { KEEP } = await import('../../../src/v7/copy/keep.js');
     expect(KEEP.cut).toMatch(/\{kept\}.*\{years\} years.*\{age\}/);
@@ -149,10 +150,10 @@ describe('a kept plan\'s last age: the answer\'s plan-to age, or said on Keep wh
   it('D at 66, counted to its plan-to age: not cut; the plan covers the same years the answer tested', async () => {
     const { answerD } = await import('../../../src/answers/d/answer.js');
     const r = answerD({ stopped: 'yes', you: { age: 66, pot: 400000, taxFreeTaken: 'no', sex: 'male' }, spend: { kind: 'amount', amount: 2000 } }, env);
-    const { len, lastAge } = await keep('d', r);
+    const { len, endAge } = await keep('d', r);
     expect(len.cut).toBe(false);
-    // (the answer counts to the birthday it reaches; the plan names the age in its last year: the same years)
-    expect(lastAge).toBe(r.chance.planToAge - 1);
-    expect(len.keptToAge).toBe(lastAge);
+    // (7.9.0: the answer and the plan both name the birthday the same years end on)
+    expect(endAge).toBe(r.chance.planToAge);
+    expect(len.keptToAge).toBe(endAge);
   });
 });

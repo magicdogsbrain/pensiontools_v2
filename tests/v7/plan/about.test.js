@@ -47,15 +47,15 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
       }
     });
   }
-  it('the saved facts: 10 stops at 62 in January 2030 and plans to 93; 02 stopped in June 2026, starts this tax year, plans to 95; 03 (locked) reads its document', () => {
+  it('the saved facts: 10 stops at 62 in January 2030 and plans to 94; 02 stopped in June 2026, starts this tax year, plans to 96; 03 (locked) reads its document', () => {
     // 6.51.0: the reading carries the month work stopped or stops (`stopMonth`) — null on these plans, which do not say it
     const b = savedAbout(entryOf(C['10-couple-b']).plan, { today: TODAY });
-    expect(b.values).toEqual({ age: 58, stopped: 'age', stopAge: 62, stopMonth: null, startWhen: null, endAge: 93, savedYear: null });
+    expect(b.values).toEqual({ age: 58, stopped: 'age', stopAge: 62, stopMonth: null, startWhen: null, endAge: 94, savedYear: null });
     expect(b.timing.startMonth).toBe('2030-01');
-    expect(boxesOf(entryOf(C['10-couple-b']).plan, { today: TODAY })).toEqual({ age: '58', stopped: 'age', stopAge: '62', endAge: '93' });
+    expect(boxesOf(entryOf(C['10-couple-b']).plan, { today: TODAY })).toEqual({ age: '58', stopped: 'age', stopAge: '62', endAge: '94' });
     const d = savedAbout(entryOf(C['02-pnv-draft']).plan, { today: TODAY });
     // 7.4.0: 02 is saved as its next Save writes it — year 0 the tax year work stopped, this one (it was next April)
-    expect(d.values).toEqual({ age: 61, stopped: 'yes', stopAge: null, stopMonth: '2026-06', startWhen: 'now', endAge: 95, savedYear: null });
+    expect(d.values).toEqual({ age: 61, stopped: 'yes', stopAge: null, stopMonth: '2026-06', startWhen: 'now', endAge: 96, savedYear: null });
     expect(d.ageSource).toEqual({ kind: 'saved', at: '14 August 2026' });
     const l = savedAbout(entryOf(C['20-locked-start-after-stop']).plan, { today: TODAY });
     expect(l.locked).toBe(true);
@@ -68,12 +68,12 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
     expect(b.derived).toEqual([
       { id: 'stopIn', slots: { month: 'January 2030', age: 62 } },
       { id: 'firstYear', slots: { year: '2029/30', y: 2029 } },
-      { id: 'runs', slots: { years: 32, from: 'January 2030', endAge: 93 } },
+      { id: 'runs', slots: { years: 32, from: 'January 2030', endAge: 94 } },
       { id: 'stepsFrom', slots: { age: 62 } }
     ]);
     const d = aboutOf(es, C['02-pnv-draft'].id, { today: TODAY });
     expect(d.derived.map((x) => x.id)).toEqual(['stoppedIn', 'firstYear', 'runs', 'stepsFrom']);
-    expect(d.derived[2].slots).toEqual({ years: 34, from: 'April 2026', endAge: 95 });
+    expect(d.derived[2].slots).toEqual({ years: 34, from: 'April 2026', endAge: 96 });
     expect(derivedLines(null, 30)).toEqual([{ id: 'noAge', slots: {} }]);
   });
   it('a plan as saved writes nothing (10, 02, 09, 12); a plan without its pins stored writes the pins the planner\'s own load would (11)', () => {
@@ -85,7 +85,7 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
   });
   it('the write: the stop age and the end age changed on 10 — the exact paths and values, as the planner\'s Save writes them', () => {
     const plan = entryOf(C['10-couple-b']).plan;
-    const p = aboutPatch(plan, { stopAge: '63', endAge: '95' }, { today: TODAY });
+    const p = aboutPatch(plan, { stopAge: '63', endAge: '96' }, { today: TODAY });   // 7.9.0: to the 96th birthday, 33 years from 63
     expect(p.ok).toBe(true);
     expect(p.patch).toEqual({
       'stressTool.settings.retireAge': 63,
@@ -104,10 +104,10 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
     });
     // stopped, starting this tax year: the flag, no stop age, the chosen year, the budget's copy (7.3.3: next April is not offered)
     expect(aboutPatch(plan, { stopped: 'yes', startWhen: 'april', endAge: '90' }, { today: TODAY }).errors).toEqual({ startWhen: 'notAnOption' });
-    const q = aboutPatch(plan, { stopped: 'yes', startWhen: 'now', endAge: '90' }, { today: TODAY });
+    const q = aboutPatch(plan, { stopped: 'yes', startWhen: 'now', endAge: '90' }, { today: TODAY });   // 7.9.0: to the 90th birthday, 31 years from 59
     expect(q.patch).toEqual({
       'stressTool.settings.retired': true, 'stressTool.settings.retireAge': null, 'stressTool.settings.firstTaxYear': 2026,
-      'stressTool.settings.shapeAgeNow': 59, 'decisionTool.settings.firstTaxYear': 2026,
+      'stressTool.settings.shapeAgeNow': 59, 'stressTool.settings.duration': 31, 'decisionTool.settings.firstTaxYear': 2026,
       'budgetTool.settings.retired': true, 'budgetTool.settings.retirementAge': 59
     });
     // a month: the age reached in it is what the plan holds. Re-written in 6.51.0: the month itself is now kept
@@ -146,11 +146,11 @@ describe('E1 — the reading, on every corpus plan at three dates', () => {
     expect(errs({ stopped: 'month', stopMonth: '' })).toEqual({ stopMonth: 'required' });
     expect(errs({ stopped: 'yes' })).toEqual({ startWhen: 'required' });
     expect(errs({ stopped: 'yes', startWhen: 'saved' })).toEqual({ startWhen: 'notAnOption' });   // the saved year is a stop age's, not offered
-    expect(errs({ endAge: '65' })).toEqual({ endAge: 'too-short' });                               // the plan's first year is 62: at least 66
-    expect(errs({ endAge: '66' })).toEqual({});
+    expect(errs({ endAge: '66' })).toEqual({ endAge: 'too-short' });                               // the plan's first year is 62: at least 67 (7.9.0: to that birthday)
+    expect(errs({ endAge: '67' })).toEqual({});
     expect(errs({ endAge: '111' })).toEqual({ endAge: 'tooHigh' });
     expect(errs({ sex: 'x' })).toEqual({ sex: 'notAnOption' });
-    expect(checkAbout(plan, { endAge: '65' }, { today: TODAY }).minEnd).toBe(62 + MIN_YEARS - 1);
+    expect(checkAbout(plan, { endAge: '65' }, { today: TODAY }).minEnd).toBe(62 + MIN_YEARS);
   });
   it('parseMonth reads the forms a person types', () => {
     expect(parseMonth('2030-06')).toEqual({ y: 2030, m: 6 });
@@ -210,7 +210,7 @@ function validTyped(plan) {
       else typed.startWhen = r.startWhen;
     }
     const c = checkAbout(plan, typed, { today: TODAY });
-    typed.endAge = String(Math.min(110, (c.minEnd || saved.timing.shapeAgeNow + MIN_YEARS - 1) + r.endExtra));
+    typed.endAge = String(Math.min(110, (c.minEnd || saved.timing.shapeAgeNow + MIN_YEARS) + r.endExtra));
     return typed;
   });
 }
@@ -230,7 +230,7 @@ describe('the month work stopped (6.51.0, research/plan-start.md §2 C/D, §3): 
     for (const k of Object.keys(p.patch)) expect(ABOUT_WRITES).toContain(k);
     const after = applyPatch(plan(), p.patch);
     const s = savedAbout(after, { today: TODAY });
-    expect(s.values).toMatchObject({ stopped: 'yes', stopMonth: '2023-10', startWhen: 'stop', endAge: 95 });
+    expect(s.values).toMatchObject({ stopped: 'yes', stopMonth: '2023-10', startWhen: 'stop', endAge: 96 });
     expect(boxesOf(after, { today: TODAY }).stopMonth).toBe('October 2023');
     expect(aboutPatch(after, {}, { today: TODAY }).patch).toEqual({});
     // running, not out of date: no "update it to today" (P.stale), and the plan reads where it stands
@@ -325,7 +325,7 @@ describe('E1 — properties: read∘write∘read is identity; only declared keys
       const ss = effectiveStressSettings(after, { now: noon(TODAY) });
       expect(ss.currentAge).toBe(+typed.age);
       expect(ss.retired).toBe(typed.stopped === 'yes');
-      expect(ss.duration).toBe(+typed.endAge - ss.shapeAgeNow + 1);
+      expect(ss.duration).toBe(+typed.endAge - ss.shapeAgeNow);   // 7.9.0: "Plan to age 97" = to the 97th birthday
       expect(get(after, 'decisionTool.settings.firstTaxYear')).toBe(ss.firstTaxYear);
     }), { numRuns: 60 });
   });

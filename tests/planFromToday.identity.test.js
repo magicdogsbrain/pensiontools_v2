@@ -123,8 +123,13 @@ const withoutAdded = (doc) => {
   // 7.4.1: the engine's version is a stamp too (strategies/version.js: nothing compares it). The pins, taken under 6.37.0,
   // are read with it put back, so a plan whose figures did not move under 6.38.0 or 6.39.0 is held to them byte for byte.
   const { appVersion, ...rest } = doc;
+  // 7.9.0: the age a plan runs to is said to the birthday its last year ends on (services/AgeConvention.js), one above the
+  // age in its last year that the timing's sentence said: a label, never a figure. The pins are read with it put back.
+  if (typeof timing.text === 'string') timing.text = timing.text.replace(/Plan runs to age (\d+)\./, (m, n) => 'Plan runs to age ' + (+n - 1) + '.');
   return { ...rest, ...('engineVersion' in rest ? { engineVersion: '6.37.0' } : {}), timing };
 };
+/** 7.9.0 likewise: the full ladder's "N by contract" names the birthday its last year ends on; the pins read it one lower. */
+const contractAgeAsPinned = (r) => (isObj(r) && typeof r.guaranteedToAge === 'string' ? { ...r, guaranteedToAge: r.guaranteedToAge.replace(/^(\d+)( by contract \(every year bought today\))$/, (m, n, t) => (+n - 1) + t) } : r);
 
 /**
  * 7.4.2 removed fields, not figures, from every output: the timing's months to a start (`bridgeMonths`; a saver's renamed
@@ -173,7 +178,8 @@ function asPinned(outputs, stress, now) {
     d = { ...doc, timing: placed(timing, 'startMonth', 'bridgeMonths', m), assumptions, decisionRun: placed(doc.decisionRun, 'year0', 'bridgeMonths', m),
       strategy: { ...doc.strategy, p: plan(doc.strategy.p) } };
   }
-  return { ...outputs, planFromSettings: plan(p), buildPlanDocument: d };
+  if (isObj(d) && isObj(d.strategy)) d = { ...d, strategy: { ...d.strategy, r: contractAgeAsPinned(d.strategy.r) } };
+  return { ...outputs, planFromSettings: plan(p), fullGiltTest: contractAgeAsPinned(outputs.fullGiltTest), buildPlanDocument: d };
 }
 
 function outputsOf(name, now) {

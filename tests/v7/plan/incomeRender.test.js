@@ -183,7 +183,9 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(left.root.querySelector('[data-error-for="plan.income.lumps.1.atAge"]').textContent).toBe('The plan’s first year is at age 59: money arriving before then counts as part of your pots today. An age of 59 or more, please.');
     expect(left.root.querySelector('[data-error-for="plan.income.fs.0.fromAge"]')).toBe(null);
     const asked = draw(incomeState(entries, id, { typed: { 'lumps.1.atAge': '59', 'fs.0.fromAge': '99' }, asked: true }));
-    expect(asked.root.querySelector('[data-error-for="plan.income.fs.0.fromAge"]').textContent).toBe('That is after the plan ends at age 91 — the pension would never pay. An age up to 91, or lengthen the plan.');
+    // (the age in the plan's last year, as the income page reads it: the limit the box is held to)
+    const lastAge = savedIncome(entryOf(LUMPY).plan, { today: TODAY }).endAge;
+    expect(asked.root.querySelector('[data-error-for="plan.income.fs.0.fromAge"]').textContent).toBe(`That is after the plan’s last year, at age ${lastAge} — the pension would never pay. An age up to ${lastAge}, or lengthen the plan.`);
     expect(asked.root.querySelector('[data-testid="plan.income.fs.0.fromAge"]').getAttribute('aria-invalid')).toBe('true');
   });
   it('the toast after a save, with Undo; "Saving…" while a write is under way; a problem from the write in plain words', () => {

@@ -52,4 +52,27 @@ describe('income tax 2026/27 (England, Wales, Northern Ireland) — to the penny
       }
     }
   });
+
+  it('taxKinks is its eleven points kept when above 0 and finite, in ascending order — the filter and sort it was, value for value', () => {
+    // the list as worked out before 7.8.0 (arrays filtered and sorted), the reference the array-free one is held to
+    const reference = (pa, brl, hrl) => {
+      const ts = TAX_DEFAULTS.PA_TAPER_THRESHOLD, r = TAX_DEFAULTS.PA_TAPER_RATE;
+      const te = ts + pa / r;
+      const basicBand = Math.max(0, brl - pa);
+      const additionalFrom = Math.max(basicBand, hrl);
+      const at = (x) => [x + pa, (x + pa + r * ts) / (1 + r), x];
+      return [ts, te, ...at(0), ...at(basicBand), ...at(additionalFrom)].filter((g) => g > 0 && Number.isFinite(g)).sort((a, b) => a - b);
+    };
+    let seed = 7;
+    const rand = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const odd = [0, -1, NaN, Infinity, 1e-9, 100000, 300000];
+    for (let k = 0; k < 20000; k++) {
+      const scale = Math.exp(rand() * 4 - 1);
+      const pick = (base) => (rand() < 0.1 ? odd[Math.floor(rand() * odd.length)] : base * scale * (0.5 + rand()));
+      const pa = pick(PA), brl = pick(BRL), hrl = pick(HRL);
+      const got = taxKinks(pa, brl, hrl), want = reference(pa, brl, hrl);
+      expect(got.length).toBe(want.length);
+      got.forEach((v, i) => expect(Object.is(v, want[i]), `${pa} ${brl} ${hrl}`).toBe(true));
+    }
+  });
 });

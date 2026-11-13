@@ -59,11 +59,22 @@ export function taxKinks(pa, brl, hrl = TAX_DEFAULTS.HIGHER_RATE_LIMIT) {
   const te = ts + pa / r;                       // the allowance is all gone from here
   const basicBand = Math.max(0, brl - pa);
   const additionalFrom = Math.max(basicBand, hrl);
-  // gross at which taxable income reaches x: below the taper, inside it, and beyond it
-  const at = (x) => [x + pa, (x + pa + r * ts) / (1 + r), x];
-  return [ts, te, ...at(0), ...at(basicBand), ...at(additionalFrom)]
-    .filter((g) => g > 0 && Number.isFinite(g))
-    .sort((a, b) => a - b);
+  // gross at which taxable income reaches x: below the taper, inside it, and beyond it. Each value is kept when above 0
+  // and finite and put in its place as it comes — the list a filter and an ascending sort give, without the arrays (the
+  // answers' searches ask this once a year of every run: tests/oracles/incomeTax.test.js holds the two equal)
+  const out = [];
+  const put = (g) => {
+    if (!(g > 0 && Number.isFinite(g))) return;
+    let i = out.length;
+    out.push(g);
+    while (i > 0 && out[i - 1] > g) { out[i] = out[i - 1]; i--; }
+    out[i] = g;
+  };
+  put(ts); put(te);
+  put(0 + pa); put((0 + pa + r * ts) / (1 + r)); put(0);
+  put(basicBand + pa); put((basicBand + pa + r * ts) / (1 + r)); put(basicBand);
+  put(additionalFrom + pa); put((additionalFrom + pa + r * ts) / (1 + r)); put(additionalFrom);
+  return out;
 }
 
 /**

@@ -24,11 +24,12 @@ import { ISA_STRATEGIES } from './IsaDrawdown.js';
 
 // The tax kinks for the bands last asked about. A simulation asks twelve months running with the
 // same bands, so the list is worked out once a tax year, not once a month. (A remembered pure
-// value: the same bands always give the same list.)
-let kinksFor = { pa: NaN, brl: NaN, hrl: NaN, kinks: [] };
+// value: the same bands always give the same list. One record, written over in place.)
+const kinksFor = { pa: NaN, brl: NaN, hrl: NaN, kinks: [] };
 function kinksOf(pa, brl, hrl) {
   if (kinksFor.pa !== pa || kinksFor.brl !== brl || kinksFor.hrl !== hrl) {
-    kinksFor = { pa, brl, hrl, kinks: taxKinks(pa, brl, hrl) };
+    kinksFor.kinks = taxKinks(pa, brl, hrl);
+    kinksFor.pa = pa; kinksFor.brl = brl; kinksFor.hrl = hrl;
   }
   return kinksFor.kinks;
 }

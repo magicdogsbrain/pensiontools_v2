@@ -21,7 +21,8 @@
  *    rest goes to the other, so a figure the two of you could pay is never called out of reach because of today's split.
  *  - The count said is the count at the figure said: every figure is asked once more in full, at exactly the pay-ins it
  *    names, and if that count does not hold (a few pounds where the test is not monotone) the figure steps up one step and
- *    is counted again — the figure said is always one whose full count held.
+ *    is counted again — the figure said is always one whose full count held. At most SEARCH_PROBES steps up (rules.js):
+ *    past them no figure is said (null), never one whose count did not hold.
  *  - Caps: a person's own part never above 100% of their pay (then "out of reach by paying in", and the other ways lead),
  *    nor above B's £10,000 a month a person. A couple out of reach is told whose most was reached (`caps`), so the words
  *    can say "even all of your pay and £10,000 a month from your partner".
@@ -33,7 +34,7 @@
  */
 import { payInParts } from '../shared/schemaParts.js';
 import { leastPayIn } from '../shared/stopAt.js';
-import { SAVING } from '../shared/rules.js';
+import { SAVING, SEARCH_PROBES } from '../shared/rules.js';
 import { outOfTen } from '../shared/format.js';
 import { bandIndexes } from '../shared/band.js';
 
@@ -234,11 +235,10 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
       const countOfStep = (k) => { if (!counts.has(k)) counts.set(k, countAt(shareAt(k))); return counts.get(k); };
       const ok = (k) => (k === 0 && guessK !== 0 ? row.lastsAtLevel(H, shareAt(0).payIn, savingsIn) : holds(countOfStep(k)));
       let k = leastPayIn(ok, top, 0, { lo: guessK, hi: guessK }, 1);
-      while (k !== null && k <= top) {
+      for (let ups = 0; k !== null && k <= top && ups < SEARCH_PROBES; ups++, k += 1) {
         const fig = shareAt(k);
         const v = countOfStep(k);
         if (holds(v)) return { ...fig, ...v, k };
-        k += 1;
       }
       return null;
     }
@@ -248,7 +248,7 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
     // B's own figure first (one full count: it usually holds, being B's test at the same pounds or a little more); where
     // it does not, the least £10 above it at which the test holds is searched for, then counted in full step by step
     let c = hint;
-    for (let tries = 0; c <= ceiling + 1e-9 && tries < 100; tries++, c += 10) {
+    for (let tries = 0; c <= ceiling + 1e-9 && tries < SEARCH_PROBES; tries++, c += 10) {
       const fig = figAt(c);
       if (fig === null) return null;
       const v = countAt(fig);
@@ -374,7 +374,8 @@ export function oneOffSum({ row, H, ctx, least, fails }) {
     ? row.test.quick(row.H(H), payIns, { lumps: lumpsOf(L) })
     : row.test.holds(countOfSum(L)));
   let L = leastPayIn(probe, SAVING.potMax, LUMP_STEP, guess, LUMP_STEP);
-  while (L !== null && L <= SAVING.potMax) {
+  // (the full count at the sum found, one £1,000 up at a time until it holds: at most SEARCH_PROBES steps, then none)
+  for (let ups = 0; L !== null && L <= SAVING.potMax && ups < SEARCH_PROBES; ups++) {
     const v = countOfSum(L);
     if (row.test.holds(v)) {
       // a couple's parts: the larger rounded to the pound, the smaller the rest (as the number's byPerson)

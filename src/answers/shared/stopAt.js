@@ -42,7 +42,7 @@ import { createFastRunner, prepareFutureFrom } from './fastEngine.js';
 import { createBandSolver, STEP, runFuture, levelsFromSolver, leftAt } from './band.js';
 import { livesList, sliceReturns } from './lives.js';
 import { savingPlan, savingKernel, kernelPasses, stopYearsFor } from './saving.js';
-import { RULES, SAVING, legacyVerdictOf, LEVEL_FAILS20, levelOf, passes, drawYearsCap } from './rules.js';
+import { RULES, SAVING, legacyVerdictOf, LEVEL_FAILS20, levelOf, passes, drawYearsCap, probeCounter, bounded } from './rules.js';
 import { weightOf, failsBound, runToAgeOf } from './weigh.js';
 import { chanceOf, verdictOfChance, LEVEL_IDS } from './levels.js';
 
@@ -486,27 +486,29 @@ export function potNeeded(sp, runner, spendAYear, fails, opts = {}) {
   const before = Number.isFinite(opts.before) ? opts.before : Infinity;
   const step = SAVING.potStep;
   const top = Math.round(SAVING.potMax / step);
-  let lo = 0, hi = top + 1;
-  if (Number.isFinite(opts.guess) && opts.guess >= 0) {
-    // a bracket around a guess (a hint: the search settles on the same £1,000 with or without it), widened until it
-    // holds — enough at its top, not enough below its bottom — then halved as below
-    const ok = (k) => { const v = withinFails(sp, runnerAtPot(sp, k * step, opts), spendAYear, fails, before); if (opts.onStep) opts.onStep(k * step, v.fails); return v.ok; };
-    const spread = Number.isFinite(opts.guessSpread) ? opts.guessSpread : 0.05;
-    let h = Math.min(top, Math.max(0, Math.ceil(opts.guess * (1 + spread) / step)));
-    let l = Math.max(0, Math.min(h, Math.floor(opts.guess * (1 - spread) / step)));
-    let width = Math.max(1, h - l);
-    while (!ok(h)) { if (h >= top) return null; l = h + 1; h = Math.min(top, h + width); width *= 2; }
-    width = Math.max(1, h - l);
-    while (l > 0 && ok(l - 1)) { h = l - 1; l = Math.max(0, l - 1 - width); width *= 2; }
-    lo = l; hi = h;
-  }
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    const v = withinFails(sp, runnerAtPot(sp, mid * step, opts), spendAYear, fails, before);
-    if (opts.onStep) opts.onStep(mid * step, v.fails);
-    if (v.ok) hi = mid; else lo = mid + 1;
-  }
-  return lo > top ? null : lo * step;
+  // (at most SEARCH_PROBES verdicts: past them, no pot is found — null, as for one above SAVING.potMax)
+  const probe = probeCounter(opts.maxProbes);
+  const test = (k) => { probe(); const v = withinFails(sp, runnerAtPot(sp, k * step, opts), spendAYear, fails, before); if (opts.onStep) opts.onStep(k * step, v.fails); return v.ok; };
+  return bounded(() => {
+    let lo = 0, hi = top + 1;
+    if (Number.isFinite(opts.guess) && opts.guess >= 0) {
+      // a bracket around a guess (a hint: the search settles on the same £1,000 with or without it), widened until it
+      // holds — enough at its top, not enough below its bottom — then halved as below
+      const spread = Number.isFinite(opts.guessSpread) ? opts.guessSpread : 0.05;
+      let h = Math.min(top, Math.max(0, Math.ceil(opts.guess * (1 + spread) / step)));
+      let l = Math.max(0, Math.min(h, Math.floor(opts.guess * (1 - spread) / step)));
+      let width = Math.max(1, h - l);
+      while (!test(h)) { if (h >= top) return null; l = h + 1; h = Math.min(top, h + width); width *= 2; }
+      width = Math.max(1, h - l);
+      while (l > 0 && test(l - 1)) { h = l - 1; l = Math.max(0, l - 1 - width); width *= 2; }
+      lo = l; hi = h;
+    }
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (test(mid)) hi = mid; else lo = mid + 1;
+    }
+    return lo > top ? null : lo * step;
+  }, () => null);
 }
 
 /**
@@ -529,25 +531,29 @@ export function potNeeded(sp, runner, spendAYear, fails, opts = {}) {
  */
 export function savingsNeeded(sp, spendAYear, fails, from, before = Infinity) {
   const step = SAVING.potStep;
-  const at = (k) => withinFails(sp, runnerAtPot(sp, SAVING.potMax, { savingsOf: (i, j) => Math.max(sp.pots[j].savings[i], k * step * sp.split[j]) }), spendAYear, fails, before).ok;
-  let lo = Math.max(0, Math.ceil(from / step));
-  if (at(lo)) return lo * step;
-  // the top of the search: a little above the draw first (it is usually within a tenth of it), then further out
-  const last = Math.max(lo + 1, Math.ceil((4 * from) / step) + 10);
-  let hi = null;
-  for (const f of [1.1, 1.25, 1.5, 2]) {
-    const k = Math.min(last, Math.max(lo + 1, Math.ceil((f * from) / step)));
-    if (k <= lo) continue;
-    if (at(k)) { hi = k; break; }
-    lo = k;
-  }
-  if (hi === null) { if (!at(last)) return null; hi = last; }
-  lo += 1;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (at(mid)) hi = mid; else lo = mid + 1;
-  }
-  return lo * step;
+  // (at most SEARCH_PROBES verdicts: past them, none found — null, as when four times `from` is not enough)
+  const probe = probeCounter();
+  const at = (k) => { probe(); return withinFails(sp, runnerAtPot(sp, SAVING.potMax, { savingsOf: (i, j) => Math.max(sp.pots[j].savings[i], k * step * sp.split[j]) }), spendAYear, fails, before).ok; };
+  return bounded(() => {
+    let lo = Math.max(0, Math.ceil(from / step));
+    if (at(lo)) return lo * step;
+    // the top of the search: a little above the draw first (it is usually within a tenth of it), then further out
+    const last = Math.max(lo + 1, Math.ceil((4 * from) / step) + 10);
+    let hi = null;
+    for (const f of [1.1, 1.25, 1.5, 2]) {
+      const k = Math.min(last, Math.max(lo + 1, Math.ceil((f * from) / step)));
+      if (k <= lo) continue;
+      if (at(k)) { hi = k; break; }
+      lo = k;
+    }
+    if (hi === null) { if (!at(last)) return null; hi = last; }
+    lo += 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (at(mid)) hi = mid; else lo = mid + 1;
+    }
+    return lo * step;
+  }, () => null);
 }
 
 /**
@@ -592,12 +598,17 @@ function leastPotsOf(sp, spendAYear, runnerAt) {
   };
   const least = new Int32Array(n);
   for (let i = 0; i < n; i++) {
-    let lo = 0, hi = top + 1;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (lastsAt(mid, i)) hi = mid; else lo = mid + 1;
-    }
-    least[i] = lo;
+    // (at most SEARCH_PROBES runs a life: past them it is taken as lasting at no pot up to SAVING.potMax — the cautious side)
+    const probe = probeCounter();
+    least[i] = bounded(() => {
+      let lo = 0, hi = top + 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        probe();
+        if (lastsAt(mid, i)) hi = mid; else lo = mid + 1;
+      }
+      return lo;
+    }, () => top + 1);
   }
   return least;
 }
@@ -627,10 +638,14 @@ export function potNeededAt(sp, spendAYear, failsList, opts = {}) {
  *   2. known yes: the count's figure at floor(t·n/20) (every weight is at most one whole future); bisect on £1,000 steps
  *      below it, running only the lives that fail there, for their months;
  *   3. checked as potNeededAt checks: it holds at P and not at P − £1,000 with every life run; if not, plain bisection.
+ * Out of reach: when the lives that fail even at SAVING.potMax fail the level there, one test with every life run at
+ * SAVING.potMax settles it (null, capped) — the plain search is for a check that fails, never for this. A level's search
+ * makes at most SEARCH_PROBES tests (opts.maxProbes, tests only); past them its pot is null, capped: none found.
  * → { [level]: { pot, capped } }: pot null and capped when even SAVING.potMax does not pass.
  * @param {{ byMonth: Float64Array }} weigher   weigh.js weigherOf(sp.plan, …)
  * @param {string[]} [ids]   the levels (default all three)
- * @param {{ savingsOf?: Function, least?: Int32Array, onLeast?: Function }} [opts]
+ * @param {{ savingsOf?: Function, least?: Int32Array, onLeast?: Function, maxProbes?: number, onProbe?: (kind: string, P: number) => void }} [opts]
+ *   onProbe (tests): each test's kind ('lives': the failing lives only; 'all': every life; 'plain': the plain search's) and pot
  */
 export function potNeededWeighted(sp, spendAYear, weigher, ids = Object.keys(LEVEL_FAILS20), opts = {}) {
   const step = SAVING.potStep;
@@ -641,47 +656,60 @@ export function potNeededWeighted(sp, spendAYear, weigher, ids = Object.keys(LEV
   if (typeof opts.onLeast === 'function' && least !== opts.least) opts.onLeast(least);
   const sorted = Array.from(least).sort((a, b) => a - b);
   const failingAt = (k) => { const out = []; for (let i = 0; i < n; i++) if (least[i] > k) out.push(i); return out; };
+  const told = (kind, k) => { if (typeof opts.onProbe === 'function') opts.onProbe(kind, k * step); };
   const out = {};
   for (const id of ids) {
     const level = levelOf(id);
     const t = LEVEL_FAILS20[level];
-    const at = (k) => withinWeighted(sp, runnerAt(k), spendAYear, weigher, t, Infinity, failingAt(k)).ok;
-    const full = (k) => withinWeighted(sp, runnerAt(k), spendAYear, weigher, t).ok;
-    const f = failsBound(n, t);
-    let hi = f >= n ? 0 : sorted[n - 1 - f];
-    if (hi > top) { if (!at(top)) hi = null; else hi = top; }
-    let k = null;
-    if (hi !== null) {
-      let lo = -1;                                                   // lo: known not to pass (−1: below the floor)
-      while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (at(mid)) hi = mid; else lo = mid; }
-      k = hi;
-    }
-    // the check: it holds at P and not at P − £1,000, every life run; else the plain search
-    if (k !== null && full(k) && (k === 0 || !full(k - 1))) out[level] = { pot: k * step, capped: false };
-    else {
-      const pot = potNeededWeightedPlain(sp, spendAYear, weigher, level, opts, runnerAt);
-      out[level] = { pot, capped: pot === null };
-    }
+    const probe = probeCounter(opts.maxProbes);
+    const at = (k) => { probe(); told('lives', k); return withinWeighted(sp, runnerAt(k), spendAYear, weigher, t, Infinity, failingAt(k)).ok; };
+    const full = (k) => { probe(); told('all', k); return withinWeighted(sp, runnerAt(k), spendAYear, weigher, t).ok; };
+    out[level] = bounded(() => {
+      const f = failsBound(n, t);
+      let hi = f >= n ? 0 : sorted[n - 1 - f];
+      if (hi > top) {
+        if (at(top)) hi = top;
+        // the lives that fail even at SAVING.potMax fail the level there: out of reach, unless every life run says
+        // otherwise (a life its own least pot says lasts that does not) — then the plain search decides
+        else if (!full(top)) return { pot: null, capped: true };
+        else hi = null;
+      }
+      let k = null;
+      if (hi !== null) {
+        let lo = -1;                                                 // lo: known not to pass (−1: below the floor)
+        while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (at(mid)) hi = mid; else lo = mid; }
+        k = hi;
+      }
+      // the check: it holds at P and not at P − £1,000, every life run; else the plain search
+      if (k !== null && full(k) && (k === 0 || !full(k - 1))) return { pot: k * step, capped: false };
+      const pot = plainSearch(sp, spendAYear, weigher, t, runnerAt, (k2) => { probe(); told('plain', k2); });
+      return { pot, capped: pot === null };
+    }, () => ({ pot: null, capped: true }));
   }
   return out;
 }
 
-/**
- * The pot to aim for at one weighted level by plain bisection over 0 … SAVING.potMax on £1,000 steps, every life run at
- * every step (withinWeighted, stopping once settled). null when SAVING.potMax does not pass. The reference
- * potNeededWeighted is held to.
- */
-export function potNeededWeightedPlain(sp, spendAYear, weigher, level, opts = {}, runnerAt = runnersAtPots(sp, opts)) {
+/** Plain bisection over 0 … SAVING.potMax on £1,000 steps, every life run at every step; `probe` before each test. */
+function plainSearch(sp, spendAYear, weigher, t, runnerAt, probe) {
   const step = SAVING.potStep;
   const top = Math.round(SAVING.potMax / step);
-  const t = LEVEL_FAILS20[levelOf(level)];
-  const ok = (k) => withinWeighted(sp, runnerAt(k), spendAYear, weigher, t).ok;
   let lo = 0, hi = top + 1;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    if (ok(mid)) hi = mid; else lo = mid + 1;
+    probe(mid);
+    if (withinWeighted(sp, runnerAt(mid), spendAYear, weigher, t).ok) hi = mid; else lo = mid + 1;
   }
   return lo > top ? null : lo * step;
+}
+
+/**
+ * The pot to aim for at one weighted level by plain bisection over 0 … SAVING.potMax on £1,000 steps, every life run at
+ * every step (withinWeighted, stopping once settled). null when SAVING.potMax does not pass, or past SEARCH_PROBES tests.
+ * The reference potNeededWeighted is held to.
+ */
+export function potNeededWeightedPlain(sp, spendAYear, weigher, level, opts = {}, runnerAt = runnersAtPots(sp, opts)) {
+  const probe = probeCounter(opts.maxProbes);
+  return bounded(() => plainSearch(sp, spendAYear, weigher, LEVEL_FAILS20[levelOf(level)], runnerAt, () => probe()), () => null);
 }
 
 // ---- the one test at another pay-in (step 4 brief section 10, J9) --------------------------------------------------
@@ -777,8 +805,14 @@ export function countsAtPayIns(sp, spendAYear, payInsList, at = null) {
  *
  * `unit` (default 10) is the step searched on: £1,000 for a one-off sum, 1 for the steps of a grid that `ok` reads itself
  * (B's shares of pay, 0.5% of pay a step: research/saving-enough-and-check-in.md 3.3). The search is the same in every unit.
+ * It tests at most SEARCH_PROBES figures (`maxProbes`, tests only); past them it has found none: null.
  */
-export function leastPayIn(ok, ceiling, from = 0, guess = null, unit = 10) {
+export function leastPayIn(ok, ceiling, from = 0, guess = null, unit = 10, maxProbes = undefined) {
+  const probe = probeCounter(maxProbes);
+  return bounded(() => leastPayInSearch((c) => { probe(); return ok(c); }, ceiling, from, guess, unit), () => null);
+}
+
+function leastPayInSearch(ok, ceiling, from, guess, unit) {
   const lo0 = Math.max(0, Math.ceil(from / unit - 1e-9));
   const top = Math.floor(ceiling / unit + 1e-9);
   let lo = lo0, hi = top;

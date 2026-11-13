@@ -25,7 +25,7 @@ import {
   potNeededWeightedPlain, leastPayIn, runnerAtPayIns
 } from '../../../src/answers/shared/stopAt.js';
 import { weigherOf, weightedFails, failsBound, runToAgeOfInputs } from '../../../src/answers/shared/weigh.js';
-import { LEVEL_FAILS20, WEIGHT_ONE, passes } from '../../../src/answers/shared/rules.js';
+import { LEVEL_FAILS20, WEIGHT_ONE, passes, SAVING, SEARCH_PROBES } from '../../../src/answers/shared/rules.js';
 
 const TODAY = '2026-11-11';
 const LEVELS = ['careful', 'balanced', 'bold'];
@@ -248,5 +248,50 @@ describe('withinWeighted, B\'s pot and B\'s pay-in', () => {
     const s = bCase(B_CASES['Sam, 35, stopping at 55 with nothing set aside for the closed years'], 100);
     const sPay = (x) => [{ pension: x, savings: 0 }];
     expect(leastPayIn((x) => lastsWithinWeighted(s.sp, s.H, sPay(x), s.weigher, LEVEL_FAILS20.bold), 10000, 0)).toBe(null);
+  });
+
+  // Every search here has a fixed most of tests (rules.js SEARCH_PROBES); past it the answer is null, never a figure it did
+  // not verify. The plain search is the fallback for a failed check only: out of reach is settled by one test at the top.
+  const probesOf = (fn) => { const seen = []; const out = fn((kind, P) => seen.push([kind, P])); return { out, seen }; };
+  const halvings = Math.ceil(Math.log2(Math.round(SAVING.potMax / SAVING.potStep) + 2));
+
+  it('out of reach (the lives that fail at the top fail the level there): one test of every life at the top, no plain search', () => {
+    const b = bCase(B_CASES['Sam, 35, stopping at 55 with nothing set aside for the closed years'], 100);
+    const { out, seen } = probesOf((onProbe) => potNeededWeighted(b.sp, b.H, b.weigher, LEVELS, { onProbe }));
+    expect(out).toEqual({ careful: { pot: null, capped: true }, balanced: { pot: null, capped: true }, bold: { pot: null, capped: true } });
+    expect(seen.filter(([kind]) => kind === 'plain')).toEqual([]);
+    expect(seen.filter(([kind]) => kind === 'all')).toEqual(LEVELS.map(() => ['all', SAVING.potMax]));
+    for (const l of LEVELS) expect(potNeededWeightedPlain(b.sp, b.H, b.weigher, l)).toBe(null);
+  });
+
+  it('a household that forces the fallback (each life\'s own least pot taken as £0, so the check fails): the plain search, bounded, gives the plain figure', () => {
+    const b = bCase(B_CASES['Alex, 50, stopping at 60'], 100);
+    const wrong = new Int32Array(100);                                // every life "lasts at £0": the shortcut runs no life
+    const { out, seen } = probesOf((onProbe) => potNeededWeighted(b.sp, b.H, b.weigher, LEVELS, { least: wrong, onProbe }));
+    for (const l of LEVELS) {
+      expect(out[l].pot, l).toBe(potNeededWeightedPlain(b.sp, b.H, b.weigher, l));
+      expect(out[l].pot).not.toBe(null);
+    }
+    const plain = seen.filter(([kind]) => kind === 'plain');
+    expect(plain.length).toBeGreaterThan(0);
+    expect(plain.length).toBeLessThanOrEqual(LEVELS.length * halvings);
+    expect(seen.length).toBeLessThanOrEqual(LEVELS.length * SEARCH_PROBES);
+  });
+
+  it('a search past its most tests stops with none found: the pot null and capped, the pay-in null', () => {
+    const b = bCase(B_CASES['Alex, 50, stopping at 60'], 100);
+    const wrong = new Int32Array(100);
+    const { out, seen } = probesOf((onProbe) => potNeededWeighted(b.sp, b.H, b.weigher, LEVELS, { least: wrong, onProbe, maxProbes: 4 }));
+    expect(out).toEqual({ careful: { pot: null, capped: true }, balanced: { pot: null, capped: true }, bold: { pot: null, capped: true } });
+    expect(seen.length).toBe(LEVELS.length * 4);
+    expect(potNeededWeightedPlain(b.sp, b.H, b.weigher, 'balanced', { maxProbes: 3 })).toBe(null);
+    const people = b.sp.saving.people;
+    const payIns = (c) => people.map((p) => ({ pension: c / people.length, savings: p.payIn.savings }));
+    let tests = 0;
+    const ok = (x) => { tests++; return lastsWithinWeighted(b.sp, b.H, payIns(x), b.weigher, LEVEL_FAILS20.balanced); };
+    expect(leastPayIn(ok, 10000, 0, null, 10, 2)).toBe(null);
+    expect(tests).toBe(2);
+    expect(leastPayIn(ok, 10000, 0)).not.toBe(null);
+    expect(tests).toBeLessThanOrEqual(2 + SEARCH_PROBES);
   });
 });

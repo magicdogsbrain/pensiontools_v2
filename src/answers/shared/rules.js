@@ -119,6 +119,30 @@ export function verdictAtLevel(sumW, n, level, weighted = SUCCESS.weighted) {
 export const SAVING = { chargesPct: DEFAULT_CHARGES_PCT, charge: DEFAULT_CHARGES_PCT / 100, slideYears: 10, payInCeiling: 10000, potStep: 1000, potMax: 5_000_000, laterYears: 10 };
 
 /**
+ * The most probes one search may make (7.8.0). Every search the answers make is on whole steps over a fixed range — £1,000
+ * pots to SAVING.potMax, £10 pay-ins to the ceiling, £10 amounts a month to the band's top — widened by doubling and then
+ * halved, so none needs more than about 60 probes. A search that reaches SEARCH_PROBES has gone wrong: it stops there and
+ * says only what it has verified — a pot, a pay-in or a sum it has not found is null (out of reach), an amount a month is
+ * the most it found to pass. `probeCounter` counts one search's probes and throws OUT_OF_PROBES past its limit; the search
+ * catches it (`bounded`) and answers so.
+ */
+export const SEARCH_PROBES = 100;
+export const OUT_OF_PROBES = Object.freeze({ outOfProbes: true });
+export function probeCounter(max = SEARCH_PROBES) {
+  let left = Number.isFinite(max) ? max : SEARCH_PROBES;
+  return () => { if (left-- <= 0) throw OUT_OF_PROBES; };
+}
+/** Runs a search; past its probes, `stopped()` is the answer (OUT_OF_PROBES is caught, anything else thrown on). */
+export function bounded(search, stopped) {
+  try {
+    return search();
+  } catch (e) {
+    if (e === OUT_OF_PROBES) return stopped();
+    throw e;
+  }
+}
+
+/**
  * The lives the years before a pension opens may fail in, when B sets aside the savings that carry them (step 4 brief
  * section 10, J9): none. The savings and the pension are one life, and the one test allows floor(n / 10) failures in
  * all; the savings set aside for the closed years must not spend that allowance on their own.

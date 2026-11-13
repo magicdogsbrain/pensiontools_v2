@@ -38,7 +38,7 @@
 import { simulate } from '../../services/SimulationEngine.js';
 import { configsAt } from './toEngine.js';
 import { createFastRunner } from './fastEngine.js';
-import { LEVEL_FAILS20, levelOf, passes } from './rules.js';
+import { LEVEL_FAILS20, levelOf, passes, probeCounter, bounded } from './rules.js';
 import { weightOf, failsBound } from './weigh.js';
 import { chanceOf, LEVEL_IDS } from './levels.js';
 
@@ -239,27 +239,34 @@ export function createBandSolver(plan, futures, opts = {}) {
     let g = good;                                          // known yes
     let b = top + 1;                                       // known no
     const clamp = (k) => Math.max(g, Math.min(top, k));
-    // 1. A point just under the guess that says yes, every unsettled future run there: the futures that fail
-    //    there are settled (they fail at the answer too), and the rest are bounded below.
-    let k = clamp(guess - gap);
-    let down = 2 * gap;
-    while (k > g) {
-      if (failsAt(k) <= j) { g = k; break; }
-      b = k; k = clamp(k - down); down *= 2;
-    }
-    // 2. A point just over the guess that says no, every unsettled future run there: the futures that last there
-    //    are settled, and the rest are bounded above. Only the futures inside the gap are left.
-    let step = 2 * gap;
-    k = Math.min(b - 1, Math.max(g + gap, guess + gap));
-    while (k > g && k < b) {
-      if (failsAt(k) <= j) { g = k; k = Math.min(b - 1, k + step); step *= 2; }
-      else { b = k; break; }
-    }
-    // 3. Bisect the gap.
-    while (b - g > 1) {
-      const mid = Math.floor((g + b) / 2);
-      if (atMost(j, mid, mid > guess)) g = mid; else b = mid;
-    }
+    // (at most SEARCH_PROBES amounts tried: past them the answer is the most found to pass, g)
+    const probe = probeCounter();
+    bounded(() => {
+      // 1. A point just under the guess that says yes, every unsettled future run there: the futures that fail
+      //    there are settled (they fail at the answer too), and the rest are bounded below.
+      let k = clamp(guess - gap);
+      let down = 2 * gap;
+      while (k > g) {
+        probe();
+        if (failsAt(k) <= j) { g = k; break; }
+        b = k; k = clamp(k - down); down *= 2;
+      }
+      // 2. A point just over the guess that says no, every unsettled future run there: the futures that last there
+      //    are settled, and the rest are bounded above. Only the futures inside the gap are left.
+      let step = 2 * gap;
+      k = Math.min(b - 1, Math.max(g + gap, guess + gap));
+      while (k > g && k < b) {
+        probe();
+        if (failsAt(k) <= j) { g = k; k = Math.min(b - 1, k + step); step *= 2; }
+        else { b = k; break; }
+      }
+      // 3. Bisect the gap.
+      while (b - g > 1) {
+        const mid = Math.floor((g + b) / 2);
+        probe();
+        if (atMost(j, mid, mid > guess)) g = mid; else b = mid;
+      }
+    }, () => null);
     settle(g);
     return g;
   };
@@ -276,15 +283,20 @@ export function createBandSolver(plan, futures, opts = {}) {
     const fails = (k, j) => { let f = 0; for (let i = 0; i < s; i++) if (!lastsAt(i, k)) { f++; if (f > j) return f; } return f; };
     const quantile = (j, good, bad, guess) => {
       let g = good, b = bad;
-      if (!Number.isFinite(b)) {
-        let k = Math.max(good + 1, Math.min(guess, kMax));
-        let step = Math.max(1, Math.round((k - good) / 2));
-        for (;;) {
-          if (fails(k, j) <= j) { g = k; if (k >= kMax) { b = kMax + 1; break; } k = Math.min(kMax, k + step); step *= 2; }
-          else { b = k; break; }
+      // (an estimate: at most SEARCH_PROBES amounts, then the most found to pass)
+      const probe = probeCounter();
+      bounded(() => {
+        if (!Number.isFinite(b)) {
+          let k = Math.max(good + 1, Math.min(guess, kMax));
+          let step = Math.max(1, Math.round((k - good) / 2));
+          for (;;) {
+            probe();
+            if (fails(k, j) <= j) { g = k; if (k >= kMax) { b = kMax + 1; break; } k = Math.min(kMax, k + step); step *= 2; }
+            else { b = k; break; }
+          }
         }
-      }
-      while (b - g > 1) { const mid = Math.floor((g + b) / 2); if (fails(mid, j) <= j) g = mid; else b = mid; }
+        while (b - g > 1) { const mid = Math.floor((g + b) / 2); probe(); if (fails(mid, j) <= j) g = mid; else b = mid; }
+      }, () => null);
       return g;
     };
     const guess = kLow + Math.max(1, Math.round((plan.totalPots * 0.04) / 12 / STEP));
@@ -347,18 +359,24 @@ export function createBandSolver(plan, futures, opts = {}) {
     most(i) {
       let g = lo[i];
       let b = Number.isFinite(hi[i]) ? hi[i] : kMax + 1;
-      if (!Number.isFinite(hi[i])) {
-        // no amount known to fail: widen upwards from what lasts, doubling, until one does (or the top holds)
-        let step = Math.max(4, Math.round((g - kLow) / 4));
-        for (let k = Math.min(kMax, g + step); ; k = Math.min(kMax, k + step), step *= 2) {
-          if (lastsAt(i, k)) { g = k; if (k >= kMax) return kMax; } else { b = k; break; }
+      // (at most SEARCH_PROBES amounts: past them, the most found to last)
+      const probe = probeCounter();
+      return bounded(() => {
+        if (!Number.isFinite(hi[i])) {
+          // no amount known to fail: widen upwards from what lasts, doubling, until one does (or the top holds)
+          let step = Math.max(4, Math.round((g - kLow) / 4));
+          for (let k = Math.min(kMax, g + step); ; k = Math.min(kMax, k + step), step *= 2) {
+            probe();
+            if (lastsAt(i, k)) { g = k; if (k >= kMax) return kMax; } else { b = k; break; }
+          }
         }
-      }
-      while (b - g > 1) {
-        const mid = Math.floor((g + b) / 2);
-        if (lastsAt(i, mid)) g = mid; else b = mid;
-      }
-      return g;
+        while (b - g > 1) {
+          const mid = Math.floor((g + b) / 2);
+          probe();
+          if (lastsAt(i, mid)) g = mid; else b = mid;
+        }
+        return g;
+      }, () => g);
     },
     /**
      * The weighted levels (7.8.0): for each level asked, the largest k whose weighted failures pass its twentieths —
@@ -414,16 +432,22 @@ export function createBandSolver(plan, futures, opts = {}) {
       /** The largest k in [good, top] that passes t (good known to; top + 1 known not to, or kMax + 1, unknown). */
       const weightedYes = (t, good, top) => {
         let g = good, b = top + 1;
-        let step = Math.max(2, Math.round(Math.abs(g - kLow) * 0.03));
-        let k = Math.min(top, g + step);
-        while (k > g) {
-          if (weightedAtMost(t, k, false)) { g = k; if (k >= top) break; k = Math.min(top, k + step); step *= 2; }
-          else { b = k; break; }
-        }
-        while (b - g > 1) {
-          const mid = Math.floor((g + b) / 2);
-          if (weightedAtMost(t, mid, true)) g = mid; else b = mid;
-        }
+        // (at most SEARCH_PROBES amounts: past them, the most found to pass the level, g)
+        const probe = probeCounter();
+        bounded(() => {
+          let step = Math.max(2, Math.round(Math.abs(g - kLow) * 0.03));
+          let k = Math.min(top, g + step);
+          while (k > g) {
+            probe();
+            if (weightedAtMost(t, k, false)) { g = k; if (k >= top) break; k = Math.min(top, k + step); step *= 2; }
+            else { b = k; break; }
+          }
+          while (b - g > 1) {
+            const mid = Math.floor((g + b) / 2);
+            probe();
+            if (weightedAtMost(t, mid, true)) g = mid; else b = mid;
+          }
+        }, () => null);
         return { k: g, capped: g >= kMax };
       };
       const solveOne = (level, good, top, countGood, countTop) => {
@@ -470,10 +494,15 @@ export function mostPerFuture(plan, future, range = {}) {
   if (lasts(kMax)) return kMax * STEP;
   let g = kLow;
   let b = kMax;
-  while (b - g > 1) {
-    const mid = Math.floor((g + b) / 2);
-    if (lasts(mid)) g = mid; else b = mid;
-  }
+  // (at most SEARCH_PROBES amounts: past them, the most found to last)
+  const probe = probeCounter();
+  bounded(() => {
+    while (b - g > 1) {
+      const mid = Math.floor((g + b) / 2);
+      probe();
+      if (lasts(mid)) g = mid; else b = mid;
+    }
+  }, () => null);
   return g * STEP;
 }
 

@@ -78,7 +78,7 @@ test('signed in: B kept at Bold; the check-in reads at Bold', async ({ page, wat
   await page.getByTestId('b.level.bold').click();
   await expect(page.getByTestId('b.level')).toHaveAttribute('data-level', 'bold', { timeout: 120_000 });
   await app.ready(120_000);
-  await expect(page.locator('#app [data-testid="lasts.boldLine"]').first()).toContainText(/^About \d+ times? in 10 the money runs out while you are alive/);
+  await expect(page.locator('#app [data-testid="lasts.boldLine"]').first()).toContainText(/^(About (\d+ times|once) in 20|Less than once in 20) the money runs out while you are alive/);
   const made = await keep(page, 'b');
   await expect(made).toContainText('in your account');
   const planId = await made.getAttribute('data-plan-id');

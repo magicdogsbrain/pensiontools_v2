@@ -55,12 +55,14 @@ describe('the one number', () => {
 });
 
 describe('"Am I on course?" on the Accumulation planner', () => {
-  it('the heading and its words say 9 in 10; 85% is gone', () => {
+  // (7.8.0: on course is the level's test, said in the answer; the words before it never define it as one count)
+  it('the heading and its words say on course and how it is counted is said with the answer; 85% is gone', () => {
     const titles = [...doc.querySelectorAll('#accumulation-content .section-title')].map((e) => e.textContent.trim());
     expect(titles).toContain('Am I on course?');
     expect(titles).not.toContain('Am I on track?');
     const acc = doc.querySelector('#accumulation-content').textContent.replace(/\s+/g, ' ');
-    expect(acc).toContain('lasts in 9 futures out of 10');
+    expect(acc).toContain('to find the pot your plan needs to be on course');
+    expect(acc).toContain('The answer says how on course was counted.');
     expect(acc).not.toMatch(/85% success/);
     expect(SRC).not.toMatch(/85% success/);
     expect(SRC).not.toMatch(/85% Monte-Carlo success/);
@@ -72,12 +74,16 @@ describe('"Am I on course?" on the Accumulation planner', () => {
     expect(body).not.toMatch(/requiredPotForSuccess/);   // Pots & Valves searched its own Monte Carlo until 6.24.0
     // 7.8.0: the plan every screen runs, at the bar onCourseOptsOf gives: ON_COURSE_SHARE (9 in 10) while not weighing, the
     // page's level weighted by how long people live once SUCCESS.weighted (tests/v7/plan/onCourseWeighted.test.js)
-    expect(body).toMatch(/acP = strategyPlanFor\(sSet\), \{ requiredPot \} = requiredPotForStrategy\(stratId, acP, onCourseOptsOf\(sSet, acP, stratId, new Date\(\)/);
+    // (and its range and chance: lastsRun.onCourseFind, requiredPotForStrategy with the levels)
+    expect(body).toMatch(/acP = strategyPlanFor\(sSet\), \{ found, reason \} = onCourseFind\(sSet, acP, stratId, new Date\(\)/);
+    expect(body).toMatch(/chance: onCourseChanceHtml\(found, \{ strategyId: stratId, reason \}\)/);
     expect(body).not.toMatch(/0\.85/);
     expect(body).not.toMatch(/on track/);
   });
   it('the words: searching, the basis and each row\'s verdict', () => {
-    expect(ON_COURSE_SEARCHING).toMatch(/the pot that lasts in 9 futures out of 10/);
+    // (7.8.0: searching says what holds for either test; the basis without a level is the rollback's, as before)
+    expect(ON_COURSE_SEARCHING).toMatch(/the pot your plan needs to be on course/);
+    expect(ON_COURSE_SEARCHING).not.toMatch(/9 futures out of 10/);
     expect(onCourseBasisHtml({ strategyId: 'pots-and-valves', name: 'Pots & Valves' })).toMatch(/^to last in 9 futures out of 10 with <strong>Pots &amp; Valves<\/strong>/);
     expect(onCourseBasisHtml({ strategyId: 'buckets-in-order', name: 'Buckets in order' })).toMatch(/to last in 9 futures out of 10 with <strong>Buckets in order<\/strong>/);
     expect(onCourseBasisHtml({ strategyId: 'full-il-gilt', name: 'Full ladder' })).toMatch(/to buy every year of your income shape by contract/);
@@ -88,15 +94,16 @@ describe('"Am I on course?" on the Accumulation planner', () => {
 });
 
 describe('the age spin', () => {
-  it('its title asks which age is on course; its picker offers 9 in 10 first and by default, and keeps the other choices (parity)', () => {
+  // (7.8.0: the spin is a plain count to the plan's own age, never "on course", which is the level's test below it)
+  it('its title asks which age lasts in the share picked, a count, not the on-course test; its picker offers 9 in 10 first and by default, and keeps the other choices (parity)', () => {
     const title = doc.querySelector('#acSweepSection .section-title').textContent.replace(/\s+/g, ' ');
-    expect(title).toMatch(/on course/);
-    expect(title).toMatch(/9 futures out of 10/);
+    expect(title).toMatch(/not the "Am I on course\?" test/);
+    expect(title).toMatch(/9 in 10 to start/);
     expect(title).not.toMatch(/clears 90%/);
     const opts = [...doc.querySelectorAll('#acSweepTarget option')];
     expect(opts[0].value).toBe(String(ON_COURSE_PCT));
     expect(opts[0].selected).toBe(true);
-    expect(opts[0].textContent).toMatch(/9 in 10 \(on course\)/);
+    expect(opts[0].textContent).toBe('9 in 10');
     expect(opts.map((o) => o.value).sort()).toEqual(['75', '85', '90', '95']);
   });
   it('the defaults are the one bar', () => {
@@ -104,15 +111,21 @@ describe('the age spin', () => {
     expect(earliestAt(rows)).toMatchObject({ age: 61, met: true });
     expect(script).toMatch(/acSweepTarget'\)\?\.value \|\| ON_COURSE_PCT/);
   });
-  it('the headline says "on course" and counts in futures', () => {
+  it('the headline counts in futures; "on course" only in the rollback, where on course was 9 in 10', () => {
     const result = { income: 40000, basis: 'your mix', rows: [{ age: 58, success: 77 }, { age: 60, success: 86 }, { age: 61, success: 92 }] };
-    const h = sweepHeadline(result);
+    const old = { weighted: false };
+    const h = sweepHeadline(result, ON_COURSE_PCT, old);
     expect(h).toMatch(/^At £40,000 a year you could retire at 61 and be on course: the money lasted in 92% of futures/);
     expect(h).toMatch(/or at 58 if lasting in 3 futures out of 4 is enough \(77%\)/);
     expect(h).not.toMatch(/confidence/);
-    const none = sweepHeadline({ ...result, rows: [{ age: 58, success: 60 }, { age: 61, success: 84 }] });
+    const none = sweepHeadline({ ...result, rows: [{ age: 58, success: 60 }, { age: 61, success: 84 }] }, ON_COURSE_PCT, old);
     expect(none).toMatch(/no age in the range is on course \(the money lasting in 9 futures out of 10\) — the best is 61 at 84%/);
     expect(sweepHeadline(result, 85)).toMatch(/you could retire at 60: the money lasted in 86% of futures \(you asked for 85%\)/);
+    // weighing (7.8.0, the shipped state): the count, never "on course"
+    const w = sweepHeadline(result, ON_COURSE_PCT, { weighted: true });
+    expect(w).toMatch(/^At £40,000 a year you could retire at 61: the money lasted in 92% of futures/);
+    expect(w).not.toMatch(/on course|you asked for/);
+    expect(sweepHeadline({ ...result, rows: [{ age: 58, success: 60 }, { age: 61, success: 84 }] }, ON_COURSE_PCT, { weighted: true })).toMatch(/no age in the range lasts in 9 futures out of 10 — the best is 61 at 84%/);
     expect(confidenceWords(90)).toBe('in 9 futures out of 10');
     expect(confidenceWords(75)).toBe('in 3 futures out of 4');
     expect(confidenceWords(85)).toBe('in 85% of futures');

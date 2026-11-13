@@ -11,19 +11,24 @@
  * countText(share, words) is the short count a table cell shows ("8 in 10", "every one", "none"), from the same
  * format.js reading, with each run of digits in a data-fixed span (a count the answer wrote, never a figure worked out).
  */
-import { outOfTen, get } from '../../answers/shared/format.js';
+import { outOfTen, get, twentiethsOfFutures } from '../../answers/shared/format.js';
 
-/** The number of filled cells for a share (0–1). */
-export const filledCells = (share) => Math.max(0, Math.min(10, Math.round((Number(share) || 0) * 10)));
+/** The number of filled cells for a share (0–1), out of `of` (10, or 20 while the figures are weighed: 7.8.0). */
+export const filledCells = (share, of = 10) => Math.max(0, Math.min(of, Math.round((Number(share) || 0) * of)));
 
-export function OutOfTenBar({ source, k, class: cls }) {
+/**
+ * `of` = 20 (7.8.0, while the figures are weighed by how long people live): twenty cells, labelled in twentieths of the
+ * futures we tried ("in 16 of 20 futures we tried"), so a bar never says tenths beside a sentence in twentieths.
+ */
+export function OutOfTenBar({ source, k, class: cls, of = 10 }) {
   const v = get(source, k);
   if (typeof v !== 'number' || !Number.isFinite(v)) return null;
-  const on = filledCells(v);
+  const n = of === 20 ? 20 : 10;
+  const on = filledCells(v, n);
   const cells = [];
-  for (let i = 0; i < 10; i++) cells.push(<span key={i} class={`bar-cell${i < on ? ' is-on' : ''}`} data-fixed />);
+  for (let i = 0; i < n; i++) cells.push(<span key={i} class={`bar-cell${i < on ? ' is-on' : ''}`} data-fixed />);
   return (
-    <span class={`bar${cls ? ' ' + cls : ''}`} role="img" aria-label={outOfTen(v).words} data-key={k} data-value={v} data-kind="outOfTen">
+    <span class={`bar${n === 20 ? ' is-20' : ''}${cls ? ' ' + cls : ''}`} role="img" aria-label={n === 20 ? twentiethsOfFutures(v) : outOfTen(v).words} data-key={k} data-value={v} data-kind={n === 20 ? 'outOf20' : 'outOfTen'}>
       {cells}
     </span>
   );
@@ -33,8 +38,8 @@ export function OutOfTenBar({ source, k, class: cls }) {
  * The short count for a share: "{n} in 10" with the digit marked data-fixed, or the words for every one / none.
  * `words` = { count: '{n} in 10', countJustUnder, countEvery, countNone } from the question's copy.
  */
-export function countText(share, words) {
-  const text = countPlain(share, words);
+export function countText(share, words, opts = {}) {
+  const text = countPlain(share, words, opts);
   return <>{text.split(/(\d+)/).map((piece, i) => (i % 2 ? <span key={i} data-fixed>{piece}</span> : piece))}</>;
 }
 
@@ -43,7 +48,17 @@ export function countText(share, words) {
  * own words, so a count never says more than the bar beside it shows: under 1 in 20 is "fewer than 1 in 10" (the bar
  * is empty, never "1 in 10"), and 95% or more, short of every one, is "more than 9 in 10" (the bar is full).
  */
-export function countPlain(share, words) {
+export function countPlain(share, words, { of = 10 } = {}) {
+  // (7.8.0, while weighing: in twentieths, plain rounding as format.js twentiethsOfFutures — "16 of 20", never "just under")
+  if (of === 20) {
+    const v = Math.max(0, Math.min(1, Number(share) || 0));
+    if (v >= 1) return words.countEvery;
+    if (v <= 0) return words.countNone;
+    const k = Math.round(v * 20);
+    if (k >= 20) return words.countMore20;
+    if (k <= 0) return words.countFewer20;
+    return words.count20.replace('{n}', String(k));
+  }
   const o = outOfTen(share);
   if (o.count === null) return o.only ? words.countNone : words.countEvery;
   if (o.words.startsWith('in fewer than')) return words.countFewer;

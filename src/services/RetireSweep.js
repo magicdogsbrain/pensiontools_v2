@@ -21,6 +21,7 @@ import { cashProjectionRate } from './IsaGrowth.js';
 import { INFLATION_DEFAULTS } from '../constants.js';
 import { ON_COURSE_PCT, confidenceWords } from './OnCourse.js';
 import { pctText } from './OneAnswer.js';
+import { SUCCESS } from '../answers/shared/rules.js';
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 // The pot today first, what you hold second (research/saving-enough-and-check-in.md 4.6): a saver needs only the one figure.
@@ -183,16 +184,20 @@ export function earliestAt(rows, target = ON_COURSE_PCT) {
  * of 10; another bar picked in the spin is named as asked for. An earlier age where it lasts in 3 futures out of 4 is
  * offered beside it.
  */
-export function sweepHeadline(result, target = ON_COURSE_PCT) {
+export function sweepHeadline(result, target = ON_COURSE_PCT, { weighted = SUCCESS.weighted } = {}) {
   if (!result || !result.rows.length) return result?.error || 'Nothing to say yet.';
   const gbp = (v) => '£' + Math.round(v).toLocaleString('en-GB');
   const e = earliestAt(result.rows, target);
   const e75 = earliestAt(result.rows, 75);
-  const bar = target === ON_COURSE_PCT;
+  // 7.8.0: while the figures are weighed by how long people live, "on course" is the level's test ("Am I on course?"),
+  // never this count: the spin says its count and no "on course"
+  const bar = target === ON_COURSE_PCT && !weighted;
+  const plain = target === ON_COURSE_PCT && weighted;   // the default bar, said as the count it is
   let s = 'At ' + gbp(result.income) + ' a year';
-  if (e && e.met) s += ' you could retire at ' + e.age + (bar ? ' and be on course' : '') + ': the money lasted in ' + pctText(e.success, 0, [target, 75]) + ' of futures' + (bar ? '' : ' (you asked for ' + target + '%)');
+  if (e && e.met) s += ' you could retire at ' + e.age + (bar ? ' and be on course' : '') + ': the money lasted in ' + pctText(e.success, 0, [target, 75]) + ' of futures' + (bar || plain ? '' : ' (you asked for ' + target + '%)');
   else if (e) s += bar ? ' no age in the range is on course (the money lasting ' + confidenceWords(target) + ') — the best is ' + e.age + ' at ' + pctText(e.success, 0, [target, 75])
-    : ' no age in the range reaches ' + target + '% — the best is ' + e.age + ' at ' + pctText(e.success, 0, [target, 75]);
+    : plain ? ' no age in the range lasts ' + confidenceWords(target) + ' — the best is ' + e.age + ' at ' + pctText(e.success, 0, [target, 75])
+      : ' no age in the range reaches ' + target + '% — the best is ' + e.age + ' at ' + pctText(e.success, 0, [target, 75]);
   if (e75 && e75.met && (!e || !e.met || e75.age < e.age)) s += (e && e.met ? ', or at ' + e75.age + ' if lasting ' + confidenceWords(75) + ' is enough (' : '; at ' + e75.age + ' it lasted ' + confidenceWords(75) + ' (') + pctText(e75.success, 0, [75, target]) + ')';
   return s + '. Pots projected at ' + (result.basis || 'the middle band') + ', today\'s money; ' + 'a compass, not the full stress test.';
 }

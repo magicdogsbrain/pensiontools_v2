@@ -194,6 +194,7 @@ export function KeepPanel({ state, q, dispatch, heading = true }) {
                   onInput={(e) => dispatch({ type: 'keep/name', q, value: e.currentTarget.value })} />
               </div>
               {!boxProblem && <p class="help" id={`${id}.help`}>{KEEP.nameHelp}</p>}
+              {v.cut && <p class="note" data-testid={`${q}.keep.cut`}>{fill(KEEP.cut, { kept: String(v.cut.keptToAge), years: String(v.cut.years), age: String(v.cut.planToAge) })}</p>}
               {boxProblem && <p class="error" id={`${id}.error`} data-error-for={id}>{KEEP.problems[boxProblem]}</p>}
             </div>
             {otherProblem && <p class="notice keep-problem" role="alert" data-testid={`${q}.keep.problem`} data-problem={otherProblem}>{fill(KEEP.problems[otherProblem] || KEEP.problems.failed, { name: v.partnerKept || '' })}</p>}

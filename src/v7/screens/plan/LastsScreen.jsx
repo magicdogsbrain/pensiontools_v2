@@ -44,7 +44,7 @@ function Head({ view }) {
  * that level (ui.level, page memory only — never saved: a plan's level is its kept answer's until 7.9.0 saves one). Inside
  * the band, beside its fixed-age line (the render rule).
  */
-function PlanLevelStrip({ v, dispatch }) {
+export function PlanLevelStrip({ v, dispatch }) {
   if (!dispatch || !v || !v.level || !v.weighted) return null;
   return (
     <div class="level-strip" role="group" aria-labelledby="plan-level-title" data-testid="plan.lasts.level" data-level={v.level} data-weighted="1">
@@ -55,7 +55,8 @@ function PlanLevelStrip({ v, dispatch }) {
             onClick={() => dispatch({ type: 'ui/level', level: k })} {...keepFocus}>{LEVELS_WORDS.options[k]}</Button>
         ))}
       </div>
-      <p class="note level-help">{LEVELS_WORDS.help}</p>
+      {/* (the plan's figures stay as they are: a level changes only what counts as on course; with no weighted figure, on the count) */}
+      <p class="note level-help" data-testid="plan.lasts.level.help">{typeof v.weighted.chance === 'number' ? LEVELS_WORDS.planHelp : LEVELS_WORDS.planHelpFixed}</p>
     </div>
   );
 }
@@ -70,7 +71,7 @@ function Band({ v, stale = false, testid, dispatch = null }) {
       data-chance={f.chancePct} data-typical={f.typicalLeft} data-bad={f.badCaseLeft} data-good={f.goodCaseLeft} data-futures={f.futures} data-histories={f.histories} data-years={f.years}
       data-cut-n={f.cutN == null ? undefined : f.cutN} data-cut-per-year={f.cutPerYear == null ? undefined : f.cutPerYear} data-cut-years={f.cutYears == null ? undefined : f.cutYears}>
       <p class="figure" data-testid={testid + '.headline'} {...(v.id === 'lasts.headlineW' ? { 'data-weighted': '1' } : v.id === 'lasts.headlineFixed' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.verdict[v.id], v.slots)}</p>
-      <p class="lasts-bar">{v.level && v.weighted && <span class="lasts-level" data-testid={testid + '.level'}>{fill(LASTS.verdict.atLevel, { level: LEVELS_WORDS.names[v.level] })} </span>}<span class={`verdict-word is-${v.verdict}`} data-verdict={v.verdict}>{LASTS.verdict.word[v.verdict]}</span> <OutOfTenBar source={v} k="share" /></p>
+      <p class="lasts-bar">{v.level && v.weighted && <span class="lasts-level" data-testid={testid + '.level'}>{fill(LASTS.verdict.atLevel, { level: LEVELS_WORDS.names[v.level] })} </span>}<span class={`verdict-word is-${v.verdict}`} data-verdict={v.verdict}>{LASTS.verdict.word[v.verdict]}</span> <OutOfTenBar source={v} k="share" of={v.weighted ? 20 : 10} /></p>
       <p class="figure-sub" data-testid={testid + '.sub'} {...(v.sub.id === 'lasts.subFixed' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.verdict[v.sub.id], v.sub.slots)}</p>
       <ul class="plan-lines">
         {v.rows.map((r, i) => <li key={i} class="plan-line" data-line={'lasts.' + r.id}>{fill(LASTS.rows[r.id] || '', r.slots)}</li>)}

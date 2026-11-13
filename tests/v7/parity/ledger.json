@@ -1599,7 +1599,7 @@
         "src/services/LongevityModel.js"
       ],
       "editV7": "src/v7/screens/plan/AboutScreen.jsx",
-      "note": "In V7 as \"Suggest from how long people live\" on \"About you and when\": a man or a woman, 1 in 10 / 1 in 4 / half live beyond it; the planner's own helper (LongevityModel.longevityAge) fills \"Plan to age\"."
+      "note": "In V7 as \"Suggest from how long people live\" on \"About you and when\": not said (the figures for women, the cautious side), a woman or a man, 1 in 10 or 1 in 4 live beyond it (7.8.0: \"Average life expectancy\" is gone in both apps; it was never saved); the planner's own helper (LongevityModel.longevityAge, the ONS 2024-based tables) fills \"Plan to age\"."
     },
     {
       "id": "timing.stale-draft",
@@ -3084,7 +3084,7 @@
       "area": "testing",
       "kind": "option",
       "name": "\"Could I spend more?\"",
-      "what": "The careful amount beside what you take (more, about, or less), and the band in full — on D's form from the answer's band; on a saved plan's \"Does it last?\" the most the plan's income can be scaled by and still last in 9 futures out of 10, a bounded search of at most seven runs of the one test, the cost said.",
+      "what": "The careful amount beside what you take (more, about, or less), and the band in full — on D's form from the answer's band; on a saved plan's \"Does it last?\" the most the plan's income can be scaled by and still be on course at the plan's level (7.8.0: counting how long people live, Balanced lasts as long as you do 18 times in 20; before 7.8.0, 9 futures out of 10 to the plan's age), a bounded search of at most seven runs of the one test, the cost said.",
       "whereV6": "New in V7 (research/v7/answer-D.md 3.5-3.7): today's app has no such lever; its Stress tester re-runs on changed settings",
       "who": "Retired",
       "keys": [],
@@ -3736,7 +3736,7 @@
         "src/v7/effects/saver.js"
       ],
       "step": "done",
-      "note": "B, with the monthly amount that gets there and the options if it does not fit. One bar everywhere from 6.22.0: on course = lasts in 9 futures out of 10 (OnCourse.ON_COURSE_SHARE = V7's BAND.careful). Said straight from R1 (research/saving-enough-and-check-in.md 2-3): the verdict's band (on course, close from 3 in 4, not on course), what you could spend from the stop in a middling and a bad case with the State Pension named, the gap to the aim a month and a year, and in the same first sentence what would be enough - a share of pay (searched on 0.5% steps, the employer's part as entered) or pounds, for 9 in 10 and 3 in 4, each count asked again at the figure said - with a one-off sum now, the grid in shares, and Keep asking as now or on course. Better than the planner's check, which sets one fixed-rate pot against the target. A saved plan says it too, inside V7 (release step R2): \"What you pay in\" opens on \"Are you paying in enough?\", question B's own answer on the plan's figures (answers/plan/saverInputs.js saverInputsOf: one test, no second model; a plan kept from B gives back that answer's count and pay-in on the day it was kept). The planner's fixed-rate check stays, a quiet link."
+      "note": "B, with the monthly amount that gets there and the options if it does not fit. One bar everywhere from 6.22.0: on course = lasts in 9 futures out of 10 (OnCourse.ON_COURSE_SHARE = V7's BAND.careful); from 7.8.0 on course is the level chosen, counting how long people live (Careful 19 times in 20, Balanced 18, Bold 14; the classic \"Am I on course?\" the same, at the plan's level), each figure with its count to the plan-to age beside it. Said straight from R1 (research/saving-enough-and-check-in.md 2-3): the verdict's band (on course, close from 3 in 4, not on course), what you could spend from the stop in a middling and a bad case with the State Pension named, the gap to the aim a month and a year, and in the same first sentence what would be enough - a share of pay (searched on 0.5% steps, the employer's part as entered) or pounds, at the level chosen (before 7.8.0, for 9 in 10 and 3 in 4), each asked again at the figure said - with a one-off sum now, the grid in shares, and Keep asking as now or on course. Better than the planner's check, which sets one fixed-rate pot against the target. A saved plan says it too, inside V7 (release step R2): \"What you pay in\" opens on \"Are you paying in enough?\", question B's own answer on the plan's figures (answers/plan/saverInputs.js saverInputsOf: one test, no second model; a plan kept from B gives back that answer's count and pay-in on the day it was kept). The planner's fixed-rate check stays, a quiet link."
     },
     {
       "id": "save.warnings",

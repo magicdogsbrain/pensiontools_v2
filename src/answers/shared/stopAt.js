@@ -482,13 +482,15 @@ export function verdictAtPot(sp, spendAYear, P, opts = {}) {
  */
 export function potNeeded(sp, runner, spendAYear, fails, opts = {}) {
   void runner;                                                       // each step has its own pots, so its own runner
+  // (`opts.before`, 7.8.0: only a run-out before that month counts — B's grid while weighing counts to the plan-to age)
+  const before = Number.isFinite(opts.before) ? opts.before : Infinity;
   const step = SAVING.potStep;
   const top = Math.round(SAVING.potMax / step);
   let lo = 0, hi = top + 1;
   if (Number.isFinite(opts.guess) && opts.guess >= 0) {
     // a bracket around a guess (a hint: the search settles on the same £1,000 with or without it), widened until it
     // holds — enough at its top, not enough below its bottom — then halved as below
-    const ok = (k) => { const v = withinFails(sp, runnerAtPot(sp, k * step, opts), spendAYear, fails); if (opts.onStep) opts.onStep(k * step, v.fails); return v.ok; };
+    const ok = (k) => { const v = withinFails(sp, runnerAtPot(sp, k * step, opts), spendAYear, fails, before); if (opts.onStep) opts.onStep(k * step, v.fails); return v.ok; };
     const spread = Number.isFinite(opts.guessSpread) ? opts.guessSpread : 0.05;
     let h = Math.min(top, Math.max(0, Math.ceil(opts.guess * (1 + spread) / step)));
     let l = Math.max(0, Math.min(h, Math.floor(opts.guess * (1 - spread) / step)));
@@ -500,7 +502,7 @@ export function potNeeded(sp, runner, spendAYear, fails, opts = {}) {
   }
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    const v = withinFails(sp, runnerAtPot(sp, mid * step, opts), spendAYear, fails);
+    const v = withinFails(sp, runnerAtPot(sp, mid * step, opts), spendAYear, fails, before);
     if (opts.onStep) opts.onStep(mid * step, v.fails);
     if (v.ok) hi = mid; else lo = mid + 1;
   }

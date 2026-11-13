@@ -361,7 +361,9 @@ export function checkAnswerB(answer, given) {
       } else if (pi.needed !== null && pi.needed > pi.now && !g.payIns.includes(pi.needed)) fail('B9', 'the grid has no column for the pay-in that gets there');
       const own = g.ages.find((r) => r.age === st.stopAge);
       if (own && num !== null) {
-        if (own.number !== num.careful) fail('B9', 'the grid\'s row for the stop age has another number');
+        // (weighing, 7.8.0: every row's number is the count at the level to the plan-to age — one definition for the column,
+        // said beside the grid — so the stop's row is not the answer's weighted pot; not weighing, it is the number)
+        if (!W && own.number !== num.careful) fail('B9', 'the grid\'s row for the stop age has another number');
         if (g.payIns[0] === pi.now && own.cells[0].lasted !== ch.lasted) fail('B9', 'the grid\'s cell for today is not the chance');
       }
     }

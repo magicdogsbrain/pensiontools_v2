@@ -144,8 +144,8 @@ export function AnswerScreen(state, dispatch) {
             ? <><Sentence s={s.none} source={result} class="none" />{warnings}{take}{assumed}</>
             : s.head && s.line && !s.nothing
               ? (
-                <Headline result={result} afterLine={payIn || potThen || shapeLine ? <>{shapeLine}{payIn}{potThen}</> : null}>
-                  <LevelStrip q="c" result={result} dispatch={dispatch} words={C} />
+                <Headline result={result} afterLine={payIn || potThen || shapeLine ? <>{shapeLine}{payIn}{potThen}</> : null}
+                  strip={<LevelStrip q="c" result={result} dispatch={dispatch} words={C} />}>
                   {top}
                   {s.small && (
                     <div class="small-pot">

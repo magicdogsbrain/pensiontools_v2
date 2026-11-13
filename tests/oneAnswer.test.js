@@ -282,7 +282,7 @@ describe('the retired paths are gone from index.html; the plan\'s own settings r
     expect(body).not.toMatch(/disableProtection/);
     const ot = script.indexOf('window.runOnTrackCheck');
     // 7.8.0: the plan's full length (strategyPlanFor), at the bar onCourseOptsOf gives (9 in 10 while not weighing)
-    expect(script.slice(ot, script.indexOf('\n    };', ot))).toMatch(/acP = strategyPlanFor\(sSet\), \{ requiredPot \} = requiredPotForStrategy\(stratId, acP, onCourseOptsOf\(sSet, acP, stratId, new Date\(\)/);
+    expect(script.slice(ot, script.indexOf('\n    };', ot))).toMatch(/acP = strategyPlanFor\(sSet\), \{ found, reason \} = onCourseFind\(sSet, acP, stratId, new Date\(\)/);
     expect(script).toMatch(/runInWorker\('household-ways'/);   // 6.25.0: both ways (as they are / drawing together) through the one test
     // 6.41.0: the what-if copy is lifted (src/answers/plan/lastsRun.js trySettingsOf): the planner hands it the boxes, and the
     // years clamp to the engines' 45 lives there

@@ -21,7 +21,7 @@ import { Money } from './Money.jsx';
 import { LinkButton } from './Button.jsx';
 import { countPlain } from './OutOfTenBar.jsx';
 import { href } from '../router/routes.js';
-import { money, ageText, outOfTen, pctText } from '../../answers/shared/format.js';
+import { money, ageText, outOfTen, pctText, twentiethsOfFutures } from '../../answers/shared/format.js';
 import { payInTo } from './payInTo.js';
 import { B } from '../copy/b.js';
 
@@ -41,7 +41,15 @@ export function cellActions(result, age, payIn, totalPct = null) {
  * The short count shown on a phone: the number, "10" for every one, "0" for none; "<1" for fewer than 1 (never a 1 it
  * did not reach) and "<9" for just under 9 (never a 9 beside the careful line it missed).
  */
-function shortCount(share) {
+function shortCount(share, of = 10) {
+  // (7.8.0, while weighing: in twentieths — "16", "20" for every one, "<1" and ">19" at the ends)
+  if (of === 20) {
+    const v = Math.max(0, Math.min(1, Number(share) || 0));
+    if (v >= 1) return '20';
+    if (v <= 0) return '0';
+    const k = Math.round(v * 20);
+    return k >= 20 ? '>19' : k <= 0 ? '<1' : String(k);
+  }
   const o = outOfTen(share);
   if (o.count === null) return o.only ? '0' : '10';
   if (o.words.startsWith('in fewer than')) return '<1';
@@ -80,13 +88,18 @@ export function Grid({ result, dispatch }) {
   const shares = Array.isArray(grid.shares) && grid.shares.length === grid.payIns.length ? grid.shares : null;
   // in shares, the column that would be enough is the answer's share at the level chosen (3.4; 7.8.0 `enough.atLevel`)
   const lead = shares && result.enough && result.enough.atLevel ? result.enough.atLevel : null;
+  // 7.8.0, while weighing: the pots and the counts are to the plan-to age, in twentieths; a cell is marked by the level's
+  // verdict on the weighted chance (the key under the grid says both)
+  const weighing = !!(result.basis && result.basis.weighted);
+  const of = weighing ? 20 : 10;
+  const toAge = result.chance && typeof result.chance.planToAge === 'number' ? result.chance.planToAge : result.basis && result.basis.endAge;
   // The column paid in now, and the one that is what it needs (when the grid holds it), are marked in words.
   return (
     <table class="grid" data-grid>
       <thead>
         <tr>
           <th scope="col">{t.stopAt}</th>
-          <th scope="col" class="col-wide">{t.needs}</th>
+          <th scope="col" class="col-wide">{weighing ? <>{t.needsW} <Money source={result} k={result.chance && typeof result.chance.planToAge === 'number' ? 'chance.planToAge' : 'basis.endAge'} kind="age" /></> : t.needs}</th>
           {grid.payIns.map((p, j) => {
             const now = p === payIn.now;
             const needed = shares ? !!lead && shares[j] === lead.totalPct : p === payIn.needed;
@@ -110,11 +123,13 @@ export function Grid({ result, dispatch }) {
               const o = outOfTen(cell.lasted);
               const count = (
                 <>
-                  <span class="count-long">{countPlain(cell.lasted, t).split(/(\d+)/).map((piece, i) => (i % 2 ? <span key={i} data-fixed>{piece}</span> : piece))}</span>
-                  <span class="count-short" aria-hidden="true"><span data-fixed>{shortCount(cell.lasted)}</span></span>
+                  <span class="count-long">{countPlain(cell.lasted, t, { of }).split(/(\d+)/).map((piece, i) => (i % 2 ? <span key={i} data-fixed>{piece}</span> : piece))}</span>
+                  <span class="count-short" aria-hidden="true"><span data-fixed>{shortCount(cell.lasted, of)}</span></span>
                 </>
               );
-              const label = (shares ? t.cellShare.replace('{share}', pctText(shares[j])) : t.cell).replace('{age}', ageText(row.age)).replace('{amount}', money(cell.payIn)).replace('{words}', o.words);
+              const label = weighing
+                ? (shares ? t.cellShareW.replace('{share}', pctText(shares[j])) : t.cellW).replace('{age}', ageText(row.age)).replace('{amount}', money(cell.payIn)).replace('{words}', 'to ' + ageText(toAge) + ' ' + twentiethsOfFutures(cell.lasted))
+                : (shares ? t.cellShare.replace('{share}', pctText(shares[j])) : t.cell).replace('{age}', ageText(row.age)).replace('{amount}', money(cell.payIn)).replace('{words}', o.words);
               return (
                 <td key={cell.payIn} data-cell={`${row.age}:${cell.payIn}`} data-key={`grid.ages.${k}.cells.${j}.lasted`} data-value={cell.lasted} data-kind="count"
                   class={onCarefulLine(cell) ? 'is-careful' : undefined}>

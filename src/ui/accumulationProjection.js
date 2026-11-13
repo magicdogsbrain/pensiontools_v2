@@ -63,13 +63,14 @@ export function accumulationTableHtml({ rows, mixOn = false, mixRealReturn = nul
 }
 
 /**
- * "Am I on course?": the pot the plan needs at retirement (it lasts in 9 futures out of 10 — services/OnCourse.js), and
- * the pension at each of the three rates against it.
- * @param {{ requiredPot: number, basis: string (HTML), rows: Array }} o
+ * "Am I on course?": the pot the plan needs at retirement (at the level chosen, 7.8.0; in the rollback, it lasts in 9
+ * futures out of 10 — services/OnCourse.js), and the pension at each of the three rates against it. `chance` (HTML,
+ * OnCourse.onCourseChanceHtml): the chance the pot stands behind and its count to the plan's age, under the pot.
+ * @param {{ requiredPot: number, basis: string (HTML), rows: Array, chance?: string (HTML) }} o
  */
-export function onCourseCheckHtml({ requiredPot, basis, rows }) {
+export function onCourseCheckHtml({ requiredPot, basis, rows, chance = '' }) {
   const last = rows[rows.length - 1];
-  return '<div class="alert alert-info">Your plan needs about <strong>' + gbp(requiredPot) + '</strong> at retirement (today\'s money) ' + basis + '.</div>'
+  return '<div class="alert alert-info">Your plan needs about <strong>' + gbp(requiredPot) + '</strong> at retirement (today\'s money) ' + basis + '.' + chance + '</div>'
     + '<table><tbody>'
     + '<tr><td>Cautious growth (2%)</td><td>' + gbp(last.potLow) + '</td><td>' + onCourseVerdictHtml(last.potLow, requiredPot) + '</td></tr>'
     + '<tr><td>Middle growth (5%)</td><td>' + gbp(last.potMid) + '</td><td>' + onCourseVerdictHtml(last.potMid, requiredPot) + '</td></tr>'

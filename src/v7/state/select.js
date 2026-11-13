@@ -56,7 +56,7 @@ import { BUILT, OPEN } from '../rail/questions.js';
 import { emptyKeep } from './initial.js';
 import { spendLevelAMonth } from '../../answers/shared/schemaParts.js';
 import { HEADINGS, checkSheet, hasBudget, guideLevels, whereAgainstLevels, figureAgainstBudget, carefulAgainstBudget, nextLineId, nextOneOffId } from '../../answers/keep/budgetSheet.js';
-import { keepable } from '../../answers/keep/planSeed.js';
+import { keepable, keptLengthOf } from '../../answers/keep/planSeed.js';
 import { suggestedPlanName, checkPlanName, withDuplicateSuffix } from '../../answers/shared/planName.js';
 /** The plan name's check (empty, too long), for the reducer's Rename (road-to-7.md step 11). */
 export { checkPlanName };
@@ -690,9 +690,12 @@ export function keepView(state, q) {
   if (keep.made && typeof keep.made.name === 'string') taken.push(keep.made.name);
   const suggested = raw && taken.length ? withDuplicateSuffix(raw, taken) : raw;
   const name = typeof keep.name === 'string' ? keep.name : suggested;
+  // (7.8.0: a plan runs 45 years at most from its drawing start; when the answer counts to a later age, Keep says the age
+  // the plan is kept to, before it is kept)
+  const len = why === null ? keptLengthOf(q, r, state.env && state.env.today) : null;
   return { can: why === null, why, suggested, name, check: checkPlanName(name), problem: keep.problem || null, saving: keep.saving === true,
     made: keep.made || null, separate: q === 'd' && lockedPlanInAccount(state) === true, partnerKept: keep.partnerKept || null,
-    payIn: why === null ? keepPayInOf(q, r) : null, useIn, used: keep.used || null };
+    payIn: why === null ? keepPayInOf(q, r) : null, useIn, used: keep.used || null, cut: len && len.cut ? len : null };
 }
 
 /**

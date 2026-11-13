@@ -55,7 +55,7 @@
  */
 import { effectiveStressSettings } from '../../services/PlanReading.js';
 import { simulationConfigFromSettings } from '../../services/SimulationConfig.js';
-import { planFromSettings, stressTestStrategy } from '../../strategies/stressTest.js';
+import { planFromSettings, stressTestStrategy, requiredPotForStrategy } from '../../strategies/stressTest.js';
 import { realYieldForYear } from '../../services/LinkerUniverse.js';
 import { oneAnswer, worstStarts, earlierTestNote } from '../../services/OneAnswer.js';
 import { namedStartRows, SCENARIO_STARTS, decadeFigures, CONTRACT } from '../../services/NamedStarts.js';
@@ -155,6 +155,18 @@ export function onCourseOptsOf(settings, p, strategyId, now, { weighted = undefi
   const w = weightedYearsOf(life, p);
   const planW = reason ? null : w.extend ? weightedPlanFor(settings, p, w.years, now) : p;
   return { level: level || (plan ? planLevelOf(plan) : 'balanced'), life: { ...life, reason }, planW };
+}
+
+/**
+ * "Am I on course?" in full (index.html runOnTrackCheck): the pot at the bar onCourseOptsOf gives and — at a level — the
+ * other two levels' pots and the chance the pot stands behind (stressTest.requiredPotForStrategy with `levels`), and why
+ * the plan has no weighted figure when it has none (life.weightedReasonOf's reason, or null). In the rollback, the pot at 9
+ * futures in 10 as before.
+ */
+export function onCourseFind(settings, p, strategyId, now, o = {}) {
+  const how = onCourseOptsOf(settings, p, strategyId, now, o);
+  const found = requiredPotForStrategy(strategyId, p, how && typeof how === 'object' ? { ...how, levels: true } : how);
+  return { found, reason: how && typeof how === 'object' && how.life ? how.life.reason || null : null };
 }
 
 /**

@@ -125,7 +125,12 @@ describe('B — the ways to make it fit: each applied, and B asked again, gives 
     if (a.inputs.savingRisk === 'adventurous') { expect(lever).toBeNull(); return; }
     const at = ok(answerB(withChange(CASES[name], { savingRisk: lever.level }), { ...ENV, trace: false }));
     expect(lever.payIn).toBe(at.levels[at.level].payIn);
-    expect(lever.lasted).toBe(at.chance.fixedAge);
+    // (7.8.0, weighing: its chance and count are the ones at the pay-in it names, as B asked again gives them; with no pay-in
+    // that gets there, paying in as now, as before)
+    if (a.basis.weighted && lever.payIn !== null) {
+      expect(lever.lasted).toBe(at.levels[at.level].fixedAge);
+      expect(lever.weighted).toBe(at.levels[at.level].weighted);
+    } else expect(lever.lasted).toBe(at.chance.fixedAge);
     expect(lever.helps).toBe(lever.payIn !== null && (a.payIn.needed === null || (a.payIn.needed > a.payIn.now && lever.payIn < a.payIn.needed)));
   });
 

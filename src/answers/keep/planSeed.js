@@ -306,6 +306,44 @@ function answerOf(source, result) {
 }
 
 /**
+ * The household's stop and years a kept plan runs for: one stop for everyone, as before (the asked person's wait); stopping
+ * in different years, the first stop, and the years from it until the younger reaches the end age (at most RULES.maxYears,
+ * the planner's longest plan). `want`: the years to the end age before that limit.
+ */
+function lengthOf(source, result, who, S, apart) {
+  const inputs = result.inputs;
+  const endAge = isNum(inputs.endAge) ? inputs.endAge : result.basis.endAge;
+  let stop, want, from;
+  if (apart) {
+    const S0 = Math.min(...who.map((w) => S[w]));
+    stop = { kind: S0 > 0 ? 'later' : 'now', yearsFromNow: S0 };
+    from = Math.min(...who.map((w) => inputs[w].age)) + S0;
+  } else {
+    const wait = waitOf(source, result);
+    stop = { kind: source === 'b' || wait > 0 ? 'later' : 'now', yearsFromNow: wait };
+    from = Math.min(...who.map((w) => inputs[w].age + wait));
+  }
+  want = endAge - from;
+  return { endAge, stop, years: Math.min(RULES.maxYears, want), want, from };
+}
+
+/**
+ * How long the plan a keep makes runs (7.8.0): the answer's plan-to age can be more than the planner's longest plan
+ * (RULES.maxYears, 45 years) after the drawing starts, now that the plan-to age follows how long people live. Then the plan
+ * is kept for 45 years, and Keep says so before it is kept. → null when the answer cannot be kept; else { cut, years,
+ * keptToAge, planToAge }: keptToAge is the age in the plan's last year (the younger person's), as the plan's pages say it.
+ */
+export function keptLengthOf(source, result, today) {
+  if (!result || typeof today !== 'string' || !keepable(source, result).ok) return null;
+  const inputs = result.inputs;
+  const couple = inputs.household === 'couple' && !!inputs.partner;
+  const who = couple ? ['you', 'partner'] : ['you'];
+  const { S, apart } = householdOf(source, result, today, who);
+  const L = lengthOf(source, result, who, S, apart);
+  return { cut: L.want > L.years, years: L.years, keptToAge: L.from + L.years - 1, planToAge: L.endAge };
+}
+
+/**
  * The seed for an answer.
  * @param {object} o
  * @param {'c'|'a'|'b'|'d'} o.source
@@ -338,19 +376,7 @@ export function buildPlanSeed({ source, result: asked, env, name, budget = null,
 
   const who = couple ? ['you', 'partner'] : ['you'];
   const { household, S, apart } = householdOf(source, result, today, who);
-  const endAge = isNum(inputs.endAge) ? inputs.endAge : result.basis.endAge;
-  // The household's stop and years: one stop for everyone, as before (the asked person's wait); stopping in different
-  // years, the first stop, and the years from it until the younger reaches the end age (at most RULES.maxYears).
-  let stop, years;
-  if (apart) {
-    const S0 = Math.min(...who.map((w) => S[w]));
-    stop = { kind: S0 > 0 ? 'later' : 'now', yearsFromNow: S0 };
-    years = Math.min(RULES.maxYears, endAge - (Math.min(...who.map((w) => inputs[w].age)) + S0));
-  } else {
-    const wait = waitOf(source, result);
-    stop = { kind: source === 'b' || wait > 0 ? 'later' : 'now', yearsFromNow: wait };
-    years = Math.min(RULES.maxYears, endAge - Math.min(...who.map((w) => inputs[w].age + wait)));
-  }
+  const { endAge, stop, years } = lengthOf(source, result, who, S, apart);
   // Each person's own: the household's in the same year; apart, their own stop and the years from it to the same end.
   const ownStop = (w) => (apart ? { kind: S[w] > 0 ? 'later' : 'now', yearsFromNow: S[w] } : stop);
   const ownYears = (w) => (apart ? years - (S[w] - stop.yearsFromNow) : years);

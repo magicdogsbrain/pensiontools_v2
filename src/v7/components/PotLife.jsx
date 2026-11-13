@@ -44,7 +44,7 @@ export function PotLife({ picture: P, words: W }) {
   const descId = `${P.q}-pot-desc`;
   // a line's drawing half is the same life as its rising half: one legend entry for both
   const legend = [
-    ...P.lines.filter((l) => !l.part).map((l) => ({ id: l.id, role: l.role, guide: !!l.guide })),
+    ...P.lines.filter((l) => !l.part).map((l) => ({ id: l.id, role: l.role, guide: !!l.guide, ...(l.legend ? { legend: l.legend } : {}) })),
     ...(P.band ? [{ id: P.band.id, role: P.band.role, band: true }] : []),
     ...P.marks.map((m) => ({ id: m.id, role: m.id, mark: true }))
   ];
@@ -79,7 +79,7 @@ export function PotLife({ picture: P, words: W }) {
         {P.ages.map((a) => <span key={a} style={`left:${pct(a)}`}>{ageText(a)}</span>)}
       </div>
       <ul class="pot-legend" data-testid={`${P.q}.pot.legend`}>
-        {legend.map((k) => <li key={k.id} data-series={k.id}><i class={`key-${k.mark ? 'mark' : k.band ? 'band' : 'line'} is-${k.role}${k.guide ? ' is-guide' : ''}`} aria-hidden="true" />{W.legend[k.id]}</li>)}
+        {legend.map((k) => <li key={k.id} data-series={k.id}><i class={`key-${k.mark ? 'mark' : k.band ? 'band' : 'line'} is-${k.role}${k.guide ? ' is-guide' : ''}`} aria-hidden="true" />{W.legend[k.legend || k.id]}</li>)}
       </ul>
       <p class="note pot-note">{P.q === 'b' ? W.noteB : W.noteD}</p>
       <details class="pot-figures" data-testid={`${P.q}.pot.table`}>

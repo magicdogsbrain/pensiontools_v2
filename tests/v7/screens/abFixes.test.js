@@ -71,32 +71,43 @@ describe('1 — counts beside a bar', () => {
     expect(B.choices.countFewer).toBe(words.countFewer);
     expect(B.choices.countMore).toBe(words.countMore);
   });
-  it('the every-age table: an empty bar never says "1 in 10", a full bar short of every one says "more than 9 in 10"', () => {
+  // (7.8.0: a weighed answer counts in twentieths, so the ends are "fewer than 1 of 20" and "more than 19 of 20")
+  it('the every-age table: an empty bar never says "1 of 20", a full bar short of every one says "more than 19 of 20"', () => {
     const state = load('a', 'ages-A1');
     const root = renderScreen(state);
     clean(root, state);
     const r = state.answers.a.result;
+    expect(r.basis.weighted).toBe(true);
     r.ages.forEach((row, k) => {
       const tr = root.querySelector(`[data-table="ages"] [data-age="${row.age}"]`);
       const on = tr.querySelectorAll('.bar-cell.is-on').length;
+      expect(tr.querySelectorAll('.bar-cell').length).toBe(20);
       const count = tr.querySelector('.count').textContent;
-      if (on === 0) expect(count, `age ${row.age}`).not.toMatch(/^1 in 10$/);
-      if (row.lasted > 0 && row.lasted < 0.05) expect(count, `age ${row.age}`).toBe(words.countFewer);
-      if (row.lasted >= 0.95 && row.lasted < 1) expect(count, `age ${row.age}`).toBe(words.countMore);
+      if (on === 0) expect(count, `age ${row.age}`).not.toMatch(/^1 of 20$/);
+      if (row.lasted > 0 && row.lasted < 0.025) expect(count, `age ${row.age}`).toBe(words.countFewer20);
+      if (row.lasted >= 0.975 && row.lasted < 1) expect(count, `age ${row.age}`).toBe(words.countMore20);
+      if (row.lasted >= 0.025 && row.lasted < 0.975) expect(count, `age ${row.age}`).toBe(words.count20.replace('{n}', String(Math.round(row.lasted * 20))));
       expect(k).toBeGreaterThanOrEqual(0);
     });
   });
-  it('the grid on a phone: "<1" under 1 in 20 and ">9" from 95%', () => {
+  it('the grid on a phone, weighed: ">19" short of every one from 97.5%, "<1" under 1 in 40', () => {
     const state = load('b', 'choices-B1');
     const r = state.answers.b.result;
-    r.grid.ages[0].cells[0].lasted = 0.97;
-    r.grid.ages[0].cells[0].outOfTen = outOfTen(0.97);
+    expect(r.basis.weighted).toBe(true);
+    r.grid.ages[0].cells[0].lasted = 0.98;
+    r.grid.ages[0].cells[0].outOfTen = outOfTen(0.98);
     r.grid.ages[0].cells[0].verdict = 'yes';
+    r.grid.ages[0].cells[1].lasted = 0.02;
+    r.grid.ages[0].cells[1].outOfTen = outOfTen(0.02);
+    r.grid.ages[0].cells[1].verdict = 'no';
     const root = renderScreen(state);
     clean(root, state);
     const first = root.querySelector('[data-key="grid.ages.0.cells.0.lasted"]');
-    expect(first.querySelector('.count-short').textContent).toBe('>9');
-    expect(first.querySelector('.count-long').textContent).toBe(B.choices.countMore);
+    expect(first.querySelector('.count-short').textContent).toBe('>19');
+    expect(first.querySelector('.count-long').textContent).toBe(B.choices.countMore20);
+    const second = root.querySelector('[data-key="grid.ages.0.cells.1.lasted"]');
+    expect(second.querySelector('.count-short').textContent).toBe('<1');
+    expect(second.querySelector('.count-long').textContent).toBe(B.choices.countFewer20);
   });
 });
 

@@ -176,6 +176,10 @@ export const A = {
     countMore: 'more than 9 in 10',
     countEvery: 'every one',
     countNone: 'none',
+    /** 7.8.0, while weighing: a count in twentieths of the futures we tried, to the age the column names. */
+    count20: '{n} of 20',
+    countFewer20: 'fewer than 1 of 20',
+    countMore20: 'more than 19 of 20',
     /** The word for a row's verdict — the same three as the headline, never only a colour. */
     verdictWord: { yes: 'yes', close: 'close', no: 'not on these figures' },
 

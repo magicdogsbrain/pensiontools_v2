@@ -221,9 +221,10 @@ function createAges(inputs, env, lives, ctx) {
         return o ? { savingsOf: (i, j) => Math.max(sp.pots[j].savings[i], floor * sp.split[j]) } : {};
       };
       // the guide number at a spend and a count of lives allowed to fail (`guess` brackets the search: a hint only)
-      row.number = (H, allowed, guess, guessSpread) => {
-        const k = `${H}:${allowed}`;
-        if (!row.numbers.has(k)) row.numbers.set(k, potNeeded(sp, runner, row.H(H), allowed, { ...row.optsAt(H), ...(Number.isFinite(guess) ? { guess, guessSpread } : {}) }));
+      // (`before`, 7.8.0: only a run-out before that month counts — the grid's pots while weighing, to the plan-to age)
+      row.number = (H, allowed, guess, guessSpread, before = Infinity) => {
+        const k = `${H}:${allowed}:${before}`;
+        if (!row.numbers.has(k)) row.numbers.set(k, potNeeded(sp, runner, row.H(H), allowed, { ...row.optsAt(H), ...(Number.isFinite(guess) ? { guess, guessSpread } : {}), ...(Number.isFinite(before) ? { before } : {}) }));
         return row.numbers.get(k);
       };
       // the household pension at the stop in a bad case (the worst 1 in 10) at today's pay-ins: a guess for the number
@@ -517,9 +518,13 @@ export function answerB(inputs, env) {
     const up = RISKS[RISKS.indexOf(inp.savingRisk) + 1];
     if (up) {
       const riskier = ages(stopAge, up);
-      const payIn = payInsThatGetThere(riskier, H, ctx, least).needed;
+      const got = payInsThatGetThere(riskier, H, ctx, least);
+      const payIn = got.needed;
       // it helps when it lowers a pay-in into the pension that has to rise (not one already covered by today's)
-      const v = riskier.wholeNow(H);
+      // (weighing, 7.8.0: its chance and its count to the plan-to age are the ones at the pay-in it names, as every other
+      // way's are; not weighing, paying in as now, as before)
+      // (the count B asked again one level up gives at that pay-in: neededChance's rule)
+      const v = weighing && payIn !== null && !(payIn === now && got.savingsIn === savingsInNow) ? riskier.count(H, payIn, got.savingsIn) : riskier.wholeNow(H);
       levers.moreRisk = { level: up, payIn, lasted: v.lasted, ...W(v), helps: payIn !== null && (needed === null || (needed > now && payIn < needed)) };
     }
   }
@@ -536,9 +541,10 @@ export function answerB(inputs, env) {
         const row = ages(a);
         // each row's guide number from its neighbour's (a hint: the search settles on the same £1,000 either way)
         const guess = lastNumber !== null ? lastNumber : row ? row.carefulPot() : null;
-        // (7.8.0, weighing: the row of the stop asked about says the answer's own pot at the level; the other rows' guide
-        // numbers are their counts at the level's failures — a weighted pot for every row costs too much to work out here)
-        const num = row ? (weighing && a === stopAge ? number : row.number(H, allowed.level, guess, lastNumber !== null ? 0.03 : 0.05)) : null;
+        // (7.8.0, weighing: one definition for every row, the stop asked about too — the pot that lasts to the plan-to age in
+        // the level's twentieths of the futures, a count to one named age, said so beside the grid; a weighted pot for every
+        // row costs too much to work out here)
+        const num = row ? row.number(H, allowed.level, guess, lastNumber !== null ? 0.03 : 0.05, weighing ? row.at.toMonth : Infinity) : null;
         if (num !== null && num > 0) lastNumber = num;
         // (weighing: each cell at the level, on the weighted chance — the same test as the pay-in and what would be enough)
         const counts = row ? countsAtPayIns(row.sp, row.H(H), g.payIns.map((p) => row.payInsAt(p, savingsInNow)), weighing ? row.at : null) : null;

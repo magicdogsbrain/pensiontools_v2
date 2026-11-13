@@ -25,7 +25,7 @@ import { grossToNet, netToGross } from '../services/TaxCalculator.js';
 import { cashCostFactor, buildGiltLadder, ladderWealthByYear } from './GiltLadderPlan.js';
 import { activeLinkers } from '../services/LinkerUniverse.js';
 import { chargesPctOf, monthlyChargeFactor } from '../services/Charges.js';
-import { summariseCuts, pctText, weightedFailsOf } from '../services/OneAnswer.js';
+import { summariseCuts, pctText, weightedFailsOf, headYearsOf } from '../services/OneAnswer.js';
 import { LEVEL_FAILS20, levelOf, passes as passesLevel } from '../answers/shared/rules.js';   // the income cuts, counted from the same futures (6.24.0: one answer)
 import { pensionLockOf, pensionPotOf } from '../services/PensionLock.js';
 import { planNeedOf, lockOfNeed } from '../services/PlanNeed.js';
@@ -733,25 +733,68 @@ export function requiredPotForStrategy(strategyId, p, successTarget = ON_COURSE_
   if (how) opts = how;
   const runs = opts.mcRuns || 200, stride = opts.stride || 6;
   const level = how ? levelOf(how.level) : null;
-  const t = level ? LEVEL_FAILS20[level] : null;
   const weighted = !!(how && how.planW && how.life && !how.life.reason);
   const base = weighted ? how.planW : p;
-  const passes = (pot) => {
+  // each pot tried once, whatever level asks (the range below reads the same runs): { ok: affordable, sumW, n, fails, kept }
+  const seen = new Map();
+  const runAt = (pot) => {
+    if (seen.has(pot)) return seen.get(pot);
     const q = { ...base, pot, mcRuns: runs, stride: weighted ? base.stride : stride };
     if (q.pnvCfg) { const scale = pot / Math.max(1, base.pot); q.pnvCfg = { ...q.pnvCfg, equityStart: (base.pnvCfg.equityStart || 0) * scale, bondStart: (base.pnvCfg.bondStart || 0) * scale, cashStart: (base.pnvCfg.cashStart || 0) * scale, diversifierStart: (base.pnvCfg.diversifierStart || 0) * scale, equityMin: (base.pnvCfg.equityMin || 0) * scale, bondMin: (base.pnvCfg.bondMin || 0) * scale, cashTarget: (base.pnvCfg.cashTarget || 0) * scale }; }
     const r = stressTestStrategy(strategyId, q);
-    if (!r.affordable) return false;
-    if (!how) return (r.ruin?.mc ?? 0) <= (1 - successTarget) * 100 + 1e-9;
-    const lost = Array.isArray(r.survivedMc) ? r.survivedMc : [];
-    if (weighted) { const f = weightedFailsOf(r, how.life, q.startAge, Math.max(0, q.durationYears - 1)); return passesLevel(f.sumW, f.n, t); }
-    return lost.filter((x) => x === false).length <= Math.floor((t * lost.length) / 20);
+    let out;
+    if (!r.affordable) out = { ok: false };
+    else {
+      const lost = Array.isArray(r.survivedMc) ? r.survivedMc : [];
+      const n = lost.length;
+      // the count to the plan's own age (on the weighted run, the futures that first failed within the plan's own years)
+      const head = weighted ? headYearsOf(r) : null;
+      const failsToAge = weighted
+        ? lost.reduce((c, x, i) => c + (x === false && !(head && typeof head[i] === 'number' && head[i] >= p.durationYears) ? 1 : 0), 0)
+        : lost.filter((x) => x === false).length;
+      const f = weighted ? weightedFailsOf(r, how.life, q.startAge, Math.max(0, q.durationYears - 1)) : null;
+      out = { ok: true, ruinMc: r.ruin?.mc ?? 0, n, fails: lost.filter((x) => x === false).length, failsToAge, sumW: f ? f.sumW : null };
+    }
+    seen.set(pot, out);
+    return out;
   };
-  let lo = 0, hi = Math.max(50_000, p.pot || 0);
-  let n = 0;
-  while (!passes(hi) && n++ < 8) { lo = hi; hi *= 2; }
-  if (n >= 8) return { requiredPot: Infinity, passesAt: null };
-  for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (passes(mid)) hi = mid; else lo = mid; }
-  return { requiredPot: Math.ceil(hi / 1000) * 1000, basis: strategyId, ...(how ? { level, weighted, planToAge: Math.round(p.startAge + p.durationYears) - 1 } : {}) };
+  const passesAt = (t) => (pot) => {
+    const v = runAt(pot);
+    if (!v.ok) return false;
+    if (!how) return v.ruinMc <= (1 - successTarget) * 100 + 1e-9;
+    if (weighted) return passesLevel(v.sumW, v.n, t);
+    return v.fails <= Math.floor((t * v.n) / 20);
+  };
+  // the least pot that passes, bisected from a bracket (lo fails or is 0, hi passes); null when even the most tried fails
+  const search = (ok, lo0, hi0) => {
+    let lo = lo0, hi = hi0;
+    let n = 0;
+    while (!ok(hi) && n++ < 8) { lo = hi; hi *= 2; }
+    if (n >= 8) return null;
+    for (let i = 0; i < 12; i++) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
+    return hi;
+  };
+  const t = level ? LEVEL_FAILS20[level] : null;
+  const found = search(passesAt(t), 0, Math.max(50_000, p.pot || 0));
+  if (found === null) return { requiredPot: Infinity, passesAt: null };
+  const requiredPot = Math.ceil(found / 1000) * 1000;
+  if (!how) return { requiredPot, basis: strategyId };
+  // the plan's own age (the age in its last year, as every page of a plan says it) and, at the pot found, the chance said
+  // beside it: the weighted one and the count to that age (the same run)
+  const at = runAt(found);
+  const chance = at.ok ? { weighted: weighted ? 1 - at.sumW / (at.n * 2 ** 30) : null, fixedAge: at.n ? 1 - at.failsToAge / at.n : 1, n: at.n, sumW: at.sumW } : null;
+  // `levels` (7.8.0): the other two levels' pots as well, never a lone pot — Careful's at or above it, Bold's at or below
+  let levels = null;
+  if (opts.levels) {
+    levels = { [level]: requiredPot };
+    for (const k of ['careful', 'balanced', 'bold']) {
+      if (k === level) continue;
+      const tk = LEVEL_FAILS20[k];
+      const v = tk < t ? search(passesAt(tk), found, found) : search(passesAt(tk), 0, found);
+      levels[k] = v === null ? null : Math.ceil(v / 1000) * 1000;
+    }
+  }
+  return { requiredPot, basis: strategyId, level, weighted, planToAge: Math.round(p.startAge + p.durationYears) - 1, chance, ...(levels ? { levels } : {}) };
 }
 
 /** One P&V run on the real history starting at (year, month): wealth + income by plan year, today's money. */

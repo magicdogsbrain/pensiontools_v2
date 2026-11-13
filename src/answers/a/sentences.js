@@ -418,10 +418,14 @@ export function sentencesFor(result, facts) {
           M('shown.oneMoreYear.extraMonthly'), ' a month less.'])
         : S('a.oneMore.same', [working, A('shown.oneMoreYear.toAge'), ' instead of ', A('shown.age'), ' changes what you could spend very little.']);
     const moved = outOfTen(o.lastedFrom).words !== outOfTen(o.lastedTo).words;
+    // (weighing, a couple: the ages are the younger person's, and said so — "running out when the younger of you is 84")
+    const two = !!(facts.weighing && facts.weighing.lf && facts.weighing.lf.couple);
+    const outAt = (k) => (two ? ['running out when the younger of you is ', A(k)] : ['running out at ', A(k)]);
+    const lastsTo = (k) => (two ? ['lasting until the younger of you is ', A(k)] : ['lasting to ', A(k)]);
     const bad = o.runOutFrom < result.basis.endAge
       ? (o.runOutTo >= result.basis.endAge
-        ? [', and ', ...BAD, ' from running out at ', A('shown.oneMoreYear.runOutFrom'), ' to lasting to ', A('basis.endAge')]
-        : o.runOutTo !== o.runOutFrom ? [', and ', ...BAD, ' from running out at ', A('shown.oneMoreYear.runOutFrom'), ' to running out at ', A('shown.oneMoreYear.runOutTo')] : [])
+        ? [', and ', ...BAD, ' from ', ...outAt('shown.oneMoreYear.runOutFrom'), ' to ', ...lastsTo('basis.endAge')]
+        : o.runOutTo !== o.runOutFrom ? [', and ', ...BAD, ' from ', ...outAt('shown.oneMoreYear.runOutFrom'), ' to ', ...outAt('shown.oneMoreYear.runOutTo')] : [])
       : [];
     // (the next stop past a step starts on another figure than this one: then it is what you spend, as you set it)
     const next = result.ages.find((x) => x.age === o.toAge);
@@ -432,10 +436,12 @@ export function sentencesFor(result, facts) {
     const tw = (share) => digitsOf(twentiethsOfFutures(share));
     // (a count in twentieths for "from 7 to 9 of 20": 20 only when every future lasted, 0 only when none did)
     const k20 = (share) => { const v = Math.max(0, Math.min(1, +share || 0)); const k = Math.round(v * 20); return v >= 1 ? 20 : v <= 0 ? 0 : Math.min(19, Math.max(1, k)); };
+    // (a couple: while one of you is alive, by the younger person's age, as the fixed-age line says it)
+    const ifLive = wf && wf.couple ? ['If one of you is still alive when the younger of you is ', F(wf && wf.planToAge)] : ['If you live to ', F(wf && wf.planToAge)];
     if (wf && (moved || bad.length)) {
       out.oneMoreMoves = moved
-        ? S('a.oneMore.moves', ['If you live to ', F(wf.planToAge), ', it moves how often ', ...(same ? [M(SP), ' a month'] : ['what you spend, as you set it,']), ' lasts that long from ', F(k20(o.lastedFrom)), ' to ', F(k20(o.lastedTo)), ' of ', F('20'), ' futures we tried', ...bad, '.'])
-        : S('a.oneMore.moves', ['If you live to ', F(wf.planToAge), ', ', ...(same ? [M(SP), ' a month'] : ['what you spend, as you set it,']), ' still lasts that long ', ...tw(o.lastedTo), ', and it moves ', ...bad.slice(1), '.']);
+        ? S('a.oneMore.moves', [...ifLive, ', it moves how often ', ...(same ? [M(SP), ' a month'] : ['what you spend, as you set it,']), ' lasts that long from ', F(k20(o.lastedFrom)), ' to ', F(k20(o.lastedTo)), ' of ', F('20'), ' futures we tried', ...bad, '.'])
+        : S('a.oneMore.moves', [...ifLive, ', ', ...(same ? [M(SP), ' a month'] : ['what you spend, as you set it,']), ' still lasts that long ', ...tw(o.lastedTo), ', and it moves ', ...bad.slice(1), '.']);
     } else if (moved) out.oneMoreMoves = S('a.oneMore.moves', [...(same ? ['It moves ', M(SP), ' a month from lasting '] : ['It moves what you spend, as you set it, from lasting ']), ...plainWords(o.lastedFrom), ' to ', ...countParts(o.lastedTo), ...bad, '.']);
     // the count stays, the bad case moves: "It keeps £2,200 a month lasting in 7 futures out of 10, and moves a bad case …"
     else if (bad.length) out.oneMoreMoves = S('a.oneMore.moves', [...(same ? ['It keeps ', M(SP), ' a month lasting '] : ['It keeps what you spend, as you set it, lasting ']), ...plainWords(o.lastedTo), ', and moves ', ...bad.slice(1), '.']);

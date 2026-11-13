@@ -21,10 +21,19 @@ export const LEVELS_WORDS = {
   label: 'How careful?',
   options: { careful: '19 times in 20: Careful', balanced: '18 times in 20: Balanced (we start here)', bold: '14 times in 20: Bold' },
   help: 'Each future counts by how likely you are to be alive when the money runs out: running out at 98 counts for less than at 80. Your choice changes every figure on this page.',
+  /**
+   * On a plan's "Does it last?" the figures are the plan's own run: a level changes only what counts as on course. A plan
+   * with no figure counted by how long people live (a couple's or a linked plan, a way of drawing set by the plan's length)
+   * is judged on the count to the age it runs to.
+   */
+  planHelp: 'Each future counts by how likely you are to be alive when the money runs out: running out at 98 counts for less than at 80. Your choice changes what counts as on course; the figures are your plan\'s and stay as they are.',
+  planHelpFixed: 'This plan has no figure counted by how long people live yet, so each level is judged on how many futures last to the age your plan runs to. Your choice changes what counts as on course; the figures are your plan\'s and stay as they are.',
   /** The key under a range of the three levels, while the figures are weighed (a couple: "as long as one of you is alive"). */
   key: (couple) => `Careful = lasts as long as ${couple ? 'one of you is alive' : 'you do'} 19 times in 20 · Balanced = 18 times in 20 · Bold = 14 times in 20`,
   /** A level by its name alone, as a change is said ("You changed how careful to be from Balanced to Careful."). */
-  names: { careful: 'Careful', balanced: 'Balanced', bold: 'Bold' }
+  names: { careful: 'Careful', balanced: 'Balanced', bold: 'Bold' },
+  /** What each level asks for, in twentieths ("18 times in 20"), as the option labels say it. */
+  twentieths: { careful: '19', balanced: '18', bold: '14' }
 };
 
 /** Whether an answer's figures are weighed by how long people live (7.8.0): its basis says so. */

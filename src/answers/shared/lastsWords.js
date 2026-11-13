@@ -101,19 +101,29 @@ export const fixedSentence = (id, share, lf, opts) => S(id, fixedAgeParts(share,
 const atAge = (lf, age) => (lf.couple ? ['when the younger of you is ', F(age)] : ['at ', F(age)]);
 const byAge = (lf, age) => (lf.couple ? ['by the time the younger of you is ', F(age)] : ['by ', F(age)]);
 
-/** "In the futures where the money runs out, it typically runs out at 88. In the worst 1 in 10 of all the futures, by 84." */
+/**
+ * "In the futures where the money runs out before 103, it typically runs out at 88. In the worst 1 in 10 of all the futures,
+ * by 84." — the futures it counts named by the age they are followed on to (the "how long" line names the plan-to age).
+ */
 export function whenParts(sf, lf) {
   if (!sf || !sf.when) return null;
   const w = sf.when;
-  return ['In the futures where the money runs out, it typically runs out ', ...atAge(lf, w.typical), '. ',
+  const to = isNum(lf.weightToAge) ? lf.weightToAge : lf.planToAge;
+  return ['In the futures where the money runs out before ', ...(lf.couple ? ['the younger of you is ', F(to)] : [F(to)]), ', it typically runs out ', ...atAge(lf, w.typical), '. ',
     ...(w.worstLasts ? ['In the worst ', F('1'), ' in ', F('10'), ' of all the futures it still lasts to ', F(lf.planToAge), '.']
       : ['In the worst ', F('1'), ' in ', F('10'), ' of all the futures, ', ...byAge(lf, w.worst), '.'])];
 }
 
-/** "In those futures it still pays for 22 of the 31 years to 97." */
+/**
+ * "In the futures where it runs out before 97, it still pays for 22 of the 31 years to 97." — or, when what comes in anyway
+ * meets the spending in some years after it, "…, what you planned to spend is still met in 30 of the 31 years to 97, with
+ * what comes in anyway."
+ */
 export function howLongParts(sf, lf) {
   if (!sf || !sf.howLong) return null;
-  return ['In the futures where it runs out before ', F(lf.planToAge), ', it still pays for ', F(sf.howLong.paid), ' of the ', F(sf.howLong.of), ' years to ', F(lf.planToAge), '.'];
+  const h = sf.howLong;
+  return ['In the futures where it runs out before ', F(lf.planToAge), h.anyway ? ', what you planned to spend is still met in ' : ', it still pays for ', F(h.paid), ' of the ', F(h.of), ' years to ', F(lf.planToAge),
+    h.anyway ? ', with what comes in anyway.' : '.'];
 }
 
 /** "Across those futures, £9 of every £10 you planned to spend is still paid." */
@@ -138,8 +148,11 @@ export function floorParts(sf, lf) {
       : [...lead, 'nothing would come in from a pension then.'];
   }
   const from = f.fs ? 'from your pensions' : lf.couple && f.sp > 1 ? 'from your State Pensions' : f.sp ? 'from your State Pension' : 'from your pensions';
-  return [...lead, 'you would still have ', F(money(f.yearly)), ' a year after tax', lf.couple ? ' between you' : '', ', ', from,
-    ...(lf.couple && isNum(f.survivor) ? ['; if one of you has died by then, about ', F(money(f.survivor)), ' at least'] : []), '.'];
+  // (a couple: the one left has the lower of the two people's own at least — or, with nothing of their own, nothing coming in)
+  const survivor = !(lf.couple && isNum(f.survivor)) ? []
+    : f.survivor > 0 ? ['; if one of you has died by then, about ', F(money(f.survivor)), ' at least']
+      : ['; if one of you has died by then, the one left could have nothing coming in from a pension'];
+  return [...lead, 'you would still have ', F(money(f.yearly)), ' a year after tax', lf.couple ? ' between you' : '', ', ', from, ...survivor, '.'];
 }
 
 /**

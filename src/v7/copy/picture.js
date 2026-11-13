@@ -34,12 +34,21 @@ export const PICTURE = {
     carefulW: 'a month at Careful: it lasts as long as you live 19 times in 20',
     balancedW: 'a month at Balanced: it lasts as long as you live 18 times in 20',
     boldW: 'a month at Bold: it lasts as long as you live 14 times in 20',
+    /** A couple's (C): while one of you is alive. */
+    carefulWCouple: 'a month at Careful: it lasts as long as one of you is alive 19 times in 20',
+    balancedWCouple: 'a month at Balanced: it lasts as long as one of you is alive 18 times in 20',
+    boldWCouple: 'a month at Bold: it lasts as long as one of you is alive 14 times in 20',
     couldCarefulW: 'a month you could take at Careful: 19 times in 20, counting how long people live',
     couldBalancedW: 'a month you could take at Balanced: 18 times in 20, counting how long people live',
     couldBoldW: 'a month you could take at Bold: 14 times in 20, counting how long people live',
-    aimCarefulW: 'pot to aim for at {age} at Careful, at today’s prices (Balanced and Bold are in the guide below)',
-    aimBalancedW: 'pot to aim for at {age} at Balanced, at today’s prices (Careful and Bold are in the guide below)',
-    aimBoldW: 'pot to aim for at {age} at Bold, at today’s prices (Careful and Balanced are in the guide below)',
+    // (never a lone pot: the level chosen's, with the other two beside it — {careful}, {balanced}, {bold} are the answer's pots)
+    aimCarefulW: 'pot to aim for at {age} at Careful, at today’s prices (Balanced {balanced}, Bold {bold})',
+    aimBalancedW: 'pot to aim for at {age} at Balanced, at today’s prices (Careful {careful}, Bold {bold})',
+    aimBoldW: 'pot to aim for at {age} at Bold, at today’s prices (Careful {careful}, Balanced {balanced})',
+    /** … when another level's pot is out of reach (more than the search tries): the level's alone. */
+    aimCarefulWOne: 'pot to aim for at {age} at Careful, at today’s prices',
+    aimBalancedWOne: 'pot to aim for at {age} at Balanced, at today’s prices',
+    aimBoldWOne: 'pot to aim for at {age} at Bold, at today’s prices',
     runsOut: 'the age the money runs out in a bad case (the worst 1 in 10)',
     lasts: 'still there at this age, even in a bad case (the worst 1 in 10)'
   },
@@ -54,6 +63,11 @@ export const PICTURE = {
       now: 'paying in as now',
       bad: 'a bad case (the worst 1 in 10)',
       middling: 'at Bold (a guide)',
+      /**
+       * While weighing (D): the line is drawn at the most of the three levels, Bold's amount, whatever level is chosen (drawn at
+       * the chosen level's it would sit on the shading's edge whenever the money lasts, and say nothing); the key says so.
+       */
+      middlingW: 'middling years, at the most of the three levels (a guide)',
       you: 'you, today'
     },
     stop: 'stop at {age}',
@@ -77,7 +91,7 @@ export const PICTURE = {
       dLasts: 'At what you take, the money lasts to {age} even in a bad case.',
       dMiddling: 'At Bold, {amount} a month lasted to {age} in 7 futures out of 10.',
       /** While weighing: the guide line is Bold's amount; its chance is the answer's to say, beside its count to an age. */
-      dMiddlingW: 'The guide line above the shading is what Bold allows, {amount} a month.'
+      dMiddlingW: 'The guide line above the shading is a guide to middling years, drawn from Bold\'s amount ({amount} a month, the most of the three levels) whatever level you choose.'
     }
   },
   /** The line that keeps an answer: the one create path is the question's own "Keep" step. */

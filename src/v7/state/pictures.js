@@ -189,7 +189,11 @@ export function answerTiles(state, q) {
   if (q === 'b') {
     // (weighing, 7.8.0: the pot is said at its level, never as a lone pot — the other two are in the guide's range)
     const w = Boolean(r.basis && r.basis.weighted);
-    add({ id: 'aim', k: `levels.${r.level}.pot`, kind: 'pot', ageKey: 'stop.age', ...(w ? { words: `aim${r.level.charAt(0).toUpperCase()}${r.level.slice(1)}W` } : {}) });
+    // (the other two levels' pots drawn in the tile's words, as the answer's own figures: `slots`)
+    // (a pot of £0 is no target: no pension pot needed says so in words, so it is never a tile, nor beside one)
+    const others = w ? Object.fromEntries(LEVEL_IDS.filter((k) => k !== r.level && get(r, `levels.${k}.pot`) > 0).map((k) => [k, `levels.${k}.pot`])) : {};
+    const L = r.level.charAt(0).toUpperCase() + r.level.slice(1);
+    if (!(get(r, `levels.${r.level}.pot`) === 0)) add({ id: 'aim', k: `levels.${r.level}.pot`, kind: 'pot', ageKey: 'stop.age', ...(w ? (Object.keys(others).length === 2 ? { words: `aim${L}W`, slots: others } : { words: `aim${L}WOne` }) : {}) });
     add({ id: 'nowBad', k: 'potAtStop.now.careful', kind: 'pot', ageKey: 'stop.age' });
     if (r.onCourse !== true && r.enough && r.enough.how === 'share' && has('enough.atLevel.totalPct')) add({ id: 'enoughShare', k: 'enough.atLevel.totalPct', kind: 'pct', pop: true });
     else if (r.onCourse !== true && has('payIn.needed') && r.payIn.needed > 0) add({ id: 'enough', k: 'payIn.needed', kind: 'money', pop: true });
@@ -199,7 +203,9 @@ export function answerTiles(state, q) {
     // the three levels (7.8.0), the one the answer stands behind first
     // (weighing, 7.8.0: each said at its level, never as a count of futures — `words` names the tile's words)
     const w = Boolean(r.basis && r.basis.weighted);
-    for (const id of [r.level, ...LEVEL_IDS.filter((x) => x !== r.level)]) add({ id, k: `levels.${id}.monthly`, kind: 'money', ...(id === r.level ? { pop: true } : {}), ...(w ? { words: `${id}W` } : {}) });
+    // (a couple: "as long as one of you is alive")
+    const two = r.inputs && r.inputs.household === 'couple' ? 'Couple' : '';
+    for (const id of [r.level, ...LEVEL_IDS.filter((x) => x !== r.level)]) add({ id, k: `levels.${id}.monthly`, kind: 'money', ...(id === r.level ? { pop: true } : {}), ...(w ? { words: `${id}W${two}` } : {}) });
   } else if (q === 'd') {
     const end = r.basis && r.basis.endAge;
     add({ id: 'take', k: 'spend.perMonth', kind: 'money', pop: true });
@@ -338,7 +344,8 @@ function drawingPicture(r) {
   const still = (p) => p.age >= end && p.value > 0;
   return {
     q: 'd', from: a, to: end, top, ticks: [top / 2, top], ages: ageTicks(a, null, end, runsOut ? r.runOutAge : null), stop: null,
-    lines: [{ id: 'middling', role: 'drawing', guide: true, points: [start, mid] }],
+    // (weighing: the guide line is the boldest level's amount whatever level is chosen, and its key says so)
+    lines: [{ id: 'middling', role: 'drawing', guide: true, points: [start, mid], ...(r.basis && r.basis.weighted ? { legend: 'middlingW' } : {}) }],
     band: { id: 'bad', role: 'drawing', ...(runsOut ? {} : { guide: true }), points: [start, bad] },
     marks: [{ id: 'you', age: a, value: p0 }],
     rows,

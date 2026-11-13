@@ -49,7 +49,7 @@ import { SCHEMA_A } from '../../../src/answers/a/schema.js';
 import { SCHEMA_B } from '../../../src/answers/b/schema.js';
 import { SCHEMA_D } from '../../../src/answers/d/schema.js';
 import { parseDraft, applies as appliesTo } from '../../../src/answers/shared/validate.js';
-import { money, ageText, pot, outOfTen, get, pctText } from '../../../src/answers/shared/format.js';
+import { money, ageText, pot, outOfTen, get, pctText, twentiethsOfFutures } from '../../../src/answers/shared/format.js';
 import { parse, format, screenName } from '../../../src/v7/router/routes.js';
 import { BUILT } from '../../../src/v7/rail/questions.js';
 import { railFor } from '../../../src/v7/rail/index.js';
@@ -526,7 +526,25 @@ export function checkScreen(root, state) {
     const got = Number(el.getAttribute('data-value'));
     if (typeof want !== 'number' || got !== want) say('R2', `${key}: data-value ${el.getAttribute('data-value')} but the answer holds ${JSON.stringify(want)}`);
     const kind = el.getAttribute('data-kind');
-    if (kind === 'outOfTen') {
+    // 7.8.0, while the answer's figures are weighed: bars and cells count in twentieths of the futures we tried
+    const res = state && state.answers && state.answers[q] && state.answers[q].result;
+    const twenty = !!(res && res.basis && res.basis.weighted);
+    if (kind === 'outOf20') {
+      // the bar in twentieths: twenty cells, the first round(share × 20) filled, labelled "in 16 of 20 futures we tried"
+      const cells = all('.bar-cell', el);
+      if (cells.length !== 20) say('R2', `${key}: the bar has ${cells.length} cells`);
+      const on = cells.filter((c) => c.classList.contains('is-on')).length;
+      if (on !== Math.round(want * 20)) say('R2', `${key}: ${on} cells filled for ${want}`);
+      if (el.getAttribute('aria-label') !== twentiethsOfFutures(want)) say('R2', `${key}: the bar reads "${el.getAttribute('aria-label')}"`);
+      if (el.textContent.trim() !== '') say('R2', `${key}: the bar holds words "${el.textContent}"`);
+    } else if (kind === 'count' && twenty) {
+      const words = COUNT_WORDS[q];
+      const v = Math.max(0, Math.min(1, want));
+      const k = Math.round(v * 20);
+      const long = v >= 1 ? words.countEvery : v <= 0 ? words.countNone : k >= 20 ? words.countMore20 : k <= 0 ? words.countFewer20 : words.count20.replace('{n}', String(k));
+      const shown = el.querySelector('.count-long');
+      if (!shown || shown.textContent !== long) say('R2', `${key}: reads "${shown && shown.textContent}", the count is "${long}"`);
+    } else if (kind === 'outOfTen') {
       // the bar: ten cells, the first round(share × 10) filled, labelled with format.js's words
       const cells = all('.bar-cell', el);
       if (cells.length !== 10) say('R2', `${key}: the bar has ${cells.length} cells`);

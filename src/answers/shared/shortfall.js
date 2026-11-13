@@ -11,14 +11,18 @@
  *                   typical: the middle of the failing futures' run-out ages (the younger person's, startAge + ⌊m/12⌋)
  *                   worst:   the worst 1 in 10 of all the futures (position ⌊n/10⌋ of every future's age, a future that
  *                            lasted read at the plan-to age); worstLasts when that is at or past the plan-to age
- *       howLong   null when none ran out before the plan-to age; else { paid, of }: the failing futures' mean years paid
- *                 (to the plan-to age at most, whole years), against the years to the plan-to age
+ *       howLong   null when none ran out before the plan-to age, or when what comes in anyway meets what you planned to
+ *                 spend in every year after it ran out (then nothing goes unmet); else { paid, of, anyway }: the failing
+ *                 futures' mean years in which what you planned to spend is met (to the plan-to age at most, whole years):
+ *                 the years the pots paid, and each later year in which what comes in anyway meets it (`anyway`: some
+ *                 did), against the years to the plan-to age
  *       howMuch   1 when none ran out before the plan-to age; else 1 − unpaid / planned over those futures, to the plan-to
  *                 age: unpaid is what the pots would have paid from the run-out (the first year pro rata), planned every
  *                 year's amount (toEngine potsNeedByYear, amountInYear)
  *       floor     null when none ran out; else at the typical age { age, yearly, survivor, spAge }:
  *                   yearly    after tax, the State Pensions and final-salary pensions paid that year (work left out)
- *                   survivor  a couple: the lower of the two people's own (no survivor's share is asked for)
+ *                   survivor  a couple: the lower of the two people's own (no survivor's share is asked for); 0 is said
+ *                             as nothing coming in for the one left
  *                   sp, fs    how many State Pensions are paid then; whether a final-salary pension is
  *                   spAge     nothing paid yet: the age the first State Pension starts (null when none does)
  *       left      absent when not worked out; else what is left at the plan-to age at today's prices, from each future's
@@ -92,10 +96,19 @@ export function shortfallOf(plan, months, H, { toMonth = Infinity, left = null }
   let howLong = null;
   let howMuch = 1;
   if (early.length) {
-    const paid = early.reduce((s, m) => s + Math.min(m / 12, toYears), 0) / early.length;
-    howLong = { paid: Math.floor(paid), of: Math.round(toYears) };
     const need = potsNeedByYear(plan, H);
     const Y = Math.min(need.length, Math.ceil(toYears));
+    // a year after the run-out in which what comes in anyway meets what you planned (the pots would pay nothing in it) is a
+    // year the spending is still met: counted, so "how long" never reads short while the floor pays the whole spend
+    const met = (y) => !(need[y] > 1);
+    let anyway = false;
+    const paid = early.reduce((s, m) => {
+      let years = Math.min(m / 12, toYears);
+      for (let y = Math.floor(m / 12) + 1; y < Y; y++) if (met(y)) { years += 1; anyway = true; }
+      return s + Math.min(years, toYears);
+    }, 0) / early.length;
+    // (met in every year: nothing to say — "how much" says all of it is paid)
+    if (Math.floor(paid) < Math.round(toYears)) howLong = { paid: Math.floor(paid), of: Math.round(toYears), ...(anyway ? { anyway: true } : {}) };
     let planned = 0;
     for (let y = 0; y < Y; y++) planned += amountInYear(plan, H, y);
     let unpaid = 0;

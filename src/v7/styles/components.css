@@ -242,6 +242,9 @@ progress { width: 100%; max-width: 24rem; height: 12px; accent-color: var(--fill
 .bar { display: inline-flex; gap: 2px; vertical-align: middle; }
 .bar-cell { display: inline-block; width: 8px; height: 14px; border: 1px solid var(--line-strong); border-radius: 2px; background: transparent; }
 .bar-cell.is-on { background: var(--fill-primary); border-color: var(--fill-primary); }
+/* 7.8.0, while weighing: twenty cells, in twentieths of the futures we tried; about the width of ten */
+.bar.is-20 { gap: 1px; }
+.bar.is-20 .bar-cell { width: 4px; border-radius: 1px; }
 
 /* the ages side by side: a table that never scrolls sideways at 390 — age, amount, lasted; the rest from 700 up */
 .ages { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; margin: 4px 0 8px; }
@@ -313,6 +316,7 @@ progress { width: 100%; max-width: 24rem; height: 12px; accent-color: var(--fill
   /* the ages and the grid keep to the phone's width: the numbers a little smaller, nothing scrolls sideways */
   .ages, .grid { font-size: var(--size-small); }
   .bar-cell { width: 7px; }
+  .bar.is-20 .bar-cell { width: 3px; }
 }
 
 /* a hand-over link in "What next?" is one line of words that wraps as text — never a row of flex columns on a phone */

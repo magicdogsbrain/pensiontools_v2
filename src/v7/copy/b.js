@@ -233,6 +233,18 @@ export const B = {
     /** Under the grid when no cell is on the careful line. */
     none: 'None of these reach the careful line of 9 futures out of 10.',
     key: 'Each cell: in how many futures out of 10 your money lasted, stopping at that age and paying in that much a month until then. 9 in 10 or better is the careful line.',
+    /**
+     * 7.8.0, while the figures are weighed: each cell counts the futures to the plan-to age (a count to one named age, in
+     * twentieths), and a cell is marked on course by the level chosen, counting how long people your age live. {age} is the
+     * plan-to age, {level} the level's name, {n} its twentieths; a cell's {words} "to 101 in 16 of 20 futures we tried".
+     */
+    needsW: 'Pot that lasts to',
+    keyW: 'Each cell: in how many of 20 futures we tried your money lasted to {age}, stopping at that age and paying in that much a month until then. A marked cell is on course at {level}: counting how long people your age live, the money lasts as long as you do {n} times in 20 or more.',
+    keyWCouple: 'Each cell: in how many of 20 futures we tried your money lasted until the younger of you is {age}, stopping at that age and paying in that much a month until then. A marked cell is on course at {level}: counting how long people your ages live, the money lasts as long as one of you is alive {n} times in 20 or more.',
+    keyGuideW: '"Pot that lasts to {age}" is a guide: with exactly that at the stop age, the money lasts to {age} in {n} of 20 futures we tried. It counts to one age, so it is not the pot to aim for, which counts how long people your age live.',
+    noneW: 'None of these is on course at {level}.',
+    cellW: 'Stop at {age} and pay in {amount} a month: your money lasted {words}.',
+    cellShareW: 'Stop at {age} and pay in {share} of your pay ({amount} a month): your money lasted {words}.',
     /** The wide screen's extra column, explained (it is not drawn on a phone, so neither is this). */
     keyGuide: '"Pot that pays it" is a guide: the pot that, with exactly that at the stop age, pays the spending in 9 futures out of 10.',
     press: 'Press a cell to put that stop age and that pay-in in your numbers.',
@@ -248,7 +260,11 @@ export const B = {
     countFewer: 'fewer than 1 in 10',
     countMore: 'more than 9 in 10',
     countEvery: 'every one',
-    countNone: 'none'
+    countNone: 'none',
+    /** 7.8.0, while weighing: a count in twentieths of the futures we tried, to the age the column names. */
+    count20: '{n} of 20',
+    countFewer20: 'fewer than 1 of 20',
+    countMore20: 'more than 19 of 20'
   },
 
   /**

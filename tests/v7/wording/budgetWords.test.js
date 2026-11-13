@@ -20,10 +20,12 @@ const filled = (s) => s.replace(/\{(amount|used|minimum|moderate|comfortable|yea
   // Keep's pay-in choice (saving-enough-and-check-in.md 3.6): a share of pay, or pounds a month
   .replace(/\{(now|enough|pension)\}/g, '31%')
   // "Use these in ‘…’" (6.59.0): what goes in now, as the answer page says it changed
-  .replace(/\{payIn\}/g, '12% of your pay (£400 a month)');
+  .replace(/\{payIn\}/g, '12% of your pay (£400 a month)')
+  // a plan cut by the 45-year limit (7.8.0): the age it is kept to, the years, the answer's plan-to age
+  .replace(/\{(kept|age)\}/g, '96').replace(/\{years\}/g, '45');
 const SCOPES = ['all', 'first', 'planner', 'saver', 'retired', 'result'];
 
-describe.each([['budget.js', BUDGET, ['amount', 'used', 'minimum', 'moderate', 'comfortable', 'yearly', 'diff', 'who', 'level', 'name']], ['keep.js', KEEP, ['name', 'now', 'enough', 'amount', 'pension', 'savings', 'payIn']]])(
+describe.each([['budget.js', BUDGET, ['amount', 'used', 'minimum', 'moderate', 'comfortable', 'yearly', 'diff', 'who', 'level', 'name']], ['keep.js', KEEP, ['name', 'now', 'enough', 'amount', 'pension', 'savings', 'payIn', 'kept', 'years', 'age']]])(
   'src/v7/copy/%s', (file, words, slots) => {
     it('every string passes the banned list in every scope it is shown in', () => {
       const whole = strings(words).map(([, s]) => filled(s)).join('\n');

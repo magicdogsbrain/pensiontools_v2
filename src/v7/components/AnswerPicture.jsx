@@ -54,13 +54,18 @@ export function AnswerSlider({ slider: S, dispatch, children = null, stale = fal
   );
 }
 
-/** A tile's words, its {age} drawn as the answer's own figure (Money, by the key the tile names). */
+/**
+ * A tile's words, its {age} drawn as the answer's own figure (Money, by the key the tile names), and each other slot
+ * ({careful}, {bold}: `slots`, a pot key each) the same way.
+ */
 function tileWords(t, source) {
   const text = PICTURE.tiles[t.words || t.id];
-  const at = text.indexOf('{age}');
+  const keys = { ...(t.ageKey ? { age: [t.ageKey, 'age'] } : {}), ...Object.fromEntries(Object.entries(t.slots || {}).map(([n, k]) => [n, [k, 'pot']])) };
   // the fixed counts of the words ("9 futures out of 10") are marked as such, as every key line marks them
-  if (at === -1 || !t.ageKey) return withFixedCounts(text);
-  return <>{withFixedCounts(text.slice(0, at))}<Money source={source} k={t.ageKey} kind="age" />{withFixedCounts(text.slice(at + 5))}</>;
+  return <>{text.split(/(\{\w+\})/).map((piece, i) => {
+    const slot = /^\{(\w+)\}$/.exec(piece);
+    return slot && keys[slot[1]] ? <Money key={i} source={source} k={keys[slot[1]][0]} kind={keys[slot[1]][1]} /> : withFixedCounts(piece);
+  })}</>;
 }
 
 export function FigureTiles({ q, source, tiles, countKey }) {

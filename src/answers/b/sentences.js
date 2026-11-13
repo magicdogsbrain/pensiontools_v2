@@ -462,6 +462,16 @@ function weighedSentences(out, result, facts) {
     lever[id] = { ...lever[id], mark: 'weighted' };
     lever[`${id}Fixed`] = fixedAfter(`b.lever.${id}.fixed`, leverLead[id](), v.lasted);
   }
+  // more risk while saving, where it lowers what goes in: said as its chance at the pay-in it names, in the present, with its
+  // own count to the plan-to age beside it, as every other way is
+  const mr = result.levers && result.levers.moreRisk;
+  if (lever.moreRisk && mr && mr.helps && mr.payIn !== null && isNum(mr.weighted)) {
+    const words = LEVEL_WORDS[mr.level];
+    lever.moreRisk = S('b.lever.moreRisk', ['More risk while saving, ', words, ': paying in ', M('levers.moreRisk.payIn'), ' a month, your money ', lastsChance(mr), '.'], 'weighted');
+    lever.moreRiskFixed = fixedAfter('b.lever.moreRisk.fixed', ['With more risk, paying in ', M('levers.moreRisk.payIn'), ' a month: '], mr.lasted);
+  }
+  // the verdict names the level at Bold, as A and D do: "At Bold: not on course for …" (a yes at Bold is not a careful yes)
+  if (level === 'bold' && out.verdictHead) out.verdictHead = { ...out.verdictHead, parts: ['At Bold: ', ...lower(out.verdictHead.parts)] };
   // paying in as now, the whole life: the count to the plan-to age (a count, so with its age, never "only")
   if (out.wholeLife && isNum(result.wholeLife.weighted)) {
     const nowIn = result.payIn.now > 0;

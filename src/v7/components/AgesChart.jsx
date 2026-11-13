@@ -33,6 +33,8 @@ export function AgesChart({ result, dispatch, table = false }) {
   const rows = (result && result.ages) || [];
   if (!rows.length) return null;
   const t = A.answer;
+  // 7.8.0, while weighing: each row's count in twentieths, as the sentences say counts
+  const twenty = !!(result.basis && result.basis.weighted);
   const shownAge = result.shown && result.shown.age;
   const couple = !!(result.inputs && result.inputs.household === 'couple');
   const aboutPartner = result.askedAbout === 'partner';
@@ -83,8 +85,9 @@ export function AgesChart({ result, dispatch, table = false }) {
               </th>
               <td><Money source={result} k={`ages.${k}.levels.${result.level || 'balanced'}.monthly`} /></td>
               <td class="lasted">
-                <OutOfTenBar source={result} k={`ages.${k}.lasted`} />
-                <span class="count" aria-hidden="true">{countText(row.lasted, t)}</span>
+                {/* (7.8.0, while weighing: in twentieths of the futures we tried, to the age the column names) */}
+                <OutOfTenBar source={result} k={`ages.${k}.lasted`} of={twenty ? 20 : 10} />
+                <span class="count" aria-hidden="true">{countText(row.lasted, t, { of: twenty ? 20 : 10 })}</span>
               </td>
               {table && (
                 <td class="col-wide">

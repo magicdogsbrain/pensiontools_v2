@@ -511,7 +511,8 @@ describe('the words', () => {
     const hits = [];
     const all = strings(PICTURE).map(([, s]) => s).join('\n');
     for (const [where, s] of strings(PICTURE)) {
-      const t = s.replace(/\{(age)\}/g, '65').replace(/\{(pot|middling|bad|amount)\}/g, '£250,000').replace(/\{employer\}/g, '3');
+      // (7.8.0: B's headline tile names the other levels' pots, {careful} {balanced} {bold})
+      const t = s.replace(/\{(age)\}/g, '65').replace(/\{(pot|middling|bad|amount|careful|balanced|bold)\}/g, '£250,000').replace(/\{employer\}/g, '3');
       for (const hit of bannedHits(t, ['all', 'first', 'result', 'saver', 'retired'], { context: all })) hits.push(`${where}: ${hit}`);
     }
     expect(hits).toEqual([]);

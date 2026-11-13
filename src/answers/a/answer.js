@@ -213,13 +213,32 @@ function smallerPass(key, n) {
 function bandOf(ctx, c, estimate, levels = [ctx.level]) {
   if (c.band) return c.band;
   const key = estimateKey(c.inputs, ctx.env, c.age);
-  c.band = bandAt(c.sp, c.runner, smallerPass(key, ctx.n) || estimate, { weigher: c.at.weigher, levels, toMonth: c.at.toMonth });
+  // (7.8.0: each level's search starts where the rows before say its rise over its count is — carried on to this age as
+  // the estimate is, estimateAt; a hint only, as the estimate is)
+  c.band = bandAt(c.sp, c.runner, smallerPass(key, ctx.n) || estimate, { weigher: c.at.weigher, levels, toMonth: c.at.toMonth, levelRatios: ratiosAt(ctx.ratios, c.age) });
+  if (c.band.solver && c.band.solver.levelRatios && c === ctx.cases.get(`${c.age}:asTyped`)) ctx.ratios.set(c.age, c.band.solver.levelRatios);
   const byN = remembered.get(key) || new Map();
   byN.set(ctx.n, { ...c.band.k });
   remembered.delete(key);
   remembered.set(key, byN);
   if (remembered.size > REMEMBER_AT_MOST) remembered.delete(remembered.keys().next().value);
   return c.band;
+}
+
+/**
+ * Where each level's search starts at age `a` (7.8.0): its rise over its count at the rows already worked out (ages below
+ * it, in `byAge`), carried on to `a` along the line through the last two, as estimateAt carries the amounts. A hint only.
+ */
+function ratiosAt(byAge, a) {
+  const before = [...byAge.keys()].filter((x) => x < a).sort((x, y) => x - y);
+  if (!before.length) return null;
+  const a1 = before[before.length - 1];
+  const r1 = byAge.get(a1);
+  if (before.length === 1) return { ...r1 };
+  const a0 = before[before.length - 2];
+  const r0 = byAge.get(a0);
+  const f = (a - a1) / (a1 - a0);
+  return Object.fromEntries(Object.entries(r1).map(([k, v]) => [k, Number.isFinite(r0[k]) ? v + (v - r0[k]) * f : v]));
 }
 
 /**
@@ -427,7 +446,7 @@ export function answerA(inputs, env) {
     return { status: 'invalid', problems: [ask.asked === 'partner' ? { field: 'partner.stop.kind', messageId: 'partner-stop-ages-past-75' } : { field: 'stop.kind', messageId: 'stop-ages-past-75' }] };
   }
   const lives = livesList(n, Math.max(...[...touched].map(lifeYears)), env);
-  const ctx = { inputs: ins, env, n, spend, spendAYear: spend * 12, lives, cases: new Map(), asked: ask.asked, level };
+  const ctx = { inputs: ins, env, n, spend, spendAYear: spend * 12, lives, cases: new Map(), asked: ask.asked, level, ratios: new Map() };
   // the rows an earlier answer for these very inputs already holds (the answer step's, for the every-age step)
   const held = heldRows(env.reuse, ins, env, n);
   const verdictOfAge = (a) => (held && held.has(a) ? held.get(a) : stopCase(ctx, a).verdict);

@@ -136,6 +136,7 @@ export function createBandSolver(plan, futures, opts = {}) {
   const results = new Map();                                                     // k → [per future: [per run: { failed, failMonth }]]
   let evaluations = 0;                                                           // future-evaluations (one or more engine runs)
   let engineRuns = 0;
+  let levelRatios = null;                                                        // solveLevels' last rises over the count
   const progressTotal = Math.max(1, Math.round(n * 3.4));                        // about what a search takes
   let finished = false;                                                          // once "done" is told, nothing goes back
   const tell = () => { if (opts.onProgress && !finished && evaluations % 25 === 0) opts.onProgress(Math.min(evaluations, progressTotal - 1), progressTotal); };
@@ -390,8 +391,10 @@ export function createBandSolver(plan, futures, opts = {}) {
      * → { [level]: { k, monthly, capped, floorHit } }; `floorHit` (k null) when even kLow does not pass.
      * @param {{ byMonth: Float64Array }} weigher   weigh.js weigherOf(plan, …)
      * @param {string[]} [ids]   the levels to solve (default all three)
-     * @param {{ balanced?: number }} [known]   Balanced's k when it is already known (the rollback: the count's careful
-     *   figure from solve(), figure for figure): Careful is then searched at or below it and Bold at or above it
+     * @param {{ balanced?: number, ratios?: object }} [known]   Balanced's k when it is already known (the rollback: the
+     *   count's careful figure from solve(), figure for figure): Careful is then searched at or below it and Bold at or above
+     *   it. `ratios` (7.8.0, a hint): each level's rise over its count on a search before (A's row before; the solver's
+     *   `levelRatios` after a search) — where each search looks first
      */
     solveLevels(weigher, ids = Object.keys(LEVEL_FAILS20), known = {}) {
       const want = new Set(ids.map((id) => levelOf(id)));
@@ -429,18 +432,41 @@ export function createBandSolver(plan, futures, opts = {}) {
         }
         return passes(sum, n, t);
       };
-      /** The largest k in [good, top] that passes t (good known to; top + 1 known not to, or kMax + 1, unknown). */
-      const weightedYes = (t, good, top) => {
+      /**
+       * The largest k in [good, top] that passes t (good known to; top + 1 known not to, or kMax + 1, unknown). `hint`
+       * (where it is likely, from the levels' rise over the count: a hint only — the same k is found without it): tried
+       * first, then one step on either side, widening by doubling until the answer is bracketed.
+       */
+      const weightedYes = (t, good, top, hint = null) => {
         let g = good, b = top + 1;
         // (at most SEARCH_PROBES amounts: past them, the most found to pass the level, g)
         const probe = probeCounter();
         bounded(() => {
-          let step = Math.max(2, Math.round(Math.abs(g - kLow) * 0.03));
-          let k = Math.min(top, g + step);
-          while (k > g) {
+          const h = Number.isFinite(hint) ? Math.min(top, Math.round(hint)) : null;
+          if (h !== null && h > g) {
             probe();
-            if (weightedAtMost(t, k, false)) { g = k; if (k >= top) break; k = Math.min(top, k + step); step *= 2; }
-            else { b = k; break; }
+            if (weightedAtMost(t, h, false)) {
+              g = h;
+              for (let step = 1, k = Math.min(top, g + 1); k > g; k = Math.min(top, g + step)) {
+                probe();
+                if (weightedAtMost(t, k, false)) { g = k; step *= 2; } else { b = k; break; }
+              }
+            } else {
+              b = h;
+              for (let step = 1, k = Math.max(g, b - 1); k > g; k = Math.max(g, b - step)) {
+                probe();
+                if (weightedAtMost(t, k, true)) { g = k; break; }
+                b = k; step *= 2;
+              }
+            }
+          } else {
+            let step = Math.max(2, Math.round(Math.abs(g - kLow) * 0.03));
+            let k = Math.min(top, g + step);
+            while (k > g) {
+              probe();
+              if (weightedAtMost(t, k, false)) { g = k; if (k >= top) break; k = Math.min(top, k + step); step *= 2; }
+              else { b = k; break; }
+            }
           }
           while (b - g > 1) {
             const mid = Math.floor((g + b) / 2);
@@ -450,16 +476,29 @@ export function createBandSolver(plan, futures, opts = {}) {
         }, () => null);
         return { k: g, capped: g >= kMax };
       };
+      // each level's rise over its count (k − kLow over the count's k − kLow) — where to look first, never what is found:
+      // Balanced's from `known.ratios` (the row before, A's rows); the other two from Balanced's in this search, scaled as
+      // they stood to Balanced's in the row before (else Balanced's as it is)
+      const ratios = {};
+      const given = known.ratios && typeof known.ratios === 'object' ? known.ratios : {};
+      const ratioOf = (level) => {
+        if (level === 'balanced') return Number.isFinite(given.balanced) ? given.balanced : null;
+        if (!Number.isFinite(ratios.balanced)) return Number.isFinite(given[level]) ? given[level] : null;
+        return Number.isFinite(given[level]) && given.balanced > 0 ? ratios.balanced * (given[level] / given.balanced) : ratios.balanced;
+      };
       const solveOne = (level, good, top, countGood, countTop) => {
         const t = LEVEL_FAILS20[level];
         if (!weightedAtMost(t, kLow, false)) return { k: null, monthly: null, capped: false, floorHit: true };
         const g = countYes(failsBound(n, t), countGood, countTop);
-        const r = weightedYes(t, Math.max(g, good), top);
+        const ratio = ratioOf(level);
+        const r = weightedYes(t, Math.max(g, good), top, ratio !== null && g > kLow ? kLow + (g - kLow) * ratio : null);
+        if (g > kLow) ratios[level] = (r.k - kLow) / (g - kLow);
         return { k: r.k, monthly: r.k * STEP, capped: r.capped, floorHit: false, countK: g };
       };
       // Balanced first; Careful at or below it; Bold at or above it
       const bal = Number.isFinite(known.balanced) ? { k: known.balanced, monthly: known.balanced * STEP, capped: known.balanced >= kMax, floorHit: false, countK: known.balanced }
         : want.has('balanced') || (want.has('careful') && want.has('bold')) ? solveOne('balanced', kLow, kMax, kLow, kMax) : null;
+      if (Number.isFinite(known.balanced)) ratios.balanced = 1;
       const balK = bal && bal.k !== null ? bal.k : null;
       const balCount = bal && Number.isFinite(bal.countK) ? bal.countK : null;
       if (want.has('balanced')) out.balanced = bal;
@@ -467,8 +506,11 @@ export function createBandSolver(plan, futures, opts = {}) {
       if (want.has('careful')) out.careful = solveOne('careful', kLow, balK ?? kMax, kLow, balCount ?? kMax);
       if (want.has('bold')) out.bold = solveOne('bold', balK ?? kLow, kMax, balCount ?? kLow, kMax);
       for (const v of Object.values(out)) if (v) delete v.countK;
+      levelRatios = ratios;
       return out;
     },
+    /** (7.8.0) The levels' rise over their counts on the last solveLevels (a hint for the next search: `known.ratios`). */
+    get levelRatios() { return levelRatios; },
     /** The weighted failures at k, whole (every future not known to last run for its month). */
     weightedFailsAt(weigher, k) {
       let sum = 0;
@@ -545,13 +587,14 @@ export function leftAt({ runner, configsOf, months, toMonth, years }) {
   return out;
 }
 
-export function levelsFromSolver(solver, solved, weigher, ids = LEVEL_IDS, toMonth = Infinity, reference = null) {
+export function levelsFromSolver(solver, solved, weigher, ids = LEVEL_IDS, toMonth = Infinity, reference = null, ratios = null) {
   const want = LEVEL_IDS.filter((id) => ids.includes(id));
   // the reference solver (tests: env.solver 'reference') has no solveLevels: its levels are bandReference.js's plain
   // bisection, `reference` = (weigher, levels) → { [level]: { k, capped, floorHit } }
   const solveLevels = solver.solveLevels ? (w, l, known) => solver.solveLevels(w, l, known) : (w, l) => reference(w, l);
   let ks;
-  if (weigher.weighted) ks = solveLevels(weigher, want);
+  // (`ratios`, weighing: where each level's search looks first — solveLevels' known.ratios, a hint only)
+  if (weigher.weighted) ks = solveLevels(weigher, want, ratios ? { ratios } : {});
   else {
     const rest = want.filter((id) => id !== 'balanced');
     ks = rest.length ? solveLevels(weigher, rest, { balanced: solved.k.careful }) : {};

@@ -18,6 +18,8 @@
  *   lastsWithinWeighted(sp, spendAYear, payIns, weigher, t, opts?)       → lastsWithin, weighted (B's pay-in)
  *   potNeededWeighted(sp, spendAYear, weigher, levels?, opts?)           → { [level]: { pot, capped } }: B's pot to aim for
  *   potNeededWeightedPlain(sp, spendAYear, weigher, level, opts?)        → the same by plain bisection (its reference)
+ *   potRunners(sp, opts?) / leastPotsOf(sp, spendAYear, runnerAt)        → the runners at whole £1,000 pots, each keeping its
+ *                                                                          runs, and each life's own least pot on them
  *
  * The drawing years: the start is the stop and never moves; a pension still closed at the stop is closed inside its
  * holder's one run (the fast path's locked run) and the run's own ISA pays meanwhile — a run-out while it is closed is
@@ -149,9 +151,11 @@ export function stopAtPlan(household, stopAge, env, lives = null) {
  * The runner of one stop age: each life's pots (the kernels × what is paid in, or `opts` in their place), the life's
  * drivers from the stop, the fast path. A couple's configs are made per life (their shares follow their pots).
  * @param {object} sp   stopAtPlan(...)
- * @param {{ pensionOf?: (i: number, j: number) => number, savingsOf?: (i: number, j: number) => number, parts?: boolean }} [opts]
+ * @param {{ pensionOf?: (i: number, j: number) => number, savingsOf?: (i: number, j: number) => number, parts?: boolean, keep?: boolean }} [opts]
  *   life i's pension / savings of person j (plan order) at the stop, in place of the projected ones. `parts` (tests): a
- *   joined run's result keeps the joiner's config the hand-over made (parts.join.config).
+ *   joined run's result keeps the joiner's config the hand-over made (parts.join.config). `keep` (7.8.0): each run's result
+ *   is kept by its config and life, so a run asked for again (the pot and pay-in searches test the same pot or pay-in
+ *   more than once, then count it in full) is not made again — the same result, never a different one.
  * @returns {{ plan, run, potsFor, potsOf, configsFor, configsAtH, fastRun, evaluations, months }}
  *   run(r, i, config): one configsAt entry's config in life i → { failed, failMonth } on the household's clock (a couple
  *   apart: a 'joined' entry also gives `parts` — { first, atJoin, shares, join }: each run's result, the first stopper's
@@ -185,6 +189,7 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
   const perLife = plan.runs.length > 1;                              // two people: the shares of the need differ by life
   const byK = new Map();
   const byH = new Map();
+  const kept = opts.keep ? new Map() : null;                         // config → each life's result (opts.keep)
   let evaluations = 0;
   let months = 0;
   /** One engine run, counted in months (the work bound: couples-different-years.md 10); a resumed run from its month. */
@@ -241,10 +246,14 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
     return { failed: failMonth !== null, failMonth, parts: { first: f, atJoin: hand.atJoin, shares: hand.shares, join: joinPart, last, passOn } };
   };
   const configsAtH = (H, i) => {
-    if (perLife) return configsAt(plan, H, potsOf(i));
     let c = byH.get(H);
-    if (!c) { c = configsAt(plan, H); byH.set(H, c); }
-    return c;
+    if (!perLife) {
+      if (!c) { c = configsAt(plan, H); byH.set(H, c); }
+      return c;
+    }
+    // (a couple: each life's own, made once a spend and kept — the same objects each time, so a kept run is found by them)
+    if (!c) { c = new Array(n).fill(null); byH.set(H, c); }
+    return c[i] || (c[i] = configsAt(plan, H, potsOf(i)));
   };
   const configsFor = (k, i) => {
     let c = byK.get(k);
@@ -259,10 +268,49 @@ export function createStopRunner(sp, lives = sp.lives, kernels = sp.kernels, opt
     plan, potsFor, potsOf, configsFor, configsAtH, fastRun,
     /** (7.8.0) life i's drivers for run r: the price level what is left is read at (band.js leftAt). */
     driversOf: (r, i) => fast.driversOf(r, i),
-    run(r, i, config) { evaluations++; return plan.apart ? runApart(r, i, config) : fastRun(r, i, config); },
+    run(r, i, config) {
+      evaluations++;
+      if (!kept) return plan.apart ? runApart(r, i, config) : fastRun(r, i, config);
+      let byLife = kept.get(config);
+      if (!byLife) { byLife = new Array(n).fill(null); kept.set(config, byLife); }
+      return byLife[i] || (byLife[i] = plan.apart ? runApart(r, i, config) : fastRun(r, i, config));
+    },
+    /**
+     * (7.8.0) Run r in life i asked only whether it runs out before month `until` (lifeOutcome: the earliest run-out of
+     * the life's other runs so far): the run stopped there — or the run in full when it is kept, or cannot be stopped (a
+     * couple apart, a config `simulate` runs). Never kept: it is not the whole run.
+     */
+    runUntil(r, i, config, until) {
+      if (kept) { const byLife = kept.get(config); if (byLife && byLife[i]) return byLife[i]; }
+      if (plan.apart || !fast.stoppable(r, config)) return this.run(r, i, config);
+      evaluations++;
+      return fastRun(r, i, config, null, until);
+    },
     get evaluations() { return evaluations; },
     get months() { return months; }
   };
+}
+
+/**
+ * Life i's runs at a household take-home of H a year: whether any runs out, and the earliest month (band.js runFuture's
+ * answer, on the stop runner). With `needMonth` every run is asked, each after the first only up to the earliest run-out
+ * so far — a later one cannot be the earliest — so the month is the one every run in full gives (7.8.0); without, it
+ * stops at the first run-out.
+ */
+function lifeOutcome(runner, H, i, needMonth) {
+  const configs = runner.configsAtH(H, i);
+  let failed = false;
+  let failMonth = null;
+  for (let r = 0; r < configs.length; r++) {
+    const config = configs[r].config;
+    const res = needMonth && Number.isFinite(failMonth) && runner.runUntil ? runner.runUntil(r, i, config, failMonth) : runner.run(r, i, config);
+    if (res.failed) {
+      failed = true;
+      if (failMonth === null || res.failMonth < failMonth) failMonth = res.failMonth;
+      if (!needMonth) break;
+    }
+  }
+  return { failed, failMonth };
 }
 
 /** The run-out month of every life at a household take-home of H a year when there is no pot to draw on. */
@@ -322,7 +370,7 @@ export function verdictAt(sp, runner, spendAYear, at = null) {
   else {
     months = new Array(n);
     for (let i = 0; i < n; i++) {
-      const res = runFuture(runner.configsAtH(spendAYear, i), null, true, (r, config) => runner.run(r, i, config));
+      const res = lifeOutcome(runner, spendAYear, i, true);
       months[i] = res.failed ? res.failMonth : null;
     }
   }
@@ -366,7 +414,8 @@ export function bandAt(sp, runner = createStopRunner(sp), estimate = null, opts 
   const n = sp.n;
   const ageOf = (m) => (m === null ? plan.endAge : plan.startAge + Math.floor(m / 12));
   const three = (f) => ({ careful: f('careful'), middling: f('middling'), good: f('good') });
-  // 7.8.0: the levels asked for (opts.weigher, opts.levels, opts.toMonth: the plan-to age's month) — `levels` on the band
+  // 7.8.0: the levels asked for (opts.weigher, opts.levels, opts.toMonth: the plan-to age's month) — `levels` on the band;
+  // opts.levelRatios: where each level's search looks first (a band before's solver.levelRatios, a hint only)
   const want = opts.weigher ? LEVEL_IDS.filter((id) => (opts.levels || LEVEL_IDS).includes(id)) : [];
   if (!plan.runs.length) {
     // nothing to draw on: every amount up to the lowest guaranteed take-home lasts, and nothing above it
@@ -392,7 +441,7 @@ export function bandAt(sp, runner = createStopRunner(sp), estimate = null, opts 
     runOutAgeAt: three((w) => badCaseOf(runOutMonths[w].map(ageOf))),
     runOutMonths, solver, engineRuns: solver.engineRuns, evaluations: solver.evaluations
   };
-  if (want.length) out.levels = levelsFromSolver(solver, solved, opts.weigher, want, opts.toMonth ?? Infinity);
+  if (want.length) out.levels = levelsFromSolver(solver, solved, opts.weigher, want, opts.toMonth ?? Infinity, null, opts.levelRatios || null);
   return out;
 }
 
@@ -414,7 +463,7 @@ function withinFails(sp, runner, spendAYear, allowed, before = Infinity) {
   const needMonth = Number.isFinite(before);                       // the earliest run-out over the runs, read against `before`
   let fails = 0;
   for (let i = 0; i < n; i++) {
-    const res = runFuture(runner.configsAtH(spendAYear, i), null, needMonth, (r, config) => runner.run(r, i, config));
+    const res = lifeOutcome(runner, spendAYear, i, needMonth);
     if (res.failed && (!needMonth || !Number.isFinite(res.failMonth) || counted(res.failMonth)) && ++fails > allowed) return { ok: false, fails };
     if ((n - 1 - i) + fails <= allowed) return { ok: true, fails };
   }
@@ -426,9 +475,12 @@ function withinFails(sp, runner, spendAYear, allowed, before = Infinity) {
  * passes(sumW, n, t), weigh.js — stopping as soon as it is settled: "no" once the sum fails; "yes" once even every life
  * still to run failing whole (byMonth[0], one whole future) would pass. A life is run for its month (every person's run,
  * the earliest month); one that lasts adds nothing. `before` as withinFails. `lives` (optional, ascending): run only these
- * — every other life is known to last (potNeededWeighted's lives that fail at a pot). → { ok, sumW } (the sum so far).
+ * — every other life is known to last (potNeededWeighted's lives that fail at a pot). `first` (optional, with every life
+ * run): these lives first, then the rest in order — the answer is the same whatever the order (a sum that fails stays
+ * failed; one that passes with every life still to run counted whole passes whatever they add), only the runs it takes
+ * to settle it change. → { ok, sumW } (the sum so far).
  */
-export function withinWeighted(sp, runner, spendAYear, weigher, t, before = Infinity, lives = null) {
+export function withinWeighted(sp, runner, spendAYear, weigher, t, before = Infinity, lives = null, first = null) {
   const plan = runner.plan;
   const n = sp.n;
   const counted = (m) => m !== null && m < before;
@@ -441,9 +493,17 @@ export function withinWeighted(sp, runner, spendAYear, weigher, t, before = Infi
   const count = lives ? lives.length : n;
   let sumW = 0;
   if (passes(count * W0, n, t)) return { ok: true, sumW };
+  let order = lives;
+  if (!lives && first && first.length) {
+    order = new Int32Array(n);
+    const put = new Uint8Array(n);
+    let p = 0;
+    for (const i of first) if (!put[i]) { put[i] = 1; order[p++] = i; }
+    for (let i = 0; i < n; i++) if (!put[i]) order[p++] = i;
+  }
   for (let x = 0; x < count; x++) {
-    const i = lives ? lives[x] : x;
-    const res = runFuture(runner.configsAtH(spendAYear, i), null, true, (r, config) => runner.run(r, i, config));
+    const i = order ? order[x] : x;
+    const res = lifeOutcome(runner, spendAYear, i, true);
     if (res.failed && (!Number.isFinite(res.failMonth) || counted(res.failMonth))) {
       sumW += weightOf(weigher, res.failMonth);
       if (!passes(sumW, n, t)) return { ok: false, sumW };
@@ -459,17 +519,23 @@ export function withinWeighted(sp, runner, spendAYear, weigher, t, before = Infi
  */
 const pensionAtTotal = (sp, P) => (i, j) => (sp.stillSaving[j] ? P * sp.split[j] : sp.pots[j].pension[i]);
 
-/** A runner with every life's pension at a household total P, split between the people by their middling pots. */
-function runnerAtPot(sp, P, opts = {}) {
-  return createStopRunner(sp, sp.lives, sp.kernels, { pensionOf: pensionAtTotal(sp, P), savingsOf: opts.savingsOf });
+/**
+ * A runner with every life's pension at a household total P, split between the people by their middling pots. `keep`:
+ * each run kept (createStopRunner), for a search that asks the same pot more than once.
+ */
+function runnerAtPot(sp, P, opts = {}, keep = false) {
+  return createStopRunner(sp, sp.lives, sp.kernels, { pensionOf: pensionAtTotal(sp, P), savingsOf: opts.savingsOf, keep });
 }
 
 /**
  * The verdict with every life's pension at a household total of P at the stop (split by the middling pots); savings as
- * projected. `opts.at` (7.8.0, a level) as verdictAt.
+ * projected. `opts.at` (7.8.0, a level) as verdictAt. `opts.runnerAt` (7.8.0): the runners of a search on the same pots
+ * (potRunners), whose runs at P — a whole £1,000 — are taken as they are rather than made again.
  */
 export function verdictAtPot(sp, spendAYear, P, opts = {}) {
-  return verdictAt(sp, runnerAtPot(sp, P, opts), spendAYear, opts.at || null);
+  const k = P / SAVING.potStep;
+  const runner = typeof opts.runnerAt === 'function' && Number.isInteger(k) ? opts.runnerAt(k) : runnerAtPot(sp, P, opts);
+  return verdictAt(sp, runner, spendAYear, opts.at || null);
 }
 
 /**
@@ -578,17 +644,23 @@ export function potNeededWithin(sp, spendAYear, fails, P, opts = {}) {
  *   whole £1,000 (SAVING.potMax / step + 1 where nothing up to SAVING.potMax lasts) — B brackets its pay-in search with it
  * @returns {(number|null)[]}   in the order of failsList
  */
-/** A cache of runners at whole £1,000 household pensions (runnerAtPot), one per pot. */
+/**
+ * The runners at whole £1,000 household pensions (runnerAtPot), one per pot, each keeping its runs: a pot the searches
+ * ask again (each life's own least pot, the weighted search, its check, the verdict at the pot found) runs nothing twice.
+ * `opts.savingsOf` as runnerAtPot. → (k: whole £1,000 steps) → runner. Exported as potRunners (7.8.0).
+ */
 function runnersAtPots(sp, opts) {
   const runners = new Map();
-  return (k) => { let r = runners.get(k); if (!r) { r = runnerAtPot(sp, k * SAVING.potStep, opts); runners.set(k, r); } return r; };
+  return (k) => { let r = runners.get(k); if (!r) { r = runnerAtPot(sp, k * SAVING.potStep, opts, true); runners.set(k, r); } return r; };
 }
+export const potRunners = runnersAtPots;
 
 /**
  * Each life's own least pot: the least whole £1,000 (in steps) at which that life lasts, by bisection over 0 …
- * SAVING.potMax with one run per step (SAVING.potMax / step + 1 where nothing up to it lasts).
+ * SAVING.potMax with one run per step (SAVING.potMax / step + 1 where nothing up to it lasts), on `runnerAt`'s runners
+ * (potRunners). Exported for B, which while weighing needs these and not the count's pots (potNeededAt).
  */
-function leastPotsOf(sp, spendAYear, runnerAt) {
+export function leastPotsOf(sp, spendAYear, runnerAt) {
   const top = Math.round(SAVING.potMax / SAVING.potStep);
   const n = sp.n;
   const lastsAt = (k, i) => {
@@ -644,29 +716,39 @@ export function potNeededAt(sp, spendAYear, failsList, opts = {}) {
  * → { [level]: { pot, capped } }: pot null and capped when even SAVING.potMax does not pass.
  * @param {{ byMonth: Float64Array }} weigher   weigh.js weigherOf(sp.plan, …)
  * @param {string[]} [ids]   the levels (default all three)
- * @param {{ savingsOf?: Function, least?: Int32Array, onLeast?: Function, maxProbes?: number, onProbe?: (kind: string, P: number) => void }} [opts]
- *   onProbe (tests): each test's kind ('lives': the failing lives only; 'all': every life; 'plain': the plain search's) and pot
+ * @param {{ savingsOf?: Function, least?: Int32Array, onLeast?: Function, runnerAt?: Function, maxProbes?: number, onProbe?: (kind: string, P: number) => void }} [opts]
+ *   runnerAt: the runners `least` was found on (potRunners), so a pot asked again runs nothing twice. onProbe (tests): each
+ *   test's kind ('lives': the failing lives only; 'all': every life; 'plain': the plain search's) and pot
  */
 export function potNeededWeighted(sp, spendAYear, weigher, ids = Object.keys(LEVEL_FAILS20), opts = {}) {
   const step = SAVING.potStep;
   const top = Math.round(SAVING.potMax / step);
   const n = sp.n;
-  const runnerAt = runnersAtPots(sp, opts);
+  const runnerAt = typeof opts.runnerAt === 'function' ? opts.runnerAt : runnersAtPots(sp, opts);
   const least = opts.least && opts.least.length === n ? opts.least : leastPotsOf(sp, spendAYear, runnerAt);
   if (typeof opts.onLeast === 'function' && least !== opts.least) opts.onLeast(least);
   const sorted = Array.from(least).sort((a, b) => a - b);
   const failingAt = (k) => { const out = []; for (let i = 0; i < n; i++) if (least[i] > k) out.push(i); return out; };
   const told = (kind, k) => { if (typeof opts.onProbe === 'function') opts.onProbe(kind, k * step); };
-  const out = {};
-  for (const id of ids) {
-    const level = levelOf(id);
+  // Balanced first when asked for: its pot found and checked brackets the others — Careful's is at or above it (it does
+  // not pass where Balanced does not), Bold's at or below it (it passes where Balanced does)
+  const want = ids.map((id) => levelOf(id));
+  const order = want.includes('balanced') ? ['balanced', ...want.filter((l) => l !== 'balanced')] : want;
+  const found = {};
+  let bal = null;                                                    // Balanced's checked pot and the step below it, in steps
+  for (const level of order) {
     const t = LEVEL_FAILS20[level];
     const probe = probeCounter(opts.maxProbes);
     const at = (k) => { probe(); told('lives', k); return withinWeighted(sp, runnerAt(k), spendAYear, weigher, t, Infinity, failingAt(k)).ok; };
-    const full = (k) => { probe(); told('all', k); return withinWeighted(sp, runnerAt(k), spendAYear, weigher, t).ok; };
-    out[level] = bounded(() => {
+    // (every life, the ones that fail at that pot first: the same answer, settled in fewer runs — a pot the check expects
+    // to fail is settled by the runs its own failing lives already made)
+    const full = (k) => { probe(); told('all', k); return withinWeighted(sp, runnerAt(k), spendAYear, weigher, t, Infinity, null, failingAt(k)).ok; };
+    found[level] = bounded(() => {
       const f = failsBound(n, t);
       let hi = f >= n ? 0 : sorted[n - 1 - f];
+      let lo = -1;                                                   // lo: known not to pass (−1: below the floor)
+      if (bal && level === 'careful') lo = Math.min(bal.lo, hi);
+      if (bal && level === 'bold') hi = Math.min(hi, bal.k);
       if (hi > top) {
         if (at(top)) hi = top;
         // the lives that fail even at SAVING.potMax fail the level there: out of reach, unless every life run says
@@ -676,16 +758,20 @@ export function potNeededWeighted(sp, spendAYear, weigher, ids = Object.keys(LEV
       }
       let k = null;
       if (hi !== null) {
-        let lo = -1;                                                 // lo: known not to pass (−1: below the floor)
         while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (at(mid)) hi = mid; else lo = mid; }
         k = hi;
       }
       // the check: it holds at P and not at P − £1,000, every life run; else the plain search
-      if (k !== null && full(k) && (k === 0 || !full(k - 1))) return { pot: k * step, capped: false };
+      if (k !== null && full(k) && (k === 0 || !full(k - 1))) {
+        if (level === 'balanced') bal = { k, lo: k - 1 };
+        return { pot: k * step, capped: false };
+      }
       const pot = plainSearch(sp, spendAYear, weigher, t, runnerAt, (k2) => { probe(); told('plain', k2); });
       return { pot, capped: pot === null };
     }, () => ({ pot: null, capped: true }));
   }
+  const out = {};
+  for (const level of want) out[level] = found[level];
   return out;
 }
 
@@ -725,8 +811,26 @@ export function potNeededWeightedPlain(sp, spendAYear, weigher, level, opts = {}
  */
 export function runnerAtPayIns(sp, payIns, opts = {}) {
   const lumps = Array.isArray(opts.lumps) && opts.lumps.some((x) => x > 0) ? opts.lumps : null;
+  // (7.8.0: the last few asked for are kept, each keeping its runs — a pay-in the search tested is then counted in full,
+  // and the count runs only the lives the test did not)
+  const key = JSON.stringify([payIns.map((p) => [p.pension, p.savings]), lumps, opts.pensionAt >= 0 ? opts.pensionAt : null]);
+  let kept = payInRunners.get(sp);
+  if (!kept) { kept = new Map(); payInRunners.set(sp, kept); }
+  const hit = kept.get(key);
+  if (hit) { kept.delete(key); kept.set(key, hit); return hit; }
+  const runner = makeRunnerAtPayIns(sp, payIns, lumps, opts);
+  kept.set(key, runner);
+  if (kept.size > PAY_IN_RUNNERS_KEPT) kept.delete(kept.keys().next().value);
+  return runner;
+}
+
+/** The pay-in runners kept per stop plan (runnerAtPayIns): the most recently asked, at most PAY_IN_RUNNERS_KEPT. */
+const payInRunners = new WeakMap();
+const PAY_IN_RUNNERS_KEPT = 8;
+
+function makeRunnerAtPayIns(sp, payIns, lumps, opts) {
   const today = sp.saving.people.every((p, j) => payIns[j].pension === p.payIn.total && payIns[j].savings === p.payIn.savings);
-  if (today && !lumps && !(opts.pensionAt >= 0)) return createStopRunner(sp);
+  if (today && !lumps && !(opts.pensionAt >= 0)) return createStopRunner(sp, sp.lives, sp.kernels, { keep: true });
   const kp = sp.kernels.map((k) => k.pension);
   const ks = sp.kernels.map((k) => k.savings);
   const pensionOf = opts.pensionAt >= 0
@@ -734,7 +838,7 @@ export function runnerAtPayIns(sp, payIns, opts = {}) {
     : lumps
       ? (i, j) => kp[j].A[i] + (lumps[j] || 0) * kp[j].F[i] + payIns[j].pension * kp[j].B[i]
       : (i, j) => kp[j].A[i] + payIns[j].pension * kp[j].B[i];
-  return createStopRunner(sp, sp.lives, sp.kernels, { pensionOf, savingsOf: (i, j) => ks[j].A[i] + payIns[j].savings * ks[j].B[i] });
+  return createStopRunner(sp, sp.lives, sp.kernels, { pensionOf, savingsOf: (i, j) => ks[j].A[i] + payIns[j].savings * ks[j].B[i], keep: true });
 }
 
 /**
@@ -747,10 +851,11 @@ export function lastsWithin(sp, spendAYear, payIns, allowed, opts = {}) {
 
 /**
  * The weighted lastsWithin (7.8.0): whether the weights of the lives that run out at a spend with these pay-ins pass the
- * level's `t` twentieths (withinWeighted on runnerAtPayIns; stops as soon as it is settled). `opts` as lastsWithin.
+ * level's `t` twentieths (withinWeighted on runnerAtPayIns; stops as soon as it is settled). `opts` as lastsWithin, and
+ * `opts.first`: the lives likely to run out, tried first (withinWeighted: the same answer, settled sooner when it is no).
  */
 export function lastsWithinWeighted(sp, spendAYear, payIns, weigher, t, opts = {}) {
-  return withinWeighted(sp, runnerAtPayIns(sp, payIns, opts), spendAYear, weigher, t, opts.before).ok;
+  return withinWeighted(sp, runnerAtPayIns(sp, payIns, opts), spendAYear, weigher, t, opts.before, null, opts.first || null).ok;
 }
 
 /**
@@ -783,7 +888,7 @@ export function countsAtPayIns(sp, spendAYear, payInsList, at = null) {
       if (m0 !== null) { still.push(...open); if (months) for (const i of open) months[i] = m0; }
     } else {
       for (const i of open) {
-        const res = runFuture(runner.configsAtH(spendAYear, i), null, weighing, (r, config) => runner.run(r, i, config));
+        const res = lifeOutcome(runner, spendAYear, i, weighing);
         if (res.failed) { still.push(i); if (months) months[i] = res.failMonth; }
       }
     }
@@ -805,11 +910,14 @@ export function countsAtPayIns(sp, spendAYear, payInsList, at = null) {
  *
  * `unit` (default 10) is the step searched on: £1,000 for a one-off sum, 1 for the steps of a grid that `ok` reads itself
  * (B's shares of pay, 0.5% of pay a step: research/saving-enough-and-check-in.md 3.3). The search is the same in every unit.
- * It tests at most SEARCH_PROBES figures (`maxProbes`, tests only); past them it has found none: null.
+ * Each figure is tested once, and at most SEARCH_PROBES of them (`maxProbes`, tests only); past them it has found none: null.
  */
 export function leastPayIn(ok, ceiling, from = 0, guess = null, unit = 10, maxProbes = undefined) {
   const probe = probeCounter(maxProbes);
-  return bounded(() => leastPayInSearch((c) => { probe(); return ok(c); }, ceiling, from, guess, unit), () => null);
+  // (each figure tested once: the widening and the halving can come back to one already tested)
+  const tested = new Map();
+  const test = (c) => { if (tested.has(c)) return tested.get(c); probe(); const v = ok(c); tested.set(c, v); return v; };
+  return bounded(() => leastPayInSearch(test, ceiling, from, guess, unit), () => null);
 }
 
 function leastPayInSearch(ok, ceiling, from, guess, unit) {

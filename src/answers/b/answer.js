@@ -56,7 +56,8 @@ import { ONE_NAME_SHARE, BANDS, potsShareOf, potsNeedByYear, amountInYear } from
 import { livesList } from '../shared/lives.js';
 import { savingRows } from '../shared/saving.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, savingsNeeded, potNeededAt, potNeeded,
-  lastsWithin, verdictAtPayIns, countsAtPayIns, leastPayIn, coverAt, lastsWithinWeighted, potNeededWeighted, verdictAtPot, leftAtStop } from '../shared/stopAt.js';
+  lastsWithin, verdictAtPayIns, countsAtPayIns, leastPayIn, coverAt, lastsWithinWeighted, potNeededWeighted, verdictAtPot, leftAtStop,
+  potRunners, leastPotsOf } from '../shared/stopAt.js';
 import { shortfallOf } from '../shared/shortfall.js';
 import { gridToShow, spendLevelAMonth, handOverToC, askedAbout, stopYearsOf } from '../shared/schemaParts.js';
 import { apartOf, before2028, payKeepsPensions } from '../shared/apart.js';
@@ -233,8 +234,8 @@ function createAges(inputs, env, lives, ctx) {
       row.lasts = (H, c, d, allowed) => lastsWithin(sp, row.H(H), row.payInsAt(c, d), allowed);
       // the one test at the level (7.8.0): weighing, the weights of the lives that run out pass the level's twentieths;
       // not weighing, the count at floor(t·n/20) (ctx.allowed.level) — lastsWithin, as before
-      row.lastsAtLevel = (H, c, d) => (row.at.weigher.weighted
-        ? lastsWithinWeighted(sp, row.H(H), row.payInsAt(c, d), row.at.weigher, LEVEL_FAILS20[ctx.level])
+      row.lastsAtLevel = (H, c, d, first = null) => (row.at.weigher.weighted
+        ? lastsWithinWeighted(sp, row.H(H), row.payInsAt(c, d), row.at.weigher, LEVEL_FAILS20[ctx.level], first ? { first } : {})
         : lastsWithin(sp, row.H(H), row.payInsAt(c, d), ctx.allowed.level));
       // the one test in full at pay-ins; weighing, at the level (the weighted chance, the count to the plan-to age, the
       // verdict at the level: verdictAt with `at`); not weighing, the count to the end of the run, as before 7.8.0
@@ -262,6 +263,23 @@ function createAges(inputs, env, lives, ctx) {
  */
 function guessFrom(row, least, allowed, ctx) {
   if (!least) return null;
+  const n = row.sp.n;
+  const own = ownPayIns(row, least, ctx);
+  const lo = Float64Array.from(own.lo).sort();
+  const hi = Float64Array.from(own.hi).sort();
+  const need = n - allowed;
+  return need >= 1 ? { lo: lo[need - 1], hi: hi[need - 1] } : null;
+}
+
+/** The lives whose own figure is above c (the ones likely to run out at c), in order. */
+function livesAbove(own, c) {
+  const out = [];
+  for (let i = 0; i < own.length; i++) if (own[i] > c) out.push(i);
+  return out;
+}
+
+/** Each life's own pay-in, unsorted: between lo[i] and hi[i] it starts to last (guessFrom). */
+function ownPayIns(row, least, ctx) {
   const sp = row.sp;
   const n = sp.n;
   const step = SAVING.potStep;
@@ -277,10 +295,7 @@ function guessFrom(row, least, allowed, ctx) {
     hi[i] = A >= P ? 0 : B > 0 ? (P - A) / B : Infinity;
     lo[i] = A >= P - step ? 0 : B > 0 ? (P - step - A) / B : Infinity;
   }
-  lo.sort();
-  hi.sort();
-  const need = n - allowed;
-  return need >= 1 ? { lo: lo[need - 1], hi: hi[need - 1] } : null;
+  return { lo, hi };
 }
 
 /**
@@ -313,8 +328,12 @@ function payInsThatGetThere(row, H, ctx, least = null) {
     outsideIn = leastPayIn(okSavings, SAVING.payInCeiling * ctx.saverCount, ctx.savingsInNow, guess);
   }
   const savingsIn = outsideIn === null ? ctx.savingsInNow : Math.max(ctx.savingsInNow, outsideIn);
-  // one solve, at the level (the count's figure at floor(t·n/20) brackets it: guessFrom)
-  const needed = leastPayIn((c) => row.lastsAtLevel(H, c, savingsIn), ctx.ceiling, 0, guessFrom(row, least, ctx.allowed.level, ctx));
+  // one solve, at the level (the count's figure at floor(t·n/20) brackets it: guessFrom; weighing, the count of lives that
+  // fail at the weighted pot, ctx.guessFails — a hint either way: the search settles on the same £10). Weighing, each test
+  // tries first the lives whose own pay-in is above the one tested: the same answer, settled sooner when it is no
+  const own = row.at.weigher.weighted && least ? ownPayIns(row, least, ctx).hi : null;
+  const ok = own ? (c) => row.lastsAtLevel(H, c, savingsIn, livesAbove(own, c)) : (c) => row.lastsAtLevel(H, c, savingsIn);
+  const needed = leastPayIn(ok, ctx.ceiling, 0, guessFrom(row, least, ctx.guessFails ?? ctx.allowed.level, ctx));
   return { outside: o ? outsideIn : null, savingsIn, needed };
 }
 
@@ -391,13 +410,21 @@ export function answerB(inputs, env) {
       : plan.periods.every((per) => per.netTotal >= H - 1e-9);
   const opts = base.optsAt(H);
   let least = null;
-  // the pot to aim for at each level (7.8.0: levels[k].pot; null where nothing up to SAVING.potMax gets there)
-  const potList = potNeededAt(sp, H, LEVEL_IDS.map((id) => failsAt[id]), { ...opts, onLeast: (l) => { least = l; } });
-  LEVEL_IDS.forEach((id, i) => base.numbers.set(`${H}:${failsAt[id]}`, potList[i]));
-  // weighing (7.8.0): each level's pot from the weights, on the same lives' own least pots (potNeededWeighted)
-  if (base.at.weigher.weighted) {
-    const w = potNeededWeighted(sp, H, base.at.weigher, LEVEL_IDS, { ...opts, least });
-    LEVEL_IDS.forEach((id, i) => { potList[i] = w[id].pot; });
+  let potList, runnerAt = null;
+  if (!base.at.weigher.weighted) {
+    // the pot to aim for at each level (7.8.0: levels[k].pot; null where nothing up to SAVING.potMax gets there)
+    potList = potNeededAt(sp, H, LEVEL_IDS.map((id) => failsAt[id]), { ...opts, onLeast: (l) => { least = l; } });
+    LEVEL_IDS.forEach((id, i) => base.numbers.set(`${H}:${failsAt[id]}`, potList[i]));
+  } else {
+    // weighing (7.8.0): each level's pot from the weights (potNeededWeighted), on each life's own least pot — the count's
+    // pots are not asked for — and on the same runners, so no pot is run twice (the check, the pot's own count below)
+    runnerAt = potRunners(sp, opts);
+    least = leastPotsOf(sp, H, runnerAt);
+    const w = potNeededWeighted(sp, H, base.at.weigher, LEVEL_IDS, { ...opts, least, runnerAt });
+    potList = LEVEL_IDS.map((id) => w[id].pot);
+    // the lives that fail at the level's pot: the count that brackets the pay-in and the one-off sum (a hint only)
+    const k = potList[LEVEL_IDS.indexOf(level)];
+    if (k !== null) ctx.guessFails = least.reduce((f, x) => f + (x > k / SAVING.potStep ? 1 : 0), 0);
   }
   const potOf = Object.fromEntries(LEVEL_IDS.map((id, i) => [id, guaranteedCovers ? 0 : potList[i]]));
   /** The pot the answer stands behind: the level chosen's (null: out of reach). */
@@ -503,7 +530,7 @@ export function answerB(inputs, env) {
     // the words say so), and, for someone who gave their pay, against it — the tax is added back only on what a person
     // pays in up to their pay (or RULES.reliefFloor)
     if (number !== null) {
-      const sum = oneOffSum({ row: base, H, ctx, least, fails: allowed.level });
+      const sum = oneOffSum({ row: base, H, ctx, least, fails: ctx.guessFails ?? allowed.level });
       if (sum) {
         const lumpOf = (w) => (sum.byPerson ? (sum.byPerson.find((x) => x.who === w) || { amount: 0 }).amount : sum.amount);
         const over = whos.filter((w, j) => lumpOf(w) > 0 && lumpOf(w) + payIns[j].total * 12 > RULES.annualAllowance);
@@ -617,7 +644,7 @@ export function answerB(inputs, env) {
     levels: Object.fromEntries(LEVEL_IDS.map((id) => [id, id !== level ? { pot: potOf[id] }
       : { pot: number, payIn: needed, byPerson, weighted: neededChance ? (neededChance.weighted ?? neededChance.lasted) : null, fixedAge: neededChance ? neededChance.lasted : null,
         // weighing: the pot's own count to the plan-to age, with exactly that pot at the stop (the guide's fixed-age line)
-        ...(weighing && number !== null && number > 0 ? { potFixedAge: verdictAtPot(sp, H, number, { ...opts, at: base.at }).lasted } : {}) }])),
+        ...(weighing && number !== null && number > 0 ? { potFixedAge: verdictAtPot(sp, H, number, { ...opts, at: base.at, runnerAt }).lasted } : {}) }])),
     already,
     // the chance at today's pay-ins (the whole life: `wholeLife` says the same count)
     chance: chanceBlock({ weighted: whole.weighted ?? lasted, fixedAge: lasted, fails }, n, {

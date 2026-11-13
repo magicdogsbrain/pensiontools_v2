@@ -46,6 +46,8 @@ export const SHARE_MAX = 100;
 export const LUMP_STEP = 1000;
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+/** The lives whose own figure is above x (likely to run out at x), in order. */
+const livesOver = (own, x) => { const out = []; for (let i = 0; i < own.length; i++) if (own[i] > x) out.push(i); return out; };
 const round2 = (x) => Math.round(x * 100) / 100;
 
 /** careful / middling / good of a list of values (the positions of bandIndexes), whole pounds. */
@@ -330,8 +332,9 @@ function atStopOf(fig, row, listOf, only) {
  * lives fail — the test at a pot today that much larger (stopAt.js runnerAtPayIns `lumps`: the stop finds it grown by the
  * kernel's F). One person: into their pension. Two: into the pensions between you, split as the number is (sp.split), so
  * each life's own least pot at the stop (`least`, answer.js's potNeededAt, at the household's total split that way) brackets
- * it closely, as B's pay-in search is bracketed. The likely sum, and every step near it, is counted in full: a count that
- * holds runs nearly every life anyway, so the count said is never run twice. null when no sum up to SAVING.potMax would do.
+ * it closely, as B's pay-in search is bracketed. Each sum tried is the level's test, stopping once it is settled; the sum
+ * found is then counted in full on the same runs (stopAt.js runnerAtPayIns keeps them), so nothing is run twice. null when
+ * no sum up to SAVING.potMax would do.
  * The test is the level's (row.test, as the pay-in's); `fails`, the count the level allows when every weight is whole,
  * only brackets the search.
  * @returns {null | { amount: number, fails: number, lasted: number, weighted?: number, outOfTen: object, byPerson: null | { who: string, amount: number }[] }}
@@ -345,6 +348,15 @@ export function oneOffSum({ row, H, ctx, least, fails }) {
   // the growth to the stop of £1 put in today, in the household's pensions as the sum is split
   const F = new Float64Array(n);
   sp.kernels.forEach((k, j) => { const w = two ? sp.split[j] : 1; for (let i = 0; i < n; i++) F[i] += w * k.pension.F[i]; });
+  // each try stops as soon as it is settled (the same test as the full count: row.test); the sum found is counted in full
+  // below, on the runs its try already made
+  const counts = new Map();
+  const countOfSum = (L) => {
+    if (!counts.has(L)) counts.set(L, row.countPayIns(H, payIns, { lumps: lumpsOf(L) }));
+    return counts.get(L);
+  };
+  let own = null;                                                    // each life's own sum (weighing: whose to try first)
+  const probe = (L) => row.test.quick(row.H(H), payIns, { lumps: lumpsOf(L), ...(own ? { first: livesOver(own, L) } : {}) });
   let guess = null;
   if (least) {
     // each life's own: the sum that lifts the pensions at the stop to its least pot (a hint: the search decides). The
@@ -357,6 +369,8 @@ export function oneOffSum({ row, H, ctx, least, fails }) {
       sp.kernels.forEach((k, j) => { if (ctx.savers[j]) have += k.pension.A[i] + payIns[j].pension * k.pension.B[i]; });
       each[i] = least[i] > top || !(F[i] > 0) ? Infinity : Math.max(0, (least[i] * SAVING.potStep - have) / F[i]);
     }
+    // (weighing, each try runs first the lives whose own sum is above it: the same answer, settled sooner when it is no)
+    if (row.at.weigher.weighted) own = Float64Array.from(each);
     each.sort();
     const need = n - fails;
     if (need >= 1 && Number.isFinite(each[need - 1])) {
@@ -364,15 +378,6 @@ export function oneOffSum({ row, H, ctx, least, fails }) {
       guess = { lo: at, hi: at };
     }
   }
-  // the first try, at the least sum, is far from the answer and stops as soon as it is settled; every other is a full count
-  const counts = new Map();
-  const countOfSum = (L) => {
-    if (!counts.has(L)) counts.set(L, row.countPayIns(H, payIns, { lumps: lumpsOf(L) }));
-    return counts.get(L);
-  };
-  const probe = (L) => (L === LUMP_STEP && !(guess && guess.hi === LUMP_STEP)
-    ? row.test.quick(row.H(H), payIns, { lumps: lumpsOf(L) })
-    : row.test.holds(countOfSum(L)));
   let L = leastPayIn(probe, SAVING.potMax, LUMP_STEP, guess, LUMP_STEP);
   // (the full count at the sum found, one £1,000 up at a time until it holds: at most SEARCH_PROBES steps, then none)
   for (let ups = 0; L !== null && L <= SAVING.potMax && ups < SEARCH_PROBES; ups++) {

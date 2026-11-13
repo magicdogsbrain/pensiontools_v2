@@ -655,7 +655,9 @@ export function createFastRunner(plan, futures, opts = {}) {
       return runFast(config, forFutureAt(i, r), t.pr, t.start, hook, until, more ? more.resume || null : null, more ? more.record || null : null);
     },
     /** The drivers run r reads in future i (couples apart: the hand-over reads the price level from them). */
-    driversOf: (r, i) => forFutureAt(i, r)
+    driversOf: (r, i) => forFutureAt(i, r),
+    /** (7.8.0) Whether run r at `config` is the fast path's, so it can be stopped at a month (`until`); else `simulate` runs it. */
+    stoppable: (r, config) => eligible[r] && config.years === yearsOf[r] && !config.trace
   };
 }
 

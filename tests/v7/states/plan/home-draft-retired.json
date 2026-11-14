@@ -472,8 +472,7 @@
     },
     "assumptions": null,
     "several": null,
-    "severalDone": null,
-    "notNow": []
+    "severalDone": null
   },
   "move": {
     "key": null,
@@ -493,5 +492,28 @@
     "planId": null,
     "date": null,
     "result": null
+  },
+  "keepTest": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "result": null,
+    "reason": null,
+    "progress": null
+  },
+  "stressPanel": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "reason": null
+  },
+  "stressStrip": {
+    "q": null,
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
   }
 }

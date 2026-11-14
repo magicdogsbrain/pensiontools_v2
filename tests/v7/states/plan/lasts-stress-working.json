@@ -297,7 +297,7 @@
               "checkInDue": false,
               "monthByMonth": true,
               "life": "drawing",
-              "todo": 1,
+              "todo": 0,
               "lastModified": "2026-08-14T10:05:00.000Z"
             }
           ]
@@ -1352,44 +1352,27 @@
         "current": "plan",
         "answerStale": null,
         "next": {
-          "id": "P.draft",
+          "id": "P.reviewAny",
           "slots": {
             "month": "September 2026",
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
             "stop": "April 2026",
-            "savedYear": "",
             "closed": "",
-            "next": ""
+            "next": "",
+            "nextReview": "",
+            "nextCheck": "",
+            "reviewOften": "once a tax year",
+            "windowLeft": "0 months"
           },
           "button": {
-            "id": "lasts",
-            "href": "#/plan/AlexBad01/lasts",
+            "id": "reviewNow",
+            "href": "#/plan/AlexBad01/review",
             "slots": {}
           }
         },
-        "due": [
-          {
-            "id": "lock.first",
-            "pid": "P.draft",
-            "slots": {
-              "month": "September 2026",
-              "monthName": "September",
-              "nextMonth": "October",
-              "year": "2026/27",
-              "stop": "April 2026",
-              "savedYear": "",
-              "closed": "",
-              "next": ""
-            },
-            "button": {
-              "id": "lasts",
-              "href": "#/plan/AlexBad01/lasts",
-              "slots": {}
-            }
-          }
-        ],
+        "due": [],
         "soon": [],
         "life": {
           "key": "drawing",
@@ -1398,7 +1381,33 @@
           "stop": "2026-06",
           "since": "2026-06",
           "by": "facts",
-          "invite": null
+          "window": {
+            "years": 3,
+            "from": "2023-06",
+            "to": "2026-06",
+            "monthsLeft": 0,
+            "state": "after"
+          },
+          "agreed": null,
+          "confirmStop": false
+        },
+        "reviewDue": {
+          "next": null,
+          "due": false,
+          "occurrence": null,
+          "every": "year",
+          "href": "#/plan/AlexBad01/review"
+        },
+        "offCourse": {
+          "off": false,
+          "occurrence": null,
+          "rule": {
+            "kind": "success",
+            "floor": 0.85
+          },
+          "a": null,
+          "b": null,
+          "line": 17
         },
         "askLinks": [
           "c"
@@ -5172,8 +5181,7 @@
     },
     "assumptions": null,
     "several": null,
-    "severalDone": null,
-    "notNow": []
+    "severalDone": null
   },
   "move": {
     "key": null,

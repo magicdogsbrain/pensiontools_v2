@@ -423,8 +423,7 @@
     },
     "assumptions": null,
     "several": null,
-    "severalDone": null,
-    "notNow": []
+    "severalDone": null
   },
   "move": {
     "key": null,

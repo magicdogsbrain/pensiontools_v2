@@ -2507,7 +2507,7 @@
               "checkInDue": false,
               "monthByMonth": true,
               "life": "drawing",
-              "todo": 1,
+              "todo": 0,
               "lastModified": "2026-09-02T18:30:00.000Z"
             }
           ]
@@ -2726,9 +2726,9 @@
                 "sentence": {
                   "id": "where.startLater",
                   "parts": [
-                    "Your plan is set to start in April 2027, so these months are not read against it yet: see To do"
+                    "Your plan is set to start in April 2027, so these months are not read against it yet. You can change the start on About you and when"
                   ],
-                  "text": "Your plan is set to start in April 2027, so these months are not read against it yet: see To do"
+                  "text": "Your plan is set to start in April 2027, so these months are not read against it yet. You can change the start on About you and when"
                 },
                 "source": {
                   "kind": "locked",
@@ -2801,6 +2801,11 @@
               }
             ],
             "buttons": [
+              {
+                "id": "aboutWhen",
+                "href": "#/plan/SamBad02/about",
+                "slots": {}
+              },
               {
                 "id": "seeDocument",
                 "place": "document",
@@ -4133,60 +4138,22 @@
         "current": "month",
         "answerStale": null,
         "next": {
-          "id": "P.startMove",
-          "words": "P.startMoveRecords",
+          "id": "P.idle",
           "slots": {
             "month": "September 2026",
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
             "stop": "April 2027",
-            "savedYear": "",
             "closed": "",
             "next": "",
-            "n": "1",
-            "of": "16",
-            "label": "0 1/8% Index-linked Treasury Gilt 2029",
-            "date": "20 June 2026",
-            "start": "April 2027",
-            "records": "July 2026",
-            "moveTo": "2026/27"
+            "nextReview": "April 2027",
+            "nextCheck": "April 2027",
+            "reviewOften": "once a tax year"
           },
-          "button": {
-            "id": "moveStart",
-            "href": "#/plan/SamBad02/about",
-            "slots": {}
-          }
+          "button": null
         },
-        "due": [
-          {
-            "id": "start.moveRecords",
-            "pid": "P.startMove",
-            "slots": {
-              "month": "September 2026",
-              "monthName": "September",
-              "nextMonth": "October",
-              "year": "2026/27",
-              "stop": "April 2027",
-              "savedYear": "",
-              "closed": "",
-              "next": "",
-              "n": "1",
-              "of": "16",
-              "label": "0 1/8% Index-linked Treasury Gilt 2029",
-              "date": "20 June 2026",
-              "start": "April 2027",
-              "records": "July 2026",
-              "moveTo": "2026/27"
-            },
-            "button": {
-              "id": "moveStart",
-              "href": "#/plan/SamBad02/about",
-              "slots": {}
-            },
-            "words": "P.startMoveRecords"
-          }
-        ],
+        "due": [],
         "soon": [],
         "life": {
           "key": "drawing",
@@ -4195,7 +4162,27 @@
           "stop": null,
           "since": "2027-04",
           "by": "facts",
-          "invite": null
+          "window": null,
+          "agreed": null,
+          "confirmStop": false
+        },
+        "reviewDue": {
+          "next": "2027-04-06",
+          "due": false,
+          "occurrence": "2027/28",
+          "every": "year",
+          "href": "#/plan/SamBad02/review"
+        },
+        "offCourse": {
+          "off": false,
+          "occurrence": null,
+          "rule": {
+            "kind": "success",
+            "floor": 0.85
+          },
+          "a": null,
+          "b": null,
+          "line": 17
         },
         "askLinks": [
           "c"
@@ -6524,8 +6511,7 @@
     },
     "assumptions": null,
     "several": null,
-    "severalDone": null,
-    "notNow": []
+    "severalDone": null
   },
   "move": {
     "key": null,

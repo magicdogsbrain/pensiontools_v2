@@ -2519,7 +2519,7 @@
               "checkInDue": false,
               "monthByMonth": true,
               "life": "drawing",
-              "todo": 1,
+              "todo": 0,
               "lastModified": "2026-09-08T09:20:00.000Z"
             }
           ]
@@ -4131,51 +4131,22 @@
         "current": "month",
         "answerStale": null,
         "next": {
-          "id": "P.holdStale",
+          "id": "P.idle",
           "slots": {
             "month": "September 2026",
             "monthName": "September",
             "nextMonth": "October",
             "year": "2026/27",
             "stop": "April 2026",
-            "savedYear": "",
             "closed": "",
             "next": "",
-            "n": "0",
-            "of": "0",
-            "date": "20 March 2026"
+            "nextReview": "April 2027",
+            "nextCheck": "April 2027",
+            "reviewOften": "once a tax year"
           },
-          "button": {
-            "id": "updateHold",
-            "href": "#/plan/SamBad03/hold",
-            "slots": {}
-          }
+          "button": null
         },
-        "due": [
-          {
-            "id": "hold.stale",
-            "pid": "P.holdStale",
-            "slots": {
-              "month": "September 2026",
-              "monthName": "September",
-              "nextMonth": "October",
-              "year": "2026/27",
-              "stop": "April 2026",
-              "savedYear": "",
-              "closed": "",
-              "next": "",
-              "n": "0",
-              "of": "0",
-              "date": "20 March 2026"
-            },
-            "button": {
-              "id": "updateHold",
-              "href": "#/plan/SamBad03/hold",
-              "slots": {}
-            },
-            "dismiss": "window"
-          }
-        ],
+        "due": [],
         "soon": [],
         "life": {
           "key": "drawing",
@@ -4184,7 +4155,27 @@
           "stop": null,
           "since": "2026-04",
           "by": "facts",
-          "invite": null
+          "window": null,
+          "agreed": null,
+          "confirmStop": false
+        },
+        "reviewDue": {
+          "next": "2027-04-06",
+          "due": false,
+          "occurrence": "2027/28",
+          "every": "year",
+          "href": "#/plan/SamBad03/review"
+        },
+        "offCourse": {
+          "off": false,
+          "occurrence": null,
+          "rule": {
+            "kind": "success",
+            "floor": 0.85
+          },
+          "a": null,
+          "b": null,
+          "line": 17
         },
         "askLinks": [
           "c"
@@ -8849,8 +8840,7 @@
     },
     "assumptions": null,
     "several": null,
-    "severalDone": null,
-    "notNow": []
+    "severalDone": null
   },
   "move": {
     "key": null,

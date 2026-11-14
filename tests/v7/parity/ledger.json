@@ -1507,8 +1507,7 @@
       "keys": [
         "stress.retired",
         "stress.retireAge",
-        "stress.stoppedWork",
-        "stress.stopMonthLeft"
+        "stress.stoppedWork"
       ],
       "status": "built",
       "files": [
@@ -1520,7 +1519,7 @@
         "src/v7/screens/plan/AboutScreen.jsx"
       ],
       "step": "done",
-      "note": "A and B ask the stop age (or \"I've already stopped\"); C asks when the money starts. Edited on a saved plan in V7: stopped (with the month, if known — a past one accepted), or stopping at an age or a month, the month kept (\"About you and when\"). A plan made from an answer whose stop carries `since` starts in that month's tax year. On a locked plan the month work stopped is asked once on \"About you and when\" and under the classic planner's Timing summary (\"Leave it\" remembered as stress.stopMonthLeft), and stays changeable there; the lock allows that one write (6.53.0).",
+      "note": "A and B ask the stop age (or \"I've already stopped\"); C asks when the money starts. Edited on a saved plan in V7: stopped (with the month, if known — a past one accepted), or stopping at an age or a month, the month kept (\"About you and when\"). A plan made from an answer whose stop carries `since` starts in that month's tax year.",
       "editV7": "src/v7/screens/plan/AboutScreen.jsx"
     },
     {
@@ -1655,12 +1654,14 @@
       "what": "On a locked plan whose income was set to start after the tax year work stopped: the month work stopped is asked once (\"Leave it\" remembered); then one confirmed action, made under the lock, moves the plan's first tax year back to the stop's, keeps every recorded month as a month of the plan, and writes the plan document and plan vs actual again from the new start (the earlier ones kept).",
       "whereV6": "Stress → Settings → When your plan starts: the line under the summary of a locked plan (index.html renderLockedStart, moveLockedPlanStart; services/PlanMove.js; answers/plan/moveStart.js)",
       "who": "Retired, locked",
-      "keys": [],
+      "keys": [
+        "stress.stopMonthLeft"
+      ],
       "status": "retired",
       "reason": "The move of a locked plan's start under its lock (6.53.0 to 7.9.0) is retired in both apps: a locked plan's start now changes by unlocking it, changing the start on About you and when (or Timing in the classic planner) and locking it again, so a plan has one clock and no release is about moving a locked start. A plan stored with a later start is still read from where its recorded months are, and the step says how its start changes.",
       "agreed": "approved (agreed 11 Nov 2026, research/v7/replan-nov-2026.md section 2 principle 13 and the 7.10.0 build decisions)",
       "step": "s8-e",
-      "note": "6.53.0; the move itself in V7 from 6.55.0. In V7, on a locked plan's \"About you and when\": \"When did you stop work?\" asked once while the plan does not say it — the month (stress.stoppedWork) or \"Leave it\" (stress.stopMonthLeft), each one write of a key the lock guard lets a locked plan write, with Undo (about.js stopAskPatch through planWrite's save); once said, the month stays changeable under \"Change the month you stopped work\", by the same rules, so a month typed wrongly is not kept for good. Once the month is said and its tax year is earlier than the plan's first, the step offers \"Move the plan's start…\" and makes the move itself: a confirm on the page says exactly what changes, line for line what the planner's confirm says from the same facts (PlanMove.moveFactsOf; about.js moveConfirmOf) — the new first tax year, the plan staying locked, the first step keeping its amount and the later steps their ages, the recorded months, the document and plan vs actual written again — then the plan as moved runs in the worker and ONE write sends movePatch (moveStart.js) through planWrite.js past the same guard (its reAnchor allowance; schema.js MOVE_START_WRITES among the preview's writes). No Undo, as in the planner. No door to the planner is needed for it. From 7.4.2 it is the migration path for plans stored with a later start: the engines no longer price anything for the months before such a start, so the to-do asks to move it; a later release can retire it once no stored plan needs it. Retired in 7.10.0 (spec-7100 §7, step 12): the confirm flows of both apps, their write (MOVE_START_WRITES, six paths fewer in ALL_WRITES) and the guard's allowance for it (PlanMove.reAnchorAllowance) are gone; the read-time re-anchor (PlanMove.withLockedStart, laterDraftOf) stays."
+      "note": "6.53.0; the move itself in V7 from 6.55.0. In V7, on a locked plan's \"About you and when\": \"When did you stop work?\" asked once while the plan does not say it — the month (stress.stoppedWork) or \"Leave it\" (stress.stopMonthLeft), each one write of a key the lock guard lets a locked plan write, with Undo (about.js stopAskPatch through planWrite's save); once said, the month stays changeable under \"Change the month you stopped work\", by the same rules, so a month typed wrongly is not kept for good. Once the month is said and its tax year is earlier than the plan's first, the step offers \"Move the plan's start…\" and makes the move itself: a confirm on the page says exactly what changes, line for line what the planner's confirm says from the same facts (PlanMove.moveFactsOf; about.js moveConfirmOf) — the new first tax year, the plan staying locked, the first step keeping its amount and the later steps their ages, the recorded months, the document and plan vs actual written again — then the plan as moved runs in the worker and ONE write sends movePatch (moveStart.js) through planWrite.js past the same guard (its reAnchor allowance; schema.js MOVE_START_WRITES among the preview's writes). No Undo, as in the planner. No door to the planner is needed for it. From 7.4.2 it is the migration path for plans stored with a later start: the engines no longer price anything for the months before such a start, so the to-do asks to move it; a later release can retire it once no stored plan needs it. Retired in 7.10.0 (spec-7100 §7, step 12): the confirm flows of both apps, their write (MOVE_START_WRITES, six paths fewer in ALL_WRITES) and the guard's allowance for it (PlanMove.reAnchorAllowance) are gone; the read-time re-anchor (PlanMove.withLockedStart, laterDraftOf) stays. The month work stopped is still asked once on a locked plan in both apps, with \"Leave it\" remembered (stress.stopMonthLeft, kept on this row), and stays changeable: one write the lock allows."
     },
     {
       "id": "plan.move-to-new",

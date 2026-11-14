@@ -329,6 +329,19 @@ describe('a step that fails or breaks a rule leaves the plan exactly as it was',
     ]) { const input = locked(); const before = JSON.stringify(input); untouched(input, run(input, up), before); }
   });
 
+  it('a step that changes the phases or the stored dismissals (7.10.0: the person\'s own, written only by their presses)', () => {
+    for (const up of [
+      (s) => { s.phases.review.every = 'month'; },
+      (s) => { delete s.phases; },
+      (s) => { s.tasks.dismissed = {}; },
+      (s) => { s.phases = { ...s.phases, moving: { window: { years: 3, at: 'x' } } }; }
+    ]) {
+      const input = { ...locked(), phases: { of: 'x', review: { every: 'year' } }, tasks: { of: 'x', dismissed: { 'month.record@2026-10': { at: 'x', until: '2026-11' } } } };
+      const before = JSON.stringify(input);
+      untouched(input, run(input, up), before);
+    }
+  });
+
   it('a step that adds, renames or removes ANY key in the Decision settings of a locked plan, or one with records', () => {
     for (const up of [
       (s) => { s.decisionTool.settings.newKey = 1; },

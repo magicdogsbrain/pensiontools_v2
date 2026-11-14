@@ -131,9 +131,12 @@ export function writeTouchesClosure(data) { return CLOSE_KEYS.some((k) => reache
  * after it, its plan of record and the archive of it), what you hold and its tick-offs, and the plan document and its past
  * versions — which stay as they were at the close, so an unlock's archive or "Write a new version" can never clear or
  * rewrite them — and the person's fact of money taken flexibly as it stood (the plan that carries it on has its own copy), and
- * what the person agreed to keep against it (7.7.0, planAmendments: an agreement is made on the plan as it runs, never after).
+ * what the person agreed to keep against it (7.7.0, planAmendments: an agreement is made on the plan as it runs, never after),
+ * and its phases (7.10.0, `phases`: its reviews, its agreement and the person's choices — reviews carry on with the plan that
+ * carries it on). Not the stored dismissals (`tasks`): they are not part of the record a close keeps, and a closing plan,
+ * lived on until its close, still puts its month to-dos off (LockedPlanGuard.phaseWriteRefusal).
  */
-export const FROZEN_WHEN_CLOSED = Object.freeze(['decisionTool', 'holdings', 'transition', 'planDocument', 'planDocumentArchive', 'flexibleAccess', 'planAmendments']);
+export const FROZEN_WHEN_CLOSED = Object.freeze(['decisionTool', 'holdings', 'transition', 'planDocument', 'planDocumentArchive', 'flexibleAccess', 'planAmendments', 'phases']);
 export function writeTouchesClosedParts(data) { return FROZEN_WHEN_CLOSED.some((k) => reaches(data, k)); }
 /** Does a write reach Month by month (where the plan that carries one on keeps its first month)? */
 export function writeTouchesMonths(data) { return reaches(data, 'decisionTool'); }
@@ -178,14 +181,18 @@ function addedRecords(plan, data) {
  * versions, the plan of record or its archive (plan vs actual and the document stay as they were at the close). The months
  * up to `closedAt`, and their tax years, stay as they are and may still be written (a month missed before the close can be
  * filled in). Null for a plan that is not closed.
+ * Every frozen root but Month by month is compared whole (FROZEN_WHEN_CLOSED, in its order); Month by month only by its
+ * months and tax years after the close and its plan of record, so how often months are recorded
+ * (`decisionTool.recordMonths`) stays the person's to change.
  * @returns {string[]|null}  the parts refused ('decisionTool.history', 'decisionTool.taxYears.27/28', 'holdings', 'transition',
- *   'planDocument', 'planDocumentArchive', 'flexibleAccess', 'planAmendments', 'decisionTool.planOfRecord', 'decisionTool.planOfRecordArchive')
+ *   'planDocument', 'planDocumentArchive', 'flexibleAccess', 'planAmendments', 'phases', 'decisionTool.planOfRecord',
+ *   'decisionTool.planOfRecordArchive')
  */
 export function closedPlanRefusal(plan, data) {
   const c = closedAtOf(plan);
   if (!c || !writeTouchesClosedParts(data)) return null;
   const bad = [];
-  for (const k of ['holdings', 'transition', 'planDocument', 'planDocumentArchive', 'flexibleAccess', 'planAmendments']) if (reaches(data, k) && text(plan[k]) !== text(rootAfter(plan, data, k))) bad.push(k);
+  for (const k of FROZEN_WHEN_CLOSED.filter((x) => x !== 'decisionTool')) if (reaches(data, k) && text(plan[k]) !== text(rootAfter(plan, data, k))) bad.push(k);
   if (reaches(data, 'decisionTool')) {
     const before = isObj(plan.decisionTool) ? plan.decisionTool : {};
     const after = decisionAfter(plan, data);

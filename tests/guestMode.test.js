@@ -86,6 +86,19 @@ describe('a guest\'s stored plans are never the objects the app holds (review of
     expect(guestSnapshot()[0].decisionTool.settings).toEqual({ locked: true });
     leaveGuestMode(); clearGuestData();
   });
+  it('a guest\'s save with { stamp: false } (a to-do put off, 7.10.0) leaves lastModified as stored; every other save stamps it', async () => {
+    enterGuestMode(); clearGuestData();
+    const id = await createScenario({ planDetails: { name: 'P' }, isActive: true });
+    const stamped = guestSnapshot()[0].lastModified;
+    seedGuest([{ ...guestSnapshot()[0], lastModified: '2026-09-30T08:00:00.000Z' }]);
+    await saveScenario(id, { tasks: { dismissed: { 'month.record@2026-10': { at: '2026-10-02T12:00:00.000Z', until: '2026-11' } } } }, { stamp: false });
+    expect(guestSnapshot()[0].lastModified).toBe('2026-09-30T08:00:00.000Z');
+    expect(guestSnapshot()[0].tasks.dismissed['month.record@2026-10'].until).toBe('2026-11');
+    await saveScenario(id, { journey: [] });
+    expect(guestSnapshot()[0].lastModified).not.toBe('2026-09-30T08:00:00.000Z');
+    expect(typeof stamped).toBe('string');
+    leaveGuestMode(); clearGuestData();
+  });
   it('what was handed to a save is copied: changing it afterwards changes nothing stored', async () => {
     enterGuestMode(); clearGuestData();
     const settings = { currentAge: 48 };

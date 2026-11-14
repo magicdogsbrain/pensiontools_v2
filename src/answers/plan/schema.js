@@ -914,6 +914,29 @@ export function isPlanEditPath(path) {
   return ABOUT_PATHS.includes(path) || path === 'stopAskLeft' || path === 'moveSpDate' || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path) || isHoldPath(path) || isBudgetPath(path) || isSavingPath(path) || isCheckInPath(path) || isMonthPath(path);
 }
 
+// ---- The three phases and the one review (7.10.0; services/Phases.js, answers/plan/tasks.js) ----------------------------
+
+/**
+ * A review's save and each choice the person makes for their phases (the saving level, the window, how often, the rule):
+ * the whole `phases` root, written from the root as stored (Phases.phasesPatch: one part set, the history or the log
+ * appended), and the stamp. Outside the lock (a locked plan's phases are the person's, not the document's); refused once a
+ * plan has a close (LockedPlanGuard.phaseWriteRefusal, PlanClosed.FROZEN_WHEN_CLOSED).
+ */
+export const PHASE_WRITES = Object.freeze(['phases', 'lastModified']);
+/**
+ * A to-do put off or marked done on the home ("Not now", "I have done this"): the whole `tasks` root and NOTHING else — no
+ * stamp, so a dismissal never spoils an open run's key, reorders "Your plans" or changes a "changed on" line (the moment is
+ * kept in `tasks.dismissed[key].at`). The classic page writes it with saveScenario's `{ stamp: false }`.
+ */
+export const TASK_WRITES = Object.freeze(['tasks']);
+/** "Keep a record of each month here" on Month by month: its own field, outside the Decision settings and the lock, and the stamp. */
+export const RECORD_WRITES = Object.freeze(['decisionTool.recordMonths', 'lastModified']);
+/**
+ * "Yes, this is my plan" on the Moving review, and its withdrawal: ONE press, ONE write — the agreement in `phases` (with its
+ * review entry and its history line) and the one `asHeld` entry it carries in `planAmendments`, and the stamp.
+ */
+export const AGREE_WRITES = Object.freeze(['phases', 'planAmendments', 'lastModified']);
+
 /** Every dotted field path "Money that comes in anyway" may change: the planner's own keys (7.3). */
 export const INCOME_WRITES = Object.freeze([
   'stressTool.settings.spWeeklyAmount',
@@ -937,7 +960,7 @@ export const INCOME_WRITES = Object.freeze([
  */
 export const TRY_WRITES = Object.freeze([...new Set([...WAY_WRITES, ...POTS_WRITES, ...SPEND_WRITES, ...ABOUT_WRITES, ...LASTS_WRITES])]);
 
-export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES, mix: MIX_WRITES, try: TRY_WRITES, household: HOUSEHOLD_WRITES, hold: HOLD_WRITES, move: MOVE_WRITES, amend: AMEND_WRITES, budget: BUDGET_WRITES, saving: SAVING_WRITES, checkin: CHECKIN_WRITES });
+export const WRITES = Object.freeze({ about: ABOUT_WRITES, income: INCOME_WRITES, spend: SPEND_WRITES, pots: POTS_WRITES, lasts: LASTS_WRITES, lock: LOCK_WRITES, unlock: UNLOCK_WRITES, document: DOCUMENT_WRITES, way: WAY_WRITES, mix: MIX_WRITES, try: TRY_WRITES, household: HOUSEHOLD_WRITES, hold: HOLD_WRITES, move: MOVE_WRITES, amend: AMEND_WRITES, budget: BUDGET_WRITES, saving: SAVING_WRITES, checkin: CHECKIN_WRITES, phases: PHASE_WRITES, tasks: TASK_WRITES, record: RECORD_WRITES, agree: AGREE_WRITES });
 // the stamp stays last: the hold and move lists name it themselves (holdings-and-move.md §2.2, §3.8), so it is taken out of them here and put back with the bookkeeping
 // ---- "Your plans" (research/v7/road-to-7.md step 11): the plan menu's writes to a plan that exists ----------------------
 
@@ -957,4 +980,4 @@ export const PLANS_WRITES = Object.freeze(['planDetails.name', 'isActive']);
  */
 export const CLOSE_WRITES = Object.freeze(['closedAt', 'nextPlanId', 'decisionTool.settings.locked', 'decisionTool.settings.lockedAt', 'decisionTool.settings.lockedBy', 'decisionTool.settings.lockedPosition', 'household.partnerScenarioId', 'budgetTool.sharedFrom']);
 
-export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...AMEND_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BUDGET_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...SAVING_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...CHECKIN_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MONTH_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...PLANS_WRITES, ...MOVE_START_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, ...BOOKKEEPING_WRITES])]);
+export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...AMEND_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BUDGET_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...SAVING_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...CHECKIN_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MONTH_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...PLANS_WRITES, ...MOVE_START_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, ...PHASE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...TASK_WRITES, ...RECORD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...AGREE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BOOKKEEPING_WRITES])]);

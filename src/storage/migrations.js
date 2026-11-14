@@ -82,6 +82,9 @@ function protectedParts(scenario) {
     planDocumentArchive: bytes(s.planDocumentArchive),
     // what the person agreed to keep against the locked plan (7.7.0): a record of their own, as the document is
     planAmendments: bytes(s.planAmendments),
+    // the phases, the reviews and the stored dismissals (7.10.0): the person's own, written only by their presses
+    phases: bytes(s.phases),
+    tasks: bytes(s.tasks),
     'decisionTool.planOfRecord': bytes(dt.planOfRecord),
     'decisionTool.planOfRecordArchive': bytes(dt.planOfRecordArchive),
     'decisionTool.history': bytes(dt.history)

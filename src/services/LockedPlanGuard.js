@@ -72,6 +72,15 @@
  *      narrower list (checkInWriteRefusal), so it can never carry a setting, the plan document or anything else with it;
  *    - the new app's Month by month (7.2.0): the records, the tax years and the journey (MONTH_KEYS), held to that list by
  *      monthWriteRefusal in the same way;
+ *    - the phases and the review (7.10.0, `phases`, services/Phases.js): a root written whole by its one writer
+ *      (Phases.phasesPatch) — a review's save, a choice, the Moving agreement and its withdrawal. The lock freezes none of
+ *      it; a plan with a close (closing ahead included) keeps its phases as they were (PlanClosed.FROZEN_WHEN_CLOSED), and
+ *      the new app refuses them on the example plan and a plan shown as saved too (phaseWriteRefusal);
+ *    - the stored dismissals (7.10.0, `tasks`): "Not now" and "I have done this" on the home's to-dos, a root written whole
+ *      and with no stamp. Not frozen by a close (a closing plan is lived on until it closes); refused once the close has
+ *      passed, and on the example plan and a plan shown as saved (phaseWriteRefusal);
+ *    - how often months are recorded (7.10.0, `decisionTool.recordMonths`): a preference beside the draw cadence, outside the
+ *      Decision settings and their checksum, so it stays writable on a locked plan and on a closed one;
  *    - the saved-plan migrations (storage/migrations.js). They write through FirestoreService directly (not through
  *      saveScenario) and keep their own rules: no key of a locked plan's Decision settings, and from step 2 no key of
  *      its Stress settings.
@@ -81,7 +90,8 @@ import { TIMING_PIN_KEYS } from './PlanTiming.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { unlockPatchesOf } from './PlanCommit.js';
 import { reAnchorAllowance } from './PlanMove.js';
-import { isClosedPlan, closureRefusal, closedPlanRefusal, successorRefusal, writeTouchesClosure, writeTouchesClosedParts, writeTouchesMonths, writeTouchesSaverMonths } from './PlanClosed.js';
+import { isClosedPlan, closesAhead, closureRefusal, closedPlanRefusal, successorRefusal, writeTouchesClosure, writeTouchesClosedParts, writeTouchesMonths, writeTouchesSaverMonths } from './PlanClosed.js';
+import { isExamplePlan } from './GuestPlans.js';
 
 export const PLAN_LOCKED_CODE = 'plan-locked';
 /** What the person is told when a write is refused. Plain, and says where the unlock is. */
@@ -133,6 +143,29 @@ export const CHECK_IN_KEYS = Object.freeze({
 export function checkInWriteRefusal(plan, data) {
   const allowed = isLockedSettings(plan?.decisionTool?.settings) ? CHECK_IN_KEYS.locked : CHECK_IN_KEYS.unlocked;
   const bad = Object.keys(data || {}).filter((k) => k !== 'lastModified' && !allowed.includes(k)).sort();
+  return bad.length ? bad : null;
+}
+
+/**
+ * The phases and the stored dismissals (7.10.0): may this write (dotted keys) go to `plan`? Beside the whole guard (which runs
+ * on every write as well: a plan with a close keeps its `phases`, PlanClosed.FROZEN_WHEN_CLOSED), the new app's own rule:
+ *   - `phases` (a review's save, a choice, the agreement): refused on a plan with a close, closing ahead included (reviews
+ *     carry on with the plan that carries it on), on the example plan, and on an entry shown as saved (`readonly`: a newer
+ *     or failed read);
+ *   - `tasks` (a to-do put off or done): refused once the close has passed — a closing plan is lived on until its close, so
+ *     its month to-dos keep "Not now" — on the example plan, and on an entry shown as saved.
+ * Every other key is left to its own list and the guard. The keys refused, or null.
+ * @param {object} plan  the plan as read
+ * @param {object} data  the write
+ * @param {{ now?: Date, readonly?: boolean }} [o]
+ * @returns {string[]|null}
+ */
+export function phaseWriteRefusal(plan, data, { now = new Date(), readonly = false } = {}) {
+  const example = isExamplePlan(plan);
+  const hasClose = isClosedPlan(plan) || (!!plan && plan.closedAt != null);
+  const closePassed = isClosedPlan(plan) && !closesAhead(plan, now);
+  const under = (k, root) => k === root || k.startsWith(root + '.');
+  const bad = Object.keys(data || {}).filter((k) => (under(k, 'phases') && (readonly || example || hasClose)) || (under(k, 'tasks') && (readonly || example || closePassed))).sort();
   return bad.length ? bad : null;
 }
 

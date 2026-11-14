@@ -244,16 +244,21 @@ export async function loadScenario(scenarioId) {
  * (refuseIfStoredLocked: PlanLockedError, code 'plan-locked', nothing written, never retried). A failed read lets the
  * write go ahead as before; the repositories' own check, against the plan as this tab loaded it, has already passed.
  *
+ * The stamp (7.10.0): every write sets `lastModified`, except one made with `{ stamp: false }` — a to-do put off or done on
+ * the home (ScenarioRepository.saveActivePlanTasks, schema.js TASK_WRITES), which must not spoil an open run's key, reorder
+ * "Your plans" or change a "changed on" line. Guest and signed-in alike leave `lastModified` as stored then.
+ *
  * @param {string} scenarioId - Scenario document ID
  * @param {object} data - Scenario data (may use dot-notation keys for nested updates)
+ * @param {{ stamp?: boolean }} [o] - `stamp: false` leaves `lastModified` as stored
  * @returns {Promise<void>}
  */
-export async function saveScenario(scenarioId, data) {
+export async function saveScenario(scenarioId, data, { stamp = true } = {}) {
   const guarded = !onlyActiveFlag(data);
   if (guarded && newerPlanIds.has(scenarioId)) throw new PlanNewerThanAppError(scenarioId);
   // Guest: the same dot-notation keys updateDoc would read as NESTED paths are folded onto them (normalizeScenario), so a
   // guest plan never grows literal "decisionTool.settings" fields that hide the real edits (6.13.0).
-  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { if (guarded && isNewerSchema(list[i])) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); } if (examplePlanWriteRefusal(list[i], data)) throw new ExamplePlanError(); refuseIfStoredLocked(list[i], data); list[i] = normalizeScenario({ ...list[i], ...data, lastModified: new Date().toISOString() }).scenario; guestSave(list); } return; }
+  if (isGuest()) { const list = guestList(); const i = list.findIndex((y) => y.id === scenarioId); if (i >= 0) { if (guarded && isNewerSchema(list[i])) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); } if (examplePlanWriteRefusal(list[i], data)) throw new ExamplePlanError(); refuseIfStoredLocked(list[i], data); list[i] = normalizeScenario({ ...list[i], ...data, ...(stamp ? { lastModified: new Date().toISOString() } : {}) }).scenario; guestSave(list); } return; }
   if (!isFirebaseConfigured()) return;
 
   const docRef = getUserDoc('scenarios', scenarioId);
@@ -269,7 +274,7 @@ export async function saveScenario(scenarioId, data) {
       if (stored && stored.exists() && isNewerSchema(stored.data())) { flagNewer(scenarioId); throw new PlanNewerThanAppError(scenarioId); }
       if (stored && stored.exists()) refuseIfStoredLocked(stored.data(), data);
     }
-    return updateDoc(docRef, { ...data, lastModified: new Date().toISOString() });
+    return updateDoc(docRef, stamp ? { ...data, lastModified: new Date().toISOString() } : { ...data });
   };
   try {
     await withTimeout(write(), WRITE_TIMEOUT_MS, 'Saving took too long');

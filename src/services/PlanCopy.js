@@ -22,7 +22,11 @@
  *     - the person's fact of money taken from a pension flexibly (`flexibleAccess`, services/FlexibleAccess.js) IS carried, as
  *       what is held is: it is the person's, not the plan's, and a copy of a saving plan still has the £10,000 limit to say;
  *     - what the person agreed to keep against the locked plan (7.7.0, `planAmendments`) is never carried: it was agreed
- *       against that plan's document, which a copy does not have.
+ *       against that plan's document, which a copy does not have;
+ *     - of the phases (7.10.0, `phases`, services/Phases.js) a copy keeps the person's choices — the saving level, the move
+ *       window, how often a review falls and the rule for off course — and `of`, never the Moving agreement, the reviews or
+ *       the history: they belong to the plan they were made on (Phases.phasesForCopy). The stored dismissals (`tasks`) are
+ *       never carried: a copy is a new plan with its own to-dos.
  *
  * Pure: no storage, no clock of its own (`now` comes in), the source never changed.
  */
@@ -30,6 +34,7 @@ import { normaliseHoldings } from './HoldingsRecord.js';
 import { isChargesPct, chargesPctOf } from './Charges.js';
 import { DEFAULT_ISA_GROWTH, isIsaGrowth } from './IsaGrowth.js';
 import { CLOSE_KEYS, SUCCESSOR_KEYS } from './PlanClosed.js';
+import { phasesForCopy } from './Phases.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
@@ -59,6 +64,9 @@ export function copyOf(source, name, { carryHistory = true, now } = {}) {
   if (data.holdings) data.holdings = normaliseHoldings(data.holdings);
   // what was agreed against the locked plan (7.7.0) belongs to that plan and its document: a copy has neither
   delete data.planAmendments;
+  // the phases keep the person's choices only; the to-dos put off or done are the plan's own (7.10.0)
+  delete data.tasks;
+  if ('phases' in data) { const kept = phasesForCopy(data.phases); if (kept) data.phases = kept; else delete data.phases; }
   if (isObj(data.decisionTool)) {
     data.decisionTool = { ...data.decisionTool };
     data.decisionTool.settings = { ...(isObj(data.decisionTool.settings) ? data.decisionTool.settings : {}), locked: false };

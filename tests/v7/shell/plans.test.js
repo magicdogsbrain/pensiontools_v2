@@ -347,6 +347,20 @@ describe('Open a downloaded copy: the file checked, identity stripped, a plan of
     expect(p.store.getState().ui.saving).toBe(null);
     p.stop();
   });
+  it('a file with phases and dismissals (7.10.0) opens as a new plan: the choices kept, the agreement, the reviews, the history and the dismissals left behind', async () => {
+    const p = page({ raws: [DRAFT], session: 'nobody' });
+    const src = copy(upgradeScenario(COUPLE_B, { now: NOW }).scenario);
+    const at = '2026-09-01T12:00:00.000Z';
+    src.phases = { of: src.createdAt, moving: { window: { years: 2, at }, agreed: { at, strategyId: 'pots-and-valves', how: 'asHeld', heldPct: 80, entryAt: at } }, review: { every: 'quarter', log: [{ at, phase: 'moving' }] }, history: [{ at, what: 'window', from: null, to: 2 }] };
+    src.tasks = { of: src.createdAt, dismissed: { 'month.record@2026-09': { at, until: '2026-10' } } };
+    p.store.dispatch({ type: A.PLAN_OPEN_FILE, file: file(planExportJson(src)) });
+    await tick(12);
+    const after = stored(p);
+    expect(after.length).toBe(2);
+    expect(after[1].phases).toEqual({ of: src.createdAt, moving: { window: { years: 2, at } }, review: { every: 'quarter' } });
+    expect('tasks' in after[1]).toBe(false);
+    p.stop();
+  });
   it('a locked plan\'s file opens by the copy\'s rules: the records carried and the copy locked, the document left behind', async () => {
     const p = page({ raws: [DRAFT], session: 'nobody' });
     p.store.dispatch({ type: A.PLAN_OPEN_FILE, file: file(planExportJson(LADDER)) });

@@ -47,6 +47,7 @@ import { unlockPlan, lockPlanIfNeeded } from '../src/services/PlanLock.js';
 import { budgetSpendingPatch } from '../src/services/BudgetToPlan.js';
 import { defaultBudget } from '../src/services/BudgetModel.js';
 import { PLAN_LOCKED_CODE, PLAN_LOCKED_MESSAGE } from '../src/services/LockedPlanGuard.js';
+import { saveScenario } from '../src/firebase/FirestoreService.js';
 import { TIMING_PIN_KEYS } from '../src/services/PlanTiming.js';
 
 const PATH = 'users/u1/scenarios/p1';
@@ -264,5 +265,37 @@ describe('signed in: where a plan\'s pots belong is said on the copy in memory, 
     await unlockPlan();
     expect((await getStressSettingsAsync()).potsAsOf).toBe('today');
     expect('potsAsOf' in storedPlan().stressTool.settings).toBe(false);
+  });
+});
+
+/**
+ * 7.10.0 (spec-7100 §1.2): a to-do put off on the home writes `tasks` and nothing else — no stamp (`{ stamp: false }`), so an
+ * open run's key, the order of "Your plans" and a "changed on" line stay as they were. Every other write is stamped as before.
+ * The store refuses `phases` on a plan with a close, and never the dismissals of a plan lived on until it closes.
+ */
+describe('signed in: the stamp, and the phases on a plan with a close (7.10.0)', () => {
+  const TASKS = { of: 'x', dismissed: { 'month.record@2026-10': { at: '2026-10-02T12:00:00.000Z', until: '2026-11' } } };
+  it('{ stamp: false } leaves lastModified as stored: one updateDoc of exactly the data handed in', async () => {
+    fs.state.docs = new Map([[PATH, { ...fixture('13-stopped-drawing-since'), lastModified: '2026-09-30T08:00:00.000Z' }]]);
+    fs.state.calls = [];
+    await saveScenario('p1', { tasks: TASKS }, { stamp: false });
+    const w = writesTo();
+    expect(w).toHaveLength(1);
+    expect(w[0].data).toEqual({ tasks: TASKS });
+    expect(storedPlan().lastModified).toBe('2026-09-30T08:00:00.000Z');
+    // without the option: stamped, as every write always was
+    await saveScenario('p1', { journey: [] });
+    expect(Object.keys(writesTo()[1].data).sort()).toEqual(['journey', 'lastModified']);
+    expect(storedPlan().lastModified).not.toBe('2026-09-30T08:00:00.000Z');
+  });
+  it('the store refuses `phases` on a closed plan and on one closing ahead, and lets the closing plan\'s dismissals through', async () => {
+    fs.state.docs = new Map([[PATH, fixture('18-moved-to-new-plan')]]);
+    fs.state.calls = [];
+    await expect(saveScenario('p1', { phases: { review: { every: 'month' } } })).rejects.toMatchObject({ code: PLAN_LOCKED_CODE, keys: ['phases'] });
+    expect(writesTo()).toHaveLength(0);
+    fs.state.docs = new Map([[PATH, { ...fixture('13-stopped-drawing-since'), closedAt: '2099-12', nextPlanId: 'NextPlanAlex' }]]);
+    await expect(saveScenario('p1', { phases: { review: { every: 'month' } } })).rejects.toMatchObject({ code: PLAN_LOCKED_CODE, keys: ['phases'] });
+    await saveScenario('p1', { tasks: TASKS }, { stamp: false });
+    expect(storedPlan().tasks).toEqual(TASKS);
   });
 });

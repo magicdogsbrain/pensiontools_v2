@@ -7,8 +7,12 @@ import { describe, it, expect } from 'vitest';
 import {
   PLAN_LOCKED_CODE, PLAN_LOCKED_MESSAGE, PlanLockedError, isPlanLockedError, LOCKED_BOOKKEEPING, UNLOCK_KEYS, DECLINING_BAKE_KEYS,
   isLockedSettings, changedKeys, isDecliningBake, isUnlock, lockedWriteRefusal, lockedSettingsToWrite,
-  writeTouchesLockedParts, lockedPartsAfter, lockedPlanWriteRefusal
+  writeTouchesLockedParts, lockedPartsAfter, lockedPlanWriteRefusal, phaseWriteRefusal, writeNeedsGuard
 } from '../src/services/LockedPlanGuard.js';
+import { readFileSync } from 'node:fs';
+import { upgradeScenario } from '../src/firebase/scenarioMigration.js';
+import { FROZEN_WHEN_CLOSED } from '../src/services/PlanClosed.js';
+import { getDefaultStressSettings } from '../src/storage/stressDefaults.js';
 import { TIMING_PIN_KEYS } from '../src/services/PlanTiming.js';
 import { spendingSmileFactor } from '../src/services/SpendingModel.js';
 import { decisionSettingsChecksum } from '../src/storage/DecisionRepository.js';
@@ -217,5 +221,58 @@ describe('the same rules against the plan AS STORED (FirestoreService.saveScenar
     expect(lockedPlanWriteRefusal(noStress, { 'stressTool.settings': { ...DEFAULTS, baseSalary: 1 } }, DEFAULTS)).toEqual(['stress.baseSalary']);
     // with no defaults to hand, nothing but bookkeeping can be told apart: refused, the safe way round
     expect(lockedPlanWriteRefusal(noStress, { 'stressTool.settings': { ...DEFAULTS, firstTaxYear: 2027 } })).not.toBeNull();
+  });
+});
+
+/**
+ * 7.10.0 (spec-7100 §1.2): the phases and the stored dismissals. A plan with a close keeps its `phases` as they were (the
+ * close freezes them, closing ahead included); its `tasks` are not part of the record a close keeps. How often months are
+ * recorded is outside the Decision settings: writable on a locked plan and on a closed one.
+ */
+describe('the phases, the dismissals and how often months are recorded (7.10.0)', () => {
+  const NOW = new Date(2026, 9, 2, 12);
+  const read = (name) => upgradeScenario(JSON.parse(readFileSync('tests/fixtures/plans/' + name + '.json', 'utf8')), { now: NOW }).scenario;
+  const CLOSED = read('18-moved-to-new-plan');      // closed at the end of March 2025
+  const LOCKED = read('13-stopped-drawing-since');  // locked, months recorded, no close
+  const DEFAULTS = getDefaultStressSettings();
+  const PHASES = { of: 'x', review: { every: 'quarter' } };
+  const TASKS = { of: 'x', dismissed: { 'month.record@2026-10': { at: '2026-10-02T12:00:00.000Z', until: '2026-11' } } };
+  it('the close freezes `phases` (and every other frozen root, compared whole); never `tasks`', () => {
+    expect(FROZEN_WHEN_CLOSED).toEqual(['decisionTool', 'holdings', 'transition', 'planDocument', 'planDocumentArchive', 'flexibleAccess', 'planAmendments', 'phases']);
+    expect(lockedPlanWriteRefusal(CLOSED, { phases: PHASES }, DEFAULTS)).toEqual(['phases']);
+    expect(lockedPlanWriteRefusal(CLOSED, { 'phases.review.every': 'month' }, DEFAULTS)).toEqual(['phases']);
+    expect(lockedPlanWriteRefusal(CLOSED, { tasks: TASKS }, DEFAULTS)).toBe(null);
+    expect(writeNeedsGuard(CLOSED, { phases: PHASES })).toBe(true);
+    expect(writeNeedsGuard(CLOSED, { tasks: TASKS })).toBe(false);
+    // the same phases written again change nothing, so nothing is refused (as every frozen root)
+    expect(lockedPlanWriteRefusal({ ...CLOSED, phases: PHASES }, { phases: JSON.parse(JSON.stringify(PHASES)) }, DEFAULTS)).toBe(null);
+    // a closing plan (its close still to come) keeps its phases too
+    const closing = { ...LOCKED, closedAt: '2027-03', nextPlanId: 'NextPlanAlex' };
+    expect(lockedPlanWriteRefusal(closing, { phases: PHASES }, DEFAULTS)).toEqual(['phases']);
+    expect(lockedPlanWriteRefusal(closing, { tasks: TASKS }, DEFAULTS)).toBe(null);
+  });
+  it('a locked plan (no close): the phases, the dismissals and how often months are recorded all go — the lock freezes none', () => {
+    expect(lockedPlanWriteRefusal(LOCKED, { phases: PHASES, lastModified: 'now' }, DEFAULTS)).toBe(null);
+    expect(lockedPlanWriteRefusal(LOCKED, { tasks: TASKS }, DEFAULTS)).toBe(null);
+    expect(lockedPlanWriteRefusal(LOCKED, { 'decisionTool.recordMonths': false, lastModified: 'now' }, DEFAULTS)).toBe(null);
+    expect(writeTouchesLockedParts({ 'decisionTool.recordMonths': true })).toBe(false);
+  });
+  it('how often months are recorded stays writable on a closed plan; its months after the close do not', () => {
+    expect(lockedPlanWriteRefusal(CLOSED, { 'decisionTool.recordMonths': false }, DEFAULTS)).toBe(null);
+    expect(lockedPlanWriteRefusal(CLOSED, { 'decisionTool.recordMonths': true, 'decisionTool.history': [...CLOSED.decisionTool.history, { date: '2025-05-12T19:00:00.000Z', monthlyNet: 1 }] }, DEFAULTS)).toEqual(['decisionTool.history']);
+  });
+  it('the new app\'s own rule (phaseWriteRefusal): phases on a plan with a close, the example or a plan shown as saved; tasks once the close has passed', () => {
+    const at = new Date(2026, 9, 2, 12);
+    const closing = { ...LOCKED, closedAt: '2026-12', nextPlanId: 'NextPlanAlex' };
+    expect(phaseWriteRefusal(LOCKED, { phases: PHASES, lastModified: 'x' }, { now: at })).toBe(null);
+    expect(phaseWriteRefusal(LOCKED, { tasks: TASKS }, { now: at })).toBe(null);
+    expect(phaseWriteRefusal(closing, { phases: PHASES }, { now: at })).toEqual(['phases']);
+    expect(phaseWriteRefusal(closing, { tasks: TASKS }, { now: at })).toBe(null);                  // lived on until it closes
+    expect(phaseWriteRefusal(closing, { tasks: TASKS }, { now: new Date(2027, 0, 5, 12) })).toEqual(['tasks']);
+    expect(phaseWriteRefusal(CLOSED, { phases: PHASES, tasks: TASKS }, { now: at })).toEqual(['phases', 'tasks']);
+    expect(phaseWriteRefusal({ ...LOCKED, example: true }, { tasks: TASKS, phases: PHASES }, { now: at })).toEqual(['phases', 'tasks']);
+    expect(phaseWriteRefusal(LOCKED, { 'tasks.dismissed': {} }, { now: at, readonly: true })).toEqual(['tasks.dismissed']);
+    // every other key is left to its own list and the guard
+    expect(phaseWriteRefusal(CLOSED, { planAmendments: [], 'decisionTool.recordMonths': true }, { now: at })).toBe(null);
   });
 });

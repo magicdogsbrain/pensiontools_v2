@@ -32,7 +32,8 @@
 import { LIFE_TABLE, jointSurvivalOf, horizonEndAge, weightToAge, sexKey } from '../../services/LongevityModel.js';
 import { ageOnDate, birthdayOf, deriveTiming } from '../../services/PlanTiming.js';
 import { grossToNet } from '../../services/TaxCalculator.js';
-import { RULES, LEVEL_DEFAULT, levelOf } from '../shared/rules.js';
+import { RULES } from '../shared/rules.js';
+import { planLevelOf } from '../../services/Phases.js';
 import { guaranteedAtYear } from './spend.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -143,11 +144,9 @@ export function lifeOf(plan, now, { settings, startAge = null, table = LIFE_TABL
   return { ...life, reason: householdReasonOf(plan) };
 }
 
-/** The level a saved plan is judged at: the kept answer's when the person chose one there, else Balanced. */
-export function planLevelOf(plan) {
-  const row = plan && isObj(plan.fromAnswer) && isObj(plan.fromAnswer.answer) ? plan.fromAnswer.answer : null;
-  return row && row.levelChosen === true ? levelOf(row.level, { stored: true }) : LEVEL_DEFAULT;
-}
+/** The level a saved plan is judged at: the kept answer's when the person chose one there, else Balanced. One rule, in
+ *  services/Phases.js (the off-course line follows it too). */
+export { planLevelOf };
 
 /** Why there is no weighted figure: the household's reason, else a strategy whose purchases follow the plan's length when the plan ends early. */
 export function weightedReasonOf(life, strategyId, p) {

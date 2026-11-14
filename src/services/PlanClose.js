@@ -33,7 +33,9 @@
  * same plan is locked as any saver's is, and its "stopped work" month is the second stop.
  * Every close carries the person's own facts (CARRIED_FACTS): `flexibleAccess` (services/FlexibleAccess.js), written on the
  * new plan when the closed plan carries it or has any taxable draw recorded, never on a plan closed with no draw, and never
- * on the closed plan (the close writes only its two keys there).
+ * on the closed plan (the close writes only its two keys there). The phases (7.10.0, services/Phases.js) go as a copy keeps
+ * them — the person's choices, never the reviews or the history — and on a move to a new plan (reason 'plan') the Moving
+ * agreement too, marked `carriedFrom` the closed plan (Phases.phasesForSuccessor); back to work carries none.
  *
  * Pure: no storage, no DOM, no clock of its own (`now` comes in).
  */
@@ -48,6 +50,7 @@ import { deriveStage } from './LifeStage.js';
 import { isClosedPlan, monthAfter, monthBefore, monthWordsOf, lastRecordedMonth, planNameOf } from './PlanClosed.js';
 import { carriedFlexibleAccess } from './FlexibleAccess.js';
 import { potRecordOf } from './SaverReading.js';
+import { phasesForSuccessor } from './Phases.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(+v) ? null : +v);
@@ -350,6 +353,8 @@ export function successorOf(plan, { month, name, now, pots = null, keepPartner =
   const data = copyOf(bare, name, { carryHistory: false, now });
   // the copy carries none of the close's links (PlanCopy.copyOf); the tick-offs and the journey are the old plan's
   for (const key of ['transition', 'journey']) delete data[key];
+  // the phases: the person's choices (the copy's), and on a move to a new plan the Moving agreement, carried (7.10.0)
+  { const ph = phasesForSuccessor(data.phases, plan, { reason }); if (ph) data.phases = ph; else delete data.phases; }
   if (!keepPartner && data.household) { const { partnerScenarioId, splitDismissed, ...rest } = data.household; void partnerScenarioId; void splitDismissed; data.household = rest; }
   const potKeys = potsSettings(settingsOf(plan, 'stress'), given);
   const st = isObj(data.stressTool) ? data.stressTool : {};

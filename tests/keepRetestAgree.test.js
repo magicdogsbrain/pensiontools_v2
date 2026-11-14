@@ -70,11 +70,16 @@ describe('a pot plan never asks to sell, or to replace, what is kept (every stra
     expect(lines.reduce((s, t) => s + t.value, 0)).toBeGreaterThan(inPlay - 3);
     expect(lines.reduce((s, t) => s + t.value, 0)).toBeLessThan(inPlay + 3);
   });
-  it('a plan that keeps nothing reads the plan\'s pot exactly as before', () => {
+  // retaken in 7.10.0 (spec-7100 §3.1 fix 1): a plan that keeps nothing is read as one that keeps something is — the plan's own
+  // mix on the pension money in play today, never the pot it was locked with
+  it('a plan that keeps nothing reads the plan\'s mix on the pension in play today, as one that keeps something does', () => {
     const p = alex();
     const t = targetHoldings(p.planDocument, { today: noon(TODAY) });
     const d = diffHoldings(normaliseHoldings(p.holdings).lines, t, { needs: yearNeedsOf(p.planDocument), today: noon(TODAY) });
-    for (const x of [...d.hold, ...d.buy, ...d.sell].filter((y) => y.kind === 'bucket')) expect(x.value).toBe(t.lines.find((l) => l.key === x.key).value);
+    const inPlay = p.holdings.lines.filter((l) => l.wrapper === 'SIPP' && !l.keep).reduce((s, l) => s + l.value, 0);
+    const pctSum = t.lines.reduce((s, l) => s + l.pct, 0);
+    expect(d.inPlay).toBe(inPlay);
+    for (const x of [...d.hold, ...d.buy, ...d.sell].filter((y) => y.kind === 'bucket')) expect(x.value).toBe(Math.round(inPlay * t.lines.find((l) => l.key === x.key).pct / pctSum));
     expect(d).not.toHaveProperty('kept');
   });
 });

@@ -102,7 +102,11 @@ describe('diffHoldings — buckets', () => {
     const d = diffHoldings([{ ticker: 'VWRP', value: 320000, wrapper: 'SIPP' }, { ticker: 'IGLT', value: 60000, wrapper: 'SIPP' }, { ticker: 'CSH2', value: 20000, wrapper: 'SIPP' }], tgt(potDoc));
     expect(d.sell.find((s) => s.bucket === 'shares').amount).toBe(120000);
     expect(d.buy.find((b) => b.bucket === 'bonds').amount).toBe(100000);
-    expect(d.buy.find((b) => b.bucket === 'cash').amount).toBe(20000);
+    // retaken in 7.10.0 (MOVE_BAND): cash £20,000 short of £40,000 is within 5% of the £400,000 pension, so it is held
+    expect(d.hold.find((b) => b.bucket === 'cash')).toMatchObject({ value: 40000, heldValue: 20000 });
+    // … and with no cash at all, £40,000 short is beyond it: a buy
+    const none = diffHoldings([{ ticker: 'VWRP', value: 320000, wrapper: 'SIPP' }, { ticker: 'IGLT', value: 80000, wrapper: 'SIPP' }], tgt(potDoc));
+    expect(none.buy.find((b) => b.bucket === 'cash').amount).toBe(40000);
   });
 });
 
@@ -249,7 +253,8 @@ describe('time-aware ladder target (6.12)', () => {
   });
   it('buckets: complete when every bucket is within tolerance; a 0% bucket needs nothing', () => {
     const t = tgt(potDoc);
-    expect(diffHoldings([{ ticker: 'VWRP', value: 200000, wrapper: 'SIPP' }, { ticker: 'IGLT', value: 160000, wrapper: 'SIPP' }, { ticker: 'CSH2', value: 40000, wrapper: 'SIPP' }], t)).toMatchObject({ complete: true, reason: 'every bucket is within 2% of its target' });
+    // retaken in 7.10.0: MOVE_BAND replaces the 2% tolerance for buckets
+    expect(diffHoldings([{ ticker: 'VWRP', value: 200000, wrapper: 'SIPP' }, { ticker: 'IGLT', value: 160000, wrapper: 'SIPP' }, { ticker: 'CSH2', value: 40000, wrapper: 'SIPP' }], t)).toMatchObject({ complete: true, reason: 'every bucket is within 5% of the pension of its target' });
     const noCash = tgt({ ...potDoc, targetMix: [{ y: 0, equity: 60, bond: 40, cash: 0 }] });
     const d = diffHoldings([{ ticker: 'VWRP', value: 240000, wrapper: 'SIPP' }, { ticker: 'IGLT', value: 160000, wrapper: 'SIPP' }], noCash);
     expect(d.sell).toEqual([]);

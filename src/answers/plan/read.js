@@ -496,8 +496,9 @@ function planStep(C) {
   }
   if (firstTaxYear) about.push(line('about.firstYear', [], figures, src, { year: taxYearLabel(firstTaxYear) }));
   const N = locked && doc ? ((doc.timeline && doc.timeline.length) || (doc.assumptions && doc.assumptions.duration) || null) : num(ss.duration);
-  // the age reached in the plan's last year is start + years − 1 (the planner's "— to age" hint, PlanTiming.describeTiming)
-  if (N) { figures.years = N; const ageAt = (timing && num(timing.shapeAgeNow) != null ? timing.shapeAgeNow : num(ss.shapeAgeNow)); if (ageAt != null) figures.ageEnd = ageAt + N - 1; about.push(line('about.runs', [count('years'), ' years' + (ageAt != null ? ', to age ' : '')].concat(ageAt != null ? [age('ageEnd')] : []), figures, src)); }
+  // the age the plan runs to, as every page of both apps says it: "to 97" = to the 97th birthday (rules.js planToAgeOf; the
+  // planner's "— to age" hint and PlanTiming.describeTiming say the same)
+  if (N) { figures.years = N; const ageAt = (timing && num(timing.shapeAgeNow) != null ? timing.shapeAgeNow : num(ss.shapeAgeNow)); if (ageAt != null) figures.ageEnd = planToAgeOf(ageAt, N); about.push(line('about.runs', [count('years'), ' years' + (ageAt != null ? ', to age ' : '')].concat(ageAt != null ? [age('ageEnd')] : []), figures, src)); }
 
   // What the plan pays
   const pays = [];

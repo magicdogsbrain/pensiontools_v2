@@ -12,7 +12,9 @@
 import { describe, it, expect } from 'vitest';
 import { planToAgeOf, toAgeAsWritten, TO_AGE_RULE } from '../../../src/answers/shared/rules.js';
 import { planToAgeOfDefinition, LEGACY_DEFINITION } from '../../../src/services/PlanDocument.js';
-import { lockedLastsWords } from '../../../src/answers/plan/read.js';
+import { lockedLastsWords, planPage } from '../../../src/answers/plan/read.js';
+import { savedAbout } from '../../../src/answers/plan/about.js';
+import { describeTiming, deriveTiming } from '../../../src/services/PlanTiming.js';
 import { verdictBlockView, successLineHtml, countAgeHtml } from '../../../src/ui/oneAnswerView.js';
 import { oneAnswer } from '../../../src/services/OneAnswer.js';
 import { runForDocument } from '../../../src/answers/plan/lastsRun.js';
@@ -21,7 +23,7 @@ import { amendmentEntry, keepFingerprint, holdingsKeyOf, keptLinesOf, othersValu
 import { keepTestOf, sayKeep } from '../../../src/answers/plan/keepTest.js';
 import { KEEPTEST } from '../../../src/v7/copy/keepTest.js';
 import { normaliseHoldings } from '../../../src/services/HoldingsRecord.js';
-import { corpus, entryOf, TODAY, noon } from './_plans.js';
+import { corpus, entryOf, entriesAt, TODAY, noon } from './_plans.js';
 
 const C = corpus();
 const now = noon(TODAY);
@@ -102,5 +104,32 @@ describe('an accepted keep agreement says the age it was made under', () => {
     }
     // nothing stored is rewritten by reading it
     expect(was.retest.asHeld.endAge).toBe(89);
+  });
+});
+
+describe('the plan home\'s "Your plan" step says the age every other page says', () => {
+  it('on every plan of the corpus: the step\'s "runs N years, to age" = About\'s end age = the planner\'s timing line', () => {
+    const entries = entriesAt(TODAY);
+    let seen = 0;
+    for (const e of entries) {
+      const pg = planPage(entries, e.plan.id, null, { today: TODAY });
+      const step = pg && pg.found !== false && Array.isArray(pg.steps) ? pg.steps.find((s) => s.figures && s.figures.ageEnd != null) : null;
+      if (!step) continue;
+      seen += 1;
+      const { ageEnd, years } = step.figures;
+      const sa = savedAbout(e.plan, { today: TODAY });
+      if (sa && sa.values && sa.values.endAge != null && !(e.plan.decisionTool && e.plan.decisionTool.settings && e.plan.decisionTool.settings.locked)) expect(ageEnd, e.plan.id + ': About').toBe(+sa.values.endAge);
+      const ss = e.plan.stressTool && e.plan.stressTool.settings;
+      const said = ss ? /Plan runs to age (\d+)\./.exec(describeTiming(deriveTiming(ss, now), ss, now)) : null;
+      if (said && !(e.plan.decisionTool && e.plan.decisionTool.settings && e.plan.decisionTool.settings.locked)) expect(ageEnd, e.plan.id + ': the planner').toBe(+said[1]);
+      expect(years, e.plan.id).toBeGreaterThan(0);
+    }
+    expect(seen).toBeGreaterThan(5);
+  });
+  it('a plan from 62 for 34 years: "34 years, to age 96" (its last year is the year at 95)', () => {
+    const entries = entriesAt(TODAY);
+    const e = entries.find((x) => x.plan.id === C['02-pnv-draft'].id) || entries[0];
+    const step = planPage(entries, e.plan.id, null, { today: TODAY }).steps.find((s) => s.figures && s.figures.ageEnd != null);
+    expect(step.figures).toMatchObject({ years: 34, ageEnd: 96 });
   });
 });

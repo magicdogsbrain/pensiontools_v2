@@ -473,7 +473,7 @@
               "yearly": 70000,
               "ageToday": 64,
               "years": 31,
-              "ageEnd": 95,
+              "ageEnd": 96,
               "step0": 70000,
               "stepAge0": 65,
               "sipp": 1400000,
@@ -574,7 +574,7 @@
                           "kind": "age"
                         }
                       ],
-                      "text": "31 years, to age 95"
+                      "text": "31 years, to age 96"
                     },
                     "source": {
                       "kind": "saved",

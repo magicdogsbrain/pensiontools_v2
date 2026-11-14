@@ -116,8 +116,10 @@ describe('when a row changes nothing, and what the panel draws', () => {
       const row = v.rows.find((r) => r.id === id);
       expect(row.kind).toBe(null);
       expect(row.canAccept).toBe(false);
-      expect(row.keep).toEqual({ status: 'untested', line: { id: 'line.untested', slots: {} } });
+      // the state once, on "As you hold it", in the panel's words, with what What you hold can do about it now
+      expect(row.keep).toEqual(id === 'asHeld' ? { status: 'untested', line: { id: 'line.untested', slots: {} }, state: { id: 'held.untested', slots: { date: '' } }, link: { id: 'held.accept', slots: {} } } : null);
     }
+    expect(v.keep.link).toEqual({ id: 'held.accept', slots: {} });
   });
 });
 

@@ -4,8 +4,9 @@
  * their figures and their words' slots are the reading's (state/select.js planStressView: answers/plan/stressPanel.js
  * stressPanelView through the plan source), the run's status the state's (effects/stressPanel.js). The rows run only when
  * "Try the bad years" is pressed. "I accept this risk" on a row is ONE write after a confirm on the screen (plan/amend with
- * the row); an agreement shows, with Withdraw, before anything is run. The held rows show the keep agreement's state and
- * never write: that is accepted on What you hold.
+ * the row); an agreement shows, with Withdraw, before anything is run, and an agreed row offers Withdraw, never a second
+ * accept ("I accept this risk" is a quiet button: nothing on the panel presses for it). The held rows say the keep
+ * agreement's state once, as information, and never write: that is accepted on What you hold.
  */
 import { Button } from '../../components/index.js';
 import { changeAction } from '../../components/PlanFigures.jsx';
@@ -43,6 +44,21 @@ function Accepted({ p, testid }) {
   );
 }
 
+/**
+ * After "Yes, I accept it": once the row's accepted line is drawn (the write done), it is brought into view, so the page never
+ * ends up away from the row the person was reading (the confirm above it closes as the line arrives). Gives up after 8 s.
+ */
+function keepInView(testid) {
+  if (typeof document === 'undefined') return;
+  let tries = 0;
+  const tick = () => {
+    const el = document.querySelector(`[data-testid="${testid}"][data-status="agreed"]`);
+    if (el) { if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'nearest' }); return; }
+    if (++tries < 80) setTimeout(tick, 100);
+  };
+  setTimeout(tick, 0);
+}
+
 /** The confirm of "I accept this risk": the figures said back, the weighted clause beside its fixed-age one. */
 function Confirm({ row, v, dispatch, T }) {
   const c = row.parts.confirm;
@@ -55,7 +71,7 @@ function Confirm({ row, v, dispatch, T }) {
         {after}
       </p>
       <div class="actions-row">
-        <Button testid={`${T}.confirm.yes`} kind="primary" disabled={!!v.saving} onClick={() => dispatch({ type: 'plan/amend', planId: v.planId, op: 'accept', kind: row.kind, testId: row.id })} {...keepFocus}>{STRESS.agreement.yes}</Button>
+        <Button testid={`${T}.confirm.yes`} kind="primary" disabled={!!v.saving} onClick={() => { dispatch({ type: 'plan/amend', planId: v.planId, op: 'accept', kind: row.kind, testId: row.id }); keepInView(`${T}.accepted`); }} {...keepFocus}>{STRESS.agreement.yes}</Button>
         <Button testid={`${T}.confirm.no`} kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'stressConfirm.' + row.id })} {...keepFocus}>{STRESS.agreement.no}</Button>
       </div>
     </div>
@@ -75,21 +91,18 @@ function Row({ row, v, dispatch, planId }) {
       {p.what.map((w, i) => <p key={i} class="note">{sayStress(w)}</p>)}
       {p.na && <p class="note" data-testid={`${T}.na`} data-na={row.na || 'same'}>{p.na.id === 'na.notCounted' ? STRESS.na.notCounted : sayStress(p.na)}</p>}
       {p.lines.map((l, i) => <Line key={i} l={l} />)}
-      {row.id === 'fall' && can && (
+      {row.id === 'fall' && can && !row.na && (
         <p class="note"><a href="#" data-testid="plan.lasts.stress.badStarts" onClick={(e) => { e.preventDefault(); dispatch(changeAction(planId, 'badStarts', href.plan(planId, 'lasts'))); }}>{STRESS.handOver}</a></p>
       )}
       {held && p.keepLine && (
-        <>
-          <p class={row.keep && row.keep.status === 'agreed' ? 'line' : 'notice'} data-testid={`${T}.keep`} data-status={row.keep ? row.keep.status : ''}>{sayKeep(p.keepLine)}</p>
-          <p class="note"><a href={href.plan(planId, 'hold')} data-testid={`${T}.hold`}>{STRESS.held.onHold}</a></p>
-        </>
+        <p class="note" data-testid={`${T}.keep`} data-status={row.keep ? row.keep.status : ''}>{sayStress(p.keepLine)} <a href={href.plan(planId, 'hold')} data-testid={`${T}.hold`}>{sayStress(p.holdLink)}</a></p>
       )}
       <Accepted p={p.accepted} testid={`${T}.accepted`} />
       {can && row.agreement && row.agreement.entry && (
         <div class="actions-row"><Button testid={`${T}.withdraw`} kind="quiet" disabled={!!v.saving} onClick={() => dispatch({ type: 'plan/amend', planId: v.planId, op: 'withdraw', kind: row.kind, testId: row.id })} {...keepFocus}>{STRESS.agreement.withdraw}</Button></div>
       )}
       {can && row.canAccept && !confirmOpen && (
-        <div class="actions-row"><Button testid={`${T}.accept`} kind="primary" disabled={!!v.saving} onClick={() => dispatch({ type: 'ui/toggle', id: 'stressConfirm.' + row.id })} {...keepFocus}>{STRESS.agreement.accept}</Button></div>
+        <div class="actions-row"><Button testid={`${T}.accept`} kind="quiet" disabled={!!v.saving} onClick={() => dispatch({ type: 'ui/toggle', id: 'stressConfirm.' + row.id })} {...keepFocus}>{STRESS.agreement.accept}</Button></div>
       )}
       {can && row.canAccept && confirmOpen && p.confirm && <Confirm row={row} v={v} dispatch={dispatch} T={T} />}
       {v.saving && v.saving.testId === row.id && <p class="working-note" role="status" data-testid={`${T}.saving`}>{STRESS.agreement.saving}</p>}
@@ -144,7 +157,7 @@ export function StressPanel({ state, dispatch }) {
       <h2 tabIndex={-1} data-focus-for="plan.stress">{STRESS.title}</h2>
       <p class="note">{STRESS.lead}</p>
       {!tried && v.keep && v.keep.line && (
-        <p class="note" data-testid="plan.lasts.stress.keep" data-status={v.keep.status}>{sayKeep(v.keep.line)} <a href={href.plan(v.planId, 'hold')} data-testid="plan.lasts.stress.keepHold">{STRESS.held.onHold}</a></p>
+        <p class="note" data-testid="plan.lasts.stress.keep" data-status={v.keep.status}>{sayKeep(v.keep.line)} <a href={href.plan(v.planId, 'hold')} data-testid="plan.lasts.stress.keepHold">{sayStress(v.keep.link)}</a></p>
       )}
       {!tried && <Agreements v={v} dispatch={dispatch} />}
       <div class="actions-row">

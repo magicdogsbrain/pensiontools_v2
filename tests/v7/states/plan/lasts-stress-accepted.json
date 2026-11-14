@@ -3380,7 +3380,8 @@
                     }
                   },
                   "accepted": null,
-                  "keepLine": null
+                  "keepLine": null,
+                  "holdLink": null
                 }
               },
               {
@@ -3706,7 +3707,8 @@
                     }
                   },
                   "accepted": null,
-                  "keepLine": null
+                  "keepLine": null,
+                  "holdLink": null
                 }
               },
               {
@@ -4032,7 +4034,8 @@
                     }
                   },
                   "accepted": null,
-                  "keepLine": null
+                  "keepLine": null,
+                  "holdLink": null
                 }
               },
               {
@@ -4244,7 +4247,7 @@
                     "ageRule": "birthday"
                   }
                 },
-                "canAccept": true,
+                "canAccept": false,
                 "parts": {
                   "title": {
                     "id": "rows.spend.title"
@@ -4388,13 +4391,7 @@
                       }
                     }
                   ],
-                  "confirm": {
-                    "id": "agreement.confirm",
-                    "figures": {
-                      "weighted": "counting how long people your age live, the money lasts as long as you do 19 times in 20",
-                      "fixed": "if you live to 96, it lasts that long in 19 of 20 futures we tried"
-                    }
-                  },
+                  "confirm": null,
                   "accepted": {
                     "id": "agreement.accepted",
                     "mark": "weighted",
@@ -4412,7 +4409,8 @@
                     },
                     "stale": false
                   },
-                  "keepLine": null
+                  "keepLine": null,
+                  "holdLink": null
                 }
               },
               {
@@ -4738,7 +4736,8 @@
                     }
                   },
                   "accepted": null,
-                  "keepLine": null
+                  "keepLine": null,
+                  "holdLink": null
                 }
               }
             ],

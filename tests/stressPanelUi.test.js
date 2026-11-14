@@ -214,12 +214,27 @@ describe('"I accept this risk"', () => {
     plan.holdings.lines.push(single);
     const H = harness(plan);
     await H.w.runStressPanel();
+    // said once, as information, on "As you hold it"; the link names what What you hold can do now
+    const asHeld = H.box().querySelector('[data-row="asHeld"]');
+    expect(asHeld.querySelector('[data-keep]').getAttribute('data-keep')).toBe('untested');
+    expect(asHeld.querySelector('[data-keep]').className).toBe('hint');
+    expect(asHeld.textContent).toContain(STRESS.held.untested + ' ' + STRESS.held.accept);
     for (const id of ['asHeld', 'heldHalf', 'heldNothing']) {
       const li = H.box().querySelector('[data-row="' + id + '"]');
-      expect(li.querySelector('[data-keep]').getAttribute('data-keep')).toBe('untested');
-      expect(li.textContent).toContain(STRESS.held.onHold);
+      if (id !== 'asHeld') expect(li.querySelector('[data-keep]')).toBe(null);
+      expect(li.textContent).not.toContain('not yet tested against your plan');
       expect(li.querySelector('[id$="-accept"]')).toBe(null);
     }
+  });
+  it('an accepted row offers Withdraw, never a second accept; "I accept this risk" is a quiet button', async () => {
+    const plan = plan0('02-pnv-draft');
+    const H = harness(plan);
+    await H.w.runStressPanel();
+    expect(H.box().querySelector('#stressRow-spend-accept').className).toBe('risk-btn');
+    await H.w.acceptStressRisk('spend');
+    expect(H.box().querySelector('#stressRow-spend-accepted').getAttribute('data-status')).toBe('agreed');
+    expect(H.box().querySelector('#stressRow-spend-withdraw')).toBeTruthy();
+    expect(H.box().querySelector('#stressRow-spend-accept')).toBe(null);
   });
   it('a result for the plan as it was is refused, nothing written; a closed plan writes nothing', async () => {
     const plan = plan0('02-pnv-draft');
@@ -247,6 +262,11 @@ describe('the named stresses below the rows', () => {
     expect(t).not.toMatch(/\d%/);
     expect(t).toContain(STRESS.classicHint);
     expect(t).not.toMatch(/Until 6\.24/);
+    // the hint says "the lines above … the decades below": it sits at the top of the card, under the heading, above the table
+    const html = scenariosTabHtml({ strategyId: 'pots-and-valves', name: 'Pots & Valves', a, r: {}, p: {}, rows: [], scenarios: {}, startYears: {}, worst: [], rowsShown: true });
+    expect(html.indexOf('data-stress-hint')).toBeGreaterThan(html.indexOf('</h2>'));
+    expect(html.indexOf('data-stress-hint')).toBeLessThan(html.indexOf('<table'));
+    expect(html.indexOf('data-stress-hint')).toBeLessThan(html.indexOf('Each named stress is a real decade'));
   });
   it('without them: as before', () => {
     const t = plain(scenariosTabHtml({ strategyId: 'pots-and-valves', name: 'Pots & Valves', a, r: {}, p: {}, rows: [], scenarios: {}, startYears: {}, worst: [] }));

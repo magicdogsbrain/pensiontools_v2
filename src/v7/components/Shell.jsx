@@ -2,7 +2,8 @@
  * The page frame: header, the line to the previous version, the offline line, the rail, one <main>, the footer. The <main> is the
  * screen root and carries data-screen and data-question (build brief 4.9; as package 1's stub drew it), and
  * data-view="retired" on A's and B's retired view (step 4 brief, conflict 44). One h1 per screen; after a move the keyboard goes to
- * it, or to the box the address names (?focus=<field>). The only hooks in V7 are here, and only for focus.
+ * it, or to the box the address names (?focus=<field>) — once that box is drawn, when it comes later than the page (a plan's
+ * "Try the bad years" waits for its "Does it last?"). The only hooks in V7 are here, and only for focus.
  */
 import { useEffect, useRef } from 'preact/hooks';
 import { Rail } from './Rail.jsx';
@@ -17,17 +18,35 @@ import { PLAN } from '../copy/plan.js';
 export function Shell({ state, dispatch, name, question = null, rail = false, full = false, view = null, children }) {
   const ref = useRef(null);
   const mounted = useRef(false);
+  const pending = useRef(null);
   const address = format(state.route);
+  const focusQ = state.route.screen === 'plan' ? 'plan' : state.route.q || 'c';
 
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
+    pending.current = null;
     // (a plan page's one section an address may name: "Try the bad years", [data-focus-for="plan.stress"])
-    if (state.route.focus && focusField(root, state.route.focus, state.route.screen === 'plan' ? 'plan' : state.route.q || 'c')) return;
+    if (state.route.focus) {
+      if (focusField(root, state.route.focus, focusQ)) return;
+      // that section is drawn only once its page has its answer (the panel waits for "Does it last?"): tried again below
+      pending.current = address;
+    }
     if (!mounted.current) { mounted.current = true; return; }       // never steal the keyboard on first load
     const h1 = root.querySelector('h1');
     if (h1) h1.focus();
   }, [address]);
+
+  // the box or section the address names, once it is drawn — unless the keyboard has gone somewhere since (anywhere but the
+  // page itself or its heading, where the move above put it): then it is left where the person put it
+  useEffect(() => {
+    if (!pending.current || pending.current !== address || !state.route.focus) return;
+    const root = ref.current;
+    if (!root) return;
+    const at = typeof document !== 'undefined' ? document.activeElement : null;
+    if (at && at !== document.body && at.tagName !== 'H1') { pending.current = null; return; }
+    if (focusField(root, state.route.focus, focusQ)) pending.current = null;
+  });
 
   const focusMain = () => { const main = ref.current && ref.current.querySelector('main'); if (main) main.focus(); };
   const front = name === 'front';

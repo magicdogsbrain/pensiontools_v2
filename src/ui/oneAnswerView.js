@@ -122,7 +122,9 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
     h += '<p class="hint" style="margin-top:10px;">What no scenario here tests: your own inflation running above the official index (care, energy, services), the RPI→CPIH change in February 2030, frozen tax thresholds, and the DMO\'s 3-month indexation lag in a fast-moving year. The Great Depression row is a real deflation — UK linkers have no floor, so the pounds fall with prices; they still buy the plan.</p>';
     return h + '</div>';
   }
-  // with "Try the bad years" above (7.9.0), the plan's own figure is the As planned line there: no second figure here
+  // with "Try the bad years" above (7.9.0), the plan's own figure is the As planned line there: no second figure here; the
+  // hint that says which part is which sits at the top of this card, right under those lines and above the decades
+  if (rowsShown) h += '<p class="hint" style="margin-top:0;" data-stress-hint="1">' + esc(STRESS.classicHint) + '</p>';
   h += rowsShown
     ? '<p>Each named stress is a real decade. The one test already contains it: the real history that starts at that decade\'s first year is one of the ' + n0(a.histories) + ' real starts behind this plan\'s figure above. Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>'
     : '<p>Each named stress is a real decade. The one test already contains it: the real history that starts at that decade\'s first year is one of the ' + n0(a.histories) + ' starts behind your figure of <strong>' + pctText(a.chancePct, 0, CHANCE_BARS) + '</strong> (lasts ' + esc(a.outOfTen.words) + '). Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>';
@@ -141,7 +143,7 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
   }
   h += '</tbody></table></div>';
   h += rowsShown
-    ? '<p class="hint" style="margin-top:8px;" data-stress-hint="1">' + esc(STRESS.classicHint) + '</p></div>'
+    ? '</div>'
     : '<p class="hint" style="margin-top:8px;">Until 6.24 this tab ran each decade over and over for the whole plan and marked the plan as failed — a test nothing real has ever set. The one test counts every real start once; the named decades are explained here, not re-run.</p></div>';
   return h;
 }

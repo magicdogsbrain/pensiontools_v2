@@ -134,8 +134,17 @@ export const STRESS = {
       failed: 'That could not be saved. Nothing has changed.'
     }
   },
-  // the held rows: the keep agreement's state, accepted on What you hold
-  held: { onHold: 'Accept or withdraw this on What you hold.' },
+  // the held rows: the keep agreement's state, said once (on "As you hold it") as information, and the way to What you hold,
+  // where it is accepted or withdrawn — the link names the one thing that can be done there now
+  held: {
+    untested: 'What you chose to keep is not yet accepted as a risk on this plan.',
+    agreed: 'You accepted what you chose to keep on {date}.',
+    stale: 'What you accepted on {date} no longer stands: what you hold has changed since.',
+    lapsed: 'You no longer keep what you accepted on {date}.',
+    accept: 'Accept it on What you hold.',
+    acceptAgain: 'Accept it again on What you hold.',
+    withdraw: 'Withdraw it on What you hold.'
+  },
   // "Test what you keep against your plan": its link to the panel
   keepLink: 'See it beside the other bad years',
   // what is accepted before the lines are tried again

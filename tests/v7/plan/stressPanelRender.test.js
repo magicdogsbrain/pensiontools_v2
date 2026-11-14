@@ -8,6 +8,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { h, render } from 'preact';
+import { act } from 'preact/test-utils';
 import { App } from '../../../src/v7/App.jsx';
 import { visibleText, bannedHits } from '../render/checkScreen.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
@@ -129,6 +130,7 @@ describe('before the press', () => {
     expect(k).toBeTruthy();
     expect(k.getAttribute('data-status')).toBe('untested');
     expect(root.querySelector('[data-testid="plan.lasts.stress.keepHold"]').getAttribute('href')).toBe('#/plan/' + plan.id + '/hold');
+    expect(root.querySelector('[data-testid="plan.lasts.stress.keepHold"]').textContent).toBe(STRESS.held.accept);
     expect(s.plans.view.page.lasts.stressPanel.order).toEqual(['asPlanned', 'asHeld', 'fall', 'lower', 'spend', 'prices', 'heldHalf', 'heldNothing']);
   });
 });
@@ -209,10 +211,16 @@ describe('the rows drawn', () => {
     const spend = panelOf(root).querySelector('[data-row="spend"]');
     expect(spend.querySelector('[data-testid="plan.lasts.stress.spend.accepted"]').getAttribute('data-status')).toBe('agreed');
     expect(spend.querySelector('[data-testid="plan.lasts.stress.spend.withdraw"]')).toBeTruthy();
+    // agreed and still standing: Withdraw is its one button, never a second "I accept this risk"
+    expect(spend.querySelector('[data-testid="plan.lasts.stress.spend.accept"]')).toBe(null);
+    // the other rows' accept is a quiet button: nothing on the panel presses for it
+    expect(panelOf(root).querySelector('[data-testid="plan.lasts.stress.fall.accept"]').className).toBe('btn btn-quiet');
     const stale = applyPatch(plan, { 'stressTool.settings.statePension': 9000 });
     const s2 = draw(withRows(stale, MARKET));
     const line = panelOf(s2.root).querySelector('[data-testid="plan.lasts.stress.spend.accepted"]');
     expect(line.getAttribute('data-status')).toBe('stale');
+    // out of date: it can be accepted again
+    expect(panelOf(s2.root).querySelector('[data-testid="plan.lasts.stress.spend.accept"]')).toBeTruthy();
     expect(line.textContent).toContain(STRESS.agreement.stale);
     expect(ruleProblems(s2.root)).toEqual([]);
   });
@@ -223,6 +231,44 @@ describe('the rows drawn', () => {
     const lower = panelOf(draw(s).root).querySelector('[data-row="lower"]');
     expect(lower.textContent).toContain('In the worst 1 in 10 of all the futures it still lasts to 97 (as planned: by 84).');
     expect(lower.querySelector('[data-testid="plan.lasts.stress.lower.accept"]')).toBe(null);
+  });
+});
+
+describe('the address that names the panel (#/plan/<id>/lasts?focus=stress)', () => {
+  /** The page with its panel not yet drawn ("Does it last?" still working), as the first draws after the move have it. */
+  const withoutPanel = (s) => ({ ...s, plans: { ...s.plans, view: { ...s.plans.view, page: { ...s.plans.view.page, lasts: { ...s.plans.view.page.lasts, stressPanel: null } } } } });
+  const mount = () => { const root = document.createElement('div'); root.id = 'app'; document.body.appendChild(root); return root; };
+  const drawIn = (root, state) => act(() => { render(h(App, { state, dispatch: () => {} }), root); });
+  it('the panel\'s heading takes the keyboard once the panel is drawn, though it comes later than the page', () => {
+    const plan = plan0('02-pnv-draft');
+    const s = stateWith([{ plan, newer: false, failed: false }], '#/plan/' + plan.id + '/lasts?focus=stress');
+    expect(s.route.focus).toBe('stress');
+    const root = mount();
+    try {
+      drawIn(root, withoutPanel(s));
+      expect(root.querySelector('[data-focus-for="plan.stress"]')).toBe(null);
+      drawIn(root, s);
+      const head = root.querySelector('[data-focus-for="plan.stress"]');
+      expect(head).toBeTruthy();
+      expect(document.activeElement).toBe(head);
+      // once there, a later draw does not take it again
+      head.blur();
+      drawIn(root, { ...s });
+      expect(document.activeElement).not.toBe(head);
+    } finally { render(null, root); root.remove(); }
+  });
+  it('a keyboard moved elsewhere while the panel was coming is left where the person put it', () => {
+    const plan = plan0('02-pnv-draft');
+    const s = stateWith([{ plan, newer: false, failed: false }], '#/plan/' + plan.id + '/lasts?focus=stress');
+    const root = mount();
+    const box = document.createElement('input');
+    document.body.appendChild(box);
+    try {
+      drawIn(root, withoutPanel(s));
+      box.focus();
+      drawIn(root, s);
+      expect(document.activeElement).toBe(box);
+    } finally { render(null, root); root.remove(); box.remove(); }
   });
 });
 
@@ -248,16 +294,26 @@ describe('a locked ladder and the held rows', () => {
       expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.na"]`).textContent).toBe(STRESS.na.lockedLadder);
       expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.accept"]`)).toBe(null);
     }
+    // the fall row was not tried: no walk through real bad starts offered under it
+    expect(root.querySelector('[data-testid="plan.lasts.stress.badStarts"]')).toBe(null);
   });
   it('the held rows: the keep agreement\'s state and "Accept or withdraw this on What you hold", never an accept of their own', () => {
     const plan = plan0('04-buckets-running');
     plan.holdings.lines.push(single);
     const s = withRows(plan, (key) => ({ ...MARKET(key), asHeld: row(key, 'asHeld', { w: 0.85, f: 0.8 }), heldHalf: row(key, 'heldHalf', { w: 0.8, f: 0.75, words: WORDS(16, 15) }), heldNothing: row(key, 'heldNothing', { w: 0.7, f: 0.6, words: WORDS(14, 12) }) }));
     const { root } = draw(s);
+    // the keep agreement's state said once, on "As you hold it", as information (never the boxed notice), in the panel's
+    // words — never "not yet tested", the row above is that test — and the one thing What you hold can do now
+    const k = panelOf(root).querySelector('[data-testid="plan.lasts.stress.asHeld.keep"]');
+    expect(k.getAttribute('data-status')).toBe('untested');
+    expect(k.className).toBe('note');
+    expect(k.textContent).toBe(STRESS.held.untested + ' ' + STRESS.held.accept);
+    expect(panelOf(root).querySelector('[data-testid="plan.lasts.stress.asHeld.hold"]').textContent).toBe(STRESS.held.accept);
     for (const id of ['asHeld', 'heldHalf', 'heldNothing']) {
       const r = panelOf(root).querySelector(`[data-row="${id}"]`);
-      expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.keep"]`).getAttribute('data-status')).toBe('untested');
-      expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.hold"]`).textContent).toBe(STRESS.held.onHold);
+      if (id !== 'asHeld') expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.keep"]`)).toBe(null);
+      expect(r.textContent).not.toContain('not yet tested against your plan');
+      expect(r.querySelector('.notice')).toBe(null);
       expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.accept"]`)).toBe(null);
     }
     const half = panelOf(root).querySelector('[data-row="heldHalf"]');

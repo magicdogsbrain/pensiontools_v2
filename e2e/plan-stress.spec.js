@@ -171,6 +171,9 @@ test.describe('"Try the bad years", without an account', () => {
       await page.goto(v7('#/plan/' + PNV_ID + '/lasts?focus=stress'));
       await expect(page.locator('[data-region="plan-lasts-answer"]')).toHaveAttribute('data-status', 'done', { timeout: 90_000 });
       await expect(page.getByTestId(S)).toHaveAttribute('data-status', 'idle');
+      // the address names the panel: once it is drawn, its heading has the keyboard and is in view
+      await expect(page.locator('[data-focus-for="plan.stress"]')).toBeFocused({ timeout: 15_000 });
+      await expect(page.locator('[data-focus-for="plan.stress"]')).toBeInViewport();
       await expect(page.getByTestId(`${S}.rows`)).toHaveCount(0);
       await expect(page.getByTestId(`${S}.run`)).toHaveText('Try the bad years');
       expect(await stored(page), 'opening writes nothing').toBe(planted);
@@ -213,6 +216,12 @@ test.describe('"Try the bad years", without an account', () => {
       await page.getByTestId(`${S}.spend.confirm.yes`).click();
       await expect(page.getByTestId(`${S}.spend.accepted`)).toHaveAttribute('data-status', 'agreed', { timeout: 60_000 });
       await expect(page.getByTestId(`${S}.spend.accepted`)).toContainText('You accepted this on 30 September 2026');
+      // accepted: Withdraw is the row's one button, and the row stays in view; the toast never covers a column of the page
+      await expect(page.getByTestId(`${S}.spend.accept`)).toHaveCount(0);
+      await expect(page.getByTestId(`${S}.spend.accepted`)).toBeInViewport();
+      const box = await page.getByTestId('plan.lasts.stress.toast').boundingBox();
+      const vw = page.viewportSize().width;
+      if (box && vw <= 600) expect(box.width, 'the toast is a full-width line on a phone, never a narrow column').toBeGreaterThanOrEqual(vw - 32 - 1);
       const after = JSON.parse(await stored(page))[0];
       expect(after.planAmendments).toHaveLength(1);
       expect(after.planAmendments[0]).toMatchObject({ kind: 'stress', test: { id: 'spend', inputs: { shock: { kind: 'spend', factor: 1.1 } } } });
@@ -259,18 +268,27 @@ test.describe('"Try the bad years", without an account', () => {
     await expect(page.locator('#app [data-screen]')).toBeVisible();
     const planted = JSON.stringify([plan()]);
     await page.evaluate(([k, text]) => sessionStorage.setItem(k, text), [GUEST_KEY, planted]);
-    await page.goto(v7('#/plan/' + ID + '/lasts?focus=stress'));
+    // the way in from What you hold: "See it beside the other bad years" lands on the panel, its heading focused and in view
+    // (the panel is drawn only once "Does it last?" has its answer, a few screens down the page)
+    await page.goto(v7('#/plan/' + ID + '/hold'));
+    await page.getByTestId('plan.hold.keepTest.badYears').click();
     await expect(page.getByTestId(S)).toHaveAttribute('data-status', 'idle', { timeout: 90_000 });
+    expect(page.url()).toContain('#/plan/' + ID + '/lasts?focus=stress');
+    await expect(page.locator('[data-focus-for="plan.stress"]')).toBeFocused({ timeout: 15_000 });
+    await expect(page.locator('[data-focus-for="plan.stress"]')).toBeInViewport();
     await expect(page.getByTestId(`${S}.keep`)).toHaveAttribute('data-status', 'untested');
     await page.getByTestId(`${S}.run`).click();
     await expect(page.getByTestId(S)).toHaveAttribute('data-status', 'done', { timeout: 180_000 });
     expect(await page.locator(`[data-testid="${S}.rows"] > li.stress-row`).evaluateAll((els) => els.map((e) => e.getAttribute('data-row')))).toEqual([...ROWS, 'asHeld', 'heldHalf']);
     for (const id of ['fall', 'lower', 'spend', 'prices']) await expect(page.getByTestId(`${S}.${id}.na`)).toHaveAttribute('data-na', 'lockedLadder');
-    for (const id of ['asHeld', 'heldHalf']) {
-      await expect(page.getByTestId(`${S}.${id}.keep`)).toHaveAttribute('data-status', 'untested');
-      await expect(page.getByTestId(`${S}.${id}.hold`)).toHaveAttribute('href', '#/plan/' + ID + '/hold');
-      await expect(page.getByTestId(`${S}.${id}.accept`)).toHaveCount(0);
-    }
+    // the keep agreement's state once, on "As you hold it", with the one thing What you hold can do now; never an accept
+    await expect(page.getByTestId(`${S}.asHeld.keep`)).toHaveAttribute('data-status', 'untested');
+    await expect(page.getByTestId(`${S}.asHeld.hold`)).toHaveAttribute('href', '#/plan/' + ID + '/hold');
+    await expect(page.getByTestId(`${S}.asHeld.hold`)).toHaveText('Accept it on What you hold.');
+    await expect(page.getByTestId(`${S}.heldHalf.keep`)).toHaveCount(0);
+    for (const id of ['asHeld', 'heldHalf']) await expect(page.getByTestId(`${S}.${id}.accept`)).toHaveCount(0);
+    // the fall row is not tried on a locked ladder: no walk through real bad starts under it
+    await expect(page.getByTestId('plan.lasts.stress.badStarts')).toHaveCount(0);
     expect(await stored(page), 'trying writes nothing').toBe(planted);
     await noSideways(page);
     const text = await page.getByTestId(S).innerText();

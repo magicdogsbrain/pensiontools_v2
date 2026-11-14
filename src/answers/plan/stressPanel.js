@@ -166,7 +166,7 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
   const fresh = (id) => (isObj(held[id]) && held[id].key === key ? held[id] : null);
   const lvl = level || planLevelOf(plan);
   const closed = isClosedPlan(plan);
-  const keep = keepsLines(plan && plan.holdings) ? keepTestOf(plan, {}) : null;
+  const keep = keepStateOf(keepsLines(plan && plan.holdings) ? keepTestOf(plan, {}) : null);
   let s = isObj(settings) ? settings : null;
   if (!s) { try { s = effectiveStressSettings(plan, { now: dateOf(today) }); } catch { s = storedStressOf(plan); } }
   const ctx = contextOf(plan, s, today);
@@ -187,8 +187,10 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
       refShortfall: ref && !ref.na && ref.a ? ref.shortfall || null : null,
       same,
       agreement,
-      canAccept: !!kind && !closed && !!res && !na && !same && failing,
-      ...(kind ? {} : { keep: keep ? { status: keep.status, line: keep.line } : null })
+      // (accepted already and still standing: nothing to accept again — Withdraw is the row's one button)
+      canAccept: !!kind && !closed && !!res && !na && !same && failing && !(agreement && agreement.status === 'agreed'),
+      // the held rows: the keep agreement's state once, on "As you hold it" (information; the rows never write)
+      ...(kind ? {} : { keep: keep && row.id === 'asHeld' ? keep : null })
     };
   }).map((r) => ({ ...r, parts: rowParts(r, ctx) }));
   const agreements = stressAgreementsOf(plan).map((g) => ({ ...g, parts: { title: { id: 'rows.' + g.id + '.title' }, accepted: acceptedParts(g.entry), stale: g.status === 'stale' } }));
@@ -197,9 +199,21 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
   const order = list.filter((r) => !(r.status === 'na' && (r.na === 'lockedLadder' || r.na === 'todaysPrices'))).map((r) => r.id);
   const first = ['asPlanned', 'asHeld'].filter((id) => order.includes(id));
   return {
-    key, level: lvl, rows: list, agreements, keep: keep ? { status: keep.status, line: keep.line } : null, closed,
+    key, level: lvl, rows: list, agreements, keep, closed,
     order: [...first, ...order.filter((id) => !first.includes(id))], drawing: ctx.drawing
   };
+}
+
+/**
+ * The keep agreement (7.7.0, accepted on What you hold) as the panel says it: its status, KEEPTEST's own line (before the
+ * rows are tried), the state in the panel's words (STRESS.held, on the held rows) and the one thing What you hold can do
+ * about it now — accept it, accept it again, or withdraw it. Null when the plan has none.
+ */
+function keepStateOf(k) {
+  if (!k || !k.status || k.status === 'none') return null;
+  const on = k.agreed && k.agreed.on ? k.agreed.on : '';
+  const [state, link] = k.status === 'agreed' ? ['agreed', 'withdraw'] : k.status === 'stale' ? (k.keeps ? ['stale', 'acceptAgain'] : ['lapsed', 'withdraw']) : ['untested', 'accept'];
+  return { status: k.status, line: k.line, state: { id: 'held.' + state, slots: { date: on } }, link: { id: 'held.' + link, slots: {} } };
 }
 
 // ---- the rows in words (ids of src/v7/copy/stressPanel.js STRESS, their slots filled; both apps draw them) ----------------
@@ -240,11 +254,11 @@ function rowParts(r, ctx) {
   else if (id === 'heldNothing') what.push({ id: ctx.singles.length > 1 ? 'rows.heldNothing.whatMany' : 'rows.heldNothing.what', slots: { list: listOf(ctx.singles) } });
   else what.push({ id: 'rows.' + id + '.what' });
   if (id === 'lower' && ctx.saver) what.push({ id: 'rows.lower.saver' });
-  const out = { title: { id: 'rows.' + id + '.title' }, what, na: null, lines: [], confirm: null, accepted: null, keepLine: null };
+  const out = { title: { id: 'rows.' + id + '.title' }, what, na: null, lines: [], confirm: null, accepted: null, keepLine: null, holdLink: null };
   if (r.na) out.na = { id: 'na.' + r.na };
   else if (r.same) out.na = { id: 'na.same' };
   if (r.agreement && r.agreement.entry) out.accepted = { ...acceptedParts(r.agreement.entry), stale: r.agreement.status === 'stale' };
-  if (r.keep && r.keep.line) out.keepLine = r.keep.line;
+  if (r.keep && r.keep.state) { out.keepLine = r.keep.state; out.holdLink = r.keep.link; }
   const a = r.a;
   if (!a || r.na || r.same) return out;
   const refA = r.refA;

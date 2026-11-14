@@ -5486,7 +5486,8 @@
                     }
                   },
                   "accepted": null,
-                  "keepLine": null
+                  "keepLine": null,
+                  "holdLink": null
                 }
               },
               {
@@ -5812,7 +5813,8 @@
                     }
                   },
                   "accepted": null,
-                  "keepLine": null
+                  "keepLine": null,
+                  "holdLink": null
                 }
               },
               {
@@ -6138,7 +6140,8 @@
                     }
                   },
                   "accepted": null,
-                  "keepLine": null
+                  "keepLine": null,
+                  "holdLink": null
                 }
               },
               {
@@ -6464,7 +6467,8 @@
                     }
                   },
                   "accepted": null,
-                  "keepLine": null
+                  "keepLine": null,
+                  "holdLink": null
                 }
               },
               {
@@ -6790,7 +6794,8 @@
                     }
                   },
                   "accepted": null,
-                  "keepLine": null
+                  "keepLine": null,
+                  "holdLink": null
                 }
               },
               {
@@ -6967,6 +6972,16 @@
                   "line": {
                     "id": "line.untested",
                     "slots": {}
+                  },
+                  "state": {
+                    "id": "held.untested",
+                    "slots": {
+                      "date": ""
+                    }
+                  },
+                  "link": {
+                    "id": "held.accept",
+                    "slots": {}
                   }
                 },
                 "parts": {
@@ -7115,7 +7130,13 @@
                   "confirm": null,
                   "accepted": null,
                   "keepLine": {
-                    "id": "line.untested",
+                    "id": "held.untested",
+                    "slots": {
+                      "date": ""
+                    }
+                  },
+                  "holdLink": {
+                    "id": "held.accept",
                     "slots": {}
                   }
                 }
@@ -7289,13 +7310,7 @@
                 "same": false,
                 "agreement": null,
                 "canAccept": false,
-                "keep": {
-                  "status": "untested",
-                  "line": {
-                    "id": "line.untested",
-                    "slots": {}
-                  }
-                },
+                "keep": null,
                 "parts": {
                   "title": {
                     "id": "rows.heldHalf.title"
@@ -7441,10 +7456,8 @@
                   ],
                   "confirm": null,
                   "accepted": null,
-                  "keepLine": {
-                    "id": "line.untested",
-                    "slots": {}
-                  }
+                  "keepLine": null,
+                  "holdLink": null
                 }
               },
               {
@@ -7616,13 +7629,7 @@
                 "same": false,
                 "agreement": null,
                 "canAccept": false,
-                "keep": {
-                  "status": "untested",
-                  "line": {
-                    "id": "line.untested",
-                    "slots": {}
-                  }
-                },
+                "keep": null,
                 "parts": {
                   "title": {
                     "id": "rows.heldNothing.title"
@@ -7771,10 +7778,8 @@
                   ],
                   "confirm": null,
                   "accepted": null,
-                  "keepLine": {
-                    "id": "line.untested",
-                    "slots": {}
-                  }
+                  "keepLine": null,
+                  "holdLink": null
                 }
               }
             ],
@@ -7783,6 +7788,16 @@
               "status": "untested",
               "line": {
                 "id": "line.untested",
+                "slots": {}
+              },
+              "state": {
+                "id": "held.untested",
+                "slots": {
+                  "date": ""
+                }
+              },
+              "link": {
+                "id": "held.accept",
                 "slots": {}
               }
             },

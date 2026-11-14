@@ -85,14 +85,13 @@ function rowHtml(row, v) {
   h += p.what.map((w) => '<p class="hint">' + say(w) + '</p>').join('');
   if (p.na) h += '<p class="hint" data-na="' + esc(row.na || 'same') + '">' + (p.na.id === 'na.notCounted' ? esc(STRESS.na.notCounted) : say(p.na)) + '</p>';
   h += p.lines.map(lineHtml).join('');
-  if (row.id === 'fall') h += '<p class="hint"><a href="#" id="stressBadStarts" data-on-click="showBadStarts(); return false">' + esc(STRESS.handOver) + '</a></p>';
+  if (row.id === 'fall' && !row.na) h += '<p class="hint"><a href="#" id="stressBadStarts" data-on-click="showBadStarts(); return false">' + esc(STRESS.handOver) + '</a></p>';
   if (!row.kind && p.keepLine) {
-    h += '<p class="' + (row.keep && row.keep.status === 'agreed' ? 'hint' : 'alert alert-info') + '" data-keep="' + esc(row.keep ? row.keep.status : '') + '">' + esc(sayKeep(p.keepLine, KEEPTEST)) + '</p>';
-    h += '<p class="hint"><a href="#" data-on-click="switchToTab(\'transition\'); return false">' + esc(STRESS.held.onHold) + '</a></p>';
+    h += '<p class="hint" data-keep="' + esc(row.keep ? row.keep.status : '') + '">' + say(p.keepLine) + ' <a href="#" data-on-click="switchToTab(\'transition\'); return false">' + say(p.holdLink) + '</a></p>';
   }
   h += acceptedHtml(p.accepted, T + '-accepted');
   if (can && row.agreement && row.agreement.entry) h += actions(button(STRESS.agreement.withdraw, 'withdrawStressRisk(\'' + row.id + '\')', { id: T + '-withdraw', quiet: true }));
-  if (can && row.canAccept && memory.confirm !== row.id) h += actions(button(STRESS.agreement.accept, 'askStressRisk(\'' + row.id + '\')', { id: T + '-accept' }));
+  if (can && row.canAccept && memory.confirm !== row.id) h += actions(button(STRESS.agreement.accept, 'askStressRisk(\'' + row.id + '\')', { id: T + '-accept', quiet: true }));
   if (can && row.canAccept && memory.confirm === row.id && p.confirm) {
     const [before, after] = STRESS.agreement.confirm.split('{figures}');
     const f = p.confirm.figures;
@@ -122,7 +121,7 @@ export function stressPanelHtml(scenario, { today = dayOf(new Date()) } = {}) {
   const run = v.run;
   const tried = run.status !== 'idle' || v.rows.some((r) => r.status === 'done');
   let h = '<div id="stressPanel" class="stress-panel" data-status="' + esc(run.status) + '" data-key="' + esc(v.key || '') + '">';
-  if (!tried && v.keep && v.keep.line) h += '<p class="hint" id="stressKeepLine" data-status="' + esc(v.keep.status) + '">' + esc(sayKeep(v.keep.line, KEEPTEST)) + ' <a href="#" data-on-click="switchToTab(\'transition\'); return false">' + esc(STRESS.held.onHold) + '</a></p>';
+  if (!tried && v.keep && v.keep.line) h += '<p class="hint" id="stressKeepLine" data-status="' + esc(v.keep.status) + '">' + esc(sayKeep(v.keep.line, KEEPTEST)) + ' <a href="#" data-on-click="switchToTab(\'transition\'); return false">' + say(v.keep.link) + '</a></p>';
   if (!tried) h += agreementsHtml(v);
   if (run.status === 'working') h += '<p class="hint" role="status" id="stressWorking">' + say({ id: 'working', slots: { i: String(Math.min(run.total, run.done + 1)), n: String(run.total) } }) + '</p>';
   if (run.status === 'failed' && run.reason !== 'stopped') h += '<p class="alert alert-warning" role="alert" id="stressFailed">' + esc(run.reason === 'noWorker' ? STRESS.noWorker : STRESS.failed) + '</p>';

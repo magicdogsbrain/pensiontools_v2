@@ -252,6 +252,20 @@ and the app shows "This plan was updated by a newer version of the app — reloa
 guard shipped in 6.15.0, so only bundles from 6.15.0 onward are protected: do not ship schema
 version 2 until 6.15.0 has been live long enough for older tabs to have been closed.
 
+**Agreements an older bundle cannot read (7.9.0).** 7.9.0 adds two kinds to a plan's `planAmendments`
+list: `stress` and `confidence` ("I accept this risk" on a row of "Try the bad years"). Every write of
+the list from 7.9.0 carries any kind it does not read, byte for byte. A 7.8.0 bundle does not: its keep
+accept and keep withdraw on What you hold write the list with its `keep` entries only, so a 7.8.0 tab
+left open across the 7.9.0 deploy — or a redeploy of the 7.8.0 build — drops every `stress` and
+`confidence` entry on that plan, with no message. The guard above cannot stop it: a 7.8.0 tab reads
+only `schemaVersion`, and raising it for a new optional key would write every plan on load. This is an
+accepted risk: it needs a locked plan with a kept line, a 7.8.0 tab still open after the deploy (the
+`sw.js` kill switch means no cached bundle outlives a reload), and a keep accept or withdraw in that
+tab. What is lost is a note the person can make again from the panel; nothing about the plan changes.
+Roll 7.9.0's surfaces back with the switches only (`rules.js STRESS`, all false; `AMENDMENT_KINDS =
+['keep']` hides the new entries on read and still carries them on write) — never by redeploying the
+7.8.0 build once such entries exist.
+
 **Still done the old way** (worked out on load, outside the chain): the plan's start year
 (`PlanTiming.pinTiming`, written back by `StressRepository.loadStressDBAsync` since 6.14.0 — it
 depends on today's date and the Budget's age, so it cannot be a pure step), the "Declining with

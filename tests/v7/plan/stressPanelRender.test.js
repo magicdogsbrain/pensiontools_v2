@@ -80,6 +80,16 @@ const MARKET = (key) => ({
 });
 
 describe('before the press', () => {
+  it('switched off (rules.js STRESS.panel false, the rollback): no panel on the page, nothing to press', async () => {
+    const { STRESS: ON } = await import('../../../src/answers/shared/rules.js');
+    const plan = plan0('02-pnv-draft');
+    ON.panel = false;
+    try {
+      const s = stateWith([{ plan, newer: false, failed: false }], '#/plan/' + plan.id + '/lasts');
+      expect(s.plans.view.page.lasts.stressPanel).toBe(null);
+      expect(panelOf(draw(s).root)).toBe(null);
+    } finally { ON.panel = true; }
+  });
   it('the button and the lead; no rows, no run, nothing asked of the worker; the press asks for the rows As planned first', () => {
     const plan = plan0('02-pnv-draft');
     const s = stateWith([{ plan, newer: false, failed: false }], '#/plan/' + plan.id + '/lasts');

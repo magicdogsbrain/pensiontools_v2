@@ -698,7 +698,9 @@ export function keepView(state, q) {
   const len = why === null ? keptLengthOf(q, r, state.env && state.env.today) : null;
   return { can: why === null, why, suggested, name, check: checkPlanName(name), problem: keep.problem || null, saving: keep.saving === true,
     made: keep.made || null, separate: q === 'd' && lockedPlanInAccount(state) === true, partnerKept: keep.partnerKept || null,
-    payIn: why === null ? keepPayInOf(q, r) : null, useIn, used: keep.used || null, cut: len && len.cut ? len : null };
+    payIn: why === null ? keepPayInOf(q, r) : null, useIn, used: keep.used || null,
+    // (7.9.0: with the age each future is followed on to for the chance, the answer's own — the kept plan's chance counts those years too)
+    cut: len && len.cut ? { ...len, weightToAge: r.chance && Number.isFinite(r.chance.weightToAge) ? r.chance.weightToAge : len.planToAge } : null };
 }
 
 /**

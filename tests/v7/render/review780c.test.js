@@ -83,9 +83,10 @@ describe('Keep says the age a plan cut by the 45-year limit runs to', () => {
     state.answers.a = { status: 'final', inputsKey: inputsKey(parsed.inputs, state.env), result, before: null, progress: null, slow: false };
     const v = keepView(state, 'a');
     expect(v.can).toBe(true);
-    expect(v.cut).toMatchObject({ cut: true, years: 45, keptToAge: 97, planToAge: result.chance.planToAge });
+    expect(v.cut).toMatchObject({ cut: true, years: 45, keptToAge: 97, planToAge: result.chance.planToAge, weightToAge: result.chance.weightToAge });
     const root = document.createElement('div');
     render(h(KeepPanel, { state, q: 'a', dispatch: () => {} }), root);
-    expect(root.querySelector('[data-testid="a.keep.cut"]').textContent).toBe(`The plan this keeps runs to 97: 45 years from when the money starts is the longest a plan runs. This answer counts to ${result.chance.planToAge}.`);
+    // (7.9.0: one sentence added — the kept plan still follows each future on to the answer's weighting age)
+    expect(root.querySelector('[data-testid="a.keep.cut"]').textContent).toBe(`The plan this keeps runs to 97: 45 years from when the money starts is the longest a plan runs. This answer counts to ${result.chance.planToAge}. On the plan each future is still followed on to ${result.chance.weightToAge}, so its chance counts those years too.`);
   });
 });

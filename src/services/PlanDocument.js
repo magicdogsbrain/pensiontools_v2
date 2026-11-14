@@ -668,3 +668,65 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
     saving
   };
 }
+
+/** The ways of drawing the guardrail reading is for: the pots drawn on by the plan's own rule (never a bought or contract way). */
+export const GUARDRAIL_STRATEGIES = Object.freeze(['pots-and-valves', 'buckets-in-order']);
+/** The guardrail's lines, as a share of the start rate (Timeline's 20/10): a fifth above or below; a tenth less or more. */
+export const GUARDRAIL = Object.freeze({ upper: 1.2, lower: 0.8, step: 0.1 });
+
+/**
+ * A plan year's draw from the pots: what the plan pays before tax, less the State Pension and the other income that come in
+ * anyway, less any one-off spend at the amount the year's gross carries it (the document's own events, else the row's) —
+ * so a one-off spend never moves the reading.
+ */
+function potDrawOf(doc, row) {
+  const events = Array.isArray(doc.layers && doc.layers.events) ? doc.layers.events.filter((e) => e && e.kind === 'out' && +e.amount > 0 && Number.isFinite(+e.age)) : null;
+  const oneOff = events && events.length
+    ? events.filter((e) => row.age >= +e.age && row.age < +e.age + Math.max(1, +e.years || 1)).reduce((t, e) => t + (+e.amount), 0)
+    : (Array.isArray(row.lumpOut) ? row.lumpOut.reduce((t, x) => t + (+x.amount || 0), 0) : 0);
+  return (+row.gross || 0) - (+row.sp || 0) - (+row.other || 0) - oneOff;
+}
+
+/**
+ * The guardrail reading (7.9.0; research/v7/replan-nov-2026.md §5): what the plan takes from the pots this year as a share
+ * of what they hold now, beside the share it took when the plan as locked began; a fifth above or below that share is the
+ * line, and a tenth less or more is what would bring it back. No engine and no write: read from the document and from
+ * whereAmI's output `w`, which is left as it is. Both apps say it (STRESS.guardrail).
+ *   - this year's row is the timeline's plan year `w.planYear` (the lived years first), the start row the plan year the
+ *     document's pots belong to (`pots.asOfPlanYear`, else 0); the start pot the band's own year 0 (cones.wealth.p50[0]),
+ *     today's pot the one whereAmI set against the band (`w.pot.real`, in the band's pounds and accounts);
+ *   - shown on pots-and-valves and buckets-in-order only, once drawing has started, with a complete pot, a draw above 0 and
+ *     the ISA counted on both sides (never when `isaLeftOut`). `cutsOn`: the plan's own rule for cuts is on.
+ * @returns {null | { state: 'within'|'above'|'below', draw, rate, startRate, upper, lower, less, lessRate, more, moreRate,
+ *   startTaxYear, cutsOn, slots }}  `slots`: the figures in words for the sentence (pounds, one-decimal percentages, the tax year)
+ */
+export function guardrailOf(doc, w) {
+  if (!doc || !w || !doc.timing || w.beforeStart || w.saving || w.contract) return null;
+  if (!GUARDRAIL_STRATEGIES.includes(w.strategyId) || (doc.strategy && doc.strategy.contract)) return null;
+  const pot = w.pot;
+  if (!pot || pot.real == null || !(pot.real > 0) || (Array.isArray(pot.missing) && pot.missing.length) || pot.isaLeftOut) return null;
+  const tl = Array.isArray(doc.timeline) ? doc.timeline : null;
+  const asOf = Math.max(0, Math.round(+(doc.pots && doc.pots.asOfPlanYear) || 0));
+  const row = tl && Number.isInteger(w.planYear) && w.planYear >= 0 ? tl[w.planYear] : null;
+  const start = tl ? tl[asOf] : null;
+  const wc = doc.strategy && doc.strategy.r && doc.strategy.r.cones && doc.strategy.r.cones.wealth;
+  const startPot = wc && Array.isArray(wc.p50) ? +wc.p50[0] : NaN;
+  if (!row || !start || !(startPot > 0)) return null;
+  const draw = potDrawOf(doc, row), startDraw = potDrawOf(doc, start);
+  if (!(draw > 0) || !(startDraw > 0)) return null;
+  const rate = draw / pot.real, startRate = startDraw / startPot;
+  const upper = GUARDRAIL.upper * startRate, lower = GUARDRAIL.lower * startRate;
+  const state = rate > upper ? 'above' : rate < lower ? 'below' : 'within';
+  const less = draw * (1 - GUARDRAIL.step), more = draw * (1 + GUARDRAIL.step);
+  const startTaxYear = +doc.timing.firstTaxYear + asOf;
+  const sig = doc.strategy && doc.strategy.r && doc.strategy.r.signature;
+  const cutsOn = !!(sig && sig.protection && sig.protection.enabled === true);
+  const pounds = (v) => '£' + String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const pct = (v) => (Math.round(v * 1000) / 10).toFixed(1) + '%';
+  return {
+    state, draw: Math.round(draw), rate, startRate, upper, lower, less: Math.round(less), lessRate: rate * (1 - GUARDRAIL.step), more: Math.round(more), moreRate: rate * (1 + GUARDRAIL.step),
+    startTaxYear, cutsOn,
+    slots: { draw: pounds(draw), pct: pct(rate), startYear: startTaxYear + ' to ' + (startTaxYear + 1), startPct: pct(startRate), upperPct: pct(upper), lowerPct: pct(lower),
+      less: pounds(less), lessPct: pct(rate * (1 - GUARDRAIL.step)), more: pounds(more), morePct: pct(rate * (1 + GUARDRAIL.step)) }
+  };
+}

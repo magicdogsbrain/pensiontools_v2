@@ -121,5 +121,14 @@ export const STRESS = {
   // "Test what you keep against your plan": its link to the panel
   keepLink: 'See it beside the other bad years',
   // what is accepted before the lines are tried again
-  acceptedTitle: 'What you have accepted'
+  acceptedTitle: 'What you have accepted',
+  // the guardrail reading in "Where you are" (services/PlanDocument.js guardrailOf): this year's draw from the pots as a share of
+  // what they hold, beside the share the plan as locked began with; a fifth above or below is the line, a tenth less or more
+  // what would bring it back. Both apps.
+  guardrail: {
+    within: 'This year your plan takes {draw} from your pots: {pct} of what they hold now. In {startYear}, when the plan as locked began, it took {startPct} of what they held. If it reaches {upperPct} of what they hold (a fifth above that), taking a tenth less would bring it back under that line.',
+    above: 'This year your plan takes {draw} from your pots: {pct} of what they hold now, more than a fifth above the {startPct} it took in {startYear}, when the plan as locked began. Taking a tenth less, {less}, would make it {lessPct} of what they hold.',
+    below: 'This year your plan takes {draw} from your pots: {pct} of what they hold now, more than a fifth below the {startPct} it took in {startYear}, when the plan as locked began. You could take a tenth more, {more}, and it would be {morePct} of what they hold.',
+    cuts: 'Your plan’s own rule for cuts is above; this is another way to read the same draw.'
+  }
 };

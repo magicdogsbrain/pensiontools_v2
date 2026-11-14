@@ -11,6 +11,8 @@ import { pctText as pctShare } from '../../services/OneAnswer.js';
 import { monthsWords, countWords } from '../../services/MonthFill.js';
 import { definitionOf } from '../../services/PlanDocument.js';
 import { successLineHtml } from '../oneAnswerView.js';
+import { STRESS } from '../../v7/copy/stressPanel.js';
+import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''; };
@@ -440,7 +442,7 @@ export function strategyNameOf(st) {
 }
 
 /** The "where you are" strip. */
-export function whereAmIHtml(w) {
+export function whereAmIHtml(w, g = null) {
   if (!w) return '';
   const parts = [];
   if (w.saving && w.beforeStart) {
@@ -471,5 +473,9 @@ export function whereAmIHtml(w) {
   const potText = whereAmIPotText(w.pot);
   if (potText) parts.push(potText);
   if (w.ladder && w.ladder.instruction) parts.push(esc(w.ladder.instruction));
-  return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p></div>';
+  // the guardrail reading (7.9.0; services/PlanDocument.js guardrailOf, passed in by the page): the words V7 says
+  const guard = g && STRESS_ON.guardrail && STRESS.guardrail[g.state] ? '<p class="hint" id="planDocGuardrail" data-guardrail="' + esc(g.state) + '" style="margin:6px 0 0;">' + esc(fillSlots(STRESS.guardrail[g.state], g.slots) + (g.cutsOn ? ' ' + STRESS.guardrail.cuts : '')) + '</p>' : '';
+  return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p>' + guard + '</div>';
 }
+/** A sentence of the shared words with its {slots} filled. */
+const fillSlots = (t, slots) => String(t).replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));

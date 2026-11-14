@@ -376,6 +376,10 @@ export function verdictOf(result, saved, { level = null } = {}) {
   const worst = Array.isArray(result.history && result.history.worst) ? result.history.worst.map(startRow) : [];
   const named = Array.isArray(result.history && result.history.named) ? result.history.named.map(startRow) : [];
   if (wb) rows.splice(0, 0, ...wb.rows);
+  // a contract strategy always says it is bought by contract (7.9.0); with a weighted band its fixed-age line (or the reason
+  // there is no weighted figure) becomes the first row, so it stays in the band beside the weighted headline
+  const contract = CONTRACT.includes(result.strategyId);
+  if (wb && contract) rows.splice(0, 0, { id: wb.sub.id === 'lasts.subFixed' ? 'fixedW' : 'whyW', slots: { words: wb.sub.slots.words } });
   return {
     ok: true,
     verdict: verdictWord(a.share, wb ? a : null), share: a.share, chancePct: a.chancePct,
@@ -385,8 +389,7 @@ export function verdictOf(result, saved, { level = null } = {}) {
       cutN: c ? c.cutN : null, cutPerYear: c ? c.typicalCutPerYear : null, cutYears: c ? c.typicalCutYears : null, cutTotal: c ? c.typicalCutTotal : null, worstCut: c ? c.worstCutTotal : null },
     ...(wb ? wb.head : { id: 'lasts.headline', slots: { words: futuresOutOfTen(a.share).words } }),
     // a contract strategy runs no futures: every year is bought (the test counts one window), so its line says that
-    sub: wb ? wb.sub : CONTRACT.includes(result.strategyId)
-      ? { id: 'lasts.subContract', slots: { years: String(years), toAge } }
+    sub: contract ? { id: 'lasts.subContract', slots: { years: String(years), toAge } } : wb ? wb.sub
       : { id: 'lasts.sub', slots: { pct: pctText(a.chancePct, 1, CHANCE_BARS).replace(/%$/, ''), futures: n0(a.futures), histories: n0(a.histories), years: String(years), toAge } },
     rows, strategyId: result.strategyId || null,
     ...(closedShort ? { closedShort } : {}),

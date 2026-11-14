@@ -250,7 +250,9 @@ describe('the words in src/v7/copy/', () => {
       .replace(/\{(amount|perYear|left)\}/g, '£2,310').replace(/\{list\}/g, 'Example Shares plc').replace(/\{taxYear\}/g, '2027/28').replace(/\{s\}/g, 's')
       .replace(/\{chance\}/g, '15 times in 20').replace(/\{fixed\}/g, 'in 12 of 20 futures we tried')
       .replace(/\{ref\}/g, 'as planned: 18').replace(/\{words\}/g, 'If you live to 97, the money lasts that long in 12 of 20 futures we tried')
-      .replace(/\{figures\}/g, 'counting how long people your age live, the money lasts as long as you do 15 times in 20; if you live to 97, it lasts that long in 12 of 20 futures we tried');
+      .replace(/\{figures\}/g, 'counting how long people your age live, the money lasts as long as you do 15 times in 20; if you live to 97, it lasts that long in 12 of 20 futures we tried')
+      // the guardrail reading in "Where you are" (7.9.0): its pounds, its shares and the tax year the plan as locked began
+      .replace(/\{(draw|less|more)\}/g, '£16,400').replace(/\{(pct|startPct|upperPct|lowerPct|lessPct|morePct)\}/g, '4.1%').replace(/\{startYear\}/g, '2027 to 2028');
     const hits = [];
     const all = strings(STRESS).map(([, s]) => slot(s)).join('\n');
     for (const [where, s] of strings(STRESS)) {

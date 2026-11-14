@@ -39,7 +39,10 @@ export const LASTS = {
     /** 7.8.0: the floor, what is left at the plan's age, and what we assumed (OneAnswer.js weightedWordsOf) */
     floorW: '{words}',
     leftW: '{words}',
-    assumedW: '{words}'
+    assumedW: '{words}',
+    /** 7.9.0: a contract strategy's fixed-age line (or why there is no weighted figure), as its band's first row */
+    fixedW: '{words}',
+    whyW: '{words}'
   },
   /** Where the figures came from. */
   ran: { now: 'Worked out just now, on the plan as saved {date}.', nowUndated: 'Worked out just now, on the plan as saved.', document: 'Worked out when the plan was locked on {date}.', today: 'Today’s test on the same plan:' },

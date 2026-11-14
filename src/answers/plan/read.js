@@ -13,7 +13,7 @@
  * are `parts` ({ key, kind }) into the step's `figures`, so the screen draws each through Money (data-key, data-value).
  */
 import { planStage, effectiveStressSettings, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending } from '../../services/PlanReading.js';
-import { CONTRACT_STRATEGIES, planToAgeOfDefinition } from '../../services/PlanDocument.js';
+import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf } from '../../services/PlanDocument.js';
 import { taxYearLabel, taxYearStartOf, taxYearKey, staleDraft } from '../../services/PlanTiming.js';
 import { documentLadder, firstRungOf } from '../../services/LadderPosition.js';
 import { saverPotOf } from '../../services/SaverReading.js';
@@ -27,7 +27,7 @@ import { isBought } from './pots.js';
 import { savedLasts } from './lasts.js';
 import { savedMix } from './mix.js';
 import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
-import { SUCCESS, planToAgeOf } from '../shared/rules.js';
+import { SUCCESS, planToAgeOf, STRESS as STRESS_ON } from '../shared/rules.js';
 import { chanceWords, fixedAgeWords } from '../shared/format.js';
 
 /**
@@ -387,10 +387,14 @@ function whereStep(C) {
       if (w.pot.p50 != null && !older) { figures.potMid = r0(w.pot.p50); lines.push(line('where.potMid', [money('potMid')], figures, sourceOf('locked', lockedAt, now))); }
     }
   }
+  // the guardrail reading (7.9.0; services/PlanDocument.js guardrailOf): this year's draw as a share of what the pots hold,
+  // beside the share the plan as locked began with — said once drawing has started, never before (rules.js STRESS.guardrail)
+  let guardrail = null;
+  if (STRESS_ON.guardrail && !w.saving) { try { const g = guardrailOf(plan.planDocument, w); guardrail = g ? { state: g.state, slots: g.slots, cuts: g.cutsOn } : null; } catch { guardrail = null; } }
   if (w.contract && !inputs.ladderInDocument) notes.push('where.ladderNotInDocument');
   if (w.ladder && typeof w.ladder.monthly === 'number' && w.ladder.monthly > 0) { figures.ladderMonthly = r0(w.ladder.monthly); lines.push(line('where.ladderMonthly', [money('ladderMonthly'), ' a month before tax'], figures, sourceOf('locked', lockedAt, now))); }
   // the records by tax year, a spreadsheet per year and the printed documents stay on the classic page (road-to-7.md step 11b, month.exports)
-  return { done: true, result, figures, lines, buttons: [button('seeDocument', 'document'), button('exports', 'exports')], notes };
+  return { done: true, result, figures, lines, buttons: [button('seeDocument', 'document'), button('exports', 'exports')], notes, ...(guardrail ? { guardrail } : {}) };
 }
 
 /** The income steps as the plan has them: the document's (locked), else the effective settings'. */

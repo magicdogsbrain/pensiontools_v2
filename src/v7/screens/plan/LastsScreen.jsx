@@ -75,7 +75,7 @@ function Band({ v, stale = false, testid, dispatch = null }) {
       <p class="lasts-bar">{v.level && v.weighted && <span class="lasts-level" data-testid={testid + '.level'}>{fill(LASTS.verdict.atLevel, { level: LEVELS_WORDS.names[v.level] })} </span>}<span class={`verdict-word is-${v.verdict}`} data-verdict={v.verdict}>{LASTS.verdict.word[v.verdict]}</span> <OutOfTenBar source={v} k="share" of={v.weighted ? 20 : 10} /></p>
       <p class="figure-sub" data-testid={testid + '.sub'} {...(v.sub.id === 'lasts.subFixed' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.verdict[v.sub.id], v.sub.slots)}</p>
       <ul class="plan-lines">
-        {v.rows.map((r, i) => <li key={i} class="plan-line" data-line={'lasts.' + r.id}>{fill(LASTS.rows[r.id] || '', r.slots)}</li>)}
+        {v.rows.map((r, i) => <li key={i} class="plan-line" data-line={'lasts.' + r.id} {...(r.id === 'fixedW' ? { 'data-fixed': 'age' } : {})}>{fill(LASTS.rows[r.id] || '', r.slots)}</li>)}
       </ul>
       {!stale && <PlanLevelStrip v={v} dispatch={dispatch} />}
     </div>

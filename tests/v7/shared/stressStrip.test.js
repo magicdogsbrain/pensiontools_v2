@@ -143,6 +143,14 @@ describe('the strip\'s machinery', () => {
     expect(cleanStressStrip({ q: 'c', key: 'k', status: 'done', result: { rows: [] }, reason: 'x' })).toEqual({ q: 'c', key: 'k', status: 'done', result: { rows: [] }, reason: null });
     expect(cleanStressStrip({ q: 'a', key: 'k' })).toEqual(emptyStressStrip());
   });
+  it('switched off (rules.js STRESS.strip false, the rollback): the page is told, and no strip is drawn under any answer', () => {
+    const { store } = answered();
+    expect(stressStripView(store.getState(), 'd')).not.toBe(null);
+    const stop = startStressStripRunner({ store, client: { stressStrip: () => Promise.resolve(null), stop() {} }, on: false });
+    expect(store.getState().env.stressStrip).toBe(false);
+    expect(stressStripView(store.getState(), 'd')).toBe(null);
+    stop();
+  });
   it('the runner: strip/run → client.stressStrip(q, the answer\'s inputs, its date, futures and seed, the amount) → strip/done; a new answer stops it; no worker', async () => {
     const { store, key, result } = answered();
     const calls = [];

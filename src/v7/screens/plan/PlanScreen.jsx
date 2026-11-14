@@ -10,6 +10,7 @@ import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { LOCK } from '../../copy/lock.js';
 import { LASTS } from '../../copy/lasts.js';
+import { STRESS } from '../../copy/stressPanel.js';
 import { MonthScreen } from './MonthScreen.jsx';
 import { HomeScreen } from './HomeScreen.jsx';
 
@@ -184,6 +185,8 @@ export function PlanScreen(state, dispatch) {
           {step.notes.map((n, i) => (typeof n === 'string'
             ? <p class="note" key={i}>{PLAN.notes[n] || ''}</p>
             : <p class="note" key={i}>{n.id === 'prices' ? fill(w.prices, n.slots) : n.id === 'pricesToday' ? w.pricesToday : ''}</p>))}
+          {/* the guardrail reading (7.9.0): this year's draw as a share of what the pots hold, beside the start's */}
+          {step.guardrail && <p class="note" data-guardrail={step.guardrail.state} data-testid="plan.where.guardrail">{fill(STRESS.guardrail[step.guardrail.state], step.guardrail.slots)}{step.guardrail.cuts ? ' ' + STRESS.guardrail.cuts : ''}</p>}
           {step.id === 'plan' && step.sections && (
             <>
               {step.sections.map((sec) => <Section key={sec.id} section={sec} view={{ figures: step.figures, lockedOn: view.lockedOn, readonly: view.readonly }} onChange={onChange} />)}

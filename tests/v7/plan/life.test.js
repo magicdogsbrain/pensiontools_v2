@@ -208,6 +208,20 @@ describe('the weighted part of one answer', () => {
     expect(v.rows.map((r) => r.id)).not.toContain('left');
     expect(verdictWord(0.95)).toBe('yes');   // without a weighted part, the count as before
   });
+  it('7.9.0: a contract way always says it is bought by contract; its fixed-age line becomes the band\'s first row', () => {
+    for (const id of ['full-il-gilt', 'floor-the-schedule']) {
+      const a = oneAnswer(fake(id, {}), P, { life: LIFE });
+      const v = verdictOf({ strategyId: id, a, ran: {} }, { endAge: 97 });
+      expect(v.id, id).toBe('lasts.headlineW');
+      expect(v.sub.id, id).toBe('lasts.subContract');
+      expect(v.rows[0], id).toEqual({ id: 'fixedW', slots: { words: a.words.fixed } });
+    }
+    // every other way keeps the fixed-age line as its sub line, as before
+    const pv = oneAnswer(fake('pots-and-valves', { 1: 22 }), P, { life: LIFE });
+    const v = verdictOf({ strategyId: 'pots-and-valves', a: pv, ran: { family: true, cutsOn: true, cutPct: 20, months: 3 } }, { endAge: 97 });
+    expect(v.sub.id).toBe('lasts.subFixed');
+    expect(v.rows.map((r) => r.id)).not.toContain('fixedW');
+  });
 });
 
 describe('"Does it last?" weighing, and the rollback', { timeout: 240_000 }, () => {

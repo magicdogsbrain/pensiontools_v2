@@ -4169,7 +4169,7 @@
     import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
     import { installLockedStart, startLaterOfActive, startDraftOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, successorNameOf, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's start, and "Move the plan's start" (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
-    import { buildPlanDocument, whereAmI, potRecordOf, recordIsaOf } from './src/services/PlanDocument.js';
+    import { buildPlanDocument, whereAmI, guardrailOf, potRecordOf, recordIsaOf } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments } from './src/storage/ScenarioRepository.js';
@@ -7293,7 +7293,7 @@
         }
         const w = await whereAmINow(doc);
         await paintPlanDocumentTools(document);   // no new version of a closed plan's document (6.56.0)
-        let html = planDocumentHtml(doc, { ...planDocumentRenderers(), whereAmI: whereAmIHtml(w) + keepLineHtml(await getActiveScenarioAsStored().catch(() => null)), notice: await planNoticeHtml() });   // 7.7.0: what was kept and agreed, one line   // the closed / carried-on line (6.56.0)
+        let html = planDocumentHtml(doc, { ...planDocumentRenderers(), whereAmI: whereAmIHtml(w, guardrailOf(doc, w)) + keepLineHtml(await getActiveScenarioAsStored().catch(() => null)), notice: await planNoticeHtml() });   // 7.7.0: what was kept and agreed, one line   // the closed / carried-on line (6.56.0)
         const archive = await getActivePlanDocumentArchive();
         if (archive.length) {
           html += '<details class="card" style="margin-top:12px;"><summary class="hint" style="cursor:pointer;">Previous versions (' + archive.length + ')</summary>'
@@ -7328,7 +7328,7 @@
       const doc = window._planDocLast || await getActivePlanDocument();
       if (!doc) { showToast('No plan document yet.', 'info'); return; }
       const w = await whereAmINow(doc);
-      const html = planDocumentHtml(doc, { ...planDocumentRenderers(), whereAmI: whereAmIHtml(w), notice: await planNoticeHtml() }).replace(/<details class="pd-section"(?! open)/g, '<details class="pd-section" open');
+      const html = planDocumentHtml(doc, { ...planDocumentRenderers(), whereAmI: whereAmIHtml(w, guardrailOf(doc, w)), notice: await planNoticeHtml() }).replace(/<details class="pd-section"(?! open)/g, '<details class="pd-section" open');
       printPortal(html);
     };
     window.renderWhereAmILine = async function () {

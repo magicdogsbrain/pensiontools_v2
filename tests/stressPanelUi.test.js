@@ -19,6 +19,7 @@ import { stressKeyOf, stressAmendPatch } from '../src/answers/plan/stressPanel.j
 import { applyPatch } from '../src/answers/plan/about.js';
 import { scenariosTabHtml } from '../src/ui/oneAnswerView.js';
 import { STRESS } from '../src/v7/copy/stressPanel.js';
+import { STRESS as STRESS_ON } from '../src/answers/shared/rules.js';
 import { bannedHits } from './v7/render/checkScreen.js';
 import { corpus, entryOf, stateWith, TODAY } from './v7/plan/_plans.js';
 
@@ -125,8 +126,18 @@ describe('the card and opening the page', () => {
     expect(H.toasts.at(-1)).toEqual(['success', 'Withdrawn: what you accepted on 2 October 2026 is no longer on this plan.']);
     expect(H.box().querySelector('#stressAgreement-fall')).toBe(null);
   });
-  it('the panel switched off: the card says the page as before 7.9.0', () => {
+  it('the panel switched off (rules.js STRESS.panel false, the rollback): the card says the page as before 7.9.0, the button draws the named stresses only', async () => {
     expect(PANEL_OFF).toMatchObject({ title: 'Stress Scenarios', run: 'Show the named stresses' });
+    STRESS_ON.panel = false;
+    try {
+      const H = harness(plan0('02-pnv-draft'));
+      expect(document.getElementById('stressPanelTitle').textContent).toBe(PANEL_OFF.title);
+      expect(document.getElementById('stressPanelLead').textContent).toBe(PANEL_OFF.lead);
+      await H.w.runStressPanel();
+      expect(H.named).toEqual([false]);
+      expect(H.asked).toEqual([]);
+      expect(stressPanelHtml(plan0('02-pnv-draft'), { today: TODAY })).toBe('');
+    } finally { STRESS_ON.panel = true; }
   });
 });
 

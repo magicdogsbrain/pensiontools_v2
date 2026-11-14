@@ -17,9 +17,10 @@ export const KEEP = {
   /**
    * 7.8.0: the answer counts to an age more than 45 years after the money starts (the plan-to age follows how long people
    * live); a plan runs 45 years at most, so it is kept to an earlier age. {kept} the age the kept plan runs to ("to 97" = to the 97th birthday), {years} 45,
-   * {age} the answer's plan-to age.
+   * {age} the answer's plan-to age. 7.9.0: {weightAge} the age each future is followed on to for the chance (the answer's
+   * weightToAge): the kept plan follows each future on to the same age, so its chance counts the years after {kept} too.
    */
-  cut: 'The plan this keeps runs to {kept}: {years} years from when the money starts is the longest a plan runs. This answer counts to {age}.',
+  cut: 'The plan this keeps runs to {kept}: {years} years from when the money starts is the longest a plan runs. This answer counts to {age}. On the plan each future is still followed on to {weightAge}, so its chance counts those years too.',
   save: 'Keep as a plan',
   saveSeparate: 'Keep as a separate plan',
   /**

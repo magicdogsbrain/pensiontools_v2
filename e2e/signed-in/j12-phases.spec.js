@@ -226,7 +226,7 @@ test('Sam: question C kept at 66, signed in — Living on it at once; what is he
     await expect(page.locator('#nextStepBanner')).toBeVisible({ timeout: 60_000 });
     await expect.poll(() => page.evaluate(() => window._nextStepDismiss && window._nextStepDismiss.kind), { timeout: 30_000 }).toBe('banner');
     await expect(page.locator('#nextStepText')).not.toContainText('Next:');
-    await page.waitForTimeout(2000);
+    // (the banner is drawn after the page's stage is worked out and its stage record saved: index.html updateNextStepBanner)
     const after = await plansOf(uid);
     expect(after.map((p) => p.id)).toEqual(before.map((p) => p.id));
     // the classic planner's stage record (6.6.0, LifeStage.journeyAppend): the plan's first entry, its stage, and nothing else

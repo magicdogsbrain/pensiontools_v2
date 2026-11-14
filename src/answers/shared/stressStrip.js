@@ -4,8 +4,10 @@
  *
  *   runStressStrip(q, inputs, env, { perMonth, onProgress? }) → {
  *     status: 'ok' | 'none', q, perMonth,
- *     rows: [{ id, perMonth, chance: { weighted, fixedAge, fails, sumW, n }, verdict, same, sentences: { line?, fixed, when,
- *             howLong?, howMuch?, floor? }, words: { title, what[] } }]       As planned first, then the four in STRIP_ROWS
+ *     rows: [{ id, perMonth, chance: { weighted, fixedAge, fails, sumW, n }, verdict, same, short: { chance, runsOut },
+ *             sentences: { when?, howLong?, howMuch?, floor? }, words: { title, what[] } }]   As planned first, then the four
+ *             in STRIP_ROWS; `short` the two lines a row shows (shared/stressRowWords.js), `sentences` the rest
+ *     floor: what still comes in if the money runs out, said once above the rows from As planned (null: none runs out)
  *     basis: { today, futures, seed, planToAge, weighted }
  *   }
  *
@@ -26,8 +28,9 @@ import { stressCaseOf as stressCaseOfC } from '../c/answer.js';
 import { stressCaseOf as stressCaseOfD } from '../d/answer.js';
 import { chanceOf, verdictOfChance } from './levels.js';
 import { shortfallOf } from './shortfall.js';
-import { countingLead, asLongAs, chanceParts, fixedAgeParts, whenParts, howLongParts, howMuchParts, floorParts } from './lastsWords.js';
-import { chanceTwentieths, chanceWords, twentiethsOfFutures, money } from './format.js';
+import { whenParts, howLongParts, howMuchParts, floorParts } from './lastsWords.js';
+import { chanceShort, runsOutShort, answerFloorShort, sameFloor } from './stressRowWords.js';
+import { money } from './format.js';
 
 /** The rows of the strip, in order (As planned first). */
 export const STRIP_ROWS = Object.freeze(['asPlanned', 'fall', 'lower', 'spend', 'prices']);
@@ -40,27 +43,12 @@ export const STRIP_CHANGE = Object.freeze({
   prices: Object.freeze({ shock: Object.freeze({ kind: 'prices', add: 0.02 }) })
 });
 
-const F = (fixed) => ({ fixed: String(fixed) });
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 /** A sentence as every answer writes it: { id, text, parts, mark? } — the text is the parts joined. */
 const S = (id, parts, mark) => {
   const p = parts.flat().filter((x) => x !== '' && x != null);
   return { id, text: p.map((x) => (typeof x === 'string' ? x : String(x.fixed))).join(''), parts: p, ...(mark ? { mark } : {}) };
 };
-/** The parts without their closing full stop (so the reference can follow it). */
-const noStop = (parts) => {
-  const out = parts.slice();
-  for (let i = out.length - 1; i >= 0; i--) {
-    if (typeof out[i] !== 'string') break;
-    out[i] = out[i].replace(/\.\s*$/, '');
-    if (out[i] === '') out.splice(i, 1); else break;
-  }
-  return out;
-};
-/** As planned's chance said beside a row: "18" for 18 times in 20, else its words. */
-const refChance = (c) => { const k = chanceTwentieths(c.weighted, { sumW: c.sumW, n: c.n }); return c.weighted > 0 && c.weighted < 1 && k >= 1 && k <= 19 ? String(k) : chanceWords(c.weighted, { sumW: c.sumW, n: c.n }); };
-/** As planned's fixed-age count said beside a row: "14" for 14 of 20 futures, else its words. */
-const refFixed = (share) => { const v = Math.max(0, Math.min(1, +share || 0)); const k = Math.round(v * 20); return v > 0 && v < 1 && k >= 1 && k <= 19 ? String(k) : twentiethsOfFutures(v); };
 
 /** The case an answer is worked out again on (null: nothing to try). */
 export function stressCaseFor(q, inputs, env) {
@@ -69,32 +57,40 @@ export function stressCaseFor(q, inputs, env) {
   return null;
 }
 
-/** A row's sentences in the answers' words, beside As planned's (`ref`; none on As planned itself). */
-function sentencesOf(id, row, ref, lf) {
+/**
+ * A row in words: `short` — its chance beside its fixed-age count, and where it runs out, each beside As planned's figure
+ * (shared/stressRowWords.js, the plan panel's own builder) — and `sentences`, the rest in the answers' words, drawn under
+ * "More about this line": when (with how many futures run out, beside As planned's), how long, how much, and what still
+ * comes in when it says something other than As planned's (`refFloor`, said once above the rows).
+ */
+function wordsOf(id, row, ref, lf, refFloor) {
   const c = lf.couple;
-  const out = {};
-  const refPart = (n) => [' (as planned: ', ...String(n).split(/(\d+)/).map((x, i) => (i % 2 ? F(x) : x)).filter((x) => x !== ''), ').'];
-  if (lf.weighted) {
-    const head = [countingLead(c), ', the money lasts ', asLongAs(c), ' ', ...chanceParts(row.chance.weighted)];
-    out.line = S('strip.' + id + '.line', ref ? [...head, ...refPart(refChance(ref.chance))] : [...head, '.'], 'weighted');
-  }
-  const fixed = fixedAgeParts(row.chance.fixedAge, lf);
-  out.fixed = S('strip.' + id + '.fixed', ref ? [...noStop(fixed), ...refPart(refFixed(ref.chance.fixedAge))] : fixed, lf.weighted ? 'fixed' : undefined);
+  const me = { weighted: lf.weighted ? row.chance.weighted : null, sumW: row.chance.sumW, n: row.chance.n, fixedAge: row.chance.fixedAge };
+  const refMe = ref ? { weighted: lf.weighted ? ref.chance.weighted : null, sumW: ref.chance.sumW, n: ref.chance.n, fixedAge: ref.chance.fixedAge } : null;
   const sf = row.sf;
+  const short = {
+    chance: chanceShort(me, refMe, { planToAge: lf.planToAge, couple: c ? 'younger' : null }),
+    runsOut: runsOutShort(sf && sf.when ? sf.when : null, ref ? (ref.sf && ref.sf.when ? ref.sf.when : null) : undefined, { planToAge: lf.planToAge, younger: c })
+  };
+  const out = {};
   // beside As planned: how many futures each set holds and As planned's own figure (lastsWords.js `cmp`), so a set that grew
   // with later run-outs never reads as a better year; As planned itself in the answer's own words
   const cmp = ref ? { count: row.counts.failing, early: row.counts.early, n: row.chance.n, ref: ref.sf, refCount: ref.counts.failing, refEarly: ref.counts.early } : null;
   const wp = whenParts(sf, lf, cmp);
-  const rw = ref && ref.sf && ref.sf.when ? ref.sf.when : null;
-  out.when = wp ? S('strip.' + id + '.when', wp)
-    : S('strip.' + id + '.lasts', ['In the worst ', F('1'), ' in ', F('10'), ' of all the futures it still lasts to ', F(lf.planToAge), ...(ref && rw && !rw.worstLasts ? [' (as planned: by ', F(rw.worst), ')'] : []), '.']);
+  if (wp) out.when = S('strip.' + id + '.when', wp);
   const hl = howLongParts(sf, lf, cmp);
   if (hl) out.howLong = S('strip.' + id + '.howLong', hl);
   const hm = howMuchParts(sf, cmp);
   if (hm) out.howMuch = S('strip.' + id + '.howMuch', hm);
   const fp = floorParts(sf, lf);
-  if (fp) out.floor = S('strip.' + id + '.floor', fp);
-  return out;
+  if (fp && !sameFloor(floorShortOf(sf, lf), refFloor)) out.floor = S('strip.' + id + '.floor', fp);
+  return { short, sentences: out };
+}
+
+/** A row's floor as the line above the rows says it (without an age when something comes in). */
+function floorShortOf(sf, lf) {
+  const fp = floorParts(sf, lf);
+  return fp ? answerFloorShort(sf.floor, { couple: lf.couple, words: S('', fp).text }) : null;
 }
 
 /** Whether a row's every reported figure is As planned's (then it says only "this changes nothing"). */
@@ -131,10 +127,14 @@ export function runStressStrip(q, inputs, env, { perMonth } = {}) {
     tell(rows.length, STRIP_ROWS.length);
   }
   const ref = rows[0];
+  // what still comes in if the money runs out: said once, above the rows, from As planned
+  const floor = floorShortOf(ref.sf, sc.lf);
   for (const row of rows) {
     const r = row.id === 'asPlanned' ? null : ref;
     row.same = sameAsRef(row, r);
-    row.sentences = sentencesOf(row.id, row, r, sc.lf);
+    const w = wordsOf(row.id, row, r, sc.lf, floor);
+    row.short = w.short;
+    row.sentences = w.sentences;
     row.words = {
       title: { id: 'rows.' + row.id + '.title' },
       what: row.id === 'asPlanned' ? [{ id: 'rows.asPlanned.answer' }]
@@ -145,7 +145,7 @@ export function runStressStrip(q, inputs, env, { perMonth } = {}) {
     };
   }
   return {
-    status: 'ok', q, perMonth, rows,
+    status: 'ok', q, perMonth, rows, floor,
     basis: { today: env.today, futures: n, seed: env.seed ?? 0, planToAge: sc.lf.planToAge, weighted: !!sc.lf.weighted, level: sc.level }
   };
 }

@@ -1,9 +1,10 @@
 /**
  * 7.9.0 "Try the bad years" on a plan's "Does it last?" (the build spec's §2.1, §6), drawn from states with made-up row results
  * (runStressRow's shape; the real runs are stressPanelRun.slow.test.js): before the press — the button, what is accepted with
- * Withdraw, the keep agreement's state and its link, no run; the press asks for the rows As planned first; the rows drawn —
- * each title and what it changes, the weighted line beside its fixed-age line, when, how long, how much, the reference, no
- * history figure, no banned word, nothing unfilled; "I accept this risk" asks on the screen, then ONE plan/amend with the row;
+ * Withdraw, the keep agreement's state and its link, no run; the press asks for the rows As planned first; the rows drawn in
+ * short — each title and what it changes, ONE chance line (the weighted chance beside its fixed-age count) and ONE "runs out"
+ * line, each beside the reference; when, how long and how much closed under "More about this line"; what still comes in
+ * said once above the rows; no history figure, no banned word, nothing unfilled; "I accept this risk" asks on the screen, then ONE plan/amend with the row;
  * a locked ladder's rows not tried and said so; the held rows the keep agreement's state, never an accept. Fictional plans.
  */
 import { describe, it, expect } from 'vitest';
@@ -137,7 +138,7 @@ describe('before the press', () => {
 });
 
 describe('the rows drawn', () => {
-  it('each row: its title and change, the weighted line beside its fixed-age line, the reference, when, how long, how much; no history figure, no banned word, nothing unfilled', () => {
+  it('each row in short: its title and change, ONE chance line (the weighted chance beside its fixed-age count), ONE "runs out" line, each beside the reference; the rest closed under "More about this line"; what still comes in once, above the rows; no history figure, no banned word, nothing unfilled', () => {
     const plan = plan0('02-pnv-draft');
     const s = withRows(plan, MARKET);
     const { root } = draw(s);
@@ -146,22 +147,38 @@ describe('the rows drawn', () => {
     const rows = [...panel.querySelectorAll('li.stress-row')];
     expect(rows.map((r) => r.getAttribute('data-row'))).toEqual(['asPlanned', 'fall', 'lower', 'spend', 'prices']);
     const fall = panel.querySelector('[data-row="fall"]');
-    expect(fall.querySelector('[data-weighted]').textContent).toBe('Counting how long people your age live, the money lasts as long as you do 15 times in 20 (as planned: 18).');
-    expect(fall.querySelector('[data-fixed="age"]').textContent).toBe('If you live to 97, the money lasts that long in 12 of 20 futures we tried (as planned: 17).');
+    const chance = fall.querySelector('[data-line="chance"]');
+    expect(chance.textContent).toBe('The money lasts as long as you do 15 times in 20 (as planned 18); if you live to 97, in 12 of 20 futures we tried (as planned 17).');
+    expect(chance.querySelector('[data-weighted]').textContent).toBe('The money lasts as long as you do 15 times in 20 (as planned 18)');
+    expect(chance.querySelector('[data-fixed="age"]').textContent).toBe('if you live to 97, in 12 of 20 futures we tried (as planned 17).');
+    expect(fall.querySelector('[data-line="runsOut"]').textContent).toBe('Where it runs out: typically at 90, the worst 1 in 10 by 82 (as planned 88 and 84).');
+    // shown: the title, what it changes, the two lines; the rest closed under "More about this line"
+    expect([...fall.querySelectorAll(':scope > p.stress-line')].map((x) => x.getAttribute('data-line'))).toEqual(['chance', 'runsOut']);
+    const more = fall.querySelector('details.stress-more');
+    expect(more.open).toBe(false);
+    expect(more.querySelector('summary').textContent).toBe(STRESS.short.more);
     // when, how long and how much name the futures each counts, how many there are, and As planned's figure beside it: a
-    // later "typically" over more futures never reads as a better year
-    expect(fall.textContent).toContain('In the futures where the money runs out before 103 (211 of the 1,000; as planned: 150), it typically runs out at 90 (as planned: 88). In the worst 1 in 10 of all the futures, by 82 (as planned: by 84).');
-    expect(fall.textContent).toContain('In the futures where it runs out before 97 (180 of the 1,000; as planned: 120), it still pays for 21 of the 31 years to 97 (as planned: 22).');
-    expect(fall.textContent).toContain('Across those futures, £8 of every £10 of income the plan pays is still paid (as planned: £9).');
+    // later "typically" over more futures never reads as a better year — the words as they were, inside
+    expect(more.textContent).toContain('In the futures where the money runs out before 103 (211 of the 1,000; as planned: 150), it typically runs out at 90 (as planned: 88). In the worst 1 in 10 of all the futures, by 82 (as planned: by 84).');
+    expect(more.textContent).toContain('In the futures where it runs out before 97 (180 of the 1,000; as planned: 120), it still pays for 21 of the 31 years to 97 (as planned: 22).');
+    expect(more.textContent).toContain('Across those futures, £8 of every £10 of income the plan pays is still paid (as planned: £9).');
+    expect(more.textContent).toContain('what is typically left then is £180,000');
     expect(fall.textContent).toContain(STRESS.handOver);
     // this draft draws from this tax year: the fall is said in the coming year
     expect(fall.textContent).toContain(STRESS.rows.fall.whatDrawing);
+    // what still comes in: once, above the rows, from As planned, with no age; no row says it again (each row's is the same)
+    const floor = panel.querySelector('[data-testid="plan.lasts.stress.floor"]');
+    expect(floor.textContent).toBe('If the money runs out, you would still have £12,500 a year after tax from the income you get anyway.');
+    expect(floor.closest('li')).toBe(null);
+    expect(panel.textContent).not.toContain('If the money ran out at 88');
     const planned = panel.querySelector('[data-row="asPlanned"]');
+    expect(planned.querySelector('[data-line="chance"]').textContent).toBe('The money lasts as long as you do 18 times in 20; if you live to 97, in 17 of 20 futures we tried.');
+    expect(planned.querySelector('[data-line="runsOut"]').textContent).toBe('Where it runs out: typically at 88, the worst 1 in 10 by 84.');
     expect(planned.textContent).toContain('In the futures where the money runs out before 103, it typically runs out at 88. In the worst 1 in 10 of all the futures, by 84.');
     expect(planned.textContent).toContain('In the futures where it runs out before 97, it still pays for 22 of the 31 years to 97.');
     expect(planned.textContent).toContain('Across those futures, £9 of every £10 of income the plan pays is still paid.');
     expect(planned.textContent).toContain('In the worst 1 in 10 futures, what is left at 97 is £40,000.');
-    expect(planned.textContent).not.toContain('as planned:');
+    expect(planned.textContent).not.toContain('as planned');
     // prices made nothing worse here: "this changes nothing", no figures, no accept
     const prices = panel.querySelector('[data-row="prices"]');
     expect(prices.getAttribute('data-same')).toBe('1');
@@ -230,8 +247,39 @@ describe('the rows drawn', () => {
     const lasts = { when: null, howLong: null, howMuch: 1 };
     const s = withRows(plan, (key) => ({ ...MARKET(key), lower: row(key, 'lower', { w: 1, f: 1, words: { ...WORDS(20, 20), headline: 'Counting how long people your age live, the money lasts as long as you do in every future we tried.', fixed: 'If you live to 97, the money lasts that long in every future we tried.' }, shortfall: lasts }) }));
     const lower = panelOf(draw(s).root).querySelector('[data-row="lower"]');
-    expect(lower.textContent).toContain('In the worst 1 in 10 of all the futures it still lasts to 97 (as planned: by 84).');
+    expect(lower.querySelector('[data-line="runsOut"]').textContent).toBe('In the worst 1 in 10 it still lasts to 97 (as planned by 84).');
     expect(lower.querySelector('[data-testid="plan.lasts.stress.lower.accept"]')).toBe(null);
+  });
+});
+
+describe('what still comes in', () => {
+  it('a row whose floor says something else says its own under "More about this line"; As planned\'s is said once above the rows', () => {
+    const plan = plan0('02-pnv-draft');
+    const other = { ...WORDS(14, 11), floor: 'If the money ran out at 70, nothing would come in until your State Pension starts at 67.' };
+    const s = withRows(plan, (key) => {
+      const m = MARKET(key);
+      const spend = row(key, 'spend', { w: 0.7, f: 0.55, words: other });
+      spend.a.floor = { age: 70, yearly: 0, spAge: 67 };
+      return { ...m, spend };
+    });
+    const panel = panelOf(draw(s).root);
+    expect(panel.querySelectorAll('.stress-floor').length).toBe(1);
+    expect(panel.querySelector('[data-row="spend"] details.stress-more').textContent).toContain(other.floor);
+    for (const id of ['asPlanned', 'fall', 'lower']) expect(panel.querySelector(`[data-row="${id}"]`).textContent).not.toContain('If the money ran out');
+  });
+  it('a plan whose money runs out before anything comes in says As planned\'s own sentence above the rows, with its age', () => {
+    const plan = plan0('02-pnv-draft');
+    const own = { ...WORDS(18, 17), floor: 'If the money ran out at 64, nothing would come in until your State Pension starts at 67.' };
+    const s = withRows(plan, (key) => {
+      const m = MARKET(key);
+      const asPlanned = row(key, 'asPlanned', { words: own });
+      asPlanned.a.floor = { age: 64, yearly: 0, spAge: 67 };
+      return { ...m, asPlanned };
+    });
+    const panel = panelOf(draw(s).root);
+    expect(panel.querySelector('[data-testid="plan.lasts.stress.floor"]').textContent).toBe(own.floor);
+    // the other rows' floor is £12,500 a year: each says its own, with its age
+    expect(panel.querySelector('[data-row="fall"] details.stress-more').textContent).toContain('If the money ran out at 88, you would still have £12,500 a year after tax');
   });
 });
 
@@ -324,7 +372,8 @@ describe('a locked ladder and the held rows', () => {
       expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.accept"]`)).toBe(null);
     }
     const half = panelOf(root).querySelector('[data-row="heldHalf"]');
-    expect(half.querySelector('[data-weighted]').textContent).toContain('(as held: ');
+    expect(half.querySelector('[data-weighted]').textContent).toContain('(as held ');
+    expect(half.querySelector('[data-line="runsOut"]').textContent).toContain('(as held ');
     expect(panelOf(root).querySelector('[data-row="heldNothing"]').textContent).toContain('Example Shares plc matches no fund we know, so it may be one company’s shares. Here it is worth nothing.');
     expect(ruleProblems(root)).toEqual([]);
   });
@@ -338,7 +387,8 @@ describe('the words: classic and V7 say the same', () => {
     const { root } = draw(s);
     for (const r of v.rows) {
       const el = panelOf(root).querySelector(`[data-row="${r.id}"]`);
-      for (const l of r.parts.lines) expect(el.textContent).toContain(sayStress(l, STRESS));
+      const p = r.parts;
+      for (const l of [p.chance && p.chance.weighted, p.chance && p.chance.fixed, p.runsOut, ...p.more].filter(Boolean)) expect(el.textContent).toContain(sayStress(l, STRESS));
     }
   });
 });

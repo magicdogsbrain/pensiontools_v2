@@ -1797,6 +1797,12 @@
     .stress-row .stress-title { font-size: 15px; margin: 0 0 4px; }
     .stress-row .hint { font-size: 13px; margin: 2px 0; }
     .stress-line { font-size: 14px; margin: 4px 0; overflow-wrap: anywhere; }
+    .stress-more { margin: 4px 0; }
+    .stress-more > summary { cursor: pointer; font-size: 13px; color: var(--primary); padding: 4px 0; }
+    .stress-foot { display: flex; flex-wrap: wrap; align-items: center; column-gap: 12px; }
+    .stress-foot > .stress-more[open] { flex: 1 0 100%; }
+    .stress-foot > .stress-actions { margin-top: 4px; }
+    .stress-floor { margin: 12px 0 0; }
     .stress-accepted [data-fixed="age"] { display: block; }
     .stress-actions { margin-top: 8px; }
     #stressPanelRows a { color: var(--primary); }

@@ -2,7 +2,8 @@
  * "Try the bad years" under C's and D's answers (7.9.0; the build spec's §2.2, §9), on the PUBLISHED build, without an
  * account, every request outside the site stopped. The strip's button shows only on a final answer and runs only on a press:
  * the five rows (As planned first, at the amount the answer stands behind, on the answer's own futures) arrive within the
- * strip's budget; a new answer drops the strip, and its first figure still arrives within the first answer's budget while a
+ * strip's budget, each in short (its chance and where it runs out; the rest closed under "More about this line"; what still
+ * comes in said once), the strip within 1,400 px at 1,440; a new answer drops the strip, and its first figure still arrives within the first answer's budget while a
  * strip was under way (the answer runner stops it first); no sideways scroll; nothing unfilled. The households are made up.
  */
 import { mkdirSync } from 'node:fs';
@@ -35,9 +36,30 @@ async function tryStrip(page, q, info) {
   expect(text).not.toMatch(/undefined|NaN|\[object|\{\w+\}/);
   expect(text).not.toMatch(/one every [\d,]+ months|you should|\brecommend/i);
   await expect(page.getByTestId(`${q}.stress.spend`)).toContainText('You spend a tenth more:');
+  // each row in short: its chance and where it runs out; the rest closed under "More about this line"; what still comes in
+  // said once, above the rows
+  for (const id of ROWS) {
+    await expect(page.getByTestId(`${q}.stress.${id}`).locator(':scope > [data-line="chance"]')).toHaveCount(1);
+    await expect(page.getByTestId(`${q}.stress.${id}`).locator(':scope > [data-line="runsOut"]')).toHaveCount(1);
+  }
+  await expect(strip.locator('.stress-floor')).toHaveCount(1);
+  await expect(strip.locator('.stress-floor')).toContainText(/^If the money runs out, you would still have £[\d,]+ a year after tax/);
   await noSideways(page);
+  const tall = Math.round((await strip.boundingBox()).height);
+  record(info, `strip/height-${q}-${info.project.name}.json`, { stripPx: tall, method: 'The strip\'s own box, five rows in, "More about this line" closed.' });
+  info.annotations.push({ type: `strip-${q}-px`, description: `${tall} px tall` });
+  if (info.project.name === 'desktop-1440') expect(tall, 'the strip within 1,400 px at 1,440').toBeLessThanOrEqual(1400);
   const shot = shots(`strip-${q}`, info);
   if (shot) await strip.screenshot({ path: shot });
+  // "More about this line": closed until opened; the rest of the row's words inside it
+  const more = page.getByTestId(`${q}.stress.fall.more`);
+  expect(await more.evaluate((d) => d.open)).toBe(false);
+  await expect(more.locator('[data-line="when"]')).toBeHidden();
+  await more.locator('summary').click();
+  await expect(more.locator('[data-line="when"]')).toBeVisible();
+  await expect(more.locator('[data-line="when"]')).toContainText(/In the futures where the money runs out before .*\([\d,]+ of the 1,000; as planned: /);
+  await noSideways(page);
+  await more.locator('summary').click();
 }
 
 test.describe('"Try the bad years" under an answer', () => {

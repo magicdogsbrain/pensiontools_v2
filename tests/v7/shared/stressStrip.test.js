@@ -14,6 +14,9 @@ import { runStressStrip, stressCaseFor, STRIP_ROWS } from '../../../src/answers/
 import { answerC } from '../../../src/answers/c/answer.js';
 import { answerD } from '../../../src/answers/d/answer.js';
 import { bannedHits } from '../render/checkScreen.js';
+import { sayStress } from '../../../src/answers/plan/stressPanel.js';
+import { STRESS } from '../../../src/v7/copy/stressPanel.js';
+import { floorParts } from '../../../src/answers/shared/lastsWords.js';
 import { createStore } from '../../../src/v7/effects/store.js';
 import { initialState, emptyStressStrip, cleanStressStrip } from '../../../src/v7/state/initial.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
@@ -35,6 +38,9 @@ function caseOf(q, name) {
   const perMonth = stripAmountOf(q, answer);
   return { r, env, answer, perMonth, strip: runStressStrip(q, r.inputs, env, { perMonth }) };
 }
+const say = (part) => sayStress(part, STRESS);
+/** As planned's own floor sentence (lastsWords.floorParts), as text. */
+const floorText = (row) => floorParts(row.sf, { couple: false, planToAge: 0 }).map((p) => (typeof p === 'string' ? p : p.fixed)).join('');
 const CASES = [['c', 'answer-F1'], ['c', 'answer-take'], ['c', 'answer-paying-in'], ['d', 'answer-D1'], ['d', 'answer-D2-couple'], ['d', 'answer-no']];
 const RUN = Object.fromEntries(CASES.map(([q, name]) => [q + '/' + name, caseOf(q, name)]));
 
@@ -89,25 +95,51 @@ describe('the rows on the same futures', () => {
 });
 
 describe('the words', () => {
-  it.each(CASES)('%s %s: each row beside As planned, the weighted line with its fixed-age line; no banned word, nothing unfilled', (q, name) => {
+  it.each(CASES)('%s %s: each row in short beside As planned — the weighted chance with its fixed-age count, where it runs out — the rest under "More"; no banned word, nothing unfilled', (q, name) => {
     const { strip } = RUN[q + '/' + name];
     for (const row of strip.rows) {
       const s = row.sentences;
-      const text = Object.values(s).map((x) => x.text).join(' ');
+      const c = row.short.chance;
+      const fixed = say(c.fixed);
+      const runsOut = say(row.short.runsOut);
+      const text = [c.weighted ? say(c.weighted) : '', fixed, runsOut, ...Object.values(s).map((x) => x.text)].join(' ');
       expect(text).not.toMatch(/\bNaN\b|\bundefined\b|\bnull\b|\{\w+\}/);
       expect(bannedHits(text, ['all', 'result', 'retired'], { context: text }), `${name} ${row.id}`).toEqual([]);
-      expect(s.fixed.text).toMatch(/\b(live to|is still alive when the younger of you is) \d{2,3}\b/);
-      if (s.line) {
-        expect(s.line.mark).toBe('weighted');
-        expect(s.fixed.mark).toBe('fixed');
-        expect(s.line.text).not.toMatch(/of 20 futures we tried/);
-      }
+      expect(fixed).toMatch(/\b(live to|is still alive when the younger of you is) \d{2,3}\b/);
+      if (c.weighted) expect(say(c.weighted)).not.toMatch(/of 20 futures we tried/);
+      expect(runsOut).toMatch(/^(Where it runs out: typically (at|when the younger of you is) \d+|In the worst 1 in 10 it still lasts to \d+)/);
       if (row.id === 'asPlanned') expect(text).not.toContain('as planned');
-      else if (!row.same) expect(s.fixed.text).toMatch(/\(as planned: [^)]+\)\.$/);
+      else if (!row.same) {
+        expect(fixed).toMatch(/\(as planned [^)]+\)\.$/);
+        if (c.weighted) expect(say(c.weighted)).toMatch(/\(as planned [^)]+\)$/);
+      }
+      // the long chance sentences are gone from the row: the short line says them
+      expect(s.line).toBeUndefined();
+      expect(s.fixed).toBeUndefined();
       // never a figure of the real histories
       expect(text).not.toMatch(/histor|real start/i);
     }
     expect(strip.rows.find((x) => x.id === 'spend').words.what[0]).toEqual({ id: 'rows.spend.answer', slots: { amount: '£' + Math.round(strip.rows[3].perMonth).toLocaleString('en-GB') } });
+  });
+  it.each(CASES)('%s %s: what still comes in is said once, above the rows, from As planned; a row whose own differs says it under "More"', (q, name) => {
+    const { strip } = RUN[q + '/' + name];
+    const planned = strip.rows[0];
+    if (planned.sf.floor) {
+      expect(strip.floor).toBeTruthy();
+      const words = say(strip.floor);
+      expect(words).not.toMatch(/\{\w+\}|NaN|undefined/);
+      // without an age when something comes in; with As planned's own (and its age) when nothing has started by then
+      if (planned.sf.floor.yearly > 0) expect(words).toMatch(/^If the money runs out, you would still have £[\d,]+ a year after tax/);
+      else expect(words).toBe(floorText(planned));
+    } else expect(strip.floor).toBe(null);
+    expect(planned.sentences.floor).toBeUndefined();
+    for (const row of strip.rows.slice(1)) {
+      if (!row.sf.floor) { expect(row.sentences.floor).toBeUndefined(); continue; }
+      const sameAmount = !!planned.sf.floor && planned.sf.floor.yearly > 0 && row.sf.floor.yearly === planned.sf.floor.yearly && row.sf.floor.survivor === planned.sf.floor.survivor
+        && row.sf.floor.sp === planned.sf.floor.sp && row.sf.floor.fs === planned.sf.floor.fs;
+      if (sameAmount) expect(row.sentences.floor, `${name} ${row.id}`).toBeUndefined();
+      else if (row.sf.floor.yearly > 0 || !planned.sf.floor) expect(row.sentences.floor, `${name} ${row.id}`).toBeTruthy();
+    }
   });
   it('when, how long and how much name the futures each counts; a row says how many and As planned\'s figure beside each, As planned the answer\'s own sentence', () => {
     let seen = 0;
@@ -115,7 +147,7 @@ describe('the words', () => {
       const { strip, answer } = RUN[q + '/' + name];
       const planned = strip.rows[0];
       // As planned: the answers' own form, with no comparison (the answer's when line, the same parts)
-      if (planned.sentences.when.id.endsWith('.when')) expect(planned.sentences.when.text).toMatch(/^In the futures where the money runs out before (the younger of you is )?\d+, it typically runs out /);
+      if (planned.sentences.when) expect(planned.sentences.when.text).toMatch(/^In the futures where the money runs out before (the younger of you is )?\d+, it typically runs out /);
       for (const row of strip.rows.slice(1)) {
         if (row.same || !row.sf.when) continue;
         seen += 1;
@@ -272,6 +304,28 @@ describe('the strip drawn under C\'s and D\'s answers', () => {
     const drawn = root.querySelector(`[data-stress-strip="${q}"]`);
     expect([...drawn.querySelectorAll('li.stress-row')].map((li) => li.getAttribute('data-row'))).toEqual(STRIP_ROWS);
     expect(rule(root)).toEqual([]);
+    // each row in short: one chance line (the weighted chance and its fixed-age count in one line), one "runs out" line; the
+    // rest closed under "More about this line"; what still comes in said once, above the rows
+    for (const li of drawn.querySelectorAll('li.stress-row')) {
+      const id = li.getAttribute('data-row');
+      if (li.getAttribute('data-same') === '1' && id !== 'asPlanned') continue;
+      const shown = [...li.querySelectorAll(':scope > p.stress-line')].map((x) => x.getAttribute('data-line'));
+      expect(shown, `${name} ${id}`).toEqual(['chance', 'runsOut']);
+      const chance = li.querySelector('[data-line="chance"]');
+      if (chance.querySelector('[data-weighted]')) expect(chance.querySelector('[data-fixed="age"]'), `${name} ${id}`).toBeTruthy();
+      const more = li.querySelector('details.stress-more');
+      if (more) {
+        expect(more.open).toBe(false);
+        expect(more.querySelector('summary').textContent).toBe(STRESS.short.more);
+        expect(more.querySelector('[data-weighted]')).toBe(null);
+      }
+    }
+    const floors = drawn.querySelectorAll('.stress-floor');
+    expect(floors.length).toBe(result.floor ? 1 : 0);
+    if (result.floor) {
+      expect(floors[0].closest('li')).toBe(null);
+      expect(floors[0].textContent).toBe(say(result.floor));
+    }
     const text = visibleText(drawn);
     expect(text).not.toMatch(/\bNaN\b|\bundefined\b|\bnull\b|\{\w+\}/);
     expect(bannedHits(text, ['all', 'result', 'retired'], { context: text })).toEqual([]);

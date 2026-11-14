@@ -17,7 +17,8 @@
  *   stressPanelView(plan, rows, o)         what the panel draws from the results held (ids and figures; no words): each row
  *                                          at the level asked for (lasts.js atLevel, no run), beside its reference, `same`,
  *                                          its agreement and whether it can be accepted; the agreements before any run; the
- *                                          keep agreement's state for the held rows (they never write)
+ *                                          keep agreement's state for the held rows (they never write); `floor`, what
+ *                                          still comes in if the money runs out, said once above the rows from As planned
  *   stressKeyOf(plan, today)               the key a row's result is filed under: id | today | the effective settings | what
  *                                          they read from elsewhere | locked | what is held | the kept sex | the household's
  *                                          reason | the document. Not the level (a new level re-reads, no run), not
@@ -62,7 +63,8 @@ import { AMEND_WRITES } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
 import { VERSION } from '../../constants.js';
 import { taxYearStartOf, taxYearLabel } from '../../services/PlanTiming.js';
-import { chanceTwentieths, chanceWords, twentiethsOfFutures, fixedAgeWords } from '../shared/format.js';
+import { chanceWords, twentiethsOfFutures, fixedAgeWords } from '../shared/format.js';
+import { chanceShort, runsOutShort, planFloorShort, sameFloor } from '../shared/stressRowWords.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -169,8 +171,8 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
   const keep = keepStateOf(keepsLines(plan && plan.holdings) ? keepTestOf(plan, {}) : null);
   let s = isObj(settings) ? settings : null;
   if (!s) { try { s = effectiveStressSettings(plan, { now: dateOf(today) }); } catch { s = storedStressOf(plan); } }
-  const ctx = contextOf(plan, s, today);
-  const list = rowsFor(plan, { settings: s, today }).map((row) => {
+  const ctx0 = contextOf(plan, s, today);
+  const rows0 = rowsFor(plan, { settings: s, today }).map((row) => {
     const res = fresh(row.id);
     const na = row.na || (res && res.na) || null;
     const ref = row.ref ? fresh(row.ref) : null;
@@ -192,14 +194,20 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
       // the held rows: the keep agreement's state once, on "As you hold it" (information; the rows never write)
       ...(kind ? {} : { keep: keep && row.id === 'asHeld' ? keep : null })
     };
-  }).map((r) => ({ ...r, parts: rowParts(r, ctx) }));
+  });
+  // what still comes in if the money runs out: said once, above the rows, from As planned (a row whose own differs says it
+  // under "More about this line")
+  const planned = rows0.find((r) => r.id === 'asPlanned');
+  const floor = planned && planned.status === 'done' && planned.a ? floorOfRow(planned.a) : null;
+  const ctx = { ...ctx0, floor };
+  const list = rows0.map((r) => ({ ...r, parts: rowParts(r, ctx) }));
   const agreements = stressAgreementsOf(plan).map((g) => ({ ...g, parts: { title: { id: 'rows.' + g.id + '.title' }, accepted: acceptedParts(g.entry), stale: g.status === 'stale' } }));
   // what the panel tries, in the order it tries it: As planned first, then As held, then the rest; a row known not to be
   // tried before any run ('lockedLadder', 'todaysPrices': rowsFor's) is not sent
   const order = list.filter((r) => !(r.status === 'na' && (r.na === 'lockedLadder' || r.na === 'todaysPrices'))).map((r) => r.id);
   const first = ['asPlanned', 'asHeld'].filter((id) => order.includes(id));
   return {
-    key, level: lvl, rows: list, agreements, keep, closed,
+    key, level: lvl, rows: list, agreements, keep, closed, floor,
     order: [...first, ...order.filter((id) => !first.includes(id))], drawing: ctx.drawing
   };
 }
@@ -234,18 +242,21 @@ const lowerFirst = (t) => (t ? t.charAt(0).toLowerCase() + t.slice(1) : t);
 const commas = (n) => String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const poundsOf = (v) => '£' + commas(isNum(v) ? v : 0);
 const poundsK = (v) => '£' + commas(Math.round((isNum(v) ? Math.max(0, v) : 0) / 1000) * 1000);
-/** A weighted chance as the reference says it beside a row: "18" for 18 times in 20, else its words. */
-const refChance = (a) => { const k = chanceTwentieths(a.weighted, { sumW: a.sumW, n: a.n }); return a.weighted > 0 && a.weighted < 1 && k >= 1 && k <= 19 ? String(k) : chanceWords(a.weighted, { sumW: a.sumW, n: a.n }); };
-/** A fixed-age count as the reference says it: "14" for 14 of 20 futures, else its words. */
-const refFixed = (share) => { const v = Math.max(0, Math.min(1, +share || 0)); const k = Math.round(v * 20); return v > 0 && v < 1 && k >= 1 && k <= 19 ? String(k) : twentiethsOfFutures(v); };
 const fixedOf = (a) => (isNum(a.fixedAge) ? a.fixedAge : isNum(a.share) ? a.share : 0);
+const kindOf = (a) => (a.failKind === 'cut' || a.failKind === 'lean' ? a.failKind : 'ran-out');
 /** The fixed-age sentence of a result: OneAnswer's own words when the run wrote them, else built the same way. */
-const fixedWordsOf = (a) => (a.words && a.words.fixed ? a.words.fixed : fixedAgeWords(fixedOf(a), a.planToAge, { kind: a.failKind === 'cut' || a.failKind === 'lean' ? a.failKind : 'ran-out' }));
+const fixedWordsOf = (a) => (a.words && a.words.fixed ? a.words.fixed : fixedAgeWords(fixedOf(a), a.planToAge, { kind: kindOf(a) }));
+/** Whether a result has a weighted figure the screens say (OneAnswer wrote its sentence). */
+const weightedOf = (a) => a.weighted !== null && isNum(a.weighted) && !!(a.words && a.words.headline);
+/** A result's floor, as the line above the rows says it (shared/stressRowWords.js). */
+const floorOfRow = (a) => planFloorShort(a.floor, { kind: kindOf(a), words: a.words && a.words.floor ? a.words.floor : null });
 
 /**
- * One row in words: { title, what[], na, lines[], confirm, accepted, keepLine } — each line { id, slots, mark? } (mark
- * 'weighted' or 'fixed': the screens draw them as [data-weighted] and [data-fixed="age"], the fixed one beside the weighted
- * one in its block). A row never says a figure of the real histories.
+ * One row in words: { title, what[], na, chance, runsOut, closedYear, more[], confirm, accepted, keepLine } — `chance` the
+ * weighted chance { weighted } with its fixed-age count { fixed } beside it (the screens draw them as [data-weighted] and
+ * [data-fixed="age"] in one line), `runsOut` where it runs out, both in short (shared/stressRowWords.js, as the strip says
+ * them); `more` the rest, each { id, slots }, drawn under "More about this line". A row never says a figure of the real
+ * histories.
  */
 function rowParts(r, ctx) {
   const id = r.id;
@@ -254,7 +265,7 @@ function rowParts(r, ctx) {
   else if (id === 'heldNothing') what.push({ id: ctx.singles.length > 1 ? 'rows.heldNothing.whatMany' : 'rows.heldNothing.what', slots: { list: listOf(ctx.singles) } });
   else what.push({ id: 'rows.' + id + '.what' });
   if (id === 'lower' && ctx.saver) what.push({ id: 'rows.lower.saver' });
-  const out = { title: { id: 'rows.' + id + '.title' }, what, na: null, lines: [], confirm: null, accepted: null, keepLine: null, holdLink: null };
+  const out = { title: { id: 'rows.' + id + '.title' }, what, na: null, chance: null, runsOut: null, closedYear: null, more: [], confirm: null, accepted: null, keepLine: null, holdLink: null };
   if (r.na) out.na = { id: 'na.' + r.na };
   else if (r.same) out.na = { id: 'na.same' };
   if (r.agreement && r.agreement.entry) out.accepted = { ...acceptedParts(r.agreement.entry), stale: r.agreement.status === 'stale' };
@@ -263,23 +274,23 @@ function rowParts(r, ctx) {
   if (!a || r.na || r.same) return out;
   const refA = r.refA;
   const refId = r.ref === 'asHeld' ? 'asHeld' : 'asPlanned';
-  const weighted = a.weighted !== null && isNum(a.weighted) && !!(a.words && a.words.headline);
-  const lines = out.lines;
-  if (weighted) {
-    lines.push(refA && isNum(refA.weighted)
-      ? { id: 'lines.weighted', mark: 'weighted', slots: { words: noStop(a.words.headline), ref: { id: 'ref.' + refId, slots: { n: refChance(refA) } } } }
-      : { id: 'lines.plain', mark: 'weighted', slots: { words: a.words.headline } });
-  }
+  const weighted = weightedOf(a);
   const fixed = fixedWordsOf(a);
-  lines.push(refA
-    ? { id: 'lines.fixed', ...(weighted ? { mark: 'fixed' } : {}), slots: { words: noStop(fixed), ref: { id: 'ref.' + refId, slots: { n: refFixed(fixedOf(refA)) } } } }
-    : { id: 'lines.plain', ...(weighted ? { mark: 'fixed' } : {}), slots: { words: fixed } });
   const sf = isObj(r.shortfall) ? r.shortfall : null;
   const toAge = isNum(a.planToAge) ? String(Math.round(a.planToAge)) : '';
-  // when, how long and how much, each naming the futures it counts; beside a reference (once its row is in), with how many
-  // futures each set holds and the reference's own figure (the …Ref sentences): a set that grew with later run-outs can
-  // read a later "typically", and the count beside it says why
+  // the two lines a row shows: its chance beside its fixed-age count, and where it runs out — each beside the reference's
+  // figure once its row is in (shared/stressRowWords.js, the strip's own builder)
+  const me = { weighted: weighted ? a.weighted : null, sumW: a.sumW, n: a.n, fixedAge: fixedOf(a) };
+  const refMe = refA ? { weighted: weightedOf(refA) ? refA.weighted : null, sumW: refA.sumW, n: refA.n, fixedAge: fixedOf(refA) } : null;
+  out.chance = chanceShort(me, refMe, { planToAge: toAge, kind: kindOf(a), couple: a.reason === 'couple' ? 'you' : null, as: refId, fixedWords: weighted ? null : fixed });
+  const refSf = refA && isObj(r.refShortfall) ? r.refShortfall : null;
+  if (sf && toAge) out.runsOut = runsOutShort(isObj(sf.when) ? sf.when : null, refSf ? (isObj(refSf.when) ? refSf.when : null) : undefined, { planToAge: toAge, as: refId });
+  if (sf && isObj(sf.closedYear) && isNum(sf.closedYear.taxYear)) out.closedYear = { id: 'lines.closedYear', slots: { taxYear: taxYearLabel(sf.closedYear.taxYear) } };
+  // the rest, under "More about this line": when, how long and how much, each naming the futures it counts; beside a
+  // reference (once its row is in), with how many futures each set holds and the reference's own figure (the …Ref
+  // sentences): a set that grew with later run-outs can read a later "typically", and the count beside it says why
   // (a result without the sets' sizes — one made before they were counted — is said without the comparison, never as NaN)
+  const lines = out.more;
   const counted = !!sf && (!isObj(sf.when) || (isNum(sf.when.count) && isNum(sf.when.n)));
   const rs = refA && counted ? (isObj(r.refShortfall) ? r.refShortfall : {}) : null;
   const rw = rs && isObj(rs.when) ? rs.when : null;
@@ -296,10 +307,7 @@ function rowParts(r, ctx) {
         refCount: refP(rw ? commas(rw.count) : say('none')), refTypical: refP(rw ? String(rw.typical) : say('noneRunOut')),
         refWorst: refP(rw && !rw.worstLasts ? say('by', { age: String(rw.worst) }) : say('stillLasts', { age: toAge })) } });
     }
-  } else if (sf && toAge) {
-    lines.push(rs && rw && !rw.worstLasts ? { id: 'lines.stillLastsRef', slots: { age: toAge, refWorst: refP(say('by', { age: String(rw.worst) })) } } : { id: 'lines.stillLasts', slots: { age: toAge } });
   }
-  if (sf && isObj(sf.closedYear) && isNum(sf.closedYear.taxYear)) lines.push({ id: 'lines.closedYear', slots: { taxYear: taxYearLabel(sf.closedYear.taxYear) } });
   if (sf && isObj(sf.when) && isObj(sf.howLong)) {
     const h = sf.howLong;
     const base = { paid: String(h.paid), of: String(h.of), age: toAge };
@@ -328,7 +336,8 @@ function rowParts(r, ctx) {
     if (!r.ref) lines.push(c.cutN > 0 ? { id: 'lines.cutsOwn', slots: some } : { id: 'lines.cutsNoneOwn', slots: { of: commas(c.futures) } });
     else lines.push(c.cutN > 0 ? { id: 'lines.cuts', slots: { ...some, ref } } : { id: 'lines.cutsNone', slots: { of: commas(c.futures), ref } });
   }
-  if (a.words && a.words.floor) lines.push({ id: 'lines.plain', slots: { words: a.words.floor } });
+  // what still comes in: said above the rows from As planned; a row whose own says something else says it here
+  if (a.words && a.words.floor && !sameFloor(floorOfRow(a), ctx.floor)) lines.push({ id: 'lines.plain', slots: { words: a.words.floor } });
   if (a.words && a.words.left) lines.push({ id: 'lines.plain', slots: { words: a.words.left } });
   if (id === 'asPlanned' && isNum(a.badCaseLeft) && toAge) lines.push({ id: 'lines.badLeft', slots: { age: toAge, left: poundsK(a.badCaseLeft) } });
   if (r.canAccept) {

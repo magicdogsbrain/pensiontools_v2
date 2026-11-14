@@ -58,10 +58,12 @@ export function stressPanelOf(scenario, { today }) {
   return { ...v, run: { status, reason: mine ? memory.reason : null, done: mine ? memory.order.filter((id) => memory.rows[id] && memory.rows[id].key === v.key).length : 0, total: mine ? memory.order.length : 0 } };
 }
 
-const lineHtml = (l) => {
-  const mark = l.mark === 'weighted' ? ' data-weighted="1"' : l.mark === 'fixed' ? ' data-fixed="age"' : '';
-  return '<p class="stress-line" data-line="' + esc(l.id) + '"' + mark + '>' + say(l) + '</p>';
-};
+const lineHtml = (l) => '<p class="stress-line" data-line="' + esc(l.id) + '">' + say(l) + '</p>';
+/** A row's chance line: the weighted chance as [data-weighted] with its count to one named age beside it, in one line. */
+const chanceHtml = (c) => (!c || !c.fixed ? '' : '<p class="stress-line stress-chance" data-line="chance">'
+  + (c.weighted ? '<span data-weighted="1">' + say(c.weighted) + '</span>' + esc(STRESS.short.join) + '<span data-fixed="age">' + say(c.fixed) + '</span>' : say(c.fixed)) + '</p>');
+/** The rest of a row, closed until opened: "More about this line". */
+const moreHtml = (lines, id) => (!lines.length ? '' : '<details class="stress-more" id="' + esc(id) + '"><summary>' + esc(STRESS.short.more) + '</summary>' + lines.map(lineHtml).join('') + '</details>');
 
 /** What was accepted on a row: the date and the figures, the weighted one beside its fixed-age count; out of date said. */
 function acceptedHtml(p, id) {
@@ -74,7 +76,7 @@ const button = (label, call, { id = '', quiet = false, disabled = false } = {}) 
   '<button type="button"' + (quiet ? ' class="risk-btn"' : '') + (id ? ' id="' + esc(id) + '"' : '') + ' data-on-click="' + esc(call) + '"' + (disabled ? ' disabled' : '') + '>' + esc(label) + '</button>';
 const actions = (inner) => '<div class="row-flex stress-actions" style="gap:8px;">' + inner + '</div>';
 
-/** One row: its title and what it changes; its figures (or why there are none); the agreement. */
+/** One row: its title and what it changes; its chance and where it runs out (or why there are none); the rest under "More about this line"; the agreement. */
 function rowHtml(row, v) {
   const p = row.parts;
   const can = !v.closed;
@@ -84,14 +86,19 @@ function rowHtml(row, v) {
   h += '<h3 class="stress-title">' + say(p.title) + verdict + '</h3>';
   h += p.what.map((w) => '<p class="hint">' + say(w) + '</p>').join('');
   if (p.na) h += '<p class="hint" data-na="' + esc(row.na || 'same') + '">' + (p.na.id === 'na.notCounted' ? esc(STRESS.na.notCounted) : say(p.na)) + '</p>';
-  h += p.lines.map(lineHtml).join('');
+  h += chanceHtml(p.chance);
+  if (p.runsOut) h += '<p class="stress-line" data-line="runsOut">' + say(p.runsOut) + '</p>';
+  if (p.closedYear) h += '<p class="stress-line" data-line="closedYear">' + say(p.closedYear) + '</p>';
   if (row.id === 'fall' && !row.na) h += '<p class="hint"><a href="#" id="stressBadStarts" data-on-click="showBadStarts(); return false">' + esc(STRESS.handOver) + '</a></p>';
   if (!row.kind && p.keepLine) {
     h += '<p class="hint" data-keep="' + esc(row.keep ? row.keep.status : '') + '">' + say(p.keepLine) + ' <a href="#" data-on-click="switchToTab(\'transition\'); return false">' + say(p.holdLink) + '</a></p>';
   }
   h += acceptedHtml(p.accepted, T + '-accepted');
-  if (can && row.agreement && row.agreement.entry) h += actions(button(STRESS.agreement.withdraw, 'withdrawStressRisk(\'' + row.id + '\')', { id: T + '-withdraw', quiet: true }));
-  if (can && row.canAccept && memory.confirm !== row.id) h += actions(button(STRESS.agreement.accept, 'askStressRisk(\'' + row.id + '\')', { id: T + '-accept', quiet: true }));
+  // the row's foot, one line while closed: "More about this line" beside its quiet Withdraw or "I accept this risk"
+  let foot = moreHtml(p.more, T + '-more');
+  if (can && row.agreement && row.agreement.entry) foot += actions(button(STRESS.agreement.withdraw, 'withdrawStressRisk(\'' + row.id + '\')', { id: T + '-withdraw', quiet: true }));
+  if (can && row.canAccept && memory.confirm !== row.id) foot += actions(button(STRESS.agreement.accept, 'askStressRisk(\'' + row.id + '\')', { id: T + '-accept', quiet: true }));
+  if (foot) h += '<div class="stress-foot">' + foot + '</div>';
   if (can && row.canAccept && memory.confirm === row.id && p.confirm) {
     const [before, after] = STRESS.agreement.confirm.split('{figures}');
     const f = p.confirm.figures;
@@ -125,6 +132,7 @@ export function stressPanelHtml(scenario, { today = dayOf(new Date()) } = {}) {
   if (!tried) h += agreementsHtml(v);
   if (run.status === 'working') h += '<p class="hint" role="status" id="stressWorking">' + say({ id: 'working', slots: { i: String(Math.min(run.total, run.done + 1)), n: String(run.total) } }) + '</p>';
   if (run.status === 'failed' && run.reason !== 'stopped') h += '<p class="alert alert-warning" role="alert" id="stressFailed">' + esc(run.reason === 'noWorker' ? STRESS.noWorker : STRESS.failed) + '</p>';
+  if (tried && v.floor) h += '<p class="stress-line stress-floor" id="stressFloor">' + say(v.floor) + '</p>';
   if (tried) h += '<ul class="stress-rows" id="stressRows">' + v.rows.map((row) => rowHtml(row, v)).join('') + '</ul>';
   if (memory.problem) h += '<p class="alert alert-warning" role="alert" id="stressProblem" data-problem="' + esc(memory.problem) + '">' + esc(STRESS.agreement.problems[memory.problem] || STRESS.agreement.problems.failed) + '</p>';
   if (!v.closed && memory.undo && memory.undo.after === listOf(scenario)) h += actions(button(LASTS.buttons.undo, 'undoStressRisk()', { id: 'stressUndo', quiet: true }));

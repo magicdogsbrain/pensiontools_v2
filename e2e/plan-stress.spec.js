@@ -3,7 +3,9 @@
  * without an account, on the PUBLISHED build. Renamed from plan-keep-test.spec.js: its two tests are unchanged.
  *
  * The bad years: an unlocked pots-and-valves plan ("Alex's plan", the corpus's fixture 02, fictional) streams its rows on
- * "Does it last?" within the panel's budget, As planned first and equal to the page's own figure; "I accept this risk" on
+ * "Does it last?" within the panel's budget, As planned first and equal to the page's own figure; each row in short (its
+ * chance and where it runs out, the rest closed under "More about this line", what still comes in once above the rows),
+ * five rows within 2,400 px at a phone's width; "I accept this risk" on
  * "Spending a tenth more" asks first, then is ONE write of the list of agreements (nothing else changes), says the accepted
  * line, and Withdraw takes it off in one more; the classic planner's Scenarios page gives the same rows. A locked ladder
  * ("Sam's plan", fixture 20, keeping a world fund by choice) says why its market rows are not tried and shows the keep
@@ -192,10 +194,24 @@ test.describe('"Try the bad years", without an account', () => {
       expect(await page.locator(`[data-testid="${S}.rows"] > li.stress-row`).evaluateAll((els) => els.map((e) => e.getAttribute('data-row')))).toEqual(ROWS);
       const head = (await page.getByTestId('plan.lasts.result.headline').innerText()).trim();
       const sub = (await page.getByTestId('plan.lasts.result.sub').innerText()).trim();
+      // As planned is "Does it last?"'s own figure, said in short: the same chance, and the same count to the same age
       const asPlanned = page.getByTestId(`${S}.asPlanned`);
-      await expect(asPlanned.locator('[data-weighted]')).toHaveText(head);
-      await expect(asPlanned.locator('[data-fixed="age"]')).toHaveText(sub);
-      await expect(page.getByTestId(`${S}.fall`).locator('[data-weighted]')).toContainText('(as planned: ');
+      const weighted = (await asPlanned.locator('[data-weighted]').innerText()).trim();
+      const fixed = (await asPlanned.locator('[data-fixed="age"]').innerText()).trim();
+      expect(head.toLowerCase()).toContain(weighted.toLowerCase());
+      const m = /^if you live to (\d+), (.+)\.$/.exec(fixed);
+      expect(m, fixed).toBeTruthy();
+      expect(sub).toContain('If you live to ' + m[1] + ', ');
+      expect(sub).toContain(m[2]);
+      await expect(page.getByTestId(`${S}.fall`).locator('[data-weighted]')).toContainText('(as planned ');
+      // each row shows its chance and where it runs out; the rest is closed under "More about this line"; what still comes
+      // in is said once, above the rows
+      for (const id of ROWS) {
+        await expect(page.getByTestId(`${S}.${id}`).locator(':scope > [data-line="chance"]')).toHaveCount(1);
+        await expect(page.getByTestId(`${S}.${id}`).locator(':scope > [data-line="runsOut"]')).toHaveCount(1);
+      }
+      await expect(page.getByTestId(`${S}.floor`)).toHaveCount(1);
+      await expect(page.getByTestId(`${S}.floor`)).toContainText(/^If the money runs out, you would still have £[\d,]+ a year after tax/);
       await expect(page.getByTestId('plan.lasts.stress.badStarts')).toHaveText('Real bad starts, one at a time');
       expect(await stored(page), 'trying writes nothing').toBe(planted);
       await noSideways(page);
@@ -204,8 +220,24 @@ test.describe('"Try the bad years", without an account', () => {
       expect(text).not.toMatch(/one every [\d,]+ months/);
       expect(text).not.toMatch(BANNED);
       v7Rows = await rowLines(page, `[data-testid="${S}.rows"]`);
+      // the panel in short: five rows at a phone's width within 2,400 px (each row repeated six to nine sentences before)
+      const tall = Math.round((await page.getByTestId(S).boundingBox()).height);
+      record(info, `stress/height-${info.project.name}.json`, { panelPx: tall, rows: ROWS.length, method: 'The panel\'s own box, every row in, "More about this line" closed.' });
+      info.annotations.push({ type: 'stress-panel-px', description: `${tall} px tall with ${ROWS.length} rows` });
+      if (info.project.name === 'phone-390') expect(tall, 'five rows within 2,400 px at a phone\'s width').toBeLessThanOrEqual(2400);
       const shot = shots('stress-panel', info);
       if (shot) await page.getByTestId(S).screenshot({ path: shot });
+      // "More about this line" is closed until opened: the rest of the row's words are inside it
+      const more = page.getByTestId(`${S}.fall.more`);
+      expect(await more.evaluate((d) => d.open)).toBe(false);
+      await expect(more.locator('[data-line^="lines.when"]')).toBeHidden();
+      await more.locator('summary').click();
+      await expect(more.locator('[data-line^="lines.when"]')).toBeVisible();
+      await expect(more.locator('[data-line^="lines.when"]')).toContainText(/In the futures where the money runs out before \d+ \([\d,]+ of the 1,000; as planned: /);
+      await expect(more.locator('[data-line^="lines.howLong"]')).toContainText(/it still pays for \d+ of the \d+ years to \d+|what the plan pays is still met in/);
+      await noSideways(page);
+      await more.locator('summary').click();
+      expect(await more.evaluate((d) => d.open)).toBe(false);
     });
 
     await test.step('"I accept this risk" on a tenth more: asks first, then ONE write of the list; the accepted line; Withdraw is one more', async () => {
@@ -251,6 +283,12 @@ test.describe('"Try the bad years", without an account', () => {
       const classic = await rowLines(page, '#stressRows');
       expect(Object.keys(classic)).toEqual(ROWS);
       expect(classic).toEqual(v7Rows);
+      // in short as V7 says it: what still comes in once, above the rows; the rest of a row closed until opened
+      await expect(page.locator('#stressFloor')).toBeVisible();
+      expect(await page.locator('#stressRow-fall-more').evaluate((d) => d.open)).toBe(false);
+      await page.locator('#stressRow-fall-more summary').click();
+      await expect(page.locator('#stressRow-fall-more [data-line^="lines.when"]')).toBeVisible();
+      await page.locator('#stressRow-fall-more summary').click();
       await expect(page.locator('#scenResults [data-stress-hint]')).toBeVisible({ timeout: 60_000 });
       await expect(page.locator('#scenResults')).toContainText("real starts behind this plan's figure above");
       await expect(page.locator('#scenResults')).not.toContainText('behind your figure of');

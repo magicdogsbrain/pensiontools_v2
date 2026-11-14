@@ -252,6 +252,9 @@ describe('the words in src/v7/copy/', () => {
       .replace(/\{ref\}/g, 'as planned: 18').replace(/\{weightAge\}/g, '103').replace(/\{count\}/g, '211').replace(/\{(refCount|refTypical|refWorst|refPaid|refTenths)\}/g, 'as planned: 68').replace(/\{words\}/g, 'If you live to 97, the money lasts that long in 12 of 20 futures we tried')
       .replace(/\{figures\}/g, 'counting how long people your age live, the money lasts as long as you do 15 times in 20; if you live to 97, it lasts that long in 12 of 20 futures we tried')
       // the guardrail reading in "Where you are" (7.9.0): its pounds, its shares and the tax year the plan as locked began
+      // a row in short (stressRowWords.js): its pieces, as the builder fills them
+      .replace(/\{lasts\}/g, 'The money lasts as long as you do').replace(/\{as\}/g, 'as planned').replace(/\{(age1|age2)\}/g, '93')
+      .replace(/\{runsOut\}/g, 'the money runs out').replace(/\{from\}/g, 'from your State Pension').replace(/\{(assumed|between|survivor)\}/g, '')
       .replace(/\{(draw|less|more)\}/g, '£16,400').replace(/\{(pct|startPct|upperPct|lowerPct|lessPct|morePct)\}/g, '4.1%').replace(/\{startYear\}/g, '2027 to 2028');
     const hits = [];
     const all = strings(STRESS).map(([, s]) => slot(s)).join('\n');

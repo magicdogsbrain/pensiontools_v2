@@ -1,8 +1,8 @@
 /**
  * The words of "Try the bad years" (7.9.0; research/v7/replan-nov-2026.md §5): the panel on a plan's "Does it last?", the
  * strip under C's and D's answers, and "I accept this risk" for a row. answers/plan/stressPanel.js and
- * answers/shared/stressStrip.js say which sentence and fill the slots (already in pounds, ages and twentieths); both apps use
- * these words. Data only — this file imports nothing. Placeholders are written {likeThis}; a slot may itself be a sentence
+ * answers/shared/stressStrip.js say which sentence and fill the slots (already in pounds, ages and twentieths), a row's
+ * short lines through answers/shared/stressRowWords.js; both apps use these words. Data only — this file imports nothing. Placeholders are written {likeThis}; a slot may itself be a sentence
  * of this file ({ id, slots }). Consequences, never advice (src/v7/copy/banned.js is the law).
  */
 export const STRESS = {
@@ -65,21 +65,65 @@ export const STRESS = {
     same: 'This changes nothing in this plan’s figures.',
     sameAnswer: 'This changes nothing in this answer’s figures.'
   },
-  // a row's lines: the 7.8.0 sentences, each with its reference beside it. When, how long and how much name the futures each
-  // counts, as the answers do (shared/lastsWords.js): "when" the futures that run out before the age they are followed on
-  // to, the worst 1 in 10 all of them, how long and how much those that run out before the plan's own age. A row beside a
-  // reference (the …Ref sentences) also says how many futures each set holds and the reference's figure, so a set grown
-  // with later run-outs never reads as a better year.
+  // a row in short (answers/shared/stressRowWords.js fills these, for the panel, the strip and the classic planner alike):
+  // its chance with the count to one named age beside it, where it runs out, each beside the reference's figure; what still
+  // comes in said once above the rows; everything else under "More about this line" (the `lines` below)
+  short: {
+    more: 'More about this line',
+    join: '; ',
+    // "The money lasts as long as you do 16 times in 20 (as planned 18)" + "; " + "if you live to 99, in 9 of 20 futures we tried (as planned 13)."
+    weighted: '{lasts} {chance}{ref}',
+    lasts: {
+      ranOut: 'The money lasts as long as you do',
+      ranOutCouple: 'The money lasts as long as one of you is alive',
+      cut: 'Your income is paid in full as long as you live',
+      lean: 'You have no lean year while you are alive'
+    },
+    fixed: 'if you live to {age}, {count}{ref}.',
+    fixedCouple: 'if one of you is still alive when the younger of you is {age}, {count}{ref}.',
+    // a row with no weighted figure: its fixed-age sentence alone
+    fixedOnly: '{words}{ref}.',
+    ref: ' ({as} {n})',
+    as: { asPlanned: 'as planned', asHeld: 'as held' },
+    n: { every: 'in every one', none: 'in none', moreThan19: 'more than 19', fewerThan1: 'fewer than 1' },
+    // "Where it runs out: typically at 96, the worst 1 in 10 by 90 (as planned 97 and 93)."
+    runsOut: 'Where it runs out: typically {typical}{refTypical}, the worst 1 in 10 {worst}{refWorst}.',
+    runsOutBoth: 'Where it runs out: typically {typical}, the worst 1 in 10 {worst} ({as} {age1} and {age2}).',
+    runsOutLasts: 'Where it runs out: typically {typical}{refTypical}; in the worst 1 in 10 it still lasts to {age}{refWorst}.',
+    stillLasts: 'In the worst 1 in 10 it still lasts to {age}{refWorst}.',
+    at: 'at {age}',
+    atYounger: 'when the younger of you is {age}',
+    by: 'by {age}',
+    byYounger: 'by the time the younger of you is {age}',
+    refTypical: ' ({as} {age})',
+    refTypicalNone: ' (none run out {as})',
+    refWorstBy: ' ({as} by {age})',
+    refWorstLasts: ' (it still lasts to {age} {as})',
+    refWorstSame: ' (the same {as})',
+    // said once, above the rows, from As planned: without an age when something comes in (a row whose own differs says it
+    // under "More about this line")
+    floor: {
+      plan: 'If {runsOut}, you would still have {amount} a year after tax from the income you get anyway{assumed}.',
+      assumed: ', with the State Pension we assumed (none is entered)',
+      runsOut: { ranOut: 'the money runs out', cut: 'your income is first cut', lean: 'you have your first lean year' },
+      answer: 'If the money runs out, you would still have {amount} a year after tax{between}, {from}{survivor}.',
+      between: ' between you',
+      from: { pensions: 'from your pensions', statePensions: 'from your State Pensions', statePension: 'from your State Pension' },
+      survivor: '; if one of you has died by then, at least {amount}',
+      survivorNone: '; if one of you has died by then, the one left could have nothing coming in from a pension'
+    }
+  },
+  // a row's lines under "More about this line": the 7.8.0 sentences, each with its reference beside it. When, how long and
+  // how much name the futures each counts, as the answers do (shared/lastsWords.js): "when" the futures that run out before
+  // the age they are followed on to, the worst 1 in 10 all of them, how long and how much those that run out before the
+  // plan's own age. A row beside a reference (the …Ref sentences) also says how many futures each set holds and the
+  // reference's figure, so a set grown with later run-outs never reads as a better year.
   lines: {
-    weighted: '{words} ({ref}).',
-    fixed: '{words} ({ref}).',
     plain: '{words}',
     when: 'In the futures where the money runs out before {weightAge}, it typically runs out at {typical}. In the worst 1 in 10 of all the futures, by {worst}.',
     whenStillLasts: 'In the futures where the money runs out before {weightAge}, it typically runs out at {typical}. In the worst 1 in 10 of all the futures it still lasts to {age}.',
-    stillLasts: 'In the worst 1 in 10 of all the futures it still lasts to {age}.',
     whenRef: 'In the futures where the money runs out before {weightAge} ({count} of the {n}; {refCount}), it typically runs out at {typical} ({refTypical}). In the worst 1 in 10 of all the futures, by {worst} ({refWorst}).',
     whenStillLastsRef: 'In the futures where the money runs out before {weightAge} ({count} of the {n}; {refCount}), it typically runs out at {typical} ({refTypical}). In the worst 1 in 10 of all the futures it still lasts to {age} ({refWorst}).',
-    stillLastsRef: 'In the worst 1 in 10 of all the futures it still lasts to {age} ({refWorst}).',
     closedYear: 'In every future we tried, the income for {taxYear} is not paid in full.',
     howLong: 'In the futures where it runs out before {age}, it still pays for {paid} of the {of} years to {age}.',
     howLongAnyway: 'In the futures where it runs out before {age}, what the plan pays is still met in {paid} of the {of} years to {age}, with what comes in anyway.',

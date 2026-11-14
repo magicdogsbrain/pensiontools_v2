@@ -154,8 +154,19 @@ describe('the press', () => {
     expect(panel.getAttribute('data-status')).toBe('done');
     expect([...panel.querySelectorAll('li.stress-row')].map((li) => li.getAttribute('data-row'))).toEqual(['asPlanned', 'fall', 'lower', 'spend', 'prices']);
     const fall = panel.querySelector('[data-row="fall"]');
-    expect(fall.querySelector('[data-weighted]').textContent).toBe('Counting how long people your age live, the money lasts as long as you do 15 times in 20 (as planned: 18).');
-    expect(fall.querySelector('[data-fixed="age"]').textContent).toBe('If you live to 97, the money lasts that long in 12 of 20 futures we tried (as planned: 17).');
+    // in short, as V7 says it: the chance beside its fixed-age count, where it runs out; the rest closed under "More"
+    expect(fall.querySelector('[data-weighted]').textContent).toBe('The money lasts as long as you do 15 times in 20 (as planned 18)');
+    expect(fall.querySelector('[data-fixed="age"]').textContent).toBe('if you live to 97, in 12 of 20 futures we tried (as planned 17).');
+    expect(fall.querySelector('[data-weighted]').parentElement).toBe(fall.querySelector('[data-fixed="age"]').parentElement);
+    expect(fall.querySelector('[data-line="runsOut"]').textContent).toBe('Where it runs out: typically at 88, the worst 1 in 10 by 84 (as planned 88 and 84).');
+    const more = fall.querySelector('details.stress-more');
+    expect(more.open).toBe(false);
+    expect(more.querySelector('summary').textContent).toBe(STRESS.short.more);
+    expect(more.textContent).toContain('(150 of the 1,000; as planned: 150)');
+    // what still comes in: once, above the rows
+    expect(panel.querySelector('#stressFloor').textContent).toBe('If the money runs out, you would still have £12,500 a year after tax from the income you get anyway.');
+    expect(panel.querySelector('#stressFloor').closest('li')).toBe(null);
+    expect(panel.querySelectorAll('li.stress-row')[1].textContent).not.toContain('If the money ran out');
     expect(fall.textContent).toContain(STRESS.handOver);
     expect(document.getElementById('stressPanelRun').textContent).toBe(STRESS.again);
     const t = H.text();

@@ -3264,21 +3264,43 @@
                     }
                   ],
                   "na": null,
-                  "lines": [
-                    {
-                      "id": "lines.plain",
-                      "mark": "weighted",
+                  "chance": {
+                    "weighted": {
+                      "id": "short.weighted",
                       "slots": {
-                        "words": "Counting how long people your age live, the money lasts as long as you do more than 19 times in 20."
+                        "lasts": {
+                          "id": "short.lasts.ranOut",
+                          "slots": {}
+                        },
+                        "chance": "more than 19 times in 20",
+                        "ref": ""
                       }
                     },
-                    {
-                      "id": "lines.plain",
-                      "mark": "fixed",
+                    "fixed": {
+                      "id": "short.fixed",
                       "slots": {
-                        "words": "If you live to 96, the money lasts that long in more than 19 of 20 futures we tried."
+                        "age": "96",
+                        "count": "in more than 19 of 20 futures we tried",
+                        "ref": ""
                       }
-                    },
+                    }
+                  },
+                  "runsOut": {
+                    "id": "short.runsOutLasts",
+                    "slots": {
+                      "typical": {
+                        "id": "short.at",
+                        "slots": {
+                          "age": "99"
+                        }
+                      },
+                      "refTypical": "",
+                      "age": "96",
+                      "refWorst": ""
+                    }
+                  },
+                  "closedYear": null,
+                  "more": [
                     {
                       "id": "lines.whenStillLasts",
                       "slots": {
@@ -3309,12 +3331,6 @@
                         "perYear": "£3,146",
                         "years": "7",
                         "s": "s"
-                      }
-                    },
-                    {
-                      "id": "lines.plain",
-                      "slots": {
-                        "words": "If the money ran out at 99, you would still have £11,502 a year after tax from the income you get anyway."
                       }
                     },
                     {
@@ -3525,33 +3541,84 @@
                     }
                   ],
                   "na": null,
-                  "lines": [
-                    {
-                      "id": "lines.weighted",
-                      "mark": "weighted",
+                  "chance": {
+                    "weighted": {
+                      "id": "short.weighted",
                       "slots": {
-                        "words": "Counting how long people your age live, the money lasts as long as you do 18 times in 20",
+                        "lasts": {
+                          "id": "short.lasts.ranOut",
+                          "slots": {}
+                        },
+                        "chance": "18 times in 20",
                         "ref": {
-                          "id": "ref.asPlanned",
+                          "id": "short.ref",
                           "slots": {
-                            "n": "more than 19 times in 20"
+                            "as": {
+                              "id": "short.as.asPlanned",
+                              "slots": {}
+                            },
+                            "n": {
+                              "id": "short.n.moreThan19",
+                              "slots": {}
+                            }
                           }
                         }
                       }
                     },
-                    {
-                      "id": "lines.fixed",
-                      "mark": "fixed",
+                    "fixed": {
+                      "id": "short.fixed",
                       "slots": {
-                        "words": "If you live to 96, the money lasts that long in 18 of 20 futures we tried",
+                        "age": "96",
+                        "count": "in 18 of 20 futures we tried",
                         "ref": {
-                          "id": "ref.asPlanned",
+                          "id": "short.ref",
                           "slots": {
-                            "n": "in more than 19 of 20 futures we tried"
+                            "as": {
+                              "id": "short.as.asPlanned",
+                              "slots": {}
+                            },
+                            "n": {
+                              "id": "short.n.moreThan19",
+                              "slots": {}
+                            }
                           }
                         }
                       }
-                    },
+                    }
+                  },
+                  "runsOut": {
+                    "id": "short.runsOutLasts",
+                    "slots": {
+                      "typical": {
+                        "id": "short.at",
+                        "slots": {
+                          "age": "97"
+                        }
+                      },
+                      "refTypical": {
+                        "id": "short.refTypical",
+                        "slots": {
+                          "as": {
+                            "id": "short.as.asPlanned",
+                            "slots": {}
+                          },
+                          "age": "99"
+                        }
+                      },
+                      "age": "96",
+                      "refWorst": {
+                        "id": "short.refWorstSame",
+                        "slots": {
+                          "as": {
+                            "id": "short.as.asPlanned",
+                            "slots": {}
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "closedYear": null,
+                  "more": [
                     {
                       "id": "lines.whenStillLastsRef",
                       "slots": {
@@ -3643,12 +3710,6 @@
                             }
                           }
                         }
-                      }
-                    },
-                    {
-                      "id": "lines.plain",
-                      "slots": {
-                        "words": "If the money ran out at 97, you would still have £11,502 a year after tax from the income you get anyway."
                       }
                     },
                     {
@@ -3852,33 +3913,84 @@
                     }
                   ],
                   "na": null,
-                  "lines": [
-                    {
-                      "id": "lines.weighted",
-                      "mark": "weighted",
+                  "chance": {
+                    "weighted": {
+                      "id": "short.weighted",
                       "slots": {
-                        "words": "Counting how long people your age live, the money lasts as long as you do 19 times in 20",
+                        "lasts": {
+                          "id": "short.lasts.ranOut",
+                          "slots": {}
+                        },
+                        "chance": "19 times in 20",
                         "ref": {
-                          "id": "ref.asPlanned",
+                          "id": "short.ref",
                           "slots": {
-                            "n": "more than 19 times in 20"
+                            "as": {
+                              "id": "short.as.asPlanned",
+                              "slots": {}
+                            },
+                            "n": {
+                              "id": "short.n.moreThan19",
+                              "slots": {}
+                            }
                           }
                         }
                       }
                     },
-                    {
-                      "id": "lines.fixed",
-                      "mark": "fixed",
+                    "fixed": {
+                      "id": "short.fixed",
                       "slots": {
-                        "words": "If you live to 96, the money lasts that long in 19 of 20 futures we tried",
+                        "age": "96",
+                        "count": "in 19 of 20 futures we tried",
                         "ref": {
-                          "id": "ref.asPlanned",
+                          "id": "short.ref",
                           "slots": {
-                            "n": "in more than 19 of 20 futures we tried"
+                            "as": {
+                              "id": "short.as.asPlanned",
+                              "slots": {}
+                            },
+                            "n": {
+                              "id": "short.n.moreThan19",
+                              "slots": {}
+                            }
                           }
                         }
                       }
-                    },
+                    }
+                  },
+                  "runsOut": {
+                    "id": "short.runsOutLasts",
+                    "slots": {
+                      "typical": {
+                        "id": "short.at",
+                        "slots": {
+                          "age": "99"
+                        }
+                      },
+                      "refTypical": {
+                        "id": "short.refTypical",
+                        "slots": {
+                          "as": {
+                            "id": "short.as.asPlanned",
+                            "slots": {}
+                          },
+                          "age": "99"
+                        }
+                      },
+                      "age": "96",
+                      "refWorst": {
+                        "id": "short.refWorstSame",
+                        "slots": {
+                          "as": {
+                            "id": "short.as.asPlanned",
+                            "slots": {}
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "closedYear": null,
+                  "more": [
                     {
                       "id": "lines.whenStillLastsRef",
                       "slots": {
@@ -3970,12 +4082,6 @@
                             }
                           }
                         }
-                      }
-                    },
-                    {
-                      "id": "lines.plain",
-                      "slots": {
-                        "words": "If the money ran out at 99, you would still have £11,502 a year after tax from the income you get anyway."
                       }
                     },
                     {
@@ -4179,33 +4285,84 @@
                     }
                   ],
                   "na": null,
-                  "lines": [
-                    {
-                      "id": "lines.weighted",
-                      "mark": "weighted",
+                  "chance": {
+                    "weighted": {
+                      "id": "short.weighted",
                       "slots": {
-                        "words": "Counting how long people your age live, the money lasts as long as you do 19 times in 20",
+                        "lasts": {
+                          "id": "short.lasts.ranOut",
+                          "slots": {}
+                        },
+                        "chance": "19 times in 20",
                         "ref": {
-                          "id": "ref.asPlanned",
+                          "id": "short.ref",
                           "slots": {
-                            "n": "more than 19 times in 20"
+                            "as": {
+                              "id": "short.as.asPlanned",
+                              "slots": {}
+                            },
+                            "n": {
+                              "id": "short.n.moreThan19",
+                              "slots": {}
+                            }
                           }
                         }
                       }
                     },
-                    {
-                      "id": "lines.fixed",
-                      "mark": "fixed",
+                    "fixed": {
+                      "id": "short.fixed",
                       "slots": {
-                        "words": "If you live to 96, the money lasts that long in 19 of 20 futures we tried",
+                        "age": "96",
+                        "count": "in 19 of 20 futures we tried",
                         "ref": {
-                          "id": "ref.asPlanned",
+                          "id": "short.ref",
                           "slots": {
-                            "n": "in more than 19 of 20 futures we tried"
+                            "as": {
+                              "id": "short.as.asPlanned",
+                              "slots": {}
+                            },
+                            "n": {
+                              "id": "short.n.moreThan19",
+                              "slots": {}
+                            }
                           }
                         }
                       }
-                    },
+                    }
+                  },
+                  "runsOut": {
+                    "id": "short.runsOutLasts",
+                    "slots": {
+                      "typical": {
+                        "id": "short.at",
+                        "slots": {
+                          "age": "99"
+                        }
+                      },
+                      "refTypical": {
+                        "id": "short.refTypical",
+                        "slots": {
+                          "as": {
+                            "id": "short.as.asPlanned",
+                            "slots": {}
+                          },
+                          "age": "99"
+                        }
+                      },
+                      "age": "96",
+                      "refWorst": {
+                        "id": "short.refWorstSame",
+                        "slots": {
+                          "as": {
+                            "id": "short.as.asPlanned",
+                            "slots": {}
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "closedYear": null,
+                  "more": [
                     {
                       "id": "lines.whenStillLastsRef",
                       "slots": {
@@ -4297,12 +4454,6 @@
                             }
                           }
                         }
-                      }
-                    },
-                    {
-                      "id": "lines.plain",
-                      "slots": {
-                        "words": "If the money ran out at 99, you would still have £11,502 a year after tax from the income you get anyway."
                       }
                     },
                     {
@@ -4506,33 +4657,84 @@
                     }
                   ],
                   "na": null,
-                  "lines": [
-                    {
-                      "id": "lines.weighted",
-                      "mark": "weighted",
+                  "chance": {
+                    "weighted": {
+                      "id": "short.weighted",
                       "slots": {
-                        "words": "Counting how long people your age live, the money lasts as long as you do more than 19 times in 20",
+                        "lasts": {
+                          "id": "short.lasts.ranOut",
+                          "slots": {}
+                        },
+                        "chance": "more than 19 times in 20",
                         "ref": {
-                          "id": "ref.asPlanned",
+                          "id": "short.ref",
                           "slots": {
-                            "n": "more than 19 times in 20"
+                            "as": {
+                              "id": "short.as.asPlanned",
+                              "slots": {}
+                            },
+                            "n": {
+                              "id": "short.n.moreThan19",
+                              "slots": {}
+                            }
                           }
                         }
                       }
                     },
-                    {
-                      "id": "lines.fixed",
-                      "mark": "fixed",
+                    "fixed": {
+                      "id": "short.fixed",
                       "slots": {
-                        "words": "If you live to 96, the money lasts that long in 19 of 20 futures we tried",
+                        "age": "96",
+                        "count": "in 19 of 20 futures we tried",
                         "ref": {
-                          "id": "ref.asPlanned",
+                          "id": "short.ref",
                           "slots": {
-                            "n": "in more than 19 of 20 futures we tried"
+                            "as": {
+                              "id": "short.as.asPlanned",
+                              "slots": {}
+                            },
+                            "n": {
+                              "id": "short.n.moreThan19",
+                              "slots": {}
+                            }
                           }
                         }
                       }
-                    },
+                    }
+                  },
+                  "runsOut": {
+                    "id": "short.runsOutLasts",
+                    "slots": {
+                      "typical": {
+                        "id": "short.at",
+                        "slots": {
+                          "age": "99"
+                        }
+                      },
+                      "refTypical": {
+                        "id": "short.refTypical",
+                        "slots": {
+                          "as": {
+                            "id": "short.as.asPlanned",
+                            "slots": {}
+                          },
+                          "age": "99"
+                        }
+                      },
+                      "age": "96",
+                      "refWorst": {
+                        "id": "short.refWorstSame",
+                        "slots": {
+                          "as": {
+                            "id": "short.as.asPlanned",
+                            "slots": {}
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "closedYear": null,
+                  "more": [
                     {
                       "id": "lines.whenStillLastsRef",
                       "slots": {
@@ -4629,12 +4831,6 @@
                     {
                       "id": "lines.plain",
                       "slots": {
-                        "words": "If the money ran out at 99, you would still have £11,502 a year after tax from the income you get anyway."
-                      }
-                    },
-                    {
-                      "id": "lines.plain",
-                      "slots": {
                         "words": "If you live to 96, what is typically left then is £533,000 at today's prices. In the best 1 in 10 futures it is £2,741,000 or more."
                       }
                     }
@@ -4655,6 +4851,17 @@
             "agreements": [],
             "keep": null,
             "closed": false,
+            "floor": {
+              "id": "short.floor.plan",
+              "slots": {
+                "runsOut": {
+                  "id": "short.floor.runsOut.ranOut",
+                  "slots": {}
+                },
+                "amount": "£11,502",
+                "assumed": ""
+              }
+            },
             "order": [
               "asPlanned",
               "fall",

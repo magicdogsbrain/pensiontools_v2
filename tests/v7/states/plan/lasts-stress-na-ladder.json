@@ -5222,19 +5222,25 @@
                     }
                   ],
                   "na": null,
-                  "lines": [
-                    {
-                      "id": "lines.plain",
+                  "chance": {
+                    "weighted": null,
+                    "fixed": {
+                      "id": "short.fixedOnly",
                       "slots": {
-                        "words": "If you live to 86, the money lasts that long in every future we tried."
+                        "words": "If you live to 86, the money lasts that long in every future we tried",
+                        "ref": ""
                       }
-                    },
-                    {
-                      "id": "lines.stillLasts",
-                      "slots": {
-                        "age": "86"
-                      }
-                    },
+                    }
+                  },
+                  "runsOut": {
+                    "id": "short.stillLasts",
+                    "slots": {
+                      "age": "86",
+                      "refWorst": ""
+                    }
+                  },
+                  "closedYear": null,
+                  "more": [
                     {
                       "id": "lines.plain",
                       "slots": {
@@ -5334,7 +5340,10 @@
                   "na": {
                     "id": "na.lockedLadder"
                   },
-                  "lines": [],
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "more": [],
                   "confirm": null,
                   "accepted": null,
                   "keepLine": null,
@@ -5423,7 +5432,10 @@
                   "na": {
                     "id": "na.lockedLadder"
                   },
-                  "lines": [],
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "more": [],
                   "confirm": null,
                   "accepted": null,
                   "keepLine": null,
@@ -5509,7 +5521,10 @@
                   "na": {
                     "id": "na.lockedLadder"
                   },
-                  "lines": [],
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "more": [],
                   "confirm": null,
                   "accepted": null,
                   "keepLine": null,
@@ -5595,7 +5610,10 @@
                   "na": {
                     "id": "na.lockedLadder"
                   },
-                  "lines": [],
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "more": [],
                   "confirm": null,
                   "accepted": null,
                   "keepLine": null,
@@ -5727,19 +5745,66 @@
                     }
                   ],
                   "na": null,
-                  "lines": [
-                    {
-                      "id": "lines.fixed",
+                  "chance": {
+                    "weighted": null,
+                    "fixed": {
+                      "id": "short.fixedOnly",
                       "slots": {
                         "words": "If you live to 86, the money lasts that long in none of the futures we tried",
                         "ref": {
-                          "id": "ref.asPlanned",
+                          "id": "short.ref",
                           "slots": {
-                            "n": "in every future we tried"
+                            "as": {
+                              "id": "short.as.asPlanned",
+                              "slots": {}
+                            },
+                            "n": {
+                              "id": "short.n.every",
+                              "slots": {}
+                            }
                           }
                         }
                       }
-                    },
+                    }
+                  },
+                  "runsOut": {
+                    "id": "short.runsOut",
+                    "slots": {
+                      "typical": {
+                        "id": "short.at",
+                        "slots": {
+                          "age": "71"
+                        }
+                      },
+                      "refTypical": {
+                        "id": "short.refTypicalNone",
+                        "slots": {
+                          "as": {
+                            "id": "short.as.asPlanned",
+                            "slots": {}
+                          }
+                        }
+                      },
+                      "worst": {
+                        "id": "short.by",
+                        "slots": {
+                          "age": "71"
+                        }
+                      },
+                      "refWorst": {
+                        "id": "short.refWorstLasts",
+                        "slots": {
+                          "as": {
+                            "id": "short.as.asPlanned",
+                            "slots": {}
+                          },
+                          "age": "86"
+                        }
+                      }
+                    }
+                  },
+                  "closedYear": null,
+                  "more": [
                     {
                       "id": "lines.when",
                       "slots": {
@@ -5819,7 +5884,10 @@
                   "na": {
                     "id": "na.notCounted"
                   },
-                  "lines": [],
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "more": [],
                   "confirm": null,
                   "accepted": null,
                   "keepLine": null,
@@ -5846,6 +5914,7 @@
               }
             },
             "closed": false,
+            "floor": null,
             "order": [
               "asPlanned",
               "asHeld",

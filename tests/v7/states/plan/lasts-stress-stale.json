@@ -3228,7 +3228,10 @@
                     }
                   ],
                   "na": null,
-                  "lines": [],
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "more": [],
                   "confirm": null,
                   "accepted": null,
                   "keepLine": null,
@@ -3300,7 +3303,10 @@
                     }
                   ],
                   "na": null,
-                  "lines": [],
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "more": [],
                   "confirm": null,
                   "accepted": {
                     "id": "agreement.accepted",
@@ -3350,7 +3356,10 @@
                     }
                   ],
                   "na": null,
-                  "lines": [],
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "more": [],
                   "confirm": null,
                   "accepted": null,
                   "keepLine": null,
@@ -3384,7 +3393,10 @@
                     }
                   ],
                   "na": null,
-                  "lines": [],
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "more": [],
                   "confirm": null,
                   "accepted": null,
                   "keepLine": null,
@@ -3418,7 +3430,10 @@
                     }
                   ],
                   "na": null,
-                  "lines": [],
+                  "chance": null,
+                  "runsOut": null,
+                  "closedYear": null,
+                  "more": [],
                   "confirm": null,
                   "accepted": null,
                   "keepLine": null,
@@ -3497,6 +3512,7 @@
             ],
             "keep": null,
             "closed": false,
+            "floor": null,
             "order": [
               "asPlanned",
               "fall",

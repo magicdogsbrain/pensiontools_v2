@@ -847,46 +847,49 @@
             "early": 196
           },
           "same": false,
+          "short": {
+            "chance": {
+              "weighted": {
+                "id": "short.weighted",
+                "slots": {
+                  "lasts": {
+                    "id": "short.lasts.ranOut",
+                    "slots": {}
+                  },
+                  "chance": "18 times in 20",
+                  "ref": ""
+                }
+              },
+              "fixed": {
+                "id": "short.fixed",
+                "slots": {
+                  "age": "99",
+                  "count": "in 16 of 20 futures we tried",
+                  "ref": ""
+                }
+              }
+            },
+            "runsOut": {
+              "id": "short.runsOut",
+              "slots": {
+                "typical": {
+                  "id": "short.at",
+                  "slots": {
+                    "age": "91"
+                  }
+                },
+                "refTypical": "",
+                "worst": {
+                  "id": "short.by",
+                  "slots": {
+                    "age": "90"
+                  }
+                },
+                "refWorst": ""
+              }
+            }
+          },
           "sentences": {
-            "line": {
-              "id": "strip.asPlanned.line",
-              "text": "Counting how long people your age live, the money lasts as long as you do 18 times in 20.",
-              "parts": [
-                "Counting how long people your age live",
-                ", the money lasts ",
-                "as long as you do",
-                " ",
-                {
-                  "fixed": "18"
-                },
-                " times in ",
-                {
-                  "fixed": "20"
-                },
-                "."
-              ],
-              "mark": "weighted"
-            },
-            "fixed": {
-              "id": "strip.asPlanned.fixed",
-              "text": "If you live to 99, the money lasts that long in 16 of 20 futures we tried.",
-              "parts": [
-                "If you live to ",
-                {
-                  "fixed": "99"
-                },
-                ", the money lasts that long in ",
-                {
-                  "fixed": "16"
-                },
-                " of ",
-                {
-                  "fixed": "20"
-                },
-                " futures we tried."
-              ],
-              "mark": "fixed"
-            },
             "when": {
               "id": "strip.asPlanned.when",
               "text": "In the futures where the money runs out before 104, it typically runs out at 91. In the worst 1 in 10 of all the futures, by 90.",
@@ -954,26 +957,6 @@
                 },
                 " you planned to spend is still paid."
               ]
-            },
-            "floor": {
-              "id": "strip.asPlanned.floor",
-              "text": "If the money ran out at 91, you would still have £12,548 a year after tax, from your State Pension.",
-              "parts": [
-                "If the money ran out ",
-                "at ",
-                {
-                  "fixed": "91"
-                },
-                ", ",
-                "you would still have ",
-                {
-                  "fixed": "£12,548"
-                },
-                " a year after tax",
-                ", ",
-                "from your State Pension",
-                "."
-              ]
             }
           },
           "words": {
@@ -1028,55 +1011,71 @@
             "early": 473
           },
           "same": false,
+          "short": {
+            "chance": {
+              "weighted": {
+                "id": "short.weighted",
+                "slots": {
+                  "lasts": {
+                    "id": "short.lasts.ranOut",
+                    "slots": {}
+                  },
+                  "chance": "14 times in 20",
+                  "ref": {
+                    "id": "short.ref",
+                    "slots": {
+                      "as": {
+                        "id": "short.as.asPlanned",
+                        "slots": {}
+                      },
+                      "n": "18"
+                    }
+                  }
+                }
+              },
+              "fixed": {
+                "id": "short.fixed",
+                "slots": {
+                  "age": "99",
+                  "count": "in 11 of 20 futures we tried",
+                  "ref": {
+                    "id": "short.ref",
+                    "slots": {
+                      "as": {
+                        "id": "short.as.asPlanned",
+                        "slots": {}
+                      },
+                      "n": "16"
+                    }
+                  }
+                }
+              }
+            },
+            "runsOut": {
+              "id": "short.runsOutBoth",
+              "slots": {
+                "typical": {
+                  "id": "short.at",
+                  "slots": {
+                    "age": "86"
+                  }
+                },
+                "worst": {
+                  "id": "short.by",
+                  "slots": {
+                    "age": "78"
+                  }
+                },
+                "as": {
+                  "id": "short.as.asPlanned",
+                  "slots": {}
+                },
+                "age1": "91",
+                "age2": "90"
+              }
+            }
+          },
           "sentences": {
-            "line": {
-              "id": "strip.fall.line",
-              "text": "Counting how long people your age live, the money lasts as long as you do 14 times in 20 (as planned: 18).",
-              "parts": [
-                "Counting how long people your age live",
-                ", the money lasts ",
-                "as long as you do",
-                " ",
-                {
-                  "fixed": "14"
-                },
-                " times in ",
-                {
-                  "fixed": "20"
-                },
-                " (as planned: ",
-                {
-                  "fixed": "18"
-                },
-                ")."
-              ],
-              "mark": "weighted"
-            },
-            "fixed": {
-              "id": "strip.fall.fixed",
-              "text": "If you live to 99, the money lasts that long in 11 of 20 futures we tried (as planned: 16).",
-              "parts": [
-                "If you live to ",
-                {
-                  "fixed": "99"
-                },
-                ", the money lasts that long in ",
-                {
-                  "fixed": "11"
-                },
-                " of ",
-                {
-                  "fixed": "20"
-                },
-                " futures we tried",
-                " (as planned: ",
-                {
-                  "fixed": "16"
-                },
-                ")."
-              ],
-              "mark": "fixed"
-            },
             "when": {
               "id": "strip.fall.when",
               "text": "In the futures where the money runs out before 104 (529 of the 1,000; as planned: 236), it typically runs out at 86 (as planned: 91). In the worst 1 in 10 of all the futures, by 78 (as planned: by 90).",
@@ -1190,26 +1189,6 @@
                 },
                 ")."
               ]
-            },
-            "floor": {
-              "id": "strip.fall.floor",
-              "text": "If the money ran out at 86, you would still have £12,548 a year after tax, from your State Pension.",
-              "parts": [
-                "If the money ran out ",
-                "at ",
-                {
-                  "fixed": "86"
-                },
-                ", ",
-                "you would still have ",
-                {
-                  "fixed": "£12,548"
-                },
-                " a year after tax",
-                ", ",
-                "from your State Pension",
-                "."
-              ]
             }
           },
           "words": {
@@ -1264,55 +1243,71 @@
             "early": 365
           },
           "same": false,
+          "short": {
+            "chance": {
+              "weighted": {
+                "id": "short.weighted",
+                "slots": {
+                  "lasts": {
+                    "id": "short.lasts.ranOut",
+                    "slots": {}
+                  },
+                  "chance": "16 times in 20",
+                  "ref": {
+                    "id": "short.ref",
+                    "slots": {
+                      "as": {
+                        "id": "short.as.asPlanned",
+                        "slots": {}
+                      },
+                      "n": "18"
+                    }
+                  }
+                }
+              },
+              "fixed": {
+                "id": "short.fixed",
+                "slots": {
+                  "age": "99",
+                  "count": "in 13 of 20 futures we tried",
+                  "ref": {
+                    "id": "short.ref",
+                    "slots": {
+                      "as": {
+                        "id": "short.as.asPlanned",
+                        "slots": {}
+                      },
+                      "n": "16"
+                    }
+                  }
+                }
+              }
+            },
+            "runsOut": {
+              "id": "short.runsOutBoth",
+              "slots": {
+                "typical": {
+                  "id": "short.at",
+                  "slots": {
+                    "age": "90"
+                  }
+                },
+                "worst": {
+                  "id": "short.by",
+                  "slots": {
+                    "age": "83"
+                  }
+                },
+                "as": {
+                  "id": "short.as.asPlanned",
+                  "slots": {}
+                },
+                "age1": "91",
+                "age2": "90"
+              }
+            }
+          },
           "sentences": {
-            "line": {
-              "id": "strip.lower.line",
-              "text": "Counting how long people your age live, the money lasts as long as you do 16 times in 20 (as planned: 18).",
-              "parts": [
-                "Counting how long people your age live",
-                ", the money lasts ",
-                "as long as you do",
-                " ",
-                {
-                  "fixed": "16"
-                },
-                " times in ",
-                {
-                  "fixed": "20"
-                },
-                " (as planned: ",
-                {
-                  "fixed": "18"
-                },
-                ")."
-              ],
-              "mark": "weighted"
-            },
-            "fixed": {
-              "id": "strip.lower.fixed",
-              "text": "If you live to 99, the money lasts that long in 13 of 20 futures we tried (as planned: 16).",
-              "parts": [
-                "If you live to ",
-                {
-                  "fixed": "99"
-                },
-                ", the money lasts that long in ",
-                {
-                  "fixed": "13"
-                },
-                " of ",
-                {
-                  "fixed": "20"
-                },
-                " futures we tried",
-                " (as planned: ",
-                {
-                  "fixed": "16"
-                },
-                ")."
-              ],
-              "mark": "fixed"
-            },
             "when": {
               "id": "strip.lower.when",
               "text": "In the futures where the money runs out before 104 (419 of the 1,000; as planned: 236), it typically runs out at 90 (as planned: 91). In the worst 1 in 10 of all the futures, by 83 (as planned: by 90).",
@@ -1426,26 +1421,6 @@
                 },
                 ")."
               ]
-            },
-            "floor": {
-              "id": "strip.lower.floor",
-              "text": "If the money ran out at 90, you would still have £12,548 a year after tax, from your State Pension.",
-              "parts": [
-                "If the money ran out ",
-                "at ",
-                {
-                  "fixed": "90"
-                },
-                ", ",
-                "you would still have ",
-                {
-                  "fixed": "£12,548"
-                },
-                " a year after tax",
-                ", ",
-                "from your State Pension",
-                "."
-              ]
             }
           },
           "words": {
@@ -1500,55 +1475,71 @@
             "early": 495
           },
           "same": false,
+          "short": {
+            "chance": {
+              "weighted": {
+                "id": "short.weighted",
+                "slots": {
+                  "lasts": {
+                    "id": "short.lasts.ranOut",
+                    "slots": {}
+                  },
+                  "chance": "13 times in 20",
+                  "ref": {
+                    "id": "short.ref",
+                    "slots": {
+                      "as": {
+                        "id": "short.as.asPlanned",
+                        "slots": {}
+                      },
+                      "n": "18"
+                    }
+                  }
+                }
+              },
+              "fixed": {
+                "id": "short.fixed",
+                "slots": {
+                  "age": "99",
+                  "count": "in 10 of 20 futures we tried",
+                  "ref": {
+                    "id": "short.ref",
+                    "slots": {
+                      "as": {
+                        "id": "short.as.asPlanned",
+                        "slots": {}
+                      },
+                      "n": "16"
+                    }
+                  }
+                }
+              }
+            },
+            "runsOut": {
+              "id": "short.runsOutBoth",
+              "slots": {
+                "typical": {
+                  "id": "short.at",
+                  "slots": {
+                    "age": "85"
+                  }
+                },
+                "worst": {
+                  "id": "short.by",
+                  "slots": {
+                    "age": "78"
+                  }
+                },
+                "as": {
+                  "id": "short.as.asPlanned",
+                  "slots": {}
+                },
+                "age1": "91",
+                "age2": "90"
+              }
+            }
+          },
           "sentences": {
-            "line": {
-              "id": "strip.spend.line",
-              "text": "Counting how long people your age live, the money lasts as long as you do 13 times in 20 (as planned: 18).",
-              "parts": [
-                "Counting how long people your age live",
-                ", the money lasts ",
-                "as long as you do",
-                " ",
-                {
-                  "fixed": "13"
-                },
-                " times in ",
-                {
-                  "fixed": "20"
-                },
-                " (as planned: ",
-                {
-                  "fixed": "18"
-                },
-                ")."
-              ],
-              "mark": "weighted"
-            },
-            "fixed": {
-              "id": "strip.spend.fixed",
-              "text": "If you live to 99, the money lasts that long in 10 of 20 futures we tried (as planned: 16).",
-              "parts": [
-                "If you live to ",
-                {
-                  "fixed": "99"
-                },
-                ", the money lasts that long in ",
-                {
-                  "fixed": "10"
-                },
-                " of ",
-                {
-                  "fixed": "20"
-                },
-                " futures we tried",
-                " (as planned: ",
-                {
-                  "fixed": "16"
-                },
-                ")."
-              ],
-              "mark": "fixed"
-            },
             "when": {
               "id": "strip.spend.when",
               "text": "In the futures where the money runs out before 104 (555 of the 1,000; as planned: 236), it typically runs out at 85 (as planned: 91). In the worst 1 in 10 of all the futures, by 78 (as planned: by 90).",
@@ -1662,26 +1653,6 @@
                 },
                 ")."
               ]
-            },
-            "floor": {
-              "id": "strip.spend.floor",
-              "text": "If the money ran out at 85, you would still have £12,548 a year after tax, from your State Pension.",
-              "parts": [
-                "If the money ran out ",
-                "at ",
-                {
-                  "fixed": "85"
-                },
-                ", ",
-                "you would still have ",
-                {
-                  "fixed": "£12,548"
-                },
-                " a year after tax",
-                ", ",
-                "from your State Pension",
-                "."
-              ]
             }
           },
           "words": {
@@ -1739,55 +1710,71 @@
             "early": 231
           },
           "same": false,
+          "short": {
+            "chance": {
+              "weighted": {
+                "id": "short.weighted",
+                "slots": {
+                  "lasts": {
+                    "id": "short.lasts.ranOut",
+                    "slots": {}
+                  },
+                  "chance": "17 times in 20",
+                  "ref": {
+                    "id": "short.ref",
+                    "slots": {
+                      "as": {
+                        "id": "short.as.asPlanned",
+                        "slots": {}
+                      },
+                      "n": "18"
+                    }
+                  }
+                }
+              },
+              "fixed": {
+                "id": "short.fixed",
+                "slots": {
+                  "age": "99",
+                  "count": "in 15 of 20 futures we tried",
+                  "ref": {
+                    "id": "short.ref",
+                    "slots": {
+                      "as": {
+                        "id": "short.as.asPlanned",
+                        "slots": {}
+                      },
+                      "n": "16"
+                    }
+                  }
+                }
+              }
+            },
+            "runsOut": {
+              "id": "short.runsOutBoth",
+              "slots": {
+                "typical": {
+                  "id": "short.at",
+                  "slots": {
+                    "age": "91"
+                  }
+                },
+                "worst": {
+                  "id": "short.by",
+                  "slots": {
+                    "age": "88"
+                  }
+                },
+                "as": {
+                  "id": "short.as.asPlanned",
+                  "slots": {}
+                },
+                "age1": "91",
+                "age2": "90"
+              }
+            }
+          },
           "sentences": {
-            "line": {
-              "id": "strip.prices.line",
-              "text": "Counting how long people your age live, the money lasts as long as you do 17 times in 20 (as planned: 18).",
-              "parts": [
-                "Counting how long people your age live",
-                ", the money lasts ",
-                "as long as you do",
-                " ",
-                {
-                  "fixed": "17"
-                },
-                " times in ",
-                {
-                  "fixed": "20"
-                },
-                " (as planned: ",
-                {
-                  "fixed": "18"
-                },
-                ")."
-              ],
-              "mark": "weighted"
-            },
-            "fixed": {
-              "id": "strip.prices.fixed",
-              "text": "If you live to 99, the money lasts that long in 15 of 20 futures we tried (as planned: 16).",
-              "parts": [
-                "If you live to ",
-                {
-                  "fixed": "99"
-                },
-                ", the money lasts that long in ",
-                {
-                  "fixed": "15"
-                },
-                " of ",
-                {
-                  "fixed": "20"
-                },
-                " futures we tried",
-                " (as planned: ",
-                {
-                  "fixed": "16"
-                },
-                ")."
-              ],
-              "mark": "fixed"
-            },
             "when": {
               "id": "strip.prices.when",
               "text": "In the futures where the money runs out before 104 (287 of the 1,000; as planned: 236), it typically runs out at 91 (as planned: 91). In the worst 1 in 10 of all the futures, by 88 (as planned: by 90).",
@@ -1901,26 +1888,6 @@
                 },
                 ")."
               ]
-            },
-            "floor": {
-              "id": "strip.prices.floor",
-              "text": "If the money ran out at 91, you would still have £12,548 a year after tax, from your State Pension.",
-              "parts": [
-                "If the money ran out ",
-                "at ",
-                {
-                  "fixed": "91"
-                },
-                ", ",
-                "you would still have ",
-                {
-                  "fixed": "£12,548"
-                },
-                " a year after tax",
-                ", ",
-                "from your State Pension",
-                "."
-              ]
             }
           },
           "words": {
@@ -1935,6 +1902,18 @@
           }
         }
       ],
+      "floor": {
+        "id": "short.floor.answer",
+        "slots": {
+          "amount": "£12,548",
+          "between": "",
+          "from": {
+            "id": "short.floor.from.statePension",
+            "slots": {}
+          },
+          "survivor": ""
+        }
+      },
       "basis": {
         "today": "2026-09-30",
         "futures": 1000,

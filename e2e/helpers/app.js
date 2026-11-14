@@ -692,6 +692,9 @@ export const SLOWDOWN = Number(process.env.E2E_SLOWDOWN) || 4;
 // "Does it last?", every row (As planned first, streamed). Measured at full speed, as the other waits are, against these.
 export const STRIP_BUDGET = 2_500 * SLOWDOWN;
 export const PANEL_BUDGET = 9_600 * SLOWDOWN;
+// "Your review" (7.10.0; spec-7100 §4.1): one row of a review's run (a Moving review's as planned and what is held, a
+// Living-on-it review's from today), 1.2 s idle on the reference machine; measured at full speed against 1.5 s × the slowdown.
+export const REVIEW_BUDGET = 1_500 * SLOWDOWN;
 export const KEY_DELAY = 120;        // one key at a time, as a person types (catches a box that loses its place)
 
 /**

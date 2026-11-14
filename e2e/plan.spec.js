@@ -243,6 +243,38 @@ test.describe('the saved plans, without an account', () => {
     expect(plansNow.find((p) => p.id === 'GapBuckets04').decisionTool.history.map((h) => h.date)).toEqual(['2026-04', '2026-05', '2026-06', '2026-07', '2026-09']);
   });
 
+  // 7.10.0 (spec-7100 §5, §9): the month is a to-do only when months are wanted — a month recorded counts as yes, "No, I do
+  // not keep a monthly record" stops it, and "Keep a record of each month here" is one write of that one field
+  test('the month to-do only when months are wanted: "No" stored, nothing due; "Yes" on Month by month one write, the month back', async ({ page, watch }) => {
+    test.setTimeout(180_000);
+    watch.allow(WORKER_DATA_MISSING);
+    const buckets = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '04-buckets-running.json'), 'utf8'));
+    buckets.id = 'NoMonths04'; buckets.planDetails.name = 'Buckets plan'; buckets.isActive = true; delete buckets.household;
+    buckets.decisionTool.history = buckets.decisionTool.history.filter((h) => h.date !== '2026-08');
+    buckets.decisionTool.recordMonths = false;
+    const before = await plant(page, [buckets]);
+    await page.goto(v7('#/plan/NoMonths04'));
+    await expect(page.getByTestId('plan.home.headline')).toHaveText('Living on it.');
+    await expect(page.locator('[data-region="home-todo"] .home-item')).toHaveCount(0);
+    await expect(page.getByTestId('plan.home.quiet')).toHaveText('Nothing due. Your next review is April 2027.');
+    expect(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY), 'opening writes nothing').toBe(before);
+    await page.goto(v7('#/plan/NoMonths04/month'));
+    await expect(page.getByTestId('plan.month.recordMonths')).toHaveAttribute('data-wanted', '0');
+    await expect(page.getByTestId('plan.month.recordMonths.no')).toHaveAttribute('aria-pressed', 'true');
+    await page.getByTestId('plan.month.recordMonths.yes').click();
+    await expect(page.getByTestId('plan.month.recordMonths')).toHaveAttribute('data-wanted', '1', { timeout: 30_000 });
+    const was = JSON.parse(before)[0];
+    const after = JSON.parse(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY))[0];
+    expect(after.decisionTool.recordMonths).toBe(true);
+    const { recordMonths: a, ...dtAfter } = after.decisionTool;
+    const { recordMonths: b, ...dtWas } = was.decisionTool;
+    expect(JSON.stringify(dtAfter), 'the rest of the Decision side byte for byte').toBe(JSON.stringify(dtWas));
+    const keys = [...new Set([...Object.keys(after), ...Object.keys(was)])].filter((k) => JSON.stringify(after[k]) !== JSON.stringify(was[k])).sort();
+    expect(keys).toEqual(['decisionTool', 'lastModified']);
+    await page.goto(v7('#/plan/NoMonths04'));
+    await expect(page.locator('[data-region="home-todo"] .home-item').first()).toHaveAttribute('data-todo', 'month.gap', { timeout: 30_000 });
+  });
+
   test('every step and sub-step of every corpus plan, opened and left without saving: the stored plans byte for byte (gate 2)', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop-1440', 'the browse of every plan is the same at every size: it runs once, at 1440');
     test.setTimeout(300_000);

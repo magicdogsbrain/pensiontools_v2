@@ -9,7 +9,7 @@
   "env": {
     "today": "2026-09-30",
     "build": "test",
-    "appVersion": "7.8.0",
+    "appVersion": "7.9.0",
     "historyEnd": null
   },
   "session": {
@@ -93,7 +93,7 @@
     },
     "d": {
       "status": "final",
-      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":99,\"fall\":{\"has\":false},\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"spend\":{\"amount\":900,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":0,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"no\"}}|2026-09-30|7.8.0",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":99,\"fall\":{\"has\":false},\"household\":\"single\",\"risk\":\"balanced\",\"savings\":0,\"spend\":{\"amount\":900,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":0,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"no\"}}|2026-09-30|7.9.0",
       "result": {
         "status": "guaranteed-only",
         "inputs": {
@@ -496,7 +496,7 @@
             "you": "f"
           },
           "historyEnd": "2023-06",
-          "engineVersion": "7.8.0",
+          "engineVersion": "7.9.0",
           "startAge": 68,
           "endAge": 99,
           "years": 31,

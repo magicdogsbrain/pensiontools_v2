@@ -38,6 +38,34 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.9.0', date: '2026-11-14', engineVersion: '6.39.0',
+    title: 'Try the bad years',
+    summary: 'You can now try a plan, and the answers to “What is that a month?” and “Will it last?”, on bad years: a fall in share prices at the start, lower returns, spending a tenth more and prices rising faster, and, if you keep something by choice, that falling by half. Each line runs the same futures with one thing made worse, and says how likely the money is to last and where it typically runs out, beside the plan as it stands. If you are content with a risk you can note it on the plan. Nothing about the plan changes, and you can withdraw the note at any time.',
+    changes: [
+      'Try the bad years on a plan’s Does it last?, on any plan, locked or not: As planned, A fall at the start, Lower returns, Spending a tenth more and Prices rising faster. Each line gives the chance the money lasts as long as you do and to the age the plan runs to, and where it typically runs out. More about this line gives how long it still pays, how much, and what is likely to be left.',
+      'If you keep something by choice, two more lines show the plan as you hold it and what happens if what you keep falls by half.',
+      'I accept this risk, on any line, notes on the plan that you have seen what it does. Nothing about the plan changes. You can withdraw it at any time, and if the plan’s figures change, the note says it no longer stands.',
+      'The same lines under the answers to “What is that a month?” and “Will it last?”, and on the full planner’s Scenarios page.',
+      'Each panel says once what you would still have each year from the income you get anyway if the money runs out.',
+      'On a locked plan, Where you are also says what this year’s draw is as a share of your pots, beside the share the plan began with.',
+      'What you keep by choice is no longer a to-do on the plan home. What you hold says where it stands.'
+    ],
+    corrections: [
+      'A plan’s pages now say the age it runs to as the answers do: “to 97” means to your 97th birthday. Before, some pages named the age in the plan’s last year, one lower for the same plan, including the plan’s own summary and, on a locked plan bought as a full ladder, the age its income is guaranteed to. No figure has changed.',
+      'A way of drawing whose income is bought by contract says so again on Does it last?, with the count to the plan’s age beside the chance the money lasts as long as you do.'
+    ],
+    effects: {
+      stress: ['Does it last? gains Try the bad years. Nothing is run until you press it, and nothing is saved unless you accept a risk.'],
+      strategies: ['Prices rising faster is not tried for a way of drawing worked out in today’s prices throughout; the line says why.'],
+      decision: ['A locked plan keeps its figures and its document. On a locked gilt ladder the four bad years are not tried, because its income was fixed by the gilts bought on the day it was locked; what you keep by choice is still tried.'],
+      accumulation: [],
+      budget: [],
+      household: ['Under a couple’s answer, the panel says what you would still have between you if the money runs out, and what the one left would have if one of you has died.']
+    },
+    actions: ['Nothing you need to do.'],
+    notes: ['The bad years are tried on the same futures as the plan, not on the real histories since 1871. The full planner’s Scenarios page still shows what each real bad decade did.']
+  },
+  {
     version: '7.8.0', date: '2026-11-13', engineVersion: '6.39.0',
     title: 'How likely your money is to last as long as you do',
     summary: 'Every answer now counts how long people your age are likely to live, so money running short at 98 counts for far less than money running short at 75. You choose how careful to be, and every figure is worked out at that level. Beside it we always show how often the money lasts to one named age. If the money does run out, we now say when, what would still come in from your pensions, and what is likely to be left if it does not.',

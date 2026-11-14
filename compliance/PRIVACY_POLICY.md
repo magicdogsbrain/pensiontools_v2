@@ -1,6 +1,6 @@
 # PensionTools — Privacy Policy
 
-_Last updated: 5 November 2026._
+_Last updated: 14 November 2026._
 
 ## Who we are
 PensionTools is provided by **Usefulish Ltd**, a company registered in England and Wales

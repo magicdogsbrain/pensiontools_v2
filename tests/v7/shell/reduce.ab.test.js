@@ -317,7 +317,10 @@ const anyAction = fc.oneof(
   // a home's to-do put away (7.10.0): stored on the plan by the plan write, never kept in the window
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('hold.stale', 'month.record@2026-10', 'review.due@2027/28'), fc.constantFrom('notNow', 'notThisTime', 'seen', 'done')).map(([planId, key, how]) => ({ type: A.PLAN_TASK, planId, key, how })),
   // "Keep a record of each month here" (7.10.0): one write by the plan write
-  fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, value]) => ({ type: A.PLAN_RECORD_MONTHS, planId, value }))
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, value]) => ({ type: A.PLAN_RECORD_MONTHS, planId, value })),
+  // "Your review" (7.10.0): a review saved, a choice made — one write each by the plan write
+  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_REVIEW_SAVE, planId })),
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(['window', 4], ['saving.level', 'cautious'], ['review.every', 'quarter'], ['review.rule', 'success:16'])).map(([planId, [part, value]]) => ({ type: A.PLAN_PHASE_SET, planId, part, value }))
 );
 
 /** 'NOW' is the key of what is typed at that moment, as the runner would send it; 'fillA'/'fillB' type a whole draft. */

@@ -25,6 +25,8 @@ import { BUILT } from '../rail/questions.js';
 import { SESSION_KINDS, KEEP_WHERES } from './initial.js';
 import { cleanBack, cleanPlace } from './place.js';
 import { isPlanEditPath, WAY_IDS, RANK_BYS, isTaskKey, DISMISS_KINDS } from '../../answers/plan/schema.js';
+/** The choices a review may make (answers/plan/review.js CHOICE_PARTS: named here so the reducer reaches no reader). */
+const PHASE_CHOICE_PARTS = ['window', 'saving.level', 'review.every', 'review.rule'];
 
 /** The plan draft (editing-in-v7.md 4, 7.2): what was typed into an editing step for ONE plan; gone when the plan changes. */
 const planDraftOf = (state) => (state.draft && state.draft.plan) || emptyPlanDraft();
@@ -59,7 +61,9 @@ const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'fail
   // "I accept this risk" (7.7.0): what is kept changed since the test (run it again), nothing kept, no agreement to withdraw
   'stale', 'nothingKept', 'noResult', 'none',
   // … on a row of "Try the bad years" (7.9.0): the rows were tried on the plan as it was, the row changes nothing, nothing runs out
-  'oldResult', 'same', 'nothingFails'];
+  'oldResult', 'same', 'nothingFails',
+  // "Your review" (7.10.0): a plan with a close takes no review or choice (reviews carry on with the plan that carries it on)
+  'closed'];
 /** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document, the way switched (way-and-mix.md 2.4), a mix used (3.2e), a tried change used (4). */
 const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
   // the move of a locked plan's start (6.55.0): written, no Undo (the planner offers none)
@@ -82,7 +86,9 @@ const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
   // a to-do put away on the home (7.10.0): one write of the plan's `tasks`, said, and no Undo (a dismissal carries no stamp to put back)
   'task',
   // "Keep a record of each month here" (7.10.0): one write of decisionTool.recordMonths, with Undo
-  'recordMonths'];
+  'recordMonths',
+  // "Your review" (7.10.0): a review saved, a choice made (the rule, how often, the window, the saving level) — one write of `phases` each, with Undo
+  'review', 'phase'];
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -1198,6 +1204,24 @@ function reduceAction(state, action) {
       if (typeof value !== 'boolean') return refuse('plan/recordMonths: needs yes or no');
       if (state.ui.saving) return state;
       return { ...state, ui: { ...state.ui, saving: { planId, kind: 'recordMonths', value }, saveProblem: null, toast: null } };
+    }
+    // "Save this review" and each choice on the review (7.10.0): one write of `phases` by the plan write
+    case A.PLAN_REVIEW_SAVE: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/reviewSave: needs a plan id');
+      if (state.ui.saving) return state;
+      const pd = planDraftOf(state);
+      const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
+      return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'reviewSave' }, saveProblem: null, toast: null } }, { ...base, asked: true });
+    }
+    case A.PLAN_PHASE_SET: {
+      const { planId, part, value } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/phaseSet: needs a plan id');
+      if (!PHASE_CHOICE_PARTS.includes(part)) return refuse(`plan/phaseSet: "${part}" is not a choice on the review`);
+      if (!(typeof value === 'string' && /^[A-Za-z0-9:]{1,24}$/.test(value)) && !(Number.isInteger(value) && value >= 1 && value <= 5)) return refuse('plan/phaseSet: needs a value');
+      if (state.ui.saving) return state;
+      const open = (state.ui.open || []).filter((x) => !x.startsWith('reviewChange.'));
+      return { ...state, ui: { ...state.ui, open, saving: { planId, kind: 'phaseSet', part, value }, saveProblem: null, toast: null } };
     }
     case A.PLAN_TICK: {
       const { planId, key } = action;

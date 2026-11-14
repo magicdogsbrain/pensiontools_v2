@@ -38,6 +38,7 @@ import { BudgetScreen } from './plan/BudgetScreen.jsx';
 import { SavingScreen } from './plan/SavingScreen.jsx';
 import { CheckInScreen } from './plan/CheckInScreen.jsx';
 import { MonthScreen } from './plan/MonthScreen.jsx';
+import { ReviewScreen } from './plan/ReviewScreen.jsx';
 import { AssumptionsScreen } from './AssumptionsScreen.jsx';
 
 export const SCREENS = {
@@ -92,5 +93,7 @@ export const SCREENS = {
   // a saver's check-in, the rail step that took the pot step's place (research/saving-enough-and-check-in.md 5; release step R3)
   'plan.checkin': CheckInScreen,
   // Month by month (research/v7/months-in-v7.md, 7.2.0)
-  'plan.month': MonthScreen
+  'plan.month': MonthScreen,
+  // "Your review" (7.10.0): one page in every phase; a saver's is the check-in
+  'plan.review': ReviewScreen
 };

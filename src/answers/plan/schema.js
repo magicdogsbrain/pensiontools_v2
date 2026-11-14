@@ -907,11 +907,30 @@ export const isMonthPath = (path) => MONTH_PATHS.includes(String(path));
  */
 export const MONTH_WRITES = Object.freeze(['decisionTool.history', 'decisionTool.taxYears', 'journey', 'lastModified']);
 
+// ---- Your review (7.10.0; answers/plan/review.js) ---------------------------------------------------------------------------
+
+/** For the year ahead, after a Living-on-it review: take a little less, keep to the plan, take a little more (recorded only). */
+export const REVIEW_CHOICES = Object.freeze(['less', 'keep', 'more']);
+/**
+ * The boxes of a Living-on-it review ('rv.'): what the pots hold today (the pension, ISAs and savings, anything else), what was
+ * taken from them since 6 April, and the choice for the year ahead. Each starts from what is recorded (the last month, else the
+ * plan); text as typed. Saved with the review only (PHASE_WRITES): never into the plan's settings.
+ */
+export const REVIEW_FIELDS = Object.freeze([
+  { path: 'rv.pension', type: 'money',  min: 0, max: 50000000, required: true },
+  { path: 'rv.isa',     type: 'money',  min: 0, max: 50000000, required: false },
+  { path: 'rv.other',   type: 'money',  min: 0, max: 50000000, required: false },
+  { path: 'rv.took',    type: 'money',  min: 0, max: 5000000,  required: false },
+  { path: 'rv.choice',  type: 'choice', options: REVIEW_CHOICES }
+].map(Object.freeze));
+export const REVIEW_PATHS = Object.freeze(REVIEW_FIELDS.map((f) => f.path));
+export const isReviewPath = (path) => REVIEW_PATHS.includes(String(path));
+
 /** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
 export function isPlanEditPath(path) {
   // stopAskLeft: "Leave it" to "When did you stop work?" on a locked plan's "About you and when" (6.53.0, about.js stopAskPatch);
   // moveSpDate: the State Pension's start date the move of a locked plan's start asks (7.4.0, about.js lockedStartOf)
-  return ABOUT_PATHS.includes(path) || path === 'stopAskLeft' || path === 'moveSpDate' || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path) || isHoldPath(path) || isBudgetPath(path) || isSavingPath(path) || isCheckInPath(path) || isMonthPath(path);
+  return ABOUT_PATHS.includes(path) || path === 'stopAskLeft' || path === 'moveSpDate' || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path) || isHoldPath(path) || isBudgetPath(path) || isSavingPath(path) || isCheckInPath(path) || isMonthPath(path) || isReviewPath(path);
 }
 
 // ---- The three phases and the one review (7.10.0; services/Phases.js, answers/plan/tasks.js) ----------------------------

@@ -235,6 +235,9 @@ export function windowOf(plan, { now = new Date(), settings = null, stop } = {})
   return { years, from, to, monthsLeft: Math.max(0, monthsBetween(nowKey, to)), windowMonths: monthsBetween(from, to), state };
 }
 
+/** Whether the person chose the window's length (a stored `moving.window`), for the readers that may not name it. */
+export const windowChosenOf = (plan) => !!(plan && isObj(plan.phases) && isObj(plan.phases.moving) && isObj(plan.phases.moving.window) && windowYearsOrNull(plan.phases.moving.window.years) != null);
+
 /** The move window a stage reading carries (LifeStage.stageOf's `window`), for the readers that may not name it. */
 export const moveWindowOf = (stage) => (stage && isObj(stage.window) ? stage.window : null);
 

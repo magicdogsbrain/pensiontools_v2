@@ -1198,7 +1198,8 @@ export function planCheckInView(state) {
   const plans = state.plans;
   const r = state.route;
   const page = plans && plans.status === 'read' && plans.view && plans.view.page && plans.view.today === state.env.today ? plans.view.page : null;
-  const v = page && page.checkin && r && r.screen === 'plan' && (r.step === 'checkin' || r.step === 'pot') && page.forId === r.planId ? page.checkin : null;
+  // (and on the review's address in Saving: a saver's review is the check-in, 7.10.0)
+  const v = page && page.checkin && r && r.screen === 'plan' && (r.step === 'checkin' || r.step === 'pot' || r.step === 'review') && page.forId === r.planId ? page.checkin : null;
   if (!v || !v.found) return { found: false, id: r && r.planId ? r.planId : '', status: plans ? plans.status : 'checking' };
   const pd = state.draft.plan && state.draft.plan.id === v.id ? state.draft.plan : { id: v.id, values: {}, touched: [], asked: false };
   const show = (path) => pd.asked || pd.touched.includes(path);
@@ -1208,6 +1209,30 @@ export function planCheckInView(state) {
   const ui = state.ui || {};
   return {
     ...v, fields, draft: pd, live,
+    saving: ui.saving && ui.saving.planId === v.id ? ui.saving : null,
+    problem: ui.saveProblem && ui.saveProblem.planId === v.id ? ui.saveProblem.problem : null,
+    toast: ui.toast && ui.toast.planId === v.id ? ui.toast : null
+  };
+}
+/**
+ * "Your review" (7.10.0; answers/plan/review.js): the plan source's reading on #/plan/<id>/review (page.review: the phase,
+ * the choices, the Moving and Living-on-it readings, the boxes), with which problems to show (a box once it is left, every box
+ * once "Save this review" is pressed), the write under way, the problem, the toast and the choices open. Nothing worked out here.
+ */
+export function planReviewView(state) {
+  const plans = state.plans;
+  const r = state.route;
+  const page = plans && plans.status === 'read' && plans.view && plans.view.page && plans.view.today === state.env.today ? plans.view.page : null;
+  const v = page && page.review && r && r.screen === 'plan' && r.step === 'review' && page.forId === r.planId ? page.review : null;
+  if (!v || !v.found) return { found: false, id: r && r.planId ? r.planId : '', status: plans ? plans.status : 'checking' };
+  const pd = state.draft.plan && state.draft.plan.id === v.id ? state.draft.plan : { id: v.id, values: {}, touched: [], asked: false };
+  const show = (path) => pd.asked || pd.touched.includes(path);
+  const living = v.living ? { ...v.living, fields: v.living.fields.map((f) => ({ ...f, error: show(f.path) ? f.error : null })) } : null;
+  const ui = state.ui || {};
+  const open = Array.isArray(ui.open) ? ui.open : [];
+  return {
+    ...v, living, draft: pd,
+    changing: { rule: open.includes('reviewChange.rule'), every: open.includes('reviewChange.every'), moveWindow: open.includes('reviewChange.window'), level: open.includes('reviewChange.level') },
     saving: ui.saving && ui.saving.planId === v.id ? ui.saving : null,
     problem: ui.saveProblem && ui.saveProblem.planId === v.id ? ui.saveProblem.problem : null,
     toast: ui.toast && ui.toast.planId === v.id ? ui.toast : null
@@ -1372,7 +1397,7 @@ export function planLockView(state) {
  */
 export const PREVIOUS_STEP_PLACE = Object.freeze({
   month: 'month', where: 'document', pot: 'potRecord', checkin: 'potRecord', saving: 'saving', budget: 'budget',
-  lock: 'lock', hold: 'hold', move: 'move', household: 'household',
+  lock: 'lock', hold: 'hold', move: 'move', household: 'household', review: 'document',
   about: 'about', income: 'income', spend: 'spend', pots: 'pots', lasts: 'test', way: 'way', mix: 'settings'
 });
 const PREVIOUS_HOME_PLACE = Object.freeze({ saving: 'saving', 'committed-saving': 'saving', approaching: 'settings' });

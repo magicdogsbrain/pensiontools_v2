@@ -31,7 +31,8 @@ export const PLAN_STEPS = Object.freeze(['month', 'where', 'plan', 'pot', 'check
 /** The sub-steps under a plan that draw their own screen (src/answers/plan/steps.js ALL_SUB_STEPS): #/plan/<id>/about, /income, /spend, /pots, /lasts (editing-in-v7.md 2, 7, 8, 9, 10), /way (way-and-mix.md 2), /mix (way-and-mix.md 3); and the rail steps that draw their own screen: /household (road-to-7.md step 9: 'plan.household'), /hold and /move (step 10, holdings-and-move.md: 'plan.hold', 'plan.move'). */
 /** … and, since road-to-7.md step 11b (6.45.0), /budget and /saving (the two rail steps made real: 'plan.budget', 'plan.saving'). */
 /** … and a saver's check-in (research/saving-enough-and-check-in.md 5, release step R3): /checkin draws 'plan.checkin', and so does /pot. */
-export const PLAN_SUB_STEPS = Object.freeze(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move', 'budget', 'saving', 'checkin']);
+/** … and "Your review" (7.10.0, research/v7/replan-nov-2026.md §6): /review draws 'plan.review', one page in every phase. */
+export const PLAN_SUB_STEPS = Object.freeze(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move', 'budget', 'saving', 'checkin', 'review']);
 const planStepOk = (s) => PLAN_STEPS.includes(s) || PLAN_SUB_STEPS.includes(s);
 /** The one place on a plan page an address may name (7.9.0): "Try the bad years" on "Does it last?" — a section, never a box or a figure. */
 export const PLAN_FOCUS = Object.freeze({ lasts: Object.freeze(['stress']) });

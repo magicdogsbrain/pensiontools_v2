@@ -38,6 +38,7 @@ import { NEWS } from '../../../src/v7/copy/news.js';
 import { ASSUMPTIONS } from '../../../src/v7/copy/assumptions.js';
 import { CHECKIN } from '../../../src/v7/copy/checkin.js';
 import { STRESS } from '../../../src/v7/copy/stressPanel.js';
+import { REVIEW } from '../../../src/v7/copy/review.js';
 import { GUEST_RULE } from '../../../src/services/GuestMeter.js';
 import { STRATEGY_NAMES } from '../../../src/strategies/stressTest.js';
 import { listStrategies } from '../../../src/strategies/registry.js';
@@ -403,6 +404,21 @@ describe('the words in src/v7/copy/', () => {
     expect(hits).toEqual([]);
     for (const [where, s] of strings(CHECKIN)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate)\b/i);
     for (const [where, s] of strings(CHECKIN)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+  });
+  it('"Your review" (review.js, 7.10.0): every string passes for its audience — living on it with the retired, moving and saving with the saver, the rest with both; no slot left unfilled; never advice', () => {
+    const slot = (s) => s.replace(/\{(month|stop|from|to|on|date|old|new)\}/g, 'April 2027').replace(/\{(left)\}/g, '18 months').replace(/\{(a|b|line|n|held|plan|needed|c)\}/g, '17')
+      .replace(/\{(pot|low|mid|high|took|planned|left)\}/g, '£250,000').replace(/\{(year)\}/g, '2026').replace(/\{name\}/g, 'Global Fund').replace(/\{years\}/g, '2027/28, 2028/29')
+      .replace(/\{(level|every)\}/g, 'cautiously').replace(/\{(age)\}/g, '95');
+    const scopesOf = (where) => (/^living\./.test(where) ? ['all', 'record', 'retired', 'planner'] : /^(moving|agreement|moveWindow|level)\./.test(where) ? ['all', 'record', 'saver', 'planner'] : ['all', 'record', 'retired', 'saver', 'planner']);
+    const hits = [];
+    const all = strings(REVIEW).map(([, s]) => slot(s)).join('\n');
+    for (const [where, s] of strings(REVIEW)) for (const h of bannedHits(slot(s), scopesOf(where), { context: all })) hits.push(`review.js ${where} — ${h}`);
+    expect(hits).toEqual([]);
+    for (const [where, s] of strings(REVIEW)) expect(s, where).not.toMatch(/\b(error|failed|invalid|submit|calculate|simulate|you should|we recommend)\b/i);
+    for (const [where, s] of strings(REVIEW)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+    // a review changes nothing unless the person says so, and says so
+    expect(REVIEW.moving.lead).toContain('Nothing about your plan changes unless you say so.');
+    expect(REVIEW.title).toBe('Your review');
   });
   it('"Your pots and tax" (pots.js): every string passes in every scope a plan page is shown in; no slot left unfilled', () => {
     // the fourth editing step is a plan page too (editing-in-v7.md 9): a retired person's and a saver's plan are both edited from it

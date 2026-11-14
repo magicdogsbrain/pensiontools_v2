@@ -182,6 +182,9 @@ export const A = Object.freeze({
   PLAN_TICK:       'plan/tick',           // { planId, key, done }            a tick-off on the move (the whole transition object): saving { kind: 'tick', key, done }
   PLAN_TASK:       'plan/task',           // { planId, key, how }             a to-do put away on the home (7.10.0): how 'notNow' | 'notThisTime' | 'seen' | 'done' — saving { kind: 'task', key, how }; ONE write of the plan's `tasks`, no stamp
   PLAN_RECORD_MONTHS: 'plan/recordMonths', // { planId, value: true | false }  "Keep a record of each month here" (7.10.0): saving { kind: 'recordMonths', value }; ONE write of decisionTool.recordMonths and the stamp
+  // "Your review" (7.10.0; answers/plan/review.js): one page in every phase
+  PLAN_REVIEW_SAVE: 'plan/reviewSave',    // { planId }                       "Save this review" (Moving, Living on it): saving { kind: 'reviewSave' }; ONE write of `phases` (the entry on the log) and the stamp
+  PLAN_PHASE_SET:  'plan/phaseSet',       // { planId, part, value }          a choice on the review — part 'window' | 'saving.level' | 'review.every' | 'review.rule': saving { kind: 'phaseSet', part, value }; ONE write of `phases` and the stamp
   MOVE_RUN:        'move/run',            // { key }                          "What if I keep what I hold?": the one run on the plan of this key (the effect runs it)
   MOVE_DONE:       'move/done',           // { key, result, ms }              the run's figures (moveRun.js runHeld); dropped if the key is stale
   MOVE_FAILED:     'move/failed',         // { key, reason? }                 the run failed ('noWorker': no worker)
@@ -319,4 +322,6 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   // "Your plans" (step 11): the file box of "Open a downloaded copy"
   'openCopy',
   // the budget on a saved plan (step 11b): the confirm of "Start again"; "What you pay in": the relief block
-  'budgetReset', 'savingRelief']);
+  'budgetReset', 'savingRelief',
+  // "Your review" (7.10.0): each choice's options, shown on "Change"; and the agreement's confirm on the Moving review
+  'reviewChange.rule', 'reviewChange.every', 'reviewChange.window', 'reviewChange.level', 'agreeConfirm']);

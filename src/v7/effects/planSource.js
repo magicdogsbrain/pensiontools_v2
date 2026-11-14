@@ -69,6 +69,7 @@ import { moveOf } from '../../answers/plan/move.js';
 import { budgetOf } from '../../answers/plan/budget.js';
 import { savingOf, askFillOf } from '../../answers/plan/saving.js';
 import { checkInOf } from '../../answers/plan/checkIn.js';
+import { reviewOf } from '../../answers/plan/review.js';
 import { monthOf } from '../../answers/plan/month.js';
 import { startPlanWrite } from './planWrite.js';
 import { startAccount } from './account.js';
@@ -170,7 +171,15 @@ export function viewFor(state) {
     }
     // "Check in" (research/saving-enough-and-check-in.md 5; release step R3), on its own address and on the pot step's old one:
     // the boxes with what was typed, how often, the last check-in read, the history
-    if (r.step === 'checkin' || r.step === 'pot') {
+    // "Your review" (7.10.0; answers/plan/review.js): one page in every phase, #/plan/<id>/review — in Saving the check-in itself
+    // (its reading below), in Moving and Living on it the review's own, with what was typed
+    const reviewHere = r.step === 'review' && page.found;
+    if (reviewHere) {
+      const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
+      const typed = pd ? pd.values : {};
+      page.review = { ...reviewOf(plans.list, r.planId, { today, typed, page, source: plans.source }), draftKey: JSON.stringify(typed) };
+    }
+    if (r.step === 'checkin' || r.step === 'pot' || (reviewHere && page.review.phase === 'saving')) {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
       const typed = pd ? pd.values : {};
       page.checkin = { ...checkInOf(plans.list, r.planId, { today, typed, source: plans.source }), draftKey: JSON.stringify(typed) };

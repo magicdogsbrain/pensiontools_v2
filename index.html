@@ -4175,12 +4175,12 @@
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
     import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
-    import { installLockedStart, startLaterOfActive, startDraftOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, successorNameOf, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's start, and "Move the plan's start" (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
+    import { installLockedStart, startLaterOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's start, and "Move the plan's start" (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { buildPlanDocument, whereAmI, guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
-    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments } from './src/storage/ScenarioRepository.js';
+    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments, saveActivePlanTasks } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend, openingTab } from './src/services/LifeStage.js';
     import { setDbStartFields, paintDbStart, dbStartFromAgeInput, dbStartError, dbStartAgeForSave } from './src/ui/dbStartSetting.js';   // the final-salary start, asked by age (audit problem 3)
     import { pnvOnlySections, paintSettingUseNotes, heldIsaNote } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
@@ -4200,7 +4200,7 @@
     import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
-    import { nextStepFor, nextStepAction } from './src/services/NextStep.js';   // the next-step banner follows the life stage (6.20.2)
+    import { showHomeBanner, installHomeBanner } from './src/ui/homeBannerUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js'; import { withV7Keys } from './src/services/SaverPayIn.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
@@ -6906,25 +6906,12 @@
     window.addEventListener('pt:plan-newer-than-app', () => { showPlanNewerBanner(); setTimeout(showPlanNewerBanner, 1500); });
     window.updateNextStepBanner = async function () {
       showPlanNewerBanner();
-      const banner = document.getElementById('nextStepBanner');
-      if (!banner) return;
-      try {
-        const scenarioId = await getActiveScenarioId();
-        // The life stage is worked out here on every load — BEFORE the dismissed-banner early return, or a
-        // plan with the banner dismissed never got a stage (tabs not hidden, chip without it — found 10 Sep).
-        let stage = null; try { stage = await refreshLifeStage(); } catch (e) { stage = null; }
-        if (!scenarioId || localStorage.getItem('nextStepDismissed:' + scenarioId)) { banner.style.display = 'none'; return; }
-        const [budget, stress, decision, fromAnswer] = await Promise.all([getBudgetAsync(), getStressSettingsAsync(), getDecisionSettingsAsync(), planFromAnswer()]);
-        // One sentence + one button (src/services/NextStep.js): the onboarding chain, then the life stage's own sentence —
-        // never "set up the Decision tool" for a saver; a locked plan's stage wins; a V7 plan's budget is a guide (6.20.2).
-        const step = nextStepFor({ stage, budget, stress, decision, fromAnswer: !!fromAnswer, successorName: stage && stage.key === 'closed' ? await successorNameOf() : null, startLater: stage && stage.locked ? await startLaterOfActive() : null, startDraft: stage && !stage.locked ? await startDraftOfActive() : null });   // 7.3.3: a plan stored with its start later than it should be shows the move
-        if (!step) { banner.style.display = 'none'; return; }
-        document.getElementById('nextStepText').innerHTML = step.html;
-        const b = document.getElementById('nextStepBtn');
-        b.textContent = step.btn;
-        b.onclick = nextStepAction(step.action, window);
-        banner.style.display = 'flex';
-      } catch (e) { banner.style.display = 'none'; }
+      // The life stage is worked out here on every load — BEFORE anything can return early, or a plan with the banner
+      // dismissed never got a stage (tabs not hidden, chip without it — found 10 Sep).
+      let stage = null; try { stage = await refreshLifeStage(); } catch (e) { stage = null; }
+      // One sentence + one button (src/ui/homeBannerUi.js, 7.10.0): the plan home's first thing due, read from every plan as the
+      // new app reads it; nothing due, the onboarding chain on a draft (NextStep.nextStepFor) and a locked plan's stage
+      await showHomeBanner(window, document, { stage, getActiveScenarioId, listScenariosAsync, getBudgetAsync, getStressSettingsAsync, getDecisionSettingsAsync, planFromAnswer });
     };
     // A guest keeps up to three plans of their own in this window (GuestPlans.js); more need an account.
     async function guestPlanGate() {
@@ -6996,10 +6983,7 @@
       } catch (e) { console.error('guest hand-off', e); showToast('Could not copy your guest plans: ' + e.message + '. They are still in this browser — try again after reloading.', 'error', 8000); }
       return imported > 0;
     }
-    window.dismissNextStep = async function () {
-      try { localStorage.setItem('nextStepDismissed:' + await getActiveScenarioId(), '1'); } catch (e) {}
-      document.getElementById('nextStepBanner').style.display = 'none';
-    };
+    installHomeBanner(window, document, { saveActivePlanTasks, getActiveScenarioId });   // the banner's ✕: "Not now" stored on the plan, else hide guidance for this plan (7.10.0)
     // ---- Mobile shell: bottom bar proxies the real .tab buttons; the ≡ menu is a bottom sheet ----
     window.setSpecDialChecked = function (key, on) { setSpecDial(key, on ? 1 : 0); };
     window.updateTaxYearCpiPct = function (ty, pct) { updateTaxYear(ty, 'cpi', (+pct || 0) / 100); };

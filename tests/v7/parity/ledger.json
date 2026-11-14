@@ -329,7 +329,7 @@
       "kind": "record",
       "name": "A to-do put away on the plan's home",
       "what": "\"Not now\" (until next month) and \"Not this time\", \"I have seen this\" or \"I have done this\" (for good, for that occurrence) on a to-do of the plan's home: kept on the plan itself, so every device, a partner's and both apps show the same quiet home. Written whole and with no stamp, never changing \"Your plans\" or a \"changed on\" line; dropped on a copy; refused once a close has passed.",
-      "whereV6": "The next-step banner's × on the classic page (ScenarioRepository.saveActivePlanTasks: the stored plan read afresh, one key added)",
+      "whereV6": "The next-step banner's × on the classic page, which reads the plan home (src/ui/homeBannerUi.js; ScenarioRepository.saveActivePlanTasks: the stored plan read afresh, one key added)",
       "who": "Everyone",
       "keys": [
         "plan.tasks"
@@ -342,7 +342,8 @@
         "src/answers/plan/read.js",
         "src/v7/screens/plan/HomeScreen.jsx",
         "src/v7/effects/planWrite.js",
-        "src/storage/ScenarioRepository.js"
+        "src/storage/ScenarioRepository.js",
+        "src/ui/homeBannerUi.js"
       ],
       "note": "7.10.0. It replaces \"Not now\" kept for one window (7.3.0): a dismissal is a record of the plan's, read by one reader (answers/plan/tasks.js) in both apps. The schema's TASK_WRITES holds the write to the one root."
     },

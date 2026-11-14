@@ -1,0 +1,125 @@
+/**
+ * The classic page's next-step banner (7.10.0; research/v7/replan-nov-2026.md §6.4, spec-7100 §5): the very reading the new
+ * app's plan home makes (answers/plan/home.js homeOf), so the two apps never give different to-dos. The banner shows the
+ * home's first thing due, in the new app's words (the rail's next sentence, its button):
+ *   - a month or a tax year to record → the Decision tab (a partner's month opens that plan);
+ *   - the review, off course, "did you stop work?", an age, a partner's plan → that page of the new app ({ kind: 'v7' });
+ *   - a closed plan's way on → the plan that carries it on ({ kind: 'plan' }).
+ * With nothing due: a plan not locked gets the onboarding chain (NextStep.nextStepFor); a locked one its stage's sentence, as
+ * information.
+ *
+ * Every plan in the account is read (as the new app reads them: upgraded, a newer or unreadable one marked), so a linked
+ * partner and a closed plan's successor are found as the new app finds them. Nothing is written on open.
+ *
+ * The ×: on a to-do that may be put away, "Not now", stored on the plan (ScenarioRepository.saveActivePlanTasks: the stored
+ * plan read afresh, one key added, no stamp) — the new app's home and a partner's device then see the same; on anything else,
+ * and on the onboarding chain, the page's own "hide guidance for this plan" (localStorage nextStepDismissed:<id>), as before.
+ *
+ *   homeBannerOf(entries, activeId, { today, stage, budget, stress, decision, fromAnswer })   the banner, pure (or null)
+ *   showHomeBanner(win, doc, deps)                         reads the plans and draws the banner (index.html's updateNextStepBanner)
+ *   installHomeBanner(win, doc, deps)                      win.dismissNextStep, the ×
+ */
+import { homeOf } from '../answers/plan/home.js';
+import { upgradeScenario } from '../firebase/scenarioMigration.js';
+import { nextStepFor, nextStepAction } from '../services/NextStep.js';
+import { PLAN } from '../v7/copy/plan.js';
+import { HOME } from '../v7/copy/home.js';
+import { LAYOUT } from '../appLayout.js';
+
+/** The key the page's own "hide guidance for this plan" is kept under (as before 7.10.0). */
+export const DISMISSED_KEY = 'nextStepDismissed:';
+
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const fill = (text, slots) => String(text || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
+const pad = (n) => String(n).padStart(2, '0');
+/** A day as the readers take it: 'YYYY-MM-DD', local. */
+export const dayOf = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+
+/** The plans as the new app reads them: each brought up to date in memory, a newer or unreadable one marked (never written). */
+export function entriesOf(plans, now) {
+  return (Array.isArray(plans) ? plans : []).filter((p) => p && typeof p === 'object' && p.id != null).map((p) => {
+    try { const u = upgradeScenario(p, { now }); return { plan: u.scenario, newer: !!u.newer, failed: !!u.error }; } catch (e) { return { plan: p, newer: false, failed: true }; }
+  });
+}
+
+/** What the banner's button does for the home's first thing due. */
+function actionOf(it) {
+  if (it.planId) return { kind: 'plan', planId: it.planId };                       // a partner's month: that plan
+  if (it.id.startsWith('month.')) return { kind: 'tab', tab: 'decision' };
+  const b = it.button || {};
+  if (it.id === 'closed.next') return { kind: 'plan', planId: String(b.href || '').replace(/^#\/plan\//, '') };
+  return b.href ? { kind: 'v7', href: LAYOUT.classic.v7 + b.href } : { kind: 'tab', tab: 'decision' };
+}
+
+/**
+ * The banner for the active plan: the home's first thing due, in the new app's words, or (nothing due) the onboarding chain on
+ * a plan not locked and the stage's sentence on a locked one. `dismiss` says what the × does: { kind: 'task', key } ("Not
+ * now", stored on the plan) or { kind: 'banner' } (the page's own "hide guidance"). Null when there is nothing to say. Pure.
+ * @returns {{ html: string, btn: string, action: object, dismiss: { kind: 'task', key: string } | { kind: 'banner' }, id: string|null } | null}
+ */
+export function homeBannerOf(entries, activeId, { today, stage = null, budget = {}, stress = {}, decision = {}, fromAnswer = false } = {}) {
+  let h = null;
+  try { h = homeOf(entries, activeId, { today }); } catch (e) { h = null; }
+  const it = h && h.found && h.todo && h.todo.items.length ? h.todo.items[0] : null;
+  if (it) {
+    const b = it.button || null;
+    const words = it.planId
+      ? fill(HOME.partnerItem, { title: fill((HOME.items[it.id] || {}).title, it.slots), name: it.name })
+      : fill(PLAN.next[it.pid], it.slots);
+    const label = b ? fill(PLAN.buttons[b.id] || b.id, it.id === 'month.gap' && it.slots && it.slots.month ? { ...b.slots, month: it.slots.month } : b.slots) : HOME.items[it.id] ? fill(HOME.items[it.id].title, it.slots) : '';
+    return { html: esc(words), btn: label, action: actionOf(it), dismiss: it.dismiss && !it.planId ? { kind: 'task', key: it.key } : { kind: 'banner' }, id: it.id };
+  }
+  if (h && h.readonly) return null;
+  // nothing due: the onboarding chain on a plan not locked; a locked plan's stage, as information
+  const step = nextStepFor({ stage, budget, stress, decision, fromAnswer: !!fromAnswer });
+  return step ? { ...step, dismiss: { kind: 'banner' }, id: null } : null;
+}
+
+/**
+ * Reads every plan and draws the banner (the rest of index.html's updateNextStepBanner, which shows the newer-plan banner and
+ * works out the stage first). `deps`: the page's own readers — getActiveScenarioId, listScenariosAsync, getBudgetAsync,
+ * getStressSettingsAsync, getDecisionSettingsAsync, planFromAnswer — and the stage it worked out.
+ */
+export async function showHomeBanner(win, doc, deps) {
+  const banner = doc.getElementById('nextStepBanner');
+  if (!banner) return null;
+  try {
+    const activeId = await deps.getActiveScenarioId();
+    if (!activeId) { banner.style.display = 'none'; return null; }
+    const now = deps.now ? deps.now() : new Date();
+    const [plans, budget, stress, decision, fromAnswer] = await Promise.all([deps.listScenariosAsync(), deps.getBudgetAsync(), deps.getStressSettingsAsync(), deps.getDecisionSettingsAsync(), deps.planFromAnswer()]);
+    const step = homeBannerOf(entriesOf(plans, now), activeId, { today: dayOf(now), stage: deps.stage || null, budget, stress, decision, fromAnswer: !!fromAnswer });
+    let hidden = false;
+    try { hidden = !!(win.localStorage && win.localStorage.getItem(DISMISSED_KEY + activeId)); } catch (e) { hidden = false; }
+    // the page's own "hide guidance" hides only what it hid before; a to-do put away is the plan's own (its tasks)
+    if (!step || (step.dismiss.kind === 'banner' && hidden)) { banner.style.display = 'none'; win._nextStepDismiss = null; return step; }
+    doc.getElementById('nextStepText').innerHTML = step.html;
+    const b = doc.getElementById('nextStepBtn');
+    b.textContent = step.btn;
+    b.onclick = nextStepAction(step.action, win);
+    const x = banner.querySelector('[data-on-click="dismissNextStep()"]');
+    if (x) x.title = step.dismiss.kind === 'task' ? HOME.dismiss.notNow : 'Hide guidance for this plan';
+    win._nextStepDismiss = { ...step.dismiss, planId: activeId };
+    banner.style.display = 'flex';
+    return step;
+  } catch (e) { banner.style.display = 'none'; return null; }
+}
+
+/**
+ * The ×: "Not now" on a to-do that may be put away (stored on the plan, deps.saveActivePlanTasks), else the page's own "hide
+ * guidance for this plan". A refused or failed write leaves the banner as it was.
+ */
+export function installHomeBanner(win, doc, deps) {
+  win.dismissNextStep = async function () {
+    const d = win._nextStepDismiss || null;
+    const banner = doc.getElementById('nextStepBanner');
+    if (d && d.kind === 'task' && d.key) {
+      try { await deps.saveActivePlanTasks(d.key); } catch (e) { return; }
+      if (banner) banner.style.display = 'none';
+      if (typeof win.updateNextStepBanner === 'function') win.updateNextStepBanner();
+      return;
+    }
+    try { win.localStorage.setItem(DISMISSED_KEY + await deps.getActiveScenarioId(), '1'); } catch (e) { /* private mode: hidden for now only */ }
+    if (banner) banner.style.display = 'none';
+  };
+}

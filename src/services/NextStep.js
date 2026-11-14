@@ -13,10 +13,13 @@
  *    never "Start here" and never offered as the target. With no budget yet, a line beside the stage's sentence offers
  *    the walk-through as a guide.
  *
+ * 7.10.0: the banner shows the plan home's first thing due first (src/ui/homeBannerUi.js, answers/plan/home.js homeOf — one
+ * reading for both apps); this chain is what it says when nothing is due. A plan's start is no longer a thing to do (it is
+ * changed on "About you and when", or under Timing here).
+ *
  * Pure: the caller reads the plan and its stage; nextStepAction turns a step's `action` into what its button does.
  */
 import { monthWordsOf } from './PlanClosed.js';
-import { taxYearLabel } from './PlanTiming.js';
 
 export const NEXT_STEP_WORDS = Object.freeze({
   startHere: 'Start here: walk through what retirement will actually cost — about 10 minutes, with typical UK figures when you\'re unsure.',
@@ -33,25 +36,7 @@ export const NEXT_STEP_WORDS = Object.freeze({
   guideBtn: 'Open the budget walk-through',
   // A closed plan whose successor is not here (deleted since, 6.56.0): kept to read, its months the way on.
   closedAlone: 'This plan is closed: it ran to the end of {closed}. Its months stay here to read.',
-  closedAloneBtn: 'See its months',
-  // A locked plan stored with its start later than it should be (7.3.3): the V7 home's to-do, word for word
-  startMove: 'Your plan is set to start in {start}, but you stopped work in {stopped}. Start it from the tax year you stopped.',
-  startMoveBtn: 'Move the start',
-  // the same, on a plan whose recorded months begin later than work stopped, or with no month said (7.4.3): it starts when they do
-  startMoveRecords: 'Your plan is set to start in {start}, but your recorded months begin in {records}. Start it from {to}.',
-  startAsk: 'Your plan is set to start in {start}. When did you stop work? If you are already drawing, it can start this tax year instead.',
-  startAskBtn: 'Say when',
-  /** The same, on a plan whose start this tax year cannot replace (it is already this tax year or earlier). */
-  startAskOnly: 'Your plan is set to start in {start}. When did you stop work?',
-  // the move cannot keep the State Pension's tax year under the lock (PlanMove.moveBlockedOf): said as it is, and the button
-  // opens the line that explains why, never a move it would refuse
-  startBlocked: 'Your plan is set to start in {start}, but you stopped work in {stopped}. Its start can be moved only once the plan is unlocked.',
-  startBlockedBtn: 'See why',
-  startBlockedRecords: 'Your plan is set to start in {start}, but your recorded months begin in {records}. Its start can be moved only once the plan is unlocked.',
-  // a draft still set to start later than this tax year (7.4.0, PlanMove.laterDraftLeftOf): the V7 home's to-do, the start
-  // chosen in the Timing block
-  startDraft: 'Your plan is set to start in {start}. It can start this tax year, or the tax year you stopped work: choose it under Timing.',
-  startDraftBtn: 'Choose the start'
+  closedAloneBtn: 'See its months'
 });
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -73,33 +58,12 @@ function stageStep(stage, fromAnswer, successorName = null) {
 }
 
 /**
- * A locked plan stored with its start later than it should be (PlanMove.startLaterOf; until 6.51.0 a retired person's plan
- * started at the next April): the one thing to do, the same to-do as the V7 plan home — move the start to the tax year work
- * stopped, or say when that was first. The button opens the line under the Timing block that asks and moves (lockedStartUi).
- */
-function startLaterStep(sl) {
-  const start = 'April ' + sl.start;
-  // the move to the tax year the recorded months begin in (7.4.3)
-  if (sl.kind === 'move' && sl.recordsFrom) {
-    const words = (sl.blocked ? NEXT_STEP_WORDS.startBlockedRecords : NEXT_STEP_WORDS.startMoveRecords).replace('{start}', start).replace('{records}', monthWordsOf(sl.recordsFrom)).replace('{to}', taxYearLabel(sl.to));
-    return { html: esc(words), btn: sl.blocked ? NEXT_STEP_WORDS.startBlockedBtn : NEXT_STEP_WORDS.startMoveBtn, action: { kind: 'start-later' } };
-  }
-  if (sl.kind === 'move' && sl.blocked) return { html: esc(NEXT_STEP_WORDS.startBlocked.replace('{start}', start).replace('{stopped}', monthWordsOf(sl.stopMonth))), btn: NEXT_STEP_WORDS.startBlockedBtn, action: { kind: 'start-later' } };
-  if (sl.kind === 'move') return { html: esc(NEXT_STEP_WORDS.startMove.replace('{start}', start).replace('{stopped}', monthWordsOf(sl.stopMonth))), btn: NEXT_STEP_WORDS.startMoveBtn, action: { kind: 'start-later' } };
-  return { html: esc((sl.thisYear ? NEXT_STEP_WORDS.startAsk : NEXT_STEP_WORDS.startAskOnly).replace('{start}', start)), btn: NEXT_STEP_WORDS.startAskBtn, action: { kind: 'start-later' } };
-}
-
-/**
- * @param {{ stage: object|null, budget: object, stress: object, decision: object, fromAnswer?: boolean, successorName?: string|null, startLater?: object|null, startDraft?: object|null }} plan
+ * @param {{ stage: object|null, budget: object, stress: object, decision: object, fromAnswer?: boolean, successorName?: string|null }} plan
  *   `stage` from LifeStage.deriveStage; the Budget, Stress and Decision settings as loaded; whether the plan was made
- *   from a V7 answer; for a closed plan, the name of the plan that carries it on (when the page has it); `startLater`, a
- *   locked plan stored with its start later than it should be (PlanMove.startLaterOf), whose one thing to do is the move;
- *   `startDraft`, a draft still set to start later than this tax year (PlanMove.laterDraftLeftOf): its start is chosen first
+ *   from a V7 answer; for a closed plan, the name of the plan that carries it on (when the page has it)
  * @returns {{ html: string, btn: string, action: object }|null}
  */
-export function nextStepFor({ stage, budget, stress, decision, fromAnswer = false, successorName = null, startLater = null, startDraft = null }) {
-  if (stage && stage.locked && startLater) return startLaterStep(startLater);
-  if (startDraft && !(stage && (stage.locked || stage.key === 'closed'))) return { html: esc(NEXT_STEP_WORDS.startDraft.replace('{start}', 'April ' + startDraft.start)), btn: NEXT_STEP_WORDS.startDraftBtn, action: { kind: 'stress-settings' } };
+export function nextStepFor({ stage, budget, stress, decision, fromAnswer = false, successorName = null }) {
   if (stage && (stage.locked || stage.key === 'closed')) return stage.banner ? stageStep(stage, false, successorName) : null;
   const b = budget || {}, s = stress || {}, d = decision || {};
   const budgetDone = (b.lines || []).some((l) => +l.annual > 0);
@@ -134,7 +98,7 @@ export function nextStepAction(action, win) {
   if (a.kind === 'tab') return () => { win.switchToTab(a.tab); if (a.sub) later(() => win.document.querySelector('.sub-tab[data-decisiontab="' + a.sub + '"]')?.click()); };
   // another plan (a closed plan's successor): the planner's own way to open a plan (src/ui/planCloseUi.js openPlanById)
   if (a.kind === 'plan') return () => win.openPlanById(a.planId);
-  // the move of a plan's start: the Stress tester's settings, at the line under the Timing block that asks and moves
-  if (a.kind === 'start-later') return () => { win.switchToTab('stress'); later(() => win.document.querySelector('.sub-tab[data-stresstab="stresssettings"]')?.click()); setTimeout(() => win.document.getElementById('tmLockedStart')?.scrollIntoView({ block: 'center' }), 900); };
+  // a page of the new app (7.10.0: the plan home's review, "did you stop work?", an age, a partner's plan): its address there
+  if (a.kind === 'v7') return () => { win.location.href = a.href; };
   return () => {};
 }

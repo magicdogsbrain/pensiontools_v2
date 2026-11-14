@@ -73,7 +73,9 @@ import { resolve } from 'node:path';
 // src/ui/oneAnswerView.js (verdictBlockView, with the block before 7.8.0 kept there byte for byte for old documents), the
 // shell keeping a one-line pass-through; its level control, tone and Assumptions row read from the module: 16 lines
 // shorter: 9,059.
-const MAX_LINES = 9059;
+// The classic banner reads the plan home (7.10.0): the rest of updateNextStepBanner and the banner's ✕ moved to
+// src/ui/homeBannerUi.js, the shell keeping the newer-plan banner and the stage inline, first: 16 lines shorter: 9,043.
+const MAX_LINES = 9043;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

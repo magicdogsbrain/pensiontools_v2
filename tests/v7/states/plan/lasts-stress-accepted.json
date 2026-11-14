@@ -3321,13 +3321,17 @@
                       "id": "short.fixed",
                       "slots": {
                         "age": "96",
+                        "verb": {
+                          "id": "short.verb.ranOut",
+                          "slots": {}
+                        },
                         "count": "in more than 19 of 20 futures we tried",
                         "ref": ""
                       }
                     }
                   },
                   "runsOut": {
-                    "id": "short.runsOutLasts",
+                    "id": "short.runsOutTypical",
                     "slots": {
                       "typical": {
                         "id": "short.at",
@@ -3335,12 +3339,11 @@
                           "age": "99"
                         }
                       },
-                      "refTypical": "",
-                      "age": "96",
-                      "refWorst": ""
+                      "refTypical": ""
                     }
                   },
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [
                     {
                       "id": "lines.whenStillLasts",
@@ -3610,6 +3613,10 @@
                       "id": "short.fixed",
                       "slots": {
                         "age": "96",
+                        "verb": {
+                          "id": "short.verb.ranOut",
+                          "slots": {}
+                        },
                         "count": "in 18 of 20 futures we tried",
                         "ref": {
                           "id": "short.ref",
@@ -3628,7 +3635,7 @@
                     }
                   },
                   "runsOut": {
-                    "id": "short.runsOutLasts",
+                    "id": "short.runsOutTypical",
                     "slots": {
                       "typical": {
                         "id": "short.at",
@@ -3645,20 +3652,11 @@
                           },
                           "age": "99"
                         }
-                      },
-                      "age": "96",
-                      "refWorst": {
-                        "id": "short.refWorstSame",
-                        "slots": {
-                          "as": {
-                            "id": "short.as.asPlanned",
-                            "slots": {}
-                          }
-                        }
                       }
                     }
                   },
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [
                     {
                       "id": "lines.whenStillLastsRef",
@@ -3982,6 +3980,10 @@
                       "id": "short.fixed",
                       "slots": {
                         "age": "96",
+                        "verb": {
+                          "id": "short.verb.ranOut",
+                          "slots": {}
+                        },
                         "count": "in 19 of 20 futures we tried",
                         "ref": {
                           "id": "short.ref",
@@ -4000,7 +4002,7 @@
                     }
                   },
                   "runsOut": {
-                    "id": "short.runsOutLasts",
+                    "id": "short.runsOutTypical",
                     "slots": {
                       "typical": {
                         "id": "short.at",
@@ -4009,18 +4011,7 @@
                         }
                       },
                       "refTypical": {
-                        "id": "short.refTypical",
-                        "slots": {
-                          "as": {
-                            "id": "short.as.asPlanned",
-                            "slots": {}
-                          },
-                          "age": "99"
-                        }
-                      },
-                      "age": "96",
-                      "refWorst": {
-                        "id": "short.refWorstSame",
+                        "id": "short.same",
                         "slots": {
                           "as": {
                             "id": "short.as.asPlanned",
@@ -4031,6 +4022,7 @@
                     }
                   },
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [
                     {
                       "id": "lines.whenStillLastsRef",
@@ -4392,6 +4384,10 @@
                       "id": "short.fixed",
                       "slots": {
                         "age": "96",
+                        "verb": {
+                          "id": "short.verb.ranOut",
+                          "slots": {}
+                        },
                         "count": "in 19 of 20 futures we tried",
                         "ref": {
                           "id": "short.ref",
@@ -4410,7 +4406,7 @@
                     }
                   },
                   "runsOut": {
-                    "id": "short.runsOutLasts",
+                    "id": "short.runsOutTypical",
                     "slots": {
                       "typical": {
                         "id": "short.at",
@@ -4419,18 +4415,7 @@
                         }
                       },
                       "refTypical": {
-                        "id": "short.refTypical",
-                        "slots": {
-                          "as": {
-                            "id": "short.as.asPlanned",
-                            "slots": {}
-                          },
-                          "age": "99"
-                        }
-                      },
-                      "age": "96",
-                      "refWorst": {
-                        "id": "short.refWorstSame",
+                        "id": "short.same",
                         "slots": {
                           "as": {
                             "id": "short.as.asPlanned",
@@ -4441,6 +4426,7 @@
                     }
                   },
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [
                     {
                       "id": "lines.whenStillLastsRef",
@@ -4544,20 +4530,11 @@
                   ],
                   "confirm": null,
                   "accepted": {
-                    "id": "agreement.accepted",
-                    "mark": "weighted",
+                    "id": "agreement.acceptedShort",
                     "slots": {
-                      "date": "30 September 2026",
-                      "chance": "19 times in 20"
+                      "date": "30 September 2026"
                     },
-                    "fixed": {
-                      "id": "agreement.acceptedFixed",
-                      "mark": "fixed",
-                      "slots": {
-                        "age": "96",
-                        "fixed": "in 19 of 20 futures we tried"
-                      }
-                    },
+                    "fixed": null,
                     "stale": false
                   },
                   "keepLine": null,
@@ -4756,14 +4733,10 @@
                         },
                         "chance": "more than 19 times in 20",
                         "ref": {
-                          "id": "short.ref",
+                          "id": "short.same",
                           "slots": {
                             "as": {
                               "id": "short.as.asPlanned",
-                              "slots": {}
-                            },
-                            "n": {
-                              "id": "short.n.moreThan19",
                               "slots": {}
                             }
                           }
@@ -4774,6 +4747,10 @@
                       "id": "short.fixed",
                       "slots": {
                         "age": "96",
+                        "verb": {
+                          "id": "short.verb.ranOut",
+                          "slots": {}
+                        },
                         "count": "in 19 of 20 futures we tried",
                         "ref": {
                           "id": "short.ref",
@@ -4792,7 +4769,7 @@
                     }
                   },
                   "runsOut": {
-                    "id": "short.runsOutLasts",
+                    "id": "short.runsOutTypical",
                     "slots": {
                       "typical": {
                         "id": "short.at",
@@ -4801,18 +4778,7 @@
                         }
                       },
                       "refTypical": {
-                        "id": "short.refTypical",
-                        "slots": {
-                          "as": {
-                            "id": "short.as.asPlanned",
-                            "slots": {}
-                          },
-                          "age": "99"
-                        }
-                      },
-                      "age": "96",
-                      "refWorst": {
-                        "id": "short.refWorstSame",
+                        "id": "short.same",
                         "slots": {
                           "as": {
                             "id": "short.as.asPlanned",
@@ -4823,6 +4789,7 @@
                     }
                   },
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [
                     {
                       "id": "lines.whenStillLastsRef",
@@ -5019,6 +4986,7 @@
                 "assumed": ""
               }
             },
+            "notTried": null,
             "order": [
               "asPlanned",
               "fall",

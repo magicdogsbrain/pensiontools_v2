@@ -5232,14 +5232,9 @@
                       }
                     }
                   },
-                  "runsOut": {
-                    "id": "short.stillLasts",
-                    "slots": {
-                      "age": "86",
-                      "refWorst": ""
-                    }
-                  },
+                  "runsOut": null,
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [
                     {
                       "id": "lines.plain",
@@ -5337,12 +5332,11 @@
                       "id": "rows.fall.what"
                     }
                   ],
-                  "na": {
-                    "id": "na.lockedLadder"
-                  },
+                  "na": null,
                   "chance": null,
                   "runsOut": null,
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [],
                   "confirm": null,
                   "accepted": null,
@@ -5429,12 +5423,11 @@
                       "id": "rows.lower.saver"
                     }
                   ],
-                  "na": {
-                    "id": "na.lockedLadder"
-                  },
+                  "na": null,
                   "chance": null,
                   "runsOut": null,
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [],
                   "confirm": null,
                   "accepted": null,
@@ -5518,12 +5511,11 @@
                       "id": "rows.spend.what"
                     }
                   ],
-                  "na": {
-                    "id": "na.lockedLadder"
-                  },
+                  "na": null,
                   "chance": null,
                   "runsOut": null,
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [],
                   "confirm": null,
                   "accepted": null,
@@ -5607,12 +5599,11 @@
                       "id": "rows.prices.what"
                     }
                   ],
-                  "na": {
-                    "id": "na.lockedLadder"
-                  },
+                  "na": null,
                   "chance": null,
                   "runsOut": null,
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [],
                   "confirm": null,
                   "accepted": null,
@@ -5804,6 +5795,14 @@
                     }
                   },
                   "closedYear": null,
+                  "heldGap": {
+                    "id": "held.gap",
+                    "slots": {
+                      "taxYear": "2032/33",
+                      "age": "71",
+                      "amount": "£13,590"
+                    }
+                  },
                   "more": [
                     {
                       "id": "lines.when",
@@ -5887,6 +5886,7 @@
                   "chance": null,
                   "runsOut": null,
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [],
                   "confirm": null,
                   "accepted": null,
@@ -5915,6 +5915,14 @@
             },
             "closed": false,
             "floor": null,
+            "notTried": {
+              "id": "na.lockedLadder",
+              "slots": {
+                "keep": {
+                  "id": "na.lockedLadderKeep"
+                }
+              }
+            },
             "order": [
               "asPlanned",
               "asHeld",

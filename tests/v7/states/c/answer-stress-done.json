@@ -864,6 +864,10 @@
                 "id": "short.fixed",
                 "slots": {
                   "age": "99",
+                  "verb": {
+                    "id": "short.verb.ranOut",
+                    "slots": {}
+                  },
                   "count": "in 16 of 20 futures we tried",
                   "ref": ""
                 }
@@ -1037,6 +1041,10 @@
                 "id": "short.fixed",
                 "slots": {
                   "age": "99",
+                  "verb": {
+                    "id": "short.verb.ranOut",
+                    "slots": {}
+                  },
                   "count": "in 11 of 20 futures we tried",
                   "ref": {
                     "id": "short.ref",
@@ -1269,6 +1277,10 @@
                 "id": "short.fixed",
                 "slots": {
                   "age": "99",
+                  "verb": {
+                    "id": "short.verb.ranOut",
+                    "slots": {}
+                  },
                   "count": "in 13 of 20 futures we tried",
                   "ref": {
                     "id": "short.ref",
@@ -1501,6 +1513,10 @@
                 "id": "short.fixed",
                 "slots": {
                   "age": "99",
+                  "verb": {
+                    "id": "short.verb.ranOut",
+                    "slots": {}
+                  },
                   "count": "in 10 of 20 futures we tried",
                   "ref": {
                     "id": "short.ref",
@@ -1736,6 +1752,10 @@
                 "id": "short.fixed",
                 "slots": {
                   "age": "99",
+                  "verb": {
+                    "id": "short.verb.ranOut",
+                    "slots": {}
+                  },
                   "count": "in 15 of 20 futures we tried",
                   "ref": {
                     "id": "short.ref",
@@ -1751,12 +1771,21 @@
               }
             },
             "runsOut": {
-              "id": "short.runsOutBoth",
+              "id": "short.runsOut",
               "slots": {
                 "typical": {
                   "id": "short.at",
                   "slots": {
                     "age": "91"
+                  }
+                },
+                "refTypical": {
+                  "id": "short.same",
+                  "slots": {
+                    "as": {
+                      "id": "short.as.asPlanned",
+                      "slots": {}
+                    }
                   }
                 },
                 "worst": {
@@ -1765,12 +1794,16 @@
                     "age": "88"
                   }
                 },
-                "as": {
-                  "id": "short.as.asPlanned",
-                  "slots": {}
-                },
-                "age1": "91",
-                "age2": "90"
+                "refWorst": {
+                  "id": "short.refWorstBy",
+                  "slots": {
+                    "as": {
+                      "id": "short.as.asPlanned",
+                      "slots": {}
+                    },
+                    "age": "90"
+                  }
+                }
               }
             }
           },

@@ -3280,13 +3280,17 @@
                       "id": "short.fixed",
                       "slots": {
                         "age": "96",
+                        "verb": {
+                          "id": "short.verb.ranOut",
+                          "slots": {}
+                        },
                         "count": "in more than 19 of 20 futures we tried",
                         "ref": ""
                       }
                     }
                   },
                   "runsOut": {
-                    "id": "short.runsOutLasts",
+                    "id": "short.runsOutTypical",
                     "slots": {
                       "typical": {
                         "id": "short.at",
@@ -3294,12 +3298,11 @@
                           "age": "99"
                         }
                       },
-                      "refTypical": "",
-                      "age": "96",
-                      "refWorst": ""
+                      "refTypical": ""
                     }
                   },
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [
                     {
                       "id": "lines.whenStillLasts",
@@ -3464,6 +3467,7 @@
                   "chance": null,
                   "runsOut": null,
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [],
                   "confirm": null,
                   "accepted": null,
@@ -3576,6 +3580,7 @@
                   "chance": null,
                   "runsOut": null,
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [],
                   "confirm": null,
                   "accepted": null,
@@ -3688,6 +3693,7 @@
                   "chance": null,
                   "runsOut": null,
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [],
                   "confirm": null,
                   "accepted": null,
@@ -3800,6 +3806,7 @@
                   "chance": null,
                   "runsOut": null,
                   "closedYear": null,
+                  "heldGap": null,
                   "more": [],
                   "confirm": null,
                   "accepted": null,
@@ -3822,6 +3829,7 @@
                 "assumed": ""
               }
             },
+            "notTried": null,
             "order": [
               "asPlanned",
               "fall",

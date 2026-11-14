@@ -4170,7 +4170,7 @@
     import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
     import { installLockedStart, startLaterOfActive, startDraftOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, successorNameOf, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's start, and "Move the plan's start" (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
-    import { buildPlanDocument, whereAmI, guardrailOf, potRecordOf, recordIsaOf } from './src/services/PlanDocument.js';
+    import { buildPlanDocument, whereAmI, guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments } from './src/storage/ScenarioRepository.js';
@@ -5947,7 +5947,7 @@
       h += '<div class="table-scroll-container" style="margin-top:12px;"><table><tbody>'
         + '<tr><td>' + (r.ruinLabel ? 'Chance the plan is cut' : 'Chance of running out') + '</td><td>' + pctText(ruinH, 1) + ' <span class="hint">history</span> · ' + pctText(ruinMc, 1, RUIN_BARS) + ' <span class="hint">Monte Carlo, to ' + (p.startAge + yrsN) + '</span>' + (r.ruinLabel ? ' <span class="hint">— ' + budEsc(r.ruinLabel) + '</span>' : '') + '</td></tr>'
         + '<tr><td>Worst 12 months you\'d have lived (history)</td><td>' + gbp(Math.round(r.worst12.min)) + ' <span class="hint">(median ' + gbp(Math.round(r.worst12.median)) + ')</span></td></tr>'
-        + '<tr><td>Income guaranteed to age</td><td>' + budEsc(r.guaranteedToAge) + '</td></tr>'
+        + '<tr><td>Income guaranteed to age</td><td>' + budEsc(guaranteeSaid(r, p)) + '</td></tr>'
         + leftRowHtml(oneAnswer(r, p)) + cutsRowHtml(oneAnswer(r, p))
         + '<tr><td>' + (r.ruinLabel ? 'When it was cut' : 'When it ran out') + '</td><td>' + faTxt + '</td></tr>'
         + '</tbody></table></div><div class="without-cuts"></div>';

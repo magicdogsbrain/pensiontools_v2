@@ -11,7 +11,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { planToAgeOf, toAgeAsWritten, TO_AGE_RULE } from '../../../src/answers/shared/rules.js';
-import { planToAgeOfDefinition, LEGACY_DEFINITION } from '../../../src/services/PlanDocument.js';
+import { planToAgeOfDefinition, LEGACY_DEFINITION, guaranteeSaid } from '../../../src/services/PlanDocument.js';
+import { planDocumentHtml } from '../../../src/ui/components/PlanDocumentView.js';
 import { lockedLastsWords, planPage } from '../../../src/answers/plan/read.js';
 import { savedAbout } from '../../../src/answers/plan/about.js';
 import { describeTiming, deriveTiming } from '../../../src/services/PlanTiming.js';
@@ -131,5 +132,27 @@ describe('the plan home\'s "Your plan" step says the age every other page says',
     const e = entries.find((x) => x.plan.id === C['02-pnv-draft'].id) || entries[0];
     const step = planPage(entries, e.plan.id, null, { today: TODAY }).steps.find((s) => s.figures && s.figures.ageEnd != null);
     expect(step.figures).toMatchObject({ years: 34, ageEnd: 96 });
+  });
+});
+
+describe('a locked full ladder\'s "income guaranteed" says the age the plan runs to, whenever its document was written', () => {
+  it('a document written before 7.9.0 ("N by contract", N the age in its last year) is said one on, read from its own plan; the stored text is never rewritten', () => {
+    for (const [name, was, now79] of [['03-gilt-ladder-locked', 85, 86], ['13-stopped-drawing-since', 89, 90], ['20-locked-start-after-stop', 85, 86]]) {
+      const doc = JSON.parse(JSON.stringify(C[name].planDocument));
+      const { r, p } = doc.strategy;
+      expect(r.guaranteedToAge, name).toBe(was + ' by contract (every year bought today)');
+      expect(now79).toBe(planToAgeOf(p.startAge, p.durationYears));
+      expect(guaranteeSaid(r, p), name).toBe(now79 + ' by contract (every year bought today)');
+      // the plan document's own page (with no card to draw: the one line) says the same age
+      expect(planDocumentHtml(doc, {}), name).toContain('income guaranteed: ' + now79 + ' by contract');
+      expect(doc.strategy.r.guaranteedToAge).toBe(was + ' by contract (every year bought today)');
+    }
+  });
+  it('a 7.9.0 result already names the plan-to age, and any other way\'s text is said as stored', () => {
+    const p = { startAge: 65, durationYears: 21 };
+    expect(guaranteeSaid({ strategyId: 'full-il-gilt', guaranteedToAge: '86 by contract (every year bought today)' }, p)).toBe('86 by contract (every year bought today)');
+    expect(guaranteeSaid({ strategyId: 'gilt-rotation', guaranteedToAge: '80 by contract whatever happens' }, p)).toBe('80 by contract whatever happens');
+    expect(guaranteeSaid({ strategyId: 'pots-and-valves', guaranteedToAge: 'None — market-dependent' }, p)).toBe('None — market-dependent');
+    expect(guaranteeSaid({ strategyId: 'full-il-gilt', guaranteedToAge: '70 by contract (every year bought today)' }, p)).toBe('70 by contract (every year bought today)');
   });
 });

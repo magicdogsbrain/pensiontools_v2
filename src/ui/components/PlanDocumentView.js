@@ -9,7 +9,7 @@ import { assumedStatePensionWords } from '../plannerWords.js';
 import { ukDate } from '../ukDates.js';
 import { pctText as pctShare } from '../../services/OneAnswer.js';
 import { monthsWords, countWords } from '../../services/MonthFill.js';
-import { definitionOf } from '../../services/PlanDocument.js';
+import { definitionOf, guaranteeSaid } from '../../services/PlanDocument.js';
 import { successLineHtml } from '../oneAnswerView.js';
 import { STRESS } from '../../v7/copy/stressPanel.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
@@ -168,7 +168,7 @@ export function planDocumentHtml(doc, r = {}) {
     try { st = r.strategyCard(d.strategy.r, d.strategy.p, { compact: true, definition: definitionOf(d) }) + successLineHtml(d); } catch (e) { st = '<p class="hint">The strategy result could not be drawn from the stored document (' + esc(e.message) + ').</p>'; }
   } else if (d.strategy) {
     const rr = d.strategy.r || {};
-    st = '<p><strong>' + esc(strategyNameOf(d.strategy)) + '</strong>' + (rr.ruin ? ' — ran out or was cut in ' + esc(pctShare(+rr.ruin.mc || 0, 1)) + ' of simulated futures; income guaranteed: ' + esc(rr.guaranteedToAge || '—') + '.' : '.') + '</p>';
+    st = '<p><strong>' + esc(strategyNameOf(d.strategy)) + '</strong>' + (rr.ruin ? ' — ran out or was cut in ' + esc(pctShare(+rr.ruin.mc || 0, 1)) + ' of simulated futures; income guaranteed: ' + esc(guaranteeSaid(rr, d.strategy.p) || '—') + '.' : '.') + '</p>';
   }
   h += section('2. Strategy — ' + strategyNameOf(d.strategy), st, { sub: 'the verdict, the cones, and the shopping list as they stood at lock' });
 

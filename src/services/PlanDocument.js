@@ -29,7 +29,7 @@ import { cleanParams } from './StrategyState.js';
 import { GIA_DEFAULTS } from './TaxableSleeve.js';
 import { ENGINE_VERSION } from '../strategies/version.js';
 import { VERSION } from '../constants.js';
-import { toAgeAsWritten } from './AgeConvention.js';
+import { toAgeAsWritten, planToAgeOf } from './AgeConvention.js';
 
 // 2 (6.13.0): `holdingsAtLock` — what the person held when the plan was locked, from the holdings record —
 // for every strategy; the accumulation path projects from the holdings record or the recorded pot today,
@@ -53,6 +53,20 @@ export const definitionOf = (doc) => (doc && doc.assumptions && doc.assumptions.
  * the plan's last year, and is read one on (the same run, the age said as every page says it now). Null without one.
  */
 export const planToAgeOfDefinition = (def) => (def && def.planTo && typeof def.planTo === 'object' ? toAgeAsWritten(def.planTo.age, def.planTo.ageRule) : null);
+/**
+ * A result's "income guaranteed" as every page says it now (7.9.0: "to 97" = to the 97th birthday). The full gilt ladder's
+ * "N by contract (every year bought today)" names the age the plan runs to; a result stored before 7.9.0 (a locked plan's
+ * document) wrote the age in its last year, start + years − 1, and is said one on — read from the result's own plan, never
+ * rewritten. Any other text, or a ladder's that already names the plan-to age, is said as stored.
+ */
+export function guaranteeSaid(r, p) {
+  const t = r ? r.guaranteedToAge : undefined;
+  if (!r || r.strategyId !== 'full-il-gilt' || typeof t !== 'string' || !p) return t;
+  const m = /^(\d+) by contract \(every year bought today\)$/.exec(t);
+  const start = +p.startAge, years = +p.durationYears;
+  if (!m || !Number.isFinite(start) || !Number.isFinite(years) || !(years > 0)) return t;
+  return +m[1] === planToAgeOf(start, years) - 1 ? planToAgeOf(start, years) + ' by contract (every year bought today)' : t;
+}
 export const CONTRACT_STRATEGIES = ['full-il-gilt', 'gilt-rotation', 'floor-the-schedule'];
 export const DECISION_ASSUMED_CPI_FOR_RECORD = 0.04;   // = PlanLock.PLAN_OF_RECORD_CPI (not imported: PlanLock pulls in the repositories)
 

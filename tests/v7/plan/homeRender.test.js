@@ -144,8 +144,10 @@ describe('each stage\'s home', () => {
     const { root } = draw(stored, { type: A.PLAN_SAVED, planId: 'SamBuckets04', previous: null, line: { id: 'putOff', slots: { month: 'October 2026' }, key: 'month.record@2026-09' }, op: 'task' });
     expect(root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
     expect(one(root, `${T}.quiet`).textContent).toBe('Nothing due. Your next review is April 2027.');
-    // said once: the quiet line says the review's date, so no second review line
+    // said once: the quiet line says the review's date, so no second review line — and "Review now" is still offered
     expect(one(root, `${T}.review`)).toBe(null);
+    expect(one(root, `${T}.review.now`).textContent).toBe('Review now');
+    expect(one(root, `${T}.review.now`).getAttribute('href')).toBe('#/plan/SamBuckets04/review');
     expect(one(root, `${T}.notNowDone`).textContent).toBe('Put off until October 2026.');
     expect(one(draw(load('home-drawing')).root, `${T}.notNowDone`)).toBe(null);
     // while the write is under way the to-do is already gone from the list
@@ -162,6 +164,7 @@ describe('each stage\'s home', () => {
     expect(one(root, `${T}.moveWindow`).textContent).toBe('In your move window: 40 months left, to January 2030. You can record what you hold when you like.');
     expect(one(root, `${T}.quiet`).textContent).toBe('Nothing due. You can review your plan whenever you like.');
     expect(one(root, `${T}.review`)).toBe(null);
+    expect(one(root, `${T}.review.now`).getAttribute('href')).toBe('#/plan/AlexMoving03/review');
     expect(one(root, `${T}.drift`)).toBe(null);
     // someone in the move window still pays in: the check-in is the first tool
     expect(one(root, `${T}.tools`).querySelector('a').getAttribute('data-testid')).toBe(`${T}.tool.checkin`);

@@ -172,8 +172,10 @@ export function HomeScreen(state, dispatch) {
             </details>
           )}
           {putOff && <p class="note" role="status" data-testid={`${T}.notNowDone`}>{putOff}</p>}
-          {/* the next review (7.10.0), when the line above does not say its date already, with the way to it */}
+          {/* the next review (7.10.0), when the line above does not say its date already, with the way to it; "Review now" is
+              always offered (a pay change, a new job: spec-7100 §4.3), so with the date said above it stands on its own */}
           {reviewLine && <p class="line" data-testid={`${T}.review`}>{reviewLine} <a href={H.review.href} data-testid={`${T}.review.now`}>{HOME.review.link}</a></p>}
+          {!reviewLine && quietSaysIt && H.review && H.review.href && <p class="line home-review-now"><a href={H.review.href} data-testid={`${T}.review.now`}>{HOME.review.link}</a></p>}
           {todo.soon.length > 0 && (
             <div class="home-soon" data-testid={`${T}.soon`}>
               <p class="eyebrow">{HOME.soonTitle}</p>

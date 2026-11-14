@@ -688,6 +688,10 @@ export const FIRST_ANSWER_BUDGET = Object.freeze({
 // Chromium cannot slow a worker: waits are measured at full speed × SLOWDOWN, which stands for a phone four times
 // slower than the reference machine — 4 there, less on a machine already slower than it (e2e/global-setup.js).
 export const SLOWDOWN = Number(process.env.E2E_SLOWDOWN) || 4;
+// "Try the bad years" (7.9.0; the build spec's §1.4): the strip under C's and D's answers, every row; the panel on a plan's
+// "Does it last?", every row (As planned first, streamed). Measured at full speed, as the other waits are, against these.
+export const STRIP_BUDGET = 2_500 * SLOWDOWN;
+export const PANEL_BUDGET = 9_600 * SLOWDOWN;
 export const KEY_DELAY = 120;        // one key at a time, as a person types (catches a box that loses its place)
 
 /**

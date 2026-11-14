@@ -41,6 +41,20 @@ import { legacyVerdictOf as verdictOf } from '../../../src/answers/shared/rules.
 import { emptySaverDraft, emptySaverAnswer } from '../../../src/v7/state/initial.js';
 import { checkInputs } from '../../../src/answers/shared/validate.js';
 import { VERSION } from '../../../src/constants.js';
+import { runStressStrip } from '../../../src/answers/shared/stressStrip.js';
+import { stripAmountOf } from '../../../src/v7/state/select.js';
+
+/**
+ * "Try the bad years" under C's or D's answer (7.9.0; the build spec's §2.2): the strip pressed on a final answer and its rows
+ * (shared/stressStrip.js runStressStrip on the answer's own inputs, futures and seed, at the amount it stands behind), or
+ * under way. Put on a state already holding that answer.
+ */
+function withStrip(s, q, status = 'done') {
+  const r = s.answers[q].result;
+  const result = status === 'done' ? runStressStrip(q, r.inputs, { today: r.basis.today, futures: r.basis.futures, seed: r.basis.seed ?? 0 }, { perMonth: stripAmountOf(q, r) }) : null;
+  s.stressStrip = { q, key: s.answers[q].inputsKey, status, result, reason: null };
+  return s;
+}
 
 const here = dirname(fileURLToPath(import.meta.url));
 const TODAY = '2026-09-30';
@@ -416,6 +430,8 @@ function buildDStates({ today, futures, inputsKey: keyOf }) {
   }
   states['answer-first'] = answered('answer-first', 'answer', D1, { status: 'first', n: 100 });
   states['answer-D1'] = answered('answer-D1', 'answer', D1, { kind: 'close' });
+  states['answer-stress-done'] = withStrip(answered('answer-stress-done', 'answer', D1, { kind: 'close' }), 'd');
+  states['answer-stress-working'] = withStrip(answered('answer-stress-working', 'answer', D1, { kind: 'close' }), 'd', 'working');
   states['answer-yes'] = answered('answer-yes', 'answer', { ...D1, 'spend.amount': '1,800' }, { kind: 'yes' });
   states['answer-no'] = answered('answer-no', 'answer', { ...D1, 'spend.amount': '2,600' }, { kind: 'no' });
   states['answer-D2-couple'] = answered('answer-D2-couple', 'answer', D2, { kind: 'couple' });
@@ -695,6 +711,81 @@ async function buildPlanStates({ today }) {
   states['home-draft-retired'] = stateHome([plant(C['02-pnv-draft'], 'AlexDraft05', 'Alex’s plan')]);
   // the closed plan keeps the id of the plan that carries it on (its nextPlanId): both are planted under their own ids
   states['home-closed'] = stateHome([JSON.parse(JSON.stringify(C['18-moved-to-new-plan'])), JSON.parse(JSON.stringify(C['18-moved-to-new-plan-next']))]);
+
+  /**
+   * "Try the bad years" on a plan's "Does it last?" (7.9.0; the build spec's §2.1, §9): tests/v7/states/plan/lasts-stress-*.json —
+   * each a state on #/plan/<id>/lasts?focus=stress holding ONE plan, its own test held (runLasts) and the panel's rows run
+   * (stressPanelRun.js runStressRow at the engine's own 1,000 futures), so the render rule and the banned scan see filled
+   * rows: before the press (idle), As planned in and the rest under way (working), every row (done), "I accept this risk"
+   * asked (confirm), an agreement saved (accepted), one out of date — a setting changed since (stale), a locked ladder whose
+   * market rows are not tried (na-ladder), and a plan that keeps a line by choice, its held rows (held). Alex's Pots & Valves
+   * draft (corpus 02), Sam's locked ladder keeping its world fund by choice (corpus 20), Sam's locked Buckets plan keeping a
+   * made-up company's shares (corpus 04) — derived here, never new fixtures. Nothing hand-made.
+   */
+  const { runStressRow } = await import('../../../src/answers/plan/stressPanelRun.js');
+  const { stressKeyOf, stressAmendPatch } = await import('../../../src/answers/plan/stressPanel.js');
+  const { applyPatch } = await import('../../../src/answers/plan/about.js');
+  const AT = '2026-09-30T12:00:00.000Z';
+  const badAlex = plant(C['02-pnv-draft'], 'AlexBad01', 'Alex’s plan', { active: true });
+  const badLadder = plant(C['20-locked-start-after-stop'], 'SamBad02', 'Sam’s plan');
+  badLadder.holdings.lines = badLadder.holdings.lines.filter((l) => !/^(T29|T30I)$/.test(l.ticker || '')).map((l) => (l.ticker === 'VWRP' ? { ...l, keep: { as: 'mine', fundsGaps: false } } : l));
+  const badBuckets = plant(C['04-buckets-running'], 'SamBad03', 'Sam’s plan');
+  badBuckets.holdings.lines.push({ asOf: '2026-09-01', contribution: null, kind: null, name: 'Example Shares plc', ocf: null, sedol: null, subClass: null, ticker: 'EXMPL', units: 100, value: 15000, wrapper: 'SIPP', keep: { as: 'mine', fundsGaps: true } });
+  const rowRuns = new Map();
+  /** The rows of a plan as stored, each run once (the key leaves out the agreements, so an accepted plan reads the same rows). */
+  const rowsOf = (raw) => {
+    const plan = entryOf(raw, today).plan;
+    const key = stressKeyOf(plan, today);
+    if (!rowRuns.has(key)) {
+      const view = viewFor(stateStress(raw, [], { bare: true })).page.lasts.stressPanel;
+      rowRuns.set(key, { order: view.order, rows: Object.fromEntries(view.order.map((id) => [id, runStressRow(plan, { today, row: id })])) });
+    }
+    return rowRuns.get(key);
+  };
+  /** A state on the plan's "Does it last?" with its own test held, then the panel's actions; the reading refreshed. */
+  function stateStress(raw, actions = [], { open = [], bare = false } = {}) {
+    const entry = entryOf(raw, today);
+    let s = initialState({ today, build: 'test' });
+    s = reduce(s, { type: A.ROUTE_SET, route: parse('#/plan/' + raw.id + '/lasts?focus=stress') });
+    s = reduce(s, { type: A.SESSION_SET, session: { kind: 'in', email: 'someone@example.com' } });
+    s = reduce(s, { type: A.PLANS_SET, list: [entry], source: 'account', readAt: '14:03' });
+    if (bare) return s;
+    s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
+    const lkey = runKeyOf(entry.plan);
+    s = reduce(s, { type: A.LASTS_WORKING, key: lkey });
+    s = reduce(s, { type: A.LASTS_DONE, key: lkey, result: runLasts(entry.plan, { today }) });
+    s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
+    for (const a of actions) { s = reduce(s, typeof a === 'function' ? a(entry.plan, s) : a); s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) }); }
+    for (const x of open) s = reduce(s, { type: A.UI_TOGGLE, id: x });
+    return reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
+  }
+  /** The press, then `n` rows in (every row when n is null), as the effect files them. */
+  const pressed = (raw, n = null) => {
+    const { order, rows } = rowsOf(raw);
+    return [
+      (plan) => ({ type: A.STRESS_RUN, key: stressKeyOf(plan, today), planId: String(plan.id), rows: order }),
+      ...order.slice(0, n == null ? order.length : n).map((id) => (plan) => ({ type: A.STRESS_ROW_DONE, key: stressKeyOf(plan, today), row: id, result: rows[id] }))
+    ];
+  };
+  /** The plan with a row accepted (stressAmendPatch on the row as run), as the one write leaves it. */
+  const acceptedOn = (raw, id) => {
+    const plan = entryOf(raw, today).plan;
+    const p = stressAmendPatch(plan, { id, result: rowsOf(raw).rows[id] }, { at: AT, today });
+    if (!p.ok) throw new Error('lasts-stress: ' + id + ' cannot be accepted (' + p.problem + ')');
+    return { ...JSON.parse(JSON.stringify(raw)), planAmendments: p.patch.planAmendments };
+  };
+  states['lasts-stress-idle'] = stateStress(badAlex);
+  states['lasts-stress-working'] = stateStress(badAlex, pressed(badAlex, 1));
+  states['lasts-stress-done'] = stateStress(badAlex, pressed(badAlex));
+  states['lasts-stress-confirm'] = stateStress(badAlex, pressed(badAlex), { open: ['stressConfirm.spend'] });
+  const accepted = acceptedOn(badAlex, 'spend');
+  states['lasts-stress-accepted'] = stateStress(accepted, pressed(accepted));
+  // a setting changed since the agreement (what is taken off each year as charges): out of date, said before any press
+  const stale = acceptedOn(badAlex, 'fall');
+  stale.stressTool.settings.chargesPct = Math.round(((+stale.stressTool.settings.chargesPct || 0.5) + 0.1) * 100) / 100;
+  states['lasts-stress-stale'] = stateStress(stale);
+  states['lasts-stress-na-ladder'] = stateStress(badLadder, pressed(badLadder));
+  states['lasts-stress-held'] = stateStress(badBuckets, pressed(badBuckets));
   return { states };
 }
 
@@ -773,6 +864,11 @@ states['answer-nothing-entered'] = base('#/c/answer');
 }
 states['answer-first'] = answered('answer-first', F1, { futures: 100, status: 'first' });
 states['answer-F1'] = answered('answer-F1', F1);
+// (C's states are in their pinned shape — route, env, session, plan, draft, answers, ui — with the strip's slice beside them)
+const cShape = (st) => ({ ...Object.fromEntries(['route', 'env', 'plan', 'draft', 'answers', 'stressStrip'].map((k) => [k, st[k]])),
+  session: { kind: st.session.kind }, ui: { railOpen: st.ui.railOpen, open: st.ui.open, online: st.ui.online } });
+states['answer-stress-done'] = cShape(withStrip(answered('answer-stress-done', F1), 'c'));
+states['answer-stress-working'] = cShape(withStrip(answered('answer-stress-working', F1), 'c', 'working'));
 states['answer-F2'] = answered('answer-F2', F2);
 states['answer-F3'] = answered('answer-F3', F3, { patch: 'take' });
 {

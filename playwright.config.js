@@ -66,11 +66,14 @@ const JOURNEYS_APART = ['a-already-stopped'];
 // … and a plan's home (7.3.0): what is due, where you are, then everything else folded away: plan-home, at 390 and 1440.
 // … and no months "before the plan" on any screen of either app (7.3.3), a plan stored that way shown the move of its start: plan-no-runup-words, at 390 and 1440.
 // … and "Keep this" (7.6.0): a line kept as a stand-in or by choice on a locked plan, never a sell, the gaps year by year, Undo, in both apps: plan-keep, at 390 and 1440.
-// … and "Test what you keep against your plan" (7.7.0): the test on its button, "I accept this risk" one write, Undo, in both apps: plan-keep-test, at 390 and 1440.
-const JOURNEYS_PLAN = ['plan-keep', 'plan-keep-test', 'plan', 'plan-home', 'plan-about', 'plan-income', 'plan-spend', 'plan-pots', 'plan-lasts', 'plan-lock', 'plan-levers', 'plan-way', 'plan-mix', 'plan-try', 'plan-household', 'plan-household-words', 'plan-hold', 'plan-move', 'plan-budget', 'plan-saving', 'plan-stale-lumps', 'plans-actions', 'whats-new', 'planner-month-fill', 'plan-stopped-work', 'plan-move-start', 'plan-close', 'plan-checkin', 'plan-back-to-work', 'plan-try-not-copy', 'plan-month', 'plan-no-runup-words'];
-const JOURNEYS_PHONE = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'c-retired', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP, ...JOURNEYS_PLAN];
+// … and "Test what you keep against your plan" (7.7.0): the test on its button, "I accept this risk" one write, Undo, in both apps;
+// with "Try the bad years" on a plan (7.9.0): the rows within their budget, an agreement one write, a locked ladder's rows, the
+// classic Scenarios page's same rows: plan-stress (was plan-keep-test), at 390 and 1440.
+// "Try the bad years" under C's and D's answers (7.9.0): answer-bad-years, at 390 and 1440 (in JOURNEYS_PHONE and JOURNEYS_DESKTOP).
+const JOURNEYS_PLAN = ['plan-keep', 'plan-stress', 'plan', 'plan-home', 'plan-about', 'plan-income', 'plan-spend', 'plan-pots', 'plan-lasts', 'plan-lock', 'plan-levers', 'plan-way', 'plan-mix', 'plan-try', 'plan-household', 'plan-household-words', 'plan-hold', 'plan-move', 'plan-budget', 'plan-saving', 'plan-stale-lumps', 'plans-actions', 'whats-new', 'planner-month-fill', 'plan-stopped-work', 'plan-move-start', 'plan-close', 'plan-checkin', 'plan-back-to-work', 'plan-try-not-copy', 'plan-month', 'plan-no-runup-words'];
+const JOURNEYS_PHONE = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'c-retired', 'answer-bad-years', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP, ...JOURNEYS_PLAN];
 // An old service worker cleared by the kill switch (public/sw.js; switch-readiness.md §3): its own server, at 1440 only.
-const JOURNEYS_DESKTOP = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'production', 'old-app-unchanged', 'old-worker', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP, ...JOURNEYS_APART, ...JOURNEYS_PLAN];
+const JOURNEYS_DESKTOP = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'answer-bad-years', 'production', 'old-app-unchanged', 'old-worker', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP, ...JOURNEYS_APART, ...JOURNEYS_PLAN];
 const only = (names) => names.map((n) => `**/${n}.spec.js`);
 
 const projects = [

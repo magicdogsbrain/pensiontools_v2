@@ -31,7 +31,9 @@ const NAMES = [
   'numbers-blank', 'numbers-couple-open', 'numbers-more-open', 'numbers-still-working', 'numbers-way-in',
   'answer-nothing-entered', 'answer-working', 'answer-first', 'answer-D1', 'answer-yes', 'answer-no', 'answer-D2-couple', 'answer-D3-invested',
   'answer-D5-closed', 'answer-D7-work', 'answer-fall', 'answer-pensions-only', 'answer-assumed-open', 'answer-updating', 'answer-failed',
-  'keep-no-answer', 'keep-D1'
+  'keep-no-answer', 'keep-D1',
+  // "Try the bad years" under the answer (7.9.0): the strip pressed and its rows, and while it works
+  'answer-stress-done', 'answer-stress-working'
 ];
 const load = (name) => JSON.parse(readFileSync(join(DIR, `${name}.json`), 'utf8'));
 const MADE = JSON.parse(readFileSync(join(DIR, '_made-with.json'), 'utf8'));

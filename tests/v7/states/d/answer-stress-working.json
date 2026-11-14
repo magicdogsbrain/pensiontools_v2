@@ -1,0 +1,1007 @@
+{
+  "route": {
+    "screen": "step",
+    "q": "d",
+    "step": "answer",
+    "planId": null,
+    "focus": null
+  },
+  "env": {
+    "today": "2026-09-30",
+    "build": "test",
+    "appVersion": "7.8.0",
+    "historyEnd": null
+  },
+  "session": {
+    "kind": "none",
+    "email": null,
+    "signingOut": false
+  },
+  "plan": null,
+  "plans": null,
+  "draft": {
+    "a": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "b": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": [],
+      "carriedFrom": null,
+      "spendHow": null,
+      "skipNoted": false
+    },
+    "c": {
+      "values": {},
+      "touched": [],
+      "asked": false,
+      "revealed": []
+    },
+    "d": {
+      "values": {
+        "you.age": "68",
+        "you.pot": "300,000",
+        "you.taxFreeTaken": "no",
+        "savings": "40,000",
+        "spend.amount": "2,100"
+      },
+      "touched": [],
+      "asked": true,
+      "revealed": []
+    },
+    "plan": {
+      "id": null,
+      "values": {},
+      "touched": [],
+      "asked": false
+    }
+  },
+  "answers": {
+    "a": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "b": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false,
+      "detail": null,
+      "extending": false
+    },
+    "c": {
+      "status": "idle",
+      "inputsKey": null,
+      "result": null,
+      "before": null,
+      "progress": null,
+      "slow": false
+    },
+    "d": {
+      "status": "final",
+      "inputsKey": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":99,\"fall\":{\"has\":false},\"household\":\"single\",\"isaGrowth\":\"cash\",\"risk\":\"balanced\",\"savings\":40000,\"spend\":{\"amount\":2100,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":300000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"no\"}}|2026-09-30|7.8.0",
+      "result": {
+        "status": "ok",
+        "inputs": {
+          "household": "single",
+          "stopped": "yes",
+          "you": {
+            "pot": 300000,
+            "age": 68,
+            "statePension": {
+              "kind": "full"
+            },
+            "finalSalary": {
+              "has": false
+            },
+            "taxFreeTaken": "no",
+            "sex": "notSaid"
+          },
+          "savings": 40000,
+          "isaGrowth": "cash",
+          "spend": {
+            "kind": "amount",
+            "amount": 2100
+          },
+          "risk": "balanced",
+          "charge": 0.5,
+          "endAge": 99,
+          "confidence": "balanced",
+          "work": {
+            "has": false
+          },
+          "fall": {
+            "has": false
+          }
+        },
+        "whose": "you",
+        "spend": {
+          "perMonth": 2100,
+          "perYear": 25200,
+          "kind": "amount",
+          "level": null
+        },
+        "verdict": "close",
+        "fails": 403,
+        "lasted": 0.597,
+        "runOutAge": 91,
+        "outOfTen": {
+          "words": "in only 6 futures out of 10",
+          "only": true,
+          "count": 6
+        },
+        "level": "balanced",
+        "levels": {
+          "careful": {
+            "monthly": 1940,
+            "yearly": 23280,
+            "weighted": 0.9519107202142477,
+            "fixedAge": 0.826
+          },
+          "balanced": {
+            "monthly": 2050,
+            "yearly": 24600,
+            "weighted": 0.9011833536252379,
+            "fixedAge": 0.673
+          },
+          "bold": {
+            "monthly": 2330,
+            "yearly": 27960,
+            "weighted": 0.7043414276391268,
+            "fixedAge": 0.287
+          }
+        },
+        "chance": {
+          "weighted": 0.8714812171766535,
+          "fixedAge": 0.597,
+          "fails": 403,
+          "n": 1000,
+          "planToAge": 99,
+          "weightToAge": 103,
+          "horizonRule": "survival"
+        },
+        "headroom": {
+          "kind": "less",
+          "perMonth": 50
+        },
+        "guaranteed": {
+          "monthlyAfterTax": 1045.63
+        },
+        "phases": [
+          {
+            "fromAge": 68,
+            "toAge": 99,
+            "ages": {
+              "you": {
+                "from": 68,
+                "to": 99
+              }
+            },
+            "takeHome": 2100,
+            "fromPension": 1239.99,
+            "fromSavings": 0,
+            "fromPots": 1239.99,
+            "statePension": 1045.63,
+            "finalSalary": 0,
+            "tax": 185.63,
+            "work": 0,
+            "fromWork": 0,
+            "byPerson": [
+              {
+                "who": "you",
+                "statePension": 1045.63,
+                "finalSalary": 0,
+                "work": 0,
+                "fromWork": 0,
+                "fromPension": 1239.99,
+                "fromSavings": 0,
+                "tax": 185.63,
+                "takeHome": 2100,
+                "higherRate": false,
+                "locked": false,
+                "pensionOpen": true
+              }
+            ],
+            "beforeStatePension": false,
+            "pensionOpen": true,
+            "shown": {
+              "takeHome": 2100,
+              "fromPots": 1054,
+              "statePension": 1046,
+              "finalSalary": 0,
+              "fromWork": 0
+            }
+          }
+        ],
+        "pensionOpens": {
+          "you": 68
+        },
+        "work": null,
+        "fall": null,
+        "assumed": [
+          {
+            "id": "d-from-today",
+            "field": null,
+            "source": "rule",
+            "value": null,
+            "text": "Everything is worked out from today, on what you have today.",
+            "parts": [
+              "Everything is worked out from today, on what you have today."
+            ]
+          },
+          {
+            "id": "d-spend",
+            "field": "spend.amount",
+            "source": "entered",
+            "value": 2100,
+            "text": "You spend £2,100 a month after tax, going up with prices, until you are 99. No cuts in bad years.",
+            "parts": [
+              "You spend ",
+              {
+                "key": "spend.perMonth",
+                "kind": "money"
+              },
+              " a month after tax, going up with prices, ",
+              "until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              ". No cuts in bad years."
+            ]
+          },
+          {
+            "id": "d-tax-year",
+            "field": null,
+            "source": "rule",
+            "value": null,
+            "text": "This tax year is worked out as if it started today.",
+            "parts": [
+              "This tax year is worked out as if it started today."
+            ]
+          },
+          {
+            "id": "state-pension-full",
+            "field": "you.statePension.kind",
+            "source": "default",
+            "value": 12547.6,
+            "text": "The full State Pension of £1,046 a month. Yours may be different — check your forecast.",
+            "parts": [
+              "The full State Pension",
+              " of ",
+              {
+                "fixed": "£1,046"
+              },
+              " a month.",
+              " Yours may be different — check your forecast."
+            ]
+          },
+          {
+            "id": "quarter-tax-free",
+            "field": "you.taxFreeTaken",
+            "source": "entered",
+            "value": "no",
+            "text": "A quarter of each withdrawal from your pension is tax-free.",
+            "parts": [
+              "A quarter of each withdrawal from your pension is tax-free."
+            ]
+          },
+          {
+            "id": "risk-drawing",
+            "field": "risk",
+            "source": "default",
+            "value": "balanced",
+            "text": "Your money is held balanced, about half in shares, the rest in bonds and cash.",
+            "parts": [
+              "Your money is held ",
+              "balanced, about half in shares, the rest in bonds and cash."
+            ]
+          },
+          {
+            "id": "charges",
+            "field": "charge",
+            "source": "default",
+            "value": 0.5,
+            "text": "Charges of 0.5% a year come off the money in funds and cash; not off State Pension or final-salary pension.",
+            "parts": [
+              "Charges of ",
+              {
+                "fixed": "0.5"
+              },
+              "% a year come off the money in funds and cash; not off State Pension or final-salary pension."
+            ]
+          },
+          {
+            "id": "life-plan-to",
+            "field": "endAge",
+            "source": "default",
+            "value": 99,
+            "text": "Your plan runs to 99, when fewer than 1 in 10 women your age are still alive. We follow each future on to 103, when fewer than 1 in 50 are.",
+            "parts": [
+              "Your plan runs to ",
+              {
+                "fixed": "99"
+              },
+              ", when fewer than ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              " ",
+              "women your age",
+              " are still alive.",
+              " We follow each future on to ",
+              {
+                "fixed": "103"
+              },
+              ", when fewer than ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "50"
+              },
+              " are."
+            ],
+            "always": true
+          },
+          {
+            "id": "life-sex",
+            "field": "you.sex",
+            "source": "default",
+            "value": "notSaid",
+            "text": "We used figures for women, who tend to live longer, because you did not say.",
+            "parts": [
+              "We used figures for women, who tend to live longer, because you did not say."
+            ]
+          },
+          {
+            "id": "todays-prices",
+            "field": null,
+            "source": "rule",
+            "value": null,
+            "text": "All figures are in today's prices.",
+            "parts": [
+              "All figures are in today's prices."
+            ]
+          },
+          {
+            "id": "no-final-salary",
+            "field": "you.finalSalary.has",
+            "source": "default",
+            "value": false,
+            "text": "No final-salary pension.",
+            "parts": [
+              "No final-salary pension."
+            ]
+          },
+          {
+            "id": "savings-growth",
+            "field": "isaGrowth",
+            "source": "default",
+            "value": "cash",
+            "text": "Your savings are treated as ISA money: tax-free to take. They grow like cash: by last year's rise in prices less 1%, or not at all if prices rose by less than 1%.",
+            "parts": [
+              "Your savings are treated as ISA money: tax-free to take. ",
+              "They grow like cash: by last year's rise in prices less ",
+              {
+                "fixed": "1"
+              },
+              "%, or not at all if prices rose by less than ",
+              {
+                "fixed": "1"
+              },
+              "%."
+            ]
+          },
+          {
+            "id": "tax-rules",
+            "field": null,
+            "source": "rule",
+            "value": "2026/27",
+            "text": "Tax rules for 2026/27 in England, Wales and Northern Ireland, with allowances rising with prices; the £100,000 point where the allowance starts to be withdrawn stays fixed.",
+            "parts": [
+              "Tax rules for ",
+              {
+                "fixed": "2026/27"
+              },
+              " in England, Wales and Northern Ireland, with allowances rising with prices; the ",
+              {
+                "fixed": "£100,000"
+              },
+              " point where the allowance starts to be withdrawn stays fixed."
+            ]
+          },
+          {
+            "id": "futures",
+            "field": null,
+            "source": "rule",
+            "value": 1000,
+            "text": "Tested against 1,000 possible futures, each pieced together from stretches of US share returns and US price rises since 1871. Share returns are cut by 1.5% a year to stand for shares around the world; bonds and cash are worked out from each future's markets.",
+            "parts": [
+              "Tested against ",
+              {
+                "fixed": "1,000"
+              },
+              " possible futures, each pieced together from stretches of US share returns and US price rises since ",
+              {
+                "fixed": "1871"
+              },
+              ". Share returns are cut by ",
+              {
+                "fixed": "1.5"
+              },
+              "% a year to stand for shares around the world; bonds and cash are worked out from each future's markets."
+            ]
+          }
+        ],
+        "warnings": [
+          {
+            "id": "state-pension-assumed",
+            "severity": "note",
+            "text": "This assumes the full State Pension. If yours is lower, so is the figure.",
+            "parts": [
+              "This assumes the full State Pension. If yours is lower, so is the figure."
+            ]
+          }
+        ],
+        "sentences": {
+          "head": {
+            "id": "d.head.close",
+            "text": "Close — £2,100 a month is tight",
+            "parts": [
+              "Close — ",
+              {
+                "key": "spend.perMonth",
+                "kind": "money"
+              },
+              " a month is tight"
+            ]
+          },
+          "sub": {
+            "id": "d.sub",
+            "text": "after tax, going up with prices, until you are 99",
+            "parts": [
+              "after tax, going up with prices, ",
+              "until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              }
+            ]
+          },
+          "line": {
+            "id": "d.line.weighted",
+            "text": "Counting how long people your age live, £2,100 a month after tax lasts as long as you do 17 times in 20; Balanced asks for 18.",
+            "parts": [
+              "Counting how long people your age live",
+              ", ",
+              {
+                "key": "spend.perMonth",
+                "kind": "money"
+              },
+              " a month after tax lasts ",
+              "as long as you do",
+              " ",
+              {
+                "fixed": "17"
+              },
+              " times in ",
+              {
+                "fixed": "20"
+              },
+              "; ",
+              "Balanced",
+              " asks for ",
+              {
+                "fixed": "18"
+              },
+              "."
+            ],
+            "mark": "weighted"
+          },
+          "bad": {
+            "id": "d.when",
+            "text": "In the futures where the money runs out before 103, it typically runs out at 95. In the worst 1 in 10 of all the futures, by 91.",
+            "parts": [
+              "In the futures where the money runs out before ",
+              {
+                "fixed": "103"
+              },
+              ", it typically runs out ",
+              "at ",
+              {
+                "fixed": "95"
+              },
+              ". ",
+              "In the worst ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              " of all the futures, ",
+              "by ",
+              {
+                "fixed": "91"
+              },
+              "."
+            ]
+          },
+          "headroom": {
+            "id": "d.less",
+            "text": "At Balanced, about £2,050 a month lasts as long as you do 18 times in 20. That is £50 a month less than you spend now.",
+            "parts": [
+              "At ",
+              "Balanced",
+              ", about ",
+              {
+                "key": "levels.balanced.monthly",
+                "kind": "money"
+              },
+              " a month lasts ",
+              "as long as you do",
+              " ",
+              {
+                "fixed": "18"
+              },
+              " times in ",
+              {
+                "fixed": "20"
+              },
+              ".",
+              " That is ",
+              {
+                "key": "headroom.perMonth",
+                "kind": "money"
+              },
+              " a month less than you spend now."
+            ],
+            "mark": "weighted"
+          },
+          "levels": {
+            "id": "d.levels",
+            "text": "At Careful, about £1,940 a month. At Bold, about £2,330 a month.",
+            "parts": [
+              "At Careful, about ",
+              {
+                "key": "levels.careful.monthly",
+                "kind": "money"
+              },
+              " a month. At Bold, about ",
+              {
+                "key": "levels.bold.monthly",
+                "kind": "money"
+              },
+              " a month."
+            ]
+          },
+          "madeOf": [
+            {
+              "id": "d.madeOf.mixed",
+              "text": "£1,046 State Pension + £1,054 from your pot and savings.",
+              "parts": [
+                {
+                  "key": "phases.0.shown.statePension",
+                  "kind": "money"
+                },
+                " ",
+                "State Pension",
+                " + ",
+                {
+                  "key": "phases.0.shown.fromPots",
+                  "kind": "money"
+                },
+                " from ",
+                "your pot and savings",
+                "."
+              ]
+            },
+            {
+              "id": "d.madeOf.tax",
+              "text": "Tax of £186 a month is already taken off.",
+              "parts": [
+                "Tax of ",
+                {
+                  "key": "phases.0.tax",
+                  "kind": "money"
+                },
+                " a month is already taken off."
+              ]
+            }
+          ],
+          "change": {
+            "id": "d.change",
+            "text": "Now: close at £2,100 a month, at Balanced.",
+            "parts": [
+              "Now: ",
+              "close",
+              " at ",
+              {
+                "key": "spend.perMonth",
+                "kind": "money"
+              },
+              " a month, at ",
+              "Balanced",
+              "."
+            ]
+          },
+          "fixed": {
+            "id": "d.fixed",
+            "text": "If you live to 99, the money lasts that long in 12 of 20 futures we tried.",
+            "parts": [
+              "If you live to ",
+              {
+                "fixed": "99"
+              },
+              ", the money lasts that long in ",
+              {
+                "fixed": "12"
+              },
+              " of ",
+              {
+                "fixed": "20"
+              },
+              " futures we tried."
+            ],
+            "mark": "fixed"
+          },
+          "howLong": {
+            "id": "d.howLong",
+            "text": "In the futures where it runs out before 99, it still pays for 25 of the 31 years to 99.",
+            "parts": [
+              "In the futures where it runs out before ",
+              {
+                "fixed": "99"
+              },
+              ", it still pays for ",
+              {
+                "fixed": "25"
+              },
+              " of the ",
+              {
+                "fixed": "31"
+              },
+              " years to ",
+              {
+                "fixed": "99"
+              },
+              "."
+            ]
+          },
+          "howMuch": {
+            "id": "d.howMuch",
+            "text": "Across those futures, about £9 of every £10 you planned to spend is still paid.",
+            "parts": [
+              "Across those futures, about ",
+              {
+                "fixed": "£9"
+              },
+              " of every ",
+              {
+                "fixed": "£10"
+              },
+              " you planned to spend is still paid."
+            ]
+          },
+          "floor": {
+            "id": "d.floor",
+            "text": "If the money ran out at 95, you would still have £12,548 a year after tax, from your State Pension.",
+            "parts": [
+              "If the money ran out ",
+              "at ",
+              {
+                "fixed": "95"
+              },
+              ", ",
+              "you would still have ",
+              {
+                "fixed": "£12,548"
+              },
+              " a year after tax",
+              ", ",
+              "from your State Pension",
+              "."
+            ]
+          },
+          "left": {
+            "id": "d.left",
+            "text": "If you live to 99, what is typically left then is £37,000 at today's prices. In the best 1 in 10 futures it is £496,000 or more.",
+            "parts": [
+              "If you live to ",
+              {
+                "fixed": "99"
+              },
+              ", what is typically left then is ",
+              {
+                "fixed": "£37,000"
+              },
+              " at today's prices. In the best ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              " futures it is ",
+              {
+                "fixed": "£496,000"
+              },
+              " or more."
+            ]
+          },
+          "cost": {
+            "id": "d.cost",
+            "text": "Careful asks for £110 a month less than Balanced. Bold would let you take £280 a month more.",
+            "parts": [
+              "Careful asks for ",
+              {
+                "fixed": "£110"
+              },
+              " a month less than Balanced.",
+              " ",
+              "Bold would let you take ",
+              {
+                "fixed": "£280"
+              },
+              " a month more."
+            ]
+          },
+          "headroomFixed": {
+            "id": "d.more.fixed",
+            "text": "At £2,050 a month: if you live to 99, the money lasts that long in 13 of 20 futures we tried.",
+            "parts": [
+              "At ",
+              {
+                "key": "levels.balanced.monthly",
+                "kind": "money"
+              },
+              " a month: ",
+              "if you live to ",
+              {
+                "fixed": "99"
+              },
+              ", the money lasts that long in ",
+              {
+                "fixed": "13"
+              },
+              " of ",
+              {
+                "fixed": "20"
+              },
+              " futures we tried."
+            ],
+            "mark": "fixed"
+          }
+        },
+        "basis": {
+          "today": "2026-09-30",
+          "futures": 1000,
+          "seed": 0,
+          "level": "balanced",
+          "levelFails20": 2,
+          "planToAge": 99,
+          "weightToAge": 103,
+          "tablesVersion": "ons-ew-2024-cohort/1",
+          "sexUsed": {
+            "you": "f"
+          },
+          "historyEnd": "2023-06",
+          "engineVersion": "7.8.0",
+          "startAge": 68,
+          "endAge": 99,
+          "years": 31,
+          "lifeYears": 35,
+          "bondDraws": "life",
+          "cashRule": "previous-year",
+          "grid": "yearly",
+          "strategyId": "pots-and-valves",
+          "cutsSwitchedOff": true,
+          "endAgeDefaulted": true,
+          "weighted": true
+        },
+        "units": {
+          "money": "todays-prices",
+          "tax": "after-tax",
+          "period": "month",
+          "who": "household"
+        }
+      },
+      "before": null,
+      "progress": null,
+      "slow": false
+    }
+  },
+  "budget": null,
+  "keep": {
+    "a": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null,
+      "pending": null,
+      "used": null
+    },
+    "b": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null,
+      "pending": null,
+      "used": null
+    },
+    "c": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null,
+      "pending": null,
+      "used": null
+    },
+    "d": {
+      "name": null,
+      "problem": null,
+      "saving": false,
+      "made": null,
+      "partnerKept": null,
+      "pending": null,
+      "used": null
+    }
+  },
+  "lasts": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "levers": {},
+    "workDraft": {
+      "yearly": "",
+      "years": ""
+    },
+    "tried": null,
+    "kept": null
+  },
+  "ui": {
+    "railOpen": false,
+    "open": [],
+    "online": true,
+    "leaving": null,
+    "leaveProblem": null,
+    "saving": null,
+    "saveProblem": null,
+    "toast": null,
+    "action": null,
+    "download": null,
+    "guest": {
+      "minutes": 0,
+      "usedUp": false,
+      "nag": null
+    },
+    "bringIn": null,
+    "account": {
+      "mode": "signIn",
+      "busy": null,
+      "problem": null,
+      "note": null,
+      "confirm": null,
+      "deleted": null
+    },
+    "profile": null,
+    "news": {
+      "popup": null,
+      "page": null,
+      "seen": null
+    },
+    "assumptions": null,
+    "several": null,
+    "severalDone": null,
+    "notNow": []
+  },
+  "ways": {
+    "key": null,
+    "status": "idle",
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "slow": false,
+    "ran": null,
+    "open": null,
+    "dials": {},
+    "tried": {},
+    "rankBy": "lasts"
+  },
+  "mix": {
+    "key": null,
+    "tries": {},
+    "compare": {
+      "status": "idle",
+      "result": null,
+      "ms": null,
+      "progress": null,
+      "reason": null
+    },
+    "pick": null
+  },
+  "household": {
+    "key": null,
+    "status": "idle",
+    "limit": null,
+    "need": null,
+    "reason": null,
+    "result": null,
+    "progress": null,
+    "ms": null,
+    "survivor": null,
+    "care": null,
+    "pick": null
+  },
+  "move": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "ms": null,
+    "reason": null,
+    "index": null
+  },
+  "saver": {
+    "key": null,
+    "status": "idle",
+    "result": null,
+    "reason": null
+  },
+  "checkIn": {
+    "planId": null,
+    "date": null,
+    "result": null
+  },
+  "keepTest": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "result": null,
+    "reason": null,
+    "progress": null
+  },
+  "stressPanel": {
+    "key": null,
+    "planId": null,
+    "status": "idle",
+    "order": [],
+    "rows": {},
+    "reason": null
+  },
+  "stressStrip": {
+    "q": "d",
+    "key": "{\"charge\":0.5,\"confidence\":\"balanced\",\"endAge\":99,\"fall\":{\"has\":false},\"household\":\"single\",\"isaGrowth\":\"cash\",\"risk\":\"balanced\",\"savings\":40000,\"spend\":{\"amount\":2100,\"kind\":\"amount\"},\"stopped\":\"yes\",\"work\":{\"has\":false},\"you\":{\"age\":68,\"finalSalary\":{\"has\":false},\"pot\":300000,\"sex\":\"notSaid\",\"statePension\":{\"kind\":\"full\"},\"taxFreeTaken\":\"no\"}}|2026-09-30|7.8.0",
+    "status": "working",
+    "result": null,
+    "reason": null
+  }
+}

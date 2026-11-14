@@ -25,7 +25,9 @@ const NAMES = [
   // still paying in (the reported 55-year-old, 1 Oct 2026); the same with the start left alone; the closed years
   'numbers-paying-in', 'answer-paying-in', 'answer-paying-in-default', 'answer-closed-years',
   // a couple who stop work in different years: one stopped, from now; the other stopping next year (6.20.0, B1)
-  'numbers-apart', 'answer-apart'
+  'numbers-apart', 'answer-apart',
+  // "Try the bad years" under the answer (7.9.0): the strip pressed and its rows, and while it works
+  'answer-stress-done', 'answer-stress-working'
 ];
 const load = (name) => JSON.parse(readFileSync(join(DIR, `${name}.json`), 'utf8'));
 const MADE = JSON.parse(readFileSync(join(process.cwd(), 'tests/v7/states/made-with.json'), 'utf8'));
@@ -45,7 +47,8 @@ describe('the named states', () => {
 
   it.each(NAMES)('%s survives JSON and is a whole state', (name) => {
     const s = load(name);
-    expect(Object.keys(s).sort()).toEqual(['answers', 'draft', 'env', 'plan', 'route', 'session', 'ui']);
+    // (7.9.0: a state with the strip under its answer carries the strip's page memory too)
+    expect(Object.keys(s).filter((k) => !(k === 'stressStrip' && name.startsWith('answer-stress-'))).sort()).toEqual(['answers', 'draft', 'env', 'plan', 'route', 'session', 'ui']);
     expect(s.plan).toBe(null);
     expect(s.session).toEqual({ kind: 'none' });
     expect(s.env.today).toBe('2026-09-30');

@@ -154,7 +154,7 @@ export function StressPanel({ state, dispatch }) {
   const problem = v.problem && STRESS_PROBLEMS.includes(v.problem) ? (STRESS.agreement.problems[v.problem] || STRESS.agreement.problems.failed) : null;
   return (
     <section class="plan-section lasts-stress" data-section="stress" data-testid="plan.lasts.stress" data-status={run.status} data-key={v.key}>
-      <h2 tabIndex={-1} data-focus-for="plan.stress">{STRESS.title}</h2>
+      <h2 tabIndex={-1} {...(v.settled ? { 'data-focus-for': 'plan.stress' } : {})}>{STRESS.title}</h2>
       <p class="note">{STRESS.lead}</p>
       {!tried && v.keep && v.keep.line && (
         <p class="note" data-testid="plan.lasts.stress.keep" data-status={v.keep.status}>{sayKeep(v.keep.line)} <a href={href.plan(v.planId, 'hold')} data-testid="plan.lasts.stress.keepHold">{sayStress(v.keep.link)}</a></p>

@@ -1323,7 +1323,12 @@ export function planStressView(state) {
   const problem = ui.saveProblem && ui.saveProblem.planId === v.planId && !ui.saving ? ui.saveProblem.problem : null;
   const toast = ui.toast && ui.toast.planId === v.planId && ui.toast.op === 'amend' && ui.toast.line && /^stress/.test(ui.toast.line.id || '') ? ui.toast : null;
   const readonly = !!(L.readonly || v.closed);
-  return { ...v, readonly, confirmOpen: open.filter((x) => x.startsWith('stressConfirm.')).map((x) => x.slice('stressConfirm.'.length)), saving, problem, toast,
+  // the page above the panel has its answer ("Does it last?" done for this plan as it is, failed, or nothing to run): only
+  // then does the panel name itself as the place an address can send the keyboard — drawn earlier, the answer arriving
+  // above it pushes it screens down the page
+  const run = planLastsView(state).run || { status: 'idle' };
+  const settled = !L.runKey || run.status === 'failed' || (run.status === 'done' && run.fresh !== false);
+  return { ...v, readonly, settled, confirmOpen: open.filter((x) => x.startsWith('stressConfirm.')).map((x) => x.slice('stressConfirm.'.length)), saving, problem, toast,
     // hidden when the plan's own test says this way of drawing cannot be bought
     hidden: !!(L.verdict && L.verdict.ok === false && L.verdict.id === 'lasts.unaffordable') };
 }

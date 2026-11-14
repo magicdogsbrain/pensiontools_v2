@@ -15,6 +15,7 @@ import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { viewFor } from '../../../src/v7/effects/planSource.js';
 import { stressKeyOf, stressAmendPatch, sayStress } from '../../../src/answers/plan/stressPanel.js';
+import { runKeyOf } from '../../../src/answers/plan/lasts.js';
 import { applyPatch } from '../../../src/answers/plan/about.js';
 import { STRESS } from '../../../src/v7/copy/stressPanel.js';
 import { corpus, entryOf, stateWith, TODAY } from './_plans.js';
@@ -235,38 +236,44 @@ describe('the rows drawn', () => {
 });
 
 describe('the address that names the panel (#/plan/<id>/lasts?focus=stress)', () => {
-  /** The page with its panel not yet drawn ("Does it last?" still working), as the first draws after the move have it. */
-  const withoutPanel = (s) => ({ ...s, plans: { ...s.plans, view: { ...s.plans.view, page: { ...s.plans.view.page, lasts: { ...s.plans.view.page.lasts, stressPanel: null } } } } });
+  /** The page as "Does it last?" runs (the panel drawn under an answer still to come), then with its answer settled. */
+  const working = (s, key) => reduce(s, { type: A.LASTS_WORKING, key });
+  const settledOf = (s, key) => reduce(working(s, key), { type: A.LASTS_FAILED, key });
   const mount = () => { const root = document.createElement('div'); root.id = 'app'; document.body.appendChild(root); return root; };
   const drawIn = (root, state) => act(() => { render(h(App, { state, dispatch: () => {} }), root); });
-  it('the panel\'s heading takes the keyboard once the panel is drawn, though it comes later than the page', () => {
+  it('the panel\'s heading takes the keyboard once the answer above it has settled, never while it is still to come and would push the panel down', () => {
     const plan = plan0('02-pnv-draft');
     const s = stateWith([{ plan, newer: false, failed: false }], '#/plan/' + plan.id + '/lasts?focus=stress');
     expect(s.route.focus).toBe('stress');
+    const key = runKeyOf(plan);
     const root = mount();
     try {
-      drawIn(root, withoutPanel(s));
-      expect(root.querySelector('[data-focus-for="plan.stress"]')).toBe(null);
-      drawIn(root, s);
+      drawIn(root, working(s, key));
+      const head0 = root.querySelector('[data-testid="plan.lasts.stress"] h2');
+      expect(head0).toBeTruthy();
+      expect(head0.hasAttribute('data-focus-for')).toBe(false);
+      expect(document.activeElement).not.toBe(head0);
+      drawIn(root, settledOf(s, key));
       const head = root.querySelector('[data-focus-for="plan.stress"]');
       expect(head).toBeTruthy();
       expect(document.activeElement).toBe(head);
       // once there, a later draw does not take it again
       head.blur();
-      drawIn(root, { ...s });
+      drawIn(root, { ...settledOf(s, key) });
       expect(document.activeElement).not.toBe(head);
     } finally { render(null, root); root.remove(); }
   });
-  it('a keyboard moved elsewhere while the panel was coming is left where the person put it', () => {
+  it('a keyboard moved elsewhere while the answer was coming is left where the person put it', () => {
     const plan = plan0('02-pnv-draft');
     const s = stateWith([{ plan, newer: false, failed: false }], '#/plan/' + plan.id + '/lasts?focus=stress');
+    const key = runKeyOf(plan);
     const root = mount();
     const box = document.createElement('input');
     document.body.appendChild(box);
     try {
-      drawIn(root, withoutPanel(s));
+      drawIn(root, working(s, key));
       box.focus();
-      drawIn(root, s);
+      drawIn(root, settledOf(s, key));
       expect(document.activeElement).toBe(box);
     } finally { render(null, root); root.remove(); box.remove(); }
   });
@@ -359,7 +366,7 @@ describe('the keep test folds into the bad years: information, never a to-do (re
     // the link lands on "Does it last?" with the panel named
     const lasts = stateWith([{ plan, newer: false, failed: false }], '#/plan/' + plan.id + '/lasts?focus=stress');
     expect(lasts.route).toMatchObject({ screen: 'plan', step: 'lasts', focus: 'stress' });
-    expect(draw(lasts).root.querySelector('[data-focus-for="plan.stress"]')).toBeTruthy();
+    expect(draw(lasts).root.querySelector('[data-testid="plan.lasts.stress"] h2')).toBeTruthy();
   });
   it('the keep confirm\'s second button says "Go back"', async () => {
     const { KEEPTEST } = await import('../../../src/v7/copy/keepTest.js');

@@ -255,7 +255,8 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   const ciSavingsIn = ciPayIn && isNum(ci.payIn.savingsIn) ? (isObj(ci.paused) && ci.paused.to == null ? 0 : ci.payIn.savingsIn) : null;
   let prop = null;
   try { const p = proportions(lines); if (p.total > 0) prop = p; } catch { prop = null; }
-  const mixes = savingPathMixes(ss, prop, acc);
+  // the saving level the person chose (7.10.0, phases.saving.strategy.level) decides the saving mix when it is stored
+  const mixes = savingPathMixes(ss, prop, acc, plan && plan.phases);
   const charge = chargesPctOf(ss);
 
   let inputs = {

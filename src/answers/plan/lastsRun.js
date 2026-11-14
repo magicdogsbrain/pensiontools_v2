@@ -246,10 +246,10 @@ export const documentHoldingsOf = (plan) => (plan && plan.holdings && typeof pla
  * src/ui/savingPathForLock.js, without its lazy import: a saver's path on the saving-years engine, undefined for a plan that
  * is not stopping later (buildPlanDocument then draws the FCA path, as before 6.22.0).
  */
-export function savingPathFor({ settings, accumulation = null, holdings = null, now }) {
+export function savingPathFor({ settings, accumulation = null, holdings = null, now, phases = null }) {
   const timing = deriveTiming(settings || {}, now);
   if (timing.mode !== 'future' || !(timing.currentAge > 0)) return undefined;
-  return buildSavingPath({ settings, timing, accumulation, holdings, now });
+  return buildSavingPath({ settings, timing, accumulation, holdings, now, phases });
 }
 
 /**
@@ -273,7 +273,7 @@ export function runForDocument(plan, { today, essentials = 0, onProgress = null,
   const success = documentSuccessOf(plan, { settings, strategyId, p, r, now, essentials: ess, weighted });
   // what the planner hands in (index.html buildPlanDocumentNow): the Accumulation tool's settings ({} for none) and the
   // holdings record normalised (ScenarioRepository.getActiveAccumulation, getActiveHoldings)
-  const savingPath = savingPathFor({ settings, accumulation: documentAccumulationOf(plan), holdings: documentHoldingsOf(plan), now });
+  const savingPath = savingPathFor({ settings, accumulation: documentAccumulationOf(plan), holdings: documentHoldingsOf(plan), now, phases: (plan && plan.phases) || null });
   return plain({ p: trimPlan(p), r: trimResult(r), savingPath, ...(success ? { success } : {}), basis: { today, engine: 'one-test', essentials: ess || 0 } });
 }
 

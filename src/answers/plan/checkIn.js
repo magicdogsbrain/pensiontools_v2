@@ -313,7 +313,7 @@ function pathFrom(plan, record, now) {
   const acc = accOf(plan);
   const isaGiven = isNum(record.pot.isa);
   return buildSavingPath({
-    settings, timing, accumulation: isObj(acc.settings) ? acc.settings : {}, holdings: plan.holdings || null, now,
+    settings, timing, accumulation: isObj(acc.settings) ? acc.settings : {}, holdings: plan.holdings || null, now, phases: plan.phases || null,
     explicit: { potNow: record.pot.pension, isaNow: isaGiven ? record.pot.isa : 0, totalMonthly: landsNow(record), isaMonthly: isaGiven ? savingsNow(record) : 0 }
   });
 }

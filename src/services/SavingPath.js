@@ -51,17 +51,33 @@ function mix3(equity, bond, cash) {
   return t > 0 ? { equity: num(equity) / t, bond: num(bond) / t, cash: num(cash) / t } : null;
 }
 
+/** The saving levels a person may choose (7.10.0, services/Phases.js SAVING_LEVELS; GlidepathService.RISK_PRESETS' names). */
+const SAVING_LEVELS = ['cautious', 'balanced', 'adventurous'];
 /**
- * The pension's mixes: while saving (what you hold, else the saving mix kept from an answer — `accumulation.savingMix`,
- * research/saving-enough-and-check-in.md 4.4 — else the plan's allocation) and at the stop (the plan's allocation). With
- * no saving mix kept, exactly the mixes it always was.
+ * The saving level the person chose for the plan (7.10.0: `phases.saving.strategy.level`), only when it is stored; null
+ * otherwise. A level the plan is only read at (derived) is never read here: the engine reads a choice, nothing derived.
  */
-export function savingPathMixes(settings, prop, accumulation = null) {
+export function storedSavingLevelOf(phases) {
+  const st = phases && typeof phases === 'object' && phases.saving && typeof phases.saving === 'object' ? phases.saving.strategy : null;
+  const level = st && typeof st === 'object' ? st.level : null;
+  return SAVING_LEVELS.includes(level) ? level : null;
+}
+
+/**
+ * The pension's mixes: while saving (the saving level the person chose — `phases.saving.strategy.level`, 7.10.0 — else
+ * what you hold, else the saving mix kept from an answer — `accumulation.savingMix`, research/saving-enough-and-check-in.md
+ * 4.4 — else the plan's allocation) and at the stop (the plan's allocation). With no level chosen and no saving mix kept,
+ * exactly the mixes it always was.
+ * @param {object|null} [phases]  the plan's `phases` root as stored (only a chosen level is read from it)
+ */
+export function savingPathMixes(settings, prop, accumulation = null, phases = null) {
   const s = settings || {};
   const drawing = mix3(s.equityMin, s.bondMin, s.cashTarget) || { ...RISK_PRESETS.balanced };
-  const held = prop && prop.total > 0 ? mix3(prop.buckets.shares, (prop.buckets.bonds || 0) + (prop.buckets.diversifiers || 0), prop.buckets.cash) : null;
-  const kept = held ? null : savingMixOf(accumulation);
-  return { saving: held || kept || drawing, drawing, fromHoldings: !!held, ...(kept ? { fromSavingMix: true } : {}) };
+  const level = storedSavingLevelOf(phases);
+  const chosen = level ? mix3(RISK_PRESETS[level].equity, RISK_PRESETS[level].bond, RISK_PRESETS[level].cash) : null;
+  const held = !chosen && prop && prop.total > 0 ? mix3(prop.buckets.shares, (prop.buckets.bonds || 0) + (prop.buckets.diversifiers || 0), prop.buckets.cash) : null;
+  const kept = chosen || held ? null : savingMixOf(accumulation);
+  return { saving: chosen || held || kept || drawing, drawing, fromHoldings: !!held, ...(kept ? { fromSavingMix: true } : {}), ...(chosen ? { fromLevel: level } : {}) };
 }
 
 /** The ISA lines under What you hold, summed; null when there are none. */
@@ -83,7 +99,8 @@ const given = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v 
 /**
  * Draw the path.
  * @param {object} a  { settings (Stress), timing (deriveTiming), accumulation (the planner's saved inputs), holdings (the
- *                    record or its lines), now, lives?, env? ({ futureReturns } for tests: V7's lives.js), explicit? }
+ *                    record or its lines), now, lives?, env? ({ futureReturns } for tests: V7's lives.js), explicit?, phases? }
+ *   phases    the plan's `phases` root (7.10.0): a saving level the person chose decides the saving mix (savingPathMixes)
  *   explicit  { potNow, isaNow, totalMonthly, isaMonthly } (research/saving-enough-and-check-in.md 5.3): each one given is
  *             used in place of what the path would read — a saver's first check-in draws the path from its own pension,
  *             ISA and what goes into each, never from the holdings ledger or the saved settings, and the head says so
@@ -91,7 +108,7 @@ const given = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v 
  *             plan's path is drawn exactly as before.
  * @returns {null | object}  null unless retiring later; the block stored as `planDocument.accumulation`
  */
-export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null } = {}) {
+export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null } = {}) {
   if (!timing || timing.mode !== 'future' || !(timing.currentAge > 0)) return null;
   const s = settings || {};
   const a = accumulation || {};
@@ -116,7 +133,7 @@ export function buildSavingPath({ settings = {}, timing, accumulation = null, ho
   // An ISA made of the ISA funds in the list of funds to test: the runs follow those funds whatever the choice says, so the
   // path does too — the funds' own mix on the same futures (review of 6.22.0; services/IsaFunds.js).
   const fundsMix = isaFundsSavingMix(s);
-  const mixes = savingPathMixes(s, prop, a);
+  const mixes = savingPathMixes(s, prop, a, phases);
   const head = {
     version: SAVING_PATH_VERSION, asOf: monthKey(now), drawnAt: now.toISOString(), lives: count, seed: SAVING_PATH_SEED,
     startAge: timing.currentAge, retireAge: timing.shapeAgeNow, years,

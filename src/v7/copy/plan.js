@@ -496,52 +496,36 @@ export const PLAN = {
     seeMove: 'See the move',
     updateHold: 'Update what you hold',
     /** 7.6.0: a year not yet covered by what is held and kept opens "What you hold", where the gaps are read year by year. */
-    seeGaps: 'See what is covered'
+    seeGaps: 'See what is covered',
+    /** 7.10.0: the review, in every phase (a saver's is the check-in), and "did you stop work?" on About you and when. */
+    startReview: 'Start the review',
+    seeChange: 'See what you can change',
+    reviewNow: 'Review now',
+    aboutWhen: 'About you and when'
   },
 
-  /** The next sentence (2.4), by id, first match wins. */
+  /**
+   * The next sentence (2.4), by id, first match wins (7.10.0, research/v7/replan-nov-2026.md §6.4: the home's whole list of
+   * things to do, then where things stand). {nextReview}: the month the review is next; {reviewOften}: how often it falls.
+   */
   next: {
     'P.readonly': 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
     'P.closed': 'This plan closed at the end of {closed}. Its months stay here to read; carry on in ‘{next}’.',
     'P.closedAlone': 'This plan closed at the end of {closed}. Its months stay here to read.',
     'P.noAge': 'We cannot tell where you are without your age. Next: add it.',
     'P.agesFromSaving': 'Next: check your age today and the age you want to stop work. We took them from your saving figures.',
+    'P.confirmStop': 'Your plan says you stop work in {stop}. Next: say on About you and when whether you have.',
     'P.arrive': 'You stopped work in {stop}. Next: record your first month; Month by month then compares your pot with the plan’s.',
     'P.taxyear': 'Next: set up the {year} tax year.',
     'P.month': 'Next: record {month}.',
+    'P.review': 'Next: your review, due {reviewOften}. A few figures, a few minutes; nothing about your plan changes unless you say so.',
+    'P.offCourse': 'At your last two reviews that worked out the chance, the plan was past your line. Next: see what you can change.',
+    'P.householdPending': 'Your partner’s plan is not in this account. Next: link one, or leave it.',
     'P.idle': '{month} is recorded. Nothing to do until {nextMonth}.',
-    'P.noAim': 'Next: say what you would want to spend from {stop}, to see whether what you pay in is enough.',
-    'P.pot': 'Your plan is locked and you stop work in {stop}. Next: record this month’s pot.',
-    'P.working': 'Your plan is locked and you stop work in {stop}. Next: check you are still saving enough.',
-    'P.recheck': 'The plan has changed since its ‘will it last’ answer. Next: check it still lasts.',
-    'P.stale': 'This plan was set to start in {savedYear}, which has passed. Next: update it to today, or leave it as it is.',
-    'P.draft': 'Next: check it lasts, then lock it when it is right.',
-    'P.startMove': 'Your plan is set to start in {start}, but you stopped work in {stopped}. Next: start it from the tax year you stopped.',
-    'P.startAsk': 'Your plan is set to start in {start}. Next: say when you stopped work.',
-    'P.startDraft': 'Your plan is set to start in {start}. Next: choose this tax year, or the tax year you stopped work.',
-    'P.startBlocked': 'Your plan is set to start in {start}, but you stopped work in {stopped}. Its start can be moved only once the plan is unlocked.',
-    /** The same two, where the plan's recorded months begin later than work stopped, or no month is said (7.4.3). */
-    'P.startMoveRecords': 'Your plan is set to start in {start}, but your recorded months begin in {records}. Next: start it from {moveTo}.',
-    'P.startBlockedRecords': 'Your plan is set to start in {start}, but your recorded months begin in {records}. Its start can be moved only once the plan is unlocked.',
-    'P.approaching': 'Next: see how the plan draws from {stop}.',
-    /** A saver's check-in (research/saving-enough-and-check-in.md 4.2; release step R3): due, behind, on course. */
-    'P.checkinDue': 'Next: your {often} check-in (the last was {last}).',
-    'P.behind': 'At your last check-in ({last}) you were not on course yet. Next: see what would put you on course.',
-    'P.onCourse': 'On course at your last check-in ({last}). Next check-in: {nextCheck}.',
-    'P.nextCheckIn': 'You checked in for {last}. Next check-in: {nextCheck}.',
-    'P.saving': 'Next: see whether what you pay in is enough, then check in once a year.',
-    /**
-     * 7.3.0 (research/v7/one-product-design.md, "The to-do reader"): the things due that the plan's home gathers, said on the
-     * rail too when one is first. The move invitation points at the stop month until agreeing to move arrives.
-     */
-    'P.invite': 'Your plan says you stop work in {stop}. Ready to plan the move? Next: check the month you stop.',
-    'P.moveNext': 'Next: move {n} of {of} to your plan’s mix: {label}.',
-    'P.moveLater': 'Next: move {n} of {of} to your plan’s mix: {label}.',
-    'P.moveFinish': 'Every move is ticked. Next: update what you hold, so it shows the plan’s mix.',
-    'P.firstCheckIn': 'Next: your first check-in. It says where your pot is today, and how often you want to check in.',
-    'P.holdStale': 'What you hold was last updated on {date}. Next: update it.',
-    'P.gapSoon': '{gapYear}: {gap} is not yet covered by what you hold and keep. Next: see what is covered, year by year.',
-    'P.householdPending': 'Your partner’s plan is not in this account. Next: link one, or leave it.'
+    'P.window': 'In your move window: {windowLeft} left, to {stop}.',
+    'P.onCourse': 'On course at your last check-in ({last}). Your next review: {nextCheck}.',
+    'P.nextReview': 'Nothing due. Your next review is {nextReview}.',
+    'P.reviewAny': 'Nothing due. You can review your plan whenever you like.'
   },
 
   /** "Everything else this plan uses" (2.5): each row's name and the label of each fact. */

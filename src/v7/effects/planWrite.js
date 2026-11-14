@@ -124,6 +124,10 @@
  *     and NOTHING else: no stamp (schema.js TASK_WRITES), so a dismissal never spoils an open run's key, reorders "Your plans"
  *     or changes a "changed on" line. Past the guard and phaseWriteRefusal (refused once a close has passed, on the example
  *     plan and on a plan shown as saved). Then plan/saved with op 'task' — said, with no Undo — and the plans read again.
+
+ *   - `plan/recordMonths` (kind 'recordMonths'): "Keep a record of each month here" on Month by month — ONE write of
+ *     `decisionTool.recordMonths` (true or false) and the stamp (schema.js RECORD_WRITES): outside the Decision settings and
+ *     the lock, so a locked plan takes it and its settings stay byte-identical. Then plan/saved with op 'recordMonths' and Undo.
  *
  * "Keep this as a plan" (research/v7/road-to-7.md step 7; save-as-plan.md Contract C.3 for the shape): the preview makes
  * the plan itself, here, on `keep/save` (state.keep[q].saving) — the hand-over of a seed to the planner is retired:
@@ -607,7 +611,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     } else if (op === 'month' || op === 'taxYear') {
       // a month recorded (with its fill) or a tax year set up, put back: the records and the tax years as they were, past the guard (7.2.0)
       if (lockedRefusal(plan, asSent) || monthWriteRefusal(asSent)) { fail(planId, 'locked'); return; }
-    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick' || op === 'amend' || op === 'budget' || op === 'saving' || op === 'potRecord' || op === 'stale') {
+    } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick' || op === 'amend' || op === 'budget' || op === 'saving' || op === 'potRecord' || op === 'stale' || op === 'recordMonths') {
       // the household's writes (road-to-7.md step 9), the record and the tick-offs (step 10), the budget, "What you pay in", the pot record and
       // "Leave it" (step 11b) go where the planner's go: the guard alone decides — by the write's own mark, never by the step the person has since moved to
       if (lockedRefusal(plan, asSent)) { fail(planId, 'locked'); return; }
@@ -821,6 +825,22 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (lockedRefusal(plan, data) || phaseWriteRefusal(plan, data, { now: at })) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;
     dispatch({ type: A.PLAN_SAVED, planId, previous: null, line: { id: p.until ? 'putOff' : 'putAway', slots: p.until ? { month: monthWords(p.until) } : {}, key }, op: 'task' });
+    dispatch({ type: A.PLANS_READING });
+    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+  }
+
+  /** "Keep a record of each month here" (7.10.0): ONE write of decisionTool.recordMonths and the stamp, past the guard; Undo. */
+  async function recordMonths(planId, value) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan } = got;
+    const at = now();
+    const dt = plan.decisionTool && typeof plan.decisionTool === 'object' ? plan.decisionTool : {};
+    const was = typeof dt.recordMonths === 'boolean' ? dt.recordMonths : undefined;
+    const data = declaredOnly({ 'decisionTool.recordMonths': value === true, lastModified: at.toISOString() });
+    if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
+    if (!(await send(place, planId, data))) return;
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { 'decisionTool.recordMonths': was, lastModified: plan.lastModified }, line: { id: value === true ? 'recordYes' : 'recordNo', slots: {} }, op: 'recordMonths' });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
@@ -1804,6 +1824,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_TICK && s.kind === 'tick') run(() => tick(s.planId, s.key, s.done !== false));
     // a to-do put away on the home (7.10.0)
     else if (action.type === A.PLAN_TASK && s.kind === 'task') run(() => task(s.planId, s.key, s.how));
+    // "Keep a record of each month here" (7.10.0)
+    else if (action.type === A.PLAN_RECORD_MONTHS && s.kind === 'recordMonths') run(() => recordMonths(s.planId, s.value === true));
     // "I accept this risk" / "Withdraw this" (7.7.0)
     else if (action.type === A.PLAN_AMEND && s.kind === 'amend') run(() => amend(s.planId, s.op, s.amend || null, s.testId || null));
     // the budget on a saved plan (road-to-7.md step 11b)

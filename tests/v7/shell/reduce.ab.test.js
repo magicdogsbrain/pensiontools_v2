@@ -315,7 +315,9 @@ const anyAction = fc.oneof(
   fc.constantFrom(null, { q: 'b', step: 'answer' }, { planId: 'W1', step: 'saving', kept: true }).map((back) => ({ type: A.ACCOUNT_RETURN, back })),
   fc.constantFrom({ planId: 'P1', step: null }, { planId: 'P1', step: 'about' }).map((place) => ({ type: A.PLACE_KEEP, place })),
   // a home's to-do put away (7.10.0): stored on the plan by the plan write, never kept in the window
-  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('hold.stale', 'month.record@2026-10', 'review.due@2027/28'), fc.constantFrom('notNow', 'notThisTime', 'seen', 'done')).map(([planId, key, how]) => ({ type: A.PLAN_TASK, planId, key, how }))
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('hold.stale', 'month.record@2026-10', 'review.due@2027/28'), fc.constantFrom('notNow', 'notThisTime', 'seen', 'done')).map(([planId, key, how]) => ({ type: A.PLAN_TASK, planId, key, how })),
+  // "Keep a record of each month here" (7.10.0): one write by the plan write
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, value]) => ({ type: A.PLAN_RECORD_MONTHS, planId, value }))
 );
 
 /** 'NOW' is the key of what is typed at that moment, as the runner would send it; 'fillA'/'fillB' type a whole draft. */

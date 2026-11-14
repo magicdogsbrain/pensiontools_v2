@@ -22,7 +22,7 @@ export function PlanRail({ view, state, dispatch, onChange }) {
   const setOpen = (o) => dispatch({ type: 'ui/rail', open: o });
   const onKeyDown = (e) => { if (e.key === 'Escape' && open) setOpen(false); };
   const stepName = (s) => stepNameOf(s.id, view);
-  const next = view.next || { id: 'P.saving', slots: {}, button: null };
+  const next = view.next || { id: 'P.reviewAny', slots: {}, button: null };
   // `words`: a to-do's own words where its sentence differs (the move to the tax year recorded months begin in, 7.4.3)
   const sentence = fill(PLAN.next[next.words || next.id] || PLAN.next[next.id] || '', next.slots);
   const b = next.button;

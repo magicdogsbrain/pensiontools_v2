@@ -44,3 +44,22 @@ export function cadenceNote(c) {
   const n = cadenceMonths(c);
   return n === 1 ? '' : 'Enter this month\'s values; the recommendation covers the next ' + n + ' months and Save records them all.';
 }
+
+/** The field "Keep a record of each month here" is written to (7.10.0; schema.js RECORD_WRITES): true, false, or absent. */
+export const RECORD_MONTHS_FIELD = 'decisionTool.recordMonths';
+
+/**
+ * Does the plan want its months asked for on the home (7.10.0; research/v7/replan-nov-2026.md §6.4: monthly logging is
+ * opt-in)? In this order: the person said no (`recordMonths` false) → no; said yes → yes; a draw cadence chosen (the
+ * preference, or the old settings key) → yes; any month recorded → yes; otherwise no. Only the home's to-dos read it: a month
+ * can always be recorded on Month by month, and nothing recorded is changed by it.
+ * @param {object|null|undefined} decisionTool  scenario.decisionTool
+ */
+export function monthsWanted(decisionTool) {
+  const dt = decisionTool && typeof decisionTool === 'object' ? decisionTool : {};
+  if (dt.recordMonths === false) return false;
+  if (dt.recordMonths === true) return true;
+  if (CADENCES.includes(dt.cadence)) return true;
+  if (dt.settings && typeof dt.settings === 'object' && CADENCES.includes(dt.settings.cadence)) return true;
+  return Array.isArray(dt.history) && dt.history.length > 0;
+}

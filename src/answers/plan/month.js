@@ -26,7 +26,7 @@ import { statePensionInfoFor } from '../../utils/StatePensionUtils.js';
 import { defaultTaxYearConfig } from '../../models/TaxYear.js';
 import { storedStressSettings, planStage } from '../../services/PlanReading.js';
 import { arrivalCheck } from '../../services/LifeStage.js';
-import { cadenceOf } from '../../services/DrawCadence.js';
+import { cadenceOf, monthsWanted } from '../../services/DrawCadence.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { isExamplePlan } from '../../services/GuestPlans.js';
 import { MONTH_FIELDS } from './schema.js';
@@ -362,6 +362,8 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
 /**
  * Everything the page draws (research/v7/months-in-v7.md §1), with the boxes as typed. `editable` is false for a plan shown as
  * saved, the read-only example, a plan not locked (it is told to lock first) and a closed plan past its last month.
+ * `recordMonths` ('yes' | 'no' | null) is the answer to "Keep a record of each month here" (7.10.0), `monthsWanted` whether the
+ * home asks for months, and `recordChoice` whether the question can be answered here (not on a plan shown as saved or the example).
  */
 export function monthOf(entries, id, { today, typed = null, source = 'account' } = {}) {
   const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
@@ -374,9 +376,14 @@ export function monthOf(entries, id, { today, typed = null, source = 'account' }
   try { R = readMonth(plan, typed || {}, { today, entries: list }); } catch (e) { return { found: true, id: String(plan.id), name: nameOf(plan), readonly, source, failed: true, editable: false }; }
   const { I, write, firstDecision, decision, ...rest } = R;
   const needsLock = !R.locked && !R.closed;
+  // "Keep a record of each month here" (7.10.0): the person's own answer, and whether the home asks for months
+  // (DrawCadence.monthsWanted: said, a cadence chosen, or a month recorded)
+  const dt = isObj(plan.decisionTool) ? plan.decisionTool : {};
+  const recordMonths = dt.recordMonths === true ? 'yes' : dt.recordMonths === false ? 'no' : null;
   return {
     found: true, id: String(plan.id), name: nameOf(plan), readonly, example, source, needsLock,
     editable: !readonly && !example && !needsLock && !R.nothing,
+    recordMonths, monthsWanted: monthsWanted(dt), recordChoice: !readonly && !example,
     ...rest,
     records: write ? write.records.length : 0
   };

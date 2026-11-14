@@ -9,10 +9,10 @@
 export const HOME = {
   title: 'Your plan',
 
-  /** The three stages, said as words (never only a colour), and the strip under them. */
-  stages: { saving: 'Saving', moving: 'Moving', drawing: 'Drawing', closed: 'Closed' },
+  /** The three stages, said as words (never only a colour), and the strip under them. The key stays `drawing`. */
+  stages: { saving: 'Saving', moving: 'Moving', drawing: 'Living on it', closed: 'Closed' },
   strip: {
-    label: 'Where this plan is: saving, moving, drawing',
+    label: 'Where this plan is: saving, moving, living on it',
     now: 'you are here',
     done: 'done',
     to: 'to {month}',
@@ -23,20 +23,17 @@ export const HOME = {
     saving: 'Saving.',
     savingStop: 'Saving. You stop work in {month}.',
     moving: 'Moving.',
-    movingMoves: 'Moving. {done} of {of} moves done.',
-    drawing: 'Drawing.',
-    draft: 'Drawing. Not locked yet.',
+    drawing: 'Living on it.',
+    draft: 'Living on it. Not locked yet.',
     closed: 'Closed.',
     none: 'Your plan.'
   },
 
-  /** To do (the design's rank table): at most three, and the rest folded under "and N more". */
+  /** To do (7.10.0): at most one shown — the plan's own and a partner's in one list — and the rest folded under "and N more". */
   todoTitle: 'To do',
   more: { one: 'and 1 more', many: 'and {n} more' },
   soonTitle: 'Soon',
   notNow: 'Not now',
-  /** "Not now" on the move invitation (the design's words for it). */
-  notYet: 'Not yet',
   /**
    * The ways to put a to-do away (7.10.0), stored on the plan so it stays away on every device: "Not now" until next month;
    * the others for good, for that occurrence of the to-do.
@@ -49,62 +46,54 @@ export const HOME = {
     'closed.next':        { title: 'Carry on in ‘{next}’', detail: 'This plan closed at the end of {closed}. Its months stay here to read.' },
     'plan.noAge':         { title: 'Add your age', detail: 'We cannot tell where you are without it.' },
     'plan.agesFromSaving': { title: 'Check your ages', detail: 'Your age today and the age you want to stop work. We took them from your saving figures.' },
-    'move.invite':        { title: 'Ready to plan the move?', detail: 'Your plan says you stop work in {stop}. Check the month you stop first.' },
-    'lock.first':         { title: 'Lock the plan when it is right', detail: 'Check it lasts, then lock it. Months are recorded once it is locked.' },
-    /** A locked plan stored the old way (its start later than the tax year work stopped): move it, or say the month first. */
-    'start.move':         { title: 'Start it from the tax year you stopped', detail: 'Your plan is set to start in {start}, but you stopped work in {stopped}.' },
-    'start.ask':          { title: 'When did you stop work?', detail: 'Your plan is set to start in {start}. If you are already drawing, it can start this tax year instead.' },
-    /** The same, on a plan whose start this tax year cannot replace (already this tax year or earlier, or not offered). */
-    'start.askOnly':      { title: 'When did you stop work?', detail: 'Your plan is set to start in {start}.' },
-    'start.blocked':      { title: 'Its start can be moved only once the plan is unlocked', detail: 'Your plan is set to start in {start}, but you stopped work in {stopped}.' },
-    /** The same two, where the plan's recorded months begin later than work stopped, or no month is said (7.4.3). */
-    'start.moveRecords':  { title: 'Start it from {moveTo}', detail: 'Your plan is set to start in {start}, but your recorded months begin in {records}.' },
-    'start.blockedRecords': { title: 'Its start can be moved only once the plan is unlocked', detail: 'Your plan is set to start in {start}, but your recorded months begin in {records}.' },
-    /** A draft still set to start later than this tax year (7.4.0, PlanMove.laterDraftLeftOf): its start is chosen there. */
-    'start.draft':        { title: 'Choose your plan’s first tax year', detail: 'Your plan is set to start in {start}. It can start this tax year, or the tax year you stopped work.' },
+    /** An unlocked plan whose stop month has passed (7.10.0): asked, never moved on quietly. */
+    'plan.confirmStop':   { title: 'Did you stop work in {stop}?', detail: 'Your plan says you stop work in {stop}. If you have, say so on About you and when; if not, change the month there.' },
     'month.taxYear':      { title: 'Set up {year}', detail: 'A new tax year: say what the plan pays this year before the first month is recorded.' },
     'month.arrive':       { title: 'Record your first month', detail: 'You stopped work in {stop}. Month by month then compares your pot with the plan’s.' },
     'month.record':       { title: 'Record {monthName}', detail: 'What your platform shows today. It takes a minute.' },
     'month.gap':          { title: 'Record {month}', detail: 'It is not recorded yet. Months you missed can be filled in at once.' },
-    'move.next':          { title: 'Move {n} of {of}: {label}', detail: 'Tick it on Moving to your plan’s mix when the order is placed.' },
-    /** The same move on a Drawing plan with nothing it holds recorded (P.moveLater): the step goes by its short name there. */
-    'move.later':         { title: 'Move {n} of {of}: {label}', detail: 'Tick it on ‘Your plan’s mix’ when the order is placed.' },
-    'move.finish':        { title: 'Update what you hold', detail: 'Every move is ticked. Update what you hold so it shows the plan’s mix.' },
-    'checkin.first':      { title: 'Your first check-in', detail: 'Where your pot is today, and how often you want to check in.' },
-    'checkin.due':        { title: 'Check in', detail: 'What your pot is worth today. It takes a minute.' },
-    'checkin.behind':     { title: 'See what would put you on course', detail: 'At your last check-in ({last}) you were not on course yet.' },
-    'saving.noAim':       { title: 'Say what you would want to spend', detail: 'To see whether what you pay in is enough.' },
-    'hold.stale':         { title: 'Update what you hold', detail: 'Last updated on {date}.' },
-    /** 7.6.0: a tax year starting within six months (or this one) not yet covered by what is held and kept — once, never a sale. */
-    'hold.gap':           { title: '{gapYear}: {gap} not yet covered', detail: 'What you hold and keep does not cover it yet. See what is covered, year by year.' },
-    'draft.stale':        { title: 'Update the plan to today', detail: 'It was set to start in {savedYear}, which has passed. Or leave it as it is.' },
-    'answer.stale':       { title: 'Check it still lasts', detail: 'The plan has changed since its ‘will it last’ answer.' },
+    /** The review (7.10.0): one page in every phase; a saver's is the check-in. */
+    'review.due':         { title: 'Your review', detail: 'Due {reviewOften}. A few figures, a few minutes. Nothing about your plan changes unless you say so.' },
+    'review.offCourse':   { title: 'Past your line at your last two reviews', detail: 'At your last two reviews that worked out the chance, the money lasted as long as you do {a} and then {b} times in 20; your line is {line} in 20. The review shows what you can change.' },
     'household.pending':  { title: 'Your partner’s plan', detail: 'The plan it is linked with is not in this account. Link one, or leave it.' }
+  },
+  /** Off course said another way: by the guardrails rule, or from readings kept before 7.8.0 that say no figure. */
+  offCourse: {
+    guardrails: 'At your last two reviews your plan took more than a fifth more of what your pots hold than it took when the plan as locked began. The review shows what you can change.',
+    plain: 'At your last two reviews that worked out the chance, the money did not last as long as you do often enough for your line of {line} in 20. The review shows what you can change.'
   },
   /** A soon item: shown apart, never counted. */
   soon: {
-    'month.taxYear': { title: 'Set up {year}', detail: 'From 1 March you can set up the new tax year early; it is due from {month}.' },
-    'move.invite': { title: 'Your move is coming', detail: 'Your plan says you stop work in {stop}. From that month, planning the move is the first thing to do.' }
-  },
-  /** Said after the move invitation's line: how the last check-in went (the design's "you were on course / behind"). */
-  inviteBand: {
-    yes: 'At your last check-in you were on course.',
-    behind: 'At your last check-in you were not on course yet.'
+    'month.taxYear': { title: 'Set up {year}', detail: 'From 1 March you can set up the new tax year early; it is due from {month}.' }
   },
   /** A partner's plan's thing to do, one line each, named by that plan. */
   partnerItem: '{title} — ‘{name}’',
 
   /**
-   * Nothing due, always with a date (never "nothing to do" alone). On a drawing plan "{month} is recorded" names the latest
-   * month recorded; a quarter or a year recorded at once reaches ahead, so the date follows the plan's own cadence.
+   * Nothing due, always with a date or the review's own line (never "nothing to do" alone). On a plan recording its months
+   * "{month} is recorded" names the latest month recorded; a quarter or a year recorded at once reaches ahead, so the date
+   * follows the plan's own cadence.
    */
   quiet: {
-    savingNext: 'Nothing due. Your next check-in is {month}.',
-    savingPot: '{monthName}’s pot is recorded. Nothing is due until {next}.',
+    review: 'Nothing due. Your next review is {month}.',
+    reviewAny: 'Nothing due. You can review your plan whenever you like.',
     drawing: '{month} is recorded. Nothing is due until {next}.',
     draft: 'Months are recorded once the plan is locked.',
     closed: 'Closed {month}; carried on in ‘{name}’.',
     closedAlone: 'Closed {month}.'
+  },
+  /** The review's line, when the quiet line does not say its date already (7.10.0). */
+  review: {
+    next: 'Your next review: {month}.',
+    any: 'Review your plan whenever you like.',
+    link: 'Review now'
+  },
+  /** The move window (7.10.0): the one clock between saving and living on it. */
+  moveWindow: {
+    moving: 'In your move window: {left} left, to {stop}.',
+    movingNoRecord: 'In your move window: {left} left, to {stop}. You can record what you hold when you like.',
+    agreed: 'You accepted what you hold on {date}. You stop work in {stop}.',
+    saving: 'Your move window opens in {from}.'
   },
 
   /** The year view: the tax year's twelve months, what was drawn against what the plan said. */
@@ -131,16 +120,16 @@ export const HOME = {
   whereTitle: 'Where you are',
   whereNone: 'Nothing recorded to read against the plan yet.',
   /**
-   * A plan recording months is Drawing whatever its record of what you hold says (7.3.1): what is still held differently from
-   * the plan is said under "Where you are", as information — never a to-do. {pct} is the move page's own share of the plan's
-   * mix held; {label} the next order still open there, by its own name; {n} how many more after it.
+   * What is held differently from the plan's mix, on a plan living on its money (7.10.0): one information line, never a
+   * to-do and never a sale, with the way to test it. {held} and {mix} are shares of the pension.
    */
-  heldMix: {
-    held: 'You hold about {pct}% of your plan’s mix.',
-    differentOne: 'Different from the plan: {label}.',
-    differentMany: 'Different from the plan: {label} and {n} more.',
-    ticked: 'Every move is ticked, but what you hold does not show it yet.',
-    link: 'See the move'
+  drift: {
+    shares: 'Shares are {held}% of your pension; the plan’s mix has {mix}% in shares.',
+    bonds: 'Bonds are {held}% of your pension; the plan’s mix has {mix}% in bonds.',
+    cash: 'Cash is {held}% of your pension; the plan’s mix has {mix}% in cash.',
+    diversifiers: 'Other investments are {held}% of your pension; the plan’s mix has {mix}% in other investments.',
+    ladder: 'Your ladder does not yet hold the gilt for {year}.',
+    link: 'Test with what I hold'
   },
   /** The full reading, with where each figure is from, is on the "Where you are" step. */
   whereMore: 'See where you are in full',
@@ -150,13 +139,6 @@ export const HOME = {
   pensionShort: 'Before {age} your plan can’t take money from your pension. Your other savings run short by {amount} a year in {years}.',
 
   toolsTitle: 'Tools',
-  /** The move tool's state on the home: the same count as the headline. */
-  toolMoves: '{done} of {of} moves done',
-  /**
-   * On a Drawing plan the move tool (and the step, in "Your plan's steps") goes by the mix it keeps to, PLAN.steps.move.short,
-   * and says the share held, as "Where you are" does (7.3.1).
-   */
-  toolHeld: 'about {pct}% held',
 
   /** Everything else, folded away. */
   stepsTitle: 'Your plan’s steps',

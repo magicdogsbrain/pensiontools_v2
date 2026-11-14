@@ -15,9 +15,8 @@
  * "Not done yet", never named by the next sentence. The retired stages are as they were.
  *
  * The check-in (release step R3, 4.1 and 5): a saver's own step, `checkin`, takes the pot step's place on every saver's
- * rail. `pot` stays in ALL_STEPS and its address opens the check-in, so no address breaks. On a plan locked while saving
- * that never chose how often, the check-in step is due exactly when the pot step was — this month's pot not recorded —
- * and the next sentence is the old one, word for word (P.pot, then P.working).
+ * rail. `pot` stays in ALL_STEPS and its address opens the check-in, so no address breaks. A plan locked while saving that
+ * never chose how often is checked in on once a year (7.10.0: the review is yearly; its monthly pot step is gone).
  */
 import { WINDOW } from '../../services/Phases.js';
 
@@ -47,31 +46,24 @@ export const RETIRED_STAGES = Object.freeze(['draft-retired', 'running', 'closed
 export const SAVER_STAGES = Object.freeze(['saving', 'approaching', 'committed-saving']);
 
 /**
- * The next sentences, tried in this order. A saver's (4.2): the ages taken from the planner's Accumulation tab are
- * checked first, then an aim to test against, then — on a plan locked while saving that never chose how often to check
- * in — this month's pot, as before, word for word (P.pot, then P.working). Neither of the first two is ever asked of a
- * locked plan, so a locked saver's sentence is today's. Once a check-in has said how often (release step R3): the
- * check-in when it is due, then what the last one said — not on course yet, or on course with the month of the next.
- * The rail reads no runs: only the stored reading of the last check-in.
+ * The next sentences, tried in this order (7.10.0; research/v7/replan-nov-2026.md §6.4, spec-7100 §5): the home shows the
+ * phase, the next review and at most one thing due, and these are the only things that can be due — closed; no age; the
+ * ages taken from the saving figures; "did you stop work?" on an unlocked plan past its stop; the tax year's set-up before
+ * its first month (a month cannot be recorded before its year is set up); the month to record, on a plan living on its
+ * money that wants months asked for; the review due; off course by the person's own rule; a partner's plan missing. Then
+ * the sentences that are not things to do (NEXT_INFO), said only when nothing is due; the last says something always.
+ * The rail's "Next" is the first thing to do (read.js dueFor), so it is always the home's first to-do. The rail reads no
+ * runs: only the stored readings.
  */
-/**
- * 7.3.0 (research/v7/one-product-design.md, "The to-do reader"): one engine for the rail and the plan's home. The order is
- * the design's rank table — closed, age, the move invitation, the lock, the tax year, the arrival, the month, the move,
- * the first check-in, the check-in due, behind, an aim, what you hold out of date, the move still to make on a drawing plan
- * that has no record of what it holds (the design's "move.next: moving (lead), drawing (lower)"), an out-of-date draft or
- * answer, the household — and then the sentences that are not things to do (NEXT_INFO), said only when nothing is due. The rail's
- * "Next" is the first thing to do (read.js dueFor), so it is always the home's first to-do.
- */
-export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.closed', 'P.closedAlone', 'P.noAge', 'P.agesFromSaving', 'P.invite', 'P.startDraft', 'P.draft', 'P.startMove', 'P.startAsk', 'P.startBlocked', 'P.taxyear', 'P.arrive', 'P.month', 'P.moveNext', 'P.moveFinish', 'P.gapSoon', 'P.firstCheckIn', 'P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater', 'P.recheck', 'P.stale', 'P.householdPending',
-  'P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
+export const NEXT_ORDER = Object.freeze(['P.readonly', 'P.closed', 'P.closedAlone', 'P.noAge', 'P.agesFromSaving', 'P.confirmStop', 'P.taxyear', 'P.arrive', 'P.month', 'P.review', 'P.offCourse', 'P.householdPending',
+  'P.idle', 'P.window', 'P.onCourse', 'P.nextReview', 'P.reviewAny']);
 /** The next sentences that say where things stand rather than something to do: never a to-do on the home. */
-export const NEXT_INFO = Object.freeze(['P.readonly', 'P.closedAlone', 'P.idle', 'P.working', 'P.approaching', 'P.onCourse', 'P.nextCheckIn', 'P.saving']);
+export const NEXT_INFO = Object.freeze(['P.readonly', 'P.closedAlone', 'P.idle', 'P.window', 'P.onCourse', 'P.nextReview', 'P.reviewAny']);
 /** Each thing to do by the design's own id (the home and its tests name them so; the rail's words are the P.* ones). */
 export const DUE_IDS = Object.freeze({
-  'P.closed': 'closed.next', 'P.noAge': 'plan.noAge', 'P.agesFromSaving': 'plan.agesFromSaving', 'P.invite': 'move.invite', 'P.draft': 'lock.first', 'P.startMove': 'start.move', 'P.startAsk': 'start.ask', 'P.startBlocked': 'start.blocked', 'P.startDraft': 'start.draft',
-  'P.taxyear': 'month.taxYear', 'P.arrive': 'month.arrive', 'P.month': 'month.record', 'P.moveNext': 'move.next', 'P.moveLater': 'move.next', 'P.moveFinish': 'move.finish',
-  'P.firstCheckIn': 'checkin.first', 'P.pot': 'checkin.due', 'P.checkinDue': 'checkin.due', 'P.behind': 'checkin.behind', 'P.noAim': 'saving.noAim',
-  'P.holdStale': 'hold.stale', 'P.gapSoon': 'hold.gap', 'P.stale': 'draft.stale', 'P.recheck': 'answer.stale', 'P.householdPending': 'household.pending'
+  'P.closed': 'closed.next', 'P.noAge': 'plan.noAge', 'P.agesFromSaving': 'plan.agesFromSaving', 'P.confirmStop': 'plan.confirmStop',
+  'P.taxyear': 'month.taxYear', 'P.arrive': 'month.arrive', 'P.month': 'month.record',
+  'P.review': 'review.due', 'P.offCourse': 'review.offCourse', 'P.householdPending': 'household.pending'
 });
 
 /**

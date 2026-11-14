@@ -80,7 +80,9 @@ const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
   // "I accept this risk" and "Withdraw this" (7.7.0): one write of the whole list of agreements
   'amend',
   // a to-do put away on the home (7.10.0): one write of the plan's `tasks`, said, and no Undo (a dismissal carries no stamp to put back)
-  'task'];
+  'task',
+  // "Keep a record of each month here" (7.10.0): one write of decisionTool.recordMonths, with Undo
+  'recordMonths'];
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -1188,6 +1190,14 @@ function reduceAction(state, action) {
       if (!DISMISS_KINDS.includes(how)) return refuse('plan/task: needs how it is put away (notNow, notThisTime, seen or done)');
       if (state.ui.saving) return state;
       return { ...state, ui: { ...state.ui, saving: { planId, kind: 'task', key, how }, saveProblem: null, toast: null } };
+    }
+    // "Keep a record of each month here" on Month by month (7.10.0): one write of decisionTool.recordMonths by the plan write
+    case A.PLAN_RECORD_MONTHS: {
+      const { planId, value } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/recordMonths: needs a plan id');
+      if (typeof value !== 'boolean') return refuse('plan/recordMonths: needs yes or no');
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, saving: { planId, kind: 'recordMonths', value }, saveProblem: null, toast: null } };
     }
     case A.PLAN_TICK: {
       const { planId, key } = action;

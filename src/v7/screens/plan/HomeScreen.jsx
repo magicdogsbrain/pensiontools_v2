@@ -1,7 +1,8 @@
 /**
  * A plan's home (7.3.0; research/v7/one-product-design.md, "The plan home"; the mock-up research/v7/mockups/first-visit.html,
- * screen 4), on #/plan/<id> for every plan, locked or not: the plan's line and its stage, what is due (at most three, the
- * first the one thing to press), the year's months against the plan and where you are side by side on a wide screen, the
+ * screen 4), on #/plan/<id> for every plan, locked or not: the plan's line and its stage, the move window and the next
+ * review, at most one thing due (7.10.0: the plan's own and a partner's in one list, the rest "and N more"), the year's
+ * months against the plan and where you are side by side on a wide screen, the
  * tools with their one-line states, then everything else folded away — the steps, changing or trying something, and a
  * question with the plan's figures. The rail is not drawn here: the home is the rail laid out.
  *
@@ -21,17 +22,16 @@ const T = 'plan.home';
 
 /** A to-do's title and line, filled from its slots. */
 const itemWords = (it) => {
-  // the move on a Drawing plan (P.moveLater) points at the step by the name it goes by there (7.3.1): the same to-do id
-  const words = (it.soon ? HOME.soon[it.id] : null) || (it.pid === 'P.moveLater' && HOME.items['move.later']) || HOME.items[it.id] || { title: PLAN.next[it.pid] || it.id, detail: '' };
-  // the move invitation says how the last check-in went, when there was one
-  const band = it.id === 'move.invite' && it.slots && HOME.inviteBand[it.slots.band] ? ' ' + HOME.inviteBand[it.slots.band] : '';
-  return { title: fill(words.title, it.slots), detail: fill(words.detail, it.slots) + band };
+  const words = (it.soon ? HOME.soon[it.id] : null) || HOME.items[it.id] || { title: PLAN.next[it.pid] || it.id, detail: '' };
+  // off course by the guardrails rule, or from readings that keep no figure, is said in its own words
+  const detail = it.id === 'review.offCourse' && it.slots && it.slots.offKind === 'guardrails' ? HOME.offCourse.guardrails
+    : it.id === 'review.offCourse' && it.slots && (it.slots.a === '' || it.slots.b === '') ? HOME.offCourse.plain : words.detail;
+  return { title: fill(words.title, it.slots), detail: fill(detail, it.slots) };
 };
 
-/** The words of a to-do's buttons that put it away (answers/plan/schema.js DISMISS), "Not yet" on the move invitation. */
-const dismissWords = (it, how) => (how === 'notNow' && it.id === 'move.invite' ? HOME.notYet : HOME.dismiss[how]);
-
-function Item({ it, first, planId, dispatch, partner = null }) {
+function Item({ it, first, planId, dispatch }) {
+  // a partner's to-do (7.10.0: in the one list, after the plan's own): named by its plan, never put away here
+  const partner = it.planId ? { planId: it.planId, name: it.name } : null;
   const w = itemWords(it);
   const b = it.button;
   // a month missed in an earlier tax year is named with its year on the home, the button as the title ("Record February 2025")
@@ -47,25 +47,24 @@ function Item({ it, first, planId, dispatch, partner = null }) {
       </span>
       <span class="home-item-acts">
         {b && b.href && <LinkButton testid={`${T}.todo.${it.id}${partner ? '.' + partner.planId : ''}`} kind={first ? 'pop' : 'quiet'} href={b.href} onClick={onPress}>{label}</LinkButton>}
-        {it.dismiss && !partner && it.dismiss.map((how) => <Button key={how} testid={`${T}.${how}.${it.id}`} kind="quiet" onClick={(e) => notNowPress(e, () => dispatch({ type: 'plan/task', planId, key: it.key, how }))}>{dismissWords(it, how)}</Button>)}
+        {it.dismiss && !partner && it.dismiss.map((how) => <Button key={how} testid={`${T}.${how}.${it.id}`} kind="quiet" onClick={(e) => notNowPress(e, () => dispatch({ type: 'plan/task', planId, key: it.key, how }))}>{HOME.dismiss[how]}</Button>)}
       </span>
     </li>
   );
 }
 
 /**
- * A Drawing plan whose record of what you hold is short of the plan's mix (7.3.1): how much of the mix is held and what is
- * different, as a short note under the headline lines (never one of them, never a to-do), the move one link away. The link
- * sits on a line of its own, as "See where you are in full" does: on a phone every link is a full-height target, and one
- * inside the sentence pushed its line apart from the rest.
+ * What is held differently from the plan's mix, on a plan living on its money (7.10.0): one information line under "Where you
+ * are" — never a to-do, never a sale — with the way to test it on a line of its own (on a phone every link is a full-height
+ * target).
  */
-function HeldMix({ M }) {
-  const W = HOME.heldMix;
-  const different = M.label ? (M.more > 0 ? fill(W.differentMany, { label: M.label, n: String(M.more) }) : fill(W.differentOne, { label: M.label })) : M.ticked ? W.ticked : '';
+function Drift({ D }) {
+  const W = HOME.drift;
+  const text = D.kind === 'ladder' ? fill(W.ladder, { year: D.year }) : fill(W[D.bucket], { held: String(D.held), mix: String(D.plan) });
   return (
-    <div class="home-held" data-testid={`${T}.heldMix`} data-pct={String(M.pct)}>
-      <p class="note">{fill(W.held, { pct: String(M.pct) })}{different ? ' ' + different : ''}</p>
-      <p class="home-where-more"><a href={M.href} data-testid={`${T}.heldMix.move`}>{W.link}</a></p>
+    <div class="home-held" data-testid={`${T}.drift`} data-kind={D.kind} {...(D.kind === 'buckets' ? { 'data-bucket': D.bucket } : {})}>
+      <p class="note">{text}</p>
+      <p class="home-where-more"><a href={D.href} data-testid={`${T}.drift.test`}>{W.link}</a></p>
     </div>
   );
 }
@@ -74,7 +73,7 @@ function headlineOf(H) {
   const s = H.stage;
   const W = HOME.headline;
   if (s.key === 'saving') return s.stop ? fill(W.savingStop, { month: s.stop }) : W.saving;
-  if (s.key === 'moving') return s.moves && s.moves.of > 0 ? fill(W.movingMoves, { done: String(s.moves.done), of: String(s.moves.of) }) : W.moving;
+  if (s.key === 'moving') return W.moving;
   if (s.key === 'drawing') return H.locked ? W.drawing : W.draft;
   if (s.key === 'closed') return W.closed;
   return W.none;
@@ -131,6 +130,10 @@ export function HomeScreen(state, dispatch) {
   const items = todo.items.filter((it) => !away(it));
   const more = todo.more.filter((it) => !away(it));
   const putOff = !H.readonly && told && told.id === 'putOff' ? fill(HOME.putOff, told.slots) : null;
+  // the next review, said once: by the nothing-due line when it is shown, else here
+  const quietShown = items.length === 0 && !H.readonly && !!H.quiet;
+  const quietSaysIt = quietShown && (H.quiet.id === 'review' || H.quiet.id === 'reviewAny');
+  const reviewLine = H.review && !quietSaysIt ? (H.review.next ? fill(HOME.review.next, { month: H.review.next }) : HOME.review.any) : null;
   return {
     question: null, rail: false, full: false,
     content: (
@@ -144,6 +147,8 @@ export function HomeScreen(state, dispatch) {
           </h1>
           {/* the plan's line, as every page of the plan says it: the stage in words, when it was locked */}
           <p class="plan-stage-line" data-testid="plan.stageLine">{H.line ? fill(PLAN.stageLines[H.line.id], H.line.slots) : ''}{H.lockedOn ? ' ' + fill(PLAN.page.lockedOn, { date: H.lockedOn }) : ''}</p>
+          {/* the move window (7.10.0): how long is left to the stop, or when it opens — said, never a to-do */}
+          {H.moveWindow && <p class="line" data-testid={`${T}.moveWindow`} data-line={H.moveWindow.id}>{fill(HOME.moveWindow[H.moveWindow.id], H.moveWindow.slots)}</p>}
           {H.readonly && <p class="notice" role="status" data-testid="plan.readonly">{HOME.readonly}</p>}
           {H.closed && <p class="notice" role="status" data-testid="plan.closed">{H.closed.hasDocument ? PLAN.page.closedKeeps : PLAN.page.closedKeepsNoDocument}{H.closed.next && !closedListed && <> <LinkButton testid="plan.closed.open" kind="quiet" href={href.plan(H.closed.next.id)}>{fill(PLAN.buttons.openNext, { name: H.closed.next.name })}</LinkButton></>}</p>}
           {H.before && <p class="note" data-testid="plan.before">{H.before.previous ? fill(PLAN.page.before, { name: H.before.previous.name, month: H.before.until }) : fill(PLAN.page.beforeAlone, { month: H.before.until })}{H.before.previous && <> <LinkButton testid="plan.before.open" kind="quiet" href={href.plan(H.before.previous.id)}>{fill(PLAN.buttons.openPrevious, { name: H.before.previous.name })}</LinkButton></>}</p>}
@@ -156,18 +161,17 @@ export function HomeScreen(state, dispatch) {
         <section class="home-todo" data-region="home-todo" data-testid={`${T}.todo`} data-count={String(todo.count)}>
           <h2 class="eyebrow">{HOME.todoTitle}</h2>
           {items.length > 0 ? (
-            <ul class="home-items">{items.map((it, i) => <Item key={it.id} it={it} first={i === 0} planId={planId} dispatch={dispatch} />)}</ul>
+            <ul class="home-items">{items.map((it, i) => <Item key={(it.planId || '') + it.id} it={it} first={i === 0} planId={planId} dispatch={dispatch} />)}</ul>
           ) : !H.readonly && H.quiet ? <p class="home-quiet" data-testid={`${T}.quiet`} data-quiet={H.quiet.id}>{fill(HOME.quiet[H.quiet.id], H.quiet.slots)}</p> : null}
           {more.length > 0 && (
             <details class="plan-fold home-more" data-testid={`${T}.more`}>
               <summary>{more.length === 1 ? HOME.more.one : fill(HOME.more.many, { n: String(more.length) })}</summary>
-              <ul class="home-items">{more.map((it) => <Item key={it.id} it={it} first={false} planId={planId} dispatch={dispatch} />)}</ul>
+              <ul class="home-items">{more.map((it) => <Item key={(it.planId || '') + it.id} it={it} first={false} planId={planId} dispatch={dispatch} />)}</ul>
             </details>
           )}
-          {todo.partner.length > 0 && (
-            <ul class="home-items home-partner" data-testid={`${T}.partner`}>{todo.partner.map((it) => <Item key={it.planId + it.id} it={it} first={false} planId={planId} dispatch={dispatch} partner={{ planId: it.planId, name: it.name }} />)}</ul>
-          )}
           {putOff && <p class="note" role="status" data-testid={`${T}.notNowDone`}>{putOff}</p>}
+          {/* the next review (7.10.0), when the line above does not say its date already, with the way to it */}
+          {reviewLine && <p class="line" data-testid={`${T}.review`}>{reviewLine} <a href={H.review.href} data-testid={`${T}.review.now`}>{HOME.review.link}</a></p>}
           {todo.soon.length > 0 && (
             <div class="home-soon" data-testid={`${T}.soon`}>
               <p class="eyebrow">{HOME.soonTitle}</p>
@@ -187,7 +191,7 @@ export function HomeScreen(state, dispatch) {
                 {b.lines.length > 0 && <ul class="plan-lines">{b.lines.map((l, i) => <PlanLine key={i} line={l} figures={b.figures} hideSource />)}</ul>}
               </div>
             ))}
-            {H.heldMix && <HeldMix M={H.heldMix} />}
+            {H.drift && <Drift D={H.drift} />}
             {/* 7.6.0: a year not yet covered by what the person holds and keeps: the first such year, said once, with the way to see it */}
             {H.gap && <p class="line" data-testid={`${T}.gap`} data-year={H.gap.Y}><a href={H.gap.href}>{fill(GAPS.home, H.gap)}</a></p>}
             {/* 7.7.0: what the person chose to keep, tested against the plan and agreed — or not yet */}
@@ -207,9 +211,7 @@ export function HomeScreen(state, dispatch) {
               {H.tools.map((t) => (
                 <li key={t.id}><a class="home-tool" href={t.href} data-testid={`${T}.tool.${t.id}`}>
                   <span class="home-tool-name">{stepName(t.id)}</span>
-                  {t.held != null ? <span class="home-tool-state"> · {fill(HOME.toolHeld, { pct: String(t.held) })}</span>
-                    : t.moves ? <span class="home-tool-state"> · {fill(HOME.toolMoves, { done: String(t.moves.done), of: String(t.moves.of) })}</span>
-                    : t.result && <span class="home-tool-state"> · <PlanSentence s={t.result} figures={t.figures} /></span>}
+                  {t.result && <span class="home-tool-state"> · <PlanSentence s={t.result} figures={t.figures} /></span>}
                 </a></li>
               ))}
             </ul>
@@ -220,7 +222,7 @@ export function HomeScreen(state, dispatch) {
           <summary>{HOME.stepsTitle}</summary>
           <p class="note">{HOME.stepsLead}</p>
           <ul class="home-steps">
-            {steps.map((x) => <li key={x.id} data-step={x.id}><a href={x.href} data-testid={`${T}.step.${x.id}`}>{stepName(x.id)}</a>{x.held != null ? <> — {fill(HOME.toolHeld, { pct: String(x.held) })}</> : x.result && <> — <PlanSentence s={x.result} figures={x.figures} /></>}</li>)}
+            {steps.map((x) => <li key={x.id} data-step={x.id}><a href={x.href} data-testid={`${T}.step.${x.id}`}>{stepName(x.id)}</a>{x.result && <> — <PlanSentence s={x.result} figures={x.figures} /></>}</li>)}
           </ul>
           {later.length > 0 && (
             <>

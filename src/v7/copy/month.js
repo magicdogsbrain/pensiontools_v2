@@ -16,12 +16,23 @@ export const MONTH = {
   locked: 'Recording a month changes nothing in your locked plan: the months are read against it.',
   /** The months missed, at the top (MonthFill's offer: every month the fill can reach before the month chosen). */
   gap: { one: '{words} is not recorded.', many: '{count} months are not recorded: {words}.', button: 'Fill them in with this month’s figures' },
-  sections: { month: 'This month', setUp: 'Set up {year}', pots: 'What your platform shows', advice: 'What to draw this month, and where it comes from', fill: 'The months you did not record', recent: 'Your recent months', later: 'Coming next to Month by month' },
+  sections: { month: 'This month', setUp: 'Set up {year}', pots: 'What your platform shows', advice: 'What to draw this month, and where it comes from', fill: 'The months you did not record', recent: 'Your recent months', record: 'Keep a record of each month here', later: 'Coming next to Month by month' },
   yearDone: 'Tax year {year}: set up from {from}.',
   yearDoneIncome: 'Tax year {year}: set up from {from}, {income} a year before tax.',
   yearEdit: 'To change a tax year once it is set up, use the classic planner for now.',
   prefilled: 'Filled in from {month}, the last month recorded: change them to what your platform shows today.',
   cadence: { quarterly: 'Your plan draws each quarter. Here each month is recorded on its own for now; the classic planner records the three months at once.', annual: 'Your plan draws once a year. Here each month is recorded on its own for now; the classic planner records the twelve months at once.' },
+  /**
+   * Whether the home asks for months (7.10.0; research/v7/replan-nov-2026.md §6.4: monthly logging is the person's choice).
+   * Months already recorded count as yes until the person says otherwise.
+   */
+  recordMonths: {
+    title: 'Keep a record of each month here',
+    yes: 'Yes',
+    no: 'No, I do not keep a monthly record',
+    noNote: 'The home will not ask for months. You can still record one here at any time.',
+    yesNote: 'The home asks for each month once the plan is locked.'
+  },
   partner: 'Your partner records their months on their own plan, ‘{name}’.',
   partnerLink: 'Open its Month by month',
   fields: {
@@ -184,6 +195,8 @@ export const MONTH = {
     recordedFilled: '{month} recorded, with {n} month{s} filled in: {months}.',
     stopped: 'Recorded {written} filled-in month(s); the fill stopped before {month} because {year} is not set up. {box} was not recorded.',
     setUp: '{year} set up from {month}.',
+    recordYes: 'The home will ask for each month.',
+    recordNo: 'The home will not ask for months.',
     savedShort: 'Saved.',
     undone: 'Put back as it was.',
     unchanged: 'Nothing changed.'

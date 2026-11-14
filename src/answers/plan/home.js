@@ -4,11 +4,12 @@
  * NOTHING is written because a plan was opened, and nothing here is stored (no stage, no to-do list).
  *
  *   homeOf(entries, id, { today, source, page })
- *     → { found, id, name, …, stage, todo, quiet, where, heldMix, whereFull, year, tools, steps, change, ask }
+ *     → { found, id, name, …, stage, todo, quiet, review, moveWindow, where, drift?, whereFull, year, tools, steps, change, ask }
  *
  * One engine: the to-dos are read.js dueFor's, the very list whose first item is the rail's "Next" (planPage `due`), so
- * the two can never disagree. A partner's plan adds its own due lines (the month, the tax year, the move; never its
- * figures), named by that plan's name. The year view is the current tax year's twelve months from the plan's own records
+ * the two can never disagree. A partner's plan adds its own month and tax year (never its figures), named by that plan's
+ * name, after the plan's own, in ONE list of which the home shows one (7.10.0, research/v7/replan-nov-2026.md §6.4: the
+ * phase, the next review and at most one thing due). The year view is the current tax year's twelve months from the plan's own records
  * (decisionTool.history), against the plan document's figure for the year, a twelfth a month (whereAmI, as "Where you are"
  * reads it). Words are src/v7/copy/home.js's under the ids here.
  *
@@ -16,12 +17,15 @@
  */
 import { planPage, dateOf, monthWords, monthName } from './read.js';
 import { whereAmIFor, historyAscending, moveInputs, effectiveStressSettings } from '../../services/PlanReading.js';
+import { driftOf, DRIFT_BAND } from '../../services/TransitionPlanner.js';
+import { monthsWanted } from '../../services/DrawCadence.js';
 import { gapsOf, gapHeadline } from './gaps.js';
 import { taxYearStartOf, taxYearKey, taxYearLabel, earlyPensionDrawOf } from '../../services/PlanTiming.js';
 import { readDayOf } from '../../services/PlanClosed.js';
 import { isFilledIn } from '../../services/MonthFill.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
-import { ym } from './dates.js';
+import { moveWindowOf } from '../../services/Phases.js';
+import { ym, dayWords } from './dates.js';
 import { startLaterOf } from '../../services/PlanMove.js';
 import { pensionLockForSettings } from '../../services/PlanNeed.js';
 import { closedYearsShort, shortYearsWords } from '../../services/PensionLock.js';
@@ -43,13 +47,14 @@ export function pensionAccessOf(plan, pg, now) {
   return e ? { age: String(e.age) } : null;
 }
 
-/** At most this many to-dos are listed at once; the rest are "and N more" (the design's rule). */
-export const TODO_SHOWN = 3;
+/** At most this many to-dos are shown at once — the plan's own and a partner's in one list; the rest are "and N more" (7.10.0). */
+export const TODO_SHOWN = 1;
 /**
- * A partner's to-dos that reach this home: the month, the tax year and the move (the design's ranks 5 to 9) — never that
- * plan's age, lock or invitation, whose words speak to the person whose plan it is ("Add your age", "Lock the plan").
+ * A partner's to-dos that reach this home: the month and the tax year — never that plan's age, review or link, whose words
+ * speak to the person whose plan it is ("Add your age", "Your review"). A partner's item is never put away here: a dismissal
+ * stored on the partner's plan hides it here too (their reading reads their `tasks`).
  */
-const PARTNER_IDS = ['month.taxYear', 'month.arrive', 'month.record', 'month.gap', 'move.next', 'move.finish'];
+const PARTNER_IDS = ['month.taxYear', 'month.arrive', 'month.record', 'month.gap'];
 /**
  * "Where you are" on the home is the headline, not the whole reading: the result sentence and at most this many of its
  * lines, chosen below; the full reading, with where each figure is from, is one link away on the "Where you are" step.
@@ -60,7 +65,8 @@ const WHERE_HEADLINE = ['where.startLater', 'where.compareLess', 'where.compareL
 /** The tools a home lists, by stage, in order (each a step of the plan with its one-line state). */
 const TOOLS = {
   saving: ['checkin', 'saving', 'budget', 'hold', 'household'],
-  moving: ['month', 'move', 'hold', 'budget', 'household'],
+  // someone in their move window still pays in (7.10.0): the check-in first, where it is on the plan's list
+  moving: ['checkin', 'move', 'hold', 'budget', 'household'],
   drawing: ['month', 'move', 'hold', 'budget', 'household'],
   closed: ['month'],
   none: ['budget', 'hold', 'household']
@@ -75,44 +81,84 @@ const addMonth = (m, n) => { const p = ym(m); if (!p) return null; const t = p.y
 const thisMonthOf = (now) => now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
 const first = (m) => '1 ' + monthName(m);
 
-/** The three segments of the stage strip: each done, now or later, with the month it ends or begins when the plan says it. */
-function stripOf(life, heldMix = null) {
+/**
+ * The three segments of the stage strip: each done, now or later, with the month it ends or begins when the plan says it. What
+ * is held never marks the move part-done (7.10.0): how far it is from the plan's mix is an information line, never the stage.
+ */
+function stripOf(life) {
   if (!life || !life.key || life.key === 'closed') return null;
   const at = STRIP.indexOf(life.key);
-  // a Drawing plan whose record of what is held is short of the plan's mix (7.3.1): its move is not called done while the note
-  // under "Where you are" says how much of the mix is held — the segment is 'part', filled to that share, with no word
-  return STRIP.map((key, i) => ({ key, state: i < at ? (key === 'moving' && heldMix ? 'part' : 'done') : i === at ? 'now' : 'later',
-    ...(key === 'moving' && heldMix && i < at ? { held: heldMix.pct } : {}),
+  return STRIP.map((key, i) => ({ key, state: i < at ? 'done' : i === at ? 'now' : 'later',
     month: key === 'saving' && life.stop ? monthWords(life.stop) : key === 'drawing' && life.key === 'drawing' && life.since ? monthWords(life.since) : null }));
 }
 
 /**
- * The line that says nothing is due, always with the date something next will be (never "nothing to do" alone): a saver's
- * next check-in, or this month's pot recorded and the 1st of next month; on a drawing plan the month recorded and the 1st of
- * the first month not recorded after it (a quarter or a year recorded at once reaches ahead: the plan's own cadence); a
- * closed plan where it carries on. Only ever a true sentence: null while the thing it would say is done is still due (the
- * list says so then); a plan not locked yet says its months wait for the lock.
+ * The line that says nothing is due, always with the date something next will be (never "nothing to do" alone): the next
+ * review, or that a review can be had whenever the person likes (7.10.0); on a plan living on its money and recording its
+ * months, this month recorded and the 1st of the first month not recorded after it (a quarter or a year recorded at once
+ * reaches ahead: the plan's own cadence); a plan not locked yet, that its months wait for the lock; a closed plan where it
+ * carries on. Only ever a true sentence: null while something is due (the list says so then).
  */
-function quietOf(page, life, now) {
+function quietOf(page, life, now, { review, anyDue, wanted, recordMonths }) {
   const mon = thisMonthOf(now);
   if (!life || !life.key) return null;
   if (life.key === 'closed') {
     const c = page.closed || {};
     return c.next ? { id: 'closed', slots: { month: c.month || '', name: c.next.name } } : { id: 'closedAlone', slots: { month: c.month || '' } };
   }
-  // a saver inside the move window (7.10.0: Moving by the window's clock) still pays in and checks in: the saver's line
-  if (life.key === 'saving' || (life.key === 'moving' && SAVER_PLACINGS.includes(page.stageKey))) {
-    const ci = page.steps.find((s) => s.id === 'checkin');
-    const st = ci && ci.checkIn ? ci.checkIn : null;
-    if (!st || st.due) return null;
-    if (st.chosen && st.next) return { id: 'savingNext', slots: { month: monthWords(st.next) } };
-    if (st.legacy) return { id: 'savingPot', slots: { monthName: monthName(mon), next: first(addMonth(mon, 1)) } };
-    return null;
-  }
-  if (!page.locked) return { id: 'draft', slots: {} };
+  if (anyDue) return null;
+  const rv = review && review.next ? { id: 'review', slots: { month: review.next } } : { id: 'reviewAny', slots: {} };
+  if (life.key !== 'drawing') return rv;
+  if (!page.locked) return recordMonths === false ? { id: 'reviewAny', slots: {} } : { id: 'draft', slots: {} };
   const latest = page.lastRecord || null;
-  if (!latest || latest < mon) return null;
-  return { id: 'drawing', slots: { month: monthName(latest), next: first(addMonth(latest, 1)) } };
+  // the months' own line only while the plan records its months here and this month is recorded; else the review's date
+  if (wanted && latest && latest >= mon) return { id: 'drawing', slots: { month: monthName(latest), next: first(addMonth(latest, 1)) } };
+  return rv;
+}
+
+/** What a bucket is called on the home's drift line. */
+const BUCKETS = ['shares', 'bonds', 'cash', 'diversifiers'];
+
+/**
+ * How far what is held is from the plan's mix (7.10.0, spec-7100 §3.2), on a plan living on its money: information, never a
+ * to-do and never a sale — the bucket furthest from the plan's mix when it is more than DRIFT_BAND of the pension away, or on
+ * a ladder a gilt needed this tax year or next that is not held. Read on the plan's document, or (not locked yet) on the
+ * plan's settings in memory (PlanReading.moveInputs `fromSettings`). Null otherwise.
+ */
+function driftLineOf(plan, now, href) {
+  let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
+  const d = mv && mv.diff ? driftOf(mv.diff) : null;
+  if (!d) return null;
+  if (d.kind === 'buckets') {
+    if (!(d.maxDrift > DRIFT_BAND * 100)) return null;
+    const bucket = BUCKETS.reduce((best, k) => (Math.abs(d.drift[k] || 0) > Math.abs(d.drift[best] || 0) ? k : best), BUCKETS[0]);
+    const x = mv.diff.buckets[bucket] || { held: 0, target: 0 };
+    const inPlay = mv.diff.inPlay;
+    return { kind: 'buckets', bucket, held: Math.round(100 * (+x.held || 0) / inPlay), plan: Math.round(100 * (+x.target || 0) / inPlay), href };
+  }
+  if (d.kind === 'ladder' && d.gapSoon) {
+    const thisTY = Number(mv.target && mv.target.thisTaxYear);
+    const ys = (mv.diff.buy || []).filter((b) => b.kind === 'gilt' && Array.isArray(b.taxYears)).flatMap((b) => b.taxYears.map(Number)).filter((Y) => Y === thisTY || Y === thisTY + 1).sort((p, q) => p - q);
+    return ys.length ? { kind: 'ladder', year: taxYearLabel(ys[0]), href } : null;
+  }
+  return null;
+}
+
+/**
+ * The move window, said on the home (7.10.0): inside it, how long is left to the month work stops (and, with no record of
+ * what is held, that it can be recorded when the person likes); once what is held is accepted, that, and the stop; a saver
+ * before it, the month it opens. Null with no month to stop in, and on a plan asked whether work has stopped.
+ */
+function windowLineOf(life, { held, agreed }) {
+  const w = moveWindowOf(life);
+  if (!w || !w.to || life.confirmStop) return null;
+  const left = Number.isFinite(w.monthsLeft) ? (w.monthsLeft === 1 ? '1 month' : w.monthsLeft + ' months') : '';
+  if (life.key === 'moving') {
+    if (agreed) return { id: 'agreed', slots: { date: dayWords(agreed.at), stop: monthWords(w.to) } };
+    return { id: held ? 'moving' : 'movingNoRecord', slots: { left, stop: monthWords(w.to) } };
+  }
+  if (life.key === 'saving' && w.state === 'before' && w.from) return { id: 'saving', slots: { from: monthWords(w.from) } };
+  return null;
 }
 
 /**
@@ -176,7 +222,8 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   const hist = historyAscending(plan);
   const lastRecord = hist.length ? String(hist[hist.length - 1].date).slice(0, 7) : null;
   const due = (pg.due || []).map((d) => item(d));
-  // the partner's plan(s): their month, tax year and move, one line each, named by the plan (never its figures)
+  // the partner's plan(s): their month and tax year, one line each, named by the plan (never its figures), after the plan's
+  // own in the one list; put away on their own plan, never here
   const partner = [];
   if (!pg.readonly) {
     const mine = plan.household && typeof plan.household.partnerScenarioId === 'string' ? plan.household.partnerScenarioId : null;
@@ -186,32 +233,18 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
       if (!linked || pg.closed) continue;
       const their = planPage(list, e.plan.id, null, { today, source });
       if (!their.found || their.closed) continue;
-      for (const d of their.due || []) if (PARTNER_IDS.includes(d.id)) partner.push(item(d, { planId: String(e.plan.id), name: their.name }));
+      for (const d of their.due || []) if (PARTNER_IDS.includes(d.id)) { const { dismiss, key, ...rest } = item(d, { planId: String(e.plan.id), name: their.name }); void dismiss; void key; partner.push(rest); }
     }
   }
-  const stepOf = (sid) => pg.steps.find((s) => s.id === sid) || null;
-  // the move, counted once on the home: its orders (TransitionPlanner.progress, the very list the to-do names the next of),
-  // in the headline and the move tool alike — never the orders in one place and the gilts bought in another
-  let mv = null; try { mv = moveInputs(plan, { now }); } catch { mv = null; }
-  const prog = mv && mv.prog && mv.prog.total > 0 ? mv.prog : null;
-  const moves = prog ? { done: prog.doneCount, of: prog.total } : null;
-  // 7.3.1 (one-product-design.md, "Drawing while the holdings are not exact"): a plan recording months is Drawing whatever
-  // its record of what is held says, so what is still held differently from the plan is said here, as information — never
-  // a to-do, never the stage. The same reading as the move page and its "% of the plan's mix held" line (moveInputs: the
-  // record diffed against the plan's mix, then the orders still open), so the two figures cannot differ. Drift inside the
-  // plan's own tolerance is no difference (`complete`): then nothing is said.
+  const all = [...due, ...partner];
+  // the review (7.10.0): when it is next, whether it is due, and where it is
+  const rd = pg.reviewDue || null;
+  const review = rd && stageKey !== 'none' ? { next: rd.next ? monthWords(rd.next.slice(0, 7)) : null, due: !!rd.due, href: rd.href } : null;
   const recorded = holdingsSummary(normaliseHoldings(plan.holdings)).count > 0;
-  const shortOfMix = stageKey === 'drawing' && !!life && life.placing === 'running' && recorded
-    && !!mv && !!mv.diff && !!mv.target && mv.target.kind !== 'none' && mv.diff.complete === false && typeof mv.diff.progressPct === 'number';
-  const open = prog ? prog.total - prog.doneCount : 0;
-  const heldMix = shortOfMix ? {
-    pct: mv.diff.progressPct,
-    // the next order still open, by its own name, and how many more after it; every order ticked, the record has not caught up
-    label: prog && prog.next ? String(prog.next.label || prog.next.ticker || '') : null,
-    more: prog && prog.next ? Math.max(0, open - 1) : 0,
-    ticked: !!prog && !prog.next,
-    href: '#/plan/' + pg.id + '/move'
-  } : null;
+  // what is held differently from the plan's mix, on a plan living on its money: one information line, never a to-do
+  const drift = stageKey === 'drawing' && recorded && !pg.readonly && !pg.closed && review ? driftLineOf(plan, now, review.href) : null;
+  const dt = plan.decisionTool && typeof plan.decisionTool === 'object' ? plan.decisionTool : {};
+  const stepOf = (sid) => pg.steps.find((s) => s.id === sid) || null;
   // where you are, as a headline: the saver's reading against the path (or the last check-in); a moving plan's share of the
   // mix held, then its months; a drawing plan's months against the plan — each the result and a few chosen lines, the full
   // reading on the "Where you are" step
@@ -233,16 +266,10 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   const whereFull = cut && stepOf('where') ? '#/plan/' + pg.id + '/where' : null;
   let gapLine = null;
   if (!pg.readonly && !pg.closed) { try { const h = gapHeadline(gapsOf(plan, { today })); gapLine = h ? { ...h, Y: String(h.Y), href: '#/plan/' + pg.id + '/hold' } : null; } catch { gapLine = null; } }
-  const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {},
-    // a Drawing plan short of its mix: the move tool says the share held, as "Where you are" does (never a count of moves to make)
-    ...(s.id === 'move' && heldMix ? { held: heldMix.pct }
-      // the move tool says the same count as the headline and the to-do: the orders done
-      : s.id === 'move' && moves && !s.done ? { moves } : {}) }));
+  const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {} }));
   // the steps, read-only with each result line; a saver's "For later" group stays on a plan not locked, but a locked plan
   // is being carried out: its steps are listed plainly, never marked for later or not done
-  const steps = pg.steps.map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: (!pg.locked && s.railResult) || s.result, figures: s.figures || {}, later: !pg.locked && !!s.later, done: s.state === 'done',
-    // the move step on a Drawing plan short of its mix says the one share the home says everywhere (7.3.1), not its gilts bought
-    ...(s.id === 'move' && heldMix ? { held: heldMix.pct } : {}) }));
+  const steps = pg.steps.map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: (!pg.locked && s.railResult) || s.result, figures: s.figures || {}, later: !pg.locked && !!s.later, done: s.state === 'done' }));
   // change the plan, or try something: a locked plan's tries change nothing; an unlocked plan's pages change it
   const base = '#/plan/' + pg.id + '/';
   const lived = pg.locked && pg.stageKey === 'running' && !!lastRecord && !pg.closing;
@@ -257,12 +284,15 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
     pensionAccess: pensionAccessOf(plan, pg, now),
     locked: pg.locked, lockedOn: pg.lockedOn, line: pg.line, closing: pg.closing, before: pg.before,
     closed: pg.closed, stageKey: pg.stageKey,
-    stage: { key: life ? life.key : null, invite: life ? life.invite : null, stop: life && life.stop ? monthWords(life.stop) : null, strip: stripOf(life, heldMix),
-      moves: stageKey === 'moving' ? moves : null },
-    todo: { items: due.slice(0, TODO_SHOWN), more: due.slice(TODO_SHOWN), count: due.length, soon: (pg.soon || []).map((d) => item(d)), partner },
-    quiet: quietOf({ ...pg, lastRecord }, life, now),
+    stage: { key: life ? life.key : null, stop: life && life.stop ? monthWords(life.stop) : null, strip: stripOf(life) },
+    // one list (7.10.0): the plan's own to-dos then a partner's, one shown, the rest "and N more"
+    todo: { items: all.slice(0, TODO_SHOWN), more: all.slice(TODO_SHOWN), count: all.length, soon: (pg.soon || []).map((d) => item(d)) },
+    quiet: quietOf({ ...pg, lastRecord }, life, now, { review, anyDue: all.length > 0, wanted: monthsWanted(dt), recordMonths: dt.recordMonths }),
+    // 7.10.0: the next review (never stored: read from the log, the check-ins, the records and the rule), and the move window
+    review: pg.readonly || pg.closed ? null : review,
+    moveWindow: pg.readonly || pg.closed ? null : windowLineOf(life, { held: recorded, agreed: life && life.agreed ? life.agreed : null }),
     where,
-    heldMix,
+    ...(drift ? { drift } : {}),
     // 7.6.0: the first tax year not yet covered by what is held and kept, once — only on a plan that keeps something
     ...(gapLine ? { gap: gapLine } : {}),
     whereFull,

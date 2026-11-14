@@ -181,6 +181,7 @@ export const A = Object.freeze({
   PLAN_HOLD:       'plan/hold',           // { planId, change }               ONE change of the record (add | edit | remove | paste | keep | expected): saving { kind: 'hold', change }
   PLAN_TICK:       'plan/tick',           // { planId, key, done }            a tick-off on the move (the whole transition object): saving { kind: 'tick', key, done }
   PLAN_TASK:       'plan/task',           // { planId, key, how }             a to-do put away on the home (7.10.0): how 'notNow' | 'notThisTime' | 'seen' | 'done' — saving { kind: 'task', key, how }; ONE write of the plan's `tasks`, no stamp
+  PLAN_RECORD_MONTHS: 'plan/recordMonths', // { planId, value: true | false }  "Keep a record of each month here" (7.10.0): saving { kind: 'recordMonths', value }; ONE write of decisionTool.recordMonths and the stamp
   MOVE_RUN:        'move/run',            // { key }                          "What if I keep what I hold?": the one run on the plan of this key (the effect runs it)
   MOVE_DONE:       'move/done',           // { key, result, ms }              the run's figures (moveRun.js runHeld); dropped if the key is stale
   MOVE_FAILED:     'move/failed',         // { key, reason? }                 the run failed ('noWorker': no worker)

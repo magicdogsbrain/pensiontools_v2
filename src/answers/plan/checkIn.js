@@ -159,8 +159,9 @@ export function checkInBoxesOf(plan, { today }) {
   }
   if (!out['ci.paused']) out['ci.paused'] = 'no';
   const c = cadenceOf(plan, stage.key);
-  // how often: as chosen; a plan locked while saving that never chose keeps "Each month"; anyone else, once a year (most people)
-  out['ci.every'] = c.chosen ? c.every : c.legacy ? 'month' : 'year';
+  // how often: as chosen; anyone else once a year (7.10.0: a plan locked while saving that never chose too — its first yearly
+  // review never writes "Each month")
+  out['ci.every'] = c.chosen ? c.every : 'year';
   return out;
 }
 

@@ -8,14 +8,15 @@
  *   addMonths('YYYY-MM', n)                 a month n months on
  *   checkInsOf(plan)                        the check-ins, valid ones only, newest last
  *   cadenceOf(plan, stageKey)               { every, chosen, legacy }
- *   checkInDueOf(plan, { today, stageKey }) { every, chosen, legacy, last, next, due }
+ *   checkInDueOf(plan, { today, stageKey }) { every, chosen, legacy, last, next, nextDay, due }
  *   checkInState(plan, { today, stageKey }) the due, the count and the last check-in's stored band
  *
  * Pure: no clock (the day arrives as `today`), no storage.
  */
 import { saverPotOf } from '../../services/SaverReading.js';
+import { REVIEW_FROM, lockedMonthOf } from '../../services/Phases.js';
 import { CADENCES } from './schema.js';
-import { dateOf, ym, localMonth } from './dates.js';
+import { dateOf, ym, localMonth, localDay } from './dates.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -39,39 +40,47 @@ export function checkInsOf(plan) {
 }
 
 /**
- * How often (5.2). Chosen: the plan's own word. Not chosen: a plan locked while saving keeps the monthly pot step it has
- * always had (`legacy`, read as monthly from its pot records, needing no check-in to fall due); any other saver is not
+ * How often (5.2). Chosen: the plan's own word. Not chosen: a plan locked while saving (`legacy`) is read once a year from
+ * 7.10.0 (research/v7/replan-nov-2026.md §6.3: the review is yearly; its monthly pot step is gone); any other saver is not
  * reminded until they choose.
  */
 export function cadenceOf(plan, stageKey) {
   const e = accOf(plan).checkInEvery;
   if (CADENCES.includes(e)) return { every: e, chosen: true, legacy: false };
-  if (stageKey === 'committed-saving') return { every: 'month', chosen: false, legacy: true };
+  if (stageKey === 'committed-saving') return { every: 'year', chosen: false, legacy: true };
   return { every: null, chosen: false, legacy: false };
 }
 
 /**
- * When the next check-in is due (5.2), by month. Chosen: due once this month is at least the last check-in's month plus
- * 12, 3 or 1 — never before the first check-in (choosing is part of the first). The plan locked while saving that never
- * chose: due while this month's pot is not recorded, exactly as the pot step has always been.
+ * When the next check-in is due (5.2), by month (`next`) and by day (`nextDay`). Chosen: due once this month is at least the
+ * last check-in's month plus 12, 3 or 1 — never before the first check-in (choosing is part of the first). The plan locked
+ * while saving that never chose (7.10.0, spec-7100 §4.3): once a year, 12 months after the later of its last check-in and its
+ * last pot record, else 12 months after the lock — and, with no check-in yet, no earlier than REVIEW_FROM (no release-day
+ * reminder).
  */
 export function checkInDueOf(plan, { today, stageKey }) {
   const now = dateOf(today);
   const mon = localMonth(now);
+  const day = localDay(now);
   const c = cadenceOf(plan, stageKey);
+  const list = checkInsOf(plan);
+  const lastCheckIn = list.length ? monthOfDate(list[list.length - 1].date) : null;
   if (c.chosen) {
-    const list = checkInsOf(plan);
-    const last = list.length ? monthOfDate(list[list.length - 1].date) : null;
-    const next = last ? addMonths(last, CADENCE_MONTHS[c.every]) : null;
-    return { ...c, last, next, due: !!next && mon >= next };
+    const next = lastCheckIn ? addMonths(lastCheckIn, CADENCE_MONTHS[c.every]) : null;
+    return { ...c, last: lastCheckIn, next, nextDay: next ? next + '-01' : null, due: !!next && mon >= next };
   }
   if (c.legacy) {
     const hist = Array.isArray(accOf(plan).history) ? accOf(plan).history : [];
     const pot = saverPotOf({ accHistory: hist, today: now });
-    const recorded = pot.source === 'record' && String(pot.at) >= mon;
-    return { ...c, last: pot.source === 'record' ? pot.at : null, next: recorded ? addMonths(mon, 1) : mon, due: !recorded };
+    const lastPot = pot.source === 'record' && ym(String(pot.at).slice(0, 7)) ? String(pot.at).slice(0, 7) : null;
+    const last = [lastCheckIn, lastPot].filter(Boolean).sort().pop() || null;
+    const locked = lockedMonthOf(plan);
+    const next = last ? addMonths(last, CADENCE_MONTHS.year) : locked ? addMonths(locked, CADENCE_MONTHS.year) : null;
+    let nextDay = next ? next + '-01' : null;
+    if (nextDay && !lastCheckIn && nextDay < REVIEW_FROM) nextDay = REVIEW_FROM;
+    return { ...c, last, next: nextDay ? nextDay.slice(0, 7) : null, nextDay, due: !!nextDay && day >= nextDay };
   }
-  return { ...c, last: null, next: null, due: false };
+  return { ...c, last: null, next: null, nextDay: null, due: false };
 }
 
 /** What the rail and the next sentence read (4.2): the due, and the last check-in's stored band — never a run. */

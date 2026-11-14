@@ -142,7 +142,9 @@ describe('the words in src/v7/copy/', () => {
       // Move to a new plan (6.56.0): the pots in pounds, the plans' names, the month a plan closed
       .replace(/\{(pension|isa)\}/g, '£250,000').replace(/\{gia\}/g, ', ordinary investment account £40,000').replace(/\{(partner|old|next)\}/g, 'Shares and cash').replace(/\{closed\}/g, 'March 2029')
       // a saver's check-in (release step R3): how often, the last check-in's month and the next's
-      .replace(/\{often\}/g, 'yearly').replace(/\{(last|nextCheck)\}/g, 'November 2026')
+      .replace(/\{often\}/g, 'yearly').replace(/\{(last|nextCheck|nextReview)\}/g, 'November 2026')
+      // 7.10.0: how often the review falls, and the months left in the move window
+      .replace(/\{reviewOften\}/g, 'once a tax year').replace(/\{windowLeft\}/g, '24 months')
       // Delete several (6.59.0): the names deleted, said as a list, and why one was not
       .replace(/\{names\}/g, '‘Ladder plan’ and ‘Shares and cash’').replace(/\{why\}/g, 'This plan is locked.')
       // a plan stored with its start later than it should be (7.3.3): the month it is set to start, and the month work stopped

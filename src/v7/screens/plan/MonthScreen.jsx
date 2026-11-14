@@ -286,6 +286,19 @@ export function MonthScreen(state, dispatch) {
           ) : <p class="note">{W.recent.none}</p>}
         </section>
         {V.partner && <p class="note" data-testid={`${T}.partner`}>{fill(W.partner, { name: V.partner.name })} <a href={href.plan(V.partner.id, 'month')}>{W.partnerLink}</a></p>}
+        {/* 7.10.0: whether the home asks for months — the person's choice; recorded months count as yes until they say no */}
+        {V.recordChoice && (
+          <section class="plan-section month-record" data-section="record" data-testid={`${T}.recordMonths`} data-wanted={V.monthsWanted ? '1' : '0'}>
+            <h2>{W.recordMonths.title}</h2>
+            <div class="actions-row" role="group" aria-label={W.recordMonths.title}>
+              {['yes', 'no'].map((v) => (
+                <Button key={v} testid={`${T}.recordMonths.${v}`} kind={(V.recordMonths || (V.monthsWanted ? 'yes' : 'no')) === v ? 'plain' : 'quiet'} aria-pressed={(V.recordMonths || (V.monthsWanted ? 'yes' : 'no')) === v ? 'true' : 'false'}
+                  disabled={!!V.saving} onClick={() => dispatch({ type: 'plan/recordMonths', planId, value: v === 'yes' })} {...keepFocus}>{W.recordMonths[v]}</Button>
+              ))}
+            </div>
+            <p class="note" data-testid={`${T}.recordMonths.note`}>{V.monthsWanted ? W.recordMonths.yesNote : W.recordMonths.noNote}</p>
+          </section>
+        )}
         <section class="plan-section month-later" data-section="later">
           <h2>{W.sections.later}</h2>
           <ul class="plan-lines">{W.later.items.map((x, i) => <li class="plan-line" key={i}>{x}</li>)}</ul>

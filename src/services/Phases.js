@@ -26,13 +26,13 @@
  *
  * Pure: no storage, no clock of its own (`now` and `at` come in).
  */
-import { deriveTiming } from './PlanTiming.js';
+import { deriveTiming, taxYearStartOf, taxYearLabel } from './PlanTiming.js';
 import { RISK_PRESETS } from './GlidepathService.js';
 import { holdingsLines } from './HoldingsRecord.js';
 import { proportions as holdingsProportions } from './Holdings.js';
 import { savingMixOf } from './SaverPayIn.js';
 import { beforeOf } from './PlanClosed.js';
-import { LEVEL_FAILS20, LEVEL_DEFAULT, levelOf } from '../answers/shared/rules.js';
+import { LEVEL_FAILS20, LEVEL_DEFAULT, levelOf, passes } from '../answers/shared/rules.js';
 import { CADENCES } from '../answers/plan/schema.js';
 
 // ---- the constants, in one place ---------------------------------------------------------------------------------------
@@ -235,6 +235,9 @@ export function windowOf(plan, { now = new Date(), settings = null, stop } = {})
   return { years, from, to, monthsLeft: Math.max(0, monthsBetween(nowKey, to)), windowMonths: monthsBetween(from, to), state };
 }
 
+/** The move window a stage reading carries (LifeStage.stageOf's `window`), for the readers that may not name it. */
+export const moveWindowOf = (stage) => (stage && isObj(stage.window) ? stage.window : null);
+
 // ---- the agreement ----------------------------------------------------------------------------------------------------------
 
 /**
@@ -419,4 +422,160 @@ export function phasesForCopy(phases) {
   if (isObj(p.review)) { delete p.review.log; if (!Object.keys(p.review).length) delete p.review; }
   const left = Object.keys(p).filter((k) => k !== 'of');
   return left.length ? p : null;
+}
+
+// ---- when the review is next (spec-7100 §4.3) ---------------------------------------------------------------------------
+
+/** How many months each "how often" is. */
+export const EVERY_MONTHS = Object.freeze({ year: 12, quarter: 3, month: 1 });
+const dayKeyOf = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const nowOf = (now) => {
+  if (now instanceof Date && Number.isFinite(now.getTime())) return now;
+  throw new Error('Phases: the day comes in as `now`');
+};
+/** The month the plan was locked ('YYYY-MM'), from the Decision settings or the plan document; null when it says none. */
+export function lockedMonthOf(plan) {
+  const s = plan && plan.decisionTool && isObj(plan.decisionTool.settings) ? plan.decisionTool.settings.lockedAt : null;
+  const d = plan && isObj(plan.planDocument) ? plan.planDocument.lockedAt : null;
+  return monthOrNull(typeof s === 'string' ? s : null) || monthOrNull(typeof d === 'string' ? d : null);
+}
+/** The review entries of one phase that belong to the plan, oldest first. */
+const entriesOf = (plan, phase) => reviewLogOf(plan).filter((e) => e.phase === phase && monthOrNull(e.at)).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+/** How often the plan's review falls in Moving and Living on it: the person's choice, else once a year. */
+export function reviewEveryOf(plan) {
+  const ph = phasesAsTheyBelong(plan);
+  return (ph && isObj(ph.review) && everyOrNull(ph.review.every)) || 'year';
+}
+/** The rule a plan is read by: the person's choice, else success at the floor that follows the plan's level. */
+export function reviewRuleOf(plan) {
+  const ph = phasesAsTheyBelong(plan);
+  return (ph && isObj(ph.review) && ruleOrNull(ph.review.rule)) || defaultRuleOf(plan);
+}
+
+/**
+ * When the plan's review is next, and whether it is due now (spec-7100 §4.3). Nothing is stored: every date is derived from
+ * the review log, the check-ins, the records and the rule. A plan with no review log (and, in Saving, no check-in) is first
+ * due no earlier than REVIEW_FROM.
+ *   - Saving: the check-in's own (answers/plan/checkInDue.js checkInDueOf, handed in as `checkIn`): as chosen; a plan locked
+ *     while saving that never chose, once a year; any other saver whenever they like (null);
+ *   - Moving: the last Moving review and how often, else 12 months after the lock, else whenever they like; none on a plan
+ *     whose agreement keeps it Moving until the stop (`agreed`: nothing is due);
+ *   - Living on it, locked: once a year, from 6 April of each tax year with no review in it, once the plan was locked at least
+ *     LIVING_REVIEW_AFTER months before that 6 April; every three months or every month, from the last review (or the lock);
+ *     not locked: whenever they like (null).
+ * None on a plan that closes (reviews carry on with the plan that carries it on), and none on a closed one.
+ * @param {object} plan
+ * @param {{ now: Date, phase: 'saving'|'moving'|'drawing'|'closed'|null, locked?: boolean, closing?: boolean, agreed?: boolean,
+ *   checkIn?: { chosen, legacy, next, nextDay?, due } | null }} o
+ * @returns {{ next: string|null, due: boolean, occurrence: string|null, every: 'year'|'quarter'|'month' }}
+ *   `next` a day 'YYYY-MM-DD'; `occurrence` the tax year ('2027/28') of a yearly Living-on-it review, else the month due
+ */
+export function reviewDueOf(plan, { now, phase, locked = false, closing = false, agreed = false, checkIn = null } = {}) {
+  const today = dayKeyOf(nowOf(now));
+  const none = (every) => ({ next: null, due: false, occurrence: null, every });
+  if (phase === 'saving') {
+    const every = checkIn && everyOrNull(checkIn.every) ? checkIn.every : 'year';
+    if (closing || !checkIn || !checkIn.next || !(checkIn.chosen || checkIn.legacy)) return none(every);
+    const next = typeof checkIn.nextDay === 'string' ? checkIn.nextDay : monthOrNull(checkIn.next) + '-01';
+    return { next, due: !!checkIn.due, occurrence: monthOrNull(next), every };
+  }
+  const every = reviewEveryOf(plan);
+  if (phase !== 'moving' && phase !== 'drawing') return none(every);
+  if (closing) return none(every);
+  const log = entriesOf(plan, phase);
+  const lockedMonth = locked ? lockedMonthOf(plan) : null;
+  const dated = (month, { floor = false } = {}) => {
+    let next = month + '-01';
+    if (floor && next < REVIEW_FROM) next = REVIEW_FROM;
+    return { next, due: today >= next, occurrence: monthOrNull(next), every };
+  };
+  if (phase === 'moving') {
+    if (agreed) return none(every);
+    if (log.length) return dated(addMonths(monthOrNull(log[log.length - 1].at), EVERY_MONTHS[every]));
+    if (lockedMonth) return dated(addMonths(lockedMonth, 12), { floor: true });
+    return none(every);
+  }
+  // Living on it
+  if (!locked) return none(every);
+  if (every !== 'year') {
+    if (log.length) return dated(addMonths(monthOrNull(log[log.length - 1].at), EVERY_MONTHS[every]));
+    return dated(lockedMonth ? addMonths(lockedMonth, EVERY_MONTHS[every]) : REVIEW_FROM.slice(0, 7), { floor: true });
+  }
+  // once a tax year, from 6 April: the first tax year from this one with no review in it, locked six months before its 6 April
+  const T = taxYearStartOf(nowOf(now));
+  const logged = new Set(log.map((e) => taxYearStartOf(new Date(String(e.at).slice(0, 10) + 'T12:00:00'))));
+  const lockedOk = (Y) => !lockedMonth || addMonths(lockedMonth, LIVING_REVIEW_AFTER) <= Y + '-04';
+  const floorOk = (Y) => log.length > 0 || Y + '-04-06' >= REVIEW_FROM;
+  let Y = T;
+  while (Y < T + 60 && (logged.has(Y) || !lockedOk(Y) || !floorOk(Y))) Y++;
+  const next = Y + '-04-06';
+  return { next, due: Y === T && today >= next, occurrence: taxYearLabel(Y), every };
+}
+
+// ---- off course (spec-7100 §4.4) ------------------------------------------------------------------------------------------
+
+const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+
+/**
+ * Is one reading below the person's line? true, false, or null when the reading cannot say (it then never counts).
+ *   - success, a review's reading: its weighted failures within the floor's twentieths (rules.js passes) when it keeps them,
+ *     else the fixed-age count against the floor;
+ *   - success, a check-in's reading (`kind: 'checkin'`): its weighted chance against the floor, in twentieths; a reading kept
+ *     before 7.8.0, its band — below the default floor is exactly a 'no' at the plan's level;
+ *   - guardrails: the review's guardrail reading (`guardrail`), 'above' only ('below' is information); never a check-in.
+ */
+export function belowLine(reading, rule, { kind = 'review', guardrail = null } = {}) {
+  const r = ruleOrNull(rule);
+  if (!r) return null;
+  if (r.kind === 'guardrails') {
+    if (kind === 'checkin') return null;
+    return guardrail === 'above' ? true : guardrail === 'within' || guardrail === 'below' ? false : null;
+  }
+  if (!isObj(reading)) return null;
+  if (kind === 'checkin') {
+    if (isNum(reading.weighted)) return 20 * reading.weighted < 20 * r.floor - 1e-9;
+    if (['yes', 'close', 'no'].includes(reading.band)) return reading.band === 'no';
+    return null;
+  }
+  if (isNum(reading.sumW) && isNum(reading.n) && reading.n > 0) return !passes(reading.sumW, reading.n, Math.round(20 * (1 - r.floor)));
+  const fa = reading.fixedAge;
+  if (isObj(fa) && isNum(fa.lasts) && isNum(fa.n) && fa.n > 0) return fa.lasts / fa.n < r.floor;
+  return null;
+}
+
+/** A reading's chance in whole twentieths, for the words; null when it keeps none. */
+function twentiethsOf(reading, kind) {
+  if (!isObj(reading)) return null;
+  if (kind === 'checkin') return isNum(reading.weighted) ? Math.round(20 * reading.weighted) : null;
+  if (isNum(reading.weighted)) return Math.round(20 * reading.weighted);
+  const fa = reading.fixedAge;
+  return isObj(fa) && isNum(fa.lasts) && isNum(fa.n) && fa.n > 0 ? Math.round(20 * fa.lasts / fa.n) : null;
+}
+
+/**
+ * Off course by the person's own rule (spec-7100 §4.4): the last two readings that count — in Saving the check-ins (handed in
+ * as `checkIns`, checkInDue.js checkInsOf, oldest first), in Moving and Living on it the reviews of that phase that worked out
+ * the chance (`reading.source` 'run'; the guardrails rule reads each review's guardrail) — both below the line, and both read
+ * against the same plan document. A reading that cannot say, a document's own reading and a review saved with no reading
+ * never count and never break a pair; a newer reading that is not below clears it. Never one bad year; never on a plan that
+ * closes. Pure: nothing is written.
+ * @returns {{ off: boolean, occurrence: string|null, rule, a: number|null, b: number|null, line: number|null }}
+ */
+export function offCourseOf(plan, { phase, closing = false, checkIns = [] } = {}) {
+  const rule = reviewRuleOf(plan);
+  const line = rule.kind === 'success' ? Math.round(20 * rule.floor) : null;
+  const no = { off: false, occurrence: null, rule, a: null, b: null, line };
+  if (closing || !['saving', 'moving', 'drawing'].includes(phase)) return no;
+  let counted;
+  if (phase === 'saving') {
+    counted = (Array.isArray(checkIns) ? checkIns : []).filter(isObj).map((c) => ({ at: String(c.date || ''), doc: null, below: belowLine(c.reading, rule, { kind: 'checkin' }), k: twentiethsOf(c.reading, 'checkin') }));
+  } else {
+    counted = entriesOf(plan, phase).filter((e) => (rule.kind === 'guardrails' ? ['within', 'above', 'below'].includes(e.guardrail) : isObj(e.reading) && e.reading.source === 'run'))
+      .map((e) => ({ at: String(e.at), doc: e.documentAt == null ? null : String(e.documentAt), below: belowLine(e.reading, rule, { guardrail: e.guardrail }), k: twentiethsOf(e.reading, 'review') }));
+  }
+  counted = counted.filter((x) => x.below !== null);
+  if (counted.length < OFF_COURSE.readings) return no;
+  const [x, y] = counted.slice(-OFF_COURSE.readings);
+  if (x.doc !== y.doc || !x.below || !y.below) return no;
+  return { off: true, occurrence: y.at.slice(0, 10), rule, a: x.k, b: y.k, line };
 }

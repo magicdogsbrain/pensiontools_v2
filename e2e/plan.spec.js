@@ -297,7 +297,9 @@ test.describe('the saved plans, without an account', () => {
         const hash = `#/plan/${plan.id}/${step}`;
         await page.evaluate((h) => { window.location.hash = h; }, hash);
         await expect(page.locator('#app [data-screen]'), hash).toHaveAttribute('data-screen', screenName(parse(hash)));
-        await expect(page.getByTestId(`plan.step.${step}`), hash).toBeVisible();
+        // (7.10.0) a saver's review is the check-in itself, under its own heading, with the review's choices under it
+        const saverReview = step === 'review' && (await page.locator('[data-testid="plan.review"][data-phase="saving"]').count()) > 0;
+        await expect(page.getByTestId(saverReview ? 'plan.step.checkin' : `plan.step.${step}`), hash).toBeVisible();
         expect(await page.locator('#app').innerText(), hash).not.toMatch(/undefined|NaN|\{\w+\}/);
       }
     }

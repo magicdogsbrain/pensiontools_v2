@@ -155,7 +155,8 @@ test.describe('a saver\'s check-in, without an account', () => {
       await page.goto(PROD + V7_PATH + '#/plan/LockedSaver01/pot');
       await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.checkin');
       await expect(page.getByTestId(`${T}.locked`)).toBeVisible();
-      await expect(page.getByTestId(`${T}.ci.every.month`)).toBeChecked();
+      // 7.10.0: a locked saver who never chose starts at once a year (never "Each month")
+      await expect(page.getByTestId(`${T}.ci.every.year`)).toBeChecked();
       const before = (await stored(page)).find((p) => p.id === 'LockedSaver01');
       await page.getByTestId(`${T}.ci.pension`).fill('331,000');
       await page.getByTestId(`${T}.ci.isa`).fill('41,500');

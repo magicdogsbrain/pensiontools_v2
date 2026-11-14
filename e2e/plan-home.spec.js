@@ -105,6 +105,7 @@ test.describe('a plan\'s home', () => {
       const missing = plans().map((p) => (p.id === DRAWING ? { ...p, decisionTool: { ...p.decisionTool, history: p.decisionTool.history.filter((h) => String(h.date).slice(0, 7) !== '2026-09') } } : p));
       const was = await plant(page, missing);
       await page.goto(v7('#/plan/' + DRAWING));
+      await page.reload();   // the window's plans are read when the page loads
       await expect(page.getByTestId(`${T}.todo`).locator('.home-item')).toHaveCount(1);
       await page.getByTestId(`${T}.notNow.month.record`).click();
       await expect(page.getByTestId(`${T}.todo`).locator('.home-item')).toHaveCount(0);
@@ -115,7 +116,7 @@ test.describe('a plan\'s home', () => {
       for (let i = 0; i < prior.length; i++) {
         const { tasks, ...rest } = after[i];
         if (prior[i].id === DRAWING) {
-          expect(tasks).toEqual({ dismissed: { 'month.record@2026-09': { at: expect.any(String), until: '2026-10' } } });
+          expect(tasks).toEqual({ of: prior[i].createdAt, dismissed: { 'month.record@2026-09': { at: expect.any(String), until: '2026-10' } } });
           expect(rest).toEqual(prior[i]);
         } else expect(after[i]).toEqual(prior[i]);
       }

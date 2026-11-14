@@ -195,9 +195,13 @@ test('an unlocked plan: a row accepted is one write of the list only; a setting 
     // the form filled from the plan first (it loads after the press, and would put the box back), then one figure changed
     await expect(page.locator('#ssDuration')).toHaveValue(String(planted.stressTool.settings.duration), { timeout: 30_000 });
     const box = page.locator('#ssChargesPct');
-    await expect(async () => { await box.fill('0.6'); await page.waitForTimeout(500); await expect(box).toHaveValue('0.6', { timeout: 100 }); }).toPass({ timeout: 30_000 });
-    await page.locator('#ssSaveBtn').click();
-    await expect.poll(async () => { const [x] = await plansOf(uid); return x.stressTool.settings.chargesPct; }, { timeout: 30_000 }).toBe(0.6);
+    const saved = async () => { const [x] = await plansOf(uid); return x.stressTool.settings.chargesPct; };
+    // typed and saved again until the saved figure is the one typed (no fixed wait: the form's own load may come after)
+    await expect(async () => {
+      await box.fill('0.6');
+      await page.locator('#ssSaveBtn').click();
+      await expect.poll(saved, { timeout: 5_000 }).toBe(0.6);
+    }).toPass({ timeout: 45_000 });
   });
 
   await test.step('the new app: the row\'s agreement says it is out of date; the home shows no new to-do', async () => {

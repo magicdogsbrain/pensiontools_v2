@@ -78,7 +78,8 @@ describe('the named home states', () => {
     for (const el of root.querySelectorAll('[data-kind="money"]')) expect(el.getAttribute('data-value')).toMatch(/^-?\d+$/);
     // at most three to-dos, the first the one thing to press
     const items = [...one(root, `${T}.todo`).querySelectorAll(':scope > .home-items > .home-item')];
-    expect(items.length).toBeLessThanOrEqual(3);
+    // 7.10.0: at most one thing due shown (the rest "and N more")
+    expect(items.length).toBeLessThanOrEqual(1);
     if (items.length) {
       expect(items[0].classList.contains('is-first')).toBe(true);
       const pop = items[0].querySelector('.btn-pop');
@@ -103,15 +104,21 @@ describe('the named home states', () => {
 });
 
 describe('each stage\'s home', () => {
-  it('home-drawing: the strip on Drawing, "Update what you hold" with "Not now", the year\'s twelve months drawn to scale, where you are', () => {
-    const { root, actions } = draw(load('home-drawing'));
-    expect(one(root, `${T}.headline`).textContent).toBe('Drawing.');
+  // retaken in 7.10.0 (spec-7100 §5, §8): "Living on it."; what you hold out of date is no longer a to-do, so a plan with this
+  // month recorded has nothing due; with it not recorded, the month is the one thing due, with "Not now" stored on the plan
+  /** home-drawing with September not recorded: the month is due. */
+  const septemberMissing = () => { const s0 = load('home-drawing'); const p = s0.plans.list[0].plan; p.decisionTool.history = p.decisionTool.history.filter((h) => String(h.date).slice(0, 7) !== '2026-09'); return s0; };
+  it('home-drawing: "Living on it.", the strip, nothing due with this month recorded, the year\'s twelve months drawn to scale, where you are', () => {
+    const { root } = draw(load('home-drawing'));
+    expect(one(root, `${T}.headline`).textContent).toBe('Living on it.');
     const now = one(root, `${T}.strip`).querySelector('[aria-current="step"]');
     expect(now.getAttribute('data-stage')).toBe('drawing');
-    expect(now.textContent).toBe('Drawing · you are here');
-    const items = [...root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)].map((li) => li.getAttribute('data-todo'));
-    expect(items).toEqual(['hold.stale']);
-    expect(one(root, `${T}.todo.hold.stale`).getAttribute('href')).toBe('#/plan/SamBuckets04/hold');
+    expect(now.textContent).toBe('Living on it · you are here');
+    expect(root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
+    expect(one(root, `${T}.quiet`).textContent).toBe('September is recorded. Nothing is due until 1 October.');
+    // the next review, said once beside the quiet line (it does not say it), with the way to it
+    expect(one(root, `${T}.review`).textContent).toBe('Your next review: April 2027. Review now');
+    expect(one(root, `${T}.review.now`).getAttribute('href')).toBe('#/plan/SamBuckets04/review');
     const cells = [...root.querySelectorAll(`[data-testid="${T}.year"] .year-cell`)];
     expect(cells).toHaveLength(12);
     expect(cells.map((c) => c.getAttribute('data-month'))).toEqual(['2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12', '2027-01', '2027-02', '2027-03']);
@@ -119,24 +126,30 @@ describe('each stage\'s home', () => {
     expect(cells[0].querySelector('.year-bar').getAttribute('style')).toMatch(/^height: ?\d+%/);
     expect(cells[0].querySelector('.sr-only').textContent).toMatch(/^April 2026: recorded, £[\d,]+ taken before tax; the plan said £[\d,]+$/);
     expect(one(root, `${T}.where`).textContent).toContain('6 months recorded in 2026/27');
-    // "Not now" (7.10.0): the to-do slides away, then the plan write is asked to store it on the plan (plan/task)
-    one(root, `${T}.notNow.hold.stale`).click();
+  });
+  it('home-drawing with September not recorded: the month is the one thing due; "Not now" asks the plan write to store it on the plan', () => {
+    const { root, actions } = draw(septemberMissing());
+    const items = [...root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)].map((li) => li.getAttribute('data-todo'));
+    expect(items).toEqual(['month.record']);
+    expect(one(root, `${T}.todo.month.record`).getAttribute('href')).toBe('#/plan/SamBuckets04/month');
+    one(root, `${T}.notNow.month.record`).click();
     return new Promise((done, failed) => setTimeout(() => {
-      try { expect(actions).toEqual([{ type: 'plan/task', planId: 'SamBuckets04', key: 'hold.stale', how: 'notNow' }]); done(); } catch (e) { failed(e); }
+      try { expect(actions).toEqual([{ type: 'plan/task', planId: 'SamBuckets04', key: 'month.record@2026-09', how: 'notNow' }]); done(); } catch (e) { failed(e); }
     }, 500));
   });
-  it('home-drawing, put off: nothing due — the dated line, "September is recorded. Nothing is due until 1 October."', () => {
+  it('home-drawing, September put off: nothing due — the review\'s date said, and until when it is put off', () => {
     // stored on the plan (7.10.0): the plan as read back after the write, and the write's own toast
-    const stored = load('home-drawing');
-    stored.plans.list = stored.plans.list.map((e) => (e.plan.id === 'SamBuckets04' ? { ...e, plan: { ...e.plan, tasks: { dismissed: { 'hold.stale': { at: '2026-09-30T12:00:00.000Z', until: '2026-10' } } } } } : e));
-    const { root } = draw(stored, { type: A.PLAN_SAVED, planId: 'SamBuckets04', previous: null, line: { id: 'putOff', slots: { month: 'October 2026' }, key: 'hold.stale' }, op: 'task' });
+    const stored = septemberMissing();
+    stored.plans.list[0].plan.tasks = { dismissed: { 'month.record@2026-09': { at: '2026-09-30T12:00:00.000Z', until: '2026-10' } } };
+    const { root } = draw(stored, { type: A.PLAN_SAVED, planId: 'SamBuckets04', previous: null, line: { id: 'putOff', slots: { month: 'October 2026' }, key: 'month.record@2026-09' }, op: 'task' });
     expect(root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
-    expect(one(root, `${T}.quiet`).textContent).toBe('September is recorded. Nothing is due until 1 October.');
-    // and what "Not now" did, and for how long
+    expect(one(root, `${T}.quiet`).textContent).toBe('Nothing due. Your next review is April 2027.');
+    // said once: the quiet line says the review's date, so no second review line
+    expect(one(root, `${T}.review`)).toBe(null);
     expect(one(root, `${T}.notNowDone`).textContent).toBe('Put off until October 2026.');
     expect(one(draw(load('home-drawing')).root, `${T}.notNowDone`)).toBe(null);
     // while the write is under way the to-do is already gone from the list
-    const pending = draw(load('home-drawing'), { type: A.PLAN_TASK, planId: 'SamBuckets04', key: 'hold.stale', how: 'notNow' });
+    const pending = draw(septemberMissing(), { type: A.PLAN_TASK, planId: 'SamBuckets04', key: 'month.record@2026-09', how: 'notNow' });
     expect(pending.root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
   });
   it('home-moving: a saver inside the move window reads "Moving." — what is held never decides it; the strip on Moving, no move to-do', () => {
@@ -144,9 +157,14 @@ describe('each stage\'s home', () => {
     // it held. Its stop has passed, so it is Living on it now; Moving is a saver inside the window (Alex, a four-year window)
     const { root } = draw(load('home-moving'));
     expect(one(root, `${T}.headline`).textContent).toMatch(/^Moving\.$/);
-    const items = [...root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)].map((li) => li.getAttribute('data-todo'));
-    expect(items).toEqual(['checkin.first']);
-    expect(one(root, `${T}.heldMix`)).toBe(null);
+    // 7.10.0: the window line, no to-do (the first check-in is not one), the review whenever they like
+    expect(root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
+    expect(one(root, `${T}.moveWindow`).textContent).toBe('In your move window: 40 months left, to January 2030. You can record what you hold when you like.');
+    expect(one(root, `${T}.quiet`).textContent).toBe('Nothing due. You can review your plan whenever you like.');
+    expect(one(root, `${T}.review`)).toBe(null);
+    expect(one(root, `${T}.drift`)).toBe(null);
+    // someone in the move window still pays in: the check-in is the first tool
+    expect(one(root, `${T}.tools`).querySelector('a').getAttribute('data-testid')).toBe(`${T}.tool.checkin`);
     expect(one(root, `${T}.strip`).querySelector('[aria-current="step"]').getAttribute('data-stage')).toBe('moving');
     expect(one(root, `${T}.tool.move`)).not.toBe(null);
     expect(one(root, `${T}.headline`).textContent).not.toMatch(/moves done/);
@@ -157,90 +175,92 @@ describe('each stage\'s home', () => {
     expect(one(move, 'plan.step.move').textContent).toBe(PLAN.steps.move.label);
     expect(one(move.querySelector('[data-region="rail"]'), 'rail.plan.move').textContent).toContain(PLAN.steps.move.label);
   });
-  it('home-drawing-held: a ladder recording months while short of its rungs reads Drawing; the share held is said, not a to-do', () => {
+  // retaken in 7.10.0 (spec-7100 §3.2, §5): what is held never decides the stage and is never a to-do — the drift line says it
+  // when a bucket is more than a tenth of the pension from the mix, or a ladder's gilt for this year or next is not held
+  it('home-drawing-held: a ladder recording months while short of its rungs reads "Living on it."; no move to-do, the strip done, no line while no gilt is due soon', () => {
     const { root, words } = draw(load('home-drawing-held'));
-    expect(one(root, `${T}.headline`).textContent).toBe('Drawing.');
+    expect(one(root, `${T}.headline`).textContent).toBe('Living on it.');
     expect(one(root, `${T}.strip`).querySelector('[aria-current="step"]').getAttribute('data-stage')).toBe('drawing');
     const items = [...root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)].map((li) => li.getAttribute('data-todo'));
     expect(items).not.toContain('move.next');
     expect(items).not.toContain('move.finish');
-    // under "Where you are", as a note beside the headline lines (never one of them): the share, what is different, the move
-    const note = one(root, `${T}.heldMix`);
-    expect(note.closest(`[data-testid="${T}.where"]`)).not.toBe(null);
-    expect(note.classList.contains('plan-line')).toBe(false);
-    const pct = note.getAttribute('data-pct');
-    expect(note.querySelector('p.note').textContent).toMatch(new RegExp(`^You hold about ${pct}% of your plan’s mix\\. Different from the plan: .+ and \\d+ more\\.$`));
-    // the link on a line of its own (on a phone every link is a full-height target: inside the sentence it pushed its line apart)
-    const link = one(root, `${T}.heldMix.move`);
-    expect(link.textContent).toBe(HOME.heldMix.link);
-    expect(link.closest('p.note')).toBe(null);
-    expect(link.parentElement.classList.contains('home-where-more')).toBe(true);
-    expect(link.getAttribute('href')).toBe('#/plan/SamLadder07/move');
-    // the move tool goes by the mix and says the same share
-    expect(one(root, `${T}.tool.move`).textContent).toBe(`Your plan’s mix · about ${pct}% held`);
-    // retaken on purpose (7.3.1 review): the strip never says "Moving · done" beside a note saying how much of the mix is held —
-    // no word for that segment, filled to the share
+    expect(one(root, `${T}.drift`)).toBe(null);
+    expect(one(root, `${T}.heldMix`)).toBe(null);
     const seg = one(root, `${T}.strip`).querySelector('[data-stage="moving"]');
-    expect(seg.getAttribute('data-state')).toBe('part');
-    expect(seg.textContent).toBe('Moving');
-    expect(one(root, `${T}.strip`).querySelector('.strip-seg.is-moving .strip-fill').style.width).toBe(`${pct}%`);
-    // "Moving" is said nowhere on a Drawing home but the strip's own word for the stage behind it: not the tools, not the
-    // steps, not the to-dos
+    expect(seg.getAttribute('data-state')).toBe('done');
+    // the move tool goes by the mix and says its own state, never a share beside the stage
+    expect(one(root, `${T}.tool.move`).textContent).toMatch(/^Your plan’s mix · /);
+    expect(words).not.toMatch(/moves done|% held/);
+    // "Moving" is said nowhere on a Living-on-it home but the strip's own word for the stage behind it
     const rest = one(root, T).cloneNode(true);
     rest.querySelector(`[data-testid="${T}.strip"]`).remove();
     expect(rest.textContent).not.toMatch(/\bMoving\b/);
-    // the move step, in "Your plan's steps", by the mix's name and the one share (not its gilts bought)
-    const stepLine = one(root, `${T}.steps`).querySelector('[data-step="move"]');
-    expect(stepLine.textContent).toBe(`Your plan’s mix — about ${pct}% held`);
-    expect(words).not.toMatch(/moves done/);
-    // the rail on a step page: its Next is the home's first to-do, never a move; its move step by the mix's name
+    // the rail on a step page: its Next is never a move; its move step by the mix's name
     const { root: step } = draw({ ...load('home-drawing-held'), route: parse('#/plan/SamLadder07/plan') });
     const rail = step.querySelector('[data-region="rail"]');
     expect(one(rail, 'rail.next').textContent).not.toMatch(/to your plan’s mix/);
     expect(one(rail, 'rail.plan.move').textContent).toContain(PLAN.steps.move.short);
     expect(rail.textContent).not.toMatch(/\bMoving\b/);
-    // the page the note links to is headed by the same name
     const { root: move } = draw({ ...load('home-drawing-held'), route: parse('#/plan/SamLadder07/move') });
     expect(one(move, 'plan.step.move').textContent).toBe(PLAN.steps.move.short);
   });
-  it('home-drawing-held with nothing it holds recorded: the move to-do points at the step by the name the tools give it', () => {
+  it('home-drawing-held with nothing it holds recorded: no move to-do and no line about what it holds', () => {
     const s = load('home-drawing-held');
     s.plans.list[0].plan.holdings = null;
     const { root } = draw(s);
-    expect(one(root, `${T}.headline`).textContent).toBe('Drawing.');
-    expect(one(root, `${T}.heldMix`)).toBe(null);
-    const li = root.querySelector('[data-todo="move.next"]');
-    expect(li.getAttribute('data-pid')).toBe('P.moveLater');
-    expect(li.querySelector('.home-item-detail').textContent).toBe(HOME.items['move.later'].detail);
+    expect(one(root, `${T}.headline`).textContent).toBe('Living on it.');
+    expect(one(root, `${T}.drift`)).toBe(null);
+    expect(root.querySelector('[data-todo="move.next"]')).toBe(null);
     expect(one(root, `${T}.tool.move`).textContent).toMatch(/^Your plan’s mix · /);
-    const rest = one(root, T).cloneNode(true);
-    rest.querySelector(`[data-testid="${T}.strip"]`).remove();
-    expect(rest.textContent).not.toMatch(/\bMoving\b/);
   });
-  it('home-drawing: a record that shows the plan\'s mix says no share and no difference', () => {
+  it('home-drawing: a record that shows the plan\'s mix says nothing; a third of the shares in cash says the drift line, with the way to test it', () => {
     const { root } = draw(load('home-drawing'));
-    expect(one(root, `${T}.heldMix`)).toBe(null);
+    expect(one(root, `${T}.drift`)).toBe(null);
     expect(one(root, `${T}.tool.move`).textContent).toBe('Your plan’s mix · Done');
+    const s = load('home-drawing');
+    const lines = s.plans.list[0].plan.holdings.lines;
+    const sh = lines.find((l) => l.wrapper === 'SIPP' && l.ticker === 'HMWO');
+    const cash = lines.find((l) => l.wrapper === 'SIPP' && l.ticker === 'CSH2');
+    const moved = Math.round(sh.value / 3); sh.value -= moved; cash.value += moved;
+    const { root: off } = draw(s);
+    const d = one(off, `${T}.drift`);
+    expect(d.closest(`[data-testid="${T}.where"]`)).not.toBe(null);
+    expect(d.getAttribute('data-bucket')).toBe('shares');
+    expect(d.querySelector('p.note').textContent).toMatch(/^Shares are \d+% of your pension; the plan’s mix has \d+% in shares\.$/);
+    const link = one(off, `${T}.drift.test`);
+    expect(link.textContent).toBe(HOME.drift.link);
+    expect(link.closest('p.note')).toBe(null);
+    expect(link.getAttribute('href')).toBe('#/plan/SamBuckets04/review');
+    // never a to-do
+    expect([...off.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)]).toHaveLength(0);
   });
   it('home-locked-saver: nothing due once this month\'s pot is recorded, said with its date; the check-in, not the form', () => {
     const { root, text } = draw(load('home-locked-saver'));
     expect(one(root, `${T}.headline`).textContent).toBe('Saving. You stop work in February 2038.');
-    expect(one(root, `${T}.quiet`).textContent).toBe('September’s pot is recorded. Nothing is due until 1 October.');
+    // retaken in 7.10.0 (spec-7100 §4.3): once a year from its last pot record, said with its date; and when its window opens
+    expect(one(root, `${T}.quiet`).textContent).toBe('Nothing due. Your next review is September 2027.');
+    expect(one(root, `${T}.moveWindow`).textContent).toBe('Your move window opens in February 2035.');
     expect(one(root, `${T}.later`)).toBe(null);   // no "For later" marks on a locked saver's home: every step listed plainly
     expect(text).not.toContain('For later');
     expect(root.querySelector('form')).toBe(null);
     expect(one(root, `${T}.tool.checkin`).getAttribute('href')).toBe('#/plan/SamSaver02/checkin');
   });
-  it('home-saving: the first check-in first; B and A offered with the plan\'s figures, folded away', () => {
+  // retaken in 7.10.0 (spec-7100 §5): the first check-in is no longer a to-do — the review whenever they like
+  it('home-saving: nothing due, a review whenever they like and the window\'s month; B and A offered with the plan\'s figures, folded away', () => {
     const { root } = draw(load('home-saving'));
-    expect(root.querySelector(`[data-testid="${T}.todo"] .home-item`).getAttribute('data-todo')).toBe('checkin.first');
+    expect(root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
+    expect(one(root, `${T}.quiet`).textContent).toBe('Nothing due. You can review your plan whenever you like.');
+    expect(one(root, `${T}.moveWindow`).textContent).toBe('Your move window opens in January 2027.');
     expect([...one(root, `${T}.ask`).querySelectorAll('a')].map((a) => a.getAttribute('data-testid'))).toEqual([`${T}.ask.b`, `${T}.ask.a`]);
     expect(one(root, `${T}.year`)).toBe(null);
   });
-  it('home-draft-retired: the lock first; "Change the plan" lists the plan\'s own pages', () => {
+  // retaken in 7.10.0 (spec-7100 §5): the lock is no longer a to-do — its months wait for it, said in the quiet line
+  it('home-draft-retired: "Living on it. Not locked yet.", nothing due; "Change the plan" lists the plan\'s own pages', () => {
     const { root } = draw(load('home-draft-retired'));
-    expect(one(root, `${T}.headline`).textContent).toBe('Drawing. Not locked yet.');
-    expect(root.querySelector(`[data-testid="${T}.todo"] .home-item`).getAttribute('data-todo')).toBe('lock.first');
+    expect(one(root, `${T}.headline`).textContent).toBe('Living on it. Not locked yet.');
+    expect(root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
+    expect(one(root, `${T}.quiet`).textContent).toBe('Months are recorded once the plan is locked.');
+    expect(one(root, `${T}.review`).textContent).toBe('Review your plan whenever you like. Review now');
     expect([...one(root, `${T}.change`).querySelectorAll('a')].map((a) => a.textContent)).toContain(HOME.change.about);
   });
   it('home-closed: kept to read — the way to the plan that carries it on, its year frozen, no try and no question', () => {
@@ -256,16 +276,16 @@ describe('each stage\'s home', () => {
     expect(one(root, `${T}.strip`)).toBe(null);
   });
   it('a step page of the same plan: the rail\'s first link goes back to the home, its Next is the home\'s first to-do, and it asks no question', () => {
-    // retaken in 7.10.0: home-moving is a saver inside the move window (Alex, not locked): the first check-in is the first
-    // thing on the rail and the home alike (the locked ladder this used to be is Living on it now: home-drawing-held below)
+    // retaken in 7.10.0: home-moving is a saver inside the move window (Alex, not locked) with nothing due: the rail says the
+    // window, as the home does (the locked ladder this used to be is Living on it now: home-drawing-held below)
     const stored = load('home-moving');
     const step = { ...stored, route: parse('#/plan/AlexMoving03/plan') };
     const { root } = draw(step);
     const rail = root.querySelector('[data-region="rail"]');
     expect(one(rail, 'rail.home').getAttribute('href')).toBe('#/plan/AlexMoving03');
-    expect(one(rail, 'rail.next').textContent.startsWith(PLAN.next['P.firstCheckIn'])).toBe(true);
+    expect(one(rail, 'rail.next').textContent).toContain('In your move window: 40 months left, to January 2030.');
     const { root: home } = draw(stored);
-    expect(home.querySelector(`[data-testid="${T}.todo"] .home-item`).getAttribute('data-todo')).toBe('checkin.first');
+    expect(home.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
     expect(rail.querySelector('[data-testid^="rail.ask."]')).toBe(null);
     // a locked plan's steps not done carry no "Not done yet" mark
     const { root: ladder } = draw({ ...load('home-drawing-held'), route: parse('#/plan/SamLadder07/plan') });

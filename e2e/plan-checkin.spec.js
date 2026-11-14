@@ -116,7 +116,8 @@ test.describe('a saver\'s check-in, without an account', () => {
       await page.reload();
       await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.checkin');
       await expect(page.getByTestId(`${T}.result`)).toHaveAttribute('data-live', '0');
-      await expect(page.getByTestId('rail.next')).toContainText('Next: your yearly check-in (the last was September 2026).');
+      // 7.10.0: the check-in due is the saver's review (spec-7100 §5)
+      await expect(page.getByTestId('rail.next')).toContainText('Next: your review, due once a year.');
       await page.getByTestId(`${T}.ci.pension`).fill('139,000');
       await page.getByTestId(`${T}.ci.isa`).fill('8,900');
       await page.getByTestId(`${T}.submit`).click();

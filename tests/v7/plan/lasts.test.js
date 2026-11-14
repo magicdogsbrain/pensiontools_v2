@@ -349,13 +349,12 @@ describe('L1 — the sub-step, the address and the plan page\'s links', () => {
         else { expect(ids).toEqual(['lasts']); expect(step.buttons[0].href).toBe('#/plan/' + e.plan.id + '/lasts'); expect(step.buttons[0].place).toBeUndefined(); }
         // the next sentence's button never hands over to the planner's run any more
         if (pg.next.button) expect(pg.next.button.place, pg.next.id).not.toBe('test');
-        if (['P.draft', 'P.approaching', 'P.recheck'].includes(pg.next.id)) expect(pg.next.button.href).toBe('#/plan/' + e.plan.id + '/lasts');
       }
       expect(PLAN.buttons.lasts).toBe('Does it last?');
       expect(PLAN.buttons.recheck).toBe('Check it still lasts');
       expect(PLAN.buttons.lastsLocked).toBeTypeOf('string');
-      expect(PLAN.next['P.draft']).not.toMatch(/planner/);
-      expect(PLAN.next['P.approaching']).not.toMatch(/planner/);
+      // 7.10.0: the lock, "approaching" and an out-of-date answer are no longer next sentences (spec-7100 §5)
+      for (const pid of ['P.draft', 'P.approaching', 'P.recheck']) expect(PLAN.next[pid]).toBeUndefined();
     });
   }
   it('a plan shown as saved gets no link into the step; the partner link both ways', () => {

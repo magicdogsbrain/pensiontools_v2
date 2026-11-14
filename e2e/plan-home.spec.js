@@ -6,10 +6,11 @@
  *  - the sections in order: the plan's line and stage, the strip, To do, the year and where you are (side by side on a wide
  *    screen, stacked on a phone), the tools, then the steps, "Change the plan · Try something" and the questions, folded;
  *  - no rail and no box on the home; no "Not done yet" anywhere on a locked plan, its rail included;
- *  - the folds open when asked; the year's twelve months; "Not now" slides the to-do away and the nothing-due line says when;
+ *  - the folds open when asked; the year's twelve months; "Not now" slides the to-do away, is stored on the plan (7.10.0: the
+ *    plan's `tasks`, the only thing written) and survives a reload; the nothing-due line says the next review;
  *  - with less motion asked for, the page ends on the very same frame (the figures, the bars, the dot);
  *  - "Does it last?": the working spinner shows, then the verdict;
- *  - the plans stored in the window are byte-identical afterwards: the home writes nothing.
+ *  - the plans stored in the window are byte-identical afterwards: opening the home writes nothing.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -38,7 +39,7 @@ const plans = () => [planted('04-buckets-running.json', DRAWING, 'Sam’s plan')
 const stored = (page) => page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY);
 
 test.describe('a plan\'s home', () => {
-  test('a locked drawing plan: the sections in order, no rail or box, no "Not done yet", the folds, the year, "Not now"; nothing written', async ({ page }, testInfo) => {
+  test('a locked drawing plan: the sections in order, no rail or box, no "Not done yet", the folds, the year; nothing written; "Not now" stored', async ({ page }, testInfo) => {
     const before = await plant(page, plans());
     await page.goto(v7('#/plan/' + DRAWING));
     const home = page.getByTestId(T);
@@ -46,7 +47,7 @@ test.describe('a plan\'s home', () => {
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan');
     await expect(page.locator('[data-region="rail"]')).toHaveCount(0);
     expect(await page.locator('#app input, #app select, #app textarea').count()).toBe(0);
-    await expect(page.getByTestId(`${T}.headline`)).toHaveText('Drawing.');
+    await expect(page.getByTestId(`${T}.headline`)).toHaveText('Living on it.');
     await expect(page.getByTestId('plan.stageLine')).toContainText('Retired. Living on the plan.');
 
     await test.step('the sections, top to bottom', async () => {
@@ -94,55 +95,63 @@ test.describe('a plan\'s home', () => {
       await expect(page.getByTestId(`${T}.year`).locator('.year-cell[data-state="recorded"] .year-bar')).toHaveCount(6);
     });
 
-    await test.step('"Not now" slides the to-do away; nothing is due, and the line says until when', async () => {
-      await expect(page.getByTestId(`${T}.todo`).locator('.home-item')).toHaveCount(1);
-      await page.getByTestId(`${T}.notNow.hold.stale`).click();
-      await expect(page.getByTestId(`${T}.todo`).locator('.home-item')).toHaveCount(0);
-      await expect(page.getByTestId(`${T}.quiet`)).toHaveText('September is recorded. Nothing is due until 1 October.');
-      // kept for the window: a reload reads the same
-      await page.reload();
-      await expect(page.getByTestId(`${T}.quiet`)).toHaveText('September is recorded. Nothing is due until 1 October.');
-    });
+    // 7.10.0: September recorded, nothing is due — what you hold out of date is no longer a to-do
+    await expect(page.getByTestId(`${T}.todo`).locator('.home-item')).toHaveCount(0);
+    await expect(page.getByTestId(`${T}.quiet`)).toHaveText('September is recorded. Nothing is due until 1 October.');
+    await expect(page.getByTestId(`${T}.review`)).toHaveText('Your next review: April 2027. Review now');
+    expect(await stored(page), 'opening the home writes nothing').toBe(before);
 
-    expect(await stored(page), 'the home writes nothing').toBe(before);
+    await test.step('"Not now" on the month: slid away, stored on the plan (its `tasks` the only thing written), still away after a reload', async () => {
+      const missing = plans().map((p) => (p.id === DRAWING ? { ...p, decisionTool: { ...p.decisionTool, history: p.decisionTool.history.filter((h) => String(h.date).slice(0, 7) !== '2026-09') } } : p));
+      const was = await plant(page, missing);
+      await page.goto(v7('#/plan/' + DRAWING));
+      await expect(page.getByTestId(`${T}.todo`).locator('.home-item')).toHaveCount(1);
+      await page.getByTestId(`${T}.notNow.month.record`).click();
+      await expect(page.getByTestId(`${T}.todo`).locator('.home-item')).toHaveCount(0);
+      await expect(page.getByTestId(`${T}.notNowDone`)).toHaveText('Put off until October 2026.');
+      await expect(page.getByTestId(`${T}.quiet`)).toHaveText('Nothing due. Your next review is April 2027.');
+      const after = JSON.parse(await stored(page));
+      const prior = JSON.parse(was);
+      for (let i = 0; i < prior.length; i++) {
+        const { tasks, ...rest } = after[i];
+        if (prior[i].id === DRAWING) {
+          expect(tasks).toEqual({ dismissed: { 'month.record@2026-09': { at: expect.any(String), until: '2026-10' } } });
+          expect(rest).toEqual(prior[i]);
+        } else expect(after[i]).toEqual(prior[i]);
+      }
+      await page.reload();
+      await expect(page.getByTestId(`${T}.todo`).locator('.home-item')).toHaveCount(0);
+      await expect(page.getByTestId(`${T}.quiet`)).toHaveText('Nothing due. Your next review is April 2027.');
+    });
   });
 
-  test('a plan locked while saving: the home, not the check-in form; its to-do first; no "For later" marks', async ({ page }) => {
+  test('a plan locked while saving: the home, not the check-in form; its next review; no "For later" marks', async ({ page }) => {
     const before = await plant(page, plans());
     await page.goto(v7('#/plan/' + SAVER));
     await expect(page.getByTestId(T)).toBeVisible();
     await expect(page.locator('#app form')).toHaveCount(0);
     await expect(page.getByTestId(`${T}.headline`)).toHaveText('Saving. You stop work in February 2038.');
-    await expect(page.getByTestId(`${T}.quiet`)).toHaveText('September’s pot is recorded. Nothing is due until 1 October.');
+    // 7.10.0: once a year from its last pot record (September 2026), never a monthly pot
+    await expect(page.getByTestId(`${T}.quiet`)).toHaveText('Nothing due. Your next review is September 2027.');
     await page.getByTestId(`${T}.steps`).locator('summary').click();
     await expect(page.getByTestId(`${T}.steps`)).not.toContainText('For later');
     await expect(page.getByTestId(`${T}.steps`)).not.toContainText('Not done yet');
     expect(await stored(page)).toBe(before);
   });
 
-  test('a ladder recording its months while short of its rungs (7.3.1): Drawing; the share held said under "Where you are", the move one link away, no move to-do; nothing written', async ({ page }, testInfo) => {
+  // retaken in 7.10.0 (spec-7100 §3.2, §5): what is held never decides the stage and is never a to-do; with no gilt needed this
+  // tax year or next missing, nothing is said about it
+  test('a ladder recording its months while short of its rungs: "Living on it."; no move to-do, no line about what it holds; nothing written', async ({ page }, testInfo) => {
     const LADDER = 'HomeLadder03';
     const before = await plant(page, [planted('20-locked-start-after-stop.json', LADDER, 'Sam’s ladder'), ...plans()]);
     await page.goto(v7('#/plan/' + LADDER));
     await expect(page.getByTestId(T)).toBeVisible();
-    await expect(page.getByTestId(`${T}.headline`)).toHaveText('Drawing.');
+    await expect(page.getByTestId(`${T}.headline`)).toHaveText('Living on it.');
     await expect(page.getByTestId(`${T}.strip`).locator('[aria-current="step"]')).toHaveAttribute('data-stage', 'drawing');
     await expect(page.locator('[data-todo="move.next"], [data-todo="move.finish"]')).toHaveCount(0);
-    const note = page.getByTestId(`${T}.heldMix`);
-    await expect(note).toBeVisible();
-    const pct = await note.getAttribute('data-pct');
-    await expect(note.locator('p.note')).toHaveText(new RegExp(`^You hold about ${pct}% of your plan’s mix\\. Different from the plan: .+ and \\d+ more\\.$`));
-    // inside "Where you are", under its lines; the move tool says the same share, by the mix's name
-    await expect(page.getByTestId(`${T}.where`).getByTestId(`${T}.heldMix`)).toHaveCount(1);
-    await expect(page.getByTestId(`${T}.tool.move`)).toHaveText(`Your plan’s mix · about ${pct}% held`);
-    // the link on a line of its own, below the whole sentence (at 390 a link is a full-height target: inside the sentence it
-    // pushed its own line apart from the rest)
-    const sentence = await note.locator('p.note').boundingBox();
-    const link = await page.getByTestId(`${T}.heldMix.move`).boundingBox();
-    expect(link.y).toBeGreaterThanOrEqual(sentence.y + sentence.height - 1);
-    // the strip never says "Moving · done" beside that note; "Moving" is said nowhere else on a Drawing home
-    await expect(page.getByTestId(`${T}.strip`).locator('[data-stage="moving"]')).toHaveAttribute('data-state', 'part');
-    await expect(page.getByTestId(`${T}.strip`).locator('[data-stage="moving"]')).toHaveText('Moving');
+    await expect(page.getByTestId(`${T}.drift`)).toHaveCount(0);
+    await expect(page.getByTestId(`${T}.heldMix`)).toHaveCount(0);
+    await expect(page.getByTestId(`${T}.strip`).locator('[data-stage="moving"]')).toHaveAttribute('data-state', 'done');
     for (const id of [`${T}.todo`, `${T}.where`, `${T}.tools`, `${T}.steps`]) await expect(page.getByTestId(id)).not.toContainText('Moving');
     await expect(page.getByTestId(`${T}.step.move`)).toHaveText('Your plan’s mix');
     // no page wider than the screen, at either width; on a wide screen the year and where you are still sit side by side
@@ -152,16 +161,10 @@ test.describe('a plan\'s home', () => {
       const w = await page.getByTestId(`${T}.where`).boundingBox();
       expect(w.x).toBeGreaterThan(y.x + y.width - 1);
     }
-    // the rail on a step page never names a move as Next on a Drawing plan
+    // the rail on a step page never names a move as Next
     await page.goto(v7('#/plan/' + LADDER + '/plan'));
     await expect(page.getByTestId('rail.next')).toBeAttached();
     await expect(page.getByTestId('rail.next')).not.toContainText('to your plan’s mix');
-    // the link opens the move, whose own status says the very same share
-    await page.goto(v7('#/plan/' + LADDER));
-    await page.getByTestId(`${T}.heldMix.move`).click();
-    await expect(page.getByTestId('plan.move.status.line')).toContainText(`${pct}% of the plan’s mix held`);
-    // headed by the name the home gave it
-    await expect(page.getByTestId('plan.step.move')).toHaveText('Your plan’s mix');
     expect(await stored(page), 'the home writes nothing').toBe(before);
   });
 

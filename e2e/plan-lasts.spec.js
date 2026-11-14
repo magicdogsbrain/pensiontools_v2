@@ -187,12 +187,13 @@ test.describe('"Does it last?", without an account', () => {
     await awaitRun(page, Date.now());
     expect(await bandFigures(page, 'plan.lasts.result')).toEqual(before);
 
-    // the plan page: "Does it last?" links here; the next sentence too, with no hand-over to the planner's run
+    // the plan page: "Does it last?" links here, with no hand-over to the planner's run (7.10.0: the lock is no longer the next
+    // sentence — nothing is due on a draft; the review whenever they like)
     await page.goto(v7('#/plan/LastsPlan01/plan'));
     await expect(page.getByTestId('plan.step.plan')).toBeVisible();
     await expect(page.getByTestId('plan.plan.lasts')).toHaveAttribute('href', '#/plan/LastsPlan01/lasts');
-    await expect(page.getByTestId('rail.next')).toContainText('Next: check it lasts, then lock it when it is right.');
-    await expect(page.getByTestId('rail.next.button')).toHaveAttribute('href', '#/plan/LastsPlan01/lasts');
+    await expect(page.getByTestId('rail.next')).not.toContainText('lock it');
+    await expect(page.getByTestId('rail.next.button')).toHaveAttribute('href', /^#\/plan\/LastsPlan01(\/|$)/);
   });
 
   test('a box left wrong is marked in plain words and nothing is written; Cancel clears the typing; the locked plan shows the document\'s figure and today\'s, and has no box', async ({ page, watch }) => {

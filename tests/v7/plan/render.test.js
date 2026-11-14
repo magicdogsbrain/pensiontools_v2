@@ -119,12 +119,11 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(root.querySelector('[data-testid="plan.stageLine"]').textContent).toBe('Retired. Living on the plan; your ladder’s first gilt pays from April 2029. Locked 1 July 2026.');
     expect(root.querySelector('h1').textContent).toBe('Month by month');
     expect(text).toContain('October 2026 is not recorded yet');
-    // 7.3.3: the rail's Next is the plan's first thing to do — 7.4.3: the move of its start to the tax year its recorded
-    // months begin in — and opens "About you and when"; the month to record is still the page's own
-    expect(text).toContain('Your plan is set to start in April 2027, but your recorded months begin in July 2026. Next: start it from 2026/27.');
+    // retaken in 7.10.0 (spec-7100 §5): the start's move is no longer a to-do — the rail's Next is the month to record
+    expect(text).toContain('Next: record October 2026.');
     const btn = root.querySelector('[data-testid="rail.next.button"]');
-    expect(btn.textContent).toBe('Move the start');
-    expect(btn.getAttribute('href')).toBe('#/plan/' + ladder.plan.id + '/about');
+    expect(btn.textContent).toBe('Record October');
+    expect(btn.getAttribute('href')).toBe('#/plan/' + ladder.plan.id + '/month');
     expect(root.querySelector('[data-testid="plan.month.submit"]').textContent).toBe('Record October 2026');
     // the last records, exact
     expect(root.querySelectorAll('[data-testid="plan.month.recent"] li').length).toBe(3);
@@ -153,7 +152,8 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     const { root, text } = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/where'));
     expect(text).toContain('3 months recorded in 2026/27: £8,500 taken before tax');
     expect(text).not.toMatch(/the plan says £|than the plan said/);
-    expect(text).toContain('Your plan is set to start in April 2027, so these months are not read against it yet: see To do');
+    // 7.10.0: the start is changed on "About you and when" (no longer a to-do), with the way there
+    expect(text).toContain('Your plan is set to start in April 2027, so these months are not read against it yet. You can change the start on About you and when');
     expect(text).not.toContain('months to go');
     expect(root.querySelector('[data-key="drawn"]').getAttribute('data-value')).toBe('8500');
     expect(text).toContain('From your plan as locked, 1 July 2026');
@@ -173,14 +173,13 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(pg.steps.find((s) => s.id === 'move').buttons).toEqual([{ id: 'openMove', href: '#/plan/' + ladder.plan.id + '/move', slots: {} }]);
     expect(page.root.querySelector('[data-testid="rail.plan.hold"]').getAttribute('href')).toBe('#/plan/' + ladder.plan.id + '/hold');
   });
-  it('05\'s check-in reads as its pot step did; Where you are reads the pot against the path; the lock is not offered again', () => {
+  // retaken in 7.10.0 (spec-7100 §4.3): a plan locked while saving that never chose is checked in on once a year
+  it('05\'s check-in says its yearly check-in; Where you are reads the pot against the path; the lock is not offered again', () => {
     const { root, text } = draw(stateWith(entries, '#/plan/' + saver.plan.id + '/checkin'));
     expect(root.querySelector('[data-testid="plan.stageLine"]').textContent).toBe('Plan locked. Still working until February 2038. Locked 15 July 2026.');
-    // the check-in took the pot step's place (release step R3); a plan locked while saving that never chose how often reads
-    // as before, word for word: this month's pot, and the next sentence
     expect(root.querySelector('h1').textContent).toBe('Check in');
-    expect(text).toContain('October’s pot is not recorded yet');
-    expect(text).toContain('Your plan is locked and you stop work in February 2038. Next: record this month’s pot.');
+    expect(text).toContain('Your next check-in: September 2027');
+    expect(text).toContain('Nothing due. Your next review is September 2027.');
     expect(root.querySelector('[data-testid="rail.plan.lock"]')).toBe(null);
     const where = draw(stateWith(entries, '#/plan/' + saver.plan.id + '/where'));
     expect(where.text).toMatch(/£319,800 on September 2026; the plan’s middle line for then is £[\d,]+/);
@@ -445,11 +444,10 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     const today = '2026-11-03';
     const marked = draw(stateWith(entriesAt(today, raws), '#/plan/' + id + '/month', { today }));
     expect(marked.text).toContain('November 2026 recorded');
-    // 7.3.1 (retaken on purpose: in 7.3.0 03 read Moving and the rail's next was the next order to place): 03 records its
-    // months, so it is Drawing and the rail's next is its record of what it holds, out of date; the tool says nothing is due
-    // until December's 1st
+    // retaken in 7.10.0 (spec-7100 §5): what it holds out of date is no longer a to-do — November recorded, nothing is due; the
+    // tool says nothing is due until December's 1st
     expect(marked.text).toContain('November is recorded. December opens on 1 December (record it early if the payment has gone).');
-    expect(marked.root.querySelector('[data-testid="rail.next"] [data-next]').textContent).toMatch(/^What you hold was last updated on .+\. Next: update it\.$/);
+    expect(marked.root.querySelector('[data-testid="rail.next"] [data-next]').textContent).toBe('November 2026 is recorded. Nothing to do until December.');
     expect(marked.text).not.toContain('October 2026 is not recorded');
     expect(marked.root.querySelector('[data-line="month.gapLater"]')).toBe(null);
     expect(checkPlanPage(marked.root, marked.text, scopesOf('bridge')).filter((p) => p !== 'a box is drawn')).toEqual([]);

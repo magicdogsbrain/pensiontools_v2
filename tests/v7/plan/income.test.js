@@ -388,8 +388,9 @@ describe('I1 — the stale-answer rule gains the State Pension and the final-sal
     const fsChanged = applyPatch({ ...matching, lastModified: '2026-10-02T09:00:00.000Z' }, incomePatch(matching, { 'fs.ids': 'n1', 'fs.n1.amount': '5000', 'fs.n1.fromAge': '65' }, { today: TODAY }).patch);
     expect(answerAge(fsChanged, now(fsChanged))).toMatchObject({ diffs: ['finalSalary'] });
     const page = planPage([{ plan: fsChanged }], fsChanged.id, 'plan', { today: TODAY });
-    // 7.3.0: due, behind the saver's first check-in (the design's rank 10 before 15)
-    expect(page.due.map((d) => d.pid)).toContain('P.recheck');
+    // retaken in 7.10.0 (spec-7100 §5): an out-of-date answer is no longer a to-do — "Does it last?" and the plan page say it
+    expect(page.due.map((d) => d.pid)).not.toContain('P.recheck');
+    expect(page.answerStale).toMatchObject({ diffs: ['finalSalary'] });
   });
 });
 

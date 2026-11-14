@@ -118,12 +118,14 @@ test.describe('"About you and when", without an account', () => {
     await page.goto(v7('#/plan/AboutPlan01/plan'));
     await expect(page.getByTestId('plan.step.plan')).toBeVisible();
     await expect(page.getByTestId('plan.answerStale')).toHaveText('Your ‘will it last’ answer was worked out on 20 September 2026, before the plan was changed on 30 September 2026.');
-    // 7.3.0: the rail's next is the first thing due (the saver's first check-in); "check it still lasts" is due on the home
-    await expect(page.getByTestId('rail.next')).toContainText('Next: your first check-in.');
+    // 7.10.0: neither the first check-in nor "check it still lasts" is a to-do — the stale line above says it
+    await expect(page.getByTestId('rail.next')).toBeAttached();
+    await expect(page.getByTestId('rail.next')).not.toContainText('check it still lasts');
     await expect(page.getByTestId('plan.plan.edit.about')).toHaveText('Change this here');
     await expect(page.locator('[data-region="plan-step"]')).toContainText('Stopping work at 63, in January 2031');
     await page.goto(v7('#/plan/AboutPlan01'));
-    await expect(page.locator('[data-todo="answer.stale"]')).toContainText('Check it still lasts');
+    await expect(page.getByTestId('plan.home')).toBeVisible();
+    await expect(page.locator('[data-todo="answer.stale"]')).toHaveCount(0);
     await page.goto(v7('#/plan/AboutPlan01/plan'));
     await expect(page.getByTestId('plan.step.plan')).toBeVisible();
 

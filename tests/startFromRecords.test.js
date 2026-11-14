@@ -256,15 +256,12 @@ describe('the words, in both apps', () => {
   it('the to-do: "Your plan is set to start in April 2027, but your recorded months begin in June 2026. Start it from 2026/27."', () => {
     const step = nextStepFor({ stage: deriveStage(plan, NOW), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(plan, NOW) });
     expect(step).toEqual({ html: 'Your plan is set to start in April 2027, but your recorded months begin in June 2026. Start it from 2026/27.', btn: 'Move the start', action: { kind: 'start-later' } });
+    // retaken in 7.10.0 (spec-7100 §5): the V7 home and rail have no start to-do — the start is changed on "About you and when"
     const e = { plan, newer: false, failed: false };
     const h = homeOf([e], plan.id, { today: TODAY });
-    const first = h.todo.items[0];
-    expect(first.id).toBe('start.moveRecords');
-    expect(first.button).toMatchObject({ id: 'moveStart', href: '#/plan/' + plan.id + '/about' });
-    expect(fill(HOME.items['start.moveRecords'].title, first.slots) + ' — ' + fill(HOME.items['start.moveRecords'].detail, first.slots))
-      .toBe('Start it from 2026/27 — Your plan is set to start in April 2027, but your recorded months begin in June 2026.');
+    expect([...h.todo.items, ...h.todo.more].map((i) => i.id).filter((x) => x.startsWith('start.'))).toEqual([]);
     const pg = planPage([e], plan.id, null, { today: TODAY });
-    expect(fill(PLAN.next[pg.next.words], pg.next.slots)).toBe('Your plan is set to start in April 2027, but your recorded months begin in June 2026. Next: start it from 2026/27.');
+    expect(String(pg.next.id)).not.toMatch(/^P\.start/);
     expect(PLAN.buttons.moveStart).toBe('Move the start');
   });
   it('the line under the Timing block, and V7\'s "About you and when": the same sentence, and the move\'s button', () => {
@@ -315,8 +312,7 @@ describe('the words, in both apps', () => {
     const slots = { start: 'April 2027', records: 'June 2026', moveTo: '2026/27', yearStop: '2026/27', yearStart: '2027/28', year: '2026/27', to: '2026/27' };
     const L = ABOUT.lockedStart;
     for (const t of [L.moveRecords, L.moveRecordsLevel, L.blockedRecords, L.pointer, L.pointerStop, L.pointerOpen, L.confirm.lines.firstRecords, ABOUT.toast.movedRecords,
-      HOME.items['start.moveRecords'].title, HOME.items['start.moveRecords'].detail, HOME.items['start.blockedRecords'].title, HOME.items['start.blockedRecords'].detail,
-      PLAN.next['P.startMoveRecords'], PLAN.next['P.startBlockedRecords'], NEXT_STEP_WORDS.startMoveRecords, NEXT_STEP_WORDS.startBlockedRecords]) {
+      NEXT_STEP_WORDS.startMoveRecords, NEXT_STEP_WORDS.startBlockedRecords]) {
       const w = fill(t, slots);
       expect(bannedHits(w, SCOPES), t).toEqual([]);
       expect(w, t).not.toMatch(/\{\w+\}|undefined|null/);

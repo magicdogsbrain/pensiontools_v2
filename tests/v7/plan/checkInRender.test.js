@@ -134,13 +134,14 @@ describe('"Check in", drawn', () => {
     expect(one(due.root, `${T}.result.kept`)).not.toBe(null);
     expect(due.text).toContain('Due: your yearly check-in (the last was November 2026)');
     expect(one(due.root, `${T}.again`), 'the last check-in is from another month').toBe(null);
-    expect(due.text).toContain('Next: your yearly check-in (the last was November 2026).');
+    // 7.10.0: the check-in due is the saver's review, on the rail as everywhere
+    expect(due.text).toContain('Next: your review, due once a year.');
     const list = draw(stateWith([{ plan: aged, newer: false, failed: false }], '#/plans', { today, source: 'window', session: 'nobody' }));
     // (7.3.0, retaken on purpose: the row's to-do count covers the check-in due, so the old "Check-in due." mark is said only
     // on a row with no count) — the row says "1 to do", and its home lists the check-in first
     expect(one(list.root, `plans.checkInDue.${aged.id}`)).toBe(null);
     const dueNow = planPage([{ plan: aged, newer: false, failed: false }], aged.id, null, { today, source: 'window' }).due;
-    expect(dueNow.map((d) => d.id)).toContain('checkin.due');
+    expect(dueNow.map((d) => d.id)).toContain('review.due');
     expect(one(list.root, `plans.todo.${aged.id}`).getAttribute('data-count')).toBe(String(dueNow.length));
     clean(due.words);
     // the second check-in: pay-in raised from December
@@ -169,16 +170,18 @@ describe('"Check in", drawn', () => {
     expect(one(anyway, `${T}.ci.every.year`).checked).toBe(true);
     clean(words);
   }, 120000);
-  it('a plan locked while saving that never chose: the step reads as its pot step did, the lock\'s note, "Each month" kept; the pot step\'s address opens it', () => {
+  // retaken in 7.10.0 (spec-7100 §4.3): the monthly pot step is gone; such a plan is checked in on once a year, and its first
+  // yearly check-in never writes "Each month" (checkIn.js: how often starts at once a year)
+  it('a plan locked while saving that never chose: the step says its yearly check-in, the lock\'s note, "Once a year" to start; the pot step\'s address opens it', () => {
     const e = entryOf(C['05-saver-committed'], '2026-10-02');
     for (const hash of ['#/plan/' + e.plan.id + '/checkin', '#/plan/' + e.plan.id + '/pot']) {
       const { root, words, text } = draw(stateWith([e], hash, { today: '2026-10-02' }));
       expect(root.querySelector('main').getAttribute('data-screen')).toBe('plan.checkin');
       expect(root.querySelector('[data-testid="rail.plan.checkin"]').getAttribute('aria-current')).toBe('step');
-      expect(text).toContain('October’s pot is not recorded yet');
-      expect(text).toContain('Your plan is locked and you stop work in February 2038. Next: record this month’s pot.');
+      expect(text).toContain('Your next check-in: September 2027');
+      expect(text).toContain('Nothing due. Your next review is September 2027.');
       expect(one(root, `${T}.locked`).textContent).toBe(W.locked);
-      expect(one(root, `${T}.ci.every.month`).checked).toBe(true);
+      expect(one(root, `${T}.ci.every.year`).checked).toBe(true);
       expect(one(root, `${T}.ci.kind.split`).checked).toBe(true);
       expect(one(root, 'plan.notListed')).toBe(null);
       expect(labelled(root)).toEqual([]);

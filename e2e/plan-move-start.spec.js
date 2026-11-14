@@ -293,9 +293,10 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     planted.stressTool.settings.stopMonthLeft = true;   // "Leave it" said before: the plan is asked all the same while its start is later
     const text = JSON.stringify([planted]);
     await page.evaluate(([k, t]) => sessionStorage.setItem(k, t), [GUEST_KEY, text]);
-    // the home: one thing to do, which says the plan can start this tax year
+    // the home (7.10.0): no start to-do — the flow is entered from "About you and when"
     await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID);
-    await expect(page.locator('[data-todo="start.ask"]')).toContainText('If you are already drawing, it can start this tax year instead.', { timeout: 45_000 });
+    await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 45_000 });
+    await expect(page.locator('[data-todo^="start."]')).toHaveCount(0);
     await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID + '/about');
     await expect(page.getByTestId('plan.about.stopAsk')).toBeVisible({ timeout: 45_000 });
     await expect(page.getByTestId('plan.about.stopAsk.leave')).toHaveCount(0);
@@ -339,12 +340,10 @@ test.describe('Move a locked plan\'s start, without an account', () => {
     const planted = lockedPlan();   // July and August 2026 recorded; year 0 2027/28; no month work stopped
     const text = JSON.stringify([planted]);
     await page.evaluate(([k, t]) => sessionStorage.setItem(k, t), [GUEST_KEY, text]);
-    // the home: one thing to do, the move — never "When did you stop work?" first
+    // the home (7.10.0): no start to-do — the move is entered from "About you and when"; its months are its to-do
     await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID);
-    const todo = page.locator('[data-todo="start.moveRecords"]');
-    await expect(todo).toContainText('Start it from 2026/27', { timeout: 45_000 });
-    await expect(todo).toContainText('Your plan is set to start in April 2027, but your recorded months begin in July 2026.');
-    await expect(page.locator('[data-todo="start.ask"]')).toHaveCount(0);
+    await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 45_000 });
+    await expect(page.locator('[data-todo^="start."]')).toHaveCount(0);
     expect(await page.evaluate((k) => sessionStorage.getItem(k), GUEST_KEY)).toBe(text);   // read, nothing written
 
     // the planner: the line under the Timing block, and beside the saved first tax year a pointer with the move's button

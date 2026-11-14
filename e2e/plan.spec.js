@@ -77,10 +77,12 @@ test.describe('the saved plans, without an account', () => {
     await page.getByTestId('plans.open.HouseLadder01').click();
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan');
     await expect(page.getByTestId('plan.home')).toBeVisible();
-    await expect(page.getByTestId('plan.home.headline')).toHaveText('Drawing.');
+    // 7.10.0: "Living on it."; what it holds is never a to-do, and with no gilt needed this year or next missing nothing is
+    // said about it (the drift line, spec-7100 §3.2)
+    await expect(page.getByTestId('plan.home.headline')).toHaveText('Living on it.');
     await expect(page.getByTestId('plan.stageLine')).toHaveText('Retired. Living on the plan; your ladder’s first gilt pays from April 2029. Locked 1 July 2026.');
     await expect(page.locator('[data-todo="move.next"]')).toHaveCount(0);
-    await expect(page.getByTestId('plan.home.heldMix')).toContainText('of your plan’s mix');
+    await expect(page.getByTestId('plan.home.heldMix')).toHaveCount(0);
     await page.evaluate(() => { window.location.hash = '#/plan/HouseLadder01/month'; });
     await expect(page.getByTestId('plan.step.month')).toBeVisible();
     await expect(page.locator('[data-region="plan-step"]')).toContainText('September 2026 recorded: £2,476 after tax');

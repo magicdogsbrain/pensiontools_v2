@@ -194,12 +194,14 @@ test.describe('Say when you stopped work, without an account', () => {
     await expect(page.getByTestId('plan.about.stale')).toHaveCount(0, { timeout: 45_000 });
     await page.goto(PROD + V7_PATH + '#/plan/StopAbout02');
     await expect(page.getByTestId('plan.stageLine')).toHaveText('Retired. Plan not locked yet.', { timeout: 45_000 });
-    // the plan's home (7.3.0): the draft's own to-do, never "update it to today"; the rail on a page of the plan says the same
+    // the plan's home: never "update it to today"; 7.10.0: the lock is no longer a to-do either — nothing due, its months
+    // waiting for the lock; the rail on a page of the plan says nothing is due
     await expect(page.locator('[data-todo="draft.stale"]')).toHaveCount(0);
-    await expect(page.locator('[data-todo="lock.first"]')).toHaveCount(1);
+    await expect(page.locator('[data-todo="lock.first"]')).toHaveCount(0);
+    await expect(page.getByTestId('plan.home.quiet')).toHaveText('Months are recorded once the plan is locked.');
     await page.goto(PROD + V7_PATH + '#/plan/StopAbout02/plan');
     await expect(page.getByTestId('rail.next')).not.toContainText('was set to start in', { timeout: 45_000 });
-    await expect(page.getByTestId('rail.next')).toContainText('Next: check it lasts, then lock it when it is right.');
+    await expect(page.getByTestId('rail.next')).toContainText('Nothing due. You can review your plan whenever you like.');
     const text = await page.locator('#app').innerText();
     expect(text).not.toMatch(/\bplan year\b|\byear \d\b|\brun[\s-]?up\b|\bbridge\b/i);
     const widths = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: window.innerWidth }));

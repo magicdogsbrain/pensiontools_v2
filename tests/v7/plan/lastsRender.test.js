@@ -305,10 +305,10 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(link.textContent).toBe('Does it last?');
     expect(root.querySelector('[data-testid="plan.plan.testPlan"]')).toBe(null);
     expect(text).not.toMatch(/undefined|NaN/);
+    // retaken in 7.10.0 (spec-7100 §5): the lock is no longer a to-do; the draft's rail says nothing is due, with the review
     const draft = draw(stateWith(entries, '#/plan/' + C['02-pnv-draft'].id + '/plan'));
-    expect(draft.root.querySelector('[data-testid="rail.next"]').textContent).toContain('Next: check it lasts, then lock it when it is right.');
-    expect(draft.root.querySelector('[data-testid="rail.next.button"]').getAttribute('href')).toBe('#/plan/' + C['02-pnv-draft'].id + '/lasts');
-    expect(draft.root.querySelector('[data-testid="rail.next.button"]').textContent).toBe('Does it last?');
+    expect(draft.root.querySelector('[data-testid="rail.next"]').textContent).toContain('Nothing due. You can review your plan whenever you like.');
+    expect(draft.root.querySelector('[data-testid="rail.next.button"]').textContent).toBe('Review now');
   });
 });
 

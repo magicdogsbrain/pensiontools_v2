@@ -168,16 +168,18 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
   }
   it('the next sentence: the 2.4 table on the corpus', () => {
     const at = (name, today, step = null) => { const es = entriesAt(today); const id = entryOf(C[name], today).plan.id; return planPage(es, id, step, { today }); };
-    // 7.3.3: 03 is stored with its start later than it should be; 7.4.3: its months are recorded from July 2026, so the move
-    // to 2026/27 comes first, in its own words, with no question about when work stopped
-    expect(at('20-locked-start-after-stop', '2026-10-02').next.id).toBe('P.startMove');
-    expect(at('20-locked-start-after-stop', '2026-10-02').next.words).toBe('P.startMoveRecords');
-    expect(at('20-locked-start-after-stop', '2026-10-02').due.map((d) => d.pid).slice(1, 2)).toEqual(['P.month']);   // October 2026 is not recorded
-    expect(at('20-locked-start-after-stop', '2027-04-06').due.map((d) => d.pid).slice(0, 2)).toEqual(['P.startMove', 'P.taxyear']);   // 2027/28 is not set up
-    expect(at('05-saver-committed', '2026-10-02').next.id).toBe('P.pot');             // October's pot is not recorded
-    expect(at('02-pnv-draft', '2026-10-02').next.id).toBe('P.draft');
-    // 7.3.0: an unlocked saver who has never checked in — the first check-in is the design's rank 10, before the info line
-    expect(at('10-couple-b', '2026-10-02').next.id).toBe('P.firstCheckIn');
+    // retaken in 7.10.0 (spec-7100 §5): 03's start is no longer a to-do (it is changed on About you and when): October 2026
+    // is its first thing to do; at 6 April 2027 the tax year's set-up, then the month, then its first yearly review
+    expect(at('20-locked-start-after-stop', '2026-10-02').next.id).toBe('P.month');
+    expect(at('20-locked-start-after-stop', '2026-10-02').next.words).toBeUndefined();
+    expect(at('20-locked-start-after-stop', '2026-10-02').due.map((d) => d.pid)).toEqual(['P.month']);   // October 2026 is not recorded
+    expect(at('20-locked-start-after-stop', '2027-04-06').due.map((d) => d.pid)).toEqual(['P.taxyear', 'P.month', 'P.review']);   // 2027/28 is not set up
+    // a plan locked while saving that never chose: its yearly review, from its last pot record (September 2026)
+    expect(at('05-saver-committed', '2026-10-02').next.id).toBe('P.nextReview');
+    expect(fill(PLAN.next['P.nextReview'], at('05-saver-committed', '2026-10-02').next.slots)).toBe('Nothing due. Your next review is September 2027.');
+    // a draft and an unlocked saver who never checked in: nothing due — the review whenever they like
+    expect(at('02-pnv-draft', '2026-10-02').next.id).toBe('P.reviewAny');
+    expect(at('10-couple-b', '2026-10-02').next.id).toBe('P.reviewAny');
     expect(at('01-fresh-default', '2026-10-02').next.id).toBe('P.noAge');
     // a plan saved by a newer version: P.readonly, with no button and no Change buttons
     const es = entriesAt(TODAY); const first = es[0];
@@ -196,16 +198,13 @@ describe('T2 — the rail: the steps for every stage, one current step, one next
     const recorded = { ...plan, decisionTool: { ...plan.decisionTool, history: [...plan.decisionTool.history, { date: '2026-10', monthlyNet: 3395.33, monthlyTax: 938, taxYear: '26/27' }] } };
     const pg = planPage([{ plan: recorded, newer: false, failed: false }], plan.id, 'month', { today: TODAY });
     expect(pg.steps.find((s) => s.id === 'month').result.text).toBe('October 2026 recorded: £3,395 after tax');
-    // 7.3.1 (retaken on purpose: it was P.moveNext while 03 read Moving): 03 records its months, so it is Drawing; what it
-    // holds short of its ladder is said on the home, never the rail's Next — what is due is the record of what it holds,
-    // last updated over three months ago
+    // retaken in 7.10.0 (spec-7100 §5): what it holds out of date and the move are no longer things to do — the month recorded
+    // reads P.idle, word for word, whatever it holds
     expect(pg.life.key).toBe('drawing');
-    expect(pg.next.id).toBe('P.holdStale');
-    expect(pg.due.map((d) => d.pid)).not.toContain('P.moveNext');
-    // with no record of what it holds it reads as Drawing, but its whole move is still to make (retaken on purpose: this was
-    // P.idle): the next order is said, below the month (the design's "move.next: drawing (lower)")
+    expect(pg.next.id).toBe('P.idle');
+    expect(pg.due).toEqual([]);
     const noHold = { ...recorded, holdings: null };
-    expect(planPage([{ plan: noHold, newer: false, failed: false }], plan.id, 'month', { today: TODAY }).next.id).toBe('P.moveLater');
+    expect(planPage([{ plan: noHold, newer: false, failed: false }], plan.id, 'month', { today: TODAY }).next.id).toBe('P.idle');
     // every order ticked, so nothing is left to move: the month recorded reads P.idle, word for word
     const orders = moveInputs(noHold, { now: noon(TODAY) }).prog;
     expect(orders.total).toBeGreaterThan(0);

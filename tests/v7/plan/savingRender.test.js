@@ -125,9 +125,9 @@ describe('"What you pay in", drawn', () => {
     const gone = draw(stateWith(entries, '#/plan/' + C['12-lumpy-db-gia'].id + '/saving'));
     expect(gone.state.plans.view.page.steps.find((s) => s.id === 'saving').buttons.map((b) => b.id)).toEqual(['changeSaving', 'potCheck']);
     // the check-in took the pot step's place (release step R3): its own screen, where the pot is recorded with the rest of a
-    // check-in; the old words of the next sentence open it, "Each month" kept. "Record it" stays on this page too.
+    // check-in. 7.10.0: the locked saver's monthly pot is gone — the next sentence is its yearly review, opening the check-in
     const checkin = page.state.plans.view.page.steps.find((s) => s.id === 'checkin');
     expect(checkin.buttons).toEqual([{ id: 'checkIn', href: '#/plan/' + id + '/checkin', slots: {} }]);
-    expect(page.state.plans.view.page.next.button).toEqual({ id: 'recordPot', href: '#/plan/' + id + '/checkin', slots: {} });
+    expect(page.state.plans.view.page.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + id + '/checkin', slots: {} });
   });
 });

@@ -268,6 +268,8 @@ describe('the share on the plan, the saving mix and the rise (4.4, 4.5, decision
 /** Every next sentence of a saver stage, filled. */
 const nextText = (pg) => fill(PLAN.next[pg.next.id], pg.next.slots);
 const NAMES_THE_PUSH = /what you hold|move|lock|Month by month|record \w+ \d{4}|tax year|set up/i;
+/** The move window is said, never pushed (7.10.0): the one clock is named by its name; nothing in it asks for a move. */
+const nextWords = (pg) => nextText(pg).replace(/\bmove window\b/g, 'window');
 
 describe('the rail: a saver is never pushed off saving (4.1, 4.2)', () => {
   it('the steps: a saver opens on What you pay in; what you hold, the move and the lock are "For later" far from the stop; the retired stages as they were', () => {
@@ -297,8 +299,7 @@ describe('the rail: a saver is never pushed off saving (4.1, 4.2)', () => {
       for (const e of entries) {
         const pg = planPage(entries, e.plan.id, null, { today });
         if (!SAVER_STAGES.includes(pg.stageKey)) continue;
-        if (pg.next.id === 'P.pot' || pg.next.id === 'P.working') continue;   // a locked saver's sentence, word for word (below)
-        expect(nextText(pg), e.plan.id).not.toMatch(NAMES_THE_PUSH);
+        expect(nextWords(pg), e.plan.id).not.toMatch(NAMES_THE_PUSH);
         for (const s of pg.steps.filter((x) => x.later)) {
           if (!s.done) expect(s.railResult.text, e.plan.id + ' ' + s.id).toBe('For later');
           else expect(s.railResult).toBe(null);
@@ -318,51 +319,46 @@ describe('the rail: a saver is never pushed off saving (4.1, 4.2)', () => {
     expect(pg.stageKey).toBe('saving');
     expect(pg.current).toBe('saving');
     expect(pg.steps.filter((x) => x.later).map((x) => x.id)).toEqual(['lock', 'hold']);
-    // 7.3.0 (retaken on purpose): never checked in, the first check-in is due (the design's rank 10); P.saving, word for word,
-    // is what the rail says once nothing is due
-    expect(pg.next.id).toBe('P.firstCheckIn');
-    expect(pg.next.button).toEqual({ id: 'checkIn', href: '#/plan/' + saver.id + '/checkin', slots: {} });
-    expect(PLAN.next['P.saving']).toBe('Next: see whether what you pay in is enough, then check in once a year.');
+    // retaken in 7.10.0 (spec-7100 §5): the first check-in is no longer a to-do — the review whenever they like, opening the
+    // check-in (a saver's review)
+    expect(pg.next.id).toBe('P.reviewAny');
+    expect(pg.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + saver.id + '/checkin', slots: {} });
+    expect(PLAN.next['P.reviewAny']).toBe('Nothing due. You can review your plan whenever you like.');
   });
-  it('no aim: "say what you would want to spend", linking to What you spend; never on a locked plan', () => {
+  // retaken in 7.10.0 (spec-7100 §5): no aim is no longer a to-do — the review asks it (the check-in reads the plan's aim)
+  it('no aim: never a to-do (the review asks it); nothing due', () => {
     const saver = copy(C['10-couple-b']);
     saver.stressTool.settings = { ...saver.stressTool.settings, incomeShape: 'level', baseSalary: 0, incomeSteps: [], targetSchedule: null };
     const pg = planPage([entryOf(saver)], saver.id, null, { today: TODAY });
     expect(pg.stageKey).toBe('saving');   // retaken in 7.10.0: outside its three-year window in October 2026 (one clock)
-    // 7.3.0: the first check-in comes first (rank 10); the aim is due after it (rank 13), with its words and link as before
-    expect(pg.next.id).toBe('P.firstCheckIn');
-    const aim = pg.due.find((d) => d.pid === 'P.noAim');
-    expect(aim.id).toBe('saving.noAim');
-    expect(fill(PLAN.next[aim.pid], aim.slots)).toMatch(/^Next: say what you would want to spend from [A-Z][a-z]+ \d{4}, to see whether what you pay in is enough\.$/);
-    expect(aim.button.href).toBe('#/plan/' + saver.id + '/spend');
+    expect(pg.due.map((d) => d.id).filter((x) => x !== 'household.pending')).toEqual([]);
+    expect(pg.due.find((d) => d.pid === 'P.noAim')).toBeUndefined();
   });
-  it('a plan locked while saving that never chose how often: today\'s next sentence, word for word, month by month (P.pot, then P.working)', () => {
+  // retaken in 7.10.0 (spec-7100 §4.3): the monthly pot step is gone — once a year, from its last pot record (September 2026);
+  // "For later" is decided by the move window (3 years until the person chooses), the one clock
+  it('a plan locked while saving that never chose how often: its next review, once a year, never a monthly pot', () => {
     const raw = C['05-saver-committed'];
-    const stop = 'February 2038';
     const months = ['2026-10-02', '2026-11-15', '2026-12-31', '2027-01-01', '2027-02-28', '2027-03-31'];
     for (const today of months) {
       const e = entryOf(raw, today);
       const pg = planPage([e], e.plan.id, null, { today });
       expect(pg.stageKey).toBe('committed-saving');
-      expect(pg.next.id, today).toBe('P.pot');
-      expect(nextText(pg)).toBe(`Your plan is locked and you stop work in ${stop}. Next: record this month’s pot.`);
-      // the same words open the check-in now, "Each month" kept (4.2; release step R3)
-      expect(pg.next.button).toEqual({ id: 'recordPot', href: '#/plan/' + e.plan.id + '/checkin', slots: {} });
-      // this month's pot recorded: P.working, word for word
+      expect(pg.due, today).toEqual([]);
+      expect(pg.next.id, today).toBe('P.nextReview');
+      expect(nextText(pg)).toBe('Nothing due. Your next review is September 2027.');
+      expect(pg.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + e.plan.id + '/checkin', slots: {} });
+      // this month's pot recorded: the next review moves on a year from it
       const mon = today.slice(0, 7);
       const withPot = copy(raw);
       withPot.accumulationTool.history = [...withPot.accumulationTool.history.filter((r) => r.date !== mon), { date: mon, sipp: 330000, isa: 42000, gia: 0, total: 372000, recordedAt: today + 'T12:00:00.000Z' }];
       const e2 = entryOf(withPot, today);
       const pg2 = planPage([e2], e2.plan.id, null, { today });
-      expect(pg2.next.id, today).toBe('P.working');
-      expect(nextText(pg2)).toBe(`Your plan is locked and you stop work in ${stop}. Next: check you are still saving enough.`);
-      // and its button, as before release step R2: the planner's own check, in its old words
-      expect(pg2.next.button).toEqual({ id: 'onCourse', place: 'onCourse', slots: {} });
-      expect(PLAN.buttons[pg2.next.button.id]).toBe('Am I on course? (in the classic planner)');
+      expect(pg2.next.id, today).toBe('P.nextReview');
+      const [y, m] = mon.split('-').map(Number);
+      expect(pg2.reviewDue.next, today).toBe((y + 1) + '-' + String(m).padStart(2, '0') + '-01');
     }
-    expect(PLAN.next['P.pot']).toBe('Your plan is locked and you stop work in {stop}. Next: record this month’s pot.');
-    expect(PLAN.next['P.working']).toBe('Your plan is locked and you stop work in {stop}. Next: check you are still saving enough.');
-    // more than five years from the stop: what you hold and the move are for later
+    for (const pid of ['P.pot', 'P.working']) expect(PLAN.next[pid]).toBeUndefined();
+    // more than the move window from the stop: what you hold and the move are for later
     const pg = planPage([entryOf(raw)], raw.id, null, { today: TODAY });
     expect(pg.steps.filter((x) => x.later).map((x) => x.id)).toEqual(['hold', 'move']);
   });
@@ -373,10 +369,12 @@ describe('the rail: a saver is never pushed off saving (4.1, 4.2)', () => {
         const pg = planPage(entries, e.plan.id, null, { today });
         if (!RETIRED_STAGES.includes(pg.stageKey)) continue;
         expect(pg.steps.some((x) => x.later), e.plan.id).toBe(false);
-        expect(['P.agesFromSaving', 'P.noAim', 'P.saving', 'P.approaching']).not.toContain(pg.next.id);
+        expect(['P.agesFromSaving', 'P.window', 'P.onCourse']).not.toContain(pg.next.id);
       }
     }
-    for (const id of ['P.agesFromSaving', 'P.noAim']) expect(NEXT_ORDER).toContain(id);
+    // (7.10.0: the aim is asked by the review, no longer a to-do)
+    expect(NEXT_ORDER).toContain('P.agesFromSaving');
+    expect(NEXT_ORDER).not.toContain('P.noAim');
   });
 });
 

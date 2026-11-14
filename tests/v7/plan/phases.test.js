@@ -265,7 +265,9 @@ describe('belonging: a 7.9.0 copy or successor reads as a 7.10.0 copy does', () 
         const src = withRoots(C[name], { strategyId: (C[name].stressTool.settings.strategyId) || 'pots-and-valves' });
         const stamp = '2026-11-01T10:00:00.000Z';
         const made = { ...copyOf(entryOf(src, today).plan, 'Copy', { carryHistory: true, now: noon(today) }), id: 'Copy710Plan1', createdAt: stamp, lastModified: stamp };
-        pairs.push([copy790(src, stamp), made]);
+        // 7.9.0's copyOf made the same copy (never locked) and kept every root it did not know: the source's phases and tasks
+        // (a bare clone would keep the lock too, which 7.9.0's copy never did — and the review reads the lock)
+        pairs.push([{ ...copy(made), id: 'Copy790Plan1', phases: copy(src.phases), tasks: copy(src.tasks) }, made]);
       }
       // the successor of a plan lived on, made by a 7.9.0 tab: the copy's clone, every root kept, nothing carried by name
       const src = withRoots(C['13-stopped-drawing-since'], { strategyId: 'full-il-gilt' });

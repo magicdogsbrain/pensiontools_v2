@@ -168,7 +168,7 @@ describe('"Check in" on an account: one updateDoc of the check-in\'s keys', () =
     expect(p.fb.writes).toHaveLength(1);
     expect(p.fb.writes[0].path).toBe('users/u1/scenarios/' + locked.id);
     expect(Object.keys(p.fb.writes[0].data).sort()).toEqual([...CHECK_IN_KEYS.locked, 'lastModified'].sort());
-    expect(p.fb.writes[0].data['accumulationTool.checkInEvery']).toBe('month');   // "Each month" kept: the locked saver never chose
+    expect(p.fb.writes[0].data['accumulationTool.checkInEvery']).toBe('year');   // 7.10.0: a locked saver who never chose starts at once a year, never "Each month"
     expect(isLockedSettings(locked.decisionTool.settings)).toBe(true);
   }, 60000);
   it('"Use these in my plan" writes What you pay in\'s settings; "Start the path again" the path and its archive — one write each', async () => {

@@ -115,35 +115,47 @@ describe('how often, and when the next check-in is due (5.2)', () => {
     expect(checkInDueOf(plan, { today: '2030-01-01', stageKey })).toMatchObject({ every: null, chosen: false, legacy: false, due: false });
     expect(cadenceOf(withEvery(plan, 'fortnight', []), 'saving')).toEqual({ every: null, chosen: false, legacy: false });
   });
-  it('a plan locked while saving that never chose: due exactly while this month\'s pot is not recorded, from its records (the pot step\'s own rule)', () => {
+  // retaken in 7.10.0 (spec-7100 §4.3): the monthly pot step is gone — a plan locked while saving that never chose is read once
+  // a year, 12 months after the later of its last check-in and its last pot record (else its lock), and with no check-in yet
+  // never before 6 April 2027
+  it('a plan locked while saving that never chose: once a year from its last pot record or check-in, else its lock; never before 6 April 2027 without a check-in', () => {
     const raw = C['05-saver-committed'];
-    for (const today of ['2026-10-02', '2026-11-15', '2026-12-31', '2027-01-01']) {
+    for (const today of ['2026-10-02', '2026-11-15', '2026-12-31', '2027-01-01', '2027-08-31']) {
       const e = entryOf(raw, today);
-      const d = checkInDueOf(e.plan, { today, stageKey: 'committed-saving' });
-      expect(d).toMatchObject({ every: 'month', chosen: false, legacy: true, due: true });
-      const mon = today.slice(0, 7);
-      const withPot = copy(raw);
-      withPot.accumulationTool.history = [...withPot.accumulationTool.history.filter((r) => r.date !== mon), { date: mon, sipp: 330000, isa: 42000, gia: 0, total: 372000, recordedAt: today + 'T12:00:00.000Z' }];
-      expect(checkInDueOf(entryOf(withPot, today).plan, { today, stageKey: 'committed-saving' }).due).toBe(false);
+      expect(checkInDueOf(e.plan, { today, stageKey: 'committed-saving' })).toMatchObject({ every: 'year', chosen: false, legacy: true, last: '2026-09', next: '2027-09', nextDay: '2027-09-01', due: false });
     }
+    expect(checkInDueOf(entryOf(raw, '2027-09-01').plan, { today: '2027-09-01', stageKey: 'committed-saving' }).due).toBe(true);
+    // a pot recorded in October: the next is October 2027
+    const withPot = copy(raw);
+    withPot.accumulationTool.history = [...withPot.accumulationTool.history, { date: '2026-10', sipp: 330000, isa: 42000, gia: 0, total: 372000, recordedAt: '2026-10-02T12:00:00.000Z' }];
+    expect(checkInDueOf(entryOf(withPot, '2026-10-02').plan, { today: '2026-10-02', stageKey: 'committed-saving' })).toMatchObject({ next: '2027-10', due: false });
+    // no pot record at all: a year after the lock (July 2026), held to 6 April 2027 — never a release-day reminder
+    const none = copy(raw); none.accumulationTool.history = [];
+    expect(checkInDueOf(entryOf(none, '2027-04-05').plan, { today: '2027-04-05', stageKey: 'committed-saving' })).toMatchObject({ next: '2027-07', nextDay: '2027-07-01', due: false });
+    none.decisionTool.settings.lockedAt = '2025-11-02T12:00:00.000Z';
+    expect(checkInDueOf(entryOf(none, '2027-04-05').plan, { today: '2027-04-05', stageKey: 'committed-saving' })).toMatchObject({ next: '2027-04', nextDay: '2027-04-06', due: false });
+    expect(checkInDueOf(entryOf(none, '2027-04-06').plan, { today: '2027-04-06', stageKey: 'committed-saving' }).due).toBe(true);
   });
-  it('the locked saver who never chose reads exactly as today: the step says what the pot step said, the next sentence is P.pot, the plans list says nothing', () => {
+  it('the locked saver who never chose (7.10.0): the step says when its yearly check-in is, the next sentence its review, the plans list nothing due', () => {
     const raw = C['05-saver-committed'];
     for (const today of ['2026-10-02', '2026-11-15', '2027-03-31']) {
       const e = entryOf(raw, today);
       const pg = planPage([e], e.plan.id, null, { today });
       const step = pg.steps.find((s) => s.id === 'checkin');
-      const pot = planPage([e], e.plan.id, 'where', { today });
-      void pot;
-      expect(step.result.text).toMatch(/^[A-Z][a-z]+’s pot is not recorded yet$/);
-      expect(step.result.id).toBe('pot.notYet');
-      expect(pg.next.id).toBe('P.pot');
-      expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('Your plan is locked and you stop work in February 2038. Next: record this month’s pot.');
-      // 7.3.0 (retaken on purpose): ONE check-in rule — the plans list says "Check-in due" while this month's pot is not
-      // recorded, as the rail and the home do
+      expect(step.result.text).toBe('Your next check-in: September 2027');
+      expect(step.due).toBe(false);
+      expect(pg.next.id).toBe('P.nextReview');
+      expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('Nothing due. Your next review is September 2027.');
+      expect(pg.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + e.plan.id + '/checkin', slots: {} });
       const row = planRows([e], { today }).groups.flatMap((g) => g.rows)[0];
-      expect(row.checkInDue).toBe(true);
+      expect(row.checkInDue).toBe(false);
     }
+    // due from September 2027: the review, on the rail and the home, with "Check-in due" in the plans list
+    const e = entryOf(raw, '2027-09-02');
+    const pg = planPage([e], e.plan.id, null, { today: '2027-09-02' });
+    expect(pg.next.id).toBe('P.review');
+    expect(pg.steps.find((s) => s.id === 'checkin').result.text).toBe('Due: your yearly check-in (the last was September 2026)');
+    expect(planRows([e], { today: '2027-09-02' }).groups.flatMap((g) => g.rows)[0].checkInDue).toBe(true);
   });
   it('once a check-in has said how often: "Due" on the rail, the next sentence, "Check-in due" in the plans list; then on course or behind from the stored reading', () => {
     const p0 = withEvery(plan, 'year', [stub('2026-11-05', 70000, { reading: { band: 'no', fails: 700 } })]);
@@ -151,29 +163,38 @@ describe('how often, and when the next check-in is due (5.2)', () => {
     // due a year on
     let es = entries(p0, '2027-11-02');
     let pg = planPage(es, p0.id, null, { today: '2027-11-02' });
-    expect(pg.next.id).toBe('P.checkinDue');
-    expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('Next: your yearly check-in (the last was November 2026).');
-    expect(pg.next.button).toEqual({ id: 'checkIn', href: '#/plan/' + p0.id + '/checkin', slots: {} });
+    // retaken in 7.10.0: the check-in due is the saver's review (spec-7100 §5)
+    expect(pg.next.id).toBe('P.review');
+    expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('Next: your review, due once a year. A few figures, a few minutes; nothing about your plan changes unless you say so.');
+    expect(pg.next.button).toEqual({ id: 'startReview', href: '#/plan/' + p0.id + '/checkin', slots: {} });
+    expect(pg.due[0]).toMatchObject({ id: 'review.due', key: 'review.due@2027-11', dismiss: ['notNow', 'notThisTime'] });
     expect(pg.steps.find((s) => s.id === 'checkin').result.text).toBe('Due: your yearly check-in (the last was November 2026)');
     expect(planRows(es, { today: '2027-11-02' }).groups.flatMap((g) => g.rows)[0].checkInDue).toBe(true);
-    // not due: behind at the last check-in
+    // not due: behind at ONE check-in is never off course (7.10.0: two readings in a row, never one) — the next review is said
     es = entries(p0, '2027-03-02');
     pg = planPage(es, p0.id, null, { today: '2027-03-02' });
-    expect(pg.next.id).toBe('P.behind');
-    expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('At your last check-in (November 2026) you were not on course yet. Next: see what would put you on course.');
-    expect(pg.next.button.href).toBe('#/plan/' + p0.id + '/saving');
+    expect(pg.due).toEqual([]);
+    expect(pg.next.id).toBe('P.nextReview');
+    expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('Nothing due. Your next review is November 2027.');
     expect(planRows(es, { today: '2027-03-02' }).groups.flatMap((g) => g.rows)[0].checkInDue).toBe(false);
+    // two check-ins in a row below the line: off course, said once, with the review
+    const two = withEvery(plan, 'year', [stub('2025-11-05', 60000, { reading: { band: 'no', fails: 700 } }), stub('2026-11-05', 70000, { reading: { band: 'no', fails: 700 } })]);
+    es = entries(two, '2027-03-02');
+    pg = planPage(es, two.id, null, { today: '2027-03-02' });
+    expect(pg.due.map((d) => [d.id, d.key])).toEqual([['review.offCourse', 'review.offCourse@2026-11-05']]);
+    expect(pg.next.button).toEqual({ id: 'seeChange', href: '#/plan/' + two.id + '/checkin', slots: {} });
     // on course at the last check-in
     const p1 = withEvery(plan, 'quarter', [stub('2026-11-05', 70000, { reading: { band: 'yes', fails: 40 } })]);
     es = entries(p1, '2027-01-10');
     pg = planPage(es, p1.id, null, { today: '2027-01-10' });
     expect(pg.next.id).toBe('P.onCourse');
-    expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('On course at your last check-in (November 2026). Next check-in: February 2027.');
+    expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('On course at your last check-in (November 2026). Your next review: February 2027.');
     expect(pg.next.button).toBe(null);
     expect(pg.steps.find((s) => s.id === 'checkin').result.text).toBe('Checked in for November 2026: on course');
-    // never checked in: the first step is What you pay in; since 7.3.0 the first check-in is due (the design's rank 10)
+    // never checked in: the first step is What you pay in; 7.10.0: the first check-in is no longer a to-do — a review whenever
+    // they like
     pg = planPage(entries(plan, '2027-01-10'), plan.id, null, { today: '2027-01-10' });
-    expect(pg.next.id).toBe('P.firstCheckIn');
+    expect(pg.next.id).toBe('P.reviewAny');
     expect(pg.steps.find((s) => s.id === 'checkin').result.text).toBe('Not checked in yet');
   });
   it('the rail: check-in on every saver\'s rail in the pot step\'s place, never optional; the pot step\'s address opens it; checkInAllowed is the saver stages', () => {
@@ -347,7 +368,7 @@ describe('the write: the check-in, the month\'s pot record, how often, an unlock
     const typed = checkIn(plan, '2026-11-20', SHARE(64500, { 'ci.savingsIn': '150', 'ci.isa': '3200' })).plan.accumulationTool.path;
     expect(typed).toMatchObject({ isaNow: 3200, isaMonthly: 150, isaSource: 'check-in' });
   });
-  it('the boxes start from the last check-in, else the plan, in the person\'s own kind; the pots never; how often as chosen, else once a year (a locked saver who never chose: each month)', () => {
+  it('the boxes start from the last check-in, else the plan, in the person\'s own kind; the pots never; how often as chosen, else once a year (7.10.0: a locked saver who never chose too)', () => {
     const v0 = checkInOf([{ plan }], plan.id, { today: KEPT_ON });
     const shown = Object.fromEntries(v0.fields.map((f) => [f.path, f.shown]));
     expect(shown).toMatchObject({ 'ci.pension': '', 'ci.isa': '', 'ci.kind': 'share', 'ci.pay': '38000', 'ci.ownPct': '6', 'ci.employerPct': '4', 'ci.every': 'year', 'ci.paused': 'no' });
@@ -357,7 +378,7 @@ describe('the write: the check-in, the month\'s pot record, how often, an unlock
     expect(v1).toMatchObject({ 'ci.pension': '', 'ci.ownPct': '8', 'ci.every': 'quarter' });
     const locked = entryOf(C['05-saver-committed'], '2026-11-05');
     const v2 = Object.fromEntries(checkInOf([locked], locked.plan.id, { today: '2026-11-05' }).fields.map((f) => [f.path, f.shown]));
-    expect(v2).toMatchObject({ 'ci.kind': 'split', 'ci.every': 'month', 'ci.pension': '' });
+    expect(v2).toMatchObject({ 'ci.kind': 'split', 'ci.every': 'year', 'ci.pension': '' });
   });
 });
 
@@ -694,7 +715,7 @@ describe('the words of the check-in pass the banned list (5.4–5.7, section 8 "
   const strings = [];
   const walk = (v) => { if (typeof v === 'string') strings.push(v); else if (v && typeof v === 'object') for (const x of Object.values(v)) walk(x); };
   walk(CHECKIN);
-  for (const id of ['P.checkinDue', 'P.behind', 'P.onCourse', 'P.nextCheckIn', 'P.saving']) strings.push(PLAN.next[id]);
+  for (const id of ['P.review', 'P.offCourse', 'P.onCourse', 'P.nextReview', 'P.reviewAny']) strings.push(PLAN.next[id]);
   strings.push(PLAN.steps.checkin.label, PLAN.buttons.checkIn, PLAN.list.checkInDue);
   it('no word banned anywhere (all), and none of the saver\'s, the planner\'s or the record\'s', () => {
     const hits = [];

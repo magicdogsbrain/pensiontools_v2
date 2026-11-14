@@ -96,32 +96,29 @@ for (const name of ['20-locked-start-after-stop', '04-buckets-running', '07-pre-
   });
 }
 
-test('03 on the new app: one thing to do, first — the move to where its months begin; with a month said, the move, opened from the home', async ({ page, watch }) => {
+// retaken in 7.10.0 (spec-7100 §5): the start is no longer a to-do — it is changed on "About you and when", which still offers
+// the move (its confirm flows are unchanged); the home's one thing to do is the month
+test('03 on the new app: no start to-do; "About you and when" offers the move to where its months begin, and with a month said, the move', async ({ page, watch }) => {
   test.setTimeout(240_000);
   watch.allow(WORKER_DATA_MISSING);
   const plan = planOf('20-locked-start-after-stop');
   await seed(page, plan);
   await page.goto(PROD + V7_PATH + '#/plan/' + plan.id);
-  // 7.4.3: its months are recorded from July 2026, so it starts in 2026/27 — no question first
-  const first = page.locator('#app .home-item').first();
-  await expect(first).toHaveAttribute('data-todo', 'start.moveRecords', { timeout: 45_000 });
-  await expect(first).toContainText('Start it from 2026/27');
-  await expect(first).toContainText('Your plan is set to start in April 2027, but your recorded months begin in July 2026.');
-  expect(await first.innerText()).not.toMatch(OLD);
-  await page.getByTestId('plan.home.todo.start.moveRecords').click();
+  await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 45_000 });
+  await expect(page.locator('[data-todo^="start."]')).toHaveCount(0);
+  expect(await page.locator('#app .home-items').first().innerText()).not.toMatch(OLD);
+  await page.goto(PROD + V7_PATH + '#/plan/' + plan.id + '/about');
   await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.about');
   await expect(page.getByTestId('plan.about.moveStart')).toContainText('but your recorded months begin in July 2026. Start it from 2026/27', { timeout: 45_000 });
   await expect(page.getByTestId('plan.about.stopAsk')).toHaveCount(0);
 
-  // said (stored as the question would store it): the to-do becomes the move, and its button opens it
+  // said (stored as the question would store it): "About you and when" offers the move from the tax year work stopped
   await page.evaluate(([k, text]) => sessionStorage.setItem(k, text), [GUEST_KEY, JSON.stringify([planOf('20-locked-start-after-stop', { stoppedWork: '2026-05' })])]);
   await page.goto(PROD + V7_PATH + '#/plan/' + plan.id);
   await page.reload();   // the window's plans are read when the page loads
-  const moved = page.locator('#app .home-item').first();
-  await expect(moved).toHaveAttribute('data-todo', 'start.move', { timeout: 45_000 });
-  await expect(moved).toContainText('Start it from the tax year you stopped');
-  await expect(moved).toContainText('Your plan is set to start in April 2027, but you stopped work in May 2026.');
-  await page.getByTestId('plan.home.todo.start.move').click();
+  await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 45_000 });
+  await expect(page.locator('[data-todo^="start."]')).toHaveCount(0);
+  await page.goto(PROD + V7_PATH + '#/plan/' + plan.id + '/about');
   const offer = page.getByTestId('plan.about.moveStart');
   await expect(offer).toContainText('It can start from 2026/27, the tax year you stopped', { timeout: 45_000 });
   await page.getByTestId('plan.about.moveStart.open').click();
@@ -129,9 +126,9 @@ test('03 on the new app: one thing to do, first — the move to where its months
   await expect(confirm).toBeVisible();
   await expect(confirm).toContainText('Move the plan’s start to 2026/27?');
   expect(await confirm.innerText()).not.toMatch(OLD);
-  // where you are: the months and what was taken, nothing read against a later year
+  // where you are: the months and what was taken, nothing read against a later year; the start is changed on About you and when
   await page.goto(PROD + V7_PATH + '#/plan/' + plan.id + '/where');
-  await expect(page.locator('#app')).toContainText('so these months are not read against it yet: see To do', { timeout: 45_000 });
+  await expect(page.locator('#app')).toContainText('so these months are not read against it yet. You can change the start on About you and when', { timeout: 45_000 });
   expect(await page.locator('#app').innerText()).not.toMatch(/than the plan said|the plan says £/);
 });
 

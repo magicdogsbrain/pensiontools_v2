@@ -511,7 +511,7 @@ describe('a plan that draws from a pension before it can usually be taken says s
     const older = homeOf([{ plan: up(read('02-pnv-draft')) }], read('02-pnv-draft').id, { today: TODAY });
     expect(older.pensionAccess).toBeNull();
     for (const t of [HOME.pensionAccess, HOME.pensionShort, LASTS.pensionAccess, ABOUT.lockedStart.now, ABOUT.lockedStart.nowOpen, ABOUT.lockedStart.spLabel, ABOUT.lockedStart.spHelp, ABOUT.lockedStart.spError,
-      ABOUT.lockedStart.confirm.lines.firstNow, ABOUT.lockedStart.confirm.lines.spDate, ABOUT.derived.laterStop, ABOUT.derived.laterNow, ABOUT.toast.movedNow, HOME.items['start.ask'].detail]) {
+      ABOUT.lockedStart.confirm.lines.firstNow, ABOUT.lockedStart.confirm.lines.spDate, ABOUT.derived.laterStop, ABOUT.derived.laterNow, ABOUT.toast.movedNow]) {   // (7.10.0: the start's to-do and its words are gone)
       expect(bannedHits(t.replace(/\{year\}/g, '2026/27').replace(/\{\w+\}/g, '57'), SCOPES), t).toEqual([]);
     }
   });

@@ -235,7 +235,8 @@ describe('the month work stopped (6.51.0, research/plan-start.md §2 C/D, §3): 
     expect(aboutPatch(after, {}, { today: TODAY }).patch).toEqual({});
     // running, not out of date: no "update it to today" (P.stale), and the plan reads where it stands
     expect(aboutOf([entryOf(after)], after.id, { today: TODAY }).stale).toBeNull();
-    expect(planPage([entryOf(after)], after.id, null, { today: TODAY }).next.id).toBe('P.draft');
+    // (7.10.0: the lock is no longer a to-do — nothing due, the review whenever they like)
+    expect(planPage([entryOf(after)], after.id, null, { today: TODAY }).next.id).toBe('P.reviewAny');
     const view = aboutOf([entryOf(after)], after.id, { today: TODAY });
     expect(view.derived.map((d) => d.id)).toEqual(['stoppedIn', 'firstYear', 'started', 'runs', 'stepsFrom']);
     expect(view.yearStop).toBe('2023/24');
@@ -359,26 +360,22 @@ describe('E2 — the stale-answer rule', () => {
     const planner = { ...plan, stressTool: { ...plan.stressTool, settings: { ...plan.stressTool.settings, duration: 40 } } };
     expect(stale(planner)).toMatchObject({ diffs: ['years'], changedOn: null });
   });
-  it('the page: P.recheck after a saver\'s check-in sentences (release step R3) and just before P.stale; the sentence and its button to the run; the stale line; not on a locked plan', () => {
-    // 7.3.0 (retaken on purpose): the design's rank table — the check-ins (10–12), an aim (13), what you hold (14), the move
-    // still to make on a drawing plan with no record of what it holds (rank 8, "drawing (lower)"), then the out-of-date
-    // answer and draft (15)
-    expect(NEXT_ORDER.slice(NEXT_ORDER.indexOf('P.pot'), NEXT_ORDER.indexOf('P.recheck'))).toEqual(['P.pot', 'P.checkinDue', 'P.behind', 'P.noAim', 'P.holdStale', 'P.moveLater']);
-    expect(NEXT_ORDER.indexOf('P.recheck')).toBe(NEXT_ORDER.indexOf('P.stale') - 1);
-    expect(PLAN.next['P.recheck']).toContain('check it still lasts');
+  // retaken in 7.10.0 (spec-7100 §5): an out-of-date answer and an out-of-date draft are no longer to-dos — "Does it last?" says
+  // the answer is out of date (its stale line, unchanged) and "About you and when" the draft's start
+  it('the page: the out-of-date answer is said on the plan page and "Does it last?", never a to-do; not on a locked plan', () => {
+    expect(NEXT_ORDER.slice(NEXT_ORDER.indexOf('P.month'), NEXT_ORDER.indexOf('P.householdPending'))).toEqual(['P.month', 'P.review', 'P.offCourse']);
+    for (const pid of ['P.recheck', 'P.stale']) { expect(NEXT_ORDER).not.toContain(pid); expect(PLAN.next[pid]).toBeUndefined(); }
     const plan = withAnswer(base);
     const changed = applyPatch({ ...plan, lastModified: '2026-10-02T09:00:00.000Z' }, aboutPatch(plan, { endAge: '95' }, { today: TODAY }).patch);
     const pg = planPage([{ plan: changed }], changed.id, 'plan', { today: TODAY });
-    // 7.3.0: due behind the saver's first check-in (rank 10), with its words and button as before
-    expect(pg.next.id).toBe('P.firstCheckIn');
-    const recheck = pg.due.find((d) => d.pid === 'P.recheck');
-    expect(recheck.id).toBe('answer.stale');
-    expect(recheck.button).toEqual({ id: 'recheck', href: '#/plan/' + changed.id + '/lasts', slots: {} });   // into "Does it last?" inside V7 (editing-in-v7.md 10), no hand-over
+    // (10 alone: its partner's plan is not here, the one thing due)
+    expect(pg.due.map((d) => d.pid)).toEqual(['P.householdPending']);
+    expect(pg.due.find((d) => d.pid === 'P.recheck')).toBeUndefined();
+    expect(pg.answerStale).toBeTruthy();
     expect(pg.answerStale).toMatchObject({ workedOutOn: '20 September 2026', changedOn: '2 October 2026' });
-    // the unchanged plan (7.3.0, retaken on purpose: it was P.approaching): no out-of-date answer, and its Next is the saver's
-    // first check-in, the design's rank 10, ahead of the "approaching" sentence that says where things stand
+    // the unchanged plan: no out-of-date answer, nothing due
     expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).due.map((d) => d.pid)).not.toContain('P.recheck');
-    expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).next.id).toBe('P.firstCheckIn');
+    expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).due.map((d) => d.pid)).toEqual(['P.householdPending']);
     expect(planPage([{ plan }], plan.id, 'plan', { today: TODAY }).answerStale).toBe(null);
     const locked = { ...changed, decisionTool: { ...changed.decisionTool, settings: { ...changed.decisionTool.settings, locked: true, lockedAt: '2026-10-01T00:00:00.000Z' } } };
     expect(planPage([{ plan: locked }], locked.id, 'plan', { today: TODAY }).answerStale).toBe(null);
@@ -416,18 +413,15 @@ describe('E3 — the sub-step tables', () => {
     const old = JSON.parse(JSON.stringify(C['02-pnv-draft']));
     old.stressTool.settings.firstTaxYear = 2025;
     const stale = planPage([entryOf(old)], old.id, null, { today: TODAY });
-    // 7.3.0 (retaken on purpose): the lock is the design's rank 4 and an out-of-date draft rank 15, so the draft's own
-    // sentence comes first; "update it to today" is due with it, into "About you and when" as before
-    expect(stale.next.id).toBe('P.draft');
-    const st = stale.due.find((d) => d.pid === 'P.stale');
-    expect(st.id).toBe('draft.stale');
-    expect(st.button.href).toBe('#/plan/' + old.id + '/about');
+    // retaken in 7.10.0: neither the lock nor "update it to today" is a to-do; nothing due
+    expect(stale.next.id).toBe('P.reviewAny');
+    expect(stale.due.find((d) => d.pid === 'P.stale')).toBeUndefined();
     // Re-written in 6.51.0 (research/plan-start.md §7): the same retired draft with a past start that says when work stopped
-    // (in that tax year) is running, not out of date — no "update it to today" nudge; its next sentence is the draft's own
+    // (in that tax year) is running, not out of date — no "update it to today" nudge; nothing due (7.10.0)
     const said = JSON.parse(JSON.stringify(old));
     said.stressTool.settings.stoppedWork = '2025-09';
     const running = planPage([entryOf(said)], said.id, null, { today: TODAY });
-    expect(running.next.id).toBe('P.draft');
+    expect(running.next.id).toBe('P.reviewAny');
     expect(aboutOf([entryOf(said)], said.id, { today: TODAY }).stale).toBeNull();
   });
   it('the fields and their words line up; the declared writes are the planner\'s timing keys', () => {

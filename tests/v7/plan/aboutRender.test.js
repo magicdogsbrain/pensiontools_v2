@@ -207,11 +207,11 @@ describe('the saver 10: what the page says, and what typing does', () => {
     const es = [{ plan: changed, newer: false, failed: false }];
     const { root, text } = draw(stateWith(es, '#/plan/' + changed.id + '/plan'));
     expect(root.querySelector('[data-testid="plan.answerStale"]').textContent).toBe('Your ‘will it last’ answer was worked out on 20 September 2026, before the plan was changed on 2 October 2026.');
-    // 7.3.0: the rail's next is the first thing due — the saver's first check-in — and "check it still lasts" is due on the
-    // plan's home with it
-    expect(root.querySelector('[data-testid="rail.next.button"]').textContent).toBe('Check in');
+    // retaken in 7.10.0 (spec-7100 §5): an out-of-date answer is no longer a to-do — the stale line above says it; the rail's
+    // next is the one thing due on 10 alone, its partner's plan
+    expect(root.querySelector('[data-testid="rail.next.button"]').textContent).toBe('Link one');
     const home = draw(stateWith(es, '#/plan/' + changed.id));
-    expect(home.root.querySelector('[data-todo="answer.stale"]').textContent).toContain('Check it still lasts');
+    expect(home.root.querySelector('[data-todo="answer.stale"]')).toBe(null);
     expect(root.querySelector('[data-testid="plan.plan.edit.about"]').getAttribute('href')).toBe('#/plan/' + changed.id + '/about');
     const before = draw(stateWith([{ plan, newer: false, failed: false }], '#/plan/' + plan.id + '/plan'));
     expect(before.root.querySelector('[data-testid="plan.answerStale"]')).toBe(null);

@@ -424,7 +424,8 @@ describe('S1 — the sub-step, the address and the plan page\'s section', () => 
   it('"spend" sits under "plan" beside "about" and "income"; the address parses and formats; the screen is plan.spend', () => {
     expect(SUB_STEPS.plan).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
     expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
-    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move', 'budget', 'saving', 'checkin']);   // a saver's check-in too (release step R3); the household, hold, move, budget and saving rail steps draw their own screens (road-to-7.md steps 9, 10, 11b)
+    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move', 'budget', 'saving', 'checkin', 'review']);   // 7.10.0: "Your review", one page in every phase
+    // (before:) a saver's check-in too (release step R3); the household, hold, move, budget and saving rail steps draw their own screens (road-to-7.md steps 9, 10, 11b)
     const r = parse('#/plan/AboutPlan01/spend');
     expect(r).toEqual({ screen: 'plan', q: null, step: 'spend', planId: 'AboutPlan01', focus: null });
     expect(format(r)).toBe('#/plan/AboutPlan01/spend');

@@ -322,7 +322,8 @@ describe('L1 — the sub-step, the address and the plan page\'s links', () => {
   it('"lasts" sits under "plan" beside the other four; the address parses and formats; the screen is plan.lasts', () => {
     expect(SUB_STEPS.plan).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
     expect(ALL_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix']);
-    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move', 'budget', 'saving', 'checkin']);   // a saver's check-in too (release step R3); the household, hold and move rail steps draw their own screens (road-to-7.md steps 9, 10)
+    expect(PLAN_SUB_STEPS).toEqual(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move', 'budget', 'saving', 'checkin', 'review']);   // 7.10.0: "Your review", one page in every phase
+    // (before:) a saver's check-in too (release step R3); the household, hold and move rail steps draw their own screens (road-to-7.md steps 9, 10)
     const r = parse('#/plan/abc/lasts');
     expect(r).toEqual({ screen: 'plan', q: null, step: 'lasts', planId: 'abc', focus: null });
     expect(format(r)).toBe('#/plan/abc/lasts');

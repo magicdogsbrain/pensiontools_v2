@@ -29,7 +29,7 @@ import { DEFAULT_CHARGES_PCT } from './Charges.js';
 import { DEFAULT_ISA_GROWTH } from './IsaGrowth.js';
 import { isLockedSettings } from './LockedPlanGuard.js';
 import { deriveStage } from './LifeStage.js';
-import { whereAmI } from './PlanDocument.js';
+import { whereAmI, buildTargetMix, CONTRACT_STRATEGIES } from './PlanDocument.js';
 import { documentLadder, ladderPosition } from './LadderPosition.js';
 import { targetHoldings, diffHoldings, progress, yearNeedsOf } from './TransitionPlanner.js';
 import { normaliseHoldings } from './HoldingsRecord.js';
@@ -263,12 +263,17 @@ export function whereAmIFor(scenario, { now = new Date() } = {}) {
 /**
  * The Transition page's inputs (index.html loadTransitionUI): the target from the plan document with the live strategy
  * dials, what you hold against it, and the tick-offs.
- * @returns {{ target, diff, prog }|null}  null without a plan document
+ * `fromSettings` (7.10.0): on a plan with no document, a target built in memory from the effective settings — their
+ * year-0 mix (PlanDocument.buildTargetMix) on the pension money in play today, no rungs — so the review and the home's
+ * drift line can read an unlocked plan too. Never stored. An unlocked ladder has no rungs to read: its target is 'none'
+ * (`ladderLater`). Only the review reader and the home's drift line pass it; every other caller reads as before.
+ * @returns {{ target, diff, prog, fromSettings?: true, ladderLater?: true }|null}  null without a plan document (and
+ *   without `fromSettings`)
  */
-export function moveInputs(scenario, { now = new Date() } = {}) {
+export function moveInputs(scenario, { now = new Date(), fromSettings = false } = {}) {
   const sc = scenario || {};
   const doc = sc.planDocument || null;
-  if (!doc) return null;
+  if (!doc) return fromSettings ? settingsMoveInputs(sc, { now }) : null;
   const ss = effectiveStressSettings(sc, { now });
   const target = targetHoldings(doc, { today: now, params: ss.strategyParams || null });
   const rec = normaliseHoldings(sc.holdings);
@@ -277,4 +282,20 @@ export function moveInputs(scenario, { now = new Date() } = {}) {
   const done = (sc.transition && sc.transition.done) || {};
   const prog = progress(diff, done);
   return { target, diff, prog, strategyParams: ss.strategyParams || null };
+}
+
+/** moveInputs on an unlocked plan (no document): the settings' own year-0 mix, in memory only (see moveInputs). */
+function settingsMoveInputs(sc, { now }) {
+  const ss = effectiveStressSettings(sc, { now });
+  const strategyParams = ss.strategyParams || null;
+  const none = { kind: 'none', lines: [], paid: [], sold: [], rotated: false, cash: null, running: false, thisTaxYear: null, firstTaxYear: null, note: 'The ladder\'s years show once the plan is locked.' };
+  if (CONTRACT_STRATEGIES.includes(ss.strategyId)) return { target: none, diff: null, prog: null, strategyParams, fromSettings: true, ladderLater: true };
+  const mix = buildTargetMix(ss, Math.max(1, Math.round(+ss.duration || 1)));
+  const allocation = { equityMin: +ss.equityMin || 0, bondMin: +ss.bondMin || 0, cashTarget: +ss.cashTarget || 0, diversifierStart: +ss.diversifierStart || 0 };
+  const pot = allocation.equityMin + allocation.bondMin + allocation.cashTarget + allocation.diversifierStart;
+  if (!mix.length || !(pot > 0)) return null;
+  const target = targetHoldings({ targetMix: [mix[0]], pots: { sipp: pot, allocation } }, { today: now, params: strategyParams });
+  const rec = normaliseHoldings(sc.holdings);
+  const diff = diffHoldings(rec.lines || [], target, { today: now });
+  return { target, diff, prog: progress(diff, {}), strategyParams, fromSettings: true };
 }

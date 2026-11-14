@@ -24,7 +24,17 @@ const num = (v) => (Number.isFinite(+v) ? +v : 0);
 const up = (s) => String(s || '').toUpperCase().trim();
 const gbp = (v) => '£' + Math.round(num(v)).toLocaleString('en-GB');
 const dateGB = (iso) => { const d = new Date(String(iso).slice(0, 10) + 'T00:00:00Z'); return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); };
-export const TRANSITION_TOLERANCE = 0.02;   // a rung within 2% of its target counts as held
+/**
+ * The bands (7.10.0, research/v7/replan-nov-2026.md §6.3): a bucket of a pot plan is held when it is within MOVE_BAND of the
+ * pension money in play (counted, not kept), so a few points either way is never a move; DRIFT_BAND is the line the home's
+ * information line reads from (Living on it, never a to-do). A rung (and a ladder's cash years) keeps its own check,
+ * RUNG_TOLERANCE of what the rung needs: a ladder reads exactly as it did.
+ */
+export const MOVE_BAND = 0.05;
+export const DRIFT_BAND = 0.10;
+export const RUNG_TOLERANCE = 0.02;   // a rung within 2% of its target counts as held
+/** The four buckets a pension line is read into (PortfolioTagger's). */
+export const BUCKET_KEYS = Object.freeze(['shares', 'bonds', 'diversifiers', 'cash']);
 const MONEY_MARKET = new Set(['CSH2', 'CASH', 'MMF', 'XSTR', 'ERNS', 'ERNX']);
 // Every TIDM in the bundled gilt universe (6.13.0): codes like TRTQ, T2IL or TR8F fit no ticker pattern.
 const GILT_LIST = (Array.isArray(giltsSnapshot?.gilts) ? giltsSnapshot.gilts : []).filter(Boolean);
@@ -314,10 +324,18 @@ export function targetHoldings(doc, { today = new Date(), params = null } = {}) 
   const mix = Array.isArray(d.targetMix) && d.targetMix.length ? d.targetMix[0] : null;
   const pot = num(d.pots?.potAtRetirement?.sipp) > 0 ? num(d.pots.potAtRetirement.sipp) : num(d.pots?.sipp);
   if (mix && pot > 0) {
+    // the diversifiers the strategy was tested on (7.10.0): their share of the allocation, beside the mix of the rest (the
+    // year-0 mix is shares, bonds and cash only); a plan tested with none reads exactly as before
+    const al = d.pots && d.pots.allocation ? d.pots.allocation : {};
+    const rest3 = num(al.equityMin) + num(al.bondMin) + num(al.cashTarget);
+    const divShare = num(al.diversifierStart) > 0 && rest3 > 0 ? num(al.diversifierStart) / (rest3 + num(al.diversifierStart)) : 0;
+    const of = (pct) => (divShare > 0 ? Math.round(pot * (1 - divShare) * pct / 100) : Math.round(pot * pct / 100));
+    const pctOf = (pct) => (divShare > 0 ? Math.round((1 - divShare) * pct) : pct);
     const lines = [
-      { key: 'bucket:shares', wrapper: 'SIPP', kind: 'bucket', bucket: 'shares', label: 'Shares (world tracker)', value: Math.round(pot * mix.equity / 100), pct: mix.equity },
-      { key: 'bucket:bonds', wrapper: 'SIPP', kind: 'bucket', bucket: 'bonds', label: 'Bonds (gilts / index-linked / global agg)', value: Math.round(pot * mix.bond / 100), pct: mix.bond },
-      { key: 'bucket:cash', wrapper: 'SIPP', kind: 'bucket', bucket: 'cash', label: 'Cash (money-market fund)', value: Math.round(pot * mix.cash / 100), pct: mix.cash }
+      { key: 'bucket:shares', wrapper: 'SIPP', kind: 'bucket', bucket: 'shares', label: 'Shares (world tracker)', value: of(mix.equity), pct: pctOf(mix.equity) },
+      { key: 'bucket:bonds', wrapper: 'SIPP', kind: 'bucket', bucket: 'bonds', label: 'Bonds (gilts / index-linked / global agg)', value: of(mix.bond), pct: pctOf(mix.bond) },
+      { key: 'bucket:cash', wrapper: 'SIPP', kind: 'bucket', bucket: 'cash', label: 'Cash (money-market fund)', value: of(mix.cash), pct: pctOf(mix.cash) },
+      ...(divShare > 0 ? [{ key: 'bucket:diversifiers', wrapper: 'SIPP', kind: 'bucket', bucket: 'diversifiers', label: 'Diversifiers (gold / trend)', value: Math.round(pot * divShare), pct: Math.round(divShare * 100) }] : [])
     ];
     return { kind: 'buckets', lines, paid: [], sold: [], rotated: false, cash: null, running: planRunning(d, today), thisTaxYear: thisTY, firstTaxYear: planStartYear(d, null), note: 'A pot strategy: the target is a mix, not a list of funds. Any world tracker, gilt fund or money-market fund fills its bucket; the Stress tester\'s "Example funds" shows one way.' };
   }
@@ -325,19 +343,41 @@ export function targetHoldings(doc, { today = new Date(), params = null } = {}) 
 }
 
 /**
+ * What one line holds, as shares of 1 by bucket (7.10.0): cash and gilts as they are; a fund by the tagger, line by line —
+ * never matched by value — so a multi-asset fund is its catalogue mix (a LifeStrategy 60 is 60% shares, 40% bonds), not 100%
+ * shares; a line with a sub-class no profile knows as shares, as before. Null when nothing places it (an untagged line).
+ */
+function splitOfLine(h, { cash, gilt }) {
+  const one = (b) => Object.fromEntries(BUCKET_KEYS.map((k) => [k, k === b ? 1 : 0]));
+  if (cash) return one('cash');
+  if (gilt) return one('bonds');
+  const t = tagPortfolio([{ ...h, value: 1 }]);
+  if (!t.tagged.length) return h.subClass ? one('shares') : null;
+  const out = Object.fromEntries(BUCKET_KEYS.map((k) => [k, 0]));
+  for (const x of t.tagged) out[x.bucket] = (out[x.bucket] || 0) + num(x.value);
+  const total = BUCKET_KEYS.reduce((a, k) => a + out[k], 0);
+  if (!(total > 0)) return null;
+  for (const k of BUCKET_KEYS) out[k] = out[k] / total;
+  return out;
+}
+/** The bucket a split is mostly in (the first of BUCKET_KEYS on a tie). */
+const mainBucketOf = (split) => BUCKET_KEYS.reduce((best, k) => (split[k] > split[best] ? k : best), BUCKET_KEYS[0]);
+
+/**
  * Today's holdings, normalised: ticker, wrapper, value, units, bucket, and whether it is a gilt or cash. A CASH
  * wrapper (bank / savings money) keeps its wrapper (6.13.0) — it is outside the pension and never the SIPP's cash years.
+ * `split` (7.10.0): what the line holds by bucket, as shares of 1 (splitOfLine); null for a line nothing places, which the
+ * move leaves out of the money in play (`diff.unknown`). `bucket` is the bucket it is mostly in.
  */
 export function ledgerView(holdings) {
   const list = (holdings || []).filter((h) => h && (num(h.value) > 0 || num(h.units) > 0));
-  const tagged = tagPortfolio(list.map((h) => ({ ...h, value: num(h.value) })));
   return list.map((h) => {
     const ticker = up(h.ticker);
     const gilt = isGiltTicker(ticker) || h.kind === 'gilt';
     const cash = MONEY_MARKET.has(ticker) || up(h.wrapper) === 'CASH' || h.kind === 'cash' || h.subClass === 'cash' || h.subClass === 'moneyMarket';
-    const slice = tagged.tagged.find((t) => t.ticker === h.ticker && t.wrapper === h.wrapper && Math.abs(num(t.value) - num(h.value)) < 1);
+    const split = splitOfLine(h, { cash, gilt });
     const keep = normaliseKeep(h.keep);
-    const row = { ticker, name: h.name || '', sedol: h.sedol || null, wrapper: up(h.wrapper) || 'SIPP', value: num(h.value), units: num(h.units) || null, gilt, cash, bucket: cash ? 'cash' : gilt ? 'bonds' : (slice ? slice.bucket : (h.subClass ? 'shares' : null)),
+    const row = { ticker, name: h.name || '', sedol: h.sedol || null, wrapper: up(h.wrapper) || 'SIPP', value: num(h.value), units: num(h.units) || null, gilt, cash, bucket: split ? mainBucketOf(split) : null, split,
       // "I'm keeping this" (7.6.0), only on a line the person kept
       ...(keep ? { keep } : {}) };
     RAW.set(row, { subClass: h.subClass || null, kind: h.kind || null });   // how the line was placed, beside the row (7.6.0)
@@ -361,10 +401,20 @@ export function ledgerView(holdings) {
  *     against each year's need in turn, and `perYear` says the need, the pay and the gap of each;
  *   `kept` — a line kept by choice ({ as: 'mine' }), with its value and whether it is counted toward the gaps.
  *   These three lists are on the result only when the record keeps something: a record without keeps diffs exactly as before.
- * @param {{ tolerance?: number, needs?: object, today?: Date|null }} o  `needs` = yearNeedsOf(document) (else worked from the
- *   target); `today` counts a conventional gilt's coupons still to come.
+ *
+ *   A pot plan (7.10.0): its buckets are read on the pension money in play today (`inPlay`: what is held in the pension, less
+ *   what is kept, less what nothing places), so the plan's mix is compared with the pension as it is — not the pot the plan
+ *   was locked with. A bucket within `band` of that money (MOVE_BAND) is held; the diversifiers the plan was tested on are a
+ *   bucket like the others, and any held with none in the plan are compared with nothing under the same band. A line nothing
+ *   places is listed in `unknown`, out of the money in play. With no record at all, the plan's own pot stays the target, as
+ *   before; with a record but nothing in the pension to read (`inPlay` <= 0), the diff is `kind: 'none'` — never complete,
+ *   `progressPct` null. `inPlay` and `buckets` ({ held, target } each) are on a pot plan's diff, for driftOf.
+ *   A ladder's rungs and cash years keep RUNG_TOLERANCE; its diff carries `rungs` ({ held, needed }) and `gapSoon` (a rung
+ *   needed this tax year or next not held), for driftOf.
+ * @param {{ band?: number, needs?: object, today?: Date|null }} o  `band` = MOVE_BAND (a pot plan's buckets); `needs` =
+ *   yearNeedsOf(document) (else worked from the target); `today` counts a conventional gilt's coupons still to come.
  */
-export function diffHoldings(holdings, target, { tolerance = TRANSITION_TOLERANCE, needs: needsGiven = null, today = null } = {}) {
+export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsGiven = null, today = null } = {}) {
   const L = ledgerView(holdings);
   const anyKeep = L.some((h) => h.keep);
   const sipp = L.filter((h) => h.wrapper === 'SIPP' && !h.keep);
@@ -374,6 +424,9 @@ export function diffHoldings(holdings, target, { tolerance = TRANSITION_TOLERANC
   const keyOfLine = (h) => (h.ticker || h.sedol || h.name || '').toString();
   for (const h of L) if (h.keep && h.keep.as === 'mine') kept.push({ ...h, key: 'kept:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, fundsGaps: !!h.keep.fundsGaps, why: 'kept by you' });
   let targetTotal = 0, heldOfTarget = 0, targetCount = 0, cashHeld = 0, cashTarget = 0, cashInfo = null, coveredCount = 0, coveredCashMoney = null;
+  // a pot plan's reading (7.10.0): the money in play, each bucket held against its target, the lines nothing places
+  let inPlay = null, buckets = null, unread = false, ladderRead = null;
+  const unknown = [];
   if (target.kind === 'ladder') {
     // Lines kept to stand in for some tax years (7.6.0): what each pays (in today's money, as the needs are), set against each
     // year's need in turn. While the plan runs, this tax year needs only its months still to come.
@@ -467,7 +520,7 @@ export function diffHoldings(holdings, target, { tolerance = TRANSITION_TOLERANC
       const heldUnits = rows.reduce((s, r) => s + (r.units != null ? r.units : (unitPrice ? r.value / unitPrice : 0)), 0);
       const delta = t.units - heldUnits;
       targetTotal += t.cost; heldOfTarget += Math.min(t.cost, unitPrice ? heldUnits * unitPrice : 0); targetCount++;
-      if (t.units > 0 && Math.abs(delta) <= tolerance * t.units) hold.push({ ...t, heldUnits: Math.round(heldUnits) });
+      if (t.units > 0 && Math.abs(delta) <= RUNG_TOLERANCE * t.units) hold.push({ ...t, heldUnits: Math.round(heldUnits) });
       else if (delta > 0) buy.push({ ...t, units: Math.round(delta), amount: Math.round(unitPrice ? delta * unitPrice : t.cost * (delta / t.units)), heldUnits: Math.round(heldUnits), why: 'rung for ' + t.taxYears.map(taxYearLabel).join(', ') });
       else sell.push({ ...t, units: Math.round(-delta), amount: Math.round(unitPrice ? -delta * unitPrice : 0), heldUnits: Math.round(heldUnits), why: 'more than the rung needs' });
     }
@@ -481,7 +534,7 @@ export function diffHoldings(holdings, target, { tolerance = TRANSITION_TOLERANC
       targetTotal += cashTarget; heldOfTarget += Math.min(cashTarget, cashHeld); if (cashTarget > 0) targetCount++;
       // Spare SIPP cash before the start is never a sell (6.13.0): it is spending money or a float — held, with the spare
       // said. Only a shortfall (beyond tolerance) is a move.
-      if (cashTarget > 0 && cashHeld >= cashTarget * (1 - tolerance)) hold.push({ ...target.cash, heldValue: Math.round(cashHeld), spare: Math.round(Math.max(0, cashHeld - cashTarget)) });
+      if (cashTarget > 0 && cashHeld >= cashTarget * (1 - RUNG_TOLERANCE)) hold.push({ ...target.cash, heldValue: Math.round(cashHeld), spare: Math.round(Math.max(0, cashHeld - cashTarget)) });
       else if (cashTarget > cashHeld) buy.push({ ...target.cash, amount: Math.round(cashTarget - cashHeld), heldValue: Math.round(cashHeld), why: 'the cash years' });
       // every cash year stood in for (7.6.0): the pension's cash is still held — all of it spare, never a sell
       else if (coveredCashMoney && cashHeld > 0) hold.push({ ...target.cash, heldValue: Math.round(cashHeld), spare: Math.round(cashHeld) });
@@ -492,48 +545,89 @@ export function diffHoldings(holdings, target, { tolerance = TRANSITION_TOLERANC
       if (target.rotated && !h.gilt) keep.push({ ...h, why: 'bought by the rotation — kept' });
       else sell.push({ key: 'sell:' + (h.ticker || h.name), wrapper: 'SIPP', kind: h.gilt ? 'gilt' : 'fund', label: h.name || h.ticker, ticker: h.ticker, amount: Math.round(h.value), units: h.units, why: 'not in the plan — proceeds fund the ladder' });
     }
+    // the rungs as the home reads them (7.10.0, driftOf): how many the plan still needs are held, and whether a rung needed
+    // this tax year or next is still to buy (a gap soon) — read from the rung check above, never by points
+    const thisTY = Number.isFinite(+target.thisTaxYear) ? +target.thisTaxYear : null;
+    ladderRead = { rungs: { held: hold.filter((x) => Array.isArray(x.taxYears)).length, needed: target.lines.length },
+      gapSoon: thisTY != null && buy.some((b) => b.kind === 'gilt' && Array.isArray(b.taxYears) && b.taxYears.some((Y) => +Y === thisTY || +Y === thisTY + 1)) };
   } else if (target.kind === 'buckets') {
     // a pot plan has no rungs: a line kept to stand in for years is simply kept (7.6.0), like one kept by choice
     for (const h of L) if (h.keep && h.keep.as === 'rung') kept.push({ ...h, key: 'kept:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, fundsGaps: false, why: 'kept by you' });
     const held = { shares: 0, bonds: 0, cash: 0, diversifiers: 0 };
-    for (const h of sipp) held[h.bucket || 'shares'] += h.value;
+    // each pension line by what it holds (7.10.0, ledgerView's split): a multi-asset fund in its parts; a line nothing places
+    // is named in `unknown` and left out of the money in play, never counted as shares
+    for (const h of sipp) {
+      if (h.split) for (const b of BUCKET_KEYS) held[b] += h.value * h.split[b];
+      else unknown.push({ ...h, key: 'unknown:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, why: 'what it holds is not known' });
+    }
     cashHeld = held.cash;
-    // A kept pension line is out of the mix's maths (7.7.0): it is neither counted in its bucket nor replaced. The plan's own
-    // mix is then read on the pension money still in play (what is held less what is kept) — not on the pot the plan was
-    // locked with, which may or may not have held the kept line: either way a pound kept would be asked to be bought again
-    // in its bucket, or the bucket sold down. A record that keeps no pension line reads the plan's pot exactly as before.
-    if (L.some((h) => h.keep && h.wrapper === 'SIPP')) {
-      const inPlay = sipp.reduce((s, h) => s + h.value, 0);
+    inPlay = sipp.filter((h) => h.split).reduce((s, h) => s + h.value, 0);
+    // A kept pension line is out of the mix's maths (7.7.0): it is neither counted in its bucket nor replaced. 7.10.0: the plan's
+    // own mix is always read on the pension money in play today (what is held less what is kept, less what nothing places) —
+    // not on the pot the plan was locked with: the move compares the mix, never the size of the pot. With no record the
+    // plan's own pot stays. With a record but nothing in the pension to read, there is nothing to compare (below).
+    if (L.length && !(inPlay > 0)) unread = true;
+    else if (L.length) {
       const pctSum = target.lines.reduce((s, t) => s + num(t.pct), 0) || 100;
       target = { ...target, lines: target.lines.map((t) => ({ ...t, value: Math.round(inPlay * num(t.pct) / pctSum) })) };
     }
-    for (const t of target.lines) {
-      const hv = held[t.bucket] || 0; const delta = t.value - hv;
-      targetTotal += t.value; heldOfTarget += Math.min(t.value, hv); if (t.value > 0) targetCount++;
-      if (t.bucket === 'cash') cashTarget = t.value;
-      if (t.value > 0 && Math.abs(delta) <= tolerance * t.value) hold.push({ ...t, heldValue: Math.round(hv) });
-      else if (delta > 0) buy.push({ ...t, amount: Math.round(delta), heldValue: Math.round(hv), why: 'bring ' + t.bucket + ' up to ' + t.pct + '% of the pot' });
-      else if (t.value > 0 || hv > 0) sell.push({ ...t, amount: Math.round(-delta), heldValue: Math.round(hv), why: 'bring ' + t.bucket + ' down to ' + t.pct + '% of the pot' });
+    const room = band * (inPlay || 0);
+    buckets = Object.fromEntries(BUCKET_KEYS.map((b) => [b, { held: Math.round(held[b]), target: 0 }]));
+    if (!unread) {
+      for (const t of target.lines) {
+        const hv = held[t.bucket] || 0; const delta = t.value - hv;
+        buckets[t.bucket] = { held: Math.round(hv), target: Math.round(t.value) };
+        targetTotal += t.value; heldOfTarget += Math.min(t.value, hv); if (t.value > 0) targetCount++;
+        if (t.bucket === 'cash') cashTarget = t.value;
+        if (Math.abs(delta) <= room && (t.value > 0 || hv > 0)) { if (t.value > 0) hold.push({ ...t, heldValue: Math.round(hv) }); }
+        else if (delta > 0) buy.push({ ...t, amount: Math.round(delta), heldValue: Math.round(hv), why: 'bring ' + t.bucket + ' up to ' + t.pct + '% of the pot' });
+        else if (t.value > 0 || hv > 0) sell.push({ ...t, amount: Math.round(-delta), heldValue: Math.round(hv), why: 'bring ' + t.bucket + ' down to ' + t.pct + '% of the pot' });
+      }
+      // diversifiers held with none in the plan: compared with nothing, under the same band (never a sale inside it)
+      if (!target.lines.some((t) => t.bucket === 'diversifiers') && held.diversifiers > room) sell.push({ key: 'bucket:diversifiers', wrapper: 'SIPP', kind: 'bucket', bucket: 'diversifiers', label: 'Diversifiers', value: 0, pct: 0, amount: Math.round(held.diversifiers), heldValue: Math.round(held.diversifiers), why: 'not in the target mix' });
     }
-    if (held.diversifiers > 0) sell.push({ key: 'bucket:diversifiers', wrapper: 'SIPP', kind: 'bucket', bucket: 'diversifiers', label: 'Diversifiers', amount: Math.round(held.diversifiers), why: 'not in the target mix' });
   }
   const buyCost = buy.reduce((s, b) => s + num(b.amount), 0), sellValue = sell.reduce((s, b) => s + num(b.amount), 0);
   // Complete = nothing to buy, nothing to sell, and every target that still counts is held (6.12). Said with a reason
   // so the page can say WHY it is (or is not) complete — a ladder with every remaining rung held reads "nothing to do".
   let complete = false, reason;
   if (target.kind === 'none') reason = 'no plan document to read against';
+  else if (unread) reason = 'nothing in the pension record can be read against the plan\'s mix';
   else if (buy.length) reason = buy.length + ' line' + (buy.length === 1 ? '' : 's') + ' still to buy';
   else if (sell.length) reason = sell.length + ' line' + (sell.length === 1 ? '' : 's') + ' to sell';
   else if (hold.length + coveredCount < targetCount) reason = (targetCount - hold.length - coveredCount) + ' target line' + (targetCount - hold.length - coveredCount === 1 ? '' : 's') + ' not held';
   else if (targetCount === 0) { complete = true; reason = target.kind === 'ladder' ? 'every rung has matured and paid — nothing left to hold' : 'the target is empty'; }
   else if (anyKeep && target.kind === 'ladder') { complete = true; reason = 'every rung is held or covered by what you chose to keep' + (target.cash && !target.cash.spending ? ', and the cash years are covered' : ''); }
-  else { complete = true; reason = target.kind === 'ladder' ? 'every rung the plan still needs is held' + (target.cash && !target.cash.spending ? ', and the cash years are covered' : '') : 'every bucket is within ' + Math.round(tolerance * 100) + '% of its target'; }
-  return { kind: target.kind, buy, sell, hold, keep, matured, sold, cashInfo,
+  else { complete = true; reason = target.kind === 'ladder' ? 'every rung the plan still needs is held' + (target.cash && !target.cash.spending ? ', and the cash years are covered' : '') : 'every bucket is within ' + Math.round(band * 100) + '% of the pension of its target'; }
+  return { kind: unread ? 'none' : target.kind, buy, sell, hold, keep, matured, sold, cashInfo,
     totals: { buyCost: Math.round(buyCost), sellValue: Math.round(sellValue), shortfall: Math.round(Math.max(0, buyCost - sellValue)), cashHeld: Math.round(cashHeld), cashTarget: Math.round(cashTarget) },
-    progressPct: targetTotal > 0 ? Math.round(100 * heldOfTarget / targetTotal) : (complete ? 100 : 0), complete, reason,
+    progressPct: unread ? null : targetTotal > 0 ? Math.round(100 * heldOfTarget / targetTotal) : (complete ? 100 : 0), complete, reason,
+    // 7.10.0: a pot plan's money in play and its buckets, held against their targets, and the lines nothing places; a
+    // ladder's rungs held of those needed and a gap soon (driftOf reads them)
+    ...(inPlay != null ? { inPlay: Math.round(inPlay), buckets, unknown } : {}),
+    ...(ladderRead ? ladderRead : {}),
     // what the person keeps (7.6.0): only on a record that keeps something
     // and, on a ladder, the cash still to hold once the cash years stood in for come out (the move's "Cash to hold now")
     ...(anyKeep ? { standIn, kept, covered, ...(target.kind === 'ladder' && target.cash ? { cashLeft: target.cash } : {}) } : {}) };
+}
+
+/**
+ * How far what is held is from the plan's mix (7.10.0, spec-7100 §3.2), from a diff (diffHoldings), for the home's line and
+ * the review:
+ *   - a pot plan: points per bucket, round(100 × (held − target) ÷ the pension money in play), and the largest of them
+ *     (`maxDrift`); null when nothing in the pension can be read (`inPlay` <= 0, or no record);
+ *   - a ladder: never points — the rungs held of those still needed (the rung check, RUNG_TOLERANCE) and whether a rung
+ *     needed this tax year or next is not held (`gapSoon`).
+ * Null for anything else (no document, nothing to read).
+ * @returns {null | { kind: 'buckets', drift: { shares, bonds, cash, diversifiers }, maxDrift } | { kind: 'ladder', drift: null, maxDrift: null, rungs: { held, needed }, gapSoon }}
+ */
+export function driftOf(diff) {
+  if (!diff) return null;
+  if (diff.kind === 'ladder') return { kind: 'ladder', drift: null, maxDrift: null, rungs: diff.rungs ? { ...diff.rungs } : { held: 0, needed: 0 }, gapSoon: !!diff.gapSoon };
+  if (diff.kind !== 'buckets' || !(num(diff.inPlay) > 0) || !diff.buckets) return null;
+  const drift = {};
+  for (const b of ['shares', 'bonds', 'cash', 'diversifiers']) { const x = diff.buckets[b] || { held: 0, target: 0 }; drift[b] = Math.round(100 * (num(x.held) - num(x.target)) / num(diff.inPlay)) || 0; }
+  return { kind: 'buckets', drift, maxDrift: Math.max(...Object.values(drift).map(Math.abs)) };
 }
 
 /**

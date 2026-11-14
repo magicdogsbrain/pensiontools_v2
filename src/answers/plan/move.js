@@ -186,6 +186,9 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   // no box is typed on this step (schema.js isMovePath): the fields are empty, so the shell reads it as every editing step
   const base = { found: true, id: String(plan.id), name: s.name, locked: s.locked, lockedOn: s.lockedOn, readonly, editable: !readonly && !closed, closed, source, strategyId: s.strategyId, ladder: s.ladder, family: s.family, stageKey: s.stage.key, runKey, recorded: s.record.lines.length > 0, fields: [], errors: {}, ok: true };
   if (!s.hasDocument || !s.m) return { ...base, hasDocument: s.hasDocument, kind: 'none' };
+  // a record with nothing in the pension the move can read (7.10.0, TransitionPlanner: every pension line unplaced, or none):
+  // nothing to compare, said as that — never a mix of zeros
+  if (s.m.diff && s.m.diff.kind === 'none') return { ...base, hasDocument: true, kind: 'none', unread: true, unknown: (s.m.diff.unknown || []).map((u) => u.label).filter(Boolean) };
   const { m, seq } = s;
   const T = m.target, D = m.diff, P = m.prog;
   const done = (plan.transition && isObj(plan.transition) && isObj(plan.transition.done)) ? plan.transition.done : {};

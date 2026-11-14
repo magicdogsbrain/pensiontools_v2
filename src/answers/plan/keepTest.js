@@ -46,7 +46,7 @@ export const SHOCKS = Object.freeze({ half: 0.5, nothing: 0 });
 
 /**
  * Each kept line, read by the fund tagging the move uses (TransitionPlanner.ledgerView): { key, label, wrapper, value, as,
- * counted, bucket, single }. `counted`: it pays the plan — it stands in for some years, or it is kept by choice and counted
+ * counted, bucket, split, single }. `split` (7.10.0): what the line holds by bucket, as shares of 1. `counted`: it pays the plan — it stands in for some years, or it is kept by choice and counted
  * toward the gaps. `bucket`: shares, bonds, cash or diversifiers (a gilt is bonds; a line nothing places is tested as shares).
  * `single`: a line no fund in the catalogue matches and that is not a gilt or cash — tested on the futures of shares (a world
  * share fund's), and it may be one company's shares, which can fall much further than a world fund (the shocks say that).
@@ -63,7 +63,10 @@ export function keptAssetsOf(rec) {
     const keep = normaliseKeep(h.keep);
     const bucket = h.cash ? 'cash' : h.gilt ? 'bonds' : (h.bucket || 'shares');
     const single = !h.cash && !h.gilt && !isGiltTicker(h.ticker) && bucket === 'shares' && !catalogueEntry(h.ticker);
-    return { key: key || null, label: h.name || h.ticker || '', wrapper: h.wrapper, value: r0(h.value), as: keep.as, counted: keep.as === 'rung' || !!keep.fundsGaps, bucket, single };
+    // what the line holds, in its parts (7.10.0, ledgerView's split): a multi-asset fund is its catalogue mix; a line nothing
+    // places is tested as shares, as before
+    const split = h.split ? { ...h.split } : { shares: bucket === 'shares' ? 1 : 0, bonds: bucket === 'bonds' ? 1 : 0, diversifiers: bucket === 'diversifiers' ? 1 : 0, cash: bucket === 'cash' ? 1 : 0 };
+    return { key: key || null, label: h.name || h.ticker || '', wrapper: h.wrapper, value: r0(h.value), as: keep.as, counted: keep.as === 'rung' || !!keep.fundsGaps, bucket, split, single };
   });
 }
 
@@ -105,7 +108,8 @@ export function heldSettingsOf(settings, rec, { withExpected = true, shock = nul
     for (const a of kept) {
       const w = Math.min(1, a.value / H);
       keptShare += w;
-      if (a.counted) out[a.bucket] += T * w * shockFactor(a, shock);
+      // a kept line in its parts (7.10.0): a multi-asset fund re-describes each bucket it holds, a one-bucket line its one
+      if (a.counted) for (const b of Object.keys(out)) if (a.split[b] > 0) out[b] += T * w * a.split[b] * shockFactor(a, shock);
     }
     const rest = Math.max(0, 1 - keptShare);
     for (const [b, k] of Object.entries(POTS)) out[b] += rest * num(s[k]);

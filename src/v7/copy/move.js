@@ -13,6 +13,7 @@ export const MOVE = {
   noRecord: 'Nothing recorded yet — record what you hold first. Until then everything below reads as “to buy”.',
   readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
   notRun: 'The plan could not be read against its document.',
+  unread: 'We could not tell what your pension holds from what you recorded, so it is not read against the plan’s mix. You can say what each line holds on What you hold.',
   target: { ladder: 'The target: a gilt ladder — every rung and the cash years, in units.', buckets: 'The target: a mix in pounds — any world share fund, gilt fund or money-market fund fills its part.', isaHold: 'The ladder is bought in the pension; the ISA is held aside and not part of it.', isaDraw: 'The ladder is bought in the pension; the ISA is drawn by its own rule and not part of it.' },
   status: {
     done: 'Done — what you hold matches the plan’s mix.',

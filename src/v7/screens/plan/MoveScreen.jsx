@@ -324,7 +324,7 @@ export function MoveScreen(state, dispatch) {
       content: (
         <>
           {headAndTitle}
-          <p class="notice" role="status" data-testid={`${T}.notLocked`}>{V.locked ? W.notRun : W.notLocked}{!V.locked ? <> <a href={href.plan(view.id, 'lock')}>{W.buttons.lock}</a></> : null}</p>
+          <p class="notice" role="status" data-testid={`${T}.notLocked`}>{V.locked ? (V.unread ? W.unread : W.notRun) : W.notLocked}{!V.locked ? <> <a href={href.plan(view.id, 'lock')}>{W.buttons.lock}</a></> : null}</p>
           <p class="plan-source" data-testid={`${T}.footer`}>{W.footer}</p>
           <div class="actions-row"><LinkButton testid={`${T}.back`} kind="quiet" href={back}>{W.buttons.back}</LinkButton></div>
         </>

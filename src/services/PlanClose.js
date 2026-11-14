@@ -120,8 +120,8 @@ export function closeOfferOf(plan, now) {
 
 /**
  * What is held today, read as the plan's pots: the pension by bucket the way "Moving to your plan's mix" reads the record
- * (TransitionPlanner.ledgerView: a gilt is bonds, money-market funds and cash are cash, a fund its catalogue bucket, else
- * shares), the ISAs and the ordinary account by their totals. Bank and savings money (the CASH type of account) is not one
+ * (TransitionPlanner.ledgerView: a gilt is bonds, money-market funds and cash are cash, a fund its catalogue buckets — a
+ * multi-asset fund in its parts — else shares), the ISAs and the ordinary account by their totals. Bank and savings money (the CASH type of account) is not one
  * of the plan's pots, as everywhere else. `has` says which kinds of account the record holds at all (a record of the
  * pension's funds alone says nothing of the ISAs: closePotsOf then takes the plan's figure for them). Null when the record
  * holds nothing in a pension, an ISA or an ordinary account.
@@ -136,7 +136,9 @@ export function heldPotsOf(plan) {
   const bucketKey = { shares: 'equity', bonds: 'bond', cash: 'cash', diversifiers: 'div' };
   for (const h of view) {
     if (!(h.value > 0)) continue;
-    if (h.wrapper === 'SIPP') { split[bucketKey[h.bucket] || 'equity'] += h.value; has.pension = true; }
+    // a pension line in its parts (7.10.0, ledgerView's split: a multi-asset fund is its catalogue mix); a line nothing places
+    // is still the person's money, read as shares as before
+    if (h.wrapper === 'SIPP') { if (h.split) { for (const [b, k] of Object.entries(bucketKey)) split[k] += h.value * (h.split[b] || 0); } else split[bucketKey[h.bucket] || 'equity'] += h.value; has.pension = true; }
     else if (h.wrapper === 'ISA') { isa += h.value; has.isa = true; }
     else if (h.wrapper === 'GIA') { gia += h.value; has.gia = true; }
   }

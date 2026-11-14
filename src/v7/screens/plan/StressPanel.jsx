@@ -9,6 +9,7 @@
  */
 import { Button } from '../../components/index.js';
 import { changeAction } from '../../components/PlanFigures.jsx';
+import { sayStress } from '../../components/StressStrip.jsx';
 import { planStressView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { STRESS } from '../../copy/stressPanel.js';
@@ -16,13 +17,6 @@ import { LASTS } from '../../copy/lasts.js';
 import { sayKeep } from './KeepTest.jsx';
 
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
-/** One sentence of STRESS: `id` a dotted key, its slots; a slot may itself be a part { id, slots }. */
-export function sayStress(part) {
-  if (!part) return '';
-  const t = String(part.id || '').split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), STRESS);
-  return String(typeof t === 'string' ? t : '').replace(/\{(\w+)\}/g, (m, k) => { const v = part.slots ? part.slots[k] : undefined; return v == null ? m : typeof v === 'object' ? sayStress(v) : String(v); });
-}
-
 /** The problems a row's accept or withdraw can have (stressPanel.stressAmendPatch's refusals); the form says the rest. */
 export const STRESS_PROBLEMS = Object.freeze(['oldResult', 'same', 'nothingFails', 'noResult', 'none']);
 

@@ -9,6 +9,7 @@
  * Computes nothing: every figure is the answer's, drawn by Money and Sentence.
  */
 import { LevelStrip } from '../../components/Lasts.jsx';
+import { StressStrip } from '../../components/StressStrip.jsx';
 import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, HeldAnswer, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer, AnswerSlider, FigureTiles, KeepLine } from '../../components/index.js';
 import { isCurrent, cAnswerYouStopped, isShapePath, answerSlider, answerTiles, tilesKey } from '../../state/select.js';
 import { href } from '../../router/routes.js';
@@ -162,6 +163,8 @@ export function AnswerScreen(state, dispatch) {
         </div>
         <ShapeAnswer state={state} q="c" dispatch={dispatch} />
         <BudgetAgainstC state={state} />
+        {/* "Try the bad years" (7.9.0): on a final answer, run on a press */}
+        <StressStrip state={state} q="c" dispatch={dispatch} />
         <TryAChange state={state} form={form} result={result} dispatch={dispatch} />
         <WhatNext result={result} dispatch={dispatch} />
         <KeepPanel state={state} q="c" dispatch={dispatch} />

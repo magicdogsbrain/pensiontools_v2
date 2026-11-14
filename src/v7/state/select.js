@@ -1280,6 +1280,31 @@ export function planKeepTestView(state) {
 }
 
 /**
+ * "Try the bad years" under C's and D's answers (7.9.0): the amount the answer stands behind, a month after tax — C's take when
+ * one is named, else its level's amount; D's spend. Null when the answer has none.
+ */
+export function stripAmountOf(q, result) {
+  if (!result || result.status !== 'ok') return null;
+  const v = q === 'c' ? (result.take && typeof result.take.perMonth === 'number' ? result.take.perMonth : result.levels && result.levels[result.level] ? result.levels[result.level].monthly : null)
+    : q === 'd' ? (result.spend ? result.spend.perMonth : null) : null;
+  return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
+}
+
+/**
+ * The strip under C's or D's answer: shown only on a final answer with a figure (the button runs only on a press), its rows
+ * only while they are for the answer on screen (its inputsKey). Null when there is nothing to try.
+ */
+export function stressStripView(state, q) {
+  const answer = state.answers && state.answers[q];
+  if (!answer || answer.status !== 'final' || !answer.result || answer.result.status !== 'ok') return null;
+  const perMonth = stripAmountOf(q, answer.result);
+  if (perMonth === null) return null;
+  const St = state.stressStrip;
+  const mine = St && St.q === q && St.key === answer.inputsKey ? St : null;
+  return { q, inputsKey: answer.inputsKey, perMonth, status: mine ? mine.status : 'idle', reason: mine ? mine.reason : null, result: mine && mine.status === 'done' ? mine.result : null };
+}
+
+/**
  * "Try the bad years" (7.9.0): the plan source's reading on "Does it last?" (page.lasts.stressPanel: answers/plan/stressPanel.js
  * stressPanelView, with the rows held in state.stressPanel for this plan as it is now), whether the plan can be changed here
  * (not closed, not shown as saved), each row's confirm open (ui.open: stressConfirm.<row>), a write under way for this plan

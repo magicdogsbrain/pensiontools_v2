@@ -208,6 +208,7 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     checkIn: emptyCheckIn(),                         // "Check in": the answer of the check-in just written, for ONE plan, page memory only (saving-enough-and-check-in.md 5.5)
     keepTest: emptyKeepTest(),                       // "Test what you keep against your plan" (7.7.0): the re-test for ONE plan, page memory only
     stressPanel: emptyStressPanel(),                 // "Try the bad years" (7.9.0): the rows tried on ONE plan, page memory only
+    stressStrip: emptyStressStrip(),                 // … and under C's or D's answer: the rows for ONE final answer, page memory only
     ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null, ...emptyShellUi() }
   };
 }
@@ -271,6 +272,18 @@ export function cleanStressPanel(x) {
   const rows = {};
   if (x.rows && typeof x.rows === 'object' && !Array.isArray(x.rows)) for (const [id, r] of Object.entries(x.rows)) if (r && typeof r === 'object') rows[id] = r;
   return { key: x.key, planId: typeof x.planId === 'string' && x.planId ? x.planId : null, status, order, rows, reason: status === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null };
+}
+
+/**
+ * Nothing of "Try the bad years" under an answer held (7.9.0): `q` 'c' | 'd', `key` the answer's inputsKey the rows are for;
+ * `status` 'idle' | 'working' | 'done' | 'failed'; `result` shared/stressStrip.js runStressStrip's; `reason` 'noWorker'.
+ */
+export const emptyStressStrip = () => ({ q: null, key: null, status: 'idle', result: null, reason: null });
+/** The strip's slice, cleaned (state/replace may draw one); a state without it is empty. */
+export function cleanStressStrip(x) {
+  if (!x || typeof x !== 'object' || (x.q !== 'c' && x.q !== 'd') || typeof x.key !== 'string' || !x.key) return emptyStressStrip();
+  const status = STRESS_STATUS.includes(x.status) ? x.status : 'idle';
+  return { q: x.q, key: x.key, status, result: status === 'done' && x.result && typeof x.result === 'object' && Array.isArray(x.result.rows) ? x.result : null, reason: status === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null };
 }
 
 /**

@@ -12,6 +12,7 @@
  */
 import { Sentence, MadeOf, Assumed, Working, HeldAnswer, Problem, Field, Button, LinkButton, KeepPanel, withFixedCounts, stepLabel, blank, AnswerSlider, FigureTiles, PotLife, KeepLine } from '../../components/index.js';
 import { LastsLines, LevelStrip, LASTS_TOP, LASTS_AFTER } from '../../components/Lasts.jsx';
+import { StressStrip } from '../../components/StressStrip.jsx';
 import { answerSlider, answerTiles, tilesKey, potPicture } from '../../state/select.js';
 import { PICTURE } from '../../copy/picture.js';
 import { href } from '../../router/routes.js';
@@ -181,6 +182,8 @@ function Answer({ state, dispatch, frame }) {
         <MadeOf result={result} q="d" open={open('madeOf')} dispatch={dispatch} title={t.madeOfTitle} note={t.madeOfNote} lines={s.madeOf || []} />
         {(result.assumed || []).length > 0 && <Assumed q="d" result={result} open={open('assumed')} all={open('allAssumed')} dispatch={dispatch} />}
       </AnswerRegion>
+      {/* "Try the bad years" (7.9.0): on a final answer, run on a press; "What if shares fell by a fifth?" stays below, a lever of its own */}
+      <StressStrip state={state} q="d" dispatch={dispatch} />
       {levers && <WorkLever form={form} result={result} dispatch={dispatch} />}
       {levers && <FallLever form={form} result={result} dispatch={dispatch} />}
       <WhatNext result={result} />

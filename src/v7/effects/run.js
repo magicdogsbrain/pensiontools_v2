@@ -84,6 +84,9 @@ export function startRunner({ store, client, local, q = null }) {
       const mine = ++run;
       const live = () => mine === run && !stopped;
       if (underWay) client.stop(question);                        // nobody is waiting for the old figures
+      // "Try the bad years" under an answer (7.9.0): a strip under way never holds up a new answer (with none, nothing is stopped)
+      const strip = store.getState().stressStrip;
+      if (strip && strip.status === 'working') client.stop('stressStrip');
       underWay = true;
       clearSlow();
       store.dispatch(first);

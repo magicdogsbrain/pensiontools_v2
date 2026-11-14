@@ -33,6 +33,7 @@ import { potsShareOf, potsNeedByYear } from '../shared/toEngine.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
 import { stopAtPlan, createStopRunner, verdictAt, bandAt, phasesAt, coverAt, leftAtStop } from '../shared/stopAt.js';
 import { weigherOf } from '../shared/weigh.js';
+import { livesList } from '../shared/lives.js';
 import { lifeFactsOf } from '../shared/lastsWords.js';
 import { shortfallOf } from '../shared/shortfall.js';
 import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, horizonRuleOf } from '../shared/levels.js';
@@ -330,6 +331,40 @@ function closedYearsApart(inputs, sp, band, env) {
     reachable: Math.round(reachable), need: Math.round(need),
     instead: insteadOf(later.band.levels[level], until)
   };
+}
+
+/**
+ * "Try the bad years" (7.9.0) on C's answer on the lives (answer.js stressCaseOf): the answer's own stop plan, runner and
+ * weights at its start, before the band — and `monthsAt({ H, shock, dragPct })`, each life's run-out month at H a year
+ * (stopAt.js verdictAt) with what is left at the plan-to age (leftAtStop), on lives made worse from the drawing start (12·S
+ * months: the saving years are as they were) or with lower returns on the drawing years. answerOnLives is not touched.
+ */
+export function stressCaseOnLives(checked, env, { defaulted = [] } = {}) {
+  const inputs = checked.inputs;
+  const startAge = livesStartAge(inputs, env.today);
+  const household = saverHouseholdOf(inputs, startAge, env);
+  if (validateHousehold(household, env.today).length) return null;
+  const sp = stopAtPlan(household, startAge, env);
+  const runner = createStopRunner(sp);
+  const plan = runner.plan;
+  if (!plan.runs.length) return null;
+  const level = levelOfInputs(inputs);
+  const weigher = weigherOf(sp.plan, inputs, env);
+  const planToAge = plan.endAge;
+  const toMonth = 12 * (planToAge - plan.startAge);
+  const chance = { planToAge, weightToAge: weigher.weighted ? weigher.weightToAge : planToAge, horizonRule: horizonRuleOf({ defaulted: defaulted.includes('endAge'), capped: Boolean(plan.runCapped) }) };
+  const lf = lifeFactsOf({ chance, basis: levelBasis(level, weigher, inputs, planToAge), level }, weigher, plan, inputs);
+  const monthsAt = ({ H, shock = null, dragPct = 0 }) => {
+    let s = sp, r = runner;
+    if (shock || dragPct > 0) {
+      const lives = shock ? livesList(sp.n, sp.T, { ...env, shock: { ...shock, from: 12 * sp.S } }) : sp.lives;
+      s = stopAtPlan(dragPct > 0 ? { ...household, returnDragPct: dragPct } : household, startAge, env, lives);
+      r = createStopRunner(s);
+    }
+    const months = verdictAt(s, r, H, { weigher, level, toMonth }).runOutMonths;
+    return { months, left: leftAtStop(s, r, H, months, toMonth), plan: r.plan };
+  };
+  return { q: 'c', inputs, plan, weigher, level, toMonth, lf, n: sp.n, drawingNow: sp.S === 0, monthsAt };
 }
 
 /**

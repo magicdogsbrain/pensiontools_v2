@@ -31,6 +31,9 @@
  *                                                   loaded lazily; 7.7.0)
  *   { id, type: 'stressRow', plan, env: { today, row } }  the same shape: one row of "Try the bad years" (stressPanelRun.js
  *                                                   runStressRow, loaded lazily; 7.9.0)
+ *   { id, type: 'stressStrip', q, inputs, env: { today, futures, seed }, at: { perMonth } }
+ *                                                   the same shape: "Try the bad years" under C's or D's answer
+ *                                                   (shared/stressStrip.js runStressStrip, in this chunk beside the answers; 7.9.0)
  *   { id, type: 'saver', inputs, env }             the same shape: question B on a saved plan's own figures ("What you pay in",
  *                                                   research/saving-enough-and-check-in.md 4.4) — B's own answer function, in
  *                                                   a lane of its own, never kept as B's last answer
@@ -48,6 +51,7 @@
 import { ANSWERS } from '../../answers/index.js';
 import { VERSION } from '../../constants.js';
 import { cloneSafe } from '../../utils/cloneSafe.js';
+import { runStressStrip } from '../../answers/shared/stressStrip.js';
 
 const PROGRESS_STEPS = 20;     // at most this many progress messages per answer (plus the last)
 
@@ -81,7 +85,7 @@ const loadKeep = () => import('../../answers/plan/keepRun.js');
 /** "Try the bad years" (7.9.0): one row on a saved plan, loaded lazily the same way. */
 const loadStress = () => import('../../answers/plan/stressPanelRun.js');
 
-export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null, mixTry = null, mixCompare = null, tryOne = null, household = null, householdSurvivor = null, householdCare = null, moveHeld = null, keepRetest = null, stressRow = null } = {}) {
+export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null, mixTry = null, mixCompare = null, tryOne = null, household = null, householdSurvivor = null, householdCare = null, moveHeld = null, keepRetest = null, stressRow = null, stressStrip = runStressStrip } = {}) {
   let today = null;
   const last = new Map();      // question → its last result (offered to its next answer as env.reuse)
   /** `lasts`, `document`, `lever`, `try`, `ways`, `way`, `mixTry` and `mixCompare` share the lazy engine: the one test, or the run the plan document is built from, or the nine ways, or the mix's runs. */
@@ -181,6 +185,23 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
         if (!msg.partner || typeof msg.partner !== 'object') throw new Error(msg.type + ': no partner');
         if (msg.type !== 'household' && (!msg.env || !msg.env.boxes || typeof msg.env.boxes !== 'object')) throw new Error(msg.type + ': no boxes');
         runLazy(msg, post, id, msg.type).catch((e) => post({ id, error: String((e && e.message) || e) }));
+        return;
+      }
+      if (msg.type === 'stressStrip') {
+        // "Try the bad years" under C's or D's answer (7.9.0): never kept as the question's last answer
+        if (msg.q !== 'c' && msg.q !== 'd') throw new Error('stressStrip: only under C and D');
+        if (!msg.inputs || typeof msg.inputs !== 'object') throw new Error('stressStrip: no inputs');
+        if (!msg.at || typeof msg.at.perMonth !== 'number') throw new Error('stressStrip: no amount');
+        const env = { ...(msg.env || {}) };
+        if (!env.today && today) env.today = today;
+        let lastStep = -1;
+        env.onProgress = (done, total) => {
+          const step = total > 0 ? Math.floor((done * PROGRESS_STEPS) / total) : 0;
+          if (step === lastStep) return;
+          lastStep = step;
+          post({ id, progress: { done, total } });
+        };
+        post({ id, result: cloneSafe(stressStrip(msg.q, msg.inputs, env, { perMonth: msg.at.perMonth })) });
         return;
       }
       if (msg.type === 'saver' || msg.type === 'checkIn') {

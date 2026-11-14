@@ -83,13 +83,60 @@ export function headroomOf(verdict, careful, spend) {
  * levels (`levels`, default the level chosen) on the stop plan's weights (7.8.0).
  */
 function caseOf(ins, env, lives, stopAge, spendAYear, { band = true, levels = [levelOfInputs(ins)] } = {}) {
-  const { household } = toHousehold(ins, env);
+  const { household, sp, runner, weigher, toMonth } = stopCaseOf(ins, env, lives, stopAge);
+  const verdict = verdictAt(sp, runner, spendAYear, { weigher, level: levelOfInputs(ins), toMonth });
+  return { household, sp, runner, weigher, verdict, band: band ? bandAt(sp, runner, null, { weigher, levels, toMonth }) : null };
+}
+
+/**
+ * The household built from `ins` stopped today on the shared lives, before any verdict: its stop plan, runner, weights and the
+ * plan-to age's month (caseOf's own; and, with `dragPct`, "lower returns" for "Try the bad years": the household's
+ * returnDragPct on the drawing configs, 7.9.0).
+ */
+function stopCaseOf(ins, env, lives, stopAge, dragPct = 0) {
+  const { household: named } = toHousehold(ins, env);
+  const household = dragPct > 0 ? { ...named, returnDragPct: dragPct } : named;
   const sp = stopAtPlan(household, stopAge, env, lives);
   const runner = createStopRunner(sp);
   const weigher = weigherOf(sp.plan, ins, env);
   const toMonth = 12 * (sp.plan.endAge - sp.plan.startAge);
-  const verdict = verdictAt(sp, runner, spendAYear, { weigher, level: levelOfInputs(ins), toMonth });
-  return { household, sp, runner, weigher, verdict, band: band ? bandAt(sp, runner, null, { weigher, levels, toMonth }) : null };
+  return { household, sp, runner, weigher, toMonth };
+}
+
+/**
+ * "Try the bad years" (7.9.0; the build spec's §2.2) on D's answer: the answer's own case (the household as given, the
+ * levers left out, stopped today on the answer's lives) — the plan, the weights, the level, the plan-to age's month and the
+ * words' facts (lf) — and `monthsAt({ H, shock, dragPct })`: each life's run-out month at H a year take-home (verdictAt),
+ * with what is left at the plan-to age (leftAtStop), on the lives made worse from today (`shock`, its start 0) or with
+ * lower returns (`dragPct`). answerD runs exactly as before. null when there is nothing to draw on.
+ */
+export function stressCaseOf(inputs, env) {
+  if (envProblems(env).length) return null;
+  const checked = checkInputs(SCHEMA_D, inputs, env);
+  if (!checked.ok) return null;
+  const ins = checked.inputs;
+  const couple = ins.household === 'couple' && !!ins.partner;
+  if (validateHousehold(toHousehold(ins, env).household, env.today).length) return null;
+  const n = env.futures;
+  const stopAge = ins.you.age;
+  const younger = couple ? Math.min(ins.you.age, ins.partner.age) : ins.you.age;
+  const D = Math.max(1, Math.min(drawYearsCap(env), runToAgeOfInputs(ins, 0, env) - younger));
+  const lives = livesList(n, D, env);
+  const base = { ...ins, work: { has: false }, fall: { has: false } };
+  const level = levelOfInputs(ins);
+  const main = stopCaseOf(base, env, lives, stopAge);
+  const { sp, runner, weigher, toMonth } = main;
+  const plan = runner.plan;
+  if (!sp.pots.some((q) => q.pension.some((v) => v > 0) || q.savings.some((v) => v > 0))) return null;
+  const chance = { planToAge: plan.endAge, weightToAge: weigher.weighted ? weigher.weightToAge : plan.endAge,
+    horizonRule: horizonRuleOf({ defaulted: defaultedFields(ins, env).includes('endAge'), capped: Boolean(plan.runCapped) }) };
+  const lf = lifeFactsOf({ chance, basis: levelBasis(level, weigher, ins, plan.endAge), level }, weigher, plan, ins);
+  const monthsAt = ({ H, shock = null, dragPct = 0 }) => {
+    const c = shock || dragPct > 0 ? stopCaseOf(base, env, shock ? livesList(n, D, { ...env, shock: { ...shock, from: 0 } }) : lives, stopAge, dragPct) : main;
+    const months = verdictAt(c.sp, c.runner, H, { weigher, level, toMonth }).runOutMonths;
+    return { months, left: leftAtStop(c.sp, c.runner, H, months, toMonth), plan: c.runner.plan };
+  };
+  return { q: 'd', inputs: ins, plan, weigher, level, toMonth, lf, n, drawingNow: true, monthsAt };
 }
 
 const verdictBit = (v) => ({ verdict: v.verdict, fails: v.fails, lasted: v.lasted, runOutAge: v.runOutAge });

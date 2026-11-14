@@ -18,6 +18,8 @@
  *     moveHeld(plan, env, onProgress)          → Promise<Result>       the one run on the mix as held (lane 'moveHeld'; road-to-7.md step 10): env = { today }
  *     keepRetest(plan, env, onProgress)        → Promise<Result>       "Test what you keep against your plan" (lane 'keepRetest', 7.7.0): env = { today }
  *     stressRow(plan, env, onProgress)         → Promise<Result>       one row of "Try the bad years" (lane 'stressRow', 7.9.0): env = { today, row }
+ *     stressStrip(q, inputs, env, at, onProgress) → Promise<Strip>     "Try the bad years" under C's or D's answer (lane 'stressStrip', 7.9.0):
+ *                                              env = { today, futures, seed }, at = { perMonth }
  *     saver(inputs, env, onProgress)           → Promise<AnswerB>      question B on a saved plan's figures (lane 'saver'; saving-enough-and-check-in.md 4.4)
  *     checkIn(inputs, env, onProgress)         → Promise<AnswerB>      the same on a check-in's figures, before its one write (lane 'checkIn'; 5.4)
  *     stop(q?)                                 ends the worker if an answer (of question q, or of any question when q
@@ -265,6 +267,8 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
     keepRetest(plan, env, onProgress) { return lane('keepRetest', plan, env, onProgress); },
     /** "Try the bad years" (7.9.0): one row on a saved plan, in its own lane 'stressRow' (stop('stressRow') ends it alone). env = { today, row }. */
     stressRow(plan, env, onProgress) { return lane('stressRow', plan, env, onProgress); },
+    /** "Try the bad years" under C's or D's answer (7.9.0), in its own lane 'stressStrip': the answer's inputs as data, never kept as its last answer. */
+    stressStrip(q, inputs, env, at, onProgress) { return lane('stressStrip', null, env, onProgress, { q, inputs, at }); },
     /**
      * "What you pay in" (research/saving-enough-and-check-in.md 4.4): question B on a saved plan's own figures
      * (answers/plan/saverInputs.js), in its own lane 'saver', so neither B's own question nor any plan run ends it.

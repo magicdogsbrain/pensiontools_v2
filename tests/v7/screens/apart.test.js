@@ -694,7 +694,9 @@ describe('7 — today, byte for byte', () => {
   // careful amount before 7.8.0 — the count's middling and best-1-in-10 amounts leave the range lines, D's "Could I spend
   // more?" names the other two levels, and the numbers steps gain "How careful?"; re-pinned (V7_PIN_TODAY=1, V7_PIN_SCREENS=1)
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
-    '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]'];
+    '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]',
+    // 7.9.0: "Try the bad years" under C's and D's final answers — a button only until pressed; no figure of the answer moves
+    '[data-stress-strip]'];
   const hash = (html) => createHash('sha256').update(html).digest('hex').slice(0, 32);
   // …but the states that hold savings: their answers moved with how savings grow (6.22.0, "Mostly cash" unless chosen,
   // where every answer grew them at a fixed 3% a year), so they draw what 6.22.0 draws — pinned, with the reason, in

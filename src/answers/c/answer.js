@@ -32,7 +32,7 @@ import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, chanceOf, verdictOfC
 import { createReferenceBandSolver, weightedThresholdReference } from '../shared/bandReference.js';
 import { toHousehold } from './toHousehold.js';
 import { sentencesFor, sentencesWithoutPots, sentencesOnLives, assumedFor, warningsFor, finishTexts } from './sentences.js';
-import { usesLives, answerOnLives } from './onLives.js';
+import { usesLives, answerOnLives, stressCaseOnLives } from './onLives.js';
 import { payInTotalOf, statePensionAgeOf } from '../shared/schemaParts.js';
 import { before2028, payKeepsPensions } from '../shared/apart.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
@@ -413,6 +413,60 @@ function withoutPots(plan, checked, household, fullSp, env, n, lw) {
   return finishTexts(result);
 }
 
+/**
+ * C from now, before any run: the household, the engine plan, the level, the weights and the plan-to age (7.8.0:
+ * shared/levels.js) — answerC's own, and what "Try the bad years" works the answer out again on (stressCaseOf). `problems`
+ * when the household cannot be answered.
+ */
+function fromNowOf(checked, env) {
+  const { household, fullStatePensionAYear } = toHousehold(checked.inputs, env);
+  const hp = validateHousehold(household, env.today);
+  if (hp.length) return { problems: hp };
+  const plan = enginePlan(household, env);
+  // the level, the weights and the plan-to age (7.8.0: shared/levels.js)
+  const level = levelOfInputs(checked.inputs);
+  const weigher = weigherOf(plan, checked.inputs, env);
+  const planToAge = plan.endAge;
+  const toMonth = 12 * (planToAge - plan.startAge);
+  const lw = {
+    level, weigher, basis: levelBasis(level, weigher, checked.inputs, planToAge),
+    chance: { planToAge, weightToAge: weigher.weighted ? weigher.weightToAge : planToAge, horizonRule: horizonRuleOf({ defaulted: defaultedFields(checked.inputs, env).includes('endAge'), capped: Boolean(plan.runCapped) }) }
+  };
+  return { problems: null, household, fullStatePensionAYear, plan, level, weigher, planToAge, toMonth, lw };
+}
+
+/**
+ * "Try the bad years" (7.9.0; the build spec's §2.2) on C's answer: the answer's own case — the plan, the weights, the level,
+ * the plan-to age's month and the words' facts (lf) — and `monthsAt({ H, shock, dragPct })`, each future's run-out month
+ * (null: it lasted) at H a year take-home, with what is left at the plan-to age by the answer's own reader (band.js leftAt;
+ * on the lives, stopAt.js leftAtStop), on the answer's futures made worse by `shock` (ladderEngine.shockPath; its start set
+ * here: from now 0, on the lives 12·S, so the saving years are as they were) or with lower returns (`dragPct`, the
+ * household's returnDragPct). No answer result is read or changed: answerC runs exactly as before. null when the answer has
+ * no pot to draw on, or the inputs are not ones it answers.
+ */
+export function stressCaseOf(inputs, env) {
+  if (envProblems(env).length) return null;
+  const checked = checkInputs(SCHEMA_C, inputs, env);
+  if (!checked.ok) return null;
+  if (usesLives(checked.inputs, env.today)) return stressCaseOnLives(checked, env, { defaulted: defaultedFields(checked.inputs, env) });
+  const now = fromNowOf(checked, env);
+  if (now.problems || !(now.plan.totalPots > 0)) return null;
+  const { household, plan, level, weigher, toMonth, lw } = now;
+  const n = env.futures;
+  const lf = lifeFactsOf({ chance: lw.chance, basis: lw.basis, level }, weigher, plan, checked.inputs);
+  const base = futuresList(n, plan.years, env);
+  const monthsAt = ({ H, shock = null, dragPct = 0 }) => {
+    const futures = shock ? futuresList(n, plan.years, { ...env, shock: { ...shock, from: 0 } }) : base;
+    const p = dragPct > 0 ? enginePlan({ ...household, returnDragPct: dragPct }, env) : plan;
+    const solver = createBandSolver(p, futures);
+    const months = solver.runOutMonthsAtMonthly(H / 12);
+    let left = null;
+    try { left = leftAt({ runner: solver.runner, configsOf: () => configsAt(p, H), months, toMonth, years: p.years }); } catch { left = null; }
+    return { months, left, plan: p };
+  };
+  return { q: 'c', inputs: checked.inputs, plan, weigher, level, toMonth, lf, n, drawingNow: true, monthsAt };
+}
+
 export function answerCReal(inputs, env) {
   const problems = envProblems(env);
   if (problems.length) return { status: 'invalid', problems };
@@ -426,21 +480,10 @@ export function answerCReal(inputs, env) {
     return JSON.parse(JSON.stringify(r, (key, v) => (typeof v === 'number' ? noNegZero(v) : v)));
   }
 
-  const { household, fullStatePensionAYear } = toHousehold(checked.inputs, env);
-  const hp = validateHousehold(household, env.today);
-  if (hp.length) return { status: 'invalid', problems: hp.map((p) => ({ field: p.field, messageId: p.problem })) };
-
-  const plan = enginePlan(household, env);
+  const now = fromNowOf(checked, env);
+  if (now.problems) return { status: 'invalid', problems: now.problems.map((p) => ({ field: p.field, messageId: p.problem })) };
+  const { household, fullStatePensionAYear, plan, level, weigher, planToAge, toMonth, lw } = now;
   const n = env.futures;
-  // the level, the weights and the plan-to age (7.8.0: shared/levels.js)
-  const level = levelOfInputs(checked.inputs);
-  const weigher = weigherOf(plan, checked.inputs, env);
-  const planToAge = plan.endAge;
-  const toMonth = 12 * (planToAge - plan.startAge);
-  const lw = {
-    level, weigher, basis: levelBasis(level, weigher, checked.inputs, planToAge),
-    chance: { planToAge, weightToAge: weigher.weighted ? weigher.weightToAge : planToAge, horizonRule: horizonRuleOf({ defaulted: defaultedFields(checked.inputs, env).includes('endAge'), capped: Boolean(plan.runCapped) }) }
-  };
   if (!(plan.totalPots > 0)) return withoutPots(plan, checked, household, fullStatePensionAYear, env, n, lw);
 
   const futures = futuresList(n, plan.years, env);

@@ -194,6 +194,10 @@ export const A = Object.freeze({
   STRESS_RUN:      'stress/run',          // { key, planId, rows: [row ids] }  the rows to try on the plan of this key (stressPanel.stressKeyOf), in order
   STRESS_ROW_DONE: 'stress/rowDone',      // { key, row, result }              one row's result (stressPanelRun.runStressRow); dropped if the key is stale
   STRESS_FAILED:   'stress/failed',       // { key, reason? }                  the rows failed ('noWorker': no worker; 'stopped': left or the plan changed)
+  // … and under C's and D's answers: the answer worked out again on its own futures, one row each, on a press of a final answer
+  STRIP_RUN:       'strip/run',           // { q, inputsKey }                  the strip for the final answer of q at this key (the effect runs it in the worker)
+  STRIP_DONE:      'strip/done',          // { q, inputsKey, result }          shared/stressStrip.js runStressStrip's; dropped unless it is the answer's key
+  STRIP_FAILED:    'strip/failed',        // { q, inputsKey, reason? }         failed ('noWorker'), or stopped ('stopped': a new answer)
 
   // ---- "What you pay in": the plan's own verdict (research/saving-enough-and-check-in.md 4.1, 4.4; release step R2) ----
   // question B on the plan's figures (answers/plan/saverInputs.js), in the worker's 'saver' lane, page memory only

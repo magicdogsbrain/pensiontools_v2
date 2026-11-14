@@ -12,7 +12,7 @@
  */
 import { shownOf } from '../../answers/shared/shown.js';
 import { A, OPENABLE } from './actions.js';
-import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, cleanPending, cleanUsed, cleanFromPlan, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept, emptyHousehold, HH_PICKS, cleanHouseholdTry, cleanNeed, emptyMove, cleanMove, cleanIndex, emptySaver, cleanSaver, cleanPlanMix, cleanFlexibleAccess, emptyCheckIn, cleanCheckIn, emptyKeepTest, cleanKeepTest, emptyStressPanel, cleanStressPanel,
+import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, cleanPending, cleanUsed, cleanFromPlan, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept, emptyHousehold, HH_PICKS, cleanHouseholdTry, cleanNeed, emptyMove, cleanMove, cleanIndex, emptySaver, cleanSaver, cleanPlanMix, cleanFlexibleAccess, emptyCheckIn, cleanCheckIn, emptyKeepTest, cleanKeepTest, emptyStressPanel, cleanStressPanel, emptyStressStrip, cleanStressStrip,
   emptyShellUi, emptyAccount, emptyGuest, emptyNews, ACCOUNT_MODES, ACCOUNT_ASKS, PLAN_ACTION_KINDS, PLAN_ACTION_OPS } from './initial.js';
 import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber, checkPlanName, fromPlanStale, severalPlan } from './select.js';
 import { hasShape, SHAPE_UNIT, THENS, thenPath, fallsPath, stepsPath, stepBox, stepFields, shapePaths, isShapePath, stepsOf, newStep, cleanSteps,
@@ -585,7 +585,10 @@ function reduceAction(state, action) {
           : answer.before;
       const working = { ...answer, status: 'working', inputsKey: action.inputsKey, before, progress: null, slow: false };
       if (hasDetail(answer)) working.extending = false;                                                                       // a change mid-extend ends it
-      return withAnswer(state, q, working);
+      // "Try the bad years" under this answer (7.9.0): the rows were for the answer before; they go with it
+      const St = state.stressStrip || emptyStressStrip();
+      const next = St.q === q && St.key !== action.inputsKey ? { ...state, stressStrip: emptyStressStrip() } : state;
+      return withAnswer(next, q, working);
     }
     case A.ANSWER_PROGRESS: {
       if (!answer) return refuse(`answer/progress: no question "${q}"`);
@@ -1222,6 +1225,32 @@ function reduceAction(state, action) {
       const open = (state.ui.open || []).filter((x) => x !== 'amendConfirm' && !x.startsWith('stressConfirm.'));
       return { ...state, ui: { ...state.ui, open, saving: { planId, kind: 'amend', op, ...(amend ? { amend, testId: action.testId } : {}) }, saveProblem: null, toast: null } };
     }
+    // ---- "Try the bad years" under C's and D's answers (7.9.0) ----
+    case A.STRIP_RUN: {
+      const { q: sq, inputsKey } = action;
+      if (sq !== 'c' && sq !== 'd') return refuse('strip/run: only under C and D');
+      if (typeof inputsKey !== 'string' || !inputsKey) return refuse('strip/run: needs the answer\'s key');
+      const ans = state.answers[sq];
+      // a final answer of these inputs only: the first figure, or an answer being worked out, has no strip
+      if (!ans || ans.status !== 'final' || ans.inputsKey !== inputsKey || !ans.result || ans.result.status !== 'ok') return state;
+      const St = state.stressStrip || emptyStressStrip();
+      if (St.q === sq && St.key === inputsKey && St.status === 'working') return state;
+      return { ...state, stressStrip: { q: sq, key: inputsKey, status: 'working', result: null, reason: null } };
+    }
+    case A.STRIP_DONE: {
+      const St = state.stressStrip || emptyStressStrip();
+      if (action.q !== St.q || action.inputsKey !== St.key || St.status !== 'working') return state;   // stale
+      const ans = state.answers[St.q];
+      if (!ans || ans.inputsKey !== St.key) return { ...state, stressStrip: emptyStressStrip() };       // not the answer's: dropped
+      if (!action.result || typeof action.result !== 'object' || !Array.isArray(action.result.rows)) return refuse('strip/done: needs a result');
+      return { ...state, stressStrip: { ...St, status: 'done', result: action.result, reason: null } };
+    }
+    case A.STRIP_FAILED: {
+      const St = state.stressStrip || emptyStressStrip();
+      if (action.q !== St.q || action.inputsKey !== St.key || St.status !== 'working') return state;   // stale
+      if (action.reason === 'stopped') return { ...state, stressStrip: { ...St, status: 'idle', reason: null } };
+      return { ...state, stressStrip: { ...St, status: 'failed', result: null, reason: action.reason === 'noWorker' ? 'noWorker' : null } };
+    }
     // ---- "Try the bad years" (7.9.0) ----
     case A.STRESS_RUN: {
       if (typeof action.key !== 'string' || !action.key) return refuse('stress/run: needs a key');
@@ -1514,6 +1543,7 @@ function reduceAction(state, action) {
         keepTest: cleanKeepTest(copy.keepTest),
         // … and (7.9.0) the rows of "Try the bad years", cleaned; none: empty
         stressPanel: cleanStressPanel(copy.stressPanel),
+        stressStrip: cleanStressStrip(copy.stressStrip),
         ways: copy.ways && typeof copy.ways === 'object' && typeof copy.ways.key === 'string' && ['working', 'done', 'failed'].includes(copy.ways.status)
           ? { key: copy.ways.key, status: copy.ways.status, reason: copy.ways.reason === 'noWorker' ? 'noWorker' : null, result: copy.ways.result && typeof copy.ways.result === 'object' && Array.isArray(copy.ways.result.ways) ? copy.ways.result : null,
             progress: copy.ways.progress && typeof copy.ways.progress === 'object' ? { done: Number(copy.ways.progress.done) || 0, total: Number(copy.ways.progress.total) || 0 } : null, slow: copy.ways.slow === true,

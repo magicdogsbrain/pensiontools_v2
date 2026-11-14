@@ -214,11 +214,14 @@ const anyAction = fc.oneof(
   fc.constantFrom('k1', 'k2').map((key) => ({ type: A.KEEP_TEST_DONE, key, result: { fingerprint: 'f', asLocked: { share: 1 }, asHeld: { share: 0.9 } } })),
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.KEEP_TEST_FAILED, key, reason })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('accept', 'withdraw')).map(([planId, op]) => ({ type: A.PLAN_AMEND, planId, op })),
-  // "Try the bad years" (7.9.0): a plan's rows, and an accept on a row
+  // "Try the bad years" (7.9.0): a plan's rows, an accept on a row, and the strip under C's and D's answers
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('p1', 'p2')).map(([key, planId]) => ({ type: A.STRESS_RUN, key, planId, rows: ['asPlanned', 'fall'] })),
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('asPlanned', 'fall', 'lower')).map(([key, row]) => ({ type: A.STRESS_ROW_DONE, key, row, result: { id: row, key, a: { share: 0.9 } } })),
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom(null, 'noWorker', 'stopped')).map(([key, reason]) => ({ type: A.STRESS_FAILED, key, reason })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('accept', 'withdraw'), fc.constantFrom('stress', 'confidence'), fc.constantFrom('asPlanned', 'fall')).map(([planId, op, kind, testId]) => ({ type: A.PLAN_AMEND, planId, op, kind, testId })),
+  fc.tuple(fc.constantFrom('c', 'd'), fc.constantFrom('K1', 'K2')).map(([q, inputsKey]) => ({ type: A.STRIP_RUN, q, inputsKey })),
+  fc.tuple(fc.constantFrom('c', 'd'), fc.constantFrom('K1', 'K2')).map(([q, inputsKey]) => ({ type: A.STRIP_DONE, q, inputsKey, result: { status: 'ok', q, rows: [] } })),
+  fc.tuple(fc.constantFrom('c', 'd'), fc.constantFrom('K1', 'K2'), fc.constantFrom(null, 'noWorker', 'stopped')).map(([q, inputsKey, reason]) => ({ type: A.STRIP_FAILED, q, inputsKey, reason })),
   // "What you pay in": the plan's verdict (research/saving-enough-and-check-in.md 4.4), question B on the plan's figures
   fc.constantFrom('saver:p1:a', 'saver:p1:b', 'saver:p2:a').map((key) => ({ type: A.SAVER_WORKING, key })),
   fc.tuple(fc.constantFrom('saver:p1:a', 'saver:p2:a'), fc.constantFrom(A.SAVER_FIRST, A.SAVER_FINAL)).map(([key, type]) => ({ type, key, result: { status: 'ok', verdict: { band: 'close' }, sentences: {} } })),

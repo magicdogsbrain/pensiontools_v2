@@ -197,7 +197,8 @@ export const STRESS = {
     lapsed: 'You no longer keep what you accepted on {date}.',
     accept: 'Accept it on What you hold.',
     // on As you hold it, a locked ladder whose count is below As planned's: why (keepTest.ladderGapsOf, What you hold's own gaps)
-    gap: 'What you hold for the plan’s own money does not cover every year it pays: {taxYear}, when you are {age}, is the first not covered ({amount} short at today’s prices).',
+    gap: 'What you hold for the plan leaves {amount} of the income it pays not covered at today’s prices{after}.',
+    gapAfter: ', after the money you expect and what you count toward the gaps',
     acceptAgain: 'Accept it again on What you hold.',
     withdraw: 'Withdraw it on What you hold.'
   },

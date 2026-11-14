@@ -219,21 +219,29 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
 }
 
 /**
- * Why As you hold it lasts less often than As planned on a locked ladder: the first tax year what is held for the plan's own
- * money does not cover (keepTest.ladderGapsOf — the gaps What you hold reads, before what is kept by choice and the money
- * expected), with the age that year and its gap. Only once both rows are in and the held count is below the plan's; null
- * otherwise (a pot plan has no years to read). Words only: no row's figure is read differently.
+ * Why As you hold it lasts less often than As planned on a locked ladder: what of the plan's income what is held leaves not
+ * covered, at today's prices (keepTest.ladderGapsOf — the gaps What you hold reads), once the money expected and what is
+ * counted toward the gaps have filled the years they can, in order. No year or age: the row's own figures say when it runs
+ * out, and a year read here at today's value could differ from them by one. Only once both rows are in and the held count is
+ * below the plan's; null otherwise (a pot plan has no years to read). Words only: no row's figure is read differently.
  */
 function heldGapOf(plan, rows, { strategyId, today }) {
   const held = rows.find((r) => r.id === 'asHeld');
   if (!held || !held.a || !held.refA || !(fixedOf(held.a) < fixedOf(held.refA)) || !lockedLadderOf(plan, strategyId)) return null;
   let G = null;
   try { G = ladderGapsOf(plan, { today, withExpected: true }); } catch { G = null; }
-  const p = plan.planDocument.strategy.p;
-  const firstTY = Math.round(+(p.runFirstTaxYear || p.firstTaxYear));
-  if (!G || !G.firstShort || !isNum(+p.startAge) || !isNum(firstTY)) return null;
-  const Y = +G.firstShort.Y;
-  return { id: 'held.gap', slots: { taxYear: taxYearLabel(Y), age: String(Math.round(+p.startAge) + (Y - firstTY)), amount: poundsOf(G.firstShort.gap) } };
+  if (!G || !isObj(G.gaps)) return null;
+  const n = (v) => (isNum(+v) ? +v : 0);
+  const arrivals = isObj(G.arrivals) ? G.arrivals : {};
+  const fund = n(G.fund && G.fund.flat) + n(G.fund && G.fund.shares);
+  let pool = fund, short = 0, expected = 0;
+  for (const Y of [...new Set([...Object.keys(G.gaps), ...Object.keys(arrivals)].map(Number))].sort((x, y) => x - y)) {
+    pool += n(arrivals[Y]); expected += n(arrivals[Y]);
+    const gap = n(G.gaps[Y]), take = Math.min(pool, gap);
+    pool -= take; short += gap - take;
+  }
+  if (!(Math.round(short) > 0)) return null;
+  return { id: 'held.gap', slots: { amount: poundsOf(Math.round(short)), after: expected > 0 || fund > 0 ? { id: 'held.gapAfter' } : '' } };
 }
 
 /**

@@ -198,7 +198,9 @@ test.describe('"Try the bad years", without an account', () => {
       const asPlanned = page.getByTestId(`${S}.asPlanned`);
       const weighted = (await asPlanned.locator('[data-weighted]').innerText()).trim();
       const fixed = (await asPlanned.locator('[data-fixed="age"]').innerText()).trim();
-      expect(head.toLowerCase()).toContain(weighted.toLowerCase());
+      // (the short line puts a comma before the chance: "as long as you do, 18 times in 20")
+      const bare = (t) => t.toLowerCase().replace(/,/g, '');
+      expect(bare(head)).toContain(bare(weighted));
       const m = /^if you live to (\d+), it lasts that long (.+)\.$/.exec(fixed);
       expect(m, fixed).toBeTruthy();
       expect(sub).toContain('If you live to ' + m[1] + ', ');
@@ -299,7 +301,7 @@ test.describe('"Try the bad years", without an account', () => {
     });
   });
 
-  test('a locked ladder: why the market rows are not tried is said once; As you hold it says the first year not covered; the held rows show the keep agreement\'s state and never an accept', async ({ page, watch }, info) => {
+  test('a locked ladder: why the market rows are not tried is said once; As you hold it says how much is not covered; the held rows show the keep agreement\'s state and never an accept', async ({ page, watch }, info) => {
     test.setTimeout(240_000);
     watch.allow(WORKER_DATA_MISSING);
     await page.clock.setFixedTime(new Date(FIXED_NOW));
@@ -326,8 +328,8 @@ test.describe('"Try the bad years", without an account', () => {
       await expect(page.getByTestId(`${S}.${id}`)).toHaveAttribute('data-status', 'na');
       await expect(page.getByTestId(`${S}.${id}.na`)).toHaveCount(0);
     }
-    // As you hold it lasts less often than As planned: the first year what is held does not cover says why
-    await expect(page.getByTestId(`${S}.asHeld.gap`)).toContainText('is the first not covered');
+    // As you hold it lasts less often than As planned: how much of the income what is held leaves not covered says why
+    await expect(page.getByTestId(`${S}.asHeld.gap`)).toContainText(/leaves £[\d,]+ of the income it pays not covered at today’s prices, after the money you expect/);
     // the keep agreement's state once, on "As you hold it", with the one thing What you hold can do now; never an accept
     await expect(page.getByTestId(`${S}.asHeld.keep`)).toHaveAttribute('data-status', 'untested');
     await expect(page.getByTestId(`${S}.asHeld.hold`)).toHaveAttribute('href', '#/plan/' + ID + '/hold');

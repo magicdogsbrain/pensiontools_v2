@@ -375,7 +375,7 @@ describe('a locked ladder and the held rows', () => {
     expect(root.querySelector('[data-testid="plan.lasts.stress.badStarts"]')).toBe(null);
     expect(ruleProblems(root)).toEqual([]);
   });
-  it('a locked ladder held with years not covered: As you hold it says the first year what is held does not cover, once it lasts less often than As planned', () => {
+  it('a locked ladder held with years not covered: As you hold it says how much of the income what is held leaves not covered, once it lasts less often than As planned', () => {
     // a fictional locked ladder (corpus 20) with two rungs not held and a world fund kept by choice
     const raw = JSON.parse(JSON.stringify(C['20-locked-start-after-stop']));
     raw.holdings.lines = raw.holdings.lines.filter((l) => !/^(T29|T30I)$/.test(l.ticker || '')).map((l) => (l.ticker === 'VWRP' ? { ...l, keep: { as: 'mine', fundsGaps: false } } : l));
@@ -385,7 +385,8 @@ describe('a locked ladder and the held rows', () => {
     const held = (f) => (key) => ({ asPlanned: planned(key), asHeld: row(key, 'asHeld', { w: f, f, words: WORDS(Math.round(f * 20), Math.round(f * 20)), shortfall: { when: { typical: 71, worst: 71, worstLasts: false, count: 1000, n: 1000, to: 97 }, howLong: null, howMuch: null } }) });
     const { root } = draw(withRows(plan, held(0)));
     const gap = panelOf(root).querySelector('[data-testid="plan.lasts.stress.asHeld.gap"]');
-    expect(gap.textContent).toMatch(/^What you hold for the plan’s own money does not cover every year it pays: \d{4}\/\d{2}, when you are \d+, is the first not covered \(£[\d,]+ short at today’s prices\)\.$/);
+    // (no year or age of its own: the row's figures say when it runs out)
+    expect(gap.textContent).toMatch(/^What you hold for the plan leaves £[\d,]+ of the income it pays not covered at today’s prices\.$/);
     expect(gap.closest('li').getAttribute('data-row')).toBe('asHeld');
     // As held lasting as often as As planned: nothing to explain
     expect(panelOf(draw(withRows(plan, held(1))).root).querySelector('[data-testid="plan.lasts.stress.asHeld.gap"]')).toBe(null);

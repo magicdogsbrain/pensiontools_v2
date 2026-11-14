@@ -284,7 +284,7 @@
                 "chance": 0.9471768317176029,
                 "fixedAge": 0.9179999999999999,
                 "planToAge": 96,
-                "runOutAge": 96,
+                "runOutAge": null,
                 "typicalRunOutAge": 97,
                 "coverage": 98.44950980392157,
                 "floor": {
@@ -3266,7 +3266,7 @@
                       "chance": 0.9471768317176029,
                       "fixedAge": 0.9179999999999999,
                       "planToAge": 96,
-                      "runOutAge": 96,
+                      "runOutAge": null,
                       "typicalRunOutAge": 97,
                       "coverage": 98.44950980392157,
                       "floor": {
@@ -3442,7 +3442,7 @@
                     "chance": 0.9471768317176029,
                     "fixedAge": 0.9179999999999999,
                     "planToAge": 96,
-                    "runOutAge": 96,
+                    "runOutAge": null,
                     "typicalRunOutAge": 97,
                     "coverage": 98.44950980392157,
                     "floor": {

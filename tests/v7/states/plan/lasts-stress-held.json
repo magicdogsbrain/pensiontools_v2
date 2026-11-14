@@ -5553,8 +5553,8 @@
                 "shortfall": {
                   "when": {
                     "typical": 98,
-                    "worst": 98,
-                    "worstLasts": false
+                    "worst": 93,
+                    "worstLasts": true
                   },
                   "howLong": {
                     "paid": 24,
@@ -5673,10 +5673,10 @@
                       }
                     },
                     {
-                      "id": "lines.when",
+                      "id": "lines.whenStillLasts",
                       "slots": {
                         "typical": "98",
-                        "worst": "98"
+                        "age": "93"
                       }
                     },
                     {
@@ -5808,8 +5808,8 @@
                 "shortfall": {
                   "when": {
                     "typical": 98,
-                    "worst": 98,
-                    "worstLasts": false
+                    "worst": 93,
+                    "worstLasts": true
                   },
                   "howLong": {
                     "paid": 25,
@@ -5928,10 +5928,10 @@
                       }
                     },
                     {
-                      "id": "lines.when",
+                      "id": "lines.whenStillLasts",
                       "slots": {
                         "typical": "98",
-                        "worst": "98"
+                        "age": "93"
                       }
                     },
                     {
@@ -6063,8 +6063,8 @@
                 "shortfall": {
                   "when": {
                     "typical": 98,
-                    "worst": 98,
-                    "worstLasts": false
+                    "worst": 93,
+                    "worstLasts": true
                   },
                   "howLong": {
                     "paid": 24,
@@ -6183,10 +6183,10 @@
                       }
                     },
                     {
-                      "id": "lines.when",
+                      "id": "lines.whenStillLasts",
                       "slots": {
                         "typical": "98",
-                        "worst": "98"
+                        "age": "93"
                       }
                     },
                     {
@@ -6318,8 +6318,8 @@
                 "shortfall": {
                   "when": {
                     "typical": 98,
-                    "worst": 102,
-                    "worstLasts": false
+                    "worst": 93,
+                    "worstLasts": true
                   },
                   "howLong": {
                     "paid": 24,
@@ -6438,10 +6438,10 @@
                       }
                     },
                     {
-                      "id": "lines.when",
+                      "id": "lines.whenStillLasts",
                       "slots": {
                         "typical": "98",
-                        "worst": "102"
+                        "age": "93"
                       }
                     },
                     {
@@ -7085,8 +7085,8 @@
                 "shortfall": {
                   "when": {
                     "typical": 98,
-                    "worst": 102,
-                    "worstLasts": false
+                    "worst": 93,
+                    "worstLasts": true
                   },
                   "howLong": {
                     "paid": 24,
@@ -7212,10 +7212,10 @@
                       }
                     },
                     {
-                      "id": "lines.when",
+                      "id": "lines.whenStillLasts",
                       "slots": {
                         "typical": "98",
-                        "worst": "102"
+                        "age": "93"
                       }
                     },
                     {
@@ -8346,8 +8346,8 @@
         "shortfall": {
           "when": {
             "typical": 98,
-            "worst": 98,
-            "worstLasts": false
+            "worst": 93,
+            "worstLasts": true
           },
           "howLong": {
             "paid": 24,
@@ -8435,8 +8435,8 @@
         "shortfall": {
           "when": {
             "typical": 98,
-            "worst": 98,
-            "worstLasts": false
+            "worst": 93,
+            "worstLasts": true
           },
           "howLong": {
             "paid": 25,
@@ -8524,8 +8524,8 @@
         "shortfall": {
           "when": {
             "typical": 98,
-            "worst": 98,
-            "worstLasts": false
+            "worst": 93,
+            "worstLasts": true
           },
           "howLong": {
             "paid": 24,
@@ -8613,8 +8613,8 @@
         "shortfall": {
           "when": {
             "typical": 98,
-            "worst": 102,
-            "worstLasts": false
+            "worst": 93,
+            "worstLasts": true
           },
           "howLong": {
             "paid": 24,
@@ -8791,8 +8791,8 @@
         "shortfall": {
           "when": {
             "typical": 98,
-            "worst": 102,
-            "worstLasts": false
+            "worst": 93,
+            "worstLasts": true
           },
           "howLong": {
             "paid": 24,

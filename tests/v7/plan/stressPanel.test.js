@@ -149,6 +149,21 @@ describe('when, how long and how much, read off the runs a row made', () => {
     const late = fake({ 0: 30 });
     expect(planShortfallOf(late, P, oneAnswer(late, P, { life: LIFE })).when).toEqual({ typical: 96, worst: 97, worstLasts: true });
   });
+  it('the worst 1 in 10 counts a future that runs out only after the plan\'s last year as lasting, as the answers do: never later than the plan-to age', () => {
+    // the run followed on to the weighting age (rW, 40 years): three futures run out after the plan's 31 years, one within it
+    const r = fake({ 0: 25 });
+    const rW = fake({ 0: 25, 1: 33, 2: 35, 3: 38 }, 20);
+    const a = oneAnswer(r, P, { life: LIFE, rW, wYears: 40 });
+    const s = planShortfallOf(r, P, a, { rW, wYears: 40 });
+    // typical is still over every future that ran out on the run followed on (the floor's set): 25, 33, 35, 38
+    expect(s.when.typical).toBe(66 + 33);
+    // sorted within the plan: 25, then every other future lasting to 97; the 1-in-10th (index 2) lasted
+    expect(s.when).toMatchObject({ worst: 97, worstLasts: true });
+    expect(s.when.worst).toBeLessThanOrEqual(a.planToAge);
+    // with more failing inside the plan, the worst is read inside it
+    const rW2 = fake({ 0: 25, 1: 28, 2: 30, 3: 38 }, 20);
+    expect(planShortfallOf(r, P, oneAnswer(r, P, { life: LIFE, rW: rW2, wYears: 40 }), { rW: rW2, wYears: 40 }).when).toMatchObject({ worst: 66 + 30, worstLasts: false });
+  });
   it('a strategy that says what it left unpaid is read as it says; Pots & Valves with cuts on adds each future\'s cut', () => {
     const r = fake({ 0: 10 }, 20, { unpaid: [5000, ...Array(19).fill(null)] });
     expect(planShortfallOf(r, P, oneAnswer(r, P)).howMuch).toBeCloseTo(1 - 5000 / (31 * 30000), 12);

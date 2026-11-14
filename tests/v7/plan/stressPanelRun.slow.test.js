@@ -134,6 +134,10 @@ describe('order on the same futures', { timeout: 600_000 }, () => {
         const r = row(plan, id);
         expect(r.a.sumW, `${name} ${id}`).toBeGreaterThanOrEqual(base.a.sumW);
         expect(fails(r.a), `${name} ${id}`).toBeGreaterThanOrEqual(fails(base.a));
+        // the worst 1 in 10 is never later than As planned's, nor than the plan-to age (a future lasting counts at that age)
+        const worst = (x) => (x.shortfall && x.shortfall.when ? x.shortfall.when.worst : x.a.planToAge);
+        expect(worst(r), `${name} ${id} worst`).toBeLessThanOrEqual(worst(base));
+        expect(worst(r), `${name} ${id} worst`).toBeLessThanOrEqual(r.a.planToAge);
       }
     }
   });

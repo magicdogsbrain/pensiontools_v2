@@ -258,7 +258,8 @@ export function weightedPartOf(r, p, a, { life, rW = null, wYears = null, level 
  *   when       { typical, worst, worstLasts } on one run (the run followed on to the weighting age when there is one, `rW`,
  *              else the plan's own): `typical` the middle run-out age of the futures that ran out (the floor's set, so it is
  *              weightedPartOf's floor.age); `worst` the age the floor(n/10)-th earliest future first failed at over all of
- *              them, a future that lasted counting as never (`worstLasts`: that future lasted; `worst` is then the plan-to age)
+ *              them, a future that lasted to the plan-to age — or ran out only after the plan's last year — counting as
+ *              never (`worstLasts`: that future lasted; `worst` is then the plan-to age, never later)
  *   howLong    { paid, of, anyway? } over the futures that failed within the plan's own years (the plan's run `r`): the mean
  *              of the year each first failed plus the later years in which the State Pension and other income meet the
  *              plan's need, of the plan's years; null when it rounds to all of them
@@ -289,7 +290,9 @@ export function planShortfallOf(r, p, a, { rW = null, wYears = null } = {}) {
   lost.forEach((x, i) => { if (x === false) ys.push(yearOf(i)); });
   ys.sort(asc);
   const typical = Math.round(startAge + ys[Math.floor((ys.length - 1) / 2)]);
-  const all = lost.map((x, i) => (x === false ? yearOf(i) : Infinity)).sort(asc);
+  // (a future followed on past the plan's own years that runs out after its last year lasted to the plan's age, as the
+  // answers count it: shortfall.js, m >= toMonth — so the worst is never later than the plan-to age)
+  const all = lost.map((x, i) => (x === false && yearOf(i) < N ? yearOf(i) : Infinity)).sort(asc);
   const w = all[Math.floor(lost.length / 10)];
   const worstLasts = !Number.isFinite(w);
   const when = { typical, worst: worstLasts ? planToAgeOf(startAge, N) : Math.round(startAge + w), worstLasts };

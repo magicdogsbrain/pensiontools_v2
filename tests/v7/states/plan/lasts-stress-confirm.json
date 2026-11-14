@@ -3407,7 +3407,7 @@
                   "when": {
                     "typical": 97,
                     "worst": 96,
-                    "worstLasts": false
+                    "worstLasts": true
                   },
                   "howLong": {
                     "paid": 27,
@@ -3526,10 +3526,10 @@
                       }
                     },
                     {
-                      "id": "lines.when",
+                      "id": "lines.whenStillLasts",
                       "slots": {
                         "typical": "97",
-                        "worst": "96"
+                        "age": "96"
                       }
                     },
                     {
@@ -3661,8 +3661,8 @@
                 "shortfall": {
                   "when": {
                     "typical": 99,
-                    "worst": 99,
-                    "worstLasts": false
+                    "worst": 96,
+                    "worstLasts": true
                   },
                   "howLong": {
                     "paid": 27,
@@ -3781,10 +3781,10 @@
                       }
                     },
                     {
-                      "id": "lines.when",
+                      "id": "lines.whenStillLasts",
                       "slots": {
                         "typical": "99",
-                        "worst": "99"
+                        "age": "96"
                       }
                     },
                     {
@@ -3916,8 +3916,8 @@
                 "shortfall": {
                   "when": {
                     "typical": 99,
-                    "worst": 99,
-                    "worstLasts": false
+                    "worst": 96,
+                    "worstLasts": true
                   },
                   "howLong": {
                     "paid": 27,
@@ -4036,10 +4036,10 @@
                       }
                     },
                     {
-                      "id": "lines.when",
+                      "id": "lines.whenStillLasts",
                       "slots": {
                         "typical": "99",
-                        "worst": "99"
+                        "age": "96"
                       }
                     },
                     {
@@ -5905,7 +5905,7 @@
           "when": {
             "typical": 97,
             "worst": 96,
-            "worstLasts": false
+            "worstLasts": true
           },
           "howLong": {
             "paid": 27,
@@ -5993,8 +5993,8 @@
         "shortfall": {
           "when": {
             "typical": 99,
-            "worst": 99,
-            "worstLasts": false
+            "worst": 96,
+            "worstLasts": true
           },
           "howLong": {
             "paid": 27,
@@ -6082,8 +6082,8 @@
         "shortfall": {
           "when": {
             "typical": 99,
-            "worst": 99,
-            "worstLasts": false
+            "worst": 96,
+            "worstLasts": true
           },
           "howLong": {
             "paid": 27,

@@ -98,7 +98,8 @@ test.describe('Move to a new plan, without an account', () => {
     // the old plan, opened from the new one: closed, read-only, saying so
     await page.locator('#ssPlanClose').getByRole('button', { name: 'Open ‘Alex’s linkers’' }).click();
     await expect(page.locator('#scenarioActiveName')).toHaveText('Alex’s linkers', { timeout: 60_000 });
-    await expect(page.locator('#nextStepBanner')).toContainText('This plan is closed: it ran to the end of October 2026 and carries on in ‘Alex from November’.', { timeout: 45_000 });
+    // 7.10.0: the banner reads the new app's home — the closed plan's way on, in its words, with the successor found
+    await expect(page.locator('#nextStepBanner')).toContainText('This plan closed at the end of October 2026. Its months stay here to read; carry on in ‘Alex from November’.', { timeout: 45_000 });
     await expect(page.locator('#nextStepBtn')).toHaveText('Open ‘Alex from November’');
     await openStressSettings(page);
     const banner = page.locator('#ssLockBanner');

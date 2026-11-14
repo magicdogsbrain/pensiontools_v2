@@ -253,9 +253,11 @@ describe('the guard: a plan with months recorded moves only to the tax year they
 describe('the words, in both apps', () => {
   const plan = alex();
   const SCOPES = ['all', 'record', 'retired', 'planner'];
-  it('the to-do: "Your plan is set to start in April 2027, but your recorded months begin in June 2026. Start it from 2026/27."', () => {
+  // retaken in 7.10.0 (spec-7100 §5): neither app has a to-do for the start — it is changed on "About you and when" and under
+  // Timing (the line and the pointer below are unchanged); the planner's banner reads the plan home
+  it('no to-do for the start in either app: the banner never says it', () => {
     const step = nextStepFor({ stage: deriveStage(plan, NOW), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(plan, NOW) });
-    expect(step).toEqual({ html: 'Your plan is set to start in April 2027, but your recorded months begin in June 2026. Start it from 2026/27.', btn: 'Move the start', action: { kind: 'start-later' } });
+    if (step) expect(step.html).not.toMatch(/set to start in/);
     // retaken in 7.10.0 (spec-7100 §5): the V7 home and rail have no start to-do — the start is changed on "About you and when"
     const e = { plan, newer: false, failed: false };
     const h = homeOf([e], plan.id, { today: TODAY });
@@ -312,7 +314,7 @@ describe('the words, in both apps', () => {
     const slots = { start: 'April 2027', records: 'June 2026', moveTo: '2026/27', yearStop: '2026/27', yearStart: '2027/28', year: '2026/27', to: '2026/27' };
     const L = ABOUT.lockedStart;
     for (const t of [L.moveRecords, L.moveRecordsLevel, L.blockedRecords, L.pointer, L.pointerStop, L.pointerOpen, L.confirm.lines.firstRecords, ABOUT.toast.movedRecords,
-      NEXT_STEP_WORDS.startMoveRecords, NEXT_STEP_WORDS.startBlockedRecords]) {
+      ]) {
       const w = fill(t, slots);
       expect(bannedHits(w, SCOPES), t).toEqual([]);
       expect(w, t).not.toMatch(/\{\w+\}|undefined|null/);

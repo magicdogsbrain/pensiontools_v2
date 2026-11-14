@@ -23,7 +23,8 @@ import { homeOf } from '../../../src/answers/plan/home.js';
 import { lockedStartOf } from '../../../src/answers/plan/about.js';
 import { startLaterOf, laterDraftLeftOf } from '../../../src/services/PlanMove.js';
 import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
-import { nextStepFor, NEXT_STEP_WORDS } from '../../../src/services/NextStep.js';
+import { nextStepFor } from '../../../src/services/NextStep.js';
+import { homeBannerOf } from '../../../src/ui/homeBannerUi.js';
 import { deriveStage } from '../../../src/services/LifeStage.js';
 import { HOME } from '../../../src/v7/copy/home.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
@@ -118,11 +119,9 @@ describe('the V7 home: no start to-do (7.10.0); the start is changed on "About y
       for (const e of entries) expect(planPage(entries, e.plan.id, null, { today }).due.map((d) => d.id).filter((x) => x.startsWith('start.')), e.plan.id).toEqual([]);
     }
   });
-  it('the words that stay (the classic banner\'s, until it reads the home) pass the banned list in every scope a plan page is shown in', () => {
+  it('the words that stay (the buttons "About you and when" still offers) pass the banned list in every scope a plan page is shown in', () => {
     const scopes = ['all', 'record', 'retired', 'saver', 'planner'];
-    const slots = { start: 'April 2027', stopped: 'May 2026', records: 'July 2026', moveTo: '2026/27' };
-    for (const t of [NEXT_STEP_WORDS.startDraft, NEXT_STEP_WORDS.startDraftBtn, PLAN.buttons.moveStart, PLAN.buttons.sayWhen, PLAN.buttons.seeWhy, PLAN.buttons.chooseStart, NEXT_STEP_WORDS.startBlocked,
-      NEXT_STEP_WORDS.startMoveRecords.replace('{to}', '2026/27'), NEXT_STEP_WORDS.startBlockedRecords]) expect(bannedHits(fill(t, slots), scopes), t).toEqual([]);
+    for (const t of [PLAN.buttons.moveStart, PLAN.buttons.sayWhen, PLAN.buttons.seeWhy, PLAN.buttons.chooseStart]) expect(bannedHits(t, scopes), t).toEqual([]);
   });
   it('opening the home writes nothing: the stored plan is byte-identical', () => {
     const raw = copy(C['20-locked-start-after-stop']);
@@ -152,17 +151,15 @@ describe('a draft still set to start later than this tax year, which the reading
     for (const e of entriesAt(TODAY)) expect(laterDraftLeftOf(e.plan, effectiveStressSettings(e.plan, { now: at }), at), e.plan.id).toBe(null);
     expect(laterDraftLeftOf({}, {}, at)).toBe(null);
   });
-  // retaken in 7.10.0: no longer a to-do on the V7 home (the start is chosen on "About you and when"); the planner's banner
-  // keeps its words until it reads the home
-  it('the V7 home: no start to-do; the planner\'s banner still names it', () => {
+  // retaken in 7.10.0 (spec-7100 §5): no longer a to-do on the V7 home or the planner's banner (which reads the home): the start
+  // is chosen on "About you and when", or under Timing on the planner
+  it('the V7 home and the planner\'s banner: no start to-do', () => {
     for (const make of [recorded, spByYear]) {
       const e = entryOf(make(), TODAY);
       const h = homeOf([e], e.plan.id, { today: TODAY });
       expect([...h.todo.items, ...h.todo.more].map((i) => i.id)).not.toContain('start.draft');
-      const left = laterDraftLeftOf(e.plan, effectiveStressSettings(e.plan, { now: at }), at);
-      const step = nextStepFor({ stage: deriveStage(e.plan, at), budget: {}, stress: {}, decision: {}, startDraft: left });
-      expect(step.html).toBe('Your plan is set to start in April 2027. It can start this tax year, or the tax year you stopped work: choose it under Timing.');
-      expect(step.action).toEqual({ kind: 'stress-settings' });
+      const step = homeBannerOf([e], e.plan.id, { today: TODAY, stage: deriveStage(e.plan, at), budget: {}, stress: {}, decision: {} });
+      expect(step && step.html).not.toMatch(/set to start in/);
     }
   });
 });
@@ -193,8 +190,6 @@ describe('"Where you are" on 03: the months and what was taken, never read again
     const e = entryOf(C['20-locked-start-after-stop'], today);
     const pg = planPage([e], e.plan.id, 'where', { today });
     expect(pg.due.map((d) => d.id).filter((x) => x.startsWith('start.'))).toEqual([]);
-    expect(nextStepFor({ stage: deriveStage(e.plan, noon(today)), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(e.plan, noon(today)) }).html)
-      .toBe('Your plan is set to start in April 2027, but your recorded months begin in July 2026. Start it from 2026/27.');
     const w = pg.steps.find((st) => st.id === 'where');
     const ids = w.lines.map((l) => l.id);
     expect(ids).not.toContain('where.startLater');
@@ -236,28 +231,22 @@ describe('the move still works from the to-do', () => {
   });
 });
 
-describe('the planner\'s next-step banner says the same to-do', () => {
+// retaken in 7.10.0 (spec-7100 §5): the planner's banner reads the plan home (src/ui/homeBannerUi.js), so it says the home's
+// first thing due — 03's month — never the start, which is changed under Timing (the line there is unchanged)
+describe('the planner\'s next-step banner reads the home: the month, never the start', () => {
   const stageOf = (raw) => deriveStage(raw, noon(TODAY));
-  it('without a month: the move to where its recorded months begin, with the V7 words (7.4.3)', () => {
-    const raw = C['20-locked-start-after-stop'];
-    const step = nextStepFor({ stage: stageOf(raw), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(raw, noon(TODAY)) });
-    expect(step).toEqual({ html: 'Your plan is set to start in April 2027, but your recorded months begin in July 2026. Start it from 2026/27.', btn: 'Move the start', action: { kind: 'start-later' } });
+  const bannerOf = (raw) => { const e = entryOf(raw, TODAY); return homeBannerOf([e], e.plan.id, { today: TODAY, stage: stageOf(raw), budget: {}, stress: {}, decision: {} }); };
+  it('03, with or without a month work stopped, a State Pension by plan year: "Next: record October 2026.", to the Decision tool', () => {
+    for (const raw of [C['20-locked-start-after-stop'], stopped(), blocked()]) {
+      const step = bannerOf(raw);
+      expect(step).toMatchObject({ html: 'Next: record October 2026.', btn: 'Record October', action: { kind: 'tab', tab: 'decision' }, id: 'month.record' });
+      expect(step.dismiss).toEqual({ kind: 'task', key: 'month.record@2026-10' });
+    }
   });
-  it('without a month or a recorded month: asks when, with the V7 words', () => {
-    const raw = noMonths();
-    const step = nextStepFor({ stage: stageOf(raw), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(raw, noon(TODAY)) });
-    expect(step).toEqual({ html: 'Your plan is set to start in April 2027. When did you stop work? If you are already drawing, it can start this tax year instead.', btn: 'Say when', action: { kind: 'start-later' } });
-  });
-  it('with a month: the move, with the V7 words', () => {
-    const raw = stopped();
-    const step = nextStepFor({ stage: stageOf(raw), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(raw, noon(TODAY)) });
-    expect(step.html).toBe('Your plan is set to start in April 2027, but you stopped work in May 2026. Start it from the tax year you stopped.');
-    expect(step.btn).toBe(NEXT_STEP_WORDS.startMoveBtn);
-  });
-  it('a State Pension given only as a plan year: the move (its date asked on the line it opens), never "only once unlocked"', () => {
-    const raw = blocked();
-    const step = nextStepFor({ stage: stageOf(raw), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(raw, noon(TODAY)) });
-    expect(step).toEqual({ html: 'Your plan is set to start in April 2027, but you stopped work in May 2026. Start it from the tax year you stopped.', btn: NEXT_STEP_WORDS.startMoveBtn, action: { kind: 'start-later' } });
+  it('03 with no month recorded either: nothing due — months are its choice — so the stage\'s own sentence, if it has one; never the start', () => {
+    const step = bannerOf(noMonths());
+    if (step) expect(step.html).not.toMatch(/set to start in|When did you stop work/);
+    expect(nextStepFor({ stage: stageOf(noMonths()), budget: {}, stress: {}, decision: {}, startLater: startLaterOf(noMonths(), noon(TODAY)) })).toEqual(nextStepFor({ stage: stageOf(noMonths()), budget: {}, stress: {}, decision: {} }));
   });
   it('the old placing\'s own banner, label and chip carry no words for months before the plan', () => {
     const st = stageOf(C['20-locked-start-after-stop']);

@@ -151,16 +151,29 @@ describe('nextStepAction: what each button does', () => {
     expect(w.calls).toEqual([['tab', 'stress'], ['top'], ['click', '.sub-tab[data-stresstab="stresssettings"]']]);
     w = fakeWin(); nextStepAction({ kind: 'tab', tab: 'decision', sub: 'plandoc' }, w)(); await flush();
     expect(w.calls).toEqual([['tab', 'decision'], ['click', '.sub-tab[data-decisiontab="plandoc"]']]);
+    // 7.10.0: a page of the new app (the plan home's review, "did you stop work?"): its address there
+    w = { ...fakeWin(), location: { href: '/classic/' } };
+    nextStepAction({ kind: 'v7', href: '../#/plan/AlexReview01/review' }, w)();
+    expect(w.location.href).toBe('../#/plan/AlexReview01/review');
+    // the start's own action is gone (7.10.0: the start is changed under Timing, never a banner of its own)
+    w = fakeWin(); nextStepAction({ kind: 'start-later' }, w)(); await flush();
+    expect(w.calls).toEqual([]);
   });
 });
 
+// retaken in 7.10.0 (spec-7100 §5): the banner's reading moved to src/ui/homeBannerUi.js (the plan home's first thing due,
+// else this chain); index.html keeps the newer-plan banner and the stage, first, and hands the rest to it
 describe('index.html: the banner is the module\'s', () => {
   const html = readFileSync('index.html', 'utf8');
-  const fn = html.slice(html.indexOf('window.updateNextStepBanner = async function'), html.indexOf('window.updateNextStepBanner = async function') + 2500);
-  it('reads the plan, works out the stage, and hands both to nextStepFor', () => {
-    expect(fn).toContain('nextStepFor(');
-    expect(fn).toContain('planFromAnswer()');
-    expect(fn).toContain('nextStepAction(');
-    expect(fn).not.toContain('set up the monthly Decision Tool');
+  const fn = html.slice(html.indexOf('window.updateNextStepBanner = async function'), html.indexOf('window.updateNextStepBanner = async function') + 1500);
+  const ui = readFileSync('src/ui/homeBannerUi.js', 'utf8');
+  it('the page works out the stage first and hands it to the module, which reads the plan and the home and hands both to nextStepFor', () => {
+    expect(fn.indexOf('showPlanNewerBanner();')).toBeLessThan(fn.indexOf('refreshLifeStage()'));
+    expect(fn.indexOf('refreshLifeStage()')).toBeLessThan(fn.indexOf('showHomeBanner('));
+    expect(ui).toContain('nextStepFor(');
+    expect(ui).toContain('planFromAnswer()');
+    expect(ui).toContain('nextStepAction(');
+    expect(ui).toContain('homeOf(');
+    expect(fn + ui).not.toContain('set up the monthly Decision Tool');
   });
 });

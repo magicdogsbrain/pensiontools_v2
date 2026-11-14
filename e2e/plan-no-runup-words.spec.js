@@ -12,7 +12,8 @@
  *  - 03 on the new app: the home's first thing to do is "When did you stop work?"; said, it is "Start it from the tax year
  *    you stopped", whose button opens the move on "About you and when", its confirm naming no months before the plan.
  *  - Opening any of them in the planner adds nothing to its journey (an old `bridge` entry reads as running).
- *  - 03 in the planner: the next-step banner says the same thing to do, and its button opens the line that moves the start.
+ *  - 03 in the planner: the next-step banner says the new app's home's first thing due (7.10.0: its month, never the start);
+ *    the line under Timing still moves the start.
  * Run at desktop-1440 and phone-390 alike.
  *
  * Firebase is never reached: every request outside the site is stopped (`outside: 'block'`).
@@ -132,16 +133,19 @@ test('03 on the new app: no start to-do; "About you and when" offers the move to
   expect(await page.locator('#app').innerText()).not.toMatch(/than the plan said|the plan says £/);
 });
 
-test('03 in the planner: the next-step banner says the same thing to do, and opens the line that moves the start', async ({ page, watch }) => {
+// retaken in 7.10.0 (spec-7100 §5): the planner's banner reads the new app's home, so it says the same first thing due — 03's
+// missed month, never the start; the line under Timing still offers the move
+test('03 in the planner: the next-step banner says the home\'s first thing due; the line under Timing still moves the start', async ({ page, watch }) => {
   test.setTimeout(240_000);
   watch.allow(WORKER_DATA_MISSING);
   const plan = planOf('20-locked-start-after-stop', { stoppedWork: '2026-05' });
   await seed(page, plan);
   await intoPlanner(page, plan, 'month');
   const banner = page.locator('#nextStepBanner');
-  await expect(banner).toContainText('Your plan is set to start in April 2027, but you stopped work in May 2026. Start it from the tax year you stopped.', { timeout: 45_000 });
-  await expect(page.locator('#nextStepBtn')).toHaveText('Move the start');
-  await page.locator('#nextStepBtn').click();
+  await expect(banner).toContainText('Next: record October 2026.', { timeout: 45_000 });
+  await expect(banner).not.toContainText('set to start in');
+  await expect(page.locator('#nextStepBtn')).toHaveText('Record October 2026');
+  await page.evaluate(() => { window.switchToTab('stress'); setTimeout(() => document.querySelector('.sub-tab[data-stresstab="stresssettings"]')?.click(), 400); });
   const line = page.locator('#tmLockedStart');
   await expect(line).toBeVisible({ timeout: 45_000 });
   await expect(line).toContainText('and your plan is set to start in 2027/28. Start it from 2026/27');

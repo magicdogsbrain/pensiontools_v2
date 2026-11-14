@@ -405,12 +405,27 @@ function elsewhereOf(plan) {
   };
 }
 
-/** The stored settings, less FINGERPRINT_SKIP, with what the reading takes from elsewhere: a hash. */
+/**
+ * What an agreement's fingerprint takes from elsewhere in the plan: only what can change the settings the rows run on
+ * (effectiveStressSettings). A locked plan's start is pinned by its lock and its document (withLockedStart, lockedPotsAsOf),
+ * so its recorded months and whether it carries a plan on never move a row: a first month recorded after the lock, or the
+ * earliest one deleted, leaves its agreements agreed (the build spec's §3: agreed until a new document). An unlocked draft
+ * is read from an earlier start only while it has no month at all (PlanMove.laterDraftOf), so what counts is whether it
+ * has months, not which is first.
+ */
+function fingerprintElsewhereOf(plan) {
+  const e = elsewhereOf(plan);
+  if (isLocked(plan)) return { budget: e.budget, decision: e.decision };
+  const hist = plan && plan.decisionTool && Array.isArray(plan.decisionTool.history) ? plan.decisionTool.history : [];
+  return { budget: e.budget, decision: e.decision, months: hist.length > 0, carried: e.carried };
+}
+
+/** The stored settings, less FINGERPRINT_SKIP, with what the reading takes from elsewhere (fingerprintElsewhereOf): a hash. */
 export function settingsHashOf(plan) {
   const s = storedStressOf(plan);
   const kept = {};
   for (const k of Object.keys(s)) if (!FINGERPRINT_SKIP.includes(k)) kept[k] = s[k];
-  return hashOf(canonical({ s: kept, elsewhere: elsewhereOf(plan) }));
+  return hashOf(canonical({ s: kept, elsewhere: fingerprintElsewhereOf(plan) }));
 }
 
 /** What an agreement records it was tried on (no pots, no income, no sex, no level). `settings`: the plan's settings. */

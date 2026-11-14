@@ -142,6 +142,28 @@ describe('a row\'s agreement', () => {
     const newDoc = { ...plan, planDocument: { ...plan.planDocument, createdAt: '2026-12-01T10:00:00.000Z' } };
     expect(stressAgreementOf(newDoc, 'lower').status).toBe('stale');
   });
+  it('a locked plan: a month recorded or deleted — the first one included — leaves its agreements agreed (nothing the rows read moved)', () => {
+    for (const name of ['04-buckets-running', '20-locked-start-after-stop']) {
+      const locked = plan0(name);
+      const plan = applyPatch(locked, accept(locked, 'fall').patch);
+      const h = plan.decisionTool.history || [];
+      const withHistory = (list) => ({ ...plan, decisionTool: { ...plan.decisionTool, history: list } });
+      const variants = [withHistory(h.slice(1)), withHistory(h.slice(0, -1)), withHistory([]), withHistory([{ date: '2026-09-01', month: '2026-09', bridgeYear: false }, ...h])];
+      for (const v of variants) {
+        expect(effectiveStressSettings(v, { now: noon(TODAY) })).toEqual(effectiveStressSettings(plan, { now: noon(TODAY) }));
+        expect(stressAgreementOf(v, 'fall').status, name).toBe('agreed');
+      }
+    }
+  });
+  it('an unlocked plan: deleting its earliest month while others stay leaves an agreement agreed; its settings changed still make it out of date', () => {
+    const base = plan0('02-pnv-draft');
+    const months = [{ date: '2026-08-01', month: '2026-08' }, { date: '2026-09-01', month: '2026-09' }];
+    const withMonths = { ...base, decisionTool: { ...(base.decisionTool || {}), history: months } };
+    const plan = applyPatch(withMonths, accept(withMonths, 'fall').patch);
+    expect(stressAgreementOf(plan, 'fall').status).toBe('agreed');
+    expect(stressAgreementOf({ ...plan, decisionTool: { ...plan.decisionTool, history: months.slice(1) } }, 'fall').status).toBe('agreed');
+    expect(stressAgreementOf(stressSet(plan, 'chargesPct', 1), 'fall').status).toBe('stale');
+  });
   it('a couple\'s plan and a locked ladder, with no weighted figure, accept on the fixed-age count (chance null) and withdraw', () => {
     for (const name of ['09-couple-a', '03-gilt-ladder-locked']) {
       const plan = plan0(name);

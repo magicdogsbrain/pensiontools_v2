@@ -200,6 +200,16 @@ describe('the screen', () => {
     expect(again.actions.pop()).toEqual({ type: 'ui/toggle', id: 'reviewChange.window' });
   });
 
+  it('a saver\'s review: a choice says itself in the review\'s own toast, with Undo; the check-in\'s toast stays for the check-in', () => {
+    const day = '2026-10-02';
+    const id = C['05-saver-committed'].id;
+    let state = stateWith(entriesAt(day), '#/plan/' + id + '/review', { today: day });
+    state = reduce(state, { type: A.PLAN_SAVED, planId: id, previous: { phases: undefined, lastModified: C['05-saver-committed'].lastModified }, line: { id: 'phase.saving.level', slots: { value: 'adventurous' } }, op: 'phase' });
+    const { root } = draw(state);
+    expect(q(root, 'plan.review.toast').textContent).toContain('Saved: while you save, the plan works out your pension as invested adventurously.');
+    expect(q(root, 'plan.checkin.toast')).toBe(null);
+  });
+
   it('a closed plan: no save, no choices', () => {
     const day = '2026-10-02';
     const { root } = draw(stateWith(entriesAt(day), '#/plan/' + C['18-moved-to-new-plan'].id + '/review', { today: day }));

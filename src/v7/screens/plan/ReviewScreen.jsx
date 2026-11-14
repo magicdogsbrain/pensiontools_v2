@@ -293,6 +293,9 @@ export function ReviewScreen(state, dispatch) {
             {problem && V.saving === null && <p class="notice" role="alert" data-testid={`${T}.problem`} data-problem={V.problem}>{problem}</p>}
             <Choices V={V} dispatch={dispatch} />
           </section>
+          {/* a choice's own toast, with Undo (the check-in's toast says the check-in's writes) */}
+          <UndoToast prefix={T} toast={V.toast && V.toast.op === 'phase' ? V.toast : null} text={V.toast ? toastText(V.toast) : ''} words={W.buttons}
+            onUndo={() => dispatch({ type: 'plan/undo', planId })} onClose={() => dispatch({ type: 'plan/toastClose' })} />
         </>
       )
     };

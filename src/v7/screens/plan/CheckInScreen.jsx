@@ -359,7 +359,8 @@ export function CheckInScreen(state, dispatch) {
         <div class="actions-row">
           <LinkButton testid={`${T}.back`} kind="quiet" href={href.plan(view.id, 'plan')}>{W.buttons.back}</LinkButton>
         </div>
-        <UndoToast prefix={T} toast={V.toast} text={V.toast ? toastText(V.toast) : ''} words={W.buttons}
+        {/* a choice made on the review under the check-in (7.10.0) says itself there, in the review's own words */}
+        <UndoToast prefix={T} toast={V.toast && V.toast.op !== 'phase' ? V.toast : null} text={V.toast ? toastText(V.toast) : ''} words={W.buttons}
           onUndo={() => dispatch({ type: 'plan/undo', planId })} onClose={() => dispatch({ type: 'plan/toastClose' })} />
       </>
     )

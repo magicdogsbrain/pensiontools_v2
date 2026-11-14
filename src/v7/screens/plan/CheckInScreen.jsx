@@ -16,6 +16,9 @@ import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { CHECKIN as W } from '../../copy/checkin.js';
 
+/** A way of drawing named inside a sentence ("your plan draws by full gilt ladder"): its name, the first letter small. */
+const wayWords = (id) => { const n = String(PLAN.strategies[id] || id || ''); return n.charAt(0).toLowerCase() + n.slice(1); };
+
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
 const T = 'plan.checkin';
@@ -152,6 +155,7 @@ function Result({ V, dispatch, planId }) {
       {/* a couple's plan is read on its own until two plans are read together (release step R5), and the plan's own rise in
           what goes in is not the test's: said beside the verdict, as What you pay in says them */}
       {(live || L.verdict) && V.notes && V.notes.couple && <p class="note" data-testid={`${T}.result.couple`}>{R.couple}</p>}
+      {(live || L.verdict) && V.notes && V.notes.way && <p class="note" data-testid={`${T}.result.way`} data-way={V.notes.way}>{fill(R.way, { way: wayWords(V.notes.way) })}</p>}
       {(live || L.verdict) && V.notes && V.notes.rise && <p class="note" data-testid={`${T}.result.rise`}>{V.notes.rise.pct === '0' ? R.riseNone : fill(R.rise, V.notes.rise)}</p>}
       {!live && L.verdict && <p class="note">{R.seeSaving} <a href={href.plan(planId, 'saving')}>{R.seeSavingLink}</a></p>}
       {!L.verdict && V.verdictWhy === 'noAim' && <p class="note">{W.noVerdict.noAim} <a href={href.plan(planId, 'spend')}>{W.noAimLink}</a></p>}

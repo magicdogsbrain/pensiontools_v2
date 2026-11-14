@@ -49,9 +49,10 @@ export const STAGES = Object.freeze({
   'committed-saving': {
     key: 'committed-saving', label: 'Committed, still saving', chip: 'to go',
     leads: ['accumulation'], readOnly: ['stress', 'strategies'], hidden: [],
-    // A locked saver keeps paying in and recording the pot; buying the plan's mix years ahead was never the next step.
+    // A locked saver keeps paying in and checks in once a year (7.10.0: the yearly review, never a monthly pot); buying the
+    // plan's mix years ahead was never the next step.
     // `nearText` is added inside the move window (Phases.windowYearsOf), when moving what you hold starts to matter.
-    banner: { text: 'Your plan is locked and you stop work in {stop}. Keep paying in, and record your pot each month on the Accumulation planner; the Decision tool opens when you stop.', nearText: 'Moving what you hold to the plan\'s mix can start now, if you want to.', btn: 'Open the Accumulation planner', tab: 'accumulation' }
+    banner: { text: 'Your plan is locked and you stop work in {stop}. Keep paying in, and check in once a year on the Accumulation planner; the Decision tool opens when you stop.', nearText: 'Moving what you hold to the plan\'s mix can start now, if you want to.', btn: 'Open the Accumulation planner', tab: 'accumulation' }
   },
   running: {
     key: 'running', label: 'Running the plan', chip: 'running',

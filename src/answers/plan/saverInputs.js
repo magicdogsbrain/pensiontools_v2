@@ -14,7 +14,8 @@
  *     notes    what the screen says beside the verdict: the plan's aim a year before tax and a month after it, the plan's
  *              own yearly rise in pay-ins when it is not the price rise B assumes (and something goes in), the share of pay
  *              while it agrees, where the pot came from (`potFrom`: the check-in, a record, What you hold, the saved pot
- *              today, the answer the plan was kept from, or none), and whether it is a couple's plan read alone
+ *              today, the answer the plan was kept from, or none), whether it is a couple's plan read alone, and (`way`, only
+ *              when it is so) the way the plan draws when that is not pots and valves or buckets
  *     why      'notSaving' (no saving years: retired, or no age to stop at) | 'noAim' (no income set) | 'invalid'
  *
  * What it reads (4.4): the age today and the age to stop from the Timing block (else the Accumulation tab's ages, when the
@@ -69,6 +70,9 @@ import { seedToScenario } from '../../services/PlanFromSeed.js';
 import { bandsOf, netOf } from './about.js';
 import { flexibleAccessAlong } from '../../services/FlexibleAccess.js';
 import { dateOf } from './dates.js';
+
+/** The ways of drawing a saver's verdict is worked out on as they are: pots and valves (B's own) and buckets (worked out as pots). */
+export const POTS_WAYS = Object.freeze(['pots-and-valves', 'buckets-in-order']);
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -325,12 +329,17 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   // a couple's plan is read on its own until two plans are read together (release step R5): the screen says so
   const couple = !!(plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId)
     || !!(plan && isObj(plan.fromAnswer) && plan.fromAnswer.household === 'couple');
+  // the verdict is worked out as if the money were drawn from pots (B's own way, pots and valves; buckets is worked out the
+  // same way): a plan that draws by another way is told so, with the way it draws (7.10.0, spec-7100 §6). Said only then,
+  // so every other plan's notes are as they were
+  const way = typeof ss.strategyId === 'string' && ss.strategyId && !POTS_WAYS.includes(ss.strategyId) ? ss.strategyId : null;
   return {
     ok: true, inputs, env,
     notes: {
       aimYearly: aim.aimYearly, aimMonthly: inputs.spend && inputs.spend.amount != null ? inputs.spend.amount : aim.aimMonthly, stopAge,
       rise, share: read.share ? { ownPct: read.share.ownPct, employerPct: read.share.employerPct } : null,
-      potFrom, from, fromAccumulation: !!stage.fromAccumulation, couple
+      potFrom, from, fromAccumulation: !!stage.fromAccumulation, couple,
+      ...(way ? { way } : {})
     }
   };
 }

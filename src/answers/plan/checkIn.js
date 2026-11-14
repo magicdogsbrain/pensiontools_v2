@@ -811,7 +811,7 @@ export function checkInOf(entries, id, { today, typed = null, source = 'account'
     // no verdict can be read from the plan's figures (no aim yet, or figures the test cannot take): the check-in still
     // records the pot and reads it against the path (situation K)
     verdictWhy: readonly ? 'readonly' : plain.ok ? null : plain.why || 'invalid',
-    notes: { couple: !!(plain && plain.ok && plain.notes.couple), rise },
+    notes: { couple: !!(plain && plain.ok && plain.notes.couple), rise, ...(plain && plain.ok && plain.notes.way ? { way: plain.notes.way } : {}) },
     allowance
   };
 }

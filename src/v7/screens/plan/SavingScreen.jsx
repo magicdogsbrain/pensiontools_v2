@@ -15,6 +15,9 @@ import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { SAVING as W } from '../../copy/saving.js';
 
+/** A way of drawing named inside a sentence ("your plan draws by full gilt ladder"): its name, the first letter small. */
+const wayWords = (id) => { const n = String(PLAN.strategies[id] || id || ''); return n.charAt(0).toLowerCase() + n.slice(1); };
+
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
 const T = 'plan.saving';
@@ -87,6 +90,8 @@ function Verdict({ V, planId, dispatch }) {
       {/* a couple's plan is read on its own until two plans are read together (release step R5): said, so the answer is
           never taken for the household's */}
       {n.couple && <p class="note" data-testid={`${T}.verdict.couple`}>{t.couple}</p>}
+      {/* a plan that draws by another way: the verdict is worked out as if drawn from pots (7.10.0), and says so */}
+      {n.way && <p class="note" data-testid={`${T}.verdict.way`} data-way={n.way}>{fill(t.way, { way: wayWords(n.way) })}</p>}
       {status === 'failed' && (
         <div class="notice" role="alert" data-testid={`${T}.verdict.failed`}>
           <p>{run.reason === 'noWorker' ? t.noWorker : t.failed}</p>

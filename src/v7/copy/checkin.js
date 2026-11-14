@@ -117,6 +117,8 @@ export const CHECKIN = {
     },
     /** Beside the verdict, as What you pay in says them. */
     couple: 'This reads your plan on its own; reading two linked plans together comes later.',
+    /** A plan that draws by a way other than pots and valves or buckets (7.10.0). */
+    way: 'Worked out as if the money were drawn from pots; your plan draws by {way}.',
     rise: 'This reads what you pay in as going up with prices; your plan raises it by {pct}% a year.',
     riseNone: 'This reads what you pay in as going up with prices; your plan keeps it the same in pounds each year.',
     seeSaving: 'The other ways, and the answer worked out again on today’s figures:',

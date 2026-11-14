@@ -131,7 +131,9 @@ export const SAVING = {
     },
     draws: 'It draws the money the way “Am I saving enough?” does. How your plan itself draws is on “Does it last?”.',
     drawsLink: 'Does it last?',
-    couple: 'This reads your plan on its own; reading two linked plans together comes later.'
+    couple: 'This reads your plan on its own; reading two linked plans together comes later.',
+    /** A plan that draws by a way other than pots and valves or buckets (7.10.0): what the verdict is worked out on. */
+    way: 'Worked out as if the money were drawn from pots; your plan draws by {way}.'
   },
   buttons: { save: 'Save', cancel: 'Cancel', undo: 'Undo', close: 'Close', back: 'Back to your plan' },
   toast: {

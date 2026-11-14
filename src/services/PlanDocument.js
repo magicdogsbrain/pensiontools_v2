@@ -690,14 +690,21 @@ export const GUARDRAIL = Object.freeze({ upper: 1.2, lower: 0.8, step: 0.1 });
 
 /**
  * A plan year's draw from the pots: what the plan pays before tax, less the State Pension and the other income that come in
- * anyway, less any one-off spend at the amount the year's gross carries it (the document's own events, else the row's) —
- * so a one-off spend never moves the reading.
+ * anyway, less any one-off spend at the amount the year's gross carries it — so a one-off spend never moves the reading.
+ * A run year's gross is the plan's own need that year (buildTimeline: `needByYear`), which carries each one-off spend as
+ * PlanNeed does: a fixed sum ('level') at its value in today's prices that year, not as typed; so the spend taken off is
+ * the plan's own `extraNeedByYear` for that run year. A year lived before the run (or a document without it): the document's
+ * own events at their typed amounts, as that year's gross added them, else the row's.
  */
 function potDrawOf(doc, row) {
+  const p = doc.strategy && doc.strategy.p && typeof doc.strategy.p === 'object' ? doc.strategy.p : null;
+  const k = (Number.isFinite(+row.y) ? +row.y : -1) - (p && +p.yearOffset > 0 ? +p.yearOffset : 0);   // the run's year
+  const carried = p && k >= 0 && Array.isArray(p.needByYear) && p.needByYear[k] != null && Array.isArray(p.extraNeedByYear) && Number.isFinite(+p.extraNeedByYear[k]) ? +p.extraNeedByYear[k] : null;
   const events = Array.isArray(doc.layers && doc.layers.events) ? doc.layers.events.filter((e) => e && e.kind === 'out' && +e.amount > 0 && Number.isFinite(+e.age)) : null;
-  const oneOff = events && events.length
-    ? events.filter((e) => row.age >= +e.age && row.age < +e.age + Math.max(1, +e.years || 1)).reduce((t, e) => t + (+e.amount), 0)
-    : (Array.isArray(row.lumpOut) ? row.lumpOut.reduce((t, x) => t + (+x.amount || 0), 0) : 0);
+  const oneOff = carried != null ? carried
+    : events && events.length
+      ? events.filter((e) => row.age >= +e.age && row.age < +e.age + Math.max(1, +e.years || 1)).reduce((t, e) => t + (+e.amount), 0)
+      : (Array.isArray(row.lumpOut) ? row.lumpOut.reduce((t, x) => t + (+x.amount || 0), 0) : 0);
   return (+row.gross || 0) - (+row.sp || 0) - (+row.other || 0) - oneOff;
 }
 

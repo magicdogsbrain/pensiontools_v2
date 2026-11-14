@@ -96,6 +96,23 @@ describe('the reading', () => {
     const two = makeDoc({ timeline: tl2, events: [{ age: 62, amount: 12000, label: 'Care', kind: 'out', years: 2 }] });
     expect(guardrailOf(two, whereWith(two, 700000)).draw).toBe(a.draw);
   });
+  it('a fixed-sum (level) one-off spend in a later year is taken off at the value the year\'s gross carries it, never as typed', () => {
+    const plain = makeDoc();
+    const a = guardrailOf(plain, whereWith(plain, 700000));
+    // £12,000 fixed in pounds, in plan year 2: the plan's need carries it at today's prices that year (PlanNeed), 12,000 / 1.025²
+    const real = 12000 / 1.025 ** 2;
+    const need = series(11, (y) => 40000 + (y === 2 ? real : 0));
+    const tl = series(10, (y) => ({ y, age: 60 + y, gross: Math.round(need[y]), sp: 0, other: 0, lumpIn: [], lumpOut: y === 2 ? [{ label: 'New roof', amount: 12000 }] : [] }));
+    const level = makeDoc({ timeline: tl, events: [{ age: 62, amount: 12000, label: 'New roof', kind: 'out', years: 1 }] });
+    level.strategy.p = { startAge: 60, durationYears: 10, needByYear: need, extraNeedByYear: series(11, (y) => (y === 2 ? real : 0)) };
+    const b = guardrailOf(level, whereWith(level, 700000));
+    expect(Math.abs(b.draw - a.draw)).toBeLessThanOrEqual(1);   // (the timeline's gross is whole pounds)
+    expect(b.state).toBe(a.state);
+    // a plan seen from today (yearOffset 1): the run's year is the plan year less the years lived
+    const lived = makeDoc({ timeline: tl, events: [{ age: 62, amount: 12000, label: 'New roof', kind: 'out', years: 1 }] });
+    lived.strategy.p = { startAge: 61, durationYears: 9, yearOffset: 1, needByYear: need.slice(1), extraNeedByYear: series(10, (y) => (y === 1 ? real : 0)) };
+    expect(Math.abs(guardrailOf(lived, whereWith(lived, 700000)).draw - a.draw)).toBeLessThanOrEqual(1);
+  });
   it('the State Pension and the other income that come in anyway are not drawn from the pots', () => {
     const tl = series(10, (y) => ({ y, age: 60 + y, gross: 40000, sp: y >= 2 ? 11000 : 0, other: y >= 2 ? 4000 : 0, lumpIn: [], lumpOut: [] }));
     const doc = makeDoc({ timeline: tl });

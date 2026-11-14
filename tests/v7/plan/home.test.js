@@ -385,10 +385,12 @@ describe('reads only: nothing new is written to any plan', () => {
     // its next Save (moveStart.js laterDraftPatch). Opening a plan still writes nothing (below).
     // 7.7.0 adds one more, on purpose: "I accept this risk" writes the whole list of agreements (planAmendments), beside the
     // settings and the document, never in them. Opening a plan still writes nothing (below).
-    expect(ALL_WRITES.length).toBe(159);
+    // 7.10.0 adds three: the phases and the dismissals (whole roots) and how often months are recorded
+    // (decisionTool.recordMonths). Opening a plan still writes nothing (below).
+    expect(ALL_WRITES.length).toBe(162);
     expect(ALL_WRITES).toContain('stressTool.settings.legacyFirstTaxYear');
     expect(ALL_WRITES).toContain('planAmendments');
-    expect(createHash('sha256').update(JSON.stringify(ALL_WRITES)).digest('hex')).toBe('ce432562b8ec3486783ef100d1c6cefdfdb43bd87d255a101c80e515243ed9eb');
+    expect(createHash('sha256').update(JSON.stringify(ALL_WRITES)).digest('hex')).toBe('f614a0757c31fe062f877a9538b2abac0037336a5e636fbe577f7264df387c28');
   });
   /** The one write file with a fake firestore that records every call, on an account's plans. */
   function browse(raws, planId) {

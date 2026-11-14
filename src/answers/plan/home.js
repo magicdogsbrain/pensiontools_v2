@@ -74,8 +74,6 @@ const TOOLS = {
 /** The questions a home offers with the plan's figures, by stage (B and A for a saver; C and D moving; D drawing). */
 const ASK = { saving: ['b', 'a'], moving: ['c', 'd'], drawing: ['d'], closed: [], none: [] };
 const STRIP = ['saving', 'moving', 'drawing'];
-/** The placings of someone still working (LifeStage.SAVER_STAGE_KEYS). */
-const SAVER_PLACINGS = ['saving', 'approaching', 'committed-saving'];
 
 const addMonth = (m, n) => { const p = ym(m); if (!p) return null; const t = p.y * 12 + (p.m - 1) + n; return Math.floor(t / 12) + '-' + String((t % 12) + 1).padStart(2, '0'); };
 const thisMonthOf = (now) => now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');

@@ -127,8 +127,10 @@ export function HomeScreen(state, dispatch) {
   const pending = ui.saving && ui.saving.kind === 'task' && ui.saving.planId === String(planId) ? ui.saving.key : null;
   const told = ui.toast && ui.toast.op === 'task' && ui.toast.planId === String(planId) && ui.toast.line ? ui.toast.line : null;
   const away = (it) => it.key && (it.key === pending || (told && it.key === told.key));
-  const items = todo.items.filter((it) => !away(it));
-  const more = todo.more.filter((it) => !away(it));
+  // still one shown: the next in the list takes the place of the one put away
+  const left = [...todo.items, ...todo.more].filter((it) => !away(it));
+  const items = left.slice(0, todo.items.length);
+  const more = left.slice(todo.items.length);
   const putOff = !H.readonly && told && told.id === 'putOff' ? fill(HOME.putOff, told.slots) : null;
   // the next review, said once: by the nothing-due line when it is shown, else here
   const quietShown = items.length === 0 && !H.readonly && !!H.quiet;

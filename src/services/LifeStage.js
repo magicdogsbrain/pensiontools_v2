@@ -21,8 +21,13 @@
 import { deriveTiming, taxYearLabel, monthsUntilStart, monthsUntilMonth } from './PlanTiming.js';
 import { saverReading, saverPrices, savingPathVersion, pathStart, pathCountsIsa, v3PensionLineAt, figureOrNull, monthOf, monthWords, OLD_PATH_CPI } from './SaverReading.js';
 import { closedAtOf, nextPlanIdOf, beforeOf, monthRefusal, monthRefusalWords, monthWordsOf, closesAhead } from './PlanClosed.js';
+import { WINDOW, windowOf, windowYearsOf, agreementOf } from './Phases.js';
 
-export const APPROACHING_YEARS = 5;   // how far out "approaching retirement" starts (decided 10 Sep 2026)
+/**
+ * How far out "approaching retirement" starts when the person has not chosen: the move window's default (7.10.0, one clock
+ * for both apps — Phases.WINDOW). A plan's own window (Phases.windowYearsOf) places it; this is only the default.
+ */
+export const APPROACHING_YEARS = WINDOW.def;
 /** What the banner adds on a plan closed at a change-over still to come (6.56.0): it is lived on until then. */
 export const CLOSING_TEXT = 'This plan closes at the end of {closed}: record the months until then here, and the months after it on the plan that carries it on.';
 
@@ -37,14 +42,15 @@ export const STAGES = Object.freeze({
   approaching: {
     key: 'approaching', label: 'Approaching retirement', chip: 'approaching',
     leads: ['stress', 'strategies', 'accumulation'], readOnly: [], hidden: [],
-    // the words only changed (4.3): the button still opens the Stress tester, the tab this stage opens on (openingTab)
-    banner: { text: 'Within five years of your plan start. Check you are on course (Accumulation), then stress-test the plan you will draw on; locking it and moving what you hold come when you are ready.', btn: 'Open the Stress tester', tab: 'stress' }
+    // the words only changed (4.3): the button still opens the Stress tester, the tab this stage opens on (openingTab);
+    // {window} is the plan's move window ("3 years", "1 year": 7.10.0)
+    banner: { text: 'Within {window} of the month you stop work. Check you are on course (Accumulation), then stress-test the plan you will draw on; locking it and moving what you hold come when you are ready.', btn: 'Open the Stress tester', tab: 'stress' }
   },
   'committed-saving': {
     key: 'committed-saving', label: 'Committed, still saving', chip: 'to go',
     leads: ['accumulation'], readOnly: ['stress', 'strategies'], hidden: [],
     // A locked saver keeps paying in and recording the pot; buying the plan's mix years ahead was never the next step.
-    // `nearText` is added within APPROACHING_YEARS of the stop, when moving what you hold starts to matter.
+    // `nearText` is added inside the move window (Phases.windowYearsOf), when moving what you hold starts to matter.
     banner: { text: 'Your plan is locked and you stop work in {stop}. Keep paying in, and record your pot each month on the Accumulation planner; the Decision tool opens when you stop.', nearText: 'Moving what you hold to the plan\'s mix can start now, if you want to.', btn: 'Open the Accumulation planner', tab: 'accumulation' }
   },
   running: {
@@ -99,10 +105,12 @@ export function deriveStage(scenario, now = new Date()) {
   // all see a saver — before, it was "Getting started" and was told to set up the Decision tool. The ages carry no date,
   // so they are read as typed (V7 asks once to confirm them). A locked plan with no Timing age stays running: it has records.
   const acc = accumulationAgesOf(s);
+  // one clock (7.10.0): the plan's move window, its years as the person chose them, else the default
+  const yw = windowYearsOf(s);
   let fromAccumulation = false;
   if (t.mode === 'legacy' && !locked && acc) {
     fromAccumulation = true;
-    key = acc.years > APPROACHING_YEARS ? 'saving' : 'approaching';
+    key = acc.years > yw ? 'saving' : 'approaching';
     reasons.push('ages from the Accumulation tab');
   } else if (t.mode === 'legacy') {
     // No age today: the app cannot place them, and the implicit "next April" start means nothing here.
@@ -111,7 +119,7 @@ export function deriveStage(scenario, now = new Date()) {
     reasons.push('no age today in the Timing block');
   } else if (t.mode === 'future') {
     if (locked) key = beforeStart ? 'committed-saving' : 'running';
-    else key = t.yearsToStart > APPROACHING_YEARS ? 'saving' : 'approaching';
+    else key = monthsToStart > yw * 12 ? 'saving' : 'approaching';
     reasons.push('retiring at ' + t.retireAge + ' (' + taxYearLabel(t.firstTaxYear) + ')');
   } else {
     key = locked ? 'running' : 'draft-retired';
@@ -134,10 +142,11 @@ export function deriveStage(scenario, now = new Date()) {
   if (['approaching', 'committed-saving', 'draft-retired'].includes(key)) leads.push('transition');
   const startLabel = taxYearLabel(t.firstTaxYear);
   const stopWords = (t.mode === 'future' && t.startMonth && monthWords(monthOf(t.startMonth))) || startLabel;
-  const near = def.banner && def.banner.nearText && beforeStart && monthsToStart <= APPROACHING_YEARS * 12;
+  const near = def.banner && def.banner.nearText && beforeStart && monthsToStart <= yw * 12;
+  const windowWords = yw === 1 ? '1 year' : yw + ' years';
   const closingText = closing ? ' ' + CLOSING_TEXT.replace('{closed}', monthWordsOf(closedAt)) : '';
   // a stage with no banner of its own (running: the where-am-I strip is its banner) still says when a closing plan closes
-  const banner = closing && !def.banner ? { text: closingText.trim(), btn: 'Open the Decision tool', tab: 'decision' } : def.banner ? { text: (def.banner.text + (near ? ' ' + def.banner.nearText : '') + closingText).replace(/\{start\}/g, startLabel).replace(/\{stop\}/g, stopWords).replace(/\{closed\}/g, monthWordsOf(closedAt)), btn: def.banner.btn, tab: def.banner.tab, ...(def.banner.sub ? { sub: def.banner.sub } : {}) } : null;
+  const banner = closing && !def.banner ? { text: closingText.trim(), btn: 'Open the Decision tool', tab: 'decision' } : def.banner ? { text: (def.banner.text + (near ? ' ' + def.banner.nearText : '') + closingText).replace(/\{start\}/g, startLabel).replace(/\{stop\}/g, stopWords).replace(/\{window\}/g, windowWords).replace(/\{closed\}/g, monthWordsOf(closedAt)), btn: def.banner.btn, tab: def.banner.tab, ...(def.banner.sub ? { sub: def.banner.sub } : {}) } : null;
   const before = beforeOf(s);
   return {
     key, label: def.label, chip: chipText(def, monthsToStart, beforeStart),
@@ -154,58 +163,62 @@ export function deriveStage(scenario, now = new Date()) {
 }
 
 /**
- * The three words a person sees (research/v7/one-product-design.md, "The stage model"): Saving, Moving, Drawing — and Closed
- * for a plan kept to read. Derived from the seven placings above and nothing stored: the design's three stored agreements
- * (`accumulationTool.agreedMove`, `transition.finished`, a by-hand `stage`) arrive in a later release, so here they are read
- * as absent and a plan is placed by its facts alone. Opening a plan never writes anything because of this.
+ * The three words a person sees (research/v7/replan-nov-2026.md §6): Saving, Moving, Living on it ('drawing') — and Closed
+ * for a plan kept to read. Agreements first, then facts (7.10.0, spec-7100 §2); nothing is written, and what the person
+ * holds never decides the stage.
  *
- *   placing                                  stage
- *   unknown                                  null (the home's only to-do: add your age)
- *   saving, approaching, committed-saving    saving
- *   running, a month recorded                drawing, whatever the holdings say (7.3.1)
- *   running, no month recorded yet           moving while a recorded holding is still short of the plan's mix, else drawing
- *   draft-retired                            drawing (not locked: its first to-do is the lock)
- *   closed                                   closed
+ *   Inputs
+ *     the window (Phases.windowOf on the stop below): before (now < from), inside (from <= now < stop), after (now >= stop);
+ *       none with no stop month — and for a plan placed by the Accumulation tab's ages, which carry no date (it reads
+ *       Saving until the ages are confirmed on "About you and when")
+ *     A: the Moving agreement (phases.moving.agreed), belonging to the plan and made for the strategy it draws by
+ *        (Phases.agreementOf). Holdings never void it; no other write can make one
+ *     M: a month recorded on Month by month (decisionTool.history)
+ *   Rule, in order
+ *     1. unknown → null                     5. A otherwise → moving, by agreement
+ *     2. closed → closed                    6. after → drawing; an unlocked plan in future timing reads moving with
+ *     3. A, and the dates read drawing         `confirmStop` (the person says on About that they have stopped: never a
+ *        (after, or none on running or         silent change of placing)
+ *        draft-retired) → drawing, by       7. none on running or draft-retired → drawing
+ *        agreement                          8. inside → moving
+ *     4. M → drawing                        9. else saving
+ *   An agreement made before the stop keeps the plan Moving until the stop; it never makes someone still working
+ *   "Living on it".
  *
- * `invite` is the move invitation the design asks for: a locked saver within twelve months of the stop, and an unlocked
- * saver whose stop has passed (never a silent change of placing: the person is asked). `passed` says the stop month has
- * come: only then is it a thing to do (the design: "the first to-do from the stop month"); before it, it is said as what is
- * coming. The agreement itself comes later; until then the invitation points at the stop month on "About you and when".
- *
- * A person recording months is drawing (7.3.1; one-product-design.md, "Drawing while the holdings are not exact"): real
- * holdings almost never match the plan's mix exactly (a rung matures, index ratios move the targets, cash is topped up and
- * spent), so reading the stage from the holdings alone left a plan drawing for a year or more called Moving for good. The
- * months recorded are read as deriveStage reads them (`decisionTool.history`); what is still held differently from the plan
- * is said on the home as information, never as the stage.
- *
- * Pure. `placing` (deriveStage's result, or V7's planStage on the effective settings) and `move` ({ recorded, complete }:
- * whether a holdings record exists, and whether it matches the plan's mix — PlanReading.moveInputs works that out) may be
- * passed in by a caller that already has them; without `move` a plan is read as having nothing to move.
- * @returns {{ key: 'saving'|'moving'|'drawing'|'closed'|null, placing: string, locked: boolean, stop: string|null, since: string|null, by: 'facts', invite: object|null }}
+ * Pure. `placing` (deriveStage's result, or V7's planStage on the effective settings) may be passed in by a caller that has
+ * it, and `settings` (the effective Stress settings) for the strategy an agreement must name.
+ * @returns {{ key: 'saving'|'moving'|'drawing'|'closed'|null, placing: string, locked: boolean, stop: string|null,
+ *   since: string|null, by: 'facts'|'agreement', window: { years, from, to, monthsLeft, state }|null, agreed: object|null,
+ *   confirmStop: boolean }}
  */
-export function stageOf(plan, now = new Date(), { placing = null, move = null } = {}) {
+export function stageOf(plan, now = new Date(), { placing = null, settings = null } = {}) {
   const st = placing || deriveStage(plan, now);
   const p = st.key;
-  const nowKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
   // the month work stops (a saver) or stopped (someone retired), when the plan says it
   const stop = st.timingMode === 'future' ? (st.startMonth || null) : (st.stoppedWork ? String(st.stoppedWork).slice(0, 7) : null);
-  const movePending = !!(move && move.recorded && move.complete === false);
+  const w = windowOf(plan, { now, stop: st.fromAccumulation ? null : stop });
+  const state = w.state;
+  const agreed = p === 'unknown' || p === 'closed' ? null : agreementOf(plan, { settings });
   // a month recorded: the same reading deriveStage makes of the history (its own months only, never a tax year's set-up)
-  const recordedMonths = Array.isArray(plan && plan.decisionTool && plan.decisionTool.history) ? plan.decisionTool.history : [];
-  let key;
+  const months = Array.isArray(plan && plan.decisionTool && plan.decisionTool.history) ? plan.decisionTool.history.length > 0 : false;
+  const retiredPlacing = p === 'running' || p === 'draft-retired';
+  const datesDrawing = state === 'after' || (state === 'none' && retiredPlacing);
+  let key, by = 'facts', confirmStop = false;
   if (p === 'unknown') key = null;
-  else if (SAVER_STAGE_KEYS.includes(p)) key = 'saving';
   else if (p === 'closed') key = 'closed';
-  else if (p === 'running') key = recordedMonths.length > 0 ? 'drawing' : movePending ? 'moving' : 'drawing';
-  else key = 'drawing';
-  let invite = null;
-  if (key === 'saving' && st.timingMode === 'future' && stop) {
-    const months = Number.isFinite(st.monthsToStart) ? st.monthsToStart : null;
-    if (p === 'committed-saving' && months != null && months <= 12) invite = { stop, months: Math.max(0, months), passed: nowKey >= stop, locked: true };
-    else if (!st.locked && nowKey >= stop) invite = { stop, months: 0, passed: true, locked: false };
-  }
-  const since = key === 'closed' ? (st.closedAt || null) : key === 'saving' ? null : stop || (st.firstTaxYear ? st.firstTaxYear + '-04' : null);
-  return { key, placing: p, locked: !!st.locked, stop, since, by: 'facts', invite };
+  else if (agreed && datesDrawing) { key = 'drawing'; by = 'agreement'; }
+  else if (months) key = 'drawing';
+  else if (agreed) { key = 'moving'; by = 'agreement'; }
+  else if (state === 'after') {
+    if (st.timingMode === 'future' && !st.locked) { key = 'moving'; confirmStop = true; } else key = 'drawing';
+  } else if (state === 'none' && retiredPlacing) key = 'drawing';
+  else if (state === 'inside') key = 'moving';
+  else key = 'saving';
+  const window = state === 'none' ? null : { years: w.years, from: w.from, to: w.to, monthsLeft: w.monthsLeft, state };
+  const since = key === 'closed' ? (st.closedAt || null) : key === 'saving' || key == null ? null
+    : key === 'moving' ? (window && state !== 'before' ? window.from : agreed ? String(agreed.at).slice(0, 7) : null)
+    : stop || (st.firstTaxYear ? st.firstTaxYear + '-04' : null);
+  return { key, placing: p, locked: !!st.locked, stop, since, by, window, agreed: key === null || key === 'closed' ? null : agreed, confirmStop };
 }
 
 /** The Accumulation tab's own ages, when both are typed and the stop is later: { currentAge, retirementAge, years }; else null. */
@@ -379,13 +392,19 @@ function pricesWords(doc, compared, factor, when) {
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
+/**
+ * The journey's key for a placing: a stored `bridge` entry is the old placing of a plan now read as running (7.4.2), and
+ * `saving` and `approaching` are one stage (7.10.0): the line between them is the move window, which the person may choose
+ * and a release or a rollback may move — so neither a release, a window chosen nor a rollback makes the planner write the
+ * journey when a plan is opened.
+ */
+const journeyKeyOf = (k) => (k === 'bridge' ? 'running' : k === 'approaching' ? 'saving' : k);
 /** Append a stage change to the journey (pure; returns the same array when nothing changed). A stored `bridge`
  *  entry is the old placing of a plan now read as running (7.4.2): it is the same stage, so reading the plan again
- *  adds nothing, and opening it writes nothing. */
+ *  adds nothing, and opening it writes nothing. Saving and approaching are one stage here (journeyKeyOf). */
 export function journeyAppend(journey, stage, now = new Date(), note = null) {
   const list = Array.isArray(journey) ? journey : [];
   const last = list[list.length - 1];
-  const lastKey = last && last.stage === 'bridge' ? 'running' : last?.stage;
-  if (last && lastKey === stage.key) return list;
+  if (last && journeyKeyOf(last.stage) === journeyKeyOf(stage.key)) return list;
   return [...list, { stage: stage.key, label: stage.label, at: now.toISOString(), ...(note ? { note } : {}) }].slice(-40);
 }

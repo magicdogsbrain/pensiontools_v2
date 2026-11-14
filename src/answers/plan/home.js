@@ -68,6 +68,8 @@ const TOOLS = {
 /** The questions a home offers with the plan's figures, by stage (B and A for a saver; C and D moving; D drawing). */
 const ASK = { saving: ['b', 'a'], moving: ['c', 'd'], drawing: ['d'], closed: [], none: [] };
 const STRIP = ['saving', 'moving', 'drawing'];
+/** The placings of someone still working (LifeStage.SAVER_STAGE_KEYS). */
+const SAVER_PLACINGS = ['saving', 'approaching', 'committed-saving'];
 
 const addMonth = (m, n) => { const p = ym(m); if (!p) return null; const t = p.y * 12 + (p.m - 1) + n; return Math.floor(t / 12) + '-' + String((t % 12) + 1).padStart(2, '0'); };
 const thisMonthOf = (now) => now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
@@ -98,7 +100,8 @@ function quietOf(page, life, now) {
     const c = page.closed || {};
     return c.next ? { id: 'closed', slots: { month: c.month || '', name: c.next.name } } : { id: 'closedAlone', slots: { month: c.month || '' } };
   }
-  if (life.key === 'saving') {
+  // a saver inside the move window (7.10.0: Moving by the window's clock) still pays in and checks in: the saver's line
+  if (life.key === 'saving' || (life.key === 'moving' && SAVER_PLACINGS.includes(page.stageKey))) {
     const ci = page.steps.find((s) => s.id === 'checkin');
     const st = ci && ci.checkIn ? ci.checkIn : null;
     if (!st || st.due) return null;

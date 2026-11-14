@@ -26,6 +26,7 @@ import { taxYearLabel, deriveTiming, taxYearStartOf } from '../../services/PlanT
 import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
 import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
 import { APPROACHING_YEARS } from '../../services/LifeStage.js';
+import { windowYearsOf, windowOf } from '../../services/Phases.js';
 import { runKeyOf, FAMILY } from './lasts.js';
 import { pounds } from './income.js';
 import { MOVE_WRITES } from './schema.js';
@@ -44,8 +45,17 @@ const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.set
 const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
 const safeStage = (plan, now) => { try { return planStage(plan, { now }); } catch { return { key: 'unknown', firstTaxYear: null, startMonth: null, yearsToStart: 0 }; } };
 const safeSettings = (plan, now) => { try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && isObj(plan.stressTool.settings)) ? plan.stressTool.settings : {}; } };
-/** The stages in which the move is just where new money goes (§3.4): the stop more than APPROACHING_YEARS away. */
+/**
+ * The stages in which the move is just where new money goes (§3.4): the stop further away than the plan's move window
+ * (7.10.0, Phases.windowYearsOf: one clock). `saving` is placed outside the window already; a locked saver
+ * (`committed-saving`) is waiting until the window opens (waitingOf), as steps.js laterFor keeps its move for later.
+ */
 export const WAITING_STAGES = Object.freeze(['saving', 'committed-saving']);
+function waitingOf(plan, stage) {
+  if (stage.key !== 'committed-saving') return WAITING_STAGES.includes(stage.key);
+  const yearsToStop = Number.isFinite(stage.monthsToStart) && stage.timingMode === 'future' ? stage.monthsToStart / 12 : (Number.isFinite(stage.yearsToStart) ? stage.yearsToStart : null);
+  return !(Number.isFinite(yearsToStop) && yearsToStop <= windowYearsOf(plan));
+}
 const units = (u) => (u == null ? null : String(r0(u)));
 const ym = (s) => { const m = /^(\d{4})-(\d{2})$/.exec(String(s || '')); return m ? MONTHS[+m[2] - 1] + ' ' + m[1] : String(s || ''); };
 
@@ -72,7 +82,7 @@ export function savedMove(plan, { today, index = null }) {
   const ss = safeSettings(plan, now);
   const rec = normaliseHoldings(plan && plan.holdings);
   const strategyId = (doc && doc.strategy && doc.strategy.id) || ss.strategyId || 'pots-and-valves';
-  const base = { locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, name: nameOf(plan), stage, waiting: WAITING_STAGES.includes(stage.key), strategyId, ladder: CONTRACT_STRATEGIES.includes(strategyId), family: FAMILY.includes(strategyId), record: rec, now, ss };
+  const base = { locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, name: nameOf(plan), stage, waiting: waitingOf(plan, stage), opensAt: stage.timingMode === 'future' && stage.startMonth ? windowOf(plan, { now, stop: stage.startMonth }).from : null, strategyId, ladder: CONTRACT_STRATEGIES.includes(strategyId), family: FAMILY.includes(strategyId), record: rec, now, ss };
   if (!doc) return { ...base, hasDocument: false, m: null, seq: null, sheet: [], watch: null, spGate: null, own: null };
   let m = null; try { m = moveInputs(plan, { now }); } catch { m = null; }
   if (!m || !m.target || m.target.kind === 'none') return { ...base, hasDocument: true, m: null, seq: null, sheet: [], watch: null, spGate: null, own: null };
@@ -200,7 +210,7 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   } : null;
   return {
     ...base, hasDocument: true, kind: T.kind, running: !!T.running, status, complete: !!D.complete, reason: D.reason, progressPct: String(D.progressPct), movesDone: String(P.doneCount), moves: String(P.total), rungs: rungs ? { bought: String(rungs.bought), total: String(rungs.total) } : null,
-    next: P.next ? moveRow(P.next, done) : null, waiting: s.waiting, yearsToStart: String(s.stage.yearsToStart || 0), startsAround: s.stage.startMonth ? monthWords(s.stage.startMonth) : (s.stage.firstTaxYear ? 'April ' + s.stage.firstTaxYear : ''),
+    next: P.next ? moveRow(P.next, done) : null, waiting: s.waiting, yearsToStart: String(s.stage.yearsToStart || 0), opens: s.opensAt ? monthWords(s.opensAt) : null, startsAround: s.stage.startMonth ? monthWords(s.stage.startMonth) : (s.stage.firstTaxYear ? 'April ' + s.stage.firstTaxYear : ''),
     own: s.own, held: held ? { pcts: held.pcts, fromPension: held.fromPension } : null, heldRun, planMix: s.planMix || null,
     newMoney: (() => { const p = proportions(s.record.lines); if (!(p.contributions && p.contributions.monthly > 0)) return null; const m = p.contributions.monthly; return { monthly: pounds(m), parts: ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => p.contributions.byBucket[b] > 0.004).map((b) => ({ bucket: b, word: b === 'diversifiers' ? 'gold and trend' : b, amount: pounds(m * p.contributions.byBucket[b]) })) }; })(),
     cost: { uncovered: uncovered.map((y) => taxYearLabel(y)), canRun: !!held && !s.ladder && !readonly },

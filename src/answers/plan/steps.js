@@ -19,7 +19,7 @@
  * that never chose how often, the check-in step is due exactly when the pot step was — this month's pot not recorded —
  * and the next sentence is the old one, word for word (P.pot, then P.working).
  */
-import { APPROACHING_YEARS } from '../../services/LifeStage.js';
+import { WINDOW } from '../../services/Phases.js';
 
 export const STEPS = Object.freeze({
   unknown:            ['plan', 'budget', 'hold', 'household'],
@@ -76,12 +76,13 @@ export const DUE_IDS = Object.freeze({
 
 /**
  * What a saver keeps "For later" (4.1): on `saving`, the lock and what you hold; on `committed-saving`, what you hold
- * and the move while the stop is more than five years away (APPROACHING_YEARS, the one rule for when what you hold
- * starts to matter) — within five they are back on the rail, optional. Every other stage keeps nothing for later.
+ * and the move while the stop is further away than the plan's move window (`windowYears`, Phases.windowYearsOf: the one
+ * clock for when what you hold starts to matter, 7.10.0) — inside it they are back on the rail, optional. Every other
+ * stage keeps nothing for later.
  */
-export function laterFor(stageKey, { yearsToStop = null } = {}) {
+export function laterFor(stageKey, { yearsToStop = null, windowYears = WINDOW.def } = {}) {
   if (stageKey === 'saving') return ['lock', 'hold'];
-  if (stageKey === 'committed-saving' && !(Number.isFinite(yearsToStop) && yearsToStop <= APPROACHING_YEARS)) return ['hold', 'move'];
+  if (stageKey === 'committed-saving' && !(Number.isFinite(yearsToStop) && yearsToStop <= windowYears)) return ['hold', 'move'];
   return [];
 }
 
@@ -104,9 +105,9 @@ export function subStepsFor(stageKey, o) {
  * account holds one plan. `pot` is optional except in committed-saving. A saver's steps kept for later (laterFor) come
  * last, marked `later` (and optional).
  */
-export function stepsFor(stageKey, { locked, linked, manyPlans, yearsToStop = null }) {
+export function stepsFor(stageKey, { locked, linked, manyPlans, yearsToStop = null, windowYears = WINDOW.def }) {
   const base = STEPS[stageKey] || STEPS.unknown;
-  const later = laterFor(stageKey, { yearsToStop });
+  const later = laterFor(stageKey, { yearsToStop, windowYears });
   const shown = base.filter((id) => !(id === 'lock' && locked) && !(id === 'household' && !linked && !manyPlans));
   const step = (id) => ({ id, optional: (OPTIONAL.includes(id) && !(id === 'pot' && stageKey === 'committed-saving')) || (id === 'month' && stageKey === 'draft-retired') });
   return [...shown.filter((id) => !later.includes(id)).map(step), ...shown.filter((id) => later.includes(id)).map((id) => ({ ...step(id), optional: true, later: true }))];

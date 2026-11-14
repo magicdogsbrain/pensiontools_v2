@@ -21,7 +21,7 @@ import { planLevelOf as lifePlanLevelOf } from '../../../src/answers/plan/life.j
 import { LEVEL_FAILS20 } from '../../../src/answers/shared/rules.js';
 import { copyOf } from '../../../src/services/PlanCopy.js';
 import { successorOf } from '../../../src/services/PlanClose.js';
-import { stageOf } from '../../../src/services/LifeStage.js';
+import { stageOf, deriveStage, journeyAppend } from '../../../src/services/LifeStage.js';
 import { planStage } from '../../../src/services/PlanReading.js';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { corpus, entriesAt, entryOf, noon, DATES, TODAY } from './_plans.js';
@@ -325,5 +325,169 @@ describe('copies, successors and opened files', () => {
     const next = successorOf(plan, { month: '2026-11', name: 'Saving again', now: noon(TODAY), reason: 'working', stop: { age: 66 } });
     expect(next.phases.moving).toEqual({ window: { years: 4, at: AT } });
     expect('tasks' in next).toBe(false);
+  });
+});
+
+/**
+ * The stage on the window and the agreement (spec-7100 §2): the truth table, on synthetic plans (Alex and Sam, fictional).
+ * Every cell is deep-frozen and byte-compared after: reading the stage writes nothing, and deriveStage's placing is the
+ * same with or without the agreement.
+ */
+describe('the stage: agreements first, then facts — the truth table, and not one cell writes', () => {
+  const NOW = new Date(2027, 5, 15, 12);
+  const CREATED = '2026-01-10T10:00:00.000Z';
+  const sc = (stress, decision = {}, extra = {}) => ({ id: 'AlexTable1', createdAt: CREATED, stressTool: { settings: { strategyId: 'pots-and-valves', ...stress } }, decisionTool: { settings: decision, history: [], taxYears: {} }, ...extra });
+  // the columns: the window's state on the stop (3 years, the default)
+  const COLUMNS = {
+    before: [sc({ currentAge: 58, currentAgeAsOf: '2027-06-15', retired: false, retireAge: 63 })],                       // stops June 2032
+    inside: [sc({ currentAge: 61, currentAgeAsOf: '2027-06-15', retired: false, retireAge: 63 })],                       // stops June 2029
+    'after, locked or retired': [
+      sc({ currentAge: 62, currentAgeAsOf: '2026-03-10', retired: false, retireAge: 63 }, { locked: true }),             // stopped March 2027, locked
+      sc({ currentAge: 64, currentAgeAsOf: '2026-09-10', retired: true, firstTaxYear: 2026, stoppedWork: '2026-09' }),   // retired, stopped September 2026
+      sc({ currentAge: 64, currentAgeAsOf: '2026-09-10', retired: true, firstTaxYear: 2026, stoppedWork: '2026-09' }, { locked: true })
+    ],
+    'after, unlocked': [sc({ currentAge: 62, currentAgeAsOf: '2026-03-10', retired: false, retireAge: 63 })],            // future timing, never said it stopped
+    none: [
+      sc({ currentAge: 64, currentAgeAsOf: '2026-09-10', retired: true, firstTaxYear: 2026 }),                          // draft-retired, no stop month
+      sc({ currentAge: 64, currentAgeAsOf: '2026-09-10', retired: true, firstTaxYear: 2026 }, { locked: true })         // running, no stop month
+    ]
+  };
+  const agreed = (strategyId) => ({ of: CREATED, moving: { agreed: { at: '2027-05-01T12:00:00.000Z', strategyId, how: 'asHeld', heldPct: 80, entryAt: '2027-05-01T12:00:00.000Z' } } });
+  const M = [{ date: '2027-05-12T19:00:00.000Z', taxYear: '27/28', monthlyNet: 1800 }];
+  const ROWS = {
+    'A, M': { phases: agreed('pots-and-valves'), months: true },
+    'A, no M': { phases: agreed('pots-and-valves'), months: false },
+    'A for another strategy, M': { phases: agreed('buckets-in-order'), months: true },
+    'A for another strategy, no M': { phases: agreed('buckets-in-order'), months: false },
+    'none, M': { phases: null, months: true },
+    'none, no M': { phases: null, months: false }
+  };
+  // [key, by, confirmStop] — "drawing·agreement" is ['drawing', 'agreement', false]
+  const D = ['drawing', 'facts', false], DA = ['drawing', 'agreement', false], MA = ['moving', 'agreement', false], MF = ['moving', 'facts', false], S = ['saving', 'facts', false], MC = ['moving', 'facts', true];
+  const TABLE = {
+    'A, M':                         { before: D, inside: D, 'after, locked or retired': DA, 'after, unlocked': DA, none: DA },
+    'A, no M':                      { before: MA, inside: MA, 'after, locked or retired': DA, 'after, unlocked': DA, none: DA },
+    'A for another strategy, M':    { before: D, inside: D, 'after, locked or retired': D, 'after, unlocked': D, none: D },
+    'A for another strategy, no M': { before: S, inside: MF, 'after, locked or retired': D, 'after, unlocked': MC, none: D },
+    'none, M':                      { before: D, inside: D, 'after, locked or retired': D, 'after, unlocked': D, none: D },
+    'none, no M':                   { before: S, inside: MF, 'after, locked or retired': D, 'after, unlocked': MC, none: D }
+  };
+  const build = (base, row) => {
+    const p = copy(base);
+    if (row.phases) p.phases = copy(row.phases);
+    if (row.months) p.decisionTool.history = copy(M);
+    return deepFreeze(p);
+  };
+  /** The stage, with the plan byte-compared after and deriveStage's placing unchanged by the agreement. */
+  const read = (plan, now = NOW, o = {}) => {
+    const before = JSON.stringify(plan);
+    const st = stageOf(plan, now, o);
+    expect(JSON.stringify(plan)).toBe(before);
+    // the agreement never moves the placing (the window, a choice, does: one clock)
+    const bare = copy(plan);
+    if (bare.phases && bare.phases.moving) delete bare.phases.moving.agreed;
+    expect(deriveStage(plan, now).key).toBe(deriveStage(bare, now).key);
+    return st;
+  };
+  for (const [row, cells] of Object.entries(TABLE)) {
+    for (const [col, want] of Object.entries(cells)) {
+      it(`${row} × ${col} → ${want[0]}${want[1] === 'agreement' ? '·agreement' : ''}${want[2] ? '·confirmStop' : ''}`, () => {
+        for (const base of COLUMNS[col]) {
+          const st = read(build(base, ROWS[row]));
+          expect([st.key, st.by, st.confirmStop], JSON.stringify(base.stressTool.settings) + JSON.stringify(base.decisionTool.settings)).toEqual(want);
+          // the window is said only with a stop month; the agreement only when it counts
+          if (col === 'none') expect(st.window).toBe(null); else expect(st.window.state).toBe(col.startsWith('after') ? 'after' : col);
+          expect(st.agreed != null).toBe(ROWS[row].phases != null && row.startsWith('A,'));
+        }
+      });
+    }
+  }
+  const saver = (extra = {}) => sc({}, {}, { accumulationTool: { settings: { currentAge: 60, retirementAge: 62 } }, ...extra });
+  it('a saver placed by the Accumulation tab\'s ages (no date: state none): Saving; with an agreement Moving by agreement; a month recorded, Drawing', () => {
+    expect(deriveStage(saver(), NOW).fromAccumulation).toBe(true);
+    const plain = read(deepFreeze(saver()));
+    expect([plain.key, plain.window]).toEqual(['saving', null]);
+    expect(read(build(saver(), ROWS['A, no M']))).toMatchObject({ key: 'moving', by: 'agreement', window: null, confirmStop: false });
+    expect(read(build(saver(), ROWS['A, M']))).toMatchObject({ key: 'drawing', by: 'facts' });
+    expect(read(build(saver(), ROWS['none, M']))).toMatchObject({ key: 'drawing', by: 'facts' });
+  });
+  it('the three cells more: closed × A is closed, unknown × A is none, and a plan closing ahead keeps its stage', () => {
+    const closed = build({ ...COLUMNS['after, locked or retired'][0], closedAt: '2027-03', nextPlanId: 'NextPlanAlex' }, ROWS['A, no M']);
+    expect(read(closed)).toMatchObject({ key: 'closed', agreed: null, by: 'facts' });
+    const unknown = build(sc({}), ROWS['A, no M']);
+    expect(deriveStage(unknown, NOW).key).toBe('unknown');
+    expect(read(unknown)).toMatchObject({ key: null, agreed: null });
+    const closing = build({ ...COLUMNS.inside[0], closedAt: '2027-12', nextPlanId: 'NextPlanAlex' }, ROWS['A, no M']);
+    expect(read(closing)).toMatchObject({ key: 'moving', by: 'agreement' });
+    const closingFacts = build({ ...COLUMNS['after, locked or retired'][0], closedAt: '2027-12', nextPlanId: 'NextPlanAlex' }, ROWS['none, no M']);
+    expect(read(closingFacts)).toMatchObject({ key: 'drawing', by: 'facts' });
+  });
+  it('an agreement that does not belong to the plan (a 7.9.0 copy\'s) reads as none, in every column', () => {
+    for (const [col, bases] of Object.entries(COLUMNS)) for (const base of bases) {
+      const foreign = build({ ...base, createdAt: '2027-02-01T10:00:00.000Z' }, ROWS['A, no M']);
+      const none = build(base, ROWS['none, no M']);
+      const a = read(foreign), b = read(none);
+      expect([a.key, a.by, a.confirmStop], col).toEqual([b.key, b.by, b.confirmStop]);
+    }
+  });
+  it('the window follows the person\'s choice: Sam, stopping in 48 months, reads Saving at 3 years and Moving at 5', () => {
+    const sam = sc({ currentAge: 62, currentAgeAsOf: '2027-06-15', retired: false, retireAge: 66 });
+    expect(read(deepFreeze(sam)).key).toBe('saving');
+    const five = deepFreeze({ ...copy(sam), phases: { of: CREATED, moving: { window: { years: 5, at: '2027-06-01T12:00:00.000Z' } } } });
+    const st = read(five);
+    expect(st).toMatchObject({ key: 'moving', by: 'facts', window: { years: 5, from: '2026-06', to: '2031-06', monthsLeft: 48, state: 'inside' } });
+    expect(st.since).toBe('2026-06');
+    // two years on, the clock inside the default window: 24 months left, no agreement
+    expect(read(deepFreeze(sam), new Date(2029, 5, 15, 12))).toMatchObject({ key: 'moving', window: { monthsLeft: 24, state: 'inside' } });
+  });
+  for (const today of DATES) {
+    it(`the corpus at ${today}: only 10 (2027) and 19-saving change word, to Moving; nothing is written`, () => {
+      for (const e of entriesAt(today)) {
+        const before = JSON.stringify(e.plan);
+        const st = stageOf(e.plan, noon(today), { placing: planStage(e.plan, { now: noon(today) }) });
+        expect(JSON.stringify(e.plan)).toBe(before);
+        expect(st.by).toBe('facts');
+        expect(st.agreed).toBe(null);
+        const name = Object.keys(C).find((k) => C[k].id === e.plan.id);
+        const moving = (name === '10-couple-b' && today !== '2026-10-02') || name === '19-back-to-work-saving';
+        expect(st.key === 'moving', name).toBe(moving);
+      }
+    });
+  }
+});
+
+/**
+ * The classic page records the journey when the stage changes on open (index.html refreshLifeStage). Saving and approaching
+ * are one stage there now, so no window — the default, or any the person chooses — and no release or rollback makes it
+ * write a journey entry 7.9.0 did not (spec-7100 §2).
+ */
+describe('the classic journey: no window makes the planner write on open', () => {
+  const old790 = (journey, stage) => { const last = journey[journey.length - 1]; const lastKey = last && last.stage === 'bridge' ? 'running' : last && last.stage; return !(last && lastKey === stage.key); };
+  for (const today of ['2026-10-02', '2027-04-06', '2029-06-15', '2033-01-10']) {
+    it(`every plan in the corpus at ${today}, with no window and with each of 1 to 5 years stored`, () => {
+      const now = noon(today);
+      for (const raw of Object.values(C)) {
+        const decisions = [];
+        for (const years of [null, 1, 2, 3, 4, 5]) {
+          const r = copy(raw);
+          if (years) r.phases = { of: r.createdAt, moving: { window: { years, at: AT } } };
+          const plan = entryOf(r, today).plan;
+          const j = Array.isArray(plan.journey) ? plan.journey : [];
+          const stage = planStage(plan, { now });
+          const writes = journeyAppend(j, stage, now) !== j;
+          decisions.push(writes);
+          // a write now is one 7.9.0 also made (its journey told saving and approaching apart, so it wrote more, never less)
+          if (writes) expect(old790(j, stage), raw.id).toBe(true);
+        }
+        expect(new Set(decisions).size, raw.id).toBe(1);
+      }
+    });
+  }
+  it('saving and approaching are one stage; a real change after either is still recorded', () => {
+    const at = new Date(2027, 0, 1);
+    expect(journeyAppend([{ stage: 'saving' }], { key: 'approaching', label: 'Approaching retirement' }, at)).toEqual([{ stage: 'saving' }]);
+    expect(journeyAppend([{ stage: 'approaching' }], { key: 'saving', label: 'Saving' }, at)).toEqual([{ stage: 'approaching' }]);
+    expect(journeyAppend([{ stage: 'approaching' }], { key: 'committed-saving', label: 'Committed, still saving' }, at, 'lock')).toHaveLength(2);
+    expect(journeyAppend([{ stage: 'bridge' }], { key: 'running', label: 'Running the plan' }, at)).toEqual([{ stage: 'bridge' }]);
   });
 });

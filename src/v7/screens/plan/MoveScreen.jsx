@@ -91,7 +91,7 @@ function Waiting({ V }) {
   const S = W.waiting;
   return (
     <section class="plan-section" data-section="waiting" data-testid={`${T}.waiting`}>
-      <p class="figure" data-testid={`${T}.waiting.line`}>{fill(S.line, { years: V.yearsToStart })}</p>
+      <p class="figure" data-testid={`${T}.waiting.line`}>{V.opens ? fill(S.line, { years: V.yearsToStart, opens: V.opens }) : fill(S.lineSoon, { years: V.yearsToStart })}</p>
       {V.newMoney ? <p class="line" data-testid={`${T}.waiting.newMoney`}>{fill(S.newMoney, { parts: V.newMoney.parts.map((p) => fill(S.newMoneyPart, p)).join(', '), monthly: V.newMoney.monthly })}</p> : <p class="note" data-testid={`${T}.waiting.noNewMoney`}>{S.newMoneyNone} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
       {V.planMix && <p class="line" data-testid={`${T}.waiting.planMix`}>{fill(S.planMix, V.planMix)}</p>}
       {V.held && <p class="line" data-testid={`${T}.waiting.heldMix`}>{fill(S.heldMix, V.held.pcts)}</p>}

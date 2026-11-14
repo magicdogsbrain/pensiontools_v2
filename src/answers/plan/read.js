@@ -21,6 +21,7 @@ import { payInShareOf } from '../../services/SaverPayIn.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { stepsFor, subStepsFor, ALL_STEPS, NEXT_ORDER, NEXT_INFO, DUE_IDS, RETIRED_STAGES, SAVER_STAGES } from './steps.js';
 import { stageOf } from '../../services/LifeStage.js';
+import { windowYearsOf } from '../../services/Phases.js';
 import { optionsFor } from './options.js';
 import { answerAge, bandsOf, netOf } from './about.js';
 import { isBought } from './pots.js';
@@ -1064,7 +1065,8 @@ export function planPage(entries, id, stepId, { today, source = 'account', notNo
   // the move as the plan's mix reads it (only a plan with a document has one) and the three words of the stage (7.3.0)
   let mv = null; try { mv = moveInputs(plan, { now }); } catch { mv = null; }
   const held = holdingsSummary(normaliseHoldings(plan.holdings)).count > 0;
-  let life = null; try { life = stageOf(plan, now, { placing: stage, move: { recorded: held, complete: mv && mv.diff ? mv.diff.complete === true : null } }); } catch { life = null; }
+  // the stage (7.10.0): agreements first, then facts; what is held never decides it
+  let life = null; try { life = stageOf(plan, now, { placing: stage, settings: ss }); } catch { life = null; }
   // a locked retired plan stored the old way, its start later than it should be (PlanMove.startLaterOf): one to-do, and no
   // reading of its months against a later year's figure. Read on a read-only entry too, so its months are never set against
   // a later year's figure; only the to-do is left out there (it cannot be acted on), as the home's year view reads it.
@@ -1075,7 +1077,9 @@ export function planPage(entries, id, stepId, { today, source = 'account', notNo
   const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, held, startLater, startDraft, notNow: Array.isArray(notNow) ? notNow : [] };
   // how far the stop is, for what a saver keeps "For later" (steps.js laterFor): months to the stop month, in years
   const yearsToStop = Number.isFinite(stage.monthsToStart) && stage.timingMode === 'future' ? stage.monthsToStart / 12 : (Number.isFinite(stage.yearsToStart) ? stage.yearsToStart : null);
-  const listed = stepsFor(stage.key, { locked, linked: partners.length > 0, manyPlans: list.length > 1, yearsToStop });
+  // the plan's move window (7.10.0): the one clock for what a locked saver keeps for later
+  const windowYears = windowYearsOf(plan);
+  const listed = stepsFor(stage.key, { locked, linked: partners.length > 0, manyPlans: list.length > 1, yearsToStop, windowYears });
   const ids = listed.map((s) => s.id);
   // `pot`'s address opens the check-in where the stage has one (saving-enough-and-check-in.md 4.1): no address breaks
   const asked = stepId === 'pot' && ids.includes('checkin') ? 'checkin' : stepId;
@@ -1100,7 +1104,7 @@ export function planPage(entries, id, stepId, { today, source = 'account', notNo
   });
   const { answerStale, due, ...next } = nextFor(C, built);
   // the editing sub-steps the page links to (editing-in-v7.md 2): "About you and when" under "Your plan"
-  const subSteps = subStepsFor(stage.key, { locked, linked: partners.length > 0, manyPlans: list.length > 1, yearsToStop });
+  const subSteps = subStepsFor(stage.key, { locked, linked: partners.length > 0, manyPlans: list.length > 1, yearsToStop, windowYears });
   return {
     found: true,
     id: String(plan.id),

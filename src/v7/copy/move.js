@@ -24,7 +24,8 @@ export const MOVE = {
     starts: 'The buying is spread over the next {months} month{s}, to {when}.'
   },
   waiting: {
-    line: 'You stop work in about {years} years. Until about five years before, the move is just where new money goes.',
+    line: 'You stop work in about {years} years. Until your move window opens in {opens}, the move is just where new money goes.',
+    lineSoon: 'You stop work in about {years} years. Until your move window opens, the move is just where new money goes.',
     newMoney: 'New money goes: {parts} — {monthly} a month in all.',
     newMoneyPart: '{amount} a month to {word}',
     newMoneyNone: 'No new money a month is on the record yet: add it line by line under What you hold.',

@@ -145,6 +145,8 @@ test('accepted in the classic planner, seen in the new app; accepted in the new 
     await expect(page.locator('#stressRow-lower-accepted')).toHaveAttribute('data-status', 'agreed', { timeout: 30_000 });
     await expect.poll(async () => (await listOf(uid, ID)).map((e) => e.test && e.test.id), { timeout: 15_000 }).toEqual(['lower']);
   });
+  // the plan as the classic planner keeps it once opened (it stores its own defaults then): every later write is the list only
+  const [opened] = await plansOf(uid);
 
   await test.step('the new app: the agreement before anything is tried; then "a tenth more" accepted', async () => {
     await openAt(page, '#/plan/' + ID + '/lasts?focus=stress');
@@ -163,12 +165,13 @@ test('accepted in the classic planner, seen in the new app; accepted in the new 
     await expect.poll(async () => (await listOf(uid, ID)).map((e) => e.test && e.test.id), { timeout: 15_000 }).toEqual(['lower']);
   });
 
-  await test.step('the new app: "lower returns" withdrawn; the plan as planted', async () => {
+  await test.step('the new app: "lower returns" withdrawn; nothing else written since the first agreement', async () => {
     await openAt(page, '#/plan/' + ID + '/lasts?focus=stress');
     await page.getByTestId(`${S}.agreement.lower.withdraw`).click();
     await expect.poll(async () => (await listOf(uid, ID)).length, { timeout: 15_000 }).toBe(0);
     const [p] = await plansOf(uid);
-    expect(JSON.stringify(rest(p))).toBe(JSON.stringify(rest(planted)));
+    expect(JSON.stringify(rest(p))).toBe(JSON.stringify(rest(opened)));
+    expect(same(p.planDocument, planted.planDocument) && same(p.holdings, planted.holdings), 'no document, what is held as planted').toBe(true);
   });
 });
 
@@ -189,11 +192,12 @@ test('an unlocked plan: a row accepted is one write of the list only; a setting 
   await test.step('the classic planner: a setting changed and saved', async () => {
     await classicScenarios(page, ID);
     await page.locator('.sub-tab[data-stresstab="stresssettings"]').click();
-    // the form filled from the plan first (its length), then one figure changed
+    // the form filled from the plan first (it loads after the press, and would put the box back), then one figure changed
     await expect(page.locator('#ssDuration')).toHaveValue(String(planted.stressTool.settings.duration), { timeout: 30_000 });
-    await page.locator('#ssChargesPct').fill('0.6');
+    const box = page.locator('#ssChargesPct');
+    await expect(async () => { await box.fill('0.6'); await page.waitForTimeout(500); await expect(box).toHaveValue('0.6', { timeout: 100 }); }).toPass({ timeout: 30_000 });
     await page.locator('#ssSaveBtn').click();
-    await expect.poll(async () => { const [x] = await plansOf(uid); return same(x.stressTool, planted.stressTool); }, { timeout: 30_000 }).toBe(false);
+    await expect.poll(async () => { const [x] = await plansOf(uid); return x.stressTool.settings.chargesPct; }, { timeout: 30_000 }).toBe(0.6);
   });
 
   await test.step('the new app: the row\'s agreement says it is out of date; the home shows no new to-do', async () => {

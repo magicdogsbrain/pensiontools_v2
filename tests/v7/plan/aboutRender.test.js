@@ -226,21 +226,19 @@ describe('the locked ladder, a plan shown as saved, the household pair, a plan n
   const noMonths = (p) => ({ ...p, decisionTool: { ...p.decisionTool, history: [] } });
   /** 03 having recorded October 2023 too (a copy of its first month, dated then): its months begin with the stop's tax year. */
   const fromOct2023 = (p) => ({ ...p, decisionTool: { ...p.decisionTool, history: [{ ...p.decisionTool.history[0], date: '2023-10', taxYear: '23/24' }, ...p.decisionTool.history] } });
-  it('03 locked: the figures, "Fixed when you locked the plan on 1 July 2026." once, the unlock sentence once, "See these" on the plan page, no box: the move to where its months begin (7.4.3)', () => {
-    const { root, text, actions } = draw(aboutState(entries, C['20-locked-start-after-stop'].id));
-    // the plan does not say when work stopped, but its months are recorded from July 2026: the move to 2026/27, no question
-    expect([...root.querySelectorAll('input, select, textarea')].map((b) => b.id)).toEqual([]);
-    expect(root.querySelector('[data-testid="plan.about.stopAsk"]')).toBe(null);
-    expect(root.querySelector('[data-testid="plan.about.moveStart"]').textContent).toContain('Your plan is set to start in April 2027, but your recorded months begin in July 2026. Start it from 2026/27: your recorded months are kept and read against it.');
-    // beside the saved first tax year: where it belongs, and the move's button
-    expect(root.querySelector('[data-line="about.saved.startWhen"]').textContent).toBe('Your plan’s first tax year: 2027/28, as saved. Move it to 2026/27, when your recorded months begin. Move the start…');
-    root.querySelector('[data-testid="plan.about.startPointer.open"]').click();
-    expect(actions.at(-1)).toEqual({ type: 'ui/toggle', id: 'moveStartConfirm' });
-    const shown = draw(aboutState(entries, C['20-locked-start-after-stop'].id, { ui: { open: ['moveStartConfirm'] } }));
-    expect(shown.root.querySelector('[data-testid="plan.about.moveConfirm"]').textContent).toContain('The plan’s first tax year becomes 2026/27, the tax year your recorded months begin (July 2026); it was 2027/28. Your recorded months are kept and read against 2026/27.');
-    expect(shown.root.querySelector('[data-testid="plan.about.startPointer"]')).toBe(null);   // the confirm open: said once
-    expect(bannedHits(shown.words, ['all', 'record', 'retired'])).toEqual([]);
-    expect(shown.text).not.toMatch(/\{\w+\}|undefined|NaN/);
+  it('03 locked: the figures, "Fixed when you locked the plan on 1 July 2026." once, the unlock sentence once, "See these" on the plan page, no box; its later start said with how it changes, never moved under the lock (7.10.0)', () => {
+    const { root, text } = draw(aboutState(entries, C['20-locked-start-after-stop'].id));
+    // the plan does not say when work stopped: asked once (the month box, with "Leave it"), as for any locked plan that does not
+    // say it; and no move — the start stored later is said, with the way it changes (unlock, change it here, lock again)
+    expect([...root.querySelectorAll('input, select, textarea')].map((b) => b.id)).toEqual(['plan.about.lockedStopMonth']);
+    expect(root.querySelector('[data-testid="plan.about.stopAsk"]').textContent).toContain('When did you stop work?');
+    expect(root.querySelector('[data-testid="plan.about.stopAsk.leave"]')).not.toBe(null);
+    expect(root.querySelector('[data-testid="plan.about.moveStart"]')).toBe(null);
+    expect(root.querySelector('[data-testid="plan.about.startPointer"]')).toBe(null);
+    expect(root.querySelector('[data-testid="plan.about.startLater"]').textContent).toBe('Your plan is set to start in April 2027. To change its start, unlock it from “Your plan as locked”, change the start here, and lock it again.');
+    expect(root.querySelector('[data-line="about.saved.startWhen"]').textContent).toBe('Your plan’s first tax year: 2027/28, as saved');
+    expect(bannedHits(text, ['all', 'record', 'retired'])).toEqual([]);
+    expect(text).not.toMatch(/\{\w+\}|undefined|NaN|Move the/);
     expect((text.match(/Fixed when you locked the plan on 1 July 2026\./g) || []).length).toBe(1);
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);
     expect(root.querySelector('[data-saved-for="age"]').textContent).toBe('64');
@@ -262,69 +260,29 @@ describe('the locked ladder, a plan shown as saved, the household pair, a plan n
     const unread = draw(aboutState(entries, id, { typed: { stopMonth: 'xyz' } })).root.querySelector('[data-field="lockedStopMonth"] .error').textContent;
     expect(unread).toBe('That is not a month we can read: try 2023-10 or October 2023.');
   });
-  it('03 locked, after "Leave it": still asked while its start is later than this tax year (7.4.0), with "I\'m already drawing" beside it and no "Leave it"', () => {
+  it('03 locked, after "Leave it": not asked again (the month can still be said, folded); the later start said once, with no move offered (7.10.0)', () => {
     const id = C['20-locked-start-after-stop'].id;
     const left = withPlan(id, (p) => noMonths({ ...p, stressTool: { ...p.stressTool, settings: { ...p.stressTool.settings, stopMonthLeft: true } } }));   // no month recorded (7.4.3)
-    const { root, actions } = draw(aboutState(left, id));
-    expect(root.querySelector('[data-testid="plan.about.stopAsk"]')).not.toBe(null);
-    expect(root.querySelector('[data-testid="plan.about.stopAsk.leave"]')).toBe(null);
-    expect(root.querySelector('[data-testid="plan.about.stopLater"]')).toBe(null);
-    const now = root.querySelector('[data-testid="plan.about.moveNow"]');
-    expect(now.textContent).toContain('Your plan is set to start in 2027/28. It can start this tax year, 2026/27, from where it stands today.');
-    const open = root.querySelector('[data-testid="plan.about.moveNow.open"]');
-    expect(open.textContent).toBe('I’m already drawing: start it this tax year…');
-    open.click();
-    expect(actions.at(-1)).toEqual({ type: 'ui/toggle', id: 'moveStartConfirm' });
-    expect([...root.querySelectorAll('input, select, textarea')].map((b) => b.id)).toEqual(['plan.about.lockedStopMonth']);
+    const { root, text } = draw(aboutState(left, id));
+    expect(root.querySelector('[data-testid="plan.about.stopAsk"]')).toBe(null);
+    expect(root.querySelector('[data-testid="plan.about.stopLater"]')).not.toBe(null);
+    expect(root.querySelector('[data-testid="plan.about.moveNow"]')).toBe(null);
+    expect(root.querySelector('[data-testid="plan.about.startLater"]').textContent).toContain('Your plan is set to start in April 2027.');
+    expect(text).not.toMatch(/already drawing|Move the/);
   });
-  it('03 locked, the month said: the move is offered here; its confirm on the page, line by line; "Move the start to 2023/24" sends it; no Undo after (6.55.0)', () => {
+  it('03 locked, the month said: the month is changeable, folded; the later start said with how it changes; nothing offers to move it under the lock (7.10.0)', () => {
     const id = C['20-locked-start-after-stop'].id;
-    // its months recorded from October 2023, the month work stopped (7.4.3: the move goes to the tax year they begin in)
     const said = withPlan(id, (p) => fromOct2023({ ...p, stressTool: { ...p.stressTool, settings: { ...p.stressTool.settings, stoppedWork: '2023-10' } } }));
-    const closed = draw(aboutState(said, id));
-    const offer = closed.root.querySelector('[data-testid="plan.about.moveStart"]');
-    expect(offer.textContent).toContain('and your plan is set to start in 2027/28. It can start from 2023/24, the tax year you stopped');   // 7.3.3
-    expect(offer.textContent).not.toMatch(/before (your|the) plan/);
-    expect(offer.textContent).toContain('Before anything is written, this page says exactly what changes');
-    expect(closed.root.querySelector('[data-testid="plan.about.moveConfirm"]')).toBe(null);
-    const open = closed.root.querySelector('[data-testid="plan.about.moveStart.open"]');
-    expect(open.textContent).toBe('Move the plan’s start…');
-    open.click();
-    expect(closed.actions.at(-1)).toEqual({ type: 'ui/toggle', id: 'moveStartConfirm' });
-    // the confirm, open: what changes, the plan staying locked, the two buttons; no box but the month's (folded)
-    const shown = draw(aboutState(said, id, { ui: { open: ['moveStartConfirm'] } }));
-    const confirm = shown.root.querySelector('[data-testid="plan.about.moveConfirm"]');
-    expect(confirm.querySelector('h3').textContent).toBe('Move the plan’s start to 2023/24?');
-    expect(confirm.textContent).toContain('Here is exactly what changes:');
-    expect(confirm.textContent).toContain('The plan stays locked: nothing is unlocked and no setting is added.');
-    expect(confirm.textContent).toContain('the first step keeps its amount (£34,000 a year) and now runs from 2023/24, at 62; your later steps keep their ages.');
-    expect(confirm.textContent).toContain('Not affected: what you hold, what you spend, and the tax years you set up.');
-    expect(shown.root.querySelector('[data-testid="plan.about.moveStart.open"]')).toBe(null);
-    expect(bannedHits(shown.words, ['all', 'record', 'retired'])).toEqual([]);
-    expect(shown.text).not.toMatch(/\{\w+\}|undefined|NaN/);
-    const yes = confirm.querySelector('[data-testid="plan.about.moveConfirm.yes"]');
-    expect(yes.textContent).toBe('Move the start to 2023/24');
-    yes.click();
-    expect(shown.actions.at(-1)).toEqual({ type: 'plan/moveStart', how: {}, planId: id });
-    confirm.querySelector('[data-testid="plan.about.moveConfirm.no"]').click();
-    expect(shown.actions.at(-1)).toEqual({ type: 'ui/toggle', id: 'moveStartConfirm' });
-    // the press: the confirm closes and the write is under way
-    const pressed = reduce(aboutState(said, id, { ui: { open: ['moveStartConfirm'] } }), { type: A.PLAN_MOVE_START, planId: id });
-    expect(pressed.ui.saving).toEqual({ planId: id, kind: 'moveStart' });
-    expect(pressed.ui.open).not.toContain('moveStartConfirm');
-    const moving = draw(pressed);
-    expect(moving.root.querySelector('[data-testid="plan.about.moving"]').textContent).toContain('Moving the plan’s start and writing the plan document again…');
-    expect(moving.root.querySelector('[data-testid="plan.about.moveConfirm"]')).toBe(null);
-    // written: the toast says so, with no Undo (the planner offers none)
-    const done = reduce(pressed, { type: A.PLAN_SAVED, planId: id, previous: {}, line: { id: 'moved', slots: { year: '2023/24' } }, op: 'moveStart' });
-    expect(done.ui.toast).toEqual({ planId: id, kind: 'done', previous: null, line: { id: 'moved', slots: { year: '2023/24' } }, op: 'moveStart' });
-    const after = draw(done);
-    const toast = after.root.querySelector('[data-testid="plan.about.toast"]');
-    expect(toast.textContent).toContain('The plan’s start is now 2023/24, the tax year you stopped work.');
-    expect(after.root.querySelector('[data-testid="plan.about.undo"]')).toBe(null);
-    // a problem from the write, in plain words
-    const refused = draw(reduce(pressed, { type: A.PLAN_SAVE_FAILED, planId: id, problem: 'noWorker' }));
-    expect(refused.root.querySelector('[data-testid="plan.about.problem"]').textContent).toContain('This browser cannot run the plan’s test in the background');
+    const { root, text, actions } = draw(aboutState(said, id));
+    expect(root.querySelector('[data-testid="plan.about.moveStart"]')).toBe(null);
+    expect(root.querySelector('[data-testid="plan.about.moveConfirm"]')).toBe(null);
+    expect(root.querySelector('[data-testid="plan.about.stopChange"]')).not.toBe(null);
+    expect(root.querySelector('[data-testid="plan.about.startLater"]').textContent).toContain('To change its start, unlock it from “Your plan as locked”');
+    expect(bannedHits(text, ['all', 'record', 'retired'])).toEqual([]);
+    expect(text).not.toMatch(/\{\w+\}|undefined|NaN|before (your|the) plan|Move the/);
+    expect(actions).toEqual([]);
+    // the move's action is gone from the store: an old press of it is refused, nothing under way
+    expect(A.PLAN_MOVE_START).toBe(undefined);
   });
   it('a plan shown as saved: no box, the sentence', () => {
     const id = C['10-couple-b'].id;

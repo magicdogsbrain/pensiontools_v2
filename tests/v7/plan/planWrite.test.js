@@ -14,7 +14,7 @@ import { initialState } from '../../../src/v7/state/initial.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { parse } from '../../../src/v7/router/routes.js';
-import { ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, HOUSEHOLD_WRITES, LOCK_FLAG_WRITES, PLANS_WRITES, MOVE_START_WRITES, CLOSE_WRITES, LATER_DRAFT_WRITES } from '../../../src/answers/plan/schema.js';
+import { ALL_WRITES, ABOUT_WRITES, INCOME_WRITES, SPEND_WRITES, POTS_WRITES, LASTS_WRITES, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, WAY_WRITES, MIX_WRITES, HOUSEHOLD_WRITES, LOCK_FLAG_WRITES, PLANS_WRITES, CLOSE_WRITES, LATER_DRAFT_WRITES } from '../../../src/answers/plan/schema.js';
 import { applyPatch, boxesOf, checkAbout } from '../../../src/answers/plan/about.js';
 import { checkIncome } from '../../../src/answers/plan/income.js';
 import { checkSpend, savedSpend } from '../../../src/answers/plan/spend.js';
@@ -22,7 +22,6 @@ import { checkPots, savedPots } from '../../../src/answers/plan/pots.js';
 import { checkLasts, savedLasts } from '../../../src/answers/plan/lasts.js';
 import { runForDocument } from '../../../src/answers/plan/lastsRun.js';
 import { lockPatch, unlockPatch, documentPatch, LOCKED_BY } from '../../../src/answers/plan/lock.js';
-import { movedPlanOf, movePatch } from '../../../src/answers/plan/moveStart.js';
 import { getDefaultStressSettings } from '../../../src/storage/stressDefaults.js';
 import { upgradeScenario } from '../../../src/firebase/scenarioMigration.js';
 import { isLockedSettings, lockedPlanWriteRefusal } from '../../../src/services/LockedPlanGuard.js';
@@ -684,8 +683,8 @@ describe('property: whatever is typed, every path written is declared, and the p
       p.stop();
     }), { numRuns: 60 });
   });
-  it('the declared list is the steps\' and the stamp, nothing more (the record and the tick-offs each one field since step 10; the plan menu\'s name and main flag since step 11; the whole budget, the Accumulation settings and the pot record list since step 11b; the move of a locked plan\'s start since 6.55.0; the close of a plan since 6.56.0)', () => {
-    expect(ALL_WRITES.length).toBe(new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'planAmendments', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', 'accumulationTool.checkIns', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'decisionTool.history', 'decisionTool.taxYears', 'journey', ...PLANS_WRITES, ...MOVE_START_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, 'phases', 'tasks', 'decisionTool.recordMonths', 'lastModified']).size);
+  it('the declared list is the steps\' and the stamp, nothing more (the record and the tick-offs each one field since step 10; the plan menu\'s name and main flag since step 11; the whole budget, the Accumulation settings and the pot record list since step 11b; the close of a plan since 6.56.0; the move of a locked plan\'s start, 6.55.0 to 7.9.0, gone)', () => {
+    expect(ALL_WRITES.length).toBe(new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, 'holdings', 'transition', 'planAmendments', 'budgetTool.settings', 'accumulationTool.settings', 'accumulationTool.history', 'accumulationTool.checkIns', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'decisionTool.history', 'decisionTool.taxYears', 'journey', ...PLANS_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, 'phases', 'tasks', 'decisionTool.recordMonths', 'lastModified']).size);
     expect(new Set(ALL_WRITES).size).toBe(ALL_WRITES.length);
   });
 });
@@ -826,82 +825,6 @@ describe('the lock (road-to-7.md step 6): the run in the worker, then ONE write 
     r.undo(); await tick(12);
     expect(r.fb.writes).toEqual([]);
     expect(r.store.getState().ui.saveProblem.problem).toBe('locked');
-  });
-});
-
-describe('the move of a locked plan\'s start (6.55.0): the run of the plan as moved, then ONE write of movePatch\'s paths past the guard; the plan stays locked; no Undo', { timeout: 120_000 }, () => {
-  /**
-   * Fixture 03 (locked 1 July 2026, its income to start in 2027/28), saying work stopped in October 2023 and having recorded
-   * that month too (a copy of its first, dated then): from 7.4.3 a plan moves to the tax year its months begin in.
-   */
-  const STOPPED = () => { const r = copy(LOCKED); r.stressTool.settings.stoppedWork = '2023-10'; r.decisionTool.history = [{ ...r.decisionTool.history[0], date: '2023-10', taxYear: '23/24' }, ...r.decisionTool.history]; return r; };
-  /** Fixture 03 with no month said and no month recorded: no move is offered without being asked for (7.4.0). */
-  const UNSAID = () => { const r = copy(LOCKED); r.decisionTool.history = []; return r; };
-  /** A worker that runs what it is handed (the plan as moved has the plan's own id: never a cached run of the plan as stored). */
-  const moveClient = ({ reject = null } = {}) => { const asked = []; return { asked, document: (plan, env) => { asked.push({ plan: copy(plan), env }); return reject ? Promise.reject(reject) : Promise.resolve(runForDocument(plan, env)); } }; };
-  const move = (p, id) => p.store.dispatch({ type: A.PLAN_MOVE_START, planId: id });
-
-  it('an account: the worker runs the plan as moved; one updateDoc of exactly movePatch\'s paths plus lastModified, which the guard lets through; the toast says it is done, with no Undo', async () => {
-    const R = STOPPED(), client = moveClient();
-    const p = page({ raws: [R], planId: R.id, client });
-    move(p, R.id); await tick(20);
-    const plan = planOf(R), at = new Date(STAMP);
-    const mp = movedPlanOf(plan, { now: at });
-    expect(client.asked.length).toBe(1);
-    expect(client.asked[0].plan).toEqual(copy(mp.plan));
-    expect(p.rereads.length, 'read again before the write').toBe(1);
-    expect(p.fb.writes.length).toBe(1);
-    const data = p.fb.writes[0].data;
-    const want = movePatch(plan, { now: at, run: runForDocument(mp.plan, client.asked[0].env), entries: upgradedList([R], noon(TODAY)) });
-    expect(data).toEqual(copy({ ...want.patch, lastModified: STAMP }));
-    for (const k of Object.keys(data)) expect(k === 'lastModified' || MOVE_START_WRITES.includes(k), k).toBe(true);
-    expect(lockedPlanWriteRefusal(plan, data, getDefaultStressSettings())).toBeNull();
-    expect([data['stressTool.settings.firstTaxYear'], data['decisionTool.settings.firstTaxYear']]).toEqual([2023, 2023]);
-    // the plan stays locked: nothing of the lock's own record is written
-    for (const k of ['locked', 'lockedAt', 'lockedBy', 'unlockedAt', 'unlockCount']) expect(data).not.toHaveProperty('decisionTool.settings.' + k);
-    const written = applyPatch(plan, data);
-    expect(isLockedSettings(written.decisionTool.settings)).toBe(true);
-    const ui = p.store.getState().ui;
-    expect(ui.saving).toBe(null);
-    expect(ui.toast).toEqual({ planId: R.id, kind: 'done', previous: null, line: { id: 'moved', slots: { year: '2023/24' } }, op: 'moveStart' });
-    p.undo(); await tick(6);
-    expect(p.fb.writes.length, 'no Undo').toBe(1);
-    p.stop();
-  });
-  it('without an account: the window\'s plan folded with the same patch, every other byte as it was', async () => {
-    const R = STOPPED(), client = moveClient();
-    const p = page({ raws: [R, C['02-pnv-draft']], planId: R.id, session: 'nobody', client });
-    const before = JSON.parse(p.session.raw(GUEST_PLANS_KEY));
-    move(p, R.id); await tick(20);
-    expect(p.fb.writes).toEqual([]);
-    const after = JSON.parse(p.session.raw(GUEST_PLANS_KEY));
-    expect(JSON.stringify(after[1])).toBe(JSON.stringify(before[1]));
-    expect(after[0].stressTool.settings.firstTaxYear).toBe(2023);
-    expect(after[0].decisionTool.settings).toMatchObject({ locked: true, firstTaxYear: 2023 });
-    expect(after[0].planDocument.pots.asOfPlanYear).toBe(3);
-    expect(stripOf(after[0], [...MOVE_START_WRITES, 'lastModified'])).toBe(stripOf(before[0], [...MOVE_START_WRITES, 'lastModified']));
-    p.stop();
-  });
-  it('refused, nothing written: a plan that is not locked; a locked plan not offered the move; no worker; a run that fails', async () => {
-    const draft = page({ raws: [C['02-pnv-draft']], planId: C['02-pnv-draft'].id, client: moveClient() });
-    move(draft, C['02-pnv-draft'].id); await tick(12);
-    expect(draft.fb.writes).toEqual([]);
-    expect(draft.store.getState().ui.saveProblem.problem).toBe('notLocked');
-    const unsaid = page({ raws: [UNSAID()], planId: LOCKED.id, client: moveClient() });   // no month said, none recorded: no move offered
-    move(unsaid, LOCKED.id); await tick(12);
-    expect(unsaid.fb.writes).toEqual([]);
-    expect(unsaid.store.getState().ui.saveProblem.problem).toBe('noMove');
-    const none = page({ raws: [STOPPED()], planId: LOCKED.id, client: null });
-    move(none, LOCKED.id); await tick(12);
-    expect(none.fb.writes).toEqual([]);
-    expect(none.store.getState().ui.saveProblem.problem).toBe('noWorker');
-    const noWorker = page({ raws: [STOPPED()], planId: LOCKED.id, client: moveClient({ reject: Object.assign(new Error('none'), { code: NO_WORKER }) }) });
-    move(noWorker, LOCKED.id); await tick(12);
-    expect(noWorker.store.getState().ui.saveProblem.problem).toBe('noWorker');
-    const broken = page({ raws: [STOPPED()], planId: LOCKED.id, client: moveClient({ reject: new Error('boom') }) });
-    move(broken, LOCKED.id); await tick(12);
-    expect(broken.fb.writes).toEqual([]);
-    expect(broken.store.getState().ui.saveProblem.problem).toBe('failed');
   });
 });
 

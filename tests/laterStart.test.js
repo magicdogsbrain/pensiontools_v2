@@ -27,19 +27,18 @@ import { deriveTiming, taxYearStartOf, taxYearOfMonth, migrateTiming, startYearC
 import {
   laterDraftOf, laterStartEffects, startLaterOf, moveOfferOf, moveBlockedOf, planMoveOf, isSuccessorOrClosed, withSpDate, reAnchorCopy, laterDraftSentence, positionAfterMove, spPlanTaxYearOf, withLockedStart
 } from '../src/services/PlanMove.js';
-import { movedPlanOf, movePatch, laterDraftPatch, withLaterDraft } from '../src/answers/plan/moveStart.js';
+import { laterDraftPatch, withLaterDraft } from '../src/answers/plan/moveStart.js';
 import { runForDocument } from '../src/answers/plan/lastsRun.js';
 import { applyPatch, aboutPatch, lockedStartOf, aboutOf } from '../src/answers/plan/about.js';
 import { lockPatch } from '../src/answers/plan/lock.js';
 import { splitPatches } from '../src/answers/plan/household.js';
 import { homeOf } from '../src/answers/plan/home.js';
-import { MOVE_START_WRITES, ALL_WRITES, LOCK_WRITES, LATER_DRAFT_WRITES } from '../src/answers/plan/schema.js';
+import { ALL_WRITES, LOCK_WRITES, LATER_DRAFT_WRITES } from '../src/answers/plan/schema.js';
 import { lockedPlanWriteRefusal } from '../src/services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from '../src/storage/stressDefaults.js';
 import { setLinkersOverride } from '../src/services/LinkerUniverse.js';
 import { amountAtAge, defaultSpYear, compileSteps } from '../src/services/IncomeSchedule.js';
 import { successorOf } from '../src/services/PlanClose.js';
-import { lockedStartHtml, moveStartQuestion, moveStartDoneWords } from '../src/ui/planStartUi.js';
 import { startSummaryHtml } from '../src/ui/startingPotsWords.js';
 import { ABOUT } from '../src/v7/copy/about.js';
 import { HOME } from '../src/v7/copy/home.js';
@@ -320,168 +319,7 @@ function alex(edit = null, { months = false } = {}) {
   if (edit) edit(raw);
   return up(raw);
 }
-function moved(plan, how = {}) {
-  return at(NOW, () => {
-    const mp = movedPlanOf(plan, { now: NOW, ...how });
-    const run = runForDocument(mp.plan, { today: TODAY, essentials: 0 });
-    return movePatch(plan, { now: NOW, run, ...how });
-  });
-}
 const refusal = (plan, data) => lockedPlanWriteRefusal(plan, data, getDefaultStressSettings());
-
-describe('the move with no month said: "I\'m already drawing: start it this tax year" (fixture 03)', () => {
-  const plan = alex();
-  it('offered beside the question, only when asked for; the to-do asks the month and offers this tax year', () => {
-    expect(moveOfferOf(plan, NOW)).toBeNull();
-    expect(moveOfferOf(plan, NOW, { thisYear: true })).toEqual({ stopMonth: null, from: 2027, to: 2026, years: 1, thisYear: true });
-    expect(startLaterOf(plan, NOW)).toEqual({ kind: 'ask', start: 2027, thisYear: 2026 });
-    // "Leave it" no longer puts the question away while the start is later than this tax year
-    const left = alex((raw) => { raw.stressTool.settings.stopMonthLeft = true; });
-    expect(startLaterOf(left, NOW)).toEqual({ kind: 'ask', start: 2027, thisYear: 2026 });
-    const ls = lockedStartOf(left, { today: TODAY });
-    expect(ls.ask).toBe(true);
-    expect(ls.leave).toBe(false);
-    expect(ls.nowMove).toMatchObject({ yearStop: '2026/27', yearStart: '2027/28', spAsk: false, how: { thisYear: true } });
-    expect(ls.nowMove.confirm[0]).toEqual({ id: 'firstNow', slots: { yearStop: '2026/27', yearStart: '2027/28' } });
-    for (const l of ls.nowMove.confirm) expect(ABOUT.lockedStart.confirm.lines[l.id], l.id).toBeTruthy();
-  });
-  const out = moved(plan, { thisYear: true });
-  const after = applyPatch(plan, out.patch);
-  it('one write of declared paths, which the guard lets through; no month is written; both copies at this tax year', () => {
-    expect(out.ok).toBe(true);
-    expect(out.line).toEqual({ id: 'movedNow', slots: { year: '2026/27' } });
-    for (const k of Object.keys(out.patch)) expect(MOVE_START_WRITES).toContain(k);
-    expect(refusal(plan, out.patch)).toBeNull();
-    expect(after.stressTool.settings.stoppedWork).toBeUndefined();
-    expect(after.stressTool.settings.firstTaxYear).toBe(2026);
-    expect(after.decisionTool.settings.firstTaxYear).toBe(2026);
-    expect(after.decisionTool.settings.locked).toBe(true);
-    expect(after.journey[after.journey.length - 1].label).toBe('The plan’s start moved to 2026/27, this tax year');
-    expect(startLaterOf(after, NOW)).toBeNull();
-    expect(laterStartEffects(after, NOW)).toEqual([]);
-  });
-  it('the guard: refused at another year, with a month made up, or with any other setting beside it', () => {
-    const m = planMoveOf(plan, NOW, { thisYear: true });
-    expect(refusal(plan, { [S]: m.stress, [D]: m.decision })).toBeNull();
-    expect(refusal(plan, { [S]: { ...m.stress, firstTaxYear: 2025 }, [D]: m.decision })).not.toBeNull();
-    expect(refusal(plan, { [S]: { ...m.stress, stoppedWork: '2026-05' }, [D]: m.decision })).not.toBeNull();
-    expect(refusal(plan, { [S]: { ...m.stress, baseSalary: 1 }, [D]: m.decision })).toEqual(['stress.baseSalary']);
-    expect(refusal(plan, { [S]: { ...m.stress, firstTaxYear: 2028 }, [D]: { ...m.decision, firstTaxYear: 2028 } })).not.toBeNull();
-    // and every other change to a locked plan's settings stays refused
-    expect(refusal(plan, { [S + '.duration']: 40 })).not.toBeNull();
-  });
-  it('the guard: a move with no month that is consistent in every key, to a year other than this one, is refused', () => {
-    // built as the move builds it, but to an older year: both copies, every moved key and the lock's position agree
-    const consistent = (p, to) => {
-      const ss = p.stressTool.settings, ds = p.decisionTool.settings, from = 2027;
-      const stress = reAnchorCopy(ss, from - to, to, 'stress');
-      return { [S]: stress, [D]: { ...reAnchorCopy(ds, from - to, to, 'decision'), lockedPosition: positionAfterMove(stress, ds.lockedAt) } };
-    };
-    expect(refusal(plan, consistent(plan, 2026))).toBeNull();
-    // before the tax year the plan was locked in (fixture 03 was locked in 2026/27): never this tax year
-    for (const to of [2020, 2024, 2025]) expect(refusal(plan, consistent(plan, to)), String(to)).not.toBeNull();
-    // a plan locked in an earlier tax year: the lock's own year passes without a clock, and is refused with one
-    const older = alex((raw) => { raw.decisionTool.settings.lockedAt = '2025-07-01T08:15:00.000Z'; });
-    const w = consistent(older, 2025);
-    expect(lockedPlanWriteRefusal(older, w, getDefaultStressSettings())).toBeNull();
-    expect(lockedPlanWriteRefusal(older, w, getDefaultStressSettings(), { now: NOW })).not.toBeNull();
-    expect(lockedPlanWriteRefusal(older, consistent(older, 2026), getDefaultStressSettings(), { now: NOW })).toBeNull();
-    expect(lockedPlanWriteRefusal(plan, consistent(plan, 2026), getDefaultStressSettings(), { now: NOW })).toBeNull();
-  });
-  it('the planner\'s words: the confirm names this tax year and no month; the toast likewise', () => {
-    const m = planMoveOf(plan, NOW, { thisYear: true });
-    const q = moveStartQuestion(m, {});
-    expect(q.html).toContain('this tax year');
-    expect(q.html).not.toContain('you stopped work (');
-    expect(moveStartDoneWords(m)).toContain(', this tax year.');
-    const html = lockedStartHtml({ ask: true, start: 2027, thisYear: 2026, leave: false });
-    expect(html).toContain('moveLockedPlanStart(\'now\')');
-    expect(html).not.toContain('Leave it');
-    expect(lockedStartHtml({ ask: true, start: 2027 })).toContain('Leave it');
-  });
-});
-
-describe('the move with a stop month (fixture 03, stopped October 2023)', () => {
-  it('as before: to the stop\'s tax year, the month kept, the guard lets it through', () => {
-    const plan = alex((raw) => { raw.stressTool.settings.stoppedWork = '2023-10'; });
-    expect(startLaterOf(plan, NOW)).toEqual({ kind: 'move', start: 2027, stopMonth: '2023-10', to: 2023, blocked: false });
-    const out = moved(plan);
-    expect(out.ok).toBe(true);
-    expect(out.line.id).toBe('moved');
-    expect(refusal(plan, out.patch)).toBeNull();
-    const after = applyPatch(plan, out.patch);
-    expect(after.stressTool.settings.stoppedWork).toBe('2023-10');
-    expect(after.stressTool.settings.firstTaxYear).toBe(2023);
-  });
-});
-
-describe('the State Pension given only as a plan year: its date asked, and written with the move (fixture 03)', () => {
-  // the move of 4 years would land the State Pension's year on 12, which the planner reads as "at 67"
-  const spByYear = (raw) => { const s = raw.stressTool.settings; s.stoppedWork = '2023-10'; s.spStartDate = null; s.spWeeklyAmount = 0; s.statePension = 12000; s.statePensionYear = 8; };
-  const plan = alex(spByYear);
-  it('was blocked; now the move asks the date: the to-do is the move, never "only once unlocked"', () => {
-    expect(moveOfferOf(plan, NOW)).toBeNull();
-    expect(moveBlockedOf(plan, NOW)).toEqual({ stopMonth: '2023-10', from: 2027, to: 2023, why: 'statePension', spFix: 'spDate' });
-    expect(startLaterOf(plan, NOW)).toEqual({ kind: 'move', start: 2027, stopMonth: '2023-10', to: 2023, blocked: false, spAsk: true });
-    const ls = lockedStartOf(plan, { today: TODAY });
-    expect(ls.move).toMatchObject({ spAsk: true, how: null, confirm: [] });   // waits for a date
-    expect(ls.blocked).toBeNull();
-    const typed = lockedStartOf(plan, { today: TODAY, typed: { moveSpDate: '14 March 2029' } });
-    expect(typed.move.how).toEqual({ spStartDate: '14 March 2029' });
-    expect(typed.move.confirm.map((l) => l.id)).toContain('spDate');
-    expect(lockedStartOf(plan, { today: TODAY, typed: { moveSpDate: 'soon' } }).spError).toBe('notADate');
-  });
-  it('the box names the tax year the plan pays it from as it stands; the confirm says so when the date is in another', () => {
-    // year 0 2027/28, State Pension plan year 8: paid from 2035/36 as it stands
-    expect(spPlanTaxYearOf(plan)).toBe(2035);
-    const ls = lockedStartOf(plan, { today: TODAY });
-    expect(ls.spPlanYear).toBe('2035/36');
-    expect(fill(ABOUT.lockedStart.spPlanYear, { year: ls.spPlanYear })).toBe('Your plan pays it from 2035/36 as it stands. A date in another tax year moves it there.');
-    // a date in 2028/29: said, in both apps
-    const other = lockedStartOf(plan, { today: TODAY, typed: { moveSpDate: '14 March 2029' } });
-    const line = other.move.confirm.find((l) => l.id === 'spDateMoved');
-    expect(line).toEqual({ id: 'spDateMoved', slots: { dateTaxYear: '2028/29', paidFrom: '2035/36' } });
-    expect(fill(ABOUT.lockedStart.confirm.lines.spDateMoved, line.slots)).toBe('That date is in 2028/29; the plan had paid your State Pension from 2035/36, so it now starts in 2028/29.');
-    const m = planMoveOf(plan, NOW, { spStartDate: '14 March 2029' });
-    expect(moveStartQuestion(m, {}).html).toContain('That date is in 2028/29; the plan had paid your State Pension from 2035/36, so it now starts in 2028/29.');
-    expect(lockedStartHtml({ offer: { stopMonth: '2023-10', from: 2027, to: 2023 }, spAsk: true, spPlanYear: 2035 })).toContain('Your plan pays it from 2035/36 as it stands.');
-    // a date in that same tax year: nothing more to say
-    const same = lockedStartOf(plan, { today: TODAY, typed: { moveSpDate: '1 June 2035' } });
-    expect(same.move.confirm.map((l) => l.id)).toContain('spDate');
-    expect(same.move.confirm.map((l) => l.id)).not.toContain('spDateMoved');
-    expect(moveStartQuestion(planMoveOf(plan, NOW, { spStartDate: '1 June 2035' }), {}).html).not.toContain('That date is in');
-    for (const t of [ABOUT.lockedStart.spPlanYear, ABOUT.lockedStart.confirm.lines.spDateMoved]) expect(bannedHits(fill(t, { year: '2035/36', dateTaxYear: '2028/29', paidFrom: '2035/36' }), SCOPES)).toEqual([]);
-  });
-  it('the move writes the date and the weekly figure in both copies; the State Pension starts in the date\'s tax year', () => {
-    const out = moved(plan, { spStartDate: '14 March 2029' });
-    expect(out.ok).toBe(true);
-    expect(refusal(plan, out.patch)).toBeNull();
-    const after = applyPatch(plan, out.patch);
-    const s = after.stressTool.settings;
-    expect(s.spStartDate).toBe('14 March 2029');
-    expect(s.spWeeklyAmount).toBe(Math.round(12000 / 52 * 100) / 100);
-    expect(s.firstTaxYear).toBe(2023);
-    expect(after.decisionTool.settings.spStartDate).toBe('14 March 2029');
-    expect(startLaterOf(after, NOW)).toBeNull();
-  });
-  it('the guard: a date the planner cannot read, a weekly figure made up, or a date on a plan that had one are refused', () => {
-    const m = planMoveOf(plan, NOW, { spStartDate: '14 March 2029' });
-    expect(refusal(plan, { [S]: m.stress, [D]: m.decision })).toBeNull();
-    expect(refusal(plan, { [S]: { ...m.stress, spStartDate: 'soon' }, [D]: m.decision })).not.toBeNull();
-    expect(refusal(plan, { [S]: { ...m.stress, spWeeklyAmount: 300 }, [D]: m.decision })).not.toBeNull();
-    const dated = alex((raw) => { raw.stressTool.settings.stoppedWork = '2023-10'; });
-    const md = planMoveOf(dated, NOW);
-    expect(refusal(dated, { [S]: { ...md.stress, spStartDate: '1 May 2031' }, [D]: md.decision })).not.toBeNull();
-  });
-  it('withSpDate touches only a State Pension given by plan year', () => {
-    const byDate = { spStartDate: '1 May 2031', spWeeklyAmount: 200, statePension: 9000 };
-    expect(withSpDate(byDate, '1 June 2031')).toBe(byDate);
-    expect(withSpDate({ statePension: 10400 }, '1 June 2031')).toEqual({ statePension: 10400, spStartDate: '1 June 2031', spWeeklyAmount: 200 });
-    // the case it is for: moved 4 years, a plan year 8 would land on 12, read as "at 67": the copy cannot say it, so it is kept
-    expect(reAnchorCopy({ shapeAgeNow: 60, duration: 30, statePension: 10400, statePensionYear: 8 }, 4, 2023).statePensionYear).toBe(8);
-    expect(defaultSpYear({ shapeAgeNow: 56, statePensionYear: 12 })).toBe(11);
-  });
-});
 
 // ---- 4. the caveat ---------------------------------------------------------------------------------------------------------
 
@@ -510,8 +348,7 @@ describe('a plan that draws from a pension before it can usually be taken says s
     expect(h.pensionAccess).toMatchObject({ age: '57', short: { amount: expect.stringMatching(/^£[\d,]+$/), years: expect.stringMatching(/^\d{4}\/\d{2} to \d{4}\/\d{2}$/) } });
     const older = homeOf([{ plan: up(read('02-pnv-draft')) }], read('02-pnv-draft').id, { today: TODAY });
     expect(older.pensionAccess).toBeNull();
-    for (const t of [HOME.pensionAccess, HOME.pensionShort, LASTS.pensionAccess, ABOUT.lockedStart.now, ABOUT.lockedStart.nowOpen, ABOUT.lockedStart.spLabel, ABOUT.lockedStart.spHelp, ABOUT.lockedStart.spError,
-      ABOUT.lockedStart.confirm.lines.firstNow, ABOUT.lockedStart.confirm.lines.spDate, ABOUT.derived.laterStop, ABOUT.derived.laterNow, ABOUT.toast.movedNow]) {   // (7.10.0: the start's to-do and its words are gone)
+    for (const t of [HOME.pensionAccess, HOME.pensionShort, LASTS.pensionAccess, ABOUT.lockedStart.laterLocked, ABOUT.derived.laterStop, ABOUT.derived.laterNow]) {   // (7.10.0: the start's to-do, the move under the lock and their words are gone)
       expect(bannedHits(t.replace(/\{year\}/g, '2026/27').replace(/\{\w+\}/g, '57'), SCOPES), t).toEqual([]);
     }
   });

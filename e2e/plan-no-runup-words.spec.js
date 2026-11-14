@@ -9,11 +9,11 @@
  *
  *  - Fixtures 03 (a locked ladder stored that way), 04 (a running plan) and 07 (an older plan with the ladder's extra cash):
  *    no old word on the new app's home and steps, nor on the planner's pages.
- *  - 03 on the new app: the home's first thing to do is "When did you stop work?"; said, it is "Start it from the tax year
- *    you stopped", whose button opens the move on "About you and when", its confirm naming no months before the plan.
+ *  - 03 on the new app (7.10.0): no start to-do; "About you and when" says the start stored later and how it changes (unlock,
+ *    change it there, lock again), never moving it under the lock, and names no months before the plan.
  *  - Opening any of them in the planner adds nothing to its journey (an old `bridge` entry reads as running).
  *  - 03 in the planner: the next-step banner says the new app's home's first thing due (7.10.0: its month, never the start);
- *    the line under Timing still moves the start.
+ *    the line under Timing says the later start and how it changes, with no button that moves it.
  * Run at desktop-1440 and phone-390 alike.
  *
  * Firebase is never reached: every request outside the site is stopped (`outside: 'block'`).
@@ -97,9 +97,9 @@ for (const name of ['20-locked-start-after-stop', '04-buckets-running', '07-pre-
   });
 }
 
-// retaken in 7.10.0 (spec-7100 §5): the start is no longer a to-do — it is changed on "About you and when", which still offers
-// the move (its confirm flows are unchanged); the home's one thing to do is the month
-test('03 on the new app: no start to-do; "About you and when" offers the move to where its months begin, and with a month said, the move', async ({ page, watch }) => {
+// retaken in 7.10.0 (spec-7100 §5, §7 step 12): the start is no longer a to-do, nor moved under the lock — "About you and when"
+// says the later start and how it changes; the home's one thing to do is the month
+test('03 on the new app: no start to-do; "About you and when" says the later start and how it changes, with or without a month said, never a move', async ({ page, watch }) => {
   test.setTimeout(240_000);
   watch.allow(WORKER_DATA_MISSING);
   const plan = planOf('20-locked-start-after-stop');
@@ -110,32 +110,31 @@ test('03 on the new app: no start to-do; "About you and when" offers the move to
   expect(await page.locator('#app .home-items').first().innerText()).not.toMatch(OLD);
   await page.goto(PROD + V7_PATH + '#/plan/' + plan.id + '/about');
   await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.about');
-  await expect(page.getByTestId('plan.about.moveStart')).toContainText('but your recorded months begin in July 2026. Start it from 2026/27', { timeout: 45_000 });
-  await expect(page.getByTestId('plan.about.stopAsk')).toHaveCount(0);
+  await expect(page.getByTestId('plan.about.startLater')).toHaveText('Your plan is set to start in April 2027. To change its start, unlock it from “Your plan as locked”, change the start here, and lock it again.', { timeout: 45_000 });
+  await expect(page.getByTestId('plan.about.moveStart')).toHaveCount(0);
+  await expect(page.getByTestId('plan.about.stopAsk')).toContainText('When did you stop work?');
 
-  // said (stored as the question would store it): "About you and when" offers the move from the tax year work stopped
+  // said (stored as the question would store it): the same line, the month changeable, and still no move
   await page.evaluate(([k, text]) => sessionStorage.setItem(k, text), [GUEST_KEY, JSON.stringify([planOf('20-locked-start-after-stop', { stoppedWork: '2026-05' })])]);
   await page.goto(PROD + V7_PATH + '#/plan/' + plan.id);
   await page.reload();   // the window's plans are read when the page loads
   await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 45_000 });
   await expect(page.locator('[data-todo^="start."]')).toHaveCount(0);
   await page.goto(PROD + V7_PATH + '#/plan/' + plan.id + '/about');
-  const offer = page.getByTestId('plan.about.moveStart');
-  await expect(offer).toContainText('It can start from 2026/27, the tax year you stopped', { timeout: 45_000 });
-  await page.getByTestId('plan.about.moveStart.open').click();
-  const confirm = page.getByTestId('plan.about.moveConfirm');
-  await expect(confirm).toBeVisible();
-  await expect(confirm).toContainText('Move the plan’s start to 2026/27?');
-  expect(await confirm.innerText()).not.toMatch(OLD);
+  await expect(page.getByTestId('plan.about.startLater')).toContainText('Your plan is set to start in April 2027.', { timeout: 45_000 });
+  await expect(page.getByTestId('plan.about.stopChange')).toBeVisible();
+  await expect(page.getByTestId('plan.about.moveStart')).toHaveCount(0);
+  await expect(page.getByTestId('plan.about.moveConfirm')).toHaveCount(0);
+  expect(await page.locator('#app').innerText()).not.toMatch(OLD);
   // where you are: the months and what was taken, nothing read against a later year; the start is changed on About you and when
   await page.goto(PROD + V7_PATH + '#/plan/' + plan.id + '/where');
   await expect(page.locator('#app')).toContainText('so these months are not read against it yet. You can change the start on About you and when', { timeout: 45_000 });
   expect(await page.locator('#app').innerText()).not.toMatch(/than the plan said|the plan says £/);
 });
 
-// retaken in 7.10.0 (spec-7100 §5): the planner's banner reads the new app's home, so it says the same first thing due — 03's
-// missed month, never the start; the line under Timing still offers the move
-test('03 in the planner: the next-step banner says the home\'s first thing due; the line under Timing still moves the start', async ({ page, watch }) => {
+// retaken in 7.10.0 (spec-7100 §5, §7 step 12): the planner's banner reads the new app's home, so it says the same first thing
+// due — 03's missed month, never the start; the line under Timing says the later start and how it changes, never a move
+test('03 in the planner: the next-step banner says the home\'s first thing due; the line under Timing says how the start changes, with no move', async ({ page, watch }) => {
   test.setTimeout(240_000);
   watch.allow(WORKER_DATA_MISSING);
   const plan = planOf('20-locked-start-after-stop', { stoppedWork: '2026-05' });
@@ -148,8 +147,9 @@ test('03 in the planner: the next-step banner says the home\'s first thing due; 
   await page.evaluate(() => { window.switchToTab('stress'); setTimeout(() => document.querySelector('.sub-tab[data-stresstab="stresssettings"]')?.click(), 400); });
   const line = page.locator('#tmLockedStart');
   await expect(line).toBeVisible({ timeout: 45_000 });
-  await expect(line).toContainText('and your plan is set to start in 2027/28. Start it from 2026/27');
-  await expect(line.getByRole('button', { name: /^Move the plan.s start/ })).toBeVisible();
+  await expect(line).toContainText('Your plan is set to start in April 2027. To change its start, unlock the plan (Settings), change the start under Timing, and lock it again.');
+  await expect(line.getByRole('button', { name: /Move the/ })).toHaveCount(0);
+  await expect(page.locator('#tmStartMove')).toHaveCount(0);
   expect(await line.innerText()).not.toMatch(OLD);
 });
 

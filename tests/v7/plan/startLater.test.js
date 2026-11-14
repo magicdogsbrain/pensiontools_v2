@@ -202,26 +202,20 @@ describe('"Where you are" on 03: the months and what was taken, never read again
   });
 });
 
-describe('the move still works from the to-do', () => {
-  it('on 03 saying when work stopped, "About you and when" offers the move, and its confirm names no months before the plan', () => {
+// retaken in 7.10.0 (spec-7100 §7, step 12): the move of a locked plan's start under its lock is gone in both apps; "About you
+// and when" says the later start and how it changes (unlock, change it there, lock again), and still asks the month once
+describe('"About you and when" says the later start and how it changes; it never moves it under the lock', () => {
+  it('on 03 saying when work stopped: the later start said, no move, no confirm; its words name no months before the plan', () => {
     const e = entryOf(stopped(), TODAY);
     const ls = lockedStartOf(e.plan, { today: TODAY });
-    expect(ls.move).toBeTruthy();
-    expect(ls.move).toMatchObject({ yearStop: '2026/27', yearStart: '2027/28', month: 'May 2026' });
-    const words = [fill(ls.move.stepped ? ABOUT.lockedStart.move : ABOUT.lockedStart.moveLevel, ls.move),
-      ...ls.move.confirm.map((l) => fill(ABOUT.lockedStart.confirm.lines[l.id], l.slots))];
-    for (const t of words) expect(t).not.toMatch(SAID);
-    expect(ls.move.confirm.map((l) => l.id)).not.toContain('bridgedAll');
+    expect(ls).toEqual({ ask: false, leave: false, change: 'May 2026', left: false, later: { start: 'April 2027' } });
+    expect(fill(ABOUT.lockedStart.laterLocked, ls.later)).not.toMatch(SAID);
+    expect('move' in ls || 'nowMove' in ls || 'blocked' in ls).toBe(false);
   });
-  it('on 03 without a month, "About you and when" offers the move to where its months begin (7.4.3), with no question first', () => {
+  it('on 03 without a month: asked once, as any locked plan that does not say it, and the later start said', () => {
     const e = entryOf(C['20-locked-start-after-stop'], TODAY);
     const ls = lockedStartOf(e.plan, { today: TODAY });
-    expect(ls.ask).toBe(false);
-    expect(ls.move).toMatchObject({ yearStop: '2026/27', yearStart: '2027/28', records: 'July 2026', start: 'April 2027', how: {} });
-    const words = [fill(ls.move.stepped ? ABOUT.lockedStart.moveRecords : ABOUT.lockedStart.moveRecordsLevel, ls.move),
-      ...ls.move.confirm.map((l) => fill(ABOUT.lockedStart.confirm.lines[l.id], l.slots))];
-    for (const t of words) expect(t).not.toMatch(SAID);
-    expect(ls.move.confirm[0]).toEqual({ id: 'firstRecords', slots: { yearStop: '2026/27', records: 'July 2026', yearStart: '2027/28' } });
+    expect(ls).toEqual({ ask: true, leave: true, change: null, left: false, later: { start: 'April 2027' } });
   });
   it('with no month recorded either, "About you and when" asks it, and its words name no months before the plan', () => {
     const e = entryOf(noMonths(), TODAY);

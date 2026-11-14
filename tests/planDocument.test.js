@@ -188,12 +188,17 @@ describe('planDocumentHtml', () => {
     // do — move the start — and never names months before the plan, nor reads this year against a later year's figures
     expect(h).toContain('Your plan is set to start in 2028/29.');
     expect(h).not.toMatch(/before the plan|set aside|Income step/);
-    // the move is pointed to only on a plan stored the old way whose start can be moved (PlanMove.startLaterOf, passed in);
+    // retaken in 7.10.0 (spec-7100 §7, step 12): a plan stored the old way (PlanMove.startLaterOf, passed in) is told how its
+    // start changes — unlock, change it under Timing, lock again — never moved under the lock, and never "the banner does it";
     // a year 0 ahead for its own reasons (the plan that carries a closed one on) is told its first year, with no instruction
     expect(h).not.toContain('the banner at the top of the page');
-    expect(whereAmIHtml({ ...w, startLater: { kind: 'move', start: 2028, blocked: false } })).toContain('Start it from the tax year you stopped work');
-    expect(whereAmIHtml({ ...w, startLater: { kind: 'move', start: 2028, blocked: true } })).not.toContain('Start it from the tax year');
-    expect(whereAmIHtml({ ...w, startLater: { kind: 'ask', start: 2028 } })).toContain('Start it from the tax year you stopped work');
+    expect(h).not.toContain('To change its start');
+    const how = 'To change its start, unlock the plan, change the start under Timing and lock it again.';
+    for (const startLater of [{ kind: 'move', start: 2028, blocked: false }, { kind: 'move', start: 2028, blocked: true }, { kind: 'ask', start: 2028 }]) {
+      const t = whereAmIHtml({ ...w, startLater });
+      expect(t).toContain(how);
+      expect(t).not.toMatch(/Start it from|the banner/);
+    }
     expect(whereAmIHtml(null)).toBe('');
   });
 });

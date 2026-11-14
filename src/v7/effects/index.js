@@ -17,6 +17,7 @@ import { startHouseholdRunner } from './household.js';
 import { startMoveRunner } from './move.js';
 import { startKeepTestRunner } from './keepTest.js';
 import { startStressPanelRunner } from './stressPanel.js';
+import { startReviewRunner } from './review.js';
 import { startStressStripRunner } from './stressStrip.js';
 import { startSaverRunner } from './saver.js';
 import { createWorkerClient } from './workerClient.js';
@@ -84,6 +85,8 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   stops.push(startKeepTestRunner({ store, client }));
   // "Try the bad years" (7.9.0): the rows on a saved plan, in the worker's own lane, one call each, only when asked
   stops.push(startStressPanelRunner({ store, client }));
+  // "Your review" (7.10.0): the review's run, on a press, in the same lane
+  stops.push(startReviewRunner({ store, client }));
   // … and under C's and D's answers, on a press of a final answer, in its own lane
   stops.push(startStressStripRunner({ store, client }));
 

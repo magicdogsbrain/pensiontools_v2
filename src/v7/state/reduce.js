@@ -12,7 +12,7 @@
  */
 import { shownOf } from '../../answers/shared/shown.js';
 import { A, OPENABLE } from './actions.js';
-import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, cleanPending, cleanUsed, cleanFromPlan, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept, emptyHousehold, HH_PICKS, cleanHouseholdTry, cleanNeed, emptyMove, cleanMove, cleanIndex, emptySaver, cleanSaver, cleanPlanMix, cleanFlexibleAccess, emptyCheckIn, cleanCheckIn, emptyKeepTest, cleanKeepTest, emptyStressPanel, cleanStressPanel, emptyStressStrip, cleanStressStrip,
+import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, cleanPending, cleanUsed, cleanFromPlan, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept, emptyHousehold, HH_PICKS, cleanHouseholdTry, cleanNeed, emptyMove, cleanMove, cleanIndex, emptySaver, cleanSaver, cleanPlanMix, cleanFlexibleAccess, emptyCheckIn, cleanCheckIn, emptyKeepTest, cleanKeepTest, emptyStressPanel, cleanStressPanel, emptyStressStrip, cleanStressStrip, emptyReview, cleanReview, cleanReviewPots, REVIEW_ROWS,
   emptyShellUi, emptyAccount, emptyGuest, emptyNews, ACCOUNT_MODES, ACCOUNT_ASKS, PLAN_ACTION_KINDS, PLAN_ACTION_OPS } from './initial.js';
 import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber, checkPlanName, fromPlanStale, severalPlan } from './select.js';
 import { hasShape, SHAPE_UNIT, THENS, thenPath, fallsPath, stepsPath, stepBox, stepFields, shapePaths, isShapePath, stepsOf, newStep, cleanSteps,
@@ -695,9 +695,9 @@ function reduceAction(state, action) {
       return withDraft(viewed, 'b', b);
     }
     case A.PLANS_CLEAR:
-      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null && (state.lasts || emptyLasts()).key === null && (state.ways || emptyWays()).key === null && (state.mix || emptyMix()).key === null && (state.household || emptyHousehold()).key === null && (state.move || emptyMove()).key === null && (state.saver || emptySaver()).key === null && (state.checkIn || emptyCheckIn()).planId === null && (state.keepTest || emptyKeepTest()).key === null && (state.stressPanel || emptyStressPanel()).key === null) return state;
+      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null && (state.lasts || emptyLasts()).key === null && (state.ways || emptyWays()).key === null && (state.mix || emptyMix()).key === null && (state.household || emptyHousehold()).key === null && (state.move || emptyMove()).key === null && (state.saver || emptySaver()).key === null && (state.checkIn || emptyCheckIn()).planId === null && (state.keepTest || emptyKeepTest()).key === null && (state.stressPanel || emptyStressPanel()).key === null && (state.review || emptyReview()).key === null) return state;
       // the plans leave the page's memory, and the one test's result, the nine ways', the mix's and the held run with them (editing-in-v7.md 10.1; way-and-mix.md 2.2, 3.2); the index the watch read is the page's, and stays
-      return withPlanDraft({ ...state, plans: null, lasts: emptyLasts(), ways: emptyWays(), mix: emptyMix(), household: emptyHousehold(), move: { ...emptyMove(), index: (state.move || emptyMove()).index || null }, saver: emptySaver(), checkIn: emptyCheckIn(), keepTest: emptyKeepTest(), stressPanel: emptyStressPanel(), session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
+      return withPlanDraft({ ...state, plans: null, lasts: emptyLasts(), ways: emptyWays(), mix: emptyMix(), household: emptyHousehold(), move: { ...emptyMove(), index: (state.move || emptyMove()).index || null }, saver: emptySaver(), checkIn: emptyCheckIn(), keepTest: emptyKeepTest(), stressPanel: emptyStressPanel(), review: emptyReview(), session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
     case A.PLAN_CHANGE: {
       const { planId = null, place, back, month = null } = action;
       if (typeof place !== 'string' || typeof back !== 'string') return refuse('plan/change: needs a place and a way back');
@@ -1316,6 +1316,31 @@ function reduceAction(state, action) {
       if (action.reason === 'stopped') return { ...state, stressPanel: { ...Sp, status: 'idle', reason: null } };
       return { ...state, stressPanel: { ...Sp, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null } };
     }
+    // ---- "Your review" (7.10.0): the run of a review, on a press ----
+    case A.REVIEW_RUN: {
+      if (typeof action.key !== 'string' || !action.key) return refuse('review/run: needs a key');
+      if (typeof action.planId !== 'string' || !action.planId) return refuse('review/run: needs a plan id');
+      const order = Array.isArray(action.rows) ? action.rows.filter((id) => REVIEW_ROWS.includes(id)) : [];
+      if (!order.length) return refuse('review/run: needs the rows');
+      const pots = cleanReviewPots(action.pots);
+      if (order.includes('today') && !pots) return refuse('review/run: "today" needs the pots');
+      const Rv = state.review || emptyReview();
+      if (Rv.key === action.key && Rv.status === 'working') return state;
+      return { ...state, review: { key: action.key, planId: action.planId, status: 'working', order, rows: {}, pots, reason: null } };
+    }
+    case A.REVIEW_DONE: {
+      const Rv = state.review || emptyReview();
+      if (action.key !== Rv.key || Rv.status !== 'working' || !Rv.order.includes(action.row)) return state;   // stale
+      if (!action.result || typeof action.result !== 'object') return refuse('review/done: needs a result');
+      const rows = { ...Rv.rows, [action.row]: action.result };
+      return { ...state, review: { ...Rv, rows, status: Rv.order.every((id) => rows[id]) ? 'done' : 'working' } };
+    }
+    case A.REVIEW_FAILED: {
+      const Rv = state.review || emptyReview();
+      if (action.key !== Rv.key || Rv.status !== 'working') return state;   // stale
+      if (action.reason === 'stopped') return { ...state, review: { ...Rv, status: 'idle', reason: null } };
+      return { ...state, review: { ...Rv, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null } };
+    }
     case A.MOVE_RUN: {
       if (typeof action.key !== 'string' || !action.key) return refuse('move/run: needs a key');
       const Mv = state.move || emptyMove();
@@ -1586,6 +1611,7 @@ function reduceAction(state, action) {
         keepTest: cleanKeepTest(copy.keepTest),
         // … and (7.9.0) the rows of "Try the bad years", cleaned; none: empty
         stressPanel: cleanStressPanel(copy.stressPanel),
+        review: cleanReview(copy.review),
         stressStrip: cleanStressStrip(copy.stressStrip),
         ways: copy.ways && typeof copy.ways === 'object' && typeof copy.ways.key === 'string' && ['working', 'done', 'failed'].includes(copy.ways.status)
           ? { key: copy.ways.key, status: copy.ways.status, reason: copy.ways.reason === 'noWorker' ? 'noWorker' : null, result: copy.ways.result && typeof copy.ways.result === 'object' && Array.isArray(copy.ways.result.ways) ? copy.ways.result : null,

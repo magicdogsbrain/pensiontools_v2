@@ -18,6 +18,7 @@
  *     moveHeld(plan, env, onProgress)          → Promise<Result>       the one run on the mix as held (lane 'moveHeld'; road-to-7.md step 10): env = { today }
  *     keepRetest(plan, env, onProgress)        → Promise<Result>       "Test what you keep against your plan" (lane 'keepRetest', 7.7.0): env = { today }
  *     stressRow(plan, env, onProgress)         → Promise<Result>       one row of "Try the bad years" (lane 'stressRow', 7.9.0): env = { today, row }
+ *                                              (7.10.0, the review: + whole, settings — answers/plan/stressPanelRun.js)
  *     stressStrip(q, inputs, env, at, onProgress) → Promise<Strip>     "Try the bad years" under C's or D's answer (lane 'stressStrip', 7.9.0):
  *                                              env = { today, futures, seed }, at = { perMonth }
  *     saver(inputs, env, onProgress)           → Promise<AnswerB>      question B on a saved plan's figures (lane 'saver'; saving-enough-and-check-in.md 4.4)

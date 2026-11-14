@@ -344,6 +344,10 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('p1', 'p2')).map(([key, planId]) => ({ type: A.STRESS_RUN, key, planId, rows: ['asPlanned', 'fall'] })),
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('asPlanned', 'fall', 'lower')).map(([key, row]) => ({ type: A.STRESS_ROW_DONE, key, row, result: { id: row, key, a: { share: 0.9 } } })),
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom(null, 'noWorker', 'stopped')).map(([key, reason]) => ({ type: A.STRESS_FAILED, key, reason })),
+  // "Your review" (7.10.0): a press, a row's result, a failure or a stop
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('p1', 'p2'), fc.constantFrom(['asPlanned', 'whole'], ['today'])).map(([key, planId, rows]) => ({ type: A.REVIEW_RUN, key, planId, rows, pots: rows.includes('today') ? { pension: 500000, isa: 0, other: 0 } : null })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('asPlanned', 'whole', 'today')).map(([key, row]) => ({ type: A.REVIEW_DONE, key, row, result: { id: row, key, a: { share: 0.9 } } })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom(null, 'noWorker', 'stopped')).map(([key, reason]) => ({ type: A.REVIEW_FAILED, key, reason })),
   fc.tuple(fc.constantFrom('c', 'd'), fc.constantFrom('K1', 'K2')).map(([q, inputsKey]) => ({ type: A.STRIP_RUN, q, inputsKey })),
   fc.tuple(fc.constantFrom('c', 'd'), fc.constantFrom('K1', 'K2')).map(([q, inputsKey]) => ({ type: A.STRIP_DONE, q, inputsKey, result: { status: 'ok', q, rows: [] } })),
   fc.tuple(fc.constantFrom('c', 'd'), fc.constantFrom('K1', 'K2'), fc.constantFrom(null, 'noWorker', 'stopped')).map(([q, inputsKey, reason]) => ({ type: A.STRIP_FAILED, q, inputsKey, reason })),

@@ -881,7 +881,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     const { place, plan, state } = got;
     const at = now();
     const pd = state.draft.plan && state.draft.plan.id === String(planId) ? state.draft.plan : null;
-    const p = reviewSavePatch(plan, { today: state.env.today, typed: pd ? pd.values : {}, at: at.toISOString(), reading: null });
+    // the run held for this page is kept with the review only when it was run on what is being saved (its key)
+    const p = reviewSavePatch(plan, { today: state.env.today, typed: pd ? pd.values : {}, at: at.toISOString(), held: state.review || null });
     if (!p.ok) { fail(planId, ['closed', 'example', 'problems'].includes(p.problem) ? p.problem : p.problem === 'notNow' ? 'notHere' : 'problems'); return; }
     const data = declaredOnly({ phases: p.patch.phases, lastModified: at.toISOString() });
     if (lockedRefusal(plan, data) || phaseWriteRefusal(plan, data, { now: at })) { fail(planId, 'locked'); return; }

@@ -93,16 +93,20 @@ const OUTSIDE = Object.freeze({ ISA: 'isaBalance', GIA: 'taxableStart' });
  * when it is (the balance itself grows as the plan says it does).
  * @param {object} settings   the plan's effective Stress settings (PlanReading.effectiveStressSettings)
  * @param {object} rec        the holdings record
- * @param {{ withExpected?: boolean, shock?: null|'half'|'nothing', now: Date }} o
+ * `whole` (7.10.0, the Moving review's "Test with what I hold"): the pension AS HELD, whole — the part not kept is split by
+ * what the record's pension lines hold (each in its parts; a line nothing places is left out), not by the settings' own pots,
+ * and a record that keeps nothing is read too (with no keeps it gives the four pots move.js heldMixSettings gives). With the
+ * default (false) every figure is as before.
+ * @param {{ withExpected?: boolean, shock?: null|'half'|'nothing', now: Date, whole?: boolean }} o
  */
-export function heldSettingsOf(settings, rec, { withExpected = true, shock = null, now } = {}) {
+export function heldSettingsOf(settings, rec, { withExpected = true, shock = null, now, whole = false } = {}) {
   const s = copy(settings || {});
   const r = normaliseHoldings(rec);
   const pension = ledgerView(r.lines).filter((h) => h.wrapper === 'SIPP' && h.value > 0);
   const H = pension.reduce((t, h) => t + h.value, 0);
   const T = Object.values(POTS).reduce((t, k) => t + num(s[k]), 0);
   const kept = keptAssetsOf(r).filter((a) => a.wrapper === 'SIPP' && a.value > 0);
-  if (H > 0 && T > 0 && kept.length) {
+  if (H > 0 && T > 0 && (kept.length || whole)) {
     const out = { shares: 0, bonds: 0, cash: 0, diversifiers: 0 };
     let keptShare = 0;
     for (const a of kept) {
@@ -112,8 +116,19 @@ export function heldSettingsOf(settings, rec, { withExpected = true, shock = nul
       if (a.counted) for (const b of Object.keys(out)) if (a.split[b] > 0) out[b] += T * w * a.split[b] * shockFactor(a, shock);
     }
     const rest = Math.max(0, 1 - keptShare);
-    for (const [b, k] of Object.entries(POTS)) out[b] += rest * num(s[k]);
-    for (const [b, k] of Object.entries(POTS)) s[k] = Math.round(out[b]);
+    // the part not kept: whole, by what the record's pension lines hold (each in its parts); else by the settings' own pots
+    const free = whole ? pension.filter((h) => !h.keep && h.split) : [];
+    const byBucket = { shares: 0, bonds: 0, cash: 0, diversifiers: 0 };
+    for (const h of free) for (const b of Object.keys(byBucket)) byBucket[b] += h.value * (h.split[b] || 0);
+    const heldFree = Object.values(byBucket).reduce((t, v) => t + v, 0);
+    if (whole && heldFree > 0) for (const b of Object.keys(out)) out[b] += rest * T * (byBucket[b] / heldFree);
+    else for (const [b, k] of Object.entries(POTS)) out[b] += rest * num(s[k]);
+    if (whole) {
+      // whole: the pots add up to what they held, the cash taking the pennies (as move.js heldMixSettings rounds them)
+      const sum = Object.values(out).reduce((t, v) => t + v, 0);
+      for (const b of ['shares', 'bonds', 'diversifiers']) s[POTS[b]] = Math.round(out[b]);
+      s[POTS.cash] = Math.max(0, Math.round(sum) - s[POTS.shares] - s[POTS.bonds] - s[POTS.diversifiers]);
+    } else for (const [b, k] of Object.entries(POTS)) s[k] = Math.round(out[b]);
     const total = Object.values(POTS).reduce((t, k) => t + num(s[k]), 0);
     const f = T > 0 ? total / T : 1;
     // a pinned pension total (a bought strategy's own dial) and a saver's projected pension move with the pots

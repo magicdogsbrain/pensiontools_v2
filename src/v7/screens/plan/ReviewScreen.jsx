@@ -172,6 +172,36 @@ function LivingReview({ V, dispatch }) {
   );
 }
 
+/** The run: its button on a press, its progress, and what it worked out (held for this page, for these inputs only). */
+function Run({ V, dispatch }) {
+  const run = V.run;
+  if (!run || !V.editable) return null;
+  const res = V.result || { status: 'idle' };
+  const working = res.status === 'working';
+  const label = run.label === 'today' ? W.living.run.button : W.moving.run[run.label];
+  const busy = run.label === 'today' ? W.living.run.working : W.moving.run.working;
+  const R = run.label === 'today' ? W.living.result : W.moving.result;
+  const slots = res.slots ? { ...res.slots, on: res.on ? W.living.result.on[res.on] : '' } : {};
+  return (
+    <section class="plan-section review-run" data-section="run" data-testid={`${T}.run`} data-status={res.status}>
+      <div class="actions-row">
+        <Button testid={`${T}.run.button`} kind={res.status === 'done' ? 'quiet' : 'plain'} disabled={working} aria-busy={working ? 'true' : undefined}
+          onClick={() => dispatch({ type: 'review/run', key: run.key, planId: V.id, rows: run.rows, pots: run.pots })} {...keepFocus}>{working ? busy : label}</Button>
+      </div>
+      {working && <p class="working-note" role="status" data-testid={`${T}.run.working`}>{busy}</p>}
+      {res.status === 'failed' && <p class="notice" role="alert" data-testid={`${T}.run.problem`}>{res.reason === 'noWorker' ? W.run.noWorker : W.run.failed}</p>}
+      {res.status === 'done' && res.id === 'na' && <p class="note" data-testid={`${T}.run.na`}>{W.run.na}</p>}
+      {res.status === 'done' && res.id !== 'na' && (
+        <div class="review-result" data-testid={`${T}.run.result`} data-result={res.id}>
+          <p data-testid={`${T}.run.line`}>{fill(R[res.id], slots)}</p>
+          {res.left && <p class="note" data-testid={`${T}.run.left`}>{fill(res.id === 'held' || res.id === 'heldFixed' ? (slots.refLeft ? W.moving.result.heldLeft : W.moving.result.left) : R.left, slots)}</p>}
+          <p class="note">{W.run.kept}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 const toastText = (toast) => {
   if (toast.kind === 'undone') return W.toast.undone;
   if (toast.kind === 'unchanged') return W.toast.unchanged;
@@ -238,6 +268,8 @@ export function ReviewScreen(state, dispatch) {
         <Top V={V} />
         {V.moving && <MoveReview V={V} />}
         {V.living && <LivingReview V={V} dispatch={dispatch} />}
+        {V.documentReading && <p class="note" data-testid={`${T}.living.ladderKept`}>{W.living.ladder}</p>}
+        <Run V={V} dispatch={dispatch} />
         {V.save && (
           <form class="ask review-save" noValidate onSubmit={(e) => { e.preventDefault(); dispatch({ type: 'plan/reviewSave', planId }); }} data-region="plan-review" aria-busy={saving ? 'true' : undefined}>
             {problem && <p class="notice" role="alert" data-testid={`${T}.problem`} data-problem={V.problem}>{problem}</p>}

@@ -209,6 +209,7 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     keepTest: emptyKeepTest(),                       // "Test what you keep against your plan" (7.7.0): the re-test for ONE plan, page memory only
     stressPanel: emptyStressPanel(),                 // "Try the bad years" (7.9.0): the rows tried on ONE plan, page memory only
     stressStrip: emptyStressStrip(),                 // … and under C's or D's answer: the rows for ONE final answer, page memory only
+    review:  emptyReview(),                          // "Your review" (7.10.0): the run of ONE plan's review, made on a press, page memory only
     ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null, ...emptyShellUi() }
   };
 }
@@ -261,6 +262,25 @@ export function cleanKeepTest(x) {
  * id (stressPanelRun.runStressRow's, each carrying its own key); `reason` 'noWorker' when no worker could start.
  */
 export const emptyStressPanel = () => ({ key: null, planId: null, status: 'idle', order: [], rows: {}, reason: null });
+
+/**
+ * Nothing of "Your review" run (7.10.0; answers/plan/review.js): `key` is review.reviewRunKeyOf of the plan and the inputs the
+ * rows were run on, `planId` its id; `status` as the panel's; `order` the rows ('asPlanned', 'whole', 'today'); `rows` each
+ * result by id; `pots` the pots entered that 'today' runs from (or null); `reason` 'noWorker' when no worker could start.
+ */
+export const REVIEW_ROWS = Object.freeze(['asPlanned', 'whole', 'today']);
+export const emptyReview = () => ({ key: null, planId: null, status: 'idle', order: [], rows: {}, pots: null, reason: null });
+/** The pots a 'today' run is worked out from: three amounts of £0 or more, else null. */
+export const cleanReviewPots = (p) => (p && typeof p === 'object' && ['pension', 'isa', 'other'].every((k) => Number.isFinite(p[k]) && p[k] >= 0) ? { pension: p.pension, isa: p.isa, other: p.other } : null);
+/** The review's slice, cleaned (state/replace may draw one); a state without it is empty. */
+export function cleanReview(x) {
+  if (!x || typeof x !== 'object' || typeof x.key !== 'string' || !x.key) return emptyReview();
+  const status = ['idle', 'working', 'done', 'failed'].includes(x.status) ? x.status : 'idle';
+  const order = Array.isArray(x.order) ? x.order.filter((id) => REVIEW_ROWS.includes(id)) : [];
+  const rows = {};
+  if (x.rows && typeof x.rows === 'object' && !Array.isArray(x.rows)) for (const [id, r] of Object.entries(x.rows)) if (REVIEW_ROWS.includes(id) && r && typeof r === 'object') rows[id] = r;
+  return { key: x.key, planId: typeof x.planId === 'string' && x.planId ? x.planId : null, status, order, rows, pots: cleanReviewPots(x.pots), reason: status === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null };
+}
 const STRESS_STATUS = ['idle', 'working', 'done', 'failed'];
 /** The panel's slice, cleaned (state/replace may draw one); a state without it is empty. */
 export function cleanStressPanel(x) {

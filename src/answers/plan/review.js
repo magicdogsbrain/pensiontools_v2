@@ -20,6 +20,23 @@
  *                                                           window or the saving level, each ONE write with a history line
  *   onTrackOf(drift, { start, monthsLeft, windowMonths })   whether the move is on course to finish by the stop
  *
+ * The runs (only on a press; the review effect runs them in the worker, stressPanelRun.runStressRow):
+ *   runInputsOf(plan, { today, typed, phase })              what a run is worked out on: the pots and what was taken (Living
+ *                                                           on it), the rule, the plan document's version
+ *   reviewRunKeyOf(plan, today, inputs)                     the key a run's results are held under, and its reading kept with:
+ *                                                           the plan as stressPanel.stressKeyOf reads it, and the inputs
+ *   runRowsOf(R)                                            the rows a press runs: Moving 'asPlanned' then 'whole' (what is
+ *                                                           held, whole) — 'asPlanned' alone with no pension record to read;
+ *                                                           Living on it 'today' (the plan from today on the pots entered); a
+ *                                                           locked ladder none (its document's own figure is its reading)
+ *   reviewSettingsOf(plan, { pots, today })                 the run-only settings of 'today': the plan's effective settings with
+ *                                                           the pots entered in the plan's own proportions, run from today
+ *                                                           (potsAsOf POTS_TODAY) — never saved
+ *   readingOf(result, key)                                  the reading a review keeps: { source: 'run', key, weighted, sumW, n,
+ *                                                           fixedAge: { lasts, n, age }, typicalLeft }
+ *   documentReadingOf(plan)                                 a locked ladder's reading, from its document ({ source: 'document' }):
+ *                                                           kept, never counted for off course
+ *
  * The entry (Phases.js, `review.log`):
  *   { at, phase: 'moving'|'drawing', documentAt|null, pots: { pension, isa, other }|null, entered: { pots, took },
  *     took|null, choice: 'less'|'keep'|'more'|null, reading|null, guardrail: 'within'|'above'|'below'|null,
@@ -35,13 +52,16 @@ import { effectiveStressSettings, whereAmIInputs, moveInputs, historyAscending }
 import { whereAmI, guardrailOf, bandMeasure, GUARDRAIL_STRATEGIES } from '../../services/PlanDocument.js';
 import { driftOf } from '../../services/TransitionPlanner.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
-import { phasesOf, phasesPatch, reviewLogOf, reviewRuleOf, reviewEveryOf, ruleOrNull, windowYearsOrNull, windowOf, windowChosenOf, moveWindowOf, monthsBetween, OFF_COURSE, WINDOW, SAVING_LEVELS, REVIEW_EVERY } from '../../services/Phases.js';
+import { strategyIdOf, phasesOf, phasesPatch, reviewLogOf, reviewRuleOf, reviewEveryOf, ruleOrNull, windowYearsOrNull, windowOf, windowChosenOf, moveWindowOf, monthsBetween, OFF_COURSE, WINDOW, SAVING_LEVELS, REVIEW_EVERY } from '../../services/Phases.js';
 import { startLaterOf } from '../../services/PlanMove.js';
 import { taxYearStartOf, taxYearLabel } from '../../services/PlanTiming.js';
 import { documentAtOf } from '../../services/PlanAmendments.js';
 import { isExamplePlan } from '../../services/GuestPlans.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { normaliseHoldings, holdingsSummary } from '../../services/HoldingsRecord.js';
+import { POTS_TODAY } from '../../services/PlanFromToday.js';
+import { hashOf, canonical, stressKeyOf, lockedLadderOf } from './stressPanel.js';
+import { chanceWords, twentiethsOfFutures } from '../shared/format.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -223,6 +243,117 @@ export function onTrackOf(d, { start, monthsLeft, windowMonths }) {
   return { on: d.maxDrift <= expected + ON_TRACK_SLACK, expected: Math.round(expected) };
 }
 
+// ---- the runs -------------------------------------------------------------------------------------------------------------
+
+const POT_KEYS = ['equityMin', 'bondMin', 'cashTarget', 'diversifierStart'];
+
+/** What a run is worked out on (see the header); nothing typed on a Moving review (it reads what is held, on What you hold). */
+export function runInputsOf(plan, { today, typed = {}, phase }) {
+  const rule = reviewRuleOf(plan);
+  const base = { phase, rule, documentAt: documentAtOf(plan) || null };
+  if (phase !== 'drawing') return { ...base, pots: null, took: null };
+  const c = checkReview(plan, typed, { today });
+  const v = c.values;
+  return { ...base, pots: v['rv.pension'] == null ? null : { pension: v['rv.pension'], isa: v['rv.isa'] || 0, other: v['rv.other'] || 0 }, took: v['rv.took'] != null ? v['rv.took'] : null };
+}
+
+/** The key a run is held under and its reading kept with (see the header); null for a plan with no id. */
+export function reviewRunKeyOf(plan, today, inputs) {
+  const k = stressKeyOf(plan, today);
+  return k ? k + '|' + hashOf(canonical(inputs)) : null;
+}
+
+/** Whether a plan holds a bought ladder in its document, locked: its own figure is its reading, never priced again. */
+const lockedLadder = (plan) => { try { return lockedLadderOf(plan, strategyIdOf(plan)); } catch { return false; } };
+
+/** The rows a press runs on the review page `R` (see the header). */
+export function runRowsOf(R, plan) {
+  if (!R || !R.found || !R.editable) return [];
+  if (R.phase === 'moving') return R.moving && R.moving.runOn === 'held' ? ['asPlanned', 'whole'] : ['asPlanned'];
+  if (R.phase === 'drawing') return lockedLadder(plan) ? [] : ['today'];
+  return [];
+}
+
+/** The run-only settings of 'today' (see the header): never saved, never in a plan or a document. */
+export function reviewSettingsOf(plan, { pots, today }) {
+  const now = dateOf(today);
+  const s = copy(safeSettings(plan, now));
+  const P = Math.max(0, Math.round(num(pots && pots.pension)));
+  const T = POT_KEYS.reduce((t, k) => t + num(s[k]), 0);
+  if (T > 0) {
+    const f = P / T;
+    for (const k of ['equityMin', 'bondMin', 'diversifierStart']) s[k] = Math.round(num(s[k]) * f);
+    s.cashTarget = Math.max(0, P - s.equityMin - s.bondMin - s.diversifierStart);
+    if (isObj(s.strategyParams) && num(s.strategyParams.sippTotal) > 0) s.strategyParams = { ...s.strategyParams, sippTotal: Math.round(s.strategyParams.sippTotal * f) };
+  } else {
+    const B = RISK_PRESETS.balanced;
+    s.equityMin = Math.round(P * B.equity); s.bondMin = Math.round(P * B.bond); s.diversifierStart = 0;
+    s.cashTarget = Math.max(0, P - s.equityMin - s.bondMin);
+  }
+  s.isaBalance = Math.max(0, Math.round(num(pots && pots.isa)));
+  s.taxableStart = Math.max(0, Math.round(num(pots && pots.other)));
+  s.potsAsOf = POTS_TODAY;
+  return s;
+}
+
+/** The reading a review keeps of a run's result (see the header); null for a row not tried or that could not be. */
+export function readingOf(result, key) {
+  const a = result && !result.na && isObj(result.a) ? result.a : null;
+  if (!a) return null;
+  const share = isNum(a.fixedAge) ? a.fixedAge : isNum(a.share) ? a.share : null;
+  const futures = isNum(a.futures) && a.futures > 0 ? a.futures : null;
+  return {
+    source: 'run', key,
+    weighted: isNum(a.weighted) ? a.weighted : null, sumW: isNum(a.sumW) ? a.sumW : null, n: isNum(a.n) ? a.n : null,
+    fixedAge: { lasts: share != null && futures ? Math.round(share * futures) : null, n: futures, age: isNum(a.planToAge) ? Math.round(a.planToAge) : null },
+    typicalLeft: isNum(a.typicalLeft) ? Math.round(a.typicalLeft) : null
+  };
+}
+
+/** A locked ladder's reading, from its document (see the header): its weighted chance and its fixed-age count as locked. */
+export function documentReadingOf(plan) {
+  const doc = plan && plan.planDocument;
+  const def = doc && isObj(doc.assumptions) && isObj(doc.assumptions.success) ? doc.assumptions.success : null;
+  const w = def && isObj(def.weighted) && isNum(def.weighted.chance) ? def.weighted.chance : null;
+  return { source: 'document', key: null, weighted: w, sumW: null, n: null, fixedAge: { lasts: null, n: null, age: null }, typicalLeft: null };
+}
+
+const poundsK = (v) => pounds(Math.round(Math.max(0, num(v)) / 1000) * 1000);
+/** A run's figures in words: the chance counting how long people live, the fixed-age count and its age, what is typically left. */
+function figuresOf(result) {
+  const a = result && !result.na && isObj(result.a) ? result.a : null;
+  if (!a) return null;
+  const share = isNum(a.fixedAge) ? a.fixedAge : isNum(a.share) ? a.share : 0;
+  return {
+    chance: isNum(a.weighted) && a.weighted !== null ? chanceWords(a.weighted, { sumW: a.sumW, n: a.n }) : null,
+    fixed: twentiethsOfFutures(share),
+    age: isNum(a.planToAge) ? String(Math.round(a.planToAge)) : '',
+    left: isNum(a.typicalLeft) ? poundsK(a.typicalLeft) : null
+  };
+}
+
+/**
+ * The run held for this page (the review effect's, state.review), in words — only when it was run on the plan and the inputs
+ * as they are now (its key). Moving: what is held against as planned, or the plan as it stands; Living on it: from today.
+ */
+function resultOf(R, held) {
+  const run = R.run;
+  if (!run || !held || held.key !== run.key || held.planId !== R.id) return { status: 'idle' };
+  if (held.status === 'working') return { status: 'working', done: run.rows.filter((id) => held.rows[id]).length, total: run.rows.length };
+  if (held.status === 'failed') return { status: 'failed', reason: held.reason || null };
+  if (held.status !== 'done') return { status: 'idle' };
+  const main = held.rows[R.phase === 'moving' ? (run.rows.includes('whole') ? 'whole' : 'asPlanned') : 'today'];
+  const me = figuresOf(main);
+  if (!me) return { status: 'done', id: 'na' };
+  if (R.phase === 'moving' && run.rows.includes('whole')) {
+    const ref = figuresOf(held.rows.asPlanned);
+    return { status: 'done', id: me.chance ? 'held' : 'heldFixed', slots: { ...me, ref: ref ? ref.chance || ref.fixed : '', refFixed: ref ? ref.fixed : '', refLeft: ref && ref.left ? ref.left : '' }, left: !!me.left };
+  }
+  if (R.phase === 'moving') return { status: 'done', id: me.chance ? 'asPlanned' : 'asPlannedFixed', slots: me, left: !!me.left };
+  const on = R.living && R.living.entered && R.living.entered.pots ? 'entered' : R.living && R.living.start.potsFrom === 'record' ? 'recorded' : 'plan';
+  return { status: 'done', id: me.chance ? 'today' : 'todayFixed', on, slots: me, left: !!me.left };
+}
+
 // ---- the page -------------------------------------------------------------------------------------------------------------
 
 /** How often, said as the review's title says it. */
@@ -232,7 +363,7 @@ const oftenOf = (phase, every) => (every === 'quarter' ? 'quarter' : every === '
  * The review page (see the header). `page` is read.js planPage's reading of this plan (the plan source has it); without it, it
  * is read here. `typed` the boxes as typed (the plan draft). Nothing here runs or writes.
  */
-export function reviewOf(entries, id, { today, typed = {}, page = null, source = 'account' } = {}) {
+export function reviewOf(entries, id, { today, typed = {}, page = null, source = 'account', held = null } = {}) {
   const pg = page && page.found && String(page.id) === String(id) ? page : planPage(entries, id, null, { today, source });
   if (!pg.found) return { found: false, id: String(id || '') };
   const now = dateOf(today);
@@ -313,6 +444,12 @@ export function reviewOf(entries, id, { today, typed = {}, page = null, source =
 
   // "Save this review": Moving and Living on it, on a plan that may take it
   R.save = REVIEW_PHASES.includes(phase) && editable ? { allowed: !(R.living && Object.keys(R.living.errors).length) } : null;
+  // the run a press makes (only on a press: the review effect), the key it is held under, and what is held for it in words
+  const rows = runRowsOf(R, plan);
+  const inputs = rows.length ? runInputsOf(plan, { today, typed, phase }) : null;
+  R.run = rows.length && !(phase === 'drawing' && !inputs.pots) ? { key: reviewRunKeyOf(plan, today, inputs), rows, pots: inputs.pots, label: phase === 'moving' ? (rows.includes('whole') ? 'held' : 'asPlanned') : 'today' } : null;
+  R.result = R.run ? resultOf(R, held) : { status: 'idle' };
+  R.documentReading = phase === 'drawing' && lockedLadder(plan);
   return R;
 }
 
@@ -353,15 +490,29 @@ export function reviewEntryOf(plan, { phase, today, typed = {}, at, reading = nu
   return entry;
 }
 
+/**
+ * The reading "Save this review" keeps: the run held for this page when its key is the key of the inputs being saved (else
+ * none, as the panel refuses an old result); a locked ladder's own document figure.
+ */
+export function savedReadingOf(plan, { today, typed = {}, phase, held = null }) {
+  if (phase === 'drawing' && lockedLadder(plan)) return documentReadingOf(plan);
+  if (!held || held.status !== 'done' || !isObj(held.rows)) return null;
+  const key = reviewRunKeyOf(plan, today, runInputsOf(plan, { today, typed, phase }));
+  if (!key || held.key !== key || String(held.planId) !== String(plan.id)) return null;
+  const main = phase === 'moving' ? (held.rows.whole || held.rows.asPlanned) : held.rows.today;
+  return readingOf(main, key);
+}
+
 /** "Save this review" (see the header): ONE write of the whole `phases` root with the entry on the end of the log. */
-export function reviewSavePatch(plan, { today, typed = {}, at, reading = null } = {}) {
+export function reviewSavePatch(plan, { today, typed = {}, at, reading = undefined, held = null } = {}) {
   const fail = (problem) => ({ ok: false, problem, patch: {}, entry: null });
   if (!plan || isExamplePlan(plan)) return fail('example');
   const { phase, closing } = phaseNow(plan, today);
   if (closing || plan.closedAt != null || isClosedPlan(plan)) return fail('closed');
   if (!REVIEW_PHASES.includes(phase)) return fail('notNow');
   if (phase === 'drawing') { const c = checkReview(plan, typed, { today }); if (Object.keys(c.errors).length) return fail('problems'); }
-  const entry = reviewEntryOf(plan, { phase, today, typed, at, reading });
+  const kept = reading !== undefined ? reading : savedReadingOf(plan, { today, typed, phase, held });
+  const entry = reviewEntryOf(plan, { phase, today, typed, at, reading: kept });
   let patch;
   try { patch = phasesPatch(plan, 'review.log', entry, { at }); } catch { return fail('problems'); }
   return { ok: true, problem: null, patch, entry };

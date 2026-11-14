@@ -29,7 +29,7 @@
  *                                                   lazily; road-to-7.md step 10)
  *   { id, type: 'keepRetest', plan, env: { today } }  the same shape: "Test what you keep against your plan" (keepRun.js runKeepRetest,
  *                                                   loaded lazily; 7.7.0)
- *   { id, type: 'stressRow', plan, env: { today, row } }  the same shape: one row of "Try the bad years" (stressPanelRun.js
+ *   { id, type: 'stressRow', plan, env: { today, row, whole?, settings? } }  the same shape: one row of "Try the bad years" (stressPanelRun.js
  *                                                   runStressRow, loaded lazily; 7.9.0)
  *   { id, type: 'stressStrip', q, inputs, env: { today, futures, seed }, at: { perMonth } }
  *                                                   the same shape: "Try the bad years" under C's or D's answer
@@ -116,7 +116,7 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
             : which === 'mixTry' ? fn(msg.plan, { today: env.today, kind: env.kind, base: env.base || null, onProgress })
               : which === 'household' ? fn(msg.plan, msg.partner, { today: env.today, limit: env.limit || null, need: Number.isFinite(env.need) && env.need > 0 ? env.need : null, onProgress })
                 : which === 'householdSurvivor' || which === 'householdCare' ? fn(msg.plan, msg.partner, { today: env.today, ...(env.boxes || {}), onProgress })
-                  : which === 'stressRow' ? fn(msg.plan, { today: env.today, row: env.row, onProgress })
+                  : which === 'stressRow' ? fn(msg.plan, { today: env.today, row: env.row, onProgress, ...(env.whole === true ? { whole: true } : {}), ...(env.settings && typeof env.settings === 'object' ? { settings: env.settings } : {}) })
                   : fn(msg.plan, { today: env.today, onProgress });
     post({ id, result: cloneSafe(result) });
   };

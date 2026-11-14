@@ -50,7 +50,17 @@ export const REVIEW = {
     ladder: 'Your ladder holds {held} of the {needed} gilts your plan still needs.',
     ladderYears: 'Not held yet: the gilts for {years}.',
     ladderLater: 'The ladder’s years show once the plan is locked.',
-    moveLink: 'Moving to your plan’s mix'
+    moveLink: 'Moving to your plan’s mix',
+    /** The run, on a press: what is held (whole) against the plan as planned, or the plan as it stands. */
+    run: { held: 'Test with what I hold', asPlanned: 'Test the plan as it stands', working: 'Testing…' },
+    result: {
+      held: 'With what you hold, counting how long people your age live, the money lasts as long as you do {chance} (as planned: {ref}). If you live to {age}, it lasts that long {fixed}.',
+      heldFixed: 'With what you hold, if you live to {age}, the money lasts that long {fixed} (as planned: {refFixed}).',
+      heldLeft: 'Where it lasts, typically {left} is left at {age} (as planned: {refLeft}).',
+      asPlanned: 'The plan as it stands, counting how long people your age live: the money lasts as long as you do {chance}. If you live to {age}, it lasts that long {fixed}.',
+      asPlannedFixed: 'The plan as it stands: if you live to {age}, the money lasts that long {fixed}.',
+      left: 'Where it lasts, typically {left} is left at {age}.'
+    }
   },
 
   living: {
@@ -78,7 +88,23 @@ export const REVIEW = {
     taken: 'Taken since 6 April: {took} before tax; your plan says {planned} for {year}.',
     takenEntered: 'Taken since 6 April, as you entered it: {took} before tax; your plan says {planned} for {year}.',
     note: 'This is noted with your review and changes nothing in the plan. You can try a change on Does it last?',
-    tryLink: 'Try a change'
+    tryLink: 'Try a change',
+    /** The run, on a press: the plan from today, on the pots in the boxes. */
+    run: { button: 'Work out the chance from today', working: 'Working it out…' },
+    result: {
+      today: 'From today, {on}: counting how long people your age live, the money lasts as long as you do {chance}. If you live to {age}, it lasts that long {fixed}.',
+      todayFixed: 'From today, {on}: if you live to {age}, the money lasts that long {fixed}.',
+      left: 'Typically {left} is left at {age}.',
+      on: { entered: 'on the pots you entered', recorded: 'on your pots as last recorded', plan: 'on your plan’s own pots' }
+    },
+    ladder: 'Your plan holds gilts bought for its years: the review keeps the figures it was locked with, never priced again.'
+  },
+  /** The run's own problems. */
+  run: {
+    noWorker: 'This browser could not start the part of the page that works this out, so nothing was tried.',
+    failed: 'That could not be worked out just now. You can try again.',
+    na: 'This could not be worked out on these figures.',
+    kept: 'What this worked out is kept with the review when you save it.'
   },
 
   /** "Save this review" (Moving and Living on it). */

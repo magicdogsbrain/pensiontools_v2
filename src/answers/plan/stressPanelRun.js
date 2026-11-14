@@ -47,14 +47,18 @@ function rowFigures(a) {
 
 /**
  * @param {object} plan   a saved plan, brought up to date in memory
- * @param {{ today: string, row: string|{ id: string }, onProgress?: Function, weighted?: boolean }} o
+ * @param {{ today: string, row: string|{ id: string }, onProgress?: Function, weighted?: boolean, whole?: boolean, settings?: object|null }} o
+ *   `whole` (7.10.0, the Moving review): the held row reads the pension as held, whole (keepTest.heldSettingsOf `whole`), a
+ *   record that keeps nothing too. `settings` (7.10.0, the Living-on-it review): run-only settings in place of the plan's
+ *   effective ones (answers/plan/review.js reviewSettingsOf: the pots entered, from today) — never saved. With neither, every
+ *   row is as in 7.9.0.
  */
-export function runStressRow(plan, { today, row, onProgress = null, weighted = undefined } = {}) {
+export function runStressRow(plan, { today, row, onProgress = null, weighted = undefined, whole = false, settings: given = null } = {}) {
   const id = typeof row === 'string' ? row : row && row.id;
   if (!ROW_IDS.includes(id)) throw new Error('runStressRow: no row called "' + id + '"');
   const now = dateOf(today);
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
-  const settings = effectiveStressSettings(plan, { now });
+  const settings = isObj(given) ? given : effectiveStressSettings(plan, { now });
   const strategyId = settings.strategyId || 'pots-and-valves';
   const family = FAMILY.includes(strategyId);
   const weigh = weighing({ weighted });
@@ -98,7 +102,7 @@ export function runStressRow(plan, { today, row, onProgress = null, weighted = u
       return done(heldLadder(plan, doc, { today, shock: change.held, level: planLevelOf(plan), count: () => { runs += 1; } }));
     }
     if (change.held && !mine.some((k) => k.counted && k.value > 0)) return done({ na: 'notCounted' });
-    return done(one(heldSettingsOf(settings, rec, { withExpected: true, shock: change.held || null, now }), {}));
+    return done(one(heldSettingsOf(settings, rec, { withExpected: true, shock: change.held || null, now, whole: whole === true }), {}));
   }
   if (id === 'asPlanned' && ladder) {
     // a locked ladder is its document's own run (runLasts): never priced again; its weighted figure the one it was locked with

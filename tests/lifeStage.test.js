@@ -227,7 +227,7 @@ describe('a saver, placed and opened as a saver (release step R2)', () => {
     const far = deriveStage(sc({ currentAge: 50, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }, { locked: true }), NOW);
     expect(far.key).toBe('committed-saving');
     expect(far.banner.text).not.toMatch(/Moving what you hold/);
-    expect(far.banner.text).toMatch(/Keep paying in, and record your pot each month/);
+    expect(far.banner.text).toMatch(/Keep paying in, and check in once a year on the Accumulation planner/);
     for (const key of Object.keys(STAGES)) if (STAGES[key].banner) expect(STAGES[key].banner.text + (STAGES[key].banner.nearText || '')).not.toMatch(/target portfolio|buying/);
   });
 });

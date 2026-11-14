@@ -444,10 +444,14 @@ describe('reads only: nothing new is written to any plan', () => {
     // settings and the document, never in them. Opening a plan still writes nothing (below).
     // 7.10.0 adds three: the phases and the dismissals (whole roots) and how often months are recorded
     // (decisionTool.recordMonths). Opening a plan still writes nothing (below).
-    expect(ALL_WRITES.length).toBe(162);
+    // 7.10.0 also takes six away: the move of a locked plan's start under its lock is gone (its MOVE_START_WRITES declared the
+    // Decision copy's spendingMigratedFrom, dbStartYear, strategyState, extraIncomes and extraWithdrawals, and strategy.params,
+    // which no other write declares); a locked plan's start changes by unlock and a new lock.
+    expect(ALL_WRITES.length).toBe(156);
     expect(ALL_WRITES).toContain('stressTool.settings.legacyFirstTaxYear');
     expect(ALL_WRITES).toContain('planAmendments');
-    expect(createHash('sha256').update(JSON.stringify(ALL_WRITES)).digest('hex')).toBe('f614a0757c31fe062f877a9538b2abac0037336a5e636fbe577f7264df387c28');
+    for (const k of ['decisionTool.settings.spendingMigratedFrom', 'decisionTool.settings.dbStartYear', 'decisionTool.settings.strategyState', 'decisionTool.settings.extraIncomes', 'decisionTool.settings.extraWithdrawals', 'strategy.params']) expect(ALL_WRITES).not.toContain(k);
+    expect(createHash('sha256').update(JSON.stringify(ALL_WRITES)).digest('hex')).toBe('6c7ef23106e981abe34153d5f2165893b472cdccc4a0e87d82d84cb62dd6c2ee');
   });
   /** The one write file with a fake firestore that records every call, on an account's plans. */
   function browse(raws, planId) {

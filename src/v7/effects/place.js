@@ -34,8 +34,6 @@ import { isClosedPlan } from '../../services/PlanClosed.js';
 export const RETURN_KEY = 'pt_v7_return';
 export const PLACE_KEY = 'pt_v7_place';
 export const SIGNED_IN_KEY = 'pt_v7_signed_in';
-/** The to-dos put off with "Not now" on a plan's home (7.3.0): this window only, never the plan — '<plan id>|<to-do id>'. */
-export const NOT_NOW_KEY = 'pt_v7_not_now';
 
 export function hasSignedInHint(local) {
   try { return !!local && local.getItem(SIGNED_IN_KEY) === '1'; } catch { return false; }
@@ -110,12 +108,6 @@ export function startPlace(store, { session = null, local = null, landing = fals
   let landed = !landing;
   let known = !!store.getState().session && store.getState().session.kind !== 'checking';   // the page's first session seen
   let afterSignIn = false;               // signed in on this page, on the account page with no way back: to the last plan
-  // the to-dos put off in this window (7.3.0): read back once, kept on every "Not now"
-  {
-    const keys = read(NOT_NOW_KEY);
-    if (Array.isArray(keys) && keys.length) dispatch({ type: A.TODO_NOT_NOW_SET, keys });
-  }
-
   // A way back kept in this window survives a reload of the account page (an email confirmed in another tab, this page
   // opened again); on any other page it is let go.
   {
@@ -145,7 +137,6 @@ export function startPlace(store, { session = null, local = null, landing = fals
 
   const off = store.subscribe((state, action, previous) => {
     const back = state.ui.returnTo || null;
-    if (action.type === A.TODO_NOT_NOW) keep(NOT_NOW_KEY, state.ui.notNow || []);
     if (action.type === A.ACCOUNT_RETURN) {
       keep(RETURN_KEY, back);
       if (back && state.route.screen !== 'account') go(href.account());

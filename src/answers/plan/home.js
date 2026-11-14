@@ -3,7 +3,7 @@
  * out a plan comes back to — what is due, where they are, then everything else. Read from what the plan already holds;
  * NOTHING is written because a plan was opened, and nothing here is stored (no stage, no to-do list).
  *
- *   homeOf(entries, id, { today, source, notNow, page })
+ *   homeOf(entries, id, { today, source, page })
  *     → { found, id, name, …, stage, todo, quiet, where, heldMix, whereFull, year, tools, steps, change, ask }
  *
  * One engine: the to-dos are read.js dueFor's, the very list whose first item is the rail's "Next" (planPage `due`), so
@@ -155,15 +155,18 @@ function yearOf(plan, page, now) {
   return { year: taxYearLabel(ty), key, setUp, perMonth, cells, recorded: cells.filter((c) => c.state === 'recorded' || c.state === 'filled').length };
 }
 
-/** A to-do as the home draws it: the design's id, the P.* id, its words' slots, the button, whether "Not now" is offered. */
-const item = (d, extra = {}) => ({ id: d.id, pid: d.pid, slots: d.slots, button: d.button, ...(d.dismiss ? { dismiss: d.dismiss } : {}), ...(d.soon ? { soon: true } : {}), ...extra });
+/**
+ * A to-do as the home draws it: the design's id, the P.* id, its words' slots, the button, and — when it may be put away —
+ * the buttons that do it (`dismiss`) and the key the dismissal is stored under on the plan (`key`, answers/plan/tasks.js).
+ */
+const item = (d, extra = {}) => ({ id: d.id, pid: d.pid, slots: d.slots, button: d.button, ...(d.dismiss ? { dismiss: d.dismiss, key: d.key } : {}), ...(d.soon ? { soon: true } : {}), ...extra });
 
 /**
  * Everything the plan's home draws. `page` may be the planPage reading already made for this plan at its own address (the
  * plan source has it); without it, it is read here.
  */
-export function homeOf(entries, id, { today, source = 'account', notNow = [], page = null } = {}) {
-  const pg = page && page.found && String(page.id) === String(id) ? page : planPage(entries, id, null, { today, source, notNow });
+export function homeOf(entries, id, { today, source = 'account', page = null } = {}) {
+  const pg = page && page.found && String(page.id) === String(id) ? page : planPage(entries, id, null, { today, source });
   if (!pg.found) return { found: false, id: String(id || '') };
   const now = dateOf(today);
   const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
@@ -181,7 +184,7 @@ export function homeOf(entries, id, { today, source = 'account', notNow = [], pa
       if (String(e.plan.id) === String(id)) continue;
       const linked = String(e.plan.id) === mine || (e.plan.household && e.plan.household.partnerScenarioId === String(plan.id));
       if (!linked || pg.closed) continue;
-      const their = planPage(list, e.plan.id, null, { today, source, notNow });
+      const their = planPage(list, e.plan.id, null, { today, source });
       if (!their.found || their.closed) continue;
       for (const d of their.due || []) if (PARTNER_IDS.includes(d.id)) partner.push(item(d, { planId: String(e.plan.id), name: their.name }));
     }

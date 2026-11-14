@@ -180,6 +180,7 @@ export const A = Object.freeze({
   // "What you hold" and "Moving to your plan's mix" (research/v7/holdings-and-move.md §2.2, §3.3, §3.5, §3.7; road-to-7.md step 10)
   PLAN_HOLD:       'plan/hold',           // { planId, change }               ONE change of the record (add | edit | remove | paste | keep | expected): saving { kind: 'hold', change }
   PLAN_TICK:       'plan/tick',           // { planId, key, done }            a tick-off on the move (the whole transition object): saving { kind: 'tick', key, done }
+  PLAN_TASK:       'plan/task',           // { planId, key, how }             a to-do put away on the home (7.10.0): how 'notNow' | 'notThisTime' | 'seen' | 'done' — saving { kind: 'task', key, how }; ONE write of the plan's `tasks`, no stamp
   MOVE_RUN:        'move/run',            // { key }                          "What if I keep what I hold?": the one run on the plan of this key (the effect runs it)
   MOVE_DONE:       'move/done',           // { key, result, ms }              the run's figures (moveRun.js runHeld); dropped if the key is stale
   MOVE_FAILED:     'move/failed',         // { key, reason? }                 the run failed ('noWorker': no worker)
@@ -267,8 +268,6 @@ export const A = Object.freeze({
   // Land where you left off (7.1.0): the plan and step a signed-in person was last on (a plan id and a step name, no figure)
   PLACE_KEEP:      'place/keep',          // { place: { planId, step } }      effects/place.js asks; the account effect writes it to the settings document
   // "Not now" on a to-do of a plan's home (7.3.0): kept for this window only (effects/place.js, session storage), never the plan
-  TODO_NOT_NOW:    'todo/notNow',         // { key: '<planId>|<to-do id>' }    ui.notNow gains it; the home and the rail leave that to-do out
-  TODO_NOT_NOW_SET: 'todo/notNowSet',     // { keys }                          the window's own list, read back on load
 
   // What's new (road-to-7.md step 11): the once-only pop-up and the page, from src/releases.js through effects/whatsNew.js
   NEWS_SHOW:       'news/show',           // { entries }                      the pop-up: the announced releases not seen, newest first (plain data)

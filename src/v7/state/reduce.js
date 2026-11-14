@@ -24,7 +24,7 @@ import { parse, format, PLAN_ID } from '../router/routes.js';
 import { BUILT } from '../rail/questions.js';
 import { SESSION_KINDS, KEEP_WHERES } from './initial.js';
 import { cleanBack, cleanPlace } from './place.js';
-import { isPlanEditPath, WAY_IDS, RANK_BYS } from '../../answers/plan/schema.js';
+import { isPlanEditPath, WAY_IDS, RANK_BYS, isTaskKey, DISMISS_KINDS } from '../../answers/plan/schema.js';
 
 /** The plan draft (editing-in-v7.md 4, 7.2): what was typed into an editing step for ONE plan; gone when the plan changes. */
 const planDraftOf = (state) => (state.draft && state.draft.plan) || emptyPlanDraft();
@@ -78,7 +78,9 @@ const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
   // Month by month (7.2.0): a month recorded (with the months filled in before it), a tax year set up
   'month', 'taxYear',
   // "I accept this risk" and "Withdraw this" (7.7.0): one write of the whole list of agreements
-  'amend'];
+  'amend',
+  // a to-do put away on the home (7.10.0): one write of the plan's `tasks`, said, and no Undo (a dismissal carries no stamp to put back)
+  'task'];
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -115,10 +117,6 @@ function noteShown(before, after) {
 }
 const hasField = (q, path) => !!SCHEMAS[q] && (SCHEMAS[q].fields.some((f) => f.path === path) || (hasShape(q) && path !== stepsPath(q) && shapePaths(q).includes(path)));
 const closeRail = (ui) => (ui.railOpen ? { ...ui, railOpen: false } : ui);
-/** A to-do put off with "Not now" (7.3.0): '<plan id>|<to-do id>', letters, digits and the id's dots only — no figure. */
-const NOT_NOW_KEY = /^[A-Za-z0-9_-]{1,64}\|[a-z]+\.[A-Za-z]+$/;
-const NOT_NOW_MAX = 50;
-const cleanNotNowKey = (k) => (typeof k === 'string' && NOT_NOW_KEY.test(k) ? k : null);
 /** A's and B's answers carry detail and extending; C's do not, and keep C's shape. */
 const hasDetail = (answer) => !!answer && 'extending' in answer;
 const detailOf = (result) => (result && result.basis && typeof result.basis.detail === 'string' ? result.basis.detail : null);
@@ -747,7 +745,7 @@ function reduceAction(state, action) {
       // the lock's toast remembers the moment of the lock (lockedAt): Undo is allowed only as the exact reverse of that lock
       const marks = { ...(op ? { op, ...(op === 'lock' && typeof lockedAt === 'string' ? { lockedAt } : {}) } : {}), ...(others.length ? { others } : {}) };
       // the move of a locked plan's start: done, said, and no Undo — the planner's own move offers none (6.55.0)
-      const toast = op === 'moveStart' ? { planId, kind: 'done', previous: null, line: line && typeof line === 'object' ? line : null, op }
+      const toast = op === 'moveStart' || op === 'task' ? { planId, kind: 'done', previous: null, line: line && typeof line === 'object' ? line : null, op }
         : hasPrevious ? { planId, kind: 'saved', previous: previous && typeof previous === 'object' ? previous : {}, line: line && typeof line === 'object' ? line : null, ...marks }
           : { planId, kind: 'unchanged', previous: null, line: null, ...marks };
       // the way of drawing changed (way-and-mix.md 2.4), a mix used (3.2e), a tried change used (4) or the plan's start moved: the one
@@ -1181,6 +1179,15 @@ function reduceAction(state, action) {
       if (!change || typeof change !== 'object' || !['add', 'edit', 'remove', 'paste', 'keep', 'expected'].includes(change.kind)) return refuse('plan/hold: needs a change (add, edit, remove, paste, keep or expected)');
       if (state.ui.saving) return state;
       return { ...state, ui: { ...state.ui, saving: { planId, kind: 'hold', change }, saveProblem: null, toast: null } };
+    }
+    // a to-do put away on the home (7.10.0): stored on the plan (answers/plan/tasks.js), ONE write of `tasks` by the plan write
+    case A.PLAN_TASK: {
+      const { planId, key, how } = action;
+      if (typeof planId !== 'string' || !planId) return refuse('plan/task: needs a plan id');
+      if (!isTaskKey(key)) return refuse('plan/task: needs a to-do\'s key');
+      if (!DISMISS_KINDS.includes(how)) return refuse('plan/task: needs how it is put away (notNow, notThisTime, seen or done)');
+      if (state.ui.saving) return state;
+      return { ...state, ui: { ...state.ui, saving: { planId, kind: 'task', key, how }, saveProblem: null, toast: null } };
     }
     case A.PLAN_TICK: {
       const { planId, key } = action;
@@ -1864,17 +1871,6 @@ function reduceAction(state, action) {
       const back = cleanBack(action.back);
       if (!back) return refuse('account/return: needs a plan kept in this window, or an answer\'s step');
       return { ...state, ui: { ...state.ui, returnTo: back } };
-    }
-    case A.TODO_NOT_NOW: {
-      const key = cleanNotNowKey(action.key);
-      if (!key) return refuse('todo/notNow: needs a plan id and a to-do id');
-      const list = Array.isArray(state.ui.notNow) ? state.ui.notNow : [];
-      return list.includes(key) ? state : { ...state, ui: { ...state.ui, notNow: [...list, key].slice(-NOT_NOW_MAX) } };
-    }
-    case A.TODO_NOT_NOW_SET: {
-      const keys = (Array.isArray(action.keys) ? action.keys : []).map(cleanNotNowKey).filter(Boolean).slice(-NOT_NOW_MAX);
-      const list = Array.isArray(state.ui.notNow) ? state.ui.notNow : [];
-      return keys.length === list.length && keys.every((k, i) => k === list[i]) ? state : { ...state, ui: { ...state.ui, notNow: keys } };
     }
     case A.PLACE_KEEP: {
       // held in the state so the account effect is told (the store tells its listeners of changes only)

@@ -22,6 +22,7 @@ import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecor
 import { stepsFor, subStepsFor, ALL_STEPS, NEXT_ORDER, NEXT_INFO, DUE_IDS, RETIRED_STAGES, SAVER_STAGES } from './steps.js';
 import { stageOf } from '../../services/LifeStage.js';
 import { windowYearsOf } from '../../services/Phases.js';
+import { taskKeyOf, isPutOff } from './tasks.js';
 import { optionsFor } from './options.js';
 import { answerAge, bandsOf, netOf } from './about.js';
 import { isBought } from './pots.js';
@@ -164,14 +165,14 @@ function checkInDue(plan, now, stageKey) {
  * The list (1.2). Groups, in order: "household" (plans joined by a link, either way), "other" (most recently changed
  * first) — or, when the plans are this window's (nobody signed in), one group "window".
  */
-export function planRows(entries, { today, source = 'account', notNow = [] } = {}) {
+export function planRows(entries, { today, source = 'account' } = {}) {
   const now = dateOf(today);
   const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
   const rows = list.map((e) => {
     const plan = e.plan;
     const stage = safeStage(plan, now);
     // the stage in three words and how many things are due (7.3.0): the plan's own reading, the one its home and rail read
-    let pg = null; try { pg = planPage(list, plan.id, null, { today, source, notNow }); } catch { pg = null; }
+    let pg = null; try { pg = planPage(list, plan.id, null, { today, source }); } catch { pg = null; }
     const ss = safeSettings(plan, now);
     const partners = partnersOf(list, plan);
     return {
@@ -818,9 +819,6 @@ const BUILDERS = { month: monthStep, where: whereStep, plan: planStep, pot: potS
 
 // ---- the next sentence (2.4) ---------------------------------------------------------------------------------------------
 
-/** "Not now" on a to-do (7.3.0): the key this window keeps for it (effects/place.js, session storage) — never the plan. */
-export const notNowKey = (planId, itemId) => String(planId) + '|' + itemId;
-
 /**
  * The rules of the next sentence and of the plan's to-do list (2.4; research/v7/one-product-design.md, "The to-do reader"):
  * which fire, the button each offers and the slots their words take. ONE reading for both, so the rail's "Next" and the
@@ -985,10 +983,14 @@ function rulesFor(C, built) {
 /**
  * Everything due now on one plan, in the design's order (research/v7/one-product-design.md, "The to-do reader"): each with
  * the design's id, the P.* id its words are under in copy/plan.js, its button and slots. Nothing on a plan shown as saved
- * (nothing can be changed there), and on a closed plan only the way to the plan that carries it on. A to-do the person put
- * off with "Not now" in this window (`C.notNow`) is left out until the window closes. Pure; nothing is written.
+ * (nothing can be changed there), and on a closed plan only the way to the plan that carries it on.
+ *
+ * A to-do whose rule may be put away (`DISMISSIBLE`: the buttons it offers, answers/plan/tasks.js DISMISS) carries `key`, the
+ * key its dismissal is stored under on the plan (taskKeyOf: its id, and its occurrence when it has one), and `dismiss`, the
+ * buttons; one put off or done (the plan's own `tasks`, as it belongs to the plan) is left out — on every device, in both
+ * apps. Pure; nothing is written.
  */
-const DISMISSIBLE = ['P.invite', 'P.holdStale', 'P.moveLater'];
+const DISMISSIBLE = { 'P.invite': ['notNow'], 'P.holdStale': ['notNow'], 'P.moveLater': ['notNow'] };
 export function dueFor(C, built, R = rulesFor(C, built)) {
   if (C.readonly) return [];
   const out = [];
@@ -1000,11 +1002,11 @@ export function dueFor(C, built, R = rulesFor(C, built)) {
     const id = pid === 'P.month' && R.gap ? 'month.gap' : pid === 'P.startAsk' && !(C.startLater && C.startLater.thisYear) ? 'start.askOnly' : DUE_IDS[pid];
     // the move to the tax year the recorded months begin in (7.4.3) says so, in its own words on the home and the rail
     const records = (pid === 'P.startMove' || pid === 'P.startBlocked') && !!(C.startLater && C.startLater.recordsFrom);
-    // put off for this window: what you hold out of date and the move on a plan that records nothing it holds ("Not now"),
-    // and the move invitation ("Not yet", the design's rank 3) — kept in the window only, nothing written
-    const dismiss = DISMISSIBLE.includes(pid) ? 'window' : null;
-    if (dismiss && (C.notNow || []).includes(notNowKey(C.plan.id, id))) continue;
-    out.push({ id: records ? id + 'Records' : id, pid, slots: R.slots, button: R.BUTTONS[pid] || null, ...(dismiss ? { dismiss } : {}), ...(records ? { words: pid + 'Records' } : {}) });
+    // a to-do the person may put away: stored on the plan, so it stays away on every device
+    const dismiss = DISMISSIBLE[pid] || null;
+    const key = dismiss ? taskKeyOf(id, R.occurrence ? R.occurrence[pid] : null) : null;
+    if (key && isPutOff(C.plan, key, { now: C.now })) continue;
+    out.push({ id: records ? id + 'Records' : id, pid, slots: R.slots, button: R.BUTTONS[pid] || null, ...(dismiss ? { dismiss, key } : {}), ...(records ? { words: pid + 'Records' } : {}) });
   }
   return out;
 }
@@ -1046,10 +1048,10 @@ function nextFor(C, built) {
  * says so (`listed: false`, R7); an unknown step id opens the first step. (The screen draws the plan's home at the plan's
  * own address, 7.3.0: `current` still names the first real step, so every step's reading is as it was.)
  *
- * `due` is everything due now (dueFor), `soon` what is coming (soonFor), `life` the three-word stage (LifeStage.stageOf);
- * `notNow` the to-dos put off in this window ("Not now", effects/place.js), left out of `due` and of the next sentence alike.
+ * `due` is everything due now (dueFor), `soon` what is coming (soonFor), `life` the three-word stage (LifeStage.stageOf). A to-do
+ * put away on the plan ("Not now", "I have done this": answers/plan/tasks.js) is left out of `due` and of the next sentence alike.
  */
-export function planPage(entries, id, stepId, { today, source = 'account', notNow = [] } = {}) {
+export function planPage(entries, id, stepId, { today, source = 'account' } = {}) {
   const now = dateOf(today);
   const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
   const entry = list.find((e) => String(e.plan.id) === String(id)) || null;
@@ -1074,7 +1076,7 @@ export function planPage(entries, id, stepId, { today, source = 'account', notNo
   // a retired draft still read from a start later than this tax year (7.4.0, PlanMove.laterDraftLeftOf: months recorded, or
   // a State Pension by plan year the reading could not keep): one to-do, to choose the start on "About you and when"
   let startDraft = null; try { startDraft = locked ? null : laterDraftLeftOf(plan, ss, now); } catch { startDraft = null; }
-  const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, held, startLater, startDraft, notNow: Array.isArray(notNow) ? notNow : [] };
+  const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, held, startLater, startDraft };
   // how far the stop is, for what a saver keeps "For later" (steps.js laterFor): months to the stop month, in years
   const yearsToStop = Number.isFinite(stage.monthsToStart) && stage.timingMode === 'future' ? stage.monthsToStart / 12 : (Number.isFinite(stage.yearsToStart) ? stage.yearsToStart : null);
   // the plan's move window (7.10.0): the one clock for what a locked saver keeps for later

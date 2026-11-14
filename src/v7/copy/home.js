@@ -37,8 +37,13 @@ export const HOME = {
   notNow: 'Not now',
   /** "Not now" on the move invitation (the design's words for it). */
   notYet: 'Not yet',
-  /** Said under the list once something on this plan was put off: what happened, and for how long. Nothing is saved. */
-  notNowDone: 'Put off until you next open the site.',
+  /**
+   * The ways to put a to-do away (7.10.0), stored on the plan so it stays away on every device: "Not now" until next month;
+   * the others for good, for that occurrence of the to-do.
+   */
+  dismiss: { notNow: 'Not now', notThisTime: 'Not this time', seen: 'I have seen this', done: 'I have done this' },
+  /** Said under the list once a to-do on this plan was put off: until when. */
+  putOff: 'Put off until {month}.',
   /** Each thing to do: a short title and a line under it. {slots} as read.js gives them. */
   items: {
     'closed.next':        { title: 'Carry on in ‘{next}’', detail: 'This plan closed at the end of {closed}. Its months stay here to read.' },

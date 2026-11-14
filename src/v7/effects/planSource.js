@@ -113,17 +113,16 @@ export function viewFor(state) {
   const plans = state.plans;
   if (!plans || plans.status !== 'read') return null;
   const today = state.env.today;
-  // the to-dos put off with "Not now" in this window (7.3.0; effects/place.js keeps them in session storage, never the plan)
-  const notNow = Array.isArray(state.ui.notNow) ? state.ui.notNow : [];
-  const rows = planRows(plans.list, { today, source: plans.source, notNow }).groups;
+  // a to-do put away ("Not now", "I have done this") is stored on the plan itself (7.10.0, answers/plan/tasks.js): read with it
+  const rows = planRows(plans.list, { today, source: plans.source }).groups;
   const r = state.route;
   let page = null;
   if (r && r.screen === 'plan' && r.planId) {
     // the rail's B link opens B with a saver's own figures (saving-enough-and-check-in.md 4.1: saving.js askFillOf)
-    page = { ...planPage(plans.list, r.planId, r.step, { today, source: plans.source, notNow }), askFill: askFillOf(plans.list, r.planId, { today }), forId: r.planId, forStep: r.step || null };
+    page = { ...planPage(plans.list, r.planId, r.step, { today, source: plans.source }), askFill: askFillOf(plans.list, r.planId, { today }), forId: r.planId, forStep: r.step || null };
     // the plan's own address is its home (7.3.0, research/v7/one-product-design.md "The plan home"): what is due, where you
     // are, then everything else — read from the same reading as the rail, so the two can never disagree
-    if (!r.step && page.found) page.home = homeOf(plans.list, r.planId, { today, source: plans.source, notNow, page });
+    if (!r.step && page.found) page.home = homeOf(plans.list, r.planId, { today, source: plans.source, page });
     // "Test what you keep against your plan" (7.7.0): the agreement's state, the line the home, About, What you hold and the move
     // say, and the re-test held in page memory (state.keepTest) for THIS plan as it is now — null on a plan that keeps nothing
     if (page.found) {
@@ -348,7 +347,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move, state.keepTest, state.stressPanel, state.ui.notNow, state.ui.level] : null;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move, state.keepTest, state.stressPanel, state.ui.level] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;

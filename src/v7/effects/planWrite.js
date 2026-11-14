@@ -118,6 +118,13 @@
  *   - `plan/taxYear` (kind 'taxYear'): month.js taxYearPatch — the year's set-up as the classic set-up stores it, ONE write of
  *     the tax years, the same checks; op 'taxYear' and Undo.
  *
+ * A to-do put away on the plan's home (7.10.0; research/v7/replan-nov-2026.md §6.4), one more kind:
+ *   - `plan/task` (kind 'task'): answers/plan/tasks.js taskPatch — "Not now" (until next month), "Not this time", "I have seen
+ *     this" or "I have done this" (for good, for that occurrence) — the whole `tasks` root, written from the plan as stored
+ *     and NOTHING else: no stamp (schema.js TASK_WRITES), so a dismissal never spoils an open run's key, reorders "Your plans"
+ *     or changes a "changed on" line. Past the guard and phaseWriteRefusal (refused once a close has passed, on the example
+ *     plan and on a plan shown as saved). Then plan/saved with op 'task' — said, with no Undo — and the plans read again.
+ *
  * "Keep this as a plan" (research/v7/road-to-7.md step 7; save-as-plan.md Contract C.3 for the shape): the preview makes
  * the plan itself, here, on `keep/save` (state.keep[q].saving) — the hand-over of a seed to the planner is retired:
  *   - the seed is built from the answer on screen (answers/keep/planSeed.js buildPlanSeed), the plan documents from it
@@ -174,7 +181,7 @@ import { potsPatch } from '../../answers/plan/pots.js';
 import { lastsPatch, tryPatch, tryCopyOf, runKeyOf } from '../../answers/plan/lasts.js';
 import { lockPatch, unlockPatch, documentPatch, isLockReversal, shapeRefsOf } from '../../answers/plan/lock.js';
 import { movedPlanOf, movePatch, withLaterDraft } from '../../answers/plan/moveStart.js';
-import { dateOf } from '../../answers/plan/dates.js';
+import { dateOf, monthWords } from '../../answers/plan/dates.js';
 import { wayPatch } from '../../answers/plan/way.js';
 import { mixPatch, useMixPatch } from '../../answers/plan/mix.js';
 import { partnerOf, linkPatch, dismissPatch, splitPatches, shareBudgetPatches, whoPaysPatches } from '../../answers/plan/household.js';
@@ -187,9 +194,10 @@ import { savingPatch, recordPatch } from '../../answers/plan/saving.js';
 import { checkInDraft, checkInPatch, restartPathPatch, useInPlanPatch, CHECKIN_FUTURES, CHECKIN_SEED } from '../../answers/plan/checkIn.js';
 import { answerInPlanPatch } from '../../answers/plan/useAnswer.js';
 import { monthRecordPatch, taxYearPatch } from '../../answers/plan/month.js';
+import { taskPatch, DISMISS } from '../../answers/plan/tasks.js';
 import { uniqueName, getDefaultScenario } from '../../services/PlanFromSeed.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
-import { isLockedSettings, lockedPlanWriteRefusal, checkInWriteRefusal, monthWriteRefusal } from '../../services/LockedPlanGuard.js';
+import { isLockedSettings, lockedPlanWriteRefusal, checkInWriteRefusal, monthWriteRefusal, phaseWriteRefusal } from '../../services/LockedPlanGuard.js';
 import { getDefaultStressSettings } from '../../storage/stressDefaults.js';
 import { readMinutes, isBlocked } from '../../services/GuestMeter.js';
 import { NO_WORKER } from './workerClient.js';
@@ -794,6 +802,25 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;
     dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: 'tick' });
+    dispatch({ type: A.PLANS_READING });
+    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+  }
+
+  /**
+   * A to-do put away on the home (7.10.0, tasks.js taskPatch): ONE write of the whole `tasks` root from the plan as read just
+   * before it, with no stamp — past the guard and phaseWriteRefusal. Said (the month it is put off until), with no Undo.
+   */
+  async function task(planId, key, how) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan } = got;
+    const at = now();
+    let p;
+    try { p = taskPatch(plan, key, DISMISS[how], { at }); } catch { fail(planId, 'problems'); return; }
+    const data = declaredOnly({ tasks: p.tasks });
+    if (lockedRefusal(plan, data) || phaseWriteRefusal(plan, data, { now: at })) { fail(planId, 'locked'); return; }
+    if (!(await send(place, planId, data))) return;
+    dispatch({ type: A.PLAN_SAVED, planId, previous: null, line: { id: p.until ? 'putOff' : 'putAway', slots: p.until ? { month: monthWords(p.until) } : {}, key }, op: 'task' });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
@@ -1775,6 +1802,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_BUDGET_SHARE && s.kind === 'budgetShare') run(() => shareBudget(s.planId, s.share !== false));
     else if (action.type === A.PLAN_HOLD && s.kind === 'hold') run(() => saveHold(s.planId, s.change));
     else if (action.type === A.PLAN_TICK && s.kind === 'tick') run(() => tick(s.planId, s.key, s.done !== false));
+    // a to-do put away on the home (7.10.0)
+    else if (action.type === A.PLAN_TASK && s.kind === 'task') run(() => task(s.planId, s.key, s.how));
     // "I accept this risk" / "Withdraw this" (7.7.0)
     else if (action.type === A.PLAN_AMEND && s.kind === 'amend') run(() => amend(s.planId, s.op, s.amend || null, s.testId || null));
     // the budget on a saved plan (road-to-7.md step 11b)

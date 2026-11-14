@@ -929,6 +929,16 @@ export const PHASE_WRITES = Object.freeze(['phases', 'lastModified']);
  * kept in `tasks.dismissed[key].at`). The classic page writes it with saveScenario's `{ stamp: false }`.
  */
 export const TASK_WRITES = Object.freeze(['tasks']);
+/**
+ * The buttons a to-do on the home may offer to put it away, and what each stores (answers/plan/tasks.js): "Not now" until
+ * next month; "Not this time", "I have seen this" and "I have done this" for good, for that occurrence of the to-do.
+ */
+export const DISMISS = Object.freeze({ notNow: 'notNow', notThisTime: 'done', seen: 'done', done: 'done' });
+export const DISMISS_KINDS = Object.freeze(Object.keys(DISMISS));
+/** The key a dismissal is stored under: a to-do's id ('month.record'), and '@' and its occurrence ('2026-10', '2027/28', a date, a plan id). */
+export const TASK_KEY = /^[a-z]+\.[A-Za-z]+(@[A-Za-z0-9/_-]{1,64})?$/;
+/** Is this a key a dismissal may be stored under? */
+export const isTaskKey = (k) => typeof k === 'string' && TASK_KEY.test(k);
 /** "Keep a record of each month here" on Month by month: its own field, outside the Decision settings and the lock, and the stamp. */
 export const RECORD_WRITES = Object.freeze(['decisionTool.recordMonths', 'lastModified']);
 /**

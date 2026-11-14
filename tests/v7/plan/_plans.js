@@ -10,7 +10,9 @@
  *   household()                 the two plans of one household: the locked ladder saved with a later start (03, linked
  *                               one way to the saver) and the saver (05, no link back) — built from the corpus, never a
  *                               new file (the corpus's snapshot would have to move)
- *   stateWith(entries, route, o) a V7 state on a plan page with those plans read (o.notNow: to-dos put off in the window)
+ *   stateWith(entries, route, o) a V7 state on a plan page with those plans read (o.tasks: { planId: [to-do keys] } stored as
+ *                               put away on those plans, 7.10.0 — answers/plan/tasks.js)
+ *   withTasks(plan, keys, o)    a copy of a plan with those to-dos stored as put away (`until`: a month, or null for good)
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -55,12 +57,21 @@ export function household() {
   return { ladder, saver };
 }
 
-export function stateWith(entries, hash = '#/plans', { today = TODAY, source = 'account', session = 'in', readAt = '14:03', open = [], notNow = [] } = {}) {
+/** A copy of a plan with these to-dos stored as put away (7.10.0): for good (`until` null) unless a month is given. */
+export function withTasks(plan, keys, { until = null, at = TODAY + 'T12:00:00.000Z' } = {}) {
+  const p = JSON.parse(JSON.stringify(plan));
+  const dismissed = { ...((p.tasks && p.tasks.dismissed) || {}) };
+  for (const k of keys) dismissed[k] = { at, until };
+  p.tasks = { ...(typeof p.createdAt === 'string' ? { of: p.createdAt } : {}), dismissed };
+  return p;
+}
+
+export function stateWith(entries, hash = '#/plans', { today = TODAY, source = 'account', session = 'in', readAt = '14:03', open = [], tasks = {} } = {}) {
   let s = initialState({ today, build: 'test' });
   s = reduce(s, { type: A.ROUTE_SET, route: parse(hash) });
   s = reduce(s, { type: A.SESSION_SET, session: { kind: session, email: session === 'in' ? 'someone@example.com' : null } });
-  // the to-dos put off with "Not now" in this window (7.3.0): page memory only
-  for (const key of notNow) s = reduce(s, { type: A.TODO_NOT_NOW, key });
+  // the to-dos put away on a plan (7.10.0): stored on the plan itself
+  if (entries) entries = entries.map((e) => (tasks[String(e.plan.id)] ? { ...e, plan: withTasks(e.plan, tasks[String(e.plan.id)]) } : e));
   if (entries) s = reduce(s, { type: A.PLANS_SET, list: entries, source, readAt });
   if (entries) s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });   // as the plan source does on the page
   for (const id of open) s = reduce(s, { type: A.UI_TOGGLE, id });

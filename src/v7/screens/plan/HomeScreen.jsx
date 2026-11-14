@@ -6,7 +6,8 @@
  * question with the plan's figures. The rail is not drawn here: the home is the rail laid out.
  *
  * Draws only: the reading is answers/plan/home.js homeOf (state/select.js planView → page.home), the same reading the
- * rail's "Next" comes from. Nothing here writes a plan; "Not now" is kept for this window only (effects/place.js).
+ * rail's "Next" comes from. Nothing here writes a plan: "Not now" and the other ways to put a to-do away ask the plan write
+ * (plan/task) to store it on the plan, so it stays away on every device (7.10.0).
  */
 import { PlanLine, PlanSentence, fill, Button, LinkButton, Counted, notNowPress, stepNameOf, LifeLine, YearCells } from '../../components/index.js';
 import { planView, plansView, lifeStages, planKeepTestView } from '../../state/select.js';
@@ -27,6 +28,9 @@ const itemWords = (it) => {
   return { title: fill(words.title, it.slots), detail: fill(words.detail, it.slots) + band };
 };
 
+/** The words of a to-do's buttons that put it away (answers/plan/schema.js DISMISS), "Not yet" on the move invitation. */
+const dismissWords = (it, how) => (how === 'notNow' && it.id === 'move.invite' ? HOME.notYet : HOME.dismiss[how]);
+
 function Item({ it, first, planId, dispatch, partner = null }) {
   const w = itemWords(it);
   const b = it.button;
@@ -43,7 +47,7 @@ function Item({ it, first, planId, dispatch, partner = null }) {
       </span>
       <span class="home-item-acts">
         {b && b.href && <LinkButton testid={`${T}.todo.${it.id}${partner ? '.' + partner.planId : ''}`} kind={first ? 'pop' : 'quiet'} href={b.href} onClick={onPress}>{label}</LinkButton>}
-        {it.dismiss && !partner && <Button testid={`${T}.notNow.${it.id}`} kind="quiet" onClick={(e) => notNowPress(e, () => dispatch({ type: 'todo/notNow', key: planId + '|' + it.id }))}>{it.id === 'move.invite' ? HOME.notYet : HOME.notNow}</Button>}
+        {it.dismiss && !partner && it.dismiss.map((how) => <Button key={how} testid={`${T}.${how}.${it.id}`} kind="quiet" onClick={(e) => notNowPress(e, () => dispatch({ type: 'plan/task', planId, key: it.key, how }))}>{dismissWords(it, how)}</Button>)}
       </span>
     </li>
   );
@@ -118,8 +122,15 @@ export function HomeScreen(state, dispatch) {
   const filled = filledAsk(H, view);
   // the closed plan's way on is its to-do when it is listed: the notice then says what happened, without a second button
   const closedListed = todo.items.some((it) => it.id === 'closed.next');
-  // something on this plan put off in this window ("Not now", "Not yet"): said once, with how long it lasts
-  const putOff = !H.readonly && ((state.ui && state.ui.notNow) || []).some((k) => String(k).startsWith(String(planId) + '|'));
+  // a to-do put away on this plan (7.10.0): gone from the list while its write is under way, and "Not now" said once, with how
+  // long it lasts, until the toast closes
+  const ui = state.ui || {};
+  const pending = ui.saving && ui.saving.kind === 'task' && ui.saving.planId === String(planId) ? ui.saving.key : null;
+  const told = ui.toast && ui.toast.op === 'task' && ui.toast.planId === String(planId) && ui.toast.line ? ui.toast.line : null;
+  const away = (it) => it.key && (it.key === pending || (told && it.key === told.key));
+  const items = todo.items.filter((it) => !away(it));
+  const more = todo.more.filter((it) => !away(it));
+  const putOff = !H.readonly && told && told.id === 'putOff' ? fill(HOME.putOff, told.slots) : null;
   return {
     question: null, rail: false, full: false,
     content: (
@@ -144,19 +155,19 @@ export function HomeScreen(state, dispatch) {
 
         <section class="home-todo" data-region="home-todo" data-testid={`${T}.todo`} data-count={String(todo.count)}>
           <h2 class="eyebrow">{HOME.todoTitle}</h2>
-          {todo.items.length > 0 ? (
-            <ul class="home-items">{todo.items.map((it, i) => <Item key={it.id} it={it} first={i === 0} planId={planId} dispatch={dispatch} />)}</ul>
+          {items.length > 0 ? (
+            <ul class="home-items">{items.map((it, i) => <Item key={it.id} it={it} first={i === 0} planId={planId} dispatch={dispatch} />)}</ul>
           ) : !H.readonly && H.quiet ? <p class="home-quiet" data-testid={`${T}.quiet`} data-quiet={H.quiet.id}>{fill(HOME.quiet[H.quiet.id], H.quiet.slots)}</p> : null}
-          {todo.more.length > 0 && (
+          {more.length > 0 && (
             <details class="plan-fold home-more" data-testid={`${T}.more`}>
-              <summary>{todo.more.length === 1 ? HOME.more.one : fill(HOME.more.many, { n: String(todo.more.length) })}</summary>
-              <ul class="home-items">{todo.more.map((it) => <Item key={it.id} it={it} first={false} planId={planId} dispatch={dispatch} />)}</ul>
+              <summary>{more.length === 1 ? HOME.more.one : fill(HOME.more.many, { n: String(more.length) })}</summary>
+              <ul class="home-items">{more.map((it) => <Item key={it.id} it={it} first={false} planId={planId} dispatch={dispatch} />)}</ul>
             </details>
           )}
           {todo.partner.length > 0 && (
             <ul class="home-items home-partner" data-testid={`${T}.partner`}>{todo.partner.map((it) => <Item key={it.planId + it.id} it={it} first={false} planId={planId} dispatch={dispatch} partner={{ planId: it.planId, name: it.name }} />)}</ul>
           )}
-          {putOff && <p class="note" role="status" data-testid={`${T}.notNowDone`}>{HOME.notNowDone}</p>}
+          {putOff && <p class="note" role="status" data-testid={`${T}.notNowDone`}>{putOff}</p>}
           {todo.soon.length > 0 && (
             <div class="home-soon" data-testid={`${T}.soon`}>
               <p class="eyebrow">{HOME.soonTitle}</p>

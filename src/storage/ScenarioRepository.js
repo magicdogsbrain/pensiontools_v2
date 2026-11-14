@@ -33,7 +33,8 @@ import { DEFAULT_CHARGES_PCT, isChargesPct, chargesPctOf } from '../services/Cha
 import { DEFAULT_ISA_GROWTH, isIsaGrowth } from '../services/IsaGrowth.js';
 import { getDefaultDecisionSettings, seedDecisionFromStress, chargesPatchOnUnlock, unlockPatchesOf, budgetSharedFromOf, BUDGET_OWN_SIDE, ownSideOf, sharedBudgetView, shareBudgetWrite, stopSharingWrite, sharedBudgetWrites } from '../services/PlanCommit.js';
 import { getDefaultTaxYears, getDefaultBudget, defaultStrategyBlock as pureDefaultStrategyBlock, getDefaultScenario as pureGetDefaultScenario, strategyOf as pureStrategyOf } from '../services/PlanFromSeed.js';
-import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError, lockedPlanWriteRefusal } from '../services/LockedPlanGuard.js';
+import { PlanLockedError, lockedWriteRefusal, isLockedSettings, isPlanLockedError, lockedPlanWriteRefusal, phaseWriteRefusal } from '../services/LockedPlanGuard.js';
+import { taskPatch } from '../answers/plan/tasks.js';
 import { getDefaultStressSettings } from './stressDefaults.js';
 import { onPlanCopyStale, dropStalePlanCopies } from './planCopies.js';
 import { cadenceOf, normaliseCadence } from '../services/DrawCadence.js';
@@ -765,6 +766,28 @@ export async function saveActivePlanAmendments(list) {
   await saveScenario(scenario.id, { planAmendments });
   if (cachedActiveScenario) cachedActiveScenario.planAmendments = planAmendments;
   return planAmendments;
+}
+
+/**
+ * The × on the classic page's banner (7.10.0; research/v7/replan-nov-2026.md §6.4): a to-do put away on the plan itself, so
+ * the new app's home and a partner's device see the same quiet home. The stored plan is read afresh (never the cache: another
+ * device may have put something else away since), the one key added (answers/plan/tasks.js taskPatch, "Not now" until next
+ * month unless `kind` says 'done'), and the whole `tasks` root written with NO stamp (schema.js TASK_WRITES): a dismissal
+ * never reorders "Your plans" or changes a "changed on" line. Refused once a close has passed, and on the example plan
+ * (LockedPlanGuard.phaseWriteRefusal). Returns the root written.
+ * @param {string} key   the to-do's key (taskKeyOf: its id, and its occurrence when it has one)
+ * @param {{ kind?: 'notNow'|'done', now?: Date }} [o]
+ */
+export async function saveActivePlanTasks(key, { kind = 'notNow', now = new Date() } = {}) {
+  const active = await getActiveScenarioAsync();
+  if (!active) throw new Error('No active scenario');
+  const stored = (await loadScenario(active.id)) || active;
+  const { tasks } = taskPatch(stored, key, kind, { at: now });
+  const refused = phaseWriteRefusal(stored, { tasks }, { now });
+  if (refused) throw new PlanLockedError(refused);
+  await saveScenario(active.id, { tasks }, { stamp: false });
+  if (cachedActiveScenario && cachedActiveScenario.id === active.id) cachedActiveScenario.tasks = JSON.parse(JSON.stringify(tasks));
+  return tasks;
 }
 
 /** Switch the active plan's strategy (a switch, not a lock). Refused on a locked plan (6.20.2): its strategy is part of it. */

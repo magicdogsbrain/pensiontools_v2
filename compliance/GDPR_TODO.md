@@ -320,3 +320,33 @@ delete call sites).
       accept on a plan, with the figures they were tested on".
 - [x] The sex paragraph above says how the plan reads it now that an accepted risk carries a hash that changes with it.
 - [ ] To read and approve the wording, then publish with the release that ships 7.9.0 — setting "Last updated" then.
+
+## Three phases and one yearly review; to-dos put off on the plan — 14 Nov 2026 (written, NOT yet published or deployed)
+- **No new collection, processor or Firestore path; two new root fields and one new field on each plan document**
+  (`users/{uid}/scenarios/{id}`), each written only when the person presses a named button, never on opening a page:
+  - `phases`: the choices a person makes for a plan's phases (how long the move window is, 1 to 5 years; how the pension is
+    invested while saving: cautiously, in a balanced way or adventurously; how often a review falls; when we say the plan
+    is off course), a history of those choices (when, what, from and to), the review log and the Moving agreement. A
+    review entry holds its date, the phase, the plan document's date, the pots and what was taken as the person entered
+    them (or as the boxes started, marked as not entered), the year-ahead choice (less, keep, more), what a run worked
+    out (the chance, its weighted sum and count, the fixed-age count and age, the typical money left) and how far what is
+    held is from the plan's mix in points. The log keeps at most 120 entries. The agreement ("I accept this as my plan" on
+    the Moving review) holds its date, the way of drawing it was made for, how it was made and the share of the move
+    done; the matching entry in the existing `planAmendments` list holds the figures accepted and what was held in whole
+    points, as 7.9.0's agreements do (a fingerprint hash, never a copy of the settings).
+  - `tasks`: the to-dos put off ("Not now", until a month) or put away ("I have done this", "I have seen this", "Not this
+    time"), by to-do and occurrence, with the date pressed; at most 50, the oldest past ones dropped on a write. Written
+    without changing the plan's "last changed" stamp.
+  - `decisionTool.recordMonths`: whether the person keeps a record of each month (yes or no), from Month by month.
+- **Kept and deleted as every plan figure.** A copy keeps only the person's choices (not the log, the agreement, the
+  history or the to-dos); a plan carried on after a close keeps the agreement marked with the plan it came from; closing a
+  plan freezes `phases`; deleting the plan or the account deletes all three. The guest store keeps them in the tab's
+  session storage, as every other guest figure; an opened file drops the to-dos.
+- **No new browser storage.** The window's own "Not now" list (`sessionStorage` `pt_v7_not_now`) is gone: a to-do put off
+  is stored on the plan, so it stays put off on every device.
+- **Lawful basis:** Contract, as the plan's other figures: the person's own record of their plan.
+- [x] `compliance/PRIVACY_POLICY.md` and `public/privacy.html`: the "Financial data" row adds "your reviews: the date, the
+      figures you entered and what they showed, and the risk you accepted for what you hold" and the choices for a plan's
+      reviews; the "Saved plans" row adds the to-dos put off or done and whether a record of each month is kept. "Last
+      updated" is left as it is: it is set when the release ships.
+- [ ] To read and approve the wording, then publish with the release that ships 7.10.0 — setting "Last updated" then.

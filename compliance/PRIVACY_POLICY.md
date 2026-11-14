@@ -21,8 +21,8 @@ To use the saving features you create an account and log in. We process:
 | Category | Examples | Purpose | Lawful basis |
 |---|---|---|---|
 | Account identity | email address, display name, (Google) profile photo | create and secure your account | Contract |
-| Saved plans ("scenarios") | plan name/notes, timestamps | let you save and reload your work | Contract |
-| Financial data | portfolio balances over time, SIPP/ISA balances, target income, drawdowns, pay and what you pay into pensions, your saving check-ins and any note you write, and the risks you say you accept on a plan, with the figures they were tested on | run your drawdown plan and your saving plan | Contract |
+| Saved plans ("scenarios") | plan name/notes, timestamps; on each plan, the to-dos you have put off or marked done, and whether you keep a record of each month | let you save and reload your work | Contract |
+| Financial data | portfolio balances over time, SIPP/ISA balances, target income, drawdowns, pay and what you pay into pensions, your saving check-ins and any note you write, your reviews: the date, the figures you entered and what they showed, and the risk you accepted for what you hold, the choices you make for a plan's reviews (how often, when we say you are off course, how long your move window is and how your pension is invested while you save), and the risks you say you accept on a plan, with the figures they were tested on | run your drawdown plan and your saving plan | Contract |
 | State Pension | forecast start date and weekly amount (from your HMRC forecast) | income modelling | Contract |
 | Tax details | allowances/bands you set, other taxable income, tax paid/projected | tax-efficient calculations | Contract |
 | Ages / dates | current/retirement/end ages; if you choose to say it, whether to use the figures for women or for men (optional: not saying uses the figures for women) | planning horizon: how long people your age are likely to live | Contract |

@@ -224,3 +224,17 @@ describe('"Keep a record of each month here" (Month by month): one write of deci
     expect(() => reduce(initialState({ today, build: 'test' }), { type: A.PLAN_RECORD_MONTHS, planId: 'x', value: 'no' })).toThrow(/plan\/recordMonths/);
   });
 });
+
+describe('the privacy policy names the reviews, the phases\' choices and the to-dos put off, in both its copies (spec-7100 §10)', () => {
+  it('the financial data row names the reviews and the risk accepted for what is held; the saved plans row the to-dos and the monthly record', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const md = readFileSync(join(process.cwd(), 'compliance', 'PRIVACY_POLICY.md'), 'utf8');
+    const html = readFileSync(join(process.cwd(), 'public', 'privacy.html'), 'utf8');
+    for (const text of [md, html]) {
+      expect(text).toContain('your reviews: the date, the figures you entered and what they showed, and the risk you accepted for what you hold');
+      expect(text).toContain('how often, when we say you are off course, how long your move window is and how your pension is invested while you save');
+      expect(text).toContain('the to-dos you have put off or marked done, and whether you keep a record of each month');
+    }
+  });
+});

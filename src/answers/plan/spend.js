@@ -601,3 +601,16 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
     savedLine: c.ok ? { id: 'spend', slots: { age: saved.first.fromAge, monthly: pounds(firstMonthly), steps: c.lists.steps.cards.length, costs: c.lists.costs.cards.length } } : null
   };
 }
+
+/**
+ * The plan's effective settings with its income scaled by `f`: the base income, each step's amount when the income is in
+ * phases, and the saved per-year schedule the engine reads first (IncomeSchedule.scheduleFromSteps: the saved schedule wins).
+ * "Could I spend more?" (lastsRun.runLever) and "spending a tenth more" (stressPanel.stressSpendOf) read it. Pure.
+ */
+export function scaledIncome(settings, f) {
+  const fin = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  const out = { ...settings, baseSalary: Math.round((+settings.baseSalary || 0) * f) };
+  if (Array.isArray(settings.incomeSteps)) out.incomeSteps = settings.incomeSteps.map((s) => (s && typeof s === 'object' && fin(+s.amount) !== null ? { ...s, amount: Math.round(+s.amount * f) } : s));
+  if (Array.isArray(settings.targetSchedule)) out.targetSchedule = settings.targetSchedule.map((v) => (fin(+v) !== null ? Math.round(+v * f) : v));
+  return out;
+}

@@ -253,6 +253,88 @@ export function weightedPartOf(r, p, a, { life, rW = null, wYears = null, level 
 }
 
 /**
+ * When, how long and how much (7.9.0, a row of "Try the bad years"; the answers' shortfall.js shortfallOf, read the plan's
+ * way), from the runs a row already made — never a run of its own:
+ *   when       { typical, worst, worstLasts } on one run (the run followed on to the weighting age when there is one, `rW`,
+ *              else the plan's own): `typical` the middle run-out age of the futures that ran out (the floor's set, so it is
+ *              weightedPartOf's floor.age); `worst` the age the floor(n/10)-th earliest future first failed at over all of
+ *              them, a future that lasted counting as never (`worstLasts`: that future lasted; `worst` is then the plan-to age)
+ *   howLong    { paid, of, anyway? } over the futures that failed within the plan's own years (the plan's run `r`): the mean
+ *              of the year each first failed plus the later years in which the State Pension and other income meet the
+ *              plan's need, of the plan's years; null when it rounds to all of them
+ *   howMuch    1 − what those futures left unpaid ÷ (their number × the plan's need over its years): a strategy that says
+ *              what it left unpaid (futuresMc.unpaid) is read as it says; else from the year each failed, the need less the
+ *              State Pension and other income, the first year whole; Pots & Valves and Buckets with cuts on add each
+ *              future's income cut (futuresMc.cutReal, a row's run)
+ *   closedYear { year, taxYear } when the pension's closed years leave a year unpaid in every future (a bought strategy:
+ *              stressTest closedYearsCut) — said on its own line, never as the worst
+ * With nothing failing: { when: null, howLong: null, howMuch: 1 }.
+ * @param {object} r   the plan's run; @param {object} p   its plan; @param {object} a   oneAnswer(r, p, …)
+ * @param {{ rW?: object, wYears?: number }} o   weightedOptsOf's
+ */
+export function planShortfallOf(r, p, a, { rW = null, wYears = null } = {}) {
+  const startAge = num(p && p.startAge);
+  const N = Math.max(1, Math.round(num(p && p.durationYears)));
+  const closedYear = closedYearOf(r, p);
+  const none = { when: null, howLong: null, howMuch: 1, ...(closedYear ? { closedYear } : {}) };
+  if (!a || !r) return none;
+  const run = rW || r;
+  const lost = Array.isArray(run.survivedMc) ? run.survivedMc : null;
+  if (!lost || !lost.some((x) => x === false)) return none;
+  const lastYear = Math.max(0, (isNum(wYears) ? wYears : N) - 1);
+  const head = headYearsOf(run);
+  const yearOf = (i) => (head && isNum(head[i]) ? head[i] : lastYear);
+  const asc = (x, y) => x - y;
+  const ys = [];
+  lost.forEach((x, i) => { if (x === false) ys.push(yearOf(i)); });
+  ys.sort(asc);
+  const typical = Math.round(startAge + ys[Math.floor((ys.length - 1) / 2)]);
+  const all = lost.map((x, i) => (x === false ? yearOf(i) : Infinity)).sort(asc);
+  const w = all[Math.floor(lost.length / 10)];
+  const worstLasts = !Number.isFinite(w);
+  const when = { typical, worst: worstLasts ? planToAgeOf(startAge, N) : Math.round(startAge + w), worstLasts };
+  // how long and how much: the futures that failed within the plan's own years, on the plan's own run
+  const own = Array.isArray(r.survivedMc) ? r.survivedMc : [];
+  const ownHead = headYearsOf(r);
+  const failed = [];
+  own.forEach((x, i) => { if (x === false) failed.push({ i, fy: ownHead && isNum(ownHead[i]) ? Math.max(0, Math.min(N - 1, ownHead[i])) : N - 1 }); });
+  if (!failed.length) return { ...none, when };
+  const needAt = (y) => num(Array.isArray(p.needByYear) ? p.needByYear[Math.min(y, p.needByYear.length - 1)] : p.targetAnnual);
+  const spAt = (y) => (num(p.spAnnual) > 0 && y >= (isNum(p.spStartYear) ? p.spStartYear : 99) ? num(p.spAnnual) : 0);
+  const otherAt = (y) => num(Array.isArray(p.otherIncomeByYear) ? p.otherIncomeByYear[y] : 0);
+  const short = (y) => Math.max(0, needAt(y) - spAt(y) - otherAt(y));
+  let anyway = false;
+  const paid = failed.reduce((s, f) => {
+    let years = f.fy;
+    for (let y = f.fy + 1; y < N; y++) if (!(short(y) > 1)) { years += 1; anyway = true; }
+    return s + Math.min(years, N);
+  }, 0) / failed.length;
+  const howLong = Math.floor(paid) < N ? { paid: Math.floor(paid), of: N, ...(anyway ? { anyway: true } : {}) } : null;
+  let planned = 0;
+  for (let y = 0; y < N; y++) planned += needAt(y);
+  const f = r.futuresMc || {};
+  const cutsOn = (r.strategyId === 'pots-and-valves' || r.strategyId === 'buckets-in-order') && !!(p.pnvCfg && !p.pnvCfg.disableProtection);
+  let unpaid = 0;
+  for (const x of failed) {
+    if (Array.isArray(f.unpaid) && isNum(f.unpaid[x.i])) unpaid += f.unpaid[x.i];
+    else for (let y = x.fy; y < N; y++) unpaid += short(y);
+    if (cutsOn && Array.isArray(f.cutReal) && isNum(f.cutReal[x.i])) unpaid += f.cutReal[x.i];
+  }
+  const howMuch = planned > 0 ? Math.max(0, Math.min(1, 1 - unpaid / (failed.length * planned))) : 1;
+  return { when, howLong, howMuch, ...(closedYear ? { closedYear } : {}) };
+}
+
+/** The year the pension's closed years leave unpaid in every future (stressTest closedYearsCut's first short year), or null. */
+function closedYearOf(r, p) {
+  const lock = p && p.pensionLock;
+  if (!r || !r.futuresMc || !Array.isArray(r.futuresMc.headYear) || !lock || !Array.isArray(lock.unpaid)) return null;
+  const k = lock.unpaid.findIndex((v, y) => { const u = Math.max(0, +v || 0); const need = u + Math.max(0, +(lock.paid && lock.paid[y]) || 0); return u > 1 && u > 0.01 * need; });
+  if (k < 0) return null;
+  const first = Math.round(num(p.runFirstTaxYear || p.firstTaxYear));
+  return { year: k, taxYear: first > 0 ? first + k : null };
+}
+
+/**
  * The run year each future first failed by its strategy's own test (null where it lasted): futuresMc.headYear where the
  * closed years' cut rewrote failYear (stressTest.closedYearsCut keeps it there), else failYear itself, which is that year.
  * Null when the run keeps no per-future record.

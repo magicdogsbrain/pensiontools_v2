@@ -72,6 +72,7 @@ import { restoredParamsFor } from '../../services/PlanCommit.js';
 import { dateOf } from './dates.js';
 import { closedYearsShort, shortYearsWords } from '../../services/PensionLock.js';
 import { FAMILY } from './lasts.js';
+import { scaledIncome } from './spend.js';
 import { SUCCESS, LEVEL_FAILS20, LEVELS, TO_AGE_RULE } from '../shared/rules.js';
 import { lifeOf, lifeOfSettings, planLevelOf, weightedReasonOf, weightedYearsOf, floorAt } from './life.js';
 
@@ -515,16 +516,8 @@ export function pickFigures(a) {
     ...(typeof a.lasts === 'boolean' ? { weighted: a.weighted, level: a.level } : {}) };
 }
 
-/**
- * The plan's effective settings with its income scaled by `f`: the base income, each step's amount when the income is in
- * phases, and the saved per-year schedule the engine reads first (IncomeSchedule.scheduleFromSteps: the saved schedule wins).
- */
-export function scaledIncome(settings, f) {
-  const out = { ...settings, baseSalary: Math.round((+settings.baseSalary || 0) * f) };
-  if (Array.isArray(settings.incomeSteps)) out.incomeSteps = settings.incomeSteps.map((s) => (s && typeof s === 'object' && num(+s.amount) !== null ? { ...s, amount: Math.round(+s.amount * f) } : s));
-  if (Array.isArray(settings.targetSchedule)) out.targetSchedule = settings.targetSchedule.map((v) => (num(+v) !== null ? Math.round(+v * f) : v));
-  return out;
-}
+/** The plan's settings with its income scaled (spend.js, pure: "Try the bad years" reads it too, 7.9.0). */
+export { scaledIncome };
 
 /** The settings with the work added as a row of extra income from the plan's first year (the engine's own mechanism). */
 export function withWork(settings, { yearly, years }) {

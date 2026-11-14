@@ -7,6 +7,17 @@
  *                                          prices rising faster; and, when the plan keeps a line by choice, as you hold it,
  *                                          what you keep falls by half, what may be one company's shares go to nothing
  *   ROW_CHANGE                             what each row changes (the run's shock, its lower returns, its spending, its held shock)
+ *   rowsFor(plan, { settings, today })     the rows this plan shows, each with the row it is compared with (`ref`) and what
+ *                                          is known before a run (`na`: 'lockedLadder', 'todaysPrices'); the held rows only
+ *                                          when the plan keeps a line by choice, "nothing" only when a kept line may be one
+ *                                          company's shares; at most 8
+ *   stressSpendOf(settings, f)             the settings with the income f times as large: every income amount the planner
+ *                                          reads (spend.js scaledIncome) and a pinned draw or essentials floor
+ *   sameAs(result, reference)              whether a row's every reported figure is its reference's
+ *   stressPanelView(plan, rows, o)         what the panel draws from the results held (ids and figures; no words): each row
+ *                                          at the level asked for (lasts.js atLevel, no run), beside its reference, `same`,
+ *                                          its agreement and whether it can be accepted; the agreements before any run; the
+ *                                          keep agreement's state for the held rows (they never write)
  *   stressKeyOf(plan, today)               the key a row's result is filed under: id | today | the effective settings | what
  *                                          they read from elsewhere | locked | what is held | the kept sex | the household's
  *                                          reason | the document. Not the level (a new level re-reads, no run), not
@@ -37,12 +48,16 @@
  * keep agreement on What you hold: the held rows show its state and never write.
  */
 import { effectiveStressSettings } from '../../services/PlanReading.js';
-import { holdingsKeyOf, amendmentsOf, amendmentsWithout, documentAtOf } from '../../services/PlanAmendments.js';
+import { holdingsKeyOf, amendmentsOf, amendmentsWithout, documentAtOf, keepsLines } from '../../services/PlanAmendments.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { budgetAgesKnown } from '../../services/BudgetModel.js';
 import { firstRecordedMonthOf, isSuccessorOrClosed } from '../../services/PlanMove.js';
 import { TO_AGE_RULE } from '../../services/AgeConvention.js';
-import { keptSexOf, householdReasonOf } from './life.js';
+import { keptSexOf, householdReasonOf, planLevelOf } from './life.js';
+import { scaledIncome } from './spend.js';
+import { keptAssetsOf, keepTestOf } from './keepTest.js';
+import { documentLadder } from '../../services/LadderPosition.js';
+import { atLevel, FAMILY } from './lasts.js';
 import { AMEND_WRITES } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
 import { VERSION } from '../../constants.js';
@@ -79,6 +94,99 @@ export const ROW_CHANGE = Object.freeze({
   heldHalf: Object.freeze({ held: 'half' }),
   heldNothing: Object.freeze({ held: 'nothing' })
 });
+
+/** The row a row is compared with: As planned for the market rows and As held; As held for the held shocks. */
+export const referenceOf = (id) => (id === 'asPlanned' ? null : id === 'heldHalf' || id === 'heldNothing' ? 'asHeld' : 'asPlanned');
+
+/** A locked plan whose document holds a bought ladder: its gilts were bought at the day's prices, and are never priced again. */
+export const lockedLadderOf = (plan, strategyId) => {
+  const doc = isLocked(plan) && isObj(plan && plan.planDocument) ? plan.planDocument : null;
+  return !!(doc && documentLadder(doc, strategyId) && doc.strategy && doc.strategy.p);
+};
+
+/** The rows this plan shows (see the header). */
+export function rowsFor(plan, { settings = null, today = null } = {}) {
+  let s = isObj(settings) ? settings : null;
+  if (!s) { try { s = today ? effectiveStressSettings(plan, { now: dateOf(today) }) : storedStressOf(plan); } catch { s = storedStressOf(plan); } }
+  const strategyId = s.strategyId || 'pots-and-valves';
+  const ladder = lockedLadderOf(plan, strategyId);
+  const rows = [{ id: 'asPlanned', ref: null, na: null }];
+  for (const id of MARKET_IDS) rows.push({ id, ref: 'asPlanned', na: ladder ? 'lockedLadder' : id === 'prices' && !FAMILY.includes(strategyId) ? 'todaysPrices' : null });
+  if (keepsLines(plan && plan.holdings)) {
+    const mine = keptAssetsOf(plan.holdings).filter((k) => k.as === 'mine');
+    rows.push({ id: 'asHeld', ref: 'asPlanned', na: null }, { id: 'heldHalf', ref: 'asHeld', na: null });
+    if (mine.some((k) => k.single)) rows.push({ id: 'heldNothing', ref: 'asHeld', na: null });
+  }
+  return rows;
+}
+
+/**
+ * Spending a tenth more (f = 1.1), before tax: the planner's income scaled (spend.js scaledIncome: the base income, each
+ * step, the saved per-year schedule) and, when one is pinned, a bought strategy's own draw (Ladder & Ratchet's drawAnnual)
+ * and essentials floor — else a pinned draw would be drawn as before (compareRunner.deriveCompareConfigs, stressTest.js).
+ */
+export function stressSpendOf(settings, f) {
+  const s = isObj(settings) ? settings : {};
+  const out = scaledIncome(s, f);
+  const sp = isObj(s.strategyParams) ? s.strategyParams : null;
+  if (sp && ((isNum(+sp.drawAnnual) && +sp.drawAnnual > 0) || (isNum(+sp.essentialsAnnual) && +sp.essentialsAnnual > 0))) {
+    out.strategyParams = { ...sp };
+    if (+sp.drawAnnual > 0) out.strategyParams.drawAnnual = Math.round(+sp.drawAnnual * f);
+    if (+sp.essentialsAnnual > 0) out.strategyParams.essentialsAnnual = Math.round(+sp.essentialsAnnual * f);
+  }
+  return out;
+}
+
+/** Whether a row's every reported figure is its reference's (then it says only "this changes nothing"). */
+export function sameAs(result, reference) {
+  const a = result && result.a, b = reference && reference.a;
+  if (!isObj(a) || !isObj(b)) return false;
+  const eq = (x, y) => (x == null && y == null) || x === y;
+  const r = (v) => (isNum(v) ? Math.round(v) : null);
+  if (!eq(a.fixedAge, b.fixedAge) || !eq(a.sumW, b.sumW)) return false;
+  for (const k of ['typicalLeft', 'badCaseLeft', 'goodCaseLeft']) if (r(a[k]) !== r(b[k])) return false;
+  const fa = isObj(a.floor) ? a.floor : {}, fb = isObj(b.floor) ? b.floor : {};
+  if (!eq(fa.age, fb.age) || !eq(fa.yearly, fb.yearly)) return false;
+  const ca = isObj(a.cuts) ? a.cuts : {}, cb = isObj(b.cuts) ? b.cuts : {};
+  for (const k of ['cutN', 'typicalCutPerYear', 'typicalCutYears']) if (!eq(ca[k], cb[k])) return false;
+  return canonical(shortfallFigures(result.shortfall)) === canonical(shortfallFigures(reference.shortfall));
+}
+const shortfallFigures = (s) => (isObj(s) ? { when: s.when || null, howLong: s.howLong || null, howMuch: isNum(s.howMuch) ? s.howMuch : null, closedYear: s.closedYear || null } : null);
+
+/**
+ * What the panel draws (see the header). `rows`: the results held for this plan, by row id (runStressRow's); a result for
+ * another key is not read. Nothing here runs or writes.
+ * @param {{ level?: string|null, today: string, settings?: object }} o   `level` the page's "How careful?" (else the plan's)
+ */
+export function stressPanelView(plan, rows, { level = null, today, settings = null } = {}) {
+  const key = stressKeyOf(plan, today);
+  const held = isObj(rows) ? rows : {};
+  const fresh = (id) => (isObj(held[id]) && held[id].key === key ? held[id] : null);
+  const lvl = level || planLevelOf(plan);
+  const closed = isClosedPlan(plan);
+  const keep = keepsLines(plan && plan.holdings) ? keepTestOf(plan, {}) : null;
+  const list = rowsFor(plan, { settings, today }).map((row) => {
+    const res = fresh(row.id);
+    const na = row.na || (res && res.na) || null;
+    const ref = row.ref ? fresh(row.ref) : null;
+    const same = !na && !!res && !!ref && !ref.na && sameAs(res, ref);
+    const kind = kindOfRow(row.id);
+    const agreement = kind ? stressAgreementOf(plan, row.id) : null;
+    const failing = !!(res && isObj(res.shortfall) && res.shortfall.when);
+    return {
+      id: row.id, ref: row.ref, kind, status: na ? 'na' : res ? 'done' : 'idle', na,
+      a: res && !na && res.a ? atLevel(res.a, lvl) : null,
+      shortfall: res && !na ? res.shortfall || null : null,
+      ran: res && !na ? res.ran || null : null,
+      refA: ref && !ref.na && ref.a ? atLevel(ref.a, lvl) : null,
+      same,
+      agreement,
+      canAccept: !!kind && !closed && !!res && !na && !same && failing,
+      ...(kind ? {} : { keep: keep ? { status: keep.status, line: keep.line } : null })
+    };
+  });
+  return { key, level: lvl, rows: list, agreements: stressAgreementsOf(plan), keep: keep ? { status: keep.status, line: keep.line } : null, closed };
+}
 
 /** The kind of agreement a row's "I accept this risk" writes: As planned's own figure ('confidence'), a market row ('stress'); the held rows none. */
 export const kindOfRow = (id) => (id === 'asPlanned' ? 'confidence' : MARKET_IDS.includes(id) ? 'stress' : null);

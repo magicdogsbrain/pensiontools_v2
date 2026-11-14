@@ -132,6 +132,8 @@
  *   - `plan/reviewSave` (kind 'reviewSave'): "Save this review" — the entry on the end of the log (reviewSavePatch); the next
  *     date is never written, and the toast says it as read from the log;
  *   - `plan/phaseSet` (kind 'phaseSet'): a choice — the rule, how often, the window or the saving level (phaseChoicePatch).
+ *   - `plan/agree` / `plan/agreeWithdraw` (kinds 'agree', 'agreeWithdraw'): "Yes, this is my plan" on the Moving review and its
+ *     withdrawal (answers/plan/agree.js) — ONE write of `phases`, `planAmendments` and the stamp (schema.js AGREE_WRITES).
  *   - `plan/recordMonths` (kind 'recordMonths'): "Keep a record of each month here" on Month by month — ONE write of
  *     `decisionTool.recordMonths` (true or false) and the stamp (schema.js RECORD_WRITES): outside the Decision settings and
  *     the lock, so a locked plan takes it and its settings stay byte-identical. Then plan/saved with op 'recordMonths' and Undo.
@@ -207,6 +209,7 @@ import { answerInPlanPatch } from '../../answers/plan/useAnswer.js';
 import { monthRecordPatch, taxYearPatch } from '../../answers/plan/month.js';
 import { taskPatch, DISMISS } from '../../answers/plan/tasks.js';
 import { reviewSavePatch, phaseChoicePatch } from '../../answers/plan/review.js';
+import { agreePatch, agreeWithdrawPatch } from '../../answers/plan/agree.js';
 import { planPage } from '../../answers/plan/read.js';
 import { uniqueName, getDefaultScenario } from '../../services/PlanFromSeed.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
@@ -620,7 +623,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     } else if (op === 'month' || op === 'taxYear') {
       // a month recorded (with its fill) or a tax year set up, put back: the records and the tax years as they were, past the guard (7.2.0)
       if (lockedRefusal(plan, asSent) || monthWriteRefusal(asSent)) { fail(planId, 'locked'); return; }
-    } else if (op === 'review' || op === 'phase') {
+    } else if (op === 'review' || op === 'phase' || op === 'agree') {
       // a review saved or a choice made, put back (7.10.0): the phases as they were, past the guard and the phases' own refusal
       if (lockedRefusal(plan, asSent) || phaseWriteRefusal(plan, asSent, { now: now() })) { fail(planId, 'locked'); return; }
     } else if (op === 'link' || op === 'dismiss' || op === 'budgetShare' || op === 'split' || op === 'whoPays' || op === 'hold' || op === 'tick' || op === 'amend' || op === 'budget' || op === 'saving' || op === 'potRecord' || op === 'stale' || op === 'recordMonths') {
@@ -909,6 +912,29 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (lockedRefusal(plan, data) || phaseWriteRefusal(plan, data, { now: at })) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;
     dispatch({ type: A.PLAN_SAVED, planId, previous: { phases: plan.phases === undefined ? undefined : JSON.parse(JSON.stringify(plan.phases)), lastModified: plan.lastModified }, line: { id: 'phase.' + part, slots: { value: String(value) } }, op: 'phase' });
+    dispatch({ type: A.PLANS_READING });
+    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+  }
+
+  /**
+   * "Yes, this is my plan" on the Moving review (7.10.0; answers/plan/agree.js agreePatch), and "Withdraw this"
+   * (agreeWithdrawPatch): the run held for this page (state.review) for the plan as it is now, then ONE write of `phases` (the
+   * agreement, its review entry and a history line), `planAmendments` (the one `asHeld` entry it carries, or that entry taken
+   * away) and the stamp (schema.js AGREE_WRITES), past the guard and phaseWriteRefusal. The settings and the plan document
+   * are never touched. Then plan/saved with op 'agree' and Undo.
+   */
+  async function agree(planId, withdraw) {
+    const got = await placed(planId);
+    if (!got) return;
+    const { place, plan, state } = got;
+    const at = now();
+    const p = withdraw ? agreeWithdrawPatch(plan, { at: at.toISOString() }) : agreePatch(plan, { today: state.env.today, at: at.toISOString(), held: state.review || null });
+    if (!p.ok) { fail(planId, ['closed', 'example', 'noResult', 'oldResult', 'none', 'na'].includes(p.problem) ? (p.problem === 'na' ? 'noResult' : p.problem) : p.problem === 'notNow' ? 'notHere' : 'problems'); return; }
+    const data = declaredOnly({ phases: p.patch.phases, planAmendments: p.patch.planAmendments, lastModified: at.toISOString() });
+    if (lockedRefusal(plan, data) || phaseWriteRefusal(plan, data, { now: at })) { fail(planId, 'locked'); return; }
+    if (!(await send(place, planId, data))) return;
+    const copyOf = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { phases: copyOf(plan.phases), planAmendments: copyOf(plan.planAmendments), lastModified: plan.lastModified }, line: { id: withdraw ? 'agreeWithdrawn' : 'agreed', slots: { date: monthWords(at.toISOString().slice(0, 7)) } }, op: 'agree' });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
@@ -1897,6 +1923,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     // "Your review" (7.10.0): a review saved; a choice made on it
     else if (action.type === A.PLAN_REVIEW_SAVE && s.kind === 'reviewSave') run(() => reviewSave(s.planId));
     else if (action.type === A.PLAN_PHASE_SET && s.kind === 'phaseSet') run(() => phaseSet(s.planId, s.part, s.value));
+    else if ((action.type === A.PLAN_AGREE && s.kind === 'agree') || (action.type === A.PLAN_AGREE_WITHDRAW && s.kind === 'agreeWithdraw')) run(() => agree(s.planId, s.kind === 'agreeWithdraw'));
     // "I accept this risk" / "Withdraw this" (7.7.0)
     else if (action.type === A.PLAN_AMEND && s.kind === 'amend') run(() => amend(s.planId, s.op, s.amend || null, s.testId || null));
     // the budget on a saved plan (road-to-7.md step 11b)

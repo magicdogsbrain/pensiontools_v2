@@ -88,7 +88,9 @@ const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
   // "Keep a record of each month here" (7.10.0): one write of decisionTool.recordMonths, with Undo
   'recordMonths',
   // "Your review" (7.10.0): a review saved, a choice made (the rule, how often, the window, the saving level) — one write of `phases` each, with Undo
-  'review', 'phase'];
+  'review', 'phase',
+  // "I accept this as my plan" and its withdrawal on the Moving review (7.10.0): one write of `phases` and `planAmendments`, with Undo
+  'agree'];
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
@@ -1213,6 +1215,14 @@ function reduceAction(state, action) {
       const pd = planDraftOf(state);
       const base = pd.id === planId ? pd : { ...emptyPlanDraft(), id: planId };
       return withPlanDraft({ ...state, ui: { ...state.ui, saving: { planId, kind: 'reviewSave' }, saveProblem: null, toast: null } }, { ...base, asked: true });
+    }
+    case A.PLAN_AGREE:
+    case A.PLAN_AGREE_WITHDRAW: {
+      const { planId } = action;
+      if (typeof planId !== 'string' || !planId) return refuse(`${action.type}: needs a plan id`);
+      if (state.ui.saving) return state;
+      const open = (state.ui.open || []).filter((x) => x !== 'agreeConfirm');
+      return { ...state, ui: { ...state.ui, open, saving: { planId, kind: action.type === A.PLAN_AGREE ? 'agree' : 'agreeWithdraw' }, saveProblem: null, toast: null } };
     }
     case A.PLAN_PHASE_SET: {
       const { planId, part, value } = action;

@@ -202,6 +202,42 @@ function Run({ V, dispatch }) {
   );
 }
 
+/** "I accept this as my plan" (Moving): the press, the confirm on the screen, the accepted line, why it is stale, Withdraw. */
+function Agreement({ V, dispatch, open }) {
+  const G = V.agreement;
+  if (!G) return null;
+  const A = W.agreement;
+  const name = (id) => PLAN.strategies[id] || id || '';
+  const clauses = G.confirm ? fill(A[G.confirm.id], G.confirm.slots) : '';
+  return (
+    <section class="plan-section review-agreement" data-section="agreement" data-testid={`${T}.agreement`} data-status={G.status} data-how={G.how || undefined}>
+      <h2>{A.title}</h2>
+      {G.accepted && <p data-testid={`${T}.agreement.accepted`}>{fill(A[G.accepted.id], G.accepted.slots)}</p>}
+      {G.stale && <p class="notice" role="status" data-testid={`${T}.agreement.stale`} data-why={G.stale.why}>{fill(A.stale[G.stale.why] || A.stale.version, { date: G.stale.date, old: name(G.stale.old), now: name(G.stale.now) })}</p>}
+      {G.canAccept && !open && (
+        <div class="actions-row">
+          <Button testid={`${T}.agreement.accept`} kind="plain" disabled={!!V.saving} onClick={() => dispatch({ type: 'ui/toggle', id: 'agreeConfirm' })} {...keepFocus}>{A.accept}</Button>
+          <LinkButton testid={`${T}.agreement.notYet`} kind="quiet" href={href.plan(V.id)}>{A.notYet}</LinkButton>
+        </div>
+      )}
+      {G.canAccept && open && (
+        <div class="confirm" role="group" data-testid={`${T}.agreement.confirm`}>
+          <p>{fill(A.confirm, { clauses })}</p>
+          <div class="actions-row">
+            <Button testid={`${T}.agreement.yes`} kind="primary" disabled={!!V.saving} onClick={() => dispatch({ type: 'plan/agree', planId: V.id })} {...keepFocus}>{A.yes}</Button>
+            <Button testid={`${T}.agreement.no`} kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'agreeConfirm' })} {...keepFocus}>{A.no}</Button>
+          </div>
+        </div>
+      )}
+      {G.withdrawable && (
+        <div class="actions-row">
+          <Button testid={`${T}.agreement.withdraw`} kind="quiet" disabled={!!V.saving} onClick={() => dispatch({ type: 'plan/agreeWithdraw', planId: V.id })} {...keepFocus}>{A.withdraw}</Button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 const toastText = (toast) => {
   if (toast.kind === 'undone') return W.toast.undone;
   if (toast.kind === 'unchanged') return W.toast.unchanged;
@@ -214,6 +250,8 @@ const toastText = (toast) => {
   if (line.id === 'phase.saving.level') return fill(W.toast.level, { level: String(W.level.options[v] || v).toLowerCase() });
   if (line.id === 'phase.review.every') return fill(W.toast.every, { every: String(W.every.options[v] || v).toLowerCase() });
   if (line.id === 'phase.review.rule') return W.toast.rule;
+  if (line.id === 'agreed') return W.toast.agreed;
+  if (line.id === 'agreeWithdrawn') return W.toast.agreeWithdrawn;
   return W.toast.unchanged;
 };
 
@@ -270,6 +308,7 @@ export function ReviewScreen(state, dispatch) {
         {V.living && <LivingReview V={V} dispatch={dispatch} />}
         {V.documentReading && <p class="note" data-testid={`${T}.living.ladderKept`}>{W.living.ladder}</p>}
         <Run V={V} dispatch={dispatch} />
+        <Agreement V={V} dispatch={dispatch} open={(state.ui.open || []).includes('agreeConfirm')} />
         {V.save && (
           <form class="ask review-save" noValidate onSubmit={(e) => { e.preventDefault(); dispatch({ type: 'plan/reviewSave', planId }); }} data-region="plan-review" aria-busy={saving ? 'true' : undefined}>
             {problem && <p class="notice" role="alert" data-testid={`${T}.problem`} data-problem={V.problem}>{problem}</p>}

@@ -185,6 +185,8 @@ export const A = Object.freeze({
   // "Your review" (7.10.0; answers/plan/review.js): one page in every phase
   PLAN_REVIEW_SAVE: 'plan/reviewSave',    // { planId }                       "Save this review" (Moving, Living on it): saving { kind: 'reviewSave' }; ONE write of `phases` (the entry on the log) and the stamp
   PLAN_PHASE_SET:  'plan/phaseSet',       // { planId, part, value }          a choice on the review — part 'window' | 'saving.level' | 'review.every' | 'review.rule': saving { kind: 'phaseSet', part, value }; ONE write of `phases` and the stamp
+  PLAN_AGREE:      'plan/agree',          // { planId }                       "Yes, this is my plan" on the Moving review: saving { kind: 'agree' }; ONE write of `phases`, `planAmendments` and the stamp
+  PLAN_AGREE_WITHDRAW: 'plan/agreeWithdraw', // { planId }                    "Withdraw this": saving { kind: 'agreeWithdraw' }; the agreement and only the entry it carried, ONE write
   REVIEW_RUN:      'review/run',          // { key, planId, rows, pots }       "Test with what I hold" / "Work out the chance from today": the rows run on a press (the review effect), in order
   REVIEW_DONE:     'review/done',         // { key, row, result }              one row's result (stressPanelRun.runStressRow); dropped if the key is stale
   REVIEW_FAILED:   'review/failed',       // { key, reason? }                  the rows failed ('noWorker': no worker; 'stopped': left or the plan changed)

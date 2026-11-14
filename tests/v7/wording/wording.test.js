@@ -406,7 +406,7 @@ describe('the words in src/v7/copy/', () => {
     for (const [where, s] of strings(CHECKIN)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
   });
   it('"Your review" (review.js, 7.10.0): every string passes for its audience — living on it with the retired, moving and saving with the saver, the rest with both; no slot left unfilled; never advice', () => {
-    const slot = (s) => s.replace(/\{(month|stop|from|to|on|date|old|new)\}/g, 'April 2027').replace(/\{(left)\}/g, '18 months').replace(/\{(a|b|line|n|held|plan|needed|c)\}/g, '17')
+    const slot = (s) => s.replace(/\{(old|now)\}/g, 'Pots and valves').replace(/\{clauses\}/g, 'the money lasts as long as you do 17 times in 20').replace(/\{(month|stop|from|to|on|date|new)\}/g, 'April 2027').replace(/\{(left)\}/g, '18 months').replace(/\{(a|b|line|n|held|plan|needed|c)\}/g, '17')
       .replace(/\{(pot|low|mid|high|took|planned|left)\}/g, '£250,000').replace(/\{(year)\}/g, '2026').replace(/\{name\}/g, 'Global Fund').replace(/\{years\}/g, '2027/28, 2028/29')
       .replace(/\{(level|every)\}/g, 'cautiously').replace(/\{(age)\}/g, '95')
       .replace(/\{(chance|ref)\}/g, '17 times in 20').replace(/\{(fixed|refFixed)\}/g, 'in 16 of 20 futures we tried').replace(/\{(refLeft)\}/g, '£250,000').replace(/\{on\}/g, 'on the pots you entered');

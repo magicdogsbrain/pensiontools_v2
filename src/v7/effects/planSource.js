@@ -70,6 +70,7 @@ import { budgetOf } from '../../answers/plan/budget.js';
 import { savingOf, askFillOf } from '../../answers/plan/saving.js';
 import { checkInOf } from '../../answers/plan/checkIn.js';
 import { reviewOf } from '../../answers/plan/review.js';
+import { agreementViewOf } from '../../answers/plan/agree.js';
 import { monthOf } from '../../answers/plan/month.js';
 import { startPlanWrite } from './planWrite.js';
 import { startAccount } from './account.js';
@@ -178,6 +179,9 @@ export function viewFor(state) {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;
       const typed = pd ? pd.values : {};
       page.review = { ...reviewOf(plans.list, r.planId, { today, typed, page, source: plans.source, held: state.review || null }), draftKey: JSON.stringify(typed) };
+      // "I accept this as my plan" (7.10.0; answers/plan/agree.js): the Moving review's agreement, its state and whether it can be made now
+      const entry = plans.list.find((e) => e && e.plan && String(e.plan.id) === String(r.planId));
+      try { page.review.agreement = page.review.found && entry ? agreementViewOf(entry.plan, page.review, { today }) : null; } catch { page.review.agreement = null; }
     }
     if (r.step === 'checkin' || r.step === 'pot' || (reviewHere && page.review.phase === 'saving')) {
       const pd = state.draft && state.draft.plan && state.draft.plan.id === r.planId ? state.draft.plan : null;

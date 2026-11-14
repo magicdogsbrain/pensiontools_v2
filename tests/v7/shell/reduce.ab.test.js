@@ -324,7 +324,9 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.boolean()).map(([planId, value]) => ({ type: A.PLAN_RECORD_MONTHS, planId, value })),
   // "Your review" (7.10.0): a review saved, a choice made — one write each by the plan write
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_REVIEW_SAVE, planId })),
-  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(['window', 4], ['saving.level', 'cautious'], ['review.every', 'quarter'], ['review.rule', 'success:16'])).map(([planId, [part, value]]) => ({ type: A.PLAN_PHASE_SET, planId, part, value }))
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(['window', 4], ['saving.level', 'cautious'], ['review.every', 'quarter'], ['review.rule', 'success:16'])).map(([planId, [part, value]]) => ({ type: A.PLAN_PHASE_SET, planId, part, value })),
+  // "I accept this as my plan" and its withdrawal (7.10.0): one write each by the plan write
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(A.PLAN_AGREE, A.PLAN_AGREE_WITHDRAW)).map(([planId, type]) => ({ type, planId }))
 );
 
 /** 'NOW' is the key of what is typed at that moment, as the runner would send it; 'fillA'/'fillB' type a whole draft. */

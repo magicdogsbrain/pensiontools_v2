@@ -25,6 +25,7 @@ import { readDayOf } from '../../services/PlanClosed.js';
 import { isFilledIn } from '../../services/MonthFill.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { moveWindowOf } from '../../services/Phases.js';
+import { asHeldStateOf } from './agree.js';
 import { ym, dayWords } from './dates.js';
 import { startLaterOf } from '../../services/PlanMove.js';
 import { pensionLockForSettings } from '../../services/PlanNeed.js';
@@ -240,7 +241,9 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   const review = rd && stageKey !== 'none' ? { next: rd.next ? monthWords(rd.next.slice(0, 7)) : null, due: !!rd.due, href: rd.href } : null;
   const recorded = holdingsSummary(normaliseHoldings(plan.holdings)).count > 0;
   // what is held differently from the plan's mix, on a plan living on its money: one information line, never a to-do
-  const drift = stageKey === 'drawing' && recorded && !pg.readonly && !pg.closed && review ? driftLineOf(plan, now, review.href) : null;
+  // (never once what is held was accepted as the plan and still stands: answers/plan/agree.js asHeldStateOf)
+  let accepted = false; try { accepted = asHeldStateOf(plan, { today }).status === 'agreed'; } catch { accepted = false; }
+  const drift = stageKey === 'drawing' && recorded && !pg.readonly && !pg.closed && review && !accepted ? driftLineOf(plan, now, review.href) : null;
   const dt = plan.decisionTool && typeof plan.decisionTool === 'object' ? plan.decisionTool : {};
   const stepOf = (sid) => pg.steps.find((s) => s.id === sid) || null;
   // where you are, as a headline: the saver's reading against the path (or the last check-in); a moving plan's share of the

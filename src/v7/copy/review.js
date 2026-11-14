@@ -99,6 +99,27 @@ export const REVIEW = {
     },
     ladder: 'Your plan holds gilts bought for its years: the review keeps the figures it was locked with, never priced again.'
   },
+  /** "I accept this as my plan" (Moving): a note for the person's own records, never advice, and withdrawn at any time. */
+  agreement: {
+    title: 'Your plan as you hold it',
+    accept: 'I accept this as my plan',
+    notYet: 'Not yet',
+    confirm: 'You are saying you have moved what you intend to move, and you have seen what the money does with what you hold now: {clauses}. From the month you stop work, the plan is read as living on it. Nothing else about the plan changes, and you can withdraw this at any time. This is a note for your own records. It is not advice, and we have not judged whether the plan suits you.',
+    clauses: 'counting how long people your age live, the money lasts as long as you do {chance}; if you live to {age}, it lasts that long {fixed}',
+    clausesFixed: 'if you live to {age}, the money lasts that long {fixed}',
+    yes: 'Yes, this is my plan',
+    no: 'Go back',
+    accepted: 'On {date} you accepted what you held as your plan, when the money lasted as long as you do {chance}, with typically {left} left at {age}.',
+    acceptedNoLeft: 'On {date} you accepted what you held as your plan, when the money lasted as long as you do {chance}.',
+    acceptedFixed: 'On {date} you accepted what you held as your plan, when, if you lived to {age}, the money lasted that long {fixed}.',
+    acceptedPlain: 'On {date} you accepted what you held as your plan.',
+    stale: {
+      moved: 'What you hold has moved more than 5 points from what you accepted on {date}. What you accepted still stands; you can test what you hold now.',
+      version: 'The plan has a new version since you accepted it on {date}. You can test it again.',
+      strategy: 'You accepted this when the plan drew by {old}; it now draws by {now}, so it no longer stands.'
+    },
+    withdraw: 'Withdraw this'
+  },
   /** The run's own problems. */
   run: {
     noWorker: 'This browser could not start the part of the page that works this out, so nothing was tried.',
@@ -157,7 +178,10 @@ export const REVIEW = {
     readonly: 'This plan is shown as it was saved and cannot be changed here.',
     nobody: 'You are no longer signed in, so nothing was saved.',
     notHere: 'That plan is not here any more.',
-    usedUp: 'Your free time is used up, so nothing was saved.'
+    usedUp: 'Your free time is used up, so nothing was saved.',
+    noResult: 'Test with what you hold first: the agreement is made on what that shows.',
+    oldResult: 'The plan or what you hold changed since the test. You can test it again.',
+    none: 'There is no agreement to withdraw.'
   },
   /** What a save or a choice says once written. */
   toast: {
@@ -167,6 +191,8 @@ export const REVIEW = {
     level: 'Saved: while you save, the plan works out your pension as invested {level}.',
     every: 'Saved: your review falls {every}.',
     rule: 'Saved: when we say you are off course.',
+    agreed: 'Saved: you accepted what you hold as your plan.',
+    agreeWithdrawn: 'Withdrawn. The plan is read from its dates again.',
     undone: 'Put back as it was.',
     unchanged: 'Nothing to save: it was already that.'
   },

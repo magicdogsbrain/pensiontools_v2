@@ -46,6 +46,8 @@
  *   { at, kind, test: { id, inputs: { strategyId, startAge, years, firstTaxYear, shock? } },
  *     result: { chance, fixedAge, planToAge, runOutAge, typicalRunOutAge, coverage, floor, leftMedian, cuts? },
  *     fingerprint, engineVersion, documentAt, ageRule }
+ * 7.10.0: kind 'asHeld' with test.id 'whole' is the Moving review's agreement (answers/plan/agree.js), its result carrying
+ * `heldMix` ({ shares, bonds, cash, diversifiers } in whole points of the pension, or null with no pension record).
  * `chance` is null for a row with no weighted figure (it is accepted on `fixedAge`); `planToAge` is to that birthday
  * (`ageRule`, services/AgeConvention.js); `engineVersion` the app's version. The kept lines' risk has one record, the
  * keep agreement on What you hold: the held rows show its state and never write.
@@ -403,8 +405,14 @@ export function sayStress(part, W) {
   return String(typeof t === 'string' ? t : '').replace(/\{(\w+)\}/g, (m, k) => { const v = part.slots ? part.slots[k] : undefined; return v == null ? m : typeof v === 'object' ? sayStress(v, W) : String(v); });
 }
 
-/** The kind of agreement a row's "I accept this risk" writes: As planned's own figure ('confidence'), a market row ('stress'); the held rows none. */
-export const kindOfRow = (id) => (id === 'asPlanned' ? 'confidence' : MARKET_IDS.includes(id) ? 'stress' : null);
+/**
+ * The kind of agreement a row's "I accept this risk" writes: As planned's own figure ('confidence'), a market row ('stress');
+ * the held rows none. 7.10.0: the Moving review's "I accept this as my plan" (row 'whole', what is held, whole) writes kind
+ * 'asHeld' — never a row of the panel, so the panel's agreements and the review's never replace or withdraw each other.
+ */
+export const kindOfRow = (id) => (id === 'asPlanned' ? 'confidence' : MARKET_IDS.includes(id) ? 'stress' : id === 'whole' ? 'asHeld' : null);
+/** The review's agreement row (7.10.0): what is held, whole. */
+export const WHOLE_ID = 'whole';
 
 /** What an agreement records as the row's change (its test.inputs.shock): the size, never the run's start month. */
 function changeOf(id) {
@@ -583,6 +591,21 @@ export function stressAmendPatch(plan, row, { at, today, settings = null } = {})
   const fail = (problem) => ({ ok: false, problem, patch: {}, previous: {}, line: null, entry: null });
   if (isClosedPlan(plan)) return fail('closed');
   const id = row && row.id;
+  // the Moving review's agreement (7.10.0; answers/plan/agree.js, the only caller): what is held, whole — accepted whatever
+  // the figures say (a plan the person accepts may run out in no future), with what was held in whole points beside them
+  if (id === WHOLE_ID) {
+    const res = row.result;
+    if (isObj(res) && res.na) return fail('na');
+    if (!isObj(res) || !isObj(res.a) || typeof at !== 'string' || !ISO.test(at)) return fail('noResult');
+    if (res.key !== stressKeyOf(plan, today)) return fail('oldResult');
+    let s = settings;
+    if (!isObj(s)) { try { s = effectiveStressSettings(plan, { now: dateOf(today) }); } catch { s = {}; } }
+    const base = stressEntryOf(plan, row, { at, settings: s });
+    const heldMix = isObj(row.heldMix) ? Object.fromEntries(['shares', 'bonds', 'cash', 'diversifiers'].map((b) => [b, r0(row.heldMix[b]) || 0])) : null;
+    const entry = { ...base, result: { ...base.result, heldMix } };
+    const list = [...amendmentsWithout(plan, (e) => e.kind === 'asHeld' && isObj(e.test) && e.test.id === WHOLE_ID), entry];
+    return { ok: true, problem: null, patch: declared({ planAmendments: list }), previous: previousOf(plan), line: { id: 'agreed', slots: { date: dayWords(at) } }, entry };
+  }
   if (HELD_IDS.includes(id)) return fail('held');
   const kind = kindOfRow(id);
   if (!kind) return fail('noResult');

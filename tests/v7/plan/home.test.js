@@ -7,7 +7,7 @@
  *   - one engine: on every plan, every address, the rail's "Next" is the first thing due (read.js dueFor), and the home's
  *     first to-do is the rail's "Next";
  *   - the nothing-due line is only ever a true, dated sentence; a drawing plan with nothing due always has one;
- *   - "Not now" (the window only) leaves a to-do out of the home and the rail alike;
+ *   - "Not now" (7.10.0: stored on the plan, answers/plan/tasks.js) leaves a to-do out of the home and the rail alike;
  *   - the plans list says the stage word and "N to do"; a partner's plan adds its due lines by name, never its figures;
  *   - landing: a remembered place on a locked plan is its home; a sign-in on the account page goes to the last plan;
  *   - reads only: ALL_WRITES is the list main has, byte for byte, and a stored plan is byte-identical after its home and
@@ -31,11 +31,11 @@ import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { parse, format, PLAN_SUB_STEPS } from '../../../src/v7/router/routes.js';
 import { startPlanWrite } from '../../../src/v7/effects/planWrite.js';
-import { startPlace, landingFor, afterSignInFor, NOT_NOW_KEY } from '../../../src/v7/effects/place.js';
+import { startPlace, landingFor, afterSignInFor } from '../../../src/v7/effects/place.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
 import { WHERE_LINES } from '../../../src/answers/plan/home.js';
 import { upgradedList, viewFor } from '../../../src/v7/effects/planSource.js';
-import { corpus, entriesAt, entryOf, household, noon, DATES, TODAY } from './_plans.js';
+import { corpus, entriesAt, entryOf, household, noon, withTasks, DATES, TODAY } from './_plans.js';
 
 const C = corpus();
 const copy = (v) => JSON.parse(JSON.stringify(v));
@@ -237,12 +237,14 @@ describe('nothing due: a dated line, only ever true', () => {
     const id = e.plan.id;
     const before = homeOf([e], id, { today: TODAY });
     expect(before.todo.items.map((x) => x.id)).toEqual(['hold.stale']);
-    expect(before.todo.items[0].dismiss).toBe('window');
-    const h = homeOf([e], id, { today: TODAY, notNow: [id + '|hold.stale'] });
+    expect(before.todo.items[0].dismiss).toEqual(['notNow']);
+    expect(before.todo.items[0].key).toBe('hold.stale');
+    const put = entryOf(withTasks(raw, ['hold.stale'], { until: '2026-11' }), TODAY);
+    const h = homeOf([put], id, { today: TODAY });
     expect(h.todo.items).toEqual([]);
     expect(fill(HOME.quiet[h.quiet.id], h.quiet.slots)).toBe('October is recorded. Nothing is due until 1 November.');
     // the rail agrees, word for word as before
-    const pg = planPage([e], id, 'plan', { today: TODAY, notNow: [id + '|hold.stale'] });
+    const pg = planPage([put], id, 'plan', { today: TODAY });
     expect(pg.next.id).toBe('P.idle');
     expect(fill(PLAN.next['P.idle'], pg.next.slots)).toBe('October 2026 is recorded. Nothing to do until November.');
   });
@@ -251,8 +253,8 @@ describe('nothing due: a dated line, only ever true', () => {
     raw.decisionTool.cadence = 'quarterly';
     const h0 = raw.decisionTool.history;
     for (const m of ['2026-10', '2026-11', '2026-12']) h0.push({ ...h0[h0.length - 1], date: m });
-    const e = entryOf(raw, TODAY);
-    const h = homeOf([e], e.plan.id, { today: TODAY, notNow: [e.plan.id + '|hold.stale'] });
+    const e = entryOf(withTasks(raw, ['hold.stale']), TODAY);
+    const h = homeOf([e], e.plan.id, { today: TODAY });
     expect(h.todo.items).toEqual([]);
     expect(fill(HOME.quiet[h.quiet.id], h.quiet.slots)).toBe('December is recorded. Nothing is due until 1 January.');
   });
@@ -262,10 +264,10 @@ describe('nothing due: a dated line, only ever true', () => {
       for (const raw of Object.values(C)) {
         const month = today.slice(0, 7);
         if (!raw.decisionTool || !Array.isArray(raw.decisionTool.history) || !raw.decisionTool.history.length) continue;
-        const e = entryOf(recordedThisMonth(raw, month), today);
-        const pg = planPage([e], e.plan.id, null, { today, notNow: [e.plan.id + '|hold.stale'] });
+        const e = entryOf(withTasks(recordedThisMonth(raw, month), ['hold.stale']), today);
+        const pg = planPage([e], e.plan.id, null, { today });
         if (!pg.life || pg.life.key !== 'drawing' || !pg.locked) continue;
-        const h = homeOf([e], e.plan.id, { today, notNow: [e.plan.id + '|hold.stale'] });
+        const h = homeOf([e], e.plan.id, { today });
         if (h.todo.count) continue;
         seen++;
         expect(h.quiet, e.plan.id).not.toBe(null);
@@ -295,7 +297,7 @@ describe('the plans list, a partner\'s due lines, the soon item', () => {
     expect([row('05-saver-committed').life, row('05-saver-committed').todo]).toEqual(['saving', 1]);
     // a closed plan's way on is not counted on its row (retaken on purpose: it was 1, "Closed · 1 to do")
     expect([row('18-moved-to-new-plan').life, row('18-moved-to-new-plan').todo]).toEqual(['closed', 0]);
-    const put = planRows(entries, { today: TODAY, notNow: [C['04-buckets-running'].id + '|hold.stale'] }).groups.flatMap((g) => g.rows);
+    const put = planRows(entries.map((e) => (e.plan.id === C['04-buckets-running'].id ? { ...e, plan: withTasks(e.plan, ['hold.stale']) } : e)), { today: TODAY }).groups.flatMap((g) => g.rows);
     expect(put.find((r) => r.id === String(C['04-buckets-running'].id)).todo).toBe(1);
   });
   it('a partner\'s plan adds its month and its move, named by its plan, never its figures; not to the rail', () => {
@@ -317,33 +319,58 @@ describe('the plans list, a partner\'s due lines, the soon item', () => {
     const raw = copy(C['04-buckets-running']);
     const h0 = raw.decisionTool.history;
     for (const m of ['2026-10', '2026-11', '2026-12', '2027-01', '2027-02', '2027-03']) h0.push({ ...h0[h0.length - 1], date: m });
-    const e = entryOf(raw, today);
-    const h = homeOf([e], e.plan.id, { today, notNow: [e.plan.id + '|hold.stale'] });
+    const e = entryOf(withTasks(raw, ['hold.stale']), today);
+    const h = homeOf([e], e.plan.id, { today });
     expect(h.todo.count).toBe(0);
     expect(h.todo.soon.map((x) => [x.id, x.soon, x.slots.year, x.button.choose])).toEqual([['month.taxYear', true, '2027/28', '2027-04']]);
-    expect(planPage([e], e.plan.id, null, { today, notNow: [e.plan.id + '|hold.stale'] }).next.id).toBe('P.idle');
-    expect(homeOf([e], e.plan.id, { today: '2027-02-10', notNow: [e.plan.id + '|hold.stale'] }).todo.soon).toEqual([]);
+    expect(planPage([e], e.plan.id, null, { today }).next.id).toBe('P.idle');
+    expect(homeOf([e], e.plan.id, { today: '2027-02-10' }).todo.soon).toEqual([]);
   });
 });
 
-describe('"Not now": the window only, never the plan', () => {
-  it('the reducer keeps tidy keys only; the window\'s list is read back on load and kept on every press', () => {
+describe('"Not now": stored on the plan (7.10.0), never the window', () => {
+  it('the reducer asks the plan write for it, with a to-do\'s key and how it is put away only; the window keeps nothing', () => {
     let s = initialState({ today: TODAY, build: 'test' });
-    expect(s.ui.notNow).toEqual([]);
-    s = reduce(s, { type: A.TODO_NOT_NOW, key: 'Td4|hold.stale' });
-    expect(s.ui.notNow).toEqual(['Td4|hold.stale']);
-    expect(reduce(s, { type: A.TODO_NOT_NOW, key: 'Td4|hold.stale' })).toBe(s);
-    for (const bad of ['', 'no-bar', 'a|b', 'x|hold.stale £1', 5, null]) expect(() => reduce(s, { type: A.TODO_NOT_NOW, key: bad })).toThrow(/todo\/notNow/);
-    const mem = new Map();
-    const session = { getItem: (k) => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)), removeItem: (k) => mem.delete(k) };
+    expect('notNow' in s.ui).toBe(false);
+    const ok = reduce(s, { type: A.PLAN_TASK, planId: 'Td4', key: 'hold.stale', how: 'notNow' });
+    expect(ok.ui.saving).toEqual({ planId: 'Td4', kind: 'task', key: 'hold.stale', how: 'notNow' });
+    expect(reduce(s, { type: A.PLAN_TASK, planId: 'Td4', key: 'review.due@2027/28', how: 'notThisTime' }).ui.saving.key).toBe('review.due@2027/28');
+    for (const bad of ['', 'no-dot', 'a|b', 'hold.stale £1', 'hold.stale@ 1', 5, null]) expect(() => reduce(s, { type: A.PLAN_TASK, planId: 'Td4', key: bad, how: 'notNow' })).toThrow(/plan\/task/);
+    expect(() => reduce(s, { type: A.PLAN_TASK, planId: 'Td4', key: 'hold.stale', how: 'later' })).toThrow(/plan\/task/);
+    expect(() => reduce(s, { type: A.PLAN_TASK, planId: '', key: 'hold.stale', how: 'notNow' })).toThrow(/plan\/task/);
+  });
+  it('one write of `tasks` and nothing else — no stamp — hidden until next month on every device, said; refused on a closed plan', async () => {
+    const raw = copy(C['04-buckets-running']);
+    const writes = [];
+    const fb = { doc: (db, ...path) => ({ path: path.join('/') }), updateDoc: (ref, data) => { writes.push({ ref, data }); return Promise.resolve(); }, addDoc: () => Promise.resolve({ id: 'x' }), deleteDoc: () => Promise.resolve(), collection: () => ({}) };
     const store = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
-    const stop = startPlace(store, { session, local: null });
-    store.dispatch({ type: A.TODO_NOT_NOW, key: 'Td4|hold.stale' });
-    expect(JSON.parse(mem.get(NOT_NOW_KEY))).toEqual(['Td4|hold.stale']);
+    store.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'a@b.c' } });
+    store.dispatch({ type: A.PLANS_SET, list: upgradedList([raw], noon(TODAY)), source: 'account', readAt: '14:03' });
+    const handles = () => ({ db: { name: 'db' }, user: { uid: 'u1', email: 'a@b.c', emailVerified: true }, reread: () => Promise.resolve() });
+    const stop = startPlanWrite(store, { session: null, local: null, now: () => new Date(TODAY + 'T14:03:00.000Z'), fb, client: null, handles });
+    store.dispatch({ type: A.PLAN_TASK, planId: String(raw.id), key: 'hold.stale', how: 'notNow' });
+    await tick();
+    expect(writes).toHaveLength(1);
+    expect(writes[0].ref.path).toBe('users/u1/scenarios/' + raw.id);
+    expect(Object.keys(writes[0].data)).toEqual(['tasks']);
+    expect(writes[0].data.tasks).toEqual({ ...(raw.createdAt ? { of: raw.createdAt } : {}), dismissed: { 'hold.stale': { at: TODAY + 'T14:03:00.000Z', until: '2026-11' } } });
+    expect(store.getState().ui.toast).toMatchObject({ kind: 'done', op: 'task', previous: null, line: { id: 'putOff', slots: { month: 'November 2026' }, key: 'hold.stale' } });
     stop();
-    const again = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
-    const stop2 = startPlace(again, { session, local: null });
-    expect(again.getState().ui.notNow).toEqual(['Td4|hold.stale']);
+    // read back (another device): gone this month, back in November
+    const stored = { ...raw, tasks: writes[0].data.tasks };
+    expect(homeOf([entryOf(stored, TODAY)], raw.id, { today: TODAY }).todo.items.map((x) => x.id)).not.toContain('hold.stale');
+    expect(homeOf([entryOf(stored, '2026-11-02')], raw.id, { today: '2026-11-02' }).todo.items.map((x) => x.id)).toContain('hold.stale');
+    // a closed plan whose close has passed: nothing is written
+    const closed = copy(C['18-moved-to-new-plan']);
+    const w2 = [];
+    const store2 = createStore(initialState({ today: TODAY, build: 'test' }), reduce);
+    store2.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'a@b.c' } });
+    store2.dispatch({ type: A.PLANS_SET, list: upgradedList([closed], noon(TODAY)), source: 'account', readAt: '14:03' });
+    const stop2 = startPlanWrite(store2, { session: null, local: null, now: () => new Date(TODAY + 'T14:03:00.000Z'), fb: { ...fb, updateDoc: (ref, data) => { w2.push(data); return Promise.resolve(); } }, client: null, handles });
+    store2.dispatch({ type: A.PLAN_TASK, planId: String(closed.id), key: 'closed.next', how: 'done' });
+    await tick();
+    expect(w2).toEqual([]);
+    expect(store2.getState().ui.saveProblem).toMatchObject({ problem: 'locked' });
     stop2();
   });
 });
@@ -408,7 +435,8 @@ describe('reads only: nothing new is written to any plan', () => {
     const go = (hash) => { store.dispatch({ type: A.ROUTE_SET, route: parse(hash) }); store.dispatch({ type: A.PLANS_VIEW, view: viewFor(store.getState()) }); };
     return { store, writes, go, stop };
   }
-  it('gate 2: every committed plan, its home and every step opened and browsed (the folds, "Not now", the tools) — byte-identical, not one write', async () => {
+  // 7.10.0: "Not now" is a write of its own now (stored on the plan, below), so the browse no longer presses it
+  it('gate 2: every committed plan, its home and every step opened and browsed (the folds, the tools) — byte-identical, not one write', async () => {
     const raws = Object.values(C).map(copy);
     const before = JSON.stringify(upgradedList(raws, noon(TODAY)).map((e) => e.plan));
     const b = browse(raws, null);
@@ -416,7 +444,6 @@ describe('reads only: nothing new is written to any plan', () => {
       b.go('#/plan/' + raw.id);
       const home = b.store.getState().plans.view.page.home;
       expect(home && home.found, raw.id).toBe(true);
-      if (home.todo.items.some((x) => x.dismiss)) b.store.dispatch({ type: A.TODO_NOT_NOW, key: raw.id + '|hold.stale' });
       for (const step of [...ALL_STEPS, ...PLAN_SUB_STEPS]) b.go('#/plan/' + raw.id + '/' + step);
       for (const id of ['monthOther', 'checkInAnyway']) b.store.dispatch({ type: A.UI_TOGGLE, id });
       b.go('#/plan/' + raw.id);
@@ -473,8 +500,8 @@ describe('what the reviews found (7.3.0): the invitation, the move on a drawing 
     const e = entryOf(raw, TODAY);
     const pg = planPage([e], e.plan.id, null, { today: TODAY });
     expect(pg.life.key).toBe('drawing');
-    expect(pg.due.map((d) => [d.id, d.pid, d.dismiss || null])).toEqual([['start.moveRecords', 'P.startMove', null], ['month.record', 'P.month', null], ['move.next', 'P.moveLater', 'window']]);   // 7.4.3
-    expect(planPage([e], e.plan.id, null, { today: TODAY, notNow: [e.plan.id + '|move.next'] }).due.map((d) => d.id)).toEqual(['start.moveRecords', 'month.record']);
+    expect(pg.due.map((d) => [d.id, d.pid, d.dismiss || null])).toEqual([['start.moveRecords', 'P.startMove', null], ['month.record', 'P.month', null], ['move.next', 'P.moveLater', ['notNow']]]);   // 7.4.3
+    expect(planPage([entryOf(withTasks(raw, ['move.next'], { until: '2026-11' }), TODAY)], e.plan.id, null, { today: TODAY }).due.map((d) => d.id)).toEqual(['start.moveRecords', 'month.record']);
     // a plan whose holdings show the plan's mix (04) has nothing to move: no move to-do
     expect(planPage(entriesAt(TODAY), C['04-buckets-running'].id, null, { today: TODAY }).due.map((d) => d.id)).not.toContain('move.next');
   });
@@ -616,7 +643,7 @@ describe('drawing while the holdings are not exact (7.3.1): a plan recording mon
     const h = homeOf([e], e.plan.id, { today: TODAY });
     expect(h.stage.key).toBe('drawing');
     expect(h.heldMix).toBe(null);
-    expect([...h.todo.items, ...h.todo.more].map((x) => [x.id, x.pid, x.dismiss || null])).toEqual([['start.moveRecords', 'P.startMove', null], ['month.record', 'P.month', null], ['move.next', 'P.moveLater', 'window']]);   // 7.4.3
+    expect([...h.todo.items, ...h.todo.more].map((x) => [x.id, x.pid, x.dismiss || null])).toEqual([['start.moveRecords', 'P.startMove', null], ['month.record', 'P.month', null], ['move.next', 'P.moveLater', ['notNow']]]);   // 7.4.3
   });
   it('the words: the share and what is different, filled; the rail\'s move sentences word for word as 7.3.0 had them', () => {
     const W = HOME.heldMix;

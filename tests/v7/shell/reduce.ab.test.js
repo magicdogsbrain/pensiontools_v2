@@ -314,9 +314,8 @@ const anyAction = fc.oneof(
   // keep → sign in → back, and the place last left (7.1.0)
   fc.constantFrom(null, { q: 'b', step: 'answer' }, { planId: 'W1', step: 'saving', kept: true }).map((back) => ({ type: A.ACCOUNT_RETURN, back })),
   fc.constantFrom({ planId: 'P1', step: null }, { planId: 'P1', step: 'about' }).map((place) => ({ type: A.PLACE_KEEP, place })),
-  // a home's "Not now" (7.3.0): the window's own list, never a plan's
-  fc.constantFrom('P1|hold.stale', 'P2|hold.stale').map((key) => ({ type: A.TODO_NOT_NOW, key })),
-  fc.constantFrom([], ['P1|hold.stale']).map((keys) => ({ type: A.TODO_NOT_NOW_SET, keys }))
+  // a home's to-do put away (7.10.0): stored on the plan by the plan write, never kept in the window
+  fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('hold.stale', 'month.record@2026-10', 'review.due@2027/28'), fc.constantFrom('notNow', 'notThisTime', 'seen', 'done')).map(([planId, key, how]) => ({ type: A.PLAN_TASK, planId, key, how }))
 );
 
 /** 'NOW' is the key of what is typed at that moment, as the runner would send it; 'fillA'/'fillB' type a whole draft. */

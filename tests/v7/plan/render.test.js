@@ -386,7 +386,7 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     expect(text).not.toContain('September 2026 recorded');
     expect(text).not.toContain('Nothing to do until');
     // the plan as the corpus has it, the same day: recorded, as before
-    const whole = draw(stateWith(entriesAt(today), '#/plan/' + id + '/month', { today, notNow: [id + '|hold.stale'] }));
+    const whole = draw(stateWith(entriesAt(today), '#/plan/' + id + '/month', { today, tasks: { [id]: ['hold.stale'] } }));
     expect(whole.text).toContain('September 2026 recorded');
     expect(whole.text).toContain('September 2026 is recorded. Nothing to do until October.');
   });
@@ -415,7 +415,7 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     const b = raws.find((p) => p.id === id);
     b.decisionTool.history.find((h) => h.date === '2026-09').paidAhead = true;   // September's entry was made in August, after August's payment
     const today = '2026-09-30';
-    const sept = draw(stateWith(entriesAt(today, raws), '#/plan/' + id + '/month', { today, notNow: [id + '|hold.stale'] }));
+    const sept = draw(stateWith(entriesAt(today, raws), '#/plan/' + id + '/month', { today, tasks: { [id]: ['hold.stale'] } }));
     expect(sept.text).toContain('September 2026 recorded');
     expect(sept.text).toContain('September 2026 is recorded. Nothing to do until October.');
     expect(sept.text).not.toContain('August 2026 is not recorded');

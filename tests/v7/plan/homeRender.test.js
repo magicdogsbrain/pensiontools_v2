@@ -119,20 +119,25 @@ describe('each stage\'s home', () => {
     expect(cells[0].querySelector('.year-bar').getAttribute('style')).toMatch(/^height: ?\d+%/);
     expect(cells[0].querySelector('.sr-only').textContent).toMatch(/^April 2026: recorded, £[\d,]+ taken before tax; the plan said £[\d,]+$/);
     expect(one(root, `${T}.where`).textContent).toContain('6 months recorded in 2026/27');
-    // "Not now": the to-do slides away, then the window is asked to put it off — the plan is never written
+    // "Not now" (7.10.0): the to-do slides away, then the plan write is asked to store it on the plan (plan/task)
     one(root, `${T}.notNow.hold.stale`).click();
-    return new Promise((done) => setTimeout(() => {
-      expect(actions).toEqual([{ type: 'todo/notNow', key: 'SamBuckets04|hold.stale' }]);
-      done();
+    return new Promise((done, failed) => setTimeout(() => {
+      try { expect(actions).toEqual([{ type: 'plan/task', planId: 'SamBuckets04', key: 'hold.stale', how: 'notNow' }]); done(); } catch (e) { failed(e); }
     }, 500));
   });
   it('home-drawing, put off: nothing due — the dated line, "September is recorded. Nothing is due until 1 October."', () => {
-    const { root } = draw(load('home-drawing'), { type: A.TODO_NOT_NOW, key: 'SamBuckets04|hold.stale' });
+    // stored on the plan (7.10.0): the plan as read back after the write, and the write's own toast
+    const stored = load('home-drawing');
+    stored.plans.list = stored.plans.list.map((e) => (e.plan.id === 'SamBuckets04' ? { ...e, plan: { ...e.plan, tasks: { dismissed: { 'hold.stale': { at: '2026-09-30T12:00:00.000Z', until: '2026-10' } } } } } : e));
+    const { root } = draw(stored, { type: A.PLAN_SAVED, planId: 'SamBuckets04', previous: null, line: { id: 'putOff', slots: { month: 'October 2026' }, key: 'hold.stale' }, op: 'task' });
     expect(root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
     expect(one(root, `${T}.quiet`).textContent).toBe('September is recorded. Nothing is due until 1 October.');
     // and what "Not now" did, and for how long
-    expect(one(root, `${T}.notNowDone`).textContent).toBe(HOME.notNowDone);
+    expect(one(root, `${T}.notNowDone`).textContent).toBe('Put off until October 2026.');
     expect(one(draw(load('home-drawing')).root, `${T}.notNowDone`)).toBe(null);
+    // while the write is under way the to-do is already gone from the list
+    const pending = draw(load('home-drawing'), { type: A.PLAN_TASK, planId: 'SamBuckets04', key: 'hold.stale', how: 'notNow' });
+    expect(pending.root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
   });
   it('home-moving: a saver inside the move window reads "Moving." — what is held never decides it; the strip on Moving, no move to-do', () => {
     // retaken in 7.10.0 (spec-7100 §2): the Moving home was a ladder short of its rungs before its first month — read from what

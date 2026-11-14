@@ -1377,7 +1377,9 @@ function reduceAction(state, action) {
       // 7.5.0: the browser holds the note that someone is signed in here (effects/place.js), so the front door waits for the
       // session rather than drawing the stranger's door first (select.js frontWaiting)
       if (typeof patch.signedInHint === 'boolean') env.signedInHint = patch.signedInHint;
-      if (env.today === state.env.today && env.historyEnd === state.env.historyEnd && env.appVersion === state.env.appVersion && env.signedInHint === state.env.signedInHint) return state;
+      // 7.9.0: the strip under C's and D's answers switched off (answers/shared/rules.js STRESS.strip, told by its effect)
+      if (patch.stressStrip === false) env.stressStrip = false;
+      if (env.today === state.env.today && env.historyEnd === state.env.historyEnd && env.appVersion === state.env.appVersion && env.signedInHint === state.env.signedInHint && env.stressStrip === state.env.stressStrip) return state;
       return { ...state, env };
     }
 

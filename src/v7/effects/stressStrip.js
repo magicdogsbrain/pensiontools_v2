@@ -8,14 +8,17 @@
  *
  * No page fallback: a browser that cannot start a worker gets the reason 'noWorker', and the strip says so.
  *
- *   startStressStripRunner({ store, client }) → stop()
+ *   startStressStripRunner({ store, client, on }) → stop()     on: rules.js STRESS.strip (false: the strip switched off)
  *     client.stressStrip(q, inputs, env, at, onProgress)   env = { today, futures, seed }, at = { perMonth }
  */
 import { A } from '../state/actions.js';
 import { stripAmountOf } from '../state/select.js';
 import { NO_WORKER } from './workerClient.js';
+import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 
-export function startStressStripRunner({ store, client } = {}) {
+export function startStressStripRunner({ store, client, on = STRESS_ON.strip } = {}) {
+  // the rollback (rules.js STRESS.strip false): the page told, so no strip is drawn under any answer
+  if (!on) store.dispatch({ type: A.ENV_SET, patch: { stressStrip: false } });
   let stopped = false;
   let running = null;   // 'q|key' under way
 

@@ -1295,6 +1295,7 @@ export function stripAmountOf(q, result) {
  * only while they are for the answer on screen (its inputsKey). Null when there is nothing to try.
  */
 export function stressStripView(state, q) {
+  if (state.env && state.env.stressStrip === false) return null;   // switched off (rules.js STRESS.strip, told by its effect)
   const answer = state.answers && state.answers[q];
   if (!answer || answer.status !== 'final' || !answer.result || answer.result.status !== 'ok') return null;
   const perMonth = stripAmountOf(q, answer.result);

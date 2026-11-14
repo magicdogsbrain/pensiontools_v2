@@ -63,6 +63,7 @@ import { householdOf } from '../../answers/plan/household.js';
 import { holdOf } from '../../answers/plan/hold.js';
 import { keepTestOf } from '../../answers/plan/keepTest.js';
 import { stressPanelView } from '../../answers/plan/stressPanel.js';
+import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { moveOf } from '../../answers/plan/move.js';
 import { budgetOf } from '../../answers/plan/budget.js';
@@ -211,11 +212,12 @@ export function viewFor(state) {
         const entry = plans.list.find((e) => e && e.plan && String(e.plan.id) === String(r.planId));
         pl.try = entry ? tryViews(entry.plan, typed, L && L.key === pl.runKey ? L.tried : null, L ? L.kept : null, { today, editable: pl.editable, saved: pl }) : null;
         // "Try the bad years" (7.9.0): the rows, the agreements and the keep agreement's state, read with the rows held in page
-        // memory (state.stressPanel) for THIS plan as it is now — every row at the page's level, no run
+        // memory (state.stressPanel) for THIS plan as it is now — every row at the page's level, no run (none with the panel
+        // switched off: rules.js STRESS.panel)
         const Sp = state.stressPanel || null;
         try {
           const held = Sp && Sp.planId === String(r.planId) ? Sp.rows : null;
-          const sv = entry && !entry.newer && !entry.failed ? stressPanelView(entry.plan, held, { level: state.ui && state.ui.level, today }) : null;
+          const sv = STRESS_ON.panel && entry && !entry.newer && !entry.failed ? stressPanelView(entry.plan, held, { level: state.ui && state.ui.level, today }) : null;
           const mine = sv && Sp && Sp.key === sv.key ? Sp : null;
           pl.stressPanel = sv ? { ...sv, planId: String(r.planId), run: { status: mine ? mine.status : 'idle', reason: mine ? mine.reason : null, done: mine ? mine.order.filter((id) => mine.rows[id]).length : 0, total: mine ? mine.order.length : 0 } } : null;
         } catch { pl.stressPanel = null; }

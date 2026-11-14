@@ -11,6 +11,7 @@ import { LIFE_TABLE, HORIZON } from '../services/LongevityModel.js';
 import { chanceWords, fixedAgeWords } from '../answers/shared/format.js';
 import { LEVEL_IDS } from '../answers/shared/shown.js';
 import { SUCCESS, planToAgeOf } from '../answers/shared/rules.js';
+import { STRESS } from '../v7/copy/stressPanel.js';
 
 const futuresWords = (share) => futuresOutOfTen(share).words;
 
@@ -99,7 +100,7 @@ function decadeWords(sc) {
  * Scenarios: the named stresses, explained — what the decade did, and what the one test's real history from that
  * start did to this plan. The full gilt ladder keeps its inflation table (the only thing a scenario changes for it).
  */
-export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenarios = {}, startYears = {}, worst = [] }) {
+export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenarios = {}, startYears = {}, worst = [], rowsShown = false }) {
   let h = '<div class="card"><h2>Scenarios — the named stresses</h2>';
   if (!a) return h + '<div class="alert alert-warning">The strategy is not affordable on this plan, so there is nothing to run the scenarios through. Fix the plan in Settings first.</div></div>';
   if (strategyId === 'full-il-gilt' && r && r.plan && r.plan.years && r.plan.years.length) {
@@ -121,7 +122,10 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
     h += '<p class="hint" style="margin-top:10px;">What no scenario here tests: your own inflation running above the official index (care, energy, services), the RPI→CPIH change in February 2030, frozen tax thresholds, and the DMO\'s 3-month indexation lag in a fast-moving year. The Great Depression row is a real deflation — UK linkers have no floor, so the pounds fall with prices; they still buy the plan.</p>';
     return h + '</div>';
   }
-  h += '<p>Each named stress is a real decade. The one test already contains it: the real history that starts at that decade\'s first year is one of the ' + n0(a.histories) + ' starts behind your figure of <strong>' + pctText(a.chancePct, 0, CHANCE_BARS) + '</strong> (lasts ' + esc(a.outOfTen.words) + '). Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>';
+  // with "Try the bad years" above (7.9.0), the plan's own figure is the As planned line there: no second figure here
+  h += rowsShown
+    ? '<p>Each named stress is a real decade. The one test already contains it: the real history that starts at that decade\'s first year is one of the ' + n0(a.histories) + ' real starts behind this plan\'s figure above. Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>'
+    : '<p>Each named stress is a real decade. The one test already contains it: the real history that starts at that decade\'s first year is one of the ' + n0(a.histories) + ' starts behind your figure of <strong>' + pctText(a.chancePct, 0, CHANCE_BARS) + '</strong> (lasts ' + esc(a.outOfTen.words) + '). Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>';
   h += '<div class="table-scroll-container"><table><thead><tr><th>Named stress</th><th>What the decade did</th><th>Retiring into it: what happened to this plan</th><th>Lowest 12 months</th><th>Left at the end</th></tr></thead><tbody>';
   for (const [k, sc] of Object.entries(scenarios)) {
     const y = startYears[k];
@@ -136,7 +140,9 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
     h += '<tr><td>' + sw + esc(sc.name) + '<br><span class="hint">from January ' + y + '</span></td><td>' + esc(decadeWords(sc)) + '</td>' + cells + '</tr>';
   }
   h += '</tbody></table></div>';
-  h += '<p class="hint" style="margin-top:8px;">Until 6.24 this tab ran each decade over and over for the whole plan and marked the plan as failed — a test nothing real has ever set. The one test counts every real start once; the named decades are explained here, not re-run.</p></div>';
+  h += rowsShown
+    ? '<p class="hint" style="margin-top:8px;" data-stress-hint="1">' + esc(STRESS.classicHint) + '</p></div>'
+    : '<p class="hint" style="margin-top:8px;">Until 6.24 this tab ran each decade over and over for the whole plan and marked the plan as failed — a test nothing real has ever set. The one test counts every real start once; the named decades are explained here, not re-run.</p></div>';
   return h;
 }
 

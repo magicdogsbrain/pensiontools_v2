@@ -1791,6 +1791,18 @@
     .verdict-level { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin: -6px 0 14px; }
     .verdict-level select { font: inherit; font-weight: 400; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border, rgba(127,127,127,0.4)); background: var(--bg-secondary, transparent); color: var(--text); max-width: 100%; }
     .verdict-fixed { font-size: 14px; margin: 12px 0 0; }
+    /* "Try the bad years" (7.9.0; src/ui/stressPanelUi.js): one row per line tried, the fixed-age line under the weighted one */
+    .stress-rows { list-style: none; padding: 0; margin: 12px 0 0; }
+    .stress-row { border-top: 1px solid var(--border); padding: 12px 0; }
+    .stress-row .stress-title { font-size: 15px; margin: 0 0 4px; }
+    .stress-row .hint { font-size: 13px; margin: 2px 0; }
+    .stress-line { font-size: 14px; margin: 4px 0; overflow-wrap: anywhere; }
+    .stress-accepted [data-fixed="age"] { display: block; }
+    .stress-actions { margin-top: 8px; }
+    .stress-verdict { font-size: 12px; font-weight: 600; margin-left: 6px; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+    .stress-verdict.is-yes { color: var(--success); }
+    .stress-verdict.is-close { color: var(--warning); }
+    .stress-verdict.is-no { color: var(--danger); }
     .callout { border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; border: 1px solid rgba(96,165,250,0.25); background: rgba(96,165,250,0.06); }
     .callout-title { font-weight: 700; margin-bottom: 6px; }
     .callout p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; }
@@ -2812,15 +2824,18 @@
 
         <!-- Scenarios Sub-tab -->
         <div id="stress-scenarios" class="stress-subtab hidden">
-          <div class="card">
-            <h2>Stress Scenarios
+          <!-- "Try the bad years" (7.9.0): its words are src/v7/copy/stressPanel.js STRESS (src/ui/stressPanelUi.js sets them, and a
+               test holds these to them); the rows go in #stressPanelRows, the named stresses below in #scenResults -->
+          <div class="card" id="stressPanelCard">
+            <h2><span id="stressPanelTitle">Try the bad years</span>
               <button type="button" class="risk-btn" style="padding:3px 12px; font-size:12px; margin-left:10px; vertical-align:middle;" data-on-click="openStressExplainer('scen')">What is this doing?</button>
             </h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">The named stresses — the Great Depression, the 1970s inflation, the lost decade, 2008 — explained: what each decade did, and what retiring into it would have done to this plan, read from the one test's own history. No second figure.</p>
+            <p id="stressPanelLead" style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Each line runs this plan again on the same 1,000 futures with one thing made worse, so you can see what it does to the money. Nothing here changes your plan, and nothing is saved unless you say so.</p>
             <div id="scenStartSummary" class="starting-note">Starting balances come from your <strong>Settings</strong> (Fund Minimums). Edit them in the Settings tab.</div>
             <div style="margin-top: 20px;">
-              <button data-on-click="runScenariosUI()">Show the named stresses</button>
+              <button id="stressPanelRun" data-on-click="runStressPanel()">Try the bad years</button>
             </div>
+            <div id="stressPanelRows"></div>
           </div>
           <div id="scenResults"></div>
         </div>
@@ -4182,7 +4197,7 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js'; import { withV7Keys } from './src/services/SaverPayIn.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { installKeepHandlers, transitionGaps, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js';
+    import { installKeepHandlers, transitionGaps, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { configureMonthlyEntry, readMonthlyEntry, prefillMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
@@ -4267,7 +4282,7 @@
     /** Clear stress test results (used when switching scenarios): every tab reads the one test, so its cache goes too. */
     function clearStressResults() {
       window._oneTest = null;
-      for (const id of ['strategyRunResults', 'histResults', 'tryResults', 'scenResults', 'drawdownResults', 'glidepathResults', 'optimiseResultsMC']) { const el = document.getElementById(id); if (el) el.innerHTML = ''; }
+      for (const id of ['strategyRunResults', 'histResults', 'tryResults', 'scenResults', 'stressPanelRows', 'drawdownResults', 'glidepathResults', 'optimiseResultsMC']) { const el = document.getElementById(id); if (el) el.innerHTML = ''; }
       window._cmpCache = null;
     }
 
@@ -6127,7 +6142,7 @@
       } catch (e) { console.error('History error:', e); box.innerHTML = '<div class="alert alert-danger">Could not show the history: ' + budEsc(e.message) + '</div>'; }
     };
     // Scenarios: the named stresses, explained from the same histories.
-    window.runScenariosUI = async function () {
+    window.runScenariosUI = async function (rowsShown = false) {
       const box = document.getElementById('scenResults');
       const s = await getStressSettingsAsync();
       const sid = s.strategyId || 'pots-and-valves';
@@ -6138,7 +6153,7 @@
         const a = oneAnswer(r, p);
         const starts = Object.entries(SCENARIO_START).map(([k, year]) => ({ year, label: SCENARIOS[k].name }));
         const rows = a ? namedStartRows(sid, PNV_FAMILY.includes(sid) ? p : strategyPlanFor(s), starts) : [];
-        box.innerHTML = scenariosTabHtml({ strategyId: sid, name: STRATEGY_NAMES[sid] || sid, a, r, p, rows, scenarios: SCENARIOS, startYears: SCENARIO_START, worst: worstStarts(r.histWindows, 1) });
+        box.innerHTML = scenariosTabHtml({ strategyId: sid, name: STRATEGY_NAMES[sid] || sid, a, r, p, rows, scenarios: SCENARIOS, startYears: SCENARIO_START, worst: worstStarts(r.histWindows, 1), rowsShown: rowsShown === true });   // with "Try the bad years" above it (7.9.0), no second figure
       } catch (e) { console.error('Scenario error:', e); box.innerHTML = '<div class="alert alert-danger">Error: ' + budEsc(e.message) + '</div>'; }
     };
 
@@ -7471,7 +7486,7 @@
     // "Keep this" and money expected later (7.6.0): each one save of the record, as V7 changes it (src/ui/keepHoldingsUi.js)
     installKeepHandlers(window, { draft: () => window._holdingsDraft, persist: (rec) => persistHoldings(rec), toast: showToast });
     // "Test what you keep against your plan" and "I accept this risk" (7.7.0): the test on its button, the agreement one save of the whole list
-    installKeepTestHandlers(window, { scenario: () => getActiveScenarioAsStored(), persist: (list) => saveActivePlanAmendments(list), rerender: () => window.loadTransitionUI(), toast: showToast });
+    installKeepTestHandlers(window, { scenario: () => getActiveScenarioAsStored(), persist: (list) => saveActivePlanAmendments(list), rerender: () => window.loadTransitionUI(), toast: showToast }); installStressPanel(window, { scenario: () => getActiveScenarioAsStored(), persist: (list) => saveActivePlanAmendments(list), toast: showToast, named: (shown) => window.runScenariosUI(shown) });   // "Try the bad years": the same list of agreements, the same one save (7.9.0)
     window.removeHolding = async function (i) { const d = window._holdingsDraft; if (!d || !d.lines || !d.lines[i]) return; await persistHoldings(holdingsWith(d, { kind: 'remove', index: i }, { today: new Date() })); };
     window.addHoldingLine = async function () {
       // The card's inline add row (hlTicker/hlName/hlWrapper/hlValue/hlUnits) when filled in; else an empty editable row.
@@ -8685,7 +8700,7 @@
         row('The one test', SIMULATION_DEFAULTS.MONTE_CARLO_RUNS.toLocaleString() + ' futures, circular block bootstrap, ' + (MC_BLOCK_YEARS || 5) + '-year blocks, plus every real window since 1871', 'Random consecutive 5-year stretches of real history are stitched together, so booms, busts and inflation regimes survive intact. Independent yearly draws would understate sequence risk. One test, one figure on every screen (6.24.0).'),
         row('Historical', 'Every rolling start year ' + yrs[0] + '–' + (yrs[yrs.length - 1]) + ' (Pots &amp; Valves); every start month since 1871 (ladders)', 'Overlapping windows: 150 years is really only about 10 independent 15-year draws. Treat the tail as indicative, not a probability.'),
         row('Calibration', 'Flat 4%/30-year draw, no tax, no pension: ≈82% success (published US Trinity figure ≈95%)', 'About 10 points below the US literature by design — the world haircut. Pinned by ' + gh('tests/calibration.test.js', 'a calibration test') + '; 5%/30y ≈59%, 6%/30y ≈39%.'),
-        row('Named scenarios', 'Great Depression (1929), 1970s stagflation (1973), lost decade (2000), 2008, and a synthetic worst', 'The decade\'s real equity and inflation years REPEATED for the whole plan (35 years of 1929–38 on a loop is far harsher than any real history — treat these as torture tests, not forecasts). For contract strategies only the inflation path matters.'), ...lifeAssumptionsRows(row)   // 7.8.0: how long the money has to last (src/ui/oneAnswerView.js; while weighing)
+        row('Named scenarios', 'Great Depression (1929), 1970s stagflation (1973), lost decade (2000), 2008, and a synthetic worst', 'Each is the one test\'s own real history from that decade\'s first January, counted once like every other start and explained on the Scenarios page, never looped. The synthetic worst is described, not run: no real start is that bad. For contract strategies only the inflation path matters.'), row('Try the bad years', 'A fall at the start (shares lose at least 30% after rising prices in the first year drawn), lower returns (1% a year less on funds and cash), spending a tenth more, prices rising 2% a year faster', 'Each runs the plan again on the same 1,000 futures with one thing made worse, so no future is made better. Nothing is saved unless you accept a line.'), ...lifeAssumptionsRows(row)   // 7.8.0: how long the money has to last (src/ui/oneAnswerView.js; while weighing)
       ]) + '</details>';
 
       h += '<details><summary>4 · Bonds, cash and the ISA (Pots &amp; Valves)</summary>' + table([
@@ -11284,8 +11299,8 @@
         '</div>' +
 
         '<div id="sx-scen" style="border-left:3px solid #e67e22; padding-left:14px; margin-bottom:16px;">' +
-        '<h3 style="margin-bottom:6px;">\uD83D\uDD25 Scenarios \u2014 named nightmares, on repeat</h3>' +
-        '<p style="color:var(--text-muted);">The named stresses \u2014 the Great Depression, 1970s stagflation, the 2000s lost decade, 2008 \u2014 explained: what each decade did to shares and prices, and what retiring into it would have done to your plan, read from the one test\u2019s real history starting that year. The synthetic worst case is described but not run: no real start is that bad.</p>' +
+        '<h3 style="margin-bottom:6px;">\uD83D\uDD25 Scenarios \u2014 try the bad years, then the named decades</h3>' +
+        '<p style="color:var(--text-muted);"><strong>Try the bad years</strong> runs your plan again on the same 1,000 futures with one thing made worse each time \u2014 a fall at the start, lower returns, spending a tenth more, prices rising faster \u2014 so you can see what each does to the money. Below them, the named stresses \u2014 the Great Depression, 1970s stagflation, the 2000s lost decade, 2008 \u2014 are explained: what each decade did to shares and prices, and what retiring into it would have done to your plan, read once from the one test\u2019s real history starting that year. The synthetic worst case is described but not run: no real start is that bad.</p>' +
         '</div>' +
 
         '<h3 style="margin:20px 0 6px;">How each asset category is modelled</h3>' +

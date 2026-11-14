@@ -58,6 +58,13 @@ export const BAND = { careful: 0.9, middling: 0.5, good: 0.1 };
 export const SUCCESS = { weighted: true };
 
 /**
+ * "Try the bad years" (7.9.0; research/v7/replan-nov-2026.md §5): each surface's switch, all on. false is the rollback for
+ * that surface in both apps: `panel` the rows on a plan's "Does it last?" and on the planner's Scenarios page, `strip` the
+ * strip under C's and D's answers, `guardrail` the reading in "Where you are". Agreements already saved stay on the plan.
+ */
+export const STRESS = { panel: true, strip: true, guardrail: true };
+
+/**
  * The most drawing years a run goes to: RULES.maxDrawYears while weighing (env.weighted in tests, else SUCCESS.weighted),
  * RULES.maxYears before 7.8.0 and in the rollback.
  */

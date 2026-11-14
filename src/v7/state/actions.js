@@ -32,7 +32,8 @@ export const A = Object.freeze({
                                        //                                     memory only (ui.level), never saved — a plan's level is
                                        //                                     its kept answer's until 7.9.0 saves one
   ENV_SET:         'env/set',          // { patch }                          start-up and the test hook only (today, historyEnd, appVersion,
-                                       //                                     signedInHint: the browser's note that someone is signed in)
+                                       //                                     signedInHint: the browser's note that someone is signed in;
+                                       //                                     stressStrip: false, the strip switched off, 7.9.0)
   STATE_REPLACE:   'state/replace',    // { state }                          the test hook only
 
   // ---- the budget step (research/v7/budget-step.md; save-as-plan.md Contract C.5) ------------------------------------

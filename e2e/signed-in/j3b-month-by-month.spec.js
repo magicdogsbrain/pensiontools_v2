@@ -1,11 +1,11 @@
 /**
- * J3 (research/v7/after-7.md §2; research/v7/months-in-v7.md): living on the plan, month by month, signed in. A person with a
- * locked drawing plan in the account opens the site and lands on the plan's home (7.3.0; Month by month itself until then),
- * whose first to-do opens Month by month; sets up the tax
- * year (part-way through it: what came in so far); records this month, filling in the months missed since April with one
- * press; every month shows as recorded. Reloaded, everything is still there — read back from the emulator — and the plan's
- * settings are unchanged. And an unlocked drawing plan: asked to lock first, locked, then a month recorded.
- * Fictional plans (Alex), made in the local emulators of a demo- project; at desktop-1440 and phone-390.
+ * J3b (research/v7/after-7.md §2; research/v7/months-in-v7.md; kept from J3 in 7.10.0, spec-7100 §9): living on the plan,
+ * month by month, signed in, for a person who keeps a record of each month (`decisionTool.recordMonths: true`, stored). A
+ * person with a locked drawing plan in the account opens the site and lands on the plan's home, whose first to-do opens Month
+ * by month; sets up the tax year (part-way through it: what came in so far); records this month, filling in the months missed
+ * since April with one press; every month shows as recorded. Reloaded, everything is still there — read back from the
+ * emulator — and the plan's settings are unchanged. And an unlocked drawing plan: asked to lock first, locked, then a month
+ * recorded. Fictional plans (Alex), made in the local emulators of a demo- project; at desktop-1440 and phone-390.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -26,6 +26,8 @@ function lockedPlan() {
   const p = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '04-buckets-running.json'), 'utf8'));
   delete p.household;
   p.decisionTool.history = []; p.decisionTool.taxYears = {};
+  // 7.10.0: months are asked for when they are wanted; this person said so on Month by month ("Keep a record of each month here")
+  p.decisionTool.recordMonths = true;
   return { ...p, id: LOCKED, planDetails: { ...p.planDetails, name: 'Alex’s plan' }, isActive: true };
 }
 /** From the corpus's retired draft: drawing, not locked. */

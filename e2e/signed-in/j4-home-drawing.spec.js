@@ -1,11 +1,12 @@
 /**
- * J4 (7.3.0; research/v7/one-product-design.md "The route", 7.3.0): coming back to a plan being drawn on, signed in. A
- * person with a locked drawing plan in the account (the corpus's Buckets plan, fictional: Alex), in mid-October with
- * September recorded and the tax year set up, opens the site and lands on the plan's HOME — not on a form, whatever step
- * they were last on. October is due, first; what they hold is out of date and can wait ("Not now", this window only).
- * "Record October" opens the tool on October; recorded, the tool and the home both say nothing is due until 1 November.
- * Reloaded, the home reads the same, from the account; the plan's settings, its document and what it holds are
- * byte-identical — only the month was written. At desktop-1440 and phone-390, against the local emulators.
+ * J4 (7.3.0; research/v7/one-product-design.md "The route", 7.3.0; 7.10.0, spec-7100 §9): coming back to a plan being lived
+ * on, signed in. A person with a locked drawing plan in the account (the corpus's Buckets plan, fictional: Alex), in
+ * mid-October with September recorded and the tax year set up, opens the site and lands on the plan's HOME — not on a form,
+ * whatever step they were last on. "Living on it.": October is the one thing due (what they hold is never a to-do since
+ * 7.10.0). "Not now" on it is ONE write of the plan's `tasks` (the stamp untouched) and it stays put off in a second browser
+ * context. October recorded on Month by month, the tool and the home both say nothing is due until 1 November. Reloaded, the
+ * home reads the same, from the account; the plan's settings, its document and what it holds are byte-identical — only the
+ * month and the put-off to-do were written. At desktop-1440 and phone-390, against the local emulators.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -31,7 +32,7 @@ function drawingPlan() {
 
 test.beforeEach(async () => { await clearEmulators(); });
 
-test('a locked drawing plan: the root lands on its home; "Not now" on what you hold; Record October in the tool; nothing due until 1 November; reload reads the same; settings byte-identical', async ({ page }) => {
+test('a locked drawing plan: the root lands on its home; "Not now" on October is one write of the tasks, kept in a second context; Record October in the tool; nothing due until 1 November; reload reads the same; settings byte-identical', async ({ page, browser }) => {
   test.setTimeout(180_000);
   const planned = drawingPlan();
   const { uid } = await makeAccount(ALEX);
@@ -47,30 +48,46 @@ test('a locked drawing plan: the root lands on its home; "Not now" on what you h
     expect(planAddress(page)).toEqual({ planId: ID, step: null });
   });
 
-  await test.step('the site\'s root lands on the home: October due first, what you hold after it; no form, no rail', async () => {
+  await test.step('the site\'s root lands on the home: "Living on it.", October the one thing due; no form, no rail', async () => {
     await openAt(page, '');
     await expect(page.getByTestId(H)).toBeVisible({ timeout: 30_000 });
     expect(planAddress(page)).toEqual({ planId: ID, step: null });
-    await expect(page.getByTestId(`${H}.headline`)).toHaveText('Drawing.');
+    await expect(page.getByTestId(`${H}.headline`)).toHaveText('Living on it.');
     await expect(page.locator('#app form')).toHaveCount(0);
     await expect(page.locator('[data-region="rail"]')).toHaveCount(0);
     const items = page.getByTestId(`${H}.todo`).locator('.home-item');
-    await expect(items).toHaveCount(2);
+    await expect(items).toHaveCount(1);
     await expect(items.nth(0)).toHaveAttribute('data-todo', 'month.record');
-    await expect(items.nth(1)).toHaveAttribute('data-todo', 'hold.stale');
     await expect(page.getByTestId(`${H}.todo.month.record`)).toHaveText('Record October');
-  });
-
-  await test.step('"Not now" on what you hold: it slides away, for this window only', async () => {
-    await page.getByTestId(`${H}.notNow.hold.stale`).click();
-    await expect(page.getByTestId(`${H}.todo`).locator('.home-item')).toHaveCount(1);
     await expect(page.locator('[data-todo="hold.stale"]')).toHaveCount(0);
-    const [p] = await plansOf(uid);
-    expect(same(p.holdings, planned.holdings), 'nothing written for "Not now"').toBe(true);
   });
 
-  await test.step('"Record October" opens the tool on October; recorded with the figures carried from September', async () => {
-    await page.getByTestId(`${H}.todo.month.record`).click();
+  await test.step('"Not now" on October: ONE write of the plan\'s tasks, the stamp untouched; put off until November', async () => {
+    await page.getByTestId(`${H}.notNow.month.record`).click();
+    await expect(page.getByTestId(`${H}.todo`).locator('.home-item')).toHaveCount(0);
+    await expect(page.getByTestId(`${H}.notNowDone`)).toHaveText('Put off until November 2026.');
+    await expect.poll(async () => { const [p] = await plansOf(uid); return p.tasks ? Object.keys(p.tasks.dismissed) : []; }, { timeout: 15_000 }).toEqual(['month.record@2026-10']);
+    const [p] = await plansOf(uid);
+    const { tasks, ...rest } = p;
+    expect(tasks).toEqual({ of: planned.createdAt, dismissed: { 'month.record@2026-10': { at: expect.any(String), until: '2026-11' } } });
+    expect(same(rest, planned), 'nothing but the tasks written; the stamp untouched').toBe(true);
+  });
+
+  await test.step('a second browser context, signed in: October stays put off', async () => {
+    const other = await browser.newContext({ locale: 'en-GB', timezoneId: 'Europe/London', serviceWorkers: 'block' });
+    const second = await other.newPage();
+    await second.clock.setFixedTime(new Date(MID_OCTOBER));
+    await openAt(second, '#/account');
+    await signIn(second, ALEX);
+    await expect(second.getByTestId(H)).toBeVisible({ timeout: 30_000 });
+    await expect(second.getByTestId(`${H}.headline`)).toHaveText('Living on it.');
+    await expect(second.getByTestId(`${H}.todo`).locator('.home-item')).toHaveCount(0);
+    await expect(second.getByTestId(`${H}.quiet`)).toBeVisible();
+    await other.close();
+  });
+
+  await test.step('Month by month: October recorded with the figures carried from September', async () => {
+    await openAt(page, `#/plan/${ID}/month`);
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.month');
     await expect(page.getByTestId(`${M}.submit`)).toHaveText('Record October 2026', { timeout: 30_000 });
     await expect(page.getByTestId(`${M}.prefilled`)).toContainText('September 2026');
@@ -100,7 +117,7 @@ test('a locked drawing plan: the root lands on its home; "Not now" on what you h
     expect(same(p.holdings, planned.holdings), 'what you hold').toBe(true);
     expect(same(p.transition || null, planned.transition || null), 'the move').toBe(true);
     const changed = Object.keys({ ...p, ...planned }).filter((k) => !same(p[k], planned[k])).sort();
-    expect(changed).toEqual(['decisionTool', 'lastModified']);
+    expect(changed).toEqual(['decisionTool', 'lastModified', 'tasks']);
   });
 
   // 7.8.0 (the build spec's section 10, signed in, j4): "Does it last?" on the locked plan shows today's test — the chance

@@ -152,7 +152,9 @@ describe('order on the same futures', { timeout: 600_000 }, () => {
     const base = stressTestStrategy('gilt-rotation', rowPlanOf(p, {}));
     const fall = stressTestStrategy('gilt-rotation', rowPlanOf(p, FALL));
     expect(base.signature.triggeredShare).toBe(0.395);
-    expect(fall.signature.triggeredShare).toBe(0.993);
+    // (whether a future's fall lands on the trigger is decided by the last bit, so it is pinned per engine: Node 20's maths
+    // fires one future fewer of the 1,000 than Node 24's — the reason the rotation is an exception to the order tests)
+    expect(fall.signature.triggeredShare).toBe(+process.versions.node.split('.')[0] <= 20 ? 0.992 : 0.993);
   });
 });
 

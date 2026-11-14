@@ -686,8 +686,8 @@ async function buildPlanStates({ today }) {
   /**
    * A plan's home (7.3.0; research/v7/one-product-design.md "The plan home"): tests/v7/states/plan/home-*.json — each a state
    * on #/plan/<id> (no step) holding the plans named, the first the one opened: a saver never checked in (10, Alex), a plan
-   * locked while saving (05, Sam), a locked ladder still short of its rungs with no month recorded yet (03 with its months
-   * taken off, Moving: derived here, never a new fixture), the same ladder recording its months while still short of its
+   * locked while saving (05, Sam), a saver inside the move window Alex chose (10 with a four-year window, Moving: 7.10.0,
+   * derived here, never a new fixture), a locked ladder recording its months while still short of its
    * rungs (03 as committed, Drawing, its share of the mix said under "Where you are": 7.3.1), a locked Buckets plan living on
    * it (04, Drawing), a retired draft (02) and a closed plan with the plan that carries it on (18). Nothing is run on a home:
    * the reading is left out of the files and refreshed with viewFor by the tests (tests/v7/plan/homeRender.test.js).
@@ -702,10 +702,12 @@ async function buildPlanStates({ today }) {
   };
   states['home-saving'] = stateHome([plant(C['10-couple-b'], 'AlexSaver01', 'Alex’s plan', { active: true })]);
   states['home-locked-saver'] = stateHome([plant(C['05-saver-committed'], 'SamSaver02', 'Sam’s plan')]);
-  // a plan recording months is Drawing whatever it holds (7.3.1): Moving is a ladder short of its rungs before its first month
-  const ladderNoMonths = plant(C['20-locked-start-after-stop'], 'SamLadder03', 'Sam’s plan');
-  ladderNoMonths.decisionTool = { ...ladderNoMonths.decisionTool, history: [] };
-  states['home-moving'] = stateHome([ladderNoMonths]);
+  // Moving (7.10.0, one clock): what is held never decides the stage, so Moving is a saver inside the move window — Alex
+  // (corpus 10), stopping work in January 2030, who chose a four-year window (one stored choice, through the one writer)
+  const { phasesPatch } = await import('../../../src/services/Phases.js');
+  const movingSaver = plant(C['10-couple-b'], 'AlexMoving03', 'Alex’s plan');
+  Object.assign(movingSaver, phasesPatch(movingSaver, 'window', 4, { at: '2026-09-01T12:00:00.000Z' }));
+  states['home-moving'] = stateHome([movingSaver]);
   states['home-drawing-held'] = stateHome([plant(C['20-locked-start-after-stop'], 'SamLadder07', 'Sam’s plan')]);
   states['home-drawing'] = stateHome([plant(C['04-buckets-running'], 'SamBuckets04', 'Sam’s plan')]);
   states['home-draft-retired'] = stateHome([plant(C['02-pnv-draft'], 'AlexDraft05', 'Alex’s plan')]);

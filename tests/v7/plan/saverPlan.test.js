@@ -280,7 +280,11 @@ describe('the rail: a saver is never pushed off saving (4.1, 4.2)', () => {
     expect(laterFor('saving')).toEqual(['lock', 'hold']);
     expect(laterFor('approaching')).toEqual([]);
     expect(laterFor('committed-saving', { yearsToStop: 12 })).toEqual(['hold', 'move']);
-    expect(laterFor('committed-saving', { yearsToStop: 4.5 })).toEqual([]);
+    // retaken in 7.10.0 (one clock, the move window): later while the stop is further away than the window (3 years until the
+    // person chooses), on the rail inside it — 4.5 years is later now; 3 years, or 4.5 with a five-year window, is not
+    expect(laterFor('committed-saving', { yearsToStop: 4.5 })).toEqual(['hold', 'move']);
+    expect(laterFor('committed-saving', { yearsToStop: 3 })).toEqual([]);
+    expect(laterFor('committed-saving', { yearsToStop: 4.5, windowYears: 5 })).toEqual([]);
     for (const k of RETIRED_STAGES) expect(laterFor(k)).toEqual([]);
     const saving = stepsFor('saving', { locked: false, linked: false, manyPlans: true });
     expect(saving.map((x) => x.id)).toEqual(['saving', 'checkin', 'plan', 'budget', 'household', 'lock', 'hold']);
@@ -324,7 +328,7 @@ describe('the rail: a saver is never pushed off saving (4.1, 4.2)', () => {
     const saver = copy(C['10-couple-b']);
     saver.stressTool.settings = { ...saver.stressTool.settings, incomeShape: 'level', baseSalary: 0, incomeSteps: [], targetSchedule: null };
     const pg = planPage([entryOf(saver)], saver.id, null, { today: TODAY });
-    expect(pg.stageKey).toBe('approaching');
+    expect(pg.stageKey).toBe('saving');   // retaken in 7.10.0: outside its three-year window in October 2026 (one clock)
     // 7.3.0: the first check-in comes first (rank 10); the aim is due after it (rank 13), with its words and link as before
     expect(pg.next.id).toBe('P.firstCheckIn');
     const aim = pg.due.find((d) => d.pid === 'P.noAim');

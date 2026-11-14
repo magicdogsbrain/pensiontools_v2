@@ -295,7 +295,8 @@ describe('the saver\'s rule, a plan not locked, nothing recorded, shown as saved
     const { root, text, words } = draw(s, { type: A.ROUTE_SET, route: parse('#/plan/' + plan.id + '/move') });
     expect(root.querySelector('main').getAttribute('data-screen')).toBe('plan.move');
     expect(root.querySelector('[data-region="plan-move"]').getAttribute('data-waiting')).toBe('1');
-    expect(one(root, `${T}.waiting.line`).textContent).toBe('You stop work in about 11 years. Until about five years before, the move is just where new money goes.');
+    // retaken in 7.10.0 (one clock): the move waits until the plan's move window (3 years until the person chooses)
+    expect(one(root, `${T}.waiting.line`).textContent).toBe('You stop work in about 11 years. Until your move window opens in February 2035, the move is just where new money goes.');
     expect(one(root, `${T}.waiting.newMoney`).textContent).toBe('New money goes: £1,150 a month to shares, £300 a month to bonds — £1,450 a month in all.');
     expect(one(root, `${T}.waiting.planMix`).textContent).toMatch(/^The plan’s mix: shares \d+%, bonds \d+%, cash \d+%\.$/);
     expect(one(root, `${T}.waiting.heldMix`).textContent).toMatch(/^What you hold, in your pension: shares \d+%, bonds \d+%, gold and trend \d+%, cash \d+%\.$/);

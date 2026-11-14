@@ -30,9 +30,11 @@ describe('deriveStage — the persona matrix', () => {
       expect(st.leads).toContain('transition');
     }
   });
-  it('approaching: retire at 60 at 57 → Approaching (within five years)', () => {
+  it('approaching: retire at 60 at 57 → Approaching (inside the three-year window)', () => {
     const st = deriveStage(sc({ currentAge: 57, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }), NOW);
     expect(st.key).toBe('approaching');
+    // 7.10.0: the words say the plan's move window, not a fixed five years
+    expect(st.banner.text).toMatch(/^Within 3 years of the month you stop work\. /);
     // on course first, the lock and the move when ready — never the next step (release step R2, saving-enough-and-check-in.md 4.3)
     expect(st.banner.text).toMatch(/Check you are on course \(Accumulation\)/);
     expect(st.banner.text).toMatch(/locking it and moving what you hold come when you are ready/);
@@ -143,9 +145,14 @@ describe('journeyAppend', () => {
     let j = journeyAppend([], a, NOW);
     expect(j).toHaveLength(1);
     expect(journeyAppend(j, a, NOW)).toBe(j);   // same stage → same array
+    // retaken in 7.10.0: saving and approaching are one stage in the journey (the line between them is the move window,
+    // which the person may choose and a release may move), so the planner writes nothing for it on open
     const b = deriveStage(sc({ currentAge: 57, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }), NOW);
-    j = journeyAppend(j, b, new Date(2027, 0, 1), 'lock');
-    expect(j[1]).toMatchObject({ stage: 'approaching', note: 'lock' });
+    expect(b.key).toBe('approaching');
+    expect(journeyAppend(j, b, new Date(2027, 0, 1), 'lock')).toBe(j);
+    const c = deriveStage(sc({ currentAge: 58, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }, { locked: true }), NOW);
+    j = journeyAppend(j, c, new Date(2027, 0, 1), 'lock');
+    expect(j[1]).toMatchObject({ stage: 'committed-saving', note: 'lock' });
   });
   it('an old journey ending in the placing `bridge` is the same stage as running: reading the plan again adds nothing (7.4.2)', () => {
     // Fixture 20 is a locked plan stored the old way: its last journey entry is `bridge`, and it now reads as running.
@@ -172,7 +179,7 @@ describe('journeyAppend', () => {
  */
 describe('a saver, placed and opened as a saver (release step R2)', () => {
   const acc = (currentAge, retirementAge) => ({ accumulationTool: { settings: { currentAge, retirementAge, potNow: 40000, netMonthly: 200, employerMonthly: 150, salary: 30000, schemeType: 'ras', escalationPct: 0, isaMonthly: 0 } } });
-  it('ages typed only on the Accumulation tab place an unlocked plan by them: saving, or approaching within five years', () => {
+  it('ages typed only on the Accumulation tab place an unlocked plan by them: saving, or approaching inside the move window (3 years)', () => {
     const far = deriveStage(sc({}, {}, acc(30, 67)), NOW);
     expect(far.key).toBe('saving');
     expect(far.fromAccumulation).toBe(true);
@@ -180,9 +187,13 @@ describe('a saver, placed and opened as a saver (release step R2)', () => {
     expect(far.reasons).toContain('ages from the Accumulation tab');
     expect(far.yearsToStart).toBe(37);
     expect(far.banner.tab).toBe('accumulation');
-    const near = deriveStage(sc({}, {}, acc(62, 66)), NOW);
+    // retaken in 7.10.0: one clock, the move window (3 years by default): four years out is saving, three is approaching
+    const four = deriveStage(sc({}, {}, acc(62, 66)), NOW);
+    expect(four.key).toBe('saving');
+    expect(four.yearsToStart).toBe(4);
+    const near = deriveStage(sc({}, {}, acc(63, 66)), NOW);
     expect(near.key).toBe('approaching');
-    expect(near.yearsToStart).toBe(4);
+    expect(near.yearsToStart).toBe(3);
   });
   it('never when the Timing block has an age, never on a locked plan, never with no later stop', () => {
     expect(deriveStage(sc({ currentAge: 45, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 62 }, {}, acc(30, 67)), NOW).fromAccumulation).toBeUndefined();
@@ -218,5 +229,36 @@ describe('a saver, placed and opened as a saver (release step R2)', () => {
     expect(far.banner.text).not.toMatch(/Moving what you hold/);
     expect(far.banner.text).toMatch(/Keep paying in, and record your pot each month/);
     for (const key of Object.keys(STAGES)) if (STAGES[key].banner) expect(STAGES[key].banner.text + (STAGES[key].banner.nearText || '')).not.toMatch(/target portfolio|buying/);
+  });
+});
+
+/**
+ * One clock (7.10.0, spec-7100 §2): the move window places a plan in both apps — its default (3 years) until the person
+ * chooses 1 to 5. A plan 3 to 5 years out reads saving, and a locked saver's banner says nothing of moving what is held
+ * until the window opens.
+ */
+describe('the move window places a saver (one clock)', () => {
+  const withWindow = (p, years) => ({ ...p, phases: { moving: { window: { years, at: '2026-09-01T12:00:00.000Z' } } } });
+  it('APPROACHING_YEARS is the window\'s default', () => {
+    expect(APPROACHING_YEARS).toBe(3);
+  });
+  it('four years out reads saving at the default window, approaching with a five-year window chosen; one year with a one-year window', () => {
+    const four = sc({ currentAge: 56, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 });
+    expect(deriveStage(four, NOW).key).toBe('saving');
+    expect(deriveStage(withWindow(four, 5), NOW).key).toBe('approaching');
+    expect(deriveStage(withWindow(four, 5), NOW).banner.text).toMatch(/^Within 5 years of the month you stop work\. /);
+    const two = sc({ currentAge: 58, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 });
+    expect(deriveStage(two, NOW).key).toBe('approaching');
+    expect(deriveStage(withWindow(two, 1), NOW).key).toBe('saving');
+    const one = sc({ currentAge: 59, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 });
+    expect(deriveStage(withWindow(one, 1), NOW).banner.text).toMatch(/^Within 1 year of the month you stop work\. /);
+  });
+  it('a locked saver four years out: no word of moving what is held; inside the window it is offered', () => {
+    const near = 'Moving what you hold to the plan\'s mix can start now, if you want to.';
+    const four = deriveStage(sc({ currentAge: 56, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }, { locked: true }), NOW);
+    expect(four.key).toBe('committed-saving');
+    expect(four.banner.text).not.toContain(near);
+    const three = deriveStage(sc({ currentAge: 57, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }, { locked: true }), NOW);
+    expect(three.banner.text).toContain(near);
   });
 });

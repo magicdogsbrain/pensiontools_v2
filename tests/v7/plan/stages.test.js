@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { effectiveStressSettings, planStage, whereAmIInputs, moveInputs, thisMonth } from '../../../src/services/PlanReading.js';
 import { getStressSettingsAsync } from '../../../src/storage/StressRepository.js';
 import { laterDraftOf } from '../../../src/services/PlanMove.js';
+import { windowOf } from '../../../src/services/Phases.js';
 import { planRows, planPage, stageLine, dateOf, monthWords, dayWords } from '../../../src/answers/plan/read.js';
 import { STEPS, stepsFor, NEXT_ORDER, ALL_STEPS } from '../../../src/answers/plan/steps.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
@@ -18,9 +19,11 @@ const fill = (text, slots) => String(text).replace(/\{(\w+)\}/g, (m, k) => (k in
 const lineText = (line) => (line ? fill(PLAN.stageLines[line.id], line.slots) : null);
 
 describe('T1 — the stage of every committed plan, at three dates (your-plan.md "What was run" 4)', () => {
+  // retaken in 7.10.0 (one clock, the move window: 3 years until the person chooses): 10 stops in January 2030, 39 months
+  // after 2 October 2026 — outside its window, so saving (it was approaching inside the old five years)
   const EXPECTED = {
     '2026-10-02': { '01-fresh-default': 'unknown', '02-pnv-draft': 'draft-retired', '20-locked-start-after-stop': 'running', '04-buckets-running': 'running', '05-saver-committed': 'committed-saving',
-      '06-pre-6.4-no-timing': 'running', '07-pre-6.13-flat-params': 'draft-retired', '08-dotted-keys': 'unknown', '09-couple-a': 'draft-retired', '10-couple-b': 'approaching', '11-guest-demo': 'draft-retired', '12-lumpy-db-gia': 'draft-retired' },
+      '06-pre-6.4-no-timing': 'running', '07-pre-6.13-flat-params': 'draft-retired', '08-dotted-keys': 'unknown', '09-couple-a': 'draft-retired', '10-couple-b': 'saving', '11-guest-demo': 'draft-retired', '12-lumpy-db-gia': 'draft-retired' },
     '2027-04-05': { '20-locked-start-after-stop': 'running' },   // 7.4.2: a locked retired plan is running whatever its stored start
     '2027-04-06': { '20-locked-start-after-stop': 'running' }
   };
@@ -36,27 +39,30 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
     }
   }
   // the three words a person sees (7.3.0, LifeStage.stageOf; research/v7/one-product-design.md "The stage model"): each
-  // placing beside its word — derived from the facts only. 7.3.1: a locked plan recording months is Drawing whatever it
-  // holds; one short of its mix is Moving only before its first month; a plan with nothing to move is Drawing
-  const WORD = { unknown: null, 'draft-retired': 'drawing', 'committed-saving': 'saving', approaching: 'saving', saving: 'saving', closed: 'closed' };
+  // placing beside its word. Retaken in 7.10.0 (spec-7100 §2): the word is read from the window, never from what is held — a
+  // saver's placing is Moving inside its move window and Saving before it; a running plan is Drawing, months recorded or not
+  // (the SHORT clause, Moving before the first month while short of the mix, is gone)
+  const WORD = { unknown: null, 'draft-retired': 'drawing', running: 'drawing', bridge: 'drawing', closed: 'closed' };
+  const SAVER = ['saving', 'approaching', 'committed-saving'];
   const SHORT = ['20-locked-start-after-stop', '13-stopped-drawing-since'];   // what they hold is short of the ladder the plan bought
   for (const today of DATES) {
     it(`the three-word column at ${today}: Saving, Moving, Drawing (Closed) beside every placing`, () => {
       const entries = entriesAt(today);
       for (const [name, key] of Object.entries(EXPECTED[today])) {
         const e = entryOf(C[name], today);
-        const word = planPage(entries, e.plan.id, null, { today }).life.key;
-        const months = (e.plan.decisionTool && e.plan.decisionTool.history || []).length > 0;
-        const want = key === 'bridge' || key === 'running' ? (SHORT.includes(name) && !months ? 'moving' : 'drawing') : WORD[key];
-        expect(word, `${name} (${key})`).toBe(want);
+        const pg = planPage(entries, e.plan.id, null, { today });
+        const inside = SAVER.includes(key) && windowOf(e.plan, { now: noon(today), stop: pg.life.stop }).state === 'inside';
+        const want = SAVER.includes(key) ? (inside ? 'moving' : 'saving') : WORD[key];
+        expect(pg.life.key, `${name} (${key})`).toBe(want);
       }
-      // retaken by name (7.3.1): 03 and 13 read Moving in 7.3.0; both record months, so both read Drawing now —
-      // and the same two plans before their first month read Moving, as before
+      // by name: 10 is inside its window in 2027 (Moving), outside it in October 2026 (Saving)
+      expect(planPage(entries, entryOf(C['10-couple-b'], today).plan.id, null, { today }).life.key).toBe(today === '2026-10-02' ? 'saving' : 'moving');
+      // 03 and 13 record months: Drawing; before their first month their stops have passed too: Drawing as well
       for (const name of SHORT) {
         expect(planPage(entries, entryOf(C[name], today).plan.id, null, { today }).life.key, name).toBe('drawing');
         const raw = JSON.parse(JSON.stringify(C[name])); raw.decisionTool.history = [];
         const early = entryOf(raw, today);
-        expect(planPage([early], early.plan.id, null, { today }).life.key, name + ' with no month').toBe('moving');
+        expect(planPage([early], early.plan.id, null, { today }).life.key, name + ' with no month').toBe('drawing');
       }
     });
   }
@@ -81,8 +87,11 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
   it('the saver locked while saving reads "Plan locked. Still working until February 2038."; the approaching partner names no date', () => {
     const s = entryOf(C['05-saver-committed']).plan;
     expect(lineText(stageLine(planStage(s, { now: noon(TODAY) }), s))).toBe('Plan locked. Still working until February 2038.');
+    // retaken in 7.10.0: 10 is outside its three-year window in October 2026 (still saving), inside it by April 2027
     const b = entryOf(C['10-couple-b']).plan;
-    expect(lineText(stageLine(planStage(b, { now: noon(TODAY) }), b))).toBe('Stopping work within five years.');
+    expect(lineText(stageLine(planStage(b, { now: noon(TODAY) }), b))).toBe('Still saving.');
+    const b2 = entryOf(C['10-couple-b'], '2027-04-05').plan;
+    expect(lineText(stageLine(planStage(b2, { now: noon('2027-04-05') }), b2))).toBe('Stopping work within five years.');
     expect(lineText(stageLine({ key: 'unknown' }, {}))).toBe(null);
   });
   it('the effective settings are the ones the planner reads (StressRepository\'s own load path, in memory)', async () => {

@@ -371,7 +371,8 @@ describe('the words in src/v7/copy/', () => {
       .replace(/\{(pension|isa|gia|cash|total|recognisedTotal|unrecognisedTotal|unknownTotal|value|amount|monthly|annual|target|held|spare|short|buy|sell|cost|pays|income|proceeds|bad|typical|lump|summary|lots)\}/g, '£250,000')
       .replace(/\{(shares|bonds|diversifiers|charge|trigger|below|pct|held)\}/g, '35').replace(/\{(level|ath|fireLevel|nominal)\}/g, '5,000')
       .replace(/\{(lines|read|recognised|unrecognised|unknown|updated|added|n|months|rungs|bought|done|moves|years|year|from|to|cutAge|disarmAge|atAge|line|tranches|code|units)\}/g, '3')
-      .replace(/\{(name|text|list|parts|wrapper|store|word|ticker|symbol|label|reason|why|years|action|on|s|have|newMoney|sedol|bucket)\}/g, 'Vanguard FTSE All-World').replace(/\{ms\}/g, '4.6');
+      .replace(/\{(name|text|list|parts|wrapper|store|word|ticker|symbol|label|reason|why|years|action|on|s|have|newMoney|sedol|bucket)\}/g, 'Vanguard FTSE All-World').replace(/\{ms\}/g, '4.6')
+      .replace(/\{opens\}/g, 'February 2035');   // 7.10.0: the month the plan's move window opens
     const hits = [];
     for (const [file, words] of [['hold.js', HOLD], ['move.js', MOVE]]) {
       const all = strings(words).map(([, s]) => slot(s)).join('\n');

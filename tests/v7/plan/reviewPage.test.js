@@ -16,6 +16,7 @@ import { A } from '../../../src/v7/state/actions.js';
 import { startPlanWrite } from '../../../src/v7/effects/planWrite.js';
 import { upgradedList, viewFor } from '../../../src/v7/effects/planSource.js';
 import { lockedPlanWriteRefusal, phaseWriteRefusal } from '../../../src/services/LockedPlanGuard.js';
+import { phasesPatch } from '../../../src/services/Phases.js';
 import { getDefaultStressSettings } from '../../../src/storage/stressDefaults.js';
 import { visibleText } from '../render/checkScreen.js';
 import { corpus, entryOf, entriesAt, stateWith, noon } from './_plans.js';
@@ -177,6 +178,26 @@ describe('the screen', () => {
     const { root, actions } = draw(stateWith(entriesAt(day), '#/plan/' + id + '/review', { today: day, open: ['reviewChange.window'] }));
     q(root, 'plan.review.choice.window.4').dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(actions.pop()).toEqual({ type: 'plan/phaseSet', planId: id, part: 'window', value: 4 });
+  });
+
+  it('the option the plan only reads (the default 3 years, a level read from what is held) is the person\'s choice when pressed: written; once chosen, pressing it again closes the options', () => {
+    const day = '2026-10-02';
+    const id = C['19-back-to-work-saving'].id;
+    const { root, actions } = draw(stateWith(entriesAt(day), '#/plan/' + id + '/review', { today: day, open: ['reviewChange.window', 'reviewChange.level'] }));
+    expect(q(root, 'plan.review.choice.window.3').getAttribute('aria-pressed')).toBe('true');
+    q(root, 'plan.review.choice.window.3').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(actions.pop()).toEqual({ type: 'plan/phaseSet', planId: id, part: 'window', value: 3 });
+    const read = [...root.querySelectorAll('[data-testid^="plan.review.choice.level."][aria-pressed="true"]')];
+    expect(read).toHaveLength(1);
+    read[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(actions.pop()).toMatchObject({ type: 'plan/phaseSet', planId: id, part: 'saving.level' });
+    // chosen (stored): the same option closes the options and writes nothing
+    const chosen = copy(C['19-back-to-work-saving']);
+    Object.assign(chosen, phasesPatch(chosen, 'window', 3, { at: AT }));
+    const raws = Object.values(C).map((p) => (p.id === id ? chosen : p));
+    const again = draw(stateWith(entriesAt(day, raws), '#/plan/' + id + '/review', { today: day, open: ['reviewChange.window'] }));
+    q(again.root, 'plan.review.choice.window.3').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(again.actions.pop()).toEqual({ type: 'ui/toggle', id: 'reviewChange.window' });
   });
 
   it('a closed plan: no save, no choices', () => {

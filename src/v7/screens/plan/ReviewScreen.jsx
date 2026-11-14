@@ -53,8 +53,12 @@ function Top({ V }) {
   );
 }
 
-/** One choice: what it is now, "Change", and the options while open (each press is its own write). */
-function Choice({ id, title, line, options, value, open, editable, dispatch, planId, part, saving, extra = null }) {
+/**
+ * One choice: what it is now, "Change", and the options while open (each press is its own write). The option the plan reads
+ * now closes the options when the person chose it before (`stored`); while it is only read (a default, or read from what is
+ * held), pressing it is the person's choice and is written, as any other.
+ */
+function Choice({ id, title, line, options, value, stored = true, open, editable, dispatch, planId, part, saving, extra = null }) {
   return (
     <div class="review-choice" data-choice={id} data-testid={`${T}.choice.${id}`}>
       <h3>{title}</h3>
@@ -69,7 +73,7 @@ function Choice({ id, title, line, options, value, open, editable, dispatch, pla
         <div class="actions-row review-options" role="group" aria-label={title}>
           {options.map((o) => (
             <Button key={String(o.value)} testid={`${T}.choice.${id}.${o.value}`} kind={o.value === value ? 'plain' : 'quiet'} aria-pressed={o.value === value ? 'true' : 'false'} disabled={!!saving}
-              onClick={() => (o.value === value ? dispatch({ type: 'ui/toggle', id: 'reviewChange.' + id }) : dispatch({ type: 'plan/phaseSet', planId, part, value: o.value }))} {...keepFocus}>{o.label}</Button>
+              onClick={() => (o.value === value && stored ? dispatch({ type: 'ui/toggle', id: 'reviewChange.' + id }) : dispatch({ type: 'plan/phaseSet', planId, part, value: o.value }))} {...keepFocus}>{o.label}</Button>
           ))}
           <Button testid={`${T}.choice.${id}.cancel`} kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'reviewChange.' + id })} {...keepFocus}>{W.cancel}</Button>
         </div>
@@ -88,21 +92,21 @@ function Choices({ V, dispatch }) {
   const winLine = mw ? (mw.years === 1 ? W.moveWindow.lineOne : fill(W.moveWindow.line, { n: String(mw.years) })) : null;
   return (
     <section class="plan-section review-choices" data-section="choices" data-testid={`${T}.choices`}>
-      <Choice id="rule" part="review.rule" title={W.rule.title} line={ruleLine(rule)} value={rule.value} open={V.changing.rule} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
+      <Choice id="rule" part="review.rule" title={W.rule.title} line={ruleLine(rule)} value={rule.value} stored={!!rule.stored} open={V.changing.rule} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
         options={rule.options.map((o) => ({ value: o.value, label: ruleLine(o) }))} extra={<p class="note">{W.rule.never}</p>} />
       {V.every ? (
-        <Choice id="every" part="review.every" title={W.every.title} line={W.every.options[V.every.value]} value={V.every.value} open={V.changing.every} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
+        <Choice id="every" part="review.every" title={W.every.title} line={W.every.options[V.every.value]} value={V.every.value} stored={!!V.every.stored} open={V.changing.every} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
           options={V.every.options.map((o) => ({ value: o, label: W.every.options[o] }))} />
       ) : (
         <div class="review-choice" data-choice="every" data-testid={`${T}.choice.every`}><h3>{W.every.title}</h3><p class="note">{W.every.saving}</p></div>
       )}
       {mw && (
-        <Choice id="window" part="window" title={W.moveWindow.title} line={winLine} value={mw.years} open={V.changing.moveWindow} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
+        <Choice id="window" part="window" title={W.moveWindow.title} line={winLine} value={mw.years} stored={!!mw.stored} open={V.changing.moveWindow} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
           options={mw.options.map((n) => ({ value: n, label: W.moveWindow.options[n] }))}
           extra={mw.from && mw.to ? <p class="note" data-testid={`${T}.choice.window.when`}>{fill(W.moveWindow.when, { from: mw.from, to: mw.to })}</p> : null} />
       )}
       {V.level && (
-        <Choice id="level" part="saving.level" title={W.level.title} line={W.level.line[V.level.value]} value={V.level.value} open={V.changing.level} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
+        <Choice id="level" part="saving.level" title={W.level.title} line={W.level.line[V.level.value]} value={V.level.value} stored={!!V.level.stored} open={V.changing.level} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
           options={V.level.options.map((o) => ({ value: o, label: W.level.options[o] }))} extra={V.level.stored ? null : <p class="note" data-testid={`${T}.choice.level.read`}>{W.level.read}</p>} />
       )}
     </section>

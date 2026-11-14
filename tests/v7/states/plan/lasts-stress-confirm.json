@@ -3228,11 +3228,15 @@
                   "when": {
                     "typical": 99,
                     "worst": 96,
-                    "worstLasts": true
+                    "worstLasts": true,
+                    "count": 79,
+                    "n": 1000,
+                    "to": 104
                   },
                   "howLong": {
                     "paid": 27,
-                    "of": 34
+                    "of": 34,
+                    "count": 24
                   },
                   "howMuch": 0.8035726667657958
                 },
@@ -3243,6 +3247,7 @@
                   "months": 3
                 },
                 "refA": null,
+                "refShortfall": null,
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -3278,6 +3283,7 @@
                       "id": "lines.whenStillLasts",
                       "slots": {
                         "typical": "99",
+                        "weightAge": "104",
                         "age": "96"
                       }
                     },
@@ -3407,11 +3413,15 @@
                   "when": {
                     "typical": 97,
                     "worst": 96,
-                    "worstLasts": true
+                    "worstLasts": true,
+                    "count": 225,
+                    "n": 1000,
+                    "to": 104
                   },
                   "howLong": {
                     "paid": 27,
-                    "of": 34
+                    "of": 34,
+                    "count": 82
                   },
                   "howMuch": 0.7846405314172014
                 },
@@ -3482,6 +3492,22 @@
                     "why": null
                   }
                 },
+                "refShortfall": {
+                  "when": {
+                    "typical": 99,
+                    "worst": 96,
+                    "worstLasts": true,
+                    "count": 79,
+                    "n": 1000,
+                    "to": 104
+                  },
+                  "howLong": {
+                    "paid": 27,
+                    "of": 34,
+                    "count": 24
+                  },
+                  "howMuch": 0.8035726667657958
+                },
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -3526,24 +3552,75 @@
                       }
                     },
                     {
-                      "id": "lines.whenStillLasts",
+                      "id": "lines.whenStillLastsRef",
                       "slots": {
                         "typical": "97",
-                        "age": "96"
+                        "weightAge": "104",
+                        "age": "96",
+                        "count": "225",
+                        "n": "1,000",
+                        "refCount": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "79"
+                          }
+                        },
+                        "refTypical": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "99"
+                          }
+                        },
+                        "refWorst": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": {
+                              "id": "ref.stillLasts",
+                              "slots": {
+                                "age": "96"
+                              }
+                            }
+                          }
+                        }
                       }
                     },
                     {
-                      "id": "lines.howLong",
+                      "id": "lines.howLongRef",
                       "slots": {
                         "paid": "27",
                         "of": "34",
-                        "age": "96"
+                        "age": "96",
+                        "count": "82",
+                        "n": "1,000",
+                        "refCount": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "24"
+                          }
+                        },
+                        "refPaid": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "27"
+                          }
+                        }
                       }
                     },
                     {
-                      "id": "lines.howMuch",
+                      "id": "lines.howMuchRef",
                       "slots": {
-                        "tenths": "7"
+                        "tenths": "7",
+                        "refTenths": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": {
+                              "id": "ref.tenths",
+                              "slots": {
+                                "tenths": "8"
+                              }
+                            }
+                          }
+                        }
                       }
                     },
                     {
@@ -3662,11 +3739,15 @@
                   "when": {
                     "typical": 99,
                     "worst": 96,
-                    "worstLasts": true
+                    "worstLasts": true,
+                    "count": 228,
+                    "n": 1000,
+                    "to": 104
                   },
                   "howLong": {
                     "paid": 27,
-                    "of": 34
+                    "of": 34,
+                    "count": 65
                   },
                   "howMuch": 0.807486021389452
                 },
@@ -3737,6 +3818,22 @@
                     "why": null
                   }
                 },
+                "refShortfall": {
+                  "when": {
+                    "typical": 99,
+                    "worst": 96,
+                    "worstLasts": true,
+                    "count": 79,
+                    "n": 1000,
+                    "to": 104
+                  },
+                  "howLong": {
+                    "paid": 27,
+                    "of": 34,
+                    "count": 24
+                  },
+                  "howMuch": 0.8035726667657958
+                },
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -3781,24 +3878,75 @@
                       }
                     },
                     {
-                      "id": "lines.whenStillLasts",
+                      "id": "lines.whenStillLastsRef",
                       "slots": {
                         "typical": "99",
-                        "age": "96"
+                        "weightAge": "104",
+                        "age": "96",
+                        "count": "228",
+                        "n": "1,000",
+                        "refCount": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "79"
+                          }
+                        },
+                        "refTypical": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "99"
+                          }
+                        },
+                        "refWorst": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": {
+                              "id": "ref.stillLasts",
+                              "slots": {
+                                "age": "96"
+                              }
+                            }
+                          }
+                        }
                       }
                     },
                     {
-                      "id": "lines.howLong",
+                      "id": "lines.howLongRef",
                       "slots": {
                         "paid": "27",
                         "of": "34",
-                        "age": "96"
+                        "age": "96",
+                        "count": "65",
+                        "n": "1,000",
+                        "refCount": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "24"
+                          }
+                        },
+                        "refPaid": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "27"
+                          }
+                        }
                       }
                     },
                     {
-                      "id": "lines.howMuch",
+                      "id": "lines.howMuchRef",
                       "slots": {
-                        "tenths": "8"
+                        "tenths": "8",
+                        "refTenths": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": {
+                              "id": "ref.tenths",
+                              "slots": {
+                                "tenths": "8"
+                              }
+                            }
+                          }
+                        }
                       }
                     },
                     {
@@ -3917,11 +4065,15 @@
                   "when": {
                     "typical": 99,
                     "worst": 96,
-                    "worstLasts": true
+                    "worstLasts": true,
+                    "count": 215,
+                    "n": 1000,
+                    "to": 104
                   },
                   "howLong": {
                     "paid": 27,
-                    "of": 34
+                    "of": 34,
+                    "count": 65
                   },
                   "howMuch": 0.7933808737902606
                 },
@@ -3992,6 +4144,22 @@
                     "why": null
                   }
                 },
+                "refShortfall": {
+                  "when": {
+                    "typical": 99,
+                    "worst": 96,
+                    "worstLasts": true,
+                    "count": 79,
+                    "n": 1000,
+                    "to": 104
+                  },
+                  "howLong": {
+                    "paid": 27,
+                    "of": 34,
+                    "count": 24
+                  },
+                  "howMuch": 0.8035726667657958
+                },
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -4036,24 +4204,75 @@
                       }
                     },
                     {
-                      "id": "lines.whenStillLasts",
+                      "id": "lines.whenStillLastsRef",
                       "slots": {
                         "typical": "99",
-                        "age": "96"
+                        "weightAge": "104",
+                        "age": "96",
+                        "count": "215",
+                        "n": "1,000",
+                        "refCount": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "79"
+                          }
+                        },
+                        "refTypical": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "99"
+                          }
+                        },
+                        "refWorst": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": {
+                              "id": "ref.stillLasts",
+                              "slots": {
+                                "age": "96"
+                              }
+                            }
+                          }
+                        }
                       }
                     },
                     {
-                      "id": "lines.howLong",
+                      "id": "lines.howLongRef",
                       "slots": {
                         "paid": "27",
                         "of": "34",
-                        "age": "96"
+                        "age": "96",
+                        "count": "65",
+                        "n": "1,000",
+                        "refCount": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "24"
+                          }
+                        },
+                        "refPaid": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "27"
+                          }
+                        }
                       }
                     },
                     {
-                      "id": "lines.howMuch",
+                      "id": "lines.howMuchRef",
                       "slots": {
-                        "tenths": "7"
+                        "tenths": "7",
+                        "refTenths": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": {
+                              "id": "ref.tenths",
+                              "slots": {
+                                "tenths": "8"
+                              }
+                            }
+                          }
+                        }
                       }
                     },
                     {
@@ -4172,11 +4391,15 @@
                   "when": {
                     "typical": 99,
                     "worst": 96,
-                    "worstLasts": true
+                    "worstLasts": true,
+                    "count": 97,
+                    "n": 1000,
+                    "to": 104
                   },
                   "howLong": {
                     "paid": 27,
-                    "of": 34
+                    "of": 34,
+                    "count": 27
                   },
                   "howMuch": 0.7980489997587278
                 },
@@ -4247,6 +4470,22 @@
                     "why": null
                   }
                 },
+                "refShortfall": {
+                  "when": {
+                    "typical": 99,
+                    "worst": 96,
+                    "worstLasts": true,
+                    "count": 79,
+                    "n": 1000,
+                    "to": 104
+                  },
+                  "howLong": {
+                    "paid": 27,
+                    "of": 34,
+                    "count": 24
+                  },
+                  "howMuch": 0.8035726667657958
+                },
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -4291,24 +4530,75 @@
                       }
                     },
                     {
-                      "id": "lines.whenStillLasts",
+                      "id": "lines.whenStillLastsRef",
                       "slots": {
                         "typical": "99",
-                        "age": "96"
+                        "weightAge": "104",
+                        "age": "96",
+                        "count": "97",
+                        "n": "1,000",
+                        "refCount": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "79"
+                          }
+                        },
+                        "refTypical": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "99"
+                          }
+                        },
+                        "refWorst": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": {
+                              "id": "ref.stillLasts",
+                              "slots": {
+                                "age": "96"
+                              }
+                            }
+                          }
+                        }
                       }
                     },
                     {
-                      "id": "lines.howLong",
+                      "id": "lines.howLongRef",
                       "slots": {
                         "paid": "27",
                         "of": "34",
-                        "age": "96"
+                        "age": "96",
+                        "count": "27",
+                        "n": "1,000",
+                        "refCount": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "24"
+                          }
+                        },
+                        "refPaid": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": "27"
+                          }
+                        }
                       }
                     },
                     {
-                      "id": "lines.howMuch",
+                      "id": "lines.howMuchRef",
                       "slots": {
-                        "tenths": "7"
+                        "tenths": "7",
+                        "refTenths": {
+                          "id": "ref.asPlanned",
+                          "slots": {
+                            "n": {
+                              "id": "ref.tenths",
+                              "slots": {
+                                "tenths": "8"
+                              }
+                            }
+                          }
+                        }
                       }
                     },
                     {
@@ -5816,11 +6106,15 @@
           "when": {
             "typical": 99,
             "worst": 96,
-            "worstLasts": true
+            "worstLasts": true,
+            "count": 79,
+            "n": 1000,
+            "to": 104
           },
           "howLong": {
             "paid": 27,
-            "of": 34
+            "of": 34,
+            "count": 24
           },
           "howMuch": 0.8035726667657958
         },
@@ -5905,11 +6199,15 @@
           "when": {
             "typical": 97,
             "worst": 96,
-            "worstLasts": true
+            "worstLasts": true,
+            "count": 225,
+            "n": 1000,
+            "to": 104
           },
           "howLong": {
             "paid": 27,
-            "of": 34
+            "of": 34,
+            "count": 82
           },
           "howMuch": 0.7846405314172014
         },
@@ -5994,11 +6292,15 @@
           "when": {
             "typical": 99,
             "worst": 96,
-            "worstLasts": true
+            "worstLasts": true,
+            "count": 228,
+            "n": 1000,
+            "to": 104
           },
           "howLong": {
             "paid": 27,
-            "of": 34
+            "of": 34,
+            "count": 65
           },
           "howMuch": 0.807486021389452
         },
@@ -6083,11 +6385,15 @@
           "when": {
             "typical": 99,
             "worst": 96,
-            "worstLasts": true
+            "worstLasts": true,
+            "count": 215,
+            "n": 1000,
+            "to": 104
           },
           "howLong": {
             "paid": 27,
-            "of": 34
+            "of": 34,
+            "count": 65
           },
           "howMuch": 0.7933808737902606
         },
@@ -6172,11 +6478,15 @@
           "when": {
             "typical": 99,
             "worst": 96,
-            "worstLasts": true
+            "worstLasts": true,
+            "count": 97,
+            "n": 1000,
+            "to": 104
           },
           "howLong": {
             "paid": 27,
-            "of": 34
+            "of": 34,
+            "count": 27
           },
           "howMuch": 0.7980489997587278
         },

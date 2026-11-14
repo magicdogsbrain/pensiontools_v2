@@ -72,7 +72,7 @@ describe('spending a tenth more', () => {
 });
 
 /** A made-up row result, runStressRow's shape. */
-const res = (key, a = {}, shortfall = { when: { typical: 88, worst: 84, worstLasts: false }, howLong: { paid: 22, of: 31 }, howMuch: 0.9 }) => ({
+const res = (key, a = {}, shortfall = { when: { typical: 88, worst: 84, worstLasts: false, count: 150, n: 1000, to: 103 }, howLong: { paid: 22, of: 31, count: 120 }, howMuch: 0.9 }) => ({
   key, na: null, shortfall, ran: { family: true, cutsOn: false },
   a: { weighted: 0.9, sumW: 100, n: 1000, fixedAge: 0.85, share: 0.85, futures: 1000, typicalLeft: 1000, badCaseLeft: 0, goodCaseLeft: 5000, floor: { age: 88, yearly: 100 }, cuts: null, level: 'balanced', verdict: 'yes', ...a }
 });
@@ -139,15 +139,16 @@ describe('when, how long and how much, read off the runs a row made', () => {
     const a = oneAnswer(r, P, { life: LIFE, floorAt: () => 9000 });
     const s = planShortfallOf(r, P, a);
     expect(s.when.typical).toBe(a.floor.age);
-    expect(s.when).toEqual({ typical: 66 + 20, worst: 66 + 24, worstLasts: false });   // sorted 10, 20, 24, 28, never…: index floor(20 / 10)
+    expect(s.when).toEqual({ typical: 66 + 20, worst: 66 + 24, worstLasts: false, count: 4, n: 20, to: 97 });   // sorted 10, 20, 24, 28, never…: index floor(20 / 10)
     // a year in which the State Pension meets the need counts as paid; the need less the State Pension is what goes unpaid
     expect(s.howLong.of).toBe(31);
+    expect(s.howLong.count).toBe(4);
     expect(s.howLong.paid).toBe(Math.floor((10 + 20 + 24 + 28) / 4));
     const unpaid = [10, 20, 24, 28].reduce((t, fy) => t + (31 - fy) * 18000, 0);
     expect(s.howMuch).toBeCloseTo(1 - unpaid / (4 * 31 * 30000), 12);
     // the worst lasts when the 1-in-10th future lasted: said to the plan's age
     const late = fake({ 0: 30 });
-    expect(planShortfallOf(late, P, oneAnswer(late, P, { life: LIFE })).when).toEqual({ typical: 96, worst: 97, worstLasts: true });
+    expect(planShortfallOf(late, P, oneAnswer(late, P, { life: LIFE })).when).toEqual({ typical: 96, worst: 97, worstLasts: true, count: 1, n: 20, to: 97 });
   });
   it('the worst 1 in 10 counts a future that runs out only after the plan\'s last year as lasting, as the answers do: never later than the plan-to age', () => {
     // the run followed on to the weighting age (rW, 40 years): three futures run out after the plan's 31 years, one within it
@@ -157,6 +158,7 @@ describe('when, how long and how much, read off the runs a row made', () => {
     const s = planShortfallOf(r, P, a, { rW, wYears: 40 });
     // typical is still over every future that ran out on the run followed on (the floor's set): 25, 33, 35, 38
     expect(s.when.typical).toBe(66 + 33);
+    expect(s.when).toMatchObject({ count: 4, n: 20, to: 66 + 40 });
     // sorted within the plan: 25, then every other future lasting to 97; the 1-in-10th (index 2) lasted
     expect(s.when).toMatchObject({ worst: 97, worstLasts: true });
     expect(s.when.worst).toBeLessThanOrEqual(a.planToAge);

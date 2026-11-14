@@ -38,7 +38,7 @@ const WORDS = (twentieths, fixedOf20, age = 97) => ({
 });
 /** A made-up row result (runStressRow's shape) for `key`. */
 const row = (key, id, { w = 0.9, f = 0.85, words = WORDS(18, 17), na = null } = {}) => (na ? { id, key, na, runs: 0, basis: { today: TODAY } } : {
-  id, key, na: null, runs: 2, shortfall: { when: { typical: 88, worst: 84, worstLasts: false }, howLong: { paid: 22, of: 31 }, howMuch: 0.9 }, ran: { family: true, cutsOn: false, cutPct: 20, months: 3 }, basis: { today: TODAY, strategyId: 'pots-and-valves' },
+  id, key, na: null, runs: 2, shortfall: { when: { typical: 88, worst: 84, worstLasts: false, count: 150, n: 1000, to: 103 }, howLong: { paid: 22, of: 31, count: 120 }, howMuch: 0.9 }, ran: { family: true, cutsOn: false, cutPct: 20, months: 3 }, basis: { today: TODAY, strategyId: 'pots-and-valves' },
   a: { weighted: w, sumW: Math.round((1 - w) * 1000 * 1073741824), n: 1000, fixedAge: f, share: f, chancePct: f * 100, futures: 1000, planToAge: 97, weightToAge: 103, typicalLeft: 180000, badCaseLeft: 40000, goodCaseLeft: 640000,
     floor: { age: 88, yearly: 12500 }, cuts: null, level: 'balanced', verdict: w >= 0.85 ? 'yes' : 'no', lasts: w >= 0.85, failKind: 'ran-out', reason: null, words }
 });

@@ -81,12 +81,16 @@ function sentencesOf(id, row, ref, lf) {
   const fixed = fixedAgeParts(row.chance.fixedAge, lf);
   out.fixed = S('strip.' + id + '.fixed', ref ? [...noStop(fixed), ...refPart(refFixed(ref.chance.fixedAge))] : fixed, lf.weighted ? 'fixed' : undefined);
   const sf = row.sf;
-  const wp = whenParts(sf, lf);
+  // beside As planned: how many futures each set holds and As planned's own figure (lastsWords.js `cmp`), so a set that grew
+  // with later run-outs never reads as a better year; As planned itself in the answer's own words
+  const cmp = ref ? { count: row.counts.failing, early: row.counts.early, n: row.chance.n, ref: ref.sf, refCount: ref.counts.failing, refEarly: ref.counts.early } : null;
+  const wp = whenParts(sf, lf, cmp);
+  const rw = ref && ref.sf && ref.sf.when ? ref.sf.when : null;
   out.when = wp ? S('strip.' + id + '.when', wp)
-    : S('strip.' + id + '.lasts', ['In the worst ', F('1'), ' in ', F('10'), ' of all the futures it still lasts to ', F(lf.planToAge), '.']);
-  const hl = howLongParts(sf, lf);
+    : S('strip.' + id + '.lasts', ['In the worst ', F('1'), ' in ', F('10'), ' of all the futures it still lasts to ', F(lf.planToAge), ...(ref && rw && !rw.worstLasts ? [' (as planned: by ', F(rw.worst), ')'] : []), '.']);
+  const hl = howLongParts(sf, lf, cmp);
   if (hl) out.howLong = S('strip.' + id + '.howLong', hl);
-  const hm = howMuchParts(sf);
+  const hm = howMuchParts(sf, cmp);
   if (hm) out.howMuch = S('strip.' + id + '.howMuch', hm);
   const fp = floorParts(sf, lf);
   if (fp) out.floor = S('strip.' + id + '.floor', fp);
@@ -121,7 +125,9 @@ export function runStressStrip(q, inputs, env, { perMonth } = {}) {
     const { months, left, plan } = sc.monthsAt({ H, shock: ch.shock || null, dragPct: ch.dragPct || 0 });
     const c = chanceOf(sc.weigher, months, sc.toMonth);
     const sf = shortfallOf(plan, months, H, { toMonth: sc.toMonth, left });
-    rows.push({ id, perMonth: monthly, chance: { weighted: c.weighted, fixedAge: c.fixedAge, fails: c.fails, sumW: c.sumW, n }, verdict: verdictOfChance(c, n, sc.level, sc.weigher), sf });
+    // (how many futures run out before the age they are followed on to, and before the plan-to age: the sets the words name)
+    const counts = { failing: months.filter((m) => m !== null && isNum(m)).length, early: months.filter((m) => m !== null && isNum(m) && m < sc.toMonth).length };
+    rows.push({ id, perMonth: monthly, chance: { weighted: c.weighted, fixedAge: c.fixedAge, fails: c.fails, sumW: c.sumW, n }, verdict: verdictOfChance(c, n, sc.level, sc.weigher), sf, counts });
     tell(rows.length, STRIP_ROWS.length);
   }
   const ref = rows[0];

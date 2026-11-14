@@ -3228,11 +3228,15 @@
                   "when": {
                     "typical": 99,
                     "worst": 96,
-                    "worstLasts": true
+                    "worstLasts": true,
+                    "count": 79,
+                    "n": 1000,
+                    "to": 104
                   },
                   "howLong": {
                     "paid": 27,
-                    "of": 34
+                    "of": 34,
+                    "count": 24
                   },
                   "howMuch": 0.8035726667657958
                 },
@@ -3243,6 +3247,7 @@
                   "months": 3
                 },
                 "refA": null,
+                "refShortfall": null,
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -3278,6 +3283,7 @@
                       "id": "lines.whenStillLasts",
                       "slots": {
                         "typical": "99",
+                        "weightAge": "104",
                         "age": "96"
                       }
                     },
@@ -3406,6 +3412,22 @@
                     "why": null
                   }
                 },
+                "refShortfall": {
+                  "when": {
+                    "typical": 99,
+                    "worst": 96,
+                    "worstLasts": true,
+                    "count": 79,
+                    "n": 1000,
+                    "to": 104
+                  },
+                  "howLong": {
+                    "paid": 27,
+                    "of": 34,
+                    "count": 24
+                  },
+                  "howMuch": 0.8035726667657958
+                },
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -3497,6 +3519,22 @@
                     ],
                     "why": null
                   }
+                },
+                "refShortfall": {
+                  "when": {
+                    "typical": 99,
+                    "worst": 96,
+                    "worstLasts": true,
+                    "count": 79,
+                    "n": 1000,
+                    "to": 104
+                  },
+                  "howLong": {
+                    "paid": 27,
+                    "of": 34,
+                    "count": 24
+                  },
+                  "howMuch": 0.8035726667657958
                 },
                 "same": false,
                 "agreement": {
@@ -3590,6 +3628,22 @@
                     "why": null
                   }
                 },
+                "refShortfall": {
+                  "when": {
+                    "typical": 99,
+                    "worst": 96,
+                    "worstLasts": true,
+                    "count": 79,
+                    "n": 1000,
+                    "to": 104
+                  },
+                  "howLong": {
+                    "paid": 27,
+                    "of": 34,
+                    "count": 24
+                  },
+                  "howMuch": 0.8035726667657958
+                },
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -3681,6 +3735,22 @@
                     ],
                     "why": null
                   }
+                },
+                "refShortfall": {
+                  "when": {
+                    "typical": 99,
+                    "worst": 96,
+                    "worstLasts": true,
+                    "count": 79,
+                    "n": 1000,
+                    "to": 104
+                  },
+                  "howLong": {
+                    "paid": 27,
+                    "of": 34,
+                    "count": 24
+                  },
+                  "howMuch": 0.8035726667657958
                 },
                 "same": false,
                 "agreement": {
@@ -5162,11 +5232,15 @@
           "when": {
             "typical": 99,
             "worst": 96,
-            "worstLasts": true
+            "worstLasts": true,
+            "count": 79,
+            "n": 1000,
+            "to": 104
           },
           "howLong": {
             "paid": 27,
-            "of": 34
+            "of": 34,
+            "count": 24
           },
           "howMuch": 0.8035726667657958
         },

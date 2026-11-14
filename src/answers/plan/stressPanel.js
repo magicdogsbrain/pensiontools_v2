@@ -184,6 +184,7 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
       shortfall: res && !na ? res.shortfall || null : null,
       ran: res && !na ? res.ran || null : null,
       refA: ref && !ref.na && ref.a ? atLevel(ref.a, lvl) : null,
+      refShortfall: ref && !ref.na && ref.a ? ref.shortfall || null : null,
       same,
       agreement,
       canAccept: !!kind && !closed && !!res && !na && !same && failing,
@@ -261,15 +262,48 @@ function rowParts(r, ctx) {
     : { id: 'lines.plain', ...(weighted ? { mark: 'fixed' } : {}), slots: { words: fixed } });
   const sf = isObj(r.shortfall) ? r.shortfall : null;
   const toAge = isNum(a.planToAge) ? String(Math.round(a.planToAge)) : '';
+  // when, how long and how much, each naming the futures it counts; beside a reference (once its row is in), with how many
+  // futures each set holds and the reference's own figure (the …Ref sentences): a set that grew with later run-outs can
+  // read a later "typically", and the count beside it says why
+  // (a result without the sets' sizes — one made before they were counted — is said without the comparison, never as NaN)
+  const counted = !!sf && (!isObj(sf.when) || (isNum(sf.when.count) && isNum(sf.when.n)));
+  const rs = refA && counted ? (isObj(r.refShortfall) ? r.refShortfall : {}) : null;
+  const rw = rs && isObj(rs.when) ? rs.when : null;
+  const refP = (n) => ({ id: 'ref.' + refId, slots: { n } });
+  const say = (id, slots = {}) => ({ id: 'ref.' + id, slots });
+  const tenthsOf = (x) => Math.floor(x * 10 + 1e-9);
+  const weightAge = (w) => String(isNum(w.to) ? w.to : toAge);
   if (sf && isObj(sf.when)) {
     const w = sf.when;
-    lines.push(w.worstLasts ? { id: 'lines.whenStillLasts', slots: { typical: String(w.typical), age: toAge } } : { id: 'lines.when', slots: { typical: String(w.typical), worst: String(w.worst) } });
-  } else if (sf && toAge) lines.push({ id: 'lines.stillLasts', slots: { age: toAge } });
+    const base = { typical: String(w.typical), weightAge: weightAge(w), ...(w.worstLasts ? { age: toAge } : { worst: String(w.worst) }) };
+    if (!rs) lines.push({ id: w.worstLasts ? 'lines.whenStillLasts' : 'lines.when', slots: base });
+    else {
+      lines.push({ id: w.worstLasts ? 'lines.whenStillLastsRef' : 'lines.whenRef', slots: { ...base, count: commas(w.count), n: commas(w.n),
+        refCount: refP(rw ? commas(rw.count) : say('none')), refTypical: refP(rw ? String(rw.typical) : say('noneRunOut')),
+        refWorst: refP(rw && !rw.worstLasts ? say('by', { age: String(rw.worst) }) : say('stillLasts', { age: toAge })) } });
+    }
+  } else if (sf && toAge) {
+    lines.push(rs && rw && !rw.worstLasts ? { id: 'lines.stillLastsRef', slots: { age: toAge, refWorst: refP(say('by', { age: String(rw.worst) })) } } : { id: 'lines.stillLasts', slots: { age: toAge } });
+  }
   if (sf && isObj(sf.closedYear) && isNum(sf.closedYear.taxYear)) lines.push({ id: 'lines.closedYear', slots: { taxYear: taxYearLabel(sf.closedYear.taxYear) } });
-  if (sf && isObj(sf.when) && isObj(sf.howLong)) lines.push({ id: sf.howLong.anyway ? 'lines.howLongAnyway' : 'lines.howLong', slots: { paid: String(sf.howLong.paid), of: String(sf.howLong.of), age: toAge } });
-  if (sf && isObj(sf.when) && isNum(sf.howMuch) && sf.howMuch < 1) {
-    const tenths = Math.floor(sf.howMuch * 10 + 1e-9);
-    lines.push(tenths >= 1 ? { id: 'lines.howMuch', slots: { tenths: String(tenths) } } : { id: 'lines.howMuchLess', slots: {} });
+  if (sf && isObj(sf.when) && isObj(sf.howLong)) {
+    const h = sf.howLong;
+    const base = { paid: String(h.paid), of: String(h.of), age: toAge };
+    if (!rs) lines.push({ id: h.anyway ? 'lines.howLongAnyway' : 'lines.howLong', slots: base });
+    else {
+      const rh = isObj(rs.howLong) ? rs.howLong : null;
+      lines.push({ id: h.anyway ? 'lines.howLongAnywayRef' : 'lines.howLongRef', slots: { ...base, count: commas(isNum(h.count) ? h.count : 0), n: commas(sf.when.n),
+        refCount: refP(rh && isNum(rh.count) ? commas(rh.count) : say('none')), refPaid: refP(rh ? String(rh.paid) : say('noneRunOut')) } });
+    }
+  }
+  if (sf && isObj(sf.when) && isObj(sf.howLong) && isNum(sf.howMuch) && sf.howMuch < 1) {
+    const tenths = tenthsOf(sf.howMuch);
+    if (!rs) lines.push(tenths >= 1 ? { id: 'lines.howMuch', slots: { tenths: String(tenths) } } : { id: 'lines.howMuchLess', slots: {} });
+    else {
+      const rt = isObj(rs.howLong) && isNum(rs.howMuch) ? tenthsOf(rs.howMuch) : null;
+      const refTenths = refP(rt == null ? say('noneRunOut') : rt >= 1 ? say('tenths', { tenths: String(rt) }) : say('lessThanOne'));
+      lines.push(tenths >= 1 ? { id: 'lines.howMuchRef', slots: { tenths: String(tenths), refTenths } } : { id: 'lines.howMuchLessRef', slots: { refTenths } });
+    }
   }
   const c = isObj(a.cuts) ? a.cuts : null;
   if (r.ran && r.ran.cutsOn && c && c.futures > 0) {

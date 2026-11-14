@@ -101,38 +101,62 @@ export const fixedSentence = (id, share, lf, opts) => S(id, fixedAgeParts(share,
 const atAge = (lf, age) => (lf.couple ? ['when the younger of you is ', F(age)] : ['at ', F(age)]);
 const byAge = (lf, age) => (lf.couple ? ['by the time the younger of you is ', F(age)] : ['by ', F(age)]);
 
+const commas = (n) => String(Math.round(+n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+/** " (211 of the 1,000; as planned: 68)" — how many futures a set holds, beside the reference's (`cmp`, a row of the strip). */
+const setRef = (count, n, refCount) => [' (', F(commas(count)), ' of the ', F(commas(n)), '; as planned: ', ...(refCount > 0 ? [F(commas(refCount))] : ['none']), ')'];
+const tenthsOf = (x) => Math.floor(x * 10 + 1e-9);
+
 /**
  * "In the futures where the money runs out before 103, it typically runs out at 88. In the worst 1 in 10 of all the futures,
  * by 84." — the futures it counts named by the age they are followed on to (the "how long" line names the plan-to age).
+ * `cmp` (7.9.0, a row of "Try the bad years" beside As planned): { count, n, ref } — how many futures ran out before that
+ * age, of how many, and As planned's own shortfall and count: " (211 of the 1,000; as planned: 68)", "(as planned: at 88)",
+ * "(as planned: by 84)". Without it the sentence is as it always was.
  */
-export function whenParts(sf, lf) {
+export function whenParts(sf, lf, cmp = null) {
   if (!sf || !sf.when) return null;
   const w = sf.when;
   const to = isNum(lf.weightToAge) ? lf.weightToAge : lf.planToAge;
-  return ['In the futures where the money runs out before ', ...(lf.couple ? ['the younger of you is ', F(to)] : [F(to)]), ', it typically runs out ', ...atAge(lf, w.typical), '. ',
-    ...(w.worstLasts ? ['In the worst ', F('1'), ' in ', F('10'), ' of all the futures it still lasts to ', F(lf.planToAge), '.']
-      : ['In the worst ', F('1'), ' in ', F('10'), ' of all the futures, ', ...byAge(lf, w.worst), '.'])];
+  const rw = cmp && cmp.ref && cmp.ref.when ? cmp.ref.when : null;
+  const refTypical = !cmp ? [] : [' (as planned: ', ...(rw ? (lf.couple ? atAge(lf, rw.typical) : [F(rw.typical)]) : ['none run out']), ')'];
+  const refWorst = !cmp ? [] : [' (as planned: ', ...(rw && !rw.worstLasts ? byAge(lf, rw.worst) : ['it still lasts to ', F(lf.planToAge)]), ')'];
+  return ['In the futures where the money runs out before ', ...(lf.couple ? ['the younger of you is ', F(to)] : [F(to)]), ...(cmp ? setRef(cmp.count, cmp.n, cmp.refCount) : []), ', it typically runs out ', ...atAge(lf, w.typical), ...refTypical, '. ',
+    ...(w.worstLasts ? ['In the worst ', F('1'), ' in ', F('10'), ' of all the futures it still lasts to ', F(lf.planToAge), ...refWorst, '.']
+      : ['In the worst ', F('1'), ' in ', F('10'), ' of all the futures, ', ...byAge(lf, w.worst), ...refWorst, '.'])];
 }
 
 /**
  * "In the futures where it runs out before 97, it still pays for 22 of the 31 years to 97." — or, when what comes in anyway
  * meets the spending in some years after it, "…, what you planned to spend is still met in 30 of the 31 years to 97, with
- * what comes in anyway."
+ * what comes in anyway." `cmp` (a row of the strip): { early, n, ref, refEarly } — the futures that ran out before the
+ * plan-to age, and As planned's: " (150 of the 1,000; as planned: 40)" and "(as planned: 27)".
  */
-export function howLongParts(sf, lf) {
+export function howLongParts(sf, lf, cmp = null) {
   if (!sf || !sf.howLong) return null;
   const h = sf.howLong;
-  return ['In the futures where it runs out before ', F(lf.planToAge), h.anyway ? ', what you planned to spend is still met in ' : ', it still pays for ', F(h.paid), ' of the ', F(h.of), ' years to ', F(lf.planToAge),
-    h.anyway ? ', with what comes in anyway.' : '.'];
+  if (!cmp) {
+    return ['In the futures where it runs out before ', F(lf.planToAge), h.anyway ? ', what you planned to spend is still met in ' : ', it still pays for ', F(h.paid), ' of the ', F(h.of), ' years to ', F(lf.planToAge),
+      h.anyway ? ', with what comes in anyway.' : '.'];
+  }
+  const rh = cmp.ref && cmp.ref.howLong ? cmp.ref.howLong : null;
+  return ['In the futures where it runs out before ', F(lf.planToAge), ...setRef(cmp.early, cmp.n, cmp.refEarly), h.anyway ? ', what you planned to spend is still met in ' : ', it still pays for ', F(h.paid), ' of the ', F(h.of), ' years to ', F(lf.planToAge),
+    h.anyway ? ', with what comes in anyway' : '', ' (as planned: ', ...(rh ? [F(rh.paid)] : ['none run out']), ').'];
 }
 
-/** "Across those futures, £9 of every £10 you planned to spend is still paid." */
-export function howMuchParts(sf) {
+/** "Across those futures, £9 of every £10 you planned to spend is still paid." `cmp`: with As planned's beside it. */
+export function howMuchParts(sf, cmp = null) {
   if (!sf || !sf.howLong || !(sf.howMuch < 1)) return null;
-  const tenths = Math.floor(sf.howMuch * 10 + 1e-9);
+  const tenths = tenthsOf(sf.howMuch);
+  if (!cmp) {
+    return tenths >= 1
+      ? ['Across those futures, about ', F('£' + tenths), ' of every ', F('£10'), ' you planned to spend is still paid.']
+      : ['Across those futures, less than ', F('£1'), ' of every ', F('£10'), ' you planned to spend is still paid.'];
+  }
+  const r = cmp.ref || null;
+  const ref = [' (as planned: ', ...(!(r && r.howLong) ? ['none run out'] : tenthsOf(r.howMuch) >= 1 ? [F('£' + tenthsOf(r.howMuch))] : ['less than ', F('£1')]), ').'];
   return tenths >= 1
-    ? ['Across those futures, about ', F('£' + tenths), ' of every ', F('£10'), ' you planned to spend is still paid.']
-    : ['Across those futures, less than ', F('£1'), ' of every ', F('£10'), ' you planned to spend is still paid.'];
+    ? ['Across those futures, about ', F('£' + tenths), ' of every ', F('£10'), ' you planned to spend is still paid', ...ref]
+    : ['Across those futures, less than ', F('£1'), ' of every ', F('£10'), ' you planned to spend is still paid', ...ref];
 }
 
 /**

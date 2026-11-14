@@ -3211,6 +3211,7 @@
                 "shortfall": null,
                 "ran": null,
                 "refA": null,
+                "refShortfall": null,
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -3243,6 +3244,7 @@
                 "shortfall": null,
                 "ran": null,
                 "refA": null,
+                "refShortfall": null,
                 "same": false,
                 "agreement": {
                   "status": "stale",
@@ -3329,6 +3331,7 @@
                 "shortfall": null,
                 "ran": null,
                 "refA": null,
+                "refShortfall": null,
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -3361,6 +3364,7 @@
                 "shortfall": null,
                 "ran": null,
                 "refA": null,
+                "refShortfall": null,
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -3393,6 +3397,7 @@
                 "shortfall": null,
                 "ran": null,
                 "refA": null,
+                "refShortfall": null,
                 "same": false,
                 "agreement": {
                   "status": "none",

@@ -65,19 +65,30 @@ export const STRESS = {
     same: 'This changes nothing in this plan’s figures.',
     sameAnswer: 'This changes nothing in this answer’s figures.'
   },
-  // a row's lines: the 7.8.0 sentences, each with its reference beside it
+  // a row's lines: the 7.8.0 sentences, each with its reference beside it. When, how long and how much name the futures each
+  // counts, as the answers do (shared/lastsWords.js): "when" the futures that run out before the age they are followed on
+  // to, the worst 1 in 10 all of them, how long and how much those that run out before the plan's own age. A row beside a
+  // reference (the …Ref sentences) also says how many futures each set holds and the reference's figure, so a set grown
+  // with later run-outs never reads as a better year.
   lines: {
     weighted: '{words} ({ref}).',
     fixed: '{words} ({ref}).',
     plain: '{words}',
-    when: 'Where the money runs out, it typically runs out at {typical}. In the worst 1 in 10 futures, by {worst}.',
-    whenStillLasts: 'Where the money runs out, it typically runs out at {typical}. In the worst 1 in 10 futures it still lasts to {age}.',
-    stillLasts: 'In the worst 1 in 10 futures it still lasts to {age}.',
+    when: 'In the futures where the money runs out before {weightAge}, it typically runs out at {typical}. In the worst 1 in 10 of all the futures, by {worst}.',
+    whenStillLasts: 'In the futures where the money runs out before {weightAge}, it typically runs out at {typical}. In the worst 1 in 10 of all the futures it still lasts to {age}.',
+    stillLasts: 'In the worst 1 in 10 of all the futures it still lasts to {age}.',
+    whenRef: 'In the futures where the money runs out before {weightAge} ({count} of the {n}; {refCount}), it typically runs out at {typical} ({refTypical}). In the worst 1 in 10 of all the futures, by {worst} ({refWorst}).',
+    whenStillLastsRef: 'In the futures where the money runs out before {weightAge} ({count} of the {n}; {refCount}), it typically runs out at {typical} ({refTypical}). In the worst 1 in 10 of all the futures it still lasts to {age} ({refWorst}).',
+    stillLastsRef: 'In the worst 1 in 10 of all the futures it still lasts to {age} ({refWorst}).',
     closedYear: 'In every future we tried, the income for {taxYear} is not paid in full.',
-    howLong: 'In those futures it still pays for {paid} of the {of} years to {age}.',
-    howLongAnyway: 'In those futures what the plan pays is still met in {paid} of the {of} years to {age}, with what comes in anyway.',
+    howLong: 'In the futures where it runs out before {age}, it still pays for {paid} of the {of} years to {age}.',
+    howLongAnyway: 'In the futures where it runs out before {age}, what the plan pays is still met in {paid} of the {of} years to {age}, with what comes in anyway.',
+    howLongRef: 'In the futures where it runs out before {age} ({count} of the {n}; {refCount}), it still pays for {paid} of the {of} years to {age} ({refPaid}).',
+    howLongAnywayRef: 'In the futures where it runs out before {age} ({count} of the {n}; {refCount}), what the plan pays is still met in {paid} of the {of} years to {age}, with what comes in anyway ({refPaid}).',
     howMuch: 'Across those futures, £{tenths} of every £10 of income the plan pays is still paid.',
     howMuchLess: 'Across those futures, less than £1 of every £10 of income the plan pays is still paid.',
+    howMuchRef: 'Across those futures, £{tenths} of every £10 of income the plan pays is still paid ({refTenths}).',
+    howMuchLessRef: 'Across those futures, less than £1 of every £10 of income the plan pays is still paid ({refTenths}).',
     howMuchAnswer: 'Across those futures, £{tenths} of every £10 you planned to spend is still paid.',
     howMuchAnswerLess: 'Across those futures, less than £1 of every £10 you planned to spend is still paid.',
     cuts: 'Income cuts: in {n} of {of} futures, typically {perYear} a year less for about {years} year{s} ({ref}).',
@@ -93,7 +104,14 @@ export const STRESS = {
     cutsAsPlanned: 'as planned: {n}',
     cutsAsHeld: 'as held: {n}',
     cutsNone: 'none',
-    cutsSome: 'in {n}'
+    cutsSome: 'in {n}',
+    // the reference's own figure beside when, how long and how much (in the …Ref sentences)
+    noneRunOut: 'none run out',
+    none: 'none',
+    by: 'by {age}',
+    stillLasts: 'it still lasts to {age}',
+    tenths: '£{tenths}',
+    lessThanOne: 'less than £1'
   },
   // "I accept this risk" (As planned and the four market rows)
   agreement: {

@@ -109,6 +109,29 @@ describe('the words', () => {
     }
     expect(strip.rows.find((x) => x.id === 'spend').words.what[0]).toEqual({ id: 'rows.spend.answer', slots: { amount: '£' + Math.round(strip.rows[3].perMonth).toLocaleString('en-GB') } });
   });
+  it('when, how long and how much name the futures each counts; a row says how many and As planned\'s figure beside each, As planned the answer\'s own sentence', () => {
+    let seen = 0;
+    for (const [q, name] of CASES) {
+      const { strip, answer } = RUN[q + '/' + name];
+      const planned = strip.rows[0];
+      // As planned: the answers' own form, with no comparison (the answer's when line, the same parts)
+      if (planned.sentences.when.id.endsWith('.when')) expect(planned.sentences.when.text).toMatch(/^In the futures where the money runs out before (the younger of you is )?\d+, it typically runs out /);
+      for (const row of strip.rows.slice(1)) {
+        if (row.same || !row.sf.when) continue;
+        seen += 1;
+        const w = row.sentences.when.text;
+        expect(w, `${name} ${row.id}`).toMatch(/^In the futures where the money runs out before (the younger of you is )?\d+ \([\d,]+ of the [\d,]+; as planned: ([\d,]+|none)\), it typically runs out (at|when the younger of you is) \d+ \(as planned: [^)]+\)\. In the worst 1 in 10 of all the futures/);
+        expect(w).toContain('(' + row.counts.failing.toLocaleString('en-GB') + ' of the ' + row.chance.n.toLocaleString('en-GB') + '; as planned: ' + (planned.counts.failing ? planned.counts.failing.toLocaleString('en-GB') : 'none') + ')');
+        if (row.sentences.howLong) {
+          expect(row.sentences.howLong.text).toContain('(' + row.counts.early.toLocaleString('en-GB') + ' of the ' + row.chance.n.toLocaleString('en-GB') + '; as planned: ');
+          expect(row.sentences.howLong.text).toMatch(/\(as planned: (\d+|none run out)\)\.$/);
+        }
+        if (row.sentences.howMuch) expect(row.sentences.howMuch.text).toMatch(/\(as planned: (£\d+|less than £1|none run out)\)\.$/);
+      }
+      expect(answer).toBeTruthy();
+    }
+    expect(seen).toBeGreaterThan(4);
+  });
   it('a row whose every figure is As planned\'s is said to change nothing', () => {
     const couple = RUN['d/answer-D2-couple'].strip;
     expect(couple.rows[0].chance.fixedAge).toBe(1);

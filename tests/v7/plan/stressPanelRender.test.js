@@ -55,7 +55,7 @@ const WORDS = (twentieths, fixedOf20, age = 97) => ({
   assumed: [], why: null
 });
 /** A made-up row result (runStressRow's shape) for `key`. */
-const row = (key, id, { w = 0.9, f = 0.85, words = WORDS(18, 17), shortfall = { when: { typical: 88, worst: 84, worstLasts: false }, howLong: { paid: 22, of: 31 }, howMuch: 0.9 }, cuts = null, cutsOn = false, na = null } = {}) => (na ? { id, key, na, runs: 0, basis: { today: TODAY } } : {
+const row = (key, id, { w = 0.9, f = 0.85, words = WORDS(18, 17), shortfall = { when: { typical: 88, worst: 84, worstLasts: false, count: 150, n: 1000, to: 103 }, howLong: { paid: 22, of: 31, count: 120 }, howMuch: 0.9 }, cuts = null, cutsOn = false, na = null } = {}) => (na ? { id, key, na, runs: 0, basis: { today: TODAY } } : {
   id, key, na: null, runs: 2, shortfall, ran: { family: true, cutsOn, cutPct: 20, months: 3 }, basis: { today: TODAY, strategyId: 'pots-and-valves' },
   a: { weighted: w, sumW: Math.round((1 - w) * 1000 * 1073741824), n: 1000, fixedAge: f, share: f, chancePct: f * 100, futures: 1000, planToAge: 97, weightToAge: 103, typicalLeft: 180000, badCaseLeft: 40000, goodCaseLeft: 640000,
     floor: { age: 88, yearly: 12500 }, cuts, level: 'balanced', verdict: w >= 0.85 ? 'yes' : 'no', lasts: w >= 0.85, failKind: 'ran-out', reason: null, words }
@@ -73,7 +73,7 @@ function withRows(plan, rows, { open = [] } = {}) {
 }
 const MARKET = (key) => ({
   asPlanned: row(key, 'asPlanned'),
-  fall: row(key, 'fall', { w: 0.75, f: 0.6, words: WORDS(15, 12) }),
+  fall: row(key, 'fall', { w: 0.75, f: 0.6, words: WORDS(15, 12), shortfall: { when: { typical: 90, worst: 82, worstLasts: false, count: 211, n: 1000, to: 103 }, howLong: { paid: 21, of: 31, count: 180 }, howMuch: 0.8 } }),
   lower: row(key, 'lower', { w: 0.8, f: 0.7, words: WORDS(16, 14) }),
   spend: row(key, 'spend', { w: 0.7, f: 0.55, words: WORDS(14, 11) }),
   prices: row(key, 'prices')
@@ -145,13 +145,18 @@ describe('the rows drawn', () => {
     const fall = panel.querySelector('[data-row="fall"]');
     expect(fall.querySelector('[data-weighted]').textContent).toBe('Counting how long people your age live, the money lasts as long as you do 15 times in 20 (as planned: 18).');
     expect(fall.querySelector('[data-fixed="age"]').textContent).toBe('If you live to 97, the money lasts that long in 12 of 20 futures we tried (as planned: 17).');
-    expect(fall.textContent).toContain('Where the money runs out, it typically runs out at 88. In the worst 1 in 10 futures, by 84.');
-    expect(fall.textContent).toContain('In those futures it still pays for 22 of the 31 years to 97.');
-    expect(fall.textContent).toContain('Across those futures, £9 of every £10 of income the plan pays is still paid.');
+    // when, how long and how much name the futures each counts, how many there are, and As planned's figure beside it: a
+    // later "typically" over more futures never reads as a better year
+    expect(fall.textContent).toContain('In the futures where the money runs out before 103 (211 of the 1,000; as planned: 150), it typically runs out at 90 (as planned: 88). In the worst 1 in 10 of all the futures, by 82 (as planned: by 84).');
+    expect(fall.textContent).toContain('In the futures where it runs out before 97 (180 of the 1,000; as planned: 120), it still pays for 21 of the 31 years to 97 (as planned: 22).');
+    expect(fall.textContent).toContain('Across those futures, £8 of every £10 of income the plan pays is still paid (as planned: £9).');
     expect(fall.textContent).toContain(STRESS.handOver);
     // this draft draws from this tax year: the fall is said in the coming year
     expect(fall.textContent).toContain(STRESS.rows.fall.whatDrawing);
     const planned = panel.querySelector('[data-row="asPlanned"]');
+    expect(planned.textContent).toContain('In the futures where the money runs out before 103, it typically runs out at 88. In the worst 1 in 10 of all the futures, by 84.');
+    expect(planned.textContent).toContain('In the futures where it runs out before 97, it still pays for 22 of the 31 years to 97.');
+    expect(planned.textContent).toContain('Across those futures, £9 of every £10 of income the plan pays is still paid.');
     expect(planned.textContent).toContain('In the worst 1 in 10 futures, what is left at 97 is £40,000.');
     expect(planned.textContent).not.toContain('as planned:');
     // prices made nothing worse here: "this changes nothing", no figures, no accept
@@ -216,7 +221,7 @@ describe('the rows drawn', () => {
     const lasts = { when: null, howLong: null, howMuch: 1 };
     const s = withRows(plan, (key) => ({ ...MARKET(key), lower: row(key, 'lower', { w: 1, f: 1, words: { ...WORDS(20, 20), headline: 'Counting how long people your age live, the money lasts as long as you do in every future we tried.', fixed: 'If you live to 97, the money lasts that long in every future we tried.' }, shortfall: lasts }) }));
     const lower = panelOf(draw(s).root).querySelector('[data-row="lower"]');
-    expect(lower.textContent).toContain('In the worst 1 in 10 futures it still lasts to 97.');
+    expect(lower.textContent).toContain('In the worst 1 in 10 of all the futures it still lasts to 97 (as planned: by 84).');
     expect(lower.querySelector('[data-testid="plan.lasts.stress.lower.accept"]')).toBe(null);
   });
 });

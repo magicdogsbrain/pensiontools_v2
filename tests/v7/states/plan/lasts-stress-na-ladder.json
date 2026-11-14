@@ -5205,6 +5205,7 @@
                   "months": 3
                 },
                 "refA": null,
+                "refShortfall": null,
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -5309,6 +5310,11 @@
                     "why": "This is the figure the plan was locked with, counted to 86."
                   }
                 },
+                "refShortfall": {
+                  "when": null,
+                  "howLong": null,
+                  "howMuch": 1
+                },
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -5388,6 +5394,11 @@
                     ],
                     "why": "This is the figure the plan was locked with, counted to 86."
                   }
+                },
+                "refShortfall": {
+                  "when": null,
+                  "howLong": null,
+                  "howMuch": 1
                 },
                 "same": false,
                 "agreement": {
@@ -5472,6 +5483,11 @@
                     "why": "This is the figure the plan was locked with, counted to 86."
                   }
                 },
+                "refShortfall": {
+                  "when": null,
+                  "howLong": null,
+                  "howMuch": 1
+                },
                 "same": false,
                 "agreement": {
                   "status": "none",
@@ -5551,6 +5567,11 @@
                     ],
                     "why": "This is the figure the plan was locked with, counted to 86."
                   }
+                },
+                "refShortfall": {
+                  "when": null,
+                  "howLong": null,
+                  "howMuch": 1
                 },
                 "same": false,
                 "agreement": {
@@ -5666,6 +5687,11 @@
                     "why": "This is the figure the plan was locked with, counted to 86."
                   }
                 },
+                "refShortfall": {
+                  "when": null,
+                  "howLong": null,
+                  "howMuch": 1
+                },
                 "same": false,
                 "agreement": null,
                 "canAccept": false,
@@ -5703,6 +5729,7 @@
                       "id": "lines.when",
                       "slots": {
                         "typical": "71",
+                        "weightAge": "86",
                         "worst": "71"
                       }
                     }
@@ -5745,6 +5772,15 @@
                   "goodCaseLeft": null,
                   "coverage": null,
                   "cuts": null
+                },
+                "refShortfall": {
+                  "when": {
+                    "typical": 71,
+                    "worst": 71,
+                    "worstLasts": false
+                  },
+                  "howLong": null,
+                  "howMuch": null
                 },
                 "same": false,
                 "agreement": null,

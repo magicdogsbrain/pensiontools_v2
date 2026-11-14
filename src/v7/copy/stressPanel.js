@@ -22,8 +22,6 @@ export const STRESS = {
     working: 'Trying each line on the same futures…',
     failed: 'These could not be tried. Nothing has changed.'
   },
-  // classic's Scenarios page: the hint under the rows, above the decades it explains
-  classicHint: 'The lines above make one thing worse on purpose. The decades below are real history, explained, not run again.',
   // the hand-over under the fall row: the classic planner's real starts, one at a time
   handOver: 'Real bad starts, one at a time',
   // each row: its title and what it changes
@@ -51,7 +49,8 @@ export const STRESS = {
     asHeld: { title: 'As you hold it', what: 'What you hold now, with what you chose to keep and the money you expect later.' },
     heldHalf: { title: 'What you chose to keep falls by half', what: 'What you marked as yours to keep loses half its value.' },
     heldNothing: {
-      title: 'If what may be one company’s shares went to nothing',
+      title: 'A holding we cannot match goes to nothing',
+      titleMany: 'Holdings we cannot match go to nothing',
       what: '{list} matches no fund we know, so it may be one company’s shares. Here it is worth nothing.',
       whatMany: '{list} match no fund we know, so they may be one company’s shares. Here they are worth nothing.'
     }
@@ -59,7 +58,9 @@ export const STRESS = {
   // why a row has no figure
   na: {
     todaysPrices: 'Not tried for this way of drawing: we work it out in today’s prices throughout, so we cannot show what faster-rising prices would do. Fixed sums, pensions whose rises are capped and tax bands that do not rise would all buy less.',
-    lockedLadder: 'Not tried on a locked ladder: its gilts were bought at the prices of the day it was locked, and we never price them again. What you chose to keep is tried below.',
+    // said once, above the rows (the four rows keep their title and what they change)
+    lockedLadder: 'A locked ladder’s income is fixed on the day it is locked, by the gilts and their prices that day, so these four are not tried on it: a fall at the start, lower returns, spending a tenth more and prices rising faster.{keep}',
+    lockedLadderKeep: ' What you chose to keep is tried below.',
     unaffordable: 'This way of drawing cannot be bought after this change, so there is no figure.',
     notCounted: 'You have not counted what you keep by choice toward the plan, so a fall in it changes what you have, not what the plan pays.',
     same: 'This changes nothing in this plan’s figures.',
@@ -71,35 +72,42 @@ export const STRESS = {
   short: {
     more: 'More about this line',
     join: '; ',
-    // "The money lasts as long as you do 16 times in 20 (as planned 18)" + "; " + "if you live to 99, in 9 of 20 futures we tried (as planned 13)."
-    weighted: '{lasts} {chance}{ref}',
+    // "The money lasts as long as you do, 16 times in 20 (as planned 18)" + "; " + "if you live to 99, it lasts that long in 9 of
+    // 20 futures we tried (as planned 13)." — a figure the reference says too reads "(the same as planned)"
+    weighted: '{lasts}, {chance}{ref}',
     lasts: {
       ranOut: 'The money lasts as long as you do',
       ranOutCouple: 'The money lasts as long as one of you is alive',
       cut: 'Your income is paid in full as long as you live',
       lean: 'You have no lean year while you are alive'
     },
-    fixed: 'if you live to {age}, {count}{ref}.',
-    fixedCouple: 'if one of you is still alive when the younger of you is {age}, {count}{ref}.',
+    fixed: 'if you live to {age}, {verb} {count}{ref}.',
+    fixedCouple: 'if one of you is still alive when the younger of you is {age}, {verb} {count}{ref}.',
+    verb: { ranOut: 'it lasts that long', cut: 'it is paid in full that long', lean: 'you have no lean year that long' },
     // a row with no weighted figure: its fixed-age sentence alone
     fixedOnly: '{words}{ref}.',
     ref: ' ({as} {n})',
-    as: { asPlanned: 'as planned', asHeld: 'as held' },
+    // (a no-break space inside each, and before a bracket's last age, so a line never ends on a lone "planned)." or "93).")
+    as: { asPlanned: 'as\u00a0planned', asHeld: 'as\u00a0held' },
+    same: ' (the same {as})',
     n: { every: 'in every one', none: 'in none', moreThan19: 'more than 19', fewerThan1: 'fewer than 1' },
-    // "Where it runs out: typically at 96, the worst 1 in 10 by 90 (as planned 97 and 93)."
+    // "Where it runs out: typically at 96, the worst 1 in 10 by 90 (as planned 97 and 93)." When the worst 1 in 10 still lasts
+    // to the plan's age, the chance line's count to that age already says so: only the typical age is said, unless the
+    // reference's worst 1 in 10 runs out (then that is news)
     runsOut: 'Where it runs out: typically {typical}{refTypical}, the worst 1 in 10 {worst}{refWorst}.',
-    runsOutBoth: 'Where it runs out: typically {typical}, the worst 1 in 10 {worst} ({as} {age1} and {age2}).',
+    runsOutBoth: 'Where it runs out: typically {typical}, the worst 1 in 10 {worst} ({as} {age1} and\u00a0{age2}).',
+    runsOutBothSame: 'Where it runs out: typically {typical}, the worst 1 in 10 {worst} (both the same {as}).',
+    runsOutTypical: 'Where it runs out: typically {typical}{refTypical}.',
     runsOutLasts: 'Where it runs out: typically {typical}{refTypical}; in the worst 1 in 10 it still lasts to {age}{refWorst}.',
     stillLasts: 'In the worst 1 in 10 it still lasts to {age}{refWorst}.',
     at: 'at {age}',
     atYounger: 'when the younger of you is {age}',
     by: 'by {age}',
     byYounger: 'by the time the younger of you is {age}',
-    refTypical: ' ({as} {age})',
+    refTypical: ' ({as}\u00a0{age})',
     refTypicalNone: ' (none run out {as})',
-    refWorstBy: ' ({as} by {age})',
-    refWorstLasts: ' (it still lasts to {age} {as})',
-    refWorstSame: ' (the same {as})',
+    refWorstBy: ' ({as} by\u00a0{age})',
+    refWorstLasts: ' (it still lasts to {age}\u00a0{as})',
     // said once, above the rows, from As planned: without an age when something comes in (a row whose own differs says it
     // under "More about this line")
     floor: {
@@ -163,9 +171,11 @@ export const STRESS = {
     confirm: 'You are saying you have seen what this does to the plan: {figures}. Nothing about the plan changes, and you can withdraw this at any time. This is a note for your own records. It is not advice, and we have not judged whether the plan suits you.',
     yes: 'Yes, I accept it',
     no: 'Go back',
-    accepted: 'You accepted this on {date}, when the money lasted as long as you do {chance}',
+    accepted: 'You accepted this on {date}, when the money lasted as long as you do, {chance}',
     acceptedFixed: ' (if you live to {age}, it lasted that long {fixed}).',
     acceptedOnly: 'You accepted this on {date}, when the money lasted to {age} {fixed}.',
+    // on a tried row whose agreement still stands: its figures are the row's own, just above
+    acceptedShort: 'You accepted this on {date}.',
     stale: 'The plan’s figures have changed since, so it no longer stands.',
     withdraw: 'Withdraw this',
     withdrawn: 'Withdrawn: what you accepted on {date} is no longer on this plan.',
@@ -186,6 +196,8 @@ export const STRESS = {
     stale: 'What you accepted on {date} no longer stands: what you hold has changed since.',
     lapsed: 'You no longer keep what you accepted on {date}.',
     accept: 'Accept it on What you hold.',
+    // on As you hold it, a locked ladder whose count is below As planned's: why (keepTest.ladderGapsOf, What you hold's own gaps)
+    gap: 'What you hold for the plan’s own money does not cover every year it pays: {taxYear}, when you are {age}, is the first not covered ({amount} short at today’s prices).',
     acceptAgain: 'Accept it again on What you hold.',
     withdraw: 'Withdraw it on What you hold.'
   },

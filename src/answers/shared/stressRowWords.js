@@ -6,9 +6,14 @@
  *
  *   chanceShort(me, ref, o)      the chance line: the weighted chance and, beside it, the count to the plan-to age that names
  *                                its age — { weighted: part|null, fixed: part } — each with the reference's figure on a row
- *                                that has one ("(as planned 18)"). With no weighted figure, the fixed-age sentence alone.
+ *                                that has one ("(as planned 18)"), or "(the same as planned)" when the row says the same
+ *                                figure at the same rounding. With no weighted figure, the fixed-age sentence alone.
  *   runsOutShort(when, ref, o)   where it runs out: the typical age in the futures that run out and the worst 1 in 10 of
- *                                all of them, beside the reference's ("(as planned 97 and 93)")
+ *                                all of them, beside the reference's ("(as planned 97 and 93)"); a figure the reference says
+ *                                too reads "(the same as planned)". When the worst 1 in 10 still lasts to the plan's age the
+ *                                chance line's count to that age already says it, so only the typical age is said — unless
+ *                                the reference's worst 1 in 10 runs out, which is news. Null when nothing runs out and the
+ *                                reference says nothing new (the row is the reference, or it ran out in none either).
  *   planFloorShort(floor, o)     what still comes in, said once above the rows (a plan's words, OneAnswer.weightedWordsOf)
  *   answerFloorShort(floor, o)   the same under an answer (shared/lastsWords.js floorParts' words)
  *   sameFloor(a, b)              whether a row's floor says what the one above the rows says (then its own is not said)
@@ -36,6 +41,10 @@ function refN(share, { weighted = false, sumW = null, n = null } = {}) {
 }
 const asOf = (as) => P('as.' + (as === 'asHeld' ? 'asHeld' : 'asPlanned'));
 const refOf = (as, n) => P('ref', { as: asOf(as), n });
+const sameOf = (as) => P('same', { as: asOf(as) });
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/** Beside a figure: the reference's in brackets, or "(the same as planned)" when both say the same (`mine`, `theirs`: refN's). */
+const besideOf = (as, mine, theirs) => (same(mine, theirs) ? sameOf(as) : refOf(as, theirs));
 const LASTS = { 'ran-out': 'ranOut', cut: 'cut', lean: 'lean' };
 
 /**
@@ -47,16 +56,18 @@ const LASTS = { 'ran-out': 'ranOut', cut: 'cut', lean: 'lean' };
  *   `fixedWords` the row's own fixed-age sentence when it has no weighted figure (a plan's: OneAnswer's own words)
  */
 export function chanceShort(me, ref, { planToAge, kind = 'ran-out', couple = null, as = 'asPlanned', fixedWords = null } = {}) {
-  const fixedRef = ref ? refOf(as, refN(ref.fixedAge)) : '';
+  // (each figure compared at the rounding it is said at: the same twentieths, or the same words)
+  const fixedRef = ref ? besideOf(as, refN(me.fixedAge), refN(ref.fixedAge)) : '';
   const age = String(planToAge);
   const k = LASTS[kind] || 'ranOut';
   if (isNum(me.weighted) && couple !== 'you') {
+    const w = (x) => refN(x.weighted, { weighted: true, sumW: x.sumW, n: x.n });
     const weighted = P('weighted', {
       lasts: P('lasts.' + (k === 'ranOut' && couple ? 'ranOutCouple' : k)),
       chance: chanceWords(me.weighted, { sumW: me.sumW, n: me.n }),
-      ref: ref && isNum(ref.weighted) ? refOf(as, refN(ref.weighted, { weighted: true, sumW: ref.sumW, n: ref.n })) : ''
+      ref: ref && isNum(ref.weighted) ? besideOf(as, w(me), w(ref)) : ''
     });
-    return { weighted, fixed: P(couple ? 'fixedCouple' : 'fixed', { age, count: twentiethsOfFutures(me.fixedAge), ref: fixedRef }) };
+    return { weighted, fixed: P(couple ? 'fixedCouple' : 'fixed', { age, verb: P('verb.' + k), count: twentiethsOfFutures(me.fixedAge), ref: fixedRef }) };
   }
   const words = fixedWords || fixedAgeWords(me.fixedAge, planToAge, { kind, couple: couple ? { name: couple === 'you' ? 'you' : 'the younger of you' } : null });
   return { weighted: null, fixed: P('fixedOnly', { words: noStop(words), ref: fixedRef }) };
@@ -72,18 +83,22 @@ export function runsOutShort(when, ref, { planToAge, younger = false, as = 'asPl
   const age = String(planToAge);
   const has = ref !== undefined;
   const rLasts = !ref || ref.worstLasts;
-  if (!when) {
-    return P('stillLasts', { age, refWorst: has && !rLasts ? P('refWorstBy', { as: asOf(as), age: String(ref.worst) }) : '' });
-  }
+  const refWorstBy = () => P('refWorstBy', { as: asOf(as), age: String(ref.worst) });
+  // none runs out: the chance line says it lasts; said only when the reference's worst 1 in 10 runs out
+  if (!when) return has && !rLasts ? P('stillLasts', { age, refWorst: refWorstBy() }) : null;
   const typical = P(younger ? 'atYounger' : 'at', { age: String(when.typical) });
   const worst = P(younger ? 'byYounger' : 'by', { age: String(when.worst) });
-  if (!has) return when.worstLasts ? P('runsOutLasts', { typical, refTypical: '', age, refWorst: '' }) : P('runsOut', { typical, refTypical: '', worst, refWorst: '' });
+  if (!has) return when.worstLasts ? P('runsOutTypical', { typical, refTypical: '' }) : P('runsOut', { typical, refTypical: '', worst, refWorst: '' });
+  const sameTypical = !!ref && ref.typical === when.typical;
   // beside the reference: both of its ages in one bracket when both are ages, else each figure's own
-  if (!when.worstLasts && !rLasts) return P('runsOutBoth', { typical, worst, as: asOf(as), age1: String(ref.typical), age2: String(ref.worst) });
-  const refTypical = ref ? P('refTypical', { as: asOf(as), age: String(ref.typical) }) : P('refTypicalNone', { as: asOf(as) });
-  if (when.worstLasts) {
-    return P('runsOutLasts', { typical, refTypical, age, refWorst: rLasts ? P('refWorstSame', { as: asOf(as) }) : P('refWorstBy', { as: asOf(as), age: String(ref.worst) }) });
+  if (!when.worstLasts && !rLasts) {
+    const sameWorst = ref.worst === when.worst;
+    if (sameTypical && sameWorst) return P('runsOutBothSame', { typical, worst, as: asOf(as) });
+    if (!sameTypical && !sameWorst) return P('runsOutBoth', { typical, worst, as: asOf(as), age1: String(ref.typical), age2: String(ref.worst) });
+    return P('runsOut', { typical, refTypical: sameTypical ? sameOf(as) : P('refTypical', { as: asOf(as), age: String(ref.typical) }), worst, refWorst: sameWorst ? sameOf(as) : refWorstBy() });
   }
+  const refTypical = !ref ? P('refTypicalNone', { as: asOf(as) }) : sameTypical ? sameOf(as) : P('refTypical', { as: asOf(as), age: String(ref.typical) });
+  if (when.worstLasts) return rLasts ? P('runsOutTypical', { typical, refTypical }) : P('runsOutLasts', { typical, refTypical, age, refWorst: refWorstBy() });
   return P('runsOut', { typical, refTypical, worst, refWorst: P('refWorstLasts', { as: asOf(as), age }) });
 }
 

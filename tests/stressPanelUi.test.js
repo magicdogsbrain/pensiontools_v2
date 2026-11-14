@@ -117,7 +117,7 @@ describe('the card and opening the page', () => {
     const H = harness(plan);
     await H.w.drawStressPanel();
     const g = H.box().querySelector('#stressAgreement-fall');
-    expect(g.textContent).toContain('You accepted this on 2 October 2026, when the money lasted as long as you do 15 times in 20 (if you live to 97, it lasted that long in 12 of 20 futures we tried).');
+    expect(g.textContent).toContain('You accepted this on 2 October 2026, when the money lasted as long as you do, 15 times in 20 (if you live to 97, it lasted that long in 12 of 20 futures we tried).');
     expect(g.querySelector('[data-weighted]')).toBeTruthy();
     expect(g.querySelector('[data-fixed="age"]')).toBeTruthy();
     expect(H.asked).toEqual([]);
@@ -155,10 +155,11 @@ describe('the press', () => {
     expect([...panel.querySelectorAll('li.stress-row')].map((li) => li.getAttribute('data-row'))).toEqual(['asPlanned', 'fall', 'lower', 'spend', 'prices']);
     const fall = panel.querySelector('[data-row="fall"]');
     // in short, as V7 says it: the chance beside its fixed-age count, where it runs out; the rest closed under "More"
-    expect(fall.querySelector('[data-weighted]').textContent).toBe('The money lasts as long as you do 15 times in 20 (as planned 18)');
-    expect(fall.querySelector('[data-fixed="age"]').textContent).toBe('if you live to 97, in 12 of 20 futures we tried (as planned 17).');
+    expect(fall.querySelector('[data-weighted]').textContent).toBe('The money lasts as long as you do, 15 times in 20 (as\u00a0planned 18)');
+    expect(fall.querySelector('[data-fixed="age"]').textContent).toBe('if you live to 97, it lasts that long in 12 of 20 futures we tried (as\u00a0planned 17).');
     expect(fall.querySelector('[data-weighted]').parentElement).toBe(fall.querySelector('[data-fixed="age"]').parentElement);
-    expect(fall.querySelector('[data-line="runsOut"]').textContent).toBe('Where it runs out: typically at 88, the worst 1 in 10 by 84 (as planned 88 and 84).');
+    // the same ages as As planned's: said once
+    expect(fall.querySelector('[data-line="runsOut"]').textContent).toBe('Where it runs out: typically at 88, the worst 1 in 10 by 84 (both the same as\u00a0planned).');
     const more = fall.querySelector('details.stress-more');
     expect(more.open).toBe(false);
     expect(more.querySelector('summary').textContent).toBe(STRESS.short.more);
@@ -267,17 +268,18 @@ describe('"I accept this risk"', () => {
 
 describe('the named stresses below the rows', () => {
   const a = { histories: 1200, chancePct: 85, outOfTen: { words: 'in 8 or 9 futures out of 10' } };
-  it('with the rows shown: no figure of their own, and the hint says what each part is', () => {
+  it('with the rows shown: no figure of their own; one paragraph says what each part is, the real starts named apart from the futures', () => {
     const t = plain(scenariosTabHtml({ strategyId: 'pots-and-valves', name: 'Pots & Valves', a, r: {}, p: {}, rows: [], scenarios: {}, startYears: {}, worst: [], rowsShown: true }));
-    expect(t).toContain('is one of the 1,200 real starts behind this plan\'s figure above.');
+    expect(t).toContain('The lines above make one thing worse on purpose. Each named stress below is a real decade: the real history from its first year is one of the 1,200 real starts since 1871 that the one test counts beside its futures.');
+    // never "behind this plan's figure above" (the lines above count futures only), never "not run" beside results
+    expect(t).not.toMatch(/figure above|not run again/);
     expect(t).not.toMatch(/\d%/);
-    expect(t).toContain(STRESS.classicHint);
     expect(t).not.toMatch(/Until 6\.24/);
-    // the hint says "the lines above … the decades below": it sits at the top of the card, under the heading, above the table
+    // the paragraph says "the lines above … below": it sits at the top of the card, under the heading, above the table
     const html = scenariosTabHtml({ strategyId: 'pots-and-valves', name: 'Pots & Valves', a, r: {}, p: {}, rows: [], scenarios: {}, startYears: {}, worst: [], rowsShown: true });
+    expect(html.match(/data-stress-hint/g)).toHaveLength(1);
     expect(html.indexOf('data-stress-hint')).toBeGreaterThan(html.indexOf('</h2>'));
     expect(html.indexOf('data-stress-hint')).toBeLessThan(html.indexOf('<table'));
-    expect(html.indexOf('data-stress-hint')).toBeLessThan(html.indexOf('Each named stress is a real decade'));
   });
   it('without them: as before', () => {
     const t = plain(scenariosTabHtml({ strategyId: 'pots-and-valves', name: 'Pots & Valves', a, r: {}, p: {}, rows: [], scenarios: {}, startYears: {}, worst: [] }));

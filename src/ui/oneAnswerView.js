@@ -11,7 +11,6 @@ import { LIFE_TABLE, HORIZON } from '../services/LongevityModel.js';
 import { chanceWords, fixedAgeWords } from '../answers/shared/format.js';
 import { LEVEL_IDS } from '../answers/shared/shown.js';
 import { SUCCESS, planToAgeOf } from '../answers/shared/rules.js';
-import { STRESS } from '../v7/copy/stressPanel.js';
 
 const futuresWords = (share) => futuresOutOfTen(share).words;
 
@@ -122,11 +121,10 @@ export function scenariosTabHtml({ strategyId, name, a, r, p, rows = [], scenari
     h += '<p class="hint" style="margin-top:10px;">What no scenario here tests: your own inflation running above the official index (care, energy, services), the RPI→CPIH change in February 2030, frozen tax thresholds, and the DMO\'s 3-month indexation lag in a fast-moving year. The Great Depression row is a real deflation — UK linkers have no floor, so the pounds fall with prices; they still buy the plan.</p>';
     return h + '</div>';
   }
-  // with "Try the bad years" above (7.9.0), the plan's own figure is the As planned line there: no second figure here; the
-  // hint that says which part is which sits at the top of this card, right under those lines and above the decades
-  if (rowsShown) h += '<p class="hint" style="margin-top:0;" data-stress-hint="1">' + esc(STRESS.classicHint) + '</p>';
+  // with "Try the bad years" above (7.9.0), the plan's own figure is the As planned line there: no second figure here. The
+  // lines above are futures only, so the real starts are named as a set of their own (the words of "Does it last?")
   h += rowsShown
-    ? '<p>Each named stress is a real decade. The one test already contains it: the real history that starts at that decade\'s first year is one of the ' + n0(a.histories) + ' real starts behind this plan\'s figure above. Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>'
+    ? '<p data-stress-hint="1">The lines above make one thing worse on purpose. Each named stress below is a real decade: the real history from its first year is one of the ' + n0(a.histories) + ' real starts since 1871 that the one test counts beside its futures. Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>'
     : '<p>Each named stress is a real decade. The one test already contains it: the real history that starts at that decade\'s first year is one of the ' + n0(a.histories) + ' starts behind your figure of <strong>' + pctText(a.chancePct, 0, CHANCE_BARS) + '</strong> (lasts ' + esc(a.outOfTen.words) + '). Here is what the decade did, and what retiring into it would have done to <strong>' + esc(name) + '</strong> on your plan — its own cuts setting, its full length, today\'s money.</p>';
   h += '<div class="table-scroll-container"><table><thead><tr><th>Named stress</th><th>What the decade did</th><th>Retiring into it: what happened to this plan</th><th>Lowest 12 months</th><th>Left at the end</th></tr></thead><tbody>';
   for (const [k, sc] of Object.entries(scenarios)) {

@@ -18,7 +18,9 @@
  *                                          at the level asked for (lasts.js atLevel, no run), beside its reference, `same`,
  *                                          its agreement and whether it can be accepted; the agreements before any run; the
  *                                          keep agreement's state for the held rows (they never write); `floor`, what
- *                                          still comes in if the money runs out, said once above the rows from As planned
+ *                                          still comes in if the money runs out, said once above the rows from As planned;
+ *                                          `notTried`, why a locked ladder's four market rows are not tried, said once
+ *                                          above the rows (the rows then say only their title and what they change)
  *   stressKeyOf(plan, today)               the key a row's result is filed under: id | today | the effective settings | what
  *                                          they read from elsewhere | locked | what is held | the kept sex | the household's
  *                                          reason | the document. Not the level (a new level re-reads, no run), not
@@ -56,7 +58,7 @@ import { firstRecordedMonthOf, isSuccessorOrClosed } from '../../services/PlanMo
 import { TO_AGE_RULE } from '../../services/AgeConvention.js';
 import { keptSexOf, householdReasonOf, planLevelOf } from './life.js';
 import { scaledIncome } from './spend.js';
-import { keptAssetsOf, keepTestOf } from './keepTest.js';
+import { keptAssetsOf, keepTestOf, ladderGapsOf } from './keepTest.js';
 import { documentLadder } from '../../services/LadderPosition.js';
 import { atLevel, FAMILY } from './lasts.js';
 import { AMEND_WRITES } from './schema.js';
@@ -199,7 +201,11 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
   // under "More about this line")
   const planned = rows0.find((r) => r.id === 'asPlanned');
   const floor = planned && planned.status === 'done' && planned.a ? floorOfRow(planned.a) : null;
-  const ctx = { ...ctx0, floor };
+  // a locked ladder's four market rows are not tried, for one reason: said once, above the rows
+  const market = rows0.filter((r) => MARKET_IDS.includes(r.id));
+  const ladderOnce = market.length > 0 && market.every((r) => r.na === 'lockedLadder');
+  const notTried = ladderOnce ? { id: 'na.lockedLadder', slots: { keep: rows0.some((r) => HELD_IDS.includes(r.id)) ? { id: 'na.lockedLadderKeep' } : '' } } : null;
+  const ctx = { ...ctx0, floor, ladderOnce, heldGap: heldGapOf(plan, rows0, { strategyId: s.strategyId || 'pots-and-valves', today }) };
   const list = rows0.map((r) => ({ ...r, parts: rowParts(r, ctx) }));
   const agreements = stressAgreementsOf(plan).map((g) => ({ ...g, parts: { title: { id: 'rows.' + g.id + '.title' }, accepted: acceptedParts(g.entry), stale: g.status === 'stale' } }));
   // what the panel tries, in the order it tries it: As planned first, then As held, then the rest; a row known not to be
@@ -207,9 +213,27 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
   const order = list.filter((r) => !(r.status === 'na' && (r.na === 'lockedLadder' || r.na === 'todaysPrices'))).map((r) => r.id);
   const first = ['asPlanned', 'asHeld'].filter((id) => order.includes(id));
   return {
-    key, level: lvl, rows: list, agreements, keep, closed, floor,
+    key, level: lvl, rows: list, agreements, keep, closed, floor, notTried,
     order: [...first, ...order.filter((id) => !first.includes(id))], drawing: ctx.drawing
   };
+}
+
+/**
+ * Why As you hold it lasts less often than As planned on a locked ladder: the first tax year what is held for the plan's own
+ * money does not cover (keepTest.ladderGapsOf — the gaps What you hold reads, before what is kept by choice and the money
+ * expected), with the age that year and its gap. Only once both rows are in and the held count is below the plan's; null
+ * otherwise (a pot plan has no years to read). Words only: no row's figure is read differently.
+ */
+function heldGapOf(plan, rows, { strategyId, today }) {
+  const held = rows.find((r) => r.id === 'asHeld');
+  if (!held || !held.a || !held.refA || !(fixedOf(held.a) < fixedOf(held.refA)) || !lockedLadderOf(plan, strategyId)) return null;
+  let G = null;
+  try { G = ladderGapsOf(plan, { today, withExpected: true }); } catch { G = null; }
+  const p = plan.planDocument.strategy.p;
+  const firstTY = Math.round(+(p.runFirstTaxYear || p.firstTaxYear));
+  if (!G || !G.firstShort || !isNum(+p.startAge) || !isNum(firstTY)) return null;
+  const Y = +G.firstShort.Y;
+  return { id: 'held.gap', slots: { taxYear: taxYearLabel(Y), age: String(Math.round(+p.startAge) + (Y - firstTY)), amount: poundsOf(G.firstShort.gap) } };
 }
 
 /**
@@ -252,7 +276,7 @@ const weightedOf = (a) => a.weighted !== null && isNum(a.weighted) && !!(a.words
 const floorOfRow = (a) => planFloorShort(a.floor, { kind: kindOf(a), words: a.words && a.words.floor ? a.words.floor : null });
 
 /**
- * One row in words: { title, what[], na, chance, runsOut, closedYear, more[], confirm, accepted, keepLine } — `chance` the
+ * One row in words: { title, what[], na, chance, runsOut, closedYear, heldGap, more[], confirm, accepted, keepLine } — `chance` the
  * weighted chance { weighted } with its fixed-age count { fixed } beside it (the screens draw them as [data-weighted] and
  * [data-fixed="age"] in one line), `runsOut` where it runs out, both in short (shared/stressRowWords.js, as the strip says
  * them); `more` the rest, each { id, slots }, drawn under "More about this line". A row never says a figure of the real
@@ -265,13 +289,18 @@ function rowParts(r, ctx) {
   else if (id === 'heldNothing') what.push({ id: ctx.singles.length > 1 ? 'rows.heldNothing.whatMany' : 'rows.heldNothing.what', slots: { list: listOf(ctx.singles) } });
   else what.push({ id: 'rows.' + id + '.what' });
   if (id === 'lower' && ctx.saver) what.push({ id: 'rows.lower.saver' });
-  const out = { title: { id: 'rows.' + id + '.title' }, what, na: null, chance: null, runsOut: null, closedYear: null, more: [], confirm: null, accepted: null, keepLine: null, holdLink: null };
-  if (r.na) out.na = { id: 'na.' + r.na };
-  else if (r.same) out.na = { id: 'na.same' };
+  const title = { id: id === 'heldNothing' && ctx.singles.length > 1 ? 'rows.heldNothing.titleMany' : 'rows.' + id + '.title' };
+  const out = { title, what, na: null, chance: null, runsOut: null, closedYear: null, heldGap: null, more: [], confirm: null, accepted: null, keepLine: null, holdLink: null };
+  // (a locked ladder's market rows: why is said once, above the rows — the panel's `notTried`)
+  if (r.na && !(r.na === 'lockedLadder' && ctx.ladderOnce)) out.na = { id: 'na.' + r.na };
+  else if (!r.na && r.same) out.na = { id: 'na.same' };
   if (r.agreement && r.agreement.entry) out.accepted = { ...acceptedParts(r.agreement.entry), stale: r.agreement.status === 'stale' };
   if (r.keep && r.keep.state) { out.keepLine = r.keep.state; out.holdLink = r.keep.link; }
   const a = r.a;
   if (!a || r.na || r.same) return out;
+  // a tried row's agreement that still stands: its figures are the row's own, just above — only the date is said
+  if (out.accepted && !out.accepted.stale) out.accepted = { id: 'agreement.acceptedShort', slots: { date: out.accepted.slots.date }, fixed: null, stale: false };
+  if (id === 'asHeld' && ctx.heldGap) out.heldGap = ctx.heldGap;
   const refA = r.refA;
   const refId = r.ref === 'asHeld' ? 'asHeld' : 'asPlanned';
   const weighted = weightedOf(a);

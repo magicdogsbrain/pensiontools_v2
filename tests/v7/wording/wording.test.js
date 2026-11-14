@@ -254,6 +254,7 @@ describe('the words in src/v7/copy/', () => {
       // the guardrail reading in "Where you are" (7.9.0): its pounds, its shares and the tax year the plan as locked began
       // a row in short (stressRowWords.js): its pieces, as the builder fills them
       .replace(/\{lasts\}/g, 'The money lasts as long as you do').replace(/\{as\}/g, 'as planned').replace(/\{(age1|age2)\}/g, '93')
+      .replace(/\{verb\}/g, 'it lasts that long').replace(/\{keep\}/g, ' What you chose to keep is tried below.')
       .replace(/\{runsOut\}/g, 'the money runs out').replace(/\{from\}/g, 'from your State Pension').replace(/\{(assumed|between|survivor)\}/g, '')
       .replace(/\{(draw|less|more)\}/g, '£16,400').replace(/\{(pct|startPct|upperPct|lowerPct|lessPct|morePct)\}/g, '4.1%').replace(/\{startYear\}/g, '2027 to 2028');
     const hits = [];

@@ -89,6 +89,7 @@ function rowHtml(row, v) {
   h += chanceHtml(p.chance);
   if (p.runsOut) h += '<p class="stress-line" data-line="runsOut">' + say(p.runsOut) + '</p>';
   if (p.closedYear) h += '<p class="stress-line" data-line="closedYear">' + say(p.closedYear) + '</p>';
+  if (p.heldGap) h += '<p class="hint" id="' + T + '-gap">' + say(p.heldGap) + '</p>';
   if (row.id === 'fall' && !row.na) h += '<p class="hint"><a href="#" id="stressBadStarts" data-on-click="showBadStarts(); return false">' + esc(STRESS.handOver) + '</a></p>';
   if (!row.kind && p.keepLine) {
     h += '<p class="hint" data-keep="' + esc(row.keep ? row.keep.status : '') + '">' + say(p.keepLine) + ' <a href="#" data-on-click="switchToTab(\'transition\'); return false">' + say(p.holdLink) + '</a></p>';
@@ -133,6 +134,8 @@ export function stressPanelHtml(scenario, { today = dayOf(new Date()) } = {}) {
   if (run.status === 'working') h += '<p class="hint" role="status" id="stressWorking">' + say({ id: 'working', slots: { i: String(Math.min(run.total, run.done + 1)), n: String(run.total) } }) + '</p>';
   if (run.status === 'failed' && run.reason !== 'stopped') h += '<p class="alert alert-warning" role="alert" id="stressFailed">' + esc(run.reason === 'noWorker' ? STRESS.noWorker : STRESS.failed) + '</p>';
   if (tried && v.floor) h += '<p class="stress-line stress-floor" id="stressFloor">' + say(v.floor) + '</p>';
+  // a locked ladder's four market rows: why they are not tried, said once, above the rows
+  if (tried && v.notTried) h += '<p class="hint" id="stressNotTried" data-na="lockedLadder">' + say(v.notTried) + '</p>';
   if (tried) h += '<ul class="stress-rows" id="stressRows">' + v.rows.map((row) => rowHtml(row, v)).join('') + '</ul>';
   if (memory.problem) h += '<p class="alert alert-warning" role="alert" id="stressProblem" data-problem="' + esc(memory.problem) + '">' + esc(STRESS.agreement.problems[memory.problem] || STRESS.agreement.problems.failed) + '</p>';
   if (!v.closed && memory.undo && memory.undo.after === listOf(scenario)) h += actions(button(LASTS.buttons.undo, 'undoStressRisk()', { id: 'stressUndo', quiet: true }));

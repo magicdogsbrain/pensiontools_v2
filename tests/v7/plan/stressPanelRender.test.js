@@ -118,7 +118,8 @@ describe('before the press', () => {
     const g = root.querySelector('[data-testid="plan.lasts.stress.agreement.fall"]');
     expect(g).toBeTruthy();
     expect(g.textContent).toContain('A fall at the start');
-    expect(g.textContent).toContain('You accepted this on 2 October 2026, when the money lasted as long as you do 15 times in 20 (if you live to 97, it lasted that long in 12 of 20 futures we tried).');
+    // before any run, no figures sit above it: the agreement says the figures it was accepted on
+    expect(g.textContent).toContain('You accepted this on 2 October 2026, when the money lasted as long as you do, 15 times in 20 (if you live to 97, it lasted that long in 12 of 20 futures we tried).');
     expect(ruleProblems(root)).toEqual([]);
     g.querySelector('[data-testid="plan.lasts.stress.agreement.fall.withdraw"]').click();
     expect(actions).toEqual([{ type: 'plan/amend', planId: String(plan.id), op: 'withdraw', kind: 'stress', testId: 'fall' }]);
@@ -148,10 +149,14 @@ describe('the rows drawn', () => {
     expect(rows.map((r) => r.getAttribute('data-row'))).toEqual(['asPlanned', 'fall', 'lower', 'spend', 'prices']);
     const fall = panel.querySelector('[data-row="fall"]');
     const chance = fall.querySelector('[data-line="chance"]');
-    expect(chance.textContent).toBe('The money lasts as long as you do 15 times in 20 (as planned 18); if you live to 97, in 12 of 20 futures we tried (as planned 17).');
-    expect(chance.querySelector('[data-weighted]').textContent).toBe('The money lasts as long as you do 15 times in 20 (as planned 18)');
-    expect(chance.querySelector('[data-fixed="age"]').textContent).toBe('if you live to 97, in 12 of 20 futures we tried (as planned 17).');
-    expect(fall.querySelector('[data-line="runsOut"]').textContent).toBe('Where it runs out: typically at 90, the worst 1 in 10 by 82 (as planned 88 and 84).');
+    // each clause has its verb ("it lasts that long"); the no-break spaces keep a bracket's last words on one line
+    expect(chance.textContent).toBe('The money lasts as long as you do, 15 times in 20 (as\u00a0planned 18); if you live to 97, it lasts that long in 12 of 20 futures we tried (as\u00a0planned 17).');
+    expect(chance.querySelector('[data-weighted]').textContent).toBe('The money lasts as long as you do, 15 times in 20 (as\u00a0planned 18)');
+    expect(chance.querySelector('[data-fixed="age"]').textContent).toBe('if you live to 97, it lasts that long in 12 of 20 futures we tried (as\u00a0planned 17).');
+    expect(fall.querySelector('[data-line="runsOut"]').textContent).toBe('Where it runs out: typically at 90, the worst 1 in 10 by 82 (as\u00a0planned 88 and\u00a084).');
+    // a figure As planned says too is said once: "(the same as planned)", never "16 (as planned 16)"
+    const lower = panel.querySelector('[data-row="lower"]');
+    expect(lower.querySelector('[data-line="runsOut"]').textContent).toBe('Where it runs out: typically at 88, the worst 1 in 10 by 84 (both the same as\u00a0planned).');
     // shown: the title, what it changes, the two lines; the rest closed under "More about this line"
     expect([...fall.querySelectorAll(':scope > p.stress-line')].map((x) => x.getAttribute('data-line'))).toEqual(['chance', 'runsOut']);
     const more = fall.querySelector('details.stress-more');
@@ -172,7 +177,7 @@ describe('the rows drawn', () => {
     expect(floor.closest('li')).toBe(null);
     expect(panel.textContent).not.toContain('If the money ran out at 88');
     const planned = panel.querySelector('[data-row="asPlanned"]');
-    expect(planned.querySelector('[data-line="chance"]').textContent).toBe('The money lasts as long as you do 18 times in 20; if you live to 97, in 17 of 20 futures we tried.');
+    expect(planned.querySelector('[data-line="chance"]').textContent).toBe('The money lasts as long as you do, 18 times in 20; if you live to 97, it lasts that long in 17 of 20 futures we tried.');
     expect(planned.querySelector('[data-line="runsOut"]').textContent).toBe('Where it runs out: typically at 88, the worst 1 in 10 by 84.');
     expect(planned.textContent).toContain('In the futures where the money runs out before 103, it typically runs out at 88. In the worst 1 in 10 of all the futures, by 84.');
     expect(planned.textContent).toContain('In the futures where it runs out before 97, it still pays for 22 of the 31 years to 97.');
@@ -228,6 +233,8 @@ describe('the rows drawn', () => {
     const { root } = draw(withRows(plan, MARKET));
     const spend = panelOf(root).querySelector('[data-row="spend"]');
     expect(spend.querySelector('[data-testid="plan.lasts.stress.spend.accepted"]').getAttribute('data-status')).toBe('agreed');
+    // still standing, its figures are the row's own, just above: only the date is said
+    expect(spend.querySelector('[data-testid="plan.lasts.stress.spend.accepted"]').textContent).toBe('You accepted this on 2 October 2026.');
     expect(spend.querySelector('[data-testid="plan.lasts.stress.spend.withdraw"]')).toBeTruthy();
     // agreed and still standing: Withdraw is its one button, never a second "I accept this risk"
     expect(spend.querySelector('[data-testid="plan.lasts.stress.spend.accept"]')).toBe(null);
@@ -240,6 +247,8 @@ describe('the rows drawn', () => {
     // out of date: it can be accepted again
     expect(panelOf(s2.root).querySelector('[data-testid="plan.lasts.stress.spend.accept"]')).toBeTruthy();
     expect(line.textContent).toContain(STRESS.agreement.stale);
+    // out of date: the figures it was accepted on, beside the row's new ones
+    expect(line.textContent).toContain('You accepted this on 2 October 2026, when the money lasted as long as you do, ');
     expect(ruleProblems(s2.root)).toEqual([]);
   });
   it('a row where nothing runs out offers no accept; the worst 1 in 10 is said to last', () => {
@@ -247,7 +256,7 @@ describe('the rows drawn', () => {
     const lasts = { when: null, howLong: null, howMuch: 1 };
     const s = withRows(plan, (key) => ({ ...MARKET(key), lower: row(key, 'lower', { w: 1, f: 1, words: { ...WORDS(20, 20), headline: 'Counting how long people your age live, the money lasts as long as you do in every future we tried.', fixed: 'If you live to 97, the money lasts that long in every future we tried.' }, shortfall: lasts }) }));
     const lower = panelOf(draw(s).root).querySelector('[data-row="lower"]');
-    expect(lower.querySelector('[data-line="runsOut"]').textContent).toBe('In the worst 1 in 10 it still lasts to 97 (as planned by 84).');
+    expect(lower.querySelector('[data-line="runsOut"]').textContent).toBe('In the worst 1 in 10 it still lasts to 97 (as\u00a0planned by\u00a084).');
     expect(lower.querySelector('[data-testid="plan.lasts.stress.lower.accept"]')).toBe(null);
   });
 });
@@ -339,18 +348,47 @@ describe('a saver\'s plan', () => {
 });
 
 describe('a locked ladder and the held rows', () => {
-  it('a locked ladder: the market rows say why they are not tried and are never sent; nothing to accept on them', () => {
+  it('a locked ladder: why the four market rows are not tried is said once, above the rows; they are never sent; nothing to accept on them', () => {
     const plan = plan0('03-gilt-ladder-locked');
-    const s = withRows(plan, (key) => ({ asPlanned: row(key, 'asPlanned') }));
+    const lasts = { when: null, howLong: null, howMuch: 1 };
+    const s = withRows(plan, (key) => ({ asPlanned: row(key, 'asPlanned', { w: 1, f: 1, words: { ...WORDS(20, 20), headline: 'Counting how long people your age live, the money lasts as long as you do in every future we tried.', fixed: 'If you live to 97, the money lasts that long in every future we tried.' }, shortfall: lasts }) }));
     expect(s.stressPanel.order).toEqual(['asPlanned']);
     const { root } = draw(s);
+    const panel = panelOf(root);
+    const once = panel.querySelector('[data-testid="plan.lasts.stress.notTried"]');
+    expect(once.getAttribute('data-na')).toBe('lockedLadder');
+    expect(once.closest('li')).toBe(null);
+    expect(once.textContent).toMatch(/^A locked ladder’s income is fixed on the day it is locked, by the gilts and their prices that day, so these four are not tried on it: a fall at the start, lower returns, spending a tenth more and prices rising faster\.( What you chose to keep is tried below\.)?$/);
+    // ... and said nowhere else: each row keeps its title and what it changes
+    expect(visibleText(panel).split('not tried on it').length - 1).toBe(1);
     for (const id of ['fall', 'lower', 'spend', 'prices']) {
-      const r = panelOf(root).querySelector(`[data-row="${id}"]`);
-      expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.na"]`).textContent).toBe(STRESS.na.lockedLadder);
+      const r = panel.querySelector(`[data-row="${id}"]`);
+      expect(r.getAttribute('data-status')).toBe('na');
+      expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.na"]`)).toBe(null);
+      expect(r.querySelector('.stress-title')).toBeTruthy();
       expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.accept"]`)).toBe(null);
     }
+    // As planned lasts in every future: its chance line says so, and nothing repeats it ("still lasts to 97")
+    expect(panel.querySelector('[data-row="asPlanned"] [data-line="runsOut"]')).toBe(null);
+    expect(visibleText(panel)).not.toContain('still lasts to');
     // the fall row was not tried: no walk through real bad starts offered under it
     expect(root.querySelector('[data-testid="plan.lasts.stress.badStarts"]')).toBe(null);
+    expect(ruleProblems(root)).toEqual([]);
+  });
+  it('a locked ladder held with years not covered: As you hold it says the first year what is held does not cover, once it lasts less often than As planned', () => {
+    // a fictional locked ladder (corpus 20) with two rungs not held and a world fund kept by choice
+    const raw = JSON.parse(JSON.stringify(C['20-locked-start-after-stop']));
+    raw.holdings.lines = raw.holdings.lines.filter((l) => !/^(T29|T30I)$/.test(l.ticker || '')).map((l) => (l.ticker === 'VWRP' ? { ...l, keep: { as: 'mine', fundsGaps: false } } : l));
+    const plan = entryOf(raw).plan;
+    const lasts = { when: null, howLong: null, howMuch: 1 };
+    const planned = (key) => row(key, 'asPlanned', { w: 1, f: 1, words: { ...WORDS(20, 20), headline: 'Counting how long people your age live, the money lasts as long as you do in every future we tried.', fixed: 'If you live to 97, the money lasts that long in every future we tried.' }, shortfall: lasts });
+    const held = (f) => (key) => ({ asPlanned: planned(key), asHeld: row(key, 'asHeld', { w: f, f, words: WORDS(Math.round(f * 20), Math.round(f * 20)), shortfall: { when: { typical: 71, worst: 71, worstLasts: false, count: 1000, n: 1000, to: 97 }, howLong: null, howMuch: null } }) });
+    const { root } = draw(withRows(plan, held(0)));
+    const gap = panelOf(root).querySelector('[data-testid="plan.lasts.stress.asHeld.gap"]');
+    expect(gap.textContent).toMatch(/^What you hold for the plan’s own money does not cover every year it pays: \d{4}\/\d{2}, when you are \d+, is the first not covered \(£[\d,]+ short at today’s prices\)\.$/);
+    expect(gap.closest('li').getAttribute('data-row')).toBe('asHeld');
+    // As held lasting as often as As planned: nothing to explain
+    expect(panelOf(draw(withRows(plan, held(1))).root).querySelector('[data-testid="plan.lasts.stress.asHeld.gap"]')).toBe(null);
   });
   it('the held rows: the keep agreement\'s state and "Accept or withdraw this on What you hold", never an accept of their own', () => {
     const plan = plan0('04-buckets-running');
@@ -362,8 +400,14 @@ describe('a locked ladder and the held rows', () => {
     const k = panelOf(root).querySelector('[data-testid="plan.lasts.stress.asHeld.keep"]');
     expect(k.getAttribute('data-status')).toBe('untested');
     expect(k.className).toBe('note');
-    expect(k.textContent).toBe(STRESS.held.untested + ' ' + STRESS.held.accept);
-    expect(panelOf(root).querySelector('[data-testid="plan.lasts.stress.asHeld.hold"]').textContent).toBe(STRESS.held.accept);
+    expect(k.textContent).toBe(STRESS.held.untested);
+    // the link stands on its own line, so a phone's tap target never stretches the sentence above it
+    const hold = panelOf(root).querySelector('[data-testid="plan.lasts.stress.asHeld.hold"]');
+    expect(hold.textContent).toBe(STRESS.held.accept);
+    expect(hold.parentElement.tagName).toBe('P');
+    expect(hold.parentElement.textContent).toBe(STRESS.held.accept);
+    // (a pot plan has no years to read: no gap line)
+    expect(panelOf(root).querySelector('[data-testid="plan.lasts.stress.asHeld.gap"]')).toBe(null);
     for (const id of ['asHeld', 'heldHalf', 'heldNothing']) {
       const r = panelOf(root).querySelector(`[data-row="${id}"]`);
       if (id !== 'asHeld') expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.keep"]`)).toBe(null);
@@ -372,9 +416,12 @@ describe('a locked ladder and the held rows', () => {
       expect(r.querySelector(`[data-testid="plan.lasts.stress.${id}.accept"]`)).toBe(null);
     }
     const half = panelOf(root).querySelector('[data-row="heldHalf"]');
-    expect(half.querySelector('[data-weighted]').textContent).toContain('(as held ');
-    expect(half.querySelector('[data-line="runsOut"]').textContent).toContain('(as held ');
-    expect(panelOf(root).querySelector('[data-row="heldNothing"]').textContent).toContain('Example Shares plc matches no fund we know, so it may be one company’s shares. Here it is worth nothing.');
+    expect(half.querySelector('[data-weighted]').textContent).toContain('(as\u00a0held ');
+    // where it runs out is As held's own: said once, "the same as held"
+    expect(half.querySelector('[data-line="runsOut"]').textContent).toBe('Where it runs out: typically at 88, the worst 1 in 10 by 84 (both the same as\u00a0held).');
+    const nothing = panelOf(root).querySelector('[data-row="heldNothing"]');
+    expect(nothing.querySelector('.stress-title').textContent).toMatch(/^A holding we cannot match goes to nothing/);
+    expect(nothing.textContent).toContain('Example Shares plc matches no fund we know, so it may be one company’s shares. Here it is worth nothing.');
     expect(ruleProblems(root)).toEqual([]);
   });
 });

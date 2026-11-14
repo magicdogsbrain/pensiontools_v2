@@ -107,11 +107,16 @@ describe('the words', () => {
       expect(bannedHits(text, ['all', 'result', 'retired'], { context: text }), `${name} ${row.id}`).toEqual([]);
       expect(fixed).toMatch(/\b(live to|is still alive when the younger of you is) \d{2,3}\b/);
       if (c.weighted) expect(say(c.weighted)).not.toMatch(/of 20 futures we tried/);
-      expect(runsOut).toMatch(/^(Where it runs out: typically (at|when the younger of you is) \d+|In the worst 1 in 10 it still lasts to \d+)/);
-      if (row.id === 'asPlanned') expect(text).not.toContain('as planned');
+      // where it runs out: said when something runs out, or when As planned's worst 1 in 10 runs out and this row's lasts
+      if (row.short.runsOut) expect(runsOut).toMatch(/^(Where it runs out: typically (at|when the younger of you is) \d+|In the worst 1 in 10 it still lasts to \d+)/);
+      else expect(row.sf.when, `${name} ${row.id}`).toBeFalsy();
+      // the worst 1 in 10 "still lasts" only where As planned's runs out (the count to the same age says the rest)
+      if (/still lasts to/.test(runsOut)) expect(runsOut).toMatch(/\(as\splanned by\s\d+\)\.$/);
+      if (row.id === 'asPlanned') expect(text).not.toMatch(/as\splanned/);
       else if (!row.same) {
-        expect(fixed).toMatch(/\(as planned [^)]+\)\.$/);
-        if (c.weighted) expect(say(c.weighted)).toMatch(/\(as planned [^)]+\)$/);
+        // beside As planned's figure, or "the same as planned" when it says the same at the same rounding
+        expect(fixed).toMatch(/\((as\u00a0planned [^)]+|the same as\u00a0planned)\)\.$/);
+        if (c.weighted) expect(say(c.weighted)).toMatch(/\((as\u00a0planned [^)]+|the same as\u00a0planned)\)$/);
       }
       // the long chance sentences are gone from the row: the short line says them
       expect(s.line).toBeUndefined();
@@ -310,7 +315,7 @@ describe('the strip drawn under C\'s and D\'s answers', () => {
       const id = li.getAttribute('data-row');
       if (li.getAttribute('data-same') === '1' && id !== 'asPlanned') continue;
       const shown = [...li.querySelectorAll(':scope > p.stress-line')].map((x) => x.getAttribute('data-line'));
-      expect(shown, `${name} ${id}`).toEqual(['chance', 'runsOut']);
+      expect(shown, `${name} ${id}`).toEqual(result.rows.find((x) => x.id === id).short.runsOut ? ['chance', 'runsOut'] : ['chance']);
       const chance = li.querySelector('[data-line="chance"]');
       if (chance.querySelector('[data-weighted]')) expect(chance.querySelector('[data-fixed="age"]'), `${name} ${id}`).toBeTruthy();
       const more = li.querySelector('details.stress-more');

@@ -199,7 +199,7 @@ test.describe('"Try the bad years", without an account', () => {
       const weighted = (await asPlanned.locator('[data-weighted]').innerText()).trim();
       const fixed = (await asPlanned.locator('[data-fixed="age"]').innerText()).trim();
       expect(head.toLowerCase()).toContain(weighted.toLowerCase());
-      const m = /^if you live to (\d+), (.+)\.$/.exec(fixed);
+      const m = /^if you live to (\d+), it lasts that long (.+)\.$/.exec(fixed);
       expect(m, fixed).toBeTruthy();
       expect(sub).toContain('If you live to ' + m[1] + ', ');
       expect(sub).toContain(m[2]);
@@ -290,15 +290,16 @@ test.describe('"Try the bad years", without an account', () => {
       await expect(page.locator('#stressRow-fall-more [data-line^="lines.when"]')).toBeVisible();
       await page.locator('#stressRow-fall-more summary').click();
       await expect(page.locator('#scenResults [data-stress-hint]')).toBeVisible({ timeout: 60_000 });
-      await expect(page.locator('#scenResults')).toContainText("real starts behind this plan's figure above");
+      await expect(page.locator('#scenResults [data-stress-hint]')).toContainText('real starts since 1871 that the one test counts beside its futures');
       await expect(page.locator('#scenResults')).not.toContainText('behind your figure of');
+      await expect(page.locator('#scenResults')).not.toContainText('figure above');
       await noSideways(page);
       const shot = shots('classic-scenarios', info);
       if (shot) await page.locator('#stress-scenarios').screenshot({ path: shot });
     });
   });
 
-  test('a locked ladder: the market rows say why they are not tried; the held rows show the keep agreement\'s state and never an accept', async ({ page, watch }, info) => {
+  test('a locked ladder: why the market rows are not tried is said once; As you hold it says the first year not covered; the held rows show the keep agreement\'s state and never an accept', async ({ page, watch }, info) => {
     test.setTimeout(240_000);
     watch.allow(WORKER_DATA_MISSING);
     await page.clock.setFixedTime(new Date(FIXED_NOW));
@@ -318,7 +319,15 @@ test.describe('"Try the bad years", without an account', () => {
     await page.getByTestId(`${S}.run`).click();
     await expect(page.getByTestId(S)).toHaveAttribute('data-status', 'done', { timeout: 180_000 });
     expect(await page.locator(`[data-testid="${S}.rows"] > li.stress-row`).evaluateAll((els) => els.map((e) => e.getAttribute('data-row')))).toEqual([...ROWS, 'asHeld', 'heldHalf']);
-    for (const id of ['fall', 'lower', 'spend', 'prices']) await expect(page.getByTestId(`${S}.${id}.na`)).toHaveAttribute('data-na', 'lockedLadder');
+    // why the four market rows are not tried: said once, above the rows; each row keeps its title and what it changes
+    await expect(page.getByTestId(`${S}.notTried`)).toHaveAttribute('data-na', 'lockedLadder');
+    await expect(page.getByTestId(`${S}.notTried`)).toContainText('so these four are not tried on it');
+    for (const id of ['fall', 'lower', 'spend', 'prices']) {
+      await expect(page.getByTestId(`${S}.${id}`)).toHaveAttribute('data-status', 'na');
+      await expect(page.getByTestId(`${S}.${id}.na`)).toHaveCount(0);
+    }
+    // As you hold it lasts less often than As planned: the first year what is held does not cover says why
+    await expect(page.getByTestId(`${S}.asHeld.gap`)).toContainText('is the first not covered');
     // the keep agreement's state once, on "As you hold it", with the one thing What you hold can do now; never an accept
     await expect(page.getByTestId(`${S}.asHeld.keep`)).toHaveAttribute('data-status', 'untested');
     await expect(page.getByTestId(`${S}.asHeld.hold`)).toHaveAttribute('href', '#/plan/' + ID + '/hold');

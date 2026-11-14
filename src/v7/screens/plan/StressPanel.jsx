@@ -7,7 +7,8 @@
  * the row); an agreement shows, with Withdraw, before anything is run, and an agreed row offers Withdraw, never a second
  * accept ("I accept this risk" is a quiet button: nothing on the panel presses for it). The held rows say the keep
  * agreement's state once, as information, and never write: that is accepted on What you hold. What still comes in if the
- * money runs out is said once, above the rows.
+ * money runs out, and why a locked ladder's four market rows are not tried, are each said once, above the rows. A link
+ * inside a note stands on its own line, so a phone's tap target never stretches the sentence it follows.
  */
 import { Button } from '../../components/index.js';
 import { changeAction } from '../../components/PlanFigures.jsx';
@@ -99,11 +100,15 @@ function Row({ row, v, dispatch, planId }) {
       <StressChance c={p.chance} />
       {p.runsOut && <p class="line stress-line" data-line="runsOut">{sayStress(p.runsOut)}</p>}
       {p.closedYear && <p class="line stress-line" data-line="closedYear">{sayStress(p.closedYear)}</p>}
+      {p.heldGap && <p class="note" data-testid={`${T}.gap`}>{sayStress(p.heldGap)}</p>}
       {row.id === 'fall' && can && !row.na && (
         <p class="note"><a href="#" data-testid="plan.lasts.stress.badStarts" onClick={(e) => { e.preventDefault(); dispatch(changeAction(planId, 'badStarts', href.plan(planId, 'lasts'))); }}>{STRESS.handOver}</a></p>
       )}
       {held && p.keepLine && (
-        <p class="note" data-testid={`${T}.keep`} data-status={row.keep ? row.keep.status : ''}>{sayStress(p.keepLine)} <a href={href.plan(planId, 'hold')} data-testid={`${T}.hold`}>{sayStress(p.holdLink)}</a></p>
+        <>
+          <p class="note" data-testid={`${T}.keep`} data-status={row.keep ? row.keep.status : ''}>{sayStress(p.keepLine)}</p>
+          <p class="note"><a href={href.plan(planId, 'hold')} data-testid={`${T}.hold`}>{sayStress(p.holdLink)}</a></p>
+        </>
       )}
       <Accepted p={p.accepted} testid={`${T}.accepted`} />
       {/* the row's foot, one line while closed: "More about this line" beside its quiet Withdraw or "I accept this risk" */}
@@ -171,7 +176,10 @@ export function StressPanel({ state, dispatch }) {
       <h2 tabIndex={-1} {...(v.settled ? { 'data-focus-for': 'plan.stress' } : {})}>{STRESS.title}</h2>
       <p class="note">{STRESS.lead}</p>
       {!tried && v.keep && v.keep.line && (
-        <p class="note" data-testid="plan.lasts.stress.keep" data-status={v.keep.status}>{sayKeep(v.keep.line)} <a href={href.plan(v.planId, 'hold')} data-testid="plan.lasts.stress.keepHold">{sayStress(v.keep.link)}</a></p>
+        <>
+          <p class="note" data-testid="plan.lasts.stress.keep" data-status={v.keep.status}>{sayKeep(v.keep.line)}</p>
+          <p class="note"><a href={href.plan(v.planId, 'hold')} data-testid="plan.lasts.stress.keepHold">{sayStress(v.keep.link)}</a></p>
+        </>
       )}
       {!tried && <Agreements v={v} dispatch={dispatch} />}
       <div class="actions-row">
@@ -180,6 +188,7 @@ export function StressPanel({ state, dispatch }) {
       {run.status === 'working' && <p class="note" role="status" data-testid="plan.lasts.stress.working">{sayStress({ id: 'working', slots: { i: String(Math.min(run.total, run.done + 1)), n: String(run.total) } })}</p>}
       {run.status === 'failed' && <p class="notice" role="alert" data-testid="plan.lasts.stress.failed">{run.reason === 'noWorker' ? STRESS.noWorker : STRESS.failed}</p>}
       {tried && v.floor && <p class="line stress-floor" data-testid="plan.lasts.stress.floor">{sayStress(v.floor)}</p>}
+      {tried && v.notTried && <p class="note" data-testid="plan.lasts.stress.notTried" data-na="lockedLadder">{sayStress(v.notTried)}</p>}
       {tried && (
         <ul class="stress-rows" data-testid="plan.lasts.stress.rows">
           {v.rows.map((row) => <Row key={row.id} row={row} v={v} dispatch={dispatch} planId={v.planId} />)}

@@ -293,9 +293,30 @@ delete call sites).
 - **Where it is kept:** in an answer's own inputs (the page address while a question is open, as every other box), and,
   when a person keeps an answer as a plan, in the kept seed's inputs (`fromAnswer.inputs[who].sex`) — so a signed-in
   person's choice is stored in Firestore under `users/{uid}/scenarios/{id}`, deleted with the plan or the account as
-  every other figure. It is **not** saved on the plan itself in 7.8.0 (the plan pages read the kept seed, or use the
-  figures for women, and say so).
+  every other figure. Sex is not a field of its own on the plan: it is read from the answer the plan was kept from, a
+  locked plan document records the definition it was tested with, and an accepted risk holds only a hash that changes
+  with it; all are deleted with the plan or the account.
 - **Lawful basis:** Contract, as the other ages and dates. It is optional and can be left as "Not said" at no loss: the
   figures for women test the money for longer.
 - [x] `compliance/PRIVACY_POLICY.md` and `public/privacy.html`: the "Ages / dates" row names it as optional.
 - [ ] To read and approve the wording, then publish with the release that ships 7.8.0 — setting "Last updated" then.
+
+## "Try the bad years" and "I accept this risk" on any plan — 14 Nov 2026 (written, NOT yet published or deployed)
+- **No new collection, processor, Firestore path or root field.** A plan's existing list of agreements
+  (`users/{uid}/scenarios/{id}.planAmendments`, 7.7.0's "I accept this risk" for what is kept by choice) can now also
+  hold two more kinds of entry, `stress` and `confidence`: written only when the person presses "I accept this risk" on a
+  row of "Try the bad years" and confirms, one live entry per row, removed by "Withdraw this".
+- **What an entry holds:** when it was accepted, which row (a fall at the start, lower returns, spending a tenth more,
+  prices rising faster, or the plan as it stands), what the row was tried on (the way of drawing, the start age, the
+  years, the first tax year, the size of the change), the figures shown then (the chance, the fixed-age count, the
+  plan-to age, the run-out ages, the coverage, the floor, the typical money left, the cuts), a fingerprint, the app
+  version and the plan document's date. The fingerprint is a hash of the plan's settings, the kept sex and the
+  household's reason: **no copy of the settings, no pots, no income, no sex and no level is stored in the entry**.
+- **Never written on opening a page.** The rows run only on a button, in the browser, and are kept in the page's memory
+  only; nothing is sent anywhere. Copying a plan drops its agreements; closing a plan freezes them; deleting the plan or
+  the account deletes them.
+- **Lawful basis:** Contract, as the plan's other figures: it is the person's own note on their plan.
+- [x] `compliance/PRIVACY_POLICY.md` and `public/privacy.html`: the "Financial data" row adds "the risks you say you
+      accept on a plan, with the figures they were tested on".
+- [x] The sex paragraph above says how the plan reads it now that an accepted risk carries a hash that changes with it.
+- [ ] To read and approve the wording, then publish with the release that ships 7.9.0 — setting "Last updated" then.

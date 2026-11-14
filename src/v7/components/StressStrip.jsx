@@ -11,6 +11,9 @@ import { Sentence } from './Sentence.jsx';
 import { stressStripView } from '../state/select.js';
 import { money } from '../../answers/shared/format.js';
 import { STRESS } from '../copy/stressPanel.js';
+import { LASTS } from '../copy/lasts.js';
+
+const VERDICTS = ['yes', 'close', 'no'];
 
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
 
@@ -26,8 +29,9 @@ const LINES = ['line', 'fixed', 'when', 'howLong', 'howMuch', 'floor'];
 function Row({ row, q }) {
   const s = row.sentences || {};
   return (
-    <li class="block stress-row" data-row={row.id} data-same={row.same ? '1' : '0'} data-verdict={row.verdict} data-testid={`${q}.stress.${row.id}`}>
-      <h3 class="stress-title">{sayStress(row.words.title)}</h3>
+    <li class="block stress-row" data-row={row.id} data-same={row.same ? '1' : '0'} data-testid={`${q}.stress.${row.id}`}>
+      {/* the verdict at the answer's level as a word and its colour, as the plan's rows say it (never a colour alone) */}
+      <h3 class="stress-title">{sayStress(row.words.title)}{VERDICTS.includes(row.verdict) && !(row.same && row.id !== 'asPlanned') && <> <span class={`verdict-word is-${row.verdict}`} data-verdict={row.verdict}>{LASTS.verdict.word[row.verdict]}</span></>}</h3>
       {row.words.what.map((w, i) => <p key={i} class="note">{sayStress(w)}</p>)}
       {row.same && row.id !== 'asPlanned'
         ? <p class="note" data-testid={`${q}.stress.${row.id}.same`}>{STRESS.na.sameAnswer}</p>

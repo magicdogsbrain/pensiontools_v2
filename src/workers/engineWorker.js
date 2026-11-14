@@ -1,7 +1,7 @@
 /**
  * Engine Web Worker — runs the heavy, synchronous strategy maths off the main thread so a phone
  * never freezes: the six-strategy overview, a single strategy stress test, the household checks, a row of "Try the bad
- * years" (the plan as stored: answers/plan/stressPanelRun.js, loaded lazily).
+ * years" (the plan as stored: answers/plan/stressPanelRun.js).
  * Inputs are plain settings/config objects; the plan is rebuilt here (planFromSettings) because a
  * plan carries pricing closures that cannot cross the worker boundary. Live gilt data is loaded
  * once per worker so ladder prices match the main thread.
@@ -13,6 +13,8 @@ import { loadLiveGilts, realYieldForYear } from '../services/LinkerUniverse.js';
 import { loadLiveEquity } from '../services/EquityIndex.js';
 import { cloneSafe } from '../utils/cloneSafe.js';
 import { sweepRetirementAges } from '../services/RetireSweep.js';
+// (static: this worker is built as one classic-format file, which cannot split off a lazy chunk; it carries the engine already)
+import { runStressRow } from '../answers/plan/stressPanelRun.js';
 
 let giltsReady = null;
 function plan(settings, cfg, essentialsAnnual) {
@@ -41,8 +43,7 @@ self.onmessage = async (e) => {
       self.postMessage({ id, result: cloneSafe(runSurvivorCheck(payload, oneTest)) });
     } else if (type === 'care') {
       self.postMessage({ id, result: cloneSafe(runCareCheck(payload, oneTest)) });
-    } else if (type === 'stressRow') {   // "Try the bad years" (7.9.0): one row on the plan as stored, its engine loaded only now
-      const { runStressRow } = await import('../answers/plan/stressPanelRun.js');
+    } else if (type === 'stressRow') {   // "Try the bad years" (7.9.0): one row on the plan as stored
       self.postMessage({ id, result: cloneSafe(runStressRow(payload.plan, { today: payload.today, row: payload.row })) });
     } else if (type === 'sweep') {   // "when can I retire?" (6.10.0): one strategy run per candidate age, with progress
       const out = sweepRetirementAges({ ...payload, onProgress: (i, n, age) => self.postMessage({ id, progress: { i, n, name: 'age ' + age } }) });

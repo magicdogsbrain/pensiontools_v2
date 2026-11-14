@@ -46,6 +46,8 @@ describe('previousPlace: every step of a plan names a page the planner has', () 
     expect(at('home-locked-saver').place).toBe('saving');
     const id = load('home-drawing').route.planId;
     expect(at('home-drawing', `#/plan/${id}/lasts`).place).toBe('test');
+    // "Try the bad years" named in the address (7.9.0): the planner's Scenarios page; back to "Does it last?"
+    expect(at('home-drawing', `#/plan/${id}/lasts?focus=stress`)).toEqual({ planId: id, place: 'badYears', back: `#/plan/${id}/lasts` });
     expect(at('home-drawing', `#/plan/${id}/where`).place).toBe('document');
     expect(at('home-drawing', '#/plans')).toBeNull();
   });

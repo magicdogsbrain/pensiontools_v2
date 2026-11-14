@@ -31,7 +31,7 @@ export const KEEPTEST = {
   accept: 'I accept this risk',
   acceptLead: 'This records that you have seen these figures and keep what you hold with them. Your plan and its document stay as locked; the agreement is kept beside them, dated today, and you can withdraw it.',
   acceptYes: 'Yes, I accept this risk',
-  acceptNo: 'Not now',
+  acceptNo: 'Go back',
   agreedOn: 'You agreed to this on {date}.',
   withdraw: 'Withdraw this',
   undo: 'Undo',

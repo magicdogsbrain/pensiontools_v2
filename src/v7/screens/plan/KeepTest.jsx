@@ -7,6 +7,8 @@
  */
 import { Button, fill } from '../../components/index.js';
 import { KEEPTEST as K } from '../../copy/keepTest.js';
+import { STRESS } from '../../copy/stressPanel.js';
+import { href } from '../../router/routes.js';
 
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
 
@@ -84,6 +86,8 @@ export function KeepTestSection({ v, dispatch, prefix, editable }) {
         </div>
       )}
       {v.agreed && <p class="note" data-testid={`${T}.agreedOn`}>{fill(K.agreedOn, { date: v.agreed.on })}</p>}
+      {/* 7.9.0: the same kept lines beside the other bad years, on "Does it last?" (never a second accept: this is the one record) */}
+      {v.keeps && v.planId && <p class="note"><a href={href.plan(v.planId, 'lasts', 'stress')} data-testid={`${T}.badYears`}>{STRESS.keepLink}</a></p>}
       {can && v.canWithdraw && <div class="actions-row"><Button testid={`${T}.withdraw`} kind="quiet" disabled={!!v.saving} onClick={() => dispatch({ type: 'plan/amend', planId: v.planId, op: 'withdraw' })} {...keepFocus}>{K.withdraw}</Button></div>}
     </section>
   );

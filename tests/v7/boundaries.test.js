@@ -342,7 +342,7 @@ describe('"Does it last?" — the engine reaches the worker lazily, and nowhere 
     // (7.9.0: "Try the bad years" runs its rows through the one test too — stressPanelRun.js, reached by the worker's import() from step 4)
     expect(importers.sort()).toEqual(['src/answers/plan/householdRun.js', 'src/answers/plan/keepRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/moveRun.js', 'src/answers/plan/stressPanelRun.js', 'src/answers/plan/waysRun.js', 'src/v7/effects/answerWorker.js']);
     expect(staticReach(['src/v7/effects/answerWorker.js']).has('src/answers/plan/lastsRun.js'), 'the worker imports the run statically').toBe(false);
-    for (const lazy of ['src/answers/plan/waysRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/householdRun.js', 'src/answers/plan/moveRun.js', 'src/answers/plan/keepRun.js']) {
+    for (const lazy of ['src/answers/plan/waysRun.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/householdRun.js', 'src/answers/plan/moveRun.js', 'src/answers/plan/keepRun.js', 'src/answers/plan/stressPanelRun.js']) {
       const lazyImporters = [...V7, ...ANSWERS].filter((f) => targetsOf(f).includes(lazy));
       // (7.9.0: the held rows of "Try the bad years" walk a ladder's years as the keep test does: stressPanelRun.js, itself lazy, imports keepRun.js)
       expect(lazyImporters.sort(), lazy).toEqual(lazy === 'src/answers/plan/keepRun.js' ? ['src/answers/plan/stressPanelRun.js', 'src/v7/effects/answerWorker.js'] : ['src/v7/effects/answerWorker.js']);
@@ -358,7 +358,7 @@ describe('"Does it last?" — the engine reaches the worker lazily, and nowhere 
   });
   it('the nine ways\' run and the mix\'s read no clock of their own, and the effects that run them name no browser storage', () => {
     for (const file of ['src/answers/plan/waysRun.js', 'src/answers/plan/way.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/mix.js', 'src/answers/plan/householdRun.js', 'src/answers/plan/household.js', 'src/answers/plan/hold.js', 'src/answers/plan/move.js', 'src/answers/plan/moveRun.js', 'src/answers/plan/paste.js', 'src/answers/plan/keepTest.js', 'src/answers/plan/keepRun.js', 'src/answers/plan/stressPanel.js', 'src/answers/plan/stressPanelRun.js']) for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(codeOf(file)), `${file} uses ${re}`).toBe(false);
-    for (const file of ['src/v7/effects/ways.js', 'src/v7/effects/mix.js', 'src/v7/effects/household.js', 'src/v7/effects/move.js', 'src/v7/effects/keepTest.js']) {
+    for (const file of ['src/v7/effects/ways.js', 'src/v7/effects/mix.js', 'src/v7/effects/household.js', 'src/v7/effects/move.js', 'src/v7/effects/keepTest.js', 'src/v7/effects/stressPanel.js']) {
       expect(/\b(localStorage|sessionStorage)\b/.test(codeOf(file)), file).toBe(false);
       expect(strip(read(file), { keepStrings: true }), file).not.toMatch(/pt_[a-z_]+/);
     }

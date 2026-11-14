@@ -29,6 +29,8 @@
  *                                                   lazily; road-to-7.md step 10)
  *   { id, type: 'keepRetest', plan, env: { today } }  the same shape: "Test what you keep against your plan" (keepRun.js runKeepRetest,
  *                                                   loaded lazily; 7.7.0)
+ *   { id, type: 'stressRow', plan, env: { today, row } }  the same shape: one row of "Try the bad years" (stressPanelRun.js
+ *                                                   runStressRow, loaded lazily; 7.9.0)
  *   { id, type: 'saver', inputs, env }             the same shape: question B on a saved plan's own figures ("What you pay in",
  *                                                   research/saving-enough-and-check-in.md 4.4) — B's own answer function, in
  *                                                   a lane of its own, never kept as B's last answer
@@ -76,8 +78,10 @@ const loadHousehold = () => import('../../answers/plan/householdRun.js');
 const loadMove = () => import('../../answers/plan/moveRun.js');
 /** "Test what you keep against your plan" (7.7.0): the plan's own test as locked and as held, loaded lazily the same way. */
 const loadKeep = () => import('../../answers/plan/keepRun.js');
+/** "Try the bad years" (7.9.0): one row on a saved plan, loaded lazily the same way. */
+const loadStress = () => import('../../answers/plan/stressPanelRun.js');
 
-export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null, mixTry = null, mixCompare = null, tryOne = null, household = null, householdSurvivor = null, householdCare = null, moveHeld = null, keepRetest = null } = {}) {
+export function createHandler(answers = ANSWERS, { lasts = null, document = null, lever = null, ways = null, way = null, mixTry = null, mixCompare = null, tryOne = null, household = null, householdSurvivor = null, householdCare = null, moveHeld = null, keepRetest = null, stressRow = null } = {}) {
   let today = null;
   const last = new Map();      // question → its last result (offered to its next answer as env.reuse)
   /** `lasts`, `document`, `lever`, `try`, `ways`, `way`, `mixTry` and `mixCompare` share the lazy engine: the one test, or the run the plan document is built from, or the nine ways, or the mix's runs. */
@@ -99,6 +103,7 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
               : which === 'householdCare' ? (householdCare || (await loadHousehold()).runCare)
                 : which === 'moveHeld' ? (moveHeld || (await loadMove()).runHeld)
                   : which === 'keepRetest' ? (keepRetest || (await loadKeep()).runKeepRetest)
+                  : which === 'stressRow' ? (stressRow || (await loadStress()).runStressRow)
                   : (lasts || (await loadLasts()).runLasts);
     const result = which === 'document' ? fn(msg.plan, { today: env.today, essentials: env.essentials, onProgress })
       : which === 'lever' ? fn(msg.plan, { today: env.today, lever: env.lever, onProgress })
@@ -107,6 +112,7 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
             : which === 'mixTry' ? fn(msg.plan, { today: env.today, kind: env.kind, base: env.base || null, onProgress })
               : which === 'household' ? fn(msg.plan, msg.partner, { today: env.today, limit: env.limit || null, need: Number.isFinite(env.need) && env.need > 0 ? env.need : null, onProgress })
                 : which === 'householdSurvivor' || which === 'householdCare' ? fn(msg.plan, msg.partner, { today: env.today, ...(env.boxes || {}), onProgress })
+                  : which === 'stressRow' ? fn(msg.plan, { today: env.today, row: env.row, onProgress })
                   : fn(msg.plan, { today: env.today, onProgress });
     post({ id, result: cloneSafe(result) });
   };
@@ -164,8 +170,9 @@ export function createHandler(answers = ANSWERS, { lasts = null, document = null
         runLazy(msg, post, id, 'mixCompare').catch((e) => post({ id, error: String((e && e.message) || e) }));
         return;
       }
-      if (msg.type === 'moveHeld' || msg.type === 'keepRetest') {
+      if (msg.type === 'moveHeld' || msg.type === 'keepRetest' || msg.type === 'stressRow') {
         if (!msg.plan || typeof msg.plan !== 'object') throw new Error(msg.type + ': no plan');
+        if (msg.type === 'stressRow' && (!msg.env || typeof msg.env.row !== 'string')) throw new Error('stressRow: no row');
         runLazy(msg, post, id, msg.type).catch((e) => post({ id, error: String((e && e.message) || e) }));
         return;
       }

@@ -17,6 +17,7 @@
  *     householdCare(plan, partner, env, onProgress)     → Promise<Result>   the care question (lane 'householdCare'): env = { today, boxes }
  *     moveHeld(plan, env, onProgress)          → Promise<Result>       the one run on the mix as held (lane 'moveHeld'; road-to-7.md step 10): env = { today }
  *     keepRetest(plan, env, onProgress)        → Promise<Result>       "Test what you keep against your plan" (lane 'keepRetest', 7.7.0): env = { today }
+ *     stressRow(plan, env, onProgress)         → Promise<Result>       one row of "Try the bad years" (lane 'stressRow', 7.9.0): env = { today, row }
  *     saver(inputs, env, onProgress)           → Promise<AnswerB>      question B on a saved plan's figures (lane 'saver'; saving-enough-and-check-in.md 4.4)
  *     checkIn(inputs, env, onProgress)         → Promise<AnswerB>      the same on a check-in's figures, before its one write (lane 'checkIn'; 5.4)
  *     stop(q?)                                 ends the worker if an answer (of question q, or of any question when q
@@ -262,6 +263,8 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
     moveHeld(plan, env, onProgress) { return lane('moveHeld', plan, env, onProgress); },
     /** "Test what you keep against your plan" (7.7.0): the plan's own test as locked and as held, in its own lane 'keepRetest'. env = { today }. */
     keepRetest(plan, env, onProgress) { return lane('keepRetest', plan, env, onProgress); },
+    /** "Try the bad years" (7.9.0): one row on a saved plan, in its own lane 'stressRow' (stop('stressRow') ends it alone). env = { today, row }. */
+    stressRow(plan, env, onProgress) { return lane('stressRow', plan, env, onProgress); },
     /**
      * "What you pay in" (research/saving-enough-and-check-in.md 4.4): question B on a saved plan's own figures
      * (answers/plan/saverInputs.js), in its own lane 'saver', so neither B's own question nor any plan run ends it.

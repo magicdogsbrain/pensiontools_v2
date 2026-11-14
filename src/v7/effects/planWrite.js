@@ -77,6 +77,9 @@
  *   - `plan/amend` (kind 'amend', 7.7.0): answers/plan/keepTest.js amendPatch / withdrawPatch — "I accept this risk" (the re-test
  *     of what is kept, held in page memory for this plan as it is now) or "Withdraw this", written as the whole `planAmendments`
  *     list, past the guard (outside the settings; refused on a closed plan); Undo puts the previous list back whole.
+ *     7.9.0: with a kind ('stress' | 'confidence') and a row, "I accept this risk" on a row of "Try the bad years"
+ *     (answers/plan/stressPanel.js stressAmendPatch / stressWithdrawPatch: the row's result held in page memory for this plan as
+ *     it is now, on any plan, locked or not), the same one write of the whole list.
  *
  * "Move to a new plan" (6.56.0, research/plan-start.md §2 I; services/PlanClose.js), on a plan someone has lived on: kind 'close'.
  *   - the new plan first, through the ONE create (addDoc; or appended to this window's plans): the old plan's figures with its
@@ -178,6 +181,7 @@ import { partnerOf, linkPatch, dismissPatch, splitPatches, shareBudgetPatches, w
 import { holdPatch } from '../../answers/plan/hold.js';
 import { tickPatch } from '../../answers/plan/move.js';
 import { amendPatch, withdrawPatch } from '../../answers/plan/keepTest.js';
+import { stressAmendPatch, stressWithdrawPatch, stressKeyOf, sameAs, referenceOf } from '../../answers/plan/stressPanel.js';
 import { budgetPatch } from '../../answers/plan/budget.js';
 import { savingPatch, recordPatch } from '../../answers/plan/saving.js';
 import { checkInDraft, checkInPatch, restartPathPatch, useInPlanPatch, CHECKIN_FUTURES, CHECKIN_SEED } from '../../answers/plan/checkIn.js';
@@ -800,12 +804,34 @@ export function startPlanWrite(store, { win = null, session = null, local = null
    * guard — ONE write, never the settings or the plan document. "Withdraw this" (withdrawPatch): the list without its last
    * agreement. Undo puts the previous list back whole.
    */
-  async function amend(planId, op) {
+  async function amend(planId, op, kind = null, testId = null) {
     const got = await placed(planId);
     if (!got) return;
     const { place, plan, state } = got;
     const at = now();
     let p;
+    if (kind === 'stress' || kind === 'confidence') {
+      // a row of "Try the bad years" (7.9.0): its result held for this plan as it is now, and whether it changes nothing
+      if (op === 'withdraw') p = stressWithdrawPatch(plan, testId);
+      else {
+        const Sp = state.stressPanel || null;
+        const key = stressKeyOf(plan, state.env.today);
+        const held = Sp && Sp.key === key && Sp.planId === String(planId) ? Sp.rows : {};
+        const ref = referenceOf(testId);
+        const result = held[testId] || null;
+        const same = !!(result && ref && held[ref] && !held[ref].na && !result.na && sameAs(result, held[ref]));
+        p = stressAmendPatch(plan, { id: testId, result, same }, { at: at.toISOString(), today: state.env.today });
+      }
+      if (!p.ok) { fail(planId, ['oldResult', 'same', 'nothingFails', 'noResult', 'none'].includes(p.problem) ? p.problem : 'problems'); return; }
+      const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
+      if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
+      if (!(await send(place, planId, data))) return;
+      const line = op === 'withdraw' ? { id: 'stressWithdrawn', slots: p.line ? p.line.slots : {} } : { id: 'stressAgreed', slots: p.line ? p.line.slots : {} };
+      dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line, op: 'amend' });
+      dispatch({ type: A.PLANS_READING });
+      later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
+      return;
+    }
     if (op === 'withdraw') p = withdrawPatch(plan);
     else {
       const Kt = state.keepTest || null;
@@ -1750,7 +1776,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_HOLD && s.kind === 'hold') run(() => saveHold(s.planId, s.change));
     else if (action.type === A.PLAN_TICK && s.kind === 'tick') run(() => tick(s.planId, s.key, s.done !== false));
     // "I accept this risk" / "Withdraw this" (7.7.0)
-    else if (action.type === A.PLAN_AMEND && s.kind === 'amend') run(() => amend(s.planId, s.op));
+    else if (action.type === A.PLAN_AMEND && s.kind === 'amend') run(() => amend(s.planId, s.op, s.amend || null, s.testId || null));
     // the budget on a saved plan (road-to-7.md step 11b)
     else if (action.type === A.PLAN_BUDGET && s.kind === 'budget') run(() => saveBudgetChange(s.planId, s.change));
     else if (action.type === A.PLAN_BUDGET_FILE && s.kind === 'budgetFile') run(() => readBudgetFile(s.planId, action.file));

@@ -22,7 +22,8 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    if (state.route.focus && focusField(root, state.route.focus, state.route.q || 'c')) return;
+    // (a plan page's one section an address may name: "Try the bad years", [data-focus-for="plan.stress"])
+    if (state.route.focus && focusField(root, state.route.focus, state.route.screen === 'plan' ? 'plan' : state.route.q || 'c')) return;
     if (!mounted.current) { mounted.current = true; return; }       // never steal the keyboard on first load
     const h1 = root.querySelector('h1');
     if (h1) h1.focus();

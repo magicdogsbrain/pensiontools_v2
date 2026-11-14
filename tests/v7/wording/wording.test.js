@@ -37,6 +37,7 @@ import { GUEST } from '../../../src/v7/copy/guest.js';
 import { NEWS } from '../../../src/v7/copy/news.js';
 import { ASSUMPTIONS } from '../../../src/v7/copy/assumptions.js';
 import { CHECKIN } from '../../../src/v7/copy/checkin.js';
+import { STRESS } from '../../../src/v7/copy/stressPanel.js';
 import { GUEST_RULE } from '../../../src/services/GuestMeter.js';
 import { STRATEGY_NAMES } from '../../../src/strategies/stressTest.js';
 import { listStrategies } from '../../../src/strategies/registry.js';
@@ -242,6 +243,29 @@ describe('the words in src/v7/copy/', () => {
     expect(LOCK.buttons.lock).toBe('Lock this plan');
     expect(LOCK.unlock.button).toBe('Unlock this plan');
     expect(strings(LOCK).some(([, s]) => /\b(OK|Cancel)\b/.test(s))).toBe(false);
+  });
+  it('"Try the bad years" (stressPanel.js, 7.9.0): every string passes on a result and a plan page (and the strip under a retired person\'s answer); no slot left unfilled; no history, no advice', () => {
+    // the panel is a plan page's result section; the strip sits under C's and D's answers, which a retired person reads too
+    const slot = (s) => s.replace(/\{date\}/g, '4 March 2027').replace(/\{(age|typical|worst|paid|of|n|years|i)\}/g, '31').replace(/\{(tenths)\}/g, '9')
+      .replace(/\{(amount|perYear|left)\}/g, '£2,310').replace(/\{list\}/g, 'Example Shares plc').replace(/\{taxYear\}/g, '2027/28').replace(/\{s\}/g, 's')
+      .replace(/\{chance\}/g, '15 times in 20').replace(/\{fixed\}/g, 'in 12 of 20 futures we tried')
+      .replace(/\{ref\}/g, 'as planned: 18').replace(/\{words\}/g, 'If you live to 97, the money lasts that long in 12 of 20 futures we tried')
+      .replace(/\{figures\}/g, 'counting how long people your age live, the money lasts as long as you do 15 times in 20; if you live to 97, it lasts that long in 12 of 20 futures we tried');
+    const hits = [];
+    const all = strings(STRESS).map(([, s]) => slot(s)).join('\n');
+    for (const [where, s] of strings(STRESS)) {
+      const scopes = ['all', 'result', 'record', ...(where.startsWith('strip.') || where === 'rows.spend.answer' || where === 'rows.asPlanned.answer' || where.startsWith('lines.howMuchAnswer') ? ['retired'] : [])];
+      for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`stressPanel.js ${where} — ${h}`);
+    }
+    expect(hits).toEqual([]);
+    for (const [where, s] of strings(STRESS)) expect(slot(s), where).not.toMatch(/\{\w+\}/);
+    for (const [where, s] of strings(STRESS)) expect(s, where).not.toMatch(/\b(error|invalid|submit|calculate|simulate|simulation|Monte Carlo|percentile|FAILED|you should)\b/i);
+    // the 1-in-10 is a reading on every row; the history is never a row's figure
+    expect(strings(STRESS).some(([, s]) => /histor(y|ies) (ran|run)|real starts? ran out/i.test(s))).toBe(false);
+    // the agreement is a record, never advice, and the second button never "Not now"
+    expect(STRESS.agreement.confirm).toContain('It is not advice');
+    expect(STRESS.agreement.no).toBe('Go back');
+    expect(STRESS.title).toBe('Try the bad years');
   });
   it('"How the money is taken" (way.js): every string passes in every scope a plan page is shown in; the nine names are the planner\'s; every way has its promise, what can go wrong and words for each dial', () => {
     // the way step is a plan page (way-and-mix.md 2): a retired person's and a saver's plan alike; its cards state the answer

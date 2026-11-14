@@ -340,6 +340,10 @@ const anyAction = fc.oneof(
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.nat(5)).map(([key, done]) => ({ type: A.KEEP_TEST_PROGRESS, key, done, total: 5 })),
   fc.constantFrom('k1', 'k2').map((key) => ({ type: A.KEEP_TEST_DONE, key, result: { fingerprint: 'f', asLocked: { share: 1 }, asHeld: { share: 0.9 } } })),
   fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom(null, 'noWorker')).map(([key, reason]) => ({ type: A.KEEP_TEST_FAILED, key, reason })),
+  // "Try the bad years" (7.9.0): a press, a row's result, a failure or a stop
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('p1', 'p2')).map(([key, planId]) => ({ type: A.STRESS_RUN, key, planId, rows: ['asPlanned', 'fall'] })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom('asPlanned', 'fall', 'lower')).map(([key, row]) => ({ type: A.STRESS_ROW_DONE, key, row, result: { id: row, key, a: { share: 0.9 } } })),
+  fc.tuple(fc.constantFrom('k1', 'k2'), fc.constantFrom(null, 'noWorker', 'stopped')).map(([key, reason]) => ({ type: A.STRESS_FAILED, key, reason })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom('accept', 'withdraw')).map(([planId, op]) => ({ type: A.PLAN_AMEND, planId, op })),
   // "What you pay in": the plan's verdict (research/saving-enough-and-check-in.md 4.4), question B on the plan's figures
   fc.constantFrom('saver:p1:a', 'saver:p1:b', 'saver:p2:a').map((key) => ({ type: A.SAVER_WORKING, key })),
@@ -381,8 +385,9 @@ describe('any sequence of actions', () => {
         if (s.plans !== null) expect(['reading', 'read', 'failed']).toContain(s.plans.status);
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'checkIn', 'draft', 'env', 'household', 'keep', 'keepTest', 'lasts', 'mix', 'move', 'plan', 'plans', 'route', 'saver', 'session', 'ui', 'ways']);
+      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'checkIn', 'draft', 'env', 'household', 'keep', 'keepTest', 'lasts', 'mix', 'move', 'plan', 'plans', 'route', 'saver', 'session', 'stressPanel', 'ui', 'ways']);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.keepTest.status);
+      expect(['idle', 'working', 'done', 'failed']).toContain(s.stressPanel.status);
       expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.saver.status);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.household.status);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.move.status);

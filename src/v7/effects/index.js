@@ -16,6 +16,7 @@ import { startMixRunner } from './mix.js';
 import { startHouseholdRunner } from './household.js';
 import { startMoveRunner } from './move.js';
 import { startKeepTestRunner } from './keepTest.js';
+import { startStressPanelRunner } from './stressPanel.js';
 import { startSaverRunner } from './saver.js';
 import { createWorkerClient } from './workerClient.js';
 import { startActivity } from './activity.js';
@@ -80,6 +81,8 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   stops.push(startSaverRunner({ store, client }));
   // "Test what you keep against your plan" (7.7.0): the plan's own test as locked and as held, in the worker's own lane, only when asked
   stops.push(startKeepTestRunner({ store, client }));
+  // "Try the bad years" (7.9.0): the rows on a saved plan, in the worker's own lane, one call each, only when asked
+  stops.push(startStressPanelRunner({ store, client }));
 
   // The saved plans (research/v7/your-plan.md 4.1, 4.3): activity for the planner's idle sign-out on every page; the
   // hand-over to the planner; and the plan source — the one Firebase file, with the one write file — loaded only where

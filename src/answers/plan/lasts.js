@@ -685,5 +685,7 @@ export function leverLines(kind, r, baseChance) {
   }
   lines.push({ id: 'fall.line', slots: { potBefore: pounds(r.potBefore), potAfter: pounds(r.potAfter), words: lastedWordsOf(r.at), chance: chanceOf(r.at), typical: pounds(r.at.typicalLeft), baseChance: baseChance || '' } });
   lines.push({ id: 'fall.how', slots: {} });
+  // 7.9.0: the larger fall, at the start of drawing, is one of the bad years tried below
+  lines.push({ id: 'fall.bad', slots: {} });
   return lines;
 }

@@ -50,12 +50,16 @@ const FOCUSED = [
   ['#/c/numbers?focus=you.age', r('step', 'c', 'numbers', 'you.age')],
   ['#/c/numbers?focus=partner.statePension.yearly', r('step', 'c', 'numbers', 'partner.statePension.yearly')],
   ['#/c/answer?focus=take', r('step', 'c', 'answer', 'take')],
-  ['#/?focus=you.pot', r('front', null, null, 'you.pot')]
+  ['#/?focus=you.pot', r('front', null, null, 'you.pot')],
+  // "Try the bad years" (7.9.0): the one section a plan page's address may name
+  ['#/plan/Kq8LwT2mJv5PzYc9BnRd/lasts?focus=stress', { ...r('plan', null, 'lasts', 'stress'), planId: 'Kq8LwT2mJv5PzYc9BnRd' }]
 ];
 const UNKNOWN = ['#/account/x', '#/account?focus=you.age', '#/whats-new/1', '#/whatsnew', '#/plan/abc123/c/answer', '#/plan/abc/nowhere', '#/plan/', '#/plan/a%20b', '#/plans/x', '#/plans?focus=you.age', '#/plan/abc?focus=you.age', '#/c', '#/c/', '#/c/nowhere', '#/soon/c', '#/soon/a', '#/soon/b', '#/soon/d', '#/soon/z', '#/soon', '#/x/y/z', '#nonsense', '#/d/spend', '#/d/ages',
   '#/c/answer/extra', '#/c/numbers?focus=', '#/c/numbers?focus=you.pot=250000', '#/c/numbers?pot=250000', '#/C/numbers', '#/c/numbers?focus=1',
   // C's unbuilt "ways" step left its rail at 7.0 (switch-readiness.md gate 3): an old link finds the front door
-  '#/c/ways'];
+  '#/c/ways',
+  // a plan page names no other section, on no other step (7.9.0)
+  '#/plan/abc/lasts?focus=fall', '#/plan/abc/hold?focus=stress', '#/plan/abc/lasts?focus=you.age'];
 
 describe('parse and format', () => {
   it.each(ROWS)('%s', (address, wanted, screen) => {
@@ -96,6 +100,8 @@ describe('parse and format', () => {
     expect(href.account()).toBe('#/account');
     expect(href.news()).toBe('#/whats-new');
     expect(href.assumptions()).toBe('#/assumptions');
+    expect(href.plan('abc', 'lasts', 'stress')).toBe('#/plan/abc/lasts?focus=stress');
+    expect(href.plan('abc', 'hold', 'stress'), 'no section of that name on that step').toBe('#/plan/abc/hold');
   });
 });
 

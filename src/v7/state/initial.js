@@ -207,6 +207,7 @@ export function initialState({ today, build = 'prod', draft = null } = {}) {
     saver:   emptySaver(),                           // "What you pay in": the plan's verdict — question B on its own figures — for ONE plan, page memory only (saving-enough-and-check-in.md 4.4)
     checkIn: emptyCheckIn(),                         // "Check in": the answer of the check-in just written, for ONE plan, page memory only (saving-enough-and-check-in.md 5.5)
     keepTest: emptyKeepTest(),                       // "Test what you keep against your plan" (7.7.0): the re-test for ONE plan, page memory only
+    stressPanel: emptyStressPanel(),                 // "Try the bad years" (7.9.0): the rows tried on ONE plan, page memory only
     ui:      { railOpen: false, open: [], online: true, leaving: null, leaveProblem: null, saving: null, saveProblem: null, toast: null, ...emptyShellUi() }
   };
 }
@@ -253,6 +254,23 @@ export function cleanKeepTest(x) {
   if (!x || typeof x !== 'object' || typeof x.key !== 'string' || !x.key) return emptyKeepTest();
   const status = KEEP_TEST_STATUS.includes(x.status) ? x.status : 'idle';
   return { key: x.key, planId: typeof x.planId === 'string' && x.planId ? x.planId : null, status, result: status === 'done' && x.result && typeof x.result === 'object' ? x.result : null, reason: status === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null, progress: null };
+}
+
+/**
+ * Nothing of "Try the bad years" held (7.9.0): `key` is stressPanel.stressKeyOf of the plan the rows are for, `planId` its id;
+ * `status` 'idle' | 'working' | 'done' | 'failed'; `order` the rows asked for, in the order they run; `rows` each row's result by
+ * id (stressPanelRun.runStressRow's, each carrying its own key); `reason` 'noWorker' when no worker could start.
+ */
+export const emptyStressPanel = () => ({ key: null, planId: null, status: 'idle', order: [], rows: {}, reason: null });
+const STRESS_STATUS = ['idle', 'working', 'done', 'failed'];
+/** The panel's slice, cleaned (state/replace may draw one); a state without it is empty. */
+export function cleanStressPanel(x) {
+  if (!x || typeof x !== 'object' || typeof x.key !== 'string' || !x.key) return emptyStressPanel();
+  const status = STRESS_STATUS.includes(x.status) ? x.status : 'idle';
+  const order = Array.isArray(x.order) ? x.order.filter((id) => typeof id === 'string' && id) : [];
+  const rows = {};
+  if (x.rows && typeof x.rows === 'object' && !Array.isArray(x.rows)) for (const [id, r] of Object.entries(x.rows)) if (r && typeof r === 'object') rows[id] = r;
+  return { key: x.key, planId: typeof x.planId === 'string' && x.planId ? x.planId : null, status, order, rows, reason: status === 'failed' && x.reason === 'noWorker' ? 'noWorker' : null };
 }
 
 /**

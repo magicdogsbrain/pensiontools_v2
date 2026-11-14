@@ -15,7 +15,7 @@ export const ROUTES = [
   { pattern: '#/soon/:q',     screen: 'soon' },      // a, b, d, e, f — never c
   { pattern: '#/plans',       screen: 'plans' },     // the saved plans of the account (or this window)
   { pattern: '#/plan/:planId',       screen: 'plan' },   // one saved plan, on its stage's first step
-  { pattern: '#/plan/:planId/:step', screen: 'plan' },   // … on a named step (research/v7/your-plan.md 4.2)
+  { pattern: '#/plan/:planId/:step', screen: 'plan' },   // … on a named step (research/v7/your-plan.md 4.2); /lasts?focus=stress opens "Try the bad years" (7.9.0)
   { pattern: '#/account',     screen: 'account' },   // the account page: sign in, sign up, the email, download everything, delete (road-to-7.md step 11)
   { pattern: '#/whats-new',   screen: 'news' },      // every release's notes (road-to-7.md step 11)
   { pattern: '#/assumptions', screen: 'assumptions' },   // where every figure comes from (road-to-7.md step 11b)
@@ -33,6 +33,9 @@ export const PLAN_STEPS = Object.freeze(['month', 'where', 'plan', 'pot', 'check
 /** … and a saver's check-in (research/saving-enough-and-check-in.md 5, release step R3): /checkin draws 'plan.checkin', and so does /pot. */
 export const PLAN_SUB_STEPS = Object.freeze(['about', 'income', 'spend', 'pots', 'lasts', 'way', 'mix', 'household', 'hold', 'move', 'budget', 'saving', 'checkin']);
 const planStepOk = (s) => PLAN_STEPS.includes(s) || PLAN_SUB_STEPS.includes(s);
+/** The one place on a plan page an address may name (7.9.0): "Try the bad years" on "Does it last?" — a section, never a box or a figure. */
+export const PLAN_FOCUS = Object.freeze({ lasts: Object.freeze(['stress']) });
+const planFocusOk = (step, focus) => focus === null || (!!step && Array.isArray(PLAN_FOCUS[step]) && PLAN_FOCUS[step].includes(focus));
 
 const route = (screen, q = null, step = null, focus = null, planId = null) => ({ screen, q, step, planId, focus });
 
@@ -51,14 +54,15 @@ export function parse(hash) {
   if (text === '' || text === '/') return route('front', null, null, focus);
   const parts = text.split('/');                       // '/c/numbers' → ['', 'c', 'numbers']
   if (parts[0] !== '') return { ...NOT_FOUND };
-  // the saved plans: #/plans, #/plan/<id>, #/plan/<id>/<step> (never a focus: there is no box on a plan page)
+  // the saved plans: #/plans, #/plan/<id>, #/plan/<id>/<step> (never a focus — there is no box on a plan page — but the one
+  // section PLAN_FOCUS names: #/plan/<id>/lasts?focus=stress)
   if (parts.length === 2 && parts[1] === 'plans' && focus === null) return route('plans');
   // the account page and What's new (road-to-7.md step 11): no focus, no figure
   if (parts.length === 2 && parts[1] === 'account' && focus === null) return route('account');
   if (parts.length === 2 && parts[1] === 'whats-new' && focus === null) return route('news');
   if (parts.length === 2 && parts[1] === 'assumptions' && focus === null) return route('assumptions');
-  if (parts[1] === 'plan' && (parts.length === 3 || parts.length === 4) && focus === null && PLAN_ID.test(parts[2]) && (parts.length === 3 || planStepOk(parts[3]))) {
-    return route('plan', null, parts.length === 4 ? parts[3] : null, null, parts[2]);
+  if (parts[1] === 'plan' && (parts.length === 3 || parts.length === 4) && PLAN_ID.test(parts[2]) && (parts.length === 3 || planStepOk(parts[3])) && planFocusOk(parts.length === 4 ? parts[3] : null, focus)) {
+    return route('plan', null, parts.length === 4 ? parts[3] : null, focus, parts[2]);
   }
   if (parts.length !== 3) return { ...NOT_FOUND };
   const [, first, second] = parts;
@@ -81,7 +85,10 @@ export function format(r) {
   if (r.screen === 'account') return '#/account';
   if (r.screen === 'news') return '#/whats-new';
   if (r.screen === 'assumptions') return '#/assumptions';
-  if (r.screen === 'plan' && typeof r.planId === 'string' && PLAN_ID.test(r.planId)) return `#/plan/${r.planId}` + (r.step && planStepOk(r.step) ? `/${r.step}` : '');
+  if (r.screen === 'plan' && typeof r.planId === 'string' && PLAN_ID.test(r.planId)) {
+    const step = r.step && planStepOk(r.step) ? r.step : null;
+    return `#/plan/${r.planId}` + (step ? `/${step}` : '') + (step && r.focus && planFocusOk(step, r.focus) ? `?focus=${r.focus}` : '');
+  }
   return '#/not-found';
 }
 
@@ -94,7 +101,7 @@ export const href = {
   account: () => format(route('account')),
   news: () => format(route('news')),
   assumptions: () => format(route('assumptions')),
-  plan: (planId, step = null) => format(route('plan', null, step, null, planId))
+  plan: (planId, step = null, focus = null) => format(route('plan', null, step, focus, planId))
 };
 
 /**

@@ -3,7 +3,8 @@
  * ladder in the account (the corpus's "Sam's plan", fictional) keeps a made-up share by choice: What you hold says it is not
  * yet tested; the test runs on its button; "I accept this risk" asks, then is ONE write of the agreements; reloaded, the
  * page and the home read it from the account; the plan's settings and its plan document are byte-identical to what was
- * planted; "Withdraw this" takes it off again in one write. At desktop-1440 and phone-390, against the local emulators.
+ * planted; "Withdraw this" takes it off again in one write, and (7.9.0) the home says so as a line, never a to-do. At
+ * desktop-1440 and phone-390, against the local emulators.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -65,11 +66,15 @@ test('keep → test → accept → reload → settings and document byte-identic
     await expect(page.getByTestId('plan.home.keepTest.line')).toHaveAttribute('data-status', 'agreed', { timeout: 30_000 });
   });
 
-  await test.step('"Withdraw this": one write, the agreement gone, the to-do back', async () => {
+  await test.step('"Withdraw this": one write, the agreement gone, its line back to untested — information, never a to-do on the home', async () => {
     await openAt(page, '#/plan/' + ID + '/hold');
     await page.getByTestId(`${T}.withdraw`).click();
     await expect(page.getByTestId('plan.hold.toast')).toContainText('is withdrawn', { timeout: 30_000 });
     await expect.poll(async () => { const [p] = await plansOf(uid); return (p.planAmendments || []).length; }, { timeout: 15_000 }).toBe(0);
     await expect(page.getByTestId(`${T}.line`)).toHaveAttribute('data-status', 'untested', { timeout: 30_000 });
+    // 7.9.0: what is kept is no longer a to-do (research/v7/replan-nov-2026.md §6.4): the home says its state as a line only
+    await openAt(page, '#/plan/' + ID);
+    await expect(page.getByTestId('plan.home.keepTest.line')).toHaveAttribute('data-status', 'untested', { timeout: 30_000 });
+    await expect(page.locator('[data-todo="hold.keepTest"]')).toHaveCount(0);
   });
 });

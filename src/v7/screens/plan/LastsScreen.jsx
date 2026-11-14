@@ -20,6 +20,7 @@ import { PLAN } from '../../copy/plan.js';
 import { LASTS } from '../../copy/lasts.js';
 import { WAY } from '../../copy/way.js';
 import { LEVELS_WORDS } from '../../copy/common.js';
+import { StressPanel, STRESS_PROBLEMS } from './StressPanel.jsx';
 
 const LEVEL_IDS = ['careful', 'balanced', 'bold'];
 
@@ -459,7 +460,8 @@ export function LastsScreen(state, dispatch) {
     </>
   );
   const rail = <PlanRail view={view} state={state} dispatch={dispatch} onChange={onChange} />;
-  const answer = <><Answer L={L} onChange={onChange} dispatch={dispatch} view={view} /><Levers L={L} planId={planId} dispatch={dispatch} sourceText={sourceText} /></>;
+  // "Try the bad years" (7.9.0): below the levers, whose fall line points down to it
+  const answer = <><Answer L={L} onChange={onChange} dispatch={dispatch} view={view} /><Levers L={L} planId={planId} dispatch={dispatch} sourceText={sourceText} /><StressPanel state={state} dispatch={dispatch} /></>;
 
   // A locked plan, or one shown as saved: the result, then the dials read-only (10.5).
   if (!L.editable) {
@@ -495,7 +497,9 @@ export function LastsScreen(state, dispatch) {
     if (el) el.focus();
   };
   const onCancel = () => dispatch({ type: 'plan/cancel', planId });
-  const problem = L.problem ? (LASTS.problems[L.problem] || LASTS.problems.failed) : null;
+  const problem = L.problem && !STRESS_PROBLEMS.includes(L.problem) ? (LASTS.problems[L.problem] || LASTS.problems.failed) : null;
+  // (an accept or a withdraw on a row of "Try the bad years" says its own toast, in the panel)
+  const toast = L.toast && !(L.toast.line && /^stress/.test(L.toast.line.id || '')) ? L.toast : null;
 
   return {
     question: null, rail, full: false,
@@ -525,7 +529,7 @@ export function LastsScreen(state, dispatch) {
             <LinkButton testid="plan.lasts.back" kind="quiet" href={back}>{LASTS.buttons.back}</LinkButton>
           </div>
         </form>
-        <UndoToast prefix="plan.lasts" toast={L.toast} text={L.toast ? toastText(L.toast) : ''} words={LASTS.buttons}
+        <UndoToast prefix="plan.lasts" toast={toast} text={toast ? toastText(toast) : ''} words={LASTS.buttons}
           onUndo={() => dispatch({ type: 'plan/undo', planId })} onClose={() => dispatch({ type: 'plan/toastClose' })} />
       </>
     )

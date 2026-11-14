@@ -277,6 +277,11 @@ progress { width: 100%; max-width: 24rem; height: 12px; accent-color: var(--fill
 
 /* B's levers: cards that stack on a phone and sit side by side from 700 up */
 .lever-list { list-style: none; padding: 0; margin: 0 0 12px; display: grid; grid-template-columns: 1fr; gap: 10px; }
+/* "Try the bad years" (7.9.0): the rows on a plan's "Does it last?", one card each */
+.stress-rows { list-style: none; padding: 0; margin: 0 0 12px; }
+.stress-row .stress-title { margin: 0 0 6px; font-size: 1.05rem; overflow-wrap: anywhere; }
+.stress-row .stress-title .verdict-word { font-size: 0.9rem; }
+.stress-row p { margin: 0 0 6px; overflow-wrap: anywhere; }
 .lever { background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; display: flex; flex-direction: column; gap: 6px; }
 .lever-name { font-size: 1.05rem; margin: 0; }
 .lever-line { margin: 0; }

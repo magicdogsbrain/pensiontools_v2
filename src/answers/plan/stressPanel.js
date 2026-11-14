@@ -61,6 +61,8 @@ import { atLevel, FAMILY } from './lasts.js';
 import { AMEND_WRITES } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
 import { VERSION } from '../../constants.js';
+import { taxYearStartOf, taxYearLabel } from '../../services/PlanTiming.js';
+import { chanceTwentieths, chanceWords, twentiethsOfFutures, fixedAgeWords } from '../shared/format.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -165,7 +167,10 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
   const lvl = level || planLevelOf(plan);
   const closed = isClosedPlan(plan);
   const keep = keepsLines(plan && plan.holdings) ? keepTestOf(plan, {}) : null;
-  const list = rowsFor(plan, { settings, today }).map((row) => {
+  let s = isObj(settings) ? settings : null;
+  if (!s) { try { s = effectiveStressSettings(plan, { now: dateOf(today) }); } catch { s = storedStressOf(plan); } }
+  const ctx = contextOf(plan, s, today);
+  const list = rowsFor(plan, { settings: s, today }).map((row) => {
     const res = fresh(row.id);
     const na = row.na || (res && res.na) || null;
     const ref = row.ref ? fresh(row.ref) : null;
@@ -184,8 +189,124 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
       canAccept: !!kind && !closed && !!res && !na && !same && failing,
       ...(kind ? {} : { keep: keep ? { status: keep.status, line: keep.line } : null })
     };
-  });
-  return { key, level: lvl, rows: list, agreements: stressAgreementsOf(plan), keep: keep ? { status: keep.status, line: keep.line } : null, closed };
+  }).map((r) => ({ ...r, parts: rowParts(r, ctx) }));
+  const agreements = stressAgreementsOf(plan).map((g) => ({ ...g, parts: { title: { id: 'rows.' + g.id + '.title' }, accepted: acceptedParts(g.entry), stale: g.status === 'stale' } }));
+  // what the panel tries, in the order it tries it: As planned first, then As held, then the rest; a row known not to be
+  // tried before any run ('lockedLadder', 'todaysPrices': rowsFor's) is not sent
+  const order = list.filter((r) => !(r.status === 'na' && (r.na === 'lockedLadder' || r.na === 'todaysPrices'))).map((r) => r.id);
+  const first = ['asPlanned', 'asHeld'].filter((id) => order.includes(id));
+  return {
+    key, level: lvl, rows: list, agreements, keep: keep ? { status: keep.status, line: keep.line } : null, closed,
+    order: [...first, ...order.filter((id) => !first.includes(id))], drawing: ctx.drawing
+  };
+}
+
+// ---- the rows in words (ids of src/v7/copy/stressPanel.js STRESS, their slots filled; both apps draw them) ----------------
+
+/** What the words read from the plan: whether the money is drawn on already, the names that may be one company's shares. */
+function contextOf(plan, s, today) {
+  let thisTY = null;
+  try { thisTY = taxYearStartOf(dateOf(today)); } catch { thisTY = null; }
+  const first = isNum(+s.firstTaxYear) && +s.firstTaxYear > 0 ? +s.firstTaxYear : null;
+  const drawing = first == null || thisTY == null ? true : first <= thisTY;
+  let singles = [];
+  try { singles = keepsLines(plan && plan.holdings) ? keptAssetsOf(plan.holdings).filter((k) => k.as === 'mine' && k.single).map((k) => k.label).filter(Boolean) : []; } catch { singles = []; }
+  return { drawing, saver: !drawing, singles };
+}
+const listOf = (xs) => (xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
+const noStop = (t) => String(t || '').replace(/\.\s*$/, '');
+const lowerFirst = (t) => (t ? t.charAt(0).toLowerCase() + t.slice(1) : t);
+const commas = (n) => String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const poundsOf = (v) => '£' + commas(isNum(v) ? v : 0);
+const poundsK = (v) => '£' + commas(Math.round((isNum(v) ? Math.max(0, v) : 0) / 1000) * 1000);
+/** A weighted chance as the reference says it beside a row: "18" for 18 times in 20, else its words. */
+const refChance = (a) => { const k = chanceTwentieths(a.weighted, { sumW: a.sumW, n: a.n }); return a.weighted > 0 && a.weighted < 1 && k >= 1 && k <= 19 ? String(k) : chanceWords(a.weighted, { sumW: a.sumW, n: a.n }); };
+/** A fixed-age count as the reference says it: "14" for 14 of 20 futures, else its words. */
+const refFixed = (share) => { const v = Math.max(0, Math.min(1, +share || 0)); const k = Math.round(v * 20); return v > 0 && v < 1 && k >= 1 && k <= 19 ? String(k) : twentiethsOfFutures(v); };
+const fixedOf = (a) => (isNum(a.fixedAge) ? a.fixedAge : isNum(a.share) ? a.share : 0);
+/** The fixed-age sentence of a result: OneAnswer's own words when the run wrote them, else built the same way. */
+const fixedWordsOf = (a) => (a.words && a.words.fixed ? a.words.fixed : fixedAgeWords(fixedOf(a), a.planToAge, { kind: a.failKind === 'cut' || a.failKind === 'lean' ? a.failKind : 'ran-out' }));
+
+/**
+ * One row in words: { title, what[], na, lines[], confirm, accepted, keepLine } — each line { id, slots, mark? } (mark
+ * 'weighted' or 'fixed': the screens draw them as [data-weighted] and [data-fixed="age"], the fixed one beside the weighted
+ * one in its block). A row never says a figure of the real histories.
+ */
+function rowParts(r, ctx) {
+  const id = r.id;
+  const what = [];
+  if (id === 'fall') what.push({ id: ctx.drawing ? 'rows.fall.whatDrawing' : 'rows.fall.what' });
+  else if (id === 'heldNothing') what.push({ id: ctx.singles.length > 1 ? 'rows.heldNothing.whatMany' : 'rows.heldNothing.what', slots: { list: listOf(ctx.singles) } });
+  else what.push({ id: 'rows.' + id + '.what' });
+  if (id === 'lower' && ctx.saver) what.push({ id: 'rows.lower.saver' });
+  const out = { title: { id: 'rows.' + id + '.title' }, what, na: null, lines: [], confirm: null, accepted: null, keepLine: null };
+  if (r.na) out.na = { id: 'na.' + r.na };
+  else if (r.same) out.na = { id: 'na.same' };
+  if (r.agreement && r.agreement.entry) out.accepted = { ...acceptedParts(r.agreement.entry), stale: r.agreement.status === 'stale' };
+  if (r.keep && r.keep.line) out.keepLine = r.keep.line;
+  const a = r.a;
+  if (!a || r.na || r.same) return out;
+  const refA = r.refA;
+  const refId = r.ref === 'asHeld' ? 'asHeld' : 'asPlanned';
+  const weighted = a.weighted !== null && isNum(a.weighted) && !!(a.words && a.words.headline);
+  const lines = out.lines;
+  if (weighted) {
+    lines.push(refA && isNum(refA.weighted)
+      ? { id: 'lines.weighted', mark: 'weighted', slots: { words: noStop(a.words.headline), ref: { id: 'ref.' + refId, slots: { n: refChance(refA) } } } }
+      : { id: 'lines.plain', mark: 'weighted', slots: { words: a.words.headline } });
+  }
+  const fixed = fixedWordsOf(a);
+  lines.push(refA
+    ? { id: 'lines.fixed', ...(weighted ? { mark: 'fixed' } : {}), slots: { words: noStop(fixed), ref: { id: 'ref.' + refId, slots: { n: refFixed(fixedOf(refA)) } } } }
+    : { id: 'lines.plain', ...(weighted ? { mark: 'fixed' } : {}), slots: { words: fixed } });
+  const sf = isObj(r.shortfall) ? r.shortfall : null;
+  const toAge = isNum(a.planToAge) ? String(Math.round(a.planToAge)) : '';
+  if (sf && isObj(sf.when)) {
+    const w = sf.when;
+    lines.push(w.worstLasts ? { id: 'lines.whenStillLasts', slots: { typical: String(w.typical), age: toAge } } : { id: 'lines.when', slots: { typical: String(w.typical), worst: String(w.worst) } });
+  } else if (sf && toAge) lines.push({ id: 'lines.stillLasts', slots: { age: toAge } });
+  if (sf && isObj(sf.closedYear) && isNum(sf.closedYear.taxYear)) lines.push({ id: 'lines.closedYear', slots: { taxYear: taxYearLabel(sf.closedYear.taxYear) } });
+  if (sf && isObj(sf.when) && isObj(sf.howLong)) lines.push({ id: sf.howLong.anyway ? 'lines.howLongAnyway' : 'lines.howLong', slots: { paid: String(sf.howLong.paid), of: String(sf.howLong.of), age: toAge } });
+  if (sf && isObj(sf.when) && isNum(sf.howMuch) && sf.howMuch < 1) {
+    const tenths = Math.floor(sf.howMuch * 10 + 1e-9);
+    lines.push(tenths >= 1 ? { id: 'lines.howMuch', slots: { tenths: String(tenths) } } : { id: 'lines.howMuchLess', slots: {} });
+  }
+  const c = isObj(a.cuts) ? a.cuts : null;
+  if (r.ran && r.ran.cutsOn && c && c.futures > 0) {
+    const rc = refA && isObj(refA.cuts) ? refA.cuts : null;
+    const refN = rc ? (rc.cutN > 0 ? { id: 'ref.cutsSome', slots: { n: commas(rc.cutN) } } : { id: 'ref.cutsNone' }) : null;
+    const ref = refN ? { id: refId === 'asHeld' ? 'ref.cutsAsHeld' : 'ref.cutsAsPlanned', slots: { n: refN } } : { id: 'ref.cutsAsPlanned', slots: { n: { id: 'ref.cutsNone' } } };
+    const some = { n: commas(c.cutN), of: commas(c.futures), perYear: poundsOf(c.typicalCutPerYear), years: commas(c.typicalCutYears), s: Math.round(c.typicalCutYears) === 1 ? '' : 's' };
+    if (!r.ref) lines.push(c.cutN > 0 ? { id: 'lines.cutsOwn', slots: some } : { id: 'lines.cutsNoneOwn', slots: { of: commas(c.futures) } });
+    else lines.push(c.cutN > 0 ? { id: 'lines.cuts', slots: { ...some, ref } } : { id: 'lines.cutsNone', slots: { of: commas(c.futures), ref } });
+  }
+  if (a.words && a.words.floor) lines.push({ id: 'lines.plain', slots: { words: a.words.floor } });
+  if (a.words && a.words.left) lines.push({ id: 'lines.plain', slots: { words: a.words.left } });
+  if (id === 'asPlanned' && isNum(a.badCaseLeft) && toAge) lines.push({ id: 'lines.badLeft', slots: { age: toAge, left: poundsK(a.badCaseLeft) } });
+  if (r.canAccept) {
+    const fixedClause = lowerFirst(noStop(fixed));
+    out.confirm = { id: 'agreement.confirm', figures: weighted ? { weighted: lowerFirst(noStop(a.words.headline)), fixed: fixedClause.replace('the money lasts that long', 'it lasts that long') } : { weighted: null, fixed: fixedClause } };
+  }
+  return out;
+}
+
+/** An accepted entry in words: the date and the figures it was accepted on (the weighted one with the fixed-age count beside it). */
+function acceptedParts(entry) {
+  const res = isObj(entry && entry.result) ? entry.result : {};
+  const date = dayWords(entry && entry.at);
+  const age = isNum(res.planToAge) ? String(res.planToAge) : '';
+  const fixed = twentiethsOfFutures(isNum(res.fixedAge) ? res.fixedAge : 0);
+  if (isNum(res.chance)) {
+    return { id: 'agreement.accepted', mark: 'weighted', slots: { date, chance: chanceWords(res.chance) }, fixed: { id: 'agreement.acceptedFixed', mark: 'fixed', slots: { age, fixed } } };
+  }
+  return { id: 'agreement.acceptedOnly', slots: { date, age, fixed }, fixed: null };
+}
+
+/** One sentence of STRESS filled: `id` a dotted key, `slots` its figures; a slot may itself be a part { id, slots }. Both apps. */
+export function sayStress(part, W) {
+  if (!part) return '';
+  const t = String(part.id || '').split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), W);
+  return String(typeof t === 'string' ? t : '').replace(/\{(\w+)\}/g, (m, k) => { const v = part.slots ? part.slots[k] : undefined; return v == null ? m : typeof v === 'object' ? sayStress(v, W) : String(v); });
 }
 
 /** The kind of agreement a row's "I accept this risk" writes: As planned's own figure ('confidence'), a market row ('stress'); the held rows none. */

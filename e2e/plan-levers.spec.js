@@ -79,6 +79,8 @@ test.describe('the levers on "Does it last?", without an account', () => {
       expect(line).toContain(`(the pots £${node.potBefore.toLocaleString('en-GB')} to £${node.potAfter.toLocaleString('en-GB')})`);
       expect(line).toContain(`typically £${Math.round(node.at.typicalLeft).toLocaleString('en-GB')} left`);
       await expect(result.locator('[data-line="lever.fall.how"]')).toContainText('The shares part of each pot cut by a fifth');
+      // 7.9.0: one added line, pointing to the larger fall the bad years try below
+      await expect(result.locator('[data-line="lever.fall.bad"]')).toHaveText('The bad years below try a larger fall, in the first year the money is drawn on.');
       expect(await stored(page), 'a lever writes nothing').toBe(planted);
     });
 

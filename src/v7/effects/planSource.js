@@ -62,6 +62,7 @@ import { mixOf } from '../../answers/plan/mix.js';
 import { householdOf } from '../../answers/plan/household.js';
 import { holdOf } from '../../answers/plan/hold.js';
 import { keepTestOf } from '../../answers/plan/keepTest.js';
+import { stressPanelView } from '../../answers/plan/stressPanel.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { moveOf } from '../../answers/plan/move.js';
 import { budgetOf } from '../../answers/plan/budget.js';
@@ -209,6 +210,15 @@ export function viewFor(state) {
         // Try a change (way-and-mix.md 4): the boxes as typed, the try held for THIS plan's key in words, the copy it was kept as
         const entry = plans.list.find((e) => e && e.plan && String(e.plan.id) === String(r.planId));
         pl.try = entry ? tryViews(entry.plan, typed, L && L.key === pl.runKey ? L.tried : null, L ? L.kept : null, { today, editable: pl.editable, saved: pl }) : null;
+        // "Try the bad years" (7.9.0): the rows, the agreements and the keep agreement's state, read with the rows held in page
+        // memory (state.stressPanel) for THIS plan as it is now — every row at the page's level, no run
+        const Sp = state.stressPanel || null;
+        try {
+          const held = Sp && Sp.planId === String(r.planId) ? Sp.rows : null;
+          const sv = entry && !entry.newer && !entry.failed ? stressPanelView(entry.plan, held, { level: state.ui && state.ui.level, today }) : null;
+          const mine = sv && Sp && Sp.key === sv.key ? Sp : null;
+          pl.stressPanel = sv ? { ...sv, planId: String(r.planId), run: { status: mine ? mine.status : 'idle', reason: mine ? mine.reason : null, done: mine ? mine.order.filter((id) => mine.rows[id]).length : 0, total: mine ? mine.order.length : 0 } } : null;
+        } catch { pl.stressPanel = null; }
       }
     }
   }
@@ -336,7 +346,7 @@ export function startPlanSource(store, { win, local = null, session = null, now 
   // The reading for the screen: after every change of the plans, the address, the date or the plan draft (never of the view itself).
   let lastRead = null;
   const refresh = (state) => {
-    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move, state.keepTest, state.ui.notNow, state.ui.level] : null;
+    const key = state.plans && state.plans.status === 'read' ? [state.plans.list, state.route, state.env.today, state.draft && state.draft.plan, state.lasts && state.lasts.result, state.lasts && state.lasts.levers, state.lasts && state.lasts.workDraft, state.ways, state.mix, state.lasts && state.lasts.tried, state.lasts && state.lasts.kept, state.household, state.move, state.keepTest, state.stressPanel, state.ui.notNow, state.ui.level] : null;
     if (!key) { lastRead = null; return; }
     if (lastRead && key.every((v, i) => v === lastRead[i])) return;
     lastRead = key;

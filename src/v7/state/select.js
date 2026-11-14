@@ -446,6 +446,9 @@ export function readyMark(state) {
   // "Moving to your plan's mix" (step 10): the one run on the held mix under way is not ready
   const Mv = state.move;
   if (Mv && Mv.status === 'working') busy = true;
+  // "Try the bad years" (7.9.0): rows under way (only ever after the press) are not ready
+  const Sp = state.stressPanel;
+  if (Sp && Sp.status === 'working') busy = true;
   return { ready: busy ? '0' : '1', answer: partial ? 'partial' : shown };
 }
 
@@ -1277,6 +1280,27 @@ export function planKeepTestView(state) {
 }
 
 /**
+ * "Try the bad years" (7.9.0): the plan source's reading on "Does it last?" (page.lasts.stressPanel: answers/plan/stressPanel.js
+ * stressPanelView, with the rows held in state.stressPanel for this plan as it is now), whether the plan can be changed here
+ * (not closed, not shown as saved), each row's confirm open (ui.open: stressConfirm.<row>), a write under way for this plan
+ * (ui.saving kind 'amend' with a row), its problem, and the toast of an accept or a withdraw on a row. Null off that page.
+ */
+export function planStressView(state) {
+  const L = editView(state, 'lasts');
+  if (!L.found || !L.stressPanel) return null;
+  const v = L.stressPanel;
+  const ui = state.ui || {};
+  const open = Array.isArray(ui.open) ? ui.open : [];
+  const saving = ui.saving && ui.saving.planId === v.planId && ui.saving.kind === 'amend' && ui.saving.amend ? ui.saving : null;
+  const problem = ui.saveProblem && ui.saveProblem.planId === v.planId && !ui.saving ? ui.saveProblem.problem : null;
+  const toast = ui.toast && ui.toast.planId === v.planId && ui.toast.op === 'amend' && ui.toast.line && /^stress/.test(ui.toast.line.id || '') ? ui.toast : null;
+  const readonly = !!(L.readonly || v.closed);
+  return { ...v, readonly, confirmOpen: open.filter((x) => x.startsWith('stressConfirm.')).map((x) => x.slice('stressConfirm.'.length)), saving, problem, toast,
+    // hidden when the plan's own test says this way of drawing cannot be bought
+    hidden: !!(L.verdict && L.verdict.ok === false && L.verdict.id === 'lasts.unaffordable') };
+}
+
+/**
  * The lock, the unlock and a new version of the document (research/v7/road-to-7.md step 6): what the route's plan page
  * draws beside its reading — a write under way for THIS plan (ui.saving: lock | unlock | document, or an editing step's save),
  * the problem of the last one, the toast with Undo, and which confirm step is open (ui.open: lockConfirm, unlockConfirm,
@@ -1327,6 +1351,7 @@ export function previousLinkView(state) {
   const rows = rowsRead(state);
   const row = rows ? rows.find((x) => x && String(x.id) === r.planId) : null;
   if (!row) return null;
-  const place = (r.step && PREVIOUS_STEP_PLACE[r.step]) || PREVIOUS_HOME_PLACE[row.stageKey] || 'month';
+  // "Try the bad years" named in the address (7.9.0: #/plan/<id>/lasts?focus=stress): the planner's Scenarios page
+  const place = r.step === 'lasts' && r.focus === 'stress' ? 'badYears' : (r.step && PREVIOUS_STEP_PLACE[r.step]) || PREVIOUS_HOME_PLACE[row.stageKey] || 'month';
   return { planId: r.planId, place, back: `#/plan/${r.planId}` + (r.step ? `/${r.step}` : '') };
 }

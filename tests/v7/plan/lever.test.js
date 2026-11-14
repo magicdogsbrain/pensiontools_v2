@@ -147,7 +147,9 @@ describe('the words (lasts.js leverViews): one line id per outcome, the slots th
       { id: 'work.how', slots: { years: '1', s: '' } }]);
     expect(leverLines('fall', { ok: true, runs: 1, potBefore: 745000, potAfter: 661000, at }, '95.5')).toEqual([
       { id: 'fall.line', slots: { potBefore: '£745,000', potAfter: '£661,000', words: 'in 9 futures out of 10', chance: '91.2', typical: '£200,000', baseChance: '95.5' } },
-      { id: 'fall.how', slots: {} }]);
+      { id: 'fall.how', slots: {} },
+      // 7.9.0: the larger fall at the start of drawing is one of the bad years, tried below the levers
+      { id: 'fall.bad', slots: {} }]);
     expect(leverLines('work', { ok: false, reason: 'lever', runs: 0 }, '95.5')).toEqual([{ id: 'leverNo', slots: {} }]);
   });
   it('a locked plan with a document: once a lever is done, ONE comparison line — the document\'s figure, today\'s — never before, never a word of unlocking', () => {

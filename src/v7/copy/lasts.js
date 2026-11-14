@@ -264,6 +264,7 @@ export const LASTS = {
       'work.how': 'Added as a row of money that comes in anyway (the classic planner’s own extra incomes), from the plan’s first year for {years} year{s}, rising with prices and taxed with the rest. Nothing else changed.',
       'fall.line': 'If shares fell by a fifth tomorrow (the pots {potBefore} to {potAfter}), the plan lasts {words}: to the plan’s end in {chance} of every 100 futures we tried, typically {typical} left — against {baseChance} as it is.',
       'fall.how': 'The shares part of each pot cut by a fifth — the pension’s, an ISA’s where it is invested like the pension, a taxable account’s held in shares — and the plan run as it is, the mix kept.',
+      'fall.bad': 'The bad years below try a larger fall, in the first year the money is drawn on.',
       unaffordable: 'This way of drawing cannot be bought with the plan’s pots, so there is no figure to move.',
       leverNo: 'That could not be tried on these figures.',
       runs: 'Tried in {runs} run{s} of the one test.'

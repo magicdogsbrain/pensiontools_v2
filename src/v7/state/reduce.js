@@ -12,7 +12,7 @@
  */
 import { shownOf } from '../../answers/shared/shown.js';
 import { A, OPENABLE } from './actions.js';
-import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, cleanPending, cleanUsed, cleanFromPlan, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept, emptyHousehold, HH_PICKS, cleanHouseholdTry, cleanNeed, emptyMove, cleanMove, cleanIndex, emptySaver, cleanSaver, cleanPlanMix, cleanFlexibleAccess, emptyCheckIn, cleanCheckIn, emptyKeepTest, cleanKeepTest,
+import { emptyDraftFor, emptyAnswerFor, emptyKeep, keptKeep, cleanMade, cleanPending, cleanUsed, cleanFromPlan, emptyPlanDraft, keptPlanDraft, emptyLasts, LEVER_KINDS, cleanLever, emptyWays, cleanTried, emptyMix, MIX_TRY_KINDS, cleanMixTry, cleanCell, cleanTriedChange, cleanKept, emptyHousehold, HH_PICKS, cleanHouseholdTry, cleanNeed, emptyMove, cleanMove, cleanIndex, emptySaver, cleanSaver, cleanPlanMix, cleanFlexibleAccess, emptyCheckIn, cleanCheckIn, emptyKeepTest, cleanKeepTest, emptyStressPanel, cleanStressPanel,
   emptyShellUi, emptyAccount, emptyGuest, emptyNews, ACCOUNT_MODES, ACCOUNT_ASKS, PLAN_ACTION_KINDS, PLAN_ACTION_OPS } from './initial.js';
 import { parsedDraft, appliedPaths, isCurrent, SCHEMAS, SPEND_STEP, numbersPaths, skipNoteDue, spendView, keepView, isSpendPath, shapeContext, typedNumber, checkPlanName, fromPlanStale, severalPlan } from './select.js';
 import { hasShape, SHAPE_UNIT, THENS, thenPath, fallsPath, stepsPath, stepBox, stepFields, shapePaths, isShapePath, stepsOf, newStep, cleanSteps,
@@ -57,7 +57,9 @@ const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'fail
   // year's set-up), a year already set up, no month left to record
   'notSetUp', 'refused', 'setUpAlready', 'noMonth',
   // "I accept this risk" (7.7.0): what is kept changed since the test (run it again), nothing kept, no agreement to withdraw
-  'stale', 'nothingKept', 'noResult', 'none'];
+  'stale', 'nothingKept', 'noResult', 'none',
+  // … on a row of "Try the bad years" (7.9.0): the rows were tried on the plan as it was, the row changes nothing, nothing runs out
+  'oldResult', 'same', 'nothingFails'];
 /** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document, the way switched (way-and-mix.md 2.4), a mix used (3.2e), a tried change used (4). */
 const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
   // the move of a locked plan's start (6.55.0): written, no Undo (the planner offers none)
@@ -684,9 +686,9 @@ function reduceAction(state, action) {
       return withDraft(viewed, 'b', b);
     }
     case A.PLANS_CLEAR:
-      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null && (state.lasts || emptyLasts()).key === null && (state.ways || emptyWays()).key === null && (state.mix || emptyMix()).key === null && (state.household || emptyHousehold()).key === null && (state.move || emptyMove()).key === null && (state.saver || emptySaver()).key === null && (state.checkIn || emptyCheckIn()).planId === null && (state.keepTest || emptyKeepTest()).key === null) return state;
+      if (state.plans === null && state.session.kind === 'none' && planDraftOf(state).id === null && (state.lasts || emptyLasts()).key === null && (state.ways || emptyWays()).key === null && (state.mix || emptyMix()).key === null && (state.household || emptyHousehold()).key === null && (state.move || emptyMove()).key === null && (state.saver || emptySaver()).key === null && (state.checkIn || emptyCheckIn()).planId === null && (state.keepTest || emptyKeepTest()).key === null && (state.stressPanel || emptyStressPanel()).key === null) return state;
       // the plans leave the page's memory, and the one test's result, the nine ways', the mix's and the held run with them (editing-in-v7.md 10.1; way-and-mix.md 2.2, 3.2); the index the watch read is the page's, and stays
-      return withPlanDraft({ ...state, plans: null, lasts: emptyLasts(), ways: emptyWays(), mix: emptyMix(), household: emptyHousehold(), move: { ...emptyMove(), index: (state.move || emptyMove()).index || null }, saver: emptySaver(), checkIn: emptyCheckIn(), keepTest: emptyKeepTest(), session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
+      return withPlanDraft({ ...state, plans: null, lasts: emptyLasts(), ways: emptyWays(), mix: emptyMix(), household: emptyHousehold(), move: { ...emptyMove(), index: (state.move || emptyMove()).index || null }, saver: emptySaver(), checkIn: emptyCheckIn(), keepTest: emptyKeepTest(), stressPanel: emptyStressPanel(), session: { kind: 'checking', email: null, signingOut: false }, ui: { ...state.ui, saving: null, saveProblem: null, toast: null } }, emptyPlanDraft());
     case A.PLAN_CHANGE: {
       const { planId = null, place, back, month = null } = action;
       if (typeof place !== 'string' || typeof back !== 'string') return refuse('plan/change: needs a place and a way back');
@@ -1212,9 +1214,37 @@ function reduceAction(state, action) {
       const { planId, op } = action;
       if (typeof planId !== 'string' || !planId) return refuse('plan/amend: needs a plan id');
       if (op !== 'accept' && op !== 'withdraw') return refuse('plan/amend: needs accept or withdraw');
+      // a row of "Try the bad years" (7.9.0): its kind and its row; none, the keep agreement on What you hold (7.7.0)
+      const amend = action.kind == null ? null : action.kind;
+      if (amend !== null && amend !== 'stress' && amend !== 'confidence') return refuse(`plan/amend: "${amend}" is not a kind it writes`);
+      if (amend !== null && !(typeof action.testId === 'string' && /^[A-Za-z]{1,24}$/.test(action.testId))) return refuse('plan/amend: needs the row');
       if (state.ui.saving) return state;
-      const open = (state.ui.open || []).filter((x) => x !== 'amendConfirm');
-      return { ...state, ui: { ...state.ui, open, saving: { planId, kind: 'amend', op }, saveProblem: null, toast: null } };
+      const open = (state.ui.open || []).filter((x) => x !== 'amendConfirm' && !x.startsWith('stressConfirm.'));
+      return { ...state, ui: { ...state.ui, open, saving: { planId, kind: 'amend', op, ...(amend ? { amend, testId: action.testId } : {}) }, saveProblem: null, toast: null } };
+    }
+    // ---- "Try the bad years" (7.9.0) ----
+    case A.STRESS_RUN: {
+      if (typeof action.key !== 'string' || !action.key) return refuse('stress/run: needs a key');
+      if (typeof action.planId !== 'string' || !action.planId) return refuse('stress/run: needs a plan id');
+      const order = Array.isArray(action.rows) ? action.rows.filter((id) => typeof id === 'string' && id) : [];
+      if (!order.length) return refuse('stress/run: needs the rows');
+      const Sp = state.stressPanel || emptyStressPanel();
+      if (Sp.key === action.key && Sp.status === 'working') return state;
+      return { ...state, stressPanel: { key: action.key, planId: action.planId, status: 'working', order, rows: {}, reason: null } };
+    }
+    case A.STRESS_ROW_DONE: {
+      const Sp = state.stressPanel || emptyStressPanel();
+      if (action.key !== Sp.key || Sp.status !== 'working' || !Sp.order.includes(action.row)) return state;   // stale
+      if (!action.result || typeof action.result !== 'object') return refuse('stress/rowDone: needs a result');
+      const rows = { ...Sp.rows, [action.row]: action.result };
+      return { ...state, stressPanel: { ...Sp, rows, status: Sp.order.every((id) => rows[id]) ? 'done' : 'working' } };
+    }
+    case A.STRESS_FAILED: {
+      const Sp = state.stressPanel || emptyStressPanel();
+      if (action.key !== Sp.key || Sp.status !== 'working') return state;   // stale
+      // stopped (the page left, or the plan changed under it): the rows tried so far stay, under their own key
+      if (action.reason === 'stopped') return { ...state, stressPanel: { ...Sp, status: 'idle', reason: null } };
+      return { ...state, stressPanel: { ...Sp, status: 'failed', reason: action.reason === 'noWorker' ? 'noWorker' : null } };
     }
     case A.MOVE_RUN: {
       if (typeof action.key !== 'string' || !action.key) return refuse('move/run: needs a key');
@@ -1482,6 +1512,8 @@ function reduceAction(state, action) {
         checkIn: cleanCheckIn(copy.checkIn),
         // a named plan state may carry the re-test of what is kept (7.7.0), cleaned; none: empty
         keepTest: cleanKeepTest(copy.keepTest),
+        // … and (7.9.0) the rows of "Try the bad years", cleaned; none: empty
+        stressPanel: cleanStressPanel(copy.stressPanel),
         ways: copy.ways && typeof copy.ways === 'object' && typeof copy.ways.key === 'string' && ['working', 'done', 'failed'].includes(copy.ways.status)
           ? { key: copy.ways.key, status: copy.ways.status, reason: copy.ways.reason === 'noWorker' ? 'noWorker' : null, result: copy.ways.result && typeof copy.ways.result === 'object' && Array.isArray(copy.ways.result.ways) ? copy.ways.result : null,
             progress: copy.ways.progress && typeof copy.ways.progress === 'object' ? { done: Number(copy.ways.progress.done) || 0, total: Number(copy.ways.progress.total) || 0 } : null, slow: copy.ways.slow === true,

@@ -188,7 +188,12 @@ export const A = Object.freeze({
   KEEP_TEST_PROGRESS: 'keepTest/progress', // { key, done, total }
   KEEP_TEST_DONE:  'keepTest/done',       // { key, result }                  keepRun.js runKeepRetest's result; dropped if the key is stale
   KEEP_TEST_FAILED: 'keepTest/failed',    // { key, reason? }                 the re-test failed ('noWorker': no worker)
-  PLAN_AMEND:      'plan/amend',          // { planId, op: 'accept' | 'withdraw' }   "I accept this risk" confirmed / "Withdraw this": saving { kind: 'amend', op }
+  PLAN_AMEND:      'plan/amend',          // { planId, op: 'accept' | 'withdraw', kind?, testId? }   "I accept this risk" confirmed / "Withdraw this": saving { kind: 'amend', op, amend?, testId? }
+                                          //   (7.9.0: kind 'stress' | 'confidence' with the row's id, "Try the bad years"; none: the keep agreement, as in 7.7.0)
+  // "Try the bad years" (7.9.0): the rows run on a press, one lane call each, As planned first
+  STRESS_RUN:      'stress/run',          // { key, planId, rows: [row ids] }  the rows to try on the plan of this key (stressPanel.stressKeyOf), in order
+  STRESS_ROW_DONE: 'stress/rowDone',      // { key, row, result }              one row's result (stressPanelRun.runStressRow); dropped if the key is stale
+  STRESS_FAILED:   'stress/failed',       // { key, reason? }                  the rows failed ('noWorker': no worker; 'stopped': left or the plan changed)
 
   // ---- "What you pay in": the plan's own verdict (research/saving-enough-and-check-in.md 4.1, 4.4; release step R2) ----
   // question B on the plan's figures (answers/plan/saverInputs.js), in the worker's 'saver' lane, page memory only
@@ -304,8 +309,8 @@ export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', '
   'lastsSchedule', 'lastsGlidepath',
   // "What you hold" (step 10): the paste box; "Moving to your plan's mix": how to read it, the sheet shown anyway, gilt ladders explained
   'holdPaste', 'moveHow', 'moveSheet', 'moveExplained',
-  // "I accept this risk" (7.7.0): its confirm, on the screen
-  'amendConfirm',
+  // "I accept this risk" (7.7.0): its confirm, on the screen; and (7.9.0) each row of "Try the bad years" that can be accepted
+  'amendConfirm', 'stressConfirm.asPlanned', 'stressConfirm.fall', 'stressConfirm.lower', 'stressConfirm.spend', 'stressConfirm.prices',
   // "Your plans" (step 11): the file box of "Open a downloaded copy"
   'openCopy',
   // the budget on a saved plan (step 11b): the confirm of "Start again"; "What you pay in": the relief block

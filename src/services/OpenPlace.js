@@ -39,6 +39,9 @@ export const PLACES = Object.freeze({
   lock:      { tab: 'stress',       sub: 'stresssettings', section: 'ssLockBtn',       needs: 'stress' },
   settings:  { tab: 'stress',       sub: 'stresssettings', section: null,              needs: 'stress' },
   test:      { tab: 'stress',       sub: 'montecarlo',     section: null,              needs: 'stress' },
+  /** "Try the bad years" (7.9.0): the planner's Scenarios page, at its results; and its real starts one at a time (History). */
+  badYears:  { tab: 'stress',       sub: 'scenarios',      section: 'scenResults',     needs: 'stress' },
+  badStarts: { tab: 'stress',       sub: 'historical',     section: null,              needs: 'stress' },
   month:     { tab: 'decision',     sub: 'entry',          section: null,              needs: 'decision' },
   taxyear:   { tab: 'decision',     sub: 'taxyears',       section: null,              needs: 'decision' },
   document:  { tab: 'decision',     sub: 'plandoc',        section: null,              needs: 'decision' },

@@ -1075,10 +1075,7 @@ export function assumptionsView(state) {
  */
 export function aboutView(state) {
   const v = editView(state, 'about');
-  if (!v.found) return v;
-  // the confirm of the move of a locked plan's start (6.55.0): on the screen, never a browser dialog
-  const open = Array.isArray(state.ui && state.ui.open) ? state.ui.open : [];
-  return { ...v, moveConfirm: open.includes('moveStartConfirm') };
+  return v;
 }
 /** "Money that comes in anyway" (editing-in-v7.md 7): the same reading for the second step (page.income). */
 export function incomeView(state) {

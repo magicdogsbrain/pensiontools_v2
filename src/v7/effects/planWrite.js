@@ -37,11 +37,9 @@
  *     it IS an unlock (LockedPlanGuard.isUnlock) and carries nothing else.
  *   - `plan/newVersion` (kind 'document'): the run again, then lock.js documentPatch (the current document archived, a new
  *     one written), ONE write to a locked plan: the guard allows it because the document is not a setting.
- *   - `plan/moveStart` (kind 'moveStart', 6.55.0): "Move the plan's start" on a locked plan's "About you and when" — the
- *     run of the plan as moved (answers/plan/moveStart.js movedPlanOf), then movePatch, the planner's moveLockedPlanStart
- *     field for field, ONE write to a locked plan: the guard allows it because it is exactly that move (its `reAnchor`
- *     allowance). The plan stays locked. No Undo, as in the planner.
- *   Without a worker (client.document rejects with NO_WORKER) the lock, the new version and the move are refused
+ *   (The move of a locked plan's start under its lock, `plan/moveStart` from 6.55.0, is gone in 7.10.0: the start changes
+ *   by unlock, "About you and when" and a new lock.)
+ *   Without a worker (client.document rejects with NO_WORKER) the lock and the new version are refused
  *   ('noWorker'): the document is never built from a lesser run.
  *
  * "Use this way of drawing" (research/v7/way-and-mix.md 2.4), the same one write, one more kind:
@@ -193,7 +191,7 @@ import { spendPatch } from '../../answers/plan/spend.js';
 import { potsPatch } from '../../answers/plan/pots.js';
 import { lastsPatch, tryPatch, tryCopyOf, runKeyOf } from '../../answers/plan/lasts.js';
 import { lockPatch, unlockPatch, documentPatch, isLockReversal, shapeRefsOf } from '../../answers/plan/lock.js';
-import { movedPlanOf, movePatch, withLaterDraft } from '../../answers/plan/moveStart.js';
+import { withLaterDraft } from '../../answers/plan/moveStart.js';
 import { dateOf, monthWords } from '../../answers/plan/dates.js';
 import { wayPatch } from '../../answers/plan/way.js';
 import { mixPatch, useMixPatch } from '../../answers/plan/mix.js';
@@ -440,34 +438,6 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;
     dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op: 'document' });
-    dispatch({ type: A.PLANS_READING });
-    later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
-  }
-
-  /**
-   * "Move the plan's start" on a locked plan (6.55.0; the planner's moveLockedPlanStart, field for field): the run of the plan
-   * AS MOVED in the worker (moveStart.js movedPlanOf: both copies moved, no document, read from where the lock's pots stood),
-   * then movePatch as ONE write past the guard — its `reAnchor` allowance lets exactly that move through, under the lock.
-   * The plan stays locked. No Undo, as in the planner: the toast says it is done.
-   */
-  async function moveStart(planId, how = {}) {
-    const got = await placed(planId);
-    if (!got) return;
-    const { place, plan, state } = got;
-    if (!isLockedSettings(plan.decisionTool && plan.decisionTool.settings)) { fail(planId, 'notLocked'); return; }
-    const at = now();
-    // how (7.4.0): to this tax year with no month said, and the State Pension's date where the plan gives only its plan year
-    const h = { thisYear: !!(how && how.thisYear), spStartDate: (how && how.spStartDate) || null };
-    const mp = movedPlanOf(plan, { now: at, ...h });
-    if (!mp) { fail(planId, 'noMove'); return; }
-    const run = await runFor(planId, mp.plan, state);
-    if (!run) return;
-    const p = movePatch(plan, { now: at, run, entries: state.plans.list, ...h });
-    if (!p.ok) { fail(planId, p.errors.plan === 'noMove' || p.errors.plan === 'noRun' || p.errors.plan === 'notHere' ? p.errors.plan : 'failed'); return; }
-    const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
-    if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
-    if (!(await send(place, planId, data))) return;
-    dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line: p.line, op: 'moveStart' });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
@@ -1905,7 +1875,6 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_LOCK && s.kind === 'lock') run(() => lock(s.planId));
     else if (action.type === A.PLAN_UNLOCK && s.kind === 'unlock') run(() => unlock(s.planId));
     else if (action.type === A.PLAN_DOCUMENT && s.kind === 'document') run(() => newVersion(s.planId));
-    else if (action.type === A.PLAN_MOVE_START && s.kind === 'moveStart') run(() => moveStart(s.planId, s.how || {}));
     else if (action.type === A.PLAN_WAY && s.kind === 'way') run(() => useWay(s.planId, s.way));
     else if (action.type === A.PLAN_MIX && s.kind === 'mix') run(() => useMix(s.planId, s.cell));
     else if (action.type === A.PLAN_TRY && s.kind === 'try') run(() => useTry(s.planId));

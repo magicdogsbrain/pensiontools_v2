@@ -376,7 +376,7 @@ export const DECISION_SEED_KEYS = Object.freeze([
  * Every save of the draft's settings carries them, and so does its lock (lock.js lockPatch: beside LOCK_WRITES, never in an
  * Undo of the lock, so the reversal stays exactly LOCK_WRITES).
  */
-/** The keys a move of year 0 works out besides it (PlanMove.REANCHOR_KEYS, by hand; MOVE_START_WRITES below). */
+/** The keys a move of year 0 works out besides it (PlanMove.REANCHOR_KEYS, by hand: a draft read from an earlier start, below). */
 const MOVED_KEYS = ['shapeAgeNow', 'duration', 'incomeShape', 'incomeSteps', 'targetSchedule', 'spendingProfile', 'spendingMigratedFrom', 'dbStartYear', 'statePensionYear', 'ufplsYears', 'strategyParams', 'strategyState', 'extraIncomes', 'extraWithdrawals', 'windfalls', 'spStartDate', 'spWeeklyAmount'];
 function LATER_DRAFT_STRESS_WRITES() {
   return [...['firstTaxYear', 'legacyFirstTaxYear', ...MOVED_KEYS].map((k) => 'stressTool.settings.' + k)];
@@ -425,27 +425,6 @@ export const UNLOCK_WRITES = Object.freeze([
 export const DOCUMENT_WRITES = Object.freeze([
   'planDocumentArchive',
   'planDocument'
-]);
-
-/**
- * "Move the plan's start" on a locked plan (research/plan-start.md §4; moveStart.js movePatch; services/PlanMove.js): both
- * copies of year 0 and the keys the move works out from them (each only as it works it out: the lock guard's `reAnchor`
- * allowance), the month work stopped, where the lock's pots stood, the strategy block's counts of years, the recorded months,
- * the document and the plan of record archived and written again, and the journey. The planner sends it (index.html
- * moveLockedPlanStart), and from 6.55.0 the preview does too, from a locked plan's "About you and when" (effects/planWrite.js
- * moveStart): one write, past the same guard.
- */
-export const MOVE_START_WRITES = Object.freeze([
-  // PlanMove.REANCHOR_STRESS_KEYS and REANCHOR_DECISION_KEYS, by hand (this file imports nothing; a test holds them equal)
-  ...['firstTaxYear', 'stoppedWork', ...MOVED_KEYS].map((k) => 'stressTool.settings.' + k),
-  ...['firstTaxYear', 'lockedPosition', ...MOVED_KEYS].map((k) => 'decisionTool.settings.' + k),
-  'strategy.params',
-  'decisionTool.history',
-  'decisionTool.planOfRecordArchive',
-  'decisionTool.planOfRecord',
-  'planDocumentArchive',
-  'planDocument',
-  'journey'
 ]);
 
 // ---- "How the money is taken" (research/v7/way-and-mix.md 2; road-to-7.md step 8a): the way of drawing -------------------
@@ -929,8 +908,7 @@ export const isReviewPath = (path) => REVIEW_PATHS.includes(String(path));
 /** The one rule the reducer, the draft store and the screens share: a path of any editing step. */
 export function isPlanEditPath(path) {
   // stopAskLeft: "Leave it" to "When did you stop work?" on a locked plan's "About you and when" (6.53.0, about.js stopAskPatch);
-  // moveSpDate: the State Pension's start date the move of a locked plan's start asks (7.4.0, about.js lockedStartOf)
-  return ABOUT_PATHS.includes(path) || path === 'stopAskLeft' || path === 'moveSpDate' || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path) || isHoldPath(path) || isBudgetPath(path) || isSavingPath(path) || isCheckInPath(path) || isMonthPath(path) || isReviewPath(path);
+  return ABOUT_PATHS.includes(path) || path === 'stopAskLeft' || isIncomePath(path) || isSpendPath(path) || isPotsPath(path) || isLastsPath(path) || isMixPath(path) || isTryPath(path) || isHouseholdPath(path) || isHoldPath(path) || isBudgetPath(path) || isSavingPath(path) || isCheckInPath(path) || isMonthPath(path) || isReviewPath(path);
 }
 
 // ---- The three phases and the one review (7.10.0; services/Phases.js, answers/plan/tasks.js) ----------------------------
@@ -1009,4 +987,4 @@ export const PLANS_WRITES = Object.freeze(['planDetails.name', 'isActive']);
  */
 export const CLOSE_WRITES = Object.freeze(['closedAt', 'nextPlanId', 'decisionTool.settings.locked', 'decisionTool.settings.lockedAt', 'decisionTool.settings.lockedBy', 'decisionTool.settings.lockedPosition', 'household.partnerScenarioId', 'budgetTool.sharedFrom']);
 
-export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...AMEND_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BUDGET_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...SAVING_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...CHECKIN_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MONTH_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...PLANS_WRITES, ...MOVE_START_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, ...PHASE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...TASK_WRITES, ...RECORD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...AGREE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BOOKKEEPING_WRITES])]);
+export const ALL_WRITES = Object.freeze([...new Set([...ABOUT_WRITES, ...INCOME_WRITES, ...SPEND_WRITES, ...POTS_WRITES, ...LASTS_WRITES, ...LOCK_WRITES, ...UNLOCK_WRITES, ...DOCUMENT_WRITES, ...WAY_WRITES, ...MIX_WRITES, ...HOUSEHOLD_WRITES, ...HOLD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MOVE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...AMEND_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BUDGET_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...SAVING_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...CHECKIN_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...MONTH_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...PLANS_WRITES, ...LATER_DRAFT_WRITES, ...CLOSE_WRITES, ...PHASE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...TASK_WRITES, ...RECORD_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...AGREE_WRITES.filter((k) => !BOOKKEEPING_WRITES.includes(k)), ...BOOKKEEPING_WRITES])]);

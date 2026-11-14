@@ -26,11 +26,8 @@
  *    - Stress: the month work stopped (6.53.0, stoppedWork), and "Leave it" to the question that asks it on a locked plan
  *      (stopMonthLeft). The month is the person's own fact, kept apart from the plan's year 0: with the year 0 saved it
  *      changes no figure by itself (research/plan-start.md §3), so it is always writable, lock or no lock.
- *    - Stress AND Decision, together and only together (6.53.0, `reAnchor`): "Move the plan's start" (services/PlanMove.js)
- *      — both copies of year 0 moved to the same tax year, the stop's, and each key the move rewrites at exactly the value
- *      the move works out from the plan as stored (PlanMove.reAnchorAllowance); with them, the strategy block's counts of
- *      years from year 0, moved the same way (PlanMove.strategyBlockAfterMove). Only a write that carries both copies can
- *      be one, so it passes only the check against the plan as stored (lockedPlanWriteRefusal), never a save of one kind.
+ *    - (6.53.0 to 7.9.0, `reAnchor`: "Move the plan's start" under the lock, both copies of year 0 at once. Gone in 7.10.0:
+ *      a locked plan's start changes by unlock, "About you and when" and a new lock, so year 0 is never written under one.)
  *    - Decision: the unlock itself (PlanLock.unlockPlan), and only as an unlock: the flag comes off, the unlock is dated,
  *      and the count of unlocks goes up (isUnlock). While the plan stays locked, its lock record (locked, lockedAt,
  *      lockedBy, unlockedAt, unlockCount) does not move — so a copy that merely says "not locked", from a tab that
@@ -89,7 +86,6 @@
 import { TIMING_PIN_KEYS } from './PlanTiming.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { unlockPatchesOf } from './PlanCommit.js';
-import { reAnchorAllowance } from './PlanMove.js';
 import { isClosedPlan, closesAhead, closureRefusal, closedPlanRefusal, successorRefusal, writeTouchesClosure, writeTouchesClosedParts, writeTouchesMonths, writeTouchesSaverMonths } from './PlanClosed.js';
 import { isExamplePlan } from './GuestPlans.js';
 
@@ -324,8 +320,8 @@ export function lockedPartsAfter(plan, data) {
  * @param {object} data  the write (saveScenario's map; dotted keys allowed)
  * @param {object} [stressDefaults]  what a plan with no Stress settings saved reads (ScenarioRepository.getActiveStressSettings
  *   on a locked plan: the defaults). Without them such a write is refused unless nothing changes — the safe way round.
- * @param {{ now?: Date }} [o]  the day the write is made, where the caller has it: the move of a plan's start to this tax
- *   year, with no month said, must then be to exactly this tax year (PlanMove.reAnchorAllowance).
+ * @param {{ now?: Date }} [o]  the day the write is made, where the caller has it (read by no rule since 7.10.0, when the move
+ *   of a locked plan's start, the one rule that needed it, went; kept so every caller's call stays as it is).
  * @returns {string[]|null} null when it may; otherwise the keys it would change, named by part ('stress.baseSalary',
  *   'decision.locked', 'strategy').
  */
@@ -341,17 +337,13 @@ export function lockedPlanWriteRefusal(plan, data, stressDefaults, { now = null 
   // A closed plan is never unlocked, nor its start moved.
   const onUnlock = !closed && isUnlock(before.decision, after.decision) ? (unlockPatchesOf(orDefaults(before.stress)) || {}) : {};
   const stressNext = orDefaults(after.stress);
-  // A move of the plan's start (`reAnchor`, 6.53.0): both copies at once, exactly as the move works them out.
-  const none = { stress: [], decision: [], strategy: false };
-  // the recorded months as stored: a plan with months moves only to the tax year they begin in (7.4.3)
-  const reAnchor = closed ? none : (reAnchorAllowance({ stress: orDefaults(before.stress), decision: before.decision, strategy: before.strategy, history: plan?.decisionTool?.history }, { stress: stressNext, decision: after.decision, strategy: after.strategy }, { now }) || none);
-  const stressBad = (lockedWriteRefusal('stress', { locked: true, closed, stored: orDefaults(before.stress), next: stressNext, also: reAnchor.stress }) || [])
+  const stressBad = (lockedWriteRefusal('stress', { locked: true, closed, stored: orDefaults(before.stress), next: stressNext }) || [])
     .filter((k) => !(k in onUnlock && isObj(stressNext) && text(stressNext[k]) === text(onUnlock[k])));
   const bad = [
     ...closure,
     ...stressBad.map((k) => 'stress.' + k),
-    ...(lockedWriteRefusal('decision', { locked: true, closed, stored: before.decision, next: after.decision, also: reAnchor.decision }) || []).map((k) => 'decision.' + k),
-    ...(text(before.strategy) !== text(after.strategy) && !reAnchor.strategy ? ['strategy'] : [])
+    ...(lockedWriteRefusal('decision', { locked: true, closed, stored: before.decision, next: after.decision }) || []).map((k) => 'decision.' + k),
+    ...(text(before.strategy) !== text(after.strategy) ? ['strategy'] : [])
   ];
   return bad.length ? bad : null;
 }

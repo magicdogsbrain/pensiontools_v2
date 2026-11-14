@@ -25,8 +25,7 @@ import { longevityAge } from '../../services/LongevityModel.js';
 import { grossToNet } from '../../services/TaxCalculator.js';
 import { grossUpAnnual, DEFAULT_TAX_BANDS } from '../../services/BudgetModel.js';
 import { cleanSteps } from '../../services/IncomeSchedule.js';
-import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveFactsOf, startLaterOf, spDateOf, spPlanTaxYearOf } from '../../services/PlanMove.js';
-import { money } from '../shared/format.js';
+import { stopAskOf, stopLeftOf, stopChangeOf, startLaterOf } from '../../services/PlanMove.js';
 import { ABOUT_FIELDS, ABOUT_WRITES, MIN_YEARS } from './schema.js';
 import { dateOf, dayWords, monthWords, localDay, localMonth, MONTHS } from './dates.js';
 
@@ -410,106 +409,27 @@ export function stalePatch(plan, { today }) {
  * stopped is the person's own fact, which the lock guard lets a locked plan write (LockedPlanGuard.LOCKED_BOOKKEEPING):
  *  - `ask`: the plan does not say it (PlanMove.stopAskOf) — asked once, here and in the planner's Timing block; "Leave it"
  *    is remembered (stressTool.settings.stopMonthLeft);
- *  - `move`: it does, and that tax year is earlier than the plan's first (PlanMove.moveOfferOf) — the move is offered, and
- *    from 6.55.0 made here (the parity ledger's timing.move-start row): `confirm` is what its confirm says, line by line
- *    (moveConfirmOf: the facts the planner's own confirm states), before the one write (moveStart.js movePatch, sent by
- *    effects/planWrite.js moveStart). `stepped`: the plan's income is in steps (the words then speak of its first step),
- *    else one yearly figure;
- *  - `blocked`: it does, earlier than the plan's first, but the move cannot keep its figures (PlanMove.moveBlockedOf);
  *  - `change`: the month it says, in words — changeable while the plan is locked (PlanMove.stopChangeOf), so a month typed
  *    wrongly is not kept for good;
  *  - `left`: "Leave it" was said and no month (PlanMove.stopLeftOf) — not asked again, but the month can still be said,
- *    folded, without unlocking.
- * From 7.4.0, on a plan stored with its start later than this tax year (PlanMove.startLaterOf), "Leave it" no longer puts the
- * question away: the plan has something to move, so the month is asked whatever was said before (`leave` false), and
- *  - `nowMove`: with no month said, "I'm already drawing: start it this tax year" — the move to this tax year, its confirm
- *    line by line as the move's (`how` { thisYear: true });
- *  - `spAsk` on `move` or `nowMove`: the plan gives its State Pension only as a plan year, which the move cannot carry; its
- *    start date is asked (typed as `moveSpDate`) and written in the same move. The confirm, and the move, wait for a date.
- * `blocked` stays only for a plan a date cannot carry either (none today: PlanMove.moveBlockedOf's `spFix`).
- * @returns {{ ask: boolean, leave: boolean, move: null | { yearStop, yearStart, month, stepped, spAsk, confirm, how },
- *   nowMove: null | { yearStop, yearStart, stepped, spAsk, confirm, how }, blocked: null | { yearStart: string, month: string },
- *   change: string|null, left: boolean, spShown: string, spError: string|null, spPlanYear: string|null }}
+ *    folded, without unlocking;
+ *  - `later`: the plan is stored with its start later than this tax year (PlanMove.startLaterOf). From 7.10.0 a locked plan's
+ *    start is no longer moved under its lock (the replan's one plan clock, research/v7/replan-nov-2026.md §2 principle 13):
+ *    the step says when the plan is set to start and that the start changes by unlocking it, changing it here and locking
+ *    it again. The plan is still read from where its months are (the read-time re-anchor, PlanMove.withLockedStart).
+ * @returns {{ ask: boolean, leave: boolean, change: string|null, left: boolean, later: null | { start: string } }}
  */
-export function lockedStartOf(plan, { today, typed = null }) {
+export function lockedStartOf(plan, { today }) {
   const now = dateOf(today);
-  const spShown = typed && typeof typed.moveSpDate === 'string' ? typed.moveSpDate : '';
-  const spDate = spDateOf(spShown);
-  const spError = !blank(spShown) && !spDate ? 'notADate' : null;
-  let offer = null, ask = false, blocked = null, change = null, left = false, later = null;
+  let ask = false, change = null, left = false, later = null;
   try {
-    later = startLaterOf(plan, now);
-    offer = moveOfferOf(plan, now);
-    blocked = offer ? null : moveBlockedOf(plan, now);
-    // a move whose State Pension date is asked (7.4.0): offered with the date typed, or waiting for one — and, waiting, it
-    // keeps the month the recorded months begin (7.4.3), so its words say why it goes to that year before any date is typed
-    const spMove = !offer && blocked && blocked.spFix ? (spDate ? moveOfferOf(plan, now, { spStartDate: spDate })
-      : { stopMonth: blocked.stopMonth, from: blocked.from, to: blocked.to, ...(blocked.recordsFrom ? { recordsFrom: blocked.recordsFrom } : {}) }) : null;
-    if (spMove) { offer = { ...spMove, spAsk: true }; blocked = null; }
-    ask = !offer && (stopAskOf(plan, now) || (!!later && later.kind === 'ask' && !!later.thisYear));
+    const sl = startLaterOf(plan, now);
+    later = sl && sl.start > taxYearStartOf(now) ? { start: 'April ' + sl.start } : null;
+    ask = stopAskOf(plan, now);
     change = ask ? null : stopChangeOf(plan, now);
-    left = !offer && !ask && stopLeftOf(plan, now);
-  } catch { offer = null; ask = false; blocked = null; change = null; left = false; later = null; }
-  const ss = (plan && plan.stressTool && plan.stressTool.settings) || {};
-  const stepped = ss.incomeShape === 'phases' && cleanSteps(ss.incomeSteps).length > 0;
-  const nowHow = later && later.kind === 'ask' && later.thisYear ? { thisYear: true, ...(later.spAsk && spDate ? { spStartDate: spDate } : {}) } : null;
-  const moveHow = offer && offer.spAsk ? (spDate ? { spStartDate: spDate } : null) : {};
-  return {
-    ask,
-    // "Leave it" only where nothing is to move: the plain question of a plan whose start is where it should be
-    leave: ask && !(later && later.kind === 'ask' && later.thisYear),
-    // `records` (7.4.3): the plan's recorded months begin later than work stopped, or no month is said — it starts when they do
-    move: offer ? { yearStop: taxYearLabel(offer.to), yearStart: taxYearLabel(offer.from), month: monthWords(offer.stopMonth), stepped, spAsk: !!offer.spAsk,
-      records: offer.recordsFrom ? monthWords(offer.recordsFrom) : null, start: 'April ' + offer.from,
-      confirm: moveHow ? moveConfirmOf(plan, now, moveHow) : [], how: moveHow } : null,
-    nowMove: nowHow ? { yearStop: taxYearLabel(later.thisYear), yearStart: taxYearLabel(later.start), stepped, spAsk: !!later.spAsk,
-      confirm: !later.spAsk || spDate ? moveConfirmOf(plan, now, nowHow) : [], how: !later.spAsk || spDate ? nowHow : null } : null,
-    blocked: blocked ? { yearStart: taxYearLabel(blocked.from), month: monthWords(blocked.stopMonth), records: blocked.recordsFrom ? monthWords(blocked.recordsFrom) : null, start: 'April ' + blocked.from } : null,
-    change: change ? monthWords(change) : null,
-    left, spShown, spError,
-    // where the State Pension's date is asked, the tax year the plan pays it from as it stands, named beside the box
-    spPlanYear: (offer && offer.spAsk) || (nowHow && later.spAsk) ? (() => { let y = null; try { y = spPlanTaxYearOf(plan); } catch { y = null; } return y ? taxYearLabel(y) : null; })() : null
-  };
-}
-
-/**
- * What the confirm of the move says, line by line, each `{ id, slots }` (the words: copy/about.js lockedStart.confirm):
- * the planner's own confirm (src/ui/planStartUi.js moveStartQuestion), from the same facts (PlanMove.moveFactsOf) — the
- * new first tax year and the old, the plan staying locked; the income (the first step keeps its amount and the later
- * steps their ages, or the one yearly figure) and the age the plan still ends at; the dated figures keeping their tax
- * years; the recorded months, counted from the new start; the plan document and plan
- * vs actual written again (a ladder bought from the tax year the run starts in); the State Pension's count and the years
- * the plan counts; the months not recorded; and what is not affected. A choice of words per count, so no line says
- * "1 years". Empty when the plan is offered no move.
- */
-function moveConfirmOf(plan, now, how = {}) {
-  const m = planMoveOf(plan, now, how);
-  if (!m) return [];
-  const f = moveFactsOf(plan, m);
-  const yearStop = taxYearLabel(m.to);
-  const age = +m.stress.shapeAgeNow > 0 ? String(+m.stress.shapeAgeNow) : null;
-  const amount = f.stepAmount > 0 ? money(f.stepAmount) : null;
-  const one = (n) => (n === 1 ? 'One' : '');
-  // the move to this tax year names no month (7.4.0); a State Pension date given is said as written
-  // the move to the tax year the recorded months begin in (7.4.3) names their first month, and says they are read against it
-  const lines = [m.recordsFrom ? { id: 'firstRecords', slots: { yearStop, records: monthWords(m.recordsFrom), yearStart: taxYearLabel(m.from) } }
-    : m.stopMonth ? { id: 'first', slots: { yearStop, month: monthWords(m.stopMonth), yearStart: taxYearLabel(m.from) } } : { id: 'firstNow', slots: { yearStop, yearStart: taxYearLabel(m.from) } }];
-  if (m.spStartDate) lines.push({ id: 'spDate', slots: { date: m.spStartDate } });
-  // a date in another tax year than the plan paid it from: said, as the date then moves it there
-  if (m.spStartDate && m.spDateYear > 0 && m.spPlanYear > 0 && m.spDateYear !== m.spPlanYear) lines.push({ id: 'spDateMoved', slots: { dateTaxYear: taxYearLabel(m.spDateYear), paidFrom: taxYearLabel(m.spPlanYear) } });
-  lines.push({ id: (f.stepped ? 'steps' : 'level') + (amount && age ? '' : 'Bare'), slots: { yearStop, ...(amount ? { amount } : {}), ...(age ? { age } : {}) } });
-  if (f.endAge > 0) lines.push({ id: 'ends' + one(m.years), slots: { endAge: String(f.endAge), n: String(m.years) } });
-  if (f.dated) lines.push({ id: 'dated', slots: {} });
-  const ms = f.months.slice().sort();
-  if (ms.length) {
-    lines.push(ms.length === 1 ? { id: 'monthOne', slots: { first: monthWords(ms[0]), yearStop } } : { id: 'months', slots: { n: String(ms.length), first: monthWords(ms[0]), last: monthWords(ms[ms.length - 1]), yearStop } });
-  }
-  lines.push(f.ladder && f.runYear ? { id: 'documentLadder', slots: { runYear: taxYearLabel(f.runYear) } } : { id: 'document', slots: {} });
-  if (f.sp) lines.push(f.sp.before != null && f.sp.before >= 0 ? { id: 'sp', slots: { spYear: taxYearLabel(f.sp.taxYear), after: String(f.sp.after), before: String(f.sp.before) } } : { id: 'spNoBefore', slots: { spYear: taxYearLabel(f.sp.taxYear), after: String(f.sp.after) } });
-  lines.push({ id: (f.ladder ? 'moreLadder' : 'more') + one(m.years), slots: { n: String(m.years) } });
-  if (m.stopMonth && !m.recordsFrom) lines.push({ id: 'fill', slots: {} });
-  lines.push({ id: 'notAffected', slots: {} });
-  return lines;
+    left = !ask && stopLeftOf(plan, now);
+  } catch { ask = false; change = null; left = false; later = null; }
+  return { ask, leave: ask, change: change ? monthWords(change) : null, left, later };
 }
 
 /**
@@ -543,7 +463,7 @@ export function stopAskPatch(plan, typed, { today }) {
   if (!ls.ask && !ls.change && !ls.left) return no({ plan: 'locked' });
   const t = typed || {};
   // anything else typed is a box of the unlocked step, and a locked plan's: refused as locked, as before; nothing typed writes nothing
-  if (Object.keys(t).some((k) => k !== 'stopMonth' && k !== 'stopAskLeft' && k !== 'moveSpDate' && !blank(t[k]))) return no({ plan: 'locked' });
+  if (Object.keys(t).some((k) => k !== 'stopMonth' && k !== 'stopAskLeft' && !blank(t[k]))) return no({ plan: 'locked' });
   if (ls.ask && ls.leave && String(t.stopAskLeft || '') === 'yes') {
     const path = 'stressTool.settings.stopMonthLeft';
     return { ok: true, errors: {}, patch: { [path]: true }, previous: { [path]: copy(get(plan, path)) }, line: { id: 'stopLeft', slots: {} } };
@@ -680,11 +600,12 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
   const slots = { years: saved.duration, endAge: saved.values.endAge };
   // an out-of-date draft (timing.stale-draft): offered only where the step can be edited
   const stale = editable ? staleOf(plan, { today }) : null;
-  // a locked plan's start (6.53.0): "When did you stop work?" once, or the move, confirmed and made here (6.55.0)
+  // a locked plan's start (6.53.0): "When did you stop work?" once; and (7.10.0) a start stored later than this tax year said,
+  // with how it is changed (unlock, change it here, lock again) — never moved under the lock
   let lockedStart = null;
   if (saved.locked && !readonly) {
-    const ls = lockedStartOf(plan, { today, typed });
-    if (ls.ask || ls.move || ls.nowMove || ls.blocked || ls.change || ls.left) {
+    const ls = lockedStartOf(plan, { today });
+    if (ls.ask || ls.change || ls.left || ls.later) {
       const shown = typed && typeof typed.stopMonth === 'string' ? typed.stopMonth : '';
       const answer = (ls.ask || ls.change || ls.left) && !blank(shown) ? stopAnswer(shown, dateOf(today), saved.values.age) : null;
       lockedStart = { ...ls, shown, error: answer && answer.error ? answer.error : null };

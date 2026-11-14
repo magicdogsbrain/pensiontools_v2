@@ -14,7 +14,6 @@ import { ABOUT } from '../../copy/about.js';
 
 const w = PLAN.page;
 /** A button press keeps the focus where it is (the confirm's buttons: the page under them changes). */
-const keepFocus = { onMouseDown: (e) => e.preventDefault() };
 
 function Head({ view }) {
   return (
@@ -103,7 +102,8 @@ export function AboutScreen(state, dispatch) {
   };
 
   // A locked plan, or one shown as saved: the figures, read-only (4) — bar a locked plan's start (6.53.0): "When did you stop
-  // work?" once (one write the lock allows), or the move to the tax year work stopped, confirmed and made here (6.55.0).
+  // work?" once (one write the lock allows). A start stored later than this tax year is said, with how it changes (7.10.0):
+  // unlock, change it here, lock again — never moved under the lock.
   if (!about.editable) {
     const saved = about.fields.filter((f) => f.applies && f.saved !== null && !['sex', 'chance'].includes(f.path));
     const ls = about.lockedStart;
@@ -112,10 +112,6 @@ export function AboutScreen(state, dispatch) {
     const onStopSave = (e) => { e.preventDefault(); dispatch({ type: 'plan/save', planId }); };
     const onStopLeave = () => { dispatch({ type: 'plan/edit', planId, path: 'stopAskLeft', value: 'yes' }); dispatch({ type: 'plan/save', planId }); };
     const stopId = 'plan.about.lockedStopMonth';
-    // the move of the plan's start (6.55.0): its confirm on the page, the write under way
-    const C = L.confirm;
-    const moving = !!(about.saving && about.saving.kind === 'moveStart');
-    const toggleMove = () => dispatch({ type: 'ui/toggle', id: 'moveStartConfirm' });
     // the month box: asked once, or the month already said put right (the same write, the same rules)
     const stopBox = (
       <div class="field" data-field="lockedStopMonth">
@@ -140,44 +136,8 @@ export function AboutScreen(state, dispatch) {
         </form>
       </details>
     ) : null;
-    // the State Pension's start date, asked where the plan gives it only as a plan year (7.4.0): written with the move
-    const spId = 'plan.about.moveSpDate';
-    const spBox = (
-      <div class="field" data-field="moveSpDate">
-        <label for={spId}>{L.spLabel}</label>
-        <div class="box">
-          <input id={spId} data-testid={spId} type="text" inputMode="text" autoComplete="off" value={ls ? ls.spShown : ''} placeholder="14 March 2032"
-            aria-invalid={ls && ls.spError ? 'true' : 'false'} aria-describedby={ls && ls.spError ? spId + '.error' : undefined}
-            onInput={(e) => dispatch({ type: 'plan/edit', planId, path: 'moveSpDate', value: e.currentTarget.value })} />
-        </div>
-        <p class="help">{L.spHelp}</p>
-        {ls && ls.spPlanYear && <p class="help" data-line="about.spPlanYear">{fill(L.spPlanYear, { year: ls.spPlanYear })}</p>}
-        {ls && ls.spError && <p class="error" id={spId + '.error'} role="alert">{L.spError}</p>}
-      </div>
-    );
-    // the move's confirm (6.55.0): what the planner's own confirm says, line for line, then ONE write under the lock; no Undo
-    const confirmOf = (mv) => !moving && about.moveConfirm && mv && mv.how && (
-      <div class="notice lock-confirm" role="region" aria-label={fill(C.title, mv)} data-testid="plan.about.moveConfirm">
-        <h3>{fill(C.title, mv)}</h3>
-        <p>{C.intro}</p>
-        <ul class="plan-lines">
-          {mv.confirm.map((l, i) => <li key={l.id + '.' + i} class="plan-line" data-line={'move.' + l.id}>{fill(C.lines[l.id], l.slots)}</li>)}
-        </ul>
-        <div class="actions-row">
-          <Button testid="plan.about.moveConfirm.yes" kind="primary" onClick={() => dispatch({ type: 'plan/moveStart', planId, how: mv.how })} disabled={!!about.saving} {...keepFocus}>{fill(C.yes, mv)}</Button>
-          <Button testid="plan.about.moveConfirm.no" kind="quiet" onClick={toggleMove} {...keepFocus}>{C.no}</Button>
-        </div>
-      </div>
-    );
-    const working = moving && <div class="working" role="status" data-testid="plan.about.moving"><p class="working-title">{C.working}</p><progress aria-label={C.progress} /></div>;
-    const nm = ls && ls.nowMove;
-    // beside the saved first tax year (7.4.3): where the start belongs, when the move is offered, with the move's own button
-    const pointer = ls && ls.move && ls.move.how && !moving && !about.moveConfirm ? (
-      <span class="plan-pointer" data-testid="plan.about.startPointer">
-        {'. '}{fill(ls.move.records ? L.pointer : L.pointerStop, ls.move)}{' '}
-        <Button testid="plan.about.startPointer.open" kind="quiet" onClick={toggleMove} disabled={!!about.saving} {...keepFocus}>{L.pointerOpen}</Button>
-      </span>
-    ) : null;
+    // a start stored later than this tax year (7.10.0): said once, with the way it changes
+    const laterLine = ls && ls.later ? <p class="note" data-testid="plan.about.startLater">{fill(L.laterLocked, ls.later)}</p> : null;
     const lockedStartBlock = ls && ls.ask ? (
       <>
         <form class="ask notice locked-start" noValidate onSubmit={onStopSave} data-testid="plan.about.stopAsk">
@@ -189,41 +149,9 @@ export function AboutScreen(state, dispatch) {
           </div>
           <p class="help">{L.askHelp}{ls.leave ? ' ' + L.leaveHelp : ''}</p>
         </form>
-        {/* no month said, and a start later than this tax year (7.4.0): "I'm already drawing: start it this tax year" */}
-        {nm && (
-          <div class="notice locked-start" role="status" data-testid="plan.about.moveNow">
-            <p>{fill(L.now, nm)}</p>
-            {nm.spAsk && spBox}
-            {working || (!about.moveConfirm && (
-              <div class="actions-row">
-                <Button testid="plan.about.moveNow.open" kind="primary" onClick={toggleMove} disabled={!!about.saving || !nm.how} {...keepFocus}>{L.nowOpen}</Button>
-              </div>
-            ))}
-          </div>
-        )}
-        {confirmOf(nm)}
+        {laterLine}
       </>
-    ) : ls && ls.move ? (
-      <>
-        <div class="notice locked-start" role="status" data-testid="plan.about.moveStart">
-          <p>{fill(ls.move.records ? (ls.move.stepped ? L.moveRecords : L.moveRecordsLevel) : ls.move.stepped ? L.move : L.moveLevel, ls.move)}</p>
-          {ls.move.spAsk && spBox}
-          {working || (!about.moveConfirm && (
-            <div class="actions-row">
-              <Button testid="plan.about.moveStart.open" kind="primary" onClick={toggleMove} disabled={!!about.saving || !ls.move.how} {...keepFocus}>{L.open}</Button>
-            </div>
-          ))}
-          <p class="help">{L.moveHelp}</p>
-          {changeBlock}
-        </div>
-        {confirmOf(ls.move)}
-      </>
-    ) : ls && ls.blocked ? (
-      <div class="notice locked-start" role="status" data-testid="plan.about.moveBlocked">
-        <p>{fill(ls.blocked.records ? L.blockedRecords : L.blocked, ls.blocked)}</p>
-        {changeBlock}
-      </div>
-    ) : changeBlock;
+    ) : <>{laterLine}{changeBlock}</>;
     return {
       question: null, rail: <PlanRail view={view} state={state} dispatch={dispatch} onChange={onChange} />, full: false,
       content: (
@@ -236,7 +164,6 @@ export function AboutScreen(state, dispatch) {
                 <li class="plan-line" key={f.path} data-line={'about.saved.' + f.path}>
                   <span class="plan-label">{(f.path === 'stopMonth' && field('stopped') && field('stopped').saved === 'yes' ? ABOUT.fields.stoppedMonth : ABOUT.fields[f.path]).label}: </span>
                   <span class="plan-value" data-saved-for={f.path}>{f.type === 'choice' ? fill((f.path === 'startWhen' ? startWords : ABOUT.fields[f.path]).options[f.saved] || f.saved, slots) : f.saved}</span>
-                  {f.path === 'startWhen' && pointer}
                 </li>
               ))}
             </ul>

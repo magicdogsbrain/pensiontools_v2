@@ -14,19 +14,16 @@
  *   yearRowHtml(y, recs, plan, tyCfg, …)  plan vs actual's row for a plan year: lived, a part year, or a whole one
  *   firstSetUpPlanYear(taxYears, anchor)  plan vs actual's part year: the first plan year the tax-year wizard set up
  *   lockedStartHtml(o)                    a locked plan's start, under the Timing block's summary (6.53.0): "When did you
- *                                         stop work?" once, or the action "Move the plan's start…", and the month changeable
+ *                                         stop work?" once, the month changeable, and (7.10.0) a start stored later said with
+ *                                         how it changes (unlock, Timing, lock again: never moved under the lock)
  *   LOCKED_STOP_REFUSED                   why a month typed there is refused
  *   spCountOf(before, after)              the State Pension's tax year and its plan year before and after a move
- *   moveStartQuestion(move, facts)        the action's confirm: exactly what changes, as the unlock's does
- *   moveStartDoneWords(move)              the toast after it
  *   planVsActualWords(por, lockedAt, day) plan vs actual's heading and closing sentence: frozen at the lock, or written
  *                                         again when the start moved
  *
  * Pure, bar the two that read or write the page they are handed.
  */
 import { stoppedWorkOf, hasStopped, ageOnDate, taxYearStartOf, planYearOf, taxYearLabel, monthName } from '../services/PlanTiming.js';
-/** Text made safe for the page's HTML (a date as the person typed it). */
-const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 // The day of the run's pots, for the Decision tool's ladder month (index.html ladderPositionForPlan; LadderPosition potsDay).
 export { potsDayOf } from '../services/PlanFromToday.js';
 
@@ -180,9 +177,6 @@ export function firstSetUpPlanYear(taxYears, anchor) {
 
 // ---- A locked plan's start (6.53.0, research/plan-start.md §4 "Migration of existing plans") -----------------------------
 
-const pounds = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
-const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
-
 /**
  * The month box a locked plan's line asks with, or changes the month with (the ids saveLockedStopMonth reads). A `row-flex`
  * row, so the box is drawn as the Timing block's own are, dark mode included.
@@ -203,89 +197,25 @@ const laterStopHtml = () => foldedStopHtml('tmLockedStopLater', 'Say when you st
 
 /**
  * The line under a LOCKED plan's Timing summary (the form above it is frozen; this line is not). `ask`: the plan does not
- * say when work stopped (PlanMove.stopAskOf) — the question, once, with Save and "Leave it" (remembered). `offer`
- * (PlanMove.moveOfferOf): it does, and that tax year is earlier than the plan's first — the action, with what it does to the
- * income said plainly (§6 decision 4): the steps' words only for income in steps (`stepped`), else the yearly figure
- * (`income`). `blocked` (PlanMove.moveBlockedOf): the start cannot be moved under the lock, and why. `stopped`: the month
- * the plan says, which stays changeable ("Change the month you stopped work"). `left` (PlanMove.stopLeftOf): "Leave it" was
- * said and no month — the month can still be said ("Say when you stopped work"). '' for none of them. While the line asks
+ * say when work stopped (PlanMove.stopAskOf) — the question, once, with Save and "Leave it" (remembered). `stopped`: the
+ * month the plan says, which stays changeable ("Change the month you stopped work"). `left` (PlanMove.stopLeftOf): "Leave it"
+ * was said and no month — the month can still be said ("Say when you stopped work"). `later` (7.10.0): the plan is stored
+ * with a start later than this tax year (PlanMove.startLaterOf) — said, with how the start changes (unlock, change it under
+ * Timing, lock again): a locked plan's start is no longer moved under its lock. '' for none of them. While the line asks
  * (`ask` or `left`), the Timing form's own month box, frozen and empty, is hidden (lockedStartUi.js), so one box asks.
- * @param {{ ask?: boolean, start?: number|null, offer?: { stopMonth, from, to }|null, stepAge?: number|null, stepped?: boolean,
- *   income?: number|null, blocked?: { stopMonth, from }|null, stopped?: string|null, left?: boolean }} o
- *   `start`: the plan's first tax year now; `stepAge`: the age the plan's income starts at after the move
+ * @param {{ ask?: boolean, start?: number|null, stopped?: string|null, left?: boolean, later?: number|null }} o
+ *   `start`: the plan's first tax year now; `later`: the later start's year, when there is one
  */
-export function lockedStartHtml({ ask = false, start = null, offer = null, stepAge = null, stepped = true, income = null, blocked = null, stopped = null, left = false, leave = true, thisYear = null, spAsk = false, spPlanYear = null } = {}) {
-  if (offer) {
-    const at = taxYearLabel(offer.to) + (stepAge > 0 ? ', at ' + stepAge : '');
-    // the move to the tax year the recorded months begin in (7.4.3): the plan began when its months did
-    const why = offer.recordsFrom
-      ? 'Your plan is set to start in April ' + offer.from + ', but your recorded months begin in ' + monthName(offer.recordsFrom) + '. '
-        + '<strong>Start it from ' + taxYearLabel(offer.to) + '</strong>: your recorded months are kept and read against it. '
-      : null;
-    if (why) {
-      return '<p class="hint" style="margin:0 0 6px;">' + why
-        + (stepped ? 'Your first income step keeps its amount and runs from ' + at + '; your later steps keep their ages.' : 'Your income stays ' + (income > 0 ? pounds(income) + ' a year' : 'as it is') + ', now from ' + at + '.')
-        + ' The plan stays locked.</p>'
-        + (spAsk ? spDateBox(spPlanYear) : '')
-        + '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" id="tmMoveStartBtn" data-on-click="moveLockedPlanStart(\'' + (spAsk ? 'sp' : 'stop') + '\')">Move the plan\'s start…</button></div>'
-        + changeStopHtml(stopped);
-    }
-    return '<p class="hint" style="margin:0 0 6px;">You stopped work in ' + monthName(offer.stopMonth) + ', and your plan is set to start in ' + taxYearLabel(offer.from) + '. '
-      + '<strong>Start it from ' + taxYearLabel(offer.to) + '</strong>, the tax year you stopped: your months since then are read against the plan. '
-      + (stepped ? 'Your first income step keeps its amount and runs from ' + at + '; your later steps keep their ages.' : 'Your income stays ' + (income > 0 ? pounds(income) + ' a year' : 'as it is') + ', now from ' + at + '.')
-      + ' The plan stays locked.</p>'
-      + (spAsk ? spDateBox(spPlanYear) : '')
-      + '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" id="tmMoveStartBtn" data-on-click="moveLockedPlanStart(\'' + (spAsk ? 'sp' : 'stop') + '\')">Move the plan\'s start…</button></div>'
-      + changeStopHtml(stopped);
-  }
-  if (blocked && blocked.recordsFrom) {
-    return '<p class="hint" style="margin:0 0 6px;">Your plan is set to start in April ' + blocked.from + ', but your recorded months begin in ' + monthName(blocked.recordsFrom) + '. '
-      + 'Its start cannot be moved while the plan is locked: your State Pension is set by the plan\'s count of years, and moved it would read as starting at 67. To change the start, unlock the plan.</p>'
-      + changeStopHtml(stopped);
-  }
-  if (blocked) {
-    return '<p class="hint" style="margin:0 0 6px;">You stopped work in ' + monthName(blocked.stopMonth) + ', and your plan is set to start in ' + taxYearLabel(blocked.from) + '. '
-      + 'Its start cannot be moved while the plan is locked: your State Pension is set by the plan\'s count of years, and moved it would read as starting at 67. To change the start, unlock the plan.</p>'
-      + changeStopHtml(stopped);
-  }
-  if (!ask) return stopped ? changeStopHtml(stopped) : left ? laterStopHtml() : '';
-  // no month, and a start later than this tax year (7.4.0): "I'm already drawing: start it this tax year" beside the question;
-  // "Leave it" only where nothing is to move (a plan set to start later is always asked)
-  const now = thisYear > 0
-    ? '<p class="hint" style="margin:8px 0 6px;">Already drawing from your pension? It can start this tax year, ' + taxYearLabel(thisYear) + ', from where it stands today. The plan stays locked.</p>'
-      + (spAsk ? spDateBox(spPlanYear) : '')
-      + '<div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" id="tmMoveNowBtn" data-on-click="moveLockedPlanStart(\'now\')">I\'m already drawing: start it this tax year…</button></div>'
+export function lockedStartHtml({ ask = false, start = null, stopped = null, left = false, later = null } = {}) {
+  const laterLine = later > 0
+    ? '<p class="hint" style="margin:0 0 6px;">Your plan is set to start in April ' + later + '. To change its start, unlock the plan (Settings), change the start under Timing, and lock it again.</p>'
     : '';
+  if (!ask) return laterLine + (stopped ? changeStopHtml(stopped) : left ? laterStopHtml() : '');
   return '<p class="hint" style="margin:0 0 6px;"><strong>When did you stop work?</strong> The plan stays locked, and saying the month changes no figure by itself.'
-    + (start > 0 ? ' Your plan is set to start in ' + taxYearLabel(start) + '; once the month is said, it can start from the tax year you stopped.' : '') + '</p>'
+    + (start > 0 && !(later > 0) ? ' Your plan is set to start in ' + taxYearLabel(start) + '.' : '') + '</p>'
     + stopMonthBox(null)
-    + (leave ? '<button type="button" class="secondary" id="tmLockedStopLeave" data-on-click="leaveLockedStopMonth()">Leave it</button>' : '') + '</div>'
-    + now;
-}
-
-/**
- * Beside the Timing block's start year (7.4.3): a locked plan offered the move (PlanMove.moveOfferOf) shows its saved year
- * there, "2027/28 (saved)", and the form is frozen; this says plainly where the start belongs, with the move's own button
- * (the confirm says exactly what changes). '' for every other plan. `spAsk`: the State Pension's date is asked on the line
- * under the summary, which the move reads.
- */
-export function startMovePointerHtml(offer, spAsk = false) {
-  if (!offer || !(offer.to > 0)) return '';
-  const where = offer.recordsFrom ? ', when your recorded months begin.' : offer.stopMonth ? ', the tax year you stopped work.' : ', this tax year.';
-  return '<span>Move it to ' + taxYearLabel(offer.to) + where + '</span> '
-    + '<button type="button" class="secondary" id="tmStartMoveBtn" data-on-click="moveLockedPlanStart(\'' + (spAsk ? 'sp' : offer.stopMonth || offer.recordsFrom ? 'stop' : 'now') + '\')">Move the start…</button>';
-}
-
-/**
- * The State Pension's start date the move asks (7.4.0), where the plan gives it only as a plan year: written with the move.
- * `spPlanYear`, the tax year the plan pays it from as it stands (PlanMove.spPlanTaxYearOf), is named, so a date typed can be
- * checked against it; the confirm says so when the date is in another tax year.
- */
-function spDateBox(spPlanYear = null) {
-  return '<div class="row-flex" style="align-items:flex-end;margin-bottom:6px;"><label class="hint" style="display:flex;flex-direction:column;gap:2px;">When does your State Pension start?'
-    + '<input type="text" id="tmLockedSpDate" placeholder="14 March 2032" style="width:180px;"></label></div>'
-    + '<p class="hint" style="margin:0 0 6px;">The date on your State Pension forecast. It is saved with the move, so your State Pension keeps its own tax year.'
-    + (spPlanYear > 0 ? ' Your plan pays it from ' + taxYearLabel(spPlanYear) + ' as it stands. A date in another tax year moves it there.' : '') + '</p>';
+    + '<button type="button" class="secondary" id="tmLockedStopLeave" data-on-click="leaveLockedStopMonth()">Leave it</button></div>'
+    + laterLine;
 }
 
 /** Why a month typed for a locked plan's stop is refused (about.js lockedStopAnswer's errors), in the planner's words. */
@@ -300,58 +230,8 @@ export const LOCKED_STOP_REFUSED = Object.freeze({
 export { spCountOf } from '../services/PlanMove.js';
 
 /**
- * The action's confirm (index.html moveLockedPlanStart, as the unlock's: exactly what changes). `move` is PlanMove.planMoveOf;
- * `facts`: what the plan holds, read before (PlanMove.moveFactsOf, the same facts the preview's confirm states) — the first
- * income step's amount (or the yearly income), whether the income is in steps, the plan's end age, the recorded months and
- * the tax year the run starts in, whether its way of drawing buys
- * a gilt ladder, and the State Pension's count (spCountOf).
- * @param {object} move
- * @param {{ stepAmount?: number|null, stepped?: boolean, endAge?: number|null, months?: string[],
- *   runYear?: number|null, ladder?: boolean, dated?: boolean, sp?: { taxYear: number, before: number|null, after: number }|null }} facts
- * @returns {{ html: string, okLabel: string, cancelLabel: string }}
- */
-export function moveStartQuestion(move, { stepAmount = null, stepped = true, endAge = null, months = [], runYear = null, ladder = false, dated = false, sp = null } = {}) {
-  const to = taxYearLabel(move.to), from = taxYearLabel(move.from);
-  const age = move.stress && +move.stress.shapeAgeNow > 0 ? +move.stress.shapeAgeNow : null;
-  const li = [];
-  li.push(move.recordsFrom
-    ? '<li><strong>The plan\'s first tax year becomes ' + to + '</strong>, the tax year your recorded months begin (' + monthName(move.recordsFrom) + '); it was ' + from + '. Your recorded months are kept and read against ' + to + '. Both tools read the new start. The plan stays locked: nothing is unlocked and no setting is added.</li>'
-    : move.stopMonth
-    ? '<li><strong>The plan\'s first tax year becomes ' + to + '</strong>, the tax year you stopped work (' + monthName(move.stopMonth) + '); it was ' + from + '. Both tools read the new start. The plan stays locked: nothing is unlocked and no setting is added.</li>'
-    : '<li><strong>The plan\'s first tax year becomes ' + to + '</strong>, this tax year; it was ' + from + '. Both tools read the new start. The plan stays locked: nothing is unlocked, and no month you stopped work is saved.</li>');
-  if (move.spStartDate) li.push('<li>Your State Pension is saved as starting on ' + esc(move.spStartDate) + ', so it keeps its own tax year.</li>');
-  // a date in another tax year than the plan paid it from (7.4.0): said, as the date then moves it there
-  if (move.spStartDate && move.spDateYear > 0 && move.spPlanYear > 0 && move.spDateYear !== move.spPlanYear) li.push('<li>That date is in ' + taxYearLabel(move.spDateYear) + '; the plan had paid your State Pension from ' + taxYearLabel(move.spPlanYear) + ', so it now starts in ' + taxYearLabel(move.spDateYear) + '.</li>');
-  const ends = endAge > 0 ? ' The plan still runs to age ' + endAge + ', ' + plural(move.years, 'year', 'years') + ' longer from its new start.' : '';
-  li.push('<li><strong>Your income:</strong> ' + (stepped
-    ? 'the first step keeps its amount' + (stepAmount > 0 ? ' (' + pounds(stepAmount) + ' a year)' : '') + ' and now runs from ' + to + (age ? ', at ' + age : '') + '; your later steps keep their ages.'
-    : 'it stays ' + (stepAmount > 0 ? pounds(stepAmount) + ' a year' : 'as it is') + ', now from ' + to + (age ? ', at ' + age : '') + '.') + ends + '</li>');
-  if (dated) li.push('<li>Your lump sums, one-off spends, other income and final-salary pension keep their tax years.</li>');
-  const ms = (Array.isArray(months) ? months : []).slice().sort();
-  if (ms.length) {
-    const as = ' They now count from the new start, ' + to + '.';
-    li.push('<li><strong>' + plural(ms.length, 'recorded month', 'recorded months') + '</strong> (' + monthName(ms[0]) + (ms.length > 1 ? ' to ' + monthName(ms[ms.length - 1]) : '') + ') keep every figure you entered.' + as + '</li>');
-  }
-  li.push('<li><strong>The plan document and plan vs actual</strong> are written again from the new start, from your pots as they stood when you locked the plan: '
-    + (ladder && runYear ? 'the gilt ladder is bought from ' + taxYearLabel(runYear) + ' on, ' : '') + 'no year you have already lived is bought or paid for again. The earlier plan document stays under Previous versions on the plan document page; the earlier plan vs actual is kept with the plan\'s saved figures.</li>');
-  const spWords = sp ? 'Your State Pension still starts in ' + taxYearLabel(sp.taxYear) + ', as before; only the plan\'s count of years to it changes (' + sp.after + ' from the new start' + (sp.before != null && sp.before >= 0 ? ', not ' + sp.before : '') + '). ' : '';
-  li.push('<li><strong>The figures move:</strong> ' + spWords + 'The plan counts ' + plural(move.years, 'more year', 'more years') + ' to the same end age, and ' + (ladder ? 'the ladder\'s cost leaves out the years already lived.' : 'the years already lived are no longer run again.') + '</li>');
-  if (move.stopMonth && !move.recordsFrom) li.push('<li>Months you did not record since you stopped can then be filled in on Monthly Entry: set each earlier tax year up first, under Tax Years.</li>');
-  li.push('<li><strong>Not affected:</strong> what you hold, your Budget, and the tax years you set up.</li>');
-  return {
-    html: '<h3 style="margin:0 0 10px;">Move the plan\'s start to ' + to + '?</h3><p class="hint" style="margin:0 0 10px;">Here is exactly what changes:</p><ul style="margin:0 0 10px 18px;font-size:13px;line-height:1.5;">' + li.join('') + '</ul>',
-    okLabel: 'Move the start to ' + to, cancelLabel: 'Keep it as it is'
-  };
-}
-
-/** The toast after a move. */
-export function moveStartDoneWords(move) {
-  return 'The plan\'s start is now ' + taxYearLabel(move.to) + (move.recordsFrom ? ', when your recorded months begin' : move.stopMonth ? ', the tax year you stopped work' : ', this tax year') + '. The plan document and plan vs actual were written again; the earlier plan document is under Previous versions.';
-}
-
-/**
  * Plan vs actual's heading and closing sentence (index.html renderPlanVsActual). Its yardstick, the plan of record, is
- * frozen when the plan is locked; a move of the plan's start writes it again (moveStart.js: `rewrittenFor`), and then the
+ * frozen when the plan is locked; a move of the plan's start (6.53.0 to 7.9.0) wrote it again (`rewrittenFor`), and then the
  * heading says when, beside the lock's own date, and the closing sentence why it moved.
  * @param {object} por  the plan of record
  * @param {string|null} lockedAt  the Decision settings' lock date

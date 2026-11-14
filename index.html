@@ -4175,7 +4175,7 @@
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
     import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
-    import { installLockedStart, startLaterOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's start, and "Move the plan's start" (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
+    import { installLockedStart, startLaterOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { buildPlanDocument, whereAmI, guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
@@ -7169,7 +7169,7 @@
     function setStressSettingsEnabled(enabled) {
       const root = document.getElementById('stress-stresssettings'); if (!root) return;
       root.querySelectorAll('input, select, textarea, button').forEach((el) => {
-        if (el.closest('#ssLockBanner') || el.closest('#ssSetupBanner') || el.closest('#tmLockedStart') || el.closest('#tmStartMove') || el.closest('#ssPlanClose')) return;   // a locked plan's start stays live (6.53.0, its pointer beside the start year 7.4.3), and the move to a new plan (6.56.0)
+        if (el.closest('#ssLockBanner') || el.closest('#ssSetupBanner') || el.closest('#tmLockedStart') || el.closest('#ssPlanClose')) return;   // a locked plan's stop month stays live (6.53.0), and the move to a new plan (6.56.0)
         if (el.id === 'ssSaveBtn' || el.id === 'ssLockBtn') return;
         el.disabled = !enabled;
       });
@@ -7647,7 +7647,7 @@
       h.textContent = dur > 0 && a > 0 ? '— to age ' + (a + dur) : '';
     };
     window.dbStartAgeChanged = function () { dbStartFromAgeInput(document, window._ssTiming); renderIncomeShapePreview(); };
-    installStopMonth(window, document); installChanceLevel(window, document); installLockedStart(window, document, { loadStressSettings: () => loadStressSettings(), loadDecisionSettings: () => loadDecisionSettings(), updatePlanLockChip: () => updatePlanLockChip(), showLoading, hideLoading, strategyResultForDocument: (x) => strategyResultForDocument(x), strategyPlanFor: (x, e) => strategyPlanFor(x, e) });   // the month work stopped or stops: the Timing block's month box (6.51.0); a locked plan's start and "Move the plan's start" (6.53.0, src/ui/lockedStartUi.js)
+    installStopMonth(window, document); installChanceLevel(window, document); installLockedStart(window, document, { loadStressSettings: () => loadStressSettings(), showLoading, hideLoading });   // the month work stopped or stops: the Timing block's month box (6.51.0); a locked plan's stop month (6.53.0, src/ui/lockedStartUi.js)
     function timingSettingsFromForm() {
       const base = window._ssTimingBase || {};
       const g = (id) => document.getElementById(id);

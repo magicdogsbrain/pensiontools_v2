@@ -2,13 +2,13 @@
  * A locked plan's start, in the planner (6.53.0, research/plan-start.md §4 "Migration of existing plans"). A locked plan's
  * Stress settings form is frozen, but the month work stopped is the person's own fact and changes no figure by itself: it
  * is asked once, on a line under the Timing block's summary that the freeze leaves live ("Leave it" remembered, and the
- * month still sayable there, folded), and once said it stays changeable there ("Change the month you stopped work"). Once
- * it is said, and its tax year is earlier than the plan's first, the line offers "Move the plan's start…": a confirm that
- * says exactly what changes, then ONE write under the lock (answers/plan/moveStart.js movePatch; the guard's
- * `reAnchor`) — the plan is never unlocked by it. The rules are services/PlanMove.js; the words src/ui/planStartUi.js.
+ * month still sayable there, folded), and once said it stays changeable there ("Change the month you stopped work"). The
+ * move of the plan's start under its lock ("Move the plan's start…", 6.53.0 to 7.9.0) is gone in 7.10.0: a plan stored with
+ * a later start is told how its start changes — unlock, change it under Timing, lock again. The rules are
+ * services/PlanMove.js; the words src/ui/planStartUi.js.
  *
  *   installLockedStart(win, doc, deps)   the line's handlers, on `win` (the page's inline handlers call them by name):
- *                                        renderLockedStart, saveLockedStopMonth, leaveLockedStopMonth, moveLockedPlanStart
+ *                                        renderLockedStart, saveLockedStopMonth, leaveLockedStopMonth
  *   fillPlanStart()                      the plan's first month, for the Monthly Entry's fill (MonthFill.planFillStart): a
  *                                        plan whose start is behind what is recorded reaches its lived months
  *   decisionPotsYear()                   the plan year the Decision tool's pot floors start from
@@ -21,26 +21,20 @@
  *
  * index.html keeps one call for each (tests/v7/shellRatchet.test.js: its inline script may only get shorter).
  */
-import { activePlanLocked, getActiveScenarioAsStored, saveActivePlanMove } from '../storage/ScenarioRepository.js';
+import { activePlanLocked, getActiveScenarioAsStored } from '../storage/ScenarioRepository.js';
 import { saveStressSettings, getStressSettingsAsync } from '../storage/StressRepository.js';
 import { getDecisionSettingsAsync, getAllTaxYearsAsync } from '../storage/DecisionRepository.js';
-import { loadAllScenarios } from '../firebase/FirestoreService.js';
 import { effectiveStressSettings } from '../services/PlanReading.js';
-import { stopAskOf, stopLeftOf, moveOfferOf, moveBlockedOf, stopChangeOf, planMoveOf, moveAnchorOf, moveFactsOf, startLaterOf, spDateOf, laterDraftOf, laterDraftLeftOf, spPlanTaxYearOf } from '../services/PlanMove.js';
-import { cleanSteps } from '../services/IncomeSchedule.js';
+import { stopAskOf, stopLeftOf, stopChangeOf, moveAnchorOf, startLaterOf, laterDraftOf, laterDraftLeftOf } from '../services/PlanMove.js';
 import { lockedStopAnswer } from '../answers/plan/about.js';
-import { stoppedWorkOf, monthName, decisionAnchorYear, deriveTiming } from '../services/PlanTiming.js';
+import { stoppedWorkOf, monthName, decisionAnchorYear, deriveTiming, taxYearStartOf } from '../services/PlanTiming.js';
 import { runPositionOf } from '../services/PlanFromToday.js';
 import { planFillStart } from '../services/MonthFill.js';
-import { movedPlanOf, movePatch } from '../answers/plan/moveStart.js';
-import { lockedStartHtml, moveStartQuestion, moveStartDoneWords, LOCKED_STOP_REFUSED, startMovePointerHtml } from './planStartUi.js';
+import { lockedStartHtml, LOCKED_STOP_REFUSED } from './planStartUi.js';
 import { installPlanClose, planReadDay, stressLockBannerHtml, successorNameOf, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary } from './planCloseUi.js';
 import { beforeOf, closedAtOf, isClosedPlan, partnerCandidates, BEFORE_KINDS } from '../services/PlanClosed.js';
 
 export { planReadDay, stressLockBannerHtml, successorNameOf, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates };
-
-/** Is the plan's income in steps (the words then speak of its first step), or one yearly figure? */
-const incomeInSteps = (s) => !!s && s.incomeShape === 'phases' && cleanSteps(s.incomeSteps).length > 0;
 
 /**
  * The plan year the pots the Decision tool's floors start from belong to (legacyDecision `potsYear`): where the plan's pots
@@ -100,8 +94,7 @@ export async function fillPlanBounds() {
 /**
  * @param {Window} win
  * @param {Document} doc
- * @param {object} deps  what only the page has: loadStressSettings, loadDecisionSettings, updatePlanLockChip, showLoading,
- *   hideLoading, and the planner's own strategy run for a plan document (strategyResultForDocument, strategyPlanFor)
+ * @param {object} deps  what only the page has: loadStressSettings, showLoading, hideLoading
  */
 export function installLockedStart(win, doc, deps) {
   const toast = (m, t, ms) => win.showToast(m, t, ms);
@@ -109,54 +102,27 @@ export function installLockedStart(win, doc, deps) {
 
   async function renderLockedStart() {
     const el = doc.getElementById('tmLockedStart'); if (!el) return;
-    let html = '', asking = false, pointer = '';
+    let html = '', asking = false;
     try {
       const sc = await getActiveScenarioAsStored(), now = new Date();
-      // a closed plan's start is never moved, nor its stop month asked (its lock banner says it is closed): nothing here
+      // a closed plan's start is never asked about (its lock banner says it is closed): nothing here
       if (sc && !isClosedPlan(sc) && await activePlanLocked()) {
-        const later = startLaterOf(sc, now);
-        let offer = sc ? moveOfferOf(sc, now) : null;
-        let blocked = sc && !offer ? moveBlockedOf(sc, now) : null;
-        // a State Pension given only as a plan year: its date is asked, and written with the move (7.4.0)
-        const spAsk = !!(blocked && blocked.spFix) || !!(later && later.spAsk);
-        if (!offer && blocked && blocked.spFix) { offer = blocked; blocked = null; }
-        const move = offer && !spAsk ? planMoveOf(sc, now) : null;
-        // a plan set to start later than this tax year is asked whatever "Leave it" said before (7.4.0)
-        const ask = !offer && !!sc && (stopAskOf(sc, now) || (!!later && later.kind === 'ask' && !!later.thisYear)), left = !offer && !ask && !!sc && stopLeftOf(sc, now);
+        const sl = startLaterOf(sc, now);
+        // stored with a start later than this tax year (7.10.0): said, with how it changes; never moved under the lock
+        const later = sl && sl.start > taxYearStartOf(now) ? sl.start : null;
+        const ask = stopAskOf(sc, now), left = !ask && stopLeftOf(sc, now);
         const ss = (sc && sc.stressTool && sc.stressTool.settings) || {};
-        html = lockedStartHtml({ ask, offer, start: sc ? moveAnchorOf(ss, sc.decisionTool?.settings) : null, stepAge: move ? move.stress.shapeAgeNow : null,
-          stepped: incomeInSteps(ss), income: +ss.baseSalary || null, blocked, stopped: sc ? stopChangeOf(sc, now) : null, left,
-          leave: !(later && later.kind === 'ask' && later.thisYear), thisYear: later && later.kind === 'ask' ? later.thisYear || null : null, spAsk, spPlanYear: spAsk ? spPlanTaxYearOf(sc) : null });
+        html = lockedStartHtml({ ask, start: moveAnchorOf(ss, sc.decisionTool?.settings), stopped: stopChangeOf(sc, now), left, later });
         asking = ask || left;
-        pointer = offer ? startMovePointerHtml(offer, spAsk) : '';
       }
-    } catch (e) { html = ''; asking = false; pointer = ''; }
+    } catch (e) { html = ''; asking = false; }
     el.innerHTML = html; el.style.display = html ? 'flex' : 'none';
-    paintStartMovePointer(pointer);
     // while the line asks the month, the form's own box (frozen, and empty: the plan says no month) is hidden, so one box asks
     const frozen = doc.getElementById('tmStopWrap'); if (frozen) frozen.style.display = asking ? 'none' : 'flex';
     // the line beside the lock: "Move to a new plan", or a closed plan's (planCloseUi.js)
     if (typeof win.renderPlanClose === 'function') await win.renderPlanClose();
   }
   win.renderLockedStart = renderLockedStart;
-
-  /**
-   * The pointer beside the start year (7.4.3, planStartUi.startMovePointerHtml), under the row that holds it; made here, so
-   * the page's markup is unchanged. Its button stays live under the lock, as the line under the summary does.
-   */
-  function paintStartMovePointer(html) {
-    const wrap = doc.getElementById('tmStartWrap'), row = wrap && wrap.parentElement;
-    let el = doc.getElementById('tmStartMove');
-    if (!html) { if (el) el.remove(); return; }
-    if (!row || !row.parentElement) return;
-    if (!el) {
-      el = doc.createElement('p'); el.id = 'tmStartMove'; el.className = 'hint';
-      el.setAttribute('style', 'margin:6px 0 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;');
-      row.parentElement.insertBefore(el, row.nextSibling);
-    }
-    el.innerHTML = html;
-    const btn = el.querySelector('button'); if (btn) btn.disabled = false;
-  }
 
   win.saveLockedStopMonth = async function () {
     // the rules of V7's own box (about.js lockedStopAnswer): a month this one or earlier, after the age of 16
@@ -168,7 +134,7 @@ export function installLockedStart(win, doc, deps) {
     catch (e) { toast('Could not save the month: ' + e.message, 'error'); return; }
     await deps.loadStressSettings();   // the month box, the summary and the line under it, from what was saved
     toast('Saved: you stopped work in ' + monthName(v) + '.', 'success', 4000);
-    if (typeof win.updateNextStepBanner === 'function') win.updateNextStepBanner();   // the to-do moves on from "say when" to the move
+    if (typeof win.updateNextStepBanner === 'function') win.updateNextStepBanner();
   };
 
   win.leaveLockedStopMonth = async function () {
@@ -177,48 +143,5 @@ export function installLockedStart(win, doc, deps) {
     await renderLockedStart();
     toast('Left as it is. You will not be asked again; you can still say it under “Say when you stopped work”.', 'success', 5000);
     if (typeof win.updateNextStepBanner === 'function') win.updateNextStepBanner();
-  };
-
-  // `how` (7.4.0): 'stop' — to the tax year work stopped; 'now' — to this tax year with no month said ("I'm already drawing");
-  // 'sp' — to the tax year work stopped, with the State Pension's start date typed on the line, written with the move
-  win.moveLockedPlanStart = async function (how = 'stop') {
-    const now = new Date();
-    let sc = null; try { sc = await getActiveScenarioAsStored(); } catch (e) { sc = null; }
-    const spBox = doc.getElementById('tmLockedSpDate');
-    if (spBox && !spDateOf(spBox.value || '')) { toast('Type the date your State Pension starts, like 14 March 2032.', 'warning', 5000); return; }
-    const opts = { now, thisYear: how === 'now', spStartDate: spBox ? spDateOf(spBox.value || '') : null };
-    const mp = sc ? movedPlanOf(sc, opts) : null;
-    if (!mp) { await renderLockedStart(); toast('This plan\'s start cannot be moved: it is not locked, or its first tax year is not later than the one it would move to.', 'info', 6000); return; }
-    const m = mp.move, st = m.stress;
-    // what the confirm states: the same facts the preview's confirm reads (PlanMove.moveFactsOf)
-    const q = moveStartQuestion(m, moveFactsOf(sc, m));
-    if (!(await win.appConfirm({ html: q.html }, { okLabel: q.okLabel, cancelLabel: q.cancelLabel, danger: false }))) return;
-    deps.showLoading('Moving the plan\'s start and writing the plan document again…');
-    let moved = false;
-    try {
-      // the run of the plan AS MOVED (its settings, read from where the lock's pots stood): the planner's own run
-      const settings = effectiveStressSettings(mp.plan, { now });
-      const r = await deps.strategyResultForDocument(settings);
-      const p = deps.strategyPlanFor(settings, (win._shapeRefs && win._shapeRefs.essentials) || undefined);
-      let entries = []; try { entries = (await loadAllScenarios()).map((plan) => ({ plan })); } catch (e) { entries = []; }
-      const out = movePatch(sc, { ...opts, run: { p, r }, entries });
-      if (!out.ok) throw new Error('the move could not be worked out (' + (out.errors.plan || 'unknown') + ').');
-      await saveActivePlanMove(out.patch);
-      moved = true;
-      win._planDocLast = out.patch.planDocument;
-      // The form's start age is the moved one before the form is read again: the Timing block keeps the end age when the start
-      // age it holds changes, and the move has already lengthened the plan to keep it. The record labels' year 0 likewise,
-      // until the Decision pages read it again.
-      const sa = doc.getElementById('shapeAgeNow'); if (sa && +st.shapeAgeNow > 0) sa.value = st.shapeAgeNow;
-      win._decisionAnchor = m.to;
-      await deps.loadStressSettings();
-      try { await deps.loadDecisionSettings(); } catch (e) { /* form not built yet */ }
-      try { await win.refreshLifeStage(); deps.updatePlanLockChip(); } catch (e) { /* chip optional */ }
-      toast(moveStartDoneWords(m), 'success', 7000);
-      if (typeof win.updateNextStepBanner === 'function') win.updateNextStepBanner();   // the plan's start moved: nothing left to do
-    } catch (e) {
-      console.error('Move the plan start:', e);
-      toast(moved ? 'The plan\'s start was moved, but the page could not show it: reload the page.' : 'Could not move the plan\'s start: ' + e.message + ' Nothing was changed.', 'error', 7000);
-    } finally { deps.hideLoading(); }
   };
 }

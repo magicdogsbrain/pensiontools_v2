@@ -492,23 +492,6 @@ export async function getActiveScenarioAsStored() {
 }
 
 /**
- * "Move the plan's start" (6.53.0, research/plan-start.md §4; answers/plan/moveStart.js movePatch): its ONE write to the
- * active plan. Checked first here, against the plan as stored in this tab, with the rules the store applies
- * (LockedPlanGuard.lockedPlanWriteRefusal: on a locked plan a move passes only as the guard's `reAnchor`), then by the store
- * against the plan as stored there. Every copy this tab holds is dropped afterwards (planCopies.js), so every page reads the
- * moved plan.
- * @param {object} patch  movePatch's dotted field paths
- */
-export async function saveActivePlanMove(patch) {
-  const asStored = await getActiveScenarioAsStored();
-  if (!asStored) throw new Error('No active scenario');
-  const keys = lockedPlanWriteRefusal(asStored, patch, getDefaultStressSettings());
-  if (keys) throw new PlanLockedError(keys);
-  await saveGuardedWrite(asStored.id, patch);
-  dropStalePlanCopies();
-}
-
-/**
  * Throws PlanLockedError (and writes nothing) when saving `settings` as the active plan's `kind` settings would change
  * a locked plan — for a caller that writes more than the settings in one go and must refuse before any of it.
  */

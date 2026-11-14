@@ -35,8 +35,6 @@ const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'fail
   // the lock (road-to-7.md step 6): not locked (an unlock or a new version on an unlocked plan), no worker to run the plan's
   // test in, the test gave nothing to write
   'notLocked', 'noWorker', 'noRun',
-  // the move of a locked plan's start (6.55.0): the plan is no longer offered one (moveStart.js movePatch's 'noMove')
-  'noMove',
   // "Keep as a separate plan" (way-and-mix.md 4): the window holds its three plans; an unconfirmed email
   'full', 'unverified',
   // "Your household" (road-to-7.md step 9): no partner's plan linked; the second copy or its link could not be made (the first stays)
@@ -66,8 +64,6 @@ const PLAN_PROBLEMS = ['locked', 'notHere', 'usedUp', 'nobody', 'storage', 'fail
   'closed'];
 /** What a saved write was (ui.toast.op): an editing step's save (null), or the lock, the unlock, a new version of the document, the way switched (way-and-mix.md 2.4), a mix used (3.2e), a tried change used (4). */
 const PLAN_OPS = [null, 'lock', 'unlock', 'document', 'way', 'mix', 'try',
-  // the move of a locked plan's start (6.55.0): written, no Undo (the planner offers none)
-  'moveStart',
   // "Leave it" on an out-of-date draft (road-to-7.md step 11b): the planner's own key, remembered
   'stale',
   // "Your household" (road-to-7.md step 9): the partner link, the split written into both plans, "Keep things as they are", the budget shared
@@ -434,7 +430,7 @@ function reduceAction(state, action) {
       // paste and example to its "The mix", the move's confirm to its "About you and when" — leaving that page closes them (a
       // locked plan's page starts with no box)
       const stays = (step) => route.screen === 'plan' && route.step === step && state.route && state.route.screen === 'plan' && state.route.step === step && String(state.route.planId) === String(route.planId);
-      const gone = [...(stays('lasts') ? [] : ['tryOpen', 'tryConfirm']), ...(stays('mix') ? [] : ['mixPaste', 'mixExample']), ...(stays('household') ? [] : ['hhWhoPays', 'hhDetail']), ...(stays('hold') ? [] : ['holdPaste']), ...(stays('move') ? [] : ['moveHow', 'moveSheet', 'moveExplained']), ...(stays('budget') ? [] : ['budgetReset']), ...(stays('saving') ? [] : ['savingRelief']), ...(stays('about') ? [] : ['moveStartConfirm']), ...(stays('month') ? [] : ['monthOther']), ...(stays('checkin') ? [] : ['checkInAnyway'])];
+      const gone = [...(stays('lasts') ? [] : ['tryOpen', 'tryConfirm']), ...(stays('mix') ? [] : ['mixPaste', 'mixExample']), ...(stays('household') ? [] : ['hhWhoPays', 'hhDetail']), ...(stays('hold') ? [] : ['holdPaste']), ...(stays('move') ? [] : ['moveHow', 'moveSheet', 'moveExplained']), ...(stays('budget') ? [] : ['budgetReset']), ...(stays('saving') ? [] : ['savingRelief']), ...(stays('month') ? [] : ['monthOther']), ...(stays('checkin') ? [] : ['checkInAnyway'])];
       // the household's confirm belongs to its page too
       const hh = state.household && state.household.pick && !stays('household') ? { ...state.household, pick: null } : state.household;
       const ui0 = closeRail(state.ui);
@@ -754,13 +750,13 @@ function reduceAction(state, action) {
       const hasPrevious = (!!previous && typeof previous === 'object' && Object.keys(previous).length > 0) || others.some((o) => Object.keys(o.previous).length > 0);
       // the lock's toast remembers the moment of the lock (lockedAt): Undo is allowed only as the exact reverse of that lock
       const marks = { ...(op ? { op, ...(op === 'lock' && typeof lockedAt === 'string' ? { lockedAt } : {}) } : {}), ...(others.length ? { others } : {}) };
-      // the move of a locked plan's start: done, said, and no Undo — the planner's own move offers none (6.55.0)
-      const toast = op === 'moveStart' || op === 'task' ? { planId, kind: 'done', previous: null, line: line && typeof line === 'object' ? line : null, op }
+      // a to-do put away: done, said, and no Undo (its own way back is the to-do's next occurrence)
+      const toast = op === 'task' ? { planId, kind: 'done', previous: null, line: line && typeof line === 'object' ? line : null, op }
         : hasPrevious ? { planId, kind: 'saved', previous: previous && typeof previous === 'object' ? previous : {}, line: line && typeof line === 'object' ? line : null, ...marks }
           : { planId, kind: 'unchanged', previous: null, line: null, ...marks };
       // the way of drawing changed (way-and-mix.md 2.4), a mix used (3.2e), a tried change used (4) or the plan's start moved: the one
       // test's result was for the old settings — it goes, and runs again on the saved plan (the copy a try was kept as stays said)
-      const lasts = op === 'way' || op === 'mix' || op === 'try' || op === 'split' || op === 'moveStart' ? { ...emptyLasts(), kept: (state.lasts && state.lasts.kept) || null } : state.lasts;
+      const lasts = op === 'way' || op === 'mix' || op === 'try' || op === 'split' ? { ...emptyLasts(), kept: (state.lasts && state.lasts.kept) || null } : state.lasts;
       // a tried change used: the boxes and the confirm close with it (the plan is now what was tried)
       const open = op === 'try' ? state.ui.open.filter((x) => x !== 'tryOpen' && x !== 'tryConfirm') : state.ui.open;
       return withPlanDraft({ ...state, lasts, ui: { ...state.ui, open, saving: null, saveProblem: null, toast } }, emptyPlanDraft());
@@ -795,23 +791,17 @@ function reduceAction(state, action) {
       const back = kb && kb.used && kb.used.planId === t.planId ? withKeep(state, 'b', { ...kb, used: null }) : state;
       return { ...back, checkIn, ui: { ...state.ui, saving: null, toast: { planId: t.planId, kind: 'undone', previous: null, line: null, ...(t.op ? { op: t.op } : {}) } } };
     }
-    // ---- the lock, the unlock, a new version of the document (road-to-7.md step 6) and the move of a locked plan's start
-    // (6.55.0): one write each, the effect runs it ----
+    // ---- the lock, the unlock and a new version of the document (road-to-7.md step 6): one write each, the effect runs it ----
     case A.PLAN_LOCK:
     case A.PLAN_UNLOCK:
-    case A.PLAN_DOCUMENT:
-    case A.PLAN_MOVE_START: {
+    case A.PLAN_DOCUMENT: {
       const { planId } = action;
       if (typeof planId !== 'string' || !planId) return refuse(action.type + ': needs a plan id');
       if (state.ui.saving) return state;
-      const kind = action.type === A.PLAN_LOCK ? 'lock' : action.type === A.PLAN_UNLOCK ? 'unlock' : action.type === A.PLAN_MOVE_START ? 'moveStart' : 'document';
+      const kind = action.type === A.PLAN_LOCK ? 'lock' : action.type === A.PLAN_UNLOCK ? 'unlock' : 'document';
       // the confirm step closes with the press
-      const open = state.ui.open.filter((id) => !['lockConfirm', 'unlockConfirm', 'documentConfirm', 'moveStartConfirm'].includes(id));
-      // the move of the start may carry how it is made (7.4.0): to this tax year with no month said, and the State Pension's date
-      const how = kind === 'moveStart' && action.how && typeof action.how === 'object'
-        ? { ...(action.how.thisYear === true ? { thisYear: true } : {}), ...(typeof action.how.spStartDate === 'string' && action.how.spStartDate.trim() ? { spStartDate: action.how.spStartDate.trim() } : {}) }
-        : null;
-      return { ...state, ui: { ...state.ui, open, saving: { planId, kind, ...(how && Object.keys(how).length ? { how } : {}) }, saveProblem: null, toast: null } };
+      const open = state.ui.open.filter((id) => !['lockConfirm', 'unlockConfirm', 'documentConfirm'].includes(id));
+      return { ...state, ui: { ...state.ui, open, saving: { planId, kind }, saveProblem: null, toast: null } };
     }
     case A.PLAN_TOAST_CLOSE:
       return state.ui.toast === null ? state : { ...state, ui: { ...state.ui, toast: null } };

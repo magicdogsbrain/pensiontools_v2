@@ -104,9 +104,6 @@ export const A = Object.freeze({
   PLAN_LOCK:       'plan/lock',        // { planId }                         "Lock it" confirmed: saving { kind: 'lock' }; the plan's test runs in the worker, then one write
   PLAN_UNLOCK:     'plan/unlock',      // { planId }                         "Unlock it" confirmed: saving { kind: 'unlock' }
   PLAN_DOCUMENT:   'plan/newVersion',  // { planId }                         "Write the new version" confirmed: saving { kind: 'document' }
-  // "Move the plan's start" on a locked plan's "About you and when" (6.55.0; the planner's moveLockedPlanStart): the moved
-  // plan's test runs in the worker, then ONE write past the guard's `reAnchor` allowance; no Undo, as in the planner
-  PLAN_MOVE_START: 'plan/moveStart',   // { planId }                         "Move the start to …" confirmed: saving { kind: 'moveStart' }
 
   // ---- "Does it last?": the one test of a saved plan, run in the preview (research/v7/editing-in-v7.md 10.4) ---------
   LASTS_WORKING:   'lasts/working',    // { key }                            the run for this key (lasts.js runKeyOf) is under way; an old result stays greyed
@@ -306,9 +303,8 @@ export const ACTION_TYPES = Object.freeze(Object.values(A));
  * block and its table of every year (shape, shapeYears).
  */
 export const OPENABLE = Object.freeze(['partner', 'more', 'assumed', 'madeOf', 'allAssumed', 'split', 'partTime', 'pots', 'levers', 'chart', 'shape', 'shapeYears', 'allOptions', 'allLines',
-  // the confirm steps of the lock, the unlock and the new version (road-to-7.md step 6): on the screen, never a browser dialog;
-  // and of the move of a locked plan's start (6.55.0)
-  'lockConfirm', 'unlockConfirm', 'documentConfirm', 'moveStartConfirm',
+  // the confirm steps of the lock, the unlock and the new version (road-to-7.md step 6): on the screen, never a browser dialog
+  'lockConfirm', 'unlockConfirm', 'documentConfirm',
   // Month by month (7.2.0): the tax bands a set-up assumes, shown to change; since 7.3.0 the form shown when no month is due
   // ("Record a different month"), and the check-in's form when none is due ("Check in now anyway")
   'monthBands', 'monthOther', 'checkInAnyway',

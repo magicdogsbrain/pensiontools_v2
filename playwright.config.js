@@ -58,7 +58,6 @@ const JOURNEYS_APART = ['a-already-stopped'];
 // … and "Who draws what" in the words of 27 Oct 2026 (household-draw-split.md 9): plan-household-words, at 390 and 1440.
 // … and Month by month's missed months filled in, the line under Calculate / Save and a failed Calculate kept on the page (reported 3 Nov 2026): planner-month-fill, at 390 and 1440.
 // … and the month work stopped (research/plan-start.md §7, cases a, c, e): plan-stopped-work, at 390 and 1440.
-// … and a locked plan's start moved to the tax year work stopped (§7, case b): plan-move-start, at 390 and 1440.
 // … and a saver's check-in (research/saving-enough-and-check-in.md 5, release step R3): plan-checkin, at 390 and 1440.
 // … and back to work (research/plan-start.md §2 J): a drawing plan closed, a saving plan carrying the £10,000 limit: plan-back-to-work, at 390 and 1440.
 // … and trying figures never makes plans (6.59.0): B opened from a saver's plan, "Use these", one more plan only on Keep, "Delete several": plan-try-not-copy, at 390 and 1440.
@@ -72,7 +71,7 @@ const JOURNEYS_APART = ['a-already-stopped'];
 // "Try the bad years" under C's and D's answers (7.9.0): answer-bad-years, at 390 and 1440 (in JOURNEYS_PHONE and JOURNEYS_DESKTOP).
 // … and "Your review" (7.10.0): a Moving review's test and "I accept this as my plan" within its budget, a Living-on-it review saved,
 // locked and unlocked, each one write: plan-review, at 390 and 1440.
-const JOURNEYS_PLAN = ['plan-keep', 'plan-stress', 'plan', 'plan-home', 'plan-about', 'plan-income', 'plan-spend', 'plan-pots', 'plan-lasts', 'plan-lock', 'plan-levers', 'plan-way', 'plan-mix', 'plan-try', 'plan-household', 'plan-household-words', 'plan-hold', 'plan-move', 'plan-budget', 'plan-saving', 'plan-stale-lumps', 'plans-actions', 'whats-new', 'planner-month-fill', 'plan-stopped-work', 'plan-move-start', 'plan-close', 'plan-checkin', 'plan-back-to-work', 'plan-try-not-copy', 'plan-month', 'plan-no-runup-words', 'plan-review'];
+const JOURNEYS_PLAN = ['plan-keep', 'plan-stress', 'plan', 'plan-home', 'plan-about', 'plan-income', 'plan-spend', 'plan-pots', 'plan-lasts', 'plan-lock', 'plan-levers', 'plan-way', 'plan-mix', 'plan-try', 'plan-household', 'plan-household-words', 'plan-hold', 'plan-move', 'plan-budget', 'plan-saving', 'plan-stale-lumps', 'plans-actions', 'whats-new', 'planner-month-fill', 'plan-stopped-work', 'plan-close', 'plan-checkin', 'plan-back-to-work', 'plan-try-not-copy', 'plan-month', 'plan-no-runup-words', 'plan-review'];
 const JOURNEYS_PHONE = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'c-retired', 'answer-bad-years', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP, ...JOURNEYS_PLAN];
 // An old service worker cleared by the kill switch (public/sw.js; switch-readiness.md §3): its own server, at 1440 only.
 const JOURNEYS_DESKTOP = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'answer-bad-years', 'production', 'old-app-unchanged', 'old-worker', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP, ...JOURNEYS_APART, ...JOURNEYS_PLAN];

@@ -2,6 +2,13 @@
  * Move a locked plan's start to the tax year work stopped (research/plan-start.md §2 C, §4 "Migration of existing plans",
  * §6 decisions 4–7 and 12).
  *
+ * 7.10.0: the move is no longer MADE under a lock (research/v7/replan-nov-2026.md §2 principle 13, "no release is ever again
+ * about moving a locked start"): the write that sent it (moveStart.js movePatch), its confirm in both apps and the guard's
+ * allowance for it (reAnchorAllowance) are gone, and a locked plan's start changes by unlock, "About you and when" and a
+ * new lock. What stays is the READING: the transform below (reAnchorCopy, reAnchorRecords), by which a locked plan stored
+ * with a later start is read from where its months are (withLockedStart) and a draft from an earlier start (laterDraftOf).
+ * The words below say what the move did while it could be made.
+ *
  * Until 6.51.0 a retiree's plan started next April, and the months until then were "before the plan's income starts".
  * Someone who locked such a plan, and has since said when they stopped work (earlier than that start), has lived on the
  * plan from the stop: its year 0 is the tax year they stopped in. A draft moves by its ordinary Save. A locked plan is never
@@ -9,8 +16,8 @@
  * confirmed action, made under the lock: the plan stays locked and is moved, never unlocked — an unlock would give a plan
  * locked before a setting existed that setting's default (PlanCommit.unlockPatchesOf) and count an unlock.
  *
- * What a move changes, and nothing else (answers/plan/moveStart.js movePatch puts it in ONE write; the guard's `reAnchor`
- * allowance, reAnchorAllowance below, lets exactly that through):
+ * What a move changed, and nothing else (6.53.0 to 7.9.0: answers/plan/moveStart.js movePatch put it in ONE write, the
+ * guard's `reAnchor` allowance let exactly that through):
  *  - Year 0, in both copies — the Stress settings' and the Decision settings', which the Decision tool prefers
  *    (PlanTiming.decisionAnchorYear) — to the same tax year, the stop's.
  *  - Every figure the plan counts from year 0, so that each keeps its tax year and its age (reAnchorCopy): the age the
@@ -73,7 +80,6 @@ export const REANCHOR_KEYS = Object.freeze(['shapeAgeNow', 'duration', 'incomeSh
 export const REANCHOR_STRESS_KEYS = Object.freeze(['firstTaxYear', 'stoppedWork', ...REANCHOR_KEYS]);
 export const REANCHOR_DECISION_KEYS = Object.freeze(['firstTaxYear', 'lockedPosition', ...REANCHOR_KEYS]);
 /** The lock's own record, which a move never touches (it is not an unlock). */
-const LOCK_RECORD = ['locked', 'lockedAt', 'lockedBy', 'unlockedAt', 'unlockCount'];
 
 /**
  * One way's dials (`params`, its strategyParams) counted from a year 0 `k` years earlier: the same tax years. The dials that
@@ -567,62 +573,6 @@ export function planMoveOf(scenario, now, how = {}) {
   const history = reAnchorRecords(dt && dt.history, { to: offer.to, decisionBefore: ds, decisionAfter: decision });
   const strategy = strategyBlockAfterMove(scenario && scenario.strategy, ss.strategyId, offer.from - offer.to, ss.duration);
   return { ...offer, stress, decision, position, history, strategy };
-}
-
-/**
- * The guard's `reAnchor` allowance (LockedPlanGuard.lockedPlanWriteRefusal): is the change from `before` to `after` (each
- * { stress, decision, strategy }, the settings and the strategy block as stored and as they would stand) exactly a move of
- * this locked plan's start? Then the keys each copy may change (and whether the strategy block does), else null. Exactly:
- * the plan locked before and after with its lock record untouched, and not saying it is still to retire; the Stress copy
- * saying a month work stopped; BOTH copies of year 0 moved to that month's tax year, earlier than the year 0 they had; every
- * key the move rewrites (REANCHOR_KEYS) at exactly the value reAnchorCopy works out from the copy as stored, and a move it
- * can work out (moveBlockedOf); the Decision copy's `lockedPosition` exactly where the lock's day stands under the new
- * year 0; and the strategy block as it was or exactly as strategyBlockAfterMove moves it. Clock-free, it does not ask
- * whether the month work stopped has come: the offer does (moveOfferOf), and nothing else sends this write. With no month
- * (the move to this tax year, 7.4.0) the year is bounded by the lock's own tax year, and by `now` when the caller gives it.
- * With recorded months (`before.history`, the plan's as stored; 7.4.3) the year is exactly the pick-up year
- * (pickUpYearOf: the tax year of the earliest recorded month, or the stop's when later), and no later than this tax year
- * when the caller gives `now`: a move to the stop's year past the recorded months, or to any other year, is not the move.
- * @returns {null | { stress: string[], decision: string[], strategy: boolean }}
- */
-export function reAnchorAllowance(before, after, { now = null } = {}) {
-  const s0 = isObj(before && before.stress) ? before.stress : {}, d0 = isObj(before && before.decision) ? before.decision : {};
-  const s1 = isObj(after && after.stress) ? after.stress : null, d1 = isObj(after && after.decision) ? after.decision : null;
-  if (!s1 || !d1 || !lockedSettings(d0) || !lockedSettings(d1) || s0.retired === false) return null;
-  if (LOCK_RECORD.some((k) => text(d0[k]) !== text(d1[k]))) return null;
-  // the year moved to: the tax year of the month work stopped; or, with no month on either side, the year written — the move
-  // to this tax year (7.4.0), whose offer, which has the clock, says which year that is
-  const stop = stoppedWorkOf(s1);
-  if (stop && s1.stoppedWork !== stop) return null;
-  if (!stop && (s1.stoppedWork != null || s0.stoppedWork != null)) return null;
-  const first = firstRecordedMonthIn(before && before.history);
-  const to = first ? pickUpYearOf(stop, first) : stop ? taxYearOfMonth(stop) : num(s1.firstTaxYear);
-  if (!(to > 0) || num(s1.firstTaxYear) !== to || num(d1.firstTaxYear) !== to) return null;
-  const from = moveAnchorOf(s0, d0);
-  if (!(from > to)) return null;
-  if (first && now && to > taxYearStartOf(now)) return null;
-  // With no month, nothing in the plan names the year moved to, so it is bounded here: never before the tax year the plan
-  // was locked in (this tax year never is, and the lock's day must sit inside the plan's years for its position), and, where
-  // the caller has the clock (`now`), exactly this tax year. A move to any other earlier year is not the move.
-  if (!stop && !first) {
-    const lockDay = d0.lockedAt ? new Date(d0.lockedAt) : null;
-    if (!lockDay || !Number.isFinite(lockDay.getTime()) || to < taxYearStartOf(lockDay)) return null;
-    if (now && to !== taxYearStartOf(now)) return null;
-  }
-  // a State Pension date written by the move (its (b), 7.4.0): only onto a copy that gave none, the yearly figure as weekly
-  const spChanged = text(s1.spStartDate) !== text(s0.spStartDate);
-  const spDate = spChanged ? spDateOf(s1.spStartDate) : null;
-  if (spChanged && (!spDate || !spByYearOnly(s0))) return null;
-  const sx = spDate ? withSpDate(s0, spDate) : s0, dx = spDate ? withSpDate(d0, spDate) : d0;
-  const ws = reAnchorWork(sx, yearsMoved(sx, from, to), to, 'stress'), wd = reAnchorWork(dx, yearsMoved(dx, from, to), to, 'decision');
-  if (ws.blocked || wd.blocked) return null;
-  if (REANCHOR_KEYS.some((k) => text(s1[k]) !== text(ws.out[k]) || text(d1[k]) !== text(wd.out[k]))) return null;
-  if (text(d1.lockedPosition ?? null) !== text(positionAfterMove(s1, d0.lockedAt))) return null;
-  // the plan's strategy block: as it was, or exactly as the move moves it
-  const b0 = before ? before.strategy : undefined, b1 = after ? after.strategy : undefined;
-  const strategy = text(b1) !== text(b0);
-  if (strategy && text(b1) !== text(strategyBlockAfterMove(b0, s0.strategyId, from - to, s0.duration))) return null;
-  return { stress: REANCHOR_STRESS_KEYS.slice(), decision: REANCHOR_DECISION_KEYS.slice(), strategy };
 }
 
 /** The journey entry a move adds (§4 step 6): the stage it leaves the plan in, the new start in words, and why. */

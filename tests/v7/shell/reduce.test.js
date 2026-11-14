@@ -393,8 +393,9 @@ describe('any sequence of actions', () => {
         if (s.plans !== null) expect(['reading', 'read', 'failed']).toContain(s.plans.status);
       }
       expect(JSON.parse(JSON.stringify(s))).toEqual(s);
-      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'checkIn', 'draft', 'env', 'household', 'keep', 'keepTest', 'lasts', 'mix', 'move', 'plan', 'plans', 'route', 'saver', 'session', 'stressPanel', 'stressStrip', 'ui', 'ways']);
+      expect(Object.keys(s).sort()).toEqual(['answers', 'budget', 'checkIn', 'draft', 'env', 'household', 'keep', 'keepTest', 'lasts', 'mix', 'move', 'plan', 'plans', 'review', 'route', 'saver', 'session', 'stressPanel', 'stressStrip', 'ui', 'ways']);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.keepTest.status);
+      expect(['idle', 'working', 'done', 'failed']).toContain(s.review.status);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.stressPanel.status);
       expect(['idle', 'working', 'done', 'failed']).toContain(s.stressStrip.status);
       expect(['idle', 'working', 'first', 'final', 'failed']).toContain(s.saver.status);

@@ -693,6 +693,10 @@ describe('7 — today, byte for byte', () => {
   // …and 7.8.0 step 4a (the levels): every answer reads its figure at levels[level] — the same figure, Balanced being the
   // careful amount before 7.8.0 — the count's middling and best-1-in-10 amounts leave the range lines, D's "Could I spend
   // more?" names the other two levels, and the numbers steps gain "How careful?"; re-pinned (V7_PIN_TODAY=1, V7_PIN_SCREENS=1)
+  // …and 7.10.0 (research/v7/replan-nov-2026.md §6, spec-7100 §5): the front door's picture of a life names its third stage
+  // "Living on it, taking an income, year by year" (it said "Drawing, living on it, month by month"), as the home, its strip
+  // and its headline do — the picture is drawn on the front door and the not-found page, so those two were re-pinned
+  // (V7_PIN_TODAY=1); no other drawing moved
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]',
     // 7.9.0: "Try the bad years" under C's and D's final answers — a button only until pressed; no figure of the answer moves

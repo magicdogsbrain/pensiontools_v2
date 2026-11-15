@@ -125,7 +125,9 @@ export const FRONT = {
       label: 'A pension over a life: it grows while you are saving, becomes an income when you move, and is drawn on while you live on it.',
       saving: 'Saving', savingWhat: 'paying in, year by year',
       moving: 'Moving', movingWhat: 'the pot becomes an income',
-      drawing: 'Drawing', drawingWhat: 'living on it, month by month'
+      // 7.10.0: the third stage is "Living on it" everywhere (the home, the strip, the headline), and the review is yearly:
+      // monthly records are the person's choice, so the picture never says month by month
+      drawing: 'Living on it', drawingWhat: 'taking an income, year by year'
     },
     /** The three doors, in the order of a life. `stage` is the coloured word, `ask` the question, `what` what you type and see. */
     doors: {

@@ -162,7 +162,8 @@ export function viewFor(state) {
     // "Moving to your plan's mix" (§3): the lists, the schedule, the sheet, the watch with the index the effect fetched (state.move.index), the one run held
     if (r.step === 'move') {
       const Mv = state.move || null;
-      page.move = { ...moveOf(plans.list, r.planId, { today, index: Mv ? Mv.index : null, M: Mv, source: plans.source }), draftKey: '{}' };
+      // (7.11.1) read in the phase this page reading has, the one the home reads
+      page.move = { ...moveOf(plans.list, r.planId, { today, index: Mv ? Mv.index : null, M: Mv, source: plans.source, page }), draftKey: '{}' };
     }
     // "What you pay in" (road-to-7.md step 11b): the Accumulation form's boxes, the relief sum, what the pot could be, the records, with what was typed
     if (r.step === 'saving') {

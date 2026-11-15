@@ -381,7 +381,10 @@ describe('the words in src/v7/copy/', () => {
       .replace(/\{(shares|bonds|diversifiers|charge|trigger|below|pct|held)\}/g, '35').replace(/\{(level|ath|fireLevel|nominal)\}/g, '5,000')
       .replace(/\{(lines|read|recognised|unrecognised|unknown|updated|added|n|months|rungs|bought|done|moves|years|year|from|to|cutAge|disarmAge|atAge|line|tranches|code|units)\}/g, '3')
       .replace(/\{(name|text|list|parts|wrapper|store|word|ticker|symbol|label|reason|why|years|action|on|s|have|newMoney|sedol|bucket)\}/g, 'Vanguard FTSE All-World').replace(/\{ms\}/g, '4.6')
-      .replace(/\{opens\}/g, 'February 2035');   // 7.10.0: the month the plan's move window opens
+      .replace(/\{opens\}/g, 'February 2035')   // 7.10.0: the month the plan's move window opens
+      // 7.11.1: what is held, as information — the gilts maturing in the cash years, a rung's units more than it needs, the
+      // month a gilt matures, the plan's own share of a bucket
+      .replace(/\{gilts\}/g, '£250,000').replace(/\{excess\}/g, '3').replace(/\{month\}/g, 'March 2027').replace(/\{plan\}/g, '35');
     const hits = [];
     for (const [file, words] of [['hold.js', HOLD], ['move.js', MOVE]]) {
       const all = strings(words).map(([, s]) => slot(s)).join('\n');

@@ -8,6 +8,9 @@
  * "Gilt ladders explained" with the plan's own first rung; for the ladder + rotation the watch and the sell ticket, and the
  * switch handed to the planner. Draws only: everything is the reading's (state/select.js planMoveView: answers/plan/move.js
  * through the plan source); the run's status is the state's (effects/move.js). The last line is always the same.
+ * By phase (7.11.1): Living on it, or Moving once what is held was accepted (the reading's `mode` 'held'), the page is what is
+ * held — its own lead, the rungs, the lines beside them and what each is doing, the cash — and never a move: no "Optional…",
+ * status in moves, cost, Buy, Sell, tick, totals, When or "How to read this". The order sheet and the watch stay.
  */
 import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { planView, planMoveView, planKeepTestView } from '../../state/select.js';
@@ -100,10 +103,10 @@ function Waiting({ V }) {
   );
 }
 
-/** The cash to hold now (§3.5): the document's cash, row by row. */
+/** The cash to hold now (§3.5): the document's cash, row by row — and (7.11.1) the gilts maturing in the cash years. */
 function Cash({ V }) {
   const C = W.cash;
-  if (V.cashInfo) return <p class="note" data-testid={`${T}.cashInfo`}>{V.cashInfo.years.length ? fill(C.spending, { held: V.cashInfo.held, target: V.cashInfo.target, years: V.cashInfo.years.join(', ') }) : fill(C.spendingNone, { held: V.cashInfo.held })}</p>;
+  if (V.cashInfo) return <p class="note" data-testid={`${T}.cashInfo`}>{V.cashInfo.years.length ? fill(V.cashInfo.gilts ? C.spendingGilts : C.spending, { held: V.cashInfo.held, gilts: V.cashInfo.gilts || '', target: V.cashInfo.target, years: V.cashInfo.years.join(', ') }) : fill(C.spendingNone, { held: V.cashInfo.held })}</p>;
   if (!V.cash || !V.cash.rows.length) return null;
   return (
     <section class="plan-section" data-section="cash" data-testid={`${T}.cash`}>
@@ -116,6 +119,7 @@ function Cash({ V }) {
             {V.cash.rows.map((r, i) => <tr key={i} data-row={r.id}><td>{fill(C.rows[r.id], r)}</td><td>{r.amount || '—'}</td></tr>)}
             <tr data-row="total"><th scope="row">{C.total}</th><td>{V.cash.target}</td></tr>
             <tr data-row="held"><td>{C.held}</td><td>{V.cash.held}</td></tr>
+            {V.cash.gilts && <tr data-row="gilts"><td>{C.gilts}</td><td>{V.cash.gilts}</td></tr>}
             <tr data-row={V.cash.spare != null ? 'spare' : 'short'}><td>{V.cash.spare != null ? C.spare : C.short}</td><td>{V.cash.spare != null ? V.cash.spare : V.cash.short}</td></tr>
           </tbody>
         </table>
@@ -124,9 +128,35 @@ function Cash({ V }) {
   );
 }
 
+/**
+ * What is held, as information (7.11.1): Living on it, or Moving once what is held was accepted — the rungs held against the
+ * plan (a rung not fully bought with its line of the order sheet), what else the pension holds and what each line is doing,
+ * the cash with the gilts maturing in the cash years, a pot plan's mix held against the plan's and where it can be tested.
+ * Never a Buy or Sell, a tick, a schedule or totals.
+ */
+function Held({ V }) {
+  const H = W.held;
+  const I = V.heldInfo;
+  return (
+    <section class="plan-section" data-section="heldInfo" data-testid={`${T}.heldInfo`} data-kind={I.kind}>
+      {I.agreed && <p class="figure" data-testid={`${T}.heldInfo.agreed`}>{fill(H.agreed, I.agreed)}</p>}
+      {I.noRecord && <p class="note" data-testid={`${T}.heldInfo.noRecord`}>{H.noRecord} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
+      {I.rungs && <p class="figure" data-testid={`${T}.heldInfo.rungs`}>{fill(H.rungs, I.rungs)}</p>}
+      {I.rungs && I.rungs.rows.length > 0 && <ul class="plan-lines" data-testid={`${T}.heldInfo.rungRows`}>{I.rungs.rows.map((r) => <li key={r.key} class="plan-line" data-key={r.key} data-state={r.state}>{fill(H[r.id], r)}</li>)}</ul>}
+      {I.buckets && <><h2>{H.mixTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.buckets`}>{I.buckets.map((b) => <li key={b.bucket} class="plan-line" data-bucket={b.bucket}>{fill(H.bucket[b.bucket], b)}</li>)}</ul></>}
+      {I.unknown.map((name) => <p class="note" key={name} data-testid={`${T}.heldInfo.unknown`}>{fill(H.unknown, { name })}</p>)}
+      {I.lines.length > 0 && <><h2>{H.linesTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.lines`}>{I.lines.map((x, i) => <li key={i} class="plan-line" data-role={x.role} data-state={x.state || ''}>{fill(H[x.id], x)}</li>)}</ul></>}
+      {I.cash && <p class="line" data-testid={`${T}.heldInfo.cash`}>{fill(H[I.cash.id], { ...I.cash, gilts: I.cash.gilts ? fill(H.cashGilts, I.cash) : '' })}</p>}
+      {I.review && <p class="note" data-testid={`${T}.heldInfo.review`}>{H.review} <a href={I.review}>{H.reviewLink}</a>.</p>}
+    </section>
+  );
+}
+
 /** Buy and Sell (§3.5): the planner's two tables with a Done tick each; Already held; Left alone; the totals. */
 function Lists({ V, dispatch, planId, KT }) {
   const L = W.lists;
+  // what is held as information (7.11.1): the notes, what is kept and left alone stay; the moves are not drawn
+  const held = V.mode === 'held';
   const tick = (item, action) => (
     <input type="checkbox" id={`${T}.tick.${item.key}`} data-testid={`${T}.tick.${item.key}`} checked={!!item.done} disabled={!V.editable || !!V.saving} aria-label={L.tick} title={item.done ? fill(L.ticked, { date: item.done }) : L.tick}
       onChange={(e) => dispatch({ type: 'plan/tick', planId, key: item.key, done: e.currentTarget.checked })} data-action={action} />
@@ -150,9 +180,9 @@ function Lists({ V, dispatch, planId, KT }) {
       {V.paid.length > 0 && <p class="note" data-testid={`${T}.paid`}>{fill(L.paid, { list: V.paid.map((p) => p.label + (p.ticker ? ' (' + p.ticker + ')' : '')).join(', ') })}</p>}
       {V.matured.length > 0 && <p class="note" data-testid={`${T}.matured`}>{fill(L.matured, { list: V.matured.map((m) => m.label + ' — ' + whyText(m.why)).join('; ') })}</p>}
       {V.sold.length > 0 && <p class="note" data-testid={`${T}.soldStale`}>{fill(L.stale, { list: V.sold.map((m) => m.label + ' — ' + whyText(m.why)).join('; ') })}</p>}
-      {V.buy.length > 0 && <><h2>{L.buy}</h2>{table('buy', V.buy, 'buy')}</>}
-      {V.sell.length > 0 && <><h2>{L.sell}</h2>{table('sell', V.sell, 'sell')}</>}
-      {V.hold.length > 0 && (
+      {!held && V.buy.length > 0 && <><h2>{L.buy}</h2>{table('buy', V.buy, 'buy')}</>}
+      {!held && V.sell.length > 0 && <><h2>{L.sell}</h2>{table('sell', V.sell, 'sell')}</>}
+      {!held && V.hold.length > 0 && (
         <>
           <h2>{L.held}</h2>
           <div class="table-wrap">
@@ -170,7 +200,7 @@ function Lists({ V, dispatch, planId, KT }) {
       {V.kept && V.kept.length > 0 && <><h2>{GAPS.move.kept}</h2><ul class="plan-lines" data-testid={`${T}.kept`}>{V.kept.map((x) => <li key={x.key} class="plan-line" data-key={x.key}>{fill(GAPS.move.keptOne, { label: x.label, wrapper: W.wrappers[x.wrapper] || x.wrapper, value: x.value, gaps: x.fundsGaps ? (V.ladder ? GAPS.move.keptGaps : GAPS.move.keptPlan) : '' })}</li>)}</ul></>}
       {V.recorded && <p class="note">{L.fix}</p>}
       {V.keep.length > 0 && <><h2>{L.keep}</h2><ul class="plan-lines" data-testid={`${T}.keep`}>{V.keep.map((k, i) => <li key={i} class="plan-line">{fill(L.keepOne, { label: k.label, wrapper: W.wrappers[k.wrapper] || k.wrapper, value: k.value, why: whyText(k.why) })}</li>)}</ul></>}
-      {!V.complete && <p class="note" data-testid={`${T}.totals`}>{fill(L.totals, V.totals)}{V.totals.short ? fill(L.short, { short: V.totals.short }) : ''}</p>}
+      {!held && !V.complete && <p class="note" data-testid={`${T}.totals`}>{fill(L.totals, V.totals)}{V.totals.short ? fill(L.short, { short: V.totals.short }) : ''}</p>}
     </section>
   );
 }
@@ -183,7 +213,7 @@ function Schedule({ V }) {
   return (
     <section class="plan-section" data-section="schedule" data-testid={`${T}.schedule`}>
       <h2>{S.title}</h2>
-      <p class="note">{s.startPassed ? fill(S.passed, { months: s.months, s: s.months === '1' ? '' : 's' }) + ' ' : ''}{fill(S.lead, { tranches: s.tranches, s: s.tranches === '1' ? '' : 's' })} {s.funded ? fill(S.funded, { newMoney: s.newMoney ? S.fundedNewMoney : '' }) : fill(S.short, { short: s.short })}</p>
+      <p class="note">{s.startPassed ? fill(S.passed, { months: s.months, s: s.months === '1' ? '' : 's' }) + ' ' : ''}{fill(S.lead, { tranches: s.tranches, s: s.tranches === '1' ? '' : 's' })} {s.funded ? fill(S.funded, { newMoney: (s.newMoney ? S.fundedNewMoney : '') + (s.cashFreed ? S.fundedCash : '') }) : fill(S.short, { short: s.short })}</p>
       <ul class="plan-lines" data-testid={`${T}.schedule.steps`}>{s.steps.map((st, i) => <li key={i} class="plan-line" data-action={st.action}>{fill(S.step, { when: st.when, action: st.action === 'buy' ? S.buy : S.sell, label: st.label, units: unitsText(st.units), amount: amountText(st.amount) })}</li>)}</ul>
     </section>
   );
@@ -313,8 +343,9 @@ export function MoveScreen(state, dispatch) {
       <Head view={view} />
       {/* by the name the rail and the home give it: on a Drawing plan, the mix it keeps to (7.3.1) */}
       <h1 tabIndex={-1} data-testid="plan.step.move">{stepNameOf('move', view)}</h1>
-      <p class="lead">{W.lead}</p>
-      <p class="note" data-testid={`${T}.optional`}>{W.optional}</p>
+      {/* 7.11.1: Living on it (or Moving once what is held was accepted) the page is what is held, never a move */}
+      <p class="lead">{V.mode === 'held' ? W.held.lead : W.lead}</p>
+      {V.mode !== 'held' && <p class="note" data-testid={`${T}.optional`}>{W.optional}</p>}
     </>
   );
   // not locked (§3.1), or a document that cannot be read: what the lock makes, and nothing else drawn
@@ -339,7 +370,14 @@ export function MoveScreen(state, dispatch) {
         {V.readonly && <p class="notice" role="status" data-testid={`${T}.readonly`}>{W.readonly}</p>}
         {/* a closed plan (6.56.0): its record and its tick-offs moved to the plan that carries it on */}
         {V.closed && <p class="notice" role="status" data-testid={`${T}.closed`}>{V.closed.next ? fill(w.closedStep, { name: V.closed.next.name }) : w.closedStepAlone}{V.closed.next && <> <LinkButton testid={`${T}.closed.open`} kind="quiet" href={href.plan(V.closed.next.id)}>{fill(PLAN.buttons.openNext, { name: V.closed.next.name })}</LinkButton></>}</p>}
-        <div class="plan-panel" data-region="plan-move" data-editable={V.editable ? '1' : '0'} data-kind={V.kind} data-waiting={V.waiting ? '1' : '0'}>
+        <div class="plan-panel" data-region="plan-move" data-editable={V.editable ? '1' : '0'} data-kind={V.kind} data-waiting={V.waiting ? '1' : '0'} data-mode={V.mode || 'move'}>
+          {V.mode === 'held' ? (
+            <>
+              <Held V={V} />
+              <Lists V={V} dispatch={dispatch} planId={planId} KT={planKeepTestView(state)} />
+              <GapsSection gaps={V.gaps} prefix={T} />
+            </>
+          ) : <>
           <Status V={V} />
           {!V.recorded && <p class="notice" role="status" data-testid={`${T}.noRecord`}>{W.noRecord} <a href={href.plan(view.id, 'hold')}>{W.buttons.hold}</a></p>}
           <Cost V={V} dispatch={dispatch} />
@@ -355,6 +393,7 @@ export function MoveScreen(state, dispatch) {
               </section>
             </>
           )}
+          </>}
           <Sheet V={V} dispatch={dispatch} />
           <Explained V={V} dispatch={dispatch} />
           <Watch V={V} onChange={onChange} />

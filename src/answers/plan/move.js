@@ -8,13 +8,23 @@
  * the effect fetched, and the one run's result held in page memory; nothing here writes, runs, fetches or reads a clock.
  *
  *   savedMove(plan, { today, index })        the target, the diff, the progress, the schedule, the sheet, the watch — as data
- *   moveOf(entries, id, { today, index, M })  everything the screen draws (M: state.move, the one run on the held mix)
+ *   moveOf(entries, id, { today, index, M, page })  everything the screen draws (M: state.move, the one run on the held mix;
+ *                                            page: the plan's page reading, planPage's, when the caller has it)
+ *   heldMode(life)                           whether the page is what is held rather than a move (7.11.1, below)
  *   tickPatch(plan, key, { today, done })    → { ok, patch: { transition }, previous, line }: one tick-off, the object whole
  *   heldMixSettings(plan, { today })         the plan's effective settings with the mix AS HELD (moveRun.js runs them)
  *   runKeyOf                                 lasts.js's (the held run is filed under the plan's key)
  *
  * Every path written is in schema.js MOVE_WRITES (tested); the tick is TransitionPlanner.tickMove / untickMove, the
  * planner's own; the target, the diff, the progress and the schedule are TransitionPlanner's through PlanReading.moveInputs.
+ *
+ * By phase (7.11.1): the phase is the one the plan's home reads (read.js planPage `life`, LifeStage.stageOf — agreements
+ * first, then facts). Living on it, and Moving once what is held was accepted (7.10.0's agreement), the page is not a move:
+ * `mode` 'held' and `heldInfo` say, as information, the rungs held against the plan (a rung not fully bought with its line
+ * of the order sheet), what else the pension holds and what each line is doing, the cash with the gilts maturing in the cash
+ * years, and where what is held can be tested and accepted. The reading still carries the lists, the totals and the schedule
+ * (as it does for a saver waiting), but no view draws them there. Moving otherwise (`mode` 'move'), and a saver waiting
+ * (`mode` 'waiting'), as before.
  */
 import { planStage, effectiveStressSettings, moveInputs } from '../../services/PlanReading.js';
 import { sequence, tickMove, untickMove } from '../../services/TransitionPlanner.js';
@@ -26,13 +36,15 @@ import { taxYearLabel, deriveTiming, taxYearStartOf } from '../../services/PlanT
 import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
 import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
 import { APPROACHING_YEARS } from '../../services/LifeStage.js';
-import { windowYearsOf, windowOf } from '../../services/Phases.js';
+import { windowYearsOf, windowOf, heldPhase } from '../../services/Phases.js';
 import { runKeyOf, FAMILY } from './lasts.js';
 import { pounds } from './income.js';
 import { MOVE_WRITES } from './schema.js';
 import { dateOf, dayWords, monthWords, MONTHS } from './dates.js';
 import { isClosedPlan, closedReading } from '../../services/PlanClosed.js';
-import { gapsOf, gapsView } from './gaps.js';
+import { gapsOf, gapsView, heldOf, rolesView } from './gaps.js';
+import { planPage, reviewHrefOf } from './read.js';
+import { isRungRow } from '../../services/TransitionPlanner.js';
 
 export { runKeyOf, APPROACHING_YEARS };
 
@@ -173,18 +185,22 @@ function whyOf(x) {
 }
 
 /** Everything the screen draws. `M` is state.move: { key, status, result, ms, reason, index }. */
-export function moveOf(entries, id, { today, index = null, M = null, source = 'account' } = {}) {
+export function moveOf(entries, id, { today, index = null, M = null, source = 'account', page = null } = {}) {
   const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
   const entry = list.find((e) => String(e.plan.id) === String(id)) || null;
   if (!entry) return { found: false, id: String(id || '') };
   const plan = entry.plan;
+  // the phase the plan's home reads (7.11.1): its page reading's `life`, made here when the caller has none
+  let pg = page && page.found && String(page.id) === String(plan.id) ? page : null;
+  if (!pg) { try { pg = planPage(list, plan.id, 'move', { today, source }); } catch { pg = null; } }
+  const life = pg && pg.found && pg.life ? pg.life : null;
   const readonly = !!(entry.newer || entry.failed);
   // a closed plan's record and its tick-offs moved to the plan that carries it on (6.56.0, PlanClosed.js): nothing to tick here
   const closed = isClosedPlan(plan) ? closedReading(plan, list, dateOf(today)) : null;
   const s = savedMove(plan, { today, index });
   const runKey = readonly || closed ? null : runKeyOf(plan);
   // no box is typed on this step (schema.js isMovePath): the fields are empty, so the shell reads it as every editing step
-  const base = { found: true, id: String(plan.id), name: s.name, locked: s.locked, lockedOn: s.lockedOn, readonly, editable: !readonly && !closed, closed, source, strategyId: s.strategyId, ladder: s.ladder, family: s.family, stageKey: s.stage.key, runKey, recorded: s.record.lines.length > 0, fields: [], errors: {}, ok: true };
+  const base = { found: true, id: String(plan.id), name: s.name, locked: s.locked, lockedOn: s.lockedOn, readonly, editable: !readonly && !closed, closed, source, strategyId: s.strategyId, ladder: s.ladder, family: s.family, stageKey: s.stage.key, runKey, recorded: s.record.lines.length > 0, fields: [], errors: {}, ok: true, phase: life ? life.key : null };
   if (!s.hasDocument || !s.m) return { ...base, hasDocument: s.hasDocument, kind: 'none' };
   // a record with nothing in the pension the move can read (7.10.0, TransitionPlanner: every pension line unplaced, or none):
   // nothing to compare, said as that — never a mix of zeros
@@ -219,21 +235,88 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
     newMoney: (() => { const p = proportions(s.record.lines); if (!(p.contributions && p.contributions.monthly > 0)) return null; const m = p.contributions.monthly; return { monthly: pounds(m), parts: ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => p.contributions.byBucket[b] > 0.004).map((b) => ({ bucket: b, word: b === 'diversifiers' ? 'gold and trend' : b, amount: pounds(m * p.contributions.byBucket[b]) })) }; })(),
     cost: { uncovered: uncovered.map((y) => taxYearLabel(y)), canRun: !!held && !s.ladder && !readonly },
     // the cash to hold: the cash years' money, less the years a kept line stands in for (7.6.0, the diff's cashLeft)
-    cash: T.cash && !D.cashInfo ? (() => { const tv = (D.cashLeft || T.cash).value; return { rows: s.cashRows, target: pounds(tv), held: pounds(D.totals.cashHeld), spare: D.totals.cashHeld >= tv ? pounds(D.totals.cashHeld - tv) : null, short: D.totals.cashHeld < tv ? pounds(tv - D.totals.cashHeld) : null }; })() : null,
-    cashInfo: D.cashInfo ? { held: pounds(D.cashInfo.held), target: pounds(D.cashInfo.target), years: D.cashInfo.yearsLeft.map((y) => taxYearLabel(+y)) } : null,
+    // (7.11.1) and the gilts outside the rungs maturing in the cash years, which are those years' cash, never a sale
+    cash: T.cash && !D.cashInfo ? (() => { const tv = (D.cashLeft || T.cash).value; const g = giltCashOf(D); const have = D.totals.cashHeld + g; return { rows: s.cashRows, target: pounds(tv), held: pounds(D.totals.cashHeld), gilts: g > 0 ? pounds(g) : null, spare: have >= tv ? pounds(have - tv) : null, short: have < tv ? pounds(tv - have) : null }; })() : null,
+    cashInfo: D.cashInfo ? { held: pounds(D.cashInfo.held), target: pounds(D.cashInfo.target), years: D.cashInfo.yearsLeft.map((y) => taxYearLabel(+y)), gilts: giltCashOf(D) > 0 ? pounds(giltCashOf(D)) : null } : null,
     paid: (T.paid || []).map((p) => ({ label: p.label, ticker: p.ticker || '' })), matured: D.matured.map((x) => moveRow(x, done)), sold: D.sold.map((x) => moveRow(x, done)), rotated: !!T.rotated,
     buy: D.buy.map((x) => moveRow(x, done)), sell: D.sell.map((x) => moveRow(x, done)),
     hold: D.hold.map((x) => ({ key: x.key, label: x.label || x.ticker || '', ticker: x.ticker || '', held: x.heldUnits != null ? { units: units(x.heldUnits) } : { value: pounds(x.heldValue) }, spare: x.spare > 0 ? pounds(x.spare) : null, target: x.units ? { units: units(x.units) } : { value: pounds(x.value) } })),
     keep: D.keep.map((x) => ({ label: x.ticker || x.name || '', wrapper: x.wrapper, value: pounds(x.value), why: whyOf(x) })),
     totals: { buy: pounds(D.totals.buyCost), sell: pounds(D.totals.sellValue), short: D.totals.shortfall > 0 ? pounds(D.totals.shortfall) : null },
-    schedule: seq ? { steps: seq.steps.map((st) => ({ when: ym(st.when), action: st.action, label: st.label, ticker: st.ticker || '', units: units(st.units), amount: pounds(st.amount) })), tranches: String(seq.tranches), months: String(seq.months), funded: !!seq.funded, startPassed: !!seq.startPassed, short: !seq.funded ? pounds(seq.totals.buy - seq.totals.sell - seq.totals.contributions) : null, newMoney: seq.totals.contributions > 0 ? pounds(seq.totals.contributions) : null } : null,
+    schedule: seq ? { steps: seq.steps.map((st) => ({ when: ym(st.when), action: st.action, label: st.label, ticker: st.ticker || '', units: units(st.units), amount: pounds(st.amount) })), tranches: String(seq.tranches), months: String(seq.months), funded: !!seq.funded, startPassed: !!seq.startPassed, short: !seq.funded ? pounds(seq.totals.buy - seq.totals.sell - seq.totals.contributions - num(seq.totals.cashFreed)) : null, newMoney: seq.totals.contributions > 0 ? pounds(seq.totals.contributions) : null,
+      // 7.11.1: the pension's cash that gilts maturing in the cash years leave spare pays for buys too
+      ...(num(seq.totals.cashFreed) > 0 ? { cashFreed: pounds(seq.totals.cashFreed) } : {}) } : null,
     start, isaPolicy: s.ss.isaDrawdownStrategy === 'hold' ? 'hold' : 'draw',
     sheet, example, spGate: s.spGate ? { annual: pounds(s.spGate.annual), atAge: String(s.spGate.atAge) } : null, pricedOn: s.lockedOn,
     watch,
+    // 7.11.1: by phase — Living on it, or Moving once what is held was accepted, the page is what is held, never a move
+    ...(() => { const mode = heldMode(life) ? 'held' : s.waiting ? 'waiting' : 'move'; return { mode, heldInfo: mode === 'held' ? heldInfoOf(plan, s, { today, life, page: pg, rungs, recorded: base.recorded }) : null }; })(),
     // 7.6.0: what the person keeps — held another way, kept by choice, the rungs covered — and the gaps it leaves; only on a
     // record that keeps something or expects money, so a plan without keeps reads exactly as before
     ...keptOf(plan, D, today)
   };
+}
+
+/**
+ * Whether the page is what is held rather than a move (7.11.1): Living on it, or Moving once what is held was accepted
+ * (Phases.heldPhase on LifeStage.stageOf's stage). `life` is the plan's page reading's (planPage), the phase the home reads.
+ */
+export const heldMode = (life) => heldPhase(life);
+
+/** What the gilts outside the rungs maturing in the cash years pay at today's prices (the diff's `cashGilts`). */
+const giltCashOf = (D) => Math.round((D && Array.isArray(D.cashGilts) ? D.cashGilts : []).reduce((t, g) => t + num(g.real), 0));
+const grouped = (v) => String(Math.round(num(v))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const BUCKETS = ['shares', 'bonds', 'cash', 'diversifiers'];
+/** The words of each sentence heldInfo carries (src/v7/copy/move.js MOVE.held; both views fill them). */
+const RUNG_WORDS = { part: 'rungPart', none: 'rungNone', over: 'rungOver' };
+const LINE_WORDS = { counted: 'gilt', unknown: 'giltUnknown', paid: 'giltPaid', after: 'giltAfter' };
+
+/**
+ * What is held, as information (7.11.1; `mode` 'held'): never a list of things to buy or sell.
+ *   agreed   { date } when what is held was accepted as the plan (7.10.0), else null
+ *   rungs    a ladder's rungs held of those the plan still needs, and each rung not held as the plan has it: part bought or
+ *            not held (with its line of the order sheet), or held with more than it needs — { held, total, rows: [{ key, id,
+ *            label, code, years, state: 'part'|'none'|'over', held, units, excess, value, cost, n }] }
+ *            (each sentence's `id` names its words in MOVE.held, its other fields are the slots)
+ *   lines    each line of the pension beside the rungs (gaps.js heldOf/rolesView): a gilt (the month it matures and the tax
+ *            year it counts toward in What is covered, or why it counts toward none), shares or a fund outside the mix
+ *   cash     a ladder's cash years still ahead, what they need, the pension's cash and what the gilts maturing in them pay
+ *   buckets  a pot plan's mix held against the plan's, in whole points of the pension money read; `unknown` the lines nothing
+ *            places; `review` where "Test with what I hold" and the agreement are (Your review), when it can test them
+ *   noRecord nothing recorded yet
+ */
+function heldInfoOf(plan, s, { today, life, page, rungs, recorded }) {
+  const T = s.m.target, D = s.m.diff;
+  const agreed = life && life.agreed && life.agreed.at ? { date: dayWords(life.agreed.at) } : null;
+  const base = { kind: T.kind, agreed, noRecord: !recorded, rungs: null, lines: [], cash: null, buckets: null, unknown: [], review: null };
+  if (T.kind === 'ladder') {
+    const nOf = new Map(s.sheet.map((r) => [String(r.tidm || '').toUpperCase(), String(r.n)]));
+    const order = new Map(T.lines.map((t, i) => [t.key, i]));
+    const row = (x, state) => {
+      const total = x.units == null ? null : state === 'over' ? num(x.heldUnits) - num(x.units) : num(x.units) + num(x.heldUnits);
+      return { key: x.key, id: state === 'part' && x.units == null ? 'rungPartValue' : RUNG_WORDS[state], label: x.label || x.ticker || '', code: x.ticker || '', years: (x.taxYears || []).map((y) => taxYearLabel(+y)).join(', '), state,
+        held: x.units == null ? null : grouped(x.heldUnits), units: total == null ? null : grouped(total), excess: state === 'over' && x.units != null ? grouped(x.units) : null,
+        value: x.units == null ? pounds(Math.max(0, num(x.value) - num(x.amount))) : null, cost: x.units == null ? pounds(x.value) : null, n: nOf.get(String(x.ticker || '').toUpperCase()) || '' };
+    };
+    const rows = [...D.buy.filter(isRungRow).map((x) => row(x, num(x.heldUnits) > 0 || (x.units == null && num(x.amount) < num(x.value)) ? 'part' : 'none')), ...D.sell.filter(isRungRow).map((x) => row(x, 'over'))]
+      .sort((a, b) => (order.has(a.key) ? order.get(a.key) : 1e9) - (order.has(b.key) ? order.get(b.key) : 1e9));
+    base.rungs = { held: rungs ? String(rungs.bought) : '0', total: rungs ? String(rungs.total) : String(T.lines.length), rows };
+    let roles = null; try { roles = rolesView(heldOf(plan, { today })); } catch { roles = null; }
+    base.lines = (roles || []).filter((r) => r.role === 'gilt' || r.role === 'outside').map((r) => ({ at: r.at, id: r.role === 'outside' ? 'outside' : LINE_WORDS[r.state] || 'giltUnknown', label: r.label, value: r.value, role: r.role, ...(r.role === 'gilt' ? { state: r.state, month: r.matures || '', year: r.year || '' } : {}) }));
+    if (T.cash) {
+      const c = D.cashInfo ? { target: D.cashInfo.target, years: D.cashInfo.yearsLeft } : { target: (D.cashLeft || T.cash).value, years: (D.cashLeft || T.cash).yearsLeft || [] };
+      const g = giltCashOf(D);
+      const years = (c.years || []).map((y) => taxYearLabel(+y));
+      base.cash = { id: years.length ? 'cash' : 'cashNone', held: pounds(D.totals.cashHeld), target: pounds(c.target), years: years.join(', '), gilts: g > 0 ? pounds(g) : null };
+    }
+  } else if (T.kind === 'buckets') {
+    const inPlay = num(D.inPlay);
+    if (inPlay > 0 && D.buckets) base.buckets = BUCKETS.filter((b) => D.buckets[b] && (num(D.buckets[b].held) > 0 || num(D.buckets[b].target) > 0)).map((b) => ({ bucket: b, held: String(Math.round(100 * num(D.buckets[b].held) / inPlay)), plan: String(Math.round(100 * num(D.buckets[b].target) / inPlay)) }));
+    base.unknown = (D.unknown || []).map((u) => u.label).filter(Boolean);
+    // "Test with what I hold" and "I accept this as my plan" are on Your review, once there is a pension record to read
+    base.review = recorded && inPlay > 0 ? ((page && page.reviewDue && page.reviewDue.href) || reviewHrefOf(plan)) : null;
+  }
+  return base;
 }
 
 /** The move's view of what the person keeps (7.6.0), or nothing at all when the record keeps nothing and expects nothing. */

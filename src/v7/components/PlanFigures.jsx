@@ -62,7 +62,8 @@ export function PlanLine({ line, figures, hideSource = false }) {
  * whatever its record of what is held says, so "Moving to your plan's mix" there would name the stage it is not in. `view`
  * is the plan's page reading (state/select.js planView: `locked`, and `life`, LifeStage.stageOf's stage).
  */
-const onDrawing = (view) => !!view && !!view.life && view.life.key === 'drawing';
+// (7.11.1: and on a plan Moving once what is held was accepted — its page is what is held, never a move: answers/plan/move.js heldMode)
+const onDrawing = (view) => !!view && !!view.life && (view.life.key === 'drawing' || (view.life.key === 'moving' && !!view.life.agreed));
 export function stepNameOf(id, view) {
   if (id === 'plan' && view && view.locked) return PLAN.steps.plan.locked;
   if (id === 'move' && onDrawing(view)) return PLAN.steps.move.short;

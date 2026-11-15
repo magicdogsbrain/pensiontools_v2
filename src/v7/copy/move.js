@@ -63,10 +63,46 @@ export const MOVE = {
     columns: { what: 'What for', amount: 'Amount' },
     total: 'To hold',
     held: 'You hold',
+    // 7.11.1: a gilt outside the rungs maturing in a cash year is that year's cash, never a sale
+    gilts: 'Gilts you hold that mature in those years, at today’s prices',
     spare: 'Spare',
     short: 'Short',
     spending: 'Cash: {held} held against {target} for the cash years still ahead ({years}) — being spent as the plan intends, so it is not a move.',
+    spendingGilts: 'Cash: {held} held, and {gilts} at today’s prices from the gilts that mature in them, against {target} for the cash years still ahead ({years}) — being spent as the plan intends, so it is not a move.',
     spendingNone: 'Cash: {held} held; no cash years left — your spending float, not a target.'
+  },
+  /**
+   * What is held, as information (7.11.1): Living on it, or Moving once what is held was accepted, the page is never a move —
+   * no list of things to buy or sell, no schedule. answers/plan/move.js heldInfo fills these.
+   */
+  held: {
+    lead: 'What you hold, beside your plan as locked, and what each part of it is doing. This is information: nothing here is a list of things to buy or sell.',
+    agreed: 'You accepted what you hold as your plan on {date}.',
+    noRecord: 'Nothing recorded yet. You can record what you hold on What you hold, and this page reads it against your plan.',
+    rungs: '{held} of the {total} rungs your plan still needs are held.',
+    rungPart: '{label} ({code}), for {years}: {held} of {units} units held. The rest is rung {n} on the order sheet below.',
+    rungPartValue: '{label} ({code}), for {years}: {value} of {cost} held. The rest is rung {n} on the order sheet below.',
+    rungNone: '{label} ({code}), for {years}: not held. It is rung {n} on the order sheet below.',
+    rungOver: '{label} ({code}), for {years}: held, with {excess} units more than the rung needs.',
+    linesTitle: 'Also in your pension',
+    gilt: '{label} ({value} today): matures in {month} — counted toward {year} in What is covered, year by year.',
+    giltUnknown: '{label} ({value} today): we cannot tell when it matures, so it is not counted toward any year. Its code or SEDOL on What you hold would tell us.',
+    giltPaid: '{label}: matured in {month}. Once paid, its money is your pension’s cash, and the line can come off What you hold.',
+    giltAfter: '{label} ({value} today): matures in {month}, after your plan’s last year, so it is outside the plan’s mix.',
+    outside: '{label} ({value} today): outside the plan’s mix; its value can fall.',
+    cash: 'The cash years still ahead ({years}) need {target}. Held for them: {held} in your pension’s cash{gilts}.',
+    cashGilts: ', and {gilts} at today’s prices from the gilts that mature in those years',
+    cashNone: 'No cash years are left: the {held} in your pension’s cash is your spending float.',
+    mixTitle: 'What you hold, against your plan’s mix',
+    bucket: {
+      shares: 'Shares: {held}% of your pension now; your plan’s mix has {plan}%.',
+      bonds: 'Bonds: {held}% of your pension now; your plan’s mix has {plan}%.',
+      cash: 'Cash: {held}% of your pension now; your plan’s mix has {plan}%.',
+      diversifiers: 'Gold and trend: {held}% of your pension now; your plan’s mix has {plan}%.'
+    },
+    unknown: 'We could not tell what {name} holds, so it is left out of these figures. You can say what it holds on What you hold.',
+    review: 'You can test what you hold against your plan, and accept it as your plan, on',
+    reviewLink: 'Your review'
   },
   lists: {
     buy: 'Buy',
@@ -110,6 +146,7 @@ export const MOVE = {
     lead: 'Cash first, then the near rungs before the far ones, then the mix; sales spread over {tranches} tranche{s} so no single month’s price decides it; new money is used before sales.',
     funded: 'Paid for by sales{newMoney}.',
     fundedNewMoney: ' and new money',
+    fundedCash: ' and the pension’s cash that the gilts maturing in the cash years leave spare',
     short: 'Short by {short}: the plan was priced on a bigger pot than the record holds, or lines are missing from the record.',
     step: 'By {when}: {action} {label}{units}{amount}.',
     buy: 'buy',

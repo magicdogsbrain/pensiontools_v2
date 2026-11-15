@@ -26,6 +26,9 @@ import { MOVE } from '../../../src/v7/copy/move.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
 import { viewFor } from '../../../src/v7/effects/planSource.js';
 import { corpus, entryOf } from './_plans.js';
+import { asMoving } from './_alex.js';
+import { runKeyOf } from '../../../src/answers/plan/move.js';
+import { heldPhase } from '../../../src/services/Phases.js';
 
 const DIR = join(process.cwd(), 'tests/v7/states/plan');
 const NAMES = readdirSync(DIR).filter((f) => f.startsWith('move-') && f.endsWith('.json')).map((f) => f.slice(0, -5)).sort();
@@ -56,6 +59,18 @@ const all = (root, sel) => [...root.querySelectorAll(sel)];
 const planOf = (s) => s.plans.list[0].plan;
 /** The plan replaced in page memory (a plan read again), the id kept. */
 const replaced = (fn) => (st) => ({ type: A.PLANS_SET, list: st.plans.list.map((e) => ({ ...e, plan: fn(JSON.parse(JSON.stringify(e.plan))) })), source: st.plans.source, readAt: '14:04' });
+/**
+ * 7.11.1 ("Your plan's mix" by phase): both named states record months, so they read Living on it, where the page is what is
+ * held and never a move. The move itself is tested on the same state read as Moving (still saving, work stopping in April
+ * 2027, inside the move window, no month recorded: _alex.js asMoving), the one run held re-filed under the plan's new key —
+ * the result shown is the stored one, drawn as the screen draws any result held for this plan.
+ */
+function moving(stored) {
+  const t = JSON.parse(JSON.stringify(stored));
+  for (const e of t.plans.list) asMoving(e.plan);
+  if (t.move && t.move.key) t.move.key = runKeyOf(t.plans.list[0].plan);
+  return t;
+}
 const checkWords = (text, words) => {
   expect(bannedHits(words, SCOPES)).toEqual([]);
   expect(text).not.toMatch(/about £|around £/i);
@@ -86,7 +101,12 @@ describe('the named states of "Moving to your plan\'s mix"', () => {
     // by the name the rail and the home give the step (7.3.1): on a plan recording months (Drawing) the mix it keeps to
     const life = state.plans.view.page.life;
     expect(one(root, 'plan.step.move').textContent).toBe(life && life.key === 'drawing' ? PLAN.steps.move.short : MOVE.title);
-    expect(one(root, `${T}.optional`).textContent).toBe(MOVE.optional);
+    // 7.11.1: Living on it the page is what is held — its own lead, and no "Optional…" (that is the move's); both states
+    // record months, so both read so (moved on purpose: they drew the move's lists and "Optional…" before)
+    expect(heldPhase(life)).toBe(true);
+    expect(one(root, `${T}.optional`)).toBe(null);
+    expect(text).toContain(MOVE.held.lead);
+    expect(root.querySelector('[data-region="plan-move"]').getAttribute('data-mode')).toBe('held');
     expect(one(root, `${T}.footer`).textContent).toBe(MOVE.footer);
     expect(root.querySelector('[data-testid="rail.plan.move"]').getAttribute('aria-current')).toBe('step');
     checkWords(text, words);
@@ -94,8 +114,11 @@ describe('the named states of "Moving to your plan\'s mix"', () => {
 });
 
 describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt ladders explained', () => {
-  it('move-ladder: the status in gilts bought, what skipping it costs in tax years, the cash to hold now row by row, Buy with a Done tick each, Sell, Already held with the spare, Left alone, the totals, When, "How to read this" closed; a tick sends one tick-off', () => {
-    const s = load('move-ladder');
+  // Moved on purpose (7.11.1): drawn on the state read as Moving (above, `moving`) — Living on it, the page is no move. And
+  // the two linkers outside the plan maturing in the cash years (2027/28 and 2028/29) are those years' cash, never a sale:
+  // the cash table gains their row, and the Sell list no longer has them.
+  it('move-ladder, Moving: the status in gilts bought, what skipping it costs in tax years, the cash to hold now row by row, Buy with a Done tick each, Sell, Already held with the spare, Left alone, the totals, When, "How to read this" closed; a tick sends one tick-off', () => {
+    const s = moving(load('move-ladder'));
     const plan = planOf(s);
     const { root, text, actions, view } = draw(s);
     expect(root.querySelector('[data-region="plan-move"]').getAttribute('data-kind')).toBe('ladder');
@@ -108,8 +131,11 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     // the cash to hold now: the cash years (7.4.2: a ladder's only cash, whatever an older document set aside), the total,
     // what is held, the spare
     const cashRows = all(root, `[data-testid="${T}.cash.table"] tbody tr`).map((tr) => tr.getAttribute('data-row'));
-    expect(cashRows).toEqual(['cashYear', 'cashYear', 'total', 'held', 'spare']);
+    expect(cashRows).toEqual(['cashYear', 'cashYear', 'total', 'held', 'gilts', 'spare']);
     expect(root.querySelector(`[data-testid="${T}.cash.table"] tr[data-row="cashYear"]`).textContent).toContain('Cash year 2027/28');
+    expect(root.querySelector(`[data-testid="${T}.cash.table"] tr[data-row="gilts"]`).textContent).toBe(MOVE.cash.gilts + view.cash.gilts);
+    expect(view.sell.map((x) => x.ticker)).toEqual(['T30I', 'VWRP']);
+    expect(text).toContain(MOVE.schedule.fundedCash);
     // Buy and Sell, each line with a Done tick
     const buy = all(root, `[data-testid="${T}.buy"] tbody tr`);
     expect(buy.length).toBe(view.buy.length);
@@ -229,8 +255,9 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
 });
 
 describe('a pot plan (04): the mix held, the one run on the held mix, done', () => {
-  it('move-mix: the status in moves, the cost\'s one run held — "Tested on the mix you hold today…" beside the plan\'s own, "Tried in 1 run"; Buy and Sell one each with their why; Already held; Left alone; a tick', () => {
-    const s = load('move-mix');
+  // Moved on purpose (7.11.1): the move's lists and its one run are drawn on the state read as Moving (`moving`, above)
+  it('move-mix, Moving: the status in moves, the cost\'s one run held — "Tested on the mix you hold today…" beside the plan\'s own, "Tried in 1 run"; Buy and Sell one each with their why; Already held; Left alone; a tick', () => {
+    const s = moving(load('move-mix'));
     const plan = planOf(s);
     const { root, text, actions, view } = draw(s);
     expect(root.querySelector('[data-region="plan-move"]').getAttribute('data-kind')).toBe('buckets');
@@ -257,8 +284,8 @@ describe('a pot plan (04): the mix held, the one run on the held mix, done', () 
     expect(one(root, `${T}.sheet`)).toBe(null);
     expect(one(root, `${T}.explained`)).toBe(null);
   });
-  it('the run\'s working, failed and no-worker states, from the mix state by the reducer; the button asks the runner with the plan\'s key', () => {
-    const s = load('move-mix');
+  it('the run\'s working, failed and no-worker states, from the mix state by the reducer (read as Moving); the button asks the runner with the plan\'s key', () => {
+    const s = moving(load('move-mix'));
     const key = s.move.key;
     const idle = draw(s, { type: A.MOVE_RUN, key: 'another' }, { type: A.MOVE_FAILED, key: 'another' }, { type: A.PLANS_SET, list: s.plans.list, source: 'account', readAt: '14:05' });
     expect(one(idle.root, `${T}.cost.result`), 'a result for another key is not shown').toBe(null);
@@ -275,7 +302,8 @@ describe('a pot plan (04): the mix held, the one run on the held mix, done', () 
   });
   it('done (04 as the fixture has it: the record already holds the mix): "Done — what you hold matches the plan’s mix.", no Buy or Sell, no totals, the run still offered', () => {
     const s = load('move-mix');
-    const fixture = entryOf({ ...JSON.parse(JSON.stringify(C['04-buckets-running'])), id: planOf(s).id, planDetails: planOf(s).planDetails, isActive: false }, s.env.today).plan;
+    // (read as Moving, 7.11.1: Living on it there is no status in moves and no run to offer)
+    const fixture = entryOf(asMoving({ ...JSON.parse(JSON.stringify(C['04-buckets-running'])), id: planOf(s).id, planDetails: planOf(s).planDetails, isActive: false }), s.env.today).plan;
     const { root, text, words } = draw(s, (st) => ({ type: A.PLANS_SET, list: [{ plan: fixture, newer: false, failed: false }], source: st.plans.source, readAt: '14:04' }));
     expect(one(root, `${T}.status`).getAttribute('data-status')).toBe('done');
     expect(one(root, `${T}.status.line`).textContent).toBe(MOVE.status.done);
@@ -317,8 +345,8 @@ describe('the saver\'s rule, a plan not locked, nothing recorded, shown as saved
     expect(one(root, `${T}.footer`)).not.toBe(null);
     checkWords(text, words);
   });
-  it('nothing recorded on a locked pot plan: "Nothing recorded yet — record what you hold first", no run; the lists read as to buy', () => {
-    const s = load('move-mix');
+  it('nothing recorded on a locked pot plan (read as Moving): "Nothing recorded yet — record what you hold first", no run; the lists read as to buy', () => {
+    const s = moving(load('move-mix'));
     const plan = planOf(s);
     const { root, text } = draw(s, replaced((p) => { delete p.holdings; return p; }));
     expect(one(root, `${T}.noRecord`).textContent).toContain('Nothing recorded yet — record what you hold first.');
@@ -328,8 +356,8 @@ describe('the saver\'s rule, a plan not locked, nothing recorded, shown as saved
     expect(all(root, `[data-testid="${T}.buy"] tbody tr`).length).toBe(3);
     expect(text).not.toMatch(/about £/);
   });
-  it('shown as saved: the ticks disabled, no run; without an account: the warning, the ticks live; the toast after a tick with Undo, "Put back as it was."; the problems', () => {
-    const s = load('move-mix');
+  it('shown as saved (read as Moving): the ticks disabled, no run; without an account: the warning, the ticks live; the toast after a tick with Undo, "Put back as it was."; the problems', () => {
+    const s = moving(load('move-mix'));
     const plan = planOf(s);
     const readonly = draw(s, (st) => ({ type: A.PLANS_SET, list: st.plans.list.map((e) => ({ ...e, newer: true })), source: 'account', readAt: '14:04' }));
     expect(one(readonly.root, `${T}.readonly`)).not.toBe(null);
@@ -347,5 +375,39 @@ describe('the saver\'s rule, a plan not locked, nothing recorded, shown as saved
     const problem = draw(s, { type: A.PLAN_SAVE_FAILED, planId: plan.id, problem: 'notLocked' });
     expect(one(problem.root, `${T}.problem`).textContent).toBe(MOVE.problems.notLocked);
     expect(one(problem.root, `${T}.hold`).getAttribute('href')).toBe('#/plan/' + plan.id + '/hold');
+  });
+});
+
+describe('Living on it (7.11.1): the named states as they are — what is held, never a move', () => {
+  it('move-ladder: no Buy, Sell, tick, When, Next, totals or cost; the rungs held, each rung not held with its line of the order sheet, the lines beside them and what each is doing, the cash with the gilts maturing in the cash years; the sheet stays', () => {
+    const s = load('move-ladder');
+    const { root, text, words, view } = draw(s);
+    expect(view.mode).toBe('held');
+    for (const id of ['buy', 'sell', 'held', 'next', 'totals', 'schedule', 'cost', 'how', 'cash', 'cashInfo', 'start']) expect(one(root, `${T}.${id}`), id).toBe(null);
+    expect(all(root, 'input[type="checkbox"]').length).toBe(0);
+    expect(one(root, `${T}.heldInfo.rungs`).textContent).toBe(`${view.rungs.bought} of the ${view.rungs.total} rungs your plan still needs are held.`);
+    const rows = all(root, `[data-testid="${T}.heldInfo.rungRows"] li`);
+    expect(rows.length).toBe(view.heldInfo.rungs.rows.length);
+    expect(rows[0].textContent).toMatch(/^0 1\/8% Index-linked Treasury Gilt 2029 \(T29\), for 2029\/30, 2030\/31, 2031\/32: [\d,]+ of 37,500 units held\. The rest is rung 1 on the order sheet below\.$/);
+    const lines = all(root, `[data-testid="${T}.heldInfo.lines"] li`).map((li) => li.textContent);
+    expect(lines).toContain('1¼% Index-linked Treasury Gilt 2027 (£35,494 today): matures in November 2027 — counted toward 2027/28 in What is covered, year by year.');
+    expect(lines).toContain('Vanguard FTSE All-World (Acc) (£396,769 today): outside the plan’s mix; its value can fall.');
+    expect(one(root, `${T}.heldInfo.cash`).textContent).toMatch(/^The cash years still ahead \(2027\/28, 2028\/29\) need £[\d,]+\. Held for them: £96,625 in your pension’s cash, and £[\d,]+ at today’s prices from the gilts that mature in those years\.$/);
+    expect(one(root, `${T}.keep`).textContent).toContain('ISA — kept as it is');
+    expect(all(root, `[data-testid="${T}.sheet.table"] tbody tr`).length).toBe(14);
+    checkWords(text, words);
+  });
+  it('move-mix: the pot plan\'s mix held against the plan\'s, bucket by bucket, and where it can be tested and accepted (Your review); no Buy, Sell or run', () => {
+    const s = load('move-mix');
+    const { root, text, words, view } = draw(s);
+    expect(view.mode).toBe('held');
+    expect(view.heldInfo.kind).toBe('buckets');
+    for (const id of ['buy', 'sell', 'held', 'next', 'totals', 'schedule', 'cost', 'how']) expect(one(root, `${T}.${id}`), id).toBe(null);
+    const buckets = all(root, `[data-testid="${T}.heldInfo.buckets"] li`);
+    expect(buckets.map((li) => li.getAttribute('data-bucket'))).toEqual(view.heldInfo.buckets.map((b) => b.bucket));
+    expect(buckets[0].textContent).toMatch(/^Shares: \d+% of your pension now; your plan’s mix has \d+%\.$/);
+    expect(one(root, `${T}.heldInfo.review`).textContent).toBe(MOVE.held.review + ' ' + MOVE.held.reviewLink + '.');
+    expect(root.querySelector(`[data-testid="${T}.heldInfo.review"] a`).getAttribute('href')).toBe('#/plan/' + planOf(s).id + '/review');
+    checkWords(text, words);
   });
 });

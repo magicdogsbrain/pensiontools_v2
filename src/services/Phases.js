@@ -250,6 +250,13 @@ export const windowChosenOf = (plan) => !!(plan && isObj(plan.phases) && isObj(p
 /** The move window a stage reading carries (LifeStage.stageOf's `window`), for the readers that may not name it. */
 export const moveWindowOf = (stage) => (stage && isObj(stage.window) ? stage.window : null);
 
+/**
+ * Whether what is held is information rather than a move (7.11.1), on LifeStage.stageOf's stage: Living on it, or Moving once
+ * what is held was accepted as the plan (its `agreed`). Then "Your plan's mix" is what is held, never a list of things to buy
+ * or sell (answers/plan/move.js; the full view's Transition tab).
+ */
+export const heldPhase = (stage) => !!stage && (stage.key === 'drawing' || (stage.key === 'moving' && !!stage.agreed));
+
 // ---- the agreement ----------------------------------------------------------------------------------------------------------
 
 /**

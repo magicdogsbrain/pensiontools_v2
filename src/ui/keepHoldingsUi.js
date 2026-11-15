@@ -6,6 +6,7 @@
  */
 import { holdingsWith } from '../services/HoldingsRecord.js';
 import { gapsOf, gapsView } from '../answers/plan/gaps.js';
+import { moveOf } from '../answers/plan/move.js';
 import { keepTestOf, amendPatch, withdrawPatch, sayKeep } from '../answers/plan/keepTest.js';
 import { keepFingerprint } from '../services/PlanAmendments.js';
 import { isClosedPlan } from '../services/PlanClosed.js';
@@ -40,6 +41,20 @@ export function keepOfChoice(value, was, firstYear = null) {
 export function transitionGaps(scenario, rec, today = new Date()) {
   if (!scenario) return null;
   try { return gapsView(gapsOf({ ...scenario, holdings: rec }, { today: dayOf(today) })); } catch { return null; }
+}
+
+/**
+ * "Your plan's mix" by phase (7.11.1): V7's reading of the move (answers/plan/move.js moveOf) for the plan with this record,
+ * in the phase the plan's home reads — { mode, heldInfo, phase }. `mode` 'held' (Living on it, or Moving once what is held
+ * was accepted): the tab draws what is held as information, never Buy or Sell. Null when it cannot be read.
+ */
+export function transitionHeld(scenario, rec, today = new Date()) {
+  if (!scenario) return null;
+  try {
+    const plan = { ...scenario, holdings: rec || scenario.holdings };
+    const v = moveOf([{ plan }], plan.id, { today: dayOf(today) });
+    return v && v.found ? { mode: v.mode || null, heldInfo: v.heldInfo || null, phase: v.phase || null } : null;
+  } catch { return null; }
 }
 
 /**

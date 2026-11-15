@@ -2,7 +2,8 @@
  * "Moving to your plan's mix", without an account (research/v7/holdings-and-move.md §3, §7; road-to-7.md step 10), on the
  * PUBLISHED build. The locked gilt ladder in its run-up (corpus 03, "Sam's plan", 8 lines, 14 rungs) and the locked Buckets
  * plan with its shares line cut by a third (corpus 04, "Alex's plan", so there is something to buy and sell) are planted in
- * the window. On #/plan/<id>/move: "Optional…" on its face; the status in gilts bought equals the Node reading; the order
+ * the window — each read as Moving (7.11.1: as stored they record months, so they read Living on it, where the page is what
+ * is held and never a move; that is tried first, on the ladder as stored). On #/plan/<id>/move: "Optional…" on its face; the status in gilts bought equals the Node reading; the order
  * sheet's first rung is the document's; a Done tick writes ONE plan equal to the Node patch (move.js tickPatch — the whole
  * transition object) folded onto the planted text, the other plan byte-identical, Undo byte for byte; on the pot plan
  * "What if I keep what I hold?" runs once in the V7 worker and its headline equals the same run in Node to the pound, the
@@ -22,9 +23,21 @@ const GUEST_KEY = 'pt_guest_scenarios';
 const v7 = (hash) => PROD + V7_PATH + hash;
 const TODAY = FIXED_NOW.slice(0, 10);
 
+/**
+ * A stored plan read as Moving (7.11.1), in place: still saving, work stopping in April 2027 (inside the move window), no month
+ * recorded — the locked document as it was (as tests/v7/plan/_alex.js asMoving). Both corpus plans record months, so they read
+ * Living on it, where "Your plan's mix" is what is held and never a move; the move itself is tried on them read as Moving.
+ */
+function asMoving(raw) {
+  const s = raw.stressTool.settings;
+  s.retired = false; s.retireAge = 66; s.stoppedWork = '2027-04';
+  delete s.firstTaxYear;
+  raw.decisionTool.history = [];
+  return raw;
+}
 function plans() {
-  const sam = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8'));
-  const alex = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '04-buckets-running.json'), 'utf8'));
+  const sam = asMoving(JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8')));
+  const alex = asMoving(JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '04-buckets-running.json'), 'utf8')));
   sam.id = 'MovePlan01'; sam.planDetails.name = 'Sam’s plan'; sam.isActive = true; delete sam.household;
   alex.id = 'MoveMix02'; alex.planDetails.name = 'Alex’s plan'; alex.isActive = false; delete alex.household;
   // a third of the shares line sold into cash: shares to buy back, cash to sell down (derived here, never a new fixture)
@@ -50,6 +63,33 @@ const BANNED = /\bstrategy\b|\bscenario\b|\bwrappers?\b|\bholdings\b|\btransitio
 const T = 'plan.move';
 const FOOTER = 'Illustration, not advice. Nothing here places an order.';
 
+test.describe('"Your plan\'s mix" living on it, without an account (7.11.1)', () => {
+  test('the corpus ladder as it is (months recorded: Living on it): what is held, as Node reads it — never a Buy, a Sell, a tick or a schedule; nothing written on opening', async ({ page }) => {
+    const sam = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8'));
+    sam.id = 'LivePlan03'; sam.planDetails.name = 'Sam’s plan'; sam.isActive = true; delete sam.household;
+    const planted = await plant(page, [sam]);
+    const node = holdInNode(sam, TODAY);
+    expect(node.move.mode).toBe('held');
+    await page.goto(v7('#/plan/LivePlan03/move'));
+    await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.move');
+    await expect(page.getByTestId('plan.step.move')).toHaveText('Your plan’s mix');
+    await expect(page.locator('[data-region="plan-move"]')).toHaveAttribute('data-mode', 'held');
+    await expect(page.getByTestId(`${T}.heldInfo.rungs`)).toHaveText(`${node.move.heldInfo.rungs.held} of the ${node.move.heldInfo.rungs.total} rungs your plan still needs are held.`);
+    await expect(page.locator(`[data-testid="${T}.heldInfo.lines"] li`)).toHaveCount(node.move.heldInfo.lines.length);
+    await expect(page.getByTestId(`${T}.heldInfo.cash`)).toBeVisible();
+    for (const id of ['buy', 'sell', 'next', 'totals', 'schedule', 'cost', 'optional']) await expect(page.getByTestId(`${T}.${id}`)).toHaveCount(0);
+    await expect(page.locator('#app input[type="checkbox"]')).toHaveCount(0);
+    await expect(page.locator(`[data-testid="${T}.sheet.table"] tbody tr`)).toHaveCount(node.move.sheet);
+    await expect(page.getByTestId(`${T}.footer`)).toHaveText(FOOTER);
+    const text = await page.locator('#app').innerText();
+    expect(text).not.toMatch(BANNED);
+    expect(text).not.toMatch(/what to buy and sell|Next: (buy|sell)|Totals: buy|By [A-Z][a-z]+ \d{4}: (buy|sell)/);
+    const widths = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, win: window.innerWidth }));
+    expect(widths.doc, 'no sideways scroll').toBeLessThanOrEqual(widths.win);
+    expect(await stored(page), 'opening writes nothing').toBe(planted);
+  });
+});
+
 test.describe('"Moving to your plan\'s mix", without an account', () => {
   test('the ladder: the status, the order sheet and the lists as Node reads them; a tick writes the Node patch, Undo byte for byte; the pot plan: the one run on the held mix equals Node, nothing written', async ({ page, watch }, testInfo) => {
     test.setTimeout(600_000);
@@ -65,8 +105,8 @@ test.describe('"Moving to your plan\'s mix", without an account', () => {
     await test.step('the step: "Optional…" on its face, the status in gilts bought, the cash to hold now, Buy with a Done tick each, the order sheet\'s first rung as the document has it, "How to read this" closed, the last line; nothing written on opening', async () => {
       await page.goto(v7('#/plan/MovePlan01/move'));
       await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'plan.move');
-      // 03 records months, so it reads Drawing (7.3.1): the step goes by the mix it keeps to there, as the rail and the home name it
-      await expect(page.getByTestId('plan.step.move')).toHaveText('Your plan’s mix');
+      // read as Moving (7.11.1, asMoving above): the step goes by its full name, as the rail and the home name it there
+      await expect(page.getByTestId('plan.step.move')).toHaveText('Moving to your plan’s mix');
       await expect(page.getByTestId(`${T}.optional`)).toHaveText('Optional. Skipping it means what you hold may not match what the plan was tested on.');
       await expect(page.getByTestId(`${T}.status.line`)).toHaveText(`${node.move.rungs.bought} of ${node.move.rungs.total} gilts bought; ${node.move.progressPct}% of the plan’s mix held.`);
       await expect(page.locator(`[data-testid="${T}.buy"] tbody tr`)).toHaveCount(node.move.buy.length);

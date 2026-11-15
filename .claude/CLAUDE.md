@@ -45,7 +45,8 @@ saved-data flow, consult these first.
 - Firestore layout: `users/{uid}/scenarios/{scenarioId}` — a "scenario" is a saved plan that
   **embeds** the user's financial data (decision tool settings + dated history of real pot values,
   stress tool, budget tool). `users/{uid}/profile/settings` holds per-user preferences only
-  (`lastSeenVersion` for the once-only release-notes pop-up); it is wiped with the account.
+  (`lastSeenVersion` for the once-only release-notes pop-up, `lastLocation` for landing where you left off, `view` for
+  the view the site opens in: simple or full); it is wiped with the account.
 - Key files: `src/firebase/{config,AuthService,FirestoreService}.js`,
   `src/storage/{Scenario,Decision,Budget}Repository.js`, `src/models/Decision.js`,
   `src/services/BudgetModel.js`, `src/ui/components/AuthPanel.js`, `index.html`.

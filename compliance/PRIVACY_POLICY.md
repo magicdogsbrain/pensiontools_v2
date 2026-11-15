@@ -27,19 +27,19 @@ To use the saving features you create an account and log in. We process:
 | Tax details | allowances/bands you set, other taxable income, tax paid/projected | tax-efficient calculations | Contract |
 | Ages / dates | current/retirement/end ages; if you choose to say it, whether to use the figures for women or for men (optional: not saying uses the figures for women) | planning horizon: how long people your age are likely to live | Contract |
 | Household budget | itemised spending you enter, including any health-related, dependent or partner costs | estimate your income needs | Contract |
-| App preferences | the last version whose release notes you have seen; the plan and page you were last on (which plan and which step, no figures) | show release notes once, not every visit; open where you left off | Contract |
+| App preferences | the last version whose release notes you have seen; the plan and page you were last on (which plan and which step, no figures); which view the site opens in (simple or full) | show release notes once, not every visit; open where you left off, in the view you chose | Contract |
 
 All of the above is stored against your account in **Google Cloud Firestore**.
 
 **Storage in your browser.** The app also keeps a few small items in your browser's own storage
 (not cookies, and never sent to us): the time of your last activity (for the automatic sign-out),
 which one-off banners you have dismissed, and the last version whose release notes you have seen; and while you are
-signed in, a note that you are signed in on this browser and, for each browser window, the plan and page you were last on
+signed in, a note that you are signed in on this browser, whether you chose the full view as the one the site opens in (so it can open there at once), whether you said “Not now” when asked which view to open in, and, for each browser window, the plan and page you were last on
 (no figures), so the site can open where you left off.
 In **guest mode** ("Just try it") your plan lives only in that browser tab's session storage and is
 discarded when the tab closes; nothing is sent anywhere. Guest use is metered in this browser (a count of
 active minutes, so we can ask you to sign in after a few hours); and if you choose "keep this work" when
-signing in, the guest plan is held in this browser only until it has been copied into your account, then removed. If you keep an answer from the question pages as a plan, the figures you gave there (including any spending lines) are held in this browser until the plan is made and are never used after a day: they are deleted when the plan is made, when you choose "Not now", when you sign out, "Reset" or "Delete Account", and otherwise the next time you open PensionTools after that day; they are never put in the page address. When you move from a plan's pages to the classic planner, this browser tab notes which plan and page to open; the note holds no figures and is gone once it is used. Signing out, "Reset" and "Delete Account"
+signing in, the guest plan is held in this browser only until it has been copied into your account, then removed. If you keep an answer from the question pages as a plan, the figures you gave there (including any spending lines) are held in this browser until the plan is made and are never used after a day: they are deleted when the plan is made, when you choose "Not now", when you sign out, "Reset" or "Delete Account", and otherwise the next time you open PensionTools after that day; they are never put in the page address. When you move from the simple view to the full view, this browser tab notes which plan and page to open; the note holds no figures and is gone once it is used. Signing out, "Reset" and "Delete Account"
 clear these items. What you type on the question pages, including any spending lines you work out
 there, and whether a plan was made from it (with the name it was saved under), is kept only in that browser
 tab's session storage and is discarded when the tab closes; nothing is sent anywhere. We do **not** sell

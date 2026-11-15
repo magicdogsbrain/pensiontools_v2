@@ -193,9 +193,13 @@ delete call sites).
   rule (`firestore.rules`: `email_verified`) and the plan source's own (`planSource.js`: no read for 'unverified'); "I've
   confirmed" reloads the user and refreshes the ID token (`AuthService.reloadCurrentUser`'s rule) before the plans are read.
 - **The account's settings document** (`users/{uid}/profile/settings`, the App-preferences category): read once per sign-in
-  with `getDocs` of the profile collection, into page memory only (`ui.profile`); written by the account effect's one
-  `updateDoc` with `lastSeenVersion` when a release's notes are dismissed or read (`src/v7/effects/whatsNew.js`); a document
-  that does not exist is left alone (no `setDoc` anywhere the preview can reach).
+  with `getDocs` of the profile collection, into page memory only (`ui.profile`, let go at sign-out); written only by the
+  account effect's one `setDoc`, merged (`src/v7/effects/account.js` `writeSettings`; made when there is none yet), with
+  `lastSeenVersion` (a release's notes dismissed or read, `src/v7/effects/whatsNew.js`), `lastLocation` (the plan and step
+  last open, no figures, `src/v7/effects/place.js`) and `view` (`'simple'` or `'full'`, chosen on Your account or the strip
+  only, 7.11.0). Nothing is written when a page or a plan is opened. This browser keeps a copy of a `'full'` choice
+  (`localStorage pt_view`) and the strip's "Not now" (`pt_view_asked`), named only in `src/v7/effects/view.js`; both go at
+  a sign-out in either view (the full view's: `src/ui/viewNotes.js`) and with the account's deletion.
 - **Deletion** (`account.js` `remove`, after two confirms the reducer insists on: `src/v7/state/reduce.js` `account/ask`):
   exactly what `FirestoreService.wipeAllUserData` wipes, one document at a time — every `users/{uid}/scenarios/{id}` (read
   again first), `users/{uid}/profile/settings`, every `fundSuggestions` row whose `uid` is the person's (a query; an older rule

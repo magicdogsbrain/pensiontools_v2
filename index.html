@@ -5294,7 +5294,7 @@
               await initializeAllInputsFromSettings();
             window._holdingsDraft = null; window._holdingsDraftFor = null; window._transitionLast = null;   // never carry one plan's holdings draft into another (6.13.0)
             try { const nowTab = document.querySelector('.tab.active'); if (nowTab && nowTab.dataset.tab === 'transition') await loadTransitionUI(); } catch (e) { /* view optional */ }
-              await renderScenarioSelector();
+              await renderScenarioSelector(); updateNextStepBanner();   // deleting the open plan opens another: the banner and the way back to the simple view follow it (7.11.0)
             } catch (error) {
               console.error('Error deleting scenario:', error);
               showToast('Failed to delete plan: ' + error.message, 'error');

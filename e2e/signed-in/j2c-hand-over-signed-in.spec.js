@@ -345,7 +345,7 @@ test.describe('the full view as the usual view', () => {
     await staysInSimple(page);
   });
 
-  test('T5: the full view opens the plan this window last opened there; its plan menu moves the banner and the way back with it', async ({ page }) => {
+  test('T5: the full view opens the plan this window last opened there; its plan menu moves the banner and the way back with it, on a switch and on deleting the open plan', async ({ page }) => {
     const uid = await signedInWith(page, [drawingPlan(), freshPlan()]);
     await choose(page, uid, 'full');
     await page.goto(PROD + V7_PATH + `#/plan/${FRESH_ID}`);
@@ -364,6 +364,15 @@ test.describe('the full view as the usual view', () => {
     await page.locator(`.scenario-dropdown-item[data-scenario-id="${DRAW_ID}"] .scenario-item-name`).dispatchEvent('click');
     await expect(page.locator('#scenarioActiveName')).toHaveText('Alex’s plan', { timeout: 45_000 });
     await expect.poll(() => back.getAttribute('href'), { timeout: 30_000 }).toMatch(new RegExp(`#/plan/${DRAW_ID}$`));
+
+    // deleting the open plan from the same menu opens the other, with no reload: the way back follows it, never the plan
+    // that is gone (which the simple view would draw as a plan it cannot find)
+    await page.evaluate(() => document.getElementById('scenarioActiveBtn').click());
+    await page.locator(`.scenario-delete-btn[data-id="${DRAW_ID}"]`).dispatchEvent('click');
+    await page.getByRole('button', { name: 'OK', exact: true }).click();
+    await expect(page.locator('#scenarioActiveName')).toHaveText('Alex’s other plan', { timeout: 45_000 });
+    await expect.poll(async () => (await plansOf(uid)).map((p) => p.id), { timeout: 15_000 }).toEqual([FRESH_ID]);
+    await expect.poll(() => back.getAttribute('href'), { timeout: 30_000 }).toMatch(new RegExp(`#/plan/${FRESH_ID}$`));
   });
 
   test('T6: a browser with no signed-in note opens the simple view\'s front door until a plan page there reads the account; then the root follows the choice', async ({ page }) => {

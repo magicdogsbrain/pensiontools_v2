@@ -183,4 +183,19 @@ describe('index.html: the banner is the module\'s', () => {
     expect(ui).toContain('homeOf(');
     expect(fn + ui).not.toContain('set up the monthly Decision Tool');
   });
+  // 7.11.0: the banner sets the way back to the simple view (#classicToSimple) to the plan that is open, so every way the
+  // plan menu changes the open plan without a reload redraws it — a switch, and a delete of the open plan (which opens
+  // another: ScenarioRepository.deleteScenario); before, a delete left the way back on the plan that was gone
+  it('the plan menu redraws the banner after a switch and after a delete, once the menu is drawn again', () => {
+    const block = (from, to) => { const a = html.indexOf(from); const b = html.indexOf(to, a + from.length); expect(a, from).toBeGreaterThan(-1); expect(b, to).toBeGreaterThan(a); return html.slice(a, b); };
+    const redraw = /await renderScenarioSelector\(\); updateNextStepBanner\(\);/;
+    const switching = block('// Click to switch scenario', '// Rename buttons');
+    expect(switching).toContain('await switchScenario(id);');
+    expect(switching).toMatch(redraw);
+    expect(switching.indexOf('await switchScenario(id);')).toBeLessThan(switching.search(redraw));
+    const deleting = block('// Delete buttons', 'showToast(\'Failed to delete plan: \'');
+    expect(deleting).toContain('await deleteScenario(id);');
+    expect(deleting).toMatch(redraw);
+    expect(deleting.indexOf('await deleteScenario(id);')).toBeLessThan(deleting.search(redraw));
+  });
 });

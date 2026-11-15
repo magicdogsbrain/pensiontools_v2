@@ -299,7 +299,10 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
     }
     if (from.ages && S(['statePension', 'spWeeklyAmount', 'spStartDate'])) { inputs.you.statePension = b.you.statePension; from.statePension = true; }
     if (from.ages && S(['dbAmount', 'dbStartYear', 'dbStartAge', 'shapeAgeNow'])) { inputs.you.finalSalary = b.you.finalSalary; from.finalSalary = true; }
-    if (noHoldings && S(['equityMin', 'bondMin', 'cashTarget']) && A(['savingMix'])) { inputs.risk = b.risk; inputs.savingRisk = b.savingRisk; env = {}; from.mix = true; }
+    // the mix: the answer's levels while the plan still holds the mixes it was kept with — but a saving level the person
+    // chose since (phases.saving.strategy.level, savingPathMixes `fromLevel`) is the saving years' level, as the check-in's
+    // path and the lock's path read it: one mix for the path and the verdict
+    if (noHoldings && S(['equityMin', 'bondMin', 'cashTarget']) && A(['savingMix'])) { inputs.risk = b.risk; inputs.savingRisk = mixes.fromLevel || b.savingRisk; env = {}; from.mix = true; }
     if (noRecords && noHoldings && S(['isaBalance']) && A(['isaMonthly'])) { inputs.savings = b.savings; inputs.savingsIn = b.savingsIn; from.savings = true; }
     if (S(['chargesPct'])) inputs.charge = b.charge;
     if (S(['isaGrowth'])) { if (b.isaGrowth !== undefined) inputs.isaGrowth = b.isaGrowth; else delete inputs.isaGrowth; }

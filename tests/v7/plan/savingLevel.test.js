@@ -58,6 +58,32 @@ describe('the saving level the person chose decides the saving mix; nothing deri
     expect(read1.inputs.you).toEqual(read0.inputs.you);
   });
 
+  it('a plan kept from answer B: a level chosen since is the verdict\'s saving level too, as the path reads it; with none, B\'s own', async () => {
+    const { answerB } = await import('../../../src/answers/b/answer.js');
+    const { buildPlanSeed } = await import('../../../src/answers/keep/planSeed.js');
+    const { seedToScenario } = await import('../../../src/services/PlanFromSeed.js');
+    const { upgradeScenario } = await import('../../../src/firebase/scenarioMigration.js');
+    const KEPT_ON = '2026-11-04';
+    const ENV = { today: KEPT_ON, futures: 100, seed: 0, detail: 'answer' };
+    const b = { household: 'single', you: { pot: 62000, age: 41, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'total', total: 417.07 } }, stop: { age: 63 }, spend: { kind: 'amount', amount: 1810 }, endAge: 95, savingRisk: 'balanced', risk: 'balanced' };
+    const seed = buildPlanSeed({ source: 'b', result: answerB(b, ENV), env: { today: KEPT_ON, appVersion: 'test' }, name: 'Sam saving', createdAt: KEPT_ON + 'T10:00:00.000Z', payIn: 'now' });
+    const made = seedToScenario(seed, KEPT_ON).yours; made.id = 'SamSaving01';
+    const plan = upgradeScenario(copy(made), { now: noon(KEPT_ON) }).scenario;
+    const r0 = saverInputsOf(plan, { today: KEPT_ON });
+    expect(r0.inputs.savingRisk).toBe('balanced');
+    expect(r0.env).toEqual({});
+    const chose = { ...plan, ...phasesPatch(plan, 'saving.level', 'adventurous', { at: KEPT_ON + 'T12:00:00.000Z' }) };
+    const r1 = saverInputsOf(chose, { today: KEPT_ON });
+    expect(r1.inputs.savingRisk).toBe('adventurous');
+    expect(r1.inputs.risk).toBe(r0.inputs.risk);   // the mix at the stop stays the answer's
+    const ss = effectiveStressSettings(chose, { now: noon(KEPT_ON) });
+    const path = savingPathMixes(ss, null, chose.accumulationTool.settings, chose.phases);
+    expect(path.fromLevel).toBe('adventurous');
+    expect(RISK_PRESETS[r1.inputs.savingRisk].equity).toBeCloseTo(path.saving.equity, 12);
+    // the verdict moves with it
+    expect(answerB(r1.inputs, { ...ENV, ...r1.env }).chance.fails).not.toBe(answerB(r0.inputs, { ...ENV, ...r0.env }).chance.fails);
+  });
+
   it('a path drawn for a lock reads the stored level; with none it is drawn as before', () => {
     const raw = copy(C['10-couple-b']);
     const plan = entryOf(raw).plan;

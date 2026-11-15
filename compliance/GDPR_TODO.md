@@ -198,8 +198,10 @@ delete call sites).
   `lastSeenVersion` (a release's notes dismissed or read, `src/v7/effects/whatsNew.js`), `lastLocation` (the plan and step
   last open, no figures, `src/v7/effects/place.js`) and `view` (`'simple'` or `'full'`, chosen on Your account or the strip
   only, 7.11.0). Nothing is written when a page or a plan is opened. This browser keeps a copy of a `'full'` choice
-  (`localStorage pt_view`) and the strip's "Not now" (`pt_view_asked`), named only in `src/v7/effects/view.js`; both go at
-  a sign-out in either view (the full view's: `src/ui/viewNotes.js`) and with the account's deletion.
+  (`localStorage pt_view`) and the strip's "Not now" (`pt_view_asked`), set in `src/v7/effects/view.js`; the full view's
+  sign-in sets the copy and the signed-in note again only when the account says `'full'` (`src/ui/viewNotes.js`
+  `followViewChoice`, from the settings it already reads), and otherwise sets neither. Both go at a sign-out in either
+  view (the full view's: `src/ui/viewNotes.js`) and with the account's deletion.
 - **Deletion** (`account.js` `remove`, after two confirms the reducer insists on: `src/v7/state/reduce.js` `account/ask`):
   exactly what `FirestoreService.wipeAllUserData` wipes, one document at a time — every `users/{uid}/scenarios/{id}` (read
   again first), `users/{uid}/profile/settings`, every `fundSuggestions` row whose `uid` is the person's (a query; an older rule

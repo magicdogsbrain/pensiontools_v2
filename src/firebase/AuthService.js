@@ -19,7 +19,7 @@ import {
   browserPopupRedirectResolver
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from './config.js';
-import { clearSimpleViewNotes } from '../ui/viewNotes.js';
+import { clearSimpleViewNotes, followViewChoice } from '../ui/viewNotes.js';
 
 // Google auth provider
 const googleProvider = new GoogleAuthProvider();
@@ -204,6 +204,20 @@ export async function logOut() {
 
   await signOut(auth);
   clearSimpleViewNotes();
+}
+
+/**
+ * The full view's sign-in, once the account's settings are read (index.html effectiveSeen: the one read per sign-in, by
+ * the user who was signed in when it started): the simple view's notes follow the account's choice of view
+ * (src/ui/viewNotes.js followViewChoice), so someone whose account says the full view keeps finding it at the site's
+ * address after signing out and in again here. Only while that same person is still signed in: a read that lands after
+ * a sign-out, or after someone else has signed in, changes nothing; a guest has no account to follow.
+ * @param {object|null} profile   the settings document as read (null: none, or the read failed)
+ * @param {object|null} who       the user signed in when the read started
+ */
+export function viewNotesAtSignIn(profile, who) {
+  if (!who || who.isGuest || !currentUser || currentUser.isGuest || currentUser.uid !== who.uid) return;
+  followViewChoice(profile);
 }
 
 /**

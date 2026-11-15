@@ -4275,7 +4275,7 @@
     import { deleteHistoryRecord, getStatePensionForTaxYear } from './src/storage/DecisionRepository.js';
 
     // Import auth helpers and data check
-    import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange } from './src/firebase/index.js';
+    import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange, viewNotesAtSignIn } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
     import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js';
@@ -5110,7 +5110,7 @@
       let seen = localSeen();
       if (!isGuest()) {
         try {
-          const prof = await loadUserProfile();
+          const who = getCurrentUser(), prof = await loadUserProfile(); viewNotesAtSignIn(prof, who);   // the account's choice of view, read: this browser's notes follow it (7.11.0, src/ui/viewNotes.js)
           const remote = (prof && prof.lastSeenVersion) || '';
           if (compareVersions(remote, seen) > 0) { seen = remote; setLocalSeen(seen); }
           else if (seen && compareVersions(seen, remote) > 0) saveUserProfile({ lastSeenVersion: seen });   // guest who signed up: carry it over

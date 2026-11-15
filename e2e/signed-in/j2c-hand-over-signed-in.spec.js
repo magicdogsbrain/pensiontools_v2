@@ -10,13 +10,13 @@
  * Before 7.1.0 the new app kept its sign-in under a Firebase app of its own name, which the classic planner never reads:
  * every one of these opened the classic planner as if nobody were signed in (the first test here failed so on 7.0.0).
  * And (7.11.0) the full view as the usual view: chosen on Your account or the strip, the site's root opens it before
- * anything is drawn, "Back to the simple view" stays, and a sign-out in either view leaves the root on the front door
- * (T1–T6 below).
+ * anything is drawn, "Back to the simple view" stays, a sign-out in either view leaves the root on the front door, and
+ * signing in again in the full view brings the choice back (T1–T7 below).
  * Run against the local emulators (e2e/signed-in/emulator.js), at desktop-1440 and phone-390.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_TITLE, atClassic, WORKER_DATA_MISSING } from '../helpers/app.js';
+import { test, expect, PROD, REPO, FIXED_NOW, V7_PATH, CLASSIC_PATH, CLASSIC_TITLE, atClassic, WORKER_DATA_MISSING } from '../helpers/app.js';
 import { clearEmulators, makeAccount, putPlan, putSettings, settingsOf, plansOf, ALEX } from './emulator.js';
 import { VERSION } from '../../src/constants.js';
 import { SCHEMA_VERSION } from '../../src/storage/schema.js';
@@ -378,7 +378,8 @@ test.describe('the full view as the usual view', () => {
   test('T6: a browser with no signed-in note opens the simple view\'s front door until a plan page there reads the account; then the root follows the choice', async ({ page }) => {
     const uid = await signedInWith(page, [drawingPlan()]);
     await choose(page, uid, 'full');
-    // as in a browser that has only seen Alex signed in in the full view
+    // as in a browser where Alex signed in before choosing the full view on another device, and has not opened either
+    // view here since (each reads the account when it opens: the full view at its sign-in, T7)
     await page.evaluate(() => { localStorage.removeItem('pt_v7_signed_in'); localStorage.removeItem('pt_view'); });
     await page.goto(PROD + V7_PATH);
     await expect(screen(page)).toHaveAttribute('data-screen', 'front', { timeout: 30_000 });
@@ -390,4 +391,50 @@ test.describe('the full view as the usual view', () => {
     await page.waitForURL((u) => atClassic(u.href));
     await classicSignedIn(page);
   });
+
+  test('T7: signing out and in again in the full view keeps the choice of the full view at the site\'s root; for someone who never chose, the root stays the front door', async ({ page }) => {
+    const uid = await signedInWith(page, [drawingPlan()]);
+    await choose(page, uid, 'full');
+    await page.goto(PROD + V7_PATH);
+    await classicSignedIn(page);
+    // the header's Sign Out (as the hour-idle sign-out does): the notes go, and the full view asks for a sign-in
+    await page.evaluate(() => document.getElementById('logoutBtn').click());
+    await expect(page.locator('#signinForm')).toBeVisible({ timeout: 30_000 });
+    for (const key of ['pt_v7_signed_in', 'pt_view']) await expect.poll(() => stored(page, key), { message: key }).toBe(null);
+    await classicSignIn(page);
+    // the account's settings, read at the full view's sign-in, put the notes back
+    await expect.poll(() => stored(page, 'pt_v7_signed_in'), { timeout: 30_000 }).toBe('1');
+    await expect.poll(() => stored(page, 'pt_view'), { timeout: 30_000 }).toBe('full');
+    expect(((await settingsOf(uid)) || {}).view).toBe('full');
+    await page.goto(PROD + V7_PATH);
+    await classicSignedIn(page);
+    await expect(page.locator('#openPlaceNote')).toHaveCount(0);
+  });
+
+  test('T7b: someone who never chose a view: signing in in the full view sets no note, and the root is the simple view\'s front door, as in 7.10.0', async ({ page }) => {
+    const uid = await signedInWith(page, [drawingPlan()]);
+    await page.goto(PROD + CLASSIC_PATH);
+    await classicSignedIn(page);
+    await page.evaluate(() => document.getElementById('logoutBtn').click());
+    await expect(page.locator('#signinForm')).toBeVisible({ timeout: 30_000 });
+    await expect.poll(() => stored(page, 'pt_v7_signed_in')).toBe(null);
+    // the settings read at the sign-in also brings the release notes read up to this browser: the sign that it has run
+    await page.evaluate(() => localStorage.removeItem('pt_lastSeenVersion'));
+    await classicSignIn(page);
+    await expect.poll(() => stored(page, 'pt_lastSeenVersion'), { timeout: 30_000 }).toBe(VERSION);
+    expect(await stored(page, 'pt_v7_signed_in')).toBe(null);
+    expect(await stored(page, 'pt_view')).toBe(null);
+    expect(((await settingsOf(uid)) || {}).view).toBe(undefined);
+    await page.goto(PROD + V7_PATH);
+    await expect(screen(page)).toHaveAttribute('data-screen', 'front', { timeout: 30_000 });
+    await staysInSimple(page);
+  });
 });
+
+/** The full view's own sign-in screen, as Alex: on to its main app. */
+async function classicSignIn(page) {
+  await page.locator('#signinEmail').fill(ALEX.email);
+  await page.locator('#signinPassword').fill(ALEX.password);
+  await page.locator('#signinForm button[type="submit"]').click();
+  await classicSignedIn(page);
+}

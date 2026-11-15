@@ -181,6 +181,16 @@ function LivingReview({ V, dispatch }) {
   );
 }
 
+/**
+ * What is typically left, in the result's words: the middle of every future tried, or that more than half have nothing left
+ * then; beside the reference's figure on a held result.
+ */
+function leftWords(R, res, slots) {
+  const held = res.id === 'held' || res.id === 'heldFixed';
+  if (res.left === 'none') return held && slots.refLeft ? R.heldLeftNone : R.leftNone;
+  return held && slots.refLeft ? R.heldLeft : R.left;
+}
+
 /** The run: its button on a press, its progress, and what it worked out (held for this page, for these inputs only). */
 function Run({ V, dispatch }) {
   const run = V.run;
@@ -203,7 +213,7 @@ function Run({ V, dispatch }) {
       {res.status === 'done' && res.id !== 'na' && (
         <div class="review-result" data-testid={`${T}.run.result`} data-result={res.id}>
           <p data-testid={`${T}.run.line`}>{fill(R[res.id], slots)}</p>
-          {res.left && <p class="note" data-testid={`${T}.run.left`}>{fill(res.id === 'held' || res.id === 'heldFixed' ? (slots.refLeft ? W.moving.result.heldLeft : W.moving.result.left) : R.left, slots)}</p>}
+          {res.left && <p class="note" data-testid={`${T}.run.left`} data-left={res.left}>{fill(leftWords(R, res, slots), slots)}</p>}
           <p class="note">{W.run.kept}</p>
         </div>
       )}
@@ -218,10 +228,12 @@ function Agreement({ V, dispatch, open }) {
   const A = W.agreement;
   const name = (id) => PLAN.strategies[id] || id || '';
   const clauses = G.confirm ? fill(A[G.confirm.id], G.confirm.slots) : '';
+  // of what is held, or (no pension record) of the plan as it stands: the words never say "what you hold" of nothing recorded
+  const asItStands = G.of === 'asItStands';
   return (
     <section class="plan-section review-agreement" data-section="agreement" data-testid={`${T}.agreement`} data-status={G.status} data-how={G.how || undefined}>
-      <h2>{A.title}</h2>
-      {G.accepted && <p data-testid={`${T}.agreement.accepted`}>{fill(A[G.accepted.id], G.accepted.slots)}</p>}
+      <h2>{asItStands ? A.titleAsItStands : A.title}</h2>
+      {G.accepted && <p data-testid={`${T}.agreement.accepted`}>{fill(A[G.accepted.id], { ...G.accepted.slots, what: A.what[G.of] || A.what.held })}</p>}
       {G.stale && <p class="notice" role="status" data-testid={`${T}.agreement.stale`} data-why={G.stale.why}>{fill(A.stale[G.stale.why] || A.stale.version, { date: G.stale.date, old: name(G.stale.old), now: name(G.stale.now) })}</p>}
       {G.canAccept && !open && (
         <div class="actions-row">
@@ -231,7 +243,7 @@ function Agreement({ V, dispatch, open }) {
       )}
       {G.canAccept && open && (
         <div class="confirm" role="group" data-testid={`${T}.agreement.confirm`}>
-          <p>{fill(A.confirm, { clauses })}</p>
+          <p>{fill(asItStands ? A.confirmAsItStands : A.confirm, { clauses })}</p>
           <div class="actions-row">
             <Button testid={`${T}.agreement.yes`} kind="primary" disabled={!!V.saving} onClick={() => dispatch({ type: 'plan/agree', planId: V.id })} {...keepFocus}>{A.yes}</Button>
             <Button testid={`${T}.agreement.no`} kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'agreeConfirm' })} {...keepFocus}>{A.no}</Button>
@@ -260,6 +272,7 @@ const toastText = (toast) => {
   if (line.id === 'phase.review.every') return fill(W.toast.every, { every: String(W.every.options[v] || v).toLowerCase() });
   if (line.id === 'phase.review.rule') return W.toast.rule;
   if (line.id === 'agreed') return W.toast.agreed;
+  if (line.id === 'agreedAsItStands') return W.toast.agreedAsItStands;
   if (line.id === 'agreeWithdrawn') return W.toast.agreeWithdrawn;
   return W.toast.unchanged;
 };

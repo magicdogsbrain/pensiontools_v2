@@ -251,6 +251,54 @@ describe('the page and the plan write', () => {
     expect(writes[1].data.planAmendments).toEqual([]);
     stop();
   });
+
+  it('with nothing recorded the words say the plan as it stands was accepted, never "what you hold"; nothing left is said as nothing', async () => {
+    const raw = copy(C['19-back-to-work-saving']);
+    delete raw.holdings;
+    const writes = [];
+    const fb = { doc: (db, ...path) => ({ path: path.join('/') }), updateDoc: (ref, data) => { writes.push({ ref, data }); return Promise.resolve(); }, addDoc: () => Promise.resolve({ id: 'x' }), deleteDoc: () => Promise.resolve(), collection: () => ({}) };
+    const store = createStore(initialState({ today: DAY, build: 'test' }), reduce);
+    store.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'a@b.c' } });
+    store.dispatch({ type: A.PLANS_SET, list: upgradedList([raw], noon(DAY)), source: 'account', readAt: '14:03' });
+    const go = (hash) => { store.dispatch({ type: A.ROUTE_SET, route: parse(hash) }); store.dispatch({ type: A.PLANS_VIEW, view: viewFor(store.getState()) }); };
+    const handles = () => ({ db: { name: 'db' }, user: { uid: 'u1', email: 'a@b.c', emailVerified: true }, reread: () => Promise.resolve() });
+    const stop = startPlanWrite(store, { session: null, local: null, now: () => new Date(DAY + 'T14:03:00.000Z'), fb, client: null, handles });
+    go('#/plan/' + raw.id + '/review');
+    const plan = store.getState().plans.list[0].plan;
+    const R = reviewOf([{ plan, newer: false, failed: false }], plan.id, { today: DAY });
+    expect(R.run.rows).toEqual(['asPlanned']);
+    const held = { key: R.run.key, planId: String(plan.id), status: 'done', order: ['asPlanned'], rows: { asPlanned: rowResult(plan, DAY, { weighted: 0.55, left: 0 }) }, pots: null, reason: null };
+    store.dispatch({ type: A.REVIEW_RUN, key: held.key, planId: held.planId, rows: held.order, pots: null });
+    store.dispatch({ type: A.REVIEW_DONE, key: held.key, row: 'asPlanned', result: held.rows.asPlanned });
+    store.dispatch({ type: A.PLANS_VIEW, view: viewFor(store.getState()) });
+    expect(store.getState().plans.view.page.review.agreement).toMatchObject({ canAccept: true, howNow: 'nothing', of: 'asItStands' });
+    const draw = (state) => { const root = document.createElement('div'); render(h(App, { state, dispatch: () => {} }), root); return root; };
+    // the result: more than half the futures have nothing left, said as that (never "typically £0", never "where it lasts")
+    const r0 = draw(store.getState());
+    expect(r0.querySelector('[data-testid="plan.review.run.left"]').textContent).toBe('In more than half the futures nothing is left at 95.');
+    store.dispatch({ type: A.UI_TOGGLE, id: 'agreeConfirm' });
+    const r1 = draw(store.getState());
+    const sect = r1.querySelector('[data-testid="plan.review.agreement"]').textContent;
+    expect(sect).toContain('Your plan as it stands');
+    expect(sect).toContain('You are saying you have seen what the money does with your plan as it stands');
+    expect(sect).not.toContain('what you hold');
+    store.dispatch({ type: A.PLAN_AGREE, planId: String(raw.id) });
+    await tick();
+    expect(writes).toHaveLength(1);
+    expect(writes[0].data.phases.moving.agreed).toMatchObject({ how: 'nothing', heldPct: null });
+    expect(store.getState().ui.toast).toMatchObject({ op: 'agree', line: { id: 'agreedAsItStands' } });
+    const stored = { ...raw, phases: writes[0].data.phases, planAmendments: writes[0].data.planAmendments };
+    store.dispatch({ type: A.PLAN_TOAST_CLOSE });
+    store.dispatch({ type: A.PLANS_SET, list: upgradedList([stored], noon(DAY)), source: 'account', readAt: '14:04' });
+    go('#/plan/' + raw.id + '/review');
+    expect(store.getState().plans.view.page.review.agreement).toMatchObject({ status: 'agreed', of: 'asItStands', accepted: { id: 'acceptedNoneLeft' } });
+    const r2 = draw(store.getState()).querySelector('[data-testid="plan.review.agreement.accepted"]').textContent;
+    expect(r2).toMatch(/^On 2 October 2026 you accepted your plan as it stood, when the money lasted as long as you do .+; in more than half the futures nothing was left at 95\.$/);
+    // the home says the same
+    const home = homeOf([{ plan: entryOf(stored, DAY).plan, newer: false, failed: false }], raw.id, { today: DAY });
+    expect(home.moveWindow).toMatchObject({ id: 'agreedAsItStands' });
+    stop();
+  });
 });
 
 describe('the home\'s drift line rests while what is held stands accepted', () => {

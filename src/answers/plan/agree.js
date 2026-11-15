@@ -142,6 +142,9 @@ export function agreementViewOf(plan, R, { today } = {}) {
   if (R.phase !== 'moving' && st.status === 'none') return null;
   const res = R.result || { status: 'idle' };
   const ran = res.status === 'done' && res.id !== 'na' && res.slots;
+  // what an agreement made now would be of: what is held, or (no pension record to read) the plan as it stands — the words
+  // never say "what you hold" of a plan that records nothing
+  let howNow = null; try { howNow = howOf(plan, { today }).how; } catch { howNow = null; }
   const canAccept = R.phase === 'moving' && R.editable && !!ran && st.status !== 'agreed';
   const confirm = ran ? (res.slots.chance
     ? { id: 'clauses', slots: { chance: res.slots.chance, age: res.slots.age, fixed: res.slots.fixed } }
@@ -151,11 +154,15 @@ export function agreementViewOf(plan, R, { today } = {}) {
     const r = st.entry && isObj(st.entry.result) ? st.entry.result : null;
     const date = dayWords(st.agreed.at);
     const age = r && Number.isFinite(r.planToAge) ? String(r.planToAge) : '';
+    // what is typically left, the middle of every future tried: nothing in more than half of them is said as that
+    const left = r && r.leftMedian != null ? (r.leftMedian > 0 ? 'some' : 'none') : null;
     accepted = r && Number.isFinite(r.chance)
-      ? { id: r.leftMedian != null ? 'accepted' : 'acceptedNoLeft', slots: { date, chance: chanceWords(r.chance), age, left: r.leftMedian != null ? pounds(Math.round(Math.max(0, r.leftMedian) / 1000) * 1000) : '' } }
+      ? { id: left === 'some' ? 'accepted' : left === 'none' ? 'acceptedNoneLeft' : 'acceptedNoLeft', slots: { date, chance: chanceWords(r.chance), age, left: left === 'some' ? pounds(Math.round(r.leftMedian / 1000) * 1000) : '' } }
       : r ? { id: 'acceptedFixed', slots: { date, age, fixed: twentiethsOfFutures(Number.isFinite(r.fixedAge) ? r.fixedAge : 0) } }
         : { id: 'acceptedPlain', slots: { date } };
   }
   const stale = st.status === 'stale' ? { why: st.why, date: dayWords(st.agreed.at), old: st.agreed.strategyId, now: st.strategyNow || null } : null;
-  return { status: st.status, how: st.agreed ? st.agreed.how : null, canAccept, confirm, accepted, stale, withdrawable: !!st.agreed && R.editable };
+  // what the words say it was of: the agreement's own, else the one that would be made now
+  const of = (st.agreed ? st.agreed.how : howNow) === 'nothing' ? 'asItStands' : 'held';
+  return { status: st.status, how: st.agreed ? st.agreed.how : null, howNow, of, canAccept, confirm, accepted, stale, withdrawable: !!st.agreed && R.editable };
 }

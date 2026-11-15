@@ -320,6 +320,12 @@ export function documentReadingOf(plan) {
 }
 
 const poundsK = (v) => pounds(Math.round(Math.max(0, num(v)) / 1000) * 1000);
+/**
+ * What is typically left, in words: the middle of every future tried (the median, never of only the futures where the money
+ * lasts), to the nearest £1,000 (a figure under £500, to the pound); `leftNone` when it is nothing — more than half the
+ * futures then have nothing left, and the words say that (as question B's do).
+ */
+const leftOf = (v) => (isNum(v) && v > 0 ? { left: v >= 500 ? poundsK(v) : pounds(Math.round(v)), leftNone: false } : { left: null, leftNone: isNum(v) });
 /** A run's figures in words: the chance counting how long people live, the fixed-age count and its age, what is typically left. */
 function figuresOf(result) {
   const a = result && !result.na && isObj(result.a) ? result.a : null;
@@ -329,7 +335,7 @@ function figuresOf(result) {
     chance: isNum(a.weighted) && a.weighted !== null ? chanceWords(a.weighted, { sumW: a.sumW, n: a.n }) : null,
     fixed: twentiethsOfFutures(share),
     age: isNum(a.planToAge) ? String(Math.round(a.planToAge)) : '',
-    left: isNum(a.typicalLeft) ? poundsK(a.typicalLeft) : null
+    ...leftOf(a.typicalLeft)
   };
 }
 
@@ -348,12 +354,14 @@ function resultOf(R, held) {
   if (!me) return { status: 'done', id: 'na' };
   if (R.phase === 'moving' && run.rows.includes('whole')) {
     const ref = figuresOf(held.rows.asPlanned);
-    return { status: 'done', id: me.chance ? 'held' : 'heldFixed', slots: { ...me, ref: ref ? ref.chance || ref.fixed : '', refFixed: ref ? ref.fixed : '', refLeft: ref && ref.left ? ref.left : '' }, left: !!me.left };
+    return { status: 'done', id: me.chance ? 'held' : 'heldFixed', slots: { ...me, ref: ref ? ref.chance || ref.fixed : '', refFixed: ref ? ref.fixed : '', refLeft: ref ? ref.left || (ref.leftNone ? pounds(0) : '') : '' }, left: leftKind(me) };
   }
-  if (R.phase === 'moving') return { status: 'done', id: me.chance ? 'asPlanned' : 'asPlannedFixed', slots: me, left: !!me.left };
+  if (R.phase === 'moving') return { status: 'done', id: me.chance ? 'asPlanned' : 'asPlannedFixed', slots: me, left: leftKind(me) };
   const on = R.living && R.living.entered && R.living.entered.pots ? 'entered' : R.living && R.living.start.potsFrom === 'record' ? 'recorded' : 'plan';
-  return { status: 'done', id: me.chance ? 'today' : 'todayFixed', on, slots: me, left: !!me.left };
+  return { status: 'done', id: me.chance ? 'today' : 'todayFixed', on, slots: me, left: leftKind(me) };
 }
+/** Which "left" line a result says: 'some' (typically £…), 'none' (more than half the futures have nothing left), or null. */
+const leftKind = (me) => (me.left ? 'some' : me.leftNone ? 'none' : null);
 
 // ---- the page -------------------------------------------------------------------------------------------------------------
 

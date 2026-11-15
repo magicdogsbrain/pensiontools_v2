@@ -93,6 +93,7 @@ export const HOME = {
     moving: 'In your move window: {left} left, to {stop}.',
     movingNoRecord: 'In your move window: {left} left, to {stop}. You can record what you hold when you like.',
     agreed: 'You accepted what you hold on {date}. You stop work in {stop}.',
+    agreedAsItStands: 'You accepted your plan as it stands on {date}. You stop work in {stop}.',
     saving: 'Your move window opens in {from}.'
   },
 

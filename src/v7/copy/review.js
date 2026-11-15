@@ -57,10 +57,12 @@ export const REVIEW = {
     result: {
       held: 'With what you hold, counting how long people your age live, the money lasts as long as you do {chance} (as planned: {ref}). If you live to {age}, it lasts that long {fixed}.',
       heldFixed: 'With what you hold, if you live to {age}, the money lasts that long {fixed} (as planned: {refFixed}).',
-      heldLeft: 'Where it lasts, typically {left} is left at {age} (as planned: {refLeft}).',
+      heldLeft: 'Typically {left} is left at {age} (as planned: {refLeft}).',
+      heldLeftNone: 'In more than half the futures nothing is left at {age} (as planned: {refLeft}).',
       asPlanned: 'The plan as it stands, counting how long people your age live: the money lasts as long as you do {chance}. If you live to {age}, it lasts that long {fixed}.',
       asPlannedFixed: 'The plan as it stands: if you live to {age}, the money lasts that long {fixed}.',
-      left: 'Where it lasts, typically {left} is left at {age}.'
+      left: 'Typically {left} is left at {age}.',
+      leftNone: 'In more than half the futures nothing is left at {age}.'
     }
   },
 
@@ -99,6 +101,7 @@ export const REVIEW = {
       today: 'From today, {on}: counting how long people your age live, the money lasts as long as you do {chance}. If you live to {age}, it lasts that long {fixed}.',
       todayFixed: 'From today, {on}: if you live to {age}, the money lasts that long {fixed}.',
       left: 'Typically {left} is left at {age}.',
+      leftNone: 'In more than half the futures nothing is left at {age}.',
       on: { entered: 'on the pots you entered', recorded: 'on your pots as last recorded', plan: 'on your plan’s own pots' }
     },
     ladder: 'Your plan holds gilts bought for its years: the review keeps the figures it was locked with, never priced again.'
@@ -106,17 +109,22 @@ export const REVIEW = {
   /** "I accept this as my plan" (Moving): a note for the person's own records, never advice, and withdrawn at any time. */
   agreement: {
     title: 'Your plan as you hold it',
+    /** With no pension record to read (`how: 'nothing'`): the plan as it stands was accepted, never "what you hold". */
+    titleAsItStands: 'Your plan as it stands',
+    what: { held: 'what you held as your plan', asItStands: 'your plan as it stood' },
     accept: 'I accept this as my plan',
     notYet: 'Not yet',
     confirm: 'You are saying you have moved what you intend to move, and you have seen what the money does with what you hold now: {clauses}. From the month you stop work, the plan is read as living on it. Nothing else about the plan changes, and you can withdraw this at any time. This is a note for your own records. It is not advice, and we have not judged whether the plan suits you.',
+    confirmAsItStands: 'You are saying you have seen what the money does with your plan as it stands: {clauses}. From the month you stop work, the plan is read as living on it. Nothing else about the plan changes, and you can withdraw this at any time. This is a note for your own records. It is not advice, and we have not judged whether the plan suits you.',
     clauses: 'counting how long people your age live, the money lasts as long as you do {chance}; if you live to {age}, it lasts that long {fixed}',
     clausesFixed: 'if you live to {age}, the money lasts that long {fixed}',
     yes: 'Yes, this is my plan',
     no: 'Go back',
-    accepted: 'On {date} you accepted what you held as your plan, when the money lasted as long as you do {chance}, with typically {left} left at {age}.',
-    acceptedNoLeft: 'On {date} you accepted what you held as your plan, when the money lasted as long as you do {chance}.',
-    acceptedFixed: 'On {date} you accepted what you held as your plan, when, if you lived to {age}, the money lasted that long {fixed}.',
-    acceptedPlain: 'On {date} you accepted what you held as your plan.',
+    accepted: 'On {date} you accepted {what}, when the money lasted as long as you do {chance}, with typically {left} left at {age}.',
+    acceptedNoneLeft: 'On {date} you accepted {what}, when the money lasted as long as you do {chance}; in more than half the futures nothing was left at {age}.',
+    acceptedNoLeft: 'On {date} you accepted {what}, when the money lasted as long as you do {chance}.',
+    acceptedFixed: 'On {date} you accepted {what}, when, if you lived to {age}, the money lasted that long {fixed}.',
+    acceptedPlain: 'On {date} you accepted {what}.',
     stale: {
       moved: 'What you hold has moved more than 5 points from what you accepted on {date}. What you accepted still stands; you can test what you hold now.',
       version: 'The plan has a new version since you accepted it on {date}. You can test it again.',
@@ -204,6 +212,7 @@ export const REVIEW = {
     every: 'Saved: your review falls {every}.',
     rule: 'Saved: when we say you are off course.',
     agreed: 'Saved: you accepted what you hold as your plan.',
+    agreedAsItStands: 'Saved: you accepted your plan as it stands.',
     agreeWithdrawn: 'Withdrawn. The plan is read from its dates again.',
     undone: 'Put back as it was.',
     unchanged: 'Nothing to save: it was already that.'

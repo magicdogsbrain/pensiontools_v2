@@ -904,7 +904,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (lockedRefusal(plan, data) || phaseWriteRefusal(plan, data, { now: at })) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;
     const copyOf = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
-    dispatch({ type: A.PLAN_SAVED, planId, previous: { phases: copyOf(plan.phases), planAmendments: copyOf(plan.planAmendments), lastModified: plan.lastModified }, line: { id: withdraw ? 'agreeWithdrawn' : 'agreed', slots: { date: monthWords(at.toISOString().slice(0, 7)) } }, op: 'agree' });
+    dispatch({ type: A.PLAN_SAVED, planId, previous: { phases: copyOf(plan.phases), planAmendments: copyOf(plan.planAmendments), lastModified: plan.lastModified }, line: { id: withdraw ? 'agreeWithdrawn' : p.agreed && p.agreed.how === 'nothing' ? 'agreedAsItStands' : 'agreed', slots: { date: monthWords(at.toISOString().slice(0, 7)) } }, op: 'agree' });
     dispatch({ type: A.PLANS_READING });
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }

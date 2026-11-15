@@ -154,7 +154,8 @@ function windowLineOf(life, { held, agreed }) {
   if (!w || !w.to || life.confirmStop) return null;
   const left = Number.isFinite(w.monthsLeft) ? (w.monthsLeft === 1 ? '1 month' : w.monthsLeft + ' months') : '';
   if (life.key === 'moving') {
-    if (agreed) return { id: 'agreed', slots: { date: dayWords(agreed.at), stop: monthWords(w.to) } };
+    // of what is held, or (no pension record to read) of the plan as it stands
+    if (agreed) return { id: agreed.how === 'nothing' ? 'agreedAsItStands' : 'agreed', slots: { date: dayWords(agreed.at), stop: monthWords(w.to) } };
     return { id: held ? 'moving' : 'movingNoRecord', slots: { left, stop: monthWords(w.to) } };
   }
   if (life.key === 'saving' && w.state === 'before' && w.from) return { id: 'saving', slots: { from: monthWords(w.from) } };

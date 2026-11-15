@@ -174,7 +174,9 @@ function LivingReview({ V, dispatch }) {
           {L.ladder && <p data-testid={`${T}.living.ladder`}>{L.ladder.instruction}</p>}
         </div>
       )}
-      {L.locked && <p class="note" data-testid={`${T}.living.note`}>{W.living.note} <a href={href.plan(planId, 'lasts')}>{W.living.tryLink}</a></p>}
+      {L.locked && <p class="note" data-testid={`${T}.living.note`}>{W.living.note} <a href={href.plan(planId, 'lasts')} data-testid={`${T}.living.try`}>{W.living.tryLink}</a></p>}
+      {/* not locked yet: the way to see what a change does, on "Does it last?" (spec-7100 §4.2) */}
+      {!L.locked && <p class="note" data-testid={`${T}.living.tryUnlocked`}>{W.living.tryUnlocked} <a href={href.plan(planId, 'lasts')} data-testid={`${T}.living.try`}>{W.living.tryLink}</a></p>}
     </section>
   );
 }

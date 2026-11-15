@@ -90,6 +90,7 @@ export const REVIEW = {
     takenEntered: 'Taken since 6 April, as you entered it: {took} before tax; your plan says {planned} for {year}.',
     note: 'This is noted with your review and changes nothing in the plan. You can try a change on Does it last?',
     tryLink: 'Try a change',
+    tryUnlocked: 'You can see what a change does on Does it last?',
     /** The run, on a press: the plan from today, on the pots in the boxes. */
     run: { button: 'Work out the chance from today', working: 'Working it out…' },
     result: {

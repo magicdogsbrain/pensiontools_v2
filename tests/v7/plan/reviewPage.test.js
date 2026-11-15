@@ -111,6 +111,10 @@ describe('the reader: the phase, the choices and what each phase reads, with not
     expect(draft.living.fields.map((f) => f.path)).toEqual(['rv.pension', 'rv.isa', 'rv.other']);
     expect(draft.living.start.potsFrom).toBe('plan');
     expect(draft.rule.options.some((o) => o.value === 'guardrails')).toBe(false);
+    // drawn: the way to see what a change does, on "Does it last?" — the unlocked review offers it too
+    const d = draw(stateWith(es, '#/plan/' + C['02-pnv-draft'].id + '/review', { today: day }));
+    expect(q(d.root, 'plan.review.living.try').getAttribute('href')).toBe('#/plan/' + C['02-pnv-draft'].id + '/lasts');
+    expect(q(d.root, 'plan.review.living.tryUnlocked').textContent).toContain(W.living.tryUnlocked);
   });
 
   it('Moving: months left, each bucket held against the mix the plan moves to, on course; a plan with no record reads the plan as it stands', () => {

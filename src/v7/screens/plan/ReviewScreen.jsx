@@ -37,7 +37,8 @@ function Head({ view }) {
 function Top({ V }) {
   return (
     <>
-      <p class="lead" data-testid={`${T}.often`} data-often={V.often}>{W.often[V.often]}</p>
+      {/* how often it falls, only while it falls at all: "whenever you like" says no "Due" (7.10.0) */}
+      {V.due && V.due.next && <p class="lead" data-testid={`${T}.often`} data-often={V.often}>{W.often[V.often]}</p>}
       {V.due && V.due.due && <p class="notice" role="status" data-testid={`${T}.dueNow`}>{W.dueNow}</p>}
       {V.due && !V.due.due && <p data-testid={`${T}.next`}>{V.due.next ? fill(W.next, { month: V.due.next }) : W.nextAny}</p>}
       {V.last && <p class="note" data-testid={`${T}.last`}>{fill(W.last, V.last)}</p>}
@@ -90,13 +91,15 @@ function Choices({ V, dispatch }) {
   const rule = V.rule;
   const mw = V.moveWindow;
   const winLine = mw ? (mw.years === 1 ? W.moveWindow.lineOne : fill(W.moveWindow.line, { n: String(mw.years) })) : null;
+  // once a year: from 6 April while living on it (by the tax year), else from the last review — the title's own words
+  const everyWords = (v) => (v === 'year' && V.phase !== 'drawing' ? W.every.yearPlain : W.every.options[v]);
   return (
     <section class="plan-section review-choices" data-section="choices" data-testid={`${T}.choices`}>
       <Choice id="rule" part="review.rule" title={W.rule.title} line={ruleLine(rule)} value={rule.value} stored={!!rule.stored} open={V.changing.rule} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
         options={rule.options.map((o) => ({ value: o.value, label: ruleLine(o) }))} extra={<p class="note">{W.rule.never}</p>} />
       {V.every ? (
-        <Choice id="every" part="review.every" title={W.every.title} line={W.every.options[V.every.value]} value={V.every.value} stored={!!V.every.stored} open={V.changing.every} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
-          options={V.every.options.map((o) => ({ value: o, label: W.every.options[o] }))} />
+        <Choice id="every" part="review.every" title={W.every.title} line={everyWords(V.every.value)} value={V.every.value} stored={!!V.every.stored} open={V.changing.every} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
+          options={V.every.options.map((o) => ({ value: o, label: everyWords(o) }))} />
       ) : (
         <div class="review-choice" data-choice="every" data-testid={`${T}.choice.every`}><h3>{W.every.title}</h3><p class="note">{W.every.saving}</p></div>
       )}

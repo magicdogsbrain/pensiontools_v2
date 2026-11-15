@@ -149,6 +149,7 @@ describe('the screen', () => {
     const { root, text } = draw(stateWith(entriesAt(day), '#/plan/' + id + '/review', { today: day }));
     expect(q(root, 'plan.step.review').getAttribute('data-phase')).toBe('drawing');
     expect(q(root, 'plan.review.often').textContent).toBe(W.often.taxYear);
+    expect(q(root, 'plan.review.choice.every.line').textContent).toBe('Once a tax year, from 6 April');
     expect(q(root, 'plan.review.next').textContent).toBe('Your next review: April 2027.');
     expect(q(root, 'plan.review.rv.pension') || root.querySelector('[id="plan.review.rv.pension"]')).toBeTruthy();
     expect(q(root, 'plan.review.living.band').getAttribute('data-band')).toBe('lower');
@@ -165,6 +166,11 @@ describe('the screen', () => {
     expect(q(mv.root, 'plan.review.moving.onTrack').getAttribute('data-on')).toBe('1');
     expect(q(mv.root, 'plan.review.choice.window.change')).toBeTruthy();
     expect(q(mv.root, 'plan.review.choice.level.change')).toBeTruthy();
+    // nothing falls due on it: no "Due once a year" above "whenever you like"; its how often is once a year, from the last review
+    expect(q(mv.root, 'plan.review.often')).toBe(null);
+    expect(q(mv.root, 'plan.review.next').textContent).toBe(W.nextAny);
+    expect(q(mv.root, 'plan.review.choice.every.line').textContent).toBe('Once a year');
+    expect(mv.text).not.toContain('Due once');
     const sv = draw(stateWith(entriesAt(day), '#/plan/' + C['05-saver-committed'].id + '/review', { today: day }));
     expect(q(sv.root, 'plan.step.checkin')).toBeTruthy();
     expect(q(sv.root, 'plan.review').getAttribute('data-phase')).toBe('saving');

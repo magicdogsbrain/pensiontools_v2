@@ -147,6 +147,8 @@ export const REVIEW = {
   every: {
     title: 'How often',
     options: { year: 'Once a tax year, from 6 April', quarter: 'Every three months', month: 'Every month' },
+    /** Once a year in Moving: twelve months from the last review (Living on it falls by the tax year). */
+    yearPlain: 'Once a year',
     saving: 'Your check-in says how often it falls.'
   },
   moveWindow: {

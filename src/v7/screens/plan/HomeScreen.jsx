@@ -64,7 +64,7 @@ function Drift({ D }) {
   return (
     <div class="home-held" data-testid={`${T}.drift`} data-kind={D.kind} {...(D.kind === 'buckets' ? { 'data-bucket': D.bucket } : {})}>
       <p class="note">{text}</p>
-      <p class="home-where-more"><a href={D.href} data-testid={`${T}.drift.test`}>{W.link}</a></p>
+      <p class="home-where-more"><a href={D.href} data-testid={`${T}.drift.test`}>{D.kind === 'ladder' ? W.ladderLink : W.link}</a></p>
     </div>
   );
 }

@@ -102,12 +102,19 @@ describe('the run-only settings of a Living-on-it review', () => {
 });
 
 describe('the rows a press runs, their key, and what they say', () => {
-  it('Moving runs as planned then what is held, whole; Living on it from today; a locked ladder none; a saver none', () => {
+  it('Moving runs as planned then what is held, whole; Living on it from today, and with a record as held too; a locked ladder none; a saver none', () => {
     const es = entriesAt(DAY);
     const mv = reviewOf(es, C['19-back-to-work-saving'].id, { today: DAY });
     expect(mv.run).toMatchObject({ rows: ['asPlanned', 'whole'], label: 'held', pots: null });
+    // 04 records what it holds: from today in the plan's own mix, then as held ("Test with what I hold")
     const lv = reviewOf(es, C['04-buckets-running'].id, { today: DAY });
-    expect(lv.run).toMatchObject({ rows: ['today'], label: 'today', pots: { pension: 587700, isa: 0, other: 0 } });
+    expect(lv.run).toMatchObject({ rows: ['today', 'whole'], label: 'held', pots: { pension: 587700, isa: 0, other: 0 } });
+    expect(lv.living.held.buckets.length).toBeGreaterThan(0);
+    // with nothing recorded, from today alone
+    const bare = copy(C['04-buckets-running']); delete bare.holdings;
+    const lb = reviewOf([entryOf(bare, DAY)], bare.id, { today: DAY });
+    expect(lb.run).toMatchObject({ rows: ['today'], label: 'today', pots: { pension: 587700, isa: 0, other: 0 } });
+    expect(lb.living.held).toBe(null);
     const ladder = reviewOf(es, C['03-gilt-ladder-locked'].id, { today: DAY });
     expect(ladder.run).toBe(null);
     expect(ladder.documentReading).toBe(true);
@@ -174,6 +181,13 @@ describe('the runner', () => {
     const raw = copy(C['04-buckets-running']);
     const env = await rowEnv(entryOf(raw, DAY).plan, 'today', { today: DAY, pots: { pension: 500000, isa: 0, other: 0 } });
     expect(env).toMatchObject({ today: DAY, row: 'asPlanned', settings: { potsAsOf: POTS_TODAY } });
+    // Living on it, what is held: the same run-only settings, read as held (the held row, whole) — only the mix differs
+    const pots = { pension: 500000, isa: 0, other: 0 };
+    const held = await rowEnv(entryOf(raw, DAY).plan, 'whole', { today: DAY, pots });
+    expect(held).toMatchObject({ today: DAY, row: 'asHeld', whole: true, settings: { potsAsOf: POTS_TODAY } });
+    expect(held.settings).toEqual(env.settings);
+    // Moving: no pots, the plan's own figures as held
+    expect(await rowEnv(entryOf(raw, DAY).plan, 'whole', { today: DAY, pots: null })).toEqual({ today: DAY, row: 'asHeld', whole: true });
     const S = setup([raw], '#/plan/' + raw.id + '/review');
     const run = S.store.getState().plans.view.page.review.run;
     S.store.dispatch({ type: A.REVIEW_RUN, key: run.key, planId: String(raw.id), rows: run.rows, pots: run.pots });

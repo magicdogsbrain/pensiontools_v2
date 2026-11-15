@@ -95,11 +95,25 @@ export const REVIEW = {
     note: 'This is noted with your review and changes nothing in the plan. You can try a change on Does it last?',
     tryLink: 'Try a change',
     tryUnlocked: 'You can see what a change does on Does it last?',
-    /** The run, on a press: the plan from today, on the pots in the boxes. */
-    run: { button: 'Work out the chance from today', working: 'Working it out…' },
+    /** What is held against the plan's own mix (7.10.0): information, never a sale; what "Test with what I hold" tries. */
+    held: {
+      title: 'What you hold, against your plan’s mix',
+      bucket: {
+        shares: 'Shares: {held}% of your pension now; your plan’s mix has {plan}%.',
+        bonds: 'Bonds: {held}% of your pension now; your plan’s mix has {plan}%.',
+        cash: 'Cash: {held}% of your pension now; your plan’s mix has {plan}%.',
+        diversifiers: 'Other investments: {held}% of your pension now; your plan’s mix has {plan}%.'
+      }
+    },
+    /** The run, on a press: the plan from today, on the pots in the boxes — and, with a record, as they are held. */
+    run: { button: 'Work out the chance from today', held: 'Test with what I hold', working: 'Working it out…' },
     result: {
       today: 'From today, {on}: counting how long people your age live, the money lasts as long as you do {chance}. If you live to {age}, it lasts that long {fixed}.',
       todayFixed: 'From today, {on}: if you live to {age}, the money lasts that long {fixed}.',
+      held: 'From today, {on}, with what you hold: counting how long people your age live, the money lasts as long as you do {chance} (in your plan’s own mix: {ref}). If you live to {age}, it lasts that long {fixed}.',
+      heldFixed: 'From today, {on}, with what you hold: if you live to {age}, the money lasts that long {fixed} (in your plan’s own mix: {refFixed}).',
+      heldLeft: 'Typically {left} is left at {age} (in your plan’s own mix: {refLeft}).',
+      heldLeftNone: 'In more than half the futures nothing is left at {age} (in your plan’s own mix: {refLeft}).',
       left: 'Typically {left} is left at {age}.',
       leftNone: 'In more than half the futures nothing is left at {age}.',
       on: { entered: 'on the pots you entered', recorded: 'on your pots as last recorded', plan: 'on your plan’s own pots' }
@@ -115,6 +129,7 @@ export const REVIEW = {
     accept: 'I accept this as my plan',
     notYet: 'Not yet',
     confirm: 'You are saying you have moved what you intend to move, and you have seen what the money does with what you hold now: {clauses}. From the month you stop work, the plan is read as living on it. Nothing else about the plan changes, and you can withdraw this at any time. This is a note for your own records. It is not advice, and we have not judged whether the plan suits you.',
+    confirmLiving: 'You are saying you have seen what the money does with what you hold now: {clauses}. Nothing about the plan changes, and you can withdraw this at any time. This is a note for your own records. It is not advice, and we have not judged whether the plan suits you.',
     confirmAsItStands: 'You are saying you have seen what the money does with your plan as it stands: {clauses}. From the month you stop work, the plan is read as living on it. Nothing else about the plan changes, and you can withdraw this at any time. This is a note for your own records. It is not advice, and we have not judged whether the plan suits you.',
     clauses: 'counting how long people your age live, the money lasts as long as you do {chance}; if you live to {age}, it lasts that long {fixed}',
     clausesFixed: 'if you live to {age}, the money lasts that long {fixed}',

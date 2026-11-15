@@ -8,9 +8,11 @@
  *    my plan" asks first, then "Yes, this is my plan" is ONE write (the phases, the agreement entry and the stamp: the
  *    settings, the record and the plan document byte-identical); the home says it was accepted, with nothing due; "Withdraw
  *    this" is ONE write that takes off the agreement and only its own entry.
- *  - Living on it, locked (Sam, corpus 04): the boxes start from September's record; the chance worked out from today on the
- *    pots entered, within budget; "Save this review" is ONE write of the phases and the stamp, its entry holding what was
- *    entered and the reading; the toast says the next review.
+ *  - Living on it, locked (Sam, corpus 04, what is held recorded): the boxes start from September's record; what is held
+ *    against the plan's mix; "Test with what I hold" works out the chance from today on the pots entered, in the plan's own
+ *    mix and as held, within budget; "Save this review" is ONE write of the phases and the stamp, its entry holding what
+ *    was entered and the reading; the toast says the next review; "I accept this as my plan" is ONE write of the phases,
+ *    the agreement entry and the stamp.
  *  - Living on it, unlocked (Alex, corpus 02): the pots only, and "once the plan is locked"; saved as ONE write of the phases.
  * No sideways scroll; none of the banned words. Firebase is never reached.
  */
@@ -133,7 +135,7 @@ test.describe('"Your review", without an account', () => {
     });
   });
 
-  test('Living on it, locked: the boxes from September\'s record; the chance from today within budget; "Save this review" one write of the phases', async ({ page, watch }, info) => {
+  test('Living on it, locked: the boxes from September\'s record; what is held tested from today within budget; "Save this review" one write of the phases; accepting what is held one write', async ({ page, watch }, info) => {
     test.setTimeout(240_000);
     watch.allow(WORKER_DATA_MISSING);
     const ID = 'ReviewLiving04';
@@ -148,13 +150,15 @@ test.describe('"Your review", without an account', () => {
       await expect(page.getByTestId(`${T}.living.from`)).toContainText('September 2026');
       await expect(page.getByTestId(`${T}.rv.pension`)).not.toHaveValue('');
       await expect(page.getByTestId(`${T}.living.band`)).toBeVisible();
+      for (const t of await page.getByTestId(`${T}.living.held.buckets`).locator('li').allInnerTexts()) expect(t).toMatch(/^(Shares|Bonds|Cash|Other investments): \d+% of your pension now; your plan’s mix has \d+%\.$/);
       await expect(page.getByTestId(`${T}.run`)).toHaveAttribute('data-status', 'idle');
+      await expect(page.getByTestId(`${T}.run.button`)).toHaveText('Test with what I hold');
       await words(page);
       await noSideways(page);
       expect(JSON.stringify(await stored(page)), 'opening writes nothing').toBe(before);
     });
 
-    await test.step('the pots and what was taken entered, "Keep to the plan"; the chance from today, within budget', async () => {
+    await test.step('the pots and the income entered, "Keep to the plan"; "Test with what I hold" from today, within budget', async () => {
       await page.getByTestId(`${T}.rv.pension`).fill('540000');
       await page.getByTestId(`${T}.rv.took`).fill('16000');
       await page.getByTestId(`${T}.rv.choice.keep`).check();
@@ -163,10 +167,12 @@ test.describe('"Your review", without an account', () => {
       await page.getByTestId(`${T}.run.button`).click();
       await expect(page.getByTestId(`${T}.run`)).toHaveAttribute('data-status', 'done', { timeout: 120_000 });
       const ms = Date.now() - t0;
-      record(info, `review/living-${info.project.name}.json`, { ms, rows: 1, slowdown: SLOWDOWN, budgetMs: REVIEW_BUDGET, method: 'From the press to the result: the plan from today on the pots entered (one worker call, the lazy engine loaded by it); measured at full speed against 1.5 s × the slowdown.' });
-      info.annotations.push({ type: 'review-living-ms', description: `${ms} ms at full speed, against ${REVIEW_BUDGET} ms` });
-      expect(ms, 'the row within the review\'s budget').toBeLessThanOrEqual(REVIEW_BUDGET);
-      await expect(page.getByTestId(`${T}.run.line`)).toContainText('From today, on the pots you entered');
+      const rows = 2;
+      record(info, `review/living-${info.project.name}.json`, { ms, rows, slowdown: SLOWDOWN, budgetMs: REVIEW_BUDGET * rows, method: 'From the press to the result: the plan from today on the pots entered, in its own mix and then as held (one worker call each, the lazy engine loaded by the first); measured at full speed against 1.5 s × the slowdown a row.' });
+      info.annotations.push({ type: 'review-living-ms', description: `${ms} ms for ${rows} rows at full speed, against ${REVIEW_BUDGET * rows} ms` });
+      expect(ms, 'each row within the review\'s budget').toBeLessThanOrEqual(REVIEW_BUDGET * rows);
+      await expect(page.getByTestId(`${T}.run.line`)).toContainText('From today, on the pots you entered, with what you hold');
+      await expect(page.getByTestId(`${T}.run.line`)).toContainText('(in your plan’s own mix');
       expect(JSON.stringify(await stored(page)), 'typing and working it out write nothing').toBe(before);
     });
 
@@ -189,6 +195,26 @@ test.describe('"Your review", without an account', () => {
       await page.reload();
       await expect(page.getByTestId(`${T}.next`)).toHaveText('Your next review: April 2027.', { timeout: 60_000 });
       await expect(page.getByTestId(`${T}.last`)).toBeVisible();
+    });
+
+    await test.step('"Test with what I hold", then "I accept this as my plan": the confirm first, then ONE write of the phases, the agreement entry and the stamp', async () => {
+      const saved = (await stored(page))[0];
+      await page.getByTestId(`${T}.run.button`).click();
+      await expect(page.getByTestId(`${T}.run`)).toHaveAttribute('data-status', 'done', { timeout: 120_000 });
+      await page.getByTestId(`${T}.agreement.accept`).click();
+      const confirm = page.getByTestId(`${T}.agreement.confirm`);
+      await expect(confirm).toContainText('You are saying you have seen what the money does with what you hold now');
+      await expect(confirm).not.toContainText('From the month you stop work');
+      await page.getByTestId(`${T}.agreement.yes`).click();
+      await expect(page.getByTestId(`${T}.toast`)).toContainText('Saved: you accepted what you hold as your plan.', { timeout: 30_000 });
+      const after = (await stored(page))[0];
+      // (the clock is fixed, so the stamp is written with the same moment as the review's save)
+      expect(changed(saved, after), 'the phases and the agreements only').toEqual(['phases', 'planAmendments']);
+      expect(after.lastModified).toBe(FIXED_NOW);
+      expect(after.phases.moving.agreed).toMatchObject({ how: expect.stringMatching(/^(done|asHeld)$/) });
+      for (const k of ['stressTool', 'planDocument', 'holdings', 'decisionTool']) expect(JSON.stringify(after[k]), k).toBe(JSON.stringify(was[k]));
+      await words(page);
+      await noSideways(page);
     });
   });
 

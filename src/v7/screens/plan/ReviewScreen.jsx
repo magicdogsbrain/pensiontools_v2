@@ -165,6 +165,16 @@ function LivingReview({ V, dispatch }) {
       {V.editable && <div class="review-boxes">{L.fields.map(F)}</div>}
       {!L.locked && <p class="note" data-testid={`${T}.living.unlocked`}>{W.living.unlocked}</p>}
       {L.later && <p class="note" data-testid={`${T}.living.later`}>{fill(W.living.later, L.later)}</p>}
+      {/* what is held against the plan's own mix (a pension record a pot plan can read): what "Test with what I hold" tries */}
+      {L.held && (
+        <div class="review-held" data-testid={`${T}.living.held`}>
+          <h3>{W.living.held.title}</h3>
+          <ul class="review-buckets" data-testid={`${T}.living.held.buckets`}>
+            {L.held.buckets.map((b) => <li key={b.bucket} data-bucket={b.bucket} data-held={b.held} data-plan={b.plan}>{fill(W.living.held.bucket[b.bucket], { held: String(b.held), plan: String(b.plan) })}</li>)}
+          </ul>
+          {L.held.untagged.map((name) => <p class="note" key={name} data-testid={`${T}.living.held.untagged`}>{fill(W.moving.untagged, { name })}</p>)}
+        </div>
+      )}
       {L.locked && !L.later && (L.band || L.guardrail || L.taken || L.ladder) && (
         <div class="review-reading" data-testid={`${T}.living.reading`}>
           <h3>{W.living.readingTitle}</h3>
@@ -197,9 +207,10 @@ function Run({ V, dispatch }) {
   if (!run || !V.editable) return null;
   const res = V.result || { status: 'idle' };
   const working = res.status === 'working';
-  const label = run.label === 'today' ? W.living.run.button : W.moving.run[run.label];
-  const busy = run.label === 'today' ? W.living.run.working : W.moving.run.working;
-  const R = run.label === 'today' ? W.living.result : W.moving.result;
+  const living = V.phase === 'drawing';
+  const label = living ? (run.label === 'held' ? W.living.run.held : W.living.run.button) : W.moving.run[run.label];
+  const busy = living ? W.living.run.working : W.moving.run.working;
+  const R = living ? W.living.result : W.moving.result;
   const slots = res.slots ? { ...res.slots, on: res.on ? W.living.result.on[res.on] : '' } : {};
   return (
     <section class="plan-section review-run" data-section="run" data-testid={`${T}.run`} data-status={res.status}>
@@ -243,7 +254,7 @@ function Agreement({ V, dispatch, open }) {
       )}
       {G.canAccept && open && (
         <div class="confirm" role="group" data-testid={`${T}.agreement.confirm`}>
-          <p>{fill(asItStands ? A.confirmAsItStands : A.confirm, { clauses })}</p>
+          <p>{fill(G.phase === 'drawing' ? A.confirmLiving : asItStands ? A.confirmAsItStands : A.confirm, { clauses })}</p>
           <div class="actions-row">
             <Button testid={`${T}.agreement.yes`} kind="primary" disabled={!!V.saving} onClick={() => dispatch({ type: 'plan/agree', planId: V.id })} {...keepFocus}>{A.yes}</Button>
             <Button testid={`${T}.agreement.no`} kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'agreeConfirm' })} {...keepFocus}>{A.no}</Button>

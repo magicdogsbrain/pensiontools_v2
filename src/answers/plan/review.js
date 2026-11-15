@@ -27,8 +27,10 @@
  *                                                           the plan as stressPanel.stressKeyOf reads it, and the inputs
  *   runRowsOf(R)                                            the rows a press runs: Moving 'asPlanned' then 'whole' (what is
  *                                                           held, whole) — 'asPlanned' alone with no pension record to read;
- *                                                           Living on it 'today' (the plan from today on the pots entered); a
- *                                                           locked ladder none (its document's own figure is its reading)
+ *                                                           Living on it 'today' (the plan from today on the pots entered),
+ *                                                           then 'whole' when a pension record can be read (the same pots as
+ *                                                           what is held: "Test with what I hold"); a locked ladder none (its
+ *                                                           document's own figure is its reading)
  *   reviewSettingsOf(plan, { pots, today })                 the run-only settings of 'today': the plan's effective settings with
  *                                                           the pots entered in the plan's own proportions, run from today
  *                                                           (potsAsOf POTS_TODAY) — never saved
@@ -224,6 +226,25 @@ function movingReadingOf(plan, { now, life, log }) {
   return out;
 }
 
+/**
+ * What is held against the plan's own mix, on a plan living on its money (7.10.0, the home's drift line and the review's "Test
+ * with what I hold"): each bucket's share of the pension in play, held and in the plan's mix (on the plan's document, or not
+ * locked yet on its settings, in memory: PlanReading.moveInputs `fromSettings`), and the lines nothing places. Null with no
+ * pension record a pot plan can read (none recorded, nothing placed, or a ladder: its rungs have their own check).
+ */
+function heldAgainstMixOf(plan, now) {
+  if (!(holdingsSummary(normaliseHoldings(plan && plan.holdings)).count > 0)) return null;
+  let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
+  const d = mv && mv.diff ? driftOf(mv.diff) : null;
+  if (!d || d.kind !== 'buckets') return null;
+  const inPlay = num(mv.diff.inPlay);
+  return {
+    buckets: BUCKETS.map((b) => { const x = mv.diff.buckets[b] || { held: 0, target: 0 }; return { bucket: b, held: Math.round(100 * num(x.held) / inPlay), plan: Math.round(100 * num(x.target) / inPlay) }; }).filter((x) => x.held > 0 || x.plan > 0),
+    maxDrift: d.maxDrift,
+    untagged: Array.isArray(mv.diff.unknown) ? mv.diff.unknown.map((u) => String(u.label || u.name || u.ticker || '')).filter(Boolean) : []
+  };
+}
+
 /** The target's shares of the pension money in play, from a pot plan's diff: { equity, bond, cash } as shares of 1. */
 function targetSharesOf(mv) {
   const b = mv && mv.diff && mv.diff.buckets;
@@ -271,7 +292,7 @@ const lockedLadder = (plan) => { try { return lockedLadderOf(plan, strategyIdOf(
 export function runRowsOf(R, plan) {
   if (!R || !R.found || !R.editable) return [];
   if (R.phase === 'moving') return R.moving && R.moving.runOn === 'held' ? ['asPlanned', 'whole'] : ['asPlanned'];
-  if (R.phase === 'drawing') return lockedLadder(plan) ? [] : ['today'];
+  if (R.phase === 'drawing') return lockedLadder(plan) ? [] : R.living && R.living.held ? ['today', 'whole'] : ['today'];
   return [];
 }
 
@@ -349,15 +370,18 @@ function resultOf(R, held) {
   if (held.status === 'working') return { status: 'working', done: run.rows.filter((id) => held.rows[id]).length, total: run.rows.length };
   if (held.status === 'failed') return { status: 'failed', reason: held.reason || null };
   if (held.status !== 'done') return { status: 'idle' };
-  const main = held.rows[R.phase === 'moving' ? (run.rows.includes('whole') ? 'whole' : 'asPlanned') : 'today'];
+  const main = held.rows[run.rows.includes('whole') ? 'whole' : R.phase === 'moving' ? 'asPlanned' : 'today'];
   const me = figuresOf(main);
   if (!me) return { status: 'done', id: 'na' };
+  const refOf = (ref) => ({ ref: ref ? ref.chance || ref.fixed : '', refFixed: ref ? ref.fixed : '', refLeft: ref ? ref.left || (ref.leftNone ? pounds(0) : '') : '' });
   if (R.phase === 'moving' && run.rows.includes('whole')) {
     const ref = figuresOf(held.rows.asPlanned);
-    return { status: 'done', id: me.chance ? 'held' : 'heldFixed', slots: { ...me, ref: ref ? ref.chance || ref.fixed : '', refFixed: ref ? ref.fixed : '', refLeft: ref ? ref.left || (ref.leftNone ? pounds(0) : '') : '' }, left: leftKind(me) };
+    return { status: 'done', id: me.chance ? 'held' : 'heldFixed', slots: { ...me, ...refOf(ref) }, left: leftKind(me) };
   }
   if (R.phase === 'moving') return { status: 'done', id: me.chance ? 'asPlanned' : 'asPlannedFixed', slots: me, left: leftKind(me) };
   const on = R.living && R.living.entered && R.living.entered.pots ? 'entered' : R.living && R.living.start.potsFrom === 'record' ? 'recorded' : 'plan';
+  // Living on it with what is held: the same pots from today as held, beside them in the plan's own mix
+  if (run.rows.includes('whole')) return { status: 'done', id: me.chance ? 'held' : 'heldFixed', on, slots: { ...me, ...refOf(figuresOf(held.rows.today)) }, left: leftKind(me) };
   return { status: 'done', id: me.chance ? 'today' : 'todayFixed', on, slots: me, left: leftKind(me) };
 }
 /** Which "left" line a result says: 'some' (typically £…), 'none' (more than half the futures have nothing left), or null. */
@@ -447,7 +471,9 @@ export function reviewOf(entries, id, { today, typed = {}, page = null, source =
       guardrail: lr && lr.guardrail ? { state: lr.guardrail.state, slots: lr.guardrail.slots } : null,
       taken: lr && lr.taken && took != null ? { took: pounds(took), planned: pounds(lr.taken.planned), year: lr.taken.year, entered: c.entered.took } : null,
       ladder: lr && lr.ladder && typeof lr.ladder.instruction === 'string' ? { instruction: lr.ladder.instruction } : null,
-      choice: c.values['rv.choice'] || null
+      choice: c.values['rv.choice'] || null,
+      // what is held against the plan's own mix (a pension record a pot plan can read), for "Test with what I hold"
+      held: lockedLadder(plan) ? null : heldAgainstMixOf(plan, now)
     };
   } else R.living = null;
 
@@ -456,7 +482,7 @@ export function reviewOf(entries, id, { today, typed = {}, page = null, source =
   // the run a press makes (only on a press: the review effect), the key it is held under, and what is held for it in words
   const rows = runRowsOf(R, plan);
   const inputs = rows.length ? runInputsOf(plan, { today, typed, phase }) : null;
-  R.run = rows.length && !(phase === 'drawing' && !inputs.pots) ? { key: reviewRunKeyOf(plan, today, inputs), rows, pots: inputs.pots, label: phase === 'moving' ? (rows.includes('whole') ? 'held' : 'asPlanned') : 'today' } : null;
+  R.run = rows.length && !(phase === 'drawing' && !inputs.pots) ? { key: reviewRunKeyOf(plan, today, inputs), rows, pots: inputs.pots, label: rows.includes('whole') ? 'held' : phase === 'moving' ? 'asPlanned' : 'today' } : null;
   R.result = R.run ? resultOf(R, held) : { status: 'idle' };
   R.documentReading = phase === 'drawing' && lockedLadder(plan);
   return R;
@@ -508,7 +534,8 @@ export function savedReadingOf(plan, { today, typed = {}, phase, held = null }) 
   if (!held || held.status !== 'done' || !isObj(held.rows)) return null;
   const key = reviewRunKeyOf(plan, today, runInputsOf(plan, { today, typed, phase }));
   if (!key || held.key !== key || String(held.planId) !== String(plan.id)) return null;
-  const main = phase === 'moving' ? (held.rows.whole || held.rows.asPlanned) : held.rows.today;
+  // what is held when it was tested (what the money does as the person holds it), else the plan as it stands / from today
+  const main = held.rows.whole || (phase === 'moving' ? held.rows.asPlanned : held.rows.today);
   return readingOf(main, key);
 }
 

@@ -123,7 +123,8 @@ const BUCKETS = ['shares', 'bonds', 'cash', 'diversifiers'];
  * How far what is held is from the plan's mix (7.10.0, spec-7100 §3.2), on a plan living on its money: information, never a
  * to-do and never a sale — the bucket furthest from the plan's mix when it is more than DRIFT_BAND of the pension away, or on
  * a ladder a gilt needed this tax year or next that is not held. Read on the plan's document, or (not locked yet) on the
- * plan's settings in memory (PlanReading.moveInputs `fromSettings`). Null otherwise.
+ * plan's settings in memory (PlanReading.moveInputs `fromSettings`). The buckets' line links to the review, whose "Test with
+ * what I hold" tries what is held and can accept it (the line then rests); a ladder's to What you hold. Null otherwise.
  */
 function driftLineOf(plan, now, href) {
   let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
@@ -139,7 +140,8 @@ function driftLineOf(plan, now, href) {
   if (d.kind === 'ladder' && d.gapSoon) {
     const thisTY = Number(mv.target && mv.target.thisTaxYear);
     const ys = (mv.diff.buy || []).filter((b) => b.kind === 'gilt' && Array.isArray(b.taxYears)).flatMap((b) => b.taxYears.map(Number)).filter((Y) => Y === thisTY || Y === thisTY + 1).sort((p, q) => p - q);
-    return ys.length ? { kind: 'ladder', year: taxYearLabel(ys[0]), href } : null;
+    // a ladder's rungs are read on What you hold (its gaps), not tested by the review
+    return ys.length ? { kind: 'ladder', year: taxYearLabel(ys[0]), href: '#/plan/' + plan.id + '/hold' } : null;
   }
   return null;
 }

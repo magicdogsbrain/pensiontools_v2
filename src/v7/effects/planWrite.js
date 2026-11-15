@@ -898,7 +898,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (!got) return;
     const { place, plan, state } = got;
     const at = now();
-    const p = withdraw ? agreeWithdrawPatch(plan, { at: at.toISOString() }) : agreePatch(plan, { today: state.env.today, at: at.toISOString(), held: state.review || null });
+    const pd = state.draft.plan && state.draft.plan.id === String(planId) ? state.draft.plan : null;
+    // the run held for this page, for the plan and (Living on it) the boxes as typed, as the run was made on them
+    const p = withdraw ? agreeWithdrawPatch(plan, { at: at.toISOString() }) : agreePatch(plan, { today: state.env.today, at: at.toISOString(), held: state.review || null, typed: pd ? pd.values : {} });
     if (!p.ok) { fail(planId, ['closed', 'example', 'noResult', 'oldResult', 'none', 'na'].includes(p.problem) ? (p.problem === 'na' ? 'noResult' : p.problem) : p.problem === 'notNow' ? 'notHere' : 'problems'); return; }
     const data = declaredOnly({ phases: p.patch.phases, planAmendments: p.patch.planAmendments, lastModified: at.toISOString() });
     if (lockedRefusal(plan, data) || phaseWriteRefusal(plan, data, { now: at })) { fail(planId, 'locked'); return; }

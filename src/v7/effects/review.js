@@ -3,7 +3,9 @@
  * never on opening a page), the rows run in the worker's stress lane, one call each, in the order asked, on the plan named by
  * the press (client.stressRow: the lazy engine loads there):
  *   - 'asPlanned'  the plan as it stands (Moving): runStressRow's As planned;
- *   - 'whole'      what is held, whole (Moving, "Test with what I hold"): the held row with `whole` (keepTest.heldSettingsOf);
+ *   - 'whole'      what is held, whole ("Test with what I hold"): the held row with `whole` (keepTest.heldSettingsOf) — in Moving
+ *                  on the plan's own figures, in Living on it on the run-only settings of 'today' (the pots entered, from today),
+ *                  so the two rows differ only in the mix;
  *   - 'today'      the plan from today on the pots entered (Living on it, "Work out the chance from today"): As planned on the
  *                  run-only settings review.js reviewSettingsOf builds here, from the pots the press carried — never saved.
  * Each result is filed under the press's key as it comes (review/done). Leaving the plan's review, or the plan and the inputs
@@ -38,10 +40,11 @@ function wanted(state, Rv) {
  * is), so the front door's shell carries none of it.
  */
 export async function rowEnv(plan, row, { today, pots }) {
-  if (row === 'whole') return { today, row: 'asHeld', whole: true };
-  if (row === 'today') {
+  if (row === 'whole' && !pots) return { today, row: 'asHeld', whole: true };
+  if (row === 'today' || row === 'whole') {
     const { reviewSettingsOf } = await import('../../answers/plan/review.js');
-    return { today, row: 'asPlanned', settings: reviewSettingsOf(plan, { pots, today }) };
+    const settings = reviewSettingsOf(plan, { pots, today });
+    return row === 'whole' ? { today, row: 'asHeld', whole: true, settings } : { today, row: 'asPlanned', settings };
   }
   return { today, row: 'asPlanned' };
 }

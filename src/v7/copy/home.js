@@ -130,7 +130,9 @@ export const HOME = {
     cash: 'Cash is {held}% of your pension; the plan’s mix has {mix}% in cash.',
     diversifiers: 'Other investments are {held}% of your pension; the plan’s mix has {mix}% in other investments.',
     ladder: 'Your ladder does not yet hold the gilt for {year}.',
-    link: 'Test with what I hold'
+    link: 'Test with what I hold',
+    /** A ladder's gap is read on What you hold (its years), never tested on the review. */
+    ladderLink: 'See what you hold'
   },
   /** The full reading, with where each figure is from, is on the "Where you are" step. */
   whereMore: 'See where you are in full',

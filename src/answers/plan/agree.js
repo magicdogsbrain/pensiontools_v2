@@ -3,6 +3,9 @@
  * "Test with what I hold" the person may say they have moved what they mean to move and accept what they hold, as it is,
  * with what it does to the money. It is never "leaving the plan": the plan, its settings and its document are not touched.
  * Until the month work stops the plan reads Moving with nothing due; from then, Living on it (LifeStage.stageOf).
+ * Living on it (replan §6.4: a tactical difference from the plan's mix is information, and accepting it quiets it): the same
+ * agreement on the Living-on-it review, after "Test with what I hold" from today on the pots entered; the home's line about
+ * what is held then rests while it stands.
  *
  * ONE press, ONE write (schema.js AGREE_WRITES): `moving.agreed` in `phases` (with its review entry and a history line,
  * Phases.phasesPatch) and the one `asHeld` entry it carries in `planAmendments` (stressPanel.stressAmendPatch's `whole` branch:
@@ -74,23 +77,25 @@ function phaseNow(plan, today) {
 }
 
 /** "Yes, this is my plan" (see the header): ONE write of `phases` and `planAmendments`, from the run held for this page. */
-export function agreePatch(plan, { today, at, held = null } = {}) {
+export function agreePatch(plan, { today, at, held = null, typed = {} } = {}) {
   const fail = (problem) => ({ ok: false, problem, patch: {}, agreed: null, entry: null });
   if (!plan || isExamplePlan(plan)) return fail('example');
   const { phase, closing } = phaseNow(plan, today);
   if (closing || plan.closedAt != null || isClosedPlan(plan)) return fail('closed');
-  if (phase !== 'moving') return fail('notNow');
-  const key = reviewRunKeyOf(plan, today, runInputsOf(plan, { today, phase }));
+  if (phase !== 'moving' && phase !== 'drawing') return fail('notNow');
+  const key = reviewRunKeyOf(plan, today, runInputsOf(plan, { today, typed, phase }));
   if (!held || held.status !== 'done' || !isObj(held.rows) || String(held.planId) !== String(plan.id)) return fail('noResult');
   if (held.key !== key) return fail('oldResult');
-  const main = held.rows.whole || held.rows.asPlanned || null;
+  // Living on it: only what is held, tested ("Test with what I hold"); Moving: what is held, else the plan as it stands
+  const main = phase === 'drawing' ? held.rows.whole || null : held.rows.whole || held.rows.asPlanned || null;
   if (!main) return fail('noResult');
   const now = dateOf(today);
   const settings = safeSettings(plan, now);
   const h = howOf(plan, { today });
+  if (phase === 'drawing' && h.how === 'nothing') return fail('noResult');
   const amend = stressAmendPatch(plan, { id: WHOLE_ID, result: main, heldMix: h.how === 'nothing' ? null : h.heldMix }, { at, today, settings });
   if (!amend.ok) return fail(amend.problem);
-  const entry = reviewEntryOf(plan, { phase: 'moving', today, at, reading: readingOf(main, key) });
+  const entry = reviewEntryOf(plan, { phase, today, typed, at, reading: readingOf(main, key) });
   let phases;
   try {
     phases = phasesPatch(plan, 'moving.agreed', { strategyId: strategyIdOf(plan, settings), how: h.how, heldPct: h.heldPct, entryAt: at, entry }, { at }).phases;
@@ -139,13 +144,15 @@ export function asHeldStateOf(plan, { today } = {}) {
 export function agreementViewOf(plan, R, { today } = {}) {
   if (!R || !R.found) return null;
   const st = asHeldStateOf(plan, { today });
-  if (R.phase !== 'moving' && st.status === 'none') return null;
+  // Living on it: offered once what is held can be tested there (the review's 'whole' row), or shown when one stands
+  const livingHeld = R.phase === 'drawing' && !!R.run && R.run.rows.includes('whole');
+  if (R.phase !== 'moving' && !livingHeld && st.status === 'none') return null;
   const res = R.result || { status: 'idle' };
-  const ran = res.status === 'done' && res.id !== 'na' && res.slots;
+  const ran = res.status === 'done' && res.id !== 'na' && res.slots && (R.phase !== 'drawing' || res.id === 'held' || res.id === 'heldFixed');
   // what an agreement made now would be of: what is held, or (no pension record to read) the plan as it stands — the words
   // never say "what you hold" of a plan that records nothing
   let howNow = null; try { howNow = howOf(plan, { today }).how; } catch { howNow = null; }
-  const canAccept = R.phase === 'moving' && R.editable && !!ran && st.status !== 'agreed';
+  const canAccept = (R.phase === 'moving' || livingHeld) && R.editable && !!ran && st.status !== 'agreed';
   const confirm = ran ? (res.slots.chance
     ? { id: 'clauses', slots: { chance: res.slots.chance, age: res.slots.age, fixed: res.slots.fixed } }
     : { id: 'clausesFixed', slots: { age: res.slots.age, fixed: res.slots.fixed } }) : null;
@@ -164,5 +171,5 @@ export function agreementViewOf(plan, R, { today } = {}) {
   const stale = st.status === 'stale' ? { why: st.why, date: dayWords(st.agreed.at), old: st.agreed.strategyId, now: st.strategyNow || null } : null;
   // what the words say it was of: the agreement's own, else the one that would be made now
   const of = (st.agreed ? st.agreed.how : howNow) === 'nothing' ? 'asItStands' : 'held';
-  return { status: st.status, how: st.agreed ? st.agreed.how : null, howNow, of, canAccept, confirm, accepted, stale, withdrawable: !!st.agreed && R.editable };
+  return { status: st.status, phase: R.phase, how: st.agreed ? st.agreed.how : null, howNow, of, canAccept, confirm, accepted, stale, withdrawable: !!st.agreed && R.editable };
 }

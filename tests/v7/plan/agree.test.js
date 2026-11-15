@@ -22,7 +22,7 @@ import { startPlanWrite } from '../../../src/v7/effects/planWrite.js';
 import { upgradedList, viewFor } from '../../../src/v7/effects/planSource.js';
 import { parse } from '../../../src/v7/router/routes.js';
 import { WEIGHT_ONE } from '../../../src/answers/shared/rules.js';
-import { corpus, entryOf, noon } from './_plans.js';
+import { corpus, entryOf, noon, stateWith } from './_plans.js';
 import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
 
@@ -328,11 +328,118 @@ describe('the home\'s drift line rests while what is held stands accepted', () =
   });
 });
 
+describe('Living on it: "Test with what I hold" from today, and accepting what is held quiets the home\'s line', () => {
+  /** 04 with a third of its shares moved into cash: more than ten points from its mix. */
+  function third() {
+    const raw = copy(C['04-buckets-running']);
+    const sh = raw.holdings.lines.find((l) => l.wrapper === 'SIPP' && l.ticker === 'HMWO');
+    const cash = raw.holdings.lines.find((l) => l.wrapper === 'SIPP' && l.ticker === 'CSH2');
+    const moved = Math.round(sh.value / 3); sh.value -= moved; cash.value += moved;
+    return raw;
+  }
+  it('the line links to the review, which tests what is held on the pots entered; "Yes" is ONE write; the line then rests; Withdraw brings it back', () => {
+    const raw = third();
+    const plan = entryOf(raw, DAY).plan;
+    const h0 = homeOf([{ plan, newer: false, failed: false }], plan.id, { today: DAY });
+    expect(h0.drift).toMatchObject({ kind: 'buckets', href: '#/plan/' + plan.id + '/review' });
+    const R = reviewOf([{ plan, newer: false, failed: false }], plan.id, { today: DAY });
+    expect(R.run).toMatchObject({ rows: ['today', 'whole'], label: 'held' });
+    expect(R.living.held.buckets.find((x) => x.bucket === 'cash').held).toBeGreaterThan(R.living.held.buckets.find((x) => x.bucket === 'cash').plan);
+    // the run held for the page: as held, beside the plan's own mix
+    const rows = { today: rowResult(plan, DAY, { weighted: 0.9 }), whole: rowResult(plan, DAY, { weighted: 0.8 }) };
+    const held = { key: R.run.key, planId: String(plan.id), status: 'done', order: R.run.rows, rows, pots: R.run.pots, reason: null };
+    const R2 = reviewOf([{ plan, newer: false, failed: false }], plan.id, { today: DAY, held });
+    expect(R2.result).toMatchObject({ status: 'done', id: 'held', slots: { chance: '16 times in 20', ref: '18 times in 20' } });
+    const G = agreementViewOf(plan, R2, { today: DAY });
+    expect(G).toMatchObject({ canAccept: true, phase: 'drawing', of: 'held' });
+    // without the held row (from today alone) it cannot be made
+    expect(agreePatch(plan, { today: DAY, at: AT, held: { ...held, rows: { today: rows.today } } })).toMatchObject({ ok: false, problem: 'noResult' });
+    const p = agreePatch(plan, { today: DAY, at: AT, held });
+    expect(p.ok).toBe(true);
+    expect(Object.keys(p.patch).sort()).toEqual(['phases', 'planAmendments']);
+    expect(p.patch.phases.moving.agreed).toMatchObject({ how: 'asHeld', strategyId: plan.stressTool.settings.strategyId || 'pots-and-valves' });
+    expect(p.patch.phases.review.log[0]).toMatchObject({ phase: 'drawing', reading: { source: 'run', weighted: 0.8 } });
+    expect(p.entry).toMatchObject({ kind: 'asHeld', test: { id: 'whole' } });
+    const after = agreed(plan, p);
+    // the settings, the document and what is held are untouched
+    for (const k of ['stressTool', 'planDocument', 'holdings', 'decisionTool']) expect(JSON.stringify(after[k]), k).toBe(JSON.stringify(plan[k]));
+    expect(asHeldStateOf(after, { today: DAY }).status).toBe('agreed');
+    expect(stageOf(after, noon(DAY)).key).toBe('drawing');
+    expect(homeOf([{ plan: after, newer: false, failed: false }], plan.id, { today: DAY }).drift).toBeUndefined();
+    // withdrawn: the line is back
+    const w = agreeWithdrawPatch(after, { at: '2026-10-02T12:00:00.000Z' });
+    const back = { ...after, phases: w.patch.phases, planAmendments: w.patch.planAmendments };
+    expect(homeOf([{ plan: back, newer: false, failed: false }], plan.id, { today: DAY }).drift).toMatchObject({ kind: 'buckets' });
+  });
+  it('the page: what is held against the plan\'s mix, "Test with what I hold", the result beside the plan\'s own mix, and a confirm that never says "from the month you stop work"', () => {
+    const raw = third();
+    const plan = entryOf(raw, DAY).plan;
+    const R = reviewOf([{ plan, newer: false, failed: false }], plan.id, { today: DAY });
+    const rows = { today: rowResult(plan, DAY, { weighted: 0.9 }), whole: rowResult(plan, DAY, { weighted: 0.8 }) };
+    let st = stateWith([{ plan: raw, newer: false, failed: false }].map((e) => entryOf(e.plan, DAY)), '#/plan/' + plan.id + '/review', { today: DAY });
+    const draw = (state) => { const root = document.createElement('div'); render(h(App, { state, dispatch: () => {} }), root); return root; };
+    const r0 = draw(st);
+    expect(r0.querySelector('[data-testid="plan.review.run.button"]').textContent).toBe('Test with what I hold');
+    expect(r0.querySelectorAll('[data-testid="plan.review.living.held.buckets"] li').length).toBeGreaterThan(0);
+    expect(r0.querySelector('[data-testid="plan.review.living.held"]').textContent).toMatch(/Cash: \d+% of your pension now; your plan’s mix has \d+%\./);
+    st = reduce(st, { type: A.REVIEW_RUN, key: R.run.key, planId: String(plan.id), rows: R.run.rows, pots: R.run.pots });
+    for (const id of R.run.rows) st = reduce(st, { type: A.REVIEW_DONE, key: R.run.key, row: id, result: rows[id] });
+    st = reduce(st, { type: A.UI_TOGGLE, id: 'agreeConfirm' });
+    st = reduce(st, { type: A.PLANS_VIEW, view: viewFor(st) });
+    const r1 = draw(st);
+    expect(r1.querySelector('[data-testid="plan.review.run.line"]').textContent).toMatch(/^From today, on your pots as last recorded, with what you hold: .+ \(in your plan’s own mix: 18 times in 20\)\./);
+    const confirm = r1.querySelector('[data-testid="plan.review.agreement.confirm"]').textContent;
+    expect(confirm).toContain('You are saying you have seen what the money does with what you hold now');
+    expect(confirm).not.toContain('From the month you stop work');
+  });
+  it('the plan write: "Yes, this is my plan" on the Living-on-it review is ONE write, made on the run of the boxes as typed', async () => {
+    const raw = third();
+    const writes = [];
+    const fb = { doc: (db, ...path) => ({ path: path.join('/') }), updateDoc: (ref, data) => { writes.push({ ref, data }); return Promise.resolve(); }, addDoc: () => Promise.resolve({ id: 'x' }), deleteDoc: () => Promise.resolve(), collection: () => ({}) };
+    const store = createStore(initialState({ today: DAY, build: 'test' }), reduce);
+    store.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'a@b.c' } });
+    store.dispatch({ type: A.PLANS_SET, list: upgradedList([raw], noon(DAY)), source: 'account', readAt: '14:03' });
+    const go = (hash) => { store.dispatch({ type: A.ROUTE_SET, route: parse(hash) }); store.dispatch({ type: A.PLANS_VIEW, view: viewFor(store.getState()) }); };
+    const handles = () => ({ db: { name: 'db' }, user: { uid: 'u1', email: 'a@b.c', emailVerified: true }, reread: () => Promise.resolve() });
+    const stop = startPlanWrite(store, { session: null, local: null, now: () => new Date(DAY + 'T14:03:00.000Z'), fb, client: null, handles });
+    go('#/plan/' + raw.id + '/review');
+    store.dispatch({ type: A.PLAN_EDIT, planId: String(raw.id), path: 'rv.pension', value: '520000' });
+    store.dispatch({ type: A.PLANS_VIEW, view: viewFor(store.getState()) });
+    const run = store.getState().plans.view.page.review.run;
+    expect(run).toMatchObject({ rows: ['today', 'whole'], pots: { pension: 520000 } });
+    const plan = store.getState().plans.list[0].plan;
+    store.dispatch({ type: A.REVIEW_RUN, key: run.key, planId: String(raw.id), rows: run.rows, pots: run.pots });
+    store.dispatch({ type: A.REVIEW_DONE, key: run.key, row: 'today', result: rowResult(plan, DAY, { weighted: 0.9 }) });
+    store.dispatch({ type: A.REVIEW_DONE, key: run.key, row: 'whole', result: rowResult(plan, DAY, { weighted: 0.8 }) });
+    store.dispatch({ type: A.PLANS_VIEW, view: viewFor(store.getState()) });
+    expect(store.getState().plans.view.page.review.agreement).toMatchObject({ canAccept: true });
+    store.dispatch({ type: A.PLAN_AGREE, planId: String(raw.id) });
+    await tick();
+    expect(writes).toHaveLength(1);
+    expect(Object.keys(writes[0].data).sort()).toEqual(['lastModified', 'phases', 'planAmendments']);
+    expect(writes[0].data.phases.review.log[0]).toMatchObject({ phase: 'drawing', pots: { pension: 520000 }, entered: { pots: true } });
+    stop();
+  });
+  it('a ladder\'s line links to What you hold, never to a review it cannot run', () => {
+    const day = '2028-05-10';   // 03 holds no gilt yet for 2029/30
+    const plan = entryOf(copy(C['03-gilt-ladder-locked']), day).plan;
+    const R = reviewOf([{ plan, newer: false, failed: false }], plan.id, { today: day });
+    expect(R.run).toBe(null);
+    const h = homeOf([{ plan, newer: false, failed: false }], plan.id, { today: day });
+    expect(h.drift).toEqual({ kind: 'ladder', year: '2029/30', href: '#/plan/' + plan.id + '/hold' });
+  });
+});
+
 describe('the agreement view on the review page', () => {
-  it('a plan not moving and with no agreement shows none', () => {
+  it('a plan living on its money with nothing recorded, or a saver, shows none; with a record it is offered after "Test with what I hold"', () => {
+    const bare = copy(C['04-buckets-running']); delete bare.holdings;
+    const b = entryOf(bare, DAY).plan;
+    expect(agreementViewOf(b, reviewOf([{ plan: b, newer: false, failed: false }], b.id, { today: DAY }), { today: DAY })).toBe(null);
+    const sv = entryOf(copy(C['05-saver-committed']), DAY).plan;
+    expect(agreementViewOf(sv, reviewOf([{ plan: sv, newer: false, failed: false }], sv.id, { today: DAY }), { today: DAY })).toBe(null);
     const plan = entryOf(copy(C['04-buckets-running']), DAY).plan;
     const R = reviewOf([{ plan, newer: false, failed: false }], plan.id, { today: DAY });
-    expect(agreementViewOf(plan, R, { today: DAY })).toBe(null);
+    expect(agreementViewOf(plan, R, { today: DAY })).toMatchObject({ status: 'none', phase: 'drawing', canAccept: false });
     // a key for the review's run is the plan's and its inputs'
     expect(reviewRunKeyOf(plan, DAY, runInputsOf(plan, { today: DAY, phase: 'drawing' }))).toMatch(/\|/);
   });

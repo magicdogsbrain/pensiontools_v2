@@ -192,7 +192,7 @@ describe('the runner', () => {
 
 describe('off course on the home: two saved reviews that worked out the chance, both below the line', () => {
   const entry = (at, weighted, documentAt) => ({ at, phase: 'drawing', documentAt, pots: { pension: 500000, isa: 0, other: 0 }, entered: { pots: true, took: false }, took: null, choice: null,
-    reading: { source: 'run', key: 'k', weighted, sumW: Math.round((1 - weighted) * 1000 * WEIGHT_ONE), n: 1000, fixedAge: { lasts: Math.round(weighted * 1000), n: 1000, age: 95 }, typicalLeft: null }, guardrail: null, drift: null, maxDrift: null });
+    reading: { source: 'run', key: 'k|' + at, weighted, sumW: Math.round((1 - weighted) * 1000 * WEIGHT_ONE), n: 1000, fixedAge: { lasts: Math.round(weighted * 1000), n: 1000, age: 95 }, typicalLeft: null }, guardrail: null, drift: null, maxDrift: null });
   it('one below is not; two below is, and the home shows it (nothing written on open)', () => {
     const day = '2027-06-02';
     const raw = copy(C['04-buckets-running']);

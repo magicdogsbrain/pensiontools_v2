@@ -192,7 +192,8 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   const { m, seq } = s;
   const T = m.target, D = m.diff, P = m.prog;
   const done = (plan.transition && isObj(plan.transition) && isObj(plan.transition.done)) ? plan.transition.done : {};
-  const rungs = T.kind === 'ladder' ? { total: T.lines.length, bought: D.hold.filter((h) => Array.isArray(h.taxYears)).length } : null;
+  // the rungs bought: held, or held above the target (7.11.1, the diff's own count) — the order sheet says the same
+  const rungs = T.kind === 'ladder' ? { total: T.lines.length, bought: D.rungs ? D.rungs.held : D.hold.filter((h) => Array.isArray(h.taxYears)).length } : null;
   const status = D.complete ? { id: 'done', slots: {} } : rungs ? { id: 'gilts', slots: { bought: String(rungs.bought), rungs: String(rungs.total), held: String(D.progressPct) } } : { id: 'held', slots: { held: String(D.progressPct), done: String(P.doneCount), moves: String(P.total) } };
   // what skipping it costs (§3.3): for a ladder the tax years whose rung is not bought; for a pot plan the one run on the held mix
   const uncovered = T.kind === 'ladder' ? [...new Set(D.buy.filter((b) => b.kind === 'gilt').flatMap((b) => (b.taxYears || []).map((y) => +y)))].sort((a, b) => a - b) : [];

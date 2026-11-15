@@ -14,7 +14,7 @@
  */
 
 import { isChargesPct } from '../services/Charges.js';
-import { targetHoldings, diffHoldings, yearNeedsOf } from '../services/TransitionPlanner.js';
+import { targetHoldings, diffHoldings, yearNeedsOf, isRungRow } from '../services/TransitionPlanner.js';
 import { holdingsLines } from '../services/HoldingsRecord.js';
 
 /**
@@ -39,7 +39,9 @@ export function orderSheetRows(docOrPlan, holdings = null, { today = null, param
     const diff = diffHoldings(holdingsLines(holdings), target, { needs: yearNeedsOf(d), today });
     const up = (s) => String(s || '').toUpperCase().trim();
     const keyOf = (o) => 'gilt:' + up(o.tidm || o.sedol || o.name);
-    const held = new Set(diff.hold.map((h) => h.key));
+    // a rung held above its target is bought, with more than it needs (7.11.1): the move lists the excess, the sheet says
+    // bought — never "not yet", which said the opposite of the move beside it
+    const held = new Set([...diff.hold.map((h) => h.key), ...diff.sell.filter(isRungRow).map((s) => s.key)]);
     const part = new Set(diff.buy.filter((b) => +b.heldUnits > 0).map((b) => b.key));
     const paid = new Set((target.paid || []).map((t) => t.key));
     const sold = new Set((target.sold || []).map((t) => t.key));

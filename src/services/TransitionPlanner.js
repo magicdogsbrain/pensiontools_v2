@@ -77,6 +77,38 @@ function codeContradicted(g, name) {
 export function giltOfLine(h) { const e = giltEvidence(h); return e ? e.g : null; }
 
 /**
+ * A line whose own evidence (its SEDOL, its exact name, or its name's coupon and date — not a code, which is often a guess)
+ * names a gilt maturing on another day than this rung's, or whose name gives another maturity date (7.11.1): another gilt,
+ * never this rung's, whatever its year. Its code or SEDOL being the rung's says it is the rung. A line that cannot be told,
+ * or a rung with no maturity date, reads as before.
+ */
+function namesAnotherGilt(h, t) {
+  const at = t && t.matures ? String(t.matures).slice(0, 10) : null;
+  if (!at) return false;
+  const date = maturityOfName(h && h.name);
+  if (date && date !== at) return true;
+  const e = giltEvidence(h);
+  if (!e || e.by === 'code' || !e.g.maturity) return false;
+  const sedolOf = (g) => (g && g.isin ? up(g.isin).slice(4, 11) : '');
+  if ((t.ticker && up(e.g.tidm) === up(t.ticker)) || (t.sedol && sedolOf(e.g) === up(t.sedol))) return false;
+  return String(e.g.maturity).slice(0, 10) !== at;
+}
+
+/** A rung of the ladder in a diff's lists (7.11.1): a gilt target with its tax years — never a line outside the plan. */
+export const isRungRow = (x) => !!x && x.kind === 'gilt' && Array.isArray(x.taxYears);
+
+/**
+ * The units a rung's order buys (7.11.1): its nominal; an order that carries none (priced without an index ratio) is sized
+ * from what it pays and its index ratio, as the ladder sizes it (to the £100 above); 0 when neither is known.
+ */
+function rungUnitsOf(o) {
+  const n = Math.round(num(o && o.nominal));
+  if (n > 0) return n;
+  const pays = num(o && o.pays), ir = num(o && o.indexRatio);
+  return pays > 0 && ir > 0 ? Math.ceil(pays / ir / 100) * 100 : 0;
+}
+
+/**
  * What a gilt line's own evidence says it is (7.6.0): true — conventional (fixed pay); false — index-linked; null — it cannot
  * be told (a typed name with no coupon or date, a code the bundled list does not know). Index-linked words in the name win.
  */
@@ -272,7 +304,7 @@ export function targetHoldings(doc, { today = new Date(), params = null } = {}) 
     const toLine = (o) => ({
       key: 'gilt:' + up(o.tidm || o.sedol || o.name), wrapper: 'SIPP', kind: 'gilt',
       label: o.name, ticker: up(o.tidm), sedol: o.sedol || null, matures: o.matures || null,
-      units: Math.round(num(o.nominal)), cost: Math.round(num(o.cost)), pays: Math.round(num(o.pays)),
+      units: rungUnitsOf(o), cost: Math.round(num(o.cost)), pays: Math.round(num(o.pays)),
       taxYears: Array.isArray(o.taxYears) ? o.taxYears.slice() : [], cleanPrice: num(o.cleanPrice) || null, indexRatio: num(o.indexRatio) || null
     });
     // A gilt that pays nothing is not a target (6.11.3): its years are covered by a lump sum expected later or other income.
@@ -411,8 +443,12 @@ export function ledgerView(holdings) {
  *   `progressPct` null. `inPlay` and `buckets` ({ held, target } each) are on a pot plan's diff, for driftOf.
  *   A ladder's rungs and cash years keep RUNG_TOLERANCE; its diff carries `rungs` ({ held, needed }) and `gapSoon` (a rung
  *   needed this tax year or next not held), for driftOf.
- * @param {{ band?: number, needs?: object, today?: Date|null }} o  `band` = MOVE_BAND (a pot plan's buckets); `needs` =
- *   yearNeedsOf(document) (else worked from the target); `today` counts a conventional gilt's coupons still to come.
+ *   A rung held below its target is never a sale (7.11.1): a rung's units are its order's (rungUnitsOf: sized from what it
+ *   pays when the order carries no nominal), and with no units to read the rung is read by its cost — held, or to buy; a line
+ *   is counted toward a rung only when it is that rung's gilt (never one whose own evidence names another gilt, namesAnotherGilt).
+ *   A rung held above its target is still bought: it counts as held in `rungs` (the excess stays in `sell`, for the move).
+ * @param {{ band?: number, needs?: object, today?: Date|null }} o  `band` = MOVE_BAND (a pot plan's buckets);
+ *   `needs` = yearNeedsOf(document) (else worked from the target); `today` counts a conventional gilt's coupons still to come.
  */
 export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsGiven = null, today = null } = {}) {
   const L = ledgerView(holdings);
@@ -503,7 +539,9 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
     // year. A code that IS the rung's code, with nothing in the name against it, is that rung. A line that cannot be told
     // reads as before. The person can say it stands in for some years instead ("Keep this").
     const exact = (h, t) => (h.ticker && t.ticker && h.ticker === t.ticker && !conventionalByOwnWords(h)) || (t.sedol && (up(h.sedol) === up(t.sedol) || up(h.name).includes(up(t.sedol))));
-    const loose = (h, t, ty) => !knownConventional(h) && ((h.ticker && h.ticker.length >= 3 && t.label && up(t.label).includes(h.ticker)) || (ty && (yearOf(h.name) === ty || yearOf(h.ticker) === ty)));
+    // By its year or its code in the rung's name, never a line whose own evidence names another gilt (7.11.1: a 2035 linker
+    // outside the plan is not the 2035 rung, so a rung part bought is never read as held twice over and sold)
+    const loose = (h, t, ty) => !knownConventional(h) && !namesAnotherGilt(h, t) && ((h.ticker && h.ticker.length >= 3 && t.label && up(t.label).includes(h.ticker)) || (ty && (yearOf(h.name) === ty || yearOf(h.ticker) === ty)));
     const all = [...(target.paid || []), ...(target.sold || []), ...target.lines];
     const rowsOf = new Map();
     const take = (t, pred) => { const rows = sipp.filter((h) => !used.has(h) && h.gilt && pred(h)); rows.forEach((r) => used.add(r)); rowsOf.set(t, rows); };
@@ -516,6 +554,16 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
     for (const t of (target.sold || [])) for (const r of rowsFor(t)) sold.push({ ...r, key: 'sold:' + (r.ticker || t.ticker), label: r.name || r.ticker || t.label, rung: t.label, why: 'sold by the rotation — remove it from your record' });
     for (const t of target.lines) {
       const rows = rowsFor(t);
+      if (!(t.units > 0)) {
+        // a rung with no units to read (7.11.1: an order with no nominal and no index ratio): read by its cost — held, or to
+        // buy — and never a sale; before, any units held were "more than the rung needs" against a target of none
+        const heldValue = rows.reduce((s, r) => s + r.value, 0);
+        const hu = rows.reduce((s, r) => s + num(r.units), 0);
+        targetTotal += t.cost; heldOfTarget += Math.min(t.cost, heldValue); targetCount++;
+        if (t.cost > 0 ? heldValue >= t.cost * (1 - RUNG_TOLERANCE) : rows.length > 0) hold.push({ ...t, units: null, value: t.cost, heldUnits: Math.round(hu), heldValue: Math.round(heldValue) });
+        else buy.push({ ...t, units: null, value: t.cost, amount: Math.round(Math.max(0, t.cost - heldValue)), heldUnits: Math.round(hu), why: 'rung for ' + t.taxYears.map(taxYearLabel).join(', ') });
+        continue;
+      }
       const unitPrice = t.cleanPrice && t.indexRatio ? (t.cleanPrice * t.indexRatio / 100) : (t.units > 0 ? t.cost / t.units : null);
       const heldUnits = rows.reduce((s, r) => s + (r.units != null ? r.units : (unitPrice ? r.value / unitPrice : 0)), 0);
       const delta = t.units - heldUnits;
@@ -548,7 +596,8 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
     // the rungs as the home reads them (7.10.0, driftOf): how many the plan still needs are held, and whether a rung needed
     // this tax year or next is still to buy (a gap soon) — read from the rung check above, never by points
     const thisTY = Number.isFinite(+target.thisTaxYear) ? +target.thisTaxYear : null;
-    ladderRead = { rungs: { held: hold.filter((x) => Array.isArray(x.taxYears)).length, needed: target.lines.length },
+    // a rung held above its target is bought (7.11.1): held, with the excess in `sell` for the move
+    ladderRead = { rungs: { held: hold.filter((x) => Array.isArray(x.taxYears)).length + sell.filter(isRungRow).length, needed: target.lines.length },
       gapSoon: thisTY != null && buy.some((b) => b.kind === 'gilt' && Array.isArray(b.taxYears) && b.taxYears.some((Y) => +Y === thisTY || +Y === thisTY + 1)) };
   } else if (target.kind === 'buckets') {
     // a pot plan has no rungs: a line kept to stand in for years is simply kept (7.6.0), like one kept by choice

@@ -74,16 +74,24 @@ export function heldOf(plan, { today }) {
   return placed(m.diff.roles, { firstY: firstYearOf(m.target, now), planLast: lastYearOf(yearNeedsOf(doc)) });
 }
 
+/** Why a year needs nothing from the pension (7.11.1): the plan's own timeline — a lump sum it counts, other income, or else. */
+function paidByOf(doc, Y) {
+  const row = Array.isArray(doc.timeline) ? doc.timeline.find((x) => x && x.taxYear === taxYearLabel(Y)) : null;
+  if (row && num(row.lump) > 0) return 'lump';
+  if (row && num(row.other) > 0) return 'other';
+  return 'else';
+}
+
 /**
  * The reading. Null when there is nothing to read: no plan document; or a record that keeps nothing, expects nothing and
  * holds nothing in the pension beyond the plan's own rungs and cash (7.11.1) — for such a plan the move's rungs and cash say it
  * all, and it reads exactly as before. A pot plan (no rungs) has no years to read: `ladder` is false and only what is kept
  * and expected is said, as before. `asKept` (the keep test's own reading, keepTest.js): only what the person chose to keep,
  * as before 7.11.1 — the lines not kept are the move's to sell there.
- * @returns {null | { ladder, rows: [{ Y, year, need, monthsLeft, thisYear, source, rungs, standIns: [{ label, pays, fixed }], gilts: [{ label, pays, fixed }], cash, held, toBuy, gap }],
+ * @returns {null | { ladder, rows: [{ Y, year, need, monthsLeft, thisYear, source, rungs, standIns: [{ label, pays, fixed }], gilts: [{ label, pays, fixed }], cash, held, toBuy, gap, paidBy }],
  *   lastYear, totalGap, firstGap: { Y, year, gap, lastMonth, shortFrom }|null, standIns: [], kept: [], fundsGaps: { lines, total },
  *   expected: { items, total, late }, withExpected: { covered, short }|null, withAll: { covered, short }|null, heldAnotherWay: number, keptCount: number,
- *   roles: [], gilts: [], outside: { lines, total }, withHeld: { covered, short }|null, fromHeld: boolean }}
+ *   roles: [], gilts: [], outside: { lines, total }, withHeld: { covered, short }|null, fromHeld: boolean, lumps: [{ Y, year, amount }] }}
  */
 export function gapsOf(plan, { today, asKept = false }) {
   const now = dateOf(today);
@@ -112,7 +120,7 @@ export function gapsOf(plan, { today, asKept = false }) {
   const gilts = roles.filter((r) => r.role === 'gilt').map((r) => ({ at: r.at, label: r.label, state: r.state, matures: r.matures, Y: r.state === 'counted' ? r.countsToward : null, pays: r0(r.pays), real: r0(r.real != null ? r.real : r.pays), fixed: !!r.fixed, payKind: r.payKind || null, used: 0, spare: 0 }));
   const outLines = roles.filter((r) => r.role === 'outside').map((r) => ({ at: r.at, label: r.label, value: r0(r.value) }));
   const outside = { lines: outLines, total: outLines.reduce((s, x) => s + x.value, 0) };
-  const base = { standIns, kept, fundsGaps, expected, heldAnotherWay: new Set(standIns.flatMap((s) => s.taxYears)).size, keptCount: kept.length, roles, gilts, outside, fromHeld };
+  const base = { standIns, kept, fundsGaps, expected, heldAnotherWay: new Set(standIns.flatMap((s) => s.taxYears)).size, keptCount: kept.length, roles, gilts, outside, fromHeld, lumps: [] };
   if (T.kind !== 'ladder') return { ...base, ladder: false, rows: [], lastYear: null, totalGap: 0, toBuy: 0, firstGap: null, withExpected: null, withAll: null, withHeld: null };
 
   const thisTY = taxYearStartOf(now);
@@ -141,7 +149,9 @@ export function gapsOf(plan, { today, asKept = false }) {
     let source = standYears.has(Y) ? 'standIn' : thisYear ? 'thisYear' : from === 'cash' ? 'cash' : (from && paidTidms.has(String(from).toUpperCase())) ? 'paid' : 'rung';
     let rungs = 0, toBuy = 0;
     if (source === 'rung') { const r = rungRow(Y); if (r) { rungs = need * r.held; toBuy = need * r.toBuy; } else source = 'cash'; }
-    rows.push({ Y, year: taxYearLabel(Y), need: r0(need), full: r0(full), monthsLeft, thisYear, source, rungs: r0(rungs), standIns: sIn, gilts: [], cash: 0, held: 0, toBuy: r0(toBuy), gap: 0 });
+    // a year the plan needs nothing from the pension for (7.11.1): what pays it, from the plan's own timeline
+    const paidBy = needs[Y] && full <= 0 ? paidByOf(doc, Y) : null;
+    rows.push({ Y, year: taxYearLabel(Y), need: r0(need), full: r0(full), monthsLeft, thisYear, source, rungs: r0(rungs), standIns: sIn, gilts: [], cash: 0, held: 0, toBuy: r0(toBuy), gap: 0, paidBy });
   }
   // the pension's cash, used year by year: this year's months first, then each year whose money is cash or stood in for. What
   // a stand-in, or a gilt counted toward its year, pays beyond that year is cash from the year after (said, never lost).
@@ -181,9 +191,16 @@ export function gapsOf(plan, { today, asKept = false }) {
   }
   // money expected after the first year's money runs short (an expected date later than that month)
   if (firstGap) expected.late = expected.items.filter((e) => e.by && e.by > firstGap.shortFrom).map((e) => e.id);
+  // the lump sums the plan itself counts in the years read (7.11.1): money expected later may be one of them
+  const lumps = [];
+  for (const r of rows) {
+    const row = Array.isArray(doc.timeline) ? doc.timeline.find((x) => x && x.taxYear === r.year) : null;
+    const amount = row && Array.isArray(row.lumpIn) ? row.lumpIn.reduce((s, x) => s + num(x && x.amount), 0) : 0;
+    if (amount > 0) lumps.push({ Y: r.Y, year: r.year, amount: r0(amount) });
+  }
   const toBuyTotal = rows.reduce((s, r) => s + r.toBuy, 0);
   const cover = (have) => (totalGap <= 0 ? null : have >= totalGap ? { covered: true, short: 0 } : { covered: false, short: r0(totalGap - have) });
-  return { ...base, ladder: true, rows, lastYear: lastY, totalGap: r0(totalGap), toBuy: r0(toBuyTotal), firstGap,
+  return { ...base, lumps, ladder: true, rows, lastYear: lastY, totalGap: r0(totalGap), toBuy: r0(toBuyTotal), firstGap,
     withExpected: expected.total > 0 ? cover(expected.total) : null,
     withAll: expected.total > 0 && fundsGaps.total > 0 ? cover(expected.total + fundsGaps.total) : fundsGaps.total > 0 ? cover(fundsGaps.total) : null,
     // 7.11.1: with the shares and funds outside the plan's mix at today's value too (and what is expected and counted)
@@ -209,6 +226,9 @@ export function gapSentences(g) {
     const key = n > 0 && k > 0 ? 'strategyBoth' : n > 0 ? 'strategyYears' : k > 0 ? 'strategyKept' : 'strategyNone';
     say('strategy', [key, { n: String(n), k: String(k) }, { years: n === 1 ? 'yearOne' : 'yearMany', holdings: k === 1 ? 'holdingOne' : 'holdingMany' }]);
   }
+  // a year the plan needs nothing from the pension for (7.11.1): what pays it, so "£0" is never a puzzle
+  const W = { lump: 'whyLump', other: 'whyOther', else: 'whyElse' };
+  for (const r of g.rows.filter((x) => x.paidBy)) say('noNeed', ['noNeed', { year: r.year }, { why: W[r.paidBy] }]);
   // each gilt outside the rungs (7.11.1): the tax year it counts toward and what it pays — or why it is not counted
   for (const x of g.gilts || []) {
     const month = x.matures ? monthWords(x.matures.slice(0, 7)) : '';
@@ -232,6 +252,8 @@ export function gapSentences(g) {
     say('totalGap', ['totalGap', { gap: pounds(g.totalGap), year: last }]);
   }
   if (g.withExpected) say('withExpected', g.withExpected.covered ? ['withExpected', { year: last }] : ['withExpectedShort', { short: pounds(g.withExpected.short), year: last }]);
+  // a lump sum the plan itself counts (7.11.1): money expected later may be that money, and then it is not extra
+  if (g.expected.total > 0) for (const l of g.lumps || []) say('lumpExpected', ['lumpExpected', { amount: pounds(l.amount), year: l.year }]);
   for (const e of g.expected.items.filter((x) => g.expected.late.includes(x.id))) say('late', e.label ? ['late', { label: e.label, by: monthWords(e.by), month: monthWords(g.firstGap.shortFrom) }] : ['late', { by: monthWords(e.by), month: monthWords(g.firstGap.shortFrom) }, { label: 'expectedNoLabel' }]);
   if (g.fundsGaps.total > 0) {
     // a pot plan has no years to fill: what is counted is counted toward the plan's money

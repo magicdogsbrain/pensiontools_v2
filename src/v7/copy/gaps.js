@@ -54,6 +54,12 @@ export const GAPS = {
   withHeldExpected: 'With the money you expect, and these at today’s value, every year to {year} is covered.',
   withHeldExpectedShort: 'With the money you expect, and these at today’s value, {short} is still not covered to {year}.',
   outsideCanFall: 'Shares and funds can fall in value, so they are never counted as held for a year; if they are worth less when sold, they cover less.',
+  // 7.11.1: a year the plan needs nothing from the pension for, and a lump sum the plan already counts
+  noNeed: '{year} needs nothing from your pension: {why}.',
+  whyLump: 'a lump sum the plan counts that year pays it',
+  whyOther: 'other income the plan counts pays it',
+  whyElse: 'other money the plan counts pays it',
+  lumpExpected: 'The plan already counts a lump sum of {amount} in {year}; if the money you expect is that money, it is not extra.',
   canFallPot: 'What you keep by choice can fall in value; if it falls, the plan has less to draw on.',
   columns: { year: 'Tax year', need: 'The plan needs', held: 'Held for it', gap: 'Not yet covered' },
   // the needs and what is held are at today’s prices

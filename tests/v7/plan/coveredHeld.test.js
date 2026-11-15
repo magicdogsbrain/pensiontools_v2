@@ -86,7 +86,7 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
     expect(r26).toMatchObject({ thisYear: true, monthsLeft: 5, need: Math.round(34000 * 5 / 12), source: 'thisYear', gap: 0 });
     expect(r26.gilts).toEqual([{ label: '4 1/8% Treasury Gilt 2027', pays: Math.round(34000 * 5 / 12), fixed: true }]);
     // 2027/28: the plan needs nothing from the pension (a lump sum it counts pays it): the gilt maturing then is all cash after
-    expect(r27).toMatchObject({ need: 0, held: 0, gap: 0 });
+    expect(r27).toMatchObject({ need: 0, held: 0, gap: 0, paidBy: 'lump' });
     // 2028/29: its own gilt, then the pension's cash — what the earlier gilts paid beyond their years
     expect(r28.gilts[0]).toEqual({ label: '1 5/8% Treasury Gilt 2028', pays: real[2], fixed: true });
     expect(r28).toMatchObject({ need: 33000, held: 33000, cash: 33000 - real[2], gap: 0 });
@@ -106,13 +106,15 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
     expect(w).toContain(GAPS.outsideCanFall);
   });
 
-  it('says it in words: each gilt, the tax year it counts toward and what it pays, and every year covered', () => {
+  it('says it in words: each gilt, the year that needs nothing and why, every year covered, the lump sum the plan already counts', () => {
     const w = words(g);
     expect(w[0]).toBe('Your ladder, as locked.');
+    expect(w).toContain('2027/28 needs nothing from your pension: a lump sum the plan counts that year pays it.');
     expect(w.some((t) => /^4 1\/8% Treasury Gilt 2027 matures in January 2027, so it counts toward 2026\/27\. It pays a fixed £30,619; it does not rise with prices, so when it is paid it is worth £[\d,]+ at today’s prices\.$/.test(t))).toBe(true);
     expect(w.some((t) => t.startsWith('4¼% Treasury Gilt 2027 matures in December 2027, so it counts toward 2027/28.'))).toBe(true);
     expect(w.some((t) => t.startsWith('1 5/8% Treasury Gilt 2028 matures in October 2028, so it counts toward 2028/29.'))).toBe(true);
     expect(w).toContain('Every year to 2028/29 is covered by what you hold.');
+    expect(w).toContain('The plan already counts a lump sum of £40,000 in 2027/28; if the money you expect is that money, it is not extra.');
     // free of advice and of every banned word a plan page may show
     for (const t of [...w, ...Object.values(GAPS).filter((x) => typeof x === 'string').map((x) => x.replace(/\{\w+\}/g, 'two'))]) for (const b of BANNED.filter((x) => ['all', 'planner', 'record', 'result', 'retired'].includes(x.scope))) {
       if (b.kind === 'explain') continue;
@@ -209,5 +211,23 @@ describe('a rung held below its target is never a sale', () => {
     // the corpus ladder holds 25,000 of the 2027 linker, whose rung (2028/29) needs 15,500
     const g = gapsOf(entryOf(RAW, TODAY).plan, { today: TODAY });
     expect(g.rows.find((r) => r.Y === 2028)).toMatchObject({ source: 'rung', gap: 0, toBuy: 0 });
+  });
+});
+
+describe('a year the plan needs nothing from the pension for says what pays it', () => {
+  const read = (patch, o) => { const raw = alexRaw(o); raw.planDocument.timeline = raw.planDocument.timeline.map((r) => (r.taxYear === '2027/28' ? { ...r, ...patch } : r)); return gapsOf(entryOf(raw, TODAY).plan, { today: TODAY }); };
+  it('a lump sum the plan counts, other income, or other money it counts — never "£0" alone', () => {
+    expect(gapsOf(alex(), { today: TODAY }).rows.find((r) => r.Y === 2027).paidBy).toBe('lump');
+    const other = read({ lump: 0, lumpIn: [], other: 34000 });
+    expect(other.rows.find((r) => r.Y === 2027).paidBy).toBe('other');
+    expect(words(other)).toContain('2027/28 needs nothing from your pension: other income the plan counts pays it.');
+    const neither = read({ lump: 0, lumpIn: [], other: 0 });
+    expect(words(neither)).toContain('2027/28 needs nothing from your pension: other money the plan counts pays it.');
+    // a year that needs something says nothing more
+    expect(gapsOf(alex(), { today: TODAY }).rows.filter((r) => r.Y !== 2027).map((r) => r.paidBy)).toEqual([null, null]);
+  });
+  it('the lump sum the plan already counts is said beside money expected later, which may be that money — and only then', () => {
+    expect(words(gapsOf(alex(), { today: TODAY }))).toContain('The plan already counts a lump sum of £40,000 in 2027/28; if the money you expect is that money, it is not extra.');
+    expect(words(gapsOf(alex({ expected: [] }), { today: TODAY })).some((t) => t.startsWith('The plan already counts a lump sum'))).toBe(false);
   });
 });

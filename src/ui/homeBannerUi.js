@@ -5,7 +5,8 @@
  *   - a month or a tax year to record → the Decision tab (a partner's month opens that plan);
  *   - the review, off course, "did you stop work?", an age, a partner's plan → that page of the new app ({ kind: 'v7' });
  *   - a closed plan's way on → the plan that carries it on ({ kind: 'plan' }).
- * With nothing due: a plan not locked gets the onboarding chain (NextStep.nextStepFor); a locked one its stage's sentence, as
+ * With nothing due: a plan Moving by its agreement says so, as the new app's home does ("You accepted what you hold on …");
+ * any other plan not locked gets the onboarding chain (NextStep.nextStepFor); a locked one its stage's sentence, as
  * information.
  *
  * Every plan in the account is read (as the new app reads them: upgraded, a newer or unreadable one marked), so a linked
@@ -70,6 +71,13 @@ export function homeBannerOf(entries, activeId, { today, stage = null, budget = 
     return { html: esc(words), btn: label, action: actionOf(it), dismiss: it.dismiss && !it.planId ? { kind: 'task', key: it.key } : { kind: 'banner' }, id: it.id };
   }
   if (h && h.readonly) return null;
+  // nothing due on a plan Moving by its agreement: the new app's own line ("You accepted what you hold on …"), as information,
+  // with the way to its review — never the onboarding chain's "moving what you hold come when you are ready"
+  const mw = h && h.found ? h.moveWindow : null;
+  if (mw && (mw.id === 'agreed' || mw.id === 'agreedAsItStands') && HOME.moveWindow[mw.id]) {
+    const href = h.review && h.review.href ? h.review.href : '#/plan/' + h.id + '/review';
+    return { html: esc(fill(HOME.moveWindow[mw.id], mw.slots)), btn: HOME.review.link, action: { kind: 'v7', href: LAYOUT.classic.v7 + href }, dismiss: { kind: 'banner' }, id: null };
+  }
   // nothing due: the onboarding chain on a plan not locked; a locked plan's stage, as information
   const step = nextStepFor({ stage, budget, stress, decision, fromAnswer: !!fromAnswer });
   return step ? { ...step, dismiss: { kind: 'banner' }, id: null } : null;

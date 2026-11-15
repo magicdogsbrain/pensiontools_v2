@@ -15,6 +15,8 @@ import { homeOf } from '../src/answers/plan/home.js';
 import { deriveStage } from '../src/services/LifeStage.js';
 import { nextStepFor } from '../src/services/NextStep.js';
 import { PLAN } from '../src/v7/copy/plan.js';
+import { HOME } from '../src/v7/copy/home.js';
+import { phasesPatch } from '../src/services/Phases.js';
 import { LAYOUT } from '../src/appLayout.js';
 import { corpus, entriesAt, entryOf, noon, DATES, TODAY } from './v7/plan/_plans.js';
 
@@ -69,6 +71,20 @@ describe('the classic banner is the new app\'s home, on the whole corpus list, a
     expect(b).toEqual(st.banner ? { ...nextStepFor({ stage: st, budget: {}, stress: {}, decision: {} }), dismiss: { kind: 'banner' }, id: null } : null);
     const newer = entries.map((e) => (e.plan.id === C['04-buckets-running'].id ? { ...e, newer: true } : e));
     expect(homeBannerOf(newer, C['04-buckets-running'].id, { today: TODAY, stage: deriveStage(C['04-buckets-running'], noon(TODAY)) })).toBe(null);
+  });
+  it('nothing due on a plan Moving by its agreement: the new app\'s own line that it was accepted, with the way to its review — never the onboarding chain', () => {
+    const day = '2026-10-02';
+    const raw = copy(C['19-back-to-work-saving']);
+    const at = day + 'T11:00:00.000Z';
+    const plan = entryOf(raw, day).plan;
+    const ph = phasesPatch(plan, 'moving.agreed', { strategyId: (plan.stressTool.settings.strategyId || 'pots-and-valves'), how: 'asHeld', heldPct: 90, entryAt: at }, { at }).phases;
+    const agreed = { ...raw, phases: ph };
+    const entries = [entryOf(agreed, day)];
+    const h = homeOf(entries, agreed.id, { today: day });
+    expect(h.moveWindow).toMatchObject({ id: 'agreed' });
+    const b = homeBannerOf(entries, agreed.id, { today: day, stage: deriveStage(agreed, noon(day)), budget: {}, stress: {}, decision: {} });
+    expect(b).toEqual({ html: esc(fill(HOME.moveWindow.agreed, h.moveWindow.slots)), btn: HOME.review.link, action: { kind: 'v7', href: LAYOUT.classic.v7 + '#/plan/' + agreed.id + '/review' }, dismiss: { kind: 'banner' }, id: null });
+    expect(b.html).toMatch(/^You accepted what you hold on 2 October 2026\. You stop work in /);
   });
   it('the plans as the new app reads them: each brought up to date in memory, never written', () => {
     const raws = Object.values(C).map(copy);

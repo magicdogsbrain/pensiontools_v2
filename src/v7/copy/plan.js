@@ -224,6 +224,8 @@ export const PLAN = {
     railNav: 'The steps of your plan',
     railTitle: 'Your plan',
     position: 'Your plan: {step}',
+    /** The rail's line on "Your review" (7.10.0), which is no step of the rail (a saver's is the check-in). */
+    onReview: 'Your review',
     optional: 'optional',
     marks: { current: 'You are here', done: 'Done', open: 'Not done yet', later: 'For later' },
     /** A saver's steps kept for later (research/saving-enough-and-check-in.md 4.1): there to open, never "Not done yet". */

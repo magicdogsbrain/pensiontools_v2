@@ -1060,10 +1060,13 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
   const windowYears = windowYearsOf(plan);
   const listed = stepsFor(stage.key, { locked, linked: partners.length > 0, manyPlans: list.length > 1, yearsToStop, windowYears });
   const ids = listed.map((s) => s.id);
-  // `pot`'s address opens the check-in where the stage has one (saving-enough-and-check-in.md 4.1): no address breaks
-  const asked = stepId === 'pot' && ids.includes('checkin') ? 'checkin' : stepId;
+  // `pot`'s address opens the check-in where the stage has one (saving-enough-and-check-in.md 4.1): no address breaks.
+  // "Your review" (7.10.0) is no step of the rail: a saver's is the check-in, which is current there; in any other phase no
+  // step is current on it (the rail never says "you are here" of a step the page is not)
+  const onReview = stepId === 'review';
+  const asked = (stepId === 'pot' || (onReview && phase === 'saving')) && ids.includes('checkin') ? 'checkin' : stepId;
   const wanted = asked && ALL_STEPS.includes(asked) ? asked : null;
-  const current = wanted || ids[0];
+  const current = wanted || (onReview ? null : ids[0]);
   const shown = wanted && !ids.includes(wanted) ? [...listed, { id: wanted, optional: true, listed: false }] : listed;
   const built = {};
   for (const s of shown) { try { built[s.id] = BUILDERS[s.id](C); } catch (e) { built[s.id] = { done: false, result: sentence(s.id + '.failed', ['Could not be read'], {}), figures: {}, lines: [], buttons: [], notes: [], error: e && e.message }; } }

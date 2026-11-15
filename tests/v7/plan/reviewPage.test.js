@@ -172,6 +172,24 @@ describe('the screen', () => {
     expect(sv.text).not.toMatch(/\{\w+\}/);
   });
 
+  it('the rail on the review: no step is "you are here" outside Saving, and its line names the review; a saver\'s Check in is current; no "Review now" to the page itself', () => {
+    const day = '2026-10-02';
+    for (const id of [C['04-buckets-running'].id, C['19-back-to-work-saving'].id]) {
+      const { root } = draw(stateWith(entriesAt(day), '#/plan/' + id + '/review', { today: day }));
+      expect(root.querySelectorAll('.plan-rail [aria-current="step"]'), id).toHaveLength(0);
+      expect(q(root, 'rail.line').textContent).toContain('Your plan: Your review');
+      const b = q(root, 'rail.next.button');
+      expect(b ? b.getAttribute('href') : null, id).not.toBe('#/plan/' + id + '/review');
+    }
+    const sv = draw(stateWith(entriesAt(day), '#/plan/' + C['05-saver-committed'].id + '/review', { today: day }));
+    const cur = sv.root.querySelectorAll('.plan-rail [aria-current="step"]');
+    expect(cur).toHaveLength(1);
+    expect(cur[0].getAttribute('data-testid')).toBe('rail.plan.checkin');
+    // on any other step the rail is as it was: its first step current on the plan's own address
+    const home = draw(stateWith(entriesAt(day), '#/plan/' + C['04-buckets-running'].id + '/month', { today: day }));
+    expect(home.root.querySelectorAll('.plan-rail [aria-current="step"]')).toHaveLength(1);
+  });
+
   it('"Change" opens the options; an option is a phaseSet of that part', () => {
     const day = '2026-10-02';
     const id = C['19-back-to-work-saving'].id;

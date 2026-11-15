@@ -18,14 +18,17 @@ export function PlanRail({ view, state, dispatch, onChange }) {
   if (!view || !view.found) return null;
   const words = PLAN.page;
   const open = !!state.ui.railOpen;
-  const current = view.steps.find((s) => s.state === 'current') || view.steps[0];
+  // the step the page is (none on "Your review" outside Saving: the rail's line names the review, no step is marked)
+  const current = view.steps.find((s) => s.state === 'current') || null;
+  const onReview = !!(state.route && state.route.screen === 'plan' && state.route.step === 'review');
   const setOpen = (o) => dispatch({ type: 'ui/rail', open: o });
   const onKeyDown = (e) => { if (e.key === 'Escape' && open) setOpen(false); };
   const stepName = (s) => stepNameOf(s.id, view);
   const next = view.next || { id: 'P.reviewAny', slots: {}, button: null };
   // `words`: a to-do's own words where its sentence differs (the move to the tax year recorded months begin in, 7.4.3)
   const sentence = fill(PLAN.next[next.words || next.id] || PLAN.next[next.id] || '', next.slots);
-  const b = next.button;
+  // the line's own link is left out where the page already is (the review's "Review now" on the review itself)
+  const b = next.button && !(onReview && next.button.href === href.plan(view.id, 'review')) ? next.button : null;
   // one step of the rail: a step kept for later carries no mark until it is current or done (and says "For later" to a
   // reader). A plain function, not a component made in here: a component type made afresh on every draw would have Preact
   // throw the rail's links away and make new ones each time, and a keyboard user would lose their place on the rail.
@@ -48,7 +51,7 @@ export function PlanRail({ view, state, dispatch, onChange }) {
     <nav class={`rail plan-rail${open ? ' is-open' : ''}`} aria-label={words.railNav} data-region="rail" onKeyDown={onKeyDown}>
       <p class="rail-title">{words.railTitle}</p>
       <button type="button" class="rail-line" data-testid="rail.line" aria-expanded={open ? 'true' : 'false'} aria-controls="rail-sheet" onClick={() => setOpen(!open)}>
-        <span class="rail-line-text">{fill(words.position, { step: PLAN.steps[current.id].short })}</span>
+        <span class="rail-line-text">{fill(words.position, { step: current ? PLAN.steps[current.id].short : onReview ? words.onReview : PLAN.steps[view.steps[0].id].short })}</span>
         <span class="rail-chevron" aria-hidden="true">{open ? '▴' : '▾'}</span>
       </button>
       <div id="rail-sheet" class="rail-sheet">

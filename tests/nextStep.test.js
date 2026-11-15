@@ -163,13 +163,20 @@ describe('nextStepAction: what each button does', () => {
 
 // retaken in 7.10.0 (spec-7100 §5): the banner's reading moved to src/ui/homeBannerUi.js (the plan home's first thing due,
 // else this chain); index.html keeps the newer-plan banner and the stage, first, and hands the rest to it
+// retaken in 7.11.0 (spec-7110 §5): the three steps moved to homeBannerUi.js updateHomeBanner, in the same order; index.html
+// keeps one line that hands it the page's own functions
 describe('index.html: the banner is the module\'s', () => {
   const html = readFileSync('index.html', 'utf8');
-  const fn = html.slice(html.indexOf('window.updateNextStepBanner = async function'), html.indexOf('window.updateNextStepBanner = async function') + 1500);
+  const at = html.indexOf('window.updateNextStepBanner = () => updateHomeBanner(window, document, {');
+  const fn = html.slice(at, html.indexOf('\n', at));
   const ui = readFileSync('src/ui/homeBannerUi.js', 'utf8');
+  const update = ui.slice(ui.indexOf('export async function updateHomeBanner('), ui.indexOf('\n}\n', ui.indexOf('export async function updateHomeBanner(')));
   it('the page works out the stage first and hands it to the module, which reads the plan and the home and hands both to nextStepFor', () => {
-    expect(fn.indexOf('showPlanNewerBanner();')).toBeLessThan(fn.indexOf('refreshLifeStage()'));
-    expect(fn.indexOf('refreshLifeStage()')).toBeLessThan(fn.indexOf('showHomeBanner('));
+    expect(at).toBeGreaterThan(-1);
+    for (const name of ['showPlanNewerBanner', 'refreshLifeStage', 'getActiveScenarioId', 'listScenariosAsync', 'planFromAnswer']) expect(fn, name).toContain(name);
+    expect(update.indexOf('deps.showPlanNewerBanner()')).toBeGreaterThan(-1);
+    expect(update.indexOf('deps.showPlanNewerBanner()')).toBeLessThan(update.indexOf('deps.refreshLifeStage()'));
+    expect(update.indexOf('deps.refreshLifeStage()')).toBeLessThan(update.indexOf('showHomeBanner(win, doc,'));
     expect(ui).toContain('nextStepFor(');
     expect(ui).toContain('planFromAnswer()');
     expect(ui).toContain('nextStepAction(');

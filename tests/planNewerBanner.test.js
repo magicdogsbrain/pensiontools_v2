@@ -45,7 +45,13 @@ describe('index.html: the newer-plan banner', () => {
   it('is shown from the one test (isPlanNewerThanApp), on the event and whenever the plan is refreshed', () => {
     expect(html).toMatch(/import \{ isPlanNewerThanApp \} from '\.\/src\/storage\/ScenarioRepository\.js'/);
     expect(html).toContain("window.addEventListener('" + PLAN_NEWER_EVENT + "'");
-    const fn = html.slice(html.indexOf('window.updateNextStepBanner = async function'));
-    expect(fn.slice(0, 200)).toContain('showPlanNewerBanner();');
+    // 7.11.0: index.html's updateNextStepBanner is one line handing the page's functions to homeBannerUi.updateHomeBanner,
+    // whose first step is the newer-plan banner
+    const at = html.indexOf('window.updateNextStepBanner = () => updateHomeBanner(window, document, {');
+    expect(at).toBeGreaterThan(-1);
+    expect(html.slice(at, html.indexOf('\n', at))).toContain('showPlanNewerBanner');
+    const ui = fs.readFileSync('src/ui/homeBannerUi.js', 'utf8');
+    const update = ui.slice(ui.indexOf('export async function updateHomeBanner('));
+    expect(update.split('\n')[1].trim()).toBe('deps.showPlanNewerBanner();');
   });
 });

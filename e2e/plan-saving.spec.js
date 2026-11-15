@@ -191,11 +191,13 @@ test.describe('"What you pay in", without an account', () => {
 
 /**
  * The planner's own page for a saver (research/saving-enough-and-check-in.md 4.6, release step R2): it opens a saver on
- * their stage's first lead (still saving and locked while saving: the Accumulation planner; inside the move window: the
- * Stress tester) and every other plan on Month by month (the Decision tool), as before; and its setup wizard has a door for
- * someone still saving that lands on the Accumulation planner. Fictional plans only, kept in this window.
+ * their stage's first lead (still saving and locked while saving: the Accumulation planner) and every other plan on Month
+ * by month (the Decision tool), as before; and its setup wizard has a door for someone still saving that lands on the
+ * Accumulation planner. Fictional plans only, kept in this window.
  * 7.10.0: one clock — the move window (3 years until the person chooses 1 to 5) places a saver in both apps. Alex (10) stops
  * in January 2030; with a four-year window chosen the window is open from January 2026, whatever day this runs.
+ * 7.11.0: a plan in its move window (its phase Moving, as the plan home reads it) opens on Transition, where moving what you
+ * hold is done (was the Stress tester).
  */
 test.describe('the planner opens a saver on their own page, and has a door for them', () => {
   const fixture = (name) => JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', name + '.json'), 'utf8'));
@@ -206,12 +208,12 @@ test.describe('the planner opens a saver on their own page, and has a door for t
     ['locked while saving', () => fixture('05-saver-committed'), 'accumulation'],
     ['still saving, unlocked', () => unlocked(fixture('05-saver-committed')), 'accumulation'],
     ['ages only on the Accumulation tab', () => agesOnly(fixture('01-fresh-default')), 'accumulation'],
-    ['inside the move window (four years chosen)', () => { const p = fixture('10-couple-b'); p.phases = { of: p.createdAt, moving: { window: { years: 4, at: '2026-09-01T12:00:00.000Z' } } }; return p; }, 'stress'],
+    ['inside the move window (four years chosen)', () => { const p = fixture('10-couple-b'); p.phases = { of: p.createdAt, moving: { window: { years: 4, at: '2026-09-01T12:00:00.000Z' } } }; return p; }, 'transition'],
     ['retired, locked and recording', () => fixture('04-buckets-running'), 'decision'],
     ['a draft', () => fixture('02-pnv-draft'), 'decision'],
     ['no age at all', () => fixture('01-fresh-default'), 'decision']
   ];
-  test('each plan opens on the tab its stage leads with; only the saver stages moved', async ({ page, watch }) => {
+  test('each plan opens on the tab its stage leads with; a plan in its move window opens on Transition', async ({ page, watch }) => {
     test.setTimeout(300_000);
     watch.allow(WORKER_DATA_MISSING);
     for (const [name, make, tab] of CASES) {

@@ -18,6 +18,9 @@
  *      delete the file to pin again — a diff there is a change to what the record or the move says and must be meant.
  *      7.4.2 retook one, meant: the move of fixture 03 (a ladder stored with a later start) no longer holds its extra cash
  *      for the months before that start — a ladder's cash years are its only cash — so its cash to hold is the cash years'.
+ *      7.11.1 retook one, meant: the move of fixture 20 (the ladder locked with its start in 2027/28) no longer sells the two
+ *      linkers outside its rungs that mature in its two cash years (2027/28 and 2028/29) — a gilt maturing in a cash year is
+ *      that year's cash — so its Sell list, its cash held for those years and its schedule changed; nothing else moved.
  * Under a minute.
  */
 import { describe, it, expect } from 'vitest';

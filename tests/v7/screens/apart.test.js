@@ -697,6 +697,10 @@ describe('7 — today, byte for byte', () => {
   // "Living on it, taking an income, year by year" (it said "Drawing, living on it, month by month"), as the home, its strip
   // and its headline do — the picture is drawn on the front door and the not-found page, so those two were re-pinned
   // (V7_PIN_TODAY=1); no other drawing moved
+  // …and 7.11.0 (research/v7/replan-nov-2026.md §8, the two views): the line under every header names the view ("You are in
+  // the simple view. Show everything.", on a phone "Simple view. Show everything") and its classes and testids say so
+  // (view-line, nav.everything) — the line is on every state, so every drawing was re-pinned (V7_PIN_TODAY=1,
+  // V7_PIN_SCREENS=1); with the line taken out, all 64 states draw 7.10.0's markup and text byte for byte
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]',
     // 7.9.0: "Try the bad years" under C's and D's final answers — a button only until pressed; no figure of the answer moves

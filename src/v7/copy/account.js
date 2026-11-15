@@ -11,6 +11,19 @@ export const ACCOUNT = {
   signedInAs: 'Signed in as {email}.',
   confirmed: 'Email confirmed.',
   /** The sections of the signed-in page. */
+  /**
+   * The view the site opens in (7.11.0; research/v7/replan-nov-2026.md §8): one choice for the account, kept with its
+   * settings. nowFull says "on your main plan": a fresh window of the full view opens there.
+   */
+  view: {
+    title: 'The view PensionTools opens in',
+    note: 'The simple view takes one question at a time and gives each plan a home page. The full view puts all the tools, tests and records on one page. Both show the same plans, and the line at the top of every page moves you between them. This only chooses which one opens when you come back.',
+    simple: 'The simple view',
+    full: 'The full view',
+    nowSimple: 'PensionTools opens in the simple view, where you left off.',
+    nowFull: 'PensionTools opens in the full view, on your main plan.',
+    unread: 'Your choice of view could not be read just now. Choosing one here saves it.'
+  },
   password: {
     title: 'Your password',
     note: 'To change your password, use the reset email: it has a link to choose a new one. There is no password box here.',

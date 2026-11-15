@@ -233,7 +233,7 @@ describe('"Confirm your email": the same gate as the planner', () => {
 });
 
 describe('the settings document: read once per sign-in into ui.profile; its ONE write on news/seen; a missing document left alone', () => {
-  it('signed in: getDocs of users/{uid}/profile, the settings document\'s lastSeenVersion into the state; none → null; the read failing → null, never a write', async () => {
+  it('signed in: getDocs of users/{uid}/profile, the settings document\'s lastSeenVersion into the state; none → null; the read failing → null and marked unread (7.11.0), never a write', async () => {
     const p = page({ session: 'in' });
     await tick();
     expect(p.fb.calls).toEqual([['getDocs', 'users/u1/profile', undefined]]);
@@ -243,7 +243,8 @@ describe('the settings document: read once per sign-in into ui.profile; its ONE 
     expect(q.store.getState().ui.profile).toEqual({ lastSeenVersion: null });
     const r = page({ session: 'in', fb: fakeFb({ fails: { getDocs: 'permission-denied' } }) });
     await tick();
-    expect(r.store.getState().ui.profile).toEqual({ lastSeenVersion: null });
+    // 7.11.0: a read that failed says so (spec §2.2 ui.profile.unread), so no choice of view is assumed from it
+    expect(r.store.getState().ui.profile).toEqual({ lastSeenVersion: null, unread: true });
     expect(r.fb.calls.filter(([c]) => c === 'setDoc')).toEqual([]);
     p.stop(); q.stop(); r.stop();
   });

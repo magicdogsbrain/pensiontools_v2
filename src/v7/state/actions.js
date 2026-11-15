@@ -268,7 +268,10 @@ export const A = Object.freeze({
   ACCOUNT_FAILED:  'account/failed',      // { what, problem }                not done: the sign-in service's reason, or ours
   ACCOUNT_CONFIRM: 'account/confirm',     // { step: 1 | 2 | null }           "Delete my account": the two confirms on screen
   ACCOUNT_DELETED: 'account/deleted',     // { signInGone }                   the data is gone; the sign-in too, or not yet (sign in again and press once more)
-  PROFILE_SET:     'profile/set',         // { profile: { lastSeenVersion, lastLocation } | null }   the account's settings document read (null: not readable)
+  PROFILE_SET:     'profile/set',         // { profile: { lastSeenVersion, lastLocation, view? } | null, read?: false }   the account's settings document read (null: not readable; read: false — the read failed)
+  // The view PensionTools opens in (7.11.0, research/v7/replan-nov-2026.md §8): chosen on Your account or on the strip, kept in the settings document
+  VIEW_SET:        'view/set',            // { view: 'simple' | 'full', from: 'account' | 'strip' }   the account effect writes it; effects/view.js keeps this browser's copy
+  VIEW_STRIP:      'view/strip',          // { to: 'offer' | 'gone', notNow?: true }   the strip under the header: offered by effects/view.js, put away by a move or "Not now"
   // Keep → sign in → back (7.1.0, research/v7/after-7.md J2): where to come back to after signing in from "Keep this as a plan"
   ACCOUNT_RETURN:  'account/return',      // { back: { planId, step, kept } | { q, step } }   ui.returnTo; effects/place.js opens the account page and comes back
   // Land where you left off (7.1.0): the plan and step a signed-in person was last on (a plan id and a step name, no figure)

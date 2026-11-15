@@ -106,9 +106,11 @@ export function startAccount(store, { win = null, local = null, session = null, 
     profileFor = h.user.uid;
     const uid = h.user.uid;
     let profile = null;
-    try { profile = await readProfile(h.db, uid); } catch { profile = {}; }
+    let ok = true;
+    try { profile = await readProfile(h.db, uid); } catch { profile = {}; ok = false; }
     if (stopped || profileFor !== uid) return;
-    dispatch({ type: A.PROFILE_SET, profile: { lastSeenVersion: typeof profile.lastSeenVersion === 'string' ? profile.lastSeenVersion : null, lastLocation: profile.lastLocation || null } });
+    // the view it opens in (7.11.0) only when one was chosen; a read that failed says so (read: false), so a choice is never assumed
+    dispatch({ type: A.PROFILE_SET, profile: { lastSeenVersion: typeof profile.lastSeenVersion === 'string' ? profile.lastSeenVersion : null, lastLocation: profile.lastLocation || null, ...(profile.view === 'simple' || profile.view === 'full' ? { view: profile.view } : {}) }, ...(ok ? {} : { read: false }) });
   }
 
   async function signIn(email, password) {
@@ -222,7 +224,8 @@ export function startAccount(store, { win = null, local = null, session = null, 
   /**
    * The ONE write of the settings document: the fields given merged into it (made when the account has none yet — an
    * account made here has no document until its first write). Only preferences go through it: the last release note seen,
-   * and the place last left (a plan id and a step name). A failure is swallowed: preferences never stop the page.
+   * the place last left (a plan id and a step name), and the view the site opens in (7.11.0: 'simple' or 'full', from Your
+   * account or the strip). A failure is swallowed: preferences never stop the page.
    */
   async function writeSettings(fields) {
     const h = H();
@@ -238,6 +241,8 @@ export function startAccount(store, { win = null, local = null, session = null, 
     if (action.type === A.NEWS_SEEN) { markSeen(action.version); return; }
     // the place last left (7.1.0, effects/place.js): a plan id and a step name, for landing there on the next visit
     if (action.type === A.PLACE_KEEP) { if (state.ui.place) writeSettings({ lastLocation: { planId: state.ui.place.planId, step: state.ui.place.step || null } }); return; }
+    // the view the site opens in (7.11.0): every press is one write, even of the view already held (another tab may have changed it)
+    if (action.type === A.VIEW_SET) { if (state.ui.profile && state.ui.profile.view) writeSettings({ view: state.ui.profile.view }); return; }
     if (action.type !== A.ACCOUNT_ASK) return;
     const acc = state.ui.account;
     if (!acc || acc.busy !== action.what) return;

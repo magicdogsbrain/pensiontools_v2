@@ -14,6 +14,7 @@ import { loadDraft, sessionStore, localStore } from './effects/draftStore.js';
 import { hasSignedInHint } from './effects/place.js';
 import { startEffects, markReady } from './effects/index.js';
 import { classicQueryForward } from './effects/address.js';
+import { fullViewForward } from './effects/view.js';
 
 const TEST_BUILD = import.meta.env.MODE === 'test';
 
@@ -26,8 +27,10 @@ async function start() {
   try { navigator.serviceWorker?.getRegistrations?.().then((rs) => rs.forEach((r) => r.update().catch(() => r.unregister()))).catch(() => {}); } catch (e) { /* no service workers in this browser */ }
 
   // A link made for the classic page when it was the site's root (?demo=, ?signup=1, ?signin=1) goes on to it, before
-  // anything is drawn here (effects/address.js).
-  const forward = classicQueryForward(window.location);
+  // anything is drawn here (effects/address.js); so does the site's root, with no address of its own, in a browser where
+  // the person signed in chose the full view as the one the site opens in (7.11.0, effects/view.js).
+  // (the two never both apply: the full view's forward is for an address with no query at all)
+  const forward = fullViewForward(window.location, localStore(window)) || classicQueryForward(window.location);
   if (forward) { window.location.replace(forward); return; }
 
   // Test build only: the hooks (window.__pt). Loaded first, so every storage write is counted.

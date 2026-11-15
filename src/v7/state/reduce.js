@@ -665,8 +665,9 @@ function reduceAction(state, action) {
       const email = typeof action.session.email === 'string' ? action.session.email : null;
       const next = { kind: k, email, signingOut: false };
       if (state.session.kind === k && state.session.email === email && !state.session.signingOut) return state;
-      // becoming nobody clears the plans at once (4.3)
-      return { ...state, session: next, plans: k === 'in' || k === 'checking' ? state.plans : null };
+      // becoming nobody clears the plans at once (4.3); any kind but 'in' lets the account's settings go (7.11.0): page
+      // memory only, read again at the next sign-in, so whatever reads ui.profile is about the person signed in now
+      return { ...state, session: next, plans: k === 'in' || k === 'checking' ? state.plans : null, ui: k === 'in' || state.ui.profile === null ? state.ui : { ...state.ui, profile: null } };
     }
     case A.SESSION_OUT:
       return state.session.kind !== 'in' || state.session.signingOut ? state : { ...state, session: { ...state.session, signingOut: true } };
@@ -1920,8 +1921,28 @@ function reduceAction(state, action) {
     case A.PROFILE_SET: {
       // the place last left (7.1.0) only when the document holds one: a profile without it reads as before
       const last = action.profile && typeof action.profile === 'object' ? cleanPlace(action.profile.lastLocation) : null;
-      const p = action.profile && typeof action.profile === 'object' ? { lastSeenVersion: typeof action.profile.lastSeenVersion === 'string' ? action.profile.lastSeenVersion : null, ...(last ? { lastLocation: last } : {}) } : null;
+      // … the view it opens in (7.11.0) only when the person chose one, and `unread` only when the read failed: a profile
+      // read well without a choice is the same as before
+      const view = action.profile && typeof action.profile === 'object' && (action.profile.view === 'simple' || action.profile.view === 'full') ? action.profile.view : null;
+      const p = action.profile && typeof action.profile === 'object' ? { lastSeenVersion: typeof action.profile.lastSeenVersion === 'string' ? action.profile.lastSeenVersion : null, ...(last ? { lastLocation: last } : {}), ...(view ? { view } : {}), ...(action.read === false ? { unread: true } : {}) } : null;
       return JSON.stringify(p) === JSON.stringify(state.ui.profile) ? state : { ...state, ui: { ...state.ui, profile: p } };
+    }
+    case A.VIEW_SET: {
+      // the view PensionTools opens in (7.11.0), from Your account or the strip: a new state on every press, even for the
+      // view already held — another tab or device may have changed the stored one since this page read it, so a press
+      // always writes (effects/account.js). Only for someone signed in whose settings have been read.
+      if (action.view !== 'simple' && action.view !== 'full') return refuse(`view/set: no view called "${action.view}"`);
+      if (!state.session || state.session.kind !== 'in' || !state.ui.profile) return state;
+      const kept = Object.fromEntries(Object.entries(state.ui.profile).filter(([k]) => k !== 'unread'));
+      const strip = action.from === 'strip' ? { viewStrip: action.view === 'full' ? 'doneFull' : 'doneSimple' } : {};
+      return { ...state, ui: { ...state.ui, profile: { ...kept, view: action.view }, ...strip } };
+    }
+    case A.VIEW_STRIP: {
+      // the strip under the header (7.11.0): offered once per page (effects/view.js), put away by a move or "Not now"
+      const was = state.ui.viewStrip == null ? null : state.ui.viewStrip;
+      if (action.to === 'offer') return was === null ? { ...state, ui: { ...state.ui, viewStrip: 'offer' } } : state;
+      if (action.to === 'gone') return was === 'gone' ? state : { ...state, ui: { ...state.ui, viewStrip: 'gone' } };
+      return refuse(`view/strip: to "offer" or "gone", not "${action.to}"`);
     }
 
     // ---- keep → sign in → back, and the place last left (7.1.0, research/v7/after-7.md J2; effects/place.js does the rest) ----

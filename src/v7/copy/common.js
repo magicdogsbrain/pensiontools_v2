@@ -69,6 +69,21 @@ export const COMMON = {
           /** The same line where there is room for one line only (a phone). */
           shortText: 'Simple view.', shortLink: 'Show everything',
           fullText: 'This is the full view.', fullLink: 'Back to the simple view.' },
+  /**
+   * The strip under that line (7.11.0), once, after a visit to the full view: whether the site opens there from now on. The
+   * choice is kept with the account (Your account has it too); "Not now" is kept in this browser only. changeOn is followed
+   * by the link to Your account, in COMMON.account's words, and a full stop.
+   */
+  viewStrip: {
+    label: 'The view PensionTools opens in',
+    text: 'You have just been in the full view. PensionTools can open in it each time you come back.',
+    full: 'Open in the full view from now on',
+    simple: 'Keep the simple view',
+    notNow: 'Not now',
+    doneFull: 'Done: PensionTools opens in the full view from now on.',
+    doneSimple: 'Done: PensionTools keeps opening in the simple view.',
+    changeOn: 'You can change this on'
+  },
   offline: 'You are offline. You can still work things out. Keeping a plan needs a connection.',
   footer: {
     worksOut: 'PensionTools works things out from the figures you give it.',

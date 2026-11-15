@@ -2,7 +2,8 @@
  * "Your account" (research/v7/road-to-7.md step 11): signed in — the email and whether it is confirmed, the password-reset
  * email, "Download everything", "Delete my account" (two confirms on the screen, never a browser dialog), "Sign out", the
  * privacy policy; the email not confirmed — the "Confirm your email" gate (the same gate as the planner); nobody signed in —
- * the sign-in, sign-up and forgotten-password forms, and Google. The password lives in its box and in the action that
+ * the sign-in, sign-up and forgotten-password forms, and Google. Signed in, once the account's settings are read (7.11.0):
+ * the view the site opens in, simple or full. The password lives in its box and in the action that
  * carries it to the effect — never in the state. Draws only: everything is state/select.js accountView's; the effect
  * (effects/account.js) does each thing. A visitor is never offered "Delete my account": there is no account.
  */
@@ -116,6 +117,27 @@ function Gate({ V, dispatch }) {
   );
 }
 
+/**
+ * The view the site opens in (7.11.0): two buttons, the one chosen pressed ('simple' when none was chosen); while the
+ * account's settings could not be read neither is pressed and the line says so — a press still saves the choice.
+ */
+function ViewChoice({ view, dispatch }) {
+  const W = ACCOUNT.view;
+  const set = (v) => () => dispatch({ type: 'view/set', view: v, from: 'account' });
+  const now = view.unread ? W.unread : view.pressed === 'full' ? W.nowFull : W.nowSimple;
+  return (
+    <section class="plan-section account-section" data-section="view">
+      <h2>{W.title}</h2>
+      <p class="note">{W.note}</p>
+      <div class="actions-row">
+        <Button testid={`${T}.view.simple`} kind="choice" aria-pressed={view.pressed === 'simple' ? 'true' : 'false'} onClick={set('simple')} {...keepFocus}>{W.simple}</Button>
+        <Button testid={`${T}.view.full`} kind="choice" aria-pressed={view.pressed === 'full' ? 'true' : 'false'} onClick={set('full')} {...keepFocus}>{W.full}</Button>
+      </div>
+      <p class="note" role="status" data-testid={`${T}.view.now`}>{now}</p>
+    </section>
+  );
+}
+
 function SignedIn({ V, dispatch }) {
   const busy = V.busy;
   const ask = (what) => { if (!busy) dispatch({ type: 'account/ask', what }); };
@@ -129,6 +151,7 @@ function SignedIn({ V, dispatch }) {
       {V.deleted && !V.deleted.signInGone && <p class="notice" role="status" data-testid={`${T}.deleted.again`}>{R.needsSignIn}</p>}
       {note && <p class="notice" role="status" data-testid={`${T}.note`}>{note}</p>}
       {problem && <p class="notice" role="alert" data-testid={`${T}.problem`} data-problem={V.problem.code}>{problem}</p>}
+      {V.view && <ViewChoice view={V.view} dispatch={dispatch} />}
       <section class="plan-section account-section" data-section="password">
         <h2>{ACCOUNT.password.title}</h2>
         <p class="note">{ACCOUNT.password.note}</p>

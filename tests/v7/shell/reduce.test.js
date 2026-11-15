@@ -377,8 +377,8 @@ describe('any sequence of actions', () => {
     // the plan menu, the visitor, the account page and What's new (road-to-7.md step 11): generated in reduce.ab.test.js too
     // … and "Delete several" on Your plans (6.59.0), and a home's to-do put away on the plan and "Keep a record of each month
     // here" (7.10.0: plan/task, plan/recordMonths); "Your review" (7.10.0: plan/reviewSave, plan/phaseSet, plan/agree,
-    // plan/agreeWithdraw)
-    const step11 = ACTION_TYPES.filter((t) => /^(guest|account|profile|news|place)\//.test(t) || /^plan\/(action|actionText|rename|copy|makeMain|delete|close|download|openFile|example|actionDone|task|recordMonths|reviewSave|phaseSet|agree|agreeWithdraw)$/.test(t) || /^plans\/(several|tick|severalAsk|deleteSeveral|severalDone)$/.test(t));
+    // plan/agreeWithdraw); the view the site opens in and its strip (7.11.0: view/set, view/strip)
+    const step11 = ACTION_TYPES.filter((t) => /^(guest|account|profile|news|place|view)\//.test(t) || /^plan\/(action|actionText|rename|copy|makeMain|delete|close|download|openFile|example|actionDone|task|recordMonths|reviewSave|phaseSet|agree|agreeWithdraw)$/.test(t) || /^plans\/(several|tick|severalAsk|deleteSeveral|severalDone)$/.test(t));
     expect([...seen].sort()).toEqual(ACTION_TYPES.filter((t) => !step4.includes(t) && !step5.includes(t) && !step11.includes(t)).sort());
   });
   it('the state survives JSON; plan never changes and the session is always a known kind', () => {

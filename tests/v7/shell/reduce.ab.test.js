@@ -309,6 +309,11 @@ const anyAction = fc.oneof(
   fc.constantFrom(null, 1, 2, 3).map((step) => ({ type: A.ACCOUNT_CONFIRM, step })),
   fc.boolean().map((signInGone) => ({ type: A.ACCOUNT_DELETED, signInGone })),
   fc.constantFrom(null, { lastSeenVersion: '6.40.0' }, { lastSeenVersion: 7 }).map((profile) => ({ type: A.PROFILE_SET, profile })),
+  // the view the site opens in (7.11.0): a choice read, a press on Your account or the strip, the strip offered and put away
+  fc.constantFrom({ lastSeenVersion: null, view: 'full' }, { lastSeenVersion: null, view: 'expert' }).map((profile) => ({ type: A.PROFILE_SET, profile })),
+  fc.constant({ type: A.PROFILE_SET, profile: {}, read: false }),
+  fc.tuple(fc.constantFrom('simple', 'full'), fc.constantFrom('account', 'strip')).map(([view, from]) => ({ type: A.VIEW_SET, view, from })),
+  fc.constantFrom({ to: 'offer' }, { to: 'gone' }, { to: 'gone', notNow: true }).map((o) => ({ type: A.VIEW_STRIP, ...o })),
   fc.constant({ type: A.NEWS_SHOW, entries: [{ version: '6.44.0', title: 'x', date: '2026-10-27' }] }),
   fc.constant({ type: A.NEWS_DISMISS }),
   fc.constantFrom(null, [{ version: '6.44.0', title: 'x' }]).map((releases) => (releases ? { type: A.NEWS_PAGE, releases, history: [{ version: '6.0.1', title: 'y' }] } : { type: A.NEWS_PAGE, page: null })),

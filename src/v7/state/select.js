@@ -1030,11 +1030,33 @@ export function severalPlan(state) {
   return { going: going.map((p) => String(p.id)), stays: stays ? String(stays.id) : null, locked: going.filter(locked).map((p) => String(p.id)) };
 }
 
-/** The account page (road-to-7.md step 11): who is signed in, the form shown, what is under way, the problem, the note, the confirm, the deletion. */
+/**
+ * The account page (road-to-7.md step 11): who is signed in, the form shown, what is under way, the problem, the note, the
+ * confirm, the deletion; and (7.11.0) the view the site opens in, once the account's settings are read: the one pressed
+ * ('simple' when none was chosen; none while the settings could not be read, `unread`).
+ */
 export function accountView(state) {
   const session = state.session || { kind: 'none' };
   const acc = (state.ui && state.ui.account) || { mode: 'signIn', busy: null, problem: null, note: null, confirm: null, deleted: null };
-  return { session, email: session.email || null, mode: acc.mode, busy: acc.busy, problem: acc.problem, note: acc.note, confirm: acc.confirm, deleted: acc.deleted };
+  const p = state.ui && state.ui.profile;
+  const view = p ? { pressed: p.unread ? null : (p.view || 'simple'), unread: p.unread === true } : null;
+  return { session, email: session.email || null, mode: acc.mode, busy: acc.busy, problem: acc.problem, note: acc.note, confirm: acc.confirm, deleted: acc.deleted, view };
+}
+
+/**
+ * The strip under the header (7.11.0; effects/view.js offers it): { kind: 'offer' } — "Open in the full view from now on",
+ * "Keep the simple view", "Not now" — for someone signed in whose settings were read and hold no choice; { kind:
+ * 'doneFull' | 'doneSimple' } — the done line after a choice made on it; null otherwise, and always on Your account (the
+ * choice is on the page itself).
+ */
+export function viewStripView(state) {
+  const s = state.ui && state.ui.viewStrip;
+  if (s !== 'offer' && s !== 'doneFull' && s !== 'doneSimple') return null;
+  if (!state.session || state.session.kind !== 'in') return null;
+  if (state.route && state.route.screen === 'account') return null;
+  const p = state.ui.profile;
+  if (s === 'offer') return p && !p.unread && !p.view ? { kind: 'offer' } : null;
+  return { kind: s };
 }
 
 /**

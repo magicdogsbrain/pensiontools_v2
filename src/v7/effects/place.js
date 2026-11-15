@@ -23,8 +23,14 @@
  *   RETURN_KEY, PLACE_KEY       sessionStorage keys: { planId, step, kept } | { q, step }; { planId, step }
  *   SIGNED_IN_KEY               localStorage key: '1' while someone is signed in in this browser
  *   hasSignedInHint(local)      whether the note is there
- *   landingFor(state, windowPlace)   the address to land on, null to stay, undefined while not known yet
- *   startPlace(store, { session, local, landing }) → stop()
+ *   placeFor(state, windowPlace)     the place to land on in the simple view, null to stay, undefined while not known yet
+ *   TO_FULL                     what landingFor gives for someone whose account says the full view (7.11.0)
+ *   landingFor(state, windowPlace)   TO_FULL, else placeFor's
+ *   startPlace(store, { session, local, landing, full }) → stop()
+ *
+ * The view the site opens in (7.11.0; research/v7/replan-nov-2026.md §8): someone signed in whose account says 'full' lands
+ * in the full view instead (`full`: effects/index.js opens it, replacing this page), with plans or without. Most such opens
+ * never reach here: effects/view.js fullViewForward sends the page on before anything is drawn, from this browser's copy.
  */
 import { A } from '../state/actions.js';
 import { parse, href } from '../router/routes.js';
@@ -42,12 +48,12 @@ export function hasSignedInHint(local) {
 const samePlace = (a, b) => !!a && !!b && a.planId === b.planId && (a.step || null) === (b.step || null);
 
 /**
- * Where a person opening the site's root lands (land where you left off): undefined while the session, the plans or the
- * settings are not known yet; null to stay on the questions; else the address. The window's place first (the plan this
- * window was last on), then the account's (the last plan on any device); a plan gone or closed is passed over, and with no
- * place to go "Your plans" opens when the account has a plan.
+ * Where a person opening the site's root lands in the simple view (land where you left off): undefined while the session,
+ * the plans or the settings are not known yet; null to stay on the questions; else the address. The window's place first
+ * (the plan this window was last on), then the account's (the last plan on any device); a plan gone or closed is passed
+ * over, and with no place to go "Your plans" opens when the account has a plan.
  */
-export function landingFor(state, windowPlace = null) {
+export function placeFor(state, windowPlace = null) {
   const k = state.session && state.session.kind;
   if (k === 'nobody' || k === 'unverified') return null;
   if (k !== 'in') return undefined;
@@ -62,6 +68,21 @@ export function landingFor(state, windowPlace = null) {
   const account = state.ui.profile ? cleanPlace(state.ui.profile.lastLocation) : null;
   for (const place of [cleanPlace(windowPlace), account]) if (open(place)) return hrefOf(place, plans);
   return href.plans();
+}
+
+/** The full view, for someone whose account says it is the view the site opens in (7.11.0). */
+export const TO_FULL = Object.freeze({ view: 'full' });
+
+/**
+ * Where a person opening the site's root lands: nobody signed in, null (the questions); undefined while the session or the
+ * settings are not known; the full view (TO_FULL) when the account says so, with plans or without — else placeFor's.
+ */
+export function landingFor(state, windowPlace = null) {
+  const k = state.session && state.session.kind;
+  if (k === 'nobody' || k === 'unverified') return null;
+  if (k !== 'in') return undefined;
+  if (state.ui.profile && state.ui.profile.view === 'full') return TO_FULL;
+  return placeFor(state, windowPlace);
 }
 
 /**
@@ -80,7 +101,8 @@ function hrefOf(place, plans) {
  * undefined while not known yet, null to stay (no plan remembered, or that plan gone or closed).
  */
 export function afterSignInFor(state) {
-  const to = landingFor(state, null);
+  // the simple view's place, whatever view the account opens in: a sign-in on Your account here stays in the simple view
+  const to = placeFor(state, null);
   if (to === undefined) return undefined;
   const account = state.ui.profile ? cleanPlace(state.ui.profile.lastLocation) : null;
   // the plan's home whether or not it is locked: a new device starts from what is due, not from a step left open elsewhere
@@ -93,8 +115,9 @@ export function afterSignInFor(state) {
  * @param {Storage|null} [o.session]   sessionStorage (the way back; the window's place)
  * @param {Storage|null} [o.local]     localStorage (the signed-in note)
  * @param {boolean} [o.landing]        the page was opened at the site's root, with no address of its own, and the note is there
+ * @param {Function} [o.full]          opens the full view in place of this page (a landing for someone whose account says so)
  */
-export function startPlace(store, { session = null, local = null, landing = false } = {}) {
+export function startPlace(store, { session = null, local = null, landing = false, full = () => {} } = {}) {
   let stopped = false;
   const dispatch = (a) => { if (!stopped) store.dispatch(a); };
   const read = (key) => { try { const t = session ? session.getItem(key) : null; return t ? JSON.parse(t) : null; } catch { return null; } };
@@ -123,6 +146,7 @@ export function startPlace(store, { session = null, local = null, landing = fals
     const to = landingFor(state, windowPlace);
     if (to === undefined) return;
     landed = true;
+    if (to === TO_FULL) { full(); return; }
     go(to);
   };
 

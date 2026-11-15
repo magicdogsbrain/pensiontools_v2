@@ -280,7 +280,9 @@ const STORAGE_FILES = {
   'src/v7/effects/whatsNew.js':   { keys: ['pt_lastSeenVersion'], names: [] },
   'src/v7/effects/account.js':    { keys: [], names: [] },
   // 7.1.0 (effects/place.js): the way back after signing in and the window's last place (session), the signed-in note (local)
-  'src/v7/effects/place.js':      { keys: ['pt_v7_return', 'pt_v7_place', 'pt_v7_signed_in'], names: [] }
+  'src/v7/effects/place.js':      { keys: ['pt_v7_return', 'pt_v7_place', 'pt_v7_signed_in'], names: [] },
+  // 7.11.0 (effects/view.js): this browser's copy of the account's choice of view, and the strip's "Not now"
+  'src/v7/effects/view.js':       { keys: ['pt_view', 'pt_view_asked'], names: [] }
 };
 
 describe('rule 3a — reach: every import from V7\'s entry points, walked', () => {
@@ -592,6 +594,8 @@ describe('rule 3d — browser storage: only the named effects, only their keys',
   });
   it('effects/index.js names no key', () => {
     expect(keysNamed('src/v7/effects/index.js')).toEqual([]);
+    // 7.11.0: main.jsx forwards to the full view through effects/view.js, which names the view's keys
+    expect(keysNamed('src/v7/main.jsx')).toEqual([]);
   });
   it('the window\'s plans are read with getItem only by planSource.js, and written (setItem, never removed) by planWrite.js alone', () => {
     const code = strip(read(FIREBASE_FILE), { keepStrings: true });

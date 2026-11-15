@@ -22,12 +22,13 @@ import { startStressStripRunner } from './stressStrip.js';
 import { startSaverRunner } from './saver.js';
 import { createWorkerClient } from './workerClient.js';
 import { startActivity } from './activity.js';
-import { startOpenPlace } from './openPlace.js';
+import { startOpenPlace, PLANNER } from './openPlace.js';
 import { startGuestMeter } from './guestMeter.js';
 import { startWhatsNew } from './whatsNew.js';
 import { startDownloads } from './download.js';
 import { startAssumptions } from './assumptions.js';
 import { startPlace, hasSignedInHint } from './place.js';
+import { startView } from './view.js';
 
 /**
  * The answer worked out on the page itself — used only when no worker can start. The answers (and the engines
@@ -102,8 +103,11 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   // "Assumptions and data" (road-to-7.md step 11b): the figures loaded lazily when the page is opened
   stops.push(startAssumptions(store, { now: () => Date.now() }));
   stops.push(startDownloads(store, { win }));
-  // keep → sign in → back, and the place last left (7.1.0): the way back and the window's place in session storage
-  stops.push(startPlace(store, { session: sessionStore(win), local: localStore(win), landing }));
+  // the view the site opens in (7.11.0, effects/view.js): this browser's copy of the account's choice, and the strip
+  stops.push(startView(store, { win, local: localStore(win) }));
+  // keep → sign in → back, and the place last left (7.1.0): the way back and the window's place in session storage; a
+  // landing for someone whose account says the full view opens it in place of this page (7.11.0)
+  stops.push(startPlace(store, { session: sessionStore(win), local: localStore(win), landing, full: () => win.location.replace(PLANNER) }));
   let planSource = null;
   // … the account page and What's new need the session (and the account's settings document); "Look around an example" pressed on the front door needs the write file
   const onPlanPage = (state) => state.route && (state.route.screen === 'plans' || state.route.screen === 'plan' || state.route.screen === 'account' || state.route.screen === 'news');

@@ -1,5 +1,5 @@
 /**
- * The page frame: header, the line naming the view (with "Show everything"), the offline line, the rail, one <main>, the footer. The <main> is the
+ * The page frame: header, the line naming the view (with "Show everything"), the strip asking which view opens (7.11.0), the offline line, the rail, one <main>, the footer. The <main> is the
  * screen root and carries data-screen and data-question (build brief 4.9; as package 1's stub drew it), and
  * data-view="retired" on A's and B's retired view (step 4 brief, conflict 44). One h1 per screen; after a move the keyboard goes to
  * it, or to the box the address names (?focus=<field>) — once that box is drawn, when it comes later than the page (a plan's
@@ -11,9 +11,36 @@ import { GuestNag, GuestStop, BringIn, NewsPopup } from './Visitor.jsx';
 import { fill, changeAction } from './PlanFigures.jsx';
 import { format, href } from '../router/routes.js';
 import { focusField } from './Field.jsx';
-import { guestView, newsView, plansMenuView, fullLinkView } from '../state/select.js';
+import { Button } from './Button.jsx';
+import { guestView, newsView, plansMenuView, fullLinkView, viewStripView } from '../state/select.js';
 import { COMMON, ADVICE_SHORT, ADVICE_FULL } from '../copy/common.js';
 import { PLAN } from '../copy/plan.js';
+
+/**
+ * The strip under the line naming the view (7.11.0; select.js viewStripView): once, after a visit to the full view, whether
+ * the site opens there from now on — or, once chosen, the done line with the way to Your account, where it can be changed.
+ */
+function ViewStrip({ strip, dispatch }) {
+  const W = COMMON.viewStrip;
+  const set = (view) => () => dispatch({ type: 'view/set', view, from: 'strip' });
+  if (strip.kind === 'offer') {
+    return (
+      <section class="view-strip" aria-label={W.label} data-testid="view.strip">
+        <p>{W.text}</p>
+        <div class="actions-row">
+          <Button testid="view.strip.full" kind="primary" onClick={set('full')}>{W.full}</Button>
+          <Button testid="view.strip.simple" onClick={set('simple')}>{W.simple}</Button>
+          <Button testid="view.strip.notNow" kind="quiet" onClick={() => dispatch({ type: 'view/strip', to: 'gone', notNow: true })}>{W.notNow}</Button>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section class="view-strip" aria-label={W.label} data-testid="view.strip">
+      <p role="status" data-testid="view.strip.done">{strip.kind === 'doneFull' ? W.doneFull : W.doneSimple} {W.changeOn} <a href={href.account()}>{COMMON.account}</a>.</p>
+    </section>
+  );
+}
 
 export function Shell({ state, dispatch, name, question = null, rail = false, full = false, view = null, children }) {
   const ref = useRef(null);
@@ -60,6 +87,7 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
   // "Show everything" on a plan page opens THAT plan in the full view, at the matching page (7.3.2): the same
   // hand-over as "Change this" (select.js fullLinkView). A plain link opened the account's usual plan instead.
   const P = fullLinkView(state);
+  const S = viewStripView(state);
   const onEverything = P ? (e) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;   // a new tab: the plain address, as before
     e.preventDefault();
@@ -85,6 +113,7 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
         <span class="view-long">{COMMON.view.text} <a href={COMMON.links.classic} data-testid="nav.everything" onClick={onEverything}>{COMMON.view.link}</a></span>
         <span class="view-short">{COMMON.view.shortText} <a href={COMMON.links.classic} data-testid="nav.everythingShort" onClick={onEverything}>{COMMON.view.shortLink}</a></span>
       </p>
+      {S && <ViewStrip strip={S} dispatch={dispatch} />}
       {state.ui.online === false && <p class="offline" role="status">{COMMON.offline}</p>}
       {rail === true ? <Rail state={state} dispatch={dispatch} /> : rail || null}
       <main id="main" tabIndex={-1} data-screen={name} data-question={question || undefined} data-view={view || undefined}>{children}</main>

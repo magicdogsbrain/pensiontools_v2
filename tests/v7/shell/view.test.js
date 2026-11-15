@@ -235,6 +235,36 @@ describe('the reducer: the choice, the strip, and the settings let go on sign-ou
     const back = withProfile(signedIn(reduce(s, { type: A.SESSION_SET, session: { kind: 'nobody', email: null } })), { lastSeenVersion: null, view: 'full' });
     expect(back.ui.profile).toEqual({ lastSeenVersion: null, view: 'full' });
   });
+  it('the strip is only ever shown to the person it was for: a sign-out, or another account signed in (heard from another tab), puts the offer or the done line away', () => {
+    const SAM = 'sam@example.test';
+    const offered = reduce(withProfile(signedIn(fresh()), { lastSeenVersion: null }), { type: A.VIEW_STRIP, to: 'offer' });
+    const doneFull = reduce(offered, { type: A.VIEW_SET, view: 'full', from: 'strip' });
+    for (const [name, s] of [['offer', offered], ['doneFull', doneFull]]) {
+      // another tab signs Alex out and Sam in: this page hears nobody, then Sam, then Sam's settings (no choice made)
+      const out = reduce(s, { type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
+      expect(out.ui.viewStrip, name).toBe('gone');
+      const sam = withProfile(signedIn(out, SAM), { lastSeenVersion: null });
+      expect(viewStripView(sam), name).toBe(null);
+      // or straight from Alex to Sam, with no "nobody" heard between
+      const swapped = withProfile(signedIn(s, SAM), { lastSeenVersion: null });
+      expect(swapped.ui.viewStrip, name).toBe('gone');
+      expect(viewStripView(swapped), name).toBe(null);
+      expect(reduce(s, { type: A.SESSION_SET, session: { kind: 'unverified', email: SAM } }).ui.viewStrip, name).toBe('gone');
+    }
+    // the same person: the strip stays (a session heard again, or a page that was checking who is signed in)
+    expect(signedIn(offered)).toBe(offered);
+    const checking = reduce(reduce(fresh(), { type: A.SESSION_SET, session: { kind: 'checking', email: null } }), { type: A.VIEW_STRIP, to: 'offer' });
+    const nowIn = withProfile(signedIn(checking), { lastSeenVersion: null });
+    expect(nowIn.ui.viewStrip).toBe('offer');
+    expect(viewStripView(nowIn)).toEqual({ kind: 'offer' });
+    // a page opened from the full view while nobody is signed in: someone signing in later, in another tab, is not asked here
+    expect(reduce(checking, { type: A.SESSION_SET, session: { kind: 'nobody', email: null } }).ui.viewStrip).toBe('gone');
+    // no strip, nothing added: the stored and first states stay as they were
+    const plain = reduce(signedIn(fresh()), { type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
+    expect('viewStrip' in plain.ui).toBe(false);
+    const gone = reduce(offered, { type: A.VIEW_STRIP, to: 'gone' });
+    expect(reduce(gone, { type: A.SESSION_SET, session: { kind: 'nobody', email: null } }).ui.viewStrip).toBe('gone');
+  });
 });
 
 describe('the account effect: the choice through the one settings write', () => {

@@ -667,7 +667,13 @@ function reduceAction(state, action) {
       if (state.session.kind === k && state.session.email === email && !state.session.signingOut) return state;
       // becoming nobody clears the plans at once (4.3); any kind but 'in' lets the account's settings go (7.11.0): page
       // memory only, read again at the next sign-in, so whatever reads ui.profile is about the person signed in now
-      return { ...state, session: next, plans: k === 'in' || k === 'checking' ? state.plans : null, ui: k === 'in' || state.ui.profile === null ? state.ui : { ...state.ui, profile: null } };
+      const ui = k === 'in' || state.ui.profile === null ? state.ui : { ...state.ui, profile: null };
+      // … and the strip (7.11.0), offered or answered, goes once nobody is signed in here, or someone else is (another tab
+      // signing one account out and another in, heard on this page): it is only ever shown to the person it was for
+      const strip = ui.viewStrip;
+      const stripGoes = (strip === 'offer' || strip === 'doneFull' || strip === 'doneSimple')
+        && (k === 'nobody' || k === 'unverified' || (state.session.kind === 'in' && (k !== 'in' || email !== state.session.email)));
+      return { ...state, session: next, plans: k === 'in' || k === 'checking' ? state.plans : null, ui: stripGoes ? { ...ui, viewStrip: 'gone' } : ui };
     }
     case A.SESSION_OUT:
       return state.session.kind !== 'in' || state.session.signingOut ? state : { ...state, session: { ...state.session, signingOut: true } };

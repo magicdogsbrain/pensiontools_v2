@@ -15,7 +15,7 @@ import { describe, it, expect } from 'vitest';
 import {
   WINDOW, OFF_COURSE, REVIEW_FROM, REVIEW_LOG_MAX, TASKS_MAX, LIVING_REVIEW_AFTER, SAVING_LEVELS, PHASE_PARTS, HISTORY_WHATS,
   phasesOf, phasesPatch, windowOf, windowYearsOf, agreementOf, storedAgreementOf, belongsTo, phasesAsTheyBelong, phasesForCopy,
-  defaultFloorOf, defaultRuleOf, planLevelOf, derivedLevelOf, ruleOrNull, strategyIdOf, addMonths
+  defaultFloorOf, defaultRuleOf, planLevelOf, derivedLevelOf, derivedLevelFrom, ruleOrNull, strategyIdOf, addMonths
 } from '../../../src/services/Phases.js';
 import { planLevelOf as lifePlanLevelOf } from '../../../src/answers/plan/life.js';
 import { LEVEL_FAILS20 } from '../../../src/answers/shared/rules.js';
@@ -97,6 +97,14 @@ describe('phasesOf reads, and writes nothing', () => {
     expect(derivedLevelOf({ accumulationTool: { settings: { savingMix: { equity: 0.3, bond: 0.5, cash: 0.2 } } } })).toBe('cautious');
     const held = { holdings: { lines: [{ ticker: 'VWRP', wrapper: 'SIPP', value: 100000 }] }, accumulationTool: { settings: { savingMix: { equity: 0.3, bond: 0.5, cash: 0.2 } } } };
     expect(derivedLevelOf(held)).toBe('adventurous');   // all in shares, before the saving mix
+    // where it is read from, for the words beside it: what is held, the saving mix, the pots the plan draws on, else Balanced
+    expect(derivedLevelFrom(held)).toEqual({ level: 'adventurous', from: 'held' });
+    expect(derivedLevelFrom({ accumulationTool: { settings: { savingMix: { equity: 0.3, bond: 0.5, cash: 0.2 } } } }).from).toBe('savingMix');
+    const pots = { stressTool: { settings: { equityMin: 120000, bondMin: 180000, cashTarget: 30000 } } };
+    expect(derivedLevelFrom(pots)).toEqual({ level: 'cautious', from: 'drawing' });
+    expect(derivedLevelFrom({})).toEqual({ level: 'balanced', from: 'default' });
+    expect(phasesOf(pots, { now: new Date(2026, 9, 2, 12) }).saving.strategy).toMatchObject({ level: 'cautious', from: 'drawing' });
+    expect(phasesOf({ phases: { saving: { strategy: { level: 'balanced', at: '2026-10-01T00:00:00.000Z' } } } }, { now: new Date(2026, 9, 2, 12) }).saving.strategy.from).toBe('chosen');
   });
   it('a saver\'s review falls as the check-in chose; any other phase once a year until the person chooses', () => {
     const p = { accumulationTool: { checkInEvery: 'quarter' } };

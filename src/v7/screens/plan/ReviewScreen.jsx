@@ -110,7 +110,7 @@ function Choices({ V, dispatch }) {
       )}
       {V.level && (
         <Choice id="level" part="saving.level" title={W.level.title} line={W.level.line[V.level.value]} value={V.level.value} stored={!!V.level.stored} open={V.changing.level} editable={ed} dispatch={dispatch} planId={planId} saving={V.saving}
-          options={V.level.options.map((o) => ({ value: o, label: W.level.options[o] }))} extra={V.level.stored ? null : <p class="note" data-testid={`${T}.choice.level.read`}>{W.level.read}</p>} />
+          options={V.level.options.map((o) => ({ value: o, label: W.level.options[o] }))} extra={V.level.stored ? null : <p class="note" data-testid={`${T}.choice.level.read`} data-from={V.level.from || 'default'}>{W.level.read[V.level.from] || W.level.read.default}</p>} />
       )}
     </section>
   );

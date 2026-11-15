@@ -165,7 +165,13 @@ export const REVIEW = {
       balanced: 'While you save, the plan works out your pension as invested in a balanced way.',
       adventurous: 'While you save, the plan works out your pension as invested adventurously.'
     },
-    read: 'We read this from what you hold; choose one and the plan works it out that way.',
+    /** Until one is chosen: where the level is read from (Phases.derivedLevelFrom), in the engine's own order. */
+    read: {
+      held: 'We read this from what you hold; choose one and the plan works it out that way.',
+      savingMix: 'We read this from the saving mix your plan was made with; choose one and the plan works it out that way.',
+      drawing: 'We read this from the mix your plan draws on; choose one and the plan works it out that way.',
+      default: 'Until you choose one, the plan reads a balanced way; choose one and the plan works it out that way.'
+    },
     options: { cautious: 'Cautiously', balanced: 'In a balanced way', adventurous: 'Adventurously' }
   },
 

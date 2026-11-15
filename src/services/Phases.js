@@ -135,24 +135,33 @@ function nearestLevel(equity) {
 }
 
 /**
- * The saving level a plan is read at when the person has not chosen one: in SavingPath.savingPathMixes' own order — the mix
- * held (What you hold), then the saving mix kept from an answer — each to the nearest level by its share in shares; else
- * Balanced. Shown only: the engine reads a stored level and nothing derived.
+ * The saving level a plan is read at when the person has not chosen one, and where it is read from: in
+ * SavingPath.savingPathMixes' own order — the mix held (What you hold, 'held'), then the saving mix kept from an answer
+ * ('savingMix'), then the mix the plan draws on (its pots, 'drawing') — each to the nearest level by its share in shares;
+ * else Balanced ('default'). Shown only: the engine reads a stored level and nothing derived. `settings`: the Stress
+ * settings the plan is read with, where the caller has them; else the plan's own.
+ * @returns {{ level: 'cautious'|'balanced'|'adventurous', from: 'held'|'savingMix'|'drawing'|'default' }}
  */
-export function derivedLevelOf(plan) {
+export function derivedLevelFrom(plan, { settings = null } = {}) {
   const lines = holdingsLines(plan && plan.holdings);
   if (lines.length) {
     const prop = holdingsProportions(lines);
     if (prop && prop.total > 0) {
       const b = prop.buckets;
       const t = (b.shares || 0) + (b.bonds || 0) + (b.diversifiers || 0) + (b.cash || 0);
-      if (t > 0) return nearestLevel((b.shares || 0) / t);
+      if (t > 0) return { level: nearestLevel((b.shares || 0) / t), from: 'held' };
     }
   }
   const kept = savingMixOf(plan && plan.accumulationTool && plan.accumulationTool.settings);
-  if (kept) return nearestLevel(kept.equity);
-  return 'balanced';
+  if (kept) return { level: nearestLevel(kept.equity), from: 'savingMix' };
+  const s = isObj(settings) ? settings : plan && plan.stressTool && isObj(plan.stressTool.settings) ? plan.stressTool.settings : null;
+  const pot = (k) => (s && Number.isFinite(+s[k]) && +s[k] > 0 ? +s[k] : 0);
+  const T = pot('equityMin') + pot('bondMin') + pot('cashTarget');
+  if (T > 0) return { level: nearestLevel(pot('equityMin') / T), from: 'drawing' };
+  return { level: 'balanced', from: 'default' };
 }
+/** The level alone (derivedLevelFrom). */
+export const derivedLevelOf = (plan, o = {}) => derivedLevelFrom(plan, o).level;
 
 // ---- belonging ------------------------------------------------------------------------------------------------------------
 
@@ -299,10 +308,12 @@ export function phasesOf(plan, { now = new Date(), settings = null, phase = null
   const history = Array.isArray(ph.history) ? ph.history.filter(isObj) : [];
   const ci = plan && isObj(plan.accumulationTool) ? everyOrNull(plan.accumulationTool.checkInEvery) : null;
   const w = windowOf(plan, { now, settings, stop });
+  const derived = level ? null : derivedLevelFrom(plan, { settings });
   return {
     of: ph.of != null ? ph.of : null,
     belongs: belongsTo(plan && plan.phases, plan),
-    saving: { strategy: { level: level || derivedLevelOf(plan), endTarget: END_TARGETS[0], at: level ? sv.at || null : null } },
+    // `from`: where the level is read from ('chosen', or derivedLevelFrom's), for the words beside it
+    saving: { strategy: { level: level || derived.level, endTarget: END_TARGETS[0], at: level ? sv.at || null : null, from: level ? 'chosen' : derived.from } },
     moving: { window: { ...w, at: winYears ? mv.window.at || null : null }, agreed: agreed ? copy(agreed) : null },
     drawing: { strategyId: strategyIdOf(plan, settings) },
     review: { every: phase === 'saving' ? ci || 'year' : every || 'year', rule: rule || defaultRuleOf(plan), log: copy(log) },

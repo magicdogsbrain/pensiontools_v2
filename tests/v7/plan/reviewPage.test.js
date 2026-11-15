@@ -175,6 +175,14 @@ describe('the screen', () => {
     expect(q(sv.root, 'plan.step.checkin')).toBeTruthy();
     expect(q(sv.root, 'plan.review').getAttribute('data-phase')).toBe('saving');
     expect(q(sv.root, 'plan.review.choice.level.read')).toBeTruthy();
+    // the note says where the level is read from: what 05 holds
+    expect(q(sv.root, 'plan.review.choice.level.read').getAttribute('data-from')).toBe('held');
+    expect(q(sv.root, 'plan.review.choice.level.read').textContent).toBe(W.level.read.held);
+    // a plan with nothing held is never told the level was read from what it holds
+    const bare = copy(C['10-couple-b']); delete bare.holdings;
+    const nb = draw(stateWith([entryOf(bare, day)], '#/plan/' + bare.id + '/review', { today: day }));
+    const note = q(nb.root, 'plan.review.choice.level.read');
+    if (note) expect(note.textContent).not.toBe(W.level.read.held);
     expect(sv.text).not.toMatch(/\{\w+\}/);
   });
 

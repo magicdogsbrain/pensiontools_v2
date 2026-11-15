@@ -378,7 +378,7 @@ export function reviewOf(entries, id, { today, typed = {}, page = null, source =
   // a choice or a save may be made: not a plan shown as saved, the example, or one with a close (the plan that carries it on keeps them)
   const editable = !pg.readonly && !example && !closing && !closed && phase !== null;
   const span = moveWindowOf(life);
-  const ph = phasesOf(plan, { now, phase, stop: span ? span.to : undefined });
+  const ph = phasesOf(plan, { now, phase, stop: span ? span.to : undefined, settings: safeSettings(plan, now) });
   const rule = reviewRuleOf(plan);
   const every = phase === 'saving' ? ph.review.every : reviewEveryOf(plan);
   const due = pg.reviewDue || null;
@@ -405,7 +405,7 @@ export function reviewOf(entries, id, { today, typed = {}, page = null, source =
   if (phase === 'saving' || phase === 'moving') {
     const wnd = windowOf(plan, { now, stop: span ? span.to : undefined });
     R.moveWindow = { years: wnd.years, stored: windowChosenOf(plan), options: Array.from({ length: WINDOW.max - WINDOW.min + 1 }, (_, i) => WINDOW.min + i), from: wnd.from ? monthWords(wnd.from) : null, to: wnd.to ? monthWords(wnd.to) : null };
-    R.level = { value: ph.saving.strategy.level, stored: ph.stored.saving, options: [...SAVING_LEVELS] };
+    R.level = { value: ph.saving.strategy.level, stored: ph.stored.saving, from: ph.saving.strategy.from, options: [...SAVING_LEVELS] };
   } else { R.moveWindow = null; R.level = null; }
 
   if (phase === 'moving') {

@@ -7,6 +7,7 @@
  *   planRows(entries, { today, source })                → the "Your plans" list: groups of rows
  *   planPage(entries, id, stepId, { today, source })    → one plan: stage, steps, the current step, the next sentence
  *   stageLine(stage, plan)                              → the stage's one line, in V7's words (rail-screens-language.md 1.3)
+ *   theirLineOf(plan, now)                              → a partner's line, by their plan's phase (copy/plan.js theirLines)
  *   dateOf(today)                                       → 'YYYY-MM-DD' as a local Date at noon
  *
  * Words with {slots} are filled by the screen from copy/plan.js; the ids here match that file. A sentence's figures
@@ -123,12 +124,30 @@ function lineOf(stage, plan, ss, list, now, life = null) {
   if (r && stage && stage.key === 'closed') return r.next ? { id: 'closed' + why, slots: { month: r.month, name: r.next.name } } : { id: 'closed-alone', slots: { month: r.month } };
   // closed at a change-over still to come: lived on until then, and said so (LifeStage keeps its stage)
   if (r && r.ahead) return r.next ? { id: 'closing' + why, slots: { month: r.month, name: r.next.name } } : { id: 'closing-alone', slots: { month: r.month } };
-  // the line under the headline follows the phase (7.10.0, LifeStage.stageOf), never a placing it has left: past the stop on a
-  // plan not locked, the stop as the plan says it (the home asks "did you stop work?"); living on it by an agreement on a
-  // saver's placing, the words of a plan lived on (not locked yet, or locked)
+  return phaseLine(stage, plan, life) || stageLine(stage, plan, ss);
+}
+
+/**
+ * The line follows the phase (7.10.0, LifeStage.stageOf), never a placing it has left: past the stop on a plan not locked,
+ * the stop as the plan says it (the home asks "did you stop work?"); living on it by an agreement or a month recorded on a
+ * saver's placing, the words of a plan lived on (not locked yet, or locked). Null where the placing's own line is the phase's.
+ */
+function phaseLine(stage, plan, life) {
   if (life && life.confirmStop && life.stop) return { id: 'pastStop', slots: { month: monthWords(life.stop) } };
   if (life && life.key === 'drawing' && stage && SAVER_STAGES.includes(stage.key)) return isLocked(plan) ? { id: 'running', slots: {} } : { id: 'draft-retired', slots: {} };
-  return stageLine(stage, plan, ss);
+  return null;
+}
+
+/**
+ * A partner's line, after "With ‘…’:" (copy/plan.js theirLines): their plan's phase as LifeStage.stageOf reads it (7.10.0),
+ * as their own pages read it — so a partner past their stop is asked about it on their plan, never said to be inside the move
+ * window. `ss`, their effective settings, when the caller has them.
+ */
+export function theirLineOf(plan, now, ss = null) {
+  const stage = safeStage(plan, now);
+  const s = ss || safeSettings(plan, now);
+  let life = null; try { life = stageOf(plan, now, { placing: stage, settings: s }); } catch { life = null; }
+  return phaseLine(stage, plan, life) || stageLine(stage, plan, s);
 }
 
 /**
@@ -812,12 +831,11 @@ function householdStep(C) {
   let result;
   if (partners.length) {
     const p = partners[0];
-    const stage = safeStage(p.plan, now);
-    const theirLine = stageLine(stage, p.plan, safeSettings(p.plan, now));
+    // each partner's line by their plan's phase (7.10.0), as their own plan's pages say it
+    const theirLine = theirLineOf(p.plan, now);
     result = sentence('household.with', ['With ‘' + nameOf(p.plan) + '’'], figures);
     for (const e of partners) {
-      const st = safeStage(e.plan, now);
-      lines.push({ id: 'household.partner', slots: { name: nameOf(e.plan) }, sentence: sentence('household.partner', [], figures), source: sourceOf('saved', null, now), theirLine: stageLine(st, e.plan, safeSettings(e.plan, now)), theirId: String(e.plan.id) });
+      lines.push({ id: 'household.partner', slots: { name: nameOf(e.plan) }, sentence: sentence('household.partner', [], figures), source: sourceOf('saved', null, now), theirLine: theirLineOf(e.plan, now), theirId: String(e.plan.id) });
       buttons.push(link('openPartner', '#/plan/' + e.plan.id, { name: nameOf(e.plan) }));
     }
     // the two together — the pooled verdict, who draws what, the survivor and care questions — inside V7 (road-to-7.md step 9)

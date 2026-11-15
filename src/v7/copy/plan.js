@@ -213,6 +213,8 @@ export const PLAN = {
     'committed-saving': 'plan locked. Still working until {month}.',
     'draft-retired': 'retired. Plan not locked yet.',
     running: 'retired. Living on the plan.',
+    /** A partner's plan not locked, past the month it says they stop work (7.10.0): their plan asks them, never "inside the window". */
+    pastStop: 'their plan has them stopping work in {month}.',
     'running-ladder': 'retired. Living on their plan; their ladder’s first gilt pays from {month}.',
     closed: 'closed {month}; carried on as ‘{name}’.',
     'closed-alone': 'closed {month}.'

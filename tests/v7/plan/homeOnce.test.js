@@ -5,7 +5,9 @@
  *     and that its months wait for the lock only on the Month by month tool;
  *   - the line under the headline says only what the headline, the move window's line and To do do not ("Locked {date}."
  *     beside it, or alone): never the phase again ("Inside the move window", "Retired. Plan not locked yet."), never the stop
- *     the window's line or "Did you stop work in …?" says, never a closed plan's month its to-do says.
+ *     the window's line or "Did you stop work in …?" says, never a closed plan's month its to-do says;
+ *   - a partner's line on the household step reads their plan's phase (LifeStage.stageOf), as their own pages do — a partner
+ *     past their stop is never "inside the move window".
  * Fixtures are the committed plans (tests/v7/plan/_plans.js) and the named home states; all fictional.
  */
 import { describe, it, expect } from 'vitest';
@@ -19,9 +21,12 @@ import { initialState } from '../../../src/v7/state/initial.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { viewFor } from '../../../src/v7/effects/planSource.js';
 import { homeOf } from '../../../src/answers/plan/home.js';
+import { planPage, stageLine } from '../../../src/answers/plan/read.js';
+import { householdOf } from '../../../src/answers/plan/household.js';
+import { planStage } from '../../../src/services/PlanReading.js';
 import { HOME } from '../../../src/v7/copy/home.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
-import { corpus, entriesAt, entryOf, withTasks, stateWith, DATES } from './_plans.js';
+import { corpus, entriesAt, entryOf, withTasks, stateWith, noon, DATES } from './_plans.js';
 
 const C = corpus();
 const fill = (text, slots) => String(text).replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
@@ -149,5 +154,42 @@ describe('the line under the headline says only what nothing above it says (7.10
     // every other page of the plan keeps the plan's own line: there it is under the page's title, not the phase
     const { root: about } = drawState(stateWith(entriesAt('2027-04-06'), '#/plan/' + C['10-couple-b'].id + '/about', { today: '2027-04-06' }));
     expect(one(about, 'plan.stageLine').textContent).toBe(PLAN.stageLines.approaching);
+  });
+});
+
+describe('a partner\'s line reads their plan\'s phase (7.10.0, LifeStage.stageOf)', () => {
+  it('a partner past their stop, not locked: "their plan has them stopping work in …", never "inside the move window" — on the step and on "Your household"', () => {
+    const today = '2030-10-02';
+    const entries = entriesAt(today);
+    const a = entries.find((e) => e.plan.id === C['09-couple-a'].id);
+    const b = entries.find((e) => e.plan.id === C['10-couple-b'].id);
+    // the placing alone still reads "inside the move window" past the stop: the phase is what the line follows
+    expect(stageLine(planStage(b.plan, { now: noon(today) }), b.plan).id).toBe('approaching');
+    expect(planPage(entries, b.plan.id, null, { today }).life).toMatchObject({ key: 'moving', confirmStop: true });
+    const step = planPage(entries, a.plan.id, 'household', { today }).steps.find((s) => s.id === 'household');
+    expect(step.theirLine).toEqual({ id: 'pastStop', slots: { month: 'January 2030' } });
+    expect(step.lines.map((l) => l.theirLine)).toEqual([{ id: 'pastStop', slots: { month: 'January 2030' } }]);
+    expect(householdOf(entries, a.plan.id, { today }).partner.line).toEqual({ id: 'pastStop', slots: { month: 'January 2030' } });
+    const { root } = drawState(stateWith(entries, '#/plan/' + a.plan.id + '/household', { today }));
+    const said = one(root, 'plan.household.with').textContent;
+    expect(said).toContain('their plan has them stopping work in January 2030.');
+    expect(said).not.toMatch(/move window/);
+  });
+  it('at every date, every partner\'s line is the line their own plan\'s pages say', () => {
+    let seen = 0;
+    for (const today of DAYS) {
+      const entries = entriesAt(today);
+      for (const e of entries) {
+        const step = planPage(entries, e.plan.id, 'household', { today }).steps.find((s) => s.id === 'household');
+        for (const l of (step && step.lines) || []) {
+          const theirs = planPage(entries, l.theirId, null, { today });
+          if (theirs.closing) continue;
+          expect(l.theirLine, `${e.plan.id} → ${l.theirId} ${today}`).toEqual(theirs.line);
+          expect(PLAN.theirLines[l.theirLine.id], l.theirLine.id).toBeTruthy();
+          seen++;
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(4);
   });
 });

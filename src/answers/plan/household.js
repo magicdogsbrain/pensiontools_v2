@@ -22,7 +22,7 @@
  *
  * Every path written is in schema.js HOUSEHOLD_WRITES (tested), or, on a draft read from an earlier start, LATER_DRAFT_WRITES.
  */
-import { planStage, effectiveStressSettings } from '../../services/PlanReading.js';
+import { effectiveStressSettings } from '../../services/PlanReading.js';
 import { personProfile, splitFingerprint, SPLIT_HEADLINE_MIN, settingsWithSchedule } from '../../services/HouseholdDraw.js';
 import { isLockedPlan, splitWriteMode, shapeWords, splitCopyNames, SPLIT_KEYS } from '../../services/HouseholdSplitApply.js';
 import { budgetSharedFromOf, shareBudgetWrite, stopSharingWrite, sharedBudgetView, ownSideOf } from '../../services/PlanCommit.js';
@@ -31,7 +31,7 @@ import { currentAgeNow } from '../../utils/StatePensionUtils.js';
 import { guestOwnPlans, GUEST_MAX_PLANS } from '../../services/GuestPlans.js';
 import { futuresOutOfTen, pctText, CHANCE_BARS } from '../../services/OneAnswer.js';
 import { isOnCourse, BORDERLINE_SHARE } from '../../services/OnCourse.js';
-import { stageLine } from './read.js';
+import { theirLineOf } from './read.js';
 import { isClosedPlan, closedReading, partnerCandidates } from '../../services/PlanClosed.js';
 import { runKeyOf } from './lasts.js';
 import { pounds } from './income.js';
@@ -54,7 +54,6 @@ const r0 = (v) => Math.round(+v || 0);
 const pct = (share) => pctText((+share || 0) * 100, 0, [...CHANCE_BARS, 70]).replace(/%$/, '');
 const inTen = (share) => futuresOutOfTen(+share || 0).words;
 const safeSettings = (plan, now) => { try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && isObj(plan.stressTool.settings)) ? plan.stressTool.settings : {}; } };
-const safeStage = (plan, now) => { try { return planStage(plan, { now }); } catch { return { key: 'unknown' }; } };
 
 /** The plan linked to `plan`, either way (6): its own link first, else the first plan that points at it. */
 export function partnerOf(entries, plan) {
@@ -493,7 +492,8 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
   const stale = !!(h && h.status === 'done' && (text(h.limit || null) !== text(c.run.limit) || text(h.need == null ? null : h.need) !== text(c.run.need)));
   const partnerView = partner ? {
     id: String(partner.id), name: names.b, locked: saved.partnerLocked, lockedOn: saved.partnerLockedOn, readonly: !!(pe.newer || pe.failed),
-    line: stageLine(safeStage(partner, now), partner, saved.ssB), configured: !!(partner.stressTool && isObj(partner.stressTool.settings) && partner.stressTool.settings.configured),
+    // their line by their plan's phase (7.10.0, read.js theirLineOf), never a placing it has left
+    line: theirLineOf(partner, now, saved.ssB), configured: !!(partner.stressTool && isObj(partner.stressTool.settings) && partner.stressTool.settings.configured),
     linkedBy: mine === String(partner.id) ? (partnerIdOf(partner) === String(plan.id) ? 'both' : 'mine') : 'theirs'
   } : null;
   const budgetRead = c.read;

@@ -80,7 +80,7 @@ async function awaitRun(page, since) {
 test.describe('"Does it last?", without an account', () => {
   test('the one test runs in the preview and equals the Node run to the pound; the dials with their sources; a new cut; Save (one plan, the declared keys only); the test runs again; Undo byte for byte', async ({ page, watch }, testInfo) => {
     test.setTimeout(300_000);
-    // as on the live site today: the engine worker asks for the market files from its own address (e2e/old-app-unchanged.spec.js)
+    // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
     watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();

@@ -35,7 +35,7 @@ test.describe('B2 — "I\'ve already stopped": your partner\'s answer, saved as 
     test.skip(!APART.askAboutPartner, 'switch 3 is off: A does not offer "I\'ve already stopped"');
     test.setTimeout(300_000);
     // As on the live site today: the planner's engine worker asks for the market files from its own address, where they are not,
-    // and falls back to the bundled figures (e2e/old-app-unchanged.spec.js). Any OTHER missing file still fails the test.
+    // and falls back to the bundled figures (e2e/full-view-unchanged.spec.js). Any OTHER missing file still fails the test.
     watch.allow(WORKER_DATA_MISSING);
     const app = v7(page, 'prod', 'a');
     let answer = null;

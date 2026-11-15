@@ -72,9 +72,9 @@ const JOURNEYS_APART = ['a-already-stopped'];
 // … and "Your review" (7.10.0): a Moving review's test and "I accept this as my plan" within its budget, a Living-on-it review saved,
 // locked and unlocked, each one write: plan-review, at 390 and 1440.
 const JOURNEYS_PLAN = ['plan-keep', 'plan-stress', 'plan', 'plan-home', 'plan-about', 'plan-income', 'plan-spend', 'plan-pots', 'plan-lasts', 'plan-lock', 'plan-levers', 'plan-way', 'plan-mix', 'plan-try', 'plan-household', 'plan-household-words', 'plan-hold', 'plan-move', 'plan-budget', 'plan-saving', 'plan-stale-lumps', 'plans-actions', 'whats-new', 'planner-month-fill', 'plan-stopped-work', 'plan-close', 'plan-checkin', 'plan-back-to-work', 'plan-try-not-copy', 'plan-month', 'plan-no-runup-words', 'plan-review'];
-const JOURNEYS_PHONE = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'c-retired', 'answer-bad-years', 'production', 'old-app-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP, ...JOURNEYS_PLAN];
+const JOURNEYS_PHONE = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'c-retired', 'answer-bad-years', 'production', 'full-view-unchanged', 'crawl', 'screens', ...JOURNEYS_AB_PHONE, ...JOURNEYS_PAYING_IN, ...JOURNEYS_KEEP, ...JOURNEYS_PLAN];
 // An old service worker cleared by the kill switch (public/sw.js; switch-readiness.md §3): its own server, at 1440 only.
-const JOURNEYS_DESKTOP = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'answer-bad-years', 'production', 'old-app-unchanged', 'old-worker', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP, ...JOURNEYS_APART, ...JOURNEYS_PLAN];
+const JOURNEYS_DESKTOP = [...JOURNEYS_FIRST, 'c-forum-guest', 'c-couple', 'answer-bad-years', 'production', 'full-view-unchanged', 'old-worker', 'crawl', 'screens', 'keyboard', ...JOURNEYS_AB_DESKTOP, ...JOURNEYS_KEEP, ...JOURNEYS_APART, ...JOURNEYS_PLAN];
 const only = (names) => names.map((n) => `**/${n}.spec.js`);
 
 const projects = [

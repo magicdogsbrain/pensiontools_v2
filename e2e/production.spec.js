@@ -195,7 +195,7 @@ test.describe(`the published build of ${V7_PATH}`, () => {
 // Links shared while the classic page was the site's root carry its options in the query. At 7.0 the root is V7, which
 // passes them on to the classic planner (src/v7/effects/address.js); in the rollback layout the root is the classic page
 // itself. Either way the link does what it did. The classic page would call Firebase: every request outside the local
-// server is stopped quietly, as in old-app-unchanged.spec.js, so no account is reached.
+// server is stopped quietly, as in full-view-unchanged.spec.js, so no account is reached.
 test.describe('an old link to the site\'s root with the classic page\'s options', () => {
   test.use({ outside: 'block' });
   const landsOnClassic = async (page, search) => {

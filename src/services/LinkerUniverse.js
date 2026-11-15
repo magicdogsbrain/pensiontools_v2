@@ -75,7 +75,7 @@ export function activeLinkers() { return _override || _live || BUNDLED; }
  * Fetch the nightly file (same origin; by default from the site's data folder as the classic page sees it, src/appLayout.js:
  * './data/' today, '../data/' from /classic/ at 7.0) — silent fallback to the snapshot. The engine worker asks with the same
  * address, which it resolves from its own script in assets/: /assets/data/ today, where there is no file, so it keeps the
- * snapshot (known; e2e/old-app-unchanged.spec.js); /classic/data/ at 7.0, where it reads whatever copy that build made.
+ * snapshot (known; e2e/full-view-unchanged.spec.js); /classic/data/ at 7.0, where it reads whatever copy that build made.
  */
 export async function loadLiveGilts(url = LAYOUT.classic.data + 'gilts.json', fetchImpl = globalThis.fetch) {
   if (!fetchImpl) return null;

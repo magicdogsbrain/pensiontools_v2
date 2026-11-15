@@ -78,7 +78,7 @@ describe('browser tests: rules kept by reading the files', () => {
       'playwright.config.js',
       'e2e/helpers/serve.mjs', 'e2e/helpers/app.js', 'e2e/helpers/answerInNode.js',
       'e2e/c-forum-guest.spec.js', 'e2e/c-couple.spec.js', 'e2e/c-retired.spec.js', 'e2e/crawl.spec.js',
-      'e2e/production.spec.js', 'e2e/old-app-unchanged.spec.js', 'e2e/keyboard.spec.js', 'e2e/screens.spec.js',
+      'e2e/production.spec.js', 'e2e/full-view-unchanged.spec.js', 'e2e/keyboard.spec.js', 'e2e/screens.spec.js',
       'e2e/sameness.spec.js', 'e2e/axe-exceptions.json',
       '.github/workflows/nightly.yml', '.github/workflows/screenshots.yml',
       // Step 4 (brief 3, P6)

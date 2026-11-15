@@ -53,7 +53,7 @@ const storedPlan = (page) => page.evaluate(([k, id]) => JSON.parse(sessionStorag
 test.describe('Month by month, without an account', () => {
   test('why Save is off; the missed months filled in, in order and marked; a failed Calculate stays on the page', async ({ page, watch }) => {
     test.setTimeout(240_000);
-    // as on the live site today: the engine worker asks for the market files from its own address (e2e/old-app-unchanged.spec.js)
+    // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
     watch.allow(WORKER_DATA_MISSING);
     // a Calculate that fails is logged by the planner as it always was; this test makes one fail on purpose at the end
     watch.allow(/^console error: Decision error: /);

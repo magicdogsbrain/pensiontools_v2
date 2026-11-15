@@ -67,7 +67,7 @@ const storedPlans = (page) => page.evaluate((k) => JSON.parse(sessionStorage.get
 test.describe('"Lock the plan", without an account', () => {
   test('the lock step, the lock (one write, the declared keys, equal to the Node lock), "Your plan as locked", the planner reads it as locked, the unlock', async ({ page, watch }, testInfo) => {
     test.setTimeout(300_000);
-    // as on the live site today: the engine worker asks for the market files from its own address (e2e/old-app-unchanged.spec.js)
+    // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
     watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();

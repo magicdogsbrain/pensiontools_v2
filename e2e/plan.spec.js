@@ -132,7 +132,7 @@ test.describe('the saved plans, without an account', () => {
 
   test('"Change this" lands the planner on the right plan, page and section with the boxes filled; Back returns', async ({ page, watch }) => {
     test.setTimeout(180_000);
-    // as on the live site today: the engine worker asks for the market files from its own address (e2e/old-app-unchanged.spec.js)
+    // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
     watch.allow(WORKER_DATA_MISSING);
     const { ladder, saver } = household();
     const stored = await plant(page, [ladder, saver]);

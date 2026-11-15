@@ -187,7 +187,7 @@ never over `docs/`, and deploy that folder:
 ```sh
 LAYOUT=preview SITE_OUT=/tmp/pt-rollback npm run build   # the classic page at /, V7 at /v7/
 LAYOUT=preview npm run e2e:build
-LAYOUT=preview E2E_PORT_PROD=<p1> E2E_PORT_TEST=<p2> npx playwright test e2e/production.spec.js e2e/old-app-unchanged.spec.js --project=desktop-1440
+LAYOUT=preview E2E_PORT_PROD=<p1> E2E_PORT_TEST=<p2> npx playwright test e2e/production.spec.js e2e/full-view-unchanged.spec.js --project=desktop-1440
 npx wrangler pages deploy /tmp/pt-rollback --project-name=pension-planner-pwa --branch=main
 npm run e2e:build                                        # dist/ back to the 7.0 layout for the next browser run
 ```

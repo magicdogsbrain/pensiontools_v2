@@ -56,7 +56,7 @@ const storedPlans = (page) => page.evaluate((k) => JSON.parse(sessionStorage.get
 test.describe('"Your pots and tax", without an account', () => {
   test('the boxes with their sources; a new pension pot, ISA growth and charge; Save (one plan, the declared keys only); Undo byte for byte; the planner shows the new values', async ({ page, watch }) => {
     test.setTimeout(240_000);
-    // as on the live site today: the engine worker asks for the market files from its own address (e2e/old-app-unchanged.spec.js)
+    // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
     watch.allow(WORKER_DATA_MISSING);
     const plan = lumpyPlan();
     const locked = lockedPlan();

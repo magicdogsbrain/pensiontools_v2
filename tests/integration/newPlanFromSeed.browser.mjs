@@ -1,7 +1,7 @@
 /**
  * Browser walk of today's app receiving a plan seed (research/v7/save-as-plan.md C.2) — WITHOUT AN ACCOUNT ONLY.
  * Nothing here signs in, types a credential or reaches Firebase: every request that leaves the local server is
- * stopped, as e2e/old-app-unchanged.spec.js does.
+ * stopped, as e2e/full-view-unchanged.spec.js does.
  *
  *   SITE_OUT=<scratch>/prod npx vite build && SITE_OUT=<scratch>/prod npx vite build --config vite.v7.config.js   (never into docs/)
  *   node tests/integration/newPlanFromSeed.browser.mjs <scratch>/prod [--shots <folder>]

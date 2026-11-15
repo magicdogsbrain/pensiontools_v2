@@ -72,7 +72,7 @@ const lookForUpdate = (page) => page.evaluate(() => { navigator.serviceWorker.ge
 
 test.describe('an old service worker, after the kill switch is published', () => {
   test('the older cache-first worker with the site\'s root page cached: the window reloads from the network, the cache is gone, no worker is left', async ({ page, watch }, testInfo) => {
-    // as on the live site today: the classic page's engine worker asks for the market files from its own address (old-app-unchanged.spec.js)
+    // as on the live site today: the classic page's engine worker asks for the market files from its own address (full-view-unchanged.spec.js)
     watch.allow(WORKER_DATA_MISSING);
     const folder = oldSite(testInfo.outputPath('old-site'), 'sw-cache-first.js');
     await serveOldThenNew(folder, async (base, deploy) => {

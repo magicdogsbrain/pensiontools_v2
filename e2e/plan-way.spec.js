@@ -65,7 +65,7 @@ const tenth = (n) => Math.round(n * 10) / 10;
 test.describe('"How the money is taken", without an account', () => {
   test('the nine cards equal the Node run and its order; a dial tried; "Use this" writes the Node switch, Undo byte for byte; the locked plan\'s comparison line', async ({ page, watch }, testInfo) => {
     test.setTimeout(600_000);
-    // as on the live site today: the engine worker asks for the market files from its own address (e2e/old-app-unchanged.spec.js)
+    // as on the live site today: the engine worker asks for the market files from its own address (e2e/full-view-unchanged.spec.js)
     watch.allow(WORKER_DATA_MISSING);
     const plan = draftPlan();
     const locked = lockedPlan();

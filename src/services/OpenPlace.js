@@ -38,6 +38,8 @@ export const PLACES = Object.freeze({
   income:    { tab: 'stress',       sub: 'stresssettings', section: 'ssOther',         needs: 'stress' },
   lock:      { tab: 'stress',       sub: 'stresssettings', section: 'ssLockBtn',       needs: 'stress' },
   settings:  { tab: 'stress',       sub: 'stresssettings', section: null,              needs: 'stress' },
+  /** The mix (7.11.0): the Stress tester's settings, at "Your allocation". `settings` stays for a tab left open across a deploy. */
+  allocation: { tab: 'stress',      sub: 'stresssettings', section: 'ssAllocation',    needs: 'stress' },
   test:      { tab: 'stress',       sub: 'montecarlo',     section: null,              needs: 'stress' },
   /** "Try the bad years" (7.9.0): the planner's Scenarios page, at its results; and its real starts one at a time (History). */
   badYears:  { tab: 'stress',       sub: 'scenarios',      section: 'scenResults',     needs: 'stress' },
@@ -56,6 +58,8 @@ export const PLACES = Object.freeze({
   rotation:  { tab: 'strategies',   sub: null,             section: 'stratPage',       needs: null, page: 'gilt-rotation' },
   budget:    { tab: 'budget',       sub: null,             section: null,              needs: null },
   household: { tab: 'household',    sub: null,             section: null,              needs: null },
+  /** A plan's home (7.11.0): the plan, on the tab the full view opens it on anyway (LifeStage.openingTab), with the note and its way back. No button is pressed. */
+  home:      { tab: null,           sub: null,             section: null,              needs: null },
   /** No plan: the planner's sign-in screen. A window holding plans made without an account goes through "keep this work". */
   signin:    { tab: null,           sub: null,             section: null,              needs: null }
 });

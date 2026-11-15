@@ -86,6 +86,13 @@ describe('T7 — the request (src/services/OpenPlace.js)', () => {
       if (p.needs) expect(['stress', 'decision']).toContain(p.needs);
     }
     expect(PLACES.signin.tab).toBe(null);
+    // 7.11.0: a plan's home names no tab (the page's own LifeStage.openingTab decides); the mix opens at "Your allocation"
+    expect(PLACES.home).toEqual({ tab: null, sub: null, section: null, needs: null });
+    expect(PLACES.allocation).toEqual({ tab: 'stress', sub: 'stresssettings', section: 'ssAllocation', needs: 'stress' });
+    expect(html).toContain('<div class="settings-section" id="ssAllocation">');
+  });
+  it('no place is taken away (7.11.0): a tab of the simple view left open across a deploy still sends settings and potRecord, and both are read', () => {
+    for (const place of ['settings', 'potRecord', 'home', 'allocation', 'onCourse']) expect(readRequest(good({ place }), NOW).ok, place).toBe(true);
   });
   it('the request is read once and deleted, whatever it held; the old tab key too', () => {
     sessionStorage.setItem(OPEN_PLACE_KEY, '{not json');
@@ -106,7 +113,7 @@ function plannerPage() {
   document.body.innerHTML = `
     <div id="mainApp">
       <nav><button class="tab" data-tab="stress"></button><button class="tab active" data-tab="decision"></button><button class="tab" data-tab="accumulation"></button><button class="tab" data-tab="strategies"></button></nav>
-      <div id="stress-content"><div class="sub-tabs"><button class="sub-tab" data-stresstab="montecarlo"></button><button class="sub-tab" data-stresstab="stresssettings"></button></div><div id="ssTimingBlock"></div><input id="ssAge"></div>
+      <div id="stress-content"><div class="sub-tabs"><button class="sub-tab" data-stresstab="montecarlo"></button><button class="sub-tab" data-stresstab="stresssettings"></button></div><div id="ssTimingBlock"></div><div id="ssAllocation"></div><input id="ssAge"></div>
       <div id="decision-content"><div class="sub-tabs"><button class="sub-tab" data-decisiontab="entry"></button><button class="sub-tab" data-decisiontab="taxyears"></button></div><input type="month" id="entryMonth" value="2026-10"></div>
       <div id="accumulation-content"><div id="acRecordSection"></div><input id="acNetMonthly"><input id="acEmployerMonthly"></div>
     </div>`;
@@ -125,6 +132,7 @@ function plannerPage() {
   const scrolled = [];
   document.getElementById('ssTimingBlock').scrollIntoView = () => scrolled.push('ssTimingBlock');
   document.getElementById('acRecordSection').scrollIntoView = () => scrolled.push('acRecordSection');
+  document.getElementById('ssAllocation').scrollIntoView = () => scrolled.push('ssAllocation');
   return { loaded, scrolled, monthEvents };
 }
 const flush = () => new Promise((r) => setTimeout(r, 450));
@@ -166,6 +174,28 @@ describe('T8 — the planner with a request: the right plan, page and section, w
     expect(document.getElementById('ssAge').value).toBe('56');
     expect(scrolled).toEqual(['ssTimingBlock']);
     expect(note.textContent).not.toContain('in this window only');               // A1 is the account's open plan
+  });
+  it('a plan\'s home (7.11.0): no button is pressed and nothing is scrolled, the tab is the page\'s own (openingTab); the line, its way back and the window sentence; nothing saved', async () => {
+    const r = { v: 1, planId: 'B2', place: 'home', back: '#/plan/B2', at: new Date(NOW - 1000).toISOString() };
+    const { loaded, scrolled, tab, note } = await run(r, null);
+    expect(tab).toBe(null);                                                       // atMainApp(null): index.html's openingTab decides
+    expect(loaded).toEqual([]);
+    expect(scrolled).toEqual([]);
+    expect(document.querySelector('.tab.active').dataset.tab).toBe('decision');  // no tab was pressed
+    expect(note.textContent).toContain('Opened from the simple view.');
+    expect(note.querySelector('a').getAttribute('href')).toBe(LAYOUT.classic.v7 + '#/plan/B2');
+    expect(note.querySelector('a').textContent).toBe('Back to ‘Saving plan’ in the simple view');
+    expect(note.textContent).toContain('‘Saving plan’ is open in this window only. Your other windows and devices stay on ‘Ladder plan’.');
+    expect(sessionStorage.getItem(OPEN_PLAN_KEY)).toBe('B2');
+    expect(saveScenario).not.toHaveBeenCalled();
+  });
+  it('the mix (7.11.0, the allocation place): the Stress tester, its settings, then "Your allocation"', async () => {
+    const r = { v: 1, planId: 'A1', place: 'allocation', back: '#/plan/A1/mix', at: new Date(NOW - 1000).toISOString() };
+    const { loaded, scrolled, tab, note } = await run(r);
+    expect(tab).toBe('stress');
+    expect(loaded).toEqual(['stress', 'stresssettings']);
+    expect(scrolled).toEqual(['ssAllocation']);
+    expect(note.querySelector('a').textContent).toBe('Back to ‘Ladder plan’ in the simple view');
   });
   it('the month place with a month (a missed month, 3 Nov 2026): the entry page opens through its own button, then the month box is set and its listeners run; without one the box is left alone', async () => {
     const r = { v: 1, planId: 'A1', place: 'month', back: '#/plan/A1/month', at: new Date(NOW - 1000).toISOString(), month: '2026-08' };

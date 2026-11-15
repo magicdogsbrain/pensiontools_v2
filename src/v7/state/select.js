@@ -1388,16 +1388,16 @@ export function planLockView(state) {
  * at the page matching the step, through the same hand-over as "Change this" (plan/change). Before 7.3.2 it was a plain
  * address, so the full view opened the account's usual plan on its own last tab — another plan than the one viewed,
  * where a change would have gone to the wrong plan. A step with a page of its own opens that page (each value a services/OpenPlace.js
- * PLACES key; tests/v7/shell/previousLink.test.js holds them to it); the plan's home opens where the planner opens that
- * plan anyway (LifeStage.openingTab, read from the plan row's stage key so the shell carries no plan reading): a saver on
- * their saving page, someone approaching their stop on the settings, everyone else on Month by month.
+ * PLACES key; tests/v7/shell/previousLink.test.js holds them to it). The plan's home opens the full view's home of that
+ * plan (7.11.0, the `home` place): the tab it opens that plan on anyway (LifeStage.openingTab), with
+ * its banner on top — the one home both views read (answers/plan/home.js homeOf). So does the review: the full view has no
+ * review page of its own (its banner sends a review to the simple view), and a plan not locked has no plan document.
  */
 export const FULL_PLACE = Object.freeze({
-  month: 'month', where: 'document', pot: 'potRecord', checkin: 'potRecord', saving: 'saving', budget: 'budget',
-  lock: 'lock', hold: 'hold', move: 'move', household: 'household', review: 'document',
-  about: 'about', income: 'income', spend: 'spend', pots: 'pots', lasts: 'test', way: 'way', mix: 'settings'
+  month: 'month', where: 'document', pot: 'potRecord', checkin: 'onCourse', saving: 'saving', budget: 'budget',
+  lock: 'lock', hold: 'hold', move: 'move', household: 'household', review: 'home',
+  about: 'about', income: 'income', spend: 'spend', pots: 'pots', lasts: 'test', way: 'way', mix: 'allocation'
 });
-const PREVIOUS_HOME_PLACE = Object.freeze({ saving: 'saving', 'committed-saving': 'saving', approaching: 'settings' });
 
 /** { planId, place, back } for the plan on screen, or null (not a plan page, or the plan is not among those read). */
 export function fullLinkView(state) {
@@ -1407,6 +1407,6 @@ export function fullLinkView(state) {
   const row = rows ? rows.find((x) => x && String(x.id) === r.planId) : null;
   if (!row) return null;
   // "Try the bad years" named in the address (7.9.0: #/plan/<id>/lasts?focus=stress): the planner's Scenarios page
-  const place = r.step === 'lasts' && r.focus === 'stress' ? 'badYears' : (r.step && FULL_PLACE[r.step]) || PREVIOUS_HOME_PLACE[row.stageKey] || 'month';
+  const place = r.step === 'lasts' && r.focus === 'stress' ? 'badYears' : (r.step && FULL_PLACE[r.step]) || 'home';
   return { planId: r.planId, place, back: `#/plan/${r.planId}` + (r.step ? `/${r.step}` : '') };
 }

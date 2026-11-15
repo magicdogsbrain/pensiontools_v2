@@ -64,10 +64,18 @@ export const BANNED = [
     say: 'the name of the step' },
   { id: 'wizard',          re: /\b(wizard|onboarding|dashboard)\b/i,        scope: 'all',
     say: 'leave it out' },
-  // 7.0 (research/v7/switch-readiness.md §2 step 9): V7 is the site itself, not a preview of it; the version before it is
-  // "the classic planner", reached from "Use the previous version".
+  // 7.0 (research/v7/switch-readiness.md §2 step 9): V7 is the site itself, not a preview of it. From 7.11.0
+  // (research/v7/replan-nov-2026.md §8) the site has two views of the same plans, the simple view and the full view,
+  // reached from "Show everything": neither is a version of the other.
   { id: 'preview',         re: /\bpreview(s|ed)?\b/i,                      scope: 'all',
-    say: 'PensionTools; the version before it is "the classic planner"' },
+    say: 'PensionTools; the other view is "the full view"' },
+  // 7.11.0: the names the full view had before, and the framing of the two views as versions or levels. A plan document
+  // has versions of its own (the lock's "Write the new version", "the previous one is kept"): those are let through.
+  { id: 'classic-planner',  re: /\bclassic (planner|page)\b/i, scope: 'all', say: 'the full view' },
+  { id: 'previous-version', re: /\bprevious version\b|\buse the previous one\b/i, scope: 'all', say: 'the simple view, or the full view' },
+  { id: 'new-version',      re: /\bnew version\b/i, scope: 'all', say: 'the simple view',
+    allow: [/new version of the plan document/i, /\bwrite (a|the) new version\b/i, /against the new version/i, /plan has a new version since/i] },
+  { id: 'expert',           re: /\bexperts?\b/i, scope: 'all', say: 'the full view (for a person: a regulated financial adviser)' },
   // The site's own name (7.1.0: PensionTools) is let through on the front door.
   { id: 'tool-names',      re: /\b(tools?|planner|calculator|tester)\b/i,   scope: 'front',
     say: 'the question itself',

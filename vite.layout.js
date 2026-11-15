@@ -23,6 +23,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } fro
 import { join, resolve, dirname, relative, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LAYOUTS } from './src/appLayout.js';
+import { COMMON } from './src/v7/copy/common.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -124,26 +125,29 @@ export function v7Head(layout) {
   };
 }
 
-/** The classic page's name at 7.0: its tab title and its header's heading (src/ui/classicName.js names the rest the same). */
-export const CLASSIC_NAME = 'The classic planner';
+/** The full view's name (7.11.0; the classic page's name from 7.0): its tab title and its header's heading (src/ui/classicName.js names the rest the same). */
+export const CLASSIC_NAME = 'PensionTools (full view)';
 /**
- * The classic page's one way back to the front page at 7.0, at the top of the app at every width (the header's own
- * actions are behind the menu on a phone): a person who chose "Use the previous version", signed in or not, has a way
- * back to PensionTools' front page without a hand-over. Markup only, in the 7.0 build, so the page's script gains no line.
+ * The full view's line at the top of the app at every width (the header's own actions are behind the menu on a phone):
+ * the view this is, and the way back to the simple view, signed in or not, without a hand-over (COMMON.view's full
+ * words, the simple view's own line's twin). The link carries a hash, so the simple view's page never lands or forwards
+ * it straight back here. Markup only, in the 7.0 build, so the page's script gains no line.
  */
-export const CLASSIC_TO_FRONT = `<p id="classicToFront" style="margin:0 0 6px;text-align:right;font-size:13px;"><a href="${LAYOUTS.switch.classic.v7}" style="color:inherit;text-decoration:underline;">Back to PensionTools</a></p>`;
+export const CLASSIC_TO_FRONT = `<p id="classicToFront" style="margin:0 0 6px;text-align:right;font-size:13px;">${COMMON.view.fullText} <a href="${LAYOUTS.switch.classic.v7}#/" id="classicToSimple" style="color:inherit;text-decoration:underline;">${COMMON.view.fullLink}</a></p>`;
 /**
- * The same way back on the screens drawn outside the app, before a visitor is in: the landing page and the sign-in
- * screen (7.0.1). It sits above them and hides itself once the app shows, where CLASSIC_TO_FRONT takes over, so one link
- * shows at a time. Markup and one style rule only, so the page's script gains no line.
+ * The same line on the screens drawn outside the app, before a visitor is in: the landing page and the sign-in screen
+ * (7.0.1). It sits above them and hides itself once the app shows, where CLASSIC_TO_FRONT takes over, so one line shows
+ * at a time. Its link goes to the simple view's front door, with the hash. Markup and one style rule only, so the page's
+ * script gains no line.
  */
-export const CLASSIC_TO_FRONT_OUTSIDE = `<style>body:has(#mainApp:not(.hidden)) #classicToFrontOutside{display:none}</style><p id="classicToFrontOutside" style="margin:8px 16px 0;text-align:right;font-size:13px;"><a href="${LAYOUTS.switch.classic.v7}" style="color:inherit;text-decoration:underline;">Back to PensionTools</a></p>`;
+export const CLASSIC_TO_FRONT_OUTSIDE = `<style>body:has(#mainApp:not(.hidden)) #classicToFrontOutside{display:none}</style><p id="classicToFrontOutside" style="margin:8px 16px 0;text-align:right;font-size:13px;">${COMMON.view.fullText} <a href="${LAYOUTS.switch.classic.v7}#/" style="color:inherit;text-decoration:underline;">${COMMON.view.fullLink}</a></p>`;
 
 /**
- * The classic page at 7.0 (index.html is the preview's, unchanged by that layout). Its head: no manifest and no
- * home-screen app of its own, so the site has one installable app; "do not index"; its name; the favicon from the site's
- * root. Its body: the header's heading names it, and the way back to the front page (CLASSIC_TO_FRONT) sits above the
- * header, with its twin (CLASSIC_TO_FRONT_OUTSIDE) above the landing page and the sign-in screen. The manifest link
+ * The classic page at 7.0, the full view (index.html is the preview's, unchanged by that layout). Its head: no manifest
+ * and no home-screen app of its own, so the site has one installable app; "do not index"; its name; the favicon from the
+ * site's root. Its body: the header's heading names it, and the line with the way back to the simple view
+ * (CLASSIC_TO_FRONT) sits above the header, with its twin (CLASSIC_TO_FRONT_OUTSIDE) above the landing page and the
+ * sign-in screen. The manifest link
  * goes before Vite reads the page, so no manifest is built for it; the rest after, so Vite
  * leaves the favicon's address as written.
  */

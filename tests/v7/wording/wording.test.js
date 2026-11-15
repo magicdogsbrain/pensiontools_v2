@@ -89,7 +89,10 @@ describe('the banned list itself', () => {
       'the median outcome', 'in the worst case', '£250k', '£1,050 per month', '7 months to go', 'when you retire',
       'your plan starts in April', 'we recommend this', 'you should take less', 'this is safe', 'it will last',
       'about £1,000, or around £1,100', '£1,050 - £1,650', 'undefined a month', 'in 1 futures out of 10', 'net income',
-      'a bad case', 'an annuity', 'Monte Carlo', 'your SIPP', 'a scenario', 'this tab', 'guest mode', '£ a month'
+      'a bad case', 'an annuity', 'Monte Carlo', 'your SIPP', 'a scenario', 'this tab', 'guest mode', '£ a month',
+      // 7.11.0: the two views are views of one plan, never versions or levels of the site
+      'This is the new version.', 'Use the previous version.', 'Use the previous one', 'the classic planner', 'on the classic page',
+      'expert mode'
     ];
     for (const text of bad) expect(bannedHits(text, all), text).not.toEqual([]);
     const good = [
@@ -99,7 +102,10 @@ describe('the banned list itself', () => {
       'That amount lasted in 9 futures out of 10.',
       'about £1,050 a month after tax, going up each year with prices',
       'You could take: careful £1,380, middling £1,590, good £1,860 a month.',
-      'Your pension pot £ [ ]'
+      'Your pension pot £ [ ]',
+      // a plan document's own versions, the header's two lines and a person's own earlier plans
+      'A new version of the plan document is written; the previous one is kept (2 kept).', 'Write the new version',
+      'You are in the simple view. Show everything.', 'This is the full view. Back to the simple view.', 'your previous plans'
     ];
     for (const text of good) expect(bannedHits(text, ['all', 'first', 'planner', 'retired', 'result']), text).toEqual([]);
   });

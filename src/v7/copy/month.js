@@ -11,7 +11,7 @@ export const MONTH = {
   lockLink: 'Lock the plan',
   readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
   example: 'This is the example plan: it shows how Month by month works, and records nothing. Make a plan of your own to record your months.',
-  failed: 'This plan’s months could not be read here. The classic planner still has them.',
+  failed: 'This plan’s months could not be read here. The full view still has them.',
   nothing: 'Every month this plan can record is recorded.',
   locked: 'Recording a month changes nothing in your locked plan: the months are read against it.',
   /** The months missed, at the top (MonthFill's offer: every month the fill can reach before the month chosen). */
@@ -19,9 +19,9 @@ export const MONTH = {
   sections: { month: 'This month', setUp: 'Set up {year}', pots: 'What your platform shows', advice: 'What to draw this month, and where it comes from', fill: 'The months you did not record', recent: 'Your recent months', record: 'Keep a record of each month here', later: 'Coming next to Month by month' },
   yearDone: 'Tax year {year}: set up from {from}.',
   yearDoneIncome: 'Tax year {year}: set up from {from}, {income} a year before tax.',
-  yearEdit: 'To change a tax year once it is set up, use the classic planner for now.',
+  yearEdit: 'To change a tax year once it is set up, use the full view for now.',
   prefilled: 'Filled in from {month}, the last month recorded: change them to what your platform shows today.',
-  cadence: { quarterly: 'Your plan draws each quarter. Here each month is recorded on its own for now; the classic planner records the three months at once.', annual: 'Your plan draws once a year. Here each month is recorded on its own for now; the classic planner records the twelve months at once.' },
+  cadence: { quarterly: 'Your plan draws each quarter. Here each month is recorded on its own for now; the full view records the three months at once.', annual: 'Your plan draws once a year. Here each month is recorded on its own for now; the full view records the twelve months at once.' },
   /**
    * Whether the home asks for months (7.10.0; research/v7/replan-nov-2026.md §6.4: monthly logging is the person's choice).
    * Months already recorded count as yes until the person says otherwise.
@@ -173,8 +173,8 @@ export const MONTH = {
   recent: { row: '{month}: {afterTax} after tax, {tax} tax', none: 'No months recorded yet.' },
   later: {
     items: ['Your months against the plan, by tax year', 'Each tax year as a spreadsheet, and the printed documents', 'Drawing each quarter or once a year', 'Changing a tax year once it is set up'],
-    until: 'Until then they are in the classic planner.',
-    button: 'Open them in the classic planner'
+    until: 'Until then they are in the full view.',
+    button: 'Open them in the full view'
   },
   problems: {
     notLocked: 'This plan is not locked: lock it first, then record its months.',

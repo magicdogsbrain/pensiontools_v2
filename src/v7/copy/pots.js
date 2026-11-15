@@ -11,7 +11,7 @@ export const POTS = {
   /** Under a section's heading. */
   notes: {
     pension: 'One figure for the whole pot. How it is split into shares, bonds and cash is set with the way of drawing and mix.',
-    stop: 'Leave both blank to use the classic planner’s own figures for the day you stop, worked out from what you pay in.',
+    stop: 'Leave both blank to use the full view’s own figures for the day you stop, worked out from what you pay in.',
     taxable: 'Money held outside a pension or ISA: an ordinary investment or savings account. It is drawn before the ISA and taxed each year.',
     charges: 'What your funds and your platform take each year, as a share of what you hold. It comes off every month, from the money in funds and cash in your pension, ISAs and ordinary account.',
     tax: 'The thresholds the plan taxes with in its first year, and how you take the tax-free part of your pension. What each choice saves in tax over the plan comes from ‘Does it last?’, later.'
@@ -65,7 +65,7 @@ export const POTS = {
   /** Under a box: a setting this way of drawing ignores, or a note the planner shows beside its own box. */
   notUsed: 'Not used by this way of drawing.',
   useNotes: {
-    pinned: 'This way of drawing is sized on its own pot and ISA figures, set with the way of drawing (in the classic planner); the figure here is what the plan holds today.',
+    pinned: 'This way of drawing is sized on its own pot and ISA figures, set with the way of drawing (in the full view); the figure here is what the plan holds today.',
     isaGrowthBought: 'Not used by this way of drawing once it is running: it spends the ISA as part of its own pot. Until the day you stop, it still sets how your ISAs grow.',
     isaGrowthBoughtHeld: 'Not used by this way of drawing once it is running: it leaves the held ISA out, untouched. Until the day you stop, it still sets how your ISAs grow.',
     isaFunds: 'Follows the ISA funds in your list of funds to test, set with the way of drawing and mix.',
@@ -76,14 +76,14 @@ export const POTS = {
   derived: {
     'pots.today': 'Pension {pension} and ISAs and savings {isa} today.',
     'pots.todayTaxable': 'Pension {pension} and ISAs and savings {isa} today; {taxable} in your ordinary account.',
-    'pots.split': 'Split as saved: {shares} shares, {bonds} bonds, {cash} cash{div}. The split, the risk level and the funds to test are set with the way of drawing and mix (in the classic planner).',
-    'pots.fromFunds': 'Your pension pot of {pension} comes from your list of funds to test: change it with the way of drawing and mix (in the classic planner).',
-    'pots.pinned': 'This way of drawing is sized on its own figures: {pension} pension and {isa} ISAs, set with the way of drawing (in the classic planner).',
+    'pots.split': 'Split as saved: {shares} shares, {bonds} bonds, {cash} cash{div}. The split, the risk level and the funds to test are set with the way of drawing and mix (in the full view).',
+    'pots.fromFunds': 'Your pension pot of {pension} comes from your list of funds to test: change it with the way of drawing and mix (in the full view).',
+    'pots.pinned': 'This way of drawing is sized on its own figures: {pension} pension and {isa} ISAs, set with the way of drawing (in the full view).',
     'stop.typed': 'At the day you stop, as you typed it: {sipp} pension and {isa} ISAs and savings.',
-    'stop.projection': 'The classic planner works out {sipp} pension and {isa} ISAs and savings at the day you stop, from what you pay in. Type your own above to use it instead.',
+    'stop.projection': 'The full view works out {sipp} pension and {isa} ISAs and savings at the day you stop, from what you pay in. Type your own above to use it instead.',
     'stop.answer': 'From your answer: {sipp} pension and {isa} ISAs and savings at the day you stop in a middling future; in a bad case (the worst 1 in 10) {sippBad} and {isaBad}.',
     'stop.none': 'What you will have at the day you stop comes from ‘Does it last?’, later; until then every run uses today’s pots.',
-    'stop.blanked': 'Left blank: every run uses today’s pots, and the classic planner works out its own figures for the day you stop the next time it draws your plan.',
+    'stop.blanked': 'Left blank: every run uses today’s pots, and the full view works out its own figures for the day you stop the next time it draws your plan.',
     'isa.cash': 'Your ISAs and savings grow mostly as cash: by last year’s rise in prices, less 1% a year, never below nothing.',
     'isa.invested': 'Your ISAs and savings grow like your pension: its mix of shares, bonds and cash, in the same futures.',
     'isa.fixed': 'Your ISAs and savings grow at a fixed 3% a year: this plan was locked before the choice was added.',

@@ -37,7 +37,7 @@ export const SPEND = {
     amount: 'A month after tax, at today’s prices',
     /** Under the amount box: the before-tax figure the plan saves (shown, never asked). */
     gross: '{gross} a year before tax, as the plan saves it.',
-    floorAndFlex: 'The essentials your way of drawing (Floor & Flex) buys as a floor are set with the way of drawing, in the classic planner.'
+    floorAndFlex: 'The essentials your way of drawing (Floor & Flex) buys as a floor are set with the way of drawing, in the full view.'
   },
 
   /** The later steps, as cards. */
@@ -46,8 +46,8 @@ export const SPEND = {
     suggest: 'Suggest go-go, go-slow and no-go years',
     suggestHelp: 'Many people spend more in the first years after they stop (the go-go years: travel, projects), less from their mid-70s (go-slow), and less again later (no-go), though care can cost more.',
     /** Under "Suggest": what it fills in (the planner's own rule, on the before-tax figures, to £500 a year). */
-    suggestDone: 'Fills in 15% less from {age75} and 30% less from {age85}{floor} — the classic planner’s own suggestion, worked out before tax to the nearest £500 a year and said here a month after tax. A typical pattern, not a figure for you: change any of it. Cancel puts the steps back as they were.',
-    suggestDoneOne: 'Fills in 30% less from {age85}{floor} — the classic planner’s own suggestion, worked out before tax to the nearest £500 a year and said here a month after tax. A typical pattern, not a figure for you: change any of it. Cancel puts the steps back as they were.',
+    suggestDone: 'Fills in 15% less from {age75} and 30% less from {age85}{floor} — the full view’s own suggestion, worked out before tax to the nearest £500 a year and said here a month after tax. A typical pattern, not a figure for you: change any of it. Cancel puts the steps back as they were.',
+    suggestDoneOne: 'Fills in 30% less from {age85}{floor} — the full view’s own suggestion, worked out before tax to the nearest £500 a year and said here a month after tax. A typical pattern, not a figure for you: change any of it. Cancel puts the steps back as they were.',
     suggestFloor: ', not below your budget’s essentials of {amount} a month',
     suggestNone: 'You start after 85, so there is nothing to fill in. Add your own steps if you like.',
     fields: {
@@ -107,7 +107,7 @@ export const SPEND = {
     'floor.from': 'From age {age} your State Pension and other pensions pay more than this ({monthly} a month after tax): the plan pays that, and nothing is taken from your pension or savings.',
     'cost.once': '{label}: {net} after tax at age {age} (tax year {year}), once — {gross} before tax on top of that year’s figure, {prices}.',
     'cost.years': '{label}: {net} a year after tax from age {age} (tax year {year}) for {years} years — {gross} a year before tax on top of each year’s figure, {prices}.',
-    'ff.note': 'The essentials your way of drawing (Floor & Flex) buys as a floor are set with the way of drawing, in the classic planner.'
+    'ff.note': 'The essentials your way of drawing (Floor & Flex) buys as a floor are set with the way of drawing, in the full view.'
   },
   prices: { rise: 'going up with prices', fixed: 'a fixed sum' },
   chartTitle: 'What the plan pays each year, after tax, at today’s prices',

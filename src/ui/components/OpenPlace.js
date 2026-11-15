@@ -32,7 +32,7 @@ import { LAYOUT } from '../../appLayout.js';
 
 export const NOTE_ID = 'openPlaceNote';
 export const OLD_TAB_KEY = 'pt_open_tab';
-/** PensionTools' front page (V7), from the classic page (src/appLayout.js: '../' at 7.0, from /classic/). */
+/** The simple view (V7), from the full view (src/appLayout.js: '../' at 7.0, from /classic/). */
 export const PREVIEW_PATH = LAYOUT.classic.v7;
 
 /** Read and delete the request (and the old tab key) from this window's session storage. */
@@ -52,7 +52,7 @@ function el(doc, tag, props = {}, text = null) {
   return e;
 }
 
-/** The line at the top of the classic planner: "Opened from PensionTools. [Back to ‘…’]", with the window-only sentence when it applies. */
+/** The line at the top of the full view: "Opened from the simple view. [Back to ‘…’ in the simple view]", with the window-only sentence when it applies. */
 export function noteElement(doc, { lead, back, backLabel, extra = null }) {
   const box = el(doc, 'div', { id: NOTE_ID, role: 'status', style: 'margin:8px 0 10px;padding:10px 14px;border:1px solid var(--accent);border-radius:10px;background:rgba(99,102,241,.08);font-size:13px;' });
   box.appendChild(el(doc, 'span', {}, lead + ' '));
@@ -136,7 +136,7 @@ export function startOpenPlace(win = window) {
         }, 400);
       }
     }
-    addNote({ lead: W.opened, back: backHref(r.back), backLabel: W.back + ' (‘' + name + '’)', extra });
+    addNote({ lead: W.opened, back: backHref(r.back), backLabel: W.backTo.replace('{name}', name), extra });
     // a place may name the strategy page to open (the rotation watch's switch, 6.43.0); the overview otherwise
     if (showStrategyPage && place.tab === 'strategies') win.setTimeout(() => { try { showStrategyPage(place.page || 'overview'); } catch (e) { /* optional */ } }, 400);
   }

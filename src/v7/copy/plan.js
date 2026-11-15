@@ -30,7 +30,7 @@ export const PLAN = {
     noAccount: 'No account? Ask a question: an answer needs no account.',
     /** Email not confirmed. */
     unverified: 'Your email address is not confirmed yet, so your plans cannot be read. Confirm it from the email we sent, or go to your account page to send it again.',
-    openPlanner: 'Open the classic planner',
+    openPlanner: 'Open the full view',
     /** The read failed. */
     failed: 'Sorry, we could not read your plans. Nothing was changed.',
     tryAgain: 'Try again',
@@ -40,7 +40,7 @@ export const PLAN = {
     unknown: 'That plan is not in this account.',
     toPlans: 'Your plans',
     /** The browser refused the hand-over's note (1.4). */
-    leaveProblem: 'This browser would not pass the request to the classic planner. Open it from the link to the previous version at the top of this page.',
+    leaveProblem: 'This browser would not pass the request to the full view. Open it from the line at the top of this page.',
 
     /** The plan menu (research/v7/road-to-7.md step 11): the actions on each row, their confirms, their results. */
     actions: {
@@ -59,7 +59,7 @@ export const PLAN = {
       startHelp: 'A new plan comes from a question: pick one, then keep the answer as a plan.',
       openCopy: 'Open a downloaded copy',
       openCopyClose: 'Close',
-      openHelp: 'A file you downloaded from here or from the classic planner. It is checked, given its own name with “(opened)”, and kept as a plan of its own; nothing else is changed. The file never leaves this page.',
+      openHelp: 'A file you downloaded from here or from the full view. It is checked, given its own name with “(opened)”, and kept as a plan of its own; nothing else is changed. The file never leaves this page.',
       openPick: 'The file',
       example: 'Look around an example',
       exampleHelp: 'A ready-made plan to look around before you type anything: a pension pot of £1,000,000, already retired, £40,000 a year rising with prices.',
@@ -251,7 +251,7 @@ export const PLAN = {
     fixed: 'Fixed when you locked the plan on {date}.',
     prices: 'At the prices of {month}.',
     pricesToday: 'At today’s prices.',
-    changeThis: 'Change this in the classic planner',
+    changeThis: 'Change this in the full view',
     /** The one unlock line (design question 4(a)): the unlock is offered on the "Your plan as locked" step only (6.38.0); every other screen says where. */
     unlock: 'To change a locked plan, unlock it first from ‘Your plan as locked’. Unlocking keeps this plan document as a past version, and your records stay.',
     pastVersions: 'Past versions: {n}',
@@ -269,8 +269,8 @@ export const PLAN = {
     askTitle: 'Ask a question',
     ask: { a: 'When can I afford to stop work?', b: 'Am I saving enough?', c: 'What is that a month?', d: 'Will it last?' },
     /** On every page of a plan kept in this window (1.4): since 2 Nov 2026 the planner opens on it by itself, no account asked for. */
-    windowWarning: 'This plan is kept in this browser window only. The classic planner opens on it without an account.',
-    leaveProblem: 'This browser would not pass the request to the classic planner. Open the classic planner and choose ‘{name}’ from the plan menu.',
+    windowWarning: 'This plan is kept in this browser window only. The full view opens on it without an account.',
+    leaveProblem: 'This browser would not pass the request to the full view. Open the full view from the line at the top of this page and choose ‘{name}’ from the plan menu.',
     showAll: 'Show every setting',
     hideAll: 'Show only what has been changed',
     noneChanged: 'Nothing has been moved away from the starting values.',
@@ -428,7 +428,7 @@ export const PLAN = {
 
   /** Notes a step shows under its figures, by id. */
   notes: {
-    'where.ladderNotInDocument': 'The ladder is not in this plan document. The classic planner shows it at today’s prices.',
+    'where.ladderNotInDocument': 'The ladder is not in this plan document. The full view shows it at today’s prices.',
     'saving.notFrozen': 'What you pay in is not frozen by the lock.',
     'budget.guide': 'A guide beside your plan’s own figure. It changes nothing in the plan.',
     'lock.what': 'Locking fixes the plan and writes the plan document, so you can follow it month by month.',
@@ -443,25 +443,25 @@ export const PLAN = {
     setUpYear: 'Set up {year}',
     monthByMonth: 'Open Month by month',
     lockFirst: 'Lock the plan',
-    seeDocument: 'See it on the plan document in the classic planner',
-    openDocument: 'Open the plan document in the classic planner',
-    exports: 'Your records by tax year, a spreadsheet for each year and the printed documents (in the classic planner)',
-    testLocked: 'Test the plan in the classic planner. Nothing you try there changes your locked plan.',
-    testPlan: 'Test it in the classic planner',
-    changeThis: 'Change this in the classic planner',
+    seeDocument: 'See it on the plan document in the full view',
+    openDocument: 'Open the plan document in the full view',
+    exports: 'Your records by tax year, a spreadsheet for each year and the printed documents (in the full view)',
+    testLocked: 'Test the plan in the full view. Nothing you try there changes your locked plan.',
+    testPlan: 'Test it in the full view',
+    changeThis: 'Change this in the full view',
     /** Into "What you pay in" and the budget inside V7 (road-to-7.md step 11b). */
     recordPot: 'Record this month’s pot',
     /** A saver's check-in (research/saving-enough-and-check-in.md 5; release step R3), inside V7. */
     checkIn: 'Check in',
     changeSaving: 'Change this here',
     /** The next sentence of a plan locked while saving (P.working): the planner's own check, as before release step R2. */
-    onCourse: 'Am I on course? (in the classic planner)',
+    onCourse: 'Am I on course? (in the full view)',
     /**
      * "What you pay in"'s own buttons (release step R2): the plan's verdict first, inside V7, for someone still saving; the
      * planner's fixed-rate check a quiet link.
      */
     payingEnough: 'Are you paying in enough?',
-    potCheck: 'The classic planner’s pot check (fixed rates)',
+    potCheck: 'The full view’s pot check (fixed rates)',
     /** A saver's next steps (saving-enough-and-check-in.md 4.2), each inside V7. */
     seeSaving: 'What you pay in',
     setAim: 'What you spend',

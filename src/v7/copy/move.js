@@ -176,8 +176,8 @@ export const MOVE = {
       total: 'Total ({n} gilts)',
       note: 'Every rung not on this ticket stays. The proceeds buy the world share fund the same day — the point of the rule is not to negotiate with it.'
     },
-    switchLead: 'Made the switch? The classic planner records it: the plan moves to “Floor to an age, then decide” at {cutAge}, with the income sold on record.',
-    switchButton: 'Make the switch in the classic planner'
+    switchLead: 'Made the switch? The full view records it: the plan moves to “Floor to an age, then decide” at {cutAge}, with the income sold on record.',
+    switchButton: 'Make the switch in the full view'
   },
   footer: 'Illustration, not advice. Nothing here places an order.',
   toast: {

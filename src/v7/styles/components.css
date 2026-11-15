@@ -29,14 +29,14 @@
   .top-nav a { padding: 0 4px; }
 }
 
-.previous-line { font-size: var(--size-small); color: var(--text-muted); text-align: center; margin: 0; padding: 6px var(--gutter);
+.view-line { font-size: var(--size-small); color: var(--text-muted); text-align: center; margin: 0; padding: 6px var(--gutter);
   background: var(--surface-page); border-bottom: 1px solid var(--line); max-width: none; }
-/* on a phone the line to the previous version is one short line: the long words are for wider screens */
-.previous-short { display: none; }
+/* on a phone the line naming the view is one short line: the long words are for wider screens */
+.view-short { display: none; }
 @media (max-width: 699px) {
-  .previous-line { padding: 2px var(--gutter); font-size: 14px; line-height: 1.4; }   /* the link keeps its 44 px height: one line of 48 px */
-  .previous-long { display: none; }
-  .previous-short { display: inline; }
+  .view-line { padding: 2px var(--gutter); font-size: 14px; line-height: 1.4; }   /* the link keeps its 44 px height: one line of 48 px */
+  .view-long { display: none; }
+  .view-short { display: inline; }
 }
 .offline { margin: 0; padding: 8px var(--gutter); background: var(--surface-raised); color: var(--text-warning); max-width: none; }
 

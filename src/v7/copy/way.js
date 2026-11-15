@@ -67,7 +67,7 @@ export const WAY = {
     mix: 'Its mix, the split between shares, bonds, gold and trend funds, and cash, is on ‘The mix’.',
     mixLink: 'Open ‘The mix’',
     noTent: 'The bond tent is not used by this way of drawing.',
-    bundled: 'Gilts priced on the bundled yield curve here; the classic planner prices them on the day’s live figures when it has them.',
+    bundled: 'Gilts priced on the bundled yield curve here; the full view prices them on the day’s live figures when it has them.',
     wrongTitle: 'What can go wrong',
     verdictWord: { yes: 'On course', close: 'Close', no: 'Not yet' }
   },
@@ -130,7 +130,7 @@ export const WAY = {
     undo: 'Undo',
     close: 'Close',
     tryAgain: 'Try again',
-    inPlanner: 'Run them in the classic planner'
+    inPlanner: 'Run them in the full view'
   },
   /** The cost of the runs, said where the figures are (2.5). */
   ran: {
@@ -148,13 +148,13 @@ export const WAY = {
   failed: {
     title: 'Sorry, we could not run the nine ways.',
     body: 'Nothing has been lost. Your plan is still here.',
-    noWorker: 'This browser cannot run the test in the background, so the nine ways cannot be run here. The classic planner runs the same nine.',
+    noWorker: 'This browser cannot run the test in the background, so the nine ways cannot be run here. The full view runs the same nine.',
     one: 'Sorry, that could not be tried. Nothing has changed.'
   },
   notRun: 'This plan is shown as it was saved, so it is not run here. Nothing has been lost.',
   /** "More columns" (1): the planner's other columns and its other orders, never the default. */
   table: {
-    lead: 'The classic planner’s other columns, on the same runs.',
+    lead: 'The full view’s other columns, on the same runs.',
     rankBy: 'Rank by',
     orders: { lasts: 'How many futures it lasts', left: 'What is typically left', score: 'Score', coverage: 'Coverage' },
     columns: { way: 'Way of drawing', lasts: 'Lasts', worst12: 'Worst 12 months', left: 'Typically left', covered: 'Years covered', coverage: 'Coverage', spent: 'Spent over the plan', bumpiness: 'Bumpiness (% a year)', score: 'Score' },

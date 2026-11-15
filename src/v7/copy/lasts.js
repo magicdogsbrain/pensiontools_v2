@@ -7,7 +7,7 @@ export const LASTS = {
   title: 'Does it last?',
   /** 7.3.0: on a locked plan the tries are folded away under this, never pushed on someone carrying the plan out. */
   trySomething: 'Try something (nothing changes in your locked plan)',
-  lead: 'The one test every screen of the classic planner shows: your plan, its own way of drawing, its own cuts, its full length, through every real stretch of markets since 1871 and 1,000 possible futures.',
+  lead: 'The one test every screen of the full view shows: your plan, its own way of drawing, its own cuts, its full length, through every real stretch of markets since 1871 and 1,000 possible futures.',
   savedValue: '({value})',
   source: { saved: 'From your plan, saved {date}', savedUndated: 'As saved in the plan', locked: 'Fixed when you locked the plan on {date}.' },
   /** The band and the rows under it, by id. */
@@ -35,7 +35,7 @@ export const LASTS = {
     'cuts.flex': 'Income cuts: none — the treats flex instead; the honest risk is a lean year, not running out.',
     'ran.cuts': 'Run with the spending cuts you set: up to {pct}% after {months} month{s} in a row below the plan’s line.',
     'ran.cutsOff': 'Run with the spending cuts switched off, as you set it: the plan is paid in full until the money runs out.',
-    'ran.bundled': 'Gilts priced on the bundled yield curve here; the classic planner prices them on the day’s live figures when it has them, so a ladder’s cost can differ there.',
+    'ran.bundled': 'Gilts priced on the bundled yield curve here; the full view prices them on the day’s live figures when it has them, so a ladder’s cost can differ there.',
     /** 7.8.0: the floor, what is left at the plan's age, and what we assumed (OneAnswer.js weightedWordsOf) */
     floorW: '{words}',
     leftW: '{words}',
@@ -49,7 +49,7 @@ export const LASTS = {
   /** While the run is under way, and when it cannot be. */
   working: { title: 'Working out your answer…', trying: 'Trying your plan against every real start since 1871 and 1,000 possible futures.', slow: 'Still working. This can take a little longer on a phone.', progress: 'How far the working has got' },
   failed: { title: 'Sorry, we could not work that out.', body: 'Nothing has been lost. Your plan is still here.', tryAgain: 'Try again',
-    noWorker: 'This browser cannot run the test in the background, so it cannot be run here. The classic planner runs the same test.', inPlanner: 'Run it in the classic planner' },
+    noWorker: 'This browser cannot run the test in the background, so it cannot be run here. The full view runs the same test.', inPlanner: 'Run it in the full view' },
   notRun: 'This plan is shown as it was saved, so it is not run here. Nothing has been lost.',
   /** A plan that starts before its pension can usually be taken (7.4.0): from 7.4.1 the run holds the pension back until then. */
   pensionAccess: 'Before {age}, this plan pays you from your other savings, not your pension.',
@@ -264,7 +264,7 @@ export const LASTS = {
       'spendMore.evenHalf': 'Even half the income was not enough at your level on these pots (as it is, it lasts to the plan’s end in {baseChance} of every 100 futures we tried).',
       'spendMore.capped': 'Even twice the income was enough at your level (it lasts to the plan’s end in {chance} of every 100 futures we tried, typically {typical} left) — the most this lever tries.',
       'work.line': 'With {yearly} a year from work for {years} year{s}, the plan lasts {words}: to the plan’s end in {chance} of every 100 futures we tried, typically {typical} left — against {baseChance} without it.',
-      'work.how': 'Added as a row of money that comes in anyway (the classic planner’s own extra incomes), from the plan’s first year for {years} year{s}, rising with prices and taxed with the rest. Nothing else changed.',
+      'work.how': 'Added as a row of money that comes in anyway (the full view’s own extra incomes), from the plan’s first year for {years} year{s}, rising with prices and taxed with the rest. Nothing else changed.',
       'fall.line': 'If shares fell by a fifth tomorrow (the pots {potBefore} to {potAfter}), the plan lasts {words}: to the plan’s end in {chance} of every 100 futures we tried, typically {typical} left — against {baseChance} as it is.',
       'fall.how': 'The shares part of each pot cut by a fifth — the pension’s, an ISA’s where it is invested like the pension, a taxable account’s held in shares — and the plan run as it is, the mix kept.',
       'fall.bad': 'The bad years below try a larger fall, in the first year the money is drawn on.',

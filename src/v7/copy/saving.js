@@ -22,7 +22,7 @@ export const SAVING = {
   /** A saving plan made on going back to work, its change-over still to come: no pot record before its first month. */
   notYet: 'This plan carries on from {month}, when you go back to work: record your pot here from then. Until then your months are recorded on your previous plan.',
   readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
-  sections: { payIn: 'Each month', relief: 'How tax relief works, and your salary', pot: 'What the pot could be by the stop', records: 'This month’s pot', onCourse: 'The classic planner’s own check' },
+  sections: { payIn: 'Each month', relief: 'How tax relief works, and your salary', pot: 'What the pot could be by the stop', records: 'This month’s pot', onCourse: 'The full view’s own check' },
   fields: {
     netMonthly:      { label: 'What you pay in a month, from your take-home pay, in pounds', help: 'What leaves your pay. The tax the government adds back is worked out below.' },
     employerMonthly: { label: 'Your employer’s part, a month, in pounds' },
@@ -95,8 +95,8 @@ export const SAVING = {
     more: '{n} record{s} in all; the last 36 shown.'
   },
   onCourse: {
-    lead: 'The classic planner also has a check of its own: it runs your plan itself to find the pot that lasts in 9 futures out of 10 and sets the three fixed rates against it.',
-    button: 'The classic planner’s pot check (fixed rates)'
+    lead: 'The full view also has a check of its own: it runs your plan itself to find the pot that lasts in 9 futures out of 10 and sets the three fixed rates against it.',
+    button: 'The full view’s pot check (fixed rates)'
   },
   /**
    * "Are you paying in enough?" (research/saving-enough-and-check-in.md 2, 3, 4.4; release step R2): question B's own answer
@@ -110,7 +110,7 @@ export const SAVING = {
     working: 'Working out whether what you pay in is enough…',
     first: 'A first figure, from 100 futures. The final one, from 1,000, follows in a moment.',
     failed: 'Sorry, this could not be worked out. Nothing was changed.',
-    noWorker: 'This browser cannot work this out here. The classic planner’s own check is further down.',
+    noWorker: 'This browser cannot work this out here. The full view’s own check is further down.',
     retry: 'Try again',
     noAim: 'Your plan has no income set for when you stop, so there is nothing yet to test what you pay in against. Say what you would want to spend first.',
     noAimLink: 'What you spend',

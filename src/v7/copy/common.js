@@ -1,6 +1,6 @@
 /**
- * The words every V7 screen shares: header, footer, the two advice lines, the line to the previous version, the front
- * door, and the screens for what is not built yet. Data only — this file imports nothing but where each app lives.
+ * The words every V7 screen shares: header, footer, the two advice lines, the line naming the view and the way to the
+ * full view, the front door, and the screens for what is not built yet. Data only — this file imports nothing but where each app lives.
  *
  * Source: research/v7/rail-screens-language.md (2.1, 2.6 "other states", 3.7), with the changes of the build
  * brief (a question not answered here yet opens a page that says so) and of 7.0 (research/v7/switch-readiness.md
@@ -61,12 +61,14 @@ export const COMMON = {
   /** The header's link to the account page (road-to-7.md step 11). */
   account: 'Your account',
   /**
-   * Under the header from 7.0, for at least two releases (road-to-7.md step 12): the classic planner, the version before
-   * this one, is still there. The link is the only way to it that is on every page.
+   * Under the header on every page (7.11.0; research/v7/replan-nov-2026.md §8): the view this is, and the link to the full
+   * view, which shows the same plans with every tool, test and record on one page. The link is the only way to it that is
+   * on every page. fullText and fullLink are the full view's own line (vite.layout.js CLASSIC_TO_FRONT), its way back here.
    */
-  previous: { text: 'This is the new version.', link: 'Use the previous version.',
-              /** The same line where there is room for one line only (a phone). */
-              shortText: 'New version.', shortLink: 'Use the previous one' },
+  view: { text: 'You are in the simple view.', link: 'Show everything.',
+          /** The same line where there is room for one line only (a phone). */
+          shortText: 'Simple view.', shortLink: 'Show everything',
+          fullText: 'This is the full view.', fullLink: 'Back to the simple view.' },
   offline: 'You are offline. You can still work things out. Keeping a plan needs a connection.',
   footer: {
     worksOut: 'PensionTools works things out from the figures you give it.',
@@ -77,7 +79,7 @@ export const COMMON = {
     /** The link to where every figure comes from (road-to-7.md step 11b). */
     assumptions: 'Assumptions and data'
   },
-  /** Where the links that leave V7 go: the classic planner (the previous version) and the privacy policy, relative to V7's page (src/appLayout.js). */
+  /** Where the links that leave V7 go: the full view and the privacy policy, relative to V7's page (src/appLayout.js). */
   links: { classic: LAYOUT.v7.classic, privacy: LAYOUT.v7.privacy }
 };
 

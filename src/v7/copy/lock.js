@@ -66,11 +66,11 @@ export const LOCK = {
     items: {
       document: 'the plan document: the plan as committed, at the prices of the day you lock it, kept with every past version;',
       where: '“Where you are”: each month read against the plan — what you took, what the plan said, the difference;',
-      records: 'month-by-month records on the classic page, each one against this plan.'
+      records: 'month-by-month records in the full view, each one against this plan.'
     }
   },
   /** The lock does not run anything new: the test is the plan's own. */
-  test: 'The plan document carries the plan’s own test (“Does it last?”) as it stands on the day you lock. A gilt ladder is priced on the bundled yield curve here; the classic page prices it on the day’s live figures when it has them.',
+  test: 'The plan document carries the plan’s own test (“Does it last?”) as it stands on the day you lock. A gilt ladder is priced on the bundled yield curve here; the full view prices it on the day’s live figures when it has them.',
   /** Changing it later. */
   later: 'To change a locked plan later, unlock it from “Your plan as locked”: the plan document is kept as a past version, and your records stay.',
   buttons: {
@@ -111,7 +111,7 @@ export const LOCK = {
     nobody: 'Sign in to lock this plan. Nothing was changed.',
     storage: 'This browser would not keep the change. Nothing was changed.',
     failed: 'Sorry, the plan could not be locked. Nothing was changed.',
-    noWorker: 'This browser cannot run the plan’s test in the background, so the plan document cannot be written here. The classic page locks the same plan.',
+    noWorker: 'This browser cannot run the plan’s test in the background, so the plan document cannot be written here. The full view locks the same plan.',
     readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
     problems: 'Sorry, the plan could not be locked. Nothing was changed.',
     noRun: 'Sorry, the plan’s test gave no figures to write. Nothing was changed.'

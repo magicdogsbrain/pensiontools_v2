@@ -1,5 +1,5 @@
 /**
- * The page frame: header, the line to the previous version, the offline line, the rail, one <main>, the footer. The <main> is the
+ * The page frame: header, the line naming the view (with "Show everything"), the offline line, the rail, one <main>, the footer. The <main> is the
  * screen root and carries data-screen and data-question (build brief 4.9; as package 1's stub drew it), and
  * data-view="retired" on A's and B's retired view (step 4 brief, conflict 44). One h1 per screen; after a move the keyboard goes to
  * it, or to the box the address names (?focus=<field>) — once that box is drawn, when it comes later than the page (a plan's
@@ -11,7 +11,7 @@ import { GuestNag, GuestStop, BringIn, NewsPopup } from './Visitor.jsx';
 import { fill, changeAction } from './PlanFigures.jsx';
 import { format, href } from '../router/routes.js';
 import { focusField } from './Field.jsx';
-import { guestView, newsView, plansMenuView, previousLinkView } from '../state/select.js';
+import { guestView, newsView, plansMenuView, fullLinkView } from '../state/select.js';
 import { COMMON, ADVICE_SHORT, ADVICE_FULL } from '../copy/common.js';
 import { PLAN } from '../copy/plan.js';
 
@@ -57,10 +57,10 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
   const G = guestView(state);
   const N = newsView(state);
   const M = plansMenuView(state);
-  // "Use the previous version" on a plan page opens THAT plan in the planner, at the matching page (7.3.2): the same
-  // hand-over as "Change this" (select.js previousLinkView). A plain link opened the account's usual plan instead.
-  const P = previousLinkView(state);
-  const onPrevious = P ? (e) => {
+  // "Show everything" on a plan page opens THAT plan in the full view, at the matching page (7.3.2): the same
+  // hand-over as "Change this" (select.js fullLinkView). A plain link opened the account's usual plan instead.
+  const P = fullLinkView(state);
+  const onEverything = P ? (e) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;   // a new tab: the plain address, as before
     e.preventDefault();
     dispatch(changeAction(P.planId, P.place, P.back));
@@ -81,9 +81,9 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
         </nav>
       </header>
       {/* One line on a phone (the short words), the full sentence where there is room: components.css picks one. */}
-      <p class="previous-line">
-        <span class="previous-long">{COMMON.previous.text} <a href={COMMON.links.classic} data-testid="nav.previous" onClick={onPrevious}>{COMMON.previous.link}</a></span>
-        <span class="previous-short">{COMMON.previous.shortText} <a href={COMMON.links.classic} data-testid="nav.previousShort" onClick={onPrevious}>{COMMON.previous.shortLink}</a></span>
+      <p class="view-line">
+        <span class="view-long">{COMMON.view.text} <a href={COMMON.links.classic} data-testid="nav.everything" onClick={onEverything}>{COMMON.view.link}</a></span>
+        <span class="view-short">{COMMON.view.shortText} <a href={COMMON.links.classic} data-testid="nav.everythingShort" onClick={onEverything}>{COMMON.view.shortLink}</a></span>
       </p>
       {state.ui.online === false && <p class="offline" role="status">{COMMON.offline}</p>}
       {rail === true ? <Rail state={state} dispatch={dispatch} /> : rail || null}

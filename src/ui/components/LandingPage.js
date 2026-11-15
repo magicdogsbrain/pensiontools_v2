@@ -35,8 +35,8 @@ function renderLandingPage({ onGetStarted, onSignIn, onTryGuest, onLookAround })
     <div class="landing-page">
       <div class="landing-content">
 
-        <!-- PensionTools' questions, the site's front page since 7.0 (usability audit decision 8): one line, at the top, before anything else -->
-        <p class="landing-new"><a href="${LAYOUT.classic.v7}" id="landingPreviewLink">The new PensionTools: answer one question in about two minutes</a></p>
+        <!-- PensionTools' questions, the site's front page since 7.0 (usability audit decision 8): one line, at the top, before anything else; the simple view's front door, with the hash so it never forwards back here (7.11.0) -->
+        <p class="landing-new"><a href="${LAYOUT.classic.v7}#/" id="landingPreviewLink">The simple view: answer one question in about two minutes</a></p>
 
         <!-- Hero -->
         <div class="landing-hero">

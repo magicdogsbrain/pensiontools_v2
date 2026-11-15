@@ -104,13 +104,15 @@ export function readRequest(text, nowMs) {
   return { ok: true, request: { v: r.v, planId: r.planId, place: r.place, back: r.back, at: r.at, ...(r.month !== undefined ? { month: r.month } : {}) } };
 }
 
-/** The words the classic planner shows at the top of the page it opened (5.4 step 4); the page it came from is the site's front page, PensionTools (7.1.0; Drawdown Planner in 7.0). */
+/** The words the full view shows at the top of the page it opened (5.4 step 4); the page it came from is the simple view (7.11.0; PensionTools from 7.1.0, Drawdown Planner in 7.0). */
 export const OPEN_PLACE_WORDS = Object.freeze({
-  opened: 'Opened from PensionTools.',
-  back: 'Back to PensionTools',
+  opened: 'Opened from the simple view.',
+  back: 'Back to the simple view',
+  /** {name}: the plan opened here, the way back to its page. */
+  backTo: 'Back to ‘{name}’ in the simple view',
   /** {name}: the plan opened here; {other}: the plan the account opens on. */
   thisWindow: '‘{name}’ is open in this window only. Your other windows and devices stay on ‘{other}’.',
   notHere: 'That plan is not in this account.',
   signedIn: 'Signed in.',
-  backToPlans: 'Back to your plans in PensionTools'
+  backToPlans: 'Back to your plans in the simple view'
 });

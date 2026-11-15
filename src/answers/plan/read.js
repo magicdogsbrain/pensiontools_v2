@@ -361,7 +361,7 @@ function whereStep(C) {
   const lines = [];
   const notes = [];
   // a closed plan locked by its months (or by the close) and never given a document: nothing to read against, but not "not locked"
-  if (!plan.planDocument && isClosedPlan(plan)) return { done: true, result: sentence('where.closedNoDocument', ['This plan closed before it had a plan document; its months are in the classic planner'], figures), figures, lines, buttons: [], notes };
+  if (!plan.planDocument && isClosedPlan(plan)) return { done: true, result: sentence('where.closedNoDocument', ['This plan closed before it had a plan document; its months are in the full view'], figures), figures, lines, buttons: [], notes };
   if (!plan.planDocument) return { done: false, result: sentence('where.noDocument', ['Not locked: nothing to read against yet'], figures), figures, lines, buttons: [], notes };
   let w = null, inputs = { ladderInDocument: false };
   try { w = whereAmIFor(plan, { now }); inputs = whereAmIInputs(plan, { now }); } catch { w = null; }

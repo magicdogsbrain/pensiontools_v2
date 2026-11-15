@@ -11,7 +11,7 @@ export const ASSUMPTIONS = {
   words: 'A gilt is a UK government bond; an index-linked gilt is one whose payments rise with prices. A ladder is a row of bonds that pay out one year after another. An annuity is guaranteed income for life, bought from an insurer.',
   versions: 'App version {app}, engine version {engine}.',
   opening: 'Opening the tables…',
-  failed: 'Sorry, the tables could not be read. The classic planner’s own page has them.',
+  failed: 'Sorry, the tables could not be read. The full view’s own page has them.',
   /** Each section: a heading, then rows of a name, the figure, and a note. */
   sections: {
     // 7.8.0: the chance the money lasts as long as you do (research/v7/replan-nov-2026.md 5; the build spec's 11)

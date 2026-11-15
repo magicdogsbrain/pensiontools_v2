@@ -44,7 +44,8 @@ async function at(page, when, who) {
   await page.reload();   // the page reads today once, when it loads
   const form = page.getByTestId('account.signIn');
   const signedIn = page.getByTestId('account.signedIn');
-  await expect(form.or(signedIn).first()).toBeVisible({ timeout: 30_000 });
+  // still signed in, the reload may land on the plan's home (where the person left off) before the account page draws
+  await expect(form.or(signedIn).or(page.getByTestId('plan.home')).first()).toBeVisible({ timeout: 30_000 });
   if (await form.isVisible()) await signIn(page, who);
   await expect(form).toHaveCount(0, { timeout: 30_000 });
 }

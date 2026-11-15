@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
-  <title>The classic planner</title>
+  <title>PensionTools (full view)</title>
   <link rel="icon" type="image/png" href="../favicon.png">
   <link rel="apple-touch-icon" href="./assets/icon-192-dFK0X3XY.png">
   <meta name="theme-color" content="#6366f1">
@@ -2153,7 +2153,7 @@
     .assump .assump-kv .note { color: var(--text-muted); font-size: 12px; grid-column: 2; }
     @media (max-width: 700px) { .assump .assump-kv > div { grid-template-columns: 1fr; } .assump .assump-kv .note { grid-column: 1; } }
     </style>
-  <script type="module" crossorigin src="./assets/main-BuMBPVzg.js"></script>
+  <script type="module" crossorigin src="./assets/main-DI49XpOH.js"></script>
 </head>
 <body>
   <!-- Global Loading Overlay -->
@@ -2163,7 +2163,7 @@
   </div>
 
   <!-- Landing Page (shown to unauthenticated visitors) -->
-  <style>body:has(#mainApp:not(.hidden)) #classicToFrontOutside{display:none}</style><p id="classicToFrontOutside" style="margin:8px 16px 0;text-align:right;font-size:13px;"><a href="../" style="color:inherit;text-decoration:underline;">Back to PensionTools</a></p>
+  <style>body:has(#mainApp:not(.hidden)) #classicToFrontOutside{display:none}</style><p id="classicToFrontOutside" style="position:relative;z-index:1001;margin:0;padding:8px 16px;line-height:18px;text-align:right;font-size:13px;background:var(--bg);">This is the full view. <a href="../#/" style="color:inherit;text-decoration:underline;">Back to the simple view.</a></p><style>body:has(#mainApp.hidden) .landing-page,body:has(#mainApp.hidden) .auth-screen{top:34px}</style>
   <div id="landingPage"></div>
 
   <!-- Auth Screen Container (sign in / sign up) -->
@@ -2181,9 +2181,9 @@
   <div id="mainApp" class="hidden">
     <div class="app-container">
       <!-- Header -->
-      <p id="classicToFront" style="margin:0 0 6px;text-align:right;font-size:13px;"><a href="../" style="color:inherit;text-decoration:underline;">Back to PensionTools</a></p>
+      <p id="classicToFront" style="margin:0 0 6px;text-align:right;font-size:13px;">This is the full view. <a href="../#/" id="classicToSimple" style="color:inherit;text-decoration:underline;">Back to the simple view.</a></p>
       <header class="header">
-        <h1>The classic planner</h1>
+        <h1>PensionTools (full view)</h1>
         <div class="scenario-selector" id="scenarioSelector">
           <span class="scenario-selector-label">Plan:</span>
           <button class="scenario-active-btn" id="scenarioActiveBtn">
@@ -3273,7 +3273,7 @@
               </div>
             </div>
 
-            <div class="settings-section">
+            <div class="settings-section" id="ssAllocation">
               <div class="section-title">Your allocation</div>
               <div data-pnv-only>
               <div class="section-hint">How do you want to set your allocation?</div>

@@ -38,6 +38,33 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.11.0', date: '2026-11-15', engineVersion: '6.39.0',
+    title: 'Simple and full: two views of one plan',
+    summary: 'PensionTools now has two views of the same plans. The simple view takes one question at a time and gives each plan a home page. The full view puts all the tools, tests and records on one page. The line at the top of every page says which view you are in and takes you to the other, and on Your account you can choose which one PensionTools opens in. Nothing in your plans changes.',
+    changes: [
+      'In the simple view, “Show everything” opens the plan you are on at the matching part of the full view. In the full view, “Back to the simple view” takes you back to that plan.',
+      'On Your account you can choose whether PensionTools opens in the simple view or the full view. After you have used the full view, the simple view asks once whether to open there from now on. If you say “Not now”, it does not ask again in this browser.',
+      'The full view reads a plan’s phase and its one thing due from the same place as the plan’s home, and a plan in its move window opens on Transition.'
+    ],
+    corrections: [
+      'Nothing on screen calls either view a version any more.',
+      'Signing out in the full view now also signs you out of the simple view in this browser.',
+      'The line at the top of the full view was hidden behind its first screen and its sign-in screen. It now sits above them.'
+    ],
+    effects: {
+      budget: [],
+      stress: [],
+      strategies: [],
+      decision: [],
+      accumulation: [],
+      household: []
+    },
+    actions: ['Nothing you need to do. If you would rather PensionTools opened in the full view, choose it on Your account.'],
+    notes: [
+      'Which view PensionTools opens in is kept with your account’s settings and copied in this browser, so the site can open there at once. The privacy policy now says so.'
+    ]
+  },
+  {
     version: '7.10.0', date: '2026-11-15', engineVersion: '6.39.0',
     title: 'Three phases, one yearly review, and a home that asks for one thing at most',
     summary: 'Every plan now reads as Saving, Moving or Living on it. Moving is your move window: the last years before you stop work, three unless you choose otherwise. What you hold never decides the phase, and a difference from your plan’s mix is something we show you, never a list of things to sell. Each phase has one review page, once a year unless you choose otherwise, and the home shows the phase, when your next review is and at most one thing that is due. While you move you can accept what you hold as your plan.',

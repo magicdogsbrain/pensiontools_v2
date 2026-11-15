@@ -6,11 +6,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import { agreePatch, agreeWithdrawPatch, asHeldStateOf, howOf, agreementViewOf } from '../../../src/answers/plan/agree.js';
-import { reviewOf, reviewRunKeyOf, runInputsOf } from '../../../src/answers/plan/review.js';
+import { reviewOf, reviewRunKeyOf, runInputsOf, reviewSavePatch } from '../../../src/answers/plan/review.js';
 import { stressKeyOf, stressAgreementOf, stressAmendPatch, stressWithdrawPatch, fingerprintOf, kindOfRow } from '../../../src/answers/plan/stressPanel.js';
 import { homeOf } from '../../../src/answers/plan/home.js';
 import { stageOf } from '../../../src/services/LifeStage.js';
-import { agreementOf, phasesPatch } from '../../../src/services/Phases.js';
+import { agreementOf, phasesPatch, offCourseOf } from '../../../src/services/Phases.js';
 import { documentAtOf } from '../../../src/services/PlanAmendments.js';
 import { createStore } from '../../../src/v7/effects/store.js';
 import { initialState } from '../../../src/v7/state/initial.js';
@@ -86,6 +86,22 @@ describe('the agreement: ONE write of `phases` and `planAmendments`, from the ru
     expect(asHeldStateOf(after, { today: DAY }).status).toBe('agreed');
     // nothing is due on a plan moving by its agreement
     expect(reviewOf([{ plan: after, newer: false, failed: false }], after.id, { today: DAY }).due).toMatchObject({ due: false, next: null });
+  });
+
+  it('one run saved with the review and then accepted is ONE reading: never "past your line at your last two reviews"', () => {
+    const plan = moving(ALEX);
+    const R = reviewOf([{ plan, newer: false, failed: false }], plan.id, { today: DAY });
+    const low = { key: R.run.key, planId: String(plan.id), status: 'done', order: R.run.rows, rows: Object.fromEntries(R.run.rows.map((id) => [id, rowResult(plan, DAY, { weighted: 0.40, fixedAge: 0.4 })])), pots: null, reason: null };
+    const s = reviewSavePatch(plan, { today: DAY, at: AT, held: low });
+    expect(s.ok).toBe(true);
+    const saved = { ...plan, phases: s.patch.phases };
+    const a = agreePatch(saved, { today: DAY, at: '2026-10-02T11:05:00.000Z', held: low });
+    expect(a.ok).toBe(true);
+    const after = agreed(saved, a);
+    expect(after.phases.review.log).toHaveLength(2);
+    const pg = homeOf([{ plan: after, newer: false, failed: false }], after.id, { today: DAY });
+    expect([...pg.todo.items, ...pg.todo.more].map((d) => d.id)).not.toContain('review.offCourse');
+    expect(offCourseOf(after, { phase: 'moving' }).off).toBe(false);
   });
 
   it('refused: no run, a run for other figures, a saver, a closed plan, the example', () => {

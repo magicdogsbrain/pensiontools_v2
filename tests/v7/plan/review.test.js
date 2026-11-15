@@ -41,7 +41,7 @@ const alex = ({ lockedAt = '2026-07-01T09:00:00.000Z', locked = true, log = [], 
 });
 const run = (day, { phase = 'drawing', weighted = 0.9, sumW = null, n = 1000, documentAt = '2026-07-01' } = {}) => ({
   at: day + 'T10:00:00.000Z', phase, documentAt, pots: null, entered: { pots: false, took: false }, took: null, choice: null,
-  reading: { source: 'run', key: 'k', weighted, sumW: sumW == null ? Math.round((1 - weighted) * n * WEIGHT_ONE) : sumW, n, fixedAge: { lasts: Math.round(weighted * n), n, age: 95 }, typicalLeft: null },
+  reading: { source: 'run', key: 'k|' + day, weighted, sumW: sumW == null ? Math.round((1 - weighted) * n * WEIGHT_ONE) : sumW, n, fixedAge: { lasts: Math.round(weighted * n), n, age: 95 }, typicalLeft: null },
   guardrail: null, drift: null, maxDrift: null
 });
 
@@ -180,7 +180,8 @@ describe('off course: two readings in a row that worked out the chance, never on
   const rule = { kind: 'success', floor: 0.80 };
   it('two below: off, at the second reading\'s date, with both figures and the line; one below, or a newer one above: not', () => {
     const two = alex({ rule, log: [run('2027-04-07', { weighted: 0.70 }), run('2028-04-07', { weighted: 0.65 })] });
-    expect(offCourseOf(two, { phase: 'drawing' })).toEqual({ off: true, occurrence: '2028-04-07', rule: { kind: 'success', floor: 0.80 }, a: 14, b: 13, line: 16 });
+    expect(offCourseOf(two, { phase: 'drawing' })).toEqual({ off: true, occurrence: '2028-04-07', rule: { kind: 'success', floor: 0.80 }, a: 14, b: 13, line: 16,
+      readings: [{ weighted: 0.70, sumW: two.phases.review.log[0].reading.sumW, n: 1000 }, { weighted: 0.65, sumW: two.phases.review.log[1].reading.sumW, n: 1000 }] });
     expect(offCourseOf(alex({ rule, log: [run('2027-04-07', { weighted: 0.70 })] }), { phase: 'drawing' }).off).toBe(false);
     expect(offCourseOf(alex({ rule, log: [run('2027-04-07', { weighted: 0.70 }), run('2028-04-07', { weighted: 0.70 }), run('2029-04-07', { weighted: 0.90 })] }), { phase: 'drawing' }).off).toBe(false);
     expect(offCourseOf(two, { phase: 'drawing', closing: true }).off).toBe(false);
@@ -192,6 +193,23 @@ describe('off course: two readings in a row that worked out the chance, never on
     expect(offCourseOf(versions, { phase: 'drawing' }).off).toBe(false);
     const nulls = alex({ rule, log: [run('2027-04-07', { weighted: 0.70 }), { ...run('2027-10-07'), reading: null }, { ...run('2028-01-07'), reading: { ...run('2028-01-07').reading, source: 'document' } }, run('2028-04-07', { weighted: 0.70 })] });
     expect(offCourseOf(nulls, { phase: 'drawing' })).toMatchObject({ off: true, occurrence: '2028-04-07' });
+  });
+  it('one run is one reading: saved with the review and kept with the agreement, or saved twice, it never makes a pair', () => {
+    const one = run('2027-04-07', { weighted: 0.40 });
+    const twice = alex({ rule, log: [one, { ...one, at: '2027-04-07T10:05:00.000Z' }] });
+    expect(offCourseOf(twice, { phase: 'drawing' }).off).toBe(false);
+    // a second run below the line, on another day: now two readings, off
+    expect(offCourseOf(alex({ rule, log: [one, { ...one, at: '2027-04-07T10:05:00.000Z' }, run('2028-04-07', { weighted: 0.40 })] }), { phase: 'drawing' })).toMatchObject({ off: true, occurrence: '2028-04-07' });
+    // the guardrails rule, a save with no run: the same day, pots and taken saved twice count once
+    const g = (day, at) => ({ ...run(day), at: at || day + 'T10:00:00.000Z', reading: null, guardrail: 'above', pots: { pension: 300000, isa: 0, other: 0 }, took: 9000 });
+    const gr = { kind: 'guardrails' };
+    expect(offCourseOf(alex({ rule: gr, log: [g('2027-04-07'), g('2027-04-07', '2027-04-07T11:00:00.000Z')] }), { phase: 'drawing' }).off).toBe(false);
+    expect(offCourseOf(alex({ rule: gr, log: [g('2027-04-07'), g('2028-04-07')] }), { phase: 'drawing' }).off).toBe(true);
+  });
+  it('a plan Moving by its agreement before its stop is never off course (nothing is due there)', () => {
+    const mv = alex({ rule, log: [run('2027-01-07', { weighted: 0.40, phase: 'moving' }), run('2027-06-07', { weighted: 0.40, phase: 'moving' })] });
+    expect(offCourseOf(mv, { phase: 'moving' }).off).toBe(true);
+    expect(offCourseOf(mv, { phase: 'moving', agreed: true }).off).toBe(false);
   });
   it('a Bold plan at 15 in 20 twice is not off course (its line is 13 in 20)', () => {
     const bold = { ...alex({ log: [run('2027-04-07', { weighted: 0.75 }), run('2028-04-07', { weighted: 0.75 })] }), fromAnswer: { answer: { level: 'bold', levelChosen: true } } };

@@ -1048,8 +1048,10 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
   const phase = life && life.key ? life.key : null;
   const closing = stage.closing === true;
   let checkIn = null; try { checkIn = phase === 'saving' && SAVER_STAGES.includes(stage.key) ? checkInState(plan, { today: localDay(now), stageKey: stage.key }) : null; } catch { checkIn = null; }
-  let reviewDue = null; try { reviewDue = reviewDueOf(plan, { now, phase, locked, closing, agreed: phase === 'moving' && !!life && life.by === 'agreement', checkIn }); } catch { reviewDue = null; }
-  let offCourse = null; try { offCourse = offCourseOf(plan, { phase, closing, checkIns: phase === 'saving' ? checkInsOf(plan) : [] }); } catch { offCourse = null; }
+  // a plan Moving by its agreement before its stop has nothing due: no review and no off course
+  const agreedMoving = phase === 'moving' && !!life && life.by === 'agreement';
+  let reviewDue = null; try { reviewDue = reviewDueOf(plan, { now, phase, locked, closing, agreed: agreedMoving, checkIn }); } catch { reviewDue = null; }
+  let offCourse = null; try { offCourse = offCourseOf(plan, { phase, closing, agreed: agreedMoving, checkIns: phase === 'saving' ? checkInsOf(plan) : [] }); } catch { offCourse = null; }
   const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, held, startLater, startDraft, reviewDue, offCourse };
   // how far the stop is, for what a saver keeps "For later" (steps.js laterFor): months to the stop month, in years
   const yearsToStop = Number.isFinite(stage.monthsToStart) && stage.timingMode === 'future' ? stage.monthsToStart / 12 : (Number.isFinite(stage.yearsToStart) ? stage.yearsToStart : null);

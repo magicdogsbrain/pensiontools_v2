@@ -589,25 +589,36 @@ function twentiethsOf(reading, kind) {
  * as `checkIns`, checkInDue.js checkInsOf, oldest first), in Moving and Living on it the reviews of that phase that worked out
  * the chance (`reading.source` 'run'; the guardrails rule reads each review's guardrail) — both below the line, and both read
  * against the same plan document. A reading that cannot say, a document's own reading and a review saved with no reading
- * never count and never break a pair; a newer reading that is not below clears it. Never one bad year; never on a plan that
- * closes. Pure: nothing is written.
- * @returns {{ off: boolean, occurrence: string|null, rule, a: number|null, b: number|null, line: number|null }}
+ * never count and never break a pair; a newer reading that is not below clears it. ONE reading is counted once: entries
+ * that keep the same reading (its `key`: one run, saved with the review and kept with the agreement, or saved twice) are
+ * one, the latest kept — so one run can never make a pair. Never one bad year; never on a plan that closes, or on one
+ * Moving by its agreement before its stop (nothing is due there). Pure: nothing is written.
+ * @returns {{ off: boolean, occurrence: string|null, rule, a: number|null, b: number|null, line: number|null,
+ *   readings: [object, object]|null }}  `readings`: the two readings' own figures ({ weighted, sumW, n }), for the words
  */
-export function offCourseOf(plan, { phase, closing = false, checkIns = [] } = {}) {
+export function offCourseOf(plan, { phase, closing = false, checkIns = [], agreed = false } = {}) {
   const rule = reviewRuleOf(plan);
   const line = rule.kind === 'success' ? Math.round(20 * rule.floor) : null;
-  const no = { off: false, occurrence: null, rule, a: null, b: null, line };
+  const no = { off: false, occurrence: null, rule, a: null, b: null, line, readings: null };
   if (closing || !['saving', 'moving', 'drawing'].includes(phase)) return no;
+  if (phase === 'moving' && agreed) return no;
+  const figures = (r) => (isObj(r) ? { weighted: isNum(r.weighted) ? r.weighted : null, sumW: isNum(r.sumW) ? r.sumW : null, n: isNum(r.n) ? r.n : null } : { weighted: null, sumW: null, n: null });
   let counted;
   if (phase === 'saving') {
-    counted = (Array.isArray(checkIns) ? checkIns : []).filter(isObj).map((c) => ({ at: String(c.date || ''), doc: null, below: belowLine(c.reading, rule, { kind: 'checkin' }), k: twentiethsOf(c.reading, 'checkin') }));
+    counted = (Array.isArray(checkIns) ? checkIns : []).filter(isObj).map((c) => ({ at: String(c.date || ''), doc: null, key: null, below: belowLine(c.reading, rule, { kind: 'checkin' }), k: twentiethsOf(c.reading, 'checkin'), r: figures(c.reading) }));
   } else {
+    // the same reading kept by more than one entry: its run's key, or (the guardrails rule, a save with no run) the same
+    // day, pots, taken and document
+    const keyOf = (e) => (isObj(e.reading) && typeof e.reading.key === 'string' && e.reading.key ? 'r|' + e.reading.key
+      : rule.kind === 'guardrails' ? 'g|' + String(e.at).slice(0, 10) + '|' + JSON.stringify(e.pots == null ? null : e.pots) + '|' + String(e.took) + '|' + String(e.documentAt) : null);
     counted = entriesOf(plan, phase).filter((e) => (rule.kind === 'guardrails' ? ['within', 'above', 'below'].includes(e.guardrail) : isObj(e.reading) && e.reading.source === 'run'))
-      .map((e) => ({ at: String(e.at), doc: e.documentAt == null ? null : String(e.documentAt), below: belowLine(e.reading, rule, { guardrail: e.guardrail }), k: twentiethsOf(e.reading, 'review') }));
+      .map((e) => ({ at: String(e.at), doc: e.documentAt == null ? null : String(e.documentAt), key: keyOf(e), below: belowLine(e.reading, rule, { guardrail: e.guardrail }), k: twentiethsOf(e.reading, 'review'), r: figures(e.reading) }));
   }
   counted = counted.filter((x) => x.below !== null);
+  // each reading once: an earlier entry with the key of a later one gives way to it
+  counted = counted.filter((x, i) => x.key == null || !counted.slice(i + 1).some((y) => y.key === x.key));
   if (counted.length < OFF_COURSE.readings) return no;
   const [x, y] = counted.slice(-OFF_COURSE.readings);
   if (x.doc !== y.doc || !x.below || !y.below) return no;
-  return { off: true, occurrence: y.at.slice(0, 10), rule, a: x.k, b: y.k, line };
+  return { off: true, occurrence: y.at.slice(0, 10), rule, a: x.k, b: y.k, line, readings: [x.r, y.r] };
 }

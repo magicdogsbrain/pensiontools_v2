@@ -257,13 +257,16 @@ describe('each stage\'s home', () => {
     expect([...one(root, `${T}.ask`).querySelectorAll('a')].map((a) => a.getAttribute('data-testid'))).toEqual([`${T}.ask.b`, `${T}.ask.a`]);
     expect(one(root, `${T}.year`)).toBe(null);
   });
-  // retaken in 7.10.0 (spec-7100 §5): the lock is no longer a to-do — its months wait for it, said in the quiet line
+  // retaken in 7.10.0 (spec-7100 §5): the lock is no longer a to-do; retaken again (nothing due is nothing in To do): the
+  // nothing-due line says the review, and that its months wait for the lock is said on the Month by month tool only
   it('home-draft-retired: "Living on it. Not locked yet.", nothing due; "Change the plan" lists the plan\'s own pages', () => {
     const { root } = draw(load('home-draft-retired'));
     expect(one(root, `${T}.headline`).textContent).toBe('Living on it. Not locked yet.');
     expect(root.querySelectorAll(`[data-testid="${T}.todo"] .home-item`)).toHaveLength(0);
-    expect(one(root, `${T}.quiet`).textContent).toBe('Months are recorded once the plan is locked.');
-    expect(one(root, `${T}.review`).textContent).toBe('Review your plan whenever you like. Review now');
+    expect(one(root, `${T}.quiet`).textContent).toBe('Nothing due. You can review your plan whenever you like.');
+    expect(one(root, `${T}.review`)).toBe(null);
+    expect(one(root, `${T}.review.now`).textContent).toBe('Review now');
+    expect(one(root, `${T}.tool.month`).textContent).toContain('Months are recorded once the plan is locked');
     expect([...one(root, `${T}.change`).querySelectorAll('a')].map((a) => a.textContent)).toContain(HOME.change.about);
   });
   it('home-closed: kept to read — the way to the plan that carries it on, its year frozen, no try and no question', () => {

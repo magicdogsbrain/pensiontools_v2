@@ -19,8 +19,21 @@ const v7 = (hash) => PROD + V7_PATH + hash;
 const T = 'plan.hold';
 const BANNED = /\bstrategy\b|\bscenario\b|\bwrappers?\b|\bholdings\b|\btransition\b|\bportfolio\b|\bnominal\b|run-?up|you should|\brecommend|Monte Carlo|\bMC\b|\bp10\b|about £/i;
 
+/**
+ * A stored plan read as Moving (7.11.1), in place: still saving, work stopping in April 2027 (inside the move window), no month
+ * recorded — the locked document as it was (as e2e/plan-move.spec.js reads it). As stored the corpus ladder records months, so
+ * it reads Living on it, where "Your plan's mix" is what is held, never a Sell list, and "What is covered" reads everything held
+ * whatever is kept; "Keep this" changes what a move sells, so it is tried in a move.
+ */
+function asMoving(raw) {
+  const s = raw.stressTool.settings;
+  s.retired = false; s.retireAge = 66; s.stoppedWork = '2027-04';
+  delete s.firstTaxYear;
+  raw.decisionTool.history = [];
+  return raw;
+}
 function plan() {
-  const p = JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8'));
+  const p = asMoving(JSON.parse(readFileSync(join(REPO, 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8')));
   p.id = ID; p.planDetails.name = 'Sam’s plan'; p.isActive = true; delete p.household;
   p.holdings.lines.push(
     { asOf: '2026-09-01', contribution: null, kind: 'gilt', name: 'Example Treasury Gilt 2027', ocf: null, sedol: null, subClass: null, ticker: null, units: 20000, value: 19600, wrapper: 'SIPP' },

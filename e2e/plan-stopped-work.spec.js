@@ -153,10 +153,13 @@ test.describe('Say when you stopped work, without an account', () => {
     expect(await page.locator('#nextStepBanner').innerText()).not.toMatch(/set to start in April 2027/);
     noOldWords(await page.locator('.pd').innerText());
     // the Transition page names no months before the plan either (7.3.3: its "You have stopped work … until then" note is gone)
+    // 7.11.1: the plan locked after work stopped reads Living on it, so the tab is what is held — never a move
     await page.evaluate(() => switchToTab('transition'));
     const transition = page.locator('#transitionPage');
-    await expect(transition).toContainText('Target:', { timeout: 45_000 });
+    await expect(transition).toContainText('What you hold, beside your plan as locked', { timeout: 45_000 });
+    await expect(page.locator('.tab[data-tab="transition"]')).toHaveText('Your plan’s mix');
     const tt = await transition.innerText();
+    expect(tt).not.toMatch(/Target:|>Sell<|Totals: buy/);
     expect(tt).not.toMatch(/You have stopped work|set aside|before the plan/);
     noOldWords(tt);
     expect(tt).not.toMatch(/SIPP cash/);

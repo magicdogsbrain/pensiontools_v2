@@ -40,7 +40,7 @@ In **guest mode** ("Just try it") your plan lives only in that browser tab's ses
 discarded when the tab closes; nothing is sent anywhere. Guest use is metered in this browser (a count of
 active minutes, so we can ask you to sign in after a few hours); and if you choose "keep this work" when
 signing in, the guest plan is held in this browser only until it has been copied into your account, then removed. If you keep an answer from the question pages as a plan, the figures you gave there (including any spending lines) are held in this browser until the plan is made and are never used after a day: they are deleted when the plan is made, when you choose "Not now", when you sign out, "Reset" or "Delete Account", and otherwise the next time you open PensionTools after that day; they are never put in the page address. When you move from the simple view to the full view, this browser tab notes which plan and page to open; the note holds no figures and is gone once it is used. Signing out, "Reset" and "Delete Account"
-clear these items. What you type on the question pages, including any spending lines you work out
+clear these items. If you are signed out from somewhere else instead (for example, when your password is changed on another device), the notes about signing in and about the view stay in this browser until the simple view is next opened in it; until then, if you chose the full view, the site's address opens the full view. What you type on the question pages, including any spending lines you work out
 there, and whether a plan was made from it (with the name it was saved under), is kept only in that browser
 tab's session storage and is discarded when the tab closes; nothing is sent anywhere. We do **not** sell
 your data, use it for advertising, or share it for marketing.
@@ -84,4 +84,4 @@ rules. Data is encrypted in transit. Please use a strong, unique password.
 This app is intended for adults planning their own finances and is not directed at children.
 
 ## Changes
-We will update this policy as the app changes and post the new version here.
+We will update this policy as the app changes and post the updated policy here.

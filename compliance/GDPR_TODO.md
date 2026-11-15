@@ -201,7 +201,9 @@ delete call sites).
   (`localStorage pt_view`) and the strip's "Not now" (`pt_view_asked`), set in `src/v7/effects/view.js`; the full view's
   sign-in sets the copy and the signed-in note again only when the account says `'full'` (`src/ui/viewNotes.js`
   `followViewChoice`, from the settings it already reads), and otherwise sets neither. Both go at a sign-out in either
-  view (the full view's: `src/ui/viewNotes.js`) and with the account's deletion.
+  view (the full view's: `src/ui/viewNotes.js`) and with the account's deletion; a sign-in ended somewhere else (a password
+  changed on another device) leaves them until the simple view is next opened in that browser, and the privacy policy says
+  so.
 - **Deletion** (`account.js` `remove`, after two confirms the reducer insists on: `src/v7/state/reduce.js` `account/ask`):
   exactly what `FirestoreService.wipeAllUserData` wipes, one document at a time — every `users/{uid}/scenarios/{id}` (read
   again first), `users/{uid}/profile/settings`, every `fundSuggestions` row whose `uid` is the person's (a query; an older rule

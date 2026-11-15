@@ -116,13 +116,18 @@ function partnersOf(entries, plan) {
  * The stage line with the plans at hand: a closed plan's names the plan that carries it on (copy/plan.js stageLines.closed),
  * or only the month when that plan is not here ('closed-alone'). Every other stage's as stageLine gives it.
  */
-function lineOf(stage, plan, ss, list, now) {
+function lineOf(stage, plan, ss, list, now, life = null) {
   const r = isClosedPlan(plan) ? closedReading(plan, list, now) : null;
   // closed for going back to work (research/plan-start.md §2 J): "Closed March 2029: back to work; carried on as ‘…’."
   const why = r && r.working ? '-working' : '';
   if (r && stage && stage.key === 'closed') return r.next ? { id: 'closed' + why, slots: { month: r.month, name: r.next.name } } : { id: 'closed-alone', slots: { month: r.month } };
   // closed at a change-over still to come: lived on until then, and said so (LifeStage keeps its stage)
   if (r && r.ahead) return r.next ? { id: 'closing' + why, slots: { month: r.month, name: r.next.name } } : { id: 'closing-alone', slots: { month: r.month } };
+  // the line under the headline follows the phase (7.10.0, LifeStage.stageOf), never a placing it has left: past the stop on a
+  // plan not locked, the stop as the plan says it (the home asks "did you stop work?"); living on it by an agreement on a
+  // saver's placing, the words of a plan lived on (not locked yet, or locked)
+  if (life && life.confirmStop && life.stop) return { id: 'pastStop', slots: { month: monthWords(life.stop) } };
+  if (life && life.key === 'drawing' && stage && SAVER_STAGES.includes(stage.key)) return isLocked(plan) ? { id: 'running', slots: {} } : { id: 'draft-retired', slots: {} };
   return stageLine(stage, plan, ss);
 }
 
@@ -179,7 +184,7 @@ export function planRows(entries, { today, source = 'account' } = {}) {
       id: String(plan.id),
       name: nameOf(plan),
       stageKey: stage.key,
-      line: lineOf(stage, plan, ss, list, now),
+      line: lineOf(stage, plan, ss, list, now, pg && pg.found ? pg.life : null),
       // a closed plan sits under "Previous plans" (once its last month has passed: until then it is lived on); one someone
       // has lived on may be moved to a new plan (6.56.0)
       closed: stage.key === 'closed',
@@ -886,7 +891,8 @@ function rulesFor(C, built) {
     'P.householdPending': () => partnerMissing,
     // the sentences that say where things stand: never a to-do
     'P.idle':        () => retiredRunning && wanted && recorded,
-    'P.window':      () => phase === 'moving',
+    // inside the window only: never once the stop has passed (asked "did you stop work?") or before it opens
+    'P.window':      () => phase === 'moving' && !(life && life.confirmStop) && !!moveWindowOf(life) && moveWindowOf(life).state === 'inside',
     'P.onCourse':    () => !!ci && lastBand === 'yes',
     'P.nextReview':  () => !!reviewDue && !!reviewDue.next,
     'P.reviewAny':   () => true
@@ -1096,7 +1102,7 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
     stageKey: stage.key,
     retired: RETIRED_STAGES.includes(stage.key),
     saver: SAVER_STAGES.includes(stage.key),
-    line: lineOf(stage, plan, ss, list, now),
+    line: lineOf(stage, plan, ss, list, now, life),
     // a closed plan, and the plan that carries one on (6.56.0): what the page says above its steps, with the way to the other
     closed: stage.key === 'closed' ? { ...closedReading(plan, list, now), hasDocument: !!plan.planDocument } : null,
     // closed at a change-over still to come: lived on until then, but never unlocked (the guard refuses it)

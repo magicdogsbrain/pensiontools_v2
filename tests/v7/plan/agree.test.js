@@ -9,6 +9,8 @@ import { agreePatch, agreeWithdrawPatch, asHeldStateOf, howOf, agreementViewOf }
 import { reviewOf, reviewRunKeyOf, runInputsOf, reviewSavePatch } from '../../../src/answers/plan/review.js';
 import { stressKeyOf, stressAgreementOf, stressAmendPatch, stressWithdrawPatch, fingerprintOf, kindOfRow } from '../../../src/answers/plan/stressPanel.js';
 import { homeOf } from '../../../src/answers/plan/home.js';
+import { planPage } from '../../../src/answers/plan/read.js';
+import { taskPatch } from '../../../src/answers/plan/tasks.js';
 import { stageOf } from '../../../src/services/LifeStage.js';
 import { agreementOf, phasesPatch, offCourseOf } from '../../../src/services/Phases.js';
 import { documentAtOf } from '../../../src/services/PlanAmendments.js';
@@ -112,6 +114,31 @@ describe('the agreement: ONE write of `phases` and `planAmendments`, from the ru
     expect(agreePatch(saver, { today: DAY, at: AT, held: null })).toMatchObject({ ok: false, problem: 'notNow' });
     expect(agreePatch(entryOf(copy(C['18-moved-to-new-plan']), DAY).plan, { today: DAY, at: AT })).toMatchObject({ ok: false, problem: 'closed' });
     expect(agreePatch({ ...plan, example: true }, { today: DAY, at: AT })).toMatchObject({ ok: false, problem: 'example' });
+  });
+});
+
+describe('the line under the headline follows the phase once the stop has passed', () => {
+  it('accepted and past the stop: a plan lived on, not locked yet; not accepted and past the stop: the stop as the plan has it, and nothing about a window', () => {
+    const plan = moving(ALEX);
+    const after = agreed(plan, agreePatch(plan, { today: DAY, at: AT, held: heldFor(plan) }));
+    const past = '2029-06-01';   // fixture 19 says work stops in November 2028
+    const pa = homeOf([entryOf(after, past)], after.id, { today: past });
+    expect(pa.stage.key).toBe('drawing');
+    expect(pa.line).toEqual({ id: 'draft-retired', slots: {} });
+    const pn = homeOf([entryOf(plan, past)], plan.id, { today: past });
+    expect(pn.stage.key).toBe('moving');
+    expect(pn.line).toEqual({ id: 'pastStop', slots: { month: 'November 2028' } });
+    expect(pn.moveWindow).toBe(null);
+    // "Did you stop work?" put off: the next sentence never says the window is still open
+    const pg = planPage([entryOf(plan, past)], plan.id, null, { today: past });
+    expect(pg.due.map((d) => d.id)).toContain('plan.confirmStop');
+    const putOff = { ...plan, tasks: taskPatch(plan, pg.due.find((d) => d.id === 'plan.confirmStop').key, 'notNow', { at: past + 'T10:00:00.000Z' }).tasks };
+    const pg2 = planPage([entryOf(putOff, past)], plan.id, null, { today: past });
+    expect(pg2.due).toEqual([]);
+    expect(pg2.next.id).not.toBe('P.window');
+    expect(planPage([entryOf(plan, DAY)], plan.id, null, { today: DAY }).next.id).toBe('P.window');
+    // inside the window it is as it was
+    expect(homeOf([entryOf(plan, DAY)], plan.id, { today: DAY }).line).toEqual({ id: 'approaching', slots: {} });
   });
 });
 

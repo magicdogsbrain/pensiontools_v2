@@ -1,5 +1,5 @@
 /**
- * "What is covered, year by year" (7.6.0), drawn on "What you hold" and on "Moving to your plan's mix": the reading of
+ * "What is covered, year by year" (7.6.0; 7.11.1 read with what is held), drawn on "What you hold" and on "Moving to your plan's mix": the reading of
  * answers/plan/gaps.js gapsView (the table, and the sentences as template keys and slots — the classic planner fills the
  * same keys with the same words). Draws only; no figure is worked out here.
  */
@@ -12,12 +12,14 @@ export const gapLineText = (line) => line.parts.map((p) => fill(G[p.key], { ...p
 export function GapsSection({ gaps, prefix }) {
   if (!gaps) return null;
   const T = `${prefix}.gaps`;
-  const heldText = (r) => (r.parts.length ? r.parts.map((p) => (p.kind === 'standIn' ? p.label + ' ' + p.amount : G.heldParts[p.kind] + ' ' + p.amount)).join(', ') : G.none);
+  // a line standing in, or a gilt counted toward the year it matures in (7.11.1), by its own name
+  const heldText = (r) => (r.parts.length ? r.parts.map((p) => (p.kind === 'standIn' || p.kind === 'gilt' ? p.label + ' ' + p.amount : G.heldParts[p.kind] + ' ' + p.amount)).join(', ') : G.none);
   return (
     <section class="plan-section" data-section="gaps" data-testid={T} data-gap={gaps.hasGap ? '1' : '0'}>
       {/* a plan drawn from a pot has no years bought ahead: what is kept and expected, with no year by year */}
       <h2>{gaps.ladder ? G.title : G.titlePot}</h2>
-      <p class="note">{gaps.ladder ? G.lead : G.leadPot}</p>
+      {/* 7.11.1: a reading of what is held beyond the plan's own says so in its lead */}
+      <p class="note">{gaps.ladder ? G[gaps.lead || 'lead'] : G.leadPot}</p>
       <ul class="plan-lines" data-testid={`${T}.lines`}>
         {gaps.lines.map((l, i) => <li key={i} class="plan-line" data-line={l.id}>{gapLineText(l)}</li>)}
       </ul>

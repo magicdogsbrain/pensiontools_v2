@@ -183,8 +183,13 @@ describe('the gaps reader', () => {
     expect(monthsLeftInTaxYear('2028-03-31')).toBe(1);
   });
 
-  it('nothing kept, nothing expected: no reading at all', () => {
-    expect(gapsOf(base, { today: BEFORE })).toBe(null);
+  it('nothing kept, nothing expected, and nothing in the pension beyond the plan\'s rungs and cash: no reading at all', () => {
+    // 7.11.1: the reading is of what is held — Sam's own record holds gilts and a fund outside the ladder, so it reads; with
+    // only the plan's rungs and its cash, and nothing kept or expected, there is nothing for it to add
+    expect(gapsOf(base, { today: BEFORE })).toMatchObject({ fromHeld: true, ladder: true });
+    const target = targetHoldings(base.planDocument, { today: noon(BEFORE) });
+    const rungsOnly = target.lines.map((t) => ({ wrapper: 'SIPP', ticker: t.ticker, name: t.label, units: t.units, value: t.cost, kind: 'gilt' }));
+    expect(gapsOf(withLines(base, [...rungsOnly, cash(5000)]), { today: BEFORE })).toBe(null);
   });
 
   it('before the plan starts: each stood-in year needs, holds (the stand-in, then the pension\'s cash) and its gap; the first year\'s money lasts until about the month it covers', () => {
@@ -301,9 +306,15 @@ describe('identity: a plan that keeps nothing reads exactly as before', () => {
       expect(m.diff).toEqual(plain);
       expect(m.diff).not.toHaveProperty('standIn');
       expect(sequence(m.diff, { today: now, startYear: 2027 })).toEqual(sequence(plain, { today: now, startYear: 2027 }));
-      expect(gapsOf(p, { today })).toBe(null);
+      // 7.11.1: a plan that keeps nothing reads what it holds beyond the plan's rungs and cash — a gilt that is no rung, shares
+      // or a fund — and nothing else; one that holds nothing beyond them reads nothing, as before
+      const g = gapsOf(p, { today });
       const mv = moveOf([{ plan: { ...p, id: p.id || 'X' } }], p.id || 'X', { today });
-      if (mv.found) for (const k of ['standIn', 'kept', 'covered', 'gaps']) expect(mv, k).not.toHaveProperty(k);
+      if (g) {
+        expect(g.fromHeld).toBe(true);
+        expect([g.standIns, g.kept, g.expected.items]).toEqual([[], [], []]);
+        if (mv.found) { expect([mv.standIn, mv.kept, mv.covered]).toEqual([[], [], []]); expect(mv.gaps).toEqual(gapsView(g)); }
+      } else if (mv.found) for (const k of ['standIn', 'kept', 'covered', 'gaps']) expect(mv, k).not.toHaveProperty(k);
     }
   });
 });

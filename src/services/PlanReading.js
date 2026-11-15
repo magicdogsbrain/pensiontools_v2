@@ -263,6 +263,8 @@ export function whereAmIFor(scenario, { now = new Date() } = {}) {
 /**
  * The Transition page's inputs (index.html loadTransitionUI): the target from the plan document with the live strategy
  * dials, what you hold against it, and the tick-offs.
+ * `roles` (7.11.1): the diff also carries each line's part (TransitionPlanner.diffHoldings `roles`), for the reading of what
+ * is covered (answers/plan/gaps.js); no other caller asks.
  * `fromSettings` (7.10.0): on a plan with no document, a target built in memory from the effective settings — their
  * year-0 mix (PlanDocument.buildTargetMix) on the pension money in play today, no rungs — so the review and the home's
  * drift line can read an unlocked plan too. Never stored. An unlocked ladder has no rungs to read: its target is 'none'
@@ -270,15 +272,16 @@ export function whereAmIFor(scenario, { now = new Date() } = {}) {
  * @returns {{ target, diff, prog, fromSettings?: true, ladderLater?: true }|null}  null without a plan document (and
  *   without `fromSettings`)
  */
-export function moveInputs(scenario, { now = new Date(), fromSettings = false } = {}) {
+export function moveInputs(scenario, { now = new Date(), fromSettings = false, roles = false } = {}) {
   const sc = scenario || {};
   const doc = sc.planDocument || null;
   if (!doc) return fromSettings ? settingsMoveInputs(sc, { now }) : null;
   const ss = effectiveStressSettings(sc, { now });
   const target = targetHoldings(doc, { today: now, params: ss.strategyParams || null });
   const rec = normaliseHoldings(sc.holdings);
-  // the document's needs by year and today: read only when the record keeps something (7.6.0)
-  const diff = diffHoldings(rec.lines || [], target, { needs: yearNeedsOf(doc), today: now });
+  // the document's needs by year and today: read only when the record keeps something (7.6.0); each line's part only when
+  // asked (7.11.1, `roles`: the reading of what is covered) — every other caller's diff is as before
+  const diff = diffHoldings(rec.lines || [], target, { needs: yearNeedsOf(doc), today: now, ...(roles ? { roles: true } : {}) });
   const done = (sc.transition && sc.transition.done) || {};
   const prog = progress(diff, done);
   return { target, diff, prog, strategyParams: ss.strategyParams || null };

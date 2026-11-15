@@ -7,6 +7,8 @@
 export const GAPS = {
   title: 'What is covered, year by year',
   lead: 'Your plan stays as locked. This reads it with what you chose to keep instead.',
+  // 7.11.1: read with what you actually hold — no "Keep this" needed for a line to count
+  leadHeld: 'Your plan stays as locked. This reads it with what you hold.',
   // a plan drawn from a pot (no years bought ahead): what is kept and expected, with no years to read
   titlePot: 'What you keep, and money you expect',
   leadPot: 'Your plan stays as locked. This says what you chose to keep beside it.',
@@ -36,6 +38,22 @@ export const GAPS = {
   withKept: 'With what you count toward the gaps, every year to {year} is covered.',
   withKeptShort: 'With what you count toward the gaps, {short} is still not covered to {year}.',
   canFall: 'What you keep by choice can fall in value; if it is worth less when you sell, the gap is bigger.',
+  // 7.11.1: a gilt that is none of the plan's rungs counts toward the tax year it matures in — or says why it does not
+  giltFixed: '{label} matures in {month}, so it counts toward {year}. It pays a fixed {pays}; it does not rise with prices.',
+  giltFixedReal: '{label} matures in {month}, so it counts toward {year}. It pays a fixed {pays}; it does not rise with prices, so when it is paid it is worth {real} at today’s prices.',
+  giltLinked: '{label} matures in {month}, so it counts toward {year}. At today’s prices it pays {pays}, and it rises with prices.',
+  giltValue: '{label} matures in {month}, so it counts toward {year}, at its value today: {pays}.',
+  giltSpare: '{label} pays {spare} more than {year} still needs; that is counted as the pension’s cash for the years after.',
+  giltUnknown: 'We cannot tell when {label} matures, so it is not counted toward any year.',
+  giltPaid: '{label} matured in {month}; once paid, its money is the pension’s cash, so it is not counted again.',
+  giltAfter: '{label} matures in {month}, after the plan’s last year, so it is not counted toward any year.',
+  // 7.11.1: shares and funds outside the plan's mix — never held for a year, never ignored
+  outside: 'Also in your pension, outside the plan’s mix: {list}, {total} at today’s value.',
+  withHeld: 'At today’s value, they would cover every year to {year}.',
+  withHeldShort: 'At today’s value, they would leave {short} not covered to {year}.',
+  withHeldExpected: 'With the money you expect, and these at today’s value, every year to {year} is covered.',
+  withHeldExpectedShort: 'With the money you expect, and these at today’s value, {short} is still not covered to {year}.',
+  outsideCanFall: 'Shares and funds can fall in value, so they are never counted as held for a year; if they are worth less when sold, they cover less.',
   canFallPot: 'What you keep by choice can fall in value; if it falls, the plan has less to draw on.',
   columns: { year: 'Tax year', need: 'The plan needs', held: 'Held for it', gap: 'Not yet covered' },
   // the needs and what is held are at today’s prices

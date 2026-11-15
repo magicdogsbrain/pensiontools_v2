@@ -168,7 +168,9 @@ export function heldSettingsOf(settings, rec, { withExpected = true, shock = nul
  */
 export function ladderGapsOf(plan, { today, withExpected = true, shock = null } = {}) {
   const now = dateOf(today);
-  const g = gapsOf(plan, { today });
+  // what is kept alone (7.11.1, gapsOf `asKept`): the lines not kept are the move's to sell here, so the reading of what is
+  // held beyond the plan's own would count them twice
+  const g = gapsOf(plan, { today, asKept: true });
   const s = savedMove(plan, { today });
   const doc = plan && plan.planDocument;
   const needs = yearNeedsOf(doc);

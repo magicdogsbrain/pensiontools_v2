@@ -77,6 +77,17 @@ function codeContradicted(g, name) {
 export function giltOfLine(h) { const e = giltEvidence(h); return e ? e.g : null; }
 
 /**
+ * When a gilt line matures (7.11.1), never guessed: the bundled gilt its own evidence names (its SEDOL, its name, its name's
+ * coupon and date, then its code), else the full date its name gives; null when neither — a year alone ("Treasury 2029", a
+ * code like "T29") is not a maturity date.
+ */
+export function giltMaturityOf(h) {
+  const g = giltOfLine(h);
+  if (g && g.maturity) return String(g.maturity).slice(0, 10);
+  return maturityOfName(h && h.name) || null;
+}
+
+/**
  * A line whose own evidence (its SEDOL, its exact name, or its name's coupon and date — not a code, which is often a guess)
  * names a gilt maturing on another day than this rung's, or whose name gives another maturity date (7.11.1): another gilt,
  * never this rung's, whatever its year. Its code or SEDOL being the rung's says it is the rung. A line that cannot be told,
@@ -402,8 +413,9 @@ const mainBucketOf = (split) => BUCKET_KEYS.reduce((best, k) => (split[k] > spli
  * move leaves out of the money in play (`diff.unknown`). `bucket` is the bucket it is mostly in.
  */
 export function ledgerView(holdings) {
-  const list = (holdings || []).filter((h) => h && (num(h.value) > 0 || num(h.units) > 0));
-  return list.map((h) => {
+  // each line's place in the list given rides beside its row (7.11.1, `at`), so a reading can name the line it is about
+  const list = (holdings || []).map((h, at) => [h, at]).filter(([h]) => h && (num(h.value) > 0 || num(h.units) > 0));
+  return list.map(([h, at]) => {
     const ticker = up(h.ticker);
     const gilt = isGiltTicker(ticker) || h.kind === 'gilt';
     const cash = MONEY_MARKET.has(ticker) || up(h.wrapper) === 'CASH' || h.kind === 'cash' || h.subClass === 'cash' || h.subClass === 'moneyMarket';
@@ -412,7 +424,7 @@ export function ledgerView(holdings) {
     const row = { ticker, name: h.name || '', sedol: h.sedol || null, wrapper: up(h.wrapper) || 'SIPP', value: num(h.value), units: num(h.units) || null, gilt, cash, bucket: split ? mainBucketOf(split) : null, split,
       // "I'm keeping this" (7.6.0), only on a line the person kept
       ...(keep ? { keep } : {}) };
-    RAW.set(row, { subClass: h.subClass || null, kind: h.kind || null });   // how the line was placed, beside the row (7.6.0)
+    RAW.set(row, { subClass: h.subClass || null, kind: h.kind || null, at });   // how the line was placed, beside the row (7.6.0)
     return row;
   });
 }
@@ -447,10 +459,11 @@ export function ledgerView(holdings) {
  *   pays when the order carries no nominal), and with no units to read the rung is read by its cost — held, or to buy; a line
  *   is counted toward a rung only when it is that rung's gilt (never one whose own evidence names another gilt, namesAnotherGilt).
  *   A rung held above its target is still bought: it counts as held in `rungs` (the excess stays in `sell`, for the move).
- * @param {{ band?: number, needs?: object, today?: Date|null }} o  `band` = MOVE_BAND (a pot plan's buckets);
+ *   `roles` (7.11.1, a ladder only, only when asked): every line of the record with the part it plays (heldRoles below).
+ * @param {{ band?: number, needs?: object, today?: Date|null, roles?: boolean }} o  `band` = MOVE_BAND (a pot plan's buckets);
  *   `needs` = yearNeedsOf(document) (else worked from the target); `today` counts a conventional gilt's coupons still to come.
  */
-export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsGiven = null, today = null } = {}) {
+export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsGiven = null, today = null, roles: wantRoles = false } = {}) {
   const L = ledgerView(holdings);
   const anyKeep = L.some((h) => h.keep);
   const sipp = L.filter((h) => h.wrapper === 'SIPP' && !h.keep);
@@ -461,7 +474,7 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
   for (const h of L) if (h.keep && h.keep.as === 'mine') kept.push({ ...h, key: 'kept:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, fundsGaps: !!h.keep.fundsGaps, why: 'kept by you' });
   let targetTotal = 0, heldOfTarget = 0, targetCount = 0, cashHeld = 0, cashTarget = 0, cashInfo = null, coveredCount = 0, coveredCashMoney = null;
   // a pot plan's reading (7.10.0): the money in play, each bucket held against its target, the lines nothing places
-  let inPlay = null, buckets = null, unread = false, ladderRead = null;
+  let inPlay = null, buckets = null, unread = false, ladderRead = null, roleList = null;
   const unknown = [];
   if (target.kind === 'ladder') {
     // Lines kept to stand in for some tax years (7.6.0): what each pays (in today's money, as the needs are), set against each
@@ -599,6 +612,17 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
     // a rung held above its target is bought (7.11.1): held, with the excess in `sell` for the move
     ladderRead = { rungs: { held: hold.filter((x) => Array.isArray(x.taxYears)).length + sell.filter(isRungRow).length, needed: target.lines.length },
       gapSoon: thisTY != null && buy.some((b) => b.kind === 'gilt' && Array.isArray(b.taxYears) && b.taxYears.some((Y) => +Y === thisTY || +Y === thisTY + 1)) };
+    if (wantRoles) {
+      const statusOf = new Map();
+      for (const x of hold) if (isRungRow(x)) statusOf.set(x.key, { role: 'rung', x });
+      for (const x of buy) if (isRungRow(x)) statusOf.set(x.key, { role: 'partRung', x });
+      for (const x of sell) if (isRungRow(x)) statusOf.set(x.key, { role: 'overRung', x });
+      const rungOf = new Map();
+      for (const t of target.paid || []) for (const r of rowsFor(t)) rungOf.set(r, { role: 'matured', t });
+      for (const t of target.sold || []) for (const r of rowsFor(t)) rungOf.set(r, { role: 'soldRung', t });
+      for (const t of target.lines) for (const r of rowsFor(t)) rungOf.set(r, { role: (statusOf.get(t.key) || { role: 'rung' }).role, t });
+      roleList = heldRoles(L, { rungOf, statusOf, rotated: !!target.rotated, now });
+    }
   } else if (target.kind === 'buckets') {
     // a pot plan has no rungs: a line kept to stand in for years is simply kept (7.6.0), like one kept by choice
     for (const h of L) if (h.keep && h.keep.as === 'rung') kept.push({ ...h, key: 'kept:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, fundsGaps: false, why: 'kept by you' });
@@ -657,7 +681,49 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
     ...(ladderRead ? ladderRead : {}),
     // what the person keeps (7.6.0): only on a record that keeps something
     // and, on a ladder, the cash still to hold once the cash years stood in for come out (the move's "Cash to hold now")
-    ...(anyKeep ? { standIn, kept, covered, ...(target.kind === 'ladder' && target.cash ? { cashLeft: target.cash } : {}) } : {}) };
+    ...(anyKeep ? { standIn, kept, covered, ...(target.kind === 'ladder' && target.cash ? { cashLeft: target.cash } : {}) } : {}),
+    // 7.11.1: every line's part, only when asked (the reading of what is covered; the move's information)
+    ...(roleList ? { roles: roleList } : {}) };
+}
+
+/**
+ * The part each line of the record plays against a ladder (7.11.1), in the record's order — information, never a list of
+ * moves: { at (the line's place in the list given), label, ticker, sedol, wrapper, value, units, role, … } where `role` is
+ *   'rung'          one of the plan's rungs, held (`rung`: { key, label, ticker, taxYears, units, heldUnits })
+ *   'partRung'      a rung held below its target (`rung` as above: `units` still to buy, `heldUnits` held)
+ *   'overRung'      a rung held above its target — bought, with more than it needs (`rung`: `units` the excess)
+ *   'matured' / 'soldRung'   a rung already paid, or sold by the rotation: a line still on the record
+ *   'cash'          the pension's cash (money-market fund or cash)
+ *   'gilt'          a gilt that is none of the plan's rungs: `matures` ('YYYY-MM-DD', or null when it cannot be told — never
+ *                   guessed from a year), `Y` the tax year it matures in, `paid` (it has matured by today), and what it pays
+ *                   (standInPays: `pays`, `real` at today's prices, `payKind`, `fixed`)
+ *   'outside'       shares or a fund outside the plan's mix (its value today can fall)
+ *   'rotation'      the fund the rotation bought: the plan now
+ *   'standIn' / 'kept'   a line the person keeps (`keep`)
+ *   'outsidePension'     an ISA, taxable-account or bank line: outside the pension, left as it is
+ */
+function heldRoles(L, { rungOf, statusOf, rotated, now }) {
+  return L.map((h) => {
+    const base = { at: rawOf(h).at != null ? rawOf(h).at : null, label: h.name || h.ticker || h.sedol || '', ticker: h.ticker || '', sedol: h.sedol || null, wrapper: h.wrapper, value: Math.round(h.value), units: h.units };
+    if (h.keep) return { ...base, role: h.keep.as === 'rung' ? 'standIn' : 'kept', keep: { ...h.keep } };
+    if (h.wrapper !== 'SIPP') return { ...base, role: 'outsidePension' };
+    if (h.cash) return { ...base, role: 'cash' };
+    const r = rungOf.get(h);
+    if (r) {
+      const s = statusOf.get(r.t.key);
+      const x = s ? s.x : r.t;
+      return { ...base, role: r.role, rung: { key: r.t.key, label: r.t.label, ticker: r.t.ticker || '', taxYears: (r.t.taxYears || []).slice(), units: x.units, heldUnits: x.heldUnits != null ? x.heldUnits : null } };
+    }
+    if (h.gilt) {
+      const matures = giltMaturityOf(h);
+      if (!matures) return { ...base, role: 'gilt', matures: null, Y: null, paid: false };
+      const when = new Date(matures + 'T12:00:00');
+      const Y = taxYearStartOf(when);
+      const p = standInPays(h, { today: now, from: Y });
+      return { ...base, role: 'gilt', matures, Y, paid: !!now && when.getTime() < now.getTime(), pays: p.amount, real: p.real, payKind: p.payKind, fixed: p.fixed };
+    }
+    return { ...base, role: rotated ? 'rotation' : 'outside' };
+  });
 }
 
 /**

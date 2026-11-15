@@ -90,16 +90,18 @@ function expectedHtml(expected) {
 
 /**
  * "What is covered, year by year" (7.6.0): the same reading and the same sentences as V7 (answers/plan/gaps.js gapsView,
- * filled with src/v7/copy/gaps.js), as a table and a list. Nothing when the record keeps nothing.
+ * filled with src/v7/copy/gaps.js), as a table and a list. Nothing when there is nothing to read (gapsOf's null rule).
  */
 export function gapsHtml(gaps) {
   if (!gaps) return '';
   const G = GAPS;
   // a plan drawn from a pot has no years bought ahead: what is kept and expected, with no year by year (as V7 says it)
-  let h = '<div class="section-title" style="margin-top:12px;">' + esc(gaps.ladder ? G.title : G.titlePot) + '</div><p class="hint">' + esc(gaps.ladder ? G.lead : G.leadPot) + '</p>';
+  // 7.11.1: a reading of what is held beyond the plan's own says so in its lead (gapsView `lead`)
+  let h = '<div class="section-title" style="margin-top:12px;">' + esc(gaps.ladder ? G.title : G.titlePot) + '</div><p class="hint">' + esc(gaps.ladder ? G[gaps.lead || 'lead'] : G.leadPot) + '</p>';
   h += '<ul style="font-size:13px;line-height:1.6;" id="transitionGaps">' + gaps.lines.map((l) => '<li data-line="' + esc(l.id) + '">' + esc(sayGapLine(l, G)) + '</li>').join('') + '</ul>';
   if (gaps.ladder && gaps.rows.length) {
-    const held = (r) => (r.parts.length ? r.parts.map((p) => (p.kind === 'standIn' ? p.label + ' ' + p.amount : G.heldParts[p.kind] + ' ' + p.amount)).join(', ') : G.none) + (r.toBuy ? ' · ' + G.heldParts.toBuy.replace('{amount}', r.toBuy) : '');
+    // a line standing in, or a gilt counted toward the year it matures in (7.11.1), by its own name
+    const held = (r) => (r.parts.length ? r.parts.map((p) => (p.kind === 'standIn' || p.kind === 'gilt' ? p.label + ' ' + p.amount : G.heldParts[p.kind] + ' ' + p.amount)).join(', ') : G.none) + (r.toBuy ? ' · ' + G.heldParts.toBuy.replace('{amount}', r.toBuy) : '');
     h += table([G.columns.year, G.columns.need, G.columns.held, G.columns.gap], gaps.rows.map((r) => [esc(r.thisYear ? G.thisYear.replace('{year}', r.year).replace('{months}', r.monthsLeft).replace('{s}', r.monthsLeft === '1' ? '' : 's') : r.year), esc(r.need), esc(held(r)), esc(r.gap || G.none)]));
   }
   return h;

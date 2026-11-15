@@ -159,11 +159,29 @@ async function choose(page, uid, view) {
   await expect.poll(async () => ((await settingsOf(uid)) || {}).view, { timeout: 15_000 }).toBe(view);
   await expect.poll(() => stored(page, 'pt_view')).toBe(view === 'full' ? 'full' : null);
 }
-/** The plan's home in the simple view, drawn, with the account's settings read. */
+/** The plan's home in the simple view, drawn from the account's plans (so "Show everything" hands this plan over). */
 async function simpleHome(page, id) {
   await expect(page).toHaveURL(new RegExp(`${V7_PATH.replace(/\//g, '\\/')}#/plan/${id}$`));
   await expect(screen(page)).toHaveAttribute('data-screen', /^plan/, { timeout: 30_000 });
+  await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('#app')).toHaveAttribute('data-ready', '1', { timeout: 30_000 });
+}
+/** The strip's own buttons and link: on the screen, and 44 px tall on a phone (e2e/helpers/app.js lookOver's rule). */
+async function stripLooksRight(page) {
+  const problems = await page.evaluate(() => {
+    const out = [];
+    const strip = document.querySelector('[data-testid="view.strip"]');
+    if (!strip) return ['no strip'];
+    const width = document.documentElement.clientWidth;
+    for (const el of strip.querySelectorAll('button, a[href]')) {
+      const r = el.getBoundingClientRect();
+      const name = el.getAttribute('data-testid') || el.textContent.trim();
+      if (r.left < -0.5 || r.right > width + 0.5) out.push(`${name} is outside the screen`);
+      if (width <= 390 && r.height < 43.5) out.push(`${name} is ${Math.round(r.height)} pixels tall on a phone`);
+    }
+    return out;
+  });
+  expect(problems).toEqual([]);
 }
 /** From a plan's home, "Show everything" to the full view and its note's way back: the strip's round trip. */
 async function roundTrip(page, id) {
@@ -247,6 +265,7 @@ test.describe('the full view as the usual view', () => {
     await roundTrip(page, DRAW_ID);
     await expect(strip).toBeVisible({ timeout: 30_000 });
     await expect(strip).toContainText('You have just been in the full view.');
+    await stripLooksRight(page);
 
     await page.reload();
     await simpleHome(page, DRAW_ID);
@@ -269,6 +288,7 @@ test.describe('the full view as the usual view', () => {
     await expect.poll(async () => ((await settingsOf(uid)) || {}).view, { timeout: 15_000 }).toBe('simple');
     await expect(page.getByTestId('view.strip.done')).toHaveText('Done: PensionTools keeps opening in the simple view. You can change this on Your account.');
     await expect(page.getByTestId('view.strip.done').locator('a')).toHaveAttribute('href', '#/account');
+    await stripLooksRight(page);
     await page.goto(PROD + V7_PATH + '#/plans');
     await expect(screen(page)).toHaveAttribute('data-screen', 'plans');
     await expect(strip).toHaveCount(0);

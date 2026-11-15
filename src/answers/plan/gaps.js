@@ -117,7 +117,9 @@ export function gapsOf(plan, { today, asKept = false }) {
   // each stand-in in the diff's order (two lines can share a name: never looked up by it)
   const standIns = (D.standIn || []).map((s) => ({ label: s.label || s.ticker || '', ticker: s.ticker || '', wrapper: s.wrapper, pays: r0(s.pays), real: r0(s.real != null ? s.real : s.pays), fixed: !!s.fixed, payKind: s.payKind, matures: s.matures || null, taxYears: s.taxYears.slice(), perYear: Array.isArray(s.perYear) ? s.perYear : [], gap: r0(s.gap), spare: r0(s.spare) }));
   // 7.11.1: the gilts outside the rungs (each placed), and the shares and funds outside the plan's mix, at today's value
-  const gilts = roles.filter((r) => r.role === 'gilt').map((r) => ({ at: r.at, label: r.label, state: r.state, matures: r.matures, Y: r.state === 'counted' ? r.countsToward : null, pays: r0(r.pays), real: r0(r.real != null ? r.real : r.pays), fixed: !!r.fixed, payKind: r.payKind || null, used: 0, spare: 0 }));
+  // (what is kept alone still counts a gilt maturing in a cash year: the move never sells it, it is that year's cash)
+  const gilts = asKept ? (D.cashGilts || []).map((x) => ({ at: null, label: x.label, state: 'counted', matures: x.matures, Y: x.taxYear, pays: r0(x.pays), real: r0(x.real != null ? x.real : x.pays), fixed: !!x.fixed, payKind: x.payKind || null, used: 0, spare: 0 }))
+    : roles.filter((r) => r.role === 'gilt').map((r) => ({ at: r.at, label: r.label, state: r.state, matures: r.matures, Y: r.state === 'counted' ? r.countsToward : null, pays: r0(r.pays), real: r0(r.real != null ? r.real : r.pays), fixed: !!r.fixed, payKind: r.payKind || null, used: 0, spare: 0 }));
   const outLines = roles.filter((r) => r.role === 'outside').map((r) => ({ at: r.at, label: r.label, value: r0(r.value) }));
   const outside = { lines: outLines, total: outLines.reduce((s, x) => s + x.value, 0) };
   const base = { standIns, kept, fundsGaps, expected, heldAnotherWay: new Set(standIns.flatMap((s) => s.taxYears)).size, keptCount: kept.length, roles, gilts, outside, fromHeld, lumps: [] };

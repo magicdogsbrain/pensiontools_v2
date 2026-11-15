@@ -14,8 +14,6 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { gapsOf, gapsView, gapSentences, sayGapLine, gapHeadline, heldOf } from '../../../src/answers/plan/gaps.js';
 import { GAPS } from '../../../src/v7/copy/gaps.js';
 import { BANNED } from '../../../src/v7/copy/banned.js';
@@ -28,37 +26,8 @@ import { transitionHtml } from '../../../src/ui/components/TransitionView.js';
 import { transitionGaps } from '../../../src/ui/keepHoldingsUi.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
 import { entryOf, noon } from './_plans.js';
+import { ALEX_TODAY as TODAY, RAW, L, CONV, SHARES, FUND, PART, alexRaw, alex } from './_alex.js';
 
-const TODAY = '2026-11-15';   // November of 2026/27: five months of the tax year to come
-const RAW = JSON.parse(readFileSync(join(process.cwd(), 'tests', 'fixtures', 'plans', '03-gilt-ladder-locked.json'), 'utf8'));
-const L = (o) => ({ wrapper: 'SIPP', ticker: null, name: null, sedol: null, units: null, value: null, ocf: null, contribution: null, subClass: null, kind: null, asOf: '2026-11-01', ...o });
-// three conventional gilts from the bundled list, known by SEDOL alone (no code), maturing one in each cash year
-const CONV = [
-  L({ name: '4 1/8% Treasury Gilt 2027', sedol: 'BL6C772', units: 30000, value: 29990, kind: 'gilt' }),   // 29 January 2027: 2026/27
-  L({ name: '4¼% Treasury Gilt 2027', sedol: 'B16NNR7', units: 32000, value: 31860, kind: 'gilt' }),      // 7 December 2027: 2027/28
-  L({ name: '1 5/8% Treasury Gilt 2028', sedol: 'BFX0ZL7', units: 28000, value: 26380, kind: 'gilt' })    // 22 October 2028: 2028/29
-];
-const SHARES = L({ ticker: 'EXMPL', name: 'Example Shares plc', units: 400, value: 12000, subClass: 'worldGrowth' });
-const FUND = L({ ticker: 'VWRP', name: 'Vanguard FTSE All-World (Acc)', units: 300, value: 40000, kind: 'fund', subClass: 'worldGrowth' });
-const CASH = L({ ticker: 'XSTR', name: 'Xtrackers II Sterling Overnight Rate', units: 1, value: 50, kind: 'fund', subClass: 'moneyMarket' });
-const EXPECTED = [{ id: 'e1', label: 'Pension elsewhere', amount: 25000, by: '2027-06' }];
-const PART = { TR31: 2000, T41: 500 };   // the two rungs part bought, of 15,500 and 7,800
-
-/** Alex's plan: the corpus ladder with three cash years ahead and the 2027/28 need paid by a lump sum the plan counts. */
-function alexRaw({ lines = null, expected = EXPECTED } = {}) {
-  const p = JSON.parse(JSON.stringify(RAW));
-  p.id = 'AlexLiving01';
-  p.planDetails = { ...p.planDetails, name: 'Alex plan' };
-  const doc = p.planDocument, plan = doc.strategy.r.plan;
-  plan.orders = plan.orders.filter((o) => o.tidm !== 'T27');
-  plan.cashYears = [{ Y: 2026, age: 65, gross: 34000, need: 34000, cost: 34000 }, { Y: 2027, age: 66, gross: 34000, need: 0, cost: 0 }, { Y: 2028, age: 67, gross: 34000, need: 33000, cost: 33700 }];
-  plan.years = plan.years.map((y) => (y.Y === 2027 ? { ...y, need: 0, cost: 0, from: 'cash' } : y.Y === 2028 ? { Y: 2028, age: 67, gross: 34000, need: 33000, cost: 33700, from: 'cash' } : y));
-  doc.timeline = doc.timeline.map((r) => (r.taxYear === '2027/28' ? { ...r, lump: 34000, lumpIn: [{ label: 'Lump sum', amount: 40000, wrapper: 'cash' }] } : r.taxYear === '2028/29' ? { ...r, cashYear: true, source: 'cash', contract: 33000 } : r));
-  const rungs = plan.orders.map((o) => L({ ticker: o.tidm, name: o.name, sedol: o.sedol, units: PART[o.tidm] || o.nominal, value: Math.round((PART[o.tidm] || o.nominal) * o.cleanPrice * o.indexRatio / 100), kind: 'gilt' }));
-  p.holdings = { version: 1, updatedAt: '2026-11-01', source: 'typed', offerDismissed: false, lines: lines || [...rungs, ...CONV, SHARES, FUND, CASH], ...(expected && expected.length ? { expected } : {}) };
-  return p;
-}
-const alex = (o) => entryOf(alexRaw(o), TODAY).plan;
 const words = (g) => gapSentences(g).map((l) => sayGapLine(l, GAPS));
 
 describe('Alex: living on the plan', () => {
@@ -189,11 +158,17 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
     expect(moveOf([{ plan: q }], q.id, { today: TODAY })).not.toHaveProperty('gaps');
   });
 
-  it('the keep test reads what is kept alone, as before: its own reading never counts the lines the move sells there', () => {
+  // Moved on purpose (7.11.1, "Your plan's mix" by phase): a gilt maturing in a cash year is that year's cash and the move
+  // never sells it, so the keep test's own reading counts it too (it read 2028/29 as £33,000 short, while the move sold the
+  // gilt paying it). Shares and funds outside the plan's mix are still the move's to sell there, never counted twice.
+  it('the keep test reads what is kept, and the gilts maturing in the cash years (the move never sells them); never the lines the move sells there', () => {
     const k = gapsOf(p, { today: TODAY, asKept: true });
     expect(k.fromHeld).toBe(false);
-    expect(k.rows.find((r) => r.Y === 2028).gap).toBe(33000 - 0);
-    expect(ladderGapsOf(p, { today: TODAY }).gaps).toMatchObject({ 2028: 33000 });
+    expect(k.outside.total).toBe(0);
+    expect(k.gilts.map((x) => [x.label, x.Y])).toEqual(CONV.map((l, i) => [l.name, 2026 + i]));
+    expect(k.rows.find((r) => r.Y === 2028).gap).toBe(0);
+    const G = ladderGapsOf(p, { today: TODAY }).gaps;
+    for (const Y of [2026, 2027, 2028]) expect(G[Y], String(Y)).toBeUndefined();
   });
 });
 

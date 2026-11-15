@@ -469,14 +469,17 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
   const sipp = L.filter((h) => h.wrapper === 'SIPP' && !h.keep);
   const keepWhy = (h) => h.wrapper === 'ISA' ? 'ISA — kept as it is' : h.wrapper === 'CASH' ? 'bank / savings cash — outside the pension, kept as it is' : 'taxable account — kept as it is';
   const buy = [], sell = [], hold = [], matured = [], sold = [], keep = L.filter((h) => h.wrapper !== 'SIPP' && !h.keep).map((h) => ({ ...h, why: keepWhy(h) }));
-  const standIn = [], kept = [], covered = [];
+  const standIn = [], kept = [], covered = [], cashGilts = [];
   const keyOfLine = (h) => (h.ticker || h.sedol || h.name || '').toString();
   for (const h of L) if (h.keep && h.keep.as === 'mine') kept.push({ ...h, key: 'kept:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, fundsGaps: !!h.keep.fundsGaps, why: 'kept by you' });
-  let targetTotal = 0, heldOfTarget = 0, targetCount = 0, cashHeld = 0, cashTarget = 0, cashInfo = null, coveredCount = 0, coveredCashMoney = null;
+  let targetTotal = 0, heldOfTarget = 0, targetCount = 0, cashHeld = 0, cashTarget = 0, cashInfo = null, coveredCount = 0, coveredCashMoney = null, cashFreed = 0;
   // a pot plan's reading (7.10.0): the money in play, each bucket held against its target, the lines nothing places
   let inPlay = null, buckets = null, unread = false, ladderRead = null, roleList = null;
   const unknown = [];
   if (target.kind === 'ladder') {
+    // the cash years still ahead, as the plan has them before anything stands in for one (7.11.1: a gilt maturing in one is
+    // that year's cash)
+    const cashYearsAhead = new Set(target.cash && Array.isArray(target.cash.yearsLeft) ? target.cash.yearsLeft.map(Number) : []);
     // Lines kept to stand in for some tax years (7.6.0): what each pays (in today's money, as the needs are), set against each
     // year's need in turn. While the plan runs, this tax year needs only its months still to come.
     const needs = anyKeep ? needsFrom(target, needsGiven) : {};
@@ -585,18 +588,38 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
       else if (delta > 0) buy.push({ ...t, units: Math.round(delta), amount: Math.round(unitPrice ? delta * unitPrice : t.cost * (delta / t.units)), heldUnits: Math.round(heldUnits), why: 'rung for ' + t.taxYears.map(taxYearLabel).join(', ') });
       else sell.push({ ...t, units: Math.round(-delta), amount: Math.round(unitPrice ? -delta * unitPrice : 0), heldUnits: Math.round(heldUnits), why: 'more than the rung needs' });
     }
+    // A gilt that is none of the rungs, maturing in a cash year still ahead (7.11.1): that year's cash when it is paid, at
+    // what it pays at today's prices (standInPays, as a line kept to stand in for the year is read) — never a sale, and never
+    // guessed: its maturity is known (giltMaturityOf) and still to come
+    for (const h of sipp) {
+      if (used.has(h) || h.cash || !h.gilt || !cashYearsAhead.size) continue;
+      const matures = giltMaturityOf(h);
+      if (!matures) continue;
+      const when = new Date(matures + 'T12:00:00');
+      const Y = taxYearStartOf(when);
+      if (!cashYearsAhead.has(Y) || (now && when.getTime() < now.getTime())) continue;
+      const p = standInPays(h, { today: now, from: Y });
+      used.add(h);
+      cashGilts.push({ ...h, key: 'cashGilt:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, matures, taxYear: Y, pays: p.amount, real: p.real, payKind: p.payKind, fixed: p.fixed, why: 'matures in a cash year' });
+    }
+    const giltCash = cashGilts.reduce((s, g) => s + num(g.real), 0);
     // SIPP money-market cash only: a CASH-wrapper line is bank money, kept outside the plan.
     cashHeld = sipp.filter((h) => h.cash).reduce((s, h) => s + h.value, 0);
     cashTarget = target.cash ? target.cash.value : 0;
+    // what is held for the cash years: the pension's cash and the gilts maturing in them
+    const forCash = cashHeld + giltCash;
+    // the pension's cash those gilts leave spare (7.11.1): the money their sale gave before, for the buys — never more than
+    // they pay, and only what the cash years do not need
+    cashFreed = target.cash && giltCash > 0 ? Math.round(Math.max(0, Math.min(giltCash, forCash - cashTarget))) : 0;
     if (target.cash && target.cash.spending) {
       // The plan is running: the cash years are being spent as designed. Held vs target is information, not a move.
-      cashInfo = { held: Math.round(cashHeld), target: Math.round(cashTarget), yearsLeft: Array.isArray(target.cash.yearsLeft) ? target.cash.yearsLeft.slice() : [] };
+      cashInfo = { held: Math.round(cashHeld), target: Math.round(cashTarget), yearsLeft: Array.isArray(target.cash.yearsLeft) ? target.cash.yearsLeft.slice() : [], ...(cashGilts.length ? { gilts: Math.round(giltCash) } : {}) };
     } else if (target.cash) {
-      targetTotal += cashTarget; heldOfTarget += Math.min(cashTarget, cashHeld); if (cashTarget > 0) targetCount++;
+      targetTotal += cashTarget; heldOfTarget += Math.min(cashTarget, forCash); if (cashTarget > 0) targetCount++;
       // Spare SIPP cash before the start is never a sell (6.13.0): it is spending money or a float — held, with the spare
       // said. Only a shortfall (beyond tolerance) is a move.
-      if (cashTarget > 0 && cashHeld >= cashTarget * (1 - RUNG_TOLERANCE)) hold.push({ ...target.cash, heldValue: Math.round(cashHeld), spare: Math.round(Math.max(0, cashHeld - cashTarget)) });
-      else if (cashTarget > cashHeld) buy.push({ ...target.cash, amount: Math.round(cashTarget - cashHeld), heldValue: Math.round(cashHeld), why: 'the cash years' });
+      if (cashTarget > 0 && forCash >= cashTarget * (1 - RUNG_TOLERANCE)) hold.push({ ...target.cash, heldValue: Math.round(cashHeld), spare: Math.round(Math.max(0, forCash - cashTarget)), ...(cashGilts.length ? { gilts: Math.round(giltCash) } : {}) });
+      else if (cashTarget > forCash) buy.push({ ...target.cash, amount: Math.round(cashTarget - forCash), heldValue: Math.round(cashHeld), ...(cashGilts.length ? { gilts: Math.round(giltCash) } : {}), why: 'the cash years' });
       // every cash year stood in for (7.6.0): the pension's cash is still held — all of it spare, never a sell
       else if (coveredCashMoney && cashHeld > 0) hold.push({ ...target.cash, heldValue: Math.round(cashHeld), spare: Math.round(cashHeld) });
       if (coveredCashMoney) { targetTotal += coveredCashMoney.target; heldOfTarget += coveredCashMoney.held; }
@@ -673,7 +696,9 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
   else if (anyKeep && target.kind === 'ladder') { complete = true; reason = 'every rung is held or covered by what you chose to keep' + (target.cash && !target.cash.spending ? ', and the cash years are covered' : ''); }
   else { complete = true; reason = target.kind === 'ladder' ? 'every rung the plan still needs is held' + (target.cash && !target.cash.spending ? ', and the cash years are covered' : '') : 'every bucket is within ' + Math.round(band * 100) + '% of the pension of its target'; }
   return { kind: unread ? 'none' : target.kind, buy, sell, hold, keep, matured, sold, cashInfo,
-    totals: { buyCost: Math.round(buyCost), sellValue: Math.round(sellValue), shortfall: Math.round(Math.max(0, buyCost - sellValue)), cashHeld: Math.round(cashHeld), cashTarget: Math.round(cashTarget) },
+    totals: { buyCost: Math.round(buyCost), sellValue: Math.round(sellValue), shortfall: Math.round(Math.max(0, buyCost - sellValue - cashFreed)), cashHeld: Math.round(cashHeld), cashTarget: Math.round(cashTarget), ...(cashFreed > 0 ? { cashFreed } : {}) },
+    // 7.11.1: the gilts outside the rungs maturing in a cash year still ahead — that year's cash, never a sale (only when there are any)
+    ...(cashGilts.length ? { cashGilts } : {}),
     progressPct: unread ? null : targetTotal > 0 ? Math.round(100 * heldOfTarget / targetTotal) : (complete ? 100 : 0), complete, reason,
     // 7.10.0: a pot plan's money in play and its buckets, held against their targets, and the lines nothing places; a
     // ladder's rungs held of those needed and a gap soon (driftOf reads them)
@@ -768,7 +793,9 @@ export function sequence(diff, { today = new Date(), startYear, startMonth = nul
   const totalBuy = buys.reduce((s, b) => s + num(b.amount), 0);
   const totalSell = sells.reduce((s, b) => s + num(b.amount), 0);
   const contributions = num(contributionsMonthly) * months;
-  const funded = totalSell + contributions >= totalBuy - 1;
+  // the pension's cash that gilts maturing in the cash years leave spare (7.11.1, diffHoldings `cashFreed`) pays for buys too
+  const freed = num(diff.totals && diff.totals.cashFreed);
+  const funded = totalSell + contributions + freed >= totalBuy - 1;
   const steps = [];
   const perTranche = totalBuy / tranches;
   let bi = 0, remainingInBuy = buys.length ? num(buys[0].amount) : 0;
@@ -789,8 +816,8 @@ export function sequence(diff, { today = new Date(), startYear, startMonth = nul
       if (remainingInBuy <= 0.5) { bi++; remainingInBuy = bi < buys.length ? num(buys[bi].amount) : 0; }
     }
   }
-  return { steps, months, tranches, funded, startPassed, totals: { buy: Math.round(totalBuy), sell: Math.round(totalSell), contributions: Math.round(contributions) },
-    note: funded ? 'Funded by sales' + (contributions > 0 ? ' and contributions' : '') + '.' : 'Short by ' + Math.round(totalBuy - totalSell - contributions).toLocaleString('en-GB') + ' — the plan was priced on a bigger pot than the ledger holds, or holdings are missing from the ledger.' };
+  return { steps, months, tranches, funded, startPassed, totals: { buy: Math.round(totalBuy), sell: Math.round(totalSell), contributions: Math.round(contributions), ...(freed > 0 ? { cashFreed: Math.round(freed) } : {}) },
+    note: funded ? 'Funded by sales' + (contributions > 0 ? ' and contributions' : '') + (freed > 0 ? ' and the cash the gilts maturing in the cash years leave spare' : '') + '.' : 'Short by ' + Math.round(totalBuy - totalSell - contributions - freed).toLocaleString('en-GB') + ' — the plan was priced on a bigger pot than the ledger holds, or holdings are missing from the ledger.' };
 }
 
 /**

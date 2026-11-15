@@ -24,6 +24,7 @@ import { homeOf } from '../../../src/answers/plan/home.js';
 import { planPage, stageLine } from '../../../src/answers/plan/read.js';
 import { householdOf } from '../../../src/answers/plan/household.js';
 import { planStage } from '../../../src/services/PlanReading.js';
+import { phasesPatch } from '../../../src/services/Phases.js';
 import { HOME } from '../../../src/v7/copy/home.js';
 import { PLAN } from '../../../src/v7/copy/plan.js';
 import { corpus, entriesAt, entryOf, withTasks, stateWith, noon, DATES } from './_plans.js';
@@ -191,5 +192,39 @@ describe('a partner\'s line reads their plan\'s phase (7.10.0, LifeStage.stageOf
       }
     }
     expect(seen).toBeGreaterThan(4);
+  });
+});
+
+describe('a saver\'s line names the phase, never the placing\'s own five years (7.10.0)', () => {
+  it('every committed plan not locked, every window from one to five years, every date: "Still saving." outside the window, the window\'s words inside it', () => {
+    const AT = '2026-10-01T12:00:00.000Z';
+    const seen = { saving: 0, moving: 0 };
+    for (const today of [...DAYS, '2028-10-02', '2029-06-02']) {
+      for (const years of [1, 2, 3, 4, 5]) {
+        const raws = Object.values(C).map((p) => ({ ...p, ...phasesPatch(p, 'window', years, { at: AT }) }));
+        const entries = entriesAt(today, raws);
+        for (const e of entries) {
+          const pg = planPage(entries, e.plan.id, null, { today });
+          if (!pg.found || !pg.life || !pg.line || pg.life.confirmStop) continue;
+          const placing = planStage(e.plan, { now: noon(today) }).key;
+          if (placing !== 'saving' && placing !== 'approaching') continue;
+          const where = `${e.plan.id} ${today} window ${years} (placing ${placing}, phase ${pg.life.key})`;
+          if (pg.life.key === 'saving') { seen.saving++; expect(pg.line.id, where).toBe('saving'); }
+          if (pg.life.key === 'moving') { seen.moving++; expect(pg.line.id, where).toBe('approaching'); }
+        }
+      }
+    }
+    expect(seen.saving).toBeGreaterThan(5);
+    expect(seen.moving).toBeGreaterThan(5);
+  });
+  it('a plan placed only by the Accumulation tab\'s ages, two years from its stop: the stop has no date, so it reads Saving and says "Still saving."', () => {
+    const today = '2026-10-02';
+    const raw = C['01-fresh-default'];
+    const plan = { ...raw, accumulationTool: { ...(raw.accumulationTool || {}), settings: { ...((raw.accumulationTool || {}).settings || {}), currentAge: 63, retirementAge: 65 } } };
+    const entries = entriesAt(today, [plan]);
+    const pg = planPage(entries, plan.id, null, { today });
+    expect(planStage(entries[0].plan, { now: noon(today) }).key).toBe('approaching');
+    expect(pg.life.key).toBe('saving');
+    expect(pg.line).toEqual({ id: 'saving', slots: {} });
   });
 });

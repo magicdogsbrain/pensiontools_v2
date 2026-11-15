@@ -130,11 +130,15 @@ function lineOf(stage, plan, ss, list, now, life = null) {
 /**
  * The line follows the phase (7.10.0, LifeStage.stageOf), never a placing it has left: past the stop on a plan not locked,
  * the stop as the plan says it (the home asks "did you stop work?"); living on it by an agreement or a month recorded on a
- * saver's placing, the words of a plan lived on (not locked yet, or locked). Null where the placing's own line is the phase's.
+ * saver's placing, the words of a plan lived on (not locked yet, or locked); a saver not locked, the phase's words, never the
+ * placing's own five years (outside the plan's window "Still saving.", inside it the window's line — a window shorter or longer
+ * than five years, or a stop the plan knows only as an age). Null where the placing's own line is the phase's.
  */
 function phaseLine(stage, plan, life) {
   if (life && life.confirmStop && life.stop) return { id: 'pastStop', slots: { month: monthWords(life.stop) } };
   if (life && life.key === 'drawing' && stage && SAVER_STAGES.includes(stage.key)) return isLocked(plan) ? { id: 'running', slots: {} } : { id: 'draft-retired', slots: {} };
+  if (life && stage && stage.key === 'approaching' && life.key === 'saving') return { id: 'saving', slots: {} };
+  if (life && stage && stage.key === 'saving' && life.key === 'moving') return { id: 'approaching', slots: {} };
   return null;
 }
 

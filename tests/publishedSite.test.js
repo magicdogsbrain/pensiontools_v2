@@ -124,6 +124,24 @@ describe('the two pages\' heads', () => {
     expect(CLASSIC_TO_FRONT_OUTSIDE).not.toMatch(/<script|\son[a-z]+=/i);
     expect(CLASSIC_TO_FRONT_OUTSIDE).toMatch(/^<style>body:has\(#mainApp:not\(\.hidden\)\) #classicToFrontOutside\{display:none\}<\/style><p id="classicToFrontOutside"/);
   });
+  it('the line outside the app is above the landing page and the sign-in screen, which start below it while it shows (7.11.0: before, they covered it)', () => {
+    // the two screens cover the window (fixed, each with its z-index); the line is a band of their background above both
+    const zOf = (file, selector) => {
+      const src = read(file);
+      const at = src.indexOf(selector + ' {');
+      expect(at, file + ' ' + selector).toBeGreaterThan(-1);
+      return Number(/z-index:\s*(\d+)/.exec(src.slice(at, src.indexOf('}', at)))[1]);
+    };
+    const style = /<p id="classicToFrontOutside" style="([^"]*)"/.exec(CLASSIC_TO_FRONT_OUTSIDE)[1];
+    expect(style).toMatch(/^position:relative;z-index:\d+;/);
+    const line = Number(/z-index:(\d+)/.exec(style)[1]);
+    expect(line).toBeGreaterThan(zOf('src/ui/components/LandingPage.js', '.landing-page'));
+    expect(line).toBeGreaterThan(zOf('src/ui/components/AuthScreen.js', '.auth-screen'));
+    expect(style).toContain('background:var(--bg);');
+    // one line of 18 px with 8 px above and below: the two screens start 34 px down while it shows (the app hidden)
+    expect(style).toContain('margin:0;padding:8px 16px;line-height:18px;');
+    expect(CLASSIC_TO_FRONT_OUTSIDE).toMatch(/<\/p><style>body:has\(#mainApp\.hidden\) \.landing-page,body:has\(#mainApp\.hidden\) \.auth-screen\{top:34px\}<\/style>$/);
+  });
   it('the classic page has one name at 7.0: its tab title, its header and the headings its modules draw (landing page, sign-in, the first-plan welcome)', () => {
     expect(CLASSIC_NAME).toBe('PensionTools (full view)');
     expect(CLASSIC_NAME_IN_PAGE).toBe(CLASSIC_NAME);   // these tests run the published layout (src/appLayout.js)

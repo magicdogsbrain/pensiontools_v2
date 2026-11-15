@@ -136,11 +136,15 @@ export const CLASSIC_NAME = 'PensionTools (full view)';
 export const CLASSIC_TO_FRONT = `<p id="classicToFront" style="margin:0 0 6px;text-align:right;font-size:13px;">${COMMON.view.fullText} <a href="${LAYOUTS.switch.classic.v7}#/" id="classicToSimple" style="color:inherit;text-decoration:underline;">${COMMON.view.fullLink}</a></p>`;
 /**
  * The same line on the screens drawn outside the app, before a visitor is in: the landing page and the sign-in screen
- * (7.0.1). It sits above them and hides itself once the app shows, where CLASSIC_TO_FRONT takes over, so one line shows
- * at a time. Its link goes to the simple view's front door, with the hash. Markup and one style rule only, so the page's
- * script gains no line.
+ * (7.0.1). It hides itself once the app shows, where CLASSIC_TO_FRONT takes over, so one line shows at a time. Those two
+ * screens cover the whole window (src/ui/components/LandingPage.js, AuthScreen.js: fixed, z-index 999 and 1000), so the
+ * line is a band of their own background above them (z-index 1001; the setup wizard, drawn later at 1001, still covers
+ * it), and while it shows they start below it (34 px: one line of 18 px and 8 px above and below; on a phone too narrow
+ * for one line the second line falls in their own top padding). Before 7.11.0 they covered it, and nobody could see or
+ * press it there. Its link goes to the simple view's front door, with the hash. Markup and two style rules only, so the
+ * page's script gains no line.
  */
-export const CLASSIC_TO_FRONT_OUTSIDE = `<style>body:has(#mainApp:not(.hidden)) #classicToFrontOutside{display:none}</style><p id="classicToFrontOutside" style="margin:8px 16px 0;text-align:right;font-size:13px;">${COMMON.view.fullText} <a href="${LAYOUTS.switch.classic.v7}#/" style="color:inherit;text-decoration:underline;">${COMMON.view.fullLink}</a></p>`;
+export const CLASSIC_TO_FRONT_OUTSIDE = `<style>body:has(#mainApp:not(.hidden)) #classicToFrontOutside{display:none}</style><p id="classicToFrontOutside" style="position:relative;z-index:1001;margin:0;padding:8px 16px;line-height:18px;text-align:right;font-size:13px;background:var(--bg);">${COMMON.view.fullText} <a href="${LAYOUTS.switch.classic.v7}#/" style="color:inherit;text-decoration:underline;">${COMMON.view.fullLink}</a></p><style>body:has(#mainApp.hidden) .landing-page,body:has(#mainApp.hidden) .auth-screen{top:34px}</style>`;
 
 /**
  * The classic page at 7.0, the full view (index.html is the preview's, unchanged by that layout). Its head: no manifest

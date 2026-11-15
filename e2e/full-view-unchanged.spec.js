@@ -18,6 +18,15 @@ const SWITCHED = LAYOUT_UNDER_TEST.name === 'switch';
 const STRATEGY_LINKS = ['gilt-rotation', 'ladder-and-ratchet', 'floor-and-flex', 'floor-the-schedule', 'bridge-and-engine', 'buckets-in-order', 'pots-and-valves', 'floor-to-age', 'full-il-gilt', 'gilts', 'overview', 'assumptions', 'whatsnew'];
 const STRATEGY_PAGES = ['gilt-rotation', 'ladder-and-ratchet', 'floor-and-flex', 'floor-the-schedule', 'bridge-and-engine', 'buckets-in-order', 'pots-and-valves'];
 const NAME = 'PensionTools (full view)';
+/** A screen drawn over the whole window (the landing page, the sign-in screen) starts below the line naming the view. */
+async function belowTheLine(page, selector) {
+  const line = await page.locator('#classicToFrontOutside').boundingBox();
+  const screen = await page.locator(selector).boundingBox();
+  expect(line && screen, selector).toBeTruthy();
+  expect(screen.y, selector).toBeGreaterThanOrEqual(line.y + line.height - 0.5);
+  const hit = await page.evaluate(() => { const a = document.querySelector('#classicToFrontOutside a'); const r = a.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return at === a || a.contains(at); });
+  expect(hit, 'the line\'s link is the topmost thing where it is drawn').toBe(true);
+}
 const LINE = 'This is the full view. Back to the simple view.';
 const BACK = 'Back to the simple view.';
 
@@ -47,10 +56,15 @@ test.describe('the full view, beside the simple view', () => {
       const out = new URL(await toFrontOutside.getAttribute('href'), page.url());
       expect(out.pathname).toBe(V7_PATH);
       expect(out.hash).toBe('#/');
+      // …and it can be pressed: the landing page covers the whole window, and starts below the line, never over it
+      // (before 7.11.0 it covered the line, and a press never reached it)
+      await toFrontOutside.click({ trial: true, timeout: 5_000 });
+      await belowTheLine(page, '.landing-page');
     } else await expect(toFrontOutside).toHaveCount(0);
     const preview = new URL(await page.locator('#landingPreviewLink').getAttribute('href'), page.url());
     expect(preview.pathname).toBe(V7_PATH);
     expect(preview.hash).toBe('#/');
+    await page.locator('#landingPreviewLink').click({ trial: true, timeout: 5_000 });   // and nothing lies over the landing page's own line
     await page.locator('#landingLookAround').click();   // the example plan (6.23.0): "Just try it" now opens the setup wizard for a plan of your own
 
     // Guest mode has started: the banner says so, and the example plan lives in this window only.
@@ -115,6 +129,22 @@ test.describe('the full view, beside the simple view', () => {
       expect(went, 'the way back went on to the full view again').toBe(false);
     }
     // The `watch` fixture fails this test on any console error, uncaught error or failed request of the app's own.
+  });
+
+  // The sign-in screen covers the whole window too (7.11.0): it starts below the line naming the view, whose link can be
+  // pressed there and takes the visitor to the simple view's front door.
+  test('the sign-in screen starts below the line naming the view, and its way back can be pressed', async ({ page }) => {
+    test.skip(!SWITCHED, 'the rollback layout has no such line, as before 7.0');
+    await page.goto(PROD + CLASSIC_PATH + '?signin=1');
+    await expect(page.locator('#signinForm')).toBeVisible({ timeout: 30_000 });
+    const line = page.locator('#classicToFrontOutside');
+    await expect(line).toHaveText(LINE);
+    await line.locator('a').click({ trial: true, timeout: 5_000 });
+    await belowTheLine(page, '.auth-screen');
+    await page.locator('#signinEmail').click({ trial: true, timeout: 5_000 });
+    await line.locator('a').click();
+    await page.waitForURL((u) => new URL(u.href).pathname === V7_PATH && new URL(u.href).hash === '#/');
+    await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', 'front', { timeout: 30_000 });
   });
 
   // Parity by presence (7.11.0): every page the full view has is still there. Counted, not looked at: a plan's stage can

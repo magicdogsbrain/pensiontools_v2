@@ -45,30 +45,35 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
   const g = gapsOf(p, { today: TODAY });
   const needs = yearNeedsOf(p.planDocument);
 
-  it('each conventional gilt counts toward the tax year it matures in, at what it pays at today\'s prices; every cash year is covered', () => {
+  // Moved on purpose (the review of 7.11.1): a gilt pays in the month it matures, so the months of its year before then are
+  // the pension's cash's. Alex holds £50 of it, so November and December 2026 are not covered until the January gilt pays.
+  it('each conventional gilt counts toward the tax year it matures in, from the month it matures, at what it pays at today\'s prices', () => {
     expect(g).not.toBe(null);
     expect(g.fromHeld).toBe(true);
     expect(g.rows.map((r) => r.Y)).toEqual([2026, 2027, 2028]);
     const [r26, r27, r28] = g.rows;
     const real = CONV.map((l, i) => standInPays(l, { today: noon(TODAY), from: 2026 + i }).real);
-    // this year: five months to come, all of them paid by the gilt maturing in January; the rest is cash for the years after
-    expect(r26).toMatchObject({ thisYear: true, monthsLeft: 5, need: Math.round(34000 * 5 / 12), source: 'thisYear', gap: 0 });
-    expect(r26.gilts).toEqual([{ label: '4 1/8% Treasury Gilt 2027', pays: Math.round(34000 * 5 / 12), fixed: true }]);
+    const m26 = 34000 / 12, m28 = 33000 / 12;
+    // this year: five months to come — November and December from the pension's cash (£50), January to March from the gilt
+    // maturing in January; the rest of it is cash for the years after
+    expect(r26).toMatchObject({ thisYear: true, monthsLeft: 5, need: Math.round(34000 * 5 / 12), source: 'thisYear', cash: 50, gap: Math.round(m26 * 2 - 50) });
+    expect(r26.gilts).toEqual([{ label: '4 1/8% Treasury Gilt 2027', pays: Math.round(m26 * 3), fixed: true }]);
     // 2027/28: the plan needs nothing from the pension (a lump sum it counts pays it): the gilt maturing then is all cash after
     expect(r27).toMatchObject({ need: 0, held: 0, gap: 0, paidBy: 'lump' });
-    // 2028/29: its own gilt, then the pension's cash — what the earlier gilts paid beyond their years
-    expect(r28.gilts[0]).toEqual({ label: '1 5/8% Treasury Gilt 2028', pays: real[2], fixed: true });
-    expect(r28).toMatchObject({ need: 33000, held: 33000, cash: 33000 - real[2], gap: 0 });
-    expect(g.totalGap).toBe(0);
-    expect(g.firstGap).toBe(null);
-    expect(gapHeadline(g)).toBe(null);
+    // 2028/29: April to September from the pension's cash (what the earlier gilts paid beyond their years), October on from
+    // its own gilt
+    expect(r28.gilts[0]).toEqual({ label: '1 5/8% Treasury Gilt 2028', pays: Math.round(m28 * 6), fixed: true });
+    expect(r28).toMatchObject({ need: 33000, held: 33000, cash: Math.round(m28 * 6), gap: 0 });
+    expect(g.totalGap).toBe(Math.round(m26 * 2 - 50));
+    expect(g.firstGap).toMatchObject({ Y: 2026, shortFrom: '2026-11', until: { label: '4 1/8% Treasury Gilt 2027', month: '2027-01' } });
+    expect(gapHeadline(g)).toMatchObject({ year: '2026/27' });
     // what each pays beyond its year is said, never lost
-    expect(g.gilts.map((x) => [x.state, x.Y, x.spare])).toEqual([['counted', 2026, real[0] - Math.round(34000 * 5 / 12)], ['counted', 2027, real[1]], ['counted', 2028, 0]]);
+    expect(g.gilts.map((x) => [x.state, x.Y, x.spare])).toEqual([['counted', 2026, real[0] - Math.round(m26 * 3)], ['counted', 2027, real[1]], ['counted', 2028, real[2] - Math.round(m28 * 6)]]);
     expect(needs[2027].need).toBe(0);
   });
 
   it('shares and funds outside the plan\'s mix are never held for a year, never ignored: worth today, and that they can fall', () => {
-    expect(g.outside).toEqual({ lines: [{ at: expect.any(Number), label: 'Example Shares plc', value: 12000 }, { at: expect.any(Number), label: 'Vanguard FTSE All-World (Acc)', value: 40000 }], total: 52000 });
+    expect(g.outside).toEqual({ lines: [{ at: expect.any(Number), label: 'Example Shares plc', value: 12000 }, { at: expect.any(Number), label: 'Vanguard FTSE All-World (Acc)', value: 40000 }], total: 52000, gilts: false });
     expect(g.rows.every((r) => !r.standIns.length && r.gilts.every((x) => !/Shares|Vanguard/.test(x.label)))).toBe(true);
     const w = words(g);
     expect(w).toContain('Also in your pension, outside the plan’s mix: Example Shares plc and Vanguard FTSE All-World (Acc), £52,000 at today’s value.');
@@ -77,12 +82,14 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
 
   it('says it in words: each gilt, the year that needs nothing and why, every year covered, the lump sum the plan already counts', () => {
     const w = words(g);
-    expect(w[0]).toBe('Your ladder, as locked.');
-    expect(w).toContain('2027/28 needs nothing from your pension: a lump sum the plan counts that year pays it.');
+    // read with what is held and nothing kept, the lead says it all: no "Your ladder, as locked."
+    expect(w).not.toContain(GAPS.strategyNone);
+    expect(w[0]).toBe('2027/28 needs nothing from your pension: a lump sum the plan counts that year pays it.');
     expect(w.some((t) => /^4 1\/8% Treasury Gilt 2027 matures in January 2027, so it counts toward 2026\/27\. It pays a fixed £30,619; it does not rise with prices, so when it is paid it is worth £[\d,]+ at today’s prices\.$/.test(t))).toBe(true);
     expect(w.some((t) => t.startsWith('4¼% Treasury Gilt 2027 matures in December 2027, so it counts toward 2027/28.'))).toBe(true);
     expect(w.some((t) => t.startsWith('1 5/8% Treasury Gilt 2028 matures in October 2028, so it counts toward 2028/29.'))).toBe(true);
-    expect(w).toContain('Every year to 2028/29 is covered by what you hold.');
+    expect(w).toContain('Without the money you expect, 2026/27’s money is not covered from November 2026 until 4 1/8% Treasury Gilt 2027 pays in January 2027.');
+    expect(w).toContain('With it, every year to 2028/29 is covered.');
     expect(w).toContain('The plan already counts a lump sum of £40,000 in 2027/28; if the money you expect is that money, it is not extra.');
     // free of advice and of every banned word a plan page may show
     for (const t of [...w, ...Object.values(GAPS).filter((x) => typeof x === 'string').map((x) => x.replace(/\{\w+\}/g, 'two'))]) for (const b of BANNED.filter((x) => ['all', 'planner', 'record', 'result', 'retired'].includes(x.scope))) {
@@ -108,7 +115,7 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
     expect(v.lead).toBe('leadHeld');
     expect(v.held.find((r) => r.label === '4¼% Treasury Gilt 2027')).toMatchObject({ role: 'gilt', state: 'counted', matures: 'December 2027', year: '2027/28' });
     expect(v.held.find((r) => r.label === '0 1/8% Index-linked Treasury Gilt 2031')).toMatchObject({ role: 'partRung', rung: { heldUnits: '2000', units: '13500', years: ['2032/33'] } });
-    expect(v.rows[0].parts).toEqual([{ kind: 'gilt', label: '4 1/8% Treasury Gilt 2027', amount: '£' + Math.round(34000 * 5 / 12).toLocaleString('en-GB') }]);
+    expect(v.rows[0].parts).toEqual([{ kind: 'gilt', label: '4 1/8% Treasury Gilt 2027', amount: '£' + Math.round(34000 / 12 * 3).toLocaleString('en-GB') }, { kind: 'cash', amount: '£50' }]);
   });
 
   it('one reader for every view: What you hold, the move, the home and the full view say the same', () => {
@@ -116,7 +123,7 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
     const entries = [{ plan: p }];
     expect(holdOf(entries, p.id, { today: TODAY }).gaps).toEqual(v);
     expect(moveOf(entries, p.id, { today: TODAY }).gaps).toEqual(v);
-    expect(homeOf(entries, p.id, { today: TODAY })).not.toHaveProperty('gap');
+    expect(homeOf(entries, p.id, { today: TODAY }).gap).toMatchObject({ year: '2026/27', gap: v.totalGap });
     expect(transitionGaps(p, p.holdings, noon(TODAY))).toEqual(v);
     const mi = moveInputs(p, { now: noon(TODAY) });
     const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: v });
@@ -131,8 +138,9 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
     expect(h.rows.find((r) => r.Y === 2028).gap).toBeGreaterThan(0);
     expect(h.withHeld).toEqual(h.totalGap <= 25000 + 52000 ? { covered: true, short: 0 } : { covered: false, short: h.totalGap - 77000 });
     expect(words(h)).toContain('With the money you expect, and these at today’s value, every year to 2028/29 is covered.');
-    expect(gapHeadline(h)).toMatchObject({ year: '2028/29' });
-    expect(homeOf([{ plan: q }], q.id, { today: TODAY }).gap).toMatchObject({ year: '2028/29' });
+    // the first year short is this one: November and December come before the January gilt pays (the review of 7.11.1)
+    expect(gapHeadline(h)).toMatchObject({ year: '2026/27' });
+    expect(homeOf([{ plan: q }], q.id, { today: TODAY }).gap).toMatchObject({ year: '2026/27' });
   });
 
   it('a gilt whose maturity cannot be told is never guessed: one line says so and it counts toward no year', () => {
@@ -167,8 +175,11 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
     expect(k.outside.total).toBe(0);
     expect(k.gilts.map((x) => [x.label, x.Y])).toEqual(CONV.map((l, i) => [l.name, 2026 + i]));
     expect(k.rows.find((r) => r.Y === 2028).gap).toBe(0);
+    // a gilt pays in the month it matures (the review of 7.11.1): November and December 2026 are the £50 of cash's, and
+    // what that leaves short is the keep test's gap too — the only one in the cash years
     const G = ladderGapsOf(p, { today: TODAY }).gaps;
-    for (const Y of [2026, 2027, 2028]) expect(G[Y], String(Y)).toBeUndefined();
+    expect(Math.round(G[2026])).toBe(Math.round(34000 / 12 * 2 - 50));
+    for (const Y of [2027, 2028]) expect(G[Y], String(Y)).toBeUndefined();
   });
 });
 

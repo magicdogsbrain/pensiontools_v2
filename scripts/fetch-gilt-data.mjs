@@ -194,7 +194,29 @@ export function referenceRpi(iso, rpi) {
   return a + (d - 1) / D * (b - a);
 }
 
-export function buildDataset({ dmo, prices, boe = null, baseRpi = {}, rpi = {}, now = new Date() }) {
+/**
+ * The gilts that have matured lately (7.11.1): those the previous file listed (in issue, or matured lately) that are no longer
+ * in issue and whose maturity has passed, kept for MATURED_YEARS with what tells them apart — so a line still on someone's
+ * record is known by its SEDOL or name once it has paid, never "cannot tell when it matures".
+ */
+export const MATURED_YEARS = 3;
+export function maturedGilts(previous, inIssue, now = new Date()) {
+  const today = now.toISOString().slice(0, 10);
+  const cut = new Date(now.getTime() - MATURED_YEARS * 365.25 * 864e5).toISOString().slice(0, 10);
+  const issued = new Set((inIssue || []).map((g) => g && g.isin).filter(Boolean));
+  const seen = new Set();
+  const out = [];
+  for (const g of [...((previous && previous.matured) || []), ...((previous && previous.gilts) || [])]) {
+    if (!g || !g.isin || !g.maturity || issued.has(g.isin) || seen.has(g.isin)) continue;
+    const m = String(g.maturity).slice(0, 10);
+    if (m > today || m < cut) continue;
+    seen.add(g.isin);
+    out.push({ isin: g.isin, name: g.name || null, tidm: g.tidm || null, type: g.type || null, coupon: g.coupon ?? null, maturity: m });
+  }
+  return out.sort((a, b) => a.maturity.localeCompare(b.maturity));
+}
+
+export function buildDataset({ dmo, prices, boe = null, baseRpi = {}, rpi = {}, now = new Date(), previous = null }) {
   const asOf = prices.date || dmo[0]?.dmoDate || now.toISOString().slice(0, 10);
   // Index ratios for T+1 settlement (verified against the DMO's D10C report to 5 d.p.).
   const settle = new Date(now.getTime() + 864e5).toISOString().slice(0, 10);
@@ -228,7 +250,8 @@ export function buildDataset({ dmo, prices, boe = null, baseRpi = {}, rpi = {}, 
     },
     notice: 'Indicative closing prices and derived yields for illustration only. Not a recommendation to buy or sell any gilt.',
     counts: { gilts: gilts.length, priced: gilts.filter((g) => g.cleanPrice != null).length, realCurve: realCurve.length },
-    realCurve, giltRealCurve, nominalCurve, boeNominalCurve: boeOk ? boe.nominal : [], boeInflationCurve: boeOk ? boe.inflation : [], gilts
+    realCurve, giltRealCurve, nominalCurve, boeNominalCurve: boeOk ? boe.nominal : [], boeInflationCurve: boeOk ? boe.inflation : [], gilts,
+    matured: maturedGilts(previous, gilts, now)
   };
 }
 
@@ -242,7 +265,9 @@ async function main() {
   try { boe = parseBoeCurve(await fetchText(BOE_CURVE_URL)); } catch (e) { console.warn('BoE curve mirror failed (falling back to gilt-price curve):', e.message); }
   let baseRpi = {}, rpi = {};
   try { baseRpi = parseBaseRpi(await fetchText(DMO_ISSUED_CSV)); rpi = parseRpiSeries(await fetchText(RPI_URL)); } catch (e) { console.warn('base RPI / RPI series unavailable (no index ratios this run):', e.message); }
-  const data = buildDataset({ dmo, prices, boe, baseRpi, rpi });
+  let previous = null;
+  try { if (existsSync('public/data/gilts.json')) previous = JSON.parse(readFileSync('public/data/gilts.json', 'utf8')); } catch (e) { /* first run: nothing matured to keep */ }
+  const data = buildDataset({ dmo, prices, boe, baseRpi, rpi, previous });
   const json = JSON.stringify(data, null, 1);
   for (const dir of ['public/data', 'docs/data']) { mkdirSync(dir, { recursive: true }); writeFileSync(`${dir}/gilts.json`, json); }
   writeFileSync('src/data/giltsSnapshot.js',

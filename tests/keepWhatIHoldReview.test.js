@@ -23,6 +23,7 @@ import { keepOfChoice } from '../src/ui/keepHoldingsUi.js';
 import { transitionHtml } from '../src/ui/components/TransitionView.js';
 import { moveInputs } from '../src/services/PlanReading.js';
 import { GAPS } from '../src/v7/copy/gaps.js';
+import { asMoving } from './v7/plan/_alex.js';
 
 const FIX = join(import.meta.dirname, 'fixtures', 'plans');
 const sam = () => { const p = JSON.parse(readFileSync(join(FIX, '20-locked-start-after-stop.json'), 'utf8')); p.id = 'SamKeeps02'; return p; };
@@ -153,13 +154,23 @@ describe('a fixed pay in today\'s money', () => {
 
 describe('the words', () => {
   it('"covered" is never said while money is still to buy', () => {
-    const p = withLines(sam(), [conv(2027, 36000, { as: 'rung', taxYears: [2027] }), cash(1000)]);
+    // 7.11.1 (by phase): the cash still to set aside is a move only in a move — Sam read as Moving, work stopping in April
+    // 2027. The stored plan reads Living on it, where nothing is a move: what is not held is not covered (below).
+    const p = withLines(asMoving(sam()), [conv(2027, 36000, { as: 'rung', taxYears: [2027] }), cash(1000)]);
     const g = gapsOf(p, { today: BEFORE });
+    expect(g.held).toBe(false);
     expect(g.firstGap).toBe(null);
     expect(g.toBuy).toBeGreaterThan(0);
     const w = words(g);
     expect(w.some((t) => t.startsWith('Every year to 2028/29 is covered once the plan’s buys are made: £'))).toBe(true);
     expect(w).not.toContain('Every year to 2028/29 is covered by what you hold.');
+    // living on it, the same record: never "once the plan's buys are made" — the cash not held is not covered
+    const q = withLines(sam(), [conv(2027, 36000, { as: 'rung', taxYears: [2027] }), cash(1000)]);
+    const h = gapsOf(q, { today: BEFORE });
+    expect(h.held).toBe(true);
+    expect(h.toBuy).toBe(0);
+    expect(h.firstGap).not.toBe(null);
+    expect(words(h).some((t) => t.includes('once the plan’s buys are made'))).toBe(false);
   });
   it('the strategy line leaves out a clause with nothing in it', () => {
     const one = words(gapsOf(withLines(sam(), [conv(2027, 20000, { as: 'rung', taxYears: [2027] })]), { today: BEFORE }));

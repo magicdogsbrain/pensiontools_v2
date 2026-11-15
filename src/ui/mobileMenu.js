@@ -8,13 +8,15 @@
 export const MORE_TABS = Object.freeze(['accumulation', 'transition', 'household']);
 
 /**
- * @param {{ version: string, householdVisible: boolean }} o  the app's version; whether the Household tab is shown
+ * @param {{ version: string, householdVisible: boolean, transitionName?: string|null }} o  the app's version; whether the
+ *   Household tab is shown; the Transition tab's name now (7.11.1)
  * @returns {string} the sheet's buttons
  */
-export function moreSheetHtml({ version, householdVisible }) {
+export function moreSheetHtml({ version, householdVisible, transitionName = null }) {
   return '<button type="button" data-on-click="closeMobileSheet(); openWhatsNew();">&#127381; What\'s new (v' + version + ')</button>'
     + '<button type="button" data-on-click="mobileGo(\'accumulation\')">&#128176; Accumulation planner</button>'
-    + '<button type="button" data-on-click="mobileGo(\'transition\')">&#128260; Transition: what you hold, and the move</button>'
+    // living on the plan (7.11.1, keepHoldingsUi.transitionTabName): the tab by its name then, never "the move"
+    + '<button type="button" data-on-click="mobileGo(\'transition\')">&#128260; ' + (transitionName && transitionName !== 'Transition' ? transitionName + ': what you hold' : 'Transition: what you hold, and the move') + '</button>'
     + (householdVisible ? '<button type="button" data-on-click="mobileGo(\'household\')">&#128106; Household (couples)</button>' : '')
     + '<button type="button" data-on-click="closeMobileSheet(); switchToTab(\'strategies\'); setTimeout(() => showStrategyPage(\'assumptions\'), 300);">&#128203; Assumptions &amp; data</button>';
 }

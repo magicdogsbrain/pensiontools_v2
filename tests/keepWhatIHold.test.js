@@ -302,7 +302,9 @@ describe('identity: a plan that keeps nothing reads exactly as before', () => {
       const m = moveInputs(p, { now });
       if (!m) continue;
       const lines = normaliseHoldings(p.holdings).lines;
-      const plain = diffHoldings(lines, m.target);
+      // 7.11.1 (the review): a plan holding gilts that mature in its cash years reads the document's needs and the day too —
+      // the cash those years need before each gilt pays (TransitionPlanner.cashBeforeGilts) — so its diff is read with them
+      const plain = diffHoldings(lines, m.target, m.diff.cashGilts ? { needs: yearNeedsOf(p.planDocument), today: now, asOf: normaliseHoldings(p.holdings).updatedAt } : {});
       expect(m.diff).toEqual(plain);
       expect(m.diff).not.toHaveProperty('standIn');
       expect(sequence(m.diff, { today: now, startYear: 2027 })).toEqual(sequence(plain, { today: now, startYear: 2027 }));

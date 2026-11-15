@@ -281,7 +281,7 @@ export function moveInputs(scenario, { now = new Date(), fromSettings = false, r
   const rec = normaliseHoldings(sc.holdings);
   // the document's needs by year and today: read only when the record keeps something (7.6.0); each line's part only when
   // asked (7.11.1, `roles`: the reading of what is covered) — every other caller's diff is as before
-  const diff = diffHoldings(rec.lines || [], target, { needs: yearNeedsOf(doc), today: now, ...(roles ? { roles: true } : {}) });
+  const diff = diffHoldings(rec.lines || [], target, { needs: yearNeedsOf(doc), today: now, asOf: rec.updatedAt || null, ...(roles ? { roles: true } : {}) });
   const done = (sc.transition && sc.transition.done) || {};
   const prog = progress(diff, done);
   return { target, diff, prog, strategyParams: ss.strategyParams || null };

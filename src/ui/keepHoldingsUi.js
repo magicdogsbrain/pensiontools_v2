@@ -5,7 +5,9 @@
  * same thing.
  */
 import { holdingsWith } from '../services/HoldingsRecord.js';
-import { gapsOf, gapsView } from '../answers/plan/gaps.js';
+import { gapsOf, gapsView, lifeOf } from '../answers/plan/gaps.js';
+import { heldPhase } from '../services/Phases.js';
+import { PLAN } from '../v7/copy/plan.js';
 import { moveOf } from '../answers/plan/move.js';
 import { keepTestOf, amendPatch, withdrawPatch, sayKeep } from '../answers/plan/keepTest.js';
 import { keepFingerprint } from '../services/PlanAmendments.js';
@@ -37,7 +39,16 @@ export function keepOfChoice(value, was, firstYear = null) {
   return null;
 }
 
-/** The gaps as the Transition tab draws them: V7's reading of the plan with this record; null when it keeps nothing. */
+/**
+ * The full view's name for its Transition tab (7.11.1): "Your plan’s mix" while the plan is what is held (living on it, or
+ * Moving once what is held was accepted: the phase V7's home reads), else "Transition" — a retired person is never shown a
+ * move phase by the tab's name.
+ */
+export function transitionTabName(scenario, today = new Date()) {
+  try { return scenario && heldPhase(lifeOf(scenario, new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12))) ? PLAN.steps.move.short : 'Transition'; } catch { return 'Transition'; }
+}
+
+/** The gaps as the Transition tab draws them: V7's reading of the plan with this record (by the phase the home reads); null when there is nothing to read. */
 export function transitionGaps(scenario, rec, today = new Date()) {
   if (!scenario) return null;
   try { return gapsView(gapsOf({ ...scenario, holdings: rec }, { today: dayOf(today) })); } catch { return null; }

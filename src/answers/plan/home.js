@@ -301,7 +301,7 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   else if (stageKey === 'drawing' || stageKey === 'closed') add('where');
   const whereFull = cut && stepOf('where') ? '#/plan/' + pg.id + '/where' : null;
   let gapLine = null;
-  if (!pg.readonly && !pg.closed) { try { const h = gapHeadline(gapsOf(plan, { today })); gapLine = h ? { ...h, Y: String(h.Y), href: '#/plan/' + pg.id + '/hold' } : null; } catch { gapLine = null; } }
+  if (!pg.readonly && !pg.closed) { try { const h = gapHeadline(gapsOf(plan, { today, life })); gapLine = h ? { ...h, Y: String(h.Y), href: '#/plan/' + pg.id + '/hold' } : null; } catch { gapLine = null; } }
   const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {} }));
   // the steps, read-only with each result line; a saver's "For later" group stays on a plan not locked, but a locked plan
   // is being carried out: its steps are listed plainly, never marked for later or not done

@@ -4205,7 +4205,7 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js'; import { withV7Keys } from './src/services/SaverPayIn.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { installKeepHandlers, transitionGaps, transitionHeld, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js';   // "Try the bad years" on the Scenarios page (7.9.0)
+    import { installKeepHandlers, transitionGaps, transitionHeld, transitionTabName, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { configureMonthlyEntry, readMonthlyEntry, prefillMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
@@ -6989,7 +6989,7 @@
     function openSheet(html) { const sh = document.getElementById('mobileSheet'); if (!sh) return; document.getElementById('mobileSheetBody').innerHTML = '<div class="grab"></div>' + html; sh.classList.add('open'); }
     window.openMobileMore = function () {   // the sheet's buttons (src/ui/mobileMenu.js), Transition among them (6.20.2)
       const vis = (t) => { const b = document.querySelector('.tab[data-tab="' + t + '"]'); return b && b.style.display !== 'none'; };
-      openSheet(moreSheetHtml({ version: VERSION, householdVisible: vis('household') }));
+      openSheet(moreSheetHtml({ version: VERSION, householdVisible: vis('household'), transitionName: window._transitionName || null }));
     };
     window.openMobileMenu = function () {
       const email = document.getElementById('userEmail')?.textContent || '';
@@ -7425,7 +7425,7 @@
       try {
         const stage = window._lifeStage || await refreshLifeStage();
         const doc = await getActivePlanDocument();
-        const today = new Date();
+        const _now = new Date(); const today = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate(), 12);   // noon of the day, as V7 reads it (7.11.1): both views give the same figures
         const ssLive = await getStressSettingsAsync();
         const target = targetHoldings(doc, { today, params: ssLive.strategyParams || null });   // live params: a fired rotation's sold block drops out of the target
         // What you hold (6.13.0): the plan-level record — never the Stress tester's funds-to-test list.
@@ -7435,12 +7435,12 @@
         const ss = ssLive;
         const testList = (Array.isArray(ss.taggedFunds) ? ss.taggedFunds : []).filter((f) => f && f.ticker && +f.value > 0);
         const offer = null;   // 6.13.1: the Stress tester's list is never offered as what you hold — not even as a question
-        const diff = diffHoldings(ledger, target, { needs: yearNeedsOf(doc), today });   // the document's needs, read only when a line is kept (7.6.0)
+        const diff = diffHoldings(ledger, target, { needs: yearNeedsOf(doc), today, asOf: rec.updatedAt || null });   // the document's needs (7.6.0); the record's date, for a gilt matured since (7.11.1)
         const storedPlan = await getActiveScenarioAsStored().catch(() => null);
         const gaps = transitionGaps(storedPlan, rec, today), held = transitionHeld(storedPlan, rec, today);   // "What is covered, year by year" (7.6.0) and, Living on it, what is held, never a move (7.11.1): V7's readings
         const keepTest = transitionKeepTest(storedPlan, rec);   // "Test what you keep against your plan" (7.7.0): V7's reading, run only on its button
         let contributionsMonthly = 0; try { const hp = holdingsProportions(ledger); contributionsMonthly = hp.contributions.monthly || 0; if (!contributionsMonthly) { const acc = await getActiveAccumulation(); if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) contributionsMonthly = (+acc.netMonthly || 0) * 1.25 + (+acc.employerMonthly || 0); } } catch (e) { contributionsMonthly = 0; }
-        const seq = target.kind === 'none' ? null : transitionSequence(diff, { today: new Date(), startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (new Date().getFullYear() + 1), startMonth: stage?.startMonth || doc?.timing?.startMonth || null, contributionsMonthly });
+        const seq = target.kind === 'none' ? null : transitionSequence(diff, { today, startYear: stage?.firstTaxYear || (doc?.timing?.firstTaxYear) || (new Date().getFullYear() + 1), startMonth: stage?.startMonth || doc?.timing?.startMonth || null, contributionsMonthly });
         const tr = await getActiveTransition();
         const prog = transitionProgress(diff, tr.done || {});
         let rotation = null; try { const t = deriveTiming(ss); rotation = rotationStatus(doc, { today, ageToday: t.currentAge || null, params: ss.strategyParams || null }); } catch (e) { rotation = null; }
@@ -7565,6 +7565,8 @@
         const stage = deriveStage(sc ? { ...sc, stressTool: { ...(sc.stressTool || {}), settings: ss || sc.stressTool?.settings || {} } } : {});
         window._lifeStage = stage;
         applyStageToTabs(stage);
+        // the Transition tab by the phase V7's home reads (7.11.1): "Your plan’s mix" living on the plan, never a move's name
+        try { const name = transitionTabName((await getActiveScenarioAsStored().catch(() => null)) || sc); window._transitionName = name; const tb = document.querySelector('.tab[data-tab="transition"]'); if (tb) tb.textContent = name; } catch (e) { /* the name is optional */ }
         try { updatePlanLockChip(); } catch (e) { /* chip optional */ }
         // Journey: record the stage change with its date (the plan document lists them).
         try {

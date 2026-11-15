@@ -120,6 +120,8 @@ function Cash({ V }) {
             <tr data-row="total"><th scope="row">{C.total}</th><td>{V.cash.target}</td></tr>
             <tr data-row="held"><td>{C.held}</td><td>{V.cash.held}</td></tr>
             {V.cash.gilts && <tr data-row="gilts"><td>{C.gilts}</td><td>{V.cash.gilts}</td></tr>}
+            {/* 7.11.1 (the review): the months before those gilts pay are the pension's cash's — the spare is beyond that */}
+            {V.cash.fromCash && <tr data-row="fromCash"><td>{C.fromCash}</td><td>{V.cash.fromCash}</td></tr>}
             <tr data-row={V.cash.spare != null ? 'spare' : 'short'}><td>{V.cash.spare != null ? C.spare : C.short}</td><td>{V.cash.spare != null ? V.cash.spare : V.cash.short}</td></tr>
           </tbody>
         </table>
@@ -199,7 +201,8 @@ function Lists({ V, dispatch, planId, KT }) {
       {V.standIn && V.standIn.length > 0 && <><h2>{GAPS.move.standIn}</h2><ul class="plan-lines" data-testid={`${T}.standIn`}>{V.standIn.map((x) => <li key={x.key} class="plan-line" data-key={x.key}>{fill(GAPS.move.standInOne, { label: x.label, years: x.years.join(', '), pays: x.pays })}</li>)}{V.covered.map((x) => <li key={x.key} class="plan-line note" data-key={x.key}>{fill(GAPS.move.covered, { label: x.label, years: x.years.join(', ') })}</li>)}</ul></>}
       {V.kept && V.kept.length > 0 && <><h2>{GAPS.move.kept}</h2><ul class="plan-lines" data-testid={`${T}.kept`}>{V.kept.map((x) => <li key={x.key} class="plan-line" data-key={x.key}>{fill(GAPS.move.keptOne, { label: x.label, wrapper: W.wrappers[x.wrapper] || x.wrapper, value: x.value, gaps: x.fundsGaps ? (V.ladder ? GAPS.move.keptGaps : GAPS.move.keptPlan) : '' })}</li>)}</ul></>}
       {V.recorded && <p class="note">{L.fix}</p>}
-      {V.keep.length > 0 && <><h2>{L.keep}</h2><ul class="plan-lines" data-testid={`${T}.keep`}>{V.keep.map((k, i) => <li key={i} class="plan-line">{fill(L.keepOne, { label: k.label, wrapper: W.wrappers[k.wrapper] || k.wrapper, value: k.value, why: whyText(k.why) })}</li>)}</ul></>}
+      {/* living on the plan (7.11.1): an ISA, taxable-account or bank line is outside the pension, never "left alone" by a move */}
+      {V.keep.length > 0 && <><h2>{held ? W.held.outsideTitle : L.keep}</h2><ul class="plan-lines" data-testid={`${T}.keep`}>{V.keep.map((k, i) => <li key={i} class="plan-line">{held ? fill(W.held.outsideOne, { label: k.label, wrapper: W.wrappers[k.wrapper] || k.wrapper, value: k.value }) : fill(L.keepOne, { label: k.label, wrapper: W.wrappers[k.wrapper] || k.wrapper, value: k.value, why: whyText(k.why) })}</li>)}</ul></>}
       {!held && !V.complete && <p class="note" data-testid={`${T}.totals`}>{fill(L.totals, V.totals)}{V.totals.short ? fill(L.short, { short: V.totals.short }) : ''}</p>}
     </section>
   );
@@ -224,6 +227,8 @@ function Sheet({ V, dispatch }) {
   const S = W.sheet;
   if (!V.ladder || !V.sheet.length) return null;
   const gated = !!V.spGate && !V.sheetOpen;
+  const held = V.mode === 'held';
+  const bought = (r) => (r.bought ? S.bought[r.bought] || r.bought : '—');
   return (
     <section class="plan-section" data-section="sheet" data-testid={`${T}.sheet`} data-gated={V.spGate ? (V.sheetOpen ? 'open' : '1') : '0'}>
       <h2>{S.title}</h2>
@@ -234,16 +239,18 @@ function Sheet({ V, dispatch }) {
           <div class="actions-row"><Button testid={`${T}.sheet.anyway`} kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'moveSheet' })} aria-expanded={V.sheetOpen ? 'true' : 'false'} {...keepFocus}>{V.sheetOpen ? S.hideAnyway : S.showAnyway}</Button></div>
         </div>
       )}
-      <p class="note">{fill(S.lead, { date: V.pricedOn || '' })}</p>
-      <p class="note">{S.order}</p>
+      {/* living on the plan (7.11.1): the same sheet, read as what the plan holds — "Bought" beside each gilt, so a phone sees it
+          without scrolling; how to give an order only while a rung is still not fully bought */}
+      <p class="note">{fill(held ? S.leadHeld : S.lead, { date: V.pricedOn || '' })}</p>
+      {(!held || V.sheet.some((r) => r.bought === 'part' || r.bought === 'not yet')) && <p class="note">{S.order}</p>}
       <div class="table-wrap">
         <table class="way-table" data-testid={`${T}.sheet.table`}>
-          <thead><tr><th>{S.columns.n}</th><th>{S.columns.buy}</th><th>{S.columns.code}</th><th>{S.columns.sedol}</th><th>{S.columns.matures}</th><th>{S.columns.pays}</th><th>{S.columns.years}</th><th>{S.columns.units}</th><th>{S.columns.price}</th><th>{S.columns.cost}</th><th>{S.columns.bought}</th></tr></thead>
+          <thead><tr><th>{S.columns.n}</th><th>{held ? S.gilt : S.columns.buy}</th>{held && <th>{S.columns.bought}</th>}<th>{S.columns.code}</th><th>{S.columns.sedol}</th><th>{S.columns.matures}</th><th>{S.columns.pays}</th><th>{S.columns.years}</th><th>{held ? S.units : S.columns.units}</th><th>{S.columns.price}</th><th>{S.columns.cost}</th>{!held && <th>{S.columns.bought}</th>}</tr></thead>
           <tbody>{V.sheet.map((r) => (
             <tr key={r.n} data-rung={r.n} data-bought={r.bought || ''}>
-              <td>{r.n}</td><td>{r.name}</td><td>{r.tidm}</td><td>{r.sedol}</td><td>{r.matures}</td><td>{r.pays}</td><td>{r.taxYears.join(', ')}{r.taxYears.length > 1 ? ' ' + S.surplus : ''}</td>
+              <td>{r.n}</td><td>{r.name}</td>{held && <td>{bought(r)}</td>}<td>{r.tidm}</td><td>{r.sedol}</td><td>{r.matures}</td><td>{r.pays}</td><td>{r.taxYears.join(', ')}{r.taxYears.length > 1 ? ' ' + S.surplus : ''}</td>
               <td>{gated ? S.withheld : r.nominal ? <><strong>{String(r.nominal).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</strong><br /><span class="note">{fill(S.lots, { lots: String(Math.round(+r.nominal / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ',') })}</span></> : '—'}</td>
-              <td>{gated ? S.withheld : r.cleanPrice || '—'}</td><td>{gated ? S.withheld : r.cost}</td><td>{r.bought ? S.bought[r.bought] || r.bought : '—'}</td>
+              <td>{gated ? S.withheld : r.cleanPrice || '—'}</td><td>{gated ? S.withheld : r.cost}</td>{!held && <td>{bought(r)}</td>}
             </tr>
           ))}</tbody>
         </table>

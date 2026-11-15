@@ -131,7 +131,8 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     // the cash to hold now: the cash years (7.4.2: a ladder's only cash, whatever an older document set aside), the total,
     // what is held, the spare
     const cashRows = all(root, `[data-testid="${T}.cash.table"] tbody tr`).map((tr) => tr.getAttribute('data-row'));
-    expect(cashRows).toEqual(['cashYear', 'cashYear', 'total', 'held', 'gilts', 'spare']);
+    // 7.11.1 (the review): and what those years need from the pension's cash before the gilts pay; the spare is beyond it
+    expect(cashRows).toEqual(['cashYear', 'cashYear', 'total', 'held', 'gilts', 'fromCash', 'spare']);
     expect(root.querySelector(`[data-testid="${T}.cash.table"] tr[data-row="cashYear"]`).textContent).toContain('Cash year 2027/28');
     expect(root.querySelector(`[data-testid="${T}.cash.table"] tr[data-row="gilts"]`).textContent).toBe(MOVE.cash.gilts + view.cash.gilts);
     expect(view.sell.map((x) => x.ticker)).toEqual(['T30I', 'VWRP']);
@@ -393,7 +394,9 @@ describe('Living on it (7.11.1): the named states as they are — what is held, 
     expect(lines).toContain('1¼% Index-linked Treasury Gilt 2027 (£35,494 today): matures in November 2027 — counted toward 2027/28 in What is covered, year by year.');
     expect(lines).toContain('Vanguard FTSE All-World (Acc) (£396,769 today): outside the plan’s mix; its value can fall.');
     expect(one(root, `${T}.heldInfo.cash`).textContent).toMatch(/^The cash years still ahead \(2027\/28, 2028\/29\) need £[\d,]+\. Held for them: £96,625 in your pension’s cash, and £[\d,]+ at today’s prices from the gilts that mature in those years\.$/);
-    expect(one(root, `${T}.keep`).textContent).toContain('ISA — kept as it is');
+    // 7.11.1 (the review): living on the plan, an ISA line is outside the pension — never "left alone" by a move
+    expect(one(root, `${T}.keep`).textContent).toContain('VWRP (ISA, £35,052): outside your pension, so not part of the plan’s mix.');
+    expect(one(root, `${T}.keep`).textContent).not.toContain('kept as it is');
     expect(all(root, `[data-testid="${T}.sheet.table"] tbody tr`).length).toBe(14);
     checkWords(text, words);
   });

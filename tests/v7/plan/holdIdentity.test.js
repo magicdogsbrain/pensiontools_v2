@@ -21,6 +21,9 @@
  *      7.11.1 retook one, meant: the move of fixture 20 (the ladder locked with its start in 2027/28) no longer sells the two
  *      linkers outside its rungs that mature in its two cash years (2027/28 and 2028/29) — a gilt maturing in a cash year is
  *      that year's cash — so its Sell list, its cash held for those years and its schedule changed; nothing else moved.
+ *      Retaken again in the review of 7.11.1, meant: the same move's cash line now says the cash those years need before each
+ *      linker pays (the months of 2027/28 before the November 2027 one) and its spare is only the pension's cash beyond that —
+ *      never more than is held; nothing else moved.
  * Under a minute.
  */
 import { describe, it, expect } from 'vitest';

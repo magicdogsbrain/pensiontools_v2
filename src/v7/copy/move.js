@@ -65,6 +65,7 @@ export const MOVE = {
     held: 'You hold',
     // 7.11.1: a gilt outside the rungs maturing in a cash year is that year's cash, never a sale
     gilts: 'Gilts you hold that mature in those years, at today’s prices',
+    fromCash: 'Needed from your pension’s cash before those gilts pay',
     spare: 'Spare',
     short: 'Short',
     spending: 'Cash: {held} held against {target} for the cash years still ahead ({years}) — being spent as the plan intends, so it is not a move.',
@@ -83,14 +84,23 @@ export const MOVE = {
     rungPart: '{label} ({code}), for {years}: {held} of {units} units held. The rest is rung {n} on the order sheet below.',
     rungPartValue: '{label} ({code}), for {years}: {value} of {cost} held. The rest is rung {n} on the order sheet below.',
     rungNone: '{label} ({code}), for {years}: not held. It is rung {n} on the order sheet below.',
+    // the full view has no order sheet on this tab: it is in the plan document
+    doc: {
+      rungPart: '{label} ({code}), for {years}: {held} of {units} units held. The rest is rung {n} of the order sheet in your plan document.',
+      rungPartValue: '{label} ({code}), for {years}: {value} of {cost} held. The rest is rung {n} of the order sheet in your plan document.',
+      rungNone: '{label} ({code}), for {years}: not held. It is rung {n} of the order sheet in your plan document.'
+    },
     rungOver: '{label} ({code}), for {years}: held, with {excess} units more than the rung needs.',
     linesTitle: 'Also in your pension',
     gilt: '{label} ({value} today): matures in {month} — counted toward {year} in What is covered, year by year.',
     giltUnknown: '{label} ({value} today): we cannot tell when it matures, so it is not counted toward any year. Its code or SEDOL on What you hold would tell us.',
     giltPaid: '{label}: matured in {month}. Once paid, its money is your pension’s cash, and the line can come off What you hold.',
+    giltCashNow: '{label}: matured in {month}, after your record was taken, so what it paid counts as your pension’s cash. The line can come off What you hold.',
+    giltAllCash: '{label} ({value} today): matures in {month}. None of it is needed in {year}, so it counts as your pension’s cash for the years after, in What is covered, year by year.',
     giltAfter: '{label} ({value} today): matures in {month}, after your plan’s last year, so it is outside the plan’s mix.',
     outside: '{label} ({value} today): outside the plan’s mix; its value can fall.',
     cash: 'The cash years still ahead ({years}) need {target}. Held for them: {held} in your pension’s cash{gilts}.',
+    cashThisYear: 'The cash years still ahead ({years}; this one’s months still to come) need {target}. Held for them: {held} in your pension’s cash{gilts}.',
     cashGilts: ', and {gilts} at today’s prices from the gilts that mature in those years',
     cashNone: 'No cash years are left: the {held} in your pension’s cash is your spending float.',
     mixTitle: 'What you hold, against your plan’s mix',
@@ -102,6 +112,9 @@ export const MOVE = {
     },
     unknown: 'We could not tell what {name} holds, so it is left out of these figures. You can say what it holds on What you hold.',
     review: 'You can test what you hold against your plan, and accept it as your plan, on',
+    // ISA, taxable-account and bank lines: outside the pension, so outside the plan's mix
+    outsideTitle: 'Outside your pension',
+    outsideOne: '{label} ({wrapper}, {value}): outside your pension, so not part of the plan’s mix.',
     reviewLink: 'Your review'
   },
   lists: {
@@ -168,6 +181,10 @@ export const MOVE = {
   sheet: {
     title: 'The order sheet',
     lead: 'The rungs as your plan was locked on {date}: what to buy, its codes, when it matures, what it pays, the units to order. The prices are the day’s at lock; a live re-price is not here.',
+    // living on the plan (7.11.1): the same sheet, read as what the plan holds
+    leadHeld: 'The rungs as your plan was locked on {date}: each gilt, its codes, when it matures, what it pays and its units; Bought says which you hold.',
+    gilt: 'Gilt',
+    units: 'Units',
     order: 'How to give the order: say the number of units — 1 unit is £1 of face value; if the screen counts £100 lots, use the figure in brackets. Ordering by amount also works, but the units you get then depend on the price that day, so the income is only close to the figure shown.',
     columns: { n: '#', buy: 'Buy', code: 'Code', sedol: 'SEDOL', matures: 'Matures', pays: 'Pays', years: 'For tax years', units: 'Units to order', price: 'Price at lock', cost: 'Cost at lock', bought: 'Bought' },
     lots: '({lots} if the screen counts £100 lots)',

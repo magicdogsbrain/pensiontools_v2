@@ -92,7 +92,8 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     expect(also).toContain('1 5/8% Treasury Gilt 2028 (£26,380 today): matures in October 2028 — counted toward 2028/29 in What is covered, year by year.');
     expect(also).toContain('Example Shares plc (£12,000 today): outside the plan’s mix; its value can fall.');
     expect(also).toContain('Vanguard FTSE All-World (Acc) (£40,000 today): outside the plan’s mix; its value can fall.');
-    expect(one(root, `${T}.heldInfo.cash`).textContent).toBe(`The cash years still ahead (2026/27, 2027/28, 2028/29) need ${V.heldInfo.cash.target}. Held for them: £50 in your pension’s cash, and ${V.heldInfo.cash.gilts} at today’s prices from the gilts that mature in those years.`);
+    // this year's months still to come only (the review of 7.11.1): the same figure as What is covered's cash years
+    expect(one(root, `${T}.heldInfo.cash`).textContent).toBe(`The cash years still ahead (2026/27, 2027/28, 2028/29; this one’s months still to come) need ${V.heldInfo.cash.target}. Held for them: £50 in your pension’s cash, and ${V.heldInfo.cash.gilts} at today’s prices from the gilts that mature in those years.`);
     // the order sheet stays, with the two rungs part bought
     expect([...root.querySelectorAll(`[data-testid="${T}.sheet.table"] tbody tr[data-bought="part"]`)].map((tr) => tr.textContent.includes('TR31') || tr.textContent.includes('T41'))).toEqual([true, true]);
     // What is covered, year by year, is read with what is held
@@ -185,7 +186,8 @@ describe('Moving, nothing accepted: the move as 7.10.0 built it, but a gilt matu
     expect(V.cash.gilts).toBe('£' + Math.round(gilts).toLocaleString('en-GB'));
     const { root } = onPage(p);
     const rows = [...root.querySelectorAll(`[data-testid="${T}.cash.table"] tbody tr`)].map((tr) => tr.getAttribute('data-row'));
-    expect(rows).toEqual(['cashYear', 'cashYear', 'total', 'held', 'gilts', 'spare']);
+    // 7.11.1 (the review): and what those years need from the pension's cash before the gilts pay; the spare is beyond it
+    expect(rows).toEqual(['cashYear', 'cashYear', 'total', 'held', 'gilts', 'fromCash', 'spare']);
     expect(root.querySelector(`[data-testid="${T}.cash.table"] tr[data-row="gilts"]`).textContent).toContain(MOVE.cash.gilts);
     // the cash they leave spare pays for the buys, as their sale did: the schedule is paid for
     expect(diff.totals.cashFreed).toBeGreaterThan(0);
@@ -220,6 +222,6 @@ describe('Living on it: what the cash line says with the gilts and without', () 
     const V = moveOf([{ plan: p }], p.id, { today: TODAY });
     expect(V.heldInfo.cash.gilts).toBe(null);
     const { root } = onPage(p);
-    expect(one(root, `${T}.heldInfo.cash`).textContent).toBe(`The cash years still ahead (2026/27, 2027/28, 2028/29) need ${V.heldInfo.cash.target}. Held for them: £50 in your pension’s cash.`);
+    expect(one(root, `${T}.heldInfo.cash`).textContent).toBe(`The cash years still ahead (2026/27, 2027/28, 2028/29; this one’s months still to come) need ${V.heldInfo.cash.target}. Held for them: £50 in your pension’s cash.`);
   });
 });

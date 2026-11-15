@@ -130,6 +130,14 @@ export const HOME = {
     cash: 'Cash is {held}% of your pension; the plan’s mix has {mix}% in cash.',
     diversifiers: 'Other investments are {held}% of your pension; the plan’s mix has {mix}% in other investments.',
     ladder: 'Your ladder does not yet hold the gilt for {year}.',
+    /** Moving (7.10.0): where what is held stands against the mix the plan moves to, inside the move window. */
+    moving: {
+      shares: 'Shares are {held}% of your pension; your plan moves to {mix}% in shares.',
+      bonds: 'Bonds are {held}% of your pension; your plan moves to {mix}% in bonds.',
+      cash: 'Cash is {held}% of your pension; your plan moves to {mix}% in cash.',
+      diversifiers: 'Other investments are {held}% of your pension; your plan moves to {mix}% in other investments.',
+      close: 'What you hold is within 5% of your pension of the mix your plan moves to.'
+    },
     link: 'Test with what I hold',
     /** A ladder's gap is read on What you hold (its years), never tested on the review. */
     ladderLink: 'See what you hold'

@@ -664,7 +664,34 @@ describe('the drift line (7.10.0): what is held differently is said once, as inf
     expect(fill(W.diversifiers, { held: '0', mix: '12' })).toBe('Other investments are 0% of your pension; the plan’s mix has 12% in other investments.');
     expect(fill(W.ladder, { year: '2027/28' })).toBe('Your ladder does not yet hold the gilt for 2027/28.');
     expect(W.link).toBe('Test with what I hold');
-    for (const t of Object.values(W)) expect(t).not.toMatch(/\b(sell|buy|should|transition)\b/i);
+    // Moving: against the mix the plan moves to, inside the window
+    expect(fill(W.moving.shares, { held: '70', mix: '50' })).toBe('Shares are 70% of your pension; your plan moves to 50% in shares.');
+    expect(W.moving.close).toBe('What you hold is within 5% of your pension of the mix your plan moves to.');
+    const all = (o) => Object.values(o).flatMap((v) => (typeof v === 'string' ? [v] : all(v)));
+    for (const t of all(W)) expect(t).not.toMatch(/\b(sell|buy|should|transition)\b/i);
+  });
+  it('Moving, inside the window with a record: the window line, then where what is held stands — never a to-do; gone once accepted', () => {
+    const C2 = corpus();
+    const day = '2026-10-02';
+    const p = C2['19-back-to-work-saving'];
+    const h = homeOf([entryOf(p, day)], p.id, { today: day });
+    expect(h.stage.key).toBe('moving');
+    expect(h.moveWindow).toMatchObject({ id: 'moving' });
+    expect(h.drift).toEqual({ kind: 'buckets', phase: 'moving', close: true, href: '#/plan/' + p.id + '/review' });
+    expect(h.todo.count).toBe(0);
+    // a third of the shares in cash: the bucket furthest from the mix the plan moves to
+    const far = JSON.parse(JSON.stringify(p));
+    const lines = far.holdings.lines.filter((l) => l.wrapper === 'SIPP');
+    const cash = { wrapper: 'SIPP', ticker: 'CSH2', name: 'Cash fund', value: Math.round(lines.reduce((t, l) => t + (+l.value || 0), 0) / 2) };
+    far.holdings.lines = [...far.holdings.lines, cash];
+    const hf = homeOf([entryOf(far, day)], far.id, { today: day });
+    expect(hf.drift).toMatchObject({ kind: 'buckets', phase: 'moving', bucket: expect.any(String) });
+    expect(hf.drift.close).toBeUndefined();
+    // nothing recorded: the window line says it can be recorded, and no held line
+    const bare = JSON.parse(JSON.stringify(p)); delete bare.holdings;
+    const hb = homeOf([entryOf(bare, day)], bare.id, { today: day });
+    expect(hb.moveWindow).toMatchObject({ id: 'movingNoRecord' });
+    expect(hb.drift).toBeUndefined();
   });
 });
 

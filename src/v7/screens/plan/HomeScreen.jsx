@@ -60,9 +60,10 @@ function Item({ it, first, planId, dispatch }) {
  */
 function Drift({ D }) {
   const W = HOME.drift;
-  const text = D.kind === 'ladder' ? fill(W.ladder, { year: D.year }) : fill(W[D.bucket], { held: String(D.held), mix: String(D.plan) });
+  // Moving: against the mix the plan moves to (or within the move's band of it); Living on it: against the plan's mix
+  const text = D.kind === 'ladder' ? fill(W.ladder, { year: D.year }) : D.phase === 'moving' ? (D.close ? W.moving.close : fill(W.moving[D.bucket], { held: String(D.held), mix: String(D.plan) })) : fill(W[D.bucket], { held: String(D.held), mix: String(D.plan) });
   return (
-    <div class="home-held" data-testid={`${T}.drift`} data-kind={D.kind} {...(D.kind === 'buckets' ? { 'data-bucket': D.bucket } : {})}>
+    <div class="home-held" data-testid={`${T}.drift`} data-kind={D.kind} data-phase={D.phase || 'drawing'} {...(D.kind === 'buckets' && D.bucket ? { 'data-bucket': D.bucket } : {})}>
       <p class="note">{text}</p>
       <p class="home-where-more"><a href={D.href} data-testid={`${T}.drift.test`}>{D.kind === 'ladder' ? W.ladderLink : W.link}</a></p>
     </div>

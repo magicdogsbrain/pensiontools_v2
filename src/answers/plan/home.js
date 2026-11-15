@@ -17,7 +17,7 @@
  */
 import { planPage, dateOf, monthWords, monthName } from './read.js';
 import { whereAmIFor, historyAscending, moveInputs, effectiveStressSettings } from '../../services/PlanReading.js';
-import { driftOf, DRIFT_BAND } from '../../services/TransitionPlanner.js';
+import { driftOf, DRIFT_BAND, MOVE_BAND } from '../../services/TransitionPlanner.js';
 import { monthsWanted } from '../../services/DrawCadence.js';
 import { gapsOf, gapHeadline } from './gaps.js';
 import { taxYearStartOf, taxYearKey, taxYearLabel, earlyPensionDrawOf } from '../../services/PlanTiming.js';
@@ -126,16 +126,20 @@ const BUCKETS = ['shares', 'bonds', 'cash', 'diversifiers'];
  * plan's settings in memory (PlanReading.moveInputs `fromSettings`). The buckets' line links to the review, whose "Test with
  * what I hold" tries what is held and can accept it (the line then rests); a ladder's to What you hold. Null otherwise.
  */
-function driftLineOf(plan, now, href) {
+function driftLineOf(plan, now, href, { phase = 'drawing' } = {}) {
   let mv = null; try { mv = moveInputs(plan, { now, fromSettings: true }); } catch { mv = null; }
   const d = mv && mv.diff ? driftOf(mv.diff) : null;
   if (!d) return null;
   if (d.kind === 'buckets') {
-    if (!(d.maxDrift > DRIFT_BAND * 100)) return null;
+    // Moving (spec-7100 §3.2: the window line, then the held line): where what is held stands against the mix the plan moves
+    // to — the bucket furthest from it, or within the move's band of it; Living on it only beyond DRIFT_BAND
+    const moving = phase === 'moving';
+    if (!moving && !(d.maxDrift > DRIFT_BAND * 100)) return null;
+    if (moving && !(d.maxDrift > MOVE_BAND * 100)) return { kind: 'buckets', phase: 'moving', close: true, href };
     const bucket = BUCKETS.reduce((best, k) => (Math.abs(d.drift[k] || 0) > Math.abs(d.drift[best] || 0) ? k : best), BUCKETS[0]);
     const x = mv.diff.buckets[bucket] || { held: 0, target: 0 };
     const inPlay = mv.diff.inPlay;
-    return { kind: 'buckets', bucket, held: Math.round(100 * (+x.held || 0) / inPlay), plan: Math.round(100 * (+x.target || 0) / inPlay), href };
+    return { kind: 'buckets', ...(moving ? { phase: 'moving' } : {}), bucket, held: Math.round(100 * (+x.held || 0) / inPlay), plan: Math.round(100 * (+x.target || 0) / inPlay), href };
   }
   if (d.kind === 'ladder' && d.gapSoon) {
     const thisTY = Number(mv.target && mv.target.thisTaxYear);
@@ -247,7 +251,9 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   // what is held differently from the plan's mix, on a plan living on its money: one information line, never a to-do
   // (never once what is held was accepted as the plan and still stands: answers/plan/agree.js asHeldStateOf)
   let accepted = false; try { accepted = asHeldStateOf(plan, { today }).status === 'agreed'; } catch { accepted = false; }
-  const drift = stageKey === 'drawing' && recorded && !pg.readonly && !pg.closed && review && !accepted ? driftLineOf(plan, now, review.href) : null;
+  // (Moving: inside the window, the same line about where what is held stands, until what is held is accepted)
+  const inWindow = stageKey === 'moving' && !!life && !life.confirmStop && !!moveWindowOf(life) && moveWindowOf(life).state === 'inside';
+  const drift = (stageKey === 'drawing' || inWindow) && recorded && !pg.readonly && !pg.closed && review && !accepted ? driftLineOf(plan, now, review.href, { phase: stageKey }) : null;
   const dt = plan.decisionTool && typeof plan.decisionTool === 'object' ? plan.decisionTool : {};
   const stepOf = (sid) => pg.steps.find((s) => s.id === sid) || null;
   // where you are, as a headline: the saver's reading against the path (or the last check-in); a moving plan's share of the

@@ -14,7 +14,10 @@
  *   2. what Sam holds 15 points off the plan's mix: the drift line with "Test with what I hold", and no to-do;
  *   3. the new app shows no to-do and writes nothing; the classic planner's banner has no due item (its own onboarding
  *      sentence only), and it writes nothing of the phases, the to-dos or the figures — only the stage record it has kept
- *      on opening since 6.6.0 (`journey`, its first entry on a plan never opened there; spec-7100 §2 keeps it as 7.9.0 made it).
+ *      on opening since 6.6.0 (`journey`, its first entry on a plan never opened there; spec-7100 §2 keeps it as 7.9.0 made it);
+ *   4. the line's "Test with what I hold" opens the review: what is held against the plan's mix, the test from today in the
+ *      plan's own mix and as held; "I accept this as my plan" → "Yes, this is my plan" is ONE write (the phases and the
+ *      agreement entry); the home's line then rests.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -240,5 +243,33 @@ test('Sam: question C kept at 66, signed in — Living on it at once; what is he
       expect(before[0].journey || []).toEqual([]);
       expect(after[0].journey.map((e) => e.stage)).toEqual(['draft-retired']);
     }
+  });
+
+  await test.step('"Test with what I hold" opens the review: the test from today as held; "I accept this as my plan" ONE write; the home\'s line then rests', async () => {
+    await openAt(page, `#/plan/${ID}`);
+    await expect(page.getByTestId(`${H}.drift.test`)).toHaveAttribute('href', `#/plan/${ID}/review`, { timeout: 30_000 });
+    await page.getByTestId(`${H}.drift.test`).click();
+    await expect(page.getByTestId('plan.step.review')).toHaveAttribute('data-phase', 'drawing', { timeout: 30_000 });
+    await expect(page.getByTestId(`${R}.living.held.buckets`)).toBeVisible();
+    await expect(page.getByTestId(`${R}.run.button`)).toHaveText('Test with what I hold');
+    const [before] = await plansOf(uid);
+    await page.getByTestId(`${R}.run.button`).click();
+    await expect(page.getByTestId(`${R}.run`)).toHaveAttribute('data-status', 'done', { timeout: 120_000 });
+    await expect(page.getByTestId(`${R}.run.line`)).toContainText('with what you hold');
+    await expect(page.getByTestId(`${R}.run.line`)).toContainText('(in your plan’s own mix');
+    await page.getByTestId(`${R}.agreement.accept`).click();
+    await expect(page.getByTestId(`${R}.agreement.confirm`)).not.toContainText('From the month you stop work');
+    await page.getByTestId(`${R}.agreement.yes`).click();
+    await expect(page.getByTestId(`${R}.toast`)).toContainText('Saved: you accepted what you hold as your plan.', { timeout: 30_000 });
+    await expect.poll(async () => { const [p] = await plansOf(uid); return !!(p.phases && p.phases.moving && p.phases.moving.agreed); }, { timeout: 15_000 }).toBe(true);
+    const [p] = await plansOf(uid);
+    expect(changed(before, p).filter((k) => k !== 'lastModified')).toEqual(['phases', 'planAmendments']);
+    expect(p.planAmendments[p.planAmendments.length - 1]).toMatchObject({ kind: 'asHeld', test: { id: 'whole' } });
+    expect(same(p.stressTool, before.stressTool), 'the settings').toBe(true);
+    expect(same(p.holdings, before.holdings), 'what is held').toBe(true);
+    await openAt(page, `#/plan/${ID}`);
+    await expect(page.getByTestId(`${H}.headline`)).toHaveText('Living on it. Not locked yet.', { timeout: 30_000 });
+    await expect(page.getByTestId(`${H}.drift`)).toHaveCount(0);
+    await expect(page.getByTestId(`${H}.todo`).locator('.home-item')).toHaveCount(0);
   });
 });

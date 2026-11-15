@@ -25,7 +25,10 @@ import { A } from '../../../src/v7/state/actions.js';
 import { startPlanWrite } from '../../../src/v7/effects/planWrite.js';
 import { upgradedList } from '../../../src/v7/effects/planSource.js';
 import { isLockedSettings } from '../../../src/services/LockedPlanGuard.js';
-import { corpus, entryOf, noon } from './_plans.js';
+import { corpus, entryOf, noon, stateWith } from './_plans.js';
+import { h, render } from 'preact';
+import { App } from '../../../src/v7/App.jsx';
+import { MONTH } from '../../../src/v7/copy/month.js';
 import { taskPatch } from '../../../src/answers/plan/tasks.js';
 
 const C = corpus();
@@ -282,6 +285,14 @@ describe('"Keep a record of each month here" (Month by month): one write of deci
     expect(h.quiet).toMatchObject({ id: 'review', slots: { month: 'April 2027' } });
     // the reducer takes yes or no only
     expect(() => reduce(initialState({ today, build: 'test' }), { type: A.PLAN_RECORD_MONTHS, planId: 'x', value: 'no' })).toThrow(/plan\/recordMonths/);
+  });
+  it('the note under the answer: on a locked plan the home asks for each month now; on one not locked, once it is', () => {
+    const today = '2026-10-02';
+    const draw = (raw) => { const root = document.createElement('div'); render(h(App, { state: stateWith([entryOf(raw, today)], '#/plan/' + raw.id + '/month', { today }), dispatch: () => {} }), root); return root.querySelector('[data-testid="plan.month.recordMonths.note"]'); };
+    expect(draw(copy(C['04-buckets-running'])).textContent).toBe(MONTH.recordMonths.yesNoteLocked);
+    const draft = copy(C['02-pnv-draft']); draft.decisionTool = { ...(draft.decisionTool || {}), recordMonths: true };
+    const n = draw(draft);
+    expect(n.textContent).toBe(MONTH.recordMonths.yesNote);
   });
 });
 

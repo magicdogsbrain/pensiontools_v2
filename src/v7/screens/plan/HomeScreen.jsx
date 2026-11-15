@@ -190,7 +190,8 @@ export function HomeScreen(state, dispatch) {
           <Counted as="section" class="home-where" data-region="home-where" data-testid={`${T}.where`}>
             <h2 class="eyebrow">{HOME.whereTitle}</h2>
             {/* the headline only: the result and a few lines; where each figure is from, and the rest, on the step itself */}
-            {H.where.length === 0 ? <p class="note">{HOME.whereNone}</p> : H.where.map((b) => (
+            {/* nothing to read yet, unless the line about what is held below says where things stand */}
+            {H.where.length === 0 ? (H.drift ? null : <p class="note" data-testid={`${T}.whereNone`}>{HOME.whereNone}</p>) : H.where.map((b) => (
               <div class="home-where-block" key={b.step} data-step={b.step}>
                 {b.result && <p class="line"><PlanSentence s={b.result} figures={b.figures} /></p>}
                 {b.lines.length > 0 && <ul class="plan-lines">{b.lines.map((l, i) => <PlanLine key={i} line={l} figures={b.figures} hideSource />)}</ul>}

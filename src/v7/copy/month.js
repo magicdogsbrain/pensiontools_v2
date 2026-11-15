@@ -31,7 +31,9 @@ export const MONTH = {
     yes: 'Yes',
     no: 'No, I do not keep a monthly record',
     noNote: 'The home will not ask for months. You can still record one here at any time.',
-    yesNote: 'The home asks for each month once the plan is locked.'
+    yesNote: 'The home asks for each month once the plan is locked.',
+    /** … on a plan already locked (or closed): it asks now. */
+    yesNoteLocked: 'The home asks for each month.'
   },
   partner: 'Your partner records their months on their own plan, ‘{name}’.',
   partnerLink: 'Open its Month by month',

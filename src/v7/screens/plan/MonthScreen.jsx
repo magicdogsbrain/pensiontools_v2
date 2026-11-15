@@ -296,7 +296,7 @@ export function MonthScreen(state, dispatch) {
                   disabled={!!V.saving} onClick={() => dispatch({ type: 'plan/recordMonths', planId, value: v === 'yes' })} {...keepFocus}>{W.recordMonths[v]}</Button>
               ))}
             </div>
-            <p class="note" data-testid={`${T}.recordMonths.note`}>{V.monthsWanted ? W.recordMonths.yesNote : W.recordMonths.noNote}</p>
+            <p class="note" data-testid={`${T}.recordMonths.note`}>{V.monthsWanted ? (V.needsLock ? W.recordMonths.yesNote : W.recordMonths.yesNoteLocked) : W.recordMonths.noNote}</p>
           </section>
         )}
         <section class="plan-section month-later" data-section="later">

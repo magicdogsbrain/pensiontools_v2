@@ -420,6 +420,21 @@ describe('Living on it: "Test with what I hold" from today, and accepting what i
     expect(writes[0].data.phases.review.log[0]).toMatchObject({ phase: 'drawing', pots: { pension: 520000 }, entered: { pots: true } });
     stop();
   });
+  it('the home: the line about what is held says where things stand, so "Nothing recorded to read against the plan yet" is not said above it', () => {
+    const raw = copy(C['02-pnv-draft']);
+    raw.holdings = { lines: [{ wrapper: 'SIPP', ticker: 'VWRP', name: 'Vanguard FTSE All-World (Acc)', value: 300000 }], updatedAt: '2026-09-30' };
+    const st = stateWith([entryOf(raw, DAY)], '#/plan/' + raw.id, { today: DAY });
+    const root = document.createElement('div');
+    render(h(App, { state: st, dispatch: () => {} }), root);
+    const where = root.querySelector('[data-testid="plan.home.where"]');
+    expect(root.querySelector('[data-testid="plan.home.drift"]')).toBeTruthy();
+    expect(where.textContent).not.toContain('Nothing recorded to read against the plan yet.');
+    // with nothing held and nothing recorded, it is still said
+    const bare = copy(C['02-pnv-draft']); delete bare.holdings;
+    const r2 = document.createElement('div');
+    render(h(App, { state: stateWith([entryOf(bare, DAY)], '#/plan/' + bare.id, { today: DAY }), dispatch: () => {} }), r2);
+    if (!r2.querySelector('[data-testid="plan.home.where"] .home-where-block')) expect(r2.querySelector('[data-testid="plan.home.whereNone"]')).toBeTruthy();
+  });
   it('a ladder\'s line links to What you hold, never to a review it cannot run', () => {
     const day = '2028-05-10';   // 03 holds no gilt yet for 2029/30
     const plan = entryOf(copy(C['03-gilt-ladder-locked']), day).plan;

@@ -98,7 +98,7 @@ describe('the named states of "Your household"', () => {
 describe('the partner\'s plan (6) and the link', () => {
   it('household-first: Sam\'s plan with its line, linked each way, Open and Unlink; "Check the two plans together" with nothing run; the questions\' boxes at the planner\'s defaults said as ages; no figure yet', () => {
     const { root, text, actions } = draw(load('household-first'));
-    expect(one(root, `${T}.with`).textContent).toBe('With ‘Sam’s plan’: stopping work within five years.');
+    expect(one(root, `${T}.with`).textContent).toBe('With ‘Sam’s plan’: inside the move window, before stopping work.');
     expect(one(root, `${T}.linkedBy`).textContent).toBe(HOUSEHOLD.partner.linkedBoth);
     expect(one(root, `${T}.openPartner`).getAttribute('href')).toBe('#/plan/SamCouple07');
     expect(one(root, `${T}.unlink`)).not.toBe(null);

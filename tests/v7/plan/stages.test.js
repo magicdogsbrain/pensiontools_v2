@@ -91,7 +91,7 @@ describe('T1 — the stage of every committed plan, at three dates (your-plan.md
     const b = entryOf(C['10-couple-b']).plan;
     expect(lineText(stageLine(planStage(b, { now: noon(TODAY) }), b))).toBe('Still saving.');
     const b2 = entryOf(C['10-couple-b'], '2027-04-05').plan;
-    expect(lineText(stageLine(planStage(b2, { now: noon('2027-04-05') }), b2))).toBe('Stopping work within five years.');
+    expect(lineText(stageLine(planStage(b2, { now: noon('2027-04-05') }), b2))).toBe('Inside the move window, before stopping work.');
     expect(lineText(stageLine({ key: 'unknown' }, {}))).toBe(null);
   });
   it('the effective settings are the ones the planner reads (StressRepository\'s own load path, in memory)', async () => {

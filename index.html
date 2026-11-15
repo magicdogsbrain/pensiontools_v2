@@ -4205,7 +4205,7 @@
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js'; import { withV7Keys } from './src/services/SaverPayIn.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
-    import { installKeepHandlers, transitionGaps, transitionHeld, transitionTabName, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js';   // "Try the bad years" on the Scenarios page (7.9.0)
+    import { installKeepHandlers, transitionGaps, transitionHeld, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
     import { configureMonthlyEntry, readMonthlyEntry, prefillMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
@@ -7564,9 +7564,7 @@
         let ss = null; try { ss = await getStressSettingsAsync(); } catch (e) { ss = null; }
         const stage = deriveStage(sc ? { ...sc, stressTool: { ...(sc.stressTool || {}), settings: ss || sc.stressTool?.settings || {} } } : {});
         window._lifeStage = stage;
-        applyStageToTabs(stage);
-        // the Transition tab by the phase V7's home reads (7.11.1): "Your plan’s mix" living on the plan, never a move's name
-        try { const name = transitionTabName((await getActiveScenarioAsStored().catch(() => null)) || sc); window._transitionName = name; const tb = document.querySelector('.tab[data-tab="transition"]'); if (tb) tb.textContent = name; } catch (e) { /* the name is optional */ }
+        applyStageToTabs(stage); nameTransitionTab(document, () => getActiveScenarioAsStored(), sc).then((n) => { window._transitionName = n; }).catch(() => {});   // 7.11.1: the Transition tab by the phase V7's home reads
         try { updatePlanLockChip(); } catch (e) { /* chip optional */ }
         // Journey: record the stage change with its date (the plan document lists them).
         try {

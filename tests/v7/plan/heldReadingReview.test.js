@@ -33,7 +33,7 @@ import { holdOf } from '../../../src/answers/plan/hold.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
 import { cashBeforeGilts, sequence, yearNeedsOf } from '../../../src/services/TransitionPlanner.js';
 import { transitionHtml } from '../../../src/ui/components/TransitionView.js';
-import { transitionHeld, transitionGaps, transitionTabName } from '../../../src/ui/keepHoldingsUi.js';
+import { transitionHeld, transitionGaps, transitionTabName, nameTransitionTab } from '../../../src/ui/keepHoldingsUi.js';
 import { moreSheetHtml } from '../../../src/ui/mobileMenu.js';
 import { stateWith, entryOf, noon } from './_plans.js';
 import { ALEX_TODAY as TODAY, L, CONV, SHARES, FUND, alexRaw, alex, samRaw, asMoving } from './_alex.js';
@@ -319,6 +319,15 @@ describe('(11) the full view says it plainly', () => {
     expect(transitionTabName(sam(), noon(TODAY))).toBe('Transition');
     expect(moreSheetHtml({ version: '7.11.1', householdVisible: false, transitionName: PLAN.steps.move.short })).toContain(PLAN.steps.move.short + ': what you hold');
     expect(moreSheetHtml({ version: '7.11.1', householdVisible: false })).toContain('Transition: what you hold, and the move');
+  });
+
+  it('the page names its tab from the stored plan, and keeps "Transition" when it cannot read one', async () => {
+    const doc = document.implementation.createHTMLDocument('tabs');
+    doc.body.innerHTML = '<button class="tab" data-tab="transition">Transition</button>';
+    expect(await nameTransitionTab(doc, async () => alex(), null, noon(TODAY))).toBe(PLAN.steps.move.short);
+    expect(doc.querySelector('.tab').textContent).toBe(PLAN.steps.move.short);
+    expect(await nameTransitionTab(doc, async () => { throw new Error('no plan'); }, null, noon(TODAY))).toBe('Transition');
+    expect(doc.querySelector('.tab').textContent).toBe('Transition');
   });
 
   it('living on the plan, an ISA line is outside the pension — never "left alone" by a move — in both views', () => {

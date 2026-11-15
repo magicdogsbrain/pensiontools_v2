@@ -48,6 +48,15 @@ export function transitionTabName(scenario, today = new Date()) {
   try { return scenario && heldPhase(lifeOf(scenario, new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12))) ? PLAN.steps.move.short : 'Transition'; } catch { return 'Transition'; }
 }
 
+/** Names the full view's Transition tab in `doc` by the phase (transitionTabName); `read()` gives the stored plan. The name. */
+export async function nameTransitionTab(doc, read, fallback = null, today = new Date()) {
+  let plan = null; try { plan = (await read()) || fallback; } catch { plan = fallback; }
+  const name = transitionTabName(plan, today);
+  const tb = doc && doc.querySelector ? doc.querySelector('.tab[data-tab="transition"]') : null;
+  if (tb) tb.textContent = name;
+  return name;
+}
+
 /** The gaps as the Transition tab draws them: V7's reading of the plan with this record (by the phase the home reads); null when there is nothing to read. */
 export function transitionGaps(scenario, rec, today = new Date()) {
   if (!scenario) return null;

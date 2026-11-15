@@ -237,9 +237,12 @@ export const SAVER_STAGE_KEYS = Object.freeze(['saving', 'approaching', 'committ
 /**
  * The tab the planner opens on (research/saving-enough-and-check-in.md 4.6): a saver opens on their stage's first lead
  * (saving and committed-saving: the Accumulation planner; approaching: the Stress tester); every other stage opens on the
- * Decision tool, exactly as before.
+ * Decision tool, exactly as before. A plan whose phase is Moving (7.11.0: the phase the plan home reads, answers/plan/home.js
+ * homeOf; src/ui/homeBannerUi.js openingTabOf passes it) opens on Transition, where moving what you hold is done. Without
+ * a phase (null), as before.
  */
-export function openingTab(stage) {
+export function openingTab(stage, phase = null) {
+  if (phase === 'moving') return 'transition';
   return stage && SAVER_STAGE_KEYS.includes(stage.key) && Array.isArray(stage.leads) && stage.leads.length ? stage.leads[0] : 'decision';
 }
 

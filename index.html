@@ -4181,7 +4181,7 @@
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
     import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments, saveActivePlanTasks } from './src/storage/ScenarioRepository.js';
-    import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend, openingTab } from './src/services/LifeStage.js';
+    import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
     import { setDbStartFields, paintDbStart, dbStartFromAgeInput, dbStartError, dbStartAgeForSave } from './src/ui/dbStartSetting.js';   // the final-salary start, asked by age (audit problem 3)
     import { pnvOnlySections, paintSettingUseNotes, heldIsaNote } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
     import { ukMonth, ukDay } from './src/ui/ukDates.js';   // dates in UK words, never ISO or US order (audit problem 3)
@@ -4200,7 +4200,7 @@
     import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
-    import { showHomeBanner, installHomeBanner } from './src/ui/homeBannerUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2)
+    import { updateHomeBanner, installHomeBanner, openingTabOf } from './src/ui/homeBannerUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js'; import { withV7Keys } from './src/services/SaverPayIn.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
@@ -4661,7 +4661,7 @@
       }
       // A one-shot tab request (e.g. after opening a demo plan) survives the reload in sessionStorage.
       initialTab = openPlace.atMainApp(initialTab, (page) => showStrategyPage(page));   // the demo link's one-shot tab, and the preview's hand-over: the plan, page and section, with the loader run (src/ui/components/OpenPlace.js)
-      const targetTab = initialTab || openingTab(await refreshLifeStage());   // which tab to show: a saver opens on their stage's first lead, every other stage on the Decision tool (LifeStage.openingTab)
+      const targetTab = initialTab || await openingTabOf({ refreshLifeStage, getActiveScenarioId, listScenariosAsync });   // which tab to show: a plan in its move window opens on Transition, a saver on their stage's first lead, every other stage on the Decision tool (homeBannerUi.openingTabOf, LifeStage.openingTab)
       updateNextStepBanner();
 
       // Activate the target tab
@@ -5251,7 +5251,7 @@
             await initializeAllInputsFromSettings();
             window._holdingsDraft = null; window._holdingsDraftFor = null; window._transitionLast = null;   // never carry one plan's holdings draft into another (6.13.0)
             try { const nowTab = document.querySelector('.tab.active'); if (nowTab && nowTab.dataset.tab === 'transition') await loadTransitionUI(); } catch (e) { /* view optional */ }
-            await renderScenarioSelector();
+            await renderScenarioSelector(); updateNextStepBanner();   // the banner and the way back to the simple view follow the plan now open (7.11.0)
           } catch (error) {
             console.error('Error switching scenario:', error);
             showToast('Failed to switch plan: ' + error.message, 'error');
@@ -6904,15 +6904,8 @@
     // Fired the first time a plan is seen to be newer (on load, or by a refused save). The active plan may not
     // be cached yet when it fires during a load, so look again shortly after.
     window.addEventListener('pt:plan-newer-than-app', () => { showPlanNewerBanner(); setTimeout(showPlanNewerBanner, 1500); });
-    window.updateNextStepBanner = async function () {
-      showPlanNewerBanner();
-      // The life stage is worked out here on every load — BEFORE anything can return early, or a plan with the banner
-      // dismissed never got a stage (tabs not hidden, chip without it — found 10 Sep).
-      let stage = null; try { stage = await refreshLifeStage(); } catch (e) { stage = null; }
-      // One sentence + one button (src/ui/homeBannerUi.js, 7.10.0): the plan home's first thing due, read from every plan as the
-      // new app reads it; nothing due, the onboarding chain on a draft (NextStep.nextStepFor) and a locked plan's stage
-      await showHomeBanner(window, document, { stage, getActiveScenarioId, listScenariosAsync, getBudgetAsync, getStressSettingsAsync, getDecisionSettingsAsync, planFromAnswer });
-    };
+    // The plan home's banner (src/ui/homeBannerUi.js updateHomeBanner): the newer-plan line, the stage, then homeOf's first thing due
+    window.updateNextStepBanner = () => updateHomeBanner(window, document, { showPlanNewerBanner, refreshLifeStage, getActiveScenarioId, listScenariosAsync, getBudgetAsync, getStressSettingsAsync, getDecisionSettingsAsync, planFromAnswer });
     // A guest keeps up to three plans of their own in this window (GuestPlans.js); more need an account.
     async function guestPlanGate() {
       if (!isGuest()) return false;

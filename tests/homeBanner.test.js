@@ -10,9 +10,9 @@
  * Fictional plans only.
  */
 import { describe, it, expect } from 'vitest';
-import { homeBannerOf, showHomeBanner, installHomeBanner, entriesOf, dayOf, DISMISSED_KEY } from '../src/ui/homeBannerUi.js';
+import { homeBannerOf, showHomeBanner, installHomeBanner, entriesOf, dayOf, DISMISSED_KEY, updateHomeBanner, simpleLinkHref, openingTabOf } from '../src/ui/homeBannerUi.js';
 import { homeOf } from '../src/answers/plan/home.js';
-import { deriveStage } from '../src/services/LifeStage.js';
+import { deriveStage, openingTab } from '../src/services/LifeStage.js';
 import { nextStepFor } from '../src/services/NextStep.js';
 import { PLAN } from '../src/v7/copy/plan.js';
 import { HOME } from '../src/v7/copy/home.js';
@@ -150,6 +150,87 @@ describe('the banner on the page and its ✕', () => {
     expect(p.els.nextStepBanner.style.display).toBe('none');
     await showHomeBanner(p.win, p.doc, depsFor(raws, id, TODAY));
     expect(p.els.nextStepBanner.style.display).toBe('none');
+  });
+  it('updateHomeBanner (7.11.0, index.html\'s updateNextStepBanner): the newer-plan banner, then the stage, then the plans are read; a stage that throws still draws the banner, with no stage', async () => {
+    const raws = Object.values(C);
+    const id = C['04-buckets-running'].id;
+    const order = [];
+    const p = page();
+    const base = depsFor(raws, id, TODAY);
+    const stage = base.stage;
+    const deps = { ...base, stage: undefined,
+      showPlanNewerBanner: () => { order.push('newer'); },
+      refreshLifeStage: async () => { order.push('stage'); return stage; },
+      listScenariosAsync: async () => { order.push('plans'); return raws.map(copy); } };
+    const step = await updateHomeBanner(p.win, p.doc, deps);
+    expect(order).toEqual(['newer', 'stage', 'plans']);
+    expect(step).toEqual(await showHomeBanner(page().win, page().doc, depsFor(raws, id, TODAY)));
+    expect(p.els.nextStepText.innerHTML).toBe('Next: record October 2026.');
+    // the stage throws: the banner is still drawn, read with no stage (as the inline function did)
+    const q = page();
+    const seen = [];
+    const thrown = await updateHomeBanner(q.win, q.doc, { ...deps, showPlanNewerBanner: () => {}, refreshLifeStage: async () => { throw new Error('no stage'); }, getBudgetAsync: async () => { seen.push('read'); return {}; } });
+    expect(seen).toEqual(['read']);
+    expect(thrown).toEqual(await showHomeBanner(page().win, page().doc, { ...depsFor(raws, id, TODAY), stage: null }));
+    expect(q.els.nextStepBanner.style.display).toBe('flex');
+    const draft = C['02-pnv-draft'].id;
+    const r = page();
+    expect(await updateHomeBanner(r.win, r.doc, { ...depsFor(raws, draft, TODAY), showPlanNewerBanner: () => {}, refreshLifeStage: async () => { throw new Error('no stage'); } }))
+      .toEqual(homeBannerOf(entriesAt(TODAY), draft, { today: TODAY, stage: null, budget: {}, stress: {}, decision: {} }));
+  });
+  it('the way back to the simple view (#classicToSimple, 7.11.0) follows the open plan; without the element nothing else changes', async () => {
+    expect(simpleLinkHref('A1')).toBe(LAYOUT.classic.v7 + '#/plan/A1');
+    expect(simpleLinkHref(null)).toBe(LAYOUT.classic.v7 + '#/');
+    expect(simpleLinkHref('a b')).toBe(LAYOUT.classic.v7 + '#/');
+    expect(simpleLinkHref('')).toBe(LAYOUT.classic.v7 + '#/');
+    if (LAYOUT.classic.v7 === '../') expect(simpleLinkHref('A1')).toBe('../#/plan/A1');
+    const raws = Object.values(C);
+    const id = C['04-buckets-running'].id;
+    const withLink = () => {
+      const p = page();
+      const link = { attrs: { href: LAYOUT.classic.v7 + '#/' }, setAttribute(k, v) { this.attrs[k] = String(v); } };
+      const get = p.doc.getElementById;
+      p.doc.getElementById = (x) => (x === 'classicToSimple' ? link : get(x));
+      return { ...p, link };
+    };
+    const p = withLink();
+    await showHomeBanner(p.win, p.doc, depsFor(raws, id, TODAY));
+    expect(p.link.attrs.href).toBe(LAYOUT.classic.v7 + '#/plan/' + id);
+    // a plan with nothing to show still points the way back at it; no plan open: the front door
+    const draft = withLink();
+    draft.win.localStorage.setItem(DISMISSED_KEY + C['02-pnv-draft'].id, '1');
+    await showHomeBanner(draft.win, draft.doc, depsFor(raws, C['02-pnv-draft'].id, TODAY));
+    expect(draft.els.nextStepBanner.style.display).toBe('none');
+    expect(draft.link.attrs.href).toBe(LAYOUT.classic.v7 + '#/plan/' + C['02-pnv-draft'].id);
+    const none = withLink();
+    await showHomeBanner(none.win, none.doc, depsFor(raws, id, TODAY, { getActiveScenarioId: async () => null }));
+    expect(none.link.attrs.href).toBe(LAYOUT.classic.v7 + '#/');
+    // no such element (the rollback layout draws no line): the banner exactly as before
+    const bare = page();
+    expect(await showHomeBanner(bare.win, bare.doc, depsFor(raws, id, TODAY))).toEqual(await showHomeBanner(p.win, p.doc, depsFor(raws, id, TODAY)));
+  });
+  it('the full view\'s opening tab (7.11.0, openingTabOf): Transition exactly for a plan whose home reads Moving, else the stage\'s own, on the whole corpus at three dates; nothing written', async () => {
+    let moving = 0;
+    for (const today of DATES) {
+      const raws = Object.values(C).map(copy);
+      const before = JSON.stringify(raws);
+      const entries = entriesAt(today);
+      for (const e of entries) {
+        const raw = raws.find((r) => r.id === e.plan.id);
+        const stage = deriveStage(raw, noon(today));
+        const tab = await openingTabOf({ refreshLifeStage: async () => stage, getActiveScenarioId: async () => e.plan.id, listScenariosAsync: async () => raws }, noon(today));
+        const phase = homeOf(entries, e.plan.id, { today }).stage.key;
+        if (phase === 'moving') { moving++; expect(tab, `${today} ${e.plan.id}`).toBe('transition'); }
+        else expect(tab, `${today} ${e.plan.id} ${phase}`).toBe(openingTab(stage));
+      }
+      expect(JSON.stringify(raws)).toBe(before);
+    }
+    expect(moving).toBeGreaterThan(0);
+    // the plans cannot be read: the stage's own tab, as before
+    const saver = C['05-saver-committed'];
+    const st = deriveStage(saver, noon(TODAY));
+    expect(await openingTabOf({ refreshLifeStage: async () => st, getActiveScenarioId: async () => saver.id, listScenariosAsync: async () => { throw new Error('offline'); } }, noon(TODAY))).toBe(openingTab(st));
+    expect(await openingTabOf({ refreshLifeStage: async () => null, getActiveScenarioId: async () => null, listScenariosAsync: async () => [] }, noon(TODAY))).toBe('decision');
   });
   it('a refused write leaves the banner as it was; no plan: nothing drawn', async () => {
     const raws = Object.values(C);

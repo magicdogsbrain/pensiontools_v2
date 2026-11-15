@@ -16,13 +16,24 @@
  * plan read afresh, one key added, no stamp) — the new app's home and a partner's device then see the same; on anything else,
  * and on the onboarding chain, the page's own "hide guidance for this plan" (localStorage nextStepDismissed:<id>), as before.
  *
+ * The full view's "Back to the simple view" (#classicToSimple, 7.11.0) follows the plan that is open: it leads to that plan's
+ * page in the simple view, else to the simple view's front door.
+ *
  *   homeBannerOf(entries, activeId, { today, stage, budget, stress, decision, fromAnswer })   the banner, pure (or null)
- *   showHomeBanner(win, doc, deps)                         reads the plans and draws the banner (index.html's updateNextStepBanner)
+ *   updateHomeBanner(win, doc, deps)                       index.html's updateNextStepBanner: the newer-plan banner, the stage,
+ *                                                          then showHomeBanner, in that order
+ *   showHomeBanner(win, doc, deps)                         points #classicToSimple at the open plan, reads the plans and draws
+ *                                                          the banner
+ *   simpleLinkHref(id)                                     the simple view's page of a plan ('#/' with no plan id)
+ *   openingTabOf(deps, now)                                the tab the full view opens on: LifeStage.openingTab, with the phase
+ *                                                          the plan home reads (Moving → Transition)
  *   installHomeBanner(win, doc, deps)                      win.dismissNextStep, the ×
  */
 import { homeOf } from '../answers/plan/home.js';
 import { upgradeScenario } from '../firebase/scenarioMigration.js';
 import { nextStepFor, nextStepAction } from '../services/NextStep.js';
+import { openingTab } from '../services/LifeStage.js';
+import { PLAN_ID } from '../services/OpenPlace.js';
 import { PLAN } from '../v7/copy/plan.js';
 import { HOME } from '../v7/copy/home.js';
 import { LAYOUT } from '../appLayout.js';
@@ -84,15 +95,49 @@ export function homeBannerOf(entries, activeId, { today, stage = null, budget = 
 }
 
 /**
- * Reads every plan and draws the banner (the rest of index.html's updateNextStepBanner, which shows the newer-plan banner and
- * works out the stage first). `deps`: the page's own readers — getActiveScenarioId, listScenariosAsync, getBudgetAsync,
- * getStressSettingsAsync, getDecisionSettingsAsync, planFromAnswer — and the stage it worked out.
+ * index.html's updateNextStepBanner, its three steps in their order: the newer-plan banner; the life stage, worked out on
+ * every load BEFORE anything can return early (a plan with the banner dismissed never got a stage — tabs not hidden, chip
+ * without it — found 10 Sep); then the banner itself. `deps`: showPlanNewerBanner, refreshLifeStage and showHomeBanner's.
+ */
+export async function updateHomeBanner(win, doc, deps) {
+  deps.showPlanNewerBanner();
+  let stage = null; try { stage = await deps.refreshLifeStage(); } catch (e) { stage = null; }
+  return showHomeBanner(win, doc, { ...deps, stage });
+}
+
+/** The simple view's page of a plan, from the full view: '#/plan/<id>', or the front door '#/' when the id is not one. */
+export function simpleLinkHref(id) {
+  return LAYOUT.classic.v7 + (PLAN_ID.test(String(id || '')) ? '#/plan/' + id : '#/');
+}
+
+/**
+ * The tab the full view opens on (index.html's showMainApp): LifeStage.openingTab of the stage, with the phase the plan home
+ * reads for the open plan (homeOf's stage key: Moving opens on Transition). No phase when the plans cannot be read.
+ * `deps`: refreshLifeStage, getActiveScenarioId, listScenariosAsync. Reads only.
+ */
+export async function openingTabOf(deps, now = new Date()) {
+  const stage = await deps.refreshLifeStage();
+  let phase = null;
+  try {
+    const h = homeOf(entriesOf(await deps.listScenariosAsync(), now), await deps.getActiveScenarioId(), { today: dayOf(now) });
+    phase = h && h.found && h.stage ? h.stage.key || null : null;
+  } catch (e) { phase = null; }
+  return openingTab(stage, phase);
+}
+
+/**
+ * Reads every plan and draws the banner (updateHomeBanner shows the newer-plan banner and works out the stage first).
+ * `deps`: the page's own readers — getActiveScenarioId, listScenariosAsync, getBudgetAsync, getStressSettingsAsync,
+ * getDecisionSettingsAsync, planFromAnswer — and the stage it worked out. First it points the full view's "Back to the
+ * simple view" (#classicToSimple) at the plan that is open, whatever the banner then shows.
  */
 export async function showHomeBanner(win, doc, deps) {
   const banner = doc.getElementById('nextStepBanner');
   if (!banner) return null;
   try {
     const activeId = await deps.getActiveScenarioId();
+    const back = doc.getElementById('classicToSimple');
+    if (back) back.setAttribute('href', simpleLinkHref(activeId));
     if (!activeId) { banner.style.display = 'none'; return null; }
     const now = deps.now ? deps.now() : new Date();
     const [plans, budget, stress, decision, fromAnswer] = await Promise.all([deps.listScenariosAsync(), deps.getBudgetAsync(), deps.getStressSettingsAsync(), deps.getDecisionSettingsAsync(), deps.planFromAnswer()]);

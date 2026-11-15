@@ -75,7 +75,10 @@ import { resolve } from 'node:path';
 // shorter: 9,059.
 // The classic banner reads the plan home (7.10.0): the rest of updateNextStepBanner and the banner's ✕ moved to
 // src/ui/homeBannerUi.js, the shell keeping the newer-plan banner and the stage inline, first: 16 lines shorter: 9,043.
-const MAX_LINES = 9043;
+// One home in both views (7.11.0): the banner's three steps moved to src/ui/homeBannerUi.js updateHomeBanner, and the
+// opening tab reads the plan's phase there (openingTabOf); the plan menu redraws the banner from its existing line: 7 lines
+// shorter: 9,036.
+const MAX_LINES = 9036;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

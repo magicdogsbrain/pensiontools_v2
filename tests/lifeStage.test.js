@@ -223,6 +223,15 @@ describe('a saver, placed and opened as a saver (release step R2)', () => {
     // a saver's banner button opens the tab the planner opened on: the two never disagree
     for (const key of ['saving', 'approaching', 'committed-saving']) expect(STAGES[key].banner.tab, key).toBe(openingTab({ key, leads: STAGES[key].leads }));
   });
+  it('a plan whose phase is Moving opens on Transition (7.11.0); any other phase, or none, exactly as without one', () => {
+    expect(openingTab({ key: 'approaching', leads: STAGES.approaching.leads }, 'moving')).toBe('transition');
+    for (const key of Object.keys(STAGES)) expect(openingTab({ key, leads: STAGES[key].leads }, 'moving'), key).toBe('transition');
+    expect(openingTab(null, 'moving')).toBe('transition');
+    const stages = [null, ...Object.keys(STAGES).map((key) => ({ key, leads: STAGES[key].leads }))];
+    for (const st of stages) for (const phase of ['saving', 'drawing', 'closed', null, undefined]) {
+      expect(openingTab(st, phase), `${st && st.key} ${phase}`).toBe(openingTab(st));
+    }
+  });
   it('a committed saver far from the stop is not offered the move; within five years it is, as a choice', () => {
     const far = deriveStage(sc({ currentAge: 50, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }, { locked: true }), NOW);
     expect(far.key).toBe('committed-saving');

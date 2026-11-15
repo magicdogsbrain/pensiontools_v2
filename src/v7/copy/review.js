@@ -24,7 +24,8 @@ export const REVIEW = {
   aboutLink: 'About you and when',
   /** Off course by the person's own rule, said at the top of the page. */
   offCourse: {
-    success: 'At your last two reviews that worked out the chance, the money lasted as long as you do {a} and then {b} times in 20; your line is {line} in 20. Below is what you can change.',
+    success: 'At your last two reviews that worked out the chance, the money lasted as long as you do {a} and then {b}; your line is {line} in 20. Below is what you can change.',
+    plain: 'At your last two reviews that worked out the chance, the money did not last as long as you do often enough for your line of {line} in 20. Below is what you can change.',
     guardrails: 'At your last two reviews your plan took more than a fifth more of what your pots hold than it took when the plan as locked began. Below is what you can change.'
   },
   change: 'Change',

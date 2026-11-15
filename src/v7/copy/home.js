@@ -54,7 +54,7 @@ export const HOME = {
     'month.gap':          { title: 'Record {month}', detail: 'It is not recorded yet. Months you missed can be filled in at once.' },
     /** The review (7.10.0): one page in every phase; a saver's is the check-in. */
     'review.due':         { title: 'Your review', detail: 'Due {reviewOften}. A few figures, a few minutes. Nothing about your plan changes unless you say so.' },
-    'review.offCourse':   { title: 'Past your line at your last two reviews', detail: 'At your last two reviews that worked out the chance, the money lasted as long as you do {a} and then {b} times in 20; your line is {line} in 20. The review shows what you can change.' },
+    'review.offCourse':   { title: 'Past your line at your last two reviews', detail: 'At your last two reviews that worked out the chance, the money lasted as long as you do {a} and then {b}; your line is {line} in 20. The review shows what you can change.' },
     'household.pending':  { title: 'Your partner’s plan', detail: 'The plan it is linked with is not in this account. Link one, or leave it.' }
   },
   /** Off course said another way: by the guardrails rule, or from readings kept before 7.8.0 that say no figure. */

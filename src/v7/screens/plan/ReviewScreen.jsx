@@ -43,7 +43,7 @@ function Top({ V }) {
       {V.last && <p class="note" data-testid={`${T}.last`}>{fill(W.last, V.last)}</p>}
       {V.offCourse && (
         <p class="notice" role="status" data-testid={`${T}.offCourse`} data-kind={V.offCourse.kind}>
-          {V.offCourse.kind === 'guardrails' ? W.offCourse.guardrails : fill(W.offCourse.success, { a: String(V.offCourse.a ?? ''), b: String(V.offCourse.b ?? ''), line: String(V.offCourse.line ?? '') })}
+          {V.offCourse.kind === 'guardrails' ? W.offCourse.guardrails : fill(V.offCourse.a && V.offCourse.b ? W.offCourse.success : W.offCourse.plain, { a: V.offCourse.a || '', b: V.offCourse.b || '', line: V.offCourse.line || '' })}
         </p>
       )}
       {V.closing && <p class="notice" role="status" data-testid={`${T}.closing`}>{fill(W.closing, V.closing)}</p>}

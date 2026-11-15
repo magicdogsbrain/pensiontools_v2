@@ -907,7 +907,7 @@ function rulesFor(C, built) {
     nextReview, nextCheck: nextReview || (ci && ci.chosen && ci.next ? monthWords(ci.next) : ''), reviewOften: reviewOftenOf(phase, reviewDue ? reviewDue.every : 'year'),
     ...(ci && ci.lastCheckIn ? { last: monthWords(ci.lastCheckIn.month) } : {}),
     ...(left != null ? { windowLeft: left === 1 ? '1 month' : left + ' months' } : {}),
-    ...(offCourse && offCourse.off ? { a: offCourse.a != null ? String(offCourse.a) : '', b: offCourse.b != null ? String(offCourse.b) : '', line: offCourse.line != null ? String(offCourse.line) : '', offKind: offCourse.rule.kind } : {}) };
+    ...(offCourse && offCourse.off ? { ...offCourseWordsOf(offCourse), offKind: offCourse.rule.kind } : {}) };
   // what each to-do is put away for (answers/plan/tasks.js): its month, tax year, review date, partner's plan or stop
   const occurrence = {
     'P.confirmStop': stop,
@@ -940,6 +940,17 @@ function rulesFor(C, built) {
     'P.reviewAny': link('reviewNow', review)
   };
   return { RULES, BUTTONS, slots, answerStale, gap: !!(month && month.gap), occurrence };
+}
+
+/**
+ * Off course in words (7.10.0): each of the two readings' chance as the run's own line says it ("once in 20", "16 times in
+ * 20": format.js chanceWords, so the to-do and the run it came from never disagree), and the line in twentieths; '' for a
+ * reading that keeps no weighted chance (the words then say it without the figures).
+ */
+export function offCourseWordsOf(off) {
+  const w = (r) => (r && typeof r.weighted === 'number' && Number.isFinite(r.weighted) ? chanceWords(r.weighted, { sumW: r.sumW, n: r.n }) : '');
+  const rs = off && Array.isArray(off.readings) ? off.readings : [];
+  return { a: w(rs[0]), b: w(rs[1]), line: off && off.line != null ? String(off.line) : '' };
 }
 
 /** How often a review falls, in words: once a tax year (Living on it), once a year, every three months, every month. */

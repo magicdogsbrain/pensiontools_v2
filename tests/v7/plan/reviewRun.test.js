@@ -15,6 +15,7 @@ import { heldSettingsOf } from '../../../src/answers/plan/keepTest.js';
 import { heldMixSettings } from '../../../src/answers/plan/move.js';
 import { reviewOf, reviewSettingsOf, reviewSavePatch, savedReadingOf, readingOf, runInputsOf, reviewRunKeyOf, documentReadingOf } from '../../../src/answers/plan/review.js';
 import { homeOf } from '../../../src/answers/plan/home.js';
+import { HOME } from '../../../src/v7/copy/home.js';
 import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
 import { normaliseHoldings } from '../../../src/services/HoldingsRecord.js';
 import { POTS_TODAY } from '../../../src/services/PlanFromToday.js';
@@ -206,6 +207,22 @@ describe('off course on the home: two saved reviews that worked out the chance, 
     const before = JSON.stringify(two);
     expect(ids(two)).toContain('review.offCourse');
     expect(JSON.stringify(two)).toBe(before);
+  });
+  it('the figures are said as the run says them: "2 times in 20 and then once in 20", never "1 times"', () => {
+    const day = '2027-06-02';
+    const raw = copy(C['04-buckets-running']);
+    const plan0 = entryOf(raw, day).plan;
+    const doc = plan0.planDocument.createdAt || plan0.planDocument.lockedAt;
+    raw.phases = { of: raw.createdAt, review: { log: [entry('2027-04-10T10:00:00.000Z', 0.10, doc), entry('2027-05-10T10:00:00.000Z', 0.05, doc)] } };
+    const h = homeOf([entryOf(raw, day)], raw.id, { today: day });
+    const it = [...h.todo.items, ...h.todo.more].find((x) => x.id === 'review.offCourse');
+    expect(it.slots).toMatchObject({ a: '2 times in 20', b: 'once in 20', line: '17' });
+    const words = HOME.items['review.offCourse'].detail.replace(/\{(\w+)\}/g, (m, k) => it.slots[k]);
+    expect(words).toContain('as long as you do 2 times in 20 and then once in 20; your line is 17 in 20.');
+    expect(words).not.toMatch(/\b1 times|\btimes in 20 times/);
+    // the review page says it the same way
+    const R = reviewOf([entryOf(raw, day)], raw.id, { today: day });
+    expect(R.offCourse).toMatchObject({ a: '2 times in 20', b: 'once in 20', line: '17' });
   });
 });
 

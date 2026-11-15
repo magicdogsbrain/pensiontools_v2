@@ -44,7 +44,7 @@
  * `entered` says which figures the person typed (a default saved untouched is false), so the words say "the figures you
  * entered" only of those.
  */
-import { planPage, dateOf, monthWords } from './read.js';
+import { planPage, dateOf, monthWords, offCourseWordsOf } from './read.js';
 import { dayWords } from './dates.js';
 import { pounds } from './income.js';
 import { REVIEW_FIELDS, REVIEW_CHOICES } from './schema.js';
@@ -388,7 +388,7 @@ export function reviewOf(entries, id, { today, typed = {}, page = null, source =
     closing, closed,
     often: oftenOf(phase, every),
     due: due ? { next: due.next ? monthWords(due.next.slice(0, 7)) : null, due: !!due.due } : null,
-    offCourse: pg.offCourse && pg.offCourse.off ? { a: pg.offCourse.a, b: pg.offCourse.b, line: pg.offCourse.line, kind: pg.offCourse.rule.kind } : null,
+    offCourse: pg.offCourse && pg.offCourse.off ? { ...offCourseWordsOf(pg.offCourse), kind: pg.offCourse.rule.kind } : null,
     confirmStop: life && life.confirmStop ? { stop: monthWords(life.stop) } : null,
     count: log.filter((e) => REVIEW_PHASES.includes(e.phase)).length,
     last: (() => { const l = log.filter((e) => e.phase === phase); return l.length ? { on: dayWords(l[l.length - 1].at) } : null; })()

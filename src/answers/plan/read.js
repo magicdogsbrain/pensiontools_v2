@@ -22,7 +22,7 @@ import { payInShareOf } from '../../services/SaverPayIn.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { stepsFor, subStepsFor, ALL_STEPS, NEXT_ORDER, NEXT_INFO, DUE_IDS, RETIRED_STAGES, SAVER_STAGES } from './steps.js';
 import { stageOf } from '../../services/LifeStage.js';
-import { windowYearsOf, reviewDueOf, offCourseOf, moveWindowOf } from '../../services/Phases.js';
+import { windowYearsOf, reviewDueOf, offCourseOf, moveWindowOf, heldPhase } from '../../services/Phases.js';
 import { monthsWanted } from '../../services/DrawCadence.js';
 import { taskKeyOf, isPutOff } from './tasks.js';
 import { optionsFor } from './options.js';
@@ -802,25 +802,31 @@ function holdStep(C) {
 
 /** Moving to your plan's mix (2.3 `move`). */
 function moveStep(C) {
-  const { plan, now } = C;
+  const { plan, now, life } = C;
   const figures = {};
   const lines = [];
   let m = null; try { m = moveInputs(plan, { now }); } catch { m = null; }
+  // Living on it, or Moving once what is held was accepted (7.11.1, Phases.heldPhase): what is held, never moves to make
+  const asHeld = heldPhase(life);
   let result, done = false;
   if (!m || !m.target || m.target.kind === 'none') result = sentence('move.notSet', ['Set when the plan is locked'], figures);
   else if (m.diff.complete) { result = sentence('move.done', ['Done'], figures); done = true; }
   else if (m.target.kind === 'ladder') {
     const total = m.target.lines.length;
-    const bought = m.diff.hold.filter((h) => Array.isArray(h.taxYears)).length;
+    // a rung held above its target is bought (7.11.1: the diff's own count, as the page and the order sheet say)
+    const bought = m.diff.rungs ? m.diff.rungs.held : m.diff.hold.filter((h) => Array.isArray(h.taxYears)).length;
     figures.bought = bought; figures.rungs = total;
     result = sentence('move.gilts', [count('bought'), ' of ', count('rungs'), ' gilts bought'], figures);
+  } else if (asHeld && typeof m.diff.progressPct === 'number') {
+    figures.heldPct = m.diff.progressPct;
+    result = sentence('move.heldShare', [count('heldPct'), '% of the plan’s mix held'], figures);
   } else {
     figures.movesDone = m.prog.doneCount; figures.moves = m.prog.total;
     result = sentence('move.moves', [count('movesDone'), ' of ', count('moves'), ' moves done'], figures);
   }
   if (m && m.diff && typeof m.diff.progressPct === 'number') { figures.heldPct = m.diff.progressPct; lines.push(line('move.held', [count('heldPct'), '% of the plan’s mix held'], figures, sourceOf('hold', normaliseHoldings(plan.holdings).updatedAt || null, now))); }
   // "Open it": the move is drawn inside V7 (road-to-7.md step 10; holdings-and-move.md §4)
-  return { done, result, figures, lines, buttons: [link('openMove', '#/plan/' + plan.id + '/move')], notes: ['move.optional'] };
+  return { done, result, figures, lines, buttons: [link('openMove', '#/plan/' + plan.id + '/move')], notes: asHeld ? [] : ['move.optional'] };
 }
 
 /** Your household (2.3 `household`; 6). */

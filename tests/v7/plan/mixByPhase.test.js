@@ -26,8 +26,8 @@ import { transitionHtml } from '../../../src/ui/components/TransitionView.js';
 import { transitionHeld, transitionGaps } from '../../../src/ui/keepHoldingsUi.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
 import { diffHoldings, targetHoldings, yearNeedsOf } from '../../../src/services/TransitionPlanner.js';
-import { stateWith, entryOf, noon } from './_plans.js';
-import { ALEX_TODAY as TODAY, alex, alexRaw, CONV, samRaw, SAM_CONV } from './_alex.js';
+import { stateWith, entryOf, noon, corpus } from './_plans.js';
+import { ALEX_TODAY as TODAY, alex, alexRaw, CONV, samRaw, SAM_CONV, asMoving } from './_alex.js';
 
 const T = 'plan.move';
 const SCOPES = ['all', 'record', 'retired', 'planner', 'result'];
@@ -121,6 +121,22 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     const tool = home.tools.find((t) => t.id === 'move');
     expect(tool).toBeTruthy();
     expect(JSON.stringify(tool.result)).not.toMatch(/moves done|ticked/);
+    // the rungs bought as the page and the order sheet count them; no "Optional…" (that is the move's) on the step
+    expect(tool.figures).toMatchObject({ bought: +V.heldInfo.rungs.held, rungs: +V.heldInfo.rungs.total });
+    expect(planPage([{ plan: p }], p.id, 'move', { today: TODAY }).steps.find((x) => x.id === 'move').notes).toEqual([]);
+  });
+  it('a pot plan living on it: the home says how much of the plan\'s mix is held, never moves done', () => {
+    const raw = JSON.parse(JSON.stringify(corpus()['04-buckets-running']));
+    const shares = raw.holdings.lines[0].value;
+    raw.holdings.lines[0].value = Math.round(shares * 2 / 3);
+    raw.holdings.lines[2].value = Math.round(raw.holdings.lines[2].value + shares / 3);
+    const q = entryOf(raw, TODAY).plan;
+    const tool = homeOf([{ plan: q }], q.id, { today: TODAY }).tools.find((t) => t.id === 'move');
+    expect(tool.result.id).toBe('move.heldShare');
+    expect(tool.result.text).toMatch(/^\d+% of the plan’s mix held$/);
+    // read as Moving, it is the move's count, as before
+    const m = entryOf(asMoving(JSON.parse(JSON.stringify(raw))), TODAY).plan;
+    expect(homeOf([{ plan: m }], m.id, { today: TODAY }).tools.find((t) => t.id === 'move').result.id).toBe('move.moves');
   });
 });
 

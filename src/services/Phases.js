@@ -444,6 +444,20 @@ export function lockedMonthOf(plan) {
 }
 /** The review entries of one phase that belong to the plan, oldest first. */
 const entriesOf = (plan, phase) => reviewLogOf(plan).filter((e) => e.phase === phase && monthOrNull(e.at)).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+/** The key of the review to-do (answers/plan/steps.js DUE_IDS 'P.review'), before its '@occurrence'. */
+const REVIEW_TASK = 'review.due@';
+/**
+ * The review occurrences put away for good ("Not this time": answers/plan/tasks.js stores the to-do done for that occurrence,
+ * `until` null), as they belong to the plan: a Set of occurrences ('2027-09', '2027/28'). The next review is read past each
+ * of them, as if a review had been saved then, so it comes back at the next one and its date is never one already set aside.
+ */
+function setAsideOf(plan) {
+  const t = plan && isObj(plan.tasks) ? plan.tasks : null;
+  if (!t || !belongsTo(t, plan) || !isObj(t.dismissed)) return new Set();
+  return new Set(Object.entries(t.dismissed)
+    .filter(([k, v]) => k.startsWith(REVIEW_TASK) && k.length > REVIEW_TASK.length && isObj(v) && v.until === null && typeof v.at === 'string')
+    .map(([k]) => k.slice(REVIEW_TASK.length)));
+}
 /** How often the plan's review falls in Moving and Living on it: the person's choice, else once a year. */
 export function reviewEveryOf(plan) {
   const ph = phasesAsTheyBelong(plan);
@@ -467,6 +481,9 @@ export function reviewRuleOf(plan) {
  *     LIVING_REVIEW_AFTER months before that 6 April; every three months or every month, from the last review (or the lock);
  *     not locked: whenever they like (null).
  * None on a plan that closes (reviews carry on with the plan that carries it on), and none on a closed one.
+ * An occurrence put away for good ("Not this time", setAsideOf) is read as reviewed then: the next one follows it by how often
+ * the review falls (a yearly Living-on-it review, the next tax year), so the to-do comes back at the next occurrence and the
+ * date said is never one already set aside.
  * @param {object} plan
  * @param {{ now: Date, phase: 'saving'|'moving'|'drawing'|'closed'|null, locked?: boolean, closing?: boolean, agreed?: boolean,
  *   checkIn?: { chosen, legacy, next, nextDay?, due } | null }} o
@@ -476,11 +493,21 @@ export function reviewRuleOf(plan) {
 export function reviewDueOf(plan, { now, phase, locked = false, closing = false, agreed = false, checkIn = null } = {}) {
   const today = dayKeyOf(nowOf(now));
   const none = (every) => ({ next: null, due: false, occurrence: null, every });
+  const aside = setAsideOf(plan);
+  // past every occurrence set aside: the next one by how often (a bounded walk; 60 years of months is far past any plan)
+  const past = (r) => {
+    let out = r;
+    for (let i = 0; i < 720 && out.occurrence && aside.has(out.occurrence); i++) {
+      const month = addMonths(out.occurrence, EVERY_MONTHS[out.every] || 12);
+      out = { ...out, next: month + '-01', due: today >= month + '-01', occurrence: month };
+    }
+    return out;
+  };
   if (phase === 'saving') {
     const every = checkIn && everyOrNull(checkIn.every) ? checkIn.every : 'year';
     if (closing || !checkIn || !checkIn.next || !(checkIn.chosen || checkIn.legacy)) return none(every);
     const next = typeof checkIn.nextDay === 'string' ? checkIn.nextDay : monthOrNull(checkIn.next) + '-01';
-    return { next, due: !!checkIn.due, occurrence: monthOrNull(next), every };
+    return past({ next, due: !!checkIn.due, occurrence: monthOrNull(next), every });
   }
   const every = reviewEveryOf(plan);
   if (phase !== 'moving' && phase !== 'drawing') return none(every);
@@ -490,7 +517,7 @@ export function reviewDueOf(plan, { now, phase, locked = false, closing = false,
   const dated = (month, { floor = false } = {}) => {
     let next = month + '-01';
     if (floor && next < REVIEW_FROM) next = REVIEW_FROM;
-    return { next, due: today >= next, occurrence: monthOrNull(next), every };
+    return past({ next, due: today >= next, occurrence: monthOrNull(next), every });
   };
   if (phase === 'moving') {
     if (agreed) return none(every);
@@ -507,6 +534,8 @@ export function reviewDueOf(plan, { now, phase, locked = false, closing = false,
   // once a tax year, from 6 April: the first tax year from this one with no review in it, locked six months before its 6 April
   const T = taxYearStartOf(nowOf(now));
   const logged = new Set(log.map((e) => taxYearStartOf(new Date(String(e.at).slice(0, 10) + 'T12:00:00'))));
+  // a tax year whose review was set aside ("Not this time") is read as reviewed: the next is the following 6 April
+  for (const o of aside) { const m = /^(\d{4})\/\d{2}$/.exec(o); if (m && taxYearLabel(+m[1]) === o) logged.add(+m[1]); }
   const lockedOk = (Y) => !lockedMonth || addMonths(lockedMonth, LIVING_REVIEW_AFTER) <= Y + '-04';
   const floorOk = (Y) => log.length > 0 || Y + '-04-06' >= REVIEW_FROM;
   let Y = T;

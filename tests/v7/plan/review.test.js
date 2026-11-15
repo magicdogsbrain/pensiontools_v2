@@ -12,7 +12,7 @@
  *   - DrawCadence.monthsWanted, the home's rule for asking for months.
  */
 import { describe, it, expect } from 'vitest';
-import { reviewDueOf, offCourseOf, belowLine, reviewRuleOf, reviewEveryOf, defaultFloorOf, REVIEW_FROM, OFF_COURSE, LIVING_REVIEW_AFTER } from '../../../src/services/Phases.js';
+import { reviewDueOf, offCourseOf, belowLine, reviewRuleOf, reviewEveryOf, defaultFloorOf, phasesPatch, REVIEW_FROM, OFF_COURSE, LIVING_REVIEW_AFTER } from '../../../src/services/Phases.js';
 import { monthsWanted } from '../../../src/services/DrawCadence.js';
 import { checkInDueOf, checkInsOf } from '../../../src/answers/plan/checkInDue.js';
 import { WEIGHT_ONE } from '../../../src/answers/shared/rules.js';
@@ -26,6 +26,7 @@ import { startPlanWrite } from '../../../src/v7/effects/planWrite.js';
 import { upgradedList } from '../../../src/v7/effects/planSource.js';
 import { isLockedSettings } from '../../../src/services/LockedPlanGuard.js';
 import { corpus, entryOf, noon } from './_plans.js';
+import { taskPatch } from '../../../src/answers/plan/tasks.js';
 
 const C = corpus();
 const copy = (v) => JSON.parse(JSON.stringify(v));
@@ -97,6 +98,47 @@ describe('when the review is next: never stored, and never on release day', () =
     const before = JSON.stringify(raw);
     reviewDueOf(raw, { now: at('2027-04-06'), phase: 'saving', checkIn: checkInDueOf(raw, { today: '2027-04-06', stageKey: 'committed-saving' }) });
     expect(JSON.stringify(raw)).toBe(before);
+  });
+  it('"Not this time" puts that occurrence away only: the next follows it by how often, in every phase, and no date said is one set aside', () => {
+    const aside = (plan, key, day) => ({ ...plan, tasks: taskPatch(plan, key, 'done', { at: at(day) }).tasks });
+    // Saving, a plan locked while saving (fixture 05): due September 2027; set aside in October; back in September 2028
+    const raw = C['05-saver-committed'];
+    const ci = (p, day) => checkInDueOf(p, { today: day, stageKey: 'committed-saving' });
+    const e = entryOf(raw, '2027-10-10');
+    expect(reviewDueOf(e.plan, { now: at('2027-10-10'), phase: 'saving', locked: true, checkIn: ci(e.plan, '2027-10-10') })).toMatchObject({ next: '2027-09-01', due: true, occurrence: '2027-09' });
+    const s = aside(e.plan, 'review.due@2027-09', '2027-10-10');
+    expect(reviewDueOf(s, { now: at('2027-10-11'), phase: 'saving', locked: true, checkIn: ci(s, '2027-10-11') })).toMatchObject({ next: '2028-09-01', due: false, occurrence: '2028-09' });
+    expect(reviewDueOf(s, { now: at('2028-10-11'), phase: 'saving', locked: true, checkIn: ci(s, '2028-10-11') })).toMatchObject({ next: '2028-09-01', due: true, occurrence: '2028-09' });
+    // Living on it, every three months: the April review set aside, the next is July — never April again
+    const q = aside(alex({ every: 'quarter', log: [run('2027-01-10')] }), 'review.due@2027-04', '2027-05-02');
+    expect(reviewDueOf(q, { now: at('2027-05-03'), phase: 'drawing', locked: true })).toMatchObject({ next: '2027-07-01', due: false, occurrence: '2027-07' });
+    expect(reviewDueOf(q, { now: at('2027-09-03'), phase: 'drawing', locked: true })).toMatchObject({ next: '2027-07-01', due: true, occurrence: '2027-07' });
+    // Living on it, once a tax year: 2027/28 set aside; the next is 6 April 2028, not the April just gone
+    const y = aside(alex(), 'review.due@2027/28', '2027-04-06');
+    for (const day of ['2027-04-07', '2027-05-10', '2027-09-10']) expect(reviewDueOf(y, { now: at(day), phase: 'drawing', locked: true }), day).toEqual({ next: '2028-04-06', due: false, occurrence: '2028/29', every: 'year' });
+    expect(reviewDueOf(y, { now: at('2028-04-06'), phase: 'drawing', locked: true })).toMatchObject({ due: true, occurrence: '2028/29' });
+    // Moving: twelve months after the lock (July 2027) set aside: July 2028
+    const m = aside(alex(), 'review.due@2027-07', '2027-07-02');
+    expect(reviewDueOf(m, { now: at('2027-07-03'), phase: 'moving', locked: true })).toMatchObject({ next: '2028-07-01', due: false, occurrence: '2028-07' });
+    // "Not now" (until next month) moves nothing: the same occurrence, put off only
+    const later = { ...alex(), tasks: taskPatch(alex(), 'review.due@2027/28', 'notNow', { at: at('2027-04-06') }).tasks };
+    expect(reviewDueOf(later, { now: at('2027-04-07'), phase: 'drawing', locked: true })).toMatchObject({ next: '2027-04-06', due: true, occurrence: '2027/28' });
+    // a dismissal that does not belong to the plan (a copy's clone) sets nothing aside
+    const cloned = { ...y, createdAt: '2027-05-01T09:00:00.000Z' };
+    expect(reviewDueOf(cloned, { now: at('2027-05-10'), phase: 'drawing', locked: true })).toMatchObject({ occurrence: '2027/28' });
+  });
+  it('the home and the rail say the date that follows a review set aside, and the to-do comes back then (fixture 04, every three months)', () => {
+    const q = copy(C['04-buckets-running']);
+    q.phases = phasesPatch(entryOf(q, '2027-05-01').plan, 'review.every', 'quarter', { at: '2027-05-01T10:00:00Z' }).phases;
+    const due0 = homeOf([entryOf(q, '2027-05-02')], entryOf(q, '2027-05-02').plan.id, { today: '2027-05-02' });
+    const item = [...due0.todo.items, ...due0.todo.more].find((d) => d.id === 'review.due');
+    expect(item && item.key).toBe('review.due@2027-04');
+    q.tasks = taskPatch(entryOf(q, '2027-05-02').plan, item.key, 'done', { at: at('2027-05-02') }).tasks;
+    const h1 = homeOf([entryOf(q, '2027-05-03')], q.id, { today: '2027-05-03' });
+    expect([...h1.todo.items, ...h1.todo.more].map((d) => d.id)).not.toContain('review.due');
+    expect(h1.review).toMatchObject({ next: 'July 2027', due: false });
+    const h2 = homeOf([entryOf(q, '2027-09-03')], q.id, { today: '2027-09-03' });
+    expect([...h2.todo.items, ...h2.todo.more].find((d) => d.id === 'review.due').key).toBe('review.due@2027-07');
   });
 });
 

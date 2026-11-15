@@ -898,7 +898,7 @@ function rulesFor(C, built) {
   const left = win && Number.isFinite(win.monthsLeft) ? win.monthsLeft : null;
   const nextReview = reviewDue && reviewDue.next ? monthWords(reviewDue.next.slice(0, 7)) : '';
   const slots = { month: monthWords(toRecord), monthName: monthName(toRecord), nextMonth, year: taxYearLabel(ty), stop: stopWords, closed: closed ? closed.month : '', next: closed && closed.next ? closed.next.name : '',
-    nextReview, nextCheck: ci && ci.chosen && ci.next ? monthWords(ci.next) : nextReview, reviewOften: reviewOftenOf(phase, reviewDue ? reviewDue.every : 'year'),
+    nextReview, nextCheck: nextReview || (ci && ci.chosen && ci.next ? monthWords(ci.next) : ''), reviewOften: reviewOftenOf(phase, reviewDue ? reviewDue.every : 'year'),
     ...(ci && ci.lastCheckIn ? { last: monthWords(ci.lastCheckIn.month) } : {}),
     ...(left != null ? { windowLeft: left === 1 ? '1 month' : left + ' months' } : {}),
     ...(offCourse && offCourse.off ? { a: offCourse.a != null ? String(offCourse.a) : '', b: offCourse.b != null ? String(offCourse.b) : '', line: offCourse.line != null ? String(offCourse.line) : '', offKind: offCourse.rule.kind } : {}) };

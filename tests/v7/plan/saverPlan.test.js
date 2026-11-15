@@ -322,7 +322,7 @@ describe('the rail: a saver is never pushed off saving (4.1, 4.2)', () => {
     // retaken in 7.10.0 (spec-7100 §5): the first check-in is no longer a to-do — the review whenever they like, opening the
     // check-in (a saver's review)
     expect(pg.next.id).toBe('P.reviewAny');
-    expect(pg.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + saver.id + '/checkin', slots: {} });
+    expect(pg.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + saver.id + '/review', slots: {} });
     expect(PLAN.next['P.reviewAny']).toBe('Nothing due. You can review your plan whenever you like.');
   });
   // retaken in 7.10.0 (spec-7100 §5): no aim is no longer a to-do — the review asks it (the check-in reads the plan's aim)
@@ -346,7 +346,7 @@ describe('the rail: a saver is never pushed off saving (4.1, 4.2)', () => {
       expect(pg.due, today).toEqual([]);
       expect(pg.next.id, today).toBe('P.nextReview');
       expect(nextText(pg)).toBe('Nothing due. Your next review is September 2027.');
-      expect(pg.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + e.plan.id + '/checkin', slots: {} });
+      expect(pg.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + e.plan.id + '/review', slots: {} });
       // this month's pot recorded: the next review moves on a year from it
       const mon = today.slice(0, 7);
       const withPot = copy(raw);

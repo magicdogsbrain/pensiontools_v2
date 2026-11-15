@@ -913,7 +913,7 @@ function rulesFor(C, built) {
     'P.householdPending': mine
   };
   const aboutHref = '#/plan/' + plan.id + '/about';   // "About you and when", inside V7 (editing-in-v7.md 2)
-  const review = reviewHrefOf(plan, phase);
+  const review = reviewHrefOf(plan);
   const BUTTONS = {
     'P.readonly': null,
     'P.closed': closed && closed.next ? link('openNext', '#/plan/' + closed.next.id, { name: closed.next.name }) : null,
@@ -940,11 +940,12 @@ function rulesFor(C, built) {
 const reviewOftenOf = (phase, every) => (every === 'quarter' ? 'every three months' : every === 'month' ? 'every month' : phase === 'drawing' ? 'once a tax year' : 'once a year');
 
 /**
- * Where a plan's review is (spec-7100 §4.1): one page in every phase. In Saving it is the check-in, which is that phase's
- * review; in Moving and Living on it, the review page.
+ * Where a plan's review is (spec-7100 §4.1): ONE page in every phase, #/plan/<id>/review. In Saving it draws the check-in,
+ * which is that phase's review, with the choices under it (the move window, the saving level, the rule); #/plan/<id>/checkin
+ * still opens the check-in alone.
  */
-export function reviewHrefOf(plan, phase) {
-  return '#/plan/' + plan.id + '/' + (phase === 'saving' ? 'checkin' : 'review');
+export function reviewHrefOf(plan) {
+  return '#/plan/' + plan.id + '/review';
 }
 
 /**
@@ -1113,7 +1114,7 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
     soon: soonFor(C),
     life,
     // 7.10.0: when the review is next (never stored), and its address
-    reviewDue: reviewDue ? { ...reviewDue, href: reviewHrefOf(plan, phase) } : null,
+    reviewDue: reviewDue ? { ...reviewDue, href: reviewHrefOf(plan) } : null,
     offCourse,
     // the questions the rail ends with: savers get A and B, retired stages C (2.4)
     // (what the B link opens B with, a saver's own figures, is saving.js askFillOf's: the plan source puts it on the page as

@@ -90,8 +90,11 @@ test('Alex: saving, a choice each one write; the window opens with nothing to do
     await expect(page.getByTestId(`${H}.headline`)).toHaveText(/^Saving\./, { timeout: 30_000 });
     await expect(page.getByTestId(`${H}.moveWindow`)).toHaveText('Your move window opens in January 2028.');
     await expect(page.getByTestId(`${H}.todo`).locator('.home-item')).toHaveCount(0);
-    await openAt(page, `#/plan/${ID}/review`);
+    // the home's "Review now" opens the one review page, a saver's too: the check-in with the choices under it
+    await expect(page.getByTestId(`${H}.review.now`)).toHaveAttribute('href', `#/plan/${ID}/review`);
+    await page.getByTestId(`${H}.review.now`).click();
     await expect(page.locator(`[data-testid="${R}"][data-phase="saving"]`)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('plan.step.checkin')).toBeVisible();
     await page.getByTestId(`${R}.choice.level.change`).click();
     await page.getByTestId(`${R}.choice.level.adventurous`).click();
     await expect(page.getByTestId(`${R}.toast`)).toContainText('adventurously', { timeout: 30_000 });

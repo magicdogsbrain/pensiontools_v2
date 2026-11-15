@@ -146,7 +146,7 @@ describe('how often, and when the next check-in is due (5.2)', () => {
       expect(step.due).toBe(false);
       expect(pg.next.id).toBe('P.nextReview');
       expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('Nothing due. Your next review is September 2027.');
-      expect(pg.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + e.plan.id + '/checkin', slots: {} });
+      expect(pg.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + e.plan.id + '/review', slots: {} });
       const row = planRows([e], { today }).groups.flatMap((g) => g.rows)[0];
       expect(row.checkInDue).toBe(false);
     }
@@ -166,7 +166,7 @@ describe('how often, and when the next check-in is due (5.2)', () => {
     // retaken in 7.10.0: the check-in due is the saver's review (spec-7100 §5)
     expect(pg.next.id).toBe('P.review');
     expect(fill(PLAN.next[pg.next.id], pg.next.slots)).toBe('Next: your review, due once a year. A few figures, a few minutes; nothing about your plan changes unless you say so.');
-    expect(pg.next.button).toEqual({ id: 'startReview', href: '#/plan/' + p0.id + '/checkin', slots: {} });
+    expect(pg.next.button).toEqual({ id: 'startReview', href: '#/plan/' + p0.id + '/review', slots: {} });
     expect(pg.due[0]).toMatchObject({ id: 'review.due', key: 'review.due@2027-11', dismiss: ['notNow', 'notThisTime'] });
     expect(pg.steps.find((s) => s.id === 'checkin').result.text).toBe('Due: your yearly check-in (the last was November 2026)');
     expect(planRows(es, { today: '2027-11-02' }).groups.flatMap((g) => g.rows)[0].checkInDue).toBe(true);
@@ -182,7 +182,7 @@ describe('how often, and when the next check-in is due (5.2)', () => {
     es = entries(two, '2027-03-02');
     pg = planPage(es, two.id, null, { today: '2027-03-02' });
     expect(pg.due.map((d) => [d.id, d.key])).toEqual([['review.offCourse', 'review.offCourse@2026-11-05']]);
-    expect(pg.next.button).toEqual({ id: 'seeChange', href: '#/plan/' + two.id + '/checkin', slots: {} });
+    expect(pg.next.button).toEqual({ id: 'seeChange', href: '#/plan/' + two.id + '/review', slots: {} });
     // on course at the last check-in
     const p1 = withEvery(plan, 'quarter', [stub('2026-11-05', 70000, { reading: { band: 'yes', fails: 40 } })]);
     es = entries(p1, '2027-01-10');

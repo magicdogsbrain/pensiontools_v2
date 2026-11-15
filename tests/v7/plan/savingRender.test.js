@@ -128,6 +128,6 @@ describe('"What you pay in", drawn', () => {
     // check-in. 7.10.0: the locked saver's monthly pot is gone — the next sentence is its yearly review, opening the check-in
     const checkin = page.state.plans.view.page.steps.find((s) => s.id === 'checkin');
     expect(checkin.buttons).toEqual([{ id: 'checkIn', href: '#/plan/' + id + '/checkin', slots: {} }]);
-    expect(page.state.plans.view.page.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + id + '/checkin', slots: {} });
+    expect(page.state.plans.view.page.next.button).toEqual({ id: 'reviewNow', href: '#/plan/' + id + '/review', slots: {} });
   });
 });

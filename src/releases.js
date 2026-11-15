@@ -38,6 +38,39 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.10.0', date: '2026-11-15', engineVersion: '6.39.0',
+    title: 'Three phases, one yearly review, and a home that asks for one thing at most',
+    summary: 'Every plan now reads as Saving, Moving or Living on it. Moving is your move window: the last years before you stop work, three unless you choose otherwise. What you hold never decides the phase, and a difference from your plan’s mix is something we show you, never a list of things to sell. Each phase has one review page, once a year unless you choose otherwise, and the home shows the phase, when your next review is and at most one thing that is due. While you move you can accept what you hold as your plan.',
+    changes: [
+      'Your plan reads as Saving, Moving or Living on it. You can set how long your move window is, from one to five years.',
+      'One review page in every phase. While you save it is your check-in. While you move it shows how far what you hold is from the mix your plan moves to, on your pension today. Once you live on it, it takes your pots today and your income since 6 April, and can work out the chance from today.',
+      'On the review you choose how often it falls, when we say you are off course, how long your move window is and how your pension is invested while you save. Off course is said only after two reviews in a row that each worked out the chance, never after one bad year.',
+      'In your move window, or once you live on your plan, you can test what you hold and accept it as your plan. We say what that means first. You can withdraw it at any time, and the home stays quiet about it until what you hold moves.',
+      'The home shows one thing due, with the rest folded under it. “Not now” puts a to-do off on every device and in both apps, and “Not this time” puts one review away until the next.',
+      'Month by month asks for months only if you keep a record of each month. You say so there; if you have already recorded months, that counts as yes.'
+    ],
+    corrections: [
+      'What you hold, an aim, locking the plan and a stale answer are no longer to-dos. They are shown where they belong, never as things you have to do.',
+      'The move now compares what you hold with your plan’s mix on your pension today, not the pot projected for when you stop, allows a margin of 5% of your pension, counts the diversifiers in your plan’s mix, and reads a multi-asset fund in its parts rather than as all shares.',
+      'A plan locked while saving was asked for its pot every month. It is now reviewed once a year.',
+      'A plan in its move window no longer says “within five years”: the window you choose places your plan in both apps.',
+      'The front page names the third phase “Living on it”.'
+    ],
+    effects: {
+      budget: [],
+      stress: ['Your plan’s figures and the bad years are unchanged. A review’s chance from today is worked out on the pots you enter and kept only with that review.'],
+      strategies: ['Your way of drawing is unchanged. If you accepted what you hold and then change the way your plan draws, the acceptance no longer stands. The saving answer is still worked out as if the money were drawn from pots, whatever way you have chosen to draw, and What you pay in says so.'],
+      decision: ['Month by month works as before. A locked plan’s start is no longer moved under the lock: unlock it, change the start on About you and when, and lock it again. A plan whose start was moved before reads as it did.'],
+      accumulation: ['A plan locked while saving checks in once a year. A saving level you choose on the review is used for your pension while you save; a locked plan document is unchanged.'],
+      household: ['A partner’s month due appears in the same one list, after your own, and their phase is said as their plan reads it.']
+    },
+    actions: ['Nothing you need to do. If you record each month, nothing changes. If you do not, say so on Month by month and the home stops asking.'],
+    notes: [
+      'A plan that has never been reviewed is not due for a review before 6 April 2027.',
+      'Your reviews, the choices you make on them and the to-dos you put off are kept with your plan, and the privacy policy now says so.'
+    ]
+  },
+  {
     version: '7.9.0', date: '2026-11-14', engineVersion: '6.39.0',
     title: 'Try the bad years',
     summary: 'You can now try a plan, and the answers to “What is that a month?” and “Will it last?”, on bad years: a fall in share prices at the start, lower returns, spending a tenth more and prices rising faster, and, if you keep something by choice, that falling by half. Each line runs the same futures with one thing made worse, and says how likely the money is to last and where it typically runs out, beside the plan as it stands. If you are content with a risk you can note it on the plan. Nothing about the plan changes, and you can withdraw the note at any time.',

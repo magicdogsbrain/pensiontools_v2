@@ -17,6 +17,7 @@ import { startPlanWrite } from '../../../src/v7/effects/planWrite.js';
 import { upgradedList, viewFor } from '../../../src/v7/effects/planSource.js';
 import { lockedPlanWriteRefusal, phaseWriteRefusal } from '../../../src/services/LockedPlanGuard.js';
 import { phasesPatch } from '../../../src/services/Phases.js';
+import { whereAmIFor } from '../../../src/services/PlanReading.js';
 import { getDefaultStressSettings } from '../../../src/storage/stressDefaults.js';
 import { visibleText } from '../render/checkScreen.js';
 import { corpus, entryOf, entriesAt, stateWith, noon } from './_plans.js';
@@ -94,6 +95,12 @@ describe('the reader: the phase, the choices and what each phase reads, with not
     expect(R2.living.entered).toEqual({ pots: true, took: true });
     expect(R2.living.band.id).toBe('below');
     expect(R2.living.taken).toMatchObject({ took: '£20,000', entered: true });
+    // what the box holds is the plan's income for the year as "Where you are" adds it (the pension's draws, the State Pension
+    // and other income, before tax), against the plan's own income: said as income, never "taken from your pots"
+    const w = whereAmIFor(es.find((e) => e.plan.id === id).plan, { now: noon(day) });
+    expect(reviewBoxesOf(es.find((e) => e.plan.id === id).plan, { today: day }).took).toBe(w.incomeThisYear.drawn);
+    expect(W.living.fields['rv.took'].label).toMatch(/^Your income since 6 April \{year\}, before tax/);
+    expect(JSON.stringify(W.living)).not.toMatch(/taken from your pots/);
     // the guardrails rule is offered where the rate against the start reads
     expect(R.rule.options.map((o) => o.value)).toEqual(['success:13', 'success:14', 'success:15', 'success:16', 'success:17', 'success:18', 'guardrails']);
   });

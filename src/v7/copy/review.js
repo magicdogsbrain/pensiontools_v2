@@ -70,13 +70,15 @@ export const REVIEW = {
       'rv.pension': { label: 'What your pension pots hold today, in pounds', help: 'All your pension pots together, from your provider’s website or app.' },
       'rv.isa': { label: 'What your ISAs hold today, in pounds', help: '0 if you have none.' },
       'rv.other': { label: 'Anything else you draw on, in pounds', help: 'Such as an ordinary investment account. 0 if there is nothing.' },
-      'rv.took': { label: 'What you have taken from your pots since 6 April {year}, before tax, in pounds', help: 'From your provider’s statements or your bank.' },
+      // the plan's own income for the year (its draws from the pension, the State Pension and other income, before tax: the
+      // figure the plan sets it against, whereAmI's), never what came out of an ISA
+      'rv.took': { label: 'Your income since 6 April {year}, before tax, in pounds', help: 'What your pension paid you, your State Pension and any other income, added up, from statements or your bank. Not what you took from ISAs.' },
       'rv.choice': { label: 'For the year ahead, you can:', options: { less: 'Take a little less', keep: 'Keep to the plan', more: 'Take a little more' } }
     },
     errors: { required: 'Enter what your pension pots hold, in pounds.', notANumber: 'Enter an amount in pounds, like 250000.', tooLow: 'Enter 0 or more.', tooHigh: 'That is more than this page can take.', notAnOption: 'Choose one.' },
     fromRecord: 'Each box starts from {month}, the last month you recorded.',
     fromPlan: 'Each box starts from your plan’s own figures.',
-    tookFromRecord: 'What you have taken starts from the {n} you recorded since 6 April.',
+    tookFromRecord: 'Your income since 6 April starts from the {n} you recorded.',
     unlocked: 'The band and the rate against the start show once the plan is locked.',
     later: 'Your plan is set to start in April {year}, so nothing here is read against it until then.',
     readingTitle: 'Against your plan as locked',
@@ -86,8 +88,8 @@ export const REVIEW = {
       upper: 'What your pots hold, {pot} once prices since your plan began are taken out, is between the plan’s middle for now ({mid}) and its good-case line ({high}).',
       above: 'What your pots hold, {pot} once prices since your plan began are taken out, is above the plan’s good-case line for now ({high}).'
     },
-    taken: 'Taken since 6 April: {took} before tax; your plan says {planned} for {year}.',
-    takenEntered: 'Taken since 6 April, as you entered it: {took} before tax; your plan says {planned} for {year}.',
+    taken: 'Your income since 6 April: {took} before tax; your plan says {planned} for {year}.',
+    takenEntered: 'Your income since 6 April, as you entered it: {took} before tax; your plan says {planned} for {year}.',
     note: 'This is noted with your review and changes nothing in the plan. You can try a change on Does it last?',
     tryLink: 'Try a change',
     tryUnlocked: 'You can see what a change does on Does it last?',

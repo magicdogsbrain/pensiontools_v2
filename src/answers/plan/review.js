@@ -90,7 +90,8 @@ function lastPotRecordOf(plan) {
 
 /**
  * What the Living-on-it boxes start from: the pots as the last month recorded says them, else as the plan has them (its
- * settings); what was taken since 6 April, as the months recorded in this tax year add up (taken before tax, whereAmI's own).
+ * settings); the income since 6 April, as the months recorded in this tax year add up — the pension's draws, the State Pension
+ * and other income, before tax: whereAmI's own sum, set against the plan's own income for the year (never an ISA's draws).
  * @returns {{ pots: { pension, isa, other }, potsFrom: 'record'|'plan', potsAsOf: string|null, took: number|null, tookFrom: 'record'|null, tookMonths: number }}
  */
 export function reviewBoxesOf(plan, { today }) {

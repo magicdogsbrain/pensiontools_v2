@@ -4146,6 +4146,28 @@
       ]
     },
     {
+      "id": "acct.view-notes",
+      "area": "plan-account",
+      "kind": "machinery",
+      "name": "The simple view's notes, cleared when the full view signs out",
+      "what": "Three small notes the simple view keeps in this browser: that someone is signed in here (pt_v7_signed_in), this browser's copy of the account's choice of the full view as the one the site opens in (pt_view), and the strip's “Not now” (pt_view_asked). The full view never writes them; its sign-out (the header's Sign Out, the hour-idle sign-out, the “Confirm your email” screen) removes all three, so the site's address then opens the simple view's front door.",
+      "whereV6": "src/ui/viewNotes.js; src/firebase/AuthService.js logOut",
+      "who": "Everyone",
+      "keys": [
+        "browser.pt_v7_signed_in",
+        "browser.pt_view",
+        "browser.pt_view_asked"
+      ],
+      "status": "built",
+      "step": "s11-shell",
+      "note": "7.11.0. The simple view sets and clears them itself (src/v7/effects/place.js, src/v7/effects/view.js; nobody signed in: all three go); the account's deletion clears all of this browser's storage in either view. A session that ends elsewhere leaves them until the simple view is next opened here, which the full view's landing page links to.",
+      "files": [
+        "src/ui/viewNotes.js",
+        "src/v7/effects/place.js",
+        "src/v7/effects/view.js"
+      ]
+    },
+    {
       "id": "acct.delete",
       "area": "plan-account",
       "kind": "option",

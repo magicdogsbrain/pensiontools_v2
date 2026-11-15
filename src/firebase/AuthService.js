@@ -19,6 +19,7 @@ import {
   browserPopupRedirectResolver
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from './config.js';
+import { clearSimpleViewNotes } from '../ui/viewNotes.js';
 
 // Google auth provider
 const googleProvider = new GoogleAuthProvider();
@@ -192,7 +193,8 @@ export async function signInWithGoogle() {
 }
 
 /**
- * Sign out
+ * Sign out. The simple view's notes in this browser go with it (7.11.0, src/ui/viewNotes.js): the signed-in note, the
+ * copy of the choice of view and the strip's "Not now", so the site's address opens the simple view's front door after.
  * @returns {Promise<void>}
  */
 export async function logOut() {
@@ -200,7 +202,8 @@ export async function logOut() {
     throw new Error('Firebase not configured');
   }
 
-  return signOut(auth);
+  await signOut(auth);
+  clearSimpleViewNotes();
 }
 
 /**

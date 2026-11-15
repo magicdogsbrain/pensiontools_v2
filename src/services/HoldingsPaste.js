@@ -11,6 +11,10 @@
 import { FUND_CATALOGUE } from './SubAssetModel.js';
 import { holdingsLines, holdingsWith } from './HoldingsRecord.js';
 import { giltOfName, ilWords } from './GiltName.js';
+import giltsSnapshot from '../data/giltsSnapshot.js';
+
+// The bundled gilts by SEDOL (7.11.1): a pasted row's own SEDOL says which gilt it is, before any order is matched by year
+const GILT_BY_SEDOL = new Map((Array.isArray(giltsSnapshot?.gilts) ? giltsSnapshot.gilts : []).filter((g) => g && g.isin).map((g) => [String(g.isin).toUpperCase().slice(4, 11), g]));
 
 const up = (s) => String(s || '').toUpperCase().trim();
 const SEDOL_RE = /^[B-DF-HJ-NP-TV-Z0-9]{6}\d$/i;          // 7 chars, last a check digit, no vowels
@@ -232,9 +236,18 @@ export function matchRows(rows, { catalogue = FUND_CATALOGUE, orders = [], wrapp
       const g = giltFromName(r.name);
       // a name whose coupon and date are a conventional gilt's (7.6.0) is never the plan's index-linked gilt of that year
       const conventional = !ilWords(r.name) && (giltOfName(r.name) || {}).type === 'conventional';
-      const o = orders.find((x) => r.sedol && up(x.sedol) === r.sedol) || orders.find((x) => r.ticker && up(x.tidm) === r.ticker)
-        || (g && g.year && !conventional ? orders.find((x) => x.matures && +String(x.matures).slice(0, 4) === g.year && (g.il || /I\/L|INDEX/i.test(x.name || ''))) : null);
-      if (o) match = { kind: 'gilt', ticker: up(o.tidm), name: o.name, sedol: o.sedol || r.sedol, confidence: r.sedol && up(o.sedol) === r.sedol ? 'sedol' : r.ticker && up(o.tidm) === r.ticker ? 'code' : 'year', subClass: 'indexLinked' };
+      // a row whose own SEDOL names a gilt (7.11.1) is that gilt: never another order's by its code or its year, and never
+      // given the order's SEDOL in place of its own — a conventional gilt took an index-linked rung's identity that way
+      const own = r.sedol ? GILT_BY_SEDOL.get(up(r.sedol)) : null;
+      const ownIsOrder = (x) => !own || !x.sedol || up(x.sedol) === up(r.sedol);
+      const o = orders.find((x) => r.sedol && up(x.sedol) === r.sedol) || orders.find((x) => r.ticker && up(x.tidm) === r.ticker && ownIsOrder(x))
+        // by its year only when its own name says index-linked (7.11.1): "Treasury 2029" alone could be any gilt of 2029
+        || (g && g.year && g.il && !conventional && !own ? orders.find((x) => x.matures && +String(x.matures).slice(0, 4) === g.year) : null);
+      if (o) {
+        const confidence = r.sedol && up(o.sedol) === r.sedol ? 'sedol' : r.ticker && up(o.tidm) === r.ticker ? 'code' : 'year';
+        // matched by its year: it keeps its own name (what the platform called it), and the order's code to be read by
+        match = { kind: 'gilt', ticker: up(o.tidm), name: confidence === 'year' && r.name ? r.name : o.name, sedol: r.sedol || o.sedol || null, confidence, subClass: 'indexLinked' };
+      }
     }
     if (!match) {
       let c = r.ticker && byTicker.get(r.ticker);
@@ -265,8 +278,13 @@ export function matchRows(rows, { catalogue = FUND_CATALOGUE, orders = [], wrapp
       // year is an index-linked gilt's code for 2027, 2028 and 2029, and would price and match it as one.
       const named = !ilWords(r.name) ? giltOfName(r.name) : null;
       const own = named && named.type === 'conventional' ? up(named.tidm) : '';
-      const ticker = isGiltCode(r.ticker) ? r.ticker : own || (g.year ? 'T' + String(g.year).slice(2) : '');
-      match = { kind: 'gilt', ticker, name: r.name, sedol: r.sedol, confidence: 'name-only', subClass: g.il ? 'indexLinked' : 'longGilts' };
+      // the row's own SEDOL names the gilt (7.11.1): its code and its kind, never a code guessed from the year ("T29" is an
+      // index-linked gilt's, and would fold a conventional gilt into that rung's line)
+      const bySedol = r.sedol ? GILT_BY_SEDOL.get(up(r.sedol)) : null;
+      const sedolCode = bySedol && bySedol.tidm ? up(bySedol.tidm) : '';
+      const ticker = bySedol ? (sedolCode || '') : isGiltCode(r.ticker) ? r.ticker : own || (g.year ? 'T' + String(g.year).slice(2) : '');
+      const il = bySedol ? bySedol.type !== 'conventional' : g.il;
+      match = { kind: 'gilt', ticker, name: r.name, sedol: r.sedol, confidence: bySedol ? 'sedol' : 'name-only', subClass: il ? 'indexLinked' : 'longGilts' };
     }
     if (!match && /\bCASH\b|MONEY MARKET|CSH2|LIQUIDITY|OVERNIGHT|ULTRASHORT|TREASURY BILL|STERLING LIQUID/i.test(r.name)) match = { kind: 'cash', ticker: 'CSH2', name: r.name, subClass: 'moneyMarket', confidence: 'name' };
     return { ...r, wrapper, match: match || { kind: 'none', confidence: 'none' } };

@@ -193,7 +193,9 @@ test.describe('Say when you stopped work, without an account', () => {
     // running, not out of date: the offer is gone, and the plan page says what a draft says
     await expect(page.getByTestId('plan.about.stale')).toHaveCount(0, { timeout: 45_000 });
     await page.goto(PROD + V7_PATH + '#/plan/StopAbout02');
-    await expect(page.getByTestId('plan.stageLine')).toHaveText('Retired. Plan not locked yet.', { timeout: 45_000 });
+    // 7.10.0, each fact once: the headline says it, with no line under it saying it again
+    await expect(page.getByTestId('plan.home.headline')).toHaveText('Living on it. Not locked yet.', { timeout: 45_000 });
+    await expect(page.getByTestId('plan.stageLine')).toHaveCount(0);
     // the plan's home: never "update it to today"; 7.10.0: the lock is no longer a to-do either — nothing due, said as
     // nothing due (its months waiting for the lock are said on the Month by month tool); the rail on a page of the plan says
     // nothing is due

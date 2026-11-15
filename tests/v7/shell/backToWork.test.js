@@ -169,8 +169,14 @@ describe('drawn', () => {
     expect(previous.textContent).toContain('Closed June 2025: back to work; carried on as ‘Saving again from July 2025’.');
     render(h(App, { state: stateWith(entries, '#/plan/' + C['19-back-to-work-saving'].id), dispatch: () => {} }), root);
     expect(root.querySelector('[data-testid="plan.before"]').textContent).toContain('Under your previous plan ‘Drawing from 57’ until June 2025 — its months are there.');
-    expect(root.querySelector('[data-testid="plan.stageLine"]').textContent).toContain(PLAN.stageLines.approaching);
+    // retaken in 7.10.0 (each fact once on the home): a saver inside the move window — the headline and the window's line say
+    // it, with no line under the headline saying it again; the plan's other pages keep the plan's line under their title
+    expect(root.querySelector('[data-testid="plan.home.headline"]').textContent).toBe('Moving.');
+    expect(root.querySelector('[data-testid="plan.home.moveWindow"]').textContent).toMatch(/^In your move window: /);
+    expect(root.querySelector('[data-testid="plan.stageLine"]')).toBe(null);
     expect(bannedHits(visibleText(root), ['all'])).toEqual([]);
+    render(h(App, { state: stateWith(entries, '#/plan/' + C['19-back-to-work-saving'].id + '/about'), dispatch: () => {} }), root);
+    expect(root.querySelector('[data-testid="plan.stageLine"]').textContent).toContain(PLAN.stageLines.approaching);
     render(null, root);
   });
   it('What you pay in and the check-in say the limit carried, and when what goes in is more; a plan without it says nothing new', () => {

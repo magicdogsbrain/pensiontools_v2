@@ -80,7 +80,8 @@ test.describe('the saved plans, without an account', () => {
     // 7.10.0: "Living on it."; what it holds is never a to-do, and with no gilt needed this year or next missing nothing is
     // said about it (the drift line, spec-7100 §3.2)
     await expect(page.getByTestId('plan.home.headline')).toHaveText('Living on it.');
-    await expect(page.getByTestId('plan.stageLine')).toHaveText('Retired. Living on the plan; your ladder’s first gilt pays from April 2029. Locked 1 July 2026.');
+    // 7.10.0, each fact once: under "Living on it." only what it does not say — the ladder's first gilt, and the lock
+    await expect(page.getByTestId('plan.stageLine')).toHaveText('Your ladder’s first gilt pays from April 2029. Locked 1 July 2026.');
     await expect(page.locator('[data-todo="move.next"]')).toHaveCount(0);
     await expect(page.getByTestId('plan.home.heldMix')).toHaveCount(0);
     await page.evaluate(() => { window.location.hash = '#/plan/HouseLadder01/month'; });
@@ -108,7 +109,9 @@ test.describe('the saved plans, without an account', () => {
     await page.getByTestId('plan.household.openPartner').click();
     await expect(page.getByTestId('plan.home')).toBeVisible();
     await expect(page.getByTestId('plan.home.tool.saving')).toContainText('£600 a month from you, £450 from your employer');
-    await expect(page.getByTestId('plan.stageLine')).toHaveText('Still saving.');
+    // 7.10.0, each fact once: "Saving." says it, with no line under the headline saying it again
+    await expect(page.getByTestId('plan.home.headline')).toHaveText(/^Saving\./);
+    await expect(page.getByTestId('plan.stageLine')).toHaveCount(0);
     // every link on the plan pages leads inside the preview or to the planner
     const links = await page.locator('#app a[href]').evaluateAll((els) => els.map((el) => el.getAttribute('href')));
     for (const href of links) expect(href.startsWith('#/') || [LAYOUT_UNDER_TEST.v7.classic, LAYOUT_UNDER_TEST.v7.privacy].some((o) => href.startsWith(o)), href).toBe(true);

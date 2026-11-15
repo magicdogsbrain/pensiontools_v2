@@ -48,7 +48,8 @@ test.describe('a plan\'s home', () => {
     await expect(page.locator('[data-region="rail"]')).toHaveCount(0);
     expect(await page.locator('#app input, #app select, #app textarea').count()).toBe(0);
     await expect(page.getByTestId(`${T}.headline`)).toHaveText('Living on it.');
-    await expect(page.getByTestId('plan.stageLine')).toContainText('Retired. Living on the plan.');
+    // 7.10.0, each fact once: the headline says the phase, so the line under it says only when the plan was locked
+    await expect(page.getByTestId('plan.stageLine')).toHaveText(/^Locked \d{1,2} [A-Z][a-z]+ \d{4}\.$/);
 
     await test.step('the sections, top to bottom', async () => {
       const ids = [`${T}.strip`, `${T}.todo`, `${T}.year`, `${T}.where`, `${T}.tools`, `${T}.steps`, `${T}.change`, `${T}.ask`];

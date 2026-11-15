@@ -172,7 +172,10 @@ test.describe('Move to a new plan, without an account', () => {
 
     // the closed plan's page: closed, its months there, the way to the new one; no unlock
     await page.goto(PROD + V7_PATH + '#/plan/' + PLAN_ID);
-    await expect(page.getByTestId('plan.stageLine')).toContainText('Closed October 2026; carried on as ‘Alex from November’.', { timeout: 45_000 });
+    // 7.10.0, each fact once: the month it closed and the plan that carries it on are said by its to-do, not again above it
+    await expect(page.getByTestId('plan.home.todo')).toContainText('Carry on in ‘Alex from November’', { timeout: 45_000 });
+    await expect(page.getByTestId('plan.home.todo')).toContainText('This plan closed at the end of October 2026.');
+    await expect(page.getByTestId('plan.stageLine').filter({ hasText: 'Closed October 2026' })).toHaveCount(0);
     await expect(page.getByTestId('plan.closed')).toContainText('nothing of it changes again');
     await expect(page.getByTestId('plan.plan.unlock')).toHaveCount(0);
     // what you hold, opened by its address: read here, changed on the new plan

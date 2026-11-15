@@ -171,7 +171,7 @@ test.describe('the plan menu, without an account', () => {
     await test.step('"Look around an example": the example plan opens; on the list it is marked, read-only, does not count, and can be deleted', async () => {
       await page.getByTestId('plans.example').click();
       await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', /^plan/);
-      await expect(page.getByTestId('plan.stageLine')).toBeVisible();
+      await expect(page.getByTestId('plan.home.headline')).toBeVisible();
       const all = await stored(page);
       const example = all.find((p) => p.example === true);
       expect(example.planDetails.name).toBe(DEMO_PLANS[EXAMPLE_PLAN_KEY].name);

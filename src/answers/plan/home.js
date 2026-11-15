@@ -96,10 +96,11 @@ function stripOf(life) {
  * The line that says nothing is due, always with the date something next will be (never "nothing to do" alone): the next
  * review, or that a review can be had whenever the person likes (7.10.0); on a plan living on its money and recording its
  * months, this month recorded and the 1st of the first month not recorded after it (a quarter or a year recorded at once
- * reaches ahead: the plan's own cadence); a plan not locked yet, that its months wait for the lock; a closed plan where it
- * carries on. Only ever a true sentence: null while something is due (the list says so then).
+ * reaches ahead: the plan's own cadence); a closed plan where it carries on. Only ever a true sentence: null while something
+ * is due (the list says so then). Nothing due is only that: a plan not locked yet says the review's line like any other —
+ * that its months wait for the lock is said on the Month by month tool, never in To do.
  */
-function quietOf(page, life, now, { review, anyDue, wanted, recordMonths }) {
+function quietOf(page, life, now, { review, anyDue, wanted }) {
   const mon = thisMonthOf(now);
   if (!life || !life.key) return null;
   if (life.key === 'closed') {
@@ -109,7 +110,7 @@ function quietOf(page, life, now, { review, anyDue, wanted, recordMonths }) {
   if (anyDue) return null;
   const rv = review && review.next ? { id: 'review', slots: { month: review.next } } : { id: 'reviewAny', slots: {} };
   if (life.key !== 'drawing') return rv;
-  if (!page.locked) return recordMonths === false ? { id: 'reviewAny', slots: {} } : { id: 'draft', slots: {} };
+  if (!page.locked) return rv;
   const latest = page.lastRecord || null;
   // the months' own line only while the plan records its months here and this month is recorded; else the review's date
   if (wanted && latest && latest >= mon) return { id: 'drawing', slots: { month: monthName(latest), next: first(addMonth(latest, 1)) } };
@@ -298,7 +299,7 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
     stage: { key: life ? life.key : null, stop: life && life.stop ? monthWords(life.stop) : null, strip: stripOf(life) },
     // one list (7.10.0): the plan's own to-dos then a partner's, one shown, the rest "and N more"
     todo: { items: all.slice(0, TODO_SHOWN), more: all.slice(TODO_SHOWN), count: all.length, soon: (pg.soon || []).map((d) => item(d)) },
-    quiet: quietOf({ ...pg, lastRecord }, life, now, { review, anyDue: all.length > 0, wanted: monthsWanted(dt), recordMonths: dt.recordMonths }),
+    quiet: quietOf({ ...pg, lastRecord }, life, now, { review, anyDue: all.length > 0, wanted: monthsWanted(dt) }),
     // 7.10.0: the next review (never stored: read from the log, the check-ins, the records and the rule), and the move window
     review: pg.readonly || pg.closed ? null : review,
     moveWindow: pg.readonly || pg.closed ? null : windowLineOf(life, { held: recorded, agreed: life && life.agreed ? life.agreed : null }),

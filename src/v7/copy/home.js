@@ -78,7 +78,6 @@ export const HOME = {
     review: 'Nothing due. Your next review is {month}.',
     reviewAny: 'Nothing due. You can review your plan whenever you like.',
     drawing: '{month} is recorded. Nothing is due until {next}.',
-    draft: 'Months are recorded once the plan is locked.',
     closed: 'Closed {month}; carried on in ‘{name}’.',
     closedAlone: 'Closed {month}.'
   },

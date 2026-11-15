@@ -4,7 +4,7 @@
  * NOTHING is written because a plan was opened, and nothing here is stored (no stage, no to-do list).
  *
  *   homeOf(entries, id, { today, source, page })
- *     → { found, id, name, …, stage, todo, quiet, review, moveWindow, where, drift?, whereFull, year, tools, steps, change, ask }
+ *     → { found, id, name, …, headLine, stage, todo, quiet, review, moveWindow, where, drift?, whereFull, year, tools, steps, change, ask }
  *
  * One engine: the to-dos are read.js dueFor's, the very list whose first item is the rail's "Next" (planPage `due`), so
  * the two can never disagree. A partner's plan adds its own month and tax year (never its figures), named by that plan's
@@ -170,6 +170,30 @@ function windowLineOf(life, { held, agreed }) {
 }
 
 /**
+ * The line under the home's headline (7.10.0): each fact said once. The headline says the phase ("Saving. You stop work in
+ * …", "Moving.", "Living on it. Not locked yet."), the move window's line how long is left and the stop, "Did you stop work in
+ * …?" the stop past, and the to-do or the nothing-due line a closed plan's month and the plan that carries it on — so of the
+ * plan's line (read.js lineOf, as every other page of the plan says it) the home keeps only what none of them says: a
+ * ladder's first gilt still ahead, a close still to come, back to work, the stop past on a plan whose question is put off, a
+ * closed plan's line where nothing else says it. "Locked {date}" is said beside it, or alone (the screen adds it). Null
+ * when the line has nothing to add. { id, slots }: copy/home.js headLine[id], else copy/plan.js stageLines[id].
+ */
+function headLineOf(line, { shown, quietShown }) {
+  if (!line || !line.id) return null;
+  if (line.id === 'running-ladder') return { id: 'ladder', slots: line.slots };
+  if (line.id === 'pastStop') return shown.includes('plan.confirmStop') ? null : line;
+  if (line.id === 'closed') return shown.includes('closed.next') || quietShown === 'closed' ? null : line;
+  if (line.id === 'closed-alone') return quietShown === 'closedAlone' ? null : line;
+  // closed for going back to work: the to-do says the month and the plan that carries it on; the line why
+  if (line.id === 'closed-working') return shown.includes('closed.next') ? { id: 'backToWork', slots: {} } : line;
+  // a close still to come (and why): said nowhere else on the home
+  if (/^closing/.test(line.id)) return line;
+  // still saving, inside the move window, locked and working until the stop, retired with the plan locked or not: the
+  // headline and the window's line say them
+  return null;
+}
+
+/**
  * The year view (the record keeper's picture): the twelve months of the tax year the plan is read in (a closed plan's, its
  * last), each recorded, filled in later, due, the year's set-up, or still to come; what was drawn that month (pension,
  * other income and State Pension before tax, as "Where you are" adds them) against the plan's own monthly figure, both as a
@@ -291,15 +315,19 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
       { id: 'unlock', href: base + 'plan' }]
     : [{ id: 'about', href: base + 'about' }, { id: 'income', href: base + 'income' }, { id: 'spend', href: base + 'spend' }, { id: 'pots', href: base + 'pots' },
       { id: 'lasts', href: base + 'lasts' }, { id: 'way', href: base + 'way' }, { id: 'mix', href: base + 'mix' }, ...(pg.example ? [] : [{ id: 'lock', href: base + 'lock' }])];
+  const quiet = quietOf({ ...pg, lastRecord }, life, now, { review, anyDue: all.length > 0, wanted: monthsWanted(dt) });
+  const shown = all.slice(0, TODO_SHOWN).map((d) => d.id);
   return {
     found: true, id: pg.id, name: pg.name, example: pg.example, readonly: pg.readonly, source: pg.source,
     pensionAccess: pensionAccessOf(plan, pg, now),
     locked: pg.locked, lockedOn: pg.lockedOn, line: pg.line, closing: pg.closing, before: pg.before,
+    // the line under the headline: only what the headline, the window's line and To do do not say already (7.10.0)
+    headLine: headLineOf(pg.line, { shown, quietShown: !shown.length && !pg.readonly && quiet ? quiet.id : null }),
     closed: pg.closed, stageKey: pg.stageKey,
     stage: { key: life ? life.key : null, stop: life && life.stop ? monthWords(life.stop) : null, strip: stripOf(life) },
     // one list (7.10.0): the plan's own to-dos then a partner's, one shown, the rest "and N more"
     todo: { items: all.slice(0, TODO_SHOWN), more: all.slice(TODO_SHOWN), count: all.length, soon: (pg.soon || []).map((d) => item(d)) },
-    quiet: quietOf({ ...pg, lastRecord }, life, now, { review, anyDue: all.length > 0, wanted: monthsWanted(dt) }),
+    quiet,
     // 7.10.0: the next review (never stored: read from the log, the check-ins, the records and the rule), and the move window
     review: pg.readonly || pg.closed ? null : review,
     moveWindow: pg.readonly || pg.closed ? null : windowLineOf(life, { held: recorded, agreed: life && life.agreed ? life.agreed : null }),

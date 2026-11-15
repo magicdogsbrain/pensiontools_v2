@@ -137,6 +137,9 @@ export function HomeScreen(state, dispatch) {
   const quietShown = items.length === 0 && !H.readonly && !!H.quiet;
   const quietSaysIt = quietShown && (H.quiet.id === 'review' || H.quiet.id === 'reviewAny');
   const reviewLine = H.review && !quietSaysIt ? (H.review.next ? fill(HOME.review.next, { month: H.review.next }) : HOME.review.any) : null;
+  // the line under the headline: its own words (a ladder's first gilt, back to work) or the plan's line, then when it was locked
+  const hl = H.headLine;
+  const headLine = [hl ? fill(HOME.headLine[hl.id] || PLAN.stageLines[hl.id], hl.slots) : '', H.lockedOn ? fill(PLAN.page.lockedOn, { date: H.lockedOn }) : ''].filter(Boolean).join(' ');
   return {
     question: null, rail: false, full: false,
     content: (
@@ -148,8 +151,9 @@ export function HomeScreen(state, dispatch) {
           <h1 tabIndex={-1} data-testid={`${T}.headline`}>
             {s.key && <span class={`stage-word is-${s.key}`}><span class="stage-dot" aria-hidden="true" /></span>}{headlineOf(H)}
           </h1>
-          {/* the plan's line, as every page of the plan says it: the stage in words, when it was locked */}
-          <p class="plan-stage-line" data-testid="plan.stageLine">{H.line ? fill(PLAN.stageLines[H.line.id], H.line.slots) : ''}{H.lockedOn ? ' ' + fill(PLAN.page.lockedOn, { date: H.lockedOn }) : ''}</p>
+          {/* the plan's line, each fact once (7.10.0): only what the headline, the window's line and To do do not say, and when
+              it was locked — drawn only when there is something to say */}
+          {headLine && <p class="plan-stage-line" data-testid="plan.stageLine">{headLine}</p>}
           {/* the move window (7.10.0): how long is left to the stop, or when it opens — said, never a to-do */}
           {H.moveWindow && <p class="line" data-testid={`${T}.moveWindow`} data-line={H.moveWindow.id}>{fill(HOME.moveWindow[H.moveWindow.id], H.moveWindow.slots)}</p>}
           {H.readonly && <p class="notice" role="status" data-testid="plan.readonly">{HOME.readonly}</p>}

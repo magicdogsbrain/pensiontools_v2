@@ -9,6 +9,16 @@
 export const HOME = {
   title: 'Your plan',
 
+  /**
+   * The line under the headline (7.10.0, home.js headLineOf): only what the headline, the move window's line and To do do not
+   * say already, each fact once; these words where the plan's own line (copy/plan.js stageLines) would repeat one of them.
+   * "Locked {date}." is said beside it, or alone.
+   */
+  headLine: {
+    ladder: 'Your ladder’s first gilt pays from {month}.',
+    backToWork: 'You went back to work.'
+  },
+
   /** The three stages, said as words (never only a colour), and the strip under them. The key stays `drawing`. */
   stages: { saving: 'Saving', moving: 'Moving', drawing: 'Living on it', closed: 'Closed' },
   strip: {

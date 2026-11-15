@@ -89,7 +89,7 @@ function stripOf(life) {
   const at = STRIP.indexOf(life.key);
   return STRIP.map((key, i) => ({ key, state: i < at ? 'done' : i === at ? 'now' : 'later',
     // saving ends where the move window opens (7.10.0), or at the stop when no window is read
-    month: key === 'saving' && life.window && life.window.from ? monthWords(life.window.from) : key === 'saving' && life.stop ? monthWords(life.stop) : key === 'drawing' && life.key === 'drawing' && life.since ? monthWords(life.since) : null }));
+    month: key === 'saving' && moveWindowOf(life) && moveWindowOf(life).from ? monthWords(moveWindowOf(life).from) : key === 'saving' && life.stop ? monthWords(life.stop) : key === 'drawing' && life.key === 'drawing' && life.since ? monthWords(life.since) : null }));
 }
 
 /**

@@ -39,11 +39,15 @@ describe('previousPlace: every step of a plan names a page the planner has', () 
       expect(STEP_PLACE[s], s).toBeTruthy();
       expect(PLACES[STEP_PLACE[s]], s).toBeTruthy();
     }
+    // 7.11.0: a check-in opens "Am I on course?", the mix "Your allocation", the review the plan's home in the full view
+    expect(STEP_PLACE.checkin).toBe('onCourse');
+    expect(STEP_PLACE.mix).toBe('allocation');
+    expect(STEP_PLACE.review).toBe('home');
   });
-  it('the home of a drawing plan opens Month by month; a locked saver\'s their saving page; a step its own page', () => {
+  it('the home of every plan opens the full view\'s home of it (the page\'s own opening tab decides, 7.11.0); a step its own page', () => {
     const at = (name, address) => { const st = load(name); return fullLinkView(draw(st, address).state); };
-    expect(at('home-drawing').place).toBe('month');
-    expect(at('home-locked-saver').place).toBe('saving');
+    expect(at('home-drawing').place).toBe('home');
+    expect(at('home-locked-saver').place).toBe('home');
     const id = load('home-drawing').route.planId;
     expect(at('home-drawing', `#/plan/${id}/lasts`).place).toBe('test');
     // "Try the bad years" named in the address (7.9.0): the planner's Scenarios page; back to "Does it last?"
@@ -61,8 +65,8 @@ describe('the header link on a plan page hands over THAT plan', () => {
       actions.length = 0;
       const e = click(root.querySelector(`[data-testid="${id}"]`));
       expect(e.defaultPrevented, id).toBe(true);
-      expect(actions, id).toEqual([{ type: 'plan/change', planId: state.route.planId, place: 'month', back: `#/plan/${state.route.planId}` }]);
-      expect(makeRequest({ planId: state.route.planId, place: 'month', back: `#/plan/${state.route.planId}`, at: new Date().toISOString() })).not.toBeNull();
+      expect(actions, id).toEqual([{ type: 'plan/change', planId: state.route.planId, place: 'home', back: `#/plan/${state.route.planId}` }]);
+      expect(makeRequest({ planId: state.route.planId, place: 'home', back: `#/plan/${state.route.planId}`, at: new Date().toISOString() })).not.toBeNull();
     }
   });
   it('on a step: the matching page, and the way back to that step', () => {

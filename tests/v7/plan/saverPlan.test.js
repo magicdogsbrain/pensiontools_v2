@@ -480,7 +480,7 @@ describe('"What you pay in" draws the plan\'s verdict in B\'s own sentences', ()
     expect(held.root.querySelector(`[data-testid="${T}.aim"]`).textContent).toMatch(/^Your plan’s £[\d,]+ a year before tax is £1,810 a month after tax, at today’s prices: the figure tested here\.$/);
     expect(held.root.querySelector(`[data-testid="${T}.share"]`).textContent).toBe('What you pay in is read as a share of your pay — 6% from you and 4% from your employer — going up with your pay; we assume pay rises with prices.');
     expect(held.root.querySelector(`[data-testid="${T}.rise"]`)).toBe(null);
-    expect(held.root.querySelector('[data-testid="plan.saving.onCourse"]').textContent).toBe('The classic planner’s pot check (fixed rates)');
+    expect(held.root.querySelector('[data-testid="plan.saving.onCourse"]').textContent).toBe('The full view’s pot check (fixed rates)');
     expect(bannedHits(held.words, ['all', 'record', 'saver', 'planner'])).toEqual([]);
     expect(held.words).not.toMatch(/undefined|NaN|\{\w+\}/);
     // a failure: in words, with "Try again"

@@ -176,8 +176,8 @@ curl -sI https://pensiontools.uk/classic/ | grep -i x-robots-tag                
 curl -sI https://pensiontools.uk/ | grep -ci x-robots-tag                              # 0
 ```
 
-Then in a browser: `https://pensiontools.uk/v7/#/plans` lands on `/#/plans`; "Use the previous version" opens the
-classic planner; a plan's "Change this in the classic planner" lands there and its "Back to PensionTools" comes back.
+Then in a browser: `https://pensiontools.uk/v7/#/plans` lands on `/#/plans`; "Show everything" opens the full view; a
+plan's "Change this in the full view" lands there, and its "Back to ‘…’ in the simple view" comes back.
 The GitHub Pages mirror follows `docs/` with the same layout (every address is relative).
 
 **Rollback** (the layout before 7.0, from the same commit — never redeploy an older build, and never swap the two

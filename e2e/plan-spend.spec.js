@@ -146,7 +146,7 @@ test.describe('"What you spend", without an account', () => {
     await expect(page.locator('#mainApp')).toBeVisible();
     expect(await landingShown(page), 'the landing page was never on screen, not for a frame').toBe(false);
     await expect(page.locator('#landingTryGuest')).toBeHidden();
-    await expect(page.locator('#openPlaceNote')).toContainText('Opened from PensionTools.');
+    await expect(page.locator('#openPlaceNote')).toContainText('Opened from the simple view.');
     await expect(page.locator('.tab[data-tab="stress"]')).toHaveClass(/active/);
     const stepRows = page.locator('#incomeStepsEditor input[type="number"]');
     const values = await stepRows.evaluateAll((els) => els.map((e) => e.value));

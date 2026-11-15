@@ -166,11 +166,11 @@ describe('the front door', () => {
     expect(visibleText(root)).not.toMatch(/sign up|create an account|log in/i);
     expect(root.querySelector('[data-value]')).toBe(null);
   });
-  it('carries the short advice line and who runs it in the footer, and the line to the previous version (7.0)', () => {
+  it('carries the short advice line and who runs it in the footer, and the line naming the view (7.0; its words 7.11.0)', () => {
     const footer = root.querySelector('[data-region="footer"]').textContent;
     expect(footer).toContain(ADVICE_SHORT);
     expect(footer).toContain('Usefulish Ltd');
-    expect(root.textContent).toContain('This is the new version. Use the previous version.');
+    expect(root.textContent).toContain('You are in the simple view. Show everything.');
   });
   it('an unknown address shows the front door with one line saying so', () => {
     const r = renderScreen(load('not-found'));
@@ -696,10 +696,10 @@ describe('the rail, the header and being offline', () => {
     root.querySelector('[data-region="rail"]').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(actions).toEqual([{ type: 'ui/rail', open: false }]);
   });
-  it('the header leads back to all the questions, and the line under it to the previous version, the classic planner (7.0)', () => {
+  it('the header leads back to all the questions, and the line under it to the full view (7.0; its words 7.11.0)', () => {
     const root = renderScreen(load('answer-F1'));
     expect(root.querySelector('header a[href="#/"]')).not.toBe(null);
-    expect(root.querySelector(`a[href="${LAYOUT.v7.classic}"]`).textContent).toBe('Use the previous version.');
+    expect(root.querySelector(`a[href="${LAYOUT.v7.classic}"]`).textContent).toBe('Show everything.');
     expect(root.textContent).not.toMatch(/preview/i);
     expect(root.querySelector(`a[href="${LAYOUT.v7.privacy}"]`)).not.toBe(null);
   });

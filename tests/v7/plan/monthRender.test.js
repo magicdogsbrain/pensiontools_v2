@@ -135,7 +135,7 @@ describe('Month by month, drawn', () => {
     const links = [...other.root.querySelectorAll(`a[href="#/plan/${id}/month"]`)].map((a) => a.textContent);
     expect(links.length).toBeGreaterThan(0);
     expect(links.join(' ')).toContain('Record October');
-    expect(other.text).not.toContain('Record October in the classic planner');
+    expect(other.text).not.toContain('Record October in the full view');
   });
 
   it('Your plans: a "Month by month" link beside every drawing plan, none beside a saver\'s', () => {

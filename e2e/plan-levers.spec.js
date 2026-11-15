@@ -122,7 +122,7 @@ test.describe('the levers on "Does it last?", without an account', () => {
       const line = await result.locator('[data-line="lever.work.line"]').innerText();
       expect(line).toContain('With £15,000 a year from work for 3 years');
       expect(chanceOn(line)).toBe(tenth(node.at.chancePct));
-      await expect(result.locator('[data-line="lever.work.how"]')).toContainText('the classic planner’s own extra incomes');
+      await expect(result.locator('[data-line="lever.work.how"]')).toContainText('the full view’s own extra incomes');
       expect(await stored(page)).toBe(planted);
       // put away: gone, and the boxes with it
       await page.getByTestId('plan.lasts.lever.work.close').click();

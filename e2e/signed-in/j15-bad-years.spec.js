@@ -58,11 +58,11 @@ async function acceptRow(page, row) {
   await page.getByTestId(`${S}.${row}.confirm.yes`).click();
   await expect(page.getByTestId(`${S}.${row}.accepted`)).toHaveAttribute('data-status', 'agreed', { timeout: 30_000 });
 }
-/** The classic planner on this plan's Scenarios page, signed in: "Use the previous version" from its "Does it last?". */
+/** The full view on this plan's Scenarios page, signed in: "Show everything" from its "Does it last?". */
 async function classicScenarios(page, id) {
   await openAt(page, '#/plan/' + id + '/lasts?focus=stress');
   await expect(page.getByTestId(S)).toBeVisible({ timeout: 60_000 });
-  await page.getByTestId('nav.previous').or(page.getByTestId('nav.previousShort')).filter({ visible: true }).click();
+  await page.getByTestId('nav.everything').or(page.getByTestId('nav.everythingShort')).filter({ visible: true }).click();
   await page.waitForURL((u) => atClassic(u.href));
   await expect(page.locator('#mainApp')).toBeVisible({ timeout: 45_000 });
   await expect(page.locator('#stress-scenarios')).toBeVisible({ timeout: 45_000 });

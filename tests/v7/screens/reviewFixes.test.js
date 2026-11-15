@@ -285,24 +285,24 @@ describe('7 — the key under the three amounts', () => {
 });
 
 describe('8 — the phone chrome', () => {
-  it('the line to the previous version (7.0) has a short form for a phone and the full sentence for wider screens', () => {
+  it('the line naming the view (7.0; its words 7.11.0) has a short form for a phone and the full sentence for wider screens', () => {
     const root = renderScreen(load('answer-F1'));
-    const line = root.querySelector('.previous-line');
-    expect(line.querySelector('.previous-long').textContent).toBe(`${COMMON.previous.text} ${COMMON.previous.link}`);
-    expect(line.querySelector('.previous-short').textContent).toBe(`${COMMON.previous.shortText} ${COMMON.previous.shortLink}`);
+    const line = root.querySelector('.view-line');
+    expect(line.querySelector('.view-long').textContent).toBe(`${COMMON.view.text} ${COMMON.view.link}`);
+    expect(line.querySelector('.view-short').textContent).toBe(`${COMMON.view.shortText} ${COMMON.view.shortLink}`);
     for (const a of line.querySelectorAll('a')) expect(a.getAttribute('href')).toBe(COMMON.links.classic);
-    expect(COMMON.previous.shortText.length + COMMON.previous.shortLink.length).toBeLessThanOrEqual(46);   // one line at 390 px
+    expect(COMMON.view.shortText.length + COMMON.view.shortLink.length).toBeLessThanOrEqual(46);   // one line at 390 px
   });
   it('words that send a person to that line never quote its link: a phone shows the short one, so they name the line instead', () => {
     // every V7 copy file but the line itself; the link's words, long or short, quoted anywhere else would name a link the
     // other width does not show (the hand-over's refusal said “Use the previous version” to a phone that shows "Use the previous one")
     const dir = join(process.cwd(), 'src/v7/copy');
-    const links = [COMMON.previous.link.replace(/\.$/, ''), COMMON.previous.shortLink];
+    const links = [COMMON.view.link.replace(/\.$/, ''), COMMON.view.shortLink];
     for (const f of readdirSync(dir).filter((n) => n.endsWith('.js') && n !== 'banned.js')) {
-      const src = readFileSync(join(dir, f), 'utf8').replace(/previous: \{[^}]*\}/, '');
+      const src = readFileSync(join(dir, f), 'utf8').replace(/\bview: \{[^}]*\}/, '');
       for (const l of links) expect(src, `${f} quotes "${l}"`).not.toContain(l);
     }
-    expect(PLAN.list.leaveProblem).toMatch(/the link to the previous version at the top of this page/);
+    expect(PLAN.list.leaveProblem).toMatch(/from the line at the top of this page/);
   });
   it('the next line sits inside the sheet, after the steps', () => {
     const root = renderScreen(load('answer-F1'));
@@ -333,9 +333,9 @@ describe('9, 10 — the styles', () => {
     const wide = block('@media (min-width: 1024px) {\n  .rail > *');
     expect(wide).toMatch(/grid-auto-flow: column; grid-auto-columns: minmax\(0, 1fr\)/);
   });
-  it('the line to the previous version is one short line on a phone', () => {
-    expect(css).toMatch(/\.previous-short \{ display: none; \}/);
-    expect(block('@media (max-width: 699px) {\n  .previous-line')).toMatch(/\.previous-long \{ display: none; \}[\s\S]*\.previous-short \{ display: inline; \}/);
+  it('the line naming the view is one short line on a phone', () => {
+    expect(css).toMatch(/\.view-short \{ display: none; \}/);
+    expect(block('@media (max-width: 699px) {\n  .view-line')).toMatch(/\.view-long \{ display: none; \}[\s\S]*\.view-short \{ display: inline; \}/);
   });
 });
 

@@ -170,7 +170,7 @@ test.describe('"Lock the plan", without an account', () => {
     await expect(page.locator('#mainApp')).toBeVisible();
     expect(await landingShown(page), 'the landing page was never on screen, not for a frame').toBe(false);
     await expect(page.locator('#landingTryGuest')).toBeHidden();
-    await expect(page.locator('#openPlaceNote')).toContainText('Opened from PensionTools.');
+    await expect(page.locator('#openPlaceNote')).toContainText('Opened from the simple view.');
     await expect(page.locator('#scenarioActiveName')).toHaveText('Alex’s plan');
     await expect(page.locator('#planLockChip')).toContainText('locked', { timeout: 45_000 });
     await expect(page.locator('.sub-tab[data-decisiontab="plandoc"]')).toHaveClass(/active/);

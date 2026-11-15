@@ -127,7 +127,7 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     expect(root.querySelector('[data-testid="plan.pots.bandFill.no"]').checked).toBe(true);
     expect(root.querySelector('label[for="plan.pots.stopSipp"]')).toBe(null);
     expect(text).toContain('Pension £440,000 and ISAs and savings £60,000 today; £85,000 in your ordinary account.');
-    expect(text).toContain('Split as saved: £280,000 shares, £120,000 bonds, £40,000 cash. The split, the risk level and the funds to test are set with the way of drawing and mix (in the classic planner).');
+    expect(text).toContain('Split as saved: £280,000 shares, £120,000 bonds, £40,000 cash. The split, the risk level and the funds to test are set with the way of drawing and mix (in the full view).');
     expect(text).toContain('Charges of 0.5% a year come off your funds and cash every month');
     expect(text).toContain('Tax-free allowance £12,570; basic rate up to £50,270; higher rate up to £125,140; the thresholds rise with prices.');
     expect(text).toContain('Every draw from your pension is taxed in full: the tax-free part is kept separate, or already taken.');
@@ -166,7 +166,7 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
   it('the saver (10): the pots at the stop are asked, blank, with the planner\'s projection beside them; the typed figure is said back', () => {
     const { root, text } = draw(potsState(entries, SAVER.id));
     expect(root.querySelector('[data-testid="plan.pots.stopSipp"]').value).toBe('');
-    expect(text).toContain('The classic planner works out £278,542 pension and £9,955 ISAs and savings at the day you stop, from what you pay in. Type your own above to use it instead.');
+    expect(text).toContain('The full view works out £278,542 pension and £9,955 ISAs and savings at the day you stop, from what you pay in. Type your own above to use it instead.');
     const typed = draw(potsState(entries, SAVER.id, { typed: { stopSipp: '300,000' } }));
     expect(typed.text).toContain('At the day you stop, as you typed it: £300,000 pension and none typed ISAs and savings.');
   });
@@ -206,7 +206,7 @@ describe('the locked plans, a plan shown as saved, the household pair, a plan no
     expect((text.match(/Fixed when you locked the plan on 1 July 2026\./g) || []).length).toBe(1);
     expect(root.querySelectorAll('[data-testid="plan.unlock"]').length).toBe(1);
     expect(text).toContain('Pension £640,000 and ISAs and savings £35,000 today.');
-    expect(text).toContain('This way of drawing is sized on its own figures: £640,000 pension and £35,000 ISAs, set with the way of drawing (in the classic planner).');
+    expect(text).toContain('This way of drawing is sized on its own figures: £640,000 pension and £35,000 ISAs, set with the way of drawing (in the full view).');
     expect(text).toContain('The ISA tops up your income before you pay higher-rate tax.');
     expect(text).not.toContain('rescues the plan');
     expect(root.querySelector('[data-testid="plan.pots.back"]').getAttribute('href')).toBe('#/plan/' + C['20-locked-start-after-stop'].id + '/plan');

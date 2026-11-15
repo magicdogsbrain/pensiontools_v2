@@ -94,13 +94,13 @@ describe('the landing page', () => {
     initLandingPage(el, { onGetStarted: () => calls.push('start'), onSignIn: () => calls.push('signin'), onTryGuest: () => calls.push('guest'), onLookAround: () => calls.push('example') });
     return { el, calls };
   };
-  it('one line at the top links the new app\'s questions (the site\'s front page since 7.0; PensionTools since 7.1.0)', () => {
+  it('one line at the top links the simple view\'s questions (the site\'s front page since 7.0; with the hash from 7.11.0, so it never forwards back)', () => {
     const { el } = render();
     const first = el.querySelector('.landing-content').firstElementChild;
     expect(first.className).toBe('landing-new');
     const a = first.querySelector('a');
-    expect(a.getAttribute('href')).toBe(LAYOUT.classic.v7);
-    expect(a.textContent).toBe('The new PensionTools: answer one question in about two minutes');
+    expect(a.getAttribute('href')).toBe(LAYOUT.classic.v7 + '#/');
+    expect(a.textContent).toBe('The simple view: answer one question in about two minutes');
     el.remove();
   });
   it('the footer links the privacy policy at the layout\'s address (at 7.0 "../privacy.html", from /classic/)', () => {

@@ -97,32 +97,35 @@ describe('the two pages\' heads', () => {
   it('at 7.0 the classic page links no manifest, is no home-screen app, is marked "do not index", names itself, and takes the root\'s favicon', () => {
     const out = transform(classicHead('switch'), classic);
     expect(out).not.toMatch(/rel="manifest"|apple-mobile-web-app/);
-    expect(out).toMatch(/<meta name="robots" content="noindex">\n {2}<title>The classic planner<\/title>/);
+    expect(out).toMatch(/<meta name="robots" content="noindex">\n {2}<title>PensionTools \(full view\)<\/title>/);
     expect(out).toContain('<link rel="icon" type="image/png" href="../favicon.png">');
-    // the body: the header's heading names it, and the way back to the front page sits just above the header
-    expect(out).toContain('<h1>The classic planner</h1>');
+    // the body: the header's heading names it, and the line with the way back to the simple view sits just above the header
+    expect(out).toContain('<h1>PensionTools (full view)</h1>');
     expect(out).not.toContain('<h1>Pension Planner</h1>');
     expect(out).toContain('      ' + CLASSIC_TO_FRONT + '\n      <header class="header">\n');
     // …and its twin above the screens drawn outside the app (the landing page, the sign-in screen), 7.0.1
     expect(out).toContain('  ' + CLASSIC_TO_FRONT_OUTSIDE + '\n  <div id="landingPage"></div>\n');
     // the rest of the page is untouched
     expect(out.length).toBeGreaterThan(classic.length - 400);
-    const back = out.slice(out.indexOf('<style>')).replace('      ' + CLASSIC_TO_FRONT + '\n', '').replace('  ' + CLASSIC_TO_FRONT_OUTSIDE + '\n', '').replace('<h1>The classic planner</h1>', '<h1>Pension Planner</h1>');
+    const back = out.slice(out.indexOf('<style>')).replace('      ' + CLASSIC_TO_FRONT + '\n', '').replace('  ' + CLASSIC_TO_FRONT_OUTSIDE + '\n', '').replace('<h1>PensionTools (full view)</h1>', '<h1>Pension Planner</h1>');
     expect(back).toBe(classic.slice(classic.indexOf('<style>')));
   });
-  it('at 7.0 the classic page\'s way back is a plain link to the site\'s front page (PensionTools, 7.1.0), from /classic/; it adds no script', () => {
-    const href = /<a href="([^"]+)"[^>]*>Back to PensionTools<\/a>/.exec(CLASSIC_TO_FRONT)[1];
+  it('at 7.0 the classic page\'s way back is a plain link to the simple view\'s front door (7.11.0: with the hash, so it never forwards back), from /classic/; it adds no script', () => {
+    const href = /<a href="([^"]+)"[^>]*>Back to the simple view\.<\/a>/.exec(CLASSIC_TO_FRONT)[1];
     expect(new URL(href, 'https://site.test' + LAYOUTS.switch.classic.at).pathname).toBe(LAYOUTS.switch.v7.at);
+    expect(new URL(href, 'https://site.test' + LAYOUTS.switch.classic.at).hash).toBe('#/');
+    expect(CLASSIC_TO_FRONT).toContain('id="classicToSimple"');
+    expect(CLASSIC_TO_FRONT).toContain('This is the full view.');
     expect(CLASSIC_TO_FRONT).not.toMatch(/<script|\son[a-z]+=/i);
     expect(CLASSIC_TO_FRONT).toMatch(/^<p id="classicToFront"/);
     // its twin outside the app (7.0.1): the same address and words, no script, and one rule that hides it once the app shows
-    const twin = /<a href="([^"]+)"[^>]*>Back to PensionTools<\/a>/.exec(CLASSIC_TO_FRONT_OUTSIDE)[1];
+    const twin = /<a href="([^"]+)"[^>]*>Back to the simple view\.<\/a>/.exec(CLASSIC_TO_FRONT_OUTSIDE)[1];
     expect(twin).toBe(href);
     expect(CLASSIC_TO_FRONT_OUTSIDE).not.toMatch(/<script|\son[a-z]+=/i);
     expect(CLASSIC_TO_FRONT_OUTSIDE).toMatch(/^<style>body:has\(#mainApp:not\(\.hidden\)\) #classicToFrontOutside\{display:none\}<\/style><p id="classicToFrontOutside"/);
   });
   it('the classic page has one name at 7.0: its tab title, its header and the headings its modules draw (landing page, sign-in, the first-plan welcome)', () => {
-    expect(CLASSIC_NAME).toBe('The classic planner');
+    expect(CLASSIC_NAME).toBe('PensionTools (full view)');
     expect(CLASSIC_NAME_IN_PAGE).toBe(CLASSIC_NAME);   // these tests run the published layout (src/appLayout.js)
     expect(read('src/ui/components/LandingPage.js')).toContain('<h1>${CLASSIC_NAME}</h1>');
     expect(read('src/ui/components/AuthScreen.js').match(/<h1>\$\{CLASSIC_NAME\}<\/h1>/g)).toHaveLength(3);
@@ -190,7 +193,7 @@ describe('docs/, the folder that is deployed', () => {
     expect(layout).toBe(layoutNamed(process.env.LAYOUT));
     expect(page(L.v7.at)).toMatch(/<div id="app" data-ready="0"/);
     expect(page(L.classic.at)).toMatch(/<div id="mainApp"/);
-    expect(page(L.classic.at)).toMatch(SWITCHED ? /<title>The classic planner<\/title>/ : /<title>Pension Planner v6<\/title>/);
+    expect(page(L.classic.at)).toMatch(SWITCHED ? /<title>PensionTools \(full view\)<\/title>/ : /<title>Pension Planner v6<\/title>/);
   });
   it('every script, stylesheet, icon and manifest each page names is in it', () => {
     for (const p of [L.v7.at, L.classic.at]) {

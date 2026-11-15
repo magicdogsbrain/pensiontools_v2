@@ -97,7 +97,7 @@ describe('every cross-app link reads the module', () => {
   it('the classic page: the way back to V7, the landing page\'s line, the way back to a question, the privacy links, the market data', () => {
     expect(PREVIEW_PATH).toBe(LAYOUT.classic.v7);
     expect(questionHref('a')).toBe(LAYOUT.classic.v7 + '#/a/answer');
-    expect(read('src/ui/components/LandingPage.js')).toContain('<a href="${LAYOUT.classic.v7}" id="landingPreviewLink">');
+    expect(read('src/ui/components/LandingPage.js')).toContain('<a href="${LAYOUT.classic.v7}#/" id="landingPreviewLink">');
     // the two footers' policy links: the landing page's and the sign-in screen's
     for (const f of ['src/ui/components/LandingPage.js', 'src/ui/components/AuthScreen.js']) expect(read(f), f).toContain('<a href="${LAYOUT.classic.privacy}" target="_blank" rel="noopener">Privacy Policy</a>');
     // the market data: the page asks with the services' own addresses, which are the layout's data folder

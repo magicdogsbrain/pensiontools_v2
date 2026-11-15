@@ -68,7 +68,7 @@ test.describe('Month by month, without an account', () => {
     await page.evaluate(([k, text, rk, req]) => { sessionStorage.setItem(k, text); sessionStorage.setItem(rk, req); }, [GUEST_KEY, JSON.stringify([planted]), OPEN_PLACE_KEY, request]);
     await page.goto(PROD + CLASSIC_PATH);
     await expect(page.locator('#mainApp')).toBeVisible({ timeout: 45_000 });
-    await expect(page.locator('#openPlaceNote')).toContainText('Opened from PensionTools.');
+    await expect(page.locator('#openPlaceNote')).toContainText('Opened from the simple view.');
     const entry = page.locator('#decision-entry');
     await expect(entry).toBeVisible({ timeout: 45_000 });
     await expect(page.locator('#entryMonth')).toHaveValue('2026-09');

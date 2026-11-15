@@ -138,7 +138,7 @@ test.describe('the saved plans, without an account', () => {
     const stored = await plant(page, [ladder, saver]);
     await page.goto(v7('#/plan/HouseSaver02'));
     await expect(page.getByTestId('plan.home')).toBeVisible();
-    await expect(page.getByTestId('plan.windowWarning')).toHaveText('This plan is kept in this browser window only. The classic planner opens on it without an account.');
+    await expect(page.getByTestId('plan.windowWarning')).toHaveText('This plan is kept in this browser window only. The full view opens on it without an account.');
     // (7.3.0) the old step panel's "Are you paying in enough?" and "Change this here" links are no longer drawn at the plan's
     // address (its home is): the way into "What you pay in" is the home's tool, pinned here in their place
     await expect(page.getByTestId('plan.home.tool.saving')).toHaveAttribute('href', '#/plan/HouseSaver02/saving');
@@ -163,7 +163,7 @@ test.describe('the saved plans, without an account', () => {
     await expect(page.locator('#guestBanner')).toBeVisible();
     const note = page.locator('#openPlaceNote');
     await expect(note).toBeVisible();
-    await expect(note).toContainText('Opened from PensionTools.');
+    await expect(note).toContainText('Opened from the simple view.');
     await expect(note).toContainText('‘Saving plan’ is open in this window only. Your other windows and devices stay on ‘Ladder plan’.');
     await expect(page.locator('.tab[data-tab="accumulation"]')).toHaveClass(/active/);
     await expect(page.locator('#acNetMonthly')).toHaveValue('600');
@@ -196,7 +196,7 @@ test.describe('the saved plans, without an account', () => {
     await expect(page.locator('#mainApp')).toBeVisible();
     expect(await landingShown(page), 'the landing page was never on screen, not for a frame').toBe(false);
     await expect(page.locator('#landingTryGuest')).toBeHidden();
-    await expect(page.locator('#openPlaceNote')).toContainText('Opened from PensionTools.');
+    await expect(page.locator('#openPlaceNote')).toContainText('Opened from the simple view.');
     await expect(page.locator('#openPlaceNote')).not.toContainText('in this window only');
     await expect(page.locator('.tab[data-tab="decision"]')).toHaveClass(/active/);
     await expect(page.locator('.sub-tab[data-decisiontab="history"]')).toHaveClass(/active/);

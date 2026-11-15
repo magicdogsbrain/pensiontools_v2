@@ -129,7 +129,7 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(root.querySelectorAll('[data-testid="plan.month.recent"] li').length).toBe(3);
     expect(text).toContain('September 2026: £');
     expect(text).not.toMatch(/about £/);
-    expect(text).not.toContain('Record October in the classic planner');
+    expect(text).not.toContain('Record October in the full view');
   });
   it('03 "Your plan as locked": every section fixed on the lock day, the unlock line once, the prices said, the document\'s steps', () => {
     const { root, text } = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/plan'));
@@ -144,7 +144,7 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(text).toContain('From age 79: £24,000 a year before tax (tax year 2040/41), falling 1% a year');
     expect(text).toContain('How the money is taken: Full gilt ladder.');
     expect(root.querySelector('[data-testid^="plan.plan.change."]')).toBe(null);   // no Change on a locked plan
-    expect(root.querySelector('[data-testid="plan.plan.openDocument"]').textContent).toBe('Open the plan document in the classic planner');
+    expect(root.querySelector('[data-testid="plan.plan.openDocument"]').textContent).toBe('Open the plan document in the full view');
     expect(root.querySelector('[data-testid="plan.plan.testLocked"]')).not.toBe(null);
     expect(text).toContain('How this plan got here');
   });
@@ -326,7 +326,7 @@ describe('the list (1.2) in each of its states', () => {
     expect(unknown.text).toContain('That plan is not in this account.');
     expect(unknown.root.querySelector('a[href="#/plans"]')).not.toBe(null);
     const warn = draw(stateWith(entries.slice(0, 1), '#/plan/' + entries[0].plan.id, { session: 'nobody', source: 'window' }));
-    expect(warn.root.querySelector('[data-testid="plan.windowWarning"]').textContent).toBe('This plan is kept in this browser window only. The classic planner opens on it without an account.');
+    expect(warn.root.querySelector('[data-testid="plan.windowWarning"]').textContent).toBe('This plan is kept in this browser window only. The full view opens on it without an account.');
   });
 });
 
@@ -396,7 +396,7 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     const two = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id + '/month'));
     expect(two.text).toContain('June 2026 is not recorded yet; September 2026 is.');
     expect(two.text).toContain('Record June');
-    expect(two.text).not.toContain('Record June in the classic planner');
+    expect(two.text).not.toContain('Record June in the full view');
     // April gone as well: the plan now begins in May, and May is not a gap
     b.decisionTool.history = b.decisionTool.history.filter((h) => h.date !== '2026-04');
     const later = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id + '/month'));

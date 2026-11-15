@@ -148,9 +148,9 @@ describe('T8 — the planner with a request: the right plan, page and section, w
     expect(document.getElementById('acNetMonthly').value).toBe('600');
     expect(scrolled).toEqual(['acRecordSection']);
     expect(note).not.toBe(null);
-    expect(note.textContent).toContain('Opened from PensionTools.');
+    expect(note.textContent).toContain('Opened from the simple view.');
     expect(note.querySelector('a').getAttribute('href')).toBe(LAYOUT.classic.v7 + '#/plan/B2/pot');
-    expect(note.querySelector('a').textContent).toContain('Back to PensionTools');
+    expect(note.querySelector('a').textContent).toBe('Back to ‘Saving plan’ in the simple view');
     // B2 is not the account's open plan: opened in this window only, said so
     expect(note.textContent).toContain('‘Saving plan’ is open in this window only. Your other windows and devices stay on ‘Ladder plan’.');
     expect(sessionStorage.getItem(OPEN_PLAN_KEY)).toBe('B2');
@@ -173,7 +173,7 @@ describe('T8 — the planner with a request: the right plan, page and section, w
     expect(loaded).toEqual(['entry']);                                            // the sub-page's loader ran first
     expect(document.getElementById('entryMonth').value).toBe('2026-08');
     expect(monthEvents).toEqual(['input:2026-08', 'change:2026-08']);              // the form's own listeners saw the month
-    expect(note.textContent).toContain('Opened from PensionTools.');
+    expect(note.textContent).toContain('Opened from the simple view.');
     expect(saveScenario).not.toHaveBeenCalled();
     const plain = await run({ v: 1, planId: 'A1', place: 'month', back: '#/plan/A1/month', at: new Date(NOW - 1000).toISOString() });
     expect(plain.loaded).toEqual(['entry']);
@@ -189,13 +189,13 @@ describe('T8 — the planner with a request: the right plan, page and section, w
     expect(sessionStorage.getItem(OPEN_PLAN_KEY)).toBe(null);
     expect(await getActiveScenarioId()).toBe('A1');
   });
-  it('the sign-in place: "Signed in. Back to your plans in PensionTools"; the window\'s plans without an account are stashed for "keep this work"', async () => {
+  it('the sign-in place: "Signed in. Back to your plans in the simple view"; the window\'s plans without an account are stashed for "keep this work"', async () => {
     store.guest = [PLAN('g1', 'Kept plan')];
     const r = { v: 1, planId: null, place: 'signin', back: '#/plans', at: new Date(NOW - 1000).toISOString() };
     const { note, tab } = await run(r);
     expect(tab).toBe(null);
     expect(note.textContent).toContain('Signed in.');
-    expect(note.querySelector('a').textContent).toBe('Back to your plans in PensionTools');
+    expect(note.querySelector('a').textContent).toBe('Back to your plans in the simple view');
     expect(JSON.parse(localStorage.getItem('pt_guest_handoff')).scenarios.length).toBe(1);
     store.guest = [];
   });

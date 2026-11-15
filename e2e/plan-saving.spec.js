@@ -103,7 +103,7 @@ test.describe('"What you pay in", without an account', () => {
       await expect(box).toContainText(result.sentences.verdictLine.text);
       if (result.sentences.enoughHead) await expect(box).toContainText(result.sentences.enoughHead.text);
       await expect(page.getByTestId(`${T}.verdict.rise`)).toContainText('Your plan raises it by 1% a year');
-      await expect(page.getByTestId(`${T}.onCourse`)).toHaveText('The classic planner’s pot check (fixed rates)');
+      await expect(page.getByTestId(`${T}.onCourse`)).toHaveText('The full view’s pot check (fixed rates)');
       const text = await page.locator('#app').innerText();
       expect(text).not.toMatch(BANNED);
       expect(saverWording(text)).toEqual([]);

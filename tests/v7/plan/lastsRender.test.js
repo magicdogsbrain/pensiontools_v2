@@ -181,7 +181,7 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
     // the named stresses as whole decades (road-to-7.md step 11b): what the decade did, then the plan's own replay; the made-up decade apart; no hand-over
     expect(root.querySelector('[data-testid="plan.lasts.scenarios"] li').textContent).toBe('1929 — Great Depression: shares down 64% in the first three years and down 39% over the decade; prices down 21% over the decade. lasted; income cut in 4 years (£16,000 in all); Lowest 12 months £31,000; left £240,000');
     expect(root.querySelector('[data-testid="plan.lasts.synthetic"]').textContent).toBe('Synthetic Worst: shares down 27% in the first three years and down 49% over the decade; prices up 75% over the decade. A made-up decade: no real start is this bad, so it is not in the test. The hardest real start in the record is September 1929, above.');
-    expect(text).not.toContain('in the classic planner');
+    expect(text).not.toContain('in the full view');
     // the years one by one and the pots' floors: closed until opened, each press a toggle on the screen
     const years = root.querySelector('[data-testid="plan.lasts.years"]');
     expect(years.getAttribute('data-kind')).toBe('schedule');

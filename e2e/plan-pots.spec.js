@@ -133,7 +133,7 @@ test.describe('"Your pots and tax", without an account', () => {
     await expect(page.locator('#mainApp')).toBeVisible();
     expect(await landingShown(page), 'the landing page was never on screen, not for a frame').toBe(false);
     await expect(page.locator('#landingTryGuest')).toBeHidden();
-    await expect(page.locator('#openPlaceNote')).toContainText('Opened from PensionTools.');
+    await expect(page.locator('#openPlaceNote')).toContainText('Opened from the simple view.');
     await expect(page.locator('.tab[data-tab="stress"]')).toHaveClass(/active/);
     await expect(page.locator('#ssPot')).toHaveValue('500000');
     await expect(page.locator('#ssIsaGrowthInvested')).toBeChecked();

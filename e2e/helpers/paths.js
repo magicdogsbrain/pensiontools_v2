@@ -20,8 +20,8 @@ export const CLASSIC_PATH = LAYOUT_UNDER_TEST.classic.at;
 export const OLD_V7_PATH = LAYOUTS.preview.v7.at;
 /** The classic page's address before 7.0 (the site's root), where links shared before 7.0 point (`?demo=1m`, `?signin=1`): at 7.0 V7's page, which passes those on to CLASSIC_PATH. */
 export const OLD_CLASSIC_PATH = LAYOUTS.preview.classic.at;
-/** The classic page's title: at 7.0 it names itself (vite.layout.js classicHead); in the rollback layout, as before 7.0. */
-export const CLASSIC_TITLE = LAYOUT_UNDER_TEST.name === 'switch' ? /^The classic planner$/ : /^Pension Planner v6$/;
+/** The classic page's title: at 7.0 it names itself (vite.layout.js classicHead; the full view from 7.11.0); in the rollback layout, as before 7.0. */
+export const CLASSIC_TITLE = LAYOUT_UNDER_TEST.name === 'switch' ? /^PensionTools \(full view\)$/ : /^Pension Planner v6$/;
 
 /** True when an address is the classic page (its folder, or its index.html): where a hand-over from V7 lands. */
 export const atClassic = (u) => { const p = new URL(u).pathname; return p === CLASSIC_PATH || p === CLASSIC_PATH + 'index.html'; };

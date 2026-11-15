@@ -188,7 +188,8 @@ export const PLAN = {
   /** The stage lines (rail-screens-language.md 1.3). {month} is a month in words: "April 2027". */
   stageLines: {
     saving: 'Still saving.',
-    approaching: 'Stopping work within five years.',
+    /** Inside the move window (7.10.0): its length is the plan's own, so the line names no number of years. */
+    approaching: 'Inside the move window, before stopping work.',
     'committed-saving': 'Plan locked. Still working until {month}.',
     'draft-retired': 'Retired. Plan not locked yet.',
     running: 'Retired. Living on the plan.',
@@ -206,7 +207,7 @@ export const PLAN = {
   /** The same about a partner, on the household step ("With ‘…’: …"). */
   theirLines: {
     saving: 'still saving.',
-    approaching: 'stopping work within five years.',
+    approaching: 'inside the move window, before stopping work.',
     'committed-saving': 'plan locked. Still working until {month}.',
     'draft-retired': 'retired. Plan not locked yet.',
     running: 'retired. Living on the plan.',

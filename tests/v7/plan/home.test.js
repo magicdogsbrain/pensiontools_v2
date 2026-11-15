@@ -667,3 +667,17 @@ describe('the drift line (7.10.0): what is held differently is said once, as inf
     for (const t of Object.values(W)) expect(t).not.toMatch(/\b(sell|buy|should|transition)\b/i);
   });
 });
+
+describe('the stage strip reads the move window (7.10.0)', () => {
+  it('Saving ends where the move window opens, not at the stop; with no window read, at the stop as before', () => {
+    const C2 = corpus();
+    const p = C2['10-couple-b'];
+    const h = homeOf([entryOf(p, '2026-10-02')], p.id, { today: '2026-10-02' });
+    // stop January 2030, a three-year window: Saving to January 2027, Moving after it
+    expect(h.stage.strip.map((s) => [s.key, s.state, s.month])).toEqual([['saving', 'now', 'January 2027'], ['moving', 'later', null], ['drawing', 'later', null]]);
+    const q = C2['05-saver-committed'];
+    const s = homeOf([entryOf(q, '2026-10-02')], q.id, { today: '2026-10-02' }).stage.strip[0];
+    expect(s).toMatchObject({ key: 'saving', state: 'now' });
+    expect(s.month).toMatch(/^[A-Z][a-z]+ \d{4}$/);
+  });
+});

@@ -9327,9 +9327,9 @@
       out.innerHTML = '<p style="font-size:13px;">Running both plans through the same 1,000 possible futures…</p>';
       await new Promise((r) => setTimeout(r, 30));
       try {
-        const [scenarios, ownSettings, activeId] = await Promise.all([listScenariosAsync(), getStressSettingsAsync(), getActiveScenarioId()]);
-        const own = scenarios.find((sc) => sc.id === activeId), partner = scenarios.find((sc) => sc.id === partnerId);
-        // The partner's plan as its own tools read it (6.42.0): the Budget's age folded in and the settings brought up to date, as this plan's are
+        const [scenarios, stored, activeId] = await Promise.all([listScenariosAsync(), getStressSettingsAsync(), getActiveScenarioId()]);
+        const own = scenarios.find((sc) => sc.id === activeId), partner = scenarios.find((sc) => sc.id === partnerId), ownSettings = own ? effectiveStressSettings(own) : stored;
+        // Both plans as their own tools read them (6.42.0; this plan's too from 7.12.0, as the simple view reads it): the Budget's age folded in, brought up to date
         const partnerSettings = partner?.stressTool?.settings?.configured ? effectiveStressSettings(partner) : null;
         if (!partnerSettings) {
           out.innerHTML = '<div class="alert alert-warning">The partner plan has no saved Stress Tester settings yet — switch to that plan, fill in its settings, then come back here.</div>';

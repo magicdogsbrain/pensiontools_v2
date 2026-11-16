@@ -15,7 +15,7 @@
 import { LevelStrip } from '../../components/Lasts.jsx';
 import { StressStrip } from '../../components/StressStrip.jsx';
 import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, HeldAnswer, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer, AnswerSlider, FigureTiles, KeepLine, Money } from '../../components/index.js';
-import { isCurrent, cAnswerYouStopped, isShapePath, answerSlider, answerTiles, tilesKey, takeReading, takeTried, staleView } from '../../state/select.js';
+import { isCurrent, cAnswerYouStopped, isShapePath, answerSlider, answerTiles, tilesKey, takeReading, takeTried, takesSome, staleView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { frontDoor } from '../../rail/index.js';
 import { C } from '../../copy/c.js';
@@ -154,7 +154,7 @@ export function AnswerScreen(state, dispatch) {
     const tried = slider ? takeTried(state) : null;
     // with no headline to read for it (no amount lasts at the level), the amount tried is said in the block: its chance
     // with the fixed-age line beside it
-    const take = (s.takeChance || s.take) && (
+    const take = (s.takeChance || s.take) && takesSome(result) && (
       <div class="take-lines" data-testid="c.answer.take">
         <Sentence s={s.takeChance || s.take} source={result} class="take-line" />
         {s.takeChance && s.takeFixed && <Sentence s={s.takeFixed} source={result} class="take-line" />}

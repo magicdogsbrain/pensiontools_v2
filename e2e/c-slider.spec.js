@@ -106,6 +106,50 @@ test.describe('the slider moves the answer it sits on', () => {
     await noSideways(page);
   });
 
+  // (a sceptical walk of the fix: a level pressed while an amount was tried changed nothing above it, and new figures on
+  // step 1 opened on the amount tried for the old ones)
+  test('C: an amount tried goes when a level is chosen, and when the figures on step 1 change', async ({ page }) => {
+    test.setTimeout(300_000);
+    const app = v7(page, 'test');
+    await app.open('#/c/numbers');
+    await app.ready();
+    await app.fill(C_TYPED);
+    await app.click('c.action.show');
+    await app.at('c.answer');
+    await app.ready(120_000);
+    const slider = app.id('c.slider.input');
+    const take = page.locator('#app [data-headline="take.perMonth"]');
+
+    await drag(page, slider, 0.85);
+    await app.ready(120_000);
+    await expect(take).toBeVisible();
+    // Careful chosen: the page reads at Careful's amount, and the slider stands on it
+    await app.click('c.level.careful');
+    await app.ready(120_000);
+    const careful = page.locator('#app [data-headline="levels.careful.monthly"]');
+    await expect(careful).toBeVisible();
+    await expect(take).toHaveCount(0);
+    await expect(app.id('c.answer.back')).toHaveCount(0);
+    expect(await slider.inputValue()).toBe(await careful.locator('[data-key="levels.careful.monthly"]').first().getAttribute('data-value'));
+
+    // tried again, then other figures on step 1: the answer for them opens on its level's amount
+    await drag(page, slider, 0.85);
+    await app.ready(120_000);
+    await expect(take).toBeVisible();
+    await app.go('#/c/numbers');
+    await app.fill({ 'you.pot': '400000', 'you.age': '63' });
+    await app.click('c.action.show');
+    await app.at('c.answer');
+    await app.ready(120_000);
+    const head = page.locator('#app [data-headline="levels.careful.monthly"]');
+    await expect(head).toBeVisible();
+    await expect(take).toHaveCount(0);
+    await expect(app.id('c.answer.back')).toHaveCount(0);
+    expect(await slider.inputValue()).toBe(await head.locator('[data-key="levels.careful.monthly"]').first().getAttribute('data-value'));
+    expect(await checkScreenOnPage(page)).toEqual([]);
+    await noSideways(page);
+  });
+
   test('B: the slider moves where paying in gets you', async ({ page }) => {
     test.setTimeout(300_000);
     const app = v7(page, 'test', 'b');

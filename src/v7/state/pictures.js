@@ -95,7 +95,8 @@ const quarters = (min, max) => [min, max / 4, max / 2, (3 * max) / 4, max];
  * type, nothing more.
  *   B  what goes in a month: your pounds (a total or your own part), or your share of pay — from nothing to well past
  *      what would be enough;
- *   C  what you would take a month ("What if I took…?", the try box) — from nothing to well past the good case;
+ *   C  what you would take a month ("What if I took…?", the try box) — from one step above nothing to well past Bold's
+ *      amount and past an amount typed above that;
  *   D  what you take a month — from the least the box takes to well past what could be taken.
  * The range fits the figure in the box when it is drawn; once the slider moves, the range it was drawn with is held
  * (ui.slider, set by the slider's own draft/set and let go by any other change to the draft), so the track never grows
@@ -123,14 +124,15 @@ export function answerSlider(state, q) {
 function sliderOf(state, r, q) {
   const d = draftOf(state, q);
   const ins = r.inputs;
-  /** A money slider: a round top a little past what it must show, inside the box's limits (and `cap`). */
-  const money = (path, words, want, value, slots = {}, cap = Infinity) => {
+  /** A money slider: a round top a little past what it must show, inside the box's limits (and `cap`); `aStep`: its low end
+   *  one step above £0 (C: taking nothing is no amount to try). */
+  const money = (path, words, want, value, slots = {}, cap = Infinity, aStep = false) => {
     const lim = limitsOf(q, path);
     const hi = Math.min(lim.max, cap);
     const top = Math.min(hi, roundTop(Math.max(want, 100)));
     // whole tens up to £10,000 (so an answer's own figure, £1,410, sits on the track exactly), fifties above
     const step = top <= 10_000 ? 10 : 50;
-    const min = lim.min > 0 ? Math.ceil(lim.min / step) * step : 0;
+    const min = Math.max(lim.min > 0 ? Math.ceil(lim.min / step) * step : 0, aStep ? step : 0);
     const v = isNum(value) ? Math.max(min, Math.min(top, value)) : min;
     return { q, path, min, max: top, step, value: v, raw: isNum(value) ? value : null, unit: 'money', words, slots, scale: quarters(min, top) };
   };
@@ -162,12 +164,15 @@ function sliderOf(state, r, q) {
   if (q === 'c') {
     // (7.8.0: the scale reaches past Bold's amount, the most of the three levels)
     if (!r.levels || !r.levels.bold || !isNum(r.levels.bold.monthly) || r.status === 'none') return null;
-    const take = typed(d.take);
+    // (£0 typed is no amount tried: the page and the slider read the level's amount, as with the box empty)
+    const take = tried(typed(d.take));
     // (the box emptied — "Back to £…" — reads as the level's amount at once, not the amount the answer on screen still
     // reads for while the level's is worked out again)
-    const emptied = typeof d.take === 'string' && d.take.trim() === '';
-    const value = take ?? (!emptied && isNum(ins.take) ? ins.take : shownOf(r).monthly);
-    return { ...money('take', 'take', 1.6 * r.levels.bold.monthly, value), set: take !== null || (!emptied && isNum(ins.take)) };
+    const emptied = take === null && typeof d.take === 'string' && (d.take.trim() === '' || typed(d.take) !== null);
+    const was = !emptied ? tried(ins.take) : null;
+    const value = take ?? was ?? shownOf(r).monthly;
+    // the track reaches past Bold's amount and past an amount typed above it, so the slider always shows the amount tried
+    return { ...money('take', 'take', Math.max(1.6 * r.levels.bold.monthly, 1.25 * (take ?? was ?? 0)), value, {}, Infinity, true), set: take !== null || was !== null };
   }
   if (q === 'd') {
     if (!ins.spend || ins.spend.kind !== 'amount' || !r.levels || !r.levels.bold || !isNum(r.levels.bold.monthly)) return null;
@@ -178,6 +183,12 @@ function sliderOf(state, r, q) {
 }
 
 // ---- C's amount being tried ----------------------------------------------------------------------------------------
+
+/** An amount tried on C: a number above £0, else null (taking nothing is no amount to try). */
+const tried = (v) => (isNum(v) && v > 0 ? v : null);
+
+/** Whether C's answer was worked out for an amount tried above £0: the line under "Show how long that lasts" is said for it. */
+export const takesSome = (r) => !!(r && r.take && tried(r.take.perMonth) !== null);
 
 /** The level's own amount on C's answer (shownOf), or null. */
 const solvedOf = (r) => { const sh = r && r.levels ? shownOf(r) : null; return sh && isNum(sh.monthly) ? sh.monthly : null; };
@@ -197,7 +208,7 @@ const solvedOf = (r) => { const sh = r && r.levels ? shownOf(r) : null; return s
 export function takeReading(state) {
   const r = resultOf(state, 'c');
   const s = r && r.sentences;
-  if (!r || r.status !== 'ok' || !r.take || !isNum(r.take.perMonth) || !s || !s.takeHead || !s.takeLine) return null;
+  if (!r || r.status !== 'ok' || !r.take || tried(r.take.perMonth) === null || !s || !s.takeHead || !s.takeLine) return null;
   const solved = solvedOf(r);
   if (solved === null || r.take.perMonth === solved) return null;
   const at = {
@@ -218,7 +229,7 @@ export function takeTried(state) {
   const r = resultOf(state, 'c');
   const solved = solvedOf(r);
   if (solved === null || r.status !== 'ok') return null;
-  const t = typed(draftOf(state, 'c').take);
+  const t = tried(typed(draftOf(state, 'c').take));
   if (t === null || t === solved) return null;
   return { level: r.level, key: `levels.${r.level}.monthly` };
 }

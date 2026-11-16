@@ -13,7 +13,7 @@
  */
 import { SCHEMA_C, earliestStart } from '../../answers/c/schema.js';
 import { money, ageText } from '../../answers/shared/format.js';
-import { readyMark, typedShape, shapeStepsOf as stepsOf, payInParts, shareLandsOf } from '../state/select.js';
+import { readyMark, takesSome, typedShape, shapeStepsOf as stepsOf, payInParts, shareLandsOf } from '../state/select.js';
 import { SHAPE } from '../copy/shape.js';
 import { Money } from './Money.jsx';
 import { Sentence } from './Sentence.jsx';
@@ -147,8 +147,9 @@ export function TryAChange({ state, form, result, dispatch }) {
       <div class="try-row try-take">
         <Field form={form} path="take" dispatch={dispatch} />
         <Button testid="c.try.take" onClick={() => dispatch({ type: 'draft/ask', q: 'c' })}>{C.buttons.takeShow}</Button>
-        {/* while weighing, the chance said with its count to one named age beside it, as the answer above says it */}
-        {(s.takeChance || s.take) && <Sentence s={s.takeChance || s.take} source={result} class="take-line try-take-result" data-testid="c.try.take.result" />}
+        {/* while weighing, the chance said with its count to one named age beside it, as the answer above says it (taking
+            nothing is no amount tried: no line for £0) */}
+        {(s.takeChance || s.take) && takesSome(result) && <Sentence s={s.takeChance || s.take} source={result} class="take-line try-take-result" data-testid="c.try.take.result" />}
         {s.takeChance && s.takeFixed && <Sentence s={s.takeFixed} source={result} class="take-line try-take-result" data-testid="c.try.take.fixed" />}
       </div>
 

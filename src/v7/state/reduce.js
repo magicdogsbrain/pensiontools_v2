@@ -405,8 +405,28 @@ function withSliderHold(next, action) {
   return next;
 }
 
+/**
+ * C's amount being tried (the slider, or "Take, a month") belongs to the figures it was tried on. It is let go — the box
+ * emptied, as "Back to £…" empties it — when those figures change on step 1 ("What have you got?"), so a new answer opens on
+ * its level's amount, never on an amount tried for other figures; and when a "How careful?" level is chosen, so the choice
+ * moves every figure on the page to that level's amount. A change made under Try a change keeps it: trying an amount and a
+ * later start together is a what-if of its own.
+ */
+function withTakeLetGo(state, next, action) {
+  if (!action || action.q !== 'c' || !next || next === state || !next.draft || !next.draft.c || !state.draft || !state.draft.c) return next;
+  const before = state.draft.c.values || {};
+  const after = next.draft.c.values || {};
+  if (before === after || typeof after.take !== 'string' || after.take.trim() === '') return next;
+  const level = action.type === A.DRAFT_SET && action.path === 'confidence';
+  if (!level && !onStepOf(state.route, 'c', 'numbers')) return next;
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  keys.delete('take');
+  const changed = level ? before.confidence !== after.confidence : [...keys].some((k) => before[k] !== after[k]);
+  return changed ? withDraft(next, 'c', { ...next.draft.c, values: { ...after, take: '' } }) : next;
+}
+
 export function reduce(state, action) {
-  const next = reduceAction(state, action);
+  const next = withTakeLetGo(state, reduceAction(state, action), action);
   return action && action.type === A.DRAFT_SET && next && next.ui ? withSliderHold(next, action) : next;
 }
 

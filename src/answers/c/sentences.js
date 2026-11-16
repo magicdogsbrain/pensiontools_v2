@@ -168,53 +168,68 @@ const phasesAt = (result, base) => base.split('.').reduce((o, k) => (o == null ?
 
 /**
  * The made-of lines for the level's amount — or, with `base` 'take.phases', for the amount being tried (the same lines,
- * read from the phases worked out at that amount).
+ * read from the phases worked out at that amount). An amount tried below what comes in anyway (the State Pension, a
+ * final-salary pension) cannot be taken: in those years what comes in anyway is paid, and nothing comes from the pots — said
+ * under the stretch, so its parts never read as more than the headline's amount without a word.
  */
 function madeOfLines(result, facts, base = 'phases') {
   const lines = [];
   const phases = phasesAt(result, base);
   const ages = (i, lead) => ageWords(result, facts, i, lead, base);
+  const tried = base === 'take.phases' && result.take && typeof result.take.perMonth === 'number' ? result.take.perMonth : null;
+  const more = (ph) => tried !== null && !(ph.shown.fromPots > 0) && ph.shown.takeHome > Math.round(tried)
+    && (ph.statePension > 0 || ph.finalSalary > 0);
   phases.forEach((ph, i) => {
-    const at = base + '.' + i;
-    if (ph.fromPay !== undefined && facts.apart) {
-      lines.push(apartMadeOf(result, facts, ph, i, base));
-      if (ph.tax >= 0.5) lines.push(S('c.madeOf.tax', ['Tax of ', M(at + '.tax'), ' a month is already taken off.']));
-      return;
-    }
-    const from = potsPhrase(facts, ph);
-    const spWord = ph.byPerson.filter((b) => b.statePension > 0).length === 2 ? 'State Pensions' : 'State Pension';
-    const hasIncome = ph.statePension > 0 || ph.finalSalary > 0;
-    const potsPart = ph.shown.fromPots > 0 ? [M(at + '.shown.fromPots'), ' from ', from] : null;
-    if (!hasIncome && !facts.anyPots) {
-      if (phases.length > 1) lines.push(S('c.madeOf.none', [...ages(i + 1, 'Until '), ': nothing yet.']));
-    } else if (!hasIncome) {
-      if (phases.length === 1) lines.push(S('c.madeOf.pots', ['All of it comes from ', from, '.']));
-      else if (i + 1 < phases.length) lines.push(S('c.madeOf.pots', [...ages(i + 1, 'Until '), ': ', M(at + '.shown.takeHome'), ...(ph.shapeMoves ? [' a month', firstYear(ph), ', all from '] : [' a month, all from ']), from, '.']));
-      else lines.push(S('c.madeOf.pots', [...ages(i, facts.couple ? 'From when ' : 'From '), firstYear(ph), ': ', M(at + '.shown.takeHome'), ' a month, all from ', from, '.']));   // a pension opened; no income yet
-    } else if (i === 0) {
-      const items = [];
-      if (ph.statePension > 0) items.push(['Your ', spWord, ' (', M(at + '.shown.statePension'), ' a month)']);
-      if (ph.finalSalary > 0) items.push(ph.statePension > 0 ? [M(at + '.shown.finalSalary'), ' final-salary pension'] : ['Your final-salary pension (', M(at + '.shown.finalSalary'), ' a month)']);
-      if (potsPart) items.push(potsPart);
-      const parts = [];
-      items.forEach((it, k) => { if (k > 0) parts.push(' + '); parts.push(...it); });
-      // (a phase the shape moves inside: "In the first year, your State Pension …")
-      if (ph.shapeMoves && typeof parts[0] === 'string') parts[0] = 'In the first year, ' + parts[0].charAt(0).toLowerCase() + parts[0].slice(1);
-      else if (ph.shapeMoves) parts.unshift('In the first year: ');
-      lines.push(S('c.madeOf.paid', [...parts, '.']));
-    } else {
-      const items = [];
-      if (ph.statePension > 0) items.push([M(at + '.shown.statePension'), ' ', spWord]);
-      if (ph.finalSalary > 0) items.push([M(at + '.shown.finalSalary'), ' final-salary pension']);
-      if (potsPart) items.push(potsPart);
-      const parts = [];
-      items.forEach((it, k) => { if (k > 0) parts.push(' + '); parts.push(...it); });
-      const head = facts.couple ? [...ages(i, 'From when '), firstYear(ph), ': '] : ['From ', A(at + '.fromAge'), firstYear(ph), ': '];
-      lines.push(S('c.madeOf.mixed', [...head, ...parts, '.']));
-    }
-    if (ph.tax >= 0.5) lines.push(S('c.madeOf.tax', ['Tax of ', M(at + '.tax'), ' a month is already taken off.']));
+    const n = lines.length;
+    madeOfPhase(lines, result, facts, base, phases, ph, i, ages);
+    if (!more(ph) || (ph.fromPay !== undefined && facts.apart)) return;
+    // after the stretch's own line, before its tax
+    const at = lines.length > n && lines[lines.length - 1].id === 'c.madeOf.tax' ? lines.length - 1 : lines.length;
+    lines.splice(at, 0, S('c.take.madeOf.more', ['That is more than ', M('take.perMonth'), ' a month, so nothing is taken from ', potsPhrase(facts), phases.length > 1 ? ' in those years.' : '.']));
   });
   return lines;
+}
+
+/** One stretch's made-of lines (and its tax), onto `lines`. */
+function madeOfPhase(lines, result, facts, base, phases, ph, i, ages) {
+  const at = base + '.' + i;
+  if (ph.fromPay !== undefined && facts.apart) {
+    lines.push(apartMadeOf(result, facts, ph, i, base));
+    if (ph.tax >= 0.5) lines.push(S('c.madeOf.tax', ['Tax of ', M(at + '.tax'), ' a month is already taken off.']));
+    return;
+  }
+  const from = potsPhrase(facts, ph);
+  const spWord = ph.byPerson.filter((b) => b.statePension > 0).length === 2 ? 'State Pensions' : 'State Pension';
+  const hasIncome = ph.statePension > 0 || ph.finalSalary > 0;
+  const potsPart = ph.shown.fromPots > 0 ? [M(at + '.shown.fromPots'), ' from ', from] : null;
+  if (!hasIncome && !facts.anyPots) {
+    if (phases.length > 1) lines.push(S('c.madeOf.none', [...ages(i + 1, 'Until '), ': nothing yet.']));
+  } else if (!hasIncome) {
+    if (phases.length === 1) lines.push(S('c.madeOf.pots', ['All of it comes from ', from, '.']));
+    else if (i + 1 < phases.length) lines.push(S('c.madeOf.pots', [...ages(i + 1, 'Until '), ': ', M(at + '.shown.takeHome'), ...(ph.shapeMoves ? [' a month', firstYear(ph), ', all from '] : [' a month, all from ']), from, '.']));
+    else lines.push(S('c.madeOf.pots', [...ages(i, facts.couple ? 'From when ' : 'From '), firstYear(ph), ': ', M(at + '.shown.takeHome'), ' a month, all from ', from, '.']));   // a pension opened; no income yet
+  } else if (i === 0) {
+    const items = [];
+    if (ph.statePension > 0) items.push(['Your ', spWord, ' (', M(at + '.shown.statePension'), ' a month)']);
+    if (ph.finalSalary > 0) items.push(ph.statePension > 0 ? [M(at + '.shown.finalSalary'), ' final-salary pension'] : ['Your final-salary pension (', M(at + '.shown.finalSalary'), ' a month)']);
+    if (potsPart) items.push(potsPart);
+    const parts = [];
+    items.forEach((it, k) => { if (k > 0) parts.push(' + '); parts.push(...it); });
+    // (a phase the shape moves inside: "In the first year, your State Pension …")
+    if (ph.shapeMoves && typeof parts[0] === 'string') parts[0] = 'In the first year, ' + parts[0].charAt(0).toLowerCase() + parts[0].slice(1);
+    else if (ph.shapeMoves) parts.unshift('In the first year: ');
+    lines.push(S('c.madeOf.paid', [...parts, '.']));
+  } else {
+    const items = [];
+    if (ph.statePension > 0) items.push([M(at + '.shown.statePension'), ' ', spWord]);
+    if (ph.finalSalary > 0) items.push([M(at + '.shown.finalSalary'), ' final-salary pension']);
+    if (potsPart) items.push(potsPart);
+    const parts = [];
+    items.forEach((it, k) => { if (k > 0) parts.push(' + '); parts.push(...it); });
+    const head = facts.couple ? [...ages(i, 'From when '), firstYear(ph), ': '] : ['From ', A(at + '.fromAge'), firstYear(ph), ': '];
+    lines.push(S('c.madeOf.mixed', [...head, ...parts, '.']));
+  }
+  if (ph.tax >= 0.5) lines.push(S('c.madeOf.tax', ['Tax of ', M(at + '.tax'), ' a month is already taken off.']));
 }
 
 const yearsWord = (years) => (years === 1 ? ' year' : ' years');

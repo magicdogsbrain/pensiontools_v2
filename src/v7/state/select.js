@@ -75,7 +75,7 @@ export { payInParts };
  */
 export { cAnswerYouStopped } from './carry.js';
 // the first visit's pictures and controls (7.5.0): each figure one the answer already gave (state/pictures.js)
-export { LIFE_EXAMPLE, lifeStages, roundTop, answerSlider, answerTiles, tilesKey, potPicture, takeReading, takeTried } from './pictures.js';
+export { LIFE_EXAMPLE, lifeStages, roundTop, answerSlider, answerTiles, tilesKey, potPicture, takeReading, takeTried, takesSome } from './pictures.js';
 
 /** The input list of each question. A question's draft is in the state only while it is open (rail/questions.js OPEN). */
 export const SCHEMAS = { c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B, d: SCHEMA_D };

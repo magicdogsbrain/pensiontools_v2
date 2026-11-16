@@ -81,12 +81,12 @@ function TakeTried({ tried, result, dispatch }) {
  */
 function CarriedHere({ from, tried, result }) {
   const t = C.answer.carried;
-  if (!t.from[from]) return null;
+  if (!t.line[from]) return null;
   const take = tried && result && result.take && typeof result.take.perMonth === 'number';
   return (
     <p class="carried notice" role="status" data-testid="c.answer.carried">
-      {t.line.replace('{from}', t.from[from])}
-      {take && <> {slotted(t.take, { take: <Money source={result} k="take.perMonth" />, level: <Money source={result} k={tried.key} /> })}</>}
+      {t.line[from]}
+      {take && <> {t.take[0]} <Money source={result} k="take.perMonth" /> {t.take[1]} <Money source={result} k={tried.key} />{t.take[2]}</>}
     </p>
   );
 }

@@ -134,9 +134,12 @@ export const C = {
      * `take`: added when the amount wanted came over too, with the level's amount ("Back to …" under the slider).
      */
     carried: {
-      from: { a: 'When can I afford to stop work?', b: 'Am I saving enough?' },
-      line: 'Your figures are brought over from "{from}". This page asks a different question: what your pot and what you pay in could pay.',
-      take: 'It starts on {take} a month, the amount you want. "Back to {level}" shows what they support.'
+      line: {
+        a: 'Your figures are brought over from "When can I afford to stop work?". This page asks a different question: what your pot and what you pay in could pay.',
+        b: 'Your figures are brought over from "Am I saving enough?". This page asks a different question: what your pot and what you pay in could pay.'
+      },
+      /** The two figures drawn by Money between the pieces: the amount wanted, then the level's amount. */
+      take: ['It starts on', 'a month, the amount you want. "Back to', '" shows what they support.']
     },
     /** "Before / Now" about an amount named under "take". Pieces around figures drawn by Money. */
     takeLastsTo: 'lasts to',

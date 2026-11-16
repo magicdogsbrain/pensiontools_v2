@@ -84,12 +84,14 @@ const first = (m) => '1 ' + monthName(m);
  * The three segments of the stage strip: each done, now or later, with the month it ends or begins when the plan says it. What
  * is held never marks the move part-done (7.10.0): how far it is from the plan's mix is an information line, never the stage.
  */
-function stripOf(life) {
+function stripOf(life, now) {
   if (!life || !life.key || life.key === 'closed') return null;
   const at = STRIP.indexOf(life.key);
+  // saving's month is when the person stops work, while that is still to come: once it is past, saving is "done". Never the
+  // move window's opening (the walk: a window that opened years before a person stopped read "Saving · to June 2023")
+  const stopAhead = life.stop && (!now || life.stop >= thisMonthOf(now)) ? monthWords(life.stop) : null;
   return STRIP.map((key, i) => ({ key, state: i < at ? 'done' : i === at ? 'now' : 'later',
-    // saving ends where the move window opens (7.10.0), or at the stop when no window is read
-    month: key === 'saving' && moveWindowOf(life) && moveWindowOf(life).from ? monthWords(moveWindowOf(life).from) : key === 'saving' && life.stop ? monthWords(life.stop) : key === 'drawing' && life.key === 'drawing' && life.since ? monthWords(life.since) : null }));
+    month: key === 'saving' ? stopAhead : key === 'drawing' && life.key === 'drawing' && life.since ? monthWords(life.since) : null }));
 }
 
 /**
@@ -324,7 +326,7 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
     // the line under the headline: only what the headline, the window's line and To do do not say already (7.10.0)
     headLine: headLineOf(pg.line, { shown, quietShown: !shown.length && !pg.readonly && quiet ? quiet.id : null }),
     closed: pg.closed, stageKey: pg.stageKey,
-    stage: { key: life ? life.key : null, stop: life && life.stop ? monthWords(life.stop) : null, strip: stripOf(life) },
+    stage: { key: life ? life.key : null, stop: life && life.stop ? monthWords(life.stop) : null, strip: stripOf(life, now) },
     // one list (7.10.0): the plan's own to-dos then a partner's, one shown, the rest "and N more"
     todo: { items: all.slice(0, TODO_SHOWN), more: all.slice(TODO_SHOWN), count: all.length, soon: (pg.soon || []).map((d) => item(d)) },
     quiet,

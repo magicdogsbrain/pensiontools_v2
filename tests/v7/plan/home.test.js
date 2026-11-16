@@ -699,12 +699,20 @@ describe('the drift line (7.10.0): what is held differently is said once, as inf
 });
 
 describe('the stage strip reads the move window (7.10.0)', () => {
-  it('Saving ends where the move window opens, not at the stop; with no window read, at the stop as before', () => {
+  // Moved on purpose (the walk): the strip's saving month was the move window's opening, so a person whose window opened
+  // years before they stopped read "Saving · to June 2023". Saving's month is now the stop, while it is still to come.
+  it('Saving runs to the stop while it is still to come; once the stop is past, saving is done with no month', () => {
     const C2 = corpus();
     const p = C2['10-couple-b'];
     const h = homeOf([entryOf(p, '2026-10-02')], p.id, { today: '2026-10-02' });
-    // stop January 2030, a three-year window: Saving to January 2027, Moving after it
-    expect(h.stage.strip.map((s) => [s.key, s.state, s.month])).toEqual([['saving', 'now', 'January 2027'], ['moving', 'later', null], ['drawing', 'later', null]]);
+    // stop January 2030, a three-year window: Saving to January 2030 (the stop), Moving after the window opens
+    expect(h.stage.strip.map((s) => [s.key, s.state, s.month])).toEqual([['saving', 'now', 'January 2030'], ['moving', 'later', null], ['drawing', 'later', null]]);
+    // inside the window, before the stop: saving is done, and still runs to the stop
+    const m = homeOf([entryOf(p, '2028-06-02')], p.id, { today: '2028-06-02' });
+    if (m.stage.strip[0].state === 'done') expect(m.stage.strip[0].month).toBe('January 2030');
+    // after the stop: saving done, with no month (never a month long past, like the window's opening)
+    const d = homeOf([entryOf(p, '2031-06-02')], p.id, { today: '2031-06-02' });
+    expect(d.stage.strip[0]).toMatchObject({ key: 'saving', state: 'done', month: null });
     const q = C2['05-saver-committed'];
     const s = homeOf([entryOf(q, '2026-10-02')], q.id, { today: '2026-10-02' }).stage.strip[0];
     expect(s).toMatchObject({ key: 'saving', state: 'now' });

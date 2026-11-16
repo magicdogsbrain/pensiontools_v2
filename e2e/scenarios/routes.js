@@ -92,7 +92,12 @@ export async function fullPage(page, pageName) {
   } else return false;
   if (p.sub) {
     const sub = page.locator(`.sub-tab[data-${p.tab}tab="${p.sub}"]`);
-    if (!(await sub.isVisible())) return false;
+    // the tab's panel is drawn a moment after the press; once in a while it is not, and a second press draws it
+    const shows = () => expect(sub).toBeVisible({ timeout: 5_000 }).then(() => true, () => false);
+    if (!(await shows())) {
+      if (await tab.isVisible()) await tab.click();
+      if (!(await shows())) return false;
+    }
     await sub.click();
   }
   return true;

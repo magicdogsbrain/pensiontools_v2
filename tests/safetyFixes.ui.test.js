@@ -118,4 +118,11 @@ describe('(d) the phone menu has Transition', () => {
     const i = html.indexOf('window.openMobileMore = function');
     expect(html.slice(i, i + 400)).toContain('moreSheetHtml(');
   });
+  it('the stage that hides the Accumulation tab on the desktop hides it from the phone\'s More too (the walk: a retiree was offered it)', () => {
+    const sheet = moreSheetHtml({ version: '7.11.1', householdVisible: false, accumulationVisible: false });
+    expect(sheet).not.toContain("mobileGo('accumulation')");
+    expect(sheet).toContain("mobileGo('transition')");
+    const i = html.indexOf('window.openMobileMore = function');
+    expect(html.slice(i, i + 400)).toContain("accumulationVisible: vis('accumulation')");
+  });
 });

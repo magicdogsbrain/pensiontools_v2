@@ -6989,7 +6989,7 @@
     function openSheet(html) { const sh = document.getElementById('mobileSheet'); if (!sh) return; document.getElementById('mobileSheetBody').innerHTML = '<div class="grab"></div>' + html; sh.classList.add('open'); }
     window.openMobileMore = function () {   // the sheet's buttons (src/ui/mobileMenu.js), Transition among them (6.20.2)
       const vis = (t) => { const b = document.querySelector('.tab[data-tab="' + t + '"]'); return b && b.style.display !== 'none'; };
-      openSheet(moreSheetHtml({ version: VERSION, householdVisible: vis('household'), transitionName: window._transitionName || null }));
+      openSheet(moreSheetHtml({ version: VERSION, householdVisible: vis('household'), accumulationVisible: vis('accumulation'), transitionName: window._transitionName || null }));
     };
     window.openMobileMenu = function () {
       const email = document.getElementById('userEmail')?.textContent || '';

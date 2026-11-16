@@ -134,3 +134,30 @@ describe('who draws what and the survivor (7.12.0)', () => {
     expect(root.querySelector('[data-line="survivor.spend"]').textContent).toMatch(/^What Sam would spend: £[\d,]+ a year after tax \(£[\d,]+ before tax\)\. That is 70% of what you both spend after tax now\.$/);
   }, 120000);
 });
+
+describe('each home names the other with their plan\'s phase (7.12.0)', async () => {
+  const { PLAN } = await import('../../../src/v7/copy/plan.js');
+  const home = (on) => {
+    const { kim, sam } = kimAndSam();
+    let state = initialState({ today: KIM_AND_SAM_TODAY, build: 'test' });
+    state = reduce(state, { type: A.ROUTE_SET, route: parse('#/plan/' + on) });
+    state = reduce(state, { type: A.SESSION_SET, session: { kind: 'in', email: 'a@b.c' } });
+    state = reduce(state, { type: A.PLANS_SET, list: upgradedList([kim, sam], NOW), source: 'account', readAt: '14:03' });
+    state = reduce(state, { type: A.PLANS_VIEW, view: viewFor(state) });
+    const root = document.createElement('div');
+    render(h(App, { state, dispatch: () => {} }), root);
+    return root;
+  };
+  // Sam (61, stopping at 63, not locked) is inside the move window; Kim (66, stopped, not locked) is retired, not locked yet
+  it('Kim\'s home: the household tile and step say With ‘Sam’ and Sam\'s phase', () => {
+    const want = 'With ‘Sam’: ' + PLAN.theirLines.approaching;
+    const root = home(KIM_ID);
+    expect(root.querySelector('[data-testid="plan.home.tool.household"] .home-tool-state').textContent).toBe(' · ' + want);
+    expect(root.querySelector('.home-steps li[data-step="household"]').textContent).toContain(want);
+  });
+  it('Sam\'s home: With ‘Kim’: retired. Plan not locked yet.', () => {
+    const root = home(SAM_ID);
+    expect(root.querySelector('[data-testid="plan.home.tool.household"] .home-tool-state').textContent).toBe(' · With ‘Kim’: ' + PLAN.theirLines['draft-retired']);
+    expect(PLAN.theirLines['draft-retired']).toBe('retired. Plan not locked yet.');
+  });
+});

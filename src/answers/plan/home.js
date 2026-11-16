@@ -314,10 +314,11 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   const whereFull = cut && stepOf('where') ? '#/plan/' + pg.id + '/where' : null;
   let gapLine = null;
   if (!pg.readonly && !pg.closed) { try { const h = gapHeadline(gapsOf(plan, { today, life })); gapLine = h ? { ...h, Y: String(h.Y), href: '#/plan/' + pg.id + '/hold' } : null; } catch { gapLine = null; } }
-  const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {} }));
+  // the household's partner with their plan's phase (7.12.0, read.js householdStep theirLine), beside "With ‘…’"
+  const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {}, ...(s.theirLine && !s.railResult ? { theirLine: s.theirLine } : {}) }));
   // the steps, read-only with each result line; a saver's "For later" group stays on a plan not locked, but a locked plan
   // is being carried out: its steps are listed plainly, never marked for later or not done
-  const steps = pg.steps.map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: (!pg.locked && s.railResult) || s.result, figures: s.figures || {}, later: !pg.locked && !!s.later, done: s.state === 'done' }));
+  const steps = pg.steps.map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: (!pg.locked && s.railResult) || s.result, figures: s.figures || {}, later: !pg.locked && !!s.later, done: s.state === 'done', ...(s.theirLine && !(!pg.locked && s.railResult) ? { theirLine: s.theirLine } : {}) }));
   // change the plan, or try something: a locked plan's tries change nothing; an unlocked plan's pages change it
   const base = '#/plan/' + pg.id + '/';
   const lived = pg.locked && pg.stageKey === 'running' && !!lastRecord && !pg.closing;

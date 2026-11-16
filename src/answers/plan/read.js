@@ -64,12 +64,14 @@ import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, loc
 import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
+import { shownPlanName } from '../../services/PlanName.js';
 
 // The dates in words live in dates.js (shared with about.js); kept as exports here for everyone who reads them from read.js.
 export { dateOf, monthWords, monthName, dayWords };
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const r0 = (v) => Math.round(num(v) || 0);
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by: the person's own, else one that follows the plan's present figures (services/PlanName.js). */
+const nameOf = (plan, now) => shownPlanName(plan, { now });
 const partnerIdOf = (plan) => (plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId) || null;
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
@@ -219,7 +221,7 @@ export function planRows(entries, { today, source = 'account' } = {}) {
     const partners = partnersOf(list, plan);
     return {
       id: String(plan.id),
-      name: nameOf(plan),
+      name: nameOf(plan, now),
       stageKey: stage.key,
       line: lineOf(stage, plan, ss, list, now, pg && pg.found ? pg.life : null),
       // a closed plan sits under "Previous plans" (once its last month has passed: until then it is lived on); one someone
@@ -902,10 +904,10 @@ function householdStep(C) {
     const p = partners[0];
     // each partner's line by their plan's phase (7.10.0), as their own plan's pages say it
     const theirLine = theirLineOf(p.plan, now);
-    result = sentence('household.with', ['With ‘' + nameOf(p.plan) + '’'], figures);
+    result = sentence('household.with', ['With ‘' + nameOf(p.plan, now) + '’'], figures);
     for (const e of partners) {
-      lines.push({ id: 'household.partner', slots: { name: nameOf(e.plan) }, sentence: sentence('household.partner', [], figures), source: sourceOf('saved', null, now), theirLine: theirLineOf(e.plan, now), theirId: String(e.plan.id) });
-      buttons.push(link('openPartner', '#/plan/' + e.plan.id, { name: nameOf(e.plan) }));
+      lines.push({ id: 'household.partner', slots: { name: nameOf(e.plan, now) }, sentence: sentence('household.partner', [], figures), source: sourceOf('saved', null, now), theirLine: theirLineOf(e.plan, now), theirId: String(e.plan.id) });
+      buttons.push(link('openPartner', '#/plan/' + e.plan.id, { name: nameOf(e.plan, now) }));
     }
     // the two together — the pooled verdict, who draws what, the survivor and care questions — inside V7 (road-to-7.md step 9)
     buttons.push(link('checkTogether', '#/plan/' + plan.id + '/household'));
@@ -1197,7 +1199,7 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
   return {
     found: true,
     id: String(plan.id),
-    name: nameOf(plan),
+    name: nameOf(plan, now),
     // the read-only example (GuestPlans.js; road-to-7.md step 11): the page heads it by its tag, not the stored name
     example: plan.example === true,
     stageKey: stage.key,

@@ -89,8 +89,7 @@ export function Levers({ result, dispatch }) {
             <li key={id} class={`lever lever-${id}${found ? '' : ' is-none'}`} data-lever={found ? id : undefined} data-lever-none={found ? undefined : id}>
               <h3 class="lever-name">{t.lever[id]}</h3>
               {(found ? s[id] : noneSentence(id)) && <Sentence s={found ? s[id] : noneSentence(id)} source={result} class="lever-line" />}
-              {/* 7.8.0, weighing: the way's own count to the plan-to age, beside its chance */}
-              {found && s[`${id}Fixed`] && <Sentence s={s[`${id}Fixed`]} source={result} class="lever-fixed" />}
+              {/* (7.12.0: the way's own count to one age stays in the answer, and is not drawn: one chance in the body) */}
               {actions && (
                 <Button testid={`b.lever.${id}.try`} aria-label={t.tryLever.replace('{name}', t.lever[id])} onClick={() => actions.forEach((a) => dispatch(a))}>
                   {B.buttons.tryLever}

@@ -4,7 +4,7 @@
  * the foot of the answer. With nothing to keep yet it says so and leads back to the answer, which asks for anything
  * missing itself (rule R3). A's and B's retired view replaces it, as it does every step of theirs. Computes nothing.
  */
-import { KeepPanel, Retired, isRetired, Sentence, LinkButton, stepLabel } from '../components/index.js';
+import { KeepPanel, Retired, isRetired, Sentence, LinkButton, stepLabel, ChanceMore } from '../components/index.js';
 import { keepView } from '../state/select.js';
 import { href } from '../router/routes.js';
 import { KEEP } from '../copy/keep.js';
@@ -32,8 +32,8 @@ export function keepScreen(q) {
           {/* B with a plan to use these figures in leads with that, as its panel and the rail do (6.59.0) */}
           <p class="lead">{v.useIn ? KEEP.use.stepLead : KEEP.stepLead}</p>
           {line && <Sentence s={line} source={r} class="keep-summary" data-testid={`${q}.keep.summary`} />}
-          {/* 7.8.0: a weighted line never stands without the count to one named age beside it */}
-          {line && line.mark === 'weighted' && r.sentences.fixed && <Sentence s={r.sentences.fixed} source={r} class="keep-summary-fixed" data-testid={`${q}.keep.fixed`} />}
+          {/* the count to one age, behind one press (7.12.0) */}
+          {line && line.mark === 'weighted' && <ChanceMore result={r} keys={['fixed']} />}
           <KeepPanel state={state} q={q} dispatch={dispatch} heading={false} />
           <div class="actions-row">
             <LinkButton testid={`${q}.keep.back`} href={href.step(q, 'answer')}>{KEEP.backToAnswer}</LinkButton>

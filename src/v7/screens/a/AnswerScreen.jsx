@@ -23,7 +23,7 @@ import {
   Retired, isRetired, formView, stepLabel, withFixedCounts, Button, LinkButton, SpendLine, KeepPanel, StepsField, ShapeAnswer
 } from '../../components/index.js';
 import { SHAPE } from '../../copy/shape.js';
-import { LastsLines, LevelStrip, LASTS_TOP, LASTS_AFTER } from '../../components/Lasts.jsx';
+import { LastsLines, LevelStrip, ChanceMore, LASTS_TOP, LASTS_AFTER } from '../../components/Lasts.jsx';
 import { isCurrent, askedAboutOf, partnerStopsNow, isShapePath, staleView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT, weighedResult } from '../../copy/common.js';
@@ -246,6 +246,7 @@ function Answer({ state, dispatch, frame }) {
               <Sentence s={s.line} source={result} class="line" data-sentence="verdict" />
               <LastsLines result={result} only={LASTS_TOP} />
               <LevelStrip q="a" result={result} dispatch={dispatch} words={A} />
+              <ChanceMore result={result} keys={['fixed']} />
               {s.partTime && <Sentence s={s.partTime} source={result} class="part-time-line" />}
               <Sentence s={s.bad} source={result} class="bad" />
               {s.after && <Sentence s={s.after} source={result} class="after" />}

@@ -36,6 +36,17 @@ export const LEVELS_WORDS = {
   twentieths: { careful: '19', balanced: '18', bold: '14' }
 };
 
+/**
+ * "More about the chance" (7.12.0): one closed block a page, in the answer's headline or verdict block, holding the counts
+ * to one age the page would otherwise say beside each chance, and how the chance is counted. {level} and {n}: the level the
+ * answer stands at, and what it asks for in twentieths.
+ */
+export const CHANCE_MORE = {
+  title: 'More about the chance',
+  help: 'Each future counts by how likely you are to be alive when the money runs out, so running out at 98 counts for less than running out at 80.',
+  asks: '{level} asks for {n} times in 20.'
+};
+
 /** Whether an answer's figures are weighed by how long people live (7.8.0): its basis says so. */
 export const weighedResult = (result) => Boolean(result && result.basis && result.basis.weighted);
 /** Whether an answer is about a couple. */

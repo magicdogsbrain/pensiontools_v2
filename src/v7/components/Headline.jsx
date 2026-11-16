@@ -13,7 +13,7 @@
  */
 import { Sentence } from './Sentence.jsx';
 import { ADVICE_SHORT } from '../copy/common.js';
-import { LastsLines, LASTS_TOP, LASTS_AFTER } from './Lasts.jsx';
+import { LastsLines, ChanceMore, LASTS_TOP, LASTS_AFTER } from './Lasts.jsx';
 
 export function Headline({ result, k: given = null, afterLine = null, strip = null, children }) {
   const s = result && result.sentences;
@@ -31,6 +31,8 @@ export function Headline({ result, k: given = null, afterLine = null, strip = nu
       <LastsLines result={result} only={LASTS_TOP} />
       {/* "How careful?" straight under the fixed-age line, as A, B and D draw it: on the first screen with the verdict */}
       {strip}
+      {/* the count to one age, once a page, behind one press (7.12.0) */}
+      <ChanceMore result={result} keys={['fixed']} />
       {afterLine}
       <Sentence s={s.bad} source={result} class="bad" />
       <LastsLines result={result} only={LASTS_AFTER} />

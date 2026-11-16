@@ -967,6 +967,14 @@ h2.eyebrow { font-size: var(--size-small); }
 .level-choices { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .level-choices .btn { padding: 8px 10px; white-space: normal; text-align: left; max-width: 100%; }
 .level-help { flex: 1 1 100%; margin: 4px 0 0; }
+/* "More about the chance" (7.12.0): one closed block a page, under the level strip */
+.chance-more { margin: 4px 0 12px; }
+.chance-more > summary { cursor: pointer; min-height: var(--target); display: flex; align-items: center; color: var(--text-link); text-decoration: underline; }
+.chance-more[open] > summary { margin-bottom: 4px; }
+.chance-more > p { margin: 0 0 6px; overflow-wrap: anywhere; text-wrap: pretty; }
+@media (min-width: 700px) {
+  .chance-more > summary { min-height: 0; padding: 0; }
+}
 .lasts-lines p { margin: 6px 0 0; }
 .lasts-lines .lasts-fixed { font-weight: 600; }
 .headroom-fixed { margin: 6px 0 0; }

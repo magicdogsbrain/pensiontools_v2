@@ -17,7 +17,7 @@ import { PICTURE } from '../../copy/picture.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT } from '../../copy/common.js';
 import { B } from '../../copy/b.js';
-import { LastsLines, LevelStrip, LASTS_TOP, LASTS_AFTER } from '../../components/Lasts.jsx';
+import { LastsLines, LevelStrip, ChanceMore, LASTS_TOP, LASTS_AFTER } from '../../components/Lasts.jsx';
 import { saverFrame, ShortForm, Warnings, AnswerRegion, ToC, aboutPartner } from '../a/AnswerScreen.jsx';
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -79,6 +79,8 @@ function Answer({ state, dispatch, frame }) {
       <Sentence s={s.verdictLine} source={result} class="line" data-sentence="verdict" />
       {weighing && <LastsLines result={result} only={LASTS_TOP} />}
       {weighing && <LevelStrip q="b" result={result} dispatch={dispatch} words={B} />}
+      {/* the counts to one age of every chance on the page, once, behind one press (7.12.0) */}
+      {weighing && <ChanceMore result={result} keys={['fixed', 'have', 'enoughFixed', 'guideFixed']} />}
       {top}
       {s.verdictFour && <Sentence s={s.verdictFour} source={result} class="four" data-testid="b.verdict.four" />}
       {s.income && <Sentence s={s.income} source={result} class="income" data-testid="b.verdict.income" />}
@@ -95,7 +97,6 @@ function Answer({ state, dispatch, frame }) {
     <section class="block enough" data-enough={result.enough ? result.enough.how : undefined} aria-labelledby="enough-title">
       <h2 id="enough-title"><Sentence s={s.enoughHead} source={result} as="span" /></h2>
       {s.enoughLine && <Sentence s={s.enoughLine} source={result} class="enough-line" data-testid="b.enough.line" />}
-      {s.enoughFixed && <Sentence s={s.enoughFixed} source={result} class="enough-fixed" data-testid="b.enough.fixed" />}
       {s.enoughFour && <Sentence s={s.enoughFour} source={result} class="enough-four" data-testid="b.enough.four" />}
       {s.enoughPaused && <Sentence s={s.enoughPaused} source={result} class="note" data-testid="b.enough.paused" />}
       {s.enoughMatch && <Sentence s={s.enoughMatch} source={result} class="note" data-testid="b.enough.match" />}
@@ -109,9 +110,9 @@ function Answer({ state, dispatch, frame }) {
       <Sentence s={s.head} source={result} class="guide-figure" />
       <Sentence s={s.sub} source={result} class="figure-sub" />
       <Sentence s={s.line} source={result} class="line" data-sentence={hasNumber ? NK : undefined} />
-      {s.guideFixed && <Sentence s={s.guideFixed} source={result} class="guide-fixed" data-testid="b.guide.fixed" />}
       {!verdictHead && <LastsLines result={result} only={LASTS_TOP} />}
       {!verdictHead && <LevelStrip q="b" result={result} dispatch={dispatch} words={B} />}
+      {!verdictHead && <ChanceMore result={result} keys={['fixed', 'guideFixed']} />}
       <Sentence s={s.bad} source={result} class="bad" />
       {hasNumber && s.guide && <Sentence s={s.guide} source={result} class="guide-why" data-testid="b.guide.why" />}
       {s.outside && <Sentence s={s.outside} source={result} class="outside" />}
@@ -145,10 +146,11 @@ function Answer({ state, dispatch, frame }) {
         {noPot && s.nothing && !sameAsLine(s.nothing) && <Sentence s={s.nothing} source={result} class="nothing" />}
         {!verdict && !onCourse && answer.status === 'first' && !s.none && !s.have && <p class="working-note" role="status">{B.answer.payInWorking}</p>}
         {s.none && !(noPot && sameAsLine(s.none)) && <Sentence s={s.none} source={result} class="none" />}
-        {s.have && <Sentence s={s.have} source={result} class="have" />}
+        {/* (a count to one age, while weighing: in the verdict's "More about the chance", where the verdict says it) */}
+        {s.have && !(verdictHead && weighing && s.have.mark === 'fixed') && <Sentence s={s.have} source={result} class="have" />}
         <Pots result={result} q="b" />
         {/* the verdict's first sentence says the whole-life count; without a verdict the line says it */}
-        {!verdict && s.wholeLife && <Sentence s={s.wholeLife} source={result} class="check-line" />}
+        {!verdict && s.wholeLife && (s.wholeLife.mark === 'fixed' ? <ChanceMore result={result} keys={['wholeLife']} /> : <Sentence s={s.wholeLife} source={result} class="check-line" />)}
         {!verdict && !onCourse && <Levers result={result} dispatch={dispatch} />}
         {(result.assumed || []).length > 0 && <Assumed q="b" result={result} open={open('assumed')} all={open('allAssumed')} dispatch={dispatch} />}
       </AnswerRegion>

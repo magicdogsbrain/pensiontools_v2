@@ -7,6 +7,7 @@
  *                                      runs out (how long it pays, how much of the plan is still paid, what comes in
  *                                      after it), and what the other levels ask for. Draws only what the answer wrote:
  *                                      in the rollback (no weighing) nothing.
+ *   <ChanceMore result keys />         "More about the chance": the counts to one age, once a page, closed (7.12.0).
  *   <LevelStrip q result dispatch words />   "How careful?": the three levels, each label leading with what it asks for
  *                                      ("18 times in 20: Balanced"), so the word is never read as the mix of the same
  *                                      name; a press sets the `confidence` box (draft/set) and the answer is worked out
@@ -19,13 +20,40 @@
 import { Sentence } from './Sentence.jsx';
 import { Button } from './Button.jsx';
 import { withFixedCounts } from './MadeOf.jsx';
-import { LEVELS_WORDS } from '../copy/common.js';
+import { LEVELS_WORDS, CHANCE_MORE } from '../copy/common.js';
 
 const ORDER = ['fixed', 'boldLine', 'floor', 'howLong', 'howMuch', 'left', 'cost'];
 const LEVEL_IDS = ['careful', 'balanced', 'bold'];
 
-/** The first two (straight under the line) and the rest (under the bad case), as the screens draw them. */
-export const LASTS_TOP = ['fixed', 'boldLine'];
+/**
+ * Bold's consequence (straight under the line) and the rest (under the bad case), as the screens draw them. The count to
+ * one age ('fixed') is said once a page, in ChanceMore (7.12.0).
+ */
+export const LASTS_TOP = ['boldLine'];
+
+/** Whether "More about the chance" starts open (7.12.0: closed; the body says the chance, the count to one age is a press away). */
+export const CHANCE_MORE_OPEN = false;
+
+/**
+ * "More about the chance": ONE closed block a page (7.12.0), inside the answer's headline or verdict block. It holds the
+ * count to one age of every chance the page says (`keys`: the answer's sentences, in order, those it wrote) and how the
+ * chance is counted, said once. Drawn only while the answer weighs.
+ */
+export function ChanceMore({ result, keys = ['fixed'] }) {
+  const s = (result && result.sentences) || {};
+  if (!(result && result.basis && result.basis.weighted)) return null;
+  const lines = keys.filter((k, i) => s[k] && keys.indexOf(k) === i);
+  if (!lines.length) return null;
+  const level = LEVEL_IDS.includes(result.level) ? result.level : 'balanced';
+  const asks = CHANCE_MORE.asks.replace('{level}', LEVELS_WORDS.names[level]).replace('{n}', LEVELS_WORDS.twentieths[level]);
+  return (
+    <details class="chance-more" data-testid="chance.more" open={CHANCE_MORE_OPEN}>
+      <summary>{CHANCE_MORE.title}</summary>
+      {lines.map((k) => <Sentence key={k} s={s[k]} source={result} class={`lasts-${k}`} data-testid={`lasts.${k}`} />)}
+      <p class="note chance-help">{CHANCE_MORE.help} {withFixedCounts(asks)}</p>
+    </details>
+  );
+}
 export const LASTS_AFTER = ['floor', 'howLong', 'howMuch', 'left', 'cost'];
 
 export function LastsLines({ result, only = ORDER }) {
@@ -47,7 +75,7 @@ export function LevelStrip({ q, result, dispatch, words = null }) {
   const label = LEVELS_WORDS.label;
   const options = LEVELS_WORDS.options;
   // drawn only while the answer weighs (in the rollback the answer is as it was before 7.8.0, "Try a change" holds the
-  // box), and only beside the fixed-age line the answer wrote (the render rule)
+  // box), and only when the answer wrote the fixed-age line (said in ChanceMore, with how the chance is counted)
   const weighted = Boolean(result.basis && result.basis.weighted);
   if (!weighted || !(result.sentences && result.sentences.fixed)) return null;
   const id = `${q}-level-title`;
@@ -60,7 +88,6 @@ export function LevelStrip({ q, result, dispatch, words = null }) {
             onClick={() => dispatch({ type: 'draft/set', q, path: 'confidence', value: k })}><span class="level-option">{withFixedCounts(options[k])}</span></Button>
         ))}
       </div>
-      <p class="note level-help">{withFixedCounts(LEVELS_WORDS.help)}</p>
     </div>
   );
 }

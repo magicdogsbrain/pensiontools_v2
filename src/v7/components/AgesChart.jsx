@@ -61,10 +61,10 @@ export function AgesChart({ result, dispatch, table = false }) {
           <th scope="col">{aboutPartner ? t.chartAgePartner : ownStop ? t.chartAgeOwn : together ? t.chartAgeCouple : t.chartAge}</th>
           {/* with steps by age, each row's figure is the start's: the later steps move with it (spending-shape.md 6.3) */}
           <th scope="col">{result.shapeAt ? SHAPE.answer.agesColumn : t.chartSpend}</th>
-          <th scope="col">{t.chartLasted} <Money source={result} k="basis.endAge" kind="age" /></th>
+          <th scope="col">{twenty && t.chartLastedW ? <>{t.chartLastedW[0]} <Money source={result} k="basis.endAge" kind="age" />{t.chartLastedW[1]}</> : <>{t.chartLasted} <Money source={result} k="basis.endAge" kind="age" /></>}</th>
           {table && <th scope="col" class="col-wide">{withFixedCounts(t.tableRunOut)}</th>}
           {table && <th scope="col" class="col-wide">{t.tablePot}</th>}
-          <th scope="col" class="col-verdict">{t.chartVerdict}</th>
+          <th scope="col" class="col-verdict">{twenty && t.chartVerdictW ? t.chartVerdictW : t.chartVerdict}</th>
         </tr>
       </thead>
       <tbody>

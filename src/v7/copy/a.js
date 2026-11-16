@@ -162,6 +162,12 @@ export const A = {
     chartSpend: 'Could spend',
     chartLasted: 'Lasted to',
     chartVerdict: 'On these figures',
+    /**
+     * 7.12.0, while the figures are weighed: the count column is a plain count to one age, and the yes/no column is the
+     * chance counting how long people live, so each heading says which ("To 100, counted plainly").
+     */
+    chartLastedW: ['To', ', counted plainly'],
+    chartVerdictW: 'On course (counting how long people live)',
     chartNow: 'now',
     chartKey: '"Could spend" is the careful amount: the most that lasted in 9 futures out of 10 if you stopped at that age. 9 in 10 or better is a yes.',
     /** 7.8.0, while the figures are weighed: the chart reads each age at the level chosen ("How careful?"). */

@@ -14,7 +14,7 @@
  */
 import { LevelStrip } from '../../components/Lasts.jsx';
 import { StressStrip } from '../../components/StressStrip.jsx';
-import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, HeldAnswer, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer, AnswerSlider, FigureTiles, KeepLine, Money } from '../../components/index.js';
+import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, HeldAnswer, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer, AnswerSlider, FigureTiles, KeepLine, Money, ChanceMore } from '../../components/index.js';
 import { isCurrent, cAnswerYouStopped, isShapePath, answerSlider, answerTiles, tilesKey, takeReading, takeTried, takesSome, staleView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { frontDoor } from '../../rail/index.js';
@@ -174,7 +174,7 @@ export function AnswerScreen(state, dispatch) {
     const take = (s.takeChance || s.take) && takesSome(result) && (
       <div class="take-lines" data-testid="c.answer.take">
         <Sentence s={s.takeChance || s.take} source={result} class="take-line" />
-        {s.takeChance && s.takeFixed && <Sentence s={s.takeFixed} source={result} class="take-line" />}
+        {s.takeChance && <ChanceMore result={result} keys={['takeFixed']} />}
       </div>
     );
     // Money first taken at a later age: what goes in until then, said plainly under the figure ("Paying in £800 a month

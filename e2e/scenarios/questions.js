@@ -92,9 +92,9 @@ export const QUESTIONS = Object.freeze([
 /** Every scenario of the brief (3.3). `built`: its spec file exists. Part 2 (s13 to s25) is a later sitting. */
 export const SCENARIOS = Object.freeze({
   s00: { file: 's00-harness.spec.js', who: 'the harness', built: true, part: 1 },
-  s01: { file: 's01-jo-pay-in.spec.js', who: 'Jo, 33', built: false, part: 1 },
-  s02: { file: 's02-jo-keeps-and-changes.spec.js', who: 'Jo, 33', built: false, part: 1 },
-  s03: { file: 's03-sam-pay-in-units.spec.js', who: 'Sam, 45', built: false, part: 1 },
+  s01: { file: 's01-jo-pay-in.spec.js', who: 'Jo, 33', built: true, part: 1 },
+  s02: { file: 's02-jo-keeps-and-changes.spec.js', who: 'Jo, 33', built: true, part: 1 },
+  s03: { file: 's03-sam-pay-in-units.spec.js', who: 'Sam, 45', built: true, part: 1 },
   s04: { file: 's04-sam-a-year-later.spec.js', who: 'Sam, 45', built: false, part: 1 },
   s05: { file: 's05-sam-stops-later.spec.js', who: 'Sam, 45', built: false, part: 1 },
   s06: { file: 's06-checker-sweep.spec.js', who: 'the checker', built: true, part: 1, seeded: true },

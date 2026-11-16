@@ -4078,7 +4078,7 @@
       stackedConesSvg,
       STRATEGY_COLORS,
       incomeSmallMultiplesSvg,
-      incomeLayersSvg, incomeLayersRows,
+      incomeLayersSvg, incomeLayersRows, coneCaption,
       riskBarsSvg,
       leftBarsSvg,
       incomeStaircaseSvg,
@@ -5945,7 +5945,7 @@
       h += verdictBlockHtml(r, p, chanceOptsOf(r, opts, window._oneTest));
       h += '<div class="alert ' + tone + '">' + head + countAgeHtml(r, p) + '</div>';   // 7.8.0: the count, with the age it is counted to
       const cone = (band, title, sub) => '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">' + title + '</div><p class="hint" style="margin:0 0 4px;">' + sub + '</p><div class="machine-scroll">' + fanChartSvg(band) + '</div></div>';
-      h += cone(r.cones.wealth, 'Cone of uncertainty — what you\'d have left', 'Middle line = median of ' + r.n.mc.toLocaleString() + ' bootstrapped futures; dark band = the middle half; light band = 10th to 90th percentile. ' + budEsc(r.wealthLabel) + '.');
+      h += cone(r.cones.wealth, 'Cone of uncertainty — what you\'d have left', budEsc(coneCaption(r.n && r.n.mc, r.wealthLabel)));
       if (r.samples && r.samples.wealth && r.samples.wealth.length > 1) h += '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">The same futures, one line each</div><p class="hint" style="margin:0 0 4px;">A sample of the bootstrapped futures the cone is made from — one line per possible life. Red lines ran out; the white line is the middle outcome.</p><div class="machine-scroll">' + spaghettiSvg(r.samples.wealth, r.cones.wealth.p50) + '</div></div>';
       try { const rows = incomeLayersRows(r, p); if (rows.length > 1) h += '<div style="margin-top:12px;"><div class="section-title" style="font-size:13px;">What pays you, year by year</div><p class="hint" style="margin:0 0 4px;">Stacked by source, today\'s money: State Pension, other income (DB pension, streams), income bought by contract, and what the median future adds from the market. Dashed = your need (income shape plus any one-off spends); red = the 1-in-10 bad future\'s total.</p><div class="machine-scroll">' + incomeLayersSvg({ rows }) + '</div></div>'; } catch (e) { console.warn('income layers', e); }
       h += cone(r.cones.income, 'Cone of uncertainty — what you\'d have to spend each year', 'Total income by plan year in today\'s money (pension draws + State Pension' + (r.strategyId === 'floor-and-flex' ? ' + treats' : '') + '). A flat line is income bolted on by contract; a spread is market-dependent.');
@@ -6260,7 +6260,7 @@
         + paths.map((pth) => `<polyline points="${line(pth)}" fill="none" stroke="${pth[n - 1] <= 0 ? '#ef4444' : '#60a5fa'}" stroke-width="1" opacity="${pth[n - 1] <= 0 ? .7 : .35}"/>`).join('')
         + (median ? `<polyline points="${line(median)}" fill="none" stroke="#fff" stroke-width="2.5" opacity=".9"/>` : '')
         + `<text x="${w - padR}" y="${padT + 10}" text-anchor="end" font-size="10" fill="var(--text-muted,#999)">${paths.length} of the futures shown · ${busted} ran out (red)</text>`
-        + xTicks.map(i => `<text x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="10" fill="var(--text-muted,#999)">Year ${i}</text>`).join(''),
+        + xTicks.map(i => `<text x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="${i === n - 1 ? 'end' : i === 0 ? 'start' : 'middle'}" font-size="10" fill="var(--text-muted,#999)">Year ${i}</text>`).join(''),
         w, h);
     }
 
@@ -6278,7 +6278,7 @@
         yTicks.map(t => `<line x1="${padL}" y1="${y(t).toFixed(1)}" x2="${w - padR}" y2="${y(t).toFixed(1)}" stroke="var(--border,#8883)" opacity=".4"/><text x="${padL - 6}" y="${(y(t) + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--text-muted,#999)">${_gbp(t)}</text>`).join('')
         + `<polygon points="${poly(band.p90, band.p10)}" fill="rgba(96,165,250,.12)"/><polygon points="${poly(band.p75, band.p25)}" fill="rgba(96,165,250,.22)"/><polyline points="${line(band.p50)}" fill="none" stroke="#60a5fa" stroke-width="2.5"/>`
         + band.p50.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="8" fill="transparent" data-tip="Year ${i}: middle ${_gbp(v)}; likely range ${_gbp(band.p10[i])} to ${_gbp(band.p90[i])}"></circle>`).join('')
-        + xTicks.map(i => `<text x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="middle" font-size="10" fill="var(--text-muted,#999)">Year ${i}</text>`).join(''),
+        + xTicks.map(i => `<text x="${x(i).toFixed(1)}" y="${h - 8}" text-anchor="${i === n - 1 ? 'end' : i === 0 ? 'start' : 'middle'}" font-size="10" fill="var(--text-muted,#999)">Year ${i}</text>`).join(''),
         w, h);
     }
 

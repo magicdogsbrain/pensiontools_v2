@@ -813,6 +813,18 @@
         padding: 0 12px;
       }
     }
+    /* "Your plan's mix" while living on a ladder (7.12.0): under 600px each row is a card of label–value pairs, never cut off */
+    @media (max-width: 599px) {
+      .table-scroll-container table.held-table { min-width: 0; white-space: normal; }
+      .table-scroll-container:has(table.held-table)::after { content: none; }
+      .held-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+      .held-table, .held-table tbody, .held-table tr, .held-table td { display: block; width: 100%; }
+      .held-table tr { border-top: 1px solid var(--border, #ddd); padding: 6px 0; }
+      .held-table td { border: 0; padding: 2px 0; white-space: normal; display: flex; gap: 8px; justify-content: space-between; text-align: right; }
+      .held-table td::before { content: attr(data-label); font-weight: 600; flex: 0 0 auto; text-align: left; }
+      .held-table td:first-child { font-weight: 600; text-align: left; }
+      .held-table td:first-child::before { content: none; }
+    }
 
     /* Scrollable chart container */
     .chart-scroll-container {

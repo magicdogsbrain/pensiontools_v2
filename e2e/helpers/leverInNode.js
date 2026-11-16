@@ -1,5 +1,7 @@
 /**
- * A lever of "Will it last?" worked out in Node on a saved plan, for "screen equals engine" (research/v7/answer-D.md 3.9;
+ * A lever of "Will it last?" worked out in Node on a saved plan, to check that the screen shows what the engine returned
+ * (which proves the screen follows the engine, not that either is right: the scenario tests, e2e/scenarios/, work the
+ * right figure out by hand) (research/v7/answer-D.md 3.9;
  * road-to-7.md step 7): the same lazily-loaded module the V7 worker runs (src/answers/plan/lastsRun.js runLever), on a plan
  * brought up to date in memory exactly as the plan source does it, in a child process of plain Node.
  *

@@ -1,5 +1,7 @@
 /**
- * The answer worked out in Node, for "screen equals engine" and for the sameness run.
+ * The answer worked out in Node, to check that the screen shows what the engine returned
+ * (which proves the screen follows the engine, not that either is right: the scenario tests, e2e/scenarios/, work the
+ * right figure out by hand) and for the sameness run.
  *
  * It runs in a child process of plain Node, not inside Playwright's own module loader, so the answer code is
  * loaded exactly as the ordinary test suite loads it. Results are kept by their inputs for the length of the

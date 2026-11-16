@@ -1,5 +1,7 @@
 /**
- * The lock worked out in Node, for "screen equals engine" (research/v7/road-to-7.md step 6): the same lazily-loaded run the
+ * The lock worked out in Node, to check that the screen shows what the engine returned
+ * (which proves the screen follows the engine, not that either is right: the scenario tests, e2e/scenarios/, work the
+ * right figure out by hand) (research/v7/road-to-7.md step 6): the same lazily-loaded run the
  * V7 worker makes (src/answers/plan/lastsRun.js runForDocument) and the same pure writer the page uses (src/answers/plan/lock.js
  * lockPatch), on a plan brought up to date in memory exactly as the plan source does it (scenarioMigration.upgradeScenario at
  * noon of the day), in a child process of plain Node so the code is loaded as the ordinary test suite loads it.

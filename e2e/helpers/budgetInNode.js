@@ -1,5 +1,7 @@
 /**
- * The budget on a saved plan and "What you pay in" worked out in Node, for "screen equals engine" (research/v7/road-to-7.md
+ * The budget on a saved plan and "What you pay in" worked out in Node, to check that the screen shows what the engine returned
+ * (which proves the screen follows the engine, not that either is right: the scenario tests, e2e/scenarios/, work the
+ * right figure out by hand) (research/v7/road-to-7.md
  * step 11b): the same pure readers and writers the page and the one write file use (budget.js budgetOf, budgetPatch;
  * saving.js savingOf, savingPatch, recordPatch), on a plan brought up to date in memory exactly as the plan source does it,
  * in a child process of plain Node.

@@ -88,6 +88,25 @@ a real account; the accounts are fictional (`alex@example.test`, `sam@example.te
   emails with the emulator's codes (`e2e/signed-in/emulator.js`).
 - **Not in CI this round**: the GitHub workflows have no Java or Firebase CLI step yet. Run it before every release.
 
+### The scenario tests (from 7.12.0; local, not in CI yet)
+
+The release gate for what people ask. Each scenario is one fictional person asking one question from the catalogue
+(`e2e/scenarios/questions.js`), taking the route a person takes, in both views, and reading figures off the screen. The
+expected figures are worked by hand in the test (`e2e/scenarios/hand/`), never taken from the app:
+`tests/scenarioRules.test.js` refuses any import that leads from `e2e/scenarios/` to `src/`, an engine-in-Node helper or
+a pins file. Plans are made on the screen; a plan written into the store says so in its failure (`seeded: true`).
+
+- **Run**: `npm run e2e:scenarios` (= `node scripts/e2e-signed-in.mjs --scenarios`; `--all` runs the journeys, then the
+  scenarios, in one emulator session). Four at a time, each on its own account; the emulators are cleared once.
+- **The limit**: the reporter fails a run longer than 13 minutes.
+- **A failure** reads as a person's sentence: who asked what and what they were not told, then the question, the route,
+  what must be read, what was read, the sum by hand and the owner.
+- **The report**: `test-results/scenarios/answers.md`, the catalogue with this run's status.
+- **The ratchet**: a question an area chose not to answer this release goes in `e2e/scenarios/known-unanswered.json`
+  with its owner and reason, and its scenario must still fail. The list may only shrink from one release to the next.
+- The `*InNode` checks of the other browser tests prove the screen shows what the engine returned. They are not the
+  evidence that a screen is right; the scenarios are.
+
 ### Before a V7 release: the stopwatch line and the real-phone look
 
 The machine's count guards against creep (a sixth box, a fourth screen, a slow first run); it does not
@@ -137,6 +156,9 @@ prove a real person finishes in two minutes. Once per release we:
 3. `npm run test:all` (= `npx vitest run`) — all green (the release test checks the contract).
    Then the signed-in journeys, on this machine (see "The signed-in journeys" below): `node scripts/e2e-signed-in.mjs`
    — all green. A release is not done until the journeys it touches pass end to end, signed in.
+   Then the scenario tests (see "The scenario tests" below): `npm run e2e:scenarios` — no unexpected failure, no
+   unexpected pass, `known-unanswered.json` no longer than at the last release, and the whole run within 13 minutes.
+   Read `test-results/scenarios/answers.md`: it says, question by question, what this build answers.
 4. `npm run build` (rebuilds `docs/`, the folder that is deployed, in the 7.0 layout: see "Where each bundle lives"
    below; `docs/sw.js` is the kill switch from `public/sw.js`, published as it is: it clears any old service worker and
    never needs a stamp, so leave it in place for as long as the site runs).

@@ -1,5 +1,7 @@
 /**
- * "What you hold" and "Moving to your plan's mix" worked out in Node, for "screen equals engine" (research/v7/road-to-7.md
+ * "What you hold" and "Moving to your plan's mix" worked out in Node, to check that the screen shows what the engine returned
+ * (which proves the screen follows the engine, not that either is right: the scenario tests, e2e/scenarios/, work the
+ * right figure out by hand) (research/v7/road-to-7.md
  * step 10; holdings-and-move.md §7): the same pure readers and writers the page and the one write file use (hold.js holdOf,
  * checkHold, holdPatch; move.js moveOf, tickPatch) and the same lazily-loaded run the V7 worker makes (moveRun.js runHeld),
  * on a plan brought up to date in memory exactly as the plan source does it, in a child process of plain Node.

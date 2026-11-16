@@ -1,5 +1,7 @@
 /**
- * Month by month worked out in Node, for "screen equals engine" (research/v7/months-in-v7.md §2; 7.2.0): the same pure reading
+ * Month by month worked out in Node, to check that the screen shows what the engine returned
+ * (which proves the screen follows the engine, not that either is right: the scenario tests, e2e/scenarios/, work the
+ * right figure out by hand) (research/v7/months-in-v7.md §2; 7.2.0): the same pure reading
  * and writers the page and the one write file use (answers/plan/month.js monthOf, monthRecordPatch, taxYearPatch) on a plan
  * brought up to date in memory exactly as the plan source does it, in a child process of plain Node (the zone pinned, as the
  * plan corpus is).

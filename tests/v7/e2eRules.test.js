@@ -105,6 +105,13 @@ describe('browser tests: rules kept by reading the files', () => {
     expect(live).toEqual([]);
   });
 
+  it('RELEASING.md names the scenario run (npm run e2e:scenarios) as a step of every release, with its 13-minute limit', () => {
+    const rel = read('RELEASING.md');
+    expect(rel).toMatch(/npm run e2e:scenarios/);
+    expect(rel).toMatch(/13 minutes/);
+    expect(pkg.scripts['e2e:scenarios']).toBe('node scripts/e2e-signed-in.mjs --scenarios');
+  });
+
   it('Playwright is pinned to one exact version', () => {
     const v = pkg.devDependencies['@playwright/test'];
     expect(v).toMatch(/^\d+\.\d+\.\d+$/);

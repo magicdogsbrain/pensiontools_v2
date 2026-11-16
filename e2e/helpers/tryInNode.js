@@ -1,5 +1,7 @@
 /**
- * Try a change and "The mix" worked out in Node, for "screen equals engine" (research/v7/way-and-mix.md 3, 4, 7; road-to-7.md
+ * Try a change and "The mix" worked out in Node, to check that the screen shows what the engine returned
+ * (which proves the screen follows the engine, not that either is right: the scenario tests, e2e/scenarios/, work the
+ * right figure out by hand) (research/v7/way-and-mix.md 3, 4, 7; road-to-7.md
  * step 8b): the same lazily-loaded modules the V7 worker runs (src/answers/plan/lastsRun.js runTry; src/answers/plan/mixRun.js
  * runMixTry, runMixCompare) and the same pure writers the one write file uses (lasts.js tryPatch, tryCopyOf; mix.js mixPatch,
  * useMixPatch), on a plan brought up to date in memory exactly as the plan source does it, in a child process of plain Node.

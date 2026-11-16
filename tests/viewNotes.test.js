@@ -171,7 +171,8 @@ describe('the full view\'s sign-in (AuthService.viewNotesAtSignIn, at index.html
   it('the page reads the settings once per sign-in and hands them over with the user it read them for', () => {
     const html = readFileSync(join(process.cwd(), 'index.html'), 'utf8');
     expect((html.match(/loadUserProfile\(\)/g) || []).length).toBe(1);
-    expect(html).toContain('const who = getCurrentUser(), prof = await loadUserProfile(); viewNotesAtSignIn(prof, who);');
+    // 7.12.0: with the settings write, so arriving from "Show everything." saves the full view as the choice (ui/viewSwitch.js)
+    expect(html).toContain('const who = getCurrentUser(), prof = await loadUserProfile(); viewNotesAtSignIn(prof, who, saveUserProfile);');
     expect(html).toMatch(/import \{[^}]*\bviewNotesAtSignIn\b[^}]*\} from '\.\/src\/firebase\/index\.js';/);
   });
 });

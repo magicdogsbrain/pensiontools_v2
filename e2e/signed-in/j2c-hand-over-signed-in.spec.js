@@ -250,7 +250,7 @@ test.describe('the full view as the usual view', () => {
     await page.goto(PROD + V7_PATH + '#/account');
     await expect(page.getByTestId('account.view.full')).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 });
     await expect(page.getByTestId('account.view.simple')).toHaveAttribute('aria-pressed', 'false');
-    await expect(page.getByTestId('account.view.now')).toHaveText('PensionTools opens in the full view, on your main plan.');
+    await expect(page.getByTestId('account.view.now')).toHaveText('PensionTools opens in the full view, on the plan you were last on.');
 
     await page.goto(PROD + V7_PATH);
     await classicSignedIn(page);

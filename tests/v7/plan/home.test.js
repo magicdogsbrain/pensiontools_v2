@@ -430,6 +430,8 @@ describe('landing on the home', () => {
     store.dispatch({ type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
     store.dispatch({ type: A.ROUTE_SET, route: parse('#/account') });
     const stop = startPlace(store, { session: null, local: null });
+    // 7.12.0: a sign-in sent from the page (a session restored as it opens is no sign-in: tests/v7/shell/place.test.js)
+    store.dispatch({ type: A.ACCOUNT_ASK, what: 'signIn', email: 'alex@example.test', password: 'x' });
     store.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'alex@example.test' } });
     expect(format(store.getState().route)).toBe('#/account');                                // waits for the plans and the settings
     store.dispatch({ type: A.PROFILE_SET, profile: { lastSeenVersion: null, lastLocation: { planId: locked.id, step: 'month' } } });

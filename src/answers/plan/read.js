@@ -26,7 +26,8 @@ import { windowYearsOf, reviewDueOf, offCourseOf, moveWindowOf, heldPhase } from
 import { monthsWanted } from '../../services/DrawCadence.js';
 import { taskKeyOf, isPutOff } from './tasks.js';
 import { optionsFor } from './options.js';
-import { answerAge, bandsOf, netOf } from './about.js';
+import { answerAge, bandsOf, netOf, safeTiming } from './about.js';
+import { stepLines } from './spend.js';
 import { isBought } from './pots.js';
 import { savedLasts } from './lasts.js';
 import { savedMix } from './mix.js';
@@ -443,12 +444,42 @@ function whereStep(C) {
 }
 
 /** The income steps as the plan has them: the document's (locked), else the effective settings'. */
-function incomeSteps(plan, ss, locked) {
+function incomeSteps(plan, ss, locked, now = new Date()) {
   if (locked && plan.planDocument && Array.isArray(plan.planDocument.steps) && plan.planDocument.steps.length) return plan.planDocument.steps.map((s) => ({ fromAge: +s.fromAge, amount: r0(s.amount), taxYear: s.taxYear || null, decline: +s.decline || 0, glideToNext: !!s.glideToNext }));
   const ageNow = num(ss.shapeAgeNow) || null;
-  if (ss.incomeShape === 'phases' && Array.isArray(ss.incomeSteps) && ss.incomeSteps.length) return ss.incomeSteps.filter((s) => s && num(s.amount) != null).map((s) => ({ fromAge: +s.fromAge, amount: r0(s.amount), taxYear: null, decline: +s.decline || 0, glideToNext: !!s.glideToNext }));
+  if (ss.incomeShape === 'phases' && Array.isArray(ss.incomeSteps) && ss.incomeSteps.length) {
+    // read as the Spend page reads them (7.12.0, spend.js stepLines): from the plan's own start, so a stop moved later moves
+    // the first step with it; nothing is written
+    const from = num(safeTiming(ss, now).shapeAgeNow) || ageNow;
+    const shown = from ? stepLines(ss.incomeSteps, from, num(ss.duration) || 1, bandsOf(ss)) : [];
+    if (shown.length) return shown.map((st) => ({ fromAge: st.fromAge, amount: r0(st.yearly), taxYear: null, decline: st.then === 'falls' ? +st.fallsPct || 0 : 0, glideToNext: st.then === 'glides' }));
+    return ss.incomeSteps.filter((s) => s && num(s.amount) != null).map((s) => ({ fromAge: +s.fromAge, amount: r0(s.amount), taxYear: null, decline: +s.decline || 0, glideToNext: !!s.glideToNext }));
+  }
   const first = Array.isArray(ss.targetSchedule) && ss.targetSchedule.length ? r0(ss.targetSchedule[0]) : r0(ss.baseSalary);
   return ageNow ? [{ fromAge: ageNow, amount: first, taxYear: null, decline: 0, glideToNext: false }] : [{ fromAge: null, amount: first, taxYear: null, decline: 0, glideToNext: false }];
+}
+
+/**
+ * "Pots when you stop" (7.12.0): worked out from your pot and what goes in (services/PotsAtStop.js, the middling case,
+ * to the nearest £1,000), your own typed figure (which does not follow), or the figure the plan was locked with.
+ */
+function atStopLine(par, { locked, lockedAt, figures, src }) {
+  const k1 = (v) => Math.round((+v || 0) / 1000) * 1000;
+  if (locked) {
+    figures.parSipp = r0(par.sipp); figures.parIsa = r0(par.isa);
+    return line('pots.atStop', [money('parSipp'), ' pension', figures.parIsa > 0 ? [', ', money('parIsa'), ' in ISAs and savings'] : [], ', as worked out when the plan was locked' + (lockedAt ? ' on ' + dayWords(lockedAt) : '')].flat(), figures, src, { kind: 'locked' });
+  }
+  if (par.source === 'worked' && par.from) {
+    figures.parSipp = k1(par.sipp); figures.parIsa = k1(par.isa); figures.parFrom = r0(par.from.pot); figures.parMonthly = r0(par.from.monthly); figures.parTo = par.from.toAge;
+    return line('pots.atStop', [money('parSipp'), ' pension', ...(figures.parIsa > 0 ? [' and ', money('parIsa'), ' in ISAs and savings'] : []),
+      ' in a middling case. Worked out from ', money('parFrom'), ' today and ', money('parMonthly'), ' a month going in, to age ', age('parTo')], figures, src, { kind: 'worked' });
+  }
+  figures.parSipp = r0(par.sipp); figures.parIsa = r0(par.isa);
+  if (par.source === 'override') {
+    return line('pots.atStop', [money('parSipp'), ' pension', ...(figures.parIsa > 0 ? [', ', money('parIsa'), ' in ISAs and savings'] : []),
+      ', your own figure. It does not follow your pot or what you pay in. You can clear it on “Your pots and tax”'], figures, src, { kind: 'typed' });
+  }
+  return line('pots.atStop', [money('parSipp'), ' pension, ', money('parIsa'), ' ISA'], figures, src);
 }
 
 /** Your plan (2.3 `plan`): the settings as sections, from the document when locked. */
@@ -459,7 +490,7 @@ function planStep(C) {
   const figures = {};
   const lines = [];
   const notes = [];
-  const steps = incomeSteps(plan, ss, locked);
+  const steps = incomeSteps(plan, ss, locked, now);
   const first = steps[0] || null;
   const src = locked ? sourceOf('locked', lockedAt, now) : sourceOf('saved', null, now);
   const timing = doc && doc.timing ? doc.timing : null;
@@ -572,7 +603,7 @@ function planStep(C) {
   pots.push(line('pots.isa', [money('isa')], figures, src));
   if (potGia > 0) pots.push(line('pots.gia', [money('gia')], figures, src));
   const par = locked && doc && doc.pots ? doc.pots.potAtRetirement : ss.potAtRetirement;
-  if (par && (num(par.sipp) > 0 || num(par.isa) > 0)) { figures.parSipp = r0(par.sipp); figures.parIsa = r0(par.isa); pots.push(line('pots.atStop', [money('parSipp'), ' pension, ', money('parIsa'), ' ISA'], figures, src)); }
+  if (par && (num(par.sipp) > 0 || num(par.isa) > 0)) pots.push(atStopLine(par, { locked, lockedAt, figures, src }));
 
   // Money that comes in anyway (editing-in-v7.md 7): the State Pension, final-salary pensions, other income, income for some
   // years and lump sums — its own section, edited inside V7

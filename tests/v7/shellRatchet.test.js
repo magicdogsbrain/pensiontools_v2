@@ -78,7 +78,9 @@ import { resolve } from 'node:path';
 // One home in both views (7.11.0): the banner's three steps moved to src/ui/homeBannerUi.js updateHomeBanner, and the
 // opening tab reads the plan's phase there (openingTabOf); the plan menu redraws the banner from its existing line: 7 lines
 // shorter: 9,036.
-const MAX_LINES = 9036;
+// The lock asks one question first (7.12.0): the Stress settings' lock button moved to src/ui/lockFromStressUi.js, the shell
+// installing it in one line: 11 lines shorter: 9,025.
+const MAX_LINES = 9025;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

@@ -146,3 +146,10 @@ export function neverIn(text, { view = 'simple' } = {}) {
 export async function neverOnAnyPage(page, { view = 'simple' } = {}) {
   return neverIn(await visibleText(page, view === 'simple' ? '#app' : 'body'), { view });
 }
+
+/** Every sum a page shows: the £ figures in its text and the figures in its visible boxes (what a person sees in them). */
+export async function figuresOn(page) {
+  const text = await visibleText(page, (await page.locator('#app').count()) ? '#app' : 'body');
+  const boxes = await page.$$eval('input:not([type=checkbox]):not([type=radio]):not([type=hidden])', (els) => els.filter((e) => e.offsetParent && e.value !== '').map((e) => e.value));
+  return [...moneyAll(text), ...boxes.map((v) => money(v)).filter((v) => v !== null)];
+}

@@ -146,18 +146,18 @@ export async function setField(page, q, path, value) {
 }
 
 /**
- * A question answered from its first step: `numbers` typed on the numbers step, then "Next: what you would spend", then
- * `spend` on that step, then "Show". Waits for the final answer.
+ * A question answered from its first step: `numbers` typed on the numbers step, then "Next: what you would spend" where
+ * there is one, then `spend`, then "Show". Waits for the final answer.
  */
 export async function answer(page, q, { numbers = {}, spend = {} } = {}) {
   if ((await screenOf(page).catch(() => null)) !== `${q}.numbers`) await openSimple(page, `#/${q}/numbers`);
   for (const [path, v] of Object.entries(numbers)) await setField(page, q, path, v);
   const onward = page.getByTestId(`${q}.action.onward`);
-  if (Object.keys(spend).length || (await onward.isVisible().catch(() => false))) {
-    if (await onward.isVisible().catch(() => false)) await onward.click();
+  if (await onward.isVisible().catch(() => false)) {
+    await onward.click();
     await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', `${q}.spend`, { timeout: 15_000 });
-    for (const [path, v] of Object.entries(spend)) await setField(page, q, path, v);
   }
+  for (const [path, v] of Object.entries(spend)) await setField(page, q, path, v);    // a question with one form (D) has its spending on it
   await page.getByTestId(`${q}.action.show`).click();
   await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', `${q}.answer`, { timeout: 30_000 });
   await settled(page, 120_000);

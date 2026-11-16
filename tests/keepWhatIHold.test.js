@@ -122,9 +122,12 @@ describe('the diff with keeps', () => {
       expect(y.pays).toBe(real);
       expect(y.gap).toBe(Math.round(needs[y.Y].need - real));
     }
-    // the cash years are stood in for: no cash to buy for them; the 2029 rung keeps only its other years
+    // the cash years are stood in for; the 2029 rung keeps only its other years
     expect(d.covered.find((c) => c.kind === 'cash').taxYears).toEqual([2027, 2028]);
-    expect(d.buy.find((b) => b.kind === 'cash')).toBeUndefined();
+    // retaken in 7.12.0: the gilts pay only part of each cash year, so the rest is still cash to hold — each year's cost in the
+    // share its gap is of its need — less the £5,000 of cash held
+    const part = d.standIn.slice(0, 2).reduce((t, s) => t + needs[s.perYear[0].Y].cost * s.perYear[0].gap / needs[s.perYear[0].Y].need, 0);
+    expect(Math.abs(d.buy.find((b) => b.kind === 'cash').amount - (part - 5000))).toBeLessThanOrEqual(2);
     const t29 = d.buy.find((b) => b.ticker === 'T29');
     expect(t29.taxYears).toEqual([2030, 2031]);
     const full = target.lines.find((t) => t.ticker === 'T29');

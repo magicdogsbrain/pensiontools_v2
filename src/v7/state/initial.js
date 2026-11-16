@@ -167,6 +167,8 @@ export function keptDraft(kept, q) {
   d.asked = k.asked === true;
   if (Array.isArray(k.revealed)) d.revealed = k.revealed.filter((p) => typeof p === 'string');
   if ('carriedFrom' in d) d.carriedFrom = CARRIED.includes(k.carriedFrom) ? k.carriedFrom : null;
+  // C's draft holds it only once figures were carried in from A or B (state/reduce.js carried)
+  else if (q === 'c' && 'carriedFrom' in k) d.carriedFrom = ['a', 'b'].includes(k.carriedFrom) ? k.carriedFrom : null;
   if ('spendHow' in d) { d.spendHow = SPEND_HOW.includes(k.spendHow) ? k.spendHow : null; d.skipNoted = k.skipNoted === true; }
   // the spending shape's Undo ("Put back my steps by age"), its line and the figure its steps were set against
   Object.assign(d, keptShapeExtras(q, k));

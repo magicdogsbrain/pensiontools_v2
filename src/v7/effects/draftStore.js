@@ -68,6 +68,8 @@ function clean(kept) {
     Object.assign(out[q], keptShapeExtras(q, d));
     // A and B: where the figures were brought over from ("we have brought your figures over …"), kept across a reload
     if (q !== 'c') out[q].carriedFrom = ['a', 'b', 'c'].includes(d.carriedFrom) && d.carriedFrom !== q ? d.carriedFrom : null;
+    // C: only once figures were carried in from A or B (its answer then says it asks a different question), kept likewise
+    else if ('carriedFrom' in d) out[q].carriedFrom = ['a', 'b'].includes(d.carriedFrom) ? d.carriedFrom : null;
     // A and B: how the spending is being chosen, and whether the "you are skipping the budget" note has been shown
     if (q !== 'c' && ['lines', 'one'].includes(d.spendHow)) out[q].spendHow = d.spendHow;
     if (q !== 'c' && d.skipNoted === true) out[q].skipNoted = true;

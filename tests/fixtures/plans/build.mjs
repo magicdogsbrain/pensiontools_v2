@@ -386,7 +386,10 @@ for (const name of FROZEN) out[name] = JSON.parse(readFileSync(join(HERE, name +
   for (const [ym, equity, bond, cash] of [['2026-04', 531000, 262000, 90000], ['2026-05', 540500, 263100, 88200], ['2026-06', 527900, 261700, 89400]]) { at(ym + '-10T08:05:00.000Z'); await recordMonth(ym, { equity, bond, cash, isa: 30000 }, { pre64: true }); }
   const [doc] = exportDocs({ [id]: 'Ae2HsK9dMx4UoPj6CvBq' });
   for (const k of TIMING_6_4) if (k in doc.stressTool.settings) throw new Error('06: a 6.4.0 timing field (' + k + ') crept into the Stress settings while building');
-  if ('firstTaxYear' in doc.decisionTool.settings) throw new Error('06: the Decision copy was handed a first tax year while building');
+  // 7.12.0: an unlocked plan's Decision settings are read from its Stress settings (services/DraftDecision.js), so today's
+  // first-record lock stores the first tax year the load gives the Stress side; a pre-6.4 copy cannot be built through
+  // today's repositories any more. --snapshot-only keeps the committed 06 (built before 7.12.0) and never writes this one.
+  if ('firstTaxYear' in doc.decisionTool.settings && !process.argv.includes('--snapshot-only')) throw new Error('06: the Decision copy was handed a first tax year while building');
   if (doc.stressTool.settings.spendingProfile !== 'declining') throw new Error('06: the declining profile was migrated away while building');
   if (!doc.decisionTool.settings.locked) throw new Error('06: the first record did not lock the plan');
   out['06-pre-6.4-no-timing'] = doc;

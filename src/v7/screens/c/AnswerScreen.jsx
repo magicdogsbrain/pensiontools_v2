@@ -74,6 +74,23 @@ function TakeTried({ tried, result, dispatch }) {
   );
 }
 
+/**
+ * At the top of the answer when its figures came over from "When can I afford to stop work?" or "Am I saving enough?":
+ * this page asks a different question. With the amount wanted carried as the amount tried, it says so, and that "Back to"
+ * shows what the figures support. Drawn only while the draft says it was carried.
+ */
+function CarriedHere({ from, tried, result }) {
+  const t = C.answer.carried;
+  if (!t.from[from]) return null;
+  const take = tried && result && result.take && typeof result.take.perMonth === 'number';
+  return (
+    <p class="carried notice" role="status" data-testid="c.answer.carried">
+      {t.line.replace('{from}', t.from[from])}
+      {take && <> {slotted(t.take, { take: <Money source={result} k="take.perMonth" />, level: <Money source={result} k={tried.key} /> })}</>}
+    </p>
+  );
+}
+
 /** "What next?": the two prompts, "Already stopped?" first for someone already drawing their State Pension. "Keep this as a plan" follows. */
 function WhatNext({ result, dispatch }) {
   const partner = partnerStillWorking(result);
@@ -177,6 +194,7 @@ export function AnswerScreen(state, dispatch) {
     );
     body = (
       <>
+        <CarriedHere from={state.draft.c.carriedFrom} tried={tried} result={result} />
         <AnswerSlider slider={slider} dispatch={dispatch} stale={stale}>{tried && <TakeTried tried={tried} result={result} dispatch={dispatch} />}</AnswerSlider>
         <div class={`answer${stale ? ' is-stale' : ''}`} data-region="answer" aria-live="polite" aria-busy={stale ? 'true' : 'false'}>
           {stale && <p class="updating" role="status">{C.answer.updating}</p>}

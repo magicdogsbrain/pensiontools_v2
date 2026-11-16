@@ -225,7 +225,8 @@ function carried(state, from, to) {
   // writes them back onto it ("Use these in ‘…’")
   delete draft.planMix;
   delete draft.fromPlan;
-  if ('carriedFrom' in target) draft.carriedFrom = from;
+  // (C's draft gains it only from a carry: its answer then says it asks a different question, until a figure is changed)
+  if ('carriedFrom' in target || to === 'c') draft.carriedFrom = from;
   const route = opens ? tidyRoute({ screen: 'step', q: opens.q, step: opens.step, planId: null, focus: opens.focus }) : state.route;
   // a new answer for the target: what was kept from its answer before goes (freshKeep)
   const { pick: _picked, ...k } = keepOf(state, to);

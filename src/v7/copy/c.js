@@ -129,6 +129,15 @@ export const C = {
       bold: 'At Bold you could take about {amount} a month.'
     },
     backTo: 'Back to {amount}',
+    /**
+     * At the top of the answer when its figures came over from A or B (draft.c.carriedFrom): it asks a different question.
+     * `take`: added when the amount wanted came over too, with the level's amount ("Back to …" under the slider).
+     */
+    carried: {
+      from: { a: 'When can I afford to stop work?', b: 'Am I saving enough?' },
+      line: 'Your figures are brought over from "{from}". This page asks a different question: what your pot and what you pay in could pay.',
+      take: 'It starts on {take} a month, the amount you want. "Back to {level}" shows what they support.'
+    },
     /** "Before / Now" about an amount named under "take". Pieces around figures drawn by Money. */
     takeLastsTo: 'lasts to',
     takeEvenBad: 'even in a bad case (the worst 1 in 10)',

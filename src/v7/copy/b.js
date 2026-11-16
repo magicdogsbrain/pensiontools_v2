@@ -207,11 +207,14 @@ export const B = {
     },
 
     nextTitle: 'What next?',
-    /** The hand-over to C: "What could I spend a month from 60?" (the age drawn by Money). */
-    toCStart: 'What could I spend a month from',
+    /**
+     * The hand-over to C: "What could my pot pay a month from 60? (a different question: …)" (the age drawn by Money). It
+     * says it opens a different question, so the page it opens is never read as this answer.
+     */
+    toCStart: 'What could my pot pay a month from',
     /** The same when the answer is about your partner ("I've already stopped"): C from now, your partner stopping at that age. */
-    toCPartnerStart: 'What could we spend a month once my partner stops at',
-    toCEnd: '?',
+    toCPartnerStart: 'What could our money pay a month once my partner stops at',
+    toCEnd: '? (a different question: it starts from your pot, not from what you want)',
     /** Under that link when C does not ask everything this answer was given (handOver.c.same false). */
     toCDiffers: '"What is that a month?" does not ask about money going into savings each month, part-time work or a different risk while saving, so its figure can differ from this one.',
     keepWhy: 'so you can come back to it and carry on'

@@ -105,7 +105,10 @@ describe('A — the April slide: a plan\'s start year is written into the plan o
       // The Decision settings were not written, so a locked plan's checksum — and every record stamped with it — stands.
       expect(decisionSettingsChecksum(storedScenario().decisionTool.settings)).toBe(checksumBefore);
       dropCaches();
-      expect(decisionSettingsChecksum((await loadDecisionDBAsync()).settings)).toBe(checksumBefore);
+      // a locked plan reads its stored copy; a draft reads its Decision settings from its Stress settings (7.12.0), so the
+      // Decision tool runs on the plan's own State Pension and strategy, which the stored draft copy never had
+      if (locked) expect(decisionSettingsChecksum((await loadDecisionDBAsync()).settings)).toBe(checksumBefore);
+      else expect((await loadDecisionDBAsync()).settings).toMatchObject({ spWeeklyAmount: 230.25, strategyId: 'full-il-gilt', locked: false });
       // …and the Decision tool reads its year 0 from the Stress plan, where the anchor now lives.
       expect(decisionAnchorYear(storedScenario().decisionTool.settings, {}, null, second, APR_8)).toBe(Y);
 

@@ -2,7 +2,7 @@
  * What the people type, as they type it: the boxes of each question for each person of people.js. Shared by the
  * scenarios that start from the same answer (s01 and s02 are both Jo's).
  */
-import { JO33, SAM45 } from './people.js';
+import { JO33, SAM45, KIM62 } from './people.js';
 
 /** Jo, 33, on "Am I saving enough?": a share of pay, stop at 60, £2,000 a month. */
 export const JO_B = Object.freeze({
@@ -20,4 +20,10 @@ export const SAM_B = Object.freeze({
     'you.payIn.employer': SAM45.employer, 'stop.age': SAM45.stopAge
   },
   spend: { 'spend.amount': SAM45.wantMonthly }
+});
+
+/** Kim, 62, on "Already retired: will it last?": stopped, £520,000, the tax-free part not taken, £60,000 saved, £2,400 a month. */
+export const KIM_D = Object.freeze({
+  numbers: { 'stopped': 'yes', 'you.age': KIM62.age, 'you.pot': KIM62.pot, 'you.taxFreeTaken': 'no', savings: KIM62.isa },
+  spend: { 'spend.amount': KIM62.wantMonthlyAfterTax }
 });

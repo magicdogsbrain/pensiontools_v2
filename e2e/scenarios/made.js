@@ -4,8 +4,8 @@
  */
 import { expect } from '@playwright/test';
 import { confirmEmail } from './account.js';
-import { at, openSimple, answer, keep, signUp, editAndSave, planAddress, settled } from './routes.js';
-import { SAM_B } from './typed.js';
+import { at, openSimple, answer, keep, signUp, editAndSave, planAddress, settled, fullPage, closeNews } from './routes.js';
+import { SAM_B, KIM_D } from './typed.js';
 import { SAM45 } from './people.js';
 
 /** A question answered as a guest, kept, and carried into a new account made from the kept panel. */
@@ -31,4 +31,52 @@ export async function samAYearAgo(page, me) {
   await editAndSave(page, planId, 'saving', 'salary', SAM45.pay);
   await expect(page.locator('#app [data-screen]')).toBeVisible();
   return planId;
+}
+
+/** Kim, 62, on 16 November 2026: "Will it last?" answered, kept into a new account. */
+export async function kimKept(page, me) {
+  return keptIntoNewAccount(page, 'd', KIM_D, me);
+}
+
+/** In the full view: Stress Tester > Settings > "Lock plan & create the plan document" > "Lock the plan". */
+export async function lockFromStressSettings(page) {
+  await fullPage(page, 'stress settings');
+  await closeNews(page);
+  await page.locator('#ssLockBtn').click();
+  await page.getByRole('button', { name: 'Lock the plan' }).click();
+  await expect(page.locator('.sub-tab[data-decisiontab="plandoc"].active').or(page.getByText('Plan locked')).first()).toBeVisible({ timeout: 60_000 });
+}
+
+/**
+ * In the full view: Decision Tool > Monthly Entry for `month` ('2026-11') with the pension total and the ISA as the
+ * platform shows them, then Calculate. The tax-year set-up opens the first time in a tax year; `setUp(page)` fills it.
+ * Returns what the person read on the way: each step of the set-up, then the page after the recommendation is drawn.
+ */
+export async function monthlyEntry(page, { month, pension, isa, setUp = null }) {
+  await fullPage(page, 'monthly entry');
+  await page.locator('#entryMonth').fill(month);
+  await page.locator('#entryPlatTotal').fill(String(pension));
+  await page.locator('#entryIsa').fill(String(isa));
+  await page.locator('#decisionForm button[type=submit]').click();
+  const seen = [];
+  // the tax-year set-up draws its steps inside #taxYearWizard; its heading says "Setting up tax year …"
+  const wizard = page.locator('#taxYearWizard');
+  const open = () => page.getByText(/^Setting up tax year/).first().isVisible().catch(() => false);
+  await expect.poll(async () => (await open()) || (await page.locator('#saveBtn').isVisible().catch(() => false) && !(await open())), { timeout: 30_000 }).toBe(true);
+  if (await open()) {
+    if (setUp) await setUp(page);
+    for (let i = 0; i < 5 && (await open()); i++) {
+      const step = await wizard.innerText().catch(() => '');
+      seen.push(step);
+      await wizard.getByRole('button', { name: /^(Next|Confirm|Finish|Done|Save|Set up|Start)/ }).last().click();
+      await expect.poll(async () => !(await open()) || (await wizard.innerText().catch(() => step)) !== step, { timeout: 15_000 }).toBe(true);
+    }
+  }
+  await expect.poll(open, { timeout: 30_000 }).toBe(false);
+  return [...seen, await page.locator('body').innerText()].join('\n');
+}
+
+/** "Save to History" for the month on the entry form. */
+export async function saveMonth(page) {
+  await page.locator('#saveBtn').click();
 }

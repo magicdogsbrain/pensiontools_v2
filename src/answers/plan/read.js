@@ -56,7 +56,7 @@ export function lockedLastsWords(doc, a, dp, weighted = SUCCESS.weighted) {
 
 /** The age a document's plan runs to, as every page of both apps says it (rules.js planToAgeOf: "to 97" = to the 97th birthday). */
 const planToAgeOfDoc = (dp) => planToAgeOf(+(dp && dp.startAge) || 0, +(dp && dp.durationYears) || 0);
-import { unlockPatchesOf } from '../../services/PlanCommit.js';
+import { unlockPatchesOf, lockedShortOf } from '../../services/PlanCommit.js';
 import { checkInState, checkInsOf } from './checkInDue.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
 import { heldLadder } from './held.js';
@@ -1170,6 +1170,8 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
     before: beforeReading(plan, list),
     locked,
     lockedOn: locked ? dayWords(lockedAtOf(plan)) : null,
+    // 7.12.0: locked when its gilt ladder cost more than its pots (an old document): said at the top of "Your plan as locked"
+    lockedShort: locked && plan.planDocument ? (() => { const x = lockedShortOf(plan.planDocument); return x ? { short: '£' + x.short.toLocaleString('en-GB') } : null; })() : null,
     readonly,
     source,
     steps,

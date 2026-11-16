@@ -14,6 +14,9 @@ import { upgradeScenario } from '../../../src/firebase/scenarioMigration.js';
 import { saverInputsOf } from '../../../src/answers/plan/saverInputs.js';
 import { savingOf, savingPatch, applyPatch } from '../../../src/answers/plan/saving.js';
 import { accumulationBoxes } from '../../../src/ui/accumulationProjection.js';
+import { takeHomeOf, payInSaid } from '../../../src/services/SaverPayIn.js';
+import { contributionBreakdown } from '../../../src/services/AccumulationEngine.js';
+import { payInNowOf } from '../../../src/answers/plan/saving.js';
 import { SAVING as W } from '../../../src/v7/copy/saving.js';
 import { noon } from './_plans.js';
 
@@ -106,4 +109,75 @@ describe('step 1: one reader of a saver\'s facts', () => {
     expect(box.values.acPotNow).toBe(131000);
     expect(box.potLine).toBe('From your pension of £131,000, recorded November 2026.');
   }, 30000);
+});
+
+describe('step 2: one way to say a pay-in', () => {
+  const B_ENV = { today: READ_ON, futures: 1000, seed: 0, detail: 'answer' };
+  const textOf = (result) => Object.values(result.sentences || {}).filter((x) => x && typeof x.text === 'string').map((x) => x.text).join(' ');
+  const gbp = (v) => '£' + Math.round(v).toLocaleString('en-GB');
+
+  it('what leaves take-home pay is the exact inverse of what lands, for the three schemes, at £38,000 and £55,000', () => {
+    for (const salary of [38000, 55000]) {
+      for (const scheme of ['ras', 'netpay', 'salsac']) {
+        const landed = contributionBreakdown({ netMonthly: 300, salary, schemeType: scheme, employerMonthly: 0 }).grossMonthly;
+        expect(Math.round(takeHomeOf(landed, { scheme, salary }) * 100) / 100).toBe(300);
+      }
+    }
+    // relief at source: £375 landing is £300 from take-home pay (375 × 0.8); a guest's answer has no scheme, so "about"
+    expect(payInSaid({ ownLanded: 375, employer: 250 })).toMatchObject({ takeHome: 300, total: 625, about: true });
+    expect(payInSaid({ ownLanded: 375, employer: 250, scheme: 'ras' }).about).toBe(false);
+  });
+
+  it('Jo (33, £38,000, 5% and 3%, wants £2,000 from 60): what would be enough says her own share and what leaves her take-home pay', () => {
+    const jo = { household: 'single', you: { pot: 0, age: 33, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'share', pay: 38000, ownPct: 5, employerPct: 3 } },
+      stop: { age: 60 }, spend: { kind: 'amount', amount: 2000 }, endAge: 95 };
+    const r = answerB(jo, B_ENV);
+    const fig = r.enough.atLevel;
+    expect(fig).not.toBe(null);
+    const text = textOf(r);
+    // the pounds worked from the share the engine returns: own share × pay ÷ 12 lands; × 0.8 leaves take-home pay
+    const ownLanded = 38000 * fig.ownPct / 100 / 12;
+    const all = 38000 * fig.totalPct / 100 / 12;
+    expect(text).toContain(`${fig.totalPct}% of your pay in all`);
+    expect(text).toMatch(new RegExp(`you ${fig.ownPct}% \\(about ${gbp(ownLanded * 0.8).replace(/[£,]/g, (c) => '\\' + c)} a month from your take-home pay\\)`, 'i'));
+    expect(text).toContain(`${gbp(all)} a month in all`);
+    expect(text).not.toMatch(/\byou £[\d,]+[,)]/i);
+  }, 60000);
+
+  it('Sam (£375 and £250 a month): what would be enough says what comes from Sam with the tax added back and from take-home pay', () => {
+    const sam = { ...samInputs(), spend: { kind: 'amount', amount: 3200 } };
+    const r = answerB(sam, B_ENV);
+    const fig = r.enough.atLevel;
+    expect(r.verdict.band).not.toBe('yes');
+    // what comes from Sam is the whole less the employer's £250 as now; × 0.8 leaves take-home pay
+    const own = fig.payIn - 250;
+    expect(fig.own).toBeCloseTo(own, 2);
+    const text = textOf(r);
+    expect(text).toContain(`${gbp(own)} from you with the tax added back (about ${gbp(own * 0.8)} from your take-home pay)`);
+    expect(text).not.toMatch(/\byou £[\d,]+[,)]/i);
+  }, 60000);
+
+  it('the plan says what goes in now the same way, and never "you £…"', () => {
+    const fill2 = (id, slots) => fill(W.payInNow[id], slots);
+    // £300 from take-home pay lands as £375 (300 ÷ 0.8); with the employer's £250: £625
+    const n = payInNowOf({ netMonthly: 300, employerMonthly: 250, schemeType: 'ras', salary: 0 });
+    expect(fill2(n.id, n.slots)).toBe('You pay in £300 a month from your take-home pay. With the tax added back that is £375 in your pension. Your employer adds £250: £625 a month in all.');
+    // 5% and 3% of £38,000: own lands 158.33, × 0.8 = 126.67 → £127; in all 253.33 → £253
+    const sh = payInNowOf({ salary: 38000, schemeType: 'ras', netMonthly: 126.66, employerMonthly: 95, payInKind: 'share', ownPct: 5, employerPct: 3 });
+    expect(fill2(sh.id, sh.slots)).toBe('You pay in 5% of your pay and your employer 3%: £127 a month from your take-home pay, £253 a month into your pension in all.');
+    const before = payInNowOf({ netMonthly: 300, employerMonthly: 0, schemeType: 'netpay', salary: 38000 });
+    // pay before tax at 20%: 300 ÷ 0.8 = 375 goes in
+    expect(fill2(before.id, before.slots)).toBe('£375 a month goes into your pension from your pay before tax; your take-home pay is about £300 less.');
+    for (const v of Object.values(W.payInNow)) expect(v).not.toMatch(/\byou \{/i);
+    const plan = samPlan();
+    const toast = savingOf([entry(plan)], plan.id, { today: READ_ON, typed: {} }).savedLine;
+    expect(fill(W.toast[toast.id], toast.slots)).not.toMatch(/\byou £[\d,]+[,)]/i);
+  }, 30000);
+
+  it('the claim back from HMRC is on the pay above the higher-rate line only', () => {
+    // £300 from take-home pay lands £375. At £52,000: 52,000 − 50,270 = 1,730 a year above the line, × 20% = £346
+    expect(Math.round(contributionBreakdown({ netMonthly: 300, salary: 52000, schemeType: 'ras' }).hrClaimMonthly * 12)).toBe(346);
+    // at £55,000: 4,730 a year above the line, more than the 375 × 12 = 4,500 paid in; 4,500 × 20% = £900
+    expect(Math.round(contributionBreakdown({ netMonthly: 300, salary: 55000, schemeType: 'ras' }).hrClaimMonthly * 12)).toBe(900);
+  });
 });

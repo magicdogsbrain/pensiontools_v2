@@ -71,3 +71,33 @@ export function savingMixOf(settings) {
   const t = e + b + c;
   return t > 0 ? { equity: e / t, bond: b / t, cash: c / t } : null;
 }
+
+/** The highest rate's tax bands the planner reads a salary by (AccumulationEngine.marginalRate's defaults). */
+const PA = 12570, BRL = 50270, HRL = 125140;
+const rateOf = (salary) => (salary <= PA ? 0 : salary <= BRL ? 0.20 : salary <= HRL ? 0.40 : 0.45);
+const niOf = (salary) => (salary <= 12570 ? 0 : salary <= BRL ? 0.08 : 0.02);
+
+/**
+ * What leaves take-home pay for `ownLanded` a month landing in the pension (7.12.0): the exact inverse of
+ * AccumulationEngine.contributionBreakdown().grossMonthly — relief at source × 0.8; pay taken before tax × (1 − the top
+ * rate); salary sacrifice × (1 − the top rate − National Insurance), each with the planner's floor of 0.2.
+ */
+export function takeHomeOf(ownLanded, { scheme = 'ras', salary = 0 } = {}) {
+  const g = +ownLanded || 0;
+  if (!(g > 0)) return 0;
+  if (scheme === 'salsac') return g * Math.max(0.2, 1 - rateOf(+salary || 0) - niOf(+salary || 0));
+  if (scheme === 'netpay') return g * Math.max(0.2, 1 - rateOf(+salary || 0));
+  return g * 0.8;
+}
+
+/**
+ * One way to say a pay-in (7.12.0): what lands in the pension from you (the tax added back included), what leaves your
+ * take-home pay for it, your employer's part, and all of it. `about` is true when the scheme was not given (question B's
+ * answer: relief at source at the basic rate is assumed, and the words say "about"). Pounds to the penny.
+ * @returns {{ takeHome: number, ownLanded: number, employer: number, total: number, about: boolean, scheme: string }}
+ */
+export function payInSaid({ ownLanded = 0, employer = 0, scheme = null, salary = 0 } = {}) {
+  const own = Math.max(0, +ownLanded || 0), emp = Math.max(0, +employer || 0);
+  const sch = scheme || 'ras';
+  return { takeHome: round2(takeHomeOf(own, { scheme: sch, salary })), ownLanded: round2(own), employer: round2(emp), total: round2(own + emp), about: !scheme, scheme: sch };
+}

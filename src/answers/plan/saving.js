@@ -39,7 +39,7 @@ import { planStage } from '../../services/PlanReading.js';
 import { get, applyPatch, safeSettings } from './about.js';
 import { pounds } from './income.js';
 import { SAVING_FIELDS, SAVING_WRITES, SCHEME_TYPES } from './schema.js';
-import { ACCUMULATION_V7_KEYS } from '../../services/SaverPayIn.js';
+import { ACCUMULATION_V7_KEYS, payInSaid, payInShareOf } from '../../services/SaverPayIn.js';
 import { saverInputsOf, saverRunKey, saverDraftOf } from './saverInputs.js';
 import { SAVER_STAGES } from './steps.js';
 import { dateOf, dayWords, monthWords } from './dates.js';
@@ -290,6 +290,26 @@ export function potLineOf(pot) {
   return { id: 'saved', slots: { value } };
 }
 
+/**
+ * What goes in now, said one way on every screen (services/SaverPayIn.js payInSaid; 7.12.0): what leaves take-home pay,
+ * what lands in the pension with the tax added back, the employer's part and all of it — "you" never followed by a bare
+ * amount. `settings` are the saving settings (the planner's nine keys, and a share when it agrees). → { id, slots }
+ */
+export function payInNowOf(settings) {
+  const a = settings || {};
+  const net = +a.netMonthly || 0, employer = +a.employerMonthly || 0, salary = +a.salary || 0, scheme = a.schemeType || 'ras';
+  let landed = 0;
+  try { landed = net > 0 ? contributionBreakdown({ netMonthly: net, salary, schemeType: scheme, employerMonthly: 0 }).grossMonthly : 0; } catch { landed = 0; }
+  const said = payInSaid({ ownLanded: landed, employer, scheme, salary });
+  const slots = { takeHome: pounds(Math.round(said.takeHome)), landed: pounds(Math.round(said.ownLanded)), employer: pounds(Math.round(said.employer)), total: pounds(Math.round(said.total)) };
+  if (!(said.total > 0)) return { id: 'none', slots };
+  const share = payInShareOf(a);
+  if (share) return { id: 'share', slots: { ...slots, ownPct: String(share.ownPct), employerPct: String(share.employerPct) } };
+  if (!(landed > 0)) return { id: 'employerOnly', slots };
+  const before = scheme === 'netpay' || scheme === 'salsac';
+  return { id: (before ? 'before' : 'pounds') + (employer > 0 ? 'Employer' : ''), slots };
+}
+
 /** Everything the screen draws. `typed` is the draft's values for this plan (text by path), or null. */
 export function savingOf(entries, id, { today, typed = null, source = 'account' } = {}) {
   const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
@@ -366,7 +386,7 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
     records, recordsCount: s.hist.length,
     changed: Object.keys(p.patch).length > 0, patch: p.patch, previous: p.previous,
     recordReady: !!(rec && rec.ok), recordProblem: rec && !rec.ok ? Object.values(rec.errors)[0] || null : null,
-    savedLine: c.ok ? { id: 'saving', slots: { you: pounds(inputs.netMonthly), employer: pounds(inputs.employerMonthly), total: pounds(Math.round(b.totalMonthly)) } } : null,
+    savedLine: c.ok ? (() => { const n = payInNowOf({ ...(isObj(s.settings) ? s.settings : {}), ...inputs }); return { id: 'saving.' + n.id, slots: n.slots }; })() : null,
     verdict
   };
 }

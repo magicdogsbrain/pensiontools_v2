@@ -79,7 +79,8 @@ export function contributionBreakdown({ netMonthly = 0, salary = 0, schemeType =
     // rate must be CLAIMED from HMRC — the classic unclaimed-relief money-loser.
     grossMonthly = netMonthly / 0.8;
     if (mt > 0.20) {
-      hrClaimMonthly = grossMonthly * (mt - 0.20);
+      // only the part paid from pay above the higher-rate line earns the higher rate back (7.12.0)
+      hrClaimMonthly = Math.min(grossMonthly, Math.max(0, salary - 50270) / 12) * (mt - 0.20);
       notes.push('You must CLAIM the extra ' + Math.round((mt - 0.20) * 100) + '% relief (≈£' + Math.round(hrClaimMonthly) + '/mo) from HMRC via self-assessment — it is not automatic and is commonly missed.');
     }
     if (mt === 0) notes.push('Non-taxpayers still get the 25% top-up on contributions up to £3,600 gross/yr (£2,880 net) — relief at source only.');

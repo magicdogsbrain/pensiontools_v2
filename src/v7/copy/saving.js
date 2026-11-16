@@ -4,7 +4,22 @@
  * pay in, never a contribution; the tax the government adds back, said with the words "tax relief"; what the pot could be
  * by the stop in a cautious, middle and strong case, never a forecast or a rate promised.
  */
+/**
+ * What goes in now, one way on every screen (7.12.0, services/SaverPayIn.js payInSaid): "you" is never followed by a bare
+ * amount; what leaves take-home pay and what lands in the pension are both said.
+ */
+const PAY_IN_NOW = {
+  pounds: 'You pay in {takeHome} a month from your take-home pay. With the tax added back that is {landed} in your pension.',
+  poundsEmployer: 'You pay in {takeHome} a month from your take-home pay. With the tax added back that is {landed} in your pension. Your employer adds {employer}: {total} a month in all.',
+  share: 'You pay in {ownPct}% of your pay and your employer {employerPct}%: {takeHome} a month from your take-home pay, {total} a month into your pension in all.',
+  before: '{landed} a month goes into your pension from your pay before tax; your take-home pay is about {takeHome} less.',
+  beforeEmployer: '{landed} a month goes into your pension from your pay before tax; your take-home pay is about {takeHome} less. Your employer adds {employer}: {total} a month in all.',
+  employerOnly: 'Your employer pays in {employer} a month; nothing goes in from your pay.',
+  none: 'Nothing goes into your pension each month.'
+};
+
 export const SAVING = {
+  payInNow: PAY_IN_NOW,
   title: 'What you pay in',
   lead: 'What goes into your pension each month, from your take-home pay and from your employer, into ISAs and savings, and how it rises each year. The plan works the rest out and shows it below: what each payment becomes once the tax the government adds back is counted, and what the pot could be by the stop.',
   source: { saved: 'From your plan, saved {date}', savedUndated: 'As saved in the plan' },
@@ -143,7 +158,7 @@ export const SAVING = {
   },
   buttons: { save: 'Save', cancel: 'Cancel', undo: 'Undo', close: 'Close', back: 'Back to your plan' },
   toast: {
-    saving: 'Saved. {you} a month from you, {employer} from your employer: {total} a month into the pension in all.',
+    ...Object.fromEntries(Object.entries(PAY_IN_NOW).map(([k, v]) => ['saving.' + k, 'Saved. ' + v])),
     recorded: 'Recorded {month}: {total} in all.',
     savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.'
   },

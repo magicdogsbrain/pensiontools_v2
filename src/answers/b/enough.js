@@ -37,6 +37,7 @@ import { leastPayIn } from '../shared/stopAt.js';
 import { SAVING, SEARCH_PROBES } from '../shared/rules.js';
 import { outOfTen } from '../shared/format.js';
 import { bandIndexes } from '../shared/band.js';
+import { takeHomeOf } from '../../services/SaverPayIn.js';
 
 /** The grid a share of pay is searched on: 0.5% of pay a step (decision 4). */
 export const SHARE_STEP = 0.5;
@@ -142,7 +143,11 @@ function capOf(q) {
  * @param {boolean} o.closedYears    the answer names savings set aside for the years before a pension opens (result.outside)
  * @returns {object}
  */
-export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed, level, reachable, only, closedYears }) {
+export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed, level, reachable, only, closedYears, scheme = null }) {
+  // how the tax is added back, when a saved plan knows it (env.scheme, 7.12.0): what leaves take-home pay is then exact;
+  // else relief at source at the basic rate is assumed, and the words say "about"
+  const known = scheme && typeof scheme === 'object' && ['ras', 'netpay', 'salsac'].includes(scheme.kind) ? { scheme: scheme.kind, salary: +scheme.salary || 0 } : null;
+  const homeOf = (landed) => round2(takeHomeOf(landed, known || {}));
   const people = peopleOf(inp, whos, savers);
   const saving = people.filter((q) => q.saves);
   const one = saving.length === 1 ? saving[0] : null;
@@ -172,6 +177,7 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
     // the level the figure is at, whether today's pay-in is close to it, and the figure (7.8.0)
     level,
     closeNow: band === 'close',
+    ...(known ? { takeHomeExact: true } : {}),
     atLevel: null
   };
   if (!reachable) { out.outOfReach = 'pot'; return out; }
@@ -188,7 +194,7 @@ export function enoughOf({ row, H, ctx, solved, inp, whos, savers, band, allowed
     const lead = parts.find((x) => x.who === (one ? one.who : null)) || null;
     return {
       payIn, extra: round2(Math.max(0, payIn - now)), savingsIn: savingsMore,
-      ...(lead ? { own: lead.own, employer: lead.employer } : {}),
+      ...(lead ? { own: lead.own, employer: lead.employer, takeHome: homeOf(lead.own !== null ? lead.own : lead.payIn) } : {}),
       ...(lead && isNum(lead.totalPct) ? { ownPct: lead.ownPct, employerPct: lead.employerPct, totalPct: lead.totalPct } : {}),
       parts
     };

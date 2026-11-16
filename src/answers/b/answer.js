@@ -488,7 +488,7 @@ export function answerB(inputs, env) {
   // what would be enough (3.1–3.3): the least share of pay (or pounds) on course and for 3 futures out of 4, each count
   // asked again at the figure said; none when the State Pension alone covers it
   const enough = status === 'guaranteed-only' ? null
-    : enoughOf({ row: base, H, ctx, solved, inp, whos, savers, band, allowed, level, reachable: number !== null, only, closedYears: outside !== null });
+    : enoughOf({ row: base, H, ctx, solved, inp, whos, savers, band, allowed, level, reachable: number !== null, only, closedYears: outside !== null, scheme: env.scheme || null });
   /** The figure that leads: what would be enough at the level chosen. */
   const enoughLead = enough ? enough.atLevel : null;
 

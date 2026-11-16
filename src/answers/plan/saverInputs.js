@@ -79,6 +79,7 @@ const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const round2 = (n) => Math.round(n * 100) / 100;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const same = (a, b) => JSON.stringify(a === undefined ? null : a) === JSON.stringify(b === undefined ? null : b);
+const hasSavingSettings = (plan) => !!(plan && plan.accumulationTool && isObj(plan.accumulationTool.settings));
 const accOf = (plan) => (plan && plan.accumulationTool && isObj(plan.accumulationTool.settings) ? plan.accumulationTool.settings : {});
 const LEVELS = ['cautious', 'balanced', 'adventurous'];
 
@@ -251,7 +252,9 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
     endAge,
     confidence: LEVEL_DEFAULT
   };
-  let env = { mix: mixes.drawing, savingMix: mixes.saving };
+  // how the tax is added back, so what leaves take-home pay is said exactly (7.12.0): the plan's own scheme, with its pay
+  const scheme = hasSavingSettings(plan) ? { kind: facts.payIn.scheme, salary: facts.payIn.salary } : null;
+  let env = { mix: mixes.drawing, savingMix: mixes.saving, ...(scheme ? { scheme } : {}) };
   const from = {};
 
   // The answer the plan was kept from, group by group, while the plan still holds what keeping it wrote (the round trip).
@@ -276,7 +279,7 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
     // the mix: the answer's levels while the plan still holds the mixes it was kept with — but a saving level the person
     // chose since (phases.saving.strategy.level, savingPathMixes `fromLevel`) is the saving years' level, as the check-in's
     // path and the lock's path read it: one mix for the path and the verdict
-    if (noHoldings && S(['equityMin', 'bondMin', 'cashTarget']) && A(['savingMix'])) { inputs.risk = b.risk; inputs.savingRisk = mixes.fromLevel || b.savingRisk; env = {}; from.mix = true; }
+    if (noHoldings && S(['equityMin', 'bondMin', 'cashTarget']) && A(['savingMix'])) { inputs.risk = b.risk; inputs.savingRisk = mixes.fromLevel || b.savingRisk; env = scheme ? { scheme } : {}; from.mix = true; }
     if (noRecords && noHoldings && S(['isaBalance']) && A(['isaMonthly'])) { inputs.savings = b.savings; inputs.savingsIn = b.savingsIn; from.savings = true; }
     if (S(['chargesPct'])) inputs.charge = b.charge;
     if (S(['isaGrowth'])) { if (b.isaGrowth !== undefined) inputs.isaGrowth = b.isaGrowth; else delete inputs.isaGrowth; }

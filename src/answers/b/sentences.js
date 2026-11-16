@@ -543,6 +543,9 @@ function verdictSentences(result, facts) {
   // so — their pay, their employer, their pension
   const theirs = !pair && (en.who ? en.who === 'partner' : p || savers[0] === 'partner');
   const W = whoWords(theirs);
+  // what leaves take-home pay: exact when a saved plan said how the tax is added back (7.12.0), else "about"
+  const ABOUT = en.takeHomeExact ? '' : 'about ';
+  const ABOUT_START = en.takeHomeExact ? '' : 'About ';
   const pensionWord = pair ? 'your pensions' : theirs ? "your partner's pension" : 'your pension';
   const intoWord = pair ? 'into your pensions between you' : `into ${pensionWord}`;
   const untilStop = both ? ['until each of you stops'] : p ? ['until your partner stops at ', A('stop.age')] : ['until you are ', A('stop.age')];
@@ -573,24 +576,39 @@ function verdictSentences(result, facts) {
   };
 
   /**
-   * A figure in the person's own kind. Long: "31% of your pay in all (you 27%, £982 a month)", "£980 a month (you
-   * £830, your employer's £150 as now)", "£1,400 a month between you (you 12% of your pay, your partner £600 a month,
-   * with your employer's part as now)". Short (the 3-in-4 figure beside the 9-in-10 one): "22% (you 18%, £697 a month)",
-   * "£690 a month".
+   * A figure in the person's own kind. Long: "31% of your pay in all", "£980 a month in all", "£1,400 a month between you
+   * (you 12% of your pay, your partner £600 a month, with your employer's part as now)". Short (beside another figure):
+   * "22% (you 18%, £697 a month)", "£690 a month". "You" is never followed by a bare amount (7.12.0): what comes from you
+   * is said by `detail`.
    */
   const figure = (key, fig, short = false) => {
     if (en.how === 'share') {
       return employerPct > 0
-        ? [PCT(`${key}.totalPct`), short ? [' (', W.who, ' '] : [' of ', W.pay, ' in all (', W.who, ' '], PCT(`${key}.ownPct`), ', ', M(`${key}.payIn`), ' a month)']
-        : [PCT(`${key}.totalPct`), short ? ' (' : [' of ', W.pay, ' ('], M(`${key}.payIn`), ' a month)'];
+        ? (short ? [PCT(`${key}.totalPct`), ' (', W.who, ' ', PCT(`${key}.ownPct`), ', ', M(`${key}.payIn`), ' a month)'] : [PCT(`${key}.totalPct`), ' of ', W.pay, ' in all'])
+        : (short ? [PCT(`${key}.totalPct`), ' (', M(`${key}.payIn`), ' a month)'] : [PCT(`${key}.totalPct`), ' of ', W.pay]);
     }
     if (pair) {
       const parts = short ? null : pairParts(key, fig);
       return [M(`${key}.payIn`), ' a month between you', parts ? [' (', parts, ')'] : ''];
     }
-    return fig.employer > 0 && !short
-      ? [M(`${key}.payIn`), ' a month (', W.who, ' ', M(`${key}.own`), ', ', W.employers, ' ', M(`${key}.employer`), ' as now)']
-      : [M(`${key}.payIn`), ' a month'];
+    return fig.employer > 0 && !short ? [M(`${key}.payIn`), ' a month in all'] : [M(`${key}.payIn`), ' a month'];
+  };
+  /**
+   * What a long figure means for the person, one way on every screen (services/SaverPayIn.js payInSaid): "you 34% (about
+   * £861 a month from your take-home pay) and your employer 3%: £1,172 a month in all"; "£1,050 from you with the tax
+   * added back (about £840 from your take-home pay), and your employer's £250 as now"; "about £500 a month from your
+   * take-home pay". The take-home figure is "about": relief at source at the basic rate is assumed. Null for a couple.
+   */
+  const detail = (key, fig) => {
+    if (pair || typeof fig.takeHome !== 'number') return null;
+    if (en.how === 'share') {
+      return employerPct > 0
+        ? [W.who, ' ', PCT(`${key}.ownPct`), ' (', ABOUT, M(`${key}.takeHome`), ' a month from ', W.takeHome, ') and ', W.employer, ' ', PCT(`${key}.employerPct`), ': ', M(`${key}.payIn`), ' a month in all']
+        : [ABOUT, M(`${key}.takeHome`), ' a month from ', W.takeHome, ': ', M(`${key}.payIn`), ' a month in all'];
+    }
+    return fig.employer > 0
+      ? [M(`${key}.own`), ' ', W.fromWho, ' with the tax added back (', ABOUT, M(`${key}.takeHome`), ' from ', W.takeHome, '), and ', W.employers, ' ', M(`${key}.employer`), ' as now']
+      : [ABOUT, M(`${key}.takeHome`), ' a month from ', W.takeHome];
   };
   /** "all of your pay", "all of your partner's pay", "all of your pay and £10,000 a month from your partner": a most reached. */
   const allOf = () => {
@@ -628,13 +646,14 @@ function verdictSentences(result, facts) {
     enoughWords = !less ? '.'
       : nine.payIn <= 0 ? ['. ', W.couldStop, ' and still be on course.']
         : employerOnly ? ['. ', W.couldStopOwn, W.employers, ' ', en.how === 'share' ? PCT(`${NINE}.employerPct`) : M(`${NINE}.employer`), ' going in, and still be on course.']
-          : ['. ', W.asLittle, figure(NINE, nine), ' and still be on course.'];
+          : ['. ', W.asLittle, figure(NINE, nine), ' and still be on course', detail(NINE, nine) ? [': ', detail(NINE, nine)] : '', '.'];
   } else if (en.savingsOnly && nine) {
     enoughWords = ['. What goes into ', pensionWord, ' is enough; ', M(`${NINE}.savingsIn`), ' a month into ISAs or savings ', untilStop, ' would put you on course, which is ', nineInTen, '.'];
   } else if (nine) {
     const parts = nine.savingsIn !== null
       ? [figure(NINE, nine), en.how === 'share' ? [' into ', pensionWord] : '', ' and ', M(`${NINE}.savingsIn`), ' a month into ISAs or savings ', untilStop]
       : figure(NINE, nine);
+    // what it means for the person is said once, in the block below (enoughLine)
     enoughWords = ['. ', parts, ' would put you on course, which is ', nineInTen, '.'];
   } else {
     // out of reach by paying in: the other ways lead (3.3)
@@ -699,8 +718,8 @@ function verdictSentences(result, facts) {
   let line;
   if (en.how === 'share') {
     line = employerPct > 0
-      ? [W.Who, ' ', PCT(`${LEAD}.ownPct`), ' and ', W.employer, ' ', PCT(`${LEAD}.employerPct`), ' as now: ', M(`${LEAD}.payIn`), ' a month going ', intoWord, ' ', going]
-      : [M(`${LEAD}.payIn`), ' a month going ', intoWord, ' ', going];
+      ? [W.Who, ' ', PCT(`${LEAD}.ownPct`), typeof leadFig.takeHome === 'number' ? [' (', ABOUT, M(`${LEAD}.takeHome`), ' a month from ', W.takeHome, ')'] : '', ' and ', W.employer, ' ', PCT(`${LEAD}.employerPct`), ' as now: ', M(`${LEAD}.payIn`), ' a month in all going ', intoWord, ' ', going]
+      : [M(`${LEAD}.payIn`), ' a month going ', intoWord, typeof leadFig.takeHome === 'number' ? [' (', ABOUT, M(`${LEAD}.takeHome`), ' from ', W.takeHome, ')'] : '', ' ', going];
   } else if (pair) {
     // each person's own part and their employer's, then what lands a month for each
     const each = leadFig.parts.map((part, j) => ({ part, j })).filter(({ j }) => facts.people[j] && facts.people[j].saves);
@@ -720,8 +739,8 @@ function verdictSentences(result, facts) {
     line = each.length === 2 ? [one(each[0], true), inner ? ', and ' : ' and ', one(each[1], false), ', ', going] : ['From now ', untilStop, ', going up with prices.'];
   } else {
     line = leadFig.employer > 0
-      ? [W.Who, ' ', M(`${LEAD}.own`), ' and ', W.employer, ' ', M(`${LEAD}.employer`), ' as now, ', going]
-      : ['From now ', untilStop, ', going up with prices.'];
+      ? [M(`${LEAD}.own`), ' ', W.fromWho, ' with the tax added back (', ABOUT, M(`${LEAD}.takeHome`), ' from ', W.takeHome, ') and ', W.employers, ' ', M(`${LEAD}.employer`), ' as now, ', going]
+      : typeof leadFig.takeHome === 'number' ? [ABOUT_START, M(`${LEAD}.takeHome`), ' a month from ', W.takeHome, ', from now ', untilStop, ', going up with prices.'] : ['From now ', untilStop, ', going up with prices.'];
   }
   const more = leadFig.extra > 0 && en.how !== 'share' ? [' That is ', M(`${LEAD}.extra`), ' a month more than now.'] : '';
   const closed = leadFig.savingsIn !== null && result.outside
@@ -745,9 +764,9 @@ function verdictSentences(result, facts) {
  */
 function whoWords(theirs) {
   return theirs
-    ? { who: 'your partner', Who: 'Your partner', pay: "your partner's pay", payShort: 'their pay', allPay: "all of your partner's pay", employer: 'their employer', employers: "their employer's",
+    ? { who: 'your partner', Who: 'Your partner', pay: "your partner's pay", payShort: 'their pay', allPay: "all of your partner's pay", employer: 'their employer', employers: "their employer's", fromWho: 'from your partner', takeHome: 'their take-home pay',
       paying: 'With your partner paying in ', couldStop: 'Your partner could stop paying in', couldStopOwn: 'Your partner could stop paying in themselves, with ', asLittle: 'Your partner could pay in as little as ' }
-    : { who: 'you', Who: 'You', pay: 'your pay', payShort: 'your pay', allPay: 'all of your pay', employer: 'your employer', employers: "your employer's",
+    : { who: 'you', Who: 'You', pay: 'your pay', payShort: 'your pay', allPay: 'all of your pay', employer: 'your employer', employers: "your employer's", fromWho: 'from you', takeHome: 'your take-home pay',
       paying: 'Paying in ', couldStop: 'You could stop paying in', couldStopOwn: 'You could stop paying in yourself, with ', asLittle: 'You could pay in as little as ' };
 }
 

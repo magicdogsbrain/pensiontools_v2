@@ -45,12 +45,12 @@ export function ChanceMore({ result, keys = ['fixed'] }) {
   const lines = keys.filter((k, i) => s[k] && keys.indexOf(k) === i);
   if (!lines.length) return null;
   const level = LEVEL_IDS.includes(result.level) ? result.level : 'balanced';
-  const asks = CHANCE_MORE.asks.replace('{level}', LEVELS_WORDS.names[level]).replace('{n}', LEVELS_WORDS.twentieths[level]);
+  const asks = CHANCE_MORE.asks[level];
   return (
     <details class="chance-more" data-testid="chance.more" open={CHANCE_MORE_OPEN}>
       <summary>{CHANCE_MORE.title}</summary>
       {lines.map((k) => <Sentence key={k} s={s[k]} source={result} class={`lasts-${k}`} data-testid={`lasts.${k}`} />)}
-      <p class="note chance-help">{CHANCE_MORE.help} {withFixedCounts(asks)}</p>
+      <p class="note chance-help">{withFixedCounts(`${CHANCE_MORE.help} ${asks}`)}</p>
     </details>
   );
 }

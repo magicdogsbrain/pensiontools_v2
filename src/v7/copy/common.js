@@ -38,13 +38,13 @@ export const LEVELS_WORDS = {
 
 /**
  * "More about the chance" (7.12.0): one closed block a page, in the answer's headline or verdict block, holding the counts
- * to one age the page would otherwise say beside each chance, and how the chance is counted. {level} and {n}: the level the
- * answer stands at, and what it asks for in twentieths.
+ * to one age the page would otherwise say beside each chance, and how the chance is counted; `asks`: what the level the
+ * answer stands at asks for, as the level strip says it.
  */
 export const CHANCE_MORE = {
   title: 'More about the chance',
   help: 'Each future counts by how likely you are to be alive when the money runs out, so running out at 98 counts for less than running out at 80.',
-  asks: '{level} asks for {n} times in 20.'
+  asks: { careful: 'Careful asks for 19 times in 20.', balanced: 'Balanced asks for 18 times in 20.', bold: 'Bold asks for 14 times in 20.' }
 };
 
 /** Whether an answer's figures are weighed by how long people live (7.8.0): its basis says so. */

@@ -30,6 +30,7 @@ import { GIA_DEFAULTS } from './TaxableSleeve.js';
 import { ENGINE_VERSION } from '../strategies/version.js';
 import { VERSION } from '../constants.js';
 import { toAgeAsWritten, planToAgeOf } from './AgeConvention.js';
+import { takenAgainstPlan } from './YearPlan.js';
 
 // 2 (6.13.0): `holdingsAtLock` — what the person held when the plan was locked, from the holdings record —
 // for every strategy; the accumulation path projects from the holdings record or the recorded pot today,
@@ -647,7 +648,6 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
   // Before the plan's year 0: a saver still working (the saving line above), or a plan stored the old way whose later
   // start is still ahead (shown the move of its start, never a reading against figures of a later year).
   const beforeStart = y < 0;
-  const yi = Math.max(0, y);
   const N = doc.timeline?.length || doc.assumptions?.duration || 35;
   const age = doc.timing.shapeAgeNow + y;
   const taxYear = taxYearLabel(taxYearStartOf(today));
@@ -655,10 +655,9 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
   const cur = steps.filter((st) => st.fromAge <= Math.max(age, steps[0]?.fromAge ?? age)).pop() || steps[0] || null;
   const next = steps.find((st) => st.fromAge > (cur ? cur.fromAge : age)) || null;   // before the start, step 1 is still ahead
   const stepNow = cur ? Math.round(amountAtAge(steps.map((st) => ({ fromAge: st.fromAge, amount: st.amount, decline: st.decline, glideToNext: st.glideToNext })), Math.max(age, cur.fromAge), cur.amount)) : null;
-  const row = doc.timeline?.[yi] || null;
   const key = String(taxYearStartOf(today) % 100).padStart(2, '0') + '/' + String((taxYearStartOf(today) + 1) % 100).padStart(2, '0');
   const recs = (history || []).filter((h) => h && h.taxYear === key);
-  const drawn = recs.reduce((t, h) => t + (+h.sipp || 0) + (+h.other || 0) + (+h.state || 0), 0);
+  const tp = takenAgainstPlan(recs);
   // The pot against the band (6.20.1): the same accounts, read at the same point in the plan — see potReading.
   const wc = doc.strategy?.r?.cones?.wealth || null;
   const pot = wc ? potReading(doc, wc, { today, history, potsToday, holdings, taxYears }) : null;
@@ -666,14 +665,14 @@ export function whereAmI(doc, { today = new Date(), history = [], potsToday = nu
     today: today.toISOString().slice(0, 10), planYear: y, planYears: N, beforeStart, taxYear, age,
     planStart: taxYearLabel(fty),
     step: cur ? { amount: stepNow, from: cur.fromAge, taxYear: cur.taxYear, index: steps.indexOf(cur) + 1, of: steps.length, next: next ? { fromAge: next.fromAge, amount: next.amount, taxYear: next.taxYear, yearsAway: next.fromAge - age } : null } : null,
-    // every record of this tax year, whatever it is marked (filled in later, paid ahead): `months` names them, in date
-    // order, `setUpMonths` those filled in from the tax year's set-up figures (said apart: Plan vs actual measures a
-    // part-year first year from its set-up on), and `cut` counts those the plan's protection cut, so the strip can say
-    // which months and why less was taken
+    // every record of this tax year, whatever it is marked (filled in later, paid ahead), read against what each month told
+    // the person to take (7.12.0, services/YearPlan.js takenAgainstPlan — the one reader of "the plan said"): `drawn` what
+    // was taken, `said` what the months said, `diff` the difference, `net` what reached the bank; `months` names them, in
+    // date order, `setUpMonths` those filled in from the tax year's set-up figures, `cut` those the plan's protection cut.
+    // The document's year row is no longer read for this: it is frozen at the lock and in the lock's prices.
     incomeThisYear: {
-      recorded: recs.length, drawn: Math.round(drawn), planned: row ? row.gross : null, perMonth: row ? Math.round(row.gross / 12) : null,
-      months: recs.map((h) => String(h.date).slice(0, 7)).sort(), setUpMonths: recs.filter((h) => h.fromSetUp === true).map((h) => String(h.date).slice(0, 7)).sort(),
-      cut: recs.filter((h) => h.inProtection === true).length
+      recorded: tp.n, drawn: tp.taken, said: tp.said, diff: tp.diff, net: tp.net,
+      months: tp.months, setUpMonths: tp.setUpMonths, cut: tp.cut, taxYear
     },
     pot,
     ladder: ladderPos ? { phase: ladderPos.phase, instruction: ladderPos.instruction, monthly: ladderPos.monthly, source: ladderPos.source, verdict: ladderPos.cashCheck?.verdict || null } : null,

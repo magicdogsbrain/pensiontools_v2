@@ -27,7 +27,7 @@ export function YearCells({ Y, words: W, title, testid }) {
             <span class="year-name" aria-hidden="true">{c.name.slice(0, 3)}</span>
             <span class="sr-only">
               {c.drawn != null ? <>{fill(W.cell[c.state].split('{drawn}')[0], { month: c.words })}<Money source={c} k="drawn" />{W.cell[c.state].split('{drawn}')[1] || ''}</> : fill(W.cell[c.state], { month: c.words })}
-              {c.plan != null && (c.state === 'recorded' || c.state === 'filled') && <>{W.planSaid.split('{plan}')[0]}<Money source={c} k="plan" /></>}
+              {c.plan != null && c.planDiffers && (c.state === 'recorded' || c.state === 'filled') && <>{W.planSaid.split('{plan}')[0]}<Money source={c} k="plan" /></>}
             </span>
           </li>
         ))}

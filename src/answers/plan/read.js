@@ -59,9 +59,10 @@ const planToAgeOfDoc = (dp) => planToAgeOf(+(dp && dp.startAge) || 0, +(dp && dp
 import { unlockPatchesOf } from '../../services/PlanCommit.js';
 import { checkInState, checkInsOf } from './checkInDue.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
-import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
+import { isClosedPlan, closedReading, beforeReading, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
+import { takenSentence } from '../../services/YearPlan.js';
 
 // The dates in words live in dates.js (shared with about.js); kept as exports here for everyone who reads them from read.js.
 export { dateOf, monthWords, monthName, dayWords };
@@ -380,6 +381,7 @@ function whereStep(C) {
   const lockedAt = lockedAtOf(plan);
   if (!w) return { done: false, result: sentence('where.noReading', ['The plan document could not be read'], figures), figures, lines, buttons: [button('seeDocument', 'document')], notes };
   let result;
+  let compare = null;
   if (w.saving) {
     const s = w.saving;
     if (s.pathMissing || s.actual == null || s.expected == null) result = sentence('where.saverNone', ['No pot recorded against the plan’s path yet'], figures);
@@ -395,34 +397,18 @@ function whereStep(C) {
     // its start is moved (on About you and when). Once year 0 has come its months are year 0's, read against the right year's
     // figure, as the planner's strip reads them (PlanDocument.whereAmI: only a year 0 ahead is held back).
     const older = !!C.startLater && C.startLater.start > C.ty;
-    const inc0 = w.incomeThisYear || { recorded: 0, drawn: 0, planned: null };
-    const inc = older ? { ...inc0, planned: null, perMonth: null } : inc0;
-    figures.months = inc.recorded; figures.drawn = r0(inc.drawn);
-    const parts = [count('months'), ' month' + (inc.recorded === 1 ? '' : 's') + ' recorded in ' + w.taxYear + ': ', money('drawn'), ' taken before tax'];
-    if (inc.planned != null) { figures.planned = r0(inc.planned); parts.push('; the plan says ', money('planned'), ' for the year'); }
-    result = sentence('where.retired', parts, figures);
-    // like with like (v6-usability-audit.md 2.6): what was taken in the months recorded against what the plan said for those
-    // months — the document's figure for the year, a twelfth a month (whereAmI's perMonth), times the months recorded —
-    // and the difference, said as less, more or the same; "because income was cut" only when a recorded month says the
-    // cut was on (the record's own inProtection flag), never a reckoning of its own
-    if (inc.recorded > 0 && inc.perMonth != null) {
-      const said = r0(inc.perMonth) * inc.recorded;
-      const diff = r0(inc.drawn) - said;
-      // the tax year of the reading (w.taxYear): a closed plan is read as at its close (readDayOf), not in today's tax year
-      const rty = taxYearStartOf(readDayOf(plan, now));
-      const key = String(rty % 100).padStart(2, '0') + '/' + String((rty + 1) % 100).padStart(2, '0');
-      const cutMonths = historyAscending(plan).filter((h) => h && h.taxYear === key && h.inProtection === true).length;
-      figures.said = said; figures.diff = Math.abs(diff); figures.cutMonths = cutMonths;
-      const head = [money('drawn'), ' taken; the plan said ', money('said'), ' for ' + (inc.recorded === 1 ? 'that month' : 'those months') + '; '];
-      const id = diff < 0 ? (cutMonths > 0 ? 'where.compareLessCut' : 'where.compareLess') : diff > 0 ? 'where.compareMore' : 'where.compareSame';
-      const tail = diff < 0 ? (cutMonths > 0 ? [money('diff'), ' less because income was cut in ' + (cutMonths === inc.recorded ? (cutMonths === 1 ? 'it' : 'all of them') : cutMonths + ' of them')] : [money('diff'), ' less than the plan said'])
-        : diff > 0 ? [money('diff'), ' more than the plan said'] : ['the same as the plan said'];
-      lines.push(line(id, [...head, ...tail], figures, sourceOf('record', null, now), { months: String(inc.recorded), cutMonths: String(cutMonths) }));
-    }
+    const inc = w.incomeThisYear || { recorded: 0, drawn: 0 };
+    // like with like (7.12.0, services/YearPlan.js): what was taken in the months recorded against what each of those months
+    // told the person to take (the records' own figures, never the document's year row a twelfth a month), the difference
+    // said as less, more or "as your plan said", "because income was cut" only when a recorded month says the cut was on,
+    // then what reached the bank — the very sentence the full view's strip says
+    const said = takenSentence(inc, { year: w.taxYear, compare: !older });
+    Object.assign(figures, said.figures);
+    result = sentence('where.retired', said.parts, figures);
+    compare = said.compare;
     // (7.10.0: the start is changed on "About you and when", by unlock and lock again — no longer a to-do)
     if (older) lines.push(line('where.startLater', ['Your plan is set to start in April ' + C.startLater.start + ', so these months are not read against it yet' + (C.readonly ? '' : '. You can change the start on About you and when')], figures, sourceOf('locked', lockedAt, now), { start: 'April ' + C.startLater.start }));
-    lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
-    if (inc.planned != null) lines.push(line('where.planned', [money('planned')], figures, sourceOf('locked', lockedAt, now), { year: w.taxYear }));
+    if (inc.recorded > 0) lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
     if (w.step && w.step.amount != null) { figures.stepNow = r0(w.step.amount); lines.push(line('where.step', [money('stepNow'), ' a year before tax'], figures, sourceOf('locked', lockedAt, now), { n: String(w.step.index), of: String(w.step.of) })); }
     if (w.pot && w.pot.actual != null) {
       figures.pot = r0(w.pot.actual);
@@ -439,7 +425,7 @@ function whereStep(C) {
   // the records by tax year, a spreadsheet per year and the printed documents stay on the classic page (road-to-7.md step 11b, month.exports)
   const older = !w.saving && !!C.startLater && C.startLater.start > C.ty;
   const startHere = older && !C.readonly ? [link('aboutWhen', '#/plan/' + plan.id + '/about')] : [];
-  return { done: true, result, figures, lines, buttons: [...startHere, button('seeDocument', 'document'), button('exports', 'exports')], notes, ...(guardrail ? { guardrail } : {}) };
+  return { done: true, result, compare, figures, lines, buttons: [...startHere, button('seeDocument', 'document'), button('exports', 'exports')], notes, ...(guardrail ? { guardrail } : {}) };
 }
 
 /** The income steps as the plan has them: the document's (locked), else the effective settings'. */

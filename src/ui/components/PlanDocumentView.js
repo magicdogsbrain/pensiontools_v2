@@ -8,7 +8,7 @@ import { decisionRunWords, mixWords } from '../../services/StrategyWords.js';
 import { assumedStatePensionWords } from '../plannerWords.js';
 import { ukDate } from '../ukDates.js';
 import { pctText as pctShare } from '../../services/OneAnswer.js';
-import { monthsWords, countWords } from '../../services/MonthFill.js';
+import { takenSentence, sentenceText } from '../../services/YearPlan.js';
 import { definitionOf, guaranteeSaid } from '../../services/PlanDocument.js';
 import { successLineHtml } from '../oneAnswerView.js';
 import { STRESS } from '../../v7/copy/stressPanel.js';
@@ -402,33 +402,16 @@ export function saverReadingText(s) {
 }
 
 /**
- * The strip's income line, like with like. It said "N months recorded this tax year: £X gross so far against £Y a month
- * planned", a total set against a monthly figure, and as drawn at Calculate it counted one month fewer than were on
- * record. Which months: every record of this tax year (whereAmI), named here, with those filled in from the tax year's
- * set-up said apart (Plan vs actual measures a part-year first year from its set-up on); the planner draws the strip
- * again after Save. What was taken in those months against what the plan said for the same months (its figure for the
- * year, a twelfth a month, times the months) and the difference, as the preview's "Where you are" says it
- * (answers/plan/read.js whereStep); "because income was cut" only when a recorded month says protection cut it. '' with
- * nothing recorded.
- * @param {{ recorded: number, drawn: number, perMonth: number|null, months?: string[], setUpMonths?: string[], cut?: number }} inc
+ * The strip's income line, like with like (7.12.0): the very sentence the simple view's "Where you are" says
+ * (services/YearPlan.js takenSentence) — the months recorded this tax year, what was taken before tax against what each of
+ * those months told the person to take, the difference and its cause, and what reached the bank — with the months filled in
+ * from the tax year's set-up named after the count. `compare` false: what was taken and no more (a plan whose start is ahead).
+ * '' with no tax year to name.
+ * @param {{ recorded: number, drawn: number, said?: number, diff?: number, net?: number|null, setUpMonths?: string[], cut?: number, taxYear?: string }} inc
  */
-export function incomeThisYearText(inc) {
-  if (!inc || !inc.recorded) return '';
-  const n = inc.recorded;
-  const setUp = Array.isArray(inc.setUpMonths) && inc.setUpMonths.length ? inc.setUpMonths : [];
-  const named = Array.isArray(inc.months) && inc.months.length === n
-    ? monthsWords(inc.months) + (setUp.length ? '; ' + monthsWords(setUp) + (setUp.length === 1 ? ' is' : ' are') + ' filled in from your tax-year set-up' : '')
-    : '';
-  const months = named ? ' (' + named + ')' : '';
-  let s = n + ' month' + (n === 1 ? '' : 's') + ' recorded this tax year' + months + ': ' + gbp(inc.drawn) + ' taken before tax';
-  if (inc.perMonth != null && inc.perMonth > 0) {
-    const said = Math.round(inc.perMonth) * n, diff = Math.round(inc.drawn) - said, cut = +inc.cut || 0;
-    const tail = diff < 0
-      ? (cut > 0 ? gbp(-diff) + ' less, because income was cut in ' + (cut >= n ? (n === 1 ? 'it' : 'all of them') : countWords(cut) + ' of them') : gbp(-diff) + ' less than the plan said')
-      : diff > 0 ? gbp(diff) + ' more than the plan said' : 'the same as the plan said';
-    s += ', against ' + gbp(said) + ' the plan said for ' + (n === 1 ? 'that month' : 'those months') + ' (' + gbp(inc.perMonth) + ' a month) — ' + tail;
-  }
-  return s + '.';
+export function incomeThisYearText(inc, { compare = true } = {}) {
+  if (!inc || !inc.taxYear) return '';
+  return esc(sentenceText(takenSentence(inc, { year: inc.taxYear, compare, setUpNote: true })));
 }
 
 /**
@@ -463,7 +446,7 @@ export function whereAmIHtml(w, g = null) {
     // a plan with months recorded began in the tax year they begin (7.4.3): that year, named
     const to = later && w.startLater.recordsFrom && w.startLater.to > 0 ? w.startLater.to + '/' + String(w.startLater.to + 1).slice(2) : null;
     parts.push('<strong>Your plan is set to start in ' + esc(w.planStart) + '.</strong>' + (to ? ' Your recorded months begin in ' + to + '.' : '') + (later ? ' To change its start, unlock the plan, change the start under Timing and lock it again.' : ''));
-    const income = incomeThisYearText(w.incomeThisYear ? { ...w.incomeThisYear, perMonth: null } : null);
+    const income = w.incomeThisYear && w.incomeThisYear.recorded ? incomeThisYearText(w.incomeThisYear, { compare: false }) : '';
     if (income) parts.push(income);
     return '<div class="alert alert-info pd-where"><div class="section-title" style="font-size:13px;">Where you are — ' + esc(dateGB(w.today)) + '</div><p style="margin:4px 0 0;">' + parts.join(' ') + '</p></div>';
   }

@@ -30,7 +30,9 @@
  * Fields the change ADDS (not figures: where the plan stands) are taken out before the digest, by name: the timing's
  * planYearNow / elapsedYears / monthsIntoYear (deriveTiming; the document spreads its timing whole), and `potsAsOf`, the
  * position a locked plan's effective settings carry (PlanFromToday.lockedPotsAsOf), wherever a copy of the settings is
- * echoed in an output (the household split's settings).
+ * echoed in an output (the household split's settings). Likewise `potsNotSet` (7.12.0, PlanReading.withPensionToday): the
+ * in-memory note that a plan with no figures has no pension known anywhere, stripped before every save like `potsAsOf`; the
+ * fresh default plan's split echoes it, and not one figure moves with it.
  */
 import { describe, it, expect, afterAll, vi } from 'vitest';
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
@@ -92,7 +94,7 @@ const names = pinned ? Object.keys(pinned.fixtures) : Object.keys(raws);
 
 /** JSON of a value with functions left out and numbers as given (`exact`) or to 6 significant figures (`sf6`). */
 const digest = (v) => {
-  const json = (round) => JSON.stringify(v, (k, x) => (typeof x === 'function' || k === 'potsAsOf' ? undefined
+  const json = (round) => JSON.stringify(v, (k, x) => (typeof x === 'function' || k === 'potsAsOf' || k === 'potsNotSet' ? undefined
     : typeof x === 'number' ? (Number.isFinite(x) ? (round ? Number(x.toPrecision(6)) : x) : String(x)) : x));
   const sha = (s) => createHash('sha1').update(s == null ? 'undefined' : s).digest('hex').slice(0, 16);
   return { sf6: sha(json(true)), exact: sha(json(false)) };

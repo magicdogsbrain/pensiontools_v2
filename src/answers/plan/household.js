@@ -39,6 +39,7 @@ import { pounds } from './income.js';
 import { HOUSEHOLD_FIELDS, HOUSEHOLD_WRITES, PAID_BYS, LATER_DRAFT_WRITES } from './schema.js';
 import { laterDraftPatch } from './moveStart.js';
 import { dateOf, dayWords } from './dates.js';
+import { planEndAgeOf } from '../../services/PlanTiming.js';
 
 export { runKeyOf };
 
@@ -352,7 +353,8 @@ const headOf = (share) => (isOnCourse(share) ? 'yes' : share >= BORDERLINE_SHARE
 const r5 = (fan) => (Array.isArray(fan) ? fan.filter((f, i) => i % 5 === 0) : []);
 
 /** The age a plan is tested until: its start age and its length, from its effective settings; null when not given. */
-const endAgeOf = (ss) => { const a = num(ss && ss.shapeAgeNow), d = num(ss && ss.duration); return a != null && d != null ? a + d : null; };
+/** The age a plan is tested until: the one end age (PlanTiming.planEndAgeOf), or null. */
+const endAgeOf = (ss, now) => (ss ? planEndAgeOf(ss, now) : null);
 
 /**
  * The pooled verdict and each plan alone, in words with slots (householdView.verdictSectionHtml says the same). Until when each
@@ -528,7 +530,7 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
     status: h ? h.status : 'idle', reason: h && h.status === 'failed' ? h.reason || null : null, ms: h && h.ms != null ? h.ms : null, progress: h ? h.progress : null, stale,
     runs: result && result.basis ? String(result.basis.runs) : null,
     unaffordable: result && !result.ok ? { which: result.which === 'b' ? names.b : names.a, reason: result.reason === 'partnerNotSet' ? null : (result.why || ''), kind: result.reason } : null,
-    verdict: ok ? verdictView(result.own, names, result.offsets, { a: endAgeOf(saved.ssA), b: endAgeOf(saved.ssB) }) : null,
+    verdict: ok ? verdictView(result.own, names, result.offsets, { a: endAgeOf(saved.ssA, now), b: endAgeOf(saved.ssB, now) }) : null,
     // the years are calendar years (7.12.0), never a row's count from today; a plan past its last age is said to have ended
     timeline: ok && Array.isArray(result.timeline) ? result.timeline.map((r) => ({ year: String(r.calendarYear != null ? r.calendarYear : now.getFullYear() + r.year), beforeStatePension: !!r.beforeStatePension, workingA: !!r.workingA, workingB: !!r.workingB, endedA: !!r.endedA, endedB: !!r.endedB, needA: pounds(r.needA), needB: pounds(r.needB), sp: pounds(r.spA + r.spB), other: pounds(r.db + r.other), draw: pounds(r.drawNeed) })) : [],
     left: ok && result.own && result.own.combined ? r5(result.own.combined.potFan).map((f) => ({ year: String(now.getFullYear() + f.year), p10: pounds(f.p10), p50: pounds(f.p50), p90: pounds(f.p90) })) : [],

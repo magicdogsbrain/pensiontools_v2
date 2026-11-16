@@ -9,7 +9,7 @@ import { assumedStatePensionWords } from '../plannerWords.js';
 import { ukDate } from '../ukDates.js';
 import { pctText as pctShare } from '../../services/OneAnswer.js';
 import { takenSentence, sentenceText } from '../../services/YearPlan.js';
-import { definitionOf, guaranteeSaid } from '../../services/PlanDocument.js';
+import { definitionOf, guaranteeSaid, timingWords } from '../../services/PlanDocument.js';
 import { successLineHtml } from '../oneAnswerView.js';
 import { STRESS } from '../../v7/copy/stressPanel.js';
 import { PLAN } from '../../v7/copy/plan.js';
@@ -133,7 +133,8 @@ export function planDocumentHtml(doc, r = {}) {
   // The timing sentence is the snapshot's (its "in 9 months" was counted on the day it was written): say so, or it reads as
   // today's under "Where you are" (sweep 18 Oct 2026). A document written after the lock — "Write a new version from today's
   // settings", or a move of the plan's start (6.53.0) — says the day it was written, not the lock's.
-  if (t.text) h += '<p>' + (r.whereAmI ? '<span class="hint">' + writtenWhen(d) + ': </span>' : '') + esc(t.text) + '</p>';
+  // its end age said in the one rule (PlanDocument.timingWords: a document written before 7.9.0 said one year less)
+  if (t.text) h += '<p>' + (r.whereAmI ? '<span class="hint">' + writtenWhen(d) + ': </span>' : '') + esc(timingWords(d)) + '</p>';
 
   // Timeline: picture + table
   let tl = '';

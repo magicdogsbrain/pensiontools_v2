@@ -29,6 +29,7 @@ import { stopAskOf, stopLeftOf, stopChangeOf, startLaterOf } from '../../service
 import { ABOUT_FIELDS, ABOUT_WRITES, MIN_YEARS } from './schema.js';
 import { dateOf, dayWords, monthWords, localDay, localMonth, MONTHS } from './dates.js';
 import { partnersOf } from '../../services/HouseholdLink.js';
+import { planToAgeOf } from '../../services/AgeConvention.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
@@ -126,7 +127,7 @@ export function savedAbout(plan, { today }) {
   const stopped = age == null ? null : timing.mode === 'future' ? (stopMonth && stopAhead ? 'month' : 'age') : 'yes';
   const fty = timing.firstTaxYear;
   const startWhen = stopped === 'yes' ? whenOf(fty, thisTY, stopped === 'yes' && stopMonth && !stopAhead ? stopMonth : null) : null;
-  const endAge = timing.shapeAgeNow + duration;   // "Plan to age 97" = to the 97th birthday: the last year is at 96 (rules.js planToAgeOf)
+  const endAge = planToAgeOf(timing.shapeAgeNow, duration);   // the one end age: "Plan to age 97" = to the 97th birthday (AgeConvention.planToAgeOf)
   const source = locked ? { kind: 'locked', at: dayWords(lockedAtOf(plan)) } : { kind: 'saved', at: plan && plan.lastModified ? dayWords(plan.lastModified) : null };
   const ageSource = locked ? source : { kind: 'saved', at: ageAsOf ? dayWords(ageAsOf) : source.at };
   return {
@@ -508,7 +509,7 @@ export function applyPatch(plan, patch) {
  */
 export function derivedLines(timing, duration, { stopAgeFromMonth = null } = {}) {
   if (!timing || timing.mode === 'legacy') return [{ id: 'noAge', slots: {} }];
-  const endAge = timing.shapeAgeNow + duration;   // to that birthday (rules.js planToAgeOf)
+  const endAge = planToAgeOf(timing.shapeAgeNow, duration);   // the one end age (AgeConvention.planToAgeOf)
   const lines = [];
   if (timing.mode === 'future') {
     if (stopAgeFromMonth != null) lines.push({ id: 'monthAs', slots: { age: timing.retireAge, month: monthWords(timing.startMonth) } });

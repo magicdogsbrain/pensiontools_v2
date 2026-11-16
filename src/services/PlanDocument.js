@@ -761,3 +761,18 @@ export function guardrailOf(doc, w) {
       less: pounds(less), lessPct: pct(rate * (1 - GUARDRAIL.step)), more: pounds(more), morePct: pct(rate * (1 + GUARDRAIL.step)) }
   };
 }
+
+/**
+ * The plan document's timing sentence as it is read (7.12.0, one end-age rule): the stored text with its trailing "Plan runs
+ * to age N." said again in the one rule, from the document's own start age and years (AgeConvention.planToAgeOf). A document
+ * written before 7.9.0 said the age in its last year, one below every other page; nothing stored changes.
+ */
+export function timingWords(doc) {
+  const t = doc && doc.timing;
+  const text = t && typeof t.text === 'string' ? t.text : '';
+  if (!text) return '';
+  const years = Array.isArray(doc.timeline) && doc.timeline.length ? doc.timeline.length : +(doc.assumptions && doc.assumptions.duration) || 0;
+  const start = Number.isFinite(+t.shapeAgeNow) && t.shapeAgeNow !== null && t.shapeAgeNow !== '' ? +t.shapeAgeNow : null;
+  if (!(years > 0) || start == null) return text;
+  return text.replace(/\s*Plan runs to age \d+\.\s*$/, '') + ' Plan runs to age ' + planToAgeOf(start, years) + '.';
+}

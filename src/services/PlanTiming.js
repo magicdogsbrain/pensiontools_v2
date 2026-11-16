@@ -30,6 +30,7 @@ import { isaGrowthOf, cashProjectionRate } from './IsaGrowth.js';
 import { isaFundsDecide } from './IsaFunds.js';
 import { potScaleOf, sippTodayOf } from './PotsAtRetirement.js';
 import { INFLATION_DEFAULTS } from '../constants.js';
+import { planToAgeOf } from './AgeConvention.js';
 import { lastDayBeforeChange, accessAgeFromAgeBeforeChange } from './PensionAge.js';
 
 const MS_PER_DAY = 24 * 3600 * 1000;
@@ -223,6 +224,22 @@ function localDay(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).p
  *    and switch the State Pension to tax-year counting, and a pin must not change any figure on the day it lands.
  */
 export const TIMING_PIN_KEYS = ['firstTaxYear', 'retired', 'retireAge', 'currentAgeAsOf', 'legacyFirstTaxYear'];
+
+/**
+ * The age a plan runs to (7.12.0, one end-age rule): the age reached in the last tax year it pays — "to 93" = to the 93rd
+ * birthday — from the start age as the timing derives it (deriveTiming's shapeAgeNow, never a stale stored copy) plus its
+ * years. Null without a length. Every page that says how long a plan is tested or runs reads this (About, the Stress
+ * settings' timing line, the household's "tested until"); a locked document's own figures go through planToAgeOf too.
+ */
+export function planEndAgeOf(settings, now = new Date()) {
+  const s = settings || {};
+  const years = +s.duration;
+  if (!(years > 0)) return null;
+  let t = null;
+  try { t = deriveTiming(s, now); } catch (e) { t = null; }
+  const start = t && Number.isFinite(+t.shapeAgeNow) ? +t.shapeAgeNow : (s.shapeAgeNow !== '' && Number.isFinite(+s.shapeAgeNow) ? +s.shapeAgeNow : null);
+  return start == null ? null : planToAgeOf(start, years);
+}
 
 /** migrateTiming plus the two pins it does not make (the age's date, the no-age start year). Pure, idempotent. */
 export function pinTiming(settings, budget = null, now = new Date()) {
@@ -455,7 +472,7 @@ export function describeTiming(t, settings, now = new Date()) {
     const sp = parseStatePensionDate(s.spStartDate);
     if (sp) { const y = taxYearStartOf(sp) - t.firstTaxYear; parts.push('State Pension from ' + taxYearLabel(taxYearStartOf(sp)) + (y >= 0 ? ' (plan year ' + y + ')' : started ? ' (already paid when the plan started)' : t.mode === 'future' ? ' (before you stop work)' : ' (already being paid when the plan starts)') + '.'); }
   }
-  if (+s.duration > 0) parts.push('Plan runs to age ' + (t.shapeAgeNow + (+s.duration)) + '.');   // to that birthday (answers/shared/rules.js planToAgeOf)
+  if (+s.duration > 0) parts.push('Plan runs to age ' + planToAgeOf(t.shapeAgeNow, +s.duration) + '.');   // the one end age (AgeConvention.planToAgeOf)
   return parts.join(' ');
 }
 

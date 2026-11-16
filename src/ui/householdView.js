@@ -16,14 +16,15 @@ import { isOnCourse, onCourseAlertClass, jointVerdictHtml, ON_COURSE_WORDS } fro
 import { futuresOutOfTen, pctBesideWords } from '../services/OneAnswer.js';
 import { headlineWords, about, noSplitWords } from '../services/HouseholdDraw.js';
 import { HOUSEHOLD } from '../v7/copy/household.js';
+import { planEndAgeOf } from '../services/PlanTiming.js';
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export const gbp = (n) => '£' + Math.round(+n || 0).toLocaleString('en-GB');
 const fill = (text, slots) => String(text || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
 // In words (6.33.0): the whole count said "10 in 10" from 95% and "9 in 10" from 85% — the words do not.
 const inTen = (share) => futuresOutOfTen(+share || 0).words.replace(/^in /, '');
-/** The age a plan is tested until (its start age and its length), or null. */
-const endAgeOf = (s) => (s && s.shapeAgeNow !== '' && s.duration !== '' && Number.isFinite(+s.shapeAgeNow) && Number.isFinite(+s.duration) && +s.duration > 0 ? +s.shapeAgeNow + +s.duration : null);
+/** The age a plan is tested until: the one end age (PlanTiming.planEndAgeOf), or null. */
+const endAgeOf = (s, now) => (s ? planEndAgeOf(s, now) : null);
 
 /**
  * The household verdict in words, pooled first, in the simple view's sentences (7.12.0): until when each plan is tested,
@@ -35,7 +36,8 @@ export function householdVerdictHtml(r, o = {}) {
   const head = isOnCourse(share) ? C.head.yes : share >= 0.7 ? C.head.close : C.head.no;
   const names = { a: o.ownName || 'This plan', b: o.pName || 'Partner' };
   let s = '<strong>' + esc(head) + '.</strong> ' + esc(fill(C.headline, { words: futuresOutOfTen(share).words }));
-  const ends = { a: endAgeOf(o.setA), b: endAgeOf(o.setB) };
+  const now = o.now instanceof Date ? o.now : new Date();
+  const ends = { a: endAgeOf(o.setA, now), b: endAgeOf(o.setB, now) };
   if (ends.a != null && ends.b != null) s += ' ' + esc(ends.a === ends.b ? fill(C.tested, { age: ends.a }) : fill(C.testedTwo, { a: names.a, b: names.b, ageA: ends.a, ageB: ends.b }));
   if (r.pooled) {
     s += ' ' + esc(C.pooled);

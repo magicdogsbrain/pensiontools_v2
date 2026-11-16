@@ -37,6 +37,9 @@ import { potsAsOfFor, withoutPotsAsOf, lockedPotsAsOf, potsDayOf } from './PlanF
 import { readDayOf } from './PlanClosed.js';
 import { laterDraftOf, withLockedStart } from './PlanMove.js';
 import { potsAtStopOf } from './PotsAtStop.js';
+import { planHasFigures } from './PlanFigures.js';
+import { pensionTodayOf } from './PensionToday.js';
+import { sippTodayOf } from './PotsAtRetirement.js';
 
 /**
  * Default stress database structure.
@@ -188,7 +191,7 @@ export function effectiveStressSettings(scenario, { now = new Date(), env = {} }
  * document was locked with; anything else as stored. Nothing is written.
  */
 export function withDerivedPots(scenario, settings, now = new Date(), env = {}) {
-  const s = settings || {};
+  const s = withPensionToday(scenario, settings || {}, now);
   if (s.retired !== false) return s;
   if (isLockedScenario(scenario)) {
     const doc = scenario && scenario.planDocument;
@@ -199,6 +202,29 @@ export function withDerivedPots(scenario, settings, now = new Date(), env = {}) 
   try { worked = potsAtStopOf(scenario, s, { now, env }); } catch (e) { worked = null; }
   // the person's own figure stays exactly as stored (marked 'override', as every reader of it expects)
   return worked && worked.source === 'worked' ? { ...s, potAtRetirement: worked } : s;
+}
+
+/**
+ * A plan with no figures (PlanFigures.planHasFigures: straight from the full view's wizard, its pots the defaults) reads no
+ * default as a figure (7.12.0). When a pension today is known elsewhere (services/PensionToday.js: a pot record, What you
+ * hold, the pot saved with what you pay in), its pots are that pension, split as stored; with none known, `potsNotSet`
+ * says so (in memory only, stripped before any save like `potsAsOf`), so the full view shows the boxes empty. A plan with
+ * figures, or locked, is read as stored.
+ */
+export function withPensionToday(scenario, settings, now = new Date()) {
+  const s = settings || {};
+  if (!scenario || planHasFigures(scenario)) return s;
+  const known = pensionTodayOf(scenario, { now, settings: s });
+  if (known.value == null) return { ...s, potsNotSet: true };
+  const parts = ['bondMin', 'cashTarget', 'diversifierStart'];
+  const total = sippTodayOf(s);
+  const v = Math.max(0, Math.round(known.value));
+  if (!(total > 0)) return { ...s, equityMin: v, bondMin: 0, cashTarget: 0, diversifierStart: 0 };
+  const out = { ...s };
+  let rest = v;
+  for (const k of parts) { out[k] = Math.round(v * (+s[k] || 0) / total); rest -= out[k]; }
+  out.equityMin = rest;
+  return out;
 }
 
 /**

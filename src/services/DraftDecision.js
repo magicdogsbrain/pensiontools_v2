@@ -18,7 +18,7 @@
  */
 import { seedDecisionFromStress, getDefaultDecisionSettings } from './PlanCommit.js';
 import { effectiveStressSettings } from './PlanReading.js';
-import { isLockedSettings } from './LockedPlanGuard.js';
+import { planHasFigures, planLocked } from './PlanFigures.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const copy = (v) => JSON.parse(JSON.stringify(v));
@@ -26,22 +26,7 @@ const copy = (v) => JSON.parse(JSON.stringify(v));
 /** The plan's stored Decision settings, or undefined. */
 const storedDecision = (plan) => (plan && plan.decisionTool && isObj(plan.decisionTool.settings) ? plan.decisionTool.settings : undefined);
 
-/** Is the plan locked, as stored? */
-export const planLocked = (plan) => isLockedSettings(storedDecision(plan));
-
-/**
- * Whether the plan holds figures someone gave it: Stress settings saved (`configured`), an older plan whose income is not
- * the factory one (before the flag: 30,000 is the default, and a net-first figure never lands on it), a locked plan, or a
- * plan kept from an answer.
- */
-export function planHasFigures(plan) {
-  if (!plan) return false;
-  if (isObj(plan.fromAnswer)) return true;
-  if (planLocked(plan)) return true;
-  const s = plan.stressTool && isObj(plan.stressTool.settings) ? plan.stressTool.settings : null;
-  if (!s) return false;
-  return s.configured === true || (!!s.baseSalary && +s.baseSalary !== 30000);
-}
+export { planHasFigures, planLocked };
 
 /**
  * The Decision settings as every reader takes them. Locked: the stored copy (a copy, so a reader cannot change the record).

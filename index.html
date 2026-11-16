@@ -4188,7 +4188,7 @@
     import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
-    import { refreshDraftLines, paintDraftSettingsLine, openStressSettings } from './src/ui/draftPlanLine.js'; import { planHasFigures } from './src/services/DraftDecision.js';   // an unlocked plan's own figures (7.12.0)
+    import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots } from './src/ui/draftPlanLine.js'; import { planHasFigures } from './src/services/DraftDecision.js';   // an unlocked plan's own figures (7.12.0)
     import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
@@ -4730,7 +4730,7 @@
         // Pre-fill Stress Settings tab
         document.getElementById('ssBaseSalary').value = stressSettings.baseSalary;
         syncNetFromGross('ss');
-        writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget, stressSettings.diversifierStart || 0);
+        writeAlloc('ss', stressSettings.equityMin, stressSettings.bondMin, stressSettings.cashTarget, stressSettings.diversifierStart || 0); blankUnsetPots(document, stressSettings);
         restoreCustomAllocFromSettings('ss', stressSettings);   // rebuild a from-funds split if one was saved
         window._taggedFunds.ss = (stressSettings.taggedFunds || []).map(f => ({ ...f }));  // the funds this strategy is tested on
         // 6.13.0: each strategy's own inputs. A pre-6.13 flat bag is sorted into strategyState in memory here (each stray
@@ -9744,7 +9744,7 @@
         // FULL allocation restore (mirrors initializeAllInputsFromSettings / loadDecisionSettings) —
         // restore the tagged funds, custom split, and mode so a saved "My funds" plan doesn't revert to
         // a risk preset, and a plan with no funds defaults to "Pick a risk level".
-        writeAlloc('ss', s.equityMin, s.bondMin, s.cashTarget, s.diversifierStart || 0);
+        writeAlloc('ss', s.equityMin, s.bondMin, s.cashTarget, s.diversifierStart || 0); blankUnsetPots(document, s);   // no pension known anywhere: the box empty, never a default (7.12.0)
         restoreCustomAllocFromSettings('ss', s);
         window._taggedFunds.ss = (s.taggedFunds || []).map(f => ({ ...f }));
         setAllocMode('ss', s.allocMode || ((s.taggedFunds && s.taggedFunds.length) ? 'funds' : 'risk'));

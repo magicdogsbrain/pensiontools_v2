@@ -476,6 +476,25 @@ export function stopAskPatch(plan, typed, { today }) {
 }
 
 /** A copy of the plan with a patch folded on: a dotted path set to its value, or removed when the value is undefined. */
+/**
+ * The toast's line after a save (7.12.0): what the plan runs to, and, when the save moves the stop age of a plan still
+ * saving, the pension then before and after, as every saver screen says it (PlanReading.withDerivedPots: worked out from the
+ * plan, to the nearest £1,000). A figure the person typed for the day they stop stays theirs, so nothing more is said.
+ */
+function stopPotLine(plan, p, slots, today) {
+  const plain = { id: 'runsTo', slots };
+  const path = 'stressTool.settings.retireAge';
+  if (!p || !p.ok || !(path in p.patch) || !(+p.previous[path] > 0) || !(+p.patch[path] > 0)) return plain;
+  try {
+    const now = dateOf(today);
+    const before = effectiveStressSettings(plan, { now }).potAtRetirement;
+    const after = effectiveStressSettings(applyPatch(plan, p.patch), { now }).potAtRetirement;
+    if (!before || !after || before.source !== 'worked' || after.source !== 'worked') return plain;
+    const k1 = (v) => '£' + (Math.round((+v || 0) / 1000) * 1000).toLocaleString('en-GB');
+    return { id: 'runsToPot', slots: { ...slots, stopAge: +p.patch[path], after: k1(after.sipp), before: k1(before.sipp), stopBefore: +p.previous[path] } };
+  } catch { return plain; }
+}
+
 export function applyPatch(plan, patch) {
   const out = JSON.parse(JSON.stringify(plan));
   for (const [path, v] of Object.entries(patch || {})) { if (v === undefined) deletePath(out, path); else setPath(out, path, copy(v)); }
@@ -622,7 +641,7 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
     yearChoices: Object.fromEntries((c.offered || []).filter((o) => choiceYear(o)).map((o) => [o, taxYearLabel(choiceYear(o))])),
     fields, errors: c.errors, ok: c.ok, derived, notUsed: notUsedBy(sid), partners, suggestion, endAgeMin: c.minEnd, minYears: MIN_YEARS,
     changed: Object.keys(p.patch).length > 0, patch: p.patch, previous: p.previous, savedSlots: slots,
-    // the one sentence the toast says after a save: what the plan now runs to
-    savedLine: c.ok ? { id: 'runsTo', slots: { endAge: c.values.endAge, years: c.duration } } : null
+    // the one sentence the toast says after a save: what the plan now runs to, and (7.12.0) a new stop age's pension then
+    savedLine: c.ok ? stopPotLine(plan, p, { endAge: c.values.endAge, years: c.duration }, today) : null
   };
 }

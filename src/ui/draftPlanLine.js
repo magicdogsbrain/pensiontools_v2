@@ -10,6 +10,8 @@
  *   refreshDraftLines(win, doc, deps)       reads the open plan (deps: getActiveScenarioAsync, getStressSettingsAsync) and
  *                                           draws both boxes; never throws
  *   openStressSettings(win)                 opens Stress tester → Settings
+ *   blankUnsetPots(doc, settings)           a plan with no pension known anywhere (`potsNotSet`, PlanReading.withPensionToday):
+ *                                           the Stress settings' pot box empty, "Not set yet", never the default
  *
  * The words are plain data; the painters only set text and one button that opens Stress tester → Settings.
  */
@@ -27,7 +29,8 @@ export const DRAFT_WORDS = Object.freeze({
   none: 'This plan has no figures yet. Add your pot and what you want to spend on Stress tester → Settings.',
   settings: 'These are your plan\'s settings. Change them on Stress tester → Settings; this page follows.',
   openStress: 'Open the Stress tester',
-  openSettings: 'Open Stress tester settings'
+  openSettings: 'Open Stress tester settings',
+  notSet: 'Not set yet'
 });
 
 /** The plan's figures as one list: "pension £250,000, ISAs and savings £20,000, £23,858 a year before tax". */
@@ -93,4 +96,12 @@ export async function refreshDraftLines(win, doc, deps) {
     for (const id of ['dsSetupBanner', 'ssSetupBanner']) { const el = doc.getElementById(id); if (el) el.style.display = 'none'; }
     return null;
   }
+}
+
+/** Empties the Stress settings' pot box when no pension is known anywhere, so no default reads as a figure. */
+export function blankUnsetPots(doc, settings) {
+  const box = doc && doc.getElementById('ssPot');
+  if (!box) return;
+  if (settings && settings.potsNotSet) { box.value = ''; box.placeholder = DRAFT_WORDS.notSet; }
+  else if (box.placeholder === DRAFT_WORDS.notSet) box.placeholder = '';
 }

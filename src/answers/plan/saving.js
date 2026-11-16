@@ -311,6 +311,28 @@ export function payInNowOf(settings) {
   return { id: (before ? 'before' : 'pounds') + (employer > 0 ? 'Employer' : ''), slots };
 }
 
+/** "Are you paying in enough?" on the plan's figures as saved: the run's key, inputs and the words beside it. */
+function verdictOf(plan, list, today) {
+  const read = saverInputsOf(plan, { today, plans: list });
+  return read.ok
+    ? { ok: true, key: saverRunKey(plan.id, read), inputs: read.inputs, env: read.env, notes: { ...read.notes, aimYearly: pounds(read.notes.aimYearly), aimMonthly: pounds(read.notes.aimMonthly), stopAge: String(read.notes.stopAge), rise: read.notes.rise ? { pct: String(read.notes.rise.pct), path: read.notes.rise.path } : null } }
+    : { ok: false, why: read.why || 'notSaving', key: null };
+}
+
+/**
+ * The same verdict for the plan's home (7.12.0): the home of a plan still saving says the answer, under the same key, so the
+ * one run serves both the home and "What you pay in". Null for a plan not saving or shown as saved.
+ */
+export function saverVerdictOf(entries, id, { today } = {}) {
+  const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
+  const entry = list.find((e) => String(e.plan.id) === String(id)) || null;
+  if (!entry || entry.newer || entry.failed) return null;
+  try {
+    if (!SAVER_STAGES.includes(planStage(entry.plan, { now: dateOf(today) }).key)) return null;
+    return verdictOf(entry.plan, list, today);
+  } catch { return null; }
+}
+
 /** Everything the screen draws. `typed` is the draft's values for this plan (text by path), or null. */
 export function savingOf(entries, id, { today, typed = null, source = 'account' } = {}) {
   const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
@@ -365,10 +387,7 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
   // "Are you paying in enough?" (research/saving-enough-and-check-in.md 4.1, 4.4; release step R2): the plan's own figures as
   // question B's inputs, worked out by B in the worker (effects/saver.js) under this key — never for a plan shown as saved
   // (its shape is newer than this code), and from the figures as saved, never from boxes not yet saved
-  const read = readonly ? { ok: false, why: 'readonly' } : saverInputsOf(plan, { today, plans: list });
-  const verdict = read.ok
-    ? { ok: true, key: saverRunKey(plan.id, read), inputs: read.inputs, env: read.env, notes: { ...read.notes, aimYearly: pounds(read.notes.aimYearly), aimMonthly: pounds(read.notes.aimMonthly), stopAge: String(read.notes.stopAge), rise: read.notes.rise ? { pct: String(read.notes.rise.pct), path: read.notes.rise.path } : null } }
-    : { ok: false, why: read.why || 'notSaving', key: null };
+  const verdict = readonly ? { ok: false, why: 'readonly', key: null } : verdictOf(plan, list, today);
   const p = !readonly && c.ok ? savingPatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
   const rec = typed && Object.keys(typed).some((k) => k.startsWith('record.')) ? recordPatch(plan, typed, { today }) : null;
   return {

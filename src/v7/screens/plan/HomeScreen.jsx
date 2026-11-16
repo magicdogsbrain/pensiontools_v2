@@ -10,8 +10,8 @@
  * rail's "Next" comes from. Nothing here writes a plan: "Not now" and the other ways to put a to-do away ask the plan write
  * (plan/task) to store it on the plan, so it stays away on every device (7.10.0).
  */
-import { PlanLine, PlanSentence, fill, Button, LinkButton, Counted, notNowPress, stepNameOf, LifeLine, YearCells } from '../../components/index.js';
-import { planView, plansView, lifeStages, planKeepTestView } from '../../state/select.js';
+import { PlanLine, PlanSentence, fill, Button, LinkButton, Counted, notNowPress, stepNameOf, LifeLine, YearCells, Sentence } from '../../components/index.js';
+import { planView, plansView, lifeStages, planKeepTestView, homeSaverView } from '../../state/select.js';
 import { KeepTestLine } from './KeepTest.jsx';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
@@ -28,6 +28,45 @@ const itemWords = (it) => {
     : it.id === 'review.offCourse' && it.slots && (it.slots.a === '' || it.slots.b === '') ? HOME.offCourse.plain : words.detail;
   return { title: fill(words.title, it.slots), detail: fill(detail, it.slots) };
 };
+
+/**
+ * "Are you paying in enough?" on a saving plan's home (7.12.0): the answer's own head and first sentence, and what would be
+ * enough when not on course — the same run as "What you pay in" (effects/saver.js), drawn only.
+ */
+function SaverBlock({ V, planId, view, dispatch }) {
+  if (!V) return null;
+  const W = HOME.saver;
+  const v = V.verdict;
+  if (!v.ok) {
+    return v.why === 'noAim' ? (
+      <section class="block home-saver" data-testid={`${T}.saver`} data-why="noAim" aria-labelledby="home-saver-title">
+        <h2 id="home-saver-title">{W.title}</h2>
+        <p class="note">{W.noAim} <a href={href.plan(planId, 'spend')}>{W.noAimLink}</a></p>
+      </section>
+    ) : null;
+  }
+  const run = V.run || { status: 'working', result: null };
+  const r = run.result;
+  const s = (r && r.sentences) || {};
+  const band = r && r.verdict && r.verdict.band;
+  // "Am I saving enough?" opened with the plan's figures, as the home's own ask link opens it
+  const fillOf = view.askFill && view.askFill.b;
+  const onWays = fillOf ? (e) => { e.preventDefault(); dispatch({ type: 'draft/load', q: 'b', values: fillOf.values, ...(fillOf.mixes ? { mixes: fillOf.mixes } : {}), ...(fillOf.flexibleAccess ? { flexibleAccess: fillOf.flexibleAccess } : {}), planId: String(planId) }); } : undefined;
+  return (
+    <section class="block home-saver" data-testid={`${T}.saver`} data-status={run.status} data-verdict={band || undefined} aria-labelledby="home-saver-title" aria-busy={run.status === 'working' || run.status === 'first' ? 'true' : undefined}>
+      <h2 id="home-saver-title">{W.title}</h2>
+      {run.status === 'failed' && <p class="notice" role="alert">{run.reason === 'noWorker' ? W.noWorker : W.failed}</p>}
+      {!r && run.status !== 'failed' && <p class="working-note" role="status" data-testid={`${T}.saver.working`}>{W.working}</p>}
+      {r && s.verdictHead && <p class={`figure verdict is-${band}`}><Sentence s={s.verdictHead} source={r} as="span" /></p>}
+      {r && s.verdictLine && <Sentence s={s.verdictLine} source={r} class="line" data-testid={`${T}.saver.line`} />}
+      {r && band !== 'yes' && s.enoughHead && <p class="line" data-testid={`${T}.saver.enough`}><Sentence s={s.enoughHead} source={r} as="span" />{s.enoughLine && <>. <Sentence s={s.enoughLine} source={r} as="span" /></>}</p>}
+      <div class="actions-row">
+        <LinkButton testid={`${T}.saver.change`} kind="quiet" href={href.plan(planId, 'saving')}>{W.change}</LinkButton>
+        {fillOf && <a href={href.step('b', 'numbers')} data-testid={`${T}.saver.ways`} data-filled="plan" onClick={onWays}>{W.ways}</a>}
+      </div>
+    </section>
+  );
+}
 
 function Item({ it, first, planId, dispatch }) {
   // a partner's to-do (7.10.0: in the one list, after the plan's own): named by its plan, never put away here
@@ -161,6 +200,9 @@ export function HomeScreen(state, dispatch) {
           {H.before && <p class="note" data-testid="plan.before">{H.before.previous ? fill(PLAN.page.before, { name: H.before.previous.name, month: H.before.until }) : fill(PLAN.page.beforeAlone, { month: H.before.until })}{H.before.previous && <> <LinkButton testid="plan.before.open" kind="quiet" href={href.plan(H.before.previous.id)}>{fill(PLAN.buttons.openPrevious, { name: H.before.previous.name })}</LinkButton></>}</p>}
           {H.source === 'window' && <p class="note" data-testid="plan.windowWarning">{PLAN.page.windowWarning}</p>}
         </div>
+
+        {/* a plan still saving: the answer, under the headline (7.12.0) */}
+        {!H.readonly && <SaverBlock V={homeSaverView(state)} planId={planId} view={view} dispatch={dispatch} />}
 
         {/* the life line reduced to the plan's three stages, the dot on the one it is in (7.5.0: one component with the front door's) */}
         {s.strip && <LifeLine stages={lifeStages(s.strip)} words={{ ...HOME.strip, stages: HOME.stages }} testid={`${T}.strip`} />}

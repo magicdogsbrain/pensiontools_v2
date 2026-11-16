@@ -1,6 +1,6 @@
 /**
  * The runner of the plan's verdict on "What you pay in" (research/saving-enough-and-check-in.md 4.1, 4.4; release step R2).
- * On the step `#/plan/<id>/saving`, whenever the state changes: if the page's reading names a run (answers/plan/saving.js
+ * On the step `#/plan/<id>/saving` and on the home of a plan still saving (7.12.0), whenever the state changes: if the page's reading names a run (answers/plan/saving.js
  * `verdict`: the plan's figures as question B's inputs, saverInputs.js, and their key) and state.saver holds nothing for
  * that key — or a failed run that has been asked to try again — dispatch saver/working, run question B on those inputs in
  * the worker's own 'saver' lane with 100 futures (saver/first), then with 1,000 (saver/final), as V7's questions run
@@ -20,13 +20,16 @@ import { PASSES as SAVER_PASSES } from './run.js';
 
 const SEED = 0;   // the published seed, as every V7 answer
 
-/** The page's reading of the verdict, when the route is on the saving step. */
-function wanted(state) {
+/**
+ * The page's reading of the verdict: on the saving step, and (7.12.0) on the home of a plan still saving — the same key,
+ * so going from the home to "What you pay in" runs nothing twice.
+ */
+export function wanted(state) {
   const r = state.route;
-  if (!r || r.screen !== 'plan' || r.step !== 'saving' || !r.planId) return null;
+  if (!r || r.screen !== 'plan' || !r.planId || (r.step !== 'saving' && r.step)) return null;
   const plans = state.plans;
   const page = plans && plans.status === 'read' && plans.view && plans.view.page && plans.view.page.forId === r.planId ? plans.view.page : null;
-  const v = page && page.saving && page.saving.found ? page.saving.verdict : null;
+  const v = !page ? null : r.step === 'saving' ? (page.saving && page.saving.found ? page.saving.verdict : null) : page.saver || null;
   return v && v.ok && v.key ? v : null;
 }
 

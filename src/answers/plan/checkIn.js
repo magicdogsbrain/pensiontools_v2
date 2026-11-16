@@ -391,6 +391,8 @@ export function readingOf(record, pathDoc, result, { weighted = SUCCESS.weighted
     // the middle figure in the pounds of the check-in's own month, as the pot it is set beside (toPotPounds)
     expected: pr && isNum(pr.expected) ? Math.round(pr.expected * toPotPounds(pr)) : null,
     ...verdictPart(result, weighted),
+    // what the check-in tested (7.12.0): the stop age and the aim a month, so "past your line" is said only while they stand
+    ...(result && isObj(result.inputs) && isObj(result.inputs.stop) && isObj(result.inputs.spend) ? { tested: { stopAge: result.inputs.stop.age, aim: result.inputs.spend.amount } } : {}),
     engineVersion: result && isObj(result.basis) && typeof result.basis.engineVersion === 'string' ? result.basis.engineVersion : null
   };
 }

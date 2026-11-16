@@ -1257,6 +1257,21 @@ export function planBudgetView(state) {
     toast: ui.toast && ui.toast.planId === b.id ? ui.toast : null
   };
 }
+/**
+ * The home's "Are you paying in enough?" (7.12.0): the verdict the plan source read for the home (page.saver, the same key as
+ * What you pay in's) and the run held for it — null for a plan not saving.
+ */
+export function homeSaverView(state) {
+  const plans = state.plans;
+  const r = state.route;
+  const page = plans && plans.status === 'read' && plans.view && plans.view.page && r && r.screen === 'plan' && !r.step && plans.view.page.forId === r.planId ? plans.view.page : null;
+  const v = page ? page.saver : null;
+  if (!v) return null;
+  if (!v.ok) return { verdict: v, run: null };
+  const S = state.saver;
+  const run = S && S.key === v.key ? { status: S.status === 'idle' ? 'working' : S.status, result: S.result, reason: S.reason } : { status: 'working', result: null, reason: null };
+  return { verdict: v, run };
+}
 /** "What you pay in" (road-to-7.md step 11b): the same reading as an editing step's (page.saving), plus the record's write under way. */
 export function planSavingView(state) {
   const V = editView(state, 'saving');

@@ -67,7 +67,7 @@ import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
 import { moveOf } from '../../answers/plan/move.js';
 import { budgetOf } from '../../answers/plan/budget.js';
-import { savingOf, askFillOf } from '../../answers/plan/saving.js';
+import { savingOf, askFillOf, saverVerdictOf } from '../../answers/plan/saving.js';
 import { checkInOf } from '../../answers/plan/checkIn.js';
 import { reviewOf } from '../../answers/plan/review.js';
 import { agreementViewOf } from '../../answers/plan/agree.js';
@@ -125,6 +125,8 @@ export function viewFor(state) {
     // the plan's own address is its home (7.3.0, research/v7/one-product-design.md "The plan home"): what is due, where you
     // are, then everything else — read from the same reading as the rail, so the two can never disagree
     if (!r.step && page.found) page.home = homeOf(plans.list, r.planId, { today, source: plans.source, page });
+    // a plan still saving: its home says the answer to "Are you paying in enough?" (7.12.0), the run's key as on What you pay in
+    if (!r.step && page.found) page.saver = saverVerdictOf(plans.list, r.planId, { today });
     // "Test what you keep against your plan" (7.7.0): the agreement's state, the line the home, About, What you hold and the move
     // say, and the re-test held in page memory (state.keepTest) for THIS plan as it is now — null on a plan that keeps nothing
     if (page.found) {

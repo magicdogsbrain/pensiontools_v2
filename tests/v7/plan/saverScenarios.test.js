@@ -23,6 +23,16 @@ import { boxesOf as aboutBoxes, aboutPatch } from '../../../src/answers/plan/abo
 import { planPage } from '../../../src/answers/plan/read.js';
 import { checkInPatch, checkInOf } from '../../../src/answers/plan/checkIn.js';
 import { CHECKIN as CW } from '../../../src/v7/copy/checkin.js';
+import { checkInDraft } from '../../../src/answers/plan/checkIn.js';
+import { saverVerdictOf } from '../../../src/answers/plan/saving.js';
+import { homeOf } from '../../../src/answers/plan/home.js';
+import { wanted } from '../../../src/v7/effects/saver.js';
+import { viewFor } from '../../../src/v7/effects/planSource.js';
+import { stateWith, corpus, entryOf as entryOfAt } from './_plans.js';
+import { h, render } from 'preact';
+import { App } from '../../../src/v7/App.jsx';
+import { reduce } from '../../../src/v7/state/reduce.js';
+import { A } from '../../../src/v7/state/actions.js';
 import { SAVING as W } from '../../../src/v7/copy/saving.js';
 import { noon } from './_plans.js';
 
@@ -304,4 +314,65 @@ describe('step 4: a check-in is you telling the plan', () => {
     expect(ci.useInPlan).toBeUndefined();
     expect(JSON.stringify(CW)).not.toMatch(/Use .* in my plan/);
   }, 30000);
+});
+
+describe('step 5: the home says the answer', () => {
+  const jo = { household: 'single', you: { pot: 22000, age: 33, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'share', pay: 38000, ownPct: 5, employerPct: 3 } }, stop: { age: 60 }, spend: { kind: 'amount', amount: 2000 }, endAge: 95 };
+  const at = (d) => new Date(d + 'T12:00:00.000Z');
+  /** The state the app holds for a plan's page, its reading done as the plan source does it. */
+  const pageState = (plan, hash, today = READ_ON) => { const s = stateWith([entry(plan)], hash, { today, source: 'window', session: 'nobody' }); return { ...s, plans: { ...s.plans, view: viewFor(s) } }; };
+  const drawn = (state) => { const el = document.createElement('div'); render(h(App, { state, dispatch: () => {} }), el); return el; };
+
+  it('Jo\'s plan (from "Am I saving enough?", £2,000 a month from 60): the home runs the same answer as What you pay in and draws it', () => {
+    const plan = keptPlan(jo, { on: '2025-11-12', readOn: READ_ON, id: 'Jo05' });
+    const home = pageState(plan, '#/plan/' + plan.id);
+    const saving = pageState(plan, '#/plan/' + plan.id + '/saving');
+    const v = wanted(home);
+    expect(v).not.toBe(null);
+    expect(v.key).toBe(wanted(saving).key);
+    const result = answerB(v.inputs, { today: READ_ON, futures: 1000, seed: 0, detail: 'answer', ...v.env });
+    expect(result.verdict.band).not.toBe('yes');
+    const held = reduce(reduce(home, { type: A.SAVER_WORKING, key: v.key }), { type: A.SAVER_FINAL, key: v.key, result });
+    const text = drawn(held).querySelector('[data-testid="plan.home.saver"]').textContent;
+    expect(text).toContain('Are you paying in enough?');
+    expect(text).toContain('Not on course for £2,000 a month from 60');
+    // what would be enough, said with what leaves take-home pay: the share's own part of £38,000 a year, × 0.8, a month
+    const fig = result.enough.atLevel;
+    expect(text).toContain(`${fig.totalPct}% of your pay in all`);
+    expect(text).toContain(`£${Math.round(38000 * fig.ownPct / 100 / 12 * 0.8).toLocaleString('en-GB')} a month from your take-home pay`);
+    expect(text).toContain('Change what you want or what you pay in');
+  }, 60000);
+
+  it('a retired plan\'s home runs nothing', () => {
+    const retired = entryOfAt(corpus()['04-buckets-running'], READ_ON).plan;
+    expect(saverVerdictOf([entry(retired)], retired.id, { today: READ_ON })).toBe(null);
+    expect(wanted(pageState(retired, '#/plan/' + retired.id))).toBe(null);
+  }, 30000);
+
+  it('the move window is not said to someone more than five years from stopping; it is within five', () => {
+    const far = keptPlan(jo, { on: READ_ON, id: 'Jo06' });
+    expect(homeOf([entry(far)], far.id, { today: READ_ON }).moveWindow).toBe(null);
+    const near = keptPlan({ ...jo, you: { ...jo.you, age: 56 } }, { on: READ_ON, id: 'Jo07' });
+    const w = homeOf([entry(near)], near.id, { today: READ_ON }).moveWindow;
+    expect(w && w.id).toBe('saving');
+  }, 30000);
+
+  it('"past your line" is said only while the stop and the aim the check-ins tested still stand', () => {
+    let plan = keptPlan(jo, { on: '2025-11-12', readOn: '2025-11-12', id: 'Jo08' });
+    const checkInOn = (p, day, pension) => {
+      const typed = { 'ci.pension': String(pension), 'ci.every': 'year' };
+      const d = checkInDraft(p, typed, { today: day });
+      expect(d.ok).toBe(true);
+      const result = answerB(d.read.inputs, { today: day, futures: 1000, seed: 0, detail: 'answer', ...d.read.env });
+      return applyPatch(p, checkInPatch(p, typed, { today: day, now: at(day), result }).patch);
+    };
+    plan = checkInOn(plan, '2025-11-12', 22000);
+    plan = upgradeScenario(copy(plan), { now: noon(READ_ON) }).scenario;
+    plan = checkInOn(plan, READ_ON, 23000);
+    const ids = (p) => (planPage([entry(p)], p.id, null, { today: READ_ON }).due || []).map((x) => x.id);
+    expect(ids(plan).some((x) => /offCourse/.test(x))).toBe(true);
+    const spend = (p, amount) => { const q = copy(p); q.stressTool.settings.baseSalary = amount; q.stressTool.settings.incomeSteps = [{ fromAge: 60, amount }]; q.stressTool.settings.targetSchedule = null; return q; };
+    const changed = spend(plan, 18000);
+    expect(ids(changed).some((x) => /offCourse/.test(x))).toBe(false);
+  }, 90000);
 });

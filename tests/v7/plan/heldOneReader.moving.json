@@ -214,159 +214,6 @@
      "taxYears": [
       "2042/43"
      ]
-    },
-    {
-     "key": "sell:TS27",
-     "kind": "gilt",
-     "label": "3¾% Treasury Gilt 2027",
-     "ticker": "TS27",
-     "sedol": "",
-     "units": "34000",
-     "amount": "£33,930",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:TN28",
-     "kind": "gilt",
-     "label": "0 1/8% Treasury Gilt 2028",
-     "ticker": "TN28",
-     "sedol": "",
-     "units": "36000",
-     "amount": "£34,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:TG29",
-     "kind": "gilt",
-     "label": "0½% Treasury Gilt 2029",
-     "ticker": "TG29",
-     "sedol": "",
-     "units": "37000",
-     "amount": "£34,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:TN26",
-     "kind": "gilt",
-     "label": "0 1/8% Treasury Gilt 2026",
-     "ticker": "TN26",
-     "sedol": "",
-     "units": "2000",
-     "amount": "£2,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:ULVR",
-     "kind": "fund",
-     "label": "Unilever",
-     "ticker": "ULVR",
-     "sedol": "",
-     "units": "90",
-     "amount": "£4,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:AZN",
-     "kind": "fund",
-     "label": "AstraZeneca",
-     "ticker": "AZN",
-     "sedol": "",
-     "units": "50",
-     "amount": "£6,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:LGEN",
-     "kind": "fund",
-     "label": "Legal & General",
-     "ticker": "LGEN",
-     "sedol": "",
-     "units": "1400",
-     "amount": "£3,300",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:NG.",
-     "kind": "fund",
-     "label": "National Grid",
-     "ticker": "NG.",
-     "sedol": "",
-     "units": "400",
-     "amount": "£4,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:VWRP",
-     "kind": "fund",
-     "label": "Vanguard FTSE All-World (Acc)",
-     "ticker": "VWRP",
-     "sedol": "",
-     "units": "50",
-     "amount": "£6,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
     }
    ],
    "hold": [
@@ -994,125 +841,6 @@
      "taxYears": [
       "2042/43"
      ]
-    },
-    {
-     "key": "sell:TS27",
-     "kind": "gilt",
-     "label": "3¾% Treasury Gilt 2027",
-     "ticker": "TS27",
-     "sedol": "",
-     "units": "34000",
-     "amount": "£33,930",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:TN28",
-     "kind": "gilt",
-     "label": "0 1/8% Treasury Gilt 2028",
-     "ticker": "TN28",
-     "sedol": "",
-     "units": "36000",
-     "amount": "£34,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:TN26",
-     "kind": "gilt",
-     "label": "0 1/8% Treasury Gilt 2026",
-     "ticker": "TN26",
-     "sedol": "",
-     "units": "2000",
-     "amount": "£2,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:ULVR",
-     "kind": "fund",
-     "label": "Unilever",
-     "ticker": "ULVR",
-     "sedol": "",
-     "units": "90",
-     "amount": "£4,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:AZN",
-     "kind": "fund",
-     "label": "AstraZeneca",
-     "ticker": "AZN",
-     "sedol": "",
-     "units": "50",
-     "amount": "£6,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:LGEN",
-     "kind": "fund",
-     "label": "Legal & General",
-     "ticker": "LGEN",
-     "sedol": "",
-     "units": "1400",
-     "amount": "£3,300",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:NG.",
-     "kind": "fund",
-     "label": "National Grid",
-     "ticker": "NG.",
-     "sedol": "",
-     "units": "400",
-     "amount": "£4,000",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
     }
    ],
    "hold": [
@@ -1866,110 +1594,7 @@
      ]
     }
    ],
-   "sell": [
-    {
-     "key": "sell:T27",
-     "kind": "gilt",
-     "label": "1¼% Index-linked Treasury Gilt 2027",
-     "ticker": "T27",
-     "sedol": "",
-     "units": "25000",
-     "amount": "£35,494",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:T28",
-     "kind": "gilt",
-     "label": "0 1/8% Index-linked Treasury Gilt 2028",
-     "ticker": "T28",
-     "sedol": "",
-     "units": "23500",
-     "amount": "£37,525",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:T30I",
-     "kind": "gilt",
-     "label": "4 1/8% Index-linked Treasury Stock 2030",
-     "ticker": "T30I",
-     "sedol": "",
-     "units": "31500",
-     "amount": "£42,472",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:VWRP",
-     "kind": "fund",
-     "label": "Vanguard FTSE All-World (Acc)",
-     "ticker": "VWRP",
-     "sedol": "",
-     "units": "3260",
-     "amount": "£396,769",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:1 5/8% Treasury Gilt 2028",
-     "kind": "gilt",
-     "label": "1 5/8% Treasury Gilt 2028",
-     "ticker": "",
-     "sedol": "",
-     "units": "20000",
-     "amount": "£18,800",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:4 3/8% Treasury Gilt 2030",
-     "kind": "gilt",
-     "label": "4 3/8% Treasury Gilt 2030",
-     "ticker": "",
-     "sedol": "",
-     "units": "10000",
-     "amount": "£10,050",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    }
-   ],
+   "sell": [],
    "hold": [
     {
      "key": "cash:SIPP",
@@ -1986,15 +1611,6 @@
    ],
    "keep": [
     {
-     "label": "VWRP",
-     "wrapper": "ISA",
-     "value": "£35,052",
-     "why": {
-      "id": "isaKept",
-      "slots": {}
-     }
-    },
-    {
      "label": "Easy-access savings",
      "wrapper": "CASH",
      "value": "£8,000",
@@ -2009,16 +1625,25 @@
      {
       "id": "cashYear",
       "year": "2027/28",
+      "need": "£34,000",
+      "amount": "£34,000",
+      "gap": null,
+      "label": null,
       "lump": null,
-      "amount": "£34,000"
+      "over": false
      },
      {
       "id": "cashYear",
       "year": "2028/29",
+      "need": "£33,246",
+      "amount": "£33,578",
+      "gap": null,
+      "label": null,
       "lump": null,
-      "amount": "£33,578"
+      "over": true
      }
     ],
+    "over": true,
     "target": "£67,578",
     "held": "£96,625",
     "spare": "£29,047",
@@ -2445,93 +2070,7 @@
      ]
     }
    ],
-   "sell": [
-    {
-     "key": "sell:T27",
-     "kind": "gilt",
-     "label": "1¼% Index-linked Treasury Gilt 2027",
-     "ticker": "T27",
-     "sedol": "",
-     "units": "25000",
-     "amount": "£35,494",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:T28",
-     "kind": "gilt",
-     "label": "0 1/8% Index-linked Treasury Gilt 2028",
-     "ticker": "T28",
-     "sedol": "",
-     "units": "23500",
-     "amount": "£37,525",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:T30I",
-     "kind": "gilt",
-     "label": "4 1/8% Index-linked Treasury Stock 2030",
-     "ticker": "T30I",
-     "sedol": "",
-     "units": "31500",
-     "amount": "£42,472",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:VWRP",
-     "kind": "fund",
-     "label": "Vanguard FTSE All-World (Acc)",
-     "ticker": "VWRP",
-     "sedol": "",
-     "units": "3260",
-     "amount": "£396,769",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    },
-    {
-     "key": "sell:1 5/8% Treasury Gilt 2028",
-     "kind": "gilt",
-     "label": "1 5/8% Treasury Gilt 2028",
-     "ticker": "",
-     "sedol": "",
-     "units": "20000",
-     "amount": "£18,800",
-     "heldUnits": null,
-     "heldValue": null,
-     "why": {
-      "id": "notInPlan",
-      "slots": {}
-     },
-     "done": null,
-     "taxYears": []
-    }
-   ],
+   "sell": [],
    "hold": [
     {
      "key": "cash:SIPP",
@@ -2540,22 +2079,13 @@
      "held": {
       "value": "£96,625"
      },
-     "spare": "£62,625",
+     "spare": "£39,382",
      "target": {
-      "value": "£34,000"
+      "value": "£57,243"
      }
     }
    ],
    "keep": [
-    {
-     "label": "VWRP",
-     "wrapper": "ISA",
-     "value": "£35,052",
-     "why": {
-      "id": "isaKept",
-      "slots": {}
-     }
-    },
     {
      "label": "Easy-access savings",
      "wrapper": "CASH",
@@ -2571,19 +2101,27 @@
      {
       "id": "cashYear",
       "year": "2027/28",
+      "need": "£34,000",
+      "amount": "£34,000",
+      "gap": null,
+      "label": null,
       "lump": null,
-      "amount": "£34,000"
+      "over": false
      },
      {
-      "id": "cashYearCovered",
+      "id": "cashYearBeside",
       "year": "2028/29",
-      "lump": null,
-      "amount": null
+      "need": null,
+      "gap": "£23,013",
+      "label": "4 3/8% Treasury Gilt 2030",
+      "amount": "£23,243",
+      "lump": null
      }
     ],
-    "target": "£34,000",
+    "over": false,
+    "target": "£57,243",
     "held": "£96,625",
-    "spare": "£62,625",
+    "spare": "£39,382",
     "short": null
    },
    "cashInfo": null,

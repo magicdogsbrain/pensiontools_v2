@@ -30,7 +30,7 @@ describe('"This is how I want to hold it": one press, no test first', () => {
   it('is offered on the move page while Moving', () => {
     expect(moveOf([{ plan }], plan.id, { today: TODAY }).sayHeld).toMatchObject({ can: true });
     const t = pageText(plan);
-    expect(t).toContain('Holding it your own way? You can say that what you hold now is how you want it. This page then shows what you hold beside your plan, with no list to buy.');
+    expect(t).toContain('Want to hold it your own way? You can say that what you hold now is how you want it. This page then shows what you hold beside your plan, with no list to buy.');
   });
 
   it('writes only the agreement in phases; no amendment, no test run', () => {

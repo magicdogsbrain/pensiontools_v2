@@ -377,7 +377,8 @@ describe('any sequence of actions over the three questions', () => {
           expect([null, 'c', 'a', 'b']).toContain(s.draft[q].carriedFrom);
         } else {
           expect('extending' in s.answers.c).toBe(false);
-          expect('carriedFrom' in s.draft.c).toBe(false);
+          // (7.12.0: C's draft holds it only once figures were carried in from A or B, then null once a figure changes)
+          if ('carriedFrom' in s.draft.c) expect([null, 'a', 'b']).toContain(s.draft.c.carriedFrom);
         }
         expect(Object.keys(s.keep[q]).sort()).toEqual(['made', 'name', 'partnerKept', 'pending', 'problem', 'saving', 'used']);
       }

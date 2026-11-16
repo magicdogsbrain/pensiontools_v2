@@ -8,6 +8,9 @@
  * a tax year by when it matures. A year the person typed against a line is shown as their label and changes no sum.
  *
  *   heldLadder(plan, { today, life })   the reading as data (figures in pounds as numbers), or null: see below
+ *   heldLadderView(h)                   the reading as both drawings show it: sentences as { key, slots } (src/v7/copy/held.js)
+ *   heldSummaryView(h)                  What you hold's two lines from the same reading
+ *   sayHeld(sentence, HELD)             one sentence in words
  *   yearsWords(ys)                      tax years as words: "2032/33", "2029/30 to 2031/32"
  *
  * Pure: the plan brought up to date in memory and today's date; nothing here writes, runs or reads a clock. The diff is
@@ -19,7 +22,8 @@ import { stageOf } from '../../services/LifeStage.js';
 import { heldPhase } from '../../services/Phases.js';
 import { normaliseHoldings, normaliseKeep, expectedOf } from '../../services/HoldingsRecord.js';
 import { taxYearLabel, taxYearStartOf } from '../../services/PlanTiming.js';
-import { dateOf } from './dates.js';
+import { dateOf, dayWords, monthWords } from './dates.js';
+import { pounds } from './income.js';
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 const r0 = (v) => Math.round(num(v));
@@ -174,4 +178,124 @@ export function heldLadder(plan, { today, life } = {}) {
   return { kind: 'ladder', agreed: phase && phase.agreed && phase.agreed.at ? String(phase.agreed.at) : null, noRecord, running,
     gilts, cashYears, money: { cash: r0(cash), gilts: r0(giltsMoney), funds: r0(fundsMoney), available: r0(available) }, state, more: r0(more), less: r0(less),
     timing, lines, outsidePension, expected, lumps, setYears };
+}
+
+const WHY = { lump: 'whyLump', lumpEarlier: 'whyLumpEarlier', sp: 'whySp', spOther: 'whySpOther', other: 'whyOther', else: 'whyElse' };
+const isAre = (n) => (n === 1 ? 'is' : 'are');
+const grouped = (v) => String(Math.round(Math.abs(num(v)))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+/**
+ * The reading as both drawings show it (7.12.0): each sentence as { key, slots } (src/v7/copy/held.js HELD, filled by sayHeld),
+ * each table cell a string or a sentence. One function, so the two views cannot say it two ways. Null in, null out.
+ *   head      the agreement (Moving, accepted) and the lead, or the line for nothing recorded
+ *   figure    the gilts' summary line(s); gilts the table's rows; under the lines under it
+ *   cash      the cash years: { need, rows, set, lines, timing } (null when none is left, or nothing is recorded)
+ *   noCash    the one line when no cash year is left
+ *   lines     what else the pension holds, as table rows; notes the lines under it; outside, expected as sentences
+ */
+export function heldLadderView(h) {
+  if (!h) return null;
+  const P = (v) => pounds(v);
+  const S = (key, slots = {}) => ({ key, slots });
+  const g = h.gilts;
+  const head = [];
+  if (h.agreed) head.push(S('agreed', { date: dayWords(h.agreed) }));
+  head.push(S(h.noRecord ? 'noRecord' : 'lead'));
+
+  const gilts = g.rows.map((r) => {
+    const several = r.years.length > 1;
+    let difference = 'same';
+    if (!h.noRecord && (r.state === 'over' || r.state === 'under' || r.state === 'none')) {
+      const bracket = r.money != null ? S(r.state === 'over' ? (several ? 'moreYears' : 'moreYear') : (several ? 'lessYears' : 'lessYear'), { money: P(r.money) }) : null;
+      difference = { key: r.state === 'over' ? 'diffOver' : r.state === 'under' ? 'diffUnder' : 'diffNone', slots: { units: grouped(r.diff) }, bracket };
+    }
+    return { key: r.key, state: r.state || '', gilt: r.code ? r.label + ' (' + r.code + ')' : r.label, years: yearsWords(r.years),
+      plan: r.planUnits != null ? grouped(r.planUnits) : r.planValue != null ? P(r.planValue) : '—',
+      held: h.noRecord ? '—' : r.planUnits != null ? grouped(r.heldUnits) : P(r.heldValue),
+      difference: difference === 'same' ? S('same') : difference };
+  });
+  const figure = [], under = [];
+  if (!h.noRecord) {
+    if (g.under + g.none === 0 && g.held >= g.total) {
+      if (g.over === 0) figure.push(S('allSame', { total: String(g.total) }));
+      else figure.push(S('allHeld', { total: String(g.total) }), S('over', { over: String(g.over), isAre: isAre(g.over) }));
+    } else {
+      figure.push(S('someHeld', { held: String(g.held), total: String(g.total) }));
+      if (g.under > 0 && g.none > 0) figure.push(S('underNone', { under: String(g.under), isAre: isAre(g.under), none: String(g.none), noneIsAre: isAre(g.none) }));
+      else if (g.under > 0) figure.push(S('under', { under: String(g.under), isAre: isAre(g.under) }));
+      else if (g.none > 0) figure.push(S('none', { none: String(g.none), isAre: isAre(g.none) }));
+    }
+    if (g.over > 0) under.push(S('belowOver'));
+    if (g.under + g.none > 0) under.push(S('belowUnder'));
+  }
+  if (g.paid.length) under.push(S('paid', { list: g.paid.join(', ') }));
+  if (g.stale.length) under.push(S('stale', { list: g.stale.join(', ') }));
+
+  const set = h.noRecord ? [] : h.setYears.map((s) => S('setYears', { label: s.label, years: yearsWords(s.years) }));
+  let cash = null;
+  if (!h.noRecord && h.cashYears) {
+    const c = h.cashYears, M = h.money;
+    const rows = c.rows.map((r) => ({ Y: r.Y,
+      year: r.thisYear ? S('yearPart', { year: taxYearLabel(r.Y), months: String(r.monthsLeft), s: r.monthsLeft === 1 ? '' : 's' }) : S('year', { year: taxYearLabel(r.Y) }),
+      amount: r.need > 0 ? P(r.need) : S('zero', { why: WHY[r.paidBy] || 'whyElse' }) }));
+    const lines = [];
+    if (h.state === 'cash') lines.push(S('stateCash', { cash: P(M.cash), more: P(h.more) }));
+    else {
+      const parts = [M.cash > 0 ? S('partCash', { cash: P(M.cash) }) : null, M.gilts > 0 ? S('partGilts', { gilts: P(M.gilts) }) : null, M.funds > 0 ? S('partFunds', { funds: P(M.funds) }) : null].filter(Boolean);
+      lines.push(M.gilts > 0 || M.funds > 0 ? S('holds', { parts, available: P(M.available) }) : S('holdsCash', { cash: P(M.cash) }));
+      lines.push(h.state === 'cashGilts' ? S('stateCashGilts', { more: P(h.more) }) : h.state === 'all' ? S('stateAll', { more: P(h.more) }) : S('stateLess', { less: P(h.less) }));
+    }
+    const timing = [];
+    if (h.timing) {
+      timing.push(S('timing', { R: P(h.timing.R), dueBy: dayWords(h.timing.dueBy), cash: P(h.timing.cash) }));
+      if (h.timing.next) timing.push(S('next', { label: h.timing.next.label, date: dayWords(h.timing.next.matures) }));
+    }
+    cash = { need: S('need', { years: yearsWords(c.rows.map((r) => r.Y)), need: P(c.need) }), rows, set, lines, timing };
+  }
+  const noCash = !h.noRecord && !h.cashYears ? S('noCashYears', { cash: P(h.money.cash) }) : null;
+
+  const lines = h.noRecord ? [] : h.lines.map((l) => ({ at: l.at, what: l.label, value: P(l.value),
+    matures: l.note === 'notListed' ? S('notListedCell') : l.note === 'unknown' ? S('unknownCell') : (l.note === 'paid' || l.note === 'cashNow') ? S('maturedCell', { month: monthWords(String(l.matures || '').slice(0, 7)) }) : l.matures ? dayWords(l.matures) : '',
+    pays: !l.note && l.pays != null && l.fixed ? S('paysFixed', { amount: P(l.pays) }) : !l.note && l.indexLinked && l.matures ? S('paysIndexLinked') : '' }));
+  const notes = [];
+  if (!h.noRecord) {
+    for (const l of h.lines) {
+      const month = l.matures ? monthWords(String(l.matures).slice(0, 7)) : '';
+      if (l.note === 'notListed') notes.push(S('notListed', { label: l.label }));
+      else if (l.note === 'unknown') notes.push(S('unknown', { label: l.label }));
+      else if (l.note === 'paid') notes.push(S('paidNote', { label: l.label, month }));
+      else if (l.note === 'cashNow') notes.push(S('cashNow', { label: l.label, month, pays: P(l.pays) }));
+    }
+    if (h.lines.some((l) => l.kind === 'gilt' && !l.note && l.matures)) notes.push(S('riskGilts'));
+    if (h.lines.some((l) => l.kind === 'fund')) notes.push(S('riskFunds'));
+  }
+  const outside = h.noRecord ? [] : h.outsidePension.map((o) => S('outsideOne', { label: o.label, wrapper: o.wrapper, value: P(o.value) }));
+  const expected = [];
+  if (!h.noRecord && h.expected.length) {
+    for (const e of h.expected) expected.push(S(e.by ? 'expected' : 'expectedNoBy', { label: e.label || { key: 'expectedNoLabel', slots: {} }, amount: P(e.amount), by: e.by ? monthWords(e.by) : '' }));
+    for (const l of h.lumps) expected.push(S('lumpCounted', { amount: P(l.amount), year: taxYearLabel(l.Y) }));
+  }
+  return { head, figure, gilts, under, cash, noCash, set: cash ? [] : set, lines, notes, outside, expected, footer: S('footer') };
+}
+
+/** What you hold, in the held phase on a ladder (7.12.0): the gilts' summary line(s) and the cash years' line, from the one reading. */
+export function heldSummaryView(h) {
+  const v = heldLadderView(h);
+  if (!v) return null;
+  const cash = h.noRecord ? null : h.cashYears ? { key: 'holdCash', slots: { need: pounds(h.cashYears.need), available: pounds(h.money.available) } } : v.noCash;
+  return { figure: v.figure, cash };
+}
+
+/**
+ * One sentence in words (7.12.0): the template `W[key]` filled with its slots. A slot that is itself a sentence is filled the
+ * same way; a list of sentences is joined "a, b and c"; `why` names another template. A plain string is itself. A `bracket`
+ * follows the sentence after a space.
+ */
+export function sayHeld(s, W) {
+  if (s == null) return '';
+  if (typeof s === 'string') return s;
+  if (Array.isArray(s)) { const xs = s.map((x) => sayHeld(x, W)); return xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]; }
+  const slot = (k, v) => (k === 'why' && typeof v === 'string' && W[v] ? W[v] : typeof v === 'object' ? sayHeld(v, W) : String(v));
+  const main = String(W[s.key] || '').replace(/\{(\w+)\}/g, (m, k) => (s.slots && s.slots[k] != null ? slot(k, s.slots[k]) : m));
+  return s.bracket ? main + ' ' + sayHeld(s.bracket, W) : main;
 }

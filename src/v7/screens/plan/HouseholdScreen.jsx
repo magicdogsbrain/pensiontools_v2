@@ -197,12 +197,14 @@ function Split({ V, dispatch, planId, F }) {
   const rerun = () => dispatch({ type: 'household/run', key: V.runKey, limit: V.run.limit, need: V.run.need });
   // "Draw it faster" (9.2): the limit box set to no limit, and the two plans checked again with it
   const faster = () => { dispatch({ type: 'plan/edit', planId, path: 'limit.kind', value: 'fast' }); dispatch({ type: 'household/run', key: V.runKey, limit: { kind: 'none' }, need: V.run.need }); };
+  // when nothing would move either way under any limit, the limit choice is not shown (7.12.0): no limit changes the answer
+  const limitShown = s.applies || !!s.fast || !s.limitDefaulted;
   const limitBoxes = (
     <div class="plan-section" data-section="limit">
-      <h3>{fill(S.limit.title, { small: s.smallerName })}</h3>
+      {limitShown && <h3>{fill(S.limit.title, { small: s.smallerName })}</h3>}
       {F('need.amount')}
-      <p class="note">{fill(S.limit.lead, { small: s.smallerName })}</p>
-      {F('limit.kind', { nested: { untilAge: F('limit.age'), keepAtLeast: F('limit.amount') } })}
+      {limitShown && <p class="note">{fill(S.limit.lead, { small: s.smallerName })}</p>}
+      {limitShown && F('limit.kind', { nested: { untilAge: F('limit.age'), keepAtLeast: F('limit.amount') } })}
       {V.stale && <div class="actions-row"><Button testid={`${T}.rerun`} kind="primary" onClick={rerun} {...keepFocus}>{W.verdict.rerun}</Button></div>}
     </div>
   );
@@ -230,7 +232,7 @@ function Split({ V, dispatch, planId, F }) {
       <section class="plan-section" data-section="split" data-testid={`${T}.split`} data-applies="0" data-limit-kind={s.limitKind}>
         <h2>{W.sections.split}</h2>
         {s.baseline && s.baseline.typed ? baseline : null}
-        <p class="note" data-testid={`${T}.split.none`}>{s.fast ? fill(s.unchanged ? S.unchangedKept : S.noneKept, { small: s.smallerName }) : s.unchanged ? S.unchanged : S.none}</p>
+        <p class="note" data-testid={`${T}.split.none`}>{fill(S[s.noneWords.id], s.noneWords.slots)}</p>
         {fastNotice}
         {V.editable && limitBoxes}
       </section>
@@ -321,12 +323,16 @@ function Question({ what, V, dispatch, F }) {
           {what === 'survivor' && !r.affordable && <p class="figure">{fill(Q.unaffordable, { deceased: r.deceased, reason: r.reason ? fill(W.verdict.reasonWas, { reason: r.reason }) : '' })}</p>}
           {what === 'survivor' && r.affordable && (
             <>
-              <p class="figure" data-testid={`${base}.headline`}>{r.middling ? fill(r.bad ? Q.headline : Q.headlineOne, { deceased: r.deceased, atAge: r.atAge, survivor: r.survivor, middling: r.middling, bad: r.bad || '', badReason: r.badReason || '' }) : fill(Q.cannot, { deceased: r.deceased, atAge: r.atAge, survivor: r.survivor, reason: r.middlingReason || '' })}</p>
-              <ul class="plan-lines">
-                <li class="plan-line" data-line="survivor.inherit">{fill(Q.rows.inherit, { survivor: r.survivor, middling: r.inherit.middling, bad: r.inherit.bad, deceased: r.deceased, way: WAY.names[r.ways.deceased] || r.ways.deceased, held: r.inherit.held ? fill(Q.rows.held, { deceased: r.deceased, heldIsa: r.inherit.held }) : '' })}</li>
-                <li class="plan-line" data-line="survivor.spend">{fill(Q.rows.spend, { survivor: r.survivor, gross: r.spending.gross, net: r.spending.net, pct: r.spending.pct })}</li>
-                <li class="plan-line" data-line="survivor.way">{fill(Q.rows.way, { survivor: r.survivor, way: WAY.names[r.ways.survivor] || r.ways.survivor })}</li>
+              <p class="figure" data-testid={`${base}.headline`}>{r.middling ? fill(r.bad ? Q.headline : Q.headlineOne, { deceased: r.deceased, atAge: r.atAge, survivor: r.survivor, middling: r.middling, bad: r.bad || '', badReason: r.badReason || '', tested: r.has && r.has.toAge ? fill(Q.tested, { survivor: r.survivor, toAge: r.has.toAge }) : '' }) : fill(Q.cannot, { deceased: r.deceased, atAge: r.atAge, survivor: r.survivor, reason: r.middlingReason || '' })}</p>
+              {/* what the one who is left has (7.12.0): their pension and savings, the inheritance, a final-salary share, one State Pension */}
+              <p class="line">{fill(Q.hasTitle, { survivor: r.survivor })}</p>
+              <ul class="plan-lines" data-testid={`${base}.has`}>
+                <li class="plan-line" data-line="survivor.savings">{fill(Q.rows.savings, { survivor: r.survivor })}</li>
+                <li class="plan-line" data-line="survivor.inherit">{fill(Q.rows.inherit, { middling: r.inherit.middling, bad: r.inherit.bad, deceased: r.deceased, held: r.inherit.held ? fill(Q.rows.held, { deceased: r.deceased, heldIsa: r.inherit.held }) : '' })}</li>
+                {r.has && r.has.pension && <li class="plan-line" data-line="survivor.pension">{fill(Q.rows.pension, { deceased: r.deceased, ...r.has.pension })}</li>}
+                {r.has && r.has.statePension && <li class="plan-line" data-line="survivor.statePension">{fill(r.has.statePension.paid ? Q.rows.statePensionPaid : Q.rows.statePension, { survivor: r.survivor, ...r.has.statePension })}</li>}
               </ul>
+              <p class="line" data-line="survivor.spend">{fill(Q.rows.spend, { survivor: r.survivor, gross: r.spending.gross, net: r.spending.net, pct: r.spending.pct })}</p>
               <p class="note">{fill(Q.note, { deceased: r.deceased, survivor: r.survivor })}</p>
             </>
           )}
@@ -358,7 +364,6 @@ function Budget({ V, dispatch, planId }) {
   return (
     <section class="plan-section" data-section="budget" data-testid={`${T}.budget`} data-shared={separate ? '1' : '0'}>
       <h2>{W.sections.budget}</h2>
-      <h3 data-testid={`${T}.budget.question`}>{B.separateQuestion}</h3>
       <p class="note">{fill(B.lead, { name })}</p>
       <p class="line" data-testid={`${T}.budget.line`}>{line}</p>
       {V.editable && V.pick !== 'share' && V.pick !== 'separate' && (
@@ -368,7 +373,7 @@ function Budget({ V, dispatch, planId }) {
         </div>
       )}
       {V.editable && (V.pick === 'share' || V.pick === 'separate') && (
-        <Confirm id={`${T}.budgetConfirm`} title={B.separateQuestion} body={fill(V.pick === 'share' ? B.confirm.share : B.confirm.separate, { name })} yes={B.confirm.yes} no={B.confirm.notNow}
+        <Confirm id={`${T}.budgetConfirm`} title={W.sections.budget} body={fill(V.pick === 'share' ? B.confirm.share : B.confirm.separate, { name })} yes={B.confirm.yes} no={B.confirm.notNow}
           onYes={() => dispatch({ type: 'plan/shareBudget', planId, share: V.pick === 'share' })} onNo={() => pick(null)} />
       )}
     </section>

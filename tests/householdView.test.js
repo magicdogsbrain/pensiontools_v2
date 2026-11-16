@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { JSDOM } from 'jsdom';
 import { householdDrawSplit, comparisonFigures, headlineWords, about } from '../src/services/HouseholdDraw.js';
 import { combineHouseholdStrategies } from '../src/services/HouseholdService.js';
-import { splitSectionHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, householdVerdictHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, budgetShareHtml, budgetSharedLineHtml } from '../src/ui/householdView.js';
+import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, householdVerdictHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, budgetShareHtml, budgetSharedLineHtml } from '../src/ui/householdView.js';
 import { householdIncomeTimeline } from '../src/services/HouseholdService.js';
 import { splitChanges } from '../src/services/HouseholdSplitApply.js';
 
@@ -186,5 +186,14 @@ describe('the full view\'s verdict says the simple view\'s sentences (7.12.0)', 
       + 'When one plan falls short, the other pays that share; the household falls short only when both have. In 37 of 1,000 futures Sam’s plan fell short and Kim’s paid, typically from when Sam is 93 (87 at the earliest).');
     const cells = [...d.querySelectorAll('tbody tr')].map((tr) => [tr.children[0].textContent, tr.children[1].textContent]);
     expect(cells).toEqual([['The household together', 'more than 9 futures out of 10'], ['Kim\'s plan on its own', 'more than 9 futures out of 10 (97%)'], ['Sam\'s plan on its own', '9 futures out of 10 (94.9%)'], ['Both plans, each lasting on its own', '9 futures out of 10 (93%)']]);
+  });
+});
+
+describe('who draws what when nothing would move (7.12.0): said once, in plain words, with no nudge', () => {
+  it('a split that does not apply, nothing moved and no faster split: the sentence, and no limit box', () => {
+    const none = { names: { a: 'Kim', b: 'Sam' }, smaller: 'b', applies: false, unchanged: true, limitDefaulted: true, fast: null, saving: { year: 0, until: 0 }, untilAge: 67 };
+    const h = splitNoneHtml({ split: none });
+    expect(text(h)).toContain('As the two plans are written, moving drawing from one pension to the other would not cut the tax you pay between you.');
+    expect(h).not.toContain('<select');
   });
 });

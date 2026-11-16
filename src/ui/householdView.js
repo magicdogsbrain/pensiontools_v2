@@ -14,7 +14,7 @@
 
 import { isOnCourse, onCourseAlertClass, jointVerdictHtml, ON_COURSE_WORDS } from '../services/OnCourse.js';
 import { futuresOutOfTen, pctBesideWords } from '../services/OneAnswer.js';
-import { headlineWords, about, SPLIT_HEADLINE_MIN } from '../services/HouseholdDraw.js';
+import { headlineWords, about, noSplitWords } from '../services/HouseholdDraw.js';
 import { HOUSEHOLD } from '../v7/copy/household.js';
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -129,7 +129,7 @@ export function whatToDoHtml(r, ownName, pName) {
 export function survivorCareHtml(ownName, pName) {
   const a = esc(ownName), b = esc(pName);
   return '<div class="settings-section"><div class="section-title">What if one of you dies?</div>'
-    + '<p style="font-size:13px;">The hard question most tools skip. The survivor keeps their own pensions, inherits what the other\'s plan has left then (pensions pass tax-free before 75), loses one State Pension, and typically needs about 70% of the joint spending. Both plans run through their own strategy\'s test.</p>'
+    + '<p style="font-size:13px;">The survivor keeps their own pensions, inherits what the other\'s plan has left then (pensions pass tax-free before 75), loses one State Pension, and typically needs about 70% of the joint spending. Both plans run through their own strategy\'s test.</p>'
     + '<div class="row-flex" style="font-size:13px;">'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who dies<select id="hhWhoDies" style="min-width:150px;"><option value="A">' + a + '</option><option value="B">' + b + '</option></select></label>'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years from now<input type="number" id="hhDeathYear" value="10" min="1" max="40" style="width:80px;"></label>'
@@ -152,22 +152,32 @@ export function survivorCareHtml(ownName, pName) {
 const lastsWords = (x) => (x && x.a ? 'lasts ' + futuresOutOfTen(x.a.share).words : 'could not be tested (' + esc((x && x.reason) || 'not affordable as configured') + ')');
 
 /**
- * The survivor check's result (HouseholdService.runSurvivorCheck), in the planner's words since 6.24.0. Today's money
- * throughout; the spending is the survivor's yearly figure before tax, with what it leaves after tax beside it.
- * @param {{ res: object, survivorName: string, deceasedName: string, years: number, spendPct: number, strategyNames: { survivor: string, deceased: string } }} o
+ * The survivor check's result (HouseholdService.runSurvivorCheck), in the simple view's lines (7.12.0): how long the one left's
+ * plan lasts and until what age it is tested; what they would have (their pension and savings, the inheritance, a share of a
+ * final-salary pension, one State Pension); what they would spend. Today's money throughout.
+ * @param {{ res: object, survivorName: string, deceasedName: string, years: number, spendPct: number }} o
  */
-export function survivorResultHtml({ res, survivorName, deceasedName, years, spendPct, strategyNames = {} }) {
+export function survivorResultHtml({ res, survivorName, deceasedName, years, spendPct }) {
+  const Q = HOUSEHOLD.survivor;
   const s = esc(survivorName), d = esc(deceasedName);
   if (!res || !res.affordable) return '<div class="alert alert-warning">' + d + '\'s plan could not be tested as configured' + (res && res.reason ? ' — ' + esc(res.reason) : '') + '. Fix that plan first.</div>';
   const share = res.middling.a ? res.middling.a.share : 0;
-  const inh = res.inherited;
-  const held = inh.heldIsa > 0 ? ' (including the ISA ' + d + '\'s plan holds aside, ' + gbp(inh.heldIsa) + ')' : '';
-  return '<div class="alert ' + onCourseAlertClass(share) + '" id="hhSurvivorVerdict">If ' + d + ' dies ' + years + ' year' + (years === 1 ? '' : 's') + ' from now, <strong>' + s + '\'s plan ' + lastsWords(res.middling) + '</strong> with a middling inheritance, and ' + lastsWords(res.bad) + ' with a bad-case one.</div>'
-    + '<ul style="font-size:13px;margin:6px 0 0 18px;padding:0;">'
-    + '<li>' + s + ' inherits about <strong>' + gbp(inh.middling.total) + '</strong> in a middling case, <strong>' + gbp(inh.bad.total) + '</strong> in a bad case (the worst 1 in 10), today\'s money — what ' + d + '\'s own plan (' + esc(strategyNames.deceased || '') + ') has left then' + held + '.</li>'
-    + '<li>' + s + ' then spends <strong>' + gbp(res.spending.gross) + ' a year before tax</strong> (about ' + gbp(res.spending.net) + ' after tax), today\'s money — ' + Math.round(spendPct) + '% of what you both spend after tax.</li>'
-    + '<li>' + s + '\'s plan runs on its own strategy (' + esc(strategyNames.survivor || '') + ') with the inheritance arriving that year.</li></ul>'
-    + '<p style="font-size:11px;color:var(--text-muted);">A stress check, not advice. Simplifications: pensions inherited tax-free (death before 75); the ISA passes as ISA (the spouse\'s extra allowance); the inheritance is split between pension and ISA in the shares ' + d + '\'s plan started with; gilts still held count at the value they would reach if interest rates did not move; the bad case sets ' + d + '\'s worst 1 in 10 against every one of ' + s + '\'s futures, not future by future.</p>';
+  const inh = res.inherited, has = res.has || {};
+  const tested = has.toAge != null ? fill(Q.tested, { survivor: survivorName, toAge: has.toAge }) : '';
+  const lasts = (x) => (x && x.a ? futuresOutOfTen(x.a.share).words : 'could not be tested (' + ((x && x.reason) || 'not affordable as configured') + ')');
+  const head = 'If ' + deceasedName + ' died ' + years + ' year' + (years === 1 ? '' : 's') + ' from now, ' + survivorName + '\'s plan lasts ' + lasts(res.middling) + tested + '. With a bad-case inheritance (the worst 1 in 10): ' + lasts(res.bad) + '.';
+  const li = (t) => '<li>' + esc(t) + '</li>';
+  const held = inh.heldIsa > 0 ? fill(Q.rows.held, { deceased: deceasedName, heldIsa: gbp(inh.heldIsa) }) : '';
+  return '<div class="alert ' + onCourseAlertClass(share) + '" id="hhSurvivorVerdict">' + esc(head) + '</div>'
+    + '<p style="font-size:13px;margin:6px 0 0;">' + esc(fill(Q.hasTitle, { survivor: survivorName })) + '</p>'
+    + '<ul style="font-size:13px;margin:4px 0 0 18px;padding:0;" id="hhSurvivorHas">'
+    + li(fill(Q.rows.savings, { survivor: survivorName }))
+    + li(fill(Q.rows.inherit, { deceased: deceasedName, middling: gbp(inh.middling.total), bad: gbp(inh.bad.total), held }))
+    + (has.pension ? li(fill(Q.rows.pension, { deceased: deceasedName, pct: has.pension.pct, amount: gbp(has.pension.annual) })) : '')
+    + (has.statePension ? li(fill(has.statePension.paid ? Q.rows.statePensionPaid : Q.rows.statePension, { survivor: survivorName, amount: gbp(has.statePension.annual), fromAge: has.statePension.fromAge })) : '')
+    + '</ul>'
+    + '<p style="font-size:13px;margin:6px 0 0;">' + esc(fill(Q.rows.spend, { survivor: survivorName, net: gbp(res.spending.net), gross: gbp(res.spending.gross), pct: Math.round(spendPct) })) + '</p>'
+    + '<p style="font-size:11px;color:var(--text-muted);">' + esc(fill(Q.note, { deceased: deceasedName, survivor: survivorName })) + '</p>';
 }
 
 /**
@@ -256,20 +266,22 @@ function limitControlsHtml(split) {
 }
 
 /**
- * When the comparison does not apply under the limit that applied (the paced count moved nothing, or too little to show) but
- * the fast split would save enough to show (household-draw-split.md 9.2): what it would do, from the count alone, and the
- * limit controls so that "None" can be chosen. '' when there is nothing faster to offer either, as before.
+ * When the comparison does not apply (7.12.0): "nothing to move" said once, in the simple view's words (HouseholdDraw.noSplitWords).
+ * When drawing the smaller pension faster would save enough to show (household-draw-split.md 9.2): what it would do, from the
+ * count alone, and the limit controls so that "None" can be chosen. Otherwise the sentence alone: no limit changes the answer.
  */
 export function splitNoneHtml({ split }) {
-  const f = split.fast;
-  if (!f || !(f.saving.year > SPLIT_HEADLINE_MIN)) return '';
+  const w = noSplitWords(split);
   const nm = split.names, small = split.smaller;
-  const d = Math.round(f.saving.until - split.saving.until);
-  const until = d === 0 ? 'and the same' : d > 0 ? 'and about ' + about(d) + ' more' : 'but about ' + about(-d) + ' less';
-  const line = 'Keeping ' + esc(nm[small]) + '\'s pot until the State Pension starts leaves ' + (split.unchanged ? 'nothing to move: that plan already draws what the limit allows each year.' : 'little to move (under £1,000 a year in tax).')
-    + ' Drawing ' + esc(nm[small]) + '\'s pot faster saves about ' + about(f.saving.year - split.saving.year) + ' a year in tax at first, ' + until + ' by the time ' + esc(nm[small]) + ' is ' + split.untilAge
-    + (f.goneAt != null ? '; ' + esc(nm[small]) + '\'s pot gone at about ' + f.goneAt : '') + '. Choose "None" below and re-run to see it.';
-  return '<div class="settings-section" id="hhSplitSection"><div class="section-title">Who draws what: drawing together, tax first</div>\n<p style="font-size:14px;margin:0 0 6px;">' + line + '</p>' + limitControlsHtml(split) + '</div>';
+  let line = esc(fill(HOUSEHOLD.split[w.id], { small: nm[small] }));
+  if (w.fast) {
+    const f = split.fast;
+    const d = Math.round(f.saving.until - split.saving.until);
+    const until = d === 0 ? 'and the same' : d > 0 ? 'and about ' + about(d) + ' more' : 'but about ' + about(-d) + ' less';
+    line += ' Drawing ' + esc(nm[small]) + '\'s pot faster saves about ' + about(f.saving.year - split.saving.year) + ' a year in tax at first, ' + until + ' by the time ' + esc(nm[small]) + ' is ' + split.untilAge
+      + (f.goneAt != null ? '; ' + esc(nm[small]) + '\'s pot gone at about ' + f.goneAt : '') + '. Choose "None" below and re-run to see it.';
+  }
+  return '<div class="settings-section" id="hhSplitSection"><div class="section-title">Who draws what: drawing together, tax first</div>\n<p style="font-size:14px;margin:0 0 6px;" id="hhSplitNone">' + line + '</p>' + (w.fast ? limitControlsHtml(split) : '') + '</div>';
 }
 
 /** When the person chose to keep things as they are: one line, with the way back. */

@@ -189,6 +189,27 @@ const yearOffsetOf = (p) => (p && p.yearOffset > 0 ? p.yearOffset : 0);
 const reasonOf = (x) => (x && x.r && !x.r.affordable ? (x.r.reason || 'not affordable as configured') : null);
 
 /**
+ * What the one who is left has, besides the inheritance (7.12.0), from the figures the survivor's run already holds:
+ *  - pension: the share of the deceased's final-salary pension paid on, a year (today's money) and the survivor's plan year it
+ *    pays from — null when the deceased has none or the share is 0;
+ *  - statePension: the survivor's own, a year, from their State Pension age, and whether it is already paid today — null when
+ *    they have none;
+ *  - toAge: the survivor's last tested age (their plan's start age and its length).
+ * Their own pot at that date is never given as a figure here (one median added to another, see leftAtYear): it is theirs, counted.
+ */
+export function survivorHas({ survivorSettings: sv, deceasedSettings: dc, survivorYear, offsets, dbSurvivorPct, now = new Date() }) {
+  const shift = (offsets.survivor || 0) - (offsets.deceased || 0);
+  const pension = +dc.dbAmount > 0 && dbSurvivorPct > 0 ? { annual: Math.round(+dc.dbAmount * dbSurvivorPct), fromYear: Math.max(survivorYear, (+dc.dbStartYear || 0) - shift), pct: Math.round(dbSurvivorPct * 100) } : null;
+  const sp = spFor(sv, now);
+  const start = +sv.shapeAgeNow || 0;
+  const fromAge = Number.isFinite(sp.startYear) && start > 0 ? start + sp.startYear : null;
+  const ageNow = Math.floor(currentAgeNow(sv, now)) || start;
+  const statePension = sp.annual > 0 && fromAge != null ? { annual: Math.round(sp.annual), fromAge, paid: ageNow >= fromAge } : null;
+  const toAge = start > 0 && +sv.duration > 0 ? start + +sv.duration : null;
+  return { pension, statePension, toAge };
+}
+
+/**
  * Survivor one-shot stress: "if one of you dies N years from now, is the survivor still OK?" Everything through the
  * planner's one test, in today's money:
  *  1. what the deceased leaves: their OWN strategy's test, its wealth at their plan year for that calendar year — the
@@ -213,6 +234,7 @@ export function runSurvivorCheck({ survivorSettings, deceasedSettings, deathYear
   const g = middling.targetSchedule[Math.min(survivorYear, middling.targetSchedule.length - 1)];
   return {
     affordable: true, deathYear, deceasedYear, survivorYear, offsets,
+    has: survivorHas({ survivorSettings, deceasedSettings, survivorYear, offsets, dbSurvivorPct, now }),
     deceasedStrategy: idOf(deceasedSettings), survivorStrategy: idOf(survivorSettings),
     inherited: left,
     spending: { gross: g, net: Math.round(netOf(g, bandsOf(survivorSettings))) },

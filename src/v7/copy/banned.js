@@ -279,4 +279,9 @@ export const BANNED = [
     say: 'name the pension by its plan’s name ("Sam’s plan’s pension") or say "the two plans"; a plan’s "its own" is allowed',
     // the site's own line in the header (7.1.0) is about everyone's pension, not one of the two
     allow: [/Plan your pension, from saving to living on it\./] },
+  // 7.12.0: no nudge toward one choice, and no boast about other tools
+  { id: 'the-usual',       re: /\bthe usual\b/i,                            scope: 'household',
+    say: 'say what is done to start with ("To start with, …"), never that one choice is the usual' },
+  { id: 'tools-skip',      re: /\bmost tools skip\b/i,                      scope: 'household',
+    say: 'ask the question plainly' },
 ];

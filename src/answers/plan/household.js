@@ -23,7 +23,7 @@
  * Every path written is in schema.js HOUSEHOLD_WRITES (tested), or, on a draft read from an earlier start, LATER_DRAFT_WRITES.
  */
 import { effectiveStressSettings } from '../../services/PlanReading.js';
-import { personProfile, splitFingerprint, SPLIT_HEADLINE_MIN, settingsWithSchedule } from '../../services/HouseholdDraw.js';
+import { personProfile, splitFingerprint, SPLIT_HEADLINE_MIN, settingsWithSchedule, noSplitWords } from '../../services/HouseholdDraw.js';
 import { isLockedPlan, splitWriteMode, shapeWords, splitCopyNames, SPLIT_KEYS } from '../../services/HouseholdSplitApply.js';
 import { budgetSharedFromOf, shareBudgetWrite, stopSharingWrite, sharedBudgetView, ownSideOf } from '../../services/PlanCommit.js';
 import { summariseBudget } from '../../services/BudgetModel.js';
@@ -404,7 +404,9 @@ function splitView(split, fig, names, saved, mode) {
   const cell = (v) => (v == null ? '—' : pounds(v));
   const way = (w) => (w ? { a: w.potA.map(cell).join(' / '), b: w.potB.map(cell).join(' / '), lasts: w.lasts ? w.lasts.household.words : '…', left: w.left90 ? pounds(w.left90.p50) + ' / ' + pounds(w.left90.p10) : '…' } : null);
   return {
-    applies: !!split.applies, unchanged: !!split.unchanged, dismissed: saved.dismissed, fingerprint: split.fingerprint, mode, lockedNames: saved.lockedNames,
+    applies: !!split.applies, unchanged: !!split.unchanged, dismissed: saved.dismissed,
+    // "nothing to move", said once in both views (HouseholdDraw.noSplitWords, 7.12.0)
+    noneWords: (() => { const n = noSplitWords(split); return { id: n.id, slots: { small: names[small] } }; })(), fingerprint: split.fingerprint, mode, lockedNames: saved.lockedNames,
     smallerName: names[small], biggerName: names[big], untilAge: String(split.untilAge),
     noBridge: split.untilC === 0,   // the smaller's State Pension already in payment when the count begins: no "by the time … is 68"
     limitKind: split.limit && split.limit.kind ? split.limit.kind : 'none', limitDefaulted: !!split.limitDefaulted, need: split.need == null ? null : pounds(split.need),
@@ -440,6 +442,13 @@ function survivorView(S, names, sids) {
     middling: lasts(r.middling), middlingReason: r.middling.reason || null, bad: lasts(r.bad), badReason: r.bad.reason || null,
     inherit: { middling: pounds(r.inherited.middling.total), bad: pounds(r.inherited.bad.total), held: r.inherited.heldIsa > 0 ? pounds(r.inherited.heldIsa) : null },
     spending: { gross: pounds(r.spending.gross), net: pounds(r.spending.net), pct: String(r.spendPct) },
+    // what the one who is left has besides the inheritance (7.12.0): their own pension and savings (counted, no figure), a
+    // share of the other's final-salary pension, their own State Pension; and the age their plan is tested to
+    has: r.has ? {
+      pension: r.has.pension ? { pct: String(r.dbPct), amount: pounds(r.has.pension.annual) } : null,
+      statePension: r.has.statePension ? { amount: pounds(r.has.statePension.annual), fromAge: String(r.has.statePension.fromAge), paid: !!r.has.statePension.paid } : null,
+      toAge: r.has.toAge != null ? String(r.has.toAge) : null
+    } : null,
     ways: { deceased: sids[r.who === 'b' ? 'b' : 'a'], survivor: sids[r.who === 'b' ? 'a' : 'b'] }, runs: String(r.basis && r.basis.runs ? r.basis.runs : 3)
   } };
 }

@@ -108,3 +108,29 @@ describe('a household answer is never run on a plan\'s starting defaults (7.12.0
     expect(r).toMatchObject({ ok: false, reason: 'partnerNotSet', which: 'a' });
   });
 });
+
+describe('who draws what and the survivor (7.12.0)', () => {
+  it('nothing would move either way: the plain sentence, the need box, and no limit choice; no "(the usual)" anywhere', () => {
+    const { root, text } = kimSamPage();
+    expect(one(root, `${T}.split.none`).textContent).toBe('As the two plans are written, moving drawing from one pension to the other would not cut the tax you pay between you.');
+    expect(root.querySelector('[data-field="limit.kind"]')).toBe(null);
+    expect(root.querySelector('[data-field="need.amount"]')).not.toBe(null);
+    expect(text).not.toMatch(/the usual|hard question|most tools skip/i);
+  });
+  it('Kim dies at 76: Sam\'s lines say what Sam would have, half Kim\'s £6,000 final-salary pension as £3,000 a year, Sam\'s State Pension from 67', async () => {
+    const { runSurvivor } = await import('../../../src/answers/plan/householdRun.js');
+    const boxes = { who: 'a', atAge: 76, spendPct: 70, dbPct: 50 };
+    const { kim, sam } = kimAndSam();
+    const list = upgradedList([kim, sam], NOW);
+    const result = runSurvivor(list[0].plan, list[1].plan, { today: KIM_AND_SAM_TODAY, ...boxes });
+    const { root } = kimSamPage({ open: [], extra: [(key) => ({ type: A.HH_SURVIVOR, key, boxes }), (key) => ({ type: A.HH_SURVIVOR_DONE, key, boxes, result, ms: 900 })] });
+    const head = one(root, `${T}.survivor.headline`).textContent;
+    expect(head).toMatch(/^If Kim died at 76, Sam’s plan lasts in .+, tested until Sam is 95\. With a bad-case inheritance \(the worst 1 in 10\): in .+\.$/);
+    const lines = [...one(root, `${T}.survivor.has`).querySelectorAll('li')].map((li) => li.textContent);
+    expect(lines[0]).toBe('Sam’s pension and savings, as Sam’s plan has them then.');
+    expect(lines[1]).toMatch(/^From Kim’s plan: £[\d,]+ in a middling case, £[\d,]+ in a bad case\.$/);
+    expect(lines[2]).toBe('50% of Kim’s final-salary pension: £3,000 a year.');
+    expect(lines[3]).toBe('One State Pension, from Sam’s plan: £11,502 a year from 67.');
+    expect(root.querySelector('[data-line="survivor.spend"]').textContent).toMatch(/^What Sam would spend: £[\d,]+ a year after tax \(£[\d,]+ before tax\)\. That is 70% of what you both spend after tax now\.$/);
+  }, 120000);
+});

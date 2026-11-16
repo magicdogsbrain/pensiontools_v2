@@ -391,6 +391,21 @@ export function householdDrawSplit(a, b, { limit = null, need = null, now = new 
   };
 }
 
+/**
+ * Which sentence says "nothing to move" when the comparison does not apply (7.12.0), for both views: an id of the words in
+ * src/v7/copy/household.js `split` and its slot. When drawing the smaller pension faster would save enough to show (the
+ * default limit binds): the limit's own line ('unchangedKept' or 'noneKept'). Otherwise: 'unchanged' (moving drawing from one
+ * pension to the other would not cut the tax at all) or 'none' (it would save too little to show).
+ *  noSplitWords(split) → { id, slots: { small }, fast: boolean }
+ */
+export function noSplitWords(split) {
+  const small = split && split.names && split.smaller ? split.names[split.smaller] : '';
+  const f = split && split.fast;
+  const fast = !!(f && split.limitDefaulted && f.saving.year - split.saving.year >= 1 && f.saving.year > SPLIT_HEADLINE_MIN);
+  const id = fast ? (split.unchanged ? 'unchangedKept' : 'noneKept') : split && split.unchanged ? 'unchanged' : 'none';
+  return { id, slots: { small }, fast };
+}
+
 /** Income steps ("from age X take £Y") from a per-plan-year schedule: a new step wherever the amount changes. */
 export function stepsFromSchedule(schedule, startAge) {
   const steps = [];

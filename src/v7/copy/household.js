@@ -105,7 +105,7 @@ export const HOUSEHOLD = {
     fastUntil: { more: 'and {amount} more', less: 'but {amount} less', same: 'and the same' },
     fastButton: 'Draw it faster',
     none: 'Drawing together would not save much tax here: as the two plans are written, that is already about as cheap as it gets. The comparison shows only when the first full year would save more than £1,000.',
-    unchanged: 'Each plan already draws within its tax-free allowance and 20% band, so there is nothing to move between the two.',
+    unchanged: 'As the two plans are written, moving drawing from one pension to the other would not cut the tax you pay between you.',
     unchangedKept: 'Keeping {small}’s pension until the State Pension starts leaves nothing to move: its plan already draws, each year, what that allows.',
     noneKept: 'Keeping {small}’s pension until the State Pension starts leaves little to move: less than £1,000 a year in tax.',
     dismissed: 'You chose to keep things as they are: each plan draws as it is written.',
@@ -124,7 +124,7 @@ export const HOUSEHOLD = {
     figures: 'Every figure is from the runs: the tax from the same tax sums the plans use, on each year’s draws at today’s prices; the pots, the count of futures and what is left from both plans through the same 1,000 futures each way.',
     limit: {
       title: 'What the couple needs, and a limit on {small}’s pension',
-      lead: 'The usual is to keep {small}’s pension until the State Pension starts, drawn evenly to then on what is left. Or draw it faster with no limit, keep it until an age of your choosing, or keep at least a sum in it.'
+      lead: 'To start with, {small}’s pension is kept until the State Pension starts, drawn evenly to then. You can draw it faster with no limit, keep it until an age you choose, or keep at least a sum in it.'
     },
     use: 'Use this split',
     useCopies: 'Make copies of both plans with this split',
@@ -145,7 +145,7 @@ export const HOUSEHOLD = {
   },
   /** The survivor question in ages (2.10). */
   survivor: {
-    lead: 'The hard question most tools skip. The one who is left keeps the pensions in their name, inherits what the other’s plan has left then (pensions go to them free of tax before 75), loses one State Pension, and typically needs about 70% of the joint spending. Each plan runs through its own way of drawing.',
+    lead: 'The one who is left keeps the pensions in their name, inherits what the other’s plan has left then (pensions go to them free of tax before 75), loses one State Pension, and typically needs about 70% of the joint spending. Each plan runs through its own way of drawing.',
     button: 'Try it',
     again: 'Try it again',
     working: 'Running both plans, each through its own way of drawing…',
@@ -155,15 +155,20 @@ export const HOUSEHOLD = {
     stale: 'The boxes have changed since this was tried.',
     ran: 'Tried in {runs} runs ({ms} s).',
     ranUntimed: 'Tried in {runs} runs.',
-    headline: 'If {deceased} died at {atAge}, {survivor}’s plan lasts {middling} with a middling inheritance, and {bad} with a bad-case one (the worst 1 in 10).',
-    headlineOne: 'If {deceased} died at {atAge}, {survivor}’s plan lasts {middling} with a middling inheritance; with a bad-case one (the worst 1 in 10) it could not be tested ({badReason}).',
+    headline: 'If {deceased} died at {atAge}, {survivor}’s plan lasts {middling}{tested}. With a bad-case inheritance (the worst 1 in 10): {bad}.',
+    headlineOne: 'If {deceased} died at {atAge}, {survivor}’s plan lasts {middling}{tested}. With a bad-case inheritance (the worst 1 in 10) it could not be tested ({badReason}).',
+    tested: ', tested until {survivor} is {toAge}',
     cannot: 'If {deceased} died at {atAge}, {survivor}’s plan could not be tested as set ({reason}). Change that plan first.',
     unaffordable: '{deceased}’s plan could not be tested as set{reason}. Change that plan first.',
+    hasTitle: 'What {survivor} would have, at today’s prices:',
     rows: {
-      inherit: '{survivor} inherits {middling} in a middling case, {bad} in a bad case (the worst 1 in 10), at today’s prices — what {deceased}’s plan ({way}) has left then{held}.',
+      savings: '{survivor}’s pension and savings, as {survivor}’s plan has them then.',
+      inherit: 'From {deceased}’s plan: {middling} in a middling case, {bad} in a bad case{held}.',
       held: ' (including the ISA {deceased}’s plan holds aside, {heldIsa})',
-      spend: '{survivor} then spends {gross} a year before tax ({net} after tax), at today’s prices — {pct}% of what you both spend after tax.',
-      way: '{survivor}’s plan runs on its own way of drawing ({way}) with the inheritance arriving that year.'
+      pension: '{pct}% of {deceased}’s final-salary pension: {amount} a year.',
+      statePension: 'One State Pension, from {survivor}’s plan: {amount} a year from {fromAge}.',
+      statePensionPaid: 'One State Pension, from {survivor}’s plan: {amount} a year, already paid.',
+      spend: 'What {survivor} would spend: {net} a year after tax ({gross} before tax). That is {pct}% of what you both spend after tax now.'
     },
     note: 'A check, not advice. Simplifications: pensions inherited free of tax (death before 75); the ISA goes across as ISA (the spouse’s extra allowance); the inheritance is split between pension and ISA in the shares {deceased}’s plan held at the start; gilts still held count at the value they would reach if interest rates did not move; the bad case sets {deceased}’s worst 1 in 10 against every one of {survivor}’s futures, not future by future.'
   },
@@ -185,10 +190,9 @@ export const HOUSEHOLD = {
     note: 'A check, not advice. The cost is added in full on top of normal spending, as a one-off cost of {totalGross} before tax in all; nothing a council might pay is modelled.',
     cannot: 'The plans could not be tested as set ({reason}).'
   },
-  /** One budget for the household (decision 5), with "Keeping money separate?" as the option. */
+  /** One budget for the household (decision 5), keeping money separate the other choice. */
   budget: {
-    separateQuestion: 'Keeping money separate?',
-    lead: 'A couple is one household: share this plan’s budget and ‘{name}’ reads the same lines, with “who pays” still its own. Keeping money separate is the other choice: each plan keeps its own budget.',
+    lead: 'A couple is one household: share this plan’s budget and ‘{name}’ reads the same lines, with “who pays” still its own. Or keep money separate: each plan keeps its own budget.',
     mine: 'This plan’s budget is the household’s: ‘{name}’ reads the same lines, with its own share of who pays.',
     theirs: 'The household’s budget is ‘{name}’s: this plan reads the same lines, with its own share of who pays.',
     none: 'Each plan has its own budget at the moment.',
@@ -203,7 +207,7 @@ export const HOUSEHOLD = {
   },
   /** The budget's who-pays (ledger budget.who-pays): me, partner or shared, and my share. */
   whoPays: {
-    open: 'Who pays what',
+    open: 'Set who pays each line',
     close: 'Hide who pays what',
     lead: 'Mark each line Me, Partner or Shared. Your plan funds only your share — costs your partner covers drop out of your spending figure but still show in the household total.',
     readsShared: 'The lines are the household’s, held on ‘{name}’: a change to who pays a line is written there; your share is written on this plan.',
@@ -225,7 +229,7 @@ export const HOUSEHOLD = {
   /** The boxes of the questions, in ages. */
   fields: {
     'need.amount':  { label: 'What the couple needs after tax, a year', help: 'Leave it blank for what the two plans pay between them.' },
-    'limit.kind':   { label: 'A limit on the smaller pension', options: { none: 'Keep it until the State Pension starts (the usual)', fast: 'Draw it faster: no limit', untilAge: 'Keep it until an age', keepAtLeast: 'Keep at least a sum in it' } },
+    'limit.kind':   { label: 'A limit on the smaller pension', options: { none: 'Keep it until the State Pension starts', fast: 'Draw it faster: no limit', untilAge: 'Keep it until an age', keepAtLeast: 'Keep at least a sum in it' } },
     'limit.age':    { label: 'Until age' },
     'limit.amount': { label: 'Keep at least, in pounds' },
     'survivor.who':      { label: 'Who dies', options: { a: '{a}', b: '{b}' } },

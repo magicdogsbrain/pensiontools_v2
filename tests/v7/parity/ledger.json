@@ -348,6 +348,29 @@
       "note": "7.10.0. It replaces \"Not now\" kept for one window (7.3.0): a dismissal is a record of the plan's, read by one reader (answers/plan/tasks.js) in both apps. The schema's TASK_WRITES holds the write to the one root."
     },
     {
+      "id": "plan.phases.say-held",
+      "area": "ways-in",
+      "kind": "record",
+      "name": "\"This is how I want to hold it\" on the move page",
+      "what": "While Moving, one press and a confirm say that what is held now is how the person wants it: only the agreement is written into the plan's phases (no test run, no amendment); the move page then shows what is held beside the plan with no list to buy. \"Take this back\" removes it. The tested agreement on Your review is unchanged.",
+      "whereV6": "The Transition tab's own button (src/ui/keepHoldingsUi.js sayHeldFull and takeBackSayHeld; ScenarioRepository.saveActivePhases: the stored plan read afresh, refused once a close has passed)",
+      "who": "Everyone moving to a locked plan",
+      "keys": [
+        "plan.phases"
+      ],
+      "status": "built",
+      "doc": "research/v7/replan-nov-2026.md §6",
+      "step": "s11-rows",
+      "files": [
+        "src/answers/plan/agree.js",
+        "src/v7/screens/plan/MoveScreen.jsx",
+        "src/v7/effects/planWrite.js",
+        "src/storage/ScenarioRepository.js",
+        "src/ui/keepHoldingsUi.js"
+      ],
+      "note": "7.12.0."
+    },
+    {
       "id": "ways.life-stages",
       "area": "ways-in",
       "kind": "option",

@@ -62,8 +62,8 @@ export function shownPlanName(plan, { now = new Date() } = {}) {
 }
 
 /** shownPlanName on a day given as a Date or as 'YYYY-MM-DD' (a page's `today`, read at noon); the clock's day otherwise. */
-export function shownPlanNameOn(plan, when) {
+export function shownPlanNameOn(plan, when, clock = new Date()) {
   const m = typeof when === 'string' ? /^(\d{4})-(\d{2})-(\d{2})/.exec(when) : null;
-  const now = when instanceof Date ? when : m ? new Date(+m[1], +m[2] - 1, +m[3], 12) : new Date();
+  const now = when instanceof Date ? when : m ? new Date(+m[1], +m[2] - 1, +m[3], 12) : clock;
   return shownPlanName(plan, { now });
 }

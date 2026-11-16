@@ -649,7 +649,9 @@ describe('the shell\'s data for question A', () => {
     expect(keptDraft({ a: { spendHow: 'lines', skipNoted: true } }, 'a')).toMatchObject({ spendHow: 'lines', skipNoted: true });
     expect(keptDraft({ a: { spendHow: 'budget', skipNoted: 'yes' } }, 'a')).toMatchObject({ spendHow: null, skipNoted: false });
     expect(keptDraft({ a: { carriedFrom: 'z' } }, 'a').carriedFrom).toBeNull();
-    expect(keptDraft({ c: { values: { 'you.pot': '1' }, carriedFrom: 'a' } }, 'c')).toEqual({ values: { 'you.pot': '1' }, touched: [], asked: false, revealed: [] });
+    // retaken in 7.12.0: C keeps where its figures were carried from across a reload, as A and B do (a or b only)
+    expect(keptDraft({ c: { values: { 'you.pot': '1' }, carriedFrom: 'a' } }, 'c')).toEqual({ values: { 'you.pot': '1' }, touched: [], asked: false, revealed: [], carriedFrom: 'a' });
+    expect(keptDraft({ c: { values: { 'you.pot': '1' } } }, 'c')).toEqual({ values: { 'you.pot': '1' }, touched: [], asked: false, revealed: [] });
     expect(keptDraft(null, 'b')).toEqual(emptySaverDraft());
   });
 });

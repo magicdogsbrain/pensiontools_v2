@@ -62,7 +62,7 @@ import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, loc
 import { isClosedPlan, closedReading, beforeReading, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
-import { takenSentence, yearPlanOf, firstPaymentMonth } from '../../services/YearPlan.js';
+import { takenSentence, yearPlanOf, firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
 
 // The dates in words live in dates.js (shared with about.js); kept as exports here for everyone who reads them from read.js.
 export { dateOf, monthWords, monthName, dayWords };
@@ -286,31 +286,6 @@ const link = (id, href, slots = {}) => ({ id, href, slots });
 // ---- the steps -------------------------------------------------------------------------------------------------------
 
 /**
- * The earliest month with no record, counted from the FIRST record's month up to the month BEFORE `mon` (this month);
- * null with no records or no gap. This month itself is never a gap: it is "not recorded yet" as it always was. Months
- * before the first record are never counted (a plan may begin with a later month on purpose), nor months after this one.
- * The month before a record made with "This month's payment has already been made" — the planner dates that entry a
- * month on and marks the record `paidAhead` (index.html handleDecisionSubmit, models/Decision.js) — is not a gap either:
- * the person said it was paid. A record with no mark, every record made before the mark existed among them, reads as it
- * did, so no saved plan's reading changes.
- */
-function firstGap(hist, mon) {
-  if (!hist.length) return null;
-  const byMonth = new Map(hist.map((h) => [String(h.date).slice(0, 7), h]));
-  let p = ym(hist[0].date);
-  const end = ym(mon);
-  if (!p || !end) return null;
-  const key = (q) => q.y + '-' + String(q.m).padStart(2, '0');
-  while (monthsBetween(p, end) > 0) {
-    const next = p.m === 12 ? { y: p.y + 1, m: 1 } : { y: p.y, m: p.m + 1 };
-    const after = byMonth.get(key(next));
-    if (!byMonth.has(key(p)) && !(after && after.paidAhead === true)) return key(p);
-    p = next;
-  }
-  return null;
-}
-
-/**
  * "Record {August}": Month by month inside the new app since 7.2.0 (research/v7/months-in-v7.md) — it opens on the month to
  * record and offers every month missed before it, so the month rides along only as the button's words.
  */
@@ -333,9 +308,11 @@ function monthStep(C) {
   const { plan, now, ty, tyKey, mon } = C;
   const hist = historyAscending(plan);
   const latest = hist.length ? hist[hist.length - 1] : null;
-  const gap = firstGap(hist, mon);
-  const recorded = !gap && !!latest && String(latest.date).slice(0, 7) >= mon;
-  const toRecord = gap || mon;
+  // the one month to record (7.12.0, YearPlan.monthToRecord): the same month Month by month and the full view open on
+  const mtr = monthToRecord(plan, mon);
+  const gap = mtr.gap ? mtr.month : null;
+  const recorded = !mtr.month;
+  const toRecord = mtr.month || mon;
   const figures = {};
   const lines = [];
   const setUp = !!(plan.decisionTool && plan.decisionTool.taxYears && plan.decisionTool.taxYears[tyKey] && plan.decisionTool.taxYears[tyKey].yearSetupComplete);
@@ -361,7 +338,8 @@ function monthStep(C) {
   });
   if (gap && String(latest.date).slice(0, 7) > gap) lines.push(line('month.gapLater', [], figures, sourceOf('record', latest.date, now), { month: monthWords(latest.date) }));
   let result;
-  if (recorded) { figures.net = r0(latest.monthlyNet); result = sentence('month.recorded', [monthWords(mon) + ' recorded: ', money('net'), ' after tax'], figures); }
+  // the latest record's own month, with its own figure (never this month's name on a later month's figures)
+  if (recorded) { figures.net = r0(latest.monthlyNet); result = sentence('month.recorded', [monthWords(latest.date) + ' recorded: ', money('net'), ' after tax'], figures); }
   else if (gap) result = sentence('month.gap', [monthWords(gap) + ' is not recorded yet; ' + monthWords(latest.date) + ' is.'], figures);
   else result = sentence('month.notYet', [monthWords(mon) + ' is not recorded yet'], figures);
   const buttons = [recordButton(plan, toRecord)];

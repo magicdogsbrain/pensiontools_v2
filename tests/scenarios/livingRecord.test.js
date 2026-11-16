@@ -5,18 +5,21 @@
  *
  *   Step 1  what was taken against what the plan said: one reader (services/YearPlan.js), the same words in both views.
  *   Step 2  the month the plan first pays, and the year's plan: no month before it is "not recorded".
+ *   Step 3  one month to record: the home's button, Month by month and the full view's box name the same month.
  */
 import { describe, it, expect } from 'vitest';
 import { planPage } from '../../src/answers/plan/read.js';
 import { homeOf } from '../../src/answers/plan/home.js';
 import { whereAmIFor } from '../../src/services/PlanReading.js';
 import { incomeThisYearText } from '../../src/ui/components/PlanDocumentView.js';
-import { takenAgainstPlan, firstPaymentMonth } from '../../src/services/YearPlan.js';
+import { takenAgainstPlan, firstPaymentMonth, monthToRecord } from '../../src/services/YearPlan.js';
 import { monthOf } from '../../src/answers/plan/month.js';
+import { MONTH } from '../../src/v7/copy/month.js';
 import { corpus, entryOf } from '../v7/plan/_plans.js';
 
 const C = corpus();
 const copy = (v) => JSON.parse(JSON.stringify(v));
+const fillSlots = (t, slots) => String(t).replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
 const noonOf = (d) => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd, 12); };
 
 /**
@@ -155,14 +158,18 @@ describe('Step 2: the month the plan first pays, and the year\'s plan', () => {
     // unchanged behaviour, pinned: the gap is the one month due on the strip (a second gap would read "not recorded")
     expect(cellOf(H, '2026-06').state).toBe('due');
     expect(H.year.cells.some((c) => c.state === 'before')).toBe(false);
-    expect(M.gap).toMatchObject({ count: 1, words: 'June 2026' });
+    // the page opens on June itself (step 3); with August chosen, the banner names June
+    expect(M.chosen).toBe('2026-06');
+    const aug = monthOf([entryOf(jo, '2026-08-10')], jo.id, { today: '2026-08-10', typed: { 'mo.month': '2026-08' } });
+    expect(aug.gap).toMatchObject({ count: 1, words: 'June 2026' });
+    expect(fillSlots(MONTH.gap.one, aug.gap)).toBe('June 2026 is not recorded.');
     expect(whereLine(jo, '2026-08-10', 'where.yearPlan')).toBe('In 2026/27 your plan takes £2,600 a month before tax.');
     // two months missed: the first is due, the second reads "not recorded"
     const jo2 = lockedOn('2026-03-20T10:00:00.000Z', { id: 'LivingJo02', name: 'Jo', taxYear: setUpFrom(4, 12, 2600), records: ['2026-04', '2026-07'].map((m) => rec(m)) });
     const two = homeAt(jo2, '2026-08-10');
     expect(cellOf(two.H, '2026-05').state).toBe('due');
     expect(cellOf(two.H, '2026-06').state).toBe('none');
-    expect(two.M.gap).toMatchObject({ count: 2 });
+    expect(two.M.chosen).toBe('2026-05');
   });
 
   it('Alex: set up from July with nine payments — April to June are before the plan', () => {
@@ -170,5 +177,34 @@ describe('Step 2: the month the plan first pays, and the year\'s plan', () => {
     const { H } = homeAt(alex, '2026-08-02');
     for (const m of ['2026-04', '2026-05', '2026-06']) expect(cellOf(H, m).state, m).toBe('before');
     expect(whereLine(alex, '2026-08-02', 'where.yearPlan')).toBe('In 2026/27 your plan takes £2,833 a month before tax, from July 2026: 9 payments, £' + Math.round(9 * 2833.33).toLocaleString('en-GB') + '.');
+  });
+});
+
+describe('Step 3: one month to record', () => {
+  const set = setUpFrom(4, 12, 2600);
+  it('Kim records December early (16 November): the step names December with its own figure, and nothing is left to record', () => {
+    const kim = lockedOn('2026-11-01T10:00:00.000Z', { id: 'LivingKim04', name: 'Kim', taxYear: setUpFrom(11, 5, 2577),
+      records: [rec('2026-11', { sipp: 2577, stdSipp: 2577, monthlyNet: 2191 }), rec('2026-12', { sipp: 2577, stdSipp: 2577, monthlyNet: 2191 })] });
+    const e = entryOf(kim, '2026-11-16');
+    const step = planPage([e], e.plan.id, 'month', { today: '2026-11-16' }).steps.find((s) => s.id === 'month');
+    expect(step.result.text).toBe('December 2026 recorded: £2,191 after tax');
+    expect(monthToRecord(e.plan, '2026-11').month).toBe(null);
+    expect(monthOf([e], e.plan.id, { today: '2026-11-16' }).idle).toBeTruthy();
+  });
+  it('Jo, June missed: the home\'s button, Month by month and the one reader all name June', () => {
+    const jo = lockedOn('2026-03-20T10:00:00.000Z', { id: 'LivingJo03', name: 'Jo', taxYear: set, records: ['2026-04', '2026-05', '2026-07'].map((m) => rec(m)) });
+    const { e, H, M } = homeAt(jo, '2026-08-10');
+    const todo = [...H.todo.items, ...H.todo.more].find((i) => i.button && /\/month$/.test(i.button.href || ''));
+    expect(todo.button.month).toBe('2026-06');
+    expect(M.chosen).toBe('2026-06');
+    expect(monthToRecord(e.plan, '2026-08').month).toBe('2026-06');
+  });
+  it('a month still ahead is said once, and not refused', () => {
+    const jo = lockedOn('2026-03-20T10:00:00.000Z', { id: 'LivingJo04', name: 'Jo', taxYear: set, records: ['2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10'].map((m) => rec(m)) });
+    const e = entryOf(jo, '2026-11-16');
+    const M = monthOf([e], e.plan.id, { today: '2026-11-16', typed: { 'mo.month': '2026-12' } });
+    expect(M.chosen).toBe('2026-12');
+    expect(M.future).toEqual({ month: 'December 2026' });
+    expect(fillSlots(MONTH.future, M.future)).toBe('December 2026 has not happened yet. Record it now only if the payment has gone.');
   });
 });

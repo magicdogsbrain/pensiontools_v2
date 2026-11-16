@@ -32,7 +32,7 @@ import { isExamplePlan } from '../../services/GuestPlans.js';
 import { MONTH_FIELDS } from './schema.js';
 import { dateOf, monthWords, monthName, localMonth } from './dates.js';
 import { partnerOf } from './household.js';
-import { firstPaymentMonth } from '../../services/YearPlan.js';
+import { firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
 import { pounds } from './income.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -70,7 +70,7 @@ function boxError(path, raw) {
  * to reach. And the month it opens on: this month when it is not recorded, else the first month after the latest record,
  * else the last listed.
  */
-function monthChoices(I, mon, fp, wide = false) {
+function monthChoices(I, mon, fp, wide = false, toRecord = null) {
   const recorded = new Set(I.history.map(monthOfRecord).filter(Boolean));
   const found = earliestFillMonth(I.history, I.taxYears, I.planStart);
   let reach = found && I.floor && found < I.floor ? I.floor : found;
@@ -86,8 +86,10 @@ function monthChoices(I, mon, fp, wide = false) {
   const listed = all.slice(-MONTHS_LISTED);
   let earlier = false;
   if (!wide) for (let m = reach; m < own; m = addMonth(m, 1)) if (!recorded.has(m)) { earlier = true; break; }
+  // the month it opens on is the one month to record (YearPlan.monthToRecord), the month the home's button names; with
+  // nothing to record, the first month after the latest record (the page then says nothing is due)
   const latest = latestRecordedMonth(I.history);
-  const opens = listed.includes(mon) ? mon : (latest ? listed.find((m) => m > latest) : null) || listed[listed.length - 1] || null;
+  const opens = (toRecord && listed.includes(toRecord) ? toRecord : null) || (listed.includes(mon) && !(latest && latest >= mon) ? mon : null) || (latest ? listed.find((m) => m > latest) : null) || listed[listed.length - 1] || null;
   return { listed, opens, earlier };
 }
 
@@ -296,7 +298,7 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const closed = isClosedPlan(plan);
   // the plan's first payment month (7.12.0): the chooser starts there, and no month before it is ever counted as missed
   let fp = null; try { fp = firstPaymentMonth(plan, { now, settings: I.stressSettings }).month; } catch { fp = null; }
-  const { listed, opens, earlier } = monthChoices(I, mon, fp, typed['mo.earlier'] === 'yes');
+  const { listed, opens, earlier } = monthChoices(I, mon, fp, typed['mo.earlier'] === 'yes', monthToRecord(plan, mon).month);
   const chosen = typeof typed['mo.month'] === 'string' && listed.includes(typed['mo.month']) ? typed['mo.month'] : opens;
   const paidAsked = typed['mo.paid'] === 'yes' && chosen === mon;
   const marchPaid = paidAsked && Number(mon.slice(5, 7)) === 3;
@@ -306,6 +308,8 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   if (marchPaid) errors['mo.paid'] = 'march';
   const base = {
     stageKey: stage.key, locked, closed, months: listed.map((m) => ({ ym: m, words: monthWords(m) })), earlier, chosen, mon, month, monthWords: month ? monthWords(month) : '',
+    // a month still ahead (7.12.0): said once above the figures, never refused
+    future: !!chosen && chosen > mon ? { month: monthWords(chosen) } : null,
     paidOffered: chosen === mon && !(I.ceiling && I.ceiling <= mon), paidAhead, cadence: cadenceOf(plan.decisionTool),
     recent: I.history.slice(-3).reverse().map((h) => ({ month: monthWords(h.date), afterTax: pounds(h.monthlyNet), tax: pounds(h.monthlyTax), filled: filledInLabel(h) || null, fromSetUp: h.fromSetUp === true })),
     recordedCount: I.history.length,

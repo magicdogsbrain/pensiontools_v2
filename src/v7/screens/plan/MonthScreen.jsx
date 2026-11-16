@@ -244,6 +244,7 @@ export function MonthScreen(state, dispatch) {
                 <h2>{W.sections.month}</h2>
                 <MonthSelect path="mo.month" label={W.fields['mo.month'].label} help={W.fields['mo.month'].help} value={V.chosen} options={V.months} planId={planId} dispatch={dispatch} />
                 {/* 7.12.0: the list starts at the plan's first payment; earlier months stay one quiet press away */}
+                {V.future && V.editable && <p class="note" data-testid={`${T}.future`}>{fill(W.future, V.future)}</p>}
                 {V.earlier && V.editable && <p class="line"><Button testid={`${T}.earlier`} kind="quiet" onClick={() => dispatch({ type: 'plan/edit', planId, path: 'mo.earlier', value: 'yes' })} {...keepFocus}>{W.earlier}</Button></p>}
                 {V.paidOffered && <Choice V={V} path="mo.paid" value={typed['mo.paid'] === 'yes' ? 'yes' : 'no'} dispatch={dispatch} words={W.fields['mo.paid']} options={['no', 'yes']} error={shownErrors['mo.paid'] || (V.errors['mo.paid'] ? V.errors['mo.paid'] : null)} />}
                 {V.cadence !== 'monthly' && W.cadence[V.cadence] && <p class="note" data-testid={`${T}.cadence`}>{W.cadence[V.cadence]}</p>}

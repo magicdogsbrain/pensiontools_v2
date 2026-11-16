@@ -4208,7 +4208,7 @@
     import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
-    import { configureMonthlyEntry, readMonthlyEntry, prefillMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
+    import { configureMonthlyEntry, readMonthlyEntry, openMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
     import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary, stampHoldings, holdingsWith } from './src/services/HoldingsRecord.js';
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
@@ -4719,7 +4719,7 @@
         try { const st = await getActiveStrategy(); window._activeStrategyId = (st && st.id) || stressSettings.strategyId || 'pots-and-valves'; } catch (e) { window._activeStrategyId = stressSettings.strategyId || 'pots-and-valves'; }
 
         // Monthly Entry captures THIS MONTH's values — never the plan's starting minimums: last month's record is pre-filled, to change (6.23).
-        configureMonthlyEntry({ hasDiversifiers: decisionSettings.diversifierStart > 0 || !!decisionSettings.diversifiers }); prefillMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
+        configureMonthlyEntry({ hasDiversifiers: decisionSettings.diversifierStart > 0 || !!decisionSettings.diversifiers }); openMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
         document.getElementById('entryIsa').value = '';
         prefillGiaBasis();
         monthEntry.refreshOffer();   // the offer to fill in the missed months, against the records just read (3 Nov 2026)
@@ -10025,7 +10025,7 @@
         syncAccessButtons('ds');
 
         // Monthly Entry captures THIS MONTH's values — last month's record pre-filled, never the plan's starting minimums (6.23).
-        configureMonthlyEntry({ hasDiversifiers: s.diversifierStart > 0 || !!s.diversifiers }); prefillMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
+        configureMonthlyEntry({ hasDiversifiers: s.diversifierStart > 0 || !!s.diversifiers }); openMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
         document.getElementById('entryIsa').value = '';
         prefillGiaBasis();
         monthEntry.refreshOffer();   // the offer to fill in the missed months, against the records just read (3 Nov 2026)

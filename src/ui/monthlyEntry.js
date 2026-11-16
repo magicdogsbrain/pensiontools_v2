@@ -11,6 +11,7 @@
  * functions through installMonthlyEntryHandlers.
  */
 import { platformBoxes, splitFromPlatform, prefillFromHistory, prefillNote, enteredBlock } from '../services/MonthlyEntry.js';
+import { monthToRecord } from '../services/YearPlan.js';
 
 export const ENTRY_MODE_KEY = 'pt.entryMode';
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -128,6 +129,17 @@ export function prefillMonthlyEntry(history, opts) {
   const s = splitFromPlatform(p, lastOpts);
   if (!s.problem) { setVal('entryEquity', s.equity); setVal('entryBond', s.bond); setVal('entryCash', s.cash); setVal('entryDiversifier', s.diversifier); }
   return p;
+}
+
+/**
+ * The entry card opened on a plan (7.12.0): the month box set to the one month to record (YearPlan.monthToRecord — the month
+ * the simple view's home and Month by month name), then the boxes filled for it. With nothing to record the box is left as
+ * it is.
+ */
+export function openMonthlyEntry(history, opts) {
+  const t = monthToRecord({ decisionTool: { history: Array.isArray(history) ? history : [] } }, thisMonth());
+  if (t.month) setVal('entryMonth', t.month);
+  return prefillMonthlyEntry(history, opts);
 }
 
 /**

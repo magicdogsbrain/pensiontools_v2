@@ -5,6 +5,7 @@
  *   takenAgainstPlan(records) → { n, months, taken, said, diff, net, netKnown, cut, setUpMonths }
  *   yearPlanOf(plan, key)     → { setUp, from, payments, perMonth, total } | null: a tax year as it was set up
  *   firstPaymentMonth(plan, { now, settings }) → { month: 'YYYY-MM' | null, from: 'record' | 'setUp' | 'stop' | null }
+ *   monthToRecord(plan, mon)  → { month: 'YYYY-MM' | null, latest: 'YYYY-MM' | null, gap: boolean }: the one month to record
  *   takenSentence(inc, { year, compare, setUpNote }) → { id, compare, parts, figures }: the words both views say
  *
  * "What the plan said" for a month is what the month itself told the person to take: the record's standard pension draw
@@ -126,6 +127,49 @@ export function firstPaymentMonth(plan, { now = new Date(), settings = null } = 
   const floor = b && BEFORE_KINDS.includes(b.kind) ? b.from : null;
   if (month && floor && month < floor) month = floor;
   return { month, from };
+}
+
+/** 'YYYY-MM' → { y, m }, or null. */
+const ymOf = (v) => { const a = /^(\d{4})-(\d{2})/.exec(String(v || '')); return a ? { y: +a[1], m: +a[2] } : null; };
+const between = (a, b) => (b.y - a.y) * 12 + (b.m - a.m);
+
+/**
+ * The earliest month with no record, counted from the FIRST record's month up to the month BEFORE `mon` (this month);
+ * null with no records or no gap. This month itself is never a gap: it is "not recorded yet". Months before the first
+ * record are never counted (a plan may begin with a later month on purpose), nor months after this one. The month before a
+ * record made with "This month's payment has already been made" (the record's `paidAhead` mark) is not a gap either: the
+ * person said it was paid. (Moved here unchanged from answers/plan/read.js, 7.12.0.)
+ */
+function firstGap(hist, mon) {
+  if (!hist.length) return null;
+  const byMonth = new Map(hist.map((h) => [String(h.date).slice(0, 7), h]));
+  let p = ymOf(hist[0].date);
+  const end = ymOf(mon);
+  if (!p || !end) return null;
+  const key = (q) => q.y + '-' + String(q.m).padStart(2, '0');
+  while (between(p, end) > 0) {
+    const next = p.m === 12 ? { y: p.y + 1, m: 1 } : { y: p.y, m: p.m + 1 };
+    const after = byMonth.get(key(next));
+    if (!byMonth.has(key(p)) && !(after && after.paidAhead === true)) return key(p);
+    p = next;
+  }
+  return null;
+}
+
+/**
+ * The one month to record (7.12.0), read by the home's "Record {month}", Month by month and the full view's month box alike:
+ * the first month missed (firstGap) when there is one; else this month (`mon`, 'YYYY-MM') when the latest record is before
+ * it; else null — nothing to record (a quarter or a year recorded at once, or "paid this month already", reaches ahead).
+ * `latest` is the latest record's month.
+ */
+export function monthToRecord(plan, mon) {
+  const dt = plan && plan.decisionTool && typeof plan.decisionTool === 'object' ? plan.decisionTool : {};
+  const hist = (Array.isArray(dt.history) ? dt.history : []).filter((h) => h && typeof h === 'object' && ymOf(h.date)).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const latest = hist.length ? String(hist[hist.length - 1].date).slice(0, 7) : null;
+  const gap = firstGap(hist, mon);
+  if (gap) return { month: gap, latest, gap: true };
+  if (!latest || latest < mon) return { month: mon, latest, gap: false };
+  return { month: null, latest, gap: false };
 }
 
 /**

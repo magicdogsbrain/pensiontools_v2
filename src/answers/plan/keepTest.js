@@ -60,10 +60,13 @@ export function keptAssetsOf(rec) {
   const all = lineKeysOf(r);
   // the ledger keeps the lines with a value or units, in order: their keys, in the same order
   const keys = r.lines.map((l, i) => [l, all[i]]).filter(([l]) => l && (num(l.value) > 0 || num(l.units) > 0)).map(([, k]) => k);
-  return rows.map((h, i) => [h, keys[i]]).filter(([h]) => h.keep).map(([h, key]) => {
+  // the record's own lines beside the ledger's rows, in the same order (what the person said each line is: its subClass)
+  const said = r.lines.filter((l) => l && (num(l.value) > 0 || num(l.units) > 0)).map((l) => !!l.subClass);
+  return rows.map((h, i) => [h, keys[i], said[i]]).filter(([h]) => h.keep).map(([h, key, saidWhat]) => {
     const keep = normaliseKeep(h.keep);
     const bucket = h.cash ? 'cash' : h.gilt ? 'bonds' : (h.bucket || 'shares');
-    const single = !h.cash && !h.gilt && !isGiltTicker(h.ticker) && bucket === 'shares' && !catalogueEntry(h.ticker);
+    // one company's shares (7.12.0): only a line the person has not said what it is, and that nothing else places
+    const single = !h.cash && !h.gilt && !isGiltTicker(h.ticker) && bucket === 'shares' && !catalogueEntry(h.ticker) && !saidWhat && !h.split;
     // what the line holds, in its parts (7.10.0, ledgerView's split): a multi-asset fund is its catalogue mix; a line nothing
     // places is tested as shares, as before
     const split = h.split ? { ...h.split } : { shares: bucket === 'shares' ? 1 : 0, bonds: bucket === 'bonds' ? 1 : 0, diversifiers: bucket === 'diversifiers' ? 1 : 0, cash: bucket === 'cash' ? 1 : 0 };

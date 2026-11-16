@@ -261,8 +261,10 @@ export function holdingsCardHtml({ holdings = null, offer = null, keep = null } 
     const byW = {}; for (const l of lines) { const w = String((l && l.wrapper) || 'SIPP').toUpperCase(); byW[w] = (byW[w] || 0) + (+(l && l.value) || 0); }
     h += '<p class="hint" style="margin-top:6px;">Total ' + gbp(Object.values(byW).reduce((t, v) => t + v, 0)) + ' — ' + HOLDING_WRAPPERS.filter((w) => byW[w] > 0).map((w) => w + ' ' + gbp(byW[w])).join(' · ') + '. Units matter for gilts (the nominal); value is enough for a fund.</p>';
     // Every line counts in the total; a line the tool cannot place is said, not dropped from the mix in silence (6.23)
-    const unplaced = lines.filter((l) => l && needsCategory(l) && (+l.value || 0) > 0);
-    if (unplaced.length) h += '<p class="hint" style="color:var(--warning);">' + gbp(unplaced.reduce((t, l) => t + (+l.value || 0), 0)) + ' in ' + unplaced.length + ' line' + (unplaced.length === 1 ? '' : 's') + ' is not placed in the mix yet — answer "What is this?" and it counts.</p>';
+    // 7.12.0: on a ladder the move counts the money whatever it is, so nothing is said; a pot plan's mix figures leave it out
+    const unplaced = keep && (keep.ladder || keep.held) ? [] : lines.filter((l) => l && needsCategory(l) && (+l.value || 0) > 0);
+    const n = unplaced.length;
+    if (n) h += '<p class="hint" style="color:var(--warning);">' + esc('We could not tell what ' + n + ' line' + (n === 1 ? ' holds' : 's hold') + ' (' + gbp(unplaced.reduce((t, l) => t + (+l.value || 0), 0)) + '), so ' + (n === 1 ? 'it is' : 'they are') + ' left out of the mix figures until you say what ' + (n === 1 ? 'it' : 'each') + ' is.') + '</p>';
     // The row inputs fire on CHANGE (commit), never on input: the shell persists each commit without re-rendering on every keystroke.
     h += '<p class="hint">Edits save when you leave the box; Remove and Paste save at once.</p>';
   }

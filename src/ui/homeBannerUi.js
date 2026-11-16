@@ -33,6 +33,7 @@ import { homeOf } from '../answers/plan/home.js';
 import { upgradeScenario } from '../firebase/scenarioMigration.js';
 import { nextStepFor, nextStepAction } from '../services/NextStep.js';
 import { openingTab } from '../services/LifeStage.js';
+import { holdingsSummary, normaliseHoldings } from '../services/HoldingsRecord.js';
 import { PLAN_ID } from '../services/OpenPlace.js';
 import { PLAN } from '../v7/copy/plan.js';
 import { HOME } from '../v7/copy/home.js';
@@ -119,12 +120,16 @@ export function simpleLinkHref(id) {
  */
 export async function openingTabOf(deps, now = new Date()) {
   const stage = await deps.refreshLifeStage();
-  let phase = null;
+  let phase = null, recorded = true;
   try {
-    const h = homeOf(entriesOf(await deps.listScenariosAsync(), now), await deps.getActiveScenarioId(), { today: dayOf(now) });
+    const entries = entriesOf(await deps.listScenariosAsync(), now), id = await deps.getActiveScenarioId();
+    const h = homeOf(entries, id, { today: dayOf(now) });
     phase = h && h.found && h.stage ? h.stage.key || null : null;
+    // 7.12.0: Moving opens on Transition only when What you hold has a line
+    const e = entries.find((x) => x && x.plan && String(x.plan.id) === String(id));
+    recorded = !!e && holdingsSummary(normaliseHoldings(e.plan.holdings)).count > 0;
   } catch (e) { phase = null; }
-  return openingTab(stage, phase);
+  return openingTab(stage, phase, { recorded });
 }
 
 /**

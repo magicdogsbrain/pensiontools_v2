@@ -241,8 +241,9 @@ export const SAVER_STAGE_KEYS = Object.freeze(['saving', 'approaching', 'committ
  * homeOf; src/ui/homeBannerUi.js openingTabOf passes it) opens on Transition, where moving what you hold is done. Without
  * a phase (null), as before.
  */
-export function openingTab(stage, phase = null) {
-  if (phase === 'moving') return 'transition';
+// `recorded` (7.12.0): Moving opens on Transition only when What you hold has a line; with nothing listed, as any other stage
+export function openingTab(stage, phase = null, { recorded = true } = {}) {
+  if (phase === 'moving' && recorded) return 'transition';
   return stage && SAVER_STAGE_KEYS.includes(stage.key) && Array.isArray(stage.leads) && stage.leads.length ? stage.leads[0] : 'decision';
 }
 

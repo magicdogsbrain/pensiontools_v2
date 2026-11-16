@@ -20,6 +20,8 @@ import { whereAmIFor, historyAscending, moveInputs, effectiveStressSettings } fr
 import { driftOf, DRIFT_BAND, MOVE_BAND } from '../../services/TransitionPlanner.js';
 import { monthsWanted } from '../../services/DrawCadence.js';
 import { gapsOf, gapHeadline } from './gaps.js';
+import { heldLadder } from './held.js';
+import { pounds } from './income.js';
 import { taxYearStartOf, taxYearKey, taxYearLabel, earlyPensionDrawOf } from '../../services/PlanTiming.js';
 import { readDayOf } from '../../services/PlanClosed.js';
 import { isFilledIn } from '../../services/MonthFill.js';
@@ -304,6 +306,9 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   const whereFull = cut && stepOf('where') ? '#/plan/' + pg.id + '/where' : null;
   let gapLine = null;
   if (!pg.readonly && !pg.closed) { try { const h = gapHeadline(gapsOf(plan, { today, life })); gapLine = h ? { ...h, Y: String(h.Y), href: '#/plan/' + pg.id + '/hold' } : null; } catch { gapLine = null; } }
+  // 7.12.0: living on a ladder, one line only when the pension holds less than the cash years still need (held.js, the one reading)
+  let heldLess = null;
+  if (!pg.readonly && !pg.closed) { try { const hl = heldLadder(plan, { today, life }); heldLess = hl && hl.state === 'less' ? { less: pounds(hl.less), href: '#/plan/' + pg.id + '/move' } : null; } catch { heldLess = null; } }
   const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {} }));
   // the steps, read-only with each result line; a saver's "For later" group stays on a plan not locked, but a locked plan
   // is being carried out: its steps are listed plainly, never marked for later or not done
@@ -337,6 +342,7 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
     ...(drift ? { drift } : {}),
     // 7.6.0: the first tax year not yet covered by what is held and kept, once — only on a plan that keeps something
     ...(gapLine ? { gap: gapLine } : {}),
+    ...(heldLess ? { heldLess } : {}),
     whereFull,
     year: yearOf(plan, pg, now),
     tools,

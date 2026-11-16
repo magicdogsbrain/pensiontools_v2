@@ -59,6 +59,7 @@ const planToAgeOfDoc = (dp) => planToAgeOf(+(dp && dp.startAge) || 0, +(dp && dp
 import { unlockPatchesOf } from '../../services/PlanCommit.js';
 import { checkInState, checkInsOf } from './checkInDue.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
+import { heldLadder } from './held.js';
 import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
@@ -822,7 +823,10 @@ function moveStep(C) {
   // Living on it, or Moving once what is held was accepted (7.11.1, Phases.heldPhase): what is held, never moves to make
   const asHeld = heldPhase(life);
   let result, done = false;
+  // living on a ladder (7.12.0): the gilts held, as "Your plan's mix" counts them (held.js, the one reading)
+  let hl = null; if (asHeld && m && m.target && m.target.kind === 'ladder') { try { hl = heldLadder(plan, { today: localDay(now), life }); } catch { hl = null; } }
   if (!m || !m.target || m.target.kind === 'none') result = sentence('move.notSet', ['Set when the plan is locked'], figures);
+  else if (hl) { figures.bought = hl.gilts.held; figures.rungs = hl.gilts.total; result = sentence('move.giltsHeld', [count('bought'), ' of ', count('rungs'), ' gilts held'], figures); done = !!m.diff.complete; }
   else if (m.diff.complete) { result = sentence('move.done', ['Done'], figures); done = true; }
   else if (m.target.kind === 'ladder') {
     const total = m.target.lines.length;

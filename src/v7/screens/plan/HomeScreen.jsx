@@ -17,6 +17,7 @@ import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { HOME } from '../../copy/home.js';
 import { GAPS } from '../../copy/gaps.js';
+import { HELD } from '../../copy/held.js';
 
 const T = 'plan.home';
 
@@ -204,6 +205,8 @@ export function HomeScreen(state, dispatch) {
             {H.drift && <Drift D={H.drift} />}
             {/* 7.6.0: a year not yet covered by what the person holds and keeps: the first such year, said once, with the way to see it */}
             {H.gap && <p class="line" data-testid={`${T}.gap`} data-year={H.gap.Y}><a href={H.gap.href}>{fill(GAPS.home, H.gap)}</a></p>}
+            {/* 7.12.0: living on a ladder, only when the pension holds less than the cash years still need */}
+            {H.heldLess && <p class="line" data-testid={`${T}.heldLess`}><a href={H.heldLess.href}>{fill(HELD.homeLess, H.heldLess)}</a></p>}
             {/* 7.7.0: what the person chose to keep, tested against the plan and agreed — or not yet */}
             <KeepTestLine K={planKeepTestView(state)} prefix={T} />
             {/* the plan draws from a pension before it can usually be taken (7.4.0): a plain fact beside the plan's draws */}

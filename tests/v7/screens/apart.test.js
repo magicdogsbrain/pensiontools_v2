@@ -707,6 +707,10 @@ describe('7 — today, byte for byte', () => {
   // slider ("Back to …"), the try box's line in the page's own measure and Keep saying it keeps the level's amount. Only the
   // two states that try an amount draw it, c/answer-take and c/answer-F3, so those two were re-pinned (V7_PIN_TODAY=1);
   // no other drawing moved
+  // …and the low end of C's slider (a walk of that fix: at £0 the page went back to the old count of futures): it starts one
+  // step above £0, so its `min`, the thumb's place and the first mark under it ("£10", was "£0") moved on every C answer
+  // that draws the slider — those 13 were re-pinned (V7_PIN_TODAY=1; c/answer-closed-years, V7_PIN_SCREENS=1); nothing else
+  // in them moved, and no other drawing moved
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]',
     // 7.9.0: "Try the bad years" under C's and D's final answers — a button only until pressed; no figure of the answer moves

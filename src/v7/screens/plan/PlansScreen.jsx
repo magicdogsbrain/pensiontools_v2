@@ -245,7 +245,7 @@ function Menu({ r, M, dispatch }) {
       {!r.shownAsSaved && <Button testid={`${T}.copy.${r.id}`} kind="quiet" onClick={() => act('copy')} {...keepFocus}>{W.copy}</Button>}
       {changeable && r.close && <Button testid={`${T}.close.${r.id}`} kind="quiet" onClick={() => act('close')} {...keepFocus}>{W.close}</Button>}
       {changeable && r.close && r.close.working && <Button testid={`${T}.closeWorking.${r.id}`} kind="quiet" onClick={() => act('close', { reason: 'working' })} {...keepFocus}>{W.closeWorking}</Button>}
-      {changeable && !r.main && <Button testid={`${T}.main.${r.id}`} kind="quiet" onClick={() => dispatch({ type: 'plan/makeMain', planId: r.id })} {...keepFocus}>{W.main}</Button>}
+      {changeable && !r.main && !r.closed && <Button testid={`${T}.main.${r.id}`} kind="quiet" onClick={() => dispatch({ type: 'plan/makeMain', planId: r.id })} {...keepFocus}>{W.main}</Button>}
       <Button testid={`${T}.download.${r.id}`} kind="quiet" onClick={() => dispatch({ type: 'plan/download', planId: r.id })} {...keepFocus}>{W.download}</Button>
       <Button testid={`${T}.delete.${r.id}`} kind="quiet" onClick={() => act('delete')} {...keepFocus}>{W.remove}</Button>
     </div>

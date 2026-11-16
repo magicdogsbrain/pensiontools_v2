@@ -50,7 +50,7 @@ import { deriveStage } from './LifeStage.js';
 import { isClosedPlan, monthAfter, monthBefore, monthWordsOf, lastRecordedMonth, planNameOf } from './PlanClosed.js';
 import { carriedFlexibleAccess } from './FlexibleAccess.js';
 import { potRecordOf } from './SaverReading.js';
-import { phasesForSuccessor } from './Phases.js';
+import { phasesForSuccessor, lockedMonthOf } from './Phases.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const num = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(+v) ? null : +v);
@@ -93,7 +93,8 @@ function monthsFromTo(a, b) {
  * someone who has stopped work (or whose plan does not say: an old plan with no age), and a plan unlocked after its records
  * that still has them. Not on a draft with nothing recorded (change it, or copy it), not on a plan still to stop (its months
  * have not begun), not on the read-only example, and not on a plan already closed. The change-over month is any month after
- * the last one recorded (a recorded month is never left past the close) — this month when nothing is recorded — up to twelve
+ * the last one recorded (a recorded month is never left past the close) — this month when nothing is recorded, and never the
+ * month the plan was locked or one before it (7.12.0) — up to twelve
  * months ahead; suggested: this month, or the first month after the records when they reach it. Going back to work is offered
  * on the same plans when the plan knows the person's age (`working`): the second stop is asked as a month or an age.
  * @returns {null | { locked: boolean, choices: string[], suggested: string, lastRecorded: string|null, from: number, working: boolean, ageNow: number|null }}
@@ -107,7 +108,10 @@ export function closeOfferOf(plan, now) {
   if (t.mode === 'future') return null;
   const thisMonth = monthKeyOf(now);
   const lastRecorded = lastRecordedMonth(plan);
-  const first = lastRecorded ? monthAfter(lastRecorded) : thisMonth;
+  // never before the plan was locked (7.12.0): a plan locked this month with nothing recorded closes next month at the soonest
+  const lockedIn = locked ? lockedMonthOf(plan) : null;
+  let first = lastRecorded ? monthAfter(lastRecorded) : thisMonth;
+  if (lockedIn && first <= lockedIn) first = monthAfter(lockedIn);
   let last = thisMonth; for (let i = 0; i < MONTHS_AHEAD; i++) last = monthAfter(last);
   if (first > last) return null;
   const choices = monthsFromTo(first, last);

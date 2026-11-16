@@ -584,3 +584,27 @@ describe('review: a closed plan in the other tools', () => {
     expect(html.indexOf('id="n"')).toBeLessThan(html.indexOf('id="w"'));
   });
 });
+
+describe('a plan never closes before it was locked (7.12.0)', () => {
+  // made-up plan: retired, locked, nothing recorded; each case sets when it was locked and what is recorded
+  const at = (y, m, d) => new Date(y, m - 1, d, 12);
+  const lockedPlan = (lockedAt, history = []) => {
+    const p = copy(LADDER);
+    p.decisionTool.settings = { ...p.decisionTool.settings, locked: true, lockedAt };
+    if (p.planDocument) p.planDocument = { ...p.planDocument, lockedAt };
+    p.decisionTool.history = history;
+    p.decisionTool.taxYears = {};
+    return p;
+  };
+  it('locked today (16 November 2026), nothing recorded: the first change-over offered is December 2026 (before: this month)', () => {
+    const o = closeOfferOf(lockedPlan('2026-11-16T10:00:00.000Z'), at(2026, 11, 16));
+    expect(o.choices[0]).toBe('2026-12');
+    expect(o.suggested).toBe('2026-12');
+  });
+  it('locked in March, nothing recorded: this month', () => {
+    expect(closeOfferOf(lockedPlan('2026-03-10T10:00:00.000Z'), at(2026, 11, 16)).choices[0]).toBe('2026-11');
+  });
+  it('locked in March, last record October: the month after it', () => {
+    expect(closeOfferOf(lockedPlan('2026-03-10T10:00:00.000Z', [{ date: '2026-10-01', equity: 1, bond: 1, cash: 1 }]), at(2026, 11, 16)).choices[0]).toBe('2026-11');
+  });
+});

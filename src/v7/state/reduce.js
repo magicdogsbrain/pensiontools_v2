@@ -24,6 +24,7 @@ import { parse, format, PLAN_ID } from '../router/routes.js';
 import { BUILT } from '../rail/questions.js';
 import { SESSION_KINDS, KEEP_WHERES } from './initial.js';
 import { cleanBack, cleanPlace } from './place.js';
+import { closedAtOf, closesAhead } from '../../services/PlanClosed.js';
 import { isPlanEditPath, WAY_IDS, RANK_BYS, isTaskKey, DISMISS_KINDS } from '../../answers/plan/schema.js';
 /** The choices a review may make (answers/plan/review.js CHOICE_PARTS: named here so the reducer reaches no reader). */
 const PHASE_CHOICE_PARTS = ['window', 'saving.level', 'review.every', 'review.rule'];
@@ -1734,6 +1735,9 @@ function reduceAction(state, action) {
       const { planId } = action;
       if (typeof planId !== 'string' || !planId) return refuse('plan/makeMain: needs a plan id');
       if (state.ui.saving) return state;
+      // a closed plan is never the main plan (7.12.0): the plan that carries it on is
+      const main = state.plans && Array.isArray(state.plans.list) ? state.plans.list.find((e) => e && e.plan && String(e.plan.id) === planId) : null;
+      if (main && closedAtOf(main.plan) && !closesAhead(main.plan, new Date(String(state.env.today) + 'T12:00:00'))) return state;
       return { ...state, ui: { ...state.ui, action: null, saving: { planId, kind: 'main' }, saveProblem: null, toast: null } };
     }
     case A.PLAN_DELETE: {

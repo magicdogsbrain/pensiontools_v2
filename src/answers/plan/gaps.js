@@ -116,7 +116,7 @@ export function gapsOf(plan, { today, asKept = false, life } = {}) {
     if (source === 'rung') { const r = rungRow(Y); if (r) { rungs = need * r.held; toBuy = need * r.toBuy; } else source = 'cash'; }
     // a year the plan needs nothing from the pension for (7.11.1): what pays it, from the plan's own timeline
     const paidBy = needs[Y] && full <= 0 ? paidByOf(doc, Y) : null;
-    rows.push({ Y, year: taxYearLabel(Y), need: r0(need), full: r0(full), needExact: need, monthsLeft, thisYear, source, rungs: r0(rungs), rungsExact: rungs, standIns: sIn, cash: 0, held: 0, toBuy: r0(toBuy), gap: 0, paidBy, shortAt: null });
+    rows.push({ Y, year: taxYearLabel(Y), cashYear: from === 'cash', need: r0(need), full: r0(full), needExact: need, monthsLeft, thisYear, source, rungs: r0(rungs), rungsExact: rungs, standIns: sIn, cash: 0, held: 0, toBuy: r0(toBuy), gap: 0, paidBy, shortAt: null });
   }
   // The pension's cash, used year by year and month by month: each year's months in turn are paid by what is there from its
   // start (its rung, or what stands in for it), then by the pension's cash. What a stand-in pays beyond its years is cash
@@ -197,7 +197,10 @@ export function gapSentences(g) {
   for (const s of g.standIns.filter((x) => x.fixed)) say('fixed', s.real < s.pays - 1 ? ['fixedReal', { label: s.label, pays: pounds(s.pays), real: pounds(s.real) }] : ['fixed', { label: s.label, pays: pounds(s.pays) }]);
   for (const s of g.standIns.filter((x) => x.spare > 0)) say('spare', ['spare', { label: s.label, spare: pounds(s.spare) }]);
   // every year covered — by what is held, or once the cash still to set aside is bought (never "held" while it is still to buy)
-  if (g.ladder && !g.firstGap) say('noGap', g.toBuy > 0 ? ['noGapToBuy', { year: last, toBuy: pounds(g.toBuy) }] : ['noGap', { year: last }]);
+  // 7.12.0: before the plan runs, rows that are all cash years say so — the gilts for the later years are in the Buy list
+  const allCash = g.rows.length > 0 && g.rows.every((r) => r.cashYear);
+  const first = g.rows.length ? g.rows[0].year : '';
+  if (g.ladder && !g.firstGap) say('noGap', g.toBuy > 0 ? (allCash ? (first === last ? ['noGapToBuyCashOne', { year: last, toBuy: pounds(g.toBuy) }] : ['noGapToBuyCash', { first, year: last, toBuy: pounds(g.toBuy) }]) : ['noGapToBuy', { year: last, toBuy: pounds(g.toBuy) }]) : ['noGap', { year: last }]);
   if (g.firstGap) {
     const f = g.firstGap;
     const runs = [f.lastMonth ? 'lastsUntil' : 'shortFrom', { year: f.year, month: monthWords(f.lastMonth || f.shortFrom) }];

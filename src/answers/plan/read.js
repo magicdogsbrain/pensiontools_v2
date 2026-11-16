@@ -60,6 +60,8 @@ import { unlockPatchesOf } from '../../services/PlanCommit.js';
 import { checkInState, checkInsOf } from './checkInDue.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
 import { heldLadder } from './held.js';
+import { moveStatusOf, sayMoveStatus } from './moveWords.js';
+import { MOVE } from '../../v7/copy/move.js';
 import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
@@ -829,11 +831,10 @@ function moveStep(C) {
   else if (hl) { figures.bought = hl.gilts.held; figures.rungs = hl.gilts.total; result = sentence('move.giltsHeld', [count('bought'), ' of ', count('rungs'), ' gilts held'], figures); done = !!m.diff.complete; }
   else if (m.diff.complete) { result = sentence('move.done', ['Done'], figures); done = true; }
   else if (m.target.kind === 'ladder') {
-    const total = m.target.lines.length;
-    // a rung held above its target is bought (7.11.1: the diff's own count, as the page and the order sheet say)
-    const bought = m.diff.rungs ? m.diff.rungs.held : m.diff.hold.filter((h) => Array.isArray(h.taxYears)).length;
-    figures.bought = bought; figures.rungs = total;
-    result = sentence('move.gilts', [count('bought'), ' of ', count('rungs'), ' gilts bought'], figures);
+    // the move's one status sentence (7.12.0, moveWords.moveStatusOf): the move page and the full view say the same words
+    const st = moveStatusOf(m.target, m.diff, m.prog);
+    figures.bought = +st.slots.bought; figures.rungs = +st.slots.rungs;
+    result = sentence('move.' + st.id, [{ fixed: sayMoveStatus(st, MOVE) }], figures);
   } else if (asHeld && typeof m.diff.progressPct === 'number') {
     figures.heldPct = m.diff.progressPct;
     result = sentence('move.heldShare', [count('heldPct'), '% of the plan’s mix held'], figures);
@@ -841,7 +842,8 @@ function moveStep(C) {
     figures.movesDone = m.prog.doneCount; figures.moves = m.prog.total;
     result = sentence('move.moves', [count('movesDone'), ' of ', count('moves'), ' moves done'], figures);
   }
-  if (m && m.diff && typeof m.diff.progressPct === 'number') { figures.heldPct = m.diff.progressPct; lines.push(line('move.held', [count('heldPct'), '% of the plan’s mix held'], figures, sourceOf('hold', normaliseHoldings(plan.holdings).updatedAt || null, now))); }
+  // the share held, once: a ladder's status sentence already says it (7.12.0)
+  if (m && m.diff && typeof m.diff.progressPct === 'number' && !(result.id === 'move.gilts' || result.id === 'move.giltsPart')) { figures.heldPct = m.diff.progressPct; lines.push(line('move.held', [count('heldPct'), '% of the plan’s mix held'], figures, sourceOf('hold', normaliseHoldings(plan.holdings).updatedAt || null, now))); }
   // "Open it": the move is drawn inside V7 (road-to-7.md step 10; holdings-and-move.md §4)
   return { done, result, figures, lines, buttons: [link('openMove', '#/plan/' + plan.id + '/move')], notes: asHeld ? [] : ['move.optional'] };
 }

@@ -45,8 +45,9 @@ import { isClosedPlan, closedReading } from '../../services/PlanClosed.js';
 import { gapsOf, gapsView } from './gaps.js';
 import { heldLadder, heldLadderView } from './held.js';
 import { planPage, reviewHrefOf } from './read.js';
+import { moveStatusOf, payingOf, outsideRowsOf, moveTotalsOf, paceOf, cashRowsOf } from './moveWords.js';
 
-export { runKeyOf, APPROACHING_YEARS };
+export { runKeyOf, APPROACHING_YEARS, moveStatusOf };
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
@@ -77,12 +78,6 @@ function contributionsMonthlyOf(plan, rec) {
   try { m = proportions(rec.lines).contributions.monthly || 0; } catch { m = 0; }
   if (!m) { const acc = plan && plan.accumulationTool && isObj(plan.accumulationTool.settings) ? plan.accumulationTool.settings : null; if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) m = (+acc.netMonthly || 0) * 1.25 + (+acc.employerMonthly || 0); }
   return m;
-}
-
-/** The lump a cash year's timeline row carries (the planner's breakdown says it in the label; here it is data). */
-function lumpOf(doc, Y) {
-  const row = Array.isArray(doc.timeline) ? doc.timeline.find((x) => x && taxYearLabel(+Y) === x.taxYear) : null;
-  return row && num(row.lump) > 0 ? num(row.lump) : 0;
 }
 
 /**
@@ -118,23 +113,10 @@ export function savedMove(plan, { today, index = null }) {
   const dr = doc.strategy && isObj(doc.strategy.r) ? doc.strategy.r : null;
   const a = dr ? oneAnswer(dr, dp || {}) : null;
   const own = a ? { share: a.share, words: futuresOutOfTen(a.share).words, lockedOn: dayWords(doc.lockedAt || lockedAtOf(plan)) } : null;
-  const cashRows = m.target.cash && Array.isArray(m.target.cash.breakdown) ? (() => {
-    const rows = [];
-    const plan0 = doc.strategy.r.plan;
-    // cash years a kept line stands in for (7.6.0): said as held another way, never as cash to hold
-    const coveredCash = new Set(((m.diff.covered || []).find((c) => c.kind === 'cash') || { taxYears: [] }).taxYears.map(Number));
-    for (const c of Array.isArray(plan0.cashYears) ? plan0.cashYears : []) {
-      if (m.target.running && +c.Y < m.target.thisTaxYear) continue;
-      if (coveredCash.has(+c.Y)) { rows.push({ id: 'cashYearCovered', year: taxYearLabel(+c.Y), lump: null, amount: null }); continue; }
-      const lump = lumpOf(doc, c.Y);
-      rows.push({ id: lump > 0 ? 'cashYearLump' : 'cashYear', year: taxYearLabel(+c.Y), lump: lump > 0 ? pounds(lump) : null, amount: pounds(c.cost) });
-    }
-    return rows;
-  })() : [];
   // the plan's own mix (the document's year-0 target), beside the held mix for a saver (§3.4)
   const mix0 = Array.isArray(doc.targetMix) && doc.targetMix.length ? doc.targetMix[0] : null;
   const planMix = mix0 ? { shares: String(r0(mix0.equity)), bonds: String(r0(mix0.bond)), cash: String(r0(mix0.cash)) } : null;
-  return { ...base, hasDocument: true, m, seq, sheet, watch, spGate, own, contributionsMonthly, cashRows, planMix };
+  return { ...base, hasDocument: true, m, seq, sheet, watch, spGate, own, contributionsMonthly, planMix, isa: m.target.kind === 'ladder' ? (m.target.isaIn ? 'in' : num(doc.pots && doc.pots.isa) > 0 ? 'hold' : 'none') : null };
 }
 
 /** The plan's effective settings with the pension's mix AS HELD (§3.3): the four amounts in the proportions the record's pension lines hold, on the same pot. */
@@ -179,7 +161,6 @@ function whyOf(x) {
   if (/^rung for /.test(w)) return { id: 'rung', slots: { years: (x.taxYears || []).map((y) => taxYearLabel(+y)).join(', ') } };
   if (/^more than the rung needs/.test(w)) return { id: 'moreThanRung', slots: {} };
   if (/^the cash years/.test(w)) return { id: 'cashYears', slots: {} };
-  if (/^not in the plan/.test(w)) return { id: 'notInPlan', slots: {} };
   if (/^bring (\w+) up to (\d+)%/.test(w)) { const m = /^bring (\w+) up to (\d+)%/.exec(w); return { id: 'bringUp', slots: { bucket: m[1], pct: m[2] } }; }
   if (/^bring (\w+) down to (\d+)%/.test(w)) { const m = /^bring (\w+) down to (\d+)%/.exec(w); return { id: 'bringDown', slots: { bucket: m[1], pct: m[2] } }; }
   if (/^not in the target mix/.test(w)) return { id: 'notInMix', slots: {} };
@@ -221,7 +202,11 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   // a rung part bought (some of its units held: gaps.js heldOf's 'partRung', as Living on it reads it) is never "no gilt
   // bought": its years are left out of the uncovered ones, and it is said with the units held of the units it needs
   const partRungs = T.kind === 'ladder' ? D.buy.filter((b) => b.kind === 'gilt' && num(b.heldUnits) > 0) : [];
-  const status = D.complete ? { id: 'done', slots: {} } : rungs ? { id: partRungs.length ? 'giltsPart' : 'gilts', slots: { bought: String(rungs.bought), rungs: String(rungs.total), held: String(D.progressPct), part: String(partRungs.length) } } : { id: 'held', slots: { held: String(D.progressPct), done: String(P.doneCount), moves: String(P.total) } };
+  // the one wording of progress (7.12.0, moveWords.moveStatusOf): the home tile and the full view say the same
+  const status = moveStatusOf(T, D, P);
+  // the pace (7.12.0): Moving, with buys still to make and the stop ahead — the buying a month that finishes by then
+  const mode0 = heldMode(life) ? 'held' : s.waiting ? 'waiting' : 'move';
+  const pace = mode0 === 'move' && !D.complete && !T.running ? paceOf(D.totals.buyCost, { today: s.now, stopMonth: s.stage.startMonth }) : null;
   // what skipping it costs (§3.3): for a ladder the tax years whose rung is not bought at all; for a pot plan the one run on the held mix
   const uncovered = T.kind === 'ladder' ? [...new Set(D.buy.filter((b) => b.kind === 'gilt' && !partRungs.includes(b)).flatMap((b) => (b.taxYears || []).map((y) => +y)))].sort((a, b) => a - b) : [];
   const parts = partRungs.map((b) => ({ label: b.label || b.ticker || '', years: (b.taxYears || []).map((y) => taxYearLabel(+y)).join(', '), held: grouped(b.heldUnits), units: grouped(num(b.units) + num(b.heldUnits)) }));
@@ -244,20 +229,24 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   } : null;
   return {
     ...base, hasDocument: true, kind: T.kind, running: !!T.running, status, complete: !!D.complete, reason: D.reason, progressPct: String(D.progressPct), movesDone: String(P.doneCount), moves: String(P.total), rungs: rungs ? { bought: String(rungs.bought), total: String(rungs.total) } : null,
-    next: P.next ? moveRow(P.next, done) : null, waiting: s.waiting, yearsToStart: String(s.stage.yearsToStart || 0), opens: s.opensAt ? monthWords(s.opensAt) : null, startsAround: s.stage.startMonth ? monthWords(s.stage.startMonth) : (s.stage.firstTaxYear ? 'April ' + s.stage.firstTaxYear : ''),
+    waiting: s.waiting, yearsToStart: String(s.stage.yearsToStart || 0), opens: s.opensAt ? monthWords(s.opensAt) : null, startsAround: s.stage.startMonth ? monthWords(s.stage.startMonth) : (s.stage.firstTaxYear ? 'April ' + s.stage.firstTaxYear : ''),
     own: s.own, held: held ? { pcts: held.pcts, fromPension: held.fromPension } : null, heldRun, planMix: s.planMix || null,
     newMoney: (() => { const p = proportions(s.record.lines); if (!(p.contributions && p.contributions.monthly > 0)) return null; const m = p.contributions.monthly; return { monthly: pounds(m), parts: ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => p.contributions.byBucket[b] > 0.004).map((b) => ({ bucket: b, word: b === 'diversifiers' ? 'gold and trend' : b, amount: pounds(m * p.contributions.byBucket[b]) })) }; })(),
     cost: { uncovered: uncovered.map((y) => taxYearLabel(y)), parts, canRun: !!held && !s.ladder && !readonly },
     // the cash to hold: the cash years' money, less the years a kept line stands in for (7.6.0, the diff's cashLeft)
-    cash: T.cash && !D.cashInfo ? (() => { const tv = (D.cashLeft || T.cash).value; return { rows: s.cashRows, target: pounds(tv), held: pounds(D.totals.cashHeld), spare: D.totals.cashHeld >= tv ? pounds(D.totals.cashHeld - tv) : null, short: D.totals.cashHeld < tv ? pounds(tv - D.totals.cashHeld) : null }; })() : null,
+    // the cash to hold now (7.12.0, S2): what each year needs beside the cash to hold for it, the years paid in part or in full
+    // by what is kept (moveWords.cashRowsOf: both views' one reading)
+    cash: cashRowsOf(T, D),
     cashInfo: D.cashInfo ? { held: pounds(D.cashInfo.held), target: pounds(D.cashInfo.target), years: D.cashInfo.yearsLeft.map((y) => taxYearLabel(+y)) } : null,
     paid: (T.paid || []).map((p) => ({ label: p.label, ticker: p.ticker || '' })), matured: D.matured.map((x) => moveRow(x, done)), sold: D.sold.map((x) => moveRow(x, done)), rotated: !!T.rotated,
     buy: D.buy.map((x) => moveRow(x, done)), sell: D.sell.map((x) => moveRow(x, done)),
     hold: D.hold.map((x) => ({ key: x.key, label: x.label || x.ticker || '', ticker: x.ticker || '', held: x.heldUnits != null ? { units: units(x.heldUnits) } : { value: pounds(x.heldValue) }, spare: x.spare > 0 ? pounds(x.spare) : null, target: x.units ? { units: units(x.units) } : { value: pounds(x.value) } })),
     keep: D.keep.map((x) => ({ label: x.ticker || x.name || '', wrapper: x.wrapper, value: pounds(x.value), why: whyOf(x) })),
     totals: { buy: pounds(D.totals.buyCost), sell: pounds(D.totals.sellValue), short: D.totals.shortfall > 0 ? pounds(D.totals.shortfall) : null },
-    schedule: seq ? { steps: seq.steps.map((st) => ({ when: ym(st.when), action: st.action, label: st.label, ticker: st.ticker || '', units: units(st.units), amount: pounds(st.amount) })), tranches: String(seq.tranches), months: String(seq.months), funded: !!seq.funded, startPassed: !!seq.startPassed, short: !seq.funded ? pounds(seq.totals.buy - seq.totals.sell - seq.totals.contributions) : null, newMoney: seq.totals.contributions > 0 ? pounds(seq.totals.contributions) : null } : null,
-    start, isaPolicy: s.ss.isaDrawdownStrategy === 'hold' ? 'hold' : 'draw',
+    // a ladder (7.12.0): what pays for the buys, what is held that the plan does not use, and the totals of both — one reading
+    paying: payingOf(D, { newMoney: seq ? seq.totals.contributions : 0 }), outside: outsideRowsOf(D), ladderTotals: moveTotalsOf(D), pace,
+    schedule: seq ? { steps: seq.steps.map((st) => ({ when: ym(st.when), action: st.action, label: st.label, ticker: st.ticker || '', units: units(st.units), amount: pounds(st.amount) })), tranches: String(seq.tranches), months: String(seq.months), funded: !!seq.funded, startPassed: !!seq.startPassed, newMoney: seq.totals.contributions > 0 ? pounds(seq.totals.contributions) : null } : null,
+    start, isa: s.isa,
     sheet, example, spGate: s.spGate ? { annual: pounds(s.spGate.annual), atAge: String(s.spGate.atAge) } : null, pricedOn: s.lockedOn,
     watch,
     // 7.11.1: by phase — Living on it, or Moving once what is held was accepted, the page is what is held, never a move

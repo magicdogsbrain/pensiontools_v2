@@ -346,7 +346,7 @@ export function targetHoldings(doc, { today = new Date(), params = null } = {}) 
       const lump = row && num(row.lump) > 0 ? num(row.lump) : 0;
       // the year's need beside what it cost to set aside (7.12.0): two figures, both labelled where they are shown
       const yr = Array.isArray(plan.years) ? plan.years.find((x) => x && +x.Y === +c.Y) : null;
-      breakdown.push({ Y: +c.Y, label: 'Cash year ' + taxYearLabel(+c.Y) + (lump > 0 ? ' (' + gbp(lump) + ' of it paid by a lump sum expected that year)' : ''), amount: Math.round(num(c.cost)), need: yr ? Math.round(num(yr.need)) : Math.round(num(c.cost)) });
+      breakdown.push({ Y: +c.Y, label: 'Cash year ' + taxYearLabel(+c.Y) + (lump > 0 ? ' (' + gbp(lump) + ' of it paid by a lump sum expected that year)' : ''), amount: Math.round(num(c.cost)), need: yr ? Math.round(num(yr.need)) : Math.round(num(c.cost)), ...(lump > 0 ? { lump: Math.round(lump) } : {}) });
     }
     const cash = { key: 'cash:SIPP', wrapper: 'SIPP', kind: 'cash', label: 'Money-market fund / cash', value: cashValue, breakdown, spending: running, yearsLeft: running ? yearsLeft : cashYears.map((c) => +c.Y) };
     // The ISA (7.12.0): one rule with the engine (stressTest.js availablePot) — the ladder is priced and tested on the pension
@@ -676,7 +676,7 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
       const toRaise = Math.max(0, need - spareCash);
       funding = { need: Math.round(need), spareCash: Math.round(spareCash), available: Math.round(available), toRaise: Math.round(toRaise),
         leftOver: Math.round(Math.max(0, available - toRaise)), short: Math.round(Math.max(0, toRaise - available)),
-        leftOverHeld: target.spareGrowth ? 'shares' : 'value', fromPlan };
+        leftOverHeld: target.spareGrowth ? 'shares' : 'value', fromPlan, listed: L.some(inPlan) };
     }
     if (wantRoles) {
       const statusOf = new Map();

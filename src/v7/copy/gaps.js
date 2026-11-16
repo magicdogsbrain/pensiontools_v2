@@ -21,6 +21,8 @@ export const GAPS = {
   spare: '{label} pays {spare} more than the years it stands in for need; that is counted as the pension’s cash for the years after.',
   noGap: 'Every year to {year} is covered by what you hold.',
   noGapToBuy: 'Every year to {year} is covered once the plan’s buys are made: {toBuy} is still to buy.',
+  noGapToBuyCash: 'The cash years, {first} to {year}, still need {toBuy} of cash. The gilts for the later years are in the Buy list.',
+  noGapToBuyCashOne: 'The cash year {year} still needs {toBuy} of cash. The gilts for the later years are in the Buy list.',
   withoutExpected: 'Without the money you expect, ',
   lastsUntil: '{year}’s money lasts until about {month}.',
   shortFrom: '{year}’s money is not covered from {month}.',

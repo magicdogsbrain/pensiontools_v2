@@ -50,3 +50,14 @@ export function bridgeOf(phases) {
   if (!(total > 0)) return null;
   return { toIndex, years, total };
 }
+
+/**
+ * "From 67 your State Pension is £1,046 a month, more than that." — said after a could-spend figure in A and B when what
+ * comes in anyway, once it has all started, is more than the figure, so the figure never reads as all there is for life.
+ * `age`: when the last of it starts (a couple: in the younger one's years); `words`: "your State Pension", "your State
+ * Pension and your final-salary pension" …; `key`: the result's key for that take-home; `than`: what it is more than.
+ */
+export function thenMoreParts({ couple, age, words, key, than = 'that' }) {
+  const plural = / and |Pensions\b|pensions\b/.test(words);
+  return [couple ? 'From when the younger of you is ' : 'From ', { fixed: String(age) }, ' ', words, plural ? ' are ' : ' is ', { key, kind: 'money' }, ' a month, more than ', than, '.'];
+}

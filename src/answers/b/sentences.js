@@ -24,6 +24,7 @@ const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 import { apartAssumed, apartWarnings } from '../shared/apart.js';
 import { atTheStart, shapeWarnings } from '../shared/shapeAnswer.js';
 import { savingsGrowthParts, mostlyCashParts } from '../shared/savingsGrowth.js';
+import { thenMoreParts } from '../shared/spans.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -674,6 +675,15 @@ function verdictSentences(result, facts) {
       includes, short, '.'])
     : S('b.verdict.income.none', ['Paying in as now, no amount', fromStop, ...nineP(' lasted in '), includes,
       band !== 'yes' && result.gap.month > 0 ? ['; that is ', M('gap.month'), ' a month (', M('gap.year'), ' a year) less than you want'] : '', '.']);
+
+  // what comes in anyway, once it has all started, more than that figure: said after it (shared/spans.js)
+  const lastPhase = Array.isArray(result.phases) && result.phases.length ? result.phases[result.phases.length - 1] : null;
+  const anyway = facts.people.filter((x) => x.sp).length;
+  const anywayFs = facts.people.filter((x) => x.fs).length;
+  const anywayWords = [anyway ? (anyway === 2 ? 'your State Pensions' : 'your State Pension') : '', anywayFs ? (anywayFs === 2 ? 'your final-salary pensions' : 'your final-salary pension') : ''].filter(Boolean).join(' and ');
+  if (!ap && result.income.bad > 0 && lastPhase && anywayWords && result.guaranteed && result.guaranteed.monthlyAfterTax - result.income.bad >= 1) {
+    out.incomeThen = S('b.verdict.income.then', thenMoreParts({ couple: c, age: lastPhase.fromAge, words: anywayWords, key: 'guaranteed.monthlyAfterTax' }));
+  }
 
   // ---- spending what you want: the bad case's age -------------------------------------------------------------------
   const lasts = result.wholeLife.runOutAge >= result.basis.endAge;

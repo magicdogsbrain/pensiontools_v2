@@ -35,6 +35,7 @@ import { statePensionAgeOf } from '../shared/schemaParts.js';
 import { apartAssumed, apartWarnings, workerOf } from '../shared/apart.js';
 import { atTheStart, couldAtTheStart, shapeWarnings } from '../shared/shapeAnswer.js';
 import { savingsGrowthParts, mostlyCashParts } from '../shared/savingsGrowth.js';
+import { thenMoreParts } from '../shared/spans.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -352,6 +353,12 @@ export function sentencesFor(result, facts) {
     : p
       ? S('a.range', ['With your partner stopping at ', A('shown.age'), ', you could spend: Careful ', M('shown.levels.careful.monthly'), ', Balanced ', M('shown.levels.balanced.monthly'), ', Bold ', M('shown.levels.bold.monthly'), ' a month.'])
       : S('a.range', ['At ', A('shown.age'), ' you could spend: Careful ', M('shown.levels.careful.monthly'), ', Balanced ', M('shown.levels.balanced.monthly'), ', Bold ', M('shown.levels.bold.monthly'), ' a month.']);
+  // what comes in anyway, once it has all started, more than the level's amount: said after it (shared/spans.js)
+  const levelMonthly = shown.levels && shown.levels[result.level] ? shown.levels[result.level].monthly : 0;
+  const lastIncome = facts.incomes.length ? facts.incomes.reduce((b, x) => (x.at > b.at ? x : b)) : null;
+  if (!noMoney && !ap && levelMonthly > 0 && lastIncome && result.guaranteed && result.guaranteed.monthlyAfterTax - levelMonthly >= 1 && afterPhrase(facts)) {
+    out.rangeThen = S('a.range.then', thenMoreParts({ couple: c, age: c ? lastIncome.at : lastIncome.age, words: afterPhrase(facts), key: 'guaranteed.monthlyAfterTax', than: `the ${LEVEL_NAME[result.level]} amount` }));
+  }
   if (noMoney) {
     out.pot = S('a.pot.nothing', ['There is nothing in a pension pot or in savings to draw on at ', A('shown.age'), '.']);
   } else if (ap) {

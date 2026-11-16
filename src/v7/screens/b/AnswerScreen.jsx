@@ -82,6 +82,7 @@ function Answer({ state, dispatch, frame }) {
       {top}
       {s.verdictFour && <Sentence s={s.verdictFour} source={result} class="four" data-testid="b.verdict.four" />}
       {s.income && <Sentence s={s.income} source={result} class="income" data-testid="b.verdict.income" />}
+      {s.incomeThen && <Sentence s={s.incomeThen} source={result} class="income-then" data-testid="b.verdict.income.then" />}
       {shapeLine}
       <Sentence s={s.atAim} source={result} class="bad" />
       {weighing && <LastsLines result={result} only={LASTS_AFTER} />}

@@ -16,6 +16,7 @@ import { KeepTestLine } from './KeepTest.jsx';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { HOME } from '../../copy/home.js';
+import { SAVING } from '../../copy/saving.js';
 import { GAPS } from '../../copy/gaps.js';
 import { HELD } from '../../copy/held.js';
 
@@ -34,36 +35,43 @@ const itemWords = (it) => {
 };
 
 /**
- * "Are you paying in enough?" on a saving plan's home (7.12.0): the answer's own head and first sentence, and what would be
- * enough when not on course — the same run as "What you pay in" (effects/saver.js), drawn only.
+ * "Are you paying in enough?" on a saving plan's home (7.12.0), the first thing under the headline: what you want, what goes
+ * in now, whether that is enough and how sure, and what would be enough — the lines of answers/plan/saverBlock.js, the same
+ * reader as the full view's Accumulation tab, from the same run as "What you pay in" (effects/saver.js). Drawn only.
  */
+function saverLineText(l) {
+  if (l.s) return null;
+  if (l.id.startsWith('now.')) return fill(SAVING.payInNow[l.id.slice(4)] || '', l.slots || {});
+  return fill(HOME.saver.lines[l.id] || '', l.slots || {});
+}
 function SaverBlock({ V, planId, view, dispatch }) {
-  if (!V) return null;
+  if (!V || !V.block) return null;
   const W = HOME.saver;
-  const v = V.verdict;
-  if (!v.ok) {
-    return v.why === 'noAim' ? (
+  const B = V.block;
+  if (B.state === 'noAim') {
+    return (
       <section class="block home-saver" data-testid={`${T}.saver`} data-why="noAim" aria-labelledby="home-saver-title">
         <h2 id="home-saver-title">{W.title}</h2>
         <p class="note">{W.noAim} <a href={href.plan(planId, 'spend')}>{W.noAimLink}</a></p>
       </section>
-    ) : null;
+    );
   }
   const run = V.run || { status: 'working', result: null };
   const r = run.result;
-  const s = (r && r.sentences) || {};
-  const band = r && r.verdict && r.verdict.band;
   // "Am I saving enough?" opened with the plan's figures, as the home's own ask link opens it
   const fillOf = view.askFill && view.askFill.b;
   const onWays = fillOf ? (e) => { e.preventDefault(); dispatch({ type: 'draft/load', q: 'b', values: fillOf.values, ...(fillOf.mixes ? { mixes: fillOf.mixes } : {}), ...(fillOf.flexibleAccess ? { flexibleAccess: fillOf.flexibleAccess } : {}), planId: String(planId) }); } : undefined;
   return (
-    <section class="block home-saver" data-testid={`${T}.saver`} data-status={run.status} data-verdict={band || undefined} aria-labelledby="home-saver-title" aria-busy={run.status === 'working' || run.status === 'first' ? 'true' : undefined}>
+    <section class="block home-saver" data-testid={`${T}.saver`} data-status={run.status} data-verdict={B.band || undefined} aria-labelledby="home-saver-title" aria-busy={run.status === 'working' || run.status === 'first' ? 'true' : undefined}>
       <h2 id="home-saver-title">{W.title}</h2>
-      {run.status === 'failed' && <p class="notice" role="alert">{run.reason === 'noWorker' ? W.noWorker : W.failed}</p>}
-      {!r && run.status !== 'failed' && <p class="working-note" role="status" data-testid={`${T}.saver.working`}>{W.working}</p>}
-      {r && s.verdictHead && <p class={`figure verdict is-${band}`}><Sentence s={s.verdictHead} source={r} as="span" /></p>}
-      {r && s.verdictLine && <Sentence s={s.verdictLine} source={r} class="line" data-testid={`${T}.saver.line`} />}
-      {r && band !== 'yes' && s.enoughHead && <p class="line" data-testid={`${T}.saver.enough`}><Sentence s={s.enoughHead} source={r} as="span" />{s.enoughLine && <>. <Sentence s={s.enoughLine} source={r} as="span" /></>}</p>}
+      {B.lines.map((l) => (l.s
+        ? (l.id === 'head'
+          ? <p key={l.id} class={`figure verdict is-${B.band}`} data-line={l.id}><Sentence s={l.s} source={r} as="span" /></p>
+          : <Sentence key={l.id} s={l.s} source={r} class="line" data-line={l.id} data-testid={l.id === 'line' ? `${T}.saver.line` : l.id === 'enoughLine' ? `${T}.saver.enough` : undefined} />)
+        : <p key={l.id} class="line" data-line={l.id}>{saverLineText(l)}</p>))}
+      {B.state === 'failed' && <p class="notice" role="alert">{run.reason === 'noWorker' ? W.noWorker : W.failed}</p>}
+      {B.state === 'working' && <p class="working-note" role="status" data-testid={`${T}.saver.working`}>{W.working}</p>}
+      {B.state === 'invalid' && <p class="note">{W.invalid}</p>}
       <div class="actions-row">
         <LinkButton testid={`${T}.saver.change`} kind="quiet" href={href.plan(planId, 'saving')}>{W.change}</LinkButton>
         {fillOf && <a href={href.step('b', 'numbers')} data-testid={`${T}.saver.ways`} data-filled="plan" onClick={onWays}>{W.ways}</a>}

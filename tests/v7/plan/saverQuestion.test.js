@@ -151,3 +151,85 @@ describe('"What you want" saved through the one write file', () => {
     stop();
   }, 60000);
 });
+
+describe('the home says the answer in the person\'s own terms, and follows every change', async () => {
+  const { h, render } = await import('preact');
+  const { App } = await import('../../../src/v7/App.jsx');
+  const { reduce } = await import('../../../src/v7/state/reduce.js');
+  const { A } = await import('../../../src/v7/state/actions.js');
+  const { wanted } = await import('../../../src/v7/effects/saver.js');
+  const { viewFor } = await import('../../../src/v7/effects/planSource.js');
+  const { stateWith } = await import('./_plans.js');
+  const pageState = (plan, hash) => { const s = stateWith([entry(plan)], hash, { today: READ_ON, source: 'window', session: 'nobody' }); return { ...s, plans: { ...s.plans, view: viewFor(s) } }; };
+  /** The home of a plan with its answer worked out (the run the page asks for, done here at 1,000 futures), as drawn. */
+  const home = (plan) => {
+    const st = pageState(plan, '#/plan/' + plan.id);
+    const v = wanted(st);
+    expect(v, 'the home asks for the answer').not.toBe(null);
+    // the same run as What you pay in: one key
+    expect(v.key).toBe(wanted(pageState(plan, '#/plan/' + plan.id + '/saving')).key);
+    const result = answerB(v.inputs, { today: READ_ON, futures: 1000, seed: 0, detail: 'answer', ...v.env });
+    const held = reduce(reduce(st, { type: A.SAVER_WORKING, key: v.key }), { type: A.SAVER_FINAL, key: v.key, result });
+    const el = document.createElement('div');
+    render(h(App, { state: held, dispatch: () => {} }), el);
+    const block = el.querySelector('[data-testid="plan.home.saver"]');
+    expect(block, 'the block is drawn').not.toBe(null);
+    const first = el.querySelector('[data-region="plan-home"] > section, [data-region="plan-home"] > .block');
+    return { text: block.textContent, lines: [...block.querySelectorAll('[data-line]')].map((x) => [x.getAttribute('data-line'), x.textContent]), result, key: v.key, first };
+  };
+  const gbp = (v) => '£' + Math.round(v).toLocaleString('en-GB');
+  const save = (plan, typed) => { const p = savingPatch(plan, typed, { today: READ_ON }); expect(p.ok, JSON.stringify(p.errors)).toBe(true); return applyPatch(plan, p.patch); };
+
+  it('Jo: what she wants, what she pays now, whether it is enough and how sure, and what would be — the share and the pounds agree', () => {
+    const plan = keptPlan(JO(), { id: 'JoH1' });
+    const H = home(plan);
+    const line = (id) => (H.lines.find((x) => x[0] === id) || [null, null])[1];
+    expect(line('want')).toBe('You want £2,000 a month after tax, at today’s prices, from age 60.');
+    // 5% of £38,000 lands 38,000 × 0.05 ÷ 12 = £158.33 a month; relief at source: × 0.8 = £126.67 from take-home pay;
+    // with the employer's 3%: 38,000 × 0.08 ÷ 12 = £253.33 a month in all
+    expect(line('now.share')).toBe('You pay in 5% of your pay and your employer 3%: £127 a month from your take-home pay, £253 a month into your pension in all.');
+    const band = H.result.verdict.band;
+    expect(line('head')).toBe((band === 'yes' ? 'On course for ' : band === 'close' ? 'Close — ' : 'Not on course for ') + '£2,000 a month from 60' + (band === 'close' ? ' is tight' : ''));
+    // how sure: the chance, in the answer's own first sentence
+    expect(line('line')).toMatch(/your money lasts as long as you do \d+ times in 20/);
+    expect(band).not.toBe('yes');
+    // what would be enough: a share of pay, and what leaves take-home pay — worked here from the share the answer gives
+    const fig = H.result.enough.atLevel;
+    expect(line('enoughHead')).toContain(`${fig.totalPct}% of your pay in all`);
+    const ownLanded = 38000 * fig.ownPct / 100 / 12;
+    const all = 38000 * fig.totalPct / 100 / 12;
+    expect(line('enoughLine')).toContain(`You ${fig.ownPct}% (${gbp(ownLanded * 0.8)} a month from your take-home pay) and your employer 3% as now: ${gbp(all)} a month in all`);
+    // and the two agree: own share + employer's 3% is the whole share; the pounds in all are the whole share of £38,000
+    expect(fig.ownPct + 3).toBeCloseTo(fig.totalPct, 6);
+    expect(Math.abs(ownLanded + 38000 * 0.03 / 12 - all)).toBeLessThan(0.01);
+    // the block is the first thing under the plan's headline
+    expect(H.first && H.first.getAttribute('data-testid')).toBe('plan.home.saver');
+  }, 90000);
+
+  it('Jo changes what she wants and what goes in: £2,500, then stopping at 58, then at 65 — the home follows each, and says the same as What you pay in', () => {
+    let plan = keptPlan(JO(), { id: 'JoH2' });
+    const before = home(plan);
+    plan = save(plan, { 'want.monthly': '2500' });
+    const a = home(plan);
+    expect(a.lines.find((x) => x[0] === 'want')[1]).toBe('You want £2,500 a month after tax, at today’s prices, from age 60.');
+    expect(a.lines.find((x) => x[0] === 'head')[1]).toContain('£2,500 a month from 60');
+    expect(a.key).not.toBe(before.key);
+    // wanting more from the same pay-in needs at least as much going in
+    expect(a.result.enough.atLevel.totalPct).toBeGreaterThanOrEqual(before.result.enough.atLevel.totalPct);
+    plan = save(plan, { 'want.stopAge': '58' });
+    const b = home(plan);
+    expect(b.lines.find((x) => x[0] === 'want')[1]).toBe('You want £2,500 a month after tax, at today’s prices, from age 58.');
+    expect(b.lines.find((x) => x[0] === 'head')[1]).toContain('£2,500 a month from 58');
+    plan = save(plan, { 'want.stopAge': '65' });
+    const c = home(plan);
+    expect(c.lines.find((x) => x[0] === 'want')[1]).toBe('You want £2,500 a month after tax, at today’s prices, from age 65.');
+    expect(c.lines.find((x) => x[0] === 'head')[1]).toContain('£2,500 a month from 65');
+    // stopping seven years later than at 58 needs less going in (or is on course)
+    const need = (H) => (H.result.verdict.band === 'yes' ? 0 : H.result.enough.atLevel ? H.result.enough.atLevel.totalPct : Infinity);
+    expect(need(c)).toBeLessThan(need(b));
+    // What you pay in reads the same: the want boxes and the verdict's own figures
+    const page = savingOf([entry(plan)], plan.id, { today: READ_ON });
+    expect(page.want.fields.map((f) => f.shown)).toEqual(['2500', '65']);
+    expect(page.verdict.key).toBe(c.key);
+  }, 180000);
+});

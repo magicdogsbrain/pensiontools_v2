@@ -67,6 +67,7 @@ export { typedShape, isShapePath, stepsOf as shapeStepsOf } from './shapeDraft.j
 import { yearFigures, shownShare } from './shapeModel.js';
 import { takeReading as cTakeReading } from './pictures.js';
 import { money } from '../../answers/shared/format.js';
+import { saverBlockOf } from './saverBlock.js';
 /** The one reader of a pay-in, every kind (schemaParts.js), for the components and the rail, which read it only through this file. */
 export { payInParts };
 
@@ -1275,10 +1276,11 @@ export function homeSaverView(state) {
   const page = plans && plans.status === 'read' && plans.view && plans.view.page && r && r.screen === 'plan' && !r.step && plans.view.page.forId === r.planId ? plans.view.page : null;
   const v = page ? page.saver : null;
   if (!v) return null;
-  if (!v.ok) return { verdict: v, run: null };
+  if (!v.ok) return { verdict: v, run: null, block: saverBlockOf(v, null) };
   const S = state.saver;
   const run = S && S.key === v.key ? { status: S.status === 'idle' ? 'working' : S.status, result: S.result, reason: S.reason } : { status: 'working', result: null, reason: null };
-  return { verdict: v, run };
+  // the block's lines, the same reader as the full view's Accumulation tab (answers/plan/saverBlock.js)
+  return { verdict: v, run, block: saverBlockOf(v, run) };
 }
 /** "What you pay in" (road-to-7.md step 11b): the same reading as an editing step's (page.saving), plus the record's write under way. */
 export function planSavingView(state) {

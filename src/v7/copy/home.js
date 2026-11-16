@@ -16,7 +16,14 @@ export const HOME = {
     noWorker: 'This browser cannot work this out here.',
     failed: 'Sorry, this could not be worked out. Nothing was changed.',
     change: 'Change what you want or what you pay in',
-    ways: 'See the ways to make it fit'
+    ways: 'See the ways to make it fit',
+    /** The block's own lines (answers/plan/saverBlock.js): what you want, and a share of pay beside pounds. */
+    lines: {
+      want: 'You want {amount} a month after tax, at today’s prices, from age {age}.',
+      nowShare: 'In all that is {pct}% of your pay.',
+      enoughShare: 'That is {pct}% of your pay in all.'
+    },
+    invalid: 'Some of your plan’s figures are outside what this test can take, so it cannot say yet. Check “About you and when” and “What you pay in”.'
   },
   title: 'Your plan',
 

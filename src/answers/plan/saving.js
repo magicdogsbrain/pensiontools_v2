@@ -415,8 +415,14 @@ export function payInNowOf(settings) {
 /** "Are you paying in enough?" on the plan's figures as saved: the run's key, inputs and the words beside it. */
 function verdictOf(plan, list, today) {
   const read = saverInputsOf(plan, { today, plans: list });
+  // what goes in now, said one way (payInNowOf), with the pay and the whole a month, so a share of pay can be said beside it
+  const acc = plan && plan.accumulationTool && isObj(plan.accumulationTool.settings) ? plan.accumulationTool.settings : {};
+  const line = payInNowOf(acc);
+  let total = 0;
+  try { total = contributionBreakdown({ netMonthly: +acc.netMonthly || 0, salary: +acc.salary || 0, schemeType: acc.schemeType || 'ras', employerMonthly: +acc.employerMonthly || 0 }).totalMonthly; } catch { total = 0; }
+  const now = { line, salary: +acc.salary || 0, total: Math.round(total * 100) / 100 };
   return read.ok
-    ? { ok: true, key: saverRunKey(plan.id, read), inputs: read.inputs, env: read.env, notes: { ...read.notes, aimYearly: pounds(read.notes.aimYearly), aimMonthly: pounds(read.notes.aimMonthly), stopAge: String(read.notes.stopAge), rise: read.notes.rise ? { pct: String(read.notes.rise.pct), path: read.notes.rise.path } : null } }
+    ? { ok: true, key: saverRunKey(plan.id, read), inputs: read.inputs, env: read.env, now, notes: { ...read.notes, aimYearly: pounds(read.notes.aimYearly), aimMonthly: pounds(read.notes.aimMonthly), stopAge: String(read.notes.stopAge), rise: read.notes.rise ? { pct: String(read.notes.rise.pct), path: read.notes.rise.path } : null } }
     : { ok: false, why: read.why || 'notSaving', key: null };
 }
 

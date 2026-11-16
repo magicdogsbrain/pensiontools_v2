@@ -158,12 +158,13 @@ function Verdict({ V, dispatch }) {
         </div>
       )}
       {status === 'failed' && <div class="notice" role="alert" data-testid={`${T}.failed`}><p>{V.reason === 'noWorker' ? C.noWorker : C.failed}</p></div>}
-      {status === 'done' && V.unaffordable && <div class="notice" role="alert" data-testid={`${T}.unaffordable`}><p>{V.unaffordable.kind === 'partnerNotSet' ? fill(W.partner.notSet, { name: V.names.b }) : fill(C.unaffordable, { name: V.unaffordable.which, reason: V.unaffordable.reason ? fill(C.reasonWas, { reason: V.unaffordable.reason }) : '' })}</p></div>}
+      {status === 'done' && V.unaffordable && <div class="notice" role="alert" data-testid={`${T}.unaffordable`}><p>{V.unaffordable.kind === 'partnerNotSet' ? fill(W.partner.notSet, { name: V.unaffordable.which }) : fill(C.unaffordable, { name: V.unaffordable.which, reason: V.unaffordable.reason ? fill(C.reasonWas, { reason: V.unaffordable.reason }) : '' })}</p></div>}
       {status === 'done' && v && (
         <div class="lever-result" data-testid={`${T}.result`} data-head={v.head}>
-          <p class="figure" data-testid={`${T}.headline`}>{C.head[v.head]}: {fill(C.headline, { words: v.words })}</p>
+          <p class="figure" data-testid={`${T}.headline`}>{C.head[v.head]}. {fill(C.headline, { words: v.words })}</p>
+          {v.tested && <p class="note" data-testid={`${T}.tested`}>{v.tested.same ? fill(C.tested, v.tested) : fill(C.testedTwo, v.tested)}</p>}
           {v.pooled && <p class="note" data-testid={`${T}.pooled`}>{C.pooled}</p>}
-          {v.covered && <p class="note" data-testid={`${T}.covered`}>{fill(v.covered.earliest ? C.coveredEarliest : C.covered, v.covered)}</p>}
+          {v.covered.map((x) => <p class="note" key={x.side} data-testid={`${T}.covered`} data-side={x.side}>{fill(x.earliest ? C.coveredEarliest : C.covered, x)}</p>)}
           <div class="table-wrap">
             <table class="way-table household-rows" data-testid={`${T}.rows`}>
               <tbody>{v.rows.map((r) => (

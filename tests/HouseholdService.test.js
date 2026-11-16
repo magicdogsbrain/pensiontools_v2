@@ -179,3 +179,21 @@ describe('the year table for Kim and Sam (7.12.0): a person\'s money counts only
     expect(rows[29].db).toBe(6000);
   });
 });
+
+describe('the pooled verdict says whose plan fell short, in that person\'s ages (7.12.0)', async () => {
+  const { combineHouseholdStrategies: combine } = await import('../src/services/HouseholdService.js');
+  // 10 futures. A (year 0 at 66) falls short in futures 1 and 2, at plan years 20 and 26; B (year 0 at 62) in future 3 at
+  // year 30. Each time the other plan ends with plenty, so it pays.
+  const side = (fails) => {
+    const failYear = Array.from({ length: 10 }, (_, i) => (fails[i] != null ? fails[i] : null));
+    return { survivedMc: failYear.map((f) => f == null), futuresMc: { terminal: Array.from({ length: 10 }, () => 5000000), failYear }, cones: { wealth: { p50: [1, 1] } }, samples: { wealth: [[1, 1]] } };
+  };
+  const need = Array.from({ length: 40 }, () => 10000);
+  const c = combine(side({ 1: 20, 2: 26 }), side({ 3: 30 }), { needA: need, needB: need, startAgeA: 66, startAgeB: 62 });
+  it('A\'s shortfalls at 66 + 20 = 86 and 66 + 26 = 92; B\'s at 62 + 30 = 92; one mixed median is gone', () => {
+    expect(c.pooled.shortA).toEqual({ n: 2, median: 92, earliest: 86 });
+    expect(c.pooled.shortB).toEqual({ n: 1, median: 92, earliest: 92 });
+    expect(c.pooled).not.toHaveProperty('fromAgeMedian');
+    expect(c.pooled.success).toBe(1);
+  });
+});

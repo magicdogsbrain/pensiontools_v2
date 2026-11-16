@@ -29,7 +29,7 @@ import { budgetSharedFromOf, shareBudgetWrite, stopSharingWrite, sharedBudgetVie
 import { summariseBudget } from '../../services/BudgetModel.js';
 import { currentAgeNow } from '../../utils/StatePensionUtils.js';
 import { guestOwnPlans, GUEST_MAX_PLANS } from '../../services/GuestPlans.js';
-import { futuresOutOfTen, pctText, CHANCE_BARS } from '../../services/OneAnswer.js';
+import { futuresOutOfTen, pctBesideWords } from '../../services/OneAnswer.js';
 import { isOnCourse, BORDERLINE_SHARE } from '../../services/OnCourse.js';
 import { theirLineOf } from './read.js';
 import { isClosedPlan, closedReading, partnerCandidates } from '../../services/PlanClosed.js';
@@ -51,7 +51,8 @@ const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.na
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 const r0 = (v) => Math.round(+v || 0);
-const pct = (share) => pctText((+share || 0) * 100, 0, [...CHANCE_BARS, 70]).replace(/%$/, '');
+// the figure beside its words, never rounded across a line where the words change (OneAnswer.pctBesideWords, 7.12.0)
+const pct = (share) => pctBesideWords(+share || 0).replace(/%$/, '');
 const inTen = (share) => futuresOutOfTen(+share || 0).words;
 const safeSettings = (plan, now) => { try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && isObj(plan.stressTool.settings)) ? plan.stressTool.settings : {}; } };
 
@@ -350,15 +351,27 @@ export function whoPaysPatches(plan, entries, typed, { today }) {
 const headOf = (share) => (isOnCourse(share) ? 'yes' : share >= BORDERLINE_SHARE ? 'close' : 'no');
 const r5 = (fan) => (Array.isArray(fan) ? fan.filter((f, i) => i % 5 === 0) : []);
 
-/** The pooled verdict and each plan alone, in words with slots (householdView.verdictSectionHtml, in V7's words). */
-function verdictView(res, names, offsets) {
+/** The age a plan is tested until: its start age and its length, from its effective settings; null when not given. */
+const endAgeOf = (ss) => { const a = num(ss && ss.shapeAgeNow), d = num(ss && ss.duration); return a != null && d != null ? a + d : null; };
+
+/**
+ * The pooled verdict and each plan alone, in words with slots (householdView.verdictSectionHtml says the same). Until when each
+ * plan is tested (7.12.0); when one plan fell short and the other paid, said per side in that plan's owner's ages.
+ */
+function verdictView(res, names, offsets, ends) {
   const c = res && res.combined;
   if (!c) return null;
   const share = c.pooled ? c.pooled.success : c.jointSuccess;
-  const covered = c.pooled ? (c.pooled.coveredByA || 0) + (c.pooled.coveredByB || 0) : 0;
+  const covered = c.pooled ? ['a', 'b'].map((k) => {
+    const x = c.pooled[k === 'a' ? 'shortA' : 'shortB'];
+    if (!x || !(x.n > 0) || x.median == null) return null;
+    return { side: k, n: String(x.n), of: Number(c.runs).toLocaleString('en-GB'), short: names[k], payer: names[k === 'a' ? 'b' : 'a'], from: String(x.median), earliest: x.earliest != null && x.earliest !== x.median ? String(x.earliest) : null };
+  }).filter(Boolean) : [];
+  const tested = ends && ends.a != null && ends.b != null
+    ? (ends.a === ends.b ? { same: true, age: String(ends.a) } : { same: false, a: names.a, b: names.b, ageA: String(ends.a), ageB: String(ends.b) })
+    : null;
   return {
-    head: headOf(share), share, pct: pct(share), words: inTen(share), pooled: !!c.pooled,
-    covered: c.pooled && covered > 0 && c.pooled.fromAgeMedian ? { n: String(covered), of: String(c.runs), from: String(c.pooled.fromAgeMedian), earliest: c.pooled.fromAgeEarliest && c.pooled.fromAgeEarliest !== c.pooled.fromAgeMedian ? String(c.pooled.fromAgeEarliest) : null } : null,
+    head: headOf(share), share, pct: pct(share), words: inTen(share), pooled: !!c.pooled, covered, tested,
     rows: [
       { id: 'household', words: inTen(share), pct: pct(share) },
       { id: 'a', name: names.a, words: inTen(c.successA), pct: pct(c.successA) },
@@ -506,7 +519,7 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
     status: h ? h.status : 'idle', reason: h && h.status === 'failed' ? h.reason || null : null, ms: h && h.ms != null ? h.ms : null, progress: h ? h.progress : null, stale,
     runs: result && result.basis ? String(result.basis.runs) : null,
     unaffordable: result && !result.ok ? { which: result.which === 'b' ? names.b : names.a, reason: result.reason === 'partnerNotSet' ? null : (result.why || ''), kind: result.reason } : null,
-    verdict: ok ? verdictView(result.own, names, result.offsets) : null,
+    verdict: ok ? verdictView(result.own, names, result.offsets, { a: endAgeOf(saved.ssA), b: endAgeOf(saved.ssB) }) : null,
     // the years are calendar years (7.12.0), never a row's count from today; a plan past its last age is said to have ended
     timeline: ok && Array.isArray(result.timeline) ? result.timeline.map((r) => ({ year: String(r.calendarYear != null ? r.calendarYear : now.getFullYear() + r.year), beforeStatePension: !!r.beforeStatePension, workingA: !!r.workingA, workingB: !!r.workingB, endedA: !!r.endedA, endedB: !!r.endedB, needA: pounds(r.needA), needB: pounds(r.needB), sp: pounds(r.spA + r.spB), other: pounds(r.db + r.other), draw: pounds(r.drawNeed) })) : [],
     left: ok && result.own && result.own.combined ? r5(result.own.combined.potFan).map((f) => ({ year: String(now.getFullYear() + f.year), p10: pounds(f.p10), p50: pounds(f.p50), p90: pounds(f.p90) })) : [],

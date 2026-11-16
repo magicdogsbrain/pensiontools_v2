@@ -9330,9 +9330,9 @@
         const [scenarios, stored, activeId] = await Promise.all([listScenariosAsync(), getStressSettingsAsync(), getActiveScenarioId()]);
         const own = scenarios.find((sc) => sc.id === activeId), partner = scenarios.find((sc) => sc.id === partnerId), ownSettings = own ? effectiveStressSettings(own) : stored;
         // Both plans as their own tools read them (6.42.0; this plan's too from 7.12.0, as the simple view reads it): the Budget's age folded in, brought up to date
-        const partnerSettings = partner?.stressTool?.settings?.configured ? effectiveStressSettings(partner) : null;
-        if (!partnerSettings) {
-          out.innerHTML = '<div class="alert alert-warning">The partner plan has no saved Stress Tester settings yet — switch to that plan, fill in its settings, then come back here.</div>';
+        const unset = [own, partner].find((p) => !p?.stressTool?.settings?.configured), partnerSettings = unset ? null : effectiveStressSettings(partner);   // never run on a plan's starting defaults (7.12.0)
+        if (unset || !partnerSettings) {
+          out.innerHTML = '<div class="alert alert-warning">‘' + budEsc(unset?.planDetails?.name || 'Your partner’s plan') + '’ has no figures saved yet. Open it, fill in its pots and spending, and come back.</div>';
           return;
         }
         const ownName = document.getElementById('hhOwnPlan').value, pName = partner.planDetails?.name || 'Partner';
@@ -9362,7 +9362,7 @@
         const stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(ownName) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(pName) + ' — paired future for future on the same markets' + ((offsets.a > 0 || offsets.b > 0) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the years before the State Pensions' : '') + '. "Lasts" means paid in full (for Floor to an age and Gilt ladder + rotation: never cut; for Floor &amp; flex: no lean year).</p>';
         const startsNote = householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings).firstTaxYear });   // one plan begins later than the other (couples-different-years.md 7)
         const thisYear = new Date().getFullYear();
-        out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote })
+        out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings })
           + timelineSectionHtml(householdIncomeTimeline(ownSettings, partnerSettings), ownName, pName, thisYear)
           + wealthSectionHtml(r.potFan, thisYear)
           + whatToDoHtml(r, ownName, pName)

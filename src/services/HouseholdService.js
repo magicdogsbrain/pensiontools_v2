@@ -339,7 +339,8 @@ function pooledVerdict(rA, rB, sa, sb, n, opts, bc) {
   if (!fa || !fb || !needA || !needB || !n) return null;
   const rest = (need, from) => { let t = 0; for (let y = from; y < need.length; y++) t += Math.max(0, need[y] || 0); return t * POOLED_TAX_UPLIFT; };
   let ok = 0, coveredByA = 0, coveredByB = 0;
-  const fromAges = [];
+  // the ages each side's plan fell short at, in its own owner's years (7.12.0): never one list of two people's ages
+  const shortAges = { a: [], b: [] };
   for (let i = 0; i < n; i++) {
     const a = !!bc(sa, i), b = !!bc(sb, i);
     if (a && b) { ok++; continue; }
@@ -351,14 +352,14 @@ function pooledVerdict(rA, rB, sa, sb, n, opts, bc) {
     // income still pays most of it, 6.37.0), else all of its need from the year it was cut (an empty pot).
     const short = empty.unpaid ? bc(empty.unpaid, i) : null;
     const covered = fy == null || bc(payer.terminal, i) >= (short != null ? short * POOLED_TAX_UPLIFT : rest(need, fy + off));
-    if (covered) { ok++; if (a) coveredByA++; else coveredByB++; if (fy != null && startAge > 0) fromAges.push(startAge + fy); }
+    if (covered) { ok++; if (a) coveredByA++; else coveredByB++; if (fy != null && startAge > 0) shortAges[a ? 'b' : 'a'].push(startAge + fy); }
   }
-  fromAges.sort((x, y) => x - y);
-  return {
-    success: ok / n, coveredByA, coveredByB,
-    fromAgeMedian: fromAges.length ? fromAges[Math.floor(fromAges.length / 2)] : null,
-    fromAgeEarliest: fromAges.length ? fromAges[0] : null
+  const sideOf = (ages) => {
+    const sorted = [...ages].sort((x, y) => x - y);
+    return { n: sorted.length, median: sorted.length ? sorted[Math.floor(sorted.length / 2)] : null, earliest: sorted.length ? sorted[0] : null };
   };
+  // shortA: futures where A's plan fell short and B's paid (A's ages); shortB the other way
+  return { success: ok / n, coveredByA, coveredByB, shortA: sideOf(shortAges.a), shortB: sideOf(shortAges.b) };
 }
 
 /** The parts of a strategy result the couples table reads (what the worker sends back for each plan each way). */

@@ -83,6 +83,14 @@ export function pctText(v, dp = 0, bar = null) {
 }
 
 /**
+ * A share of futures as a percentage to sit beside its words (futuresOutOfTen), never rounded across a line where the words
+ * change, nor across the planner's own verdict lines: 94.9% stays "94.9%" beside "in 9 futures out of 10" (7.12.0).
+ */
+export function pctBesideWords(share) {
+  return pctText((num(share)) * 100, 0, [95, 90, 85, 75, 70, 50, 15, 5]);
+}
+
+/**
  * The same share as futures out of 10 to one decimal (Compare allocations): never "10.0" while a future failed, never
  * "9.0" under the on-course line, never "0.0" while one lasted (6.33.0).
  */

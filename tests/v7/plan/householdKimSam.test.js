@@ -39,8 +39,9 @@ export function kimSamRun(list, { pooled = null, successA = 0.97, successB = 0.9
 }
 
 /** Kim's (or Sam's) household page with the run held, the years open. */
-export function kimSamPage({ on = KIM_ID, run = {}, open = ['hhDetail'], extra = [] } = {}) {
+export function kimSamPage({ on = KIM_ID, run = {}, open = ['hhDetail'], extra = [], edit = null } = {}) {
   const { kim, sam } = kimAndSam();
+  if (edit) edit(kim, sam);
   let state = initialState({ today: KIM_AND_SAM_TODAY, build: 'test' });
   const step = (a) => { state = reduce(state, a); state = reduce(state, { type: A.PLANS_VIEW, view: viewFor(state) }); };
   state = reduce(state, { type: A.ROUTE_SET, route: parse('#/plan/' + on + '/household') });
@@ -73,5 +74,37 @@ describe('the year table (7.12.0): real years, the pots second, a plan that has 
     const row = one(root, `${T}.timeline`).querySelector('tr[data-year="2056"]');
     expect([...row.children].map((td) => td.textContent)).toEqual(['2056', '£4,498', 'plan ended', '£16,000', '£11,502', '£0']);
     expect([...one(root, `${T}.timeline`).querySelectorAll('thead th')].map((th) => th.textContent)).toEqual(['Year', 'From the pots', 'Kim needs', 'Sam needs', 'State Pensions', 'Other income that comes anyway']);
+  });
+});
+
+describe('the verdict (7.12.0): until when, whose age, and a figure that agrees with its words', () => {
+  const pooled = { success: 0.96, coveredByA: 37, coveredByB: 0, shortA: { n: 0, median: null, earliest: null }, shortB: { n: 37, median: 93, earliest: 87 } };
+  it('says each plan is tested until its owner is 95 (Kim 66 + 29 years, Sam 63 + 32), and whose plan fell short in that person\'s ages', () => {
+    const { root, text } = kimSamPage({ run: { pooled } });
+    expect(one(root, `${T}.headline`).textContent).toBe('On course together. The household’s money lasts in more than 9 futures out of 10.');
+    expect(one(root, `${T}.tested`).textContent).toBe('Each plan is tested until its owner is 95.');
+    expect(one(root, `${T}.pooled`).textContent).toBe('When one plan falls short, the other pays that share; the household falls short only when both have.');
+    expect(one(root, `${T}.covered`).textContent).toBe('In 37 of 1,000 futures Sam’s plan fell short and Kim’s paid, typically from when Sam is 93 (87 at the earliest).');
+    expect(text).not.toMatch(/from age \d/);
+  });
+  it('94.9% reads "in 9 futures out of 10 (94.9%)", never 95% beside words that say under it', () => {
+    const { root } = kimSamPage({ run: { pooled } });
+    expect(one(root, `${T}.rows`).querySelector('tr[data-row="b"] td').textContent).toBe('in 9 futures out of 10 (94.9%)');
+    expect(one(root, `${T}.rows`).querySelector('tr[data-row="a"] td').textContent).toBe('in more than 9 futures out of 10 (97%)');
+  });
+  it('two different end ages are said per plan: Sam\'s plan cut to 27 years runs to 63 + 27 = 90', () => {
+    const { root } = kimSamPage({ run: { pooled }, edit: (kim, sam) => { sam.stressTool.settings.duration = 27; } });
+    expect(one(root, `${T}.tested`).textContent).toBe('Kim’s plan is tested until Kim is 95; Sam’s until Sam is 90.');
+  });
+});
+
+describe('a household answer is never run on a plan\'s starting defaults (7.12.0)', () => {
+  it('this plan with no figures saved: refused, naming this plan', async () => {
+    const { runHousehold } = await import('../../../src/answers/plan/householdRun.js');
+    const { kim, sam } = kimAndSam();
+    kim.stressTool.settings.configured = false;
+    const list = upgradedList([kim, sam], NOW);
+    const r = runHousehold(list[0].plan, list[1].plan, { today: KIM_AND_SAM_TODAY });
+    expect(r).toMatchObject({ ok: false, reason: 'partnerNotSet', which: 'a' });
   });
 });

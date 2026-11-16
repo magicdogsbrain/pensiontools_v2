@@ -176,3 +176,15 @@ describe('the full view\'s year table for Kim and Sam (7.12.0): real years, the 
     expect(d.body.textContent).toContain('After a plan reaches its last age, nothing of that person\'s is counted');
   });
 });
+
+describe('the full view\'s verdict says the simple view\'s sentences (7.12.0)', async () => {
+  const { kimSettings, samSettings } = await import('./fixtures/kimAndSam.js');
+  const r = { runs: 1000, jointSuccess: 0.93, successA: 0.97, successB: 0.949, pooled: { success: 0.96, coveredByA: 37, coveredByB: 0, shortA: { n: 0, median: null, earliest: null }, shortB: { n: 37, median: 93, earliest: 87 } } };
+  const d = doc(verdictSectionHtml({ r, ownName: 'Kim', pName: 'Sam', setA: kimSettings(), setB: samSettings() }));
+  it('until when, whose plan fell short in whose ages, and the figure beside its words', () => {
+    expect(d.querySelector('#hhHouseholdVerdict').textContent).toBe('On course together. The household’s money lasts in more than 9 futures out of 10. Each plan is tested until its owner is 95. '
+      + 'When one plan falls short, the other pays that share; the household falls short only when both have. In 37 of 1,000 futures Sam’s plan fell short and Kim’s paid, typically from when Sam is 93 (87 at the earliest).');
+    const cells = [...d.querySelectorAll('tbody tr')].map((tr) => [tr.children[0].textContent, tr.children[1].textContent]);
+    expect(cells).toEqual([['The household together', 'more than 9 futures out of 10'], ['Kim\'s plan on its own', 'more than 9 futures out of 10 (97%)'], ['Sam\'s plan on its own', '9 futures out of 10 (94.9%)'], ['Both plans, each lasting on its own', '9 futures out of 10 (93%)']]);
+  });
+});

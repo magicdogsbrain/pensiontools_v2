@@ -13,25 +13,38 @@
  */
 
 import { isOnCourse, onCourseAlertClass, jointVerdictHtml, ON_COURSE_WORDS } from '../services/OnCourse.js';
-import { futuresOutOfTen, pctText, CHANCE_BARS } from '../services/OneAnswer.js';
+import { futuresOutOfTen, pctBesideWords } from '../services/OneAnswer.js';
 import { headlineWords, about, SPLIT_HEADLINE_MIN } from '../services/HouseholdDraw.js';
+import { HOUSEHOLD } from '../v7/copy/household.js';
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export const gbp = (n) => '£' + Math.round(+n || 0).toLocaleString('en-GB');
-const pctFmt = (x) => pctText((+x || 0) * 100, 0, [...CHANCE_BARS, 70]);   // a share of futures: never rounded across a verdict's line
+const fill = (text, slots) => String(text || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
 // In words (6.33.0): the whole count said "10 in 10" from 95% and "9 in 10" from 85% — the words do not.
 const inTen = (share) => futuresOutOfTen(+share || 0).words.replace(/^in /, '');
+/** The age a plan is tested until (its start age and its length), or null. */
+const endAgeOf = (s) => (s && s.shapeAgeNow !== '' && s.duration !== '' && Number.isFinite(+s.shapeAgeNow) && Number.isFinite(+s.duration) && +s.duration > 0 ? +s.shapeAgeNow + +s.duration : null);
 
-/** The household verdict in words: pooled first. */
-export function householdVerdictHtml(r) {
+/**
+ * The household verdict in words, pooled first, in the simple view's sentences (7.12.0): until when each plan is tested,
+ * and — when one plan fell short and the other paid — whose plan, in that person's ages. `o`: { ownName, pName, setA, setB }.
+ */
+export function householdVerdictHtml(r, o = {}) {
+  const C = HOUSEHOLD.verdict;
   const share = r.pooled ? r.pooled.success : r.jointSuccess;
-  const ten = futuresOutOfTen(share);
-  const head = isOnCourse(share) ? 'On course together' : share >= 0.7 ? 'Not on course yet, together' : 'At risk, together';
-  let s = '<strong>' + head + ':</strong> the household\'s money lasts ' + esc(ten.words) + '.';
+  const head = isOnCourse(share) ? C.head.yes : share >= 0.7 ? C.head.close : C.head.no;
+  const names = { a: o.ownName || 'This plan', b: o.pName || 'Partner' };
+  let s = '<strong>' + esc(head) + '.</strong> ' + esc(fill(C.headline, { words: futuresOutOfTen(share).words }));
+  const ends = { a: endAgeOf(o.setA), b: endAgeOf(o.setB) };
+  if (ends.a != null && ends.b != null) s += ' ' + esc(ends.a === ends.b ? fill(C.tested, { age: ends.a }) : fill(C.testedTwo, { a: names.a, b: names.b, ageA: ends.a, ageB: ends.b }));
   if (r.pooled) {
-    s += ' When one plan falls short (its money runs out, or a strategy that cuts instead cuts it), the other pays that share; the household falls short only when both have.';
-    const covered = (r.pooled.coveredByA || 0) + (r.pooled.coveredByB || 0);
-    if (covered > 0 && r.pooled.fromAgeMedian) s += ' In ' + covered + ' of ' + r.runs.toLocaleString('en-GB') + ' futures one plan fell short and the other paid, typically from age ' + r.pooled.fromAgeMedian + (r.pooled.fromAgeEarliest && r.pooled.fromAgeEarliest !== r.pooled.fromAgeMedian ? ' (from ' + r.pooled.fromAgeEarliest + ' at the earliest)' : '') + '.';
+    s += ' ' + esc(C.pooled);
+    for (const k of ['a', 'b']) {
+      const x = r.pooled[k === 'a' ? 'shortA' : 'shortB'];
+      if (!x || !(x.n > 0) || x.median == null) continue;
+      const slots = { n: x.n, of: Number(r.runs).toLocaleString('en-GB'), short: names[k], payer: names[k === 'a' ? 'b' : 'a'], from: x.median, earliest: x.earliest };
+      s += ' ' + esc(fill(x.earliest != null && x.earliest !== x.median ? C.coveredEarliest : C.covered, slots));
+    }
   } else {
     s += ' ' + jointVerdictHtml(share);
   }
@@ -40,17 +53,18 @@ export function householdVerdictHtml(r) {
 
 /**
  * The verdict section: the household first, then each plan on its own and the two as separate plans.
- * @param {{ r: object, ownName: string, pName: string, stratNote?: string, startsNote?: string }} o
+ * @param {{ r: object, ownName: string, pName: string, stratNote?: string, startsNote?: string, setA?: object, setB?: object }} o
  */
-export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNote = '' }) {
+export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNote = '', setA = null, setB = null }) {
   const share = r.pooled ? r.pooled.success : r.jointSuccess;
+  const cell = (x) => '<strong>' + inTen(x) + '</strong> <span class="hint">(' + pctBesideWords(x) + ')</span>';
   let html = '<div class="settings-section"><div class="section-title">The verdict</div>';
-  html += '<div class="alert ' + onCourseAlertClass(share) + '" style="font-size:15px;" id="hhHouseholdVerdict">' + householdVerdictHtml(r) + '</div>';
+  html += '<div class="alert ' + onCourseAlertClass(share) + '" style="font-size:15px;" id="hhHouseholdVerdict">' + householdVerdictHtml(r, { ownName, pName, setA, setB }) + '</div>';
   html += '<table><tbody>'
-    + '<tr><td>The household together (when one plan falls short, the other pays)</td><td><strong>' + inTen(share) + '</strong></td></tr>'
-    + '<tr><td>' + esc(ownName) + '\'s plan on its own</td><td><strong>' + inTen(r.successA) + '</strong> <span class="hint">(' + pctFmt(r.successA) + ')</span></td></tr>'
-    + '<tr><td>' + esc(pName) + '\'s plan on its own</td><td><strong>' + inTen(r.successB) + '</strong> <span class="hint">(' + pctFmt(r.successB) + ')</span></td></tr>'
-    + '<tr><td>Both plans, each lasting on its own</td><td><strong>' + inTen(r.jointSuccess) + '</strong> <span class="hint">(' + pctFmt(r.jointSuccess) + ')</span></td></tr>'
+    + '<tr><td>The household together</td><td><strong>' + inTen(share) + '</strong></td></tr>'
+    + '<tr><td>' + esc(ownName) + '\'s plan on its own</td><td>' + cell(r.successA) + '</td></tr>'
+    + '<tr><td>' + esc(pName) + '\'s plan on its own</td><td>' + cell(r.successB) + '</td></tr>'
+    + '<tr><td>Both plans, each lasting on its own</td><td>' + cell(r.jointSuccess) + '</td></tr>'
     + '</tbody></table>' + stratNote + (startsNote ? '<p class="hint" id="hhStartsNote" style="margin:6px 0 0;">' + esc(startsNote) + '</p>' : '');
   html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'
     + 'Both plans face the <em>same</em> markets, so a bad decade hits you both at once: this check runs you both through '
@@ -105,7 +119,7 @@ export function whatToDoHtml(r, ownName, pName) {
   const weakName = r.successA <= r.successB ? ownName : pName;
   const weakPct = Math.min(r.successA, r.successB);
   return '<div class="settings-section"><div class="section-title">What to do about it</div>'
-    + '<p style="font-size:13px;">The weaker side is <strong>' + esc(weakName) + '</strong> (' + pctFmt(weakPct) + ' on its own). '
+    + '<p style="font-size:13px;">The weaker side is <strong>' + esc(weakName) + '</strong> (' + pctBesideWords(weakPct) + ' on its own). '
     + 'Open that plan in the Stress Tester and try: a slightly lower spending target, retiring a little later, '
     + 'the bond tent, or checking whether the budget split between you reflects who can actually fund what. '
     + 'Then come back and re-run this check.</p></div>';

@@ -38,6 +38,37 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 export const RELEASES = [
   {
+    version: '7.11.1', date: '2026-11-16', engineVersion: '6.39.0',
+    title: 'The full view first, and what you hold read as you hold it',
+    summary: 'When you are signed in, PensionTools now opens in the full view unless you chose the simple view on Your account. The simple view is still one press away. What you hold is now read as it stands: nothing has to be marked for it to count, a plan you are living on is never given a list of things to sell, and no holding is set against a year unless you say so.',
+    changes: [
+      'Signed in, the site opens in the full view. Choose the simple view on Your account if you prefer it. The simple view no longer asks which view to open in.',
+      'When you are living on your plan, “Your plan’s mix” says what you hold beside the plan. It no longer lists sales or a schedule.',
+      '“What is covered, year by year” counts the plan’s own gilts, the pension’s cash and anything you set against a year yourself. Everything else in the pension is shown as money available at today’s value, not set against any year.',
+      'The slider on “What does it pay a month?” now moves the whole answer.'
+    ],
+    corrections: [
+      '“What is covered” ignored gilts, shares and funds unless each was marked “Keep this”. They are now all read.',
+      'A gilt of the plan held below its target was listed as a sale. It now reads as part bought, when moving and when living on the plan.',
+      '“What you spend” on a plan’s home said “Not worked out” for a budget that was filled in. It now reads the budget as the budget page does.',
+      'A page left open while the site was updated said “Sorry, we could not work that out”. It now loads itself again once, or says in plain words to reload.',
+      '“Am I saving enough?” from the front page made a new copy of a saving plan each time its figures were used. It now names your own saving plan.',
+      '“Record” for a month in the full view opened Monthly Entry on the wrong month.',
+      'A saver’s move schedule started today. It now starts when the move window opens.',
+      'The home’s stage strip gave the wrong month for the end of saving, and a ladder’s steps gave two different months for when it pays.'
+    ],
+    effects: {
+      budget: [],
+      stress: ['A ladder result names the tax years its cash pays, and a ladder with no market risk says its chart is one fixed path.'],
+      strategies: [],
+      decision: [],
+      accumulation: [],
+      household: []
+    },
+    actions: [],
+    notes: ['Still open: when moving to a ladder, the list of sales can be larger than the plan needs. Treat it as a guide to what is outside the plan, not as a list to follow.']
+  },
+  {
     version: '7.11.0', date: '2026-11-15', engineVersion: '6.39.0',
     title: 'Simple and full: two views of one plan',
     summary: 'PensionTools now has two views of the same plans. The simple view takes one question at a time and gives each plan a home page. The full view puts all the tools, tests and records on one page. The line at the top of every page says which view you are in and takes you to the other, and on Your account you can choose which one PensionTools opens in. Nothing in your plans changes.',

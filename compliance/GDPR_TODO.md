@@ -196,11 +196,12 @@ delete call sites).
   with `getDocs` of the profile collection, into page memory only (`ui.profile`, let go at sign-out); written only by the
   account effect's one `setDoc`, merged (`src/v7/effects/account.js` `writeSettings`; made when there is none yet), with
   `lastSeenVersion` (a release's notes dismissed or read, `src/v7/effects/whatsNew.js`), `lastLocation` (the plan and step
-  last open, no figures, `src/v7/effects/place.js`) and `view` (`'simple'` or `'full'`, chosen on Your account or the strip
-  only, 7.11.0). Nothing is written when a page or a plan is opened. This browser keeps a copy of a `'full'` choice
-  (`localStorage pt_view`) and the strip's "Not now" (`pt_view_asked`), set in `src/v7/effects/view.js`; the full view's
-  sign-in sets the copy and the signed-in note again only when the account says `'full'` (`src/ui/viewNotes.js`
-  `followViewChoice`, from the settings it already reads), and otherwise sets neither. Both go at a sign-out in either
+  last open, no figures, `src/v7/effects/place.js`) and `view` (`'simple'` or `'full'`, chosen on Your account
+  only; the strip went in 7.11.1). Nothing is written when a page or a plan is opened. From 7.11.1 a signed-in person
+  opens in the full view unless the account says `'simple'` (`src/services/ViewChoice.js` `openingView`), and this browser
+  keeps a copy of that (`localStorage pt_view`), set in `src/v7/effects/view.js`; the full view's sign-in sets the copy
+  and the signed-in note again by the same rule (`src/ui/viewNotes.js` `followViewChoice`, from the settings it already
+  reads). `pt_view_asked` is no longer written, only removed. Both go at a sign-out in either
   view (the full view's: `src/ui/viewNotes.js`) and with the account's deletion; a sign-in ended somewhere else (a password
   changed on another device) leaves them until the simple view is next opened in that browser, and the privacy policy says
   so.

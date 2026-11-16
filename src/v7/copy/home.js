@@ -7,6 +7,17 @@
  * try on someone carrying out a plan, and it never says "nothing to do" without the date something next will be.
  */
 export const HOME = {
+  /** "Are you paying in enough?" on a saving plan's home (7.12.0): the answer's own sentences, and the ways on from it. */
+  saver: {
+    title: 'Are you paying in enough?',
+    working: 'Working out whether what you pay in is enough…',
+    noAim: 'Your plan has no income set for when you stop, so there is nothing yet to test what you pay in against.',
+    noAimLink: 'What you spend',
+    noWorker: 'This browser cannot work this out here.',
+    failed: 'Sorry, this could not be worked out. Nothing was changed.',
+    change: 'Change what you want or what you pay in',
+    ways: 'See the ways to make it fit'
+  },
   title: 'Your plan',
 
   /**

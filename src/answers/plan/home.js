@@ -158,7 +158,7 @@ function driftLineOf(plan, now, href, { phase = 'drawing' } = {}) {
  * what is held, that it can be recorded when the person likes); once what is held is accepted, that, and the stop; a saver
  * before it, the month it opens. Null with no month to stop in, and on a plan asked whether work has stopped.
  */
-function windowLineOf(life, { held, agreed }) {
+function windowLineOf(life, { held, agreed, now = null }) {
   const w = moveWindowOf(life);
   if (!w || !w.to || life.confirmStop) return null;
   const left = Number.isFinite(w.monthsLeft) ? (w.monthsLeft === 1 ? '1 month' : w.monthsLeft + ' months') : '';
@@ -167,8 +167,17 @@ function windowLineOf(life, { held, agreed }) {
     if (agreed) return { id: agreed.how === 'nothing' ? 'agreedAsItStands' : 'agreed', slots: { date: dayWords(agreed.at), stop: monthWords(w.to) } };
     return { id: held ? 'moving' : 'movingNoRecord', slots: { left, stop: monthWords(w.to) } };
   }
-  if (life.key === 'saving' && w.state === 'before' && w.from) return { id: 'saving', slots: { from: monthWords(w.from) } };
+  // (7.12.0) said only within five years of the stop: further off, "move window" means nothing yet; the review page keeps it
+  if (life.key === 'saving' && w.state === 'before' && w.from && !(monthsTo(w.to, now) > WINDOW_SAID_MONTHS)) return { id: 'saving', slots: { from: monthWords(w.from) } };
   return null;
+}
+
+/** How near the stop the home starts to say when the move window opens (7.12.0): five years. */
+const WINDOW_SAID_MONTHS = 60;
+/** Whole months from `now`'s month to a 'YYYY-MM' month. */
+function monthsTo(month, now) {
+  const m = /^(\d{4})-(\d{2})/.exec(String(month || ''));
+  return m && now instanceof Date ? (+m[1] * 12 + +m[2]) - (now.getFullYear() * 12 + now.getMonth() + 1) : null;
 }
 
 /**
@@ -332,7 +341,7 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
     quiet,
     // 7.10.0: the next review (never stored: read from the log, the check-ins, the records and the rule), and the move window
     review: pg.readonly || pg.closed ? null : review,
-    moveWindow: pg.readonly || pg.closed ? null : windowLineOf(life, { held: recorded, agreed: life && life.agreed ? life.agreed : null }),
+    moveWindow: pg.readonly || pg.closed ? null : windowLineOf(life, { held: recorded, agreed: life && life.agreed ? life.agreed : null, now }),
     where,
     ...(drift ? { drift } : {}),
     // 7.6.0: the first tax year not yet covered by what is held and kept, once — only on a plan that keeps something

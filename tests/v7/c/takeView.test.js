@@ -154,15 +154,14 @@ describe('the screen: the slider on an amount other than the level\'s', () => {
     expect(actions).toEqual([{ type: 'draft/set', q: 'c', path: 'take', value: '' }]);
   });
 
-  it('"Show how long that lasts" says the page\'s chance, with its fixed-age line beside it', () => {
+  it('"Show how long that lasts" says the page\'s chance; its count to one age is in "More about the chance"', () => {
     const under = one(root, 'c.try.take.result');
     expect(under.textContent).toBe(r.sentences.takeChance.text);
     expect(under.getAttribute('data-weighted')).toBe('1');
     expect(under.textContent).not.toMatch(/futures? out of 10/);
-    // its count to one named age straight after it, in the same block
-    const fixed = one(root, 'c.try.take.fixed');
-    expect(fixed.textContent).toBe(r.sentences.takeFixed.text);
-    expect(under.nextElementSibling).toBe(fixed);
+    // (7.12.0: one chance in the body; the count to one named age is said once, in the answer's "More about the chance")
+    expect(one(root, 'c.try.take.fixed')).toBe(null);
+    expect(root.querySelector('[data-testid="chance.more"] [data-fixed="age"]').textContent).toBe(r.sentences.takeFixed.text);
   });
 
   // (7.12.0: Keep asks which amount the plan keeps, the one tried or the level's, neither chosen: tests/v7/keep/keepTried.test.js)

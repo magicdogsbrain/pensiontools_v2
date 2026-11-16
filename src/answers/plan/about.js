@@ -491,7 +491,7 @@ function stopPotLine(plan, p, slots, today) {
     const after = effectiveStressSettings(applyPatch(plan, p.patch), { now }).potAtRetirement;
     if (!before || !after || before.source !== 'worked' || after.source !== 'worked') return plain;
     const k1 = (v) => '£' + (Math.round((+v || 0) / 1000) * 1000).toLocaleString('en-GB');
-    return { id: 'runsToPot', slots: { ...slots, stopAge: +p.patch[path], after: k1(after.sipp), before: k1(before.sipp), stopBefore: +p.previous[path] } };
+    return { id: 'runsToPot', slots: { ...slots, stopAge: +p.patch[path], potAfter: k1(after.sipp), potBefore: k1(before.sipp), stopBefore: +p.previous[path] } };
   } catch { return plain; }
 }
 

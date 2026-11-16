@@ -63,7 +63,7 @@ export const ABOUT = {
   partnerLink: 'Open ‘{name}’: about you and when',
   buttons: { save: 'Save', cancel: 'Cancel', undo: 'Undo', close: 'Close', back: 'Back to your plan' },
   /** After a save. */
-  toast: { saved: 'Saved. Your plan now runs {years} years, to age {endAge}.', runsToPot: 'Saved. Your plan now runs {years} years, to age {endAge}. Stopping at {stopAge}, your pension then is about {after} (it was about {before} at {stopBefore}).', staleLeft: 'Left as it is, starting in {yearSaved}. You will not be asked again for that year.', savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.',
+  toast: { saved: 'Saved. Your plan now runs {years} years, to age {endAge}.', runsToPot: 'Saved. Your plan now runs {years} years, to age {endAge}. Stopping at {stopAge}, your pension then could be {potAfter} ({potBefore} stopping at {stopBefore}).', staleLeft: 'Left as it is, starting in {yearSaved}. You will not be asked again for that year.', savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.',
     stopSaved: 'Saved: you stopped work in {month}.', stopLeft: 'Left as it is. You will not be asked again; you can still say it under “Say when you stopped work”.' },
   /**
    * A locked plan's start (6.53.0): the month work stopped, asked once (the plan stays locked; the month changes no figure by

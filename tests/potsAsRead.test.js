@@ -78,9 +78,9 @@ describe('a new stop age says what it does to the pension then', () => {
     const at59 = effectiveStressSettings({ ...plan, stressTool: { ...plan.stressTool, settings: { ...plan.stressTool.settings, retireAge: 59, shapeAgeNow: 59, firstTaxYear: v.patch['stressTool.settings.firstTaxYear'] } } }, { now: new Date(2026, 9, 2) }).potAtRetirement;
     expect(at59.sipp).toBeLessThan(at60.sipp);   // a year less of growth and paying in
     const k = (n) => '£' + (Math.round(n / 1000) * 1000).toLocaleString('en-GB');
-    expect(v.savedLine).toEqual({ id: 'runsToPot', slots: { endAge: 95, years: v.savedLine.slots.years, stopAge: 59, after: k(at59.sipp), before: k(at60.sipp), stopBefore: 60 } });
+    expect(v.savedLine).toEqual({ id: 'runsToPot', slots: { endAge: 95, years: v.savedLine.slots.years, stopAge: 59, potAfter: k(at59.sipp), potBefore: k(at60.sipp), stopBefore: 60 } });
     const words = ABOUT.toast.runsToPot.replace(/\{(\w+)\}/g, (m, key) => String(v.savedLine.slots[key]));
-    expect(words).toBe(`Saved. Your plan now runs ${v.savedLine.slots.years} years, to age 95. Stopping at 59, your pension then is about ${k(at59.sipp)} (it was about ${k(at60.sipp)} at 60).`);
+    expect(words).toBe(`Saved. Your plan now runs ${v.savedLine.slots.years} years, to age 95. Stopping at 59, your pension then could be ${k(at59.sipp)} (${k(at60.sipp)} stopping at 60).`);
   });
 
   it('a figure the person typed for the day they stop stays theirs: nothing more is said', () => {

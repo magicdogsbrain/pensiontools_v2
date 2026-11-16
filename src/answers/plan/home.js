@@ -22,6 +22,7 @@ import { monthsWanted } from '../../services/DrawCadence.js';
 import { gapsOf, gapHeadline } from './gaps.js';
 import { taxYearStartOf, taxYearKey, taxYearLabel, earlyPensionDrawOf } from '../../services/PlanTiming.js';
 import { readDayOf } from '../../services/PlanClosed.js';
+import { partnersOf } from '../../services/HouseholdLink.js';
 import { isFilledIn } from '../../services/MonthFill.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { moveWindowOf } from '../../services/Phases.js';
@@ -273,11 +274,7 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   // own in the one list; put away on their own plan, never here
   const partner = [];
   if (!pg.readonly) {
-    const mine = plan.household && typeof plan.household.partnerScenarioId === 'string' ? plan.household.partnerScenarioId : null;
-    for (const e of list) {
-      if (String(e.plan.id) === String(id)) continue;
-      const linked = String(e.plan.id) === mine || (e.plan.household && e.plan.household.partnerScenarioId === String(plan.id));
-      if (!linked || pg.closed) continue;
+    for (const e of pg.closed ? [] : partnersOf(list, plan)) {
       const their = planPage(list, e.plan.id, null, { today, source });
       if (!their.found || their.closed) continue;
       for (const d of their.due || []) if (PARTNER_IDS.includes(d.id)) { const { dismiss, key, ...rest } = item(d, { planId: String(e.plan.id), name: their.name }); void dismiss; void key; partner.push(rest); }

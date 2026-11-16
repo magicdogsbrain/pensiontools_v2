@@ -34,6 +34,7 @@ import { isOnCourse, BORDERLINE_SHARE } from '../../services/OnCourse.js';
 import { theirLineOf } from './read.js';
 import { isClosedPlan, closedReading, partnerCandidates } from '../../services/PlanClosed.js';
 import { runKeyOf } from './lasts.js';
+import { partnerOf, partnerIdOf, linkedByOf } from '../../services/HouseholdLink.js';
 import { pounds } from './income.js';
 import { HOUSEHOLD_FIELDS, HOUSEHOLD_WRITES, PAID_BYS, LATER_DRAFT_WRITES } from './schema.js';
 import { laterDraftPatch } from './moveStart.js';
@@ -47,7 +48,6 @@ const blank = (v) => v === undefined || v === null || (typeof v === 'string' && 
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
 const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
-const partnerIdOf = (plan) => (plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId) || null;
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 const r0 = (v) => Math.round(+v || 0);
@@ -55,14 +55,8 @@ const pct = (share) => pctText((+share || 0) * 100, 0, [...CHANCE_BARS, 70]).rep
 const inTen = (share) => futuresOutOfTen(+share || 0).words;
 const safeSettings = (plan, now) => { try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && isObj(plan.stressTool.settings)) ? plan.stressTool.settings : {}; } };
 
-/** The plan linked to `plan`, either way (6): its own link first, else the first plan that points at it. */
-export function partnerOf(entries, plan) {
-  const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
-  const mine = partnerIdOf(plan);
-  // a closed plan is never the partner's plan read here: the plan that carries it on is (6.56.0, PlanClosed.js)
-  const own = mine ? list.find((e) => String(e.plan.id) === String(mine) && String(e.plan.id) !== String(plan.id) && !isClosedPlan(e.plan)) : null;
-  return own || list.find((e) => String(e.plan.id) !== String(plan.id) && !isClosedPlan(e.plan) && partnerIdOf(e.plan) === plan.id) || null;
-}
+/** The plan linked to `plan`, either way (6): its own link first, else the first plan that points at it (services/HouseholdLink.js). */
+export { partnerOf };
 
 /** The key the household's runs are filed under: both plans' run keys (a save of either moves it). */
 export function pairKeyOf(plan, partner) {
@@ -494,7 +488,7 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
     id: String(partner.id), name: names.b, locked: saved.partnerLocked, lockedOn: saved.partnerLockedOn, readonly: !!(pe.newer || pe.failed),
     // their line by their plan's phase (7.10.0, read.js theirLineOf), never a placing it has left
     line: theirLineOf(partner, now, saved.ssB), configured: !!(partner.stressTool && isObj(partner.stressTool.settings) && partner.stressTool.settings.configured),
-    linkedBy: mine === String(partner.id) ? (partnerIdOf(partner) === String(plan.id) ? 'both' : 'mine') : 'theirs'
+    linkedBy: linkedByOf(plan, partner)
   } : null;
   const budgetRead = c.read;
   const whoPays = {

@@ -63,13 +63,14 @@ import { isClosedPlan, closedReading, beforeReading, closedAtOf, monthRefusalWor
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
 import { takenSentence, yearPlanOf, firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
+// the plans linked to this one, in either direction (6), this plan's own link first; never a closed plan (services/HouseholdLink.js)
+import { partnersOf, partnerIdOf } from '../../services/HouseholdLink.js';
 
 // The dates in words live in dates.js (shared with about.js); kept as exports here for everyone who reads them from read.js.
 export { dateOf, monthWords, monthName, dayWords };
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const r0 = (v) => Math.round(num(v) || 0);
 const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
-const partnerIdOf = (plan) => (plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId) || null;
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
 
@@ -119,13 +120,6 @@ function safeStage(plan, now) {
 }
 function safeSettings(plan, now) {
   try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && plan.stressTool.settings) || {}; }
-}
-
-/** The plans linked to `plan`, in either direction (6). A closed plan is no one's partner's plan: its successor is (6.56.0). */
-function partnersOf(entries, plan) {
-  const id = plan.id;
-  const mine = partnerIdOf(plan);
-  return entries.filter((e) => e.plan.id !== id && !isClosedPlan(e.plan) && (e.plan.id === mine || partnerIdOf(e.plan) === id));
 }
 
 /**

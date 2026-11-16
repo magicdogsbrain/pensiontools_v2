@@ -10,8 +10,6 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
 import { visibleText } from '../render/checkScreen.js';
@@ -21,24 +19,10 @@ import { transitionHtml } from '../../../src/ui/components/TransitionView.js';
 import { transitionHeld } from '../../../src/ui/keepHoldingsUi.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
 import { sequence } from '../../../src/services/TransitionPlanner.js';
-import { stateWith, entryOf, noon } from './_plans.js';
-import { asMoving } from './_alex.js';
-import { samDoc, samLines } from '../../helpers/samMove.js';
+import { stateWith, noon } from './_plans.js';
+import { samMovePlan } from './_samMove.js';
 
 const TODAY = '2026-11-16';
-
-/** Sam's stored plan: the corpus's locked ladder, read as Moving to October 2027, with Sam's document and record. */
-export function samMovePlan({ lines = samLines(), docOver = {} } = {}) {
-  const raw = asMoving(JSON.parse(readFileSync(join(process.cwd(), 'tests', 'fixtures', 'plans', '20-locked-start-after-stop.json'), 'utf8')), { stop: '2027-10' });
-  raw.id = 'SamMove01';
-  raw.planDetails = { ...raw.planDetails, name: 'Sam plan' };
-  delete raw.household;
-  const d = samDoc(docOver), was = raw.planDocument;
-  raw.planDocument = { ...was, timing: { ...was.timing, firstTaxYear: 2027, startMonth: '2027-10' }, pots: { ...was.pots, ...d.pots },
-    strategy: { ...was.strategy, contract: true, params: { ...was.strategy.params, ...d.strategy.params }, r: { ...was.strategy.r, ...d.strategy.r } } };
-  raw.holdings = { version: 1, updatedAt: '2026-11-01', source: 'typed', offerDismissed: false, lines };
-  return entryOf(raw, TODAY).plan;
-}
 
 const textOfHtml = (html) => { const el = document.createElement('div'); el.innerHTML = html; return el.textContent.replace(/\s+/g, ' '); };
 function simpleText(plan) {

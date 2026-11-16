@@ -828,6 +828,8 @@ function moveStep(C) {
   // living on a ladder (7.12.0): the gilts held, as "Your plan's mix" counts them (held.js, the one reading)
   let hl = null; if (asHeld && m && m.target && m.target.kind === 'ladder') { try { hl = heldLadder(plan, { today: localDay(now), life }); } catch { hl = null; } }
   if (!m || !m.target || m.target.kind === 'none') result = sentence('move.notSet', ['Set when the plan is locked'], figures);
+  // Moving, once the person said this is how they want to hold it (7.12.0): said so, with the day
+  else if (asHeld && life && life.key === 'moving' && life.agreed && life.agreed.at) { result = sentence('move.ownWay', [{ fixed: MOVE.sayHeld.home.replace('{date}', dayWords(life.agreed.at)) }], figures); }
   else if (hl) { figures.bought = hl.gilts.held; figures.rungs = hl.gilts.total; result = sentence('move.giltsHeld', [count('bought'), ' of ', count('rungs'), ' gilts held'], figures); done = !!m.diff.complete; }
   else if (m.diff.complete) { result = sentence('move.done', ['Done'], figures); done = true; }
   else if (m.target.kind === 'ladder') {

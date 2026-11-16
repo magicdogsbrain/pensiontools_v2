@@ -160,6 +160,26 @@ export function keepTestHtml(v) {
 }
 
 /**
+ * "This is how I want to hold it" (7.12.0), from V7's reading (moveOf's `sayHeld` / `saidHeld`, through transitionHeld): offered
+ * while Moving with buys to make, with its confirm; once said, the day, the gilts not bought in full, and "Take this back".
+ */
+export function sayHeldHtml(held) {
+  if (!held) return '';
+  const S = MOVE.sayHeld, H = MOVE.held;
+  if (held.saidHeld) {
+    const x = held.saidHeld;
+    return '<div id="transitionSaidHeld"><p><strong>' + esc(fillMove(H.agreed, x)) + '</strong></p>'
+      + (x.notFull ? '<p>' + esc(fillMove(x.notFull.n === '1' ? H.notFullOne : H.notFull, x.notFull)) + '</p>' : '')
+      + (x.withdrawable ? '<div class="row-flex" style="gap:8px;"><button type="button" class="risk-btn" id="takeBackSayHeld" data-on-click="takeBackSayHeld()">' + esc(H.takeBack) + '</button></div>' : '') + '</div>';
+  }
+  if (!held.sayHeld) return '';
+  let h = '<div id="transitionSayHeld" style="margin-top:8px;"><p><strong>' + esc(S.title) + '</strong> ' + esc(S.lead) + '</p>';
+  if (held.sayHeldOpen) h += '<div class="alert alert-info"><p style="margin:0 0 6px;">' + esc(S.confirm) + '</p><div class="row-flex" style="gap:8px;"><button type="button" id="sayHeldYes" data-on-click="sayHeldFull()">' + esc(S.yes) + '</button><button type="button" class="risk-btn" data-on-click="cancelSayHeld()">' + esc(S.no) + '</button></div></div>';
+  else h += '<div class="row-flex" style="gap:8px;"><button type="button" class="risk-btn" id="askSayHeld" data-on-click="askSayHeld()">' + esc(S.button) + '</button></div>';
+  return h + '</div>';
+}
+
+/**
  * Paying for it (7.12.0, a ladder): the same reading and words as V7's move page (answers/plan/moveWords.js payingOf and
  * outsideRowsOf, filled with src/v7/copy/move.js): what pays for the buys, and what is held that the plan does not use. "Say
  * which years it is for" goes to the line's "Keep this" on What you hold, above.
@@ -302,6 +322,8 @@ export function transitionHtml(a) {
   if (heldLadder) h += heldLadderHtml(held.heldView);
   else if (asHeld) h += '<p class="hint">' + esc(MOVE.held.lead) + '</p>' + heldInfoHtml(held.heldInfo);
   else h += '<p class="hint">' + esc(MOVE.lead) + '</p><p class="hint">' + (ladder ? esc(MOVE.target.ladder + ' ' + (target.note || '')) : 'Target: a pot strategy — the year-0 mix in pounds. ' + esc(target.note || '')) + '</p>';
+  // "This is how I want to hold it" (7.12.0): the same words and the same one write as V7's move page
+  h += sayHeldHtml(held);
   // (ii) Status
   if (asHeld) { /* what is held is said above: no status in moves, no cash to hold */ } else if (complete) {
     h += '<div class="alert alert-success"><strong>' + (target.kind === 'ladder' ? 'Complete — nothing to do.</strong> ' + (diff.standIn || diff.kept ? 'Every rung is held, or covered by what you chose to keep.' : 'Every rung the plan still needs is held.') : 'Complete — the target mix is held.</strong>')

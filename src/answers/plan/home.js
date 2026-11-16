@@ -31,6 +31,7 @@ import { asHeldStateOf } from './agree.js';
 import { ym, dayWords } from './dates.js';
 import { startLaterOf } from '../../services/PlanMove.js';
 import { pensionLockForSettings } from '../../services/PlanNeed.js';
+import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
 import { closedYearsShort, shortYearsWords } from '../../services/PensionLock.js';
 
 /**
@@ -316,8 +317,10 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   // change the plan, or try something: a locked plan's tries change nothing; an unlocked plan's pages change it
   const base = '#/plan/' + pg.id + '/';
   const lived = pg.locked && pg.stageKey === 'running' && !!lastRecord && !pg.closing;
+  let ladderWay = false; try { ladderWay = CONTRACT_STRATEGIES.includes((plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.id) || effectiveStressSettings(plan, { now }).strategyId); } catch { ladderWay = false; }
   const change = pg.readonly || pg.closed ? [] : pg.locked
-    ? [{ id: 'tryChange', href: base + 'lasts' }, { id: 'tryWay', href: base + 'way' }, { id: 'tryMix', href: base + 'mix' },
+    // a gilt ladder has no mix to try (7.12.0): its way of drawing is a list of gilts and cash years
+    ? [{ id: 'tryChange', href: base + 'lasts' }, { id: 'tryWay', href: base + 'way' }, ...(ladderWay ? [] : [{ id: 'tryMix', href: base + 'mix' }]),
       ...(lived && !pg.example ? [{ id: 'moveToNew', href: '#/plans' }, { id: 'backToWork', href: '#/plans' }] : []),
       { id: 'unlock', href: base + 'plan' }]
     : [{ id: 'about', href: base + 'about' }, { id: 'income', href: base + 'income' }, { id: 'spend', href: base + 'spend' }, { id: 'pots', href: base + 'pots' },

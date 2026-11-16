@@ -1237,8 +1237,9 @@ function reduceAction(state, action) {
       const { planId } = action;
       if (typeof planId !== 'string' || !planId) return refuse(`${action.type}: needs a plan id`);
       if (state.ui.saving) return state;
-      const open = (state.ui.open || []).filter((x) => x !== 'agreeConfirm');
-      return { ...state, ui: { ...state.ui, open, saving: { planId, kind: action.type === A.PLAN_AGREE ? 'agree' : 'agreeWithdraw' }, saveProblem: null, toast: null } };
+      const open = (state.ui.open || []).filter((x) => x !== 'agreeConfirm' && x !== 'sayHeldConfirm');
+      // `simple` (7.12.0): "This is how I want to hold it" on the move page — the agreement alone, with no test run
+      return { ...state, ui: { ...state.ui, open, saving: { planId, kind: action.type === A.PLAN_AGREE ? 'agree' : 'agreeWithdraw', ...(action.simple ? { simple: true } : {}) }, saveProblem: null, toast: null } };
     }
     case A.PLAN_PHASE_SET: {
       const { planId, part, value } = action;

@@ -11,6 +11,8 @@ import { PLAN } from '../v7/copy/plan.js';
 import { moveOf, opensAtOf } from '../answers/plan/move.js';
 import { planStage } from '../services/PlanReading.js';
 import { keepTestOf, amendPatch, withdrawPatch, sayKeep } from '../answers/plan/keepTest.js';
+import { sayHeldPatch, agreeWithdrawPatch } from '../answers/plan/agree.js';
+import { MOVE } from '../v7/copy/move.js';
 import { keepFingerprint } from '../services/PlanAmendments.js';
 import { isClosedPlan } from '../services/PlanClosed.js';
 import { KEEPTEST } from '../v7/copy/keepTest.js';
@@ -88,7 +90,8 @@ export function transitionHeld(scenario, rec, today = new Date()) {
     // 7.12.0: and the move's readings both views word the same way — the one status, the pace, what pays for the buys, what is
     // held that the plan does not use, the totals and the cash to hold now (answers/plan/moveWords.js through moveOf)
     return v && v.found ? { mode: v.mode || null, heldInfo: v.heldInfo || null, heldView: v.heldView || null, phase: v.phase || null,
-      status: v.status || null, pace: v.pace || null, paying: v.paying || null, outside: v.outside || [], ladderTotals: v.ladderTotals || null, cash: v.cash || null, isa: v.isa || null } : null;
+      status: v.status || null, pace: v.pace || null, paying: v.paying || null, outside: v.outside || [], ladderTotals: v.ladderTotals || null, cash: v.cash || null, isa: v.isa || null,
+      sayHeld: v.sayHeld || null, saidHeld: v.saidHeld || null, sayHeldOpen: sayHeldMemory.open && sayHeldMemory.planId === String(plan.id) } : null;
   } catch { return null; }
 }
 
@@ -189,7 +192,36 @@ export function keepLineHtml(scenario) {
  * on a closed plan, and the agreement only takes a result for this plan as it is now. `scenario()` is the plan as stored,
  * `persist(list)` the shell's one save, `rerender()` the tab drawn again, `toast(text, kind)` its message.
  */
-export function installKeepTestHandlers(w, { scenario, persist, rerender, toast }) {
+/** The full view's confirm for "This is how I want to hold it" (7.12.0): page memory only, for the plan it was opened on. */
+const sayHeldMemory = { open: false, planId: null };
+
+export function installKeepTestHandlers(w, { scenario, persist, rerender, toast, persistPhases = null }) {
+  // "This is how I want to hold it" and "Take this back" (7.12.0): the same one write as V7 (agree.js), the shell's save of `phases`
+  const dayIso = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  w.askSayHeld = async () => { const sc = await scenario(); sayHeldMemory.open = true; sayHeldMemory.planId = sc ? String(sc.id) : null; rerender(); };
+  w.cancelSayHeld = () => { sayHeldMemory.open = false; rerender(); };
+  w.sayHeldFull = async () => {
+    try {
+      const sc = await scenario();
+      if (!sc || closed(sc) || !persistPhases) return;
+      const p = sayHeldPatch(sc, { today: dayIso(), at: new Date().toISOString() });
+      if (!p.ok) { toast(MOVE.problems[p.problem] || MOVE.problems.failed, 'error'); return; }
+      await persistPhases(p.patch.phases);
+      sayHeldMemory.open = false;
+    } catch (e) { toast('Could not save: ' + e.message, 'error'); }
+    await rerender();
+  };
+  w.takeBackSayHeld = async () => {
+    try {
+      const sc = await scenario();
+      if (!sc || closed(sc) || !persistPhases) return;
+      const p = agreeWithdrawPatch(sc, { at: new Date().toISOString() });
+      if (!p.ok) return;
+      await persistPhases(p.patch.phases);
+      if (JSON.stringify(p.patch.planAmendments || []) !== JSON.stringify(Array.isArray(sc.planAmendments) ? sc.planAmendments : [])) await persist(p.patch.planAmendments);
+    } catch (e) { toast('Could not save: ' + e.message, 'error'); }
+    await rerender();
+  };
   const closed = (sc) => { if (!isClosedPlan(sc)) return false; toast(HOLD.problems.readonly, 'error'); return true; };
   w.runKeepTest = async () => {
     if (memory.status === 'working') return;

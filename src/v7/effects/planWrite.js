@@ -207,7 +207,7 @@ import { answerInPlanPatch } from '../../answers/plan/useAnswer.js';
 import { monthRecordPatch, taxYearPatch } from '../../answers/plan/month.js';
 import { taskPatch, DISMISS } from '../../answers/plan/tasks.js';
 import { reviewSavePatch, phaseChoicePatch } from '../../answers/plan/review.js';
-import { agreePatch, agreeWithdrawPatch } from '../../answers/plan/agree.js';
+import { agreePatch, agreeWithdrawPatch, sayHeldPatch } from '../../answers/plan/agree.js';
 import { planPage } from '../../answers/plan/read.js';
 import { uniqueName, getDefaultScenario } from '../../services/PlanFromSeed.js';
 import { ALL_WRITES } from '../../answers/plan/schema.js';
@@ -893,16 +893,17 @@ export function startPlanWrite(store, { win = null, session = null, local = null
    * away) and the stamp (schema.js AGREE_WRITES), past the guard and phaseWriteRefusal. The settings and the plan document
    * are never touched. Then plan/saved with op 'agree' and Undo.
    */
-  async function agree(planId, withdraw) {
+  async function agree(planId, withdraw, simple = false) {
     const got = await placed(planId);
     if (!got) return;
     const { place, plan, state } = got;
     const at = now();
     const pd = state.draft.plan && state.draft.plan.id === String(planId) ? state.draft.plan : null;
     // the run held for this page, for the plan and (Living on it) the boxes as typed, as the run was made on them
-    const p = withdraw ? agreeWithdrawPatch(plan, { at: at.toISOString() }) : agreePatch(plan, { today: state.env.today, at: at.toISOString(), held: state.review || null, typed: pd ? pd.values : {} });
+    // 7.12.0: "This is how I want to hold it" on the move page (`simple`) — the agreement alone, `phases` and the stamp
+    const p = withdraw ? agreeWithdrawPatch(plan, { at: at.toISOString() }) : simple ? sayHeldPatch(plan, { today: state.env.today, at: at.toISOString() }) : agreePatch(plan, { today: state.env.today, at: at.toISOString(), held: state.review || null, typed: pd ? pd.values : {} });
     if (!p.ok) { fail(planId, ['closed', 'example', 'noResult', 'oldResult', 'none', 'na'].includes(p.problem) ? (p.problem === 'na' ? 'noResult' : p.problem) : p.problem === 'notNow' ? 'notHere' : 'problems'); return; }
-    const data = declaredOnly({ phases: p.patch.phases, planAmendments: p.patch.planAmendments, lastModified: at.toISOString() });
+    const data = declaredOnly({ phases: p.patch.phases, ...(p.patch.planAmendments !== undefined ? { planAmendments: p.patch.planAmendments } : {}), lastModified: at.toISOString() });
     if (lockedRefusal(plan, data) || phaseWriteRefusal(plan, data, { now: at })) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;
     const copyOf = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
@@ -1894,7 +1895,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     // "Your review" (7.10.0): a review saved; a choice made on it
     else if (action.type === A.PLAN_REVIEW_SAVE && s.kind === 'reviewSave') run(() => reviewSave(s.planId));
     else if (action.type === A.PLAN_PHASE_SET && s.kind === 'phaseSet') run(() => phaseSet(s.planId, s.part, s.value));
-    else if ((action.type === A.PLAN_AGREE && s.kind === 'agree') || (action.type === A.PLAN_AGREE_WITHDRAW && s.kind === 'agreeWithdraw')) run(() => agree(s.planId, s.kind === 'agreeWithdraw'));
+    else if ((action.type === A.PLAN_AGREE && s.kind === 'agree') || (action.type === A.PLAN_AGREE_WITHDRAW && s.kind === 'agreeWithdraw')) run(() => agree(s.planId, s.kind === 'agreeWithdraw', !!s.simple));
     // "I accept this risk" / "Withdraw this" (7.7.0)
     else if (action.type === A.PLAN_AMEND && s.kind === 'amend') run(() => amend(s.planId, s.op, s.amend || null, s.testId || null));
     // the budget on a saved plan (road-to-7.md step 11b)

@@ -506,7 +506,7 @@ export function planMoveView(state) {
   const v = editView(state, 'move');
   if (!v.found) return v;
   const open = Array.isArray(state.ui && state.ui.open) ? state.ui.open : [];
-  return { ...v, howOpen: open.includes('moveHow'), sheetOpen: open.includes('moveSheet'), explainedOpen: open.includes('moveExplained') };
+  return { ...v, howOpen: open.includes('moveHow'), sheetOpen: open.includes('moveSheet'), explainedOpen: open.includes('moveExplained'), sayHeldOpen: open.includes('sayHeldConfirm') };
 }
 
 // ---- the budget step (research/v7/budget-step.md) --------------------------------------------------------------------

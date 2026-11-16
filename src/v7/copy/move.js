@@ -124,7 +124,10 @@ export const MOVE = {
   held: {
     // (a walk of 7.11.1: never "nothing here is a list of things to buy or sell" — the plan's order sheet stays on the page)
     lead: 'What you hold, beside your plan as locked, and what each part of it is doing.',
-    agreed: 'You accepted what you hold as your plan on {date}.',
+    agreed: 'On {date} you said this is how you want to hold it.',
+    takeBack: 'Take this back',
+    notFull: '{n} of the {total} gilts your plan uses are not bought in full. Those years are paid from what you hold instead, and its value can fall.',
+    notFullOne: '1 of the {total} gilts your plan uses is not bought in full. That year is paid from what you hold instead, and its value can fall.',
     noRecord: 'Nothing recorded yet. You can record what you hold on What you hold, and this page reads it against your plan.',
     mixTitle: 'What you hold, against your plan’s mix',
     bucket: {
@@ -258,6 +261,17 @@ export const MOVE = {
     },
     switchLead: 'Made the switch? The full view records it: the plan moves to “Floor to an age, then decide” at {cutAge}, with the income sold on record.',
     switchButton: 'Make the switch in the full view'
+  },
+  /** "This is how I want to hold it" (7.12.0): one press and a confirm, Moving, while the move is not done. */
+  sayHeld: {
+    title: 'Holding it your own way?',
+    lead: 'You can say that what you hold now is how you want it. This page then shows what you hold beside your plan, with no list to buy.',
+    button: 'This is how I want to hold it',
+    confirm: 'From now on this page shows what you hold beside your plan, and stops listing things to buy. Your plan and its document stay as locked. You can take this back at any time.',
+    yes: 'Yes, this is how I want it',
+    no: 'Go back',
+    // the home's tile once it is said
+    home: 'You hold it your own way (said {date}).'
   },
   footer: 'Illustration, not advice. Nothing here places an order.',
   toast: {

@@ -251,6 +251,11 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
     watch,
     // 7.11.1: by phase — Living on it, or Moving once what is held was accepted, the page is what is held, never a move
     ...heldOf(plan, s, { today, life, page: pg, recorded: base.recorded }),
+    // 7.12.0: "This is how I want to hold it" — offered Moving, while the move is not done, on a plan that can be written;
+    // once said (Moving by agreement), the day it was said, "Take this back", and on a ladder the gilts not bought in full
+    sayHeld: mode0 === 'move' && life && life.key === 'moving' && !D.complete && !readonly && !closed ? { can: true } : null,
+    saidHeld: heldMode(life) && life && life.key === 'moving' && life.agreed ? { date: dayWords(life.agreed.at), withdrawable: !readonly && !closed,
+      notFull: T.kind === 'ladder' && T.lines.length > (D.rungs ? D.rungs.held : 0) ? { n: String(T.lines.length - (D.rungs ? D.rungs.held : 0)), total: String(T.lines.length) } : null } : null,
     // 7.6.0: what the person keeps — held another way, kept by choice, the rungs covered — and the gaps it leaves; only on a
     // record that keeps something or expects money, so a plan without keeps reads exactly as before; in a move, never a line
     // the move sells (gapsOf by phase). 7.12.0: never on a ladder in the held phase — heldInfo is the one reading there

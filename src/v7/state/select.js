@@ -506,7 +506,7 @@ export function planMoveView(state) {
   const v = editView(state, 'move');
   if (!v.found) return v;
   const open = Array.isArray(state.ui && state.ui.open) ? state.ui.open : [];
-  return { ...v, howOpen: open.includes('moveHow'), sheetOpen: open.includes('moveSheet'), explainedOpen: open.includes('moveExplained') };
+  return { ...v, howOpen: open.includes('moveHow'), sheetOpen: open.includes('moveSheet'), explainedOpen: open.includes('moveExplained'), sayHeldOpen: open.includes('sayHeldConfirm') };
 }
 
 // ---- the budget step (research/v7/budget-step.md) --------------------------------------------------------------------
@@ -1479,6 +1479,8 @@ export function planActionsView(state) {
     id,
     saving: id && ui.saving && ui.saving.planId === id ? ui.saving : null,
     problem: id && ui.saveProblem && ui.saveProblem.planId === id ? ui.saveProblem.problem : null,
+    // 7.12.0: what a refusal carries for its words (the lock's fit)
+    problemDetail: id && ui.saveProblem && ui.saveProblem.planId === id && ui.saveProblem.detail ? ui.saveProblem.detail : null,
     toast: id && ui.toast && ui.toast.planId === id ? ui.toast : null,
     confirm: open.includes('lockConfirm') ? 'lock' : open.includes('unlockConfirm') ? 'unlock' : open.includes('documentConfirm') ? 'document' : null
   };

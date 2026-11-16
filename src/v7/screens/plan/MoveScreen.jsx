@@ -9,8 +9,10 @@
  * switch handed to the planner. Draws only: everything is the reading's (state/select.js planMoveView: answers/plan/move.js
  * through the plan source); the run's status is the state's (effects/move.js). The last line is always the same.
  * By phase (7.11.1): Living on it, or Moving once what is held was accepted (the reading's `mode` 'held'), the page is what is
- * held — its own lead, the rungs, the lines beside them and what each is doing, the cash — and never a move: no "Optional…",
- * status in moves, cost, Buy, Sell, tick, totals, When or "How to read this". The order sheet and the watch stay.
+ * held, and never a move: no "Optional…", status in moves, cost, Buy, Sell, tick, totals, When or "How to read this". On a
+ * ladder (7.12.0) it is "Your plan's mix" (HeldLadder.jsx: the one reading, answers/plan/held.js) and nothing else of the move:
+ * no lists, no "What is covered", no keep test and no order sheet (the sheet as locked is in the plan document). A pot plan's
+ * mix as held, the lists' notes and the watch stay as before.
  */
 import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { planView, planMoveView, planKeepTestView } from '../../state/select.js';
@@ -20,6 +22,7 @@ import { PLAN } from '../../copy/plan.js';
 import { MOVE as W } from '../../copy/move.js';
 import { GAPS } from '../../copy/gaps.js';
 import { GapsSection } from './Gaps.jsx';
+import { HeldLadder } from './HeldLadder.jsx';
 
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
@@ -41,17 +44,79 @@ const whyText = (why) => (why ? fill(W.why[why.id] || W.why.other, { ...why.slot
 const unitsText = (u) => (u ? fill(W.schedule.units, { units: u }) : '');
 const amountText = (a) => (a ? fill(W.schedule.amount, { amount: a }) : '');
 
-/** The status on the face of the step (§3.2). */
+/** The status on the face of the step (§3.2; 7.12.0: the one wording, moveWords.moveStatusOf), the pace and when to buy. */
 function Status({ V }) {
   const S = W.status;
   const s = V.status;
-  const text = s.id === 'done' ? (V.ladder ? ((V.standIn && V.standIn.length) || (V.kept && V.kept.length) ? S.doneKept : S.doneLadder) : S.done) : fill(S[s.id], s.slots);
   return (
     <section class="plan-section" data-section="status" data-testid={`${T}.status`} data-status={s.id}>
-      <p class="figure" data-testid={`${T}.status.line`}>{text}</p>
-      {V.next && <p class="note" data-testid={`${T}.next`}>{fill(S.next, { action: V.next.kind === 'bucket' || V.next.key.startsWith('bucket') ? (V.buy.some((b) => b.key === V.next.key) ? W.schedule.buy : W.schedule.sell) : (V.buy.some((b) => b.key === V.next.key) ? W.schedule.buy : W.schedule.sell), label: V.next.label, units: unitsText(V.next.units), amount: amountText(V.next.amount) })}</p>}
-      {V.start && V.schedule && !V.schedule.startPassed && <p class="note" data-testid={`${T}.start`}>{fill(S.starts, { months: V.start.months, s: V.start.months === '1' ? '' : 's', when: V.start.when })}</p>}
-      <p class="note">{V.ladder ? W.target.ladder + ' ' + (V.isaPolicy === 'hold' ? W.target.isaHold : W.target.isaDraw) : W.target.buckets}</p>
+      <p class="figure" data-testid={`${T}.status.line`}>{fill(S[s.id], s.slots)}</p>
+      {V.pace && <p class="note" data-testid={`${T}.pace`}>{fill(V.pace.months === '1' ? S.paceOne : S.pace, V.pace)}</p>}
+      {V.ladder && !V.complete && <p class="note" data-testid={`${T}.timing`}>{S.timing}</p>}
+      <p class="note" data-testid={`${T}.target`}>{V.ladder ? W.target.ladder + ' ' + W.isa[V.isa || 'none'] : W.target.buckets}</p>
+    </section>
+  );
+}
+
+/** "This is how I want to hold it" (7.12.0): one press and a confirm, Moving, while the move is not done. */
+function SayHeld({ V, dispatch }) {
+  const S = W.sayHeld;
+  if (!V.sayHeld || !V.editable) return null;
+  return (
+    <section class="plan-section" data-section="sayHeld" data-testid={`${T}.sayHeld`}>
+      <p class="line"><strong>{S.title}</strong> {S.lead}</p>
+      {!V.sayHeldOpen && <div class="actions-row"><Button testid={`${T}.sayHeld.button`} kind="plain" disabled={!!V.saving} onClick={() => dispatch({ type: 'ui/toggle', id: 'sayHeldConfirm' })} {...keepFocus}>{S.button}</Button></div>}
+      {V.sayHeldOpen && (
+        <div class="confirm" role="group" data-testid={`${T}.sayHeld.confirm`}>
+          <p>{S.confirm}</p>
+          <div class="actions-row">
+            <Button testid={`${T}.sayHeld.yes`} kind="primary" disabled={!!V.saving} onClick={() => dispatch({ type: 'plan/agree', planId: V.id, simple: true })} {...keepFocus}>{S.yes}</Button>
+            <Button testid={`${T}.sayHeld.no`} kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'sayHeldConfirm' })} {...keepFocus}>{S.no}</Button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Once said (7.12.0, Moving by agreement): the day it was said, "Take this back", and on a ladder the gilts not bought in full. */
+function SaidHeld({ V, dispatch }) {
+  const H = W.held, x = V.saidHeld;
+  if (!x) return null;
+  return (
+    <section class="plan-section" data-section="saidHeld" data-testid={`${T}.saidHeld`}>
+      <p class="figure" data-testid={`${T}.saidHeld.on`}>{fill(H.agreed, x)}</p>
+      {x.notFull && <p class="line" data-testid={`${T}.saidHeld.notFull`}>{fill(x.notFull.n === '1' ? H.notFullOne : H.notFull, x.notFull)}</p>}
+      {x.withdrawable && <div class="actions-row"><Button testid={`${T}.saidHeld.takeBack`} kind="quiet" disabled={!!V.saving} onClick={() => dispatch({ type: 'plan/agreeWithdraw', planId: V.id })} {...keepFocus}>{H.takeBack}</Button></div>}
+    </section>
+  );
+}
+
+/** Paying for it (7.12.0, a ladder): what pays for the buys, one reading, and what is held that the plan does not use. */
+function Paying({ V, holdHref }) {
+  const P = W.paying, O = W.outside;
+  if (!V.paying && !(V.outside && V.outside.length)) return null;
+  const slots = V.paying ? { ...V.paying.slots, from: P.from[V.paying.slots.from] || V.paying.slots.from } : {};
+  const note = (n) => {
+    if (!n) return '';
+    if (n.id === 'gilt' || n.id === 'giltReal') return <>{fill(O.notes[n.id], n.slots)} {O.notes.sellOr} <a href={holdHref}>{O.notes.sayYears}</a>.{n.cashYear ? ' ' + fill(O.notes.cashYear, n.slots) : ''}</>;
+    return fill(O.notes[n.id], n.slots);
+  };
+  return (
+    <section class="plan-section" data-section="paying" data-testid={`${T}.paying`}>
+      <h2>{P.title}</h2>
+      {V.paying && <p class="line" data-testid={`${T}.paying.says`} data-ids={V.paying.ids.join(' ')}>{V.paying.ids.map((id) => fill(P[id], slots)).join(' ')}</p>}
+      {V.outside && V.outside.length > 0 && (
+        <>
+          <h3>{O.title}</h3>
+          <div class="table-wrap">
+            <table class="way-table" data-testid={`${T}.outside`}>
+              <thead><tr><th>{O.columns.what}</th><th>{O.columns.value}</th><th>{O.columns.note}</th></tr></thead>
+              <tbody>{V.outside.map((r) => <tr key={r.key} data-key={r.key}><td>{r.label}{r.ticker ? <> <span class="note">{r.ticker}</span></> : null}</td><td>{r.value}</td><td>{note(r.note)}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -63,7 +128,7 @@ function Cost({ V, dispatch }) {
   const h = V.heldRun;
   return (
     <section class="plan-section" data-section="cost" data-testid={`${T}.cost`}>
-      <h2>{C.title}</h2>
+      <h2>{V.ladder ? C.titleLadder : C.title}</h2>
       {V.ladder && (V.cost.parts || []).map((x, i) => <p class="line" key={'part' + i} data-testid={`${T}.cost.part`}>{fill(C.part, x)}</p>)}
       {V.ladder && (V.cost.uncovered.length ? <p class="line" data-testid={`${T}.cost.ladder`}>{fill(C.ladder, { n: String(V.cost.uncovered.length), s: V.cost.uncovered.length === 1 ? '' : 's', have: V.cost.uncovered.length === 1 ? 'has' : 'have', years: V.cost.uncovered.length > 4 ? V.cost.uncovered[0] + ' to ' + V.cost.uncovered[V.cost.uncovered.length - 1] : V.cost.uncovered.join(', ') })}</p> : <p class="line" data-testid={`${T}.cost.ladderNone`}>{C.ladderNone}</p>)}
       {!V.ladder && !V.recorded && <p class="note" data-testid={`${T}.cost.nothing`}>{C.nothing} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
@@ -115,38 +180,33 @@ function Cash({ V }) {
       <p class="note">{C.lead}</p>
       <div class="table-wrap">
         <table class="way-table" data-testid={`${T}.cash.table`}>
-          <thead><tr><th>{C.columns.what}</th><th>{C.columns.amount}</th></tr></thead>
+          <thead><tr><th>{C.columns.what}</th><th>{C.columns.need}</th><th>{C.columns.amount}</th></tr></thead>
           <tbody>
-            {V.cash.rows.map((r, i) => <tr key={i} data-row={r.id}><td>{fill(C.rows[r.id], r)}</td><td>{r.amount || '—'}</td></tr>)}
-            <tr data-row="total"><th scope="row">{C.total}</th><td>{V.cash.target}</td></tr>
-            <tr data-row="held"><td>{C.held}</td><td>{V.cash.held}</td></tr>
-            <tr data-row={V.cash.spare != null ? 'spare' : 'short'}><td>{V.cash.spare != null ? C.spare : C.short}</td><td>{V.cash.spare != null ? V.cash.spare : V.cash.short}</td></tr>
+            {V.cash.rows.map((r, i) => <tr key={i} data-row={r.id}><td>{fill(C.rows[r.id], r)}</td><td>{r.gap ? fill(C.besideNeed, r) : r.need || '—'}</td><td>{r.amount || '—'}</td></tr>)}
+            <tr data-row="total"><th scope="row">{C.total}</th><td></td><td>{V.cash.target}</td></tr>
+            <tr data-row="held"><td>{C.held}</td><td></td><td>{V.cash.held}</td></tr>
+            <tr data-row={V.cash.spare != null ? 'spare' : 'short'}><td>{V.cash.spare != null ? C.spare : C.short}</td><td></td><td>{V.cash.spare != null ? V.cash.spare : V.cash.short}</td></tr>
           </tbody>
         </table>
       </div>
+      {V.cash.over && <p class="note" data-testid={`${T}.cash.over`}>{C.over}</p>}
     </section>
   );
 }
 
 /**
- * What is held, as information (7.11.1): Living on it, or Moving once what is held was accepted — the rungs held against the
- * plan (a rung not fully bought with its line of the order sheet), what else the pension holds and what each line is doing,
- * the cash for the cash years, a pot plan's mix held against the plan's and where it can be tested.
- * Never a Buy or Sell, a tick, a schedule or totals.
+ * A pot plan's mix as held, as information (7.11.1): Living on it, or Moving once what is held was accepted — the mix held
+ * against the plan's and where it can be tested. Never a Buy or Sell, a tick, a schedule or totals. (A ladder's is HeldLadder.)
  */
 function Held({ V }) {
   const H = W.held;
   const I = V.heldInfo;
   return (
     <section class="plan-section" data-section="heldInfo" data-testid={`${T}.heldInfo`} data-kind={I.kind}>
-      {I.agreed && <p class="figure" data-testid={`${T}.heldInfo.agreed`}>{fill(H.agreed, I.agreed)}</p>}
+      {I.agreed && !V.saidHeld && <p class="figure" data-testid={`${T}.heldInfo.agreed`}>{fill(H.agreed, I.agreed)}</p>}
       {I.noRecord && <p class="note" data-testid={`${T}.heldInfo.noRecord`}>{H.noRecord} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
-      {I.rungs && <p class="figure" data-testid={`${T}.heldInfo.rungs`}>{fill(H.rungs, I.rungs)}</p>}
-      {I.rungs && I.rungs.rows.length > 0 && <ul class="plan-lines" data-testid={`${T}.heldInfo.rungRows`}>{I.rungs.rows.map((r) => <li key={r.key} class="plan-line" data-key={r.key} data-state={r.state}>{fill(H[r.id], r)}</li>)}</ul>}
       {I.buckets && <><h2>{H.mixTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.buckets`}>{I.buckets.map((b) => <li key={b.bucket} class="plan-line" data-bucket={b.bucket}>{fill(H.bucket[b.bucket], b)}</li>)}</ul></>}
       {I.unknown.map((name) => <p class="note" key={name} data-testid={`${T}.heldInfo.unknown`}>{fill(H.unknown, { name })}</p>)}
-      {I.lines.length > 0 && <><h2>{H.linesTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.lines`}>{I.lines.map((x, i) => <li key={i} class="plan-line" data-role={x.role} data-state={x.state || ''}>{fill(H[x.id], x)}</li>)}</ul></>}
-      {I.cash && <p class="line" data-testid={`${T}.heldInfo.cash`}>{fill(H[I.cash.id], I.cash)}</p>}
       {I.review && <p class="note" data-testid={`${T}.heldInfo.review`}>{H.review} <a href={I.review}>{H.reviewLink}</a>.</p>}
     </section>
   );
@@ -181,7 +241,8 @@ function Lists({ V, dispatch, planId, KT }) {
       {V.matured.length > 0 && <p class="note" data-testid={`${T}.matured`}>{fill(L.matured, { list: V.matured.map((m) => m.label + ' — ' + whyText(m.why)).join('; ') })}</p>}
       {V.sold.length > 0 && <p class="note" data-testid={`${T}.soldStale`}>{fill(L.stale, { list: V.sold.map((m) => m.label + ' — ' + whyText(m.why)).join('; ') })}</p>}
       {!held && V.buy.length > 0 && <><h2>{L.buy}</h2>{table('buy', V.buy, 'buy')}</>}
-      {!held && V.sell.length > 0 && <><h2>{L.sell}</h2>{table('sell', V.sell, 'sell')}</>}
+      {!held && !V.ladderTotals && V.sell.length > 0 && <><h2>{L.sell}</h2>{table('sell', V.sell, 'sell')}</>}
+      {!held && <Paying V={V} holdHref={href.plan(V.id, 'hold')} />}
       {!held && V.hold.length > 0 && (
         <>
           <h2>{L.held}</h2>
@@ -201,7 +262,7 @@ function Lists({ V, dispatch, planId, KT }) {
       {V.recorded && <p class="note">{L.fix}</p>}
       {/* living on the plan (7.11.1): an ISA, taxable-account or bank line is outside the pension, never "left alone" by a move */}
       {V.keep.length > 0 && <><h2>{held ? W.held.outsideTitle : L.keep}</h2><ul class="plan-lines" data-testid={`${T}.keep`}>{V.keep.map((k, i) => <li key={i} class="plan-line">{held ? fill(W.held.outsideOne, { label: k.label, wrapper: W.wrappers[k.wrapper] || k.wrapper, value: k.value }) : fill(L.keepOne, { label: k.label, wrapper: W.wrappers[k.wrapper] || k.wrapper, value: k.value, why: whyText(k.why) })}</li>)}</ul></>}
-      {!held && !V.complete && <p class="note" data-testid={`${T}.totals`}>{fill(L.totals, V.totals)}{V.totals.short ? fill(L.short, { short: V.totals.short }) : ''}</p>}
+      {!held && !V.complete && <p class="note" data-testid={`${T}.totals`}>{V.ladderTotals ? fill(L[V.ladderTotals.id], V.ladderTotals.slots) : fill(L.totals, V.totals) + (V.totals.short ? fill(L.short, { short: V.totals.short }) : '')}</p>}
     </section>
   );
 }
@@ -214,8 +275,9 @@ function Schedule({ V }) {
   return (
     <section class="plan-section" data-section="schedule" data-testid={`${T}.schedule`}>
       <h2>{S.title}</h2>
-      <p class="note">{s.startPassed ? fill(S.passed, { months: s.months, s: s.months === '1' ? '' : 's' }) + ' ' : ''}{fill(S.lead, { tranches: s.tranches, s: s.tranches === '1' ? '' : 's' })} {s.funded ? fill(S.funded, { newMoney: s.newMoney ? S.fundedNewMoney : '' }) : fill(S.short, { short: s.short })}</p>
-      <ul class="plan-lines" data-testid={`${T}.schedule.steps`}>{s.steps.map((st, i) => <li key={i} class="plan-line" data-action={st.action}>{fill(S.step, { when: st.when, action: st.action === 'buy' ? S.buy : S.sell, label: st.label, units: unitsText(st.units), amount: amountText(st.amount) })}</li>)}</ul>
+      {/* a ladder (7.12.0): what pays for the buys is said once, under Paying for it; the schedule raises one amount a date */}
+      <p class="note">{s.startPassed ? fill(S.passed, { months: s.months, s: s.months === '1' ? '' : 's' }) + ' ' : ''}{V.ladder ? fill(S.leadLadder, { tranches: s.tranches }) : fill(S.lead, { tranches: s.tranches, s: s.tranches === '1' ? '' : 's' }) + (s.funded ? ' ' + fill(S.funded, { newMoney: s.newMoney ? S.fundedNewMoney : '' }) : '')}</p>
+      <ul class="plan-lines" data-testid={`${T}.schedule.steps`}>{s.steps.map((st, i) => <li key={i} class="plan-line" data-action={st.action}>{st.action === 'raise' ? fill(S.raise, { when: st.when, amount: st.amount }) : fill(S.step, { when: st.when, action: st.action === 'buy' ? S.buy : S.sell, label: st.label, units: unitsText(st.units), amount: amountText(st.amount) })}</li>)}</ul>
     </section>
   );
 }
@@ -342,15 +404,17 @@ export function MoveScreen(state, dispatch) {
   const onChange = (place, id = view.id, month = null) => dispatch(changeAction(id, place, href.plan(view.id, 'move'), month));
   const rail = <PlanRail view={view} state={state} dispatch={dispatch} onChange={onChange} />;
   const back = href.plan(view.id, 'plan');
+  // 7.12.0: living on a ladder, the page is "Your plan's mix" alone (HeldLadder.jsx)
+  const heldLadder = V.mode === 'held' && !!V.heldView;
   const problem = V.problem ? fill(W.problems[V.problem] || W.problems.failed, { store: W.problems.store[V.source] || 'account' }) : null;
   const headAndTitle = (
     <>
       <Head view={view} />
       {/* by the name the rail and the home give it: on a Drawing plan, the mix it keeps to (7.3.1) */}
       <h1 tabIndex={-1} data-testid="plan.step.move">{stepNameOf('move', view)}</h1>
-      {/* 7.11.1: Living on it (or Moving once what is held was accepted) the page is what is held, never a move */}
-      <p class="lead">{V.mode === 'held' ? W.held.lead : W.lead}</p>
-      {V.mode !== 'held' && <p class="note" data-testid={`${T}.optional`}>{W.optional}</p>}
+      {/* 7.11.1: Living on it (or Moving once what is held was accepted) the page is what is held, never a move; on a ladder
+          (7.12.0) "Your plan's mix" says its own lead */}
+      {!heldLadder && <p class="lead" data-testid={`${T}.lead`}>{V.mode === 'held' ? W.held.lead : W.lead}</p>}
     </>
   );
   // not locked (§3.1), or a document that cannot be read: what the lock makes, and nothing else drawn
@@ -376,15 +440,16 @@ export function MoveScreen(state, dispatch) {
         {/* a closed plan (6.56.0): its record and its tick-offs moved to the plan that carries it on */}
         {V.closed && <p class="notice" role="status" data-testid={`${T}.closed`}>{V.closed.next ? fill(w.closedStep, { name: V.closed.next.name }) : w.closedStepAlone}{V.closed.next && <> <LinkButton testid={`${T}.closed.open`} kind="quiet" href={href.plan(V.closed.next.id)}>{fill(PLAN.buttons.openNext, { name: V.closed.next.name })}</LinkButton></>}</p>}
         <div class="plan-panel" data-region="plan-move" data-editable={V.editable ? '1' : '0'} data-kind={V.kind} data-waiting={V.waiting ? '1' : '0'} data-mode={V.mode || 'move'}>
-          {V.mode === 'held' ? (
+          {heldLadder ? <><SaidHeld V={V} dispatch={dispatch} /><HeldLadder v={V.heldView} prefix={T} holdHref={href.plan(view.id, 'hold')} /></> : V.mode === 'held' ? (
             <>
+              <SaidHeld V={V} dispatch={dispatch} />
               <Held V={V} />
               <Lists V={V} dispatch={dispatch} planId={planId} KT={planKeepTestView(state)} />
               <GapsSection gaps={V.gaps} prefix={T} />
             </>
           ) : <>
           <Status V={V} />
-          {!V.recorded && <p class="notice" role="status" data-testid={`${T}.noRecord`}>{W.noRecord} <a href={href.plan(view.id, 'hold')}>{W.buttons.hold}</a></p>}
+          <SayHeld V={V} dispatch={dispatch} />
           <Cost V={V} dispatch={dispatch} />
           {V.waiting ? <Waiting V={V} /> : (
             <>
@@ -394,16 +459,16 @@ export function MoveScreen(state, dispatch) {
               <Schedule V={V} />
               <section class="plan-section" data-section="how" data-testid={`${T}.how`}>
                 <div class="actions-row"><Button testid={`${T}.how.open`} kind="quiet" onClick={() => dispatch({ type: 'ui/toggle', id: 'moveHow' })} aria-expanded={V.howOpen ? 'true' : 'false'} {...keepFocus}>{V.howOpen ? W.how.close : W.how.open}</Button></div>
-                {V.howOpen && <ul class="plan-lines" data-testid={`${T}.how.items`}>{W.how.items.map((l, i) => <li key={i} class="plan-line">{l}</li>)}</ul>}
+                {V.howOpen && <ul class="plan-lines" data-testid={`${T}.how.items`}>{W.how.items.map((l, i) => <li key={i} class="plan-line">{i === 0 && V.ladder ? fill(W.how.accountsLadder, { isa: W.isa[V.isa || 'none'] }) : l}</li>)}</ul>}
               </section>
             </>
           )}
           </>}
-          <Sheet V={V} dispatch={dispatch} />
+          {!heldLadder && <Sheet V={V} dispatch={dispatch} />}
           <Explained V={V} dispatch={dispatch} />
           <Watch V={V} onChange={onChange} />
           {problem && <p class="notice" role="alert" data-testid={`${T}.problem`} data-problem={V.problem}>{problem}</p>}
-          <p class="plan-source" data-testid={`${T}.footer`}>{W.footer}</p>
+          {!heldLadder && <p class="plan-source" data-testid={`${T}.footer`}>{W.footer}</p>}
         </div>
         <div class="actions-row">
           <LinkButton testid={`${T}.hold`} kind="plain" href={href.plan(view.id, 'hold')}>{W.buttons.hold}</LinkButton>

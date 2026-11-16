@@ -28,7 +28,7 @@ import { effectiveStressSettings, planStage } from '../../services/PlanReading.j
 import { journeyAppend } from '../../services/LifeStage.js';
 import { isLockedSettings } from '../../services/LockedPlanGuard.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
-import { seedDecisionFromStress, planOfRecordFor, unlockPatchesOf } from '../../services/PlanCommit.js';
+import { seedDecisionFromStress, planOfRecordFor, unlockPatchesOf, lockFitOf } from '../../services/PlanCommit.js';
 import { DECISION_SEED_KEYS, LOCK_WRITES, UNLOCK_WRITES, DOCUMENT_WRITES, BOOKKEEPING_WRITES, LATER_DRAFT_WRITES } from './schema.js';
 import { applyPatch } from './about.js';
 import { laterDraftPatch } from './moveStart.js';
@@ -74,6 +74,9 @@ export function lockPatch(plan, { now, run, entries = [] }) {
   if (!plan || !isObj(plan)) return refused('notHere');
   if (isLocked(plan)) return refused('locked');
   if (!runOk(run)) return refused('noRun');
+  // 7.12.0: a way of drawing that cannot be paid for is not locked (the fit is carried for the words; nothing is written)
+  const fit = lockFitOf(run);
+  if (fit) return { ...refused('unaffordable'), fit };
   const ss = effectiveStressSettings(plan, { now });
   const ds = decisionOf(plan);
   const patch = {};

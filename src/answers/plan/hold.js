@@ -16,13 +16,18 @@
  *            | { kind: 'paste', text, wrapper, answers }
  *   holdRecordOf(plan)                       the record as the planner reads it (HoldingsRecord.normaliseHoldings)
  *
+ * Living on a locked ladder (7.12.0, held.js heldLadder): everything held counts as it is — no "Keep this" and no reading of
+ * what is covered; the page says the gilts held and the cash years against what the pension holds ("Your plan's mix" says the
+ * rest), and a pension line that is neither one of the plan's gilts nor cash has one optional box: the tax years the person
+ * sets it against (`forYears`), a label only, never filled in for them. Moving, and pot plans, keep "Keep this" as before.
+ *
  * Every path written is in schema.js HOLD_WRITES (tested); the record after a change is HoldingsRecord.holdingsWith's and
  * HoldingsPaste.applyPaste's — the same functions the planner's handlers call.
  */
 import { normaliseHoldings, holdingsSummary, holdingsWith, normaliseLine, numOrNull, WRAPPERS, LINE_FIELDS, LINE_NUMBER_FIELDS, normaliseKeep, expectedOf } from '../../services/HoldingsRecord.js';
 import { taxYearLabel, taxYearStartOf } from '../../services/PlanTiming.js';
-import { standInYearOf } from '../../services/TransitionPlanner.js';
 import { gapsOf, gapsView } from './gaps.js';
+import { heldLadder, heldSummaryView } from './held.js';
 import { applyPaste, needsCategory, CATEGORY_CHOICES, isGiltCode, parsePaste, giltFromName } from '../../services/HoldingsPaste.js';
 import { proportions } from '../../services/Holdings.js';
 import { SUB_ASSET_PROFILES, FUND_TAG_MAP, catalogueEntry } from '../../services/SubAssetModel.js';
@@ -309,16 +314,16 @@ export function keepChoices(plan, { today }) {
   return { ladder: true, years };
 }
 
-/** One line's "Keep this", as typed over what is saved: the choice, the years, the gaps box, the change it makes, the way to stop. */
+/**
+ * One line's "Keep this", as typed over what is saved: the choice, the years, the gaps box, the change it makes, the way to stop.
+ * No year is chosen for the person (7.12.0): when a gilt matures never says which year it is for.
+ */
 function keepLine(l, index, t, K) {
   const saved = normaliseKeep(l.keep);
-  // the tax year a gilt matures in, when the plan offers it: "stands in" is then the choice already made, that year ticked,
-  // so keeping it is "Keep this", "Keep it"; anything else starts at "kept by choice"
-  const suggested = K.ladder && !saved ? standInYearOf(l, K.years) : null;
   const asT = t[`line.${index}.keepAs`];
-  const as = HOLD_KEEP_AS.includes(asT) ? asT : saved ? saved.as : (suggested ? 'rung' : 'mine');
+  const as = HOLD_KEEP_AS.includes(asT) ? asT : saved ? saved.as : 'mine';
   const yT = t[`line.${index}.keepYears`];
-  const on = yT != null ? String(yT).split(',').map((y) => +y).filter((y) => Number.isInteger(y) && y > 2000) : saved && saved.as === 'rung' ? saved.taxYears : suggested ? [suggested] : [];
+  const on = yT != null ? String(yT).split(',').map((y) => +y).filter((y) => Number.isInteger(y) && y > 2000) : saved && saved.as === 'rung' ? saved.taxYears : [];
   const gT = t[`line.${index}.keepGaps`];
   const gaps = gT != null ? gT === '1' : !!(saved && saved.fundsGaps);
   let change = null, error = null;
@@ -332,6 +337,35 @@ function keepLine(l, index, t, K) {
     years: ys.map((Y) => ({ Y: String(Y), label: taxYearLabel(Y), on: on.includes(Y), value: on.includes(Y) ? on.filter((x) => x !== Y).join(',') : [...on, Y].join(',') })),
     paths: { as: `line.${index}.keepAs`, years: `line.${index}.keepYears`, gaps: `line.${index}.keepGaps` }
   };
+}
+
+/** Tax years as typed ("2028/29", "2028", "2028/29, 2029/30") → the April each starts, sorted; null when something typed is not one. */
+function typedTaxYears(text) {
+  const parts = String(text || '').split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
+  const ys = parts.map((x) => { const m = /^(20\d{2})(?:\/(\d{2}))?$/.exec(x); return m && (!m[2] || +m[2] === (+m[1] + 1) % 100) ? +m[1] : null; });
+  return ys.some((y) => y == null) ? null : [...new Set(ys)].sort((a, b) => a - b);
+}
+/**
+ * The one optional box on a pension line living on a ladder (7.12.0): the tax years the person sets it against — empty unless
+ * they set some, never worked out for them. Saved as the keep that exists ({ as: 'rung', taxYears }); emptied, the keep is
+ * taken off. A line kept by choice before (`{ as: 'mine' }`) reads as nothing here, and is left as stored unless years are typed.
+ */
+function forYearsLine(l, index, t) {
+  const k = normaliseKeep(l.keep);
+  const saved = k && k.as === 'rung' ? k.taxYears : [];
+  const path = `line.${index}.forYears`;
+  const raw = Object.prototype.hasOwnProperty.call(t, path) ? t[path] : null;
+  const savedText = saved.map(taxYearLabel).join(', ');
+  let change = null, error = null;
+  if (raw != null) {
+    if (blank(raw)) { if (saved.length) change = { kind: 'keep', index, keep: null }; }
+    else {
+      const ys = typedTaxYears(raw);
+      if (!ys || !ys.length) error = 'notAYear';
+      else if (ys.join() !== saved.join()) change = { kind: 'keep', index, keep: { as: 'rung', taxYears: ys } };
+    }
+  }
+  return { path, shown: raw == null ? savedText : String(raw), saved: saved.length ? { years: savedText } : null, change, error };
 }
 
 /** Money expected later, as typed over what is saved: each item with its amount and month boxes (each saves on leaving), and the add box. */
@@ -372,12 +406,16 @@ export function holdOf(entries, id, { today, typed = null, source = 'account' } 
     shown: blank(c.shown[f.path]) ? (f.type === 'choice' && f.default != null ? f.default : '') : String(c.shown[f.path]),
     saved: null, error: c.errors[f.path] || null
   }));
+  // living on a ladder (7.12.0): everything held counts as it is — the one reading (held.js), no "Keep this"
+  let held = null; try { held = !closed ? heldLadder(plan, { today }) : null; } catch { held = null; }
+  const forYearsAt = held ? new Set(held.lines.map((x) => x.at)) : null;
   // "Keep this" (7.6.0): only on a locked plan with a plan document, and only where the record can be changed here
-  const K = !readonly && !closed ? keepChoices(plan, { today }) : null;
+  const K = !readonly && !closed && !held ? keepChoices(plan, { today }) : null;
   const groups = s.groups.map((g) => ({ wrapper: g.wrapper, total: pounds(g.lines.reduce((t, l) => t + (+l.value || 0), 0)), lines: g.lines.map((l) => ({
     index: l.index, ticker: l.ticker || '', name: l.name || '', sedol: l.sedol || '', asOf: l.asOf ? dayWords(l.asOf) : null, counted: l.counted, kind: l.kind, value: l.value == null ? null : pounds(l.value), units: l.units == null ? null : String(r0(l.units)),
     fields: c.lines[l.index].fields,
-    ...(K ? { keep: keepLine(l, l.index, typed || {}, K) } : l.keep ? { keep: { saved: { as: l.keep.as, years: (l.keep.taxYears || []).map(taxYearLabel), fundsGaps: !!l.keep.fundsGaps } } } : {})
+    ...(held ? (forYearsAt.has(l.index) ? { forYears: forYearsLine(l, l.index, typed || {}) } : {})
+      : K ? { keep: keepLine(l, l.index, typed || {}, K) } : l.keep ? { keep: { saved: { as: l.keep.as, years: (l.keep.taxYears || []).map(taxYearLabel), fundsGaps: !!l.keep.fundsGaps } } } : {})
   })) }));
   const keepExtra = {};
   if (K) {
@@ -386,6 +424,12 @@ export function holdOf(entries, id, { today, typed = null, source = 'account' } 
     // the gaps as drawn (gapsView: the table, and the sentences as ids and slots, worded alike in both apps)
     const ki = c.values['keep.index'];
     Object.assign(keepExtra, { canKeep: true, keepLadder: K.ladder, keepIndex: Number.isInteger(ki) && ki >= 0 && ki < s.record.lines.length ? ki : null, expected: ex.items, expectedAdd: ex.add, gaps: gapsView(g), ok: Object.keys(c.errors).length === 0, errors: c.errors });
+  } else if (held) {
+    // living on a ladder (7.12.0): the gilts held and the cash years in the words "Your plan's mix" uses, and the way there;
+    // money expected later is still recorded here
+    for (const g of groups) for (const l of g.lines) if (l.forYears && l.forYears.error) c.errors[l.forYears.path] = l.forYears.error;
+    Object.assign(keepExtra, { heldLadder: true, heldSummary: heldSummaryView(held), mixHref: '#/plan/' + plan.id + '/move' });
+    if (!readonly) { const ex = expectedView(s.record, typed || {}, c.values, c.errors); Object.assign(keepExtra, { expected: ex.items, expectedAdd: ex.add, ok: Object.keys(c.errors).length === 0, errors: c.errors }); }
   }
   const removeLine = c.removeIndex != null ? (() => { const l = s.record.lines[c.removeIndex]; return { index: c.removeIndex, name: lineName(l), wrapper: l.wrapper }; })() : null;
   const pasteChange = c.paste.merged && c.paste.rows.length ? { kind: 'paste', text: c.paste.text, wrapper: c.paste.wrapper, answers: c.paste.answers } : null;

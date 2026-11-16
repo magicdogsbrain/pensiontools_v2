@@ -813,6 +813,18 @@
         padding: 0 12px;
       }
     }
+    /* "Your plan's mix" while living on a ladder (7.12.0): under 600px each row is a card of label–value pairs, never cut off */
+    @media (max-width: 599px) {
+      .table-scroll-container table.held-table { min-width: 0; white-space: normal; }
+      .table-scroll-container:has(table.held-table)::after { content: none; }
+      .held-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+      .held-table, .held-table tbody, .held-table tr, .held-table td { display: block; width: 100%; }
+      .held-table tr { border-top: 1px solid var(--border, #ddd); padding: 6px 0; }
+      .held-table td { border: 0; padding: 2px 0; white-space: normal; display: flex; gap: 8px; justify-content: space-between; text-align: right; }
+      .held-table td::before { content: attr(data-label); font-weight: 600; flex: 0 0 auto; text-align: left; }
+      .held-table td:first-child { font-weight: 600; text-align: left; }
+      .held-table td:first-child::before { content: none; }
+    }
 
     /* Scrollable chart container */
     .chart-scroll-container {
@@ -4168,12 +4180,12 @@
     import { buildPlanDocument, whereAmI, guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
-    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, saveActiveAccumulationInputs, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments, saveActivePlanTasks } from './src/storage/ScenarioRepository.js';
+    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, saveActiveAccumulationInputs, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments, saveActivePlanTasks, saveActivePhases } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
     import { setDbStartFields, paintDbStart, dbStartFromAgeInput, dbStartError, dbStartAgeForSave } from './src/ui/dbStartSetting.js';   // the final-salary start, asked by age (audit problem 3)
     import { pnvOnlySections, paintSettingUseNotes, heldIsaNote } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
     import { ukMonth, ukDay } from './src/ui/ukDates.js';   // dates in UK words, never ISO or US order (audit problem 3)
-    import { strategyCountWord, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, assumedStatePensionSettingsNote, newDocumentVersionQuestion, lockFromStressQuestion } from './src/ui/plannerWords.js';
+    import { strategyCountWord, paintStrategyCounts, assumedStatePensionAlertHtml, assumedStatePensionTag, assumedStatePensionSettingsNote, newDocumentVersionQuestion } from './src/ui/plannerWords.js'; import { installLockFromStress } from './src/ui/lockFromStressUi.js';
     import { cadenceMonths, cadenceNote } from './src/services/DrawCadence.js';   // how often you draw: a preference at decisionTool.cadence (audit decision 4)
     import { isFilledIn, filledInLabel, filledInNote, historyForEngine, refusedMonthWords, recordsToDelete, deleteButtonWords } from './src/services/MonthFill.js';   // the History view's mark on a month filled in later and its delete; the records the engine is handed; a month Calculate refuses (3 Nov 2026)
     import { createMonthEntry } from './src/ui/monthFillEntry.js';   // why Save is off; a failed Calculate kept on the page; the missed months filled in (3 Nov 2026)
@@ -7158,9 +7170,9 @@
       try { const out = await runInWorker('strategy', { settings, cfg, strategyId: sid, essentialsAnnual: ess }); if (out && out.r) return out.r; } catch (e) { /* inline below */ }
       return stressTestStrategy(sid, strategyPlanFor(settings, ess));
     }
-    async function buildPlanDocumentNow(reason) {
+    async function buildPlanDocumentNow(reason, rGiven = null) {
       const settings = await getStressSettingsAsync();
-      const r = await strategyResultForDocument(settings);
+      const r = rGiven || await strategyResultForDocument(settings);   // 7.12.0: the run the lock's fit was read from
       const p = strategyPlanFor(settings, (window._shapeRefs && window._shapeRefs.essentials) || undefined);
       const name = document.getElementById('scenarioActiveName')?.textContent?.trim() || 'My plan';
       let ds = {}; try { ds = await getDecisionSettingsAsync(); } catch (e) { ds = {}; }
@@ -7176,31 +7188,20 @@
     // The FULL lock (v6 usability audit, decision 3) — the one route both the Stress settings' button and the Decision
     // tool's first month take (src/ui/decisionLockAsk.js): the Stress settings copied across to the Decision tool, the
     // plan locked, the plan document written, every lock banner redrawn. Never on the Decision tool's defaults.
-    window.commitPlanLock = async function (reason) {
+    window.commitPlanLock = async function (reason, rGiven = null) {
       showLoading('Locking the plan and writing the plan document…');
       try {
         // Locking IS the commit: the Decision tool must run THIS plan — its pots, floors, ISA, State Pension, strategy — not the defaults it was created with (a £380k plan was judged against £500k floors, 6.10.4).
         if (!(await planIsLocked())) { await saveLaterDraftFirst(); await saveDecisionSettings(seedDecisionFromStress(await getStressSettingsAsync(), await getDecisionSettingsAsync())); invalidateCache(); }
         const fresh = await lockPlanIfNeeded(reason);
-        await buildPlanDocumentNow(reason);
+        await buildPlanDocumentNow(reason, rGiven);
         await refreshStressLock();
         try { await refreshDecisionLock(); } catch (e) { /* form not built yet */ }
         try { await refreshLifeStage(); updatePlanLockChip(); } catch (e) { /* chip optional */ }
         return fresh;
       } finally { hideLoading(); }
     };
-    window.lockPlanFromStress = async function () {
-      if (!isLoggedIn()) { showToast('Please sign in first', 'error'); return; }
-      if (await planIsLocked()) { showToast('This plan is already locked.', 'info'); return; }
-      const q = lockFromStressQuestion();
-      if (!(await appConfirm({ html: q.html }, { okLabel: q.okLabel, cancelLabel: q.cancelLabel }))) return;
-      try {
-        if (!(await saveStressSettingsUI())) return;   // the form refused (a date, a figure): say nothing more, lock nothing
-        const fresh = await commitPlanLock('locked from Stress settings');
-        showToast('Plan locked' + (fresh ? '' : ' (it was already locked)') + ' — plan document written.', 'success', 5000);
-        openPlanDocument();
-      } catch (e) { console.error('Lock from Stress:', e); showToast('Could not lock: ' + e.message, 'error'); }
-    };
+    installLockFromStress(window, { isLoggedIn, planIsLocked, appConfirm: (m, o) => window.appConfirm(m, o), saveStressSettingsUI: () => saveStressSettingsUI(), runPlan: async () => { const settings = await getStressSettingsAsync(); return { p: strategyPlanFor(settings, (window._shapeRefs && window._shapeRefs.essentials) || undefined), r: await strategyResultForDocument(settings) }; }, commitPlanLock: (why, r) => window.commitPlanLock(why, r), showToast, openPlanDocument: () => window.openPlanDocument(), showIncome: () => document.getElementById('ssNetSpend')?.focus() });   // 7.12.0: src/ui/lockFromStressUi.js — a way of drawing that cannot be paid for is not locked
     window.createPlanDocumentNow = async function () {
       if (!(await planDocumentMay(window))) return;   // signed in, and never on a closed plan (6.56.0): src/ui/planCloseUi.js says why
       const prev = await getActivePlanDocument();
@@ -7434,7 +7435,7 @@
     // "Keep this" and money expected later (7.6.0): each one save of the record, as V7 changes it (src/ui/keepHoldingsUi.js)
     installKeepHandlers(window, { draft: () => window._holdingsDraft, persist: (rec) => persistHoldings(rec), toast: showToast });
     // "Test what you keep against your plan" and "I accept this risk" (7.7.0): the test on its button, the agreement one save of the whole list
-    installKeepTestHandlers(window, { scenario: () => getActiveScenarioAsStored(), persist: (list) => saveActivePlanAmendments(list), rerender: () => window.loadTransitionUI(), toast: showToast }); installStressPanel(window, { scenario: () => getActiveScenarioAsStored(), persist: (list) => saveActivePlanAmendments(list), toast: showToast, named: (shown) => window.runScenariosUI(shown) });   // "Try the bad years": the same list of agreements, the same one save (7.9.0)
+    installKeepTestHandlers(window, { scenario: () => getActiveScenarioAsStored(), persist: (list) => saveActivePlanAmendments(list), persistPhases: (ph) => saveActivePhases(ph), rerender: () => window.loadTransitionUI(), toast: showToast }); installStressPanel(window, { scenario: () => getActiveScenarioAsStored(), persist: (list) => saveActivePlanAmendments(list), toast: showToast, named: (shown) => window.runScenariosUI(shown) });   // "Try the bad years": the same list of agreements, the same one save (7.9.0)
     window.removeHolding = async function (i) { const d = window._holdingsDraft; if (!d || !d.lines || !d.lines[i]) return; await persistHoldings(holdingsWith(d, { kind: 'remove', index: i }, { today: new Date() })); };
     window.addHoldingLine = async function () {
       // The card's inline add row (hlTicker/hlName/hlWrapper/hlValue/hlUnits) when filled in; else an empty editable row.

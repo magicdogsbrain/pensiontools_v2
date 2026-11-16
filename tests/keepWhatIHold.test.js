@@ -18,6 +18,7 @@ import { orderSheetRows } from '../src/strategies/GiltLadderPlan.js';
 import { GAPS } from '../src/v7/copy/gaps.js';
 import { BANNED } from '../src/v7/copy/banned.js';
 import { transitionHtml } from '../src/ui/components/TransitionView.js';
+import { asMoving } from './v7/plan/_alex.js';
 
 const REPO = join(import.meta.dirname, '..');
 const FIX = join(REPO, 'tests', 'fixtures', 'plans');
@@ -121,9 +122,12 @@ describe('the diff with keeps', () => {
       expect(y.pays).toBe(real);
       expect(y.gap).toBe(Math.round(needs[y.Y].need - real));
     }
-    // the cash years are stood in for: no cash to buy for them; the 2029 rung keeps only its other years
+    // the cash years are stood in for; the 2029 rung keeps only its other years
     expect(d.covered.find((c) => c.kind === 'cash').taxYears).toEqual([2027, 2028]);
-    expect(d.buy.find((b) => b.kind === 'cash')).toBeUndefined();
+    // retaken in 7.12.0: the gilts pay only part of each cash year, so the rest is still cash to hold — each year's cost in the
+    // share its gap is of its need — less the £5,000 of cash held
+    const part = d.standIn.slice(0, 2).reduce((t, s) => t + needs[s.perYear[0].Y].cost * s.perYear[0].gap / needs[s.perYear[0].Y].need, 0);
+    expect(Math.abs(d.buy.find((b) => b.kind === 'cash').amount - (part - 5000))).toBeLessThanOrEqual(2);
     const t29 = d.buy.find((b) => b.ticker === 'T29');
     expect(t29.taxYears).toEqual([2030, 2031]);
     const full = target.lines.find((t) => t.ticker === 'T29');
@@ -133,7 +137,7 @@ describe('the diff with keeps', () => {
 
   it('a line kept by choice is never a sell; it is listed as kept by you with its value', () => {
     const d0 = diffHoldings([shares], target, { needs, today: noon(BEFORE) });
-    expect(d0.sell.map((s) => s.label)).toContain('Example Shares plc');
+    expect(d0.outside.map((s) => s.label)).toContain('Example Shares plc');   // retaken in 7.12.0: outside the ladder, not a sale
     const d = diffHoldings([{ ...shares, keep: { as: 'mine', fundsGaps: true } }], target, { needs, today: noon(BEFORE) });
     expect(d.sell).toEqual([]);
     expect(d.kept).toEqual([expect.objectContaining({ label: 'Example Shares plc', value: 15000, fundsGaps: true, why: 'kept by you' })]);
@@ -161,7 +165,7 @@ describe('the diff with keeps', () => {
   it('a conventional gilt is never matched to an index-linked rung by its year alone', () => {
     const d = diffHoldings([{ wrapper: 'SIPP', ticker: null, name: '4% Treasury Gilt 2029', kind: 'gilt', units: 50000, value: 49000 }], target);
     expect(d.hold.filter((h) => h.ticker === 'T29')).toEqual([]);
-    expect(d.sell.map((s) => s.label)).toEqual(['4% Treasury Gilt 2029']);
+    expect(d.outside.map((s) => s.label)).toEqual(['4% Treasury Gilt 2029']);   // retaken in 7.12.0: outside the ladder, not a sale
   });
 
   it('the order sheet says a rung held another way', () => {
@@ -172,6 +176,8 @@ describe('the diff with keeps', () => {
 });
 
 describe('the gaps reader', () => {
+  // 7.12.0: Sam's plan is living on its ladder, where "Your plan's mix" reads what is held; the reader's sums are read as the
+  // keep test reads them (`asKept`), which is how a move reads them too
   const base = sam();
   const keptLines = [{ ...conv(2027, 20000), keep: { as: 'rung', taxYears: [2027] } }, { ...conv(2028, 20000), keep: { as: 'rung', taxYears: [2028] } }, cash(5000), { ...shares, keep: { as: 'mine', fundsGaps: true } }];
 
@@ -184,9 +190,10 @@ describe('the gaps reader', () => {
   });
 
   it('nothing kept, nothing expected, and nothing in the pension beyond the plan\'s rungs and cash: no reading at all', () => {
-    // 7.11.1: the reading is of what is held — Sam's own record holds gilts and a fund outside the ladder, so it reads; with
-    // only the plan's rungs and its cash, and nothing kept or expected, there is nothing for it to add
-    expect(gapsOf(base, { today: BEFORE })).toMatchObject({ fromHeld: true, ladder: true });
+    // 7.12.0: living on a ladder, "Your plan's mix" (held.js) is the one reading of what is held, so this reads nothing then;
+    // read as the keep test reads it (what is kept alone), a record that keeps nothing has nothing for it to add
+    expect(gapsOf(base, { today: BEFORE })).toBe(null);
+    expect(gapsOf(base, { today: BEFORE, asKept: true })).toBe(null);
     const target = targetHoldings(base.planDocument, { today: noon(BEFORE) });
     const rungsOnly = target.lines.map((t) => ({ wrapper: 'SIPP', ticker: t.ticker, name: t.label, units: t.units, value: t.cost, kind: 'gilt' }));
     expect(gapsOf(withLines(base, [...rungsOnly, cash(5000)]), { today: BEFORE })).toBe(null);
@@ -194,7 +201,7 @@ describe('the gaps reader', () => {
 
   it('before the plan starts: each stood-in year needs, holds (the stand-in, then the pension\'s cash) and its gap; the first year\'s money lasts until about the month it covers', () => {
     const p = withLines(base, keptLines);
-    const g = gapsOf(p, { today: BEFORE });
+    const g = gapsOf(p, { today: BEFORE, asKept: true });
     const needs = yearNeedsOf(p.planDocument);
     expect(g.rows.map((r) => r.Y)).toEqual([2027, 2028]);
     const [r27, r28] = g.rows;
@@ -213,11 +220,11 @@ describe('the gaps reader', () => {
 
   it('money expected later: covered with it, or short; said late when it is expected after the money runs short', () => {
     const early = withLines(base, keptLines, [{ id: 'e1', label: 'Pension elsewhere', amount: 60000, by: '2027-05' }]);
-    const g1 = gapsOf(early, { today: BEFORE });
+    const g1 = gapsOf(early, { today: BEFORE, asKept: true });
     expect(g1.withExpected).toEqual({ covered: true, short: 0 });
     expect(g1.expected.late).toEqual([]);
     const late = withLines(base, keptLines, [{ id: 'e1', label: 'Pension elsewhere', amount: 10000, by: '2028-06' }]);
-    const g2 = gapsOf(late, { today: BEFORE });
+    const g2 = gapsOf(late, { today: BEFORE, asKept: true });
     expect(g2.withExpected).toEqual({ covered: false, short: g2.totalGap - 10000 });
     expect(g2.expected.late).toEqual(['e1']);
     const words = gapSentences(g2).map((l) => sayGapLine(l, GAPS));
@@ -230,7 +237,7 @@ describe('the gaps reader', () => {
 
   it('while the plan runs: this year counts the months still to come at the plan\'s monthly figure, less what is held', () => {
     const p = withLines(base, [cash(10000), { ...shares, keep: { as: 'mine', fundsGaps: true } }], [{ id: 'e1', label: 'Pension elsewhere', amount: 50000, by: '2028-02' }]);
-    const g = gapsOf(p, { today: RUNNING });
+    const g = gapsOf(p, { today: RUNNING, asKept: true });
     const needs = yearNeedsOf(p.planDocument);
     const r = g.rows[0];
     expect(r).toMatchObject({ Y: 2027, thisYear: true, monthsLeft: 5, need: Math.round(needs[2027].need * 5 / 12), cash: 10000 });
@@ -242,7 +249,7 @@ describe('the gaps reader', () => {
 
   it('every sentence and every word of the gaps is free of advice and of the banned words', () => {
     const p = withLines(base, keptLines, [{ id: 'e1', label: 'Pension elsewhere', amount: 10000, by: '2028-06' }]);
-    const words = [...gapSentences(gapsOf(p, { today: BEFORE })).map((l) => sayGapLine(l, GAPS))];
+    const words = [...gapSentences(gapsOf(p, { today: BEFORE, asKept: true })).map((l) => sayGapLine(l, GAPS))];
     const flat = (o) => (typeof o === 'string' ? [o] : Object.values(o).flatMap(flat));
     for (const t of [...words, ...flat(GAPS).map((x) => x.replace(/\{\w+\}/g, 'two'))]) for (const b of BANNED.filter((x) => ['all', 'planner', 'record', 'result'].includes(x.scope))) {
       if (b.kind === 'explain') continue;
@@ -267,7 +274,8 @@ describe('both apps: the writes and the views', () => {
     expect(x.patch.holdings.expected).toHaveLength(1);
   });
   it('"What you hold" offers Keep this on a locked plan, reads the typed choice, and makes the one change', () => {
-    const p = withLines(sam(), [conv(2027, 20000), shares]);
+    // 7.12.0: read as Moving — living on a ladder there is no "Keep this"
+    const p = withLines(asMoving(sam()), [conv(2027, 20000), shares]);
     const v = holdOf(entriesOf(p), p.id, { today: BEFORE, typed: { 'keep.index': '0', 'line.0.keepAs': 'rung', 'line.0.keepYears': '2027,2028' } });
     expect(v.canKeep).toBe(true);
     expect(v.keepIndex).toBe(0);
@@ -278,7 +286,8 @@ describe('both apps: the writes and the views', () => {
     expect(none.keep).toMatchObject({ change: null, error: 'noYears' });
   });
   it('the move lists what is kept and no longer sells it; the classic page says the same sentences', () => {
-    const p = withLines(sam(), [{ ...conv(2027, 20000), keep: { as: 'rung', taxYears: [2027] } }, { ...shares, keep: { as: 'mine', fundsGaps: true } }]);
+    // 7.12.0: read as Moving — living on a ladder, the page is "Your plan's mix" and lists nothing kept
+    const p = withLines(asMoving(sam()), [{ ...conv(2027, 20000), keep: { as: 'rung', taxYears: [2027] } }, { ...shares, keep: { as: 'mine', fundsGaps: true } }]);
     const m = moveOf(entriesOf(p), p.id, { today: BEFORE });
     expect(m.sell.map((s) => s.label)).not.toContain('Example Shares plc');
     expect(m.kept).toEqual([expect.objectContaining({ label: 'Example Shares plc', value: '£15,000', fundsGaps: true })]);

@@ -231,26 +231,6 @@ export function standInPays(h, { today = null, from = null } = {}) {
 }
 
 /**
- * The tax year a kept line most likely stands in for (7.6.0): the tax year its gilt matures in — by its bundled maturity date,
- * else its name's date, else the year in its name or code — when that is one of `years` (the years "Keep this" offers); null
- * otherwise. A suggestion only: the person ticks the years.
- */
-export function standInYearOf(h, years = []) {
-  const g = giltOfLine(h);
-  // a gilt only: a fund with a year in its name ("… 2040") is not one that matures
-  if (!(g || (h && h.kind === 'gilt') || isGiltTicker(h && h.ticker) || /treasury|gilt/i.test(String((h && h.name) || '')))) return null;
-  const date = (g && g.maturity ? String(g.maturity).slice(0, 10) : null) || maturityOfName(h && h.name);
-  let Y = null;
-  if (date) Y = taxYearStartOf(new Date(date + 'T12:00:00'));
-  else {
-    const m = /\b(20\d{2})\b/.exec(String((h && h.name) || '')) || null;
-    const c = /^T[RGNS]?(\d{2})[A-Z]?$/.exec(up(h && h.ticker));
-    Y = m ? +m[1] : c ? 2000 + +c[1] : null;
-  }
-  return Y != null && years.map(Number).includes(Y) ? Y : null;
-}
-
-/**
  * What the plan needs each tax year (7.6.0), from the document: { [Y]: { need, cost, from } } — `need` the year's money in
  * today's pounds (what the plan pays out, less the State Pension), `cost` what a cash year's money cost to set aside, `from`
  * 'cash', a rung's TIDM, or 'none'. Empty when the document carries no years.
@@ -364,13 +344,21 @@ export function targetHoldings(doc, { today = new Date(), params = null } = {}) 
       if (running && +c.Y < thisTY) continue;
       const row = Array.isArray(d.timeline) ? d.timeline.find((x) => x && taxYearLabel(+c.Y) === x.taxYear) : null;
       const lump = row && num(row.lump) > 0 ? num(row.lump) : 0;
-      breakdown.push({ label: 'Cash year ' + taxYearLabel(+c.Y) + (lump > 0 ? ' (' + gbp(lump) + ' of it paid by a lump sum expected that year)' : ''), amount: Math.round(num(c.cost)) });
+      // the year's need beside what it cost to set aside (7.12.0): two figures, both labelled where they are shown
+      const yr = Array.isArray(plan.years) ? plan.years.find((x) => x && +x.Y === +c.Y) : null;
+      breakdown.push({ Y: +c.Y, label: 'Cash year ' + taxYearLabel(+c.Y) + (lump > 0 ? ' (' + gbp(lump) + ' of it paid by a lump sum expected that year)' : ''), amount: Math.round(num(c.cost)), need: yr ? Math.round(num(yr.need)) : Math.round(num(c.cost)), ...(lump > 0 ? { lump: Math.round(lump) } : {}) });
     }
     const cash = { key: 'cash:SIPP', wrapper: 'SIPP', kind: 'cash', label: 'Money-market fund / cash', value: cashValue, breakdown, spending: running, yearsLeft: running ? yearsLeft : cashYears.map((c) => +c.Y) };
-    let note = 'The ladder is bought in the SIPP. The ISA is ' + (d.pots?.isaPolicy === 'hold' ? 'held aside and not part of the ladder.' : 'drawn by its own policy and not part of the ladder.');
+    // The ISA (7.12.0): one rule with the engine (stressTest.js availablePot) — the ladder is priced and tested on the pension
+    // and the ISA together unless the ISA is held aside. An old document reads the same way (both fields were always there).
+    const isaIn = d.pots?.isaPolicy !== 'hold' && num(d.pots?.isa) > 0;
+    let note = isaIn ? 'Your plan pays for the ladder from your pension and your ISA together. Which account each gilt sits in is yours to choose.'
+      : num(d.pots?.isa) > 0 ? 'Your plan pays for the ladder from your pension. Your ISA is held aside.' : 'Your plan pays for the ladder from your pension.';
     if (running) note += ' The plan is running (tax year ' + taxYearLabel(thisTY) + ')' + (paid.length ? ': ' + paid.length + ' rung' + (paid.length === 1 ? ' has' : 's have') + ' matured and paid, so ' + (paid.length === 1 ? 'it is' : 'they are') + ' no longer targets' : '') + '; the cash years\' money is being spent as designed, so cash is reported, not diffed.';
     if (sold.length) note += ' The rotation fired' + (bf.soldAt ? ' on ' + dateGB(bf.soldAt) : '') + ': ' + sold.length + ' rung' + (sold.length === 1 ? ' was' : 's were') + ' sold and the proceeds bought the equity fund, so ' + (sold.length === 1 ? 'it is no longer a target' : 'they are no longer targets') + ' and the fund is kept.';
-    return { kind: 'ladder', lines, paid, sold, rotated, cash, running, thisTaxYear: thisTY, firstTaxYear, note };
+    // 7.12.0: how the money the ladder does not use was tested (the document's own params): in a world share fund, or keeping its value
+    const spareGrowth = !!(d.strategy?.params?.spareGrowth);
+    return { kind: 'ladder', lines, paid, sold, rotated, cash, running, thisTaxYear: thisTY, firstTaxYear, note, spareGrowth, isaIn };
   }
   const mix = Array.isArray(d.targetMix) && d.targetMix.length ? d.targetMix[0] : null;
   const pot = num(d.pots?.potAtRetirement?.sipp) > 0 ? num(d.pots.potAtRetirement.sipp) : num(d.pots?.sipp);
@@ -476,12 +464,14 @@ export function ledgerView(holdings) {
  *   (a pot plan's buckets); `needs` = yearNeedsOf(document) (else worked from the target); `today` counts a conventional
  *   gilt's coupons still to come; `asOf` the record's date (updatedAt), for a line with no date of its own.
  */
-export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsGiven = null, today = null, roles: wantRoles = false, asOf: asOfGiven = null } = {}) {
+export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsGiven = null, today = null, roles: wantRoles = false, asOf: asOfGiven = null, planMoney = null } = {}) {
   const L = ledgerView(holdings);
   const anyKeep = L.some((h) => h.keep);
-  const sipp = L.filter((h) => h.wrapper === 'SIPP' && !h.keep);
+  // the accounts the plan pays from (7.12.0): the pension, and on a ladder whose plan counts the ISA (target.isaIn), the ISA too
+  const inPlan = (h) => h.wrapper === 'SIPP' || (target.kind === 'ladder' && !!target.isaIn && h.wrapper === 'ISA');
+  const sipp = L.filter((h) => inPlan(h) && !h.keep);
   const keepWhy = (h) => h.wrapper === 'ISA' ? 'ISA — kept as it is' : h.wrapper === 'CASH' ? 'bank / savings cash — outside the pension, kept as it is' : 'taxable account — kept as it is';
-  const buy = [], sell = [], hold = [], matured = [], sold = [], keep = L.filter((h) => h.wrapper !== 'SIPP' && !h.keep).map((h) => ({ ...h, why: keepWhy(h) }));
+  const buy = [], sell = [], hold = [], matured = [], sold = [], keep = L.filter((h) => !inPlan(h) && !h.keep).map((h) => ({ ...h, why: keepWhy(h) }));
   const standIn = [], kept = [], covered = [], cashNow = [];
   const keyOfLine = (h) => (h.ticker || h.sedol || h.name || '').toString();
   for (const h of L) if (h.keep && h.keep.as === 'mine') kept.push({ ...h, key: 'kept:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, fundsGaps: !!h.keep.fundsGaps, why: 'kept by you' });
@@ -489,7 +479,11 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
   // a pot plan's reading (7.10.0): the money in play, each bucket held against its target, the lines nothing places
   let inPlay = null, buckets = null, unread = false, ladderRead = null, roleList = null;
   const unknown = [];
+  let outside = null, funding = null;
   if (target.kind === 'ladder') {
+    // the plan's cash years as the target gives them, before any are stood in for (7.12.0: a gilt outside the ladder that
+    // matures in one is said so, as a fact)
+    const planCashYears = target.cash && Array.isArray(target.cash.yearsLeft) ? target.cash.yearsLeft.map(Number) : [];
     // Lines kept to stand in for some tax years (7.6.0): what each pays (in today's money, as the needs are), set against each
     // year's need in turn. While the plan runs, this tax year needs only its months still to come.
     const needs = anyKeep ? needsFrom(target, needsGiven) : {};
@@ -535,16 +529,26 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
       lines.push({ ...t, units: Math.round(t.units * frac), cost: Math.round(t.cost * frac), pays: Math.round(t.pays * frac), taxYears: restYears });
     }
     target = { ...target, lines };
-    // cash years stood in for: their money is not cash to hold (the year in full while running: the target counts it so)
+    // cash years stood in for: their money is not cash to hold as far as what stands in for them pays (7.12.0: a year the kept
+    // line pays only part of keeps the rest as cash to hold, and stays in the cash table beside what is kept; the year in full
+    // while running: the target counts it so)
     const coveredCash = [...standYears.keys()].filter((Y) => needs[+Y] && needs[+Y].from === 'cash');
     if (coveredCash.length && target.cash) {
       const ahead = coveredCash.filter((Y) => !running || Y >= (target.thisTaxYear || 0));
       const moneyOf = (Y) => (running ? needOf(Y) : num(needs[+Y].cost != null ? needs[+Y].cost : needs[+Y].need));
-      const less = ahead.reduce((s, Y) => s + moneyOf(Y), 0);
+      const less = ahead.reduce((s, Y) => s + moneyOf(Y) * paidShare([Y]), 0);
+      const whole = new Set(coveredCash.filter((Y) => paidShare([Y]) >= 1).map(Number));
       const ys = target.cash.yearsLeft || [], bd = Array.isArray(target.cash.breakdown) ? target.cash.breakdown : [];
-      // the breakdown is the cash years' rows in the order of yearsLeft (targetHoldings): the covered years' rows come out too
-      const breakdown = bd.length === ys.length ? bd.filter((_, i) => !coveredCash.includes(+ys[i])) : bd;
-      target = { ...target, cash: { ...target.cash, value: Math.max(0, Math.round(num(target.cash.value) - less)), yearsLeft: ys.filter((Y) => !coveredCash.includes(+Y)), breakdown } };
+      // the breakdown is the cash years' rows in the order of yearsLeft (targetHoldings): a year paid in full comes out; a year
+      // paid in part stays, with what it still needs (`need`, after what is kept pays) and the cash to hold for it (`amount`)
+      const breakdown = bd.length === ys.length ? bd.map((r, i) => {
+        const Y = +ys[i];
+        if (!coveredCash.includes(Y)) return r;
+        if (whole.has(Y)) return null;
+        const share = paidShare([Y]);
+        return { ...r, Y, need: Math.round(Math.max(0, left.has(Y) ? left.get(Y) : wantOf(Y))), amount: Math.round(moneyOf(Y) * (1 - share)), besideKept: true, by: standYears.get(Y) || [] };
+      }).filter(Boolean) : bd;
+      target = { ...target, cash: { ...target.cash, value: Math.max(0, Math.round(num(target.cash.value) - less)), yearsLeft: ys.filter((Y) => !whole.has(+Y)), breakdown } };
       covered.push({ key: 'cash:covered', kind: 'cash', label: target.cash.label, ticker: '', taxYears: coveredCash.slice().sort((a, b) => a - b), by: [...new Set(coveredCash.flatMap((Y) => standYears.get(+Y)))] });
       // before the start, the cash years stood in for still count toward the plan's mix: held as far as what stands in for
       // them pays, and then by the pension's cash beyond the cash still to hold (keeping a line never lowers the share held)
@@ -640,10 +644,18 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
       else if (coveredCashMoney && cashHeld > 0) hold.push({ ...target.cash, heldValue: Math.round(cashHeld), spare: Math.round(cashHeld) });
       if (coveredCashMoney) { targetTotal += coveredCashMoney.target; heldOfTarget += coveredCashMoney.held; }
     }
-    // Everything else in the SIPP funds the buys — unless the rotation has fired: the fund its proceeds bought IS the plan now.
+    // Everything else in the pension is money the plan does not use (7.12.0): listed in `outside`, never a sale each — the buys
+    // take what they need of it (`funding`, below) and the rest is left as it is. Unless the rotation has fired: the fund its
+    // proceeds bought IS the plan now. A gilt says when it matures and what it pays, and the cash year that falls in: a fact,
+    // never an assignment (only the person's own "stands in for" sets a line against a year).
+    outside = [];
     for (const h of sipp) if (!used.has(h) && !h.cash) {
-      if (target.rotated && !h.gilt) keep.push({ ...h, why: 'bought by the rotation — kept' });
-      else sell.push({ key: 'sell:' + (h.ticker || h.name), wrapper: 'SIPP', kind: h.gilt ? 'gilt' : 'fund', label: h.name || h.ticker, ticker: h.ticker, amount: Math.round(h.value), units: h.units, why: 'not in the plan — proceeds fund the ladder' });
+      if (target.rotated && !h.gilt) { keep.push({ ...h, why: 'bought by the rotation — kept' }); continue; }
+      const matures = h.gilt ? giltMaturityOf(h) : null;
+      const p = matures ? standInPays(h, { today: now }) : null;
+      const ty = matures ? taxYearStartOf(new Date(matures + 'T12:00:00')) : null;
+      outside.push({ key: 'outside:' + h.wrapper + ':' + keyOfLine(h), wrapper: h.wrapper, kind: h.gilt ? 'gilt' : 'fund', label: h.name || h.ticker, ticker: h.ticker, units: h.units, value: Math.round(h.value),
+        ...(matures ? { matures, pays: p.amount, real: p.real } : {}), ...(ty && planCashYears.includes(ty) ? { cashYear: ty } : {}) });
     }
     // the rungs as the home reads them (7.10.0, driftOf): how many the plan still needs are held, and whether a rung needed
     // this tax year or next is still to buy (a gap soon) — read from the rung check above, never by points
@@ -651,6 +663,21 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
     // a rung held above its target is bought (7.11.1): held, with the excess in `sell` for the move
     ladderRead = { rungs: { held: hold.filter((x) => Array.isArray(x.taxYears)).length + sell.filter(isRungRow).length, needed: target.lines.length },
       gapSoon: thisTY != null && buy.some((b) => b.kind === 'gilt' && Array.isArray(b.taxYears) && b.taxYears.some((Y) => +Y === thisTY || +Y === thisTY + 1)) };
+    // What pays for the buys (7.12.0): one reading. The buys' cost against the pension's spare cash and the money the plan does
+    // not use (the lines outside it, and a rung's units above its target). With no line recorded in the plan's accounts, the
+    // money is the plan's own figure when the caller gives it (`planMoney`: { pension, isa }).
+    {
+      const need = buy.reduce((s, b) => s + num(b.amount), 0);
+      const cashRow = hold.find((x) => x.kind === 'cash');
+      const spareCash = cashRow ? num(cashRow.spare) : 0;
+      const fromPlan = !L.some(inPlan) && !!planMoney && num(planMoney.pension) > 0;
+      const available = fromPlan ? num(planMoney.pension) + (target.isaIn ? num(planMoney.isa) : 0)
+        : outside.reduce((s, x) => s + num(x.value), 0) + sell.filter(isRungRow).reduce((s, x) => s + num(x.amount), 0);
+      const toRaise = Math.max(0, need - spareCash);
+      funding = { need: Math.round(need), spareCash: Math.round(spareCash), available: Math.round(available), toRaise: Math.round(toRaise),
+        leftOver: Math.round(Math.max(0, available - toRaise)), short: Math.round(Math.max(0, toRaise - available)),
+        leftOverHeld: target.spareGrowth ? 'shares' : 'value', fromPlan, listed: L.some(inPlan) };
+    }
     if (wantRoles) {
       const statusOf = new Map();
       for (const x of hold) if (isRungRow(x)) statusOf.set(x.key, { role: 'rung', x });
@@ -660,7 +687,7 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
       for (const t of target.paid || []) for (const r of rowsFor(t)) rungOf.set(r, { role: 'matured', t });
       for (const t of target.sold || []) for (const r of rowsFor(t)) rungOf.set(r, { role: 'soldRung', t });
       for (const t of target.lines) for (const r of rowsFor(t)) rungOf.set(r, { role: (statusOf.get(t.key) || { role: 'rung' }).role, t });
-      roleList = heldRoles(L, { rungOf, statusOf, rotated: !!target.rotated, now, cashNow: cashNowRows });
+      roleList = heldRoles(L, { rungOf, statusOf, rotated: !!target.rotated, now, cashNow: cashNowRows, inPlan });
     }
   } else if (target.kind === 'buckets') {
     // a pot plan has no rungs: a line kept to stand in for years is simply kept (7.6.0), like one kept by choice
@@ -711,8 +738,14 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
   else if (targetCount === 0) { complete = true; reason = target.kind === 'ladder' ? 'every rung has matured and paid — nothing left to hold' : 'the target is empty'; }
   else if (anyKeep && target.kind === 'ladder') { complete = true; reason = 'every rung is held or covered by what you chose to keep' + (target.cash && !target.cash.spending ? ', and the cash years are covered' : ''); }
   else { complete = true; reason = target.kind === 'ladder' ? 'every rung the plan still needs is held' + (target.cash && !target.cash.spending ? ', and the cash years are covered' : '') : 'every bucket is within ' + Math.round(band * 100) + '% of the pension of its target'; }
+  // a ladder (7.12.0): what is raised is what the buys need of the money the plan does not use, never all of it
+  const totals = funding
+    ? { buyCost: Math.round(buyCost), sellValue: Math.min(funding.toRaise, funding.available), shortfall: funding.short, cashHeld: Math.round(cashHeld), cashTarget: Math.round(cashTarget) }
+    : { buyCost: Math.round(buyCost), sellValue: Math.round(sellValue), shortfall: Math.round(Math.max(0, buyCost - sellValue)), cashHeld: Math.round(cashHeld), cashTarget: Math.round(cashTarget) };
   return { kind: unread ? 'none' : target.kind, buy, sell, hold, keep, matured, sold, cashInfo,
-    totals: { buyCost: Math.round(buyCost), sellValue: Math.round(sellValue), shortfall: Math.round(Math.max(0, buyCost - sellValue)), cashHeld: Math.round(cashHeld), cashTarget: Math.round(cashTarget) },
+    totals,
+    // 7.12.0: a ladder's lines the plan does not use, and what pays for the buys
+    ...(outside ? { outside, funding } : {}),
     // 7.11.1: gilts that matured after the record was taken — their money is in `totals.cashHeld` (only when there are any)
     ...(cashNow.length ? { cashNow } : {}),
     progressPct: unread ? null : targetTotal > 0 ? Math.round(100 * heldOfTarget / targetTotal) : (complete ? 100 : 0), complete, reason,
@@ -743,11 +776,11 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
  *   'standIn' / 'kept'   a line the person keeps (`keep`)
  *   'outsidePension'     an ISA, taxable-account or bank line: outside the pension, left as it is
  */
-function heldRoles(L, { rungOf, statusOf, rotated, now, cashNow = new Set() }) {
+function heldRoles(L, { rungOf, statusOf, rotated, now, cashNow = new Set(), inPlan = (h) => h.wrapper === 'SIPP' }) {
   return L.map((h) => {
     const base = { at: rawOf(h).at != null ? rawOf(h).at : null, label: h.name || h.ticker || h.sedol || '', ticker: h.ticker || '', sedol: h.sedol || null, wrapper: h.wrapper, value: Math.round(h.value), units: h.units };
     if (h.keep) return { ...base, role: h.keep.as === 'rung' ? 'standIn' : 'kept', keep: { ...h.keep } };
-    if (h.wrapper !== 'SIPP') return { ...base, role: 'outsidePension' };
+    if (!inPlan(h)) return { ...base, role: 'outsidePension' };
     if (h.cash) return { ...base, role: 'cash' };
     const r = rungOf.get(h);
     if (r) {
@@ -810,11 +843,14 @@ export function sequence(diff, { today = new Date(), startYear, startMonth = nul
   // Buy order: cash years first, then rungs by maturity, then buckets bonds → cash → shares
   const order = (b) => b.kind === 'cash' ? 0 : b.kind === 'gilt' ? 1 + (b.matures ? new Date(b.matures).getFullYear() / 10000 : 0.5) : b.bucket === 'bonds' ? 2 : b.bucket === 'cash' ? 2.5 : 3;
   const buys = diff.buy.slice().sort((a, b) => order(a) - order(b));
-  const sells = diff.sell.slice().sort((a, b) => num(b.amount) - num(a.amount));
+  // a ladder (7.12.0, diff.funding): one amount raised a date from the money the plan does not use, never a slice of each line
+  const F = diff.funding || null;
+  const sells = F ? [] : diff.sell.slice().sort((a, b) => num(b.amount) - num(a.amount));
   const totalBuy = buys.reduce((s, b) => s + num(b.amount), 0);
-  const totalSell = sells.reduce((s, b) => s + num(b.amount), 0);
   const contributions = num(contributionsMonthly) * months;
-  const funded = totalSell + contributions >= totalBuy - 1;
+  let totalSell = sells.reduce((s, b) => s + num(b.amount), 0);
+  const funded = F ? num(F.available) + num(F.spareCash) + contributions >= totalBuy - 1 : totalSell + contributions >= totalBuy - 1;
+  let spareLeft = F ? num(F.spareCash) : 0, availLeft = F ? num(F.available) : 0, raisedExact = 0, raisedRounded = 0;
   const steps = [];
   const perTranche = totalBuy / tranches;
   let bi = 0, remainingInBuy = buys.length ? num(buys[0].amount) : 0;
@@ -824,6 +860,15 @@ export function sequence(diff, { today = new Date(), startYear, startMonth = nul
     // Sales for this tranche: the share of each sale not covered by contributions, spread evenly
     const contribThis = num(contributionsMonthly) * Math.min(trancheMonths, months - t * trancheMonths);
     let needFromSales = Math.max(0, budget - contribThis);
+    if (F) {
+      // this tranche's buys, less new money, less the pension's spare cash while it lasts, capped at what is still there to raise
+      let want = needFromSales;
+      const fromSpare = Math.min(spareLeft, want); spareLeft -= fromSpare; want -= fromSpare;
+      const raise = Math.min(availLeft, want); availLeft -= raise;
+      raisedExact += raise;
+      const amount = Math.round(raisedExact) - raisedRounded; raisedRounded += amount;
+      if (amount > 0) steps.push({ when, action: 'raise', wrapper: 'SIPP', label: '', ticker: null, units: null, amount, why: 'from what your plan does not use' });
+    }
     for (const s of sells) { const part = Math.round(num(s.amount) / tranches); if (part > 0) steps.push({ when, action: 'sell', wrapper: s.wrapper, label: s.label, ticker: s.ticker || null, units: s.units ? Math.round(s.units / tranches) : null, amount: part, why: s.why }); }
     // Buys: walk the ordered list until this tranche's budget is used
     while (bi < buys.length && budget > 0) {
@@ -835,6 +880,7 @@ export function sequence(diff, { today = new Date(), startYear, startMonth = nul
       if (remainingInBuy <= 0.5) { bi++; remainingInBuy = bi < buys.length ? num(buys[bi].amount) : 0; }
     }
   }
+  if (F) totalSell = raisedRounded;
   return { steps, months, tranches, funded, startPassed, opensAt: opens, totals: { buy: Math.round(totalBuy), sell: Math.round(totalSell), contributions: Math.round(contributions) },
     note: funded ? 'Funded by sales' + (contributions > 0 ? ' and contributions' : '') + '.' : 'Short by ' + Math.round(totalBuy - totalSell - contributions).toLocaleString('en-GB') + ' — the plan was priced on a bigger pot than the ledger holds, or holdings are missing from the ledger.' };
 }
@@ -857,7 +903,8 @@ export function untickMove(transition, key) {
 
 /** Progress and the next item, with tick-offs applied. */
 export function progress(diff, done = {}) {
-  const items = [...diff.buy.map((b) => ({ ...b, action: 'buy' })), ...diff.sell.map((s) => ({ ...s, action: 'sell' }))];
+  // a ladder (7.12.0, diff.funding): the buys only — what pays for them is one amount the person raises as they choose
+  const items = [...diff.buy.map((b) => ({ ...b, action: 'buy' })), ...(diff.funding ? [] : diff.sell.map((s) => ({ ...s, action: 'sell' })))];
   const outstanding = items.filter((i) => !done[i.key]);
   const doneCount = items.length - outstanding.length;
   return { pct: items.length ? Math.round(100 * (diff.progressPct / 100 * 0 + (items.length - outstanding.length) / items.length)) : 100, held: diff.progressPct, doneCount, total: items.length, next: outstanding[0] || null };

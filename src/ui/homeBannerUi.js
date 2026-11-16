@@ -35,7 +35,7 @@ import { homeOf } from '../answers/plan/home.js';
 import { upgradeScenario } from '../firebase/scenarioMigration.js';
 import { nextStepFor, nextStepAction } from '../services/NextStep.js';
 import { openingTab } from '../services/LifeStage.js';
-import { holdingsLines } from '../services/HoldingsRecord.js';
+import { holdingsSummary, normaliseHoldings } from '../services/HoldingsRecord.js';
 import { planHasFigures } from '../services/DraftDecision.js';
 import { noteViewSwitch } from './viewSwitch.js';
 import { PLAN_ID } from '../services/OpenPlace.js';
@@ -133,7 +133,8 @@ export async function openingTabOf(deps, now = new Date()) {
     const h = homeOf(entriesOf(plans, now), id, { today: dayOf(now) });
     phase = h && h.found && h.stage ? h.stage.key || null : null;
     const raw = Array.isArray(plans) ? plans.find((p) => p && p.id === id) : null;
-    if (raw) { held = holdingsLines(raw.holdings).length > 0; figures = planHasFigures(raw); }
+    // 7.12.0: Moving opens on Transition only when What you hold has a line (a named line, as the record reads it)
+    if (raw) { held = holdingsSummary(normaliseHoldings(raw.holdings)).count > 0; figures = planHasFigures(raw); }
   } catch (e) { phase = null; held = false; figures = true; }
   return openingTab(stage, phase, { held, figures });
 }

@@ -20,6 +20,7 @@ import { runKeyOf } from '../../../src/answers/plan/lasts.js';
 import { applyPatch } from '../../../src/answers/plan/about.js';
 import { STRESS } from '../../../src/v7/copy/stressPanel.js';
 import { corpus, entryOf, stateWith, TODAY } from './_plans.js';
+import { asMoving } from './_alex.js';
 
 const C = corpus();
 const plan0 = (name, id) => { const p = JSON.parse(JSON.stringify(C[name])); if (id) p.id = id; return entryOf(p).plan; };
@@ -446,7 +447,8 @@ describe('the keep test folds into the bad years: information, never a to-do (re
     const raw = JSON.parse(JSON.stringify(C['20-locked-start-after-stop']));
     raw.holdings.lines.push({ asOf: '2026-09-01', contribution: null, kind: null, name: 'Example Shares plc', ocf: null, sedol: null, subClass: null, ticker: 'EXMPL', units: 100, value: 15000, wrapper: 'SIPP', keep: { as: 'mine', fundsGaps: true } });
     raw.id = 'SamKeeps20';
-    return entryOf(raw).plan;
+    // 7.12.0: read as Moving — living on a ladder, what is held counts as it is and there is no keep test
+    return entryOf(asMoving(raw)).plan;
   };
   it('What you hold says where the keep agreement stands and links to the bad years; the home shows its line but never a to-do for it', () => {
     const plan = kept();

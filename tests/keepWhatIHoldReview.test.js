@@ -12,7 +12,7 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { targetHoldings, diffHoldings, standInPays, yearNeedsOf, giltOfLine, conventionalEvidence, inTodaysMoney, standInYearOf, monthsLeftInTaxYear } from '../src/services/TransitionPlanner.js';
+import { targetHoldings, diffHoldings, standInPays, yearNeedsOf, giltOfLine, conventionalEvidence, inTodaysMoney, monthsLeftInTaxYear } from '../src/services/TransitionPlanner.js';
 import { giltOfName, couponOfName, maturityOfName, ilWords } from '../src/services/GiltName.js';
 import { normaliseHoldings, holdingsWith } from '../src/services/HoldingsRecord.js';
 import { parsePaste, applyPaste } from '../src/services/HoldingsPaste.js';
@@ -83,7 +83,7 @@ describe('pasting conventional gilts whose year an index-linked rung shares', ()
   it('kept for their years, each pays a fixed amount and is said so', () => {
     let r = rec;
     [2027, 2028, 2029].forEach((Y, i) => { r = holdingsWith(r, { kind: 'keep', index: i, keep: { as: 'rung', taxYears: [Y] } }, { today: BEFORE }); });
-    const g = gapsOf({ ...plan, holdings: r }, { today: BEFORE });
+    const g = gapsOf({ ...plan, holdings: r }, { today: BEFORE, asKept: true });   // 7.12.0: living on a ladder, read as the keep test reads it
     expect(g.standIns.map((s) => [s.payKind, s.fixed])).toEqual([['conventional', true], ['conventional', true], ['conventional', true]]);
     for (const s of g.standIns) expect(s.real).toBeLessThan(s.pays);
     expect(words(g).filter((t) => /pays a fixed .*does not rise with prices/.test(t))).toHaveLength(3);
@@ -97,7 +97,7 @@ describe('pasting conventional gilts whose year an index-linked rung shares', ()
     // even under the guessed code an older paste gave it
     const guessed = diffHoldings([{ wrapper: 'SIPP', ticker: 'T29', name: 'Treasury 4.125% 22/07/2029', kind: 'gilt', subClass: 'longGilts', units: 20000, value: 19700 }], target);
     expect(guessed.buy.find((b) => b.ticker === 'T29').heldUnits).toBe(0);
-    expect(guessed.sell.map((s) => s.label)).toEqual(['Treasury 4.125% 22/07/2029']);
+    expect(guessed.outside.map((s) => s.label)).toEqual(['Treasury 4.125% 22/07/2029']);   // retaken in 7.12.0: outside the ladder, not a sale
   });
 });
 
@@ -119,14 +119,14 @@ describe('a running year, and two lines with one name', () => {
     expect(monthsLeftInTaxYear(noon(RUNNING))).toBe(5);
     expect(s.perYear[0]).toMatchObject({ Y: 2027, need: Math.round(needs[2027].need * 5 / 12), gap: 0 });
     expect(s.perYear[1]).toMatchObject({ Y: 2028, gap: 0 });
-    const g = gapsOf(p, { today: RUNNING });
+    const g = gapsOf(p, { today: RUNNING, asKept: true });   // 7.12.0: living on a ladder, read as the keep test reads it
     expect(g.totalGap).toBe(0);
     expect(g.firstGap).toBe(null);
   });
   it('two kept lines named alike are each read for their own years', () => {
     const line = (units, Y) => ({ wrapper: 'SIPP', ticker: null, name: 'Example Treasury Gilt', kind: 'gilt', units, value: units, keep: { as: 'rung', taxYears: [Y] } });
     const p = withLines(sam(), [line(30000, 2027), line(10000, 2028)]);
-    const g = gapsOf(p, { today: BEFORE });
+    const g = gapsOf(p, { today: BEFORE, asKept: true });   // 7.12.0: living on a ladder, read as the keep test reads it
     const r27 = g.rows.find((r) => r.Y === 2027), r28 = g.rows.find((r) => r.Y === 2028);
     expect(r27.standIns).toHaveLength(1);
     expect(r27.held).toBe(standInPays(line(30000, 2027), { today: noon(BEFORE), from: 2027 }).real);
@@ -145,7 +145,7 @@ describe('a fixed pay in today\'s money', () => {
   });
   it('what a stand-in pays beyond its years is said, and counted as cash for the years after', () => {
     const p = withLines(sam(), [conv(2027, 50000, { as: 'rung', taxYears: [2027] })]);
-    const g = gapsOf(p, { today: BEFORE });
+    const g = gapsOf(p, { today: BEFORE, asKept: true });   // 7.12.0: living on a ladder, read as the keep test reads it
     expect(g.standIns[0].spare).toBeGreaterThan(0);
     expect(words(g).some((t) => t.startsWith('Example Treasury Gilt 2027 pays £') && t.includes('more than the years it stands in for need'))).toBe(true);
     expect(g.rows.find((r) => r.Y === 2028).cash).toBe(Math.min(g.standIns[0].spare, Math.round(yearNeedsOf(p.planDocument)[2028].need)));
@@ -158,24 +158,21 @@ describe('the words', () => {
     // 2027. The stored plan reads Living on it, where nothing is a move: what is not held is not covered (below).
     const p = withLines(asMoving(sam()), [conv(2027, 36000, { as: 'rung', taxYears: [2027] }), cash(1000)]);
     const g = gapsOf(p, { today: BEFORE });
-    expect(g.held).toBe(false);
     expect(g.firstGap).toBe(null);
     expect(g.toBuy).toBeGreaterThan(0);
     const w = words(g);
-    expect(w.some((t) => t.startsWith('Every year to 2028/29 is covered once the plan’s buys are made: £'))).toBe(true);
+    // retaken in 7.12.0: the rows are the cash years alone, so the line says what they still need and where the gilts are
+    expect(w.some((t) => t.startsWith('The cash years, 2027/28 to 2028/29, still need £') && t.endsWith('of cash. The gilts for the later years are in the Buy list.'))).toBe(true);
     expect(w).not.toContain('Every year to 2028/29 is covered by what you hold.');
-    // living on it, the same record: never "once the plan's buys are made" — the cash not held is not covered
+    // 7.12.0: living on it, the same record has no such reading: "Your plan's mix" (held.js) reads what is held
     const q = withLines(sam(), [conv(2027, 36000, { as: 'rung', taxYears: [2027] }), cash(1000)]);
-    const h = gapsOf(q, { today: BEFORE });
-    expect(h.held).toBe(true);
-    expect(h.toBuy).toBe(0);
-    expect(h.firstGap).not.toBe(null);
-    expect(words(h).some((t) => t.includes('once the plan’s buys are made'))).toBe(false);
+    expect(gapsOf(q, { today: BEFORE })).toBe(null);
   });
   it('the strategy line leaves out a clause with nothing in it', () => {
-    const one = words(gapsOf(withLines(sam(), [conv(2027, 20000, { as: 'rung', taxYears: [2027] })]), { today: BEFORE }));
+    // 7.12.0: living on a ladder, read as the keep test reads it
+    const one = words(gapsOf(withLines(sam(), [conv(2027, 20000, { as: 'rung', taxYears: [2027] })]), { today: BEFORE, asKept: true }));
     expect(one[0]).toBe('Your ladder, with 1 year held another way.');
-    const kept = words(gapsOf(withLines(sam(), [{ wrapper: 'SIPP', ticker: 'EXMPL', name: 'Example Shares plc', value: 9000, keep: { as: 'mine', fundsGaps: false } }, { wrapper: 'SIPP', ticker: 'EXMP2', name: 'Example Fund', value: 4000, keep: { as: 'mine', fundsGaps: false } }]), { today: BEFORE }));
+    const kept = words(gapsOf(withLines(sam(), [{ wrapper: 'SIPP', ticker: 'EXMPL', name: 'Example Shares plc', value: 9000, keep: { as: 'mine', fundsGaps: false } }, { wrapper: 'SIPP', ticker: 'EXMP2', name: 'Example Fund', value: 4000, keep: { as: 'mine', fundsGaps: false } }]), { today: BEFORE, asKept: true }));
     expect(kept[0]).toBe('Your ladder, with 2 investments you keep by choice.');
   });
   it('a keep or money expected leaves the record\'s "as of" date where it was', () => {
@@ -190,18 +187,20 @@ describe('the words', () => {
 
 describe('the move with keeps', () => {
   const lines = [conv(2027, 20000, { as: 'rung', taxYears: [2027] }), conv(2028, 20000, { as: 'rung', taxYears: [2028] }), conv(2029, 20000, { as: 'rung', taxYears: [2029] }), cash(40000)];
-  it('the cash to hold leaves out the cash years kept lines stand in for, and says them as held another way', () => {
+  // retaken in 7.12.0: each kept gilt pays only part of its cash year, so the year stays in the table beside it, with what it
+  // still needs; the cash to hold is what those parts cost, set against the £40,000 held
+  it('the cash to hold keeps the part of each cash year the kept lines do not pay, and says the year is beside them', () => {
     const p = withLines(sam(), lines);
     const m = moveOf([{ plan: p }], p.id, { today: BEFORE });
-    expect(m.cash.rows.map((r) => r.id)).toEqual(['cashYearCovered', 'cashYearCovered']);
-    expect(m.cash.target).toBe('£0');
-    expect(m.cash.short).toBe(null);
-    expect(m.cash.spare).toBe('£40,000');
-    // the pension's cash is still listed as held, all of it spare
-    expect(m.hold.find((h) => h.key === 'cash:SIPP')).toMatchObject({ spare: '£40,000' });
+    expect(m.cash.rows.map((r) => r.id)).toEqual(['cashYearBeside', 'cashYearBeside']);
+    expect(m.cash.rows[0].gap).toMatch(/^£[\d,]+$/);
     const mi = moveInputs(p, { now: noon(BEFORE) });
+    const left = mi.diff.cashLeft.value;
+    expect(left).toBeGreaterThan(0);
+    expect(m.cash.target).toBe('£' + left.toLocaleString('en-GB'));
+    expect(m.cash.held).toBe('£40,000');
     const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings });
-    expect(html).toContain('Cash year 2027/28: held another way, by what you keep');
+    expect(html).toContain('Cash year 2027/28, beside what you keep for it');
   });
   it('keeping lines never lowers the share of the plan\'s mix held', () => {
     const before = withLines(sam(), lines.map(({ keep, ...l }) => l));
@@ -212,14 +211,17 @@ describe('the move with keeps', () => {
   });
 });
 
-describe('"Keep this" suggests the year a gilt matures in', () => {
-  it('V7: a gilt is "stands in" with its year ticked, ready to keep; nothing is said wrong before anything is touched', () => {
-    const p = withLines(sam(), [{ wrapper: 'SIPP', ticker: 'TS28', name: 'Treasury 4.5% 07/06/2028', kind: 'gilt', units: 20000, value: 19930 }, { wrapper: 'SIPP', ticker: 'EXMPL', name: 'Example Shares plc', value: 9000 }]);
+// Moved on purpose (7.12.0): "Keep this" never chooses a year for the person — when a gilt matures never says which year it is for
+describe('"Keep this" never suggests a year', () => {
+  it('V7 (read as Moving): a gilt starts as "kept by choice", no year ticked; the years are the person\'s to tick; nothing is said wrong before anything is touched', () => {
+    const p = withLines(asMoving(sam()), [{ wrapper: 'SIPP', ticker: 'TS28', name: 'Treasury 4.5% 07/06/2028', kind: 'gilt', units: 20000, value: 19930 }, { wrapper: 'SIPP', ticker: 'EXMPL', name: 'Example Shares plc', value: 9000 }]);
     const v = holdOf([{ plan: p }], p.id, { today: BEFORE, typed: { 'keep.index': '0' } });
     const l0 = v.groups[0].lines.find((l) => l.index === 0), l1 = v.groups[0].lines.find((l) => l.index === 1);
-    expect(l0.keep).toMatchObject({ as: 'rung', error: null, change: { kind: 'keep', index: 0, keep: { as: 'rung', taxYears: [2028] } } });
+    expect(l0.keep).toMatchObject({ as: 'mine', error: null, change: { kind: 'keep', index: 0, keep: { as: 'mine', fundsGaps: false } } });
+    expect(l0.keep.years.filter((y) => y.on)).toEqual([]);
     expect(l1.keep).toMatchObject({ as: 'mine', error: null, change: { kind: 'keep', index: 1, keep: { as: 'mine', fundsGaps: false } } });
-    expect(standInYearOf({ name: 'Example Fund 2040', value: 1 }, [2040])).toBe(null);
+    const ticked = holdOf([{ plan: p }], p.id, { today: BEFORE, typed: { 'keep.index': '0', 'line.0.keepAs': 'rung', 'line.0.keepYears': '2028' } }).groups[0].lines.find((l) => l.index === 0);
+    expect(ticked.keep.change).toEqual({ kind: 'keep', index: 0, keep: { as: 'rung', taxYears: [2028] } });
   });
   it('the classic planner saves a year the plan has, never this tax year by default', () => {
     expect(keepOfChoice('rung', null, 2028)).toEqual({ as: 'rung', taxYears: [2028] });

@@ -592,6 +592,16 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
   .gaps-table td:first-child { font-weight: 650; }
   .gaps-table td:first-child::before { content: none; }
 }
+/* "Your plan's mix" while living on a ladder (7.12.0): under 600px each gilt, year or line is a card of label–value pairs */
+@media (max-width: 599px) {
+  .held-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .held-table, .held-table tbody, .held-table tr, .held-table td { display: block; width: 100%; }
+  .held-table tr { border-top: 1px solid var(--line); padding: 6px 0; }
+  .held-table td { border-top: 0; padding: 2px 0; white-space: normal; display: flex; gap: 8px; justify-content: space-between; text-align: right; }
+  .held-table td::before { content: attr(data-label); font-weight: 650; flex: 0 0 auto; text-align: left; }
+  .held-table td:first-child { font-weight: 650; text-align: left; }
+  .held-table td:first-child::before { content: none; }
+}
 @media (min-width: 744px) {
   .way-list { grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); }
   .way-list li:has(.way-card.is-open) { grid-column: 1 / -1; }

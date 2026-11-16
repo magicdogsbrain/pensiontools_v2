@@ -52,7 +52,8 @@ export const HOLD = {
     required: 'This box is needed.',
     notAnOption: 'One of the choices, please.',
     notAMonth: 'A month, like April 2027.',
-    noYears: 'Choose at least one tax year.'
+    noYears: 'Choose at least one tax year.',
+    notAYear: 'A tax year, like 2028/29.'
   },
   add: {
     lead: 'A fund by code or name from our own list, a gilt by its code, SEDOL or year, or “cash” as an amount — and the account it is held in. A filled line saves at once.',

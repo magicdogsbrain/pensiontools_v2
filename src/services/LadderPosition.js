@@ -136,9 +136,10 @@ export function ladderMonthAdvice(lp, rung, total, planYearSigned) {
     return { floorMonthly: total, floorLabel: 'cash, until the first gilt pays',
       note: 'Until the ladder\'s first gilt pays' + (lp && lp.upcoming ? ' (' + lp.upcoming.label + ')' : '') + ': this month comes from your cash. Nothing is sold' + (rung ? '; your ladder\'s first gilt pays from ' + rung.label + '.' : '.') };
   }
-  if (!lp) return { floorMonthly: total, floorLabel: 'this year\'s matured rung', note: 'Every year is bought by contract — nothing is sold. The money is already in cash.' };
+  // (7.12.0: the note never says the money is already in cash — only the month's own cash figure can say that, DecisionOverlay)
+  if (!lp) return { floorMonthly: total, floorLabel: 'this year\'s matured rung', note: 'Every year is bought by contract. Nothing is sold.' };
   return { floorMonthly: lp.monthly, floorLabel: lp.source === 'cash' ? 'the cash years bucket' : 'rung ' + lp.source + ' (already cash)',
-    note: 'Tax year ' + lp.taxYearLabel + ', age ' + lp.age + '. ' + lp.instruction + (lp.source === 'cash' && rung ? ' Your cash pays until the ladder\'s first gilt, from ' + rung.label + '.' : '') + ' Nothing is sold; the money is already in cash.' };
+    note: 'Tax year ' + lp.taxYearLabel + ', age ' + lp.age + '. ' + lp.instruction + (lp.source === 'cash' && rung ? ' Your cash pays until the ladder\'s first gilt, from ' + rung.label + '.' : '') + ' Nothing is sold.' };
 }
 
 /**

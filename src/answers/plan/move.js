@@ -20,11 +20,11 @@
  *
  * By phase (7.11.1): the phase is the one the plan's home reads (read.js planPage `life`, LifeStage.stageOf — agreements
  * first, then facts). Living on it, and Moving once what is held was accepted (7.10.0's agreement), the page is not a move:
- * `mode` 'held' and `heldInfo` say, as information, the rungs held against the plan (a rung not fully bought with its line
- * of the order sheet), what else the pension holds and what each line is doing, the cash for the cash years, and where what
- * is held can be tested and accepted. The reading still carries the lists, the totals and the schedule
- * (as it does for a saver waiting), but no view draws them there. Moving otherwise (`mode` 'move'), and a saver waiting
- * (`mode` 'waiting'), as before.
+ * `mode` 'held'. On a ladder (7.12.0) `heldInfo` is answers/plan/held.js heldLadder — the one reading of the plan's gilts
+ * against what is held, the cash years and the money the pension holds — and `heldView` the same as both views draw it; no
+ * reading of what is kept or covered rides beside it. On a pot plan `heldInfo` says the mix held against the plan's and where
+ * it can be tested. The reading still carries the lists, the totals and the schedule (as it does for a saver waiting), but no
+ * view draws them there. Moving otherwise (`mode` 'move'), and a saver waiting (`mode` 'waiting'), as before.
  */
 import { planStage, effectiveStressSettings, moveInputs } from '../../services/PlanReading.js';
 import { sequence, tickMove, untickMove } from '../../services/TransitionPlanner.js';
@@ -42,11 +42,12 @@ import { pounds } from './income.js';
 import { MOVE_WRITES } from './schema.js';
 import { dateOf, dayWords, monthWords, MONTHS } from './dates.js';
 import { isClosedPlan, closedReading } from '../../services/PlanClosed.js';
-import { gapsOf, gapsView, heldOf, rolesView } from './gaps.js';
+import { gapsOf, gapsView } from './gaps.js';
+import { heldLadder, heldLadderView } from './held.js';
 import { planPage, reviewHrefOf } from './read.js';
-import { isRungRow, yearNeedsOf, monthsLeftInTaxYear } from '../../services/TransitionPlanner.js';
+import { moveStatusOf, payingOf, outsideRowsOf, moveTotalsOf, paceOf, cashRowsOf } from './moveWords.js';
 
-export { runKeyOf, APPROACHING_YEARS };
+export { runKeyOf, APPROACHING_YEARS, moveStatusOf };
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
@@ -77,12 +78,6 @@ function contributionsMonthlyOf(plan, rec) {
   try { m = proportions(rec.lines).contributions.monthly || 0; } catch { m = 0; }
   if (!m) { const acc = plan && plan.accumulationTool && isObj(plan.accumulationTool.settings) ? plan.accumulationTool.settings : null; if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) m = (+acc.netMonthly || 0) * 1.25 + (+acc.employerMonthly || 0); }
   return m;
-}
-
-/** The lump a cash year's timeline row carries (the planner's breakdown says it in the label; here it is data). */
-function lumpOf(doc, Y) {
-  const row = Array.isArray(doc.timeline) ? doc.timeline.find((x) => x && taxYearLabel(+Y) === x.taxYear) : null;
-  return row && num(row.lump) > 0 ? num(row.lump) : 0;
 }
 
 /**
@@ -118,23 +113,10 @@ export function savedMove(plan, { today, index = null }) {
   const dr = doc.strategy && isObj(doc.strategy.r) ? doc.strategy.r : null;
   const a = dr ? oneAnswer(dr, dp || {}) : null;
   const own = a ? { share: a.share, words: futuresOutOfTen(a.share).words, lockedOn: dayWords(doc.lockedAt || lockedAtOf(plan)) } : null;
-  const cashRows = m.target.cash && Array.isArray(m.target.cash.breakdown) ? (() => {
-    const rows = [];
-    const plan0 = doc.strategy.r.plan;
-    // cash years a kept line stands in for (7.6.0): said as held another way, never as cash to hold
-    const coveredCash = new Set(((m.diff.covered || []).find((c) => c.kind === 'cash') || { taxYears: [] }).taxYears.map(Number));
-    for (const c of Array.isArray(plan0.cashYears) ? plan0.cashYears : []) {
-      if (m.target.running && +c.Y < m.target.thisTaxYear) continue;
-      if (coveredCash.has(+c.Y)) { rows.push({ id: 'cashYearCovered', year: taxYearLabel(+c.Y), lump: null, amount: null }); continue; }
-      const lump = lumpOf(doc, c.Y);
-      rows.push({ id: lump > 0 ? 'cashYearLump' : 'cashYear', year: taxYearLabel(+c.Y), lump: lump > 0 ? pounds(lump) : null, amount: pounds(c.cost) });
-    }
-    return rows;
-  })() : [];
   // the plan's own mix (the document's year-0 target), beside the held mix for a saver (§3.4)
   const mix0 = Array.isArray(doc.targetMix) && doc.targetMix.length ? doc.targetMix[0] : null;
   const planMix = mix0 ? { shares: String(r0(mix0.equity)), bonds: String(r0(mix0.bond)), cash: String(r0(mix0.cash)) } : null;
-  return { ...base, hasDocument: true, m, seq, sheet, watch, spGate, own, contributionsMonthly, cashRows, planMix };
+  return { ...base, hasDocument: true, m, seq, sheet, watch, spGate, own, contributionsMonthly, planMix, isa: m.target.kind === 'ladder' ? (m.target.isaIn ? 'in' : num(doc.pots && doc.pots.isa) > 0 ? 'hold' : 'none') : null };
 }
 
 /** The plan's effective settings with the pension's mix AS HELD (§3.3): the four amounts in the proportions the record's pension lines hold, on the same pot. */
@@ -179,7 +161,6 @@ function whyOf(x) {
   if (/^rung for /.test(w)) return { id: 'rung', slots: { years: (x.taxYears || []).map((y) => taxYearLabel(+y)).join(', ') } };
   if (/^more than the rung needs/.test(w)) return { id: 'moreThanRung', slots: {} };
   if (/^the cash years/.test(w)) return { id: 'cashYears', slots: {} };
-  if (/^not in the plan/.test(w)) return { id: 'notInPlan', slots: {} };
   if (/^bring (\w+) up to (\d+)%/.test(w)) { const m = /^bring (\w+) up to (\d+)%/.exec(w); return { id: 'bringUp', slots: { bucket: m[1], pct: m[2] } }; }
   if (/^bring (\w+) down to (\d+)%/.test(w)) { const m = /^bring (\w+) down to (\d+)%/.exec(w); return { id: 'bringDown', slots: { bucket: m[1], pct: m[2] } }; }
   if (/^not in the target mix/.test(w)) return { id: 'notInMix', slots: {} };
@@ -221,7 +202,11 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   // a rung part bought (some of its units held: gaps.js heldOf's 'partRung', as Living on it reads it) is never "no gilt
   // bought": its years are left out of the uncovered ones, and it is said with the units held of the units it needs
   const partRungs = T.kind === 'ladder' ? D.buy.filter((b) => b.kind === 'gilt' && num(b.heldUnits) > 0) : [];
-  const status = D.complete ? { id: 'done', slots: {} } : rungs ? { id: partRungs.length ? 'giltsPart' : 'gilts', slots: { bought: String(rungs.bought), rungs: String(rungs.total), held: String(D.progressPct), part: String(partRungs.length) } } : { id: 'held', slots: { held: String(D.progressPct), done: String(P.doneCount), moves: String(P.total) } };
+  // the one wording of progress (7.12.0, moveWords.moveStatusOf): the home tile and the full view say the same
+  const status = moveStatusOf(T, D, P);
+  // the pace (7.12.0): Moving, with buys still to make and the stop ahead — the buying a month that finishes by then
+  const mode0 = heldMode(life) ? 'held' : s.waiting ? 'waiting' : 'move';
+  const pace = mode0 === 'move' && !D.complete && !T.running ? paceOf(D.totals.buyCost, { today: s.now, stopMonth: s.stage.startMonth }) : null;
   // what skipping it costs (§3.3): for a ladder the tax years whose rung is not bought at all; for a pot plan the one run on the held mix
   const uncovered = T.kind === 'ladder' ? [...new Set(D.buy.filter((b) => b.kind === 'gilt' && !partRungs.includes(b)).flatMap((b) => (b.taxYears || []).map((y) => +y)))].sort((a, b) => a - b) : [];
   const parts = partRungs.map((b) => ({ label: b.label || b.ticker || '', years: (b.taxYears || []).map((y) => taxYearLabel(+y)).join(', '), held: grouped(b.heldUnits), units: grouped(num(b.units) + num(b.heldUnits)) }));
@@ -244,28 +229,37 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   } : null;
   return {
     ...base, hasDocument: true, kind: T.kind, running: !!T.running, status, complete: !!D.complete, reason: D.reason, progressPct: String(D.progressPct), movesDone: String(P.doneCount), moves: String(P.total), rungs: rungs ? { bought: String(rungs.bought), total: String(rungs.total) } : null,
-    next: P.next ? moveRow(P.next, done) : null, waiting: s.waiting, yearsToStart: String(s.stage.yearsToStart || 0), opens: s.opensAt ? monthWords(s.opensAt) : null, startsAround: s.stage.startMonth ? monthWords(s.stage.startMonth) : (s.stage.firstTaxYear ? 'April ' + s.stage.firstTaxYear : ''),
+    waiting: s.waiting, yearsToStart: String(s.stage.yearsToStart || 0), opens: s.opensAt ? monthWords(s.opensAt) : null, startsAround: s.stage.startMonth ? monthWords(s.stage.startMonth) : (s.stage.firstTaxYear ? 'April ' + s.stage.firstTaxYear : ''),
     own: s.own, held: held ? { pcts: held.pcts, fromPension: held.fromPension } : null, heldRun, planMix: s.planMix || null,
     newMoney: (() => { const p = proportions(s.record.lines); if (!(p.contributions && p.contributions.monthly > 0)) return null; const m = p.contributions.monthly; return { monthly: pounds(m), parts: ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => p.contributions.byBucket[b] > 0.004).map((b) => ({ bucket: b, word: b === 'diversifiers' ? 'gold and trend' : b, amount: pounds(m * p.contributions.byBucket[b]) })) }; })(),
     cost: { uncovered: uncovered.map((y) => taxYearLabel(y)), parts, canRun: !!held && !s.ladder && !readonly },
     // the cash to hold: the cash years' money, less the years a kept line stands in for (7.6.0, the diff's cashLeft)
-    cash: T.cash && !D.cashInfo ? (() => { const tv = (D.cashLeft || T.cash).value; return { rows: s.cashRows, target: pounds(tv), held: pounds(D.totals.cashHeld), spare: D.totals.cashHeld >= tv ? pounds(D.totals.cashHeld - tv) : null, short: D.totals.cashHeld < tv ? pounds(tv - D.totals.cashHeld) : null }; })() : null,
+    // the cash to hold now (7.12.0, S2): what each year needs beside the cash to hold for it, the years paid in part or in full
+    // by what is kept (moveWords.cashRowsOf: both views' one reading)
+    cash: cashRowsOf(T, D),
     cashInfo: D.cashInfo ? { held: pounds(D.cashInfo.held), target: pounds(D.cashInfo.target), years: D.cashInfo.yearsLeft.map((y) => taxYearLabel(+y)) } : null,
     paid: (T.paid || []).map((p) => ({ label: p.label, ticker: p.ticker || '' })), matured: D.matured.map((x) => moveRow(x, done)), sold: D.sold.map((x) => moveRow(x, done)), rotated: !!T.rotated,
     buy: D.buy.map((x) => moveRow(x, done)), sell: D.sell.map((x) => moveRow(x, done)),
     hold: D.hold.map((x) => ({ key: x.key, label: x.label || x.ticker || '', ticker: x.ticker || '', held: x.heldUnits != null ? { units: units(x.heldUnits) } : { value: pounds(x.heldValue) }, spare: x.spare > 0 ? pounds(x.spare) : null, target: x.units ? { units: units(x.units) } : { value: pounds(x.value) } })),
     keep: D.keep.map((x) => ({ label: x.ticker || x.name || '', wrapper: x.wrapper, value: pounds(x.value), why: whyOf(x) })),
     totals: { buy: pounds(D.totals.buyCost), sell: pounds(D.totals.sellValue), short: D.totals.shortfall > 0 ? pounds(D.totals.shortfall) : null },
-    schedule: seq ? { steps: seq.steps.map((st) => ({ when: ym(st.when), action: st.action, label: st.label, ticker: st.ticker || '', units: units(st.units), amount: pounds(st.amount) })), tranches: String(seq.tranches), months: String(seq.months), funded: !!seq.funded, startPassed: !!seq.startPassed, short: !seq.funded ? pounds(seq.totals.buy - seq.totals.sell - seq.totals.contributions) : null, newMoney: seq.totals.contributions > 0 ? pounds(seq.totals.contributions) : null } : null,
-    start, isaPolicy: s.ss.isaDrawdownStrategy === 'hold' ? 'hold' : 'draw',
+    // a ladder (7.12.0): what pays for the buys, what is held that the plan does not use, and the totals of both — one reading
+    paying: payingOf(D, { newMoney: seq ? seq.totals.contributions : 0 }), outside: outsideRowsOf(D), ladderTotals: moveTotalsOf(D), pace,
+    schedule: seq ? { steps: seq.steps.map((st) => ({ when: ym(st.when), action: st.action, label: st.label, ticker: st.ticker || '', units: units(st.units), amount: pounds(st.amount) })), tranches: String(seq.tranches), months: String(seq.months), funded: !!seq.funded, startPassed: !!seq.startPassed, newMoney: seq.totals.contributions > 0 ? pounds(seq.totals.contributions) : null } : null,
+    start, isa: s.isa,
     sheet, example, spGate: s.spGate ? { annual: pounds(s.spGate.annual), atAge: String(s.spGate.atAge) } : null, pricedOn: s.lockedOn,
     watch,
     // 7.11.1: by phase — Living on it, or Moving once what is held was accepted, the page is what is held, never a move
-    ...(() => { const mode = heldMode(life) ? 'held' : s.waiting ? 'waiting' : 'move'; return { mode, heldInfo: mode === 'held' ? heldInfoOf(plan, s, { today, life, page: pg, rungs, recorded: base.recorded, g }) : null }; })(),
+    ...heldOf(plan, s, { today, life, page: pg, recorded: base.recorded }),
+    // 7.12.0: "This is how I want to hold it" — offered Moving, while the move is not done, on a plan that can be written;
+    // once said (Moving by agreement), the day it was said, "Take this back", and on a ladder the gilts not bought in full
+    sayHeld: mode0 === 'move' && life && life.key === 'moving' && !D.complete && !readonly && !closed ? { can: true } : null,
+    saidHeld: heldMode(life) && life && life.key === 'moving' && life.agreed ? { date: dayWords(life.agreed.at), withdrawable: !readonly && !closed,
+      notFull: T.kind === 'ladder' && T.lines.length > (D.rungs ? D.rungs.held : 0) ? { n: String(T.lines.length - (D.rungs ? D.rungs.held : 0)), total: String(T.lines.length) } : null } : null,
     // 7.6.0: what the person keeps — held another way, kept by choice, the rungs covered — and the gaps it leaves; only on a
-    // record that keeps something or expects money, so a plan without keeps reads exactly as before (7.11.1: living on the
-    // plan, also what it holds beyond the plan's own; in a move, never a line the move sells — gapsOf by phase)
-    ...keptOf(D, g)
+    // record that keeps something or expects money, so a plan without keeps reads exactly as before; in a move, never a line
+    // the move sells (gapsOf by phase). 7.12.0: never on a ladder in the held phase — heldInfo is the one reading there
+    ...(heldMode(life) && T.kind === 'ladder' ? {} : keptOf(D, g))
   };
 }
 
@@ -277,58 +271,27 @@ export const heldMode = (life) => heldPhase(life);
 
 const grouped = (v) => String(Math.round(num(v))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const BUCKETS = ['shares', 'bonds', 'cash', 'diversifiers'];
-/** The words of each sentence heldInfo carries (src/v7/copy/move.js MOVE.held; both views fill them). */
-const RUNG_WORDS = { part: 'rungPart', none: 'rungNone', over: 'rungOver' };
-const LINE_WORDS = { paid: 'giltPaid', cashNow: 'giltCashNow' };
+
+/** The page by phase: `mode`, and in the held phase `heldInfo` (and on a ladder `heldView`, both views' drawing of it). */
+function heldOf(plan, s, { today, life, page, recorded }) {
+  const mode = heldMode(life) ? 'held' : s.waiting ? 'waiting' : 'move';
+  if (mode !== 'held') return { mode, heldInfo: null };
+  if (s.m.target.kind === 'ladder') { const h = heldLadder(plan, { today, life }); return { mode, heldInfo: h, heldView: heldLadderView(h) }; }
+  return { mode, heldInfo: potHeldOf(plan, s, { life, page, recorded }) };
+}
 
 /**
- * What is held, as information (7.11.1; `mode` 'held'): never a list of things to buy or sell.
+ * A pot plan's mix as held (7.11.1; `mode` 'held'), as information — never a list of things to buy or sell:
  *   agreed   { date } when what is held was accepted as the plan (7.10.0), else null
- *   rungs    a ladder's rungs held of those the plan still needs, and each rung not held as the plan has it: part bought or
- *            not held (with its line of the order sheet), or held with more than it needs — { held, total, rows: [{ key, id,
- *            label, code, years, state: 'part'|'none'|'over', held, units, excess, value, cost, n }] }
- *            (each sentence's `id` names its words in MOVE.held, its other fields are the slots)
- *   lines    each line of the pension beside the rungs (gaps.js heldOf/rolesView), with its value today: a gilt (when it
- *            matures, a fact only: it is set against no year), shares or a fund outside the mix
- *   cash     a ladder's cash years still ahead, what they need, and the pension's cash
- *   buckets  a pot plan's mix held against the plan's, in whole points of the pension money read; `unknown` the lines nothing
- *            places; `review` where "Test with what I hold" and the agreement are (Your review), when it can test them
+ *   buckets  the mix held against the plan's, in whole points of the pension money read; `unknown` the lines nothing places;
+ *            `review` where "Test with what I hold" and the agreement are (Your review), when it can test them
  *   noRecord nothing recorded yet
  */
-function heldInfoOf(plan, s, { today, life, page, rungs, recorded, g = null }) {
+function potHeldOf(plan, s, { life, page, recorded }) {
   const T = s.m.target, D = s.m.diff;
   const agreed = life && life.agreed && life.agreed.at ? { date: dayWords(life.agreed.at) } : null;
   const base = { kind: T.kind, agreed, noRecord: !recorded, rungs: null, lines: [], cash: null, buckets: null, unknown: [], review: null };
-  if (T.kind === 'ladder') {
-    const nOf = new Map(s.sheet.map((r) => [String(r.tidm || '').toUpperCase(), String(r.n)]));
-    const order = new Map(T.lines.map((t, i) => [t.key, i]));
-    const row = (x, state) => {
-      const total = x.units == null ? null : state === 'over' ? num(x.heldUnits) - num(x.units) : num(x.units) + num(x.heldUnits);
-      return { key: x.key, id: state === 'part' && x.units == null ? 'rungPartValue' : RUNG_WORDS[state], label: x.label || x.ticker || '', code: x.ticker || '', years: (x.taxYears || []).map((y) => taxYearLabel(+y)).join(', '), state,
-        held: x.units == null ? null : grouped(x.heldUnits), units: total == null ? null : grouped(total), excess: state === 'over' && x.units != null ? grouped(x.units) : null,
-        value: x.units == null ? pounds(Math.max(0, num(x.value) - num(x.amount))) : null, cost: x.units == null ? pounds(x.value) : null, n: nOf.get(String(x.ticker || '').toUpperCase()) || '' };
-    };
-    const rows = [...D.buy.filter(isRungRow).map((x) => row(x, num(x.heldUnits) > 0 || (x.units == null && num(x.amount) < num(x.value)) ? 'part' : 'none')), ...D.sell.filter(isRungRow).map((x) => row(x, 'over'))]
-      .sort((a, b) => (order.has(a.key) ? order.get(a.key) : 1e9) - (order.has(b.key) ? order.get(b.key) : 1e9));
-    base.rungs = { held: rungs ? String(rungs.bought) : '0', total: rungs ? String(rungs.total) : String(T.lines.length), rows };
-    // the one reading's lines (gapsOf's roles), so each says what What is covered does with it; else read here
-    let raw = g && g.fromHeld ? g.roles : null;
-    if (!raw) { try { raw = heldOf(plan, { today }); } catch { raw = null; } }
-    const roles = rolesView(raw);
-    // a gilt still to mature says when it matures, as a fact: it is set against no year (7.11.1)
-    const idOf = (r) => (r.role === 'outside' ? 'outside' : LINE_WORDS[r.state] || (r.matures ? 'gilt' : 'giltUnknown'));
-    base.lines = (roles || []).filter((r) => r.role === 'gilt' || r.role === 'outside' || (r.role === 'matured' && r.state === 'cashNow')).map((r) => ({ at: r.at, id: idOf(r), label: r.label, value: r.value, role: r.role, ...(r.role !== 'outside' ? { state: r.state, month: r.matures || '' } : {}) }));
-    if (T.cash) {
-      const c = D.cashInfo ? { target: D.cashInfo.target, years: D.cashInfo.yearsLeft } : { target: (D.cashLeft || T.cash).value, years: (D.cashLeft || T.cash).yearsLeft || [] };
-      // while the plan runs, this tax year's need is its months still to come (as What is covered reads it): one figure
-      const thisTY = T.running ? taxYearStartOf(dateOf(today)) : null;
-      const ny = yearNeedsOf(plan.planDocument);
-      const part = thisTY != null && (c.years || []).map(Number).includes(thisTY) && ny[thisTY];
-      const target = part ? Math.max(0, num(c.target) - num(ny[thisTY].need) * (12 - monthsLeftInTaxYear(dateOf(today))) / 12) : num(c.target);
-      const years = (c.years || []).map((y) => taxYearLabel(+y));
-      base.cash = { id: years.length ? (part ? 'cashThisYear' : 'cash') : 'cashNone', held: pounds(D.totals.cashHeld), target: pounds(target), years: years.join(', ') };
-    }
-  } else if (T.kind === 'buckets') {
+  if (T.kind === 'buckets') {
     const inPlay = num(D.inPlay);
     if (inPlay > 0 && D.buckets) base.buckets = BUCKETS.filter((b) => D.buckets[b] && (num(D.buckets[b].held) > 0 || num(D.buckets[b].target) > 0)).map((b) => ({ bucket: b, held: String(Math.round(100 * num(D.buckets[b].held) / inPlay)), plan: String(Math.round(100 * num(D.buckets[b].target) / inPlay)) }));
     base.unknown = (D.unknown || []).map((u) => u.label).filter(Boolean);

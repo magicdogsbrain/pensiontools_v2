@@ -11,6 +11,8 @@ import { PLAN } from '../v7/copy/plan.js';
 import { moveOf, opensAtOf } from '../answers/plan/move.js';
 import { planStage } from '../services/PlanReading.js';
 import { keepTestOf, amendPatch, withdrawPatch, sayKeep } from '../answers/plan/keepTest.js';
+import { sayHeldPatch, agreeWithdrawPatch } from '../answers/plan/agree.js';
+import { MOVE } from '../v7/copy/move.js';
 import { keepFingerprint } from '../services/PlanAmendments.js';
 import { isClosedPlan } from '../services/PlanClosed.js';
 import { KEEPTEST } from '../v7/copy/keepTest.js';
@@ -68,7 +70,7 @@ export async function nameTransitionTab(doc, read, fallback = null, today = new 
   return name;
 }
 
-/** The gaps as the Transition tab draws them: V7's reading of the plan with this record (by the phase the home reads); null when there is nothing to read. */
+/** The gaps as the Transition tab draws them: V7's reading of the plan with this record (by the phase the home reads: 7.12.0, nothing in the held phase); null when there is nothing to read. */
 export function transitionGaps(scenario, rec, today = new Date()) {
   if (!scenario) return null;
   try { return gapsView(gapsOf({ ...scenario, holdings: rec }, { today: dayOf(today) })); } catch { return null; }
@@ -76,24 +78,37 @@ export function transitionGaps(scenario, rec, today = new Date()) {
 
 /**
  * "Your plan's mix" by phase (7.11.1): V7's reading of the move (answers/plan/move.js moveOf) for the plan with this record,
- * in the phase the plan's home reads — { mode, heldInfo, phase }. `mode` 'held' (Living on it, or Moving once what is held
- * was accepted): the tab draws what is held as information, never Buy or Sell. Null when it cannot be read.
+ * in the phase the plan's home reads — { mode, heldInfo, heldView, phase }. `mode` 'held' (Living on it, or Moving once what
+ * is held was accepted): the tab draws what is held as information, never Buy or Sell; on a ladder (7.12.0) `heldView` is
+ * "Your plan's mix" as both views draw it (answers/plan/held.js). Null when it cannot be read.
  */
 export function transitionHeld(scenario, rec, today = new Date()) {
   if (!scenario) return null;
   try {
     const plan = { ...scenario, holdings: rec || scenario.holdings };
     const v = moveOf([{ plan }], plan.id, { today: dayOf(today) });
-    return v && v.found ? { mode: v.mode || null, heldInfo: v.heldInfo || null, phase: v.phase || null } : null;
+    // 7.12.0: and the move's readings both views word the same way — the one status, the pace, what pays for the buys, what is
+    // held that the plan does not use, the totals and the cash to hold now (answers/plan/moveWords.js through moveOf)
+    return v && v.found ? { mode: v.mode || null, heldInfo: v.heldInfo || null, heldView: v.heldView || null, phase: v.phase || null,
+      status: v.status || null, pace: v.pace || null, paying: v.paying || null, outside: v.outside || [], ladderTotals: v.ladderTotals || null, cash: v.cash || null, isa: v.isa || null,
+      sayHeld: v.sayHeld || null, saidHeld: v.saidHeld || null, sayHeldOpen: sayHeldMemory.open && sayHeldMemory.planId === String(plan.id) } : null;
   } catch { return null; }
 }
 
 /**
- * The handlers the Transition tab's markup names (TransitionView.js): keepHolding, keepHoldingYears, addExpected,
- * removeExpected. `draft()` is the record on screen, `persist(record)` the shell's one save, `toast(text, kind)` its message.
+ * The handlers the Transition tab's markup names (TransitionView.js): keepHolding, keepHoldingYears, keepHoldingFor,
+ * addExpected, removeExpected. `draft()` is the record on screen, `persist(record)` the shell's one save, `toast(text, kind)` its
+ * message. Saves are queued (7.12.0): each change is applied to the record as the previous change left it, and each save waits
+ * for the one before, so several changes made quickly all land — never the last one alone over the record on screen.
  */
 export function installKeepHandlers(w, { draft, persist, toast }) {
-  const save = (change) => { const d = draft(); if (!d) return; Promise.resolve().then(() => persist(holdingsWith(d, change, { today: new Date() }))).catch((e) => toast('Could not save what you hold: ' + e.message, 'error')); };
+  let pending = null, inFlight = 0, queue = Promise.resolve();
+  const save = (change) => {
+    const d = pending || draft(); if (!d) return;
+    const next = holdingsWith(d, change, { today: new Date() });
+    pending = next; inFlight++;
+    queue = queue.then(() => persist(next)).catch((e) => toast('Could not save what you hold: ' + e.message, 'error')).finally(() => { inFlight--; if (!inFlight) pending = null; });
+  };
   w.keepHolding = (i, v, firstYear) => {
     const d = draft(); if (!d || !d.lines || !d.lines[i]) return;
     const keep = keepOfChoice(v, d.lines[i].keep, firstYear);
@@ -101,6 +116,14 @@ export function installKeepHandlers(w, { draft, persist, toast }) {
     save({ kind: 'keep', index: i, keep });
   };
   w.keepHoldingYears = (i, text) => { const ys = parseTaxYears(text); if (!ys.length) { toast('Type at least one tax year, like 2027/28.', 'error'); return; } save({ kind: 'keep', index: i, keep: { as: 'rung', taxYears: ys } }); };
+  // living on a ladder (7.12.0): the one optional box — the years typed are the person's label; emptied, the keep comes off
+  w.keepHoldingFor = (i, text) => {
+    const d = pending || draft(); if (!d || !d.lines || !d.lines[i]) return;
+    if (!String(text || '').trim()) { const k = d.lines[i].keep; if (k && k.as === 'rung') save({ kind: 'keep', index: i, keep: null }); return; }
+    const ys = parseTaxYears(text);
+    if (!ys.length) { toast('A tax year, like 2028/29.', 'error'); return; }
+    save({ kind: 'keep', index: i, keep: { as: 'rung', taxYears: ys } });
+  };
   w.addExpected = () => {
     const g = (id) => { const el = w.document && w.document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
     const amount = +g('hlExpAmount');
@@ -141,7 +164,7 @@ export function transitionKeepTest(scenario, rec) {
     const plan = { ...scenario, holdings: rec || scenario.holdings };
     const result = resultFor(scenario);
     const fresh = !!(result && result.fingerprint === keepFingerprint(plan.holdings));
-    const v = keepTestOf(plan, { result, run: { status: fresh ? 'done' : memory.status === 'working' || memory.status === 'failed' ? memory.status : 'idle', reason: null } });
+    const v = keepTestOf(plan, { result, run: { status: fresh ? 'done' : memory.status === 'working' || memory.status === 'failed' ? memory.status : 'idle', reason: null }, today: dayOf(new Date()) });
     // Undo, while the list is still the one the last agreement (or withdraw) wrote
     const undo = memory.undo && memory.undo.after === listOf(scenario) ? { id: memory.undo.id } : null;
     // a closed plan is kept to read: no test, no agreement, no withdraw (the store refuses them too), as V7
@@ -156,7 +179,7 @@ export const keepWords = (part) => sayKeep(part, KEEPTEST);
 export function keepLineHtml(scenario) {
   if (!scenario) return '';
   try {
-    const v = keepTestOf(scenario, {});
+    const v = keepTestOf(scenario, { today: dayOf(new Date()) });
     if (!v || !v.line) return '';
     return '<p class="hint pd-keep" id="planDocKeepLine" data-status="' + esc(v.status) + '" style="margin:6px 0 0;">' + esc(keepWords(v.line)) + '</p>';
   } catch { return ''; }
@@ -169,7 +192,36 @@ export function keepLineHtml(scenario) {
  * on a closed plan, and the agreement only takes a result for this plan as it is now. `scenario()` is the plan as stored,
  * `persist(list)` the shell's one save, `rerender()` the tab drawn again, `toast(text, kind)` its message.
  */
-export function installKeepTestHandlers(w, { scenario, persist, rerender, toast }) {
+/** The full view's confirm for "This is how I want to hold it" (7.12.0): page memory only, for the plan it was opened on. */
+const sayHeldMemory = { open: false, planId: null };
+
+export function installKeepTestHandlers(w, { scenario, persist, rerender, toast, persistPhases = null }) {
+  // "This is how I want to hold it" and "Take this back" (7.12.0): the same one write as V7 (agree.js), the shell's save of `phases`
+  const dayIso = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  w.askSayHeld = async () => { const sc = await scenario(); sayHeldMemory.open = true; sayHeldMemory.planId = sc ? String(sc.id) : null; rerender(); };
+  w.cancelSayHeld = () => { sayHeldMemory.open = false; rerender(); };
+  w.sayHeldFull = async () => {
+    try {
+      const sc = await scenario();
+      if (!sc || closed(sc) || !persistPhases) return;
+      const p = sayHeldPatch(sc, { today: dayIso(), at: new Date().toISOString() });
+      if (!p.ok) { toast(MOVE.problems[p.problem] || MOVE.problems.failed, 'error'); return; }
+      await persistPhases(p.patch.phases);
+      sayHeldMemory.open = false;
+    } catch (e) { toast('Could not save: ' + e.message, 'error'); }
+    await rerender();
+  };
+  w.takeBackSayHeld = async () => {
+    try {
+      const sc = await scenario();
+      if (!sc || closed(sc) || !persistPhases) return;
+      const p = agreeWithdrawPatch(sc, { at: new Date().toISOString() });
+      if (!p.ok) return;
+      await persistPhases(p.patch.phases);
+      if (JSON.stringify(p.patch.planAmendments || []) !== JSON.stringify(Array.isArray(sc.planAmendments) ? sc.planAmendments : [])) await persist(p.patch.planAmendments);
+    } catch (e) { toast('Could not save: ' + e.message, 'error'); }
+    await rerender();
+  };
   const closed = (sc) => { if (!isClosedPlan(sc)) return false; toast(HOLD.problems.readonly, 'error'); return true; };
   w.runKeepTest = async () => {
     if (memory.status === 'working') return;

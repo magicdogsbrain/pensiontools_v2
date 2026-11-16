@@ -140,15 +140,17 @@ describe('index.html: the Decision tool asks before the month that would lock, a
     const f = fn('commitPlanLock');
     expect(f.indexOf('seedDecisionFromStress(')).toBeGreaterThan(0);
     expect(f.indexOf('seedDecisionFromStress(')).toBeLessThan(f.indexOf('lockPlanIfNeeded(reason)'));
-    expect(f.indexOf('lockPlanIfNeeded(reason)')).toBeLessThan(f.indexOf('buildPlanDocumentNow(reason)'));
+    expect(f.indexOf('lockPlanIfNeeded(reason)')).toBeLessThan(f.indexOf('buildPlanDocumentNow(reason'));   // retaken in 7.12.0: it may pass the run the lock's fit was read from
     expect(f).toContain('refreshDecisionLock()');
     expect(f).toContain('refreshLifeStage()');
   });
+  // retaken in 7.12.0: the button's handler moved to src/ui/lockFromStressUi.js (it reads the lock's fit before it locks)
   it('the Stress settings button saves the form, then takes the same route', () => {
-    const f = fn('lockPlanFromStress');
-    expect(f.indexOf('await saveStressSettingsUI()')).toBeGreaterThan(0);
-    expect(f.indexOf('await saveStressSettingsUI()')).toBeLessThan(f.indexOf("commitPlanLock('locked from Stress settings')"));
+    const f = readFileSync('src/ui/lockFromStressUi.js', 'utf8');
+    expect(f.indexOf('await d.saveStressSettingsUI()')).toBeGreaterThan(0);
+    expect(f.indexOf('await d.saveStressSettingsUI()')).toBeLessThan(f.indexOf("d.commitPlanLock('locked from Stress settings'"));
     expect(f).toContain('lockFromStressQuestion()');
+    expect(html).toContain('installLockFromStress(window, {');
   });
   it('the plan chip says the plan asks first, not that it locks itself', () => {
     expect(html).not.toContain('It locks itself when you record');

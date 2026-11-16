@@ -103,6 +103,24 @@ export function agreePatch(plan, { today, at, held = null, typed = {} } = {}) {
   return { ok: true, problem: null, patch: { phases, planAmendments: amend.patch.planAmendments }, agreed: phases.moving.agreed, entry: amend.entry };
 }
 
+/**
+ * "This is how I want to hold it" (7.12.0) on the move page: one press and a confirm, no test run. Moving only, on a plan not
+ * closed and not an example. ONE write of `phases` alone (the agreement, with no review entry and no `planAmendments` entry:
+ * asHeldStateOf reads an agreement with no entry as agreed). The tested route on "Your review" is unchanged.
+ */
+export function sayHeldPatch(plan, { today, at } = {}) {
+  const fail = (problem) => ({ ok: false, problem, patch: {}, agreed: null });
+  if (!plan || isExamplePlan(plan)) return fail('example');
+  const { phase, closing } = phaseNow(plan, today);
+  if (closing || plan.closedAt != null || isClosedPlan(plan)) return fail('closed');
+  if (phase !== 'moving') return fail('notNow');
+  const settings = safeSettings(plan, dateOf(today));
+  const h = howOf(plan, { today });
+  let phases;
+  try { phases = phasesPatch(plan, 'moving.agreed', { strategyId: strategyIdOf(plan, settings), how: h.how, heldPct: h.heldPct, entryAt: at }, { at }).phases; } catch { return fail('problems'); }
+  return { ok: true, problem: null, patch: { phases }, agreed: phases.moving.agreed };
+}
+
 /** "Withdraw this" (see the header): the agreement and only the entry it carried, in one write. */
 export function agreeWithdrawPatch(plan, { at } = {}) {
   const fail = (problem) => ({ ok: false, problem, patch: {} });

@@ -7,8 +7,6 @@
 export const GAPS = {
   title: 'What is covered, year by year',
   lead: 'Your plan stays as locked. This reads it with what you chose to keep instead.',
-  // 7.11.1: read with what you actually hold — no "Keep this" needed for a line to count
-  leadHeld: 'Your plan stays as locked. This reads it with what you hold.',
   // a plan drawn from a pot (no years bought ahead): what is kept and expected, with no years to read
   titlePot: 'What you keep, and money you expect',
   leadPot: 'Your plan stays as locked. This says what you chose to keep beside it.',
@@ -23,6 +21,8 @@ export const GAPS = {
   spare: '{label} pays {spare} more than the years it stands in for need; that is counted as the pension’s cash for the years after.',
   noGap: 'Every year to {year} is covered by what you hold.',
   noGapToBuy: 'Every year to {year} is covered once the plan’s buys are made: {toBuy} is still to buy.',
+  noGapToBuyCash: 'The cash years, {first} to {year}, still need {toBuy} of cash. The gilts for the later years are in the Buy list.',
+  noGapToBuyCashOne: 'The cash year {year} still needs {toBuy} of cash. The gilts for the later years are in the Buy list.',
   withoutExpected: 'Without the money you expect, ',
   lastsUntil: '{year}’s money lasts until about {month}.',
   shortFrom: '{year}’s money is not covered from {month}.',
@@ -38,22 +38,7 @@ export const GAPS = {
   withKept: 'With what you count toward the gaps, every year to {year} is covered.',
   withKeptShort: 'With what you count toward the gaps, {short} is still not covered to {year}.',
   canFall: 'What you keep by choice can fall in value; if it is worth less when you sell, the gap is bigger.',
-  // 7.11.1: a gilt outside the plan's rungs that has matured: its money is the pension's cash
-  giltCashNow: '{label} matured in {month}, after your record was taken, so the {pays} it paid is counted as your pension’s cash.',
-  giltPaid: '{label} matured in {month}; once paid, its money is the pension’s cash, so it is not counted again.',
-  // 7.11.1: everything else in the pension beside the plan's rungs and cash — gilts, shares, funds — is money available: set
-  // against no year (only you can say which years a line is for), never ignored
-  availableBoth: 'Also in your pension, at today’s value: gilts {gilts}, shares and funds {funds}, not set against any year.',
-  availableGilts: 'Also in your pension, at today’s value: gilts {gilts}, not set against any year.',
-  availableFunds: 'Also in your pension, at today’s value: shares and funds {funds}, not set against any year.',
-  withHeld: 'At today’s value, that would cover every year to {year}.',
-  withHeldShort: 'At today’s value, that would cover {cover} of it, leaving {short} not covered to {year}.',
-  withHeldExpected: 'With the money you expect, and that at today’s value, every year to {year} is covered.',
-  withHeldExpectedShort: 'With the money you expect, and that at today’s value, {short} is still not covered to {year}.',
-  outsideCanFall: 'Shares and funds can fall in value; if they are worth less when sold, they cover less.',
-  outsideCanFallGilts: 'Shares and funds can fall in value, and so can a gilt sold before it matures; if they are worth less when sold, they cover less.',
-  cashLeft: 'After {year}, {amount} of your pension’s cash is left.',
-  // 7.11.1: a year the plan needs nothing from the pension for, and a lump sum the plan already counts
+  // a year the plan needs nothing from the pension for, and a lump sum the plan already counts (7.11.1)
   noNeed: '{year} needs nothing from your pension: {why}.',
   whyLump: 'a lump sum the plan counts that year pays it',
   whyLumpEarlier: 'a lump sum the plan counts, carried from an earlier year, pays it',

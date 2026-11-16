@@ -57,10 +57,12 @@ export function lockedLastsWords(doc, a, dp, weighted = SUCCESS.weighted) {
 
 /** The age a document's plan runs to, as every page of both apps says it (rules.js planToAgeOf: "to 97" = to the 97th birthday). */
 const planToAgeOfDoc = (dp) => planToAgeOf(+(dp && dp.startAge) || 0, +(dp && dp.durationYears) || 0);
-import { unlockPatchesOf } from '../../services/PlanCommit.js';
+import { unlockPatchesOf, lockedShortOf } from '../../services/PlanCommit.js';
 import { checkInState, checkInsOf } from './checkInDue.js';
 import { saverInputsOf } from './saverInputs.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
+import { heldLadder } from './held.js';
+import { moveStatusOf } from './moveWords.js';
 import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
@@ -870,14 +872,21 @@ function moveStep(C) {
   // Living on it, or Moving once what is held was accepted (7.11.1, Phases.heldPhase): what is held, never moves to make
   const asHeld = heldPhase(life);
   let result, done = false;
+  // living on a ladder (7.12.0): the gilts held, as "Your plan's mix" counts them (held.js, the one reading)
+  let hl = null; if (asHeld && m && m.target && m.target.kind === 'ladder') { try { hl = heldLadder(plan, { today: localDay(now), life }); } catch { hl = null; } }
   if (!m || !m.target || m.target.kind === 'none') result = sentence('move.notSet', ['Set when the plan is locked'], figures);
+  // Moving, once the person said this is how they want to hold it (7.12.0): said so, with the day
+  else if (asHeld && life && life.key === 'moving' && life.agreed && life.agreed.at) { result = sentence('move.ownWay', ['You hold it your own way (said ', { fixed: dayWords(life.agreed.at) }, ').'], figures); }
+  else if (hl) { figures.bought = hl.gilts.held; figures.rungs = hl.gilts.total; result = sentence('move.giltsHeld', [count('bought'), ' of ', count('rungs'), ' gilts held'], figures); done = !!m.diff.complete; }
   else if (m.diff.complete) { result = sentence('move.done', ['Done'], figures); done = true; }
   else if (m.target.kind === 'ladder') {
-    const total = m.target.lines.length;
-    // a rung held above its target is bought (7.11.1: the diff's own count, as the page and the order sheet say)
-    const bought = m.diff.rungs ? m.diff.rungs.held : m.diff.hold.filter((h) => Array.isArray(h.taxYears)).length;
-    figures.bought = bought; figures.rungs = total;
-    result = sentence('move.gilts', [count('bought'), ' of ', count('rungs'), ' gilts bought'], figures);
+    // the move's one status (7.12.0, moveWords.moveStatusOf), in the words of src/v7/copy/move.js MOVE.status.gilts and
+    // giltsPart: the move page and the full view say the same sentence (tests/v7/plan/moveSays.test.js holds them equal)
+    const st = moveStatusOf(m.target, m.diff, m.prog);
+    figures.bought = +st.slots.bought; figures.rungs = +st.slots.rungs; figures.part = +st.slots.part; figures.heldPct = +st.slots.held;
+    result = sentence('move.' + st.id, st.id === 'giltsPart'
+      ? [count('bought'), ' of ', count('rungs'), ' gilts bought, and ', count('part'), ' part bought. ', count('heldPct'), '% of your plan’s mix is held.']
+      : [count('bought'), ' of ', count('rungs'), ' gilts bought. ', count('heldPct'), '% of your plan’s mix is held.'], figures);
   } else if (asHeld && typeof m.diff.progressPct === 'number') {
     figures.heldPct = m.diff.progressPct;
     result = sentence('move.heldShare', [count('heldPct'), '% of the plan’s mix held'], figures);
@@ -885,7 +894,8 @@ function moveStep(C) {
     figures.movesDone = m.prog.doneCount; figures.moves = m.prog.total;
     result = sentence('move.moves', [count('movesDone'), ' of ', count('moves'), ' moves done'], figures);
   }
-  if (m && m.diff && typeof m.diff.progressPct === 'number') { figures.heldPct = m.diff.progressPct; lines.push(line('move.held', [count('heldPct'), '% of the plan’s mix held'], figures, sourceOf('hold', normaliseHoldings(plan.holdings).updatedAt || null, now))); }
+  // the share held, once: a ladder's status sentence already says it (7.12.0)
+  if (m && m.diff && typeof m.diff.progressPct === 'number' && !(result.id === 'move.gilts' || result.id === 'move.giltsPart')) { figures.heldPct = m.diff.progressPct; lines.push(line('move.held', [count('heldPct'), '% of the plan’s mix held'], figures, sourceOf('hold', normaliseHoldings(plan.holdings).updatedAt || null, now))); }
   // "Open it": the move is drawn inside V7 (road-to-7.md step 10; holdings-and-move.md §4)
   return { done, result, figures, lines, buttons: [link('openMove', '#/plan/' + plan.id + '/move')], notes: asHeld ? [] : ['move.optional'] };
 }
@@ -1213,6 +1223,8 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
     before: beforeReading(plan, list),
     locked,
     lockedOn: locked ? dayWords(lockedAtOf(plan)) : null,
+    // 7.12.0: locked when its gilt ladder cost more than its pots (an old document): said at the top of "Your plan as locked"
+    lockedShort: locked && plan.planDocument ? (() => { const x = lockedShortOf(plan.planDocument); return x ? { short: '£' + x.short.toLocaleString('en-GB') } : null; })() : null,
     readonly,
     source,
     steps,

@@ -7,23 +7,65 @@
  */
 export const MOVE = {
   title: 'Moving to your plan’s mix',
-  lead: 'From what you hold to the plan as locked: what to buy and sell, the cash to hold, and when. A tick on each line records the order as placed.',
-  optional: 'Optional. Skipping it means what you hold may not match what the plan was tested on.',
+  lead: 'From what you hold to your plan as locked. Optional: your plan was tested on its own mix, and what you hold may differ.',
   notLocked: 'Set when the plan is locked. The move is worked out against the plan document, which the lock makes.',
-  noRecord: 'Nothing recorded yet — record what you hold first. Until then everything below reads as “to buy”.',
   readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
   notRun: 'The plan could not be read against its document.',
   unread: 'We could not tell what your pension holds from what you recorded, so it is not read against the plan’s mix. You can say what each line holds on What you hold.',
-  target: { ladder: 'The target: a gilt ladder — every rung and the cash years, in units.', buckets: 'The target: a mix in pounds — any world share fund, gilt fund or money-market fund fills its part.', isaHold: 'The ladder is bought in the pension; the ISA is held aside and not part of it.', isaDraw: 'The ladder is bought in the pension; the ISA is drawn by its own rule and not part of it.' },
+  target: { ladder: 'A gilt ladder: every gilt and the cash years, in units.', buckets: 'The target: a mix in pounds — any world share fund, gilt fund or money-market fund fills its part.' },
+  // which money pays for the ladder (7.12.0): one rule with the engine — the ISA counts unless it is held aside
+  isa: {
+    in: 'Your plan pays for the ladder from your pension and your ISA together. Which account each gilt sits in is yours to choose.',
+    hold: 'Your plan pays for the ladder from your pension. Your ISA is held aside.',
+    none: 'Your plan pays for the ladder from your pension.'
+  },
   status: {
     done: 'Done — what you hold matches the plan’s mix.',
     doneLadder: 'Done — every rung the plan still needs is held.',
     doneKept: 'Done — every rung is held, or covered by what you chose to keep.',
-    held: '{held}% of the plan’s mix held; {done} of {moves} moves ticked off.',
-    gilts: '{bought} of {rungs} gilts bought; {held}% of the plan’s mix held.',
-    giltsPart: '{bought} of {rungs} gilts bought and {part} part bought; {held}% of the plan’s mix held.',
-    next: 'Next: {action} {label}{units}{amount}.',
-    starts: 'The buying is spread over the next {months} month{s}, to {when}.'
+    held: '{held}% of the plan’s mix held; {done} of {moves} moves done.',
+    gilts: '{bought} of {rungs} gilts bought. {held}% of your plan’s mix is held.',
+    giltsPart: '{bought} of {rungs} gilts bought, and {part} part bought. {held}% of your plan’s mix is held.',
+    // (never "about £" on this page, and never "before you stop work": the page is also read by people who have stopped)
+    pace: 'Work stops in {when}, in {months} months. To finish the buying by then is {perMonth} a month, to the nearest £100.',
+    paceOne: 'Work stops in {when}, next month. To finish the buying by then is {perMonth}, to the nearest £100.',
+    timing: 'You can buy the gilts at any time before you stop. The prices here are from the day you locked; buying earlier fixes the price you pay.'
+  },
+  /** Paying for it (7.12.0, a ladder): one reading of what pays for the buys (answers/plan/moveWords.js payingOf), in order. */
+  paying: {
+    title: 'Paying for it',
+    need: 'The buys come to {need}.',
+    youHold: 'You hold {available} that your plan does not use.',
+    enough: '{toRaise} of it pays for the buys; you choose which to sell.',
+    leftOver: 'The other {leftOver} is not needed for the ladder.',
+    heldShares: 'Your plan counts it as money left over, and was tested with it in a world share fund.',
+    heldValue: 'Your plan counts it as money left over, and was tested with it keeping its value.',
+    leave: 'You can leave it as it is.',
+    enoughAll: 'All of it pays for the buys; you choose which to sell first.',
+    short: 'That is {short} less than the buys cost.',
+    newMoney: 'New money paid in before then, {newMoney}, is counted first.',
+    shortRest: 'The rest waits until the money is there.',
+    cash: 'Your pension’s spare cash covers them.',
+    unlisted: 'You have not listed what your pension holds, and you do not need to.',
+    planHas: 'Your plan has {pension} in your pension ({from}).',
+    planHasIsa: 'Your plan has {pension} in your pension and {isa} in your ISA ({from}).',
+    planEnough: '{toRaise} of it pays for the buys; you choose which to sell. The other {leftOver} is not needed for the ladder.',
+    planShort: 'That is {short} less than the buys cost.',
+    from: { plan: 'from your plan', checkIn: 'from your check-in', record: 'from your last record' }
+  },
+  /** What is held that the plan does not use (7.12.0, a ladder): the lines outside it, and a gilt's units above its place. */
+  outside: {
+    title: 'What you hold that your plan does not use',
+    columns: { what: 'What', value: 'Value today', note: 'Note' },
+    notes: {
+      gilt: 'Matures on {date} and pays {pays}.',
+      giltReal: 'Matures on {date} and pays {pays} (worth {real} at today’s prices).',
+      sellOr: 'You can sell it, or',
+      sayYears: 'say which years it is for',
+      cashYear: '{year} is a year your plan pays from cash.',
+      giltUnknown: 'We cannot tell when it matures from its name. Its code or SEDOL on What you hold would tell us.',
+      overRung: '{excess} units more than its place in the ladder needs ({amount} at the prices when you locked).'
+    }
   },
   waiting: {
     line: 'You stop work in about {years} years. Until your move window opens in {opens}, the move is just where new money goes.',
@@ -37,6 +79,7 @@ export const MOVE = {
   },
   cost: {
     title: 'What skipping it costs',
+    titleLadder: 'What is not bought yet',
     ladder: '{n} tax year{s} ({years}) {have} no gilt bought yet.',
     ladderNone: 'Every tax year the ladder funds has its gilt bought.',
     part: '{label}, for {years}: {held} of {units} units held.',
@@ -60,9 +103,12 @@ export const MOVE = {
     rows: {
       cashYear: 'Cash year {year}',
       cashYearLump: 'Cash year {year} ({lump} of it paid by a lump sum expected that year)',
-      cashYearCovered: 'Cash year {year}: held another way, by what you keep'
+      cashYearBeside: 'Cash year {year}, beside what you keep for it',
+      cashYearCovered: 'Cash year {year}: paid by what you keep for it'
     },
-    columns: { what: 'What for', amount: 'Amount' },
+    besideNeed: '{gap} after what {label} pays',
+    columns: { what: 'What for', need: 'The year needs', amount: 'To hold now' },
+    over: '‘To hold now’ is a little more than the year needs when cash is expected to fall behind prices before it is spent.',
     total: 'To hold',
     held: 'You hold',
     spare: 'Spare',
@@ -72,34 +118,17 @@ export const MOVE = {
   },
   /**
    * What is held, as information (7.11.1): Living on it, or Moving once what is held was accepted, the page is never a move —
-   * no list of things to buy or sell, no schedule. answers/plan/move.js heldInfo fills these.
+   * no list of things to buy or sell, no schedule. answers/plan/move.js heldInfo fills these on a pot plan; a ladder's page is
+   * "Your plan's mix" (7.12.0, src/v7/copy/held.js).
    */
   held: {
     // (a walk of 7.11.1: never "nothing here is a list of things to buy or sell" — the plan's order sheet stays on the page)
     lead: 'What you hold, beside your plan as locked, and what each part of it is doing.',
-    agreed: 'You accepted what you hold as your plan on {date}.',
+    agreed: 'On {date} you said this is how you want to hold it.',
+    takeBack: 'Take this back',
+    notFull: '{n} of the {total} gilts your plan uses are not bought in full. Those years are paid from what you hold instead, and its value can fall.',
+    notFullOne: '1 of the {total} gilts your plan uses is not bought in full. That year is paid from what you hold instead, and its value can fall.',
     noRecord: 'Nothing recorded yet. You can record what you hold on What you hold, and this page reads it against your plan.',
-    rungs: '{held} of the {total} rungs your plan still needs are held.',
-    rungPart: '{label} ({code}), for {years}: {held} of {units} units held. The rest is rung {n} on the order sheet below.',
-    rungPartValue: '{label} ({code}), for {years}: {value} of {cost} held. The rest is rung {n} on the order sheet below.',
-    rungNone: '{label} ({code}), for {years}: not held. It is rung {n} on the order sheet below.',
-    // the full view has no order sheet on this tab: it is in the plan document
-    doc: {
-      rungPart: '{label} ({code}), for {years}: {held} of {units} units held. The rest is rung {n} of the order sheet in your plan document.',
-      rungPartValue: '{label} ({code}), for {years}: {value} of {cost} held. The rest is rung {n} of the order sheet in your plan document.',
-      rungNone: '{label} ({code}), for {years}: not held. It is rung {n} of the order sheet in your plan document.'
-    },
-    rungOver: '{label} ({code}), for {years}: held, with {excess} units more than the rung needs.',
-    linesTitle: 'Also in your pension',
-    // 7.11.1: when a gilt matures is a fact, said as one — it sets the gilt against no tax year
-    gilt: '{label} ({value} today): matures in {month}.',
-    giltUnknown: '{label} ({value} today): we cannot tell when it matures. Its code or SEDOL on What you hold would tell us.',
-    giltPaid: '{label}: matured in {month}. Once paid, its money is your pension’s cash, and the line can come off What you hold.',
-    giltCashNow: '{label}: matured in {month}, after your record was taken, so what it paid counts as your pension’s cash. The line can come off What you hold.',
-    outside: '{label} ({value} today): outside the plan’s mix; its value can fall.',
-    cash: 'The cash years still ahead ({years}) need {target}. Held for them: {held} in your pension’s cash.',
-    cashThisYear: 'The cash years still ahead ({years}; this one’s months still to come) need {target}. Held for them: {held} in your pension’s cash.',
-    cashNone: 'No cash years are left: the {held} in your pension’s cash is your spending float.',
     mixTitle: 'What you hold, against your plan’s mix',
     bucket: {
       shares: 'Shares: {held}% of your pension now; your plan’s mix has {plan}%.',
@@ -126,6 +155,8 @@ export const MOVE = {
     spare: '({spare} spare — kept, not a sale)',
     keepOne: '{label} ({wrapper}, {value}): {why}.',
     totals: 'Totals: buy {buy}, sell {sell}.',
+    totalsLadder: 'Totals: buy {need}; paid from what your plan does not use, {toRaise}; left as it is, {leftOver}.',
+    totalsShort: 'Totals: buy {need}; you hold {available} toward it; {short} waits for new money.',
     short: ' Short by {short} before new money.',
     paid: 'Already paid: {list} — matured rungs, no longer targets.',
     matured: 'Still on your record but matured: {list}.',
@@ -137,7 +168,6 @@ export const MOVE = {
     rung: 'the rung for {years}',
     moreThanRung: 'more than the rung needs',
     cashYears: 'the cash years',
-    notInPlan: 'not in the plan — the proceeds pay for the ladder',
     bringUp: 'bring {bucket} up to {pct}% of the pot',
     bringDown: 'bring {bucket} down to {pct}% of the pot',
     notInMix: 'not in the plan’s mix',
@@ -156,8 +186,9 @@ export const MOVE = {
     lead: 'Cash first, then the near rungs before the far ones, then the mix; sales spread over {tranches} tranche{s} so no single month’s price decides it; new money is used before sales.',
     funded: 'Paid for by sales{newMoney}.',
     fundedNewMoney: ' and new money',
-    short: 'Short by {short}: the plan was priced on a bigger pot than the record holds, or lines are missing from the record.',
+    leadLadder: 'Cash first, then the near gilts before the far ones. The buying is spread over {tranches} dates so no single month’s price decides it. New money is used before sales.',
     step: 'By {when}: {action} {label}{units}{amount}.',
+    raise: 'By {when}: raise {amount} from what your plan does not use.',
     buy: 'buy',
     sell: 'sell',
     units: ', {units} units',
@@ -165,6 +196,8 @@ export const MOVE = {
     passed: 'Your plan is already paying: what is left is spread over the next {months} month{s}.'
   },
   how: {
+    // a ladder's first item (7.12.0): which accounts pay for it, in the one sentence (MOVE.isa), then the rest of the item
+    accountsLadder: 'Accounts. {isa} Other-account and bank lines are left alone; money moved between accounts is a payment in (a pension takes £10,000 a year once you have drawn flexibly; an ISA £20,000 a year), not a sale.',
     open: 'How to read this',
     close: 'Hide how to read this',
     items: [
@@ -228,6 +261,15 @@ export const MOVE = {
     },
     switchLead: 'Made the switch? The full view records it: the plan moves to “Floor to an age, then decide” at {cutAge}, with the income sold on record.',
     switchButton: 'Make the switch in the full view'
+  },
+  /** "This is how I want to hold it" (7.12.0): one press and a confirm, Moving, while the move is not done. */
+  sayHeld: {
+    title: 'Want to hold it your own way?',   // (never "holding": a banned word on planner pages)
+    lead: 'You can say that what you hold now is how you want it. This page then shows what you hold beside your plan, with no list to buy.',
+    button: 'This is how I want to hold it',
+    confirm: 'From now on this page shows what you hold beside your plan, and stops listing things to buy. Your plan and its document stay as locked. You can take this back at any time.',
+    yes: 'Yes, this is how I want it',
+    no: 'Go back'
   },
   footer: 'Illustration, not advice. Nothing here places an order.',
   toast: {

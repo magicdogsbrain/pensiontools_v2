@@ -8,6 +8,7 @@
  * Pure: strings in, strings out. The dialogs are shown by index.html's appConfirm (never a browser dialog).
  */
 import { listStrategies } from '../strategies/registry.js';
+import { LOCK } from '../v7/copy/lock.js';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -75,6 +76,18 @@ export function newDocumentVersionQuestion({ strategyName = '', lockedAt = '' } 
     okLabel: 'Write the new version',
     cancelLabel: 'Keep the current document'
   };
+}
+
+/**
+ * The lock refused (7.12.0): the one sentence V7's lock page says (src/v7/copy/lock.js LOCK.unaffordable), for the fit
+ * PlanCommit.lockFitOf reads from the run. Plain text.
+ */
+export function lockFitWords(fit) {
+  if (!fit) return '';
+  const U = LOCK.unaffordable;
+  const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
+  if (fit.ladder) return U.ladder.replace('{cost}', gbp(fit.cost)).replace('{pots}', fit.isa ? U.potsIsa : U.potsPension).replace('{amount}', gbp(fit.pots)).replace('{short}', gbp(fit.short));
+  return U.other.replace('{reason}', fit.reason || (fit.short ? gbp(fit.short) + ' short' : 'it cannot be paid for'));
 }
 
 /** The question before the plan is locked from the Stress settings page. */

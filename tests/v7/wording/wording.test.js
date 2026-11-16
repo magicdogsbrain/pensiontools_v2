@@ -145,7 +145,7 @@ describe('the words in src/v7/copy/', () => {
       .replace(/\{strategy\}/g, 'Full gilt ladder').replace(/\{dial\}/g, 'Years held in cash').replace(/\{mode\}/g, 'by risk level').replace(/\{from\}/g, '9 November 2036')
       .replace(/\{label\}/g, 'Rental flat').replace(/\{(to|age)\}/g, '74').replace(/\{what\}/g, 'a cash lump sum').replace(/\{level\}/g, 'balanced').replace(/\{years\}/g, '15')
       // the plan menu (road-to-7.md step 11): the lock's date, a plural, a file's problem in words
-      .replace(/\{lockedOn\}/g, '1 July 2026').replace(/\{s\}/g, 's').replace(/\{problem\}/g, 'a number that is not a number')
+      .replace(/\{lockedOn\}/g, '1 July 2026').replace(/\{s\}/g, 's').replace(/\{problem\}/g, 'a number that is not a number').replace(/\{short\}/g, '£60,000')
       // Move to a new plan (6.56.0): the pots in pounds, the plans' names, the month a plan closed
       .replace(/\{(pension|isa)\}/g, '£250,000').replace(/\{gia\}/g, ', ordinary investment account £40,000').replace(/\{(partner|old|next)\}/g, 'Shares and cash').replace(/\{closed\}/g, 'March 2029')
       // a saver's check-in (release step R3): how often, the last check-in's month and the next's
@@ -242,7 +242,9 @@ describe('the words in src/v7/copy/', () => {
     // the lock step, the unlock's confirm and the new version are plan pages (road-to-7.md step 6): a retired person's and a saver's plan alike
     const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
     const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{versions\}/g, '10').replace(/\{strategy\}/g, 'Full gilt ladder').replace(/\{charges\}/g, '0.5')
-      .replace(/\{which\}/g, 'fund and platform charges of 0.5% a year').replace(/\{month\}/g, 'February 2038');
+      .replace(/\{which\}/g, 'fund and platform charges of 0.5% a year').replace(/\{month\}/g, 'February 2038')
+      // 7.12.0: a way of drawing that cannot be paid for — the cost, the pots, how far short, the way's own reason
+      .replace(/\{(cost|amount|short)\}/g, '£480,000').replace(/\{pots\}/g, 'pension and ISA').replace(/\{reason\}/g, 'it costs £540,000, £60,000 more than the pot');
     const hits = [];
     const all = strings(LOCK).map(([, s]) => slot(s)).join('\n');
     for (const [where, s] of strings(LOCK)) for (const h of bannedHits(slot(s), scopes, { context: all })) hits.push(`lock.js ${where} — ${h}`);
@@ -386,7 +388,9 @@ describe('the words in src/v7/copy/', () => {
       .replace(/\{opens\}/g, 'February 2035')   // 7.10.0: the month the plan's move window opens
       // 7.11.1: what is held, as information — the gilts maturing in the cash years, a rung's units more than it needs, the
       // month a gilt matures, the plan's own share of a bucket
-      .replace(/\{gilts\}/g, '£250,000').replace(/\{excess\}/g, '3').replace(/\{month\}/g, 'March 2027').replace(/\{plan\}/g, '35');
+      .replace(/\{gilts\}/g, '£250,000').replace(/\{excess\}/g, '3').replace(/\{month\}/g, 'March 2027').replace(/\{plan\}/g, '35')
+      // 7.12.0: what pays for a ladder's buys, the pace, the cash a year needs beside what is kept, the gilts not bought in full
+      .replace(/\{(need|available|toRaise|leftOver|perMonth|real|gap)\}/g, '£25,000').replace(/\{(total|first)\}/g, '3').replace(/\{isa\}/g, 'Your plan pays for the ladder from your pension.');
     const hits = [];
     for (const [file, words] of [['hold.js', HOLD], ['move.js', MOVE]]) {
       const all = strings(words).map(([, s]) => slot(s)).join('\n');
@@ -397,7 +401,7 @@ describe('the words in src/v7/copy/', () => {
     }
     expect(hits).toEqual([]);
     expect(MOVE.footer).toBe('Illustration, not advice. Nothing here places an order.');
-    expect(MOVE.optional).toBe('Optional. Skipping it means what you hold may not match what the plan was tested on.');
+    expect(MOVE.lead).toBe('From what you hold to your plan as locked. Optional: your plan was tested on its own mix, and what you hold may differ.');   // retaken in 7.12.0: "optional" is said in the lead, once
     expect(MOVE.cost.ranUntimed).toBe('Tried in 1 run.');
     expect(HOLD.lead).toContain('nothing here is copied from the plan');
     expect(HOLD.line.removeConfirm).toContain('Nothing is sold; this only changes the record.');

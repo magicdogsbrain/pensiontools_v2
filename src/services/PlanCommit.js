@@ -32,6 +32,35 @@ import { tagPortfolio, allocationFromTags } from './PortfolioTagger.js';
 /**
  * Default decision settings for a new scenario
  */
+/**
+ * Whether the way of drawing can be paid for (7.12.0): one reading, from the run the lock already makes ({ p, r }). Null when
+ * it can (`r.affordable` is not false). A gilt ladder: what it costs, the pots it is paid from (the pension, and the ISA unless
+ * it is held aside: stressTest.js availablePot) and how far short; any other way: its own shortfall and reason.
+ * @returns {null | { ladder: boolean, cost: number|null, pots: number|null, short: number|null, isa: boolean, reason: string|null }}
+ */
+export function lockFitOf(run) {
+  const r = run && run.r;
+  if (!r || r.affordable !== false) return null;
+  const p = (run && run.p) || {};
+  const isa = !p.isaHold && (+p.isa || 0) > 0;
+  const plan = r.plan && typeof r.plan === 'object' ? r.plan : null;
+  if (plan) {
+    const cost = Math.round(+plan.total || 0), short = Math.round(-(+plan.spare || 0));
+    return { ladder: true, cost, pots: cost - short, short, isa, reason: null };
+  }
+  return { ladder: false, cost: null, pots: null, short: Number.isFinite(+r.shortfall) ? Math.round(+r.shortfall) : null, isa, reason: r.reason || null };
+}
+
+/**
+ * A plan already locked when its gilt ladder cost more than its pots (7.12.0, an old document: strategy.r.affordable false):
+ * { short } for the words at the top of its document, else null. Nothing stored changes.
+ */
+export function lockedShortOf(doc) {
+  const s = doc && doc.strategy;
+  const fit = s && s.contract ? lockFitOf({ p: s.p || {}, r: s.r || null }) : null;
+  return fit && fit.ladder && fit.short > 0 ? { short: fit.short } : null;
+}
+
 export function getDefaultDecisionSettings() {
   return {
     equityMin: DRAWDOWN_DEFAULTS.EQUITY_MIN,

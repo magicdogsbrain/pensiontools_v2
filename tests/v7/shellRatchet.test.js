@@ -82,7 +82,11 @@ import { resolve } from 'node:path';
 // accumulationBoxes) and saves through one repository call that also records a new pot today: 10 lines shorter: 9,026.
 // The pots when you stop worked out from the saver's facts (7.12.0): the Timing block calls PotsAtStop.timingPotsAtStop
 // in place of the fixed-rate projection, and no longer reads the Accumulation settings itself: 1 line shorter: 9,025.
-const MAX_LINES = 9025;
+// The lock asks one question first (7.12.0): the Stress settings' lock button moved to src/ui/lockFromStressUi.js, the shell
+// installing it in one line: 11 lines shorter.
+// A plan not locked yet reads its own figures in the Decision tool (7.12.0): the set-up banners and isToolConfigured went,
+// with the other 7.12.0 lanes' shrinks joined: 8,986.
+const MAX_LINES = 8986;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

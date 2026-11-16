@@ -27,7 +27,8 @@ import { ledgerView, isGiltTicker, inTodaysMoney, yearNeedsOf } from '../../serv
 import { catalogueEntry } from '../../services/SubAssetModel.js';
 import { deriveTiming, taxYearStartOf, taxYearOfMonth, taxYearLabel } from '../../services/PlanTiming.js';
 import { amendmentState, amendmentEntry, amendmentsWith, amendmentsWithoutLast, keepFingerprint, keepsLines, lineKeysOf, holdingsKeyOf } from '../../services/PlanAmendments.js';
-import { gapsOf } from './gaps.js';
+import { gapsOf, lifeOf } from './gaps.js';
+import { heldPhase } from '../../services/Phases.js';
 import { savedMove } from './move.js';
 import { pounds } from './income.js';
 import { dateOf, dayWords } from './dates.js';
@@ -59,10 +60,13 @@ export function keptAssetsOf(rec) {
   const all = lineKeysOf(r);
   // the ledger keeps the lines with a value or units, in order: their keys, in the same order
   const keys = r.lines.map((l, i) => [l, all[i]]).filter(([l]) => l && (num(l.value) > 0 || num(l.units) > 0)).map(([, k]) => k);
-  return rows.map((h, i) => [h, keys[i]]).filter(([h]) => h.keep).map(([h, key]) => {
+  // the record's own lines beside the ledger's rows, in the same order (what the person said each line is: its subClass)
+  const said = r.lines.filter((l) => l && (num(l.value) > 0 || num(l.units) > 0)).map((l) => !!l.subClass);
+  return rows.map((h, i) => [h, keys[i], said[i]]).filter(([h]) => h.keep).map(([h, key, saidWhat]) => {
     const keep = normaliseKeep(h.keep);
     const bucket = h.cash ? 'cash' : h.gilt ? 'bonds' : (h.bucket || 'shares');
-    const single = !h.cash && !h.gilt && !isGiltTicker(h.ticker) && bucket === 'shares' && !catalogueEntry(h.ticker);
+    // one company's shares (7.12.0): only a line the person has not said what it is, and that nothing else places
+    const single = !h.cash && !h.gilt && !isGiltTicker(h.ticker) && bucket === 'shares' && !catalogueEntry(h.ticker) && !saidWhat && !h.split;
     // what the line holds, in its parts (7.10.0, ledgerView's split): a multi-asset fund is its catalogue mix; a line nothing
     // places is tested as shares, as before
     const split = h.split ? { ...h.split } : { shares: bucket === 'shares' ? 1 : 0, bonds: bucket === 'bonds' ? 1 : 0, diversifiers: bucket === 'diversifiers' ? 1 : 0, cash: bucket === 'cash' ? 1 : 0 };
@@ -288,16 +292,22 @@ export function sayKeep(part, K) {
   return String(t || '').replace(/\{(\w+)\}/g, (m, k) => { const v = part.slots ? part.slots[k] : undefined; return v == null ? m : typeof v === 'object' ? sayKeep(v, K) : String(v); });
 }
 
+/** A locked plan whose document is a bought ladder (a contract strategy with orders). */
+const isLadderPlan = (plan) => { const d = plan && plan.planDocument; const p = d && d.strategy && d.strategy.r && d.strategy.r.plan; return !!(d && d.strategy && d.strategy.contract && p && Array.isArray(p.orders)); };
+
 /**
  * Everything the screens say about what is kept and the agreement (both apps, one reader). Null when the plan is not locked
  * or keeps nothing and has no agreement — a plan without keeps reads exactly as before.
  * @param {object} plan
- * @param {{ today: string, result?: object|null, run?: { status, reason }|null }} o   `result`: the re-test held in page memory
- *   for this plan (keepRun.js), dropped here unless it is for what is kept now
+ * @param {{ today?: string, result?: object|null, run?: { status, reason }|null }} o   `result`: the re-test held in page memory
+ *   for this plan (keepRun.js), dropped here unless it is for what is kept now. `today` (7.12.0): a ladder living on the plan
+ *   (or Moving once what is held was accepted) reads nothing — what is held there is taken as what the person wants, and
+ *   "Your plan's mix" (held.js) says what it changes
  */
-export function keepTestOf(plan, { result = null, run = null } = {}) {
+export function keepTestOf(plan, { result = null, run = null, today = null } = {}) {
   const st = amendmentState(plan);
   if (st.status === 'none') return null;
+  if (today && isLadderPlan(plan)) { let life = null; try { life = lifeOf(plan, dateOf(today)); } catch { life = null; } if (heldPhase(life)) return null; }
   const fp = keepFingerprint(plan && plan.holdings);
   // the re-test is read only while it is for the record exactly as it is now (what is kept, and every figure)
   const mine = result && isObj(result) && fp && result.fingerprint === fp && result.recordKey === holdingsKeyOf(plan && plan.holdings) ? result : null;

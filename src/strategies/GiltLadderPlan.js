@@ -146,7 +146,7 @@ export function buildGiltLadder(p) {
     uncoveredYears: uncovered.map((y) => y.Y),
     firstTaxYear: p.firstTaxYear, lastTaxYear: p.firstTaxYear + p.durationYears - 1,
     ...(p.lifeFromPricing ? { pricedAt: todayIso.slice(0, 10) } : {}),
-    reason: uncovered.length ? `no index-linked gilt covers ${uncovered.map((y) => y.Y).join(', ')}` : total > p.pot ? `it costs ${Math.round(total).toLocaleString()} — ${Math.round(total - p.pot).toLocaleString()} more than the pot` : null
+    reason: uncovered.length ? `no index-linked gilt covers ${uncovered.map((y) => y.Y).join(', ')}` : total > p.pot ? `it costs £${Math.round(total).toLocaleString('en-GB')} — £${Math.round(total - p.pot).toLocaleString('en-GB')} more than the pot` : null
   };
 }
 

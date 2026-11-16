@@ -796,6 +796,23 @@ export async function saveActivePlanAmendments(list) {
 }
 
 /**
+ * "This is how I want to hold it" and "Take this back" in the full view (7.12.0, answers/plan/agree.js sayHeldPatch and
+ * agreeWithdrawPatch): the whole `phases` root, written as ONE field with the stamp, as V7 writes it. The stored plan is read
+ * afresh; refused once a close has passed and on the example plan (LockedPlanGuard.phaseWriteRefusal).
+ */
+export async function saveActivePhases(phases, { now = new Date() } = {}) {
+  const active = await getActiveScenarioAsync();
+  if (!active) throw new Error('No active scenario');
+  const stored = (await loadScenario(active.id)) || active;
+  const clean = phases && typeof phases === 'object' ? JSON.parse(JSON.stringify(phases)) : {};
+  const refused = phaseWriteRefusal(stored, { phases: clean }, { now });
+  if (refused) throw new PlanLockedError(refused);
+  await saveScenario(active.id, { phases: clean });
+  if (cachedActiveScenario && cachedActiveScenario.id === active.id) cachedActiveScenario.phases = JSON.parse(JSON.stringify(clean));
+  return clean;
+}
+
+/**
  * The × on the classic page's banner (7.10.0; research/v7/replan-nov-2026.md §6.4): a to-do put away on the plan itself, so
  * the new app's home and a partner's device see the same quiet home. The stored plan is read afresh (never the cache: another
  * device may have put something else away since), the one key added (answers/plan/tasks.js taskPatch, "Not now" until next

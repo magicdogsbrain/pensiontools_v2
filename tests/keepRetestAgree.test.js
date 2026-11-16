@@ -5,6 +5,7 @@
  * agreement is one write of a root list, with withdraw, out of date when what is kept or the document changes, frozen on a
  * closed plan, dropped by a copy, kept by every migration. Plans that keep nothing read exactly as before. Fictional plans only.
  */
+import { asMoving } from './v7/plan/_alex.js';
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 import { readFileSync, readdirSync } from 'node:fs';
@@ -36,7 +37,8 @@ const text = (v) => JSON.stringify(v);
 
 /** "Sam's plan": a locked index-linked ladder from 2027/28 (fictional). Sam keeps the world fund instead of buying the last rungs. */
 function samKeeps({ counted = false, expected = true } = {}) {
-  const p = fixture('20-locked-start-after-stop.json'); p.id = 'SamKeeps77';
+  // 7.12.0: read as Moving — living on a ladder, what is held counts as it is and there is no keep test
+  const p = asMoving(fixture('20-locked-start-after-stop.json')); p.id = 'SamKeeps77';
   const lines = p.holdings.lines.filter((l) => !/^(T29|T30I)$/.test(l.ticker || '')).map((l) => (l.ticker === 'VWRP' ? { ...l, keep: { as: 'mine', fundsGaps: counted } } : l));
   p.holdings = { ...normaliseHoldings({ lines, updatedAt: '2026-11-01', source: 'typed' }), ...(expected ? { expected: [{ id: 'e1', label: 'Pension elsewhere', wrapper: 'SIPP', amount: 30000, by: '2028-06' }] } : {}) };
   return p;
@@ -399,7 +401,7 @@ describe('review fixes (7.7.0): generic for anyone who keeps something the plan 
     expect(keys).not.toContain('canFall');
     expect(GAPS.canFallPot).not.toMatch(/sell|gap/);
     expect(GAPS.keep.fundsPlan).not.toMatch(/gap/);
-    const ladder = gapsView(gapsOf(samKeeps({ counted: true }), { today: TODAY }));
+    const ladder = gapsView(gapsOf(samKeeps({ counted: true }), { today: TODAY, asKept: true }));   // 7.12.0: living on a ladder, read as the keep test reads it
     expect(ladder.lines.flatMap((l) => l.parts.map((x) => x.key))).toContain('fundsGaps');
   });
 });

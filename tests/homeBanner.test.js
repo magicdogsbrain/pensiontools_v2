@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { homeBannerOf, showHomeBanner, installHomeBanner, entriesOf, dayOf, DISMISSED_KEY, updateHomeBanner, simpleLinkHref, openingTabOf } from '../src/ui/homeBannerUi.js';
 import { homeOf } from '../src/answers/plan/home.js';
 import { deriveStage, openingTab } from '../src/services/LifeStage.js';
-import { holdingsLines } from '../src/services/HoldingsRecord.js';
+import { holdingsSummary, normaliseHoldings } from '../src/services/HoldingsRecord.js';
 import { planHasFigures } from '../src/services/DraftDecision.js';
 import { nextStepFor } from '../src/services/NextStep.js';
 import { PLAN } from '../src/v7/copy/plan.js';
@@ -240,7 +240,7 @@ describe('the banner on the page and its ✕', () => {
         const stage = deriveStage(raw, noon(today));
         const tab = await openingTabOf({ refreshLifeStage: async () => stage, getActiveScenarioId: async () => e.plan.id, listScenariosAsync: async () => raws }, noon(today));
         const phase = homeOf(entries, e.plan.id, { today }).stage.key;
-        const opts = { held: holdingsLines(raw.holdings).length > 0, figures: planHasFigures(raw) };
+        const opts = { held: holdingsSummary(normaliseHoldings(raw.holdings)).count > 0, figures: planHasFigures(raw) };
         if (phase === 'moving') { moving++; expect(tab.tab, `${today} ${e.plan.id}`).toBe(stage.locked ? (opts.held ? 'transition' : 'decision') : 'stress'); }
         else expect(tab, `${today} ${e.plan.id} ${phase}`).toEqual(openingTab(stage, phase, opts));
       }

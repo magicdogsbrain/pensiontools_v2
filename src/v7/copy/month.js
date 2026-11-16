@@ -136,10 +136,13 @@ export const MONTH = {
     fromTitle: 'Where it comes from',
     from: {
       cash: 'Cash', bonds: 'Bonds', shares: 'Shares', diversifiers: 'Gold and trend',
-      rung: 'The gilt for {year}, already paid out as cash', thisYear: 'This year’s gilt, already paid out as cash', cashYears: 'The cash set aside for the first years',
+      rung: 'The gilt for {year}, already paid out as cash', thisYear: 'This year’s gilt, already paid out as cash', cashYears: 'The plan’s cash years',
       cashBefore: 'Your cash, until the first gilt pays', essentials: 'The gilt that pays for essentials', invested: 'Your invested money', investedRest: 'Your invested money, for the rest'
     },
+    // said only when the cash entered covers the month (7.12.0); short, or with no cash figure, the other two
     bought: 'Nothing is sold: the money is already in cash. The tax is the same, as it is still taken from your pension.',
+    boughtShort: 'Your plan pays this month from cash. The cash you entered is {cash}, less than this month’s {month}. The tax is the same, as it is still taken from your pension.',
+    boughtPlain: 'Your plan pays this month from cash. The tax is the same, as it is still taken from your pension.',
     movesTitle: 'Moves to make',
     moves: {
       sharesToBonds: 'Move {amount} from shares to bonds.', bondsToShares: 'Move {amount} from bonds to shares.', bondsToCash: 'Move {amount} from bonds to cash.',

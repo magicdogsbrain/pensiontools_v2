@@ -20,6 +20,8 @@ import { whereAmIFor, historyAscending, moveInputs, effectiveStressSettings } fr
 import { driftOf, DRIFT_BAND, MOVE_BAND } from '../../services/TransitionPlanner.js';
 import { monthsWanted } from '../../services/DrawCadence.js';
 import { gapsOf, gapHeadline } from './gaps.js';
+import { heldLadder } from './held.js';
+import { pounds } from './income.js';
 import { taxYearStartOf, taxYearKey, taxYearLabel, earlyPensionDrawOf } from '../../services/PlanTiming.js';
 import { readDayOf } from '../../services/PlanClosed.js';
 import { isFilledIn } from '../../services/MonthFill.js';
@@ -29,6 +31,7 @@ import { asHeldStateOf } from './agree.js';
 import { ym, dayWords } from './dates.js';
 import { startLaterOf } from '../../services/PlanMove.js';
 import { pensionLockForSettings } from '../../services/PlanNeed.js';
+import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
 import { closedYearsShort, shortYearsWords } from '../../services/PensionLock.js';
 
 /**
@@ -313,6 +316,9 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   const whereFull = cut && stepOf('where') ? '#/plan/' + pg.id + '/where' : null;
   let gapLine = null;
   if (!pg.readonly && !pg.closed) { try { const h = gapHeadline(gapsOf(plan, { today, life })); gapLine = h ? { ...h, Y: String(h.Y), href: '#/plan/' + pg.id + '/hold' } : null; } catch { gapLine = null; } }
+  // 7.12.0: living on a ladder, one line only when the pension holds less than the cash years still need (held.js, the one reading)
+  let heldLess = null;
+  if (!pg.readonly && !pg.closed) { try { const hl = heldLadder(plan, { today, life }); heldLess = hl && hl.state === 'less' ? { less: pounds(hl.less), href: '#/plan/' + pg.id + '/move' } : null; } catch { heldLess = null; } }
   const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {} }));
   // the steps, read-only with each result line; a saver's "For later" group stays on a plan not locked, but a locked plan
   // is being carried out: its steps are listed plainly, never marked for later or not done
@@ -320,8 +326,10 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   // change the plan, or try something: a locked plan's tries change nothing; an unlocked plan's pages change it
   const base = '#/plan/' + pg.id + '/';
   const lived = pg.locked && pg.stageKey === 'running' && !!lastRecord && !pg.closing;
+  let ladderWay = false; try { ladderWay = CONTRACT_STRATEGIES.includes((plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.id) || effectiveStressSettings(plan, { now }).strategyId); } catch { ladderWay = false; }
   const change = pg.readonly || pg.closed ? [] : pg.locked
-    ? [{ id: 'tryChange', href: base + 'lasts' }, { id: 'tryWay', href: base + 'way' }, { id: 'tryMix', href: base + 'mix' },
+    // a gilt ladder has no mix to try (7.12.0): its way of drawing is a list of gilts and cash years
+    ? [{ id: 'tryChange', href: base + 'lasts' }, { id: 'tryWay', href: base + 'way' }, ...(ladderWay ? [] : [{ id: 'tryMix', href: base + 'mix' }]),
       ...(lived && !pg.example ? [{ id: 'moveToNew', href: '#/plans' }, { id: 'backToWork', href: '#/plans' }] : []),
       { id: 'unlock', href: base + 'plan' }]
     : [{ id: 'about', href: base + 'about' }, { id: 'income', href: base + 'income' }, { id: 'spend', href: base + 'spend' }, { id: 'pots', href: base + 'pots' },
@@ -346,6 +354,7 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
     ...(drift ? { drift } : {}),
     // 7.6.0: the first tax year not yet covered by what is held and kept, once — only on a plan that keeps something
     ...(gapLine ? { gap: gapLine } : {}),
+    ...(heldLess ? { heldLess } : {}),
     whereFull,
     year: yearOf(plan, pg, now),
     tools,

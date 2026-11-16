@@ -29,6 +29,7 @@ import { corpus, entryOf } from './_plans.js';
 import { asMoving } from './_alex.js';
 import { runKeyOf } from '../../../src/answers/plan/move.js';
 import { heldPhase } from '../../../src/services/Phases.js';
+import { HELD } from '../../../src/v7/copy/held.js';
 
 const DIR = join(process.cwd(), 'tests/v7/states/plan');
 const NAMES = readdirSync(DIR).filter((f) => f.startsWith('move-') && f.endsWith('.json')).map((f) => f.slice(0, -5)).sort();
@@ -77,7 +78,8 @@ const checkWords = (text, words) => {
   expect(COUNTDOWN.test(words)).toBe(false);
   expect(text).not.toMatch(/undefined|NaN|\[object|\{\w+\}/);
   expect(words).not.toMatch(/\bstrategy\b|\bscenario\b|\bwrappers?\b|\bholdings\b|\btransition\b|\bportfolio\b|\bnominal\b|run-?up|\bapprox/i);
-  expect(text.trim().endsWith(MOVE.footer) || text.includes(MOVE.footer)).toBe(true);
+  // 7.12.0: living on a ladder, "Your plan's mix" ends on its own footer
+  expect(text.includes(MOVE.footer) || text.includes(HELD.footer)).toBe(true);
 };
 
 describe('the named states of "Moving to your plan\'s mix"', () => {
@@ -105,9 +107,10 @@ describe('the named states of "Moving to your plan\'s mix"', () => {
     // record months, so both read so (moved on purpose: they drew the move's lists and "Optional…" before)
     expect(heldPhase(life)).toBe(true);
     expect(one(root, `${T}.optional`)).toBe(null);
-    expect(text).toContain(MOVE.held.lead);
     expect(root.querySelector('[data-region="plan-move"]').getAttribute('data-mode')).toBe('held');
-    expect(one(root, `${T}.footer`).textContent).toBe(MOVE.footer);
+    // 7.12.0: a ladder's page is "Your plan's mix", with its own lead and footer; a pot plan's as before
+    if (name === 'move-ladder') { expect(text).toContain(HELD.lead); expect(one(root, `${T}.heldLadder.footer`).textContent).toBe(HELD.footer); }
+    else { expect(text).toContain(MOVE.held.lead); expect(one(root, `${T}.footer`).textContent).toBe(MOVE.footer); }
     expect(root.querySelector('[data-testid="rail.plan.move"]').getAttribute('aria-current')).toBe('step');
     checkWords(text, words);
   });
@@ -125,8 +128,9 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     expect(root.querySelector('[data-region="plan-move"]').getAttribute('data-waiting')).toBe('0');
     // Moved on purpose (the walk): a rung part bought is said as part bought, as Living on it reads it, never as not bought
     expect(view.cost.parts.length).toBeGreaterThan(0);
-    expect(one(root, `${T}.status.line`).textContent).toBe(`${view.rungs.bought} of 14 gilts bought and ${view.cost.parts.length} part bought; ${view.progressPct}% of the plan’s mix held.`);
-    expect(one(root, `${T}.next`).textContent).toMatch(/^Next: (buy|sell) /);
+    // retaken in 7.12.0: the one status sentence (moveWords.moveStatusOf), and no "Next:" line
+    expect(one(root, `${T}.status.line`).textContent).toBe(`${view.rungs.bought} of 14 gilts bought, and ${view.cost.parts.length} part bought. ${view.progressPct}% of your plan’s mix is held.`);
+    expect(one(root, `${T}.next`)).toBe(null);
     expect(one(root, `${T}.runUp`)).toBe(null);   // 7.3.3: no sentence for months before the plan (its home's to-do moves the start)
     expect(one(root, `${T}.cost.ladder`).textContent).toBe(`${view.cost.uncovered.length} tax years (${view.cost.uncovered[0]} to ${view.cost.uncovered[view.cost.uncovered.length - 1]}) have no gilt bought yet.`);
     expect(one(root, `${T}.cost.button`), 'a ladder plan has no run to offer').toBe(null);
@@ -135,21 +139,24 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     const cashRows = all(root, `[data-testid="${T}.cash.table"] tbody tr`).map((tr) => tr.getAttribute('data-row'));
     expect(cashRows).toEqual(['cashYear', 'cashYear', 'total', 'held', 'spare']);
     expect(root.querySelector(`[data-testid="${T}.cash.table"] tr[data-row="cashYear"]`).textContent).toContain('Cash year 2027/28');
-    expect(view.sell.map((x) => x.ticker)).toEqual(['T27', 'T28', 'T30I', 'VWRP']);
+    // retaken in 7.12.0: the lines outside the ladder are money the plan does not use, never a sale each; the ISA's fund
+    // counts with the pension because the plan counts the ISA (it is not held aside)
+    expect(view.sell).toEqual([]);
+    expect(view.outside.map((x) => x.ticker)).toEqual(['T27', 'T28', 'T30I', 'VWRP', 'VWRP']);
     // Buy and Sell, each line with a Done tick
     const buy = all(root, `[data-testid="${T}.buy"] tbody tr`);
     expect(buy.length).toBe(view.buy.length);
     expect(buy.length).toBe(14);
     expect(buy[0].getAttribute('data-key')).toBe('gilt:T29');
     expect(buy[0].textContent).toContain('the rung for 2029/30, 2030/31, 2031/32');
-    expect(all(root, `[data-testid="${T}.sell"] tbody tr`).length).toBe(view.sell.length);
-    expect(all(root, `[data-testid="${T}.sell"] tbody tr`).some((tr) => tr.textContent.includes('not in the plan — the proceeds pay for the ladder'))).toBe(true);
+    expect(one(root, `${T}.sell`)).toBe(null);
+    expect(all(root, `[data-testid="${T}.outside"] tbody tr`).length).toBe(view.outside.length);
+    expect(one(root, `${T}.paying.says`).textContent).toMatch(/^The buys come to £[\d,]+\. You hold £[\d,]+ that your plan does not use\./);
     expect(all(root, `[data-testid="${T}.held"] tbody tr`).length).toBe(view.hold.length);
     expect(one(root, `${T}.held`).textContent).toContain('spare — kept, not a sale');
-    expect(all(root, `[data-testid="${T}.keep"] li`).length).toBe(2);
-    expect(one(root, `${T}.keep`).textContent).toContain('ISA — kept as it is');
+    expect(all(root, `[data-testid="${T}.keep"] li`).length).toBe(1);
     expect(one(root, `${T}.keep`).textContent).toContain('cash in the bank — outside the pension, kept as it is');
-    expect(one(root, `${T}.totals`).textContent).toBe(`Totals: buy ${view.totals.buy}, sell ${view.totals.sell}.`);
+    expect(one(root, `${T}.totals`).textContent).toMatch(/^Totals: buy £[\d,]+; paid from what your plan does not use, £[\d,]+; left as it is, £[\d,]+\.$/);
     const tick = one(root, `${T}.tick.gilt:T29`);
     expect(tick.checked).toBe(false);
     tick.checked = true;
@@ -158,8 +165,8 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     // When: the schedule as "By {month year}: {action}" lines
     const steps = all(root, `[data-testid="${T}.schedule.steps"] li`);
     expect(steps.length).toBe(view.schedule.steps.length);
-    expect(steps[0].textContent).toMatch(/^By [A-Z][a-z]+ \d{4}: (buy|sell) .+ \(£[\d,]+\)\.$/);
-    expect(text).toContain('sales spread over');
+    expect(steps[0].textContent).toMatch(/^By [A-Z][a-z]+ \d{4}: raise £[\d,]+ from what your plan does not use\.$/);
+    expect(text).toContain('The buying is spread over');
     // How to read this, closed; the four rules open
     expect(one(root, `${T}.how.items`)).toBe(null);
     one(root, `${T}.how.open`).click();
@@ -170,7 +177,8 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     expect(one(root, `${T}.watch`), 'the full ladder has no rotation').toBe(null);
   });
   it('move-ladder: the order sheet — the document\'s 14 rungs numbered from 1 with the units to order, the price and cost at lock and whether each is bought, never re-priced; no gate on a plan with its own State Pension; "Gilt ladders explained" open with the plan\'s own first rung', () => {
-    const s = load('move-ladder');
+    // 7.12.0: read as Moving — living on a ladder there is no order sheet on this page (it is in the plan document)
+    const s = moving(load('move-ladder'));
     const { root, text, view } = draw(s);
     const sheet = one(root, `${T}.sheet`);
     expect(sheet.getAttribute('data-gated')).toBe('0');
@@ -200,7 +208,8 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     expect(one(closed.root, `${T}.explained.open`).textContent).toBe(MOVE.explained.open);
   });
   it('the State Pension gate (decision 6): sized on an assumed State Pension, the sheet opens with the warning, the units and the cost held back behind "Show the sheet anyway"; the rungs, codes and maturities always shown; nothing written', () => {
-    const s = load('move-ladder');
+    // 7.12.0: read as Moving — living on a ladder there is no order sheet on this page
+    const s = moving(load('move-ladder'));
     const gated = draw(s, replaced((p) => { p.planDocument.strategy.p = { ...p.planDocument.strategy.p, spAssumed: true, spAnnual: 11976, startAge: 58, spStartYear: 9 }; return p; }));
     expect(one(gated.root, `${T}.sheet`).getAttribute('data-gated')).toBe('1');
     expect(one(gated.root, `${T}.sheet.gate`).textContent).toContain('This sheet is sized on an assumed State Pension of £11,976 a year from 67. Enter your State Pension forecast — the figure and the date — under About you and when, and lock the plan again before buying.');
@@ -261,7 +270,8 @@ describe('a pot plan (04): the mix held, the one run on the held mix, done', () 
     const plan = planOf(s);
     const { root, text, actions, view } = draw(s);
     expect(root.querySelector('[data-region="plan-move"]').getAttribute('data-kind')).toBe('buckets');
-    expect(one(root, `${T}.status.line`).textContent).toBe(`${view.progressPct}% of the plan’s mix held; 0 of ${view.moves} moves ticked off.`);
+    // retaken in 7.12.0: "moves done", as the home tile says it
+    expect(one(root, `${T}.status.line`).textContent).toBe(`${view.progressPct}% of the plan’s mix held; 0 of ${view.moves} moves done.`);
     expect(view.moves).toBe('2');
     expect(text).toContain(MOVE.target.buckets);
     expect(one(root, `${T}.cost.headline`).textContent).toBe(`Tested on the mix you hold today (shares ${view.heldRun.result.pcts.shares}%, bonds ${view.heldRun.result.pcts.bonds}%, gold and trend 0%, cash ${view.heldRun.result.pcts.cash}%), the plan lasts ${view.heldRun.result.words}; on its own mix, ${view.own.words}.`);
@@ -349,9 +359,10 @@ describe('the saver\'s rule, a plan not locked, nothing recorded, shown as saved
     const s = moving(load('move-mix'));
     const plan = planOf(s);
     const { root, text } = draw(s, replaced((p) => { delete p.holdings; return p; }));
-    expect(one(root, `${T}.noRecord`).textContent).toContain('Nothing recorded yet — record what you hold first.');
-    expect(root.querySelector(`[data-testid="${T}.noRecord"] a`).getAttribute('href')).toBe('#/plan/' + plan.id + '/hold');
-    expect(one(root, `${T}.cost.nothing`)).not.toBe(null);
+    // retaken in 7.12.0: one notice, not two — "What skipping it costs" says it, with the link
+    expect(one(root, `${T}.noRecord`)).toBe(null);
+    expect(one(root, `${T}.cost.nothing`).textContent).toContain('Nothing recorded yet — record what you hold first.');
+    expect(root.querySelector(`[data-testid="${T}.cost.nothing"] a`).getAttribute('href')).toBe('#/plan/' + plan.id + '/hold');
     expect(one(root, `${T}.cost.button`)).toBe(null);
     expect(all(root, `[data-testid="${T}.buy"] tbody tr`).length).toBe(3);
     expect(text).not.toMatch(/about £/);
@@ -379,25 +390,28 @@ describe('the saver\'s rule, a plan not locked, nothing recorded, shown as saved
 });
 
 describe('Living on it (7.11.1): the named states as they are — what is held, never a move', () => {
-  it('move-ladder: no Buy, Sell, tick, When, Next, totals or cost; the rungs held, each rung not held with its line of the order sheet, the lines beside them and what each is doing (a gilt with when it matures, no year), the cash; the sheet stays', () => {
+  // Moved on purpose (7.12.0): a ladder's page is "Your plan's mix" — the plan's gilts beside what is held, the cash years
+  // against the money the pension holds, what else it holds — and no order sheet (it is in the plan document)
+  it('move-ladder: no Buy, Sell, tick, When, Next, totals, cost or order sheet; the plan\'s gilts beside what is held, the cash years, the lines beside them with the day each gilt matures', () => {
     const s = load('move-ladder');
     const { root, text, words, view } = draw(s);
     expect(view.mode).toBe('held');
-    for (const id of ['buy', 'sell', 'held', 'next', 'totals', 'schedule', 'cost', 'how', 'cash', 'cashInfo', 'start']) expect(one(root, `${T}.${id}`), id).toBe(null);
+    for (const id of ['buy', 'sell', 'held', 'next', 'totals', 'schedule', 'cost', 'how', 'cash', 'cashInfo', 'start', 'sheet', 'gaps', 'heldInfo', 'footer']) expect(one(root, `${T}.${id}`), id).toBe(null);
     expect(all(root, 'input[type="checkbox"]').length).toBe(0);
-    expect(one(root, `${T}.heldInfo.rungs`).textContent).toBe(`${view.rungs.bought} of the ${view.rungs.total} rungs your plan still needs are held.`);
-    const rows = all(root, `[data-testid="${T}.heldInfo.rungRows"] li`);
-    expect(rows.length).toBe(view.heldInfo.rungs.rows.length);
-    expect(rows[0].textContent).toMatch(/^0 1\/8% Index-linked Treasury Gilt 2029 \(T29\), for 2029\/30, 2030\/31, 2031\/32: [\d,]+ of 37,500 units held\. The rest is rung 1 on the order sheet below\.$/);
-    const lines = all(root, `[data-testid="${T}.heldInfo.lines"] li`).map((li) => li.textContent);
+    const g = view.heldInfo.gilts;
+    expect(all(root, `[data-testid="${T}.heldLadder.gilts"] tbody tr`).length).toBe(g.total);
+    const t29 = root.querySelector(`[data-testid="${T}.heldLadder.gilts"] tr[data-key="gilt:T29"]`);
+    expect([...t29.querySelectorAll('td')].slice(0, 3).map((td) => td.textContent)).toEqual(['0 1/8% Index-linked Treasury Gilt 2029 (T29)', '2029/30 to 2031/32', '37,500']);
+    const also = all(root, `[data-testid="${T}.heldLadder.also"] tbody tr`).map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent));
     // Moved on purpose (7.11.1, the gilt-year guess removed): when a gilt matures is said as a fact, never a year it is for
-    expect(lines).toContain('1¼% Index-linked Treasury Gilt 2027 (£35,494 today): matures in November 2027.');
-    expect(lines).toContain('Vanguard FTSE All-World (Acc) (£396,769 today): outside the plan’s mix; its value can fall.');
-    expect(one(root, `${T}.heldInfo.cash`).textContent).toMatch(/^The cash years still ahead \(2027\/28, 2028\/29\) need £[\d,]+\. Held for them: £96,625 in your pension’s cash\.$/);
-    // 7.11.1 (the review): living on the plan, an ISA line is outside the pension — never "left alone" by a move
-    expect(one(root, `${T}.keep`).textContent).toContain('VWRP (ISA, £35,052): outside your pension, so not part of the plan’s mix.');
-    expect(one(root, `${T}.keep`).textContent).not.toContain('kept as it is');
-    expect(all(root, `[data-testid="${T}.sheet.table"] tbody tr`).length).toBe(14);
+    expect(also).toContainEqual(['1¼% Index-linked Treasury Gilt 2027', '£35,494', '22 November 2027', 'rises with prices']);
+    expect(also).toContainEqual(['Vanguard FTSE All-World (Acc)', '£396,769', '', '']);
+    // retaken in 7.12.0: the plan counts the ISA (it is not held aside), so the ISA's fund is beside the plan's gilts too
+    expect(also).toContainEqual(['Vanguard FTSE All-World (Acc)', '£35,052', '', '']);
+    expect(one(root, `${T}.heldLadder.need`).textContent).toMatch(/^Your plan pays 2027\/28 to 2028\/29 from cash: £[\d,]+ still to come\.$/);
+    // living on the plan, an ISA line is outside the pension — never "left alone" by a move
+    expect(one(root, `${T}.heldLadder.outside`).textContent).toMatch(/^Easy-access savings \(CASH, £8,000\): outside your pension/);
+    expect(text).not.toContain('kept as it is');
     checkWords(text, words);
   });
   it('move-mix: the pot plan\'s mix held against the plan\'s, bucket by bucket, and where it can be tested and accepted (Your review); no Buy, Sell or run', () => {

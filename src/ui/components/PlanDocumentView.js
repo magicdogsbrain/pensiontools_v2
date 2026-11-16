@@ -12,6 +12,8 @@ import { monthsWords, countWords } from '../../services/MonthFill.js';
 import { definitionOf, guaranteeSaid } from '../../services/PlanDocument.js';
 import { successLineHtml } from '../oneAnswerView.js';
 import { STRESS } from '../../v7/copy/stressPanel.js';
+import { PLAN } from '../../v7/copy/plan.js';
+import { lockedShortOf } from '../../services/PlanCommit.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -123,6 +125,9 @@ export function planDocumentHtml(doc, r = {}) {
   const t = d.timing;
   let h = '<div class="card pd">';
   h += planDocumentHeaderHtml(d);
+  // 7.12.0: locked when its gilt ladder cost more than its pots — said once, at the top (V7's words)
+  const ls = lockedShortOf(d);
+  if (ls) h += '<div class="alert alert-warning" id="pdLockedShort">' + esc(PLAN.lockedShort.replace('{short}', '£' + ls.short.toLocaleString('en-GB'))) + '</div>';
   if (r.notice) h += r.notice;
   if (r.whereAmI) h += r.whereAmI;
   // The timing sentence is the snapshot's (its "in 9 months" was counted on the day it was written): say so, or it reads as
@@ -226,7 +231,8 @@ export function planDocumentHtml(doc, r = {}) {
   // Getting there (6.7.0): the locked accumulation path for a plan that starts later
   if (d.accumulation && d.accumulation.potNow == null) {
     // Locked with no pot on record (6.13.0): the path could not be drawn — say what to do, never invent one.
-    h += section('4b. Getting there — the locked accumulation path', '<p>The plan was locked without a pension pot on record' + (d.accumulation.totalMonthly ? ' (' + gbp(d.accumulation.totalMonthly) + ' a month going in)' : '') + '. Record what you hold on the Transition tab (or the pot today on the Accumulation planner) and refresh the plan document; the path from today to age ' + esc(String(d.accumulation.retireAge || '')) + ' is then drawn from your own pot, not from the pots the strategy was tested on.</p>');
+    // 7.12.0: said as what happened, never as something the person must record (a plan's own totals are enough)
+    h += section('4b. Getting there — the locked accumulation path', '<p>' + esc(PATH_MISSING) + ' ' + esc(PATH_NEW) + '</p>');
   } else if (d.accumulation && d.accumulation.version === 3 && Array.isArray(d.accumulation.path) && d.accumulation.path.length > 1) {
     h += section('4b. Getting there — the locked saving path', savingPathV3Html(d));
   } else if (d.accumulation && Array.isArray(d.accumulation.path) && d.accumulation.path.length > 1) {
@@ -380,11 +386,15 @@ const monthText = (k) => whenText(String(k || '').slice(0, 7));
  * too and is in pounds of the day: no price assumption. A figure the path needs that is missing → nothing compared, and
  * what to add.
  */
+const PATH_MISSING = 'This plan was locked before it had a pension figure to draw a saving path from.';
+const PATH_NEW = 'A new version of the plan document adds the path.';
+const PATH_FROM = { holdings: 'from what you hold', record: 'from your last record', checkIn: 'from your check-in', accumulation: 'from your last record', plan: 'from your plan' };
 export function saverReadingText(s) {
   if (!s) return '';
   const src = s.recordedAt ? (s.actualSource === 'holdings' ? 'holdings as of ' : 'recorded ') + esc(ukDate(s.recordedAt)) : s.actualSource === 'holdings' ? 'from what you hold' : '';
   const from = src ? ' (' + src + ')' : '';
-  if (s.pathMissing) return 'The plan was locked without a pension pot on record, so there is no locked path to read against' + (s.actual != null ? ' — your pot today is ' + gbp(s.actual) + (s.actualSource === 'holdings' ? ' from what you hold' : '') : '') + '. Record what you hold and refresh the plan document.';
+  // 7.12.0: what happened, the pension today with where it is from, and how the path comes — never "record what you hold"
+  if (s.pathMissing) return PATH_MISSING + (s.actual != null ? ' Your pension today is ' + gbp(s.actual) + ' (' + (PATH_FROM[s.actualSource] || PATH_FROM.plan) + ').' : '') + ' ' + PATH_NEW;
   const missing = Array.isArray(s.missing) ? s.missing : [];
   if (missing.includes('pension') || (s.actual == null && !missing.length)) return s.expected != null ? 'The locked path expects about ' + gbp(s.expected) + (s.version === 3 ? (s.isaCounted ? ' in your pension and ISA now, in pounds of the day' : ' in the pension pot now, in pounds of the day') : ' in the pension pot now') + '. Record this month\'s pot on the Accumulation planner to compare.' : '';
   if (missing.includes('isa')) return 'Pension pot ' + gbp(s.pension) + from + '. The locked path counts your ISA as well, and there is no ISA figure with it, so the pot is not set against the path. Add your ISA to the monthly record on the Accumulation tab to compare.';

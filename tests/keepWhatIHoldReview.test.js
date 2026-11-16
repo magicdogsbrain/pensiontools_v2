@@ -12,7 +12,7 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { targetHoldings, diffHoldings, standInPays, yearNeedsOf, giltOfLine, conventionalEvidence, inTodaysMoney, standInYearOf, monthsLeftInTaxYear } from '../src/services/TransitionPlanner.js';
+import { targetHoldings, diffHoldings, standInPays, yearNeedsOf, giltOfLine, conventionalEvidence, inTodaysMoney, monthsLeftInTaxYear } from '../src/services/TransitionPlanner.js';
 import { giltOfName, couponOfName, maturityOfName, ilWords } from '../src/services/GiltName.js';
 import { normaliseHoldings, holdingsWith } from '../src/services/HoldingsRecord.js';
 import { parsePaste, applyPaste } from '../src/services/HoldingsPaste.js';
@@ -208,14 +208,17 @@ describe('the move with keeps', () => {
   });
 });
 
-describe('"Keep this" suggests the year a gilt matures in', () => {
-  it('V7: a gilt is "stands in" with its year ticked, ready to keep; nothing is said wrong before anything is touched', () => {
-    const p = withLines(sam(), [{ wrapper: 'SIPP', ticker: 'TS28', name: 'Treasury 4.5% 07/06/2028', kind: 'gilt', units: 20000, value: 19930 }, { wrapper: 'SIPP', ticker: 'EXMPL', name: 'Example Shares plc', value: 9000 }]);
+// Moved on purpose (7.12.0): "Keep this" never chooses a year for the person — when a gilt matures never says which year it is for
+describe('"Keep this" never suggests a year', () => {
+  it('V7 (read as Moving): a gilt starts as "kept by choice", no year ticked; the years are the person\'s to tick; nothing is said wrong before anything is touched', () => {
+    const p = withLines(asMoving(sam()), [{ wrapper: 'SIPP', ticker: 'TS28', name: 'Treasury 4.5% 07/06/2028', kind: 'gilt', units: 20000, value: 19930 }, { wrapper: 'SIPP', ticker: 'EXMPL', name: 'Example Shares plc', value: 9000 }]);
     const v = holdOf([{ plan: p }], p.id, { today: BEFORE, typed: { 'keep.index': '0' } });
     const l0 = v.groups[0].lines.find((l) => l.index === 0), l1 = v.groups[0].lines.find((l) => l.index === 1);
-    expect(l0.keep).toMatchObject({ as: 'rung', error: null, change: { kind: 'keep', index: 0, keep: { as: 'rung', taxYears: [2028] } } });
+    expect(l0.keep).toMatchObject({ as: 'mine', error: null, change: { kind: 'keep', index: 0, keep: { as: 'mine', fundsGaps: false } } });
+    expect(l0.keep.years.filter((y) => y.on)).toEqual([]);
     expect(l1.keep).toMatchObject({ as: 'mine', error: null, change: { kind: 'keep', index: 1, keep: { as: 'mine', fundsGaps: false } } });
-    expect(standInYearOf({ name: 'Example Fund 2040', value: 1 }, [2040])).toBe(null);
+    const ticked = holdOf([{ plan: p }], p.id, { today: BEFORE, typed: { 'keep.index': '0', 'line.0.keepAs': 'rung', 'line.0.keepYears': '2028' } }).groups[0].lines.find((l) => l.index === 0);
+    expect(ticked.keep.change).toEqual({ kind: 'keep', index: 0, keep: { as: 'rung', taxYears: [2028] } });
   });
   it('the classic planner saves a year the plan has, never this tax year by default', () => {
     expect(keepOfChoice('rung', null, 2028)).toEqual({ as: 'rung', taxYears: [2028] });

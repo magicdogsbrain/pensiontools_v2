@@ -271,7 +271,8 @@ describe('both apps: the writes and the views', () => {
     expect(x.patch.holdings.expected).toHaveLength(1);
   });
   it('"What you hold" offers Keep this on a locked plan, reads the typed choice, and makes the one change', () => {
-    const p = withLines(sam(), [conv(2027, 20000), shares]);
+    // 7.12.0: read as Moving — living on a ladder there is no "Keep this"
+    const p = withLines(asMoving(sam()), [conv(2027, 20000), shares]);
     const v = holdOf(entriesOf(p), p.id, { today: BEFORE, typed: { 'keep.index': '0', 'line.0.keepAs': 'rung', 'line.0.keepYears': '2027,2028' } });
     expect(v.canKeep).toBe(true);
     expect(v.keepIndex).toBe(0);

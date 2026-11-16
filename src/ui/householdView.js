@@ -56,8 +56,8 @@ export function householdVerdictHtml(r, o = {}) {
  * @param {{ r: object, ownName: string, pName: string, stratNote?: string, startsNote?: string, setA?: object, setB?: object }} o
  */
 export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNote = '', setA = null, setB = null }) {
-  const share = r.pooled ? r.pooled.success : r.jointSuccess;
   const cell = (x) => '<strong>' + inTen(x) + '</strong> <span class="hint">(' + pctBesideWords(x) + ')</span>';
+  const share = r.pooled ? r.pooled.success : r.jointSuccess;
   let html = '<div class="settings-section"><div class="section-title">The verdict</div>';
   html += '<div class="alert ' + onCourseAlertClass(share) + '" style="font-size:15px;" id="hhHouseholdVerdict">' + householdVerdictHtml(r, { ownName, pName, setA, setB }) + '</div>';
   html += '<table><tbody>'

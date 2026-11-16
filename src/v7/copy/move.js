@@ -77,7 +77,8 @@ export const MOVE = {
    * no list of things to buy or sell, no schedule. answers/plan/move.js heldInfo fills these.
    */
   held: {
-    lead: 'What you hold, beside your plan as locked, and what each part of it is doing. This is information: nothing here is a list of things to buy or sell.',
+    // (a walk of 7.11.1: never "nothing here is a list of things to buy or sell" — the plan's order sheet stays on the page)
+    lead: 'What you hold, beside your plan as locked, and what each part of it is doing.',
     agreed: 'You accepted what you hold as your plan on {date}.',
     noRecord: 'Nothing recorded yet. You can record what you hold on What you hold, and this page reads it against your plan.',
     rungs: '{held} of the {total} rungs your plan still needs are held.',

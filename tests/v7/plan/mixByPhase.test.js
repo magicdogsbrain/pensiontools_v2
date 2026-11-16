@@ -84,6 +84,10 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     expect(root.querySelectorAll('input[type="checkbox"]').length).toBe(0);
     expect(text).not.toMatch(/what to buy and sell|Next: (buy|sell)|Totals: buy|What skipping it costs|By [A-Z][a-z]+ \d{4}: (buy|sell)|proceeds pay for the ladder|more than the rung needs/);
     expect(text).toContain(MOVE.held.lead);
+    // the order sheet stays on this page, so the page never says that nothing on it is a list of things to buy (a walk of
+    // 7.11.1: it did, above the sheet and its "How to give the order")
+    expect(one(root, `${T}.sheet.table`)).not.toBe(null);
+    expect(text).not.toMatch(/nothing here is a list of things to buy/i);
     expect(one(root, `${T}.heldInfo.rungs`).textContent).toBe(`${V.heldInfo.rungs.held} of the ${V.heldInfo.rungs.total} rungs your plan still needs are held.`);
     const lines = [...root.querySelectorAll(`[data-testid="${T}.heldInfo.rungRows"] li`)].map((li) => li.textContent);
     expect(lines[0]).toBe(`0 1/8% Index-linked Treasury Gilt 2031 (TR31), for 2032/33: 2,000 of 15,500 units held. The rest is rung ${V.heldInfo.rungs.rows[0].n} on the order sheet below.`);
@@ -111,6 +115,7 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
     const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: transitionGaps(p, p.holdings, noon(TODAY)), held });
     expect(html).not.toMatch(/>Sell<|>Buy<|Totals: buy|When — a schedule|toggleTransitionDone|Next: <strong>|Things the schedule assumes/);
     expect(html).toContain(MOVE.held.lead);
+    expect(html).not.toMatch(/nothing here is a list of things to buy/i);
     expect(html).toContain('matures in January 2027 — counted toward 2026/27 in What is covered, year by year.');
     expect(html).toContain('Example Shares plc (£12,000 today): outside the plan’s mix; its value can fall.');
     expect(html).toContain('2,000 of 15,500 units held.');

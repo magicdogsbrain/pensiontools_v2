@@ -69,3 +69,13 @@ describe('the Household tab: a line when one plan begins later than the other (H
     }
   });
 });
+
+describe('the page\'s own words', () => {
+  // the walk found "including the tight the tight years" on the Household tab: no word is written twice in a row
+  it('no word or short phrase is written twice in a row in the visible text', () => {
+    const d = new JSDOM(html.replace(/<style[\s\S]*?<\/style>/g, '')).window.document;
+    const t = d.body.textContent.replace(/\s+/g, ' ');
+    const doubled = [...t.matchAll(/\b([a-z]+(?: [a-z]+){0,2}) \1\b/g)].map((m) => t.slice(Math.max(0, m.index - 30), m.index + 30));
+    expect(doubled).toEqual([]);
+  });
+});

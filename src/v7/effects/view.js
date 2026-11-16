@@ -17,12 +17,16 @@
  *   fullViewForward(loc, local, layout)   the full view's address when the root, opened with no address of its own in a
  *                                         browser where someone is signed in who opens in the full view, should go there at
  *                                         once; else null
- *   startView(store, { local }) → stop()
+ *   startView(store, { local, session }) → stop()
+ *   The link at the top of the page is a choice (7.12.0, ui/viewSwitch.js): arriving here from the full view's "Back to the
+ *   simple view.", once the account's settings are read, the simple view is saved as the choice (VIEW_SET; the account
+ *   effect writes it) when they hold another. `session`: sessionStorage, where the link left its one-shot note.
  */
 import { A } from '../state/actions.js';
 import { LAYOUT } from '../../appLayout.js';
 import { hasSignedInHint } from './place.js';
 import { openingView } from '../../services/ViewChoice.js';
+import { takeViewSwitch, viewChoiceToSave } from '../../ui/viewSwitch.js';
 
 export const VIEW_KEY = 'pt_view';
 export const ASKED_KEY = 'pt_view_asked';
@@ -43,7 +47,7 @@ export function fullViewForward(loc, local, layout = LAYOUT) {
  * @param {object} o
  * @param {Storage|null} [o.local]     localStorage (this browser's copy)
  */
-export function startView(store, { local = null } = {}) {
+export function startView(store, { local = null, session = null } = {}) {
   const set = (key, value) => { try { if (local && local.getItem(key) !== value) local.setItem(key, value); } catch { /* private mode */ } };
   const remove = (key) => { try { if (local && local.getItem(key) !== null) local.removeItem(key); } catch { /* private mode */ } };
   const copy = (view) => { if (view === 'full') set(VIEW_KEY, 'full'); else remove(VIEW_KEY); };
@@ -52,8 +56,16 @@ export function startView(store, { local = null } = {}) {
     if (action.type === A.VIEW_SET) { if (state.ui.profile) copy(state.ui.profile.view); return; }
     // the account's settings read: the copy follows the view they open in (7.11.1: no choice is the full view); a read that
     // failed leaves it as it was
-    if (action.type === A.PROFILE_SET) { if (action.read !== false && state.ui.profile) copy(openingView(state.ui.profile)); return; }
-    if (action.type === A.SESSION_SET) { if (state.session.kind === 'nobody') { remove(VIEW_KEY); remove(ASKED_KEY); } return; }
+    if (action.type === A.PROFILE_SET) {
+      if (action.read === false || !state.ui.profile) return;
+      // arriving from the full view's "Back to the simple view." (7.12.0, ui/viewSwitch.js): the choice is saved once
+      const note = state.session.kind === 'in' ? takeViewSwitch(session) : null;
+      const chosen = viewChoiceToSave(state.ui.profile, note);
+      if (chosen) { store.dispatch({ type: A.VIEW_SET, view: chosen, from: 'link' }); return; }
+      copy(openingView(state.ui.profile));
+      return;
+    }
+    if (action.type === A.SESSION_SET) { if (state.session.kind === 'nobody') { remove(VIEW_KEY); remove(ASKED_KEY); takeViewSwitch(session); } return; }
   });
 
   return () => { off(); };

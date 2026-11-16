@@ -5073,7 +5073,7 @@
       let seen = localSeen();
       if (!isGuest()) {
         try {
-          const who = getCurrentUser(), prof = await loadUserProfile(); viewNotesAtSignIn(prof, who);   // the account's choice of view, read: this browser's notes follow it (7.11.0, src/ui/viewNotes.js)
+          const who = getCurrentUser(), prof = await loadUserProfile(); viewNotesAtSignIn(prof, who, saveUserProfile);   // the account's choice of view, read: this browser's notes follow it, and the link at the top of the page saves the view it leads to (7.11.0, 7.12.0: src/ui/viewNotes.js, src/ui/viewSwitch.js)
           const remote = (prof && prof.lastSeenVersion) || '';
           if (compareVersions(remote, seen) > 0) { seen = remote; setLocalSeen(seen); }
           else if (seen && compareVersions(seen, remote) > 0) saveUserProfile({ lastSeenVersion: seen });   // guest who signed up: carry it over

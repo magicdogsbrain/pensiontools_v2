@@ -37,6 +37,7 @@ import { nextStepFor, nextStepAction } from '../services/NextStep.js';
 import { openingTab } from '../services/LifeStage.js';
 import { holdingsLines } from '../services/HoldingsRecord.js';
 import { planHasFigures } from '../services/DraftDecision.js';
+import { noteViewSwitch } from './viewSwitch.js';
 import { PLAN_ID } from '../services/OpenPlace.js';
 import { PLAN } from '../v7/copy/plan.js';
 import { HOME } from '../v7/copy/home.js';
@@ -156,7 +157,7 @@ export async function showHomeBanner(win, doc, deps) {
   try {
     const activeId = await deps.getActiveScenarioId();
     const back = doc.getElementById('classicToSimple');
-    if (back) back.setAttribute('href', simpleLinkHref(activeId));
+    if (back) { back.setAttribute('href', simpleLinkHref(activeId)); back.onclick = () => noteViewSwitch('simple'); }   // the link is a choice (7.12.0)
     if (!activeId) { banner.style.display = 'none'; return null; }
     const now = deps.now ? deps.now() : new Date();
     const [plans, budget, stress, decision, fromAnswer] = await Promise.all([deps.listScenariosAsync(), deps.getBudgetAsync(), deps.getStressSettingsAsync(), deps.getDecisionSettingsAsync(), deps.planFromAnswer()]);

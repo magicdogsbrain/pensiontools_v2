@@ -370,6 +370,8 @@ export async function setActiveScenarioDoc(scenarioId) {
     console.error('Error setting active scenario:', error);
     throw error;
   }
+  // the plan opened is the plan last open (7.12.0): either view lands on it next time (ScenarioRepository.openingPlanOf)
+  if (scenarioId) await saveUserProfile({ lastLocation: { planId: scenarioId, step: null } });
 }
 
 // ============================================================================

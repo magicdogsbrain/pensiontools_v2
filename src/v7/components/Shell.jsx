@@ -16,6 +16,7 @@ import { guestView, newsView, plansMenuView, fullLinkView, staleView } from '../
 import { StaleWords } from './Problem.jsx';
 import { COMMON, ADVICE_SHORT, ADVICE_FULL } from '../copy/common.js';
 import { PLAN } from '../copy/plan.js';
+import { noteViewSwitch } from '../../ui/viewSwitch.js';
 
 export function Shell({ state, dispatch, name, question = null, rail = false, full = false, view = null, children }) {
   const ref = useRef(null);
@@ -64,11 +65,13 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
   const P = fullLinkView(state);
   // the page is older than the site and has loaded itself again once already: the words at the top, unless the answer's own place has them
   const old = staleView(state);
-  const onEverything = P ? (e) => {
+  const onEverything = (e) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;   // a new tab: the plain address, as before
+    noteViewSwitch('full');   // the link is a choice (7.12.0): the full view, once it has read the account, saves it
+    if (!P) return;
     e.preventDefault();
     dispatch(changeAction(P.planId, P.place, P.back));
-  } : undefined;
+  };
   const bringInProblem = G.bringIn && M.problem && M.problem.planId === null && !M.saving ? M.problem : null;
 
   return (

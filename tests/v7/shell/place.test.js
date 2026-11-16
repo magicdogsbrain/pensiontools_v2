@@ -240,3 +240,33 @@ describe('the plan source shares the classic planner\'s stored sign-in', () => {
     p.stop();
   });
 });
+
+describe('a bookmark to Your account (7.12.0): only a sign-in asked for on the page moves it', () => {
+  const restore = (store, ask) => {
+    store.dispatch({ type: A.SESSION_SET, session: { kind: 'checking', email: null } });
+    store.dispatch({ type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
+    if (ask) store.dispatch({ type: A.ACCOUNT_ASK, what: 'signIn', email: 'kim@example.test', password: 'x' });
+    store.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'kim@example.test' } });
+    store.dispatch({ type: A.PROFILE_SET, profile: { view: 'simple', lastSeenVersion: null, lastLocation: { planId: 'P1', step: null } } });
+    store.dispatch({ type: A.PLANS_SET, list: upgradedList([plan('P1')], NOW), source: 'account', readAt: '14:03' });
+  };
+  it('a session restored as the page opens (checking, nobody, in): it stays on Your account (before: sent to the last plan)', () => {
+    const p = setUp({ hash: '#/account' });
+    restore(p.store, false);
+    expect(route(p.store)).toBe('#/account');
+    p.stop();
+  });
+  it('a sign-in sent from the page: to the last plan, as before', () => {
+    const p = setUp({ hash: '#/account' });
+    restore(p.store, true);
+    expect(route(p.store)).toBe('#/plan/P1');
+    p.stop();
+  });
+  it('landingFor after the choice of the simple view gives the plan\'s address', () => {
+    const p = setUp({ hash: '#/' });
+    signedIn(p.store, [plan('P1')], { lastSeenVersion: null, lastLocation: { planId: 'P1', step: 'about' } });
+    expect(landingFor(p.store.getState(), null)).toBe('#/plan/P1/about');
+    p.stop();
+  });
+});
+

@@ -13,15 +13,15 @@ export const ACCOUNT = {
   /** The sections of the signed-in page. */
   /**
    * The view the site opens in (7.11.0; research/v7/replan-nov-2026.md §8): one choice for the account, kept with its
-   * settings. nowFull says "on your main plan": a fresh window of the full view opens there.
+   * settings. 7.12.0: both views open on the plan last open in either, and the line at the top of every page is a choice.
    */
   view: {
     title: 'The view PensionTools opens in',
-    note: 'The simple view takes one question at a time and gives each plan a home page. The full view puts all the tools, tests and records on one page. Both show the same plans, and the line at the top of every page moves you between them. This only chooses which one opens when you come back.',
+    note: 'The simple view takes one question at a time and gives each plan a home page. The full view puts all the tools, tests and records on one page. Both show the same plans. The line at the top of every page moves you between them, and the one you move to is the one that opens next time.',
     simple: 'The simple view',
     full: 'The full view',
-    nowSimple: 'PensionTools opens in the simple view, where you left off.',
-    nowFull: 'PensionTools opens in the full view, on your main plan.',
+    nowSimple: 'PensionTools opens in the simple view, on the plan you were last on.',
+    nowFull: 'PensionTools opens in the full view, on the plan you were last on.',
     unread: 'Your choice of view could not be read just now. Choosing one here saves it.'
   },
   password: {

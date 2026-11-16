@@ -21,7 +21,9 @@ import {
   createScenario,
   deleteScenarioDoc,
   setActiveScenarioDoc,
-  isScenarioNewerThanApp
+  isScenarioNewerThanApp,
+  loadUserProfile,
+  saveUserProfile
 } from '../firebase/FirestoreService.js';
 import { SCHEMA_VERSION, isNewerSchema } from './schema.js';
 import { DRAWDOWN_DEFAULTS, TAX_DEFAULTS, SIMULATION_DEFAULTS, ISA_DEFAULTS } from '../constants.js';
@@ -42,7 +44,7 @@ import { isExamplePlan } from '../services/GuestPlans.js';
 import { OPEN_PLAN_KEY } from '../services/OpenPlace.js';
 import { copyOf as planCopyOf } from '../services/PlanCopy.js';
 import { withoutPotsAsOf } from '../services/PlanFromToday.js';
-import { isClosedPlan, monthRefusal, monthRefusalWords } from '../services/PlanClosed.js';
+import { isClosedPlan, monthRefusal, monthRefusalWords, nextPlanIdOf } from '../services/PlanClosed.js';
 import { pensionTodayPatch } from '../services/PensionToday.js';
 import { withV7Keys } from '../services/SaverPayIn.js';
 
@@ -55,6 +57,8 @@ function refuseClosedHousehold(scenario) {
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
 let cachedScenarios = null;
 let cachedActiveScenario = null;
+// The plan last open, as the account's settings hold it (7.12.0): read once per cache; undefined: not read yet.
+let cachedLastPlanId = undefined;
 
 // "Which plan is open in THIS WINDOW" (6.26, research/v7/your-plan.md 5.5): the preview's "Change this" on a plan that is
 // not the account's open plan pins that plan in this window's session storage. Every "which plan is open" read prefers
@@ -119,6 +123,40 @@ export function invalidateScenarioCache() {
   cachedScenarios = null;
   cachedActiveScenario = null;
   storedSettings = new Map();
+  cachedLastPlanId = undefined;
+}
+
+/**
+ * The plan a page opens (7.12.0): the plan this window was pinned to; else the plan last open in either view (the
+ * account's settings, `lastLocation.planId`) while it is in the account; else the main plan. A closed plan is never landed
+ * on while the plan that carries it on is there: that plan opens instead (a window pin, opened on purpose, stays as it is).
+ * Pure.
+ * @param {object[]} scenarios
+ * @param {{ pin?: string|null, lastPlanId?: string|null }} [o]
+ */
+export function openingPlanOf(scenarios, { pin = null, lastPlanId = null } = {}) {
+  const list = Array.isArray(scenarios) ? scenarios.filter(Boolean) : [];
+  const byId = (id) => (id ? list.find((s) => s.id === id) || null : null);
+  const carriedOn = (s) => {
+    let cur = s;
+    const seen = new Set();
+    while (cur && isClosedPlan(cur) && !seen.has(cur.id)) { seen.add(cur.id); const next = byId(nextPlanIdOf(cur)); if (!next) break; cur = next; }
+    return cur;
+  };
+  const pinned = byId(pin);
+  if (pinned) return pinned;
+  const last = carriedOn(byId(lastPlanId));
+  if (last && !isClosedPlan(last)) return last;
+  const main = list.find((s) => s.isActive) || null;
+  return main ? carriedOn(main) : null;
+}
+
+async function lastPlanIdRead() {
+  if (cachedLastPlanId !== undefined) return cachedLastPlanId;
+  let id = null;
+  try { const p = await loadUserProfile(); id = p && p.lastLocation && typeof p.lastLocation.planId === 'string' ? p.lastLocation.planId : null; } catch (e) { id = null; }
+  cachedLastPlanId = id;
+  return id;
 }
 
 // ============================================================================
@@ -225,7 +263,7 @@ export async function getActiveScenarioAsync() {
   try {
     const scenarios = await listScenariosAsync();
     const pin = pinnedPlanId();
-    const active = (pin && scenarios.find(s => s.id === pin)) || scenarios.find(s => s.isActive);
+    const active = openingPlanOf(scenarios, { pin, lastPlanId: pin ? null : await lastPlanIdRead() });
 
     if (active) {
       cachedActiveScenario = active;
@@ -303,9 +341,12 @@ export async function createNewScenario(name, description, enabledTools, overrid
   }
 
   const scenarioId = await createScenario(scenario);
+  // the new plan is the plan last open (7.12.0): either view lands on it next time
+  if (setActive) { try { await saveUserProfile({ lastLocation: { planId: scenarioId, step: null } }); } catch (e) { /* the main plan still opens it */ } }
 
   // Invalidate cache so next load picks up the new scenario
   invalidateScenarioCache();
+  if (setActive) cachedLastPlanId = scenarioId;
 
   return scenarioId;
 }
@@ -321,8 +362,9 @@ export async function switchScenario(scenarioId) {
   }
 
   clearPinnedPlan();
-  await setActiveScenarioDoc(scenarioId);
+  await setActiveScenarioDoc(scenarioId);   // it also writes lastLocation: the plan last open, in either view (7.12.0)
   invalidateScenarioCache();
+  cachedLastPlanId = scenarioId;
 }
 
 /**

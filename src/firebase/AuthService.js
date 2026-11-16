@@ -20,6 +20,7 @@ import {
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from './config.js';
 import { clearSimpleViewNotes, followViewChoice } from '../ui/viewNotes.js';
+import { followViewSwitch } from '../ui/viewSwitch.js';
 
 // Google auth provider
 const googleProvider = new GoogleAuthProvider();
@@ -214,10 +215,15 @@ export async function logOut() {
  * a sign-out, or after someone else has signed in, changes nothing; a guest has no account to follow.
  * @param {object|null} profile   the settings document as read (null: none, or the read failed)
  * @param {object|null} who       the user signed in when the read started
+ * @param {Function|null} [save]  the settings write (FirestoreService.saveUserProfile), for the choice made by the link
  */
-export function viewNotesAtSignIn(profile, who) {
-  if (!who || who.isGuest || !currentUser || currentUser.isGuest || currentUser.uid !== who.uid) return;
-  followViewChoice(profile);
+export function viewNotesAtSignIn(profile, who, save = null) {
+  const same = !!who && !who.isGuest && !!currentUser && !currentUser.isGuest && currentUser.uid === who.uid;
+  // 7.12.0: arriving from the simple view's "Show everything." saves the full view as the choice (src/ui/viewSwitch.js);
+  // the note is removed whoever is here, and nothing is written for a guest
+  const chosen = followViewSwitch(profile, { save, signedIn: same });
+  if (!same) return;
+  followViewChoice(chosen ? { ...(profile || {}), view: chosen } : profile);
 }
 
 /**

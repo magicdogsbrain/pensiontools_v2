@@ -43,6 +43,8 @@ import { openingView } from '../../services/ViewChoice.js';
 export const RETURN_KEY = 'pt_v7_return';
 export const PLACE_KEY = 'pt_v7_place';
 export const SIGNED_IN_KEY = 'pt_v7_signed_in';
+/** The account page's asks that sign someone in (ACCOUNT_ASK `what`): a form sent, Google, an email confirmed. */
+export const SIGN_IN_ASKS = Object.freeze(['signIn', 'signUp', 'google', 'verifyCheck']);
 
 export function hasSignedInHint(local) {
   try { return !!local && local.getItem(SIGNED_IN_KEY) === '1'; } catch { return false; }
@@ -135,7 +137,7 @@ export function startPlace(store, { session = null, local = null, landing = fals
   let windowPlace = cleanPlace(read(PLACE_KEY));
   let sent = null;                       // the place last sent to the account (or read from it)
   let landed = !landing;
-  let known = !!store.getState().session && store.getState().session.kind !== 'checking';   // the page's first session seen
+  let asked = false;                     // a sign-in was asked for on this page (7.12.0: a session restored is no sign-in)
   let afterSignIn = false;               // signed in on this page, on the account page with no way back: to the last plan
   // A way back kept in this window survives a reload of the account page (an email confirmed in another tab, this page
   // opened again); on any other page it is let go.
@@ -174,6 +176,7 @@ export function startPlace(store, { session = null, local = null, landing = fals
     }
     // the account page left before signing in: the way back is let go
     if (back && action.type === A.ROUTE_SET && state.route.screen !== 'account') letGo();
+    if (action.type === A.ACCOUNT_ASK && SIGN_IN_ASKS.includes(action.what)) asked = true;
     if (action.type === A.SESSION_SET) {
       const was = previous.session && previous.session.kind;
       const now = state.session.kind;
@@ -182,10 +185,10 @@ export function startPlace(store, { session = null, local = null, landing = fals
       if (now === 'nobody' && was !== 'in') note(false);
       // signed in with a way back to an answer: back on it (a plan kept in the window waits for the bring-in, below)
       if (back && now === 'in' && was !== 'in' && !back.kept) { letGo(); go(backHref(back)); }
-      // a sign-in on this page (never the page's first known session) on the account page with no way back: once the
-      // account's plans and settings are read, to the last plan (7.3.0)
-      if (!back && known && now === 'in' && was !== 'in' && state.route && state.route.screen === 'account') afterSignIn = true;
-      if (now !== 'checking') known = true;
+      // a sign-in asked for on this page, on the account page with no way back: once the account's plans and settings are
+      // read, to the last plan (7.3.0). A session restored when the page opens is no sign-in (7.12.0): a bookmark to Your
+      // account stays on Your account.
+      if (!back && asked && now === 'in' && was !== 'in' && state.route && state.route.screen === 'account') { afterSignIn = true; asked = false; }
     }
     // a plan kept in this window and a way back to it: the window's plans brought in at once, then the plan opened
     if (back && back.kept && action.type === A.GUEST_OFFER && state.session.kind === 'in') dispatch({ type: A.GUEST_BRING_IN });

@@ -72,3 +72,35 @@ describe('What pays for the buys: one reading, never a sale of every line', () =
     expect(JSON.parse(JSON.stringify(sequence(d, { today: TODAY, startYear: 2027, startMonth: '2027-10' })))).toMatchSnapshot();
   });
 });
+
+describe('One rule for the ISA: the move follows the engine (counted unless held aside)', () => {
+  // TB31's 20,000 units held in an ISA instead of nothing: by hand, the buys are 45,000 (TA30) + 27,400 (cash) = £72,400
+  const withIsaRung = () => [...samLines(), { wrapper: 'ISA', ticker: 'TB31', name: 'Fictional Linker 2030', kind: 'gilt', units: 20000, value: 30000 }];
+  it('an ISA the plan counts: its gilt is the rung, and the move says the plan pays from both', () => {
+    const doc = samDoc({ pots: { sipp: 500000, isa: 30000, isaPolicy: 'draw' } });
+    const t = targetHoldings(doc, { today: TODAY });
+    expect(t.isaIn).toBe(true);
+    expect(t.note).toContain('Your plan pays for the ladder from your pension and your ISA together. Which account each gilt sits in is yours to choose.');
+    const d = diffHoldings(withIsaRung(), t, { today: TODAY });
+    expect(d.hold.some((h) => h.ticker === 'TB31')).toBe(true);
+    expect(d.keep).toEqual([]);
+    expect(d.funding.need).toBe(72400);
+  });
+  it('an ISA held aside: the rung is still to buy and the ISA line is left alone', () => {
+    const doc = samDoc({ pots: { sipp: 500000, isa: 30000, isaPolicy: 'hold' } });
+    const t = targetHoldings(doc, { today: TODAY });
+    expect(t.isaIn).toBe(false);
+    expect(t.note).toContain('Your plan pays for the ladder from your pension. Your ISA is held aside.');
+    const d = diffHoldings(withIsaRung(), t, { today: TODAY });
+    expect(d.buy.some((b) => b.ticker === 'TB31')).toBe(true);
+    expect(d.keep.map((k) => k.ticker)).toEqual(['TB31']);
+    expect(d.funding.need).toBe(102400);
+  });
+  it('a document with no ISA figure reads as not counted', () => {
+    const doc = samDoc({ pots: { sipp: 500000, isaPolicy: 'draw' } });
+    const t = targetHoldings(doc, { today: TODAY });
+    expect(t.isaIn).toBe(false);
+    expect(t.note).toContain('Your plan pays for the ladder from your pension.');
+    expect(diffHoldings(withIsaRung(), t, { today: TODAY }).funding.need).toBe(102400);
+  });
+});

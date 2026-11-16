@@ -347,12 +347,16 @@ export function targetHoldings(doc, { today = new Date(), params = null } = {}) 
       breakdown.push({ label: 'Cash year ' + taxYearLabel(+c.Y) + (lump > 0 ? ' (' + gbp(lump) + ' of it paid by a lump sum expected that year)' : ''), amount: Math.round(num(c.cost)) });
     }
     const cash = { key: 'cash:SIPP', wrapper: 'SIPP', kind: 'cash', label: 'Money-market fund / cash', value: cashValue, breakdown, spending: running, yearsLeft: running ? yearsLeft : cashYears.map((c) => +c.Y) };
-    let note = 'The ladder is bought in the SIPP. The ISA is ' + (d.pots?.isaPolicy === 'hold' ? 'held aside and not part of the ladder.' : 'drawn by its own policy and not part of the ladder.');
+    // The ISA (7.12.0): one rule with the engine (stressTest.js availablePot) — the ladder is priced and tested on the pension
+    // and the ISA together unless the ISA is held aside. An old document reads the same way (both fields were always there).
+    const isaIn = d.pots?.isaPolicy !== 'hold' && num(d.pots?.isa) > 0;
+    let note = isaIn ? 'Your plan pays for the ladder from your pension and your ISA together. Which account each gilt sits in is yours to choose.'
+      : num(d.pots?.isa) > 0 ? 'Your plan pays for the ladder from your pension. Your ISA is held aside.' : 'Your plan pays for the ladder from your pension.';
     if (running) note += ' The plan is running (tax year ' + taxYearLabel(thisTY) + ')' + (paid.length ? ': ' + paid.length + ' rung' + (paid.length === 1 ? ' has' : 's have') + ' matured and paid, so ' + (paid.length === 1 ? 'it is' : 'they are') + ' no longer targets' : '') + '; the cash years\' money is being spent as designed, so cash is reported, not diffed.';
     if (sold.length) note += ' The rotation fired' + (bf.soldAt ? ' on ' + dateGB(bf.soldAt) : '') + ': ' + sold.length + ' rung' + (sold.length === 1 ? ' was' : 's were') + ' sold and the proceeds bought the equity fund, so ' + (sold.length === 1 ? 'it is no longer a target' : 'they are no longer targets') + ' and the fund is kept.';
     // 7.12.0: how the money the ladder does not use was tested (the document's own params): in a world share fund, or keeping its value
     const spareGrowth = !!(d.strategy?.params?.spareGrowth);
-    return { kind: 'ladder', lines, paid, sold, rotated, cash, running, thisTaxYear: thisTY, firstTaxYear, note, spareGrowth };
+    return { kind: 'ladder', lines, paid, sold, rotated, cash, running, thisTaxYear: thisTY, firstTaxYear, note, spareGrowth, isaIn };
   }
   const mix = Array.isArray(d.targetMix) && d.targetMix.length ? d.targetMix[0] : null;
   const pot = num(d.pots?.potAtRetirement?.sipp) > 0 ? num(d.pots.potAtRetirement.sipp) : num(d.pots?.sipp);
@@ -461,9 +465,11 @@ export function ledgerView(holdings) {
 export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsGiven = null, today = null, roles: wantRoles = false, asOf: asOfGiven = null, planMoney = null } = {}) {
   const L = ledgerView(holdings);
   const anyKeep = L.some((h) => h.keep);
-  const sipp = L.filter((h) => h.wrapper === 'SIPP' && !h.keep);
+  // the accounts the plan pays from (7.12.0): the pension, and on a ladder whose plan counts the ISA (target.isaIn), the ISA too
+  const inPlan = (h) => h.wrapper === 'SIPP' || (target.kind === 'ladder' && !!target.isaIn && h.wrapper === 'ISA');
+  const sipp = L.filter((h) => inPlan(h) && !h.keep);
   const keepWhy = (h) => h.wrapper === 'ISA' ? 'ISA — kept as it is' : h.wrapper === 'CASH' ? 'bank / savings cash — outside the pension, kept as it is' : 'taxable account — kept as it is';
-  const buy = [], sell = [], hold = [], matured = [], sold = [], keep = L.filter((h) => h.wrapper !== 'SIPP' && !h.keep).map((h) => ({ ...h, why: keepWhy(h) }));
+  const buy = [], sell = [], hold = [], matured = [], sold = [], keep = L.filter((h) => !inPlan(h) && !h.keep).map((h) => ({ ...h, why: keepWhy(h) }));
   const standIn = [], kept = [], covered = [], cashNow = [];
   const keyOfLine = (h) => (h.ticker || h.sedol || h.name || '').toString();
   for (const h of L) if (h.keep && h.keep.as === 'mine') kept.push({ ...h, key: 'kept:' + h.wrapper + ':' + keyOfLine(h), label: h.name || h.ticker, fundsGaps: !!h.keep.fundsGaps, why: 'kept by you' });
@@ -652,8 +658,8 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
       const need = buy.reduce((s, b) => s + num(b.amount), 0);
       const cashRow = hold.find((x) => x.kind === 'cash');
       const spareCash = cashRow ? num(cashRow.spare) : 0;
-      const fromPlan = !L.some((h) => h.wrapper === 'SIPP') && !!planMoney && num(planMoney.pension) > 0;
-      const available = fromPlan ? num(planMoney.pension) + num(planMoney.isa)
+      const fromPlan = !L.some(inPlan) && !!planMoney && num(planMoney.pension) > 0;
+      const available = fromPlan ? num(planMoney.pension) + (target.isaIn ? num(planMoney.isa) : 0)
         : outside.reduce((s, x) => s + num(x.value), 0) + sell.filter(isRungRow).reduce((s, x) => s + num(x.amount), 0);
       const toRaise = Math.max(0, need - spareCash);
       funding = { need: Math.round(need), spareCash: Math.round(spareCash), available: Math.round(available), toRaise: Math.round(toRaise),
@@ -669,7 +675,7 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
       for (const t of target.paid || []) for (const r of rowsFor(t)) rungOf.set(r, { role: 'matured', t });
       for (const t of target.sold || []) for (const r of rowsFor(t)) rungOf.set(r, { role: 'soldRung', t });
       for (const t of target.lines) for (const r of rowsFor(t)) rungOf.set(r, { role: (statusOf.get(t.key) || { role: 'rung' }).role, t });
-      roleList = heldRoles(L, { rungOf, statusOf, rotated: !!target.rotated, now, cashNow: cashNowRows });
+      roleList = heldRoles(L, { rungOf, statusOf, rotated: !!target.rotated, now, cashNow: cashNowRows, inPlan });
     }
   } else if (target.kind === 'buckets') {
     // a pot plan has no rungs: a line kept to stand in for years is simply kept (7.6.0), like one kept by choice
@@ -758,11 +764,11 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
  *   'standIn' / 'kept'   a line the person keeps (`keep`)
  *   'outsidePension'     an ISA, taxable-account or bank line: outside the pension, left as it is
  */
-function heldRoles(L, { rungOf, statusOf, rotated, now, cashNow = new Set() }) {
+function heldRoles(L, { rungOf, statusOf, rotated, now, cashNow = new Set(), inPlan = (h) => h.wrapper === 'SIPP' }) {
   return L.map((h) => {
     const base = { at: rawOf(h).at != null ? rawOf(h).at : null, label: h.name || h.ticker || h.sedol || '', ticker: h.ticker || '', sedol: h.sedol || null, wrapper: h.wrapper, value: Math.round(h.value), units: h.units };
     if (h.keep) return { ...base, role: h.keep.as === 'rung' ? 'standIn' : 'kept', keep: { ...h.keep } };
-    if (h.wrapper !== 'SIPP') return { ...base, role: 'outsidePension' };
+    if (!inPlan(h)) return { ...base, role: 'outsidePension' };
     if (h.cash) return { ...base, role: 'cash' };
     const r = rungOf.get(h);
     if (r) {

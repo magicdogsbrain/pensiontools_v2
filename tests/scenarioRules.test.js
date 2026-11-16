@@ -168,3 +168,53 @@ describe('scenario tests: the register of facts', async () => {
     expect(JSON.stringify(NEVER_ON_SCREEN)).toBe(JSON.stringify(Function(`return ${m[1]}`)()));
   });
 });
+
+describe('scenario tests: the catalogue and the ratchet', async () => {
+  const { QUESTIONS, SCENARIOS } = await import('../e2e/scenarios/questions.js');
+  const { execSync } = await import('node:child_process');
+  const SPEC_FILES = filesUnder(DIR).filter((f) => /\/s\d\d-[^/]*\.spec\.js$/.test(f)).map((f) => f.split('/').pop());
+
+  it('every built scenario has its spec file, and every spec file is a built scenario of the catalogue', () => {
+    const missing = Object.entries(SCENARIOS).filter(([, s]) => s.built && !SPEC_FILES.includes(s.file)).map(([id, s]) => `${id}: ${s.file}`);
+    const stray = SPEC_FILES.filter((f) => !Object.values(SCENARIOS).some((s) => s.built && s.file === f));
+    expect(missing).toEqual([]);
+    expect(stray).toEqual([]);
+  });
+
+  it('every question names scenarios of the catalogue, or says why it is not gated', () => {
+    const bad = QUESTIONS.filter((q) => (q.sc.length ? q.sc.some((s) => !SCENARIOS[s]) : !q.why)).map((q) => q.id);
+    expect(bad).toEqual([]);
+    expect(new Set(QUESTIONS.map((q) => q.id)).size).toBe(QUESTIONS.length);
+  });
+
+  it('every spec names a question of the catalogue, and every question it gates names it back', () => {
+    const bad = [];
+    for (const f of SPEC_FILES) {
+      const id = f.slice(0, 3);
+      const src = code(readFileSync(join(ROOT, DIR, f), 'utf8'));
+      const asked = [...src.matchAll(/\bask\(\s*[A-Za-z0-9_{}:'", ]*?,\s*'([A-Z]\d+)'/g)].map((m) => m[1]);
+      if (!asked.length) bad.push(`${f}: asks no question`);
+      for (const qid of asked) {
+        const q = QUESTIONS.find((x) => x.id === qid);
+        if (!q) bad.push(`${f}: asks ${qid}, which is not in the catalogue`);
+        else if (!q.sc.includes(id)) bad.push(`${f}: asks ${qid}, whose entry does not name ${id}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it('the unanswered list names built scenarios, each with an owner and a reason, and is no longer than at the last tag', () => {
+    const now = JSON.parse(readFileSync(join(ROOT, DIR, 'known-unanswered.json'), 'utf8')).unanswered;
+    expect(Array.isArray(now)).toBe(true);
+    for (const x of now) {
+      expect(SCENARIOS[x.scenario] && SCENARIOS[x.scenario].built, `${x.scenario} is a built scenario`).toBe(true);
+      expect(typeof x.owner === 'string' && typeof x.reason === 'string' && x.reason.length > 10, `${x.scenario} has an owner and a reason`).toBe(true);
+    }
+    // the baseline: the list at the last release tag; none before the first release that ships the scenarios
+    let tag = null;
+    try { tag = execSync('git describe --tags --abbrev=0 --match "v*"', { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { tag = null; }
+    let before = null;
+    if (tag) { try { before = JSON.parse(execSync(`git show ${tag}:${DIR}/known-unanswered.json`, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString()).unanswered; } catch { before = null; } }
+    if (before) expect(now.length, `no longer than at ${tag} (${before.length})`).toBeLessThanOrEqual(before.length);
+  });
+});

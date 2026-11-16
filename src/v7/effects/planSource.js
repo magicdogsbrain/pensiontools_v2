@@ -132,7 +132,7 @@ export function viewFor(state) {
       const Kt = state.keepTest || null;
       const key = entry ? runKeyOf(entry.plan) : null;
       const mine = Kt && key && Kt.key === key ? Kt : null;
-      try { page.keepTest = entry && !entry.newer && !entry.failed ? keepTestOf(entry.plan, { result: mine && mine.status === 'done' ? mine.result : null, run: mine ? { status: mine.status, reason: mine.reason, progress: mine.progress } : null }) : null; } catch { page.keepTest = null; }
+      try { page.keepTest = entry && !entry.newer && !entry.failed ? keepTestOf(entry.plan, { result: mine && mine.status === 'done' ? mine.result : null, run: mine ? { status: mine.status, reason: mine.reason, progress: mine.progress } : null, today }) : null; } catch { page.keepTest = null; }
       if (page.keepTest) page.keepTest = { ...page.keepTest, runKey: key, planId: String(r.planId), closed: isClosedPlan(entry.plan) };
     }
     // the editing step (editing-in-v7.md 2): the saved facts, what was typed for THIS plan, the problems, the derived figures, the write

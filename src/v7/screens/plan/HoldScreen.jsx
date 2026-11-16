@@ -6,6 +6,9 @@
  * change is its own write of the whole record (effects/planWrite.js, kind 'hold'), with Undo. A locked plan is fully
  * editable: the record is what is true today, not the plan. Draws only: everything is the reading's (state/select.js
  * planHoldView: answers/plan/hold.js through the plan source). No figure is worked out here; nothing runs here.
+ * Living on a locked ladder (7.12.0): no "Keep this", no "What is covered" and no keep test — the gilts held and the cash
+ * years in "Your plan's mix"'s words with the way there, and on a pension line that is neither one of the plan's gilts nor
+ * cash one optional box for the tax years the person sets it against.
  */
 import { PlanRail, changeAction, EditField, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { planView, planHoldView, planKeepTestView } from '../../state/select.js';
@@ -16,6 +19,8 @@ import { GAPS } from '../../copy/gaps.js';
 import { GapsSection } from './Gaps.jsx';
 import { KeepTestSection } from './KeepTest.jsx';
 import { KEEPTEST } from '../../copy/keepTest.js';
+import { HELD } from '../../copy/held.js';
+import { heldText } from './HeldLadder.jsx';
 
 const w = PLAN.page;
 const K = GAPS.keep;
@@ -69,6 +74,7 @@ function Line({ l, group, V, dispatch, planId, KT }) {
         <p class="line">{l.units ? fill(W.line.fields.units.label, {}) + ' ' + l.units + ' · ' : ''}{W.line.fields.value.label}: {l.value || '—'}</p>
       )}
       {l.keep && <KeepLine l={l} V={V} dispatch={dispatch} planId={planId} KT={KT} />}
+      {l.forYears && <ForYears l={l} V={V} dispatch={dispatch} planId={planId} />}
       {V.editable && !removing && (
         <div class="actions-row income-card-actions">
           {/* "Keep this" (7.6.0): the line kept as a stand-in for some years, or by choice — never a sell on the move */}
@@ -142,6 +148,43 @@ function KeepLine({ l, V, dispatch, planId, KT }) {
         </fieldset>
       )}
     </div>
+  );
+}
+
+/**
+ * The one optional box living on a ladder (7.12.0): the tax years the person sets this line against — a label only, empty
+ * unless they set some. Saves on leaving the box (one write); emptied, it comes off.
+ */
+function ForYears({ l, V, dispatch, planId }) {
+  const f = l.forYears;
+  const id = `${T}.${f.path}`;
+  const saved = f.saved ? <p class="note" data-testid={`${T}.line.${l.index}.forYears.saved`}>{fill(HELD.forYears, { years: f.saved.years })}</p> : null;
+  if (!V.editable) return saved;
+  const onBlur = () => { dispatch({ type: 'plan/touch', planId, path: f.path }); if (f.change) dispatch({ type: 'plan/hold', planId, change: f.change }); };
+  return (
+    <div class={`field field-text${f.error ? ' has-error' : ''}`} data-field={f.path} onfocusout={onBlur}>
+      <label for={id}>{HELD.forYearsLabel}</label>
+      <div class="box">
+        <input type="text" autocomplete="off" id={id} data-testid={id} name={id} value={f.shown || ''} placeholder={HELD.forYearsPlaceholder}
+          aria-invalid={f.error ? 'true' : undefined} aria-describedby={f.error ? `${id}.error` : `${id}.help`}
+          onInput={(e) => dispatch({ type: 'plan/edit', planId, path: f.path, value: e.currentTarget.value })} />
+      </div>
+      {saved}
+      {!f.error && <p id={`${id}.help`} class="help">{HELD.forYearsHelp}</p>}
+      {f.error && <p id={`${id}.error`} class="error" data-error-for={id}>{W.errors[f.error] || W.errors.notAYear}</p>}
+    </div>
+  );
+}
+
+/** Living on a ladder (7.12.0): the gilts held and the cash years, in "Your plan's mix"'s words, and the way there. */
+function HeldSummary({ V }) {
+  const S = V.heldSummary;
+  return (
+    <section class="plan-section" data-section="heldSummary" data-testid={`${T}.heldSummary`}>
+      {S.figure.map((x, i) => <p class={i === 0 ? 'figure' : 'line'} key={i} data-testid={`${T}.heldSummary.figure`}>{heldText(x)}</p>)}
+      {S.cash && <p class="line" data-testid={`${T}.heldSummary.cash`}>{heldText(S.cash)}</p>}
+      <p class="note" data-testid={`${T}.heldSummary.counts`}>{HELD.holdCounts} <a href={V.mixHref}>{HELD.holdLinkMix}</a></p>
+    </section>
   );
 }
 
@@ -372,6 +415,7 @@ export function HoldScreen(state, dispatch) {
         {/* a closed plan (6.56.0): its record moved to the plan that carries it on — read here, changed there */}
         {V.closed && <p class="notice" role="status" data-testid={`${T}.closed`}>{V.closed.next ? fill(w.closedStep, { name: V.closed.next.name }) : w.closedStepAlone}{V.closed.next && <> <LinkButton testid={`${T}.closed.open`} kind="quiet" href={href.plan(V.closed.next.id)}>{fill(PLAN.buttons.openNext, { name: V.closed.next.name })}</LinkButton></>}</p>}
         <form class="ask about-form income-form hold-form" noValidate onSubmit={(e) => e.preventDefault()} data-region="plan-hold" data-editable={V.editable ? '1' : '0'}>
+          {V.heldLadder && V.heldSummary && <HeldSummary V={V} />}
           <section class="plan-section" data-section="lines" data-testid={`${T}.lines`}>
             <h2>{W.sections.lines}</h2>
             {V.count === 0 && <p class="note" data-testid={`${T}.none`}>{W.none}</p>}
@@ -384,7 +428,7 @@ export function HoldScreen(state, dispatch) {
             {V.editable && V.count > 0 && <p class="note">{W.line.saveNote}</p>}
           </section>
           {V.canKeep && <GapsSection gaps={V.gaps} prefix={T} />}
-          {V.canKeep && <Expected V={V} dispatch={dispatch} planId={planId} F={F} />}
+          {(V.canKeep || (V.heldLadder && V.expected)) && <Expected V={V} dispatch={dispatch} planId={planId} F={F} />}
           {/* 7.7.0: the plan's own test with what is kept, and "I accept this risk" */}
           {KT && <KeepTestSection v={KT} dispatch={dispatch} prefix={T} editable={V.editable} />}
           {V.editable && <Add V={V} dispatch={dispatch} planId={planId} F={F} />}

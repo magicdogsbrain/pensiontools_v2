@@ -90,11 +90,19 @@ export function transitionHeld(scenario, rec, today = new Date()) {
 }
 
 /**
- * The handlers the Transition tab's markup names (TransitionView.js): keepHolding, keepHoldingYears, addExpected,
- * removeExpected. `draft()` is the record on screen, `persist(record)` the shell's one save, `toast(text, kind)` its message.
+ * The handlers the Transition tab's markup names (TransitionView.js): keepHolding, keepHoldingYears, keepHoldingFor,
+ * addExpected, removeExpected. `draft()` is the record on screen, `persist(record)` the shell's one save, `toast(text, kind)` its
+ * message. Saves are queued (7.12.0): each change is applied to the record as the previous change left it, and each save waits
+ * for the one before, so several changes made quickly all land — never the last one alone over the record on screen.
  */
 export function installKeepHandlers(w, { draft, persist, toast }) {
-  const save = (change) => { const d = draft(); if (!d) return; Promise.resolve().then(() => persist(holdingsWith(d, change, { today: new Date() }))).catch((e) => toast('Could not save what you hold: ' + e.message, 'error')); };
+  let pending = null, inFlight = 0, queue = Promise.resolve();
+  const save = (change) => {
+    const d = pending || draft(); if (!d) return;
+    const next = holdingsWith(d, change, { today: new Date() });
+    pending = next; inFlight++;
+    queue = queue.then(() => persist(next)).catch((e) => toast('Could not save what you hold: ' + e.message, 'error')).finally(() => { inFlight--; if (!inFlight) pending = null; });
+  };
   w.keepHolding = (i, v, firstYear) => {
     const d = draft(); if (!d || !d.lines || !d.lines[i]) return;
     const keep = keepOfChoice(v, d.lines[i].keep, firstYear);
@@ -102,6 +110,14 @@ export function installKeepHandlers(w, { draft, persist, toast }) {
     save({ kind: 'keep', index: i, keep });
   };
   w.keepHoldingYears = (i, text) => { const ys = parseTaxYears(text); if (!ys.length) { toast('Type at least one tax year, like 2027/28.', 'error'); return; } save({ kind: 'keep', index: i, keep: { as: 'rung', taxYears: ys } }); };
+  // living on a ladder (7.12.0): the one optional box — the years typed are the person's label; emptied, the keep comes off
+  w.keepHoldingFor = (i, text) => {
+    const d = pending || draft(); if (!d || !d.lines || !d.lines[i]) return;
+    if (!String(text || '').trim()) { const k = d.lines[i].keep; if (k && k.as === 'rung') save({ kind: 'keep', index: i, keep: null }); return; }
+    const ys = parseTaxYears(text);
+    if (!ys.length) { toast('A tax year, like 2028/29.', 'error'); return; }
+    save({ kind: 'keep', index: i, keep: { as: 'rung', taxYears: ys } });
+  };
   w.addExpected = () => {
     const g = (id) => { const el = w.document && w.document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
     const amount = +g('hlExpAmount');
@@ -142,7 +158,7 @@ export function transitionKeepTest(scenario, rec) {
     const plan = { ...scenario, holdings: rec || scenario.holdings };
     const result = resultFor(scenario);
     const fresh = !!(result && result.fingerprint === keepFingerprint(plan.holdings));
-    const v = keepTestOf(plan, { result, run: { status: fresh ? 'done' : memory.status === 'working' || memory.status === 'failed' ? memory.status : 'idle', reason: null } });
+    const v = keepTestOf(plan, { result, run: { status: fresh ? 'done' : memory.status === 'working' || memory.status === 'failed' ? memory.status : 'idle', reason: null }, today: dayOf(new Date()) });
     // Undo, while the list is still the one the last agreement (or withdraw) wrote
     const undo = memory.undo && memory.undo.after === listOf(scenario) ? { id: memory.undo.id } : null;
     // a closed plan is kept to read: no test, no agreement, no withdraw (the store refuses them too), as V7
@@ -157,7 +173,7 @@ export const keepWords = (part) => sayKeep(part, KEEPTEST);
 export function keepLineHtml(scenario) {
   if (!scenario) return '';
   try {
-    const v = keepTestOf(scenario, {});
+    const v = keepTestOf(scenario, { today: dayOf(new Date()) });
     if (!v || !v.line) return '';
     return '<p class="hint pd-keep" id="planDocKeepLine" data-status="' + esc(v.status) + '" style="margin:6px 0 0;">' + esc(keepWords(v.line)) + '</p>';
   } catch { return ''; }

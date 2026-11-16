@@ -231,26 +231,6 @@ export function standInPays(h, { today = null, from = null } = {}) {
 }
 
 /**
- * The tax year a kept line most likely stands in for (7.6.0): the tax year its gilt matures in — by its bundled maturity date,
- * else its name's date, else the year in its name or code — when that is one of `years` (the years "Keep this" offers); null
- * otherwise. A suggestion only: the person ticks the years.
- */
-export function standInYearOf(h, years = []) {
-  const g = giltOfLine(h);
-  // a gilt only: a fund with a year in its name ("… 2040") is not one that matures
-  if (!(g || (h && h.kind === 'gilt') || isGiltTicker(h && h.ticker) || /treasury|gilt/i.test(String((h && h.name) || '')))) return null;
-  const date = (g && g.maturity ? String(g.maturity).slice(0, 10) : null) || maturityOfName(h && h.name);
-  let Y = null;
-  if (date) Y = taxYearStartOf(new Date(date + 'T12:00:00'));
-  else {
-    const m = /\b(20\d{2})\b/.exec(String((h && h.name) || '')) || null;
-    const c = /^T[RGNS]?(\d{2})[A-Z]?$/.exec(up(h && h.ticker));
-    Y = m ? +m[1] : c ? 2000 + +c[1] : null;
-  }
-  return Y != null && years.map(Number).includes(Y) ? Y : null;
-}
-
-/**
  * What the plan needs each tax year (7.6.0), from the document: { [Y]: { need, cost, from } } — `need` the year's money in
  * today's pounds (what the plan pays out, less the State Pension), `cost` what a cash year's money cost to set aside, `from`
  * 'cash', a rung's TIDM, or 'none'. Empty when the document carries no years.

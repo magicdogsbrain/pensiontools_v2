@@ -17,9 +17,10 @@ import { sayGapLine } from '../../answers/plan/gaps.js';
 import { GAPS } from '../../v7/copy/gaps.js';
 import { sayKeep } from '../../answers/plan/keepTest.js';
 import { KEEPTEST } from '../../v7/copy/keepTest.js';
-import { standInYearOf } from '../../services/TransitionPlanner.js';
 import { MOVE } from '../../v7/copy/move.js';
 import { heldLadderHtml } from './HeldLadderView.js';
+import { heldSummaryView, sayHeld } from '../../answers/plan/held.js';
+import { HELD } from '../../v7/copy/held.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { LAYOUT } from '../../appLayout.js';
 
@@ -64,15 +65,25 @@ const taxYearWords = (Y) => Y + '/' + String(+Y + 1).slice(2);
 /**
  * "Keep this" on one line (7.6.0): not kept, standing in for some tax years (typed as "2027/28, 2028/29"), or kept by
  * choice (counted toward the gaps, or not). Each change is one save of the record (the shell's keepHolding / keepHoldingYears).
- * It sits under the line's wrapper, in the first column, so a phone finds it without scrolling the table sideways. "Stands in" saves the plan's year
- * the gilt matures in — else the plan's first open year — never a year the plan does not have; the years box is labelled.
+ * It sits under the line's wrapper, in the first column, so a phone finds it without scrolling the table sideways. "Stands in" saves the
+ * plan's first open year until the years box is typed in — never a year worked out from when a gilt matures (7.12.0).
+ * Living on a ladder (7.12.0, `keep.held`): no "Keep this" — on a pension line that is neither one of the plan's gilts nor cash
+ * (`keep.at`), one optional box for the tax years the person sets it against, empty unless they set some (keepHoldingFor).
  */
 function keepCellHtml(i, L, keep) {
+  if (keep.held) {
+    if (!keep.at.has(i)) return '';
+    const k = L && L.keep && L.keep.as === 'rung' && Array.isArray(L.keep.taxYears) ? L.keep.taxYears : [];
+    const years = k.map(taxYearWords).join(', ');
+    return '<label class="hint" style="display:block;margin-top:4px;">' + esc(HELD.forYearsLabel) + '<br><input type="text" value="' + esc(years) + '" placeholder="' + esc(HELD.forYearsPlaceholder) + '" style="width:150px;" data-on-change="keepHoldingFor(' + i + ',this.value)"></label>'
+      + (years ? '<span class="hint" style="display:block;">' + esc(HELD.forYears.replace('{years}', years)) + '</span>' : '')
+      + '<span class="hint" style="display:block;">' + esc(HELD.forYearsHelp) + '</span>';
+  }
   const k = L && L.keep;
   const cur = !k ? '' : k.as === 'rung' ? 'rung' : k.fundsGaps ? 'mineGaps' : 'mine';
   const opts = [['', 'Not kept'], ...(keep.ladder ? [['rung', 'Stands in for some years']] : []), ['mine', 'Kept by choice'], ['mineGaps', keep.ladder ? GAPS.keep.byChoiceGaps.replace(/\.$/, '') : GAPS.keep.byChoicePlan.replace(/\.$/, '')]];
   const years = Array.isArray(keep.years) ? keep.years : [];
-  const first = keep.ladder ? (standInYearOf(L || {}, years) || years[0] || 0) : 0;
+  const first = keep.ladder ? (years[0] || 0) : 0;
   let h = '<label class="hint" style="display:block;margin-top:4px;">Keep this <select data-on-change="keepHolding(' + i + ',this.value,' + first + ')" style="width:auto;" aria-label="Keep this">' + opts.map((o) => '<option value="' + o[0] + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('') + '</select></label>';
   if (cur === 'rung') h += '<label class="hint" style="display:block;margin-top:4px;">' + esc(GAPS.keep.yearsTyped) + '<br><input type="text" value="' + esc((k.taxYears || []).map(taxYearWords).join(', ')) + '" placeholder="2027/28, 2028/29" style="width:150px;" aria-label="' + esc(GAPS.keep.years) + '" data-on-change="keepHoldingYears(' + i + ',this.value)"></label>';
   return h;
@@ -171,7 +182,9 @@ export function heldInfoHtml(I) {
  * The "What you hold" card: the holdings record as an editable table (no import from the Stress
  * tester's fund list as a starting point, and the paste / save buttons.
  * @param {{ holdings?: { updatedAt, source, offerDismissed, lines: [], expected? }, offer?: { taggedFunds: [] }|null, keep?: { ladder: boolean }|null }} a
- *   keep — 7.6.0: set on a plan with a plan document: each line gets "Keep this", and money expected later is listed
+ *   keep — 7.6.0: set on a plan with a plan document: each line gets "Keep this", and money expected later is listed. Living on a
+ *   ladder (7.12.0) it is { held: true, at, summary }: the gilts held and the cash years in "Your plan's mix"'s words, and the
+ *   one optional box on the lines `at` names
  */
 export function holdingsCardHtml({ holdings = null, offer = null, keep = null } = {}) {
   const rec = holdings || {};
@@ -182,6 +195,13 @@ export function holdingsCardHtml({ holdings = null, offer = null, keep = null } 
   // No offer to copy the Stress tester's fund list (6.13.1): that list is the portfolio a strategy is TESTED on and is
   // never a candidate for what you hold — even as a question. The record starts empty; paste or type it.
   if (!lines.length) h += '<p class="hint">Nothing recorded yet — paste from your platform or add lines.</p>';
+  // living on a ladder (7.12.0): what the plan's gilts and the cash years come to, and the way to "Your plan's mix"
+  if (keep && keep.held && keep.summary) {
+    const S = keep.summary;
+    h += '<div id="holdingsHeldSummary">' + S.figure.map((x, n) => (n === 0 ? '<p><strong>' + esc(sayHeld(x, HELD)) + '</strong></p>' : '<p>' + esc(sayHeld(x, HELD)) + '</p>')).join('')
+      + (S.cash ? '<p>' + esc(sayHeld(S.cash, HELD)) + '</p>' : '')
+      + '<p class="hint">' + esc(HELD.holdCounts) + ' <a href="#heldLadder">' + esc(HELD.holdLinkMix) + '</a></p></div>';
+  }
   if (lines.length) {
     const rows = lines.map((l, i) => {
       const L = l || {};
@@ -239,7 +259,7 @@ export function transitionHtml(a) {
   // (i) What you hold — the record, always editable, whether or not there is a plan document yet; "Keep this" (7.6.0) once
   // there is a plan document to keep against
   // the tax years "stands in" can name: from this one (or the plan's first) for twelve years at most — as V7 offers them
-  const keep = doc && target && target.kind !== 'none' ? (() => {
+  const keep = heldLadder ? { held: true, at: new Set((held.heldInfo.lines || []).map((x) => x.at)), summary: heldSummaryView(held.heldInfo) } : doc && target && target.kind !== 'none' ? (() => {
     if (target.kind !== 'ladder') return { ladder: false, years: [] };
     const p = doc.strategy && doc.strategy.r && doc.strategy.r.plan;
     const first = Math.max(+target.thisTaxYear || 0, +(p && p.firstTaxYear) || +target.firstTaxYear || 0);

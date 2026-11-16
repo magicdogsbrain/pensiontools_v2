@@ -717,7 +717,7 @@ export const HOLD_PATHS = Object.freeze(HOLD_FIELDS.map((f) => f.path));
  * A line's boxes (line.<index>.<field>: the fields HoldingsRecord.LINE_FIELDS names), a pasted line's answer (paste.<line>.what),
  * a line's "Keep this" choice (7.6.0: line.<index>.keepAs | keepYears | keepGaps) and an expected item's boxes (expected.<id>.amount | by).
  */
-const HOLD_CARD = /^line\.\d{1,4}\.(wrapper|ticker|name|sedol|units|value|ocf|contribution|subClass|kind|asOf|keepAs|keepYears|keepGaps)$|^paste\.\d{1,4}\.what$|^expected\.[A-Za-z0-9_-]{1,40}\.(amount|by)$/;
+const HOLD_CARD = /^line\.\d{1,4}\.(wrapper|ticker|name|sedol|units|value|ocf|contribution|subClass|kind|asOf|keepAs|keepYears|keepGaps|forYears)$|^paste\.\d{1,4}\.what$|^expected\.[A-Za-z0-9_-]{1,40}\.(amount|by)$/;
 /** What a line may be kept as (7.6.0, HoldingsRecord.normaliseKeep): standing in for some years' money, or by choice. */
 export const HOLD_KEEP_AS = Object.freeze(['rung', 'mine']);
 export const isHoldPath = (path) => HOLD_PATHS.includes(String(path)) || HOLD_CARD.test(String(path));

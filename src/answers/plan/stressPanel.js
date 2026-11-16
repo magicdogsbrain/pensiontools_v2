@@ -172,7 +172,7 @@ export function stressPanelView(plan, rows, { level = null, today, settings = nu
   const fresh = (id) => (isObj(held[id]) && held[id].key === key ? held[id] : null);
   const lvl = level || planLevelOf(plan);
   const closed = isClosedPlan(plan);
-  const keep = keepStateOf(keepsLines(plan && plan.holdings) ? keepTestOf(plan, {}) : null);
+  const keep = keepStateOf(keepsLines(plan && plan.holdings) ? keepTestOf(plan, { today }) : null);
   let s = isObj(settings) ? settings : null;
   if (!s) { try { s = effectiveStressSettings(plan, { now: dateOf(today) }); } catch { s = storedStressOf(plan); } }
   const ctx0 = contextOf(plan, s, today);

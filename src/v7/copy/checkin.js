@@ -103,12 +103,12 @@ export const CHECKIN = {
     enoughW: {
       share: '{pct}% of your pay in all ({amount} a month) would put you on course at {level}.',
       pounds: '{amount} a month going into your pension would put you on course at {level}.',
-      outOfReach: 'Even all of your pay going in would not be on course. Stopping later or spending less are the other ways: see What you pay in.'
+      outOfReach: 'Paying in more on its own cannot get there. Stopping later or spending less are the other ways: see What you pay in.'
     },
     enough: {
       share: '{pct}% of your pay in all ({amount} a month) would put you on course, which is 9 in 10.',
       pounds: '{amount} a month going into your pension would put you on course, which is 9 in 10.',
-      outOfReach: 'Even all of your pay going in would not be on course. Stopping later or spending less are the other ways: see What you pay in.'
+      outOfReach: 'Paying in more on its own cannot get there. Stopping later or spending less are the other ways: see What you pay in.'
     },
     four: {
       share: 'For 3 futures out of 4: {pct}% of your pay in all ({amount} a month).',

@@ -34,7 +34,7 @@
  */
 import { payInParts } from '../shared/schemaParts.js';
 import { leastPayIn } from '../shared/stopAt.js';
-import { SAVING, SEARCH_PROBES } from '../shared/rules.js';
+import { SAVING, SEARCH_PROBES, RULES } from '../shared/rules.js';
 import { outOfTen } from '../shared/format.js';
 import { bandIndexes } from '../shared/band.js';
 import { takeHomeOf } from '../../services/SaverPayIn.js';
@@ -402,4 +402,35 @@ export function oneOffSum({ row, H, ctx, least, fails }) {
     L += LUMP_STEP;
   }
   return null;
+}
+
+/**
+ * One reach rule (7.12.0, research P2.2): what paying in can do, read by every card the same way — the figures, the "more
+ * risk" and one-off cards, the enough block, the plan's home — so no card offers what nobody could pay in.
+ *  - A pay-in is within reach when what would be enough was found (not past all of a pay, nor past B's ceiling), what goes
+ *    in a month is no more than the yearly allowance a month for each person saving (£60,000 ÷ 12), and, for someone who
+ *    gave a share of their pay, their own part is no more than all of their pay.
+ *  - A one-off sum is within reach up to four years' allowance (£240,000), for a couple each person's own part.
+ *  - "More risk while saving" is within reach by the pay-in rule, at the pay-in it names.
+ * `ways` are the ways that work on their own (stopping later, spending less), from the answer's own levers.
+ * @returns {{ payIn: boolean, lump: boolean, moreRisk: boolean, ways: { stopLater: number|null, spendLess: number|null } }}
+ */
+export function reachOf({ onCourse, enough, needed, levers, inp, whos, savers, now = 0 }) {
+  const people = whos.map((w, j) => ({ who: w, saves: !!savers[j], p: (inp[w] && inp[w].payIn) || {} }));
+  const saving = people.filter((q) => q.saves);
+  const most = RULES.annualAllowance / 12 * Math.max(1, saving.length);
+  const one = saving.length === 1 ? saving[0] : null;
+  const pay = one && one.p.kind === 'share' && one.p.pay > 0 ? one.p.pay / 12 : null;
+  const employer = one ? (payInParts(one.p).employer || 0) : 0;
+  /** A pay-in a month (all of it, the employer's part included) that someone could pay. */
+  // (no more than goes in now is always within it: the rule is about paying in more)
+  const within = (x) => x === null || x === undefined || x <= now + 1e-9 || (x <= most + 1e-9 && (pay === null || x - employer <= pay + 1e-9));
+  const lead = enough && enough.atLevel ? enough.atLevel : null;
+  const payIn = !!onCourse || !!(enough && enough.savingsOnly) || (!(enough && enough.outOfReach) && within(lead ? lead.payIn : null) && within(needed));
+  const lv = levers || {};
+  // (a couple's sum is each person's own part: each within four years of their own allowance)
+  const lumpParts = lv.oneOff ? (Array.isArray(lv.oneOff.byPerson) ? lv.oneOff.byPerson.map((x) => x.amount) : [lv.oneOff.amount]) : [];
+  const lump = lumpParts.every((x) => x <= 4 * RULES.annualAllowance);
+  const moreRisk = !lv.moreRisk || (lv.moreRisk.payIn !== null && within(lv.moreRisk.payIn));
+  return { payIn, lump, moreRisk, ways: { stopLater: lv.stopLater ? lv.stopLater.age : null, spendLess: lv.spendLess ? lv.spendLess.spend : null } };
 }

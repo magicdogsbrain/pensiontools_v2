@@ -152,13 +152,15 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     expect(ok(answerB(at, ENV), at).chance.fails).toBe(a.enough.atLevel.fails);
   });
 
-  it('out of reach by paying in (Alex, 52, little saved, a high aim): "even all of your pay going in would not be on course", and the other ways lead', () => {
+  it('out of reach by paying in (Alex, 52, little saved, a high aim): "paying in more on its own cannot get there", and the other ways lead (7.12.0: one reach rule)', () => {
     const alex = { household: 'single', you: { age: 52, pot: 20000, payIn: { kind: 'share', pay: 25000, ownPct: 4, employerPct: 2 } }, stop: { age: 62 }, spend: { kind: 'amount', amount: 4500 } };
     const a = ok(answerB(alex, ENV), alex);
     expect(a.enough.atLevel).toBeNull();
     expect(a.enough.outOfReach).toBe('pay');
-    expect(a.sentences.verdictLine.text).toContain('; even all of your pay going in would not be on course');
-    expect(a.sentences.enoughHead.text).toBe('Even all of your pay going in would not be on course for £4,500 a month from 62.');
+    // (7.12.0) the one reach rule: said the same way on every card, never a figure past it
+    expect(a.reach.payIn).toBe(false);
+    expect(a.sentences.verdictLine.text).toContain('; paying in more on its own cannot get there.');
+    expect(a.sentences.enoughHead.text).toBe('Paying in more on its own cannot get there for £4,500 a month from 62.');
     expect(a.levers.payMore).toBeNull();
   });
 
@@ -209,15 +211,16 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     expect(b.chance.fails).toBe(nine.fails);
   });
 
-  it('a couple each at their most: "even all of your pay and all of your partner\'s pay going in" — whose most, never the £10,000 a month neither could pay', () => {
+  it('a couple each at their most: the solver says whose most was reached; the words say the one reach rule, never the £10,000 a month neither could pay (7.12.0)', () => {
     const couple = { household: 'couple', you: { age: 45, pot: 20000, payIn: { kind: 'share', pay: 24000, ownPct: 6, employerPct: 3 } },
       partner: { age: 44, pot: 15000, payIn: { kind: 'share', pay: 20000, ownPct: 4, employerPct: 3 } }, stop: { age: 62 }, spend: { kind: 'amount', amount: 4600 } };
     const a = ok(answerB(couple, ENV), couple);
     expect(a.levels[a.level].payIn).not.toBeNull();
     expect(a.enough.outOfReach).toBe('pay');
     expect(a.enough.caps).toEqual([{ who: 'you', by: 'pay' }, { who: 'partner', by: 'pay' }]);
-    expect(a.sentences.verdictLine.text).toContain("; even all of your pay and all of your partner's pay going in would not be on course");
-    expect(a.sentences.enoughHead.text).toBe("Even all of your pay and all of your partner's pay going in would not be on course for £4,600 a month between you from when you are 62.");
+    expect(a.reach.payIn).toBe(false);
+    expect(a.sentences.verdictLine.text).toContain('; paying in more on its own cannot get there.');
+    expect(a.sentences.enoughHead.text).toBe('Paying in more on its own cannot get there for £4,600 a month between you from when you are 62.');
     expect(text(a)).not.toMatch(/£10,000 a month each/);
   });
 
@@ -295,18 +298,23 @@ describe('the warnings and the ways are about what the words state', () => {
     expect(a.sentences.lever.oneOff.text).toContain('The tax is added back only on what you pay in up to your pay in a year');
   }, 60_000);
 
-  it('out of reach by paying in: the line under it names only the ways below that were found, and none when none was', () => {
+  it('past the reach of paying in (7.12.0, one reach rule): the line under it names each way that works on its own, in pounds or an age, and never a one-off sum', () => {
     const singles = arbitraryInputs(SCHEMA_B, ENV).filter(withinCeiling).filter(asksB).filter((i) => i.household === 'single');
     fc.assert(fc.property(singles, (inputs) => {
       const a = ok(answerB(inputs, ENV), inputs);
       const s = a.sentences;
-      fc.pre(Boolean(a.enough && a.enough.outOfReach));
+      fc.pre(Boolean(a.reach && a.reach.payIn === false && !a.onCourse && a.status === 'ok' && !a.enough.savingsOnly));
       const lv = a.levers;
-      const line = s.enoughLine && s.enoughLine.id === 'b.enough.line.outOfReach' ? s.enoughLine.text : '';
-      expect(line.includes('stopping later'), 'stopping later').toBe(Boolean(lv.stopLater));
-      expect(line.includes('spending less'), 'spending less').toBe(Boolean(lv.spendLess));
-      expect(line.includes('a one-off sum now'), 'a one-off sum').toBe(Boolean(lv.oneOff));
-      if (!lv.stopLater && !lv.spendLess && !lv.oneOff) expect(s.enoughLine).toBeUndefined();
+      expect(s.enoughHead.text).toMatch(/^Paying in more on its own cannot get there for /);
+      const line = s.enoughLine ? s.enoughLine.text : '';
+      // spending less: its own amount a month, as the answer found it
+      expect(line.includes('Spending less could: '), 'spending less').toBe(Boolean(lv.spendLess));
+      if (lv.spendLess) expect(line).toContain('Spending less could: £' + Math.round(lv.spendLess.spend).toLocaleString('en-GB') + ' a month');
+      // stopping later: the age it found
+      expect(/[Ss]topping later could: at |So could stopping later, at /.test(line), 'stopping later').toBe(Boolean(lv.stopLater));
+      if (lv.stopLater) expect(line).toContain('at ' + lv.stopLater.age + ', paying in as now');
+      expect(line).not.toMatch(/one-off|below/);
+      if (!lv.stopLater && !lv.spendLess && a.enough.outOfReach !== 'pot') expect(line).toBe('Neither stopping later nor spending less does it on its own; both together, a later age and a lower amount, may.');
     }), opts(12));
     // Alex, 30, aiming far beyond any pot: no other way was found, so none is pointed to
     const far = { household: 'single', you: { age: 30, pot: 10000, payIn: { kind: 'total', total: 500 } }, stop: { age: 40 }, spend: { kind: 'amount', amount: 20000 } };

@@ -255,7 +255,8 @@ export function sentencesFor(result, facts) {
 
   // ---- the second headline: the pay-in that gets there (two headlines only when short) -------------------------------
   const pi = result.payIn;
-  const two = st === 'ok' && !result.onCourse && number !== null && pi.needed !== null;
+  // (one reach rule, 7.12.0: a pay-in nobody could pay is never a headline — the enough block says what can be done)
+  const two = st === 'ok' && !result.onCourse && number !== null && pi.needed !== null && !(result.reach && !result.reach.payIn);
   const savingsToo = result.outside && pi.outside !== null && pi.outside > (pi.savingsNow || 0);
   const savingsOnly = two && savingsToo && pi.needed <= pi.now && result.levers.payMore;
   /** "until you are 60", "until your partner stops at 56", "until each of you stops": how long the pay-in goes in. */
@@ -621,6 +622,8 @@ function verdictSentences(result, facts) {
     return [W.allPay];
   };
   const nineInTen = levelIn(result.level);
+  /** Past the reach of paying in (one reach rule, 7.12.0, enough.js reachOf): every card says it the same way. */
+  const pastReach = !!(result.reach && !result.reach.payIn);
 
   // ---- the headline: the band, in the unit the aim was given in ----------------------------------------------------
   out.verdictHead = band === 'yes' ? S('b.verdict.head.yes', ['On course for ', aim])
@@ -650,18 +653,15 @@ function verdictSentences(result, facts) {
           : ['. ', W.asLittle, figure(NINE, nine), ' and still be on course', detail(NINE, nine) ? [': ', detail(NINE, nine)] : '', '.'];
   } else if (en.savingsOnly && nine) {
     enoughWords = ['. What goes into ', pensionWord, ' is enough; ', M(`${NINE}.savingsIn`), ' a month into ISAs or savings ', untilStop, ' would put you on course, which is ', nineInTen, '.'];
-  } else if (nine) {
+  } else if (nine && !pastReach) {
     const parts = nine.savingsIn !== null
       ? [figure(NINE, nine), en.how === 'share' ? [' into ', pensionWord] : '', ' and ', M(`${NINE}.savingsIn`), ' a month into ISAs or savings ', untilStop]
       : figure(NINE, nine);
     // what it means for the person is said once, in the block below (enoughLine)
     enoughWords = ['. ', parts, ' would put you on course, which is ', nineInTen, '.'];
   } else {
-    // out of reach by paying in: the other ways lead (3.3)
-    const each = pair || both ? ' a month each' : ' a month';
-    enoughWords = [en.outOfReach === 'pay' ? ['; even ', allOf(), ' going in would not be on course']
-      : en.outOfReach === 'pot' ? '; paying in more on its own would not put you on course'
-        : ['; no pay-in up to ', F(money(SAVING.payInCeiling)), each, ' would be on course'], '.'];
+    // out of reach by paying in (one reach rule, 7.12.0): said one way, the other ways lead (3.3)
+    enoughWords = ['; paying in more on its own cannot get there.'];
   }
   out.verdictLine = S(`b.verdict.line.${band}`, [asNow, enoughWords]);
 
@@ -705,19 +705,17 @@ function verdictSentences(result, facts) {
     out.enoughLine = S('b.enough.line.savings', [...(weighedV(nine) ? ['Paying in as now beside it, your money ', lastsChance(nine)] : ['Paying in as now beside it, your money lasted ', until(facts), ' ', countParts(nine.lasted)]), '.']);
     return out;
   }
-  if (!leadFig) {
-    out.enoughHead = en.outOfReach === 'pay'
-      ? S('b.enough.head.outOfReach', ['Even ', allOf(), ' going in would not be on course for ', aim, '.'])
-      : en.outOfReach === 'pot'
-        ? S('b.enough.head.outOfReach', ['Paying in more on its own would not be on course for ', aim, '.'])
-        : S('b.enough.head.outOfReach', ['No pay-in up to ', F(money(SAVING.payInCeiling)), pair || both ? ' a month each' : ' a month', ' would be on course for ', aim, '.']);
-    // only the ways below that were found: each made the money last on its own (none found: nothing to point to)
+  if (!leadFig || pastReach) {
+    // one reach rule (7.12.0): paying in alone cannot do it — said one way, then the ways that can, each in pounds or an age
+    out.enoughHead = S('b.enough.head.outOfReach', ['Paying in more on its own cannot get there for ', aim, '.']);
     const lv = result.levers || {};
-    const ways = [lv.stopLater && 'stopping later', lv.spendLess && 'spending less', lv.oneOff && 'a one-off sum now'].filter(Boolean);
-    if (ways.length) {
-      out.enoughLine = S('b.enough.line.outOfReach', [ways.length === 1 ? ['Another way below could: ', ways[0], '.']
-        : ['Other ways below could, each on its own: ', ways.slice(0, -1).join(', '), ' or ', ways[ways.length - 1], '.']]);
-    }
+    const lasts = (fig) => (weighedV(fig) ? ['your money ', lastsChance(fig)] : ['your money lasted ', countParts(fig.lasted)]);
+    const spend = lv.spendLess ? ['Spending less could: ', M('levers.spendLess.spend'), ' a month', p ? ' from when your partner stops at ' : ' from ', A('stop.age'), ', paying in as now, and ', ...lasts(lv.spendLess), '.'] : null;
+    const later = p ? 'your partner stopping later' : 'stopping later';
+    const stop = lv.stopLater ? [spend ? [' So could ', later, ', at '] : [later.charAt(0).toUpperCase() + later.slice(1), ' could: at '], A('levers.stopLater.age'), ', paying in as now, ', ...lasts(lv.stopLater), '.'] : null;
+    // (no pot at all would pay it, en.outOfReach 'pot': nothing more is pointed to)
+    if (spend || stop) out.enoughLine = S('b.enough.line.outOfReach', [spend || '', stop || '']);
+    else if (en.outOfReach !== 'pot') out.enoughLine = S('b.enough.line.outOfReach.both', ['Neither stopping later nor spending less does it on its own; both together, a later age and a lower amount, may.']);
     return out;
   }
   const savingsPart = leadFig.savingsIn !== null ? [', and ', M(`${LEAD}.savingsIn`), ' a month into ISAs or savings ', untilStop] : '';

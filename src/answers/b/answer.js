@@ -64,7 +64,7 @@ import { apartOf, before2028, payKeepsPensions } from '../shared/apart.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
 import { toHousehold, payInOf } from './toHousehold.js';
 import { sentencesFor, assumedFor, warningsFor, finishTexts, weighWords } from './sentences.js';
-import { enoughOf, oneOffSum } from './enough.js';
+import { enoughOf, oneOffSum, reachOf } from './enough.js';
 
 const UNITS = { money: 'todays-prices', tax: 'after-tax', period: 'month', who: 'household' };
 const RISKS = ['cautious', 'balanced', 'adventurous'];
@@ -556,6 +556,13 @@ export function answerB(inputs, env) {
     }
   }
 
+  // ---- one reach rule (7.12.0): what paying in can do, read by every card the same way ----------------------------------
+  // (a pay-in, a lump or "more risk" past the reach is never offered: no card says a figure nobody could pay in)
+  const reach = status === 'guaranteed-only' ? null : reachOf({ onCourse, enough, needed, levers, inp, whos, savers, now });
+  if (reach && !reach.payIn) levers.payMore = null;
+  if (reach && !reach.lump) levers.oneOff = null;
+  if (reach && !reach.moreRisk) levers.moreRisk = null;
+
   // ---- the grid: stop age against pay-in, built around the answer (detail 'grid'; each cell the one test) ---------------
   let gridOut = null;
   if (detail === 'grid') {
@@ -662,6 +669,7 @@ export function answerB(inputs, env) {
     wholeLife: { lasted, outOfTen: outOfTen(lasted), runOutAge: wholeRunOutAge, ...W(whole) },
     outside,
     levers,
+    reach,
     grid: gridOut,
     phases,
     guaranteed: { monthlyAfterTax: round2(plan.guaranteedAYear / 12) },

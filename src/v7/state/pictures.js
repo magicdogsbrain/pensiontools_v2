@@ -259,8 +259,10 @@ export function answerTiles(state, q) {
     const L = r.level.charAt(0).toUpperCase() + r.level.slice(1);
     if (!(get(r, `levels.${r.level}.pot`) === 0)) add({ id: 'aim', k: `levels.${r.level}.pot`, kind: 'pot', ageKey: 'stop.age', ...(w ? (Object.keys(others).length === 2 ? { words: `aim${L}W`, slots: others } : { words: `aim${L}WOne` }) : {}) });
     add({ id: 'nowBad', k: 'potAtStop.now.careful', kind: 'pot', ageKey: 'stop.age' });
-    if (r.onCourse !== true && r.enough && r.enough.how === 'share' && has('enough.atLevel.totalPct')) add({ id: 'enoughShare', k: 'enough.atLevel.totalPct', kind: 'pct', pop: true });
-    else if (r.onCourse !== true && has('payIn.needed') && r.payIn.needed > 0) add({ id: 'enough', k: 'payIn.needed', kind: 'money', pop: true });
+    // (one reach rule, 7.12.0: a pay-in past the reach of paying in is never a figure: what goes in now is said instead)
+    const within = !(r.reach && r.reach.payIn === false);
+    if (within && r.onCourse !== true && r.enough && r.enough.how === 'share' && has('enough.atLevel.totalPct')) add({ id: 'enoughShare', k: 'enough.atLevel.totalPct', kind: 'pct', pop: true });
+    else if (within && r.onCourse !== true && has('payIn.needed') && r.payIn.needed > 0) add({ id: 'enough', k: 'payIn.needed', kind: 'money', pop: true });
     else add({ id: 'payInNow', k: 'payIn.now', kind: 'money', pop: true });
   } else if (q === 'c') {
     if (r.status === 'none') return [];

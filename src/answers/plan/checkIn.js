@@ -354,7 +354,9 @@ function verdictPart(result, weighted = SUCCESS.weighted) {
 function levelPart(result) {
   if (!result) return { band: null, level: null, weighted: null, fixedAge: null, planToAge: null, fails: null, aim: null, atLevel: null, gap: null, enough: null };
   const en = result.enough;
-  const fig = en && isObj(en.atLevel) && isNum(en.atLevel.payIn) ? en.atLevel : null;
+  // past the reach of paying in (one reach rule, 7.12.0, b/enough.js reachOf): no figure is kept, "out of reach" is
+  const past = !!(isObj(result.reach) && result.reach.payIn === false);
+  const fig = !past && en && isObj(en.atLevel) && isNum(en.atLevel.payIn) ? en.atLevel : null;
   const ch = isObj(result.chance) ? result.chance : {};
   return {
     band: result.verdict.band,
@@ -369,7 +371,7 @@ function levelPart(result) {
     enough: en ? {
       atLevel: fig ? fig.payIn : null, level: typeof en.level === 'string' ? en.level : (typeof result.level === 'string' ? result.level : 'balanced'),
       ...(fig && isNum(fig.ownPct) ? { atLevelOwnPct: fig.ownPct, atLevelTotalPct: fig.totalPct } : {}),
-      ...(en.closeNow ? { closeNow: true } : {}), ...(en.outOfReach ? { outOfReach: true } : {})
+      ...(en.closeNow ? { closeNow: true } : {}), ...(en.outOfReach || past ? { outOfReach: true } : {})
     } : null
   };
 }

@@ -233,3 +233,50 @@ describe('the home says the answer in the person\'s own terms, and follows every
     expect(page.verdict.key).toBe(c.key);
   }, 180000);
 });
+
+describe('one reach rule: when paying in alone cannot do it, every card says so the same way, and offers what can', () => {
+  const PAT = () => ({ household: 'single', you: { pot: 45000, age: 52, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'share', pay: 31000, ownPct: 4, employerPct: 3 } },
+    stop: { age: 60 }, spend: { kind: 'amount', amount: 2608 }, endAge: 95 });
+  const allText = (r) => { const out = []; const walk = (x) => { if (Array.isArray(x)) x.forEach(walk); else if (x && typeof x === 'object') { if (typeof x.text === 'string') out.push(x.text); else Object.values(x).forEach(walk); } }; walk(r.sentences); return out.join('\n'); };
+  /** Every "£X a month" the words say, as numbers. */
+  const monthlies = (t) => [...t.matchAll(/£([\d,]+) a month/g)].map((m) => +m[1].replace(/,/g, ''));
+
+  it('Pat (52, £31,000, £45,000, 4% and 3%, £2,608 a month from 60): no card names a pay-in nobody could pay or a lump past the allowance; the ways that work are said in pounds', async () => {
+    const r = answerB(PAT(), { today: READ_ON, futures: 1000, seed: 0, detail: 'answer' });
+    expect(r.verdict.band).toBe('no');
+    expect(r.reach.payIn).toBe(false);
+    const t = allText(r);
+    // Pat's whole pay a month: 31,000 ÷ 12 = £2,583.33; the yearly allowance a month: 60,000 ÷ 12 = £5,000. No pay-in said
+    // is above either but what goes in now (7% of £31,000: 31,000 × 0.07 ÷ 12 = £180.83, said £181) and the amounts to spend
+    for (const x of monthlies(t)) expect(x <= 2608 || x === 1046, `£${x} a month in: ${t}`).toBe(true);
+    // four years' allowance: 4 × 60,000 = £240,000; no lump above it is offered
+    expect(r.levers.oneOff === null || r.levers.oneOff.amount <= 240000).toBe(true);
+    expect(t).not.toMatch(/£6,720|£6,670|£603,000/);
+    expect(r.sentences.verdictLine.text).toMatch(/; paying in more on its own cannot get there\.$/);
+    expect(r.sentences.enoughHead.text).toBe('Paying in more on its own cannot get there for £2,608 a month from 60.');
+    // the way that works on its own, in pounds: spending less, at the amount the answer found lasts
+    expect(r.levers.spendLess).not.toBe(null);
+    const spend = r.levers.spendLess.spend;
+    expect(spend).toBeLessThan(2608);
+    expect(r.sentences.enoughLine.text).toMatch(new RegExp('^Spending less could: £' + spend.toLocaleString('en-GB').replace(/,/g, ',') + ' a month from 60, paying in as now, and your money lasts as long as you do \\d+ times in 20\\.'));
+    expect(r.sentences.enoughLine.text).not.toMatch(/below|one-off/);
+    // the figures under the answer: what goes in now, never the pay-in past the reach
+    const { answerTiles } = await import('../../../src/v7/state/pictures.js');
+    const st = { answers: { b: { status: 'final', result: r } } };
+    const tiles = answerTiles(st, 'b').map((x) => x.id);
+    expect(tiles).not.toContain('enough');
+    expect(tiles).not.toContain('enoughShare');
+  }, 90000);
+
+  it('Pat\'s plan: the home and What you pay in say the same reach words, with no "below" to point at', () => {
+    const plan = keptPlan(PAT(), { id: 'PatR1' });
+    const page = savingOf([entry(plan)], plan.id, { today: READ_ON });
+    const v = page.verdict;
+    expect(v.ok).toBe(true);
+    const r = answerB(v.inputs, { today: READ_ON, futures: 1000, seed: 0, detail: 'answer', ...v.env });
+    expect(r.reach.payIn).toBe(false);
+    expect(r.sentences.enoughHead.text).toBe('Paying in more on its own cannot get there for £2,608 a month from 60.');
+    expect(r.sentences.enoughLine.text).toMatch(/^Spending less could: £[\d,]+ a month from 60, /);
+    expect(allText(r)).not.toMatch(/ways below|£6,720|£603,000/);
+  }, 90000);
+});

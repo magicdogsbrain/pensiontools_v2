@@ -306,7 +306,22 @@ export function checkAnswerB(answer, given) {
     }
     if (m.savingsIn !== null && m.savingsIn !== pi.outside) fail('B8', `payMore.savingsIn ${m.savingsIn} is not payIn.outside ${pi.outside}`);
     if (!(answer.basis && answer.basis.weighted) && m.lasted < 1 - allowed.nineInTen / n - 1e-12) fail('B8', `payMore lasted in only ${m.lasted}`);
-  } else if (lead && !answer.onCourse && (lead.payIn > pi.now || lead.savingsIn !== null)) fail('B8', 'something would be enough, and no payMore');
+  } else if (lead && !answer.onCourse && (lead.payIn > pi.now || lead.savingsIn !== null) && !(answer.reach && answer.reach.payIn === false)) fail('B8', 'something would be enough, and no payMore');
+  // one reach rule (7.12.0, b/enough.js reachOf): nothing past the reach is offered — a pay-in above the yearly allowance a
+  // month for each person saving, or above all of a pay for someone who gave a share; a one-off sum above four years'
+  // allowance; "more risk" at a pay-in past the same reach
+  const R = answer.reach;
+  if (answer.status !== 'guaranteed-only') {
+    if (!R || typeof R.payIn !== 'boolean' || typeof R.lump !== 'boolean' || typeof R.moreRisk !== 'boolean') fail('B8', 'no reach');
+    else {
+      const most = 60000 / 12 * Math.max(1, people.filter((x) => st.saves(x.who)).length);
+      if (lv.payMore && (!R.payIn || (lv.payMore.payIn > most + 1e-9 && lv.payMore.payIn > pi.now + 1e-9))) fail('B8', `payMore ${lv.payMore.payIn} offered past the reach`);
+      if (lv.oneOff && (!R.lump || (Array.isArray(lv.oneOff.byPerson) ? lv.oneOff.byPerson.map((x) => x.amount) : [lv.oneOff.amount]).some((x) => x > 240000))) fail('B8', `oneOff ${lv.oneOff.amount} offered past the reach`);
+      if (lv.moreRisk && (!R.moreRisk || lv.moreRisk.payIn === null || (lv.moreRisk.payIn > most + 1e-9 && lv.moreRisk.payIn > pi.now + 1e-9))) fail('B8', `moreRisk ${lv.moreRisk.payIn} offered past the reach`);
+      if (answer.onCourse && !R.payIn) fail('B8', 'on course, yet past the reach');
+      if (en && en.outOfReach && R.payIn && !answer.onCourse) fail('B8', 'out of reach by the solver, yet within the reach');
+    }
+  }
   if (lv.oneOff) {
     const o = lv.oneOff;
     if (!Number.isInteger(o.amount / 1000) || !(o.amount >= 1000) || o.amount > SAVING.potMax) fail('B8', `oneOff.amount ${o.amount}`);
@@ -541,7 +556,9 @@ export function checkAnswerB(answer, given) {
     for (const k of LEVERS) if (Boolean(S_.lever[k]) !== Boolean(lv[k])) fail('B14', `lever sentence ${k} ${S_.lever[k] ? 'without' : 'missing for'} its lever`);
   }
   const two = answer.status === 'ok' && !answer.onCourse;
-  for (const id of ['payInHead', 'payInSub', 'payInLine', 'payInBad']) if (Boolean(S_[id]) !== (two && pi.needed !== null)) fail('B14', `${id} ${S_[id] ? 'present' : 'missing'}`);
+  // (one reach rule, 7.12.0: a pay-in past the reach of paying in is never a headline)
+  const within = !(answer.reach && answer.reach.payIn === false);
+  for (const id of ['payInHead', 'payInSub', 'payInLine', 'payInBad']) if (Boolean(S_[id]) !== (two && pi.needed !== null && within)) fail('B14', `${id} ${S_[id] ? 'present' : 'missing'}`);
   if (Boolean(S_.outside) !== Boolean(answer.outside)) fail('B14', 'outside sentence ⟺ outside');
   if (S_.gridCell && !answer.grid) fail('B14', 'a gridCell sentence without a grid');
   if (answer.grid && num !== null && answer.grid.payIns.length && answer.grid.ages.some((r) => r.age === st.stopAge) && !S_.gridCell) fail('B14', 'a grid with the stop age\'s row and no gridCell sentence');
@@ -550,7 +567,7 @@ export function checkAnswerB(answer, given) {
   if (Boolean(S_.nothing) !== (answer.status === 'guaranteed-only')) fail('B14', 'nothing sentence ⟺ guaranteed-only');
   if (Boolean(S_.none) !== (answer.status === 'out-of-reach')) fail('B14', 'none sentence ⟺ out-of-reach');
   if (answer.status === 'ok' && !answer.onCourse && num.careful > 0 && !S_.head.text.includes(potText(num.careful))) fail('B14', 'the headline is not the number');
-  if (two && pi.needed !== null && !S_.payInHead.text.includes(money(pi.needed <= pi.now && savingsShort ? pi.outside : pi.needed))) fail('B14', 'the second headline is not the pay-in that gets there');
+  if (two && pi.needed !== null && within && !S_.payInHead.text.includes(money(pi.needed <= pi.now && savingsShort ? pi.outside : pi.needed))) fail('B14', 'the second headline is not the pay-in that gets there');
   if (answer.grid && Boolean(S_.gridNone) !== !answer.grid.reaches) fail('B14', 'gridNone ⟺ no cell of the grid lasted in 9 in 10');
   // the verdict's headline is its band (saving-enough-and-check-in.md 2.2): every answer but "the State Pension covers it"
   if (answer.status !== 'guaranteed-only' && (!S_.verdictHead || S_.verdictHead.id !== `b.verdict.head.${answer.verdict.band}`)) fail('B14', `the verdict's headline is not its band (${answer.verdict.band})`);

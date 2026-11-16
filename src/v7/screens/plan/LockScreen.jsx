@@ -13,6 +13,24 @@ import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { LOCK } from '../../copy/lock.js';
 
+const pounds = (v) => '£' + String(Math.round(+v || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+/** The lock refused (7.12.0, PlanCommit.lockFitOf): the one sentence, and the ways on. Nothing was written. */
+function Unaffordable({ fit, planId, dispatch }) {
+  const U = LOCK.unaffordable;
+  const text = fit.ladder ? fill(U.ladder, { cost: pounds(fit.cost), pots: fit.isa ? U.potsIsa : U.potsPension, amount: pounds(fit.pots), short: pounds(fit.short) })
+    : fill(U.other, { reason: fit.reason || (fit.short ? pounds(fit.short) + ' short' : '') });
+  return (
+    <div class="notice" role="alert" data-testid="plan.lock.problem" data-problem="unaffordable">
+      <p>{text}</p>
+      <div class="actions-row">
+        <LinkButton testid="plan.lock.unaffordable.income" kind="plain" href={href.plan(planId, 'income')}>{U.income}</LinkButton>
+        <LinkButton testid="plan.lock.unaffordable.ways" kind="quiet" href={href.plan(planId, 'way')}>{U.ways}</LinkButton>
+        <Button testid="plan.lock.unaffordable.close" kind="quiet" onClick={() => dispatch({ type: 'plan/cancel', planId })}>{U.close}</Button>
+      </div>
+    </div>
+  );
+}
+
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
 
@@ -144,7 +162,8 @@ export function LockScreen(state, dispatch) {
               </div>
             </div>
           )}
-          {problem && <p class="notice" role="alert" data-testid="plan.lock.problem" data-problem={L.problem}>{problem}</p>}
+          {problem && L.problem === 'unaffordable' && L.problemDetail && L.problemDetail.fit ? <Unaffordable fit={L.problemDetail.fit} planId={planId} dispatch={dispatch} />
+            : problem && <p class="notice" role="alert" data-testid="plan.lock.problem" data-problem={L.problem}>{problem}</p>}
           {L.readonly && <div class="actions-row"><LinkButton testid="plan.lock.back" kind="quiet" href={back}>{LOCK.buttons.back}</LinkButton></div>}
         </section>
         <UndoToast prefix="plan.lock" toast={L.toast} text={L.toast ? toastText(L.toast) : ''} words={LOCK.buttons}

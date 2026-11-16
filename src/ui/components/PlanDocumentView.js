@@ -12,6 +12,8 @@ import { monthsWords, countWords } from '../../services/MonthFill.js';
 import { definitionOf, guaranteeSaid } from '../../services/PlanDocument.js';
 import { successLineHtml } from '../oneAnswerView.js';
 import { STRESS } from '../../v7/copy/stressPanel.js';
+import { PLAN } from '../../v7/copy/plan.js';
+import { lockedShortOf } from '../../services/PlanCommit.js';
 import { STRESS as STRESS_ON } from '../../answers/shared/rules.js';
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
@@ -123,6 +125,9 @@ export function planDocumentHtml(doc, r = {}) {
   const t = d.timing;
   let h = '<div class="card pd">';
   h += planDocumentHeaderHtml(d);
+  // 7.12.0: locked when its gilt ladder cost more than its pots — said once, at the top (V7's words)
+  const ls = lockedShortOf(d);
+  if (ls) h += '<div class="alert alert-warning" id="pdLockedShort">' + esc(PLAN.lockedShort.replace('{short}', '£' + ls.short.toLocaleString('en-GB'))) + '</div>';
   if (r.notice) h += r.notice;
   if (r.whereAmI) h += r.whereAmI;
   // The timing sentence is the snapshot's (its "in 9 months" was counted on the day it was written): say so, or it reads as

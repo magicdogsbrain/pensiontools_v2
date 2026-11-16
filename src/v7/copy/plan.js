@@ -6,6 +6,8 @@
  * Every stage line uses the key and the dates only — never the planner's label, chip or banner (R9).
  */
 export const PLAN = {
+  // a plan locked when its gilt ladder cost more than its pots (7.12.0): the top of "Your plan as locked" and of the plan document
+  lockedShort: 'This plan was locked when its gilt ladder cost {short} more than its pots. So not every year below is bought. You can unlock it, lower the income, and lock it again.',
   /** The header of every V7 page, and the plan pages' own. */
   header: { plans: 'Your plans', ask: 'Ask a question', signOut: 'Sign out' },
 

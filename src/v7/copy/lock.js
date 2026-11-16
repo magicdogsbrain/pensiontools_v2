@@ -114,7 +114,21 @@ export const LOCK = {
     noWorker: 'This browser cannot run the plan’s test in the background, so the plan document cannot be written here. The full view locks the same plan.',
     readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
     problems: 'Sorry, the plan could not be locked. Nothing was changed.',
-    noRun: 'Sorry, the plan’s test gave no figures to write. Nothing was changed.'
+    noRun: 'Sorry, the plan’s test gave no figures to write. Nothing was changed.',
+    unaffordable: 'This plan cannot be locked as it is. You can lower the income, or choose another way of drawing, and lock it then.'
+  },
+  /**
+   * A way of drawing that cannot be paid for (7.12.0): the lock refuses it and says why, once (PlanCommit.lockFitOf). The full
+   * view says the same sentence (src/ui/plannerWords.js lockFitWords).
+   */
+  unaffordable: {
+    ladder: 'This plan cannot be locked as it is. Its gilt ladder costs {cost}. Your {pots} when you stop come to {amount}: {short} short. You can lower the income, or choose another way of drawing, and lock it then.',
+    potsIsa: 'pension and ISA',
+    potsPension: 'pension',
+    other: 'This plan cannot be locked as it is: {reason}. You can lower the income, or choose another way of drawing, and lock it then.',
+    income: 'Change the income',
+    ways: 'The ways of drawing',
+    close: 'Close'
   },
   readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
 

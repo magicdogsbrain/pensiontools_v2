@@ -396,7 +396,8 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     if (!run) return;
     const at = now();
     const p = lockPatch(plan, { now: at, run, entries: state.plans.list });
-    if (!p.ok) { fail(planId, p.errors.plan || 'failed'); return; }
+    // 7.12.0: a way of drawing that cannot be paid for is refused, with its fit for the words
+    if (!p.ok) { fail(planId, p.errors.plan || 'failed', p.fit ? { fit: p.fit } : null); return; }
     const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
     if (lockedRefusal(plan, data)) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;

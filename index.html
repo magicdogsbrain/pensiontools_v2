@@ -4197,7 +4197,7 @@
     // Who draws what (6.25.0, household-draw-split.md): the rule, the writes, the words — the tab only gathers and calls
     import { householdDrawSplit, comparisonFigures, limitFrom } from './src/services/HouseholdDraw.js';
     import { splitWriteMode, splitChanges, applySplit, dismissalFor, isSplitDismissed } from './src/services/HouseholdSplitApply.js';
-    import { runHouseholdWays } from './src/services/HouseholdService.js'; import { effectiveStressSettings } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
+    import { runHouseholdWays } from './src/services/HouseholdService.js'; import { effectiveStressSettings, planMoneyOf } from './src/services/PlanReading.js';   // the partner's plan read as its own tools read it (6.42.0)
     import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
@@ -7399,8 +7399,8 @@
         const ss = ssLive;
         const testList = (Array.isArray(ss.taggedFunds) ? ss.taggedFunds : []).filter((f) => f && f.ticker && +f.value > 0);
         const offer = null;   // 6.13.1: the Stress tester's list is never offered as what you hold — not even as a question
-        const diff = diffHoldings(ledger, target, { needs: yearNeedsOf(doc), today, asOf: rec.updatedAt || null });   // the document's needs (7.6.0); the record's date, for a gilt matured since (7.11.1)
         const storedPlan = await getActiveScenarioAsStored().catch(() => null);
+        const diff = diffHoldings(ledger, target, { needs: yearNeedsOf(doc), today, asOf: rec.updatedAt || null, planMoney: storedPlan ? planMoneyOf(storedPlan, { now: today }) : null });   // the document's needs (7.6.0); the record's date, for a gilt matured since (7.11.1); the plan's own money when nothing is listed (7.12.0)
         const gaps = transitionGaps(storedPlan, rec, today), held = transitionHeld(storedPlan, rec, today);   // "What is covered, year by year" (7.6.0) and, Living on it, what is held, never a move (7.11.1): V7's readings
         const keepTest = transitionKeepTest(storedPlan, rec);   // "Test what you keep against your plan" (7.7.0): V7's reading, run only on its button
         let contributionsMonthly = 0; try { const hp = holdingsProportions(ledger); contributionsMonthly = hp.contributions.monthly || 0; if (!contributionsMonthly) { const acc = await getActiveAccumulation(); if (acc && (+acc.netMonthly > 0 || +acc.employerMonthly > 0)) contributionsMonthly = (+acc.netMonthly || 0) * 1.25 + (+acc.employerMonthly || 0); } } catch (e) { contributionsMonthly = 0; }

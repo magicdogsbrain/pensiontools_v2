@@ -676,7 +676,9 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
       const toRaise = Math.max(0, need - spareCash);
       funding = { need: Math.round(need), spareCash: Math.round(spareCash), available: Math.round(available), toRaise: Math.round(toRaise),
         leftOver: Math.round(Math.max(0, available - toRaise)), short: Math.round(Math.max(0, toRaise - available)),
-        leftOverHeld: target.spareGrowth ? 'shares' : 'value', fromPlan, listed: L.some(inPlan) };
+        leftOverHeld: target.spareGrowth ? 'shares' : 'value', fromPlan, listed: L.some(inPlan),
+        // the plan's own money as given, so every view says the same figure and where it came from (7.12.0)
+        ...(fromPlan ? { planMoney: { pension: Math.round(num(planMoney.pension)), isa: target.isaIn ? Math.round(num(planMoney.isa)) : 0, from: planMoney.from || 'plan' } } : {}) };
     }
     if (wantRoles) {
       const statusOf = new Map();

@@ -49,7 +49,7 @@ export function payingOf(diff, { newMoney = 0, planMoney = null } = {}) {
   const rest = F.short > 0 ? ['short', ...(newMoney > 0 ? ['newMoney'] : []), 'shortRest'] : F.leftOver > 0 ? ['enough', 'leftOver', held, 'leave'] : ['enoughAll'];
   if (F.toRaise <= 0) return { ids: ['need', 'cash'], slots };
   if (F.fromPlan) {
-    const pm = planMoney || {};
+    const pm = planMoney || F.planMoney || {};
     return { ids: ['unlisted', num(pm.isa) > 0 ? 'planHasIsa' : 'planHas', 'need', ...(F.short > 0 ? ['planShort', ...(newMoney > 0 ? ['newMoney'] : []), 'shortRest'] : ['planEnough'])],
       slots: { ...slots, pension: pounds(pm.pension), isa: pounds(pm.isa), from: pm.from || 'plan' } };
   }

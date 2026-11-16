@@ -320,13 +320,14 @@ export function whereAmIFor(scenario, { now = new Date() } = {}) {
  *   without `fromSettings`)
  */
 // `planMoney` (7.12.0): { pension, isa, from } — the plan's own money when nothing is listed in its accounts, for a ladder's
-// "Paying for it"; given by the caller (the one pension-today reader), never worked out here
+// "Paying for it". Read here from the one pension-today reader (planMoneyOf) unless the caller gives it.
 export function moveInputs(scenario, { now = new Date(), fromSettings = false, roles = false, planMoney = null } = {}) {
   const sc = scenario || {};
   const doc = sc.planDocument || null;
   if (!doc) return fromSettings ? settingsMoveInputs(sc, { now }) : null;
   const ss = effectiveStressSettings(sc, { now });
   const target = targetHoldings(doc, { today: now, params: ss.strategyParams || null });
+  if (!planMoney) planMoney = planMoneyOf(sc, { now, settings: ss });
   const rec = normaliseHoldings(sc.holdings);
   // the document's needs by year and today: read only when the record keeps something (7.6.0); each line's part only when
   // asked (7.11.1, `roles`: the reading of what is covered) — every other caller's diff is as before
@@ -334,6 +335,23 @@ export function moveInputs(scenario, { now = new Date(), fromSettings = false, r
   const done = (sc.transition && sc.transition.done) || {};
   const prog = progress(diff, done);
   return { target, diff, prog, strategyParams: ss.strategyParams || null };
+}
+
+/** Where a pension today came from, in the move's words (MOVE.paying.from): a record, a check-in, else the plan's own figure. */
+const MONEY_FROM = { checkIn: 'checkIn', record: 'record' };
+
+/**
+ * The plan's own money for the move when nothing is listed (7.12.0, the moving brief D3): the one pension today
+ * (services/PensionToday.js pensionTodayOf: a check-in, the newest pot record, What you hold, the saved pot, the plan's own
+ * pension total) with the ISA beside it (the record's, else the plan's), or null when no pension is known. Pure.
+ * @returns {{ pension: number, isa: number, from: 'plan'|'checkIn'|'record' }|null}
+ */
+export function planMoneyOf(scenario, { now = new Date(), settings = null } = {}) {
+  const ss = settings || effectiveStressSettings(scenario, { now });
+  const t = pensionTodayOf(scenario, { now, settings: ss });
+  if (!(t && t.value > 0)) return null;
+  const isa = t.isa != null ? +t.isa || 0 : +(ss && ss.isaBalance) || 0;
+  return { pension: t.value, isa, from: MONEY_FROM[t.from] || 'plan' };
 }
 
 /** moveInputs on an unlocked plan (no document): the settings' own year-0 mix, in memory only (see moveInputs). */

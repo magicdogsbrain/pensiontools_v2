@@ -4078,7 +4078,7 @@
       stackedConesSvg,
       STRATEGY_COLORS,
       incomeSmallMultiplesSvg,
-      incomeLayersSvg, incomeLayersRows, coneCaption,
+      incomeLayersSvg, incomeLayersRows, coneCaption, cashYearsWords,
       riskBarsSvg,
       leftBarsSvg,
       incomeStaircaseSvg,
@@ -5905,7 +5905,7 @@
           + 'The sleeve ran out before the horizon in <strong>' + pctText(ruinMc, 1, RUIN_BARS) + ' ± ' + (r.ruinMcHalfWidthPp ?? 0) + 'pp of ' + r.n.mc.toLocaleString() + ' futures</strong> and ' + pctText(ruinH, 1) + ' of ' + r.n.hist + ' histories.';
       } else if (r.strategyId === 'full-il-gilt') {
         const sg = r.signature;
-        head = '<strong>Every year of your income is bought today</strong> — ' + gbp(Math.round(sg.cash)) + ' in cash for the first ' + sg.cashYears + ' year' + (sg.cashYears === 1 ? '' : 's') + ', then ' + sg.orders + ' index-linked gilts (' + gbp(Math.round(sg.giltsCost)) + '), each maturing before the April it pays for; ' + sg.doubleDrops + ' of them pay for two or more years. Total ' + gbp(Math.round(sg.total)) + ', leaving ' + gbp(Math.round(sg.spare)) + '. ' + (sg.spareGrowth ? 'Your income rides nothing. The ' + gbp(Math.round(sg.spare)) + ' left over is invested in shares (your setting), so what you would have left does ride the market — the spread in the cone below is that money; it is never drawn for income.' : 'Nothing rides the market; there is no cone because there is no uncertainty in the plan — only in what the money will buy (see the debasement note).')
+        head = '<strong>Every year of your income is bought today</strong> — ' + gbp(Math.round(sg.cash)) + ' in cash ' + cashYearsWords(sg.firstTaxYear, sg.cashYears) + ', then ' + sg.orders + ' index-linked gilts (' + gbp(Math.round(sg.giltsCost)) + '), each maturing before the April it pays for; ' + sg.doubleDrops + ' of them pay for two or more years. Total ' + gbp(Math.round(sg.total)) + ', leaving ' + gbp(Math.round(sg.spare)) + '. ' + (sg.spareGrowth ? 'Your income rides nothing. The ' + gbp(Math.round(sg.spare)) + ' left over is invested in shares (your setting), so what you would have left does ride the market — the spread in the cone below is that money; it is never drawn for income.' : 'Nothing rides the market; there is no cone because there is no uncertainty in the plan — only in what the money will buy (see the debasement note).')
           + '<br><strong>The only rule:</strong> a standing monthly withdrawal at the planned amount; each March, check twelve months of cash is there. Old age needs no decisions.';
       } else if (r.strategyId === 'gilt-rotation') {
         const sg = r.signature;

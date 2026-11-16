@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { coneCaption } from '../src/ui/coneWords.js';
+import { coneCaption, cashYearsWords } from '../src/ui/coneWords.js';
 
 describe('the cone caption', () => {
   it('many futures: how many, and what the bands are', () => {
@@ -28,5 +28,19 @@ describe('the cone caption', () => {
     const ticks = html.split('\n').filter((l) => l.includes('>Year ${i}</text>'));
     expect(ticks.length).toBe(2);
     for (const l of ticks) expect(l).toContain("i === n - 1 ? 'end'");
+  });
+});
+
+describe('the cash years, by their tax years (the walk: "for the first 2 years" beside an order sheet naming tax years)', () => {
+  it('names the tax years cash pays', () => {
+    expect(cashYearsWords(2026, 3)).toBe('for 2026/27 to 2028/29');
+    expect(cashYearsWords(2027, 2)).toBe('for 2027/28 to 2028/29');
+    expect(cashYearsWords(2026, 1)).toBe('for 2026/27');
+    expect(cashYearsWords(null, 2)).toBe('for the first 2 years');
+  });
+  it('the full index-linked gilt result says it so', () => {
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    expect(html).toContain("' in cash ' + cashYearsWords(sg.firstTaxYear, sg.cashYears)");
+    expect(html).not.toContain("' in cash for the first ' + sg.cashYears");
   });
 });

@@ -30,7 +30,7 @@ import { BK_FRAMES, bucketsSvg } from './ui/bucketsGraphic.js';
 import { giltLadderSvg, inflationDecadesSvg, GILT_FRAMES } from './ui/giltLadderGraphic.js';
 import { floorToAgeSvg, ftaDecadesSvg, FTA_FRAMES } from './ui/floorToAgeGraphic.js';
 import { incomeLayersSvg, incomeLayersRows } from './ui/incomeLayersGraphic.js';
-import { coneCaption } from './ui/coneWords.js';
+import { coneCaption, cashYearsWords } from './ui/coneWords.js';
 import { stackedConesSvg, STRATEGY_COLORS, incomeSmallMultiplesSvg, riskBarsSvg, leftBarsSvg } from './ui/comparisonGraphic.js';
 import { incomeStaircaseSvg, suggestSteps, amountAtAge as shapeAmountAtAge } from './ui/incomeShapeGraphic.js';
 import { ladderRatchetSvg, floorFlexSvg, floorScheduleSvg, potsValvesSvg, LR_FRAMES, FF_FRAMES, FS_FRAMES, PV_FRAMES } from './ui/strategyMachines.js';
@@ -394,7 +394,7 @@ export {
   stackedConesSvg,
   STRATEGY_COLORS,
   incomeSmallMultiplesSvg,
-  incomeLayersSvg, incomeLayersRows, coneCaption,
+  incomeLayersSvg, incomeLayersRows, coneCaption, cashYearsWords,
   riskBarsSvg,
   leftBarsSvg,
   incomeStaircaseSvg,

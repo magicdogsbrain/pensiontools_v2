@@ -3788,6 +3788,8 @@
                 </select>
               </div>
             </div>
+            <p class="hint" id="hhLinkedBy" hidden style="margin:6px 0 0;"></p>
+            <p class="hint" id="hhTheirLine" hidden style="margin:2px 0 0;"></p>
             <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
               <span style="font-size:12px;color:var(--text-muted);">No plan for them yet?</span>
               <input type="text" id="hhNewPlanName" placeholder="e.g. Partner's plan" style="max-width:200px;">
@@ -4040,7 +4042,6 @@
       projectAccumulation,
       getActiveAccumulation,
       saveActiveAccumulation,
-      getHouseholdPartnerId,
       setHouseholdPartnerId,
       getActivePlanOfRecord,
       saveActivePlanOfRecord,
@@ -4170,7 +4171,7 @@
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
     import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
-    import { installLockedStart, paintLockFirst, startLaterOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
+    import { installLockedStart, paintLockFirst, startLaterOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, closedTimingSummary } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { buildPlanDocument, whereAmI, guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
@@ -4195,7 +4196,7 @@
     import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
-    import { updateHomeBanner, installHomeBanner, openingTabOf } from './src/ui/homeBannerUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
+    import { updateHomeBanner, installHomeBanner, openingTabOf } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js'; import { withV7Keys } from './src/services/SaverPayIn.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
@@ -5244,7 +5245,7 @@
             await initializeAllInputsFromSettings();
             window._holdingsDraft = null; window._holdingsDraftFor = null; window._transitionLast = null;   // never carry one plan's holdings draft into another (6.13.0)
             try { const nowTab = document.querySelector('.tab.active'); if (nowTab && nowTab.dataset.tab === 'transition') await loadTransitionUI(); } catch (e) { /* view optional */ }
-            await renderScenarioSelector(); updateNextStepBanner();   // the banner and the way back to the simple view follow the plan now open (7.11.0)
+            await renderScenarioSelector(); updateNextStepBanner(); loadHouseholdUI();   // the banner, the way back to the simple view (7.11.0) and the Household tab's partner (7.12.0) follow the plan now open
           } catch (error) {
             console.error('Error switching scenario:', error);
             showToast('Failed to switch plan: ' + error.message, 'error');
@@ -9317,25 +9318,7 @@
     window.rmWindfall = function (i) { window._ssWindfalls.splice(i, 1); renderExtraIncomes(); };
 
     // ---- Household tab (couples view) -------------------------------------------------------
-    window.loadHouseholdUI = async function () {
-      try {
-        const [scenarios, activeId, partnerId] = await Promise.all([
-          listScenariosAsync(), getActiveScenarioId(), getHouseholdPartnerId()
-        ]);
-        const own = scenarios.find((sc) => sc.id === activeId);
-        document.getElementById('hhOwnPlan').value = own?.planDetails?.name || 'Current plan';
-        const sel = householdPickerFor(document, own);   // read-only on a closed plan (6.56.0)
-        sel.innerHTML = '<option value="">— choose a plan —</option>' + partnerCandidates(scenarios, own || { id: activeId })   // never itself, a closed plan, or its own previous or next plan (PlanClosed.js)
-          .map((sc) => '<option value="' + sc.id + '"' + (sc.id === partnerId ? ' selected' : '') + '>'
-            + budEsc(sc.planDetails?.name || sc.id) + '</option>').join('');
-      } catch (e) { console.error('Household load error:', e); }
-    };
-
-    window.savePartnerSelection = async function () {
-      try {
-        await setHouseholdPartnerId(document.getElementById('hhPartnerSelect').value || null);
-      } catch (e) { showToast('Could not save partner selection: ' + e.message, 'error'); }
-    };
+    installHouseholdTab(window, document, { listScenariosAsync, getActiveScenarioId, setHouseholdPartnerId, showToast });   // the partner read either way, with which plan holds the link and their phase (src/ui/householdTabUi.js, 7.12.0)
 
     window.runHouseholdCheck = async function () {
       const out = document.getElementById('hhResults'), top = document.getElementById('hhSplit');

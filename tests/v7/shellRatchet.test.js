@@ -81,7 +81,10 @@ import { resolve } from 'node:path';
 // The living record (7.12.0): the ISA box is pre-filled by src/ui/monthlyEntry.js, so the two lines that blanked it went, and
 // the Decision tool's "set up first" banner gave way to the lock-first panel (src/ui/lockedStartUi.js paintLockFirst), drawn
 // from updateSetupBanners' existing call: 3 lines shorter: 9,033.
-const MAX_LINES = 9033;
+// Couples, one answer on both views (7.12.0): the Household tab's picker and its save moved to src/ui/householdTabUi.js
+// (installHouseholdTab), reading the link either way; a plan switch reads the tab again from the menu's existing line:
+// 19 lines shorter: 9,014.
+const MAX_LINES = 9014;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

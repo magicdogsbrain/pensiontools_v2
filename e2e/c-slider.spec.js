@@ -27,6 +27,8 @@ async function noSideways(page) {
 
 /** A mouse drag along a slider's track, from where its thumb is to `to` (a share of the track), a step at a time. */
 async function drag(page, slider, to) {
+  // (in view first: a press further down the page, such as a level, leaves the slider above the window)
+  await slider.scrollIntoViewIfNeeded();
   const box = await slider.boundingBox();
   const min = Number(await slider.getAttribute('min'));
   const max = Number(await slider.getAttribute('max'));

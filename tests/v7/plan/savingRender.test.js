@@ -52,7 +52,7 @@ describe('"What you pay in", drawn', () => {
     expect(one(root, `${T}.escalationPct`).value).toBe('1');
     expect(one(root, `${T}.schemeType.ras`).checked).toBe(true);
     expect(one(root, `${T}.salary`).value).toBe('68000');
-    expect(one(root, `${T}.ages`).textContent).toBe('From age 48 to age 60: 12 years of saving. The ages are on “About you and when”.');
+    expect(one(root, `${T}.ages`).textContent).toBe('You stop work in February 2038, at 60: 11 years of saving from age 48. The ages are on “About you and when”.');
     expect(one(root, `${T}.notFrozen`).textContent).toBe(W.notFrozen);
     expect(one(root, `${T}.relief.box`)).toBe(null);
     expect(one(root, `${T}.pot`).getAttribute('data-mix')).toBe('1');

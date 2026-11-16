@@ -66,7 +66,11 @@ describe('"What you pay in" — the reading', () => {
     const hp = proportions(plan.holdings);
     expect(hp.total).toBeGreaterThan(0);
     expect(v.mix).not.toBe(null);
-    const rows = projectAccumulation({ currentAge: s.currentAge, retirementAge: s.retirementAge, potNow: s.potNow, totalMonthly: b.totalMonthly, escalationPct: s.escalationPct, mixRealReturn: hp.expectedReal, chargesPct: chargesPctOf(savedSaving(plan, { today: TODAY }).ss), mixOcf: hp.weightedOcf });
+    // 7.12.0: the table starts from the pot as read (the newest record, services/PensionToday.js), not the box saved
+    const potRead = savedSaving(plan, { today: TODAY }).facts.pot;
+    expect(potRead.from).toBe('record');
+    expect(potRead.pension).toBe(SAVER.accumulationTool.history.slice().sort((a, b2) => String(a.date).localeCompare(String(b2.date))).pop().sipp);
+    const rows = projectAccumulation({ currentAge: s.currentAge, retirementAge: s.retirementAge, potNow: potRead.pension, totalMonthly: b.totalMonthly, escalationPct: s.escalationPct, mixRealReturn: hp.expectedReal, chargesPct: chargesPctOf(savedSaving(plan, { today: TODAY }).ss), mixOcf: hp.weightedOcf });
     const last = rows[rows.length - 1];
     const shownLast = v.rows[v.rows.length - 1];
     expect(shownLast.age).toBe(last.age);

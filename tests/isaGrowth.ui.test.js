@@ -223,7 +223,8 @@ describe('the Accumulation planner: "Into ISAs and savings" and the ISA line', (
     expect(box.getAttribute('type')).toBe('number');
     expect(box.closest('.form-group').textContent).toMatch(/Into ISAs and savings \(£\/mo\)/);
     expect(fnBody('function readAccumulationInputs()', 1200)).toContain("isaMonthly: +document.getElementById('acIsaMonthly')?.value || 0");
-    expect(fnBody('window.loadAccumulationUI', 2000)).toContain("set('acIsaMonthly', saved.isaMonthly)");
+    // 7.12.0: the boxes open from the saver's facts (accumulationBoxes), the ISA box among them
+    expect(fnBody('window.loadAccumulationUI', 2000)).toContain('accumulationBoxes(await getActiveScenarioAsync(), null, new Date())');
     expect(fnBody('window.recalcAccumulation', 6500)).toContain('accumulationTableHtml({ rows, mixOn: window._acMixOn, mixRealReturn, chargesPct: acCharges, stress: acStress, inputs: a })');
   });
   it('the ISA line follows the plan\'s choice, pays in, and ends where the Timing block\'s ISA at retirement does', () => {

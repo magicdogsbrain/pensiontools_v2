@@ -159,12 +159,12 @@ describe('a pension today with nothing going in, and the words beside the verdic
     expect(plan.accumulationTool.settings).toMatchObject({ currentAge: 47, retirementAge: 60, potNow: 61000, netMonthly: 0, employerMonthly: 0 });
     const read = saverInputsOf(plan, { today: KEPT_ON });
     expect(read.inputs.you.pot).toBe(61000);
-    expect(read.notes.potFrom).toBe('saved');
+    expect(read.notes.potFrom).toBe('answer');   // 7.12.0: the pot saved is the one the answer was given, and is said so
     expect(askAgain(read).chance.fails).toBe(result.chance.fails);
     const later = '2027-11-05';
     const on = saverInputsOf(entryOf(copy(plan), later).plan, { today: later });
     expect(on.inputs.you.pot).toBe(61000);
-    expect(on.notes.potFrom).toBe('saved');
+    expect(on.notes.potFrom).toBe('answer');
     // nothing goes in: nothing to rise, so no words on how pay-ins rise
     expect(read.notes.rise).toBe(null);
     expect(saverInputsOf({ ...plan, accumulationTool: { settings: { ...plan.accumulationTool.settings, escalationPct: 0 } } }, { today: KEPT_ON }).notes.rise).toBe(null);
@@ -180,15 +180,14 @@ describe('a pension today with nothing going in, and the words beside the verdic
     const read = saverInputsOf(upgradeScenario(copy(v1), { now: noon(KEPT_ON) }).scenario, { today: KEPT_ON });
     expect(read.inputs.you.pot).toBe(61000);
     expect(read.notes.potFrom).toBe('answer');
-    expect(W.verdict.pot.answer).toBe('Your pot is the one you gave when you kept this plan.');
     expect(read.notes.rise).toBe(null);   // no saving figures at all: nothing said about how pay-ins rise
-    // kept before keeping wrote them (the section missing from a plan this code would write it for): nothing is counted,
-    // and the words say so and where to add it
+    // kept before keeping wrote them (the section missing from a plan this code would write it for): 7.12.0 reads the
+    // plan's own pension total, which holds the pension today, so the pot is still counted and said to be the plan's
     const { plan } = kept(samStopped());
     const old = copy(plan); delete old.accumulationTool;
     const r2 = saverInputsOf(old, { today: KEPT_ON });
-    expect(r2.inputs.you.pot).toBe(0);
-    expect(r2.notes.potFrom).toBe('none');
+    expect(r2.inputs.you.pot).toBe(61000);
+    expect(r2.notes.potFrom).toBe('plan');
   });
   it('a couple\'s plan is said to be read on its own; a single person\'s is not', () => {
     const e = entryOf(C['10-couple-b']);

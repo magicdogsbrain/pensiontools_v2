@@ -24,18 +24,21 @@
  *   SIGNED_IN_KEY               localStorage key: '1' while someone is signed in in this browser
  *   hasSignedInHint(local)      whether the note is there
  *   placeFor(state, windowPlace)     the place to land on in the simple view, null to stay, undefined while not known yet
- *   TO_FULL                     what landingFor gives for someone whose account says the full view (7.11.0)
+ *   TO_FULL                     what landingFor gives for someone who opens in the full view (7.11.0; 7.11.1: by default)
  *   landingFor(state, windowPlace)   TO_FULL, else placeFor's
  *   startPlace(store, { session, local, landing, full }) → stop()
  *
- * The view the site opens in (7.11.0; research/v7/replan-nov-2026.md §8): someone signed in whose account says 'full' lands
- * in the full view instead (`full`: effects/index.js opens it, replacing this page), with plans or without. Most such opens
- * never reach here: effects/view.js fullViewForward sends the page on before anything is drawn, from this browser's copy.
+ * The view the site opens in (7.11.0; research/v7/replan-nov-2026.md §8): someone signed in lands in the full view instead
+ * (`full`: effects/index.js opens it, replacing this page), with plans or without — unless the account holds the choice of
+ * the simple view (7.11.1: the full view is the default for someone signed in, services/ViewChoice.js openingView). Most such
+ * opens never reach here: effects/view.js fullViewForward sends the page on before anything is drawn, from this browser's
+ * copy.
  */
 import { A } from '../state/actions.js';
 import { parse, href } from '../router/routes.js';
 import { cleanBack, cleanPlace, placeHref, backHref } from '../state/place.js';
 import { isClosedPlan } from '../../services/PlanClosed.js';
+import { openingView } from '../../services/ViewChoice.js';
 
 export const RETURN_KEY = 'pt_v7_return';
 export const PLACE_KEY = 'pt_v7_place';
@@ -70,18 +73,21 @@ export function placeFor(state, windowPlace = null) {
   return href.plans();
 }
 
-/** The full view, for someone whose account says it is the view the site opens in (7.11.0). */
+/** The full view, for someone who opens in it (7.11.0; 7.11.1: everyone signed in who has not chosen the simple view). */
 export const TO_FULL = Object.freeze({ view: 'full' });
 
 /**
  * Where a person opening the site's root lands: nobody signed in, null (the questions); undefined while the session or the
- * settings are not known; the full view (TO_FULL) when the account says so, with plans or without — else placeFor's.
+ * settings are not known; the full view (TO_FULL) with plans or without, unless the settings, read, hold the choice of the
+ * simple view (7.11.1, ViewChoice.openingView: no choice stored is the full view) — then placeFor's. Settings that could not
+ * be read are no choice of the full view either: placeFor's, as before.
  */
 export function landingFor(state, windowPlace = null) {
   const k = state.session && state.session.kind;
   if (k === 'nobody' || k === 'unverified') return null;
   if (k !== 'in') return undefined;
-  if (state.ui.profile && state.ui.profile.view === 'full') return TO_FULL;
+  const p = state.ui.profile;
+  if (p && !p.unread && openingView(p) === 'full') return TO_FULL;
   return placeFor(state, windowPlace);
 }
 

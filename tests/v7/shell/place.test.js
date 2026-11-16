@@ -38,9 +38,11 @@ function setUp({ hash = '#/', session = null, local = null, landing = false } = 
   const stop = startPlace(store, { session: s, local: l, landing });
   return { store, session: s, local: l, stop };
 }
+// view 'simple' (7.11.1): someone signed in who never chose opens in the full view (tests/v7/shell/view.test.js); these are
+// the simple view's own landings
 const signedIn = (store, plans = [plan('P1')], profile = { lastSeenVersion: null }) => {
   store.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'alex@example.test' } });
-  store.dispatch({ type: A.PROFILE_SET, profile });
+  store.dispatch({ type: A.PROFILE_SET, profile: { view: 'simple', ...profile } });
   store.dispatch({ type: A.PLANS_SET, list: upgradedList(plans, NOW), source: 'account', readAt: '14:03' });
 };
 
@@ -126,7 +128,8 @@ describe('land where you left off', () => {
   const state = (plans, profile, kind = 'in') => {
     let s = initialState({ today: TODAY, build: 'test' });
     s = reduce(s, { type: A.SESSION_SET, session: { kind, email: null } });
-    if (profile !== undefined) s = reduce(s, { type: A.PROFILE_SET, profile });
+    // view 'simple' (7.11.1): with no choice the landing is the full view (tests/v7/shell/view.test.js); this is the simple view's
+    if (profile !== undefined) s = reduce(s, { type: A.PROFILE_SET, profile: profile && { view: 'simple', ...profile } });
     if (plans) s = reduce(s, { type: A.PLANS_SET, list: upgradedList(plans, NOW), source: 'account', readAt: '14:03' });
     return s;
   };

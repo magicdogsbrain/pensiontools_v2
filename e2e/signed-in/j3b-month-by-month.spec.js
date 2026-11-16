@@ -40,7 +40,8 @@ function draftPlan() {
 async function alexWith(page, plan, step) {
   const { uid } = await makeAccount(ALEX);
   await putPlan(uid, plan);
-  await putSettings(uid, { lastSeenVersion: VERSION, lastLocation: { planId: plan.id, step } });
+  // view 'simple' (7.11.1): someone signed in who never chose opens in the full view; this journey is the simple view's
+  await putSettings(uid, { lastSeenVersion: VERSION, view: 'simple', lastLocation: { planId: plan.id, step } });
   await atFixedTime(page);
   await openAt(page, '#/account');
   await signIn(page, ALEX);

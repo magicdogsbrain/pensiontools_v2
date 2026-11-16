@@ -407,7 +407,8 @@ describe('landing on the home', () => {
   const state = (plans, profile) => {
     let s = initialState({ today: TODAY, build: 'test' });
     s = reduce(s, { type: A.SESSION_SET, session: { kind: 'in', email: null } });
-    s = reduce(s, { type: A.PROFILE_SET, profile });
+    // view 'simple' (7.11.1): someone signed in who never chose opens in the full view; these are the simple view's landings
+    s = reduce(s, { type: A.PROFILE_SET, profile: { view: 'simple', ...profile } });
     s = reduce(s, { type: A.PLANS_SET, list: upgradedList(plans, noon(TODAY)), source: 'account', readAt: '14:03' });
     return s;
   };

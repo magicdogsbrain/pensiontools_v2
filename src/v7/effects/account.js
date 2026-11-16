@@ -225,7 +225,7 @@ export function startAccount(store, { win = null, local = null, session = null, 
    * The ONE write of the settings document: the fields given merged into it (made when the account has none yet — an
    * account made here has no document until its first write). Only preferences go through it: the last release note seen,
    * the place last left (a plan id and a step name), and the view the site opens in (7.11.0: 'simple' or 'full', from Your
-   * account or the strip). A failure is swallowed: preferences never stop the page.
+   * account; 7.11.1: never written for someone who did not choose). A failure is swallowed: preferences never stop the page.
    */
   async function writeSettings(fields) {
     const h = H();

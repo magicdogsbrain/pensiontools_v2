@@ -692,12 +692,7 @@ function reduceAction(state, action) {
       // becoming nobody clears the plans at once (4.3); any kind but 'in' lets the account's settings go (7.11.0): page
       // memory only, read again at the next sign-in, so whatever reads ui.profile is about the person signed in now
       const ui = k === 'in' || state.ui.profile === null ? state.ui : { ...state.ui, profile: null };
-      // … and the strip (7.11.0), offered or answered, goes once nobody is signed in here, or someone else is (another tab
-      // signing one account out and another in, heard on this page): it is only ever shown to the person it was for
-      const strip = ui.viewStrip;
-      const stripGoes = (strip === 'offer' || strip === 'doneFull' || strip === 'doneSimple')
-        && (k === 'nobody' || k === 'unverified' || (state.session.kind === 'in' && (k !== 'in' || email !== state.session.email)));
-      return { ...state, session: next, plans: k === 'in' || k === 'checking' ? state.plans : null, ui: stripGoes ? { ...ui, viewStrip: 'gone' } : ui };
+      return { ...state, session: next, plans: k === 'in' || k === 'checking' ? state.plans : null, ui };
     }
     case A.SESSION_OUT:
       return state.session.kind !== 'in' || state.session.signingOut ? state : { ...state, session: { ...state.session, signingOut: true } };
@@ -1973,21 +1968,13 @@ function reduceAction(state, action) {
       return JSON.stringify(p) === JSON.stringify(state.ui.profile) ? state : { ...state, ui: { ...state.ui, profile: p } };
     }
     case A.VIEW_SET: {
-      // the view PensionTools opens in (7.11.0), from Your account or the strip: a new state on every press, even for the
+      // the view PensionTools opens in (7.11.0), from Your account: a new state on every press, even for the
       // view already held — another tab or device may have changed the stored one since this page read it, so a press
       // always writes (effects/account.js). Only for someone signed in whose settings have been read.
       if (action.view !== 'simple' && action.view !== 'full') return refuse(`view/set: no view called "${action.view}"`);
       if (!state.session || state.session.kind !== 'in' || !state.ui.profile) return state;
       const kept = Object.fromEntries(Object.entries(state.ui.profile).filter(([k]) => k !== 'unread'));
-      const strip = action.from === 'strip' ? { viewStrip: action.view === 'full' ? 'doneFull' : 'doneSimple' } : {};
-      return { ...state, ui: { ...state.ui, profile: { ...kept, view: action.view }, ...strip } };
-    }
-    case A.VIEW_STRIP: {
-      // the strip under the header (7.11.0): offered once per page (effects/view.js), put away by a move or "Not now"
-      const was = state.ui.viewStrip == null ? null : state.ui.viewStrip;
-      if (action.to === 'offer') return was === null ? { ...state, ui: { ...state.ui, viewStrip: 'offer' } } : state;
-      if (action.to === 'gone') return was === 'gone' ? state : { ...state, ui: { ...state.ui, viewStrip: 'gone' } };
-      return refuse(`view/strip: to "offer" or "gone", not "${action.to}"`);
+      return { ...state, ui: { ...state.ui, profile: { ...kept, view: action.view } } };
     }
 
     // ---- keep → sign in → back, and the place last left (7.1.0, research/v7/after-7.md J2; effects/place.js does the rest) ----

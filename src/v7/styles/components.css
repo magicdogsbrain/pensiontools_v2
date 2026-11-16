@@ -39,12 +39,6 @@
   .view-short { display: inline; }
 }
 .offline { margin: 0; padding: 8px var(--gutter); background: var(--surface-raised); color: var(--text-warning); max-width: none; }
-/* the strip under the line naming the view (7.11.0): once, after a visit to the full view; its buttons keep their 44 px */
-.view-strip { padding: 10px var(--gutter) 2px; background: var(--surface-card); border-bottom: 1px solid var(--line); max-width: none; }
-.view-strip > p, .view-strip > .actions-row { max-width: 62rem; margin-left: auto; margin-right: auto; }
-.view-strip > p { margin-top: 0; margin-bottom: 8px; }
-.view-strip > .actions-row { margin-bottom: 8px; }
-.view-strip a { display: inline-block; line-height: 24px; padding: 10px 0; }   /* in the sentence, still 44 px tall */
 
 .foot { padding: 20px var(--gutter) 28px; background: var(--surface-card); border-top: 1px solid var(--line);
   font-size: var(--size-small); color: var(--text); }

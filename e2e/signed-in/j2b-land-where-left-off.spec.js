@@ -28,7 +28,8 @@ function plan(id, name, more = {}) {
 async function alexWith(page, plans, settings = {}) {
   const { uid } = await makeAccount(ALEX);
   for (const p of plans) await putPlan(uid, p);
-  await putSettings(uid, { lastSeenVersion: VERSION, ...settings });
+  // view 'simple' (7.11.1): someone signed in who never chose opens in the full view; this journey is the simple view's
+  await putSettings(uid, { lastSeenVersion: VERSION, view: 'simple', ...settings });
   await atFixedTime(page);
   await openAt(page, '#/account');
   await signIn(page, ALEX);

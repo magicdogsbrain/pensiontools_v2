@@ -281,7 +281,8 @@ const STORAGE_FILES = {
   'src/v7/effects/account.js':    { keys: [], names: [] },
   // 7.1.0 (effects/place.js): the way back after signing in and the window's last place (session), the signed-in note (local)
   'src/v7/effects/place.js':      { keys: ['pt_v7_return', 'pt_v7_place', 'pt_v7_signed_in'], names: [] },
-  // 7.11.0 (effects/view.js): this browser's copy of the account's choice of view, and the strip's "Not now"
+  // 7.11.0 (effects/view.js): this browser's copy of the account's choice of view, and the strip's "Not now" (7.11.1: the strip
+  // is retired; the note is only removed, for a browser that still holds one)
   'src/v7/effects/view.js':       { keys: ['pt_view', 'pt_view_asked'], names: [] }
 };
 
@@ -646,8 +647,10 @@ describe('the words stay out of the code that calculates, and the other way roun
     // The budget step and "Save this as a plan" (budget-step.md; save-as-plan.md C.4, C.5): select.js also reads the pure
     // name rules (planName.js), the budget sheet's check and whether an answer can be saved (src/answers/keep/); the
     // sheet's own reducer (state/budget.js) reads the sheet's catalogue. Nothing in the state calculates an answer.
+    // 7.11.1: and the one rule of the view the site opens in (services/ViewChoice.js, which imports nothing): Your account
+    // shows the full view as the one it opens in when nothing was chosen, by the same rule as the landing and the full view
     const selectMay = (file, t) => file === 'src/v7/state/select.js' && (t === 'src/answers/shared/schemaParts.js' || t === 'src/answers/shared/format.js' ||
-      t === 'src/answers/shared/planName.js' || t === 'src/answers/keep/budgetSheet.js' || t === 'src/answers/keep/planSeed.js');
+      t === 'src/answers/shared/planName.js' || t === 'src/answers/keep/budgetSheet.js' || t === 'src/answers/keep/planSeed.js' || t === 'src/services/ViewChoice.js');
     const budgetMay = (file, t) => file === 'src/v7/state/budget.js' && t === 'src/answers/keep/budgetSheet.js';
     // The spending shape (research/v7/spending-shape.md 4.3): the reducer's suggestion, presets and "in proportion", and the
     // spend step's picture, are the shape model's own — read through one file, state/shapeModel.js, which reads nothing else.

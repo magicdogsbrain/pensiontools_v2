@@ -88,26 +88,30 @@ function counting(start = {}) {
 const all = (st) => Object.fromEntries(st.map);
 
 describe('followViewChoice: the account\'s settings, read at the full view\'s sign-in', () => {
-  it('the full view chosen: the signed-in note and the copy are set, and nothing else is touched', () => {
-    const st = counting(OTHERS);
-    followViewChoice({ lastSeenVersion: '7.10.0', view: 'full' }, st);
-    expect(all(st)).toEqual({ ...OTHERS, [SIGNED_IN_KEY]: '1', [VIEW_KEY]: 'full' });
-    expect(st.writes).toEqual([['set', SIGNED_IN_KEY], ['set', VIEW_KEY]]);
+  // Moved on purpose (7.11.1): the full view is the view someone signed in opens in unless they chose the simple view, so no
+  // choice sets the notes as the choice of the full view does
+  it('the full view chosen, or no choice: the signed-in note and the copy are set, and nothing else is touched', () => {
+    for (const profile of [{ lastSeenVersion: '7.10.0', view: 'full' }, { lastSeenVersion: '7.10.0' }, { view: 'expert' }, {}]) {
+      const st = counting(OTHERS);
+      followViewChoice(profile, st);
+      expect(all(st), JSON.stringify(profile)).toEqual({ ...OTHERS, [SIGNED_IN_KEY]: '1', [VIEW_KEY]: 'full' });
+      expect(st.writes, JSON.stringify(profile)).toEqual([['set', SIGNED_IN_KEY], ['set', VIEW_KEY]]);
+    }
   });
   it('a browser already in step writes nothing', () => {
     const st = counting({ [SIGNED_IN_KEY]: '1', [VIEW_KEY]: 'full', [ASKED_KEY]: '1' });
     followViewChoice({ view: 'full' }, st);
     expect(st.writes).toEqual([]);
   });
-  it('the simple view chosen, or no choice: the copy goes (another device chose, or a copy left by someone else); the signed-in note and "Not now" stay; nothing is set', () => {
-    for (const profile of [{ view: 'simple' }, { lastSeenVersion: '7.10.0' }, { view: 'expert' }, {}]) {
+  it('the simple view chosen: the copy goes (another device chose, or a copy left by someone else); the signed-in note and "Not now" stay; nothing is set', () => {
+    for (const profile of [{ view: 'simple' }, { lastSeenVersion: '7.10.0', view: 'simple' }]) {
       const st = counting({ [SIGNED_IN_KEY]: '1', [VIEW_KEY]: 'full', [ASKED_KEY]: '1', ...OTHERS });
       followViewChoice(profile, st);
       expect(all(st), JSON.stringify(profile)).toEqual({ [SIGNED_IN_KEY]: '1', [ASKED_KEY]: '1', ...OTHERS });
       expect(st.writes, JSON.stringify(profile)).toEqual([['remove', VIEW_KEY]]);
       const bare = counting(OTHERS);
       followViewChoice(profile, bare);
-      expect(bare.writes, JSON.stringify(profile)).toEqual([]);   // someone who never chose, as before: no note at all
+      expect(bare.writes, JSON.stringify(profile)).toEqual([]);   // someone who chose the simple view: no note at all
     }
   });
   it('nothing read (no settings yet, or a read that failed): nothing changes', () => {
@@ -137,12 +141,17 @@ describe('the full view\'s sign-in (AuthService.viewNotesAtSignIn, at index.html
     viewNotesAtSignIn({ view: 'full' }, ALEX);
     expect(kept()).toEqual({ ...OTHERS, [SIGNED_IN_KEY]: '1', [VIEW_KEY]: 'full' });
   });
-  it('signed in, the account saying the simple view or nothing: no note is set', () => {
+  it('signed in, the account saying the simple view, or nothing read: no note is set', () => {
     signIn(ALEX);
     viewNotesAtSignIn({ view: 'simple' }, ALEX);
-    viewNotesAtSignIn({ lastSeenVersion: '7.10.0' }, ALEX);
     viewNotesAtSignIn(null, ALEX);
     expect(kept()).toEqual(OTHERS);
+  });
+  // 7.11.1: the full view is the default for someone signed in
+  it('signed in, the account holding no choice: the notes are set, as for the full view chosen', () => {
+    signIn(ALEX);
+    viewNotesAtSignIn({ lastSeenVersion: '7.10.0' }, ALEX);
+    expect(kept()).toEqual({ ...OTHERS, [SIGNED_IN_KEY]: '1', [VIEW_KEY]: 'full' });
   });
   it('a read that lands after a sign-out, or after someone else signed in, or for a guest, changes nothing', () => {
     signIn(null);

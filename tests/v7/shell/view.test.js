@@ -1,9 +1,14 @@
 /**
  * The view PensionTools opens in (7.11.0; research/v7/replan-nov-2026.md §8): the simple view (V7) or the full view (the
- * classic page). One choice for the account (users/{uid}/profile/settings `view`), written only from Your account and the
- * strip through the account effect's one settings write; this browser's copy (pt_view) opens the full view at the site's
- * root before anything is drawn; the strip asks once, after a visit to the full view; "Back to the simple view" changes
- * only the place, never the choice. Nothing is written when a page is opened.
+ * classic page). One choice for the account (users/{uid}/profile/settings `view`), written only from Your account through
+ * the account effect's one settings write; this browser's copy (pt_view) opens the full view at the site's root before
+ * anything is drawn; "Back to the simple view" changes only the place, never the choice. Nothing is written when a page is
+ * opened.
+ *
+ * Moved on purpose (7.11.1): someone signed in whose account holds no choice opens in the full view (services/ViewChoice.js
+ * openingView) — the landing, this browser's copy, Your account and the full view's sign-in read it so; only the choice of
+ * the simple view keeps the simple view. The strip that asked "open in the full view from now on?" is retired: with the full
+ * view the default it had nothing left to ask. Guests and the front door are as they were.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -15,16 +20,17 @@ import { initialState } from '../../../src/v7/state/initial.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { parse, format } from '../../../src/v7/router/routes.js';
-import { startView, fullViewForward, cameFromFull, VIEW_KEY, ASKED_KEY } from '../../../src/v7/effects/view.js';
+import { startView, fullViewForward, VIEW_KEY, ASKED_KEY } from '../../../src/v7/effects/view.js';
 import { startPlace, landingFor, placeFor, afterSignInFor, TO_FULL, SIGNED_IN_KEY } from '../../../src/v7/effects/place.js';
 import { startAccount } from '../../../src/v7/effects/account.js';
 import { upgradedList, viewFor } from '../../../src/v7/effects/planSource.js';
-import { accountView, viewStripView } from '../../../src/v7/state/select.js';
+import * as SELECT from '../../../src/v7/state/select.js';
 import { ACCOUNT } from '../../../src/v7/copy/account.js';
 import { COMMON } from '../../../src/v7/copy/common.js';
 import { LAYOUTS } from '../../../src/appLayout.js';
 import { corpus } from '../plan/_plans.js';
 import { visibleText, bannedHits } from '../render/checkScreen.js';
+const { accountView } = SELECT;
 
 const ROOT = process.cwd();
 const TODAY = '2026-10-02';
@@ -51,20 +57,12 @@ const signedIn = (s, email = 'alex@example.test') => reduce(s, { type: A.SESSION
 const withPlans = (s, plans) => reduce(s, { type: A.PLANS_SET, list: upgradedList(plans, NOW), source: 'account', readAt: '14:03' });
 const withProfile = (s, profile, more = {}) => reduce(s, { type: A.PROFILE_SET, profile, ...more });
 
-/** A page's window as view.js reads it: the referrer, the address and the navigation entry. */
-function fakeWin({ referrer = '', href = 'https://s.test/#/plan/P1', nav = 'navigate' } = {}) {
-  return {
-    document: { referrer },
-    location: { href },
-    performance: { getEntriesByType: (t) => (t === 'navigation' && nav ? [{ type: nav }] : []) }
-  };
-}
-function viewPage({ local = storage(), win = fakeWin(), hash = '#/plan/P1' } = {}) {
+function viewPage({ local = storage(), hash = '#/plan/P1' } = {}) {
   const store = createStore(fresh(), reduce);
   store.dispatch({ type: A.ROUTE_SET, route: parse(hash) });
   const actions = [];
   store.subscribe((s, a) => actions.push(a));
-  const stop = startView(store, { win, local });
+  const stop = startView(store, { local });
   return { store, local, actions, stop };
 }
 
@@ -96,25 +94,7 @@ describe('fullViewForward: the site\'s root opens the full view before anything 
   });
 });
 
-describe('cameFromFull: this page opened from the full view', () => {
-  it('the published layout: the full view\'s page on the same site', () => {
-    const here = 'https://s.test/';
-    expect(cameFromFull('https://s.test/classic/', here)).toBe(true);
-    expect(cameFromFull('https://s.test/classic/index.html', here)).toBe(true);
-    expect(cameFromFull('https://s.test/classic/?signin=1', 'https://s.test/#/plan/P1')).toBe(true);
-    expect(cameFromFull('https://other.test/classic/', here)).toBe(false);
-    expect(cameFromFull('', here)).toBe(false);
-    expect(cameFromFull('https://s.test/#/plans', here)).toBe(false);
-    expect(cameFromFull('not an address', here)).toBe(false);
-  });
-  it('the rollback layout (V7 at /v7/, the classic page at the root)', () => {
-    const here = 'https://s.test/v7/';
-    expect(cameFromFull('https://s.test/', here, LAYOUTS.preview)).toBe(true);
-    expect(cameFromFull('https://s.test/v7/', here, LAYOUTS.preview)).toBe(false);
-  });
-});
-
-describe('landing: someone whose account says the full view lands there; everyone else as before', () => {
+describe('landing: someone signed in lands in the full view unless the account says the simple view', () => {
   const plans = [plan('P1'), plan('P2'), plan('P3', { closedAt: '2026-08', nextPlanId: 'P2' })];
   const state = ({ kind = 'in', profile, read = true } = {}) => {
     let s = reduce(fresh(), { type: A.SESSION_SET, session: { kind, email: null } });
@@ -123,7 +103,7 @@ describe('landing: someone whose account says the full view lands there; everyon
     return s;
   };
   const where = { lastSeenVersion: null, lastLocation: { planId: 'P2', step: 'about' } };
-  it('the table: nobody or unverified stay; not known yet waits; full is TO_FULL with plans or without; simple, or no choice, is the place', () => {
+  it('the table: nobody or unverified stay; not known yet waits; full, or no choice, is TO_FULL with plans or without; simple is the place', () => {
     expect(landingFor(state({ kind: 'nobody', read: false }))).toBe(null);
     expect(landingFor(state({ kind: 'unverified', read: false }))).toBe(null);
     expect(landingFor(state({ kind: 'checking', read: false }))).toBe(undefined);
@@ -133,13 +113,19 @@ describe('landing: someone whose account says the full view lands there; everyon
     let none = withPlans(reduce(fresh(), { type: A.SESSION_SET, session: { kind: 'in', email: null } }), []);
     none = withProfile(none, { lastSeenVersion: null, view: 'full' });
     expect(landingFor(none)).toBe(TO_FULL);                                                           // no plans: the full view starts its set-up
-    for (const profile of [where, { ...where, view: 'simple' }]) {
+    // 7.11.1: no choice stored is the full view, with plans or without
+    expect(landingFor(state({ profile: where }))).toBe(TO_FULL);
+    expect(landingFor(state({ profile: where, read: false }))).toBe(TO_FULL);
+    let bare = withPlans(reduce(fresh(), { type: A.SESSION_SET, session: { kind: 'in', email: null } }), []);
+    bare = withProfile(bare, { lastSeenVersion: null });
+    expect(landingFor(bare)).toBe(TO_FULL);
+    for (const profile of [{ ...where, view: 'simple' }]) {
       const s = state({ profile });
       expect(landingFor(s)).toEqual(placeFor(s));
       expect(landingFor(s)).toBe('#/plan/P2/about');
       expect(landingFor(s, { planId: 'P1', step: 'spend' })).toBe('#/plan/P1/spend');
     }
-    // an unread profile reads as no choice
+    // settings that could not be read are no choice of either: the simple view's place, as before
     const unread = withPlans(withProfile(reduce(fresh(), { type: A.SESSION_SET, session: { kind: 'in', email: null } }), {}, { read: false }), plans);
     expect(landingFor(unread)).toBe('#/plans');
   });
@@ -151,31 +137,33 @@ describe('landing: someone whose account says the full view lands there; everyon
       expect(afterSignInFor(state({ profile: { ...where, ...v }, read: false })), String(view)).toBe(undefined);
     }
   });
-  it('startPlace: a landing for someone whose account says full opens the full view (no address is set); without the option, nothing', () => {
-    const run = (o) => {
+  it('startPlace: a landing for someone whose account says full, or nothing, opens the full view (no address is set); simple, or without the option, nothing', () => {
+    const run = (o, view = 'full') => {
       const store = createStore(fresh(), reduce);
       store.dispatch({ type: A.ROUTE_SET, route: parse('') });
       const opened = [];
       const stop = startPlace(store, { session: storage(), local: storage(), landing: true, ...(o ? { full: () => opened.push('full') } : {}) });
       store.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'alex@example.test' } });
-      store.dispatch({ type: A.PROFILE_SET, profile: { lastSeenVersion: null, lastLocation: { planId: 'P1', step: 'about' }, view: 'full' } });
+      store.dispatch({ type: A.PROFILE_SET, profile: { lastSeenVersion: null, lastLocation: { planId: 'P1', step: 'about' }, ...(view ? { view } : {}) } });
       store.dispatch({ type: A.PLANS_SET, list: upgradedList([plan('P1')], NOW), source: 'account', readAt: '14:03' });
       const r = format(store.getState().route);
       stop();
       return { opened, r };
     };
     expect(run(true)).toEqual({ opened: ['full'], r: '#/' });
+    expect(run(true, null)).toEqual({ opened: ['full'], r: '#/' });
+    expect(run(true, 'simple')).toEqual({ opened: [], r: '#/plan/P1/about' });
     expect(run(false)).toEqual({ opened: [], r: '#/' });
   });
   it('effects/index.js starts the view before the place, and gives the place the full view\'s address', () => {
     const src = readFileSync(join(ROOT, 'src/v7/effects/index.js'), 'utf8');
-    expect(src.indexOf('startView(store, { win, local: localStore(win) })')).toBeGreaterThan(-1);
+    expect(src.indexOf('startView(store, { local: localStore(win) })')).toBeGreaterThan(-1);
     expect(src.indexOf('startView(store')).toBeLessThan(src.indexOf('startPlace(store'));
     expect(src).toMatch(/startPlace\(store, \{ session: sessionStore\(win\), local: localStore\(win\), landing, full: \(\) => win\.location\.replace\(PLANNER\) \}\)/);
   });
 });
 
-describe('the reducer: the choice, the strip, and the settings let go on sign-out', () => {
+describe('the reducer: the choice, and the settings let go on sign-out', () => {
   const inWith = (profile) => withProfile(signedIn(fresh()), profile);
   it('profile/set keeps a view that is one; anything else leaves no view key, as before', () => {
     expect(inWith({ lastSeenVersion: null, view: 'full' }).ui.profile).toEqual({ lastSeenVersion: null, view: 'full' });
@@ -201,26 +189,6 @@ describe('the reducer: the choice, the strip, and the settings let go on sign-ou
     const u = withProfile(signedIn(fresh()), {}, { read: false });
     expect(reduce(u, { type: A.VIEW_SET, view: 'simple', from: 'account' }).ui.profile).toEqual({ lastSeenVersion: null, view: 'simple' });
   });
-  it('view/set from the strip sets its done line', () => {
-    const s = reduce(inWith({ lastSeenVersion: null }), { type: A.VIEW_STRIP, to: 'offer' });
-    expect(reduce(s, { type: A.VIEW_SET, view: 'full', from: 'strip' }).ui.viewStrip).toBe('doneFull');
-    expect(reduce(s, { type: A.VIEW_SET, view: 'simple', from: 'strip' }).ui.viewStrip).toBe('doneSimple');
-    expect(reduce(s, { type: A.VIEW_SET, view: 'simple', from: 'account' }).ui.viewStrip).toBe('offer');
-  });
-  it('view/strip: offer only from none; gone from any; anything else refused; the stored and first states carry no strip', () => {
-    const s = fresh();
-    expect('viewStrip' in s.ui).toBe(false);
-    const o = reduce(s, { type: A.VIEW_STRIP, to: 'offer' });
-    expect(o.ui.viewStrip).toBe('offer');
-    const g = reduce(o, { type: A.VIEW_STRIP, to: 'gone' });
-    expect(g.ui.viewStrip).toBe('gone');
-    expect(reduce(g, { type: A.VIEW_STRIP, to: 'offer' })).toBe(g);
-    expect(reduce(g, { type: A.VIEW_STRIP, to: 'gone' })).toBe(g);
-    const d = reduce(reduce(inWith({ lastSeenVersion: null }), { type: A.VIEW_STRIP, to: 'offer' }), { type: A.VIEW_SET, view: 'full', from: 'strip' });
-    expect(reduce(d, { type: A.VIEW_STRIP, to: 'offer' })).toBe(d);
-    expect(reduce(d, { type: A.VIEW_STRIP, to: 'gone' }).ui.viewStrip).toBe('gone');
-    expect(() => reduce(s, { type: A.VIEW_STRIP, to: 'later' })).toThrow(/view\/strip/);
-  });
   it('session/set to any kind but in lets ui.profile go (from in, and from checking); view/set is then nothing', () => {
     const s = inWith({ lastSeenVersion: null, view: 'full', lastLocation: { planId: 'P1', step: null } });
     for (const kind of ['nobody', 'unverified', 'checking', 'failed']) {
@@ -235,35 +203,12 @@ describe('the reducer: the choice, the strip, and the settings let go on sign-ou
     const back = withProfile(signedIn(reduce(s, { type: A.SESSION_SET, session: { kind: 'nobody', email: null } })), { lastSeenVersion: null, view: 'full' });
     expect(back.ui.profile).toEqual({ lastSeenVersion: null, view: 'full' });
   });
-  it('the strip is only ever shown to the person it was for: a sign-out, or another account signed in (heard from another tab), puts the offer or the done line away', () => {
-    const SAM = 'sam@example.test';
-    const offered = reduce(withProfile(signedIn(fresh()), { lastSeenVersion: null }), { type: A.VIEW_STRIP, to: 'offer' });
-    const doneFull = reduce(offered, { type: A.VIEW_SET, view: 'full', from: 'strip' });
-    for (const [name, s] of [['offer', offered], ['doneFull', doneFull]]) {
-      // another tab signs Alex out and Sam in: this page hears nobody, then Sam, then Sam's settings (no choice made)
-      const out = reduce(s, { type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
-      expect(out.ui.viewStrip, name).toBe('gone');
-      const sam = withProfile(signedIn(out, SAM), { lastSeenVersion: null });
-      expect(viewStripView(sam), name).toBe(null);
-      // or straight from Alex to Sam, with no "nobody" heard between
-      const swapped = withProfile(signedIn(s, SAM), { lastSeenVersion: null });
-      expect(swapped.ui.viewStrip, name).toBe('gone');
-      expect(viewStripView(swapped), name).toBe(null);
-      expect(reduce(s, { type: A.SESSION_SET, session: { kind: 'unverified', email: SAM } }).ui.viewStrip, name).toBe('gone');
-    }
-    // the same person: the strip stays (a session heard again, or a page that was checking who is signed in)
-    expect(signedIn(offered)).toBe(offered);
-    const checking = reduce(reduce(fresh(), { type: A.SESSION_SET, session: { kind: 'checking', email: null } }), { type: A.VIEW_STRIP, to: 'offer' });
-    const nowIn = withProfile(signedIn(checking), { lastSeenVersion: null });
-    expect(nowIn.ui.viewStrip).toBe('offer');
-    expect(viewStripView(nowIn)).toEqual({ kind: 'offer' });
-    // a page opened from the full view while nobody is signed in: someone signing in later, in another tab, is not asked here
-    expect(reduce(checking, { type: A.SESSION_SET, session: { kind: 'nobody', email: null } }).ui.viewStrip).toBe('gone');
-    // no strip, nothing added: the stored and first states stay as they were
-    const plain = reduce(signedIn(fresh()), { type: A.SESSION_SET, session: { kind: 'nobody', email: null } });
-    expect('viewStrip' in plain.ui).toBe(false);
-    const gone = reduce(offered, { type: A.VIEW_STRIP, to: 'gone' });
-    expect(reduce(gone, { type: A.SESSION_SET, session: { kind: 'nobody', email: null } }).ui.viewStrip).toBe('gone');
+  it('the strip is retired (7.11.1): no action, no reader and no word of it; the stored and first states carry none', () => {
+    expect(A.VIEW_STRIP).toBe(undefined);
+    expect(SELECT.viewStripView).toBe(undefined);
+    expect(COMMON.viewStrip).toBe(undefined);
+    expect('viewStrip' in fresh().ui).toBe(false);
+    expect(() => reduce(fresh(), { type: 'view/strip', to: 'offer' })).toThrow();
   });
 });
 
@@ -291,7 +236,7 @@ describe('the account effect: the choice through the one settings write', () => 
     const actions = [];
     store.subscribe((s, a) => actions.push(a));
     const stops = [];
-    if (withView) stops.push(startView(store, { win: fakeWin(), local }));
+    if (withView) stops.push(startView(store, { local }));
     stops.push(startAccount(store, { win: {}, local, session: storage(), now: () => NOW, fb, handles: () => ({ auth: {}, db: {}, user }) }));
     return { store, fb, local, actions, stop: () => stops.forEach((f) => f()), setDocs: () => fb.calls.filter(([c]) => c === 'setDoc') };
   }
@@ -344,12 +289,19 @@ describe('the account effect: the choice through the one settings write', () => 
 
 describe('view.js: this browser\'s copy, written only when it differs', () => {
   const read = (p, profile, more = {}) => { p.store.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'alex@example.test' } }); p.store.dispatch({ type: A.PROFILE_SET, profile, ...more }); };
-  it('someone who never chose, with no copy: no write at all', () => {
+  // Moved on purpose (7.11.1): someone who never chose opens in the full view, so this browser's copy says so; still nothing
+  // is written to the account
+  it('someone who never chose: the copy is set once; a browser already in step writes nothing', () => {
     const p = viewPage();
     read(p, { lastSeenVersion: null });
     p.store.dispatch({ type: A.ROUTE_SET, route: parse('#/plans') });
-    expect(p.local.writes).toEqual([]);
+    expect(p.local.getItem(VIEW_KEY)).toBe('full');
+    expect(p.local.writes).toEqual([['set', VIEW_KEY]]);
     p.stop();
+    const q = viewPage({ local: storage({ [VIEW_KEY]: 'full' }) });
+    read(q, { lastSeenVersion: null });
+    expect(q.local.writes).toEqual([]);
+    q.stop();
   });
   it('the settings read: full sets the copy, simple removes it (another device chose), a failed read leaves it', () => {
     const p = viewPage();
@@ -368,7 +320,7 @@ describe('view.js: this browser\'s copy, written only when it differs', () => {
   });
   it('a press: full sets the copy once, simple removes it', () => {
     const p = viewPage();
-    read(p, { lastSeenVersion: null });
+    read(p, { lastSeenVersion: null, view: 'simple' });
     p.store.dispatch({ type: A.VIEW_SET, view: 'full', from: 'account' });
     p.store.dispatch({ type: A.VIEW_SET, view: 'full', from: 'account' });
     expect(p.local.writes).toEqual([['set', VIEW_KEY]]);
@@ -405,131 +357,30 @@ describe('view.js: this browser\'s copy, written only when it differs', () => {
   });
 });
 
-describe('view.js: the strip, offered once, after a visit to the full view', () => {
-  const FROM_FULL = 'https://s.test/classic/';
-  const offered = (p) => p.actions.some((a) => a.type === A.VIEW_STRIP && a.to === 'offer');
-  it('offered at the start only to a page opened afresh from the full view', () => {
-    const p = viewPage({ win: fakeWin({ referrer: FROM_FULL }) });
-    expect(p.store.getState().ui.viewStrip).toBe('offer');
-    p.stop();
-    for (const win of [fakeWin({ referrer: '' }), fakeWin({ referrer: 'https://s.test/' }), fakeWin({ referrer: 'https://other.test/classic/' })]) {
-      const q = viewPage({ win });
-      expect(offered(q), win.document.referrer).toBe(false);
-      expect(q.store.getState().ui.viewStrip).toBe(undefined);
-      q.stop();
-    }
-  });
-  it('never after "Not now" in this browser, on a reload, or on a step back or forward; with no navigation entry, offered', () => {
-    const asked = viewPage({ win: fakeWin({ referrer: FROM_FULL }), local: storage({ [ASKED_KEY]: '1' }) });
-    expect(asked.store.getState().ui.viewStrip).toBe(undefined);
-    asked.stop();
-    for (const nav of ['reload', 'back_forward']) {
-      const q = viewPage({ win: fakeWin({ referrer: FROM_FULL, nav }) });
-      expect(q.store.getState().ui.viewStrip, nav).toBe(undefined);
-      q.stop();
-    }
-    const none = viewPage({ win: fakeWin({ referrer: FROM_FULL, nav: null }) });
-    expect(none.store.getState().ui.viewStrip).toBe('offer');
-    none.stop();
-  });
-  it('"Not now" writes pt_view_asked once, and nothing to the account', () => {
-    const p = viewPage({ win: fakeWin({ referrer: FROM_FULL }) });
-    p.store.dispatch({ type: A.VIEW_STRIP, to: 'gone', notNow: true });
-    p.store.dispatch({ type: A.VIEW_STRIP, to: 'gone', notNow: true });
-    expect(p.local.getItem(ASKED_KEY)).toBe('1');
-    expect(p.local.writes).toEqual([['set', ASKED_KEY]]);
-    p.stop();
-    // put away by a move: no note in this browser
-    const q = viewPage({ win: fakeWin({ referrer: FROM_FULL }) });
-    q.store.dispatch({ type: A.ROUTE_SET, route: parse('#/plans') });
-    expect(q.store.getState().ui.viewStrip).toBe('gone');
-    expect(q.local.writes).toEqual([]);
-    q.stop();
-  });
-  it('a move to another page puts the offer, or the done line, away; the same address does not', () => {
-    const p = viewPage({ win: fakeWin({ referrer: FROM_FULL }) });
-    p.store.dispatch({ type: A.ROUTE_SET, route: parse('#/plan/P1') });
-    expect(p.store.getState().ui.viewStrip).toBe('offer');
-    p.store.dispatch({ type: A.SESSION_SET, session: { kind: 'in', email: 'alex@example.test' } });
-    p.store.dispatch({ type: A.PROFILE_SET, profile: { lastSeenVersion: null } });
-    p.store.dispatch({ type: A.VIEW_SET, view: 'simple', from: 'strip' });
-    expect(p.store.getState().ui.viewStrip).toBe('doneSimple');
-    p.store.dispatch({ type: A.ROUTE_SET, route: parse('#/plans') });
-    expect(p.store.getState().ui.viewStrip).toBe('gone');
-    p.stop();
-  });
-});
-
-describe('the shell: the strip under the line naming the view', () => {
+describe('the shell: the line naming the view, and no strip under it (7.11.1)', () => {
   const PLAN = C['01-fresh-default'];
-  function stateAt(address, { profile = { lastSeenVersion: null }, read = true, strip = 'offer', kind = 'in' } = {}) {
+  function stateAt(address, { profile = { lastSeenVersion: null } } = {}) {
     let s = reduce(fresh(), { type: A.ROUTE_SET, route: parse(address) });
-    s = reduce(s, { type: A.SESSION_SET, session: { kind, email: kind === 'in' ? 'alex@example.test' : null } });
-    if (kind === 'in') {
-      s = withPlans(s, [{ ...PLAN, id: 'P1' }]);
-      s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
-      if (profile) s = withProfile(s, profile, read ? {} : { read: false });
-    }
-    if (strip) s = reduce(s, { type: A.VIEW_STRIP, to: 'offer' });
-    if (strip === 'doneFull' || strip === 'doneSimple') s = reduce(s, { type: A.VIEW_SET, view: strip === 'doneFull' ? 'full' : 'simple', from: 'strip' });
+    s = signedIn(s);
+    s = withPlans(s, [{ ...PLAN, id: 'P1' }]);
+    s = reduce(s, { type: A.PLANS_VIEW, view: viewFor(s) });
+    if (profile) s = withProfile(s, profile);
     return s;
   }
   function draw(state) {
     const root = document.createElement('div');
     root.id = 'app';
-    const actions = [];
-    render(h(App, { state, dispatch: (a) => actions.push(a) }), root);
-    return { root, actions, strip: root.querySelector('[data-testid="view.strip"]') };
+    render(h(App, { state, dispatch: () => {} }), root);
+    return { root };
   }
-  it('drawn only for someone signed in, the settings read with no choice, offered, and off Your account', () => {
-    expect(draw(stateAt('#/plans')).strip).not.toBe(null);
-    expect(draw(stateAt('#/')).strip).not.toBe(null);
-    expect(viewStripView(stateAt('#/plans'))).toEqual({ kind: 'offer' });
-    expect(draw(stateAt('#/plans', { strip: null })).strip).toBe(null);
-    expect(draw(stateAt('#/plans', { profile: null })).strip).toBe(null);                                   // the settings not read yet
-    expect(draw(stateAt('#/plans', { profile: { lastSeenVersion: null }, read: false })).strip).toBe(null); // could not be read
-    expect(draw(stateAt('#/plans', { profile: { lastSeenVersion: null, view: 'simple' } })).strip).toBe(null);
-    expect(draw(stateAt('#/plans', { profile: { lastSeenVersion: null, view: 'full' } })).strip).toBe(null);
-    expect(draw(stateAt('#/account')).strip).toBe(null);
-    expect(draw(stateAt('#/', { kind: 'nobody' })).strip).toBe(null);
-  });
-  it('its words and buttons, each dispatching its action; it sits under the line naming the view', () => {
-    const { root, strip, actions } = draw(stateAt('#/plans'));
-    expect(strip.previousElementSibling.classList.contains('view-line')).toBe(true);
-    expect(strip.getAttribute('aria-label')).toBe(COMMON.viewStrip.label);
-    expect(strip.textContent).toContain(COMMON.viewStrip.text);
-    const btn = (id) => root.querySelector(`[data-testid="view.strip.${id}"]`);
-    expect(btn('full').textContent).toBe(COMMON.viewStrip.full);
-    expect(btn('simple').textContent).toBe(COMMON.viewStrip.simple);
-    expect(btn('notNow').textContent).toBe(COMMON.viewStrip.notNow);
-    btn('full').click(); btn('simple').click(); btn('notNow').click();
-    expect(actions).toEqual([
-      { type: 'view/set', view: 'full', from: 'strip' },
-      { type: 'view/set', view: 'simple', from: 'strip' },
-      { type: 'view/strip', to: 'gone', notNow: true }
-    ]);
-  });
-  it('the done line, with the way to Your account', () => {
-    for (const [strip, words] of [['doneFull', COMMON.viewStrip.doneFull], ['doneSimple', COMMON.viewStrip.doneSimple]]) {
-      const { root } = draw(stateAt('#/plans', { strip }));
-      const done = root.querySelector('[data-testid="view.strip.done"]');
-      expect(done.textContent).toBe(`${words} You can change this on ${COMMON.account}.`);
-      expect(done.querySelector('a').getAttribute('href')).toBe('#/account');
-      expect(root.querySelector('[data-testid="view.strip.full"]')).toBe(null);
-    }
-  });
   it('the header draws both spans of the line naming the view, with their testids', () => {
-    const { root } = draw(stateAt('#/plans', { strip: null }));
+    const { root } = draw(stateAt('#/plans'));
     expect(root.querySelector('.view-line .view-long [data-testid="nav.everything"]').textContent).toBe(COMMON.view.link);
     expect(root.querySelector('.view-line .view-short [data-testid="nav.everythingShort"]').textContent).toBe(COMMON.view.shortLink);
   });
-  it('none of the strip\'s words is advice or a word we keep off the pages, on the front door too', () => {
-    const words = Object.values(COMMON.viewStrip).join(' ');
-    expect(words).not.toMatch(/\b(tabs?|should|recommend|version|classic|expert)\b/i);
-    expect(words).not.toMatch(/Show everything/);
-    for (const strip of ['offer', 'doneFull', 'doneSimple']) {
-      const text = visibleText(draw(stateAt('#/', { strip })).strip);
-      for (const hit of bannedHits(text, ['all', 'first', 'front', 'planner', 'retired', 'saver', 'record'])) expect(hit, strip).toBe('');
+  it('no page draws a strip asking which view to open in, whatever the account says', () => {
+    for (const profile of [{ lastSeenVersion: null }, { lastSeenVersion: null, view: 'simple' }, { lastSeenVersion: null, view: 'full' }]) {
+      for (const address of ['#/', '#/plans', '#/plan/P1']) expect(draw(stateAt(address, { profile })).root.querySelector('[data-testid^="view.strip"]'), address).toBe(null);
     }
   });
 });
@@ -561,9 +412,10 @@ describe('Your account: the view PensionTools opens in', () => {
     expect(p.btn('full').textContent).toBe(ACCOUNT.view.full);
     expect(p.now.getAttribute('role')).toBe('status');
   });
-  it('the pressed button follows the choice, the simple view when none was made; the line says which', () => {
+  // Moved on purpose (7.11.1): with no choice made the site opens in the full view, so Your account says so
+  it('the pressed button follows the choice, the full view when none was made; the line says which', () => {
     for (const [profile, pressed, line] of [
-      [{ lastSeenVersion: null }, 'simple', ACCOUNT.view.nowSimple],
+      [{ lastSeenVersion: null }, 'full', ACCOUNT.view.nowFull],
       [{ lastSeenVersion: null, view: 'simple' }, 'simple', ACCOUNT.view.nowSimple],
       [{ lastSeenVersion: null, view: 'full' }, 'full', ACCOUNT.view.nowFull]
     ]) {

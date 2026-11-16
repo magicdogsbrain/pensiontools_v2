@@ -109,10 +109,10 @@ export function startEffects(store, { win = window, client: made = createWorkerC
   // "Assumptions and data" (road-to-7.md step 11b): the figures loaded lazily when the page is opened
   stops.push(startAssumptions(store, { now: () => Date.now() }));
   stops.push(startDownloads(store, { win }));
-  // the view the site opens in (7.11.0, effects/view.js): this browser's copy of the account's choice, and the strip
-  stops.push(startView(store, { win, local: localStore(win) }));
+  // the view the site opens in (7.11.0, effects/view.js): this browser's copy of it
+  stops.push(startView(store, { local: localStore(win) }));
   // keep → sign in → back, and the place last left (7.1.0): the way back and the window's place in session storage; a
-  // landing for someone whose account says the full view opens it in place of this page (7.11.0)
+  // landing for someone who opens in the full view opens it in place of this page (7.11.0; 7.11.1: the default)
   stops.push(startPlace(store, { session: sessionStore(win), local: localStore(win), landing, full: () => win.location.replace(PLANNER) }));
   let planSource = null;
   // … the account page and What's new need the session (and the account's settings document); "Look around an example" pressed on the front door needs the write file

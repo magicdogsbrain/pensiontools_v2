@@ -9,9 +9,10 @@
  *   - the header's "Show everything": the full view, signed in; on a plan page, THAT plan (7.3.2).
  * Before 7.1.0 the new app kept its sign-in under a Firebase app of its own name, which the classic planner never reads:
  * every one of these opened the classic planner as if nobody were signed in (the first test here failed so on 7.0.0).
- * And (7.11.0) the full view as the usual view: chosen on Your account or the strip, the site's root opens it before
- * anything is drawn, "Back to the simple view" stays, a sign-out in either view leaves the root on the front door, and
- * signing in again in the full view brings the choice back (T1–T7 below).
+ * And (7.11.0) the full view as the usual view: chosen on Your account, the site's root opens it before anything is
+ * drawn, "Back to the simple view" stays, a sign-out in either view leaves the root on the front door, and signing in again
+ * in the full view brings the choice back (T1–T7 below). Since 7.11.1 the full view is the usual view for anyone signed in
+ * who has not chosen the simple view, with nothing written to the account (T2, T7b); the strip that asked is retired.
  * Run against the local emulators (e2e/signed-in/emulator.js), at desktop-1440 and phone-390.
  */
 import { readFileSync } from 'node:fs';
@@ -49,8 +50,7 @@ function freshPlan() {
 /**
  * Alex's account, with the plans given, having read What's new (and any other settings given): signed in on the new
  * app's account page — or, with a place last left in the settings, taken on to it (effects/place.js). `fixedClock: false`
- * leaves the page's clock real: Playwright's fixed clock replaces the page's performance object, so a reload would read
- * as a fresh open (the strip's test needs the difference).
+ * leaves the page's clock real.
  */
 async function signedInWith(page, plans, settings = {}, { fixedClock = true } = {}) {
   const { uid } = await makeAccount(ALEX);
@@ -136,8 +136,9 @@ test('7.3.2: on a plan page, "Show everything" opens THAT plan, not the account\
 // ---- the full view as the usual view (7.11.0; research/v7/replan-nov-2026.md §8) ---------------------------------------
 //
 // Alex's main plan (isActive) is the drawing plan; the account was last on the other plan. The choice is made on Your
-// account (or the strip); the site's root then opens the full view before anything is drawn, from this browser's copy;
-// "Back to the simple view" changes only the place; signing out in either view takes the copy and the notes away.
+// account (7.11.1: with none made, the full view); the site's root then opens the full view before anything is drawn, from
+// this browser's copy; "Back to the simple view" changes only the place; signing out in either view takes the copy and the
+// notes away.
 
 const screen = (page) => page.locator('#app [data-screen]');
 const stored = (page, key) => page.evaluate((k) => localStorage.getItem(k), key);
@@ -166,24 +167,7 @@ async function simpleHome(page, id) {
   await expect(page.getByTestId('plan.home')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('#app')).toHaveAttribute('data-ready', '1', { timeout: 30_000 });
 }
-/** The strip's own buttons and link: on the screen, and 44 px tall on a phone (e2e/helpers/app.js lookOver's rule). */
-async function stripLooksRight(page) {
-  const problems = await page.evaluate(() => {
-    const out = [];
-    const strip = document.querySelector('[data-testid="view.strip"]');
-    if (!strip) return ['no strip'];
-    const width = document.documentElement.clientWidth;
-    for (const el of strip.querySelectorAll('button, a[href]')) {
-      const r = el.getBoundingClientRect();
-      const name = el.getAttribute('data-testid') || el.textContent.trim();
-      if (r.left < -0.5 || r.right > width + 0.5) out.push(`${name} is outside the screen`);
-      if (width <= 390 && r.height < 43.5) out.push(`${name} is ${Math.round(r.height)} pixels tall on a phone`);
-    }
-    return out;
-  });
-  expect(problems).toEqual([]);
-}
-/** From a plan's home, "Show everything" to the full view and its note's way back: the strip's round trip. */
+/** From a plan's home, "Show everything" to the full view and its note's way back. */
 async function roundTrip(page, id) {
   await page.getByTestId('nav.everything').or(page.getByTestId('nav.everythingShort')).filter({ visible: true }).click();
   await classicSignedIn(page);
@@ -255,49 +239,30 @@ test.describe('the full view as the usual view', () => {
     await staysInSimple(page);
   });
 
-  test('T2: the strip after a visit to the full view, until it is answered or put off — never on a reload, never after "Not now", never once a view is stored', async ({ page }) => {
-    const uid = await signedInWith(page, [drawingPlan(), freshPlan()], {}, { fixedClock: false });
-    await page.goto(PROD + V7_PATH + `#/plan/${DRAW_ID}`);
-    await simpleHome(page, DRAW_ID);
-    const strip = page.getByTestId('view.strip');
-    await expect(strip).toHaveCount(0);
-
-    await roundTrip(page, DRAW_ID);
-    await expect(strip).toBeVisible({ timeout: 30_000 });
-    await expect(strip).toContainText('You have just been in the full view.');
-    await stripLooksRight(page);
-
-    await page.reload();
-    await simpleHome(page, DRAW_ID);
-    await expect(strip).toHaveCount(0);
-
-    await roundTrip(page, DRAW_ID);
-    await expect(strip).toBeVisible({ timeout: 30_000 });
-    await page.getByTestId('view.strip.notNow').click();
-    await expect(strip).toHaveCount(0);
+  // 7.11.1: someone signed in who never chose a view opens in the full view; nothing is written to the account for it, and
+  // the strip that asked whether to open there from now on is retired (it had nothing left to ask)
+  test('T2: someone who never chose: the site\'s root opens the full view, writing nothing; "Back to the simple view" stays there and asks nothing', async ({ page }) => {
+    const uid = await signedInWith(page, [drawingPlan(), freshPlan()]);
+    // the settings read: this browser's copy says the full view; the account holds no choice
+    await expect.poll(() => stored(page, 'pt_view'), { timeout: 30_000 }).toBe('full');
     expect(((await settingsOf(uid)) || {}).view).toBe(undefined);
-    expect(await stored(page, 'pt_view_asked')).toBe('1');
+    // Your account says so, with the full view pressed
+    await page.goto(PROD + V7_PATH + '#/account');
+    await expect(page.getByTestId('account.view.full')).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 });
+    await expect(page.getByTestId('account.view.simple')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByTestId('account.view.now')).toHaveText('PensionTools opens in the full view, on your main plan.');
 
-    await roundTrip(page, DRAW_ID);
-    await expect(strip).toHaveCount(0);
-
-    await page.evaluate(() => localStorage.removeItem('pt_view_asked'));
-    await roundTrip(page, DRAW_ID);
-    await expect(strip).toBeVisible({ timeout: 30_000 });
-    await page.getByTestId('view.strip.simple').click();
-    await expect.poll(async () => ((await settingsOf(uid)) || {}).view, { timeout: 15_000 }).toBe('simple');
-    await expect(page.getByTestId('view.strip.done')).toHaveText('Done: PensionTools keeps opening in the simple view. You can change this on Your account.');
-    await expect(page.getByTestId('view.strip.done').locator('a')).toHaveAttribute('href', '#/account');
-    await stripLooksRight(page);
-    await page.goto(PROD + V7_PATH + '#/plans');
-    await expect(screen(page)).toHaveAttribute('data-screen', 'plans');
-    await expect(strip).toHaveCount(0);
-
-    await page.goto(PROD + V7_PATH + `#/plan/${DRAW_ID}`);
+    await page.goto(PROD + V7_PATH);
+    await classicSignedIn(page);
+    await expect(page.locator('#classicToFront')).toHaveText('This is the full view. Back to the simple view.');
+    await page.locator('#classicToSimple').click();
     await simpleHome(page, DRAW_ID);
+    await staysInSimple(page);
+    await expect(page.locator('[data-testid^="view.strip"]')).toHaveCount(0);
     await roundTrip(page, DRAW_ID);
-    await expect(strip).toHaveCount(0);
-    expect(await stored(page, 'pt_view')).toBe(null);
+    await expect(page.locator('[data-testid^="view.strip"]')).toHaveCount(0);
+    // nothing written for the view by opening either page
+    expect(((await settingsOf(uid)) || {}).view).toBe(undefined);
   });
 
   test('T3: signing out in the simple view takes this browser\'s copy and the signed-in note away; the root is the front door', async ({ page }) => {
@@ -392,7 +357,7 @@ test.describe('the full view as the usual view', () => {
     await classicSignedIn(page);
   });
 
-  test('T7: signing out and in again in the full view keeps the choice of the full view at the site\'s root; for someone who never chose, the root stays the front door', async ({ page }) => {
+  test('T7: signing out and in again in the full view keeps the choice of the full view at the site\'s root', async ({ page }) => {
     const uid = await signedInWith(page, [drawingPlan()]);
     await choose(page, uid, 'full');
     await page.goto(PROD + V7_PATH);
@@ -411,8 +376,25 @@ test.describe('the full view as the usual view', () => {
     await expect(page.locator('#openPlaceNote')).toHaveCount(0);
   });
 
-  test('T7b: someone who never chose a view: signing in in the full view sets no note, and the root is the simple view\'s front door, as in 7.10.0', async ({ page }) => {
+  // Moved on purpose (7.11.1): someone who never chose opens in the full view, so the full view's sign-in sets the notes for
+  // them as for the choice of the full view; the choice of the simple view is what keeps the root on the front door (T7c)
+  test('T7b: someone who never chose a view: signing in in the full view sets the notes, and the root opens the full view, writing nothing', async ({ page }) => {
     const uid = await signedInWith(page, [drawingPlan()]);
+    await page.goto(PROD + CLASSIC_PATH);
+    await classicSignedIn(page);
+    await page.evaluate(() => document.getElementById('logoutBtn').click());
+    await expect(page.locator('#signinForm')).toBeVisible({ timeout: 30_000 });
+    await expect.poll(() => stored(page, 'pt_v7_signed_in')).toBe(null);
+    await classicSignIn(page);
+    await expect.poll(() => stored(page, 'pt_v7_signed_in'), { timeout: 30_000 }).toBe('1');
+    await expect.poll(() => stored(page, 'pt_view'), { timeout: 30_000 }).toBe('full');
+    expect(((await settingsOf(uid)) || {}).view).toBe(undefined);
+    await page.goto(PROD + V7_PATH);
+    await classicSignedIn(page);
+  });
+
+  test('T7c: someone who chose the simple view: signing in in the full view sets no note, and the root is the simple view\'s front door', async ({ page }) => {
+    const uid = await signedInWith(page, [drawingPlan()], { view: 'simple' });
     await page.goto(PROD + CLASSIC_PATH);
     await classicSignedIn(page);
     await page.evaluate(() => document.getElementById('logoutBtn').click());
@@ -424,7 +406,7 @@ test.describe('the full view as the usual view', () => {
     await expect.poll(() => stored(page, 'pt_lastSeenVersion'), { timeout: 30_000 }).toBe(VERSION);
     expect(await stored(page, 'pt_v7_signed_in')).toBe(null);
     expect(await stored(page, 'pt_view')).toBe(null);
-    expect(((await settingsOf(uid)) || {}).view).toBe(undefined);
+    expect(((await settingsOf(uid)) || {}).view).toBe('simple');
     await page.goto(PROD + V7_PATH);
     await expect(screen(page)).toHaveAttribute('data-screen', 'front', { timeout: 30_000 });
     await staysInSimple(page);

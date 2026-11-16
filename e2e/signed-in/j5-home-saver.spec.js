@@ -36,7 +36,8 @@ test('a locked saver: lands on the home, not the check-in form; nothing due, the
   const planned = saverPlan();
   const { uid } = await makeAccount(SAM);
   await putPlan(uid, planned);
-  await putSettings(uid, { lastSeenVersion: VERSION, lastLocation: { planId: ID, step: 'checkin' } });
+  // view 'simple' (7.11.1): someone signed in who never chose opens in the full view; this journey is the simple view's
+  await putSettings(uid, { lastSeenVersion: VERSION, view: 'simple', lastLocation: { planId: ID, step: 'checkin' } });
   await page.clock.setFixedTime(new Date(MID_OCTOBER));
   await openAt(page, '#/account');
   await signIn(page, SAM);

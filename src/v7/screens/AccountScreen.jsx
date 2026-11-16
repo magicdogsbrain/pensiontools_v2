@@ -118,7 +118,7 @@ function Gate({ V, dispatch }) {
 }
 
 /**
- * The view the site opens in (7.11.0): two buttons, the one chosen pressed ('simple' when none was chosen); while the
+ * The view the site opens in (7.11.0): two buttons, the one chosen pressed (7.11.1: 'full' when none was chosen); while the
  * account's settings could not be read neither is pressed and the line says so — a press still saves the choice.
  */
 function ViewChoice({ view, dispatch }) {

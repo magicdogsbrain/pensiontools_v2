@@ -38,7 +38,8 @@ test('a locked drawing plan: the root lands on its home; "Not now" on October is
   const { uid } = await makeAccount(ALEX);
   await putPlan(uid, planned);
   // the person was last on Month by month: a locked plan lands on its home all the same
-  await putSettings(uid, { lastSeenVersion: VERSION, lastLocation: { planId: ID, step: 'month' } });
+  // view 'simple' (7.11.1): someone signed in who never chose opens in the full view; this journey is the simple view's
+  await putSettings(uid, { lastSeenVersion: VERSION, view: 'simple', lastLocation: { planId: ID, step: 'month' } });
   await page.clock.setFixedTime(new Date(MID_OCTOBER));
 
   await test.step('signed in on a new device: taken to the last plan\'s home, not left on "Your account"', async () => {

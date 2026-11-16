@@ -387,27 +387,7 @@
         "lasted": 0.875,
         "weighted": 0.9010275968583301
       },
-      "oneOff": {
-        "amount": 414000,
-        "lasted": 0.825,
-        "weighted": 0.9000463949283585,
-        "overAllowance": true,
-        "over": [
-          "you",
-          "partner"
-        ],
-        "overPay": [],
-        "byPerson": [
-          {
-            "who": "you",
-            "amount": 291155
-          },
-          {
-            "who": "partner",
-            "amount": 122845
-          }
-        ]
-      },
+      "oneOff": null,
       "moreRisk": {
         "level": "adventurous",
         "payIn": 5070,
@@ -420,6 +400,15 @@
         "weighted": 0.12430731269996609,
         "short": 522160,
         "monthlyIfShort": 2540
+      }
+    },
+    "reach": {
+      "payIn": true,
+      "lump": false,
+      "moreRisk": true,
+      "ways": {
+        "stopLater": 69,
+        "spendLess": 2540
       }
     },
     "grid": null,
@@ -1545,48 +1534,6 @@
           ],
           "mark": "weighted"
         },
-        "oneOff": {
-          "id": "b.lever.oneOff",
-          "text": "Put £414,000 into your pensions now (you £291,155, your partner £122,845; what lands, with the tax the government adds back) and keep paying in as now: your money lasts as long as one of you is alive 18 times in 20. With what goes in now, that is more than £60,000 in one year for each of you: the most that gets the tax the government adds back (less for the highest earners). Allowance not used in the three years before can add to it; that is not counted here.",
-          "parts": [
-            "Put ",
-            {
-              "key": "levers.oneOff.amount",
-              "kind": "money"
-            },
-            " into your pensions now (you ",
-            {
-              "key": "levers.oneOff.byPerson.0.amount",
-              "kind": "money"
-            },
-            ", your partner ",
-            {
-              "key": "levers.oneOff.byPerson.1.amount",
-              "kind": "money"
-            },
-            "; what lands, with the tax the government adds back)",
-            " and keep paying in as now: your money ",
-            "lasts ",
-            "as long as one of you is alive",
-            " ",
-            {
-              "fixed": "18"
-            },
-            " times in ",
-            {
-              "fixed": "20"
-            },
-            ".",
-            " With what goes in now, that is more than ",
-            {
-              "fixed": "£60,000"
-            },
-            " in one year",
-            " for each of you",
-            ": the most that gets the tax the government adds back (less for the highest earners). Allowance not used in the three years before can add to it; that is not counted here."
-          ],
-          "mark": "weighted"
-        },
         "moreRisk": {
           "id": "b.lever.moreRisk",
           "text": "More risk while saving, about two thirds in shares: paying in £5,070 a month, your money lasts as long as one of you is alive 18 times in 20.",
@@ -1729,32 +1676,6 @@
             ", the money lasts that long in ",
             {
               "fixed": "18"
-            },
-            " of ",
-            {
-              "fixed": "20"
-            },
-            " futures we tried."
-          ],
-          "mark": "fixed"
-        },
-        "oneOffFixed": {
-          "id": "b.lever.oneOff.fixed",
-          "text": "With £414,000 put in now: if one of you is still alive when the younger of you is 101, the money lasts that long in 17 of 20 futures we tried.",
-          "parts": [
-            "With ",
-            {
-              "key": "levers.oneOff.amount",
-              "kind": "money"
-            },
-            " put in now: ",
-            "if one of you is still alive when the younger of you is ",
-            {
-              "fixed": "101"
-            },
-            ", the money lasts that long in ",
-            {
-              "fixed": "17"
             },
             " of ",
             {

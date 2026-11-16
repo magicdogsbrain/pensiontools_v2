@@ -715,6 +715,10 @@ describe('7 — today, byte for byte', () => {
   // from you with the tax added back and what leaves take-home pay, once, in its block. Only B answers that say a figure
   // that would be enough moved: b/answer-B1 and b/answer-first (V7_PIN_TODAY=1), b/answer-B2-on-course and
   // b/answer-B4-before-57 (V7_PIN_SCREENS=1); no count moved and no other drawing moved
+  // …and one reach rule (7.12.0, b/enough.js reachOf): no card offers what nobody could pay in — a one-off sum past four
+  // years' allowance, "more risk" with no pay-in that makes it last — and past the reach the enough block says "Paying in
+  // more on its own cannot get there" with the ways that work. Only the two B states the rule touches moved:
+  // b/answer-B4-before-57 (its £246,000 one-off sum) and b/answer-out-of-reach (V7_PIN_SCREENS=1); no other drawing moved
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]',
     // 7.9.0: "Try the bad years" under C's and D's final answers — a button only until pressed; no figure of the answer moves

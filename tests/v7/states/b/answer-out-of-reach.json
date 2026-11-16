@@ -268,18 +268,21 @@
           "payMore": null,
           "spendLess": null,
           "oneOff": null,
-          "moreRisk": {
-            "level": "adventurous",
-            "payIn": null,
-            "lasted": 0,
-            "weighted": 0,
-            "helps": false
-          },
+          "moreRisk": null,
           "accept": {
             "lasted": 0,
             "weighted": 0,
             "short": 1728111,
             "monthlyIfShort": 0
+          }
+        },
+        "reach": {
+          "payIn": false,
+          "lump": true,
+          "moreRisk": false,
+          "ways": {
+            "stopLater": null,
+            "spendLess": null
           }
         },
         "grid": null,
@@ -1232,20 +1235,6 @@
                 " paying in as now."
               ]
             },
-            "moreRisk": {
-              "id": "b.lever.moreRisk.no",
-              "text": "More risk while saving, about two thirds in shares: no pay-in up to £10,000 a month made it last.",
-              "parts": [
-                "More risk while saving, ",
-                "about two thirds in shares",
-                ": no pay-in up to ",
-                {
-                  "fixed": "£10,000"
-                },
-                " a month",
-                " made it last."
-              ]
-            },
             "accept": {
               "id": "b.lever.accept",
               "text": "Keep paying in £700 a month as now: your money lasts as long as you do in none of the futures we tried. No amount a month from 52 lasts as long as you do 18 times in 20.",
@@ -1314,7 +1303,7 @@
           },
           "verdictLine": {
             "id": "b.verdict.line.no",
-            "text": "Paying in £700 a month as now (your employer's £250 included), counting how long people your age live, your money lasts as long as you do in none of the futures we tried; no pay-in up to £10,000 a month would be on course.",
+            "text": "Paying in £700 a month as now (your employer's £250 included), counting how long people your age live, your money lasts as long as you do in none of the futures we tried; paying in more on its own cannot get there.",
             "parts": [
               "Paying in ",
               {
@@ -1337,13 +1326,7 @@
               "as long as you do",
               " ",
               "in none of the futures we tried",
-              "; no pay-in up to ",
-              {
-                "fixed": "£10,000"
-              },
-              " a month",
-              " would be on course",
-              "."
+              "; paying in more on its own cannot get there."
             ]
           },
           "income": {
@@ -1417,14 +1400,9 @@
           },
           "enoughHead": {
             "id": "b.enough.head.outOfReach",
-            "text": "No pay-in up to £10,000 a month would be on course for £5,000 a month from 52.",
+            "text": "Paying in more on its own cannot get there for £5,000 a month from 52.",
             "parts": [
-              "No pay-in up to ",
-              {
-                "fixed": "£10,000"
-              },
-              " a month",
-              " would be on course for ",
+              "Paying in more on its own cannot get there for ",
               {
                 "key": "spend.perMonth",
                 "kind": "money"
@@ -1435,6 +1413,13 @@
                 "kind": "age"
               },
               "."
+            ]
+          },
+          "enoughLine": {
+            "id": "b.enough.line.outOfReach.both",
+            "text": "Neither stopping later nor spending less does it on its own; both together, a later age and a lower amount, may.",
+            "parts": [
+              "Neither stopping later nor spending less does it on its own; both together, a later age and a lower amount, may."
             ]
           }
         },

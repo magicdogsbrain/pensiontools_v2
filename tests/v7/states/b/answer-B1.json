@@ -347,6 +347,15 @@
             "monthlyIfShort": 1380
           }
         },
+        "reach": {
+          "payIn": true,
+          "lump": true,
+          "moreRisk": true,
+          "ways": {
+            "stopLater": 68,
+            "spendLess": 1380
+          }
+        },
         "grid": null,
         "phases": [
           {

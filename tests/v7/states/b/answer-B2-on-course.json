@@ -298,6 +298,15 @@
             "monthlyIfShort": 2380
           }
         },
+        "reach": {
+          "payIn": true,
+          "lump": true,
+          "moreRisk": true,
+          "ways": {
+            "stopLater": null,
+            "spendLess": null
+          }
+        },
         "grid": null,
         "phases": [
           {

@@ -324,23 +324,22 @@
             "lasted": 0.844,
             "weighted": 0.9018561685942114
           },
-          "oneOff": {
-            "amount": 265000,
-            "lasted": 0.844,
-            "weighted": 0.9003787039378658,
-            "overAllowance": true,
-            "over": [
-              "you"
-            ],
-            "overPay": [],
-            "byPerson": null
-          },
+          "oneOff": null,
           "moreRisk": null,
           "accept": {
             "lasted": 0.086,
             "weighted": 0.19040549378748983,
             "short": 389934,
             "monthlyIfShort": 1190
+          }
+        },
+        "reach": {
+          "payIn": true,
+          "lump": false,
+          "moreRisk": true,
+          "ways": {
+            "stopLater": 67,
+            "spendLess": 1190
           }
         },
         "grid": null,
@@ -1451,38 +1450,6 @@
               ],
               "mark": "weighted"
             },
-            "oneOff": {
-              "id": "b.lever.oneOff",
-              "text": "Put £265,000 into your pension now (what lands, with the tax the government adds back) and keep paying in as now: your money lasts as long as you do 18 times in 20. With what goes in now, that is more than £60,000 in one year: the most that gets the tax the government adds back (less for the highest earners). Allowance not used in the three years before can add to it; that is not counted here.",
-              "parts": [
-                "Put ",
-                {
-                  "key": "levers.oneOff.amount",
-                  "kind": "money"
-                },
-                " into your pension now",
-                " (what lands, with the tax the government adds back)",
-                " and keep paying in as now: your money ",
-                "lasts ",
-                "as long as you do",
-                " ",
-                {
-                  "fixed": "18"
-                },
-                " times in ",
-                {
-                  "fixed": "20"
-                },
-                ".",
-                " With what goes in now, that is more than ",
-                {
-                  "fixed": "£60,000"
-                },
-                " in one year",
-                ": the most that gets the tax the government adds back (less for the highest earners). Allowance not used in the three years before can add to it; that is not counted here."
-              ],
-              "mark": "weighted"
-            },
             "accept": {
               "id": "b.lever.accept",
               "text": "Keep paying in £400 a month as now: your money lasts as long as you do 4 times in 20. About £1,190 a month from 55 lasts as long as you do 18 times in 20.",
@@ -1592,32 +1559,6 @@
                   "kind": "money"
                 },
                 " a month: ",
-                "if you live to ",
-                {
-                  "fixed": "101"
-                },
-                ", the money lasts that long in ",
-                {
-                  "fixed": "17"
-                },
-                " of ",
-                {
-                  "fixed": "20"
-                },
-                " futures we tried."
-              ],
-              "mark": "fixed"
-            },
-            "oneOffFixed": {
-              "id": "b.lever.oneOff.fixed",
-              "text": "With £265,000 put in now: if you live to 101, the money lasts that long in 17 of 20 futures we tried.",
-              "parts": [
-                "With ",
-                {
-                  "key": "levers.oneOff.amount",
-                  "kind": "money"
-                },
-                " put in now: ",
                 "if you live to ",
                 {
                   "fixed": "101"

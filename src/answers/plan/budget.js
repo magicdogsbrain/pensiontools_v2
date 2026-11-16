@@ -344,6 +344,22 @@ export function budgetPatch(plan, entries, change, { today }) {
 
 // ---- the words --------------------------------------------------------------------------------------------------------------
 
+/** Whether a budget's sums (BudgetModel.summariseBudget) make a total: the budget page's own test. */
+const hasTotal = (d) => d.allInComfortableMonthly > 0 || d.householdComfortableMonthly > 0;
+
+/**
+ * The budget's figures exactly as the budget page reads them (7.11.1): the budget this plan reads (readBudget: its own, or
+ * the household's shared one with this plan's side of who pays), its lines as the page holds them (normalisedBudget), summed
+ * by BudgetModel.summariseBudget — never the cached `derived`, never a second rule. The one reader for every other line that
+ * says what the budget comes to (the plan's home, "What you spend"). `entries` are the plans in the list (for a shared one).
+ * @returns {{ workedOut: boolean, monthly: number, essentialsMonthly: number, essentialsAnnualNet: number, shared: boolean, holder: object|null }}
+ */
+export function budgetFiguresOf(plan, entries) {
+  const read = readBudget(plan, (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object'));
+  const d = summariseBudget(normalisedBudget(read.budget));
+  return { workedOut: hasTotal(d), monthly: d.allInComfortableMonthly, essentialsMonthly: d.essentialMonthlyNet, essentialsAnnualNet: d.essentialAnnualNet, shared: read.shared, holder: read.holder || null };
+}
+
 /** The totals as the planner's summary says them (index.html updateBudgetSummary), in slots. */
 export function totalsOf(B) {
   const d = summariseBudget(B);
@@ -354,7 +370,7 @@ export function totalsOf(B) {
   const recurring = (B.oneOffs || []).filter((o) => (+o.everyYears || 0) > 0 && (+o.amount || 0) > 0).map((o) => ({ label: o.label || 'item', amount: pounds(o.amount), every: String(+o.everyYears), perYear: pounds((+o.amount) / (+o.everyYears)), perMonth: pounds((+o.amount) / (+o.everyYears) / 12) }));
   const singles = (B.oneOffs || []).filter((o) => !((+o.everyYears || 0) > 0) && (+o.amount || 0) > 0).map((o) => ({ label: o.label || 'item', amount: pounds(o.amount), age: o.atAge ? String(+o.atAge) : null }));
   return {
-    has: d.allInComfortableMonthly > 0 || d.householdComfortableMonthly > 0,
+    has: hasTotal(d),
     shared,
     monthly: pounds(d.allInComfortableMonthly), yearly: pounds(d.allInComfortableAnnual),
     essentials: pounds(d.essentialMonthlyNet), recurringMonthly: pounds(d.comfortableMonthlyNet), periodicMonthly: pounds(d.periodicMonthlyAverage), hasPeriodic: d.periodicMonthlyAverage > 0,

@@ -113,10 +113,12 @@ describe('S1 — the reading, on every corpus plan at three dates', () => {
     expect(spendOf(entriesAt(TODAY), FLAT.id, { today: TODAY }).fields.find((f) => f.path === 'first.then').options).toEqual(['level', 'falls']);
     expect(spendOf(entriesAt(TODAY), LUMPY.id, { today: TODAY }).fields.find((f) => f.path === 'first.then').options).toEqual(THENS);
   });
-  it('the budget as a guide: the cached totals, read only; "Use" is an edit of the first row; nothing under budgetTool is ever written', () => {
+  it('the budget as a guide: read from its lines as the budget page reads it, read only; "Use" is an edit of the first row; nothing under budgetTool is ever written', () => {
     const plan = JSON.parse(JSON.stringify(entryOf(LUMPY).plan));
-    plan.budgetTool.settings.lines = [{ label: 'Home', amount: 500 }];
-    plan.budgetTool.settings.derived = { ...plan.budgetTool.settings.derived, allInComfortableMonthly: 2264, essentialMonthlyNet: 1610, essentialAnnualNet: 19320 };
+    // Moved on purpose (7.11.1): the budget is read from its lines as the budget page reads it, never the cached totals (a
+    // line keeps its figure in `annual`); the totals below are these lines' (£2,264 a month all in, £1,610 of it essentials)
+    plan.budgetTool.settings.lines = [{ label: 'Home', tier: 'essential', annual: 19320 }, { label: 'Leisure', tier: 'discretionary', annual: 7848 }];
+    plan.budgetTool.settings.derived = { ...plan.budgetTool.settings.derived, allInComfortableMonthly: 9999, essentialMonthlyNet: 8888, essentialAnnualNet: 1 };
     const v = spendOf([{ plan }], plan.id, { today: TODAY });
     expect(v.budget).toEqual({ workedOut: true, total: '£2,264', totalValue: 2264, essentials: '£1,610', at: '11 September 2026' });
     expect(v.chart.essentials).toBe(1610);

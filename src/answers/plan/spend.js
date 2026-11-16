@@ -5,7 +5,7 @@
  * year, the problems, the derived figures, and the exact field paths and values a save writes out. Nothing here writes,
  * runs a future, or reads a clock.
  *
- *   savedSpend(plan, { today })              the saved facts: the steps (the planner's before-tax rows read back a month
+ *   savedSpend(plan, { today, entries })     the saved facts: the steps (the planner's before-tax rows read back a month
  *                                            after tax through the planner's own tax sum), the costs, the budget guide
  *   boxesOf(plan, { today })                 the same as text by path: "first.amount", "steps.ids", "steps.0.fromAge" …
  *   checkSpend(plan, typed, { today })       text as typed → { ok, values, lists, errors, saved, shape, schedule }
@@ -29,6 +29,7 @@ import { get, applyPatch, safeSettings, safeTiming, bandsOf, netOf, grossOf } fr
 import { pounds } from './income.js';
 import { SPEND_FIELDS, SPEND_LISTS, SPEND_LIST_IDS, SPEND_WRITES, THENS, isCardId } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
+import { budgetFiguresOf } from './budget.js';
 
 export { applyPatch };
 
@@ -98,16 +99,17 @@ export function plannerSuggest(first, ageNow, essentials = 0) {
   return out;
 }
 
-/** The budget as the plan holds it (8.1): read only, from the cached totals the planner's own chip reads. */
-function budgetOf(plan, now) {
-  const b = (plan && plan.budgetTool && isObj(plan.budgetTool.settings)) ? plan.budgetTool.settings : {};
-  const d = isObj(b.derived) ? b.derived : {};
-  const total = r0(d.allInComfortableMonthly || d.comfortableMonthlyNet);
-  const essentials = r0(d.essentialMonthlyNet);
-  const lines = Array.isArray(b.lines) ? b.lines.filter((l) => l && (num(l.amount) > 0 || num(l.annual) > 0)).length : 0;
-  const workedOut = total > 0 && lines > 0;
-  void now;
-  return { workedOut, total: workedOut ? total : null, essentials: workedOut && essentials > 0 ? essentials : null, essentialsAnnualNet: workedOut ? (num(d.essentialAnnualNet) || 0) : 0, at: plan && plan.lastModified ? dayWords(plan.lastModified) : null };
+/**
+ * The budget as a guide (8.1), read only and read exactly as the budget page reads it (7.11.1, budget.js budgetFiguresOf: the
+ * plan's own budget or the household's shared one, summed from its lines), never the cached totals. Its date is the day the
+ * plan holding the lines was saved.
+ */
+function budgetOf(plan, entries) {
+  const B = budgetFiguresOf(plan, entries);
+  const total = r0(B.monthly), essentials = r0(B.essentialsMonthly);
+  const workedOut = B.workedOut;
+  const holder = B.holder || plan;
+  return { workedOut, total: workedOut ? total : null, essentials: workedOut && essentials > 0 ? essentials : null, essentialsAnnualNet: workedOut ? (num(B.essentialsAnnualNet) || 0) : 0, at: holder && holder.lastModified ? dayWords(holder.lastModified) : null };
 }
 
 /**
@@ -115,7 +117,7 @@ function budgetOf(plan, now) {
  * month after tax; the costs; the budget guide; the timing. Rows keep their index (`row`) so a write can keep them byte
  * for byte.
  */
-export function savedSpend(plan, { today }) {
+export function savedSpend(plan, { today, entries = [] }) {
   const now = dateOf(today);
   const locked = isLocked(plan);
   const doc = locked ? plan.planDocument : null;
@@ -175,7 +177,7 @@ export function savedSpend(plan, { today }) {
     // the age reached this tax year: past the start age for a plan that started in an earlier tax year (6.51.0)
     ageToday: ageNow + Math.max(0, Math.round(num(timing.planYearNow) || 0)),
     locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, ss, stored, timing, duration, ageNow, endAge, bands, source, flat,
-    first, steps: later, plainSteps, base, schedule, costs, xrows, lumps, budget: budgetOf(plan, now), strategyId: sid, now
+    first, steps: later, plainSteps, base, schedule, costs, xrows, lumps, budget: budgetOf(plan, entries), strategyId: sid, now
   };
 }
 
@@ -540,7 +542,7 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
   if (!entry) return { found: false, id: String(id || '') };
   const plan = entry.plan;
   const readonly = !!(entry.newer || entry.failed);
-  const saved = savedSpend(plan, { today });
+  const saved = savedSpend(plan, { today, entries: list });
   const editable = !saved.locked && !readonly;
   const boxes = boxesOf(plan, { today });
   const c = checkSpend(plan, typed || {}, { today });

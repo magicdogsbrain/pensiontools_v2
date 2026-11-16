@@ -30,6 +30,7 @@ import { answerAge, bandsOf, netOf } from './about.js';
 import { isBought } from './pots.js';
 import { savedLasts } from './lasts.js';
 import { savedMix } from './mix.js';
+import { budgetFiguresOf } from './budget.js';
 import { oneAnswer, futuresOutOfTen } from '../../services/OneAnswer.js';
 import { SUCCESS, planToAgeOf, STRESS as STRESS_ON } from '../shared/rules.js';
 import { chanceWords, fixedAgeWords } from '../shared/format.js';
@@ -731,17 +732,18 @@ function savingStep(C) {
   return { done: any, result, figures, lines, buttons, notes: ['saving.notFrozen'] };
 }
 
-/** What you spend (2.3 `budget`): a guide beside the plan's own figure. */
+/**
+ * What you spend (2.3 `budget`): a guide beside the plan's own figure. Read as the budget page reads it (7.11.1,
+ * budget.js budgetFiguresOf: the plan's own budget or the household's shared one, summed from its lines), never a second rule.
+ */
 function budgetStep(C) {
-  const { plan, now } = C;
-  const b = (plan.budgetTool && plan.budgetTool.settings) || {};
-  const d = b.derived || {};
+  const { plan, now, entries } = C;
+  const B = budgetFiguresOf(plan, entries);
   const figures = {};
   const lines = [];
-  const total = r0(d.allInComfortableMonthly || d.comfortableMonthlyNet);
-  const essentials = r0(d.essentialMonthlyNet);
-  const linesCount = Array.isArray(b.lines) ? b.lines.filter((l) => l && num(l.amount) > 0).length : 0;
-  const workedOut = total > 0 && linesCount > 0;
+  const total = r0(B.monthly);
+  const essentials = r0(B.essentialsMonthly);
+  const workedOut = B.workedOut;
   let result;
   if (workedOut) {
     figures.total = total; figures.essentials = essentials;

@@ -209,8 +209,10 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
   });
   it('the budget worked out: the totals with their source, the guide line, "Use" fills the first row, the essentials dashed on the picture and the below line', () => {
     const plan = JSON.parse(JSON.stringify(entryOf(LUMPY).plan));
-    plan.budgetTool.settings.lines = [{ label: 'Home', amount: 500 }];
-    plan.budgetTool.settings.derived = { ...plan.budgetTool.settings.derived, allInComfortableMonthly: 2264, essentialMonthlyNet: 1610, essentialAnnualNet: 19320 };
+    // Moved on purpose (7.11.1): the budget is read from its lines as the budget page reads it, never the cached totals (a
+    // line keeps its figure in `annual`); the totals below are these lines' (£2,264 a month all in, £1,610 of it essentials)
+    plan.budgetTool.settings.lines = [{ label: 'Home', tier: 'essential', annual: 19320 }, { label: 'Leisure', tier: 'discretionary', annual: 7848 }];
+    plan.budgetTool.settings.derived = { ...plan.budgetTool.settings.derived, allInComfortableMonthly: 9999, essentialMonthlyNet: 8888, essentialAnnualNet: 1 };
     const es = entries.map((e) => (e.plan.id === id ? { ...e, plan } : e));
     const { root, actions } = draw(spendState(es, id));
     expect(root.querySelector('[data-testid="plan.spend.budget.total"]').textContent).toBe('All in: £2,264 a month after tax; essentials £1,610. From your budget (a guide), saved 11 September 2026.');

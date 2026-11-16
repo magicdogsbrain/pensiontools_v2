@@ -135,7 +135,10 @@ describe('an account: one updateDoc of the declared paths, past the guard, after
     expect(actions).toContain(A.PLANS_READING);
     const ui = p.store.getState().ui;
     expect(ui.saving).toBe(null);
-    expect(ui.toast).toMatchObject({ planId: SAVER.id, kind: 'saved', line: { id: 'runsTo', slots: { endAge: 96, years: 33 } } });
+    // 7.12.0: a new stop age says the pension then, before and after, from the plan as read (a year later: more)
+    expect(ui.toast).toMatchObject({ planId: SAVER.id, kind: 'saved', line: { id: 'runsToPot', slots: { endAge: 96, years: 33, stopAge: 63, stopBefore: 62 } } });
+    const pounds = (t) => +String(t).replace(/[£,]/g, '');
+    expect(pounds(ui.toast.line.slots.after)).toBeGreaterThan(pounds(ui.toast.line.slots.before));
     expect(ui.toast.previous).toEqual({ 'stressTool.settings.retireAge': 62, 'stressTool.settings.firstTaxYear': 2029, 'stressTool.settings.shapeAgeNow': 62, 'stressTool.settings.duration': 32, 'decisionTool.settings.firstTaxYear': 2029, 'budgetTool.settings.retirementAge': 62, 'accumulationTool.settings.retirementAge': 62, lastModified: SAVER.lastModified });
     expect(p.store.getState().draft.plan.id, 'the draft is cleared on save').toBe(null);
     // the window's storage was never touched on the account path

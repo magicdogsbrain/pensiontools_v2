@@ -124,7 +124,7 @@ describe('"Check in", drawn', () => {
     expect(r.actions).toEqual([{ type: 'plan/calendar', planId: plan.id }]);
     clean(words);
   }, 60000);
-  it('a year on: read again from what it kept, then checked in again — against the path, what changed, then and now; "Use these in my plan"', () => {
+  it('a year on: read again from what it kept, then checked in again — against the path, what changed, then and now; what the plan now uses', () => {
     const first = checkedIn(samPlan('2026-11-20'), '2026-11-20', { 'ci.pension': '64500' }).plan;
     const today = '2027-11-22';
     const aged = upgradeScenario(copy(first), { now: noon(today) }).scenario;
@@ -159,8 +159,10 @@ describe('"Check in", drawn', () => {
     expect(one(root, `${T}.result.rest`).textContent).toMatch(/^Markets, charges and anything not recorded: [+−]£[\d,]+\.$/);
     // (7.8.0: readings of the level, said as chances)
     expect(one(root, `${T}.result.thenNow`).textContent).toMatch(/^Then: lasted .+ times in 20\. Now: .+ times in 20\./);
-    expect(one(root, `${T}.useInPlan`).textContent).toContain('You now pay in 20% in all; your plan says 10%.');
-    expect(one(root, `${T}.use`).textContent).toBe('Use 20% in my plan');
+    // 7.12.0: the check-in wrote its pay-in into the plan — 38,000 × 16% ÷ 12 = 506.67 lands, × 0.8 = 405.33 from take-home
+    // pay; the employer's 38,000 × 4% ÷ 12 = 126.67 — and says so; there is no second button
+    expect(one(root, `${T}.result.uses`).textContent).toBe('Your plan now uses these: pay £38,000, £405 a month from your take-home pay, £127 from your employer.');
+    expect(one(root, `${T}.useInPlan`)).toBe(null);
     expect(one(root, `${T}.result.pathDiffers`).textContent).toBe('The path was drawn paying in £317 a month; you now pay in £633.');
     expect(one(root, `${T}.restart`).textContent).toBe(W.result.restart);
     expect(root.querySelectorAll(`[data-testid="${T}.history.table"] tbody tr[data-date]`)).toHaveLength(2);

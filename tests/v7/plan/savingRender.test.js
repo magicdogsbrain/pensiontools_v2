@@ -75,7 +75,9 @@ describe('"What you pay in", drawn', () => {
     const open = draw(stateWith(entries, '#/plan/' + id + '/saving', { open: ['savingRelief'] }));
     expect(one(open.root, `${T}.relief.box`)).not.toBe(null);
     expect(open.text).toMatch(/Each month you pay £600; £750 goes into your pension, £150 of it the tax added back\./);
-    expect(open.text).toContain('A further £');
+    // 7.12.0: the claim is on the pay above the higher-rate line only: 68,000 − 50,270 = 17,730 a year, more than the
+    // 750 × 12 = 9,000 paid in, so 9,000 × 20% = £1,800 a year
+    expect(open.text).toContain('At £68,000 you pay higher-rate tax on £17,730 of your pay. On what you pay in you can claim £1,800 a year back from HMRC, through a tax return or by asking HMRC. It is not added by itself.');
     const { root, actions } = draw(stateWith(entries, '#/plan/' + id + '/saving'));
     const box = one(root, `${T}.escalationPct`);
     box.value = '2';

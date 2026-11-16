@@ -3,7 +3,8 @@
  * checked, question B run in the worker's own lane on the check-in's figures (a fake client here, handing back B's own
  * answer), then ONE write of the check-in's own keys past the guard; the answer held for the result; Undo byte for byte.
  * Refused, with nothing written: a drawing plan, no worker, boxes with a problem. A locked saver's check-in writes three
- * keys and the plan stays locked. "Use these in my plan" and "Start the path again" are one write each. Fictional plans only.
+ * keys and the plan stays locked. "Start the path again" is one write. (7.12.0: the check-in writes your pay and what goes in
+ * itself; the "Use these in my plan" button is gone.) Fictional plans only.
  */
 import { describe, it, expect } from 'vitest';
 import { startPlanWrite, GUEST_PLANS_KEY } from '../../../src/v7/effects/planWrite.js';
@@ -147,15 +148,6 @@ describe('"Check in" without an account: the run, then one write of the check-in
     expect(p.client.asked).toHaveLength(0);
     expect(p.session.raw(GUEST_PLANS_KEY)).toBe(before);
     expect(p.store.getState().ui.saveProblem).toEqual({ planId: drawing.id, problem: 'notSaving' });
-    // nor "Use these in my plan" from check-ins kept from its saving years
-    const kept = copy(drawing);
-    kept.accumulationTool = { ...(kept.accumulationTool || {}), checkIns: [{ date: '2026-11-02', pot: { pension: 100000, isa: null, other: null }, pay: 30000, payIn: { kind: 'total', total: 500, savingsIn: 0 }, paused: null }] };
-    const q = page({ raws: [kept], planId: kept.id });
-    const was = q.session.raw(GUEST_PLANS_KEY);
-    q.store.dispatch({ type: A.PLAN_USE_CHECKIN, planId: kept.id });
-    await tick();
-    expect(q.session.raw(GUEST_PLANS_KEY)).toBe(was);
-    expect(q.store.getState().ui.saveProblem).toEqual({ planId: kept.id, problem: 'notSaving' });
   });
 });
 
@@ -167,32 +159,27 @@ describe('"Check in" on an account: one updateDoc of the check-in\'s keys', () =
     await tick();
     expect(p.fb.writes).toHaveLength(1);
     expect(p.fb.writes[0].path).toBe('users/u1/scenarios/' + locked.id);
-    expect(Object.keys(p.fb.writes[0].data).sort()).toEqual([...CHECK_IN_KEYS.locked, 'lastModified'].sort());
+    // 7.12.0: the check-in may write What you pay in's settings too, and does not here: the pay-in typed is the plan's own
+    expect(Object.keys(p.fb.writes[0].data).sort()).toEqual([...CHECK_IN_KEYS.locked.filter((k) => k !== 'accumulationTool.settings'), 'lastModified'].sort());
     expect(p.fb.writes[0].data['accumulationTool.checkInEvery']).toBe('year');   // 7.10.0: a locked saver who never chose starts at once a year, never "Each month"
     expect(isLockedSettings(locked.decisionTool.settings)).toBe(true);
   }, 60000);
-  it('"Use these in my plan" writes What you pay in\'s settings; "Start the path again" the path and its archive — one write each', async () => {
+  it('the check-in writes What you pay in\'s settings in its own write (7.12.0); "Start the path again" the path and its archive — one write each', async () => {
     const sam = samRaw();
     const p = page({ raws: [sam], planId: sam.id, session: 'in', typed: { ...TYPED, 'ci.ownPct': '9' } });
     p.store.dispatch({ type: A.PLAN_CHECK_IN, planId: sam.id });
     await tick();
     expect(p.fb.writes).toHaveLength(1);
+    expect(p.fb.writes[0].data['accumulationTool.settings']).toMatchObject({ payInKind: 'share', ownPct: 9, employerPct: 4 });
     // the plan as written, read again
     const { applyPatch } = await import('../../../src/answers/plan/about.js');
     const written = applyPatch(upgradedList([sam], noon(TODAY))[0].plan, p.fb.writes[0].data);
     p.store.dispatch({ type: A.PLANS_SET, list: [{ plan: written, newer: false, failed: false }], source: 'account', readAt: '14:05' });
     p.store.dispatch({ type: A.PLAN_TOAST_CLOSE });
-    p.store.dispatch({ type: A.PLAN_USE_CHECKIN, planId: sam.id });
-    await tick();
-    expect(p.fb.writes).toHaveLength(2);
-    expect(Object.keys(p.fb.writes[1].data).sort()).toEqual(['accumulationTool.settings', 'lastModified']);
-    for (const k of Object.keys(p.fb.writes[1].data)) expect(SAVING_WRITES).toContain(k);
-    expect(p.fb.writes[1].data['accumulationTool.settings']).toMatchObject({ payInKind: 'share', ownPct: 9, employerPct: 4 });
-    p.store.dispatch({ type: A.PLAN_TOAST_CLOSE });
     p.store.dispatch({ type: A.PLAN_RESTART_PATH, planId: sam.id });
     await tick();
-    expect(p.fb.writes).toHaveLength(3);
-    expect(Object.keys(p.fb.writes[2].data).sort()).toEqual(['accumulationTool.path', 'accumulationTool.pathArchive', 'lastModified']);
+    expect(p.fb.writes).toHaveLength(2);
+    expect(Object.keys(p.fb.writes[1].data).sort()).toEqual(['accumulationTool.path', 'accumulationTool.pathArchive', 'lastModified']);
   }, 60000);
   it('"Start the path again" from a check-in of an earlier month: refused ("restartOld"), nothing written', async () => {
     const sam = samRaw();

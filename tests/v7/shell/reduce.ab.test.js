@@ -235,7 +235,6 @@ const anyAction = fc.oneof(
   // a saver's check-in (research/saving-enough-and-check-in.md 5; release step R3): the press, its answer held, the two writes after it, the calendar file
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_CHECK_IN, planId })),
   fc.tuple(fc.constantFrom('p1', 'p2'), fc.constantFrom(null, { status: 'ok', verdict: { band: 'no' }, sentences: {} })).map(([planId, result]) => ({ type: A.CHECKIN_SHOWN, planId, date: '2026-10-02', result })),
-  fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_USE_CHECKIN, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_RESTART_PATH, planId })),
   fc.constantFrom('p1', 'p2').map((planId) => ({ type: A.PLAN_CALENDAR, planId })),
   // Month by month (7.2.0): Record and Set up

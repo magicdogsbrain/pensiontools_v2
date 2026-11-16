@@ -22,7 +22,7 @@ import { upgradeScenario } from '../../../src/firebase/scenarioMigration.js';
 import { saverInputsOf } from '../../../src/answers/plan/saverInputs.js';
 import { applyPatch } from '../../../src/answers/plan/about.js';
 import { answerInPlanPatch, answerPayInOf } from '../../../src/answers/plan/useAnswer.js';
-import { useInPlanPatch } from '../../../src/answers/plan/checkIn.js';
+import { settingsFromCheckIn } from '../../../src/answers/plan/checkIn.js';
 import { SAVER_STAGES } from '../../../src/answers/plan/steps.js';
 import { SAVING_WRITES } from '../../../src/answers/plan/schema.js';
 import { reduce } from '../../../src/v7/state/reduce.js';
@@ -101,12 +101,11 @@ describe('useAnswer.js: the answer\'s saving figures onto the plan, nothing else
     }
   });
 
-  it('the same settings the check-in\'s "Use these in my plan" writes for the same pay-in', () => {
+  it('the same settings a check-in writes for the same pay-in (7.12.0: the check-in writes them itself)', () => {
     const tried = answerB(checked(sam({ kind: 'split', own: 500, employer: 250 })), ENV);
     const fromAnswer = answerInPlanPatch(plan, tried, { today: DAY }).patch['accumulationTool.settings'];
     const ci = { date: DAY, pay: null, pot: { pension: 62000 }, payIn: { kind: 'split', own: 500, employer: 250, total: 750, savingsIn: 0 } };
-    const withCheckIn = { ...copy(plan), accumulationTool: { ...copy(plan.accumulationTool), checkIns: [ci] } };
-    expect(useInPlanPatch(withCheckIn, { today: DAY }).patch['accumulationTool.settings']).toEqual(fromAnswer);
+    expect(settingsFromCheckIn(plan, ci, DAY)).toEqual(fromAnswer);
   });
 
   it('refused: an answer for two, an answer that says you have stopped, a plan no longer saving', () => {

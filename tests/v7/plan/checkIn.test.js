@@ -25,7 +25,7 @@ import { upgradeScenario } from '../../../src/firebase/scenarioMigration.js';
 import { saverInputsOf } from '../../../src/answers/plan/saverInputs.js';
 import {
   checkInOf, checkInPatch, checkInDraft, checkCheckIn, checkInDueOf, checkInState, cadenceOf, addMonths, whatChanged, calendarText,
-  restartPathPatch, useInPlanPatch, archiveWith, pathDocOf, checkInsOf, readingOf,
+  restartPathPatch, archiveWith, pathDocOf, checkInsOf, readingOf,
   CHECKINS_KEPT, CHECKINS_WARN_FROM, NOTE_MAX, PATH_ARCHIVE_KEPT, PATH_ARCHIVE_BYTES, CHECKIN_FUTURES
 } from '../../../src/answers/plan/checkIn.js';
 import { CHECKIN_WRITES, SAVING_WRITES, CHECKIN_FIELDS, ALL_WRITES } from '../../../src/answers/plan/schema.js';
@@ -260,24 +260,25 @@ describe('the write: the check-in, the month\'s pot record, how often, an unlock
     expect(two.accumulationTool.history.find((r) => r.date === '2026-11').sipp).toBe(64900);
     expect(two.accumulationTool.path.path[0].nominal.middling).toBe(64900);
   });
-  it('a later check-in never draws the path again, and never changes a setting; the pot record of its month is written beside the others', () => {
+  it('a later check-in never draws the path again; it writes the new pay-in into What you pay in (7.12.0); the pot record of its month is written beside the others', () => {
     const one = checkIn(plan, '2026-11-20', SHARE(64500)).plan;
     const later = checkIn(upgradeScenario(copy(one), { now: noon('2027-11-10') }).scenario, '2027-11-10', SHARE(74600, { 'ci.ownPct': '16', 'ci.since': '2026-12' }));
-    expect(Object.keys(later.patch).sort()).toEqual(['accumulationTool.checkIns', 'accumulationTool.history']);
+    expect(Object.keys(later.patch).sort()).toEqual(['accumulationTool.checkIns', 'accumulationTool.history', 'accumulationTool.settings']);
     expect(JSON.stringify(later.plan.accumulationTool.path)).toBe(JSON.stringify(one.accumulationTool.path));
-    expect(JSON.stringify(later.plan.accumulationTool.settings)).toBe(JSON.stringify(one.accumulationTool.settings));
+    expect(later.plan.accumulationTool.settings).toMatchObject({ payInKind: 'share', ownPct: 16, employerPct: 4, salary: 38000 });
     expect(later.plan.accumulationTool.history.map((r) => r.date)).toEqual(['2026-11', '2027-11']);
     expect(later.record.payIn).toMatchObject({ kind: 'share', ownPct: 16, employerPct: 4, since: '2026-12' });
     expect(later.record.reading.path).toEqual({ source: 'saving', asOf: '2026-11', version: 3 });
     expect(['below', 'p10–p50', 'p50–p90', 'above p90', 'below p10']).toContain(later.record.reading.pathBand);
   });
-  it('a locked saver: exactly three keys, past the lock guard and the check-in\'s own; the plan stays locked; read against the document\'s path', () => {
+  it('a locked saver: the check-in\'s own keys, past the lock guard; the plan stays locked; read against the document\'s path', () => {
     const e = entryOf(C['05-saver-committed'], '2026-11-05');
     const locked = e.plan;
     expect(isLockedSettings(locked.decisionTool.settings)).toBe(true);
     const p = checkInPatch(locked, { 'ci.pension': '330000', 'ci.isa': '42000' }, { today: '2026-11-05', now: at('2026-11-05'), result: null });
     expect(p.ok).toBe(true);
-    expect(Object.keys(p.patch).sort()).toEqual([...CHECK_IN_KEYS.locked].sort());
+    // 7.12.0: What you pay in's settings are the check-in's too, written only when they change (here they do not)
+    expect(Object.keys(p.patch).sort()).toEqual(CHECK_IN_KEYS.locked.filter((k) => k !== 'accumulationTool.settings').sort());
     const data = { ...p.patch, lastModified: '2026-11-05T12:00:00.000Z' };
     expect(lockedPlanWriteRefusal(locked, data, getDefaultStressSettings())).toBe(null);
     expect(checkInWriteRefusal(locked, data)).toBe(null);
@@ -291,7 +292,7 @@ describe('the write: the check-in, the month\'s pot record, how often, an unlock
     const sr0 = saverReading(locked.planDocument, { at: '2026-11', pension: 330000, isa: 42000 });
     expect(p.record.reading.expected).toBe(Math.round(sr0.expected * sr0.prices.factor));
     // any write beyond the allowance on a locked plan is refused: a setting, the plan document, the path an unlocked plan keeps
-    for (const extra of [{ 'stressTool.settings.baseSalary': 1 }, { planDocument: {} }, { 'accumulationTool.path': {} }, { 'accumulationTool.settings': {} }]) {
+    for (const extra of [{ 'stressTool.settings.baseSalary': 1 }, { planDocument: {} }, { 'accumulationTool.path': {} }]) {
       expect(checkInWriteRefusal(locked, { ...data, ...extra }), JSON.stringify(extra)).toEqual(Object.keys(extra));
     }
     expect(lockedPlanWriteRefusal(locked, { ...data, 'stressTool.settings.baseSalary': 1 }, getDefaultStressSettings())).toEqual(['stress.baseSalary']);
@@ -306,7 +307,6 @@ describe('the write: the check-in, the month\'s pot record, how often, an unlock
     // nor the check-in's own buttons: a drawing plan that kept check-ins from its saving years writes nothing from them
     const ran = copy(entryOf(C['04-buckets-running'], '2026-11-05').plan);
     ran.accumulationTool = { ...(ran.accumulationTool || {}), checkIns: [{ date: '2026-11-02', pot: { pension: 100000, isa: null, other: null }, pay: 30000, payIn: { kind: 'total', total: 500, savingsIn: 0 }, paused: null }], path: { version: 3, asOf: '2026-11', path: [{ year: 0, nominal: { careful: 1, middling: 1, good: 1 } }] } };
-    expect(useInPlanPatch(ran, { today: '2026-11-05' })).toMatchObject({ ok: false, problem: 'notSaving', patch: {} });
     expect(restartPathPatch(ran, { today: '2026-11-05', now: at('2026-11-05') })).toMatchObject({ ok: false, problem: 'notSaving', patch: {} });
     // the plan locked while saving, from its stop month: running, so no check-in
     const raw = C['05-saver-committed'];
@@ -531,46 +531,32 @@ describe('what changed (5.5, 5.6): the parts add up to the change in the pot the
     expect(v.rows.map((r) => r.month)).toEqual(['November 2027', 'November 2026']);
     expect(v.rows[0]).toMatchObject({ pension: '£74,600', pay: '£38,000', payIn: { id: 'share', slots: { pct: '20', amount: '£633' } }, verdict: { band: 'no', words: 'in only 7 futures out of 10' }, enough: { id: 'share', slots: { pct: '29' } }, note: 'Raised what goes in.', pathChanged: null });
     expect(v.rows[1].pathChanged).toEqual({ month: 'November 2026', why: 'first' });
-    // "Use these in my plan": the check-in pays in 20% in all, the plan says 10%
-    expect(v.useInPlan).toEqual({ id: 'share', slots: { now: '20', plan: '10' } });
+    // 7.12.0: the check-in wrote its pay-in into the plan, and the result says the plan now uses it
+    expect(v.uses).toMatchObject({ id: 'uses', slots: { pay: '£38,000' } });
     expect(v.pathDiffers).toEqual({ drawn: '£317', now: '£633' });
   });
 });
 
-describe('"Use these in my plan" (5.6), "Start the path again" (5.3) and the archive (5.11)', () => {
-  it('Use these in my plan: What you pay in\'s settings from the last check-in, ONE write; a share as the share and the pounds it lands', () => {
+describe('what goes in, written by the check-in (7.12.0), "Start the path again" (5.3) and the archive (5.11)', () => {
+  it('the check-in writes What you pay in\'s settings in its own write: a share as the share and the pounds it lands (7.12.0)', () => {
     const plan = samPlan();
-    const one = checkIn(plan, '2026-11-20', SHARE(64500, { 'ci.ownPct': '8', 'ci.savingsIn': '50' })).plan;
-    const p = useInPlanPatch(one, { today: '2026-11-20' });
-    expect(Object.keys(p.patch)).toEqual(['accumulationTool.settings']);
-    for (const k of Object.keys(p.patch)) expect(SAVING_WRITES).toContain(k);
-    const s = p.patch['accumulationTool.settings'];
-    expect(s).toMatchObject({ payInKind: 'share', ownPct: 8, employerPct: 4, salary: 38000, isaMonthly: 50, schemeType: 'ras' });
-    const after = applyPatch(one, p.patch);
-    expect(checkInOf([{ plan: after }], after.id, { today: '2026-11-20' }).useInPlan).toBe(null);
-    expect(useInPlanPatch(after, { today: '2026-11-20' }).patch).toEqual({});
+    const c = checkIn(plan, '2026-11-20', SHARE(64500, { 'ci.ownPct': '8', 'ci.savingsIn': '50' }));
+    for (const k of Object.keys(c.patch)) expect(CHECKIN_WRITES).toContain(k);
+    expect(c.plan.accumulationTool.settings).toMatchObject({ payInKind: 'share', ownPct: 8, employerPct: 4, salary: 38000, isaMonthly: 50, schemeType: 'ras' });
+    // checked in again with the same figures: nothing new to write into the plan
+    expect(checkIn(c.plan, '2026-11-28', SHARE(64500, { 'ci.ownPct': '8', 'ci.savingsIn': '50' })).patch['accumulationTool.settings']).toBeUndefined();
   });
-  it('Use these in my plan keeps the ages What you pay in\'s own Save keeps: a saver with no Accumulation settings of their own reads the Timing block\'s', () => {
+  it('the settings it writes keep the ages What you pay in\'s own Save keeps: a saver with no Accumulation settings of their own reads the Timing block\'s', () => {
     const plan = samPlan();
-    const one = checkIn(plan, '2026-11-20', SHARE(64500, { 'ci.ownPct': '8' })).plan;
-    const bare = copy(one);
+    const bare = copy(plan);
     delete bare.accumulationTool.settings;
     expect(planStage(bare, { now: noon('2026-11-20') }).key).toBe('saving');
-    const saved = savedSaving(bare, { today: '2026-11-20' });
-    expect(saved.currentAge).toBe(41);
-    expect(saved.retirementAge).toBe(63);
-    const s = useInPlanPatch(bare, { today: '2026-11-20' }).patch['accumulationTool.settings'];
+    const s = checkIn(bare, '2026-11-20', SHARE(64500, { 'ci.ownPct': '8' })).plan.accumulationTool.settings;
     expect(s).toMatchObject({ currentAge: 41, retirementAge: 63, payInKind: 'share', ownPct: 8, employerPct: 4 });
-    // the same ages the step's own Save writes
-    const own = savingPatch(bare, {}, { today: '2026-11-20' }).patch['accumulationTool.settings'];
-    expect([s.currentAge, s.retirementAge, s.potNow, s.escalationPct]).toEqual([own.currentAge, own.retirementAge, own.potNow, own.escalationPct]);
-    const after = applyPatch(bare, { 'accumulationTool.settings': s });
-    expect(savedSaving(after, { today: '2026-11-20' })).toMatchObject({ currentAge: 41, retirementAge: 63 });
   });
   it('pounds: what leaves take-home pay under the plan\'s scheme lands what the check-in said', () => {
     const plan = samPlan({ ...SAM, you: { ...SAM.you, payIn: { kind: 'split', own: 400, employer: 200 } } });
-    const one = checkIn(plan, '2026-11-20', { 'ci.pension': '64500', 'ci.kind': 'split', 'ci.own': '500', 'ci.employer': '250' }).plan;
-    const after = applyPatch(one, useInPlanPatch(one, { today: '2026-11-20' }).patch);
+    const after = checkIn(plan, '2026-11-20', { 'ci.pension': '64500', 'ci.kind': 'split', 'ci.own': '500', 'ci.employer': '250' }).plan;
     const read = saverInputsOf(after, { today: '2026-11-20' });
     expect(read.inputs.you.payIn).toEqual({ kind: 'split', own: 500, employer: 250 });
   });

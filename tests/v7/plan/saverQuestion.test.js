@@ -280,3 +280,60 @@ describe('one reach rule: when paying in alone cannot do it, every card says so 
     expect(allText(r)).not.toMatch(/ways below|£6,720|£603,000/);
   }, 90000);
 });
+
+describe('the full view\'s "Am I on course?" says the same as the plan\'s home, from the same reader', async () => {
+  const { h, render } = await import('preact');
+  const { App } = await import('../../../src/v7/App.jsx');
+  const { reduce } = await import('../../../src/v7/state/reduce.js');
+  const { A } = await import('../../../src/v7/state/actions.js');
+  const { wanted } = await import('../../../src/v7/effects/saver.js');
+  const { viewFor } = await import('../../../src/v7/effects/planSource.js');
+  const { stateWith } = await import('./_plans.js');
+  const { paintSaverAnswer } = await import('../../../src/ui/saverAnswerUi.js');
+  /** The home block's lines as drawn, its answer run as the simple view's runner runs it. */
+  const homeLines = (plan) => {
+    const s = stateWith([entry(plan)], '#/plan/' + plan.id, { today: READ_ON, source: 'window', session: 'nobody' });
+    const st = { ...s, plans: { ...s.plans, view: viewFor(s) } };
+    const v = wanted(st);
+    const result = answerB(v.inputs, { today: READ_ON, futures: 1000, seed: 0, trace: false, detail: 'answer', ...v.env });
+    const held = reduce(reduce(st, { type: A.SAVER_WORKING, key: v.key }), { type: A.SAVER_FINAL, key: v.key, result });
+    const el = document.createElement('div');
+    render(h(App, { state: held, dispatch: () => {} }), el);
+    return [...el.querySelectorAll('[data-testid="plan.home.saver"] [data-line]')].map((x) => [x.getAttribute('data-line'), x.textContent]);
+  };
+  /** The full view's Accumulation tab after "Work it out", as index.html calls it. */
+  const fullLines = async (plan) => {
+    document.body.innerHTML = '<div id="acOnTrack"></div>';
+    const block = await paintSaverAnswer(document, { listScenariosAsync: async () => [copy(plan)], getActiveScenarioId: async () => plan.id, now: () => noon(READ_ON) });
+    expect(block && block.state).toBe('answer');
+    const out = [...document.querySelectorAll('#acOnTrack [data-line]')].map((x) => [x.getAttribute('data-line'), x.textContent]);
+    expect(document.querySelector('[data-testid="ac.saver.change"]').getAttribute('href')).toMatch(new RegExp('#/plan/' + plan.id + '/saving$'));
+    document.body.innerHTML = '';
+    return out;
+  };
+  const save = (plan, typed) => { const p = savingPatch(plan, typed, { today: READ_ON }); expect(p.ok).toBe(true); return applyPatch(plan, p.patch); };
+
+  it('Jo, then £2,500, then stopping at 65, then a £10,000 pot recorded on top: the two views say every line the same', async () => {
+    let plan = keptPlan(JO(), { id: 'JoF1' });
+    const steps = [
+      (p) => p,
+      (p) => save(p, { 'want.monthly': '2500' }),
+      (p) => save(p, { 'want.stopAge': '65' }),
+      // £10,000 more in the pension today: 22,000 + 10,000 = £32,000 typed as the pot today
+      (p) => save(p, { potNow: '32000' })
+    ];
+    let before = null;
+    for (const step of steps) {
+      plan = step(plan);
+      const home = homeLines(plan);
+      const full = await fullLines(plan);
+      expect(full).toEqual(home);
+      expect(home.length).toBeGreaterThanOrEqual(4);
+      if (before) expect(home).not.toEqual(before);
+      before = home;
+    }
+    // the last: £2,500 from 65, and the pot the plan reads is the £32,000 typed
+    expect(before.find((x) => x[0] === 'want')[1]).toBe('You want £2,500 a month after tax, at today’s prices, from age 65.');
+    expect(saverInputsOf(plan, { today: READ_ON }).inputs.you.pot).toBe(32000);
+  }, 240000);
+});

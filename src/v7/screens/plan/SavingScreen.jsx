@@ -319,7 +319,7 @@ export function SavingScreen(state, dispatch) {
           <Relief V={V} open={state.ui.open.includes('savingRelief')} dispatch={dispatch} />
           <Pot V={V} />
           <Records V={V} planId={planId} dispatch={dispatch} F={F} />
-          {/* the planner's own fixed-rate check stays a quiet link: the verdict above is the answer (release step R2) */}
+          {/* the full view says the same answer (7.12.0, src/ui/saverAnswerUi.js): a quiet link to it */}
           <section class="plan-section" data-section="onCourse">
             <h3>{W.sections.onCourse}</h3>
             <p class="note">{W.onCourse.lead}</p>

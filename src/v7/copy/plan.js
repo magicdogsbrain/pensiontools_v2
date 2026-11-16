@@ -464,7 +464,7 @@ export const PLAN = {
      * planner's fixed-rate check a quiet link.
      */
     payingEnough: 'Are you paying in enough?',
-    potCheck: 'The full view’s pot check (fixed rates)',
+    potCheck: 'The same answer in the full view',
     /** A saver's next steps (saving-enough-and-check-in.md 4.2), each inside V7. */
     seeSaving: 'What you pay in',
     setAim: 'What you spend',

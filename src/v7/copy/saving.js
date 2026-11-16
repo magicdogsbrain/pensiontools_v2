@@ -59,7 +59,7 @@ export const SAVING = {
       'want.stopAge': { notANumber: 'A whole age, like 60.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 85, please.', notAhead: 'An age after the one you are now.', notWithAbout: 'This age does not fit the other ages on “About you and when”. Change it there.' }
     }
   },
-  sections: { payIn: 'Each month', relief: 'How tax relief works, and your salary', pot: 'What the pot could be by the stop', records: 'This month’s pot', onCourse: 'The full view’s own check' },
+  sections: { payIn: 'Each month', relief: 'How tax relief works, and your salary', pot: 'What the pot could be by the stop', records: 'This month’s pot', onCourse: 'In the full view' },
   fields: {
     netMonthly:      { label: 'What you pay in a month, from your take-home pay, in pounds', help: 'What leaves your pay. The tax the government adds back is worked out below.' },
     employerMonthly: { label: 'Your employer’s part, a month, in pounds' },
@@ -143,8 +143,8 @@ export const SAVING = {
     more: '{n} record{s} in all; the last 36 shown.'
   },
   onCourse: {
-    lead: 'The full view also has a check of its own: it runs your plan itself to find the pot that lasts in 9 futures out of 10 and sets the three fixed rates against it.',
-    button: 'The full view’s pot check (fixed rates)'
+    lead: 'The full view says this same answer, under “Am I on course?”, with the fixed-rate table beside it.',
+    button: 'The same answer in the full view'
   },
   /**
    * "Are you paying in enough?" (research/saving-enough-and-check-in.md 2, 3, 4.4; release step R2): question B's own answer
@@ -160,7 +160,7 @@ export const SAVING = {
     working: 'Working out whether what you pay in is enough…',
     first: 'A first figure, from 100 futures. The final one, from 1,000, follows in a moment.',
     failed: 'Sorry, this could not be worked out. Nothing was changed.',
-    noWorker: 'This browser cannot work this out here. The full view’s own check is further down.',
+    noWorker: 'This browser cannot work this out here.',
     retry: 'Try again',
     noAim: 'Your plan has no income set for when you stop, so there is nothing yet to test what you pay in against. Say what you would want to spend first.',
     noAimLink: 'What you spend',

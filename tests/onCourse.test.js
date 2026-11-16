@@ -61,24 +61,21 @@ describe('"Am I on course?" on the Accumulation planner', () => {
     expect(titles).toContain('Am I on course?');
     expect(titles).not.toContain('Am I on track?');
     const acc = doc.querySelector('#accumulation-content').textContent.replace(/\s+/g, ' ');
-    expect(acc).toContain('to find the pot your plan needs to be on course');
-    expect(acc).toContain('The answer says how on course was counted.');
+    // 7.12.0: the simple view's answer block, said as such; the words of the old search are gone
+    expect(acc).toContain('The same answer as your plan\'s home in the simple view');
+    const sec = [...doc.querySelectorAll('#accumulation-content .settings-section')].find((e) => /Am I on course\?/.test(e.textContent)).textContent;
+    expect(sec).not.toMatch(/ACTUAL|budget-derived target|Monte Carlo/);
     expect(acc).not.toMatch(/85% success/);
     expect(SRC).not.toMatch(/85% success/);
     expect(SRC).not.toMatch(/85% Monte-Carlo success/);
   });
-  it('the search runs at the one bar, through the one test, for Pots & Valves and for every other strategy (6.24.0)', () => {
+  it('the check is the simple view\'s answer block, from the same reader and the same run (7.12.0): no second model of "on course"', () => {
     const at = script.indexOf('window.runOnTrackCheck');
     expect(at).toBeGreaterThan(-1);
-    const body = script.slice(at, script.indexOf('\n    };', at));
-    expect(body).not.toMatch(/requiredPotForSuccess/);   // Pots & Valves searched its own Monte Carlo until 6.24.0
-    // 7.8.0: the plan every screen runs, at the bar onCourseOptsOf gives: ON_COURSE_SHARE (9 in 10) while not weighing, the
-    // page's level weighted by how long people live once SUCCESS.weighted (tests/v7/plan/onCourseWeighted.test.js)
-    // (and its range and chance: lastsRun.onCourseFind, requiredPotForStrategy with the levels)
-    expect(body).toMatch(/acP = strategyPlanFor\(sSet\), \{ found, reason \} = onCourseFind\(sSet, acP, stratId, new Date\(\)/);
-    expect(body).toMatch(/chance: onCourseChanceHtml\(found, \{ strategyId: stratId, reason \}\)/);
-    expect(body).not.toMatch(/0\.85/);
-    expect(body).not.toMatch(/on track/);
+    const body = script.slice(at, script.indexOf('\n', at));
+    expect(body).toBe("window.runOnTrackCheck = () => paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId });");
+    expect(script).not.toMatch(/onCourseCheckHtml|requiredPotForSuccess/);
+    expect(read('src/ui/saverAnswerUi.js')).toMatch(/import \{ saverBlockOf \} from '\.\.\/v7\/state\/saverBlock\.js';/);
   });
   it('the words: searching, the basis and each row\'s verdict', () => {
     // (7.8.0: searching says what holds for either test; the basis without a level is the rollback's, as before)

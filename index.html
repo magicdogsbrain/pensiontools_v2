@@ -3738,11 +3738,11 @@
           <div class="settings-section">
             <div class="section-title">Am I on course?</div>
             <p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">
-              Runs your ACTUAL Stress-Tester plan (budget-derived target, allocation, State
-              Pension, access method) through the Monte Carlo to find the pot your plan needs to be
-              <strong>on course</strong>, then compares your projection against it. The answer says how on course was counted.
+              The same answer as your plan's home in the simple view: what you want, what you pay in now, whether that is
+              enough and how often the money lasts, and what would be enough. What you want and when you stop are changed on
+              the simple view's “What you pay in”.
             </p>
-            <button type="button" data-on-click="runOnTrackCheck()">Check against my plan's target</button>
+            <button type="button" data-on-click="runOnTrackCheck()">Work it out</button>
             <div id="acOnTrack" style="margin-top:10px;"></div>
           </div>
 
@@ -4134,8 +4134,8 @@
     } from './src/storage/ScenarioRepository.js';
     import { chargesFieldState, chargesForSave, paintChargesField, chargesPctOf, DEFAULT_CHARGES_PCT } from './src/ui/chargesSetting.js';   // fund and platform charges (6.19.0)
     import { isaGrowthFieldState, isaGrowthForSave, readIsaGrowthChoice, paintIsaGrowthField, unlockNotesHtml, isaAssumptionsRow, drawdownIsaNoteHtml } from './src/ui/isaGrowthSetting.js';   // how the ISA and savings grow (6.22.0)
-    import { ON_COURSE_SHARE, ON_COURSE_PCT, ON_COURSE_SEARCHING, onCourseBasisHtml, onCourseChanceHtml, onCourseAlertClass, jointVerdictHtml, isOnCourse } from './src/services/OnCourse.js';   // one bar: "on course" = lasts in 9 futures out of 10 (6.22.0)
-    import { accumulationTableHtml, onCourseCheckHtml, mpaaOf, accumulationBoxes } from './src/ui/accumulationProjection.js';
+    import { ON_COURSE_SHARE, ON_COURSE_PCT, onCourseAlertClass, jointVerdictHtml, isOnCourse } from './src/services/OnCourse.js';   // one bar: "on course" = lasts in 9 futures out of 10 (6.22.0)
+    import { accumulationTableHtml, mpaaOf, accumulationBoxes } from './src/ui/accumulationProjection.js'; import { paintSaverAnswer } from './src/ui/saverAnswerUi.js';   // 7.12.0: "Am I on course?" is the simple view's answer block
     import { savingPathForLock } from './src/ui/savingPathForLock.js';   // a saver's lock draws its path on V7's saving-years engine (6.22.0)
 
     // Simulation access for optimisation — THROUGH the strategy registry (Phase B rule:
@@ -4143,7 +4143,7 @@
     import { getStrategy } from './src/strategies/registry.js'; import { strategyOverlayOf } from './src/services/DecisionOverlay.js'; import { engineSetup, engineDeps } from './src/services/MonthDecision.js';   // where a month is paid from, beside the pot advice (7.2.0)
     import { tagPortfolio, allocationFromTags, mixFromFunds } from './src/services/PortfolioTagger.js';   // the mix a funds list makes, lifted pure (6.41.0)
     import { searchFunds as searchFundsIn } from './src/services/FundCatalogue.js';   // the fuzzy fund search, lifted pure (6.41.0)
-    import { trySettingsOf, onCourseFind, documentSuccessOf, chanceRunOf } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
+    import { trySettingsOf, documentSuccessOf, chanceRunOf } from './src/answers/plan/lastsRun.js';   // "Try a strategy": the what-if copy of the settings, lifted pure (6.41.0)
     import { tryDifferencesOf } from './src/answers/plan/lasts.js';   // … and its "What's different" list (6.41.0)
     import { SUB_ASSET_PROFILES, FUND_TAG_MAP, FUND_CATALOGUE, catalogueEntry, subClassOptionsByBucket } from './src/services/SubAssetModel.js';
     import {
@@ -9538,23 +9538,8 @@
       window._acProjection = { rows, breakdown: b };
     };
 
-    // "Am I on course?" (6.22.0: the one bar — the pot that lasts in 9 futures out of 10, src/services/OnCourse.js)
-    window.runOnTrackCheck = async function () {
-      const el = document.getElementById('acOnTrack');
-      if (!window._acProjection) { showToast('Enter your details first', 'warning'); return; }
-      el.innerHTML = '<p style="font-size:13px;">' + ON_COURSE_SEARCHING + '</p>';
-      await new Promise((r) => setTimeout(r, 30)); // let the message paint
-      try {
-        const sSet = await getStressSettingsAsync();
-        const stratId = sSet.strategyId || 'pots-and-valves';
-        const acP = strategyPlanFor(sSet), { found, reason } = onCourseFind(sSet, acP, stratId, new Date(), { level: window._chanceLevel || null, plan: await getActiveScenarioAsync().catch(() => null) }), { requiredPot } = found;   // the one test for every strategy (6.24.0); 7.8.0: at the page's level, else the plan's kept level (as the verdict block), weighted by how long people live while SUCCESS.weighted (else 9 in 10, as before), with the other two levels' pots
-        if (!Number.isFinite(requiredPot)) { el.innerHTML = '<div class="alert alert-warning">No pot in the search range passes with ' + budEsc(STRATEGY_NAMES[stratId] || stratId) + ' — check the plan\'s income shape and duration.</div>'; return; }
-        el.innerHTML = onCourseCheckHtml({ requiredPot, basis: onCourseBasisHtml({ strategyId: stratId, name: budEsc(STRATEGY_NAMES[stratId] || stratId), found }), rows: window._acProjection.rows, chance: onCourseChanceHtml(found, { strategyId: stratId, reason }) });
-      } catch (e) {
-        console.error('On-track check error:', e);
-        el.innerHTML = '<div class="alert alert-warning">Could not run the check: ' + e.message + '</div>';
-      }
-    };
+    // "Am I on course?" (7.12.0, src/ui/saverAnswerUi.js): the simple view's answer block, from the same reader and the same run
+    window.runOnTrackCheck = () => paintSaverAnswer(document, { listScenariosAsync, getActiveScenarioId });
 
     // In-app confirm modal — replaces window.confirm(), which BLOCKS the whole renderer (and any
     // browser automation) with a native dialog. Promise<boolean>; Escape/backdrop = cancel.

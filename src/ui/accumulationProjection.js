@@ -19,7 +19,6 @@ import { accumulationChargesNoteHtml } from './chargesSetting.js';
 import { accumulationIsaNote } from './isaGrowthSetting.js';
 import { isaGrowthOf } from '../services/IsaGrowth.js';
 import { projectedIsaRows, isaProjectionOf } from '../services/PlanTiming.js';
-import { onCourseVerdictHtml } from '../services/OnCourse.js';
 
 import { saverFacts } from '../services/SaverFacts.js';
 import { budgetAgeToday, budgetRetirementAge } from '../services/BudgetModel.js';
@@ -70,22 +69,6 @@ export function accumulationTableHtml({ rows, mixOn = false, mixRealReturn = nul
   return html;
 }
 
-/**
- * "Am I on course?": the pot the plan needs at retirement (at the level chosen, 7.8.0; in the rollback, it lasts in 9
- * futures out of 10 — services/OnCourse.js), and the pension at each of the three rates against it. `chance` (HTML,
- * OnCourse.onCourseChanceHtml): the chance the pot stands behind and its count to the plan's age, under the pot.
- * @param {{ requiredPot: number, basis: string (HTML), rows: Array, chance?: string (HTML) }} o
- */
-export function onCourseCheckHtml({ requiredPot, basis, rows, chance = '' }) {
-  const last = rows[rows.length - 1];
-  return '<div class="alert alert-info">Your plan needs about <strong>' + gbp(requiredPot) + '</strong> at retirement (today\'s money) ' + basis + '.' + chance + '</div>'
-    + '<table><tbody>'
-    + '<tr><td>Cautious growth (2%)</td><td>' + gbp(last.potLow) + '</td><td>' + onCourseVerdictHtml(last.potLow, requiredPot) + '</td></tr>'
-    + '<tr><td>Middle growth (5%)</td><td>' + gbp(last.potMid) + '</td><td>' + onCourseVerdictHtml(last.potMid, requiredPot) + '</td></tr>'
-    + '<tr><td>Strong growth (8%)</td><td>' + gbp(last.potHigh) + '</td><td>' + onCourseVerdictHtml(last.potHigh, requiredPot) + '</td></tr>'
-    + '</tbody></table>'
-    + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Uses your current Stress-Tester settings (target, allocation, State Pension, access method) with the pot scaled. Set your budget and stress settings first for a meaningful answer.</p>';
-}
 
 /**
  * The Accumulation tab's boxes as it opens (7.12.0): the saver's facts (services/SaverFacts.js), so the tab says the same

@@ -91,7 +91,9 @@ import { resolve } from 'node:path';
 // Couples, one answer on both views (7.12.0): the Household tab's picker and its save moved to src/ui/householdTabUi.js
 // (installHouseholdTab), reading the link either way; a plan switch reads the tab again from the menu's existing line.
 // The four 7.12.0 lanes joined: 8,965.
-const MAX_LINES = 8965;
+// "Am I on course?" is the simple view's answer block (7.12.0, src/ui/saverAnswerUi.js): the full view's own fixed-rate check
+// went, the button calling the module in one line: 8,950.
+const MAX_LINES = 8950;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

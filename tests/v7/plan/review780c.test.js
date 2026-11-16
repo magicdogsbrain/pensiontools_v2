@@ -108,7 +108,6 @@ describe('the classic "Am I on course?" names the test it ran', { timeout: 600_0
   it('weighing: the level, the other two levels\' pots, the chance at the pot and its count to the plan\'s age; Careful ≥ the level ≥ Bold', async () => {
     const { onCourseFind } = await import('../../../src/answers/plan/lastsRun.js');
     const { onCourseBasisHtml, onCourseChanceHtml } = await import('../../../src/services/OnCourse.js');
-    const { onCourseCheckHtml } = await import('../../../src/ui/accumulationProjection.js');
     const plan = entryOf(copy(C['02-pnv-draft'])).plan;
     const settings = effectiveStressSettings(plan, { now });
     const p = planFor(settings, now);
@@ -124,7 +123,8 @@ describe('the classic "Am I on course?" names the test it ran', { timeout: 600_0
     expect(basis).toMatch(/^to be on course at <strong>Balanced<\/strong> \(Careful £[\d,]+, Bold £[\d,]+\) with <strong>Pots &amp; Valves<\/strong>/);
     expect(basis).not.toMatch(/9 futures out of 10/);
     const chance = onCourseChanceHtml(found, { strategyId: 'pots-and-valves', reason });
-    document.body.innerHTML = onCourseCheckHtml({ requiredPot: found.requiredPot, basis, rows: [{ potLow: 1, potMid: 2, potHigh: 3 }], chance });
+    // (7.12.0: the full view's own table is gone — its "Am I on course?" is the simple view's answer block; the chance's words stay)
+    document.body.innerHTML = '<div>' + chance + '</div>';
     const w = document.querySelector('[data-weighted]');
     expect(w.textContent).toMatch(/^Counting how long people your age live, with exactly that the money lasts as long as you do (\d+ times|more than 19 times) in 20: on course at Balanced\.$/);
     const f = w.closest('.chance-block').querySelector('[data-fixed]');

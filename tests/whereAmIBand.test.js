@@ -108,6 +108,8 @@ describe('the pot is made of the same accounts as the band', () => {
       expect(w.pot.pension).toBe(600000);
       const h = whereAmIHtml(w);
       expect(h).toContain('Add your ISA under What you hold');
+      // the walk: the tab is "Your plan's mix" once the plan runs and "Transition" before, so the words name no tab
+      expect(h).not.toContain('Transition tab');
       expect(h).not.toMatch(/below the plan|1-in-10/);
     }
   });
@@ -340,6 +342,7 @@ describe('missing records and other shapes', () => {
     const w = whereAmI(makeDoc({ cones: pvCones }), { today: at(2028, 4, 20) });
     expect(w.pot).toMatchObject({ actual: null, band: null, missing: ['pension'] });
     expect(whereAmIHtml(w)).toMatch(/No pension pot on record yet/);
+    expect(whereAmIHtml(w)).not.toContain('Transition tab');
     expect(whereAmIHtml(w)).not.toMatch(/1-in-10/);
   });
   it('no band in the document: no pot line at all', () => {

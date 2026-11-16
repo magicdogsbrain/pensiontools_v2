@@ -332,12 +332,12 @@ export function whereAmIPotText(pot) {
   const parts = Array.isArray(P.parts) ? P.parts : [];
   const pension = parts.find((x) => x.key === 'pension');
   const leftOut = P.isaLeftOut ? ' Your ISA is held aside, outside this plan, so neither the pot nor the plan\'s band counts it.' : '';
-  if (missing.includes('pension')) return 'No pension pot on record yet to set against the plan\'s band. Enter this month\'s values in the Decision tool, or record what you hold on the Transition tab, to compare.';
+  if (missing.includes('pension')) return 'No pension pot on record yet to set against the plan\'s band. Enter this month\'s values in the Decision tool, or record it under What you hold, to compare.';
   if (missing.length) {
     const head = pension ? 'Pension pot ' + gbp(pension.value) + ' (' + esc(sourceText(pension)) + '). ' : '';
-    if (missing.includes('diversifiers')) return head + 'The plan\'s band counts your diversifiers as well, and the monthly record does not keep their value, so the pot is not set against the band. Record what you hold, diversifiers included, under What you hold on the Transition tab to compare.';
+    if (missing.includes('diversifiers')) return head + 'The plan\'s band counts your diversifiers as well, and the monthly record does not keep their value, so the pot is not set against the band. Record what you hold, diversifiers included, under What you hold, to compare.';
     const names = missing.filter((k) => ADD_NAME[k]);
-    return head + 'The plan\'s band counts ' + names.map((k) => (k === 'isa' ? 'your ISA' : 'your taxable account')).join(' and ') + ' as well, and there is no figure on record for ' + (names.length > 1 ? 'either' : 'it') + ', so the pot is not set against the band. Add ' + names.map((k) => ADD_NAME[k]).join(' and ') + ' under What you hold, on the Transition tab, to compare.';
+    return head + 'The plan\'s band counts ' + names.map((k) => (k === 'isa' ? 'your ISA' : 'your taxable account')).join(' and ') + ' as well, and there is no figure on record for ' + (names.length > 1 ? 'either' : 'it') + ', so the pot is not set against the band. Add ' + names.map((k) => ADD_NAME[k]).join(' and ') + ' under What you hold, to compare.';
   }
   if (P.actual == null || P.p50 == null) return '';
   // "Pot £X (recorded September 2026)", or with more than one account

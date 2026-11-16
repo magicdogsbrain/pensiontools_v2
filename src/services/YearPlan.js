@@ -187,6 +187,7 @@ export function takenSentence(inc, { year, compare = true, setUpNote = false } =
   if (!n) return { id: 'where.retired', compare: null, parts: ['No month recorded in ' + year + ' yet.'], figures };
   const money = (key) => ({ key, kind: 'money' });
   figures.months = n; figures.drawn = Math.round(+inc.drawn || 0);
+  figures.cutMonths = Math.round(+inc.cut || 0);   // the months recorded with the cut on, counted whether or not the sentence names them
   const setUp = setUpNote && Array.isArray(inc.setUpMonths) && inc.setUpMonths.length ? inc.setUpMonths : [];
   const note = setUp.length ? ' (' + monthsWords(setUp) + (setUp.length === 1 ? ' is' : ' are') + ' filled in from your tax-year set-up)' : '';
   const parts = [{ key: 'months', kind: 'count' }, ' month' + (n === 1 ? '' : 's') + ' recorded in ' + year + note + ': ', money('drawn'), ' taken before tax'];

@@ -19,15 +19,16 @@ const stateOf = (name) => JSON.parse(readFileSync(join(ROOT, name + '.json'), 'u
 /** True when node a comes before node b in the document. */
 const before = (a, b) => !!(a.compareDocumentPosition(b) & 4);
 
+// (7.12.0: the fixed-age line is in "More about the chance", straight under "How careful?")
 describe('C: "How careful?" sits under the fixed-age line', () => {
   for (const name of ['c/answer-F1', 'c/answer-F2', 'c/answer-F3']) {
     it(name, () => {
       const { root } = draw(stateOf(name));
       const strip = root.querySelector('.level-strip');
       if (!strip) return;   // (a state drawn before the figures were weighed has none)
-      const fixed = root.querySelector('.headline [data-fixed="age"]');
+      const fixed = root.querySelector('.headline [data-testid="chance.more"] [data-fixed="age"]');
       expect(fixed).toBeTruthy();
-      expect(before(fixed, strip)).toBe(true);
+      expect(before(strip, fixed)).toBe(true);
       // nothing of the lines after the bad case comes before it
       for (const el of root.querySelectorAll('.headline .bad, .headline [data-testid="lasts.floor"], .headline [data-testid="lasts.howLong"], .headline [data-testid="lasts.left"]')) expect(before(strip, el)).toBe(true);
     });

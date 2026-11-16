@@ -9,6 +9,9 @@
  * Also: no weighted sentence says a count of futures ("of 20 futures we tried"); every sentence says something (no NaN, no
  * undefined); each fixed-age sentence names its age; every Bold answer carries the consequence sentence in its headline
  * block; and the level control and the MadeOf key's counts are marked as the rule needs. Fictional households only.
+ *
+ * 7.12.0: on the answer pages of A to D the block rule gives way to one chance in the body, with the counts to one age in
+ * "More about the chance" (oneChance.test.js); everything else here holds there too.
  */
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -57,12 +60,21 @@ export function lastsRuleProblems(root) {
   return out;
 }
 
+/**
+ * 7.12.0: an answer page of A to D says each chance once, its counts to one age behind "More about the chance"
+ * (tests/v7/render/oneChance.test.js holds that rule); the block rule here stays for every other state and the plan pages.
+ */
+const answerPage = (name, state) => /^[abcd]\//.test(name) && state.route && state.route.q === name[0] && /answer|ages|choices|keep/.test(state.route.step || '');
+/** On an answer page of A to D: every problem but the block rule's (a chance with its count beside it in its block). */
+const notTheBlockRule = (list) => list.filter((p) => !p.startsWith('no fixed-age line beside'));
+
 describe('the render rule over every V7 state as pinned', () => {
   const all = ['a', 'b', 'c', 'd', 'plan'].flatMap(statesOf);
   it('there are states to draw', () => expect(all.length).toBeGreaterThan(100));
-  it.each(all)('%s', (_name, state) => {
+  it.each(all)('%s', (name, state) => {
     const { root } = draw(state);
-    expect(lastsRuleProblems(root)).toEqual([]);
+    const found = lastsRuleProblems(root);
+    expect(answerPage(name, state) ? notTheBlockRule(found) : found).toEqual([]);
   });
 });
 
@@ -91,7 +103,7 @@ describe('the render rule on the weighted words: every A to D answer state worke
     const s = JSON.parse(JSON.stringify(state));
     s.answers[q].result = w;
     const { root } = draw(s);
-    expect(lastsRuleProblems(root), name).toEqual([]);
+    expect(notTheBlockRule(lastsRuleProblems(root)), name).toEqual([]);
     // a weighed answer whose weighted line is drawn draws its fixed-age line too
     if (w.sentences && w.sentences.line && w.sentences.line.mark === 'weighted' && root.querySelector(`[data-sentence-id="${w.sentences.line.id}"][data-weighted]`)) {
       expect(root.querySelectorAll('[data-fixed="age"]').length, name).toBeGreaterThan(0);

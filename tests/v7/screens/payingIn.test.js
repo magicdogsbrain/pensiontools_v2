@@ -212,7 +212,11 @@ describe('3 — the reported 55-year-old reaches a monthly figure from 67', () =
     // A, B and D draw them — then the pay-in line)
     let next = head.querySelector('[data-sentence="levels.balanced.monthly"]').nextElementSibling;
     if (next.matches('[data-testid^="lasts.lines"]')) next = next.nextElementSibling;
+    // (7.12.0: the years before the State Pension, and "More about the chance", come between)
+    if (next.matches('.bridge')) next = next.nextElementSibling;
+    if (next.matches('[data-testid^="lasts.lines"]')) next = next.nextElementSibling;
     if (next.matches('.level-strip')) next = next.nextElementSibling;
+    if (next.matches('[data-testid="chance.more"]')) next = next.nextElementSibling;
     expect(next).toBe(pay);
     expect(pay.textContent).toBe(r.sentences.payIn.text);
     if (r.sentences.pot) expect(one(root, 'c.answer.pot').textContent).toBe(r.sentences.pot.text);

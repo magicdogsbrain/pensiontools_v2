@@ -102,7 +102,10 @@ describe('the screen: the slider on an amount other than the level\'s', () => {
 
   it('passes every rule of checkScreen and the chance\'s render rule', () => {
     expect(checkScreen(root, s)).toEqual([]);
-    expect(lastsRuleProblems(root)).toEqual([]);
+    // (7.12.0: one chance in the body; the counts to one age behind "More about the chance": tests/v7/render/oneChance.test.js)
+    expect(lastsRuleProblems(root).filter((p) => !p.startsWith('no fixed-age line beside'))).toEqual([]);
+    for (const f of root.querySelectorAll('[data-fixed="age"]')) expect(f.closest('[data-testid="chance.more"]')).not.toBe(null);
+    expect(root.querySelectorAll('[data-testid="chance.more"] [data-fixed="age"]').length).toBeGreaterThan(0);
   });
 
   it('the headline is the amount tried, with its chance and the fixed-age line beside it', () => {

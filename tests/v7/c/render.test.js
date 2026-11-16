@@ -478,7 +478,9 @@ describe('what does it pay a month? (the answer step)', () => {
       const keep = root.querySelector('[data-region="keep"]');
       expect(keep.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
       expect(one(root, 'c.keep.name').value).toMatch(/^(From|Stop at) \d+/);
-      expect(one(root, 'c.action.save').getAttribute('type')).toBe('submit');
+      // (7.12.0: read at an amount being tried, Keep asks which amount it keeps with two buttons, neither chosen)
+      if (one(root, 'c.keep.take')) for (const id of ['c.action.save.tried', 'c.action.save.level']) expect(one(root, id), id).not.toBe(null);
+      else expect(one(root, 'c.action.save').getAttribute('type')).toBe('submit');
       // Step 4: the A and B links are hand-overs (they carry C's figures and open the numbers step).
       expect(one(root, 'c.next.a')).not.toBe(null);
       expect(one(root, 'c.next.b')).not.toBe(null);

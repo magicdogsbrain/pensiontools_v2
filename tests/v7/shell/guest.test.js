@@ -295,6 +295,28 @@ describe('the hand-over: offered on a sign-in with plans of the person\'s own in
     expect(q.store.getState().ui.toast).toMatchObject({ kind: 'done', op: 'brought', slots: { n: 2 } });
     p.stop(); q.stop();
   });
+  it('plans brought in keep their names; one the account already holds arrives as "… (2)", and the offer says so', async () => {
+    const named = (p, name, id) => ({ ...copy(p), id, planDetails: { ...(copy(p).planDetails || {}), name } });
+    const a = named(DRAFT, 'From 58 · £1,800 a month', 'guest-named0001');
+    const b = { ...named(FRESH, 'From 58 · £1,400 a month', 'guest-named0002'), isActive: false };
+    const p = sourcePage({ windowPlans: [a, b] });
+    await tick();
+    p.signIn();
+    await tick();
+    p.store.dispatch({ type: A.GUEST_BRING_IN });
+    await tick(16);
+    expect(p.adds.map((x) => x.data.planDetails.name)).toEqual(['From 58 · £1,800 a month', 'From 58 · £1,400 a month']);
+    const q = sourcePage({ windowPlans: [a], docs: [{ ...named(FRESH, 'From 58 · £1,800 a month', 'InAccount002') }] });
+    await tick();
+    q.signIn();
+    await tick();
+    q.store.dispatch({ type: A.GUEST_BRING_IN });
+    await tick(16);
+    expect(q.adds.map((x) => x.data.planDetails.name)).toEqual(['From 58 · £1,800 a month (2)']);
+    expect(GUEST.bringIn.one).toBe('One plan made in this window without an account is waiting here. Copy it into this account? It keeps its name.');
+    expect(GUEST.bringIn.many).toContain('They keep their names.');
+    p.stop(); q.stop();
+  });
   it('the planner\'s hand-off (GuestMeter.handoffPayload) leaves the example out too, and keeps its own "(from guest)" mark', () => {
     const p = handoffPayload([DRAFT, EXAMPLE]);
     expect(p.scenarios.length).toBe(1);

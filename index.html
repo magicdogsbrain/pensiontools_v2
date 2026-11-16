@@ -7238,7 +7238,7 @@
         return fresh;
       } finally { hideLoading(); }
     };
-    installLockFromStress(window, { isLoggedIn, planIsLocked, appConfirm: (m, o) => window.appConfirm(m, o), saveStressSettingsUI: () => window.saveStressSettingsUI(), runPlan: async () => { const settings = await getStressSettingsAsync(); return { p: strategyPlanFor(settings, (window._shapeRefs && window._shapeRefs.essentials) || undefined), r: await strategyResultForDocument(settings) }; }, commitPlanLock: (why, r) => window.commitPlanLock(why, r), showToast, openPlanDocument: () => window.openPlanDocument(), showIncome: () => document.getElementById('ssNetSpend')?.focus() });   // 7.12.0: src/ui/lockFromStressUi.js — a way of drawing that cannot be paid for is not locked
+    installLockFromStress(window, { isLoggedIn, planIsLocked, appConfirm: (m, o) => window.appConfirm(m, o), saveStressSettingsUI: () => saveStressSettingsUI(), runPlan: async () => { const settings = await getStressSettingsAsync(); return { p: strategyPlanFor(settings, (window._shapeRefs && window._shapeRefs.essentials) || undefined), r: await strategyResultForDocument(settings) }; }, commitPlanLock: (why, r) => window.commitPlanLock(why, r), showToast, openPlanDocument: () => window.openPlanDocument(), showIncome: () => document.getElementById('ssNetSpend')?.focus() });   // 7.12.0: src/ui/lockFromStressUi.js — a way of drawing that cannot be paid for is not locked
     window.createPlanDocumentNow = async function () {
       if (!(await planDocumentMay(window))) return;   // signed in, and never on a closed plan (6.56.0): src/ui/planCloseUi.js says why
       const prev = await getActivePlanDocument();

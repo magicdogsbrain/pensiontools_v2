@@ -94,10 +94,14 @@ describe('T1 — the reading, on every corpus plan at three dates', () => {
     const s = savedPots(entryOf(SAVER).plan, { today: TODAY });
     expect(s.later).toBe(true);
     expect(s.values.stopSipp).toBe(null);
-    expect(s.par).toEqual({ isa: 9955, sipp: 278542, source: 'accumulation' });
+    // 7.12.0: the pots at the stop are worked out from the saver's facts, as every reader reads them (PlanReading)
+    const worked = effectiveStressSettings(entryOf(SAVER).plan, { now: noon(TODAY) }).potAtRetirement;
+    expect(worked.source).toBe('worked');
+    expect(s.par).toEqual(worked);
     const v = potsOf(entriesAt(TODAY), SAVER.id, { today: TODAY });
     expect(v.fields.find((f) => f.path === 'stopSipp').applies).toBe(true);
-    expect(v.derived.find((d) => d.id === 'stop.projection').slots).toEqual({ sipp: '£278,542', isa: '£9,955' });
+    const k1 = (n) => '£' + (Math.round(n / 1000) * 1000).toLocaleString('en-GB');
+    expect(v.derived.find((d) => d.id === 'stop.projection').slots).toEqual({ sipp: k1(worked.sipp), isa: k1(worked.isa) });
     const f = potsOf(entriesAt(TODAY), FRESH.id, { today: TODAY });
     expect(f.fields.find((f) => f.path === 'taxableMix').applies).toBe(false);
     expect(f.derived.map((d) => d.id)).toContain('pots.today');

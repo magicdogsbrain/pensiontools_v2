@@ -84,6 +84,9 @@ describe.skipIf(!READY)('stopping in the same year: V7\'s version 2 seed makes t
     for (const k of ['yours', 'partner']) {
       if (!then[k]) { expect(now[k]).toBeNull(); continue; }
       const { fromAnswer: a, ...restNow } = now[k];
+      // 7.12.0: a version 2 seed marks the answer's pots at the stop as the answer's ('answer'), where 6.19.0 wrote 'override'
+      const parNow = restNow.stressTool && restNow.stressTool.settings && restNow.stressTool.settings.potAtRetirement;
+      if (parNow && parNow.source === 'answer') parNow.source = 'override';
       const { fromAnswer: b, ...restThen } = then[k];
       // 6.22.0 adds one thing: what goes into savings each month, in the planner's own box (isaMonthly), where 6.19.0 kept
       // it in the record only. It is the seed's own figure; with it taken away the plan is 6.19.0's, byte for byte.

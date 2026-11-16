@@ -183,10 +183,14 @@ function asPinned(outputs, stress, now) {
 }
 
 function outputsOf(name, now) {
+  // 7.12.0: a saver's pots at the stop are worked out on read (PlanReading.withDerivedPots); this identity is about the plan
+  // seen from today, so both plans keep the pots at the stop they stored, as the pins were written with them
+  const asStored = (sc, ss) => (ss.potAtRetirement && ss.potAtRetirement.source === 'worked' ? { ...ss, potAtRetirement: sc.stressTool.settings.potAtRetirement } : ss);
   const plan = upgradeScenario(raws[name], { now }).scenario;
-  const stress = effectiveStressSettings(plan, { now });
+  const stress = asStored(plan, effectiveStressSettings(plan, { now }));
   const partnerName = name === '10-couple-b' ? '09-couple-a' : '10-couple-b';
-  const partner = effectiveStressSettings(upgradeScenario(raws[partnerName], { now }).scenario, { now });
+  const partnerPlan = upgradeScenario(raws[partnerName], { now }).scenario;
+  const partner = asStored(partnerPlan, effectiveStressSettings(partnerPlan, { now }));
   const cfg = simulationConfigFromSettings({}, stress, now);
   const p = planFromSettings(stress, cfg, { yieldForYear: realYieldForYear, startAge: +stress.shapeAgeNow || 57, now });
   const configs = deriveCompareConfigs(p);

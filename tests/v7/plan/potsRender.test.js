@@ -166,7 +166,8 @@ describe('the lumpy plan (12): what the page says, and what typing does', () => 
   it('the saver (10): the pots at the stop are asked, blank, with the planner\'s projection beside them; the typed figure is said back', () => {
     const { root, text } = draw(potsState(entries, SAVER.id));
     expect(root.querySelector('[data-testid="plan.pots.stopSipp"]').value).toBe('');
-    expect(text).toContain('The full view works out £278,542 pension and £9,955 ISAs and savings at the day you stop, from what you pay in. Type your own above to use it instead.');
+    // 7.12.0: worked out from the saver's facts, to the nearest £1,000
+    expect(text).toMatch(/Worked out from your pot and what you pay in, in a middling case: £[\d,]+,000 pension and £[\d,]+,000 in ISAs and savings when you stop\. Type your own above to use it instead\./);
     const typed = draw(potsState(entries, SAVER.id, { typed: { stopSipp: '300,000' } }));
     expect(typed.text).toContain('At the day you stop, as you typed it: £300,000 pension and none typed ISAs and savings.');
   });

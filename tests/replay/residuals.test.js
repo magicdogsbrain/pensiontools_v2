@@ -160,8 +160,12 @@ describe('G2-residual — the app page reads the Budget\'s age only through "did
   it('G2-residual — the Timing block, the Accumulation form and "send the budget to the plan" do not read a placeholder age', () => {
     expect(html).toContain('age = budgetAgeToday(b) || 0;');
     expect(html).not.toContain('age = +b?.currentAge || 0;');
-    expect(html).toContain("set('acAge', saved.currentAge ?? budgetAgeToday(budget));");
-    expect(html).toContain("set('acRetireAge', saved.retirementAge ?? budgetRetirementAge(budget));");
+    // 7.12.0: the Accumulation form opens from the saver's facts (src/ui/accumulationProjection.js accumulationBoxes), the
+    // Budget's ages read there through the same rule
+    expect(html).toContain('accumulationBoxes(await getActiveScenarioAsync(), null, new Date())');
+    const boxes = readFileSync(join(process.cwd(), 'src', 'ui', 'accumulationProjection.js'), 'utf8');
+    expect(boxes).toContain('acAge: f.age ?? n(acc.currentAge) ?? budgetAgeToday(budget)');
+    expect(boxes).toContain('acRetireAge: f.stopAge ?? n(acc.retirementAge) ?? budgetRetirementAge(budget)');
     // "Send the budget to the plan" moved to src/services/BudgetToPlan.js in 6.20.2 (the inline script may only shrink):
     // the same rule there, and the page hands it the Budget it edits.
     expect(readFileSync(join(process.cwd(), 'src', 'services', 'BudgetToPlan.js'), 'utf8')).toContain('Math.max(budgetRetirementAge(budget) || 0, budgetAgeToday(budget) || 0) || 57');

@@ -1020,6 +1020,9 @@ describe('version 1 is still read, and makes exactly the plans 6.19.0 made (K1; 
     // mix (research/saving-enough-and-check-in.md 4.4, 4.5), and is written for a pension today with nothing going in (its
     // pot and ages); a version 1 seed makes exactly what it always made (K1)
     const asV1 = (plan, old) => {
+      // 7.12.0: a version 2 seed marks the answer's pots at the stop as the answer's ('answer'), version 1 as it always did
+      const par = plan.stressTool && plan.stressTool.settings && plan.stressTool.settings.potAtRetirement;
+      if (par && par.source === 'answer') plan = { ...plan, stressTool: { ...plan.stressTool, settings: { ...plan.stressTool.settings, potAtRetirement: { ...par, source: 'override' } } } };
       if (!plan.accumulationTool) return plan;
       if (!old.accumulationTool) {
         const s = plan.accumulationTool.settings;
@@ -1104,7 +1107,7 @@ describe('version 2: two plans, each starting at its own stop and ending in the 
   it('the one still working gets the middling pots at their own stop and the saving section until then; whoever has stopped, today\'s and none', () => {
     expect(S.potAtRetirement).toBeNull();
     expect(yours.accumulationTool).toBeUndefined();
-    expect(P.potAtRetirement).toEqual({ sipp: 441948, isa: null, source: 'override' });
+    expect(P.potAtRetirement).toEqual({ sipp: 441948, isa: null, source: 'answer' });   // 7.12.0: the answer's figure, never marked as typed
     expect(partner.accumulationTool.settings).toMatchObject({ currentAge: 55, retirementAge: 56, potNow: 420000, netMonthly: 480 });
     expect([S.equityMin + S.bondMin + S.cashTarget, P.equityMin + P.bondMin + P.cashTarget]).toEqual([180000, 420000]);
   });

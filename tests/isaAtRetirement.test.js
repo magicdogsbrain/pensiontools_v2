@@ -128,7 +128,7 @@ describe('2. a plan made from a V7 answer with no savings today: today\'s £0 is
   });
   it('the plan: ISA £0 today, the ISA at retirement V7\'s middling savings at the stop; the runs start from the same figure as before', () => {
     expect(S.isaBalance).toBe(0);
-    expect(S.potAtRetirement).toMatchObject({ isa: v7AtStop, source: 'override' });
+    expect(S.potAtRetirement).toMatchObject({ isa: v7AtStop, source: 'answer' });   // 7.12.0: the answer's figure, never marked as typed
     expect(createSimulationConfigFromSettings({}, S).isaBalance).toBe(v7AtStop);
   });
   it('the age spin and the Timing projection count the pay-ins once: close to V7\'s figure, not 42% above it', () => {

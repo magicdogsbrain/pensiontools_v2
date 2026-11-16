@@ -264,14 +264,12 @@ export const MOVE = {
   },
   /** "This is how I want to hold it" (7.12.0): one press and a confirm, Moving, while the move is not done. */
   sayHeld: {
-    title: 'Holding it your own way?',
+    title: 'Want to hold it your own way?',   // (never "holding": a banned word on planner pages)
     lead: 'You can say that what you hold now is how you want it. This page then shows what you hold beside your plan, with no list to buy.',
     button: 'This is how I want to hold it',
     confirm: 'From now on this page shows what you hold beside your plan, and stops listing things to buy. Your plan and its document stay as locked. You can take this back at any time.',
     yes: 'Yes, this is how I want it',
-    no: 'Go back',
-    // the home's tile once it is said
-    home: 'You hold it your own way (said {date}).'
+    no: 'Go back'
   },
   footer: 'Illustration, not advice. Nothing here places an order.',
   toast: {

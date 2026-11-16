@@ -60,8 +60,7 @@ import { unlockPatchesOf, lockedShortOf } from '../../services/PlanCommit.js';
 import { checkInState, checkInsOf } from './checkInDue.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
 import { heldLadder } from './held.js';
-import { moveStatusOf, sayMoveStatus } from './moveWords.js';
-import { MOVE } from '../../v7/copy/move.js';
+import { moveStatusOf } from './moveWords.js';
 import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
@@ -829,14 +828,17 @@ function moveStep(C) {
   let hl = null; if (asHeld && m && m.target && m.target.kind === 'ladder') { try { hl = heldLadder(plan, { today: localDay(now), life }); } catch { hl = null; } }
   if (!m || !m.target || m.target.kind === 'none') result = sentence('move.notSet', ['Set when the plan is locked'], figures);
   // Moving, once the person said this is how they want to hold it (7.12.0): said so, with the day
-  else if (asHeld && life && life.key === 'moving' && life.agreed && life.agreed.at) { result = sentence('move.ownWay', [{ fixed: MOVE.sayHeld.home.replace('{date}', dayWords(life.agreed.at)) }], figures); }
+  else if (asHeld && life && life.key === 'moving' && life.agreed && life.agreed.at) { result = sentence('move.ownWay', ['You hold it your own way (said ', { fixed: dayWords(life.agreed.at) }, ').'], figures); }
   else if (hl) { figures.bought = hl.gilts.held; figures.rungs = hl.gilts.total; result = sentence('move.giltsHeld', [count('bought'), ' of ', count('rungs'), ' gilts held'], figures); done = !!m.diff.complete; }
   else if (m.diff.complete) { result = sentence('move.done', ['Done'], figures); done = true; }
   else if (m.target.kind === 'ladder') {
-    // the move's one status sentence (7.12.0, moveWords.moveStatusOf): the move page and the full view say the same words
+    // the move's one status (7.12.0, moveWords.moveStatusOf), in the words of src/v7/copy/move.js MOVE.status.gilts and
+    // giltsPart: the move page and the full view say the same sentence (tests/v7/plan/moveSays.test.js holds them equal)
     const st = moveStatusOf(m.target, m.diff, m.prog);
-    figures.bought = +st.slots.bought; figures.rungs = +st.slots.rungs;
-    result = sentence('move.' + st.id, [{ fixed: sayMoveStatus(st, MOVE) }], figures);
+    figures.bought = +st.slots.bought; figures.rungs = +st.slots.rungs; figures.part = +st.slots.part; figures.heldPct = +st.slots.held;
+    result = sentence('move.' + st.id, st.id === 'giltsPart'
+      ? [count('bought'), ' of ', count('rungs'), ' gilts bought, and ', count('part'), ' part bought. ', count('heldPct'), '% of your plan’s mix is held.']
+      : [count('bought'), ' of ', count('rungs'), ' gilts bought. ', count('heldPct'), '% of your plan’s mix is held.'], figures);
   } else if (asHeld && typeof m.diff.progressPct === 'number') {
     figures.heldPct = m.diff.progressPct;
     result = sentence('move.heldShare', [count('heldPct'), '% of the plan’s mix held'], figures);

@@ -105,6 +105,8 @@ function SetUp({ V, dispatch, open }) {
             <tfoot><tr><th scope="row">{W.setUp.bank.total}</th><td>{S.bankTotal.before}</td><td>{S.bankTotal.tax}</td><td data-testid={`${T}.setUp.bankAfter`}>{S.bankTotal.after}</td></tr></tfoot>
           </table>
         </div>
+        {S.taxFree && <p class="note" data-testid={`${T}.setUp.taxFree`}>{W.setUp.taxFree}</p>}
+        {S.reason && <p class="note" data-testid={`${T}.setUp.reason`}>{fill(W.setUp.reason, S.reason)}</p>}
         <p class="note">{tu.closed ? W.setUp.closedYear : S.efficient ? W.setUp.efficient : W.setUp.inefficient}</p>
       </div>
       {V.editable && (

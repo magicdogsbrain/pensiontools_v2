@@ -10,10 +10,12 @@
 
 import { getTaxYear, getRemainingTaxYearMonths, parseMonth } from '../utils/DateUtils.js';
 import { DECISION_ASSUMED_CPI } from './InflationModel.js';
-import { calculateTax } from './TaxCalculator.js';
+import { calculateTax, grossToNet } from './TaxCalculator.js';
+import { planDrawdown } from './DrawdownStrategy.js';
+import { taxFreeFractionOf } from './FlexibleAccess.js';
 import { TAX_DEFAULTS } from '../constants.js';
 import { spendingDeclineRateForYear, spendingSmileFactor } from './SpendingModel.js';
-import { decisionAnchorYear, yearOfTaxKey, taxYearKey } from './PlanTiming.js';
+import { decisionAnchorYear, yearOfTaxKey, taxYearKey, taxYearLabel } from './PlanTiming.js';
 import { pensionLockOf, closedYearsWords } from './PensionLock.js';
 
 
@@ -234,7 +236,7 @@ export function otherIncomeFromStress(ss, taxYear, baseline) {
  *   settings: the Decision settings as loaded; stressSettings: the stored Stress settings (ScenarioRepository.getActiveStressSettings);
  *   existingConfig: the year's stored settings or the defaults (getTaxYearConfigAsync); statePensionInfo: getStatePensionForTaxYear's
  */
-export function wizardDataFrom(selectedMonth, { settings, stressSettings = null, existingConfig, allTaxYears, statePensionInfo, now = new Date() }) {
+export function wizardDataFrom(selectedMonth, { settings, stressSettings = null, existingConfig, allTaxYears, statePensionInfo, now = new Date(), history = [] }) {
   const dateObj = parseMonth(selectedMonth);
   const taxYear = getTaxYear(dateObj);
   const month = dateObj.getMonth() + 1;
@@ -311,6 +313,8 @@ export function wizardDataFrom(selectedMonth, { settings, stressSettings = null,
     // Where this tax year sits in the plan (6.4.0): year 0 is the plan's first tax year.
     planStartYear,
     planYear: planYearSigned,
+    // The share of each pension payment that is tax-free this year (7.12.0): the month's own rule (FlexibleAccess)
+    taxFreeFraction: taxFreeFractionOf(settings, history, planYear),
     schedulePrevCpiAssumed, scheduleSuggestedBase,   // schedule suggestions: last year's CPI was assumed → the typed CPI re-uplifts from this base
 
     // Current settings
@@ -367,33 +371,79 @@ const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
 /** The tax bands as an assumption the person can change, not a question. */
 export function bandsAssumptionText({ pa, brl, hrl } = {}) {
-  return 'We assume a tax-free allowance of ' + gbp(pa) + ', 20% tax up to ' + gbp(brl) + ' of taxable income and 45% above ' + gbp(hrl) + '.';
+  return 'We assume a tax-free allowance of ' + gbp(pa) + ', then 20% tax on income up to ' + gbp(brl) + ', 40% up to ' + gbp(hrl) + ' and 45% above.';
 }
 
 /**
- * The State Pension line for the set-up. Says the right thing when the pension is already in payment, starts
- * later this year, is years away, or is not in the plan — never "0 years until state pension".
- * @param {object} sp  getStatePensionForTaxYear's result
- * @param {string} selectedMonth 'YYYY-MM' the set-up starts from
+ * The State Pension for the set-up, as one fact (7.12.0: ONE reader for both views; the simple view words it from
+ * copy/month.js, the full view from statePensionLine). `sp` is getStatePensionForTaxYear's result (this tax year's amount:
+ * 0 when it starts in a later year); `planYearly` the plan's own yearly amount (Decision settings `statePension`, else the
+ * Stress settings' weekly amount × 52), so "no amount" is said only when the plan truly holds none.
+ *   { id: 'paying' | 'startsThisYear' | 'later' | 'noAmount' | 'none', slots: { when, monthly, amount, yearly } }
+ * @param {string} ym 'YYYY-MM' the set-up starts from
  */
-export function statePensionLine(sp, selectedMonth) {
+export function statePensionFact(sp, ym, planYearly = 0) {
   const s = sp || {};
   const amount = +s.amount || 0;
   const when = s.startDate || s.startYm || null;
+  const yearly = +planYearly > 0 ? +planYearly : 0;
   if (!amount) {
-    return when
-      ? 'Starts ' + when + ' — the amount is not in your plan yet; add your forecast under Settings.'
-      : 'Not in your plan yet — add your State Pension forecast under Settings if you have one.';
+    // it starts in a later tax year and the plan holds an amount: said as that amount, from that date
+    const key = ym ? String(ym).slice(0, 7) : null;
+    const yearEnd = key ? (+key.slice(5, 7) >= 4 ? (+key.slice(0, 4) + 1) : +key.slice(0, 4)) + '-03' : null;
+    const startYm = s.startYm || ymOfWords(when);
+    if (when && yearly > 0 && startYm && yearEnd && String(startYm) > yearEnd) return { id: 'later', slots: { when, yearly: gbp(yearly) } };
+    return { id: when ? 'noAmount' : 'none', slots: { when } };
   }
   const monthly = s.monthlyFull != null ? +s.monthlyFull : (s.monthly != null ? +s.monthly : amount / 12);
-  const startedByStart = s.startYm ? (!selectedMonth || String(s.startYm) <= String(selectedMonth)) : !!s.isReceiving;
-  if (startedByStart) return 'In payment: ' + gbp(monthly) + ' a month (' + gbp(amount) + ' this tax year).';
-  if (s.isReceiving) return 'Starts ' + when + ': ' + gbp(monthly) + ' a month (' + gbp(amount) + ' this tax year).';
-  const y = Math.max(0, +s.yearsUntil || 0), m = Math.max(0, +s.monthsUntil || 0);
-  const parts = [];
-  if (y) parts.push(y + (y === 1 ? ' year' : ' years'));
-  if (m) parts.push(m + (m === 1 ? ' month' : ' months'));
-  return 'Starts ' + when + (parts.length ? ' — ' + parts.join(' ') + ' away.' : '.');
+  const started = s.startYm ? (!ym || String(s.startYm) <= String(ym)) : !!s.isReceiving;
+  if (!started && !s.isReceiving) return { id: 'later', slots: { when, yearly: gbp(yearly || amount) } };
+  return { id: started ? 'paying' : 'startsThisYear', slots: { when, monthly: gbp(monthly), amount: gbp(amount) } };
+}
+
+const MONTH_NAMES = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+/** 'YYYY-MM' of a date in words ('16 November 2031', 'November 2031') or already 'YYYY-MM(-DD)'; null otherwise. */
+function ymOfWords(v) {
+  const t = String(v || '').trim();
+  const iso = /^(\d{4})-(\d{2})/.exec(t);
+  if (iso) return iso[1] + '-' + iso[2];
+  const w = /([A-Za-z]+)\s+(\d{4})/.exec(t);
+  const i = w ? MONTH_NAMES.indexOf(w[1].toLowerCase()) : -1;
+  return i >= 0 ? w[2] + '-' + String(i + 1).padStart(2, '0') : null;
+}
+
+/** The full view's words for statePensionFact (the simple view's are copy/month.js setUp.statePension). */
+const SP_WORDS = {
+  paying: 'State Pension: {monthly} a month ({amount} this tax year).',
+  startsThisYear: 'State Pension: starts {when}, {monthly} a month ({amount} this tax year).',
+  later: 'State Pension: {yearly} a year from {when}. None is paid in {year}.',
+  noAmount: 'State Pension: starts {when}. Your plan has no amount for it yet. You can add your forecast under Settings.',
+  none: 'State Pension: not in your plan. You can add your forecast under Settings.'
+};
+
+/**
+ * The State Pension line for the full view's set-up: statePensionFact in words. Never "the amount is not in your plan" for a
+ * State Pension the plan holds but that starts in a later tax year.
+ */
+export function statePensionLine(sp, selectedMonth, planYearly = 0, key = '') {
+  const f = statePensionFact(sp, selectedMonth, planYearly);
+  const m = /^(\d{4})-(\d{2})/.exec(String(selectedMonth || ''));
+  const Y = key ? yearOfTaxKey(key) : m ? (+m[2] >= 4 ? +m[1] : +m[1] - 1) : NaN;
+  const year = Number.isFinite(Y) ? taxYearLabel(Y) : '';
+  return SP_WORDS[f.id].replace(/\{(\w+)\}/g, (m, k) => (k === 'year' ? year : f.slots[k] != null ? String(f.slots[k]) : m));
+}
+
+/**
+ * Why less reaches the bank this tax year than in a full one (7.12.0): a set-up part-way through the year, money received
+ * before it, and the after-tax month £1 or more below a full year's (`grossToNet(income) / 12`). { full, month, before }
+ * as pounds and the month the set-up runs from, or null.
+ */
+export function partYearReason(ctx, inputs, breakdown) {
+  if (!ctx || ctx.isApril || !(+inputs.grossIncomeToDate > 0) || !breakdown) return null;
+  const full = grossToNet(+inputs.confirmedSalary || 0, inputs.pa, inputs.brl, inputs.hrl || undefined) / 12;
+  if (!(Math.round(full) - Math.round(breakdown.totalNet) >= 1)) return null;
+  const d = parseMonth(ctx.selectedMonth);
+  return { full: gbp(full), month: gbp(breakdown.totalNet), before: d.toLocaleDateString('en-GB', { month: 'long' }) };
 }
 
 /**
@@ -421,8 +471,10 @@ export function calculateMonthlyBreakdown(params) {
     spStartYm = null,                 // 'YYYY-MM' the State Pension starts
     startYm = null,                   // 'YYYY-MM' this setup starts from
     isTaxEfficient = true,
-    pensionClosed = false             // the pension cannot be touched this tax year (7.4.1): nothing from it
+    pensionClosed = false,            // the pension cannot be touched this tax year (7.4.1): nothing from it
+    taxFreeFraction = 0               // the share of each pension payment that is tax-free (7.12.0, FlexibleAccess)
   } = params;
+  const f = Math.max(0, Math.min(0.75, +taxFreeFraction || 0));
 
   // Tax on a gross income: the ONE sum in TaxCalculator (6.16.0). The copy that lived here stopped at
   // 40% — no 45% band and no loss of the allowance above £100,000.
@@ -438,11 +490,27 @@ export function calculateMonthlyBreakdown(params) {
   const monthlyFixedIncomeGross = monthlyOtherGross + monthlyStatePensionGross;
 
   let monthlySippGross, monthlyIsaNet;
+  const monthsLeft = Math.max(1, Math.min(12, remainingMonths || 12));
+  const receivedBefore = monthsLeft < 12 ? (grossIncomeToDate || 0) : 0;
 
   if (pensionClosed) {
     // A closed year (7.4.1): nothing from the pension; the ISA and other savings pay what was set aside for the year.
     monthlySippGross = 0;
     monthlyIsaNet = isaSavingsAllocation / remainingMonths;
+  } else if (f > 0) {
+    // A part of each payment tax-free (7.12.0): the pension figure is the month's own (legacyDecision's planDrawdown call),
+    // so the set-up and the month say the same pension, tax and after-tax figures. With f = 0 nothing here runs.
+    const fixedAnnual = monthlyFixedIncomeGross * 12;
+    if (isTaxEfficient) {
+      const share = monthsLeft / 12;
+      const p = planDrawdown({ targetGross: targetSalary * share + receivedBefore, fixedIncome: fixedAnnual * share + receivedBefore, pa, brl, hrl, taxFreeFraction: f, isaBalance: isaSavingsAllocation || 0, yearsUntilSp: 0 });
+      monthlySippGross = p.sippGross / monthsLeft;
+      monthlyIsaNet = p.isaDraw / monthsLeft;
+    } else {
+      const p = planDrawdown({ targetGross: targetSalary, fixedIncome: fixedAnnual + receivedBefore, pa, brl, hrl, taxFreeFraction: f, isaBalance: 0, yearsUntilSp: 0 });
+      monthlySippGross = p.sippGross / 12;
+      monthlyIsaNet = 0;
+    }
   } else if (!isTaxEfficient) {
     // Tax-inefficient mode: full SIPP draw to target, no ISA
     monthlySippGross = (targetSalary / 12) - monthlyFixedIncomeGross;
@@ -466,7 +534,9 @@ export function calculateMonthlyBreakdown(params) {
   const spInDraws = statePension > 0 && statePensionMonthlyFull != null
     ? (spStartedByStart ? statePensionMonthlyFull * months : statePension)
     : monthlyStatePensionGross * months;
-  const drawsThisYear = (monthlySippGross + monthlyOtherGross) * months + spInDraws;
+  // only the taxable part of each pension payment is taxed (f = 0: all of it)
+  const monthlySippTaxable = monthlySippGross * (1 - f);
+  const drawsThisYear = (monthlySippTaxable + monthlyOtherGross) * months + spInDraws;
   const priorIncome = months < 12 ? (grossIncomeToDate || 0) : 0;
   // With the tax already paid known (payslips), what is still to come is the year's total less that —
   // right for a retiree drawing under cumulative PAYE since April, whose earlier months already carried
@@ -477,10 +547,10 @@ export function calculateMonthlyBreakdown(params) {
   const monthlyTax = annualTax / months;
 
   // Calculate net for taxable sources (proportional tax allocation)
-  const totalTaxableGross = monthlySippGross + monthlyFixedIncomeGross;
+  const totalTaxableGross = monthlySippTaxable + monthlyFixedIncomeGross;
   const taxProportion = totalTaxableGross > 0 ? monthlyTax / totalTaxableGross : 0;
 
-  const monthlySippTax = monthlySippGross * taxProportion;
+  const monthlySippTax = monthlySippTaxable * taxProportion;
   const monthlyOtherTax = monthlyOtherGross * taxProportion;
   const monthlyStatePensionTax = monthlyStatePensionGross * taxProportion;
 
@@ -689,7 +759,8 @@ export function breakdownFor(ctx, inputs) {
     grossIncomeToDate: inputs.grossIncomeToDate,
     taxPaidToDate: inputs.taxPaidToDate,
     isTaxEfficient: inputs.isTaxEfficient,
-    pensionClosed: !!ctx.pensionClosed
+    pensionClosed: !!ctx.pensionClosed,
+    taxFreeFraction: ctx.taxFreeFraction || 0
   });
 }
 

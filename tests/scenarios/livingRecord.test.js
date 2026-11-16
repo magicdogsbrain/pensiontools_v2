@@ -6,6 +6,7 @@
  *   Step 1  what was taken against what the plan said: one reader (services/YearPlan.js), the same words in both views.
  *   Step 2  the month the plan first pays, and the year's plan: no month before it is "not recorded".
  *   Step 3  one month to record: the home's button, Month by month and the full view's box name the same month.
+ *   Step 4  what reaches your bank: the tax-year set-up and the month work it out with one sum.
  */
 import { describe, it, expect } from 'vitest';
 import { planPage } from '../../src/answers/plan/read.js';
@@ -13,7 +14,8 @@ import { homeOf } from '../../src/answers/plan/home.js';
 import { whereAmIFor } from '../../src/services/PlanReading.js';
 import { incomeThisYearText } from '../../src/ui/components/PlanDocumentView.js';
 import { takenAgainstPlan, firstPaymentMonth, monthToRecord } from '../../src/services/YearPlan.js';
-import { monthOf } from '../../src/answers/plan/month.js';
+import { monthOf, readMonth } from '../../src/answers/plan/month.js';
+import { calculateMonthlyBreakdown, statePensionFact, statePensionLine, bandsAssumptionText } from '../../src/services/TaxYearSetUp.js';
 import { MONTH } from '../../src/v7/copy/month.js';
 import { corpus, entryOf } from '../v7/plan/_plans.js';
 
@@ -206,5 +208,70 @@ describe('Step 3: one month to record', () => {
     expect(M.chosen).toBe('2026-12');
     expect(M.future).toEqual({ month: 'December 2026' });
     expect(fillSlots(MONTH.future, M.future)).toBe('December 2026 has not happened yet. Record it now only if the payment has gone.');
+  });
+});
+
+describe('Step 4: what reaches your bank, one sum', () => {
+  /** Kim: a quarter of each payment tax-free, nothing set up yet for 2026/27, nothing recorded. */
+  const kimUfpls = (id) => {
+    const r = lockedOn('2026-11-16T10:00:00.000Z', { id, name: 'Kim' });
+    r.decisionTool.settings.accessMethod = 'ufpls'; r.decisionTool.settings.ufplsYears = null;
+    return r;
+  };
+  const typedKim = { 'ty.income': '32858', 'ty.toDate': '24000', 'ty.taxToDate': '2286', 'ty.isa': '0', 'mo.total': '520000', 'mo.cash': '40000', 'mo.bonds': '150000' };
+
+  it('Kim: set up from November after £24,000 received — the table, the month and the reason agree', () => {
+    const e = entryOf(kimUfpls('LivingKim05'), '2026-11-16');
+    const R = readMonth(e.plan, typedKim, { today: '2026-11-16' });
+    expect(R.month).toBe('2026-11');
+    // worked by hand: the prior £24,000 used the allowance, so each pension payment is taxed at 20% on three quarters of it.
+    // After tax a month = 0.8 × 32,858 / 12 = 2,190.53; before tax = 2,190.53 / 0.85 = 2,577.10; tax = 386.57
+    const net = 0.8 * 32858 / 12, gross = net / 0.85;
+    const pension = R.setUp.bank.find((b) => b.id === 'pension');
+    expect(pension).toEqual({ id: 'pension', before: '£' + Math.round(gross).toLocaleString('en-GB'), tax: '£' + Math.round(gross - net).toLocaleString('en-GB'), after: '£' + Math.round(net).toLocaleString('en-GB') });
+    expect(pension).toEqual({ id: 'pension', before: '£2,577', tax: '£387', after: '£2,191' });
+    expect(R.setUp.taxFree).toBe(true);
+    expect(fillSlots(MONTH.setUp.taxFree, {})).toBe('A quarter of each pension payment is tax-free.');
+    // the month as it will be worked out once the year is set up: the same pension figure
+    expect(R.advice.raw.sippDraw).toBe(Math.round(gross));
+    // a full year: 32,858 − 0.2 × (32,858 − 12,570) = 28,800.40 a year, £2,400 a month
+    const full = (32858 - 0.2 * (32858 - 12570)) / 12;
+    expect(fillSlots(MONTH.setUp.reason, R.setUp.reason)).toBe('In a full tax year this income is about £' + Math.round(full).toLocaleString('en-GB') + ' a month after tax. This tax year about £2,191 a month reaches your bank, because the money you received before November used your tax-free allowance.');
+  });
+
+  it('Kim: the month records the same £2,577 with or without an ISA figure typed', () => {
+    const e = entryOf(kimUfpls('LivingKim06'), '2026-11-16');
+    const none = readMonth(e.plan, typedKim, { today: '2026-11-16' });
+    const withIsa = readMonth(e.plan, { ...typedKim, 'mo.isa': '60000' }, { today: '2026-11-16' });
+    expect(none.advice.raw.sippDraw).toBe(2577);
+    expect(withIsa.advice.raw.sippDraw).toBe(2577);
+  });
+
+  it('Sam, nothing tax-free, set up from April at £30,000: the figures are what they were, to the penny', () => {
+    const b = calculateMonthlyBreakdown({ targetSalary: 30000, pa: 12570, brl: 50270, hrl: 125140, remainingMonths: 12, isaSavingsAllocation: 0 });
+    expect(b.sipp.gross).toBe(30000 / 12);
+    expect(b.sipp.tax).toBeCloseTo((30000 - 12570) * 0.2 / 12, 9);
+    expect(b.sipp.net).toBeCloseTo(30000 / 12 - (30000 - 12570) * 0.2 / 12, 9);
+    expect(calculateMonthlyBreakdown({ targetSalary: 30000, pa: 12570, brl: 50270, hrl: 125140, remainingMonths: 12, taxFreeFraction: 0 })).toEqual(b);
+  });
+
+  it('the State Pension: a plan that holds one starting in a later tax year says so, never "no amount"', () => {
+    const later = statePensionFact({ amount: 0, startDate: '16 November 2031', startYm: '2031-11' }, '2026-04', 12548);
+    expect(later.id).toBe('later');
+    expect(fillSlots(MONTH.setUp.statePension.later, { ...later.slots, year: '2026/27' })).toBe('State Pension: £12,548 a year from 16 November 2031. None is paid in 2026/27.');
+    expect(statePensionLine({ amount: 0, startDate: '16 November 2031', startYm: '2031-11' }, '2026-04', 12548, '26/27')).toBe('State Pension: £12,548 a year from 16 November 2031. None is paid in 2026/27.');
+    // Decision settings hold none, the plan's Stress settings £230.25 a week: £11,973 a year (230.25 × 52)
+    const r = lockedOn('2026-03-20T10:00:00.000Z', { id: 'LivingSam05', name: 'Sam' });
+    Object.assign(r.decisionTool.settings, { statePension: 0, spWeeklyAmount: 0, spStartDate: '16 November 2031' });
+    r.stressTool.settings.spWeeklyAmount = 230.25; r.stressTool.settings.spStartDate = '16 November 2031';
+    const e = entryOf(r, '2026-04-10');
+    const R = readMonth(e.plan, { 'mo.month': '2026-04' }, { today: '2026-04-10' });
+    expect(R.setUp.statePension.id).toBe('later');
+    expect(fillSlots(MONTH.setUp.statePension[R.setUp.statePension.id], R.setUp.statePension.slots)).toBe('State Pension: £' + Math.round(230.25 * 52).toLocaleString('en-GB') + ' a year from 16 November 2031. None is paid in 2026/27.');
+    expect(JSON.stringify(R.setUp.statePension)).not.toMatch(/noAmount|none/);
+  });
+
+  it('the bands sentence says 40% too', () => {
+    expect(bandsAssumptionText({ pa: 12570, brl: 50270, hrl: 125140 })).toBe('We assume a tax-free allowance of £12,570, then 20% tax on income up to £50,270, 40% up to £125,140 and 45% above.');
   });
 });

@@ -19,7 +19,8 @@ import {
   setUpConfigOf,
   wizardScreens,
   bandsAssumptionText,
-  statePensionLine
+  statePensionLine,
+  partYearReason
 } from '../../services/TaxYearWizardService.js';
 import { saveTaxYearConfig, getTaxYearConfigAsync } from '../../storage/DecisionRepository.js';
 import { lockPlanIfNeeded } from '../../services/PlanLock.js';
@@ -203,7 +204,7 @@ function renderThisYear() {
       </div>
 
       <div class="wizard-info-box" style="margin-top: 14px;">
-        <strong>State Pension:</strong> ${esc(statePensionLine(wizardContext.statePension, wizardContext.selectedMonth))}
+        ${esc(statePensionLine(wizardContext.statePension, wizardContext.selectedMonth, wizardContext.planSpYearly || 0, wizardContext.taxYear || ''))}
         <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">From your settings — change it there if it is wrong.</p>
       </div>
 
@@ -389,6 +390,8 @@ function renderConfirmation() {
         <p style="margin-top: 12px; font-size: 14px; color: var(--text);">
           <strong>About ${fmt(breakdown.totalNet)} a month</strong> reaches your bank
         </p>
+        ${(wizardContext.taxFreeFraction || 0) > 0 ? '<p class="hint" id="wizTaxFree" style="margin-top: 6px;">A quarter of each pension payment is tax-free.</p>' : ''}
+        ${(() => { const r = partYearReason(wizardContext, wizardInputs, breakdown); return r ? '<p class="hint" id="wizPartYear" style="margin-top: 6px;">' + esc('In a full tax year this income is about ' + r.full + ' a month after tax. This tax year about ' + r.month + ' a month reaches your bank, because the money you received before ' + r.before + ' used your tax-free allowance.') + '</p>' : ''; })()}
       </div>
 
       <div class="wizard-buttons">

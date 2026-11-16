@@ -20,6 +20,7 @@ import { planTaxBoost, BOOST_DEFAULTS, planBandFillRecycle, RECYCLE_DEFAULTS } f
 import { planSourcing, planSourcingOrdered } from './WithdrawalSourcing.js';
 import { newSleeve, topUpFromSleeve, withdrawFromSleeve, incomeTaxOnSleeve, routeWindfall, GIA_DEFAULTS } from './TaxableSleeve.js';
 import { decisionAnchorYear, taxYearKey, taxYearLabel } from './PlanTiming.js';
+import { taxFreeFractionOf, LUMP_SUM_ALLOWANCE } from './FlexibleAccess.js';
 
 // Tax year from a "YYYY-MM" string. Delegates to the canonical helper, which honours the
 // 6 April boundary; parseMonth resolves the month to day 15 so month-granularity dates
@@ -246,14 +247,12 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
       // cash already taken, every withdrawal fully taxable (f=0, the historical behaviour);
       // 'ufpls' = a quarter of each withdrawal is tax-free (f=0.25) UNTIL the lifetime Lump Sum
       // Allowance is exhausted, after which withdrawals revert to fully taxable.
-      const LSA = 268275;
+      // ONE rule with the tax-year set-up (7.12.0, FlexibleAccess.taxFreeFractionOf). Phased access: settings.ufplsYears limits
+      // the UFPLS phase to the first N plan years (yearNum is 0-based from the plan's first tax year); blank/0 = the whole plan.
+      const LSA = LUMP_SUM_ALLOWANCE;
       const lifetimeTaxFreeUsed = history.reduce((sum, h) => sum + (h.taxFree || 0), 0);
-      // Phased access: settings.ufplsYears limits the UFPLS phase to the first N plan years
-      // (yearNum is 0-based from the 2026 plan epoch — the same clock the stress engine's
-      // `year` index runs on); blank/0 = UFPLS for the whole plan.
-      const inUfplsPhase = !settings.ufplsYears || yearNum < settings.ufplsYears;
-      const ufpls = (settings.accessMethod === 'ufpls') && inUfplsPhase && lifetimeTaxFreeUsed < LSA;
-      const taxFreeF = ufpls ? 0.25 : 0;
+      const taxFreeF = taxFreeFractionOf(settings, history, yearNum);
+      const ufpls = taxFreeF > 0;
       // PCLS-at-switch: the decision tool ADVISES the real-world action rather than silently
       // moving money the user actually holds. In the switch year (only — assume done after),
       // suggest taking 25% of the remaining pot tax-free into the ISA, capped by remaining LSA.

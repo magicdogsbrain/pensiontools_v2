@@ -97,13 +97,18 @@ export const MONTH = {
       declining: 'Your plan’s spending falls a little each year (about {pct}% a year at today’s prices). Last year’s income rises with prices, less that fall, to {amount} a year before tax.',
       'budget-schedule': 'From your plan’s income for this year, raised to this year’s prices: {amount} a year before tax.'
     },
+    /** One fact (TaxYearSetUp.statePensionFact, 7.12.0): "no amount" only when the plan truly holds none. */
     statePension: {
-      none: 'State Pension: none in your plan. Add your forecast under Money that comes in anyway.',
-      noAmount: 'State Pension: starts {when}; the amount is not in your plan yet. Add it under Money that comes in anyway.',
+      none: 'State Pension: not in your plan. You can add your forecast under Money that comes in anyway.',
+      noAmount: 'State Pension: starts {when}. Your plan has no amount for it yet. You can add your forecast under Money that comes in anyway.',
       paying: 'State Pension: {monthly} a month ({amount} this tax year).',
       startsThisYear: 'State Pension: starts {when}, {monthly} a month ({amount} this tax year).',
-      later: 'State Pension: starts {when}.'
+      later: 'State Pension: {yearly} a year from {when}. None is paid in {year}.'
     },
+    /** Under the table when a part of each pension payment is tax-free (7.12.0). */
+    taxFree: 'A quarter of each pension payment is tax-free.',
+    /** A part year after money was received (7.12.0): why less reaches the bank than in a full year. */
+    reason: 'In a full tax year this income is about {full} a month after tax. This tax year about {month} a month reaches your bank, because the money you received before {before} used your tax-free allowance.',
     spLater: 'The State Pension starts {from} at {monthly} a month: the months before it come from the pension.',
     bandsChange: 'Change the tax bands',
     bandsHide: 'Hide the tax bands',

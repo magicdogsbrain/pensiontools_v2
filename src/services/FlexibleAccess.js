@@ -29,6 +29,24 @@ const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/;
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+/** The lifetime Lump Sum Allowance: the tax-free money a person can take across all their pensions. */
+export const LUMP_SUM_ALLOWANCE = 268275;
+
+/**
+ * The share of each pension payment that is tax-free in plan year `planYear` (0-based from the plan's first tax year), ONE
+ * rule for the month (legacyDecision) and the tax-year set-up (TaxYearSetUp.calculateMonthlyBreakdown), 7.12.0. Pension
+ * access 'drawdown': tax-free cash already taken, every payment fully taxable (0). 'ufpls': a quarter of each payment is
+ * tax-free (0.25) in the first `ufplsYears` plan years (blank or 0: every year), until the tax-free money already taken
+ * (the records' `taxFree`) reaches the Lump Sum Allowance.
+ */
+export function taxFreeFractionOf(settings, history = [], planYear = 0) {
+  const s = isObj(settings) ? settings : {};
+  if (s.accessMethod !== 'ufpls') return 0;
+  const used = (Array.isArray(history) ? history : []).reduce((t, h) => t + ((h && +h.taxFree) || 0), 0);
+  const inPhase = !s.ufplsYears || (+planYear || 0) < s.ufplsYears;
+  return inPhase && used < LUMP_SUM_ALLOWANCE ? 0.25 : 0;
+}
+
 /** The limit once money has been taken flexibly (AccumulationEngine.ACCUMULATION_RULES.MPAA, the same figure). */
 export const FLEXIBLE_ACCESS_LIMIT = 10000;
 

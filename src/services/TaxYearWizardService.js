@@ -13,7 +13,8 @@ import {
   getDecisionSettingsAsync,
   getAllTaxYearsAsync,
   getStatePensionForTaxYear,
-  isYearSetupComplete
+  isYearSetupComplete,
+  getHistoryAsync
 } from '../storage/DecisionRepository.js';
 import { getActiveStressSettings } from '../storage/ScenarioRepository.js';
 import { wizardDataFrom } from './TaxYearSetUp.js';
@@ -86,5 +87,11 @@ export async function getWizardData(selectedMonth) {
   const taxYear = getTaxYear(parseMonth(selectedMonth));
   const settings = await getDecisionSettingsAsync();
   let stressSettings = null; try { stressSettings = await getActiveStressSettings(); } catch (e) { stressSettings = null; }
-  return wizardDataFrom(selectedMonth, { settings, stressSettings, existingConfig: await getTaxYearConfigAsync(taxYear), allTaxYears: await getAllTaxYearsAsync(), statePensionInfo: await getStatePensionForTaxYear(taxYear) });
+  // the records, for the share of each payment that is tax-free (7.12.0: the month's own rule, FlexibleAccess.taxFreeFractionOf)
+  let history = []; try { history = await getHistoryAsync({ limit: 1000 }); } catch (e) { history = []; }
+  const ctx = wizardDataFrom(selectedMonth, { settings, stressSettings, existingConfig: await getTaxYearConfigAsync(taxYear), allTaxYears: await getAllTaxYearsAsync(), statePensionInfo: await getStatePensionForTaxYear(taxYear), history });
+  // the plan's own State Pension a year, so the line says "no amount" only when the plan holds none
+  const w = +(stressSettings && stressSettings.spWeeklyAmount) || +(settings && settings.spWeeklyAmount) || 0;
+  ctx.planSpYearly = +(settings && settings.statePension) > 0 ? +settings.statePension : w > 0 ? Math.round(w * 52) : 0;
+  return ctx;
 }

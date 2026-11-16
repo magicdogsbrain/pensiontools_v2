@@ -21,7 +21,7 @@ import { monthInputsOf, recordMonths, decideMonth } from '../../services/MonthDe
 import { getTaxYearFromDate } from '../../services/legacyDecision.js';
 import { fillOffer, addMonth, monthsWords, latestRecordedMonth, earliestFillMonth, fillWords, FILL_HELP, setUpWords, filledInLabel, recalcWords, yearWords, aprilOf } from '../../services/MonthFill.js';
 import { platformBoxes, splitFromPlatform, prefillFromHistory, enteredBlock } from '../../services/MonthlyEntry.js';
-import { wizardDataFrom, isaCalcFor, topUpStart, settleTopUp, breakdownFor, setUpConfigOf, suggestedIncomeFor, validateIsaInput, bandsAssumptionText } from '../../services/TaxYearSetUp.js';
+import { wizardDataFrom, isaCalcFor, topUpStart, settleTopUp, breakdownFor, setUpConfigOf, suggestedIncomeFor, validateIsaInput, bandsAssumptionText, statePensionFact, partYearReason } from '../../services/TaxYearSetUp.js';
 import { statePensionInfoFor } from '../../utils/StatePensionUtils.js';
 import { defaultTaxYearConfig } from '../../models/TaxYear.js';
 import { storedStressSettings, planStage } from '../../services/PlanReading.js';
@@ -98,7 +98,7 @@ function setUpOf(I, plan, key, ym, typed, now) {
   const existing = I.taxYears[key] || defaultTaxYearConfig();
   const ctx = wizardDataFrom(ym, {
     settings: I.settings, stressSettings: storedStressSettings(plan), existingConfig: existing, allTaxYears: I.taxYears,
-    statePensionInfo: statePensionInfoFor(I.settings, I.taxYears, key, now), now
+    statePensionInfo: statePensionInfoFor(I.settings, I.taxYears, key, now), now, history: I.history
   });
   const errors = {};
   const read = (path, dflt) => { const e = boxError(path, typed[path]); if (e) { errors[path] = e; return dflt; } const v = money(typed[path]); return v === null ? dflt : v; };
@@ -132,8 +132,11 @@ function setUpOf(I, plan, key, ym, typed, now) {
     key, year: yearWords(key), month: monthWords(ym), isApril: ctx.isApril, remaining: ctx.remainingMonths, prevMonth: ctx.isApril ? null : monthWords(addMonth(ym, -1)),
     source: ctx.suggestionSource, declining: (ctx.declineRate || 0) > 0, declinePct: Math.round((ctx.declineRate || 0) * 100),
     suggestion, cpiPct: Math.round(cpi * 1000) / 10, defaults: ctx.defaults,
-    statePension: spOf(sp, ym), statePensionLater: sp.amount > 0 && sp.startYm && sp.startYm > ym ? { monthly: pounds(sp.monthlyFull || 0), from: sp.startDate || sp.startYm } : null,
+    statePension: (() => { const f = statePensionFact(sp, ym, planSpYearly(I)); return { ...f, slots: { ...f.slots, year: yearWords(key) } }; })(), statePensionLater: sp.amount > 0 && sp.startYm && sp.startYm > ym ? { monthly: pounds(sp.monthlyFull || 0), from: sp.startDate || sp.startYm } : null,
     bands: bandsAssumptionText(final),
+    // 7.12.0: the same sum as the month (a quarter of each payment tax-free included), and why less reaches the bank in a part year
+    taxFree: (ctx.taxFreeFraction || 0) > 0,
+    reason: partYearReason(ctx, final, breakdown),
     topUp: {
       exhausted: !!isaCalc.brlExhausted, notNeeded: !!isaCalc.targetAchievableAtBrl, needed: Math.round(isaCalc.isaNeeded || 0),
       shortfall: Math.round(validation.shortfall || 0), needsChoice, choices, choice: settled ? settled.taxEfficiencyChoice : choice,
@@ -256,15 +259,15 @@ function refusalOf(I, month) {
   return { id: 'beforeSetUp', slots: { month: monthWords(month), year: yearWords(key), from: monthWords(addMonth(aprilOf(key), (start + 8) % 12)) } };
 }
 
-/** The State Pension for the set-up, as facts the page words (statePensionLine's cases, without its classic page's directions). */
-function spOf(sp, ym) {
-  const s = sp || {};
-  const amount = +s.amount || 0;
-  const when = s.startDate || s.startYm || null;
-  if (!amount) return { id: when ? 'noAmount' : 'none', slots: { when } };
-  const monthly = s.monthlyFull != null ? +s.monthlyFull : (s.monthly != null ? +s.monthly : amount / 12);
-  const started = s.startYm ? String(s.startYm) <= String(ym) : !!s.isReceiving;
-  return { id: started ? 'paying' : s.isReceiving ? 'startsThisYear' : 'later', slots: { when, monthly: pounds(monthly), amount: pounds(amount) } };
+/**
+ * The plan's own State Pension a year (7.12.0), for the set-up's line: the Decision settings' figure, else the Stress settings'
+ * weekly amount × 52 (the plan's own forecast), else the Decision settings' weekly amount × 52; 0 when the plan holds none.
+ */
+function planSpYearly(I) {
+  const a = +(I.settings && I.settings.statePension) || 0;
+  if (a > 0) return a;
+  const w = +(I.stressSettings && I.stressSettings.spWeeklyAmount) || +(I.settings && I.settings.spWeeklyAmount) || 0;
+  return w > 0 ? Math.round(w * 52) : 0;
 }
 
 /** The fill's help in the new app's words where the classic one names its own buttons ("the month box", "Calculate"). */

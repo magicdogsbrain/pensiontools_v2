@@ -4171,7 +4171,7 @@
     import { validateStatePensionDate, spSimConfigFromSettings } from './src/utils/StatePensionUtils.js';
     import { ladderPosition, taxYearOf, borrowedFloorStatus, documentLadder, ladderForDisplay, repriceComparisonText, firstRungOf, ladderMonthAdvice } from './src/services/LadderPosition.js';
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
-    import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
+    import { deriveTiming, migrateTiming, describeTiming, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
     import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
     import { installLockedStart, startLaterOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
@@ -4276,7 +4276,7 @@
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange, viewNotesAtSignIn } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
-    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js';
+    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { timingPotsAtStop } from './src/services/PotsAtStop.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -7674,11 +7674,10 @@
       let t = deriveTiming(s);
       // Retiring later: project today's pots to retirement from the Accumulation planner's inputs.
       if (t.mode === 'future') {
-        let acc = {}; try { acc = (typeof getActiveAccumulation === 'function' ? await getActiveAccumulation() : {}) || {}; } catch (e) { acc = {}; }
         // Pots from the FORM as it stands (a new plan's saved settings are the £1m defaults — 6.10.2), else the saved ones.
         let potsNow = null; try { const a = readAlloc('ss'); if (a && (+a.equityMin + +a.bondMin + +a.cashTarget) > 0) potsNow = a; } catch (e) { potsNow = null; }
         const base = window._ssTimingBase || {};
-        window._tmProjection = projectedPotAtRetirement({ ...s, equityMin: potsNow ? +potsNow.equityMin : base.equityMin, bondMin: potsNow ? +potsNow.bondMin : base.bondMin, cashTarget: potsNow ? +potsNow.cashTarget : base.cashTarget, diversifierStart: potsNow ? (+potsNow.diversifierStart || 0) : base.diversifierStart, isaBalance: +document.getElementById('ssIsaBalance')?.value || base.isaBalance || 0, taggedFunds: (window._taggedFunds && window._taggedFunds.ss && window._taggedFunds.ss.length) ? window._taggedFunds.ss : base.taggedFunds }, acc);
+        window._tmProjection = timingPotsAtStop(await getActiveScenarioAsync().catch(() => null), { ...s, equityMin: potsNow ? +potsNow.equityMin : base.equityMin, bondMin: potsNow ? +potsNow.bondMin : base.bondMin, cashTarget: potsNow ? +potsNow.cashTarget : base.cashTarget, diversifierStart: potsNow ? (+potsNow.diversifierStart || 0) : base.diversifierStart, isaBalance: +document.getElementById('ssIsaBalance')?.value || base.isaBalance || 0, taggedFunds: (window._taggedFunds && window._taggedFunds.ss && window._taggedFunds.ss.length) ? window._taggedFunds.ss : base.taggedFunds }, new Date());   // worked out from the saver's facts, as every run reads it (7.12.0)
         s = timingSettingsFromForm(); t = deriveTiming(s);
       } else window._tmProjection = null;
       window._ssTiming = { ...t, settings: s };

@@ -80,7 +80,9 @@ import { resolve } from 'node:path';
 // shorter: 9,036.
 // One saver, one set of facts (7.12.0): the Accumulation tab opens from the saver's facts (accumulationProjection.js
 // accumulationBoxes) and saves through one repository call that also records a new pot today: 10 lines shorter: 9,026.
-const MAX_LINES = 9026;
+// The pots when you stop worked out from the saver's facts (7.12.0): the Timing block calls PotsAtStop.timingPotsAtStop
+// in place of the fixed-rate projection, and no longer reads the Accumulation settings itself: 1 line shorter: 9,025.
+const MAX_LINES = 9025;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

@@ -23,8 +23,10 @@ import {
   invalidateScenarioCache,
   activePlanLocked,
   storedActiveSettings,
-  assertActiveSettingsWritable
+  assertActiveSettingsWritable,
+  getActiveScenarioAsync
 } from './ScenarioRepository.js';
+import { decisionSettingsAsRead, planLocked } from '../services/DraftDecision.js';
 import { onPlanCopyStale } from './planCopies.js';
 import { defaultTaxYearConfig } from '../models/TaxYear.js';
 import { PlanLockedError, isPlanLockedError, lockedWriteRefusal, lockedSettingsToWrite } from '../services/LockedPlanGuard.js';
@@ -32,6 +34,20 @@ import { PlanLockedError, isPlanLockedError, lockedWriteRefusal, lockedSettingsT
 // In-memory cache for the combined decision DB (all from active scenario)
 // Cache is valid until explicitly invalidated (login/logout/wipe/scenario switch)
 let cachedDecisionDB = null;
+// What an unlocked plan's settings were read from (7.12.0): when any of these changes (a Stress save, a new pot today), the
+// settings are read again, so the Decision tool never runs on figures the plan no longer holds.
+let cachedFrom = null;
+const sourcesOf = (sc) => (sc ? [sc, sc.stressTool && sc.stressTool.settings, sc.accumulationTool && sc.accumulationTool.settings, sc.accumulationTool && sc.accumulationTool.history, sc.holdings, sc.budgetTool && sc.budgetTool.settings] : []);
+const sameSources = (a, b) => !!a && !!b && a.length === b.length && a.every((x, i) => x === b[i]);
+
+/**
+ * The Decision settings as read (services/DraftDecision.js): a locked plan's stored copy; an unlocked plan's worked from its
+ * Stress settings, never the defaults a draft used to carry. Nothing is written.
+ */
+function settingsAsRead(scenario, stored) {
+  if (!scenario) return stored || getDefaultDecisionDB().settings;
+  return decisionSettingsAsRead(scenario);
+}
 
 /**
  * Default decision database structure
@@ -88,6 +104,7 @@ function isFirebaseAvailable() {
  */
 export function invalidateCache() {
   cachedDecisionDB = null;
+  cachedFrom = null;
 }
 // The plan was locked after this tab loaded it (the store refused a write, 6.20.2): this copy goes with the others.
 onPlanCopyStale(invalidateCache);
@@ -111,8 +128,16 @@ export function loadDecisionDB() {
  * @returns {Promise<object>} Decision database
  */
 export async function loadDecisionDBAsync() {
-  // Check cache
+  // Check cache: an unlocked plan's settings follow its Stress settings, so they are read again when those have changed
   if (cachedDecisionDB) {
+    if (cachedFrom && isFirebaseAvailable()) {
+      const sc = await getActiveScenarioAsync().catch(() => null);
+      if (sc && !planLocked(sc) && !sameSources(cachedFrom, sourcesOf(sc))) {
+        cachedDecisionDB = { ...cachedDecisionDB, settings: settingsAsRead(sc, sc.decisionTool && sc.decisionTool.settings) };
+        cachedDecisionDB.checksum = generateDecisionChecksum(cachedDecisionDB);
+        cachedFrom = sourcesOf(sc);
+      }
+    }
     return cachedDecisionDB;
   }
 
@@ -123,13 +148,15 @@ export async function loadDecisionDBAsync() {
 
   try {
     // Load all data from the active scenario in parallel
-    const [decisionSettings, taxYears, history] = await Promise.all([
+    const [decisionSettings, taxYears, history, scenario] = await Promise.all([
       getActiveDecisionSettings(),
       getActiveTaxYears(),
-      getActiveHistory()
+      getActiveHistory(),
+      getActiveScenarioAsync()
     ]);
 
-    const settingsIn = decisionSettings || getDefaultDecisionDB().settings;
+    // an unlocked plan's settings are its Stress settings' (DraftDecision.js); a locked plan's, as stored
+    const settingsIn = settingsAsRead(scenario, decisionSettings);
     // The "Declining with age" spending profile is gone (v6.2.1): the taper now lives on the income
     // steps and arrives here baked into targetSchedule. A Decision copy still carrying the flag gets
     // its saved schedule multiplied by the old smile once, so the tax-year wizard's suggestions and
@@ -148,6 +175,7 @@ export async function loadDecisionDBAsync() {
     };
     db.checksum = generateDecisionChecksum(db);
     cachedDecisionDB = db;
+    cachedFrom = scenario && !planLocked(scenario) ? sourcesOf(scenario) : null;
     return db;
   } catch (error) {
     console.error('Error loading decision data:', error);

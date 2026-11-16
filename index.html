@@ -2260,12 +2260,7 @@
         <!-- Entry Sub-tab -->
         <div id="decision-entry" class="decision-subtab">
           <div id="dsStrategyPanel" style="display:none; margin-bottom:14px;"></div>
-          <div id="dsSetupBanner" class="alert alert-warning" style="display:none; margin-bottom:14px;">
-            <strong>Set up this plan first.</strong> The recommendation runs on your Settings — your pot,
-            spending need and State Pension — and they're still the defaults, so any answer would be
-            meaningless. It takes a couple of minutes.
-            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" data-on-click="openToolSettingsTab('decision')">Open Settings</button>
-          </div>
+          <div id="dsSetupBanner" class="alert alert-info" style="display:none; margin-bottom:14px;"></div><!-- an unlocked plan's figures, or none yet: src/ui/draftPlanLine.js -->
           <div class="grid-2">
             <!-- Input Panel -->
             <div class="card">
@@ -2396,7 +2391,7 @@
             <div id="decisionOutput">
               <div class="card">
                 <div class="loading">
-                  <p>Enter your fund values and click Calculate to see your recommendation.</p>
+                  <p>Enter your fund values and click Calculate to see this month's figures.</p>
                 </div>
               </div>
             </div>
@@ -2770,12 +2765,7 @@
 
         <!-- Monte Carlo Sub-tab -->
         <div id="stress-montecarlo" class="stress-subtab">
-          <div id="ssSetupBanner" class="alert alert-warning" style="display:none; margin-bottom:14px;">
-            <strong>Set up this plan first.</strong> Simulations run on your Settings — your pots,
-            spending need and State Pension — and they're still the defaults, so any result would be
-            meaningless. It takes a couple of minutes.
-            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" data-on-click="openToolSettingsTab('stress')">Open Settings</button>
-          </div>
+          <div id="ssSetupBanner" class="alert alert-info" style="display:none; margin-bottom:14px;"></div><!-- a plan with no figures yet: src/ui/draftPlanLine.js -->
           <div class="card">
             <div id="mcStrategyNote" style="display:none;"></div>
             <p class="hint" style="margin:0 0 8px;">Every number here rests on stated data and assumptions — <button type="button" class="risk-btn" style="padding:2px 10px;" data-on-click="switchToTab('strategies'); setTimeout(() => showStrategyPage('assumptions'), 300);">Assumptions &amp; data</button>.</p>
@@ -4198,6 +4188,7 @@
     import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, survivorResultHtml, careResultHtml, budgetShareHtml, budgetSharedLineHtml } from './src/ui/householdView.js';
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
+    import { refreshDraftLines, paintDraftSettingsLine, openStressSettings } from './src/ui/draftPlanLine.js'; import { planHasFigures } from './src/services/DraftDecision.js';   // an unlocked plan's own figures (7.12.0)
     import { updateHomeBanner, installHomeBanner, openingTabOf } from './src/ui/homeBannerUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
@@ -4316,7 +4307,7 @@
       if (entryContent) entryContent.classList.remove('hidden');
       // A different plan: the previous plan's recommendation and typed fund values must not linger.
       const out = document.getElementById('decisionOutput');
-      if (out) out.innerHTML = '<div class="card"><div class="loading"><p>Enter your fund values and click Calculate to see your recommendation.</p></div></div>';
+      if (out) out.innerHTML = '<div class="card"><div class="loading"><p>Enter your fund values and click Calculate to see this month's figures.</p></div></div>';
       ['entryEquity', 'entryBond', 'entryCash', 'entryIsa', 'entryDiversifier'].forEach((id) => { const e = document.getElementById(id); if (e) e.value = ''; });
       currentDecision = null; monthEntry.setState('none');   // nothing calculated for this plan yet: Save off, and the line says so (3 Nov 2026)
     }
@@ -4676,44 +4667,22 @@
      * Initialize ALL input fields from stored settings
      * Called once on app load to ensure all forms have correct values
      */
-    // ---- "Configured" routing: default settings give meaningless answers -----------------------
-    // Each tool's settings carry `configured: true` once the user has saved them (set by the two
-    // Settings save buttons). Until then the tool page shows a set-up-first banner, and the setup
-    // wizard's intent router lands on the Settings sub-tab instead of the tool itself. Older plans
-    // predate the flag: a locked plan (settings committed) counts as configured.
+    // An unlocked plan runs on its own figures; the Decision and Stress tools say which, or that there are none yet (7.12.0:
+    // src/services/DraftDecision.js planHasFigures, src/ui/draftPlanLine.js).
     window.openToolSettingsTab = function (tool) {
       const sel = tool === 'decision' ? '.sub-tab[data-decisiontab="decisionsettings"]' : '.sub-tab[data-stresstab="stresssettings"]';
       const btn = document.querySelector(sel);
       if (btn) btn.click();
     };
 
-    async function isToolConfigured(tool) {
-      try {
-        // Legacy plans predate the flag: a non-default target (30000 is the factory default, and
-        // the net-first field never produces that round number) means someone set this plan up.
-        const legacy = (s) => !!s.baseSalary && +s.baseSalary !== 30000;
-        if (tool === 'decision') {
-          const s = await getDecisionSettingsAsync();
-          return !!s.configured || legacy(s) || await planIsLocked();
-        }
-        const s = await getStressSettingsAsync();
-        return !!s.configured || legacy(s) || await planIsLocked();
-      } catch (e) { return true; } // fail open — never block a working plan on a read error
-    }
-
-    async function updateSetupBanners() {
-      const ds = document.getElementById('dsSetupBanner');
-      const ss = document.getElementById('ssSetupBanner');
-      if (ds) ds.style.display = (await isToolConfigured('decision')) ? 'none' : 'block';
-      if (ss) ss.style.display = (await isToolConfigured('stress')) ? 'none' : 'block';
-    }
+    const updateDraftLines = () => refreshDraftLines(window, document, { getActiveScenarioAsync, getStressSettingsAsync });
 
     async function initializeAllInputsFromSettings() {
       try {
         // Load both settings sets
         const stressSettings = await getStressSettingsAsync();
         const decisionSettings = await getDecisionSettingsAsync();
-        updateSetupBanners();
+        updateDraftLines();
         try { const st = await getActiveStrategy(); window._activeStrategyId = (st && st.id) || stressSettings.strategyId || 'pots-and-valves'; } catch (e) { window._activeStrategyId = stressSettings.strategyId || 'pots-and-valves'; }
 
         // Monthly Entry captures THIS MONTH's values — never the plan's starting minimums: last month's record is pre-filled, to change (6.23).
@@ -4891,12 +4860,8 @@
       await showMainApp(user);
       const tabEl = document.querySelector('.tab[data-tab="' + startAt + '"]');
       if (tabEl) tabEl.click();
-      // Decision/Stress are meaningless on default settings — land unconfigured plans on the
-      // tool's Settings sub-tab so the first stop is entering pots / spending / State Pension.
-      if ((startAt === 'decision' || startAt === 'stress') && !(await isToolConfigured(startAt))) {
-        openToolSettingsTab(startAt);
-        showToast('First, set up this plan: your pot, spending need and State Pension.', 'info', 6000);
-      }
+      // a plan with no figures yet opens where they are added: Stress tester → Settings, whose line says so (7.12.0)
+      if ((startAt === 'decision' || startAt === 'stress') && !planHasFigures(await getActiveScenarioAsync())) openStressSettings(window);
     }
 
 
@@ -5542,7 +5507,7 @@
         if (tab.dataset.tab === 'household') await loadHouseholdUI();
         if (tab.dataset.tab === 'strategies') await loadStrategiesPage();
         updateNextStepBanner();
-        updateSetupBanners();
+        updateDraftLines();
         window.__hideHelpTip && window.__hideHelpTip();
       });
     });
@@ -9950,7 +9915,7 @@
         // Refresh the Monte-Carlo / Historical starting-balance banners so they reflect the just-
         // saved allocation (they otherwise only re-render on load/tab-switch → stale after a save).
         renderStressStartSummary({ ...ssAlloc, duration: +document.getElementById('ssDuration').value || 35 }); renderChargesField().catch(() => {});   // the box shows the charge as saved
-        updateSetupBanners();
+        updateDraftLines();
         updateNextStepBanner();
         showToast('Settings saved successfully', 'success'); return true;
       } catch (error) {
@@ -11565,11 +11530,8 @@
       if (!banner || !saveBtn) return;
       _dsLocked = await planIsLocked();
 
-      if (!_dsLocked) {                    // unsaved plan → fully editable, normal Save button
-        banner.style.display = 'none';
-        setDecisionSettingsEnabled(true);
-        saveBtn.textContent = 'Save Settings';
-        saveBtn.classList.remove('btn-locked');
+      if (!_dsLocked) {                    // unlocked: these are the plan's own settings, changed on Stress tester → Settings (7.12.0)
+        paintDraftSettingsLine(window, banner); setDecisionSettingsEnabled(false); saveBtn.disabled = true; saveBtn.classList.remove('btn-locked');
         updatePlanLockChip();
         return;
       }
@@ -11583,7 +11545,7 @@
       const verb = dep && (dep.entriesUnderCurrent + dep.taxYearsSetUp.length) === 1 ? 'was' : 'were';
       banner.innerHTML = await decisionLockBannerHtml({ what, verb });   // the words, and a closed plan's with no unlock (6.56.0): src/ui/planCloseUi.js
       setDecisionSettingsEnabled(false);
-      saveBtn.textContent = '🔒 Locked';
+      saveBtn.disabled = false; saveBtn.textContent = '🔒 Locked';
       saveBtn.classList.add('btn-locked');
       updatePlanLockChip(); // keep the header cue in sync with lock changes
     }
@@ -11696,7 +11658,7 @@
         // Plan of record: the projection these settings imply — rebuilt on every save (archived on unlock).
         try { await saveActivePlanOfRecord(await buildPlanOfRecord(await getDecisionSettingsAsync())); }
         catch (e) { console.warn('Plan-of-record snapshot failed (non-fatal):', e); }
-        updateSetupBanners();
+        updateDraftLines();
         updateNextStepBanner();
         showToast((await planIsLocked()) ? 'Settings saved. The plan is locked again because entries are recorded against it.' : 'Settings saved. The plan stays a draft until you record a monthly entry or set up a tax year.', 'success', 4000);
         // Re-read + apply the lock (freezes the form, turns Save into the "Locked" pill).

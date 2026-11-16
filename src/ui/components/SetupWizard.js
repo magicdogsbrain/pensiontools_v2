@@ -322,7 +322,7 @@ function renderScenarioStep2() {
         <button type="button" class="wizard-tool-option" data-action="start-decision" style="text-align:left; width:100%; cursor:pointer;">
           <div class="wizard-tool-info">
             <strong>Decide this month's withdrawal</strong>
-            <p>"Where should I take money from this month?" Tax-efficient drawdown advice from your pots.</p>
+            <p>"Where should I take money from this month?" Works out which pot this month's money can come from, and the tax.</p>
           </div>
         </button>
 

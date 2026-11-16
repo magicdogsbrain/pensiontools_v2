@@ -33,6 +33,7 @@ import { statePensionInfoFor } from '../utils/StatePensionUtils.js';
 import { strategyOf } from './PlanFromSeed.js';
 import { spendingSmileFactor } from './SpendingModel.js';
 import { effectiveStressSettings } from './PlanReading.js';
+import { decisionSettingsAsRead } from './DraftDecision.js';
 import { strategyOverlayOf, ladderFromDocument, CONTRACT_IDS } from './DecisionOverlay.js';
 import { beforeOf, closedAtOf, BEFORE_KINDS } from './PlanClosed.js';
 import { pensionLockOf } from './PensionLock.js';
@@ -152,8 +153,9 @@ const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
  */
 export function monthInputsOf(plan, { now = new Date() } = {}) {
   const dt = (plan && plan.decisionTool) || {};
-  const settings = settingsAsLoaded(isObj(dt.settings) ? dt.settings : {});
   const stressSettings = effectiveStressSettings(plan, { now });
+  // an unlocked plan's Decision settings are its Stress settings' (7.12.0, DraftDecision.js); a locked plan's as stored
+  const settings = settingsAsLoaded(plan ? decisionSettingsAsRead(plan, { now, stress: stressSettings }) : (isObj(dt.settings) ? dt.settings : {}));
   const strategy = strategyOf(plan, now.toISOString());
   const history = [...(Array.isArray(dt.history) ? dt.history : [])].sort((a, b) => String(a.date).localeCompare(String(b.date)));
   const taxYears = isObj(dt.taxYears) ? clone(dt.taxYears) : {};

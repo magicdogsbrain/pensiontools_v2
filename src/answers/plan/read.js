@@ -59,6 +59,7 @@ export function lockedLastsWords(doc, a, dp, weighted = SUCCESS.weighted) {
 const planToAgeOfDoc = (dp) => planToAgeOf(+(dp && dp.startAge) || 0, +(dp && dp.durationYears) || 0);
 import { unlockPatchesOf } from '../../services/PlanCommit.js';
 import { checkInState, checkInsOf } from './checkInDue.js';
+import { saverInputsOf } from './saverInputs.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
 import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
@@ -444,7 +445,7 @@ function whereStep(C) {
 }
 
 /** The income steps as the plan has them: the document's (locked), else the effective settings'. */
-function incomeSteps(plan, ss, locked, now = new Date()) {
+function incomeSteps(plan, ss, locked, now) {
   if (locked && plan.planDocument && Array.isArray(plan.planDocument.steps) && plan.planDocument.steps.length) return plan.planDocument.steps.map((s) => ({ fromAge: +s.fromAge, amount: r0(s.amount), taxYear: s.taxYear || null, decline: +s.decline || 0, glideToNext: !!s.glideToNext }));
   const ageNow = num(ss.shapeAgeNow) || null;
   if (ss.incomeShape === 'phases' && Array.isArray(ss.incomeSteps) && ss.incomeSteps.length) {
@@ -480,6 +481,20 @@ function atStopLine(par, { locked, lockedAt, figures, src }) {
       ', your own figure. It does not follow your pot or what you pay in. You can clear it on “Your pots and tax”'], figures, src, { kind: 'typed' });
   }
   return line('pots.atStop', [money('parSipp'), ' pension, ', money('parIsa'), ' ISA'], figures, src);
+}
+
+/**
+ * Whether the plan still asks what its last check-in tested (7.12.0): the stop age and the aim a month the check-in's
+ * reading kept (`tested`). A reading from before 7.12.0 kept none: read as still tested, as before.
+ */
+function stillTested(plan, now) {
+  const list = checkInsOf(plan);
+  const last = list.length ? list[list.length - 1] : null;
+  const t = last && last.reading && last.reading.tested;
+  if (!t || typeof t !== 'object') return true;
+  let read = null; try { read = saverInputsOf(plan, { today: localDay(now) }); } catch { read = null; }
+  if (!read || !read.ok) return true;
+  return read.notes.stopAge === t.stopAge && read.notes.aimMonthly === t.aim;
 }
 
 /** Your plan (2.3 `plan`): the settings as sections, from the document when locked. */
@@ -1142,6 +1157,9 @@ export function planPage(entries, id, stepId, { today, source = 'account' } = {}
   const agreedMoving = phase === 'moving' && !!life && life.by === 'agreement';
   let reviewDue = null; try { reviewDue = reviewDueOf(plan, { now, phase, locked, closing, agreed: agreedMoving, checkIn }); } catch { reviewDue = null; }
   let offCourse = null; try { offCourse = offCourseOf(plan, { phase, closing, agreed: agreedMoving, checkIns: phase === 'saving' ? checkInsOf(plan) : [] }); } catch { offCourse = null; }
+  // (7.12.0) a saver's "past your line" is said only while the plan still asks what the last check-in tested: once the stop
+  // or the aim has changed, the home's own answer is the truth
+  if (offCourse && offCourse.off && phase === 'saving' && !stillTested(plan, now)) offCourse = { ...offCourse, off: false };
   const C = { plan, entries: list, now, ss, ds, stage, locked, readonly, mon: thisMonth(now), ty, tyKey: taxYearKey(ty), source, life, mv, held, startLater, startDraft, reviewDue, offCourse };
   // how far the stop is, for what a saver keeps "For later" (steps.js laterFor): months to the stop month, in years
   const yearsToStop = Number.isFinite(stage.monthsToStart) && stage.timingMode === 'future' ? stage.monthsToStart / 12 : (Number.isFinite(stage.yearsToStart) ? stage.yearsToStart : null);

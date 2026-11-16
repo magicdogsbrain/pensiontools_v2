@@ -63,7 +63,7 @@ describe('the document\'s run in the preview equals the planner\'s document, to 
     const p = planFromSettings(s, createSimulationConfigFromSettings({}, s, now), { yieldForYear: realYieldForYear, essentialsAnnual: ess, startAge: +s.shapeAgeNow || 57, now });
     const r = stressTestStrategy(sid, p);
     const accumulation = (plan.accumulationTool && plan.accumulationTool.settings) || {};
-    const savingPath = await savingPathForLock({ settings: s, accumulation, holdings: documentHoldingsOf(plan), now });
+    const savingPath = await savingPathForLock({ settings: s, accumulation, holdings: documentHoldingsOf(plan), now, plan });
     // (7.8.0: the definition it is tested under, as index.html works it out from the live result: documentSuccessOf)
     const success = documentSuccessOf(plan, { settings: s, strategyId: sid, p, r, now, essentials: ess });
     return buildPlanDocument({ planName: plan.planDetails.name || 'My plan', holdings: documentHoldingsOf(plan), settings: s, p, r, lockedAt, lockedBy, budgetGross, essentials, journey: plan.journey || [], accumulation, now, savingPath, success });

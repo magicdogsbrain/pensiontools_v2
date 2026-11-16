@@ -830,7 +830,7 @@
                     }
                   }
                 ],
-                "place": "settings",
+                "place": "allocation",
                 "sub": "mix",
                 "href": "#/plan/AlexCouple06/mix",
                 "lockedButton": "tryMix"
@@ -1413,9 +1413,7 @@
                 "slots": {}
               }
             ],
-            "notes": [
-              "move.optional"
-            ]
+            "notes": []
           },
           {
             "id": "household",

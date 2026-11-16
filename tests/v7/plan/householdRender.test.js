@@ -123,7 +123,7 @@ describe('the partner\'s plan (6) and the link', () => {
     expect(one(root, `${T}.budget.share`).textContent).toBe('Share this plan’s budget with ‘Sam’s plan’');
     expect(one(root, `${T}.whoPays.open`).textContent).toBe(HOUSEHOLD.whoPays.open);
     expect(one(root, 'plan.household.budget.shared.yes')).toBe(null);
-    expect(one(root, `${T}.budget.question`).textContent).toBe(HOUSEHOLD.budget.separateQuestion);
+    expect(one(root, `${T}.budget.question`)).toBe(null);   // 7.12.0: the lead offers keeping money separate; no second heading
     // the check asks the runner, with no limit chosen (the default, household-draw-split.md 9.2) and no need typed
     one(root, `${T}.check`).click();
     expect(actions.pop()).toMatchObject({ type: 'household/run', limit: null, need: null });
@@ -157,7 +157,7 @@ describe('the pooled verdict first (2.10), each plan alone second', () => {
     const r = s.household.result;
     const share = r.own.combined.pooled.success;
     expect(one(root, `${T}.result`).getAttribute('data-head')).toBe(share >= 0.9 ? 'yes' : share >= 0.7 ? 'close' : 'no');
-    expect(one(root, `${T}.headline`).textContent).toMatch(/^(On course together|Not on course yet, together|At risk, together): The household’s money lasts in .* futures out of 10\.$/);
+    expect(one(root, `${T}.headline`).textContent).toMatch(/^(On course together|Not on course yet, together|At risk, together)\. The household’s money lasts in .* futures out of 10\.$/);
     expect(one(root, `${T}.pooled`).textContent).toBe(HOUSEHOLD.verdict.pooled);
     expect(all(root, `[data-testid="${T}.rows"] tr`).map((tr) => tr.getAttribute('data-row'))).toEqual(['household', 'a', 'b', 'both']);
     expect(root.querySelector(`[data-testid="${T}.rows"] tr[data-row="a"] th`).textContent).toBe('Alex’s plan’s plan on its own');
@@ -175,7 +175,7 @@ describe('the pooled verdict first (2.10), each plan alone second', () => {
     expect(one(root, `${T}.split`).getAttribute('data-applies')).toBe('0');
     expect(one(root, `${T}.split.none`).textContent).toBe(s.household.result.split.unchanged ? HOUSEHOLD.split.unchanged : HOUSEHOLD.split.none);
     expect(one(root, `${T}.use`)).toBe(null);
-    expect(one(root, 'plan.household.limit.kind.none')).not.toBe(null);
+    expect(one(root, 'plan.household.limit.kind.none')).toBe(null);   // 7.12.0: nothing would move under any limit, so no limit is offered
     // no baseline line when the split does not apply (it could be a year only one plan draws, and "the only question" is moot); no fast line when the fast count saves nothing
     expect(one(root, `${T}.split.baseline`)).toBe(null);
     expect(one(root, `${T}.split.fast`)).toBe(null);
@@ -225,11 +225,11 @@ describe('the pooled verdict first (2.10), each plan alone second', () => {
     expect(one(typed.root, `${T}.stale`)).not.toBe(null);
     one(typed.root, `${T}.rerun`).click();
     expect(typed.actions.pop()).toMatchObject({ type: 'household/run', limit: null, need: 40000 });
-    const fast = further(ran, { type: A.PLAN_EDIT, planId: 'AlexCouple06', path: 'limit.kind', value: 'fast' });
+    const fast = further(load('household-split'), { type: A.PLAN_EDIT, planId: 'AlexCouple06', path: 'limit.kind', value: 'fast' });   // the limit is offered where the split applies
     expect(one(fast.root, 'plan.household.limit.kind.fast').checked).toBe(true);
     one(fast.root, `${T}.rerun`).click();
     expect(fast.actions.pop()).toMatchObject({ type: 'household/run', limit: { kind: 'none' }, need: null });
-    expect(fast.root.querySelector('label[for="plan.household.limit.kind.none"]').textContent).toBe('Keep it until the State Pension starts (the usual)');
+    expect(fast.root.querySelector('label[for="plan.household.limit.kind.none"]').textContent).toBe('Keep it until the State Pension starts');
     expect(fast.root.querySelector('label[for="plan.household.limit.kind.fast"]').textContent).toBe('Draw it faster: no limit');
     const wrong = further(ran, { type: A.PLAN_EDIT, planId: 'AlexCouple06', path: 'need.amount', value: 'lots' }, { type: A.PLAN_TOUCH, planId: 'AlexCouple06', path: 'need.amount' });
     expect(wrong.root.querySelector('[data-error-for="plan.household.need.amount"]').textContent).toBe(HOUSEHOLD.errors['need.amount'].notANumber);
@@ -360,9 +360,9 @@ describe('the survivor and care questions in ages (2.10)', () => {
     const s = load('household-questions');
     const { root, text, actions } = draw(s);
     const sv = s.household.survivor.result, ca = s.household.care.result;
-    expect(one(root, `${T}.survivor.headline`).textContent).toMatch(/^If Alex’s plan died at 74, Sam’s plan’s plan lasts in .* with a middling inheritance, and in .* with a bad-case one \(the worst 1 in 10\)\.$/);
-    expect(root.querySelector('[data-line="survivor.inherit"]').textContent).toContain(`Sam’s plan inherits ${pounds(sv.inherited.middling.total)} in a middling case, ${pounds(sv.inherited.bad.total)} in a bad case (the worst 1 in 10), at today’s prices — what Alex’s plan’s plan (Pots & Valves) has left then.`);
-    expect(root.querySelector('[data-line="survivor.spend"]').textContent).toBe(`Sam’s plan then spends ${pounds(sv.spending.gross)} a year before tax (${pounds(sv.spending.net)} after tax), at today’s prices — 70% of what you both spend after tax.`);
+    expect(one(root, `${T}.survivor.headline`).textContent).toMatch(new RegExp('^If Alex’s plan died at 74, Sam’s plan’s plan lasts in .*, tested until Sam’s plan is ' + sv.has.toAge + '\\. With a bad-case inheritance \\(the worst 1 in 10\\): in .*\\.$'));
+    expect(root.querySelector('[data-line="survivor.inherit"]').textContent).toBe(`From Alex’s plan’s plan: ${pounds(sv.inherited.middling.total)} in a middling case, ${pounds(sv.inherited.bad.total)} in a bad case.`);
+    expect(root.querySelector('[data-line="survivor.spend"]').textContent).toBe(`What Sam’s plan would spend: ${pounds(sv.spending.net)} a year after tax (${pounds(sv.spending.gross)} before tax). That is 70% of what you both spend after tax now.`);
     expect(one(root, `${T}.survivor.ran`).textContent).toBe('Tried in 3 runs (2.1 s).');
     expect(one(root, `${T}.care.headline`).textContent).toBe(`With Alex’s plan needing care from 79 for 3 years (£90,000 a year after tax, ${pounds(ca.totalCareCost)} in all, at today’s prices): the household’s money lasts ${s.plans.view.page.household.care.result.withWords} — ${s.plans.view.page.household.care.result.withoutWords} without care.`);
     expect(root.querySelector('[data-line="care.both"]').textContent).toContain('Both plans each lasting on its own:');

@@ -1,5 +1,7 @@
 /**
- * Road step 11b's rows on the existing steps, worked out in Node for "screen equals engine" (research/v7/road-to-7.md step
+ * Road step 11b's rows on the existing steps, worked out in Node to check that the screen shows what the engine returned
+ * (which proves the screen follows the engine, not that either is right: the scenario tests, e2e/scenarios/, work the
+ * right figure out by hand) (research/v7/road-to-7.md step
  * 11b): the same pure readers and writers the pages and the one write file use — about.js staleOf, stalePatch and aboutPatch
  * (the out-of-date draft), income.js incomePatch and the lump sums' landing, spend.js spendOf's lumps and spendPatch — on a
  * plan brought up to date in memory exactly as the plan source does it, in a child process of plain Node.

@@ -1,5 +1,7 @@
 /**
- * "Does it last?" worked out in Node, for "screen equals engine" (research/v7/editing-in-v7.md 10.6, L7): the same
+ * "Does it last?" worked out in Node, to check that the screen shows what the engine returned
+ * (which proves the screen follows the engine, not that either is right: the scenario tests, e2e/scenarios/, work the
+ * right figure out by hand) (research/v7/editing-in-v7.md 10.6, L7): the same
  * lazily-loaded module the V7 worker runs (src/answers/plan/lastsRun.js), on a plan brought up to date in memory exactly
  * as the plan source does it (scenarioMigration.upgradeScenario at noon of the day), in a child process of plain Node so
  * the code is loaded as the ordinary test suite loads it.

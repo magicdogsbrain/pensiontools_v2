@@ -1,0 +1,4 @@
+{
+  "note": "Questions an area chose not to answer in this release: each scenario listed runs under test.fail(). The list may only shrink from one release to the next (tests/scenarioRules.test.js compares it with the copy at the last tag).",
+  "unanswered": []
+}

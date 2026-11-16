@@ -23,7 +23,8 @@ export default class ScenarioReporter {
     const failure = (test.annotations.find((a) => a.type === 'failure') || result.annotations?.find?.((a) => a.type === 'failure') || {}).description
       || (result.status !== 'passed' && result.error ? String(result.error.message || '').split('\n')[0] : null);
     const list = this.results.get(s) || [];
-    list.push({ project: test.parent.project()?.name || '', title: test.title, status: result.status, expected: test.expectedStatus, ms: result.duration, failure });
+    const reason = (test.annotations.find((a) => a.type === 'fixme' || a.type === 'skip') || {}).description || null;
+    list.push({ project: test.parent.project()?.name || '', title: test.title, status: result.status, expected: test.expectedStatus, ms: result.duration, failure, reason });
     this.results.set(s, list);
   }
 
@@ -32,6 +33,8 @@ export default class ScenarioReporter {
     const runs = this.results.get(s);
     if (!runs) return null;
     const bad = runs.find((r) => (r.expected === 'failed' ? r.status === 'passed' : r.status !== 'passed' && r.status !== 'skipped'));
+    // a skipped run is never an answer
+    if (runs.every((r) => r.status === 'skipped')) return `not run (${runs[0].reason || 'marked not walked yet'})`;
     if (bad) return bad.expected === 'failed' ? `passed although listed as unanswered (${bad.project}): take it off known-unanswered.json` : `${bad.failure || bad.status} (${bad.project})`;
     if (runs.some((r) => r.expected === 'failed')) return 'not answered yet, as listed in known-unanswered.json';
     return 'answered';

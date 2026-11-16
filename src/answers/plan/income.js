@@ -28,6 +28,7 @@ import { get, applyPatch, safeSettings, safeTiming } from './about.js';
 import { INCOME_FIELDS, INCOME_LISTS, INCOME_LIST_IDS, INCOME_WRITES, RISES, WRAPPERS, isCardId } from './schema.js';
 import { dateOf, dayWords, localDay } from './dates.js';
 import { partnersOf } from '../../services/HouseholdLink.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 export { applyPatch };
 
@@ -36,7 +37,8 @@ const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -469,11 +471,11 @@ export function incomeOf(entries, id, { today, typed = null } = {}) {
   const derived = derivedLines(facts);
   const sid = (plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.id) || saved.ss.strategyId || 'pots-and-valves';
   // the plans linked with this one, either way, never a closed one (services/HouseholdLink.js, 7.12.0)
-  const partners = partnersOf(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
+  const partners = partnersOf(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan, today) }));
   const p = editable && c.ok ? incomePatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
   const spSlot = facts.sp.kind === 'none' ? { sp: 'none' } : facts.sp.kind === 'assumed' ? { sp: 'assumed', yearly: pounds(facts.sp.yearly), age: facts.sp.fromAge } : facts.sp.fromAge != null ? { sp: 'paid', yearly: pounds(facts.sp.yearly), age: facts.sp.fromAge } : { sp: 'paidNoAge', yearly: pounds(facts.sp.yearly) };
   return {
-    found: true, id: String(plan.id), name: nameOf(plan), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable,
+    found: true, id: String(plan.id), name: nameOf(plan, today), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable,
     source: saved.source, ageNow: saved.ageNow, ageToday: saved.ageToday, endAge: saved.endAge,
     fullYearly: pounds(RULES.fullStatePensionWeekly * 52),
     spSaved: { kind: saved.sp.kind, weekly: saved.sp.weekly == null ? null : poundsPence(saved.sp.weekly), yearly: pounds(saved.sp.yearly), age: saved.sp.fromAge, dateWords: saved.sp.dateWords },

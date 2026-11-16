@@ -30,6 +30,7 @@ import { ABOUT_FIELDS, ABOUT_WRITES, MIN_YEARS } from './schema.js';
 import { dateOf, dayWords, monthWords, localDay, localMonth, MONTHS } from './dates.js';
 import { partnersOf } from '../../services/HouseholdLink.js';
 import { planToAgeOf } from '../../services/AgeConvention.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
@@ -54,7 +55,8 @@ const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 
@@ -609,7 +611,7 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
   const derived = later ? [{ id: later.stopMonth ? 'laterStop' : 'laterNow', slots: { year: taxYearLabel(later.to) } }, ...derived0] : derived0;
   const sid = (plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.id) || saved.ss.strategyId || 'pots-and-valves';
   // the plans linked with this one, either way, never a closed one (services/HouseholdLink.js, 7.12.0)
-  const partners = partnersOf(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
+  const partners = partnersOf(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan, today) }));
   let suggestion = null;
   if (c.values.age != null) {
     // 7.8.0: not said reads the women's figures (LongevityModel.sexKey), as every weighted figure does
@@ -633,7 +635,7 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
     }
   }
   return {
-    found: true, id: String(plan.id), name: nameOf(plan), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable, stale, lockedStart,
+    found: true, id: String(plan.id), name: nameOf(plan, today), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable, stale, lockedStart,
     source: saved.source, ageSource: saved.ageSource, thisTY: saved.thisTY, yearNow: taxYearLabel(saved.thisTY),
     yearSaved: saved.values.savedYear ? taxYearLabel(saved.values.savedYear) : null, yearSavedIsSet: saved.savedYearIsSet,
     // the tax year work stopped in, for the 'stop' choice (as typed, else as saved), and each 'y<YYYY>' choice's year in words

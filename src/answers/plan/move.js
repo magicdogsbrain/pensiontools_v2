@@ -46,6 +46,7 @@ import { gapsOf, gapsView } from './gaps.js';
 import { heldLadder, heldLadderView } from './held.js';
 import { planPage, reviewHrefOf } from './read.js';
 import { moveStatusOf, payingOf, outsideRowsOf, moveTotalsOf, paceOf, cashRowsOf } from './moveWords.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 export { runKeyOf, APPROACHING_YEARS, moveStatusOf };
 
@@ -55,7 +56,8 @@ const r0 = (v) => Math.round(+v || 0);
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const safeStage = (plan, now) => { try { return planStage(plan, { now }); } catch { return { key: 'unknown', firstTaxYear: null, startMonth: null, yearsToStart: 0 }; } };
 const safeSettings = (plan, now) => { try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && isObj(plan.stressTool.settings)) ? plan.stressTool.settings : {}; } };
 /**
@@ -97,7 +99,7 @@ export function savedMove(plan, { today, index = null }) {
   const ss = safeSettings(plan, now);
   const rec = normaliseHoldings(plan && plan.holdings);
   const strategyId = (doc && doc.strategy && doc.strategy.id) || ss.strategyId || 'pots-and-valves';
-  const base = { locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, name: nameOf(plan), stage, waiting: waitingOf(plan, stage), opensAt: opensAtOf(plan, stage, now), strategyId, ladder: CONTRACT_STRATEGIES.includes(strategyId), family: FAMILY.includes(strategyId), record: rec, now, ss };
+  const base = { locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, name: nameOf(plan, today), stage, waiting: waitingOf(plan, stage), opensAt: opensAtOf(plan, stage, now), strategyId, ladder: CONTRACT_STRATEGIES.includes(strategyId), family: FAMILY.includes(strategyId), record: rec, now, ss };
   if (!doc) return { ...base, hasDocument: false, m: null, seq: null, sheet: [], watch: null, spGate: null, own: null };
   let m = null; try { m = moveInputs(plan, { now }); } catch { m = null; }
   if (!m || !m.target || m.target.kind === 'none') return { ...base, hasDocument: true, m: null, seq: null, sheet: [], watch: null, spGate: null, own: null };

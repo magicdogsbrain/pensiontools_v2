@@ -24,13 +24,15 @@ import { SAVING_WRITES } from './schema.js';
 import { get } from './about.js';
 import { pounds } from './income.js';
 import { dateOf } from './dates.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const round2 = (n) => Math.round(n * 100) / 100;
 const pctText = (v) => String(Math.round((+v || 0) * 10) / 10);
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 
 /** The settings as the planner reads them: a key left out is £0 (the scheme, relief at source), so adding it as £0 changes nothing. */
 const valueOf = (o, k) => (isObj(o) && o[k] !== undefined && o[k] !== null ? o[k] : k === 'schemeType' ? 'ras' : 0);
@@ -73,7 +75,7 @@ export function answerInPlanPatch(plan, result, { today, payIn = 'now' } = {}) {
   if (!a.ok) return { ok: false, problem: a.problem };
   const next = settingsFromCheckIn(plan, { pay: a.pay, payIn: a.payIn }, today);
   const cur = get(plan, 'accumulationTool.settings');
-  const slots = { name: nameOf(plan), payIn: payInWords(a), savings: a.payIn.savingsIn > 0 ? pounds(Math.round(a.payIn.savingsIn)) : '' };
+  const slots = { name: nameOf(plan, today), payIn: payInWords(a), savings: a.payIn.savingsIn > 0 ? pounds(Math.round(a.payIn.savingsIn)) : '' };
   if (sameSettings(cur, next)) return { ok: true, patch: {}, previous: {}, line: { id: 'usedSame', slots } };
   const patch = { 'accumulationTool.settings': next };
   for (const k of Object.keys(patch)) if (!SAVING_WRITES.includes(k)) throw new Error('useAnswer: "' + k + '" is not a declared field path');

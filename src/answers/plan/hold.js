@@ -39,6 +39,7 @@ import { HOLD_FIELDS, HOLD_WRITES, HOLD_WRAPPERS, HOLD_WHATS, HOLD_KEEP_AS } fro
 import { SAVER_STAGES } from './steps.js';
 import { dateOf, dayWords, monthWords, MONTHS } from './dates.js';
 import { isClosedPlan, closedReading } from '../../services/PlanClosed.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
@@ -47,7 +48,8 @@ const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v))
 const r0 = (v) => Math.round(+v || 0);
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const safeStage = (plan, now) => { try { return planStage(plan, { now }); } catch { return { key: 'unknown' }; } };
 /** The plan document's order sheet, for matching a gilt typed or pasted by its code, SEDOL or year (matchRows). */
 const ordersOf = (plan) => { const o = plan && plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.r && plan.planDocument.strategy.r.plan && plan.planDocument.strategy.r.plan.orders; return Array.isArray(o) ? o : []; };
@@ -84,7 +86,7 @@ export function savedHold(plan, { today }) {
   const snap = isLocked(plan) && plan.planDocument && isObj(plan.planDocument.holdingsAtLock) ? plan.planDocument.holdingsAtLock : null;
   const atLock = snap ? { summary: holdingsSummary(normaliseHoldings({ lines: snap.lines })), updatedAt: snap.updatedAt || null, lockedOn: dayWords(lockedAtOf(plan)) } : null;
   return {
-    locked: isLocked(plan), lockedOn: isLocked(plan) ? dayWords(lockedAtOf(plan)) : null, name: nameOf(plan),
+    locked: isLocked(plan), lockedOn: isLocked(plan) ? dayWords(lockedAtOf(plan)) : null, name: nameOf(plan, today),
     record: rec, summary: sum, groups: linesByWrapper(rec), proportions: p, atLock,
     stage, saver: SAVER_STAGES.includes(stage.key), orders: ordersOf(plan), now
   };

@@ -24,6 +24,7 @@ import { isBought } from './pots.js';
 import { verdictWord, CONTRACT, FAMILY, runKeyOf } from './lasts.js';
 import { WAY_IDS, WAY_DIALS, WAY_WRITES, RANK_BYS } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 export { applyPatch, runKeyOf };
 
@@ -32,7 +33,8 @@ const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 const r0 = (v) => Math.round(+v || 0);
@@ -109,7 +111,7 @@ export function wayOf(entries, id, { today } = {}) {
   const docR = doc && doc.strategy && isObj(doc.strategy.r) && doc.strategy.r.affordable && doc.strategy.r.ruin ? doc.strategy.r : null;
   const docShare = docR ? Math.max(0, Math.min(1, (100 - (+docR.ruin.mc || 0)) / 100)) : null;
   return {
-    found: true, id: String(plan.id), name: nameOf(plan), locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, readonly, editable: !locked && !readonly,
+    found: true, id: String(plan.id), name: nameOf(plan, today), locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, readonly, editable: !locked && !readonly,
     source: locked ? { kind: 'locked', at: dayWords(lockedAtOf(plan)) } : { kind: 'saved', at: plan.lastModified ? dayWords(plan.lastModified) : null },
     strategyId, docStrategyId, bought: isBought(strategyId), family: FAMILY.includes(strategyId),
     endAge: (num(timing.shapeAgeNow) || 57) + (num(ss.duration) || 35),   // "to 97" = to the 97th birthday (rules.js planToAgeOf)

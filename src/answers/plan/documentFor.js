@@ -12,12 +12,14 @@ import { buildPlanDocument } from '../../services/PlanDocument.js';
 import { budgetSharedFromOf, sharedBudgetView } from '../../services/PlanCommit.js';
 import { summariseBudget, grossUpAnnual, defaultBudget } from '../../services/BudgetModel.js';
 import { normaliseHoldings, emptyHoldings } from '../../services/HoldingsRecord.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 /** How many past versions an archive keeps (ScenarioRepository.archivePlanDocument / archivePlanOfRecord: the last nine kept plus the one archived). */
 export const ARCHIVE_KEEP = 10;
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 /** What the planner hands the document builder (ScenarioRepository.getActiveAccumulation, getActiveHoldings). */
 const accumulationOf = (plan) => (plan && plan.accumulationTool && plan.accumulationTool.settings) || {};
 const holdingsOf = (plan) => (plan && plan.holdings && typeof plan.holdings === 'object' ? normaliseHoldings(plan.holdings) : emptyHoldings());
@@ -48,7 +50,7 @@ export function documentFor(plan, { now, run, entries, lockedAt, lockedBy }) {
   const settings = effectiveStressSettings(plan, { now });
   const refs = shapeRefsOf(plan, entries);
   return buildPlanDocument({
-    planName: nameOf(plan) || 'My plan',
+    planName: nameOf(plan, now) || 'My plan',
     holdings: holdingsOf(plan),
     settings,
     p: run.p, r: run.r,

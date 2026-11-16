@@ -34,11 +34,13 @@ import { dateOf, monthWords, monthName, localMonth } from './dates.js';
 import { partnerOf } from './household.js';
 import { firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
 import { pounds } from './income.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const YM = /^\d{4}-\d{2}$/;
 /** The money a box holds: whole pounds as typed ('£250,000' reads 250000); null when blank; NaN when not a number. */
 const money = (v) => { if (blank(v)) return null; const n = +String(v).replace(/[£,\s]/g, ''); return Number.isFinite(n) ? n : NaN; };
@@ -379,7 +381,7 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
     fillOn, advice: adviceOf(shown), preview: !setUpDone && !!shown, recalc,
     stopped: result && result.stopped ? { month: monthWords(result.stopped), year: yearWords(getTaxYearFromDate(result.stopped)), written: result.records.length, april: monthWords(aprilOf(getTaxYearFromDate(result.stopped))) } : null,
     write: ok ? { history: result.history, taxYears: result.taxYears, records: result.records, filled: result.filled, stopped: result.stopped } : null,
-    partner: partner ? { id: String(partner.plan.id), name: nameOf(partner.plan) } : null,
+    partner: partner ? { id: String(partner.plan.id), name: nameOf(partner.plan, today) } : null,
     ok, I, firstDecision: first, decision: shown
   };
 }
@@ -398,7 +400,7 @@ export function monthOf(entries, id, { today, typed = null, source = 'account' }
   const readonly = !!(entry.newer || entry.failed);
   const example = isExamplePlan(plan);
   let R;
-  try { R = readMonth(plan, typed || {}, { today, entries: list }); } catch (e) { return { found: true, id: String(plan.id), name: nameOf(plan), readonly, source, failed: true, editable: false }; }
+  try { R = readMonth(plan, typed || {}, { today, entries: list }); } catch (e) { return { found: true, id: String(plan.id), name: nameOf(plan, today), readonly, source, failed: true, editable: false }; }
   const { I, write, firstDecision, decision, ...rest } = R;
   const needsLock = !R.locked && !R.closed;
   // "Keep a record of each month here" (7.10.0): the person's own answer, and whether the home asks for months
@@ -406,7 +408,7 @@ export function monthOf(entries, id, { today, typed = null, source = 'account' }
   const dt = isObj(plan.decisionTool) ? plan.decisionTool : {};
   const recordMonths = dt.recordMonths === true ? 'yes' : dt.recordMonths === false ? 'no' : null;
   return {
-    found: true, id: String(plan.id), name: nameOf(plan), readonly, example, source, needsLock,
+    found: true, id: String(plan.id), name: nameOf(plan, today), readonly, example, source, needsLock,
     editable: !readonly && !example && !needsLock && !R.nothing,
     recordMonths, monthsWanted: monthsWanted(dt), recordChoice: !readonly && !example,
     ...rest,

@@ -28,6 +28,7 @@ import { pounds } from './income.js';
 import { POTS_FIELDS, POTS_WRITES } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
 import { partnersOf } from '../../services/HouseholdLink.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 export { applyPatch };
 
@@ -38,7 +39,8 @@ const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 const r0 = (v) => Math.round(+v || 0);
@@ -369,10 +371,10 @@ export function potsOf(entries, id, { today, typed = null } = {}) {
   if (saved.locked && !saved.hasChargesKey) useNotes.charges = 'chargesLocked';
   if (saved.locked && !saved.hasIsaGrowthKey && !saved.isaFunds) useNotes.isaGrowth = 'isaGrowthLocked';
   // the plans linked with this one, either way, never a closed one (services/HouseholdLink.js, 7.12.0)
-  const partners = partnersOf(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
+  const partners = partnersOf(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan, today) }));
   const p = editable && c.ok ? potsPatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
   return {
-    found: true, id: String(plan.id), name: nameOf(plan), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable,
+    found: true, id: String(plan.id), name: nameOf(plan, today), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable,
     source: saved.source, later: saved.later, bought: saved.bought, fundsMode: saved.fundsMode,
     fields, errors: c.errors, ok: c.ok, derived, notUsed: notUsedBy(saved.strategyId), useNotes, partners,
     changed: Object.keys(p.patch).length > 0, patch: p.patch, previous: p.previous,

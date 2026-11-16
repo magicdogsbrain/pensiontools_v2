@@ -40,6 +40,7 @@ import { HOUSEHOLD_FIELDS, HOUSEHOLD_WRITES, PAID_BYS, LATER_DRAFT_WRITES } from
 import { laterDraftPatch } from './moveStart.js';
 import { dateOf, dayWords } from './dates.js';
 import { planEndAgeOf } from '../../services/PlanTiming.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 export { runKeyOf };
 
@@ -48,7 +49,8 @@ const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 const r0 = (v) => Math.round(+v || 0);
@@ -76,7 +78,7 @@ export function ageNowOf(ss, now) {
 export function savedHousehold(plan, partner, { today }) {
   const now = dateOf(today);
   const ssA = safeSettings(plan, now), ssB = partner ? safeSettings(partner, now) : null;
-  const names = { a: nameOf(plan) || 'You', b: partner ? (nameOf(partner) || 'Partner') : 'Partner' };
+  const names = { a: nameOf(plan, today) || 'You', b: partner ? (nameOf(partner, today) || 'Partner') : 'Partner' };
   const mode = partner ? splitWriteMode(plan, partner, names) : { mode: 'write', locked: [] };
   const budget = {
     from: budgetSharedFromOf(plan),                                     // this plan reads the household's budget from that plan
@@ -272,7 +274,7 @@ export function splitPatches(plan, partner, split, { today, copyNames = null } =
   if (!split || !split.applies || !split.schedules || !split.steps) return { ok: false, errors: { split: 'none' }, mode: null };
   const sA = safeSettings(plan, now), sB = safeSettings(partner, now);
   const settings = { a: settingsWithSchedule(sA, split.schedules.together.a, split.steps.a), b: settingsWithSchedule(sB, split.schedules.together.b, split.steps.b) };
-  const names = split.names || { a: nameOf(plan) || 'You', b: nameOf(partner) || 'Partner' };
+  const names = split.names || { a: nameOf(plan, today) || 'You', b: nameOf(partner, today) || 'Partner' };
   const { mode } = splitWriteMode(plan, partner, names);
   const changes = ['a', 'b'].map((k) => {
     const p = k === 'a' ? plan : partner;
@@ -490,7 +492,7 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
   const mine = partnerIdOf(plan);
   const missing = !!mine && !list.some((e) => String(e.plan.id) === String(mine));
   // the one rule both apps pick by (PlanClosed.partnerCandidates): never itself, a closed plan, or its own previous or next plan
-  const candidates = partnerCandidates(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan), locked: isLocked(e.plan) }));
+  const candidates = partnerCandidates(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan, today), locked: isLocked(e.plan) }));
   const c = checkHousehold(plan, partner, typed || {}, { today });
   const fields = HOUSEHOLD_FIELDS.map((f) => ({
     path: f.path, type: f.type, options: f.type === 'choice' ? f.options : null, applies: c.applies[f.path] !== false,

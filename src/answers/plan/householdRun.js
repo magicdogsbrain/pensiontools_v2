@@ -31,9 +31,11 @@ import { householdDrawSplit, comparisonFigures } from '../../services/HouseholdD
 import { planFor } from './lastsRun.js';
 import { ageNowOf } from './household.js';
 import { dateOf } from './dates.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 const plain = (v) => JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'function' ? undefined : (typeof x === 'number' && !Number.isFinite(x)) ? null : x)));
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0). */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const configured = (plan) => !!(plan && plan.stressTool && isObj(plan.stressTool.settings) && plan.stressTool.settings.configured);
 
@@ -41,7 +43,7 @@ const configured = (plan) => !!(plan && plan.stressTool && isObj(plan.stressTool
 const testOf = (now) => (settings, cfg, strategyId) => { void cfg; const p = planFor(settings, now); return { r: stressTestStrategy(strategyId, p), p }; };
 const idOf = (s) => (s && s.strategyId) || 'pots-and-valves';
 const settingsOf = (plan, partner, now) => ({ a: effectiveStressSettings(plan, { now }), b: effectiveStressSettings(partner, { now }) });
-const namesOf = (plan, partner) => ({ a: nameOf(plan) || 'You', b: nameOf(partner) || 'Partner' });
+const namesOf = (plan, partner, now) => ({ a: nameOf(plan, now) || 'You', b: nameOf(partner, now) || 'Partner' });
 /** The planner's "years from now" from an age V7 asks: never before this year. */
 export const yearsFromAge = (age, ageNow) => Math.max(0, Math.round((+age || 0) - (ageNow == null ? +age || 0 : ageNow)));
 
@@ -61,7 +63,7 @@ function compactSplit(split) {
 export function runHousehold(plan, partner, { today, limit = null, need = null, onProgress = null } = {}) {
   const now = dateOf(today);
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
-  const names = namesOf(plan, partner);
+  const names = namesOf(plan, partner, now);
   // a household answer is never run on a plan's starting defaults: either plan with no figures saved is refused, by name (7.12.0)
   const unset = !configured(plan) ? 'a' : !configured(partner) ? 'b' : null;
   if (unset) return plain({ ok: false, reason: 'partnerNotSet', which: unset, names, basis: { today, engine: 'one-test', runs: 0 } });
@@ -91,7 +93,7 @@ export function runSurvivor(plan, partner, { today, who = 'a', atAge, spendPct =
   const now = dateOf(today);
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const s = settingsOf(plan, partner, now);
-  const names = namesOf(plan, partner);
+  const names = namesOf(plan, partner, now);
   const deceased = who === 'b' ? s.b : s.a, survivor = who === 'b' ? s.a : s.b;
   const deathYear = Math.max(1, yearsFromAge(atAge, ageNowOf(deceased, now)));
   let runs = 0;
@@ -111,7 +113,7 @@ export function runCare(plan, partner, { today, who = 'a', fromAge, years = 3, c
   const now = dateOf(today);
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const s = settingsOf(plan, partner, now);
-  const names = namesOf(plan, partner);
+  const names = namesOf(plan, partner, now);
   const cared = who === 'b' ? s.b : s.a;
   const startYear = yearsFromAge(fromAge, ageNowOf(cared, now));
   // each plan's draw need by plan year (the planner hands in its split's needs.own): the pooled verdict asks the other pot to cover it

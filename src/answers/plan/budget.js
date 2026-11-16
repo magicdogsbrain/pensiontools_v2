@@ -33,13 +33,15 @@ import { pounds } from './income.js';
 import { applyPatch } from './about.js';
 import { BUDGET_WRITES, BUDGET_PERIODS, BUDGET_TIERS, BUDGET_GROUPS, PAID_BYS } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
+import { shownPlanNameOn } from '../../services/PlanName.js';
 
 export { applyPatch };
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by (services/PlanName.js, 7.12.0): the person's own, else one that follows its present figures. */
+const nameOf = (plan, when) => shownPlanNameOn(plan, when);
 const r0 = (v) => Math.round(+v || 0);
 const r2 = (v) => Math.round((+v || 0) * 100) / 100;
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
@@ -74,9 +76,9 @@ export function savedBudget(plan, entries, { today }) {
   const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
   const read = readBudget(plan, list);
   const B = normalisedBudget(read.budget);
-  const readers = list.map((e) => e.plan).filter((p) => String(p.id) !== String(plan.id) && budgetSharedFromOf(p) === String(plan.id)).map((p) => ({ id: String(p.id), name: nameOf(p) }));
+  const readers = list.map((e) => e.plan).filter((p) => String(p.id) !== String(plan.id) && budgetSharedFromOf(p) === String(plan.id)).map((p) => ({ id: String(p.id), name: nameOf(p, today) }));
   const stamp = read.holder && read.holder.lastModified ? dayWords(read.holder.lastModified) : null;
-  return { budget: B, holder: read.holder, shared: read.shared, holderName: read.shared ? nameOf(read.holder) : null, readers, now, stampWords: stamp, thisYear: now.getFullYear() };
+  return { budget: B, holder: read.holder, shared: read.shared, holderName: read.shared ? nameOf(read.holder, today) : null, readers, now, stampWords: stamp, thisYear: now.getFullYear() };
 }
 
 // ---- the boxes ------------------------------------------------------------------------------------------------------------
@@ -395,7 +397,7 @@ export function budgetOf(entries, id, { today, typed = null, source = 'account' 
   const groups = BUDGET_GROUPS.map((tier) => ({ tier, lines: c.lines.filter((l) => l.tier === tier), monthly: pounds(c.lines.filter((l) => l.tier === tier && l.annual > 0).reduce((t, l) => t + l.annual, 0) / 12) }));
   const missing = missingSuggestions(B).map((m) => ({ label: m.label, hint: m.hint || '', tier: m.tier }));
   return {
-    found: true, id: String(plan.id), name: nameOf(plan), readonly, editable: !readonly, source,
+    found: true, id: String(plan.id), name: nameOf(plan, today), readonly, editable: !readonly, source,
     locked: !!(plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked),
     shared: s.shared, holderName: s.holderName, holderId: s.shared ? String(s.holder.id) : null, readers: s.readers, sharedWithPartner: !!B.sharedWithPartner,
     stampWords: s.stampWords,

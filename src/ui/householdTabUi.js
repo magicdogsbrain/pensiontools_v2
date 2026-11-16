@@ -19,10 +19,12 @@ import { theirLineOf } from '../answers/plan/read.js';
 import { entriesOf } from './homeBannerUi.js';
 import { HOUSEHOLD } from '../v7/copy/household.js';
 import { PLAN } from '../v7/copy/plan.js';
+import { shownPlanName } from '../services/PlanName.js';
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const fill = (text, slots) => String(text || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && plan.id != null ? String(plan.id) : '');
+/** The name a plan is shown by, as the simple view and the plan chip show it (services/PlanName.js, 7.12.0); its id when it has none. */
+const nameOf = (plan) => shownPlanName(plan) || (plan && plan.id != null ? String(plan.id) : '');
 
 /** The words under the picker: which plan holds the link, and the partner with their plan's phase. Pure. */
 export function householdTabLines(entries, plan, now) {

@@ -189,7 +189,7 @@ function bridgeSentence(result, facts, base, id) {
   const after = later && later.index === b.toIndex
     ? [...then, incomes, incomes.includes(' and ') || /Pensions/.test(incomes) ? ' are' : ' is', ' more than ', M(base === 'take.phases' ? 'take.perMonth' : 'levels.' + result.level + '.monthly'), ' a month, so nothing more is taken from ', potsPhrase(facts, to), '.']
     : to.finalSalary > 0
-      ? [...then, 'your State Pension and final-salary pension pay ', M(at + '.shown.statePension'), ' and ', M(at + '.shown.finalSalary'), ' of it.']
+      ? [...then, incomes, ' pay ', M(at + '.shown.statePension'), ' and ', M(at + '.shown.finalSalary'), ' of it.']
       : [...then, incomes, ' ', /Pensions/.test(incomes) ? 'pay ' : 'pays ', M(at + '.shown.statePension'), ' of it.'];
   return S(id, [...span, from, ': ', F(b.years), yearsWord(b.years), ', about ', F(money(b.total)), " at today's prices. ", ...after]);
 }

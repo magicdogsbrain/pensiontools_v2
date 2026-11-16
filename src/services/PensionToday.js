@@ -84,3 +84,16 @@ export function pensionTodayPatch(plan, value, { now = new Date(), settings = nu
   out['accumulationTool.history'] = hist.filter((r) => r.date !== month).concat([rec]).sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(-RECORDS_KEPT);
   return out;
 }
+
+/** Where a saving path's pension today came from, in the words a plan document keeps (SavingPath potSource). */
+const PATH_SOURCE = { checkIn: 'check-in', record: 'record', holdings: 'holdings', saved: 'accumulation', answer: 'accumulation', plan: 'plan' };
+
+/**
+ * The pension today a lock draws its saving path from (7.12.0): buildSavingPath's `explicit` input, or null when nothing is
+ * known (the path then records the gap, as before).
+ */
+export function pathPensionOf(plan, { now = new Date(), settings = null } = {}) {
+  if (!plan) return null;
+  const t = pensionTodayOf(plan, { now, settings });
+  return t.value != null ? { potNow: t.value, potSource: PATH_SOURCE[t.from] || 'accumulation' } : null;
+}

@@ -67,6 +67,7 @@ import { normaliseHoldings, emptyHoldings } from '../../services/HoldingsRecord.
 import { trimPlan, trimResult } from '../../services/PlanDocument.js';
 import { deriveTiming } from '../../services/PlanTiming.js';
 import { buildSavingPath } from '../../services/SavingPath.js';
+import { pathPensionOf } from '../../services/PensionToday.js';
 import { ON_COURSE_SHARE } from '../../services/OnCourse.js';
 import { restoredParamsFor } from '../../services/PlanCommit.js';
 import { dateOf } from './dates.js';
@@ -246,10 +247,11 @@ export const documentHoldingsOf = (plan) => (plan && plan.holdings && typeof pla
  * src/ui/savingPathForLock.js, without its lazy import: a saver's path on the saving-years engine, undefined for a plan that
  * is not stopping later (buildPlanDocument then draws the FCA path, as before 6.22.0).
  */
-export function savingPathFor({ settings, accumulation = null, holdings = null, now, phases = null }) {
+export function savingPathFor({ settings, accumulation = null, holdings = null, now, phases = null, plan = null }) {
   const timing = deriveTiming(settings || {}, now);
   if (timing.mode !== 'future' || !(timing.currentAge > 0)) return undefined;
-  return buildSavingPath({ settings, timing, accumulation, holdings, now, phases });
+  // the pension today every screen reads (7.12.0, services/PensionToday.js), as the planner's lock draws it
+  return buildSavingPath({ settings, timing, accumulation, holdings, now, phases, explicit: pathPensionOf(plan, { now, settings }) });
 }
 
 /**
@@ -273,7 +275,7 @@ export function runForDocument(plan, { today, essentials = 0, onProgress = null,
   const success = documentSuccessOf(plan, { settings, strategyId, p, r, now, essentials: ess, weighted });
   // what the planner hands in (index.html buildPlanDocumentNow): the Accumulation tool's settings ({} for none) and the
   // holdings record normalised (ScenarioRepository.getActiveAccumulation, getActiveHoldings)
-  const savingPath = savingPathFor({ settings, accumulation: documentAccumulationOf(plan), holdings: documentHoldingsOf(plan), now, phases: (plan && plan.phases) || null });
+  const savingPath = savingPathFor({ settings, accumulation: documentAccumulationOf(plan), holdings: documentHoldingsOf(plan), now, phases: (plan && plan.phases) || null, plan });
   return plain({ p: trimPlan(p), r: trimResult(r), savingPath, ...(success ? { success } : {}), basis: { today, engine: 'one-test', essentials: ess || 0 } });
 }
 

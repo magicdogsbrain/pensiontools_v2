@@ -105,8 +105,9 @@ const given = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v 
  *   explicit  { potNow, isaNow, totalMonthly, isaMonthly } (research/saving-enough-and-check-in.md 5.3): each one given is
  *             used in place of what the path would read — a saver's first check-in draws the path from its own pension,
  *             ISA and what goes into each, never from the holdings ledger or the saved settings, and the head says so
- *             (`potSource: 'check-in'`). The holdings then decide only the saving mix. A lock passes none, so a locked
- *             plan's path is drawn exactly as before.
+ *             (`potSource: 'check-in'`). The holdings then decide only the saving mix. A lock (7.12.0) passes the pension
+ *             today every screen reads (services/PensionToday.js) with its own `potSource`: 'holdings', 'accumulation',
+ *             'record' or 'plan'.
  * @returns {null | object}  null unless retiring later; the block stored as `planDocument.accumulation`
  */
 export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null, risePrices = false } = {}) {
@@ -138,7 +139,7 @@ export function buildSavingPath({ settings = {}, timing, accumulation = null, ho
   const head = {
     version: SAVING_PATH_VERSION, asOf: monthKey(now), drawnAt: now.toISOString(), lives: count, seed: SAVING_PATH_SEED,
     startAge: timing.currentAge, retireAge: timing.shapeAgeNow, years,
-    potNow: potNow == null ? null : r0(potNow), potSource: potNow == null ? null : potGiven != null ? 'check-in' : (fromLedger > 0 ? 'holdings' : 'accumulation'),
+    potNow: potNow == null ? null : r0(potNow), potSource: potNow == null ? null : potGiven != null ? (typeof x.potSource === 'string' ? x.potSource : 'check-in') : (fromLedger > 0 ? 'holdings' : 'accumulation'),
     isaNow: r0(isaNow), isaSource: isaGiven != null ? 'check-in' : isaLedger != null ? 'holdings' : 'settings',
     totalMonthly: r0(totalMonthly), isaMonthly: r0(isaMonthly), escalationPct, chargesPct,
     isaGrowth, ...(fundsMix ? { isaFromFunds: true, isaMix: fundsMix } : isaGrowth ? {} : { isaReturn: Number.isFinite(+s.isaReturn) ? +s.isaReturn : ISA_DEFAULTS.RETURN }),

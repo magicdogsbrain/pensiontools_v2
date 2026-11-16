@@ -7,6 +7,7 @@
  */
 import { Money, AgesChart, Working, Problem, Retired, isRetired, withFixedCounts, LinkButton } from '../../components/index.js';
 import { href } from '../../router/routes.js';
+import { staleView } from '../../state/select.js';
 import { A } from '../../copy/a.js';
 import { SHAPE } from '../../copy/shape.js';
 import { weighedResult } from '../../copy/common.js';
@@ -49,7 +50,7 @@ export function AgesScreen(state, dispatch) {
   const t = A.answer;
   let body;
   if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={A.answer.needFour} state={state} />;
-  else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} />;
+  else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} stale={!!staleView(state)} />;
   else if (frame.kind === 'working') body = <Working answer={frame.answer} />;
   else {
     const { result, answer, stale, first } = frame;

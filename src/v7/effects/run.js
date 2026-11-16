@@ -8,7 +8,10 @@
  *     after "Show what it pays", and "Try again"); end any worker run of this question under way; dispatch
  *     answer/working; run with 100 futures → answer/first; run with 1,000 → answer/final. After 5 seconds without a
  *     final result dispatch answer/slow. On any error dispatch answer/failed. If no worker can start, run the same
- *     passes on the page.
+ *     passes on the page. A page opened before the site was updated (a stale build: the worker client's code, or the
+ *     answers' part that could not be loaded; src/utils/staleBuild.js) is not a failed answer: onStale() loads the page
+ *     again ('reloading': nothing is dispatched), or, when it has done that once already, the failure is dispatched and
+ *     the page says so in plain words (components/Problem.jsx).
  *  4. A and B: both passes ask for the answer step's detail (env.detail: A 'chart', B 'answer'). On an optional step
  *     (A's ages, B's choices), once a final answer for these inputs is held at a lower detail, one more pass at 1,000
  *     with the step's detail (A 'all', B 'grid'): answer/extend at once (nothing is being typed), then answer/final.
@@ -25,6 +28,7 @@ import { A } from '../state/actions.js';
 import { parsedDraft, currentKey, needsRun, wantedDetail, STEP_DETAIL, planMixOf } from '../state/select.js';
 import { BUILT } from '../rail/questions.js';
 import { NO_WORKER } from './workerClient.js';
+import { isStaleBuildError } from '../../utils/staleBuild.js';
 
 export const PASSES = [100, 1000];     // futures: the first figure, then the final figure
 export const EXTEND_FUTURES = 1000;    // an optional step's extra pass (conflict 43)
@@ -38,9 +42,10 @@ const SEED = 0;                         // the published seed (brief 2.3, confli
  * @param {{ init, answer, stop }} o.client                      the worker client; stop(q) ends q's answers under way
  * @param {(q: string, inputs: object, env: object) => object} o.local   the answer function, for the page itself
  * @param {string} [o.q]                                          one question only; by default every open question
+ * @param {() => 'reloading'|'words'} [o.onStale]                  a stale build met (effects/staleBuild.js hit); none: a failure
  * @returns {() => void} stop
  */
-export function startRunner({ store, client, local, q = null }) {
+export function startRunner({ store, client, local, q = null, onStale = null }) {
   const questions = q ? [q] : Object.keys(BUILT);
   let onPage = false;          // no worker: work on the page
   let opened = false;
@@ -114,8 +119,11 @@ export function startRunner({ store, client, local, q = null }) {
           if (i === list.length - 1) { underWay = false; clearSlow(); }
           store.dispatch({ type: then, q: question, inputsKey: key, result });
         }
-      } catch {
-        if (live()) store.dispatch({ type: A.ANSWER_FAILED, q: question, inputsKey: key });
+      } catch (e) {
+        if (!live()) return;
+        // a stale build: the page loads itself again, figures and place kept; or it has, and the failure says so
+        if (onStale && isStaleBuildError(e) && onStale() === 'reloading') return;
+        store.dispatch({ type: A.ANSWER_FAILED, q: question, inputsKey: key });
       } finally {
         if (mine === run) { underWay = false; clearSlow(); }
       }

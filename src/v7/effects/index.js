@@ -29,6 +29,7 @@ import { startDownloads } from './download.js';
 import { startAssumptions } from './assumptions.js';
 import { startPlace, hasSignedInHint } from './place.js';
 import { startView } from './view.js';
+import { startStaleBuild, watchClient } from './staleBuild.js';
 
 /**
  * The answer worked out on the page itself — used only when no worker can start. The answers (and the engines
@@ -56,8 +57,13 @@ export function markReady(root, state) {
   if (ready === '1' && was !== '1') root.dispatchEvent(new CustomEvent('pt:done', { bubbles: true }));
 }
 
-export function startEffects(store, { win = window, client = createWorkerClient(), local = answerOnPage } = {}) {
+export function startEffects(store, { win = window, client: made = createWorkerClient(), local = answerOnPage } = {}) {
   const stops = [];
+  // A page opened before the site was updated (effects/staleBuild.js): it loads itself again once, figures and place kept,
+  // or says so in plain words. Started first, so a part that cannot be loaded on demand is caught wherever it is asked for.
+  const stale = startStaleBuild(store, { win, session: sessionStore(win) });
+  stops.push(stale.stop);
+  const client = watchClient(made, stale.hit);
   // Land where you left off (7.1.0, effects/place.js): the site's root opened with no address of its own, in a browser where
   // someone is signed in. Read before the address effect tidies an empty address to #/ (the questions' own, which stays them).
   const hash = win.location && typeof win.location.hash === 'string' ? win.location.hash : '';
@@ -66,7 +72,7 @@ export function startEffects(store, { win = window, client = createWorkerClient(
   if (hasSignedInHint(localStore(win))) store.dispatch({ type: A.ENV_SET, patch: { signedInHint: true } });
   stops.push(startAddress(store, win));
   stops.push(startDraftStore(store, sessionStore(win)));
-  stops.push(startRunner({ store, client, local }));
+  stops.push(startRunner({ store, client, local, onStale: stale.hit }));
   // "Does it last?" (research/v7/editing-in-v7.md 10.4): a saved plan's one test, in the worker only, on that step only —
   // no page fallback, so the engine's chunk is the worker's alone and the plan pages' own chunk does not carry it
   stops.push(startLastsRunner({ store, client, now: () => Date.now() }));

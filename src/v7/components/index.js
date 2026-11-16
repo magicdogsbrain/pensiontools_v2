@@ -10,7 +10,7 @@ export { MadeOf, withFixedCounts } from './MadeOf.jsx';
 export { Assumed } from './Assumed.jsx';
 export { TryAChange, SaverTryAChange } from './TryAChange.jsx';
 export { Working } from './Working.jsx';
-export { Problem } from './Problem.jsx';
+export { Problem, StaleWords } from './Problem.jsx';
 export { Button, LinkButton } from './Button.jsx';
 // Questions A and B (step 4 brief 4.13)
 export { Verdict, VerdictWord, VERDICTS } from './Verdict.jsx';

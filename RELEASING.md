@@ -142,8 +142,14 @@ prove a real person finishes in two minutes. Once per release we:
    never needs a stamp, so leave it in place for as long as the site runs).
 5. Commit as `Release vX.Y.Z — <title>` and tag: `git tag vX.Y.Z`.
 6. `git push --follow-tags origin main` (GitHub Pages mirror updates itself).
-7. Deploy to pensiontools.uk: `npx wrangler pages deploy docs --project-name=pension-planner-pwa --branch=main`,
-   then run the checks after a deploy (below): each bundle's name on the live site must match `docs/`.
+7. Deploy to pensiontools.uk: `scripts/deploy-pages.sh` (never `wrangler pages deploy docs` on its own), then run the
+   checks after a deploy (below): each bundle's name on the live site must match `docs/`. The script deploys `docs/`
+   with the previous release's hashed files kept beside it (`git archive <previous tag> docs/assets docs/classic/assets`,
+   never replacing a file of this build), so a tab opened before the deploy can still load its own worker and the parts
+   it loads on demand; it refuses when the previous release's answer worker would be missing. `--dry-run` builds and
+   checks the folder and prints the `wrangler` command without deploying; `--previous vX.Y.Z` names the release before
+   when it is not the newest tag before this one. A tab older than that loads itself again once, or says "PensionTools
+   has been updated since this page was opened" (`src/utils/staleBuild.js`).
 8. If the release adds a data category, a processor or analytics: update
    `compliance/PRIVACY_POLICY.md` + `public/privacy.html` FIRST (see `compliance/GDPR_TODO.md`), with "Last updated"
    in both set to the day the release ships (wording written earlier keeps the day it was written until then).

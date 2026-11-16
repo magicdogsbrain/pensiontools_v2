@@ -13,7 +13,7 @@
 import { Sentence, MadeOf, Assumed, Working, HeldAnswer, Problem, Field, Button, LinkButton, KeepPanel, withFixedCounts, stepLabel, blank, AnswerSlider, FigureTiles, PotLife, KeepLine } from '../../components/index.js';
 import { LastsLines, LevelStrip, LASTS_TOP, LASTS_AFTER } from '../../components/Lasts.jsx';
 import { StressStrip } from '../../components/StressStrip.jsx';
-import { answerSlider, answerTiles, tilesKey, potPicture } from '../../state/select.js';
+import { answerSlider, answerTiles, tilesKey, potPicture, staleView } from '../../state/select.js';
 import { PICTURE } from '../../copy/picture.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT, levelKeyOf } from '../../copy/common.js';
@@ -197,7 +197,7 @@ export function AnswerScreen(state, dispatch) {
   const frame = saverFrame(state, 'd');
   let body;
   if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={D.answer.needFour} state={state} />;
-  else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} />;
+  else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} stale={!!staleView(state)} />;
   else if (frame.kind !== 'working') body = <Answer state={state} dispatch={dispatch} frame={frame} />;
   // the first answer waits behind the ring for its least time (Spinner.jsx HeldAnswer: a verdict never pops in at once)
   const working = frame.kind === 'working';

@@ -139,6 +139,11 @@ import {
 // Constants
 import { VERSION, SCENARIOS } from './constants.js';
 
+// A page opened before the site was updated (src/ui/staleBuildPage.js): watched from the moment the page's code loads,
+// before anything is loaded on demand; it loads the page again once, or says so in plain words.
+import { installStaleBuild } from './ui/staleBuildPage.js';
+if (typeof window !== 'undefined' && window.document) installStaleBuild(window);
+
 /**
  * Application state
  */

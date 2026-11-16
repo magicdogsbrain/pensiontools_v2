@@ -2,11 +2,14 @@
  * "Sorry, we could not work that out." — no technical words, no codes, no blame. The figures typed are shown so
  * the visitor can see they are safe, with two ways on: try again, or change the numbers. For A and B the summary
  * also names the age in mind, the spending and what goes in (screens-A-B.md 6.3) — read from the draft as typed.
+ * `stale`: the page was opened before the site was updated and has loaded itself again once already (state/select.js
+ * staleView): it says so, with "Reload the page" in place of "Try again", which could not mend it.
  */
 import { C } from '../copy/c.js';
 import { A } from '../copy/a.js';
 import { B } from '../copy/b.js';
 import { D } from '../copy/d.js';
+import { COMMON } from '../copy/common.js';
 import { money, ageText } from '../../answers/shared/format.js';
 import { payInTypedOf } from '../state/select.js';
 import { href } from '../router/routes.js';
@@ -36,10 +39,26 @@ function summary(q, v) {
   return bits;
 }
 
-export function Problem({ form, dispatch }) {
+/** The page is older than the site, and has loaded itself again once already: the plain words and "Reload the page". */
+export function StaleWords({ dispatch, testid = 'stale', figures = null }) {
+  const W = COMMON.stale;
+  return (
+    <section class="problem stale-build" role="alert" aria-labelledby={`${testid}-title`} data-testid={testid}>
+      <h2 id={`${testid}-title`}>{W.title}</h2>
+      <p>{W.body}</p>
+      {figures}
+      <div class="actions-row">
+        <Button testid={`${testid}.reload`} kind="primary" onClick={() => dispatch({ type: 'page/reload' })}>{W.reload}</Button>
+      </div>
+    </section>
+  );
+}
+
+export function Problem({ form, dispatch, stale = false }) {
   const q = form.q || 'c';
   const t = (COPY[q] || C).answer;
   const bits = summary(q, form.parsed.values);
+  if (stale) return <StaleWords dispatch={dispatch} testid={`${q}.stale`} figures={bits.length > 0 ? <><p>{t.failedBody}</p><p class="problem-figures">{bits.join(', ')}</p></> : null} />;
   return (
     <section class="problem" role="alert" aria-labelledby="problem-title">
       <h2 id="problem-title">{t.failedTitle}</h2>

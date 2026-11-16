@@ -12,7 +12,8 @@ import { fill, changeAction } from './PlanFigures.jsx';
 import { format, href } from '../router/routes.js';
 import { focusField } from './Field.jsx';
 import { Button } from './Button.jsx';
-import { guestView, newsView, plansMenuView, fullLinkView, viewStripView } from '../state/select.js';
+import { guestView, newsView, plansMenuView, fullLinkView, viewStripView, staleView } from '../state/select.js';
+import { StaleWords } from './Problem.jsx';
 import { COMMON, ADVICE_SHORT, ADVICE_FULL } from '../copy/common.js';
 import { PLAN } from '../copy/plan.js';
 
@@ -88,6 +89,8 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
   // hand-over as "Change this" (select.js fullLinkView). A plain link opened the account's usual plan instead.
   const P = fullLinkView(state);
   const S = viewStripView(state);
+  // the page is older than the site and has loaded itself again once already: the words at the top, unless the answer's own place has them
+  const old = staleView(state);
   const onEverything = P ? (e) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;   // a new tab: the plain address, as before
     e.preventDefault();
@@ -115,6 +118,7 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
       </p>
       {S && <ViewStrip strip={S} dispatch={dispatch} />}
       {state.ui.online === false && <p class="offline" role="status">{COMMON.offline}</p>}
+      {old && old.top && <StaleWords dispatch={dispatch} />}
       {rail === true ? <Rail state={state} dispatch={dispatch} /> : rail || null}
       <main id="main" tabIndex={-1} data-screen={name} data-question={question || undefined} data-view={view || undefined}>{children}</main>
       <footer class="foot" data-region="footer">

@@ -33,7 +33,10 @@ export const A = Object.freeze({
                                        //                                     its kept answer's until 7.9.0 saves one
   ENV_SET:         'env/set',          // { patch }                          start-up and the test hook only (today, historyEnd, appVersion,
                                        //                                     signedInHint: the browser's note that someone is signed in;
-                                       //                                     stressStrip: false, the strip switched off, 7.9.0)
+                                       //                                     stressStrip: false, the strip switched off, 7.9.0;
+                                       //                                     stale: true, the page was opened before the site was
+                                       //                                     updated and has loaded itself again once already)
+  PAGE_RELOAD:     'page/reload',      // {}                                 "Reload the page" (effects/staleBuild.js loads it again)
   STATE_REPLACE:   'state/replace',    // { state }                          the test hook only
 
   // ---- the budget step (research/v7/budget-step.md; save-as-plan.md Contract C.5) ------------------------------------

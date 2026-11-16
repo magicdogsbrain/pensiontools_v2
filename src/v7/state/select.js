@@ -396,6 +396,20 @@ export function frontWaiting(state) {
   return !(state.plans && state.plans.status === 'failed');
 }
 
+/**
+ * A page opened before the site was updated, which has loaded itself again once already (effects/staleBuild.js; env.stale):
+ * where the plain words are drawn. In the answer's place when the question on screen could not be worked out (its step draws
+ * components/Problem.jsx); everywhere else at the top of the page. null when the page is as new as the site.
+ * @returns {null | { top: boolean }}
+ */
+export function staleView(state) {
+  if (!state.env || state.env.stale !== true) return null;
+  const r = state.route || {};
+  const q = r.screen === 'step' ? r.q : null;
+  const failed = !!(q && state.answers && state.answers[q] && state.answers[q].status === 'failed');
+  return { top: !failed };
+}
+
 export function readyMark(state) {
   let busy = false;
   let shown = 'none';

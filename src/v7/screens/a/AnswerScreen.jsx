@@ -24,7 +24,7 @@ import {
 } from '../../components/index.js';
 import { SHAPE } from '../../copy/shape.js';
 import { LastsLines, LevelStrip, LASTS_TOP, LASTS_AFTER } from '../../components/Lasts.jsx';
-import { isCurrent, askedAboutOf, partnerStopsNow, isShapePath } from '../../state/select.js';
+import { isCurrent, askedAboutOf, partnerStopsNow, isShapePath, staleView } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { ADVICE_SHORT, weighedResult } from '../../copy/common.js';
 import { A } from '../../copy/a.js';
@@ -285,7 +285,7 @@ export function AnswerScreen(state, dispatch) {
   const frame = saverFrame(state, 'a');
   let body;
   if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={A.answer.needFour} state={state} />;
-  else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} />;
+  else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} stale={!!staleView(state)} />;
   else if (frame.kind === 'working') body = <Working answer={frame.answer} />;
   else body = <Answer state={state} dispatch={dispatch} frame={frame} />;
   return {

@@ -1452,9 +1452,15 @@ function reduceAction(state, action) {
       if (typeof patch.signedInHint === 'boolean') env.signedInHint = patch.signedInHint;
       // 7.9.0: the strip under C's and D's answers switched off (answers/shared/rules.js STRESS.strip, told by its effect)
       if (patch.stressStrip === false) env.stressStrip = false;
-      if (env.today === state.env.today && env.historyEnd === state.env.historyEnd && env.appVersion === state.env.appVersion && env.signedInHint === state.env.signedInHint && env.stressStrip === state.env.stressStrip) return state;
+      // the page was opened before the site was updated, and has loaded itself again once already (effects/staleBuild.js)
+      if (patch.stale === true) env.stale = true;
+      if (env.today === state.env.today && env.historyEnd === state.env.historyEnd && env.appVersion === state.env.appVersion && env.signedInHint === state.env.signedInHint && env.stressStrip === state.env.stressStrip && env.stale === state.env.stale) return state;
       return { ...state, env };
     }
+
+    case A.PAGE_RELOAD:
+      // "Reload the page" (effects/staleBuild.js loads it): counted, so each press is a change the effect is told of
+      return { ...state, env: { ...state.env, reloads: (state.env.reloads || 0) + 1 } };
 
     // ---- the budget sheet: never a draft, never a figure ------------------------------------------------------
     case A.BUDGET_LINE:

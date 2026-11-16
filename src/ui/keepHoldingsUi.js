@@ -15,6 +15,8 @@ import { isClosedPlan } from '../services/PlanClosed.js';
 import { KEEPTEST } from '../v7/copy/keepTest.js';
 import { HOLD } from '../v7/copy/hold.js';
 import { esc } from './components/ReleaseNotesView.js';
+import { isStaleBuildError } from '../utils/staleBuild.js';
+import { staleWordsText } from './staleBuildPage.js';
 
 const pad = (n) => String(n).padStart(2, '0');
 const dayOf = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -175,7 +177,7 @@ export function installKeepTestHandlers(w, { scenario, persist, rerender, toast 
       memory.result = runKeepRetest(sc, { today: dayOf(new Date()) });
       memory.stamp = stampOf(sc);
       memory.status = 'done';
-    } catch (e) { memory.status = 'failed'; memory.result = null; toast(KEEPTEST.failed, 'error'); }
+    } catch (e) { memory.status = 'failed'; memory.result = null; toast(isStaleBuildError(e) ? staleWordsText() : KEEPTEST.failed, 'error'); }   // a page older than the site: src/ui/staleBuildPage.js
     await rerender();
   };
   w.askKeepRisk = () => { memory.confirm = true; rerender(); };

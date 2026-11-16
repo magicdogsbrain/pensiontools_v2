@@ -33,11 +33,16 @@
  *
  * When no worker can start (none in this browser, the constructor throws, or it fails before it was ever ready)
  * every call rejects with code NO_WORKER, and the runner works the answer out on the page instead.
+ * A fresh worker that fails before it is ready, after an earlier one was (a stop, or a run that failed, starts a fresh
+ * one), is a page opened before the site was updated: the release before's worker file is gone (src/utils/staleBuild.js).
+ * That call and every later one reject with code STALE_BUILD, and the page loads itself again (effects/staleBuild.js).
  * Payloads go through cloneSafe, so a function never reaches postMessage.
  */
 import { cloneSafe } from '../../utils/cloneSafe.js';
+import { STALE_BUILD } from '../../utils/staleBuild.js';
 
 export const NO_WORKER = 'no-worker';
+export { STALE_BUILD };
 
 const coded = (message, code) => Object.assign(new Error(message), { code });
 
@@ -50,6 +55,8 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
   let worker = null;
   let broken = false;          // no worker can start: stop trying
   let everReady = false;       // some worker has answered `init`
+  let ready = false;           // the worker of now has answered `init`
+  let stale = false;           // a fresh worker failed before it was ready, after an earlier one was: a stale build
   let today = null;
   let nextId = 1;
   const pending = new Map();   // id → { kind: 'init' | 'answer', resolve, reject, onProgress }
@@ -75,6 +82,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
     if (!data || typeof data !== 'object') return;
     if (data.ready) {
       everReady = true;
+      ready = true;
       // Any `init` still waiting is answered by any worker that is ready (a stopped worker's init is re-sent).
       for (const [id, entry] of [...pending]) {
         if (entry.kind !== 'init') continue;
@@ -96,18 +104,26 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
 
   function onError(event) {
     if (event && typeof event.preventDefault === 'function') event.preventDefault();
+    const wasReady = ready;
     drop();
     if (!everReady) {
       broken = true;
       rejectAll(coded('no worker could start', NO_WORKER));
+    } else if (!wasReady) {
+      stale = true;
+      rejectAll(refusal());
     } else {
       rejectAll(coded('the worker failed', 'worker-error'));
     }
   }
 
+  /** Why no worker can be had: a stale build, or none can start. */
+  const refusal = () => (stale ? coded('this page is older than the site', STALE_BUILD) : coded('no worker could start', NO_WORKER));
+
   function ensure() {
-    if (broken) return null;
+    if (broken || stale) return null;
     if (worker) return worker;
+    ready = false;
     try { worker = makeWorker(); } catch { worker = null; }
     if (!worker) { broken = true; return null; }
     worker.onmessage = (e) => onMessage(e.data);
@@ -128,7 +144,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
 
   /** One message in its own lane `q` (stop(q) ends it and nothing else); the plan and the env go as data. */
   function lane(q, plan, env, onProgress, extra = null) {
-    if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+    if (!ensure()) return Promise.reject(refusal());
     return new Promise((resolve, reject) => {
       const id = nextId++;
       const msg = { id, type: q, plan: cloneSafe(plan), env: cloneSafe(env), ...(extra ? cloneSafe(extra) : {}) };
@@ -146,7 +162,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
     init(date) {
       const fresh = !worker;
       today = date;
-      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         pending.set(nextId++, { kind: 'init', resolve, reject });
         // A worker made just now has already been sent the date by ensure().
@@ -155,7 +171,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
     },
 
     answer(q, inputs, env, onProgress) {
-      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         const id = nextId++;
         const msg = { id, type: 'answer', q, inputs: cloneSafe(inputs), env: cloneSafe(env) };
@@ -172,7 +188,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
      * nothing else). The plan goes as data; the result comes back as data.
      */
     lasts(plan, env, onProgress) {
-      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         const id = nextId++;
         const msg = { id, type: 'lasts', plan: cloneSafe(plan), env: cloneSafe(env) };
@@ -190,7 +206,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
      * back as data (answers/plan/lastsRun.js runForDocument). env = { today, essentials }.
      */
     document(plan, env, onProgress) {
-      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         const id = nextId++;
         const msg = { id, type: 'document', plan: cloneSafe(plan), env: cloneSafe(env) };
@@ -208,7 +224,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
      * env = { today, lever: { kind, yearly?, years? } }.
      */
     lever(plan, env, onProgress) {
-      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         const id = nextId++;
         const msg = { id, type: 'lever', plan: cloneSafe(plan), env: cloneSafe(env) };
@@ -226,7 +242,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
      * data; the results come back as data (answers/plan/waysRun.js runWays, runWay). env = { today } / { today, way: { id, dials } }.
      */
     ways(plan, env, onProgress) {
-      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         const id = nextId++;
         const msg = { id, type: 'ways', plan: cloneSafe(plan), env: cloneSafe(env) };
@@ -238,7 +254,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
       });
     },
     way(plan, env, onProgress) {
-      if (!ensure()) return Promise.reject(coded('no worker could start', NO_WORKER));
+      if (!ensure()) return Promise.reject(refusal());
       return new Promise((resolve, reject) => {
         const id = nextId++;
         const msg = { id, type: 'way', plan: cloneSafe(plan), env: cloneSafe(env) };
@@ -295,7 +311,7 @@ export function createWorkerClient({ makeWorker = defaultMakeWorker } = {}) {
       const others = [...pending.values()].filter((e) => e.kind === 'answer');
       if (!others.length && ![...pending.values()].some((e) => e.kind === 'init')) return;
       // Someone still waits: to hear "ready", or for another question's answer, which the fresh worker works out again.
-      if (!ensure()) { rejectAll(coded('no worker could start', NO_WORKER)); return; }
+      if (!ensure()) { rejectAll(refusal()); return; }
       for (const e of others) if (!post(e.msg)) { onError(); return; }
     }
   };

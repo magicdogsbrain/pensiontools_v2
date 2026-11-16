@@ -85,6 +85,16 @@ export const COMMON = {
     changeOn: 'You can change this on'
   },
   offline: 'You are offline. You can still work things out. Keeping a plan needs a connection.',
+  /**
+   * A page opened before the site was updated, which has loaded itself again once already (effects/staleBuild.js): in the
+   * answer's place when an answer could not be worked out (components/Problem.jsx), else at the top of the page. The
+   * full view reads the same words (src/ui/staleBuildPage.js).
+   */
+  stale: {
+    title: 'PensionTools has been updated since this page was opened.',
+    body: 'Reload the page to carry on.',
+    reload: 'Reload the page'
+  },
   footer: {
     worksOut: 'PensionTools works things out from the figures you give it.',
     runBy: 'PensionTools is run by Usefulish Ltd.',

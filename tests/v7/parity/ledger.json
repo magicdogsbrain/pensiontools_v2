@@ -4168,6 +4168,26 @@
       ]
     },
     {
+      "id": "acct.stale-reload",
+      "area": "plan-account",
+      "kind": "machinery",
+      "name": "A page opened before the site was updated loads itself again once",
+      "what": "Each release names its files by their contents, so a tab opened before a deploy can no longer load the worker or a part loaded on demand. Either view then loads the page again once for that build in that tab, keeping its address (and the simple view's typed figures, kept in the tab), and notes the build it did so for in this tab's session storage (pt_reloaded_for) so it can never loop; when it has already done that, it says “PensionTools has been updated since this page was opened. Reload the page to carry on.” with a button to load it again, never “Sorry”.",
+      "whereV6": "src/ui/staleBuildPage.js (installed from src/app.js); src/ui/keepHoldingsUi.js",
+      "who": "Everyone",
+      "keys": [
+        "browser.pt_reloaded_for"
+      ],
+      "status": "built",
+      "step": "s11-shell",
+      "note": "16 Nov 2026. The note holds the build's name only, no figures, and is written only when a stale build is met (nothing on open). The deploy keeps the release before's files beside the new ones (scripts/deploy-pages.sh), so most open tabs carry on with their own files and never need it.",
+      "files": [
+        "src/utils/staleBuild.js",
+        "src/v7/effects/staleBuild.js",
+        "src/ui/staleBuildPage.js"
+      ]
+    },
+    {
       "id": "acct.delete",
       "area": "plan-account",
       "kind": "option",

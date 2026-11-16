@@ -9,6 +9,7 @@ import { Money, Sentence, Grid, gridReaches, Working, Problem, Retired, isRetire
 import { ageText } from '../../../answers/shared/format.js';
 import { LEVELS_WORDS } from '../../copy/common.js';
 import { href } from '../../router/routes.js';
+import { staleView } from '../../state/select.js';
 import { B } from '../../copy/b.js';
 import { saverFrame, ShortForm, AnswerRegion } from '../a/AnswerScreen.jsx';
 
@@ -18,7 +19,7 @@ export function ChoicesScreen(state, dispatch) {
   const t = B.choices;
   let body;
   if (frame.kind === 'short') body = <ShortForm form={frame.form} dispatch={dispatch} need={B.answer.needFive} state={state} />;
-  else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} />;
+  else if (frame.kind === 'failed') body = <Problem form={frame.form} dispatch={dispatch} stale={!!staleView(state)} />;
   else if (frame.kind === 'working') body = <Working answer={frame.answer} />;
   else {
     const { result, answer, stale, first } = frame;

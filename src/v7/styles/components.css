@@ -165,6 +165,9 @@
 progress { width: 100%; max-width: 24rem; height: 12px; accent-color: var(--fill-primary); }
 .problem { padding: 16px; background: var(--surface-card); border: 1px solid var(--text-danger); border-radius: var(--radius); }
 .problem-figures { font-weight: 600; }
+/* the page is older than the site (effects/staleBuild.js): nothing went wrong with the answer, so the warning's colour, not the danger's */
+.stale-build { border-color: var(--text-warning); }
+.pt > .stale-build { margin: 8px var(--gutter) 0; }
 
 .answer { position: relative; }
 .answer.is-stale { color: var(--text-muted); }

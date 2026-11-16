@@ -133,8 +133,9 @@ export function heldLadder(plan, { today, life } = {}) {
   const giltsMoney = otherGilts.filter((r) => !r.paid).reduce((s, r) => s + num(r.value), 0);
   const fundsMoney = funds.reduce((s, r) => s + num(r.value), 0);
   const available = cash + giltsMoney + fundsMoney;
+  // with nothing recorded, the money held is not known: no verdict on the cash years
   let state = null, more = 0, less = 0;
-  if (cashYears) {
+  if (cashYears && !noRecord) {
     if (cash >= N) { state = 'cash'; more = cash - N; }
     else if (cash + giltsMoney >= N) { state = 'cashGilts'; more = cash + giltsMoney - N; }
     else if (available >= N) { state = 'all'; more = available - N; }
@@ -144,7 +145,7 @@ export function heldLadder(plan, { today, life } = {}) {
   // this tax year's timing, a fact only: the plan pays from cash by 5 April, and the pension's cash is less than that
   let timing = null;
   const cur = cashRows.find((r) => r.thisYear);
-  if (running && cur && cur.need > 0 && cash < cur.need) {
+  if (!noRecord && running && cur && cur.need > 0 && cash < cur.need) {
     const ahead = otherGilts.filter((r) => r.matures && !r.paid).sort((a, b) => String(a.matures).localeCompare(String(b.matures)));
     timing = { dueBy: (thisTY + 1) + '-04-05', R: r0(cur.need), cash: r0(cash), next: ahead.length ? { label: ahead[0].label, matures: ahead[0].matures } : null };
   }

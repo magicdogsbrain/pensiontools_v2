@@ -132,6 +132,15 @@ describe('Sam: exactly the plan, £70,000 cash', () => {
   });
 });
 
+describe('nothing recorded under What you hold', () => {
+  it('the plan\'s gilts are read with nothing beside them, and no verdict on the cash years is given', () => {
+    const h = heldLadder(living(alexLivingRaw({ lines: [], expected: [] })), { today: TODAY });
+    expect(h.noRecord).toBe(true);
+    expect(h.gilts.rows.map((r) => r.heldUnits)).toEqual(ORDERS.map(() => null));
+    expect([h.state, h.more, h.less, h.timing]).toEqual([null, 0, 0, null]);
+  });
+});
+
 describe('nothing to read outside the held phase on a ladder', () => {
   it('a pot plan', () => {
     const raw = corpus()['04-buckets-running'];

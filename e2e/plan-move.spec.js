@@ -108,7 +108,8 @@ test.describe('"Moving to your plan\'s mix", without an account', () => {
       // read as Moving (7.11.1, asMoving above): the step goes by its full name, as the rail and the home name it there
       await expect(page.getByTestId('plan.step.move')).toHaveText('Moving to your plan’s mix');
       await expect(page.getByTestId(`${T}.optional`)).toHaveText('Optional. Skipping it means what you hold may not match what the plan was tested on.');
-      await expect(page.getByTestId(`${T}.status.line`)).toHaveText(`${node.move.rungs.bought} of ${node.move.rungs.total} gilts bought; ${node.move.progressPct}% of the plan’s mix held.`);
+      // a rung part bought is said as part bought (7.11.1, the walk), as the Node reading has it
+      await expect(page.getByTestId(`${T}.status.line`)).toHaveText(`${node.move.rungs.bought} of ${node.move.rungs.total} gilts bought${node.move.status.id === 'giltsPart' ? ' and ' + node.move.status.slots.part + ' part bought' : ''}; ${node.move.progressPct}% of the plan’s mix held.`);
       await expect(page.locator(`[data-testid="${T}.buy"] tbody tr`)).toHaveCount(node.move.buy.length);
       await expect(page.locator(`[data-testid="${T}.sell"] tbody tr`)).toHaveCount(node.move.sell.length);
       // 7.4.2: the cash years are a ladder's only cash, so the table has no row for months before the start

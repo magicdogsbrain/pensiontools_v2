@@ -164,9 +164,12 @@ test.describe('the full view, beside the simple view', () => {
       // the phone's More sheet: the tabs the bottom bar has no room for (src/ui/mobileMenu.js moreSheetHtml)
       await page.evaluate(() => window.openMobileMore());
       const sheet = page.locator('#mobileSheetBody');
-      for (const t of ['accumulation', 'transition']) await expect(sheet.locator(`[data-on-click="mobileGo('${t}')"]`), t).toHaveCount(1);
-      const household = await page.evaluate(() => { const b = document.querySelector('.tab[data-tab="household"]'); return !!b && b.style.display !== 'none'; });
-      await expect(sheet.locator(`[data-on-click="mobileGo('household')"]`)).toHaveCount(household ? 1 : 0);
+      await expect(sheet.locator(`[data-on-click="mobileGo('transition')"]`), 'transition').toHaveCount(1);
+      // Accumulation and Household: in the sheet exactly when the stage shows their tab (the walk: a retiree was offered Accumulation)
+      for (const t of ['accumulation', 'household']) {
+        const shown = await page.evaluate((k) => { const b = document.querySelector('.tab[data-tab="' + k + '"]'); return !!b && b.style.display !== 'none'; }, t);
+        await expect(sheet.locator(`[data-on-click="mobileGo('${t}')"]`), t).toHaveCount(shown ? 1 : 0);
+      }
       await page.evaluate(() => window.closeMobileSheet());
     }
     await (wide ? page.locator('nav.tabs .tab[data-tab="strategies"]') : page.locator(`button[data-on-click="mobileGo('strategies')"]`)).click();

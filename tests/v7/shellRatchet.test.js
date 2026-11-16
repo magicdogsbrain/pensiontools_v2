@@ -86,7 +86,12 @@ import { resolve } from 'node:path';
 // installing it in one line: 11 lines shorter.
 // A plan not locked yet reads its own figures in the Decision tool (7.12.0): the set-up banners and isToolConfigured went,
 // with the other 7.12.0 lanes' shrinks joined: 8,986.
-const MAX_LINES = 8986;
+// The living record (7.12.0): the ISA box is pre-filled by src/ui/monthlyEntry.js, so the two lines that blanked it went
+// (the "set up first" banner itself went with the line above).
+// Couples, one answer on both views (7.12.0): the Household tab's picker and its save moved to src/ui/householdTabUi.js
+// (installHouseholdTab), reading the link either way; a plan switch reads the tab again from the menu's existing line.
+// The four 7.12.0 lanes joined: 8,965.
+const MAX_LINES = 8965;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

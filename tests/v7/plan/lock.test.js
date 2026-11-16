@@ -450,25 +450,25 @@ describe('the lock step, the address and the plan page (read.js)', () => {
     const entries = entriesAt(TODAY);
     const buckets = entries.find((e) => e.plan.id === C['04-buckets-running'].id).plan;
     const W = planPage(entries, buckets.id, 'where', { today: TODAY }).steps.find((s) => s.id === 'where');
-    const cmp = W.lines.find((l) => /^where\.compare/.test(l.id));
-    expect(cmp).toBeTruthy();
+    // retaken in 7.12.0: the comparison is said in the result (YearPlan.takenSentence), against what each month told the
+    // person to take; its id is the step's `compare`
     const months = W.figures.months;
     expect(months).toBeGreaterThan(0);
-    expect(W.figures.said).toBe(W.figures.planned != null ? Math.round(W.figures.planned / 12) * months : W.figures.said);
-    expect(cmp.sentence.text).toMatch(/^£[\d,]+ taken; the plan said £[\d,]+ for (those months|that month); (£[\d,]+ (less because income was cut in .+|less than the plan said|more than the plan said)|the same as the plan said)$/);
-    expect(Math.abs(W.figures.drawn - W.figures.said)).toBe(W.figures.diff);
-    const cut = buckets.decisionTool.history.filter((h) => h.inProtection === true).length;
-    expect(W.figures.cutMonths).toBe(cut);
-    if (W.figures.drawn < W.figures.said && cut > 0) expect(cmp.id).toBe('where.compareLessCut');
-    else if (W.figures.drawn < W.figures.said) expect(cmp.id).toBe('where.compareLess');
-    else if (W.figures.drawn > W.figures.said) expect(cmp.id).toBe('where.compareMore');
-    else expect(cmp.id).toBe('where.compareSame');
-    expect(cmp.sentence.text).not.toMatch(/to go|countdown/i);
-    for (const id of ['where.compareLess', 'where.compareLessCut', 'where.compareMore', 'where.compareSame']) expect(PLAN.lines[id], id).toBe('');
+    expect(W.result.text).toMatch(/^\d+ months? recorded in \d{4}\/\d\d: £[\d,]+ taken before tax(, as your plan said\.|\. That is £[\d,]+ (less|more) than your plan said(, because income was cut in .+)?\.)/);
+    const recs = buckets.decisionTool.history.filter((h) => h.taxYear === '26/27');
+    const taken = Math.round(recs.reduce((t, h) => t + (+h.sipp || 0) + (+h.other || 0) + (+h.state || 0), 0));
+    const said = Math.round(recs.reduce((t, h) => t + (+(h.stdSipp ?? h.sipp) || 0) + (+h.other || 0) + (+h.state || 0), 0));
+    expect(W.figures.drawn).toBe(taken);
+    const cut = recs.filter((h) => h.inProtection === true).length;
+    if (taken < said && cut > 0) expect(W.compare).toBe('where.compareLessCut');
+    else if (taken < said) expect(W.compare).toBe('where.compareLess');
+    else if (taken > said) expect(W.compare).toBe('where.compareMore');
+    else expect(W.compare).toBe('where.compareSame');
+    expect(W.result.text).not.toMatch(/to go|countdown/i);
     // a saver's plan (05): the saver's reading, no comparison line
     const saver = entries.find((e) => e.plan.id === C['05-saver-committed'].id).plan;
     const S = planPage(entries, saver.id, 'where', { today: TODAY }).steps.find((s) => s.id === 'where');
-    expect(S.lines.some((l) => /^where\.compare/.test(l.id))).toBe(false);
+    expect(S.compare).toBe(null);
   });
   it('the words: every slot of the lock\'s copy is filled by the screen, the toast lines exist for every write', () => {
     for (const id of ['locked', 'unlocked', 'newVersion', 'firstVersion', 'undone', 'unchanged']) expect(LOCK.toast[id]).toBeTypeOf('string');

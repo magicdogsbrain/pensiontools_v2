@@ -62,7 +62,9 @@ export function runHousehold(plan, partner, { today, limit = null, need = null, 
   const now = dateOf(today);
   const tell = (done, total) => { if (typeof onProgress === 'function') onProgress(done, total); };
   const names = namesOf(plan, partner);
-  if (!configured(partner)) return plain({ ok: false, reason: 'partnerNotSet', which: 'b', names, basis: { today, engine: 'one-test', runs: 0 } });
+  // a household answer is never run on a plan's starting defaults: either plan with no figures saved is refused, by name (7.12.0)
+  const unset = !configured(plan) ? 'a' : !configured(partner) ? 'b' : null;
+  if (unset) return plain({ ok: false, reason: 'partnerNotSet', which: unset, names, basis: { today, engine: 'one-test', runs: 0 } });
   const s = settingsOf(plan, partner, now);
   const offsets = { a: startOffset(s.a, now), b: startOffset(s.b, now) };
   const split = householdDrawSplit({ settings: s.a, name: names.a }, { settings: s.b, name: names.b }, { limit: limit || null, need: need == null ? null : need, now });

@@ -20,8 +20,8 @@
 import { monthInputsOf, recordMonths, decideMonth } from '../../services/MonthDecision.js';
 import { getTaxYearFromDate } from '../../services/legacyDecision.js';
 import { fillOffer, addMonth, monthsWords, latestRecordedMonth, earliestFillMonth, fillWords, FILL_HELP, setUpWords, filledInLabel, recalcWords, yearWords, aprilOf } from '../../services/MonthFill.js';
-import { platformBoxes, splitFromPlatform, prefillFromHistory, enteredBlock } from '../../services/MonthlyEntry.js';
-import { wizardDataFrom, isaCalcFor, topUpStart, settleTopUp, breakdownFor, setUpConfigOf, suggestedIncomeFor, validateIsaInput, bandsAssumptionText } from '../../services/TaxYearSetUp.js';
+import { platformBoxes, splitFromPlatform, prefillFromHistory, enteredBlock, isaPrefillOf } from '../../services/MonthlyEntry.js';
+import { wizardDataFrom, isaCalcFor, topUpStart, settleTopUp, breakdownFor, setUpConfigOf, suggestedIncomeFor, validateIsaInput, bandsAssumptionText, statePensionFact, partYearReason } from '../../services/TaxYearSetUp.js';
 import { statePensionInfoFor } from '../../utils/StatePensionUtils.js';
 import { defaultTaxYearConfig } from '../../models/TaxYear.js';
 import { storedStressSettings, planStage } from '../../services/PlanReading.js';
@@ -32,6 +32,7 @@ import { isExamplePlan } from '../../services/GuestPlans.js';
 import { MONTH_FIELDS } from './schema.js';
 import { dateOf, monthWords, monthName, localMonth } from './dates.js';
 import { partnerOf } from './household.js';
+import { firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
 import { pounds } from './income.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -63,23 +64,33 @@ function boxError(path, raw) {
 
 /**
  * The months the chooser lists (not recorded, within the months the plan may record — after the plan that came before, up to a
- * close), from the month the classic fill reaches back to (MonthFill.earliestFillMonth) up to next month; the latest
- * MONTHS_LISTED. And the month it opens on: this month when it is not recorded, else the first month after the latest record,
+ * close): from the plan's first payment month (7.12.0, YearPlan.firstPaymentMonth; this month when it is not known) up to next
+ * month, the latest MONTHS_LISTED. `wide` (the quiet "Fill in earlier months you did not record…" pressed) reaches back to
+ * the month the classic fill reaches (MonthFill.earliestFillMonth), as before; `earlier` says whether there is any such month
+ * to reach. And the month it opens on: this month when it is not recorded, else the first month after the latest record,
  * else the last listed.
  */
-function monthChoices(I, mon) {
+function monthChoices(I, mon, fp, wide = false, toRecord = null) {
   const recorded = new Set(I.history.map(monthOfRecord).filter(Boolean));
   const found = earliestFillMonth(I.history, I.taxYears, I.planStart);
-  let first = found && I.floor && found < I.floor ? I.floor : found;
-  if (!first || first > mon) first = mon;
+  let reach = found && I.floor && found < I.floor ? I.floor : found;
+  if (!reach || reach > mon) reach = mon;
+  let own = fp && fp < mon ? fp : mon;
+  if (I.floor && own < I.floor) own = I.floor;
+  if (own < reach) reach = own;
+  const first = wide ? reach : own;
   let last = addMonth(mon, 1);
   if (I.ceiling && I.ceiling < last) last = I.ceiling;
   const all = [];
   for (let m = first; m <= last; m = addMonth(m, 1)) if (!recorded.has(m)) all.push(m);
   const listed = all.slice(-MONTHS_LISTED);
+  let earlier = false;
+  if (!wide) for (let m = reach; m < own; m = addMonth(m, 1)) if (!recorded.has(m)) { earlier = true; break; }
+  // the month it opens on is the one month to record (YearPlan.monthToRecord), the month the home's button names; with
+  // nothing to record, the first month after the latest record (the page then says nothing is due)
   const latest = latestRecordedMonth(I.history);
-  const opens = listed.includes(mon) ? mon : (latest ? listed.find((m) => m > latest) : null) || listed[listed.length - 1] || null;
-  return { listed, opens };
+  const opens = (toRecord && listed.includes(toRecord) ? toRecord : null) || (listed.includes(mon) && !(latest && latest >= mon) ? mon : null) || (latest ? listed.find((m) => m > latest) : null) || listed[listed.length - 1] || null;
+  return { listed, opens, earlier };
 }
 
 /** The set-up's boxes read, the top-up settled and the year as it would be stored (TaxYearSetUp, as the classic set-up runs it). */
@@ -87,7 +98,7 @@ function setUpOf(I, plan, key, ym, typed, now) {
   const existing = I.taxYears[key] || defaultTaxYearConfig();
   const ctx = wizardDataFrom(ym, {
     settings: I.settings, stressSettings: storedStressSettings(plan), existingConfig: existing, allTaxYears: I.taxYears,
-    statePensionInfo: statePensionInfoFor(I.settings, I.taxYears, key, now), now
+    statePensionInfo: statePensionInfoFor(I.settings, I.taxYears, key, now), now, history: I.history
   });
   const errors = {};
   const read = (path, dflt) => { const e = boxError(path, typed[path]); if (e) { errors[path] = e; return dflt; } const v = money(typed[path]); return v === null ? dflt : v; };
@@ -121,8 +132,11 @@ function setUpOf(I, plan, key, ym, typed, now) {
     key, year: yearWords(key), month: monthWords(ym), isApril: ctx.isApril, remaining: ctx.remainingMonths, prevMonth: ctx.isApril ? null : monthWords(addMonth(ym, -1)),
     source: ctx.suggestionSource, declining: (ctx.declineRate || 0) > 0, declinePct: Math.round((ctx.declineRate || 0) * 100),
     suggestion, cpiPct: Math.round(cpi * 1000) / 10, defaults: ctx.defaults,
-    statePension: spOf(sp, ym), statePensionLater: sp.amount > 0 && sp.startYm && sp.startYm > ym ? { monthly: pounds(sp.monthlyFull || 0), from: sp.startDate || sp.startYm } : null,
+    statePension: (() => { const f = statePensionFact(sp, ym, planSpYearly(I)); return { ...f, slots: { ...f.slots, year: yearWords(key) } }; })(), statePensionLater: sp.amount > 0 && sp.startYm && sp.startYm > ym ? { monthly: pounds(sp.monthlyFull || 0), from: sp.startDate || sp.startYm } : null,
     bands: bandsAssumptionText(final),
+    // 7.12.0: the same sum as the month (a quarter of each payment tax-free included), and why less reaches the bank in a part year
+    taxFree: (ctx.taxFreeFraction || 0) > 0,
+    reason: partYearReason(ctx, final, breakdown),
     topUp: {
       exhausted: !!isaCalc.brlExhausted, notNeeded: !!isaCalc.targetAchievableAtBrl, needed: Math.round(isaCalc.isaNeeded || 0),
       shortfall: Math.round(validation.shortfall || 0), needsChoice, choices, choice: settled ? settled.taxEfficiencyChoice : choice,
@@ -154,7 +168,8 @@ function potsOf(I, plan, ym, typed) {
   const lastGia = [...I.history].reverse().find((h) => h && h.giaBasisAfter != null) || null;
   const pre = {
     'mo.total': prefill ? prefill.total : null, 'mo.cash': prefill ? prefill.cash : null, 'mo.bonds': prefill && !contract ? prefill.bonds : null, 'mo.diversifiers': prefill && prefill.diversifiers ? prefill.diversifiers : null,
-    'mo.isa': null,
+    // the ISA as last typed, less that month's ISA draw (7.12.0, MonthlyEntry.isaPrefillOf); blank when no record carries one
+    'mo.isa': isaPrefillOf(I.history, ym),
     'mo.gia': lastGia && lastGia.giaBalanceAfter > 0 ? Math.round(lastGia.giaBalanceAfter) : (!lastGia && I.settings.taxableStart > 0 ? Math.round(I.settings.taxableStart) : null),
     'mo.giaBasis': lastGia ? Math.round(lastGia.giaBasisAfter) : null
   };
@@ -181,7 +196,7 @@ function potsOf(I, plan, ym, typed) {
   const gia = hasGia ? val('mo.gia') : null;
   const basisRaw = hasGia ? shown('mo.giaBasis') : '';
   const basis = hasGia && !blank(basisRaw) ? val('mo.giaBasis') : null;
-  const pots = split ? { equity: split.equity, bond: split.bond, cash: split.cash, isa: isa || 0, diversifier: split.diversifier || 0, gia: gia || 0, giaBasis: hasGia && !blank(basisRaw) ? basis : null } : null;
+  const pots = split ? { equity: split.equity, bond: split.bond, cash: split.cash, isa: isa || 0, isaTyped: isa, diversifier: split.diversifier || 0, gia: gia || 0, giaBasis: hasGia && !blank(basisRaw) ? basis : null } : null;
   const fields = [...boxes.map((b) => b.path), 'mo.isa', ...(hasGia ? ['mo.gia', 'mo.giaBasis'] : [])].map((path) => ({ path, type: 'money', applies: true, shown: shown(path), saved: null, error: errors[path] || null }));
   return { mode, contract, hasDiversifiers, hasGia, prefill, prefillFrom: prefill ? monthWords(prefill.from) : null, fields, errors, problem, pots, entered, total: split ? split.equity + split.bond + split.cash + (split.diversifier || 0) : null };
 }
@@ -250,15 +265,15 @@ function refusalOf(I, month) {
   return { id: 'beforeSetUp', slots: { month: monthWords(month), year: yearWords(key), from: monthWords(addMonth(aprilOf(key), (start + 8) % 12)) } };
 }
 
-/** The State Pension for the set-up, as facts the page words (statePensionLine's cases, without its classic page's directions). */
-function spOf(sp, ym) {
-  const s = sp || {};
-  const amount = +s.amount || 0;
-  const when = s.startDate || s.startYm || null;
-  if (!amount) return { id: when ? 'noAmount' : 'none', slots: { when } };
-  const monthly = s.monthlyFull != null ? +s.monthlyFull : (s.monthly != null ? +s.monthly : amount / 12);
-  const started = s.startYm ? String(s.startYm) <= String(ym) : !!s.isReceiving;
-  return { id: started ? 'paying' : s.isReceiving ? 'startsThisYear' : 'later', slots: { when, monthly: pounds(monthly), amount: pounds(amount) } };
+/**
+ * The plan's own State Pension a year (7.12.0), for the set-up's line: the Decision settings' figure, else the Stress settings'
+ * weekly amount × 52 (the plan's own forecast), else the Decision settings' weekly amount × 52; 0 when the plan holds none.
+ */
+function planSpYearly(I) {
+  const a = +(I.settings && I.settings.statePension) || 0;
+  if (a > 0) return a;
+  const w = +(I.stressSettings && I.stressSettings.spWeeklyAmount) || +(I.settings && I.settings.spWeeklyAmount) || 0;
+  return w > 0 ? Math.round(w * 52) : 0;
 }
 
 /** The fill's help in the new app's words where the classic one names its own buttons ("the month box", "Calculate"). */
@@ -290,7 +305,9 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const stage = safeStage(plan, now);
   const locked = isLocked(plan);
   const closed = isClosedPlan(plan);
-  const { listed, opens } = monthChoices(I, mon);
+  // the plan's first payment month (7.12.0): the chooser starts there, and no month before it is ever counted as missed
+  let fp = null; try { fp = firstPaymentMonth(plan, { now, settings: I.stressSettings }).month; } catch { fp = null; }
+  const { listed, opens, earlier } = monthChoices(I, mon, fp, typed['mo.earlier'] === 'yes', monthToRecord(plan, mon).month);
   const chosen = typeof typed['mo.month'] === 'string' && listed.includes(typed['mo.month']) ? typed['mo.month'] : opens;
   const paidAsked = typed['mo.paid'] === 'yes' && chosen === mon;
   const marchPaid = paidAsked && Number(mon.slice(5, 7)) === 3;
@@ -299,7 +316,9 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const errors = {};
   if (marchPaid) errors['mo.paid'] = 'march';
   const base = {
-    stageKey: stage.key, locked, closed, months: listed.map((m) => ({ ym: m, words: monthWords(m) })), chosen, mon, month, monthWords: month ? monthWords(month) : '',
+    stageKey: stage.key, locked, closed, months: listed.map((m) => ({ ym: m, words: monthWords(m) })), earlier, chosen, mon, month, monthWords: month ? monthWords(month) : '',
+    // a month still ahead (7.12.0): said once above the figures, never refused
+    future: !!chosen && chosen > mon ? { month: monthWords(chosen) } : null,
     paidOffered: chosen === mon && !(I.ceiling && I.ceiling <= mon), paidAhead, cadence: cadenceOf(plan.decisionTool),
     recent: I.history.slice(-3).reverse().map((h) => ({ month: monthWords(h.date), afterTax: pounds(h.monthlyNet), tax: pounds(h.monthlyTax), filled: filledInLabel(h) || null, fromSetUp: h.fromSetUp === true })),
     recordedCount: I.history.length,
@@ -322,7 +341,8 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const offer = fillOffer(I.history, month, { taxYears: I.taxYears, taxYearOf: getTaxYearFromDate, from, planStart: I.planStart, floor: I.floor, ceiling: I.ceiling });
   // … less a month whose payment the next record says was made already (its paidAhead mark, as read.js firstGap reads it)
   const paidBefore = new Set(I.history.filter((h) => h && h.paidAhead === true).map((h) => addMonth(monthOfRecord(h), -1)));
-  const gap = offer ? offer.choices.filter((m) => !paidBefore.has(m)) : [];
+  // … and only months from the plan's first payment on (7.12.0): a month before it is not missed; with none known, no banner
+  const gap = offer && fp ? offer.choices.filter((m) => !paidBefore.has(m) && m >= fp) : [];
   const fillOn = typed['mo.fill'] === 'yes' && !!offer && offer.months.length > 0;
   // the arrival check (LifeStage.arrivalCheck): a plan locked while saving, its first month after the stop
   let arrival = null;

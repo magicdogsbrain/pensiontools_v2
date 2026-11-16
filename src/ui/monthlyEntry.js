@@ -10,7 +10,8 @@
  * Inline handlers are plain calls (the no-eval grammar in src/ui/inlineHandlers.js). The shell installs the window
  * functions through installMonthlyEntryHandlers.
  */
-import { platformBoxes, splitFromPlatform, prefillFromHistory, prefillNote, enteredBlock } from '../services/MonthlyEntry.js';
+import { platformBoxes, splitFromPlatform, prefillFromHistory, prefillNote, enteredBlock, isaPrefillOf } from '../services/MonthlyEntry.js';
+import { monthToRecord } from '../services/YearPlan.js';
 
 export const ENTRY_MODE_KEY = 'pt.entryMode';
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -123,11 +124,24 @@ export function prefillMonthlyEntry(history, opts) {
   const p = prefillFromHistory(history, { ...lastOpts, month: entryMonthOf(opts) });
   lastPrefillFrom = p ? p.from : null;
   const note = el('entryPrefillNote'); if (note) note.textContent = prefillNote(p);
+  // the ISA as last typed, less that month's ISA draw (7.12.0); blank when no record carries one
+  setVal('entryIsa', isaPrefillOf(history, entryMonthOf(opts)));
   if (!p) { for (const id of ['entryPlatTotal', 'entryPlatCash', 'entryPlatBonds', 'entryPlatDiversifiers', 'entryEquity', 'entryBond', 'entryCash']) setVal(id, ''); return null; }
   setVal('entryPlatTotal', p.total); setVal('entryPlatCash', p.cash); setVal('entryPlatBonds', lastOpts.contract ? '' : p.bonds); setVal('entryPlatDiversifiers', p.diversifiers || '');
   const s = splitFromPlatform(p, lastOpts);
   if (!s.problem) { setVal('entryEquity', s.equity); setVal('entryBond', s.bond); setVal('entryCash', s.cash); setVal('entryDiversifier', s.diversifier); }
   return p;
+}
+
+/**
+ * The entry card opened on a plan (7.12.0): the month box set to the one month to record (YearPlan.monthToRecord — the month
+ * the simple view's home and Month by month name), then the boxes filled for it. With nothing to record the box is left as
+ * it is.
+ */
+export function openMonthlyEntry(history, opts) {
+  const t = monthToRecord({ decisionTool: { history: Array.isArray(history) ? history : [] } }, thisMonth());
+  if (t.month) setVal('entryMonth', t.month);
+  return prefillMonthlyEntry(history, opts);
 }
 
 /**

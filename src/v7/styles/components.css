@@ -721,6 +721,8 @@ input[type="checkbox"] { width: 24px; height: 24px; margin: 0 10px 0 0; accent-c
 .budget-add .actions-row { margin: 0 0 2px; }
 .budget-phase .field input[type="text"] { width: 6rem; }
 @media (max-width: 480px) { .plan-oneoff { grid-template-columns: 1fr; } }
+/* the household's verdict rows (7.12.0): on a phone, the label above its value */
+@media (max-width: 480px) { .household-rows tr, .household-rows th, .household-rows td { display: block; } .household-rows td { padding-top: 0; } }
 
 /* ---- the plan's home (7.3.0; research/v7/mockups/first-visit.html screen 4 and its README's colour and motion rules) ----
    Amber saving, teal moving, purple drawing: fills and dots only, never body text. Pink is the one thing to press. The

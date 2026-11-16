@@ -23,17 +23,18 @@
  * Every path written is in schema.js HOUSEHOLD_WRITES (tested), or, on a draft read from an earlier start, LATER_DRAFT_WRITES.
  */
 import { effectiveStressSettings } from '../../services/PlanReading.js';
-import { personProfile, splitFingerprint, SPLIT_HEADLINE_MIN, settingsWithSchedule } from '../../services/HouseholdDraw.js';
+import { personProfile, splitFingerprint, SPLIT_HEADLINE_MIN, settingsWithSchedule, noSplitWords } from '../../services/HouseholdDraw.js';
 import { isLockedPlan, splitWriteMode, shapeWords, splitCopyNames, SPLIT_KEYS } from '../../services/HouseholdSplitApply.js';
 import { budgetSharedFromOf, shareBudgetWrite, stopSharingWrite, sharedBudgetView, ownSideOf } from '../../services/PlanCommit.js';
 import { summariseBudget } from '../../services/BudgetModel.js';
 import { currentAgeNow } from '../../utils/StatePensionUtils.js';
 import { guestOwnPlans, GUEST_MAX_PLANS } from '../../services/GuestPlans.js';
-import { futuresOutOfTen, pctText, CHANCE_BARS } from '../../services/OneAnswer.js';
+import { futuresOutOfTen, pctBesideWords } from '../../services/OneAnswer.js';
 import { isOnCourse, BORDERLINE_SHARE } from '../../services/OnCourse.js';
 import { theirLineOf } from './read.js';
 import { isClosedPlan, closedReading, partnerCandidates } from '../../services/PlanClosed.js';
 import { runKeyOf } from './lasts.js';
+import { partnerOf, partnerIdOf, linkedByOf } from '../../services/HouseholdLink.js';
 import { pounds } from './income.js';
 import { HOUSEHOLD_FIELDS, HOUSEHOLD_WRITES, PAID_BYS, LATER_DRAFT_WRITES } from './schema.js';
 import { laterDraftPatch } from './moveStart.js';
@@ -47,22 +48,16 @@ const blank = (v) => v === undefined || v === null || (typeof v === 'string' && 
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
 const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
-const partnerIdOf = (plan) => (plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId) || null;
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 const r0 = (v) => Math.round(+v || 0);
-const pct = (share) => pctText((+share || 0) * 100, 0, [...CHANCE_BARS, 70]).replace(/%$/, '');
+// the figure beside its words, never rounded across a line where the words change (OneAnswer.pctBesideWords, 7.12.0)
+const pct = (share) => pctBesideWords(+share || 0).replace(/%$/, '');
 const inTen = (share) => futuresOutOfTen(+share || 0).words;
 const safeSettings = (plan, now) => { try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && isObj(plan.stressTool.settings)) ? plan.stressTool.settings : {}; } };
 
-/** The plan linked to `plan`, either way (6): its own link first, else the first plan that points at it. */
-export function partnerOf(entries, plan) {
-  const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
-  const mine = partnerIdOf(plan);
-  // a closed plan is never the partner's plan read here: the plan that carries it on is (6.56.0, PlanClosed.js)
-  const own = mine ? list.find((e) => String(e.plan.id) === String(mine) && String(e.plan.id) !== String(plan.id) && !isClosedPlan(e.plan)) : null;
-  return own || list.find((e) => String(e.plan.id) !== String(plan.id) && !isClosedPlan(e.plan) && partnerIdOf(e.plan) === plan.id) || null;
-}
+/** The plan linked to `plan`, either way (6): its own link first, else the first plan that points at it (services/HouseholdLink.js). */
+export { partnerOf };
 
 /** The key the household's runs are filed under: both plans' run keys (a save of either moves it). */
 export function pairKeyOf(plan, partner) {
@@ -356,15 +351,27 @@ export function whoPaysPatches(plan, entries, typed, { today }) {
 const headOf = (share) => (isOnCourse(share) ? 'yes' : share >= BORDERLINE_SHARE ? 'close' : 'no');
 const r5 = (fan) => (Array.isArray(fan) ? fan.filter((f, i) => i % 5 === 0) : []);
 
-/** The pooled verdict and each plan alone, in words with slots (householdView.verdictSectionHtml, in V7's words). */
-function verdictView(res, names, offsets) {
+/** The age a plan is tested until: its start age and its length, from its effective settings; null when not given. */
+const endAgeOf = (ss) => { const a = num(ss && ss.shapeAgeNow), d = num(ss && ss.duration); return a != null && d != null ? a + d : null; };
+
+/**
+ * The pooled verdict and each plan alone, in words with slots (householdView.verdictSectionHtml says the same). Until when each
+ * plan is tested (7.12.0); when one plan fell short and the other paid, said per side in that plan's owner's ages.
+ */
+function verdictView(res, names, offsets, ends) {
   const c = res && res.combined;
   if (!c) return null;
   const share = c.pooled ? c.pooled.success : c.jointSuccess;
-  const covered = c.pooled ? (c.pooled.coveredByA || 0) + (c.pooled.coveredByB || 0) : 0;
+  const covered = c.pooled ? ['a', 'b'].map((k) => {
+    const x = c.pooled[k === 'a' ? 'shortA' : 'shortB'];
+    if (!x || !(x.n > 0) || x.median == null) return null;
+    return { side: k, n: String(x.n), of: Number(c.runs).toLocaleString('en-GB'), short: names[k], payer: names[k === 'a' ? 'b' : 'a'], from: String(x.median), earliest: x.earliest != null && x.earliest !== x.median ? String(x.earliest) : null };
+  }).filter(Boolean) : [];
+  const tested = ends && ends.a != null && ends.b != null
+    ? (ends.a === ends.b ? { same: true, age: String(ends.a) } : { same: false, a: names.a, b: names.b, ageA: String(ends.a), ageB: String(ends.b) })
+    : null;
   return {
-    head: headOf(share), share, pct: pct(share), words: inTen(share), pooled: !!c.pooled,
-    covered: c.pooled && covered > 0 && c.pooled.fromAgeMedian ? { n: String(covered), of: String(c.runs), from: String(c.pooled.fromAgeMedian), earliest: c.pooled.fromAgeEarliest && c.pooled.fromAgeEarliest !== c.pooled.fromAgeMedian ? String(c.pooled.fromAgeEarliest) : null } : null,
+    head: headOf(share), share, pct: pct(share), words: inTen(share), pooled: !!c.pooled, covered, tested,
     rows: [
       { id: 'household', words: inTen(share), pct: pct(share) },
       { id: 'a', name: names.a, words: inTen(c.successA), pct: pct(c.successA) },
@@ -397,7 +404,9 @@ function splitView(split, fig, names, saved, mode) {
   const cell = (v) => (v == null ? '—' : pounds(v));
   const way = (w) => (w ? { a: w.potA.map(cell).join(' / '), b: w.potB.map(cell).join(' / '), lasts: w.lasts ? w.lasts.household.words : '…', left: w.left90 ? pounds(w.left90.p50) + ' / ' + pounds(w.left90.p10) : '…' } : null);
   return {
-    applies: !!split.applies, unchanged: !!split.unchanged, dismissed: saved.dismissed, fingerprint: split.fingerprint, mode, lockedNames: saved.lockedNames,
+    applies: !!split.applies, unchanged: !!split.unchanged, dismissed: saved.dismissed,
+    // "nothing to move", said once in both views (HouseholdDraw.noSplitWords, 7.12.0)
+    noneWords: (() => { const n = noSplitWords(split); return { id: n.id, slots: { small: names[small] } }; })(), fingerprint: split.fingerprint, mode, lockedNames: saved.lockedNames,
     smallerName: names[small], biggerName: names[big], untilAge: String(split.untilAge),
     noBridge: split.untilC === 0,   // the smaller's State Pension already in payment when the count begins: no "by the time … is 68"
     limitKind: split.limit && split.limit.kind ? split.limit.kind : 'none', limitDefaulted: !!split.limitDefaulted, need: split.need == null ? null : pounds(split.need),
@@ -433,6 +442,13 @@ function survivorView(S, names, sids) {
     middling: lasts(r.middling), middlingReason: r.middling.reason || null, bad: lasts(r.bad), badReason: r.bad.reason || null,
     inherit: { middling: pounds(r.inherited.middling.total), bad: pounds(r.inherited.bad.total), held: r.inherited.heldIsa > 0 ? pounds(r.inherited.heldIsa) : null },
     spending: { gross: pounds(r.spending.gross), net: pounds(r.spending.net), pct: String(r.spendPct) },
+    // what the one who is left has besides the inheritance (7.12.0): their own pension and savings (counted, no figure), a
+    // share of the other's final-salary pension, their own State Pension; and the age their plan is tested to
+    has: r.has ? {
+      pension: r.has.pension ? { pct: String(r.dbPct), amount: pounds(r.has.pension.annual) } : null,
+      statePension: r.has.statePension ? { amount: pounds(r.has.statePension.annual), fromAge: String(r.has.statePension.fromAge), paid: !!r.has.statePension.paid } : null,
+      toAge: r.has.toAge != null ? String(r.has.toAge) : null
+    } : null,
     ways: { deceased: sids[r.who === 'b' ? 'b' : 'a'], survivor: sids[r.who === 'b' ? 'a' : 'b'] }, runs: String(r.basis && r.basis.runs ? r.basis.runs : 3)
   } };
 }
@@ -494,7 +510,7 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
     id: String(partner.id), name: names.b, locked: saved.partnerLocked, lockedOn: saved.partnerLockedOn, readonly: !!(pe.newer || pe.failed),
     // their line by their plan's phase (7.10.0, read.js theirLineOf), never a placing it has left
     line: theirLineOf(partner, now, saved.ssB), configured: !!(partner.stressTool && isObj(partner.stressTool.settings) && partner.stressTool.settings.configured),
-    linkedBy: mine === String(partner.id) ? (partnerIdOf(partner) === String(plan.id) ? 'both' : 'mine') : 'theirs'
+    linkedBy: linkedByOf(plan, partner)
   } : null;
   const budgetRead = c.read;
   const whoPays = {
@@ -512,9 +528,10 @@ export function householdOf(entries, id, { today, typed = null, H = null, source
     status: h ? h.status : 'idle', reason: h && h.status === 'failed' ? h.reason || null : null, ms: h && h.ms != null ? h.ms : null, progress: h ? h.progress : null, stale,
     runs: result && result.basis ? String(result.basis.runs) : null,
     unaffordable: result && !result.ok ? { which: result.which === 'b' ? names.b : names.a, reason: result.reason === 'partnerNotSet' ? null : (result.why || ''), kind: result.reason } : null,
-    verdict: ok ? verdictView(result.own, names, result.offsets) : null,
-    timeline: ok && Array.isArray(result.timeline) ? result.timeline.map((r) => ({ year: String(r.year), beforeStatePension: !!r.beforeStatePension, workingA: !!r.workingA, workingB: !!r.workingB, needA: pounds(r.needA), needB: pounds(r.needB), sp: pounds(r.spA + r.spB), other: pounds(r.db + r.other), draw: pounds(r.drawNeed) })) : [],
-    left: ok && result.own && result.own.combined ? r5(result.own.combined.potFan).map((f) => ({ year: String(f.year), p10: pounds(f.p10), p50: pounds(f.p50), p90: pounds(f.p90) })) : [],
+    verdict: ok ? verdictView(result.own, names, result.offsets, { a: endAgeOf(saved.ssA), b: endAgeOf(saved.ssB) }) : null,
+    // the years are calendar years (7.12.0), never a row's count from today; a plan past its last age is said to have ended
+    timeline: ok && Array.isArray(result.timeline) ? result.timeline.map((r) => ({ year: String(r.calendarYear != null ? r.calendarYear : now.getFullYear() + r.year), beforeStatePension: !!r.beforeStatePension, workingA: !!r.workingA, workingB: !!r.workingB, endedA: !!r.endedA, endedB: !!r.endedB, needA: pounds(r.needA), needB: pounds(r.needB), sp: pounds(r.spA + r.spB), other: pounds(r.db + r.other), draw: pounds(r.drawNeed) })) : [],
+    left: ok && result.own && result.own.combined ? r5(result.own.combined.potFan).map((f) => ({ year: String(now.getFullYear() + f.year), p10: pounds(f.p10), p50: pounds(f.p50), p90: pounds(f.p90) })) : [],
     split: ok ? splitView(result.split, result.fig, names, saved, saved.mode) : null,
     survivor: survivorView(h ? h.survivor : null, names, sids),
     care: careView(h ? h.care : null, names),

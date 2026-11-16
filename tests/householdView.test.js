@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { JSDOM } from 'jsdom';
 import { householdDrawSplit, comparisonFigures, headlineWords, about } from '../src/services/HouseholdDraw.js';
 import { combineHouseholdStrategies } from '../src/services/HouseholdService.js';
-import { splitSectionHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, householdVerdictHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, budgetShareHtml, budgetSharedLineHtml } from '../src/ui/householdView.js';
+import { splitSectionHtml, splitNoneHtml, splitDismissedHtml, splitConfirmHtml, verdictSectionHtml, householdVerdictHtml, timelineSectionHtml, wealthSectionHtml, whatToDoHtml, survivorCareHtml, budgetShareHtml, budgetSharedLineHtml } from '../src/ui/householdView.js';
 import { householdIncomeTimeline } from '../src/services/HouseholdService.js';
 import { splitChanges } from '../src/services/HouseholdSplitApply.js';
 
@@ -125,8 +125,8 @@ describe('the verdict: the household first, each pot second', () => {
     const r = runs.own.combined;
     const h = verdictSectionHtml({ r, ownName: 'Alex', pName: 'Sam', startsNote: 'Sam\'s plan begins later.' });
     const d = doc(h);
-    expect(d.querySelector('#hhHouseholdVerdict').textContent).toContain('the household\'s money lasts in');
-    expect(d.querySelector('#hhHouseholdVerdict').textContent).toContain('When one plan falls short (its money runs out, or a strategy that cuts instead cuts it), the other pays that share; the household falls short only when both have.');
+    expect(d.querySelector('#hhHouseholdVerdict').textContent).toContain('The household’s money lasts in');
+    expect(d.querySelector('#hhHouseholdVerdict').textContent).toContain('When one plan falls short, the other pays that share; the household falls short only when both have.');
     const rows = [...d.querySelectorAll('tbody tr')].map((tr) => tr.children[0].textContent);
     expect(rows[0]).toContain('The household together');
     expect(rows[1]).toBe('Alex\'s plan on its own');
@@ -158,5 +158,42 @@ describe('one budget for the household', () => {
     expect(text(budgetSharedLineHtml({ sharedFromName: 'Alex' }))).toBe('This is your household\'s budget, shared with Alex: the lines are the same on both plans; your share of who pays is this plan\'s own.');
     expect(text(budgetSharedLineHtml({ sharedToNames: ['Sam'] }))).toContain('shared with Sam');
     expect(budgetSharedLineHtml({})).toBe('');
+  });
+});
+
+describe('the full view\'s year table for Kim and Sam (7.12.0): real years, the pots second, a plan that has ended', async () => {
+  const { kimSettings, samSettings } = await import('./fixtures/kimAndSam.js');
+  const rows = householdIncomeTimeline(kimSettings(), samSettings(), null, new Date(2026, 10, 16, 12));
+  const d = doc(timelineSectionHtml(rows, 'Kim', 'Sam', 2026));
+  it('the waiting note names the real year; the columns put what the pots find second', () => {
+    expect(d.querySelector('#hhWaitingNote').textContent).toBe('Until 2032 at least one of you is still waiting for a State Pension: those are the years when the pots do the most work.');
+    expect([...d.querySelectorAll('#hhTimeline th')].map((th) => th.textContent)).toEqual(['Year', 'From the pots', 'Kim needs', 'Sam needs', 'State Pensions', 'Other income that comes anyway']);
+  });
+  it('every year is a four-figure year; 2056 reads £4,498 from the pots, Kim\'s plan ended, Sam £16,000, one State Pension £11,502, nothing else', () => {
+    for (const tr of d.querySelectorAll('#hhTimeline tbody tr')) expect(tr.firstChild.textContent).toMatch(/^20\d\d$/);
+    const r = [...d.querySelector('#hhTimeline tr[data-year="2056"]').children].map((td) => td.textContent);
+    expect(r).toEqual(['2056', '£4,498', 'plan ended', '£16,000', '£11,502', '£0']);
+    expect(d.body.textContent).toContain('After a plan reaches its last age, nothing of that person\'s is counted');
+  });
+});
+
+describe('the full view\'s verdict says the simple view\'s sentences (7.12.0)', async () => {
+  const { kimSettings, samSettings } = await import('./fixtures/kimAndSam.js');
+  const r = { runs: 1000, jointSuccess: 0.93, successA: 0.97, successB: 0.949, pooled: { success: 0.96, coveredByA: 37, coveredByB: 0, shortA: { n: 0, median: null, earliest: null }, shortB: { n: 37, median: 93, earliest: 87 } } };
+  const d = doc(verdictSectionHtml({ r, ownName: 'Kim', pName: 'Sam', setA: kimSettings(), setB: samSettings() }));
+  it('until when, whose plan fell short in whose ages, and the figure beside its words', () => {
+    expect(d.querySelector('#hhHouseholdVerdict').textContent).toBe('On course together. The household’s money lasts in more than 9 futures out of 10. Each plan is tested until its owner is 95. '
+      + 'When one plan falls short, the other pays that share; the household falls short only when both have. In 37 of 1,000 futures Sam’s plan fell short and Kim’s paid, typically from when Sam is 93 (87 at the earliest).');
+    const cells = [...d.querySelectorAll('tbody tr')].map((tr) => [tr.children[0].textContent, tr.children[1].textContent]);
+    expect(cells).toEqual([['The household together', 'more than 9 futures out of 10'], ['Kim\'s plan on its own', 'more than 9 futures out of 10 (97%)'], ['Sam\'s plan on its own', '9 futures out of 10 (94.9%)'], ['Both plans, each lasting on its own', '9 futures out of 10 (93%)']]);
+  });
+});
+
+describe('who draws what when nothing would move (7.12.0): said once, in plain words, with no nudge', () => {
+  it('a split that does not apply, nothing moved and no faster split: the sentence, and no limit box', () => {
+    const none = { names: { a: 'Kim', b: 'Sam' }, smaller: 'b', applies: false, unchanged: true, limitDefaulted: true, fast: null, saving: { year: 0, until: 0 }, untilAge: 67 };
+    const h = splitNoneHtml({ split: none });
+    expect(text(h)).toContain('As the two plans are written, moving drawing from one pension to the other would not cut the tax you pay between you.');
+    expect(h).not.toContain('<select');
   });
 });

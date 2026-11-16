@@ -138,7 +138,8 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(root.querySelector('h1').textContent).toBe('Your plan as locked');
     // Moved on purpose (the walk): this ladder's first gilt pays from April 2029 (the stage line above says so), so its step
     // no longer calls the cash years "your ladder": the plan pays from its first year, the ladder's first gilt from its own
-    expect(text).toContain('£34,000 a year before tax; your plan pays from April 2027 (tax year 2027/28); the ladder’s first gilt from April 2029');
+    // 7.12.0: from the month it first paid (its 2026/27 was set up from July), never April by assumption
+    expect(text).toContain('£34,000 a year before tax; your plan pays from July 2026; the ladder’s first gilt from April 2029');
     expect(text).not.toContain('your ladder pays from April 2027');
     const sections = [...root.querySelectorAll('[data-section]')].map((s) => s.getAttribute('data-section'));
     expect(sections).toEqual(['about', 'pays', 'pots', 'income', 'way', 'mix', 'else']);
@@ -191,7 +192,8 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(text).toContain('Nothing due. Your next review is September 2027.');
     expect(root.querySelector('[data-testid="rail.plan.lock"]')).toBe(null);
     const where = draw(stateWith(entries, '#/plan/' + saver.plan.id + '/where'));
-    expect(where.text).toMatch(/£319,800 on September 2026; the plan’s middle line for then is £[\d,]+/);
+    // 7.12.0: the figure in the path's prices first, as recorded in brackets
+    expect(where.text).toMatch(/£[\d,]+ at the prices of July 2026 \(£319,800 as recorded in September 2026\); the plan’s middle line for then is £[\d,]+/);
     expect(where.text).toContain('From your record, September 2026');
   });
   it('a step not on the stage\'s list still opens and says so (R7)', () => {
@@ -384,7 +386,8 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     const btn = root.querySelector('[data-testid="rail.next.button"]');
     expect(btn.textContent).toBe('Record August');
     expect(btn.getAttribute('href')).toBe('#/plan/' + id + '/month');
-    expect(root.querySelector('[data-testid="plan.month.gap"]').textContent).toContain('August 2026');
+    // 7.12.0: the page opens on August itself, the month the button names (YearPlan.monthToRecord)
+    expect(root.querySelector('[data-testid="plan.month.submit"]').textContent).toBe('Record August 2026');
     // the line names its source (the September record) and the page passes every check a plan page must
     expect(root.querySelector('[data-line="month.gapLater"] .plan-source')).not.toBe(null);
     expect(checkPlanPage(root, text, scopesOf('running')).filter((p) => p !== 'a box is drawn')).toEqual([]);   // Month by month has its boxes by design (7.2.0)
@@ -423,8 +426,9 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     b.decisionTool.history = b.decisionTool.history.filter((h) => h.date !== '2026-04');
     const later = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id + '/month'));
     expect(later.text).toContain('June 2026 is not recorded yet; September 2026 is.');
-    expect(later.text).not.toContain('April 2026 is not');
     expect(later.text).not.toContain('May 2026 is not');
+    // 7.12.0: its 2026/27 was set up from April, so April is the plan's first payment month and the page may name it as missed;
+    // the step still counts from the first record
     const whole = draw(stateWith(entriesAt(TODAY), '#/plan/' + id + '/month'));
     expect(whole.text).toContain('October 2026 is not recorded yet');
     expect(whole.text).not.toContain('October 2026 is not recorded yet;');

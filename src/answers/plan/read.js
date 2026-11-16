@@ -63,10 +63,13 @@ import { saverInputsOf } from './saverInputs.js';
 import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, localDay } from './dates.js';
 import { heldLadder } from './held.js';
 import { moveStatusOf } from './moveWords.js';
-import { isClosedPlan, closedReading, beforeReading, readDayOf, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
+import { isClosedPlan, closedReading, beforeReading, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
 import { shownPlanName } from '../../services/PlanName.js';
+import { takenSentence, yearPlanOf, firstPaymentMonth, monthToRecord } from '../../services/YearPlan.js';
+// the plans linked to this one, in either direction (6), this plan's own link first; never a closed plan (services/HouseholdLink.js)
+import { partnersOf, partnerIdOf } from '../../services/HouseholdLink.js';
 
 // The dates in words live in dates.js (shared with about.js); kept as exports here for everyone who reads them from read.js.
 export { dateOf, monthWords, monthName, dayWords };
@@ -74,7 +77,6 @@ const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const r0 = (v) => Math.round(num(v) || 0);
 /** The name a plan is shown by: the person's own, else one that follows the plan's present figures (services/PlanName.js). */
 const nameOf = (plan, now) => shownPlanName(plan, { now });
-const partnerIdOf = (plan) => (plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId) || null;
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
 
@@ -86,14 +88,16 @@ const isLadderPlan = (plan, ss) => CONTRACT_STRATEGIES.includes(stratId(plan, ss
 const lockedLadderOf = (plan, ss) => (isLadderPlan(plan, ss) && plan && plan.planDocument ? documentLadder(plan.planDocument, stratId(plan, ss)) : null);
 
 /**
- * When a locked ladder pays: from its first year; and, when cash pays the years before the first gilt, the plan pays from
- * that first year and the ladder's first gilt from its own year — one fact each, never the gilt's year as the plan's.
+ * When a locked plan pays (7.12.0): from the first month it paid (YearPlan.firstPaymentMonth: the first record, else the month
+ * its first tax year was set up from, else the month work stopped) — never April by assumption; with none known, its first
+ * tax year. A ladder whose cash pays the years before its first gilt says that gilt's year too: one fact each.
  */
-function lockedLadderWords(L) {
-  const Y0 = L.years[0].Y;
-  const rung = firstRungOf(L);
-  if (rung && rung.Y > Y0) return ' a year before tax; your plan pays from April ' + Y0 + ' (tax year ' + taxYearLabel(Y0) + '); the ladder’s first gilt from April ' + rung.Y;
-  return ' a year before tax; your ladder pays from April ' + Y0 + ' (tax year ' + taxYearLabel(Y0) + ')';
+function paysFromWords(fp, firstTaxYear, L, ladder = !!L) {
+  const rung = L ? firstRungOf(L) : null;
+  const Y0 = L ? L.years[0].Y : firstTaxYear;
+  if (L && rung && rung.Y > Y0) return ' a year before tax; ' + (fp ? 'your plan pays from ' + monthWords(fp) : 'your plan’s first tax year is ' + taxYearLabel(Y0)) + '; the ladder’s first gilt from April ' + rung.Y;
+  const who = ladder ? 'ladder' : 'plan';
+  return ' a year before tax; ' + (fp ? 'your ' + who + ' pays from ' + monthWords(fp) : 'your ' + who + '’s first tax year is ' + taxYearLabel(Y0));
 }
 
 /**
@@ -122,13 +126,6 @@ function safeStage(plan, now) {
 }
 function safeSettings(plan, now) {
   try { return effectiveStressSettings(plan, { now }); } catch { return (plan && plan.stressTool && plan.stressTool.settings) || {}; }
-}
-
-/** The plans linked to `plan`, in either direction (6). A closed plan is no one's partner's plan: its successor is (6.56.0). */
-function partnersOf(entries, plan) {
-  const id = plan.id;
-  const mine = partnerIdOf(plan);
-  return entries.filter((e) => e.plan.id !== id && !isClosedPlan(e.plan) && (e.plan.id === mine || partnerIdOf(e.plan) === id));
 }
 
 /**
@@ -289,31 +286,6 @@ const link = (id, href, slots = {}) => ({ id, href, slots });
 // ---- the steps -------------------------------------------------------------------------------------------------------
 
 /**
- * The earliest month with no record, counted from the FIRST record's month up to the month BEFORE `mon` (this month);
- * null with no records or no gap. This month itself is never a gap: it is "not recorded yet" as it always was. Months
- * before the first record are never counted (a plan may begin with a later month on purpose), nor months after this one.
- * The month before a record made with "This month's payment has already been made" — the planner dates that entry a
- * month on and marks the record `paidAhead` (index.html handleDecisionSubmit, models/Decision.js) — is not a gap either:
- * the person said it was paid. A record with no mark, every record made before the mark existed among them, reads as it
- * did, so no saved plan's reading changes.
- */
-function firstGap(hist, mon) {
-  if (!hist.length) return null;
-  const byMonth = new Map(hist.map((h) => [String(h.date).slice(0, 7), h]));
-  let p = ym(hist[0].date);
-  const end = ym(mon);
-  if (!p || !end) return null;
-  const key = (q) => q.y + '-' + String(q.m).padStart(2, '0');
-  while (monthsBetween(p, end) > 0) {
-    const next = p.m === 12 ? { y: p.y + 1, m: 1 } : { y: p.y, m: p.m + 1 };
-    const after = byMonth.get(key(next));
-    if (!byMonth.has(key(p)) && !(after && after.paidAhead === true)) return key(p);
-    p = next;
-  }
-  return null;
-}
-
-/**
  * "Record {August}": Month by month inside the new app since 7.2.0 (research/v7/months-in-v7.md) — it opens on the month to
  * record and offers every month missed before it, so the month rides along only as the button's words.
  */
@@ -336,9 +308,11 @@ function monthStep(C) {
   const { plan, now, ty, tyKey, mon } = C;
   const hist = historyAscending(plan);
   const latest = hist.length ? hist[hist.length - 1] : null;
-  const gap = firstGap(hist, mon);
-  const recorded = !gap && !!latest && String(latest.date).slice(0, 7) >= mon;
-  const toRecord = gap || mon;
+  // the one month to record (7.12.0, YearPlan.monthToRecord): the same month Month by month and the full view open on
+  const mtr = monthToRecord(plan, mon);
+  const gap = mtr.gap ? mtr.month : null;
+  const recorded = !mtr.month;
+  const toRecord = mtr.month || mon;
   const figures = {};
   const lines = [];
   const setUp = !!(plan.decisionTool && plan.decisionTool.taxYears && plan.decisionTool.taxYears[tyKey] && plan.decisionTool.taxYears[tyKey].yearSetupComplete);
@@ -364,12 +338,23 @@ function monthStep(C) {
   });
   if (gap && String(latest.date).slice(0, 7) > gap) lines.push(line('month.gapLater', [], figures, sourceOf('record', latest.date, now), { month: monthWords(latest.date) }));
   let result;
-  if (recorded) { figures.net = r0(latest.monthlyNet); result = sentence('month.recorded', [monthWords(mon) + ' recorded: ', money('net'), ' after tax'], figures); }
+  // the latest record's own month, with its own figure (never this month's name on a later month's figures)
+  if (recorded) { figures.net = r0(latest.monthlyNet); result = sentence('month.recorded', [monthWords(latest.date) + ' recorded: ', money('net'), ' after tax'], figures); }
   else if (gap) result = sentence('month.gap', [monthWords(gap) + ' is not recorded yet; ' + monthWords(latest.date) + ' is.'], figures);
   else result = sentence('month.notYet', [monthWords(mon) + ' is not recorded yet'], figures);
   const buttons = [recordButton(plan, toRecord)];
   if (!setUp) buttons.push(link('setUpYear', monthHref(plan), { year: taxYearLabel(ty) }));
   return { done: recorded, result, figures, lines, buttons, notes: [], recorded, setUp, gap, toRecord };
+}
+
+/**
+ * The month whose prices the plan's band is in (7.12.0): April of its first tax year; or, for a document locked in a later
+ * plan year (its pots `asOfPlanYear` > 0), the month it was locked.
+ */
+function pricesMonthOf(doc) {
+  const later = doc && doc.pots && +doc.pots.asOfPlanYear > 0;
+  if (later && doc.lockedAt) return monthWords(String(doc.lockedAt).slice(0, 7));
+  return 'April ' + (+(doc && doc.timing && doc.timing.firstTaxYear) || '');
 }
 
 /** Where you are (2.3 `where`): whereAmI on the plan document, never the countdown. */
@@ -386,12 +371,18 @@ function whereStep(C) {
   const lockedAt = lockedAtOf(plan);
   if (!w) return { done: false, result: sentence('where.noReading', ['The plan document could not be read'], figures), figures, lines, buttons: [button('seeDocument', 'document')], notes };
   let result;
+  let compare = null;
   if (w.saving) {
     const s = w.saving;
     if (s.pathMissing || s.actual == null || s.expected == null) result = sentence('where.saverNone', ['No pot recorded against the plan’s path yet'], figures);
     else {
       figures.actual = r0(s.actual); figures.expected = r0(s.expected);
-      result = sentence('where.saver', [money('actual'), ' on ' + monthWords(s.at), '; the plan’s middle line for then is ', money('expected')], figures);
+      // one basis (7.12.0): the figure the path is in first, as recorded in brackets, when prices have moved
+      const moved = s.compared != null && s.prices && Number.isFinite(+s.prices.factor) && Math.abs(+s.prices.factor - 1) >= 0.0005 && s.prices.start;
+      if (moved) {
+        figures.compared = r0(s.compared);
+        result = sentence('where.saver', [money('compared'), ' at the prices of ' + monthWords(s.prices.start) + ' (', money('actual'), ' as recorded in ' + monthWords(s.at) + '); the plan’s middle line for then is ', money('expected')], figures);
+      } else result = sentence('where.saver', [money('actual'), ' on ' + monthWords(s.at), '; the plan’s middle line for then is ', money('expected')], figures);
       lines.push(line('where.saverPot', [money('actual')], figures, sourceOf(s.actualSource === 'holdings' ? 'hold' : 'record', s.recordedAt || s.at, now)));
       lines.push(line('where.saverLine', [money('expected')], figures, sourceOf('locked', lockedAt, now)));
     }
@@ -401,39 +392,46 @@ function whereStep(C) {
     // its start is moved (on About you and when). Once year 0 has come its months are year 0's, read against the right year's
     // figure, as the planner's strip reads them (PlanDocument.whereAmI: only a year 0 ahead is held back).
     const older = !!C.startLater && C.startLater.start > C.ty;
-    const inc0 = w.incomeThisYear || { recorded: 0, drawn: 0, planned: null };
-    const inc = older ? { ...inc0, planned: null, perMonth: null } : inc0;
-    figures.months = inc.recorded; figures.drawn = r0(inc.drawn);
-    const parts = [count('months'), ' month' + (inc.recorded === 1 ? '' : 's') + ' recorded in ' + w.taxYear + ': ', money('drawn'), ' taken before tax'];
-    if (inc.planned != null) { figures.planned = r0(inc.planned); parts.push('; the plan says ', money('planned'), ' for the year'); }
-    result = sentence('where.retired', parts, figures);
-    // like with like (v6-usability-audit.md 2.6): what was taken in the months recorded against what the plan said for those
-    // months — the document's figure for the year, a twelfth a month (whereAmI's perMonth), times the months recorded —
-    // and the difference, said as less, more or the same; "because income was cut" only when a recorded month says the
-    // cut was on (the record's own inProtection flag), never a reckoning of its own
-    if (inc.recorded > 0 && inc.perMonth != null) {
-      const said = r0(inc.perMonth) * inc.recorded;
-      const diff = r0(inc.drawn) - said;
-      // the tax year of the reading (w.taxYear): a closed plan is read as at its close (readDayOf), not in today's tax year
-      const rty = taxYearStartOf(readDayOf(plan, now));
-      const key = String(rty % 100).padStart(2, '0') + '/' + String((rty + 1) % 100).padStart(2, '0');
-      const cutMonths = historyAscending(plan).filter((h) => h && h.taxYear === key && h.inProtection === true).length;
-      figures.said = said; figures.diff = Math.abs(diff); figures.cutMonths = cutMonths;
-      const head = [money('drawn'), ' taken; the plan said ', money('said'), ' for ' + (inc.recorded === 1 ? 'that month' : 'those months') + '; '];
-      const id = diff < 0 ? (cutMonths > 0 ? 'where.compareLessCut' : 'where.compareLess') : diff > 0 ? 'where.compareMore' : 'where.compareSame';
-      const tail = diff < 0 ? (cutMonths > 0 ? [money('diff'), ' less because income was cut in ' + (cutMonths === inc.recorded ? (cutMonths === 1 ? 'it' : 'all of them') : cutMonths + ' of them')] : [money('diff'), ' less than the plan said'])
-        : diff > 0 ? [money('diff'), ' more than the plan said'] : ['the same as the plan said'];
-      lines.push(line(id, [...head, ...tail], figures, sourceOf('record', null, now), { months: String(inc.recorded), cutMonths: String(cutMonths) }));
+    const inc = w.incomeThisYear || { recorded: 0, drawn: 0 };
+    // like with like (7.12.0, services/YearPlan.js): what was taken in the months recorded against what each of those months
+    // told the person to take (the records' own figures, never the document's year row a twelfth a month), the difference
+    // said as less, more or "as your plan said", "because income was cut" only when a recorded month says the cut was on,
+    // then what reached the bank — the very sentence the full view's strip says
+    const said = takenSentence(inc, { year: w.taxYear, compare: !older });
+    Object.assign(figures, said.figures);
+    result = sentence('where.retired', said.parts, figures);
+    compare = said.compare;
+    // the year as it was set up (7.12.0, YearPlan.yearPlanOf): what the plan takes a month this tax year, and from when when
+    // it was set up part-way; nothing for a year not set up (the to-do asks for the set-up)
+    let yp = null; try { yp = older ? null : yearPlanOf(plan, taxYearKey(parseInt(w.taxYear, 10))); } catch { yp = null; }
+    if (yp) {
+      figures.yearMonthly = Math.round(yp.perMonth); figures.yearTotal = yp.total;
+      const april = yp.from && yp.from.slice(5) === '04' && yp.payments === 12;
+      lines.push(line('where.yearPlan', april
+        ? ['In ' + w.taxYear + ' your plan takes ', money('yearMonthly'), ' a month before tax.']
+        : ['In ' + w.taxYear + ' your plan takes ', money('yearMonthly'), ' a month before tax, from ' + monthWords(yp.from) + ': ' + yp.payments + ' payment' + (yp.payments === 1 ? '' : 's') + ', ', money('yearTotal'), '.'], figures, sourceOf('record', null, now), { year: w.taxYear }));
     }
     // (7.10.0: the start is changed on "About you and when", by unlock and lock again — no longer a to-do)
     if (older) lines.push(line('where.startLater', ['Your plan is set to start in April ' + C.startLater.start + ', so these months are not read against it yet' + (C.readonly ? '' : '. You can change the start on About you and when')], figures, sourceOf('locked', lockedAt, now), { start: 'April ' + C.startLater.start }));
-    lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
-    if (inc.planned != null) lines.push(line('where.planned', [money('planned')], figures, sourceOf('locked', lockedAt, now), { year: w.taxYear }));
+    if (inc.recorded > 0) lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
     if (w.step && w.step.amount != null) { figures.stepNow = r0(w.step.amount); lines.push(line('where.step', [money('stepNow'), ' a year before tax'], figures, sourceOf('locked', lockedAt, now), { n: String(w.step.index), of: String(w.step.of) })); }
-    if (w.pot && w.pot.actual != null) {
-      figures.pot = r0(w.pot.actual);
-      lines.push(line('where.pot', [money('pot')], figures, sourceOf(w.pot.source === 'holdings' ? 'hold' : 'record', w.pot.asOf, now)));
-      if (w.pot.p50 != null && !older) { figures.potMid = r0(w.pot.p50); lines.push(line('where.potMid', [money('potMid')], figures, sourceOf('locked', lockedAt, now))); }
+    // the pot (7.12.0): ONE basis, the one the band is in (whereAmI's `real`, as Review and the full view say it), with the
+    // figure as recorded in brackets when prices have moved; its parts and their dates when they are more than a month apart;
+    // and, when the band counts the ISA and no figure for it exists anywhere, that — never a pot set against the line
+    const P = w.pot;
+    if (P && P.real != null && P.actual != null) {
+      figures.pot = r0(P.real); figures.potActual = r0(P.actual);
+      const moved = P.prices && Number.isFinite(+P.prices.factor) && Math.abs(+P.prices.factor - 1) >= 0.0005;
+      lines.push(line('where.pot', moved ? [money('pot'), ' at the prices of ' + pricesMonthOf(plan.planDocument) + ' (', money('potActual'), ' as recorded).'] : [money('pot'), '.'], figures, sourceOf(P.source === 'holdings' ? 'hold' : 'record', P.asOf, now)));
+      if (P.p50 != null && !older) { figures.potMid = r0(P.p50); lines.push(line('where.potMid', [money('potMid'), '.'], figures, sourceOf('locked', lockedAt, now))); }
+      const parts = (Array.isArray(P.parts) ? P.parts : []).filter((x) => x && x.asOf && (x.key === 'pension' || x.key === 'isa'));
+      const ms = parts.map((x) => ym(x.asOf)).filter(Boolean);
+      if (parts.length > 1 && ms.length === parts.length && Math.abs(monthsBetween(ms[0], ms[1])) > 1) {
+        const words = parts.map((x, i) => { figures['potPart' + i] = r0(x.value); return [(x.key === 'isa' ? 'ISA ' : 'Pension '), money('potPart' + i), ', ' + (x.source === 'holdings' ? 'from What you hold, ' + monthWords(x.asOf) : 'recorded ' + monthWords(x.asOf)) + '.']; });
+        lines.push(line('where.potParts', words.reduce((a, b, i) => a.concat(i ? [' '] : [], b), []), figures, sourceOf('record', null, now)));
+      }
+    } else if (P && Array.isArray(P.missing) && P.missing.includes('isa') && !P.missing.includes('pension')) {
+      lines.push(line('where.potNoIsa', ['Your plan counts your ISA too, and we have no figure for it. You can type it in the ISA box when you next record a month, or add it under What you hold.'], figures, sourceOf('record', null, now)));
     }
   }
   // the guardrail reading (7.9.0; services/PlanDocument.js guardrailOf): this year's draw as a share of what the pots hold,
@@ -445,7 +443,7 @@ function whereStep(C) {
   // the records by tax year, a spreadsheet per year and the printed documents stay on the classic page (road-to-7.md step 11b, month.exports)
   const older = !w.saving && !!C.startLater && C.startLater.start > C.ty;
   const startHere = older && !C.readonly ? [link('aboutWhen', '#/plan/' + plan.id + '/about')] : [];
-  return { done: true, result, figures, lines, buttons: [...startHere, button('seeDocument', 'document'), button('exports', 'exports')], notes, ...(guardrail ? { guardrail } : {}) };
+  return { done: true, result, compare, figures, lines, buttons: [...startHere, button('seeDocument', 'document'), button('exports', 'exports')], notes, ...(guardrail ? { guardrail } : {}) };
 }
 
 /** The income steps as the plan has them: the document's (locked), else the effective settings'. */
@@ -522,10 +520,8 @@ function planStep(C) {
   if (locked && first) {
     result = stage.timingMode === 'future'
       ? sentence('plan.lockedSaver', [money('yearly'), ' a year before tax from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], figures)
-      : ladder && lockedLadderOf(plan, ss)
-        // the ladder's own first year, from the document (6.51.0): a plan locked once it had started bought its ladder from then
-        ? sentence('plan.lockedLadder', [money('yearly'), lockedLadderWords(lockedLadderOf(plan, ss))], figures)
-        : sentence(ladder ? 'plan.lockedLadder' : 'plan.lockedPlan', [money('yearly'), ' a year before tax; your ' + (ladder ? 'ladder' : 'plan') + ' pays from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], figures);
+      // the first month it paid, never April by assumption (7.12.0); a ladder's own first year from the document (6.51.0)
+      : sentence(ladder ? 'plan.lockedLadder' : 'plan.lockedPlan', [money('yearly'), paysFromWords(firstPaymentMonth(plan, { now, settings: ss }).month, firstTaxYear, ladder ? lockedLadderOf(plan, ss) : null, ladder)], figures);
   } else if (stage.timingMode === 'future' && num(ss.retireAge)) {
     figures.retireAge = +ss.retireAge;
     result = sentence('plan.saver', ['Stopping work at ', age('retireAge'), ', in ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear))], figures);

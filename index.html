@@ -3795,6 +3795,8 @@
                 </select>
               </div>
             </div>
+            <p class="hint" id="hhLinkedBy" hidden style="margin:6px 0 0;"></p>
+            <p class="hint" id="hhTheirLine" hidden style="margin:2px 0 0;"></p>
             <div style="display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
               <span style="font-size:12px;color:var(--text-muted);">No plan for them yet?</span>
               <input type="text" id="hhNewPlanName" placeholder="e.g. Partner's plan" style="max-width:200px;">
@@ -4045,7 +4047,6 @@
       contributionWarnings,
       projectAccumulation,
       getActiveAccumulation,
-      getHouseholdPartnerId,
       setHouseholdPartnerId,
       getActivePlanOfRecord,
       saveActivePlanOfRecord,
@@ -4175,7 +4176,7 @@
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
     import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
-    import { installLockedStart, startLaterOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
+    import { installLockedStart, startLaterOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, closedTimingSummary } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { buildPlanDocument, whereAmI, guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
@@ -4201,7 +4202,7 @@
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
     import { refreshDraftLines, paintDraftSettingsLine, openStressSettings, blankUnsetPots } from './src/ui/draftPlanLine.js'; import { planHasFigures } from './src/services/DraftDecision.js';   // an unlocked plan's own figures (7.12.0)
-    import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
+    import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js'; import { installHouseholdTab } from './src/ui/householdTabUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
@@ -4209,7 +4210,7 @@
     import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js';   // "Try the bad years" on the Scenarios page (7.9.0)
     import { parsePaste, matchRows, mergeLedger, categorise, applyPaste } from './src/services/HoldingsPaste.js';
     import { pastePreviewHtml } from './src/ui/components/HoldingsPasteView.js';   // every pasted line counts (6.23)
-    import { configureMonthlyEntry, readMonthlyEntry, prefillMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
+    import { configureMonthlyEntry, readMonthlyEntry, openMonthlyEntry, confirmFundsIfLow, installMonthlyEntryHandlers } from './src/ui/monthlyEntry.js';   // the platform view of the monthly entry (6.23)
     import { emptyHoldings, normaliseHoldings, linesFromTaggedFunds, holdingsSummary, stampHoldings, holdingsWith } from './src/services/HoldingsRecord.js';
     import { switchStrategy, cleanParams, activeParams, sortLegacyParams } from './src/services/StrategyState.js';
     import { switchPatch, restoredParamsFor, dialParams } from './src/services/PlanCommit.js';   // the strategy switch as one pure patch (6.40.0)
@@ -4698,8 +4699,7 @@
         try { const st = await getActiveStrategy(); window._activeStrategyId = (st && st.id) || stressSettings.strategyId || 'pots-and-valves'; } catch (e) { window._activeStrategyId = stressSettings.strategyId || 'pots-and-valves'; }
 
         // Monthly Entry captures THIS MONTH's values — never the plan's starting minimums: last month's record is pre-filled, to change (6.23).
-        configureMonthlyEntry({ hasDiversifiers: decisionSettings.diversifierStart > 0 || !!decisionSettings.diversifiers }); prefillMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
-        document.getElementById('entryIsa').value = '';
+        configureMonthlyEntry({ hasDiversifiers: decisionSettings.diversifierStart > 0 || !!decisionSettings.diversifiers }); openMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
         prefillGiaBasis();
         monthEntry.refreshOffer();   // the offer to fill in the missed months, against the records just read (3 Nov 2026)
 
@@ -5226,7 +5226,7 @@
             await initializeAllInputsFromSettings();
             window._holdingsDraft = null; window._holdingsDraftFor = null; window._transitionLast = null;   // never carry one plan's holdings draft into another (6.13.0)
             try { const nowTab = document.querySelector('.tab.active'); if (nowTab && nowTab.dataset.tab === 'transition') await loadTransitionUI(); } catch (e) { /* view optional */ }
-            await renderScenarioSelector(); updateNextStepBanner();   // the banner and the way back to the simple view follow the plan now open (7.11.0)
+            await renderScenarioSelector(); updateNextStepBanner(); loadHouseholdUI();   // the banner, the way back to the simple view (7.11.0) and the Household tab's partner (7.12.0) follow the plan now open
           } catch (error) {
             console.error('Error switching scenario:', error);
             showToast('Failed to switch plan: ' + error.message, 'error');
@@ -5603,7 +5603,7 @@
         spInfo: await getStatePensionForTaxYear(getTaxYearFromDate(dateStr)), potsYear: await decisionPotsYear(),   // the plan year the pots' floors start from (a plan locked after its year 0, or moved)
         // the ISA (a depleting pot drawn by band management when > 0), the diversifiers sleeve (drawn before depressed growth in a downturn) and the
         // taxable account with its cost (drawn before the ISA, net of CGT; the post-draw basis carried into the record), from the entry form
-        pots: { isa: isaNow, diversifier: parseFloat(document.getElementById('entryDiversifier')?.value) || 0, gia: giaNow, giaBasis: giaBasisRaw === '' || giaBasisRaw == null ? null : parseFloat(giaBasisRaw) }
+        pots: { isa: isaNow, isaTyped: (document.getElementById('entryIsa')?.value ?? '') === '' ? null : isaNow, diversifier: parseFloat(document.getElementById('entryDiversifier')?.value) || 0, gia: giaNow, giaBasis: giaBasisRaw === '' || giaBasisRaw == null ? null : parseFloat(giaBasisRaw) }
       }));
       // Strategy overlay: a contract strategy pays part (or all) of the month from a matured rung /
       // cash bucket, not from selling pots. The tax and the total are unchanged (it is still a SIPP
@@ -9287,25 +9287,7 @@
     window.rmWindfall = function (i) { window._ssWindfalls.splice(i, 1); renderExtraIncomes(); };
 
     // ---- Household tab (couples view) -------------------------------------------------------
-    window.loadHouseholdUI = async function () {
-      try {
-        const [scenarios, activeId, partnerId] = await Promise.all([
-          listScenariosAsync(), getActiveScenarioId(), getHouseholdPartnerId()
-        ]);
-        const own = scenarios.find((sc) => sc.id === activeId);
-        document.getElementById('hhOwnPlan').value = own?.planDetails?.name || 'Current plan';
-        const sel = householdPickerFor(document, own);   // read-only on a closed plan (6.56.0)
-        sel.innerHTML = '<option value="">— choose a plan —</option>' + partnerCandidates(scenarios, own || { id: activeId })   // never itself, a closed plan, or its own previous or next plan (PlanClosed.js)
-          .map((sc) => '<option value="' + sc.id + '"' + (sc.id === partnerId ? ' selected' : '') + '>'
-            + budEsc(sc.planDetails?.name || sc.id) + '</option>').join('');
-      } catch (e) { console.error('Household load error:', e); }
-    };
-
-    window.savePartnerSelection = async function () {
-      try {
-        await setHouseholdPartnerId(document.getElementById('hhPartnerSelect').value || null);
-      } catch (e) { showToast('Could not save partner selection: ' + e.message, 'error'); }
-    };
+    installHouseholdTab(window, document, { listScenariosAsync, getActiveScenarioId, setHouseholdPartnerId, showToast });   // the partner read either way, with which plan holds the link and their phase (src/ui/householdTabUi.js, 7.12.0)
 
     window.runHouseholdCheck = async function () {
       const out = document.getElementById('hhResults'), top = document.getElementById('hhSplit');
@@ -9314,12 +9296,12 @@
       out.innerHTML = '<p style="font-size:13px;">Running both plans through the same 1,000 possible futures…</p>';
       await new Promise((r) => setTimeout(r, 30));
       try {
-        const [scenarios, ownSettings, activeId] = await Promise.all([listScenariosAsync(), getStressSettingsAsync(), getActiveScenarioId()]);
-        const own = scenarios.find((sc) => sc.id === activeId), partner = scenarios.find((sc) => sc.id === partnerId);
-        // The partner's plan as its own tools read it (6.42.0): the Budget's age folded in and the settings brought up to date, as this plan's are
-        const partnerSettings = partner?.stressTool?.settings?.configured ? effectiveStressSettings(partner) : null;
-        if (!partnerSettings) {
-          out.innerHTML = '<div class="alert alert-warning">The partner plan has no saved Stress Tester settings yet — switch to that plan, fill in its settings, then come back here.</div>';
+        const [scenarios, stored, activeId] = await Promise.all([listScenariosAsync(), getStressSettingsAsync(), getActiveScenarioId()]);
+        const own = scenarios.find((sc) => sc.id === activeId), partner = scenarios.find((sc) => sc.id === partnerId), ownSettings = own ? effectiveStressSettings(own) : stored;
+        // Both plans as their own tools read them (6.42.0; this plan's too from 7.12.0, as the simple view reads it): the Budget's age folded in, brought up to date
+        const unset = [own, partner].find((p) => !p?.stressTool?.settings?.configured), partnerSettings = unset ? null : effectiveStressSettings(partner);   // never run on a plan's starting defaults (7.12.0)
+        if (unset || !partnerSettings) {
+          out.innerHTML = '<div class="alert alert-warning">‘' + budEsc(unset?.planDetails?.name || 'Your partner’s plan') + '’ has no figures saved yet. Open it, fill in its pots and spending, and come back.</div>';
           return;
         }
         const ownName = document.getElementById('hhOwnPlan').value, pName = partner.planDetails?.name || 'Partner';
@@ -9349,7 +9331,7 @@
         const stratNote = '<p class="hint" style="margin:6px 0 0;">Run with each plan\'s own strategy: <strong>' + budEsc(STRATEGY_NAMES[idA]) + '</strong> for ' + budEsc(ownName) + ', <strong>' + budEsc(STRATEGY_NAMES[idB]) + '</strong> for ' + budEsc(pName) + ' — paired future for future on the same markets' + ((offsets.a > 0 || offsets.b > 0) ? '; note that a partner who is still working is not year-shifted under a contract strategy, so the joint figure is approximate for the years before the State Pensions' : '') + '. "Lasts" means paid in full (for Floor to an age and Gilt ladder + rotation: never cut; for Floor &amp; flex: no lean year).</p>';
         const startsNote = householdStartWords({ offset: offsets.a, firstTaxYear: deriveTiming(ownSettings).firstTaxYear }, { offset: offsets.b, firstTaxYear: deriveTiming(partnerSettings).firstTaxYear });   // one plan begins later than the other (couples-different-years.md 7)
         const thisYear = new Date().getFullYear();
-        out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote })
+        out.innerHTML = verdictSectionHtml({ r, ownName, pName, stratNote, startsNote, setA: ownSettings, setB: partnerSettings })
           + timelineSectionHtml(householdIncomeTimeline(ownSettings, partnerSettings), ownName, pName, thisYear)
           + wealthSectionHtml(r.potFan, thisYear)
           + whatToDoHtml(r, ownName, pName)
@@ -9980,8 +9962,7 @@
         syncAccessButtons('ds');
 
         // Monthly Entry captures THIS MONTH's values — last month's record pre-filled, never the plan's starting minimums (6.23).
-        configureMonthlyEntry({ hasDiversifiers: s.diversifierStart > 0 || !!s.diversifiers }); prefillMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
-        document.getElementById('entryIsa').value = '';
+        configureMonthlyEntry({ hasDiversifiers: s.diversifierStart > 0 || !!s.diversifiers }); openMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
         prefillGiaBasis();
         monthEntry.refreshOffer();   // the offer to fill in the missed months, against the records just read (3 Nov 2026)
 

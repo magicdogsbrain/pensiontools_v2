@@ -16,6 +16,10 @@ export const MONTH = {
   locked: 'Recording a month changes nothing in your locked plan: the months are read against it.',
   /** The months missed, at the top (MonthFill's offer: every month the fill can reach before the month chosen). */
   gap: { one: '{words} is not recorded.', many: '{count} months are not recorded: {words}.', button: 'Fill them in with this month’s figures' },
+  /** Under the chooser (7.12.0): the list starts at the plan's first payment; this widens it to earlier months (the classic wording). */
+  earlier: 'Fill in earlier months you did not record…',
+  /** A month chosen that is still ahead (7.12.0): nothing is refused. */
+  future: '{month} has not happened yet. Record it now only if the payment has gone.',
   sections: { month: 'This month', setUp: 'Set up {year}', pots: 'What your platform shows', advice: 'What to draw this month, and where it comes from', fill: 'The months you did not record', recent: 'Your recent months', record: 'Keep a record of each month here', later: 'Coming next to Month by month' },
   yearDone: 'Tax year {year}: set up from {from}.',
   yearDoneIncome: 'Tax year {year}: set up from {from}, {income} a year before tax.',
@@ -93,13 +97,18 @@ export const MONTH = {
       declining: 'Your plan’s spending falls a little each year (about {pct}% a year at today’s prices). Last year’s income rises with prices, less that fall, to {amount} a year before tax.',
       'budget-schedule': 'From your plan’s income for this year, raised to this year’s prices: {amount} a year before tax.'
     },
+    /** One fact (TaxYearSetUp.statePensionFact, 7.12.0): "no amount" only when the plan truly holds none. */
     statePension: {
-      none: 'State Pension: none in your plan. Add your forecast under Money that comes in anyway.',
-      noAmount: 'State Pension: starts {when}; the amount is not in your plan yet. Add it under Money that comes in anyway.',
+      none: 'State Pension: not in your plan. You can add your forecast under Money that comes in anyway.',
+      noAmount: 'State Pension: starts {when}. Your plan has no amount for it yet. You can add your forecast under Money that comes in anyway.',
       paying: 'State Pension: {monthly} a month ({amount} this tax year).',
       startsThisYear: 'State Pension: starts {when}, {monthly} a month ({amount} this tax year).',
-      later: 'State Pension: starts {when}.'
+      later: 'State Pension: {yearly} a year from {when}. None is paid in {year}.'
     },
+    /** Under the table when a part of each pension payment is tax-free (7.12.0). */
+    taxFree: 'A quarter of each pension payment is tax-free.',
+    /** A part year after money was received (7.12.0): why less reaches the bank than in a full year. */
+    reason: 'In a full tax year this income is about {full} a month after tax. This tax year about {month} a month reaches your bank, because the money you received before {before} used your tax-free allowance.',
     spLater: 'The State Pension starts {from} at {monthly} a month: the months before it come from the pension.',
     bandsChange: 'Change the tax bands',
     bandsHide: 'Hide the tax bands',

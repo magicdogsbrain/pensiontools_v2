@@ -49,7 +49,8 @@ export function spFor(settings, now = new Date()) {
  * Deterministic household income timeline (today's money, gross-equivalent): what the household
  * needs each year, what is guaranteed (two State Pensions, DB floors, other income), and what
  * must come from the pots — with the years before both State Pensions are in payment flagged (`beforeStatePension`).
- * @returns {Array<{year, needA, needB, need, spA, spB, db, other, guaranteed, drawNeed, beforeStatePension}>}
+ * `year` counts from today (0 is this year); `calendarYear` is that year's number.
+ * @returns {Array<{year, calendarYear, needA, needB, need, spA, spB, db, other, guaranteed, drawNeed, beforeStatePension, endedA, endedB}>}
  */
 export function householdIncomeTimeline(setA, setB, labelYears = null, now = new Date()) {   // `now`: injectable clock (tests)
   const durA = setA.duration || 35;
@@ -64,17 +65,22 @@ export function householdIncomeTimeline(setA, setB, labelYears = null, now = new
     // Before a plan's year 0 the person is "still working" ONLY if the Timing block says they have not retired: someone
     // retired is drawing, and their need counts from today (6.12.5: "Household seems to think I'm still working").
     const workingA = yA < 0 && !isRetired(setA), workingB = yB < 0 && !isRetired(setB);
-    const needA = (!workingA && yA <= durA) ? targetForYear(setA, Math.max(0, yA)) : 0;
-    const needB = (!workingB && yB <= durB) ? targetForYear(setB, Math.max(0, yB)) : 0;
-    const spA = (!workingA && yA >= a.startYear) ? a.annual : 0;
-    const spB = (!workingB && yB >= b.startYear) ? b.annual : 0;
-    const db = (setA.dbAmount > 0 && yA >= (setA.dbStartYear || 0) ? setA.dbAmount : 0)
-             + (setB.dbAmount > 0 && yB >= (setB.dbStartYear || 0) ? setB.dbAmount : 0);
-    const other = (!workingA ? (setA.other || 0) : 0) + (!workingB ? (setB.other || 0) : 0);
+    // A person's money counts only while their plan runs (7.12.0): after its last year, nothing of theirs — not their
+    // spending, their State Pension, their final-salary pension or their other income. The final-salary pension keeps its
+    // own start year (it may pay while they still work); it only gains the end.
+    const endedA = yA > durA, endedB = yB > durB;
+    const inA = !workingA && !endedA, inB = !workingB && !endedB;
+    const needA = inA ? targetForYear(setA, Math.max(0, yA)) : 0;
+    const needB = inB ? targetForYear(setB, Math.max(0, yB)) : 0;
+    const spA = (inA && yA >= a.startYear) ? a.annual : 0;
+    const spB = (inB && yB >= b.startYear) ? b.annual : 0;
+    const db = (setA.dbAmount > 0 && !endedA && yA >= (setA.dbStartYear || 0) ? setA.dbAmount : 0)
+             + (setB.dbAmount > 0 && !endedB && yB >= (setB.dbStartYear || 0) ? setB.dbAmount : 0);
+    const other = (inA ? (setA.other || 0) : 0) + (inB ? (setB.other || 0) : 0);
     const need = needA + needB;
     const guaranteed = spA + spB + db + other;
     rows.push({
-      year: c, needA, needB, need, spA, spB, db, other, guaranteed, workingA, workingB,
+      year: c, calendarYear: now.getFullYear() + c, needA, needB, need, spA, spB, db, other, guaranteed, workingA, workingB, endedA, endedB,
       drawNeed: Math.max(0, need - guaranteed),
       beforeStatePension: (!workingA && a.annual > 0 && yA < a.startYear) || (!workingB && b.annual > 0 && yB < b.startYear)
     });
@@ -183,6 +189,27 @@ const yearOffsetOf = (p) => (p && p.yearOffset > 0 ? p.yearOffset : 0);
 const reasonOf = (x) => (x && x.r && !x.r.affordable ? (x.r.reason || 'not affordable as configured') : null);
 
 /**
+ * What the one who is left has, besides the inheritance (7.12.0), from the figures the survivor's run already holds:
+ *  - pension: the share of the deceased's final-salary pension paid on, a year (today's money) and the survivor's plan year it
+ *    pays from — null when the deceased has none or the share is 0;
+ *  - statePension: the survivor's own, a year, from their State Pension age, and whether it is already paid today — null when
+ *    they have none;
+ *  - toAge: the survivor's last tested age (their plan's start age and its length).
+ * Their own pot at that date is never given as a figure here (one median added to another, see leftAtYear): it is theirs, counted.
+ */
+export function survivorHas({ survivorSettings: sv, deceasedSettings: dc, survivorYear, offsets, dbSurvivorPct, now = new Date() }) {
+  const shift = (offsets.survivor || 0) - (offsets.deceased || 0);
+  const pension = +dc.dbAmount > 0 && dbSurvivorPct > 0 ? { annual: Math.round(+dc.dbAmount * dbSurvivorPct), fromYear: Math.max(survivorYear, (+dc.dbStartYear || 0) - shift), pct: Math.round(dbSurvivorPct * 100) } : null;
+  const sp = spFor(sv, now);
+  const start = +sv.shapeAgeNow || 0;
+  const fromAge = Number.isFinite(sp.startYear) && start > 0 ? start + sp.startYear : null;
+  const ageNow = Math.floor(currentAgeNow(sv, now)) || start;
+  const statePension = sp.annual > 0 && fromAge != null ? { annual: Math.round(sp.annual), fromAge, paid: ageNow >= fromAge } : null;
+  const toAge = start > 0 && +sv.duration > 0 ? start + +sv.duration : null;
+  return { pension, statePension, toAge };
+}
+
+/**
  * Survivor one-shot stress: "if one of you dies N years from now, is the survivor still OK?" Everything through the
  * planner's one test, in today's money:
  *  1. what the deceased leaves: their OWN strategy's test, its wealth at their plan year for that calendar year — the
@@ -207,6 +234,7 @@ export function runSurvivorCheck({ survivorSettings, deceasedSettings, deathYear
   const g = middling.targetSchedule[Math.min(survivorYear, middling.targetSchedule.length - 1)];
   return {
     affordable: true, deathYear, deceasedYear, survivorYear, offsets,
+    has: survivorHas({ survivorSettings, deceasedSettings, survivorYear, offsets, dbSurvivorPct, now }),
     deceasedStrategy: idOf(deceasedSettings), survivorStrategy: idOf(survivorSettings),
     inherited: left,
     spending: { gross: g, net: Math.round(netOf(g, bandsOf(survivorSettings))) },
@@ -333,7 +361,8 @@ function pooledVerdict(rA, rB, sa, sb, n, opts, bc) {
   if (!fa || !fb || !needA || !needB || !n) return null;
   const rest = (need, from) => { let t = 0; for (let y = from; y < need.length; y++) t += Math.max(0, need[y] || 0); return t * POOLED_TAX_UPLIFT; };
   let ok = 0, coveredByA = 0, coveredByB = 0;
-  const fromAges = [];
+  // the ages each side's plan fell short at, in its own owner's years (7.12.0): never one list of two people's ages
+  const shortAges = { a: [], b: [] };
   for (let i = 0; i < n; i++) {
     const a = !!bc(sa, i), b = !!bc(sb, i);
     if (a && b) { ok++; continue; }
@@ -345,14 +374,14 @@ function pooledVerdict(rA, rB, sa, sb, n, opts, bc) {
     // income still pays most of it, 6.37.0), else all of its need from the year it was cut (an empty pot).
     const short = empty.unpaid ? bc(empty.unpaid, i) : null;
     const covered = fy == null || bc(payer.terminal, i) >= (short != null ? short * POOLED_TAX_UPLIFT : rest(need, fy + off));
-    if (covered) { ok++; if (a) coveredByA++; else coveredByB++; if (fy != null && startAge > 0) fromAges.push(startAge + fy); }
+    if (covered) { ok++; if (a) coveredByA++; else coveredByB++; if (fy != null && startAge > 0) shortAges[a ? 'b' : 'a'].push(startAge + fy); }
   }
-  fromAges.sort((x, y) => x - y);
-  return {
-    success: ok / n, coveredByA, coveredByB,
-    fromAgeMedian: fromAges.length ? fromAges[Math.floor(fromAges.length / 2)] : null,
-    fromAgeEarliest: fromAges.length ? fromAges[0] : null
+  const sideOf = (ages) => {
+    const sorted = [...ages].sort((x, y) => x - y);
+    return { n: sorted.length, median: sorted.length ? sorted[Math.floor(sorted.length / 2)] : null, earliest: sorted.length ? sorted[0] : null };
   };
+  // shortA: futures where A's plan fell short and B's paid (A's ages); shortB the other way
+  return { success: ok / n, coveredByA, coveredByB, shortA: sideOf(shortAges.a), shortB: sideOf(shortAges.b) };
 }
 
 /** The parts of a strategy result the couples table reads (what the worker sends back for each plan each way). */

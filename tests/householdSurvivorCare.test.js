@@ -106,9 +106,9 @@ describe('survivor: the survivor\'s plan through their own test, with the planne
   it('the words: futures out of 10, both inheritance cases, today\'s money, before tax', () => {
     const res = runSurvivorCheck({ survivorSettings: pnv, deceasedSettings: ladder('gilt-rotation'), deathYear: 10, now: NOW }, test);
     const html = survivorResultHtml({ res, survivorName: 'Alex', deceasedName: 'Sam', years: 10, spendPct: 70, strategyNames: { survivor: 'Pots & Valves', deceased: 'Gilt ladder + rotation' } });
-    expect(html).toMatch(/Alex's plan lasts in .* futures? out of 10|Alex's plan lasts in every future/);
-    expect(html).toMatch(/in a middling case, .* in a bad case \(the worst 1 in 10\), today's money/);
-    expect(html).toMatch(/a year before tax<\/strong> \(about £[\d,]+ after tax\), today's money/);
+    expect(html).toMatch(/Alex&#39;s plan lasts in .* futures? out of 10|Alex&#39;s plan lasts in every future/);
+    expect(html).toMatch(/From Sam’s plan: £[\d,]+ in a middling case, £[\d,]+ in a bad case/);
+    expect(html).toMatch(/What Alex would spend: £[\d,]+ a year after tax \(£[\d,]+ before tax\)/);
     expect(html).not.toMatch(/nominal|median remaining pots|% of 500 futures/);
   }, 120000);
 });
@@ -146,4 +146,25 @@ describe('care: the cost through the planner\'s one-off cost key, each plan thro
       expect(html).toMatch(/a year after tax, £270,000 in all, today's money/);
     }, 180000);
   }
+});
+
+describe('the survivor result says what the one left has (7.12.0)', async () => {
+  const { kimSettings, samSettings } = await import('./fixtures/kimAndSam.js');
+  const KNOW = new Date(2026, 10, 16, 12);
+  const testK = (st, cfg, id) => { const p = { ...planFromSettings(st, simulationConfigFromSettings({}, st, KNOW), { startAge: +st.shapeAgeNow || 57, now: KNOW }), mcRuns: 60, stride: 12 }; return { r: stressTestStrategy(id, p), p }; };
+  const run = (dbSurvivorPct) => runSurvivorCheck({ survivorSettings: samSettings(), deceasedSettings: kimSettings(), deathYear: 10, spendFraction: 0.7, dbSurvivorPct, now: KNOW }, testK);
+  it('Kim dies in 10 years, half the final-salary pension paid on: £6,000 × 50% = £3,000 a year; Sam\'s own State Pension £221.20 × 52 = £11,502 from 67 (63 + 4); tested to 63 + 32 = 95', () => {
+    const r = run(0.5);
+    expect(r.has.pension.annual).toBe(3000);
+    expect(r.has.statePension).toMatchObject({ annual: 11502, fromAge: 67, paid: false });
+    expect(r.has.toAge).toBe(95);
+    // what Sam spends: 70% of both after tax (allowance £12,570, 20% above it), grossed back up on Sam's own bands
+    const net = (g) => 12570 + (g - 12570) * 0.8;   // 28,000 → 24,914; 16,000 → 15,314
+    const share = 0.7 * (net(28000) + net(16000));   // 28,159.60
+    expect(Math.abs(r.spending.net - share)).toBeLessThanOrEqual(1);
+    expect(r.spending.gross).toBe(Math.round((share - 12570) / 0.8 + 12570));   // 32,057
+  }, 120000);
+  it('with the box at 0, no final-salary line', () => {
+    expect(run(0).has.pension).toBe(null);
+  }, 120000);
 });

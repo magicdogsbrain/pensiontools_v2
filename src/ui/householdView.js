@@ -13,25 +13,38 @@
  */
 
 import { isOnCourse, onCourseAlertClass, jointVerdictHtml, ON_COURSE_WORDS } from '../services/OnCourse.js';
-import { futuresOutOfTen, pctText, CHANCE_BARS } from '../services/OneAnswer.js';
-import { headlineWords, about, SPLIT_HEADLINE_MIN } from '../services/HouseholdDraw.js';
+import { futuresOutOfTen, pctBesideWords } from '../services/OneAnswer.js';
+import { headlineWords, about, noSplitWords } from '../services/HouseholdDraw.js';
+import { HOUSEHOLD } from '../v7/copy/household.js';
 
 export const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 export const gbp = (n) => '£' + Math.round(+n || 0).toLocaleString('en-GB');
-const pctFmt = (x) => pctText((+x || 0) * 100, 0, [...CHANCE_BARS, 70]);   // a share of futures: never rounded across a verdict's line
+const fill = (text, slots) => String(text || '').replace(/\{(\w+)\}/g, (m, k) => (slots && slots[k] != null ? String(slots[k]) : m));
 // In words (6.33.0): the whole count said "10 in 10" from 95% and "9 in 10" from 85% — the words do not.
 const inTen = (share) => futuresOutOfTen(+share || 0).words.replace(/^in /, '');
+/** The age a plan is tested until (its start age and its length), or null. */
+const endAgeOf = (s) => (s && s.shapeAgeNow !== '' && s.duration !== '' && Number.isFinite(+s.shapeAgeNow) && Number.isFinite(+s.duration) && +s.duration > 0 ? +s.shapeAgeNow + +s.duration : null);
 
-/** The household verdict in words: pooled first. */
-export function householdVerdictHtml(r) {
+/**
+ * The household verdict in words, pooled first, in the simple view's sentences (7.12.0): until when each plan is tested,
+ * and — when one plan fell short and the other paid — whose plan, in that person's ages. `o`: { ownName, pName, setA, setB }.
+ */
+export function householdVerdictHtml(r, o = {}) {
+  const C = HOUSEHOLD.verdict;
   const share = r.pooled ? r.pooled.success : r.jointSuccess;
-  const ten = futuresOutOfTen(share);
-  const head = isOnCourse(share) ? 'On course together' : share >= 0.7 ? 'Not on course yet, together' : 'At risk, together';
-  let s = '<strong>' + head + ':</strong> the household\'s money lasts ' + esc(ten.words) + '.';
+  const head = isOnCourse(share) ? C.head.yes : share >= 0.7 ? C.head.close : C.head.no;
+  const names = { a: o.ownName || 'This plan', b: o.pName || 'Partner' };
+  let s = '<strong>' + esc(head) + '.</strong> ' + esc(fill(C.headline, { words: futuresOutOfTen(share).words }));
+  const ends = { a: endAgeOf(o.setA), b: endAgeOf(o.setB) };
+  if (ends.a != null && ends.b != null) s += ' ' + esc(ends.a === ends.b ? fill(C.tested, { age: ends.a }) : fill(C.testedTwo, { a: names.a, b: names.b, ageA: ends.a, ageB: ends.b }));
   if (r.pooled) {
-    s += ' When one plan falls short (its money runs out, or a strategy that cuts instead cuts it), the other pays that share; the household falls short only when both have.';
-    const covered = (r.pooled.coveredByA || 0) + (r.pooled.coveredByB || 0);
-    if (covered > 0 && r.pooled.fromAgeMedian) s += ' In ' + covered + ' of ' + r.runs.toLocaleString('en-GB') + ' futures one plan fell short and the other paid, typically from age ' + r.pooled.fromAgeMedian + (r.pooled.fromAgeEarliest && r.pooled.fromAgeEarliest !== r.pooled.fromAgeMedian ? ' (from ' + r.pooled.fromAgeEarliest + ' at the earliest)' : '') + '.';
+    s += ' ' + esc(C.pooled);
+    for (const k of ['a', 'b']) {
+      const x = r.pooled[k === 'a' ? 'shortA' : 'shortB'];
+      if (!x || !(x.n > 0) || x.median == null) continue;
+      const slots = { n: x.n, of: Number(r.runs).toLocaleString('en-GB'), short: names[k], payer: names[k === 'a' ? 'b' : 'a'], from: x.median, earliest: x.earliest };
+      s += ' ' + esc(fill(x.earliest != null && x.earliest !== x.median ? C.coveredEarliest : C.covered, slots));
+    }
   } else {
     s += ' ' + jointVerdictHtml(share);
   }
@@ -40,17 +53,18 @@ export function householdVerdictHtml(r) {
 
 /**
  * The verdict section: the household first, then each plan on its own and the two as separate plans.
- * @param {{ r: object, ownName: string, pName: string, stratNote?: string, startsNote?: string }} o
+ * @param {{ r: object, ownName: string, pName: string, stratNote?: string, startsNote?: string, setA?: object, setB?: object }} o
  */
-export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNote = '' }) {
+export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNote = '', setA = null, setB = null }) {
+  const cell = (x) => '<strong>' + inTen(x) + '</strong> <span class="hint">(' + pctBesideWords(x) + ')</span>';
   const share = r.pooled ? r.pooled.success : r.jointSuccess;
   let html = '<div class="settings-section"><div class="section-title">The verdict</div>';
-  html += '<div class="alert ' + onCourseAlertClass(share) + '" style="font-size:15px;" id="hhHouseholdVerdict">' + householdVerdictHtml(r) + '</div>';
+  html += '<div class="alert ' + onCourseAlertClass(share) + '" style="font-size:15px;" id="hhHouseholdVerdict">' + householdVerdictHtml(r, { ownName, pName, setA, setB }) + '</div>';
   html += '<table><tbody>'
-    + '<tr><td>The household together (when one plan falls short, the other pays)</td><td><strong>' + inTen(share) + '</strong></td></tr>'
-    + '<tr><td>' + esc(ownName) + '\'s plan on its own</td><td><strong>' + inTen(r.successA) + '</strong> <span class="hint">(' + pctFmt(r.successA) + ')</span></td></tr>'
-    + '<tr><td>' + esc(pName) + '\'s plan on its own</td><td><strong>' + inTen(r.successB) + '</strong> <span class="hint">(' + pctFmt(r.successB) + ')</span></td></tr>'
-    + '<tr><td>Both plans, each lasting on its own</td><td><strong>' + inTen(r.jointSuccess) + '</strong> <span class="hint">(' + pctFmt(r.jointSuccess) + ')</span></td></tr>'
+    + '<tr><td>The household together</td><td><strong>' + inTen(share) + '</strong></td></tr>'
+    + '<tr><td>' + esc(ownName) + '\'s plan on its own</td><td>' + cell(r.successA) + '</td></tr>'
+    + '<tr><td>' + esc(pName) + '\'s plan on its own</td><td>' + cell(r.successB) + '</td></tr>'
+    + '<tr><td>Both plans, each lasting on its own</td><td>' + cell(r.jointSuccess) + '</td></tr>'
     + '</tbody></table>' + stratNote + (startsNote ? '<p class="hint" id="hhStartsNote" style="margin:6px 0 0;">' + esc(startsNote) + '</p>' : '');
   html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">'
     + 'Both plans face the <em>same</em> markets, so a bad decade hits you both at once: this check runs you both through '
@@ -58,26 +72,30 @@ export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNo
   return html;
 }
 
-/** Where the money comes from, year by year (householdIncomeTimeline rows). */
+/**
+ * Where the money comes from, year by year (householdIncomeTimeline rows), in the simple view's words and column order
+ * (7.12.0): the year as a calendar year, what the pots must find second, a plan past its last age said to have ended.
+ */
 export function timelineSectionHtml(rows, ownName, pName, thisYear) {
-  const yr = (y) => thisYear + y;
+  const yr = (row) => (row.calendarYear != null ? row.calendarYear : thisYear + row.year);
   let html = '<div class="settings-section"><div class="section-title">Where the money comes from, year by year</div>';
   const lastWaiting = rows.filter((row) => row.beforeStatePension).pop();
   if (lastWaiting) {
-    html += '<div class="alert alert-info">Until <strong>' + yr(lastWaiting.year + 1) + '</strong> at least one of you is still waiting for their State Pension — those are the years (marked •) when your pots do the most work. This is usually where a couple\'s plan is tightest.</div>';
+    html += '<div class="alert alert-info" id="hhWaitingNote">Until <strong>' + (yr(lastWaiting) + 1) + '</strong> at least one of you is still waiting for a State Pension: those are the years when the pots do the most work.</div>';
   }
-  html += '<div style="overflow-x:auto;"><table><thead><tr><th>Year</th><th>' + esc(ownName) + ' needs</th><th>' + esc(pName) + ' needs</th><th>State Pensions</th><th>Other guaranteed</th><th>From your pots</th></tr></thead><tbody>';
+  html += '<div style="overflow-x:auto;"><table id="hhTimeline"><thead><tr><th>Year</th><th>From the pots</th><th>' + esc(ownName) + ' needs</th><th>' + esc(pName) + ' needs</th><th>State Pensions</th><th>Other income that comes anyway</th></tr></thead><tbody>';
   const marks = new Set([0]);
-  rows.forEach((row, i) => { if (i > 0 && (row.workingA !== rows[i - 1].workingA || row.workingB !== rows[i - 1].workingB || row.spA !== rows[i - 1].spA || row.spB !== rows[i - 1].spB || row.db !== rows[i - 1].db || (row.needB === 0 && rows[i - 1].needB > 0) || (row.needA === 0 && rows[i - 1].needA > 0))) marks.add(i); });
+  rows.forEach((row, i) => { if (i > 0 && (row.workingA !== rows[i - 1].workingA || row.workingB !== rows[i - 1].workingB || !!row.endedA !== !!rows[i - 1].endedA || !!row.endedB !== !!rows[i - 1].endedB || row.spA !== rows[i - 1].spA || row.spB !== rows[i - 1].spB || row.db !== rows[i - 1].db || row.other !== rows[i - 1].other)) marks.add(i); });
   for (let y = 0; y < rows.length; y += 5) marks.add(y);
+  const need = (working, ended, v) => (working ? '<span class="hint">still working</span>' : ended ? '<span class="hint">plan ended</span>' : gbp(v));
   [...marks].sort((a, b) => a - b).forEach((i) => {
     const row = rows[i];
     if (!row) return;
-    html += '<tr><td>' + yr(row.year) + (row.beforeStatePension ? ' •' : '') + '</td><td>' + (row.workingA ? '<span class="hint">still working</span>' : gbp(row.needA)) + '</td><td>' + (row.workingB ? '<span class="hint">still working</span>' : gbp(row.needB))
-      + '</td><td>' + gbp(row.spA + row.spB) + '</td><td>' + gbp(row.db + row.other) + '</td><td><strong>' + gbp(row.drawNeed) + '</strong></td></tr>';
+    html += '<tr data-year="' + yr(row) + '"><td>' + yr(row) + '</td><td><strong>' + gbp(row.drawNeed) + '</strong></td><td>' + need(row.workingA, row.endedA, row.needA) + '</td><td>' + need(row.workingB, row.endedB, row.needB)
+      + '</td><td>' + gbp(row.spA + row.spB) + '</td><td>' + gbp(row.db + row.other) + '</td></tr>';
   });
   html += '</tbody></table></div>'
-    + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Today\'s money, per year. Rows shown where something changes (a State Pension starts, a plan ends) plus every 5th year. The last column is what your investments must provide after all guaranteed income.</p></div>';
+    + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">At today\'s prices, a year. Rows where something changes, and every fifth year. After a plan reaches its last age, nothing of that person\'s is counted: not their spending, their State Pension or their other income. "If one of you dies first", below, tries that properly.</p></div>';
   return html;
 }
 
@@ -101,7 +119,7 @@ export function whatToDoHtml(r, ownName, pName) {
   const weakName = r.successA <= r.successB ? ownName : pName;
   const weakPct = Math.min(r.successA, r.successB);
   return '<div class="settings-section"><div class="section-title">What to do about it</div>'
-    + '<p style="font-size:13px;">The weaker side is <strong>' + esc(weakName) + '</strong> (' + pctFmt(weakPct) + ' on its own). '
+    + '<p style="font-size:13px;">The weaker side is <strong>' + esc(weakName) + '</strong> (' + pctBesideWords(weakPct) + ' on its own). '
     + 'Open that plan in the Stress Tester and try: a slightly lower spending target, retiring a little later, '
     + 'the bond tent, or checking whether the budget split between you reflects who can actually fund what. '
     + 'Then come back and re-run this check.</p></div>';
@@ -111,7 +129,7 @@ export function whatToDoHtml(r, ownName, pName) {
 export function survivorCareHtml(ownName, pName) {
   const a = esc(ownName), b = esc(pName);
   return '<div class="settings-section"><div class="section-title">What if one of you dies?</div>'
-    + '<p style="font-size:13px;">The hard question most tools skip. The survivor keeps their own pensions, inherits what the other\'s plan has left then (pensions pass tax-free before 75), loses one State Pension, and typically needs about 70% of the joint spending. Both plans run through their own strategy\'s test.</p>'
+    + '<p style="font-size:13px;">The survivor keeps their own pensions, inherits what the other\'s plan has left then (pensions pass tax-free before 75), loses one State Pension, and typically needs about 70% of the joint spending. Both plans run through their own strategy\'s test.</p>'
     + '<div class="row-flex" style="font-size:13px;">'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Who dies<select id="hhWhoDies" style="min-width:150px;"><option value="A">' + a + '</option><option value="B">' + b + '</option></select></label>'
     + '<label class="hint" style="display:flex;flex-direction:column;gap:2px;">Years from now<input type="number" id="hhDeathYear" value="10" min="1" max="40" style="width:80px;"></label>'
@@ -134,22 +152,32 @@ export function survivorCareHtml(ownName, pName) {
 const lastsWords = (x) => (x && x.a ? 'lasts ' + futuresOutOfTen(x.a.share).words : 'could not be tested (' + esc((x && x.reason) || 'not affordable as configured') + ')');
 
 /**
- * The survivor check's result (HouseholdService.runSurvivorCheck), in the planner's words since 6.24.0. Today's money
- * throughout; the spending is the survivor's yearly figure before tax, with what it leaves after tax beside it.
- * @param {{ res: object, survivorName: string, deceasedName: string, years: number, spendPct: number, strategyNames: { survivor: string, deceased: string } }} o
+ * The survivor check's result (HouseholdService.runSurvivorCheck), in the simple view's lines (7.12.0): how long the one left's
+ * plan lasts and until what age it is tested; what they would have (their pension and savings, the inheritance, a share of a
+ * final-salary pension, one State Pension); what they would spend. Today's money throughout.
+ * @param {{ res: object, survivorName: string, deceasedName: string, years: number, spendPct: number }} o
  */
-export function survivorResultHtml({ res, survivorName, deceasedName, years, spendPct, strategyNames = {} }) {
+export function survivorResultHtml({ res, survivorName, deceasedName, years, spendPct }) {
+  const Q = HOUSEHOLD.survivor;
   const s = esc(survivorName), d = esc(deceasedName);
   if (!res || !res.affordable) return '<div class="alert alert-warning">' + d + '\'s plan could not be tested as configured' + (res && res.reason ? ' — ' + esc(res.reason) : '') + '. Fix that plan first.</div>';
   const share = res.middling.a ? res.middling.a.share : 0;
-  const inh = res.inherited;
-  const held = inh.heldIsa > 0 ? ' (including the ISA ' + d + '\'s plan holds aside, ' + gbp(inh.heldIsa) + ')' : '';
-  return '<div class="alert ' + onCourseAlertClass(share) + '" id="hhSurvivorVerdict">If ' + d + ' dies ' + years + ' year' + (years === 1 ? '' : 's') + ' from now, <strong>' + s + '\'s plan ' + lastsWords(res.middling) + '</strong> with a middling inheritance, and ' + lastsWords(res.bad) + ' with a bad-case one.</div>'
-    + '<ul style="font-size:13px;margin:6px 0 0 18px;padding:0;">'
-    + '<li>' + s + ' inherits about <strong>' + gbp(inh.middling.total) + '</strong> in a middling case, <strong>' + gbp(inh.bad.total) + '</strong> in a bad case (the worst 1 in 10), today\'s money — what ' + d + '\'s own plan (' + esc(strategyNames.deceased || '') + ') has left then' + held + '.</li>'
-    + '<li>' + s + ' then spends <strong>' + gbp(res.spending.gross) + ' a year before tax</strong> (about ' + gbp(res.spending.net) + ' after tax), today\'s money — ' + Math.round(spendPct) + '% of what you both spend after tax.</li>'
-    + '<li>' + s + '\'s plan runs on its own strategy (' + esc(strategyNames.survivor || '') + ') with the inheritance arriving that year.</li></ul>'
-    + '<p style="font-size:11px;color:var(--text-muted);">A stress check, not advice. Simplifications: pensions inherited tax-free (death before 75); the ISA passes as ISA (the spouse\'s extra allowance); the inheritance is split between pension and ISA in the shares ' + d + '\'s plan started with; gilts still held count at the value they would reach if interest rates did not move; the bad case sets ' + d + '\'s worst 1 in 10 against every one of ' + s + '\'s futures, not future by future.</p>';
+  const inh = res.inherited, has = res.has || {};
+  const tested = has.toAge != null ? fill(Q.tested, { survivor: survivorName, toAge: has.toAge }) : '';
+  const lasts = (x) => (x && x.a ? futuresOutOfTen(x.a.share).words : 'could not be tested (' + ((x && x.reason) || 'not affordable as configured') + ')');
+  const head = 'If ' + deceasedName + ' died ' + years + ' year' + (years === 1 ? '' : 's') + ' from now, ' + survivorName + '\'s plan lasts ' + lasts(res.middling) + tested + '. With a bad-case inheritance (the worst 1 in 10): ' + lasts(res.bad) + '.';
+  const li = (t) => '<li>' + esc(t) + '</li>';
+  const held = inh.heldIsa > 0 ? fill(Q.rows.held, { deceased: deceasedName, heldIsa: gbp(inh.heldIsa) }) : '';
+  return '<div class="alert ' + onCourseAlertClass(share) + '" id="hhSurvivorVerdict">' + esc(head) + '</div>'
+    + '<p style="font-size:13px;margin:6px 0 0;">' + esc(fill(Q.hasTitle, { survivor: survivorName })) + '</p>'
+    + '<ul style="font-size:13px;margin:4px 0 0 18px;padding:0;" id="hhSurvivorHas">'
+    + li(fill(Q.rows.savings, { survivor: survivorName }))
+    + li(fill(Q.rows.inherit, { deceased: deceasedName, middling: gbp(inh.middling.total), bad: gbp(inh.bad.total), held }))
+    + (has.pension ? li(fill(Q.rows.pension, { deceased: deceasedName, pct: has.pension.pct, amount: gbp(has.pension.annual) })) : '')
+    + (has.statePension ? li(fill(has.statePension.paid ? Q.rows.statePensionPaid : Q.rows.statePension, { survivor: survivorName, amount: gbp(has.statePension.annual), fromAge: has.statePension.fromAge })) : '')
+    + '</ul>'
+    + '<p style="font-size:13px;margin:6px 0 0;">' + esc(fill(Q.rows.spend, { survivor: survivorName, net: gbp(res.spending.net), gross: gbp(res.spending.gross), pct: Math.round(spendPct) })) + '</p>'
+    + '<p style="font-size:11px;color:var(--text-muted);">' + esc(fill(Q.note, { deceased: deceasedName, survivor: survivorName })) + '</p>';
 }
 
 /**
@@ -238,20 +266,22 @@ function limitControlsHtml(split) {
 }
 
 /**
- * When the comparison does not apply under the limit that applied (the paced count moved nothing, or too little to show) but
- * the fast split would save enough to show (household-draw-split.md 9.2): what it would do, from the count alone, and the
- * limit controls so that "None" can be chosen. '' when there is nothing faster to offer either, as before.
+ * When the comparison does not apply (7.12.0): "nothing to move" said once, in the simple view's words (HouseholdDraw.noSplitWords).
+ * When drawing the smaller pension faster would save enough to show (household-draw-split.md 9.2): what it would do, from the
+ * count alone, and the limit controls so that "None" can be chosen. Otherwise the sentence alone: no limit changes the answer.
  */
 export function splitNoneHtml({ split }) {
-  const f = split.fast;
-  if (!f || !(f.saving.year > SPLIT_HEADLINE_MIN)) return '';
+  const w = noSplitWords(split);
   const nm = split.names, small = split.smaller;
-  const d = Math.round(f.saving.until - split.saving.until);
-  const until = d === 0 ? 'and the same' : d > 0 ? 'and about ' + about(d) + ' more' : 'but about ' + about(-d) + ' less';
-  const line = 'Keeping ' + esc(nm[small]) + '\'s pot until the State Pension starts leaves ' + (split.unchanged ? 'nothing to move: that plan already draws what the limit allows each year.' : 'little to move (under £1,000 a year in tax).')
-    + ' Drawing ' + esc(nm[small]) + '\'s pot faster saves about ' + about(f.saving.year - split.saving.year) + ' a year in tax at first, ' + until + ' by the time ' + esc(nm[small]) + ' is ' + split.untilAge
-    + (f.goneAt != null ? '; ' + esc(nm[small]) + '\'s pot gone at about ' + f.goneAt : '') + '. Choose "None" below and re-run to see it.';
-  return '<div class="settings-section" id="hhSplitSection"><div class="section-title">Who draws what: drawing together, tax first</div>\n<p style="font-size:14px;margin:0 0 6px;">' + line + '</p>' + limitControlsHtml(split) + '</div>';
+  let line = esc(fill(HOUSEHOLD.split[w.id], { small: nm[small] }));
+  if (w.fast) {
+    const f = split.fast;
+    const d = Math.round(f.saving.until - split.saving.until);
+    const until = d === 0 ? 'and the same' : d > 0 ? 'and about ' + about(d) + ' more' : 'but about ' + about(-d) + ' less';
+    line += ' Drawing ' + esc(nm[small]) + '\'s pot faster saves about ' + about(f.saving.year - split.saving.year) + ' a year in tax at first, ' + until + ' by the time ' + esc(nm[small]) + ' is ' + split.untilAge
+      + (f.goneAt != null ? '; ' + esc(nm[small]) + '\'s pot gone at about ' + f.goneAt : '') + '. Choose "None" below and re-run to see it.';
+  }
+  return '<div class="settings-section" id="hhSplitSection"><div class="section-title">Who draws what: drawing together, tax first</div>\n<p style="font-size:14px;margin:0 0 6px;" id="hhSplitNone">' + line + '</p>' + (w.fast ? limitControlsHtml(split) : '') + '</div>';
 }
 
 /** When the person chose to keep things as they are: one line, with the way back. */

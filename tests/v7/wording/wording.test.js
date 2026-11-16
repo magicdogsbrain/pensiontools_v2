@@ -338,7 +338,8 @@ describe('the words in src/v7/copy/', () => {
     // the household step is a plan page (road-to-7.md step 9): a retired person's and a saver's plan alike; its verdict states the answer
     const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result', 'household'];
     const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{(words|withWords|withoutWords|middling|bad|bothWith|bothWithout)\}/g, 'in 9 futures out of 10')
-      .replace(/\{(name|a|b|small|big|deceased|survivor|names|wayA|wayB|way|store|where|value|line|from|to|reason|badReason)\}/g, 'Alex’s plan')
+      .replace(/\{tested\}/g, ', tested until Alex’s plan is 95').replace(/\{(ageA|ageB|toAge)\}/g, '95')
+      .replace(/\{(name|a|b|small|big|deceased|survivor|names|wayA|wayB|way|store|where|value|line|from|to|reason|badReason|short|payer)\}/g, 'Alex’s plan')
       .replace(/\{(year|until|whole|over|allowance|band|together|own|amount|cost|total|totalGross|gross|net|inherit|heldIsa|written|pays|moved|more|stops)\}/g, '£12,800')
       .replace(/\{(untilAge|atAge|fromAge|from|earliest|ages|age|n|of|runs|years)\}/g, '67').replace(/\{pct\}/g, '92').replace(/\{ms\}/g, '4.6').replace(/\{s\}/g, 's')
       .replace(/\{(better|is|held|steps)\}/g, 'better off').replace(/\{(share|shared)\}/g, 'yes');
@@ -363,7 +364,7 @@ describe('the words in src/v7/copy/', () => {
     expect(HOUSEHOLD.split.madeOfStops).toBe('{big}’s pension pays {stops} a year less than its plan is written to.');
     expect(HOUSEHOLD.split.fast).toMatch(/^Draw \{small\}’s pension faster: saves another \{more\} a year in tax at first, \{until\} by the time \{small\} is \{untilAge\}; \{small\}’s pension gone at about \{age\}\.$/);
     expect(HOUSEHOLD.split.fastUntil).toEqual({ more: 'and {amount} more', less: 'but {amount} less', same: 'and the same' });
-    expect(HOUSEHOLD.fields['limit.kind'].options).toEqual({ none: 'Keep it until the State Pension starts (the usual)', fast: 'Draw it faster: no limit', untilAge: 'Keep it until an age', keepAtLeast: 'Keep at least a sum in it' });
+    expect(HOUSEHOLD.fields['limit.kind'].options).toEqual({ none: 'Keep it until the State Pension starts', fast: 'Draw it faster: no limit', untilAge: 'Keep it until an age', keepAtLeast: 'Keep at least a sum in it' });
     expect(HOUSEHOLD.fields['need.amount']).toEqual({ label: 'What the couple needs after tax, a year', help: 'Leave it blank for what the two plans pay between them.' });
     expect(strings(HOUSEHOLD).some(([, s]) => /Each for their own|Drawing together$/.test(s))).toBe(false);
   });
@@ -372,6 +373,8 @@ describe('the words in src/v7/copy/', () => {
     expect(entry.scope).toBe('household');
     expect(SCOPES.household).toBeTruthy();
     for (const text of ['Your own pot', 'each of you draws for your own plan', 'hers and his', 'yours', 'your pots do the work', 'his pension', 'Paying the tax keeps your money separate: own', 'her pot', 'her pension', 'their pensions', 'Each for their own', 'on its own and your own']) expect(bannedHits(text, ['household']), text).not.toEqual([]);
+    // 7.12.0: no nudge toward one limit, no boast about other tools
+    for (const text of ['Keep it until the State Pension starts (the usual)', 'The hard question most tools skip.']) expect(bannedHits(text, ['household']), text).not.toEqual([]);
     for (const text of ['Sam’s plan’s pension pays £41,781 a year', 'on its own', 'each plan keeps its own budget', 'its own side of who pays stays its own', 'This is your choice', 'the history of the plan']) expect(bannedHits(text, ['household']), text).toEqual([]);
     const hits = [];
     for (const [where, s] of strings(HOUSEHOLD)) for (const h of bannedHits(s.replace(/\{\w+\}/g, 'X'), ['household'])) hits.push(`household.js ${where} — ${h}`);

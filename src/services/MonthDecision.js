@@ -105,6 +105,8 @@ export function engineDeps(setup, { history, taxYears, spInfo, potsYear, pots = 
     spInfo,
     potsYear,
     isaBalance: +p.isa || 0,
+    // the ISA balance as typed, null when the box was blank (7.12.0): the record keeps it (models/Decision.js isaBalance)
+    isaTyped: p.isaTyped == null || p.isaTyped === '' || !Number.isFinite(+p.isaTyped) ? null : +p.isaTyped,
     diversifier: +p.diversifier || 0,
     giaBalance: +p.gia || 0,
     giaBasis: basis === '' || basis == null ? null : +basis

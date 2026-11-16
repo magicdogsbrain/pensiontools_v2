@@ -5,7 +5,7 @@
  * say — derived here, never a new file) are planted in the window. On #/plan/<id>/household, after "Check the two plans together":
  * the baseline line ("Between you, after tax: … a year, both ways. …") equal to the same run in Node to the pound; the two columns
  * "As the two plans are written" / "Paid as a couple, tax first"; what the smaller pension's figure is made of; the need box with
- * its words; the limit's four choices with the usual one chosen; the fast split's line from the count alone with "Draw it faster",
+ * its words; the limit's four choices with the first chosen; the fast split's line from the count alone with "Draw it faster",
  * which sets the limit to no limit and checks the two plans again — the line goes and the section says which limit applied, the
  * headline then Node's with no limit; a need typed marks the result stale. None of the words the household page keeps off it
  * (own, yours, hers, his, your pot) in "Who draws what". Nothing is written; Firebase is never reached.
@@ -79,7 +79,7 @@ test.describe('"Who draws what", the words of 27 Oct 2026, without an account', 
       await expect(page.locator('[id="plan.household.need.amount.help"]')).toHaveText('Leave it blank for what the two plans pay between them.');
       await expect(page.locator('input[name="plan.household.limit.kind"]')).toHaveCount(4);
       await expect(page.getByTestId('plan.household.limit.kind.none')).toBeChecked();
-      await expect(page.locator('label[for="plan.household.limit.kind.none"]')).toHaveText('Keep it until the State Pension starts (the usual)');
+      await expect(page.locator('label[for="plan.household.limit.kind.none"]')).toHaveText('Keep it until the State Pension starts');
       await expect(page.locator('label[for="plan.household.limit.kind.fast"]')).toHaveText('Draw it faster: no limit');
       const fastLine = page.locator(`[data-testid="${T}.split.fast"] p`);
       const untilDiff = Math.round(split.fast.saving.until - split.saving.until);   // what the fast split does by the State Pension age, the years after the pension is empty counted

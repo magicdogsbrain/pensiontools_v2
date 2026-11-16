@@ -71,6 +71,19 @@ export function prefillFromHistory(history, { contract = false, month = null } =
   return { from: last.date, total: equity + bond + cash + diversifiers, cash, bonds: bond, diversifiers };   // a gilt-ladder record's bond figure is its gilts
 }
 
+/**
+ * The ISA box's pre-fill (7.12.0): the ISA balance typed on the latest record that carries one (before `month` when the entry is
+ * for an earlier month), less that month's own ISA draw — what the ISA holds now, as the person last said. Null when no record
+ * carries one (the box then stays blank).
+ */
+export function isaPrefillOf(history, month = null) {
+  let list = (Array.isArray(history) ? history : []).filter((h) => h && h.date && h.isaBalance != null && Number.isFinite(+h.isaBalance));
+  if (typeof month === 'string' && /^\d{4}-\d{2}$/.test(month)) list = list.filter((h) => String(h.date).slice(0, 7) < month);
+  if (!list.length) return null;
+  const last = list.reduce((a, b) => (String(b.date) > String(a.date) ? b : a));
+  return Math.max(0, Math.round(+last.isaBalance - (+last.isa || 0)));
+}
+
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 /** "Last month's figures (September 2026) are filled in — change them to this month's." */
 export function prefillNote(prefill) {

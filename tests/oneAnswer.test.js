@@ -301,3 +301,25 @@ describe('the plan document stores the one figure, not the per-start history', (
     expect(t.configs).toEqual({});
   });
 });
+
+describe('the figure beside the words (7.12.0, pctBesideWords)', async () => {
+  const { pctBesideWords, futuresOutOfTen } = await import('../src/services/OneAnswer.js');
+  it('94.9% stays 94.9% beside "in 9 futures out of 10"; 95.2% is 95% beside "more than 9"', () => {
+    expect(pctBesideWords(0.949)).toBe('94.9%');
+    expect(pctBesideWords(0.952)).toBe('95%');
+    expect(pctBesideWords(0.899)).toBe('89.9%');
+    expect(pctBesideWords(0.851)).toBe('85%');      // 85 is on the same side of 85 as 85.1: no decimal needed
+    expect(pctBesideWords(0.849)).toBe('84.9%');
+  });
+  it('for 200 shares from 0 to 1, the figure is never on the other side of 95, 90 or 85 from the words', () => {
+    const bandOf = (p) => (p >= 95 ? 3 : p >= 90 ? 2 : p >= 85 ? 1 : 0);
+    const wordsBand = { 'in more than 9 futures out of 10': 3, 'in 9 futures out of 10': 2, 'in just under 9 futures out of 10': 1 };
+    for (let i = 0; i <= 200; i++) {
+      const share = i / 200 - (i % 3) * 0.0004;   // some shares just under a line
+      if (share < 0 || share >= 1) continue;
+      const words = futuresOutOfTen(share).words;
+      const fig = parseFloat(pctBesideWords(share));
+      expect(bandOf(fig), share + ': ' + words + ' (' + fig + '%)').toBe(wordsBand[words] != null ? wordsBand[words] : 0);
+    }
+  });
+});

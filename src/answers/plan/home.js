@@ -16,7 +16,7 @@
  * Pure: no clock (the day arrives as `today`), no storage.
  */
 import { planPage, dateOf, monthWords, monthName } from './read.js';
-import { whereAmIFor, historyAscending, moveInputs, effectiveStressSettings } from '../../services/PlanReading.js';
+import { historyAscending, moveInputs, effectiveStressSettings } from '../../services/PlanReading.js';
 import { driftOf, DRIFT_BAND, MOVE_BAND } from '../../services/TransitionPlanner.js';
 import { monthsWanted } from '../../services/DrawCadence.js';
 import { gapsOf, gapHeadline } from './gaps.js';
@@ -24,11 +24,13 @@ import { heldLadder } from './held.js';
 import { pounds } from './income.js';
 import { taxYearStartOf, taxYearKey, taxYearLabel, earlyPensionDrawOf } from '../../services/PlanTiming.js';
 import { readDayOf } from '../../services/PlanClosed.js';
+import { partnersOf } from '../../services/HouseholdLink.js';
 import { isFilledIn } from '../../services/MonthFill.js';
 import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecord.js';
 import { moveWindowOf } from '../../services/Phases.js';
 import { asHeldStateOf } from './agree.js';
 import { ym, dayWords } from './dates.js';
+import { takenAgainstPlan, yearPlanOf, firstPaymentMonth } from '../../services/YearPlan.js';
 import { startLaterOf } from '../../services/PlanMove.js';
 import { pensionLockForSettings } from '../../services/PlanNeed.js';
 import { CONTRACT_STRATEGIES } from '../../services/PlanDocument.js';
@@ -64,8 +66,11 @@ const PARTNER_IDS = ['month.taxYear', 'month.arrive', 'month.record', 'month.gap
  * lines, chosen below; the full reading, with where each figure is from, is one link away on the "Where you are" step.
  */
 export const WHERE_LINES = 3;
-/** The lines the home shows, in this order: like with like (taken against what the plan said), the pot and its middle line. */
-const WHERE_HEADLINE = ['where.startLater', 'where.compareLess', 'where.compareLessCut', 'where.compareMore', 'where.compareSame', 'where.pot', 'where.potMid', 'where.ladderMonthly'];
+/**
+ * The lines the home shows under the result (which says what was taken against what the plan said, 7.12.0), in this order:
+ * the year's plan, the pot and its middle line.
+ */
+const WHERE_HEADLINE = ['where.startLater', 'where.yearPlan', 'where.pot', 'where.potNoIsa', 'where.potMid', 'where.ladderMonthly'];
 /** The tools a home lists, by stage, in order (each a step of the plan with its one-line state). */
 const TOOLS = {
   saving: ['checkin', 'saving', 'budget', 'hold', 'household'],
@@ -223,21 +228,30 @@ function yearOf(plan, page, now) {
   const key = taxYearKey(ty);
   const hist = historyAscending(plan);
   const byMonth = new Map(hist.map((h) => [String(h.date).slice(0, 7), h]));
-  let perMonth = null;
-  try { const w = older ? null : whereAmIFor(plan, { now }); perMonth = w && w.incomeThisYear ? w.incomeThisYear.perMonth : null; } catch { perMonth = null; }
+  // what the plan takes a month this year, for the months still to come: the year's set-up (7.12.0, YearPlan.yearPlanOf);
+  // a recorded month's own figure is what that month told the person to take
+  let yp = null; try { yp = older ? null : yearPlanOf(plan, key); } catch { yp = null; }
+  const perMonth = yp ? yp.perMonth : null;
   const cfg = plan.decisionTool && plan.decisionTool.taxYears ? plan.decisionTool.taxYears[key] : null;
   const setUp = !!(cfg && cfg.yearSetupComplete);
   const setUpMonth = setUp ? addMonth(ty + '-04', ((Number(cfg.startMonth) || 4) + 8) % 12) : null;
   const monthStep = page.steps.find((s) => s.id === 'month');
   const due = page.stageKey !== 'closed' && monthStep && !monthStep.recorded ? monthStep.toRecord : null;
   const mon = thisMonthOf(now);
+  // the months before the plan's first payment (7.12.0, YearPlan.firstPaymentMonth) are not the plan's to record: never "not
+  // recorded", never a nag; with the first month not known, every month before this one with no record
+  let fp = null; try { fp = firstPaymentMonth(plan, { now, settings: effectiveStressSettings(plan, { now }) }).month; } catch { fp = null; }
   const cells = [];
   for (let i = 0; i < 12; i++) {
     const m = addMonth(ty + '-04', i);
     const h = byMonth.get(m) || null;
-    const drawn = h ? Math.round((+h.sipp || 0) + (+h.other || 0) + (+h.state || 0)) : null;
-    const state = h ? (isFilledIn(h) ? 'filled' : 'recorded') : m === due ? 'due' : m === setUpMonth ? 'setUp' : m > mon ? 'later' : 'none';
-    cells.push({ month: m, name: monthName(m), words: monthWords(m), state, drawn, plan: h && perMonth != null ? perMonth : (perMonth != null && state !== 'none' ? perMonth : null) });
+    const said = h ? takenAgainstPlan([h]) : null;
+    const drawn = said ? said.taken : null;
+    const before = !h && (fp ? m < fp : m < mon);
+    const state = h ? (isFilledIn(h) ? 'filled' : 'recorded') : before ? 'before' : m === due ? 'due' : m === setUpMonth ? 'setUp' : m > mon ? 'later' : 'none';
+    const planned = older ? null : said ? said.said : perMonth != null && state !== 'none' ? perMonth : null;
+    // "; the plan said £X" only when it differs from what was taken by £1 or more
+    cells.push({ month: m, name: monthName(m), words: monthWords(m), state, ...(before ? { wordsKey: fp ? 'before' : 'beforeUnknown' } : {}), drawn, plan: before ? null : planned, planDiffers: planned != null && !!said && Math.abs(said.diff) >= 1 });
   }
   const top = Math.max(1, ...cells.map((c) => Math.max(c.drawn || 0, c.plan || 0)));
   for (const c of cells) {
@@ -272,11 +286,7 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   // own in the one list; put away on their own plan, never here
   const partner = [];
   if (!pg.readonly) {
-    const mine = plan.household && typeof plan.household.partnerScenarioId === 'string' ? plan.household.partnerScenarioId : null;
-    for (const e of list) {
-      if (String(e.plan.id) === String(id)) continue;
-      const linked = String(e.plan.id) === mine || (e.plan.household && e.plan.household.partnerScenarioId === String(plan.id));
-      if (!linked || pg.closed) continue;
+    for (const e of pg.closed ? [] : partnersOf(list, plan)) {
       const their = planPage(list, e.plan.id, null, { today, source });
       if (!their.found || their.closed) continue;
       for (const d of their.due || []) if (PARTNER_IDS.includes(d.id)) { const { dismiss, key, ...rest } = item(d, { planId: String(e.plan.id), name: their.name }); void dismiss; void key; partner.push(rest); }
@@ -319,10 +329,11 @@ export function homeOf(entries, id, { today, source = 'account', page = null } =
   // 7.12.0: living on a ladder, one line only when the pension holds less than the cash years still need (held.js, the one reading)
   let heldLess = null;
   if (!pg.readonly && !pg.closed) { try { const hl = heldLadder(plan, { today, life }); heldLess = hl && hl.state === 'less' ? { less: pounds(hl.less), href: '#/plan/' + pg.id + '/move' } : null; } catch { heldLess = null; } }
-  const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {} }));
+  // the household's partner with their plan's phase (7.12.0, read.js householdStep theirLine), beside "With ‘…’"
+  const tools = (TOOLS[stageKey] || TOOLS.none).map(stepOf).filter(Boolean).map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: s.railResult || s.result, figures: s.figures || {}, ...(s.theirLine && !s.railResult ? { theirLine: s.theirLine } : {}) }));
   // the steps, read-only with each result line; a saver's "For later" group stays on a plan not locked, but a locked plan
   // is being carried out: its steps are listed plainly, never marked for later or not done
-  const steps = pg.steps.map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: (!pg.locked && s.railResult) || s.result, figures: s.figures || {}, later: !pg.locked && !!s.later, done: s.state === 'done' }));
+  const steps = pg.steps.map((s) => ({ id: s.id, href: '#/plan/' + pg.id + '/' + s.id, result: (!pg.locked && s.railResult) || s.result, figures: s.figures || {}, later: !pg.locked && !!s.later, done: s.state === 'done', ...(s.theirLine && !(!pg.locked && s.railResult) ? { theirLine: s.theirLine } : {}) }));
   // change the plan, or try something: a locked plan's tries change nothing; an unlocked plan's pages change it
   const base = '#/plan/' + pg.id + '/';
   const lived = pg.locked && pg.stageKey === 'running' && !!lastRecord && !pg.closing;

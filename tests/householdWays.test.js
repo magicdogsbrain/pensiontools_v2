@@ -92,7 +92,7 @@ describe('both ways through the one test', () => {
     expect(c.jointSuccess).toBeCloseTo(1 / 3, 9);
     expect(c.pooled.success).toBeCloseTo(2 / 3, 9);   // future 1: A has £100,000 ≥ £100,000; future 2: £10,000 is not enough
     expect(c.pooled.coveredByA).toBe(1);
-    expect(c.pooled.fromAgeMedian).toBe(59);
+    expect(c.pooled.shortB).toEqual({ n: 1, median: 59, earliest: 59 });   // B's plan fell short at 57 + 2, A's paid
     expect(POOLED_TAX_UPLIFT).toBe(1.25);
     expect(combineHouseholdStrategies(rA, rB).pooled).toBeNull();   // without the needs: the paired figure only
   });

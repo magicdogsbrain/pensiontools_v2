@@ -305,17 +305,18 @@ export const PLAN = {
     'month.gapLater': '{month} was recorded without it and stays as it is.',
     'where.saverPot': 'Your pot',
     'where.saverLine': 'The plan’s middle line for then',
-    'where.compareLess': '',
-    'where.compareLessCut': '',
-    'where.compareMore': '',
-    'where.compareSame': '',
     /** A plan stored the old way, its start later than it should be: said in place of reading its months against the plan. */
     'where.startLater': '',
     'where.taken': 'Taken before tax in {year}',
-    'where.planned': 'The plan says, for {year}',
+    /** The year's set-up, once it is set up (7.12.0, YearPlan.yearPlanOf): the sentence carries its own words. */
+    'where.yearPlan': '',
     'where.step': 'Step {n} of {of} of your plan',
     'where.pot': 'Your pot',
-    'where.potMid': 'The plan’s middle line',
+    'where.potMid': 'The plan’s middle line for now',
+    /** The pot's parts with their dates, when they are more than a month apart (7.12.0): the sentence carries its own words. */
+    'where.potParts': '',
+    /** The band counts the ISA and no figure for it exists anywhere (7.12.0). */
+    'where.potNoIsa': '',
     'where.ladderMonthly': 'Your ladder pays',
     'says.pays': '',
     'says.sp': '',

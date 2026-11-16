@@ -19,6 +19,9 @@ import { HOME } from '../../copy/home.js';
 import { GAPS } from '../../copy/gaps.js';
 import { HELD } from '../../copy/held.js';
 
+/** After "With ‘…’": the partner's plan's phase (7.12.0), in the words the household page uses (copy/plan.js theirLines). */
+const theirWords = (t) => (t.theirLine && PLAN.theirLines[t.theirLine.id] ? ': ' + fill(PLAN.theirLines[t.theirLine.id], t.theirLine.slots) : '');
+
 const T = 'plan.home';
 
 /** A to-do's title and line, filled from its slots. */
@@ -266,7 +269,7 @@ export function HomeScreen(state, dispatch) {
               {H.tools.map((t) => (
                 <li key={t.id}><a class="home-tool" href={t.href} data-testid={`${T}.tool.${t.id}`}>
                   <span class="home-tool-name">{stepName(t.id)}</span>
-                  {t.result && <span class="home-tool-state"> · <PlanSentence s={t.result} figures={t.figures} /></span>}
+                  {t.result && <span class="home-tool-state"> · <PlanSentence s={t.result} figures={t.figures} />{theirWords(t)}</span>}
                 </a></li>
               ))}
             </ul>
@@ -277,7 +280,7 @@ export function HomeScreen(state, dispatch) {
           <summary>{HOME.stepsTitle}</summary>
           <p class="note">{HOME.stepsLead}</p>
           <ul class="home-steps">
-            {steps.map((x) => <li key={x.id} data-step={x.id}><a href={x.href} data-testid={`${T}.step.${x.id}`}>{stepName(x.id)}</a>{x.result && <> — <PlanSentence s={x.result} figures={x.figures} /></>}</li>)}
+            {steps.map((x) => <li key={x.id} data-step={x.id}><a href={x.href} data-testid={`${T}.step.${x.id}`}>{stepName(x.id)}</a>{x.result && <> — <PlanSentence s={x.result} figures={x.figures} />{theirWords(x)}</>}</li>)}
           </ul>
           {later.length > 0 && (
             <>

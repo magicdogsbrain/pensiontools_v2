@@ -25,14 +25,18 @@
  *   showHomeBanner(win, doc, deps)                         points #classicToSimple at the open plan, reads the plans and draws
  *                                                          the banner
  *   simpleLinkHref(id)                                     the simple view's page of a plan ('#/' with no plan id)
- *   openingTabOf(deps, now)                                the tab the full view opens on: LifeStage.openingTab, with the phase
- *                                                          the plan home reads (Moving → Transition)
+ *   openingTabOf(deps, now)                                { tab, sub } the full view opens on: LifeStage.openingTab, with the
+ *                                                          phase the plan home reads, whether What you hold has lines and
+ *                                                          whether the plan has figures
+ *   pressOpeningSub(win, doc, opening)                     presses the opening's sub-tab once the tab has drawn
  *   installHomeBanner(win, doc, deps)                      win.dismissNextStep, the ×
  */
 import { homeOf } from '../answers/plan/home.js';
 import { upgradeScenario } from '../firebase/scenarioMigration.js';
 import { nextStepFor, nextStepAction } from '../services/NextStep.js';
 import { openingTab } from '../services/LifeStage.js';
+import { holdingsLines } from '../services/HoldingsRecord.js';
+import { planHasFigures } from '../services/DraftDecision.js';
 import { PLAN_ID } from '../services/OpenPlace.js';
 import { PLAN } from '../v7/copy/plan.js';
 import { HOME } from '../v7/copy/home.js';
@@ -113,18 +117,31 @@ export function simpleLinkHref(id) {
 }
 
 /**
- * The tab the full view opens on (index.html's showMainApp): LifeStage.openingTab of the stage, with the phase the plan home
- * reads for the open plan (homeOf's stage key: Moving opens on Transition). No phase when the plans cannot be read.
- * `deps`: refreshLifeStage, getActiveScenarioId, listScenariosAsync. Reads only.
+ * The tab and sub-tab the full view opens on (index.html's showMainApp): LifeStage.openingTab of the stage, with the phase the
+ * plan home reads for the open plan (homeOf's stage key), whether What you hold has lines, and whether the plan has figures.
+ * No phase, nothing held and figures assumed when the plans cannot be read. `deps`: refreshLifeStage, getActiveScenarioId,
+ * listScenariosAsync. Reads only.
+ * @returns {Promise<{ tab: string, sub: string|null }>}
  */
 export async function openingTabOf(deps, now = new Date()) {
   const stage = await deps.refreshLifeStage();
-  let phase = null;
+  let phase = null, held = false, figures = true;
   try {
-    const h = homeOf(entriesOf(await deps.listScenariosAsync(), now), await deps.getActiveScenarioId(), { today: dayOf(now) });
+    const plans = await deps.listScenariosAsync();
+    const id = await deps.getActiveScenarioId();
+    const h = homeOf(entriesOf(plans, now), id, { today: dayOf(now) });
     phase = h && h.found && h.stage ? h.stage.key || null : null;
-  } catch (e) { phase = null; }
-  return openingTab(stage, phase);
+    const raw = Array.isArray(plans) ? plans.find((p) => p && p.id === id) : null;
+    if (raw) { held = holdingsLines(raw.holdings).length > 0; figures = planHasFigures(raw); }
+  } catch (e) { phase = null; held = false; figures = true; }
+  return openingTab(stage, phase, { held, figures });
+}
+
+/** Presses the opening's sub-tab (Stress tester → Settings, Decision → Plan document or History) once its tab has drawn. */
+export function pressOpeningSub(win, doc, opening) {
+  if (!opening || !opening.sub) return;
+  const attr = opening.tab === 'stress' ? 'stresstab' : 'decisiontab';
+  win.setTimeout(() => { const b = doc.querySelector('.sub-tab[data-' + attr + '="' + opening.sub + '"]'); if (b) b.click(); }, 400);
 }
 
 /**

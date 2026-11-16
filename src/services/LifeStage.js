@@ -235,15 +235,31 @@ export function accumulationAgesOf(scenario) {
 export const SAVER_STAGE_KEYS = Object.freeze(['saving', 'approaching', 'committed-saving']);
 
 /**
- * The tab the planner opens on (research/saving-enough-and-check-in.md 4.6): a saver opens on their stage's first lead
- * (saving and committed-saving: the Accumulation planner; approaching: the Stress tester); every other stage opens on the
- * Decision tool, exactly as before. A plan whose phase is Moving (7.11.0: the phase the plan home reads, answers/plan/home.js
- * homeOf; src/ui/homeBannerUi.js openingTabOf passes it) opens on Transition, where moving what you hold is done. Without
- * a phase (null), as before.
+ * The first screen the full view opens a plan on (7.12.0: by stage, never a set-up warning). `phase` is the plan home's
+ * stage key (answers/plan/home.js homeOf; src/ui/homeBannerUi.js openingTabOf passes it); `held`: What you hold has lines;
+ * `figures`: the plan holds figures someone gave it (services/DraftDecision.js planHasFigures).
+ *
+ *   closed                                          Decision → History
+ *   no figures yet                                  Stress tester → Settings
+ *   inside the move window, not locked              Stress tester
+ *   inside the move window, locked, something held  Transition
+ *   inside the move window, locked, nothing held    Decision → Plan document (holdings are never required)
+ *   saving (locked or not, before the window)       Accumulation
+ *   retired, not locked                             Stress tester
+ *   locked, living on it                            Decision → Monthly Entry
+ *   anything else (an old plan with no age)         Decision, as before
+ * @returns {{ tab: string, sub: string|null }}
  */
-export function openingTab(stage, phase = null) {
-  if (phase === 'moving') return 'transition';
-  return stage && SAVER_STAGE_KEYS.includes(stage.key) && Array.isArray(stage.leads) && stage.leads.length ? stage.leads[0] : 'decision';
+export function openingTab(stage, phase = null, { held = false, figures = true } = {}) {
+  const key = stage ? stage.key : null;
+  const locked = !!(stage && stage.locked);
+  if (key === 'closed' || phase === 'closed') return { tab: 'decision', sub: 'history' };
+  if (!figures && !locked) return { tab: 'stress', sub: 'stresssettings' };
+  if (phase === 'moving') return locked ? (held ? { tab: 'transition', sub: null } : { tab: 'decision', sub: 'plandoc' }) : { tab: 'stress', sub: null };
+  if (key && SAVER_STAGE_KEYS.includes(key) && Array.isArray(stage.leads) && stage.leads.length) return { tab: stage.leads[0], sub: null };
+  if (key === 'draft-retired') return { tab: 'stress', sub: null };
+  if (key === 'running') return { tab: 'decision', sub: 'entry' };
+  return { tab: 'decision', sub: null };
 }
 
 function chipText(def, monthsToStart, beforeStart) {

@@ -271,3 +271,31 @@ describe('the move window places a saver (one clock)', () => {
     expect(three.banner.text).toContain(near);
   });
 });
+
+describe('the first screen by stage (7.12.0): each plan opens where its next thing is, never on a set-up warning', () => {
+  // made-up plans, read on 16 November 2026 through the full view's own reader (homeBannerUi.openingTabOf)
+  const TODAY = new Date(2026, 10, 16, 12);
+  const working = (age, stop, more = {}) => ({ configured: true, baseSalary: 24000, equityMin: 120000, bondMin: 60000, cashTarget: 20000, currentAge: age, currentAgeAsOf: '2026-11-16', retired: false, retireAge: stop, ...more });
+  const retired = (more = {}) => ({ configured: true, baseSalary: 24000, equityMin: 120000, bondMin: 60000, cashTarget: 20000, currentAge: 66, currentAgeAsOf: '2026-11-16', retired: true, firstTaxYear: 2026, ...more });
+  const LOCK = { locked: true, lockedAt: '2026-06-01T09:00:00.000Z' };
+  const HELD = { lines: [{ ticker: 'VWRL', value: 50000, wrapper: 'SIPP' }], updatedAt: '2026-11-01' };
+  const plan = (id, stress, decision = {}, extra = {}) => ({ id, planDetails: { name: id }, isActive: true, ...sc(stress, decision, extra) });
+  const rows = [
+    ['no figures yet', plan('p1', {}), { tab: 'stress', sub: 'stresssettings' }],
+    ['saving, not locked', plan('p2', working(45, 62)), { tab: 'accumulation', sub: null }],
+    ['inside the move window, not locked', plan('p3', working(58, 60)), { tab: 'stress', sub: null }],
+    ['locked, still working, before the move window', plan('p4', working(50, 60), LOCK), { tab: 'accumulation', sub: null }],
+    ['locked, inside the move window, something held', plan('p5', working(58, 60), LOCK, { holdings: HELD }), { tab: 'transition', sub: null }],
+    ['locked, inside the move window, nothing held', plan('p6', working(58, 60), LOCK), { tab: 'decision', sub: 'plandoc' }],
+    ['retired, not locked', plan('p7', retired()), { tab: 'stress', sub: null }],
+    ['locked, living on it', plan('p8', retired(), LOCK), { tab: 'decision', sub: 'entry' }],
+    ['closed', plan('p9', retired(), LOCK, { closedAt: '2026-09', nextPlanId: 'p8' }), { tab: 'decision', sub: 'history' }]
+  ];
+  it.each(rows)('%s', async (_, p, want) => {
+    const { openingTabOf } = await import('../src/ui/homeBannerUi.js');
+    const before = JSON.stringify(p);
+    const got = await openingTabOf({ refreshLifeStage: async () => deriveStage(p, TODAY), getActiveScenarioId: async () => p.id, listScenariosAsync: async () => [p] }, TODAY);
+    expect(got).toEqual(want);
+    expect(JSON.stringify(p)).toBe(before);
+  });
+});

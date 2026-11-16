@@ -4189,7 +4189,7 @@
     import { shareBudgetWith, stopSharingBudget, getHouseholdSplitDismissed, setHouseholdSplitDismissed, budgetSharedFromOf } from './src/storage/ScenarioRepository.js';
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
     import { refreshDraftLines, paintDraftSettingsLine, openStressSettings } from './src/ui/draftPlanLine.js'; import { planHasFigures } from './src/services/DraftDecision.js';   // an unlocked plan's own figures (7.12.0)
-    import { updateHomeBanner, installHomeBanner, openingTabOf } from './src/ui/homeBannerUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
+    import { updateHomeBanner, installHomeBanner, openingTabOf, pressOpeningSub } from './src/ui/homeBannerUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
     import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
@@ -4650,7 +4650,7 @@
       }
       // A one-shot tab request (e.g. after opening a demo plan) survives the reload in sessionStorage.
       initialTab = openPlace.atMainApp(initialTab, (page) => showStrategyPage(page));   // the demo link's one-shot tab, and the preview's hand-over: the plan, page and section, with the loader run (src/ui/components/OpenPlace.js)
-      const targetTab = initialTab || await openingTabOf({ refreshLifeStage, getActiveScenarioId, listScenariosAsync });   // which tab to show: a plan in its move window opens on Transition, a saver on their stage's first lead, every other stage on the Decision tool (homeBannerUi.openingTabOf, LifeStage.openingTab)
+      const opening = initialTab ? { tab: initialTab, sub: null } : await openingTabOf({ refreshLifeStage, getActiveScenarioId, listScenariosAsync }), targetTab = opening.tab;   // the first screen by stage, and its sub-tab (7.12.0: homeBannerUi.openingTabOf, LifeStage.openingTab)
       updateNextStepBanner();
 
       // Activate the target tab
@@ -4660,7 +4660,7 @@
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       const targetContent = document.getElementById(`${targetTab}-content`);
       if (targetContent) targetContent.classList.add('active');
-      if (!initialTab && targetTab !== 'decision') switchToTab(targetTab);   // a saver's opening tab is pressed, so its loader fills it
+      if (!initialTab && targetTab !== 'decision') switchToTab(targetTab); pressOpeningSub(window, document, opening);   // the opening tab is pressed, so its loader fills it; then its sub-tab
     }
 
     /**

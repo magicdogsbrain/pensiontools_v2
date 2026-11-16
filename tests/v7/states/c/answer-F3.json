@@ -179,7 +179,46 @@
           "runOutAge": 82,
           "covered": false,
           "weighted": 0.40710840829182415,
-          "verdict": "no"
+          "verdict": "no",
+          "phases": [
+            {
+              "fromAge": 68,
+              "toAge": 99,
+              "ages": {
+                "you": {
+                  "from": 68,
+                  "to": 99
+                }
+              },
+              "takeHome": 2200,
+              "fromPension": 1008.43,
+              "fromSavings": 0,
+              "fromPots": 1008.43,
+              "statePension": 916.67,
+              "finalSalary": 500,
+              "tax": 225.1,
+              "byPerson": [
+                {
+                  "who": "you",
+                  "statePension": 916.67,
+                  "finalSalary": 500,
+                  "fromPension": 1008.43,
+                  "fromSavings": 0,
+                  "tax": 225.1,
+                  "takeHome": 2200,
+                  "higherRate": false,
+                  "locked": false
+                }
+              ],
+              "beforeStatePension": false,
+              "shown": {
+                "takeHome": 2200,
+                "fromPots": 783,
+                "statePension": 917,
+                "finalSalary": 500
+              }
+            }
+          ]
         },
         "assumed": [
           {
@@ -695,6 +734,265 @@
                 "fixed": "£130"
               },
               " a month more."
+            ]
+          },
+          "takeHead": {
+            "id": "c.take.head",
+            "text": "Taking £2,200 a month",
+            "parts": [
+              "Taking ",
+              {
+                "key": "take.perMonth",
+                "kind": "money"
+              },
+              " a month"
+            ]
+          },
+          "takeMadeOf": [
+            {
+              "id": "c.madeOf.paid",
+              "text": "Your State Pension (£917 a month) + £500 final-salary pension + £783 from your pot.",
+              "parts": [
+                "Your ",
+                "State Pension",
+                " (",
+                {
+                  "key": "take.phases.0.shown.statePension",
+                  "kind": "money"
+                },
+                " a month)",
+                " + ",
+                {
+                  "key": "take.phases.0.shown.finalSalary",
+                  "kind": "money"
+                },
+                " final-salary pension",
+                " + ",
+                {
+                  "key": "take.phases.0.shown.fromPots",
+                  "kind": "money"
+                },
+                " from ",
+                "your pot",
+                "."
+              ]
+            },
+            {
+              "id": "c.madeOf.tax",
+              "text": "Tax of £225 a month is already taken off.",
+              "parts": [
+                "Tax of ",
+                {
+                  "key": "take.phases.0.tax",
+                  "kind": "money"
+                },
+                " a month is already taken off."
+              ]
+            }
+          ],
+          "takeChance": {
+            "id": "c.take.chance",
+            "text": "Taking £2,200 a month, the money lasts as long as you do 8 times in 20.",
+            "parts": [
+              "Taking ",
+              {
+                "key": "take.perMonth",
+                "kind": "money"
+              },
+              " a month, the money lasts ",
+              "as long as you do",
+              " ",
+              {
+                "fixed": "8"
+              },
+              " times in ",
+              {
+                "fixed": "20"
+              },
+              "."
+            ],
+            "mark": "weighted"
+          },
+          "takeLine": {
+            "id": "c.take.line",
+            "text": "With a pot of £180,000, your State Pension and your final-salary pension, taking £2,200 a month after tax from now until you are 99, the money lasts as long as you do 8 times in 20, counting how long people your age live.",
+            "parts": [
+              "With ",
+              "a pot of ",
+              {
+                "key": "inputs.you.pot",
+                "kind": "money"
+              },
+              ", ",
+              "your State Pension",
+              " and ",
+              "your final-salary pension",
+              ", taking ",
+              {
+                "key": "take.perMonth",
+                "kind": "money"
+              },
+              " a month after tax ",
+              "from now",
+              " ",
+              "until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              ", the money lasts ",
+              "as long as you do",
+              " ",
+              {
+                "fixed": "8"
+              },
+              " times in ",
+              {
+                "fixed": "20"
+              },
+              ", ",
+              "counting how long people your age live",
+              "."
+            ],
+            "mark": "weighted"
+          },
+          "takeFixed": {
+            "id": "c.take.fixed",
+            "text": "If you live to 99, the money lasts that long in fewer than 1 of 20 futures we tried.",
+            "parts": [
+              "If you live to ",
+              {
+                "fixed": "99"
+              },
+              ", the money lasts that long in fewer than ",
+              {
+                "fixed": "1"
+              },
+              " of ",
+              {
+                "fixed": "20"
+              },
+              " futures we tried."
+            ],
+            "mark": "fixed"
+          },
+          "takeBold": {
+            "id": "c.take.bold",
+            "text": "About 12 times in 20 the money runs out while you are alive, and you would spend less from then on.",
+            "parts": [
+              "About ",
+              {
+                "fixed": "12"
+              },
+              " times in ",
+              {
+                "fixed": "20"
+              },
+              " the money runs out while ",
+              "you are",
+              " alive",
+              ", and you would spend less from then on."
+            ],
+            "mark": "weighted"
+          },
+          "takeBad": {
+            "id": "c.take.when",
+            "text": "In the futures where the money runs out before 103, it typically runs out at 86. In the worst 1 in 10 of all the futures, by 82.",
+            "parts": [
+              "In the futures where the money runs out before ",
+              {
+                "fixed": "103"
+              },
+              ", it typically runs out ",
+              "at ",
+              {
+                "fixed": "86"
+              },
+              ". ",
+              "In the worst ",
+              {
+                "fixed": "1"
+              },
+              " in ",
+              {
+                "fixed": "10"
+              },
+              " of all the futures, ",
+              "by ",
+              {
+                "fixed": "82"
+              },
+              "."
+            ]
+          },
+          "takeHowLong": {
+            "id": "c.take.howLong",
+            "text": "In the futures where it runs out before 99, it still pays for 18 of the 31 years to 99.",
+            "parts": [
+              "In the futures where it runs out before ",
+              {
+                "fixed": "99"
+              },
+              ", it still pays for ",
+              {
+                "fixed": "18"
+              },
+              " of the ",
+              {
+                "fixed": "31"
+              },
+              " years to ",
+              {
+                "fixed": "99"
+              },
+              "."
+            ]
+          },
+          "takeHowMuch": {
+            "id": "c.take.howMuch",
+            "text": "Across those futures, about £8 of every £10 you planned to spend is still paid.",
+            "parts": [
+              "Across those futures, about ",
+              {
+                "fixed": "£8"
+              },
+              " of every ",
+              {
+                "fixed": "£10"
+              },
+              " you planned to spend is still paid."
+            ]
+          },
+          "takeFloor": {
+            "id": "c.take.floor",
+            "text": "If the money ran out at 86, you would still have £16,114 a year after tax, from your pensions.",
+            "parts": [
+              "If the money ran out ",
+              "at ",
+              {
+                "fixed": "86"
+              },
+              ", ",
+              "you would still have ",
+              {
+                "fixed": "£16,114"
+              },
+              " a year after tax",
+              ", ",
+              "from your pensions",
+              "."
+            ]
+          },
+          "takeLeft": {
+            "id": "c.take.left",
+            "text": "In more than half the futures nothing is left at 99.",
+            "parts": [
+              "In more than half the futures nothing is left ",
+              "at ",
+              {
+                "fixed": "99"
+              },
+              "."
             ]
           }
         },

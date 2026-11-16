@@ -90,7 +90,8 @@ async function classicCalc(dateStr, pots) {
   let st = null; try { st = await getActiveStrategy(); } catch { st = null; }
   const setup = engineSetup({ decisionSettings: settings, stressSettings: ss, strategy: st });
   const decision = await calcDecisionPWA(dateStr, pots.equity, pots.bond, pots.cash, engineDeps(setup, {
-    history: await getHistoryAsync(), taxYears: allTaxYears, spInfo: await getStatePensionForTaxYear(getTaxYearFromDate(dateStr)), potsYear: await decisionPotsYear(), pots
+    // 7.12.0: index.html passes the ISA box as typed too (the record keeps it): blank (null) or the figure in it
+    history: await getHistoryAsync(), taxYears: allTaxYears, spInfo: await getStatePensionForTaxYear(getTaxYearFromDate(dateStr)), potsYear: await decisionPotsYear(), pots: { ...pots, isaTyped: 'isaTyped' in pots ? pots.isaTyped : pots.isa || 0 }
   }));
   try {
     const sst = await getActiveStrategy();
@@ -187,7 +188,7 @@ describe('Month by month: recording a month (and the months filled in) writes wh
       const { I } = readMonth(plan, typed, { today: c.today, nowIso: NOW_ISO });
       const { decideMonth } = await import('../../../src/services/MonthDecision.js');
       const entered = enteredBlock('type', { ...c.pots, diversifier: 0 }, { ...c.pots, diversifier: 0 });
-      const mine = decideMonth(I, c.month, { ...c.pots, diversifier: 0, gia: 0, giaBasis: null }, { entered });
+      const mine = decideMonth(I, c.month, { ...c.pots, isaTyped: c.pots.isa || 0, diversifier: 0, gia: 0, giaBasis: null }, { entered });
       const theirs = await classicCalc(c.month, { ...c.pots, diversifier: 0, gia: 0, giaBasis: null }); theirs.entered = entered; theirs.paidAhead = false;
       expect(decisionBytes(mine)).toBe(decisionBytes(theirs));
     }

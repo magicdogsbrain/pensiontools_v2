@@ -190,7 +190,8 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(text).toContain('Nothing due. Your next review is September 2027.');
     expect(root.querySelector('[data-testid="rail.plan.lock"]')).toBe(null);
     const where = draw(stateWith(entries, '#/plan/' + saver.plan.id + '/where'));
-    expect(where.text).toMatch(/£319,800 on September 2026; the plan’s middle line for then is £[\d,]+/);
+    // 7.12.0: the figure in the path's prices first, as recorded in brackets
+    expect(where.text).toMatch(/£[\d,]+ at the prices of July 2026 \(£319,800 as recorded in September 2026\); the plan’s middle line for then is £[\d,]+/);
     expect(where.text).toContain('From your record, September 2026');
   });
   it('a step not on the stage\'s list still opens and says so (R7)', () => {

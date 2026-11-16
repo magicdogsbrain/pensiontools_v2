@@ -50,7 +50,11 @@ export function strategyOverlayOf(decision, dateStr, { strategy, stressSettings,
   else if (st.id === 'buckets-in-order') { return null; }
   else if (st.id === 'floor-and-flex') { const ess = Math.max(0, (params.essentialsAnnual || 0) - spAnnual) / 12; floorMonthly = Math.min(total, ess); floorLabel = 'the essentials rung'; note = 'Essentials come from the rung; the rest of this month\'s draw is treats from the flex sleeve (sell units for it).'; }
   else if (st.id === 'ladder-and-ratchet') { const yrs = ladderYearsFromYear0(params.ladderYears, planYearsOf(settings.duration)); if (planYear < yrs) { floorMonthly = total; floorLabel = 'this year\'s matured rung'; note = 'Inside the ladder years: the rung pays; the equity sleeve is untouched unless the ratchet fires.'; } else { note = 'Beyond the base ladder: pay from a ratcheted rung if one was secured, otherwise from the sleeve.'; } }
-  return { id: st.id, name, floorMonthly: Math.round(floorMonthly), sleeveMonthly: Math.round(Math.max(0, total - floorMonthly)), floorLabel, note, hidePots: (st.id !== 'floor-to-age' && st.id !== 'bridge-and-engine') || floorMonthly > 0 };
+  // a bought ladder's month paid from cash or a matured gilt (7.12.0): the cash entered on the same form, when it is less than
+  // the month's payment — the page then says so, and never that the money is already in cash
+  const cashShort = CONTRACT_IDS.includes(st.id) && floorMonthly > 0 && typeof decision.cash === 'number' && Number.isFinite(decision.cash) && Math.round(decision.cash) < Math.round(floorMonthly)
+    ? { cash: Math.round(decision.cash), month: Math.round(floorMonthly) } : null;
+  return { id: st.id, name, floorMonthly: Math.round(floorMonthly), sleeveMonthly: Math.round(Math.max(0, total - floorMonthly)), floorLabel, note, hidePots: (st.id !== 'floor-to-age' && st.id !== 'bridge-and-engine') || floorMonthly > 0, cashShort };
 }
 
 /**

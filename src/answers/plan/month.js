@@ -230,9 +230,14 @@ function adviceOf(d) {
     boost: d.boostAmount > 0 ? pounds(d.boostAmount) : null,
     cut: !!d.inProtection, efficient: d.isTaxEfficientYear !== false,
     contract: !!(ov && ov.hidePots), from, moves,
+    // 7.12.0: the money is said to be in cash only when the cash entered covers the month
+    cashShort: ov && ov.cashShort ? { cash: pounds(ov.cashShort.cash), month: pounds(ov.cashShort.month) } : null, cashKnown: typeof d.cash === 'number' && Number.isFinite(d.cash),
     raw: { sippDraw: r(d.sippDraw), monthlyTax: r(d.monthlyTax), totalMonthlyNet: r(d.totalMonthlyNet), isaDraw: r(d.isaDraw) }
   };
 }
+
+/** The month's figures as the page says them, for the tests (adviceOf). */
+export const monthAdviceOf = (d) => adviceOf(d);
 
 /**
  * Why a month cannot be recorded (MonthFill.refusedMonthWords' two reasons, in the new app's words): already recorded, or it

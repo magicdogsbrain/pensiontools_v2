@@ -27,6 +27,7 @@ import { get, applyPatch, safeSettings, safeTiming } from './about.js';
 import { pounds } from './income.js';
 import { POTS_FIELDS, POTS_WRITES } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
+import { partnersOf } from '../../services/HouseholdLink.js';
 
 export { applyPatch };
 
@@ -38,7 +39,6 @@ const blank = (v) => v === undefined || v === null || (typeof v === 'string' && 
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
 const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
-const partnerIdOf = (plan) => (plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId) || null;
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 const r0 = (v) => Math.round(+v || 0);
@@ -368,7 +368,8 @@ export function potsOf(entries, id, { today, typed = null } = {}) {
   if (saved.isaFunds) useNotes.isaGrowth = 'isaFunds';
   if (saved.locked && !saved.hasChargesKey) useNotes.charges = 'chargesLocked';
   if (saved.locked && !saved.hasIsaGrowthKey && !saved.isaFunds) useNotes.isaGrowth = 'isaGrowthLocked';
-  const partners = list.filter((e) => e.plan.id !== plan.id && (e.plan.id === partnerIdOf(plan) || partnerIdOf(e.plan) === plan.id)).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
+  // the plans linked with this one, either way, never a closed one (services/HouseholdLink.js, 7.12.0)
+  const partners = partnersOf(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
   const p = editable && c.ok ? potsPatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
   return {
     found: true, id: String(plan.id), name: nameOf(plan), locked: saved.locked, lockedOn: saved.lockedOn, readonly, editable,

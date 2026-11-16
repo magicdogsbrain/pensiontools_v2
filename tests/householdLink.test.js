@@ -4,10 +4,19 @@
  * plan is never a partner; a plan's own link beats another plan pointing at it. The simple view's three readers (the
  * household page, the plan's steps and "Your plans", the home's to-dos) read through it.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
+import { enterGuestMode, leaveGuestMode } from '../src/firebase/AuthService.js';
+import { clearGuestData } from '../src/firebase/FirestoreService.js';
+import { getHouseholdPartnerId, invalidateScenarioCache } from '../src/storage/ScenarioRepository.js';
 import { partnerIdOf, partnersOf, partnerOf, linkedByOf } from '../src/services/HouseholdLink.js';
 import { partnerOf as householdPartnerOf } from '../src/answers/plan/household.js';
-import { kimAndSam, KIM_ID, SAM_ID } from './fixtures/kimAndSam.js';
+import { kimAndSam, KIM_ID, SAM_ID, KIM_AND_SAM_TODAY } from './fixtures/kimAndSam.js';
+import { aboutOf } from '../src/answers/plan/about.js';
+import { potsOf } from '../src/answers/plan/pots.js';
+import { spendOf } from '../src/answers/plan/spend.js';
+import { incomeOf } from '../src/answers/plan/income.js';
+import { lastsOf } from '../src/answers/plan/lasts.js';
+import { upgradedList } from '../src/v7/effects/planSource.js';
 
 const entries = (...plans) => plans.map((plan) => ({ plan }));
 
@@ -61,5 +70,38 @@ describe('the household link, read either way', () => {
     const list = entries(kim, sam);
     expect(householdPartnerOf(list, kim)).toBe(partnerOf(list, kim));
     expect(householdPartnerOf(list, sam)).toBe(partnerOf(list, sam));
+  });
+});
+
+// Joined at integration (7.12.0): the five plan pages that offer "the same for my partner's plan" (About you and when, Your
+// pots and tax, What you spend, Income that comes anyway, Will it last?) read the partner through the one reader too, so a
+// closed plan is never offered there either, and the plan's own link comes first.
+describe('the plan pages\' partner lists read the one link reader', () => {
+  const pages = { aboutOf, potsOf, spendOf, incomeOf, lastsOf };
+  const listOf = (...plans) => upgradedList(plans, new Date(2026, 10, 16, 12));
+  for (const [name, read] of Object.entries(pages)) {
+    it(name + ': the partner either way; never a closed plan', () => {
+      const { kim, sam } = kimAndSam();                  // the link is on Sam's plan only
+      const open = read(listOf(kim, sam), KIM_ID, { today: KIM_AND_SAM_TODAY });
+      expect(open.partners.map((p) => p.id)).toEqual([SAM_ID]);
+      const closed = kimAndSam({ link: 'both' });
+      closed.sam.closedAt = '2026-03';
+      expect(read(listOf(closed.kim, closed.sam), KIM_ID, { today: KIM_AND_SAM_TODAY }).partners).toEqual([]);
+    });
+  }
+});
+
+// The full view's own reader of the link (ScenarioRepository.getHouseholdPartnerId) reads it either way too (7.12.0, joined
+// at integration): with the link on Sam's plan only, Kim's plan open, it gives Sam's plan; a closed plan, nothing.
+describe('the full view\'s getHouseholdPartnerId reads the link either way', () => {
+  afterEach(() => { leaveGuestMode(); clearGuestData(); invalidateScenarioCache(); });
+  const open = (plans) => { enterGuestMode(); clearGuestData(); sessionStorage.setItem('pt_guest_scenarios', JSON.stringify(plans)); invalidateScenarioCache(); };
+  it('Kim\'s plan open, the link on Sam\'s: Sam\'s plan; Sam\'s closed: none', async () => {
+    const { kim, sam } = kimAndSam();
+    open([{ ...kim, isActive: true }, { ...sam, isActive: false }]);
+    expect(await getHouseholdPartnerId()).toBe(SAM_ID);
+    const both = kimAndSam({ link: 'both' });
+    open([{ ...both.kim, isActive: true }, { ...both.sam, isActive: false, closedAt: '2026-03' }]);
+    expect(await getHouseholdPartnerId()).toBe(null);
   });
 });

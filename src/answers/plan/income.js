@@ -27,6 +27,7 @@ import { RULES, addYears } from '../shared/rules.js';
 import { get, applyPatch, safeSettings, safeTiming } from './about.js';
 import { INCOME_FIELDS, INCOME_LISTS, INCOME_LIST_IDS, INCOME_WRITES, RISES, WRAPPERS, isCardId } from './schema.js';
 import { dateOf, dayWords, localDay } from './dates.js';
+import { partnersOf } from '../../services/HouseholdLink.js';
 
 export { applyPatch };
 
@@ -36,7 +37,6 @@ const blank = (v) => v === undefined || v === null || (typeof v === 'string' && 
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
 const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
-const partnerIdOf = (plan) => (plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId) || null;
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -468,7 +468,8 @@ export function incomeOf(entries, id, { today, typed = null } = {}) {
   const facts = factsOf(c);
   const derived = derivedLines(facts);
   const sid = (plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.id) || saved.ss.strategyId || 'pots-and-valves';
-  const partners = list.filter((e) => e.plan.id !== plan.id && (e.plan.id === partnerIdOf(plan) || partnerIdOf(e.plan) === plan.id)).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
+  // the plans linked with this one, either way, never a closed one (services/HouseholdLink.js, 7.12.0)
+  const partners = partnersOf(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
   const p = editable && c.ok ? incomePatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
   const spSlot = facts.sp.kind === 'none' ? { sp: 'none' } : facts.sp.kind === 'assumed' ? { sp: 'assumed', yearly: pounds(facts.sp.yearly), age: facts.sp.fromAge } : facts.sp.fromAge != null ? { sp: 'paid', yearly: pounds(facts.sp.yearly), age: facts.sp.fromAge } : { sp: 'paidNoAge', yearly: pounds(facts.sp.yearly) };
   return {

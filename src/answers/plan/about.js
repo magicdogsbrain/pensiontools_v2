@@ -28,6 +28,7 @@ import { cleanSteps } from '../../services/IncomeSchedule.js';
 import { stopAskOf, stopLeftOf, stopChangeOf, startLaterOf } from '../../services/PlanMove.js';
 import { ABOUT_FIELDS, ABOUT_WRITES, MIN_YEARS } from './schema.js';
 import { dateOf, dayWords, monthWords, localDay, localMonth, MONTHS } from './dates.js';
+import { partnersOf } from '../../services/HouseholdLink.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
@@ -53,7 +54,6 @@ const blank = (v) => v === undefined || v === null || (typeof v === 'string' && 
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
 const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
-const partnerIdOf = (plan) => (plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId) || null;
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 
@@ -607,7 +607,8 @@ export function aboutOf(entries, id, { today, typed = null } = {}) {
   // said for a plan with no age too (it starts this tax year), as the planner's Timing summary says it: one rule in both apps
   const derived = later ? [{ id: later.stopMonth ? 'laterStop' : 'laterNow', slots: { year: taxYearLabel(later.to) } }, ...derived0] : derived0;
   const sid = (plan.planDocument && plan.planDocument.strategy && plan.planDocument.strategy.id) || saved.ss.strategyId || 'pots-and-valves';
-  const partners = list.filter((e) => e.plan.id !== plan.id && (e.plan.id === partnerIdOf(plan) || partnerIdOf(e.plan) === plan.id)).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
+  // the plans linked with this one, either way, never a closed one (services/HouseholdLink.js, 7.12.0)
+  const partners = partnersOf(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
   let suggestion = null;
   if (c.values.age != null) {
     // 7.8.0: not said reads the women's figures (LongevityModel.sexKey), as every weighted figure does

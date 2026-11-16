@@ -30,6 +30,7 @@ import { pounds } from './income.js';
 import { SPEND_FIELDS, SPEND_LISTS, SPEND_LIST_IDS, SPEND_WRITES, THENS, isCardId } from './schema.js';
 import { dateOf, dayWords } from './dates.js';
 import { budgetFiguresOf } from './budget.js';
+import { partnersOf } from '../../services/HouseholdLink.js';
 
 export { applyPatch };
 
@@ -39,7 +40,6 @@ const blank = (v) => v === undefined || v === null || (typeof v === 'string' && 
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
 const lockedAtOf = (plan) => (plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.lockedAt) || (plan && plan.planDocument && plan.planDocument.lockedAt) || null;
 const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
-const partnerIdOf = (plan) => (plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId) || null;
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
 const unique = (list) => [...new Set(list)];
@@ -581,7 +581,8 @@ export function spendOf(entries, id, { today, typed = null } = {}) {
   const costs = c.ok ? c.lists.costs.cards.map((card) => ({ ...card.values, years: card.values.years == null ? 1 : card.values.years, gross: null })) : saved.costs;
   const { chart, below, floorFrom } = chartOf(rows, schedule, saved, costs);
   const derived = derivedLines(rows, schedule, costs, saved);
-  const partners = list.filter((e) => e.plan.id !== plan.id && (e.plan.id === partnerIdOf(plan) || partnerIdOf(e.plan) === plan.id)).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
+  // the plans linked with this one, either way, never a closed one (services/HouseholdLink.js, 7.12.0)
+  const partners = partnersOf(list, plan).map((e) => ({ id: String(e.plan.id), name: nameOf(e.plan) }));
   const p = editable && c.ok ? spendPatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
   const sug = editable ? suggestion(firstGross, saved) : null;
   // each lump sum coming in: what it could support a year over the years left, and the edits that add that to the steps (income.lump-to-steps)

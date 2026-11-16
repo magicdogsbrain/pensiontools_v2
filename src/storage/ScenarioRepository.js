@@ -46,6 +46,7 @@ import { copyOf as planCopyOf } from '../services/PlanCopy.js';
 import { withoutPotsAsOf } from '../services/PlanFromToday.js';
 import { isClosedPlan, monthRefusal, monthRefusalWords, nextPlanIdOf } from '../services/PlanClosed.js';
 import { pensionTodayPatch } from '../services/PensionToday.js';
+import { partnerOf } from '../services/HouseholdLink.js';
 import { withV7Keys } from '../services/SaverPayIn.js';
 
 /** A closed plan's household is read, not changed (6.56.0, PlanClosed.js): its partner's plan pairs with its successor. */
@@ -866,7 +867,12 @@ export async function getActiveStrategy() {
  */
 export async function getHouseholdPartnerId() {
   const scenario = await getActiveScenarioAsync();
-  return scenario?.household?.partnerScenarioId || null;
+  if (!scenario) return null;
+  // read either way, never a closed plan (services/HouseholdLink.js, 7.12.0): the simple view's reader
+  let list = [];
+  try { list = await listScenariosAsync(); } catch (e) { list = []; }
+  const partner = partnerOf(list, scenario);
+  return partner && partner.id != null ? String(partner.id) : null;
 }
 
 /**

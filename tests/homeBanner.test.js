@@ -238,7 +238,9 @@ describe('the banner on the page and its ✕', () => {
         const stage = deriveStage(raw, noon(today));
         const tab = await openingTabOf({ refreshLifeStage: async () => stage, getActiveScenarioId: async () => e.plan.id, listScenariosAsync: async () => raws }, noon(today));
         const phase = homeOf(entries, e.plan.id, { today }).stage.key;
-        if (phase === 'moving') { moving++; expect(tab, `${today} ${e.plan.id}`).toBe('transition'); }
+        // retaken in 7.12.0: Moving opens on Transition only when What you hold has a line
+        const recorded = Array.isArray(raw.holdings && raw.holdings.lines) && raw.holdings.lines.some((l) => l && ((+l.value || 0) > 0 || (+l.units || 0) > 0));
+        if (phase === 'moving' && recorded) { moving++; expect(tab, `${today} ${e.plan.id}`).toBe('transition'); }
         else expect(tab, `${today} ${e.plan.id} ${phase}`).toBe(openingTab(stage));
       }
       expect(JSON.stringify(raws)).toBe(before);

@@ -148,7 +148,7 @@ describe('the locked accumulation path in the plan document, and the saver\'s wh
     const w = whereAmI(doc, { today: new Date(2027, 0, 10) });
     expect(w.saving.pathMissing).toBe(true);
     expect(w.saving.expected).toBeNull();
-    expect(whereAmIHtml(w)).toMatch(/locked without a pension pot on record/);
+    expect(whereAmIHtml(w)).toMatch(/locked before it had a pension figure to draw a saving path from/);   // retaken in 7.12.0: said as what happened
     const w2 = whereAmI(doc, { today: new Date(2027, 0, 10), holdings: ledger });
     expect(w2.saving.actual).toBe(320000);
     expect(whereAmIHtml(w2)).toContain('£320,000');

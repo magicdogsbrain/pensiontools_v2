@@ -204,10 +204,11 @@ describe('What you hold — "What is this?" for lines the tool cannot place (6.2
     expect(html).toContain('Bonds');
     for (const e of handlers(html)) { expect(e).not.toMatch(/=>|\?\./); expect(() => parse(e)).not.toThrow(); }
   });
+  // retaken in 7.12.0: said as what we could not tell and what that leaves out
   it('the total counts every line, and says how much is not placed in the mix yet', () => {
     const html = holdingsCardHtml({ holdings: rec });
     expect(html).toContain('Total £232,850');
-    expect(html).toContain('£120,000 in 1 line is not placed in the mix yet — answer "What is this?" and it counts.');
+    expect(html).toContain('We could not tell what 1 line holds (£120,000), so it is left out of the mix figures until you say what it is.');
     expect(holdingsCardHtml({ holdings: { ...rec, lines: rec.lines.slice(0, 1) } })).not.toContain('not placed in the mix');
   });
 });

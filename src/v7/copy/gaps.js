@@ -26,9 +26,6 @@ export const GAPS = {
   withoutExpected: 'Without the money you expect, ',
   lastsUntil: '{year}’s money lasts until about {month}.',
   shortFrom: '{year}’s money is not covered from {month}.',
-  // 7.11.1: a gap that ends within the year, when a gilt counted toward it pays
-  lastsUntilShort: '{year}’s money lasts until about {month}, then runs short until {label} pays in {until}.',
-  shortUntil: '{year}’s money is not covered from {month} until {label} pays in {until}.',
   totalGap: 'Not yet covered to {year}: {gap} in all.',
   withExpected: 'With it, every year to {year} is covered.',
   withExpectedShort: 'With it, {short} is still not covered to {year}.',
@@ -41,25 +38,20 @@ export const GAPS = {
   withKept: 'With what you count toward the gaps, every year to {year} is covered.',
   withKeptShort: 'With what you count toward the gaps, {short} is still not covered to {year}.',
   canFall: 'What you keep by choice can fall in value; if it is worth less when you sell, the gap is bigger.',
-  // 7.11.1: a gilt that is none of the plan's rungs counts toward the tax year it matures in — or says why it does not
-  giltFixed: '{label} matures in {month}, so it counts toward {year}. It pays a fixed {pays}; it does not rise with prices.',
-  giltFixedReal: '{label} matures in {month}, so it counts toward {year}. It pays a fixed {pays}; it does not rise with prices, so when it is paid it is worth {real} at today’s prices.',
-  giltLinked: '{label} matures in {month}, so it counts toward {year}. At today’s prices it pays {pays}, and it rises with prices.',
-  giltValue: '{label} matures in {month}, so it counts toward {year}, at its value today: {pays}.',
-  giltSpare: '{label} pays {spare} more than {year} still needs; that is counted as the pension’s cash for the years after.',
-  giltSpareAll: 'None of what {label} pays is needed in {year}, so all {spare} of it is counted as the pension’s cash for the years after.',
+  // 7.11.1: a gilt outside the plan's rungs that has matured: its money is the pension's cash
   giltCashNow: '{label} matured in {month}, after your record was taken, so the {pays} it paid is counted as your pension’s cash.',
-  giltUnknown: 'We cannot tell when {label} matures, so it is not counted toward any year.',
   giltPaid: '{label} matured in {month}; once paid, its money is the pension’s cash, so it is not counted again.',
-  giltAfter: '{label} matures in {month}, after the plan’s last year, so it is not counted toward any year.',
-  // 7.11.1: shares and funds outside the plan's mix — never held for a year, never ignored
-  outside: 'Also in your pension, outside the plan’s mix: {list}, {total} at today’s value.',
-  withHeld: 'At today’s value, they would cover every year to {year}.',
-  withHeldShort: 'At today’s value, they would leave {short} not covered to {year}.',
-  withHeldExpected: 'With the money you expect, and these at today’s value, every year to {year} is covered.',
-  withHeldExpectedShort: 'With the money you expect, and these at today’s value, {short} is still not covered to {year}.',
-  outsideCanFall: 'Shares and funds can fall in value, so they are never counted as held for a year; if they are worth less when sold, they cover less.',
-  outsideCanFallGilts: 'Shares and funds can fall in value, and so can a gilt sold before it matures, so they are never counted as held for a year; if they are worth less when sold, they cover less.',
+  // 7.11.1: everything else in the pension beside the plan's rungs and cash — gilts, shares, funds — is money available: set
+  // against no year (only you can say which years a line is for), never ignored
+  availableBoth: 'Also in your pension, at today’s value: gilts {gilts}, shares and funds {funds}, not set against any year.',
+  availableGilts: 'Also in your pension, at today’s value: gilts {gilts}, not set against any year.',
+  availableFunds: 'Also in your pension, at today’s value: shares and funds {funds}, not set against any year.',
+  withHeld: 'At today’s value, that would cover every year to {year}.',
+  withHeldShort: 'At today’s value, that would cover {cover} of it, leaving {short} not covered to {year}.',
+  withHeldExpected: 'With the money you expect, and that at today’s value, every year to {year} is covered.',
+  withHeldExpectedShort: 'With the money you expect, and that at today’s value, {short} is still not covered to {year}.',
+  outsideCanFall: 'Shares and funds can fall in value; if they are worth less when sold, they cover less.',
+  outsideCanFallGilts: 'Shares and funds can fall in value, and so can a gilt sold before it matures; if they are worth less when sold, they cover less.',
   cashLeft: 'After {year}, {amount} of your pension’s cash is left.',
   // 7.11.1: a year the plan needs nothing from the pension for, and a lump sum the plan already counts
   noNeed: '{year} needs nothing from your pension: {why}.',

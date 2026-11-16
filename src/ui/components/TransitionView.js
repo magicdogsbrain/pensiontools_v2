@@ -103,8 +103,7 @@ export function gapsHtml(gaps) {
   let h = '<div class="section-title" style="margin-top:12px;">' + esc(gaps.ladder ? G.title : G.titlePot) + '</div><p class="hint">' + esc(gaps.ladder ? G[gaps.lead || 'lead'] : G.leadPot) + '</p>';
   h += '<ul style="font-size:13px;line-height:1.6;" id="transitionGaps">' + gaps.lines.map((l) => '<li data-line="' + esc(l.id) + '">' + esc(sayGapLine(l, G)) + '</li>').join('') + '</ul>';
   if (gaps.ladder && gaps.rows.length) {
-    // a line standing in, or a gilt counted toward the year it matures in (7.11.1), by its own name
-    const held = (r) => (r.parts.length ? r.parts.map((p) => (p.kind === 'standIn' || p.kind === 'gilt' ? p.label + ' ' + p.amount : G.heldParts[p.kind] + ' ' + p.amount)).join(', ') : G.none) + (r.toBuy ? ' · ' + G.heldParts.toBuy.replace('{amount}', r.toBuy) : '');
+    const held = (r) => (r.parts.length ? r.parts.map((p) => (p.kind === 'standIn' ? p.label + ' ' + p.amount : G.heldParts[p.kind] + ' ' + p.amount)).join(', ') : G.none) + (r.toBuy ? ' · ' + G.heldParts.toBuy.replace('{amount}', r.toBuy) : '');
     h += table([G.columns.year, G.columns.need, G.columns.held, G.columns.gap], gaps.rows.map((r) => [esc(r.thisYear ? G.thisYear.replace('{year}', r.year).replace('{months}', r.monthsLeft).replace('{s}', r.monthsLeft === '1' ? '' : 's') : r.year), esc(r.need), esc(held(r)), esc(r.gap || G.none)]));
   }
   return h;
@@ -150,7 +149,7 @@ export function keepTestHtml(v) {
  * "Your plan's mix" as what is held (7.11.1): Living on it, or Moving once what is held was accepted, the tab is never a move.
  * The same reading as V7 (answers/plan/move.js heldInfo, through keepHoldingsUi.transitionHeld), filled with the same words
  * (src/v7/copy/move.js MOVE.held): the rungs held against the plan and each rung not held as the plan has it, what else the
- * pension holds and what each line is doing, the cash with the gilts maturing in the cash years, a pot plan's mix held
+ * pension holds and what each line is doing, the cash for the cash years, a pot plan's mix held
  * against the plan's, and where it can be tested (Your review, in the simple view). Never a Buy or Sell, a tick or a schedule.
  */
 export function heldInfoHtml(I) {
@@ -166,7 +165,7 @@ export function heldInfoHtml(I) {
   if (I.buckets) h += '<div class="section-title" style="margin-top:10px;">' + esc(H.mixTitle) + '</div>' + li(I.buckets.map((b) => fill(H.bucket[b.bucket], b)));
   for (const name of I.unknown || []) h += '<p class="hint">' + esc(fill(H.unknown, { name })) + '</p>';
   if (I.lines.length) h += '<div class="section-title" style="margin-top:10px;">' + esc(H.linesTitle) + '</div>' + li(I.lines.map((x) => fill(H[x.id], x)));
-  if (I.cash) h += '<p class="hint">' + esc(fill(H[I.cash.id], { ...I.cash, gilts: I.cash.gilts ? fill(H.cashGilts, I.cash) : '' })) + '</p>';
+  if (I.cash) h += '<p class="hint">' + esc(fill(H[I.cash.id], I.cash)) + '</p>';
   if (I.review) h += '<p class="hint">' + esc(H.review) + ' <a href="' + esc(LAYOUT.classic.v7 + I.review) + '">' + esc(H.reviewLink) + '</a>.</p>';
   return h;
 }
@@ -232,22 +231,6 @@ export function holdingsCardHtml({ holdings = null, offer = null, keep = null } 
  *   rotation — rotationStatus() result (null unless the strategy is gilt-rotation);
  *   complete — overrides diff.complete when given.
  */
-/** What the cash years need from the pension's cash before the gilts maturing in them pay (the diff's cash line), as a row. */
-function cashFromRow(diff, giltCash) {
-  if (!(giltCash > 0)) return [];
-  const x = [...(diff.hold || []), ...(diff.buy || [])].find((y) => y.kind === 'cash' && y.fromCash != null);
-  return x ? [[esc(MOVE.cash.fromCash), gbp(x.fromCash)]] : [];
-}
-
-/** The cash table's last row: Spare (the diff's cash line, held) or Short (to buy); worked from the figures with none. */
-function cashSpareRow(diff, heldCash, giltCash, tgt) {
-  if (!(giltCash > 0)) return [heldCash >= tgt ? 'Spare' : 'Short', gbp(Math.abs(heldCash - tgt))];   // as before 7.11.1
-  const h = (diff.hold || []).find((x) => x.kind === 'cash'), b = (diff.buy || []).find((x) => x.kind === 'cash');
-  if (b) return ['Short', gbp(b.amount)];
-  if (h) return ['Spare', gbp(h.spare || 0)];
-  return heldCash + giltCash >= tgt ? ['Spare', gbp(Math.max(0, Math.min(heldCash, heldCash + giltCash - tgt)))] : ['Short', gbp(tgt - heldCash - giltCash)];
-}
-
 export function transitionHtml(a) {
   const { stage, doc, target, diff, seq, prog, done = {}, holdings = null, offer = null, rotation = null, startLabel = '', gaps = null, keepTest = null, held = null } = a || {};
   // 7.11.1: Living on it, or Moving once what is held was accepted, the tab says what is held, never a move (transitionHeld)
@@ -273,7 +256,6 @@ export function transitionHtml(a) {
     return h;
   }
   const complete = a && typeof a.complete === 'boolean' ? a.complete : !!diff.complete;
-  const giltCash = Math.round((Array.isArray(diff.cashGilts) ? diff.cashGilts : []).reduce((t, g) => t + (+g.real || 0), 0));
   const kindText = target.kind === 'ladder' ? 'a gilt ladder — every rung and the cash years, in units' : 'a pot strategy — the year-0 mix in pounds';
   if (asHeld) h += '<p class="hint">' + esc(MOVE.held.lead) + '</p>' + heldInfoHtml(held.heldInfo);
   else h += '<p class="hint">Target: ' + esc(kindText) + '. ' + esc(target.note || '') + '</p>';
@@ -293,17 +275,13 @@ export function transitionHtml(a) {
     const coveredYears = ((diff.covered || []).find((c) => c.kind === 'cash') || { taxYears: [] }).taxYears;
     const heldCash = diff.totals ? diff.totals.cashHeld : 0, tgt = cashT.value || 0;
     h += '<div class="section-title" style="margin-top:10px;">Cash to hold now (in a money-market fund)</div>'
-      + table(['What for', 'Amount'], [...(cashT.breakdown || []).map((b) => [esc(b.label), gbp(b.amount)]), ...coveredYears.map((Y) => [esc('Cash year ' + taxYearWords(Y) + ': held another way, by what you keep'), '—']), ['<strong>Total to hold</strong>', '<strong>' + gbp(tgt) + '</strong>'], ['You hold', gbp(heldCash)],
-        // 7.11.1: the gilts outside the rungs maturing in the cash years are those years' cash, never a sale
-        // the spare is the pension's cash beyond what the years need from it, never more than is held (7.11.1: the diff's cash
-        // line, which counts the months before each gilt pays)
-        ...(giltCash > 0 ? [[esc(MOVE.cash.gilts), gbp(giltCash)]] : []), ...cashFromRow(diff, giltCash), cashSpareRow(diff, heldCash, giltCash, tgt)]);
+      + table(['What for', 'Amount'], [...(cashT.breakdown || []).map((b) => [esc(b.label), gbp(b.amount)]), ...coveredYears.map((Y) => [esc('Cash year ' + taxYearWords(Y) + ': held another way, by what you keep'), '—']), ['<strong>Total to hold</strong>', '<strong>' + gbp(tgt) + '</strong>'], ['You hold', gbp(heldCash)], [heldCash >= tgt ? 'Spare' : 'Short', gbp(Math.abs(heldCash - tgt))]]);
   }
   if (!asHeld && !ledgerCount) h += '<div class="alert alert-warning">Nothing recorded under <strong>What you hold</strong> yet — everything below reads as "to buy". Paste from your platform or add lines above and this page updates.</div>';
   // The plan is running: cash is being spent, so it is reported, not diffed
   if (!asHeld && diff.cashInfo) {
     const ci = diff.cashInfo;
-    h += '<p class="hint">Cash: <strong>' + gbp(ci.held) + '</strong> held' + (giltCash > 0 ? ', and ' + gbp(giltCash) + ' at today’s prices from the gilts that mature in the cash years,' : '') + (ci.yearsLeft && ci.yearsLeft.length ? ' against about ' + gbp(ci.target) + ' for the cash years still ahead (' + ci.yearsLeft.map((y) => esc(String(y)) + '/' + esc(String(y + 1).slice(2))).join(', ') + ') — being spent as the plan intends, so it is not a move.' : '; no cash years left — it is your spending float, not a target.') + '</p>';
+    h += '<p class="hint">Cash: <strong>' + gbp(ci.held) + '</strong> held' + (ci.yearsLeft && ci.yearsLeft.length ? ' against about ' + gbp(ci.target) + ' for the cash years still ahead (' + ci.yearsLeft.map((y) => esc(String(y)) + '/' + esc(String(y + 1).slice(2))).join(', ') + ') — being spent as the plan intends, so it is not a move.' : '; no cash years left — it is your spending float, not a target.') + '</p>';
   }
   if (Array.isArray(target.paid) && target.paid.length) h += '<p class="hint">Already paid: ' + target.paid.map((p) => esc(p.label) + (p.ticker ? ' (' + esc(p.ticker) + ')' : '')).join(', ') + ' — matured rungs, no longer targets.</p>';
   if (Array.isArray(diff.matured) && diff.matured.length) h += '<p class="hint">Still on your record but matured: ' + diff.matured.map((m) => esc(m.label) + ' — ' + esc(m.why)).join('; ') + '.</p>';

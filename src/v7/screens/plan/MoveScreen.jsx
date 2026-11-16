@@ -103,10 +103,10 @@ function Waiting({ V }) {
   );
 }
 
-/** The cash to hold now (§3.5): the document's cash, row by row — and (7.11.1) the gilts maturing in the cash years. */
+/** The cash to hold now (§3.5): the document's cash, row by row. */
 function Cash({ V }) {
   const C = W.cash;
-  if (V.cashInfo) return <p class="note" data-testid={`${T}.cashInfo`}>{V.cashInfo.years.length ? fill(V.cashInfo.gilts ? C.spendingGilts : C.spending, { held: V.cashInfo.held, gilts: V.cashInfo.gilts || '', target: V.cashInfo.target, years: V.cashInfo.years.join(', ') }) : fill(C.spendingNone, { held: V.cashInfo.held })}</p>;
+  if (V.cashInfo) return <p class="note" data-testid={`${T}.cashInfo`}>{V.cashInfo.years.length ? fill(C.spending, { held: V.cashInfo.held, target: V.cashInfo.target, years: V.cashInfo.years.join(', ') }) : fill(C.spendingNone, { held: V.cashInfo.held })}</p>;
   if (!V.cash || !V.cash.rows.length) return null;
   return (
     <section class="plan-section" data-section="cash" data-testid={`${T}.cash`}>
@@ -119,9 +119,6 @@ function Cash({ V }) {
             {V.cash.rows.map((r, i) => <tr key={i} data-row={r.id}><td>{fill(C.rows[r.id], r)}</td><td>{r.amount || '—'}</td></tr>)}
             <tr data-row="total"><th scope="row">{C.total}</th><td>{V.cash.target}</td></tr>
             <tr data-row="held"><td>{C.held}</td><td>{V.cash.held}</td></tr>
-            {V.cash.gilts && <tr data-row="gilts"><td>{C.gilts}</td><td>{V.cash.gilts}</td></tr>}
-            {/* 7.11.1 (the review): the months before those gilts pay are the pension's cash's — the spare is beyond that */}
-            {V.cash.fromCash && <tr data-row="fromCash"><td>{C.fromCash}</td><td>{V.cash.fromCash}</td></tr>}
             <tr data-row={V.cash.spare != null ? 'spare' : 'short'}><td>{V.cash.spare != null ? C.spare : C.short}</td><td>{V.cash.spare != null ? V.cash.spare : V.cash.short}</td></tr>
           </tbody>
         </table>
@@ -133,7 +130,7 @@ function Cash({ V }) {
 /**
  * What is held, as information (7.11.1): Living on it, or Moving once what is held was accepted — the rungs held against the
  * plan (a rung not fully bought with its line of the order sheet), what else the pension holds and what each line is doing,
- * the cash with the gilts maturing in the cash years, a pot plan's mix held against the plan's and where it can be tested.
+ * the cash for the cash years, a pot plan's mix held against the plan's and where it can be tested.
  * Never a Buy or Sell, a tick, a schedule or totals.
  */
 function Held({ V }) {
@@ -148,7 +145,7 @@ function Held({ V }) {
       {I.buckets && <><h2>{H.mixTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.buckets`}>{I.buckets.map((b) => <li key={b.bucket} class="plan-line" data-bucket={b.bucket}>{fill(H.bucket[b.bucket], b)}</li>)}</ul></>}
       {I.unknown.map((name) => <p class="note" key={name} data-testid={`${T}.heldInfo.unknown`}>{fill(H.unknown, { name })}</p>)}
       {I.lines.length > 0 && <><h2>{H.linesTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.lines`}>{I.lines.map((x, i) => <li key={i} class="plan-line" data-role={x.role} data-state={x.state || ''}>{fill(H[x.id], x)}</li>)}</ul></>}
-      {I.cash && <p class="line" data-testid={`${T}.heldInfo.cash`}>{fill(H[I.cash.id], { ...I.cash, gilts: I.cash.gilts ? fill(H.cashGilts, I.cash) : '' })}</p>}
+      {I.cash && <p class="line" data-testid={`${T}.heldInfo.cash`}>{fill(H[I.cash.id], I.cash)}</p>}
       {I.review && <p class="note" data-testid={`${T}.heldInfo.review`}>{H.review} <a href={I.review}>{H.reviewLink}</a>.</p>}
     </section>
   );
@@ -216,7 +213,7 @@ function Schedule({ V }) {
   return (
     <section class="plan-section" data-section="schedule" data-testid={`${T}.schedule`}>
       <h2>{S.title}</h2>
-      <p class="note">{s.startPassed ? fill(S.passed, { months: s.months, s: s.months === '1' ? '' : 's' }) + ' ' : ''}{fill(S.lead, { tranches: s.tranches, s: s.tranches === '1' ? '' : 's' })} {s.funded ? fill(S.funded, { newMoney: (s.newMoney ? S.fundedNewMoney : '') + (s.cashFreed ? S.fundedCash : '') }) : fill(S.short, { short: s.short })}</p>
+      <p class="note">{s.startPassed ? fill(S.passed, { months: s.months, s: s.months === '1' ? '' : 's' }) + ' ' : ''}{fill(S.lead, { tranches: s.tranches, s: s.tranches === '1' ? '' : 's' })} {s.funded ? fill(S.funded, { newMoney: s.newMoney ? S.fundedNewMoney : '' }) : fill(S.short, { short: s.short })}</p>
       <ul class="plan-lines" data-testid={`${T}.schedule.steps`}>{s.steps.map((st, i) => <li key={i} class="plan-line" data-action={st.action}>{fill(S.step, { when: st.when, action: st.action === 'buy' ? S.buy : S.sell, label: st.label, units: unitsText(st.units), amount: amountText(st.amount) })}</li>)}</ul>
     </section>
   );

@@ -21,8 +21,8 @@
  * By phase (7.11.1): the phase is the one the plan's home reads (read.js planPage `life`, LifeStage.stageOf — agreements
  * first, then facts). Living on it, and Moving once what is held was accepted (7.10.0's agreement), the page is not a move:
  * `mode` 'held' and `heldInfo` say, as information, the rungs held against the plan (a rung not fully bought with its line
- * of the order sheet), what else the pension holds and what each line is doing, the cash with the gilts maturing in the cash
- * years, and where what is held can be tested and accepted. The reading still carries the lists, the totals and the schedule
+ * of the order sheet), what else the pension holds and what each line is doing, the cash for the cash years, and where what
+ * is held can be tested and accepted. The reading still carries the lists, the totals and the schedule
  * (as it does for a saver waiting), but no view draws them there. Moving otherwise (`mode` 'move'), and a saver waiting
  * (`mode` 'waiting'), as before.
  */
@@ -237,19 +237,14 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
     newMoney: (() => { const p = proportions(s.record.lines); if (!(p.contributions && p.contributions.monthly > 0)) return null; const m = p.contributions.monthly; return { monthly: pounds(m), parts: ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => p.contributions.byBucket[b] > 0.004).map((b) => ({ bucket: b, word: b === 'diversifiers' ? 'gold and trend' : b, amount: pounds(m * p.contributions.byBucket[b]) })) }; })(),
     cost: { uncovered: uncovered.map((y) => taxYearLabel(y)), canRun: !!held && !s.ladder && !readonly },
     // the cash to hold: the cash years' money, less the years a kept line stands in for (7.6.0, the diff's cashLeft)
-    // (7.11.1) and the gilts outside the rungs maturing in the cash years, which are those years' cash, never a sale
-    // the spare is the pension's cash beyond what the years need from it — never more than is held; what the gilts pay is
-    // paid when they mature (the diff's cash line: `spare` held, or `amount` short, with the months before each gilt pays)
-    cash: T.cash && !D.cashInfo ? (() => { const tv = (D.cashLeft || T.cash).value; const g = giltCashOf(D); const c = g > 0 ? cashLineOf(D) : null; const have = D.totals.cashHeld + g; const short = c ? (c.short ? num(c.amount) : 0) : (have < tv ? tv - have : 0); const spare = short > 0 ? 0 : c ? num(c.spare) : have - tv; return { rows: s.cashRows, target: pounds(tv), held: pounds(D.totals.cashHeld), gilts: g > 0 ? pounds(g) : null, fromCash: c && c.fromCash != null ? pounds(c.fromCash) : null, spare: short > 0 ? null : pounds(spare), short: short > 0 ? pounds(short) : null }; })() : null,
-    cashInfo: D.cashInfo ? { held: pounds(D.cashInfo.held), target: pounds(D.cashInfo.target), years: D.cashInfo.yearsLeft.map((y) => taxYearLabel(+y)), gilts: giltCashOf(D) > 0 ? pounds(giltCashOf(D)) : null } : null,
+    cash: T.cash && !D.cashInfo ? (() => { const tv = (D.cashLeft || T.cash).value; return { rows: s.cashRows, target: pounds(tv), held: pounds(D.totals.cashHeld), spare: D.totals.cashHeld >= tv ? pounds(D.totals.cashHeld - tv) : null, short: D.totals.cashHeld < tv ? pounds(tv - D.totals.cashHeld) : null }; })() : null,
+    cashInfo: D.cashInfo ? { held: pounds(D.cashInfo.held), target: pounds(D.cashInfo.target), years: D.cashInfo.yearsLeft.map((y) => taxYearLabel(+y)) } : null,
     paid: (T.paid || []).map((p) => ({ label: p.label, ticker: p.ticker || '' })), matured: D.matured.map((x) => moveRow(x, done)), sold: D.sold.map((x) => moveRow(x, done)), rotated: !!T.rotated,
     buy: D.buy.map((x) => moveRow(x, done)), sell: D.sell.map((x) => moveRow(x, done)),
     hold: D.hold.map((x) => ({ key: x.key, label: x.label || x.ticker || '', ticker: x.ticker || '', held: x.heldUnits != null ? { units: units(x.heldUnits) } : { value: pounds(x.heldValue) }, spare: x.spare > 0 ? pounds(x.spare) : null, target: x.units ? { units: units(x.units) } : { value: pounds(x.value) } })),
     keep: D.keep.map((x) => ({ label: x.ticker || x.name || '', wrapper: x.wrapper, value: pounds(x.value), why: whyOf(x) })),
     totals: { buy: pounds(D.totals.buyCost), sell: pounds(D.totals.sellValue), short: D.totals.shortfall > 0 ? pounds(D.totals.shortfall) : null },
-    schedule: seq ? { steps: seq.steps.map((st) => ({ when: ym(st.when), action: st.action, label: st.label, ticker: st.ticker || '', units: units(st.units), amount: pounds(st.amount) })), tranches: String(seq.tranches), months: String(seq.months), funded: !!seq.funded, startPassed: !!seq.startPassed, short: !seq.funded ? pounds(seq.totals.buy - seq.totals.sell - seq.totals.contributions - num(seq.totals.cashFreed)) : null, newMoney: seq.totals.contributions > 0 ? pounds(seq.totals.contributions) : null,
-      // 7.11.1: the pension's cash that gilts maturing in the cash years leave spare pays for buys too
-      ...(num(seq.totals.cashFreed) > 0 ? { cashFreed: pounds(seq.totals.cashFreed) } : {}) } : null,
+    schedule: seq ? { steps: seq.steps.map((st) => ({ when: ym(st.when), action: st.action, label: st.label, ticker: st.ticker || '', units: units(st.units), amount: pounds(st.amount) })), tranches: String(seq.tranches), months: String(seq.months), funded: !!seq.funded, startPassed: !!seq.startPassed, short: !seq.funded ? pounds(seq.totals.buy - seq.totals.sell - seq.totals.contributions) : null, newMoney: seq.totals.contributions > 0 ? pounds(seq.totals.contributions) : null } : null,
     start, isaPolicy: s.ss.isaDrawdownStrategy === 'hold' ? 'hold' : 'draw',
     sheet, example, spGate: s.spGate ? { annual: pounds(s.spGate.annual), atAge: String(s.spGate.atAge) } : null, pricedOn: s.lockedOn,
     watch,
@@ -268,15 +263,11 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
  */
 export const heldMode = (life) => heldPhase(life);
 
-/** What the gilts outside the rungs maturing in the cash years pay at today's prices (the diff's `cashGilts`). */
-const giltCashOf = (D) => Math.round((D && Array.isArray(D.cashGilts) ? D.cashGilts : []).reduce((t, g) => t + num(g.real), 0));
-/** The diff's cash line before the start: held (with its `spare`) or short (`amount`), or null. */
-const cashLineOf = (D) => { const h = (D.hold || []).find((x) => x.kind === 'cash'); if (h) return h; const b = (D.buy || []).find((x) => x.kind === 'cash'); return b ? { ...b, short: true } : null; };
 const grouped = (v) => String(Math.round(num(v))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const BUCKETS = ['shares', 'bonds', 'cash', 'diversifiers'];
 /** The words of each sentence heldInfo carries (src/v7/copy/move.js MOVE.held; both views fill them). */
 const RUNG_WORDS = { part: 'rungPart', none: 'rungNone', over: 'rungOver' };
-const LINE_WORDS = { counted: 'gilt', unknown: 'giltUnknown', paid: 'giltPaid', after: 'giltAfter', cashNow: 'giltCashNow' };
+const LINE_WORDS = { paid: 'giltPaid', cashNow: 'giltCashNow' };
 
 /**
  * What is held, as information (7.11.1; `mode` 'held'): never a list of things to buy or sell.
@@ -285,9 +276,9 @@ const LINE_WORDS = { counted: 'gilt', unknown: 'giltUnknown', paid: 'giltPaid', 
  *            not held (with its line of the order sheet), or held with more than it needs — { held, total, rows: [{ key, id,
  *            label, code, years, state: 'part'|'none'|'over', held, units, excess, value, cost, n }] }
  *            (each sentence's `id` names its words in MOVE.held, its other fields are the slots)
- *   lines    each line of the pension beside the rungs (gaps.js heldOf/rolesView): a gilt (the month it matures and the tax
- *            year it counts toward in What is covered, or why it counts toward none), shares or a fund outside the mix
- *   cash     a ladder's cash years still ahead, what they need, the pension's cash and what the gilts maturing in them pay
+ *   lines    each line of the pension beside the rungs (gaps.js heldOf/rolesView), with its value today: a gilt (when it
+ *            matures, a fact only: it is set against no year), shares or a fund outside the mix
+ *   cash     a ladder's cash years still ahead, what they need, and the pension's cash
  *   buckets  a pot plan's mix held against the plan's, in whole points of the pension money read; `unknown` the lines nothing
  *            places; `review` where "Test with what I hold" and the agreement are (Your review), when it can test them
  *   noRecord nothing recorded yet
@@ -312,26 +303,18 @@ function heldInfoOf(plan, s, { today, life, page, rungs, recorded, g = null }) {
     let raw = g && g.fromHeld ? g.roles : null;
     if (!raw) { try { raw = heldOf(plan, { today }); } catch { raw = null; } }
     const roles = rolesView(raw);
-    const giltOf = new Map(((g && g.gilts) || []).filter((x) => x.at != null).map((x) => [x.at, x]));
-    const idOf = (r) => {
-      if (r.role === 'outside') return 'outside';
-      // counted toward a year that needs none of it: all of it is cash for the years after (said, never "counted toward" a
-      // year that shows nothing held)
-      const x = giltOf.get(r.at);
-      if (r.state === 'counted' && x && x.used <= 0 && x.spare > 0) return 'giltAllCash';
-      return LINE_WORDS[r.state] || 'giltUnknown';
-    };
-    base.lines = (roles || []).filter((r) => r.role === 'gilt' || r.role === 'outside' || (r.role === 'matured' && r.state === 'cashNow')).map((r) => ({ at: r.at, id: idOf(r), label: r.label, value: r.value, role: r.role, ...(r.role !== 'outside' ? { state: r.state, month: r.matures || '', year: r.year || '' } : {}) }));
+    // a gilt still to mature says when it matures, as a fact: it is set against no year (7.11.1)
+    const idOf = (r) => (r.role === 'outside' ? 'outside' : LINE_WORDS[r.state] || (r.matures ? 'gilt' : 'giltUnknown'));
+    base.lines = (roles || []).filter((r) => r.role === 'gilt' || r.role === 'outside' || (r.role === 'matured' && r.state === 'cashNow')).map((r) => ({ at: r.at, id: idOf(r), label: r.label, value: r.value, role: r.role, ...(r.role !== 'outside' ? { state: r.state, month: r.matures || '' } : {}) }));
     if (T.cash) {
       const c = D.cashInfo ? { target: D.cashInfo.target, years: D.cashInfo.yearsLeft } : { target: (D.cashLeft || T.cash).value, years: (D.cashLeft || T.cash).yearsLeft || [] };
-      const gc = giltCashOf(D);
       // while the plan runs, this tax year's need is its months still to come (as What is covered reads it): one figure
       const thisTY = T.running ? taxYearStartOf(dateOf(today)) : null;
       const ny = yearNeedsOf(plan.planDocument);
       const part = thisTY != null && (c.years || []).map(Number).includes(thisTY) && ny[thisTY];
       const target = part ? Math.max(0, num(c.target) - num(ny[thisTY].need) * (12 - monthsLeftInTaxYear(dateOf(today))) / 12) : num(c.target);
       const years = (c.years || []).map((y) => taxYearLabel(+y));
-      base.cash = { id: years.length ? (part ? 'cashThisYear' : 'cash') : 'cashNone', held: pounds(D.totals.cashHeld), target: pounds(target), years: years.join(', '), gilts: gc > 0 ? pounds(gc) : null };
+      base.cash = { id: years.length ? (part ? 'cashThisYear' : 'cash') : 'cashNone', held: pounds(D.totals.cashHeld), target: pounds(target), years: years.join(', ') };
     }
   } else if (T.kind === 'buckets') {
     const inPlay = num(D.inPlay);

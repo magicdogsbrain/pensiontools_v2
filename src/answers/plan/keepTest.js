@@ -180,8 +180,7 @@ export function ladderGapsOf(plan, { today, withExpected = true, shock = null } 
   // the rungs and cash the money cannot buy: what the buys cost less what the sales and the money paid in until the start bring
   const D = s.m && s.m.diff;
   const seq = s.seq;
-  // (7.11.1: and the pension's cash that gilts maturing in the cash years leave spare, which the move spends on the buys)
-  let short = D && seq ? Math.max(0, num(seq.totals.buy) - num(seq.totals.sell) - num(seq.totals.contributions) - num(seq.totals.cashFreed)) : 0;
+  let short = D && seq ? Math.max(0, num(seq.totals.buy) - num(seq.totals.sell) - num(seq.totals.contributions)) : 0;
   if (D && short > 0) {
     const order = (b) => (b.kind === 'cash' ? 0 : 1 + (b.matures ? Date.parse(b.matures) / 1e13 : 0.5));
     const buys = D.buy.slice().sort((a, b) => order(b) - order(a));   // the last bought first

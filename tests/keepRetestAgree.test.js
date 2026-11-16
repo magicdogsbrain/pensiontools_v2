@@ -120,11 +120,7 @@ describe('the plan\'s inputs as held', () => {
     const ys = Object.keys(G.gaps).map(Number);
     expect(ys.length).toBeGreaterThan(3);
     expect(Math.max(...ys)).toBe(2046);
-    // the earliest rung to buy is bought first, so it is the least short (7.11.1, the review: the cash the gilts maturing in
-    // the cash years free is only the pension's cash they free, after the months before they pay, so the money buys less)
-    const needs = yearNeedsOf(samKeeps().planDocument);
-    expect(G.gaps[2046]).toBeCloseTo(needs[2046].need, 0);
-    expect(G.gaps[2029] || 0).toBeLessThan(needs[2029].need / 2);
+    expect(ys).not.toContain(2029);   // the earliest rung to buy is bought first, so it is not the one short
     expect(G.fund).toEqual({ flat: 0, shares: 0 });
     expect(G.arrivals[2028]).toBeGreaterThan(25000);
     expect(G.arrivals[2028]).toBeLessThan(30000);   // £30,000 in June 2028, at today's prices

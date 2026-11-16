@@ -3,25 +3,23 @@
  * what the person holds, keeps and expects. The settings and the plan document stay as locked; what the person holds may
  * differ from the ladder — a gilt that is none of the plan's rungs, shares or a fund outside the plan's mix, a line kept to
  * stand in for some years' money, a line kept by choice, money expected later — and this says honestly what that means, as
- * consequences and never as advice: per tax year from this one to the last year anything held is counted toward, what the
+ * consequences and never as advice: per tax year from this one to the last year anything held is set against, what the
  * plan needs, what is held for it, the gap, and what could cover the gaps.
  *
- * What counts (7.11.1), with no "Keep this" needed: the plan's rungs; the pension's cash, as it is today (with what a gilt
- * paid after the record was taken); a gilt that is none
- * of the rungs, toward the tax year it matures in — when that can be told from its SEDOL, its name or its code (never guessed
- * from a year) — at what it pays (TransitionPlanner.standInPays: a conventional gilt its face value and the coupons still to
- * come, at today's prices; an index-linked one its nominal times today's index ratio), what it pays beyond that year being the
- * pension's cash for the years after; a person's own "stands in for" choice wins over its maturity. Shares and funds outside
- * the plan's mix are never held for a year (their value can fall): one line says what they are worth today and how much of
- * the gaps they would cover at that value. Money expected later, as today.
+ * What is held for a year (7.11.1): the plan's rungs, the pension's cash as it is today (with what a gilt paid after the
+ * record was taken), and what the person set against tax years themselves ("stands in for"). Nothing else is ever set
+ * against a year by the reading: a gilt is often bought to mature before the year its money is for, so when a gilt matures
+ * never says which year it is for. Every other line in the pension beside the plan's rungs — a gilt, shares, a fund — is
+ * money available, never ignored and never assigned: one line says what it is worth today, gilts and shares and funds apart,
+ * and how much of the years not covered it would cover at that value. Money expected later, as today.
  *
  * By phase (7.11.1): living on the plan, or Moving once what is held was accepted, it reads what is held as above; in a move
- * it reads only what is kept and the gilts maturing in the cash years, so it never counts a line the move sells (gapsOf).
+ * it reads only what is kept, so it never counts a line the move sells (gapsOf).
  *
  *   gapsOf(plan, { today, asKept, life })   the reading, as data (null when there is nothing to read: see gapsOf)
  *   lifeOf(plan, now)                 the phase the home reads (LifeStage.stageOf), which gapsOf reads by
- *   heldOf(plan, { today })           each line of the record and the part it plays (rung, part-bought rung, a gilt counted
- *                                     toward its tax year, outside the plan's mix, cash…), or null without a locked ladder
+ *   heldOf(plan, { today })           each line of the record and the part it plays (rung, part-bought rung, a gilt outside
+ *                                     the rungs and when it matures, outside the plan's mix, cash…), or null without a ladder
  *   gapSentences(g)                   the reading in words, from the words given (src/v7/copy/gaps.js): one list, both apps
  *
  * Pure: the plan brought up to date in memory and today's date; nothing here writes, runs or reads a clock. The diff is
@@ -33,7 +31,7 @@ import { stageOf } from '../../services/LifeStage.js';
 import { heldPhase } from '../../services/Phases.js';
 import { normaliseHoldings, hasKeeps, expectedOf } from '../../services/HoldingsRecord.js';
 import { taxYearLabel, taxYearStartOf } from '../../services/PlanTiming.js';
-import { dateOf, monthWords, monthsBetween } from './dates.js';
+import { dateOf, monthWords } from './dates.js';
 import { pounds } from './income.js';
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
@@ -51,24 +49,20 @@ export function monthsLeftInTaxYear(today) {
 }
 
 /**
- * Where each gilt outside the rungs stands (7.11.1): 'counted' toward a tax year (`Y`: the year it matures in, or the
- * reading's first year for one maturing before it), 'unknown' (when it matures cannot be told), 'cashNow' (it matured after
- * the record was taken: its money is the pension's cash now, counted there), 'paid' (it matured before the record was taken:
- * the pension's cash already holds it) or 'after' (it matures after the plan's last year). A rung whose gilt matured after
- * the record was taken is 'cashNow' too. Every other line is as the diff reads it.
+ * Where each gilt outside the rungs stands (7.11.1): 'available' (still to mature, or when it matures cannot be told: money
+ * in the pension set against no year), 'cashNow' (it matured after the record was taken: its money is the pension's cash
+ * now, counted there) or 'paid' (it matured before the record was taken: the pension's cash already holds it). A rung whose
+ * gilt matured after the record was taken is 'cashNow' too. Every other line is as the diff reads it.
  */
-function placed(roles, { firstY, planLast }) {
+function placed(roles) {
   return roles.map((r) => {
     if (r.role === 'matured' && r.cashNow) return { ...r, state: 'cashNow' };
     if (r.role !== 'gilt') return r;
-    if (!r.matures) return { ...r, state: 'unknown' };
-    if (r.paid) return { ...r, state: r.cashNow ? 'cashNow' : 'paid' };
-    const Y = Math.max(r.Y, firstY);
-    return Y <= planLast ? { ...r, state: 'counted', countsToward: Y } : { ...r, state: 'after' };
+    if (r.matures && r.paid) return { ...r, state: r.cashNow ? 'cashNow' : 'paid' };
+    return { ...r, state: 'available' };
   });
 }
 const firstYearOf = (T, now) => { const thisTY = taxYearStartOf(now); return Math.max(thisTY, num(T.firstTaxYear) || thisTY); };
-const lastYearOf = (needs) => { const ys = Object.keys(needs).map(Number); return ys.length ? Math.max(...ys) : -Infinity; };
 
 /**
  * The phase the plan's home reads (LifeStage.stageOf, as read.js planPage reads it: agreements first, then facts), or null.
@@ -89,7 +83,7 @@ export function heldOf(plan, { today }) {
   if (!doc) return null;
   let m = null; try { m = moveInputs(plan, { now, roles: true }); } catch { m = null; }
   if (!m || !m.target || m.target.kind !== 'ladder' || !Array.isArray(m.diff.roles)) return null;
-  return placed(m.diff.roles, { firstY: firstYearOf(m.target, now), planLast: lastYearOf(yearNeedsOf(doc)) });
+  return placed(m.diff.roles);
 }
 
 /**
@@ -113,15 +107,14 @@ function paidByOf(doc, Y) {
  * By phase (7.11.1), one rule for every reader (the home's line, What you hold, the move page in both views): living on the
  * plan, or Moving once what is held was accepted (Phases.heldPhase on the phase the home reads, `life`, worked out here when
  * not given), it reads what is held. Otherwise — Moving, when the move sells what is not the plan's — it reads only what the
- * person chose to keep and the gilts maturing in the cash years (the move never sells those), as 7.10.0 did: never a line the
- * page beside it lists to sell. `asKept` (the keep test's own reading, keepTest.js) reads it so in every phase.
+ * person chose to keep, as 7.10.0 did: never a line the page beside it lists to sell. `asKept` (the keep test's own reading,
+ * keepTest.js) reads it so in every phase.
  *
- * Month by month (7.11.1): a gilt counted toward a year pays in the month it matures, that month included; the year's months
- * before then are paid from the pension's cash, so a gilt maturing in January leaves November and December to that cash.
- * @returns {null | { ladder, held, rows: [{ Y, year, need, monthsLeft, thisYear, source, rungs, standIns: [{ label, pays, fixed }], gilts: [{ label, pays, fixed }], cash, held, toBuy, gap, paidBy, shortAt, shortEnd }],
- *   lastYear, totalGap, firstGap: { Y, year, gap, lastMonth, shortFrom, until: { label, month }|null }|null, standIns: [], kept: [], fundsGaps: { lines, total },
+ * Month by month: each year's months in turn are paid by its rung or what stands in for it, then by the pension's cash.
+ * @returns {null | { ladder, held, rows: [{ Y, year, need, monthsLeft, thisYear, source, rungs, standIns: [{ label, pays, fixed }], cash, held, toBuy, gap, paidBy, shortAt }],
+ *   lastYear, totalGap, firstGap: { Y, year, gap, lastMonth, shortFrom }|null, standIns: [], kept: [], fundsGaps: { lines, total },
  *   expected: { items, total, late }, withExpected: { covered, short }|null, withAll: { covered, short }|null, heldAnotherWay: number, keptCount: number,
- *   roles: [], gilts: [], outside: { lines, total, gilts }, withHeld: { covered, short }|null, fromHeld: boolean, lumps: [{ Y, year, amount }], cashLeft: number }}
+ *   roles: [], gilts: [], outside: { lines, total, gilts, funds }, withHeld: { covered, short, cover }|null, fromHeld: boolean, lumps: [{ Y, year, amount }], cashLeft: number }}
  */
 export function gapsOf(plan, { today, asKept = false, life } = {}) {
   const now = dateOf(today);
@@ -138,7 +131,7 @@ export function gapsOf(plan, { today, asKept = false, life } = {}) {
   const D = m.diff, T = m.target;
   const needs = yearNeedsOf(doc);
   const firstY = firstYearOf(T, now);
-  const roles = held && T.kind === 'ladder' && Array.isArray(D.roles) ? placed(D.roles, { firstY, planLast: lastYearOf(needs) }) : [];
+  const roles = held && T.kind === 'ladder' && Array.isArray(D.roles) ? placed(D.roles) : [];
   const fromHeld = roles.some((r) => r.role === 'gilt' || r.role === 'outside' || r.state === 'cashNow');
   if (!keeps && !fromHeld) return null;
   const kept = (D.kept || []).map((k) => ({ label: k.label || k.ticker || '', wrapper: k.wrapper, value: r0(k.value), fundsGaps: !!k.fundsGaps }));
@@ -148,24 +141,21 @@ export function gapsOf(plan, { today, asKept = false, life } = {}) {
   const expected = { items: expItems.map((e) => ({ id: e.id, label: e.label || '', wrapper: e.wrapper, amount: r0(e.amount), by: e.by })), total: expItems.reduce((s, e) => s + r0(e.amount), 0), late: [] };
   // each stand-in in the diff's order (two lines can share a name: never looked up by it)
   const standIns = (D.standIn || []).map((s) => ({ label: s.label || s.ticker || '', ticker: s.ticker || '', wrapper: s.wrapper, pays: r0(s.pays), real: r0(s.real != null ? s.real : s.pays), fixed: !!s.fixed, payKind: s.payKind, matures: s.matures || null, taxYears: s.taxYears.slice(), perYear: Array.isArray(s.perYear) ? s.perYear : [], gap: r0(s.gap), spare: r0(s.spare) }));
-  // 7.11.1: the gilts outside the rungs (each placed), and the shares and funds outside the plan's mix, at today's value
-  // (what is kept alone still counts a gilt maturing in a cash year: the move never sells it, it is that year's cash)
-  const gilts = !held ? (D.cashGilts || []).map((x) => ({ at: null, label: x.label, state: 'counted', matures: x.matures, Y: Math.max(x.taxYear, firstY), pays: r0(x.pays), real: r0(x.real != null ? x.real : x.pays), fixed: !!x.fixed, payKind: x.payKind || null, used: 0, spare: 0 }))
-    : roles.filter((r) => r.role === 'gilt' || r.state === 'cashNow').map((r) => ({ at: r.at, label: r.label, state: r.state, matures: r.matures, Y: r.state === 'counted' ? r.countsToward : null, pays: r0(r.pays), real: r0(r.real != null ? r.real : r.pays), fixed: !!r.fixed, payKind: r.payKind || null, value: r0(r.value), used: 0, spare: 0 }));
-  // shares and funds outside the plan's mix at today's value — and a gilt counted toward no year (when it matures cannot be
-  // told, or it is after the plan's last year): never ignored, its value today is counted beside them
-  const outLines = [...roles.filter((r) => r.role === 'outside').map((r) => ({ at: r.at, label: r.label, value: r0(r.value) })),
-    ...gilts.filter((x) => x.state === 'unknown' || x.state === 'after').map((x) => ({ at: x.at, label: x.label, value: x.value, gilt: true }))];
-  const outside = { lines: outLines, total: outLines.reduce((s, x) => s + x.value, 0), gilts: outLines.some((x) => x.gilt) };
+  // 7.11.1, read with what is held: the gilts outside the rungs (each placed), and every line in the pension beside the plan's
+  // rungs and cash — a gilt still to mature, shares, a fund — as money available at today's value, set against no year
+  const gilts = roles.filter((r) => r.role === 'gilt' || r.state === 'cashNow').map((r) => ({ at: r.at, label: r.label, state: r.state, matures: r.matures || null, value: r0(r.value), pays: r0(r.pays) }));
+  const outLines = [...gilts.filter((x) => x.state === 'available').map((x) => ({ at: x.at, label: x.label, value: x.value, gilt: true })),
+    ...roles.filter((r) => r.role === 'outside').map((r) => ({ at: r.at, label: r.label, value: r0(r.value) }))].sort((a, b) => num(a.at) - num(b.at));
+  const giltsOut = outLines.filter((x) => x.gilt).reduce((s, x) => s + x.value, 0), fundsOut = outLines.filter((x) => !x.gilt).reduce((s, x) => s + x.value, 0);
+  const outside = { lines: outLines, total: giltsOut + fundsOut, gilts: giltsOut, funds: fundsOut };
   const base = { held, standIns, kept, fundsGaps, expected, heldAnotherWay: new Set(standIns.flatMap((s) => s.taxYears)).size, keptCount: kept.length, roles, gilts, outside, fromHeld, lumps: [], cashLeft: 0 };
   if (T.kind !== 'ladder') return { ...base, ladder: false, rows: [], lastYear: null, totalGap: 0, toBuy: 0, firstGap: null, withExpected: null, withAll: null, withHeld: null };
 
   const thisTY = taxYearStartOf(now);
   const running = !!T.running;
   const standYears = new Set(standIns.flatMap((s) => s.taxYears));
-  const counted = gilts.filter((x) => x.state === 'counted');
   const cashAhead = Object.keys(needs).map(Number).filter((Y) => needs[Y].from === 'cash' && Y >= firstY);
-  const lastY = Math.max(firstY, ...[...standYears].filter((Y) => Y >= firstY), ...cashAhead, ...counted.map((x) => x.Y));
+  const lastY = Math.max(firstY, ...[...standYears].filter((Y) => Y >= firstY), ...cashAhead);
   const paidTidms = new Set((T.paid || []).map((p) => String(p.ticker || '').toUpperCase()));
   const rungRow = (Y) => {
     const has = (x) => Array.isArray(x.taxYears) && x.taxYears.map(Number).includes(Y);
@@ -188,46 +178,32 @@ export function gapsOf(plan, { today, asKept = false, life } = {}) {
     if (source === 'rung') { const r = rungRow(Y); if (r) { rungs = need * r.held; toBuy = need * r.toBuy; } else source = 'cash'; }
     // a year the plan needs nothing from the pension for (7.11.1): what pays it, from the plan's own timeline
     const paidBy = needs[Y] && full <= 0 ? paidByOf(doc, Y) : null;
-    rows.push({ Y, year: taxYearLabel(Y), need: r0(need), full: r0(full), needExact: need, monthsLeft, thisYear, source, rungs: r0(rungs), rungsExact: rungs, standIns: sIn, gilts: [], cash: 0, held: 0, toBuy: r0(toBuy), gap: 0, paidBy, shortAt: null, shortEnd: null, shortBy: null });
+    rows.push({ Y, year: taxYearLabel(Y), need: r0(need), full: r0(full), needExact: need, monthsLeft, thisYear, source, rungs: r0(rungs), rungsExact: rungs, standIns: sIn, cash: 0, held: 0, toBuy: r0(toBuy), gap: 0, paidBy, shortAt: null });
   }
-  // The pension's cash, used year by year and month by month (7.11.1): each year's months in turn are paid by what is there
-  // from its start (its rung, or what stands in for it), then by a gilt counted toward it once that gilt has paid (the month it
-  // matures and after), then by the pension's cash. What a stand-in, or a gilt, pays beyond its year is cash from the year
-  // after (said, never lost). While the plan runs, this year's months are the ones still to come.
+  // The pension's cash, used year by year and month by month: each year's months in turn are paid by what is there from its
+  // start (its rung, or what stands in for it), then by the pension's cash. What a stand-in pays beyond its years is cash
+  // from the year after (said, never lost). While the plan runs, this year's months are the ones still to come.
   let pool = num(D.totals && D.totals.cashHeld);
   const spares = standIns.filter((s) => s.spare > 0).map((s) => ({ after: Math.max(...s.taxYears), amount: s.spare, used: false }));
-  const ymOf = (k) => { const [y, mo] = k.split('-').map(Number); return { y, m: mo }; };
   for (const r of rows) {
     for (const x of spares) if (!x.used && x.after < r.Y) { pool += x.amount; x.used = true; }
     const fromStandIns = r.standIns.reduce((s, x) => s + x.pays, 0);
-    const start = r.thisYear ? monthOfDate(now) : r.Y + '-04';
     const n = r.monthsLeft;
     const monthly = n > 0 ? r.needExact / n : 0;
     // the rung's months short (before the plan runs its share to buy; while living on it, from the pension's cash)
     const rungShort = r.source === 'rung' && !held;
     let fromStart = r.source === 'rung' ? r.rungsExact : fromStandIns;
-    const mine = counted.filter((x) => x.Y === r.Y).map((gx) => ({ gx, k: Math.max(0, Math.min(n - 1, monthsBetween(ymOf(start), ymOf(String(gx.matures || '').slice(0, 7) || start)))), left: gx.real }))
-      .sort((a, b) => a.k - b.k);
-    let fromPool = 0, short = 0, buy = 0, inRun = false;
+    let fromPool = 0, short = 0, buy = 0;
     for (let k = 0; k < n && monthly > 0; k++) {
       let want = monthly;
       const a = Math.min(fromStart, want); fromStart -= a; want -= a;
-      for (const x of mine) { if (x.k > k || want <= 0) continue; const b = Math.min(x.left, want); x.left -= b; want -= b; }
       if (want > 0 && rungShort) { buy += want; continue; }
       if (want > 0) { const c = Math.min(pool, want); pool -= c; fromPool += c; want -= c; }
-      if (want > 0.5) { short += want; if (r.shortAt == null) { r.shortAt = k; inRun = true; } }
-      else if (inRun) { inRun = false; if (r.shortEnd == null) { r.shortEnd = k; const by = mine.find((x) => x.k === k); r.shortBy = by ? by.gx.label : null; } }
+      if (want > 0.5) { short += want; if (r.shortAt == null) r.shortAt = k; }
     }
-    for (const x of mine) {
-      const used = Math.max(0, x.gx.real - x.left);
-      x.gx.used = r0(used); x.gx.spare = r0(x.left);
-      r.gilts.push({ label: x.gx.label, pays: r0(used), fixed: x.gx.fixed });
-      if (x.left > 0.5) spares.push({ after: r.Y, amount: x.left, used: false });
-    }
-    const fromGilts = r.gilts.reduce((s, x) => s + x.pays, 0);
-    if (r.source === 'rung' && !held) { r.held = r0(r.rungsExact + fromGilts); r.toBuy = r0(buy); continue; }
+    if (r.source === 'rung' && !held) { r.held = r0(r.rungsExact); r.toBuy = r0(buy); continue; }
     r.cash = r0(fromPool);
-    r.held = r0((r.source === 'rung' ? r.rungsExact : fromStandIns) + fromGilts + fromPool);
+    r.held = r0((r.source === 'rung' ? r.rungsExact : fromStandIns) + fromPool);
     // before the plan runs, a cash year's money still to set aside is a move (the cash to hold), not a gap; living on the plan
     // (or once what is held was accepted) it is never a move: what is not held is not covered
     if (!running && !held && r.source === 'cash') r.toBuy = r0(short); else { r.gap = r0(short); r.toBuy = 0; }
@@ -239,8 +215,7 @@ export function gapsOf(plan, { today, asKept = false, life } = {}) {
   if (g0) {
     const start = g0.thisYear ? monthOfDate(now) : g0.Y + '-04';
     const months = g0.shortAt != null ? g0.shortAt : 0;
-    const until = g0.shortEnd != null && g0.shortBy ? { label: g0.shortBy, month: addMonths(start, g0.shortEnd) } : null;
-    firstGap = { Y: g0.Y, year: g0.year, gap: g0.gap, lastMonth: months > 0 ? addMonths(start, months - 1) : null, shortFrom: addMonths(start, months), until };
+    firstGap = { Y: g0.Y, year: g0.year, gap: g0.gap, lastMonth: months > 0 ? addMonths(start, months - 1) : null, shortFrom: addMonths(start, months) };
   }
   for (const r of rows) { delete r.needExact; delete r.rungsExact; }
   // money expected after the first year's money runs short (an expected date later than that month)
@@ -254,13 +229,15 @@ export function gapsOf(plan, { today, asKept = false, life } = {}) {
   }
   const toBuyTotal = rows.reduce((s, r) => s + r.toBuy, 0);
   const cover = (have) => (totalGap <= 0 ? null : have >= totalGap ? { covered: true, short: 0 } : { covered: false, short: r0(totalGap - have) });
+  // what the money available would cover of the years not covered, at today's value (7.11.1)
+  const coverHeld = (have) => { const c = cover(have); return c ? { ...c, cover: r0(Math.min(totalGap, Math.max(0, have))) } : null; };
   return { ...base, lumps, ladder: true, rows, lastYear: lastY, totalGap: r0(totalGap), toBuy: r0(toBuyTotal), firstGap,
-    // the pension's cash left after the last year read (7.11.1, read with what is held): what the gilts pay beyond their years
+    // the pension's cash left after the last year read (7.11.1, read with what is held)
     cashLeft: fromHeld ? r0(pool) : 0,
     withExpected: expected.total > 0 ? cover(expected.total) : null,
     withAll: expected.total > 0 && fundsGaps.total > 0 ? cover(expected.total + fundsGaps.total) : fundsGaps.total > 0 ? cover(fundsGaps.total) : null,
-    // 7.11.1: with the shares and funds outside the plan's mix at today's value too (and what is expected and counted)
-    withHeld: outside.total > 0 ? cover(expected.total + fundsGaps.total + outside.total) : null };
+    // 7.11.1: with the money available in the pension at today's value too (and what is expected and counted)
+    withHeld: outside.total > 0 ? coverHeld(expected.total + fundsGaps.total + outside.total) : null };
 }
 
 const listWords = (xs) => (xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
@@ -285,19 +262,12 @@ export function gapSentences(g) {
   // a year the plan needs nothing from the pension for (7.11.1): what pays it, so "£0" is never a puzzle
   const W = { lump: 'whyLump', lumpEarlier: 'whyLumpEarlier', sp: 'whySp', spOther: 'whySpOther', other: 'whyOther', else: 'whyElse' };
   for (const r of g.rows.filter((x) => x.paidBy)) say('noNeed', ['noNeed', { year: r.year }, { why: W[r.paidBy] }]);
-  // each gilt outside the rungs (7.11.1): the tax year it counts toward and what it pays — or why it is not counted
+  // a gilt outside the rungs that has matured (7.11.1): its money is the pension's cash, counted there and never twice
   for (const x of g.gilts || []) {
     const month = x.matures ? monthWords(x.matures.slice(0, 7)) : '';
-    if (x.state === 'unknown') { say('gilt', ['giltUnknown', { label: x.label }]); continue; }
-    if (x.state === 'paid') { say('gilt', ['giltPaid', { label: x.label, month }]); continue; }
+    if (x.state === 'paid') say('gilt', ['giltPaid', { label: x.label, month }]);
     // matured after the record was taken: what it paid is counted as the pension's cash now (7.11.1)
-    if (x.state === 'cashNow') { say('gilt', ['giltCashNow', { label: x.label, month, pays: pounds(x.pays) }]); continue; }
-    if (x.state === 'after') { say('gilt', ['giltAfter', { label: x.label, month }]); continue; }
-    const year = taxYearLabel(x.Y);
-    if (x.fixed) say('gilt', x.real < x.pays - 1 ? ['giltFixedReal', { label: x.label, month, year, pays: pounds(x.pays), real: pounds(x.real) }] : ['giltFixed', { label: x.label, month, year, pays: pounds(x.pays) }]);
-    else say('gilt', [x.payKind === 'indexLinked' ? 'giltLinked' : 'giltValue', { label: x.label, month, year, pays: pounds(x.pays) }]);
-    // none of it used that year (it needs nothing, or what it needs is paid already): all of it is cash for the years after
-    if (x.spare > 0) say('giltSpare', x.used > 0 ? ['giltSpare', { label: x.label, spare: pounds(x.spare), year }] : ['giltSpareAll', { label: x.label, spare: pounds(x.spare), year }]);
+    else if (x.state === 'cashNow') say('gilt', ['giltCashNow', { label: x.label, month, pays: pounds(x.pays) }]);
   }
   // a fixed pay, and what it is worth in today's money by the time it is paid (the plan's needs are in today's money)
   for (const s of g.standIns.filter((x) => x.fixed)) say('fixed', s.real < s.pays - 1 ? ['fixedReal', { label: s.label, pays: pounds(s.pays), real: pounds(s.real) }] : ['fixed', { label: s.label, pays: pounds(s.pays) }]);
@@ -306,9 +276,7 @@ export function gapSentences(g) {
   if (g.ladder && !g.firstGap) say('noGap', g.toBuy > 0 ? ['noGapToBuy', { year: last, toBuy: pounds(g.toBuy) }] : ['noGap', { year: last }]);
   if (g.firstGap) {
     const f = g.firstGap;
-    // a gap that ends within the year, when a gilt counted toward it pays (7.11.1): said with its end
-    const u = f.until ? { label: f.until.label, until: monthWords(f.until.month) } : {};
-    const runs = [f.lastMonth ? (f.until ? 'lastsUntilShort' : 'lastsUntil') : (f.until ? 'shortUntil' : 'shortFrom'), { year: f.year, month: monthWords(f.lastMonth || f.shortFrom), ...u }];
+    const runs = [f.lastMonth ? 'lastsUntil' : 'shortFrom', { year: f.year, month: monthWords(f.lastMonth || f.shortFrom) }];
     if (g.expected.total > 0) say('runsOut', ['withoutExpected'], runs); else say('runsOut', runs);
     say('totalGap', ['totalGap', { gap: pounds(g.totalGap), year: last }]);
   }
@@ -320,16 +288,17 @@ export function gapSentences(g) {
     // a pot plan has no years to fill: what is counted is counted toward the plan's money
     say('fundsGaps', [g.ladder ? 'fundsGaps' : 'fundsPlan', { list: listWords(g.fundsGaps.lines.map((k) => k.label)), total: pounds(g.fundsGaps.total) }]);
     const both = g.expected.total > 0;
-    // with shares and funds outside the plan's mix too, one sentence says what all of it would cover (below)
+    // with money available in the pension too, one sentence says what all of it would cover (below)
     if (g.withAll && !(g.outside && g.outside.total > 0)) say('withAll', g.withAll.covered ? [both ? 'withAll' : 'withKept', { year: last }] : [both ? 'withAllShort' : 'withKeptShort', { short: pounds(g.withAll.short), year: last }]);
   }
-  // shares and funds outside the plan's mix (7.11.1): never held for a year, never ignored — worth today, what that would
-  // cover, and that it can fall
+  // the money available in the pension beside the plan's rungs and cash (7.11.1): set against no year, never ignored — one
+  // line with what it is worth today, gilts and shares and funds apart; what that would cover; and that shares and funds can fall
   if (g.outside && g.outside.total > 0) {
-    say('outside', ['outside', { list: listWords(g.outside.lines.map((x) => x.label)), total: pounds(g.outside.total) }]);
+    const o = g.outside;
+    say('outside', [o.gilts > 0 && o.funds > 0 ? 'availableBoth' : o.gilts > 0 ? 'availableGilts' : 'availableFunds', { gilts: pounds(o.gilts), funds: pounds(o.funds) }]);
     const exp = g.expected.total > 0;
-    if (g.withHeld) say('withHeld', g.withHeld.covered ? [exp ? 'withHeldExpected' : 'withHeld', { year: last }] : [exp ? 'withHeldExpectedShort' : 'withHeldShort', { short: pounds(g.withHeld.short), year: last }]);
-    say('outsideCanFall', [g.outside.gilts ? 'outsideCanFallGilts' : 'outsideCanFall']);
+    if (g.withHeld) say('withHeld', g.withHeld.covered ? [exp ? 'withHeldExpected' : 'withHeld', { year: last }] : [exp ? 'withHeldExpectedShort' : 'withHeldShort', { cover: pounds(g.withHeld.cover), short: pounds(g.withHeld.short), year: last }]);
+    if (o.funds > 0) say('outsideCanFall', [o.gilts > 0 ? 'outsideCanFallGilts' : 'outsideCanFall']);
   }
   // what the pension's cash still holds after the last year read (7.11.1): never lost
   if (g.ladder && g.fromHeld && g.cashLeft > 0 && g.lastYear) say('cashLeft', ['cashLeft', { amount: pounds(g.cashLeft), year: last }]);
@@ -355,8 +324,7 @@ export function gapsView(g) {
     ladder: g.ladder, lastYear: g.lastYear ? taxYearLabel(g.lastYear) : null, totalGap: P(g.totalGap), hasGap: g.totalGap > 0,
     rows: g.rows.map((r) => ({ Y: r.Y, year: r.year, thisYear: r.thisYear, monthsLeft: String(r.monthsLeft), source: r.source, need: P(r.need), held: P(r.held), gap: r.gap > 0 ? P(r.gap) : null, toBuy: r.toBuy > 0 ? P(r.toBuy) : null,
       parts: [...r.standIns.filter((s) => s.pays > 0).map((s) => ({ kind: 'standIn', label: s.label, amount: P(s.pays) })), ...(r.rungs > 0 ? [{ kind: 'rungs', amount: P(r.rungs) }] : []),
-        // a gilt counted toward the year it matures in (7.11.1), by its name, as a line kept to stand in is
-        ...(r.gilts || []).filter((x) => x.pays > 0).map((x) => ({ kind: 'gilt', label: x.label, amount: P(x.pays) })), ...(r.cash > 0 ? [{ kind: 'cash', amount: P(r.cash) }] : [])] })),
+        ...(r.cash > 0 ? [{ kind: 'cash', amount: P(r.cash) }] : [])] })),
     standIns: g.standIns.map((s) => ({ label: s.label, wrapper: s.wrapper, pays: P(s.pays), real: P(s.real), fixed: s.fixed, years: s.taxYears.map(taxYearLabel) })),
     kept: g.kept.map((k) => ({ label: k.label, wrapper: k.wrapper, value: P(k.value), fundsGaps: k.fundsGaps })),
     expected: g.expected.items.map((e) => ({ id: e.id, label: e.label, amount: P(e.amount), by: e.by ? monthWords(e.by) : null, late: g.expected.late.includes(e.id) })),
@@ -369,15 +337,15 @@ export function gapsView(g) {
 
 /**
  * Each line of the record and its part, as the screens draw it (7.11.1; heldOf / gapsOf `roles`): figures in pounds, a gilt
- * outside the rungs with the month it matures and the tax year it counts toward (`state`: counted, unknown, paid or after),
- * a rung with its tax years and its units held and to buy. Null in, null out.
+ * outside the rungs with the month it matures, a fact only (`state`: available, paid or cashNow), a rung with its tax years
+ * and its units held and to buy. Null in, null out.
  */
 export function rolesView(roles) {
   if (!Array.isArray(roles)) return null;
   const u = (v) => (v == null ? null : String(Math.round(+v || 0)));
   return roles.map((r) => ({
     at: r.at, label: r.label, ticker: r.ticker || '', sedol: r.sedol || '', wrapper: r.wrapper, role: r.role, value: pounds(r.value), units: u(r.units),
-    ...(r.role === 'gilt' || r.state === 'cashNow' ? { state: r.state, matures: r.matures ? monthWords(r.matures.slice(0, 7)) : null, year: r.state === 'counted' ? taxYearLabel(r.countsToward) : null, pays: r.pays != null ? pounds(r.pays) : null, fixed: !!r.fixed } : {}),
+    ...(r.role === 'gilt' || r.state === 'cashNow' ? { state: r.state, matures: r.matures ? monthWords(r.matures.slice(0, 7)) : null, pays: r.pays != null ? pounds(r.pays) : null } : {}),
     ...(r.rung ? { rung: { label: r.rung.label, ticker: r.rung.ticker, years: r.rung.taxYears.map(taxYearLabel), units: u(r.rung.units), heldUnits: u(r.rung.heldUnits) } } : {})
   }));
 }

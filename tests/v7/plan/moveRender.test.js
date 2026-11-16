@@ -114,9 +114,9 @@ describe('the named states of "Moving to your plan\'s mix"', () => {
 });
 
 describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt ladders explained', () => {
-  // Moved on purpose (7.11.1): drawn on the state read as Moving (above, `moving`) — Living on it, the page is no move. And
-  // the two linkers outside the plan maturing in the cash years (2027/28 and 2028/29) are those years' cash, never a sale:
-  // the cash table gains their row, and the Sell list no longer has them.
+  // Moved on purpose (7.11.1): drawn on the state read as Moving (above, `moving`) — Living on it, the page is no move. The
+  // two linkers outside the plan maturing in the cash years are sold, as 7.10.0 had them: no gilt is a cash year's cash by
+  // when it matures.
   it('move-ladder, Moving: the status in gilts bought, what skipping it costs in tax years, the cash to hold now row by row, Buy with a Done tick each, Sell, Already held with the spare, Left alone, the totals, When, "How to read this" closed; a tick sends one tick-off', () => {
     const s = moving(load('move-ladder'));
     const plan = planOf(s);
@@ -131,12 +131,9 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     // the cash to hold now: the cash years (7.4.2: a ladder's only cash, whatever an older document set aside), the total,
     // what is held, the spare
     const cashRows = all(root, `[data-testid="${T}.cash.table"] tbody tr`).map((tr) => tr.getAttribute('data-row'));
-    // 7.11.1 (the review): and what those years need from the pension's cash before the gilts pay; the spare is beyond it
-    expect(cashRows).toEqual(['cashYear', 'cashYear', 'total', 'held', 'gilts', 'fromCash', 'spare']);
+    expect(cashRows).toEqual(['cashYear', 'cashYear', 'total', 'held', 'spare']);
     expect(root.querySelector(`[data-testid="${T}.cash.table"] tr[data-row="cashYear"]`).textContent).toContain('Cash year 2027/28');
-    expect(root.querySelector(`[data-testid="${T}.cash.table"] tr[data-row="gilts"]`).textContent).toBe(MOVE.cash.gilts + view.cash.gilts);
-    expect(view.sell.map((x) => x.ticker)).toEqual(['T30I', 'VWRP']);
-    expect(text).toContain(MOVE.schedule.fundedCash);
+    expect(view.sell.map((x) => x.ticker)).toEqual(['T27', 'T28', 'T30I', 'VWRP']);
     // Buy and Sell, each line with a Done tick
     const buy = all(root, `[data-testid="${T}.buy"] tbody tr`);
     expect(buy.length).toBe(view.buy.length);
@@ -380,7 +377,7 @@ describe('the saver\'s rule, a plan not locked, nothing recorded, shown as saved
 });
 
 describe('Living on it (7.11.1): the named states as they are — what is held, never a move', () => {
-  it('move-ladder: no Buy, Sell, tick, When, Next, totals or cost; the rungs held, each rung not held with its line of the order sheet, the lines beside them and what each is doing, the cash with the gilts maturing in the cash years; the sheet stays', () => {
+  it('move-ladder: no Buy, Sell, tick, When, Next, totals or cost; the rungs held, each rung not held with its line of the order sheet, the lines beside them and what each is doing (a gilt with when it matures, no year), the cash; the sheet stays', () => {
     const s = load('move-ladder');
     const { root, text, words, view } = draw(s);
     expect(view.mode).toBe('held');
@@ -391,9 +388,10 @@ describe('Living on it (7.11.1): the named states as they are — what is held, 
     expect(rows.length).toBe(view.heldInfo.rungs.rows.length);
     expect(rows[0].textContent).toMatch(/^0 1\/8% Index-linked Treasury Gilt 2029 \(T29\), for 2029\/30, 2030\/31, 2031\/32: [\d,]+ of 37,500 units held\. The rest is rung 1 on the order sheet below\.$/);
     const lines = all(root, `[data-testid="${T}.heldInfo.lines"] li`).map((li) => li.textContent);
-    expect(lines).toContain('1¼% Index-linked Treasury Gilt 2027 (£35,494 today): matures in November 2027 — counted toward 2027/28 in What is covered, year by year.');
+    // Moved on purpose (7.11.1, the gilt-year guess removed): when a gilt matures is said as a fact, never a year it is for
+    expect(lines).toContain('1¼% Index-linked Treasury Gilt 2027 (£35,494 today): matures in November 2027.');
     expect(lines).toContain('Vanguard FTSE All-World (Acc) (£396,769 today): outside the plan’s mix; its value can fall.');
-    expect(one(root, `${T}.heldInfo.cash`).textContent).toMatch(/^The cash years still ahead \(2027\/28, 2028\/29\) need £[\d,]+\. Held for them: £96,625 in your pension’s cash, and £[\d,]+ at today’s prices from the gilts that mature in those years\.$/);
+    expect(one(root, `${T}.heldInfo.cash`).textContent).toMatch(/^The cash years still ahead \(2027\/28, 2028\/29\) need £[\d,]+\. Held for them: £96,625 in your pension’s cash\.$/);
     // 7.11.1 (the review): living on the plan, an ISA line is outside the pension — never "left alone" by a move
     expect(one(root, `${T}.keep`).textContent).toContain('VWRP (ISA, £35,052): outside your pension, so not part of the plan’s mix.');
     expect(one(root, `${T}.keep`).textContent).not.toContain('kept as it is');

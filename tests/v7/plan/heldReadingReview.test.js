@@ -2,15 +2,15 @@
  * 7.11.1 — the review of "What is covered" read with what is held, and of "Your plan's mix" by phase. Each block is one
  * finding, and each fails on the code before its fix.
  *
- *   (1) the cash the gilts maturing in the cash years free for the buys is cash that is held — never what a gilt pays later;
- *   (2) a gilt pays in the month it matures: the months of its year before then are paid from the pension's cash;
- *   (3) in a move (Moving, nothing accepted) What is covered never counts a line the move sells; a gilt maturing before the
- *       first cash year is that year's cash, never a sale;
+ *   (1) moved on purpose (7.11.1, the gilt-year guess removed): in a move, a gilt outside the rungs funds the ladder as 7.10.0
+ *       had it — no gilt is a cash year's cash by when it matures, so no cash is "freed" by one;
+ *   (2) moved on purpose, as (1): no gilt pays a year by when it matures; the months not paid by the pension's cash are said;
+ *   (3) in a move (Moving, nothing accepted) What is covered never counts a line the move sells;
  *   (4) a gilt that matured after the record was taken is the pension's cash now, never money that vanishes;
  *   (5) living on the plan, a rung not fully bought is never "still to buy": what is not held is not covered;
  *   (6) (tests/holdingsPasteRung.test.js) a pasted conventional gilt never takes an index-linked rung's identity;
  *   (7) the cash line and What is covered give one figure for the cash years;
- *   (8) a gilt counted toward no year is not ignored: its value today is counted beside the shares and funds;
+ *   (8) every gilt outside the rungs is money available, whatever its maturity: its value today is counted beside the shares;
  *   (9) a year that needs nothing says what pays it: the State Pension, or a lump sum carried from an earlier year;
  *  (10) the full view's lines point to the order sheet where it is (the plan document), and the simple view's sheet, living on
  *       the plan, is read as what the plan holds;
@@ -23,6 +23,7 @@ vi.mock('../../../src/firebase/index.js', () => ({ isFirebaseConfigured: () => f
 import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
 import { visibleText } from '../render/checkScreen.js';
+import { fill } from '../../../src/v7/components/index.js';
 import { gapsOf, gapSentences, sayGapLine, gapHeadline } from '../../../src/answers/plan/gaps.js';
 import { GAPS } from '../../../src/v7/copy/gaps.js';
 import { MOVE } from '../../../src/v7/copy/move.js';
@@ -31,7 +32,7 @@ import { moveOf } from '../../../src/answers/plan/move.js';
 import { homeOf } from '../../../src/answers/plan/home.js';
 import { holdOf } from '../../../src/answers/plan/hold.js';
 import { moveInputs } from '../../../src/services/PlanReading.js';
-import { cashBeforeGilts, sequence, yearNeedsOf } from '../../../src/services/TransitionPlanner.js';
+import { sequence, yearNeedsOf } from '../../../src/services/TransitionPlanner.js';
 import { transitionHtml } from '../../../src/ui/components/TransitionView.js';
 import { transitionHeld, transitionGaps, transitionTabName, nameTransitionTab } from '../../../src/ui/keepHoldingsUi.js';
 import { moreSheetHtml } from '../../../src/ui/mobileMenu.js';
@@ -56,82 +57,60 @@ function alexMovingLean() {
   return plan(raw);
 }
 
-describe('(1) the cash the gilts free is cash that is held', () => {
-  it('£50 of cash and gilts that cover the cash years: nothing freed beyond the £50, and the buys stay short', () => {
+describe('(1) in a move, a gilt outside the rungs funds the ladder, as 7.10.0 had it', () => {
+  it('£50 of cash and three gilts maturing in the cash years: the gilts are for sale, no cash is freed by them', () => {
     const p = alexMovingLean();
     const m = moveInputs(p, { now: noon(TODAY) });
     const t = m.diff.totals;
     expect(t.cashHeld).toBe(50);
-    expect(m.diff.cashGilts.length).toBe(3);
-    expect(t.cashFreed || 0).toBeLessThanOrEqual(t.cashHeld);
-    expect(t.buyCost).toBeGreaterThan(0);
-    expect(t.sellValue).toBe(0);
-    expect(t.shortfall).toBe(t.buyCost - (t.cashFreed || 0));
+    expect(m.diff).not.toHaveProperty('cashGilts');
+    expect(t).not.toHaveProperty('cashFreed');
+    expect(m.diff.sell.filter((x) => x.kind === 'gilt' && !x.taxYears).map((x) => [x.label, x.why])).toEqual(
+      ['4 1/8% Treasury Gilt 2027', '4¼% Treasury Gilt 2027', '1 5/8% Treasury Gilt 2028'].map((l) => [l, 'not in the plan — proceeds fund the ladder']));
+    expect(t.shortfall).toBe(Math.max(0, t.buyCost - t.sellValue));
     const seq = sequence(m.diff, { today: noon(TODAY), startYear: 2027 });
-    expect(seq.funded).toBe(false);
+    expect(seq.totals).not.toHaveProperty('cashFreed');
     const V = moveOf([{ plan: p }], p.id, { today: TODAY });
     expect(V.mode).toBe('move');
-    expect(V.schedule.funded).toBe(false);
+    expect(V.schedule).not.toHaveProperty('cashFreed');
   });
 
-  it('Sam: the spare is never more than the cash held, and the freed cash is what the gilts make spare of it', () => {
+  it('Sam: the cash to hold is the cash years\' money, and the spare or short is the pension\'s cash against it', () => {
     const p = sam();
     const m = moveInputs(p, { now: noon(TODAY) });
     const t = m.diff.totals;
-    const cash = m.diff.hold.find((x) => x.kind === 'cash');
-    expect(cash.spare).toBeLessThanOrEqual(t.cashHeld);
-    expect(t.cashFreed).toBeLessThanOrEqual(Math.min(t.cashHeld, t.cashTarget));
-    // the cash the years need with those gilts, and what is left of the pension's cash beyond it
-    expect(cash.spare).toBe(Math.max(0, t.cashHeld - cash.fromCash));
-    expect(t.cashFreed).toBe(Math.min(t.cashHeld, t.cashTarget) - Math.min(t.cashHeld, cash.fromCash));
     const V = moveOf([{ plan: p }], p.id, { today: TODAY });
-    const num = (s) => +String(s).replace(/[£,]/g, '');
-    expect(num(V.cash.spare)).toBeLessThanOrEqual(num(V.cash.held));
+    const pounds = (v) => '£' + Math.round(v).toLocaleString('en-GB');
+    expect(V.cash).toEqual({ rows: expect.any(Array), target: pounds(t.cashTarget), held: pounds(t.cashHeld), spare: t.cashHeld >= t.cashTarget ? pounds(t.cashHeld - t.cashTarget) : null, short: t.cashHeld < t.cashTarget ? pounds(t.cashTarget - t.cashHeld) : null });
     const html = transitionHtml({ doc: p.planDocument, target: m.target, diff: m.diff, seq: null, prog: m.prog, holdings: p.holdings });
-    const spare = /<td>Spare<\/td><td>£([\d,]+)<\/td>/.exec(html);
-    expect(spare).not.toBe(null);
-    expect(+spare[1].replace(/,/g, '')).toBeLessThanOrEqual(t.cashHeld);
-  });
-
-  it('cashBeforeGilts: the months before a gilt pays come from cash; with no gilts, the years\' money', () => {
-    const years = [{ Y: 2027, money: 12000 }, { Y: 2028, money: 12000 }];
-    expect(cashBeforeGilts(years, [])).toBe(24000);
-    // a gilt paying 24,000 in April of the first year: nothing from cash
-    expect(cashBeforeGilts(years, [{ matures: '2027-04-20', real: 24000 }])).toBe(0);
-    // the same gilt paying in January 2028: April to December 2027 from cash (9 months of 1,000)
-    expect(cashBeforeGilts(years, [{ matures: '2028-01-20', real: 24000 }])).toBe(9000);
-    // a gilt paying before the years start is there from their first month
-    expect(cashBeforeGilts(years, [{ matures: '2027-01-29', real: 30000 }])).toBe(0);
+    expect(html).not.toContain('mature in those years');
+    expect(html).not.toContain('before those gilts pay');
   });
 });
 
-describe('(2) a gilt pays in the month it matures', () => {
+describe('(2) no gilt pays a year by when it matures', () => {
   const p = alex();
   const g = gapsOf(p, { today: TODAY });
 
-  it('Alex\'s 2026/27: November and December have £50 from the pension\'s cash; the January gilt pays from January', () => {
+  it('Alex\'s 2026/27: the £50 of the pension\'s cash, then not covered from November — no gilt said to end it', () => {
     const r = g.rows[0];
-    expect(r).toMatchObject({ Y: 2026, thisYear: true, monthsLeft: 5, need: Math.round(34000 * 5 / 12), cash: 50 });
-    // three months (January to March) from the gilt; two (November and December) from cash, of which £50 is held
-    expect(r.gilts[0].pays).toBe(Math.round(34000 / 12 * 3));
-    expect(r.gap).toBe(Math.round(34000 / 12 * 2) - 50);
-    expect(g.firstGap).toMatchObject({ Y: 2026, shortFrom: '2026-11', lastMonth: null, until: { label: '4 1/8% Treasury Gilt 2027', month: '2027-01' } });
-    expect(words(g)).toContain('Without the money you expect, 2026/27’s money is not covered from November 2026 until 4 1/8% Treasury Gilt 2027 pays in January 2027.');
+    expect(r).toMatchObject({ Y: 2026, thisYear: true, monthsLeft: 5, need: Math.round(34000 * 5 / 12), cash: 50, gap: Math.round(34000 * 5 / 12) - 50 });
+    expect(g.firstGap).toEqual({ Y: 2026, year: '2026/27', gap: r.gap, shortFrom: '2026-11', lastMonth: null });
+    expect(words(g)).toContain('Without the money you expect, 2026/27’s money is not covered from November 2026.');
     expect(gapHeadline(g)).toMatchObject({ year: '2026/27' });
     expect(homeOf([{ plan: p }], p.id, { today: TODAY }).gap).toMatchObject({ year: '2026/27' });
   });
 
-  it('2028/29: April to September from cash (the earlier gilts\' spare), the October gilt from October', () => {
+  it('2028/29: nothing held for it by the reading; the gilt maturing that October is money available', () => {
     const r = g.rows[2];
-    expect(r.Y).toBe(2028);
-    expect(r.gilts[0].pays).toBe(Math.round(33000 / 12 * 6));
-    expect(r.cash).toBe(Math.round(33000 / 12 * 6));
-    expect(r.gap).toBe(0);
+    expect(r).toMatchObject({ Y: 2028, held: 0, cash: 0, gap: 33000 });
+    expect(g.gilts.find((x) => x.label === '1 5/8% Treasury Gilt 2028')).toMatchObject({ state: 'available', matures: '2028-10-22' });
   });
 
-  it('with the money expected and the shares at today\'s value, every year is covered; the cash left after is said', () => {
-    expect(g.withExpected).toEqual({ covered: true, short: 0 });
-    expect(words(g).some((w) => /^After 2028\/29, £[\d,]+ of your pension’s cash is left\.$/.test(w))).toBe(true);
+  it('with the money expected and the money available at today\'s value, every year is covered; no cash is left to say', () => {
+    expect(g.withExpected).toEqual({ covered: false, short: g.totalGap - 25000 });
+    expect(g.withHeld).toMatchObject({ covered: true });
+    expect(words(g).some((w) => w.startsWith('After 2028/29, '))).toBe(false);
   });
 });
 
@@ -144,13 +123,13 @@ describe('(3) in a move, What is covered never counts a line the move sells', ()
     return sam(raw);
   };
 
-  it('the gilt maturing before the first cash year is that year\'s cash, never a sale', () => {
+  // Moved on purpose (7.11.1, the gilt-year guess removed): a gilt maturing before the first cash year is sold, as 7.10.0 had it
+  it('the gilt maturing before the first cash year is the move\'s to sell, as 7.10.0 had it — never counted toward a year', () => {
     const p = samWith();
     const m = moveInputs(p, { now: noon(TODAY) });
     expect(m.target.running).toBe(false);
-    const g27 = m.diff.cashGilts.find((x) => x.label === '4 1/8% Treasury Gilt 2027');
-    expect(g27).toMatchObject({ taxYear: 2027 });
-    expect(m.diff.sell.map((x) => x.label)).not.toContain('4 1/8% Treasury Gilt 2027');
+    expect(m.diff.sell.find((x) => x.label === '4 1/8% Treasury Gilt 2027')).toMatchObject({ why: 'not in the plan — proceeds fund the ladder' });
+    expect(gapsOf(p, { today: TODAY }).gilts).toEqual([]);
   });
 
   it('no line is both in the move\'s Sell list and counted toward a year — on the move page, What you hold and the home', () => {
@@ -163,8 +142,8 @@ describe('(3) in a move, What is covered never counts a line the move sells', ()
     const g = gapsOf(p, { today: TODAY });
     expect(g.held).toBe(false);
     expect(g.fromHeld).toBe(false);
-    for (const x of g.gilts) expect(sold.has(x.label)).toBe(false);
-    for (const r of g.rows) for (const x of r.gilts) expect(sold.has(x.label)).toBe(false);
+    expect(g.gilts).toEqual([]);
+    expect(g.outside.total).toBe(0);
     expect(V.gaps.lead).toBeUndefined();
     const hv = holdOf([{ plan: p }], p.id, { today: TODAY });
     for (const r of (hv.gaps ? hv.gaps.rows : [])) for (const part of r.parts) expect(sold.has(part.label)).toBe(false);
@@ -180,13 +159,14 @@ describe('(3) in a move, What is covered never counts a line the move sells', ()
 });
 
 describe('(4) a gilt that matured after the record was taken is the pension\'s cash now', () => {
-  it('the day after the January gilt matures, its money is still there: no gap appears that nobody caused', () => {
+  it('the day after the January gilt matures, its money is still there: the pension\'s cash, never lost', () => {
     const before = alex({ expected: [] }, '2027-01-28');
     const after = alex({ expected: [] }, '2027-01-30');
     const gb = gapsOf(before, { today: '2027-01-28' }), ga = gapsOf(after, { today: '2027-01-30' });
-    expect(gb.totalGap).toBe(0);
-    expect(ga.totalGap).toBe(0);
-    expect(homeOf([{ plan: after }], after.id, { today: '2027-01-30' }).gap).toBeUndefined();
+    // before it pays it is money available, set against no year; once paid it is the pension's cash, which pays the years
+    expect(gb.gilts.find((y) => y.label === '4 1/8% Treasury Gilt 2027').state).toBe('available');
+    expect(ga.totalGap).toBeLessThan(gb.totalGap);
+    expect(ga.outside.gilts).toBe(gb.outside.gilts - 29990);
     const x = ga.gilts.find((y) => y.label === '4 1/8% Treasury Gilt 2027');
     expect(x.state).toBe('cashNow');
     const m = moveInputs(after, { now: noon('2027-01-30') });
@@ -207,9 +187,12 @@ describe('(4) a gilt that matured after the record was taken is the pension\'s c
 });
 
 describe('(5) living on the plan, a rung not fully bought is never "still to buy"', () => {
-  it('a gilt counted in a part-bought rung\'s year: the rung, the gilt, then the pension\'s cash; what is left is not covered', () => {
+  // Moved on purpose (7.11.1, the gilt-year guess removed): a gilt maturing in the rung's year no longer pays it; the share
+  // fund is set against 2033/34 by the person's own choice, so the years to it are read
+  it('a part-bought rung\'s year: the rung, then the pension\'s cash; what is left is not covered, never "to buy"', () => {
     const raw = alexRaw({ expected: [] });
     raw.holdings.lines.push(L({ name: '4¼% Treasury Gilt 2032', units: 5000, value: 5000, kind: 'gilt' }));
+    raw.holdings.lines = raw.holdings.lines.map((l) => (l === FUND || l.ticker === 'VWRP' ? { ...l, keep: { as: 'rung', taxYears: [2033] } } : l));
     const p = plan(raw);
     const g = gapsOf(p, { today: TODAY });
     expect(g.held).toBe(true);
@@ -217,13 +200,11 @@ describe('(5) living on the plan, a rung not fully bought is never "still to buy
     for (const r of g.rows) expect(r.toBuy).toBe(0);
     const r32 = g.rows.find((r) => r.Y === 2032);
     expect(r32.source).toBe('rung');
-    expect(r32.gilts[0].pays).toBeGreaterThan(0);
-    // the pension's cash the earlier gilts left pays the rest of the part-bought rung's year
+    expect(r32.rungs).toBeGreaterThan(0);
     expect(r32.held + r32.gap).toBe(r32.need);
-    expect(r32.cash).toBeGreaterThan(0);
-    const w = words(g);
-    expect(w.some((x) => x.includes('once the plan’s buys are made'))).toBe(false);
-    expect(w.some((x) => x.startsWith('After 2032/33, '))).toBe(true);
+    expect(r32.gap).toBeGreaterThan(0);
+    expect(g.gilts.find((x) => x.label === '4¼% Treasury Gilt 2032')).toMatchObject({ state: 'available' });
+    expect(words(g).some((x) => x.includes('once the plan’s buys are made'))).toBe(false);
   });
 
   it('Moving once what is held was accepted reads the same way: a cash year not held is not covered, never a buy', () => {
@@ -248,18 +229,17 @@ describe('(7) one figure for the cash years', () => {
   });
 });
 
-describe('(8) a gilt counted toward no year is not ignored', () => {
-  it('a gilt maturing after the plan\'s last year, and one whose maturity cannot be told: their value today is counted beside the shares', () => {
+describe('(8) every gilt outside the rungs is money available, whatever its maturity', () => {
+  it('a gilt maturing after the plan\'s last year, and one whose maturity cannot be told: their value today is counted with the gilts', () => {
     const raw = alexRaw({ expected: [] });
     raw.holdings.lines.push(L({ name: 'Treasury 2027', units: 30000, value: 29900, kind: 'gilt' }));
     raw.holdings.lines.push(L({ ticker: 'T73', name: '0 1/8% Index-linked Treasury Gilt 2073', units: 6000, value: 3000, kind: 'gilt' }));
     const p = plan(raw);
     const g = gapsOf(p, { today: TODAY });
     const states = Object.fromEntries(g.gilts.map((x) => [x.label, x.state]));
-    expect(states['Treasury 2027']).toBe('unknown');
-    expect(states['0 1/8% Index-linked Treasury Gilt 2073']).toBe('after');
-    expect(g.outside.total).toBe(12000 + 40000 + 29900 + 3000);
-    expect(g.outside.gilts).toBe(true);
+    expect(states['Treasury 2027']).toBe('available');
+    expect(states['0 1/8% Index-linked Treasury Gilt 2073']).toBe('available');
+    expect(g.outside).toMatchObject({ total: 88230 + 29900 + 3000 + 12000 + 40000, gilts: 88230 + 29900 + 3000, funds: 52000 });
     expect(words(g)).toContain(GAPS.outsideCanFallGilts);
   });
 });
@@ -345,10 +325,13 @@ describe('(11) the full view says it plainly', () => {
     expect(html).not.toContain('Left alone:');
   });
 
-  it('a gilt counted toward a year that needs none of it says so, beside a row that shows nothing held', () => {
+  // Moved on purpose (7.11.1, the gilt-year guess removed): a gilt's line says when it matures, a fact, and no year
+  it('a gilt outside the rungs says its value and when it matures — never a year it is "counted toward"', () => {
     const p = alex();
     const V = moveOf([{ plan: p }], p.id, { today: TODAY });
     const line = V.heldInfo.lines.find((x) => x.label === '4¼% Treasury Gilt 2027');
-    expect(line.id).toBe('giltAllCash');
+    expect(line.id).toBe('gilt');
+    expect(fill(MOVE.held[line.id], line)).toBe('4¼% Treasury Gilt 2027 (£31,860 today): matures in December 2027.');
+    for (const x of V.heldInfo.lines) expect(fill(MOVE.held[x.id], x)).not.toMatch(/counted toward|counts toward/);
   });
 });

@@ -12,8 +12,7 @@ export const gapLineText = (line) => line.parts.map((p) => fill(G[p.key], { ...p
 export function GapsSection({ gaps, prefix }) {
   if (!gaps) return null;
   const T = `${prefix}.gaps`;
-  // a line standing in, or a gilt counted toward the year it matures in (7.11.1), by its own name
-  const heldText = (r) => (r.parts.length ? r.parts.map((p) => (p.kind === 'standIn' || p.kind === 'gilt' ? p.label + ' ' + p.amount : G.heldParts[p.kind] + ' ' + p.amount)).join(', ') : G.none);
+  const heldText = (r) => (r.parts.length ? r.parts.map((p) => (p.kind === 'standIn' ? p.label + ' ' + p.amount : G.heldParts[p.kind] + ' ' + p.amount)).join(', ') : G.none);
   return (
     <section class="plan-section" data-section="gaps" data-testid={T} data-gap={gaps.hasGap ? '1' : '0'}>
       {/* a plan drawn from a pot has no years bought ahead: what is kept and expected, with no year by year */}

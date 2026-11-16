@@ -63,13 +63,9 @@ export const MOVE = {
     columns: { what: 'What for', amount: 'Amount' },
     total: 'To hold',
     held: 'You hold',
-    // 7.11.1: a gilt outside the rungs maturing in a cash year is that year's cash, never a sale
-    gilts: 'Gilts you hold that mature in those years, at today’s prices',
-    fromCash: 'Needed from your pension’s cash before those gilts pay',
     spare: 'Spare',
     short: 'Short',
     spending: 'Cash: {held} held against {target} for the cash years still ahead ({years}) — being spent as the plan intends, so it is not a move.',
-    spendingGilts: 'Cash: {held} held, and {gilts} at today’s prices from the gilts that mature in them, against {target} for the cash years still ahead ({years}) — being spent as the plan intends, so it is not a move.',
     spendingNone: 'Cash: {held} held; no cash years left — your spending float, not a target.'
   },
   /**
@@ -93,16 +89,14 @@ export const MOVE = {
     },
     rungOver: '{label} ({code}), for {years}: held, with {excess} units more than the rung needs.',
     linesTitle: 'Also in your pension',
-    gilt: '{label} ({value} today): matures in {month} — counted toward {year} in What is covered, year by year.',
-    giltUnknown: '{label} ({value} today): we cannot tell when it matures, so it is not counted toward any year. Its code or SEDOL on What you hold would tell us.',
+    // 7.11.1: when a gilt matures is a fact, said as one — it sets the gilt against no tax year
+    gilt: '{label} ({value} today): matures in {month}.',
+    giltUnknown: '{label} ({value} today): we cannot tell when it matures. Its code or SEDOL on What you hold would tell us.',
     giltPaid: '{label}: matured in {month}. Once paid, its money is your pension’s cash, and the line can come off What you hold.',
     giltCashNow: '{label}: matured in {month}, after your record was taken, so what it paid counts as your pension’s cash. The line can come off What you hold.',
-    giltAllCash: '{label} ({value} today): matures in {month}. None of it is needed in {year}, so it counts as your pension’s cash for the years after, in What is covered, year by year.',
-    giltAfter: '{label} ({value} today): matures in {month}, after your plan’s last year, so it is outside the plan’s mix.',
     outside: '{label} ({value} today): outside the plan’s mix; its value can fall.',
-    cash: 'The cash years still ahead ({years}) need {target}. Held for them: {held} in your pension’s cash{gilts}.',
-    cashThisYear: 'The cash years still ahead ({years}; this one’s months still to come) need {target}. Held for them: {held} in your pension’s cash{gilts}.',
-    cashGilts: ', and {gilts} at today’s prices from the gilts that mature in those years',
+    cash: 'The cash years still ahead ({years}) need {target}. Held for them: {held} in your pension’s cash.',
+    cashThisYear: 'The cash years still ahead ({years}; this one’s months still to come) need {target}. Held for them: {held} in your pension’s cash.',
     cashNone: 'No cash years are left: the {held} in your pension’s cash is your spending float.',
     mixTitle: 'What you hold, against your plan’s mix',
     bucket: {
@@ -160,7 +154,6 @@ export const MOVE = {
     lead: 'Cash first, then the near rungs before the far ones, then the mix; sales spread over {tranches} tranche{s} so no single month’s price decides it; new money is used before sales.',
     funded: 'Paid for by sales{newMoney}.',
     fundedNewMoney: ' and new money',
-    fundedCash: ' and the pension’s cash that the gilts maturing in the cash years leave spare',
     short: 'Short by {short}: the plan was priced on a bigger pot than the record holds, or lines are missing from the record.',
     step: 'By {when}: {action} {label}{units}{amount}.',
     buy: 'buy',

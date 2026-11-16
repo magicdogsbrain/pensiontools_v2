@@ -4168,6 +4168,25 @@
       ]
     },
     {
+      "id": "acct.land-where-left",
+      "area": "plan-account",
+      "kind": "machinery",
+      "name": "Landing in the view last chosen, on the plan last open",
+      "what": "The account's settings keep the plan you were last on (lastLocation), written when a plan is opened, so a sign-in lands on it. The link at the top of every page leaves a one-shot note in this window (pt_view_switch: 'simple' or 'full') that the arriving view reads, saves as the account's view when it differs, and removes.",
+      "whereV6": "src/firebase/FirestoreService.js; src/storage/ScenarioRepository.js; src/ui/viewSwitch.js",
+      "who": "Everyone",
+      "keys": [
+        "profile.lastLocation",
+        "browser.pt_view_switch"
+      ],
+      "status": "built",
+      "step": "s11-shell",
+      "note": "7.12.0. Nothing about a plan's figures is kept here: a plan id and a step. A guest's note is removed and nothing is written.",
+      "files": [
+        "src/ui/viewSwitch.js"
+      ]
+    },
+    {
       "id": "acct.stale-reload",
       "area": "plan-account",
       "kind": "machinery",

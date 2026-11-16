@@ -52,7 +52,7 @@ for (const name of ['Alex', 'Sam']) {
     await putPlan(me.uid, { ...plan, id: `Harness${name}`, planDetails: { ...plan.planDetails, name: planName } });
     await ask({ name }, 'H0', { path: 'Your account > sign in > Your plans', who: 'signed in', asked: 'to see only their own plans' }, async (q) => {
       await q.step('sign in', async () => { await at(page); await signIn(page, me); });
-      await q.step('Your plans', async () => { await openSimple(page, '#/plans'); });
+      await q.step('Your plans', async () => { await openSimple(page, '#/plans'); await expect(page.locator('#app')).toContainText(planName, { timeout: 30_000 }).catch(() => {}); });
       const text = await page.locator('#app').innerText();
       q.reach(`"${planName}" on Your plans`, text.includes(planName), { did: text.slice(0, 200) });
       const other = name === 'Alex' ? 'Sam' : 'Alex';

@@ -4276,7 +4276,7 @@
     import { isLoggedIn, logOut, getCurrentUser, deleteAccount, onAuthStateChange, viewNotesAtSignIn } from './src/firebase/index.js';
     import { hasCloudData, wipeAllUserData, loadUserProfile, saveUserProfile, guestSnapshot, loadAllScenarios, createScenario as createScenarioDoc, saveScenario as saveScenarioDoc, loadScenario as loadScenarioDoc } from './src/firebase/FirestoreService.js';
     import { startSeedEntry, planFromAnswer, planTargetGuide, budgetSummaryWords } from './src/ui/components/NewPlanFromSeed.js'; import { householdStartWords } from './src/services/PlanSeed.js';   // a plan from a V7 answer (V7 design: save-as-plan.md, C.2); the Household tab's line when one plan begins later (couples-different-years.md 7)
-    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { timingPotsAtStop } from './src/services/PotsAtStop.js';
+    import { startSummaryHtml, potsAtRetirementLine } from './src/ui/startingPotsWords.js'; import { timingPotsAtStop } from './src/services/PotsAtStop.js'; import { shownPlanName } from './src/services/PlanName.js';
     import { tick as guestTick, readMinutes as guestMinutes, pendingNag as guestPendingNag, markNagShown as guestMarkNag, isBlocked as guestBlocked, bannerText as guestBannerText, savedChipText, stashHandoff as guestStash, readHandoff as guestReadHandoff, clearHandoff as guestClearHandoff, GUEST_ALLOWANCE_MINUTES } from './src/services/GuestMeter.js';
     // Release notes: data + renderers (see RELEASING.md). The pop-up and the What's new page read the same entries.
     import { RELEASES, releasesSince, compareVersions } from './src/releases.js';
@@ -5186,7 +5186,7 @@
       // Update active scenario name in button
       const nameEl = document.getElementById('scenarioActiveName');
       if (nameEl) {
-        nameEl.textContent = active ? (active.planDetails?.name || active.name || 'No Plan') : 'No Plan';
+        nameEl.textContent = active ? (shownPlanName(active) || 'No Plan') : 'No Plan';   // a name the person did not type follows the plan (7.12.0)
       }
 
       await updatePlanLockChip();
@@ -5201,7 +5201,7 @@
       }
 
       listEl.innerHTML = plansInListOrder(scenarios).map(s => {   // previous (closed) plans last, each saying so (6.56.0)
-        const name = budEsc(s.planDetails?.name || s.name || 'Unnamed Plan');
+        const name = budEsc(shownPlanName(s) || 'Unnamed Plan');
         const desc = budEsc(planListDesc(s));
         return `
         <div class="scenario-dropdown-item ${s.id === activeId ? 'active' : ''}" data-scenario-id="${s.id}">

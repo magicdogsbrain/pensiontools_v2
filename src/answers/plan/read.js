@@ -80,6 +80,17 @@ const isLadderPlan = (plan, ss) => CONTRACT_STRATEGIES.includes(stratId(plan, ss
 const lockedLadderOf = (plan, ss) => (isLadderPlan(plan, ss) && plan && plan.planDocument ? documentLadder(plan.planDocument, stratId(plan, ss)) : null);
 
 /**
+ * When a locked ladder pays: from its first year; and, when cash pays the years before the first gilt, the plan pays from
+ * that first year and the ladder's first gilt from its own year — one fact each, never the gilt's year as the plan's.
+ */
+function lockedLadderWords(L) {
+  const Y0 = L.years[0].Y;
+  const rung = firstRungOf(L);
+  if (rung && rung.Y > Y0) return ' a year before tax; your plan pays from April ' + Y0 + ' (tax year ' + taxYearLabel(Y0) + '); the ladder’s first gilt from April ' + rung.Y;
+  return ' a year before tax; your ladder pays from April ' + Y0 + ' (tax year ' + taxYearLabel(Y0) + ')';
+}
+
+/**
  * The stage line (rail-screens-language.md 1.3; your-plan.md 2.1): the key, the dates and the flags only — never the
  * planner's label, chip or banner. { id, slots } — the words are copy/plan.js stageLines[id]. A ladder's months come from
  * the ladder the document holds, not the plan's start (6.51.0, research/plan-start.md §2 E): a plan living on its ladder
@@ -463,7 +474,7 @@ function planStep(C) {
       ? sentence('plan.lockedSaver', [money('yearly'), ' a year before tax from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], figures)
       : ladder && lockedLadderOf(plan, ss)
         // the ladder's own first year, from the document (6.51.0): a plan locked once it had started bought its ladder from then
-        ? sentence('plan.lockedLadder', [money('yearly'), ' a year before tax; your ladder pays from April ' + lockedLadderOf(plan, ss).years[0].Y + ' (tax year ' + taxYearLabel(lockedLadderOf(plan, ss).years[0].Y) + ')'], figures)
+        ? sentence('plan.lockedLadder', [money('yearly'), lockedLadderWords(lockedLadderOf(plan, ss))], figures)
         : sentence(ladder ? 'plan.lockedLadder' : 'plan.lockedPlan', [money('yearly'), ' a year before tax; your ' + (ladder ? 'ladder' : 'plan') + ' pays from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], figures);
   } else if (stage.timingMode === 'future' && num(ss.retireAge)) {
     figures.retireAge = +ss.retireAge;

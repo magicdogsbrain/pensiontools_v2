@@ -135,7 +135,10 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
   it('03 "Your plan as locked": every section fixed on the lock day, the unlock line once, the prices said, the document\'s steps', () => {
     const { root, text } = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/plan'));
     expect(root.querySelector('h1').textContent).toBe('Your plan as locked');
-    expect(text).toContain('£34,000 a year before tax; your ladder pays from April 2027 (tax year 2027/28)');
+    // Moved on purpose (the walk): this ladder's first gilt pays from April 2029 (the stage line above says so), so its step
+    // no longer calls the cash years "your ladder": the plan pays from its first year, the ladder's first gilt from its own
+    expect(text).toContain('£34,000 a year before tax; your plan pays from April 2027 (tax year 2027/28); the ladder’s first gilt from April 2029');
+    expect(text).not.toContain('your ladder pays from April 2027');
     const sections = [...root.querySelectorAll('[data-section]')].map((s) => s.getAttribute('data-section'));
     expect(sections).toEqual(['about', 'pays', 'pots', 'income', 'way', 'mix', 'else']);
     expect((text.match(/Fixed when you locked the plan on 1 July 2026\./g) || []).length).toBe(7);   // six sections and "Everything else"

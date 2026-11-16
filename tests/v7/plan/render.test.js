@@ -137,7 +137,8 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(root.querySelector('h1').textContent).toBe('Your plan as locked');
     // Moved on purpose (the walk): this ladder's first gilt pays from April 2029 (the stage line above says so), so its step
     // no longer calls the cash years "your ladder": the plan pays from its first year, the ladder's first gilt from its own
-    expect(text).toContain('£34,000 a year before tax; your plan pays from April 2027 (tax year 2027/28); the ladder’s first gilt from April 2029');
+    // 7.12.0: from the month it first paid (its 2026/27 was set up from July), never April by assumption
+    expect(text).toContain('£34,000 a year before tax; your plan pays from July 2026; the ladder’s first gilt from April 2029');
     expect(text).not.toContain('your ladder pays from April 2027');
     const sections = [...root.querySelectorAll('[data-section]')].map((s) => s.getAttribute('data-section'));
     expect(sections).toEqual(['about', 'pays', 'pots', 'income', 'way', 'mix', 'else']);

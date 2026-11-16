@@ -19,6 +19,7 @@ import { sayKeep } from '../../answers/plan/keepTest.js';
 import { KEEPTEST } from '../../v7/copy/keepTest.js';
 import { standInYearOf } from '../../services/TransitionPlanner.js';
 import { MOVE } from '../../v7/copy/move.js';
+import { heldLadderHtml } from './HeldLadderView.js';
 import { PLAN } from '../../v7/copy/plan.js';
 import { LAYOUT } from '../../appLayout.js';
 
@@ -148,10 +149,9 @@ export function keepTestHtml(v) {
 
 /**
  * "Your plan's mix" as what is held (7.11.1): Living on it, or Moving once what is held was accepted, the tab is never a move.
- * The same reading as V7 (answers/plan/move.js heldInfo, through keepHoldingsUi.transitionHeld), filled with the same words
- * (src/v7/copy/move.js MOVE.held): the rungs held against the plan and each rung not held as the plan has it, what else the
- * pension holds and what each line is doing, the cash for the cash years, a pot plan's mix held
- * against the plan's, and where it can be tested (Your review, in the simple view). Never a Buy or Sell, a tick or a schedule.
+ * A pot plan's: the same reading as V7 (answers/plan/move.js heldInfo, through keepHoldingsUi.transitionHeld), filled with the
+ * same words (src/v7/copy/move.js MOVE.held): the mix held against the plan's, and where it can be tested (Your review, in the
+ * simple view). A ladder's is HeldLadderView.js (7.12.0). Never a Buy or Sell, a tick or a schedule.
  */
 export function heldInfoHtml(I) {
   if (!I) return '';
@@ -161,12 +161,8 @@ export function heldInfoHtml(I) {
   let h = '';
   if (I.agreed) h += '<p><strong>' + esc(fill(H.agreed, I.agreed)) + '</strong></p>';
   if (I.noRecord) h += '<p class="hint">' + esc(H.noRecord) + '</p>';
-  // this tab has no order sheet: a rung's line of it is in the plan document (MOVE.held.doc)
-  if (I.rungs) h += '<p><strong>' + esc(fill(H.rungs, I.rungs)) + '</strong></p>' + (I.rungs.rows.length ? li(I.rungs.rows.map((r) => fill((H.doc && H.doc[r.id]) || H[r.id], r))) : '');
   if (I.buckets) h += '<div class="section-title" style="margin-top:10px;">' + esc(H.mixTitle) + '</div>' + li(I.buckets.map((b) => fill(H.bucket[b.bucket], b)));
   for (const name of I.unknown || []) h += '<p class="hint">' + esc(fill(H.unknown, { name })) + '</p>';
-  if (I.lines.length) h += '<div class="section-title" style="margin-top:10px;">' + esc(H.linesTitle) + '</div>' + li(I.lines.map((x) => fill(H[x.id], x)));
-  if (I.cash) h += '<p class="hint">' + esc(fill(H[I.cash.id], I.cash)) + '</p>';
   if (I.review) h += '<p class="hint">' + esc(H.review) + ' <a href="' + esc(LAYOUT.classic.v7 + I.review) + '">' + esc(H.reviewLink) + '</a>.</p>';
   return h;
 }
@@ -234,8 +230,10 @@ export function holdingsCardHtml({ holdings = null, offer = null, keep = null } 
  */
 export function transitionHtml(a) {
   const { stage, doc, target, diff, seq, prog, done = {}, holdings = null, offer = null, rotation = null, startLabel = '', gaps = null, keepTest = null, held = null } = a || {};
-  // 7.11.1: Living on it, or Moving once what is held was accepted, the tab says what is held, never a move (transitionHeld)
+  // 7.11.1: Living on it, or Moving once what is held was accepted, the tab says what is held, never a move (transitionHeld);
+  // on a ladder (7.12.0) it is "Your plan's mix" alone: no gaps, no keep test, no lists of what is kept, no second footer
   const asHeld = !!(held && held.mode === 'held' && held.heldInfo);
+  const heldLadder = asHeld && !!held.heldView;
   const lines = holdings && Array.isArray(holdings.lines) ? holdings.lines : [];
   const ledgerCount = a && a.ledgerCount != null ? a.ledgerCount : lines.filter(valued).length;
   // (i) What you hold — the record, always editable, whether or not there is a plan document yet; "Keep this" (7.6.0) once
@@ -258,7 +256,8 @@ export function transitionHtml(a) {
   }
   const complete = a && typeof a.complete === 'boolean' ? a.complete : !!diff.complete;
   const kindText = target.kind === 'ladder' ? 'a gilt ladder — every rung and the cash years, in units' : 'a pot strategy — the year-0 mix in pounds';
-  if (asHeld) h += '<p class="hint">' + esc(MOVE.held.lead) + '</p>' + heldInfoHtml(held.heldInfo);
+  if (heldLadder) h += heldLadderHtml(held.heldView);
+  else if (asHeld) h += '<p class="hint">' + esc(MOVE.held.lead) + '</p>' + heldInfoHtml(held.heldInfo);
   else h += '<p class="hint">Target: ' + esc(kindText) + '. ' + esc(target.note || '') + '</p>';
   // (ii) Status
   if (asHeld) { /* what is held is said above: no status in moves, no cash to hold */ } else if (complete) {
@@ -285,33 +284,36 @@ export function transitionHtml(a) {
     const ci = diff.cashInfo;
     h += '<p class="hint">Cash: <strong>' + gbp(ci.held) + '</strong> held' + (ci.yearsLeft && ci.yearsLeft.length ? ' against about ' + gbp(ci.target) + ' for the cash years still ahead (' + ci.yearsLeft.map((y) => esc(String(y)) + '/' + esc(String(y + 1).slice(2))).join(', ') + ') — being spent as the plan intends, so it is not a move.' : '; no cash years left — it is your spending float, not a target.') + '</p>';
   }
-  if (Array.isArray(target.paid) && target.paid.length) h += '<p class="hint">Already paid: ' + target.paid.map((p) => esc(p.label) + (p.ticker ? ' (' + esc(p.ticker) + ')' : '')).join(', ') + ' — matured rungs, no longer targets.</p>';
-  if (Array.isArray(diff.matured) && diff.matured.length) h += '<p class="hint">Still on your record but matured: ' + diff.matured.map((m) => esc(m.label) + ' — ' + esc(m.why)).join('; ') + '.</p>';
-  // The rotation fired: the block it sold is off the target, and a line still carrying one of those rungs is stale
-  if (Array.isArray(target.sold) && target.sold.length) h += '<p class="hint">Sold by the rotation: ' + target.sold.map((p) => esc(p.label) + (p.ticker ? ' (' + esc(p.ticker) + ')' : '')).join(', ') + ' — no longer targets; the fund the proceeds bought is kept.</p>';
-  if (Array.isArray(diff.sold) && diff.sold.length) h += '<p class="hint">Still on your record but sold: ' + diff.sold.map((m) => esc(m.label) + ' — ' + esc(m.why)).join('; ') + '.</p>';
+  if (!heldLadder) {
+    if (Array.isArray(target.paid) && target.paid.length) h += '<p class="hint">Already paid: ' + target.paid.map((p) => esc(p.label) + (p.ticker ? ' (' + esc(p.ticker) + ')' : '')).join(', ') + ' — matured rungs, no longer targets.</p>';
+    if (Array.isArray(diff.matured) && diff.matured.length) h += '<p class="hint">Still on your record but matured: ' + diff.matured.map((m) => esc(m.label) + ' — ' + esc(m.why)).join('; ') + '.</p>';
+    // The rotation fired: the block it sold is off the target, and a line still carrying one of those rungs is stale
+    if (Array.isArray(target.sold) && target.sold.length) h += '<p class="hint">Sold by the rotation: ' + target.sold.map((p) => esc(p.label) + (p.ticker ? ' (' + esc(p.ticker) + ')' : '')).join(', ') + ' — no longer targets; the fund the proceeds bought is kept.</p>';
+    if (Array.isArray(diff.sold) && diff.sold.length) h += '<p class="hint">Still on your record but sold: ' + diff.sold.map((m) => esc(m.label) + ' — ' + esc(m.why)).join('; ') + '.</p>';
+  }
   // (iii) Rotation watch
   if (rotation && rotation.applies) h += '<div class="alert ' + (rotation.state === 'fired' ? 'alert-warning' : 'alert-info') + '" style="margin-top:8px;"><strong>Rotation watch</strong> · ' + esc(rotation.text) + '</div>';
 
-  // (iv) The moves
-  const tick = (item) => '<input type="checkbox" style="width:auto;"' + (done[item.key] ? ' checked' : '') + ' data-on-change="toggleTransitionDone(\'' + esc(item.key) + '\', this.checked)" title="Tick when the order is placed">';
-  if (!asHeld && diff.buy.length) h += '<div class="section-title" style="margin-top:10px;">Buy</div>' + table(['Done', 'What', 'Units', 'Amount', 'Why'], diff.buy.map((b) => [tick(b), esc(b.label) + (b.ticker ? ' <span class="hint">' + esc(b.ticker) + (b.sedol ? ' · ' + esc(b.sedol) : '') + '</span>' : ''), units(b.units), gbp(b.amount), esc(b.why || '')]));
-  if (!asHeld && diff.sell.length) h += '<div class="section-title" style="margin-top:10px;">Sell</div>' + table(['Done', 'What', 'Units', 'Amount', 'Why'], diff.sell.map((s) => [tick(s), esc(s.label) + (s.ticker ? ' <span class="hint">' + esc(s.ticker) + '</span>' : ''), units(s.units), gbp(s.amount), esc(s.why || '')]));
-  if (!asHeld && diff.hold.length) h += '<div class="section-title" style="margin-top:10px;">Already held</div>' + table(['What', 'Held', 'Target'], diff.hold.map((x) => [esc(x.label) + (x.ticker ? ' <span class="hint">' + esc(x.ticker) + '</span>' : ''), (x.heldUnits != null ? units(x.heldUnits) + ' units' : gbp(x.heldValue)) + (x.spare > 0 ? ' <span class="hint">(' + gbp(x.spare) + ' spare — kept, not a sale)</span>' : ''), x.units ? units(x.units) + ' units' : gbp(x.value)]));
-  if (ledgerCount) h += '<p class="hint" style="margin-top:8px;">If a line under What you hold is not yours — a pasted statement can mis-read a code — remove it there and this page updates.</p>';
-  // living on the plan (7.11.1): an ISA, taxable-account or bank line is outside the pension, never "left alone" by a move
-  if (diff.keep.length && asHeld) h += '<div class="section-title" style="margin-top:10px;">' + esc(MOVE.held.outsideTitle) + '</div><ul style="font-size:13px;line-height:1.6;">' + diff.keep.map((k) => '<li>' + esc(MOVE.held.outsideOne.replace('{label}', k.ticker || k.name).replace('{wrapper}', k.wrapper).replace('{value}', gbp(k.value))) + '</li>').join('') + '</ul>';
-  else if (diff.keep.length) h += '<p class="hint" style="margin-top:8px;">Left alone: ' + diff.keep.map((k) => esc(k.ticker || k.name) + ' (' + esc(k.wrapper) + ', ' + gbp(k.value) + ')').join(', ') + '.</p>';
-  // 7.6.0: what you keep instead — never a sale
-  if (Array.isArray(diff.standIn) && diff.standIn.length) h += '<div class="section-title" style="margin-top:10px;">' + esc(GAPS.move.standIn) + '</div><ul style="font-size:13px;line-height:1.6;">'
-    + diff.standIn.map((x) => '<li>' + esc(GAPS.move.standInOne.replace('{label}', x.label || x.ticker).replace('{years}', x.taxYears.map(taxYearWords).join(', ')).replace('{pays}', gbp(x.pays))) + '</li>').join('')
-    + (diff.covered || []).map((x) => '<li class="hint">' + esc(GAPS.move.covered.replace('{label}', x.label).replace('{years}', x.taxYears.map(taxYearWords).join(', '))) + '</li>').join('') + '</ul>';
-  if (Array.isArray(diff.kept) && diff.kept.length) h += '<div class="section-title" style="margin-top:10px;">' + esc(GAPS.move.kept) + '</div><ul style="font-size:13px;line-height:1.6;">'
-    + diff.kept.map((x) => '<li>' + esc(GAPS.move.keptOne.replace('{label}', x.label || x.ticker).replace('{wrapper}', x.wrapper).replace('{value}', gbp(x.value)).replace('{gaps}', x.fundsGaps ? (target.kind === 'ladder' ? GAPS.move.keptGaps : GAPS.move.keptPlan) : '')) + '</li>').join('') + '</ul>';
-  h += gapsHtml(gaps);
-  h += keepTestHtml(keepTest);   // 7.7.0: the plan's own test with what is kept, and "I accept this risk"
-  if (!asHeld && !complete) h += '<p class="hint">Totals: buy ' + gbp(diff.totals.buyCost) + ' · sell ' + gbp(diff.totals.sellValue) + (diff.totals.shortfall ? ' · <strong>short by ' + gbp(diff.totals.shortfall) + '</strong> before contributions' : '') + '.</p>';
-
+  if (!heldLadder) {
+    // (iv) The moves
+    const tick = (item) => '<input type="checkbox" style="width:auto;"' + (done[item.key] ? ' checked' : '') + ' data-on-change="toggleTransitionDone(\'' + esc(item.key) + '\', this.checked)" title="Tick when the order is placed">';
+    if (!asHeld && diff.buy.length) h += '<div class="section-title" style="margin-top:10px;">Buy</div>' + table(['Done', 'What', 'Units', 'Amount', 'Why'], diff.buy.map((b) => [tick(b), esc(b.label) + (b.ticker ? ' <span class="hint">' + esc(b.ticker) + (b.sedol ? ' · ' + esc(b.sedol) : '') + '</span>' : ''), units(b.units), gbp(b.amount), esc(b.why || '')]));
+    if (!asHeld && diff.sell.length) h += '<div class="section-title" style="margin-top:10px;">Sell</div>' + table(['Done', 'What', 'Units', 'Amount', 'Why'], diff.sell.map((s) => [tick(s), esc(s.label) + (s.ticker ? ' <span class="hint">' + esc(s.ticker) + '</span>' : ''), units(s.units), gbp(s.amount), esc(s.why || '')]));
+    if (!asHeld && diff.hold.length) h += '<div class="section-title" style="margin-top:10px;">Already held</div>' + table(['What', 'Held', 'Target'], diff.hold.map((x) => [esc(x.label) + (x.ticker ? ' <span class="hint">' + esc(x.ticker) + '</span>' : ''), (x.heldUnits != null ? units(x.heldUnits) + ' units' : gbp(x.heldValue)) + (x.spare > 0 ? ' <span class="hint">(' + gbp(x.spare) + ' spare — kept, not a sale)</span>' : ''), x.units ? units(x.units) + ' units' : gbp(x.value)]));
+    if (ledgerCount) h += '<p class="hint" style="margin-top:8px;">If a line under What you hold is not yours — a pasted statement can mis-read a code — remove it there and this page updates.</p>';
+    // living on the plan (7.11.1): an ISA, taxable-account or bank line is outside the pension, never "left alone" by a move
+    if (diff.keep.length && asHeld) h += '<div class="section-title" style="margin-top:10px;">' + esc(MOVE.held.outsideTitle) + '</div><ul style="font-size:13px;line-height:1.6;">' + diff.keep.map((k) => '<li>' + esc(MOVE.held.outsideOne.replace('{label}', k.ticker || k.name).replace('{wrapper}', k.wrapper).replace('{value}', gbp(k.value))) + '</li>').join('') + '</ul>';
+    else if (diff.keep.length) h += '<p class="hint" style="margin-top:8px;">Left alone: ' + diff.keep.map((k) => esc(k.ticker || k.name) + ' (' + esc(k.wrapper) + ', ' + gbp(k.value) + ')').join(', ') + '.</p>';
+    // 7.6.0: what you keep instead — never a sale
+    if (Array.isArray(diff.standIn) && diff.standIn.length) h += '<div class="section-title" style="margin-top:10px;">' + esc(GAPS.move.standIn) + '</div><ul style="font-size:13px;line-height:1.6;">'
+      + diff.standIn.map((x) => '<li>' + esc(GAPS.move.standInOne.replace('{label}', x.label || x.ticker).replace('{years}', x.taxYears.map(taxYearWords).join(', ')).replace('{pays}', gbp(x.pays))) + '</li>').join('')
+      + (diff.covered || []).map((x) => '<li class="hint">' + esc(GAPS.move.covered.replace('{label}', x.label).replace('{years}', x.taxYears.map(taxYearWords).join(', '))) + '</li>').join('') + '</ul>';
+    if (Array.isArray(diff.kept) && diff.kept.length) h += '<div class="section-title" style="margin-top:10px;">' + esc(GAPS.move.kept) + '</div><ul style="font-size:13px;line-height:1.6;">'
+      + diff.kept.map((x) => '<li>' + esc(GAPS.move.keptOne.replace('{label}', x.label || x.ticker).replace('{wrapper}', x.wrapper).replace('{value}', gbp(x.value)).replace('{gaps}', x.fundsGaps ? (target.kind === 'ladder' ? GAPS.move.keptGaps : GAPS.move.keptPlan) : '')) + '</li>').join('') + '</ul>';
+    h += gapsHtml(gaps);
+    h += keepTestHtml(keepTest);   // 7.7.0: the plan's own test with what is kept, and "I accept this risk"
+    if (!asHeld && !complete) h += '<p class="hint">Totals: buy ' + gbp(diff.totals.buyCost) + ' · sell ' + gbp(diff.totals.sellValue) + (diff.totals.shortfall ? ' · <strong>short by ' + gbp(diff.totals.shortfall) + '</strong> before contributions' : '') + '.</p>';
+  }
   // Timeline
   if (!asHeld && seq && seq.steps.length) {
     h += '<div class="section-title" style="margin-top:12px;">When — a schedule to the start</div>'
@@ -325,6 +327,7 @@ export function transitionHtml(a) {
     + '<li><strong>Gilt units.</strong> Order gilts by units (the nominal), not by amount; the order sheet in the plan document carries SEDOLs. Prices and index ratios move daily; the pound figures here are indicative.</li>'
     + '<li><strong>Decision points.</strong> A planned sale (a house, a business) that funds part of the ladder is a date on the schedule, not a certainty — buy the near rungs first and leave the far ones until the money is real.</li>'
     + '</ul></details>';
-  h += '<p class="hint" style="margin-top:8px;">Illustration, not advice. Nothing here places an order.</p></div>';
+  if (!heldLadder) h += '<p class="hint" style="margin-top:8px;">Illustration, not advice. Nothing here places an order.</p>';
+  h += '</div>';
   return h;
 }

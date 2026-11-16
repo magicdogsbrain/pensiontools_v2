@@ -1,0 +1,2933 @@
+{
+ "alexMovingPlain": {
+  "gaps": {
+   "ladder": true,
+   "lastYear": "2028/29",
+   "totalGap": "£47,155",
+   "hasGap": true,
+   "rows": [
+    {
+     "Y": 2026,
+     "year": "2026/27",
+     "thisYear": true,
+     "monthsLeft": "5",
+     "source": "thisYear",
+     "need": "£14,167",
+     "held": "£12",
+     "gap": "£14,155",
+     "toBuy": null,
+     "parts": [
+      {
+       "kind": "cash",
+       "amount": "£12"
+      }
+     ]
+    },
+    {
+     "Y": 2027,
+     "year": "2027/28",
+     "thisYear": false,
+     "monthsLeft": "12",
+     "source": "cash",
+     "need": "£0",
+     "held": "£0",
+     "gap": null,
+     "toBuy": null,
+     "parts": []
+    },
+    {
+     "Y": 2028,
+     "year": "2028/29",
+     "thisYear": false,
+     "monthsLeft": "12",
+     "source": "cash",
+     "need": "£33,000",
+     "held": "£0",
+     "gap": "£33,000",
+     "toBuy": null,
+     "parts": []
+    }
+   ],
+   "standIns": [],
+   "kept": [],
+   "expected": [
+    {
+     "id": "e1",
+     "label": "Pension elsewhere",
+     "amount": "£25,000",
+     "by": "June 2027",
+     "late": true
+    }
+   ],
+   "lines": [
+    {
+     "id": "strategy",
+     "parts": [
+      {
+       "key": "strategyNone",
+       "slots": {
+        "n": "0",
+        "k": "0"
+       },
+       "words": {
+        "years": "yearMany",
+        "holdings": "holdingMany"
+       }
+      }
+     ]
+    },
+    {
+     "id": "noNeed",
+     "parts": [
+      {
+       "key": "noNeed",
+       "slots": {
+        "year": "2027/28"
+       },
+       "words": {
+        "why": "whyLump"
+       }
+      }
+     ]
+    },
+    {
+     "id": "runsOut",
+     "parts": [
+      {
+       "key": "withoutExpected",
+       "slots": {},
+       "words": {}
+      },
+      {
+       "key": "shortFrom",
+       "slots": {
+        "year": "2026/27",
+        "month": "November 2026"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "totalGap",
+     "parts": [
+      {
+       "key": "totalGap",
+       "slots": {
+        "gap": "£47,155",
+        "year": "2028/29"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "withExpected",
+     "parts": [
+      {
+       "key": "withExpectedShort",
+       "slots": {
+        "short": "£22,155",
+        "year": "2028/29"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "lumpExpected",
+     "parts": [
+      {
+       "key": "lumpExpected",
+       "slots": {
+        "amount": "£40,000",
+        "year": "2027/28"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "late",
+     "parts": [
+      {
+       "key": "late",
+       "slots": {
+        "label": "Pension elsewhere",
+        "by": "June 2027",
+        "month": "November 2026"
+       },
+       "words": {}
+      }
+     ]
+    }
+   ]
+  },
+  "move": {
+   "mode": "move",
+   "heldInfo": null,
+   "status": {
+    "id": "gilts",
+    "slots": {
+     "bought": "14",
+     "rungs": "14",
+     "held": "100",
+     "part": "0"
+    }
+   },
+   "buy": [],
+   "sell": [
+    {
+     "key": "gilt:TR31",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2031",
+     "ticker": "TR31",
+     "sedol": "BNNGP55",
+     "units": "700",
+     "amount": "£954",
+     "heldUnits": "16200",
+     "heldValue": null,
+     "why": {
+      "id": "moreThanRung",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": [
+      "2032/33"
+     ]
+    },
+    {
+     "key": "gilt:T41",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2041",
+     "ticker": "T41",
+     "sedol": "BGDYHF4",
+     "units": "300",
+     "amount": "£330",
+     "heldUnits": "8100",
+     "heldValue": null,
+     "why": {
+      "id": "moreThanRung",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": [
+      "2042/43"
+     ]
+    },
+    {
+     "key": "sell:TS27",
+     "kind": "gilt",
+     "label": "3¾% Treasury Gilt 2027",
+     "ticker": "TS27",
+     "sedol": "",
+     "units": "34000",
+     "amount": "£33,930",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:TN28",
+     "kind": "gilt",
+     "label": "0 1/8% Treasury Gilt 2028",
+     "ticker": "TN28",
+     "sedol": "",
+     "units": "36000",
+     "amount": "£34,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:TG29",
+     "kind": "gilt",
+     "label": "0½% Treasury Gilt 2029",
+     "ticker": "TG29",
+     "sedol": "",
+     "units": "37000",
+     "amount": "£34,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:TN26",
+     "kind": "gilt",
+     "label": "0 1/8% Treasury Gilt 2026",
+     "ticker": "TN26",
+     "sedol": "",
+     "units": "2000",
+     "amount": "£2,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:ULVR",
+     "kind": "fund",
+     "label": "Unilever",
+     "ticker": "ULVR",
+     "sedol": "",
+     "units": "90",
+     "amount": "£4,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:AZN",
+     "kind": "fund",
+     "label": "AstraZeneca",
+     "ticker": "AZN",
+     "sedol": "",
+     "units": "50",
+     "amount": "£6,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:LGEN",
+     "kind": "fund",
+     "label": "Legal & General",
+     "ticker": "LGEN",
+     "sedol": "",
+     "units": "1400",
+     "amount": "£3,300",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:NG.",
+     "kind": "fund",
+     "label": "National Grid",
+     "ticker": "NG.",
+     "sedol": "",
+     "units": "400",
+     "amount": "£4,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:VWRP",
+     "kind": "fund",
+     "label": "Vanguard FTSE All-World (Acc)",
+     "ticker": "VWRP",
+     "sedol": "",
+     "units": "50",
+     "amount": "£6,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    }
+   ],
+   "hold": [
+    {
+     "key": "gilt:T29",
+     "label": "0 1/8% Index-linked Treasury Gilt 2029",
+     "ticker": "T29",
+     "held": {
+      "units": "37500"
+     },
+     "spare": null,
+     "target": {
+      "units": "37500"
+     }
+    },
+    {
+     "key": "gilt:T32",
+     "label": "1¼% Index-linked Treasury Gilt 2032",
+     "ticker": "T32",
+     "held": {
+      "units": "8900"
+     },
+     "spare": null,
+     "target": {
+      "units": "8900"
+     }
+    },
+    {
+     "key": "gilt:TRTQ",
+     "label": "0¾% Index-linked Treasury Gilt 2034",
+     "ticker": "TRTQ",
+     "held": {
+      "units": "18900"
+     },
+     "spare": null,
+     "target": {
+      "units": "18900"
+     }
+    },
+    {
+     "key": "gilt:TR35",
+     "label": "1 1/8% Index-linked Treasury Gilt 2035",
+     "ticker": "TR35",
+     "held": {
+      "units": "16000"
+     },
+     "spare": null,
+     "target": {
+      "units": "16000"
+     }
+    },
+    {
+     "key": "gilt:TG36",
+     "label": "0 1/8% Index-linked Treasury Gilt 2036",
+     "ticker": "TG36",
+     "held": {
+      "units": "10600"
+     },
+     "spare": null,
+     "target": {
+      "units": "10600"
+     }
+    },
+    {
+     "key": "gilt:TR37",
+     "label": "1 1/8% Index-linked Treasury Gilt 2037",
+     "ticker": "TR37",
+     "held": {
+      "units": "8300"
+     },
+     "spare": null,
+     "target": {
+      "units": "8300"
+     }
+    },
+    {
+     "key": "gilt:TG39",
+     "label": "0 1/8% Index-linked Treasury Gilt 2039",
+     "ticker": "TG39",
+     "held": {
+      "units": "12100"
+     },
+     "spare": null,
+     "target": {
+      "units": "12100"
+     }
+    },
+    {
+     "key": "gilt:TR40",
+     "label": "0 5/8% Index-linked Treasury Gilt 2040",
+     "ticker": "TR40",
+     "held": {
+      "units": "12400"
+     },
+     "spare": null,
+     "target": {
+      "units": "12400"
+     }
+    },
+    {
+     "key": "gilt:T42A",
+     "label": "0 5/8% Index-linked Treasury Gilt 2042",
+     "ticker": "T42A",
+     "held": {
+      "units": "5800"
+     },
+     "spare": null,
+     "target": {
+      "units": "5800"
+     }
+    },
+    {
+     "key": "gilt:T44",
+     "label": "0 1/8% Index-linked Treasury Gilt 2044",
+     "ticker": "T44",
+     "held": {
+      "units": "6500"
+     },
+     "spare": null,
+     "target": {
+      "units": "6500"
+     }
+    },
+    {
+     "key": "gilt:TR45",
+     "label": "0 5/8% Index-linked Treasury Gilt 2045",
+     "ticker": "TR45",
+     "held": {
+      "units": "9500"
+     },
+     "spare": null,
+     "target": {
+      "units": "9500"
+     }
+    },
+    {
+     "key": "gilt:TR46",
+     "label": "0 1/8% Index-linked Treasury Gilt 2046",
+     "ticker": "TR46",
+     "held": {
+      "units": "6600"
+     },
+     "spare": null,
+     "target": {
+      "units": "6600"
+     }
+    }
+   ],
+   "keep": [],
+   "cash": null,
+   "cashInfo": {
+    "held": "£12",
+    "target": "£67,000",
+    "years": [
+     "2026/27",
+     "2027/28",
+     "2028/29"
+    ]
+   },
+   "standIn": [],
+   "kept": [],
+   "covered": [],
+   "gaps": {
+    "ladder": true,
+    "lastYear": "2028/29",
+    "totalGap": "£47,155",
+    "hasGap": true,
+    "rows": [
+     {
+      "Y": 2026,
+      "year": "2026/27",
+      "thisYear": true,
+      "monthsLeft": "5",
+      "source": "thisYear",
+      "need": "£14,167",
+      "held": "£12",
+      "gap": "£14,155",
+      "toBuy": null,
+      "parts": [
+       {
+        "kind": "cash",
+        "amount": "£12"
+       }
+      ]
+     },
+     {
+      "Y": 2027,
+      "year": "2027/28",
+      "thisYear": false,
+      "monthsLeft": "12",
+      "source": "cash",
+      "need": "£0",
+      "held": "£0",
+      "gap": null,
+      "toBuy": null,
+      "parts": []
+     },
+     {
+      "Y": 2028,
+      "year": "2028/29",
+      "thisYear": false,
+      "monthsLeft": "12",
+      "source": "cash",
+      "need": "£33,000",
+      "held": "£0",
+      "gap": "£33,000",
+      "toBuy": null,
+      "parts": []
+     }
+    ],
+    "standIns": [],
+    "kept": [],
+    "expected": [
+     {
+      "id": "e1",
+      "label": "Pension elsewhere",
+      "amount": "£25,000",
+      "by": "June 2027",
+      "late": true
+     }
+    ],
+    "lines": [
+     {
+      "id": "strategy",
+      "parts": [
+       {
+        "key": "strategyNone",
+        "slots": {
+         "n": "0",
+         "k": "0"
+        },
+        "words": {
+         "years": "yearMany",
+         "holdings": "holdingMany"
+        }
+       }
+      ]
+     },
+     {
+      "id": "noNeed",
+      "parts": [
+       {
+        "key": "noNeed",
+        "slots": {
+         "year": "2027/28"
+        },
+        "words": {
+         "why": "whyLump"
+        }
+       }
+      ]
+     },
+     {
+      "id": "runsOut",
+      "parts": [
+       {
+        "key": "withoutExpected",
+        "slots": {},
+        "words": {}
+       },
+       {
+        "key": "shortFrom",
+        "slots": {
+         "year": "2026/27",
+         "month": "November 2026"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "totalGap",
+      "parts": [
+       {
+        "key": "totalGap",
+        "slots": {
+         "gap": "£47,155",
+         "year": "2028/29"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "withExpected",
+      "parts": [
+       {
+        "key": "withExpectedShort",
+        "slots": {
+         "short": "£22,155",
+         "year": "2028/29"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "lumpExpected",
+      "parts": [
+       {
+        "key": "lumpExpected",
+        "slots": {
+         "amount": "£40,000",
+         "year": "2027/28"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "late",
+      "parts": [
+       {
+        "key": "late",
+        "slots": {
+         "label": "Pension elsewhere",
+         "by": "June 2027",
+         "month": "November 2026"
+        },
+        "words": {}
+       }
+      ]
+     }
+    ]
+   }
+  }
+ },
+ "alexMovingMarked": {
+  "gaps": {
+   "ladder": true,
+   "lastYear": "2028/29",
+   "totalGap": "£14,155",
+   "hasGap": true,
+   "rows": [
+    {
+     "Y": 2026,
+     "year": "2026/27",
+     "thisYear": true,
+     "monthsLeft": "5",
+     "source": "thisYear",
+     "need": "£14,167",
+     "held": "£12",
+     "gap": "£14,155",
+     "toBuy": null,
+     "parts": [
+      {
+       "kind": "cash",
+       "amount": "£12"
+      }
+     ]
+    },
+    {
+     "Y": 2027,
+     "year": "2027/28",
+     "thisYear": false,
+     "monthsLeft": "12",
+     "source": "cash",
+     "need": "£0",
+     "held": "£0",
+     "gap": null,
+     "toBuy": null,
+     "parts": []
+    },
+    {
+     "Y": 2028,
+     "year": "2028/29",
+     "thisYear": false,
+     "monthsLeft": "12",
+     "source": "standIn",
+     "need": "£33,000",
+     "held": "£33,000",
+     "gap": null,
+     "toBuy": null,
+     "parts": [
+      {
+       "kind": "standIn",
+       "label": "0½% Treasury Gilt 2029",
+       "amount": "£33,000"
+      }
+     ]
+    }
+   ],
+   "standIns": [
+    {
+     "label": "0½% Treasury Gilt 2029",
+     "wrapper": "SIPP",
+     "pays": "£37,463",
+     "real": "£34,416",
+     "fixed": true,
+     "years": [
+      "2028/29"
+     ]
+    }
+   ],
+   "kept": [
+    {
+     "label": "Vanguard FTSE All-World (Acc)",
+     "wrapper": "SIPP",
+     "value": "£6,000",
+     "fundsGaps": true
+    }
+   ],
+   "expected": [
+    {
+     "id": "e1",
+     "label": "Pension elsewhere",
+     "amount": "£25,000",
+     "by": "June 2027",
+     "late": true
+    }
+   ],
+   "lines": [
+    {
+     "id": "strategy",
+     "parts": [
+      {
+       "key": "strategyBoth",
+       "slots": {
+        "n": "1",
+        "k": "1"
+       },
+       "words": {
+        "years": "yearOne",
+        "holdings": "holdingOne"
+       }
+      }
+     ]
+    },
+    {
+     "id": "noNeed",
+     "parts": [
+      {
+       "key": "noNeed",
+       "slots": {
+        "year": "2027/28"
+       },
+       "words": {
+        "why": "whyLump"
+       }
+      }
+     ]
+    },
+    {
+     "id": "fixed",
+     "parts": [
+      {
+       "key": "fixedReal",
+       "slots": {
+        "label": "0½% Treasury Gilt 2029",
+        "pays": "£37,463",
+        "real": "£34,416"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "spare",
+     "parts": [
+      {
+       "key": "spare",
+       "slots": {
+        "label": "0½% Treasury Gilt 2029",
+        "spare": "£1,416"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "runsOut",
+     "parts": [
+      {
+       "key": "withoutExpected",
+       "slots": {},
+       "words": {}
+      },
+      {
+       "key": "shortFrom",
+       "slots": {
+        "year": "2026/27",
+        "month": "November 2026"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "totalGap",
+     "parts": [
+      {
+       "key": "totalGap",
+       "slots": {
+        "gap": "£14,155",
+        "year": "2028/29"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "withExpected",
+     "parts": [
+      {
+       "key": "withExpected",
+       "slots": {
+        "year": "2028/29"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "lumpExpected",
+     "parts": [
+      {
+       "key": "lumpExpected",
+       "slots": {
+        "amount": "£40,000",
+        "year": "2027/28"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "late",
+     "parts": [
+      {
+       "key": "late",
+       "slots": {
+        "label": "Pension elsewhere",
+        "by": "June 2027",
+        "month": "November 2026"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "fundsGaps",
+     "parts": [
+      {
+       "key": "fundsGaps",
+       "slots": {
+        "list": "Vanguard FTSE All-World (Acc)",
+        "total": "£6,000"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "withAll",
+     "parts": [
+      {
+       "key": "withAll",
+       "slots": {
+        "year": "2028/29"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "canFall",
+     "parts": [
+      {
+       "key": "canFall",
+       "slots": {},
+       "words": {}
+      }
+     ]
+    }
+   ]
+  },
+  "move": {
+   "mode": "move",
+   "heldInfo": null,
+   "status": {
+    "id": "gilts",
+    "slots": {
+     "bought": "14",
+     "rungs": "14",
+     "held": "100",
+     "part": "0"
+    }
+   },
+   "buy": [],
+   "sell": [
+    {
+     "key": "gilt:TR31",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2031",
+     "ticker": "TR31",
+     "sedol": "BNNGP55",
+     "units": "700",
+     "amount": "£954",
+     "heldUnits": "16200",
+     "heldValue": null,
+     "why": {
+      "id": "moreThanRung",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": [
+      "2032/33"
+     ]
+    },
+    {
+     "key": "gilt:T41",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2041",
+     "ticker": "T41",
+     "sedol": "BGDYHF4",
+     "units": "300",
+     "amount": "£330",
+     "heldUnits": "8100",
+     "heldValue": null,
+     "why": {
+      "id": "moreThanRung",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": [
+      "2042/43"
+     ]
+    },
+    {
+     "key": "sell:TS27",
+     "kind": "gilt",
+     "label": "3¾% Treasury Gilt 2027",
+     "ticker": "TS27",
+     "sedol": "",
+     "units": "34000",
+     "amount": "£33,930",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:TN28",
+     "kind": "gilt",
+     "label": "0 1/8% Treasury Gilt 2028",
+     "ticker": "TN28",
+     "sedol": "",
+     "units": "36000",
+     "amount": "£34,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:TN26",
+     "kind": "gilt",
+     "label": "0 1/8% Treasury Gilt 2026",
+     "ticker": "TN26",
+     "sedol": "",
+     "units": "2000",
+     "amount": "£2,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:ULVR",
+     "kind": "fund",
+     "label": "Unilever",
+     "ticker": "ULVR",
+     "sedol": "",
+     "units": "90",
+     "amount": "£4,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:AZN",
+     "kind": "fund",
+     "label": "AstraZeneca",
+     "ticker": "AZN",
+     "sedol": "",
+     "units": "50",
+     "amount": "£6,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:LGEN",
+     "kind": "fund",
+     "label": "Legal & General",
+     "ticker": "LGEN",
+     "sedol": "",
+     "units": "1400",
+     "amount": "£3,300",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:NG.",
+     "kind": "fund",
+     "label": "National Grid",
+     "ticker": "NG.",
+     "sedol": "",
+     "units": "400",
+     "amount": "£4,000",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    }
+   ],
+   "hold": [
+    {
+     "key": "gilt:T29",
+     "label": "0 1/8% Index-linked Treasury Gilt 2029",
+     "ticker": "T29",
+     "held": {
+      "units": "37500"
+     },
+     "spare": null,
+     "target": {
+      "units": "37500"
+     }
+    },
+    {
+     "key": "gilt:T32",
+     "label": "1¼% Index-linked Treasury Gilt 2032",
+     "ticker": "T32",
+     "held": {
+      "units": "8900"
+     },
+     "spare": null,
+     "target": {
+      "units": "8900"
+     }
+    },
+    {
+     "key": "gilt:TRTQ",
+     "label": "0¾% Index-linked Treasury Gilt 2034",
+     "ticker": "TRTQ",
+     "held": {
+      "units": "18900"
+     },
+     "spare": null,
+     "target": {
+      "units": "18900"
+     }
+    },
+    {
+     "key": "gilt:TR35",
+     "label": "1 1/8% Index-linked Treasury Gilt 2035",
+     "ticker": "TR35",
+     "held": {
+      "units": "16000"
+     },
+     "spare": null,
+     "target": {
+      "units": "16000"
+     }
+    },
+    {
+     "key": "gilt:TG36",
+     "label": "0 1/8% Index-linked Treasury Gilt 2036",
+     "ticker": "TG36",
+     "held": {
+      "units": "10600"
+     },
+     "spare": null,
+     "target": {
+      "units": "10600"
+     }
+    },
+    {
+     "key": "gilt:TR37",
+     "label": "1 1/8% Index-linked Treasury Gilt 2037",
+     "ticker": "TR37",
+     "held": {
+      "units": "8300"
+     },
+     "spare": null,
+     "target": {
+      "units": "8300"
+     }
+    },
+    {
+     "key": "gilt:TG39",
+     "label": "0 1/8% Index-linked Treasury Gilt 2039",
+     "ticker": "TG39",
+     "held": {
+      "units": "12100"
+     },
+     "spare": null,
+     "target": {
+      "units": "12100"
+     }
+    },
+    {
+     "key": "gilt:TR40",
+     "label": "0 5/8% Index-linked Treasury Gilt 2040",
+     "ticker": "TR40",
+     "held": {
+      "units": "12400"
+     },
+     "spare": null,
+     "target": {
+      "units": "12400"
+     }
+    },
+    {
+     "key": "gilt:T42A",
+     "label": "0 5/8% Index-linked Treasury Gilt 2042",
+     "ticker": "T42A",
+     "held": {
+      "units": "5800"
+     },
+     "spare": null,
+     "target": {
+      "units": "5800"
+     }
+    },
+    {
+     "key": "gilt:T44",
+     "label": "0 1/8% Index-linked Treasury Gilt 2044",
+     "ticker": "T44",
+     "held": {
+      "units": "6500"
+     },
+     "spare": null,
+     "target": {
+      "units": "6500"
+     }
+    },
+    {
+     "key": "gilt:TR45",
+     "label": "0 5/8% Index-linked Treasury Gilt 2045",
+     "ticker": "TR45",
+     "held": {
+      "units": "9500"
+     },
+     "spare": null,
+     "target": {
+      "units": "9500"
+     }
+    },
+    {
+     "key": "gilt:TR46",
+     "label": "0 1/8% Index-linked Treasury Gilt 2046",
+     "ticker": "TR46",
+     "held": {
+      "units": "6600"
+     },
+     "spare": null,
+     "target": {
+      "units": "6600"
+     }
+    }
+   ],
+   "keep": [],
+   "cash": null,
+   "cashInfo": {
+    "held": "£12",
+    "target": "£34,000",
+    "years": [
+     "2026/27",
+     "2027/28"
+    ]
+   },
+   "standIn": [
+    {
+     "key": "standIn:SIPP:TG29",
+     "label": "0½% Treasury Gilt 2029",
+     "wrapper": "SIPP",
+     "pays": "£37,463",
+     "fixed": true,
+     "years": [
+      "2028/29"
+     ]
+    }
+   ],
+   "kept": [
+    {
+     "key": "kept:SIPP:VWRP",
+     "label": "Vanguard FTSE All-World (Acc)",
+     "wrapper": "SIPP",
+     "value": "£6,000",
+     "fundsGaps": true
+    }
+   ],
+   "covered": [
+    {
+     "key": "cash:covered",
+     "label": "Money-market fund / cash",
+     "years": [
+      "2028/29"
+     ],
+     "part": false
+    }
+   ],
+   "gaps": {
+    "ladder": true,
+    "lastYear": "2028/29",
+    "totalGap": "£14,155",
+    "hasGap": true,
+    "rows": [
+     {
+      "Y": 2026,
+      "year": "2026/27",
+      "thisYear": true,
+      "monthsLeft": "5",
+      "source": "thisYear",
+      "need": "£14,167",
+      "held": "£12",
+      "gap": "£14,155",
+      "toBuy": null,
+      "parts": [
+       {
+        "kind": "cash",
+        "amount": "£12"
+       }
+      ]
+     },
+     {
+      "Y": 2027,
+      "year": "2027/28",
+      "thisYear": false,
+      "monthsLeft": "12",
+      "source": "cash",
+      "need": "£0",
+      "held": "£0",
+      "gap": null,
+      "toBuy": null,
+      "parts": []
+     },
+     {
+      "Y": 2028,
+      "year": "2028/29",
+      "thisYear": false,
+      "monthsLeft": "12",
+      "source": "standIn",
+      "need": "£33,000",
+      "held": "£33,000",
+      "gap": null,
+      "toBuy": null,
+      "parts": [
+       {
+        "kind": "standIn",
+        "label": "0½% Treasury Gilt 2029",
+        "amount": "£33,000"
+       }
+      ]
+     }
+    ],
+    "standIns": [
+     {
+      "label": "0½% Treasury Gilt 2029",
+      "wrapper": "SIPP",
+      "pays": "£37,463",
+      "real": "£34,416",
+      "fixed": true,
+      "years": [
+       "2028/29"
+      ]
+     }
+    ],
+    "kept": [
+     {
+      "label": "Vanguard FTSE All-World (Acc)",
+      "wrapper": "SIPP",
+      "value": "£6,000",
+      "fundsGaps": true
+     }
+    ],
+    "expected": [
+     {
+      "id": "e1",
+      "label": "Pension elsewhere",
+      "amount": "£25,000",
+      "by": "June 2027",
+      "late": true
+     }
+    ],
+    "lines": [
+     {
+      "id": "strategy",
+      "parts": [
+       {
+        "key": "strategyBoth",
+        "slots": {
+         "n": "1",
+         "k": "1"
+        },
+        "words": {
+         "years": "yearOne",
+         "holdings": "holdingOne"
+        }
+       }
+      ]
+     },
+     {
+      "id": "noNeed",
+      "parts": [
+       {
+        "key": "noNeed",
+        "slots": {
+         "year": "2027/28"
+        },
+        "words": {
+         "why": "whyLump"
+        }
+       }
+      ]
+     },
+     {
+      "id": "fixed",
+      "parts": [
+       {
+        "key": "fixedReal",
+        "slots": {
+         "label": "0½% Treasury Gilt 2029",
+         "pays": "£37,463",
+         "real": "£34,416"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "spare",
+      "parts": [
+       {
+        "key": "spare",
+        "slots": {
+         "label": "0½% Treasury Gilt 2029",
+         "spare": "£1,416"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "runsOut",
+      "parts": [
+       {
+        "key": "withoutExpected",
+        "slots": {},
+        "words": {}
+       },
+       {
+        "key": "shortFrom",
+        "slots": {
+         "year": "2026/27",
+         "month": "November 2026"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "totalGap",
+      "parts": [
+       {
+        "key": "totalGap",
+        "slots": {
+         "gap": "£14,155",
+         "year": "2028/29"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "withExpected",
+      "parts": [
+       {
+        "key": "withExpected",
+        "slots": {
+         "year": "2028/29"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "lumpExpected",
+      "parts": [
+       {
+        "key": "lumpExpected",
+        "slots": {
+         "amount": "£40,000",
+         "year": "2027/28"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "late",
+      "parts": [
+       {
+        "key": "late",
+        "slots": {
+         "label": "Pension elsewhere",
+         "by": "June 2027",
+         "month": "November 2026"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "fundsGaps",
+      "parts": [
+       {
+        "key": "fundsGaps",
+        "slots": {
+         "list": "Vanguard FTSE All-World (Acc)",
+         "total": "£6,000"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "withAll",
+      "parts": [
+       {
+        "key": "withAll",
+        "slots": {
+         "year": "2028/29"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "canFall",
+      "parts": [
+       {
+        "key": "canFall",
+        "slots": {},
+        "words": {}
+       }
+      ]
+     }
+    ]
+   }
+  }
+ },
+ "samMoving": {
+  "gaps": null,
+  "move": {
+   "mode": "move",
+   "heldInfo": null,
+   "status": {
+    "id": "giltsPart",
+    "slots": {
+     "bought": "0",
+     "rungs": "14",
+     "held": "33",
+     "part": "1"
+    }
+   },
+   "buy": [
+    {
+     "key": "gilt:T29",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2029",
+     "ticker": "T29",
+     "sedol": "B3Y1JG8",
+     "units": "15500",
+     "amount": "£26,835",
+     "heldUnits": "22000",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2029/30, 2030/31, 2031/32"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2029/30",
+      "2030/31",
+      "2031/32"
+     ]
+    },
+    {
+     "key": "gilt:TR31",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2031",
+     "ticker": "TR31",
+     "sedol": "BNNGP55",
+     "units": "15500",
+     "amount": "£21,134",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2032/33"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2032/33"
+     ]
+    },
+    {
+     "key": "gilt:T32",
+     "kind": "gilt",
+     "label": "1¼% Index-linked Treasury Gilt 2032",
+     "ticker": "T32",
+     "sedol": "B3D4VD9",
+     "units": "8900",
+     "amount": "£17,099",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2033/34"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2033/34"
+     ]
+    },
+    {
+     "key": "gilt:TRTQ",
+     "kind": "gilt",
+     "label": "0¾% Index-linked Treasury Gilt 2034",
+     "ticker": "TRTQ",
+     "sedol": "B46CGH6",
+     "units": "18900",
+     "amount": "£31,992",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2034/35, 2035/36"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2034/35",
+      "2035/36"
+     ]
+    },
+    {
+     "key": "gilt:TR35",
+     "kind": "gilt",
+     "label": "1 1/8% Index-linked Treasury Gilt 2035",
+     "ticker": "TR35",
+     "sedol": "BT7HZZ6",
+     "units": "16000",
+     "amount": "£16,229",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2036/37"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2036/37"
+     ]
+    },
+    {
+     "key": "gilt:TG36",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2036",
+     "ticker": "TG36",
+     "sedol": "BYZW3J8",
+     "units": "10600",
+     "amount": "£14,276",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2037/38"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2037/38"
+     ]
+    },
+    {
+     "key": "gilt:TR37",
+     "kind": "gilt",
+     "label": "1 1/8% Index-linked Treasury Gilt 2037",
+     "ticker": "TR37",
+     "sedol": "B1L6W96",
+     "units": "8300",
+     "amount": "£15,687",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2038/39"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2038/39"
+     ]
+    },
+    {
+     "key": "gilt:TG39",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2039",
+     "ticker": "TG39",
+     "sedol": "BLH3826",
+     "units": "12100",
+     "amount": "£13,299",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2039/40"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2039/40"
+     ]
+    },
+    {
+     "key": "gilt:TR40",
+     "kind": "gilt",
+     "label": "0 5/8% Index-linked Treasury Gilt 2040",
+     "ticker": "TR40",
+     "sedol": "B3LZBF6",
+     "units": "12400",
+     "amount": "£19,593",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2040/41, 2041/42"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2040/41",
+      "2041/42"
+     ]
+    },
+    {
+     "key": "gilt:T41",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2041",
+     "ticker": "T41",
+     "sedol": "BGDYHF4",
+     "units": "7800",
+     "amount": "£8,582",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2042/43"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2042/43"
+     ]
+    },
+    {
+     "key": "gilt:T42A",
+     "kind": "gilt",
+     "label": "0 5/8% Index-linked Treasury Gilt 2042",
+     "ticker": "T42A",
+     "sedol": "B3MYD34",
+     "units": "5800",
+     "amount": "£8,892",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2043/44"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2043/44"
+     ]
+    },
+    {
+     "key": "gilt:T44",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2044",
+     "ticker": "T44",
+     "sedol": "B7RN0G6",
+     "units": "6500",
+     "amount": "£7,630",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2044/45"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2044/45"
+     ]
+    },
+    {
+     "key": "gilt:TR45",
+     "kind": "gilt",
+     "label": "0 5/8% Index-linked Treasury Gilt 2045",
+     "ticker": "TR45",
+     "sedol": "BMF9LH9",
+     "units": "9500",
+     "amount": "£8,077",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2045/46"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2045/46"
+     ]
+    },
+    {
+     "key": "gilt:TR46",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2046",
+     "ticker": "TR46",
+     "sedol": "BYMWG36",
+     "units": "6600",
+     "amount": "£6,927",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2046/47"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2046/47"
+     ]
+    }
+   ],
+   "sell": [
+    {
+     "key": "sell:T27",
+     "kind": "gilt",
+     "label": "1¼% Index-linked Treasury Gilt 2027",
+     "ticker": "T27",
+     "sedol": "",
+     "units": "25000",
+     "amount": "£35,494",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:T28",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2028",
+     "ticker": "T28",
+     "sedol": "",
+     "units": "23500",
+     "amount": "£37,525",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:T30I",
+     "kind": "gilt",
+     "label": "4 1/8% Index-linked Treasury Stock 2030",
+     "ticker": "T30I",
+     "sedol": "",
+     "units": "31500",
+     "amount": "£42,472",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:VWRP",
+     "kind": "fund",
+     "label": "Vanguard FTSE All-World (Acc)",
+     "ticker": "VWRP",
+     "sedol": "",
+     "units": "3260",
+     "amount": "£396,769",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:1 5/8% Treasury Gilt 2028",
+     "kind": "gilt",
+     "label": "1 5/8% Treasury Gilt 2028",
+     "ticker": "",
+     "sedol": "",
+     "units": "20000",
+     "amount": "£18,800",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:4 3/8% Treasury Gilt 2030",
+     "kind": "gilt",
+     "label": "4 3/8% Treasury Gilt 2030",
+     "ticker": "",
+     "sedol": "",
+     "units": "10000",
+     "amount": "£10,050",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    }
+   ],
+   "hold": [
+    {
+     "key": "cash:SIPP",
+     "label": "Money-market fund / cash",
+     "ticker": "",
+     "held": {
+      "value": "£96,625"
+     },
+     "spare": "£29,047",
+     "target": {
+      "value": "£67,578"
+     }
+    }
+   ],
+   "keep": [
+    {
+     "label": "VWRP",
+     "wrapper": "ISA",
+     "value": "£35,052",
+     "why": {
+      "id": "isaKept",
+      "slots": {}
+     }
+    },
+    {
+     "label": "Easy-access savings",
+     "wrapper": "CASH",
+     "value": "£8,000",
+     "why": {
+      "id": "cashKept",
+      "slots": {}
+     }
+    }
+   ],
+   "cash": {
+    "rows": [
+     {
+      "id": "cashYear",
+      "year": "2027/28",
+      "lump": null,
+      "amount": "£34,000"
+     },
+     {
+      "id": "cashYear",
+      "year": "2028/29",
+      "lump": null,
+      "amount": "£33,578"
+     }
+    ],
+    "target": "£67,578",
+    "held": "£96,625",
+    "spare": "£29,047",
+    "short": null
+   },
+   "cashInfo": null
+  }
+ },
+ "samMovingMarked": {
+  "gaps": {
+   "ladder": true,
+   "lastYear": "2028/29",
+   "totalGap": "£0",
+   "hasGap": false,
+   "rows": [
+    {
+     "Y": 2027,
+     "year": "2027/28",
+     "thisYear": false,
+     "monthsLeft": "12",
+     "source": "cash",
+     "need": "£34,000",
+     "held": "£34,000",
+     "gap": null,
+     "toBuy": null,
+     "parts": [
+      {
+       "kind": "cash",
+       "amount": "£34,000"
+      }
+     ]
+    },
+    {
+     "Y": 2028,
+     "year": "2028/29",
+     "thisYear": false,
+     "monthsLeft": "12",
+     "source": "standIn",
+     "need": "£33,246",
+     "held": "£33,246",
+     "gap": null,
+     "toBuy": null,
+     "parts": [
+      {
+       "kind": "standIn",
+       "label": "4 3/8% Treasury Gilt 2030",
+       "amount": "£10,233"
+      },
+      {
+       "kind": "cash",
+       "amount": "£23,013"
+      }
+     ]
+    }
+   ],
+   "standIns": [
+    {
+     "label": "4 3/8% Treasury Gilt 2030",
+     "wrapper": "SIPP",
+     "pays": "£11,531",
+     "real": "£10,233",
+     "fixed": true,
+     "years": [
+      "2028/29"
+     ]
+    }
+   ],
+   "kept": [],
+   "expected": [],
+   "lines": [
+    {
+     "id": "strategy",
+     "parts": [
+      {
+       "key": "strategyYears",
+       "slots": {
+        "n": "1",
+        "k": "0"
+       },
+       "words": {
+        "years": "yearOne",
+        "holdings": "holdingMany"
+       }
+      }
+     ]
+    },
+    {
+     "id": "fixed",
+     "parts": [
+      {
+       "key": "fixedReal",
+       "slots": {
+        "label": "4 3/8% Treasury Gilt 2030",
+        "pays": "£11,531",
+        "real": "£10,233"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "noGap",
+     "parts": [
+      {
+       "key": "noGap",
+       "slots": {
+        "year": "2028/29"
+       },
+       "words": {}
+      }
+     ]
+    }
+   ]
+  },
+  "move": {
+   "mode": "move",
+   "heldInfo": null,
+   "status": {
+    "id": "giltsPart",
+    "slots": {
+     "bought": "0",
+     "rungs": "14",
+     "held": "33",
+     "part": "1"
+    }
+   },
+   "buy": [
+    {
+     "key": "gilt:T29",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2029",
+     "ticker": "T29",
+     "sedol": "B3Y1JG8",
+     "units": "15500",
+     "amount": "£26,835",
+     "heldUnits": "22000",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2029/30, 2030/31, 2031/32"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2029/30",
+      "2030/31",
+      "2031/32"
+     ]
+    },
+    {
+     "key": "gilt:TR31",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2031",
+     "ticker": "TR31",
+     "sedol": "BNNGP55",
+     "units": "15500",
+     "amount": "£21,134",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2032/33"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2032/33"
+     ]
+    },
+    {
+     "key": "gilt:T32",
+     "kind": "gilt",
+     "label": "1¼% Index-linked Treasury Gilt 2032",
+     "ticker": "T32",
+     "sedol": "B3D4VD9",
+     "units": "8900",
+     "amount": "£17,099",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2033/34"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2033/34"
+     ]
+    },
+    {
+     "key": "gilt:TRTQ",
+     "kind": "gilt",
+     "label": "0¾% Index-linked Treasury Gilt 2034",
+     "ticker": "TRTQ",
+     "sedol": "B46CGH6",
+     "units": "18900",
+     "amount": "£31,992",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2034/35, 2035/36"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2034/35",
+      "2035/36"
+     ]
+    },
+    {
+     "key": "gilt:TR35",
+     "kind": "gilt",
+     "label": "1 1/8% Index-linked Treasury Gilt 2035",
+     "ticker": "TR35",
+     "sedol": "BT7HZZ6",
+     "units": "16000",
+     "amount": "£16,229",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2036/37"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2036/37"
+     ]
+    },
+    {
+     "key": "gilt:TG36",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2036",
+     "ticker": "TG36",
+     "sedol": "BYZW3J8",
+     "units": "10600",
+     "amount": "£14,276",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2037/38"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2037/38"
+     ]
+    },
+    {
+     "key": "gilt:TR37",
+     "kind": "gilt",
+     "label": "1 1/8% Index-linked Treasury Gilt 2037",
+     "ticker": "TR37",
+     "sedol": "B1L6W96",
+     "units": "8300",
+     "amount": "£15,687",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2038/39"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2038/39"
+     ]
+    },
+    {
+     "key": "gilt:TG39",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2039",
+     "ticker": "TG39",
+     "sedol": "BLH3826",
+     "units": "12100",
+     "amount": "£13,299",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2039/40"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2039/40"
+     ]
+    },
+    {
+     "key": "gilt:TR40",
+     "kind": "gilt",
+     "label": "0 5/8% Index-linked Treasury Gilt 2040",
+     "ticker": "TR40",
+     "sedol": "B3LZBF6",
+     "units": "12400",
+     "amount": "£19,593",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2040/41, 2041/42"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2040/41",
+      "2041/42"
+     ]
+    },
+    {
+     "key": "gilt:T41",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2041",
+     "ticker": "T41",
+     "sedol": "BGDYHF4",
+     "units": "7800",
+     "amount": "£8,582",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2042/43"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2042/43"
+     ]
+    },
+    {
+     "key": "gilt:T42A",
+     "kind": "gilt",
+     "label": "0 5/8% Index-linked Treasury Gilt 2042",
+     "ticker": "T42A",
+     "sedol": "B3MYD34",
+     "units": "5800",
+     "amount": "£8,892",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2043/44"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2043/44"
+     ]
+    },
+    {
+     "key": "gilt:T44",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2044",
+     "ticker": "T44",
+     "sedol": "B7RN0G6",
+     "units": "6500",
+     "amount": "£7,630",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2044/45"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2044/45"
+     ]
+    },
+    {
+     "key": "gilt:TR45",
+     "kind": "gilt",
+     "label": "0 5/8% Index-linked Treasury Gilt 2045",
+     "ticker": "TR45",
+     "sedol": "BMF9LH9",
+     "units": "9500",
+     "amount": "£8,077",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2045/46"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2045/46"
+     ]
+    },
+    {
+     "key": "gilt:TR46",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2046",
+     "ticker": "TR46",
+     "sedol": "BYMWG36",
+     "units": "6600",
+     "amount": "£6,927",
+     "heldUnits": "0",
+     "heldValue": null,
+     "why": {
+      "id": "rung",
+      "slots": {
+       "years": "2046/47"
+      }
+     },
+     "done": null,
+     "taxYears": [
+      "2046/47"
+     ]
+    }
+   ],
+   "sell": [
+    {
+     "key": "sell:T27",
+     "kind": "gilt",
+     "label": "1¼% Index-linked Treasury Gilt 2027",
+     "ticker": "T27",
+     "sedol": "",
+     "units": "25000",
+     "amount": "£35,494",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:T28",
+     "kind": "gilt",
+     "label": "0 1/8% Index-linked Treasury Gilt 2028",
+     "ticker": "T28",
+     "sedol": "",
+     "units": "23500",
+     "amount": "£37,525",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:T30I",
+     "kind": "gilt",
+     "label": "4 1/8% Index-linked Treasury Stock 2030",
+     "ticker": "T30I",
+     "sedol": "",
+     "units": "31500",
+     "amount": "£42,472",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:VWRP",
+     "kind": "fund",
+     "label": "Vanguard FTSE All-World (Acc)",
+     "ticker": "VWRP",
+     "sedol": "",
+     "units": "3260",
+     "amount": "£396,769",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "sell:1 5/8% Treasury Gilt 2028",
+     "kind": "gilt",
+     "label": "1 5/8% Treasury Gilt 2028",
+     "ticker": "",
+     "sedol": "",
+     "units": "20000",
+     "amount": "£18,800",
+     "heldUnits": null,
+     "heldValue": null,
+     "why": {
+      "id": "notInPlan",
+      "slots": {}
+     },
+     "done": null,
+     "taxYears": []
+    }
+   ],
+   "hold": [
+    {
+     "key": "cash:SIPP",
+     "label": "Money-market fund / cash",
+     "ticker": "",
+     "held": {
+      "value": "£96,625"
+     },
+     "spare": "£62,625",
+     "target": {
+      "value": "£34,000"
+     }
+    }
+   ],
+   "keep": [
+    {
+     "label": "VWRP",
+     "wrapper": "ISA",
+     "value": "£35,052",
+     "why": {
+      "id": "isaKept",
+      "slots": {}
+     }
+    },
+    {
+     "label": "Easy-access savings",
+     "wrapper": "CASH",
+     "value": "£8,000",
+     "why": {
+      "id": "cashKept",
+      "slots": {}
+     }
+    }
+   ],
+   "cash": {
+    "rows": [
+     {
+      "id": "cashYear",
+      "year": "2027/28",
+      "lump": null,
+      "amount": "£34,000"
+     },
+     {
+      "id": "cashYearCovered",
+      "year": "2028/29",
+      "lump": null,
+      "amount": null
+     }
+    ],
+    "target": "£34,000",
+    "held": "£96,625",
+    "spare": "£62,625",
+    "short": null
+   },
+   "cashInfo": null,
+   "standIn": [
+    {
+     "key": "standIn:SIPP:4 3/8% Treasury Gilt 2030",
+     "label": "4 3/8% Treasury Gilt 2030",
+     "wrapper": "SIPP",
+     "pays": "£11,531",
+     "fixed": true,
+     "years": [
+      "2028/29"
+     ]
+    }
+   ],
+   "kept": [],
+   "covered": [
+    {
+     "key": "cash:covered",
+     "label": "Money-market fund / cash",
+     "years": [
+      "2028/29"
+     ],
+     "part": false
+    }
+   ],
+   "gaps": {
+    "ladder": true,
+    "lastYear": "2028/29",
+    "totalGap": "£0",
+    "hasGap": false,
+    "rows": [
+     {
+      "Y": 2027,
+      "year": "2027/28",
+      "thisYear": false,
+      "monthsLeft": "12",
+      "source": "cash",
+      "need": "£34,000",
+      "held": "£34,000",
+      "gap": null,
+      "toBuy": null,
+      "parts": [
+       {
+        "kind": "cash",
+        "amount": "£34,000"
+       }
+      ]
+     },
+     {
+      "Y": 2028,
+      "year": "2028/29",
+      "thisYear": false,
+      "monthsLeft": "12",
+      "source": "standIn",
+      "need": "£33,246",
+      "held": "£33,246",
+      "gap": null,
+      "toBuy": null,
+      "parts": [
+       {
+        "kind": "standIn",
+        "label": "4 3/8% Treasury Gilt 2030",
+        "amount": "£10,233"
+       },
+       {
+        "kind": "cash",
+        "amount": "£23,013"
+       }
+      ]
+     }
+    ],
+    "standIns": [
+     {
+      "label": "4 3/8% Treasury Gilt 2030",
+      "wrapper": "SIPP",
+      "pays": "£11,531",
+      "real": "£10,233",
+      "fixed": true,
+      "years": [
+       "2028/29"
+      ]
+     }
+    ],
+    "kept": [],
+    "expected": [],
+    "lines": [
+     {
+      "id": "strategy",
+      "parts": [
+       {
+        "key": "strategyYears",
+        "slots": {
+         "n": "1",
+         "k": "0"
+        },
+        "words": {
+         "years": "yearOne",
+         "holdings": "holdingMany"
+        }
+       }
+      ]
+     },
+     {
+      "id": "fixed",
+      "parts": [
+       {
+        "key": "fixedReal",
+        "slots": {
+         "label": "4 3/8% Treasury Gilt 2030",
+         "pays": "£11,531",
+         "real": "£10,233"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "noGap",
+      "parts": [
+       {
+        "key": "noGap",
+        "slots": {
+         "year": "2028/29"
+        },
+        "words": {}
+       }
+      ]
+     }
+    ]
+   }
+  }
+ },
+ "potLivingMarked": {
+  "gaps": {
+   "ladder": false,
+   "lastYear": null,
+   "totalGap": "£0",
+   "hasGap": false,
+   "rows": [],
+   "standIns": [],
+   "kept": [
+    {
+     "label": "HSBC MSCI World",
+     "wrapper": "SIPP",
+     "value": "£381,200",
+     "fundsGaps": true
+    }
+   ],
+   "expected": [],
+   "lines": [
+    {
+     "id": "fundsGaps",
+     "parts": [
+      {
+       "key": "fundsPlan",
+       "slots": {
+        "list": "HSBC MSCI World",
+        "total": "£381,200"
+       },
+       "words": {}
+      }
+     ]
+    },
+    {
+     "id": "canFall",
+     "parts": [
+      {
+       "key": "canFallPot",
+       "slots": {},
+       "words": {}
+      }
+     ]
+    }
+   ]
+  },
+  "move": {
+   "mode": "held",
+   "heldInfo": {
+    "kind": "buckets",
+    "agreed": null,
+    "noRecord": false,
+    "rungs": null,
+    "lines": [],
+    "cash": null,
+    "buckets": [
+     {
+      "bucket": "shares",
+      "held": "0",
+      "plan": "65"
+     },
+     {
+      "bucket": "bonds",
+      "held": "71",
+      "plan": "25"
+     },
+     {
+      "bucket": "cash",
+      "held": "29",
+      "plan": "10"
+     }
+    ],
+    "unknown": [],
+    "review": "#/plan/Td4VyS7nHg2McXe8WuFa/review"
+   },
+   "status": {
+    "id": "held",
+    "slots": {
+     "held": "35",
+     "done": "0",
+     "moves": "3"
+    }
+   },
+   "buy": [
+    {
+     "key": "bucket:shares",
+     "kind": "bucket",
+     "label": "Shares (world tracker)",
+     "ticker": "",
+     "sedol": "",
+     "units": null,
+     "amount": "£135,661",
+     "heldUnits": null,
+     "heldValue": "£0",
+     "why": {
+      "id": "bringUp",
+      "slots": {
+       "bucket": "shares",
+       "pct": "64"
+      }
+     },
+     "done": null,
+     "taxYears": []
+    }
+   ],
+   "sell": [
+    {
+     "key": "bucket:bonds",
+     "kind": "bucket",
+     "label": "Bonds (gilts / index-linked / global agg)",
+     "ticker": "",
+     "sedol": "",
+     "units": null,
+     "amount": "£96,708",
+     "heldUnits": null,
+     "heldValue": "£149,700",
+     "why": {
+      "id": "bringDown",
+      "slots": {
+       "bucket": "bonds",
+       "pct": "25"
+      }
+     },
+     "done": null,
+     "taxYears": []
+    },
+    {
+     "key": "bucket:cash",
+     "kind": "bucket",
+     "label": "Cash (money-market fund)",
+     "ticker": "",
+     "sedol": "",
+     "units": null,
+     "amount": "£38,953",
+     "heldUnits": null,
+     "heldValue": "£60,150",
+     "why": {
+      "id": "bringDown",
+      "slots": {
+       "bucket": "cash",
+       "pct": "10"
+      }
+     },
+     "done": null,
+     "taxYears": []
+    }
+   ],
+   "hold": [],
+   "keep": [
+    {
+     "label": "HMWO",
+     "wrapper": "ISA",
+     "value": "£25,040",
+     "why": {
+      "id": "isaKept",
+      "slots": {}
+     }
+    }
+   ],
+   "cash": null,
+   "cashInfo": null,
+   "standIn": [],
+   "kept": [
+    {
+     "key": "kept:SIPP:HMWO",
+     "label": "HSBC MSCI World",
+     "wrapper": "SIPP",
+     "value": "£381,200",
+     "fundsGaps": true
+    }
+   ],
+   "covered": [],
+   "gaps": {
+    "ladder": false,
+    "lastYear": null,
+    "totalGap": "£0",
+    "hasGap": false,
+    "rows": [],
+    "standIns": [],
+    "kept": [
+     {
+      "label": "HSBC MSCI World",
+      "wrapper": "SIPP",
+      "value": "£381,200",
+      "fundsGaps": true
+     }
+    ],
+    "expected": [],
+    "lines": [
+     {
+      "id": "fundsGaps",
+      "parts": [
+       {
+        "key": "fundsPlan",
+        "slots": {
+         "list": "HSBC MSCI World",
+         "total": "£381,200"
+        },
+        "words": {}
+       }
+      ]
+     },
+     {
+      "id": "canFall",
+      "parts": [
+       {
+        "key": "canFallPot",
+        "slots": {},
+        "words": {}
+       }
+      ]
+     }
+    ]
+   }
+  }
+ }
+}

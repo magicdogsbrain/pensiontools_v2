@@ -68,7 +68,7 @@ export async function nameTransitionTab(doc, read, fallback = null, today = new 
   return name;
 }
 
-/** The gaps as the Transition tab draws them: V7's reading of the plan with this record (by the phase the home reads); null when there is nothing to read. */
+/** The gaps as the Transition tab draws them: V7's reading of the plan with this record (by the phase the home reads: 7.12.0, nothing in the held phase); null when there is nothing to read. */
 export function transitionGaps(scenario, rec, today = new Date()) {
   if (!scenario) return null;
   try { return gapsView(gapsOf({ ...scenario, holdings: rec }, { today: dayOf(today) })); } catch { return null; }
@@ -76,15 +76,16 @@ export function transitionGaps(scenario, rec, today = new Date()) {
 
 /**
  * "Your plan's mix" by phase (7.11.1): V7's reading of the move (answers/plan/move.js moveOf) for the plan with this record,
- * in the phase the plan's home reads — { mode, heldInfo, phase }. `mode` 'held' (Living on it, or Moving once what is held
- * was accepted): the tab draws what is held as information, never Buy or Sell. Null when it cannot be read.
+ * in the phase the plan's home reads — { mode, heldInfo, heldView, phase }. `mode` 'held' (Living on it, or Moving once what
+ * is held was accepted): the tab draws what is held as information, never Buy or Sell; on a ladder (7.12.0) `heldView` is
+ * "Your plan's mix" as both views draw it (answers/plan/held.js). Null when it cannot be read.
  */
 export function transitionHeld(scenario, rec, today = new Date()) {
   if (!scenario) return null;
   try {
     const plan = { ...scenario, holdings: rec || scenario.holdings };
     const v = moveOf([{ plan }], plan.id, { today: dayOf(today) });
-    return v && v.found ? { mode: v.mode || null, heldInfo: v.heldInfo || null, phase: v.phase || null } : null;
+    return v && v.found ? { mode: v.mode || null, heldInfo: v.heldInfo || null, heldView: v.heldView || null, phase: v.phase || null } : null;
   } catch { return null; }
 }
 

@@ -9,8 +9,10 @@
  * switch handed to the planner. Draws only: everything is the reading's (state/select.js planMoveView: answers/plan/move.js
  * through the plan source); the run's status is the state's (effects/move.js). The last line is always the same.
  * By phase (7.11.1): Living on it, or Moving once what is held was accepted (the reading's `mode` 'held'), the page is what is
- * held — its own lead, the rungs, the lines beside them and what each is doing, the cash — and never a move: no "Optional…",
- * status in moves, cost, Buy, Sell, tick, totals, When or "How to read this". The order sheet and the watch stay.
+ * held, and never a move: no "Optional…", status in moves, cost, Buy, Sell, tick, totals, When or "How to read this". On a
+ * ladder (7.12.0) it is "Your plan's mix" (HeldLadder.jsx: the one reading, answers/plan/held.js) and nothing else of the move:
+ * no lists, no "What is covered", no keep test and no order sheet (the sheet as locked is in the plan document). A pot plan's
+ * mix as held, the lists' notes and the watch stay as before.
  */
 import { PlanRail, changeAction, UndoToast, fill, Button, LinkButton, stepNameOf } from '../../components/index.js';
 import { planView, planMoveView, planKeepTestView } from '../../state/select.js';
@@ -20,6 +22,7 @@ import { PLAN } from '../../copy/plan.js';
 import { MOVE as W } from '../../copy/move.js';
 import { GAPS } from '../../copy/gaps.js';
 import { GapsSection } from './Gaps.jsx';
+import { HeldLadder } from './HeldLadder.jsx';
 
 const w = PLAN.page;
 const keepFocus = { onMouseDown: (e) => e.preventDefault() };
@@ -129,10 +132,8 @@ function Cash({ V }) {
 }
 
 /**
- * What is held, as information (7.11.1): Living on it, or Moving once what is held was accepted — the rungs held against the
- * plan (a rung not fully bought with its line of the order sheet), what else the pension holds and what each line is doing,
- * the cash for the cash years, a pot plan's mix held against the plan's and where it can be tested.
- * Never a Buy or Sell, a tick, a schedule or totals.
+ * A pot plan's mix as held, as information (7.11.1): Living on it, or Moving once what is held was accepted — the mix held
+ * against the plan's and where it can be tested. Never a Buy or Sell, a tick, a schedule or totals. (A ladder's is HeldLadder.)
  */
 function Held({ V }) {
   const H = W.held;
@@ -141,12 +142,8 @@ function Held({ V }) {
     <section class="plan-section" data-section="heldInfo" data-testid={`${T}.heldInfo`} data-kind={I.kind}>
       {I.agreed && <p class="figure" data-testid={`${T}.heldInfo.agreed`}>{fill(H.agreed, I.agreed)}</p>}
       {I.noRecord && <p class="note" data-testid={`${T}.heldInfo.noRecord`}>{H.noRecord} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
-      {I.rungs && <p class="figure" data-testid={`${T}.heldInfo.rungs`}>{fill(H.rungs, I.rungs)}</p>}
-      {I.rungs && I.rungs.rows.length > 0 && <ul class="plan-lines" data-testid={`${T}.heldInfo.rungRows`}>{I.rungs.rows.map((r) => <li key={r.key} class="plan-line" data-key={r.key} data-state={r.state}>{fill(H[r.id], r)}</li>)}</ul>}
       {I.buckets && <><h2>{H.mixTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.buckets`}>{I.buckets.map((b) => <li key={b.bucket} class="plan-line" data-bucket={b.bucket}>{fill(H.bucket[b.bucket], b)}</li>)}</ul></>}
       {I.unknown.map((name) => <p class="note" key={name} data-testid={`${T}.heldInfo.unknown`}>{fill(H.unknown, { name })}</p>)}
-      {I.lines.length > 0 && <><h2>{H.linesTitle}</h2><ul class="plan-lines" data-testid={`${T}.heldInfo.lines`}>{I.lines.map((x, i) => <li key={i} class="plan-line" data-role={x.role} data-state={x.state || ''}>{fill(H[x.id], x)}</li>)}</ul></>}
-      {I.cash && <p class="line" data-testid={`${T}.heldInfo.cash`}>{fill(H[I.cash.id], I.cash)}</p>}
       {I.review && <p class="note" data-testid={`${T}.heldInfo.review`}>{H.review} <a href={I.review}>{H.reviewLink}</a>.</p>}
     </section>
   );
@@ -342,14 +339,17 @@ export function MoveScreen(state, dispatch) {
   const onChange = (place, id = view.id, month = null) => dispatch(changeAction(id, place, href.plan(view.id, 'move'), month));
   const rail = <PlanRail view={view} state={state} dispatch={dispatch} onChange={onChange} />;
   const back = href.plan(view.id, 'plan');
+  // 7.12.0: living on a ladder, the page is "Your plan's mix" alone (HeldLadder.jsx)
+  const heldLadder = V.mode === 'held' && !!V.heldView;
   const problem = V.problem ? fill(W.problems[V.problem] || W.problems.failed, { store: W.problems.store[V.source] || 'account' }) : null;
   const headAndTitle = (
     <>
       <Head view={view} />
       {/* by the name the rail and the home give it: on a Drawing plan, the mix it keeps to (7.3.1) */}
       <h1 tabIndex={-1} data-testid="plan.step.move">{stepNameOf('move', view)}</h1>
-      {/* 7.11.1: Living on it (or Moving once what is held was accepted) the page is what is held, never a move */}
-      <p class="lead">{V.mode === 'held' ? W.held.lead : W.lead}</p>
+      {/* 7.11.1: Living on it (or Moving once what is held was accepted) the page is what is held, never a move; on a ladder
+          (7.12.0) "Your plan's mix" says its own lead */}
+      {!heldLadder && <p class="lead">{V.mode === 'held' ? W.held.lead : W.lead}</p>}
       {V.mode !== 'held' && <p class="note" data-testid={`${T}.optional`}>{W.optional}</p>}
     </>
   );
@@ -376,7 +376,7 @@ export function MoveScreen(state, dispatch) {
         {/* a closed plan (6.56.0): its record and its tick-offs moved to the plan that carries it on */}
         {V.closed && <p class="notice" role="status" data-testid={`${T}.closed`}>{V.closed.next ? fill(w.closedStep, { name: V.closed.next.name }) : w.closedStepAlone}{V.closed.next && <> <LinkButton testid={`${T}.closed.open`} kind="quiet" href={href.plan(V.closed.next.id)}>{fill(PLAN.buttons.openNext, { name: V.closed.next.name })}</LinkButton></>}</p>}
         <div class="plan-panel" data-region="plan-move" data-editable={V.editable ? '1' : '0'} data-kind={V.kind} data-waiting={V.waiting ? '1' : '0'} data-mode={V.mode || 'move'}>
-          {V.mode === 'held' ? (
+          {heldLadder ? <HeldLadder v={V.heldView} prefix={T} holdHref={href.plan(view.id, 'hold')} /> : V.mode === 'held' ? (
             <>
               <Held V={V} />
               <Lists V={V} dispatch={dispatch} planId={planId} KT={planKeepTestView(state)} />
@@ -399,11 +399,11 @@ export function MoveScreen(state, dispatch) {
             </>
           )}
           </>}
-          <Sheet V={V} dispatch={dispatch} />
+          {!heldLadder && <Sheet V={V} dispatch={dispatch} />}
           <Explained V={V} dispatch={dispatch} />
           <Watch V={V} onChange={onChange} />
           {problem && <p class="notice" role="alert" data-testid={`${T}.problem`} data-problem={V.problem}>{problem}</p>}
-          <p class="plan-source" data-testid={`${T}.footer`}>{W.footer}</p>
+          {!heldLadder && <p class="plan-source" data-testid={`${T}.footer`}>{W.footer}</p>}
         </div>
         <div class="actions-row">
           <LinkButton testid={`${T}.hold`} kind="plain" href={href.plan(view.id, 'hold')}>{W.buttons.hold}</LinkButton>

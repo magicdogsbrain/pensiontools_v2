@@ -1,25 +1,16 @@
 /**
- * "What is covered, year by year" (7.6.0; 7.11.1: read with what the person actually holds): a locked ladder plan read with
- * what the person holds, keeps and expects. The settings and the plan document stay as locked; what the person holds may
- * differ from the ladder — a gilt that is none of the plan's rungs, shares or a fund outside the plan's mix, a line kept to
- * stand in for some years' money, a line kept by choice, money expected later — and this says honestly what that means, as
- * consequences and never as advice: per tax year from this one to the last year anything held is set against, what the
- * plan needs, what is held for it, the gap, and what could cover the gaps.
+ * "What is covered, year by year" (7.6.0): a locked plan read with what the person keeps and expects, in a move. The settings
+ * and the plan document stay as locked; what the person keeps may differ from the ladder — a line kept to stand in for some
+ * years' money, a line kept by choice, money expected later — and this says honestly what that means, as consequences and
+ * never as advice: per tax year from this one to the last year anything kept is set against, what the plan needs, what is
+ * held for it, the gap, and what could cover the gaps.
  *
- * What is held for a year (7.11.1): the plan's rungs, the pension's cash as it is today (with what a gilt paid after the
- * record was taken), and what the person set against tax years themselves ("stands in for"). Nothing else is ever set
- * against a year by the reading: a gilt is often bought to mature before the year its money is for, so when a gilt matures
- * never says which year it is for. Every other line in the pension beside the plan's rungs — a gilt, shares, a fund — is
- * money available, never ignored and never assigned: one line says what it is worth today, gilts and shares and funds apart,
- * and how much of the years not covered it would cover at that value. Money expected later, as today.
- *
- * By phase (7.11.1): living on the plan, or Moving once what is held was accepted, it reads what is held as above; in a move
- * it reads only what is kept, so it never counts a line the move sells (gapsOf).
+ * By phase (7.12.0): a ladder living on the plan, or Moving once what is held was accepted, says nothing here —
+ * answers/plan/held.js heldLadder is the one reading of what is held then. In a move it reads only what is kept, so it never counts a line the move
+ * sells (gapsOf).
  *
  *   gapsOf(plan, { today, asKept, life })   the reading, as data (null when there is nothing to read: see gapsOf)
  *   lifeOf(plan, now)                 the phase the home reads (LifeStage.stageOf), which gapsOf reads by
- *   heldOf(plan, { today })           each line of the record and the part it plays (rung, part-bought rung, a gilt outside
- *                                     the rungs and when it matures, outside the plan's mix, cash…), or null without a ladder
  *   gapSentences(g)                   the reading in words, from the words given (src/v7/copy/gaps.js): one list, both apps
  *
  * Pure: the plan brought up to date in memory and today's date; nothing here writes, runs or reads a clock. The diff is
@@ -33,6 +24,7 @@ import { normaliseHoldings, hasKeeps, expectedOf } from '../../services/Holdings
 import { taxYearLabel, taxYearStartOf } from '../../services/PlanTiming.js';
 import { dateOf, monthWords } from './dates.js';
 import { pounds } from './income.js';
+import { paidByOf } from './held.js';
 
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 const r0 = (v) => Math.round(num(v));
@@ -48,92 +40,45 @@ export function monthsLeftInTaxYear(today) {
   return monthsLeftOf(today instanceof Date ? today : dateOf(today));
 }
 
-/**
- * Where each gilt outside the rungs stands (7.11.1): 'available' (still to mature, or when it matures cannot be told: money
- * in the pension set against no year), 'cashNow' (it matured after the record was taken: its money is the pension's cash
- * now, counted there) or 'paid' (it matured before the record was taken: the pension's cash already holds it). A rung whose
- * gilt matured after the record was taken is 'cashNow' too. Every other line is as the diff reads it.
- */
-function placed(roles) {
-  return roles.map((r) => {
-    if (r.role === 'matured' && r.cashNow) return { ...r, state: 'cashNow' };
-    if (r.role !== 'gilt') return r;
-    if (r.matures && r.paid) return { ...r, state: r.cashNow ? 'cashNow' : 'paid' };
-    return { ...r, state: 'available' };
-  });
-}
 const firstYearOf = (T, now) => { const thisTY = taxYearStartOf(now); return Math.max(thisTY, num(T.firstTaxYear) || thisTY); };
 
 /**
  * The phase the plan's home reads (LifeStage.stageOf, as read.js planPage reads it: agreements first, then facts), or null.
- * Whether "What is covered" reads what is held (7.11.1) or what is kept turns on it: one rule for every reader.
+ * Whether "What is covered" says anything (a move) or "Your plan's mix" reads what is held (7.12.0) turns on it: one rule.
  */
 export function lifeOf(plan, now) {
   try { return stageOf(plan, now, { placing: planStage(plan, { now }), settings: effectiveStressSettings(plan, { now }) }); } catch { return null; }
 }
 
 /**
- * Each line of the record and the part it plays against the plan as locked (TransitionPlanner's roles, a gilt outside the
- * rungs placed as `placed` says): information for the move and What you hold, never a list of moves. Null on a plan with no
- * locked ladder document.
- */
-export function heldOf(plan, { today }) {
-  const now = dateOf(today);
-  const doc = isLocked(plan) && isObj(plan.planDocument) ? plan.planDocument : null;
-  if (!doc) return null;
-  let m = null; try { m = moveInputs(plan, { now, roles: true }); } catch { m = null; }
-  if (!m || !m.target || m.target.kind !== 'ladder' || !Array.isArray(m.diff.roles)) return null;
-  return placed(m.diff.roles);
-}
-
-/**
- * Why a year needs nothing from the pension (7.11.1): the plan's own timeline — a lump sum it counts that year, or one it
- * counted earlier and carries forward, the State Pension, other income, or else.
- */
-function paidByOf(doc, Y) {
-  const row = Array.isArray(doc.timeline) ? doc.timeline.find((x) => x && x.taxYear === taxYearLabel(Y)) : null;
-  if (row && num(row.lump) > 0) return Array.isArray(row.lumpIn) && row.lumpIn.some((x) => num(x && x.amount) > 0) ? 'lump' : 'lumpEarlier';
-  if (row && num(row.sp) > 0) return num(row.other) > 0 ? 'spOther' : 'sp';
-  if (row && num(row.other) > 0) return 'other';
-  return 'else';
-}
-
-/**
- * The reading. Null when there is nothing to read: no plan document; or a record that keeps nothing and expects nothing,
- * and — read with what is held — holds nothing in the pension beyond the plan's own rungs and cash (7.11.1): for such a plan
- * the move's rungs and cash say it all, and it reads exactly as before. A pot plan (no rungs) has no years to read: `ladder`
- * is false and only what is kept and expected is said, as before.
+ * The reading. Null when there is nothing to read: no plan document; or a record that keeps nothing and expects nothing. A pot
+ * plan (no rungs) has no years to read: `ladder` is false and only what is kept and expected is said, as before.
  *
- * By phase (7.11.1), one rule for every reader (the home's line, What you hold, the move page in both views): living on the
- * plan, or Moving once what is held was accepted (Phases.heldPhase on the phase the home reads, `life`, worked out here when
- * not given), it reads what is held. Otherwise — Moving, when the move sells what is not the plan's — it reads only what the
- * person chose to keep, as 7.10.0 did: never a line the page beside it lists to sell. `asKept` (the keep test's own reading,
- * keepTest.js) reads it so in every phase.
+ * By phase (7.12.0), one rule for every reader: a ladder living on the plan, or Moving once what is held was accepted
+ * (Phases.heldPhase on the phase the home reads, `life`, worked out here when not given), reads null — what is held is read by
+ * answers/plan/held.js heldLadder, the one reading then. A pot plan reads what is kept in every phase, as before. Otherwise — Moving, when the move sells what is not the plan's — it
+ * reads only what the person chose to keep, as 7.10.0 did: never a line the page beside it lists to sell. `asKept` (the keep
+ * test's own reading, keepTest.js) reads it so in every phase.
  *
  * Month by month: each year's months in turn are paid by its rung or what stands in for it, then by the pension's cash.
- * @returns {null | { ladder, held, rows: [{ Y, year, need, monthsLeft, thisYear, source, rungs, standIns: [{ label, pays, fixed }], cash, held, toBuy, gap, paidBy, shortAt }],
+ * @returns {null | { ladder, rows: [{ Y, year, need, monthsLeft, thisYear, source, rungs, standIns: [{ label, pays, fixed }], cash, held, toBuy, gap, paidBy, shortAt }],
  *   lastYear, totalGap, firstGap: { Y, year, gap, lastMonth, shortFrom }|null, standIns: [], kept: [], fundsGaps: { lines, total },
  *   expected: { items, total, late }, withExpected: { covered, short }|null, withAll: { covered, short }|null, heldAnotherWay: number, keptCount: number,
- *   roles: [], gilts: [], outside: { lines, total, gilts, funds }, withHeld: { covered, short, cover }|null, fromHeld: boolean, lumps: [{ Y, year, amount }], cashLeft: number }}
+ *   lumps: [{ Y, year, amount }] }}
  */
 export function gapsOf(plan, { today, asKept = false, life } = {}) {
   const now = dateOf(today);
   const rec = normaliseHoldings(plan && plan.holdings);
-  const keeps = hasKeeps(rec);
-  // nothing kept or expected: read only a pension line beyond the plan's own, while what is held is read (7.11.1)
-  if (!keeps && (asKept || !rec.lines.some((l) => l.wrapper === 'SIPP'))) return null;
+  if (!hasKeeps(rec)) return null;
   const doc = isLocked(plan) && isObj(plan.planDocument) ? plan.planDocument : null;
   if (!doc) return null;
-  const held = !asKept && heldPhase(life === undefined ? lifeOf(plan, now) : life);
-  if (!keeps && !held) return null;
-  let m = null; try { m = moveInputs(plan, { now, ...(held ? { roles: true } : {}) }); } catch { m = null; }
+  let m = null; try { m = moveInputs(plan, { now }); } catch { m = null; }
   if (!m || !m.target || m.target.kind === 'none') return null;
+  // a ladder in the held phase: "Your plan's mix" (held.js) is the one reading; a pot plan reads what is kept, as before
+  if (!asKept && m.target.kind === 'ladder' && heldPhase(life === undefined ? lifeOf(plan, now) : life)) return null;
   const D = m.diff, T = m.target;
   const needs = yearNeedsOf(doc);
   const firstY = firstYearOf(T, now);
-  const roles = held && T.kind === 'ladder' && Array.isArray(D.roles) ? placed(D.roles) : [];
-  const fromHeld = roles.some((r) => r.role === 'gilt' || r.role === 'outside' || r.state === 'cashNow');
-  if (!keeps && !fromHeld) return null;
   const kept = (D.kept || []).map((k) => ({ label: k.label || k.ticker || '', wrapper: k.wrapper, value: r0(k.value), fundsGaps: !!k.fundsGaps }));
   const fundsLines = kept.filter((k) => k.fundsGaps);
   const fundsGaps = { lines: fundsLines, total: fundsLines.reduce((s, k) => s + k.value, 0) };
@@ -141,15 +86,8 @@ export function gapsOf(plan, { today, asKept = false, life } = {}) {
   const expected = { items: expItems.map((e) => ({ id: e.id, label: e.label || '', wrapper: e.wrapper, amount: r0(e.amount), by: e.by })), total: expItems.reduce((s, e) => s + r0(e.amount), 0), late: [] };
   // each stand-in in the diff's order (two lines can share a name: never looked up by it)
   const standIns = (D.standIn || []).map((s) => ({ label: s.label || s.ticker || '', ticker: s.ticker || '', wrapper: s.wrapper, pays: r0(s.pays), real: r0(s.real != null ? s.real : s.pays), fixed: !!s.fixed, payKind: s.payKind, matures: s.matures || null, taxYears: s.taxYears.slice(), perYear: Array.isArray(s.perYear) ? s.perYear : [], gap: r0(s.gap), spare: r0(s.spare) }));
-  // 7.11.1, read with what is held: the gilts outside the rungs (each placed), and every line in the pension beside the plan's
-  // rungs and cash — a gilt still to mature, shares, a fund — as money available at today's value, set against no year
-  const gilts = roles.filter((r) => r.role === 'gilt' || r.state === 'cashNow').map((r) => ({ at: r.at, label: r.label, state: r.state, matures: r.matures || null, value: r0(r.value), pays: r0(r.pays) }));
-  const outLines = [...gilts.filter((x) => x.state === 'available').map((x) => ({ at: x.at, label: x.label, value: x.value, gilt: true })),
-    ...roles.filter((r) => r.role === 'outside').map((r) => ({ at: r.at, label: r.label, value: r0(r.value) }))].sort((a, b) => num(a.at) - num(b.at));
-  const giltsOut = outLines.filter((x) => x.gilt).reduce((s, x) => s + x.value, 0), fundsOut = outLines.filter((x) => !x.gilt).reduce((s, x) => s + x.value, 0);
-  const outside = { lines: outLines, total: giltsOut + fundsOut, gilts: giltsOut, funds: fundsOut };
-  const base = { held, standIns, kept, fundsGaps, expected, heldAnotherWay: new Set(standIns.flatMap((s) => s.taxYears)).size, keptCount: kept.length, roles, gilts, outside, fromHeld, lumps: [], cashLeft: 0 };
-  if (T.kind !== 'ladder') return { ...base, ladder: false, rows: [], lastYear: null, totalGap: 0, toBuy: 0, firstGap: null, withExpected: null, withAll: null, withHeld: null };
+  const base = { standIns, kept, fundsGaps, expected, heldAnotherWay: new Set(standIns.flatMap((s) => s.taxYears)).size, keptCount: kept.length, lumps: [] };
+  if (T.kind !== 'ladder') return { ...base, ladder: false, rows: [], lastYear: null, totalGap: 0, toBuy: 0, firstGap: null, withExpected: null, withAll: null };
 
   const thisTY = taxYearStartOf(now);
   const running = !!T.running;
@@ -190,8 +128,8 @@ export function gapsOf(plan, { today, asKept = false, life } = {}) {
     const fromStandIns = r.standIns.reduce((s, x) => s + x.pays, 0);
     const n = r.monthsLeft;
     const monthly = n > 0 ? r.needExact / n : 0;
-    // the rung's months short (before the plan runs its share to buy; while living on it, from the pension's cash)
-    const rungShort = r.source === 'rung' && !held;
+    // the rung's months short: its share still to buy
+    const rungShort = r.source === 'rung';
     let fromStart = r.source === 'rung' ? r.rungsExact : fromStandIns;
     let fromPool = 0, short = 0, buy = 0;
     for (let k = 0; k < n && monthly > 0; k++) {
@@ -201,12 +139,11 @@ export function gapsOf(plan, { today, asKept = false, life } = {}) {
       if (want > 0) { const c = Math.min(pool, want); pool -= c; fromPool += c; want -= c; }
       if (want > 0.5) { short += want; if (r.shortAt == null) r.shortAt = k; }
     }
-    if (r.source === 'rung' && !held) { r.held = r0(r.rungsExact); r.toBuy = r0(buy); continue; }
+    if (r.source === 'rung') { r.held = r0(r.rungsExact); r.toBuy = r0(buy); continue; }
     r.cash = r0(fromPool);
     r.held = r0((r.source === 'rung' ? r.rungsExact : fromStandIns) + fromPool);
-    // before the plan runs, a cash year's money still to set aside is a move (the cash to hold), not a gap; living on the plan
-    // (or once what is held was accepted) it is never a move: what is not held is not covered
-    if (!running && !held && r.source === 'cash') r.toBuy = r0(short); else { r.gap = r0(short); r.toBuy = 0; }
+    // before the plan runs, a cash year's money still to set aside is a move (the cash to hold), not a gap
+    if (!running && r.source === 'cash') r.toBuy = r0(short); else { r.gap = r0(short); r.toBuy = 0; }
   }
   for (const x of spares) if (!x.used) { pool += x.amount; x.used = true; }
   const totalGap = rows.reduce((s, r) => s + r.gap, 0);
@@ -229,23 +166,9 @@ export function gapsOf(plan, { today, asKept = false, life } = {}) {
   }
   const toBuyTotal = rows.reduce((s, r) => s + r.toBuy, 0);
   const cover = (have) => (totalGap <= 0 ? null : have >= totalGap ? { covered: true, short: 0 } : { covered: false, short: r0(totalGap - have) });
-  // what the money available would cover of the years not covered, at today's value (7.11.1)
-  const coverHeld = (have) => { const c = cover(have); return c ? { ...c, cover: r0(Math.min(totalGap, Math.max(0, have))) } : null; };
   return { ...base, lumps, ladder: true, rows, lastYear: lastY, totalGap: r0(totalGap), toBuy: r0(toBuyTotal), firstGap,
-    // the pension's cash left after the last year read (7.11.1, read with what is held)
-    cashLeft: fromHeld ? r0(pool) : 0,
     withExpected: expected.total > 0 ? cover(expected.total) : null,
-    withAll: expected.total > 0 && fundsGaps.total > 0 ? cover(expected.total + fundsGaps.total) : fundsGaps.total > 0 ? cover(fundsGaps.total) : null,
-    // 7.11.1: what the money available in the pension (and what is kept and counted) would cover at today's value; the money
-    // expected is leant on only when what is held alone falls short, since it may not arrive (expected: true when it is)
-    withHeld: outside.total > 0 ? withHeldOf(coverHeld, fundsGaps.total + outside.total, expected.total) : null };
-}
-
-/** What is held would cover, alone first; with the money expected only when what is held alone falls short. */
-function withHeldOf(coverHeld, held, expected) {
-  const alone = coverHeld(held);
-  if (!alone || alone.covered || !(expected > 0)) return alone ? { ...alone, expected: false } : null;
-  return { ...coverHeld(held + expected), expected: true };
+    withAll: expected.total > 0 && fundsGaps.total > 0 ? cover(expected.total + fundsGaps.total) : fundsGaps.total > 0 ? cover(fundsGaps.total) : null };
 }
 
 const listWords = (xs) => (xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
@@ -261,8 +184,8 @@ export function gapSentences(g) {
   const out = [];
   const say = (id, ...parts) => out.push({ id, parts: parts.map((p) => ({ key: p[0], slots: p[1] || {}, words: p[2] || {} })) });
   const last = g.lastYear ? taxYearLabel(g.lastYear) : '';
-  // a clause with nothing in it is left out; read with what is held and nothing kept, the lead says it all (7.11.1)
-  if (g.ladder && !(g.fromHeld && g.heldAnotherWay === 0 && g.keptCount === 0)) {
+  // a clause with nothing in it is left out
+  if (g.ladder) {
     const n = g.heldAnotherWay, k = g.keptCount;
     const key = n > 0 && k > 0 ? 'strategyBoth' : n > 0 ? 'strategyYears' : k > 0 ? 'strategyKept' : 'strategyNone';
     say('strategy', [key, { n: String(n), k: String(k) }, { years: n === 1 ? 'yearOne' : 'yearMany', holdings: k === 1 ? 'holdingOne' : 'holdingMany' }]);
@@ -270,13 +193,6 @@ export function gapSentences(g) {
   // a year the plan needs nothing from the pension for (7.11.1): what pays it, so "£0" is never a puzzle
   const W = { lump: 'whyLump', lumpEarlier: 'whyLumpEarlier', sp: 'whySp', spOther: 'whySpOther', other: 'whyOther', else: 'whyElse' };
   for (const r of g.rows.filter((x) => x.paidBy)) say('noNeed', ['noNeed', { year: r.year }, { why: W[r.paidBy] }]);
-  // a gilt outside the rungs that has matured (7.11.1): its money is the pension's cash, counted there and never twice
-  for (const x of g.gilts || []) {
-    const month = x.matures ? monthWords(x.matures.slice(0, 7)) : '';
-    if (x.state === 'paid') say('gilt', ['giltPaid', { label: x.label, month }]);
-    // matured after the record was taken: what it paid is counted as the pension's cash now (7.11.1)
-    else if (x.state === 'cashNow') say('gilt', ['giltCashNow', { label: x.label, month, pays: pounds(x.pays) }]);
-  }
   // a fixed pay, and what it is worth in today's money by the time it is paid (the plan's needs are in today's money)
   for (const s of g.standIns.filter((x) => x.fixed)) say('fixed', s.real < s.pays - 1 ? ['fixedReal', { label: s.label, pays: pounds(s.pays), real: pounds(s.real) }] : ['fixed', { label: s.label, pays: pounds(s.pays) }]);
   for (const s of g.standIns.filter((x) => x.spare > 0)) say('spare', ['spare', { label: s.label, spare: pounds(s.spare) }]);
@@ -296,20 +212,8 @@ export function gapSentences(g) {
     // a pot plan has no years to fill: what is counted is counted toward the plan's money
     say('fundsGaps', [g.ladder ? 'fundsGaps' : 'fundsPlan', { list: listWords(g.fundsGaps.lines.map((k) => k.label)), total: pounds(g.fundsGaps.total) }]);
     const both = g.expected.total > 0;
-    // with money available in the pension too, one sentence says what all of it would cover (below)
-    if (g.withAll && !(g.outside && g.outside.total > 0)) say('withAll', g.withAll.covered ? [both ? 'withAll' : 'withKept', { year: last }] : [both ? 'withAllShort' : 'withKeptShort', { short: pounds(g.withAll.short), year: last }]);
+    if (g.withAll) say('withAll', g.withAll.covered ? [both ? 'withAll' : 'withKept', { year: last }] : [both ? 'withAllShort' : 'withKeptShort', { short: pounds(g.withAll.short), year: last }]);
   }
-  // the money available in the pension beside the plan's rungs and cash (7.11.1): set against no year, never ignored — one
-  // line with what it is worth today, gilts and shares and funds apart; what that would cover; and that shares and funds can fall
-  if (g.outside && g.outside.total > 0) {
-    const o = g.outside;
-    say('outside', [o.gilts > 0 && o.funds > 0 ? 'availableBoth' : o.gilts > 0 ? 'availableGilts' : 'availableFunds', { gilts: pounds(o.gilts), funds: pounds(o.funds) }]);
-    const exp = g.withHeld && g.withHeld.expected;
-    if (g.withHeld) say('withHeld', g.withHeld.covered ? [exp ? 'withHeldExpected' : 'withHeld', { year: last }] : [exp ? 'withHeldExpectedShort' : 'withHeldShort', { cover: pounds(g.withHeld.cover), short: pounds(g.withHeld.short), year: last }]);
-    if (o.funds > 0) say('outsideCanFall', [o.gilts > 0 ? 'outsideCanFallGilts' : 'outsideCanFall']);
-  }
-  // what the pension's cash still holds after the last year read (7.11.1): never lost
-  if (g.ladder && g.fromHeld && g.cashLeft > 0 && g.lastYear) say('cashLeft', ['cashLeft', { amount: pounds(g.cashLeft), year: last }]);
   if (g.kept.length) say('canFall', [g.ladder ? 'canFall' : 'canFallPot']);
   return out;
 }
@@ -336,26 +240,8 @@ export function gapsView(g) {
     standIns: g.standIns.map((s) => ({ label: s.label, wrapper: s.wrapper, pays: P(s.pays), real: P(s.real), fixed: s.fixed, years: s.taxYears.map(taxYearLabel) })),
     kept: g.kept.map((k) => ({ label: k.label, wrapper: k.wrapper, value: P(k.value), fundsGaps: k.fundsGaps })),
     expected: g.expected.items.map((e) => ({ id: e.id, label: e.label, amount: P(e.amount), by: e.by ? monthWords(e.by) : null, late: g.expected.late.includes(e.id) })),
-    lines: gapSentences(g),
-    // 7.11.1, only on a reading of what is held beyond the plan's own (a reading of what is kept is drawn as before): the lead
-    // that says so, and each line of the record with its part (rolesView)
-    ...(g.fromHeld ? { lead: 'leadHeld', held: rolesView(g.roles) } : {})
+    lines: gapSentences(g)
   };
-}
-
-/**
- * Each line of the record and its part, as the screens draw it (7.11.1; heldOf / gapsOf `roles`): figures in pounds, a gilt
- * outside the rungs with the month it matures, a fact only (`state`: available, paid or cashNow), a rung with its tax years
- * and its units held and to buy. Null in, null out.
- */
-export function rolesView(roles) {
-  if (!Array.isArray(roles)) return null;
-  const u = (v) => (v == null ? null : String(Math.round(+v || 0)));
-  return roles.map((r) => ({
-    at: r.at, label: r.label, ticker: r.ticker || '', sedol: r.sedol || '', wrapper: r.wrapper, role: r.role, value: pounds(r.value), units: u(r.units),
-    ...(r.role === 'gilt' || r.state === 'cashNow' ? { state: r.state, matures: r.matures ? monthWords(r.matures.slice(0, 7)) : null, pays: r.pays != null ? pounds(r.pays) : null } : {}),
-    ...(r.rung ? { rung: { label: r.rung.label, ticker: r.rung.ticker, years: r.rung.taxYears.map(taxYearLabel), units: u(r.rung.units), heldUnits: u(r.rung.heldUnits) } } : {})
-  }));
 }
 
 /** The one line the plan's home says when a year is not yet covered: the first such year and its gap, or null. */

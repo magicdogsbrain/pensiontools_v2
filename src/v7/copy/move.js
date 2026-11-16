@@ -72,34 +72,14 @@ export const MOVE = {
   },
   /**
    * What is held, as information (7.11.1): Living on it, or Moving once what is held was accepted, the page is never a move —
-   * no list of things to buy or sell, no schedule. answers/plan/move.js heldInfo fills these.
+   * no list of things to buy or sell, no schedule. answers/plan/move.js heldInfo fills these on a pot plan; a ladder's page is
+   * "Your plan's mix" (7.12.0, src/v7/copy/held.js).
    */
   held: {
     // (a walk of 7.11.1: never "nothing here is a list of things to buy or sell" — the plan's order sheet stays on the page)
     lead: 'What you hold, beside your plan as locked, and what each part of it is doing.',
     agreed: 'You accepted what you hold as your plan on {date}.',
     noRecord: 'Nothing recorded yet. You can record what you hold on What you hold, and this page reads it against your plan.',
-    rungs: '{held} of the {total} rungs your plan still needs are held.',
-    rungPart: '{label} ({code}), for {years}: {held} of {units} units held. The rest is rung {n} on the order sheet below.',
-    rungPartValue: '{label} ({code}), for {years}: {value} of {cost} held. The rest is rung {n} on the order sheet below.',
-    rungNone: '{label} ({code}), for {years}: not held. It is rung {n} on the order sheet below.',
-    // the full view has no order sheet on this tab: it is in the plan document
-    doc: {
-      rungPart: '{label} ({code}), for {years}: {held} of {units} units held. The rest is rung {n} of the order sheet in your plan document.',
-      rungPartValue: '{label} ({code}), for {years}: {value} of {cost} held. The rest is rung {n} of the order sheet in your plan document.',
-      rungNone: '{label} ({code}), for {years}: not held. It is rung {n} of the order sheet in your plan document.'
-    },
-    rungOver: '{label} ({code}), for {years}: held, with {excess} units more than the rung needs.',
-    linesTitle: 'Also in your pension',
-    // 7.11.1: when a gilt matures is a fact, said as one — it sets the gilt against no tax year
-    gilt: '{label} ({value} today): matures in {month}.',
-    giltUnknown: '{label} ({value} today): we cannot tell when it matures. Its code or SEDOL on What you hold would tell us.',
-    giltPaid: '{label}: matured in {month}. Once paid, its money is your pension’s cash, and the line can come off What you hold.',
-    giltCashNow: '{label}: matured in {month}, after your record was taken, so what it paid counts as your pension’s cash. The line can come off What you hold.',
-    outside: '{label} ({value} today): outside the plan’s mix; its value can fall.',
-    cash: 'The cash years still ahead ({years}) need {target}. Held for them: {held} in your pension’s cash.',
-    cashThisYear: 'The cash years still ahead ({years}; this one’s months still to come) need {target}. Held for them: {held} in your pension’s cash.',
-    cashNone: 'No cash years are left: the {held} in your pension’s cash is your spending float.',
     mixTitle: 'What you hold, against your plan’s mix',
     bucket: {
       shares: 'Shares: {held}% of your pension now; your plan’s mix has {plan}%.',

@@ -700,7 +700,11 @@ export function keepableAnswers(state) {
 function cTakeChoice(state, q, why, r) {
   if (q !== 'c' || why !== null || !cTakeReading(state)) return { take: null, trying: null };
   const shaped = Array.isArray(r.byYear) && r.byYear.length > 0;
-  return shaped ? { take: null, trying: { level: r.level } } : { take: { level: r.level }, trying: null };
+  // (7.12.0) reached from a saver's answer, its figures untouched since, and still paying in: the amount tried is what the
+  // person wanted, the level's what paying in as now supports — the choice names which is which
+  const d = state.draft && state.draft.c;
+  const wanted = !!(d && (d.carriedFrom === 'a' || d.carriedFrom === 'b') && d.values && d.values['you.payIn.has'] === 'yes');
+  return shaped ? { take: null, trying: { level: r.level } } : { take: { level: r.level, ...(wanted ? { wanted: d.carriedFrom } : {}) }, trying: null };
 }
 
 /** The panel: { can, why, suggested, name (the box), check, problem, saving, made, separate, partnerKept, useIn, used, sameName, … }. */

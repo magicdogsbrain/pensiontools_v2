@@ -337,3 +337,54 @@ describe('the full view\'s "Am I on course?" says the same as the plan\'s home, 
     expect(saverInputsOf(plan, { today: READ_ON }).inputs.you.pot).toBe(32000);
   }, 240000);
 });
+
+describe('keeping from "What is my pot worth a month?" when reached from a saver\'s answer', async () => {
+  const { fresh, run, set, answered } = await import('../shell/_open.js');
+  const { reduce } = await import('../../../src/v7/state/reduce.js');
+  const { A } = await import('../../../src/v7/state/actions.js');
+  const { parsedDraft, keepView } = await import('../../../src/v7/state/select.js');
+  const { answerC } = await import('../../../src/answers/c/answer.js');
+  const { KEEP } = await import('../../../src/v7/copy/keep.js');
+  const { h, render } = await import('preact');
+  const { KeepPanel } = await import('../../../src/v7/components/KeepPanel.jsx');
+  const jo = (spend) => run(fresh({ today: READ_ON }), set('b', 'you.age', '33'), set('b', 'you.pot', '22,000'), set('b', 'you.payIn.kind', 'share'), set('b', 'you.payIn.pay', '38,000'),
+    set('b', 'you.payIn.ownPct', '5'), set('b', 'you.payIn.employerPct', '3'), set('b', 'stop.age', '60'), set('b', 'spend.amount', spend));
+
+  it('Jo wants £2,500 from 60 and opens the pot-worth question from her answer: Keep names what she wants and what paying in as now supports; either kept plan says what to pay in', () => {
+    let st = answered(jo('2,500'), 'b', { status: 'ok', saving: [{ who: 'you', payIn: { total: 253.33 } }] });
+    st = reduce(st, { type: A.DRAFT_CARRY, from: 'b', to: 'c' });
+    const parsed = parsedDraft(st, 'c');
+    expect(parsed.ok).toBe(true);
+    const result = answerC(parsed.inputs, { today: READ_ON, futures: 100, seed: 0, detail: 'answer' });
+    st = answered(st, 'c', result);
+    const v = keepView(st, 'c');
+    expect(v.take).toMatchObject({ wanted: 'b' });
+    const el = document.createElement('div');
+    render(h(KeepPanel, { state: st, q: 'c', dispatch: () => {} }), el);
+    const tried = el.querySelector('[data-testid="c.action.save.tried"]').textContent;
+    const level = el.querySelector('[data-testid="c.action.save.level"]').textContent;
+    expect(tried).toBe('Keep: £2,500 a month (what you want)');
+    expect(level).toMatch(/^Keep: £[\d,]+ a month \(what paying in as now supports, at Balanced\)$/);
+    expect(el.textContent).toContain(KEEP.take.wantedNote);
+    // the plan kept with what Jo wants: its own "What you pay in" tests £2,500 from 60, on her share as typed
+    const seed = buildPlanSeed({ source: 'c', result, env: { today: READ_ON, appVersion: 'test' }, name: 'Jo', createdAt: READ_ON + 'T10:00:00.000Z', take: 'tried' });
+    const plan = upgradeScenario(copy(seedToScenario(seed, READ_ON).yours), { now: noon(READ_ON) }).scenario;
+    plan.id = 'JoK1';
+    const page = savingOf([entry(plan)], plan.id, { today: READ_ON });
+    expect(page.verdict.ok).toBe(true);
+    expect(page.verdict.notes.stopAge).toBe('60');
+    expect(Math.abs(saverInputsOf(plan, { today: READ_ON }).notes.aimMonthly - 2500)).toBeLessThanOrEqual(1);
+    // 38,000 × 3% ÷ 12 = £95 from the employer, kept as typed
+    expect(plan.accumulationTool.settings.employerMonthly).toBe(95);
+  }, 90000);
+
+  it('back from the pot-worth question to "Am I saving enough?" or "When can I stop?": the pay-in goes as typed, a share with its three boxes', () => {
+    let st = answered(jo('2,000'), 'b', { status: 'ok', saving: [{ who: 'you', payIn: { total: 253.33 } }] });
+    st = reduce(st, { type: A.DRAFT_CARRY, from: 'b', to: 'c' });
+    st = answered(st, 'c', { status: 'ok', payIn: { byPerson: [{ total: 253.33 }] } });
+    for (const to of ['a', 'b']) {
+      const back = reduce(st, { type: A.DRAFT_CARRY, from: 'c', to });
+      expect(back.draft[to].values).toMatchObject({ 'you.payIn.kind': 'share', 'you.payIn.pay': '38,000', 'you.payIn.ownPct': '5', 'you.payIn.employerPct': '3' });
+    }
+  }, 30000);
+});

@@ -43,7 +43,8 @@ describe('Keep on C keeps the amount on screen', () => {
     const st = joTrying();
     const r = st.answers.c.result;
     expect(r.take.perMonth).toBe(2500);
-    expect(keepView(st, 'c').take).toEqual({ level: r.level });
+    // (7.12.0) carried from "Am I saving enough?" and still paying in: the amount tried is what Jo wants
+    expect(keepView(st, 'c').take).toEqual({ level: r.level, wanted: 'b' });
     const seed = seedOf(st, 'tried');
     expect(seed.spend.perMonth).toBe(2500);
     expect(seed.spend.from).toBe('typed');
@@ -66,9 +67,9 @@ describe('Keep on C keeps the amount on screen', () => {
     const box = root.querySelector('[data-testid="c.keep.take"]');
     expect(box).not.toBeNull();
     expect(box.querySelector('legend').textContent).toBe('Which amount does the plan keep?');
-    expect(root.querySelector('[data-testid="c.action.save.tried"]').textContent).toBe('Keep: £2,500 a month (the amount you are trying)');
+    expect(root.querySelector('[data-testid="c.action.save.tried"]').textContent).toBe('Keep: £2,500 a month (what you want)');
     const level = st.answers.c.result.levels[st.answers.c.result.level].monthly;
-    expect(root.querySelector('[data-testid="c.action.save.level"]').textContent).toBe(`Keep: ${pounds(level)} a month (the amount at Balanced)`);
+    expect(root.querySelector('[data-testid="c.action.save.level"]').textContent).toBe(`Keep: ${pounds(level)} a month (what paying in as now supports, at Balanced)`);
     expect(root.querySelector('[data-testid="c.action.save"]')).toBeNull();
     expect(root.textContent).not.toContain('not the amount you are trying');
     // the press is carried to the write

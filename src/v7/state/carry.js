@@ -106,6 +106,15 @@ function intoCAsTyped(map, v) {
   return [...map.filter(([, target]) => !mine(target)), ...same(PAY_IN_PATHS.filter((p) => keep.some((who) => p.startsWith(who + '.'))))];
 }
 
+/**
+ * (7.12.0) Out of C, the same rule the other way: a person still paying in ("you.payIn.has" yes) whose pay-in is typed in
+ * parts keeps them as typed, so going back to A or B never flattens a share of pay, or a part and the employer's, to one
+ * total. Anyone else goes as one total from C's answer, as before.
+ */
+function fromCAsTyped(map, v) {
+  return intoCAsTyped(map, Object.fromEntries(Object.entries(v).filter(([k]) => !['you', 'partner'].some((who) => k.startsWith(who + '.payIn.') && v[who + '.payIn.has'] !== 'yes'))));
+}
+
 export const CARRY = Object.freeze({
   'c→a': [...HOUSEHOLD, ['start.age', 'stop.age'], [{ fixed: 'age' }, 'stop.kind'], ['take', 'spend.amount'], [{ fixed: 'amount' }, 'spend.kind'],
     ...payInFrom((k) => `payIn.byPerson.${k}.total`)],
@@ -214,7 +223,7 @@ export function carryFor(from, to, values, result = null) {
     return { map: CARRY_C_YOU_STOPPED[k], opens: CARRY_C_YOU_STOPPED_OPENS[k] };
   }
   const map = has(CARRY, k) ? CARRY[k] : null;
-  return { map: map && (k === 'a→c' || k === 'b→c') ? intoCAsTyped(map, v) : map, opens: has(CARRY_OPENS, k) ? CARRY_OPENS[k] : null };
+  return { map: map && (k === 'a→c' || k === 'b→c') ? intoCAsTyped(map, v) : map && (k === 'c→a' || k === 'c→b') ? fromCAsTyped(map, v) : map, opens: has(CARRY_OPENS, k) ? CARRY_OPENS[k] : null };
 }
 
 // ---- the spending shape (research/v7/spending-shape.md 4.5) ------------------------------------------------------------

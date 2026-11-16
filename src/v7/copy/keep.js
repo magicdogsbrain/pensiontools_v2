@@ -69,7 +69,15 @@ export const KEEP = {
       balanced: 'Keep: {amount} a month (the amount at Balanced)',
       bold: 'Keep: {amount} a month (the amount at Bold)'
     },
-    note: 'Neither is chosen for you. You can change what the plan takes later, in the plan.'
+    note: 'Neither is chosen for you. You can change what the plan takes later, in the plan.',
+    /** (7.12.0) Reached from "Am I saving enough?" or "When can I stop?", still paying in: which amount is which. */
+    wanted: 'Keep: {amount} a month (what you want)',
+    supports: {
+      careful: 'Keep: {amount} a month (what paying in as now supports, at Careful)',
+      balanced: 'Keep: {amount} a month (what paying in as now supports, at Balanced)',
+      bold: 'Keep: {amount} a month (what paying in as now supports, at Bold)'
+    },
+    wantedNote: 'Neither is chosen for you. Whichever you keep, the plan’s “What you pay in” then says whether what goes in is enough for it, and what would be.'
   },
   /**
    * The same with spending that changes with age: the amount tried has no year-by-year figures, so a keep keeps the amount

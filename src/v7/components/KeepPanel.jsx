@@ -77,10 +77,11 @@ function PayInChoice({ result, choice, saving, onPress, words, ask, note, ids, k
  * C read at an amount being tried, the spending the same every year: which amount the plan keeps, two buttons of one kind,
  * neither chosen — the amount tried and the level's. Each figure is the answer's own, drawn by Money.
  */
-function TakeChoice({ q, result, level, saving, onPress, kind = 'primary' }) {
+function TakeChoice({ q, result, level, wanted = null, saving, onPress, kind = 'primary' }) {
   const t = KEEP.take;
-  const tried = slotted(t.tried, { amount: <Money source={result} k="take.perMonth" /> });
-  const atLevel = slotted(t.level[level] || t.level.balanced, { amount: <Money source={result} k={`levels.${level}.monthly`} /> });
+  // (7.12.0) reached from a saver's answer: what you want, and what paying in as now supports, named as such
+  const tried = slotted(wanted ? t.wanted : t.tried, { amount: <Money source={result} k="take.perMonth" /> });
+  const atLevel = slotted(wanted ? (t.supports[level] || t.supports.balanced) : (t.level[level] || t.level.balanced), { amount: <Money source={result} k={`levels.${level}.monthly`} /> });
   return (
     <fieldset class="keep-pay-in keep-take" data-testid={`${q}.keep.take`}>
       <legend>{t.ask}</legend>
@@ -88,7 +89,7 @@ function TakeChoice({ q, result, level, saving, onPress, kind = 'primary' }) {
         <Button testid={`${q}.action.save.tried`} kind={kind} aria-busy={saving ? 'true' : undefined} onClick={() => onPress('tried')}><span class="btn-words">{tried}</span></Button>
         <Button testid={`${q}.action.save.level`} kind={kind} aria-busy={saving ? 'true' : undefined} onClick={() => onPress('level')}><span class="btn-words">{atLevel}</span></Button>
       </div>
-      <p class="note">{t.note}</p>
+      <p class="note">{wanted ? t.wantedNote : t.note}</p>
     </fieldset>
   );
 }
@@ -253,7 +254,7 @@ export function KeepPanel({ state, q, dispatch, heading = true }) {
             </div>
             {otherProblem && <p class="notice keep-problem" role="alert" data-testid={`${q}.keep.problem`} data-problem={otherProblem}>{fill(KEEP.problems[otherProblem] || KEEP.problems.failed, { name: v.partnerKept || '' })}</p>}
             {v.take && !v.saving
-              ? <TakeChoice q={q} result={state.answers[q].result} level={v.take.level} saving={v.saving} kind={second ? 'plain' : 'primary'}
+              ? <TakeChoice q={q} result={state.answers[q].result} level={v.take.level} wanted={v.take.wanted || null} saving={v.saving} kind={second ? 'plain' : 'primary'}
                 onPress={(take) => dispatch({ type: 'keep/save', q, take })} />
               : v.payIn && !v.saving
               ? <PayInChoice result={state.answers[q].result} choice={v.payIn} saving={v.saving} onPress={(payIn) => dispatch({ type: 'keep/save', q, payIn })} words={{}}

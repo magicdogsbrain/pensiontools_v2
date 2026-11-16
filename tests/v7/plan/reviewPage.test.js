@@ -87,7 +87,8 @@ describe('the reader: the phase, the choices and what each phase reads, with not
     expect(R.living.start).toMatchObject({ potsFrom: 'record', potsAsOf: 'September 2026', tookFrom: 'record', tookMonths: 6 });
     expect(R.living.band).toMatchObject({ id: 'lower' });
     expect(R.living.guardrail).toMatchObject({ state: 'within' });
-    expect(R.living.taken).toMatchObject({ took: '£15,600', planned: '£30,000', entered: false });
+    // 7.12.0: the plan's figure for the year is the year's set-up, £2,600 a month × 12, never the document's row
+    expect(R.living.taken).toMatchObject({ took: '£15,600', planned: '£' + (2600 * 12).toLocaleString('en-GB'), entered: false });
     expect(R.living.fields.map((f) => f.path)).toEqual(['rv.pension', 'rv.isa', 'rv.other', 'rv.took', 'rv.choice']);
     // what the person types is read: the pots against the band on the figures entered, said as entered
     const typed = { 'rv.pension': '500000', 'rv.took': '20000' };

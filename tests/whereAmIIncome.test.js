@@ -33,15 +33,17 @@ const doc = {
 const NOV = new Date(2026, 10, 4, 12);
 const rec = (date, sipp = 2600, extra = {}) => ({ date, taxYear: date >= '2026-04' ? '26/27' : '25/26', sipp, other: 0, state: 0, ...extra });
 
+// retaken in 7.12.0: "the plan said" is each month's own figure (YearPlan.takenAgainstPlan), never the document's year row a
+// twelfth a month; the words are the simple view's, so the full view no longer lists every month (the year strip does)
 describe('which months the strip counts: every record of this tax year, whatever it is marked', () => {
-  it('a year set up part-way with a gap inside the records (September and November recorded, then October): two months, then three, named', () => {
+  it('a year set up part-way with a gap inside the records (September and November recorded, then October): two months, then three', () => {
     const two = whereAmI(doc, { today: NOV, history: [rec('2026-09'), rec('2026-11')] }).incomeThisYear;
-    expect(two).toMatchObject({ recorded: 2, drawn: 5200, perMonth: 2500, months: ['2026-09', '2026-11'], cut: 0 });
+    expect(two).toMatchObject({ recorded: 2, drawn: 5200, said: 5200, months: ['2026-09', '2026-11'], cut: 0, taxYear: '2026/27' });
     expect(two.setUpMonths).toEqual([]);
-    expect(incomeThisYearText(two)).toBe('2 months recorded this tax year (September 2026 and November 2026): £5,200 taken before tax, against £5,000 the plan said for those months (£2,500 a month) — £200 more than the plan said.');
+    expect(incomeThisYearText(two)).toBe('2 months recorded in 2026/27: £5,200 taken before tax, as your plan said.');
     const three = whereAmI(doc, { today: NOV, history: [rec('2026-09'), rec('2026-11'), rec('2026-10')] }).incomeThisYear;
     expect(three).toMatchObject({ recorded: 3, drawn: 7800, months: ['2026-09', '2026-10', '2026-11'] });
-    expect(incomeThisYearText(three)).toBe('3 months recorded this tax year (September 2026 to November 2026): £7,800 taken before tax, against £7,500 the plan said for those months (£2,500 a month) — £300 more than the plan said.');
+    expect(incomeThisYearText(three)).toBe('3 months recorded in 2026/27: £7,800 taken before tax, as your plan said.');
   });
   it('a month filled in later, one paid ahead and one recorded from the tax year\'s set-up count like any other; another tax year\'s do not', () => {
     const history = [rec('2026-03'), rec('2026-04', 2600, { filledIn: true, fromSetUp: true }), rec('2026-09'), rec('2026-10', 2600, { filledIn: true }), rec('2026-12', 2600, { paidAhead: true })];
@@ -49,35 +51,39 @@ describe('which months the strip counts: every record of this tax year, whatever
     expect(inc.recorded).toBe(4);
     expect(inc.months).toEqual(['2026-04', '2026-09', '2026-10', '2026-12']);
     expect(inc.setUpMonths).toEqual(['2026-04']);
-    expect(incomeThisYearText(inc)).toBe('4 months recorded this tax year (April 2026, September 2026, October 2026 and December 2026; April 2026 is filled in from your tax-year set-up): £10,400 taken before tax, against £10,000 the plan said for those months (£2,500 a month) — £400 more than the plan said.');
+    expect(incomeThisYearText(inc)).toBe('4 months recorded in 2026/27 (April 2026 is filled in from your tax-year set-up): £10,400 taken before tax, as your plan said.');
   });
-  it('months filled in from the set-up are said apart, so the strip and Plan vs actual (which measures a part-year first year from its set-up on) do not seem to disagree', () => {
+  it('months filled in from the set-up are said apart', () => {
     const setUp = ['2026-04', '2026-05', '2026-06', '2026-07', '2026-08'].map((d) => rec(d, 2200, { filledIn: true, fromSetUp: true }));
     const inc = whereAmI(doc, { today: NOV, history: [...setUp, rec('2026-09'), rec('2026-10')] }).incomeThisYear;
-    expect(incomeThisYearText(inc)).toBe('7 months recorded this tax year (April 2026 to October 2026; April 2026 to August 2026 are filled in from your tax-year set-up): £16,200 taken before tax, against £17,500 the plan said for those months (£2,500 a month) — £1,300 less than the plan said.');
+    // 5 × 2,200 + 2 × 2,600
+    expect(incomeThisYearText(inc)).toBe('7 months recorded in 2026/27 (April 2026 to August 2026 are filled in from your tax-year set-up): £16,200 taken before tax, as your plan said.');
   });
 });
 
-describe('the words: what was taken against what the plan said for the same months, and the difference', () => {
-  it('less, and why when a recorded month says the plan\'s protection cut it; the same; one month', () => {
-    const cut = whereAmI(doc, { today: NOV, history: [rec('2026-09', 2500), rec('2026-10', 2000, { inProtection: true })] }).incomeThisYear;
-    expect(incomeThisYearText(cut)).toBe('2 months recorded this tax year (September 2026 and October 2026): £4,500 taken before tax, against £5,000 the plan said for those months (£2,500 a month) — £500 less, because income was cut in one of them.');
-    const allCut = whereAmI(doc, { today: NOV, history: [rec('2026-10', 2000, { inProtection: true })] }).incomeThisYear;
-    expect(incomeThisYearText(allCut)).toBe('1 month recorded this tax year (October 2026): £2,000 taken before tax, against £2,500 the plan said for that month (£2,500 a month) — £500 less, because income was cut in it.');
-    const less = whereAmI(doc, { today: NOV, history: [rec('2026-09', 2400), rec('2026-10', 2400)] }).incomeThisYear;
-    expect(incomeThisYearText(less)).toContain('— £200 less than the plan said.');
-    const same = whereAmI(doc, { today: NOV, history: [rec('2026-09', 2500)] }).incomeThisYear;
-    expect(incomeThisYearText(same)).toBe('1 month recorded this tax year (September 2026): £2,500 taken before tax, against £2,500 the plan said for that month (£2,500 a month) — the same as the plan said.');
+describe('the words: what was taken against what each month said, and the difference', () => {
+  const told = (date, sipp, f = {}) => rec(date, sipp, { stdSipp: 2500, ...f });
+  it('less, and why when a recorded month says the plan\'s protection cut it; more; the same; one month', () => {
+    const cut = whereAmI(doc, { today: NOV, history: [told('2026-09', 2500), told('2026-10', 2000, { inProtection: true })] }).incomeThisYear;
+    expect(incomeThisYearText(cut)).toBe('2 months recorded in 2026/27: £4,500 taken before tax. That is £500 less than your plan said, because income was cut in 1 of them.');
+    const allCut = whereAmI(doc, { today: NOV, history: [told('2026-10', 2000, { inProtection: true })] }).incomeThisYear;
+    expect(incomeThisYearText(allCut)).toBe('1 month recorded in 2026/27: £2,000 taken before tax. That is £500 less than your plan said, because income was cut in that month.');
+    const less = whereAmI(doc, { today: NOV, history: [told('2026-09', 2400), told('2026-10', 2400)] }).incomeThisYear;
+    expect(incomeThisYearText(less)).toContain('That is £200 less than your plan said.');
+    const more = whereAmI(doc, { today: NOV, history: [told('2026-09', 2600), told('2026-10', 2600)] }).incomeThisYear;
+    expect(incomeThisYearText(more)).toContain('That is £200 more than your plan said.');
+    const same = whereAmI(doc, { today: NOV, history: [told('2026-09', 2500, { monthlyNet: 2210 })] }).incomeThisYear;
+    expect(incomeThisYearText(same)).toBe('1 month recorded in 2026/27: £2,500 taken before tax, as your plan said. £2,210 reached your bank.');
   });
-  it('no plan figure for the year: what was taken alone; nothing recorded: no line', () => {
-    expect(incomeThisYearText({ recorded: 2, drawn: 5200, perMonth: null, months: ['2026-09', '2026-10'] })).toBe('2 months recorded this tax year (September 2026 and October 2026): £5,200 taken before tax.');
-    expect(incomeThisYearText({ recorded: 0, drawn: 0, perMonth: 2500 })).toBe('');
+  it('a plan whose start is ahead: what was taken alone; nothing recorded: said so', () => {
+    expect(incomeThisYearText({ recorded: 2, drawn: 5200, said: 5000, diff: 200, taxYear: '2026/27' }, { compare: false })).toBe('2 months recorded in 2026/27: £5,200 taken before tax.');
+    expect(incomeThisYearText({ recorded: 0, drawn: 0, taxYear: '2026/27' })).toBe('No month recorded in 2026/27 yet.');
     expect(incomeThisYearText(null)).toBe('');
   });
   it('in the strip: never a total against a monthly figure', () => {
-    const w = whereAmI(doc, { today: NOV, history: [rec('2026-09'), rec('2026-10'), rec('2026-11')] });
+    const w = whereAmI(doc, { today: NOV, history: [told('2026-09', 2600), told('2026-10', 2600), told('2026-11', 2600)] });
     const s = strip(w);
-    expect(s).toContain('3 months recorded this tax year (September 2026 to November 2026): £7,800 taken before tax, against £7,500 the plan said for those months (£2,500 a month) — £300 more than the plan said.');
+    expect(s).toContain('3 months recorded in 2026/27: £7,800 taken before tax. That is £300 more than your plan said.');
     expect(s).not.toContain('gross so far');
     expect(s).not.toContain('a month planned');
   });

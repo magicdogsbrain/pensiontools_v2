@@ -124,7 +124,8 @@ describe('each stage\'s home', () => {
     expect(cells.map((c) => c.getAttribute('data-month'))).toEqual(['2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12', '2027-01', '2027-02', '2027-03']);
     expect(cells.slice(0, 6).every((c) => c.getAttribute('data-state') === 'recorded')).toBe(true);
     expect(cells[0].querySelector('.year-bar').getAttribute('style')).toMatch(/^height: ?\d+%/);
-    expect(cells[0].querySelector('.sr-only').textContent).toMatch(/^April 2026: recorded, £[\d,]+ taken before tax; the plan said £[\d,]+$/);
+    // 7.12.0: "the plan said" only when the month differs from what it told the person to take
+    expect(cells[0].querySelector('.sr-only').textContent).toMatch(/^April 2026: recorded, £[\d,]+ taken before tax$/);
     expect(one(root, `${T}.where`).textContent).toContain('6 months recorded in 2026/27');
   });
   it('home-drawing with September not recorded: the month is the one thing due; "Not now" asks the plan write to store it on the plan', () => {

@@ -383,7 +383,8 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     const btn = root.querySelector('[data-testid="rail.next.button"]');
     expect(btn.textContent).toBe('Record August');
     expect(btn.getAttribute('href')).toBe('#/plan/' + id + '/month');
-    expect(root.querySelector('[data-testid="plan.month.gap"]').textContent).toContain('August 2026');
+    // 7.12.0: the page opens on August itself, the month the button names (YearPlan.monthToRecord)
+    expect(root.querySelector('[data-testid="plan.month.submit"]').textContent).toBe('Record August 2026');
     // the line names its source (the September record) and the page passes every check a plan page must
     expect(root.querySelector('[data-line="month.gapLater"] .plan-source')).not.toBe(null);
     expect(checkPlanPage(root, text, scopesOf('running')).filter((p) => p !== 'a box is drawn')).toEqual([]);   // Month by month has its boxes by design (7.2.0)
@@ -422,8 +423,9 @@ describe('a month that was missed (a report of 3 Nov 2026): the earliest month n
     b.decisionTool.history = b.decisionTool.history.filter((h) => h.date !== '2026-04');
     const later = draw(stateWith(entriesAt(TODAY, raws), '#/plan/' + id + '/month'));
     expect(later.text).toContain('June 2026 is not recorded yet; September 2026 is.');
-    expect(later.text).not.toContain('April 2026 is not');
     expect(later.text).not.toContain('May 2026 is not');
+    // 7.12.0: its 2026/27 was set up from April, so April is the plan's first payment month and the page may name it as missed;
+    // the step still counts from the first record
     const whole = draw(stateWith(entriesAt(TODAY), '#/plan/' + id + '/month'));
     expect(whole.text).toContain('October 2026 is not recorded yet');
     expect(whole.text).not.toContain('October 2026 is not recorded yet;');

@@ -65,11 +65,13 @@ describe('Month by month, drawn', () => {
   });
 
   it('months missed: the nudge names them; filling them in names them on Record', () => {
-    const before = at('06-pre-6.4-no-timing', '2026-10-02');
+    // 7.12.0: the page opens on the first month missed (YearPlan.monthToRecord); with October chosen, the nudge names the three
+    expect(one(at('06-pre-6.4-no-timing', '2026-10-02').root, `${T}.submit`).textContent).toBe('Record July 2026');
+    const before = at('06-pre-6.4-no-timing', '2026-10-02', { 'mo.month': '2026-10' });
     expect(one(before.root, `${T}.gap`).getAttribute('data-count')).toBe('3');
     expect(one(before.root, `${T}.gap`).textContent).toContain('July 2026 to September 2026');
     clean(before.words);
-    const after = at('06-pre-6.4-no-timing', '2026-10-02', { 'mo.fill': 'yes', 'mo.from': '2026-07' });
+    const after = at('06-pre-6.4-no-timing', '2026-10-02', { 'mo.month': '2026-10', 'mo.fill': 'yes', 'mo.from': '2026-07' });
     expect(one(after.root, `${T}.gap`)).toBe(null);
     expect(one(after.root, `${T}.submit`).textContent).toBe('Record October 2026 and fill in 3 months');
     expect(one(after.root, `${T}.fill`).textContent).toContain('marked as filled in later');
@@ -77,7 +79,8 @@ describe('Month by month, drawn', () => {
   });
 
   it('a tax year not set up: the set-up, what reaches the bank, the month worked out as it will be; Set up, not Record', () => {
-    const { root, words } = at('04-buckets-running', '2027-04-10');
+    // 7.12.0: October 2026 is missed in this plan, so the page opens there; April 2027 is chosen to set up its year
+    const { root, words } = at('04-buckets-running', '2027-04-10', { 'mo.month': '2027-04' });
     expect(one(root, `${T}.setUp`).getAttribute('data-year')).toBe('27/28');
     expect(one(root, `${T}.setUp.submit`).textContent).toBe('Set up 2027/28');
     expect(one(root, `${T}.setUp.bankAfter`).textContent).toMatch(/^£[\d,]+$/);
@@ -88,7 +91,7 @@ describe('Month by month, drawn', () => {
   });
 
   it('part-way through a year: the income and tax so far are asked; a top-up that falls short asks which', () => {
-    const { root, words } = at('04-buckets-running', '2027-06-10', { 'ty.income': '70000', 'ty.isa': '2000' });
+    const { root, words } = at('04-buckets-running', '2027-06-10', { 'mo.month': '2027-06', 'ty.income': '70000', 'ty.isa': '2000' });
     expect(root.querySelector('[data-field="ty.toDate"]')).not.toBe(null);
     expect(root.querySelector('[data-field="ty.choice"]')).not.toBe(null);
     clean(words);

@@ -19,30 +19,30 @@ import { parse } from '../src/ui/inlineHandlers.js';
 describe('the State Pension line says the right thing', () => {
   it('nothing in the plan: says so, never "0 years until"', () => {
     const t = statePensionLine({ amount: 0, monthly: 0, yearsUntil: 0, isReceiving: false, startDate: null }, '2026-09');
-    expect(t).toBe('Not in your plan yet — add your State Pension forecast under Settings if you have one.');
+    expect(t).toBe('State Pension: not in your plan. You can add your forecast under Settings.');
     expect(t).not.toMatch(/0 years/);
   });
   it('a date but no amount', () => {
     const t = statePensionLine({ amount: 0, yearsUntil: 10, isReceiving: false, startDate: '12 July 2036' }, '2026-09');
-    expect(t).toBe('Starts 12 July 2036 — the amount is not in your plan yet; add your forecast under Settings.');
+    expect(t).toBe('State Pension: starts 12 July 2036. Your plan has no amount for it yet. You can add your forecast under Settings.');
   });
   it('already in payment', () => {
     const t = statePensionLine({ amount: 11973, monthlyFull: 997.75, yearsUntil: 0, monthsUntil: 0, isReceiving: true, startYm: '2024-05', startDate: '21 May 2024' }, '2026-09');
-    expect(t).toBe('In payment: £998 a month (£11,973 this tax year).');
+    expect(t).toBe('State Pension: £998 a month (£11,973 this tax year).');
   });
   it('starts later this tax year', () => {
     const t = statePensionLine({ amount: 4990, monthlyFull: 997.75, isReceiving: true, startYm: '2026-11', startDate: '21 November 2026' }, '2026-09');
-    expect(t).toBe('Starts 21 November 2026: £998 a month (£4,990 this tax year).');
+    expect(t).toBe('State Pension: starts 21 November 2026, £998 a month (£4,990 this tax year).');
   });
   it('years away, with the months', () => {
-    expect(statePensionLine({ amount: 11973, yearsUntil: 10, monthsUntil: 7, isReceiving: false, startDate: '12 July 2036' }, '2026-09')).toBe('Starts 12 July 2036 — 10 years 7 months away.');
-    expect(statePensionLine({ amount: 11973, yearsUntil: 1, monthsUntil: 0, isReceiving: false, startDate: '12 July 2028' }, '2027-04')).toBe('Starts 12 July 2028 — 1 year away.');
-    expect(statePensionLine({ amount: 11973, yearsUntil: 0, monthsUntil: 5, isReceiving: false, startDate: '12 July 2027' }, '2026-11')).toBe('Starts 12 July 2027 — 5 months away.');
+    // 7.12.0: one fact with the simple view's: the amount a year and when, and that none is paid this tax year
+    expect(statePensionLine({ amount: 11973, yearsUntil: 10, monthsUntil: 7, isReceiving: false, startDate: '12 July 2036' }, '2026-09')).toBe('State Pension: £11,973 a year from 12 July 2036. None is paid in 2026/27.');
+    expect(statePensionLine({ amount: 11973, yearsUntil: 1, monthsUntil: 0, isReceiving: false, startDate: '12 July 2028' }, '2027-04')).toBe('State Pension: £11,973 a year from 12 July 2028. None is paid in 2027/28.');
   });
   it('the start month has passed but the year total is not yet counted: still "in payment", never 0 years', () => {
     const t = statePensionLine({ amount: 11973, monthlyFull: 997.75, yearsUntil: 0, monthsUntil: 0, isReceiving: false, startYm: '2026-05', startDate: '21 May 2026' }, '2026-09');
     expect(t).not.toMatch(/0 years/);
-    expect(t).toMatch(/In payment/);
+    expect(t).toBe('State Pension: £998 a month (£11,973 this tax year).');
   });
 });
 
@@ -52,7 +52,7 @@ describe('the screens', () => {
     expect(wizardScreens({ isApril: false }).map((s) => s.key)).toEqual(['this-year', 'top-up', 'confirm']);
   });
   it('the bands read as an assumption, in pounds', () => {
-    expect(bandsAssumptionText({ pa: 12570, brl: 50270, hrl: 125140 })).toBe('We assume a tax-free allowance of £12,570, 20% tax up to £50,270 of taxable income and 45% above £125,140.');
+    expect(bandsAssumptionText({ pa: 12570, brl: 50270, hrl: 125140 })).toBe('We assume a tax-free allowance of £12,570, then 20% tax on income up to £50,270, 40% up to £125,140 and 45% above.');
   });
 });
 

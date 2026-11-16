@@ -75,9 +75,11 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
     expect(g.rows.every((r) => !r.standIns.length)).toBe(true);
     const w = words(g);
     expect(w).toContain('Also in your pension, at today’s value: gilts £88,230, shares and funds £52,000, not set against any year.');
-    // with the money expected, that would cover every year not covered
-    expect(g.withHeld).toEqual({ covered: true, short: 0, cover: g.totalGap });
-    expect(w).toContain('With the money you expect, and that at today’s value, every year to 2028/29 is covered.');
+    // Moved on purpose (the walk): what Alex holds covers every year not covered on its own, so the sentence never leans on the
+    // money expected, which the page itself says may not arrive
+    expect(g.withHeld).toEqual({ covered: true, short: 0, cover: g.totalGap, expected: false });
+    expect(w).toContain('At today’s value, that would cover every year to 2028/29.');
+    expect(w.some((t) => t.startsWith('With the money you expect'))).toBe(false);
     expect(w).toContain(GAPS.outsideCanFallGilts);
   });
 
@@ -137,7 +139,8 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
     const q = alex({ lines: alexRaw().holdings.lines.filter((l) => l.sedol !== 'BFX0ZL7' && l.sedol !== 'B16NNR7' && l !== FUND), expected: [] });
     const h = gapsOf(q, { today: TODAY });
     expect(h.outside).toMatchObject({ gilts: 29990, funds: 12000, total: 41990 });
-    expect(h.withHeld).toEqual({ covered: false, short: h.totalGap - 41990, cover: 41990 });
+    // Moved on purpose (the walk): the reading says whether it leant on the money expected; here nothing is expected
+    expect(h.withHeld).toEqual({ covered: false, short: h.totalGap - 41990, cover: 41990, expected: false });
     const w = words(h);
     expect(w).toContain('Also in your pension, at today’s value: gilts £29,990, shares and funds £12,000, not set against any year.');
     expect(w).toContain(`At today’s value, that would cover £41,990 of it, leaving £${(h.totalGap - 41990).toLocaleString('en-GB')} not covered to 2028/29.`);
@@ -147,6 +150,17 @@ describe('what is covered reads what Alex holds, with no "Keep this"', () => {
     const r = gapsOf(alex({ lines: alexRaw().holdings.lines.filter((l) => l !== FUND && l !== SHARES), expected: [] }), { today: TODAY });
     expect(words(r)).toContain('Also in your pension, at today’s value: gilts £88,230, not set against any year.');
     expect(words(r).some((t) => t === GAPS.outsideCanFall || t === GAPS.outsideCanFallGilts)).toBe(false);
+  });
+
+  it('the money expected is leant on only when what is held alone falls short, and the sentence says so', () => {
+    const q = alex({ lines: alexRaw().holdings.lines.filter((l) => l.sedol !== 'BFX0ZL7' && l.sedol !== 'B16NNR7' && l !== FUND) });
+    const h = gapsOf(q, { today: TODAY });
+    expect(h.expected.total).toBeGreaterThan(0);
+    expect(h.outside.total).toBeLessThan(h.totalGap);
+    expect(h.withHeld.expected).toBe(true);
+    const w = words(h);
+    expect(w.some((t) => t.startsWith('With the money you expect, and that at today’s value'))).toBe(true);
+    expect(w.some((t) => t.startsWith('At today’s value, that would cover'))).toBe(false);
   });
 
   it('a gilt whose maturity cannot be told is never guessed: it is money available like the others', () => {

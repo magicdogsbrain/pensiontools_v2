@@ -236,8 +236,16 @@ export function gapsOf(plan, { today, asKept = false, life } = {}) {
     cashLeft: fromHeld ? r0(pool) : 0,
     withExpected: expected.total > 0 ? cover(expected.total) : null,
     withAll: expected.total > 0 && fundsGaps.total > 0 ? cover(expected.total + fundsGaps.total) : fundsGaps.total > 0 ? cover(fundsGaps.total) : null,
-    // 7.11.1: with the money available in the pension at today's value too (and what is expected and counted)
-    withHeld: outside.total > 0 ? coverHeld(expected.total + fundsGaps.total + outside.total) : null };
+    // 7.11.1: what the money available in the pension (and what is kept and counted) would cover at today's value; the money
+    // expected is leant on only when what is held alone falls short, since it may not arrive (expected: true when it is)
+    withHeld: outside.total > 0 ? withHeldOf(coverHeld, fundsGaps.total + outside.total, expected.total) : null };
+}
+
+/** What is held would cover, alone first; with the money expected only when what is held alone falls short. */
+function withHeldOf(coverHeld, held, expected) {
+  const alone = coverHeld(held);
+  if (!alone || alone.covered || !(expected > 0)) return alone ? { ...alone, expected: false } : null;
+  return { ...coverHeld(held + expected), expected: true };
 }
 
 const listWords = (xs) => (xs.length <= 1 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1]);
@@ -296,7 +304,7 @@ export function gapSentences(g) {
   if (g.outside && g.outside.total > 0) {
     const o = g.outside;
     say('outside', [o.gilts > 0 && o.funds > 0 ? 'availableBoth' : o.gilts > 0 ? 'availableGilts' : 'availableFunds', { gilts: pounds(o.gilts), funds: pounds(o.funds) }]);
-    const exp = g.expected.total > 0;
+    const exp = g.withHeld && g.withHeld.expected;
     if (g.withHeld) say('withHeld', g.withHeld.covered ? [exp ? 'withHeldExpected' : 'withHeld', { year: last }] : [exp ? 'withHeldExpectedShort' : 'withHeldShort', { cover: pounds(g.withHeld.cover), short: pounds(g.withHeld.short), year: last }]);
     if (o.funds > 0) say('outsideCanFall', [o.gilts > 0 ? 'outsideCanFallGilts' : 'outsideCanFall']);
   }

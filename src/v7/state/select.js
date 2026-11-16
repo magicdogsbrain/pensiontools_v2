@@ -695,6 +695,13 @@ export function keepableAnswers(state) {
   return OPEN.filter((q) => state.answers && state.answers[q] && keepView(state, q).can);
 }
 
+/** C's keep at an amount being tried: { take: { level } } with a flat spend, { trying: { level } } with a shape. */
+function cTakeChoice(state, q, why, r) {
+  if (q !== 'c' || why !== null || !cTakeReading(state)) return { take: null, trying: null };
+  const shaped = Array.isArray(r.byYear) && r.byYear.length > 0;
+  return shaped ? { take: null, trying: { level: r.level } } : { take: { level: r.level }, trying: null };
+}
+
 /** The panel: { can, why, suggested, name (the box), check, problem, saving, made, separate, partnerKept, useIn, used, sameName, … }. */
 export function keepView(state, q) {
   const keep = (state.keep && state.keep[q]) || emptyKeep();
@@ -717,9 +724,10 @@ export function keepView(state, q) {
   return { can: why === null, why, suggested, name, check: checkPlanName(name), problem: keep.problem || null, saving: keep.saving === true,
     made: keep.made || null, separate: q === 'd' && lockedPlanInAccount(state) === true, partnerKept: keep.partnerKept || null,
     payIn: why === null ? keepPayInOf(q, r) : null, useIn, used: keep.used || null, sameName,
-    // C read at an amount being tried (the slider, or "Take, a month"): a keep keeps the amount at the level — the one the
-    // answer stands behind, whose level, chance and year-by-year figures the plan takes — and the panel says so
-    trying: q === 'c' && why === null && cTakeReading(state) ? { level: r.level } : null,
+    // C read at an amount being tried (the slider, or "Take, a month"): Keep asks which amount the plan keeps, the one tried
+    // or the level's, neither chosen (`take`). With spending that changes with age the amount tried has no year-by-year
+    // figures, so a keep keeps the level's and the panel says so (`trying`).
+    ...cTakeChoice(state, q, why, r),
     // (7.9.0: with the age each future is followed on to for the chance, the answer's own — the kept plan's chance counts those years too)
     cut: len && len.cut ? { ...len, weightToAge: r.chance && Number.isFinite(r.chance.weightToAge) ? r.chance.weightToAge : len.planToAge } : null };
 }

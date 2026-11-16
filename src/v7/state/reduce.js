@@ -1503,7 +1503,7 @@ function reduceAction(state, action) {
     }
     case A.KEEP_SAVE: {
       if (!draft) return refuse(`keep/save: no question "${q}"`);
-      const { payIn: _chosen, ...k } = keepOf(state, q);
+      const { payIn: _chosen, take: _took, ...k } = keepOf(state, q);
       if (k.saving) return state;
       const view = keepView(state, q);
       if (!view.can) return withKeep(state, q, { ...k, problem: 'notReady' });
@@ -1511,7 +1511,9 @@ function reduceAction(state, action) {
       // B not on course asks which pay-in the plan keeps (saving-enough-and-check-in.md 3.6): "enough" only when the
       // answer offers it; anything else is as now, the old behaviour
       const enough = action.payIn === 'enough' && view.payIn !== null;
-      return withKeep(state, q, { ...k, saving: true, problem: null, ...(enough ? { payIn: 'enough' } : {}) });
+      // C read at an amount being tried asks which amount the plan keeps: "tried" only when the panel offers it
+      const tried = action.take === 'tried' && view.take !== null;
+      return withKeep(state, q, { ...k, saving: true, problem: null, ...(enough ? { payIn: 'enough' } : {}), ...(tried ? { take: 'tried' } : {}) });
     }
     case A.KEEP_SENDING: {
       // the account's create is about to go (effects/planWrite.js keep): its stamp is kept until the plan is told as made
@@ -1527,7 +1529,7 @@ function reduceAction(state, action) {
       if (!draft) return refuse(`keep/made: no question "${q}"`);
       const made = cleanMade(action);
       if (!made) return refuse('keep/made: needs an id, a name and where');
-      const { payIn: _kept, ...k } = keepOf(state, q);
+      const { payIn: _kept, take: _takeKept, ...k } = keepOf(state, q);
       return withKeep(state, q, { ...k, name: null, saving: false, problem: null, partnerKept: null, made, pending: null });
     }
     case A.KEEP_USE: {
@@ -1561,7 +1563,7 @@ function reduceAction(state, action) {
       const problem = KEEP_PROBLEMS.includes(action.problem) ? action.problem : 'failed';
       // a couple whose partner's plan was made but not yours: the name it was kept under, for the sentence
       const partnerKept = problem === 'partial' && typeof action.name === 'string' ? action.name.slice(0, 200) : null;
-      const { payIn: _tried, ...k } = keepOf(state, q);
+      const { payIn: _tried, take: _takeTried, ...k } = keepOf(state, q);
       return withKeep(state, q, { ...k, saving: false, problem, partnerKept });
     }
 

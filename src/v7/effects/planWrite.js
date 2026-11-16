@@ -1318,7 +1318,9 @@ export function startPlanWrite(store, { win = null, session = null, local = null
       seed = buildPlanSeed({
         source: q, result: state.answers[q].result, env: state.env, name: { suggested: view.suggested, chosen: view.check.name },
         budget: state.budget || null, spendHow: (state.draft[q] && state.draft[q].spendHow) || null, createdAt: at.toISOString(),
-        payIn: k && k.payIn === 'enough' && view.payIn ? 'enough' : 'now'
+        payIn: k && k.payIn === 'enough' && view.payIn ? 'enough' : 'now',
+        // C: the amount the person chose to keep — the one tried, or the level's
+        take: k && k.take === 'tried' && view.take ? 'tried' : 'level'
       });
       // this window holds three plans of its own at most (the example not counted); a couple needs room for two
       if (place.kind === 'window' && guestOwnPlans(plans).length + (seed.household === 'couple' ? 2 : 1) > GUEST_MAX_PLANS) { keepFail(q, 'full'); return; }

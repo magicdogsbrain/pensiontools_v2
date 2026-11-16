@@ -8,6 +8,7 @@
  *   keepable(source, result)            → { ok: true } | { ok: false, why }   what the answer must be to be saved
  *   buildPlanSeed({ source, result, env, name, budget, spendHow, createdAt, payIn })   → the seed, or null when not keepable
  *   atEnough(result)                    → B's answer as if asked paying in what would be on course, or null
+ *   atTake(result)                      → C's answer as if its level's amount were the amount being tried, or null
  *   seedProblems(seed)                  → [] for a seed that can go to Firestore almost unchanged (no undefined, no
  *                                         functions, no Dates, no numbers that are not finite, no arrays inside arrays)
  *
@@ -356,13 +357,19 @@ export function keptLengthOf(source, result, today) {
  * @param {string} o.createdAt       ISO time, from V7's effect clock
  * @param {'now'|'enough'} [o.payIn] B only: keep what goes in as now (the default, as before), or what would be on course
  *                                   (research/saving-enough-and-check-in.md 3.6: Keep asks which, neither chosen)
+ * @param {'level'|'tried'} [o.take]  C only: keep the amount at the level (the default, as before), or the amount being
+ *                                   tried, on screen (Keep asks which, neither chosen; atTake)
  * @returns {object|null}
  */
-export function buildPlanSeed({ source, result: asked, env, name, budget = null, spendHow = null, createdAt, payIn = 'now' }) {
+export function buildPlanSeed({ source, result: asked, env, name, budget = null, spendHow = null, createdAt, payIn = 'now', take = 'level' }) {
   if (!keepable(source, asked).ok || !env || typeof env.today !== 'string' || typeof createdAt !== 'string') return null;
   // "Keep: paying in … (on course)": the answer at that figure, which B worked out with the answer (no second model)
-  const enough = source === 'b' && payIn === 'enough' ? atEnough(asked) : null;
-  if (source === 'b' && payIn === 'enough' && !enough) return null;
+  const onCourse = source === 'b' && payIn === 'enough' ? atEnough(asked) : null;
+  if (source === 'b' && payIn === 'enough' && !onCourse) return null;
+  // "Keep: £2,500 a month (the amount you are trying)": C's answer at the amount tried, worked out with the answer
+  const tried = source === 'c' && take === 'tried' ? atTake(asked) : null;
+  if (source === 'c' && take === 'tried' && !tried) return null;
+  const enough = onCourse || tried;
   const result = enough || asked;
   const inputs = result.inputs;
   const today = env.today;
@@ -383,7 +390,7 @@ export function buildPlanSeed({ source, result: asked, env, name, budget = null,
   const ownYears = (w) => (apart ? years - (S[w] - stop.yearsFromNow) : years);
 
   const spend = source === 'c'
-    ? { perMonth: shownOf(result).monthly, from: 'careful', level: null, budgetSkipped: null }
+    ? { perMonth: shownOf(result).monthly, from: tried ? 'typed' : 'careful', level: null, budgetSkipped: null }
     : {
       perMonth: spendStartOf(result),
       from: result.spend.kind === 'level' ? 'level' : spendHow === 'lines' ? 'budget' : 'typed',
@@ -435,6 +442,24 @@ export function buildPlanSeed({ source, result: asked, env, name, budget = null,
  * So the seed keeps what the screen said, and has the same keys as one kept paying in as now: nothing new is stored.
  * null when the answer is on course already, or has no such figure.
  */
+/**
+ * C's answer as if its level's amount were the amount being tried (the slider, or "Take, a month"): the level's amount, the
+ * stretches of years and the chance are the `take` block's, which the answer worked out on the same futures. Null when
+ * nothing is tried, or the spending changes with age (the amount tried has no year-by-year rows).
+ */
+export function atTake(result) {
+  const t = result && result.take;
+  if (!t || !isNum(t.perMonth) || !(t.perMonth > 0) || !Array.isArray(t.phases) || !t.phases.length) return null;
+  if (Array.isArray(result.byYear) && result.byYear.length) return null;
+  const out = JSON.parse(JSON.stringify(result));
+  const level = out.level || 'balanced';
+  const weighted = isNum(t.weighted) ? t.weighted : t.lasted;
+  out.levels = { ...out.levels, [level]: { ...(out.levels && out.levels[level]), monthly: t.perMonth, yearly: round2(t.perMonth * 12), weighted, fixedAge: t.lasted } };
+  out.phases = JSON.parse(JSON.stringify(t.phases));
+  out.chance = { ...out.chance, weighted, fixedAge: t.lasted };
+  return out;
+}
+
 export function atEnough(result) {
   const en = result && result.enough;
   const fig = en && result.verdict && result.verdict.band !== 'yes' ? en.atLevel : null;

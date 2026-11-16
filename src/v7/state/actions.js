@@ -55,7 +55,7 @@ export const A = Object.freeze({
 
   // ---- "Keep this as a plan" (save-as-plan.md; road-to-7.md step 7: the preview makes the plan itself) ------------
   KEEP_NAME:       'keep/name',        // { q, value }                       the name box, as typed
-  KEEP_SAVE:       'keep/save',        // { q, payIn? }                      checks the answer and the name; saving: true → the one write file makes the plan
+  KEEP_SAVE:       'keep/save',        // { q, payIn?, take? }               checks the answer and the name; saving: true → the one write file makes the plan
                                        //                                     (B not on course: payIn 'now' or 'enough', which pay-in the plan keeps)
   KEEP_SENDING:    'keep/sending',     // { q, at }                          the account's create is about to go: its stamp (the new plan's createdAt), kept
                                        //                                     until keep/made, so a retry finds a plan the lost answer made instead of a second

@@ -58,9 +58,22 @@ export const KEEP = {
   note: 'Each keep makes one new plan. Keeping a plan needs a free account, or you can keep up to three in this browser window without one.',
   privacy: 'Your figures go into the plan and nowhere else. They never go into the address.',
   /**
-   * C's answer read at an amount being tried (the slider, or "Take, a month"): what a keep keeps is the amount at the level
-   * chosen, the one the answer stands behind — the plan's level, chance and year-by-year figures are that amount's.
-   * {amount} is the answer's figure at the level.
+   * C's answer read at an amount being tried (the slider, or "Take, a month"), the spending the same every year: which amount
+   * the plan keeps, asked with two buttons of one kind and neither chosen. {amount} is the answer's figure.
+   */
+  take: {
+    ask: 'Which amount does the plan keep?',
+    tried: 'Keep: {amount} a month (the amount you are trying)',
+    level: {
+      careful: 'Keep: {amount} a month (the amount at Careful)',
+      balanced: 'Keep: {amount} a month (the amount at Balanced)',
+      bold: 'Keep: {amount} a month (the amount at Bold)'
+    },
+    note: 'Neither is chosen for you. You can change what the plan takes later, in the plan.'
+  },
+  /**
+   * The same with spending that changes with age: the amount tried has no year-by-year figures, so a keep keeps the amount
+   * at the level chosen, and says so. {amount} is the answer's figure at the level.
    */
   trying: {
     careful: 'A plan kept from here takes {amount} a month, the amount at Careful, not the amount you are trying. You can change what it takes once it is kept.',

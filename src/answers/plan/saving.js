@@ -221,7 +221,8 @@ export function reliefLines(b, inputs) {
   lines.push({ id: b.reliefMonthly > 0.5 ? (b.niSavedMonthly > 0.5 ? 'relief.monthNi' : 'relief.month') : 'relief.monthNone', slots: { you, gross: pounds(Math.round(b.grossMonthly)), relief: pounds(Math.round(b.reliefMonthly)), ni: pounds(Math.round(b.niSavedMonthly)) } });
   if (b.employerMonthly > 0) lines.push({ id: 'relief.employer', slots: { employer: pounds(b.employerMonthly) } });
   lines.push({ id: 'relief.total', slots: { total: pounds(Math.round(b.totalMonthly)), pence: String(Math.round(b.costPerPound * 100)) } });
-  if (b.hrClaimMonthly > 0.5) lines.push({ id: 'relief.claim', slots: { claim: pounds(Math.round(b.hrClaimMonthly)), pence: String(Math.max(0, Math.round((inputs.netMonthly - b.hrClaimMonthly) / b.totalMonthly * 100))) } });
+  // the claim back from HMRC (7.12.0): on the pay above the higher-rate line only, said a year, with the pay it is on
+  if (b.hrClaimMonthly > 0.5) lines.push({ id: 'relief.claim', slots: { salary: pounds(inputs.salary), above: pounds(Math.max(0, inputs.salary - 50270)), claim: pounds(Math.round(b.hrClaimMonthly * 12)) } });
   if (inputs.schemeType === 'salsac') lines.push({ id: 'relief.salsac', slots: {} });
   if (inputs.schemeType === 'ras' && inputs.salary > 0 && inputs.salary <= 12570) lines.push({ id: 'relief.nonTaxpayer', slots: {} });
   return lines;

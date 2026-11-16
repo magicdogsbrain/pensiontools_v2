@@ -161,13 +161,14 @@ export const CHECKIN = {
     next: 'Next check-in: {month}.',
     calendar: 'Add to my calendar',
     calendarHelp: 'Saves a calendar file that holds the date of your next check-in and the words “PensionTools check-in”: no figures, no email.',
-    useInPlan: {
-      share: 'You now pay in {now}% in all; your plan says {plan}%.',
-      pounds: 'You now pay in {now} a month; your plan says {plan}.',
-      savings: 'You now put {now} a month into ISAs and savings; your plan says {plan}.'
+    /** What the plan now uses from this check-in (7.12.0: written with it), or that a pause leaves it as it was. */
+    uses: {
+      uses: 'Your plan now uses these: pay {pay}, {takeHome} a month from your take-home pay, {employer} from your employer.',
+      usesNoEmployer: 'Your plan now uses these: pay {pay}, {takeHome} a month from your take-home pay.',
+      usesNoPay: 'Your plan now uses these: {takeHome} a month from your take-home pay, {employer} from your employer.',
+      usesNoPayNoEmployer: 'Your plan now uses these: {takeHome} a month from your take-home pay.',
+      paused: 'Your plan’s pay-in is unchanged while you are not paying in.'
     },
-    useButton: { share: 'Use {now}% in my plan', pounds: 'Use {now} a month in my plan', savings: 'Use {now} a month in my plan' },
-    useHelp: 'This changes What you pay in, and nothing else. A locked plan stays locked.',
     pathDiffers: 'The path was drawn paying in {drawn} a month; you now pay in {now}.',
     restart: 'Start the path again from today',
     restartHelp: 'Draws a new saving path from your last check-in’s figures. The old one is kept, and your check-ins stay as they were read.',
@@ -182,7 +183,7 @@ export const CHECKIN = {
     potIsa: '{pension} pension, {isa} ISAs and savings',
     payIn: {
       share: '{pct}% of your pay in all ({amount} a month)',
-      split: '{amount} a month (you {own}, your employer {employer})',
+      split: '{amount} a month ({own} from you, {employer} from your employer)',
       total: '{amount} a month'
     },
     savingsIn: ', {amount} a month into ISAs and savings',
@@ -201,8 +202,6 @@ export const CHECKIN = {
   toast: {
     checkedIn: 'Checked in for {month}.',
     pathAgain: 'Your saving path starts again from {month}.',
-    usedInPlan: 'What you pay in is now as your check-in says.',
-    useSame: 'Your plan already says this.',
     undone: 'Put back as it was.',
     unchanged: 'Nothing has changed.',
     savedShort: 'Saved.'

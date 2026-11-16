@@ -123,9 +123,10 @@ export const UNLOCK_KEYS = Object.freeze(['locked', 'unlockedAt', 'unlockCount']
 
 /**
  * A saver's check-in, by name (the header; research/saving-enough-and-check-in.md 5.8): every key it may write, and on a
- * locked plan only the first three. The stamp every save carries (lastModified) goes with either.
+ * locked plan only the first four (7.12.0: the check-in writes the pay and what goes in into What you pay in's settings,
+ * which the lock never froze). The stamp every save carries (lastModified) goes with either.
  */
-const CHECK_IN_LOCKED = Object.freeze(['accumulationTool.checkIns', 'accumulationTool.history', 'accumulationTool.checkInEvery']);
+const CHECK_IN_LOCKED = Object.freeze(['accumulationTool.checkIns', 'accumulationTool.history', 'accumulationTool.checkInEvery', 'accumulationTool.settings']);
 export const CHECK_IN_KEYS = Object.freeze({
   locked: CHECK_IN_LOCKED,
   unlocked: Object.freeze([...CHECK_IN_LOCKED, 'accumulationTool.path', 'accumulationTool.pathArchive'])

@@ -32,7 +32,6 @@
  *                                          inputs (`plans`, the plans at hand: money taken flexibly on a plan before this one)
  *   checkInPatch(plan, typed, { today, now, result, plans })  → { ok, patch, previous, line, record }: ONE write (CHECKIN_WRITES)
  *   restartPathPatch(plan, { today, now }) "Start the path again from today": an unlocked plan's path drawn again
- *   useInPlanPatch(plan, { today })        "Use these in my plan" (5.6): What you pay in's settings from the last check-in
  *   whatChanged(prev, cur, { isaCounted }) the pot's change between two check-ins, in parts that add up to the pound (5.5)
  *   calendarText({ month, today })         the calendar file: the date and "PensionTools check-in", nothing else
  *   checkInOf(entries, id, { today, typed, source })   everything the screen draws
@@ -60,7 +59,7 @@ import { SUCCESS } from '../shared/rules.js';
 import { saverInputsOf, planPayInOf } from './saverInputs.js';
 import { savedSaving, allowanceOf } from './saving.js';
 import { CADENCE_MONTHS, addMonths, checkInsOf, cadenceOf, checkInDueOf, checkInState } from './checkInDue.js';
-import { CHECKIN_FIELDS, CHECKIN_WRITES, SAVING_WRITES, PAY_IN_KINDS } from './schema.js';
+import { CHECKIN_FIELDS, CHECKIN_WRITES, PAY_IN_KINDS } from './schema.js';
 import { get, parseMonth as readMonth } from './about.js';
 import { pounds } from './income.js';
 import { dateOf, ym, monthWords, monthsBetween, localMonth } from './dates.js';
@@ -403,12 +402,20 @@ export function archiveWith(archive, old) {
   return out;
 }
 
+/** Two saving settings objects that say the same (a key left out reads as the planner reads it: £0, relief at source). */
+function sameSettings(a, b) {
+  if (!isObj(a) || !isObj(b)) return false;
+  const v = (o, k) => (o[k] === undefined || o[k] === null ? (k === 'schemeType' ? 'ras' : ['payInKind', 'ownPct', 'employerPct', 'savingMix'].includes(k) ? null : 0) : o[k]);
+  return [...new Set([...Object.keys(a), ...Object.keys(b)])].every((k) => JSON.stringify(v(a, k)) === JSON.stringify(v(b, k)));
+}
+
 const declared = (patch) => { for (const k of Object.keys(patch)) if (!CHECKIN_WRITES.includes(k)) throw new Error('checkIn: "' + k + '" is not a declared field path'); return patch; };
 
 /**
  * The check-in's ONE write (5.4 step 5, 5.8): the check-ins with this one added (one of this month replaced, the oldest
  * dropped past CHECKINS_KEPT), this month's pot record (the same month replaced, the last 600 kept), how often (when it
- * changed), and on an unlocked plan with no path yet the path drawn from this check-in's figures. Never a setting, never
+ * changed), your pay and what goes in as What you pay in's settings (7.12.0; not while a pause runs), and on an unlocked
+ * plan with no path yet the path drawn from this check-in's figures. Never another setting, never
  * the plan document. `result` is B's answer on checkInDraft's inputs (null: no verdict — no aim yet, or figures the test
  * cannot take; the check-in still records the pot and reads it against the path).
  */
@@ -444,6 +451,12 @@ export function checkInPatch(plan, typed, { today, now, result = null, plans = [
     patch['accumulationTool.history'] = hist.filter((r) => r.date !== month).concat([pot]).sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(-RECORDS_KEPT);
   }
   if (acc.checkInEvery !== d.values['ci.every']) patch['accumulationTool.checkInEvery'] = d.values['ci.every'];
+  // the check-in is you telling the plan (7.12.0): your pay and what goes in become What you pay in's, in this same write —
+  // never while a pause runs (what goes in is then nothing for now, not what the plan should keep)
+  if (!pauseRunning(d.record)) {
+    const next = settingsFromCheckIn(plan, d.record, today);
+    if (!sameSettings(next, isObj(acc.settings) ? acc.settings : null)) patch['accumulationTool.settings'] = next;
+  }
   const previous = {};
   for (const k of Object.keys(patch)) previous[k] = copy(get(plan, k));
   return { ok: true, patch: declared(patch), previous, record, line: { id: 'checkedIn', slots: { month: monthWords(month) } } };
@@ -498,8 +511,9 @@ export function settingsFromCheckIn(plan, ci, today) {
     next = { ...base, salary, schemeType: scheme, netMonthly: round2(own / landsPerPound(salary, scheme)), employerMonthly: round2(employer) };
   }
   next.isaMonthly = isNum(p.savingsIn) ? p.savingsIn : (num(s.isaMonthly) || 0);
-  next.currentAge = num(saved.currentAge) || 0;
-  next.retirementAge = num(saved.retirementAge) || 0;
+  // the ages are About's: the ones stored stay (7.12.0, as What you pay in's own Save); with none, the ages as read
+  next.currentAge = num(s.currentAge) > 0 ? +s.currentAge : num(saved.currentAge) || 0;
+  next.retirementAge = num(s.retirementAge) > 0 ? +s.retirementAge : num(saved.retirementAge) || 0;
   for (const k of ['potNow', 'escalationPct']) next[k] = num(s[k]) || 0;
   if (!next.schemeType) next.schemeType = 'ras';
   return next;
@@ -510,22 +524,6 @@ function planSays(plan) {
   const { payIn, share } = planPayInOf(plan);
   const s = isObj(accOf(plan).settings) ? accOf(plan).settings : {};
   return { kind: payIn.kind, total: payInParts(payIn).total, totalPct: share ? round2(share.ownPct + share.employerPct) : null, savingsIn: num(s.isaMonthly) || 0 };
-}
-
-/** "Use these in my plan" (5.6): What you pay in's settings from the last check-in, ONE write (SAVING_WRITES), outside the lock. */
-export function useInPlanPatch(plan, { today }) {
-  // a check-in's own buttons, so only while the plan is still saving (5.8), as the check-in itself: a drawing plan's
-  // check-ins from its saving years are read, never written back into its settings
-  if (!checkInAllowed(safeStage(plan, dateOf(today))).ok) return { ok: false, problem: 'notSaving', patch: {}, previous: {} };
-  const list = checkInsOf(plan);
-  if (!list.length) return { ok: false, problem: 'problems', patch: {}, previous: {} };
-  const ci = list[list.length - 1];
-  const next = settingsFromCheckIn(plan, ci, today);
-  const cur = get(plan, 'accumulationTool.settings');
-  if (JSON.stringify(cur) === JSON.stringify(next)) return { ok: true, patch: {}, previous: {}, line: { id: 'useSame', slots: {} } };
-  const patch = { 'accumulationTool.settings': next };
-  for (const k of Object.keys(patch)) if (!SAVING_WRITES.includes(k)) throw new Error('checkIn: "' + k + '" is not a declared field path');
-  return { ok: true, patch, previous: { 'accumulationTool.settings': copy(cur) }, line: { id: 'usedInPlan', slots: {} } };
 }
 
 // ---- what changed (5.5) ------------------------------------------------------------------------------------------------
@@ -768,18 +766,19 @@ export function checkInOf(entries, id, { today, typed = null, source = 'account'
   const rows = list.map((ci, i) => rowOf(ci, i > 0 ? list[i - 1] : null)).reverse();
   const latest = latestOf(list, { pathDoc });
   const last = list.length ? list[list.length - 1] : null;
-  // "Use these in my plan" (5.6): only when the last check-in's pay-in is not what the plan says
-  let useInPlan = null;
+  // what the plan now uses from the last check-in (7.12.0: the check-in writes it in its own write), or that a pause leaves
+  // the plan's pay-in as it was
+  let uses = null;
   if (last && !readonly && allowed) {
-    const says = planSays(plan);
-    const nowTotal = last.payIn.total;
-    const lastPct = last.payIn.kind === 'share' && isNum(last.payIn.ownPct) ? round2(last.payIn.ownPct + last.payIn.employerPct) : null;
-    const pctDiff = lastPct != null && says.totalPct != null && lastPct !== says.totalPct;
-    const totalDiff = Math.abs(round2(nowTotal) - round2(says.total)) >= 0.01;
-    const savingsDiff = Math.abs(round2(last.payIn.savingsIn || 0) - round2(says.savingsIn)) >= 0.01;
-    if (pctDiff) useInPlan = { id: 'share', slots: { now: pctText(lastPct), plan: pctText(says.totalPct) } };
-    else if (totalDiff) useInPlan = { id: 'pounds', slots: { now: pounds(nowTotal), plan: pounds(says.total) } };
-    else if (savingsDiff) useInPlan = { id: 'savings', slots: { now: pounds(last.payIn.savingsIn || 0), plan: pounds(says.savingsIn) } };
+    if (pauseRunning(last)) uses = { id: 'paused', slots: {} };
+    else {
+      const a = isObj(accOf(plan).settings) ? accOf(plan).settings : {};
+      const would = settingsFromCheckIn(plan, last, today);
+      if (['salary', 'schemeType', 'netMonthly', 'employerMonthly', 'isaMonthly', 'payInKind', 'ownPct', 'employerPct'].every((k) => JSON.stringify(would[k]) === JSON.stringify(a[k]))) {
+        const pay = num(a.salary) > 0 ? pounds(a.salary) : null, emp = num(a.employerMonthly) > 0 ? pounds(a.employerMonthly) : null;
+        uses = { id: 'uses' + (pay ? '' : 'NoPay') + (emp ? '' : 'NoEmployer'), slots: { pay: pay || '', takeHome: pounds(num(a.netMonthly) || 0), employer: emp || '' } };
+      }
+    }
   }
   // "The path was drawn paying in £317 a month; you now pay in £380" (5.6)
   const head = pathDoc && isObj(pathDoc.doc.accumulation) ? pathDoc.doc.accumulation : null;
@@ -804,7 +803,7 @@ export function checkInOf(entries, id, { today, typed = null, source = 'account'
     path: pathDoc ? { source: pathDoc.source, from: pathStartAt ? monthWords(keyOf(pathStartAt)) : null, isa: pathCountsIsa(pathDoc.doc) } : null,
     // only from a check-in of this month (restartPathPatch): the path it draws starts this month, from that check-in's pot
     restartable: !readonly && allowed && !locked && !!pathDoc && pathDoc.source === 'saving' && !!last && monthOfDate(last.date) === monthOfDate(today),
-    useInPlan, pathDiffers,
+    uses, pathDiffers,
     // the calendar file (5.2): once a check-in has said how often, for the month the next falls due
     calendar: due.chosen && due.next ? { month: due.next, words: monthWords(due.next), text: calendarText({ month: due.next, today, planId: plan.id }), name: calendarFileName(due.next) } : null,
     dropWarning: list.length >= CHECKINS_WARN_FROM,

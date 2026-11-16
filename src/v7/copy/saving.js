@@ -77,7 +77,7 @@ export const SAVING = {
     'relief.monthNone': 'Each month you pay {you}, and {gross} goes into your pension: no tax is added back at this salary.',
     'relief.employer': 'Your employer adds {employer}.',
     'relief.total': '{total} a month goes in, in all: each £1 in the pot costs you {pence}p.',
-    'relief.claim': 'A further {claim} a month is yours to claim back from HMRC through a tax return — it is not added by itself, and it is often missed. Claimed, each £1 costs you {pence}p.',
+    'relief.claim': 'At {salary} you pay higher-rate tax on {above} of your pay. On what you pay in you can claim {claim} a year back from HMRC, through a tax return or by asking HMRC. It is not added by itself.',
     'relief.salsac': 'Salary sacrifice also saves your employer National Insurance; many employers add some or all of that — ask. From April 2029 the saving is capped at £2,000 a year of pay given up.',
     'relief.nonTaxpayer': 'Below the tax-free allowance the provider still adds 25% on payments up to £3,600 a year before the addition (£2,880 from you) — relief at source only.'
   },

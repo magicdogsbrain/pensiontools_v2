@@ -835,7 +835,7 @@ export const isCheckInPath = (path) => CHECKIN_PATHS.includes(String(path));
  * replaced — each a whole field, with the stamp. "Use these in my plan" (5.6) writes What you pay in's own settings
  * (SAVING_WRITES). LockedPlanGuard.CHECK_IN_KEYS names the same keys, and which a locked plan's check-in may write.
  */
-export const CHECKIN_WRITES = Object.freeze(['accumulationTool.checkIns', 'accumulationTool.history', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'lastModified']);
+export const CHECKIN_WRITES = Object.freeze(['accumulationTool.checkIns', 'accumulationTool.history', 'accumulationTool.checkInEvery', 'accumulationTool.path', 'accumulationTool.pathArchive', 'accumulationTool.settings', 'lastModified']);
 
 // ---- Month by month (research/v7/months-in-v7.md; 7.2.0) --------------------------------------------------------------------
 

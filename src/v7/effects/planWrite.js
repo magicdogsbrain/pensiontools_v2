@@ -97,12 +97,10 @@
  *   - `plan/checkIn` (kind 'checkIn'): refused on a plan that is not still saving (LifeStage.checkInAllowed); the boxes
  *     checked (answers/plan/checkIn.js checkInDraft); question B run in the worker on the plan's figures with the check-in's
  *     own (client.checkIn: B's answer at 1,000 futures, seed 0 — the check-in's verdict is that one test); then checkInPatch
- *     — the check-ins, this month's pot record, how often, and an unlocked plan's first path — as ONE write, past the guard
- *     AND held to the check-in's own keys (LockedPlanGuard.checkInWriteRefusal: three on a locked plan). Without a worker
+ *     — the check-ins, this month's pot record, how often, your pay and what goes in (7.12.0), and an unlocked plan's first
+ *     path — as ONE write, past the guard AND held to the check-in's own keys (LockedPlanGuard.checkInWriteRefusal). Without a worker
  *     nothing is written ('noWorker'): a check-in's verdict is never a lesser run. Then checkin/shown (the answer, for the
  *     result drawn under it) and plan/saved with op 'checkIn' and Undo.
- *   - `plan/useCheckIn` (kind 'useCheckIn'): "Use these in my plan" (5.6) — What you pay in's settings from the last
- *     check-in (useInPlanPatch), ONE write as the step's own Save, op 'saving'.
  *   - `plan/restartPath` (kind 'restartPath'): "Start the path again from today" on an unlocked plan (restartPathPatch) —
  *     the path and the paths it replaced, ONE write, op 'checkIn'.
  *
@@ -202,7 +200,7 @@ import { amendPatch, withdrawPatch } from '../../answers/plan/keepTest.js';
 import { stressAmendPatch, stressWithdrawPatch, stressKeyOf, sameAs, referenceOf } from '../../answers/plan/stressPanel.js';
 import { budgetPatch } from '../../answers/plan/budget.js';
 import { savingPatch, recordPatch } from '../../answers/plan/saving.js';
-import { checkInDraft, checkInPatch, restartPathPatch, useInPlanPatch, CHECKIN_FUTURES, CHECKIN_SEED } from '../../answers/plan/checkIn.js';
+import { checkInDraft, checkInPatch, restartPathPatch, CHECKIN_FUTURES, CHECKIN_SEED } from '../../answers/plan/checkIn.js';
 import { answerInPlanPatch } from '../../answers/plan/useAnswer.js';
 import { monthRecordPatch, taxYearPatch } from '../../answers/plan/month.js';
 import { taskPatch, DISMISS } from '../../answers/plan/tasks.js';
@@ -1050,18 +1048,18 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     later(() => dispatch({ type: A.PLAN_TOAST_CLOSE }));
   }
 
-  /** "Use these in my plan" (5.6) and "Start the path again from today" (5.3): ONE write each, outside the lock. */
-  async function fromCheckIn(planId, kind) {
+  /** "Start the path again from today" (5.3): ONE write, outside the lock. */
+  async function fromCheckIn(planId) {
     const got = await placed(planId);
     if (!got) return;
     const { place, plan, state } = got;
     const at = now();
-    const p = kind === 'useCheckIn' ? useInPlanPatch(plan, { today: state.env.today }) : restartPathPatch(plan, { today: state.env.today, now: at });
+    const p = restartPathPatch(plan, { today: state.env.today, now: at });
     if (!p.ok) { fail(planId, ['locked', 'restartOld', 'notSaving'].includes(p.problem) ? p.problem : 'problems'); return; }
-    const op = kind === 'useCheckIn' ? 'saving' : 'checkIn';
+    const op = 'checkIn';
     if (!Object.keys(p.patch).length) { dispatch({ type: A.PLAN_SAVED, planId, previous: {}, line: p.line, op }); later(() => dispatch({ type: A.PLAN_TOAST_CLOSE })); return; }
     const data = declaredOnly({ ...p.patch, lastModified: at.toISOString() });
-    if (lockedRefusal(plan, data) || (kind === 'restartPath' && checkInWriteRefusal(plan, data))) { fail(planId, 'locked'); return; }
+    if (lockedRefusal(plan, data) || checkInWriteRefusal(plan, data)) { fail(planId, 'locked'); return; }
     if (!(await send(place, planId, data))) return;
     dispatch({ type: A.PLAN_SAVED, planId, previous: { ...p.previous, lastModified: plan.lastModified }, line: p.line, op });
     dispatch({ type: A.PLANS_READING });
@@ -1904,7 +1902,7 @@ export function startPlanWrite(store, { win = null, session = null, local = null
     else if (action.type === A.PLAN_STALE_LEAVE && s.kind === 'staleLeave') run(() => leaveStale(s.planId));
     // a saver's check-in (release step R3)
     else if (action.type === A.PLAN_CHECK_IN && s.kind === 'checkIn') run(() => checkIn(s.planId));
-    else if ((action.type === A.PLAN_USE_CHECKIN && s.kind === 'useCheckIn') || (action.type === A.PLAN_RESTART_PATH && s.kind === 'restartPath')) run(() => fromCheckIn(s.planId, s.kind));
+    else if (action.type === A.PLAN_RESTART_PATH && s.kind === 'restartPath') run(() => fromCheckIn(s.planId));
     // Month by month (7.2.0)
     else if ((action.type === A.PLAN_MONTH_RECORD && s.kind === 'month') || (action.type === A.PLAN_TAX_YEAR && s.kind === 'taxYear')) run(() => monthWrite(s.planId, s.kind));
     // "Use these in ‘…’" on question B's answer (6.59.0)

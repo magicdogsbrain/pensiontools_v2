@@ -163,20 +163,13 @@ function Result({ V, dispatch, planId }) {
       <PathLine L={L} />
       {!L.path && <p class="note" data-testid={`${T}.result.noPath`}>{R.noPath}</p>}
       <Changed L={L} paused={latestRow && latestRow.paused} />
+      {/* the check-in wrote your pay and what goes in into the plan (7.12.0): said once, after what changed */}
+      {V.uses && <p data-testid={`${T}.result.uses`} data-uses={V.uses.id}>{fill(R.uses[V.uses.id], V.uses.slots)}</p>}
       {tn && (
         <p data-testid={`${T}.result.thenNow`}>{fill(R.thenNow, tn)}{tn.enoughThen && tn.enoughNow ? ' ' + fill(R.thenNowEnough, { then: enoughText(tn.enoughThen, R.enoughShort), now: enoughText(tn.enoughNow, R.enoughShort) }) : ''}</p>
       )}
       {L.path && L.path.band !== 'start' && <p class="note">{R.caution}</p>}
       {V.pathDiffers && <p class="note" data-testid={`${T}.result.pathDiffers`}>{fill(R.pathDiffers, V.pathDiffers)}</p>}
-      {V.useInPlan && (
-        <div class="checkin-use" data-testid={`${T}.useInPlan`}>
-          <p>{fill(R.useInPlan[V.useInPlan.id], V.useInPlan.slots)}</p>
-          <div class="actions-row">
-            <Button testid={`${T}.use`} kind="plain" disabled={!!V.saving} onClick={() => dispatch({ type: 'plan/useCheckIn', planId })} {...keepFocus}>{fill(R.useButton[V.useInPlan.id], V.useInPlan.slots)}</Button>
-          </div>
-          <p class="note">{R.useHelp}</p>
-        </div>
-      )}
       {V.cadence.chosen && V.cadence.next && (
         <div class="checkin-next">
           <p data-testid={`${T}.next`}>{fill(R.next, { month: V.cadence.next })}</p>

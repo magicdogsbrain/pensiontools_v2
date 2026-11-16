@@ -1849,12 +1849,11 @@ function reduceAction(state, action) {
       if (typeof planId !== 'string' || !planId || typeof date !== 'string' || !DATE.test(date)) return refuse('checkin/shown: needs a plan id and a date');
       return { ...state, checkIn: { planId, date, result: action.result && typeof action.result === 'object' ? action.result : null } };
     }
-    case A.PLAN_USE_CHECKIN:
     case A.PLAN_RESTART_PATH: {
       const { planId } = action;
       if (typeof planId !== 'string' || !planId) return refuse(action.type + ': needs a plan id');
       if (state.ui.saving) return state;
-      return { ...state, ui: { ...state.ui, saving: { planId, kind: action.type === A.PLAN_USE_CHECKIN ? 'useCheckIn' : 'restartPath' }, saveProblem: null, toast: null } };
+      return { ...state, ui: { ...state.ui, saving: { planId, kind: 'restartPath' }, saveProblem: null, toast: null } };
     }
     case A.PLAN_CALENDAR: {
       const { planId } = action;

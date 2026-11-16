@@ -232,7 +232,6 @@ export const A = Object.freeze({
   // a saver's check-in (research/saving-enough-and-check-in.md 5; release step R3): the run, then ONE write through effects/planWrite.js
   PLAN_CHECK_IN:   'plan/checkIn',        // { planId }                       "Check in": saving { kind: 'checkIn' }; question B runs on the check-in's figures, then the one write
   CHECKIN_SHOWN:   'checkin/shown',       // { planId, date, result }         the check-in written: its answer held in page memory, for the result drawn under it
-  PLAN_USE_CHECKIN: 'plan/useCheckIn',    // { planId }                       "Use these in my plan": saving { kind: 'useCheckIn' }; What you pay in's settings from the last check-in
   PLAN_RESTART_PATH: 'plan/restartPath',  // { planId }                       "Start the path again from today": saving { kind: 'restartPath' } (an unlocked plan only)
   // Month by month (research/v7/months-in-v7.md §3, 7.2.0): ONE write each through effects/planWrite.js
   PLAN_MONTH_RECORD: 'plan/monthRecord',  // { planId }                       "Record": saving { kind: 'month' }; this month and the months filled in before it, the tax years

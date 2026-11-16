@@ -21,6 +21,8 @@ import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
 import { potsAtStopBuilds } from '../../../src/services/PotsAtStop.js';
 import { boxesOf as aboutBoxes, aboutPatch } from '../../../src/answers/plan/about.js';
 import { planPage } from '../../../src/answers/plan/read.js';
+import { checkInPatch, checkInOf } from '../../../src/answers/plan/checkIn.js';
+import { CHECKIN as CW } from '../../../src/v7/copy/checkin.js';
 import { SAVING as W } from '../../../src/v7/copy/saving.js';
 import { noon } from './_plans.js';
 
@@ -261,5 +263,45 @@ describe('step 3: the pots when you stop are worked out, never frozen', () => {
     const before = potsAtStopBuilds();
     for (let i = 0; i < 50; i++) effectiveStressSettings(plan, { now: NOW });
     expect(potsAtStopBuilds() - before).toBe(1);
+  }, 30000);
+});
+
+describe('step 4: a check-in is you telling the plan', () => {
+  const at = (d) => new Date(d + 'T12:00:00.000Z');
+  const samIn = { 'ci.pension': '131000', 'ci.pay': '55000', 'ci.kind': 'split', 'ci.own': '375', 'ci.employer': '250' };
+
+  it('Sam checks in with a pay rise to £55,000: one write, and the plan uses the new pay and what goes in', () => {
+    const plan = samPlan();
+    plan.accumulationTool.history = [];
+    const p = checkInPatch(plan, samIn, { today: READ_ON, now: at(READ_ON), result: null });
+    expect(p.ok).toBe(true);
+    expect(p.patch['accumulationTool.settings']).toBeDefined();
+    const after = applyPatch(plan, p.patch);
+    const v = savingOf([entry(after)], after.id, { today: READ_ON });
+    expect(v.fields.find((f) => f.path === 'salary').shown).toBe('55000');
+    // £375 landing is £300 from take-home pay (× 0.8); 55,000 − 50,270 = 4,730 a year above the line, more than the
+    // 375 × 12 = 4,500 paid in, so the claim is 4,500 × 20% = £900 a year
+    const claim = v.relief.find((l) => l.id === 'relief.claim');
+    expect(fill(W.relief['relief.claim'], claim.slots)).toBe('At £55,000 you pay higher-rate tax on £4,730 of your pay. On what you pay in you can claim £900 a year back from HMRC, through a tax return or by asking HMRC. It is not added by itself.');
+    expect(saverInputsOf(after, { today: READ_ON }).inputs.you.pot).toBe(131000);
+    const ci = checkInOf([entry(after)], after.id, { today: READ_ON });
+    expect(fill(CW.result.uses[ci.uses.id], ci.uses.slots)).toBe('Your plan now uses these: pay £55,000, £300 a month from your take-home pay, £250 from your employer.');
+  }, 30000);
+
+  it('a check-in while not paying in leaves what goes in as the plan has it', () => {
+    const plan = samPlan();
+    const p = checkInPatch(plan, { ...samIn, 'ci.paused': 'yes', 'ci.pausedFrom': '2026-09' }, { today: READ_ON, now: at(READ_ON), result: null });
+    expect(p.ok).toBe(true);
+    expect(p.patch['accumulationTool.settings']).toBeUndefined();
+    const ci = checkInOf([entry(applyPatch(plan, p.patch))], plan.id, { today: READ_ON });
+    expect(fill(CW.result.uses[ci.uses.id], ci.uses.slots)).toBe('Your plan’s pay-in is unchanged while you are not paying in.');
+  }, 30000);
+
+  it('no "Use these in my plan" is offered any more', () => {
+    const plan = samPlan();
+    const after = applyPatch(plan, checkInPatch(plan, samIn, { today: READ_ON, now: at(READ_ON), result: null }).patch);
+    const ci = checkInOf([entry(after)], after.id, { today: READ_ON });
+    expect(ci.useInPlan).toBeUndefined();
+    expect(JSON.stringify(CW)).not.toMatch(/Use .* in my plan/);
   }, 30000);
 });

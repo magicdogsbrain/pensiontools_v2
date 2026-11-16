@@ -701,6 +701,12 @@ describe('7 — today, byte for byte', () => {
   // the simple view. Show everything.", on a phone "Simple view. Show everything") and its classes and testids say so
   // (view-line, nav.everything) — the line is on every state, so every drawing was re-pinned (V7_PIN_TODAY=1,
   // V7_PIN_SCREENS=1); with the line taken out, all 64 states draw 7.10.0's markup and text byte for byte
+  // …and C's slider read through (reported 16 Nov 2026: "What if you took this a month?" moved and only one line under it
+  // changed): an answer worked out for an amount other than the level's own reads for THAT amount — its headline, chance
+  // with the fixed-age line, bad case, what is left and what it is made of — with the level's amount kept in view under the
+  // slider ("Back to …"), the try box's line in the page's own measure and Keep saying it keeps the level's amount. Only the
+  // two states that try an amount draw it, c/answer-take and c/answer-F3, so those two were re-pinned (V7_PIN_TODAY=1);
+  // no other drawing moved
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]',
     // 7.9.0: "Try the bad years" under C's and D's final answers — a button only until pressed; no figure of the answer moves

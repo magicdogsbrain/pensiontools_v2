@@ -3,7 +3,6 @@
  * page states, and look each page over for the never-list. Returns the readings by fact, so a scenario can hold one fact
  * to one value across pages (SAME), and the never-list findings by page.
  */
-import { expect } from '@playwright/test';
 import { FACTS } from './facts.js';
 import { fact, neverOnAnyPage } from './read.js';
 import { planPage, fullPage, settled } from './routes.js';
@@ -31,7 +30,6 @@ export async function sweep(page, planId, { views = ['simple', 'full'], ids = Ob
         await settled(page).catch(() => {});
       } else {
         if (!(await fullPage(page, name))) continue;     // a tab this plan's stage does not show
-        await expect(page.locator('body')).toBeVisible();
       }
       for (const id of ids) {
         if (!(FACTS[id][view] || []).some((p) => p.page === name)) continue;

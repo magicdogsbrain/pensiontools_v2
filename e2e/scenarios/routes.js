@@ -36,6 +36,7 @@ export async function planPage(page, planId, pageName = 'home') {
   if (!p) throw new Error(`routes.planPage: no simple page "${pageName}"`);
   await openSimple(page, `#/plan/${planId}${p.step ? `/${p.step}` : ''}`);
   await expect(page.locator('#app [data-screen]')).toHaveAttribute('data-screen', /^plan/, { timeout: 30_000 });
+  await closeNews(page);
 }
 
 /** The plan the address is on: { planId, step } or null. */
@@ -49,16 +50,19 @@ export function planAddress(page) {
 /** Opens the full view and waits for its tabs. */
 export async function openFull(page) {
   await page.goto(PROD + CLASSIC_PATH);
-  await expect(page.locator('.tab[data-tab="stress"]').or(page.locator('#mobileTabBar [data-mtab="stress"]')).first()).toBeVisible({ timeout: 45_000 });
+  await expect.poll(async () => (await page.locator('.tab[data-tab="stress"]').isVisible()) || (await page.locator('#mobileTabBar [data-mtab="stress"]').isVisible()), { timeout: 45_000 }).toBe(true);
 }
 
 /**
- * The full view's once-only "What's new" pop-up, closed as a person closes it ("Got it"). It opens over the page for a
- * new account; until it is closed nothing under it can be pressed.
+ * The once-only "What's new" pop-up of either view, closed as a person closes it ("Got it"). It opens for a new account
+ * on its next visit; until it is closed nothing under it can be pressed in the full view, and in the simple view it sits
+ * over the plan's page.
  */
 export async function closeNews(page) {
   const news = page.locator('[role="dialog"][aria-label="What\'s new"]');
   if (await news.isVisible().catch(() => false)) await news.getByRole('button', { name: 'Got it' }).click();
+  const v7 = page.getByTestId('news.gotIt');                       // the simple view's own, over a plan's page
+  if (await v7.isVisible().catch(() => false)) await v7.click();
 }
 
 /**

@@ -310,8 +310,8 @@ export function transitionHtml(a) {
     const tone = prog.held >= 98 ? 'alert-success' : prog.held >= 50 ? 'alert-info' : 'alert-warning';
     // the move's one status sentence (7.12.0, moveWords.moveStatusOf), as the home tile and V7's move page say it; the pace and
     // when to buy on a ladder; a pot plan keeps when its plan starts and its window opens
-    const whose = 'the plan';
-    const when = ladder ? '' : (seq && seq.startPassed ? ' ' + esc(whose + ' has been paying since tax year ' + startLabel + ' — the schedule is spread over the next ' + seq.months + ' months.') : seq && seq.opensAt ? ' ' + esc('Your move window opens in ' + monthWordsLong(seq.opensAt) + '; nothing to do before then.') : '');
+    const when = ladder ? '' : ' ' + esc(seq && seq.startPassed ? 'The plan has been paying since tax year ' + startLabel + '; the schedule is spread over the next ' + seq.months + ' months.'
+      : (startLabel ? 'The plan’s first tax year is ' + startLabel + '. ' : '') + (seq && seq.opensAt ? 'Your move window opens in ' + monthWordsLong(seq.opensAt) + '; nothing to do before then.' : seq ? 'The buying is spread over the next ' + seq.months + ' month' + (seq.months === 1 ? '' : 's') + '.' : ''));
     h += '<div class="alert ' + tone + '" id="transitionStatus"><strong>' + esc(sayMoveStatus(R.status, MOVE)) + '</strong>' + when
       + (R.pace ? '<br>' + esc(fillMove(R.pace.months === '1' ? MOVE.status.paceOne : MOVE.status.pace, R.pace)) : '')
       + (ladder ? '<br>' + esc(MOVE.status.timing) : '') + '</div>';

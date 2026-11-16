@@ -6,7 +6,7 @@
  * Fictional Sam (tests/helpers/samMove.js), Moving: work stops in October 2027; today 16 November 2026.
  *   By hand: the buys come to £102,400 (TA30 £45,000, TB31 £30,000, cash £27,400); outside the plan £410,000;
  *   £102,400 of it pays for the buys; £307,600 is left over.
- *   Pace: November 2026 to October 2027 is 11 months; £102,400 ÷ 11 = £9,309, to the £100: about £9,300.
+ *   Pace: November 2026 to October 2027 is 11 months; £102,400 ÷ 11 = £9,309, to the nearest £100: £9,300.
  */
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../../../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
@@ -71,7 +71,7 @@ describe('Paying for it: one reading, the same words in both views', () => {
       expect(t).toContain('£102,400 of it pays for the buys; you choose which to sell.');
       expect(t).toContain('The other £307,600 is not needed for the ladder.');
       expect(t).toContain('Totals: buy £102,400; paid from what your plan does not use, £102,400; left as it is, £307,600.');
-      expect(t).toContain('11 months are left before you stop work in October 2027. To finish by then is about £9,300 of buying a month.');
+      expect(t).toContain('Work stops in October 2027, in 11 months. To finish the buying by then is £9,300 a month, to the nearest £100.');
       expect(t).not.toMatch(/proceeds/i);
       expect(t).not.toMatch(/ticked off/i);
       expect(t).not.toContain('Next:');

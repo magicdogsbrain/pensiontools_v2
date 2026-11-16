@@ -26,8 +26,9 @@ export const MOVE = {
     held: '{held}% of the plan’s mix held; {done} of {moves} moves done.',
     gilts: '{bought} of {rungs} gilts bought. {held}% of your plan’s mix is held.',
     giltsPart: '{bought} of {rungs} gilts bought, and {part} part bought. {held}% of your plan’s mix is held.',
-    pace: '{months} months are left before you stop work in {when}. To finish by then is about {perMonth} of buying a month.',
-    paceOne: '1 month is left before you stop work in {when}. To finish by then is about {perMonth} of buying.',
+    // (never "about £" on this page, and never "before you stop work": the page is also read by people who have stopped)
+    pace: 'Work stops in {when}, in {months} months. To finish the buying by then is {perMonth} a month, to the nearest £100.',
+    paceOne: 'Work stops in {when}, next month. To finish the buying by then is {perMonth}, to the nearest £100.',
     timing: 'You can buy the gilts at any time before you stop. The prices here are from the day you locked; buying earlier fixes the price you pay.'
   },
   /** Paying for it (7.12.0, a ladder): one reading of what pays for the buys (answers/plan/moveWords.js payingOf), in order. */
@@ -42,7 +43,7 @@ export const MOVE = {
     leave: 'You can leave it as it is.',
     enoughAll: 'All of it pays for the buys; you choose which to sell first.',
     short: 'That is {short} less than the buys cost.',
-    newMoney: 'New money before you stop, about {newMoney}, is counted first.',
+    newMoney: 'New money paid in before then, {newMoney}, is counted first.',
     shortRest: 'The rest waits until the money is there.',
     cash: 'Your pension’s spare cash covers them.',
     unlisted: 'You have not listed what your pension holds, and you do not need to.',
@@ -58,12 +59,12 @@ export const MOVE = {
     columns: { what: 'What', value: 'Value today', note: 'Note' },
     notes: {
       gilt: 'Matures on {date} and pays {pays}.',
-      giltReal: 'Matures on {date} and pays {pays} (about {real} at today’s prices).',
+      giltReal: 'Matures on {date} and pays {pays} (worth {real} at today’s prices).',
       sellOr: 'You can sell it, or',
       sayYears: 'say which years it is for',
       cashYear: '{year} is a year your plan pays from cash.',
       giltUnknown: 'We cannot tell when it matures from its name. Its code or SEDOL on What you hold would tell us.',
-      overRung: '{excess} units more than its place in the ladder needs (about {amount}).'
+      overRung: '{excess} units more than its place in the ladder needs ({amount} at the prices when you locked).'
     }
   },
   waiting: {

@@ -32,6 +32,7 @@ import { isExamplePlan } from '../../services/GuestPlans.js';
 import { MONTH_FIELDS } from './schema.js';
 import { dateOf, monthWords, monthName, localMonth } from './dates.js';
 import { partnerOf } from './household.js';
+import { firstPaymentMonth } from '../../services/YearPlan.js';
 import { pounds } from './income.js';
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -63,23 +64,31 @@ function boxError(path, raw) {
 
 /**
  * The months the chooser lists (not recorded, within the months the plan may record — after the plan that came before, up to a
- * close), from the month the classic fill reaches back to (MonthFill.earliestFillMonth) up to next month; the latest
- * MONTHS_LISTED. And the month it opens on: this month when it is not recorded, else the first month after the latest record,
+ * close): from the plan's first payment month (7.12.0, YearPlan.firstPaymentMonth; this month when it is not known) up to next
+ * month, the latest MONTHS_LISTED. `wide` (the quiet "Fill in earlier months you did not record…" pressed) reaches back to
+ * the month the classic fill reaches (MonthFill.earliestFillMonth), as before; `earlier` says whether there is any such month
+ * to reach. And the month it opens on: this month when it is not recorded, else the first month after the latest record,
  * else the last listed.
  */
-function monthChoices(I, mon) {
+function monthChoices(I, mon, fp, wide = false) {
   const recorded = new Set(I.history.map(monthOfRecord).filter(Boolean));
   const found = earliestFillMonth(I.history, I.taxYears, I.planStart);
-  let first = found && I.floor && found < I.floor ? I.floor : found;
-  if (!first || first > mon) first = mon;
+  let reach = found && I.floor && found < I.floor ? I.floor : found;
+  if (!reach || reach > mon) reach = mon;
+  let own = fp && fp < mon ? fp : mon;
+  if (I.floor && own < I.floor) own = I.floor;
+  if (own < reach) reach = own;
+  const first = wide ? reach : own;
   let last = addMonth(mon, 1);
   if (I.ceiling && I.ceiling < last) last = I.ceiling;
   const all = [];
   for (let m = first; m <= last; m = addMonth(m, 1)) if (!recorded.has(m)) all.push(m);
   const listed = all.slice(-MONTHS_LISTED);
+  let earlier = false;
+  if (!wide) for (let m = reach; m < own; m = addMonth(m, 1)) if (!recorded.has(m)) { earlier = true; break; }
   const latest = latestRecordedMonth(I.history);
   const opens = listed.includes(mon) ? mon : (latest ? listed.find((m) => m > latest) : null) || listed[listed.length - 1] || null;
-  return { listed, opens };
+  return { listed, opens, earlier };
 }
 
 /** The set-up's boxes read, the top-up settled and the year as it would be stored (TaxYearSetUp, as the classic set-up runs it). */
@@ -285,7 +294,9 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const stage = safeStage(plan, now);
   const locked = isLocked(plan);
   const closed = isClosedPlan(plan);
-  const { listed, opens } = monthChoices(I, mon);
+  // the plan's first payment month (7.12.0): the chooser starts there, and no month before it is ever counted as missed
+  let fp = null; try { fp = firstPaymentMonth(plan, { now, settings: I.stressSettings }).month; } catch { fp = null; }
+  const { listed, opens, earlier } = monthChoices(I, mon, fp, typed['mo.earlier'] === 'yes');
   const chosen = typeof typed['mo.month'] === 'string' && listed.includes(typed['mo.month']) ? typed['mo.month'] : opens;
   const paidAsked = typed['mo.paid'] === 'yes' && chosen === mon;
   const marchPaid = paidAsked && Number(mon.slice(5, 7)) === 3;
@@ -294,7 +305,7 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const errors = {};
   if (marchPaid) errors['mo.paid'] = 'march';
   const base = {
-    stageKey: stage.key, locked, closed, months: listed.map((m) => ({ ym: m, words: monthWords(m) })), chosen, mon, month, monthWords: month ? monthWords(month) : '',
+    stageKey: stage.key, locked, closed, months: listed.map((m) => ({ ym: m, words: monthWords(m) })), earlier, chosen, mon, month, monthWords: month ? monthWords(month) : '',
     paidOffered: chosen === mon && !(I.ceiling && I.ceiling <= mon), paidAhead, cadence: cadenceOf(plan.decisionTool),
     recent: I.history.slice(-3).reverse().map((h) => ({ month: monthWords(h.date), afterTax: pounds(h.monthlyNet), tax: pounds(h.monthlyTax), filled: filledInLabel(h) || null, fromSetUp: h.fromSetUp === true })),
     recordedCount: I.history.length,
@@ -317,7 +328,8 @@ export function readMonth(plan, typed0, { today, nowIso = null, entries = null }
   const offer = fillOffer(I.history, month, { taxYears: I.taxYears, taxYearOf: getTaxYearFromDate, from, planStart: I.planStart, floor: I.floor, ceiling: I.ceiling });
   // … less a month whose payment the next record says was made already (its paidAhead mark, as read.js firstGap reads it)
   const paidBefore = new Set(I.history.filter((h) => h && h.paidAhead === true).map((h) => addMonth(monthOfRecord(h), -1)));
-  const gap = offer ? offer.choices.filter((m) => !paidBefore.has(m)) : [];
+  // … and only months from the plan's first payment on (7.12.0): a month before it is not missed; with none known, no banner
+  const gap = offer && fp ? offer.choices.filter((m) => !paidBefore.has(m) && m >= fp) : [];
   const fillOn = typed['mo.fill'] === 'yes' && !!offer && offer.months.length > 0;
   // the arrival check (LifeStage.arrivalCheck): a plan locked while saving, its first month after the stop
   let arrival = null;

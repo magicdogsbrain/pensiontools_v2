@@ -121,7 +121,10 @@ export const HOME = {
       due: '{month}: due',
       setUp: '{month}: the tax year was set up from here',
       later: '{month}: still to come',
-      none: '{month}: not recorded'
+      none: '{month}: not recorded',
+      /** Before the plan's first payment (7.12.0): not the plan's month, never "not recorded". */
+      before: '{month}: before your plan’s first payment',
+      beforeUnknown: '{month}: before your first record'
     },
     planSaid: '; the plan said {plan}',
     recordedCount: { none: 'No months recorded in {year} yet.', one: '1 month recorded in {year}.', many: '{n} months recorded in {year}.' }

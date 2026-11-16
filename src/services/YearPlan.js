@@ -4,6 +4,7 @@
  *
  *   takenAgainstPlan(records) → { n, months, taken, said, diff, net, netKnown, cut, setUpMonths }
  *   yearPlanOf(plan, key)     → { setUp, from, payments, perMonth, total } | null: a tax year as it was set up
+ *   firstPaymentMonth(plan, { now, settings }) → { month: 'YYYY-MM' | null, from: 'record' | 'setUp' | 'stop' | null }
  *   takenSentence(inc, { year, compare, setUpNote }) → { id, compare, parts, figures }: the words both views say
  *
  * "What the plan said" for a month is what the month itself told the person to take: the record's standard pension draw
@@ -14,6 +15,8 @@
  */
 
 import { monthsWords } from './MonthFill.js';
+import { stoppedWorkOf } from './PlanTiming.js';
+import { beforeOf, BEFORE_KINDS } from './PlanClosed.js';
 
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const pence = (v) => Math.round((num(v) || 0) * 100);
@@ -86,6 +89,43 @@ export function yearPlanOf(plan, key) {
   }
   if (perMonth == null) return null;
   return { setUp: true, from, payments, perMonth, total: Math.round(perMonth * payments) };
+}
+
+/** 'YYYY-MM' of a local day. */
+const monthOfDay = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+const YM = /^\d{4}-\d{2}$/;
+
+/**
+ * The first month the plan paid (or pays), never stored: the earlier of the first record's month and the month the earliest
+ * tax year set up was set up from (April of its year, or the month it was set up part-way from). With neither, the month
+ * work stopped when the plan says it (the document's timing when locked, else `settings`, the effective Stress settings the
+ * caller holds) and it is this month or before. With none of these: { month: null, from: null } — we do not know, and say
+ * nothing about earlier months. Never earlier than the first month of a plan that carries a closed one on (`plan.before`).
+ * Not April by assumption: a plan whose first payment was November does not have April to October to record.
+ */
+export function firstPaymentMonth(plan, { now = new Date(), settings = null } = {}) {
+  const dt = plan && plan.decisionTool && typeof plan.decisionTool === 'object' ? plan.decisionTool : {};
+  const rec = (Array.isArray(dt.history) ? dt.history : []).map((h) => (h && typeof h.date === 'string' ? h.date.slice(0, 7) : null)).filter((m) => m && YM.test(m)).sort()[0] || null;
+  const tys = dt.taxYears && typeof dt.taxYears === 'object' ? dt.taxYears : {};
+  const setUp = Object.keys(tys).filter((k) => tys[k] && tys[k].yearSetupComplete).map((k) => {
+    const Y = yearOfKey(k);
+    if (!Number.isFinite(Y)) return null;
+    const sm = Number(tys[k].startMonth);
+    return addMonths(Y + '-04', Number.isFinite(sm) && sm >= 1 && sm <= 12 ? (sm + 8) % 12 : 0);
+  }).filter(Boolean).sort()[0] || null;
+  let month = null, from = null;
+  if (setUp && (!rec || setUp <= rec)) { month = setUp; from = 'setUp'; }
+  else if (rec) { month = rec; from = 'record'; }
+  else {
+    const doc = plan && plan.planDocument && plan.planDocument.timing ? plan.planDocument.timing : null;
+    const locked = !!(dt.settings && dt.settings.locked);
+    const stop = stoppedWorkOf(locked && doc && doc.stoppedWork ? doc : settings);
+    if (stop && stop <= monthOfDay(now)) { month = stop; from = 'stop'; }
+  }
+  const b = beforeOf(plan);
+  const floor = b && BEFORE_KINDS.includes(b.kind) ? b.from : null;
+  if (month && floor && month < floor) month = floor;
+  return { month, from };
 }
 
 /**

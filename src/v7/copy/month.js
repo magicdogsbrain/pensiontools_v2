@@ -16,6 +16,8 @@ export const MONTH = {
   locked: 'Recording a month changes nothing in your locked plan: the months are read against it.',
   /** The months missed, at the top (MonthFill's offer: every month the fill can reach before the month chosen). */
   gap: { one: '{words} is not recorded.', many: '{count} months are not recorded: {words}.', button: 'Fill them in with this month’s figures' },
+  /** Under the chooser (7.12.0): the list starts at the plan's first payment; this widens it to earlier months (the classic wording). */
+  earlier: 'Fill in earlier months you did not record…',
   sections: { month: 'This month', setUp: 'Set up {year}', pots: 'What your platform shows', advice: 'What to draw this month, and where it comes from', fill: 'The months you did not record', recent: 'Your recent months', record: 'Keep a record of each month here', later: 'Coming next to Month by month' },
   yearDone: 'Tax year {year}: set up from {from}.',
   yearDoneIncome: 'Tax year {year}: set up from {from}, {income} a year before tax.',

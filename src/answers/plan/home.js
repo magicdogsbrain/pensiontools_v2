@@ -27,7 +27,7 @@ import { holdingsSummary, normaliseHoldings } from '../../services/HoldingsRecor
 import { moveWindowOf } from '../../services/Phases.js';
 import { asHeldStateOf } from './agree.js';
 import { ym, dayWords } from './dates.js';
-import { takenAgainstPlan, yearPlanOf } from '../../services/YearPlan.js';
+import { takenAgainstPlan, yearPlanOf, firstPaymentMonth } from '../../services/YearPlan.js';
 import { startLaterOf } from '../../services/PlanMove.js';
 import { pensionLockForSettings } from '../../services/PlanNeed.js';
 import { closedYearsShort, shortYearsWords } from '../../services/PensionLock.js';
@@ -225,16 +225,20 @@ function yearOf(plan, page, now) {
   const monthStep = page.steps.find((s) => s.id === 'month');
   const due = page.stageKey !== 'closed' && monthStep && !monthStep.recorded ? monthStep.toRecord : null;
   const mon = thisMonthOf(now);
+  // the months before the plan's first payment (7.12.0, YearPlan.firstPaymentMonth) are not the plan's to record: never "not
+  // recorded", never a nag; with the first month not known, every month before this one with no record
+  let fp = null; try { fp = firstPaymentMonth(plan, { now, settings: effectiveStressSettings(plan, { now }) }).month; } catch { fp = null; }
   const cells = [];
   for (let i = 0; i < 12; i++) {
     const m = addMonth(ty + '-04', i);
     const h = byMonth.get(m) || null;
     const said = h ? takenAgainstPlan([h]) : null;
     const drawn = said ? said.taken : null;
-    const state = h ? (isFilledIn(h) ? 'filled' : 'recorded') : m === due ? 'due' : m === setUpMonth ? 'setUp' : m > mon ? 'later' : 'none';
+    const before = !h && (fp ? m < fp : m < mon);
+    const state = h ? (isFilledIn(h) ? 'filled' : 'recorded') : before ? 'before' : m === due ? 'due' : m === setUpMonth ? 'setUp' : m > mon ? 'later' : 'none';
     const planned = older ? null : said ? said.said : perMonth != null && state !== 'none' ? perMonth : null;
     // "; the plan said £X" only when it differs from what was taken by £1 or more
-    cells.push({ month: m, name: monthName(m), words: monthWords(m), state, drawn, plan: planned, planDiffers: planned != null && !!said && Math.abs(said.diff) >= 1 });
+    cells.push({ month: m, name: monthName(m), words: monthWords(m), state, ...(before ? { wordsKey: fp ? 'before' : 'beforeUnknown' } : {}), drawn, plan: before ? null : planned, planDiffers: planned != null && !!said && Math.abs(said.diff) >= 1 });
   }
   const top = Math.max(1, ...cells.map((c) => Math.max(c.drawn || 0, c.plan || 0)));
   for (const c of cells) {

@@ -62,7 +62,7 @@ import { MONTHS, dateOf, ym, monthWords, monthName, dayWords, monthsBetween, loc
 import { isClosedPlan, closedReading, beforeReading, closedAtOf, monthRefusalWords } from '../../services/PlanClosed.js';
 import { closeQuestionOf, successorName } from '../../services/PlanClose.js';
 import { startLaterOf, laterDraftLeftOf } from '../../services/PlanMove.js';
-import { takenSentence } from '../../services/YearPlan.js';
+import { takenSentence, yearPlanOf, firstPaymentMonth } from '../../services/YearPlan.js';
 
 // The dates in words live in dates.js (shared with about.js); kept as exports here for everyone who reads them from read.js.
 export { dateOf, monthWords, monthName, dayWords };
@@ -81,14 +81,16 @@ const isLadderPlan = (plan, ss) => CONTRACT_STRATEGIES.includes(stratId(plan, ss
 const lockedLadderOf = (plan, ss) => (isLadderPlan(plan, ss) && plan && plan.planDocument ? documentLadder(plan.planDocument, stratId(plan, ss)) : null);
 
 /**
- * When a locked ladder pays: from its first year; and, when cash pays the years before the first gilt, the plan pays from
- * that first year and the ladder's first gilt from its own year — one fact each, never the gilt's year as the plan's.
+ * When a locked plan pays (7.12.0): from the first month it paid (YearPlan.firstPaymentMonth: the first record, else the month
+ * its first tax year was set up from, else the month work stopped) — never April by assumption; with none known, its first
+ * tax year. A ladder whose cash pays the years before its first gilt says that gilt's year too: one fact each.
  */
-function lockedLadderWords(L) {
-  const Y0 = L.years[0].Y;
-  const rung = firstRungOf(L);
-  if (rung && rung.Y > Y0) return ' a year before tax; your plan pays from April ' + Y0 + ' (tax year ' + taxYearLabel(Y0) + '); the ladder’s first gilt from April ' + rung.Y;
-  return ' a year before tax; your ladder pays from April ' + Y0 + ' (tax year ' + taxYearLabel(Y0) + ')';
+function paysFromWords(fp, firstTaxYear, L, ladder = !!L) {
+  const rung = L ? firstRungOf(L) : null;
+  const Y0 = L ? L.years[0].Y : firstTaxYear;
+  if (L && rung && rung.Y > Y0) return ' a year before tax; ' + (fp ? 'your plan pays from ' + monthWords(fp) : 'your plan’s first tax year is ' + taxYearLabel(Y0)) + '; the ladder’s first gilt from April ' + rung.Y;
+  const who = ladder ? 'ladder' : 'plan';
+  return ' a year before tax; ' + (fp ? 'your ' + who + ' pays from ' + monthWords(fp) : 'your ' + who + '’s first tax year is ' + taxYearLabel(Y0));
 }
 
 /**
@@ -406,6 +408,16 @@ function whereStep(C) {
     Object.assign(figures, said.figures);
     result = sentence('where.retired', said.parts, figures);
     compare = said.compare;
+    // the year as it was set up (7.12.0, YearPlan.yearPlanOf): what the plan takes a month this tax year, and from when when
+    // it was set up part-way; nothing for a year not set up (the to-do asks for the set-up)
+    let yp = null; try { yp = older ? null : yearPlanOf(plan, taxYearKey(parseInt(w.taxYear, 10))); } catch { yp = null; }
+    if (yp) {
+      figures.yearMonthly = Math.round(yp.perMonth); figures.yearTotal = yp.total;
+      const april = yp.from && yp.from.slice(5) === '04' && yp.payments === 12;
+      lines.push(line('where.yearPlan', april
+        ? ['In ' + w.taxYear + ' your plan takes ', money('yearMonthly'), ' a month before tax.']
+        : ['In ' + w.taxYear + ' your plan takes ', money('yearMonthly'), ' a month before tax, from ' + monthWords(yp.from) + ': ' + yp.payments + ' payment' + (yp.payments === 1 ? '' : 's') + ', ', money('yearTotal'), '.'], figures, sourceOf('record', null, now), { year: w.taxYear }));
+    }
     // (7.10.0: the start is changed on "About you and when", by unlock and lock again — no longer a to-do)
     if (older) lines.push(line('where.startLater', ['Your plan is set to start in April ' + C.startLater.start + ', so these months are not read against it yet' + (C.readonly ? '' : '. You can change the start on About you and when')], figures, sourceOf('locked', lockedAt, now), { start: 'April ' + C.startLater.start }));
     if (inc.recorded > 0) lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
@@ -458,10 +470,8 @@ function planStep(C) {
   if (locked && first) {
     result = stage.timingMode === 'future'
       ? sentence('plan.lockedSaver', [money('yearly'), ' a year before tax from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], figures)
-      : ladder && lockedLadderOf(plan, ss)
-        // the ladder's own first year, from the document (6.51.0): a plan locked once it had started bought its ladder from then
-        ? sentence('plan.lockedLadder', [money('yearly'), lockedLadderWords(lockedLadderOf(plan, ss))], figures)
-        : sentence(ladder ? 'plan.lockedLadder' : 'plan.lockedPlan', [money('yearly'), ' a year before tax; your ' + (ladder ? 'ladder' : 'plan') + ' pays from ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear)) + ' (tax year ' + taxYearLabel(firstTaxYear) + ')'], figures);
+      // the first month it paid, never April by assumption (7.12.0); a ladder's own first year from the document (6.51.0)
+      : sentence(ladder ? 'plan.lockedLadder' : 'plan.lockedPlan', [money('yearly'), paysFromWords(firstPaymentMonth(plan, { now, settings: ss }).month, firstTaxYear, ladder ? lockedLadderOf(plan, ss) : null, ladder)], figures);
   } else if (stage.timingMode === 'future' && num(ss.retireAge)) {
     figures.retireAge = +ss.retireAge;
     result = sentence('plan.saver', ['Stopping work at ', age('retireAge'), ', in ' + (monthWords(startMonth) || taxYearLabel(firstTaxYear))], figures);

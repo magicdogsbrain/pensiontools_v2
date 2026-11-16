@@ -157,7 +157,8 @@ describe('landing: someone signed in lands in the full view unless the account s
   });
   it('effects/index.js starts the view before the place, and gives the place the full view\'s address', () => {
     const src = readFileSync(join(ROOT, 'src/v7/effects/index.js'), 'utf8');
-    expect(src.indexOf('startView(store, { local: localStore(win) })')).toBeGreaterThan(-1);
+    // 7.12.0: with the window's session storage, where the link at the top of the page leaves its note
+    expect(src.indexOf('startView(store, { local: localStore(win), session: sessionStore(win) })')).toBeGreaterThan(-1);
     expect(src.indexOf('startView(store')).toBeLessThan(src.indexOf('startPlace(store'));
     expect(src).toMatch(/startPlace\(store, \{ session: sessionStore\(win\), local: localStore\(win\), landing, full: \(\) => win\.location\.replace\(PLANNER\) \}\)/);
   });

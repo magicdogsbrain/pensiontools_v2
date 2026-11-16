@@ -65,7 +65,8 @@ describe('the header link on a plan page hands over THAT plan', () => {
       actions.length = 0;
       const e = click(root.querySelector(`[data-testid="${id}"]`));
       expect(e.defaultPrevented, id).toBe(true);
-      expect(actions, id).toEqual([{ type: 'plan/change', planId: state.route.planId, place: 'home', back: `#/plan/${state.route.planId}` }]);
+      // 7.12.0: the press is noted first (view/link: the link is a choice), then the hand-over
+      expect(actions, id).toEqual([{ type: 'view/link', view: 'full' }, { type: 'plan/change', planId: state.route.planId, place: 'home', back: `#/plan/${state.route.planId}` }]);
       expect(makeRequest({ planId: state.route.planId, place: 'home', back: `#/plan/${state.route.planId}`, at: new Date().toISOString() })).not.toBeNull();
     }
   });
@@ -74,7 +75,7 @@ describe('the header link on a plan page hands over THAT plan', () => {
     const id = stored.route.planId;
     const { root, actions } = draw(stored, `#/plan/${id}/lasts`);
     click(root.querySelector('[data-testid="nav.everything"]'));
-    expect(actions).toEqual([{ type: 'plan/change', planId: id, place: 'test', back: `#/plan/${id}/lasts` }]);
+    expect(actions).toEqual([{ type: 'view/link', view: 'full' }, { type: 'plan/change', planId: id, place: 'test', back: `#/plan/${id}/lasts` }]);
   });
   it('a new-tab click (ctrl/cmd) keeps the plain address, as does any page that is not a plan', () => {
     const stored = load('home-drawing');

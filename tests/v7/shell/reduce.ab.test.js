@@ -317,6 +317,7 @@ const anyAction = fc.oneof(
   fc.constantFrom({ lastSeenVersion: null, view: 'full' }, { lastSeenVersion: null, view: 'expert' }).map((profile) => ({ type: A.PROFILE_SET, profile })),
   fc.constant({ type: A.PROFILE_SET, profile: {}, read: false }),
   fc.tuple(fc.constantFrom('simple', 'full'), fc.constantFrom('account')).map(([view, from]) => ({ type: A.VIEW_SET, view, from })),
+  fc.constantFrom('simple', 'full').map((view) => ({ type: A.VIEW_LINK, view })),
   fc.constant({ type: A.NEWS_SHOW, entries: [{ version: '6.44.0', title: 'x', date: '2026-10-27' }] }),
   fc.constant({ type: A.NEWS_DISMISS }),
   fc.constantFrom(null, [{ version: '6.44.0', title: 'x' }]).map((releases) => (releases ? { type: A.NEWS_PAGE, releases, history: [{ version: '6.0.1', title: 'y' }] } : { type: A.NEWS_PAGE, page: null })),

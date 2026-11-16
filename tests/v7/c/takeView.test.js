@@ -13,7 +13,7 @@
  *     which empties the take box: the slider and the page return to the level's amount;
  *   - the three tiles stay the most you could take at each level; the slider's own line is gone (the block says it); the
  *     line under "Show how long that lasts" says the page's chance, with its fixed-age line beside it;
- *   - Keep says what it keeps: the level's amount, not the one being tried.
+ *   - Keep asks which amount it keeps: the one being tried, or the level's (7.12.0).
  * At the level's own amount the answer reads as it always has. Fictional figures only (one person, 58, £250,000).
  */
 import { describe, it, expect } from 'vitest';
@@ -162,11 +162,12 @@ describe('the screen: the slider on an amount other than the level\'s', () => {
     expect(under.nextElementSibling).toBe(fixed);
   });
 
-  it('Keep says what it keeps: the level\'s amount, not the amount tried', () => {
-    const note = one(root, 'c.keep.trying');
-    expect(note).not.toBe(null);
-    expect(note.querySelector('[data-key="levels.balanced.monthly"]').getAttribute('data-value')).toBe(String(r.levels.balanced.monthly));
-    expect(note.textContent).toContain('the amount at Balanced, not the amount you are trying');
+  // (7.12.0: Keep asks which amount the plan keeps, the one tried or the level's, neither chosen: tests/v7/keep/keepTried.test.js)
+  it('Keep asks which amount it keeps: the amount tried, or the level\'s', () => {
+    expect(one(root, 'c.keep.trying')).toBe(null);
+    const level = one(root, 'c.action.save.level');
+    expect(level.querySelector('[data-key="levels.balanced.monthly"]').getAttribute('data-value')).toBe(String(r.levels.balanced.monthly));
+    expect(one(root, 'c.action.save.tried').textContent).toContain('(the amount you are trying)');
   });
 
   it('nothing is written: drawing it dispatches nothing', () => {

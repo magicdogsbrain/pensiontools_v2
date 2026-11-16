@@ -39,15 +39,15 @@ export const GUEST = {
   /** After a sign-in with plans in this window (the planner's importGuestHandoff). */
   bringIn: {
     title: 'Bring in what you built without an account?',
-    one: 'One plan made in this window without an account is waiting here. Copy it into this account? It will be named “… (from this window)”.',
-    many: '{n} plans made in this window without an account are waiting here. Copy them into this account? They will be named “… (from this window)”.',
+    one: 'One plan made in this window without an account is waiting here. Copy it into this account?',
+    many: '{n} plans made in this window without an account are waiting here. Copy them into this account?',
     yesOne: 'Yes, bring it in',
     yesMany: 'Yes, bring them in',
     no: 'No, leave them here',
     noNote: 'A plan left here stays in this window until you close it.',
     working: 'Bringing in…',
     failed: 'Sorry, the plans could not be copied. They are still in this window: try again.',
-    /** The mark on each name brought in (the planner marks its own "(from guest)"). */
-    suffix: ' (from this window)'
+    /** The mark on each name brought in: none since 7.12.0 (a name the account already holds gets " (2)"). */
+    suffix: ''
   }
 };

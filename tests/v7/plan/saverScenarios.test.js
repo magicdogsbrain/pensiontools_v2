@@ -33,6 +33,9 @@ import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
+import { shownPlanName } from '../../../src/services/PlanName.js';
+import { boxesOf as spendBoxes, spendPatch } from '../../../src/answers/plan/spend.js';
+import { WINDOW_SUFFIX } from '../../../src/v7/effects/planWrite.js';
 import { SAVING as W } from '../../../src/v7/copy/saving.js';
 import { noon } from './_plans.js';
 
@@ -375,4 +378,41 @@ describe('step 5: the home says the answer', () => {
     const changed = spend(plan, 18000);
     expect(ids(changed).some((x) => /offCourse/.test(x))).toBe(false);
   }, 90000);
+});
+
+describe('step 7: a name the person did not type follows the plan', () => {
+  const sam65 = () => {
+    const plan = keptPlan({ ...samInputs(), stop: { age: 65 }, spend: { kind: 'amount', amount: 2400 } }, { on: '2025-11-12', readOn: READ_ON, id: 'Sam07' });
+    plan.planDetails.name = plan.fromAnswer.name.suggested;
+    return plan;
+  };
+  const changed = (plan) => {
+    const a = aboutPatch(plan, { ...aboutBoxes(plan, { today: READ_ON }), stopAge: '67' }, { today: READ_ON });
+    let p = applyPatch(plan, a.patch);
+    const sp = spendPatch(p, { ...spendBoxes(p, { today: READ_ON }), 'first.amount': '2200' }, { today: READ_ON });
+    expect(sp.ok).toBe(true);
+    p = applyPatch(p, sp.patch);
+    return p;
+  };
+  it('Sam\'s plan kept under the suggested name, then the stop moved to 67 and £2,200 a month: "Stop at 67 · £2,200 a month"', () => {
+    const plan = sam65();
+    expect(plan.planDetails.name).toMatch(/^Stop at 65 · £2,400 a month · paying £/);
+    const after = changed(plan);
+    expect(shownPlanName(after, { now: noon(READ_ON) })).toBe('Stop at 67 · £2,200 a month');
+    // brought in from a window before 7.12.0, with the old mark: the same
+    after.planDetails.name = plan.planDetails.name + ' (from this window)';
+    expect(shownPlanName(after, { now: noon(READ_ON) })).toBe('Stop at 67 · £2,200 a month');
+    expect(savingOf([entry(after)], after.id, { today: READ_ON }).name).toBe('Stop at 67 · £2,200 a month');
+  }, 30000);
+  it('a plan the person named keeps its name; so does one not kept from an answer', () => {
+    const named = changed(sam65());
+    named.planDetails.name = 'Sam’s plan';
+    expect(shownPlanName(named, { now: noon(READ_ON) })).toBe('Sam’s plan');
+    const plain = changed(sam65());
+    delete plain.fromAnswer;
+    expect(shownPlanName(plain, { now: noon(READ_ON) })).toBe(plain.planDetails.name);
+  }, 30000);
+  it('plans brought in after a sign-in keep their names: no "(from this window)"', () => {
+    expect(WINDOW_SUFFIX).toBe('');
+  });
 });

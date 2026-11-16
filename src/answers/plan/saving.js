@@ -47,6 +47,7 @@ import { mpaaOf, flexibleAccessAlong, FLEXIBLE_ACCESS_LIMIT } from '../../servic
 import { notBegunOf } from '../../services/PlanClosed.js';
 import { saverFacts } from '../../services/SaverFacts.js';
 import { pensionTodayPatch } from '../../services/PensionToday.js';
+import { shownPlanName } from '../../services/PlanName.js';
 
 export { applyPatch };
 
@@ -54,7 +55,8 @@ const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const text = (v) => (v === undefined ? '<absent>' : JSON.stringify(v));
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by: the person's own, else one that follows the plan's present figures (services/PlanName.js). */
+const nameOf = (plan, now) => shownPlanName(plan, { now });
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const r0 = (v) => Math.round(+v || 0);
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
@@ -391,7 +393,7 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
   const p = !readonly && c.ok ? savingPatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
   const rec = typed && Object.keys(typed).some((k) => k.startsWith('record.')) ? recordPatch(plan, typed, { today }) : null;
   return {
-    found: true, id: String(plan.id), name: nameOf(plan), readonly, editable: !readonly, source, locked: s.locked,
+    found: true, id: String(plan.id), name: nameOf(plan, s.now), readonly, editable: !readonly, source, locked: s.locked,
     savedAt: s.source.at,
     fields, errors: c.errors, ok: c.ok,
     ages: { currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, years, stillSaving, known: ages, line: agesLine },

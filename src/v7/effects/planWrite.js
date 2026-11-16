@@ -215,8 +215,11 @@ import { readMinutes, isBlocked } from '../../services/GuestMeter.js';
 import { NO_WORKER } from './workerClient.js';
 
 export const GUEST_PLANS_KEY = 'pt_guest_scenarios';
-/** The mark on each name brought in from this window after a sign-in (copy/guest.js bringIn.suffix says the same). */
-export const WINDOW_SUFFIX = ' (from this window)';
+/**
+ * The mark on each name brought in from this window after a sign-in: none since 7.12.0 — a plan keeps its name, and one
+ * that the account already holds is told apart by " (2)" (withDuplicateSuffix), as every other plan is.
+ */
+export const WINDOW_SUFFIX = '';
 /** What an opened file's plan is named: "{name} (opened)". */
 export const OPENED_SUFFIX = ' (opened)';
 /** A downloaded copy bigger than this is refused before it is read: a plan is at most one Firestore document (1 MiB), and the file is written with spaces. */

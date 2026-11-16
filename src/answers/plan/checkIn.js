@@ -63,6 +63,7 @@ import { CHECKIN_FIELDS, CHECKIN_WRITES, PAY_IN_KINDS } from './schema.js';
 import { get, parseMonth as readMonth } from './about.js';
 import { pounds } from './income.js';
 import { dateOf, ym, monthWords, monthsBetween, localMonth } from './dates.js';
+import { shownPlanName } from '../../services/PlanName.js';
 
 /** At most this many check-ins (5.11): 120 years yearly, 30 quarterly, 10 monthly. */
 export const CHECKINS_KEPT = 120;
@@ -86,7 +87,8 @@ const round2 = (n) => Math.round(n * 100) / 100;
 const copy = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 const isLocked = (plan) => !!(plan && plan.decisionTool && plan.decisionTool.settings && plan.decisionTool.settings.locked);
-const nameOf = (plan) => (plan && plan.planDetails && typeof plan.planDetails.name === 'string' && plan.planDetails.name) || (plan && typeof plan.name === 'string' && plan.name) || '';
+/** The name a plan is shown by: the person's own, else one that follows the plan's present figures (services/PlanName.js). */
+const nameOf = (plan, now) => shownPlanName(plan, { now });
 const accOf = (plan) => (plan && isObj(plan.accumulationTool) ? plan.accumulationTool : {});
 export { CADENCE_MONTHS, addMonths, checkInsOf, cadenceOf, checkInDueOf, checkInState };
 const keyOf = (p) => p.y + '-' + String(p.m).padStart(2, '0');
@@ -795,7 +797,7 @@ export function checkInOf(entries, id, { today, typed = null, source = 'account'
   const rise = withLast && withLast.ok && withLast.notes.rise ? { pct: pctText(withLast.notes.rise.pct), path: withLast.notes.rise.path } : null;
   const allowance = allowanceOf(plan, (last ? landsNow(last) : planSays(plan).total) * 12, list0);
   return {
-    found: true, id: String(plan.id), name: nameOf(plan), readonly, editable: !readonly && allowed && !notYet, source, locked,
+    found: true, id: String(plan.id), name: nameOf(plan, dateOf(today)), readonly, editable: !readonly && allowed && !notYet, source, locked,
     allowed, notYet: notYet ? { month: notYet.month } : null, stageKey: stage.key, first: list.length === 0,
     fields, errors: c.errors, ok: c.ok, isaNeeded: c.isaNeeded, pausedBefore,
     // a check-in of this month already: another one this month replaces it (the pot record's own rule), and the form says so

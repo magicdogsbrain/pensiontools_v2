@@ -355,9 +355,12 @@ describe('"Does it last?" — the engine reaches the worker lazily, and nowhere 
     // the household's reading reaches the engine's CONFIG builder (SimulationConfig.js, pure arithmetic over settings, no engine) through the planner's pooling rule (HouseholdService.js, which the split's words need) — never the strategies, the one test's run or the market data
     for (const page of ['src/answers/plan/way.js', 'src/answers/plan/mix.js', 'src/answers/plan/household.js', 'src/answers/plan/hold.js', 'src/answers/plan/move.js', 'src/answers/plan/keepTest.js', 'src/answers/plan/stressPanel.js']) for (const f of ENGINE.filter((x) => x !== 'src/services/OneAnswer.js' && !(page === 'src/answers/plan/household.js' && x === 'src/services/SimulationConfig.js'))) expect(staticReach([page]).has(f), `${page} reaches ${f}`).toBe(false);
     expect(staticReach(['src/answers/plan/household.js']).has('src/strategies/stressTest.js')).toBe(false);
-    expect(staticReach(['src/answers/plan/household.js']).has('src/data/shiller.js')).toBe(false);
-    // the move's reading takes the order sheet's rows and the rotation's split from the pure files, never the engine or the market history (holdings-and-move.md §5, §6)
-    for (const f of ['src/strategies/GiltRotation.js', 'src/strategies/ladderEngine.js', 'src/data/shiller.js', 'src/strategies/stressTest.js']) expect(staticReach(['src/answers/plan/move.js']).has(f), `move.js reaches ${f}`).toBe(false);
+    // (7.12.0: every reading of a plan's settings works a saver's pots at the stop out on the saving years' futures —
+    // PlanReading.withDerivedPots, services/PotsAtStop.js, the same lives as the answer — so the market history those futures
+    // are drawn from is reached by every page that reads a plan, as "What you pay in" always reached it; the run and the
+    // strategies still are not)
+    // the move's reading takes the order sheet's rows and the rotation's split from the pure files, never the run or the strategies (holdings-and-move.md §5, §6)
+    for (const f of ['src/strategies/GiltRotation.js', 'src/strategies/stressTest.js']) expect(staticReach(['src/answers/plan/move.js']).has(f), `move.js reaches ${f}`).toBe(false);
   });
   it('the nine ways\' run and the mix\'s read no clock of their own, and the effects that run them name no browser storage', () => {
     for (const file of ['src/answers/plan/waysRun.js', 'src/answers/plan/way.js', 'src/answers/plan/mixRun.js', 'src/answers/plan/mix.js', 'src/answers/plan/householdRun.js', 'src/answers/plan/household.js', 'src/answers/plan/hold.js', 'src/answers/plan/move.js', 'src/answers/plan/moveRun.js', 'src/answers/plan/paste.js', 'src/answers/plan/keepTest.js', 'src/answers/plan/keepRun.js', 'src/answers/plan/stressPanel.js', 'src/answers/plan/stressPanelRun.js']) for (const re of [...OUTSIDE, ...CLOCK]) expect(re.test(codeOf(file)), `${file} uses ${re}`).toBe(false);

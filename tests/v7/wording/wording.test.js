@@ -403,7 +403,7 @@ describe('the words in src/v7/copy/', () => {
   it('"Check in" (checkin.js): every string passes in every scope a saver\'s plan page is shown in, and what a drawing plan is shown in the retired scope too; no slot left unfilled', () => {
     // a saver's check-in (research/saving-enough-and-check-in.md 5; release step R3): a record and a saver's screen; a plan that
     // has stopped work sees only why there is no check-in, and its check-ins from the saving years
-    const slot = (s) => s.replace(/\{level\}/g, 'Balanced').replace(/\{atLevel\}/g, '£1,200').replace(/\{(month|since|last|from|to|words)\}/g, 'November 2026').replace(/\{(value|amount|now|plan|drawn|actual|expected|low|high|bad|middling|aim|gap|pension|isa|own|employer|total|perMonth|rest|yearly)\}/g, '£1,200')
+    const slot = (s) => s.replace(/\{level\}/g, 'Balanced').replace(/\{atLevel\}/g, '£1,200').replace(/\{(month|since|last|from|to|words)\}/g, 'November 2026').replace(/\{(value|amount|now|plan|drawn|actual|expected|low|high|bad|middling|aim|gap|pension|isa|own|employer|total|perMonth|rest|yearly|pay|takeHome)\}/g, '£1,200')
       .replace(/\{pct\}/g, '12').replace(/\{band\}/g, 'Close').replace(/\{what\}/g, 'pot').replace(/\{months\}/g, '11').replace(/\{s\}/g, 's').replace(/\{runs\}/g, '£317 a month for 1 month')
       .replace(/\{sign\}/g, '+').replace(/\{why\}/g, 'the lock').replace(/\{(then)\}/g, 'in only 3 futures out of 10').replace(/\{(nowWords)\}/g, '')
       .replace(/\{way\}/g, 'full gilt ladder');   // 7.10.0: the way a plan draws, when the verdict is worked out as pots

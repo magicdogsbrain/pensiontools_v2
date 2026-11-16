@@ -242,7 +242,8 @@ describe('each stage\'s home', () => {
     expect(one(root, `${T}.headline`).textContent).toBe('Saving. You stop work in February 2038.');
     // retaken in 7.10.0 (spec-7100 §4.3): once a year from its last pot record, said with its date; and when its window opens
     expect(one(root, `${T}.quiet`).textContent).toBe('Nothing due. Your next review is September 2027.');
-    expect(one(root, `${T}.moveWindow`).textContent).toBe('Your move window opens in February 2035.');
+    // 7.12.0: more than five years from the stop, the home does not speak of the move window (the review page keeps it)
+    expect(one(root, `${T}.moveWindow`)).toBe(null);
     expect(one(root, `${T}.later`)).toBe(null);   // no "For later" marks on a locked saver's home: every step listed plainly
     expect(text).not.toContain('For later');
     expect(root.querySelector('form')).toBe(null);

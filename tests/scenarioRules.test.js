@@ -131,3 +131,40 @@ describe('scenario tests: independence and plain checks', () => {
     expect(brokenRules(`${DIR}/global-setup.js`, 'await clearEmulators();')).toEqual([]);
   });
 });
+
+describe('scenario tests: the register of facts', async () => {
+  const { FACTS, PAGES } = await import('../e2e/scenarios/facts.js');
+  const { NEVER_ON_SCREEN } = await import('../e2e/scenarios/read.js');
+
+  it('every register entry names a page and a locator for both views, or says which view does not state it', () => {
+    const bad = [];
+    for (const [id, f] of Object.entries(FACTS)) {
+      if (!f.owner || !f.kind) bad.push(`${id}: no owner or kind`);
+      for (const view of ['simple', 'full']) {
+        const places = f[view];
+        if (places === undefined) { bad.push(`${id}: says nothing about the ${view} view`); continue; }
+        if (!Array.isArray(places)) { if (!(places && typeof places.none === 'string' && places.none.length > 10)) bad.push(`${id}: the ${view} view neither lists places nor says why it does not state the fact`); continue; }
+        if (!places.length) bad.push(`${id}: an empty list for the ${view} view`);
+        for (const p of places) {
+          if (!PAGES[view][p.page]) bad.push(`${id}: ${view} page "${p.page}" is not a page of that view`);
+          if (!p.find && !p.input) bad.push(`${id}: ${view} ${p.page} has neither a pattern nor a box`);
+          if (p.find) { try { const re = new RegExp(p.find); if (!/\((?!\?)/.test(re.source)) bad.push(`${id}: ${view} ${p.page}'s pattern catches no value`); } catch (e) { bad.push(`${id}: ${view} ${p.page}: ${e.message}`); } }
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it('the first twelve facts of the brief are in the register', () => {
+    const twelve = ['stage', 'stop.month', 'yearsToGo', 'plan.endAge', 'pot.today', 'pot.atStop', 'payIn.fromTakeHome', 'payIn.employer', 'payIn.total',
+      'income.thisYear.beforeTax', 'income.perMonth.afterTax', 'taken.againstPlan', 'statePension.amount', 'statePension.age', 'lasts.chance', 'left.typically', 'due.next'];
+    expect(twelve.filter((id) => !FACTS[id])).toEqual([]);
+  });
+
+  it('the simple view\'s never-list is the one the other browser tests use (e2e/helpers/app.js), word for word', () => {
+    const src = readFileSync(join(ROOT, 'e2e/helpers/app.js'), 'utf8');
+    const m = /export const NEVER_ON_SCREEN = (\[[^\]]*\]);/.exec(src);
+    expect(m, 'app.js still names NEVER_ON_SCREEN').toBeTruthy();
+    expect(JSON.stringify(NEVER_ON_SCREEN)).toBe(JSON.stringify(Function(`return ${m[1]}`)()));
+  });
+});

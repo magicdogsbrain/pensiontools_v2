@@ -71,7 +71,7 @@ describe('the saving level the person chose decides the saving mix; nothing deri
     const plan = upgradeScenario(copy(made), { now: noon(KEPT_ON) }).scenario;
     const r0 = saverInputsOf(plan, { today: KEPT_ON });
     expect(r0.inputs.savingRisk).toBe('balanced');
-    expect(r0.env).toEqual({});
+    expect(r0.env).toEqual({ scheme: { kind: 'ras', salary: 0 } });   // 7.12.0: only how the tax is added back, so take-home pay is said exactly
     const chose = { ...plan, ...phasesPatch(plan, 'saving.level', 'adventurous', { at: KEPT_ON + 'T12:00:00.000Z' }) };
     const r1 = saverInputsOf(chose, { today: KEPT_ON });
     expect(r1.inputs.savingRisk).toBe('adventurous');

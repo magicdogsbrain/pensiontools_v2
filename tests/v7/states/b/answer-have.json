@@ -233,6 +233,7 @@
             "savingsIn": null,
             "own": 0,
             "employer": 250,
+            "takeHome": 0,
             "parts": [
               {
                 "who": "you",

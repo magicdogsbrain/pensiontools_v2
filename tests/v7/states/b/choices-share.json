@@ -240,6 +240,7 @@
             "savingsIn": null,
             "own": 760,
             "employer": 126.67,
+            "takeHome": 608,
             "ownPct": 24,
             "employerPct": 4,
             "totalPct": 28,
@@ -2194,7 +2195,7 @@
           },
           "verdictLine": {
             "id": "b.verdict.line.no",
-            "text": "Paying in 10% of your pay as now (£317 a month, your employer's 4% included), counting how long people your age live, your money lasts as long as you do 9 times in 20. 28% of your pay in all (you 24%, £887 a month) would put you on course, which is Balanced: 18 times in 20.",
+            "text": "Paying in 10% of your pay as now (£317 a month, your employer's 4% included), counting how long people your age live, your money lasts as long as you do 9 times in 20. 28% of your pay in all would put you on course, which is Balanced: 18 times in 20.",
             "parts": [
               "Paying in ",
               {
@@ -2237,19 +2238,7 @@
               },
               " of ",
               "your pay",
-              " in all (",
-              "you",
-              " ",
-              {
-                "key": "enough.atLevel.ownPct",
-                "kind": "pct"
-              },
-              ", ",
-              {
-                "key": "enough.atLevel.payIn",
-                "kind": "money"
-              },
-              " a month)",
+              " in all",
               " would put you on course, which is ",
               "Balanced",
               ": ",
@@ -2357,7 +2346,7 @@
           },
           "enoughLine": {
             "id": "b.enough.line",
-            "text": "You 24% and your employer 4% as now: £887 a month going into your pension from now until you are 63, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20.",
+            "text": "You 24% (about £608 a month from your take-home pay) and your employer 4% as now: £887 a month in all going into your pension from now until you are 63, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20.",
             "parts": [
               "You",
               " ",
@@ -2365,6 +2354,15 @@
                 "key": "enough.atLevel.ownPct",
                 "kind": "pct"
               },
+              " (",
+              "about ",
+              {
+                "key": "enough.atLevel.takeHome",
+                "kind": "money"
+              },
+              " a month from ",
+              "your take-home pay",
+              ")",
               " and ",
               "your employer",
               " ",
@@ -2377,7 +2375,7 @@
                 "key": "enough.atLevel.payIn",
                 "kind": "money"
               },
-              " a month going ",
+              " a month in all going ",
               "into your pension",
               " ",
               "from now ",

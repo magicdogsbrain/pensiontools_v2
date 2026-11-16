@@ -711,6 +711,10 @@ describe('7 — today, byte for byte', () => {
   // step above £0, so its `min`, the thumb's place and the first mark under it ("£10", was "£0") moved on every C answer
   // that draws the slider — those 13 were re-pinned (V7_PIN_TODAY=1; c/answer-closed-years, V7_PIN_SCREENS=1); nothing else
   // in them moved, and no other drawing moved
+  // …and one way to say a pay-in (7.12.0): "you" is never followed by a bare amount — what would be enough says what comes
+  // from you with the tax added back and what leaves take-home pay, once, in its block. Only B answers that say a figure
+  // that would be enough moved: b/answer-B1 and b/answer-first (V7_PIN_TODAY=1), b/answer-B2-on-course and
+  // b/answer-B4-before-57 (V7_PIN_SCREENS=1); no count moved and no other drawing moved
   const NEW = ['[data-field="partner.stop.kind"]', '[data-field="you.taxFreeTaken"]', '[data-field="partner.taxFreeTaken"]', '[data-region="shape"]',
     '[data-warning-id="drawdown-2028"]', '[data-field="isaGrowth"]', '[data-testid="nav.plans"]', '[data-testid="nav.account"]', '[data-testid="nav.whatsNew"]', '[data-testid="nav.assumptions"]', '[data-testid="front.exampleLine"]',
     // 7.9.0: "Try the bad years" under C's and D's final answers — a button only until pressed; no figure of the answer moves

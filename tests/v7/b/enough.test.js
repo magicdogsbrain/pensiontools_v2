@@ -45,12 +45,12 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     expect(a.verdict.band).toBe('no');
     expect(s.verdictHead.text).toBe('Not on course for £1,810 a month from 63');
     expect(s.verdictLine.text).toBe('Paying in 10% of your pay as now (£317 a month, your employer\'s 4% included), your money lasted until you are 95 in only 3 futures out of 10. '
-      + '31% of your pay in all (you 27%, £982 a month) would put you on course, which is 9 in 10.');
+      + '31% of your pay in all would put you on course, which is 9 in 10.');   // 7.12.0: what it means for you, once, in the block below
     expect(s.income.text).toBe('To last in 9 futures out of 10 paying in as now, you could spend £1,310 a month from 63, '
       + 'with your State Pension from 68 (the full amount, as assumed): £500 a month (£6,000 a year) less than you want.');
     expect(s.atAim.text).toMatch(/^Spending £1,810 a month, in a bad case \(the worst 1 in 10\) your money runs out at \d+\.$/);
     expect(s.enoughHead.text).toBe('To be on course: 31% of your pay in all');
-    expect(s.enoughLine.text).toBe('You 27% and your employer 4% as now: £982 a month going into your pension from now until you are 63, going up with prices. '
+    expect(s.enoughLine.text).toBe('You 27% (about £684 a month from your take-home pay) and your employer 4% as now: £982 a month in all going into your pension from now until you are 63, going up with prices. '
       + 'Your money lasted until you are 95 in 9 futures out of 10.');
     expect(s.enoughFour).toBeUndefined();                              // (7.8.0: one figure, at the level)
     expect(s.enoughMatch.text).toContain('If your employer adds more when you pay more, you would need less');
@@ -67,7 +67,7 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     expect(a.verdict.band).toBe('close');
     expect(s.verdictHead.text).toBe('Close — £1,810 a month from 63 is tight');
     expect(s.verdictLine.text).toBe('Paying in 22% of your pay as now (£697 a month, your employer\'s 4% included), your money lasted until you are 95 in only 8 futures out of 10. '
-      + '31% of your pay in all (you 27%, £982 a month) would put you on course, which is 9 in 10.');
+      + '31% of your pay in all would put you on course, which is 9 in 10.');
     // (7.8.0: the "3 in 4" line and the middling income left with the 3-in-4 figure and the count's middling amount)
     expect(s.verdictFour).toBeUndefined();
     expect(s.income.text).toContain('you could spend £1,600 a month from 63, with');
@@ -91,7 +91,7 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     const s = a.sentences;
     expect(a.verdict.band).toBe('yes');
     expect(s.verdictHead.text).toBe('On course for £1,500 a month from 66');
-    expect(s.verdictLine.text).toBe('Paying in £400 a month as now, your money lasted until you are 95 in 9 futures out of 10. You could pay in as little as £380 a month and still be on course.');
+    expect(s.verdictLine.text).toBe('Paying in £400 a month as now, your money lasted until you are 95 in 9 futures out of 10. You could pay in as little as £380 a month and still be on course: about £304 a month from your take-home pay.');   // 380 × 0.8 = 304
     expect(s.income.text).toBe('To last in 9 futures out of 10, you could spend £1,520 a month from 66, with your State Pension from 68 (the full amount, as assumed).');
     expect(a.gap.month).toBe(0);
     expect(s.enoughHead).toBeUndefined();
@@ -106,9 +106,10 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     expect(nine.employer).toBe(150);
     expect(nine.own).toBe(nine.payIn - 150);
     expect(a.sentences.verdictLine.text).toContain('(your employer\'s £150 included)');
-    expect(a.sentences.verdictLine.text).toContain(`(you £${nine.own.toLocaleString('en-GB')}, your employer's £150 as now) would put you on course`);
+    expect(a.sentences.verdictLine.text).toContain(`£${nine.payIn.toLocaleString('en-GB')} a month in all would put you on course`);
     expect(a.sentences.enoughHead.text).toMatch(/^To be on course: £[\d,]+ a month into your pension$/);
-    expect(a.sentences.enoughLine.text).toMatch(/^You £[\d,]+ and your employer £150 as now, from now until you are 64, going up with prices\. /);
+    // 7.12.0: what comes from you with the tax added back, and what leaves take-home pay (× 0.8), never "you £…"
+    expect(a.sentences.enoughLine.text).toContain(`£${nine.own.toLocaleString('en-GB')} from you with the tax added back (about £${Math.round(nine.own * 0.8).toLocaleString('en-GB')} from your take-home pay) and your employer's £150 as now, from now until you are 64, going up with prices. `);
     expect(text(a)).not.toMatch(/% of your pay/);
   });
 
@@ -230,9 +231,9 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     expect(a.verdict.band).not.toBe('yes');
     const nine = a.enough.atLevel;
     expect(s.verdictLine.text).toMatch(/^With your partner paying in 9% of their pay as now \(£[\d,]+ a month, their employer's 4% included\), /);
-    expect(s.verdictLine.text).toContain(`${nine.totalPct}% of your partner's pay in all (your partner ${nine.ownPct}%, £`);
+    expect(s.verdictLine.text).toContain(`${nine.totalPct}% of your partner's pay in all would put you on course`);
     expect(s.enoughHead.text).toBe(`To be on course: ${nine.totalPct}% of your partner's pay in all`);
-    expect(s.enoughLine.text).toMatch(new RegExp(`^Your partner ${nine.ownPct}% and their employer 4% as now: £[\\d,]+ a month going into your partner's pension from now until your partner stops at 62`));
+    expect(s.enoughLine.text).toMatch(new RegExp(`^Your partner ${nine.ownPct}% \\(about £[\\d,]+ a month from their take-home pay\\) and their employer 4% as now: £[\\d,]+ a month in all going into your partner's pension from now until your partner stops at 62`));
     expect(s.enoughMatch.text).toContain("If your partner's employer adds more when they pay more");
     const verdict = [s.verdictLine, s.enoughHead, s.enoughLine, s.enoughFour].filter(Boolean).map((x) => x.text).join(' ');
     expect(verdict).not.toMatch(/\byour pay\b|\byou \d|your employer|into your pension\b/);
@@ -253,7 +254,7 @@ describe('the words, state by state (saving-enough-and-check-in.md 2.2 and 3.5; 
     expect(a.enough.how).toBe('pounds');
     expect(a.sentences.verdictLine.text).toMatch(/^With your partner paying in £450 a month as now \(their employer's £150 included\), /);
     expect(a.sentences.verdictLine.text).not.toContain('between you as now');
-    if (a.enough.atLevel) expect(a.sentences.verdictLine.text).toMatch(/\(your partner £[\d,]+, their employer's £150 as now\)/);
+    if (a.enough.atLevel) expect(a.sentences.enoughLine.text).toMatch(/^£[\d,]+ from your partner with the tax added back \(about £[\d,]+ from their take-home pay\) and their employer's £150 as now/);
   });
 
   it('on course, your employer\'s part alone enough: "You could stop paying in yourself", in pounds as in shares', () => {

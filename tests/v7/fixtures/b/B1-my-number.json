@@ -221,6 +221,7 @@
         "savingsIn": null,
         "own": 2130,
         "employer": 250,
+        "takeHome": 1704,
         "parts": [
           {
             "who": "you",
@@ -1549,7 +1550,7 @@
       },
       "verdictLine": {
         "id": "b.verdict.line.no",
-        "text": "Paying in £700 a month as now (your employer's £250 included), counting how long people your age live, your money lasts as long as you do 5 times in 20. £2,380 a month (you £2,130, your employer's £250 as now) would put you on course, which is Balanced: 18 times in 20.",
+        "text": "Paying in £700 a month as now (your employer's £250 included), counting how long people your age live, your money lasts as long as you do 5 times in 20. £2,380 a month in all would put you on course, which is Balanced: 18 times in 20.",
         "parts": [
           "Paying in ",
           {
@@ -1583,21 +1584,7 @@
             "key": "enough.atLevel.payIn",
             "kind": "money"
           },
-          " a month (",
-          "you",
-          " ",
-          {
-            "key": "enough.atLevel.own",
-            "kind": "money"
-          },
-          ", ",
-          "your employer's",
-          " ",
-          {
-            "key": "enough.atLevel.employer",
-            "kind": "money"
-          },
-          " as now)",
+          " a month in all",
           " would put you on course, which is ",
           "Balanced",
           ": ",
@@ -1704,16 +1691,24 @@
       },
       "enoughLine": {
         "id": "b.enough.line",
-        "text": "You £2,130 and your employer £250 as now, from now until you are 60, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20. That is £1,680 a month more than now.",
+        "text": "£2,130 from you with the tax added back (about £1,704 from your take-home pay) and your employer's £250 as now, from now until you are 60, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20. That is £1,680 a month more than now.",
         "parts": [
-          "You",
-          " ",
           {
             "key": "enough.atLevel.own",
             "kind": "money"
           },
-          " and ",
-          "your employer",
+          " ",
+          "from you",
+          " with the tax added back (",
+          "about ",
+          {
+            "key": "enough.atLevel.takeHome",
+            "kind": "money"
+          },
+          " from ",
+          "your take-home pay",
+          ") and ",
+          "your employer's",
           " ",
           {
             "key": "enough.atLevel.employer",

@@ -214,6 +214,7 @@
         "savingsIn": null,
         "own": null,
         "employer": null,
+        "takeHome": 1312,
         "parts": [
           {
             "who": "you",
@@ -1806,9 +1807,16 @@
       },
       "enoughLine": {
         "id": "b.enough.line",
-        "text": "From now until you are 55, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20. That is £1,240 a month more than now.",
+        "text": "About £1,312 a month from your take-home pay, from now until you are 55, going up with prices. Counting how long people your age live, your money lasts as long as you do 18 times in 20. That is £1,240 a month more than now.",
         "parts": [
-          "From now ",
+          "About ",
+          {
+            "key": "enough.atLevel.takeHome",
+            "kind": "money"
+          },
+          " a month from ",
+          "your take-home pay",
+          ", from now ",
           "until you are ",
           {
             "key": "stop.age",

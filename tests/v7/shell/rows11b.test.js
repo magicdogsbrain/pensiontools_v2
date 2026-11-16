@@ -195,7 +195,7 @@ describe('"What you pay in": the settings whole, the record list whole', () => {
     expect(p.fb.writes[0].data).toEqual({ ...want.patch, lastModified: STAMP });
     for (const k of Object.keys(p.fb.writes[0].data)) expect([...SAVING_WRITES]).toContain(k);
     expect(p.fb.writes[0].data['accumulationTool.settings']).toEqual({ ...SAVER.accumulationTool.settings, escalationPct: 3, isaMonthly: 150 });
-    expect(p.store.getState().ui.toast).toMatchObject({ kind: 'saved', line: { id: 'saving' } });
+    expect(p.store.getState().ui.toast).toMatchObject({ kind: 'saved', line: { id: 'saving.poundsEmployer' } });   // 7.12.0: the pay-in said one way
     p.store.dispatch({ type: A.PLANS_SET, list: [{ plan: applyPatch(plan, p.fb.writes[0].data), newer: false, failed: false }], source: 'account', readAt: '14:04' });
     p.store.dispatch({ type: A.PLAN_UNDO, planId: SAVER.id });
     await tick();
@@ -209,7 +209,7 @@ describe('"What you pay in": the settings whole, the record list whole', () => {
     p.store.dispatch({ type: A.PLAN_SAVE, planId: SAVER.id });
     await tick();
     expect(p.fb.writes.length).toBe(1);
-    expect(p.store.getState().ui.toast).toMatchObject({ kind: 'saved', op: 'saving', line: { id: 'saving' } });
+    expect(p.store.getState().ui.toast).toMatchObject({ kind: 'saved', op: 'saving', line: { id: 'saving.poundsEmployer' } });   // 7.12.0: the pay-in said one way
     p.store.dispatch({ type: A.PLANS_SET, list: [{ plan: applyPatch(plan, p.fb.writes[0].data), newer: false, failed: false }], source: 'account', readAt: '14:04' });
     p.store.dispatch({ type: A.ROUTE_SET, route: parse('#/plan/' + SAVER.id + '/about') });
     expect(p.store.getState().ui.toast, 'the toast stays: it belongs to the plan, not the step').toMatchObject({ kind: 'saved', op: 'saving' });

@@ -282,7 +282,8 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     // the first sentence: as now (the employer's part named), then the figure that would be on course, and for 3 in 4
     const first = v.querySelector('[data-sentence="verdict"]');
     expect(first.textContent).toContain(`Paying in ${money(r.payIn.now)} a month as now (your employer's ${money(r.payIn.employer)} included)`);
-    expect(first.textContent).toContain(`${money(r.enough.atLevel.payIn)} a month (you ${money(r.enough.atLevel.own)}, your employer's ${money(r.enough.atLevel.employer)} as now) would put you on course, which is Balanced: 18 times in 20`);
+    // 7.12.0: what comes from you is said once, in the block below, never "you £…"
+    expect(first.textContent).toContain(`${money(r.enough.atLevel.payIn)} a month in all would put you on course, which is Balanced: 18 times in 20`);
     expect(first.querySelector('[data-key="enough.atLevel.payIn"]').getAttribute('data-value')).toBe(String(r.enough.atLevel.payIn));
     // the two incomes and the gap a year, with the State Pension named
     const income = v.querySelector('[data-testid="b.verdict.income"]');
@@ -375,7 +376,7 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     expect(v.querySelector('[data-verdict]').getAttribute('data-verdict')).toBe('yes');
     expect(v.querySelector('#answer-figure').textContent).toBe(`On course for ${money(r.spend.perMonth)} a month from ${r.stop.age}`);
     expect(r.enough.atLevel.payIn).toBeLessThan(r.payIn.now);
-    expect(v.querySelector('[data-sentence="verdict"]').textContent).toContain(`You could pay in as little as ${money(r.enough.atLevel.payIn)} a month and still be on course.`);
+    expect(v.querySelector('[data-sentence="verdict"]').textContent).toContain(`You could pay in as little as ${money(r.enough.atLevel.payIn)} a month and still be on course: about ${money(Math.round(r.enough.atLevel.payIn * 0.8))} a month from your take-home pay.`);   // 7.12.0: × 0.8
     expect(root.querySelector('[data-guide="levels.balanced.pot"]').textContent).toContain(r.sentences.bad.text);
   });
 
@@ -420,7 +421,7 @@ describe('B, step 2: am I on course, and what should I pay in?', () => {
     expect(r.enough.how).toBe('share');
     const first = root.querySelector('[data-sentence="verdict"]');
     expect(first.textContent).toContain(`Paying in ${r.enough.now.totalPct}% of your pay as now (${money(r.payIn.now)} a month, your employer's 4% included)`);
-    expect(first.textContent).toContain(`${nine.totalPct}% of your pay in all (you ${nine.ownPct}%, ${money(nine.payIn)} a month) would put you on course, which is Balanced: 18 times in 20`);
+    expect(first.textContent).toContain(`${nine.totalPct}% of your pay in all would put you on course, which is Balanced: 18 times in 20`);   // 7.12.0: the parts said once, in the block below
     expect(first.querySelector('[data-key="enough.atLevel.totalPct"]').getAttribute('data-kind')).toBe('pct');
     expect(root.querySelector('[data-enough="share"] h2').textContent).toBe(`To be on course: ${nine.totalPct}% of your pay in all`);
     one(root, 'b.lever.payMore.try').click();

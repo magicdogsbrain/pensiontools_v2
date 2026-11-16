@@ -98,8 +98,9 @@ describe('"What you pay in", drawn', () => {
     expect(one(recorded.root, `${T}.toast`).textContent).toContain('Recorded October 2026: £325,000 in all.');
     one(recorded.root, `${T}.undo`).click();
     expect(recorded.actions.pop()).toEqual({ type: 'plan/undo', planId: id });
-    const saved = draw(stateWith(entries, '#/plan/' + id + '/saving'), { type: A.PLAN_SAVED, planId: id, previous: { 'accumulationTool.settings': saver.accumulationTool.settings }, line: { id: 'saving', slots: { you: '£600', employer: '£450', total: '£1,200' } }, op: null });
-    expect(one(saved.root, `${T}.toast`).textContent).toContain('Saved. £600 a month from you, £450 from your employer: £1,200 a month into the pension in all.');
+    const saved = draw(stateWith(entries, '#/plan/' + id + '/saving'), { type: A.PLAN_SAVED, planId: id, previous: { 'accumulationTool.settings': saver.accumulationTool.settings }, line: { id: 'saving.poundsEmployer', slots: { takeHome: '£600', landed: '£750', employer: '£450', total: '£1,200' } }, op: null });
+    // 7.12.0: the pay-in said one way — £600 from take-home pay lands as £750 (÷ 0.8); with the employer's £450, £1,200
+    expect(one(saved.root, `${T}.toast`).textContent).toContain('Saved. You pay in £600 a month from your take-home pay. With the tax added back that is £750 in your pension. Your employer adds £450: £1,200 a month in all.');
   });
 
   it('a retired plan: no pot table, the stopped line; a fresh plan: no ages, the line; a plan shown as saved: no box; the plan page links here', () => {

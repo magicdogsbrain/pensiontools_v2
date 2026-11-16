@@ -399,7 +399,7 @@ describe('review fixes (7.7.0): generic for anyone who keeps something the plan 
     expect(keys).not.toContain('canFall');
     expect(GAPS.canFallPot).not.toMatch(/sell|gap/);
     expect(GAPS.keep.fundsPlan).not.toMatch(/gap/);
-    const ladder = gapsView(gapsOf(samKeeps({ counted: true }), { today: TODAY }));
+    const ladder = gapsView(gapsOf(samKeeps({ counted: true }), { today: TODAY, asKept: true }));   // 7.12.0: living on a ladder, read as the keep test reads it
     expect(ladder.lines.flatMap((l) => l.parts.map((x) => x.key))).toContain('fundsGaps');
   });
 });

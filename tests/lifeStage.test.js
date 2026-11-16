@@ -206,30 +206,29 @@ describe('a saver, placed and opened as a saver (release step R2)', () => {
     expect(accumulationAgesOf(acc(30, 67))).toEqual({ currentAge: 30, retirementAge: 67, years: 37 });
     expect(accumulationAgesOf({})).toBe(null);
   });
-  it('the planner opens a saver on their stage\'s first lead; every other stage on the Decision tool, as before', () => {
-    const at = (stress, decision = {}, extra = {}, now = NOW) => openingTab(deriveStage(sc(stress, decision, extra), now));
+  it('the planner opens a saver on their stage\'s first lead; a retired draft on the Stress tester; a plan being lived on on Monthly Entry', () => {
+    const at = (stress, decision = {}, extra = {}, now = NOW) => openingTab(deriveStage(sc(stress, decision, extra), now)).tab;
     expect(at({ currentAge: 45, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 62 })).toBe('accumulation');                     // saving
     expect(at({ currentAge: 57, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 })).toBe('stress');                           // approaching
     expect(at({ currentAge: 58, currentAgeAsOf: '2026-09-10', retired: false, retireAge: 60 }, { locked: true })).toBe('accumulation');   // committed-saving
     expect(at({}, {}, acc(30, 67))).toBe('accumulation');                                                                                   // saving, by the Accumulation ages
-    // the others exactly as before
     expect(at({ currentAge: 66, currentAgeAsOf: '2026-03-01', retired: true, firstTaxYear: 2028 }, { locked: true })).toBe('decision');    // bridge
     expect(at({ currentAge: 62, currentAgeAsOf: '2026-03-01', retired: true, firstTaxYear: 2026 }, { locked: true })).toBe('decision');    // running
-    expect(at({ currentAge: 68, currentAgeAsOf: '2026-09-10', retired: true, firstTaxYear: 2026 })).toBe('decision');                      // draft-retired
+    expect(at({ currentAge: 68, currentAgeAsOf: '2026-09-10', retired: true, firstTaxYear: 2026 })).toBe('stress');                        // draft-retired (7.12.0)
     expect(at({})).toBe('decision');                                                                                                          // unknown
-    expect(openingTab(null)).toBe('decision');
-    for (const key of ['running', 'draft-retired', 'unknown']) expect(openingTab({ key, leads: STAGES[key].leads })).toBe('decision');
+    expect(openingTab(null)).toEqual({ tab: 'decision', sub: null });
+    expect(openingTab({ key: 'running', leads: STAGES.running.leads })).toEqual({ tab: 'decision', sub: 'entry' });
     expect(STAGES.saving.leads[0]).toBe('accumulation');
-    // a saver's banner button opens the tab the planner opened on: the two never disagree
-    for (const key of ['saving', 'approaching', 'committed-saving']) expect(STAGES[key].banner.tab, key).toBe(openingTab({ key, leads: STAGES[key].leads }));
+    // a saver's and a retired draft's banner button opens the tab the planner opened on: the two never disagree
+    for (const key of ['saving', 'approaching', 'committed-saving', 'draft-retired']) expect(STAGES[key].banner.tab, key).toBe(openingTab({ key, leads: STAGES[key].leads }).tab);
   });
-  it('a plan whose phase is Moving opens on Transition (7.11.0); any other phase, or none, exactly as without one', () => {
-    expect(openingTab({ key: 'approaching', leads: STAGES.approaching.leads }, 'moving')).toBe('transition');
-    for (const key of Object.keys(STAGES)) expect(openingTab({ key, leads: STAGES[key].leads }, 'moving'), key).toBe('transition');
-    expect(openingTab(null, 'moving')).toBe('transition');
-    const stages = [null, ...Object.keys(STAGES).map((key) => ({ key, leads: STAGES[key].leads }))];
-    for (const st of stages) for (const phase of ['saving', 'drawing', 'closed', null, undefined]) {
-      expect(openingTab(st, phase), `${st && st.key} ${phase}`).toBe(openingTab(st));
+  it('a plan whose phase is Moving opens on Transition when locked and something is held, on its plan document when nothing is, and on the Stress tester when not locked', () => {
+    expect(openingTab({ key: 'committed-saving', locked: true, leads: STAGES['committed-saving'].leads }, 'moving', { held: true })).toEqual({ tab: 'transition', sub: null });
+    expect(openingTab({ key: 'committed-saving', locked: true, leads: STAGES['committed-saving'].leads }, 'moving')).toEqual({ tab: 'decision', sub: 'plandoc' });
+    expect(openingTab({ key: 'approaching', leads: STAGES.approaching.leads }, 'moving', { held: true })).toEqual({ tab: 'stress', sub: null });
+    const stages = [null, ...Object.keys(STAGES).filter((k) => k !== 'closed').map((key) => ({ key, leads: STAGES[key].leads }))];
+    for (const st of stages) for (const phase of ['saving', 'drawing', null, undefined]) {
+      expect(openingTab(st, phase), `${st && st.key} ${phase}`).toEqual(openingTab(st));
     }
   });
   it('a committed saver far from the stop is not offered the move; within five years it is, as a choice', () => {

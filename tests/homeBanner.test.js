@@ -13,6 +13,8 @@ import { describe, it, expect } from 'vitest';
 import { homeBannerOf, showHomeBanner, installHomeBanner, entriesOf, dayOf, DISMISSED_KEY, updateHomeBanner, simpleLinkHref, openingTabOf } from '../src/ui/homeBannerUi.js';
 import { homeOf } from '../src/answers/plan/home.js';
 import { deriveStage, openingTab } from '../src/services/LifeStage.js';
+import { holdingsLines } from '../src/services/HoldingsRecord.js';
+import { planHasFigures } from '../src/services/DraftDecision.js';
 import { nextStepFor } from '../src/services/NextStep.js';
 import { PLAN } from '../src/v7/copy/plan.js';
 import { HOME } from '../src/v7/copy/home.js';
@@ -238,8 +240,9 @@ describe('the banner on the page and its ✕', () => {
         const stage = deriveStage(raw, noon(today));
         const tab = await openingTabOf({ refreshLifeStage: async () => stage, getActiveScenarioId: async () => e.plan.id, listScenariosAsync: async () => raws }, noon(today));
         const phase = homeOf(entries, e.plan.id, { today }).stage.key;
-        if (phase === 'moving') { moving++; expect(tab, `${today} ${e.plan.id}`).toBe('transition'); }
-        else expect(tab, `${today} ${e.plan.id} ${phase}`).toBe(openingTab(stage));
+        const opts = { held: holdingsLines(raw.holdings).length > 0, figures: planHasFigures(raw) };
+        if (phase === 'moving') { moving++; expect(tab.tab, `${today} ${e.plan.id}`).toBe(stage.locked ? (opts.held ? 'transition' : 'decision') : 'stress'); }
+        else expect(tab, `${today} ${e.plan.id} ${phase}`).toEqual(openingTab(stage, phase, opts));
       }
       expect(JSON.stringify(raws)).toBe(before);
     }
@@ -247,8 +250,8 @@ describe('the banner on the page and its ✕', () => {
     // the plans cannot be read: the stage's own tab, as before
     const saver = C['05-saver-committed'];
     const st = deriveStage(saver, noon(TODAY));
-    expect(await openingTabOf({ refreshLifeStage: async () => st, getActiveScenarioId: async () => saver.id, listScenariosAsync: async () => { throw new Error('offline'); } }, noon(TODAY))).toBe(openingTab(st));
-    expect(await openingTabOf({ refreshLifeStage: async () => null, getActiveScenarioId: async () => null, listScenariosAsync: async () => [] }, noon(TODAY))).toBe('decision');
+    expect(await openingTabOf({ refreshLifeStage: async () => st, getActiveScenarioId: async () => saver.id, listScenariosAsync: async () => { throw new Error('offline'); } }, noon(TODAY))).toEqual(openingTab(st));
+    expect(await openingTabOf({ refreshLifeStage: async () => null, getActiveScenarioId: async () => null, listScenariosAsync: async () => [] }, noon(TODAY))).toEqual({ tab: 'decision', sub: null });
   });
   it('a refused write leaves the banner as it was; no plan: nothing drawn', async () => {
     const raws = Object.values(C);

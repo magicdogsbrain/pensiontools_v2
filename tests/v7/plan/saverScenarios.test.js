@@ -34,6 +34,9 @@ import { App } from '../../../src/v7/App.jsx';
 import { reduce } from '../../../src/v7/state/reduce.js';
 import { A } from '../../../src/v7/state/actions.js';
 import { shownPlanName } from '../../../src/services/PlanName.js';
+import { fresh, run, set, answered } from '../shell/_open.js';
+import { parsedDraft } from '../../../src/v7/state/select.js';
+import { answerC } from '../../../src/answers/c/answer.js';
 import { boxesOf as spendBoxes, spendPatch } from '../../../src/answers/plan/spend.js';
 import { WINDOW_SUFFIX } from '../../../src/v7/effects/planWrite.js';
 import { SAVING as W } from '../../../src/v7/copy/saving.js';
@@ -415,4 +418,22 @@ describe('step 7: a name the person did not type follows the plan', () => {
   it('plans brought in after a sign-in keep their names: no "(from this window)"', () => {
     expect(WINDOW_SUFFIX).toBe('');
   });
+});
+
+describe('step 6: figures passed to "What is my pot worth?" keep their shape', () => {
+  it('Jo\'s answer (5% and 3% of £38,000) carried into the pot-worth question and kept: the employer\'s part reaches the plan', () => {
+    let st = run(fresh({ today: READ_ON }), set('b', 'you.age', '33'), set('b', 'you.pot', '22,000'), set('b', 'you.payIn.kind', 'share'), set('b', 'you.payIn.pay', '38,000'),
+      set('b', 'you.payIn.ownPct', '5'), set('b', 'you.payIn.employerPct', '3'), set('b', 'stop.age', '60'), set('b', 'spend.amount', '2,000'));
+    st = answered(st, 'b', { status: 'ok', saving: [{ who: 'you', payIn: { total: 253.33 } }] });
+    st = reduce(st, { type: A.DRAFT_CARRY, from: 'b', to: 'c' });
+    expect(st.draft.c.values).toMatchObject({ 'you.payIn.has': 'yes', 'you.payIn.kind': 'share', 'you.payIn.ownPct': '5', 'you.payIn.employerPct': '3' });
+    const parsed = parsedDraft(st, 'c');
+    expect(parsed.ok).toBe(true);
+    const result = answerC(parsed.inputs, { today: READ_ON, futures: 100, seed: 0, detail: 'answer' });
+    const seed = buildPlanSeed({ source: 'c', result, env: { today: READ_ON, appVersion: 'test' }, name: 'Jo', createdAt: READ_ON + 'T10:00:00.000Z' });
+    const plan = seedToScenario(seed, READ_ON).yours;
+    // 38,000 × 3% ÷ 12 = 95 from the employer; 38,000 × 5% ÷ 12 = 158.33 lands from Jo, × 0.8 = 126.67 from take-home pay
+    expect(plan.accumulationTool.settings.employerMonthly).toBe(95);
+    expect(plan.accumulationTool.settings.netMonthly).toBeCloseTo(126.67, 1);
+  }, 60000);
 });

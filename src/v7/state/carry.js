@@ -62,6 +62,8 @@ const SAVER_FIELDS = [
   'savingsIn', 'savingRisk'
 ];
 const SAVER = same(['stop.age', ...SAVER_FIELDS]);
+/** The pay-in boxes alone, each person's seven (7.12.0: carried into C as typed). */
+const PAY_IN_PATHS = SAVER_FIELDS.filter((p) => /^(you|partner)\.payIn\./.test(p));
 
 /**
  * What goes into each pension a month, as one figure a person, read from the source's answer (A's and B's
@@ -86,6 +88,23 @@ const INTO_C = (stopFrom) => [
   [{ fixed: 'yes' }, 'you.payIn.has'], [{ fixed: 'yes' }, 'partner.payIn.has'],
   ...payInFrom((k) => `saving.${k}.payIn.total`)
 ];
+
+/**
+ * (7.12.0) Into C, a person whose pay-in is typed in parts — your part and your employer's, or a share of pay with its
+ * three boxes — keeps them as typed, so the employer's part reaches C and a plan kept there; flattened to one total, the
+ * whole sum was read as the person's own. Anyone else goes as one total, as before.
+ */
+const typedInParts = (v, who) => {
+  const at = (k) => v[`${who}.payIn.${k}`];
+  const filled = (k) => at(k) != null && String(at(k)).trim() !== '';
+  return (at('kind') === 'split' && filled('own') && filled('employer')) || (at('kind') === 'share' && filled('pay') && filled('ownPct') && filled('employerPct'));
+};
+function intoCAsTyped(map, v) {
+  const keep = ['you', 'partner'].filter((who) => typedInParts(v, who));
+  if (!keep.length) return map;
+  const mine = (target) => keep.some((who) => String(target).startsWith(who + '.payIn.') && target !== who + '.payIn.has');
+  return [...map.filter(([, target]) => !mine(target)), ...same(PAY_IN_PATHS.filter((p) => keep.some((who) => p.startsWith(who + '.'))))];
+}
 
 export const CARRY = Object.freeze({
   'c→a': [...HOUSEHOLD, ['start.age', 'stop.age'], [{ fixed: 'age' }, 'stop.kind'], ['take', 'spend.amount'], [{ fixed: 'amount' }, 'spend.kind'],
@@ -194,7 +213,8 @@ export function carryFor(from, to, values, result = null) {
   if (from === 'c' && has(CARRY_C_YOU_STOPPED, k) && cAnswerYouStopped(result)) {
     return { map: CARRY_C_YOU_STOPPED[k], opens: CARRY_C_YOU_STOPPED_OPENS[k] };
   }
-  return { map: has(CARRY, k) ? CARRY[k] : null, opens: has(CARRY_OPENS, k) ? CARRY_OPENS[k] : null };
+  const map = has(CARRY, k) ? CARRY[k] : null;
+  return { map: map && (k === 'a→c' || k === 'b→c') ? intoCAsTyped(map, v) : map, opens: has(CARRY_OPENS, k) ? CARRY_OPENS[k] : null };
 }
 
 // ---- the spending shape (research/v7/spending-shape.md 4.5) ------------------------------------------------------------

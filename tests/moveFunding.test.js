@@ -13,7 +13,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 vi.mock('../src/firebase/index.js', () => ({ isFirebaseConfigured: () => false, isLoggedIn: () => false }));
-import { targetHoldings, diffHoldings, sequence } from '../src/services/TransitionPlanner.js';
+import { targetHoldings, diffHoldings, sequence, yearNeedsOf } from '../src/services/TransitionPlanner.js';
 import { samDoc, samLines, SAM_TODAY as TODAY } from './helpers/samMove.js';
 
 const diffOf = (lines, doc = samDoc()) => diffHoldings(lines, targetHoldings(doc, { today: TODAY }), { today: TODAY, needs: null });
@@ -104,3 +104,36 @@ describe('One rule for the ISA: the move follows the engine (counted unless held
     expect(diffHoldings(withIsaRung(), t, { today: TODAY }).funding.need).toBe(102400);
   });
 });
+
+describe('A cash year a kept line pays only part of is still part bought', () => {
+  // Sam says TG28 is for 2028/29. It pays R in today's money (the one figure read from the code: it comes from the gilt list).
+  const keptFor2028 = () => samLines().map((l) => (l.ticker === 'TG28' ? { ...l, keep: { as: 'rung', taxYears: [2028] } } : l));
+  it('the cash to hold keeps the part of 2028/29 the gilt does not pay, and the year stays in the cash table beside it', () => {
+    const doc = samDoc();
+    const d = diffHoldings(keptFor2028(), targetHoldings(doc, { today: TODAY }), { today: TODAY, needs: yearNeedsOf(doc) });
+    const R = d.standIn[0].real;
+    expect(R).toBeGreaterThan(0);
+    expect(R).toBeLessThan(26000);
+    // by hand: gap = 26,000 − R; cash to hold = 26,000 (2027/28) + 26,400 × gap ÷ 26,000 (2028/29's cost, in the part not paid)
+    const gap = 26000 - R;
+    const toHold = 26000 + 26400 * gap / 26000;
+    const cashBuy = d.buy.find((b) => b.kind === 'cash');
+    expect(Math.abs(cashBuy.amount - (toHold - 25000))).toBeLessThanOrEqual(1);
+    // the gap is in the buy total: 45,000 (TA30) + 30,000 (TB31) + the cash buy
+    expect(d.funding.need).toBe(45000 + 30000 + cashBuy.amount);
+    const row = d.cashLeft.breakdown.find((r) => r.Y === 2028);
+    expect(row).toMatchObject({ besideKept: true });
+    expect(Math.abs(row.need - gap)).toBeLessThanOrEqual(1);
+    expect(d.cashLeft.yearsLeft).toContain(2028);
+  });
+  it('a kept line that pays the whole year takes the year out of the cash table, as before', () => {
+    const doc = samDoc();
+    const lines = samLines().map((l) => (l.ticker === 'TG28' ? { ...l, value: 60000, units: 60000, keep: { as: 'rung', taxYears: [2028] } } : l));
+    const d = diffHoldings(lines, targetHoldings(doc, { today: TODAY }), { today: TODAY, needs: yearNeedsOf(doc) });
+    expect(d.standIn[0].real).toBeGreaterThan(26000);
+    expect(d.cashLeft.yearsLeft).not.toContain(2028);
+    expect(d.cashLeft.breakdown.some((r) => r.Y === 2028)).toBe(false);
+    expect(d.cashLeft.value).toBe(26000);
+  });
+});
+

@@ -344,7 +344,9 @@ export function targetHoldings(doc, { today = new Date(), params = null } = {}) 
       if (running && +c.Y < thisTY) continue;
       const row = Array.isArray(d.timeline) ? d.timeline.find((x) => x && taxYearLabel(+c.Y) === x.taxYear) : null;
       const lump = row && num(row.lump) > 0 ? num(row.lump) : 0;
-      breakdown.push({ label: 'Cash year ' + taxYearLabel(+c.Y) + (lump > 0 ? ' (' + gbp(lump) + ' of it paid by a lump sum expected that year)' : ''), amount: Math.round(num(c.cost)) });
+      // the year's need beside what it cost to set aside (7.12.0): two figures, both labelled where they are shown
+      const yr = Array.isArray(plan.years) ? plan.years.find((x) => x && +x.Y === +c.Y) : null;
+      breakdown.push({ Y: +c.Y, label: 'Cash year ' + taxYearLabel(+c.Y) + (lump > 0 ? ' (' + gbp(lump) + ' of it paid by a lump sum expected that year)' : ''), amount: Math.round(num(c.cost)), need: yr ? Math.round(num(yr.need)) : Math.round(num(c.cost)) });
     }
     const cash = { key: 'cash:SIPP', wrapper: 'SIPP', kind: 'cash', label: 'Money-market fund / cash', value: cashValue, breakdown, spending: running, yearsLeft: running ? yearsLeft : cashYears.map((c) => +c.Y) };
     // The ISA (7.12.0): one rule with the engine (stressTest.js availablePot) — the ladder is priced and tested on the pension
@@ -527,16 +529,26 @@ export function diffHoldings(holdings, target, { band = MOVE_BAND, needs: needsG
       lines.push({ ...t, units: Math.round(t.units * frac), cost: Math.round(t.cost * frac), pays: Math.round(t.pays * frac), taxYears: restYears });
     }
     target = { ...target, lines };
-    // cash years stood in for: their money is not cash to hold (the year in full while running: the target counts it so)
+    // cash years stood in for: their money is not cash to hold as far as what stands in for them pays (7.12.0: a year the kept
+    // line pays only part of keeps the rest as cash to hold, and stays in the cash table beside what is kept; the year in full
+    // while running: the target counts it so)
     const coveredCash = [...standYears.keys()].filter((Y) => needs[+Y] && needs[+Y].from === 'cash');
     if (coveredCash.length && target.cash) {
       const ahead = coveredCash.filter((Y) => !running || Y >= (target.thisTaxYear || 0));
       const moneyOf = (Y) => (running ? needOf(Y) : num(needs[+Y].cost != null ? needs[+Y].cost : needs[+Y].need));
-      const less = ahead.reduce((s, Y) => s + moneyOf(Y), 0);
+      const less = ahead.reduce((s, Y) => s + moneyOf(Y) * paidShare([Y]), 0);
+      const whole = new Set(coveredCash.filter((Y) => paidShare([Y]) >= 1).map(Number));
       const ys = target.cash.yearsLeft || [], bd = Array.isArray(target.cash.breakdown) ? target.cash.breakdown : [];
-      // the breakdown is the cash years' rows in the order of yearsLeft (targetHoldings): the covered years' rows come out too
-      const breakdown = bd.length === ys.length ? bd.filter((_, i) => !coveredCash.includes(+ys[i])) : bd;
-      target = { ...target, cash: { ...target.cash, value: Math.max(0, Math.round(num(target.cash.value) - less)), yearsLeft: ys.filter((Y) => !coveredCash.includes(+Y)), breakdown } };
+      // the breakdown is the cash years' rows in the order of yearsLeft (targetHoldings): a year paid in full comes out; a year
+      // paid in part stays, with what it still needs (`need`, after what is kept pays) and the cash to hold for it (`amount`)
+      const breakdown = bd.length === ys.length ? bd.map((r, i) => {
+        const Y = +ys[i];
+        if (!coveredCash.includes(Y)) return r;
+        if (whole.has(Y)) return null;
+        const share = paidShare([Y]);
+        return { ...r, Y, need: Math.round(Math.max(0, left.has(Y) ? left.get(Y) : wantOf(Y))), amount: Math.round(moneyOf(Y) * (1 - share)), besideKept: true, by: standYears.get(Y) || [] };
+      }).filter(Boolean) : bd;
+      target = { ...target, cash: { ...target.cash, value: Math.max(0, Math.round(num(target.cash.value) - less)), yearsLeft: ys.filter((Y) => !whole.has(+Y)), breakdown } };
       covered.push({ key: 'cash:covered', kind: 'cash', label: target.cash.label, ticker: '', taxYears: coveredCash.slice().sort((a, b) => a - b), by: [...new Set(coveredCash.flatMap((Y) => standYears.get(+Y)))] });
       // before the start, the cash years stood in for still count toward the plan's mix: held as far as what stands in for
       // them pays, and then by the pension's cash beyond the cash still to hold (keeping a line never lowers the share held)

@@ -48,7 +48,7 @@ describe('Alex: both views say the page alike', () => {
     const cells = [...row.querySelectorAll('td')].map((td) => td.textContent);
     expect(cells.slice(0, 4)).toEqual(['0 1/8% Index-linked Treasury Gilt 2031 (TR31)', '2032/33', '15,500', '16,200']);
     // 700 units × the order's index ratio (1.42537) = £998, to the nearest £10
-    expect(cells[4]).toBe('+700 (about £1,000 more that year)');
+    expect(cells[4]).toBe('+700 (£1,000 more that year)');
     const t29 = [...a.querySelectorAll('tr')].find((r) => /\(T29\)/.test(r.textContent));
     expect([...t29.querySelectorAll('td')].map((td) => td.textContent)).toEqual(['0 1/8% Index-linked Treasury Gilt 2029 (T29)', '2029/30 to 2031/32', '37,500', '37,500', '—']);
   });
@@ -73,7 +73,7 @@ describe('Jo and Sam', () => {
   it('Jo: two gilts below the plan\'s units, and the cash short of the cash years', () => {
     const { simple, full } = both(joLivingRaw());
     for (const s of ['12 of your plan’s 14 gilts are held.', '2 are held below the plan’s units.',
-      '−13,500 (about £19,240 less that year)', '−7,300 (about £10,910 less that year)',
+      '−13,500 (£19,240 less that year)', '−7,300 (£10,910 less that year)',
       'Where you hold fewer units than the plan has, those years pay less than the plan says.',
       'Your pension holds £5,000 in cash.', 'That is £42,167 less than these years need.',
       'The plan pays £14,167 from cash by 5 April 2027; your pension’s cash is £5,000.']) expect(simple, s).toContain(s);
@@ -94,7 +94,8 @@ describe('the words', () => {
     const strings = [];
     const walk = (o) => { for (const v of Object.values(o)) typeof v === 'string' ? strings.push(v.replace(/\{\w+\}/g, 'two')) : walk(v); };
     walk(HELD);
-    for (const t of strings) for (const b of BANNED.filter((x) => ['all', 'planner', 'record', 'result', 'retired'].includes(x.scope))) {
+    // a pound sign stands in for each money slot, so a rule about "about £" is tested too
+    for (const t of strings.map((x) => x.replace(/two/g, '£2'))) for (const b of BANNED.filter((x) => ['all', 'planner', 'record', 'result', 'retired'].includes(x.scope))) {
       if (b.kind === 'explain') continue;
       expect(b.re.test(t) && !(b.allow || []).some((x) => x.test(t)), `"${t}" uses ${b.id}`).toBe(false);
     }

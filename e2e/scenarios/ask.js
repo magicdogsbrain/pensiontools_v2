@@ -120,6 +120,18 @@ class Asking {
     return this.fail({ must, did: `${where}: ${found.map((w) => `"${w}"`).join(', ')}`, byHand, owner, says: says || `was shown ${found.map((w) => `"${w}"`).join(', ')} on ${where}` });
   }
 
+  /**
+   * NEVER over many pages: [{ where, found }] from a sweep, one failure per word with every page it was on, so a word
+   * the whole site says reads once.
+   */
+  neverAcross(list, opts = {}) {
+    const byWord = new Map();
+    for (const { where, found } of list) for (const w of found) { const key = w.replace(/ \(".*"\)$/, ''); if (!byWord.has(key)) byWord.set(key, { shown: w, pages: [] }); if (!byWord.get(key).pages.includes(where)) byWord.get(key).pages.push(where); }
+    if (!byWord.size) { this.checks += 1; return true; }
+    for (const { shown, pages } of byWord.values()) this.never(pages.join(', '), [shown], opts);
+    return false;
+  }
+
   /** REACH: a thing a person must be able to get to (in so many presses). */
   reach(must, ok, { did = 'could not get there', says, owner, byHand = '' } = {}) {
     this.checks += 1;

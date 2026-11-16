@@ -37,10 +37,11 @@ export default defineConfig({
     colorScheme: 'dark',
     serviceWorkers: 'block',
     contextOptions: { reducedMotion: 'reduce' },
+    actionTimeout: 20_000,           // a press that cannot happen fails the step, not the whole scenario's time
     trace: 'retain-on-failure'
   },
   webServer: [
-    { command: `node e2e/helpers/serve.mjs ${DIST}/emu ${PORT} --emulators`, url: `http://127.0.0.1:${PORT}${V7_PATH}`, reuseExistingServer: false, timeout: 20_000 }
+    { command: `node e2e/helpers/serve.mjs ${DIST}/emu ${PORT} --emulators`, url: `http://127.0.0.1:${PORT}${V7_PATH}`, reuseExistingServer: process.env.E2E_REUSE_SERVER === '1', timeout: 20_000 }
   ],
   projects: [
     { name: 'scenarios-desktop-1440', use: chromium(1440, 900) },

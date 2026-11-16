@@ -61,7 +61,7 @@ test.describe('s06 · the checker', () => {
       const id = await q.step('sign in to the pots plan', () => seeded(page, 'pots'));
       const { readings, never } = await q.step('every page, both views', () => sweep(page, id));
       oneValueEach(q, readings);
-      for (const n of never) q.never(n.where, n.found);
+      q.neverAcross(never);
       await q.step('the home, taken against the plan', async () => { await planPage(page, id, 'home'); await settled(page).catch(() => {}); });
       const home = await visibleText(page);
       const line = /£([\d,]+) taken; the plan said £([\d,]+)/.exec(home);
@@ -78,7 +78,7 @@ test.describe('s06 · the checker', () => {
       const id = await q.step('sign in to the ladder plan', () => seeded(page, 'ladder'));
       const { readings, never } = await q.step('every page, both views', () => sweep(page, id));
       oneValueEach(q, readings);
-      for (const n of never) q.never(n.where, n.found);
+      q.neverAcross(never);
       await q.step('the home, taken against the plan', async () => { await planPage(page, id, 'home'); await settled(page).catch(() => {}); });
       const home = await visibleText(page);
       const line = /£([\d,]+) taken; the plan said £([\d,]+)[^\n]*/.exec(home);
@@ -99,7 +99,7 @@ test.describe('s06 · the checker', () => {
       const id = await q.step('sign in to the saver plan', () => seeded(page, 'saver'));
       const { readings, never } = await q.step('every page, both views', () => sweep(page, id));
       oneValueEach(q, readings, ['stop.month', 'yearsToGo', 'stage']);
-      for (const n of never) q.never(n.where, n.found);
+      q.neverAcross(never);
       const stop = '2038-02';
       const toGo = monthsBetween('2026-11', stop);    // 12 × 12 − 9 = 135
       const { years, months: m } = yearsAndMonths(toGo);

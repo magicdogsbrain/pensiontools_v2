@@ -135,7 +135,7 @@ export function neverIn(text, { view = 'simple' } = {}) {
   for (const w of NEVER_ANY_PAGE) if (w === 'NaN' ? /\bNaN\b/.test(t) : low.includes(w.toLowerCase())) found.push(w);
   if (view === 'simple') for (const w of NEVER_ON_SCREEN) if (w === w.toUpperCase() ? new RegExp(`\\b${w}\\b`).test(t) : low.includes(w.toLowerCase())) found.push(w);
   const iso = /\b\d{4}-\d{2}-\d{2}\b/.exec(t);
-  if (iso) found.push(`an ISO date (${iso[0]})`);
+  if (iso) found.push(`an ISO date ("${t.slice(Math.max(0, iso.index - 40), iso.index + 20).replace(/\s+/g, ' ').trim()}")`);
   const until = /\bUntil (\d{1,2})\b(?![\d,])/.exec(t);
   if (until && Number(until[1]) < 30) found.push(`a plan year after "Until" ("${until[0]}")`);
   for (const s of sentences(t)) if (TWO_MEASURES.test(s)) { found.push(`two chance measures in one sentence ("${s.trim().slice(0, 90)}")`); break; }

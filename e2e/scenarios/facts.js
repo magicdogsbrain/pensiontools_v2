@@ -138,7 +138,8 @@ export const FACTS = Object.freeze({
     label: 'what leaves take-home pay', owner: 'SAVER', kind: 'money',
     simple: [
       { page: 'home', find: `${M} a month from (?:you|your (?:take-home )?pay)\\b` },
-      { page: 'saving', find: `${M} a month from (?:you|your (?:take-home )?pay)\\b` }
+      { page: 'saving', find: `${M} a month from (?:you|your (?:take-home )?pay)\\b` },
+      { page: 'saving', input: '[id="plan.saving.netMonthly"]' }
     ],
     full: [
       { page: 'accumulation', input: '#acNetMonthly' }
@@ -148,7 +149,8 @@ export const FACTS = Object.freeze({
     label: "the employer's part", owner: 'SAVER', kind: 'money',
     simple: [
       { page: 'home', find: `${M}(?: a month)? from your employer` },
-      { page: 'saving', find: `${M}(?: a month)? from your employer` }
+      { page: 'saving', find: `${M}(?: a month)? from your employer` },
+      { page: 'saving', input: '[id="plan.saving.employerMonthly"]' }
     ],
     full: [
       { page: 'accumulation', input: '#acEmployerMonthly' }

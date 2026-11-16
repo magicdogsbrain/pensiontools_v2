@@ -119,6 +119,16 @@ export const C = {
     riskCareful: 'Careful',
     riskBold: 'Bold',
     tryTakeNote: 'shows how long that lasts',
+    /**
+     * Under the slider while it sits on another amount than the level's (the answer below reads for that amount): the
+     * level's own amount, kept in view, by the level chosen, and the way back to it. {amount} the answer's figure.
+     */
+    solvedLine: {
+      careful: 'At Careful you could take about {amount} a month.',
+      balanced: 'At Balanced you could take about {amount} a month.',
+      bold: 'At Bold you could take about {amount} a month.'
+    },
+    backTo: 'Back to {amount}',
     /** "Before / Now" about an amount named under "take". Pieces around figures drawn by Money. */
     takeLastsTo: 'lasts to',
     takeEvenBad: 'even in a bad case (the worst 1 in 10)',

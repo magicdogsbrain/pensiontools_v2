@@ -871,6 +871,11 @@ h2.eyebrow { font-size: var(--size-small); }
 .slider-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
 .answer-slider label { margin: 0; }
 .slider-result { margin: 0; }
+/* C: the slider on another amount than the level's — the level's amount kept in view, and the way back to it */
+.take-solved { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding-top: 6px; border-top: 1px solid var(--line); }
+.take-solved-line { margin: 0; flex: 1 1 16em; min-width: 0; }
+.take-lines { margin: 0 0 8px; }
+.take-lines .take-line { margin: 0 0 4px; }
 .slider-value { font: 500 1.25rem/1.2 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); }
 .answer-slider input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: var(--target); margin: 0; background: transparent; cursor: pointer; }
 .answer-slider input[type="range"]::-webkit-slider-runnable-track { height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--slide) 0 var(--at), var(--surface-raised) var(--at)); border: 1px solid var(--line-strong); }

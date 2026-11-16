@@ -90,15 +90,18 @@ describe('1 — "+ Add a partner" after a first answer', () => {
 });
 
 describe('2 — "Show how long that lasts"', () => {
-  it('draws the sentence for the amount named under the button, and keeps it on the answer\'s page — since 7.5.0 in the slider\'s card, under the slider that moves it', () => {
+  it('draws the sentence for the amount named under the button, and the answer\'s page reads for that amount — its headline, since the slider\'s fix (16 Nov 2026), not a line in the slider\'s card', () => {
     const state = load('answer-take');
     const root = renderScreen(state);
     clean(root, state);
-    const text = state.answers.c.result.sentences.take.text;
+    // (while weighing, the line is the page's chance — takeChance — since the slider's fix, 16 Nov 2026)
+    const said = state.answers.c.result.sentences;
+    const text = (said.takeChance || said.take).text;
     const under = one(root, 'c.try.take.result');
     expect(under.textContent).toBe(text);
     expect(under.closest('.try')).not.toBe(null);
-    expect(one(root, 'c.slider.result').textContent).toContain(text);
+    expect(one(root, 'c.slider.result').textContent).not.toContain(text);
+    expect(root.querySelector('[data-headline="take.perMonth"]')).not.toBe(null);
     // It sits after the button in reading order.
     const order = [...root.querySelectorAll('[data-testid="c.try.take"], [data-testid="c.try.take.result"]')].map((el) => el.getAttribute('data-testid'));
     expect(order).toEqual(['c.try.take', 'c.try.take.result']);

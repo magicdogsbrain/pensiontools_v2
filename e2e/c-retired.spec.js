@@ -98,7 +98,10 @@ test.describe('J3 — already retired: 68, taking money now', () => {
       const withTake = app.engine(FINAL_ENV);
       if (BUILT.answer) {
         expect(withTake.take).not.toBeNull();
-        await expect(page.locator('#app')).toContainText(withTake.sentences.take.text);
+        // (since the slider's fix, 16 Nov 2026: the line under the button says the page's chance — takeChance while weighing —
+        // and the answer above reads for the amount: its headline is "Taking £… a month")
+        await expect(page.locator('#app')).toContainText((withTake.sentences.takeChance || withTake.sentences.take).text);
+        if (withTake.take.perMonth !== withTake.levels[withTake.level].monthly) await expect(page.locator('#app [data-headline="take.perMonth"] #answer-figure')).toHaveText(withTake.sentences.takeHead.text);
       } else test.info().annotations.push({ type: 'not checked yet', description: 'how long £2,200 a month lasts waits for the real answer (package 2)' });
       await wording();
       await app.check({ answer: withTake, before: answer });

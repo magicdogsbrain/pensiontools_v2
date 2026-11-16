@@ -181,6 +181,12 @@ export function KeepPanel({ state, q, dispatch, heading = true }) {
         </div>
       )}
       {use && <UseIn q={q} v={v} state={state} dispatch={dispatch} />}
+      {/* C read at an amount being tried: what a keep keeps — the amount at the level, not the one being tried */}
+      {v.can && v.trying && (
+        <p class="note" data-testid={`${q}.keep.trying`}>{slotted(KEEP.trying[v.trying.level] || KEEP.trying.balanced, {
+          amount: <Money source={state.answers[q].result} k={`levels.${v.trying.level}.monthly`} />
+        })}</p>
+      )}
       {v.can
         ? (
           // with a choice of pay-in to make (B not on course), Enter in the name box keeps nothing: one of the two buttons does

@@ -51,6 +51,16 @@ export const KEEP = {
   /** Contract Q2's line, with "window" for "tab" (the banned list keeps "tab" for the old app's tabs). Each keep is one new plan. */
   note: 'Each keep makes one new plan. Keeping a plan needs a free account, or you can keep up to three in this browser window without one.',
   privacy: 'Your figures go into the plan and nowhere else. They never go into the address.',
+  /**
+   * C's answer read at an amount being tried (the slider, or "Take, a month"): what a keep keeps is the amount at the level
+   * chosen, the one the answer stands behind — the plan's level, chance and year-by-year figures are that amount's.
+   * {amount} is the answer's figure at the level.
+   */
+  trying: {
+    careful: 'A plan kept from here takes {amount} a month, the amount at Careful, not the amount you are trying. You can change what it takes once it is kept.',
+    balanced: 'A plan kept from here takes {amount} a month, the amount at Balanced, not the amount you are trying. You can change what it takes once it is kept.',
+    bold: 'A plan kept from here takes {amount} a month, the amount at Bold, not the amount you are trying. You can change what it takes once it is kept.'
+  },
   /** With a locked plan in the account (D): the plan you follow is not touched. */
   separate: 'Your locked plan stays the one you follow month by month.',
   /** After keeping. {name} is the plan's name as kept (with " (2)" when the name was taken). */

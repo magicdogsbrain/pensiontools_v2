@@ -146,10 +146,11 @@ function ifStaysParts(facts) {
  * State Pension or final-salary pension began that phase, or whose pension opened ("From when your partner is
  * 57"); "you" when it was yours, or both, or neither.
  */
-function ageWords(result, facts, i, lead) {
-  if (!facts.couple) return [lead, A('phases.' + i + '.fromAge')];
-  const ph = result.phases[i];
-  const prev = i > 0 ? result.phases[i - 1] : null;
+function ageWords(result, facts, i, lead, base = 'phases') {
+  if (!facts.couple) return [lead, A(base + '.' + i + '.fromAge')];
+  const list = phasesAt(result, base);
+  const ph = list[i];
+  const prev = i > 0 ? list[i - 1] : null;
   const started = (who) => {
     const now = ph.byPerson.find((b) => b.who === who);
     const before = prev ? prev.byPerson.find((b) => b.who === who) : null;
@@ -159,17 +160,24 @@ function ageWords(result, facts, i, lead) {
       || Boolean(before && before.locked && !now.locked);
   };
   const who = !started('you') && started('partner') ? 'partner' : 'you';
-  return [lead, who === 'you' ? 'you are ' : 'your partner is ', A('phases.' + i + '.ages.' + who + '.from')];
+  return [lead, who === 'you' ? 'you are ' : 'your partner is ', A(base + '.' + i + '.ages.' + who + '.from')];
 }
 
-/** The made-of lines for the careful amount. */
-function madeOfLines(result, facts) {
+/** The phases a key names in a result: 'phases' (the level's amount) or 'take.phases' (the amount being tried). */
+const phasesAt = (result, base) => base.split('.').reduce((o, k) => (o == null ? undefined : o[k]), result) || [];
+
+/**
+ * The made-of lines for the level's amount — or, with `base` 'take.phases', for the amount being tried (the same lines,
+ * read from the phases worked out at that amount).
+ */
+function madeOfLines(result, facts, base = 'phases') {
   const lines = [];
-  const phases = result.phases;
+  const phases = phasesAt(result, base);
+  const ages = (i, lead) => ageWords(result, facts, i, lead, base);
   phases.forEach((ph, i) => {
-    const at = 'phases.' + i;
+    const at = base + '.' + i;
     if (ph.fromPay !== undefined && facts.apart) {
-      lines.push(apartMadeOf(result, facts, ph, i));
+      lines.push(apartMadeOf(result, facts, ph, i, base));
       if (ph.tax >= 0.5) lines.push(S('c.madeOf.tax', ['Tax of ', M(at + '.tax'), ' a month is already taken off.']));
       return;
     }
@@ -178,11 +186,11 @@ function madeOfLines(result, facts) {
     const hasIncome = ph.statePension > 0 || ph.finalSalary > 0;
     const potsPart = ph.shown.fromPots > 0 ? [M(at + '.shown.fromPots'), ' from ', from] : null;
     if (!hasIncome && !facts.anyPots) {
-      if (phases.length > 1) lines.push(S('c.madeOf.none', [...ageWords(result, facts, i + 1, 'Until '), ': nothing yet.']));
+      if (phases.length > 1) lines.push(S('c.madeOf.none', [...ages(i + 1, 'Until '), ': nothing yet.']));
     } else if (!hasIncome) {
       if (phases.length === 1) lines.push(S('c.madeOf.pots', ['All of it comes from ', from, '.']));
-      else if (i + 1 < phases.length) lines.push(S('c.madeOf.pots', [...ageWords(result, facts, i + 1, 'Until '), ': ', M(at + '.shown.takeHome'), ...(ph.shapeMoves ? [' a month', firstYear(ph), ', all from '] : [' a month, all from ']), from, '.']));
-      else lines.push(S('c.madeOf.pots', [...ageWords(result, facts, i, facts.couple ? 'From when ' : 'From '), firstYear(ph), ': ', M(at + '.shown.takeHome'), ' a month, all from ', from, '.']));   // a pension opened; no income yet
+      else if (i + 1 < phases.length) lines.push(S('c.madeOf.pots', [...ages(i + 1, 'Until '), ': ', M(at + '.shown.takeHome'), ...(ph.shapeMoves ? [' a month', firstYear(ph), ', all from '] : [' a month, all from ']), from, '.']));
+      else lines.push(S('c.madeOf.pots', [...ages(i, facts.couple ? 'From when ' : 'From '), firstYear(ph), ': ', M(at + '.shown.takeHome'), ' a month, all from ', from, '.']));   // a pension opened; no income yet
     } else if (i === 0) {
       const items = [];
       if (ph.statePension > 0) items.push(['Your ', spWord, ' (', M(at + '.shown.statePension'), ' a month)']);
@@ -201,7 +209,7 @@ function madeOfLines(result, facts) {
       if (potsPart) items.push(potsPart);
       const parts = [];
       items.forEach((it, k) => { if (k > 0) parts.push(' + '); parts.push(...it); });
-      const head = facts.couple ? [...ageWords(result, facts, i, 'From when '), firstYear(ph), ': '] : ['From ', A(at + '.fromAge'), firstYear(ph), ': '];
+      const head = facts.couple ? [...ages(i, 'From when '), firstYear(ph), ': '] : ['From ', A(at + '.fromAge'), firstYear(ph), ': '];
       lines.push(S('c.madeOf.mixed', [...head, ...parts, '.']));
     }
     if (ph.tax >= 0.5) lines.push(S('c.madeOf.tax', ['Tax of ', M(at + '.tax'), ' a month is already taken off.']));
@@ -219,8 +227,8 @@ const firstYear = (ph) => (ph && ph.shapeMoves ? ' (in its first year)' : '');
  * pays, and what the pay of the one still working covers — "Until you are 63, while your partner is still working: £1,600
  * a month from your money + £1,600 from your partner's pay."
  */
-function apartMadeOf(result, facts, ph, i) {
-  const at = 'phases.' + i;
+function apartMadeOf(result, facts, ph, i, base = 'phases') {
+  const at = base + '.' + i;
   const worker = workerOf(facts.apart);
   const stopped = facts.apart.first;
   const me = ph.byPerson.find((b) => b.who === stopped);
@@ -232,7 +240,7 @@ function apartMadeOf(result, facts, ph, i) {
   const money = closedNow ? (stopped === 'you' ? 'your savings' : "your partner's savings") : (stopped === 'you' ? 'your money' : "your partner's money");
   if (ph.shown.fromPots > 0) items.push([M(at + '.shown.fromPots'), ' from ', money]);
   const pay = worker === 'partner' ? "your partner's pay" : 'your pay';
-  const parts = [...ageWords(result, facts, i + 1, 'Until '), ', while ', worker === 'partner' ? 'your partner is' : 'you are', ' still working: '];
+  const parts = [...ageWords(result, facts, i + 1, 'Until ', base), ', while ', worker === 'partner' ? 'your partner is' : 'you are', ' still working: '];
   // (nothing from the money of the one who has stopped: all from the pay — or, when the pay does not cover it, nothing)
   if (!items.length) parts.push(...(ph.shown.fromPay > 0 ? [M(at + '.shown.takeHome'), ' a month, all from ', pay, '.'] : ['nothing yet.']));
   else {
@@ -457,7 +465,52 @@ export function sentencesFor(result, facts) {
     sentences.none = S('c.none', ['With these figures there is no monthly amount that lasts to ', A('basis.endAge'), '. Try a later start age or a shorter time.']);
   }
   if (facts.weighing && shown.monthly > 0) weighedSentences(sentences, result, facts);
+  if (result.take && Array.isArray(result.take.phases)) takeReading(sentences, result, facts);
   return sentences;
+}
+
+/**
+ * The answer read at the amount being tried — the slider ("What if you took this a month?") or "Take, a month" under Try a
+ * change — in the measures and words the answer uses at its level, so the page never says two measures: "Taking £2,960 a
+ * month", the chance it lasts as long as you do with the fixed-age line beside it, Bold's consequence where the amount
+ * asks for more than the level allows (and always at Bold), what happens if the money runs out, what is left, what it is
+ * made of (the screen keeps the level's own amount in view beside it). Every figure is the answer's `take` block,
+ * worked out on the same futures as the level's amount (D's reading of what you take). The try box's line while weighing
+ * is `takeChance`, the same chance, with the same fixed-age line beside it; the take sentence above stays as it always was
+ * (the count of futures to the plan-to age, the page's own measure in the rollback, where it is also the line). Nothing
+ * the answer said before changes: the reading is added beside it.
+ */
+function takeReading(sentences, result, facts) {
+  const t = result.take;
+  const c = facts.couple;
+  sentences.takeHead = S('c.take.head', ['Taking ', M('take.perMonth'), ' a month']);
+  sentences.takeMadeOf = madeOfLines(result, facts, 'take.phases');
+  if (shapeMoves(t.shapeAt)) sentences.takeShape = atTheStart('c.take.shape', t.shapeAt, 'take.shapeAt');
+  if (!(facts.weighing && t.perMonth > 0)) {
+    if (sentences.take) sentences.takeLine = { ...sentences.take, id: 'c.take.line' };
+    return;
+  }
+  const { lf } = facts.weighing;
+  const sf = facts.weighing.takeSf || null;
+  const chance = [...chanceParts(t.weighted)];
+  sentences.takeChance = S('c.take.chance', ['Taking ', M('take.perMonth'), ' a month, the money lasts ', asLongAs(c), ' ', ...chance, '.'], 'weighted');
+  sentences.takeLine = S(c ? 'c.take.line.couple' : 'c.take.line', [
+    'With ', ...(facts.life ? sourcesOnLivesParts(result, facts) : sourcesParts(facts)), ', taking ', M('take.perMonth'), ' a month after tax ', ...fromParts(facts), ' ', ...untilParts(facts),
+    ', the money lasts ', asLongAs(c), ' ', ...chance, ', ', countingLead(c).charAt(0).toLowerCase() + countingLead(c).slice(1), '.'
+  ], 'weighted');
+  sentences.takeFixed = fixedSentence('c.take.fixed', t.lasted, lf);
+  if (result.level === 'bold' || t.verdict !== 'yes') sentences.takeBold = boldSentence('c.take.bold', t.weighted, lf);
+  const wp = whenParts(sf, lf);
+  sentences.takeBad = wp ? S('c.take.when', wp)
+    : S('c.take.bad.lasts', ['Even in a bad case (the worst ', F('1'), ' in ', F('10'), '), ', M('take.perMonth'), ' a month lasts to ', A('basis.endAge'), ': in every future we tried it lasts beyond.']);
+  const hl = howLongParts(sf, lf);
+  if (hl) sentences.takeHowLong = S('c.take.howLong', hl);
+  const hm = howMuchParts(sf);
+  if (hm) sentences.takeHowMuch = S('c.take.howMuch', hm);
+  const fp = floorParts(sf, lf);
+  if (fp) sentences.takeFloor = S('c.take.floor', fp);
+  const lp = leftParts(sf, lf);
+  if (lp) sentences.takeLeft = S('c.take.left', lp);
 }
 
 /**

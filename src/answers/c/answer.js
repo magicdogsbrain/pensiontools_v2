@@ -32,7 +32,7 @@ import { LEVEL_IDS, levelOfInputs, levelBasis, chanceBlock, chanceOf, verdictOfC
 import { createReferenceBandSolver, weightedThresholdReference } from '../shared/bandReference.js';
 import { toHousehold } from './toHousehold.js';
 import { sentencesFor, sentencesWithoutPots, sentencesOnLives, assumedFor, warningsFor, finishTexts } from './sentences.js';
-import { usesLives, answerOnLives, stressCaseOnLives } from './onLives.js';
+import { usesLives, answerOnLives, stressCaseOnLives, takeShaped } from './onLives.js';
 import { payInTotalOf, statePensionAgeOf } from '../shared/schemaParts.js';
 import { before2028, payKeepsPensions } from '../shared/apart.js';
 import { shapeOfAnswer, markShapeMoves } from '../shared/shapeAnswer.js';
@@ -504,19 +504,29 @@ export function answerCReal(inputs, env) {
   const levels = Object.fromEntries(LEVEL_IDS.map((id) => [id, { monthly: lv[id].monthly, yearly: round2(lv[id].monthly * 12), weighted: lv[id].chance.weighted, fixedAge: lv[id].chance.fixedAge }]));
   const shownMonthly = lv[level].monthly;
 
+  // the amount being tried (the slider, or "Take, a month" under Try a change): the answer read at it on the same futures,
+  // as D reads what you take — its chance, its bad case, what it is made of and (weighing) what happens if the money runs out
   let take = null;
+  let takeSf = null;
   if (typeof checked.inputs.take === 'number') {
     const perMonth = checked.inputs.take;
     const months = solver.runOutMonthsAtMonthly(perMonth);
     const c = chanceOf(weigher, months, toMonth);
     const verdict = verdictOfChance(c, n, level, weigher);
-    take = { perMonth, lasted: c.fixedAge, runOutAge: badAge(months), covered: verdict === 'yes', weighted: c.weighted, verdict };
+    take = { perMonth, lasted: c.fixedAge, runOutAge: badAge(months), covered: verdict === 'yes', weighted: c.weighted, verdict, phases: phasesOf(plan, perMonth * 12) };
+    if (weigher.weighted && perMonth > 0) {
+      let left = null;
+      const configs = configsAt(plan, perMonth * 12);
+      try { left = leftAt({ runner: solver.runner || createFastRunner(plan, futures), configsOf: () => configs, months, toMonth, years: plan.years }); } catch { left = null; }
+      takeSf = shortfallOf(plan, months, perMonth * 12, { toMonth, left });
+    }
   }
 
   // what you could spend changing with age (spending-shape.md 6.2): each level's amount at the start with the later steps
   // in proportion, and each year's figures at the level's amount
   const shaped = household.shape
     ? shapeOfAnswer({ household, plan, at: Object.fromEntries(LEVEL_IDS.map((id) => [id, levels[id].monthly])), level, yearly: phasesOf(yearlyPlan(plan), shownMonthly * 12), H0: shownMonthly * 12 }) : null;
+  if (take && shaped) takeShaped(take, shaped, { household, plan, levels, level });
   const result = {
     status: 'ok', inputs: checked.inputs,
     level, levels,
@@ -540,7 +550,7 @@ export function answerCReal(inputs, env) {
       const configs = configsAt(plan, shownMonthly * 12);
       try { left = leftAt({ runner: solver.runner || createFastRunner(plan, futures), configsOf: () => configs, months: lv[level].months, toMonth, years: plan.years }); } catch { left = null; }
     }
-    facts.weighing = { lf: lifeFactsOf(result, weigher, plan, checked.inputs), sf: shownMonthly > 0 ? shortfallOf(plan, lv[level].months, shownMonthly * 12, { toMonth, left }) : null };
+    facts.weighing = { lf: lifeFactsOf(result, weigher, plan, checked.inputs), sf: shownMonthly > 0 ? shortfallOf(plan, lv[level].months, shownMonthly * 12, { toMonth, left }) : null, takeSf };
   }
   if (plan.startMoved && plan.totalIsa > 0 && shownMonthly > 0) facts.lockedSavingsMonths = Math.min(plan.movedBy * 12, Math.floor(plan.totalIsa / shownMonthly));
   result.sentences = sentencesFor(result, facts);

@@ -24,6 +24,9 @@
  * its savings pay-in had been null, nothing reaching the closed years, and is now a figure. It holds savings, so its new
  * hash is in answers.savingsGrowth.json as the moved cases' are, the reason noted there.
  *
+ * And (16 Nov 2026) C's reading at the amount tried, added beside what the answer said before: taken out before the hash,
+ * as the 2028 note is, and required wherever an amount is tried (takeReading.mjs).
+ *
  * V7_PIN=1 re-pins (only ever from the code the file names); V7_PIN_NODE=1 adds this Node's hashes where they differ.
  */
 import { describe, it, expect } from 'vitest';
@@ -36,6 +39,7 @@ import { flatCases, hashOf, whoIn2028, whoNamed2028 } from './flatCorpus.mjs';
 import { movesOf, holdsSavings, PIN_SAVINGS } from './savingsGrowthMoves.mjs';
 import { r1MovesOf, PIN_R1 } from './r1Moves.mjs';
 import { levelMovesOf, PIN_LEVELS } from './levelMoves.mjs';
+import { readsTake, withoutTakeReading } from './takeReading.mjs';
 
 const FILE = resolve(process.cwd(), 'tests/v7/shared/answers.flat.json');
 const ANSWER = { a: answerA, b: answerB, c: answerC };
@@ -52,7 +56,7 @@ const has2028 = (r) => Array.isArray(r.warnings) && r.warnings.some((w) => w.id 
 if (process.env.V7_PIN === '1' || process.env.V7_PIN_NODE === '1') {
   const old = existsSync(FILE) ? JSON.parse(readFileSync(FILE, 'utf8')) : null;
   const cases = flatCases().map((x, k) => {
-    const r = ANSWER[x.q](x.inputs, x.env);
+    const r = withoutTakeReading(ANSWER[x.q](x.inputs, x.env));
     if (process.env.V7_PIN === '1') return { ...x, hash: hashOf(r), had2028: has2028(r) };
     const was = old.cases[k];
     const h = hashOf(old.gains2028 && old.gains2028.includes(k) ? without2028(r) : r);
@@ -88,7 +92,11 @@ describe('I-SS1: a flat spend is today\'s answer, byte for byte (the 2028 note t
       const savings = [];
       CORPUS.cases.forEach((x, k) => {
         if (x.q !== q) return;
-        const r = ANSWER[q](x.inputs, x.env);
+        const read = ANSWER[q](x.inputs, x.env);
+        // C's reading at the amount tried (takeReading.mjs), added beside what the answer said before: taken out, as the
+        // 2028 note is; every C answer with an amount tried carries it
+        if (q === 'c' && typeof x.inputs.take === 'number' && read.status === 'ok' && !readsTake(read)) moved.push(`case ${k}: no reading at the amount tried`);
+        const r = withoutTakeReading(read);
         const gains = has2028(r) && !x.had2028;
         if (gains) gained.push(k);
         const h = hashOf(gains ? without2028(r) : r);

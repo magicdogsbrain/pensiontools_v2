@@ -424,18 +424,24 @@ describe('what does it pay a month? (the answer step)', () => {
     const state = load(name);
     const result = state.answers.c.result;
     const root = renderScreen(state);
-    const head = root.querySelector('[data-headline="levels.balanced.monthly"]');
+    // (F3 tries £2,200 a month under Try a change: since the slider's fix, 16 Nov 2026, the answer reads for the amount
+    // tried — its headline, line, bad case and what it is made of are the answer's take sentences)
+    const tried = !!(result.take && result.take.perMonth !== result.levels[result.level].monthly);
+    const K = tried ? 'take.perMonth' : 'levels.balanced.monthly';
+    const said = tried ? { head: result.sentences.takeHead, line: result.sentences.takeLine, bad: result.sentences.takeBad, madeOf: result.sentences.takeMadeOf } : result.sentences;
+    const head = root.querySelector(`[data-headline="${K}"]`);
 
-    it('the headline is the careful amount, with its sentence, the bad-case line and the short advice line', () => {
-      const number = head.querySelector('[data-key="levels.balanced.monthly"]');
-      expect(number.getAttribute('data-value')).toBe(String(result.levels.balanced.monthly));
-      expect(number.textContent).toBe(money(result.levels.balanced.monthly));
-      expect(head.textContent).toContain(result.sentences.head.text);
+    it('the headline is the amount it reads for (the level\'s, or the amount tried), with its sentence, the bad-case line and the short advice line', () => {
+      const number = head.querySelector(`[data-key="${K}"]`);
+      const value = tried ? result.take.perMonth : result.levels.balanced.monthly;
+      expect(number.getAttribute('data-value')).toBe(String(value));
+      expect(number.textContent).toBe(money(value));
+      expect(head.textContent).toContain(said.head.text);
       expect(head.textContent).toContain(result.sentences.sub.text);
-      expect(head.querySelector('[data-sentence="levels.balanced.monthly"]').textContent).toBe(result.sentences.line.text);
-      expect(head.textContent).toContain(result.sentences.bad.text);
+      expect(head.querySelector(`[data-sentence="${K}"]`).textContent).toBe(said.line.text);
+      expect(head.textContent).toContain(said.bad.text);
       expect(head.textContent).toContain(ADVICE_SHORT);
-      expect(head.textContent.indexOf(result.sentences.bad.text)).toBeLessThan(head.textContent.indexOf(ADVICE_SHORT));
+      expect(head.textContent.indexOf(said.bad.text)).toBeLessThan(head.textContent.indexOf(ADVICE_SHORT));
     });
     it('says nothing the brief dropped: no "from your pot" headline, no "in all" line, no charges, no spending', () => {
       // (6.19.0: the one charge is said under what was assumed, with Change — that list sits in this block, and is the
@@ -448,7 +454,7 @@ describe('what does it pay a month? (the answer step)', () => {
       expect(assumed.querySelector('[data-testid="assumed.charges.change"]').getAttribute('href')).toBe('#/c/numbers?focus=charge');
     });
     it('what it is made of: one line for each stretch of years, then the three amounts', () => {
-      for (const s of result.sentences.madeOf) expect(root.textContent).toContain(s.text);
+      for (const s of said.madeOf) expect(root.textContent).toContain(s.text);
       expect(root.textContent).toContain(result.sentences.range.text);
       expect(root.textContent).toContain(C.answer.madeOfTitle);
     });
@@ -520,14 +526,22 @@ describe('what does it pay a month? (the answer step)', () => {
     expect(root.textContent).toContain(C.answer.updating);
   });
 
-  it('take: the sentence for the amount named is shown, and the box holds what was typed', () => {
+  it('take: the answer reads for the amount named, and the box holds what was typed', () => {
     const state = load('answer-take');
+    const r = state.answers.c.result;
     const root = renderScreen(state);
-    // 7.5.0: under the slider that moves it, in the slider's own card — and not again in the headline
-    expect(one(root, 'c.slider.result').textContent).toContain(state.answers.c.result.sentences.take.text);
-    expect(root.querySelector('[data-region="answer"]').textContent).not.toContain(state.answers.c.result.sentences.take.text);
+    // (reported 16 Nov 2026: the slider's card said one line and the answer stayed at the level's amount) — the answer's
+    // headline is the amount named, with its own chance; the slider's card keeps the level's amount in view, never a
+    // second measure; the try box's line is not drawn again in the answer
+    const head = root.querySelector('[data-headline="take.perMonth"]');
+    expect(head.querySelector('#answer-figure').textContent).toBe(r.sentences.takeHead.text);
+    expect(head.querySelector('[data-sentence="take.perMonth"]').textContent).toBe(r.sentences.takeLine.text);
+    expect(one(root, 'c.slider.result').textContent).not.toContain(r.sentences.takeChance.text);
+    expect(one(root, 'c.answer.solved')).not.toBe(null);
+    expect(root.querySelector('[data-region="answer"]').textContent).not.toContain(r.sentences.takeChance.text);
+    expect(root.textContent).not.toContain(r.sentences.take.text);           // the count of futures out of 10 is not on the page
     expect(one(root, 'c.take').value).toBe('1,500');
-    expect(root.querySelector('[data-key="take.perMonth"]').getAttribute('data-value')).toBe('1500');
+    expect(head.querySelector('[data-key="take.perMonth"]').getAttribute('data-value')).toBe('1500');
   });
 
   it('small pot: the sentence sits under the headline (its link to C\'s unbuilt "ways" step went with the step at 7.0)', () => {

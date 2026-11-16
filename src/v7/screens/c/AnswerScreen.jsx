@@ -6,12 +6,16 @@
  *   - "Working out your answer…" until there is a figure;
  *   - the answer: headline, sentence, bad-case line, advice, warnings, what it is made of, what was assumed,
  *     try a change, what next — greyed and marked "Updating" while a new one is worked out.
+ * The slider ("What if you took this a month?") and "Take, a month" under Try a change write the take box. When the answer
+ * was worked out for an amount other than the level's own, the block reads for THAT amount (state/pictures.js takeReading:
+ * the answer's take sentences where its level's stand), and the line under the slider keeps the level's amount in view
+ * with "Back to £…" (takeTried), which empties the take box. The three tiles stay the most you could take at each level.
  * Computes nothing: every figure is the answer's, drawn by Money and Sentence.
  */
 import { LevelStrip } from '../../components/Lasts.jsx';
 import { StressStrip } from '../../components/StressStrip.jsx';
-import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, HeldAnswer, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer, AnswerSlider, FigureTiles, KeepLine } from '../../components/index.js';
-import { isCurrent, cAnswerYouStopped, isShapePath, answerSlider, answerTiles, tilesKey } from '../../state/select.js';
+import { AskForm, Field, formView, Button, LinkButton, Headline, Sentence, MadeOf, Assumed, TryAChange, Working, HeldAnswer, Problem, FIELDS, BudgetAgainstC, KeepPanel, StepsField, ShapeAnswer, AnswerSlider, FigureTiles, KeepLine, Money } from '../../components/index.js';
+import { isCurrent, cAnswerYouStopped, isShapePath, answerSlider, answerTiles, tilesKey, takeReading, takeTried } from '../../state/select.js';
 import { href } from '../../router/routes.js';
 import { frontDoor } from '../../rail/index.js';
 import { C } from '../../copy/c.js';
@@ -43,6 +47,31 @@ function ToSaver({ q, dispatch, partner = false, children }) {
   const open = frontDoor().some((x) => x.id === q && x.built);
   if (!open) return <LinkButton href={href.soon(q)}>{children}</LinkButton>;
   return <LinkButton testid={`c.next.${q}`} href={partner ? href.step(q, 'numbers') : OPENS[q]()} onClick={() => dispatch({ type: 'draft/carry', from: 'c', to: q })}>{children}</LinkButton>;
+}
+
+/** Words with figures in their {slots}: the slots are drawn (Money), the rest is text. */
+function slotted(text, slots) {
+  return String(text).split(/(\{\w+\})/).filter((t) => t !== '').map((t, i) => {
+    const m = /^\{(\w+)\}$/.exec(t);
+    return m && m[1] in slots ? <span key={i} class="slot">{slots[m[1]]}</span> : t;
+  });
+}
+
+/**
+ * Under the slider while it sits on an amount other than the level's: "At Balanced you could take about £1,920 a month."
+ * and "Back to £1,920", which empties the take box — the slider and the page return to the level's amount. Nothing is
+ * written anywhere but the box.
+ */
+function TakeTried({ tried, result, dispatch }) {
+  const amount = () => <Money source={result} k={tried.key} />;
+  return (
+    <div class="take-solved" data-testid="c.answer.solved">
+      <p class="take-solved-line">{slotted(C.answer.solvedLine[tried.level] || C.answer.solvedLine.balanced, { amount: amount() })}</p>
+      <Button testid="c.answer.back" kind="plain" onClick={() => dispatch({ type: 'draft/set', q: 'c', path: 'take', value: '' })}>
+        <span class="btn-words">{slotted(C.answer.backTo, { amount: amount() })}</span>
+      </Button>
+    </div>
+  );
 }
 
 /** "What next?": the two prompts, "Already stopped?" first for someone already drawing their State Pension. "Keep this as a plan" follows. */
@@ -104,7 +133,11 @@ export function AnswerScreen(state, dispatch) {
   } else {
     const stale = answer.status === 'working' || (form.parsed.ok && !isCurrent(state, 'c'));
     const first = answer.status === 'first' && !stale;
-    const s = result.sentences || {};
+    // the block reads for the amount being tried when the answer was worked out for one other than the level's (the
+    // answer's own figures, its take sentences where the level's stand: state/pictures.js takeReading); else as always
+    const reading = takeReading(state);
+    const shown = reading ? reading.view : result;
+    const s = shown.sentences || {};
     const open = (id) => state.ui.open.includes(id);
     // The "nothing to draw on" sentence stands where the headline would be, so the warning that says the same is not drawn twice.
     const shownWarnings = (result.warnings || []).filter((w) => !(s.nothing && w.id === 'nothing-to-draw'));
@@ -114,12 +147,19 @@ export function AnswerScreen(state, dispatch) {
       </ul>
     );
     const assumed = (result.assumed || []).length > 0 && <Assumed result={result} open={open('assumed')} all={open('allAssumed')} dispatch={dispatch} />;
-    const madeOf = <MadeOf result={result} open={open('madeOf')} dispatch={dispatch} />;
-    // what the slider's amount does ("Taking £… a month, the money lasted…") is drawn in the slider's own card, under it —
-    // the one thing on the page the slider changes — and not again in the headline
+    const madeOf = <MadeOf result={shown} open={open('madeOf')} dispatch={dispatch} />;
+    // the slider: the amount being tried. What it does is the block below (its headline, when the block reads for it);
+    // under the slider, while it sits on another amount than the level's, the level's amount and the way back to it
     const slider = answerSlider(state, 'c');
-    const takeBySlider = !!(slider && s.take);
-    const take = s.take && !takeBySlider && <Sentence s={s.take} source={result} class="take-line" />;
+    const tried = slider ? takeTried(state) : null;
+    // with no headline to read for it (no amount lasts at the level), the amount tried is said in the block: its chance
+    // with the fixed-age line beside it
+    const take = (s.takeChance || s.take) && (
+      <div class="take-lines" data-testid="c.answer.take">
+        <Sentence s={s.takeChance || s.take} source={result} class="take-line" />
+        {s.takeChance && s.takeFixed && <Sentence s={s.takeFixed} source={result} class="take-line" />}
+      </div>
+    );
     // Money first taken at a later age: what goes in until then, said plainly under the figure ("Paying in £800 a month
     // until 67, rising with prices; the pot invested at Balanced … until then"), and what the pot could be by then.
     const payIn = s.payIn && <Sentence s={s.payIn} source={result} class="pay-in-line" data-testid="c.answer.payIn" />;
@@ -137,7 +177,7 @@ export function AnswerScreen(state, dispatch) {
     );
     body = (
       <>
-        <AnswerSlider slider={slider} dispatch={dispatch} stale={stale}>{takeBySlider && <Sentence s={s.take} source={result} class="take-line" data-testid="c.answer.take" />}</AnswerSlider>
+        <AnswerSlider slider={slider} dispatch={dispatch} stale={stale}>{tried && <TakeTried tried={tried} result={result} dispatch={dispatch} />}</AnswerSlider>
         <div class={`answer${stale ? ' is-stale' : ''}`} data-region="answer" aria-live="polite" aria-busy={stale ? 'true' : 'false'}>
           {stale && <p class="updating" role="status">{C.answer.updating}</p>}
           {first && <p class="note first-figure">{C.answer.first}</p>}
@@ -145,8 +185,8 @@ export function AnswerScreen(state, dispatch) {
             ? <><Sentence s={s.none} source={result} class="none" />{warnings}{take}{assumed}</>
             : s.head && s.line && !s.nothing
               ? (
-                <Headline result={result} afterLine={payIn || potThen || shapeLine ? <>{shapeLine}{payIn}{potThen}</> : null}
-                  strip={<LevelStrip q="c" result={result} dispatch={dispatch} words={C} />}>
+                <Headline result={shown} k={reading ? 'take.perMonth' : null} afterLine={payIn || potThen || shapeLine ? <>{shapeLine}{payIn}{potThen}</> : null}
+                  strip={<LevelStrip q="c" result={shown} dispatch={dispatch} words={C} />}>
                   {top}
                   {s.small && (
                     <div class="small-pot">
@@ -154,7 +194,6 @@ export function AnswerScreen(state, dispatch) {
                     </div>
                   )}
                   {warnings}
-                  {take}
                   {madeOf}
                   {assumed}
                 </Headline>

@@ -7,6 +7,8 @@
  *   lifeStages(strip)                 the plan home's stage strip as the life line draws it
  *   roundTop(max)                     a round top for a scale (1, 2, 2.5 or 5 times a power of ten)
  *   answerSlider(state, q)            the one control on B's, C's and D's answer: which box it moves, its range and value
+ *   takeReading(state)                C's answer read at the amount being tried, when it is not the level's own
+ *   takeTried(state)                  the level's amount kept in view while C's slider sits on another amount
  *   answerTiles(state, q)             the three figures under the verdict, each a key of the answer's own result
  *   tilesKey(state, q)                what those figures count up to, as one key: the result on screen, never the inputs
  *   potPicture(state, q)              the pot over a life for B (the rising half, the drawing half faint) and D (what is left)
@@ -161,8 +163,11 @@ function sliderOf(state, r, q) {
     // (7.8.0: the scale reaches past Bold's amount, the most of the three levels)
     if (!r.levels || !r.levels.bold || !isNum(r.levels.bold.monthly) || r.status === 'none') return null;
     const take = typed(d.take);
-    const value = take ?? (isNum(ins.take) ? ins.take : shownOf(r).monthly);
-    return { ...money('take', 'take', 1.6 * r.levels.bold.monthly, value), set: take !== null || isNum(ins.take) };
+    // (the box emptied — "Back to £…" — reads as the level's amount at once, not the amount the answer on screen still
+    // reads for while the level's is worked out again)
+    const emptied = typeof d.take === 'string' && d.take.trim() === '';
+    const value = take ?? (!emptied && isNum(ins.take) ? ins.take : shownOf(r).monthly);
+    return { ...money('take', 'take', 1.6 * r.levels.bold.monthly, value), set: take !== null || (!emptied && isNum(ins.take)) };
   }
   if (q === 'd') {
     if (!ins.spend || ins.spend.kind !== 'amount' || !r.levels || !r.levels.bold || !isNum(r.levels.bold.monthly)) return null;
@@ -170,6 +175,52 @@ function sliderOf(state, r, q) {
     return money('spend.amount', 'spend', Math.max(1.5 * r.levels.bold.monthly, 1.5 * (isNum(spend) ? spend : 0)), spend);
   }
   return null;
+}
+
+// ---- C's amount being tried ----------------------------------------------------------------------------------------
+
+/** The level's own amount on C's answer (shownOf), or null. */
+const solvedOf = (r) => { const sh = r && r.levels ? shownOf(r) : null; return sh && isNum(sh.monthly) ? sh.monthly : null; };
+
+/**
+ * C's answer read at the amount being tried (reported 16 Nov 2026: the slider moved and only one small line changed). The
+ * slider ("What if you took this a month?") and "Take, a month" under Try a change write the `take` box; when the answer
+ * on screen was worked out for an amount other than the level's own, the block under the slider reads for THAT amount in
+ * the page's own measures and words — the answer's take sentences (answers/c/sentences.js takeReading) in the places its
+ * level's own stand: the headline, the chance and its fixed-age line, Bold's consequence, the bad case, what comes in
+ * after, how long and how much is still paid, what is left, what it is made of. The sentences that say the same at any
+ * amount (the sub-line, what goes in until the money starts, a small pot) stay; what the other levels ask for, which is
+ * about the level's amount, goes. Every figure is the answer's own.
+ * @returns {null | { view: object, take: number, solved: number, level: string }}   view: the result as the block draws it
+ *   null when the answer reads for its level's amount (nothing tried, or the level's own amount tried)
+ */
+export function takeReading(state) {
+  const r = resultOf(state, 'c');
+  const s = r && r.sentences;
+  if (!r || r.status !== 'ok' || !r.take || !isNum(r.take.perMonth) || !s || !s.takeHead || !s.takeLine) return null;
+  const solved = solvedOf(r);
+  if (solved === null || r.take.perMonth === solved) return null;
+  const at = {
+    head: s.takeHead, line: s.takeLine, fixed: s.takeFixed, boldLine: s.takeBold, bad: s.takeBad, floor: s.takeFloor, howLong: s.takeHowLong,
+    howMuch: s.takeHowMuch, left: s.takeLeft, shape: s.takeShape, madeOf: s.takeMadeOf || [], cost: undefined
+  };
+  return { view: { ...r, sentences: { ...s, ...at } }, take: r.take.perMonth, solved, level: r.level };
+}
+
+/**
+ * While C's slider (or the take box) sits on an amount other than the level's, the line under it keeps the level's amount
+ * in view — "At Balanced you could take about £1,920 a month." — with "Back to £1,920", which empties the take box: the
+ * slider and the page return to the level's amount. Read from what is typed, so it is there as soon as the slider moves;
+ * the figure is the answer's own, by its key.
+ * @returns {null | { level: string, key: string }}
+ */
+export function takeTried(state) {
+  const r = resultOf(state, 'c');
+  const solved = solvedOf(r);
+  if (solved === null || r.status !== 'ok') return null;
+  const t = typed(draftOf(state, 'c').take);
+  if (t === null || t === solved) return null;
+  return { level: r.level, key: `levels.${r.level}.monthly` };
 }
 
 // ---- the three figures ---------------------------------------------------------------------------------------------

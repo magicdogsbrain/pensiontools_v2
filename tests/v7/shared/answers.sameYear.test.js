@@ -29,6 +29,9 @@
  * its savings pay-in had been null, nothing reaching the closed years, and is now a figure. It holds savings, so its new
  * hash is in answers.savingsGrowth.json as the moved cases' are, the reason noted there.
  *
+ * And (16 Nov 2026) C's reading at the amount tried, added beside what the answer said before: taken out before the hash,
+ * as the 2028 note is, and required wherever an amount is tried (takeReading.mjs).
+ *
  * Delete one release after 6.20.0, with sameYear.v1/.
  */
 import { describe, it, expect } from 'vitest';
@@ -42,6 +45,7 @@ import { VERSION } from '../../../src/constants.js';
 import { movesOf, holdsSavings, PIN_SAVINGS } from './savingsGrowthMoves.mjs';
 import { r1MovesOf, PIN_R1 } from './r1Moves.mjs';
 import { levelMovesOf, PIN_LEVELS } from './levelMoves.mjs';
+import { readsTake, withoutTakeReading } from './takeReading.mjs';
 
 const CASES = JSON.parse(readFileSync(resolve(process.cwd(), 'tests/v7/shared/answers.sameYear.json'), 'utf8'));
 const ANSWER = { a: answerA, b: answerB, c: answerC };
@@ -81,7 +85,11 @@ describe('same-year couples and single people: today\'s answers, byte for byte',
       const savings = [];
       CASES.forEach((x, k) => {
         if (x.q !== q) return;
-        const r = ANSWER[q](x.inputs, x.env);
+        const read = ANSWER[q](x.inputs, x.env);
+        // C's reading at the amount tried (takeReading.mjs), added beside what the answer said before: taken out, as the
+        // 2028 note is; every C answer with an amount tried carries it
+        if (q === 'c' && typeof x.inputs.take === 'number' && read.status === 'ok' && !readsTake(read)) moved.push(`case ${k}: no reading at the amount tried`);
+        const r = withoutTakeReading(read);
         const gains = (r.warnings || []).some((w) => w.id === 'drawdown-2028');
         if (gains) gained.push(k);
         const got = hash(gains ? without2028(r) : r);

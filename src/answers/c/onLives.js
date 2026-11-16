@@ -368,6 +368,18 @@ export function stressCaseOnLives(checked, env, { defaulted = [] } = {}) {
 }
 
 /**
+ * The amount being tried, when what you spend changes with age (spending-shape.md 6.2): its steps in proportion, as each
+ * level's are (`take.shapeAt`), and its phases marked where the shape moves inside them (the ratios are the same at any
+ * amount, so the level's year-by-year rows say where). In place. answer.js reads it too.
+ */
+export function takeShaped(take, shaped, { household, plan, levels, level }) {
+  markShapeMoves(take.phases, shaped.byYear);
+  const at = { ...Object.fromEntries(LEVEL_IDS.map((id) => [id, levels[id].monthly])), take: take.perMonth };
+  take.shapeAt = shapeOfAnswer({ household, plan, at, level }).shapeAt.take;
+  return take;
+}
+
+/**
  * The answer on the lives. `ctx` carries what answer.js knows: { facts(plan, household) → C's facts, finish(result,
  * facts) → sentences, assumed and warnings filled, units, basisOf(plan, n) }.
  */
@@ -414,10 +426,15 @@ export function answerOnLives(checked, env, ctx) {
   });
   const payInTotal = saving.reduce((t, s) => t + s.payIn.total, 0);
 
+  // the amount being tried: the answer read at it on the same lives, as D reads what you take (verdictAt, phasesAt, and —
+  // weighing — the shortfall with what is left, leftAtStop)
   let take = null;
+  let takeSf = null;
   if (isNum(inputs.take)) {
     const v = verdictAt(sp, runner, inputs.take * 12, { weigher, level, toMonth });
-    take = { perMonth: inputs.take, lasted: v.lasted, runOutAge: v.runOutAge, covered: v.verdict === 'yes', weighted: v.weighted, verdict: v.verdict };
+    take = { perMonth: inputs.take, lasted: v.lasted, runOutAge: v.runOutAge, covered: v.verdict === 'yes', weighted: v.weighted, verdict: v.verdict,
+      phases: phasesAt(sp, inputs.take * 12).map(asCPhase) };
+    if (weigher.weighted && inputs.take > 0) takeSf = shortfallOf(plan, v.runOutMonths, inputs.take * 12, { toMonth, left: leftAtStop(sp, runner, inputs.take * 12, v.runOutMonths, toMonth) });
   }
 
   const mid = sp.middling;
@@ -435,6 +452,7 @@ export function answerOnLives(checked, env, ctx) {
   // in proportion, and each year's figures at the level's amount
   const shaped = household.shape ? shapeOfAnswer({ household, plan, at: Object.fromEntries(LEVEL_IDS.map((id) => [id, levels[id].monthly])), level, H0: shownMonthly * 12,
     yearly: phasesAt(sp, shownMonthly * 12, null, { yearly: true }).map(asCPhase) }) : null;
+  if (take && shaped) takeShaped(take, shaped, { household, plan, levels, level });
   const result = {
     status: 'ok', inputs,
     level, levels, ...(shaped || {}),
@@ -456,7 +474,7 @@ export function answerOnLives(checked, env, ctx) {
   // 7.8.0, weighing: what the words of the chance read, and the shortfall at the level's amount
   const weighing = weigher.weighted
     ? { lf: lifeFactsOf(result, weigher, plan, inputs),
-      sf: shownMonthly > 0 ? shortfallOf(plan, band.levels[level].months, shownMonthly * 12, { toMonth, left: leftAtStop(sp, runner, shownMonthly * 12, band.levels[level].months, toMonth) }) : null } : null;
+      sf: shownMonthly > 0 ? shortfallOf(plan, band.levels[level].months, shownMonthly * 12, { toMonth, left: leftAtStop(sp, runner, shownMonthly * 12, band.levels[level].months, toMonth) }) : null, takeSf } : null;
   ctx.finish(result, plan, household, { middling: mid, potAtStartMiddling: potAtStart.middling, own, middlingRunOut, weighing });
 
   if (env.trace) {

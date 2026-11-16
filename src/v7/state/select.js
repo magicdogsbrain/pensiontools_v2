@@ -64,6 +64,7 @@ import { hasShape, SHAPE_BASE, SHAPE_UNIT, thenPath, fallsPath, stepsPath, stepB
 /** The spending shape's draft readers, for the components (which read the state only through this file). */
 export { typedShape, isShapePath, stepsOf as shapeStepsOf } from './shapeDraft.js';
 import { yearFigures, shownShare } from './shapeModel.js';
+import { takeReading as cTakeReading } from './pictures.js';
 import { money } from '../../answers/shared/format.js';
 /** The one reader of a pay-in, every kind (schemaParts.js), for the components and the rail, which read it only through this file. */
 export { payInParts };
@@ -74,7 +75,7 @@ export { payInParts };
  */
 export { cAnswerYouStopped } from './carry.js';
 // the first visit's pictures and controls (7.5.0): each figure one the answer already gave (state/pictures.js)
-export { LIFE_EXAMPLE, lifeStages, roundTop, answerSlider, answerTiles, tilesKey, potPicture } from './pictures.js';
+export { LIFE_EXAMPLE, lifeStages, roundTop, answerSlider, answerTiles, tilesKey, potPicture, takeReading, takeTried } from './pictures.js';
 
 /** The input list of each question. A question's draft is in the state only while it is open (rail/questions.js OPEN). */
 export const SCHEMAS = { c: SCHEMA_C, a: SCHEMA_A, b: SCHEMA_B, d: SCHEMA_D };
@@ -699,6 +700,9 @@ export function keepView(state, q) {
   return { can: why === null, why, suggested, name, check: checkPlanName(name), problem: keep.problem || null, saving: keep.saving === true,
     made: keep.made || null, separate: q === 'd' && lockedPlanInAccount(state) === true, partnerKept: keep.partnerKept || null,
     payIn: why === null ? keepPayInOf(q, r) : null, useIn, used: keep.used || null,
+    // C read at an amount being tried (the slider, or "Take, a month"): a keep keeps the amount at the level — the one the
+    // answer stands behind, whose level, chance and year-by-year figures the plan takes — and the panel says so
+    trying: q === 'c' && why === null && cTakeReading(state) ? { level: r.level } : null,
     // (7.9.0: with the age each future is followed on to for the chance, the answer's own — the kept plan's chance counts those years too)
     cut: len && len.cut ? { ...len, weightToAge: r.chance && Number.isFinite(r.chance.weightToAge) ? r.chance.weightToAge : len.planToAge } : null };
 }

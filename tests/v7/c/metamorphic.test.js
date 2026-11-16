@@ -19,8 +19,11 @@ const ENV = { ...TEST_ENV, futures: Number(process.env.V7_PROP_FUTURES || 20) };
 const opts = (n = RUNS) => fcOptions({ seed: SEED, runs: n });
 const FOUND = JSON.parse(readFileSync(resolve(process.cwd(), 'tests/v7/c/found.cases.json'), 'utf8'));
 const ok = (a, inputs) => { const f = checkAnswer(a, inputs); expect(f, f.join('\n')).toEqual([]); return a; };
-const household = (a) => ({ levels: a.levels, chance: a.chance, guaranteed: a.guaranteed, take: a.take, status: a.status,
-  phases: a.phases.map((p) => ({ takeHome: p.takeHome, fromPots: p.fromPots, statePension: p.statePension, finalSalary: p.finalSalary, tax: p.tax, shown: p.shown, beforeStatePension: p.beforeStatePension })),
+const phaseFigures = (p) => ({ takeHome: p.takeHome, fromPots: p.fromPots, statePension: p.statePension, finalSalary: p.finalSalary, tax: p.tax, shown: p.shown, beforeStatePension: p.beforeStatePension });
+// (the amount being tried carries what it is made of at that amount: its phases are household figures compared as the
+// answer's own are, each person's labels left out)
+const household = (a) => ({ levels: a.levels, chance: a.chance, guaranteed: a.guaranteed, take: a.take && { ...a.take, phases: (a.take.phases || []).map(phaseFigures) }, status: a.status,
+  phases: a.phases.map(phaseFigures),
   years: a.basis.years, endAge: a.basis.endAge, failuresAllowed: Math.floor(a.basis.futures * a.basis.levelFails20 / 20) });
 /** M5's comparison: every household figure the same, and each phase's ages and person's figures with the labels moved. */
 function sameWithLabelsMoved(a, b) {
@@ -151,7 +154,8 @@ describe('C — metamorphic relations', () => {
       const COUNT = { ...ENV, weighted: false };
       const a = ok(answerC(single, COUNT), single);
       const b = ok(answerC(couple, COUNT), couple);
-      const strip = (h) => ({ ...h, phases: h.phases.map(({ shown, ...p }) => p) });
+      const unshown = (list) => list.map(({ shown, ...p }) => p);
+      const strip = (h) => ({ ...h, phases: unshown(h.phases), ...(h.take ? { take: { ...h.take, phases: unshown(h.take.phases) } } : {}) });
       expect(strip(household(b))).toEqual(strip(household(a)));
       expect(b.phases.map((p) => p.takeHome)).toEqual(a.phases.map((p) => p.takeHome));
     }), opts());

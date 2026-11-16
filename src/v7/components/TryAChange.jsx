@@ -7,8 +7,8 @@
  * through Money. The pot and start-age rows show the figure TYPED (what the next answer will be for), so a press
  * shows at once; their buttons rest while an answer is being worked out, so a double tap cannot step twice.
  *
- * Under the "take" button the sentence for the amount named is drawn where the button is (it is in the answer
- * card too). "Before / Now" speaks about what was tried: the careful amount, or — once an amount has been named
+ * Under the "take" button the sentence for the amount named is drawn where the button is: its chance, with the fixed-age
+ * line beside it — the measures of the answer above, which reads for that amount. "Before / Now" speaks about what was tried: the careful amount, or — once an amount has been named
  * — that amount and how long it lasted, on each side.
  */
 import { SCHEMA_C, earliestStart } from '../../answers/c/schema.js';
@@ -147,7 +147,9 @@ export function TryAChange({ state, form, result, dispatch }) {
       <div class="try-row try-take">
         <Field form={form} path="take" dispatch={dispatch} />
         <Button testid="c.try.take" onClick={() => dispatch({ type: 'draft/ask', q: 'c' })}>{C.buttons.takeShow}</Button>
-        {s.take && <Sentence s={s.take} source={result} class="take-line try-take-result" data-testid="c.try.take.result" />}
+        {/* while weighing, the chance said with its count to one named age beside it, as the answer above says it */}
+        {(s.takeChance || s.take) && <Sentence s={s.takeChance || s.take} source={result} class="take-line try-take-result" data-testid="c.try.take.result" />}
+        {s.takeChance && s.takeFixed && <Sentence s={s.takeFixed} source={result} class="take-line try-take-result" data-testid="c.try.take.fixed" />}
       </div>
 
       <ShapeTry q="c" state={state} dispatch={dispatch} />

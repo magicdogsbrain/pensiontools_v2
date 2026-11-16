@@ -379,7 +379,7 @@ describe('the words in src/v7/copy/', () => {
     const slot = (s) => s.replace(/\{(date|lockedOn|asOf|athOn|when|matures)\}/g, '1 July 2026').replace(/\{year\}/g, '2029/30').replace(/\{(words|ownWords)\}/g, 'in 9 futures out of 10')
       .replace(/\{(pension|isa|gia|cash|total|recognisedTotal|unrecognisedTotal|unknownTotal|value|amount|monthly|annual|target|held|spare|short|buy|sell|cost|pays|income|proceeds|bad|typical|lump|summary|lots)\}/g, '£250,000')
       .replace(/\{(shares|bonds|diversifiers|charge|trigger|below|pct|held)\}/g, '35').replace(/\{(level|ath|fireLevel|nominal)\}/g, '5,000')
-      .replace(/\{(lines|read|recognised|unrecognised|unknown|updated|added|n|months|rungs|bought|done|moves|years|year|from|to|cutAge|disarmAge|atAge|line|tranches|code|units)\}/g, '3')
+      .replace(/\{(lines|read|recognised|unrecognised|unknown|updated|added|n|months|rungs|bought|part|done|moves|years|year|from|to|cutAge|disarmAge|atAge|line|tranches|code|units)\}/g, '3')
       .replace(/\{(name|text|list|parts|wrapper|store|word|ticker|symbol|label|reason|why|years|action|on|s|have|newMoney|sedol|bucket)\}/g, 'Vanguard FTSE All-World').replace(/\{ms\}/g, '4.6')
       .replace(/\{opens\}/g, 'February 2035')   // 7.10.0: the month the plan's move window opens
       // 7.11.1: what is held, as information — the gilts maturing in the cash years, a rung's units more than it needs, the

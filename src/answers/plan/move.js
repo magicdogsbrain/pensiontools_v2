@@ -218,9 +218,13 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
   const done = (plan.transition && isObj(plan.transition) && isObj(plan.transition.done)) ? plan.transition.done : {};
   // the rungs bought: held, or held above the target (7.11.1, the diff's own count) — the order sheet says the same
   const rungs = T.kind === 'ladder' ? { total: T.lines.length, bought: D.rungs ? D.rungs.held : D.hold.filter((h) => Array.isArray(h.taxYears)).length } : null;
-  const status = D.complete ? { id: 'done', slots: {} } : rungs ? { id: 'gilts', slots: { bought: String(rungs.bought), rungs: String(rungs.total), held: String(D.progressPct) } } : { id: 'held', slots: { held: String(D.progressPct), done: String(P.doneCount), moves: String(P.total) } };
-  // what skipping it costs (§3.3): for a ladder the tax years whose rung is not bought; for a pot plan the one run on the held mix
-  const uncovered = T.kind === 'ladder' ? [...new Set(D.buy.filter((b) => b.kind === 'gilt').flatMap((b) => (b.taxYears || []).map((y) => +y)))].sort((a, b) => a - b) : [];
+  // a rung part bought (some of its units held: gaps.js heldOf's 'partRung', as Living on it reads it) is never "no gilt
+  // bought": its years are left out of the uncovered ones, and it is said with the units held of the units it needs
+  const partRungs = T.kind === 'ladder' ? D.buy.filter((b) => b.kind === 'gilt' && num(b.heldUnits) > 0) : [];
+  const status = D.complete ? { id: 'done', slots: {} } : rungs ? { id: partRungs.length ? 'giltsPart' : 'gilts', slots: { bought: String(rungs.bought), rungs: String(rungs.total), held: String(D.progressPct), part: String(partRungs.length) } } : { id: 'held', slots: { held: String(D.progressPct), done: String(P.doneCount), moves: String(P.total) } };
+  // what skipping it costs (§3.3): for a ladder the tax years whose rung is not bought at all; for a pot plan the one run on the held mix
+  const uncovered = T.kind === 'ladder' ? [...new Set(D.buy.filter((b) => b.kind === 'gilt' && !partRungs.includes(b)).flatMap((b) => (b.taxYears || []).map((y) => +y)))].sort((a, b) => a - b) : [];
+  const parts = partRungs.map((b) => ({ label: b.label || b.ticker || '', years: (b.taxYears || []).map((y) => taxYearLabel(+y)).join(', '), held: grouped(b.heldUnits), units: grouped(num(b.units) + num(b.heldUnits)) }));
   const held = heldMixSettings(plan, { today });
   const mine = M && runKey && M.key === runKey ? M : null;
   const heldRun = mine ? { status: mine.status, reason: mine.reason || null, ms: mine.ms == null ? null : mine.ms,
@@ -243,7 +247,7 @@ export function moveOf(entries, id, { today, index = null, M = null, source = 'a
     next: P.next ? moveRow(P.next, done) : null, waiting: s.waiting, yearsToStart: String(s.stage.yearsToStart || 0), opens: s.opensAt ? monthWords(s.opensAt) : null, startsAround: s.stage.startMonth ? monthWords(s.stage.startMonth) : (s.stage.firstTaxYear ? 'April ' + s.stage.firstTaxYear : ''),
     own: s.own, held: held ? { pcts: held.pcts, fromPension: held.fromPension } : null, heldRun, planMix: s.planMix || null,
     newMoney: (() => { const p = proportions(s.record.lines); if (!(p.contributions && p.contributions.monthly > 0)) return null; const m = p.contributions.monthly; return { monthly: pounds(m), parts: ['shares', 'bonds', 'diversifiers', 'cash'].filter((b) => p.contributions.byBucket[b] > 0.004).map((b) => ({ bucket: b, word: b === 'diversifiers' ? 'gold and trend' : b, amount: pounds(m * p.contributions.byBucket[b]) })) }; })(),
-    cost: { uncovered: uncovered.map((y) => taxYearLabel(y)), canRun: !!held && !s.ladder && !readonly },
+    cost: { uncovered: uncovered.map((y) => taxYearLabel(y)), parts, canRun: !!held && !s.ladder && !readonly },
     // the cash to hold: the cash years' money, less the years a kept line stands in for (7.6.0, the diff's cashLeft)
     cash: T.cash && !D.cashInfo ? (() => { const tv = (D.cashLeft || T.cash).value; return { rows: s.cashRows, target: pounds(tv), held: pounds(D.totals.cashHeld), spare: D.totals.cashHeld >= tv ? pounds(D.totals.cashHeld - tv) : null, short: D.totals.cashHeld < tv ? pounds(tv - D.totals.cashHeld) : null }; })() : null,
     cashInfo: D.cashInfo ? { held: pounds(D.cashInfo.held), target: pounds(D.cashInfo.target), years: D.cashInfo.yearsLeft.map((y) => taxYearLabel(+y)) } : null,

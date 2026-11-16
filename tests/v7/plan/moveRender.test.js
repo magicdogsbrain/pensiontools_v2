@@ -123,7 +123,9 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     const { root, text, actions, view } = draw(s);
     expect(root.querySelector('[data-region="plan-move"]').getAttribute('data-kind')).toBe('ladder');
     expect(root.querySelector('[data-region="plan-move"]').getAttribute('data-waiting')).toBe('0');
-    expect(one(root, `${T}.status.line`).textContent).toBe(`${view.rungs.bought} of 14 gilts bought; ${view.progressPct}% of the plan’s mix held.`);
+    // Moved on purpose (the walk): a rung part bought is said as part bought, as Living on it reads it, never as not bought
+    expect(view.cost.parts.length).toBeGreaterThan(0);
+    expect(one(root, `${T}.status.line`).textContent).toBe(`${view.rungs.bought} of 14 gilts bought and ${view.cost.parts.length} part bought; ${view.progressPct}% of the plan’s mix held.`);
     expect(one(root, `${T}.next`).textContent).toMatch(/^Next: (buy|sell) /);
     expect(one(root, `${T}.runUp`)).toBe(null);   // 7.3.3: no sentence for months before the plan (its home's to-do moves the start)
     expect(one(root, `${T}.cost.ladder`).textContent).toBe(`${view.cost.uncovered.length} tax years (${view.cost.uncovered[0]} to ${view.cost.uncovered[view.cost.uncovered.length - 1]}) have no gilt bought yet.`);

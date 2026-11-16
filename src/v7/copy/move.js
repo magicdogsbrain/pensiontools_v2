@@ -21,6 +21,7 @@ export const MOVE = {
     doneKept: 'Done — every rung is held, or covered by what you chose to keep.',
     held: '{held}% of the plan’s mix held; {done} of {moves} moves ticked off.',
     gilts: '{bought} of {rungs} gilts bought; {held}% of the plan’s mix held.',
+    giltsPart: '{bought} of {rungs} gilts bought and {part} part bought; {held}% of the plan’s mix held.',
     next: 'Next: {action} {label}{units}{amount}.',
     starts: 'The buying is spread over the next {months} month{s}, to {when}.'
   },
@@ -38,6 +39,7 @@ export const MOVE = {
     title: 'What skipping it costs',
     ladder: '{n} tax year{s} ({years}) {have} no gilt bought yet.',
     ladderNone: 'Every tax year the ladder funds has its gilt bought.',
+    part: '{label}, for {years}: {held} of {units} units held.',
     lead: 'One run of the one test on a copy of the plan with the mix as you hold it in your pension — the way of drawing and everything else unchanged. Nothing is written.',
     button: 'What if I keep what I hold?',
     again: 'Run it again',

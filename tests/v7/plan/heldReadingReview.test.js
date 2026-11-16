@@ -335,3 +335,22 @@ describe('(11) the full view says it plainly', () => {
     for (const x of V.heldInfo.lines) expect(fill(MOVE.held[x.id], x)).not.toMatch(/counted toward|counts toward/);
   });
 });
+
+describe('(12) the moving view reads a rung part bought as Living on it does (the walk)', () => {
+  it('Sam: a part-bought rung is said with its units held, and its years are never "no gilt bought yet"', () => {
+    const p = sam();
+    const m = moveInputs(p, { now: noon(TODAY) });
+    const part = m.diff.buy.filter((b) => b.kind === 'gilt' && +b.heldUnits > 0);
+    expect(part.length).toBeGreaterThan(0);
+    const V = moveOf([{ plan: p }], p.id, { today: TODAY });
+    const partYears = part.flatMap((b) => b.taxYears.map((y) => y + '/' + String(y + 1).slice(2)));
+    for (const y of partYears) expect(V.cost.uncovered).not.toContain(y);
+    expect(V.cost.parts).toHaveLength(part.length);
+    expect(V.cost.parts[0]).toMatchObject({ held: Math.round(part[0].heldUnits).toLocaleString('en-GB'), units: Math.round(part[0].units + part[0].heldUnits).toLocaleString('en-GB') });
+    expect(V.status).toMatchObject({ id: 'giltsPart', slots: { part: String(part.length) } });
+    const { root } = draw(stateWith([{ plan: p }], '#/plan/' + p.id + '/move', { today: TODAY }));
+    const lines = [...root.querySelectorAll('[data-testid="plan.move.cost.part"]')].map((e) => e.textContent);
+    expect(lines[0]).toBe(fill(MOVE.cost.part, V.cost.parts[0]));
+    expect(one(root, 'plan.move.status.line').textContent).toContain('part bought');
+  });
+});

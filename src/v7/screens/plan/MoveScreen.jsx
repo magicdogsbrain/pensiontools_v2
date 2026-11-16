@@ -64,6 +64,7 @@ function Cost({ V, dispatch }) {
   return (
     <section class="plan-section" data-section="cost" data-testid={`${T}.cost`}>
       <h2>{C.title}</h2>
+      {V.ladder && (V.cost.parts || []).map((x, i) => <p class="line" key={'part' + i} data-testid={`${T}.cost.part`}>{fill(C.part, x)}</p>)}
       {V.ladder && (V.cost.uncovered.length ? <p class="line" data-testid={`${T}.cost.ladder`}>{fill(C.ladder, { n: String(V.cost.uncovered.length), s: V.cost.uncovered.length === 1 ? '' : 's', have: V.cost.uncovered.length === 1 ? 'has' : 'have', years: V.cost.uncovered.length > 4 ? V.cost.uncovered[0] + ' to ' + V.cost.uncovered[V.cost.uncovered.length - 1] : V.cost.uncovered.join(', ') })}</p> : <p class="line" data-testid={`${T}.cost.ladderNone`}>{C.ladderNone}</p>)}
       {!V.ladder && !V.recorded && <p class="note" data-testid={`${T}.cost.nothing`}>{C.nothing} <a href={href.plan(V.id, 'hold')}>{W.buttons.hold}</a></p>}
       {!V.ladder && V.recorded && V.cost.canRun && (

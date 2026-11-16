@@ -297,6 +297,19 @@ describe('the list (1.2) in each of its states', () => {
     for (const hit of bannedHits(words, ['all', 'record', 'retired'])) expect(hit).toBe('');
     expect(COUNTDOWN.test(words)).toBe(false);
   });
+  it('"Other plans" only under another group: a list with no household group above has no such heading (a walk, 16 Nov 2026)', () => {
+    const nameOf = (e) => (e.plan.planDetails && e.plan.planDetails.name) || e.plan.name;
+    const lone = entries.filter((e) => nameOf(e) === 'My Plan');
+    expect(lone.length).toBe(1);
+    const { root } = list({}, lone);
+    const group = root.querySelector('[data-testid="plans.group.other"]');
+    expect(group).not.toBe(null);
+    expect(group.querySelector('h2')).toBe(null);
+    expect(root.textContent).not.toContain('Other plans');
+    expect(group.textContent).toContain('‘My Plan’');
+    // under the household's group it is "Other plans"
+    expect(list({}).root.querySelector('[data-testid="plans.group.other"] h2').textContent).toBe('Other plans');
+  });
   it('checking, nobody, unverified, failed, used up, empty, the window\'s plans', () => {
     expect(draw(stateWith(null, '#/plans', { session: 'checking' })).root.querySelector('[data-testid="plans.opening"]')).not.toBe(null);
     const nobody = draw(stateWith([], '#/plans', { session: 'nobody', source: 'window' }));

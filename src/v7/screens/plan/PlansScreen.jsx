@@ -293,9 +293,10 @@ export function PlansScreen(state, dispatch) {
       {visitor && <p class="note plan-banner" data-testid="plans.banner">{fill(GUEST.banner, { used: usedWords(M.guest.minutes) })}</p>}
       {S.open && <Several S={S} dispatch={dispatch} />}
       {S.done && <SeveralDone done={S.done} dispatch={dispatch} />}
-      {v.groups.map((g) => (
+      {v.groups.map((g, i) => (
         <section class="plan-group" key={g.id} data-testid={`plans.group.${g.id}`}>
-          <h2>{w.groups[g.id]}</h2>
+          {/* "Other plans" only under another group: first on the page, the page's own heading names them */}
+          {!(g.id === 'other' && i === 0) && <h2>{w.groups[g.id]}</h2>}
           <ul class="plan-list">
             {g.rows.map((r) => (
               <li class="plan-row" key={r.id} data-plan-id={r.id} data-example={r.example ? '1' : undefined} data-main={r.main ? '1' : undefined}>

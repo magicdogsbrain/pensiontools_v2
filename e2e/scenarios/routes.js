@@ -52,14 +52,24 @@ export async function openFull(page) {
   await expect(page.locator('.tab[data-tab="stress"]')).toBeVisible({ timeout: 45_000 });
 }
 
-/** A page of the full view: its tab, then its sub-tab. Opens the full view first when it is not open. */
+/**
+ * A page of the full view: its tab, then its sub-tab. Opens the full view first when it is not open. Returns false when
+ * the full view does not show that tab for this plan (a stage's tabs only), true when the page is open.
+ */
 export async function fullPage(page, pageName) {
   const p = PAGES.full[pageName];
   if (!p) throw new Error(`routes.fullPage: no full-view page "${pageName}"`);
   if (!new URL(page.url()).pathname.startsWith(CLASSIC_PATH) || !(await page.locator('.tab[data-tab="stress"]').isVisible())) await openFull(page);
-  if (!p.tab) return;
-  await page.locator(`.tab[data-tab="${p.tab}"]`).click();
-  if (p.sub) await page.locator(`.sub-tab[data-${p.tab}tab="${p.sub}"]`).click();
+  if (!p.tab) return true;
+  const tab = page.locator(`.tab[data-tab="${p.tab}"]`);
+  if (!(await tab.isVisible())) return false;
+  await tab.click();
+  if (p.sub) {
+    const sub = page.locator(`.sub-tab[data-${p.tab}tab="${p.sub}"]`);
+    if (!(await sub.isVisible())) return false;
+    await sub.click();
+  }
+  return true;
 }
 
 // ---- the account ----------------------------------------------------------------------------------------------------

@@ -97,7 +97,7 @@ export const SCENARIOS = Object.freeze({
   s03: { file: 's03-sam-pay-in-units.spec.js', who: 'Sam, 45', built: false, part: 1 },
   s04: { file: 's04-sam-a-year-later.spec.js', who: 'Sam, 45', built: false, part: 1 },
   s05: { file: 's05-sam-stops-later.spec.js', who: 'Sam, 45', built: false, part: 1 },
-  s06: { file: 's06-checker-sweep.spec.js', who: 'the checker', built: false, part: 1, seeded: true },
+  s06: { file: 's06-checker-sweep.spec.js', who: 'the checker', built: true, part: 1, seeded: true },
   s07: { file: 's07-kim-first-months.spec.js', who: 'Kim, 62', built: false, part: 1 },
   s08: { file: 's08-kim-this-month.spec.js', who: 'Kim, 62', built: false, part: 1 },
   s09: { file: 's09-alex-totals-only.spec.js', who: 'Alex, 57', built: false, part: 1 },

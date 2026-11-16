@@ -67,7 +67,7 @@ const MONTH = '((?:January|February|March|April|May|June|July|August|September|O
  */
 export const FACTS = Object.freeze({
   stage: {
-    owner: 'FACTS', kind: 'stage',
+    label: 'the stage', owner: 'FACTS', kind: 'stage',
     simple: [
       { page: 'home', region: 'plan.home.headline', find: '^(Saving|Moving|Living on it)\\b' }
     ],
@@ -76,7 +76,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'stop.month': {
-    owner: 'FACTS', kind: 'month',
+    label: 'the month work stops', owner: 'FACTS', kind: 'month',
     simple: [
       { page: 'home', region: 'plan.home.headline', find: `stop work in ${MONTH}` },
       { page: 'about', find: `(?:stop|stopped) work(?:ing)?(?: in| on)? ${MONTH}` }
@@ -99,7 +99,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'plan.endAge': {
-    owner: 'FACTS', kind: 'age',
+    label: 'the age the plan runs to', owner: 'FACTS', kind: 'age',
     simple: [
       { page: 'about', find: 'Plan to age:?\\s*(\\d+)' },
       { page: 'lasts', find: 'We tested to (\\d+), the age your plan runs to' },
@@ -111,7 +111,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'pot.today': {
-    owner: 'FACTS', kind: 'money',
+    label: 'the pot today', owner: 'FACTS', kind: 'money',
     simple: [
       { page: 'home', find: `Your pot:\\s*${M}` },
       { page: 'pots', find: `Pension ${M}[^\\n]*today` },
@@ -124,7 +124,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'pot.atStop': {
-    owner: 'SAVER', kind: 'money',
+    label: 'the pot when work stops', owner: 'SAVER', kind: 'money',
     simple: [
       { page: 'plan', find: `Pots when you stop:[^£\\n]*${M}` },
       { page: 'saving', find: `(?:pension|pot) at \\d+[^£\\n]*${M}` },
@@ -135,7 +135,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'payIn.fromTakeHome': {
-    owner: 'SAVER', kind: 'money',
+    label: 'what leaves take-home pay', owner: 'SAVER', kind: 'money',
     simple: [
       { page: 'home', find: `${M} a month from (?:you|your (?:take-home )?pay)\\b` },
       { page: 'saving', find: `${M} a month from (?:you|your (?:take-home )?pay)\\b` }
@@ -145,7 +145,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'payIn.employer': {
-    owner: 'SAVER', kind: 'money',
+    label: "the employer's part", owner: 'SAVER', kind: 'money',
     simple: [
       { page: 'home', find: `${M}(?: a month)? from your employer` },
       { page: 'saving', find: `${M}(?: a month)? from your employer` }
@@ -155,7 +155,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'payIn.total': {
-    owner: 'SAVER', kind: 'money',
+    label: 'what goes in, in all', owner: 'SAVER', kind: 'money',
     simple: [
       { page: 'saving', find: `Paying in ${M} a month` },
       { page: 'home', find: `${M} a month (?:in all|going in)` }
@@ -165,7 +165,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'income.thisYear.beforeTax': {
-    owner: 'MONTH', kind: 'money',
+    label: "this year's income before tax", owner: 'MONTH', kind: 'money',
     simple: [
       { page: 'month', find: `set up from [A-Za-z]+ \\d{4}, ${M} a year before tax` },
       { page: 'income', find: `${M} a year before tax` },
@@ -178,7 +178,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'income.perMonth.afterTax': {
-    owner: 'MONTH', kind: 'money',
+    label: 'the income a month after tax', owner: 'MONTH', kind: 'money',
     simple: [
       { page: 'month', find: `${M} a month after tax` },
       { page: 'income', find: `${M} a month after tax` },
@@ -189,7 +189,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'taken.againstPlan': {
-    owner: 'MONTH', kind: 'money',
+    label: 'what was taken against the plan', owner: 'MONTH', kind: 'money',
     simple: [
       { page: 'home', find: `${M} taken; the plan said ${M}` },
       { page: 'month', find: `${M} taken; the plan said ${M}` }
@@ -199,7 +199,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'statePension.amount': {
-    owner: 'FACTS', kind: 'money',
+    label: 'the State Pension', owner: 'FACTS', kind: 'money',
     simple: [
       { page: 'income', find: `State Pension: ${M} a year` }
     ],
@@ -208,7 +208,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'statePension.age': {
-    owner: 'FACTS', kind: 'age',
+    label: 'the State Pension age', owner: 'FACTS', kind: 'age',
     simple: [
       { page: 'income', find: 'State Pension: £[\\d,]+ a year before tax from age (\\d+)' }
     ],
@@ -217,7 +217,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'lasts.chance': {
-    owner: 'MEASURE', kind: 'chance',
+    label: 'the chance the money lasts', owner: 'MEASURE', kind: 'chance',
     simple: [
       { page: 'lasts', find: '(?:lasts|last) as long as you do ((?:more than |less than |about )?\\d+ times in 20)' },
       { page: 'saving', find: '(?:lasts|last) as long as you do ((?:more than |less than |about )?\\d+ times in 20)' }
@@ -227,7 +227,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'left.typically': {
-    owner: 'MEASURE', kind: 'money',
+    label: 'what is typically left', owner: 'MEASURE', kind: 'money',
     simple: [
       { page: 'lasts', find: `Left at the end, at today’s prices: typically ${M}` },
       { page: 'way', find: `typically ${M}` }
@@ -237,7 +237,7 @@ export const FACTS = Object.freeze({
     ]
   },
   'due.next': {
-    owner: 'FACTS', kind: 'text',
+    label: 'what is due next', owner: 'FACTS', kind: 'text',
     simple: [
       { page: 'home', region: 'plan.home.todo', find: '((?:Record|Check in for|Review)[^\\n.]*?\\d{4})' },
       { page: 'home', region: 'plan.home.quiet', find: `(next review is ${MONTH})` }

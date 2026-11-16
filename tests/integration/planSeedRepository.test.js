@@ -34,7 +34,7 @@ vi.mock('firebase/firestore', () => {
       store.docs.set(p, JSON.parse(JSON.stringify(data)));
       return { id, path: p };
     },
-    setDoc: async (ref, data) => { store.writes.push({ op: 'set', path: ref.path, data }); store.docs.set(ref.path, JSON.parse(JSON.stringify(data))); },
+    setDoc: async (ref, data, opts) => { store.writes.push({ op: 'set', path: ref.path, data, merge: !!(opts && opts.merge) }); store.docs.set(ref.path, opts && opts.merge ? { ...(store.docs.get(ref.path) || {}), ...JSON.parse(JSON.stringify(data)) } : JSON.parse(JSON.stringify(data))); },
     updateDoc: async (ref, data) => { store.writes.push({ op: 'update', path: ref.path, data }); store.docs.set(ref.path, { ...store.docs.get(ref.path), ...data }); },
     deleteDoc: async (ref) => { store.writes.push({ op: 'delete', path: ref.path }); store.docs.delete(ref.path); },
     writeBatch: () => {
@@ -104,7 +104,11 @@ describe('saving from a seed never writes an existing plan', () => {
     const toExisting = store.writes.filter((w) => before.has(w.path));
     expect(toExisting).toEqual([{ op: 'batch.update', path: BASE + 'locked1', data: { isActive: false } }]);
     expect(store.writes.filter((w) => w.op === 'add').map((w) => w.path)).toEqual([newPath]);
-    expect(store.writes.some((w) => w.op === 'set' || w.op === 'update' || w.op === 'delete')).toBe(false);
+    // retaken in 7.12.0: opening the new plan also notes it as the plan last open, merged into the account's settings
+    // (never a plan); nothing else is set, updated or deleted
+    const sets = store.writes.filter((w) => w.op === 'set' || w.op === 'update' || w.op === 'delete');
+    expect(sets.map((w) => [w.op, w.path, w.merge, w.data.lastLocation])).toEqual([['set', 'users/u1/profile/settings', true, { planId: made.yours.id, step: null }]]);
+    expect(Object.keys(sets[0].data).sort()).toEqual(['lastLocation', 'lastModified']);
 
     // the locked plan: byte-identical except the flag that says which plan is open
     expect(without(JSON.stringify(store.docs.get(BASE + 'locked1')), 'isActive')).toBe(without(before.get(BASE + 'locked1'), 'isActive'));

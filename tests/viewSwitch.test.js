@@ -92,4 +92,11 @@ describe('the simple view, arriving from "Back to the simple view."', () => {
     expect(p.seen).toEqual([]);
     p.stop();
   });
+
+  it('"Show everything." pressed: the note is left in the window for the full view', () => {
+    const p = setUp(null);
+    p.store.dispatch({ type: A.VIEW_LINK, view: 'full' });
+    expect(p.session.getItem(VIEW_SWITCH_KEY)).toBe('full');
+    p.stop();
+  });
 });

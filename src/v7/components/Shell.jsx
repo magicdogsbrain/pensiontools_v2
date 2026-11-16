@@ -16,7 +16,6 @@ import { guestView, newsView, plansMenuView, fullLinkView, staleView } from '../
 import { StaleWords } from './Problem.jsx';
 import { COMMON, ADVICE_SHORT, ADVICE_FULL } from '../copy/common.js';
 import { PLAN } from '../copy/plan.js';
-import { noteViewSwitch } from '../../ui/viewSwitch.js';
 
 export function Shell({ state, dispatch, name, question = null, rail = false, full = false, view = null, children }) {
   const ref = useRef(null);
@@ -67,7 +66,7 @@ export function Shell({ state, dispatch, name, question = null, rail = false, fu
   const old = staleView(state);
   const onEverything = (e) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;   // a new tab: the plain address, as before
-    noteViewSwitch('full');   // the link is a choice (7.12.0): the full view, once it has read the account, saves it
+    dispatch({ type: 'view/link', view: 'full' });   // the link is a choice (7.12.0): the full view, once it has read the account, saves it
     if (!P) return;
     e.preventDefault();
     dispatch(changeAction(P.planId, P.place, P.back));

@@ -24,7 +24,6 @@ import { parse, format, PLAN_ID } from '../router/routes.js';
 import { BUILT } from '../rail/questions.js';
 import { SESSION_KINDS, KEEP_WHERES } from './initial.js';
 import { cleanBack, cleanPlace } from './place.js';
-import { closedAtOf, closesAhead } from '../../services/PlanClosed.js';
 import { isPlanEditPath, WAY_IDS, RANK_BYS, isTaskKey, DISMISS_KINDS } from '../../answers/plan/schema.js';
 /** The choices a review may make (answers/plan/review.js CHOICE_PARTS: named here so the reducer reaches no reader). */
 const PHASE_CHOICE_PARTS = ['window', 'saving.level', 'review.every', 'review.rule'];
@@ -1737,7 +1736,8 @@ function reduceAction(state, action) {
       if (state.ui.saving) return state;
       // a closed plan is never the main plan (7.12.0): the plan that carries it on is
       const main = state.plans && Array.isArray(state.plans.list) ? state.plans.list.find((e) => e && e.plan && String(e.plan.id) === planId) : null;
-      if (main && closedAtOf(main.plan) && !closesAhead(main.plan, new Date(String(state.env.today) + 'T12:00:00'))) return state;
+      const closedAt = main && main.plan && typeof main.plan.closedAt === 'string' ? main.plan.closedAt.slice(0, 7) : '';
+      if (/^\d{4}-\d{2}$/.test(closedAt) && closedAt < String(state.env.today).slice(0, 7)) return state;
       return { ...state, ui: { ...state.ui, action: null, saving: { planId, kind: 'main' }, saveProblem: null, toast: null } };
     }
     case A.PLAN_DELETE: {
@@ -1969,6 +1969,11 @@ function reduceAction(state, action) {
       const view = action.profile && typeof action.profile === 'object' && (action.profile.view === 'simple' || action.profile.view === 'full') ? action.profile.view : null;
       const p = action.profile && typeof action.profile === 'object' ? { lastSeenVersion: typeof action.profile.lastSeenVersion === 'string' ? action.profile.lastSeenVersion : null, ...(last ? { lastLocation: last } : {}), ...(view ? { view } : {}), ...(action.read === false ? { unread: true } : {}) } : null;
       return JSON.stringify(p) === JSON.stringify(state.ui.profile) ? state : { ...state, ui: { ...state.ui, profile: p } };
+    }
+    case A.VIEW_LINK: {
+      // the link at the top of the page (7.12.0): the press is noted (a new state each time, so effects/view.js hears it)
+      if (action.view !== 'simple' && action.view !== 'full') return refuse(`view/link: no view called "${action.view}"`);
+      return { ...state, ui: { ...state.ui, viewLink: { view: action.view, n: ((state.ui.viewLink && state.ui.viewLink.n) || 0) + 1 } } };
     }
     case A.VIEW_SET: {
       // the view PensionTools opens in (7.11.0), from Your account: a new state on every press, even for the

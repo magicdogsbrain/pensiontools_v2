@@ -26,7 +26,7 @@ import { A } from '../state/actions.js';
 import { LAYOUT } from '../../appLayout.js';
 import { hasSignedInHint } from './place.js';
 import { openingView } from '../../services/ViewChoice.js';
-import { takeViewSwitch, viewChoiceToSave } from '../../ui/viewSwitch.js';
+import { takeViewSwitch, viewChoiceToSave, noteViewSwitch } from '../../ui/viewSwitch.js';
 
 export const VIEW_KEY = 'pt_view';
 export const ASKED_KEY = 'pt_view_asked';
@@ -53,6 +53,7 @@ export function startView(store, { local = null, session = null } = {}) {
   const copy = (view) => { if (view === 'full') set(VIEW_KEY, 'full'); else remove(VIEW_KEY); };
 
   const off = store.subscribe((state, action) => {
+    if (action.type === A.VIEW_LINK) { noteViewSwitch(action.view, session); return; }
     if (action.type === A.VIEW_SET) { if (state.ui.profile) copy(state.ui.profile.view); return; }
     // the account's settings read: the copy follows the view they open in (7.11.1: no choice is the full view); a read that
     // failed leaves it as it was

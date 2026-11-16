@@ -104,7 +104,11 @@ const withKeep = (state, q, keep) => ({ ...state, keep: { ...(state.keep || {}),
  * belong to that answer: they go, so the plan this answer was opened from (draft.b.fromPlan) leads "Use these in ‘…’", never a
  * plan kept earlier from other figures, and a later keep is told about its own plan only.
  */
-const freshKeep = (state, q) => ({ ...keepOf(state, q), name: null, problem: null, made: null, used: null, pending: null });
+const freshKeep = (state, q) => {
+  // … and the plan picked from several of your own for "Use these in ‘…’" (keep/pick) goes with it
+  const { pick: _picked, ...k } = keepOf(state, q);
+  return { ...k, name: null, problem: null, made: null, used: null, pending: null };
+};
 const onStepOf = (route, q, step) => !!route && route.screen === 'step' && route.q === q && route.step === step;
 /** Why a keep did not make a plan (effects/planWrite.js): the box's two, and the store's. */
 const KEEP_PROBLEMS = ['empty', 'tooLong', 'notReady', 'full', 'usedUp', 'unverified', 'storage', 'failed', 'partial',
@@ -224,8 +228,8 @@ function carried(state, from, to) {
   if ('carriedFrom' in target) draft.carriedFrom = from;
   const route = opens ? tidyRoute({ screen: 'step', q: opens.q, step: opens.step, planId: null, focus: opens.focus }) : state.route;
   // a new answer for the target: what was kept from its answer before goes (freshKeep)
-  const k = keepOf(state, to);
-  const kept = k.made || k.used || k.pending ? withKeep(state, to, { ...k, made: null, used: null, pending: null }) : state;
+  const { pick: _picked, ...k } = keepOf(state, to);
+  const kept = k.made || k.used || k.pending || _picked ? withKeep(state, to, { ...k, made: null, used: null, pending: null }) : state;
   return { ...withDraft(kept, to, draft), route, ui: closeRail(state.ui) };
 }
 
@@ -1520,6 +1524,15 @@ function reduceAction(state, action) {
       const payIn = action.payIn === 'enough' && view.payIn !== null ? 'enough' : 'now';
       const k = keepOf(state, q);
       return { ...withKeep(state, q, { ...k, used: null }), ui: { ...state.ui, saving: { planId: view.useIn.id, kind: 'useAnswer', q, payIn }, saveProblem: null, toast: null } };
+    }
+    case A.KEEP_PICK: {
+      // B with several saving plans of your own (select.js useInOf): which one "Use these in ‘…’" names. Nothing is written.
+      if (q !== 'b' || !draft) return refuse(`keep/pick: "${q}" has no plan to pick`);
+      const view = keepView(state, q);
+      const choices = view.useIn && Array.isArray(view.useIn.choices) ? view.useIn.choices : null;
+      if (!choices || !choices.some((c) => c.id === action.planId)) return state;
+      const k = keepOf(state, q);
+      return k.pick === action.planId ? state : withKeep(state, q, { ...k, pick: action.planId, used: null });
     }
     case A.KEEP_USED: {
       if (!draft) return refuse(`keep/used: no question "${q}"`);

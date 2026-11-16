@@ -269,6 +269,8 @@ const anyAction = fc.oneof(
   fc.constant({ type: A.PLANS_SEVERAL_DONE, deleted: ['Stop at 60'], refused: [{ id: 'guest-a1b2c3d4', name: 'Stop at 61', problem: 'lastPlan' }] }),
   // "Use these in ‘…’" (6.59.0): B's press (nothing when there is no plan to use them in), and the write told as done
   fc.constantFrom('now', 'enough', null).map((payIn) => ({ type: A.KEEP_USE, q: 'b', ...(payIn ? { payIn } : {}) })),
+  // … and (16 Nov 2026) the plan picked from several saving plans of your own (nothing when it is not one of them)
+  fc.constantFrom('Kq8LwT2mJv5PzYc9BnRd', 'guest-a1b2c3d4').map((planId) => ({ type: A.KEEP_PICK, q: 'b', planId })),
   question.map((q) => ({ type: A.KEEP_USED, q, planId: 'Kq8LwT2mJv5PzYc9BnRd', name: 'Stop at 60', line: { id: 'usedAnswer', slots: { name: 'Stop at 60', payIn: '£700 a month', savings: '' } } })),
   // the spending shape (research/v7/spending-shape.md 4.3): A's and B's spend step, C's more detail; a step index past the
   // end is a press on a step already gone, and changes nothing

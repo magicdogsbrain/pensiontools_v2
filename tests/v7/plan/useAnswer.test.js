@@ -322,8 +322,9 @@ describe('the plan B was opened from last leads: a plan kept earlier from other 
     const u = useInOf(s, 'b');
     expect(u.from).toBe('opened');
     expect(u.id).toBe('KeptX1');   // the plan B was opened from, which is why it is named: not because it was kept
+    // not opened from a plan (16 Nov 2026): your own saving plan as read leads, never the partner's plan the keep made
     const noOpen = { ...s, draft: { ...s.draft, b: (({ fromPlan, ...rest }) => rest)(s.draft.b) } };
-    expect(useInOf(noOpen, 'b')).toBe(null);
+    expect(useInOf(noOpen, 'b')).toMatchObject({ id: 'OtherY1', from: 'own', choices: null });
   });
 });
 

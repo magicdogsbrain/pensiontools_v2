@@ -120,16 +120,23 @@ export function startEffects(store, { win = window, client: made = createWorkerC
   const onKeepPage = (state) => state.route && state.route.screen === 'step' && (state.route.step === 'keep' || state.route.q === 'd');
   const keeping = (state) => !!state.keep && Object.values(state.keep).some((k) => k && k.saving);
   const exampleAsked = (state) => !!state.ui.saving && state.ui.saving.kind === 'example';
-  // B opened from a saver's plan, or answered after one was kept from it (6.59.0): "Use these in ‘…’" names that plan and
-  // writes to it, so its answer reads the plans — after a reload too
-  const keptSaver = (state) => !!(state.keep && state.keep.b && state.keep.b.made && state.keep.b.made.saverId);
-  const fromPlan = (state) => state.route && state.route.screen === 'step' && state.route.q === 'b' && (!!(state.draft.b && state.draft.b.fromPlan) || keptSaver(state));
   // … and landing where a signed-in person left off (effects/place.js), and a way back after signing in from the keep panel
   // … and (7.5.0) the front door in a browser where someone is signed in: the session decides which front door is drawn —
   // the stranger's three doors, or today's questions for someone signed in — so it is read there too
   const signedInHere = hasSignedInHint(localStore(win));
   const onFrontSignedIn = (state) => signedInHere && !!state.route && (state.route.screen === 'front' || state.route.screen === 'notFound');
-  const needsPlans = (state) => onPlanPage(state) || onKeepPage(state) || keeping(state) || exampleAsked(state) || fromPlan(state) || landing || onFrontSignedIn(state) || !!state.ui.returnTo;
+  // … and "Am I saving enough?" (6.59.0; 16 Nov 2026): "Use these in ‘…’" names the plan B was opened from, the plan kept from
+  // it, or else your own saving plan — B started from the front door, a new tab or afresh too — so B's steps read the plans
+  // wherever there may be one: someone signed in here, or a plan kept in this window (the draft says so). Never for a
+  // visitor with neither, whose B page loads nothing more than before. Reading writes no plan.
+  const keptSaver = (state) => !!(state.keep && state.keep.b && state.keep.b.made && state.keep.b.made.saverId);
+  const keptInWindow = (state) => !!state.keep && Object.values(state.keep).some((k) => k && k.made && k.made.where === 'window');
+  const mayHavePlans = (state) => signedInHere || keptInWindow(state);
+  const onB = (state) => !!state.route && state.route.screen === 'step' && state.route.q === 'b'
+    && (!!(state.draft.b && state.draft.b.fromPlan) || keptSaver(state) || mayHavePlans(state));
+  // … and a name typed in any keep box, where there may be plans: a name you already have is said before a keep makes a second
+  const naming = (state) => mayHavePlans(state) && !!state.keep && Object.values(state.keep).some((k) => k && typeof k.name === 'string');
+  const needsPlans = (state) => onPlanPage(state) || onKeepPage(state) || keeping(state) || exampleAsked(state) || onB(state) || naming(state) || landing || onFrontSignedIn(state) || !!state.ui.returnTo;
   const loadPlanSource = (state) => {
     if (planSource || !needsPlans(state)) return;
     planSource = import('./planSource.js')

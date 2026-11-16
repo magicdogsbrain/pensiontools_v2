@@ -92,12 +92,31 @@ function UseIn({ q, v, state, dispatch }) {
   const press = (payIn) => dispatch({ type: 'keep/use', q, ...(payIn ? { payIn } : {}) });
   // a plan whose pay-ins cannot change: the one thing to do next is to open it
   const openNext = ['example', 'readonly', 'closed', 'notSaving'].includes(u.why);
+  const pickId = `${q}.use.pick`;
   return (
-    <div class="keep-use" data-testid={`${q}.use`} data-use={u.can ? 'open' : u.why || 'reading'} data-plan-id={u.id}>
+    <div class="keep-use" data-testid={`${q}.use`} data-use={u.can ? 'open' : u.why || 'reading'} data-plan-id={u.id || undefined}>
       {/* the plan kept from here is named by the note above ("Kept as …"), which says the same: said once */}
       {u.name && u.from === 'opened' && <p>{at(W.lead)}</p>}
+      {/* B started anywhere else, with one saving plan of your own already: that plan */}
+      {u.name && u.from === 'own' && !u.choices && <p data-testid={`${q}.use.own`}>{at(W.leadOwn)}</p>}
+      {/* … with several: which one these figures would go in (nothing is written by picking) */}
+      {u.choices && (
+        <fieldset class="field field-choice use-pick" data-testid={pickId}>
+          <legend>{W.pickLegend}</legend>
+          {u.choices.map((c) => (
+            <div class="option" key={c.id}>
+              <div class="option-row">
+                <input type="radio" id={`${pickId}.${c.id}`} data-testid={`${pickId}.${c.id}`} name={pickId} value={c.id} checked={u.id === c.id}
+                  onClick={() => { if (u.id !== c.id) dispatch({ type: 'keep/pick', q, planId: c.id }); }} onChange={() => {}} />
+                <label for={`${pickId}.${c.id}`}>{c.name}</label>
+              </div>
+            </div>
+          ))}
+          <p class="note">{W.pickNote}</p>
+        </fieldset>
+      )}
       {!u.ready && !u.why && <p class="note" role="status" data-testid={`${q}.use.reading`}>{W.reading}</p>}
-      {u.why && <p class="note" data-testid={`${q}.use.why`} data-why={u.why}>{at(W.why[u.why] || W.why.noAnswer)}</p>}
+      {u.why && u.why !== 'pick' && <p class="note" data-testid={`${q}.use.why`} data-why={u.why}>{at(W.why[u.why] || W.why.noAnswer)}</p>}
       {openNext && <p class="actions-row"><LinkButton testid={`${q}.use.open`} kind="plain" href={href.plan(u.id)}>{at(KEEP.open)}</LinkButton></p>}
       {u.can && (v.payIn && !saving
         ? <PayInChoice result={state.answers[q].result} choice={v.payIn} saving={saving} onPress={press} words={{ now: W.now, nowNothing: W.nowNothing, enough: W.enough, savingsOnly: W.savingsOnly }} ask={at(W.ask)} note={null}
@@ -200,6 +219,14 @@ export function KeepPanel({ state, q, dispatch, heading = true }) {
                   onInput={(e) => dispatch({ type: 'keep/name', q, value: e.currentTarget.value })} />
               </div>
               {!boxProblem && <p class="help" id={`${id}.help`}>{KEEP.nameHelp}</p>}
+              {/* the name is a plan you already have: said before a keep makes a second of it, with the use-in choice where one applies */}
+              {v.sameName && (
+                <p class="note" role="status" data-testid={`${q}.keep.sameName`}>{fill(KEEP.sameName, { name: v.sameName.name, makes: v.sameName.makes })}
+                  {use && use.choices && v.sameName.useId && use.id !== v.sameName.useId && use.choices.some((c) => c.id === v.sameName.useId) && (
+                    <>{' '}<Button testid={`${q}.keep.sameName.use`} kind="quiet" onClick={() => dispatch({ type: 'keep/pick', q, planId: v.sameName.useId })}>{fill(KEEP.sameNameUse, { name: v.sameName.name })}</Button></>
+                  )}
+                </p>
+              )}
               {v.cut && <p class="note" data-testid={`${q}.keep.cut`}>{fill(KEEP.cut, { kept: String(v.cut.keptToAge), years: String(v.cut.years), age: String(v.cut.planToAge), weightAge: String(v.cut.weightToAge) })}</p>}
               {boxProblem && <p class="error" id={`${id}.error`} data-error-for={id}>{KEEP.problems[boxProblem]}</p>}
             </div>

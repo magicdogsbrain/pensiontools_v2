@@ -57,7 +57,7 @@ import { emptyKeep } from './initial.js';
 import { spendLevelAMonth } from '../../answers/shared/schemaParts.js';
 import { HEADINGS, checkSheet, hasBudget, guideLevels, whereAgainstLevels, figureAgainstBudget, carefulAgainstBudget, nextLineId, nextOneOffId } from '../../answers/keep/budgetSheet.js';
 import { keepable, keptLengthOf } from '../../answers/keep/planSeed.js';
-import { suggestedPlanName, checkPlanName, withDuplicateSuffix } from '../../answers/shared/planName.js';
+import { suggestedPlanName, checkPlanName, withDuplicateSuffix, cleanName } from '../../answers/shared/planName.js';
 /** The plan name's check (empty, too long), for the reducer's Rename (road-to-7.md step 11). */
 export { checkPlanName };
 import { hasShape, SHAPE_BASE, SHAPE_UNIT, thenPath, fallsPath, stepsPath, stepBox, stepsOf, typedShape, isShapePath } from './shapeDraft.js';
@@ -694,7 +694,7 @@ export function keepableAnswers(state) {
   return OPEN.filter((q) => state.answers && state.answers[q] && keepView(state, q).can);
 }
 
-/** The panel: { can, why, suggested, name (the box), check, problem, saving, made, separate, partnerKept }. */
+/** The panel: { can, why, suggested, name (the box), check, problem, saving, made, separate, partnerKept, useIn, used, sameName, … }. */
 export function keepView(state, q) {
   const keep = (state.keep && state.keep[q]) || emptyKeep();
   const why = keepBlock(state, q);
@@ -708,12 +708,14 @@ export function keepView(state, q) {
   if (keep.made && typeof keep.made.name === 'string') taken.push(keep.made.name);
   const suggested = raw && taken.length ? withDuplicateSuffix(raw, taken) : raw;
   const name = typeof keep.name === 'string' ? keep.name : suggested;
+  // the name is one of your plans already: said under the box, with the use-in choice where one applies (sameNameOf)
+  const sameName = why === null ? sameNameOf(state, q, name, taken) : null;
   // (7.8.0: a plan runs 45 years at most from its drawing start; when the answer counts to a later age, Keep says the age
   // the plan is kept to, before it is kept)
   const len = why === null ? keptLengthOf(q, r, state.env && state.env.today) : null;
   return { can: why === null, why, suggested, name, check: checkPlanName(name), problem: keep.problem || null, saving: keep.saving === true,
     made: keep.made || null, separate: q === 'd' && lockedPlanInAccount(state) === true, partnerKept: keep.partnerKept || null,
-    payIn: why === null ? keepPayInOf(q, r) : null, useIn, used: keep.used || null,
+    payIn: why === null ? keepPayInOf(q, r) : null, useIn, used: keep.used || null, sameName,
     // C read at an amount being tried (the slider, or "Take, a month"): a keep keeps the amount at the level — the one the
     // answer stands behind, whose level, chance and year-by-year figures the plan takes — and the panel says so
     trying: q === 'c' && why === null && cTakeReading(state) ? { level: r.level } : null,
@@ -748,15 +750,47 @@ export function fromPlanStale(state) {
   return ['gone', 'closed', 'notSaving'].includes(rowRefusal(rows.find((r) => r.id === id) || null));
 }
 
+/** A plan's household partner, as stored (services/PlanClose.js partnerIdOf, named here so the shell carries no plan code). */
+const partnerIdOfPlan = (plan) => (plan && plan.household && typeof plan.household.partnerScenarioId === 'string' && plan.household.partnerScenarioId) || null;
+
+/**
+ * The person's own saving plans, as read (16 Nov 2026: B started from the front door, a new tab or "Start again" knew no plan,
+ * so each keep made one more — "Jack", "Jack (2)", …): signed in, the account's; a visitor, this window's. Not closed, not
+ * the example, not shown as saved (read-only), not a partner's — a couple's partner's plan kept from an answer
+ * (fromAnswer.who 'partner'), or the plan the main plan is linked with in a household — and still saving (its stage).
+ * [{ id, name }] in the order the plans page lists them, or null while the plans are not read.
+ */
+export function ownSavingPlans(state) {
+  const rows = rowsRead(state);
+  if (!rows) return null;
+  const entries = state.plans && Array.isArray(state.plans.list) ? state.plans.list.filter((e) => e && e.plan && e.plan.id != null) : [];
+  const byId = new Map(entries.map((e) => [String(e.plan.id), e.plan]));
+  const main = entries.find((e) => e.plan.isActive === true) || null;
+  const mainId = main ? String(main.plan.id) : null;
+  // a partner's plan kept from an answer in this window, as the keep said (keep/made partnerId)
+  const keptPartners = new Set(Object.values(state.keep || {}).map((k) => k && k.made && k.made.partnerId).filter((x) => typeof x === 'string'));
+  const partners = (id) => {
+    const plan = byId.get(id);
+    if (keptPartners.has(id)) return true;
+    if (plan && plan.fromAnswer && typeof plan.fromAnswer === 'object' && plan.fromAnswer.who === 'partner') return true;
+    if (!main || id === mainId) return false;
+    return partnerIdOfPlan(main.plan) === id || partnerIdOfPlan(plan) === mainId;
+  };
+  return rows.filter((r) => r && typeof r.id === 'string' && rowRefusal(r) === null && !partners(r.id)).map((r) => ({ id: r.id, name: r.name || '' }));
+}
+
 /**
  * "Use these in ‘{plan}’" (6.59.0; answers/plan/useAnswer.js): the saver's plan B's answer writes its saving figures onto —
  * once a plan has been kept from this answer in this window, that plan (when it is your own saving plan); else the plan B was opened
- * from (draft.b.fromPlan). Trying figures writes nothing: only this press, or a keep, does.
- *   { id, name, from: 'kept' | 'opened', ready, can, why } or null (no plan to use them in: B as it always was)
- *   ready  the plans are read (until then the name may be unknown and nothing can be pressed)
- *   why    null, or why these figures cannot go in it: 'unread' (the plans could not be read), 'example', 'readonly',
- *          'closed', 'notSaving', 'couple' (the answer is for two; a saver's plan is one person's), 'stopped' (the answer says
- *          you have stopped work: nothing goes in), 'noAnswer' (no finished answer to use)
+ * from (draft.b.fromPlan); else (16 Nov 2026) your own saving plan as read (ownSavingPlans): the one there is, or the one
+ * picked from several (keep.b.pick, keep/pick). Trying figures writes nothing: only this press, or a keep, does.
+ *   { id, name, from: 'kept' | 'opened' | 'own', ready, can, why, choices } or null (no plan to use them in: B as it always was)
+ *   ready    the plans are read (until then the name may be unknown and nothing can be pressed)
+ *   why      null, or why these figures cannot go in it: 'unread' (the plans could not be read), 'example', 'readonly',
+ *            'closed', 'notSaving', 'couple' (the answer is for two; a saver's plan is one person's), 'stopped' (the answer says
+ *            you have stopped work: nothing goes in), 'noAnswer' (no finished answer to use), 'pick' (several of your own
+ *            saving plans and none picked yet: id and name are null)
+ *   choices  your own saving plans when there are several ([{ id, name }]), else null
  */
 export function useInOf(state, q) {
   if (q !== 'b' || !state.draft || !state.draft.b) return null;
@@ -776,8 +810,17 @@ export function useInOf(state, q) {
   };
   // the plan kept from this answer leads while it is here; once it is gone, the plan B was opened from
   const kp = placed(kept);
-  const t = kp && kp.why !== 'gone' ? kp : placed(opened);
-  if (!t || t.why === 'gone') return null;
+  let t = kp && kp.why !== 'gone' ? kp : placed(opened);
+  let choices = null;
+  if (!t || t.why === 'gone') {
+    // neither: your own saving plans as read — one leads; several are a choice; none, B as it always was
+    const own = ownSavingPlans(state);
+    if (!own || !own.length) return null;
+    choices = own.length > 1 ? own : null;
+    const picked = choices ? own.find((p) => p.id === k.pick) || null : own[0];
+    if (!picked) return { id: null, name: null, from: 'own', ready: true, can: false, why: 'pick', choices };
+    t = { id: picked.id, name: picked.name, from: 'own', ready: true, why: null };
+  }
   let why = t.why;
   if (!why) {
     // the answer as keeping reads it (keepBlock): finished and for what is typed now
@@ -788,7 +831,24 @@ export function useInOf(state, q) {
     else if (r.inputs.household === 'couple') why = 'couple';
     else if (!(Array.isArray(r.saving) && r.saving.some((x) => x && x.who === 'you' && x.yearsSaving > 0))) why = 'stopped';
   }
-  return { id: t.id, name: t.name || null, from: t.from, ready: t.ready, can: t.ready && why === null, why };
+  return { id: t.id, name: t.name || null, from: t.from, ready: t.ready, can: t.ready && why === null, why, choices };
+}
+
+/**
+ * The name in the keep box is a plan you already have (16 Nov 2026), said under the box before a keep makes "‘Jack (2)’":
+ * { name: the plan's own spelling, makes: the name a keep would make, useId: that plan's id when these figures can go into
+ * it instead (B: one of your own saving plans, ownSavingPlans) } — or null. Read from the plans as read, and a plan kept from
+ * this answer in this window; null while they are not read.
+ */
+function sameNameOf(state, q, name, taken) {
+  const typed = cleanName(typeof name === 'string' ? name : '');
+  if (!typed || !taken.length) return null;
+  const key = (x) => cleanName(x).toLowerCase();
+  const found = taken.find((x) => key(x) === typed.toLowerCase());
+  if (!found) return null;
+  const own = q === 'b' ? ownSavingPlans(state) : null;
+  const target = own ? own.find((p) => key(p.name) === typed.toLowerCase()) || null : null;
+  return { name: found, makes: withDuplicateSuffix(typed, taken), useId: target ? target.id : null };
 }
 
 /**

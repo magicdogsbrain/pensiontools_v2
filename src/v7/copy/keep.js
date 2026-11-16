@@ -44,6 +44,12 @@ export const KEEP = {
    * A new plan as the second choice (6.59.0: trying figures changes a plan only when the person says so, and a new plan is
    * made only when asked for): under "Use these in ‘…’" on B opened from a plan, and once a plan has been kept from this answer.
    */
+  /**
+   * The name in the box is a plan you already have (16 Nov 2026), said under the box before a keep makes a second of the
+   * name; with "Use these in ‘{name}’ instead" where these figures can go into that plan.
+   */
+  sameName: 'You already have a plan called ‘{name}’. Keeping makes a new plan, ‘{makes}’.',
+  sameNameUse: 'Use these in ‘{name}’ instead',
   newTitle: 'Or keep these as a new plan',
   anotherTitle: 'Or keep these as another new plan',
   saveNew: 'Keep as a new plan',
@@ -108,6 +114,11 @@ export const KEEP = {
     stepLabel: 'Use these in your plan?',
     stepLead: 'Your plan changes only when you use these figures in it. A new plan is made only if you ask for one.',
     lead: 'You opened this from ‘{name}’. Trying figures here changes nothing in it until you use them.',
+    /** B started anywhere else (the front door, a new tab, "Start again"), with a saving plan of your own already (16 Nov 2026). */
+    leadOwn: 'You already have a saving plan, ‘{name}’. Trying figures here changes nothing in it until you use them.',
+    /** … with several: which one "Use these in" names. */
+    pickLegend: 'You have more than one saving plan. Which one would these figures go in?',
+    pickNote: 'Trying figures here changes nothing in any of them until you use them in one.',
     reading: 'Looking for your plan…',
     button: 'Use these in ‘{name}’',
     working: 'Putting these in ‘{name}’…',

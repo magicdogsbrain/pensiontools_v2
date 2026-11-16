@@ -63,6 +63,8 @@ export const A = Object.freeze({
   KEEP_FAILED:     'keep/failed',      // { q, problem: 'notReady' | 'full' | 'usedUp' | 'unverified' | 'storage' | 'failed' | 'partial' | 'unsure', name? }
   KEEP_USE:        'keep/use',         // { q: 'b', payIn? }                 "Use these in ‘…’": saving { planId, kind: 'useAnswer', q, payIn } — the answer's
                                        //                                     saving figures onto the plan B came from (or was kept as), one write
+  KEEP_PICK:       'keep/pick',        // { q: 'b', planId }                 B with several saving plans of your own: the one "Use these in"
+                                       //                                     names (select.js useInOf); page memory only, nothing written
   KEEP_USED:       'keep/used',        // { q, planId, name, line }          that write is done: the answer page says what changed
 
   // ---- the spending shape (research/v7/spending-shape.md 4.3): A's and B's spend step, C's "Add more detail" ----------

@@ -954,6 +954,48 @@
               ]
             }
           ],
+          "bridge": {
+            "id": "c.bridge",
+            "text": "From when you are 62 until you are 67, all of it comes from your pots: 5 years, about £212,000 at today's prices. From then your State Pension and your final-salary pension pay £1,046 and £750 of it.",
+            "parts": [
+              "From when you are ",
+              {
+                "key": "phases.0.ages.you.from",
+                "kind": "age"
+              },
+              " until ",
+              "you are ",
+              {
+                "key": "phases.2.ages.you.from",
+                "kind": "age"
+              },
+              ", all of it comes from ",
+              "your pots",
+              ": ",
+              {
+                "fixed": "5"
+              },
+              " years",
+              ", about ",
+              {
+                "fixed": "£212,000"
+              },
+              " at today's prices. ",
+              "From then ",
+              "your State Pension and your final-salary pension",
+              " pay ",
+              {
+                "key": "phases.2.shown.statePension",
+                "kind": "money"
+              },
+              " and ",
+              {
+                "key": "phases.2.shown.finalSalary",
+                "kind": "money"
+              },
+              " of it."
+            ]
+          },
           "fixed": {
             "id": "c.fixed",
             "text": "If one of you is still alive when the younger of you is 100, the money lasts that long in 16 of 20 futures we tried.",

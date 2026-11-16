@@ -69,7 +69,8 @@ describe('2 a couple with one partner under the earliest pension age', () => {
     expect(a.basis.start).toBe('2026-09');
     expect(a.basis.startAge).toBe(50);                       // the younger person's age at the start
     expect(a.phases[0].ages.you.from).toBe(60);
-    expect(a.sentences.sub.text).toContain('from now until the younger of you is 100');
+    // the State Pensions are more than the amount from when the partner is 67, so the amount is said until then (spans.js)
+    expect(a.sentences.sub.text).toContain('from now until your partner is 67. From when your partner is 67: ');
     expect(assumed(a, 'start').text).toBe('The money is taken from now, when you are 60.');
     expect(warning(a, 'pension-locked')).toBeUndefined();
     const w = warning(a, 'pension-locked-partner');

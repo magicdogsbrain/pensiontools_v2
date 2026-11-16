@@ -692,6 +692,48 @@
               ]
             }
           ],
+          "bridge": {
+            "id": "c.bridge",
+            "text": "From 58 to 67 all of it comes from your pot: 9 years, about £149,000 at today's prices. From 67 your State Pension pays £1,046 of it.",
+            "parts": [
+              "From ",
+              {
+                "key": "phases.0.fromAge",
+                "kind": "age"
+              },
+              " to ",
+              {
+                "key": "phases.1.fromAge",
+                "kind": "age"
+              },
+              " all of it comes from ",
+              "your pot",
+              ": ",
+              {
+                "fixed": "9"
+              },
+              " years",
+              ", about ",
+              {
+                "fixed": "£149,000"
+              },
+              " at today's prices. ",
+              "From ",
+              {
+                "key": "phases.1.fromAge",
+                "kind": "age"
+              },
+              " ",
+              "your State Pension",
+              " ",
+              "pays ",
+              {
+                "key": "phases.1.shown.statePension",
+                "kind": "money"
+              },
+              " of it."
+            ]
+          },
           "take": {
             "id": "c.take",
             "text": "Taking £1,500 a month, the money lasted to 99 in only 5 futures out of 10. In a bad case (the worst 1 in 10) it would run out at age 79.",
@@ -937,6 +979,63 @@
               ]
             }
           ],
+          "takeSub": {
+            "id": "c.take.sub",
+            "text": "after tax, from now until you are 99, going up each year with prices",
+            "parts": [
+              "after tax, ",
+              "from now",
+              " ",
+              "until you are ",
+              {
+                "key": "basis.endAge",
+                "kind": "age"
+              },
+              ", going up each year with prices"
+            ]
+          },
+          "takeBridge": {
+            "id": "c.take.bridge",
+            "text": "From 58 to 67 all of it comes from your pot: 9 years, about £162,000 at today's prices. From 67 your State Pension pays £1,046 of it.",
+            "parts": [
+              "From ",
+              {
+                "key": "take.phases.0.fromAge",
+                "kind": "age"
+              },
+              " to ",
+              {
+                "key": "take.phases.1.fromAge",
+                "kind": "age"
+              },
+              " all of it comes from ",
+              "your pot",
+              ": ",
+              {
+                "fixed": "9"
+              },
+              " years",
+              ", about ",
+              {
+                "fixed": "£162,000"
+              },
+              " at today's prices. ",
+              "From ",
+              {
+                "key": "take.phases.1.fromAge",
+                "kind": "age"
+              },
+              " ",
+              "your State Pension",
+              " ",
+              "pays ",
+              {
+                "key": "take.phases.1.shown.statePension",
+                "kind": "money"
+              },
+              " of it."
+            ]
+          },
           "takeChance": {
             "id": "c.take.chance",
             "text": "Taking £1,500 a month, the money lasts as long as you do 15 times in 20.",

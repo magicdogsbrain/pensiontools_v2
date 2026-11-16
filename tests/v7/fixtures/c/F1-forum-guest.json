@@ -578,6 +578,48 @@
           ]
         }
       ],
+      "bridge": {
+        "id": "c.bridge",
+        "text": "From 58 to 67 all of it comes from your pot: 9 years, about £148,000 at today's prices. From 67 your State Pension pays £1,046 of it.",
+        "parts": [
+          "From ",
+          {
+            "key": "phases.0.fromAge",
+            "kind": "age"
+          },
+          " to ",
+          {
+            "key": "phases.1.fromAge",
+            "kind": "age"
+          },
+          " all of it comes from ",
+          "your pot",
+          ": ",
+          {
+            "fixed": "9"
+          },
+          " years",
+          ", about ",
+          {
+            "fixed": "£148,000"
+          },
+          " at today's prices. ",
+          "From ",
+          {
+            "key": "phases.1.fromAge",
+            "kind": "age"
+          },
+          " ",
+          "your State Pension",
+          " ",
+          "pays ",
+          {
+            "key": "phases.1.shown.statePension",
+            "kind": "money"
+          },
+          " of it."
+        ]
+      },
       "fixed": {
         "id": "c.fixed",
         "text": "If you live to 99, the money lasts that long in 16 of 20 futures we tried.",

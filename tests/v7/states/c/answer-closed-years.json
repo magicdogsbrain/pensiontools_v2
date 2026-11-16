@@ -601,7 +601,7 @@
           },
           "sub": {
             "id": "c.sub",
-            "text": "after tax, from age 55 until you are 100, going up each year with prices",
+            "text": "after tax, from age 55 until 67. From 67: £1,046 a month, your State Pension. Both go up each year with prices.",
             "parts": [
               "after tax, ",
               "from age ",
@@ -610,17 +610,30 @@
                 "kind": "age"
               },
               " ",
-              "until you are ",
+              "until ",
               {
-                "key": "basis.endAge",
+                "key": "phases.2.fromAge",
                 "kind": "age"
               },
-              ", going up each year with prices"
+              ". ",
+              "From ",
+              {
+                "key": "phases.2.fromAge",
+                "kind": "age"
+              },
+              ": ",
+              {
+                "key": "phases.2.shown.takeHome",
+                "kind": "money"
+              },
+              " a month, ",
+              "your State Pension",
+              ". Both go up each year with prices."
             ]
           },
           "line": {
             "id": "c.line",
-            "text": "With a pot of £300,000 today, savings of £5,000 and your State Pension, at Balanced you could have about £180 a month after tax, from age 55 until you are 100. Counting how long people your age live, the money lasts as long as you do 18 times in 20.",
+            "text": "With a pot of £300,000 today, savings of £5,000 and your State Pension, at Balanced you could have about £180 a month after tax, from age 55 until 67, then £1,046 a month from your State Pension. Counting how long people your age live, the money lasts as long as you do 18 times in 20.",
             "parts": [
               "With ",
               "a pot of ",
@@ -653,11 +666,18 @@
                 "kind": "age"
               },
               " ",
-              "until you are ",
+              "until ",
               {
-                "key": "basis.endAge",
+                "key": "phases.2.fromAge",
                 "kind": "age"
               },
+              ", then ",
+              {
+                "key": "phases.2.shown.takeHome",
+                "kind": "money"
+              },
+              " a month from ",
+              "your State Pension",
               ". ",
               "Counting how long people your age live",
               ", the money lasts ",
@@ -784,6 +804,50 @@
               ]
             }
           ],
+          "bridge": {
+            "id": "c.bridge",
+            "text": "From 55 to 67 all of it comes from your savings: 12 years, about £26,000 at today's prices. From 67 your State Pension is more than £180 a month, so nothing more is taken from your pot and savings.",
+            "parts": [
+              "From ",
+              {
+                "key": "phases.0.fromAge",
+                "kind": "age"
+              },
+              " to ",
+              {
+                "key": "phases.2.fromAge",
+                "kind": "age"
+              },
+              " all of it comes from ",
+              "your savings",
+              ": ",
+              {
+                "fixed": "12"
+              },
+              " years",
+              ", about ",
+              {
+                "fixed": "£26,000"
+              },
+              " at today's prices. ",
+              "From ",
+              {
+                "key": "phases.2.fromAge",
+                "kind": "age"
+              },
+              " ",
+              "your State Pension",
+              " is",
+              " more than ",
+              {
+                "key": "levels.balanced.monthly",
+                "kind": "money"
+              },
+              " a month, so nothing more is taken from ",
+              "your pot and savings",
+              "."
+            ]
+          },
           "fixed": {
             "id": "c.fixed",
             "text": "If you live to 100, the money lasts that long in 19 of 20 futures we tried.",

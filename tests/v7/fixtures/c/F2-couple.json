@@ -1145,6 +1145,48 @@
           ]
         }
       ],
+      "bridge": {
+        "id": "c.bridge",
+        "text": "From when you are 62 until you are 67, all of it comes from your pots: 5 years, about £211,000 at today's prices. From then your State Pension and your final-salary pension pay £1,046 and £750 of it.",
+        "parts": [
+          "From when you are ",
+          {
+            "key": "phases.0.ages.you.from",
+            "kind": "age"
+          },
+          " until ",
+          "you are ",
+          {
+            "key": "phases.2.ages.you.from",
+            "kind": "age"
+          },
+          ", all of it comes from ",
+          "your pots",
+          ": ",
+          {
+            "fixed": "5"
+          },
+          " years",
+          ", about ",
+          {
+            "fixed": "£211,000"
+          },
+          " at today's prices. ",
+          "From then ",
+          "your State Pension and your final-salary pension",
+          " pay ",
+          {
+            "key": "phases.2.shown.statePension",
+            "kind": "money"
+          },
+          " and ",
+          {
+            "key": "phases.2.shown.finalSalary",
+            "kind": "money"
+          },
+          " of it."
+        ]
+      },
       "take": {
         "id": "c.take",
         "text": "Taking £3,590 a month, the money lasted to 100 in only 7 futures out of 10. In a bad case (the worst 1 in 10) it would run out when the younger of you is 90.",
@@ -1487,6 +1529,64 @@
           ]
         }
       ],
+      "takeSub": {
+        "id": "c.take.sub.couple",
+        "text": "after tax, for the two of you, from now until the younger of you is 100, going up each year with prices",
+        "parts": [
+          "after tax, ",
+          "for the two of you, ",
+          "from now",
+          " ",
+          "until the younger of you is ",
+          {
+            "key": "basis.endAge",
+            "kind": "age"
+          },
+          ", going up each year with prices"
+        ]
+      },
+      "takeBridge": {
+        "id": "c.take.bridge",
+        "text": "From when you are 62 until you are 67, all of it comes from your pots: 5 years, about £215,000 at today's prices. From then your State Pension and your final-salary pension pay £1,046 and £750 of it.",
+        "parts": [
+          "From when you are ",
+          {
+            "key": "take.phases.0.ages.you.from",
+            "kind": "age"
+          },
+          " until ",
+          "you are ",
+          {
+            "key": "take.phases.2.ages.you.from",
+            "kind": "age"
+          },
+          ", all of it comes from ",
+          "your pots",
+          ": ",
+          {
+            "fixed": "5"
+          },
+          " years",
+          ", about ",
+          {
+            "fixed": "£215,000"
+          },
+          " at today's prices. ",
+          "From then ",
+          "your State Pension and your final-salary pension",
+          " pay ",
+          {
+            "key": "take.phases.2.shown.statePension",
+            "kind": "money"
+          },
+          " and ",
+          {
+            "key": "take.phases.2.shown.finalSalary",
+            "kind": "money"
+          },
+          " of it."
+        ]
+      },
       "takeChance": {
         "id": "c.take.chance",
         "text": "Taking £3,590 a month, the money lasts as long as one of you is alive 17 times in 20.",

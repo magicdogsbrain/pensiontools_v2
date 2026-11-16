@@ -416,24 +416,6 @@
         ],
         "warnings": [
           {
-            "id": "pot-used-before-state-pension",
-            "severity": "important",
-            "text": "Your pot is used up by 67; after that you would have your State Pension.",
-            "parts": [
-              "Your ",
-              "pot",
-              " is",
-              " used up by ",
-              {
-                "key": "phases.1.fromAge",
-                "kind": "age"
-              },
-              "; after that you would have ",
-              "your State Pension",
-              "."
-            ]
-          },
-          {
             "id": "state-pension-assumed",
             "severity": "note",
             "text": "This assumes the full State Pension. If yours is lower, so is the figure.",
@@ -465,22 +447,35 @@
           },
           "sub": {
             "id": "c.sub",
-            "text": "after tax, from now until you are 99, going up each year with prices",
+            "text": "after tax, from now until 67. From 67: £1,046 a month, your State Pension. Both go up each year with prices.",
             "parts": [
               "after tax, ",
               "from now",
               " ",
-              "until you are ",
+              "until ",
               {
-                "key": "basis.endAge",
+                "key": "phases.1.fromAge",
                 "kind": "age"
               },
-              ", going up each year with prices"
+              ". ",
+              "From ",
+              {
+                "key": "phases.1.fromAge",
+                "kind": "age"
+              },
+              ": ",
+              {
+                "key": "phases.1.shown.takeHome",
+                "kind": "money"
+              },
+              " a month, ",
+              "your State Pension",
+              ". Both go up each year with prices."
             ]
           },
           "line": {
             "id": "c.line",
-            "text": "With a pot of £12,000 and your State Pension, at Balanced you could have about £100 a month after tax, from now until you are 99. Counting how long people your age live, the money lasts as long as you do 18 times in 20.",
+            "text": "With a pot of £12,000 and your State Pension, at Balanced you could have about £100 a month after tax, from now until 67, then £1,046 a month from your State Pension. Counting how long people your age live, the money lasts as long as you do 18 times in 20.",
             "parts": [
               "With ",
               "a pot of ",
@@ -502,11 +497,18 @@
               " a month after tax, ",
               "from now",
               " ",
-              "until you are ",
+              "until ",
               {
-                "key": "basis.endAge",
+                "key": "phases.1.fromAge",
                 "kind": "age"
               },
+              ", then ",
+              {
+                "key": "phases.1.shown.takeHome",
+                "kind": "money"
+              },
+              " a month from ",
+              "your State Pension",
               ". ",
               "Counting how long people your age live",
               ", the money lasts ",
@@ -614,6 +616,50 @@
               ]
             }
           ],
+          "bridge": {
+            "id": "c.bridge",
+            "text": "From 58 to 67 all of it comes from your pot: 9 years, about £11,000 at today's prices. From 67 your State Pension is more than £100 a month, so nothing more is taken from your pot.",
+            "parts": [
+              "From ",
+              {
+                "key": "phases.0.fromAge",
+                "kind": "age"
+              },
+              " to ",
+              {
+                "key": "phases.1.fromAge",
+                "kind": "age"
+              },
+              " all of it comes from ",
+              "your pot",
+              ": ",
+              {
+                "fixed": "9"
+              },
+              " years",
+              ", about ",
+              {
+                "fixed": "£11,000"
+              },
+              " at today's prices. ",
+              "From ",
+              {
+                "key": "phases.1.fromAge",
+                "kind": "age"
+              },
+              " ",
+              "your State Pension",
+              " is",
+              " more than ",
+              {
+                "key": "levels.balanced.monthly",
+                "kind": "money"
+              },
+              " a month, so nothing more is taken from ",
+              "your pot",
+              "."
+            ]
+          },
           "small": {
             "id": "c.small",
             "text": "A pot of £12,000 is small to spread over 41 years. Many people with a pot this size take it as one or a few lump sums instead.",

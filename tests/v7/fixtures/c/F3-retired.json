@@ -762,6 +762,21 @@
           ]
         }
       ],
+      "takeSub": {
+        "id": "c.take.sub",
+        "text": "after tax, from now until you are 99, going up each year with prices",
+        "parts": [
+          "after tax, ",
+          "from now",
+          " ",
+          "until you are ",
+          {
+            "key": "basis.endAge",
+            "kind": "age"
+          },
+          ", going up each year with prices"
+        ]
+      },
       "takeChance": {
         "id": "c.take.chance",
         "text": "Taking £2,200 a month, the money lasts as long as you do 8 times in 20.",

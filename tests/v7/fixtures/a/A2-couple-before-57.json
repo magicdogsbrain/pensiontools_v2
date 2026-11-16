@@ -2302,6 +2302,26 @@
           " a month."
         ]
       },
+      "rangeThen": {
+        "id": "a.range.then",
+        "text": "From when the younger of you is 67 your State Pensions and your final-salary pension are £2,625 a month, more than the Balanced amount.",
+        "parts": [
+          "From when the younger of you is ",
+          {
+            "fixed": "67"
+          },
+          " ",
+          "your State Pensions and your final-salary pension",
+          " are ",
+          {
+            "key": "guaranteed.monthlyAfterTax",
+            "kind": "money"
+          },
+          " a month, more than ",
+          "the Balanced amount",
+          "."
+        ]
+      },
       "pot": {
         "id": "a.pot",
         "text": "By 55 your pensions and savings could be about £469,000. In a bad case (the worst 1 in 10) it is £387,000, and in a good case (the best 1 in 10) £543,000.",

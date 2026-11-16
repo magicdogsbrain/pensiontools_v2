@@ -424,7 +424,7 @@ describe('4 — the answer', () => {
     expect(root.querySelector('h1').textContent).toBe('Could your partner stop at 56?');
     // the hand-overs carry "I've already stopped" (state/carry.js carryFor), so they are offered, in words about your partner
     expect(plain(one(root, 'a.next.b').textContent)).toBe('Is my partner saving enough for this?');
-    expect(plain(one(root, 'a.next.c').textContent)).toBe(`What could we spend a month once my partner stops at ${state.answers.a.result.shown.age}?`);
+    expect(plain(one(root, 'a.next.c').textContent)).toBe(`What could our money pay a month once my partner stops at ${state.answers.a.result.shown.age}? (a different question: it starts from your pot, not from what you want)`);
   });
 
   it('A, about your partner shown stopping now (their age today): "Is my partner saving enough?" is not offered — B refuses it — and C still is', () => {
@@ -482,7 +482,7 @@ describe('4 — the answer', () => {
     const root = renderScreen(s);
     clean(root, s);
     expect(plain(one(root, 'b.next.a').textContent)).toBe('When could my partner afford to stop?');
-    expect(plain(one(root, 'b.next.c').textContent)).toBe(`What could we spend a month once my partner stops at ${s.answers.b.result.stop.age}?`);
+    expect(plain(one(root, 'b.next.c').textContent)).toBe(`What could our money pay a month once my partner stops at ${s.answers.b.result.stop.age}? (a different question: it starts from your pot, not from what you want)`);
   });
 
   it('B\'s grid step, a couple apart: the spending is "once you have both stopped" (2.4)', () => {

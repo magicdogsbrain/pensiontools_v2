@@ -26,6 +26,8 @@ export function Headline({ result, k: given = null, afterLine = null, strip = nu
         <Sentence s={s.sub} source={result} class="figure-sub" />
       </div>
       <Sentence s={s.line} source={result} class="line" data-sentence={k} />
+      {/* C: the years before the State Pension, paid from the pots alone (answers/shared/spans.js) */}
+      <Sentence s={s.bridge} source={result} class="bridge" data-testid="answer.bridge" />
       <LastsLines result={result} only={LASTS_TOP} />
       {/* "How careful?" straight under the fixed-age line, as A, B and D draw it: on the first screen with the verdict */}
       {strip}

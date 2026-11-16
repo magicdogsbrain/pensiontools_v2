@@ -20,6 +20,7 @@ import { RULES } from '../shared/rules.js';
 import { apartAssumed, apartWarnings, workerOf } from '../shared/apart.js';
 import { atTheStart, shapeWarnings } from '../shared/shapeAnswer.js';
 import { savingsGrowthParts } from '../shared/savingsGrowth.js';
+import { laterMore, bridgeOf } from '../shared/spans.js';
 
 const M = (key) => ({ key, kind: 'money' });
 const A = (key) => ({ key, kind: 'age' });
@@ -123,7 +124,75 @@ function afterPhrase(facts) {
 }
 
 const fromParts = (facts) => (facts.apart ? ['from when you have both stopped'] : facts.startsNow ? ['from now'] : facts.couple ? ['from when you are ', A('phases.0.ages.you.from')] : ['from age ', A('phases.0.ages.you.from')]);
-const untilParts = (facts) => (facts.couple ? ['until the younger of you is ', A('basis.endAge')] : ['until you are ', A('basis.endAge')]);
+/**
+ * The one place an end is said (shared/spans.js). Given the result and the phases read ('phases' for the level's amount,
+ * 'take.phases' for the amount being tried): when a later stretch pays more than the amount — what comes in anyway is more —
+ * the amount is said until that stretch starts ("until 67"); else to the plan-to age, as before.
+ */
+const untilParts = (facts, result = null, base = 'phases') => {
+  const later = result ? laterOf(result, facts, base) : null;
+  if (later) return ageWords(result, facts, later.index, 'until ', base);
+  return facts.couple ? ['until the younger of you is ', A('basis.endAge')] : ['until you are ', A('basis.endAge')];
+};
+
+/** The amount read at `base`: the level's (the phases), or the amount being tried (take.phases). */
+const amountAt = (result, base) => (base === 'take.phases' ? (result.take && result.take.perMonth) : shownOf(result).monthly);
+
+/** laterMore for the phases at `base`; never for a couple who stop in different years (their own sub-line stands). */
+function laterOf(result, facts, base) {
+  if (facts.apart) return null;
+  return laterMore(phasesAt(result, base), amountAt(result, base));
+}
+
+/** "your State Pension", "your State Pensions and your final-salary pension": what comes in anyway in one stretch. */
+function phaseIncomeWords(facts, ph) {
+  const sp = ph.byPerson.filter((b) => b.statePension > 0);
+  const fs = ph.byPerson.filter((b) => b.finalSalary > 0);
+  const name = (list, what) => (list.length === 2 ? `your ${what}s` : facts.couple && list[0].who === 'partner' ? `your partner's ${what}` : `your ${what}`);
+  const out = [];
+  if (sp.length) out.push(name(sp, 'State Pension'));
+  if (fs.length) out.push(name(fs, 'final-salary pension'));
+  return out.join(' and ');
+}
+
+/** "From 67: £1,046 a month, your State Pension." — the later stretch that pays more than the amount, for the sub-line. */
+function laterSubParts(result, facts, base, later) {
+  const at = base + '.' + later.index;
+  return ['. ', ...ageWords(result, facts, later.index, facts.couple ? 'From when ' : 'From ', base), ': ', M(at + '.shown.takeHome'), ' a month, ', phaseIncomeWords(facts, phasesAt(result, base)[later.index]), '. Both go up each year with prices.'];
+}
+
+/** ", then £1,046 a month from your State Pension" — the same stretch, for the line. */
+function laterLineParts(result, facts, base, later) {
+  return [', then ', M(base + '.' + later.index + '.shown.takeHome'), ' a month from ', phaseIncomeWords(facts, phasesAt(result, base)[later.index])];
+}
+
+/**
+ * The years before the State Pension, paid from the pots alone (shared/spans.js bridgeOf), said under the line: "From 60 to
+ * 67 all of it comes from your pot: 7 years, about £59,000 at today's prices." and then what the State Pension does — pays
+ * part of it ("From 67 your State Pension pays £1,046 of it."), or is more than it ("… is more than £700 a month, so nothing
+ * more is taken from your pot."). Never for a couple who stop in different years.
+ */
+function bridgeSentence(result, facts, base, id) {
+  if (facts.apart) return null;
+  const phases = phasesAt(result, base);
+  const b = bridgeOf(phases);
+  if (!b) return null;
+  const to = phases[b.toIndex];
+  const at = base + '.' + b.toIndex;
+  const from = potsPhrase(facts, phases[0]);
+  const span = facts.couple
+    ? ['From when you are ', A(base + '.0.ages.you.from'), ...ageWords(result, facts, b.toIndex, ' until ', base), ', all of it comes from ']
+    : ['From ', A(base + '.0.fromAge'), ' to ', A(at + '.fromAge'), ' all of it comes from '];
+  const later = laterOf(result, facts, base);
+  const then = facts.couple ? ['From then '] : ['From ', A(at + '.fromAge'), ' '];
+  const incomes = phaseIncomeWords(facts, to);
+  const after = later && later.index === b.toIndex
+    ? [...then, incomes, incomes.includes(' and ') || /Pensions/.test(incomes) ? ' are' : ' is', ' more than ', M(base === 'take.phases' ? 'take.perMonth' : 'levels.' + result.level + '.monthly'), ' a month, so nothing more is taken from ', potsPhrase(facts, to), '.']
+    : to.finalSalary > 0
+      ? [...then, 'your State Pension and final-salary pension pay ', M(at + '.shown.statePension'), ' and ', M(at + '.shown.finalSalary'), ' of it.']
+      : [...then, incomes, ' ', /Pensions/.test(incomes) ? 'pay ' : 'pays ', M(at + '.shown.statePension'), ' of it.'];
+  return S(id, [...span, from, ': ', F(b.years), yearsWord(b.years), ', about ', F(money(b.total)), " at today's prices. ", ...after]);
+}
 
 /**
  * A start more than two years away: the figure holds only if the money is still what was typed when it starts
@@ -412,6 +481,19 @@ function apartSub(facts) {
     ') ', ...untilParts(facts), ', going up each year with prices. Until then, ', ...until, '.']);
 }
 
+/**
+ * The sub-line under the figure: "after tax, from age 60 until you are 100, going up each year with prices" — or, when a later
+ * stretch pays more than the amount, "after tax, from age 60 until 67. From 67: £1,046 a month, your State Pension. Both go
+ * up each year with prices."
+ */
+function subSentence(result, facts, base, id) {
+  const c = facts.couple;
+  const later = laterOf(result, facts, base);
+  const stays = facts.life ? [] : ifStaysParts(facts);
+  return S(id, ['after tax, ', c ? 'for the two of you, ' : '', ...fromParts(facts), ' ', ...untilParts(facts, result, base),
+    ...(later ? [...stays, ...laterSubParts(result, facts, base, later)] : [', going up each year with prices', ...stays])]);
+}
+
 /** The sentences of an answer on the lives (onLives.js): C's, with what goes in and the pot at the start said plainly. */
 export function sentencesOnLives(result, facts) {
   const out = sentencesFor(result, facts);
@@ -440,10 +522,11 @@ export function sentencesFor(result, facts) {
   const lastedParts = wordsParts(shown.fixedAge >= 0.95 - 1e-9 ? outOfTen(shown.fixedAge).words : 'in 9 futures out of 10');
 
   const head = S('c.head', ['About ', M(LM), ' a month']);
-  const sub = facts.apart ? apartSub(facts) : S(c ? 'c.sub.couple' : 'c.sub', ['after tax, ', c ? 'for the two of you, ' : '', ...fromParts(facts), ' ', ...untilParts(facts), ', going up each year with prices', ...(facts.life ? [] : ifStaysParts(facts))]);
+  const sub = facts.apart ? apartSub(facts) : subSentence(result, facts, 'phases', c ? 'c.sub.couple' : 'c.sub');
+  const later = laterOf(result, facts, 'phases');
   const line = S(c ? 'c.line.couple' : 'c.line', [
     'With ', ...(facts.life ? sourcesOnLivesParts(result, facts) : sourcesParts(facts)), ', ', c ? 'the two of you' : 'you', ' could have about ', M(LM), ' a month after tax, ',
-    ...fromParts(facts), ' ', ...untilParts(facts), '. That amount lasted ', ...lastedParts, '.'
+    ...fromParts(facts), ' ', ...untilParts(facts, result), ...(later ? laterLineParts(result, facts, 'phases', later) : []), '. That amount lasted ', ...lastedParts, '.'
   ]);
 
   const badParts = ['In a bad case (the worst ', F('1'), ' in ', F('10'), '), ', M(LM), ' a month only just lasts to ', A('basis.endAge'), '.'];
@@ -456,6 +539,8 @@ export function sentencesFor(result, facts) {
   const sentences = shaped
     ? { head, sub, shape: atTheStart('c.shape', result.shapeAt[result.level], 'shapeAt.' + result.level), line, bad, range, madeOf: madeOfLines(result, facts) }
     : { head, sub, line, bad, range, madeOf: madeOfLines(result, facts) };
+  const bridge = shown.monthly > 0 ? bridgeSentence(result, facts, 'phases', 'c.bridge') : null;
+  if (bridge) sentences.bridge = bridge;
 
   if (result.take) {
     const t = result.take;
@@ -500,6 +585,11 @@ function takeReading(sentences, result, facts) {
   const c = facts.couple;
   sentences.takeHead = S('c.take.head', ['Taking ', M('take.perMonth'), ' a month']);
   sentences.takeMadeOf = madeOfLines(result, facts, 'take.phases');
+  if (!facts.apart && t.perMonth > 0) {
+    sentences.takeSub = subSentence(result, facts, 'take.phases', c ? 'c.take.sub.couple' : 'c.take.sub');
+    const bridge = bridgeSentence(result, facts, 'take.phases', 'c.take.bridge');
+    if (bridge) sentences.takeBridge = bridge;
+  }
   if (shapeMoves(t.shapeAt)) sentences.takeShape = atTheStart('c.take.shape', t.shapeAt, 'take.shapeAt');
   if (!(facts.weighing && t.perMonth > 0)) {
     if (sentences.take) sentences.takeLine = { ...sentences.take, id: 'c.take.line' };
@@ -510,7 +600,8 @@ function takeReading(sentences, result, facts) {
   const chance = [...chanceParts(t.weighted)];
   sentences.takeChance = S('c.take.chance', ['Taking ', M('take.perMonth'), ' a month, the money lasts ', asLongAs(c), ' ', ...chance, '.'], 'weighted');
   sentences.takeLine = S(c ? 'c.take.line.couple' : 'c.take.line', [
-    'With ', ...(facts.life ? sourcesOnLivesParts(result, facts) : sourcesParts(facts)), ', taking ', M('take.perMonth'), ' a month after tax ', ...fromParts(facts), ' ', ...untilParts(facts),
+    'With ', ...(facts.life ? sourcesOnLivesParts(result, facts) : sourcesParts(facts)), ', taking ', M('take.perMonth'), ' a month after tax ', ...fromParts(facts), ' ', ...untilParts(facts, result, 'take.phases'),
+    ...(laterOf(result, facts, 'take.phases') ? laterLineParts(result, facts, 'take.phases', laterOf(result, facts, 'take.phases')) : []),
     ', the money lasts ', asLongAs(c), ' ', ...chance, ', ', countingLead(c).charAt(0).toLowerCase() + countingLead(c).slice(1), '.'
   ], 'weighted');
   sentences.takeFixed = fixedSentence('c.take.fixed', t.lasted, lf);
@@ -542,7 +633,8 @@ function weighedSentences(sentences, result, facts) {
   const shown = shownOf(result);
   sentences.line = S(c ? 'c.line.couple' : 'c.line', [
     'With ', ...(facts.life ? sourcesOnLivesParts(result, facts) : sourcesParts(facts)), ', at ', name, ' ', c ? 'the two of you' : 'you', ' could have about ', M(LM), ' a month after tax, ',
-    ...fromParts(facts), ' ', ...untilParts(facts), '. ', countingLead(c), ', the money lasts ', asLongAs(c), ' ', ...chanceParts(shown.weighted), '.'
+    ...fromParts(facts), ' ', ...untilParts(facts, result), ...(laterOf(result, facts, 'phases') ? laterLineParts(result, facts, 'phases', laterOf(result, facts, 'phases')) : []),
+    '. ', countingLead(c), ', the money lasts ', asLongAs(c), ' ', ...chanceParts(shown.weighted), '.'
   ], 'weighted');
   sentences.fixed = fixedSentence('c.fixed', shown.fixedAge, lf);
   if (level === 'bold') sentences.boldLine = boldSentence('c.bold', shown.weighted, lf);
@@ -772,7 +864,11 @@ export function warningsFor(result, facts) {
     const found = result.phases.findIndex((ph, i) => i > 0 && ph.fromPots <= 0 && result.phases[i - 1].fromPots > 0);
     // on the lives, only when the pot is spent by then: a bad case at the next amount up runs out in the years just before
     // (not when the guaranteed income merely covers a small amount held down by closed years — the pot is still there)
-    const spent = !facts.life || (!facts.closedYears && found > 0 && facts.middlingRunOut !== null && facts.middlingRunOut >= result.phases[found - 1].fromAge);
+    // weighing: only when the answer's own "what is left" says nothing is left (shared/lastsWords.js leftParts) — a later
+    // stretch that draws nothing because what comes in anyway is more than the amount is not a pot used up
+    const sf = facts.weighing && facts.weighing.sf;
+    const spent = facts.weighing ? Boolean(!facts.closedYears && sf && sf.left && sf.left.mostNone === true)
+      : !facts.life || (!facts.closedYears && found > 0 && facts.middlingRunOut !== null && facts.middlingRunOut >= result.phases[found - 1].fromAge);
     const usedUp = spent ? found : -1;
     if (usedUp > 0) {
       warn('pot-used-before-state-pension', 'important', ['Your ', facts.anyPension ? 'pot' : 'savings', facts.anyPension ? ' is' : ' are', ' used up by ',

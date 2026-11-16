@@ -213,7 +213,9 @@ export function takeReading(state) {
   if (solved === null || r.take.perMonth === solved) return null;
   const at = {
     head: s.takeHead, line: s.takeLine, fixed: s.takeFixed, boldLine: s.takeBold, bad: s.takeBad, floor: s.takeFloor, howLong: s.takeHowLong,
-    howMuch: s.takeHowMuch, left: s.takeLeft, shape: s.takeShape, madeOf: s.takeMadeOf || [], cost: undefined
+    howMuch: s.takeHowMuch, left: s.takeLeft, shape: s.takeShape, madeOf: s.takeMadeOf || [], cost: undefined,
+    // the end and the years before the State Pension, read from the phases at that amount (answers/shared/spans.js)
+    sub: s.takeSub || s.sub, bridge: s.takeBridge
   };
   return { view: { ...r, sentences: { ...s, ...at } }, take: r.take.perMonth, solved, level: r.level };
 }

@@ -125,8 +125,8 @@ describe('the verdict: the household first, each pot second', () => {
     const r = runs.own.combined;
     const h = verdictSectionHtml({ r, ownName: 'Alex', pName: 'Sam', startsNote: 'Sam\'s plan begins later.' });
     const d = doc(h);
-    expect(d.querySelector('#hhHouseholdVerdict').textContent).toContain('the household\'s money lasts in');
-    expect(d.querySelector('#hhHouseholdVerdict').textContent).toContain('When one plan falls short (its money runs out, or a strategy that cuts instead cuts it), the other pays that share; the household falls short only when both have.');
+    expect(d.querySelector('#hhHouseholdVerdict').textContent).toContain('The household’s money lasts in');
+    expect(d.querySelector('#hhHouseholdVerdict').textContent).toContain('When one plan falls short, the other pays that share; the household falls short only when both have.');
     const rows = [...d.querySelectorAll('tbody tr')].map((tr) => tr.children[0].textContent);
     expect(rows[0]).toContain('The household together');
     expect(rows[1]).toBe('Alex\'s plan on its own');

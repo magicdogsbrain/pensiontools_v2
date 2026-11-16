@@ -791,13 +791,26 @@ export const SAVING_FIELDS = Object.freeze([
   { path: 'record.gia',      type: 'money',   min: 0, max: 50000000, required: false }
 ].map(Object.freeze));
 export const SAVING_PATHS = Object.freeze(SAVING_FIELDS.map((f) => f.path));
-export const isSavingPath = (path) => SAVING_PATHS.includes(String(path));
+/**
+ * "What you want" (7.12.0), the first section of What you pay in: the amount to spend a month after tax at today's prices
+ * and the age work stops. They are the same two facts as "What you spend" (its first amount) and "About you and when" (the
+ * stop age), checked and written by those steps' own patch builders (spend.js spendPatch, about.js aboutPatch) in What you
+ * pay in's one Save — so no path is new: SAVING_WANT_WRITES is theirs.
+ */
+export const SAVING_WANT_FIELDS = Object.freeze([
+  { path: 'want.monthly', type: 'money', min: 1, max: 50000, required: true },
+  { path: 'want.stopAge', type: 'age',   min: 18, max: 85,   required: true }
+].map(Object.freeze));
+export const SAVING_WANT_PATHS = Object.freeze(SAVING_WANT_FIELDS.map((f) => f.path));
+export const isSavingPath = (path) => SAVING_PATHS.includes(String(path)) || SAVING_WANT_PATHS.includes(String(path));
 /**
  * The ONLY field paths "What you pay in" may change: the whole `accumulationTool.settings` object as ONE field (the planner's
  * saveActiveAccumulation writes it whole), the whole monthly pot record list (saveActiveAccumulationHistory: a record added,
  * never one deleted), and the stamp. Both outside the lock (LockedPlanGuard.js: the Accumulation planner and its record).
  */
 export const SAVING_WRITES = Object.freeze(['accumulationTool.settings', 'accumulationTool.history', 'lastModified']);
+/** What "What you want" may write beside them (7.12.0): About's and What you spend's own paths, never on a locked plan. */
+export const SAVING_WANT_WRITES = Object.freeze([...ABOUT_WRITES, ...SPEND_WRITES]);
 
 /**
  * "Check in" (research/saving-enough-and-check-in.md 5.4; release step R3): the boxes of a saver's check-in, by path (each

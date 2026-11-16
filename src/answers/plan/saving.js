@@ -36,9 +36,10 @@ import { projectedIsaRows, isaProjectionOf } from '../../services/PlanTiming.js'
 import { chargesPctOf } from '../../services/Charges.js';
 import { budgetAgeToday, budgetRetirementAge } from '../../services/BudgetModel.js';
 import { planStage } from '../../services/PlanReading.js';
-import { get, applyPatch, safeSettings } from './about.js';
+import { get, applyPatch, safeSettings, aboutPatch } from './about.js';
+import { savedSpend, spendPatch } from './spend.js';
 import { pounds } from './income.js';
-import { SAVING_FIELDS, SAVING_WRITES, SCHEME_TYPES } from './schema.js';
+import { SAVING_FIELDS, SAVING_WRITES, SCHEME_TYPES, SAVING_WANT_FIELDS, SAVING_WANT_WRITES } from './schema.js';
 import { ACCUMULATION_V7_KEYS, payInSaid, payInShareOf } from '../../services/SaverPayIn.js';
 import { saverInputsOf, saverRunKey, saverDraftOf } from './saverInputs.js';
 import { SAVER_STAGES } from './steps.js';
@@ -160,11 +161,109 @@ export function checkSaving(plan, typed, { today }) {
 
 const declared = (patch) => { for (const k of Object.keys(patch)) if (!SAVING_WRITES.includes(k)) throw new Error('saving: "' + k + '" is not a declared field path'); return patch; };
 
+// ---- "What you want" (7.12.0): the amount to spend and the stop age, beside what goes in -----------------------------------
+
+const wantField = (path) => SAVING_WANT_FIELDS.find((f) => f.path === path);
+
 /**
- * The write: the whole settings object as the planner's Save writes it (saveActiveAccumulation: readAccumulationInputs's nine
- * keys, every number `+value || 0`), when any of them differs from what is stored. The record's boxes are not settings.
+ * The saved want of a plan still saving: the amount a month after tax at today's prices (What you spend's first amount, the
+ * figure spendPatch compares with) and the stop age (the saver's facts, as the verdict reads it); the age the spending first
+ * changes later, when it does. `open` is false for a plan not saving, or with no stop age or no amount: then no section.
+ */
+export function savedWant(plan, { today }) {
+  const saved = savedSaving(plan, { today });
+  const f = saved.facts;
+  let sp = null;
+  try { sp = savedSpend(plan, { today }); } catch { sp = null; }
+  const monthly = sp && sp.first && sp.first.monthly > 0 ? sp.first.monthly : null;
+  const stopAge = f && f.saving && num(f.stopAge) > 0 ? Math.round(f.stopAge) : null;
+  const ageNow = f && num(f.age) != null ? Math.floor(f.age) : null;
+  const later = sp && Array.isArray(sp.steps) ? sp.steps.map((s) => +s.fromAge).filter((a) => stopAge != null && a > stopAge).sort((a, b) => a - b)[0] : undefined;
+  return { open: !saved.retired && stopAge != null && monthly != null, locked: saved.locked, monthly, stopAge, ageNow, laterAge: later == null ? null : later };
+}
+
+/** The want's boxes as typed (blank: as saved) → { ok, errors, monthly, stopAge, changed: { monthly, stopAge } }. */
+export function checkWant(plan, typed, { today }) {
+  const w = savedWant(plan, { today });
+  const t = typed || {};
+  const none = { ok: true, errors: {}, monthly: w.monthly, stopAge: w.stopAge, changed: { monthly: false, stopAge: false }, saved: w };
+  // nothing to change: a plan not saving, or locked (its want is said, never boxed)
+  if (!w.open || w.locked) return none;
+  const errors = {};
+  let monthly = w.monthly, stopAge = w.stopAge;
+  const m = t['want.monthly'];
+  if (!blank(m)) {
+    const s = String(m).replace(/[£,\s]/g, '');
+    const fm = wantField('want.monthly');
+    if (!/^\d{1,9}(\.\d{1,2})?$/.test(s)) errors['want.monthly'] = 'notANumber';
+    else if (Math.round(+s) < fm.min) errors['want.monthly'] = 'tooLow';
+    else if (Math.round(+s) > fm.max) errors['want.monthly'] = 'tooHigh';
+    else monthly = Math.round(+s);
+  }
+  const a = t['want.stopAge'];
+  if (!blank(a)) {
+    const s = String(a).trim();
+    const fa = wantField('want.stopAge');
+    if (!/^\d{1,3}$/.test(s)) errors['want.stopAge'] = 'notANumber';
+    else if (+s < fa.min) errors['want.stopAge'] = 'tooLow';
+    else if (+s > fa.max) errors['want.stopAge'] = 'tooHigh';
+    // a stop to come: after the age today
+    else if (w.ageNow != null && +s <= w.ageNow) errors['want.stopAge'] = 'notAhead';
+    else stopAge = +s;
+  }
+  const ok = Object.keys(errors).length === 0;
+  return { ok, errors, monthly, stopAge, changed: { monthly: ok && monthly !== w.monthly, stopAge: ok && stopAge !== w.stopAge }, saved: w };
+}
+
+/**
+ * The want's own writes (About's for the stop age, then What you spend's for the amount, each on the plan as the one before
+ * leaves it) → { ok, errors, patch, plan } — `plan` with them folded on, for What you pay in's own write to be worked on.
+ */
+function wantWrites(plan, typed, { today }) {
+  const w = checkWant(plan, typed, { today });
+  if (!w.ok) return { ok: false, errors: w.errors, patch: {}, plan };
+  let base = plan;
+  const patch = {};
+  if (w.changed.stopAge) {
+    const a = aboutPatch(base, { stopped: 'age', stopAge: String(w.stopAge) }, { today });
+    if (!a.ok) return { ok: false, errors: { 'want.stopAge': a.errors.stopAge || 'notWithAbout' }, patch: {}, plan };
+    Object.assign(patch, a.patch);
+    base = applyPatch(base, a.patch);
+  }
+  if (w.changed.monthly) {
+    const s = spendPatch(base, { 'first.amount': String(w.monthly) }, { today });
+    if (!s.ok) return { ok: false, errors: { 'want.monthly': s.errors['first.amount'] || 'notWithSpend' }, patch: {}, plan };
+    Object.assign(patch, s.patch);
+    base = applyPatch(base, s.patch);
+  }
+  return { ok: true, errors: {}, patch, plan: base, want: w };
+}
+
+/**
+ * The write (7.12.0): "What you want" and what goes in, ONE write. The want's paths (About's and What you spend's, written by
+ * their own builders) and then What you pay in's own (ownSavingPatch, worked on the plan with the want folded on). A path
+ * under `accumulationTool.settings` that About keeps in step is dropped when the whole settings object is written: that
+ * object already carries it. `previous` is every path as the plan had it, so Undo puts all of it back.
  */
 export function savingPatch(plan, typed, { today }) {
+  const w = wantWrites(plan, typed, { today });
+  const own = ownSavingPatch(w.plan, typed, { today });
+  if (!w.ok || !own.ok) return { ok: false, errors: { ...(w.ok ? {} : w.errors), ...(own.ok ? {} : own.errors) }, patch: {}, previous: {} };
+  if (!Object.keys(w.patch).length) return own;
+  const patch = { ...w.patch, ...own.patch };
+  if (patch['accumulationTool.settings']) for (const k of Object.keys(patch)) if (k.startsWith('accumulationTool.settings.')) delete patch[k];
+  for (const k of Object.keys(patch)) if (!SAVING_WRITES.includes(k) && !SAVING_WANT_WRITES.includes(k)) throw new Error('saving: "' + k + '" is not a declared field path');
+  const previous = {};
+  for (const k of Object.keys(patch)) previous[k] = copy(get(plan, k));
+  return { ok: true, errors: {}, patch, previous };
+}
+
+/**
+ * What you pay in's own write: the whole settings object as the planner's Save writes it (saveActiveAccumulation:
+ * readAccumulationInputs's nine keys, every number `+value || 0`), when any of them differs from what is stored. The
+ * record's boxes are not settings.
+ */
+function ownSavingPatch(plan, typed, { today }) {
   const c = checkSaving(plan, typed, { today });
   const settingsErrors = Object.fromEntries(Object.entries(c.errors).filter(([k]) => !k.startsWith('record.')));
   if (Object.keys(settingsErrors).length) return { ok: false, errors: settingsErrors, patch: {}, previous: {} };
@@ -389,13 +488,29 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
   // "Are you paying in enough?" (research/saving-enough-and-check-in.md 4.1, 4.4; release step R2): the plan's own figures as
   // question B's inputs, worked out by B in the worker (effects/saver.js) under this key — never for a plan shown as saved
   // (its shape is newer than this code), and from the figures as saved, never from boxes not yet saved
-  const verdict = readonly ? { ok: false, why: 'readonly', key: null } : verdictOf(plan, list, today);
+  // "What you want" (7.12.0): the amount and the stop age beside what goes in, written by the one Save
+  const wc = checkWant(plan, typed || {}, { today });
   const p = !readonly && c.ok ? savingPatch(plan, typed || {}, { today }) : { ok: false, patch: {}, previous: {} };
+  // the answer follows what is typed: with a change ready to save, it is worked out on the plan as Save would leave it, and
+  // said as "if you save this"; nothing typed, or a box with a problem, and it is the plan's as saved
+  const typedPlan = !readonly && p.ok && Object.keys(p.patch).length ? applyPatch(plan, p.patch) : null;
+  const verdict = readonly ? { ok: false, why: 'readonly', key: null }
+    : typedPlan ? { ...verdictOf(typedPlan, list.map((e) => (e === entry ? { ...e, plan: typedPlan } : e)), today), ifSaved: true }
+      : verdictOf(plan, list, today);
+  const ws = wc.saved;
+  const wantShown = (path, v) => (typed && typeof typed[path] === 'string' ? typed[path] : v == null ? '' : String(v));
+  const want = !ws.open ? null : {
+    locked: ws.locked,
+    saved: { monthly: pounds(ws.monthly), stopAge: String(ws.stopAge) },
+    laterAge: ws.laterAge != null ? String(ws.laterAge) : null,
+    fields: SAVING_WANT_FIELDS.map((f) => ({ path: f.path, type: f.type, options: null, applies: !ws.locked, shown: wantShown(f.path, f.path === 'want.monthly' ? ws.monthly : ws.stopAge), saved: null, error: (wc.errors[f.path] || (p.errors && p.errors[f.path])) || null }))
+  };
+  const wantSaid = (wc.changed.monthly || wc.changed.stopAge) ? { wantMonthly: pounds(wc.monthly), wantAge: String(wc.stopAge) } : null;
   const rec = typed && Object.keys(typed).some((k) => k.startsWith('record.')) ? recordPatch(plan, typed, { today }) : null;
   return {
     found: true, id: String(plan.id), name: nameOf(plan, s.now), readonly, editable: !readonly, source, locked: s.locked,
     savedAt: s.source.at,
-    fields, errors: c.errors, ok: c.ok,
+    fields, errors: { ...c.errors, ...wc.errors }, ok: c.ok && wc.ok,
     ages: { currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, years, stillSaving, known: ages, line: agesLine },
     relief: reliefLines(b, inputs), scheme: inputs.schemeType,
     potNow: { value: pounds(potNow), line: potLine },
@@ -410,7 +525,8 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
     records, recordsCount: s.hist.length,
     changed: Object.keys(p.patch).length > 0, patch: p.patch, previous: p.previous,
     recordReady: !!(rec && rec.ok), recordProblem: rec && !rec.ok ? Object.values(rec.errors)[0] || null : null,
-    savedLine: c.ok ? (() => { const n = payInNowOf({ ...(isObj(s.settings) ? s.settings : {}), ...inputs }); return { id: 'saving.' + n.id, slots: n.slots }; })() : null,
+    savedLine: c.ok ? (() => { const n = payInNowOf({ ...(isObj(s.settings) ? s.settings : {}), ...inputs }); return wantSaid ? { id: 'savingWant.' + n.id, slots: { ...n.slots, ...wantSaid } } : { id: 'saving.' + n.id, slots: n.slots }; })() : null,
+    want,
     verdict
   };
 }

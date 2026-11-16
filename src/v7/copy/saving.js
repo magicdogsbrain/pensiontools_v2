@@ -41,6 +41,24 @@ export const SAVING = {
   /** A saving plan made on going back to work, its change-over still to come: no pot record before its first month. */
   notYet: 'This plan carries on from {month}, when you go back to work: record your pot here from then. Until then your months are recorded on your previous plan.',
   readonly: 'This plan is shown as it was saved and cannot be changed here. Nothing has been lost.',
+  /**
+   * "What you want" (7.12.0): the first section, the amount to spend and the stop age beside what goes in, saved by the one
+   * Save. The same two facts as "What you spend" and "About you and when".
+   */
+  want: {
+    title: 'What you want',
+    lead: 'What you want to spend each month once you stop work, and when you stop. The answer below follows what you type here and under “Each month”.',
+    later: 'Your spending changes from {age}. This is the amount at the start; the later steps are on “What you spend”.',
+    locked: '{monthly} a month after tax from {stopAge}. These are part of your locked plan. To change them, unlock it from “Your plan as locked”, change them here and lock it again. What you pay in can still be changed below.',
+    fields: {
+      'want.monthly': { label: 'To spend a month after tax, at today’s prices, in pounds' },
+      'want.stopAge': { label: 'From age (when you stop work)' }
+    },
+    errors: {
+      'want.monthly': { notANumber: 'Figures only, like 2,000.', tooLow: 'An amount of £1 or more.', tooHigh: 'An amount up to £50,000 a month, please.', notWithSpend: 'This amount does not fit the steps on “What you spend”. Change it there.' },
+      'want.stopAge': { notANumber: 'A whole age, like 60.', tooLow: 'An age of 18 or more.', tooHigh: 'An age up to 85, please.', notAhead: 'An age after the one you are now.', notWithAbout: 'This age does not fit the other ages on “About you and when”. Change it there.' }
+    }
+  },
   sections: { payIn: 'Each month', relief: 'How tax relief works, and your salary', pot: 'What the pot could be by the stop', records: 'This month’s pot', onCourse: 'The full view’s own check' },
   fields: {
     netMonthly:      { label: 'What you pay in a month, from your take-home pay, in pounds', help: 'What leaves your pay. The tax the government adds back is worked out below.' },
@@ -135,6 +153,8 @@ export const SAVING = {
    */
   verdict: {
     title: 'Are you paying in enough?',
+    /** Shown while what is typed differs from what is saved (7.12.0): the answer is worked out for the boxes as typed. */
+    ifSaved: 'If you save this: the answer below is for what you have typed. Nothing in your plan changes until you press Save.',
     lead: 'The same test as “Am I saving enough?”, on your plan’s own figures: your pot, what you pay in now, your State Pension and what your plan says you would want to spend from when you stop.',
     aim: 'Your plan’s {aimYearly} a year before tax is {aimMonthly} a month after tax, at today’s prices: the figure tested here.',
     working: 'Working out whether what you pay in is enough…',
@@ -161,6 +181,7 @@ export const SAVING = {
   buttons: { save: 'Save', cancel: 'Cancel', undo: 'Undo', close: 'Close', back: 'Back to your plan' },
   toast: {
     ...Object.fromEntries(Object.entries(PAY_IN_NOW).map(([k, v]) => ['saving.' + k, 'Saved. ' + v])),
+    ...Object.fromEntries(Object.entries(PAY_IN_NOW).map(([k, v]) => ['savingWant.' + k, 'Saved. {wantMonthly} a month from {wantAge}. ' + v])),
     recorded: 'Recorded {month}: {total} in all.',
     savedShort: 'Saved.', undone: 'Put back as it was.', unchanged: 'Nothing has changed.'
   },

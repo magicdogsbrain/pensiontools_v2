@@ -85,6 +85,7 @@ function Verdict({ V, planId, dispatch }) {
   return (
     <section class="block plan-section saving-verdict" data-section="verdict" data-testid={`${T}.verdict`} data-status={status} data-verdict={band || undefined} aria-labelledby="saving-verdict-title" aria-busy={status === 'working' || status === 'first' ? 'true' : undefined}>
       {head}
+      {v.ifSaved && <p class="notice" role="status" data-testid={`${T}.verdict.ifSaved`}>{t.ifSaved}</p>}
       <p class="note">{t.lead}</p>
       <p class="note" data-testid={`${T}.verdict.aim`}>{fill(t.aim, n)}</p>
       {/* a couple's plan is read on its own until two plans are read together (release step R5): said, so the answer is
@@ -204,6 +205,30 @@ function Records({ V, planId, dispatch, F }) {
   );
 }
 
+/**
+ * "What you want" (7.12.0): the amount to spend a month after tax and the age you stop, the first thing on the page, saved
+ * with what goes in by the one Save. A locked plan says them, and how they change.
+ */
+function Want({ V, planId, dispatch }) {
+  const t = W.want;
+  const wv = V.want;
+  if (!wv) return null;
+  return (
+    <section class="income-section saving-want" data-section="want" data-testid={`${T}.want`} data-locked={wv.locked ? '1' : '0'}>
+      <h2>{t.title}</h2>
+      {wv.locked || !V.editable ? (
+        <p class="note" data-testid={`${T}.want.said`}>{fill(t.locked, wv.saved)}</p>
+      ) : (
+        <>
+          <p class="note">{t.lead}</p>
+          {wv.fields.map((f) => <EditField key={f.path} step="saving" f={f} words={t.fields[f.path]} errors={t.errors[f.path]} source={null} planId={planId} dispatch={dispatch} />)}
+          {wv.laterAge && <p class="note" data-testid={`${T}.want.later`}>{fill(t.later, { age: wv.laterAge })}</p>}
+        </>
+      )}
+    </section>
+  );
+}
+
 const toastText = (toast) => {
   if (toast.kind === 'undone') return W.toast.undone;
   if (toast.kind === 'unchanged') return W.toast.unchanged;
@@ -262,8 +287,9 @@ export function SavingScreen(state, dispatch) {
         {/* money taken from a pension flexibly, carried from a plan drawn on and closed (research/plan-start.md §2 J) */}
         {V.allowance && <p class="notice" data-testid={`${T}.allowance`} data-over={V.allowance.over ? '1' : '0'}>{fill(W.allowance, V.allowance)}{V.allowance.over ? ' ' + fill(W.allowanceOver, V.allowance) : ''}</p>}
         {V.readonly && <p class="notice" role="status" data-testid={`${T}.readonly`}>{W.readonly}</p>}
-        <Verdict V={V} planId={planId} dispatch={dispatch} />
         <form class="ask about-form income-form saving-form" noValidate onSubmit={onSubmit} data-region="plan-saving" data-editable={V.editable ? '1' : '0'}>
+          <Want V={V} planId={planId} dispatch={dispatch} />
+          <Verdict V={V} planId={planId} dispatch={dispatch} />
           {V.editable ? (
             <section class="income-section" data-section="payIn">
               <h2>{W.sections.payIn}</h2>

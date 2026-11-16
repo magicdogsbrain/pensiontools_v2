@@ -1282,8 +1282,11 @@ export function homeSaverView(state) {
 }
 /** "What you pay in" (road-to-7.md step 11b): the same reading as an editing step's (page.saving), plus the record's write under way. */
 export function planSavingView(state) {
-  const V = editView(state, 'saving');
-  if (!V.found) return V;
+  const V0 = editView(state, 'saving');
+  if (!V0.found) return V0;
+  // "What you want" (7.12.0): its boxes' problems shown as every box's are, once left or once Save is pressed
+  const show = (path) => V0.draft.asked || V0.draft.touched.includes(path);
+  const V = V0.want ? { ...V0, want: { ...V0.want, fields: V0.want.fields.map((f) => ({ ...f, error: show(f.path) ? f.error : null })) } } : V0;
   // the plan's verdict (research/saving-enough-and-check-in.md 4.4): the run held for THIS plan's figures, by its key; while
   // the runner has not started it yet, it is due ('working' with no result)
   const v = V.verdict;

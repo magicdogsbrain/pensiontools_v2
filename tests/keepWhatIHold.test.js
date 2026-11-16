@@ -134,7 +134,7 @@ describe('the diff with keeps', () => {
 
   it('a line kept by choice is never a sell; it is listed as kept by you with its value', () => {
     const d0 = diffHoldings([shares], target, { needs, today: noon(BEFORE) });
-    expect(d0.sell.map((s) => s.label)).toContain('Example Shares plc');
+    expect(d0.outside.map((s) => s.label)).toContain('Example Shares plc');   // retaken in 7.12.0: outside the ladder, not a sale
     const d = diffHoldings([{ ...shares, keep: { as: 'mine', fundsGaps: true } }], target, { needs, today: noon(BEFORE) });
     expect(d.sell).toEqual([]);
     expect(d.kept).toEqual([expect.objectContaining({ label: 'Example Shares plc', value: 15000, fundsGaps: true, why: 'kept by you' })]);
@@ -162,7 +162,7 @@ describe('the diff with keeps', () => {
   it('a conventional gilt is never matched to an index-linked rung by its year alone', () => {
     const d = diffHoldings([{ wrapper: 'SIPP', ticker: null, name: '4% Treasury Gilt 2029', kind: 'gilt', units: 50000, value: 49000 }], target);
     expect(d.hold.filter((h) => h.ticker === 'T29')).toEqual([]);
-    expect(d.sell.map((s) => s.label)).toEqual(['4% Treasury Gilt 2029']);
+    expect(d.outside.map((s) => s.label)).toEqual(['4% Treasury Gilt 2029']);   // retaken in 7.12.0: outside the ladder, not a sale
   });
 
   it('the order sheet says a rung held another way', () => {

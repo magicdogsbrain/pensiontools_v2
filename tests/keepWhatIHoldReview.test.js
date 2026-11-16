@@ -97,7 +97,7 @@ describe('pasting conventional gilts whose year an index-linked rung shares', ()
     // even under the guessed code an older paste gave it
     const guessed = diffHoldings([{ wrapper: 'SIPP', ticker: 'T29', name: 'Treasury 4.125% 22/07/2029', kind: 'gilt', subClass: 'longGilts', units: 20000, value: 19700 }], target);
     expect(guessed.buy.find((b) => b.ticker === 'T29').heldUnits).toBe(0);
-    expect(guessed.sell.map((s) => s.label)).toEqual(['Treasury 4.125% 22/07/2029']);
+    expect(guessed.outside.map((s) => s.label)).toEqual(['Treasury 4.125% 22/07/2029']);   // retaken in 7.12.0: outside the ladder, not a sale
   });
 });
 

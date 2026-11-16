@@ -30,7 +30,7 @@ describe('a rung held below its target is never a sale', () => {
     const d = diffHoldings(lines, targetHoldings(doc, { today }), { today });
     expect(d.sell.filter((s) => s.ticker === 'TR35')).toEqual([]);
     expect(d.buy.find((b) => b.ticker === 'TR35')).toMatchObject({ units: 16000 - 2000, heldUnits: 2000 });
-    expect(d.sell.map((s) => s.label)).toContain('2% Index-linked Treasury Stock 2035');
+    expect(d.outside.map((s) => s.label)).toContain('2% Index-linked Treasury Stock 2035');   // retaken in 7.12.0: money the plan does not use, not a sale
     // a line whose name is the rung's own maturity date is still the rung
     const own = diffHoldings([IL({ name: 'Treasury 1.125% I/L 22/09/2035', units: 16000, value: 18000 })], targetHoldings(doc, { today }), { today });
     expect(own.hold.map((h) => h.ticker)).toContain('TR35');

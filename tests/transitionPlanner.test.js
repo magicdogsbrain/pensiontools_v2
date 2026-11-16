@@ -67,7 +67,7 @@ describe('diffHoldings — ladder', () => {
     expect(d.keep[0].wrapper).toBe('ISA');
     expect(d.progressPct).toBe(100);
   });
-  it('a part-held ladder (reconcile): top-ups for short rungs, a surplus to sell, cash short', () => {
+  it('a part-held ladder (reconcile): top-ups for short rungs, a surplus rung, cash short; the rest is money the plan does not use', () => {
     const ledger = [
       { ticker: 'TR29', units: 36000, value: 39690, wrapper: 'SIPP' },   // full
       { ticker: 'TR30', units: 20000, value: 22048, wrapper: 'SIPP' },   // short by 15,000 units
@@ -81,7 +81,9 @@ describe('diffHoldings — ladder', () => {
     expect(buyTr30.amount).toBe(Math.round(15000 * 104 * 1.06 / 100));
     expect(d.sell.find((s) => s.ticker === 'TR32').units).toBe(7000);
     expect(d.buy.find((b) => b.kind === 'cash').amount).toBe(40000);
-    expect(d.sell.find((s) => s.ticker === 'VWRP').amount).toBe(80000);
+    // retaken in 7.12.0: a fund outside the ladder is no sale of its own; it is money the plan does not use (outside)
+    expect(d.sell.find((s) => s.ticker === 'VWRP')).toBeUndefined();
+    expect(d.outside.find((s) => s.ticker === 'VWRP').value).toBe(80000);
     expect(d.hold.map((h) => h.ticker || h.kind)).toContain('TR29');
     expect(d.progressPct).toBeGreaterThan(50);
     expect(d.progressPct).toBeLessThan(100);
@@ -122,7 +124,9 @@ describe('sequence and progress', () => {
     expect(buys[0].label).toMatch(/cash/i);
     const rungs = buys.filter((x) => x.ticker).map((x) => x.ticker);
     expect(rungs.indexOf('TR29')).toBeLessThan(rungs.indexOf('TR32'));
-    expect(s.steps.filter((x) => x.action === 'sell').length).toBe(3);   // one VWRP sale per tranche
+    // retaken in 7.12.0: one amount raised a date from what the plan does not use, never a slice of each fund
+    expect(s.steps.filter((x) => x.action === 'sell').length).toBe(0);
+    expect(s.steps.filter((x) => x.action === 'raise').length).toBe(3);
     expect(s.funded).toBe(true);
     expect(s.steps.every((x) => /^\d{4}-\d{2}$/.test(x.when))).toBe(true);
   });
@@ -259,10 +263,11 @@ describe('time-aware ladder target (6.12)', () => {
     expect(t.paid).toHaveLength(3);
     expect(diffHoldings([{ ticker: 'CSH2', value: 5000, wrapper: 'SIPP' }], t)).toMatchObject({ complete: true, reason: 'every rung has matured and paid — nothing left to hold', progressPct: 100 });
   });
-  it('a stray fund in the SIPP still blocks completeness', () => {
+  it('a fund in the SIPP beside a ladder held in full is money the plan does not use, not a move (retaken in 7.12.0)', () => {
     const t = tgt(ladderDoc, new Date(2030, 8, 10));
     const d = diffHoldings([{ ticker: 'TR30', units: 35000, value: 38584, wrapper: 'SIPP' }, { ticker: 'TR32', units: 33000, value: 37389, wrapper: 'SIPP' }, { ticker: 'VWRP', value: 20000, wrapper: 'SIPP' }], t);
-    expect(d).toMatchObject({ complete: false, reason: '1 line to sell' });
+    expect(d).toMatchObject({ complete: true });
+    expect(d.funding).toMatchObject({ need: 0, available: 20000, leftOver: 20000 });
   });
   it('buckets: complete when every bucket is within tolerance; a 0% bucket needs nothing', () => {
     const t = tgt(potDoc);
@@ -375,12 +380,13 @@ describe('a fired rotation (6.13.0): sold rungs are not targets, the equity fund
   ] } } }, pots: { isaPolicy: 'hold' } };
   const bf = { soldAt: '2031-03-02', tidms: ['TR46', 'TR48'], nominals: [30000, 31000], years: [{ Y: 2046, age: 76, need: 40000 }], proceeds: 65000 };
   const held = [{ ticker: 'TR29', units: 36000, value: 39690, wrapper: 'SIPP' }, { ticker: 'TR30', units: 35000, value: 38584, wrapper: 'SIPP' }, { ticker: 'TR32', units: 33000, value: 37389, wrapper: 'SIPP' }, { ticker: 'CSH2', value: 60000, wrapper: 'SIPP' }];
-  it('before any rotation the block is a target and an equity fund in the SIPP is a sale', () => {
+  it('before any rotation the block is a target and an equity fund in the SIPP is money the plan does not use', () => {
     const t = tgt(rotDoc);
     expect(t.lines.map((l) => l.ticker)).toEqual(['TR29', 'TR30', 'TR32', 'TR46', 'TR48']);
     expect(t).toMatchObject({ sold: [], rotated: false });
     const d = diffHoldings([...held, { ticker: 'VWRP', value: 65000, wrapper: 'SIPP' }], t);
-    expect(d.sell.map((s) => s.ticker)).toEqual(['VWRP']);
+    // retaken in 7.12.0: outside the ladder, never a sale of its own
+    expect(d.outside.map((s) => s.ticker)).toEqual(['VWRP']);
     expect(d.buy.map((b) => b.ticker)).toEqual(['TR46', 'TR48']);
   });
   it('the borrowed floor on the LIVE params (the document is a snapshot) excludes the sold rungs and keeps the fund', () => {
@@ -400,7 +406,7 @@ describe('a fired rotation (6.13.0): sold rungs are not targets, the equity fund
     expect(stale.sold).toHaveLength(1);
     expect(stale.sold[0]).toMatchObject({ ticker: 'TR46', key: 'sold:TR46', why: 'sold by the rotation — remove it from your record' });
   });
-  it('the document\'s own params or its rotation record say the same; a gilt outside the plan is still a sale', () => {
+  it('the document\'s own params or its rotation record say the same; a gilt outside the plan is money it does not use', () => {
     const viaDocParams = tgt({ ...rotDoc, strategy: { ...rotDoc.strategy, params: { rotateCutAge: 75, borrowedFloor: bf } } });
     expect(viaDocParams.sold.map((l) => l.ticker)).toEqual(['TR46', 'TR48']);
     const viaRecord = tgt({ ...rotDoc, rotation: { firedAt: '2031-03-02', borrowedFloor: bf } });
@@ -408,7 +414,7 @@ describe('a fired rotation (6.13.0): sold rungs are not targets, the equity fund
     expect(viaRecord.rotated).toBe(true);
     const d = diffHoldings([...held, { ticker: 'VWRP', value: 65000, wrapper: 'SIPP' }, { ticker: 'TR40', units: 5000, value: 5000, wrapper: 'SIPP' }], viaRecord);
     expect(d.keep.map((k) => k.ticker)).toEqual(['VWRP']);
-    expect(d.sell.map((s) => s.ticker)).toEqual(['TR40']);
+    expect(d.outside.map((s) => s.ticker)).toEqual(['TR40']);   // retaken in 7.12.0: not a sale of its own
   });
 });
 

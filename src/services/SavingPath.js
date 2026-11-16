@@ -100,6 +100,7 @@ const given = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v 
  * Draw the path.
  * @param {object} a  { settings (Stress), timing (deriveTiming), accumulation (the planner's saved inputs), holdings (the
  *                    record or its lines), now, lives?, env? ({ futureReturns } for tests: V7's lives.js), explicit?, phases? }
+ *   risePrices  true: what goes in rises with each future's own prices (the answer's rule), not the plan's yearly rise
  *   phases    the plan's `phases` root (7.10.0): a saving level the person chose decides the saving mix (savingPathMixes)
  *   explicit  { potNow, isaNow, totalMonthly, isaMonthly } (research/saving-enough-and-check-in.md 5.3): each one given is
  *             used in place of what the path would read — a saver's first check-in draws the path from its own pension,
@@ -108,7 +109,7 @@ const given = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v 
  *             plan's path is drawn exactly as before.
  * @returns {null | object}  null unless retiring later; the block stored as `planDocument.accumulation`
  */
-export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null } = {}) {
+export function buildSavingPath({ settings = {}, timing, accumulation = null, holdings = null, now = new Date(), lives: count = SAVING_PATH_LIVES, env = {}, explicit = null, phases = null, risePrices = false } = {}) {
   if (!timing || timing.mode !== 'future' || !(timing.currentAge > 0)) return null;
   const s = settings || {};
   const a = accumulation || {};
@@ -154,7 +155,8 @@ export function buildSavingPath({ settings = {}, timing, accumulation = null, ho
   const plan = savingPlan(household, years, { mix: mixes.drawing, savingMix: mixes.saving });
   const lives = livesList(count, years + 1, { seed: SAVING_PATH_SEED, ...(env.futureReturns ? { futureReturns: env.futureReturns } : {}) });
   const esc = escalationPct / 100;
-  const out = savingYearsByLife(plan, 0, lives, { escalation: esc, ...(fundsMix ? { savingsMix: fundsMix } : {}) });
+  // risePrices (7.12.0, services/PotsAtStop.js): what goes in rises with each future's own prices, as the answer has it
+  const out = savingYearsByLife(plan, 0, lives, { ...(risePrices ? {} : { escalation: esc }), ...(fundsMix ? { savingsMix: fundsMix } : {}) });
   const W = years + 1;
   if (!isaGrowth && !fundsMix) {
     // No choice (a plan locked before it, unlocked again without one): the ISA at the fixed rate the engines run such a

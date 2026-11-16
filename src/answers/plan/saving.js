@@ -377,6 +377,8 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
     ages: { currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, years, stillSaving, known: ages, line: agesLine },
     relief: reliefLines(b, inputs), scheme: inputs.schemeType,
     potNow: { value: pounds(potNow), line: potLine },
+    // the pot at the stop the plan uses (services/PotsAtStop.js, through the plan's settings as read), the middling case
+    atStop: stillSaving && s.ss && s.ss.potAtRetirement && s.ss.potAtRetirement.source === 'worked' ? { value: pounds(Math.round(s.ss.potAtRetirement.sipp / 1000) * 1000), age: String(s.ss.potAtRetirement.from ? s.ss.potAtRetirement.from.toAge : inputs.retirementAge) } : null,
     rates: { low: pct1(FCA_RATES.low), mid: pct1(FCA_RATES.mid), high: pct1(FCA_RATES.high), mix: hp ? pct1(hp.expectedReal + 0.025) : null, charges: chargesPct > 0 ? String(Math.round(chargesPct * 100) / 100) : null },
     mix: hp ? { shares: String(Math.round(hp.buckets.shares * 100)), bonds: String(Math.round(hp.buckets.bonds * 100)), diversifiers: String(Math.round(hp.buckets.diversifiers * 100)), cash: String(Math.round(hp.buckets.cash * 100)), charge: (hp.weightedOcf * 100).toFixed(2) } : null,
     rows: shownRows, isaLine: !!isaRows, isaHow: isaRows ? (how.fromFunds && how.payIns ? 'funds' : how.kind || 'before') : null, isaMonthly: pounds(inputs.isaMonthly),

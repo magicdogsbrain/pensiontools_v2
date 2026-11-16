@@ -36,6 +36,7 @@ import { normaliseHoldings } from './HoldingsRecord.js';
 import { potsAsOfFor, withoutPotsAsOf, lockedPotsAsOf, potsDayOf } from './PlanFromToday.js';
 import { readDayOf } from './PlanClosed.js';
 import { laterDraftOf, withLockedStart } from './PlanMove.js';
+import { potsAtStopOf } from './PotsAtStop.js';
 
 /**
  * Default stress database structure.
@@ -170,14 +171,34 @@ export function storedStressSettings(scenario) {
  * @param {object} scenario  a saved plan, upgraded (scenarioMigration.upgradeScenario)
  * @param {{ now?: Date }} [o]
  */
-export function effectiveStressSettings(scenario, { now = new Date() } = {}) {
+export function effectiveStressSettings(scenario, { now = new Date(), env = {} } = {}) {
   let out = migratedStressSettings(scenario, now);
   // A retired draft saved with a later start than it should have (7.4.0, PlanMove.laterDraftOf) is read from the tax year
   // work stopped, or this one, every figure counted from year 0 keeping its age and tax year: written only by its next Save.
   const later = laterDraftOf(scenario, out, now);
   if (later) out = later.settings;
+  out = withDerivedPots(scenario, out, now, env);
   const potsAsOf = potsAsOfFor(scenario, out, now);
   return potsAsOf ? { ...out, potsAsOf } : out;
+}
+
+/**
+ * The pots when you stop, as read (7.12.0; services/PotsAtStop.js), in memory only: a plan still saving and not locked
+ * reads them worked out from its own facts (or the person's own typed figure); a locked plan reads the figure its plan
+ * document was locked with; anything else as stored. Nothing is written.
+ */
+export function withDerivedPots(scenario, settings, now = new Date(), env = {}) {
+  const s = settings || {};
+  if (s.retired !== false) return s;
+  if (isLockedScenario(scenario)) {
+    const doc = scenario && scenario.planDocument;
+    const locked = doc && doc.pots && doc.pots.potAtRetirement;
+    return locked && typeof locked === 'object' ? { ...s, potAtRetirement: { ...locked } } : s;
+  }
+  let worked = null;
+  try { worked = potsAtStopOf(scenario, s, { now, env }); } catch (e) { worked = null; }
+  // the person's own figure stays exactly as stored (marked 'override', as every reader of it expects)
+  return worked && worked.source === 'worked' ? { ...s, potAtRetirement: worked } : s;
 }
 
 /**

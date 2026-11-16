@@ -30,6 +30,8 @@ import { dateOf, dayWords } from './dates.js';
 
 export { applyPatch };
 
+/** To the nearest £1,000, as every saver screen says the pots at the stop (7.12.0). */
+const k1 = (v) => Math.round((+v || 0) / 1000) * 1000;
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const num = (v) => (v == null || v === '' || !Number.isFinite(+v) ? null : +v);
 const blank = (v) => v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
@@ -316,7 +318,7 @@ export function derivedLines(v, s, { stopBlanked = false } = {}) {
   if (s.later) {
     if (v.stopSipp || v.stopIsa) lines.push({ id: 'stop.typed', slots: { sipp: v.stopSipp ? pounds(v.stopSipp) : 'none typed', isa: v.stopIsa ? pounds(v.stopIsa) : 'none typed' } });
     else if (stopBlanked) lines.push({ id: 'stop.blanked', slots: {} });
-    else if (s.par && s.par.source !== 'override' && (num(s.par.sipp) > 0 || num(s.par.isa) > 0)) lines.push({ id: 'stop.projection', slots: { sipp: pounds(s.par.sipp), isa: pounds(s.par.isa) } });
+    else if (s.par && s.par.source !== 'override' && (num(s.par.sipp) > 0 || num(s.par.isa) > 0)) lines.push({ id: 'stop.projection', slots: { sipp: pounds(k1(s.par.sipp)), isa: pounds(k1(s.par.isa)) } });
     else if (!s.answer) lines.push({ id: 'stop.none', slots: {} });
     if (s.answer) lines.push({ id: 'stop.answer', slots: { sipp: pounds(s.answer.sipp), sippBad: pounds(s.answer.sippBad), isa: pounds(s.answer.isa), isaBad: pounds(s.answer.isaBad) } });
   }

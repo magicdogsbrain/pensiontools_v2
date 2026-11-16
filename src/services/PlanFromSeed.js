@@ -684,7 +684,10 @@ function planFor(seed, p, other, name, savedOn, lockedAt, names, record) {
     allocMode: 'risk', taggedFunds: [], diversifierStart: 0, equityGlideEnabled: false,
     isaBalance: p.savings.today,
     isaDrawdownStrategy: 'minimiseEarlyTax', isaReturn: 0.03,
-    potAtRetirement: later ? { sipp: p.pension.atStop.middling || null, isa: p.savings.atStop.middling || null, source: 'override' } : null
+    // the answer's own figure (7.12.0: 'answer', never 'override', which is a figure the person typed): every read works
+    // the pots at the stop out again from the plan's own facts (services/PotsAtStop.js), so it is never frozen. A seed from
+    // an older V7 tab (version 1) makes exactly the plan it always made (K1); its 'override' is read as the answer's too
+    potAtRetirement: later ? { sipp: p.pension.atStop.middling || null, isa: p.savings.atStop.middling || null, source: seed.seedVersion >= 2 ? 'answer' : 'override' } : null
   });
 
   // The target: the person's own part of the monthly amount they chose, grossed up by today's own sum — exact to the year

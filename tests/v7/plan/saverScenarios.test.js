@@ -17,6 +17,10 @@ import { accumulationBoxes } from '../../../src/ui/accumulationProjection.js';
 import { takeHomeOf, payInSaid } from '../../../src/services/SaverPayIn.js';
 import { contributionBreakdown } from '../../../src/services/AccumulationEngine.js';
 import { payInNowOf } from '../../../src/answers/plan/saving.js';
+import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
+import { potsAtStopBuilds } from '../../../src/services/PotsAtStop.js';
+import { boxesOf as aboutBoxes, aboutPatch } from '../../../src/answers/plan/about.js';
+import { planPage } from '../../../src/answers/plan/read.js';
 import { SAVING as W } from '../../../src/v7/copy/saving.js';
 import { noon } from './_plans.js';
 
@@ -180,4 +184,82 @@ describe('step 2: one way to say a pay-in', () => {
     // at £55,000: 4,730 a year above the line, more than the 375 × 12 = 4,500 paid in; 4,500 × 20% = £900
     expect(Math.round(contributionBreakdown({ netMonthly: 300, salary: 55000, schemeType: 'ras' }).hrClaimMonthly * 12)).toBe(900);
   });
+});
+
+describe('step 3: the pots when you stop are worked out, never frozen', () => {
+  const NOW = noon(READ_ON);
+  const flat = { futureReturns: (i, years) => ({ equity: Object.fromEntries(Array.from({ length: years }, (_, y) => [y, 0])), inflation: Object.fromEntries(Array.from({ length: years }, (_, y) => [y, 0])) }) };
+  /** Every line of "Your plan" with its id, as drawn. */
+  const linesOf = (page) => { const out = []; const walk = (x) => { if (Array.isArray(x)) x.forEach(walk); else if (x && typeof x === 'object') { if (x.sentence && x.id) out.push(x); Object.values(x).forEach(walk); } }; walk(page); return out; };
+  const atStopText = (plan) => { const l = linesOf(planPage([entry(plan)], plan.id, 'plan', { today: READ_ON })).find((x) => x.id === 'pots.atStop'); return l ? l.sentence.text : null; };
+  const keepAt = (inputs, id) => keptPlan(inputs, { on: '2025-11-12', readOn: READ_ON, id });
+  const moveStop = (plan, age) => { const p = aboutPatch(plan, { ...aboutBoxes(plan, { today: READ_ON }), stopAge: String(age) }, { today: READ_ON }); expect(p.ok).toBe(true); return applyPatch(plan, p.patch); };
+
+  it('Sam on flat futures (no growth, no price rises, no charge, all in shares): £131,000 and £625 a month for 22 years', () => {
+    const plan = samPlan();
+    Object.assign(plan.stressTool.settings, { chargesPct: 0, equityMin: 120000, bondMin: 0, cashTarget: 0, diversifierStart: 0 });
+    if (plan.accumulationTool.settings.savingMix) delete plan.accumulationTool.settings.savingMix;
+    // 131,000 + 625 × 12 × 22 = 296,000
+    expect(effectiveStressSettings(plan, { now: NOW, env: flat }).potAtRetirement.sipp).toBe(131000 + 625 * 12 * 22);
+  }, 30000);
+
+  const fixtures = {
+    Sam: { household: 'single', you: { pot: 120000, age: 44, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'split', own: 375, employer: 250 } }, stop: { age: 65 }, spend: { kind: 'amount', amount: 2200 }, endAge: 95 },
+    Jo: { household: 'single', you: { pot: 22000, age: 33, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'share', pay: 38000, ownPct: 5, employerPct: 3 } }, stop: { age: 60 }, spend: { kind: 'amount', amount: 2000 }, endAge: 95 },
+    Pat: { household: 'single', you: { pot: 45000, age: 52, statePension: { kind: 'full' }, finalSalary: { has: false }, payIn: { kind: 'share', pay: 31000, ownPct: 4, employerPct: 3 } }, stop: { age: 60 }, spend: { kind: 'amount', amount: 1800 }, endAge: 95 }
+  };
+  for (const [who, inputs] of Object.entries(fixtures)) {
+    it(`${who}: the stop moved two years later and a pot recorded — "Your plan", the runs and the answer for the same plan say one pot at the stop`, () => {
+      const kept = keepAt(inputs, who + '01');
+      const before = effectiveStressSettings(kept, { now: NOW }).potAtRetirement.sipp;
+      let plan = moveStop(kept, inputs.stop.age + 2);
+      plan.accumulationTool.history = [{ date: '2026-11', sipp: Math.round(inputs.you.pot * 1.09), isa: null, gia: 0, total: Math.round(inputs.you.pot * 1.09), recordedAt: '2026-11-10T12:00:00.000Z' }];
+      const after = effectiveStressSettings(plan, { now: NOW }).potAtRetirement;
+      expect(after.source).toBe('worked');
+      expect(after.sipp).toBeGreaterThan(before);
+      const read = saverInputsOf(plan, { today: READ_ON });
+      const answer = answerB(read.inputs, { today: READ_ON, futures: 1000, seed: 0, detail: 'answer', ...read.env });
+      const k = (v) => Math.round(v / 1000) * 1000;
+      expect(k(after.sipp)).toBe(k(answer.saving[0].potAtStop.pension.middling));
+      const text = atStopText(plan);
+      expect(text).toContain('£' + k(after.sipp).toLocaleString('en-GB') + ' pension');
+      expect(text).toContain('in a middling case');
+      expect(text).toContain('Worked out from £' + Math.round(inputs.you.pot * 1.09).toLocaleString('en-GB') + ' today');
+    }, 60000);
+  }
+
+  it('the answer\'s own figure stored as typed is read as worked out; a figure the person changed is their own and stays', () => {
+    const plan = samPlan();
+    const fa = plan.fromAnswer.people[0];
+    plan.stressTool.settings.potAtRetirement = { sipp: fa.pension.atStop.middling, isa: fa.savings.atStop.middling || null, source: 'override' };
+    expect(effectiveStressSettings(plan, { now: NOW }).potAtRetirement.source).toBe('worked');
+    plan.stressTool.settings.potAtRetirement = { sipp: fa.pension.atStop.middling + 1, isa: fa.savings.atStop.middling || null, source: 'override' };
+    const typed = effectiveStressSettings(plan, { now: NOW }).potAtRetirement;
+    expect(typed).toEqual({ sipp: fa.pension.atStop.middling + 1, isa: fa.savings.atStop.middling || null, source: 'override' });
+    expect(atStopText(plan)).toContain('your own figure. It does not follow your pot or what you pay in.');
+  }, 30000);
+
+  it('a locked plan reads the figure its plan document was locked with, whatever is recorded since', () => {
+    const plan = samPlan();
+    plan.decisionTool.settings.locked = true;
+    plan.decisionTool.settings.lockedAt = '2026-07-01T10:00:00.000Z';
+    plan.planDocument = { lockedAt: '2026-07-01T10:00:00.000Z', pots: { sipp: 120000, isa: 0, gia: 0, potAtRetirement: { sipp: 422772, isa: 0, source: 'accumulation' } } };
+    plan.accumulationTool.history.push({ date: '2026-12', sipp: 200000, isa: null, gia: 0, total: 200000, recordedAt: '2026-12-01T12:00:00.000Z' });
+    expect(effectiveStressSettings(plan, { now: NOW }).potAtRetirement.sipp).toBe(422772);
+  }, 30000);
+
+  it('Jo\'s stop moved from 60 to 65: what the plan pays starts from 65', () => {
+    const jo = { ...fixtures.Jo, spend: { kind: 'amount', amount: 2000, then: 'falls', fallsPct: 1 }, endAge: 95 };
+    const plan = moveStop(keepAt(jo, 'Jo02'), 65);
+    const first = linesOf(planPage([entry(plan)], plan.id, 'plan', { today: READ_ON })).find((x) => x.id === 'pays.step');
+    expect(first.sentence.text).toMatch(/^From age 65: /);
+  }, 30000);
+
+  it('a page that reads the plan 50 times works the path out once', () => {
+    const plan = samPlan();
+    plan.stressTool.settings.chargesPct = 0.37;   // a plan no other test has read
+    const before = potsAtStopBuilds();
+    for (let i = 0; i < 50; i++) effectiveStressSettings(plan, { now: NOW });
+    expect(potsAtStopBuilds() - before).toBe(1);
+  }, 30000);
 });

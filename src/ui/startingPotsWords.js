@@ -16,6 +16,7 @@
  *                                                projection was.
  */
 import { potScaleOf, sippTodayOf, isaAtRetirementOf } from '../services/PotsAtRetirement.js';
+import { isAnswersOwnFigure } from '../services/PotsAtStop.js';
 import { earlyPensionDrawOf, earlyPensionDrawWords } from '../services/PlanTiming.js';
 import { closedYearsWords } from '../services/PensionLock.js';
 import { pensionLockForSettings } from '../strategies/stressTest.js';
@@ -97,10 +98,15 @@ export function startSummaryHtml(settings, { fromAnswer = null, locked = null } 
   if (startsScaled(s)) {
     const sipp = sippTodayOf(s) * k.sipp, isa = isaAtRetirementOf(s);
     const fromNothing = isaFromNothing(s) > 0;
+    const par = s.potAtRetirement || {};
     text = `Starting balances at retirement (age ${+s.shapeAgeNow || s.retireAge}), as every run uses them: `
       + `Equity ${fmt(s.equityMin * k.sipp)} · Bond ${fmt(s.bondMin * k.sipp)}${div} · Cash ${fmt(s.cashTarget * k.sipp)} (pension ${fmt(sipp)}) · ISA ${fmt(isa)}. `
-      + `These are your <strong>Settings</strong> pots today (pension ${fmt(sippTodayOf(s))}, ISA ${fmt(s.isaBalance)}${fromNothing ? ' today' : ''}) scaled to the pots at retirement in the Timing block`
-      + `${fromNothing ? ', with the ISA at retirement taken as the Timing block gives it (there is no ISA today to scale)' : ''}. Edit them in the Settings tab.`;
+      // 7.12.0: worked out from the saver's facts (services/PotsAtStop.js), or the person's own figures
+      + (par.source === 'worked' && par.from
+        ? `Worked out from your pension today (${fmt(par.from.pot)}) and ${fmt(par.from.monthly)} a month going in, in a middling case. Change what goes in on the Accumulation tab.`
+        : par.source === 'override' && !isAnswersOwnFigure({ fromAnswer }, par) ? 'These are your own figures from the Timing block.'
+          : `These are your <strong>Settings</strong> pots today (pension ${fmt(sippTodayOf(s))}, ISA ${fmt(s.isaBalance)}${fromNothing ? ' today' : ''}) scaled to the pots at retirement in the Timing block`
+            + `${fromNothing ? ', with the ISA at retirement taken as the Timing block gives it (there is no ISA today to scale)' : ''}. Edit them in the Settings tab.`);
   } else {
     text = 'Starting balances come from your <strong>Settings</strong> (Fund Minimums): '
       + `Equity ${fmt(s.equityMin)} · Bond ${fmt(s.bondMin)}${div} · Cash ${fmt(s.cashTarget)}. Edit them in the Settings tab.`;
@@ -136,6 +142,11 @@ function accessNote(s) {
 }
 
 export function potsAtRetirementLine(p, override = {}) {
+  // 7.12.0: the pots worked out from the saver's facts (services/PotsAtStop.js), when the person typed none below
+  if (p && p.source === 'worked' && p.from && !(+(override || {}).sipp > 0 || +(override || {}).isa > 0)) {
+    return 'Pots at retirement in today\'s money, in a middling case: pension <strong>' + fmt(p.sipp) + '</strong> · ISA <strong>' + fmt(p.isa) + '</strong>. '
+      + 'Worked out from your pension today (' + fmt(p.from.pot) + ') and ' + fmt(p.from.monthly) + ' a month going in, to age ' + p.from.toAge + '. Every strategy is priced on these; type your own below to use those instead.';
+  }
   const proj = 'SIPP ' + fmt(p.sipp) + ' (cautious ' + fmt(p.low) + ', strong ' + fmt(p.high) + ') · ISA ' + fmt(p.isa);
   const how = p.hasContributions ? ' with your Accumulation planner contributions' : ' (growth only — no contributions saved on the Accumulation tab)';
   const o = override || {};

@@ -147,6 +147,7 @@ function Pot({ V }) {
     <section class="plan-section saving-pot" data-section="pot" data-testid={`${T}.pot`} data-mix={V.mix ? '1' : '0'}>
       <h3>{W.sections.pot}</h3>
       <p class="note">{fill(P.lead, V.rates)}</p>
+      {V.atStop && <p class="note" data-testid={`${T}.pot.atStop`}>{fill(P.atStop, V.atStop)}</p>}
       <p class="note" data-testid={`${T}.pot.potNow`} data-from={V.potNow.line.id}>{fill(P.potNow[V.potNow.line.id] || '', V.potNow.line.slots)}</p>
       {V.mix && <p class="note" data-testid={`${T}.pot.mix`}>{fill(P.mix, { ...V.mix, mix: V.rates.mix })}{V.rates.charges ? ' ' + fill(P.mixCharge, V.mix) : ''}</p>}
       <div class="table-wrap">

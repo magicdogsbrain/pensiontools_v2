@@ -11,7 +11,7 @@ import { simpleHash } from '../utils/MathUtils.js';
 import { isFirebaseConfigured, isLoggedIn } from '../firebase/index.js';
 import { deriveIsaMix } from '../services/IsaFunds.js';
 import { scheduleFromSteps, defaultSpYear } from '../services/IncomeSchedule.js';
-import { getDefaultStressDB as defaultStressDB, migrateStressSettings } from '../services/PlanReading.js';
+import { getDefaultStressDB as defaultStressDB, migrateStressSettings, withDerivedPots } from '../services/PlanReading.js';
 import { timingPinPatch } from '../services/PlanTiming.js';
 import { budgetAgesKnown } from '../services/BudgetModel.js';
 import { DEFAULT_CHARGES_PCT } from '../services/Charges.js';
@@ -144,6 +144,8 @@ export async function loadStressDBAsync() {
       // A retired draft saved with a later start than it should have (7.4.0, PlanMove.laterDraftOf; PlanReading the same):
       // read, in memory, from the tax year work stopped or this one. The form shows it so, and its next Save writes it.
       try { const later = open ? laterDraftOf(open, plain, new Date()) : null; if (later) plain = later.settings; } catch (e) { /* read as saved */ }
+      // The pots when you stop, worked out from the saver's facts (7.12.0, PlanReading.withDerivedPots): in memory only.
+      try { if (open) plain = withDerivedPots(open, plain, new Date()); } catch (e) { /* read as saved */ }
       try { potsAsOf = open ? potsAsOfFor(open, plain, new Date()) : null; } catch (e) { /* no plan open */ }
       if (potsAsOf || plain !== cachedStressDB.settings) cachedStressDB = { ...cachedStressDB, settings: potsAsOf ? { ...plain, potsAsOf } : plain };
       // 6.13.5: the plan's start is written into the saved plan the first time it is derived, and only then —

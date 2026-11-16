@@ -99,7 +99,9 @@ export const SAVING = {
       typed: 'From your pension of {value}, as typed above. Save to keep it.',
       none: 'No pension pot is in your plan yet, so this starts from nothing. You can add it in the box for your pension pot today.'
     },
-    columns: { age: 'Age', low: 'Cautious', mid: 'Middle', mix: 'Your mix', high: 'Strong', paidIn: 'Paid in', isa: 'ISA and savings' },
+    /** The pot at the stop the plan uses (services/PotsAtStop.js), said above the regulator's table (7.12.0). */
+    atStop: 'In a middling case your pension could be {value} at {age}. That is the figure your plan uses. The table below shows the regulator’s fixed rates, for comparing with your provider’s statement; they are lower.',
+    columns: { age: 'Age', low: 'Cautious', mid: 'Middle', mix: 'Your mix', high: 'Strong', paidIn: 'Paid in (in the pounds of each year)', isa: 'ISA and savings' },
     isa: {
       cash: 'ISA and savings: mostly cash, at the cash rule and 2.5% price rises, with {isaMonthly} a month going in.',
       invested: 'ISA and savings: invested like your pension, at the middle rate, with {isaMonthly} a month going in.',
@@ -150,7 +152,7 @@ export const SAVING = {
       more: 'This reads what you pay in as going up with prices. Your plan raises it by {pct}% a year, so what the pot could be by the stop, below, assumes more goes in later.',
       none: 'This reads what you pay in as going up with prices. Your plan keeps it the same in pounds each year, so what the pot could be by the stop, below, assumes less goes in later.'
     },
-    draws: 'It draws the money the way “Am I saving enough?” does. How your plan itself draws is on “Does it last?”.',
+    draws: 'This check lets each future save its own pot. “Does it last?” starts every future from the middling pot and draws the way your plan draws, so its count can differ a little.',
     drawsLink: 'Does it last?',
     couple: 'This reads your plan on its own; reading two linked plans together comes later.',
     /** A plan that draws by a way other than pots and valves or buckets (7.10.0): what the verdict is worked out on. */

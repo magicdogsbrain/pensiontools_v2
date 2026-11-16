@@ -80,7 +80,7 @@ export const POTS = {
     'pots.fromFunds': 'Your pension pot of {pension} comes from your list of funds to test: change it with the way of drawing and mix (in the full view).',
     'pots.pinned': 'This way of drawing is sized on its own figures: {pension} pension and {isa} ISAs, set with the way of drawing (in the full view).',
     'stop.typed': 'At the day you stop, as you typed it: {sipp} pension and {isa} ISAs and savings.',
-    'stop.projection': 'The full view works out {sipp} pension and {isa} ISAs and savings at the day you stop, from what you pay in. Type your own above to use it instead.',
+    'stop.projection': 'Worked out from your pot and what you pay in, in a middling case: {sipp} pension and {isa} in ISAs and savings when you stop. Type your own above to use it instead.',
     'stop.answer': 'From your answer: {sipp} pension and {isa} ISAs and savings at the day you stop in a middling future; in a bad case (the worst 1 in 10) {sippBad} and {isaBad}.',
     'stop.none': 'What you will have at the day you stop comes from ‘Does it last?’, later; until then every run uses today’s pots.',
     'stop.blanked': 'Left blank: every run uses today’s pots, and the full view works out its own figures for the day you stop the next time it draws your plan.',

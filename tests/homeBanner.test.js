@@ -42,15 +42,33 @@ describe('the classic banner is the new app\'s home, on the whole corpus list, a
         expect(banner.html, e.plan.id).toBe(esc(first.planId ? banner.html : fill(PLAN.next[first.pid], first.slots)));
         expect(banner.html, e.plan.id).not.toMatch(/\{\w+\}/);
         expect(banner.btn, e.plan.id).toBeTruthy();
-        if (first.id.startsWith('month.')) expect(banner.action, e.plan.id).toEqual(first.planId ? { kind: 'plan', planId: first.planId } : { kind: 'tab', tab: 'decision' });
+        // Moved on purpose (the walk): a month to record opens Monthly Entry on that month, not on this one
+        if (first.id.startsWith('month.')) expect(banner.action, e.plan.id).toEqual(first.planId ? { kind: 'plan', planId: first.planId } : ['month.record', 'month.gap'].includes(first.id) ? { kind: 'tab', tab: 'decision', sub: 'entry', month: first.button.month } : { kind: 'tab', tab: 'decision' });
         else if (first.id === 'closed.next') expect(banner.action, e.plan.id).toEqual({ kind: 'plan', planId: first.button.href.replace('#/plan/', '') });
         else expect(banner.action, e.plan.id).toEqual({ kind: 'v7', href: LAYOUT.classic.v7 + first.button.href });
         expect(banner.dismiss, e.plan.id).toEqual(first.dismiss && !first.planId ? { kind: 'task', key: first.key } : { kind: 'banner' });
+        if (['month.record', 'month.gap'].includes(first.id) && !first.planId) expect(banner.btn, e.plan.id).toContain(new Date(first.button.month + '-15').toLocaleString('en-GB', { month: 'long' }));
       }
       expect(seen).toBeGreaterThan(5);
       expect(JSON.stringify(entries.map((e) => e.plan))).toBe(before);
     });
   }
+  it('"Record {month}" opens Monthly Entry on that month: its action carries the month the button names (the walk)', () => {
+    let found = 0;
+    for (const today of DATES) {
+      const entries = entriesAt(today);
+      for (const e of entries) {
+        const h = homeOf(entries, e.plan.id, { today });
+        const first = h.todo.items[0];
+        if (!first || first.planId || !['month.record', 'month.gap'].includes(first.id)) continue;
+        found++;
+        const banner = homeBannerOf(entries, e.plan.id, { today, stage: deriveStage(e.plan, noon(today)) });
+        expect(banner.action, e.plan.id).toEqual({ kind: 'tab', tab: 'decision', sub: 'entry', month: first.button.month });
+        expect(first.button.month < today.slice(0, 7) || first.button.month === today.slice(0, 7)).toBe(true);
+      }
+    }
+    expect(found).toBeGreaterThan(0);
+  });
   it('a closed plan with its successor: "carry on in …", opening that plan; 6 April 2027 on a plan living on its money: the tax year, put away "Not now"', () => {
     const entries = entriesAt(TODAY);
     const closed = homeBannerOf(entries, C['18-moved-to-new-plan'].id, { today: TODAY, stage: deriveStage(C['18-moved-to-new-plan'], noon(TODAY)) });

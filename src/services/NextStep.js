@@ -95,7 +95,15 @@ export function nextStepAction(action, win) {
   if (a.kind === 'budget-wizard') return () => { win.switchToTab('budget'); later(() => win.openBudgetWizard()); };
   if (a.kind === 'apply-budget') return async () => { await win.applyBudgetToPlan(); win.updateNextStepBanner(); };
   if (a.kind === 'stress-settings') return () => { win.switchToTab('stress'); later(() => win.document.querySelector('.sub-tab[data-stresstab="stresssettings"]')?.click()); win.scrollTo({ top: 0 }); };
-  if (a.kind === 'tab') return () => { win.switchToTab(a.tab); if (a.sub) later(() => win.document.querySelector('.sub-tab[data-decisiontab="' + a.sub + '"]')?.click()); };
+  // a month to record: the month box set to it once the page has drawn and set its own default, and the form's listeners run
+  // (as OpenPlace does) — "Record October" never opens on November
+  const setMonth = () => {
+    const box = win.document.getElementById && win.document.getElementById('entryMonth');
+    if (!box) return;
+    box.value = a.month;
+    for (const t of ['input', 'change']) box.dispatchEvent(new win.Event(t, { bubbles: true }));
+  };
+  if (a.kind === 'tab') return () => { win.switchToTab(a.tab); if (a.sub) later(() => { win.document.querySelector('.sub-tab[data-decisiontab="' + a.sub + '"]')?.click(); if (a.month) setMonth(); }); };
   // another plan (a closed plan's successor): the planner's own way to open a plan (src/ui/planCloseUi.js openPlanById)
   if (a.kind === 'plan') return () => win.openPlanById(a.planId);
   // a page of the new app (7.10.0: the plan home's review, "did you stop work?", an age, a partner's plan): its address there

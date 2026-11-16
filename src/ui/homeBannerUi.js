@@ -57,8 +57,10 @@ export function entriesOf(plans, now) {
 /** What the banner's button does for the home's first thing due. */
 function actionOf(it) {
   if (it.planId) return { kind: 'plan', planId: it.planId };                       // a partner's month: that plan
-  if (it.id.startsWith('month.')) return { kind: 'tab', tab: 'decision' };
   const b = it.button || {};
+  // a month to record: its own month, on Monthly Entry (the walk: "Record October" opened on November)
+  if ((it.id === 'month.record' || it.id === 'month.gap') && /^\d{4}-\d{2}$/.test(String(b.month || ''))) return { kind: 'tab', tab: 'decision', sub: 'entry', month: b.month };
+  if (it.id.startsWith('month.')) return { kind: 'tab', tab: 'decision' };
   if (it.id === 'closed.next') return { kind: 'plan', planId: String(b.href || '').replace(/^#\/plan\//, '') };
   return b.href ? { kind: 'v7', href: LAYOUT.classic.v7 + b.href } : { kind: 'tab', tab: 'decision' };
 }

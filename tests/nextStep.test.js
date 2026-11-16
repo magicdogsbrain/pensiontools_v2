@@ -151,6 +151,15 @@ describe('nextStepAction: what each button does', () => {
     expect(w.calls).toEqual([['tab', 'stress'], ['top'], ['click', '.sub-tab[data-stresstab="stresssettings"]']]);
     w = fakeWin(); nextStepAction({ kind: 'tab', tab: 'decision', sub: 'plandoc' }, w)(); await flush();
     expect(w.calls).toEqual([['tab', 'decision'], ['click', '.sub-tab[data-decisiontab="plandoc"]']]);
+    // a month to record (the walk: "Record October" opened on November): Monthly Entry, its month box set and its listeners run
+    w = fakeWin();
+    const box = { value: '2026-11', events: [], dispatchEvent(ev) { this.events.push(ev.type); } };
+    w.document.getElementById = (id) => (id === 'entryMonth' ? box : null);
+    w.Event = class { constructor(type) { this.type = type; } };
+    nextStepAction({ kind: 'tab', tab: 'decision', sub: 'entry', month: '2026-10' }, w)(); await flush();
+    expect(w.calls).toEqual([['tab', 'decision'], ['click', '.sub-tab[data-decisiontab="entry"]']]);
+    expect(box.value).toBe('2026-10');
+    expect(box.events).toEqual(['input', 'change']);
     // 7.10.0: a page of the new app (the plan home's review, "did you stop work?"): its address there
     w = { ...fakeWin(), location: { href: '/classic/' } };
     nextStepAction({ kind: 'v7', href: '../#/plan/AlexReview01/review' }, w)();

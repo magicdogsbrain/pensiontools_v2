@@ -128,8 +128,9 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     expect(root.querySelector('[data-region="plan-move"]').getAttribute('data-waiting')).toBe('0');
     // Moved on purpose (the walk): a rung part bought is said as part bought, as Living on it reads it, never as not bought
     expect(view.cost.parts.length).toBeGreaterThan(0);
-    expect(one(root, `${T}.status.line`).textContent).toBe(`${view.rungs.bought} of 14 gilts bought and ${view.cost.parts.length} part bought; ${view.progressPct}% of the plan’s mix held.`);
-    expect(one(root, `${T}.next`).textContent).toMatch(/^Next: (buy|sell) /);
+    // retaken in 7.12.0: the one status sentence (moveWords.moveStatusOf), and no "Next:" line
+    expect(one(root, `${T}.status.line`).textContent).toBe(`${view.rungs.bought} of 14 gilts bought, and ${view.cost.parts.length} part bought. ${view.progressPct}% of your plan’s mix is held.`);
+    expect(one(root, `${T}.next`)).toBe(null);
     expect(one(root, `${T}.runUp`)).toBe(null);   // 7.3.3: no sentence for months before the plan (its home's to-do moves the start)
     expect(one(root, `${T}.cost.ladder`).textContent).toBe(`${view.cost.uncovered.length} tax years (${view.cost.uncovered[0]} to ${view.cost.uncovered[view.cost.uncovered.length - 1]}) have no gilt bought yet.`);
     expect(one(root, `${T}.cost.button`), 'a ladder plan has no run to offer').toBe(null);
@@ -138,21 +139,24 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     const cashRows = all(root, `[data-testid="${T}.cash.table"] tbody tr`).map((tr) => tr.getAttribute('data-row'));
     expect(cashRows).toEqual(['cashYear', 'cashYear', 'total', 'held', 'spare']);
     expect(root.querySelector(`[data-testid="${T}.cash.table"] tr[data-row="cashYear"]`).textContent).toContain('Cash year 2027/28');
-    expect(view.sell.map((x) => x.ticker)).toEqual(['T27', 'T28', 'T30I', 'VWRP']);
+    // retaken in 7.12.0: the lines outside the ladder are money the plan does not use, never a sale each; the ISA's fund
+    // counts with the pension because the plan counts the ISA (it is not held aside)
+    expect(view.sell).toEqual([]);
+    expect(view.outside.map((x) => x.ticker)).toEqual(['T27', 'T28', 'T30I', 'VWRP', 'VWRP']);
     // Buy and Sell, each line with a Done tick
     const buy = all(root, `[data-testid="${T}.buy"] tbody tr`);
     expect(buy.length).toBe(view.buy.length);
     expect(buy.length).toBe(14);
     expect(buy[0].getAttribute('data-key')).toBe('gilt:T29');
     expect(buy[0].textContent).toContain('the rung for 2029/30, 2030/31, 2031/32');
-    expect(all(root, `[data-testid="${T}.sell"] tbody tr`).length).toBe(view.sell.length);
-    expect(all(root, `[data-testid="${T}.sell"] tbody tr`).some((tr) => tr.textContent.includes('not in the plan — the proceeds pay for the ladder'))).toBe(true);
+    expect(one(root, `${T}.sell`)).toBe(null);
+    expect(all(root, `[data-testid="${T}.outside"] tbody tr`).length).toBe(view.outside.length);
+    expect(one(root, `${T}.paying.says`).textContent).toMatch(/^The buys come to £[\d,]+\. You hold £[\d,]+ that your plan does not use\./);
     expect(all(root, `[data-testid="${T}.held"] tbody tr`).length).toBe(view.hold.length);
     expect(one(root, `${T}.held`).textContent).toContain('spare — kept, not a sale');
-    expect(all(root, `[data-testid="${T}.keep"] li`).length).toBe(2);
-    expect(one(root, `${T}.keep`).textContent).toContain('ISA — kept as it is');
+    expect(all(root, `[data-testid="${T}.keep"] li`).length).toBe(1);
     expect(one(root, `${T}.keep`).textContent).toContain('cash in the bank — outside the pension, kept as it is');
-    expect(one(root, `${T}.totals`).textContent).toBe(`Totals: buy ${view.totals.buy}, sell ${view.totals.sell}.`);
+    expect(one(root, `${T}.totals`).textContent).toMatch(/^Totals: buy £[\d,]+; paid from what your plan does not use, £[\d,]+; left as it is, £[\d,]+\.$/);
     const tick = one(root, `${T}.tick.gilt:T29`);
     expect(tick.checked).toBe(false);
     tick.checked = true;
@@ -161,8 +165,8 @@ describe('a ladder plan in its run-up (03): the lists, the cash, the sheet, gilt
     // When: the schedule as "By {month year}: {action}" lines
     const steps = all(root, `[data-testid="${T}.schedule.steps"] li`);
     expect(steps.length).toBe(view.schedule.steps.length);
-    expect(steps[0].textContent).toMatch(/^By [A-Z][a-z]+ \d{4}: (buy|sell) .+ \(£[\d,]+\)\.$/);
-    expect(text).toContain('sales spread over');
+    expect(steps[0].textContent).toMatch(/^By [A-Z][a-z]+ \d{4}: raise £[\d,]+ from what your plan does not use\.$/);
+    expect(text).toContain('The buying is spread over');
     // How to read this, closed; the four rules open
     expect(one(root, `${T}.how.items`)).toBe(null);
     one(root, `${T}.how.open`).click();
@@ -266,7 +270,8 @@ describe('a pot plan (04): the mix held, the one run on the held mix, done', () 
     const plan = planOf(s);
     const { root, text, actions, view } = draw(s);
     expect(root.querySelector('[data-region="plan-move"]').getAttribute('data-kind')).toBe('buckets');
-    expect(one(root, `${T}.status.line`).textContent).toBe(`${view.progressPct}% of the plan’s mix held; 0 of ${view.moves} moves ticked off.`);
+    // retaken in 7.12.0: "moves done", as the home tile says it
+    expect(one(root, `${T}.status.line`).textContent).toBe(`${view.progressPct}% of the plan’s mix held; 0 of ${view.moves} moves done.`);
     expect(view.moves).toBe('2');
     expect(text).toContain(MOVE.target.buckets);
     expect(one(root, `${T}.cost.headline`).textContent).toBe(`Tested on the mix you hold today (shares ${view.heldRun.result.pcts.shares}%, bonds ${view.heldRun.result.pcts.bonds}%, gold and trend 0%, cash ${view.heldRun.result.pcts.cash}%), the plan lasts ${view.heldRun.result.words}; on its own mix, ${view.own.words}.`);
@@ -354,9 +359,10 @@ describe('the saver\'s rule, a plan not locked, nothing recorded, shown as saved
     const s = moving(load('move-mix'));
     const plan = planOf(s);
     const { root, text } = draw(s, replaced((p) => { delete p.holdings; return p; }));
-    expect(one(root, `${T}.noRecord`).textContent).toContain('Nothing recorded yet — record what you hold first.');
-    expect(root.querySelector(`[data-testid="${T}.noRecord"] a`).getAttribute('href')).toBe('#/plan/' + plan.id + '/hold');
-    expect(one(root, `${T}.cost.nothing`)).not.toBe(null);
+    // retaken in 7.12.0: one notice, not two — "What skipping it costs" says it, with the link
+    expect(one(root, `${T}.noRecord`)).toBe(null);
+    expect(one(root, `${T}.cost.nothing`).textContent).toContain('Nothing recorded yet — record what you hold first.');
+    expect(root.querySelector(`[data-testid="${T}.cost.nothing"] a`).getAttribute('href')).toBe('#/plan/' + plan.id + '/hold');
     expect(one(root, `${T}.cost.button`)).toBe(null);
     expect(all(root, `[data-testid="${T}.buy"] tbody tr`).length).toBe(3);
     expect(text).not.toMatch(/about £/);
@@ -400,9 +406,11 @@ describe('Living on it (7.11.1): the named states as they are — what is held, 
     // Moved on purpose (7.11.1, the gilt-year guess removed): when a gilt matures is said as a fact, never a year it is for
     expect(also).toContainEqual(['1¼% Index-linked Treasury Gilt 2027', '£35,494', '22 November 2027', 'rises with prices']);
     expect(also).toContainEqual(['Vanguard FTSE All-World (Acc)', '£396,769', '', '']);
+    // retaken in 7.12.0: the plan counts the ISA (it is not held aside), so the ISA's fund is beside the plan's gilts too
+    expect(also).toContainEqual(['Vanguard FTSE All-World (Acc)', '£35,052', '', '']);
     expect(one(root, `${T}.heldLadder.need`).textContent).toMatch(/^Your plan pays 2027\/28 to 2028\/29 from cash: £[\d,]+ still to come\.$/);
     // living on the plan, an ISA line is outside the pension — never "left alone" by a move
-    expect(one(root, `${T}.heldLadder.outside`).textContent).toBe('Vanguard FTSE All-World (Acc) (ISA, £35,052): outside your pension, so not part of the plan’s mix.');
+    expect(one(root, `${T}.heldLadder.outside`).textContent).toMatch(/^Easy-access savings \(CASH, £8,000\): outside your pension/);
     expect(text).not.toContain('kept as it is');
     checkWords(text, words);
   });

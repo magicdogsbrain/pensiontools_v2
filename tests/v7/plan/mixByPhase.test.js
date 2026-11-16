@@ -104,7 +104,8 @@ describe('Living on it: "Your plan\'s mix" is what is held, never a move', () =>
 
   it('the full view reads the same module and draws the same, with no Buy, Sell, totals or schedule', () => {
     const held = transitionHeld(p, p.holdings, noon(TODAY));
-    expect(held).toEqual({ mode: 'held', heldInfo: V.heldInfo, heldView: V.heldView, phase: 'drawing' });
+    // retaken in 7.12.0: transitionHeld also carries the move's readings both views word the same way
+    expect(held).toMatchObject({ mode: 'held', heldInfo: V.heldInfo, heldView: V.heldView, phase: 'drawing' });
     const mi = moveInputs(p, { now: noon(TODAY) });
     const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, gaps: transitionGaps(p, p.holdings, noon(TODAY)), held });
     expect(html).not.toMatch(/>Sell<|>Buy<|Totals: buy|When — a schedule|toggleTransitionDone|Next: <strong>|Things the schedule assumes/);
@@ -161,19 +162,21 @@ describe('Moving once what is held was accepted: not a move either', () => {
 describe('Moving, nothing accepted: the move as 7.10.0 built it', () => {
   const p = sam();
   const V = moveOf([{ plan: p }], p.id, { today: TODAY });
-  it('Sam reads Moving; the lists, the schedule and the next move are there', () => {
+  // retaken in 7.12.0: a line outside the ladder is money the plan does not use — no Sell list, no "Next:"; "Paying for it" instead
+  it('Sam reads Moving; the buys, what pays for them and the schedule are there', () => {
     expect(V.phase).toBe('moving');
     expect(V.mode).toBe('move');
     expect(V.heldInfo).toBe(null);
     expect(V.buy.length).toBeGreaterThan(0);
     expect(V.schedule.steps.length).toBeGreaterThan(0);
     const { root } = onPage(p);
-    expect(one(root, `${T}.sell`)).not.toBe(null);
-    expect(one(root, `${T}.next`)).not.toBe(null);
+    expect(one(root, `${T}.sell`)).toBe(null);
+    expect(one(root, `${T}.next`)).toBe(null);
+    expect(one(root, `${T}.paying`)).not.toBe(null);
     expect(one(root, `${T}.schedule`)).not.toBe(null);
   });
-  it('every gilt outside the rungs, and the share fund, fund the ladder — whatever year the gilt matures in', () => {
-    const sold = V.sell.map((s) => s.label);
+  it('every gilt outside the rungs, and the share fund, are money the plan does not use — whatever year the gilt matures in', () => {
+    const sold = V.outside.map((s) => s.label);
     for (const l of ['1 5/8% Treasury Gilt 2028', '1¼% Index-linked Treasury Gilt 2027', '0 1/8% Index-linked Treasury Gilt 2028', '4 3/8% Treasury Gilt 2030', 'Vanguard FTSE All-World (Acc)']) expect(sold).toContain(l);
   });
   it('the cash to hold is the pension\'s cash against the cash years\' money: no row for gilts, nothing "freed"', () => {
@@ -189,16 +192,17 @@ describe('Moving, nothing accepted: the move as 7.10.0 built it', () => {
     const held = transitionHeld(p, p.holdings, noon(TODAY));
     expect(held.mode).toBe('move');
     const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings, held });
-    const sellTable = html.slice(html.indexOf('>Sell<'), html.indexOf('</table>', html.indexOf('>Sell<')));
-    expect(sellTable).toContain('4 3/8% Treasury Gilt 2030');
-    expect(sellTable).toContain('1 5/8% Treasury Gilt 2028');
+    const title = MOVE.outside.title;
+    const outsideTable = html.slice(html.indexOf(title), html.indexOf('</table>', html.indexOf(title)));
+    expect(outsideTable).toContain('4 3/8% Treasury Gilt 2030');
+    expect(outsideTable).toContain('1 5/8% Treasury Gilt 2028');
   });
-  it('the rule is the diff\'s, for both views: each gilt outside the rungs is one more line to sell', () => {
+  it('the rule is the diff\'s, for both views: each gilt outside the rungs is one more line the plan does not use', () => {
     const doc = p.planDocument;
     const target = targetHoldings(doc, { today: noon(TODAY) });
     const without = diffHoldings(p.holdings.lines.filter((l) => !SAM_CONV.some((c) => c.name === l.name)), target, { today: noon(TODAY), needs: yearNeedsOf(doc) });
     const withThem = diffHoldings(p.holdings.lines, target, { today: noon(TODAY), needs: yearNeedsOf(doc) });
-    expect(withThem.sell.length).toBe(without.sell.length + SAM_CONV.length);
+    expect(withThem.outside.length).toBe(without.outside.length + SAM_CONV.length);
     expect(withThem.totals.cashHeld).toBe(without.totals.cashHeld);
   });
 });

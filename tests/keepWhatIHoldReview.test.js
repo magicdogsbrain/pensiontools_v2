@@ -161,7 +161,8 @@ describe('the words', () => {
     expect(g.firstGap).toBe(null);
     expect(g.toBuy).toBeGreaterThan(0);
     const w = words(g);
-    expect(w.some((t) => t.startsWith('Every year to 2028/29 is covered once the plan’s buys are made: £'))).toBe(true);
+    // retaken in 7.12.0: the rows are the cash years alone, so the line says what they still need and where the gilts are
+    expect(w.some((t) => t.startsWith('The cash years, 2027/28 to 2028/29, still need £') && t.endsWith('of cash. The gilts for the later years are in the Buy list.'))).toBe(true);
     expect(w).not.toContain('Every year to 2028/29 is covered by what you hold.');
     // 7.12.0: living on it, the same record has no such reading: "Your plan's mix" (held.js) reads what is held
     const q = withLines(sam(), [conv(2027, 36000, { as: 'rung', taxYears: [2027] }), cash(1000)]);
@@ -186,18 +187,20 @@ describe('the words', () => {
 
 describe('the move with keeps', () => {
   const lines = [conv(2027, 20000, { as: 'rung', taxYears: [2027] }), conv(2028, 20000, { as: 'rung', taxYears: [2028] }), conv(2029, 20000, { as: 'rung', taxYears: [2029] }), cash(40000)];
-  it('the cash to hold leaves out the cash years kept lines stand in for, and says them as held another way', () => {
+  // retaken in 7.12.0: each kept gilt pays only part of its cash year, so the year stays in the table beside it, with what it
+  // still needs; the cash to hold is what those parts cost, set against the £40,000 held
+  it('the cash to hold keeps the part of each cash year the kept lines do not pay, and says the year is beside them', () => {
     const p = withLines(sam(), lines);
     const m = moveOf([{ plan: p }], p.id, { today: BEFORE });
-    expect(m.cash.rows.map((r) => r.id)).toEqual(['cashYearCovered', 'cashYearCovered']);
-    expect(m.cash.target).toBe('£0');
-    expect(m.cash.short).toBe(null);
-    expect(m.cash.spare).toBe('£40,000');
-    // the pension's cash is still listed as held, all of it spare
-    expect(m.hold.find((h) => h.key === 'cash:SIPP')).toMatchObject({ spare: '£40,000' });
+    expect(m.cash.rows.map((r) => r.id)).toEqual(['cashYearBeside', 'cashYearBeside']);
+    expect(m.cash.rows[0].gap).toMatch(/^£[\d,]+$/);
     const mi = moveInputs(p, { now: noon(BEFORE) });
+    const left = mi.diff.cashLeft.value;
+    expect(left).toBeGreaterThan(0);
+    expect(m.cash.target).toBe('£' + left.toLocaleString('en-GB'));
+    expect(m.cash.held).toBe('£40,000');
     const html = transitionHtml({ doc: p.planDocument, target: mi.target, diff: mi.diff, seq: null, prog: mi.prog, holdings: p.holdings });
-    expect(html).toContain('Cash year 2027/28: held another way, by what you keep');
+    expect(html).toContain('Cash year 2027/28, beside what you keep for it');
   });
   it('keeping lines never lowers the share of the plan\'s mix held', () => {
     const before = withLines(sam(), lines.map(({ keep, ...l }) => l));

@@ -42,10 +42,11 @@ describe('What you hold — the holdings record card', () => {
     expect(html).not.toContain('actually hold');
     expect(html).toContain('Nothing recorded yet');
   });
-  it('empty and no offer: says so, and the transition warns that everything reads as "to buy"', () => {
+  // retaken in 7.12.0: a ladder says once, under Paying for it, that nothing is listed and nothing needs to be
+  it('empty and no offer: says so, and the transition says nothing is listed and nothing needs to be', () => {
     const { html } = page(ladderDoc, emptyRecord);
     expect(html).toContain('Nothing recorded yet — paste from your platform or add lines.');
-    expect(html).toContain('everything below reads as "to buy"');
+    expect(html).toContain('You have not listed what your pension holds, and you do not need to.');
     expect(html).not.toContain('My funds');
     expect(html).not.toContain('openMyFunds');
     expect(html).not.toContain('pasteHoldingsFromTransition');
@@ -113,12 +114,14 @@ describe('status — complete, run-up, rotation', () => {
     const rec = { ...emptyRecord, lines: [line({ ticker: 'TR29', units: 36000, value: 39690 }), line({ ticker: 'VWRP', value: 150000 })] };
     const { html, diff } = page(ladderDoc, rec, { stage: { key: 'bridge', startLabel: '2027/28', firstTaxYear: 2027, startMonth: '2027-04' } });
     expect(diff.complete).toBe(false);
-    expect(html).toContain('% of the target is held');
+    // retaken in 7.12.0: the one status sentence; what the plan does not use is under Paying for it, never a Sell list
+    expect(html).toMatch(/1 of 3 gilts bought\. \d+% of your plan’s mix is held\./);
     expect(html).not.toMatch(/You have stopped work|set aside|before the plan/);   // 7.3.3: the plan's to-do (the next-step banner) says it
     expect(html).toContain('>Buy<');
-    expect(html).toContain('>Sell<');
-    expect(html).toContain('Totals: buy');
-    expect(html).toContain('When — a schedule to the start');
+    expect(html).not.toContain('>Sell<');
+    expect(html).toContain('Paying for it');
+    expect(html).toContain('Totals: buy £');
+    expect(html).toContain('>When<');
     expect(html).toContain('toggleTransitionDone(');
   });
   it('the rotation line appears only when the strategy has a rotation, in the complete state too', () => {
@@ -216,7 +219,7 @@ describe('the schedule\'s words fit the plan (the walk: a saver\'s pot plan read
     expect(html).not.toMatch(/the ladder('s| has)/);
     expect(html).not.toContain('Cash years first, near rungs before far ones');
     expect(html).toContain('Bonds and cash first, then shares');
-    expect(html).toContain('the plan\'s first tax year is 2027/28');
+    expect(html).toContain('The plan’s first tax year is 2027/28.');   // retaken in 7.12.0: said as a sentence after the status
   });
   it('before a saver\'s move window opens: when it opens, and nothing to do before then', () => {
     const rec = { ...emptyRecord, lines: [line({ ticker: 'VWRP', value: 400000, kind: 'fund' })] };
@@ -226,8 +229,8 @@ describe('the schedule\'s words fit the plan (the walk: a saver\'s pot plan read
     const diff = diffHoldings(rec.lines, target);
     const seq = sequence(diff, { today, startYear: 2037, startMonth: '2037-08', opensAt: '2034-08', contributionsMonthly: 0 });
     const html = transitionHtml({ stage, doc: potDoc, target, diff, seq, prog: progress(diff, {}), done: {}, holdings: rec, startLabel: '2037/38' });
-    expect(html).toContain('your move window opens in August 2034; nothing to do before then');
-    expect(html).not.toContain('the buying spread over the next');
+    expect(html).toContain('Your move window opens in August 2034; nothing to do before then.');   // retaken in 7.12.0: a sentence
+    expect(html).not.toContain('The buying is spread over the next');
     expect(html).not.toContain('Nov 2026');
   });
 });

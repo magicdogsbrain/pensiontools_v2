@@ -62,17 +62,17 @@ function alexMovingLean() {
   return plan(raw);
 }
 
-describe('(1) in a move, a gilt outside the rungs funds the ladder, as 7.10.0 had it', () => {
-  it('£50 of cash and three gilts maturing in the cash years: the gilts are for sale, no cash is freed by them', () => {
+// retaken in 7.12.0: a line outside the ladder is money the plan does not use — the buys take what they need of it, never a sale each
+describe('(1) in a move, a gilt outside the rungs is money the plan does not use', () => {
+  it('£50 of cash and three gilts maturing in the cash years: the gilts are outside the plan, no cash is freed by them', () => {
     const p = alexMovingLean();
     const m = moveInputs(p, { now: noon(TODAY) });
     const t = m.diff.totals;
     expect(t.cashHeld).toBe(50);
     expect(m.diff).not.toHaveProperty('cashGilts');
     expect(t).not.toHaveProperty('cashFreed');
-    expect(m.diff.sell.filter((x) => x.kind === 'gilt' && !x.taxYears).map((x) => [x.label, x.why])).toEqual(
-      ['4 1/8% Treasury Gilt 2027', '4¼% Treasury Gilt 2027', '1 5/8% Treasury Gilt 2028'].map((l) => [l, 'not in the plan — proceeds fund the ladder']));
-    expect(t.shortfall).toBe(Math.max(0, t.buyCost - t.sellValue));
+    expect(m.diff.outside.filter((x) => x.kind === 'gilt').map((x) => x.label)).toEqual(['4 1/8% Treasury Gilt 2027', '4¼% Treasury Gilt 2027', '1 5/8% Treasury Gilt 2028']);
+    expect(t.shortfall).toBe(m.diff.funding.short);
     const seq = sequence(m.diff, { today: noon(TODAY), startYear: 2027 });
     expect(seq.totals).not.toHaveProperty('cashFreed');
     const V = moveOf([{ plan: p }], p.id, { today: TODAY });
@@ -86,7 +86,7 @@ describe('(1) in a move, a gilt outside the rungs funds the ladder, as 7.10.0 ha
     const t = m.diff.totals;
     const V = moveOf([{ plan: p }], p.id, { today: TODAY });
     const pounds = (v) => '£' + Math.round(v).toLocaleString('en-GB');
-    expect(V.cash).toEqual({ rows: expect.any(Array), target: pounds(t.cashTarget), held: pounds(t.cashHeld), spare: t.cashHeld >= t.cashTarget ? pounds(t.cashHeld - t.cashTarget) : null, short: t.cashHeld < t.cashTarget ? pounds(t.cashTarget - t.cashHeld) : null });
+    expect(V.cash).toMatchObject({ rows: expect.any(Array), target: pounds(t.cashTarget), held: pounds(t.cashHeld), spare: t.cashHeld >= t.cashTarget ? pounds(t.cashHeld - t.cashTarget) : null, short: t.cashHeld < t.cashTarget ? pounds(t.cashTarget - t.cashHeld) : null });
     const html = transitionHtml({ doc: p.planDocument, target: m.target, diff: m.diff, seq: null, prog: m.prog, holdings: p.holdings });
     expect(html).not.toContain('mature in those years');
     expect(html).not.toContain('before those gilts pay');
@@ -127,11 +127,13 @@ describe('(3) in a move, What is covered never counts a line the move sells', ()
   };
 
   // Moved on purpose (7.11.1, the gilt-year guess removed): a gilt maturing before the first cash year is sold, as 7.10.0 had it
-  it('the gilt maturing before the first cash year is the move\'s to sell, as 7.10.0 had it — never counted toward a year', () => {
+  // retaken in 7.12.0: outside the plan, with the day it matures as a fact — never a year it is for
+  it('the gilt maturing before the first cash year is outside the plan — never counted toward a year', () => {
     const p = samWith();
     const m = moveInputs(p, { now: noon(TODAY) });
     expect(m.target.running).toBe(false);
-    expect(m.diff.sell.find((x) => x.label === '4 1/8% Treasury Gilt 2027')).toMatchObject({ why: 'not in the plan — proceeds fund the ladder' });
+    expect(m.diff.outside.find((x) => x.label === '4 1/8% Treasury Gilt 2027')).toMatchObject({ kind: 'gilt', matures: '2027-01-29' });
+    expect(m.diff.outside.find((x) => x.label === '4 1/8% Treasury Gilt 2027')).not.toHaveProperty('cashYear');
     // 7.12.0: the reading of what is kept has no list of gilts at all now
     expect(gapsOf(p, { today: TODAY })).not.toHaveProperty('gilts');
   });
@@ -141,7 +143,7 @@ describe('(3) in a move, What is covered never counts a line the move sells', ()
     const V = moveOf([{ plan: p }], p.id, { today: TODAY });
     expect(V.phase).toBe('moving');
     expect(V.mode).toBe('move');
-    const sold = new Set(V.sell.map((x) => x.label));
+    const sold = new Set(V.outside.map((x) => x.label));   // retaken in 7.12.0: what the plan does not use
     expect(sold.has('4 3/8% Treasury Gilt 2030')).toBe(true);
     // 7.12.0: the reading of what is kept carries nothing of what is held beside it
     const g = gapsOf(p, { today: TODAY });
@@ -303,6 +305,8 @@ describe('(11) the full view says it plainly', () => {
   it('living on the plan, an ISA line is outside the pension — never "left alone" by a move — in both views', () => {
     const raw = alexRaw({ expected: [] });
     raw.holdings.lines.push(L({ wrapper: 'ISA', ticker: 'VWRP', name: 'Vanguard FTSE All-World (Acc)', units: 100, value: 13000, kind: 'fund', subClass: 'worldGrowth' }));
+    // retaken in 7.12.0: an ISA is outside the plan's money when the plan holds it aside (otherwise the plan counts it)
+    raw.planDocument.pots = { ...raw.planDocument.pots, isaPolicy: 'hold' };
     const p = plan(raw);
     const { root } = draw(stateWith([{ plan: p }], '#/plan/' + p.id + '/move', { today: TODAY }));
     // 7.12.0: on "Your plan's mix" itself

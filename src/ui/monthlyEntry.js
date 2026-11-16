@@ -10,7 +10,7 @@
  * Inline handlers are plain calls (the no-eval grammar in src/ui/inlineHandlers.js). The shell installs the window
  * functions through installMonthlyEntryHandlers.
  */
-import { platformBoxes, splitFromPlatform, prefillFromHistory, prefillNote, enteredBlock } from '../services/MonthlyEntry.js';
+import { platformBoxes, splitFromPlatform, prefillFromHistory, prefillNote, enteredBlock, isaPrefillOf } from '../services/MonthlyEntry.js';
 import { monthToRecord } from '../services/YearPlan.js';
 
 export const ENTRY_MODE_KEY = 'pt.entryMode';
@@ -124,6 +124,8 @@ export function prefillMonthlyEntry(history, opts) {
   const p = prefillFromHistory(history, { ...lastOpts, month: entryMonthOf(opts) });
   lastPrefillFrom = p ? p.from : null;
   const note = el('entryPrefillNote'); if (note) note.textContent = prefillNote(p);
+  // the ISA as last typed, less that month's ISA draw (7.12.0); blank when no record carries one
+  setVal('entryIsa', isaPrefillOf(history, entryMonthOf(opts)));
   if (!p) { for (const id of ['entryPlatTotal', 'entryPlatCash', 'entryPlatBonds', 'entryPlatDiversifiers', 'entryEquity', 'entryBond', 'entryCash']) setVal(id, ''); return null; }
   setVal('entryPlatTotal', p.total); setVal('entryPlatCash', p.cash); setVal('entryPlatBonds', lastOpts.contract ? '' : p.bonds); setVal('entryPlatDiversifiers', p.diversifiers || '');
   const s = splitFromPlatform(p, lastOpts);

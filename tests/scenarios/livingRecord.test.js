@@ -7,6 +7,7 @@
  *   Step 2  the month the plan first pays, and the year's plan: no month before it is "not recorded".
  *   Step 3  one month to record: the home's button, Month by month and the full view's box name the same month.
  *   Step 4  what reaches your bank: the tax-year set-up and the month work it out with one sum.
+ *   Step 5  the pot on one basis, and the ISA typed each month kept.
  */
 import { describe, it, expect } from 'vitest';
 import { planPage } from '../../src/answers/plan/read.js';
@@ -14,9 +15,11 @@ import { homeOf } from '../../src/answers/plan/home.js';
 import { whereAmIFor } from '../../src/services/PlanReading.js';
 import { incomeThisYearText } from '../../src/ui/components/PlanDocumentView.js';
 import { takenAgainstPlan, firstPaymentMonth, monthToRecord } from '../../src/services/YearPlan.js';
-import { monthOf, readMonth } from '../../src/answers/plan/month.js';
+import { monthOf, readMonth, monthRecordPatch } from '../../src/answers/plan/month.js';
 import { calculateMonthlyBreakdown, statePensionFact, statePensionLine, bandsAssumptionText } from '../../src/services/TaxYearSetUp.js';
 import { MONTH } from '../../src/v7/copy/month.js';
+import { PLAN } from '../../src/v7/copy/plan.js';
+import { decisionToHistory } from '../../src/models/Decision.js';
 import { corpus, entryOf } from '../v7/plan/_plans.js';
 
 const C = corpus();
@@ -273,5 +276,59 @@ describe('Step 4: what reaches your bank, one sum', () => {
 
   it('the bands sentence says 40% too', () => {
     expect(bandsAssumptionText({ pa: 12570, brl: 50270, hrl: 125140 })).toBe('We assume a tax-free allowance of £12,570, then 20% tax on income up to £50,270, 40% up to £125,140 and 45% above.');
+  });
+});
+
+describe('Step 5: the pot on one basis, the ISA remembered', () => {
+  const lineText = (W, id) => { const l = W.lines.find((x) => x.id === id); return l ? (PLAN.lines[id] ? PLAN.lines[id] + ': ' : '') + l.sentence.text : null; };
+  const whereOf = (raw, today) => { const e = entryOf(raw, today); return { e, W: planPage([e], e.plan.id, 'where', { today }).steps.find((x) => x.id === 'where') }; };
+
+  it('Sam: pension recorded in September, ISA under What you hold from March, 4% entered — the pot in the band\'s prices first', () => {
+    const months = ['2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09'];
+    const sam = living(months.map((m) => (m === '2026-09' ? rec(m, { equity: 377700, bond: 150000, cash: 60000 }) : rec(m))), { id: 'LivingSam06', name: 'Sam' });
+    const { e, W } = whereOf(sam, '2026-10-02');
+    // worked by hand: as recorded 587,700 + 25,040 = 612,740; September is 5 months into 2026/27, prices 1.04^(5/12)
+    const recorded = 587700 + 25040;
+    const compared = Math.round(recorded / Math.pow(1.04, 5 / 12));
+    const L = (n) => '£' + n.toLocaleString('en-GB');
+    expect(lineText(W, 'where.pot')).toBe('Your pot: ' + L(compared) + ' at the prices of April 2026 (' + L(recorded) + ' as recorded).');
+    expect(lineText(W, 'where.potParts')).toBe('Pension £587,700, recorded September 2026. ISA £25,040, from What you hold, March 2026.');
+    // the figure Review and the full view compare is the same number
+    expect(whereAmIFor(e.plan, { now: noonOf('2026-10-02') }).pot.real).toBe(compared);
+  });
+
+  it('Kim: no holdings, the ISA typed on December\'s record — a pot reading, and January\'s ISA box opens on it', () => {
+    const kim = lockedOn('2026-11-16T10:00:00.000Z', { id: 'LivingKim07', name: 'Kim', taxYear: setUpFrom(11, 5, 2577),
+      records: [rec('2026-11', { sipp: 2577, stdSipp: 2577, monthlyNet: 2191 }), rec('2026-12', { sipp: 2577, stdSipp: 2577, monthlyNet: 2191, equity: 302500, bond: 150000, cash: 60000, isaBalance: 60000, isa: 0 })] });
+    kim.holdings = null;
+    const { e, W } = whereOf(kim, '2027-01-05');
+    const w = whereAmIFor(e.plan, { now: noonOf('2027-01-05') });
+    expect(w.pot.missing).toEqual([]);
+    expect(w.pot.actual).toBe(302500 + 150000 + 60000 + 60000);
+    expect(lineText(W, 'where.potNoIsa')).toBe(null);
+    const M = monthOf([e], e.plan.id, { today: '2027-01-05' });
+    expect(M.pots.fields.find((f) => f.path === 'mo.isa').shown).toBe('60000');
+  });
+
+  it('a record from before the ISA was kept, and no holdings: we say we have no figure for the ISA', () => {
+    const old = lockedOn('2026-11-16T10:00:00.000Z', { id: 'LivingKim08', name: 'Kim', taxYear: setUpFrom(11, 5, 2577), records: [rec('2026-11', { sipp: 2577, stdSipp: 2577 })] });
+    old.holdings = null;
+    const { W } = whereOf(old, '2026-12-05');
+    expect(lineText(W, 'where.potNoIsa')).toBe('Your plan counts your ISA too, and we have no figure for it. You can type it in the ISA box when you next record a month, or add it under What you hold.');
+    expect(lineText(W, 'where.pot')).toBe(null);
+  });
+
+  it('recording a month with the ISA box filled keeps it on the record', () => {
+    const kim = lockedOn('2026-11-16T10:00:00.000Z', { id: 'LivingKim09', name: 'Kim', taxYear: setUpFrom(11, 5, 2577), records: [rec('2026-11', { sipp: 2577, stdSipp: 2577 })] });
+    const e = entryOf(kim, '2026-12-05');
+    const P = monthRecordPatch(e.plan, { 'mo.month': '2026-12', 'mo.total': '512500', 'mo.cash': '60000', 'mo.bonds': '150000', 'mo.isa': '60000' }, { today: '2026-12-05', nowIso: '2026-12-05T10:00:00.000Z' });
+    expect(P.ok).toBe(true);
+    const dec = P.patch['decisionTool.history'].find((h) => h.date === '2026-12');
+    expect(dec.isaBalance).toBe(60000);
+  });
+  it('the record keeps the ISA typed, and leaves it out when the box was blank', () => {
+    const base = { date: '2026-12', taxYear: '26/27', equity: 1, bond: 1, cash: 1, sippDraw: 0, isaDraw: 0, other: 0, statePension: 0, monthlyTax: 0, totalMonthlyNet: 0 };
+    expect(decisionToHistory({ ...base, isaBalanceTyped: 60000.4 }).isaBalance).toBe(60000);
+    expect('isaBalance' in decisionToHistory(base)).toBe(false);
   });
 });

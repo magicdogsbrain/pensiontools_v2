@@ -769,6 +769,8 @@ export function calcDecision(dateStr, equity, bond, cash, deps) {
         bond,
         cash,
         isa: 0, // Legacy field - ISA balance input not used
+        // the ISA balance as typed this month (7.12.0), for the record; absent when the box was blank
+        ...(deps.isaTyped != null && Number.isFinite(+deps.isaTyped) ? { isaBalanceTyped: +deps.isaTyped } : {}),
 
         // Glidepath minimums (match expected field names)
         adjEquityMin: adjEquity,

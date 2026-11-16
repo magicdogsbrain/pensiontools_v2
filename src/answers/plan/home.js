@@ -66,7 +66,7 @@ export const WHERE_LINES = 3;
  * The lines the home shows under the result (which says what was taken against what the plan said, 7.12.0), in this order:
  * the year's plan, the pot and its middle line.
  */
-const WHERE_HEADLINE = ['where.startLater', 'where.yearPlan', 'where.pot', 'where.potMid', 'where.ladderMonthly'];
+const WHERE_HEADLINE = ['where.startLater', 'where.yearPlan', 'where.pot', 'where.potNoIsa', 'where.potMid', 'where.ladderMonthly'];
 /** The tools a home lists, by stage, in order (each a step of the plan with its one-line state). */
 const TOOLS = {
   saving: ['checkin', 'saving', 'budget', 'hold', 'household'],

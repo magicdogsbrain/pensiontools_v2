@@ -479,7 +479,10 @@ function potLikeTheBand(doc, { today, history, potsToday, holdings }) {
   const missing = [], extra = [];
   let source = null, pension = null, asOf = null, rec = null;
   const sippMonth = sipp && sipp.value > 0 ? monthOf(sipp.asOf) : null;
-  const holdingsWhole = diversifiers && sipp && sipp.value > 0 && (!found || (sippMonth != null && monthsBetween(monthOf(found.rec.date), sippMonth) >= 0));
+  // What you hold wins whenever it is newer than the record (7.12.0: for every plan, not only one holding diversifiers, which
+  // the record cannot carry — that plan takes it from the record's own month on, as before)
+  const since = found && sippMonth != null ? monthsBetween(monthOf(found.rec.date), sippMonth) : null;
+  const holdingsWhole = !!(sipp && sipp.value > 0) && (!found || (since != null && (diversifiers ? since >= 0 : since > 0)));
   if (found && !holdingsWhole) {
     source = 'record'; rec = found.rec; asOf = String(rec.date).slice(0, 7);
     pension = (+rec.equity || 0) + (+rec.bond || 0) + (+rec.cash || 0);
@@ -494,8 +497,16 @@ function potLikeTheBand(doc, { today, history, potsToday, holdings }) {
   if (source == null) return { source: null, asOf: null, at, pension: null, parts: [], missing: ['pension'], measure };
   const parts = [{ key: 'pension', value: pension, source, asOf }, ...extra];
   if (measure.isa) {
+    // the ISA (7.12.0): What you hold when it is as new as the record (its month or later); else the ISA typed on the latest
+    // record that carries one; else What you hold whatever its date; else missing — nothing must be pressed for a reading
     const isa = wrapperFigure(holdings, 'ISA');
-    if (isa) parts.push({ key: 'isa', value: isa.value, source: 'holdings', asOf: isa.asOf });
+    const recs = Array.isArray(history) ? history.filter((h) => h && h.date && numOrNull(h.isaBalance) != null) : [];
+    const typed = recs.length ? recs.reduce((a, b) => (String(b.date) > String(a.date) ? b : a)) : null;
+    const typedAt = typed ? String(typed.date).slice(0, 7) : null;
+    const isaNewer = isa && (!typedAt || (monthOf(isa.asOf) != null && monthsBetween(monthOf(typedAt), monthOf(isa.asOf)) >= 0));
+    if (isa && isaNewer) parts.push({ key: 'isa', value: isa.value, source: 'holdings', asOf: isa.asOf });
+    else if (typed) parts.push({ key: 'isa', value: +typed.isaBalance, source: 'record', asOf: typedAt });
+    else if (isa) parts.push({ key: 'isa', value: isa.value, source: 'holdings', asOf: isa.asOf });
     else missing.push('isa');
   }
   if (measure.gia) {

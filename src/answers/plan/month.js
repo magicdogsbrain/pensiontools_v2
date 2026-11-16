@@ -20,7 +20,7 @@
 import { monthInputsOf, recordMonths, decideMonth } from '../../services/MonthDecision.js';
 import { getTaxYearFromDate } from '../../services/legacyDecision.js';
 import { fillOffer, addMonth, monthsWords, latestRecordedMonth, earliestFillMonth, fillWords, FILL_HELP, setUpWords, filledInLabel, recalcWords, yearWords, aprilOf } from '../../services/MonthFill.js';
-import { platformBoxes, splitFromPlatform, prefillFromHistory, enteredBlock } from '../../services/MonthlyEntry.js';
+import { platformBoxes, splitFromPlatform, prefillFromHistory, enteredBlock, isaPrefillOf } from '../../services/MonthlyEntry.js';
 import { wizardDataFrom, isaCalcFor, topUpStart, settleTopUp, breakdownFor, setUpConfigOf, suggestedIncomeFor, validateIsaInput, bandsAssumptionText, statePensionFact, partYearReason } from '../../services/TaxYearSetUp.js';
 import { statePensionInfoFor } from '../../utils/StatePensionUtils.js';
 import { defaultTaxYearConfig } from '../../models/TaxYear.js';
@@ -168,7 +168,8 @@ function potsOf(I, plan, ym, typed) {
   const lastGia = [...I.history].reverse().find((h) => h && h.giaBasisAfter != null) || null;
   const pre = {
     'mo.total': prefill ? prefill.total : null, 'mo.cash': prefill ? prefill.cash : null, 'mo.bonds': prefill && !contract ? prefill.bonds : null, 'mo.diversifiers': prefill && prefill.diversifiers ? prefill.diversifiers : null,
-    'mo.isa': null,
+    // the ISA as last typed, less that month's ISA draw (7.12.0, MonthlyEntry.isaPrefillOf); blank when no record carries one
+    'mo.isa': isaPrefillOf(I.history, ym),
     'mo.gia': lastGia && lastGia.giaBalanceAfter > 0 ? Math.round(lastGia.giaBalanceAfter) : (!lastGia && I.settings.taxableStart > 0 ? Math.round(I.settings.taxableStart) : null),
     'mo.giaBasis': lastGia ? Math.round(lastGia.giaBasisAfter) : null
   };
@@ -195,7 +196,7 @@ function potsOf(I, plan, ym, typed) {
   const gia = hasGia ? val('mo.gia') : null;
   const basisRaw = hasGia ? shown('mo.giaBasis') : '';
   const basis = hasGia && !blank(basisRaw) ? val('mo.giaBasis') : null;
-  const pots = split ? { equity: split.equity, bond: split.bond, cash: split.cash, isa: isa || 0, diversifier: split.diversifier || 0, gia: gia || 0, giaBasis: hasGia && !blank(basisRaw) ? basis : null } : null;
+  const pots = split ? { equity: split.equity, bond: split.bond, cash: split.cash, isa: isa || 0, isaTyped: isa, diversifier: split.diversifier || 0, gia: gia || 0, giaBasis: hasGia && !blank(basisRaw) ? basis : null } : null;
   const fields = [...boxes.map((b) => b.path), 'mo.isa', ...(hasGia ? ['mo.gia', 'mo.giaBasis'] : [])].map((path) => ({ path, type: 'money', applies: true, shown: shown(path), saved: null, error: errors[path] || null }));
   return { mode, contract, hasDiversifiers, hasGia, prefill, prefillFrom: prefill ? monthWords(prefill.from) : null, fields, errors, problem, pots, entered, total: split ? split.equity + split.bond + split.cash + (split.diversifier || 0) : null };
 }

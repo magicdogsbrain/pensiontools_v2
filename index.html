@@ -4720,7 +4720,6 @@
 
         // Monthly Entry captures THIS MONTH's values — never the plan's starting minimums: last month's record is pre-filled, to change (6.23).
         configureMonthlyEntry({ hasDiversifiers: decisionSettings.diversifierStart > 0 || !!decisionSettings.diversifiers }); openMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
-        document.getElementById('entryIsa').value = '';
         prefillGiaBasis();
         monthEntry.refreshOffer();   // the offer to fill in the missed months, against the records just read (3 Nov 2026)
 
@@ -5628,7 +5627,7 @@
         spInfo: await getStatePensionForTaxYear(getTaxYearFromDate(dateStr)), potsYear: await decisionPotsYear(),   // the plan year the pots' floors start from (a plan locked after its year 0, or moved)
         // the ISA (a depleting pot drawn by band management when > 0), the diversifiers sleeve (drawn before depressed growth in a downturn) and the
         // taxable account with its cost (drawn before the ISA, net of CGT; the post-draw basis carried into the record), from the entry form
-        pots: { isa: isaNow, diversifier: parseFloat(document.getElementById('entryDiversifier')?.value) || 0, gia: giaNow, giaBasis: giaBasisRaw === '' || giaBasisRaw == null ? null : parseFloat(giaBasisRaw) }
+        pots: { isa: isaNow, isaTyped: (document.getElementById('entryIsa')?.value ?? '') === '' ? null : isaNow, diversifier: parseFloat(document.getElementById('entryDiversifier')?.value) || 0, gia: giaNow, giaBasis: giaBasisRaw === '' || giaBasisRaw == null ? null : parseFloat(giaBasisRaw) }
       }));
       // Strategy overlay: a contract strategy pays part (or all) of the month from a matured rung /
       // cash bucket, not from selling pots. The tax and the total are unchanged (it is still a SIPP
@@ -10026,7 +10025,6 @@
 
         // Monthly Entry captures THIS MONTH's values — last month's record pre-filled, never the plan's starting minimums (6.23).
         configureMonthlyEntry({ hasDiversifiers: s.diversifierStart > 0 || !!s.diversifiers }); openMonthlyEntry(await getHistoryAsync({ limit: 1000 }).catch(() => []));
-        document.getElementById('entryIsa').value = '';
         prefillGiaBasis();
         monthEntry.refreshOffer();   // the offer to fill in the missed months, against the records just read (3 Nov 2026)
 

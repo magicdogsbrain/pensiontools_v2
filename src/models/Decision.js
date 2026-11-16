@@ -161,6 +161,9 @@ export function decisionToHistory(decision) {
     sipp: decision.sippDraw,
     stdSipp: decision.stdSipp || decision.sippDraw, // Standard SIPP before protection, for tax boost
     isa: decision.isaDraw,
+    // The ISA balance typed that month (7.12.0), whole pounds: read as the pot's ISA part when nothing newer says it, and the
+    // next month's ISA box opens on it. Absent when the box was blank, and on every record made before.
+    ...(decision.isaBalanceTyped != null && Number.isFinite(+decision.isaBalanceTyped) ? { isaBalance: Math.round(+decision.isaBalanceTyped) } : {}),
     other: decision.other,
     state: decision.statePension,
 

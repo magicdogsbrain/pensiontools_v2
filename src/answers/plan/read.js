@@ -347,6 +347,16 @@ function monthStep(C) {
   return { done: recorded, result, figures, lines, buttons, notes: [], recorded, setUp, gap, toRecord };
 }
 
+/**
+ * The month whose prices the plan's band is in (7.12.0): April of its first tax year; or, for a document locked in a later
+ * plan year (its pots `asOfPlanYear` > 0), the month it was locked.
+ */
+function pricesMonthOf(doc) {
+  const later = doc && doc.pots && +doc.pots.asOfPlanYear > 0;
+  if (later && doc.lockedAt) return monthWords(String(doc.lockedAt).slice(0, 7));
+  return 'April ' + (+(doc && doc.timing && doc.timing.firstTaxYear) || '');
+}
+
 /** Where you are (2.3 `where`): whereAmI on the plan document, never the countdown. */
 function whereStep(C) {
   const { plan, now, ss } = C;
@@ -367,7 +377,12 @@ function whereStep(C) {
     if (s.pathMissing || s.actual == null || s.expected == null) result = sentence('where.saverNone', ['No pot recorded against the plan’s path yet'], figures);
     else {
       figures.actual = r0(s.actual); figures.expected = r0(s.expected);
-      result = sentence('where.saver', [money('actual'), ' on ' + monthWords(s.at), '; the plan’s middle line for then is ', money('expected')], figures);
+      // one basis (7.12.0): the figure the path is in first, as recorded in brackets, when prices have moved
+      const moved = s.compared != null && s.prices && Number.isFinite(+s.prices.factor) && Math.abs(+s.prices.factor - 1) >= 0.0005 && s.prices.start;
+      if (moved) {
+        figures.compared = r0(s.compared);
+        result = sentence('where.saver', [money('compared'), ' at the prices of ' + monthWords(s.prices.start) + ' (', money('actual'), ' as recorded in ' + monthWords(s.at) + '); the plan’s middle line for then is ', money('expected')], figures);
+      } else result = sentence('where.saver', [money('actual'), ' on ' + monthWords(s.at), '; the plan’s middle line for then is ', money('expected')], figures);
       lines.push(line('where.saverPot', [money('actual')], figures, sourceOf(s.actualSource === 'holdings' ? 'hold' : 'record', s.recordedAt || s.at, now)));
       lines.push(line('where.saverLine', [money('expected')], figures, sourceOf('locked', lockedAt, now)));
     }
@@ -400,10 +415,23 @@ function whereStep(C) {
     if (older) lines.push(line('where.startLater', ['Your plan is set to start in April ' + C.startLater.start + ', so these months are not read against it yet' + (C.readonly ? '' : '. You can change the start on About you and when')], figures, sourceOf('locked', lockedAt, now), { start: 'April ' + C.startLater.start }));
     if (inc.recorded > 0) lines.push(line('where.taken', [money('drawn')], figures, sourceOf('record', null, now), { year: w.taxYear }));
     if (w.step && w.step.amount != null) { figures.stepNow = r0(w.step.amount); lines.push(line('where.step', [money('stepNow'), ' a year before tax'], figures, sourceOf('locked', lockedAt, now), { n: String(w.step.index), of: String(w.step.of) })); }
-    if (w.pot && w.pot.actual != null) {
-      figures.pot = r0(w.pot.actual);
-      lines.push(line('where.pot', [money('pot')], figures, sourceOf(w.pot.source === 'holdings' ? 'hold' : 'record', w.pot.asOf, now)));
-      if (w.pot.p50 != null && !older) { figures.potMid = r0(w.pot.p50); lines.push(line('where.potMid', [money('potMid')], figures, sourceOf('locked', lockedAt, now))); }
+    // the pot (7.12.0): ONE basis, the one the band is in (whereAmI's `real`, as Review and the full view say it), with the
+    // figure as recorded in brackets when prices have moved; its parts and their dates when they are more than a month apart;
+    // and, when the band counts the ISA and no figure for it exists anywhere, that — never a pot set against the line
+    const P = w.pot;
+    if (P && P.real != null && P.actual != null) {
+      figures.pot = r0(P.real); figures.potActual = r0(P.actual);
+      const moved = P.prices && Number.isFinite(+P.prices.factor) && Math.abs(+P.prices.factor - 1) >= 0.0005;
+      lines.push(line('where.pot', moved ? [money('pot'), ' at the prices of ' + pricesMonthOf(plan.planDocument) + ' (', money('potActual'), ' as recorded).'] : [money('pot'), '.'], figures, sourceOf(P.source === 'holdings' ? 'hold' : 'record', P.asOf, now)));
+      if (P.p50 != null && !older) { figures.potMid = r0(P.p50); lines.push(line('where.potMid', [money('potMid'), '.'], figures, sourceOf('locked', lockedAt, now))); }
+      const parts = (Array.isArray(P.parts) ? P.parts : []).filter((x) => x && x.asOf && (x.key === 'pension' || x.key === 'isa'));
+      const ms = parts.map((x) => ym(x.asOf)).filter(Boolean);
+      if (parts.length > 1 && ms.length === parts.length && Math.abs(monthsBetween(ms[0], ms[1])) > 1) {
+        const words = parts.map((x, i) => { figures['potPart' + i] = r0(x.value); return [(x.key === 'isa' ? 'ISA ' : 'Pension '), money('potPart' + i), ', ' + (x.source === 'holdings' ? 'from What you hold, ' + monthWords(x.asOf) : 'recorded ' + monthWords(x.asOf)) + '.']; });
+        lines.push(line('where.potParts', words.reduce((a, b, i) => a.concat(i ? [' '] : [], b), []), figures, sourceOf('record', null, now)));
+      }
+    } else if (P && Array.isArray(P.missing) && P.missing.includes('isa') && !P.missing.includes('pension')) {
+      lines.push(line('where.potNoIsa', ['Your plan counts your ISA too, and we have no figure for it. You can type it in the ISA box when you next record a month, or add it under What you hold.'], figures, sourceOf('record', null, now)));
     }
   }
   // the guardrail reading (7.9.0; services/PlanDocument.js guardrailOf): this year's draw as a share of what the pots hold,

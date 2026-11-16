@@ -360,7 +360,7 @@ describe('the words in src/v7/copy/', () => {
     expect(HOUSEHOLD.split.madeOfStops).toBe('{big}’s pension pays {stops} a year less than its plan is written to.');
     expect(HOUSEHOLD.split.fast).toMatch(/^Draw \{small\}’s pension faster: saves another \{more\} a year in tax at first, \{until\} by the time \{small\} is \{untilAge\}; \{small\}’s pension gone at about \{age\}\.$/);
     expect(HOUSEHOLD.split.fastUntil).toEqual({ more: 'and {amount} more', less: 'but {amount} less', same: 'and the same' });
-    expect(HOUSEHOLD.fields['limit.kind'].options).toEqual({ none: 'Keep it until the State Pension starts (the usual)', fast: 'Draw it faster: no limit', untilAge: 'Keep it until an age', keepAtLeast: 'Keep at least a sum in it' });
+    expect(HOUSEHOLD.fields['limit.kind'].options).toEqual({ none: 'Keep it until the State Pension starts', fast: 'Draw it faster: no limit', untilAge: 'Keep it until an age', keepAtLeast: 'Keep at least a sum in it' });
     expect(HOUSEHOLD.fields['need.amount']).toEqual({ label: 'What the couple needs after tax, a year', help: 'Leave it blank for what the two plans pay between them.' });
     expect(strings(HOUSEHOLD).some(([, s]) => /Each for their own|Drawing together$/.test(s))).toBe(false);
   });

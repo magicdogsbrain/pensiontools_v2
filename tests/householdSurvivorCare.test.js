@@ -106,9 +106,9 @@ describe('survivor: the survivor\'s plan through their own test, with the planne
   it('the words: futures out of 10, both inheritance cases, today\'s money, before tax', () => {
     const res = runSurvivorCheck({ survivorSettings: pnv, deceasedSettings: ladder('gilt-rotation'), deathYear: 10, now: NOW }, test);
     const html = survivorResultHtml({ res, survivorName: 'Alex', deceasedName: 'Sam', years: 10, spendPct: 70, strategyNames: { survivor: 'Pots & Valves', deceased: 'Gilt ladder + rotation' } });
-    expect(html).toMatch(/Alex's plan lasts in .* futures? out of 10|Alex's plan lasts in every future/);
-    expect(html).toMatch(/in a middling case, .* in a bad case \(the worst 1 in 10\), today's money/);
-    expect(html).toMatch(/a year before tax<\/strong> \(about £[\d,]+ after tax\), today's money/);
+    expect(html).toMatch(/Alex&#39;s plan lasts in .* futures? out of 10|Alex&#39;s plan lasts in every future/);
+    expect(html).toMatch(/From Sam’s plan: £[\d,]+ in a middling case, £[\d,]+ in a bad case/);
+    expect(html).toMatch(/What Alex would spend: £[\d,]+ a year after tax \(£[\d,]+ before tax\)/);
     expect(html).not.toMatch(/nominal|median remaining pots|% of 500 futures/);
   }, 120000);
 });

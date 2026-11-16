@@ -10,6 +10,7 @@
 import { Money } from './Money.jsx';
 import { Button, LinkButton } from './Button.jsx';
 import { PLAN } from '../copy/plan.js';
+import { factOf } from './facts.js';
 
 export const fill = (text, slots = {}) => String(text == null ? '' : text).replace(/\{(\w+)\}/g, (m, k) => (k in slots && slots[k] != null ? String(slots[k]) : m));
 
@@ -46,7 +47,7 @@ export function PlanLine({ line, figures, hideSource = false }) {
   const after = PLAN.lineAfter[line.id] ? fill(PLAN.lineAfter[line.id], worded(line.slots)) : '';
   const hasParts = line.sentence && Array.isArray(line.sentence.parts) && line.sentence.parts.length > 0;
   return (
-    <li class="plan-line" data-line={line.id}>
+    <li class="plan-line" data-line={line.id} {...factOf(line.id)}>
       {label && <span class="plan-label">{label}{hasParts ? ': ' : ''}</span>}
       {hasParts && <PlanSentence s={line.sentence} figures={figures} class="plan-value" />}
       {after && line.slots && Object.values(line.slots).some((v) => v) ? <span>{after}</span> : null}

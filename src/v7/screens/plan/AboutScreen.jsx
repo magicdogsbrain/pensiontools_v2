@@ -11,6 +11,7 @@ import { KeepTestLine } from './KeepTest.jsx';
 import { href } from '../../router/routes.js';
 import { PLAN } from '../../copy/plan.js';
 import { ABOUT } from '../../copy/about.js';
+import { factOf } from '../../components/facts.js';
 
 const w = PLAN.page;
 /** A button press keeps the focus where it is (the confirm's buttons: the page under them changes). */
@@ -32,7 +33,7 @@ function Derived({ about }) {
     <section class="plan-section about-derived" data-section="derived">
       <h3>{ABOUT.derivedTitle}</h3>
       <ul class="plan-lines">
-        {about.derived.map((d, i) => <li key={i} class="plan-line" data-line={'about.' + d.id}>{fill(ABOUT.derived[d.id] || '', d.slots)}</li>)}
+        {about.derived.map((d, i) => <li key={i} class="plan-line" data-line={'about.' + d.id} {...factOf('about.' + d.id)}>{fill(ABOUT.derived[d.id] || '', d.slots)}</li>)}
       </ul>
     </section>
   );
@@ -161,7 +162,7 @@ export function AboutScreen(state, dispatch) {
           <section class="headline plan-panel" data-region="plan-about" data-editable="0">
             <ul class="plan-lines">
               {saved.map((f) => (
-                <li class="plan-line" key={f.path} data-line={'about.saved.' + f.path}>
+                <li class="plan-line" key={f.path} data-line={'about.saved.' + f.path} {...factOf('about.saved.' + f.path)}>
                   <span class="plan-label">{(f.path === 'stopMonth' && field('stopped') && field('stopped').saved === 'yes' ? ABOUT.fields.stoppedMonth : ABOUT.fields[f.path]).label}: </span>
                   <span class="plan-value" data-saved-for={f.path}>{f.type === 'choice' ? fill((f.path === 'startWhen' ? startWords : ABOUT.fields[f.path]).options[f.saved] || f.saved, slots) : f.saved}</span>
                 </li>

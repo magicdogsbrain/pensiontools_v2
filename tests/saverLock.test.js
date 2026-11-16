@@ -215,7 +215,7 @@ describe('new locks (plan document version 3): the saving path on V7\'s saving-y
     expect(p.potNow).toBeNull();
     expect(p.path).toEqual([]);
     const d = buildPlanDocument({ settings: saver, now: NOW, savingPath: p });
-    expect(plain(planDocumentHtml(d))).toMatch(/locked without a pension pot on record/);
+    expect(plain(planDocumentHtml(d))).toMatch(/locked before it had a pension figure to draw a saving path from/);
   });
   it('nothing for someone already retired; the lock loads the engine on demand and falls back to the old path if it cannot', async () => {
     const retired = { ...saver, retired: true, retireAge: null, firstTaxYear: 2026 };

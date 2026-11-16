@@ -61,7 +61,7 @@ describe('the selectors', () => {
   it('planActionsView: the write, the problem, the toast and the open confirm for the route\'s plan only', () => {
     const entries = entriesAt(TODAY);
     let s = stateWith(entries, '#/plan/' + LUMPY.id + '/lock', { open: ['lockConfirm'] });
-    expect(planActionsView(s)).toEqual({ id: LUMPY.id, saving: null, problem: null, toast: null, confirm: 'lock' });
+    expect(planActionsView(s)).toEqual({ id: LUMPY.id, saving: null, problem: null, problemDetail: null, toast: null, confirm: 'lock' });   // 7.12.0: a refusal's detail (the lock's fit)
     s = reduce(s, { type: A.PLAN_LOCK, planId: LUMPY.id });
     expect(planActionsView(s)).toMatchObject({ saving: { planId: LUMPY.id, kind: 'lock' }, confirm: null });
     const other = { ...s, ui: { ...s.ui, saving: { planId: 'other', kind: 'lock' }, saveProblem: { planId: 'other', problem: 'failed' } } };

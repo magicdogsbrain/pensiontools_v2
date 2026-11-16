@@ -100,9 +100,9 @@ export const SCENARIOS = Object.freeze({
   s06: { file: 's06-checker-sweep.spec.js', who: 'the checker', built: true, part: 1, seeded: true },
   s07: { file: 's07-kim-first-months.spec.js', who: 'Kim, 62', built: true, part: 1 },
   s08: { file: 's08-kim-this-month.spec.js', who: 'Kim, 62', built: true, part: 1 },
-  s09: { file: 's09-alex-totals-only.spec.js', who: 'Alex, 57', built: false, part: 1 },
-  s10: { file: 's10-alex-gilts-for-cash-years.spec.js', who: 'Alex, 64', built: false, part: 1 },
-  s11: { file: 's11-sam-moving.spec.js', who: 'Sam, 59', built: false, part: 1 },
-  s12: { file: 's12-couple-stops-earlier.spec.js', who: 'Kim, 66 and Sam, 61', built: false, part: 1 },
+  s09: { file: 's09-alex-totals-only.spec.js', who: 'Alex, 57', built: true, part: 1 },
+  s10: { file: 's10-alex-gilts-for-cash-years.spec.js', who: 'Alex, 64', built: true, part: 1 },
+  s11: { file: 's11-sam-moving.spec.js', who: 'Sam, 59', built: true, part: 1 },
+  s12: { file: 's12-couple-stops-earlier.spec.js', who: 'Kim, 66 and Sam, 61', built: true, part: 1 },
   ...Object.fromEntries(['s13', 's14', 's15', 's16', 's17', 's18', 's19', 's20', 's21', 's22', 's23', 's24', 's25'].map((s) => [s, { file: null, who: null, built: false, part: 2 }]))
 });

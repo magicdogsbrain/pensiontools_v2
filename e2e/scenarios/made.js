@@ -4,7 +4,7 @@
  */
 import { expect } from '@playwright/test';
 import { confirmEmail } from './account.js';
-import { at, openSimple, answer, keep, signUp, editAndSave, planAddress, settled, fullPage, closeNews } from './routes.js';
+import { at, openSimple, answer, keep, signUp, editAndSave, planAddress, settled, fullPage, closeNews, openFull } from './routes.js';
 import { SAM_B, KIM_D } from './typed.js';
 import { SAM45 } from './people.js';
 
@@ -79,4 +79,28 @@ export async function monthlyEntry(page, { month, pension, isa, setUp = null }) 
 /** "Save to History" for the month on the entry form. */
 export async function saveMonth(page) {
   await page.locator('#saveBtn').click();
+}
+
+/**
+ * A new account's first plan made in the full view's set-up: its name, age and the age work stops, then "See if I can
+ * afford to retire". Leaves the full view open on the plan.
+ */
+export async function fullViewWizard(page, { name, age, stopAge }) {
+  await openFull(page).catch(() => {});
+  const wiz = page.locator('#setupWizard');
+  await expect(wiz.locator('#wizScenarioName')).toBeVisible({ timeout: 45_000 });
+  await wiz.locator('#wizScenarioName').fill(name);
+  await wiz.locator('#wizCurrentAge').fill(String(age));
+  await wiz.locator('#wizRetireAge').fill(String(stopAge));
+  await wiz.getByRole('button', { name: 'Next' }).click();
+  await wiz.getByRole('button', { name: /See if I can afford to retire/ }).click();
+  await expect(wiz).toBeHidden({ timeout: 30_000 });
+}
+
+/** Stress Tester > Settings: the pension and the ISA as totals in the boxes it shows for them, then Save Settings. */
+export async function stressTotals(page, { pension, isa }) {
+  await fullPage(page, 'stress settings');
+  await page.locator('#tmPotSipp').fill(String(pension));
+  await page.locator('#tmPotIsa').fill(String(isa));
+  await page.locator('#ssSaveBtn').click();
 }

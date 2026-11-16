@@ -10,6 +10,7 @@ import { h, render } from 'preact';
 import { App } from '../../../src/v7/App.jsx';
 import { visibleText, bannedHits } from '../render/checkScreen.js';
 import { ALL_STEPS, STEPS, RETIRED_STAGES, SAVER_STAGES } from '../../../src/answers/plan/steps.js';
+import { HELD } from '../../../src/v7/copy/held.js';
 import { MOVE } from '../../../src/v7/copy/move.js';
 import { planPage } from '../../../src/answers/plan/read.js';
 import { ADVICE_SHORT } from '../../../src/v7/copy/common.js';
@@ -168,11 +169,12 @@ describe('the locked ladder in its run-up (03) and the committed saver (05)', ()
     expect(hold.text).toContain('Pension £639,382, ISA £35,052');
     expect(hold.text).toContain('Updated 20 June 2026');
     const move = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/move'));
-    expect(move.text).toMatch(/\d+ of 14 gilts bought/);
+    // moved on purpose (7.12.0): living on it, the rail counts the gilts held, as "Your plan's mix" does
+    expect(move.text).toMatch(/\d+ of 14 gilts held/);
     // moved on purpose (7.11.1): this plan records its months, so it reads Living on it, where the page is what is held — its
-    // own lead, never the move's "Optional…" (the rail still says how many gilts are bought)
+    // own lead (7.12.0: "Your plan's mix"), never the move's "Optional…"
     expect(move.text).not.toContain('Optional. Skipping it means what you hold may not match what the plan was tested on.');
-    expect(move.text).toContain(MOVE.held.lead);
+    expect(move.text).toContain(HELD.lead);
     // the rail's panels on the plan page: the record's figure with its date and the stale flag, and the links into the two steps (no hand-over to the planner)
     const page = draw(stateWith(entries, '#/plan/' + ladder.plan.id + '/plan'));
     const pg = planPage(entries, ladder.plan.id, 'plan', { today: TODAY });

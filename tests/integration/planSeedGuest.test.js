@@ -95,7 +95,10 @@ describe('a plan from a seed, without an account', () => {
     expect(sessionStorage.getItem(GUEST_KEY)).toBe(before);                      // no upgrade, no timing pin, nothing
     expect([S.firstTaxYear, S.shapeAgeNow, S.retireAge, S.currentAge]).toEqual([2030, 60, 60, 56]);
     const cfg = createSimulationConfigFromSettings({}, S);
-    expect(Math.round(cfg.equityStart + cfg.bondStart + cfg.cashStart)).toBe(341000);
-    expect(Math.round(cfg.isaBalance)).toBe(23000);
+    // 7.12.0: the pots at the stop are worked out on read from the plan's own facts (services/PotsAtStop.js), not the
+    // seed's frozen figure; the runs start from exactly that
+    expect(S.potAtRetirement.source).toBe('worked');
+    expect(Math.round(cfg.equityStart + cfg.bondStart + cfg.cashStart)).toBe(S.potAtRetirement.sipp);
+    expect(Math.round(cfg.isaBalance)).toBe(S.potAtRetirement.isa);
   });
 });

@@ -114,9 +114,9 @@ function Detail({ V, dispatch }) {
           {waiting && <p class="note" data-testid={`${T}.waitingNote`}>{fill(D.timeline.waiting, { year: String(Number(waiting.year) + 1) })}</p>}
           <div class="table-wrap">
             <table class="way-table" data-testid={`${T}.timeline`}>
-              <thead><tr><th>{D.timeline.columns.year}</th><th>{fill(D.timeline.columns.a, { name: V.names.a })}</th><th>{fill(D.timeline.columns.b, { name: V.names.b })}</th><th>{D.timeline.columns.sp}</th><th>{D.timeline.columns.other}</th><th>{D.timeline.columns.draw}</th></tr></thead>
-              <tbody>{V.timeline.filter((r, i, all) => i % 5 === 0 || (i > 0 && (r.workingA !== all[i - 1].workingA || r.workingB !== all[i - 1].workingB || r.sp !== all[i - 1].sp || r.other !== all[i - 1].other))).map((r) => (
-                <tr key={r.year}><td>{r.year}</td><td>{r.workingA ? D.timeline.working : r.needA}</td><td>{r.workingB ? D.timeline.working : r.needB}</td><td>{r.sp}</td><td>{r.other}</td><td>{r.draw}</td></tr>
+              <thead><tr><th>{D.timeline.columns.year}</th><th>{D.timeline.columns.draw}</th><th>{fill(D.timeline.columns.a, { name: V.names.a })}</th><th>{fill(D.timeline.columns.b, { name: V.names.b })}</th><th>{D.timeline.columns.sp}</th><th>{D.timeline.columns.other}</th></tr></thead>
+              <tbody>{V.timeline.filter((r, i, all) => i % 5 === 0 || (i > 0 && (r.workingA !== all[i - 1].workingA || r.workingB !== all[i - 1].workingB || r.endedA !== all[i - 1].endedA || r.endedB !== all[i - 1].endedB || r.sp !== all[i - 1].sp || r.other !== all[i - 1].other))).map((r) => (
+                <tr key={r.year} data-year={r.year}><td>{r.year}</td><td>{r.draw}</td><td>{r.workingA ? D.timeline.working : r.endedA ? D.timeline.ended : r.needA}</td><td>{r.workingB ? D.timeline.working : r.endedB ? D.timeline.ended : r.needB}</td><td>{r.sp}</td><td>{r.other}</td></tr>
               ))}</tbody>
             </table>
           </div>
@@ -165,7 +165,7 @@ function Verdict({ V, dispatch }) {
           {v.pooled && <p class="note" data-testid={`${T}.pooled`}>{C.pooled}</p>}
           {v.covered && <p class="note" data-testid={`${T}.covered`}>{fill(v.covered.earliest ? C.coveredEarliest : C.covered, v.covered)}</p>}
           <div class="table-wrap">
-            <table class="way-table" data-testid={`${T}.rows`}>
+            <table class="way-table household-rows" data-testid={`${T}.rows`}>
               <tbody>{v.rows.map((r) => (
                 <tr key={r.id} data-row={r.id} data-pct={r.pct}><th scope="row">{fill(C.rows[r.id], { name: r.name || '' })}</th><td>{r.id === 'household' ? fill(C.cellHousehold, { words: r.words }) : fill(C.cell, { words: r.words, pct: r.pct })}</td></tr>
               ))}</tbody>

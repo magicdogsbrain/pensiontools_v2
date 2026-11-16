@@ -1,0 +1,77 @@
+/**
+ * "Your household" for Kim and Sam (fictional; tests/fixtures/kimAndSam.js), drawn by the simple view (7.12.0). The pooled
+ * run is held in page memory with a made-up verdict and the real year table (householdIncomeTimeline on the two plans'
+ * effective settings, as householdRun.js hands it in), so what the page says about the years, the verdict, the split
+ * and the survivor can be read against figures worked out by hand here.
+ */
+import { describe, it, expect } from 'vitest';
+import { h, render } from 'preact';
+import { App } from '../../../src/v7/App.jsx';
+import { visibleText } from '../render/checkScreen.js';
+import { reduce } from '../../../src/v7/state/reduce.js';
+import { initialState } from '../../../src/v7/state/initial.js';
+import { A } from '../../../src/v7/state/actions.js';
+import { parse } from '../../../src/v7/router/routes.js';
+import { viewFor, upgradedList } from '../../../src/v7/effects/planSource.js';
+import { pairKeyOf } from '../../../src/answers/plan/household.js';
+import { effectiveStressSettings } from '../../../src/services/PlanReading.js';
+import { householdIncomeTimeline } from '../../../src/services/HouseholdService.js';
+import { kimAndSam, KIM_AND_SAM_TODAY, KIM_ID, SAM_ID } from '../../fixtures/kimAndSam.js';
+import { noon } from './_plans.js';
+
+const T = 'plan.household';
+const NOW = noon(KIM_AND_SAM_TODAY);
+
+/** A made-up pooled run in the run's shape, with the real year table. Kim is A on Kim's page. */
+export function kimSamRun(list, { pooled = null, successA = 0.97, successB = 0.949, joint = 0.93, split = null } = {}) {
+  const a = list.find((e) => e.plan.id === KIM_ID).plan, b = list.find((e) => e.plan.id === SAM_ID).plan;
+  const timeline = householdIncomeTimeline(effectiveStressSettings(a, { now: NOW }), effectiveStressSettings(b, { now: NOW }), null, NOW);
+  const combined = { runs: 1000, jointSuccess: joint, successA, successB, pooled: pooled || { success: 0.96, coveredByA: 0, coveredByB: 0, shortA: { n: 0, median: null, earliest: null }, shortB: { n: 0, median: null, earliest: null } },
+    potFan: Array.from({ length: 31 }, (_, y) => ({ year: y, p10: 100000, p50: 200000, p90: 300000 })) };
+  const sched = (n, v) => Array.from({ length: n }, () => v);
+  const sp = split || { names: { a: 'Kim', b: 'Sam' }, smaller: 'b', larger: 'a', untilAge: 67, untilC: 4, applies: false, unchanged: true, limit: null, limitDefaulted: true, fingerprint: 'fp',
+    saving: { year: 0, until: 0, whole: 0 }, tax: { firstYear: null, until: { own: 1, together: 1 }, whole: { own: 1, together: 1 } },
+    pots: { a: 280000, b: 160000 }, unused: {}, note2028: '', ladderNote: '', steps: { a: [], b: [] },
+    schedules: { own: { a: sched(30, 28000), b: sched(33, 16000) }, together: { a: sched(30, 28000), b: sched(33, 16000) } },
+    needs: { own: { a: sched(30, 1), b: sched(33, 1) }, together: { a: sched(30, 1), b: sched(33, 1) } } };
+  return { ok: true, names: { a: 'Kim', b: 'Sam' }, offsets: { a: 0, b: 2 }, ends: { a: 95, b: 95 }, split: sp,
+    own: { combined, rA: { affordable: true }, rB: { affordable: true } }, together: null, fig: null, timeline, basis: { today: KIM_AND_SAM_TODAY, engine: 'one-test', runs: 2 } };
+}
+
+/** Kim's (or Sam's) household page with the run held, the years open. */
+export function kimSamPage({ on = KIM_ID, run = {}, open = ['hhDetail'], extra = [] } = {}) {
+  const { kim, sam } = kimAndSam();
+  let state = initialState({ today: KIM_AND_SAM_TODAY, build: 'test' });
+  const step = (a) => { state = reduce(state, a); state = reduce(state, { type: A.PLANS_VIEW, view: viewFor(state) }); };
+  state = reduce(state, { type: A.ROUTE_SET, route: parse('#/plan/' + on + '/household') });
+  state = reduce(state, { type: A.SESSION_SET, session: { kind: 'in', email: 'a@b.c' } });
+  const list = upgradedList([kim, sam], NOW);
+  step({ type: A.PLANS_SET, list, source: 'account', readAt: '14:03' });
+  const plan = list.find((e) => e.plan.id === on).plan, partner = list.find((e) => e.plan.id !== on).plan;
+  const key = pairKeyOf(plan, partner);
+  step({ type: A.HH_RUN, key, limit: null });
+  step({ type: A.HH_DONE, key, limit: null, result: kimSamRun(list, run), ms: 1200 });
+  for (const id of open) step({ type: A.UI_TOGGLE, id });
+  for (const a of extra) step(typeof a === 'function' ? a(key) : a);
+  const root = document.createElement('div');
+  render(h(App, { state, dispatch: () => {} }), root);
+  return { root, text: visibleText(root), state };
+}
+export const one = (root, id) => root.querySelector(`[data-testid="${id}"]`);
+
+describe('the year table (7.12.0): real years, the pots second, a plan that has ended', () => {
+  it('the waiting note names 2032, never a row count; every year is a calendar year', () => {
+    const { root } = kimSamPage();
+    expect(one(root, `${T}.waitingNote`).textContent).toBe('Until 2032 at least one of you is still waiting for a State Pension: those are the years when the pots do the most work.');
+    const years = [...one(root, `${T}.timeline`).querySelectorAll('tbody tr')].map((tr) => tr.firstChild.textContent);
+    for (const y of years) expect(y).toMatch(/^20\d\d$/);
+    expect(years[0]).toBe('2026');
+    for (const tr of one(root, `${T}.left`).querySelectorAll('tbody tr')) expect(tr.firstChild.textContent).toMatch(/^20\d\d$/);
+  });
+  it('2056: £4,498 from the pots (Sam\'s £16,000 less Sam\'s £11,502.40 State Pension), Kim\'s plan ended, nothing else', () => {
+    const { root } = kimSamPage();
+    const row = one(root, `${T}.timeline`).querySelector('tr[data-year="2056"]');
+    expect([...row.children].map((td) => td.textContent)).toEqual(['2056', '£4,498', 'plan ended', '£16,000', '£11,502', '£0']);
+    expect([...one(root, `${T}.timeline`).querySelectorAll('thead th')].map((th) => th.textContent)).toEqual(['Year', 'From the pots', 'Kim needs', 'Sam needs', 'State Pensions', 'Other income that comes anyway']);
+  });
+});

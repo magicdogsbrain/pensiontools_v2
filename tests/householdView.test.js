@@ -160,3 +160,19 @@ describe('one budget for the household', () => {
     expect(budgetSharedLineHtml({})).toBe('');
   });
 });
+
+describe('the full view\'s year table for Kim and Sam (7.12.0): real years, the pots second, a plan that has ended', async () => {
+  const { kimSettings, samSettings } = await import('./fixtures/kimAndSam.js');
+  const rows = householdIncomeTimeline(kimSettings(), samSettings(), null, new Date(2026, 10, 16, 12));
+  const d = doc(timelineSectionHtml(rows, 'Kim', 'Sam', 2026));
+  it('the waiting note names the real year; the columns put what the pots find second', () => {
+    expect(d.querySelector('#hhWaitingNote').textContent).toBe('Until 2032 at least one of you is still waiting for a State Pension: those are the years when the pots do the most work.');
+    expect([...d.querySelectorAll('#hhTimeline th')].map((th) => th.textContent)).toEqual(['Year', 'From the pots', 'Kim needs', 'Sam needs', 'State Pensions', 'Other income that comes anyway']);
+  });
+  it('every year is a four-figure year; 2056 reads £4,498 from the pots, Kim\'s plan ended, Sam £16,000, one State Pension £11,502, nothing else', () => {
+    for (const tr of d.querySelectorAll('#hhTimeline tbody tr')) expect(tr.firstChild.textContent).toMatch(/^20\d\d$/);
+    const r = [...d.querySelector('#hhTimeline tr[data-year="2056"]').children].map((td) => td.textContent);
+    expect(r).toEqual(['2056', '£4,498', 'plan ended', '£16,000', '£11,502', '£0']);
+    expect(d.body.textContent).toContain('After a plan reaches its last age, nothing of that person\'s is counted');
+  });
+});

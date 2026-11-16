@@ -58,26 +58,30 @@ export function verdictSectionHtml({ r, ownName, pName, stratNote = '', startsNo
   return html;
 }
 
-/** Where the money comes from, year by year (householdIncomeTimeline rows). */
+/**
+ * Where the money comes from, year by year (householdIncomeTimeline rows), in the simple view's words and column order
+ * (7.12.0): the year as a calendar year, what the pots must find second, a plan past its last age said to have ended.
+ */
 export function timelineSectionHtml(rows, ownName, pName, thisYear) {
-  const yr = (y) => thisYear + y;
+  const yr = (row) => (row.calendarYear != null ? row.calendarYear : thisYear + row.year);
   let html = '<div class="settings-section"><div class="section-title">Where the money comes from, year by year</div>';
   const lastWaiting = rows.filter((row) => row.beforeStatePension).pop();
   if (lastWaiting) {
-    html += '<div class="alert alert-info">Until <strong>' + yr(lastWaiting.year + 1) + '</strong> at least one of you is still waiting for their State Pension — those are the years (marked •) when your pots do the most work. This is usually where a couple\'s plan is tightest.</div>';
+    html += '<div class="alert alert-info" id="hhWaitingNote">Until <strong>' + (yr(lastWaiting) + 1) + '</strong> at least one of you is still waiting for a State Pension: those are the years when the pots do the most work.</div>';
   }
-  html += '<div style="overflow-x:auto;"><table><thead><tr><th>Year</th><th>' + esc(ownName) + ' needs</th><th>' + esc(pName) + ' needs</th><th>State Pensions</th><th>Other guaranteed</th><th>From your pots</th></tr></thead><tbody>';
+  html += '<div style="overflow-x:auto;"><table id="hhTimeline"><thead><tr><th>Year</th><th>From the pots</th><th>' + esc(ownName) + ' needs</th><th>' + esc(pName) + ' needs</th><th>State Pensions</th><th>Other income that comes anyway</th></tr></thead><tbody>';
   const marks = new Set([0]);
-  rows.forEach((row, i) => { if (i > 0 && (row.workingA !== rows[i - 1].workingA || row.workingB !== rows[i - 1].workingB || row.spA !== rows[i - 1].spA || row.spB !== rows[i - 1].spB || row.db !== rows[i - 1].db || (row.needB === 0 && rows[i - 1].needB > 0) || (row.needA === 0 && rows[i - 1].needA > 0))) marks.add(i); });
+  rows.forEach((row, i) => { if (i > 0 && (row.workingA !== rows[i - 1].workingA || row.workingB !== rows[i - 1].workingB || !!row.endedA !== !!rows[i - 1].endedA || !!row.endedB !== !!rows[i - 1].endedB || row.spA !== rows[i - 1].spA || row.spB !== rows[i - 1].spB || row.db !== rows[i - 1].db || row.other !== rows[i - 1].other)) marks.add(i); });
   for (let y = 0; y < rows.length; y += 5) marks.add(y);
+  const need = (working, ended, v) => (working ? '<span class="hint">still working</span>' : ended ? '<span class="hint">plan ended</span>' : gbp(v));
   [...marks].sort((a, b) => a - b).forEach((i) => {
     const row = rows[i];
     if (!row) return;
-    html += '<tr><td>' + yr(row.year) + (row.beforeStatePension ? ' •' : '') + '</td><td>' + (row.workingA ? '<span class="hint">still working</span>' : gbp(row.needA)) + '</td><td>' + (row.workingB ? '<span class="hint">still working</span>' : gbp(row.needB))
-      + '</td><td>' + gbp(row.spA + row.spB) + '</td><td>' + gbp(row.db + row.other) + '</td><td><strong>' + gbp(row.drawNeed) + '</strong></td></tr>';
+    html += '<tr data-year="' + yr(row) + '"><td>' + yr(row) + '</td><td><strong>' + gbp(row.drawNeed) + '</strong></td><td>' + need(row.workingA, row.endedA, row.needA) + '</td><td>' + need(row.workingB, row.endedB, row.needB)
+      + '</td><td>' + gbp(row.spA + row.spB) + '</td><td>' + gbp(row.db + row.other) + '</td></tr>';
   });
   html += '</tbody></table></div>'
-    + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Today\'s money, per year. Rows shown where something changes (a State Pension starts, a plan ends) plus every 5th year. The last column is what your investments must provide after all guaranteed income.</p></div>';
+    + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">At today\'s prices, a year. Rows where something changes, and every fifth year. After a plan reaches its last age, nothing of that person\'s is counted: not their spending, their State Pension or their other income. "If one of you dies first", below, tries that properly.</p></div>';
   return html;
 }
 

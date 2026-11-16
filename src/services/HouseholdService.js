@@ -49,7 +49,8 @@ export function spFor(settings, now = new Date()) {
  * Deterministic household income timeline (today's money, gross-equivalent): what the household
  * needs each year, what is guaranteed (two State Pensions, DB floors, other income), and what
  * must come from the pots — with the years before both State Pensions are in payment flagged (`beforeStatePension`).
- * @returns {Array<{year, needA, needB, need, spA, spB, db, other, guaranteed, drawNeed, beforeStatePension}>}
+ * `year` counts from today (0 is this year); `calendarYear` is that year's number.
+ * @returns {Array<{year, calendarYear, needA, needB, need, spA, spB, db, other, guaranteed, drawNeed, beforeStatePension, endedA, endedB}>}
  */
 export function householdIncomeTimeline(setA, setB, labelYears = null, now = new Date()) {   // `now`: injectable clock (tests)
   const durA = setA.duration || 35;
@@ -64,17 +65,22 @@ export function householdIncomeTimeline(setA, setB, labelYears = null, now = new
     // Before a plan's year 0 the person is "still working" ONLY if the Timing block says they have not retired: someone
     // retired is drawing, and their need counts from today (6.12.5: "Household seems to think I'm still working").
     const workingA = yA < 0 && !isRetired(setA), workingB = yB < 0 && !isRetired(setB);
-    const needA = (!workingA && yA <= durA) ? targetForYear(setA, Math.max(0, yA)) : 0;
-    const needB = (!workingB && yB <= durB) ? targetForYear(setB, Math.max(0, yB)) : 0;
-    const spA = (!workingA && yA >= a.startYear) ? a.annual : 0;
-    const spB = (!workingB && yB >= b.startYear) ? b.annual : 0;
-    const db = (setA.dbAmount > 0 && yA >= (setA.dbStartYear || 0) ? setA.dbAmount : 0)
-             + (setB.dbAmount > 0 && yB >= (setB.dbStartYear || 0) ? setB.dbAmount : 0);
-    const other = (!workingA ? (setA.other || 0) : 0) + (!workingB ? (setB.other || 0) : 0);
+    // A person's money counts only while their plan runs (7.12.0): after its last year, nothing of theirs — not their
+    // spending, their State Pension, their final-salary pension or their other income. The final-salary pension keeps its
+    // own start year (it may pay while they still work); it only gains the end.
+    const endedA = yA > durA, endedB = yB > durB;
+    const inA = !workingA && !endedA, inB = !workingB && !endedB;
+    const needA = inA ? targetForYear(setA, Math.max(0, yA)) : 0;
+    const needB = inB ? targetForYear(setB, Math.max(0, yB)) : 0;
+    const spA = (inA && yA >= a.startYear) ? a.annual : 0;
+    const spB = (inB && yB >= b.startYear) ? b.annual : 0;
+    const db = (setA.dbAmount > 0 && !endedA && yA >= (setA.dbStartYear || 0) ? setA.dbAmount : 0)
+             + (setB.dbAmount > 0 && !endedB && yB >= (setB.dbStartYear || 0) ? setB.dbAmount : 0);
+    const other = (inA ? (setA.other || 0) : 0) + (inB ? (setB.other || 0) : 0);
     const need = needA + needB;
     const guaranteed = spA + spB + db + other;
     rows.push({
-      year: c, needA, needB, need, spA, spB, db, other, guaranteed, workingA, workingB,
+      year: c, calendarYear: now.getFullYear() + c, needA, needB, need, spA, spB, db, other, guaranteed, workingA, workingB, endedA, endedB,
       drawNeed: Math.max(0, need - guaranteed),
       beforeStatePension: (!workingA && a.annual > 0 && yA < a.startYear) || (!workingB && b.annual > 0 && yB < b.startYear)
     });

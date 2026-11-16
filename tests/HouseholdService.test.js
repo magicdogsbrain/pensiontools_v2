@@ -142,3 +142,40 @@ describe('householdIncomeTimeline — already retired in the run-up (6.12.5)', (
     expect(rows[1].workingB).toBe(false);
   });
 });
+
+describe('the year table for Kim and Sam (7.12.0): a person\'s money counts only while their plan runs', async () => {
+  const { kimSettings, samSettings } = await import('./fixtures/kimAndSam.js');
+  const NOW = new Date(2026, 10, 16, 12);
+  const rows = householdIncomeTimeline(kimSettings(), samSettings(), null, NOW);
+  const SP = 221.2 * 52;   // £11,502.40 a year each
+  it('this year: Sam still working, so only Kim\'s £28,000 less Kim\'s State Pension and £6,000 final-salary pension comes from the pots', () => {
+    expect(rows[0].calendarYear).toBe(2026);
+    expect(rows[0].workingB).toBe(true);
+    expect(rows[0].needB).toBe(0);
+    expect(rows[0].drawNeed).toBeCloseTo(28000 - SP - 6000, 2);   // 10,497.60
+  });
+  it('both stopped, Sam under 67: both needs less Kim\'s State Pension and final-salary pension', () => {
+    const r = rows.find((x) => !x.workingA && !x.workingB);
+    expect(r.calendarYear).toBe(2028);
+    expect(r.drawNeed).toBeCloseTo(28000 + 16000 - SP - 6000, 2);   // 26,497.60
+  });
+  it('both State Pensions paid', () => {
+    const r = rows.find((x) => x.spA > 0 && x.spB > 0);
+    expect(r.calendarYear).toBe(2032);
+    expect(r.drawNeed).toBeCloseTo(44000 - 2 * SP - 6000, 2);   // 14,995.20
+  });
+  it('year 30, when Kim would be 96: Kim\'s plan has ended, so nothing of Kim\'s counts — only Sam\'s £16,000 less Sam\'s State Pension', () => {
+    const r = rows[30];
+    expect(r.calendarYear).toBe(2056);
+    expect(r.endedA).toBe(true);
+    expect(r.endedB).toBe(false);
+    expect(r.spA).toBe(0);
+    expect(r.db).toBe(0);
+    expect(r.needA).toBe(0);
+    expect(r.drawNeed).toBeCloseTo(16000 - SP, 2);   // 4,497.60
+  });
+  it('year 29, Kim at 95, still counts Kim', () => {
+    expect(rows[29].endedA).toBe(false);
+    expect(rows[29].db).toBe(6000);
+  });
+});

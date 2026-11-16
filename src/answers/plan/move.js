@@ -85,6 +85,14 @@ function lumpOf(doc, Y) {
   return row && num(row.lump) > 0 ? num(row.lump) : 0;
 }
 
+/**
+ * The month a saver's move window opens ('YYYY-MM'), from the stop (Phases.windowOf): null for anyone not saving towards a
+ * stop. One reading for both views' schedules (the full view's Transition tab reads it through keepHoldingsUi).
+ */
+export function opensAtOf(plan, stage, now) {
+  return stage && stage.timingMode === 'future' && stage.startMonth ? windowOf(plan, { now, stop: stage.startMonth }).from : null;
+}
+
 /** The saved facts, as data (the words are the screen's). */
 export function savedMove(plan, { today, index = null }) {
   const now = dateOf(today);
@@ -94,13 +102,13 @@ export function savedMove(plan, { today, index = null }) {
   const ss = safeSettings(plan, now);
   const rec = normaliseHoldings(plan && plan.holdings);
   const strategyId = (doc && doc.strategy && doc.strategy.id) || ss.strategyId || 'pots-and-valves';
-  const base = { locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, name: nameOf(plan), stage, waiting: waitingOf(plan, stage), opensAt: stage.timingMode === 'future' && stage.startMonth ? windowOf(plan, { now, stop: stage.startMonth }).from : null, strategyId, ladder: CONTRACT_STRATEGIES.includes(strategyId), family: FAMILY.includes(strategyId), record: rec, now, ss };
+  const base = { locked, lockedOn: locked ? dayWords(lockedAtOf(plan)) : null, name: nameOf(plan), stage, waiting: waitingOf(plan, stage), opensAt: opensAtOf(plan, stage, now), strategyId, ladder: CONTRACT_STRATEGIES.includes(strategyId), family: FAMILY.includes(strategyId), record: rec, now, ss };
   if (!doc) return { ...base, hasDocument: false, m: null, seq: null, sheet: [], watch: null, spGate: null, own: null };
   let m = null; try { m = moveInputs(plan, { now }); } catch { m = null; }
   if (!m || !m.target || m.target.kind === 'none') return { ...base, hasDocument: true, m: null, seq: null, sheet: [], watch: null, spGate: null, own: null };
   const contributionsMonthly = contributionsMonthlyOf(plan, rec);
   let seq = null;
-  try { seq = sequence(m.diff, { today: now, startYear: stage.firstTaxYear || (doc.timing && doc.timing.firstTaxYear) || taxYearStartOf(now), startMonth: stage.startMonth || (doc.timing && doc.timing.startMonth) || null, contributionsMonthly }); } catch { seq = null; }
+  try { seq = sequence(m.diff, { today: now, startYear: stage.firstTaxYear || (doc.timing && doc.timing.firstTaxYear) || taxYearStartOf(now), startMonth: stage.startMonth || (doc.timing && doc.timing.startMonth) || null, opensAt: base.opensAt, contributionsMonthly }); } catch { seq = null; }
   let sheet = [];
   if (m.target.kind === 'ladder') { try { sheet = orderSheetRows(doc, rec.lines, { today: now, params: m.strategyParams }); } catch { sheet = []; } }
   let watch = null;

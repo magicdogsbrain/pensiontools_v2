@@ -134,6 +134,19 @@ describe('sequence and progress', () => {
     expect(sam.startPassed).toBe(false);
     expect(sam.months).toBe(13);
   });
+  it('a saver\'s schedule starts when the move window opens, never today (the walk: eleven years off, told to sell from now)', () => {
+    const today = new Date(2026, 10, 16);
+    const saver = sequence(d, { today, startYear: 2037, startMonth: '2037-08', opensAt: '2034-08', contributionsMonthly: 0 });
+    expect(saver.opensAt).toBe('2034-08');
+    expect(saver.steps[0].when).toBe('2034-08');
+    expect(saver.steps.every((x) => x.when >= '2034-08' && x.when < '2037-08')).toBe(true);
+    expect(saver.months).toBe(36);
+    // a window already open (or none): from today, as before
+    const open = sequence(d, { today, startYear: 2027, startMonth: '2027-10', opensAt: '2024-10', contributionsMonthly: 0 });
+    expect(open.opensAt).toBe(null);
+    expect(open.steps[0].when).toBe('2026-11');
+    expect(sequence(d, { today, startYear: 2027, startMonth: '2027-10', contributionsMonthly: 0 }).steps[0].when).toBe('2026-11');
+  });
   it('reports a shortfall honestly', () => {
     const s = sequence(d, { today: new Date(2026, 8, 10), startYear: 2027, contributionsMonthly: 0 });
     expect(s.funded).toBe(false);

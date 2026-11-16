@@ -8,7 +8,8 @@ import { holdingsWith } from '../services/HoldingsRecord.js';
 import { gapsOf, gapsView, lifeOf } from '../answers/plan/gaps.js';
 import { heldPhase } from '../services/Phases.js';
 import { PLAN } from '../v7/copy/plan.js';
-import { moveOf } from '../answers/plan/move.js';
+import { moveOf, opensAtOf } from '../answers/plan/move.js';
+import { planStage } from '../services/PlanReading.js';
 import { keepTestOf, amendPatch, withdrawPatch, sayKeep } from '../answers/plan/keepTest.js';
 import { keepFingerprint } from '../services/PlanAmendments.js';
 import { isClosedPlan } from '../services/PlanClosed.js';
@@ -48,6 +49,14 @@ export function keepOfChoice(value, was, firstYear = null) {
  */
 export function transitionTabName(scenario, today = new Date()) {
   try { return scenario && heldPhase(lifeOf(scenario, new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12))) ? PLAN.steps.move.short : 'Transition'; } catch { return 'Transition'; }
+}
+
+/**
+ * The month a saver's move window opens, for the full view's schedule (move.js opensAtOf: the reading the simple view's
+ * schedule and home use). Null when there is none, or the plan cannot be read.
+ */
+export function transitionOpensAt(scenario, today = new Date()) {
+  try { const now = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12); return scenario ? opensAtOf(scenario, planStage(scenario, { now }), now) : null; } catch { return null; }
 }
 
 /** Names the full view's Transition tab in `doc` by the phase (transitionTabName); `read()` gives the stored plan. The name. */

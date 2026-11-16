@@ -21,6 +21,8 @@
  *      7.11.1 moved the move of fixture 20 (the ladder locked with its start in 2027/28) and then put it back, meant: a gilt
  *      outside the rungs is never set against a cash year by when it matures (gilts are often bought to mature before the year
  *      their money is for), so the two linkers outside its rungs are sold again as 7.10.0 had them, and its pin is 7.11.0's.
+ *      7.11.1 moved the move of fixture 05 (a saver whose move window opens later), meant: nothing is scheduled before the
+ *      window opens (move.js opensAtOf, the month the home names), so its schedule starts in that month, not today.
  * Under a minute.
  */
 import { describe, it, expect } from 'vitest';
@@ -28,7 +30,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { holdPatch, holdRecordOf, checkHold, holdOf } from '../../../src/answers/plan/hold.js';
-import { moveOf, tickPatch, heldMixSettings, savedMove } from '../../../src/answers/plan/move.js';
+import { moveOf, tickPatch, heldMixSettings, savedMove, opensAtOf } from '../../../src/answers/plan/move.js';
 import { runHeld } from '../../../src/answers/plan/moveRun.js';
 import { normaliseHoldings, holdingsWith, stampHoldings } from '../../../src/services/HoldingsRecord.js';
 import { applyPaste, parsePaste } from '../../../src/services/HoldingsPaste.js';
@@ -138,7 +140,7 @@ describe('gate 10 — the record round-trips byte for byte, and the move reads a
       const diff = diffHoldings(rec.lines, target);
       const prog = progress(diff, (plan.transition && plan.transition.done) || {});
       const stage = planStage(plan, { now });
-      const seq = sequence(diff, { today: now, startYear: stage.firstTaxYear || doc.timing.firstTaxYear, startMonth: stage.startMonth || doc.timing.startMonth || null, contributionsMonthly: savedMove(plan, { today: TODAY }).contributionsMonthly });
+      const seq = sequence(diff, { today: now, startYear: stage.firstTaxYear || doc.timing.firstTaxYear, startMonth: stage.startMonth || doc.timing.startMonth || null, opensAt: opensAtOf(plan, stage, now), contributionsMonthly: savedMove(plan, { today: TODAY }).contributionsMonthly });
       const view = moveOf([{ plan }], plan.id, { today: TODAY });
       expect(view.found).toBe(true);
       expect(view.kind).toBe(target.kind);

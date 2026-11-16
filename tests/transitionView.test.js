@@ -208,3 +208,26 @@ describe('What you hold — "What is this?" for lines the tool cannot place (6.2
     expect(holdingsCardHtml({ holdings: { ...rec, lines: rec.lines.slice(0, 1) } })).not.toContain('not placed in the mix');
   });
 });
+
+describe('the schedule\'s words fit the plan (the walk: a saver\'s pot plan read ladder words and a schedule from today)', () => {
+  it('a pot plan has no ladder: its first tax year is the plan\'s, and bonds and cash go first', () => {
+    const rec = { ...emptyRecord, lines: [line({ ticker: 'VWRP', value: 400000, kind: 'fund' })] };
+    const { html } = page(potDoc, rec);
+    expect(html).not.toMatch(/the ladder('s| has)/);
+    expect(html).not.toContain('Cash years first, near rungs before far ones');
+    expect(html).toContain('Bonds and cash first, then shares');
+    expect(html).toContain('the plan\'s first tax year is 2027/28');
+  });
+  it('before a saver\'s move window opens: when it opens, and nothing to do before then', () => {
+    const rec = { ...emptyRecord, lines: [line({ ticker: 'VWRP', value: 400000, kind: 'fund' })] };
+    const today = new Date(2026, 10, 16);
+    const stage = { key: 'saving', startLabel: '2037/38', firstTaxYear: 2037, startMonth: '2037-08' };
+    const target = targetHoldings(potDoc, { today });
+    const diff = diffHoldings(rec.lines, target);
+    const seq = sequence(diff, { today, startYear: 2037, startMonth: '2037-08', opensAt: '2034-08', contributionsMonthly: 0 });
+    const html = transitionHtml({ stage, doc: potDoc, target, diff, seq, prog: progress(diff, {}), done: {}, holdings: rec, startLabel: '2037/38' });
+    expect(html).toContain('your move window opens in August 2034; nothing to do before then');
+    expect(html).not.toContain('the buying spread over the next');
+    expect(html).not.toContain('Nov 2026');
+  });
+});

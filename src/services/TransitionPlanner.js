@@ -788,19 +788,25 @@ export function driftOf(diff) {
 /**
  * A dated schedule to the plan start: cash and near rungs first, sales in tranches, contributions before sales.
  * @param {ReturnType<typeof diffHoldings>} diff
- * @param {{ today?: Date, startYear: number, contributionsMonthly?: number, trancheMonths?: number, decisionPoint?: { when: string, label: string } }} o
- * @returns {{ steps: [{ when, action, wrapper, label, ticker, units, amount, why }], months, tranches, funded: boolean, note }}
+ * @param {{ today?: Date, startYear: number, opensAt?: string|null, contributionsMonthly?: number, trancheMonths?: number, decisionPoint?: { when: string, label: string } }} o
+ *   `opensAt`: the month a saver's move window opens ('YYYY-MM'); when it is still ahead the schedule starts then
+ * @returns {{ steps: [{ when, action, wrapper, label, ticker, units, amount, why }], months, tranches, funded: boolean, opensAt: string|null, note }}
  */
-export function sequence(diff, { today = new Date(), startYear, startMonth = null, contributionsMonthly = 0, trancheMonths = 3, horizonMonths = 6 } = {}) {
+export function sequence(diff, { today = new Date(), startYear, startMonth = null, opensAt = null, contributionsMonthly = 0, trancheMonths = 3, horizonMonths = 6 } = {}) {
   // The deadline is the retirement month when known (a future retiree), else 6 April of plan year 0. Once the
   // plan is already running there is no deadline: reconcile over a rolling horizon instead (6.10.5).
   let start;
   if (startMonth && /^\d{4}-\d{2}$/.test(startMonth)) { const [y, m] = startMonth.split('-').map(Number); start = new Date(y, m - 1, 1); }
   else start = new Date(+startYear || today.getFullYear() + 1, 3, 6);
   const startPassed = start.getTime() <= today.getTime();
-  const months = startPassed ? Math.max(1, horizonMonths) : Math.max(1, Math.round((start.getTime() - today.getTime()) / (30.44 * 24 * 3600 * 1000)));
+  // A saver's move window (Phases.windowOf, the month the home names): nothing is scheduled before it opens — the schedule
+  // starts in that month, never today (the walk: a saver eleven years off was told to sell every quarter from now)
+  const thisMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+  const opens = !startPassed && opensAt && /^\d{4}-\d{2}$/.test(opensAt) && opensAt > thisMonth ? opensAt : null;
+  const from = opens ? new Date(+opens.slice(0, 4), +opens.slice(5) - 1, 1) : today;
+  const months = startPassed ? Math.max(1, horizonMonths) : Math.max(1, Math.round((start.getTime() - from.getTime()) / (30.44 * 24 * 3600 * 1000)));
   const tranches = Math.max(1, Math.ceil(months / trancheMonths));
-  const monthKey = (k) => { const d = new Date(today.getFullYear(), today.getMonth() + k, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+  const monthKey = (k) => { const d = new Date(from.getFullYear(), from.getMonth() + k, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
   // Buy order: cash years first, then rungs by maturity, then buckets bonds → cash → shares
   const order = (b) => b.kind === 'cash' ? 0 : b.kind === 'gilt' ? 1 + (b.matures ? new Date(b.matures).getFullYear() / 10000 : 0.5) : b.bucket === 'bonds' ? 2 : b.bucket === 'cash' ? 2.5 : 3;
   const buys = diff.buy.slice().sort((a, b) => order(a) - order(b));
@@ -829,7 +835,7 @@ export function sequence(diff, { today = new Date(), startYear, startMonth = nul
       if (remainingInBuy <= 0.5) { bi++; remainingInBuy = bi < buys.length ? num(buys[bi].amount) : 0; }
     }
   }
-  return { steps, months, tranches, funded, startPassed, totals: { buy: Math.round(totalBuy), sell: Math.round(totalSell), contributions: Math.round(contributions) },
+  return { steps, months, tranches, funded, startPassed, opensAt: opens, totals: { buy: Math.round(totalBuy), sell: Math.round(totalSell), contributions: Math.round(contributions) },
     note: funded ? 'Funded by sales' + (contributions > 0 ? ' and contributions' : '') + '.' : 'Short by ' + Math.round(totalBuy - totalSell - contributions).toLocaleString('en-GB') + ' — the plan was priced on a bigger pot than the ledger holds, or holdings are missing from the ledger.' };
 }
 

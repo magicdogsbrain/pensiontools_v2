@@ -56,16 +56,15 @@ import { fullStatePensionYearly, SAVING, LEVEL_DEFAULT } from '../shared/rules.j
 import { keptSexOf, planLevelOf } from './life.js';
 import { effectiveStressSettings, planStage } from '../../services/PlanReading.js';
 import { deriveTiming } from '../../services/PlanTiming.js';
-import { saverPotOf } from '../../services/SaverReading.js';
-import { contributionBreakdown } from '../../services/AccumulationEngine.js';
-import { proportions, pensionPotFromHoldings } from '../../services/Holdings.js';
-import { holdingsLines, normaliseWrapper, numOrNull } from '../../services/HoldingsRecord.js';
+import { proportions } from '../../services/Holdings.js';
+import { holdingsLines } from '../../services/HoldingsRecord.js';
 import { savingPathMixes } from '../../services/SavingPath.js';
 import { amountAtAge } from '../../services/IncomeSchedule.js';
 import { chargesPctOf, CHARGES_LIMITS } from '../../services/Charges.js';
 import { isIsaGrowth } from '../../services/IsaGrowth.js';
 import { RISK_PRESETS } from '../../services/GlidepathService.js';
-import { payInShareOf, savingMixOf, PRICE_RISE_PCT } from '../../services/SaverPayIn.js';
+import { savingMixOf, PRICE_RISE_PCT } from '../../services/SaverPayIn.js';
+import { saverFacts, payInOf } from '../../services/SaverFacts.js';
 import { seedToScenario } from '../../services/PlanFromSeed.js';
 import { bandsOf, netOf } from './about.js';
 import { flexibleAccessAlong } from '../../services/FlexibleAccess.js';
@@ -89,12 +88,6 @@ function levelOf(mix) {
   let best = 'balanced', gap = Infinity;
   for (const k of LEVELS) { const d = Math.abs((RISK_PRESETS[k].equity || 0) - (mix.equity || 0)); if (d < gap) { gap = d; best = k; } }
   return best;
-}
-
-/** The ISA lines under What you hold, summed; null when there are none (SavingPath's own rule). */
-function isaFromHoldings(lines) {
-  const isa = lines.filter((l) => l && normaliseWrapper(l.wrapper) === 'ISA' && numOrNull(l.value) != null);
-  return isa.length ? isa.reduce((t, l) => t + numOrNull(l.value), 0) : null;
 }
 
 /**
@@ -139,23 +132,8 @@ function spendOf(aim, bands, stopAge, endAge) {
   return { spend, aimYearly: Math.round(head.amount), aimMonthly: amount };
 }
 
-/**
- * What goes in, as B's pay-in: a share of pay while the plan's share agrees with its pounds; else your part and your
- * employer's in pounds as they land (the tax added back included), or one figure with no employer part.
- */
-function payInOf(acc) {
-  const share = payInShareOf(acc);
-  if (share) return { payIn: { kind: 'share', pay: Math.min(5_000_000, share.pay), ownPct: share.ownPct, employerPct: share.employerPct }, share };
-  const net = num(acc.netMonthly) || 0, employer = num(acc.employerMonthly) || 0;
-  let own = 0;
-  try { own = net > 0 ? contributionBreakdown({ netMonthly: net, salary: num(acc.salary) || 0, schemeType: acc.schemeType || 'ras', employerMonthly: 0 }).grossMonthly : 0; } catch { own = 0; }
-  const cap = SAVING.payInCeiling;
-  if (employer > 0) return { payIn: { kind: 'split', own: clamp(round2(own), 0, cap), employer: clamp(round2(employer), 0, cap) }, share: null };
-  return { payIn: { kind: 'total', total: clamp(round2(own), 0, cap) }, share: null };
-}
-
 /** What goes in, as the plan's saved settings say it (B's pay-in and the share it was read from): the check-in's prefill. */
-export const planPayInOf = (plan) => payInOf(accOf(plan));
+export const planPayInOf = (plan) => { const p = payInOf(accOf(plan)); return { payIn: p.b, share: p.share }; };
 
 /**
  * A check-in's pay-in as B's (research/saving-enough-and-check-in.md 5.1, 5.6): the kind the person gave it in, what lands
@@ -225,15 +203,18 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   try { ss = effectiveStressSettings(plan, { now }); stage = planStage(plan, { now }); } catch { return { ok: false, why: 'notSaving' }; }
   const t = deriveTiming(ss, now);
   const acc = accOf(plan);
+  // the facts, one reader for every saver screen (services/SaverFacts.js): the age rolled forward, the age to stop, the pot
+  // today (the check-in's, the newest record, What you hold, the pot saved, the plan's own pension total, or none)
+  const ci = isObj(checkIn) ? checkIn : null;
+  const facts = saverFacts(plan, ss, { now, checkIn: ci });
+  if (!facts.saving) return { ok: false, why: 'notSaving' };
   // Two ages: the plan's own clock (its year 0's age, which its years and its last age count from) and the age its income
   // is read at. With the Timing block's ages they are one, the start. A plan placed by the Accumulation tab's ages (4.6)
   // still runs on its old clock — "About you and when" shows its last age from it — while the person stops at the
   // Accumulation stop, so the income is read there: confirming the ages unchanged on About then changes nothing here.
-  let age, stopAge, clockAge, headAge;
-  if (t.mode === 'future' && t.currentAge > 0 && t.retireAge > 0) { age = Math.floor(t.currentAge); stopAge = Math.round(t.retireAge); clockAge = num(t.shapeAgeNow) || stopAge; headAge = clockAge; }
-  else if (stage.fromAccumulation && stage.accumulationAges) { age = Math.floor(stage.accumulationAges.currentAge); stopAge = Math.round(stage.accumulationAges.retirementAge); clockAge = num(t.shapeAgeNow) || stopAge; headAge = stopAge; }
-  else return { ok: false, why: 'notSaving' };
-  if (!(stopAge > age)) return { ok: false, why: 'notSaving' };
+  const age = facts.age, stopAge = facts.stopAge;
+  const clockAge = num(t.shapeAgeNow) || stopAge;
+  const headAge = t.mode === 'future' ? clockAge : stopAge;
 
   const bands = bandsOf(ss);
   const duration = num(ss.duration) || 0;
@@ -241,20 +222,13 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
   const aim = spendOf(aimOf(ss, headAge), bands, stopAge, endAge);
   if (!aim) return { ok: false, why: 'noAim' };
 
-  // the pot: the check-in's, else the newest record, else the pension lines under What you hold, else the tab's pot today
   const lines = holdingsLines(plan && plan.holdings);
-  const hist = Array.isArray(plan && plan.accumulationTool && plan.accumulationTool.history) ? plan.accumulationTool.history : [];
-  const ci = isObj(checkIn) ? checkIn : null;
-  const rec = saverPotOf({ accHistory: hist, today: now });
-  let pot = 0, potFrom = 'none', isa = null;
-  if (ci && isObj(ci.pot) && isNum(ci.pot.pension)) { pot = ci.pot.pension; potFrom = 'checkIn'; isa = isNum(ci.pot.isa) ? ci.pot.isa : null; }
-  else if (rec.source === 'record' && isNum(rec.pension)) { pot = rec.pension; potFrom = 'record'; isa = isNum(rec.isa) ? rec.isa : null; }
-  else if (pensionPotFromHoldings(lines) > 0) { pot = pensionPotFromHoldings(lines); potFrom = 'holdings'; }
-  else if (num(acc.potNow) > 0) { pot = +acc.potNow; potFrom = 'saved'; }
-  if (isa == null) isa = isaFromHoldings(lines) != null ? isaFromHoldings(lines) : Math.max(0, num(ss.isaBalance) || 0);
+  const pot = facts.pot.pension;
+  let potFrom = facts.pot.from;
+  const isa = facts.pot.isa;
 
   const ciPayIn = ci ? checkInPayIn(ci) : null;
-  const read = ciPayIn ? { payIn: ciPayIn, share: ciPayIn.kind === 'share' && ciPayIn.pay > 0 ? ciPayIn : null } : payInOf(acc);
+  const read = ciPayIn ? { payIn: ciPayIn, share: ciPayIn.kind === 'share' && ciPayIn.pay > 0 ? ciPayIn : null } : { payIn: facts.payIn.b, share: facts.payIn.share };
   // what goes into ISAs and savings: the check-in's when it says (nothing while a pause runs), else the plan's
   const ciSavingsIn = ciPayIn && isNum(ci.payIn.savingsIn) ? (isObj(ci.paused) && ci.paused.to == null ? 0 : ci.payIn.savingsIn) : null;
   let prop = null;
@@ -288,12 +262,12 @@ export function saverInputsOf(plan, { today, checkIn = null, plans = [] } = {}) 
     const b = kept.inputs;
     const S = (keys) => keys.every((k) => same(ss[k], kept.ss[k]));
     const A = (keys) => keys.every((k) => same(acc[k], kept.acc[k]));
-    const noRecords = potFrom === 'saved' || potFrom === 'none';
+    const noRecords = ['saved', 'answer', 'plan', 'none'].includes(potFrom);
     const noHoldings = !lines.length;
     if (age === b.you.age && stopAge === (b.stop && b.stop.age) && S(['currentAge', 'retireAge', 'retired'])) from.ages = true;
     if (from.ages && A(['netMonthly', 'employerMonthly', 'salary', 'schemeType', 'payInKind', 'ownPct', 'employerPct'])) { inputs.you.payIn = b.you.payIn; from.payIn = true; }
     // the pot the answer was given: said as that, so the words beside the verdict never say "nothing" while it is counted
-    if (from.ages && noRecords && noHoldings && A(['potNow'])) { inputs.you.pot = b.you.pot; from.pot = true; if (potFrom === 'none' && b.you.pot > 0) potFrom = 'answer'; }
+    if (from.ages && noRecords && noHoldings && A(['potNow'])) { inputs.you.pot = b.you.pot; from.pot = true; if ((potFrom === 'none' || potFrom === 'plan') && b.you.pot > 0) potFrom = 'answer'; }
     if (from.ages && S(['incomeShape', 'baseSalary', 'incomeSteps', 'targetSchedule', 'shapeAgeNow', 'duration', 'pa', 'brl', 'hrl'])) {
       inputs.spend = b.spend; inputs.endAge = b.endAge; from.spend = true;
     }

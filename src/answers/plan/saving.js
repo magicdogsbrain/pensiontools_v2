@@ -45,6 +45,8 @@ import { SAVER_STAGES } from './steps.js';
 import { dateOf, dayWords, monthWords } from './dates.js';
 import { mpaaOf, flexibleAccessAlong, FLEXIBLE_ACCESS_LIMIT } from '../../services/FlexibleAccess.js';
 import { notBegunOf } from '../../services/PlanClosed.js';
+import { saverFacts } from '../../services/SaverFacts.js';
+import { pensionTodayPatch } from '../../services/PensionToday.js';
 
 export { applyPatch };
 
@@ -73,25 +75,30 @@ export function savedSaving(plan, { today }) {
   const s = (plan && plan.accumulationTool && isObj(plan.accumulationTool.settings)) ? plan.accumulationTool.settings : {};
   const ss = safeSettings(plan, now);
   const budget = (plan && plan.budgetTool && isObj(plan.budgetTool.settings)) ? plan.budgetTool.settings : null;
-  // the ages as the planner fills its boxes (loadAccumulationUI): its own, else the budget's — the budget's being About's (ABOUT_WRITES)
-  const currentAge = num(s.currentAge) ?? budgetAgeToday(budget) ?? num(ss.currentAge);
-  const retirementAge = num(s.retirementAge) ?? budgetRetirementAge(budget) ?? num(ss.retireAge);
+  // the saver's facts, one reader for every screen (services/SaverFacts.js): the age rolled forward to today, the age to
+  // stop and the pot today; with no ages there, the planner's own, else the budget's (About's)
+  const facts = saverFacts(plan, ss, { now });
+  const currentAge = facts.age ?? num(s.currentAge) ?? budgetAgeToday(budget) ?? num(ss.currentAge);
+  const retirementAge = facts.stopAge ?? num(s.retirementAge) ?? budgetRetirementAge(budget) ?? num(ss.retireAge);
   const holdingsPension = pensionPotFromHoldings(plan && plan.holdings);
   const hist = Array.isArray(plan && plan.accumulationTool && plan.accumulationTool.history) ? plan.accumulationTool.history.filter(isObj) : [];
   // the plan's own word on whether work has stopped (the Timing block's "retired"; LifeStage): then there are no saving years to work out
   let retired = false;
   try { retired = !!planStage(plan, { now }).retired; } catch { retired = false; }
   return {
-    settings: s, ss, budget, currentAge, retirementAge, holdingsPension, hist, now, locked: isLocked(plan), retired,
+    settings: s, ss, budget, currentAge, retirementAge, holdingsPension, hist, now, locked: isLocked(plan), retired, facts,
     source: { at: plan && plan.lastModified ? dayWords(plan.lastModified) : null }
   };
 }
 
 /** The boxes' starting text: the saved facts as a person would type them, by path. */
 export function boxesOf(plan, { today }) {
-  const s = savedSaving(plan, { today }).settings;
+  const saved = savedSaving(plan, { today });
+  const s = saved.settings;
   const out = {};
-  for (const k of ['netMonthly', 'employerMonthly', 'isaMonthly', 'salary', 'potNow']) if (num(s[k]) != null && +s[k] !== 0) out[k] = String(+s[k]);
+  for (const k of ['netMonthly', 'employerMonthly', 'isaMonthly', 'salary']) if (num(s[k]) != null && +s[k] !== 0) out[k] = String(+s[k]);
+  // the pot today as it is read (the newest figure you gave), so the box and the line above the table say one figure
+  if (saved.facts.pot.from !== 'none' && saved.facts.pot.pension > 0) out.potNow = String(Math.round(saved.facts.pot.pension * 100) / 100);
   if (num(s.escalationPct) != null && +s.escalationPct !== 0) out.escalationPct = String(+s.escalationPct);
   out.schemeType = SCHEME_TYPES.includes(s.schemeType) ? s.schemeType : 'ras';
   return out;
@@ -163,9 +170,20 @@ export function savingPatch(plan, typed, { today }) {
   for (const k of SETTINGS_KEYS) next[k] = c.inputs[k];
   const cur = get(plan, 'accumulationTool.settings');
   if (isObj(cur)) for (const k of V7_SETTINGS_KEYS) if (cur[k] !== undefined) next[k] = copy(cur[k]);
+  // the ages are About's, never typed here: the ones stored stay (the facts read the Timing block's first)
+  if (isObj(cur)) for (const k of ['currentAge', 'retirementAge']) if (num(cur[k]) > 0) next[k] = cur[k];
+  // the pot today: the box opens on the pot as read (boxesOf), so a box left as it opened keeps what is stored; a new figure
+  // is written with this month's pot record in the same write (PensionToday.pensionTodayPatch), so it is the one read next
+  const potRead = c.saved.facts.pot.from !== 'none' && c.saved.facts.pot.pension > 0 ? Math.round(c.saved.facts.pot.pension * 100) / 100 : 0;
+  const potTyped = c.inputs.potNow;
+  const potChanged = potTyped !== potRead && !(potTyped === 0 && potRead === 0);
+  if (!potChanged) next.potNow = isObj(cur) && cur.potNow !== undefined ? cur.potNow : 0;
+  const pot = potChanged && potTyped > 0 ? pensionTodayPatch(plan, potTyped, { now: c.saved.now, settings: next }) : {};
   const same = isObj(cur) && SETTINGS_KEYS.every((k) => text(cur[k] === undefined ? (k === 'schemeType' ? 'ras' : 0) : cur[k]) === text(next[k])) && Object.keys(cur).every((k) => SETTINGS_KEYS.includes(k) || V7_SETTINGS_KEYS.includes(k));
-  if (same) return { ok: true, errors: {}, patch: {}, previous: {} };
-  return { ok: true, errors: {}, patch: declared({ 'accumulationTool.settings': next }), previous: { 'accumulationTool.settings': copy(cur) } };
+  if (same && !pot['accumulationTool.history']) return { ok: true, errors: {}, patch: {}, previous: {} };
+  const patch = { 'accumulationTool.settings': next, ...(pot['accumulationTool.history'] ? { 'accumulationTool.history': pot['accumulationTool.history'] } : {}) };
+  const previous = { 'accumulationTool.settings': copy(cur), ...(patch['accumulationTool.history'] ? { 'accumulationTool.history': copy(get(plan, 'accumulationTool.history')) } : {}) };
+  return { ok: true, errors: {}, patch: declared(patch), previous };
 }
 
 /**
@@ -248,6 +266,30 @@ export function askFillOf(entries, id, { today } = {}) {
   } catch { return {}; }
 }
 
+/**
+ * "You stop work in November 2048, at 67: 22 years of saving from age 45." Whole years are the months to the stop ÷ 12, rounded
+ * down; months are said too under two years, and alone under one.
+ */
+export function agesLineOf(facts, inputs) {
+  const months = facts && facts.monthsToStop != null ? facts.monthsToStop : Math.max(0, Math.round((inputs.retirementAge - inputs.currentAge) * 12));
+  const y = Math.floor(months / 12), m = months % 12;
+  const yw = y + ' year' + (y === 1 ? '' : 's'), mw = m + ' month' + (m === 1 ? '' : 's');
+  const span = y === 0 ? mw : y < 2 && m > 0 ? yw + ' ' + mw : yw;
+  const slots = { span, from: String(inputs.currentAge), to: String(inputs.retirementAge) };
+  return facts && facts.stopMonth ? { id: 'ages', slots: { ...slots, month: monthWords(facts.stopMonth) } } : { id: 'agesNoMonth', slots };
+}
+
+/** The line above the table: where the pot today comes from (SaverFacts pot.from), with its figure. */
+export function potLineOf(pot) {
+  const p = pot || {};
+  if (p.from === 'none' || !(p.pension > 0)) return { id: 'none', slots: {} };
+  const value = pounds(p.pension);
+  if (p.from === 'record' || p.from === 'checkIn') return { id: p.at ? 'record' : 'recordUndated', slots: { value, month: p.at ? monthWords(p.at) : '' } };
+  if (p.from === 'answer') return { id: 'answer', slots: { value } };
+  if (p.from === 'holdings' || p.from === 'plan') return { id: p.from, slots: { value } };
+  return { id: 'saved', slots: { value } };
+}
+
 /** Everything the screen draws. `typed` is the draft's values for this plan (text by path), or null. */
 export function savingOf(entries, id, { today, typed = null, source = 'account' } = {}) {
   const list = (entries || []).filter((e) => e && e.plan && typeof e.plan === 'object' && e.plan.id != null);
@@ -269,8 +311,12 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
   const ages = inputs.currentAge > 0 && inputs.retirementAge > 0;
   const years = ages ? Math.round(inputs.retirementAge - inputs.currentAge) : 0;
   const stillSaving = ages && years > 0 && !s.retired;
-  // the pot today: the box, else the pension lines under "What you hold" (the planner fills the empty box from them)
-  const potNow = inputs.potNow > 0 ? inputs.potNow : s.holdingsPension;
+  // the pot today, as read (services/SaverFacts.js), unless a new figure is typed in the box and not yet saved
+  const f = s.facts;
+  const typedPot = typed && !blank(typed.potNow) && c.values.potNow != null;
+  const potNow = typedPot ? inputs.potNow : f.pot.pension;
+  const potLine = typedPot ? { id: 'typed', slots: { value: pounds(potNow) } } : potLineOf(f.pot);
+  const agesLine = stillSaving ? agesLineOf(f, inputs) : null;
   const b = contributionBreakdown({ netMonthly: inputs.netMonthly, salary: inputs.salary, schemeType: inputs.schemeType, employerMonthly: inputs.employerMonthly });
   // "Your mix" (6.7.0): the expected real return of what you hold, net of its costs; the plan's charge replaces the funds' own
   let hp = null;
@@ -308,9 +354,9 @@ export function savingOf(entries, id, { today, typed = null, source = 'account' 
     found: true, id: String(plan.id), name: nameOf(plan), readonly, editable: !readonly, source, locked: s.locked,
     savedAt: s.source.at,
     fields, errors: c.errors, ok: c.ok,
-    ages: { currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, years, stillSaving, known: ages },
+    ages: { currentAge: inputs.currentAge, retirementAge: inputs.retirementAge, years, stillSaving, known: ages, line: agesLine },
     relief: reliefLines(b, inputs), scheme: inputs.schemeType,
-    potNow: { value: pounds(potNow), fromHoldings: !(inputs.potNow > 0) && s.holdingsPension > 0 },
+    potNow: { value: pounds(potNow), line: potLine },
     rates: { low: pct1(FCA_RATES.low), mid: pct1(FCA_RATES.mid), high: pct1(FCA_RATES.high), mix: hp ? pct1(hp.expectedReal + 0.025) : null, charges: chargesPct > 0 ? String(Math.round(chargesPct * 100) / 100) : null },
     mix: hp ? { shares: String(Math.round(hp.buckets.shares * 100)), bonds: String(Math.round(hp.buckets.bonds * 100)), diversifiers: String(Math.round(hp.buckets.diversifiers * 100)), cash: String(Math.round(hp.buckets.cash * 100)), charge: (hp.weightedOcf * 100).toFixed(2) } : null,
     rows: shownRows, isaLine: !!isaRows, isaHow: isaRows ? (how.fromFunds && how.payIns ? 'funds' : how.kind || 'before') : null, isaMonthly: pounds(inputs.isaMonthly),

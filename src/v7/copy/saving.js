@@ -7,9 +7,13 @@
 export const SAVING = {
   title: 'What you pay in',
   lead: 'What goes into your pension each month, from your take-home pay and from your employer, into ISAs and savings, and how it rises each year. The plan works the rest out and shows it below: what each payment becomes once the tax the government adds back is counted, and what the pot could be by the stop.',
-  savedValue: '({value})',
   source: { saved: 'From your plan, saved {date}', savedUndated: 'As saved in the plan' },
-  ages: 'From age {currentAge} to age {retirementAge}: {years} year{s} of saving. The ages are on “About you and when”.',
+  /** When work stops and how long is left to save, from the plan's timing (services/SaverFacts.js), said once. Never a
+   * countdown ("years from now"; banned.js countdown-any): the saving years, from the age today. */
+  ages: {
+    ages: 'You stop work in {month}, at {to}: {span} of saving from age {from}. The ages are on “About you and when”.',
+    agesNoMonth: 'You stop work at {to}: {span} of saving from age {from}. The ages are on “About you and when”.'
+  },
   agesNone: 'The plan has no age today or no age to stop at, so nothing can be worked out yet. Add them on “About you and when”.',
   stopped: 'The plan says you have stopped work, so there are no saving years to work out. What you pay in is kept all the same.',
   notFrozen: 'What you pay in is not frozen by the lock: change it as it changes.',
@@ -69,8 +73,17 @@ export const SAVING = {
     chargesNone: 'No fund or platform charges taken off: your plan has none set.',
     mix: 'Your mix: what you hold today — shares {shares}%, bonds {bonds}%, gold and trend {diversifiers}%, cash {cash}% — at its long-run return less its costs ({mix}% a year before prices). It never promises a fund’s own return.',
     mixCharge: 'The plan’s charge replaces the funds’ own ({charge}% a year).',
-    potNow: 'From a pot of {value} today.',
-    potNowHoldings: 'From a pot of {value} today, the pension lines under “What you hold”.',
+    /** Where the pot the table starts from comes from (services/PensionToday.js), said once. */
+    potNow: {
+      record: 'From your pension of {value}, recorded {month}.',
+      recordUndated: 'From your pension of {value}, as you recorded it last.',
+      holdings: 'From your pension of {value}, the pension lines under “What you hold”.',
+      saved: 'From your pension of {value}, as saved in your plan.',
+      answer: 'From your pension of {value}, as you gave it when you kept this plan.',
+      plan: 'From your pension of {value}, the pension total in your plan.',
+      typed: 'From your pension of {value}, as typed above. Save to keep it.',
+      none: 'No pension pot is in your plan yet, so this starts from nothing. You can add it in the box for your pension pot today.'
+    },
     columns: { age: 'Age', low: 'Cautious', mid: 'Middle', mix: 'Your mix', high: 'Strong', paidIn: 'Paid in', isa: 'ISA and savings' },
     isa: {
       cash: 'ISA and savings: mostly cash, at the cash rule and 2.5% price rises, with {isaMonthly} a month going in.',
@@ -121,13 +134,6 @@ export const SAVING = {
       less: 'This reads what you pay in as going up with prices. Your plan raises it by {pct}% a year, so what the pot could be by the stop, below, assumes less goes in later.',
       more: 'This reads what you pay in as going up with prices. Your plan raises it by {pct}% a year, so what the pot could be by the stop, below, assumes more goes in later.',
       none: 'This reads what you pay in as going up with prices. Your plan keeps it the same in pounds each year, so what the pot could be by the stop, below, assumes less goes in later.'
-    },
-    pot: {
-      record: 'Your pot is the one you recorded last.',
-      holdings: 'Your pot is the pension lines under “What you hold”.',
-      saved: 'Your pot is the pot today in the boxes below.',
-      answer: 'Your pot is the one you gave when you kept this plan.',
-      none: 'No pension pot today is in your plan, so this counts it as nothing. Add it in the boxes below.'
     },
     draws: 'It draws the money the way “Am I saving enough?” does. How your plan itself draws is on “Does it last?”.',
     drawsLink: 'Does it last?',

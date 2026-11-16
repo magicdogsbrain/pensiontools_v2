@@ -21,7 +21,15 @@ import { isaGrowthOf } from '../services/IsaGrowth.js';
 import { projectedIsaRows, isaProjectionOf } from '../services/PlanTiming.js';
 import { onCourseVerdictHtml } from '../services/OnCourse.js';
 
+import { saverFacts } from '../services/SaverFacts.js';
+import { budgetAgeToday, budgetRetirementAge } from '../services/BudgetModel.js';
+import { safeSettings } from '../answers/plan/about.js';
+import { potLineOf } from '../answers/plan/saving.js';
+import { SAVING } from '../v7/copy/saving.js';
+
 export { mpaaOf } from '../services/FlexibleAccess.js';
+
+const fillWords = (text, slots) => String(text).replace(/\{(\w+)\}/g, (m, k) => (k in slots ? slots[k] : m));
 
 const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
 
@@ -78,3 +86,32 @@ export function onCourseCheckHtml({ requiredPot, basis, rows, chance = '' }) {
     + '</tbody></table>'
     + '<p style="font-size:11px;color:var(--text-muted);margin-top:6px;">Uses your current Stress-Tester settings (target, allocation, State Pension, access method) with the pot scaled. Set your budget and stress settings first for a meaningful answer.</p>';
 }
+
+/**
+ * The Accumulation tab's boxes as it opens (7.12.0): the saver's facts (services/SaverFacts.js), so the tab says the same
+ * age and pot today as "What you pay in" — the age rolled forward from the Timing block, the pot as read (the newest
+ * record, What you hold, the pot saved, the plan's own pension total) — and the line under the pot box that says where the
+ * pot comes from. With no ages in the plan, the tab's own, else the Budget's. `values` maps each box's id to its figure
+ * (null leaves the box empty).
+ * @param {object} scenario  the plan (upgraded)
+ * @param {object|null} settings  its Stress settings as read (PlanReading.effectiveStressSettings); read here when null
+ * @param {Date} now
+ * @returns {{ values: object, potLine: string }}
+ */
+export function accumulationBoxes(scenario, settings = null, now = new Date()) {
+  const ss = settings || safeSettings(scenario, now);
+  const acc = (scenario && scenario.accumulationTool && scenario.accumulationTool.settings) || {};
+  const budget = (scenario && scenario.budgetTool && scenario.budgetTool.settings) || null;
+  const f = saverFacts(scenario, ss, { now });
+  const n = (v) => (v == null || v === '' || !Number.isFinite(+v) || +v === 0 ? null : +v);
+  const values = {
+    acAge: f.age ?? n(acc.currentAge) ?? budgetAgeToday(budget),
+    acRetireAge: f.stopAge ?? n(acc.retirementAge) ?? budgetRetirementAge(budget),
+    acSalary: n(acc.salary), acPotNow: f.pot.from !== 'none' && f.pot.pension > 0 ? f.pot.pension : null,
+    acNetMonthly: n(acc.netMonthly), acScheme: acc.schemeType || null, acEmployerMonthly: n(acc.employerMonthly),
+    acEscalation: n(acc.escalationPct), acIsaMonthly: n(acc.isaMonthly)
+  };
+  const line = potLineOf(f.pot);
+  return { values, potLine: fillWords(SAVING.pot.potNow[line.id] || '', line.slots) };
+}
+

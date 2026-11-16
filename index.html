@@ -3681,7 +3681,7 @@
               <div class="form-group"><label>Current age</label><input type="number" id="acAge" min="18" max="74" data-on-input="recalcAccumulation()"></div>
               <div class="form-group"><label>Retiring at</label><input type="number" id="acRetireAge" min="50" max="75" data-on-input="recalcAccumulation()"></div>
               <div class="form-group"><label>Salary (£/yr gross)</label><input type="number" id="acSalary" data-on-input="recalcAccumulation()"></div>
-              <div class="form-group"><label>Pension pot today (£)</label><input type="number" id="acPotNow" data-on-input="recalcAccumulation()"></div>
+              <div class="form-group"><label>Pension pot today (£)</label><input type="number" id="acPotNow" data-on-input="recalcAccumulation()"><p class="hint" id="acPotLine"></p></div>
             </div>
           </div>
 
@@ -4033,7 +4033,6 @@
       defaultBudget,
       budgetAgesKnown,
       budgetAgeToday,
-      budgetRetirementAge,
       markBudgetAgesSet,
       evalAmountExpr,
       budgetToCsv,
@@ -4044,7 +4043,6 @@
       contributionWarnings,
       projectAccumulation,
       getActiveAccumulation,
-      saveActiveAccumulation,
       getHouseholdPartnerId,
       setHouseholdPartnerId,
       getActivePlanOfRecord,
@@ -4134,7 +4132,7 @@
     import { chargesFieldState, chargesForSave, paintChargesField, chargesPctOf, DEFAULT_CHARGES_PCT } from './src/ui/chargesSetting.js';   // fund and platform charges (6.19.0)
     import { isaGrowthFieldState, isaGrowthForSave, readIsaGrowthChoice, paintIsaGrowthField, unlockNotesHtml, isaAssumptionsRow, drawdownIsaNoteHtml } from './src/ui/isaGrowthSetting.js';   // how the ISA and savings grow (6.22.0)
     import { ON_COURSE_SHARE, ON_COURSE_PCT, ON_COURSE_SEARCHING, onCourseBasisHtml, onCourseChanceHtml, onCourseAlertClass, jointVerdictHtml, isOnCourse } from './src/services/OnCourse.js';   // one bar: "on course" = lasts in 9 futures out of 10 (6.22.0)
-    import { accumulationTableHtml, onCourseCheckHtml, mpaaOf } from './src/ui/accumulationProjection.js';
+    import { accumulationTableHtml, onCourseCheckHtml, mpaaOf, accumulationBoxes } from './src/ui/accumulationProjection.js';
     import { savingPathForLock } from './src/ui/savingPathForLock.js';   // a saver's lock draws its path on V7's saving-years engine (6.22.0)
 
     // Simulation access for optimisation — THROUGH the strategy registry (Phase B rule:
@@ -4180,7 +4178,7 @@
     import { buildPlanDocument, whereAmI, guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
     import { isPlanNewerThanApp } from './src/storage/ScenarioRepository.js';
-    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments, saveActivePlanTasks } from './src/storage/ScenarioRepository.js';
+    import { getActivePlanDocument, getActivePlanDocumentArchive, saveActivePlanDocument, archivePlanDocument, getActiveJourney, saveActiveJourney, getActiveAccumulationHistory, saveActiveAccumulationHistory, saveActiveAccumulationInputs, getActiveTransition, saveActiveTransition, getActiveHoldings, saveActiveHoldings, getActiveDrawCadence, saveActiveDrawCadence, saveActivePlanAmendments, saveActivePlanTasks } from './src/storage/ScenarioRepository.js';
     import { deriveStage, decisionEntryAllowed, arrivalCheck, journeyAppend } from './src/services/LifeStage.js';
     import { setDbStartFields, paintDbStart, dbStartFromAgeInput, dbStartError, dbStartAgeForSave } from './src/ui/dbStartSetting.js';   // the final-salary start, asked by age (audit problem 3)
     import { pnvOnlySections, paintSettingUseNotes, heldIsaNote } from './src/ui/strategySettingsUse.js';   // the settings every strategy shows, and the notes beside them (audit problem 4)
@@ -4202,7 +4200,7 @@
     import { guestPlanRefusal, isExamplePlanError, DEMO_PLANS, EXAMPLE_PLAN_KEY, EXAMPLE_PLAN_DESCRIPTION } from './src/services/GuestPlans.js';   // three plans without an account; the read-only example (6.23.0)
     import { updateHomeBanner, installHomeBanner, openingTabOf } from './src/ui/homeBannerUi.js';   // the next-step banner is the plan home's first thing due, else the life stage's sentence (7.10.0; 6.20.2); the opening tab reads the plan's phase (7.11.0)
     import { moreSheetHtml, MORE_TABS } from './src/ui/mobileMenu.js';
-    import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js'; import { withV7Keys } from './src/services/SaverPayIn.js';
+    import { proportions as holdingsProportions, describeMix } from './src/services/Holdings.js';
     import { targetHoldings, diffHoldings, sequence as transitionSequence, progress as transitionProgress, tickMove, untickMove, yearNeedsOf } from './src/services/TransitionPlanner.js';
     import { transitionHtml } from './src/ui/components/TransitionView.js';
     import { installKeepHandlers, transitionGaps, transitionHeld, transitionOpensAt, nameTransitionTab, installKeepTestHandlers, transitionKeepTest, keepLineHtml } from './src/ui/keepHoldingsUi.js'; import { installStressPanel } from './src/ui/stressPanelUi.js';   // "Try the bad years" on the Scenarios page (7.9.0)
@@ -9534,17 +9532,9 @@
 
     window.loadAccumulationUI = async function () {
       try {
-        const saved = await getActiveAccumulation();
-        const budget = await getBudgetAsync();
-        const set = (id, v) => { const el = document.getElementById(id); if (el && v != null && v !== 0) el.value = v; };
-        set('acAge', saved.currentAge ?? budgetAgeToday(budget));   // not the blank Budget's 45 / 60 placeholders (6.13.5)
-        set('acRetireAge', saved.retirementAge ?? budgetRetirementAge(budget));
-        set('acSalary', saved.salary);
-        set('acPotNow', saved.potNow);
-        set('acNetMonthly', saved.netMonthly);
-        if (saved.schemeType) document.getElementById('acScheme').value = saved.schemeType;
-        set('acEmployerMonthly', saved.employerMonthly);
-        if (saved.escalationPct) document.getElementById('acEscalation').value = saved.escalationPct; set('acIsaMonthly', saved.isaMonthly);
+        const box = accumulationBoxes(await getActiveScenarioAsync(), null, new Date());   // the saver's facts, as "What you pay in" reads them (7.12.0)
+        for (const [id, v] of Object.entries(box.values)) { const el = document.getElementById(id); if (el && v != null) el.value = v; }
+        document.getElementById('acPotLine').textContent = box.potLine;
         await renderAccumulationHoldings();   // 6.7.0: proportions from the ledger (and pot today when the box is empty)
         recalcAccumulation();
         renderAccumulationRecords().catch(() => {});
@@ -9553,7 +9543,7 @@
 
     window.saveAccumulationUI = async function () {
       try {
-        await saveActiveAccumulation(withV7Keys(readAccumulationInputs(), await getActiveAccumulation().catch(() => null)));   // the keys only V7 writes are kept (SaverPayIn.withV7Keys)
+        await saveActiveAccumulationInputs(readAccumulationInputs());   // the keys only V7 writes kept; a new pot today is this month's record too (7.12.0)
         showToast('Accumulation plan saved', 'success');
       } catch (e) { showToast('Could not save: ' + e.message, 'error'); }
     };

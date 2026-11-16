@@ -43,6 +43,8 @@ import { OPEN_PLAN_KEY } from '../services/OpenPlace.js';
 import { copyOf as planCopyOf } from '../services/PlanCopy.js';
 import { withoutPotsAsOf } from '../services/PlanFromToday.js';
 import { isClosedPlan, monthRefusal, monthRefusalWords } from '../services/PlanClosed.js';
+import { pensionTodayPatch } from '../services/PensionToday.js';
+import { withV7Keys } from '../services/SaverPayIn.js';
 
 /** A closed plan's household is read, not changed (6.56.0, PlanClosed.js): its partner's plan pairs with its successor. */
 function refuseClosedHousehold(scenario) {
@@ -860,6 +862,25 @@ export async function setHouseholdPartnerId(partnerScenarioId) {
 }
 
 /** Save accumulation settings to the active scenario. */
+/**
+ * The Accumulation tab's Save (7.12.0): the boxes as typed, with the keys only V7 writes kept (SaverPayIn.withV7Keys), and —
+ * when the pot today typed is not the one read (services/PensionToday.js) — this month's pot record in the same write, so
+ * the newest figure given is the one every screen reads.
+ */
+export async function saveActiveAccumulationInputs(inputs, now = new Date()) {
+  const scenario = await getActiveScenarioAsync();
+  if (!scenario) throw new Error('No active scenario');
+  const settings = withV7Keys(inputs, scenario.accumulationTool && scenario.accumulationTool.settings);
+  const pot = +inputs.potNow > 0 ? pensionTodayPatch(scenario, +inputs.potNow, { now, settings }) : {};
+  const history = pot['accumulationTool.history'] || null;
+  await saveScenario(scenario.id, { 'accumulationTool.settings': settings, ...(history ? { 'accumulationTool.history': history } : {}) });
+  if (cachedActiveScenario) {
+    if (!cachedActiveScenario.accumulationTool) cachedActiveScenario.accumulationTool = {};
+    cachedActiveScenario.accumulationTool.settings = settings;
+    if (history) cachedActiveScenario.accumulationTool.history = history;
+  }
+}
+
 export async function saveActiveAccumulation(settings) {
   const scenario = await getActiveScenarioAsync();
   if (!scenario) throw new Error('No active scenario');

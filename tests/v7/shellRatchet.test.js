@@ -78,7 +78,9 @@ import { resolve } from 'node:path';
 // One home in both views (7.11.0): the banner's three steps moved to src/ui/homeBannerUi.js updateHomeBanner, and the
 // opening tab reads the plan's phase there (openingTabOf); the plan menu redraws the banner from its existing line: 7 lines
 // shorter: 9,036.
-const MAX_LINES = 9036;
+// One saver, one set of facts (7.12.0): the Accumulation tab opens from the saver's facts (accumulationProjection.js
+// accumulationBoxes) and saves through one repository call that also records a new pot today: 10 lines shorter: 9,026.
+const MAX_LINES = 9026;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

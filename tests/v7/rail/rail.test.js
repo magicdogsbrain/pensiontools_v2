@@ -437,8 +437,13 @@ describe('L7 — random walks of 8 moves, against a model of where you should be
           model.pile.push('#/');
           open(frontDoor().find((q) => q.id === m.q).href);
         } else if (m.move === 'type') {
+          const onNumbers = state.route.screen === 'step' && state.route.q === 'c' && state.route.step === 'numbers';
           state = reduce(state, set(m.path, m.value));
+          const was = model.typed[m.path];
           model.typed[m.path] = m.value;
+          // an amount tried belongs to the figures it was tried on: another figure changed on step 1 empties it
+          // (state/reduce.js withTakeLetGo)
+          if (onNumbers && m.path !== 'take' && was !== m.value && typeof model.typed.take === 'string' && model.typed.take.trim() !== '') model.typed.take = '';
         } else if (m.move === 'ask') {
           const ok = parsedDraft(state, 'c').ok;
           state = reduce(state, { type: A.DRAFT_ASK, q: 'c' });

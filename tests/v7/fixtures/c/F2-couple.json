@@ -333,7 +333,217 @@
       "runOutAge": 90,
       "covered": false,
       "weighted": 0.854160692030564,
-      "verdict": "close"
+      "verdict": "close",
+      "phases": [
+        {
+          "fromAge": 60,
+          "toAge": 63,
+          "ages": {
+            "you": {
+              "from": 62,
+              "to": 65
+            },
+            "partner": {
+              "from": 60,
+              "to": 63
+            }
+          },
+          "takeHome": 3590,
+          "fromPension": 3804.28,
+          "fromSavings": 0,
+          "fromPots": 3804.28,
+          "statePension": 0,
+          "finalSalary": 0,
+          "tax": 214.28,
+          "byPerson": [
+            {
+              "who": "you",
+              "statePension": 0,
+              "finalSalary": 0,
+              "fromPension": 2825.19,
+              "fromSavings": 0,
+              "tax": 214.28,
+              "takeHome": 2610.91,
+              "higherRate": false,
+              "locked": false
+            },
+            {
+              "who": "partner",
+              "statePension": 0,
+              "finalSalary": 0,
+              "fromPension": 979.09,
+              "fromSavings": 0,
+              "tax": 0,
+              "takeHome": 979.09,
+              "higherRate": false,
+              "locked": false
+            }
+          ],
+          "beforeStatePension": true,
+          "shown": {
+            "takeHome": 3590,
+            "fromPots": 3590,
+            "statePension": 0,
+            "finalSalary": 0
+          }
+        },
+        {
+          "fromAge": 63,
+          "toAge": 65,
+          "ages": {
+            "you": {
+              "from": 65,
+              "to": 67
+            },
+            "partner": {
+              "from": 63,
+              "to": 65
+            }
+          },
+          "takeHome": 3590,
+          "fromPension": 3134.49,
+          "fromSavings": 0,
+          "fromPots": 3134.49,
+          "statePension": 0,
+          "finalSalary": 750,
+          "tax": 294.49,
+          "byPerson": [
+            {
+              "who": "you",
+              "statePension": 0,
+              "finalSalary": 750,
+              "fromPension": 2359.95,
+              "fromSavings": 0,
+              "tax": 294.49,
+              "takeHome": 2815.45,
+              "higherRate": false,
+              "locked": false
+            },
+            {
+              "who": "partner",
+              "statePension": 0,
+              "finalSalary": 0,
+              "fromPension": 774.55,
+              "fromSavings": 0,
+              "tax": 0,
+              "takeHome": 774.55,
+              "higherRate": false,
+              "locked": false
+            }
+          ],
+          "beforeStatePension": true,
+          "shown": {
+            "takeHome": 3590,
+            "fromPots": 2840,
+            "statePension": 0,
+            "finalSalary": 750
+          }
+        },
+        {
+          "fromAge": 65,
+          "toAge": 67,
+          "ages": {
+            "you": {
+              "from": 67,
+              "to": 69
+            },
+            "partner": {
+              "from": 65,
+              "to": 67
+            }
+          },
+          "takeHome": 3590,
+          "fromPension": 2193.49,
+          "fromSavings": 0,
+          "fromPots": 2193.49,
+          "statePension": 1045.63,
+          "finalSalary": 750,
+          "tax": 399.12,
+          "byPerson": [
+            {
+              "who": "you",
+              "statePension": 1045.63,
+              "finalSalary": 750,
+              "fromPension": 1663.31,
+              "fromSavings": 0,
+              "tax": 399.12,
+              "takeHome": 3059.82,
+              "higherRate": false,
+              "locked": false
+            },
+            {
+              "who": "partner",
+              "statePension": 0,
+              "finalSalary": 0,
+              "fromPension": 530.18,
+              "fromSavings": 0,
+              "tax": 0,
+              "takeHome": 530.18,
+              "higherRate": false,
+              "locked": false
+            }
+          ],
+          "beforeStatePension": true,
+          "shown": {
+            "takeHome": 3590,
+            "fromPots": 1794,
+            "statePension": 1046,
+            "finalSalary": 750
+          }
+        },
+        {
+          "fromAge": 67,
+          "toAge": 100,
+          "ages": {
+            "you": {
+              "from": 69,
+              "to": 102
+            },
+            "partner": {
+              "from": 67,
+              "to": 100
+            }
+          },
+          "takeHome": 3590,
+          "fromPension": 1056.45,
+          "fromSavings": 0,
+          "fromPots": 1056.45,
+          "statePension": 2091.27,
+          "finalSalary": 750,
+          "tax": 307.72,
+          "byPerson": [
+            {
+              "who": "you",
+              "statePension": 1045.63,
+              "finalSalary": 750,
+              "fromPension": 768.65,
+              "fromSavings": 0,
+              "tax": 264.92,
+              "takeHome": 2299.36,
+              "higherRate": false,
+              "locked": false
+            },
+            {
+              "who": "partner",
+              "statePension": 1045.63,
+              "finalSalary": 0,
+              "fromPension": 287.8,
+              "fromSavings": 0,
+              "tax": 42.8,
+              "takeHome": 1290.64,
+              "higherRate": false,
+              "locked": false
+            }
+          ],
+          "beforeStatePension": false,
+          "shown": {
+            "takeHome": 3590,
+            "fromPots": 749,
+            "statePension": 2091,
+            "finalSalary": 750
+          }
+        }
+      ]
     },
     "assumed": [
       {
@@ -1101,6 +1311,412 @@
             "fixed": "£270"
           },
           " a month more."
+        ]
+      },
+      "takeHead": {
+        "id": "c.take.head",
+        "text": "Taking £3,590 a month",
+        "parts": [
+          "Taking ",
+          {
+            "key": "take.perMonth",
+            "kind": "money"
+          },
+          " a month"
+        ]
+      },
+      "takeMadeOf": [
+        {
+          "id": "c.madeOf.pots",
+          "text": "Until you are 65: £3,590 a month, all from your pots.",
+          "parts": [
+            "Until ",
+            "you are ",
+            {
+              "key": "take.phases.1.ages.you.from",
+              "kind": "age"
+            },
+            ": ",
+            {
+              "key": "take.phases.0.shown.takeHome",
+              "kind": "money"
+            },
+            " a month, all from ",
+            "your pots",
+            "."
+          ]
+        },
+        {
+          "id": "c.madeOf.tax",
+          "text": "Tax of £214 a month is already taken off.",
+          "parts": [
+            "Tax of ",
+            {
+              "key": "take.phases.0.tax",
+              "kind": "money"
+            },
+            " a month is already taken off."
+          ]
+        },
+        {
+          "id": "c.madeOf.mixed",
+          "text": "From when you are 65: £750 final-salary pension + £2,840 from your pots.",
+          "parts": [
+            "From when ",
+            "you are ",
+            {
+              "key": "take.phases.1.ages.you.from",
+              "kind": "age"
+            },
+            ": ",
+            {
+              "key": "take.phases.1.shown.finalSalary",
+              "kind": "money"
+            },
+            " final-salary pension",
+            " + ",
+            {
+              "key": "take.phases.1.shown.fromPots",
+              "kind": "money"
+            },
+            " from ",
+            "your pots",
+            "."
+          ]
+        },
+        {
+          "id": "c.madeOf.tax",
+          "text": "Tax of £294 a month is already taken off.",
+          "parts": [
+            "Tax of ",
+            {
+              "key": "take.phases.1.tax",
+              "kind": "money"
+            },
+            " a month is already taken off."
+          ]
+        },
+        {
+          "id": "c.madeOf.mixed",
+          "text": "From when you are 67: £1,046 State Pension + £750 final-salary pension + £1,794 from your pots.",
+          "parts": [
+            "From when ",
+            "you are ",
+            {
+              "key": "take.phases.2.ages.you.from",
+              "kind": "age"
+            },
+            ": ",
+            {
+              "key": "take.phases.2.shown.statePension",
+              "kind": "money"
+            },
+            " ",
+            "State Pension",
+            " + ",
+            {
+              "key": "take.phases.2.shown.finalSalary",
+              "kind": "money"
+            },
+            " final-salary pension",
+            " + ",
+            {
+              "key": "take.phases.2.shown.fromPots",
+              "kind": "money"
+            },
+            " from ",
+            "your pots",
+            "."
+          ]
+        },
+        {
+          "id": "c.madeOf.tax",
+          "text": "Tax of £399 a month is already taken off.",
+          "parts": [
+            "Tax of ",
+            {
+              "key": "take.phases.2.tax",
+              "kind": "money"
+            },
+            " a month is already taken off."
+          ]
+        },
+        {
+          "id": "c.madeOf.mixed",
+          "text": "From when your partner is 67: £2,091 State Pensions + £750 final-salary pension + £749 from your pots.",
+          "parts": [
+            "From when ",
+            "your partner is ",
+            {
+              "key": "take.phases.3.ages.partner.from",
+              "kind": "age"
+            },
+            ": ",
+            {
+              "key": "take.phases.3.shown.statePension",
+              "kind": "money"
+            },
+            " ",
+            "State Pensions",
+            " + ",
+            {
+              "key": "take.phases.3.shown.finalSalary",
+              "kind": "money"
+            },
+            " final-salary pension",
+            " + ",
+            {
+              "key": "take.phases.3.shown.fromPots",
+              "kind": "money"
+            },
+            " from ",
+            "your pots",
+            "."
+          ]
+        },
+        {
+          "id": "c.madeOf.tax",
+          "text": "Tax of £308 a month is already taken off.",
+          "parts": [
+            "Tax of ",
+            {
+              "key": "take.phases.3.tax",
+              "kind": "money"
+            },
+            " a month is already taken off."
+          ]
+        }
+      ],
+      "takeChance": {
+        "id": "c.take.chance",
+        "text": "Taking £3,590 a month, the money lasts as long as one of you is alive 17 times in 20.",
+        "parts": [
+          "Taking ",
+          {
+            "key": "take.perMonth",
+            "kind": "money"
+          },
+          " a month, the money lasts ",
+          "as long as one of you is alive",
+          " ",
+          {
+            "fixed": "17"
+          },
+          " times in ",
+          {
+            "fixed": "20"
+          },
+          "."
+        ],
+        "mark": "weighted"
+      },
+      "takeLine": {
+        "id": "c.take.line.couple",
+        "text": "With pots of £400,000 and £150,000, your State Pensions and your final-salary pension, taking £3,590 a month after tax from now until the younger of you is 100, the money lasts as long as one of you is alive 17 times in 20, counting how long people your ages live.",
+        "parts": [
+          "With ",
+          "pots of ",
+          {
+            "key": "inputs.you.pot",
+            "kind": "money"
+          },
+          " and ",
+          {
+            "key": "inputs.partner.pot",
+            "kind": "money"
+          },
+          ", ",
+          "your State Pensions",
+          " and ",
+          "your final-salary pension",
+          ", taking ",
+          {
+            "key": "take.perMonth",
+            "kind": "money"
+          },
+          " a month after tax ",
+          "from now",
+          " ",
+          "until the younger of you is ",
+          {
+            "key": "basis.endAge",
+            "kind": "age"
+          },
+          ", the money lasts ",
+          "as long as one of you is alive",
+          " ",
+          {
+            "fixed": "17"
+          },
+          " times in ",
+          {
+            "fixed": "20"
+          },
+          ", ",
+          "counting how long people your ages live",
+          "."
+        ],
+        "mark": "weighted"
+      },
+      "takeFixed": {
+        "id": "c.take.fixed",
+        "text": "If one of you is still alive when the younger of you is 100, the money lasts that long in 15 of 20 futures we tried.",
+        "parts": [
+          "If one of you is still alive when the younger of you is ",
+          {
+            "fixed": "100"
+          },
+          ", the money lasts that long in ",
+          {
+            "fixed": "15"
+          },
+          " of ",
+          {
+            "fixed": "20"
+          },
+          " futures we tried."
+        ],
+        "mark": "fixed"
+      },
+      "takeBold": {
+        "id": "c.take.bold",
+        "text": "About 3 times in 20 the money runs out while one of you is alive, and you would spend less from then on.",
+        "parts": [
+          "About ",
+          {
+            "fixed": "3"
+          },
+          " times in ",
+          {
+            "fixed": "20"
+          },
+          " the money runs out while ",
+          "one of you is",
+          " alive",
+          ", and you would spend less from then on."
+        ],
+        "mark": "weighted"
+      },
+      "takeBad": {
+        "id": "c.take.when",
+        "text": "In the futures where the money runs out before the younger of you is 104, it typically runs out when the younger of you is 93. In the worst 1 in 10 of all the futures, by the time the younger of you is 90.",
+        "parts": [
+          "In the futures where the money runs out before ",
+          "the younger of you is ",
+          {
+            "fixed": "104"
+          },
+          ", it typically runs out ",
+          "when the younger of you is ",
+          {
+            "fixed": "93"
+          },
+          ". ",
+          "In the worst ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "10"
+          },
+          " of all the futures, ",
+          "by the time the younger of you is ",
+          {
+            "fixed": "90"
+          },
+          "."
+        ]
+      },
+      "takeHowLong": {
+        "id": "c.take.howLong",
+        "text": "In the futures where it runs out before 100, it still pays for 31 of the 40 years to 100.",
+        "parts": [
+          "In the futures where it runs out before ",
+          {
+            "fixed": "100"
+          },
+          ", it still pays for ",
+          {
+            "fixed": "31"
+          },
+          " of the ",
+          {
+            "fixed": "40"
+          },
+          " years to ",
+          {
+            "fixed": "100"
+          },
+          "."
+        ]
+      },
+      "takeHowMuch": {
+        "id": "c.take.howMuch",
+        "text": "Across those futures, about £9 of every £10 you planned to spend is still paid.",
+        "parts": [
+          "Across those futures, about ",
+          {
+            "fixed": "£9"
+          },
+          " of every ",
+          {
+            "fixed": "£10"
+          },
+          " you planned to spend is still paid."
+        ]
+      },
+      "takeFloor": {
+        "id": "c.take.floor",
+        "text": "If the money ran out when the younger of you is 93, you would still have £32,300 a year after tax between you, from your pensions; if one of you has died by then, about £12,548 at least.",
+        "parts": [
+          "If the money ran out ",
+          "when the younger of you is ",
+          {
+            "fixed": "93"
+          },
+          ", ",
+          "you would still have ",
+          {
+            "fixed": "£32,300"
+          },
+          " a year after tax",
+          " between you",
+          ", ",
+          "from your pensions",
+          "; if one of you has died by then, about ",
+          {
+            "fixed": "£12,548"
+          },
+          " at least",
+          "."
+        ]
+      },
+      "takeLeft": {
+        "id": "c.take.left",
+        "text": "If one of you is still alive when the younger of you is 100, what is typically left then is £267,000 at today's prices. In the best 1 in 10 futures it is £1,627,000 or more.",
+        "parts": [
+          "If one of you is still alive when the younger of you is ",
+          {
+            "fixed": "100"
+          },
+          ", what is typically left then is ",
+          {
+            "fixed": "£267,000"
+          },
+          " at today's prices. In the best ",
+          {
+            "fixed": "1"
+          },
+          " in ",
+          {
+            "fixed": "10"
+          },
+          " futures it is ",
+          {
+            "fixed": "£1,627,000"
+          },
+          " or more."
         ]
       }
     },

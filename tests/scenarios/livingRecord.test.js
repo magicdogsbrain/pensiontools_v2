@@ -8,6 +8,7 @@
  *   Step 3  one month to record: the home's button, Month by month and the full view's box name the same month.
  *   Step 4  what reaches your bank: the tax-year set-up and the month work it out with one sum.
  *   Step 5  the pot on one basis, and the ISA typed each month kept.
+ *   Step 6  the full view before the lock: months wait for the lock, said with the plan's own figures.
  */
 import { describe, it, expect } from 'vitest';
 import { planPage } from '../../src/answers/plan/read.js';
@@ -20,6 +21,9 @@ import { calculateMonthlyBreakdown, statePensionFact, statePensionLine, bandsAss
 import { MONTH } from '../../src/v7/copy/month.js';
 import { PLAN } from '../../src/v7/copy/plan.js';
 import { decisionToHistory } from '../../src/models/Decision.js';
+import { lockFirstText } from '../../src/ui/lockedStartUi.js';
+import { effectiveStressSettings } from '../../src/services/PlanReading.js';
+import { readFileSync } from 'node:fs';
 import { corpus, entryOf } from '../v7/plan/_plans.js';
 
 const C = corpus();
@@ -330,5 +334,26 @@ describe('Step 5: the pot on one basis, the ISA remembered', () => {
     const base = { date: '2026-12', taxYear: '26/27', equity: 1, bond: 1, cash: 1, sippDraw: 0, isaDraw: 0, other: 0, statePension: 0, monthlyTax: 0, totalMonthlyNet: 0 };
     expect(decisionToHistory({ ...base, isaBalanceTyped: 60000.4 }).isaBalance).toBe(60000);
     expect('isaBalance' in decisionToHistory(base)).toBe(false);
+  });
+});
+
+describe('Step 6: the full view before the lock', () => {
+  it('a kept plan not locked: the Monthly Entry tab says months wait for the lock, with the figures the simple view shows', () => {
+    const r = living([], { id: 'LivingPat03', name: 'Pat' });
+    r.decisionTool.settings.locked = false; delete r.decisionTool.settings.lockedAt; delete r.planDocument; r.decisionTool.taxYears = {};
+    Object.assign(r.stressTool.settings, { equityMin: 300000, bondMin: 160000, cashTarget: 60000, diversifierStart: 0, isaBalance: 60000, baseSalary: 32858, targetSchedule: null, incomeShape: 'flat', strategyParams: {} });
+    const e = entryOf(r, '2026-11-16');
+    const text = lockFirstText(effectiveStressSettings(e.plan, { now: noonOf('2026-11-16') }));
+    // 300,000 + 160,000 + 60,000 = 520,000; after tax 32,858 − 0.2 × (32,858 − 12,570) = 28,800.40 a year, £2,400 a month
+    const net = Math.round((32858 - 0.2 * (32858 - 12570)) / 12);
+    expect(text).toBe('Months are recorded once the plan is locked. Your plan: £520,000 pension, £60,000 ISA, £' + net.toLocaleString('en-GB') + ' a month after tax.');
+    expect(text).not.toMatch(/meaningless|defaults/);
+  });
+  it('the old banner is gone from the Decision tool\'s Monthly Entry', () => {
+    const html = readFileSync('index.html', 'utf8');
+    const entry = html.slice(html.indexOf('<div id="decision-entry"'), html.indexOf('<div class="grid-2">', html.indexOf('<div id="decision-entry"')));
+    expect(entry).not.toMatch(/meaningless|defaults/);
+    expect(html).not.toContain('dsSetupBanner');
+    expect(html).toContain('id="dsLockFirst"');
   });
 });

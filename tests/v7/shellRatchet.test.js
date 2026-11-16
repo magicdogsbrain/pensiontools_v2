@@ -78,7 +78,10 @@ import { resolve } from 'node:path';
 // One home in both views (7.11.0): the banner's three steps moved to src/ui/homeBannerUi.js updateHomeBanner, and the
 // opening tab reads the plan's phase there (openingTabOf); the plan menu redraws the banner from its existing line: 7 lines
 // shorter: 9,036.
-const MAX_LINES = 9036;
+// The living record (7.12.0): the ISA box is pre-filled by src/ui/monthlyEntry.js, so the two lines that blanked it went, and
+// the Decision tool's "set up first" banner gave way to the lock-first panel (src/ui/lockedStartUi.js paintLockFirst), drawn
+// from updateSetupBanners' existing call: 3 lines shorter: 9,033.
+const MAX_LINES = 9033;
 
 describe('index.html\'s inline script may only get shorter', () => {
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');

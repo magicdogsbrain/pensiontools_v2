@@ -2260,12 +2260,7 @@
         <!-- Entry Sub-tab -->
         <div id="decision-entry" class="decision-subtab">
           <div id="dsStrategyPanel" style="display:none; margin-bottom:14px;"></div>
-          <div id="dsSetupBanner" class="alert alert-warning" style="display:none; margin-bottom:14px;">
-            <strong>Set up this plan first.</strong> The recommendation runs on your Settings — your pot,
-            spending need and State Pension — and they're still the defaults, so any answer would be
-            meaningless. It takes a couple of minutes.
-            <button type="button" class="risk-btn" style="margin-left:8px; padding:5px 14px; font-size:13px;" data-on-click="openToolSettingsTab('decision')">Open Settings</button>
-          </div>
+          <div id="dsLockFirst" style="display:none; margin-bottom:14px;"></div>   <!-- a plan not locked: months wait for the lock (7.12.0, src/ui/lockedStartUi.js paintLockFirst) -->
           <div class="grid-2">
             <!-- Input Panel -->
             <div class="card">
@@ -4175,7 +4170,7 @@
     import { repriceLadder } from './src/strategies/GiltLadderPlan.js';
     import { deriveTiming, migrateTiming, describeTiming, projectedPotAtRetirement, taxYearLabel, planYearOf, taxYearStartOf, decisionAnchorYear, staleDraft, staleDraftMessage, startYearChoices, stoppedWorkOf, taxYearOfMonth } from './src/services/PlanTiming.js';
     import { installStopMonth, stopMonthFromForm, paintStopMonth, wizardStop, recordBeforeStart, recordYearLabel as recordYearLabelFor, recordSourceWords, yearRowHtml, firstSetUpPlanYear, potsDayOf, planVsActualWords } from './src/ui/planStartUi.js';   // when the plan's income starts (6.51.0)
-    import { installLockedStart, startLaterOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
+    import { installLockedStart, paintLockFirst, startLaterOfActive, saveLaterDraftFirst, fillPlanStart, fillPlanBounds, decisionPotsYear, planReadDay, stressLockBannerHtml, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates } from './src/ui/lockedStartUi.js';   // a locked plan's stop month (6.53.0); "Move to a new plan" and a closed plan (6.56.0, src/ui/planCloseUi.js)
     import { planExportFileName, planExportJson } from './src/services/PlanExport.js';
     import { buildPlanDocument, whereAmI, guardrailOf, potRecordOf, recordIsaOf, guaranteeSaid } from './src/services/PlanDocument.js';
     import { planDocumentHtml, whereAmIHtml, planDocumentHeaderHtml, strategyNameOf } from './src/ui/components/PlanDocumentView.js'; import { startOpenPlace, straightIn } from './src/ui/components/OpenPlace.js';   // the hand-over from the preview's plan pages (6.26); straight in without an account (2 Nov 2026)
@@ -4704,9 +4699,8 @@
     }
 
     async function updateSetupBanners() {
-      const ds = document.getElementById('dsSetupBanner');
       const ss = document.getElementById('ssSetupBanner');
-      if (ds) ds.style.display = (await isToolConfigured('decision')) ? 'none' : 'block';
+      paintLockFirst().catch(() => {});   // the Decision tool's Monthly Entry on a plan not locked (7.12.0)
       if (ss) ss.style.display = (await isToolConfigured('stress')) ? 'none' : 'block';
     }
 

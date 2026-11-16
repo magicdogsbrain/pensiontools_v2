@@ -26,7 +26,7 @@ import { saveStressSettings, getStressSettingsAsync } from '../storage/StressRep
 import { getDecisionSettingsAsync, getAllTaxYearsAsync } from '../storage/DecisionRepository.js';
 import { effectiveStressSettings } from '../services/PlanReading.js';
 import { stopAskOf, stopLeftOf, stopChangeOf, moveAnchorOf, startLaterOf, laterDraftOf, laterDraftLeftOf } from '../services/PlanMove.js';
-import { lockedStopAnswer } from '../answers/plan/about.js';
+import { lockedStopAnswer, bandsOf, netOf, firstStepGross } from '../answers/plan/about.js';
 import { stoppedWorkOf, monthName, decisionAnchorYear, deriveTiming, taxYearStartOf } from '../services/PlanTiming.js';
 import { runPositionOf } from '../services/PlanFromToday.js';
 import { planFillStart } from '../services/MonthFill.js';
@@ -35,6 +35,43 @@ import { installPlanClose, planReadDay, stressLockBannerHtml, successorNameOf, p
 import { beforeOf, closedAtOf, isClosedPlan, partnerCandidates, BEFORE_KINDS } from '../services/PlanClosed.js';
 
 export { planReadDay, stressLockBannerHtml, successorNameOf, plansInListOrder, planListDesc, decisionLockBannerHtml, planDocumentMay, planDocumentEmptyHtml, paintPlanDocumentTools, planNoticeHtml, drawClosedTransition, taxYearTabsFor, householdPickerFor, closedTimingSummary, partnerCandidates };
+
+const gbp = (v) => '£' + Math.round(+v || 0).toLocaleString('en-GB');
+
+/**
+ * The full view's Monthly Entry on a plan not locked yet (7.12.0): in place of the form, that months are recorded once the
+ * plan is locked, and the plan as it stands in the figures the simple view shows (the effective Stress settings: the pension,
+ * the ISA when there is one, the first income a month after tax). Nothing reads the Decision tool's own settings before the
+ * lock. Pure.
+ */
+export function lockFirstText(ss) {
+  const s = ss || {};
+  const p = s.strategyParams && typeof s.strategyParams === 'object' ? s.strategyParams : {};
+  const pension = +p.sippTotal > 0 ? +p.sippTotal : (+s.equityMin || 0) + (+s.bondMin || 0) + (+s.cashTarget || 0) + (+s.diversifierStart || 0);
+  const isa = p.isaTotal != null ? +p.isaTotal || 0 : +s.isaBalance || 0;
+  const net = netOf(firstStepGross(s), bandsOf(s)) / 12;
+  const parts = [gbp(pension) + ' pension', ...(isa > 0 ? [gbp(isa) + ' ISA'] : []), gbp(net) + ' a month after tax'];
+  return 'Months are recorded once the plan is locked. Your plan: ' + parts.join(', ') + '.';
+}
+
+/**
+ * Draws the lock-first panel (#dsLockFirst) on the Monthly Entry tab of a plan not locked, and hides the form beside it; a
+ * locked (or closed) plan gets the form back. The link opens Stress tester → Settings, where the plan is locked.
+ */
+export async function paintLockFirst(doc = typeof document === 'undefined' ? null : document) {
+  const panel = doc && doc.getElementById('dsLockFirst');
+  if (!panel) return;
+  const form = panel.parentElement ? panel.parentElement.querySelector('.grid-2') : null;
+  let sc = null; try { sc = await getActiveScenarioAsStored(); } catch (e) { sc = null; }
+  const locked = !sc || isClosedPlan(sc) || !!(sc.decisionTool && sc.decisionTool.settings && sc.decisionTool.settings.locked);
+  if (locked) { panel.style.display = 'none'; panel.innerHTML = ''; if (form) form.style.display = ''; return; }
+  let ss = {}; try { ss = effectiveStressSettings(sc, { now: new Date() }); } catch (e) { ss = (sc.stressTool && sc.stressTool.settings) || {}; }
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  panel.innerHTML = '<div class="alert alert-info"><p style="margin:0;">' + esc(lockFirstText(ss)) + '</p>'
+    + '<p style="margin:8px 0 0;"><a href="#" class="itemise-link" data-on-click="openToolSettingsTab(\'stress\'); return false;">Lock the plan</a></p></div>';
+  panel.style.display = '';
+  if (form) form.style.display = 'none';
+}
 
 /**
  * The plan year the pots the Decision tool's floors start from belong to (legacyDecision `potsYear`): where the plan's pots

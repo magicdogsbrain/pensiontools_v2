@@ -36,11 +36,16 @@ const ROWS = ['none', 'way', 'pot', 'isa', 'isaPolicy', 'income', 'years', 'cuts
 // the cuts are said as a difference for the family only (their depth and months whenever the figure differs, as the planner says them)
 const FAMILY = ['pots-and-valves', 'buckets-in-order'];
 
-/** The planner's boxes as saved (resetTryStrategyUI): the way, the pot box = sippTotal or the three pots, the ISA, the rest "as saved". */
+/**
+ * The planner's boxes as saved (resetTryStrategyUI): the way, the pot box = sippTotal or the three pots, the ISA, the rest "as
+ * saved". Retaken in 7.12.0: a plan with no pension known anywhere (`potsNotSet`) starts with the pot box empty in both views,
+ * so the person types one: here £400,000.
+ */
+const TYPED_POT = 400_000;
 function savedBoxes(s) {
   return {
     way: WAY_IDS.includes(s.strategyId) ? s.strategyId : 'pots-and-valves',
-    pot: r0((s.strategyParams && s.strategyParams.sippTotal) || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0))),
+    pot: s.potsNotSet ? TYPED_POT : r0((s.strategyParams && s.strategyParams.sippTotal) || ((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0))),
     isa: r0(s.strategyParams && s.strategyParams.isaTotal != null ? s.strategyParams.isaTotal : (s.isaBalance || 0)),
     isaPolicy: 'saved', incomeMode: 'shape', income: 0, years: s.duration || 35, cuts: 'saved', cutPct: '', cutEsc: ''
   };
@@ -104,7 +109,8 @@ describe('gate 8b — Try a change equals the planner\'s what-if on every fixtur
         }
         // "What's different"
         const ids = tryDifferencesOf(s, c).map((d) => d.id);
-        const whole = r0((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0)) === savedBoxes(s).pot;
+        // a plan with no pot set always names the pot it is tried with (7.12.0): "the plan has none set yet"
+        const whole = !s.potsNotSet && r0((s.equityMin || 0) + (s.bondMin || 0) + (s.cashTarget || 0)) === savedBoxes(s).pot;
         if (row.id === 'none') { expect(ids, whole ? 'untouched' : 'untouched: the pot box is the SIPP total, not the three pots').toEqual(whole ? [] : ['pot']); continue; }
         const expected = (id, boxes) => {
           if (id === 'cuts') return FAMILY.includes(c.strategyId);                                                       // said for the family only
@@ -121,6 +127,7 @@ describe('gate 8b — Try a change equals the planner\'s what-if on every fixtur
       }
       // the preview's own starting boxes through its reading equal the planner's saved boxes (the income box aside: a month after tax, applied only when flat)
       const mine = checkTry(plan, tryBoxesOf(plan, { today: TODAY }), { today: TODAY });
+      if (s.potsNotSet) { expect(tryBoxesOf(plan, { today: TODAY })['try.pot']).toBe(''); expect(mine.errors['try.pot']).toBe('required'); return; }
       expect(mine.ok).toBe(true);
       expect({ ...mine.run, income: 0 }).toEqual(savedBoxes(s));
     });

@@ -258,10 +258,13 @@ describe('the engine config carries the choice only when the plan has one', () =
 });
 
 describe('loading a plan', () => {
-  it('an UNLOCKED version-2 plan is given "Mostly cash" on its first load, written back once; its runs take it', async () => {
-    seedGuest([v2Plan()]);
+  it('an UNLOCKED version-2 plan reads "Mostly cash" on its first load and its runs take it; it is written with the next save (7.12.0: opening writes nothing)', async () => {
+    const plan = v2Plan();
+    seedGuest([plan]);
     const s = await getStressSettingsAsync();
     expect(s.isaGrowth).toBe('cash');
+    expect(stored()[0]).toEqual(plan);                    // as it was stored
+    await saveStressSettings({});                         // the person's next save of the settings
     expect(stored()[0].schemaVersion).toBe(3);
     expect(stored()[0].stressTool.settings.isaGrowth).toBe('cash');
     expect(createSimulationConfigFromSettings({}, s).isaGrowth).toBe('cash');
@@ -272,10 +275,10 @@ describe('loading a plan', () => {
     const s = await getStressSettingsAsync();
     expect('isaGrowth' in s).toBe(false);
     expect('isaGrowth' in createSimulationConfigFromSettings({}, s)).toBe(false);
+    // (7.12.0) opening writes nothing: the plan is stored as it was, its upgrade read in memory
+    expect(stored()[0]).toEqual(plan);
     const after = stored()[0];
-    expect(after.schemaVersion).toBe(3);
-    const { legacyFirstTaxYear, ...rest } = after.stressTool.settings;
-    expect(rest).toEqual(plan.stressTool.settings);
+    expect(after.stressTool.settings).toEqual(plan.stressTool.settings);
     expect(after.decisionTool).toEqual(plan.decisionTool);
   });
   it('a plan with no Stress settings at all: an unlocked one reads "Mostly cash", a locked one reads none', async () => {

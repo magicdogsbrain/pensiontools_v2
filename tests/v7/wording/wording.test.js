@@ -215,6 +215,8 @@ describe('the words in src/v7/copy/', () => {
     const scopes = ['all', 'record', 'retired', 'saver', 'planner', 'result'];
     // the levers' slots (road-to-7.md step 7): money, a chance, the cost in runs, a plural
     const slot = (s) => s.replace(/\{date\}/g, '1 July 2026').replace(/\{words\}/g, 'in 9 futures out of 10')
+      // 7.12.0: where a locked plan's try starts from (try.from)
+      .replace(/\{pension\}/g, '£512,500').replace(/\{(pensionFrom|isaFrom)\}/g, 'December 2026')
       // 7.8.0: Bold's consequence, said in the headline block at Bold (OneAnswer.boldConsequenceOf)
       .replace(/\{bold\}/g, ' About 6 times in 20 the money runs out while you are alive, and you would spend less from then on.')
       .replace(/\{(perMonth|potBefore|potAfter|yearly)\}/g, '£25,000').replace(/\{(chance|baseChance|docChance)\}/g, '92.7').replace(/\{runs\}/g, '7').replace(/\{s\}/g, 's')

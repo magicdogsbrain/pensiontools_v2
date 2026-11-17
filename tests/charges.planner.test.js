@@ -90,10 +90,13 @@ describe('the engine config carries the charge only when there is one', () => {
 });
 
 describe('loading a plan (guest store = the same code path as Firestore)', () => {
-  it('an UNLOCKED version-1 plan is given 0.5 on its first load, written back once; its runs take it', async () => {
-    seedGuest([v1Plan()]);
+  it('an UNLOCKED version-1 plan reads 0.5 on its first load and its runs take it; it is written with the next save (7.12.0: opening writes nothing)', async () => {
+    const plan = v1Plan();
+    seedGuest([plan]);
     const s = await getStressSettingsAsync();
     expect(s.chargesPct).toBe(DEFAULT_CHARGES_PCT);
+    expect(stored()[0]).toEqual(plan);                    // as it was stored
+    await saveStressSettings({});                         // the person's next save of the settings
     expect(stored()[0].schemaVersion).toBe(SCHEMA_VERSION);
     expect(stored()[0].stressTool.settings.chargesPct).toBe(DEFAULT_CHARGES_PCT);
     expect(createSimulationConfigFromSettings({}, s).chargesPct).toBe(DEFAULT_CHARGES_PCT);
@@ -104,11 +107,10 @@ describe('loading a plan (guest store = the same code path as Firestore)', () =>
     const s = await getStressSettingsAsync();
     expect('chargesPct' in s).toBe(false);
     expect('chargesPct' in createSimulationConfigFromSettings({}, s)).toBe(false);
+    // (7.12.0) opening writes nothing: the plan is stored as it was, its upgrade read in memory
+    expect(stored()[0]).toEqual(plan);
     const after = stored()[0];
-    expect(after.schemaVersion).toBe(SCHEMA_VERSION);
-    // The only Stress key the load writes is the plan's start (the 6.13.5 timing pin, for locked plans too); no charge.
-    const { legacyFirstTaxYear, ...rest } = after.stressTool.settings;
-    expect(rest).toEqual(plan.stressTool.settings);
+    expect(after.stressTool.settings).toEqual(plan.stressTool.settings);
     expect('chargesPct' in after.stressTool.settings).toBe(false);
     expect(after.decisionTool).toEqual(plan.decisionTool);
     expect(decisionSettingsChecksum(after.decisionTool.settings)).toBe(decisionSettingsChecksum(plan.decisionTool.settings));

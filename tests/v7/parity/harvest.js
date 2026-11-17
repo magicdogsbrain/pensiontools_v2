@@ -283,7 +283,7 @@ export function harvestV6Keys() {
   }
 
   // -- Accumulation, holdings, strategies, tax years (run and read) --
-  add('accumulation', returnLiteralKeys(definer('readAccumulationInputs').src, 'readAccumulationInputs'), 'index.html: readAccumulationInputs()');
+  add('accumulation', returnLiteralKeys(definer('accumulationInputsOf').src, 'accumulationInputsOf'), 'src/ui/settingsAutosave.js: accumulationInputsOf()');   // moved out of index.html (7.12.0)
   add('holdings', keysOf(emptyHoldings()), 'emptyHoldings()');
   add('holdings.lines[]', keysOf(normaliseLine({ ticker: 'VWRL' })), 'HoldingsRecord.normaliseLine()');
   const stash = stashStrategy({}, 'pots-and-valves', { savedAt: '2026-01-01' }).strategyState['pots-and-valves'];

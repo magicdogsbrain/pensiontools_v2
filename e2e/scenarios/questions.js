@@ -71,6 +71,7 @@ export const QUESTIONS = Object.freeze([
   { id: 'X4', stage: 'changing', text: 'I picked one way of drawing, then another. What changed?', asked: 'what changed between two ways of drawing', owner: 'FACTS', screen: 'How the money is taken; Settings', sc: ['s14'], was: 'P' },
   { id: 'X5', stage: 'changing', text: 'I locked and regret it. Can I unlock, change, lock again, and see what was kept?', asked: 'whether a lock can be undone, changed, locked again and the history seen', owner: 'FACTS', screen: 'Your plan as locked', sc: ['s16'], was: 'Y' },
   { id: 'X6', stage: 'changing', text: 'Can I keep two versions and compare them?', asked: 'whether two versions can be kept and compared', owner: 'VIEWS', screen: 'Your plans', sc: ['s16'], was: 'P' },
+  { id: 'X8', stage: 'changing', text: 'If I type my figures into the full view, are they kept, and does every answer use them?', asked: 'whether figures typed into the full view are kept and used', owner: 'VIEWS', screen: 'Full view Stress tester → Settings; Accumulation; Will it last?; Household', sc: ['s12'], was: 'N' },
   { id: 'X7', stage: 'changing', text: 'Can I close a plan and carry on with a new one?', asked: 'whether a plan can be closed and a new one carried on', owner: 'VIEWS', screen: 'Your plans', sc: ['s23'], was: 'P' },
   // Coming back later
   { id: 'R1', stage: 'later', text: 'Can I keep this, sign in, come back, and find it?', asked: 'whether a kept answer is found again after signing in', owner: 'VIEWS', screen: 'Keep → account → plan home', sc: ['s02'], was: 'P' },

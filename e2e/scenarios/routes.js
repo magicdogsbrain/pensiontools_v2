@@ -103,6 +103,44 @@ export async function fullPage(page, pageName) {
   return true;
 }
 
+/**
+ * A new plan from the full view's own wizard (7.12.0): the ages typed, "Already retired" ticked or not, Next, then one of the
+ * first stops (`start`: 'start-stress', 'start-accumulation', …). Opens the full view first; for an account with plans,
+ * the plan menu's "+ New Plan" (the menu opened as its button does).
+ */
+export async function fullWizard(page, { age, retired = false, retireAge, start }) {
+  if (!new URL(page.url()).pathname.startsWith(CLASSIC_PATH)) await page.goto(PROD + CLASSIC_PATH);
+  await closeNews(page);
+  const wiz = page.locator('#setupWizard');
+  // a new account opens on the wizard; one with plans opens on its plan
+  await expect.poll(async () => (await wiz.locator('#wizCurrentAge').isVisible().catch(() => false)) || (await page.locator('#mainApp:not(.hidden)').isVisible().catch(() => false)), { timeout: 45_000 }).toBe(true);
+  if (!(await wiz.locator('#wizCurrentAge').isVisible().catch(() => false))) {
+    await page.locator('#scenarioDropdown').evaluate((d) => d.classList.add('open'));
+    await page.locator('#scenarioNewBtn').click();
+  }
+  await expect(wiz.locator('#wizCurrentAge')).toBeVisible({ timeout: 45_000 });
+  await wiz.locator('#wizCurrentAge').fill(String(age));
+  if (retired) await wiz.locator('#wizRetired').check();
+  await wiz.locator('#wizRetireAge').fill(String(retireAge));
+  await wiz.getByRole('button', { name: 'Next' }).click();
+  await wiz.locator(`[data-action="${start}"]`).click();
+  await expect(page.locator('#mainApp:not(.hidden)')).toBeVisible({ timeout: 45_000 });
+  await closeNews(page);
+}
+
+/** Types into a box of the full view as a person does, and leaves it with Tab. */
+export async function typeBox(page, selector, text) {
+  const box = page.locator(selector).first();
+  await box.click();
+  await box.fill(String(text));
+  await page.keyboard.press('Tab');
+}
+
+/** The line by a form's heading reads "Saved" (the full view saves a box as it changes, 7.12.0). */
+export async function savedLine(page, testid) {
+  return expect(page.getByTestId(testid)).toHaveText('Saved', { timeout: 30_000 }).then(() => true, () => false);
+}
+
 // ---- the account ----------------------------------------------------------------------------------------------------
 
 /** "Your account", signed in with email and password. */

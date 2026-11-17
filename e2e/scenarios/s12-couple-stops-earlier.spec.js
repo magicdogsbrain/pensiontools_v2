@@ -9,10 +9,10 @@
  *   the household's start      Kim's 280,000 + 40,000 = 320,000, plus Sam's pot at 62 read from Sam's plan
  *   the verdict                for p %, "N in 20" with N = round(p ÷ 5)
  */
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { ask } from './ask.js';
-import { accountFor, made } from './account.js';
-import { at, signIn, openSimple, answer, keep, planPage, settled, editAndSave, fullPage } from './routes.js';
+import { accountFor, made, plansOf } from './account.js';
+import { at, signIn, openSimple, answer, keep, planPage, settled, editAndSave, fullPage, fullWizard, typeBox, savedLine } from './routes.js';
 import { visibleText, moneyAll, fact, neverOnAnyPage } from './read.js';
 import { knownUnanswered } from './known.js';
 import { KIM66, SAM61 } from './people.js';
@@ -78,5 +78,74 @@ test('s12 · Kim and Sam: Sam stops at 62 instead of 63, and the household check
     q.never('the household check\'s result', ages.filter((s) => !/Kim|Sam/.test(s)).slice(0, 3), { must: 'every age said with whose it is', owner: 'COUPLE' });
     q.reach('the chance before and after the change, both on the page', (after.match(/\d+ (?:times )?in 20|\d{1,3}%/g) || []).length >= 2 && /before|was|now/i.test(after), { did: 'one chance only', owner: 'COUPLE' });
     q.never('the household check', [...await neverOnAnyPage(page), ...(/\bUntil \d\b/.test(before) ? ['Until <plan year>'] : [])]);
+  });
+});
+
+// ---- 7.12.0 (the second walk, Kim and Sam in the full view): what is typed stays, and every answer uses it -------------
+const ROUTE_FULL = { path: 'the full view\'s wizard: Kim > See if I can afford to retire > Settings: type, Tab, reload; Sam > I\'m still saving > Accumulation, Settings; Sam\'s Household: check with Kim', view: 'full', who: 'signed in', asked: 'whether the figures each typed into the full view are kept and used' };
+
+test('s12 · Kim and Sam in the full view: what each types stays, and Will it last?, Try a strategy and the household check use it', async ({ page }) => {
+  test.setTimeout(420_000);
+  const me = await made(accountFor({ name: 'Kim and Sam' }, 'full'), { lastSeenVersion: VERSION, view: 'full' });
+  await ask({ name: 'Kim, 66 and Sam, 61' }, 'X8', ROUTE_FULL, async (q) => {
+    await at(page);
+    await q.step('sign in', () => signIn(page, me));
+    await q.step('Kim\'s plan: the full view\'s wizard > See if I can afford to retire', () => fullWizard(page, { age: KIM66.age, retired: true, retireAge: KIM66.age, start: 'start-stress' }));
+    await q.step('Stress tester > Settings', () => fullPage(page, 'stress settings'));
+    // decision 11: the first screen asks what everyone has; the tax-free cash rules wait under "More detail"
+    const first = await visibleText(page, '#stress-stresssettings');
+    q.never('Settings, as it opens', ['UFPLS', 'Money Purchase Annual Allowance', 'bed-and-ISA'].filter((w) => first.includes(w)), { must: 'no tax-free-cash rules before a pot and an income', owner: 'VIEWS' });
+    q.reach('the income step empty, never a figure Kim did not give', (await page.locator('#incomeStepsEditor input[type=number][step="1000"]').first().inputValue()) === '', { did: 'a figure in the first step', owner: 'VIEWS' });
+    // Kim types: the pension, the ISA, the first step, and the State Pension date as a platform shows it
+    await q.step('type the pension, the ISA and what Kim wants a year', async () => {
+      await typeBox(page, '#ssPot', KIM66.pot); await typeBox(page, '#ssIsaBalance', KIM66.isa);
+      await typeBox(page, '#incomeStepsEditor input[type=number][step="1000"]', 28000);
+    });
+    await q.step('type the State Pension date as 2026-08', async () => {
+      await typeBox(page, '#ssSpStartDate', '2026-08');
+      await page.locator('#ssSpStartDate + [data-testid="field.problem"]').waitFor({ timeout: 15_000 }).catch(() => {});   // said a moment after the box is left
+    });
+    const said = await visibleText(page, '#ssSpStartDate + [data-testid="field.problem"]');
+    q.reach('the date box saying it could not read "2026-08", with the format to type', /could not read “2026-08”/.test(said) && /6 August 2040/.test(said), { did: said || 'nothing beside the box', owner: 'VIEWS' });
+    const line = await visibleText(page, 'settings.saveState');
+    q.reach('the heading naming the State Pension start date box as not saved yet', /Not saved yet/.test(line) && /State Pension start date/.test(line), { did: line || 'nothing by the heading', owner: 'VIEWS' });
+    await q.step('type the date in full', () => typeBox(page, '#ssSpStartDate', '6 August 2026'));
+    q.reach('"Saved" by the heading', await savedLine(page, 'settings.saveState'), { did: await visibleText(page, 'settings.saveState'), owner: 'VIEWS' });
+    // a reload: the boxes are what was typed (by hand: the figures Kim typed)
+    await q.step('reload, Stress tester > Settings', async () => { await page.reload(); await fullPage(page, 'stress settings'); });
+    q.exact('Kim\'s pension pot box after a reload', Number(await page.locator('#ssPot').inputValue()), KIM66.pot, { byHand: 'typed', owner: 'VIEWS' });
+    q.exact('Kim\'s ISA box after a reload', Number(await page.locator('#ssIsaBalance').inputValue()), KIM66.isa, { byHand: 'typed', owner: 'VIEWS' });
+    q.exact('Kim\'s first income step after a reload', Number(await page.locator('#incomeStepsEditor input[type=number][step="1000"]').first().inputValue()), 28000, { byHand: 'typed', owner: 'VIEWS' });
+    // Will it last?: the what-if starts from Kim's own figures
+    await q.step('Will it last?', () => fullPage(page, 'will it last'));
+    q.exact('Try a strategy\'s pension pot, Kim\'s', Number(await page.locator('#tryPot').inputValue()), KIM66.pot, { byHand: 'Kim\'s pension as typed', owner: 'VIEWS' });
+    q.exact('Try a strategy\'s ISA, Kim\'s', Number(await page.locator('#tryIsa').inputValue()), KIM66.isa, { byHand: 'Kim\'s ISA as typed', owner: 'VIEWS' });
+
+    // Sam: a saver's plan from the same wizard, filled in on the Accumulation tab
+    await q.step('Sam\'s plan: the wizard > I\'m still saving', () => fullWizard(page, { age: SAM61.age, retired: false, retireAge: SAM61.stopAge, start: 'start-accumulation' }));
+    await q.step('the Accumulation tab: pay, pot, what goes in', async () => {
+      await fullPage(page, 'accumulation');
+      await typeBox(page, '#acSalary', SAM61.pay); await typeBox(page, '#acPotNow', SAM61.pot);
+      await typeBox(page, '#acNetMonthly', SAM61.fromTakeHome); await typeBox(page, '#acEmployerMonthly', SAM61.employer);
+    });
+    q.reach('"Saved" by the Accumulation heading', await savedLine(page, 'accumulation.saveState'), { did: await visibleText(page, 'accumulation.saveState'), owner: 'VIEWS' });
+    // what Sam wants: £1,300 a month after tax, typed as the year before tax on Settings
+    await q.step('Settings: what Sam wants a year', async () => { await fullPage(page, 'stress settings'); await typeBox(page, '#incomeStepsEditor input[type=number][step="1000"]', 16358); });
+    q.reach('"Saved" by the Settings heading', await savedLine(page, 'settings.saveState'), { did: await visibleText(page, 'settings.saveState'), byHand: '(16,358 − 12,570) × 20% = 757.60 tax; 16,358 − 757.60 = 15,600.40 a year = £1,300 a month', owner: 'VIEWS' });
+    await q.step('Will it last?', () => fullPage(page, 'will it last'));
+    q.exact('Try a strategy\'s pension pot on Sam\'s plan: Sam\'s, never Kim\'s or a default', Number(await page.locator('#tryPot').inputValue()), SAM61.pot, { byHand: 'Sam\'s pension today, as typed on the Accumulation tab', owner: 'VIEWS' });
+
+    // the household check from Sam's plan, with Kim's: run, never "no figures saved"
+    const plans = await plansOf(me.uid);
+    const kim = plans.find((p) => p.stressTool && p.stressTool.settings && +p.stressTool.settings.currentAge === KIM66.age);
+    await q.step('Household: Kim\'s plan chosen, run the check', async () => {
+      await fullPage(page, 'household');
+      if (kim) await page.locator('#hhPartnerSelect').selectOption(kim.id);
+      await page.getByRole('button', { name: 'Run the household check' }).click();
+      await expect(page.locator('#hhResults')).not.toContainText('Running both plans', { timeout: 180_000 });
+    });
+    const hh = await visibleText(page, '#hhResults');
+    q.reach('the household check run on both plans', !/no figures saved yet|no income set yet|no pot yet/.test(hh) && /in 10|in 20|%/.test(hh), { did: hh.split('\n').slice(0, 2).join(' / ') || 'nothing', owner: 'COUPLE' });
+    q.reach('Kim\'s pots as typed, £320,000, in the household check', moneyAll(hh).includes(KIM66.pot + KIM66.isa), { did: `sums on the page: ${moneyAll(hh).slice(0, 8).map((v) => `£${v.toLocaleString('en-GB')}`).join(', ')}`, byHand: '280,000 + 40,000 = 320,000', owner: 'COUPLE' });
   });
 });

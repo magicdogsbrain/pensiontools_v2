@@ -154,7 +154,7 @@ export const C = {
     stillWorking: 'Still working?',
     stopped: 'Already stopped?',
     whenStop: 'When can I afford to stop work?',
-    savingEnough: 'Am I saving enough, and what should I pay in?',
+    savingEnough: 'Am I saving enough, and what would be enough to pay in?',
     /** You have stopped and your partner stops later (couples-different-years.md 5.4): the same two questions, about them. */
     partnerWorking: 'Your partner still working?',
     whenPartnerStop: 'When could my partner afford to stop?',

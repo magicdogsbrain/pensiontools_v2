@@ -115,7 +115,7 @@ export const FRONT = {
   /** The six questions, in the visitor's words. `ask` is what the visitor is quoted as saying. The page draws them in FRONT.groups' order. */
   questions: [
     { id: 'a', ask: 'When can I afford to stop work?', more: 'See different ages side by side.' },
-    { id: 'b', ask: 'Am I saving enough? How much do I need, and what should I pay in?', more: 'The pot to aim for, what you pay in now and what it comes to, and the share of your pay that would be enough.' },
+    { id: 'b', ask: 'Am I saving enough? How much do I need, and what would be enough to pay in?', more: 'The pot to aim for, what you pay in now and what it comes to, and the share of your pay that would be enough.' },
     { id: 'c', ask: "I've got about", then: 'What is that a month?', button: 'Show me', potHint: 'for example 250,000' },
     { id: 'd', ask: "I'm retired. Will it last? Could I spend more? Would some work help?", more: 'Tested against the bad times, with a plan you can keep.' },
     { id: 'e', ask: 'Open your plans', more: 'Try a plan against the bad times, compare ways to take the money, and keep it up to date.' },

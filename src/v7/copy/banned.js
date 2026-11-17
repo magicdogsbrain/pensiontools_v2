@@ -182,6 +182,9 @@ export const BANNED = [
     allow: [/not financial advice/i, /financial advis[eo]r/i] },
   { id: 'you-should',      re: /\byou (should|ought to|had better|must)\b/i, scope: 'all',
     say: '"you could"' },
+  // 7.12.0: not in a question's title either ("what should I pay in?"): the site says what would be enough
+  { id: 'what-should-i',   re: /\b(what|which|how much) should (I|we)\b/i,   scope: 'all',
+    say: '"what would be enough"' },
   { id: 'best-for-you',    re: /\b(best|right|ideal|optimal|optimum) (option|choice|strategy|way|answer|plan)( for you)?\b/i, scope: 'all',
     say: 'describe what each does; do not rank for the person' },
   { id: 'safe',            re: /\b(safe(ly)?|safest|guaranteed?|certain(ly)?|risk[\s-]free|secure)\b/i, scope: 'result',

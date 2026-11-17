@@ -219,7 +219,7 @@ describe('B, step 1: what have you saved, and what are you paying in?', () => {
   });
 });
 
-describe('B, step 2: am I on course, and what should I pay in?', () => {
+describe('B, step 2: am I on course, and what would be enough to pay in?', () => {
   it('nothing entered: the step asks for its five things itself', () => {
     const root = renderScreen(load('answer-nothing-entered'));
     expect([...root.querySelectorAll('input[type="text"]')].map((el) => el.id)).toEqual(['b.you.age', 'b.you.pot', 'b.you.payIn.total', 'b.stop.age', 'b.spend.amount']);

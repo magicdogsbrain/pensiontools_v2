@@ -1,5 +1,5 @@
 /**
- * The input list for question B — "Am I saving enough, and what should I pay in?" (step 4 brief 4.1).
+ * The input list for question B — "Am I saving enough, and what would be enough to pay in?" (step 4 brief 4.1).
  *
  * No words here. Labels, help and error sentences are in src/v7/copy/b.js, keyed by path.
  * The same list as A's with: a required pay-in; a stop age only (no "show me ages"); no part-time work; savings under

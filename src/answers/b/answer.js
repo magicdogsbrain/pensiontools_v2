@@ -1,5 +1,5 @@
 /**
- * Question B — "Am I saving enough, and what should I pay in?" (step 4 brief 4.8, with section 10's J9).
+ * Question B — "Am I saving enough, and what would be enough to pay in?" (step 4 brief 4.8, with section 10's J9).
  *
  * ONE TEST EVERYWHERE. A life is one future from today through the saving years and the drawing years (lives.js); the
  * money "works" when it lasts to the end age in that whole life, and "careful" is 9 lives in 10. C, A and B are three

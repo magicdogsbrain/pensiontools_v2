@@ -1,5 +1,5 @@
 /**
- * The words of question B — "Am I saving enough, and what should I pay in?". Data only — this file imports nothing.
+ * The words of question B — "Am I saving enough, and what would be enough to pay in?". Data only — this file imports nothing.
  *
  * Labels, help and error sentences are keyed by the field paths of SCHEMA_B (src/answers/b/schema.js); step labels
  * and next sentences by the ids of src/v7/rail/b.js. The sentences that state the answer are NOT here: the answer
@@ -10,13 +10,13 @@
  * component that shows the string. Every string passes the banned list in every scope B is shown in.
  */
 export const B = {
-  title: 'Am I saving enough, and what should I pay in?',
+  title: 'Am I saving enough, and what would be enough to pay in?',
 
   steps: {
     numbers: { label: 'What have you saved, and what are you paying in?', short: 'Your numbers' },
     /** The budget step (research/v7/budget-step.md). Its own words are in copy/budget.js. */
     spend:   { label: 'What would you spend?', short: 'What you spend' },
-    answer:  { label: 'Am I on course, and what should I pay in?', short: 'What to pay in' },
+    answer:  { label: 'Am I on course, and what would be enough to pay in?', short: 'What to pay in' },
     choices: { label: 'What if I stop later, or pay in more, or both?', short: 'Two levers together' },
     keep:    { label: 'Keep this as a plan?', short: 'Keep as a plan' }
   },

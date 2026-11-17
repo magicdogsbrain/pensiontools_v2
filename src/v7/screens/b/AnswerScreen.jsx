@@ -1,5 +1,5 @@
 /**
- * Question B, step 2 — "Am I on course, and what should I pay in?" (screens-A-B.md 4.2, 4.4, 6; step 4 brief 4.8,
+ * Question B, step 2 — "Am I on course, and what would be enough to pay in?" (screens-A-B.md 4.2, 4.4, 6; step 4 brief 4.8,
  * 4.13; one test everywhere, brief section 10), said straight (research/saving-enough-and-check-in.md 2–3, release R1).
  *
  * The order is the answer's: first the verdict — its band in words ("Not on course for £1,810 a month from 63"), the

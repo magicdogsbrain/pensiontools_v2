@@ -199,7 +199,7 @@ export function installMonthlyEntryHandlers(deps) {
     modal = { fieldId, subtotal: 0 };
     el('fundModalTitle').textContent = title;
     const rows = el('fundModalRows');
-    if (!bucketFunds.length) rows.innerHTML = '<p style="color:var(--text-muted);">No ' + esc(title.toLowerCase()) + ' recorded yet. Record what you hold on the <strong>Transition</strong> tab, then come back — or just type the total into the box.</p>';
+    if (!bucketFunds.length) rows.innerHTML = '<p style="color:var(--text-muted);">No ' + esc(title.toLowerCase()) + ' listed yet. You can list what you hold on the <strong>Transition</strong> tab and come back, or just type the total into the box.</p>';
     else rows.innerHTML = bucketFunds.map((f) => {
       const cat = deps.liveCatalogueEntry(f.ticker); const prof = deps.SUB_ASSET_PROFILES[deps.effectiveSubClass(f)];
       return '<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0;"><span><strong>' + esc(f.ticker) + '</strong> <span style="color:var(--text-muted);font-size:12px;">' + esc(cat ? cat.name : (prof ? prof.label : '')) + '</span></span>'
@@ -220,7 +220,7 @@ export function installMonthlyEntryHandlers(deps) {
     const hasTags = (deps.holdingsLines() || []).filter((f) => f.ticker).length > 0;
     if (hasTags) { box.style.display = 'none'; box.innerHTML = ''; return; }
     box.style.display = 'block';
-    box.innerHTML = '<div class="alert alert-info" style="font-size:13px;">Record what you hold on the <strong>Transition</strong> tab (paste it from your platform) and the <em>enter per fund ▸</em> links let you type each fund\'s value here. Or just type the totals.</div>';
+    box.innerHTML = '<div class="alert alert-info" style="font-size:13px;">Once what you hold is listed on the <strong>Transition</strong> tab (paste it from your platform), the <em>enter per fund ▸</em> links let you type each fund\'s value here. Or just type the totals.</div>';
   };
   // Pre-fill the taxable account's cost basis from the last saved month (it must persist between months or CGT
   // cannot be worked out). The balance itself is entered fresh each month.

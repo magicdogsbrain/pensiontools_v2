@@ -102,7 +102,7 @@ export function holdingsAtLockHtml(doc) {
   let h = '<div class="section-title" style="font-size:13px;margin-top:10px;">' + esc(title) + '</div>';
   if (!H) return h + '<p class="hint">This document was written before holdings were recorded separately from the funds a strategy is tested on. Refresh the plan document to add them.</p>';
   const lines = Array.isArray(H.lines) ? H.lines : [];
-  if (!lines.length) return h + '<p class="hint">No holdings were on record when the plan was locked. Record what you hold on the Transition tab (What you hold — paste it from your platform or type the lines) — the Transition tool works from that record, not from the funds the strategy was tested on.</p>';
+  if (!lines.length) return h + '<p class="hint">No holdings were listed when the plan was locked, and you do not need to list them. If you do (What you hold, on the Transition tab), the move reads that list, never the funds the strategy was tested on.</p>';
   const byWrapper = {}; let total = 0;
   for (const l of lines) { const v = +l.value || 0; total += v; byWrapper[l.wrapper || 'SIPP'] = (byWrapper[l.wrapper || 'SIPP'] || 0) + v; }
   const anyUnits = lines.some((l) => l.units != null), anyAsOf = lines.some((l) => l.asOf);
@@ -343,7 +343,7 @@ export function whereAmIPotText(pot) {
   if (missing.includes('pension')) return 'No pension pot on record yet to set against the plan\'s band. Enter this month\'s values in the Decision tool, or record it under What you hold, to compare.';
   if (missing.length) {
     const head = pension ? 'Pension pot ' + gbp(pension.value) + ' (' + esc(sourceText(pension)) + '). ' : '';
-    if (missing.includes('diversifiers')) return head + 'The plan\'s band counts your diversifiers as well, and the monthly record does not keep their value, so the pot is not set against the band. Record what you hold, diversifiers included, under What you hold, to compare.';
+    if (missing.includes('diversifiers')) return head + 'The plan\'s band counts your diversifiers as well, and the monthly record does not keep their value, so the pot is not set against the band. You can list what you hold, diversifiers included, under What you hold, to compare.';
     const names = missing.filter((k) => ADD_NAME[k]);
     // the ISA alone (7.12.0): the simple view's words, the box it can be typed in and the page it can be added on
     if (names.length === 1 && names[0] === 'isa') return head + 'Your plan counts your ISA too, and we have no figure for it. You can type it in the ISA box when you next record a month, or add it under What you hold.';

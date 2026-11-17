@@ -2506,7 +2506,7 @@
             <!-- Fund tagging: the list of funds IS the Decision plan's target allocation (auto-applied). -->
             <div id="dsFundsMode" style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
-                <strong>Funds to test.</strong> The portfolio this plan's target split is built from — each fund is tagged to a bucket and sub-class (change any of them), and the target allocation follows it. It is <em>not</em> a record of what you hold: that is recorded on the <strong>Transition</strong> tab, and the monthly entry's <em>enter per fund</em> links read it.
+                <strong>Funds to test.</strong> The portfolio this plan's target split is built from — each fund is tagged to a bucket and sub-class (change any of them), and the target allocation follows it. It is <em>not</em> a record of what you hold: that is listed on the <strong>Transition</strong> tab, and the monthly entry's <em>enter per fund</em> links read it.
               </p>
               <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Paste a holdings table (any layout) to use as the list this strategy is tested on — it does not change what you hold">📋 Paste a list to test</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
@@ -3363,7 +3363,7 @@
             <!-- Fund tagging: the list of funds IS your allocation (auto-applied as you edit). -->
             <div id="ssFundsMode" data-pnv-only style="display:none; margin-top:14px; border:1px solid var(--border,#cbd5e1); border-radius:8px; padding:12px 14px;">
               <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
-                <strong>Funds to test.</strong> This list is the portfolio the strategy is stress-tested on — each fund is tagged to a bucket and sub-class (change any of them), and the allocation follows it. It is <em>not</em> a record of what you hold: that is recorded on the <strong>Transition</strong> tab and never changes when you try a strategy. Each strategy keeps its own list; switching strategy puts it away and switching back restores it.
+                <strong>Funds to test.</strong> This list is the portfolio the strategy is stress-tested on — each fund is tagged to a bucket and sub-class (change any of them), and the allocation follows it. It is <em>not</em> a record of what you hold: that is listed on the <strong>Transition</strong> tab and never changes when you try a strategy. Each strategy keeps its own list; switching strategy puts it away and switching back restores it.
               </p>
               <div class="row-flex" style="margin-bottom:8px;"><button type="button" class="risk-btn" data-on-click="openPasteHoldingsNear(this)" title="Paste a holdings table (any layout) to use as the list this strategy is tested on — it does not change what you hold">📋 Paste a list to test</button><span class="hint">Works with AJ Bell, HL, ii, Vanguard, Fidelity… copy the table, paste, check the preview.</span></div>
               <div class="fund-search-box" style="position:relative; margin-bottom:10px; max-width:400px;">
@@ -6743,7 +6743,7 @@
       // funds-to-test list — that is the portfolio a strategy is tested on, not what you have (6.13.0).
       let holdings = []; try { holdings = ((await getActiveHoldings()).lines || []).filter(f => f.ticker && f.value > 0); } catch (e) { holdings = []; }
       if (!holdings.length) {
-        showToast('Nothing recorded yet — record what you hold on the Transition tab (paste it from your platform), then come back.', 'info', 6000);
+        showToast('Nothing is listed under What you hold yet. You can paste it from your platform on the Transition tab, then come back.', 'info', 6000);
         return;
       }
       const t = tagPortfolio(holdings);
@@ -7462,7 +7462,7 @@
       try {
         const rec = await getActiveHoldings();
         const hp = holdingsProportions(rec.lines || []);
-        if (!(hp.total > 0)) { el.innerHTML = '<p class="hint">Nothing recorded yet. Record what you hold on the Transition tab (paste it from your platform) and the planner will show your proportions here.</p>'; return; }
+        if (!(hp.total > 0)) { el.innerHTML = '<p class="hint">Nothing is listed under What you hold, and you do not need to list it. If you do (paste it from your platform on the Transition tab), its proportions show here.</p>'; return; }
         const pct = (v) => Math.round(v * 100) + '%';
         let h = '<div class="alert alert-info" style="margin:0 0 8px;">' + budEsc(describeMix(hp)) + '</div>';
         h += '<div class="table-scroll-container"><table><thead><tr><th>Asset class</th><th>Value</th><th>Share</th></tr></thead><tbody>'
@@ -9755,7 +9755,7 @@
       if (await planIsLocked()) {
         // 6.5.0: a locked plan's Stress settings are frozen (one lock for both tools). What you HOLD is not a
         // setting — it is recorded on the Transition tab and stays editable (6.13.0).
-        showToast('This plan is locked — its settings are frozen for both tools. Unlock it (the banner explains what changes) or duplicate the plan to try something else. What you hold is recorded on the Transition tab and can always be updated.', 'info', 7000);
+        showToast('This plan is locked — its settings are frozen for both tools. Unlock it (the banner explains what changes) or duplicate the plan to try something else. What you hold is listed on the Transition tab and can always be updated.', 'info', 7000);
         return;
       }
 

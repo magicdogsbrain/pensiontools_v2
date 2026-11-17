@@ -7953,11 +7953,11 @@
         + '<div class="row-flex" style="gap:18px;flex-wrap:wrap;align-items:flex-start;">'
         + '<div><div class="hint">Income step this year</div><div style="font-size:20px;font-weight:600;">' + g(lp.gross) + '</div>'
         + '<div class="hint">' + (lp.statePension > 0 ? 'State Pension ' + g(lp.statePension) + (lp.source === 'cash' ? ' + the plan’s cash years ' : ' + ladder ') + g(lp.fromLadder) : (lp.source === 'cash' ? 'all from the plan’s cash years' : 'all from the ladder')) + '</div></div>'
-        + '<div><div class="hint">Tell the broker to pay</div><div style="font-size:20px;font-weight:600;color:var(--accent);">' + g(lp.monthly) + ' / month</div>'
+        + '<div><div class="hint">The plan pays</div><div style="font-size:20px;font-weight:600;color:var(--accent);">' + g(lp.monthly) + ' / month</div>'
         + '<div class="hint">for the ' + lp.monthsLeft + ' month' + (lp.monthsLeft === 1 ? '' : 's') + ' to 5 April ' + (lp.taxYear + 1) + '</div></div>'
         + '<div><div class="hint">Paid by</div><div style="font-size:14px;">' + src + '</div></div>'
         + '</div>';
-      h += '<p class="hint" style="margin-top:8px;">Nothing to decide: the plan set this year’s money aside when it was locked. Figures are in today\'s money' + (lp.source === 'cash' ? '.' : ' — scale by the RPI uplift the rung actually paid.') + '</p>';
+      h += '<p class="hint" style="margin-top:8px;">Figures are in today\'s money' + (lp.source === 'cash' ? '.' : ' — scale by the RPI uplift the rung actually paid.') + '</p>';
       if (lp.next) {
         h += '<p style="font-size:14px;margin-top:8px;"><strong>Next maturity:</strong> ' + budEsc(lp.next.tidm) + ' on ' + dt(lp.next.matures)
           + ' — about ' + g(lp.next.pays) + ' for ' + budEsc((lp.next.taxYears || []).map((Y) => Y + '/' + String(Y + 1).slice(2)).join(' + '))

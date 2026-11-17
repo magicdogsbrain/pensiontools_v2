@@ -41,6 +41,9 @@ describe('ladderPosition', () => {
     expect(p.source).toBe('T29');
     expect(p.monthly).toBeCloseTo(43000 / 12, 0);
     expect(p.instruction).toContain('a month');
+    // 7.12.0 round 3 (decision 6): what the plan's rule does, never an order to give: £43,000 ÷ 12 = £3,583 for the 12 months
+    expect(p.instruction).toBe('The plan pays £3,583 a month for the 12 months to 5 April 2031.');
+    expect(p.instruction).not.toMatch(/broker|instruct/i);
   });
 
   it('nets the State Pension off the ladder draw', () => {

@@ -126,8 +126,9 @@ export function ladderPosition(plan, o = {}) {
     yearsLeft: Math.max(0, last - Y),
     spread,
     instruction: cur
-      ? (spread ? `Instruct the broker to pay ${fmt(monthly)} a month: the plan pays this tax year's income over the twelve months from ${MONTHS[potsDay.getMonth()]} ${potsDay.getFullYear()}, the month its pots were entered.`
-        : `Instruct the broker to pay ${fmt(monthly)} a month for the ${monthsLeft} month${monthsLeft === 1 ? '' : 's'} to 5 April ${Y + 1}.`)
+      // what the plan's rule does this month, never an order to give (7.12.0 round 3, decision 6)
+      ? (spread ? `The plan pays ${fmt(monthly)} a month: it pays this tax year's income over the twelve months from ${MONTHS[potsDay.getMonth()]} ${potsDay.getFullYear()}, the month its pots were entered.`
+        : `The plan pays ${fmt(monthly)} a month for the ${monthsLeft} month${monthsLeft === 1 ? '' : 's'} to 5 April ${Y + 1}.`)
       : (phase === 'before' ? `The ladder starts in ${first}/${String(first + 1).slice(2)}.` : 'The ladder has paid its last year.')
   };
 }

@@ -9,6 +9,7 @@ import { buildPlanSeed } from '../../../src/answers/keep/planSeed.js';
 import { seedToScenario } from '../../../src/services/PlanFromSeed.js';
 import { upgradeScenario } from '../../../src/firebase/scenarioMigration.js';
 import { boxesOf, aboutPatch } from '../../../src/answers/plan/about.js';
+import { planPage } from '../../../src/answers/plan/read.js';
 
 const KEPT_ON = '2025-11-12';
 const copy = (v) => JSON.parse(JSON.stringify(v));
@@ -39,5 +40,13 @@ describe('the age box says the age today', () => {
       if (/AsOf$/.test(k)) expect(v, k).toBe(KEPT_ON);
       else expect(v, k).toBe(44);
     }
+  });
+
+  it('Your plan says the same age today: 45', () => {
+    const plan = samPlan('2026-11-16');
+    const rows = planPage([{ plan, newer: false, failed: false }], plan.id, 'plan', { today: '2026-11-16' });
+    const flat = JSON.stringify(rows);
+    expect(flat).toMatch(/"ageToday":45\b/);
+    expect(flat).not.toMatch(/"ageToday":44\b/);
   });
 });

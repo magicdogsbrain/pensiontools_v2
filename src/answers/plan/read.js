@@ -15,7 +15,7 @@
  */
 import { planStage, effectiveStressSettings, whereAmIFor, whereAmIInputs, moveInputs, thisMonth, historyAscending } from '../../services/PlanReading.js';
 import { CONTRACT_STRATEGIES, planToAgeOfDefinition, guardrailOf, pricesMonthKeyOf } from '../../services/PlanDocument.js';
-import { taxYearLabel, taxYearStartOf, taxYearKey } from '../../services/PlanTiming.js';
+import { taxYearLabel, taxYearStartOf, taxYearKey, ageOnDate } from '../../services/PlanTiming.js';
 import { documentLadder, firstRungOf } from '../../services/LadderPosition.js';
 import { saverPotOf } from '../../services/SaverReading.js';
 import { payInShareOf } from '../../services/SaverPayIn.js';
@@ -576,8 +576,11 @@ function planStep(C) {
 
   // About you
   const about = [];
-  const ageToday = locked && timing && num(timing.currentAge) != null ? timing.currentAge : num(ss.currentAge);
+  const ageTyped = locked && timing && num(timing.currentAge) != null ? timing.currentAge : num(ss.currentAge);
   const ageAsOf = locked && timing ? timing.currentAgeAsOf : ss.currentAgeAsOf;
+  // (7.12.0) the age today: the age typed, a year older for each birthday since its day (About's box says the same)
+  let ageToday = ageTyped;
+  if (ageTyped != null && ageAsOf) { try { const a = ageOnDate({ currentAge: ageTyped, currentAgeAsOf: ageAsOf, spStartDate: ss.spStartDate }, now, now); if (num(a) != null) ageToday = a; } catch { ageToday = ageTyped; } }
   if (ageToday != null) { figures.ageToday = ageToday; about.push(line('about.age', [age('ageToday')], figures, locked ? src : sourceOf('saved', ageAsOf || null, now), { asOf: ageAsOf ? dayWords(ageAsOf) : '' })); }
   const retired = locked && timing ? timing.mode === 'retired' : ss.retired === true;
   const retireAge = locked && timing ? num(timing.retireAge) : num(ss.retireAge);

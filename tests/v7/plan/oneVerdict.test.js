@@ -80,7 +80,7 @@ describe('the full view leads a saving plan with the saving chance', () => {
   });
   it('says everything under it starts from the middling pension when work stops (£743,920), and puts no second figure beside the chance', () => {
     const html = verdictBlockView(run, PS, o).replace(/<[^>]+>/g, ' ');
-    expect(html).toContain('Everything below starts from £743,920 in your pension when you stop work');
+    expect(html).toContain('Everything below starts from £743,920 in your pension on the day work stops');
     expect(html).not.toContain('worst 12 months lived');
   });
   it('without a saving chance the block is the run\'s own, as before', () => {

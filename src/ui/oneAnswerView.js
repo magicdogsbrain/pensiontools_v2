@@ -342,7 +342,7 @@ export function verdictBlockView(r, p, o = {}) {
 export function fromStopWords(p) {
   const pot = p && Number.isFinite(+p.pot) && +p.pot > 0 ? gbpC(+p.pot) : null;
   return 'The chance above counts the saving years: each future saves its own pot, then draws from it, as on the Accumulation tab and the simple view. '
-    + 'Everything below starts from ' + (pot ? pot + ' in your pension' : 'the middling pot') + ' when you stop work (the middling case) and leaves out the saving years, so it can differ.';
+    + 'Everything below starts from ' + (pot ? pot + ' in your pension' : 'the middling pot') + ' on the day work stops (the middling case) and leaves out the saving years, so it can differ.';
 }
 
 /** A fixed-age share as a hero figure: "16 in 20". */

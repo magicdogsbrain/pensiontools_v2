@@ -26,8 +26,8 @@ export const LASTS = {
     'lasts.subFixed': '{words}',
     'lasts.subWhy': '{words}',
     /** (7.12.0) a plan still saving: the headline counts the saving years; everything under it starts from the pot at the stop */
-    'lasts.subFromStop': 'Everything below starts from {pot} in your pension when you stop work (the middling case) and leaves out the saving years, so it can differ from the chance above. {words}',
-    'lasts.subFromStopNoPot': 'Everything below starts from the middling pot when you stop work and leaves out the saving years, so it can differ from the chance above. {words}',
+    'lasts.subFromStop': 'Everything below starts from {pot} in your pension on the day work stops (the middling case) and leaves out the saving years, so it can differ from the chance above. {words}',
+    'lasts.subFromStopNoPot': 'Everything below starts from the middling pot on the day work stops and leaves out the saving years, so it can differ from the chance above. {words}',
     word: { yes: 'On course', close: 'Close', no: 'Not yet' },
     /** 7.8.0: the level the band is judged at, before its word ("At Balanced: On course"). */
     atLevel: 'At {level}:'
